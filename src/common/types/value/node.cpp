@@ -12,7 +12,7 @@ std::vector<std::pair<std::string, std::unique_ptr<Value>>> NodeVal::getProperti
     const Value* val) {
     throwIfNotNode(val);
     std::vector<std::pair<std::string, std::unique_ptr<Value>>> properties;
-    auto fieldNames = StructType::getFieldNames(val->dataType.get());
+    auto fieldNames = StructType::getFieldNames(*val->dataType);
     for (auto i = 0u; i < val->childrenSize; ++i) {
         auto currKey = fieldNames[i];
         if (currKey == InternalKeyword::ID || currKey == InternalKeyword::LABEL) {
@@ -25,13 +25,13 @@ std::vector<std::pair<std::string, std::unique_ptr<Value>>> NodeVal::getProperti
 
 uint64_t NodeVal::getNumProperties(const Value* val) {
     throwIfNotNode(val);
-    auto fieldNames = StructType::getFieldNames(val->dataType.get());
+    auto fieldNames = StructType::getFieldNames(*val->dataType);
     return fieldNames.size() - OFFSET;
 }
 
 std::string NodeVal::getPropertyName(const Value* val, uint64_t index) {
     throwIfNotNode(val);
-    auto fieldNames = StructType::getFieldNames(val->dataType.get());
+    auto fieldNames = StructType::getFieldNames(*val->dataType);
     if (index >= fieldNames.size() - OFFSET) {
         return "";
     }
@@ -40,7 +40,7 @@ std::string NodeVal::getPropertyName(const Value* val, uint64_t index) {
 
 Value* NodeVal::getPropertyVal(const Value* val, uint64_t index) {
     throwIfNotNode(val);
-    auto fieldNames = StructType::getFieldNames(val->dataType.get());
+    auto fieldNames = StructType::getFieldNames(*val->dataType);
     if (index >= fieldNames.size() - OFFSET) {
         return nullptr;
     }
@@ -49,13 +49,13 @@ Value* NodeVal::getPropertyVal(const Value* val, uint64_t index) {
 
 Value* NodeVal::getNodeIDVal(const Value* val) {
     throwIfNotNode(val);
-    auto fieldIdx = StructType::getFieldIdx(val->dataType.get(), InternalKeyword::ID);
+    auto fieldIdx = StructType::getFieldIdx(*val->dataType, InternalKeyword::ID);
     return val->children[fieldIdx].get();
 }
 
 Value* NodeVal::getLabelVal(const Value* val) {
     throwIfNotNode(val);
-    auto fieldIdx = StructType::getFieldIdx(val->dataType.get(), InternalKeyword::LABEL);
+    auto fieldIdx = StructType::getFieldIdx(*val->dataType, InternalKeyword::LABEL);
     return val->children[fieldIdx].get();
 }
 

@@ -269,15 +269,15 @@ static std::unique_ptr<LogicalType> pyLogicalType(py::handle val) {
     }
 }
 
-static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
+static Value transformPythonValueAs(py::handle val, const LogicalType& type) {
     // ignore the type of the actual python object, just directly cast
     auto datetime_datetime = importCache->datetime.datetime();
     auto time_delta = importCache->datetime.timedelta();
     auto datetime_date = importCache->datetime.date();
     if (val.is_none()) {
-        return Value::createNullValue(*type);
+        return Value::createNullValue(type);
     }
-    switch (type->getLogicalTypeID()) {
+    switch (type.getLogicalTypeID()) {
     case LogicalTypeID::ANY:
         return Value::createNullValue();
     case LogicalTypeID::BOOL:
@@ -367,7 +367,7 @@ static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
             children.push_back(std::make_unique<Value>(
                 transformPythonValueAs(child, ListType::getChildType(type))));
         }
-        return Value(std::make_unique<LogicalType>(*type), std::move(children));
+        return Value(std::make_unique<LogicalType>(type), std::move(children));
     }
     case LogicalTypeID::MAP: {
         py::dict dict = py::reinterpret_borrow<py::dict>(val);
@@ -378,9 +378,9 @@ static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
             // a unique ptr
             std::vector<StructField> fields;
             fields.emplace_back(InternalKeyword::MAP_KEY,
-                std::make_unique<LogicalType>(*childKeyType));
+                std::make_unique<LogicalType>(childKeyType));
             fields.emplace_back(InternalKeyword::MAP_VALUE,
-                std::make_unique<LogicalType>(*childValueType));
+                std::make_unique<LogicalType>(childValueType));
             std::vector<std::unique_ptr<Value>> structValues;
             structValues.push_back(
                 std::make_unique<Value>(transformPythonValueAs(child.first, childKeyType)));
@@ -389,7 +389,7 @@ static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
             children.push_back(std::make_unique<Value>(LogicalType::STRUCT(std::move(fields)),
                 std::move(structValues)));
         }
-        return Value(std::make_unique<LogicalType>(*type), std::move(children));
+        return Value(std::make_unique<LogicalType>(type), std::move(children));
     }
     // LCOV_EXCL_START
     default:
@@ -400,7 +400,7 @@ static Value transformPythonValueAs(py::handle val, const LogicalType* type) {
 
 Value transformPythonValue(py::handle val) {
     auto type = pyLogicalType(val);
-    return transformPythonValueAs(val, type.get());
+    return transformPythonValueAs(val, *type);
 }
 
 std::unique_ptr<PyQueryResult> PyConnection::checkAndWrapQueryResult(

@@ -46,7 +46,7 @@ void ArrowConverter::setArrowFormatForStruct(ArrowSchemaHolder& rootHolder, Arro
     const LogicalType& dataType) {
     child.format = "+s";
     // name is set by parent.
-    child.n_children = (std::int64_t)StructType::getNumFields(&dataType);
+    child.n_children = (std::int64_t)StructType::getNumFields(dataType);
     rootHolder.nestedChildren.emplace_back();
     rootHolder.nestedChildren.back().resize(child.n_children);
     rootHolder.nestedChildrenPtr.emplace_back();
@@ -57,16 +57,16 @@ void ArrowConverter::setArrowFormatForStruct(ArrowSchemaHolder& rootHolder, Arro
     child.children = &rootHolder.nestedChildrenPtr.back()[0];
     for (auto i = 0u; i < child.n_children; i++) {
         initializeChild(*child.children[i]);
-        auto structField = StructType::getField(&dataType, i);
-        child.children[i]->name = copyName(rootHolder, structField->getName());
-        setArrowFormat(rootHolder, *child.children[i], *structField->getType());
+        auto structField = StructType::getField(dataType, i);
+        child.children[i]->name = copyName(rootHolder, structField.getName());
+        setArrowFormat(rootHolder, *child.children[i], structField.getType());
     }
 }
 
 void ArrowConverter::setArrowFormatForUnion(ArrowSchemaHolder& rootHolder, ArrowSchema& child,
     const LogicalType& dataType) {
     std::string formatStr = "+ud";
-    child.n_children = (std::int64_t)UnionType::getNumFields(&dataType);
+    child.n_children = (std::int64_t)UnionType::getNumFields(dataType);
     rootHolder.nestedChildren.emplace_back();
     rootHolder.nestedChildren.back().resize(child.n_children);
     rootHolder.nestedChildrenPtr.emplace_back();
@@ -77,10 +77,10 @@ void ArrowConverter::setArrowFormatForUnion(ArrowSchemaHolder& rootHolder, Arrow
     child.children = &rootHolder.nestedChildrenPtr.back()[0];
     for (auto i = 0u; i < child.n_children; i++) {
         initializeChild(*child.children[i]);
-        auto unionFieldType = UnionType::getFieldType(&dataType, i);
-        auto unionFieldName = UnionType::getFieldName(&dataType, i);
+        auto unionFieldType = UnionType::getFieldType(dataType, i);
+        auto unionFieldName = UnionType::getFieldName(dataType, i);
         child.children[i]->name = copyName(rootHolder, unionFieldName);
-        setArrowFormat(rootHolder, *child.children[i], *unionFieldType);
+        setArrowFormat(rootHolder, *child.children[i], unionFieldType);
         formatStr += (i == 0u ? ":" : ",") + std::to_string(i);
     }
     child.format = copyName(rootHolder, formatStr);
@@ -186,10 +186,10 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
         initializeChild(rootHolder.nestedChildren.back()[0]);
         child.children = &rootHolder.nestedChildrenPtr.back()[0];
         child.children[0]->name = "l";
-        setArrowFormat(rootHolder, **child.children, *ListType::getChildType(&dataType));
+        setArrowFormat(rootHolder, **child.children, ListType::getChildType(dataType));
     } break;
     case LogicalTypeID::ARRAY: {
-        auto numValuesPerArray = "+w:" + std::to_string(ArrayType::getNumElements(&dataType));
+        auto numValuesPerArray = "+w:" + std::to_string(ArrayType::getNumElements(dataType));
         child.format = copyName(rootHolder, numValuesPerArray);
         child.n_children = 1;
         rootHolder.nestedChildren.emplace_back();
@@ -199,7 +199,7 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
         initializeChild(rootHolder.nestedChildren.back()[0]);
         child.children = &rootHolder.nestedChildrenPtr.back()[0];
         child.children[0]->name = "l";
-        setArrowFormat(rootHolder, **child.children, *ArrayType::getChildType(&dataType));
+        setArrowFormat(rootHolder, **child.children, ArrayType::getChildType(dataType));
     } break;
     case LogicalTypeID::MAP: {
         child.format = "+m";
@@ -211,7 +211,7 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
         initializeChild(rootHolder.nestedChildren.back()[0]);
         child.children = &rootHolder.nestedChildrenPtr.back()[0];
         child.children[0]->name = "l";
-        setArrowFormat(rootHolder, **child.children, *ListType::getChildType(&dataType));
+        setArrowFormat(rootHolder, **child.children, ListType::getChildType(dataType));
     } break;
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::NODE:

@@ -15,10 +15,10 @@ namespace storage {
 StructColumnChunk::StructColumnChunk(LogicalType dataType, uint64_t capacity,
     bool enableCompression, bool inMemory)
     : ColumnChunk{std::move(dataType), capacity} {
-    auto fieldTypes = StructType::getFieldTypes(&this->dataType);
+    auto fieldTypes = StructType::getFieldTypes(this->dataType);
     childChunks.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
-        childChunks[i] = ColumnChunkFactory::createColumnChunk(*fieldTypes[i]->copy(),
+        childChunks[i] = ColumnChunkFactory::createColumnChunk(*fieldTypes[i].copy(),
             enableCompression, capacity, inMemory);
     }
 }
@@ -43,7 +43,7 @@ void StructColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk
 }
 
 void StructColumnChunk::append(ValueVector* vector, const SelectionVector& selVector) {
-    auto numFields = StructType::getNumFields(&dataType);
+    auto numFields = StructType::getNumFields(dataType);
     for (auto i = 0u; i < numFields; i++) {
         childChunks[i]->append(StructVector::getFieldVector(vector, i).get(), selVector);
     }
@@ -56,7 +56,7 @@ void StructColumnChunk::append(ValueVector* vector, const SelectionVector& selVe
 void StructColumnChunk::lookup(offset_t offsetInChunk, ValueVector& output,
     sel_t posInOutputVector) const {
     KU_ASSERT(offsetInChunk < numValues);
-    auto numFields = StructType::getNumFields(&dataType);
+    auto numFields = StructType::getNumFields(dataType);
     output.setNull(posInOutputVector, nullChunk->isNull(offsetInChunk));
     for (auto i = 0u; i < numFields; i++) {
         childChunks[i]->lookup(offsetInChunk, *StructVector::getFieldVector(&output, i).get(),

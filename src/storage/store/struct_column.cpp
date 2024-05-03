@@ -17,13 +17,13 @@ StructColumn::StructColumn(std::string name, LogicalType dataType,
     RWPropertyStats propertyStatistics, bool enableCompression)
     : Column{name, std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
           transaction, propertyStatistics, enableCompression, true /* requireNullColumn */} {
-    auto fieldTypes = StructType::getFieldTypes(&this->dataType);
+    auto fieldTypes = StructType::getFieldTypes(this->dataType);
     KU_ASSERT(metaDAHeaderInfo.childrenInfos.size() == fieldTypes.size());
     childColumns.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
         auto childColName = StorageUtils::getColumnName(name,
             StorageUtils::ColumnType::STRUCT_CHILD, std::to_string(i));
-        childColumns[i] = ColumnFactory::createColumn(childColName, *fieldTypes[i]->copy(),
+        childColumns[i] = ColumnFactory::createColumn(childColName, *fieldTypes[i].copy(),
             *metaDAHeaderInfo.childrenInfos[i], dataFH, metadataFH, bufferManager, wal, transaction,
             propertyStatistics, enableCompression);
     }

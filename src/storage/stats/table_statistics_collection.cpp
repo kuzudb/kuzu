@@ -89,24 +89,24 @@ std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(
         InMemDiskArray<ColumnChunkMetadata>::addDAHPageToFile(metadataFH, bm, wal);
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
-        auto fields = StructType::getFields(&dataType);
+        auto fields = StructType::getFields(dataType);
         metadataDAHInfo->childrenInfos.resize(fields.size());
         for (auto i = 0u; i < fields.size(); i++) {
             metadataDAHInfo->childrenInfos[i] =
-                createMetadataDAHInfo(*fields[i]->getType(), metadataFH, bm, wal);
+                createMetadataDAHInfo(fields[i].getType(), metadataFH, bm, wal);
         }
     } break;
     case PhysicalTypeID::LIST: {
         metadataDAHInfo->childrenInfos.push_back(
             createMetadataDAHInfo(*LogicalType::UINT32(), metadataFH, bm, wal));
         metadataDAHInfo->childrenInfos.push_back(
-            createMetadataDAHInfo(*ListType::getChildType(&dataType), metadataFH, bm, wal));
+            createMetadataDAHInfo(ListType::getChildType(dataType), metadataFH, bm, wal));
     } break;
     case PhysicalTypeID::ARRAY: {
         metadataDAHInfo->childrenInfos.push_back(
             createMetadataDAHInfo(*LogicalType::UINT32(), metadataFH, bm, wal));
         metadataDAHInfo->childrenInfos.push_back(
-            createMetadataDAHInfo(*ArrayType::getChildType(&dataType), metadataFH, bm, wal));
+            createMetadataDAHInfo(ArrayType::getChildType(dataType), metadataFH, bm, wal));
     } break;
     case PhysicalTypeID::STRING: {
         auto dataMetadataDAHInfo = std::make_unique<MetadataDAHInfo>();

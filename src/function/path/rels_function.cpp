@@ -12,8 +12,8 @@ namespace function {
 static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
     Function*) {
     auto structType = arguments[0]->getDataType();
-    auto fieldIdx = StructType::getFieldIdx(&structType, InternalKeyword::RELS);
-    auto resultType = *StructType::getFieldTypes(&structType)[fieldIdx];
+    auto fieldIdx = StructType::getFieldIdx(structType, InternalKeyword::RELS);
+    auto resultType = StructType::getFieldTypes(structType)[fieldIdx];
     auto bindData = std::make_unique<StructExtractBindData>(resultType.copy(), fieldIdx);
     bindData->paramTypes = binder::ExpressionUtil::getDataTypes(arguments);
     return bindData;

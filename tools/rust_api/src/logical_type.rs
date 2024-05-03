@@ -119,10 +119,20 @@ impl From<&ffi::LogicalType> for LogicalType {
             LogicalTypeID::TIMESTAMP_SEC => LogicalType::TimestampSec,
             LogicalTypeID::INTERNAL_ID => LogicalType::InternalID,
             LogicalTypeID::LIST => LogicalType::List {
-                child_type: Box::new(ffi::logical_type_get_list_child_type(logical_type).into()),
+                child_type: Box::new(
+                    ffi::logical_type_get_list_child_type(logical_type)
+                        .as_ref()
+                        .unwrap()
+                        .into(),
+                ),
             },
             LogicalTypeID::ARRAY => LogicalType::Array {
-                child_type: Box::new(ffi::logical_type_get_array_child_type(logical_type).into()),
+                child_type: Box::new(
+                    ffi::logical_type_get_array_child_type(logical_type)
+                        .as_ref()
+                        .unwrap()
+                        .into(),
+                ),
                 num_elements: ffi::logical_type_get_array_num_elements(logical_type),
             },
             LogicalTypeID::STRUCT => {
@@ -139,8 +149,9 @@ impl From<&ffi::LogicalType> for LogicalType {
             LogicalTypeID::REL => LogicalType::Rel,
             LogicalTypeID::RECURSIVE_REL => LogicalType::RecursiveRel,
             LogicalTypeID::MAP => {
-                let child_types = ffi::logical_type_get_list_child_type(logical_type);
-                let types = ffi::logical_type_get_struct_field_types(child_types);
+                let child_type_ptr = ffi::logical_type_get_list_child_type(logical_type);
+                let child_type = child_type_ptr.as_ref().unwrap();
+                let types = ffi::logical_type_get_struct_field_types(child_type);
                 let key_type = types
                     .as_ref()
                     .unwrap()

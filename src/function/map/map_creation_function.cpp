@@ -10,9 +10,9 @@ namespace function {
 
 static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
     Function* /*function*/) {
-    auto keyType = ListType::getChildType(&arguments[0]->dataType);
-    auto valueType = ListType::getChildType(&arguments[1]->dataType);
-    auto resultType = LogicalType::MAP(*keyType, *valueType);
+    auto keyType = ListType::getChildType(arguments[0]->dataType);
+    auto valueType = ListType::getChildType(arguments[1]->dataType);
+    auto resultType = LogicalType::MAP(keyType, valueType);
     return FunctionBindData::getSimpleBindData(arguments, *resultType);
 }
 

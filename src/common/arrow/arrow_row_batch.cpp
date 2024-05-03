@@ -89,13 +89,13 @@ static void resizeUnionOverflow(ArrowVector* vector, int64_t capacity) {
     vector->overflow.resize(capacity * sizeof(int32_t));
 }
 
-static void resizeChildVectors(ArrowVector* vector, const std::vector<LogicalType*> childTypes,
+static void resizeChildVectors(ArrowVector* vector, const std::vector<LogicalType>& childTypes,
     int64_t childCapacity) {
     for (auto i = 0u; i < childTypes.size(); i++) {
         if (i >= vector->childData.size()) {
             vector->childData.push_back(std::make_unique<ArrowVector>());
         }
-        resizeVector(vector->childData[i].get(), *childTypes[i], childCapacity);
+        resizeVector(vector->childData[i].get(), childTypes[i], childCapacity);
     }
 }
 
@@ -122,19 +122,19 @@ static void resizeBLOBVector(ArrowVector* vector, const LogicalType& type, int64
 
 static void resizeFixedListVector(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
     resizeGeneric(vector, type, capacity);
-    resizeChildVectors(vector, {ArrayType::getChildType(&type)},
-        vector->capacity * ArrayType::getNumElements(&type));
+    resizeChildVectors(vector, {ArrayType::getChildType(type)},
+        vector->capacity * ArrayType::getNumElements(type));
 }
 
 static void resizeListVector(ArrowVector* vector, const LogicalType& type, int64_t capacity,
     int64_t childCapacity) {
     resizeGeneric(vector, type, capacity);
-    resizeChildVectors(vector, {ListType::getChildType(&type)}, childCapacity);
+    resizeChildVectors(vector, {ListType::getChildType(type)}, childCapacity);
 }
 
 static void resizeStructVector(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
     resizeGeneric(vector, type, capacity);
-    resizeChildVectors(vector, StructType::getFieldTypes(&type), vector->capacity);
+    resizeChildVectors(vector, StructType::getFieldTypes(type), vector->capacity);
 }
 
 static void resizeUnionVector(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
@@ -149,17 +149,17 @@ static void resizeUnionVector(ArrowVector* vector, const LogicalType& type, int6
         resizeMainBuffer(vector, type, vector->capacity);
     }
     resizeUnionOverflow(vector, vector->capacity);
-    std::vector<LogicalType*> childTypes;
-    for (auto i = 0u; i < UnionType::getNumFields(&type); i++) {
-        childTypes.push_back(UnionType::getFieldType(&type, i));
+    std::vector<LogicalType> childTypes;
+    for (auto i = 0u; i < UnionType::getNumFields(type); i++) {
+        childTypes.push_back(UnionType::getFieldType(type, i));
     }
     resizeChildVectors(vector, childTypes, vector->capacity);
 }
 
 static void resizeInternalIDVector(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
     resizeGeneric(vector, type, capacity);
-    auto childType = LogicalType::INT64();
-    resizeChildVectors(vector, {childType.get(), childType.get()}, vector->capacity);
+    auto childType = *LogicalType::INT64();
+    resizeChildVectors(vector, {childType, childType}, vector->capacity);
 }
 
 static void resizeVector(ArrowVector* vector, const LogicalType& type, std::int64_t capacity) {
@@ -301,9 +301,9 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::LIST>(ArrowVector* v
         offsets[pos] = 0;
     }
     offsets[pos + 1] = offsets[pos] + numElements;
-    resizeChildVectors(vector, {ListType::getChildType(&type)}, offsets[pos + 1] + 1);
+    resizeChildVectors(vector, {ListType::getChildType(type)}, offsets[pos + 1] + 1);
     for (auto i = 0u; i < numElements; i++) {
-        appendValue(vector->childData[0].get(), *ListType::getChildType(&type),
+        appendValue(vector->childData[0].get(), ListType::getChildType(type),
             value->children[i].get());
     }
 }
@@ -313,7 +313,7 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::ARRAY>(ArrowVector* 
     const LogicalType& type, Value* value, std::int64_t /*pos*/) {
     auto numElements = value->childrenSize;
     for (auto i = 0u; i < numElements; i++) {
-        appendValue(vector->childData[0].get(), *ArrayType::getChildType(&type),
+        appendValue(vector->childData[0].get(), ArrayType::getChildType(type),
             value->children[i].get());
     }
 }
@@ -328,7 +328,7 @@ template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::STRUCT>(ArrowVector* vector,
     const LogicalType& type, Value* value, std::int64_t /*pos*/) {
     for (auto i = 0u; i < value->childrenSize; i++) {
-        appendValue(vector->childData[i].get(), *StructType::getFieldTypes(&type)[i],
+        appendValue(vector->childData[i].get(), StructType::getFieldTypes(type)[i],
             value->children[i].get());
     }
 }
@@ -338,11 +338,11 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::UNION>(ArrowVector* 
     const LogicalType& type, Value* value, std::int64_t pos) {
     auto typeBuffer = (std::uint8_t*)vector->data.data();
     auto offsetsBuffer = (std::int32_t*)vector->overflow.data();
-    for (auto i = 0u; i < UnionType::getNumFields(&type); i++) {
-        if (*UnionType::getFieldType(&type, i) == *value->children[0]->dataType) {
+    for (auto i = 0u; i < UnionType::getNumFields(type); i++) {
+        if (UnionType::getFieldType(type, i) == *value->children[0]->dataType) {
             typeBuffer[pos] = i;
             offsetsBuffer[pos] = vector->childData[i]->numValues;
-            return appendValue(vector->childData[i].get(), *UnionType::getFieldType(&type, i),
+            return appendValue(vector->childData[i].get(), UnionType::getFieldType(type, i),
                 value->children[0].get());
         }
     }
@@ -362,16 +362,16 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::INTERNAL_ID>(ArrowVe
 template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::NODE>(ArrowVector* vector,
     const LogicalType& type, Value* value, std::int64_t /*pos*/) {
-    appendValue(vector->childData[0].get(), *StructType::getFieldTypes(&type)[0],
+    appendValue(vector->childData[0].get(), StructType::getFieldTypes(type)[0],
         NodeVal::getNodeIDVal(value));
-    appendValue(vector->childData[1].get(), *StructType::getFieldTypes(&type)[1],
+    appendValue(vector->childData[1].get(), StructType::getFieldTypes(type)[1],
         NodeVal::getLabelVal(value));
     std::int64_t propertyId = 2;
     auto numProperties = NodeVal::getNumProperties(value);
     for (auto i = 0u; i < numProperties; i++) {
         auto val = NodeVal::getPropertyVal(value, i);
         appendValue(vector->childData[propertyId].get(),
-            *StructType::getFieldTypes(&type)[propertyId], val);
+            StructType::getFieldTypes(type)[propertyId], val);
         propertyId++;
     }
 }
@@ -379,20 +379,20 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::NODE>(ArrowVector* v
 template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::REL>(ArrowVector* vector,
     const LogicalType& type, Value* value, std::int64_t /*pos*/) {
-    appendValue(vector->childData[0].get(), *StructType::getFieldTypes(&type)[0],
+    appendValue(vector->childData[0].get(), StructType::getFieldTypes(type)[0],
         RelVal::getSrcNodeIDVal(value));
-    appendValue(vector->childData[1].get(), *StructType::getFieldTypes(&type)[1],
+    appendValue(vector->childData[1].get(), StructType::getFieldTypes(type)[1],
         RelVal::getDstNodeIDVal(value));
-    appendValue(vector->childData[2].get(), *StructType::getFieldTypes(&type)[2],
+    appendValue(vector->childData[2].get(), StructType::getFieldTypes(type)[2],
         RelVal::getLabelVal(value));
-    appendValue(vector->childData[3].get(), *StructType::getFieldTypes(&type)[3],
+    appendValue(vector->childData[3].get(), StructType::getFieldTypes(type)[3],
         RelVal::getIDVal(value));
     std::int64_t propertyId = 4;
     auto numProperties = RelVal::getNumProperties(value);
     for (auto i = 0u; i < numProperties; i++) {
         auto val = RelVal::getPropertyVal(value, i);
         appendValue(vector->childData[propertyId].get(),
-            *StructType::getFieldTypes(&type)[propertyId], val);
+            StructType::getFieldTypes(type)[propertyId], val);
         propertyId++;
     }
 }
@@ -705,7 +705,7 @@ ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::LIST>(ArrowVector&
     result->children = vector.childPointers.data();
     result->n_children = 1;
     vector.childPointers[0] =
-        convertVectorToArray(*vector.childData[0], *ListType::getChildType(&type));
+        convertVectorToArray(*vector.childData[0], ListType::getChildType(type));
     vector.array = std::move(result);
     return vector.array.get();
 }
@@ -719,7 +719,7 @@ ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::ARRAY>(ArrowVector
     result->children = vector.childPointers.data();
     result->n_children = 1;
     vector.childPointers[0] =
-        convertVectorToArray(*vector.childData[0], *ArrayType::getChildType(&type));
+        convertVectorToArray(*vector.childData[0], ArrayType::getChildType(type));
     vector.array = std::move(result);
     return vector.array.get();
 }
@@ -740,11 +740,11 @@ ArrowArray* ArrowRowBatch::convertStructVectorToArray(ArrowVector& vector,
     const LogicalType& type) {
     auto result = createArrayFromVector(vector);
     result->n_buffers = 1;
-    vector.childPointers.resize(StructType::getNumFields(&type));
+    vector.childPointers.resize(StructType::getNumFields(type));
     result->children = vector.childPointers.data();
-    result->n_children = (std::int64_t)StructType::getNumFields(&type);
-    for (auto i = 0u; i < StructType::getNumFields(&type); i++) {
-        auto& childType = *StructType::getFieldTypes(&type)[i];
+    result->n_children = (std::int64_t)StructType::getNumFields(type);
+    for (auto i = 0u; i < StructType::getNumFields(type); i++) {
+        auto childType = StructType::getFieldTypes(type)[i];
         vector.childPointers[i] = convertVectorToArray(*vector.childData[i], childType);
     }
     vector.array = std::move(result);
@@ -771,7 +771,7 @@ ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::UNION>(ArrowVector
     const LogicalType& type) {
     // since union is a special case, we make the ArrowArray ourselves instead of using
     // createArrayFromVector
-    auto nChildren = UnionType::getNumFields(&type);
+    auto nChildren = UnionType::getNumFields(type);
     vector.array = std::make_unique<ArrowArray>();
     vector.array->private_data = nullptr;
     vector.array->release = releaseArrowVector;
@@ -787,8 +787,8 @@ ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::UNION>(ArrowVector
     vector.array->buffers[0] = vector.data.data();
     vector.array->buffers[1] = vector.overflow.data();
     for (auto i = 0u; i < nChildren; i++) {
-        auto childType = UnionType::getFieldType(&type, i);
-        vector.childPointers[i] = convertVectorToArray(*vector.childData[i], *childType);
+        auto childType = UnionType::getFieldType(type, i);
+        vector.childPointers[i] = convertVectorToArray(*vector.childData[i], childType);
     }
     return vector.array.get();
 }

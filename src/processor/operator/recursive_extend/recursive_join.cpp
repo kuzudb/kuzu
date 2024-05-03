@@ -122,37 +122,37 @@ void RecursiveJoin::initLocalStateInternal(ResultSet*, ExecutionContext* context
     }
     if (vectors->pathVector != nullptr) {
         auto pathNodesFieldIdx =
-            StructType::getFieldIdx(&vectors->pathVector->dataType, InternalKeyword::NODES);
+            StructType::getFieldIdx(vectors->pathVector->dataType, InternalKeyword::NODES);
         vectors->pathNodesVector =
             StructVector::getFieldVector(vectors->pathVector, pathNodesFieldIdx).get();
         auto pathNodesDataVector = ListVector::getDataVector(vectors->pathNodesVector);
         auto pathNodesIDFieldIdx =
-            StructType::getFieldIdx(&pathNodesDataVector->dataType, InternalKeyword::ID);
+            StructType::getFieldIdx(pathNodesDataVector->dataType, InternalKeyword::ID);
         vectors->pathNodesIDDataVector =
             StructVector::getFieldVector(pathNodesDataVector, pathNodesIDFieldIdx).get();
         auto pathNodesLabelFieldIdx =
-            StructType::getFieldIdx(&pathNodesDataVector->dataType, InternalKeyword::LABEL);
+            StructType::getFieldIdx(pathNodesDataVector->dataType, InternalKeyword::LABEL);
         vectors->pathNodesLabelDataVector =
             StructVector::getFieldVector(pathNodesDataVector, pathNodesLabelFieldIdx).get();
         auto pathRelsFieldIdx =
-            StructType::getFieldIdx(&vectors->pathVector->dataType, InternalKeyword::RELS);
+            StructType::getFieldIdx(vectors->pathVector->dataType, InternalKeyword::RELS);
         vectors->pathRelsVector =
             StructVector::getFieldVector(vectors->pathVector, pathRelsFieldIdx).get();
         auto pathRelsDataVector = ListVector::getDataVector(vectors->pathRelsVector);
         auto pathRelsSrcIDFieldIdx =
-            StructType::getFieldIdx(&pathRelsDataVector->dataType, InternalKeyword::SRC);
+            StructType::getFieldIdx(pathRelsDataVector->dataType, InternalKeyword::SRC);
         vectors->pathRelsSrcIDDataVector =
             StructVector::getFieldVector(pathRelsDataVector, pathRelsSrcIDFieldIdx).get();
         auto pathRelsDstIDFieldIdx =
-            StructType::getFieldIdx(&pathRelsDataVector->dataType, InternalKeyword::DST);
+            StructType::getFieldIdx(pathRelsDataVector->dataType, InternalKeyword::DST);
         vectors->pathRelsDstIDDataVector =
             StructVector::getFieldVector(pathRelsDataVector, pathRelsDstIDFieldIdx).get();
         auto pathRelsIDFieldIdx =
-            StructType::getFieldIdx(&pathRelsDataVector->dataType, InternalKeyword::ID);
+            StructType::getFieldIdx(pathRelsDataVector->dataType, InternalKeyword::ID);
         vectors->pathRelsIDDataVector =
             StructVector::getFieldVector(pathRelsDataVector, pathRelsIDFieldIdx).get();
         auto pathRelsLabelFieldIdx =
-            StructType::getFieldIdx(&pathRelsDataVector->dataType, InternalKeyword::LABEL);
+            StructType::getFieldIdx(pathRelsDataVector->dataType, InternalKeyword::LABEL);
         vectors->pathRelsLabelDataVector =
             StructVector::getFieldVector(pathRelsDataVector, pathRelsLabelFieldIdx).get();
     }

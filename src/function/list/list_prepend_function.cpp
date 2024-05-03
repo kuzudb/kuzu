@@ -31,7 +31,7 @@ struct ListPrepend {
 static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
     Function* function) {
     if (arguments[0]->getDataType().getLogicalTypeID() != LogicalTypeID::ANY &&
-        arguments[1]->dataType != *ListType::getChildType(&arguments[0]->dataType)) {
+        arguments[1]->dataType != ListType::getChildType(arguments[0]->dataType)) {
         throw BinderException(
             ExceptionMessage::listFunctionIncompatibleChildrenType(ListPrependFunction::name,
                 arguments[0]->getDataType().toString(), arguments[1]->getDataType().toString()));

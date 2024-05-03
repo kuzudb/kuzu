@@ -193,7 +193,7 @@ std::string TypeUtils::toString(const map_entry_t& val, void* valueVector) {
 
 template<bool SKIP_NULL_ENTRY>
 static std::string structToString(const struct_entry_t& val, ValueVector* vector) {
-    auto fields = StructType::getFields(&vector->dataType);
+    auto fields = StructType::getFields(vector->dataType);
     if (fields.size() == 0) {
         return "{}";
     }
@@ -209,7 +209,7 @@ static std::string structToString(const struct_entry_t& val, ValueVector* vector
         if (i != 0) {
             result += ", ";
         }
-        result += StructType::getField(&vector->dataType, i)->getName();
+        result += StructType::getField(vector->dataType, i).getName();
         result += ": ";
         result += entryToStringWithPos(val.pos, fieldVector.get());
     }
@@ -223,7 +223,7 @@ static std::string structToString(const struct_entry_t& val, ValueVector* vector
     if (i != 0) {
         result += ", ";
     }
-    result += StructType::getField(&vector->dataType, i)->getName();
+    result += StructType::getField(vector->dataType, i).getName();
     result += ": ";
     result += entryToStringWithPos(val.pos, fieldVector.get());
     result += "}";

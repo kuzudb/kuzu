@@ -68,9 +68,9 @@ inline std::unique_ptr<kuzu::common::LogicalType> create_logical_type_rdf_varian
     return kuzu::common::LogicalType::RDF_VARIANT();
 }
 
-const kuzu::common::LogicalType& logical_type_get_list_child_type(
+std::unique_ptr<kuzu::common::LogicalType> logical_type_get_list_child_type(
     const kuzu::common::LogicalType& logicalType);
-const kuzu::common::LogicalType& logical_type_get_array_child_type(
+std::unique_ptr<kuzu::common::LogicalType> logical_type_get_array_child_type(
     const kuzu::common::LogicalType& logicalType);
 uint64_t logical_type_get_array_num_elements(const kuzu::common::LogicalType& logicalType);
 

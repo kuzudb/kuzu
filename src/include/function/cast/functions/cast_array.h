@@ -11,9 +11,10 @@ namespace function {
 struct CastArrayHelper {
     static bool checkCompatibleNestedTypes(LogicalTypeID sourceTypeID, LogicalTypeID targetTypeID);
 
-    static bool containsListToArray(const LogicalType* srcType, const LogicalType* dstType);
+    static bool containsListToArray(const LogicalType& srcType, const LogicalType& dstType);
 
-    static void validateListEntry(ValueVector* inputVector, LogicalType* resultType, uint64_t pos);
+    static void validateListEntry(ValueVector* inputVector, const LogicalType& resultType,
+        uint64_t pos);
 };
 
 } // namespace function

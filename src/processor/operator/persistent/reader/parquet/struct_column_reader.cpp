@@ -42,7 +42,7 @@ void StructColumnReader::registerPrefetch(ThriftFileTransport& transport, bool a
 uint64_t StructColumnReader::read(uint64_t numValuesToRead, parquet_filter_t& filter,
     uint8_t* define_out, uint8_t* repeat_out, common::ValueVector* result) {
     auto& fieldVectors = common::StructVector::getFieldVectors(result);
-    KU_ASSERT(common::StructType::getNumFields(type.get()) == fieldVectors.size());
+    KU_ASSERT(common::StructType::getNumFields(*type) == fieldVectors.size());
     if (pendingSkips > 0) {
         applyPendingSkips(pendingSkips);
     }
@@ -70,8 +70,8 @@ void StructColumnReader::skip(uint64_t num_values) {
     }
 }
 
-static bool TypeHasExactRowCount(const common::LogicalType* type) {
-    switch (type->getLogicalTypeID()) {
+static bool TypeHasExactRowCount(const common::LogicalType& type) {
+    switch (type.getLogicalTypeID()) {
     case common::LogicalTypeID::LIST:
     case common::LogicalTypeID::MAP:
         return false;
@@ -89,7 +89,7 @@ static bool TypeHasExactRowCount(const common::LogicalType* type) {
 
 uint64_t StructColumnReader::getGroupRowsAvailable() {
     for (auto i = 0u; i < childReaders.size(); i++) {
-        if (TypeHasExactRowCount(childReaders[i]->getDataType())) {
+        if (TypeHasExactRowCount(*childReaders[i]->getDataType())) {
             return childReaders[i]->getGroupRowsAvailable();
         }
     }

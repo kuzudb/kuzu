@@ -15,10 +15,10 @@ namespace evaluator {
 static std::vector<ValueVector*> getFieldVectors(const LogicalType& inputType,
     const LogicalType& resultType, ValueVector* inputVector) {
     std::vector<ValueVector*> result;
-    for (auto field : StructType::getFields(&resultType)) {
-        auto fieldName = StringUtils::getUpper(field->getName());
-        if (StructType::hasField(&inputType, fieldName)) {
-            auto idx = StructType::getFieldIdx(&inputType, fieldName);
+    for (auto& field : StructType::getFields(resultType)) {
+        auto fieldName = StringUtils::getUpper(field.getName());
+        if (StructType::hasField(inputType, fieldName)) {
+            auto idx = StructType::getFieldIdx(inputType, fieldName);
             result.push_back(StructVector::getFieldVector(inputVector, idx).get());
         } else {
             result.push_back(nullptr);
@@ -30,13 +30,13 @@ static std::vector<ValueVector*> getFieldVectors(const LogicalType& inputType,
 void PathExpressionEvaluator::init(const processor::ResultSet& resultSet,
     storage::MemoryManager* memoryManager) {
     ExpressionEvaluator::init(resultSet, memoryManager);
-    auto resultNodesIdx = StructType::getFieldIdx(&resultVector->dataType, InternalKeyword::NODES);
+    auto resultNodesIdx = StructType::getFieldIdx(resultVector->dataType, InternalKeyword::NODES);
     resultNodesVector = StructVector::getFieldVector(resultVector.get(), resultNodesIdx).get();
     auto resultNodesDataVector = ListVector::getDataVector(resultNodesVector);
     for (auto& fieldVector : StructVector::getFieldVectors(resultNodesDataVector)) {
         resultNodesFieldVectors.push_back(fieldVector.get());
     }
-    auto resultRelsIdx = StructType::getFieldIdx(&resultVector->dataType, InternalKeyword::RELS);
+    auto resultRelsIdx = StructType::getFieldIdx(resultVector->dataType, InternalKeyword::RELS);
     resultRelsVector = StructVector::getFieldVector(resultVector.get(), resultRelsIdx).get();
     auto resultRelsDataVector = ListVector::getDataVector(resultRelsVector);
     for (auto& fieldVector : StructVector::getFieldVectors(resultRelsDataVector)) {
@@ -60,13 +60,13 @@ void PathExpressionEvaluator::init(const processor::ResultSet& resultSet,
             auto rel = (RelExpression*)child;
             auto recursiveNode = rel->getRecursiveInfo()->node;
             auto recursiveRel = rel->getRecursiveInfo()->rel;
-            auto nodeFieldIdx = StructType::getFieldIdx(&child->dataType, InternalKeyword::NODES);
+            auto nodeFieldIdx = StructType::getFieldIdx(child->dataType, InternalKeyword::NODES);
             vectors->nodesInput = StructVector::getFieldVector(vectors->input, nodeFieldIdx).get();
             vectors->nodesDataInput = ListVector::getDataVector(vectors->nodesInput);
             vectors->nodeFieldVectors = getFieldVectors(recursiveNode->dataType,
                 *pathExpression->getNodeType(), vectors->nodesDataInput);
             auto relFieldIdx =
-                StructType::getFieldIdx(&vectors->input->dataType, InternalKeyword::RELS);
+                StructType::getFieldIdx(vectors->input->dataType, InternalKeyword::RELS);
             vectors->relsInput = StructVector::getFieldVector(vectors->input, relFieldIdx).get();
             vectors->relsDataInput = ListVector::getDataVector(vectors->relsInput);
             vectors->relFieldVectors = getFieldVectors(recursiveRel->dataType,

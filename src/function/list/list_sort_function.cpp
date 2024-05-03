@@ -37,7 +37,7 @@ static std::unique_ptr<FunctionBindData> ListSortBindFunc(
             arguments[0]->toString()));
     }
     common::TypeUtils::visit(
-        ListType::getChildType(&arguments[0]->dataType)->getPhysicalType(),
+        ListType::getChildType(arguments[0]->dataType).getPhysicalType(),
         [&arguments, &scalarFunction]<ComparableTypes T>(
             T) { scalarFunction->execFunc = getListSortExecFunction<ListSort<T>>(arguments); },
         [](auto) { KU_UNREACHABLE; });
@@ -48,7 +48,7 @@ static std::unique_ptr<FunctionBindData> ListReverseSortBindFunc(
     const binder::expression_vector& arguments, Function* function) {
     auto scalarFunction = function->ptrCast<ScalarFunction>();
     common::TypeUtils::visit(
-        ListType::getChildType(&arguments[0]->dataType)->getPhysicalType(),
+        ListType::getChildType(arguments[0]->dataType).getPhysicalType(),
         [&arguments, &scalarFunction]<ComparableTypes T>(T) {
             scalarFunction->execFunc = getListSortExecFunction<ListReverseSort<T>>(arguments);
         },

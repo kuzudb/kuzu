@@ -64,7 +64,7 @@ public:
     // has null value or not. So canHaveNullsToCreate is always true.
     static std::unique_ptr<ColumnWriter> createWriterRecursive(
         std::vector<kuzu_parquet::format::SchemaElement>& schemas, ParquetWriter& writer,
-        common::LogicalType* type, const std::string& name,
+        const common::LogicalType& type, const std::string& name,
         std::vector<std::string> schemaPathToCreate, storage::MemoryManager* mm,
         uint64_t maxRepeatToCreate = 0, uint64_t maxDefineToCreate = 1,
         bool canHaveNullsToCreate = true);

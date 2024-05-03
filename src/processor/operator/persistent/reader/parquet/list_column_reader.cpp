@@ -15,7 +15,7 @@ ListColumnReader::ListColumnReader(ParquetReader& reader, std::unique_ptr<common
     childRepeatsPtr = (uint8_t*)childRepeats.ptr;
     childFilter.set();
     vectorToRead = std::make_unique<common::ValueVector>(
-        *common::ListType::getChildType(this->type.get()), memoryManager);
+        common::ListType::getChildType(*this->type), memoryManager);
 }
 
 void ListColumnReader::applyPendingSkips(uint64_t numValues) {

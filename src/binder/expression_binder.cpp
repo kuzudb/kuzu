@@ -90,18 +90,18 @@ static bool compatible(const LogicalType& type, const LogicalType& target) {
     }
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::LIST: {
-        return compatible(*ListType::getChildType(&type), *ListType::getChildType(&target));
+        return compatible(ListType::getChildType(type), ListType::getChildType(target));
     }
     case LogicalTypeID::ARRAY: {
-        return compatible(*ArrayType::getChildType(&type), *ArrayType::getChildType(&target));
+        return compatible(ArrayType::getChildType(type), ArrayType::getChildType(target));
     }
     case LogicalTypeID::STRUCT: {
-        if (StructType::getNumFields(&type) != StructType::getNumFields(&target)) {
+        if (StructType::getNumFields(type) != StructType::getNumFields(target)) {
             return false;
         }
-        for (auto i = 0u; i < StructType::getNumFields(&type); ++i) {
-            if (!compatible(*StructType::getField(&type, i)->getType(),
-                    *StructType::getField(&target, i)->getType())) {
+        for (auto i = 0u; i < StructType::getNumFields(type); ++i) {
+            if (!compatible(StructType::getField(type, i).getType(),
+                    StructType::getField(target, i).getType())) {
                 return false;
             }
         }

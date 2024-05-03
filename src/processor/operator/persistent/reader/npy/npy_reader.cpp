@@ -192,12 +192,12 @@ void NpyReader::validate(const LogicalType& type_, offset_t numRows) {
         }
         return;
     } else if (type_.getLogicalTypeID() == LogicalTypeID::ARRAY) {
-        if (this->type != ArrayType::getChildType(&type_)->getLogicalTypeID()) {
+        if (this->type != ArrayType::getChildType(type_).getLogicalTypeID()) {
             throw CopyException(stringFormat("The type of npy file {} does not "
                                              "match the expected type.",
                 filePath));
         }
-        if (getNumElementsPerRow() != ArrayType::getNumElements(&type_)) {
+        if (getNumElementsPerRow() != ArrayType::getNumElements(type_)) {
             throw CopyException(
                 stringFormat("The shape of {} does not match {}.", filePath, type_.toString()));
         }
@@ -219,7 +219,7 @@ void NpyReader::readBlock(block_idx_t blockIdx, common::ValueVector* vectorToRea
         auto numRowsToRead = std::min(DEFAULT_VECTOR_CAPACITY, getNumRows() - rowNumber);
         auto rowType = vectorToRead->dataType;
         if (rowType.getLogicalTypeID() == LogicalTypeID::ARRAY) {
-            auto numValuesPerRow = ArrayType::getNumElements(&rowType);
+            auto numValuesPerRow = ArrayType::getNumElements(rowType);
             for (auto i = 0u; i < numRowsToRead; i++) {
                 auto listEntry = ListVector::addList(vectorToRead, numValuesPerRow);
                 vectorToRead->setValue(i, listEntry);

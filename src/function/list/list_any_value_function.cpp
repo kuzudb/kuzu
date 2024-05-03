@@ -29,12 +29,12 @@ struct ListAnyValue {
 static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
     Function* function) {
     auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
-    auto resultType = ListType::getChildType(&arguments[0]->dataType);
-    TypeUtils::visit(resultType->getPhysicalType(), [&scalarFunction]<typename T>(T) {
+    auto resultType = ListType::getChildType(arguments[0]->dataType);
+    TypeUtils::visit(resultType.getPhysicalType(), [&scalarFunction]<typename T>(T) {
         scalarFunction->execFunc =
             ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, T, ListAnyValue>;
     });
-    return FunctionBindData::getSimpleBindData(arguments, *resultType);
+    return FunctionBindData::getSimpleBindData(arguments, resultType);
 }
 
 function_set ListAnyValueFunction::getFunctionSet() {

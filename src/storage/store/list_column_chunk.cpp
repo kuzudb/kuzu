@@ -31,7 +31,7 @@ ListColumnChunk::ListColumnChunk(LogicalType dataType, uint64_t capacity, bool e
     sizeColumnChunk = ColumnChunkFactory::createColumnChunk(*common::LogicalType::UINT32(),
         enableCompression, capacity);
     listDataColumnChunk = std::make_unique<ListDataColumnChunk>(
-        ColumnChunkFactory::createColumnChunk(*ListType::getChildType(&this->dataType)->copy(),
+        ColumnChunkFactory::createColumnChunk(*ListType::getChildType(this->dataType).copy(),
             enableCompression, 0 /* capacity */, inMemory));
     checkOffsetSortedAsc = false;
     KU_ASSERT(this->dataType.getPhysicalType() == PhysicalTypeID::LIST ||
@@ -101,7 +101,7 @@ void ListColumnChunk::resetToEmpty() {
     ColumnChunk::resetToEmpty();
     sizeColumnChunk->resetToEmpty();
     listDataColumnChunk = std::make_unique<ListDataColumnChunk>(
-        ColumnChunkFactory::createColumnChunk(*ListType::getChildType(&this->dataType)->copy(),
+        ColumnChunkFactory::createColumnChunk(*ListType::getChildType(this->dataType).copy(),
             enableCompression, 0 /* capacity */));
 }
 

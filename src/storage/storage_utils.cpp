@@ -111,9 +111,9 @@ uint32_t StorageUtils::getDataTypeSize(const LogicalType& type) {
     }
     case PhysicalTypeID::STRUCT: {
         uint32_t size = 0;
-        auto fieldsTypes = StructType::getFieldTypes(&type);
-        for (auto fieldType : fieldsTypes) {
-            size += getDataTypeSize(*fieldType);
+        auto fieldsTypes = StructType::getFieldTypes(type);
+        for (const auto& fieldType : fieldsTypes) {
+            size += getDataTypeSize(fieldType);
         }
         size += NullBuffer::getNumBytesForNullValues(fieldsTypes.size());
         return size;

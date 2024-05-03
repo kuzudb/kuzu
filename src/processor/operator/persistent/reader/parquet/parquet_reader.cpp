@@ -276,7 +276,7 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
                 std::make_unique<ListTypeInfo>(std::move(structType))));
 
             auto structReader = std::make_unique<StructColumnReader>(*this,
-                ListType::getChildType(resultType.get())->copy(), sEle, thisIdx, maxDefine - 1,
+                ListType::getChildType(*resultType).copy(), sEle, thisIdx, maxDefine - 1,
                 maxRepeat - 1, std::move(childrenReaders));
             return std::make_unique<ListColumnReader>(*this, std::move(resultType), sEle, thisIdx,
                 maxDefine, maxRepeat, std::move(structReader), context->getMemoryManager());
@@ -288,7 +288,7 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
                 thisIdx, maxDefine, maxRepeat, std::move(childrenReaders));
         } else {
             // if we have a struct with only a single type, pull up
-            resultType = structFields[0].getType()->copy();
+            resultType = structFields[0].getType().copy();
             result = std::move(childrenReaders[0]);
         }
         if (isRepeated) {
@@ -336,9 +336,9 @@ std::unique_ptr<ColumnReader> ParquetReader::createReader() {
         throw CopyException{"Root element of Parquet file must be a struct"};
     }
     // LCOV_EXCL_STOP
-    for (auto& field : StructType::getFields(rootReader->getDataType())) {
-        columnNames.push_back(field->getName());
-        columnTypes.push_back(field->getType()->copy());
+    for (auto& field : StructType::getFields(*rootReader->getDataType())) {
+        columnNames.push_back(field.getName());
+        columnTypes.push_back(field.getType().copy());
     }
 
     KU_ASSERT(nextSchemaIdx == metadata->schema.size() - 1);

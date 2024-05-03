@@ -287,7 +287,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         return convertValueToPyObject(*NestedVal::getChildVal(&value, 0 /* idx */));
     }
     case LogicalTypeID::STRUCT: {
-        auto fieldNames = StructType::getFieldNames(dataType);
+        auto fieldNames = StructType::getFieldNames(*dataType);
         py::dict dict;
         for (auto i = 0u; i < NestedVal::getChildrenSize(&value); ++i) {
             auto key = py::str(fieldNames[i]);

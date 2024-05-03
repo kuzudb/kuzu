@@ -123,7 +123,7 @@ std::shared_ptr<Expression> Binder::createVariable(const std::string& name,
 std::unique_ptr<LogicalType> Binder::bindDataType(const std::string& dataType) {
     auto boundType = LogicalType::fromString(dataType);
     if (boundType.getLogicalTypeID() == LogicalTypeID::ARRAY) {
-        auto numElementsInArray = ArrayType::getNumElements(&boundType);
+        auto numElementsInArray = ArrayType::getNumElements(boundType);
         if (numElementsInArray == 0) {
             // Note: the parser already guarantees that the number of elements is a non-negative
             // number. However, we still need to check whether the number of elements is 0.

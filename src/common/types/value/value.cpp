@@ -155,11 +155,11 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         return Value((float)0);
     case LogicalTypeID::ARRAY: {
         std::vector<std::unique_ptr<Value>> children;
-        auto childType = ArrayType::getChildType(&dataType);
-        auto arraySize = ArrayType::getNumElements(&dataType);
+        auto childType = ArrayType::getChildType(dataType);
+        auto arraySize = ArrayType::getNumElements(dataType);
         children.reserve(arraySize);
         for (auto i = 0u; i < arraySize; ++i) {
-            children.push_back(std::make_unique<Value>(createDefaultValue(*childType)));
+            children.push_back(std::make_unique<Value>(createDefaultValue(childType)));
         }
         return Value(dataType.copy(), std::move(children));
     }
@@ -178,8 +178,8 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::RDF_VARIANT: {
         std::vector<std::unique_ptr<Value>> children;
-        for (auto& field : StructType::getFields(&dataType)) {
-            children.push_back(std::make_unique<Value>(createDefaultValue(*field->getType())));
+        for (auto& field : StructType::getFields(dataType)) {
+            children.push_back(std::make_unique<Value>(createDefaultValue(field.getType())));
         }
         return Value(dataType.copy(), std::move(children));
     }
@@ -388,10 +388,10 @@ void Value::copyFromRowLayout(const uint8_t* value) {
     } break;
     case LogicalTypeID::MAP:
     case LogicalTypeID::LIST: {
-        copyFromRowLayoutList(*(ku_list_t*)value, *ListType::getChildType(dataType.get()));
+        copyFromRowLayoutList(*(ku_list_t*)value, ListType::getChildType(*dataType));
     } break;
     case LogicalTypeID::ARRAY: {
-        copyFromRowLayoutList(*(ku_list_t*)value, *ArrayType::getChildType(dataType.get()));
+        copyFromRowLayoutList(*(ku_list_t*)value, ArrayType::getChildType(*dataType));
     } break;
     case LogicalTypeID::UNION: {
         copyFromUnion(value);
@@ -699,18 +699,18 @@ void Value::copyFromColLayoutStruct(const struct_entry_t& structEntry, ValueVect
 }
 
 void Value::copyFromUnion(const uint8_t* kuUnion) {
-    auto childrenTypes = StructType::getFieldTypes(dataType.get());
+    auto childrenTypes = StructType::getFieldTypes(*dataType);
     auto unionNullValues = kuUnion;
     auto unionValues = unionNullValues + NullBuffer::getNumBytesForNullValues(childrenTypes.size());
     // For union dataType, only one member can be active at a time. So we don't need to copy all
     // union fields into value.
     auto activeFieldIdx = UnionType::getInternalFieldIdx(*(union_field_idx_t*)unionValues);
     auto childValue = children[0].get();
-    childValue->dataType = childrenTypes[activeFieldIdx]->copy();
+    childValue->dataType = childrenTypes[activeFieldIdx].copy();
     auto curMemberIdx = 0u;
     // Seek to the current active member value.
     while (curMemberIdx < activeFieldIdx) {
-        unionValues += storage::StorageUtils::getDataTypeSize(*childrenTypes[curMemberIdx]);
+        unionValues += storage::StorageUtils::getDataTypeSize(childrenTypes[curMemberIdx]);
         curMemberIdx++;
     }
     if (NullBuffer::isNull(unionNullValues, activeFieldIdx)) {
@@ -1007,7 +1007,7 @@ std::string Value::listToString() const {
 
 std::string Value::structToString() const {
     std::string result = "{";
-    auto fieldNames = StructType::getFieldNames(dataType.get());
+    auto fieldNames = StructType::getFieldNames(*dataType);
     for (auto i = 0u; i < childrenSize; ++i) {
         result += fieldNames[i] + ": ";
         result += children[i]->toString();
@@ -1026,7 +1026,7 @@ std::string Value::nodeToString() const {
         return "";
     }
     std::string result = "{";
-    auto fieldNames = StructType::getFieldNames(dataType.get());
+    auto fieldNames = StructType::getFieldNames(*dataType);
     for (auto i = 0u; i < childrenSize; ++i) {
         if (children[i]->isNull_) {
             // Avoid printing null key value pair.
@@ -1048,7 +1048,7 @@ std::string Value::relToString() const {
         return "";
     }
     std::string result = "(" + children[0]->toString() + ")-{";
-    auto fieldNames = StructType::getFieldNames(dataType.get());
+    auto fieldNames = StructType::getFieldNames(*dataType);
     for (auto i = 2u; i < childrenSize; ++i) {
         if (children[i]->isNull_) {
             // Avoid printing null key value pair.

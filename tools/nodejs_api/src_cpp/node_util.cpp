@@ -196,7 +196,7 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     }
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::UNION: {
-        auto childrenNames = StructType::getFieldNames(dataType);
+        auto childrenNames = StructType::getFieldNames(*dataType);
         auto napiObj = Napi::Object::New(env);
         auto size = NestedVal::getChildrenSize(&value);
         for (auto i = 0u; i < size; ++i) {

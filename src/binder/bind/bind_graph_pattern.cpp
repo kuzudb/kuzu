@@ -75,11 +75,11 @@ static std::unique_ptr<LogicalType> getRecursiveRelLogicalType(const LogicalType
 static void extraFieldFromStructType(const LogicalType& structType,
     std::unordered_set<std::string>& nameSet, std::vector<std::string>& names,
     std::vector<std::unique_ptr<LogicalType>>& types) {
-    for (auto& field : StructType::getFields(&structType)) {
-        if (!nameSet.contains(field->getName())) {
-            nameSet.insert(field->getName());
-            names.push_back(field->getName());
-            types.push_back(field->getType()->copy());
+    for (auto& field : StructType::getFields(structType)) {
+        if (!nameSet.contains(field.getName())) {
+            nameSet.insert(field.getName());
+            names.push_back(field.getName());
+            types.push_back(field.getType().copy());
         }
     }
 }

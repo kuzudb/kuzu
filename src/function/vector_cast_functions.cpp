@@ -33,13 +33,13 @@ struct CastChildFunctionExecutor {
 
 static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueVector* resultVector,
     uint64_t numOfEntries, CastFunctionBindData* dataPtr) {
-    auto inputType = &inputVector->dataType;
-    auto resultType = &resultVector->dataType;
+    auto inputType = inputVector->dataType;
+    auto resultType = resultVector->dataType;
     while (true) {
-        if ((inputType->getPhysicalType() == PhysicalTypeID::LIST ||
-                inputType->getPhysicalType() == PhysicalTypeID::ARRAY) &&
-            (resultType->getPhysicalType() == PhysicalTypeID::LIST ||
-                resultType->getPhysicalType() == PhysicalTypeID::ARRAY)) {
+        if ((inputType.getPhysicalType() == PhysicalTypeID::LIST ||
+                inputType.getPhysicalType() == PhysicalTypeID::ARRAY) &&
+            (resultType.getPhysicalType() == PhysicalTypeID::LIST ||
+                resultType.getPhysicalType() == PhysicalTypeID::ARRAY)) {
             // copy data and nullmask from input
             memcpy(resultVector->getData(), inputVector->getData(),
                 numOfEntries * resultVector->getNumBytesPerValue());
@@ -50,13 +50,13 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
 
             inputVector = ListVector::getSharedDataVector(inputVector.get());
             resultVector = ListVector::getDataVector(resultVector);
-            inputType = &inputVector->dataType;
-            resultType = &resultVector->dataType;
-        } else if (inputType->getLogicalTypeID() == LogicalTypeID::STRUCT &&
-                   resultType->getLogicalTypeID() == LogicalTypeID::STRUCT) {
+            inputType = inputVector->dataType;
+            resultType = resultVector->dataType;
+        } else if (inputType.getLogicalTypeID() == LogicalTypeID::STRUCT &&
+                   resultType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
             // check if struct type can be cast
             auto errorMsg = stringFormat("Unsupported casting function from {} to {}.",
-                inputType->toString(), resultType->toString());
+                inputType.toString(), resultType.toString());
             auto inputTypeNames = StructType::getFieldNames(inputType);
             auto resultTypeNames = StructType::getFieldNames(resultType);
             if (inputTypeNames.size() != resultTypeNames.size()) {
@@ -86,9 +86,9 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
     }
 
     // non-nested types
-    if (inputType->getLogicalTypeID() != resultType->getLogicalTypeID()) {
+    if (inputType.getLogicalTypeID() != resultType.getLogicalTypeID()) {
         auto func = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST",
-            inputType->getLogicalTypeID(), resultType->getLogicalTypeID())
+            inputType.getLogicalTypeID(), resultType.getLogicalTypeID())
                         ->execFunc;
         std::vector<std::shared_ptr<ValueVector>> childParams{inputVector};
         dataPtr->numOfEntries = numOfEntries;
@@ -107,10 +107,10 @@ static void nestedTypesCastExecFunction(const std::vector<std::shared_ptr<ValueV
     const auto& inputVector = params[0];
 
     // check if all selcted list entry have the requried fixed list size
-    if (CastArrayHelper::containsListToArray(&inputVector->dataType, &result.dataType)) {
+    if (CastArrayHelper::containsListToArray(inputVector->dataType, result.dataType)) {
         for (auto i = 0u; i < inputVector->state->selVector->selectedSize; i++) {
             auto pos = inputVector->state->selVector->selectedPositions[i];
-            CastArrayHelper::validateListEntry(inputVector.get(), &result.dataType, pos);
+            CastArrayHelper::validateListEntry(inputVector.get(), result.dataType, pos);
         }
     };
 
@@ -126,38 +126,38 @@ static void nestedTypesCastExecFunction(const std::vector<std::shared_ptr<ValueV
 }
 
 static bool hasImplicitCastList(const LogicalType& srcType, const LogicalType& dstType) {
-    return CastFunction::hasImplicitCast(*ListType::getChildType(&srcType),
-        *ListType::getChildType(&dstType));
+    return CastFunction::hasImplicitCast(ListType::getChildType(srcType),
+        ListType::getChildType(dstType));
 }
 
 static bool hasImplicitCastArray(const LogicalType& srcType, const LogicalType& dstType) {
-    if (ArrayType::getNumElements(&srcType) != ArrayType::getNumElements(&dstType)) {
+    if (ArrayType::getNumElements(srcType) != ArrayType::getNumElements(dstType)) {
         return false;
     }
-    return CastFunction::hasImplicitCast(*ArrayType::getChildType(&srcType),
-        *ArrayType::getChildType(&dstType));
+    return CastFunction::hasImplicitCast(ArrayType::getChildType(srcType),
+        ArrayType::getChildType(dstType));
 }
 
 static bool hasImplicitCastArrayToList(const LogicalType& srcType, const LogicalType& dstType) {
-    return CastFunction::hasImplicitCast(*ArrayType::getChildType(&srcType),
-        *ListType::getChildType(&dstType));
+    return CastFunction::hasImplicitCast(ArrayType::getChildType(srcType),
+        ListType::getChildType(dstType));
 }
 
 static bool hasImplicitCastListToArray(const LogicalType& srcType, const LogicalType& dstType) {
-    return CastFunction::hasImplicitCast(*ListType::getChildType(&srcType),
-        *ArrayType::getChildType(&dstType));
+    return CastFunction::hasImplicitCast(ListType::getChildType(srcType),
+        ArrayType::getChildType(dstType));
 }
 
 static bool hasImplicitCastStruct(const LogicalType& srcType, const LogicalType& dstType) {
-    auto srcFields = StructType::getFields(&srcType), dstFields = StructType::getFields(&dstType);
+    auto srcFields = StructType::getFields(srcType), dstFields = StructType::getFields(dstType);
     if (srcFields.size() != dstFields.size()) {
         return false;
     }
     for (auto i = 0u; i < srcFields.size(); i++) {
-        if (srcFields[i]->getName() != dstFields[i]->getName()) {
+        if (srcFields[i].getName() != dstFields[i].getName()) {
             return false;
         }
-        if (!CastFunction::hasImplicitCast(*srcFields[i]->getType(), *dstFields[i]->getType())) {
+        if (!CastFunction::hasImplicitCast(srcFields[i].getType(), dstFields[i].getType())) {
             return false;
         }
     }
@@ -171,10 +171,10 @@ static bool hasImplicitCastUnion(const LogicalType& /*srcType*/, const LogicalTy
 }
 
 static bool hasImplicitCastMap(const LogicalType& srcType, const LogicalType& dstType) {
-    auto srcKeyType = *MapType::getKeyType(&srcType);
-    auto srcValueType = *MapType::getValueType(&srcType);
-    auto dstKeyType = *MapType::getKeyType(&dstType);
-    auto dstValueType = *MapType::getValueType(&dstType);
+    auto srcKeyType = MapType::getKeyType(srcType);
+    auto srcValueType = MapType::getValueType(srcType);
+    auto dstKeyType = MapType::getKeyType(dstType);
+    auto dstValueType = MapType::getValueType(dstType);
     return CastFunction::hasImplicitCast(srcKeyType, dstKeyType) &&
            CastFunction::hasImplicitCast(srcValueType, dstValueType);
 }

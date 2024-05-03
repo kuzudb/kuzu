@@ -7,10 +7,10 @@ namespace common {
 
 StructAuxiliaryBuffer::StructAuxiliaryBuffer(const LogicalType& type,
     storage::MemoryManager* memoryManager) {
-    auto fieldTypes = StructType::getFieldTypes(&type);
+    auto fieldTypes = StructType::getFieldTypes(type);
     childrenVectors.reserve(fieldTypes.size());
     for (auto fieldType : fieldTypes) {
-        childrenVectors.push_back(std::make_shared<ValueVector>(*fieldType, memoryManager));
+        childrenVectors.push_back(std::make_shared<ValueVector>(fieldType, memoryManager));
     }
 }
 
@@ -79,10 +79,9 @@ std::unique_ptr<AuxiliaryBuffer> AuxiliaryBufferFactory::getAuxiliaryBuffer(Logi
     case PhysicalTypeID::STRUCT:
         return std::make_unique<StructAuxiliaryBuffer>(type, memoryManager);
     case PhysicalTypeID::LIST:
-        return std::make_unique<ListAuxiliaryBuffer>(*ListType::getChildType(&type), memoryManager);
+        return std::make_unique<ListAuxiliaryBuffer>(ListType::getChildType(type), memoryManager);
     case PhysicalTypeID::ARRAY:
-        return std::make_unique<ListAuxiliaryBuffer>(*ArrayType::getChildType(&type),
-            memoryManager);
+        return std::make_unique<ListAuxiliaryBuffer>(ArrayType::getChildType(type), memoryManager);
     default:
         return nullptr;
     }

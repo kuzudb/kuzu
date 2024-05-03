@@ -340,7 +340,7 @@ static inline void startListCast(const char* input, uint64_t len, T split, const
 
 // ---------------------- cast String to Array Helper ------------------------------ //
 static void validateNumElementsInArray(uint64_t numElementsRead, const LogicalType& type) {
-    auto numElementsInArray = ArrayType::getNumElements(&type);
+    auto numElementsInArray = ArrayType::getNumElements(type);
     if (numElementsRead != numElementsInArray) {
         throw CopyException(stringFormat(
             "Each array should have fixed number of elements. Expected: {}, Actual: {}.",
@@ -564,7 +564,7 @@ static bool tryCastStringToStruct(const char* input, uint64_t len, ValueVector* 
         auto keyEnd = input;
         trimRightWhitespace(keyStart, keyEnd);
         trimQuotes(keyStart, keyEnd);
-        auto fieldIdx = StructType::getFieldIdx(&type, std::string{keyStart, keyEnd});
+        auto fieldIdx = StructType::getFieldIdx(type, std::string{keyStart, keyEnd});
         if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
             throw ParserException{"Invalid struct field name: " + std::string{keyStart, keyEnd}};
         }
@@ -730,7 +730,7 @@ void CastStringHelper::cast(const char* input, uint64_t len, union_entry_t& /*re
     auto& type = vector->dataType;
     union_field_idx_t selectedFieldIdx = INVALID_STRUCT_FIELD_IDX;
 
-    for (auto i = 0u; i < UnionType::getNumFields(&type); i++) {
+    for (auto i = 0u; i < UnionType::getNumFields(type); i++) {
         auto internalFieldIdx = UnionType::getInternalFieldIdx(i);
         auto fieldVector = StructVector::getFieldVector(vector, internalFieldIdx).get();
         if (tryCastUnionField(fieldVector, rowToAdd, input, len)) {

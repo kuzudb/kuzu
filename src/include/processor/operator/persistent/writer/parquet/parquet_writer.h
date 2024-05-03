@@ -59,8 +59,8 @@ public:
     }
     void flush(FactorizedTable& ft);
     void finalize();
-    static kuzu_parquet::format::Type::type convertToParquetType(common::LogicalType* type);
-    static void setSchemaProperties(common::LogicalType* type,
+    static kuzu_parquet::format::Type::type convertToParquetType(const common::LogicalType& type);
+    static void setSchemaProperties(const common::LogicalType& type,
         kuzu_parquet::format::SchemaElement& schemaElement);
 
 private:

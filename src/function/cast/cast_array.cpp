@@ -31,15 +31,15 @@ bool CastArrayHelper::checkCompatibleNestedTypes(LogicalTypeID sourceTypeID,
     return false;
 }
 
-bool CastArrayHelper::containsListToArray(const LogicalType* srcType, const LogicalType* dstType) {
-    if ((srcType->getLogicalTypeID() == LogicalTypeID::LIST ||
-            srcType->getLogicalTypeID() == LogicalTypeID::ARRAY) &&
-        dstType->getLogicalTypeID() == LogicalTypeID::ARRAY) {
+bool CastArrayHelper::containsListToArray(const LogicalType& srcType, const LogicalType& dstType) {
+    if ((srcType.getLogicalTypeID() == LogicalTypeID::LIST ||
+            srcType.getLogicalTypeID() == LogicalTypeID::ARRAY) &&
+        dstType.getLogicalTypeID() == LogicalTypeID::ARRAY) {
         return true;
     }
 
-    if (checkCompatibleNestedTypes(srcType->getLogicalTypeID(), dstType->getLogicalTypeID())) {
-        switch (srcType->getPhysicalType()) {
+    if (checkCompatibleNestedTypes(srcType.getLogicalTypeID(), dstType.getLogicalTypeID())) {
+        switch (srcType.getPhysicalType()) {
         case PhysicalTypeID::LIST: {
             return containsListToArray(ListType::getChildType(srcType),
                 ListType::getChildType(dstType));
@@ -53,8 +53,8 @@ bool CastArrayHelper::containsListToArray(const LogicalType* srcType, const Logi
             auto dstFieldTypes = StructType::getFieldTypes(dstType);
             if (srcFieldTypes.size() != dstFieldTypes.size()) {
                 throw ConversionException{
-                    stringFormat("Unsupported casting function from {} to {}.", srcType->toString(),
-                        dstType->toString())};
+                    stringFormat("Unsupported casting function from {} to {}.", srcType.toString(),
+                        dstType.toString())};
             }
 
             for (auto i = 0u; i < srcFieldTypes.size(); i++) {
@@ -70,14 +70,14 @@ bool CastArrayHelper::containsListToArray(const LogicalType* srcType, const Logi
     return false;
 }
 
-void CastArrayHelper::validateListEntry(ValueVector* inputVector, LogicalType* resultType,
+void CastArrayHelper::validateListEntry(ValueVector* inputVector, const LogicalType& resultType,
     uint64_t pos) {
     if (inputVector->isNull(pos)) {
         return;
     }
     auto inputType = inputVector->dataType;
 
-    switch (resultType->getPhysicalType()) {
+    switch (resultType.getPhysicalType()) {
     case PhysicalTypeID::ARRAY: {
         if (inputType.getPhysicalType() == PhysicalTypeID::LIST) {
             auto listEntry = inputVector->getValue<list_entry_t>(pos);
@@ -93,10 +93,10 @@ void CastArrayHelper::validateListEntry(ValueVector* inputVector, LogicalType* r
                 validateListEntry(inputChildVector, ArrayType::getChildType(resultType), i);
             }
         } else if (inputType.getPhysicalType() == PhysicalTypeID::ARRAY) {
-            if (ArrayType::getNumElements(&inputType) != ArrayType::getNumElements(resultType)) {
+            if (ArrayType::getNumElements(inputType) != ArrayType::getNumElements(resultType)) {
                 throw ConversionException(
                     stringFormat("Unsupported casting function from {} to {}.",
-                        inputType.toString(), resultType->toString()));
+                        inputType.toString(), resultType.toString()));
             }
             auto listEntry = inputVector->getValue<list_entry_t>(pos);
             auto inputChildVector = ListVector::getDataVector(inputVector);

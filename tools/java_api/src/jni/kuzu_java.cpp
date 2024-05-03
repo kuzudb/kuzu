@@ -641,15 +641,15 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1id(J
 JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1child_1type(JNIEnv* env,
     jclass, jobject thisDT) {
     auto* parent_type = getDataType(env, thisDT);
-    LogicalType* child_type;
+    LogicalType child_type;
     if (parent_type->getLogicalTypeID() == LogicalTypeID::ARRAY) {
-        child_type = ArrayType::getChildType(parent_type);
+        child_type = ArrayType::getChildType(*parent_type);
     } else if (parent_type->getLogicalTypeID() == LogicalTypeID::LIST) {
-        child_type = ListType::getChildType(parent_type);
+        child_type = ListType::getChildType(*parent_type);
     } else {
         return nullptr;
     }
-    auto* new_child_type = new LogicalType(*child_type);
+    auto* new_child_type = new LogicalType(child_type);
     jobject ret =
         createJavaObject(env, new_child_type, J_C_KuzuDataType, J_C_KuzuDataType_F_dt_ref);
     return ret;
@@ -661,7 +661,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1num_1e
     if (dt->getLogicalTypeID() != LogicalTypeID::ARRAY) {
         return 0;
     }
-    return static_cast<jlong>(ArrayType::getNumElements(dt));
+    return static_cast<jlong>(ArrayType::getNumElements(*dt));
 }
 
 /**
@@ -1093,7 +1093,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1struct_1f
     JNIEnv* env, jclass, jobject thisSV, jlong index) {
     auto* sv = getValue(env, thisSV);
     auto dataType = sv->getDataType();
-    auto fieldNames = StructType::getFieldNames(dataType);
+    auto fieldNames = StructType::getFieldNames(*dataType);
     if ((uint64_t)index >= fieldNames.size() || index < 0) {
         return nullptr;
     }
@@ -1106,7 +1106,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1struct_1ind
     auto* sv = getValue(env, thisSV);
     const char* field_name_cstr = env->GetStringUTFChars(field_name, JNI_FALSE);
     auto dataType = sv->getDataType();
-    auto index = StructType::getFieldIdx(dataType, field_name_cstr);
+    auto index = StructType::getFieldIdx(*dataType, field_name_cstr);
     env->ReleaseStringUTFChars(field_name, field_name_cstr);
     if (index == INVALID_STRUCT_FIELD_IDX) {
         return -1;

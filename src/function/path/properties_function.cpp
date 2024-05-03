@@ -20,10 +20,10 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
     auto literalExpr = arguments[1]->constPtrCast<LiteralExpression>();
     auto key = literalExpr->getValue().getValue<std::string>();
     auto listType = arguments[0]->getDataType();
-    auto childType = ListType::getChildType(&listType);
+    auto childType = ListType::getChildType(listType);
     struct_field_idx_t fieldIdx;
-    if (childType->getLogicalTypeID() == LogicalTypeID::NODE ||
-        childType->getLogicalTypeID() == LogicalTypeID::REL) {
+    if (childType.getLogicalTypeID() == LogicalTypeID::NODE ||
+        childType.getLogicalTypeID() == LogicalTypeID::REL) {
         fieldIdx = StructType::getFieldIdx(childType, key);
         if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
             throw BinderException(stringFormat("Invalid property name: {}.", key));
@@ -33,7 +33,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
             stringFormat("Cannot extract properties from {}.", listType.toString()));
     }
     auto field = StructType::getField(childType, fieldIdx);
-    auto returnType = LogicalType::LIST(field->getType()->copy());
+    auto returnType = LogicalType::LIST(field.getType().copy());
     auto bindData = std::make_unique<PropertiesBindData>(std::move(returnType), fieldIdx);
     bindData->paramTypes.push_back(arguments[0]->getDataType());
     bindData->paramTypes.push_back(LogicalType(function->parameterTypeIDs[1]));

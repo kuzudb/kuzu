@@ -12,13 +12,13 @@ static bool upgradeType(common::LogicalType& left, const common::LogicalType& ri
     }
     if (left.getLogicalTypeID() == common::LogicalTypeID::ANY ||
         ((left.getLogicalTypeID() == common::LogicalTypeID::LIST) &&
-            (common::ListType::getChildType(&left)->getLogicalTypeID() ==
+            (common::ListType::getChildType(left).getLogicalTypeID() ==
                 common::LogicalTypeID::ANY))) {
         left = right;
         return true;
     }
     if (((right.getLogicalTypeID() == common::LogicalTypeID::LIST) &&
-            (common::ListType::getChildType(&right)->getLogicalTypeID() ==
+            (common::ListType::getChildType(right).getLogicalTypeID() ==
                 common::LogicalTypeID::ANY))) {
         return true;
     }

@@ -11,7 +11,7 @@ struct UnionTag {
         auto tagIdxVector = common::UnionVector::getTagVector(&unionVector);
         auto tagIdx = tagIdxVector->getValue<common::union_field_idx_t>(
             tagIdxVector->state->selVector->selectedPositions[unionValue.entry.pos]);
-        auto tagName = common::UnionType::getFieldName(&unionVector.dataType, tagIdx);
+        auto tagName = common::UnionType::getFieldName(unionVector.dataType, tagIdx);
         if (tagName.length() > common::ku_string_t::SHORT_STR_LENGTH) {
             tag.overflowPtr =
                 reinterpret_cast<uint64_t>(common::StringVector::getInMemOverflowBuffer(&tagVector)

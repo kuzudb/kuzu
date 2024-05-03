@@ -27,7 +27,7 @@ struct UnaryPathExecutor {
     static void executeNodeIDs(common::ValueVector& input, common::ValueVector& result) {
         auto nodesFieldIdx = 0;
         KU_ASSERT(nodesFieldIdx ==
-                  common::StructType::getFieldIdx(&input.dataType, common::InternalKeyword::NODES));
+                  common::StructType::getFieldIdx(input.dataType, common::InternalKeyword::NODES));
         auto nodesVector = common::StructVector::getFieldVector(&input, nodesFieldIdx).get();
         auto internalIDFieldIdx = 0;
         execute(*input.state->selVector, *nodesVector, internalIDFieldIdx, result);
@@ -36,7 +36,7 @@ struct UnaryPathExecutor {
     static void executeRelIDs(common::ValueVector& input, common::ValueVector& result) {
         auto relsFieldIdx = 1;
         KU_ASSERT(relsFieldIdx ==
-                  common::StructType::getFieldIdx(&input.dataType, common::InternalKeyword::RELS));
+                  common::StructType::getFieldIdx(input.dataType, common::InternalKeyword::RELS));
         auto relsVector = common::StructVector::getFieldVector(&input, relsFieldIdx).get();
         auto internalIDFieldIdx = 3;
         execute(*input.state->selVector, *relsVector, internalIDFieldIdx, result);
@@ -46,7 +46,7 @@ struct UnaryPathExecutor {
         common::SelectionVector& selectionVector) {
         auto nodesFieldIdx = 0;
         KU_ASSERT(nodesFieldIdx ==
-                  common::StructType::getFieldIdx(&input.dataType, common::InternalKeyword::NODES));
+                  common::StructType::getFieldIdx(input.dataType, common::InternalKeyword::NODES));
         auto nodesVector = common::StructVector::getFieldVector(&input, nodesFieldIdx).get();
         auto internalIDFieldIdx = 0;
         return select(*input.state->selVector, *nodesVector, internalIDFieldIdx, selectionVector);
@@ -55,7 +55,7 @@ struct UnaryPathExecutor {
     static bool selectRelIDs(common::ValueVector& input, common::SelectionVector& selectionVector) {
         auto relsFieldIdx = 1;
         KU_ASSERT(relsFieldIdx ==
-                  common::StructType::getFieldIdx(&input.dataType, common::InternalKeyword::RELS));
+                  common::StructType::getFieldIdx(input.dataType, common::InternalKeyword::RELS));
         auto relsVector = common::StructVector::getFieldVector(&input, relsFieldIdx).get();
         auto internalIDFieldIdx = 3;
         return select(*input.state->selVector, *relsVector, internalIDFieldIdx, selectionVector);
@@ -66,7 +66,7 @@ private:
         common::ValueVector& listVector, common::struct_field_idx_t fieldIdx,
         common::ValueVector& result) {
         auto listDataVector = common::ListVector::getDataVector(&listVector);
-        KU_ASSERT(fieldIdx == common::StructType::getFieldIdx(&listDataVector->dataType,
+        KU_ASSERT(fieldIdx == common::StructType::getFieldIdx(listDataVector->dataType,
                                   common::InternalKeyword::ID));
         auto internalIDsVector =
             common::StructVector::getFieldVector(listDataVector, fieldIdx).get();
@@ -93,7 +93,7 @@ private:
         common::ValueVector& listVector, common::struct_field_idx_t fieldIdx,
         common::SelectionVector& selectionVector) {
         auto listDataVector = common::ListVector::getDataVector(&listVector);
-        KU_ASSERT(fieldIdx == common::StructType::getFieldIdx(&listDataVector->dataType,
+        KU_ASSERT(fieldIdx == common::StructType::getFieldIdx(listDataVector->dataType,
                                   common::InternalKeyword::ID));
         auto internalIDsVector =
             common::StructVector::getFieldVector(listDataVector, fieldIdx).get();
