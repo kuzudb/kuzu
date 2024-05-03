@@ -11,7 +11,6 @@ namespace testing {
 enum class TokenType {
     // header
     DATASET,
-    GROUP,
     SKIP,
     SKIP_MUSL,
     SKIP_32BIT,
@@ -47,7 +46,7 @@ enum class TokenType {
     REMOVE_FILE
 };
 
-const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenType::GROUP},
+const std::unordered_map<std::string, TokenType> tokenMap = {
     {"-DATASET", TokenType::DATASET}, {"-CASE", TokenType::CASE}, {"-COMMIT", TokenType::COMMIT},
     {"-CHECK_ORDER", TokenType::CHECK_ORDER}, {"-ENCODED_JOIN", TokenType::ENCODED_JOIN},
     {"-LOG", TokenType::LOG}, {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},

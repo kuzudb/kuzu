@@ -78,9 +78,6 @@ void TestParser::parseHeader() {
         case TokenType::EMPTY: {
             break;
         }
-        case TokenType::GROUP: {
-            break;
-        }
         case TokenType::DATASET: {
             checkMinimumParams(2);
             extractDataset();
