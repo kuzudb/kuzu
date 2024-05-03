@@ -1070,8 +1070,8 @@ static std::unique_ptr<FunctionBindData> castBindFunc(const binder::expression_v
     if (arguments[1]->expressionType != ExpressionType::LITERAL) {
         throw BinderException(stringFormat("Second parameter of CAST function must be a literal."));
     }
-    auto literalExpr = ku_dynamic_cast<Expression*, LiteralExpression*>(arguments[1].get());
-    auto targetTypeStr = literalExpr->getValue()->getValue<std::string>();
+    auto literalExpr = arguments[1]->constPtrCast<LiteralExpression>();
+    auto targetTypeStr = literalExpr->getValue().getValue<std::string>();
     auto targetType = binder::Binder::bindDataType(targetTypeStr);
     if (*targetType == arguments[0]->getDataType()) { // No need to cast.
         return nullptr;

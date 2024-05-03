@@ -61,7 +61,7 @@ std::shared_ptr<Expression> ExpressionBinder::foldExpression(
     const std::shared_ptr<Expression>& expression) {
     auto value = evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(expression,
         context->getMemoryManager());
-    auto result = createLiteralExpression(std::move(value));
+    auto result = createLiteralExpression(value);
     // Fold result should preserve the alias original expression. E.g.
     // RETURN 2, 1 + 1 AS x
     // Once folded, 1 + 1 will become 2 and have the same identifier as the first RETURN element.
@@ -144,8 +144,8 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCast(
 std::shared_ptr<Expression> ExpressionBinder::forceCast(
     const std::shared_ptr<Expression>& expression, const LogicalType& targetType) {
     auto functionName = "CAST";
-    auto children = expression_vector{expression,
-        createLiteralExpression(std::make_unique<Value>(targetType.toString()))};
+    auto children =
+        expression_vector{expression, createLiteralExpression(Value(targetType.toString()))};
     return bindScalarFunctionExpression(children, functionName);
 }
 

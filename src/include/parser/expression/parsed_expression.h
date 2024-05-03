@@ -32,13 +32,10 @@ class ParsedExpression {
 public:
     ParsedExpression(common::ExpressionType type, std::unique_ptr<ParsedExpression> child,
         std::string rawName);
-
     ParsedExpression(common::ExpressionType type, std::unique_ptr<ParsedExpression> left,
         std::unique_ptr<ParsedExpression> right, std::string rawName);
-
     ParsedExpression(common::ExpressionType type, std::string rawName)
         : type{type}, rawName{std::move(rawName)} {}
-
     explicit ParsedExpression(common::ExpressionType type) : type{type} {}
 
     ParsedExpression(common::ExpressionType type, std::string alias, std::string rawName,
@@ -74,6 +71,10 @@ public:
     template<class TARGET>
     const TARGET* constPtrCast() const {
         return common::ku_dynamic_cast<const ParsedExpression*, const TARGET*>(this);
+    }
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const ParsedExpression&, const TARGET&>(*this);
     }
 
 protected:

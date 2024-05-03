@@ -17,7 +17,8 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
         throw BinderException(stringFormat(
             "Expected literal input as the second argument for {}().", PropertiesFunction::name));
     }
-    auto key = ((binder::LiteralExpression&)*arguments[1]).getValue()->getValue<std::string>();
+    auto literalExpr = arguments[1]->constPtrCast<LiteralExpression>();
+    auto key = literalExpr->getValue().getValue<std::string>();
     auto listType = arguments[0]->getDataType();
     auto childType = ListType::getChildType(&listType);
     struct_field_idx_t fieldIdx;

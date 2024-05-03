@@ -33,7 +33,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         ExpressionUtil::validateExpressionType(*child, ExpressionType::LITERAL);
         auto literalExpr = child->constPtrCast<LiteralExpression>();
         inputTypes.push_back(literalExpr->getDataType());
-        inputValues.push_back(*literalExpr->getValue());
+        inputValues.push_back(literalExpr->getValue());
     }
     auto catalogSet = clientContext->getCatalog()->getFunctions(clientContext->getTx());
     auto functionEntry = BuiltInFunctionsUtils::getFunctionCatalogEntry(functionName, catalogSet);

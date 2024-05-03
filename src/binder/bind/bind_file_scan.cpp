@@ -60,7 +60,7 @@ std::unordered_map<std::string, Value> Binder::bindParsingOptions(
         auto expr = expressionBinder.bindExpression(*option.second);
         KU_ASSERT(expr->expressionType == ExpressionType::LITERAL);
         auto literalExpr = ku_dynamic_cast<Expression*, LiteralExpression*>(expr.get());
-        options.insert({name, *literalExpr->getValue()});
+        options.insert({name, literalExpr->getValue()});
     }
     return options;
 }

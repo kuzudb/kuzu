@@ -27,12 +27,12 @@ public:
         : PhysicalOperator{operatorType, id, paramsString},
           standaloneCallInfo{std::move(localState)} {}
 
-    inline bool isSource() const override { return true; }
-    inline bool canParallel() const final { return false; }
+    bool isSource() const override { return true; }
+    bool canParallel() const final { return false; }
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<StandaloneCall>(standaloneCallInfo->copy(), operatorType, id,
             paramsString);
     }

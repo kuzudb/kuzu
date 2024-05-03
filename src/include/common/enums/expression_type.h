@@ -45,8 +45,6 @@ enum class ExpressionType : uint8_t {
     SUBQUERY = 190,
 
     CASE_ELSE = 200,
-
-    MACRO = 210,
 };
 
 bool isExpressionUnary(ExpressionType type);

@@ -9,8 +9,7 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace evaluator {
 
-bool LiteralExpressionEvaluator::select(SelectionVector& /*selVector*/,
-    ClientContext* /*clientContext*/) {
+bool LiteralExpressionEvaluator::select(SelectionVector&, ClientContext*) {
     KU_ASSERT(resultVector->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
     auto pos = resultVector->state->selVector->selectedPositions[0];
     KU_ASSERT(pos == 0u);

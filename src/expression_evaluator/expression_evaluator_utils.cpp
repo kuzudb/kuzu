@@ -9,7 +9,7 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace evaluator {
 
-std::unique_ptr<Value> ExpressionEvaluatorUtils::evaluateConstantExpression(
+Value ExpressionEvaluatorUtils::evaluateConstantExpression(
     const std::shared_ptr<binder::Expression>& expression, storage::MemoryManager* memoryManager) {
     auto evaluator = ExpressionMapper::getConstantEvaluator(expression);
     auto emptyResultSet = std::make_unique<ResultSet>(0);
@@ -17,7 +17,7 @@ std::unique_ptr<Value> ExpressionEvaluatorUtils::evaluateConstantExpression(
     evaluator->evaluate(nullptr);
     auto selVector = evaluator->resultVector->state->selVector.get();
     KU_ASSERT(selVector->selectedSize == 1);
-    return evaluator->resultVector->getAsValue(selVector->selectedPositions[0]);
+    return *evaluator->resultVector->getAsValue(selVector->selectedPositions[0]);
 }
 
 } // namespace evaluator

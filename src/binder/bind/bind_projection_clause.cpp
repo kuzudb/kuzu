@@ -232,18 +232,19 @@ uint64_t Binder::bindSkipLimitExpression(const ParsedExpression& expression) {
     if (!ExpressionVisitor::isConstant(*boundExpression)) {
         throw BinderException(errorMsg);
     }
-    auto value = ((LiteralExpression&)(*boundExpression)).value.get();
+    auto& literalExpr = boundExpression->constCast<LiteralExpression>();
+    auto value = literalExpr.getValue();
     int64_t num = 0;
     // TODO: replace the following switch with value.cast()
-    switch (value->getDataType()->getLogicalTypeID()) {
+    switch (value.getDataType()->getLogicalTypeID()) {
     case LogicalTypeID::INT64: {
-        num = value->getValue<int64_t>();
+        num = value.getValue<int64_t>();
     } break;
     case LogicalTypeID::INT32: {
-        num = value->getValue<int32_t>();
+        num = value.getValue<int32_t>();
     } break;
     case LogicalTypeID::INT16: {
-        num = value->getValue<int16_t>();
+        num = value.getValue<int16_t>();
     } break;
     default:
         throw BinderException(errorMsg);
