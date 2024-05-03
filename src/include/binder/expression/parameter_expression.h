@@ -7,16 +7,16 @@ namespace kuzu {
 namespace binder {
 
 class ParameterExpression : public Expression {
+    static constexpr common::ExpressionType expressionType = common::ExpressionType::PARAMETER;
+
 public:
-    explicit ParameterExpression(const std::string& parameterName,
-        std::shared_ptr<common::Value> value)
-        : Expression{common::ExpressionType::PARAMETER, common::LogicalType(*value->getDataType()),
-              createUniqueName(parameterName)},
+    explicit ParameterExpression(const std::string& parameterName, common::Value value)
+        : Expression{expressionType, *value.getDataType(), createUniqueName(parameterName)},
           parameterName(parameterName), value{std::move(value)} {}
 
     void cast(const common::LogicalType& type) override;
 
-    std::shared_ptr<common::Value> getLiteral() const { return value; }
+    common::Value getValue() const { return value; }
 
 private:
     std::string toStringInternal() const final { return "$" + parameterName; }
@@ -24,7 +24,7 @@ private:
 
 private:
     std::string parameterName;
-    std::shared_ptr<common::Value> value;
+    common::Value value;
 };
 
 } // namespace binder

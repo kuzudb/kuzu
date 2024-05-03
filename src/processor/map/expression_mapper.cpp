@@ -97,15 +97,13 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getConstantEvaluator(
 std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getLiteralEvaluator(
     const Expression& expression) {
     auto& literalExpression = expression.constCast<LiteralExpression>();
-    return std::make_unique<LiteralExpressionEvaluator>(
-        std::make_shared<Value>(literalExpression.getValue()));
+    return std::make_unique<LiteralExpressionEvaluator>(literalExpression.getValue());
 }
 
 std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getParameterEvaluator(
     const Expression& expression) {
-    auto& parameterExpression = (ParameterExpression&)expression;
-    KU_ASSERT(parameterExpression.getLiteral() != nullptr);
-    return std::make_unique<LiteralExpressionEvaluator>(parameterExpression.getLiteral());
+    auto& parameterExpression = expression.constCast<ParameterExpression>();
+    return std::make_unique<LiteralExpressionEvaluator>(parameterExpression.getValue());
 }
 
 std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getReferenceEvaluator(

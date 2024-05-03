@@ -13,11 +13,11 @@ std::shared_ptr<Expression> ExpressionBinder::bindParameterExpression(
     auto& parsedParameterExpression = (ParsedParameterExpression&)parsedExpression;
     auto parameterName = parsedParameterExpression.getParameterName();
     if (parameterMap.contains(parameterName)) {
-        return make_shared<ParameterExpression>(parameterName, parameterMap.at(parameterName));
+        return make_shared<ParameterExpression>(parameterName, *parameterMap.at(parameterName));
     } else {
         auto value = std::make_shared<Value>(Value::createNullValue());
         parameterMap.insert({parameterName, value});
-        return make_shared<ParameterExpression>(parameterName, value);
+        return make_shared<ParameterExpression>(parameterName, *value);
     }
 }
 
