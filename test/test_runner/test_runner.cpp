@@ -137,8 +137,8 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
     return false;
 }
 
-bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestStatement* statement, size_t resultIdx,
-    const std::string& planStr, uint32_t planIdx) {
+bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestStatement* statement,
+    size_t resultIdx, const std::string& planStr, uint32_t planIdx) {
     TestQueryResult& expectedResult = statement->result[resultIdx];
     if (expectedResult.type == ResultType::TUPLES_CSV) {
         std::ifstream expectedTuplesFile(expectedResult.expectedMessage);
@@ -162,7 +162,7 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
     if (expectedResult.type == ResultType::HASH) {
         std::string resultHash = TestRunner::convertResultToMD5Hash(*result,
             statement->checkOutputOrder, statement->checkColumnNames);
-        if (resultTuples.size() == actualNumTuples && 
+        if (resultTuples.size() == actualNumTuples &&
             resultHash == expectedResult.expectedMessage &&
             resultTuples.size() == expectedResult.numTuples) {
             spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
