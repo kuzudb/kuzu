@@ -51,51 +51,45 @@ bool TestRunner::testStatement(TestStatement* statement, Connection& conn,
         parsedStatements = conn.getClientContext()->parseQuery(statement->query);
     } catch (std::exception& exception) {
         auto errorPreparedStatement = conn.preparedStatementWithError(exception.what());
-        return checkLogicalPlan(errorPreparedStatement, statement, conn, 0);
+        return checkLogicalPlan(errorPreparedStatement, statement, 0, conn, 0);
     }
     if (parsedStatements.empty()) {
         auto errorPreparedStatement =
             conn.preparedStatementWithError("Connection Exception: Query is empty.");
-        return checkLogicalPlan(errorPreparedStatement, statement, conn, 0);
+        return checkLogicalPlan(errorPreparedStatement, statement, 0, conn, 0);
     }
-    // Run the non-last queries
+
     size_t numParsed = parsedStatements.size();
-    for (size_t i = 0; i < numParsed - 1; i++) {
-        preparedStatement =
-            conn.prepareNoLock(std::move(parsedStatements[i]), statement->enumerate);
-        if (!preparedStatement->isSuccess()) {
+    for (size_t i = 0; i < numParsed; i++) {
+        auto parsedStatement = std::move(parsedStatements[i]);
+        if (statement->encodedJoin.empty()) {
+            preparedStatement = conn.prepareNoLock(parsedStatement, statement->enumerate);
+        } else {
+            preparedStatement = conn.prepareNoLock(parsedStatement, true, statement->encodedJoin);
+        }
+        // Check for wrong statements
+        ResultType resultType = statement->result[i].type;
+        if (resultType != ResultType::ERROR && resultType != ResultType::ERROR_REGEX &&
+            !preparedStatement->isSuccess()) {
             spdlog::error(preparedStatement->getErrorMessage());
             return false;
         }
-        auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), 0);
-        if (!result->isSuccess()) {
+        if (!checkLogicalPlans(preparedStatement, statement, i, conn)) {
             return false;
         }
     }
-    auto parsedStatement = std::move(parsedStatements[numParsed - 1]);
-    if (statement->encodedJoin.empty()) {
-        preparedStatement = conn.prepareNoLock(parsedStatement, statement->enumerate);
-    } else {
-        preparedStatement = conn.prepareNoLock(parsedStatement, true, statement->encodedJoin);
-    }
-    // Check for wrong statements
-    if (!statement->expectedError && !statement->expectedErrorRegex &&
-        !preparedStatement->isSuccess()) {
-        spdlog::error(preparedStatement->getErrorMessage());
-        return false;
-    }
-    return checkLogicalPlans(preparedStatement, statement, conn);
+    return true;
 }
 
 bool TestRunner::checkLogicalPlans(std::unique_ptr<PreparedStatement>& preparedStatement,
-    TestStatement* statement, Connection& conn) {
+    TestStatement* statement, size_t resultIdx, Connection& conn) {
     auto numPlans = preparedStatement->logicalPlans.size();
     auto numPassedPlans = 0u;
     if (numPlans == 0) {
-        return checkLogicalPlan(preparedStatement, statement, conn, 0);
+        return checkLogicalPlan(preparedStatement, statement, resultIdx, conn, 0);
     }
     for (auto i = 0u; i < numPlans; ++i) {
-        if (checkLogicalPlan(preparedStatement, statement, conn, i)) {
+        if (checkLogicalPlan(preparedStatement, statement, resultIdx, conn, i)) {
             numPassedPlans++;
         }
     }
@@ -103,51 +97,60 @@ bool TestRunner::checkLogicalPlans(std::unique_ptr<PreparedStatement>& preparedS
 }
 
 bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedStatement,
-    TestStatement* statement, Connection& conn, uint32_t planIdx) {
+    TestStatement* statement, size_t resultIdx, Connection& conn, uint32_t planIdx) {
     auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), planIdx);
-    if (statement->expectedError) {
-        std::string expectedError = StringUtils::rtrim(result->getErrorMessage());
-        if (statement->errorMessage == expectedError) {
+    TestQueryResult& expectedResult = statement->result[resultIdx];
+    std::string expectedError;
+    switch (expectedResult.type) {
+    case ResultType::OK: {
+        return result->isSuccess();
+    }
+    case ResultType::ERROR: {
+        expectedError = StringUtils::rtrim(result->getErrorMessage());
+        if (expectedResult.expectedMessage == expectedError) {
             return true;
         }
         spdlog::info("EXPECTED ERROR: {}", expectedError);
-    } else if (statement->expectedErrorRegex) {
-        std::string expectedError = StringUtils::rtrim(result->getErrorMessage());
-        std::regex pattern(statement->errorMessage);
-        if (std::regex_match(expectedError, pattern)) {
+        break;
+    }
+    case ResultType::ERROR_REGEX: {
+        expectedError = StringUtils::rtrim(result->getErrorMessage());
+        if (std::regex_match(expectedError, std::regex(expectedResult.expectedMessage))) {
             return true;
         }
         spdlog::info("EXPECTED ERROR: {}", expectedError);
-    } else if (statement->expectedOk && result->isSuccess()) {
-        return true;
-    } else {
+        break;
+    }
+    default: {
         if (!preparedStatement->success) {
             spdlog::info("Query compilation failed with error: {}",
                 preparedStatement->getErrorMessage());
             return false;
         }
         auto planStr = preparedStatement->logicalPlans[planIdx]->toString();
-        if (checkPlanResult(result, statement, planStr, planIdx)) {
+        if (checkPlanResult(result, statement, resultIdx, planStr, planIdx)) {
             return true;
         }
+        break;
+    }
     }
     return false;
 }
 
-bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestStatement* statement,
+bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestStatement* statement, size_t resultIdx,
     const std::string& planStr, uint32_t planIdx) {
-
-    if (!statement->expectedTuplesCSVFile.empty()) {
-        std::ifstream expectedTuplesFile(statement->expectedTuplesCSVFile);
+    TestQueryResult& expectedResult = statement->result[resultIdx];
+    if (expectedResult.type == ResultType::TUPLES_CSV) {
+        std::ifstream expectedTuplesFile(expectedResult.expectedMessage);
         if (!expectedTuplesFile.is_open()) {
-            throw TestException("Cannot open file: " + statement->expectedTuplesCSVFile);
+            throw TestException("Cannot open file: " + expectedResult.expectedMessage);
         }
         std::string line;
         while (std::getline(expectedTuplesFile, line)) {
-            statement->expectedTuples.push_back(line);
+            expectedResult.expectedTuples.push_back(line);
         }
         if (!statement->checkOutputOrder) {
-            sort(statement->expectedTuples.begin(), statement->expectedTuples.end());
+            sort(expectedResult.expectedTuples.begin(), expectedResult.expectedTuples.end());
         }
     }
     std::vector<std::string> resultTuples = TestRunner::convertResultToString(*result,
@@ -156,11 +159,12 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
     if (statement->checkColumnNames) {
         actualNumTuples++;
     }
-    if (statement->expectHash) {
+    if (expectedResult.type == ResultType::HASH) {
         std::string resultHash = TestRunner::convertResultToMD5Hash(*result,
             statement->checkOutputOrder, statement->checkColumnNames);
-        if (resultTuples.size() == actualNumTuples && resultHash == statement->expectedHashValue &&
-            resultTuples.size() == statement->expectedNumTuples) {
+        if (resultTuples.size() == actualNumTuples && 
+            resultHash == expectedResult.expectedMessage &&
+            resultTuples.size() == expectedResult.numTuples) {
             spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
                 result->getQuerySummary()->getExecutionTime());
             return true;
@@ -175,7 +179,7 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
             return false;
         }
     }
-    if (resultTuples.size() == actualNumTuples && resultTuples == statement->expectedTuples) {
+    if (resultTuples.size() == actualNumTuples && resultTuples == expectedResult.expectedTuples) {
         spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
             result->getQuerySummary()->getExecutionTime());
         return true;

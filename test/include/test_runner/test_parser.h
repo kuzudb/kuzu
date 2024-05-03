@@ -94,6 +94,7 @@ private:
     void genGroupName();
     void parseHeader();
     void parseBody();
+    void extractAllResults(TestStatement* statement);
     void extractExpectedResult(TestStatement* statement);
     void extractStatementBlock();
     void extractDataset();

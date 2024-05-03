@@ -10,6 +10,8 @@
 -STATEMENT INSTALL httpfs;
            LOAD EXTENSION httpfs;
            LOAD FROM 'http://extension.kuzudb.com/dataset/test/city.csv' return *;
+---- ok
+---- ok
 ---- 3
 Guelph|75000
 Kitchener|200000
