@@ -1,5 +1,4 @@
 # This test group is currently disabled since exporting fixed-list to parquet is not supported yet
--GROUP TinySnbParquet
 -DATASET PARQUET CSV_TO_PARQUET(tinysnb)
 -SKIP
 --

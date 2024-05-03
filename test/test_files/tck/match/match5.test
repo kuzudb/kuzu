@@ -1,9 +1,8 @@
--GROUP TCKMatch5
 -DATASET CSV tck-likes
 
 --
 
--CASE Scenario1-24
+-CASE Scenario1_24
 # Handling unbounded variable length match
 -LOG Scenario1
 -STATEMENT MATCH (a:A)

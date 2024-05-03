@@ -1,4 +1,3 @@
--GROUP ShortestPathTest
 -DATASET PARQUET CSV_TO_PARQUET(shortest-path-tests)
 # Timestamp and Date columns are written as strings in parquet file. Parquet reader should support casting operations.
 --

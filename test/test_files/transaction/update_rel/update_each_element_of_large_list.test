@@ -1,4 +1,3 @@
--GROUP UpdateRelTest_updateEachElementOfLargeList
 -DATASET CSV rel-update-tests
 --
 

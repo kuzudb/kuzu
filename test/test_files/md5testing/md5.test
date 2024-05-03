@@ -1,7 +1,6 @@
 # The purpose of these tests is just to
 # test using an md5 checksum instead of string comparison
 # to check if the answer is correct
--GROUP MD5Tests
 -DATASET CSV empty
 
 --

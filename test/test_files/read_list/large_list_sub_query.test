@@ -1,4 +1,3 @@
--GROUP EndToEndReadListsSubQueryTest
 -DATASET CSV read-list-tests/large-list-sub-query-tests
 
 --

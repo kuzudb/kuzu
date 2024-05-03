@@ -1,4 +1,3 @@
--GROUP CopyNodeFromCSVTest
 -DATASET CSV copy-test/node/csv
 
 --

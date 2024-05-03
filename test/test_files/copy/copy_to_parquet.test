@@ -1,4 +1,3 @@
--GROUP CopyToParquet
 -DATASET CSV tinysnb
 
 --

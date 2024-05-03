@@ -1,4 +1,3 @@
--GROUP IssueTest
 -DATASET CSV empty
 
 --
@@ -28,7 +27,7 @@
 ---- 1
 {_ID: 0:0, _LABEL: Test, id: 0, content: mycontent}
 
--CASE Kind-Of-Fruit
+-CASE KindOfFruit
 -STATEMENT CREATE NODE TABLE T(name STRING, PRIMARY KEY(name));
 ---- ok
 -STATEMENT CREATE NODE TABLE Fruit(name STRING, PRIMARY KEY(name));

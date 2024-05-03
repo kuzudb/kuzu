@@ -1,4 +1,3 @@
--GROUP LongStringPKTest
 -DATASET PARQUET CSV_TO_PARQUET(long-string-pk-tests)
 
 --

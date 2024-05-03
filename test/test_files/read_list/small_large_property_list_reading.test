@@ -1,4 +1,3 @@
--GROUP EndToEndReadLargeListsTest
 -DATASET CSV read-list-tests/large-list
 
 --

@@ -1,4 +1,3 @@
--GROUP CopyRelTableMultiplicityViolationTest
 -DATASET CSV copy-fault-tests/rel-table-multiplicity-violation
 --
 

@@ -1,4 +1,3 @@
--GROUP CopyDuplicateIDTest
 -DATASET CSV copy-fault-tests/duplicate-ids
 
 --
