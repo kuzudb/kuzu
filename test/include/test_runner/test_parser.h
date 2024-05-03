@@ -46,8 +46,8 @@ enum class TokenType {
     REMOVE_FILE
 };
 
-const std::unordered_map<std::string, TokenType> tokenMap = {
-    {"-DATASET", TokenType::DATASET}, {"-CASE", TokenType::CASE}, {"-COMMIT", TokenType::COMMIT},
+const std::unordered_map<std::string, TokenType> tokenMap = {{"-DATASET", TokenType::DATASET},
+    {"-CASE", TokenType::CASE}, {"-COMMIT", TokenType::COMMIT},
     {"-CHECK_ORDER", TokenType::CHECK_ORDER}, {"-ENCODED_JOIN", TokenType::ENCODED_JOIN},
     {"-LOG", TokenType::LOG}, {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},
     {"-ENUMERATE", TokenType::ENUMERATE}, {"-PARALLELISM", TokenType::PARALLELISM},
