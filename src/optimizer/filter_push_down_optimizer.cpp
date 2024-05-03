@@ -53,7 +53,7 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitFilterReplace(
     if (predicate->expressionType == ExpressionType::LITERAL) {
         // Avoid executing child plan if literal is Null or False.
         auto literalExpr = ku_dynamic_cast<Expression*, LiteralExpression*>(predicate.get());
-        if (literalExpr->isNull() || !literalExpr->getValue()->getValue<bool>()) {
+        if (literalExpr->isNull() || !literalExpr->getValue().getValue<bool>()) {
             return std::make_shared<LogicalEmptyResult>(*op->getSchema());
         }
     } else {

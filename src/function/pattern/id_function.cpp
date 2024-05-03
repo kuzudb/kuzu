@@ -27,8 +27,8 @@ static std::shared_ptr<binder::Expression> rewriteFunc(const expression_vector& 
         return rel->getPropertyExpression(InternalKeyword::ID);
     }
     // Bind as struct_extract(param, "_id")
-    auto key = Value(LogicalType::STRING(), InternalKeyword::ID);
-    auto keyExpr = binder->createLiteralExpression(key.copy());
+    auto keyExpr =
+        binder->createLiteralExpression(Value(LogicalType::STRING(), InternalKeyword::ID));
     auto newParams = expression_vector{params[0], keyExpr};
     return binder->bindScalarFunctionExpression(newParams, StructExtractFunctions::name);
 }

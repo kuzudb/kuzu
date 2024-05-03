@@ -262,12 +262,11 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
         auto& node = (NodeExpression&)expression;
         if (!node.isMultiLabeled()) {
             auto labelName = catalog->getTableName(context->getTx(), node.getSingleTableID());
-            return createLiteralExpression(
-                std::make_unique<Value>(LogicalType::STRING(), labelName));
+            return createLiteralExpression(Value(LogicalType::STRING(), labelName));
         }
         auto nodeTableIDs = catalog->getNodeTableIDs(context->getTx());
         children.push_back(node.getInternalID());
-        auto labelsValue = std::make_unique<Value>(std::move(listType),
+        auto labelsValue = Value(std::move(listType),
             populateLabelValues(nodeTableIDs, *catalog, context->getTx()));
         children.push_back(createLiteralExpression(std::move(labelsValue)));
     } break;
@@ -275,12 +274,11 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
         auto& rel = (RelExpression&)expression;
         if (!rel.isMultiLabeled()) {
             auto labelName = catalog->getTableName(context->getTx(), rel.getSingleTableID());
-            return createLiteralExpression(
-                std::make_unique<Value>(LogicalType::STRING(), labelName));
+            return createLiteralExpression(Value(LogicalType::STRING(), labelName));
         }
         auto relTableIDs = catalog->getRelTableIDs(context->getTx());
         children.push_back(rel.getInternalIDProperty());
-        auto labelsValue = std::make_unique<Value>(std::move(listType),
+        auto labelsValue = Value(std::move(listType),
             populateLabelValues(relTableIDs, *catalog, context->getTx()));
         children.push_back(createLiteralExpression(std::move(labelsValue)));
     } break;
@@ -322,7 +320,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindRecursiveJoinLengthFunction(
                 recursiveRels.push_back(child);
             }
         }
-        auto numRelsExpression = createLiteralExpression(std::make_unique<Value>(numRels));
+        auto numRelsExpression = createLiteralExpression(Value(numRels));
         if (recursiveRels.empty()) {
             return numRelsExpression;
         }

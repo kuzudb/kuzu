@@ -14,7 +14,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapStandaloneCall(
     auto optionValue =
         logicalStandaloneCall->getOptionValue()->constPtrCast<binder::LiteralExpression>();
     auto standaloneCallInfo = std::make_unique<StandaloneCallInfo>(
-        logicalStandaloneCall->getOption(), *optionValue->getValue());
+        logicalStandaloneCall->getOption(), optionValue->getValue());
     return std::make_unique<StandaloneCall>(std::move(standaloneCallInfo),
         PhysicalOperatorType::STANDALONE_CALL, getOperatorID(),
         logicalStandaloneCall->getExpressionsForPrinting());

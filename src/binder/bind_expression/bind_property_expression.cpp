@@ -109,8 +109,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindNodeOrRelPropertyExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindStructPropertyExpression(
     std::shared_ptr<Expression> child, const std::string& propertyName) {
-    auto children =
-        expression_vector{std::move(child), createStringLiteralExpression(propertyName)};
+    auto children = expression_vector{std::move(child), createLiteralExpression(propertyName)};
     return bindScalarFunctionExpression(children, function::StructExtractFunctions::name);
 }
 

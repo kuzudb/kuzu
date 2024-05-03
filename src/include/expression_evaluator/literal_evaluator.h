@@ -14,8 +14,6 @@ public:
     explicit LiteralExpressionEvaluator(std::shared_ptr<common::Value> value)
         : ExpressionEvaluator{true /* isResultFlat */}, value{std::move(value)} {}
 
-    ~LiteralExpressionEvaluator() override = default;
-
     inline void evaluate(main::ClientContext* /* clientContext */) override {}
 
     bool select(common::SelectionVector& selVector, main::ClientContext* clientContext) override;

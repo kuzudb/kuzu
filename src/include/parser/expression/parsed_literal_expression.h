@@ -7,29 +7,29 @@ namespace kuzu {
 namespace parser {
 
 class ParsedLiteralExpression : public ParsedExpression {
+    static constexpr common::ExpressionType expressionType = common::ExpressionType::LITERAL;
+
 public:
     ParsedLiteralExpression(common::Value value, std::string raw)
-        : ParsedExpression{common::ExpressionType::LITERAL, std::move(raw)},
-          value{std::move(value)} {}
+        : ParsedExpression{expressionType, std::move(raw)}, value{std::move(value)} {}
 
     ParsedLiteralExpression(std::string alias, std::string rawName, parsed_expr_vector children,
         common::Value value)
-        : ParsedExpression{common::ExpressionType::LITERAL, std::move(alias), std::move(rawName),
+        : ParsedExpression{expressionType, std::move(alias), std::move(rawName),
               std::move(children)},
           value{std::move(value)} {}
 
     explicit ParsedLiteralExpression(common::Value value)
-        : ParsedExpression{common::ExpressionType::LITERAL}, value{std::move(value)} {}
+        : ParsedExpression{expressionType}, value{std::move(value)} {}
 
-    inline const common::Value* getValue() const { return &value; }
-    inline common::Value* getValueUnsafe() { return &value; }
+    common::Value getValue() const { return value; }
 
-    static inline std::unique_ptr<ParsedLiteralExpression> deserialize(
+    static std::unique_ptr<ParsedLiteralExpression> deserialize(
         common::Deserializer& deserializer) {
         return std::make_unique<ParsedLiteralExpression>(*common::Value::deserialize(deserializer));
     }
 
-    inline std::unique_ptr<ParsedExpression> copy() const override {
+    std::unique_ptr<ParsedExpression> copy() const override {
         return std::make_unique<ParsedLiteralExpression>(alias, rawName, copyChildren(), value);
     }
 

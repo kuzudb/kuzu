@@ -8,7 +8,7 @@ namespace kuzu {
 namespace evaluator {
 
 struct ExpressionEvaluatorUtils {
-    static std::unique_ptr<common::Value> evaluateConstantExpression(
+    static common::Value evaluateConstantExpression(
         const std::shared_ptr<binder::Expression>& expression,
         storage::MemoryManager* memoryManager);
 };

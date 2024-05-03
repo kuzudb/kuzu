@@ -19,10 +19,8 @@ void LogicalDummyScan::computeFlatSchema() {
 }
 
 std::shared_ptr<binder::Expression> LogicalDummyScan::getDummyExpression() {
-    auto logicalType = LogicalType(LogicalTypeID::STRING);
-    auto nullValue = Value::createNullValue(logicalType);
-    return std::make_shared<binder::LiteralExpression>(nullValue.copy(),
-        InternalKeyword::PLACE_HOLDER);
+    return std::make_shared<binder::LiteralExpression>(
+        Value::createNullValue(*LogicalType::STRING()), InternalKeyword::PLACE_HOLDER);
 }
 
 } // namespace planner
