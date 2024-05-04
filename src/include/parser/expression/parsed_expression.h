@@ -69,12 +69,12 @@ public:
     static std::unique_ptr<ParsedExpression> deserialize(common::Deserializer& deserializer);
 
     template<class TARGET>
-    const TARGET* constPtrCast() const {
-        return common::ku_dynamic_cast<const ParsedExpression*, const TARGET*>(this);
-    }
-    template<class TARGET>
     const TARGET& constCast() const {
         return common::ku_dynamic_cast<const ParsedExpression&, const TARGET&>(*this);
+    }
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const ParsedExpression*, const TARGET*>(this);
     }
 
 protected:

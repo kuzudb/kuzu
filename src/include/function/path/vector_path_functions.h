@@ -44,6 +44,8 @@ struct IsACyclicFunction {
 
 struct LengthFunction {
     static constexpr const char* name = "LENGTH";
+
+    static function_set getFunctionSet();
 };
 
 } // namespace function

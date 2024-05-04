@@ -6,10 +6,8 @@
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
 #include "function/aggregate/collect.h"
-#include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/built_in_function_utils.h"
 #include "function/cast/vector_cast_functions.h"
-#include "function/path/vector_path_functions.h"
 #include "function/rewrite_function.h"
 #include "function/scalar_macro_function.h"
 #include "function/schema/vector_label_functions.h"
@@ -118,8 +116,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindRewriteFunctionExpression(
     const parser::ParsedExpression& expr) {
-    auto& funcExpr =
-        ku_dynamic_cast<const ParsedExpression&, const ParsedFunctionExpression&>(expr);
+    auto& funcExpr = expr.constCast<ParsedFunctionExpression>();
     expression_vector children;
     for (auto i = 0u; i < expr.getNumChildren(); ++i) {
         children.push_back(bindExpression(*expr.getChild(i)));
@@ -128,7 +125,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindRewriteFunctionExpression(
     auto functions = context->getCatalog()->getFunctions(context->getTx());
     auto match = BuiltInFunctionsUtils::matchFunction(funcExpr.getNormalizedFunctionName(),
         childrenTypes, functions);
-    auto function = ku_dynamic_cast<Function*, RewriteFunction*>(match);
+    auto function = match->constPtrCast<RewriteFunction>();
     KU_ASSERT(function->rewriteFunc != nullptr);
     return function->rewriteFunc(children, this);
 }
@@ -210,9 +207,6 @@ std::shared_ptr<Expression> ExpressionBinder::rewriteFunctionExpression(
         ExpressionUtil::validateDataType(*child,
             std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL});
         return bindLabelFunction(*child);
-    } else if (functionName == LengthFunction::name) {
-        auto child = bindExpression(*parsedExpression.getChild(0));
-        return bindRecursiveJoinLengthFunction(*child);
     } else if (functionName == StartNodeFunction::name) {
         auto child = bindExpression(*parsedExpression.getChild(0));
         ExpressionUtil::validateDataType(*child, LogicalTypeID::REL);
@@ -303,44 +297,6 @@ std::unique_ptr<Expression> ExpressionBinder::createInternalLengthExpression(
     return std::make_unique<PropertyExpression>(LogicalType(LogicalTypeID::INT64),
         InternalKeyword::LENGTH, rel.getUniqueName(), rel.getVariableName(),
         std::move(propertyIDPerTable), false /* isPrimaryKey */);
-}
-
-std::shared_ptr<Expression> ExpressionBinder::bindRecursiveJoinLengthFunction(
-    const Expression& expression) {
-    if (expression.getDataType().getLogicalTypeID() != LogicalTypeID::RECURSIVE_REL) {
-        return nullptr;
-    }
-    if (expression.expressionType == common::ExpressionType::PATH) {
-        int64_t numRels = 0u;
-        expression_vector recursiveRels;
-        for (auto& child : expression.getChildren()) {
-            if (ExpressionUtil::isRelPattern(*child)) {
-                numRels++;
-            } else if (ExpressionUtil::isRecursiveRelPattern(*child)) {
-                recursiveRels.push_back(child);
-            }
-        }
-        auto numRelsExpression = createLiteralExpression(Value(numRels));
-        if (recursiveRels.empty()) {
-            return numRelsExpression;
-        }
-        expression_vector children;
-        children.push_back(std::move(numRelsExpression));
-        children.push_back(
-            ku_dynamic_cast<Expression&, RelExpression&>(*recursiveRels[0]).getLengthExpression());
-        auto result = bindScalarFunctionExpression(children, AddFunction::name);
-        for (auto i = 1u; i < recursiveRels.size(); ++i) {
-            children[0] = std::move(result);
-            children[1] = ku_dynamic_cast<Expression&, RelExpression&>(*recursiveRels[i])
-                              .getLengthExpression();
-            result = bindScalarFunctionExpression(children, AddFunction::name);
-        }
-        return result;
-    } else if (ExpressionUtil::isRecursiveRelPattern(expression)) {
-        auto& recursiveRel = ku_dynamic_cast<const Expression&, const RelExpression&>(expression);
-        return recursiveRel.getLengthExpression();
-    }
-    return nullptr;
 }
 
 } // namespace binder
