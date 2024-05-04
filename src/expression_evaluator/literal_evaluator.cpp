@@ -18,12 +18,12 @@ bool LiteralExpressionEvaluator::select(SelectionVector&, ClientContext*) {
 
 void LiteralExpressionEvaluator::resolveResultVector(const processor::ResultSet& /*resultSet*/,
     MemoryManager* memoryManager) {
-    resultVector = std::make_shared<ValueVector>(*value->getDataType(), memoryManager);
+    resultVector = std::make_shared<ValueVector>(*value.getDataType(), memoryManager);
     resultVector->setState(DataChunkState::getSingleValueDataChunkState());
-    if (value->isNull()) {
+    if (value.isNull()) {
         resultVector->setNull(0 /* pos */, true);
     } else {
-        resultVector->copyFromValue(resultVector->state->selVector->selectedPositions[0], *value);
+        resultVector->copyFromValue(resultVector->state->selVector->selectedPositions[0], value);
     }
 }
 

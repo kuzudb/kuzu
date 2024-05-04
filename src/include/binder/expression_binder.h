@@ -1,15 +1,12 @@
 #pragma once
 
 #include "binder/expression/expression.h"
+#include "common/types/value/value.h"
 #include "parser/expression/parsed_expression.h"
 
 namespace kuzu {
 namespace main {
 class ClientContext;
-}
-
-namespace common {
-class Value;
 }
 
 namespace binder {
