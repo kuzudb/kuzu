@@ -234,8 +234,8 @@ class Connection:
         self,
         name: str,
         udf: Callable[[...], Any],
-        params_type: list[Type] | None = None,
-        return_type: Type | None = None
+        params_type: list[Type | str] | None = None,
+        return_type: Type | str = ""
     ) -> None:
         """
         Sets a User Defined Function (UDF) to use in cypher queries.
@@ -254,6 +254,9 @@ class Connection:
         return_type: Optional[Type]
             a Type enum to describe the returned value
         """
-        parsed_params_type = [] if params_type is None else [param_type.value for param_type in params_type]
-        parsed_return_type = "" if return_type is None else return_type.value
-        self._connection.create_function(name, udf, parsed_params_type, parsed_return_type)
+        if params_type is None:
+            params_type = []
+        parsed_params_type = [x if type(x) is str else x.value for x in params_type]
+        if (type(return_type) is not str):
+            return_type = return_type.value
+        self._connection.create_function(name, udf, parsed_params_type, return_type)

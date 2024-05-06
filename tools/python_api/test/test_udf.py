@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pandas as pd
+import pyarrow as pa
 from datetime import date, datetime, timedelta # noqa: TCH003
 
 import kuzu
@@ -61,17 +62,20 @@ def test_udf(conn_db_readwrite: ConnDB) -> None:
     
     addToDateArgs = ["addToDate", addToDate, [Type.TIMESTAMP, Type.INTERVAL], Type.TIMESTAMP]
     
-    def concatThreeLists(a: list, b: list, c: list) -> list:
+    def concatThreeLists(a: list[int], b: list[int], c: list[int]) -> list[int]:
         return a+b+c
     
-    concatThreeListsArgs = ["concatThreeLists", concatThreeLists, [Type.LIST] * 3, Type.LIST]
-    # TODO: (Maxwell) implement nested udf
+    concatThreeListsArgs = ["concatThreeLists", concatThreeLists]
     
-    def mergeMaps(a: dict, b: dict) -> dict:
+    def mergeMaps(a, b):
         return a | b
     
-    mergeMapsArgs = ["mergeMaps", mergeMaps, [Type.MAP] * 2, Type.MAP]
-    # TODO: (Maxwell) implement nested udf
+    mergeMapsArgs = ["mergeMaps", mergeMaps, ["MAP(STRING, INT64)"] * 2, "MAP(STRING, INT64)"]
+
+    def mergeMaps2(a : dict[str, int], b : dict[str, int]) -> dict[str, int]:
+        return a | b
+    
+    mergeMaps2Args = ["mergeMaps2", mergeMaps2]
 
     def selectIfSeven(a: int) -> bool:
         return a == 7
@@ -85,6 +89,9 @@ def test_udf(conn_db_readwrite: ConnDB) -> None:
     conn.create_function(*dateToDatetimeArgs)
     conn.create_function(*datetimeToDateArgs)
     conn.create_function(*addToDateArgs)
+    conn.create_function(*concatThreeListsArgs)
+    conn.create_function(*mergeMapsArgs)
+    conn.create_function(*mergeMaps2Args)
     conn.create_function(*selectIfSevenArgs)
 
     udf_helper(conn, "add5int", [10], 15)
@@ -96,8 +103,18 @@ def test_udf(conn_db_readwrite: ConnDB) -> None:
     udf_helper(conn, "dateToDatetime", [date(2024, 4, 25)], datetime(2024, 4, 25))
     udf_helper(conn, "datetimeToDate", [datetime(2024, 4, 25, 15, 39, 20)], date(2024, 4, 25))
     udf_helper(conn, "addToDate", [datetime(2024, 4, 25, 15, 39, 20), datetime(2025, 5, 26) - datetime(2024, 4, 25, 15, 39, 20)], datetime(2025, 5, 26))
+    udf_helper(conn, "concatThreeLists", [[1, 2, 3], [4, 5, 6], [-1, -2, -3]], [1, 2, 3, 4, 5, 6, -1, -2, -3])
+    udf_helper(conn, "mergeMaps", [{'a' : 1, 'b' : 2, 'c' : 3}, {'x' : 100, 'y' : 200, 'z' : 300}], {'a' : 1, 'b' : 2, 'c' : 3, 'x' : 100, 'y' : 200, 'z' : 300})
+    udf_helper(conn, "mergeMaps2", [{'a' : 1, 'b' : 2, 'c' : 3}, {'x' : 100, 'y' : 200, 'z' : 300}], {'a' : 1, 'b' : 2, 'c' : 3, 'x' : 100, 'y' : 200, 'z' : 300})
     udf_predicate_test(conn, "selectIfSeven", range(65), 8)
 
     df = pd.DataFrame({"col": list(range(5000))})
     result = conn.execute("LOAD FROM df RETURN add5int(col) as ans").get_as_df()
     assert list(result['ans']) == list(map(add5int, range(5000)))
+
+    df = pd.DataFrame({
+        "col1": pd.Series([{'a': 1, 'b': 2, 'c': 3}, {'l': 1, 'm': 2, 'n': 3}], dtype=pd.ArrowDtype(pa.map_(pa.string(), pa.int64()))),
+        "col2": pd.Series([{'x': -1, 'y': -2, 'z': -3}, {'one': -1, 'two': -2, 'three': -3}], dtype=pd.ArrowDtype(pa.map_(pa.string(), pa.int64())))})
+    result = conn.execute("LOAD FROM df RETURN mergeMaps(col1, col2) as ans").get_as_arrow()
+    assert result['ans'].to_pylist() == [
+        [('a', 1), ('b', 2), ('c', 3), ('x', -1), ('y', -2), ('z', -3)], [('l', 1), ('m', 2), ('n', 3), ('one', -1), ('two', -2), ('three', -3)]]
