@@ -70,20 +70,21 @@ jobs:
       - name: Java test
         run: make javatest
 
-  gcc-code-coverage:
-    name: gcc build & test with code coverage
-    runs-on: ubuntu-22.04
+  code-coverage:
+    name: code coverage
+    runs-on: macos-14
     needs: [clang-format, sanity-checks, python-lint-check]
     env:
       TEST_JOBS: 10
+      WERROR: 0
     steps:
       - uses: actions/checkout@v3
 
       - name: Install lcov
-        run: sudo apt-get install -y lcov
+        run: brew install lcov
 
       - name: Test with coverage
-        run: make lcov NUM_THREADS=$(nproc)
+        run: make lcov NUM_THREADS=$(sysctl -n hw.ncpu)
 
       - name: Generate coverage report
         run: |
@@ -153,6 +154,7 @@ jobs:
       GEN: ninja
       CC: gcc
       CXX: g++
+      WERROR: 0
     steps:
       - uses: actions/checkout@v3
 
@@ -521,7 +523,7 @@ jobs:
           cat postgres.test
 
       - name: Install dependencies
-        run: pip install rangehttpserver
+        run: pip install --break-system-package rangehttpserver
 
       - name: Extension test
         run: |
@@ -557,7 +559,7 @@ jobs:
           cat postgres.test
 
       - name: Install dependencies
-        run: pip3 install --break-system-packages rangehttpserver
+        run: pip3 install --break-system-package rangehttpserver
 
       - name: Extension test
         run: |
