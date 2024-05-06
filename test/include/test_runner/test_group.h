@@ -25,13 +25,7 @@ struct TestQueryResult {
     ResultType type;
     std::vector<std::string> expectedTuples;
     uint64_t numTuples = 0;
-    std::string expectedMessage; // errorMsg | CSVFile | hashValue
-    // union
-    // {
-    //     std::string errorMessage;
-    //     std::string tuplesCSVFile;
-    //     std::string hashValue;
-    // };
+    std::string expectedMessage; // errorMsg || CSVFile || hashValue
 };
 
 struct TestStatement {
