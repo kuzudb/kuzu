@@ -228,7 +228,7 @@ bool TestRunner::checkResultNumeric(QueryResult& queryResult, TestStatement* sta
         if (actualTuple->len() != testTuple.size()) {
             return false;
         }
-        for (auto i = 0; i < dataTypes.size(); i++) {
+        for (uint32_t i = 0; i < dataTypes.size(); i++) {
             auto curValue = actualTuple->getValue(i);
             switch (dataTypes[i].getLogicalTypeID()) {
             case LogicalTypeID::FLOAT: {
