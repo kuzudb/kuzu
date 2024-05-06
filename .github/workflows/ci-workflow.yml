@@ -48,8 +48,8 @@ jobs:
 
       - name: Ensure Python dependencies
         run: |
-          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu 
+          pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
@@ -58,8 +58,8 @@ jobs:
       - name: Build
         run: make all
 
-      - name: Test with coverage
-        run: make lcov
+      - name: Test
+        run: make test
 
       - name: Python test
         run: make pytest
@@ -69,6 +69,22 @@ jobs:
 
       - name: Java test
         run: make javatest
+
+  code-coverage:
+    name: code coverage
+    runs-on: ubuntu-22.04
+    needs: [clang-format, sanity-checks, python-lint-check]
+    env:
+      TEST_JOBS: 10
+      WERROR: 0
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install lcov
+        run: sudo apt-get install -y lcov
+
+      - name: Test with coverage
+        run: make lcov NUM_THREADS=$(nproc)
 
       - name: Generate coverage report
         run: |
@@ -138,13 +154,14 @@ jobs:
       GEN: ninja
       CC: gcc
       CXX: g++
+      WERROR: 0
     steps:
       - uses: actions/checkout@v3
 
       - name: Ensure Python dependencies
         run: |
-          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu 
+          pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
@@ -176,8 +193,8 @@ jobs:
 
       - name: Ensure Python dependencies
         run: |
-          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu 
+          pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
@@ -407,7 +424,7 @@ jobs:
       - name: Ensure Python dependencies
         run: |
           pip3 install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu 
-          pip3 install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+          pip3 install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
@@ -492,6 +509,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       RUN_ID: "$(hostname)-$(date +%s)"
       ASAN_OPTIONS: detect_leaks=0
+      WERROR: 0
 
     steps:
       - uses: actions/checkout@v3
@@ -506,7 +524,7 @@ jobs:
           cat postgres.test
 
       - name: Install dependencies
-        run: pip install rangehttpserver
+        run: pip install --break-system-package rangehttpserver
 
       - name: Extension test
         run: |
@@ -542,7 +560,7 @@ jobs:
           cat postgres.test
 
       - name: Install dependencies
-        run: pip3 install --break-system-packages rangehttpserver
+        run: pip3 install --break-system-package rangehttpserver
 
       - name: Extension test
         run: |

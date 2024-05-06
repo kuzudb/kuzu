@@ -126,7 +126,7 @@ std::unique_ptr<common::FileInfo> S3FileSystem::openFile(const std::string& path
     auto uploadParams = getS3UploadParams(context);
     auto s3FileInfo = std::make_unique<S3FileInfo>(path, this, flags, authParams, uploadParams);
     s3FileInfo->initialize();
-    return std::move(s3FileInfo);
+    return s3FileInfo;
 }
 
 bool likes(const char* string, uint64_t slen, const char* pattern, uint64_t plen) {
