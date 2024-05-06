@@ -14,11 +14,11 @@ namespace testing {
 
 enum class ResultType {
     OK,
-    ERROR,
-    ERROR_REGEX,
     HASH,
     TUPLES,
     TUPLES_CSV,
+    ERROR_MSG,
+    ERROR_REGEX,
 };
 
 struct TestQueryResult {

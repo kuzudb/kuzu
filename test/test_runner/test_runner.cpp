@@ -69,7 +69,7 @@ bool TestRunner::testStatement(TestStatement* statement, Connection& conn,
         }
         // Check for wrong statements
         ResultType resultType = statement->result[i].type;
-        if (resultType != ResultType::ERROR && resultType != ResultType::ERROR_REGEX &&
+        if (resultType != ResultType::ERROR_MSG && resultType != ResultType::ERROR_REGEX &&
             !preparedStatement->isSuccess()) {
             spdlog::error(preparedStatement->getErrorMessage());
             return false;
@@ -105,7 +105,7 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
     case ResultType::OK: {
         return result->isSuccess();
     }
-    case ResultType::ERROR: {
+    case ResultType::ERROR_MSG: {
         expectedError = StringUtils::rtrim(result->getErrorMessage());
         if (expectedResult.expectedMessage == expectedError) {
             return true;

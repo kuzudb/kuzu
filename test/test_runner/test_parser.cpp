@@ -143,7 +143,7 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
     if (result == "ok") {
         queryResult.type = ResultType::OK;
     } else if (result == "error") {
-        queryResult.type = ResultType::ERROR;
+        queryResult.type = ResultType::ERROR_MSG;
         queryResult.expectedMessage = extractTextBeforeNextStatement();
         replaceVariables(queryResult.expectedMessage);
     } else if (result == "error(regex)") {
