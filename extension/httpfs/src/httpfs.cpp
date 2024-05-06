@@ -114,7 +114,7 @@ std::unique_ptr<common::FileInfo> HTTPFileSystem::openFile(const std::string& pa
     main::ClientContext* /*context*/, common::FileLockType /*lock_type*/) {
     auto httpFileInfo = std::make_unique<HTTPFileInfo>(path, this, flags);
     httpFileInfo->initialize();
-    return std::move(httpFileInfo);
+    return httpFileInfo;
 }
 
 std::vector<std::string> HTTPFileSystem::glob(main::ClientContext* /*context*/,
@@ -255,9 +255,9 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::runRequestWithRetry(
     uint64_t tries = 0;
     while (true) {
         std::exception_ptr exception = nullptr;
-        httplib::Error err;
+        httplib::Error err = httplib::Error::Success;
         httplib::Response response;
-        int status;
+        int status = 0;
 
         try {
             auto res = request();
