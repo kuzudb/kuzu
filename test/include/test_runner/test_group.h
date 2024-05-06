@@ -25,7 +25,7 @@ struct TestQueryResult {
     ResultType type;
     uint64_t numTuples = 0;
     // errorMsg, CSVFile, hashValue uses first element
-    std::vector<std::string> expectedResult; 
+    std::vector<std::string> expectedResult;
 };
 
 struct TestStatement {

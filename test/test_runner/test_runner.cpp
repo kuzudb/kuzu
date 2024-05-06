@@ -163,8 +163,7 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
     if (testAnswer.type == ResultType::HASH) {
         std::string resultHash = TestRunner::convertResultToMD5Hash(*result,
             statement->checkOutputOrder, statement->checkColumnNames);
-        if (resultTuples.size() == actualNumTuples &&
-            resultHash == testAnswer.expectedResult[0] &&
+        if (resultTuples.size() == actualNumTuples && resultHash == testAnswer.expectedResult[0] &&
             resultTuples.size() == testAnswer.numTuples) {
             spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
                 result->getQuerySummary()->getExecutionTime());
