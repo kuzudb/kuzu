@@ -72,7 +72,7 @@ jobs:
 
   code-coverage:
     name: code coverage
-    runs-on: macos-14
+    runs-on: ubuntu-22.04
     needs: [clang-format, sanity-checks, python-lint-check]
     env:
       TEST_JOBS: 10
@@ -81,10 +81,10 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install lcov
-        run: brew install lcov
+        run: sudo apt-get install -y lcov
 
       - name: Test with coverage
-        run: make lcov NUM_THREADS=$(sysctl -n hw.ncpu)
+        run: make lcov NUM_THREADS=$(nproc)
 
       - name: Generate coverage report
         run: |
