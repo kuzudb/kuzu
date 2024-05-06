@@ -157,28 +157,43 @@ size_t InMemHashIndex<T>::append(const IndexBuffer<BufferKeyType>& buffer) {
 }
 
 template<typename T>
+entry_pos_t InMemHashIndex<T>::findEntry(SlotIterator& iter, Key key, uint8_t fingerprint) {
+    do {
+        auto numEntries = iter.slot->header.numEntries();
+        KU_ASSERT(numEntries == std::countr_one(iter.slot->header.validityMask));
+        for (auto entryPos = 0u; entryPos < numEntries; entryPos++) {
+            if (iter.slot->header.fingerprints[entryPos] == fingerprint &&
+                equals(key, iter.slot->entries[entryPos].key)) [[unlikely]] {
+                // Value already exists
+                return entryPos;
+            }
+        }
+        if (numEntries < getSlotCapacity<T>()) {
+            return SlotHeader::INVALID_ENTRY_POS;
+        }
+    } while (nextChainedSlot(iter));
+    return SlotHeader::INVALID_ENTRY_POS;
+}
+
+template<typename T>
 bool InMemHashIndex<T>::appendInternal(Key key, common::offset_t value, common::hash_t hash) {
     auto fingerprint = HashIndexUtils::getFingerprintForHash(hash);
     auto slotID = HashIndexUtils::getPrimarySlotIdForHash(this->indexHeader, hash);
     SlotIterator iter(slotID, this);
-    do {
-        for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
-            if (!iter.slot->header.isEntryValid(entryPos)) {
-                // Insert to this position
-                // The builder never keeps holes and doesn't support deletions, so this must be the
-                // end of the valid entries in this primary slot and the entry does not already
-                // exist
-                insert(key, iter.slot, entryPos, value, fingerprint);
-                this->indexHeader.numEntries++;
-                return true;
-            } else if (iter.slot->header.fingerprints[entryPos] == fingerprint &&
-                       equals(key, iter.slot->entries[entryPos].key)) {
-                // Value already exists
-                return false;
-            }
-        }
-    } while (nextChainedSlot(iter));
-    // Didn't find an available slot. Insert a new one
+    // The builder never keeps holes and doesn't support deletions
+    // Check the valid entries, then insert at the end if we don't find one which matches
+    auto entryPos = findEntry(iter, key, fingerprint);
+    auto numEntries = iter.slot->header.numEntries();
+    if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
+        // The key already exists
+        return false;
+    } else if (numEntries < getSlotCapacity<T>()) [[likely]] {
+        // The key does not exist and the last slot has free space
+        insert(key, iter.slot, numEntries, value, fingerprint);
+        this->indexHeader.numEntries++;
+        return true;
+    }
+    // The last slot is full. Insert a new one
     insertToNewOvfSlot(key, iter.slot, value, fingerprint);
     this->indexHeader.numEntries++;
     return true;
@@ -195,17 +210,11 @@ bool InMemHashIndex<T>::lookup(Key key, offset_t& result) {
     auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
     auto slotId = HashIndexUtils::getPrimarySlotIdForHash(this->indexHeader, hashValue);
     SlotIterator iter(slotId, this);
-    do {
-        for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
-            if (iter.slot->header.isEntryValid(entryPos) &&
-                iter.slot->header.fingerprints[entryPos] == fingerprint &&
-                equals(key, iter.slot->entries[entryPos].key)) {
-                // Value already exists
-                result = iter.slot->entries[entryPos].value;
-                return true;
-            }
-        }
-    } while (nextChainedSlot(iter));
+    auto entryPos = findEntry(iter, key, fingerprint);
+    if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
+        result = iter.slot->entries[entryPos].value;
+        return true;
+    }
     return false;
 }
 

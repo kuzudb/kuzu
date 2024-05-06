@@ -131,6 +131,10 @@ private:
         uint8_t fingerprint);
     common::hash_t hashStored(const T& key) const;
 
+    // Finds the entry matching the given key. The iterator will be advanced and will either point
+    // to the slot containing the matching entry, or the last slot available
+    entry_pos_t findEntry(SlotIterator& iter, Key key, uint8_t fingerprint);
+
 private:
     // TODO: might be more efficient to use a vector for each slot since this is now only needed
     // in-memory and it would remove the need to handle overflow slots.
