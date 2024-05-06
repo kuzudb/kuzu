@@ -48,8 +48,8 @@ jobs:
 
       - name: Ensure Python dependencies
         run: |
-          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu 
+          pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
@@ -143,8 +143,8 @@ jobs:
 
       - name: Ensure Python dependencies
         run: |
-          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu 
+          pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
@@ -176,8 +176,8 @@ jobs:
 
       - name: Ensure Python dependencies
         run: |
-          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu 
+          pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
@@ -407,7 +407,7 @@ jobs:
       - name: Ensure Python dependencies
         run: |
           pip3 install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu 
-          pip3 install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+          pip3 install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
