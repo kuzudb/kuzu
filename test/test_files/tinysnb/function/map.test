@@ -75,8 +75,8 @@
 
 -LOG MapKeys
 -STATEMENT RETURN map_keys(map([[5], [28, 75, 32], [], [33, 11, 66, 33]], ['a', 'b', 'd', 'e']));
----- error
-Binder exception: Expression LIST_CREATION() has data type STRING[] but expected INT64[]. Implicit cast is not supported.
+---- 1
+[[5],[28,75,32],[],[33,11,66,33]]
 -STATEMENT RETURN map_keys(map([[5], [28, 75, 32], [1], [33, 11, 66, 33]], ['a', 'b', 'd', 'e']));
 ---- 1
 [[5],[28,75,32],[1],[33,11,66,33]]

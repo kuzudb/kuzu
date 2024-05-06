@@ -146,4 +146,4 @@ Binder exception: nonMap has data type STRING but (NODE,REL,STRUCT) was expected
            RETURN nonMap.num;
 ## Outcome: an Error should be raised at compile time: InvalidArgumentType
 ---- error
-Binder exception: nonMap has data type STRING[] but (NODE,REL,STRUCT) was expected.
+Binder exception: Expression True has data type BOOL but expected INT64. Implicit cast is not supported.

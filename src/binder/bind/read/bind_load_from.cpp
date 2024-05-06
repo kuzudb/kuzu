@@ -92,7 +92,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
         std::vector<LogicalType> expectedColumnTypes;
         for (auto& [name, type] : loadFrom.getColumnNameDataTypesRef()) {
             expectedColumnNames.push_back(name);
-            expectedColumnTypes.push_back(*bindDataType(type));
+            expectedColumnTypes.push_back(LogicalType::fromString(type));
         }
         scanFunction = getScanFunction(readerConfig->fileType, *readerConfig);
         auto bindInput = ScanTableFuncBindInput(readerConfig->copy(),

@@ -1,6 +1,6 @@
 #include "function/cast/vector_cast_functions.h"
 
-#include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
 #include "common/exception/conversion.h"
@@ -1072,21 +1072,20 @@ static std::unique_ptr<FunctionBindData> castBindFunc(const binder::expression_v
     }
     auto literalExpr = arguments[1]->constPtrCast<LiteralExpression>();
     auto targetTypeStr = literalExpr->getValue().getValue<std::string>();
-    auto targetType = binder::Binder::bindDataType(targetTypeStr);
-    if (*targetType == arguments[0]->getDataType()) { // No need to cast.
+    auto targetType = LogicalType::fromString(targetTypeStr);
+    if (targetType == arguments[0]->getDataType()) { // No need to cast.
         return nullptr;
     }
-    // Assign default type if input is ANY type, e.g. NULL
-    auto inputTypeID = arguments[0]->dataType.getLogicalTypeID();
-    if (inputTypeID == LogicalTypeID::ANY) {
-        inputTypeID = LogicalTypeID::STRING;
+    if (ExpressionUtil::canCastStatically(*arguments[0], targetType)) {
+        arguments[0]->cast(targetType);
+        return nullptr;
     }
     auto func = ku_dynamic_cast<Function*, ScalarFunction*>(function);
     func->name = "CAST_TO_" + targetTypeStr;
-    func->execFunc =
-        CastFunction::bindCastFunction(func->name, inputTypeID, targetType->getLogicalTypeID())
-            ->execFunc;
-    return std::make_unique<function::CastFunctionBindData>(std::move(targetType));
+    func->execFunc = CastFunction::bindCastFunction(func->name,
+        arguments[0]->getDataType().getLogicalTypeID(), targetType.getLogicalTypeID())
+                         ->execFunc;
+    return std::make_unique<function::CastFunctionBindData>(targetType.copy());
 }
 
 function_set CastAnyFunction::getFunctionSet() {

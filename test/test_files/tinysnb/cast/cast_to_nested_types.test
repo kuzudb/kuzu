@@ -196,7 +196,7 @@ False|-4325|14|18446744073709551616.000000|  dfsa
 -STATEMENT RETURN cast(["[123, 3234]", "[124, 3241]", NULL, "[0, -4324234]"], "INT64[2][]"), cast(cast(["[123, 3234]", "[124, 3241]", NULL, "[0, -4324234]"], "DOUBLE[2][]"), "STRING[]");
 ---- 1
 [[123,3234],[124,3241],,[0,-4324234]]|[[123.000000,3234.000000],[124.000000,3241.000000],,[0.000000,-4324234.000000]]
--STATEMENT RETURN cast([NULL, NULL, NULL], "INT8[][][]"), cast([NULL], "STRING[]"), cast([], "UINT8[]");
+-STATEMENT RETURN cast([NULL, NULL, NULL], "INT8[][][]") AS a, cast([NULL], "STRING[]") AS b, cast([], "UINT8[]");
 ---- 1
 [,,]|[]|[]
 -STATEMENT RETURN cast(cast([NULL, [NULL, 13], NULL, [14, 14], NULL], "INT32[][]"), "INT128[][]"), cast([NULL, 1], "INT16[]"), cast("[1, NULL, NULL]", "UINT32[]"), cast("[NULL, 1, NULL]", "UINT64[]");
@@ -329,7 +329,7 @@ False|-4325|14|18446744073709551616.000000|  dfsa
 -STATEMENT RETURN cast([[1,2], [3, 4], [5, 6]], "INT32[2][]");
 ---- 1
 [[1,2],[3,4],[5,6]]
--STATEMENT RETURN cast([NULL, [1]], "INT64[1][]"), cast([NULL], "INT64[1][]"), cast([[1], NULL], "INT64[1][]"), cast([NULL], "INT64[1][][]"), cast([[NULL]], "INT64[1][][]"), cast([[[2], NULL], [NULL, [1]]], "INT64[1][][]"), cast([NULL, [NULL, [1]]], "INT64[1][][]");
+-STATEMENT RETURN cast([NULL, [1]], "INT64[1][]"), cast([NULL], "INT64[1][]") AS x, cast([[1], NULL], "INT64[1][]"), cast([NULL], "INT64[1][][]"), cast([[NULL]], "INT64[1][][]"), cast([[[2], NULL], [NULL, [1]]], "INT64[1][][]"), cast([NULL, [NULL, [1]]], "INT64[1][][]");
 ---- 1
 [,[1]]|[]|[[1],]|[]|[[]]|[[[2],],[,[1]]]|[,[,[1]]]
 -STATEMENT LOAD WITH HEADERS (struct STRUCT(a INT64, b MAP(INT64[][][], STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_with_array.csv" where struct_extract(struct, 'a') > 0 RETURN cast(struct, "STRUCT(a INT64,b MAP(INT64[1][][], STRING))");

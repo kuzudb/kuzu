@@ -166,21 +166,6 @@ def test_null_resolution(tmp_path: Path) -> None:
     assert not result.has_next()
     result.close()
 
-
-# def test_param_empty(tmp_path: Path) -> None:
-#     db = kuzu.Database(tmp_path)
-#     conn = kuzu.Connection(db)
-#     lst = [[]]
-#     result = conn.execute("CREATE NODE TABLE tab(id SERIAL, lst INT64[][], PRIMARY KEY(id))")
-#     result = conn.execute(
-#         "MERGE (t:tab {lst: $1}) RETURN t.*",
-#         {'1': lst})
-#     assert result.has_next()
-#     assert result.get_next == [0, lst]
-#     assert not result.has_next()
-#     result.close()
-
-
 def test_param_error1(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
     with pytest.raises(RuntimeError, match="Parameter name must be of type string but got <class 'int'>"):
