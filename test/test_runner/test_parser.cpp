@@ -122,45 +122,63 @@ void TestParser::replaceVariables(std::string& str) {
     }
 }
 
-void TestParser::extractExpectedResult(TestStatement* statement) {
+void TestParser::extractExpectedResults(TestStatement* statement) {
+    do {
+        tokenize();
+        if (currentToken.type == TokenType::EMPTY) {
+            continue;
+        }
+        if (currentToken.type != TokenType::RESULT) {
+            setCursorToPreviousLine();
+            return;
+        }
+        statement->result.push_back(extractExpectedResultFromToken(statement->checkOutputOrder));
+    } while (nextLine());
+}
+
+TestQueryResult TestParser::extractExpectedResultFromToken(bool checkOutputOrder) {
     checkMinimumParams(1);
     std::string result = currentToken.params[1];
+    TestQueryResult queryResult;
     if (result == "ok") {
-        statement->expectedOk = true;
+        queryResult.type = ResultType::OK;
     } else if (result == "error") {
-        statement->expectedError = true;
-        statement->errorMessage = extractTextBeforeNextStatement();
-        replaceVariables(statement->errorMessage);
+        queryResult.type = ResultType::ERROR_MSG;
+        queryResult.expectedResult.push_back(extractTextBeforeNextStatement());
+        replaceVariables(queryResult.expectedResult[0]);
     } else if (result == "error(regex)") {
-        statement->expectedErrorRegex = true;
-        statement->errorMessage = extractTextBeforeNextStatement();
-        replaceVariables(statement->errorMessage);
+        queryResult.type = ResultType::ERROR_REGEX;
+        queryResult.expectedResult.push_back(extractTextBeforeNextStatement());
+        replaceVariables(queryResult.expectedResult[0]);
     } else if (result.substr(0, 4) == "hash") {
-        statement->expectHash = true;
+        queryResult.type = ResultType::HASH;
         checkMinimumParams(1);
         nextLine();
         tokenize();
-        statement->expectedNumTuples = stoi(currentToken.params[0]);
-        statement->expectedHashValue = currentToken.params.back();
+        queryResult.numTuples = stoi(currentToken.params[0]);
+        queryResult.expectedResult.push_back(currentToken.params.back());
     } else {
         checkMinimumParams(1);
-        statement->expectedNumTuples = stoi(result);
+        queryResult.numTuples = stoi(result);
         nextLine();
         if (line.starts_with("<FILE>:")) {
-            statement->expectedTuplesCSVFile = TestHelper::appendKuzuRootPath(
-                (std::filesystem::path(TestHelper::TEST_ANSWERS_PATH) / line.substr(7)).string());
-            return;
-        }
-        setCursorToPreviousLine();
-        for (auto i = 0u; i < statement->expectedNumTuples; i++) {
-            nextLine();
-            replaceVariables(line);
-            statement->expectedTuples.push_back(line);
-        }
-        if (!statement->checkOutputOrder) { // order is not important for result
-            sort(statement->expectedTuples.begin(), statement->expectedTuples.end());
+            queryResult.type = ResultType::CSV_FILE;
+            queryResult.expectedResult.push_back(TestHelper::appendKuzuRootPath(
+                (std::filesystem::path(TestHelper::TEST_ANSWERS_PATH) / line.substr(7)).string()));
+        } else {
+            queryResult.type = ResultType::TUPLES;
+            setCursorToPreviousLine();
+            for (auto i = 0u; i < queryResult.numTuples; i++) {
+                nextLine();
+                replaceVariables(line);
+                queryResult.expectedResult.push_back(line);
+            }
+            if (!checkOutputOrder) { // order is not important for result
+                sort(queryResult.expectedResult.begin(), queryResult.expectedResult.end());
+            }
         }
     }
+    return queryResult;
 }
 
 std::string TestParser::extractTextBeforeNextStatement(bool ignoreLineBreak) {
@@ -247,7 +265,7 @@ TestStatement* TestParser::extractStatement(TestStatement* statement,
         break;
     }
     case TokenType::RESULT: {
-        extractExpectedResult(statement);
+        extractExpectedResults(statement);
         return statement;
     }
     case TokenType::CHECK_ORDER: {

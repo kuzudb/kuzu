@@ -12,28 +12,36 @@
 namespace kuzu {
 namespace testing {
 
+enum class ResultType {
+    OK,
+    HASH,
+    TUPLES,
+    CSV_FILE,
+    ERROR_MSG,
+    ERROR_REGEX,
+};
+
+struct TestQueryResult {
+    ResultType type;
+    uint64_t numTuples = 0;
+    // errorMsg, CSVFile, hashValue uses first element
+    std::vector<std::string> expectedResult;
+};
+
 struct TestStatement {
     std::string logMessage;
     std::string query;
     uint64_t numThreads = 4;
     std::string encodedJoin;
-    bool expectedError = false;
-    bool expectedErrorRegex = false;
-    std::string errorMessage;
-    bool expectedOk = false;
-    uint64_t expectedNumTuples = 0;
-    std::vector<std::string> expectedTuples;
     bool enumerate = false;
     bool checkOutputOrder = false;
     bool checkColumnNames = false;
-    std::string expectedTuplesCSVFile;
+    std::vector<TestQueryResult> result;
     // for multiple conns
     std::string batchStatmentsCSVFile;
     std::optional<std::string> connName;
     bool reloadDBFlag = false;
-    bool expectHash = false;
     bool importDBFlag = false;
-    std::string expectedHashValue;
     // for export and import db
     std::string importFilePath;
     bool removeFileFlag = false;

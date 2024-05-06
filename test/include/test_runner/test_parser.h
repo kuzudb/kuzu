@@ -94,7 +94,8 @@ private:
     void genGroupName();
     void parseHeader();
     void parseBody();
-    void extractExpectedResult(TestStatement* statement);
+    void extractExpectedResults(TestStatement* statement);
+    TestQueryResult extractExpectedResultFromToken(bool checkOutputOrder);
     void extractStatementBlock();
     void extractDataset();
     void addStatementBlock(const std::string& blockName, const std::string& testGroupName);
