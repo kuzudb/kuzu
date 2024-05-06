@@ -121,6 +121,8 @@ if(CMAKE_BUILD_TYPE MATCHES Release)
 endif()
 if(NOT MSVC)
     add_compile_options(-Wall -Wextra)
+    # Disable warnings for unknown pragmas, which is used by several third-party libraries
+    add_compile_options(-Wno-unknown-pragmas)
 endif()
 
 if(${ENABLE_THREAD_SANITIZER})
