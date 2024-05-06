@@ -99,15 +99,15 @@ bool TestRunner::checkLogicalPlans(std::unique_ptr<PreparedStatement>& preparedS
 bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedStatement,
     TestStatement* statement, size_t resultIdx, Connection& conn, uint32_t planIdx) {
     auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), planIdx);
-    TestQueryResult& expectedResult = statement->result[resultIdx];
+    TestQueryResult& testAnswer = statement->result[resultIdx];
     std::string expectedError;
-    switch (expectedResult.type) {
+    switch (testAnswer.type) {
     case ResultType::OK: {
         return result->isSuccess();
     }
     case ResultType::ERROR_MSG: {
         expectedError = StringUtils::rtrim(result->getErrorMessage());
-        if (expectedResult.expectedMessage == expectedError) {
+        if (testAnswer.expectedResult[0] == expectedError) {
             return true;
         }
         spdlog::info("EXPECTED ERROR: {}", expectedError);
@@ -115,7 +115,7 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
     }
     case ResultType::ERROR_REGEX: {
         expectedError = StringUtils::rtrim(result->getErrorMessage());
-        if (std::regex_match(expectedError, std::regex(expectedResult.expectedMessage))) {
+        if (std::regex_match(expectedError, std::regex(testAnswer.expectedResult[0]))) {
             return true;
         }
         spdlog::info("EXPECTED ERROR: {}", expectedError);
@@ -139,18 +139,19 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
 
 bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestStatement* statement,
     size_t resultIdx, const std::string& planStr, uint32_t planIdx) {
-    TestQueryResult& expectedResult = statement->result[resultIdx];
-    if (expectedResult.type == ResultType::TUPLES_CSV) {
-        std::ifstream expectedTuplesFile(expectedResult.expectedMessage);
+    TestQueryResult& testAnswer = statement->result[resultIdx];
+    if (testAnswer.type == ResultType::CSV_FILE) {
+        std::ifstream expectedTuplesFile(testAnswer.expectedResult[0]);
         if (!expectedTuplesFile.is_open()) {
-            throw TestException("Cannot open file: " + expectedResult.expectedMessage);
+            throw TestException("Cannot open file: " + testAnswer.expectedResult[0]);
         }
         std::string line;
+        testAnswer.expectedResult.clear();
         while (std::getline(expectedTuplesFile, line)) {
-            expectedResult.expectedTuples.push_back(line);
+            testAnswer.expectedResult.push_back(line);
         }
         if (!statement->checkOutputOrder) {
-            sort(expectedResult.expectedTuples.begin(), expectedResult.expectedTuples.end());
+            sort(testAnswer.expectedResult.begin(), testAnswer.expectedResult.end());
         }
     }
     std::vector<std::string> resultTuples = TestRunner::convertResultToString(*result,
@@ -159,12 +160,12 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
     if (statement->checkColumnNames) {
         actualNumTuples++;
     }
-    if (expectedResult.type == ResultType::HASH) {
+    if (testAnswer.type == ResultType::HASH) {
         std::string resultHash = TestRunner::convertResultToMD5Hash(*result,
             statement->checkOutputOrder, statement->checkColumnNames);
         if (resultTuples.size() == actualNumTuples &&
-            resultHash == expectedResult.expectedMessage &&
-            resultTuples.size() == expectedResult.numTuples) {
+            resultHash == testAnswer.expectedResult[0] &&
+            resultTuples.size() == testAnswer.numTuples) {
             spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
                 result->getQuerySummary()->getExecutionTime());
             return true;
@@ -179,7 +180,7 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
             return false;
         }
     }
-    if (resultTuples.size() == actualNumTuples && resultTuples == expectedResult.expectedTuples) {
+    if (resultTuples.size() == actualNumTuples && resultTuples == testAnswer.expectedResult) {
         spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
             result->getQuerySummary()->getExecutionTime());
         return true;

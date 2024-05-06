@@ -16,16 +16,16 @@ enum class ResultType {
     OK,
     HASH,
     TUPLES,
-    TUPLES_CSV,
+    CSV_FILE,
     ERROR_MSG,
     ERROR_REGEX,
 };
 
 struct TestQueryResult {
     ResultType type;
-    std::vector<std::string> expectedTuples;
     uint64_t numTuples = 0;
-    std::string expectedMessage; // errorMsg || CSVFile || hashValue
+    // errorMsg, CSVFile, hashValue uses first element
+    std::vector<std::string> expectedResult; 
 };
 
 struct TestStatement {
