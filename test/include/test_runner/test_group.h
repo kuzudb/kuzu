@@ -36,6 +36,7 @@ struct TestStatement {
     bool enumerate = false;
     bool checkOutputOrder = false;
     bool checkColumnNames = false;
+    bool checkPrecision = false;
     std::vector<TestQueryResult> result;
     // for multiple conns
     std::string batchStatmentsCSVFile;

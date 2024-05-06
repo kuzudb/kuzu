@@ -272,6 +272,10 @@ TestStatement* TestParser::extractStatement(TestStatement* statement,
         statement->checkOutputOrder = true;
         break;
     }
+    case TokenType::CHECK_PRECISION: {
+        statement->checkPrecision = true;
+        break;
+    }
     case TokenType::ENUMERATE: {
         statement->enumerate = true;
         break;

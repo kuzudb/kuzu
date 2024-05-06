@@ -21,6 +21,8 @@ private:
         TestStatement* statement, size_t resultIdx, main::Connection& conn);
     static bool checkLogicalPlan(std::unique_ptr<main::PreparedStatement>& preparedStatement,
         TestStatement* statement, size_t resultIdx, main::Connection& conn, uint32_t planIdx);
+    static bool checkResultNumeric(main::QueryResult& resultTuples, TestStatement* statement,
+        size_t resultIdx);
     static std::vector<std::string> convertResultToString(main::QueryResult& queryResult,
         bool checkOutputOrder = false, bool checkColumnNames = false);
     static std::string convertResultToMD5Hash(main::QueryResult& queryResult, bool checkOutputOrder,

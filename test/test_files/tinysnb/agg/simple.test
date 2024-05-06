@@ -8,13 +8,15 @@
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(a.ID), MIN(a.fName), MAX(c.ID),count(a.grades)
 -PARALLELISM 8
 -ENUMERATE
+-CHECK_PRECISION
 ---- 1
 36|Alice|5|36
 
 -LOG SimpleAvgTest
+-CHECK_PRECISION
 -STATEMENT MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)
 ---- 1
-37.250000|4.862500
+37.25|4.8625
 
 -LOG SimpleAvgFloatTest
 -STATEMENT MATCH (a:person) RETURN AVG(a.height) + 5
