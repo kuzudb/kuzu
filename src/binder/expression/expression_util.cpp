@@ -1,6 +1,7 @@
 #include "binder/expression/expression_util.h"
 
 #include "binder/expression/literal_expression.h"
+#include "binder/expression/parameter_expression.h"
 #include "common/exception/binder.h"
 #include "common/types/value/nested.h"
 
@@ -242,6 +243,23 @@ static bool compatible(const Value& value, const LogicalType& targetType) {
         }
         return true;
     }
+    case LogicalTypeID::MAP: {
+        if (!value.hasNoneNullChildren()) { // Empty map free to change.
+            return true;
+        }
+        auto keyType = MapType::getKeyType(targetType);
+        auto valType = MapType::getValueType(targetType);
+        for (auto i = 0u; i < NestedVal::getChildrenSize(&value); ++i) {
+            auto childVal = NestedVal::getChildVal(&value, i);
+            KU_ASSERT(NestedVal::getChildrenSize(childVal) == 2);
+            auto key = NestedVal::getChildVal(childVal, 0);
+            auto val = NestedVal::getChildVal(childVal, 1);
+            if (!compatible(*key, keyType) || !compatible(*val, valType)) {
+                return false;
+            }
+        }
+        return true;
+    }
     default:
         break;
     }
@@ -278,12 +296,18 @@ bool ExpressionUtil::tryCombineDataType(const expression_vector& expressions, Lo
 }
 
 bool ExpressionUtil::canCastStatically(const Expression& expr, const LogicalType& targetType) {
-    if (expr.expressionType != common::ExpressionType::LITERAL) {
-        // Not a literal, check if we can
+    switch (expr.expressionType) {
+    case ExpressionType::LITERAL: {
+        auto value = expr.constPtrCast<LiteralExpression>()->getValue();
+        return compatible(value, targetType);
+    }
+    case ExpressionType::PARAMETER: {
+        auto value = expr.constPtrCast<ParameterExpression>()->getValue();
+        return compatible(value, targetType);
+    }
+    default:
         return compatible(expr.getDataType(), targetType);
     }
-    auto value = expr.constPtrCast<LiteralExpression>()->getValue();
-    return compatible(value, targetType);
 }
 
 } // namespace binder

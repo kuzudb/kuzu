@@ -884,6 +884,19 @@ bool Value::allowTypeChange() const {
         }
         return false;
     }
+    case LogicalTypeID::MAP: {
+        if (childrenSize == 0) {
+            return true;
+        }
+        for (auto i = 0u; i < childrenSize; ++i) {
+            auto k = children[i]->children[0].get();
+            auto v = children[i]->children[1].get();
+            if (k->allowTypeChange() || v->allowTypeChange()) {
+                return true;
+            }
+        }
+        return false;
+    }
     default:
         return false;
     }
