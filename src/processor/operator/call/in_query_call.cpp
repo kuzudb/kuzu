@@ -52,10 +52,10 @@ void InQueryCall::initGlobalStateInternal(ExecutionContext*) {
 }
 
 bool InQueryCall::getNextTuplesInternal(ExecutionContext*) {
-    localState.funcOutput.dataChunk.state->selVector->selectedSize = 0;
+    localState.funcOutput.dataChunk.state->getSelVectorUnsafe().setSelSize(0);
     localState.funcOutput.dataChunk.resetAuxiliaryBuffer();
     auto numTuplesScanned = info.function.tableFunc(localState.funcInput, localState.funcOutput);
-    localState.funcOutput.dataChunk.state->selVector->selectedSize = numTuplesScanned;
+    localState.funcOutput.dataChunk.state->getSelVectorUnsafe().setSelSize(numTuplesScanned);
     if (localState.rowOffsetVector != nullptr) {
         auto rowIdx = sharedState->getAndIncreaseRowIdx(numTuplesScanned);
         for (auto i = 0u; i < numTuplesScanned; i++) {

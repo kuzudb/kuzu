@@ -108,20 +108,19 @@ static void nestedTypesCastExecFunction(const std::vector<std::shared_ptr<ValueV
 
     // check if all selcted list entry have the requried fixed list size
     if (CastArrayHelper::containsListToArray(inputVector->dataType, result.dataType)) {
-        for (auto i = 0u; i < inputVector->state->selVector->selectedSize; i++) {
-            auto pos = inputVector->state->selVector->selectedPositions[i];
+        for (auto i = 0u; i < inputVector->state->getSelVector().getSelSize(); i++) {
+            auto pos = inputVector->state->getSelVector()[i];
             CastArrayHelper::validateListEntry(inputVector.get(), result.dataType, pos);
         }
     };
 
-    auto selVector = inputVector->state->selVector;
+    auto& selVector = inputVector->state->getSelVector();
     auto bindData = CastFunctionBindData(result.dataType.copy());
-    auto numOfEntries = selVector->selectedPositions[selVector->selectedSize - 1] + 1;
+    auto numOfEntries = selVector[selVector.getSelSize() - 1] + 1;
     resolveNestedVector(inputVector, &result, numOfEntries, &bindData);
     if (inputVector->state->isFlat()) {
-        result.state->selVector->setToFiltered();
-        result.state->selVector->selectedPositions[0] =
-            inputVector->state->selVector->selectedPositions[0];
+        result.state->getSelVectorUnsafe().setToFiltered();
+        result.state->getSelVectorUnsafe()[0] = inputVector->state->getSelVector()[0];
     }
 }
 

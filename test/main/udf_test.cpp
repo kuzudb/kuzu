@@ -253,11 +253,11 @@ static void addFour(const std::vector<std::shared_ptr<ValueVector>>& parameters,
     result.resetAuxiliaryBuffer();
     result.state = parameter->state;
     if (parameter->state->isFlat()) {
-        auto pos = parameter->state->selVector->selectedPositions[0];
+        auto pos = parameter->state->getSelVector()[0];
         result.setValue(pos, parameter->getValue<int64_t>(pos) + 4);
     } else {
-        for (auto i = 0u; i < parameter->state->selVector->selectedSize; i++) {
-            auto pos = parameter->state->selVector->selectedPositions[i];
+        for (auto i = 0u; i < parameter->state->getSelVector().getSelSize(); i++) {
+            auto pos = parameter->state->getSelVector()[i];
             result.setValue(pos, parameter->getValue<int64_t>(pos) + 4);
         }
     }

@@ -89,8 +89,8 @@ void NullColumn::lookup(Transaction* transaction, ChunkState& readState, ValueVe
     if (propertyStatistics.mayHaveNull(*transaction)) {
         lookupInternal(transaction, readState, nodeIDVector, resultVector);
     } else {
-        for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
-            auto pos = nodeIDVector->state->selVector->selectedPositions[i];
+        for (auto i = 0ul; i < nodeIDVector->state->getSelVector().getSelSize(); i++) {
+            auto pos = nodeIDVector->state->getSelVector()[i];
             resultVector->setNull(pos, false);
         }
     }

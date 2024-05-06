@@ -181,9 +181,9 @@ void PayloadScanner::applyLimitOnResultVectors(std::vector<common::ValueVector*>
         }
     }
     if (unflatVector != nullptr) {
-        unflatVector->state->selVector->selectedSize =
-            std::min(limitNumber, unflatVector->state->selVector->selectedSize);
-        limitNumber -= unflatVector->state->selVector->selectedSize;
+        unflatVector->state->getSelVectorUnsafe().setSelSize(
+            std::min(limitNumber, (uint64_t)unflatVector->state->getSelVector().getSelSize()));
+        limitNumber -= unflatVector->state->getSelVector().getSelSize();
     } else {
         limitNumber--;
     }

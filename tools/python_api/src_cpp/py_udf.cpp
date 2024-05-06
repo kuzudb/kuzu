@@ -82,13 +82,13 @@ static scalar_func_exec_t getUDFExecFunc(const py::function& udf) {
                void* /* dataPtr */) -> void {
         py::gil_scoped_acquire acquire;
         result.resetAuxiliaryBuffer();
-        for (auto i = 0u; i < result.state->selVector->selectedSize; ++i) {
-            auto resultPos = result.state->selVector->selectedPositions[i];
+        auto& resultSelVector = result.state->getSelVector();
+        for (auto i = 0u; i < resultSelVector.getSelSize(); ++i) {
+            auto resultPos = resultSelVector[i];
             py::list pyParams;
             for (const auto& param : params) {
-                auto paramPos = param->state->isFlat() ?
-                                    param->state->selVector->selectedPositions[0] :
-                                    resultPos;
+                auto paramPos =
+                    param->state->isFlat() ? param->state->getSelVector()[0] : resultPos;
                 auto value = param->getAsValue(paramPos);
                 auto pyValue = PyQueryResult::convertValueToPyObject(*value);
                 pyParams.append(pyValue);

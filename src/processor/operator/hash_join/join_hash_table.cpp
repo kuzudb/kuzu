@@ -35,7 +35,7 @@ static bool discardNullFromKeys(const std::vector<ValueVector*>& vectors) {
 void JoinHashTable::appendVectors(const std::vector<ValueVector*>& keyVectors,
     const std::vector<ValueVector*>& payloadVectors, DataChunkState* keyState) {
     discardNullFromKeys(keyVectors);
-    auto numTuplesToAppend = keyState->selVector->selectedSize;
+    auto numTuplesToAppend = keyState->getSelVector().getSelSize();
     auto appendInfos = factorizedTable->allocateFlatTupleBlocks(numTuplesToAppend);
     computeVectorHashes(keyVectors);
     auto colIdx = 0u;
@@ -59,14 +59,15 @@ void JoinHashTable::appendVector(ValueVector* vector,
 }
 
 static void sortSelectedPos(ValueVector* nodeIDVector) {
-    auto selVector = nodeIDVector->state->selVector.get();
-    auto size = selVector->selectedSize;
-    auto buffer = selVector->getMultableBuffer();
-    if (selVector->isUnfiltered()) {
-        memcpy(buffer, &SelectionVector::INCREMENTAL_SELECTED_POS, size * sizeof(sel_t));
-        selVector->setToFiltered();
+    auto& selVector = nodeIDVector->state->getSelVectorUnsafe();
+    auto size = selVector.getSelSize();
+    auto buffer = selVector.getMultableBuffer();
+    if (selVector.isUnfiltered()) {
+        std::memcpy(buffer.data(), &SelectionVector::INCREMENTAL_SELECTED_POS,
+            size * sizeof(sel_t));
+        selVector.setToFiltered();
     }
-    std::sort(buffer, buffer + size, [nodeIDVector](sel_t left, sel_t right) {
+    std::sort(buffer.begin(), buffer.begin() + size, [nodeIDVector](sel_t left, sel_t right) {
         return nodeIDVector->getValue<nodeID_t>(left) < nodeIDVector->getValue<nodeID_t>(right);
     });
 }
@@ -74,7 +75,7 @@ static void sortSelectedPos(ValueVector* nodeIDVector) {
 void JoinHashTable::appendVectorWithSorting(ValueVector* keyVector,
     std::vector<ValueVector*> payloadVectors) {
     auto numTuplesToAppend = 1;
-    KU_ASSERT(keyVector->state->selVector->selectedSize == 1);
+    KU_ASSERT(keyVector->state->getSelVector().getSelSize() == 1);
     // Based on the way we are planning, we assume that the first and second vectors are both
     // nodeIDs from extending, while the first one is key, and the second one is payload.
     auto payloadNodeIDVector = payloadVectors[0];
@@ -97,7 +98,7 @@ void JoinHashTable::appendVectorWithSorting(ValueVector* keyVector,
     if (!payloadsState->isFlat()) {
         // TODO(Xiyang): I can no longer recall why I set to un-filtered but this is probably wrong.
         // We should set back to the un-sorted state.
-        payloadsState->selVector->setToUnfiltered();
+        payloadsState->getSelVectorUnsafe().setToUnfiltered();
     }
     factorizedTable->numTuples += numTuplesToAppend;
 }
@@ -138,8 +139,8 @@ void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, ValueVect
         function::VectorHashFunction::computeHash(keyVectors[i], tmpHashVector);
         function::VectorHashFunction::combineHash(hashVector, tmpHashVector, hashVector);
     }
-    for (auto i = 0u; i < hashVector->state->selVector->selectedSize; i++) {
-        auto pos = hashVector->state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < hashVector->state->getSelVector().getSelSize(); i++) {
+        auto pos = hashVector->state->getSelVector()[i];
         KU_ASSERT(i < DEFAULT_VECTOR_CAPACITY);
         probedTuples[i] = getTupleForHash(hashVector->getValue<hash_t>(pos));
     }
@@ -161,16 +162,16 @@ sel_t JoinHashTable::matchFlatKeys(const std::vector<ValueVector*>& keyVectors,
 }
 
 sel_t JoinHashTable::matchUnFlatKey(ValueVector* keyVector, uint8_t** probedTuples,
-    uint8_t** matchedTuples, SelectionVector* matchedTuplesSelVector) {
+    uint8_t** matchedTuples, SelectionVector& matchedTuplesSelVector) {
     auto numMatchedTuples = 0;
-    for (auto i = 0u; i < keyVector->state->selVector->selectedSize; ++i) {
-        auto pos = keyVector->state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < keyVector->state->getSelVector().getSelSize(); ++i) {
+        auto pos = keyVector->state->getSelVector()[i];
         while (probedTuples[i]) {
             auto currentTuple = probedTuples[i];
             auto entryCompareResult = compareEntryFuncs[0](keyVector, pos, currentTuple);
             if (entryCompareResult) {
                 matchedTuples[numMatchedTuples] = currentTuple;
-                matchedTuplesSelVector->selectedPositions[numMatchedTuples] = pos;
+                matchedTuplesSelVector[numMatchedTuples] = pos;
                 numMatchedTuples++;
                 break;
             }
@@ -198,8 +199,8 @@ bool JoinHashTable::compareFlatKeys(const std::vector<ValueVector*>& keyVectors,
     const uint8_t* tuple) {
     for (auto i = 0u; i < keyVectors.size(); i++) {
         auto keyVector = keyVectors[i];
-        KU_ASSERT(keyVector->state->selVector->selectedSize == 1);
-        auto pos = keyVector->state->selVector->selectedPositions[0];
+        KU_ASSERT(keyVector->state->getSelVector().getSelSize() == 1);
+        auto pos = keyVector->state->getSelVector()[0];
         auto equal = compareEntryFuncs[i](keyVector, pos, tuple + tableSchema->getColOffset(i));
         if (!equal) {
             return false;

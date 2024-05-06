@@ -56,8 +56,8 @@ offset_t NodeTable::validateUniquenessConstraint(Transaction* tx,
         return INVALID_OFFSET;
     }
     auto pkVector = propertyVectors[pkColumnID];
-    KU_ASSERT(pkVector->state->selVector->selectedSize == 1);
-    auto pkVectorPos = pkVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(pkVector->state->getSelVector().getSelSize() == 1);
+    auto pkVectorPos = pkVector->state->getSelVector()[0];
     offset_t offset;
     if (pkIndex->lookup(tx, propertyVectors[pkColumnID], pkVectorPos, offset)) {
         return offset;
@@ -69,8 +69,8 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
     auto nodesStats =
         ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics);
     auto& nodeInsertState = ku_dynamic_cast<TableInsertState&, NodeTableInsertState&>(insertState);
-    KU_ASSERT(nodeInsertState.nodeIDVector.state->selVector->selectedSize == 1);
-    auto pos = nodeInsertState.nodeIDVector.state->selVector->selectedPositions[0];
+    KU_ASSERT(nodeInsertState.nodeIDVector.state->getSelVector().getSelSize() == 1);
+    auto pos = nodeInsertState.nodeIDVector.state->getSelVector()[0];
     auto offset = nodesStats->addNode(tableID);
     nodeInsertState.nodeIDVector.setValue(pos, nodeID_t{offset, tableID});
     nodeInsertState.nodeIDVector.setNull(pos, false);
@@ -86,8 +86,8 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
     // NOTE: We assume all input all flatten now. This is to simplify the implementation.
     // We should optimize this to take unflat input later.
     auto& nodeUpdateState = ku_dynamic_cast<TableUpdateState&, NodeTableUpdateState&>(updateState);
-    KU_ASSERT(nodeUpdateState.nodeIDVector.state->selVector->selectedSize == 1 &&
-              nodeUpdateState.propertyVector.state->selVector->selectedSize == 1);
+    KU_ASSERT(nodeUpdateState.nodeIDVector.state->getSelVector().getSelSize() == 1 &&
+              nodeUpdateState.propertyVector.state->getSelVector().getSelSize() == 1);
     if (nodeUpdateState.columnID == pkColumnID && pkIndex) {
         updatePK(transaction, updateState.columnID, nodeUpdateState.nodeIDVector,
             updateState.propertyVector);
@@ -99,8 +99,8 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
 
 void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
     auto& nodeDeleteState = ku_dynamic_cast<TableDeleteState&, NodeTableDeleteState&>(deleteState);
-    KU_ASSERT(nodeDeleteState.nodeIDVector.state->selVector->selectedSize == 1);
-    auto pos = nodeDeleteState.nodeIDVector.state->selVector->selectedPositions[0];
+    KU_ASSERT(nodeDeleteState.nodeIDVector.state->getSelVector().getSelSize() == 1);
+    auto pos = nodeDeleteState.nodeIDVector.state->getSelVector()[0];
     if (nodeDeleteState.nodeIDVector.isNull(pos)) {
         return;
     }
@@ -194,10 +194,10 @@ void NodeTable::updatePK(Transaction* transaction, column_id_t columnID,
 }
 
 void NodeTable::insertPK(const ValueVector& nodeIDVector, const ValueVector& primaryKeyVector) {
-    for (auto i = 0u; i < nodeIDVector.state->selVector->selectedSize; i++) {
-        auto nodeIDPos = nodeIDVector.state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < nodeIDVector.state->getSelVector().getSelSize(); i++) {
+        auto nodeIDPos = nodeIDVector.state->getSelVector()[0];
         auto offset = nodeIDVector.readNodeOffset(nodeIDPos);
-        auto pkPos = primaryKeyVector.state->selVector->selectedPositions[i];
+        auto pkPos = primaryKeyVector.state->getSelVector()[0];
         if (primaryKeyVector.isNull(pkPos)) {
             throw RuntimeException(ExceptionMessage::nullPKException());
         }

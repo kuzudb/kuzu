@@ -17,7 +17,7 @@ public:
         nextTableIdx = 0;
     }
 
-    bool scan(common::SelectionVector* selVector, transaction::Transaction* transaction);
+    bool scan(const common::SelectionVector& selVector, transaction::Transaction* transaction);
 
     std::unique_ptr<RelTableCollectionScanner> clone() const;
 

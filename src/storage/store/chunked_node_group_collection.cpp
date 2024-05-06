@@ -11,7 +11,7 @@ void ChunkedNodeGroupCollection::append(const std::vector<ValueVector*>& vectors
         chunkedGroups.push_back(
             std::make_unique<ChunkedNodeGroup>(types, false /*enableCompression*/, CHUNK_CAPACITY));
     }
-    auto numRowsToAppend = selVector.selectedSize;
+    auto numRowsToAppend = selVector.getSelSize();
     row_idx_t numRowsAppended = 0;
     SelectionVector tmpSelVector(numRowsToAppend);
     while (numRowsAppended < numRowsToAppend) {
@@ -20,7 +20,7 @@ void ChunkedNodeGroupCollection::append(const std::vector<ValueVector*>& vectors
             static_cast<row_idx_t>(CHUNK_CAPACITY - lastChunkedGroup->getNumRows()));
         auto tmpSelVectorBuffer = tmpSelVector.getMultableBuffer();
         for (auto i = 0u; i < numRowsToAppendInGroup; i++) {
-            tmpSelVectorBuffer[i] = selVector.selectedPositions[numRowsAppended + i];
+            tmpSelVectorBuffer[i] = selVector[numRowsAppended + i];
         }
         tmpSelVector.setToFiltered(numRowsToAppendInGroup);
         lastChunkedGroup->append(vectors, tmpSelVector, numRowsToAppendInGroup);

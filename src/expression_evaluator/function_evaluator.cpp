@@ -45,13 +45,13 @@ bool FunctionExpressionEvaluator::select(SelectionVector& selVector,
         KU_ASSERT(resultVector->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
         execFunc(parameters, *resultVector, nullptr);
         auto numSelectedValues = 0u;
-        for (auto i = 0u; i < resultVector->state->selVector->selectedSize; ++i) {
-            auto pos = resultVector->state->selVector->selectedPositions[i];
+        for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); ++i) {
+            auto pos = resultVector->state->getSelVector()[i];
             auto selectedPosBuffer = selVector.getMultableBuffer();
             selectedPosBuffer[numSelectedValues] = pos;
             numSelectedValues += resultVector->getValue<bool>(pos);
         }
-        selVector.selectedSize = numSelectedValues;
+        selVector.setSelSize(numSelectedValues);
         return numSelectedValues > 0;
     }
     return selectFunc(parameters, selVector);

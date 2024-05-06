@@ -40,21 +40,21 @@ bool ValueVector::discardNull(ValueVector& vector) {
         return true;
     } else {
         auto selectedPos = 0u;
-        if (vector.state->selVector->isUnfiltered()) {
-            auto buffer = vector.state->selVector->getMultableBuffer();
-            for (auto i = 0u; i < vector.state->selVector->selectedSize; i++) {
+        if (vector.state->getSelVector().isUnfiltered()) {
+            auto buffer = vector.state->getSelVectorUnsafe().getMultableBuffer();
+            for (auto i = 0u; i < vector.state->getSelVector().getSelSize(); i++) {
                 buffer[selectedPos] = i;
                 selectedPos += !vector.isNull(i);
             }
-            vector.state->selVector->setToFiltered();
+            vector.state->getSelVectorUnsafe().setToFiltered();
         } else {
-            for (auto i = 0u; i < vector.state->selVector->selectedSize; i++) {
-                auto pos = vector.state->selVector->selectedPositions[i];
-                vector.state->selVector->selectedPositions[selectedPos] = pos;
+            for (auto i = 0u; i < vector.state->getSelVector().getSelSize(); i++) {
+                auto pos = vector.state->getSelVector()[i];
+                vector.state->getSelVectorUnsafe()[i] = pos;
                 selectedPos += !vector.isNull(pos);
             }
         }
-        vector.state->selVector->selectedSize = selectedPos;
+        vector.state->getSelVectorUnsafe().setSelSize(selectedPos);
         return selectedPos > 0;
     }
 }

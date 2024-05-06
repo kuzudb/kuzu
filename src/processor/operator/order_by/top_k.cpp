@@ -14,16 +14,16 @@ TopKSortState::TopKSortState() : numTuples{0}, memoryManager{nullptr} {
 }
 
 void TopKSortState::init(const OrderByDataInfo& orderByDataInfo,
-    storage::MemoryManager* memoryManager) {
-    this->memoryManager = memoryManager;
+    storage::MemoryManager* memoryManager_) {
+    this->memoryManager = memoryManager_;
     orderBySharedState->init(orderByDataInfo);
-    orderByLocalState->init(orderByDataInfo, *orderBySharedState, memoryManager);
+    orderByLocalState->init(orderByDataInfo, *orderBySharedState, memoryManager_);
     numTuples = 0;
 }
 
 void TopKSortState::append(const std::vector<common::ValueVector*>& keyVectors,
     const std::vector<common::ValueVector*>& payloadVectors) {
-    numTuples += keyVectors[0]->state->selVector->selectedSize;
+    numTuples += keyVectors[0]->state->getSelVector().getSelSize();
     orderByLocalState->append(keyVectors, payloadVectors);
 }
 
@@ -42,10 +42,10 @@ void TopKSortState::finalize() {
     }
 }
 
-void TopKBuffer::init(storage::MemoryManager* memoryManager, uint64_t skipNumber,
+void TopKBuffer::init(storage::MemoryManager* memoryManager_, uint64_t skipNumber,
     uint64_t limitNumber) {
-    this->memoryManager = memoryManager;
-    sortState->init(*orderByDataInfo, memoryManager);
+    this->memoryManager = memoryManager_;
+    sortState->init(*orderByDataInfo, memoryManager_);
     this->skip = skipNumber;
     this->limit = limitNumber;
     initVectors();
@@ -54,13 +54,13 @@ void TopKBuffer::init(storage::MemoryManager* memoryManager, uint64_t skipNumber
 
 void TopKBuffer::append(const std::vector<common::ValueVector*>& keyVectors,
     const std::vector<common::ValueVector*>& payloadVectors) {
-    auto originalSelState = keyVectors[0]->state->selVector;
+    auto originalSelState = keyVectors[0]->state->getSelVectorShared();
     if (hasBoundaryValue && !compareBoundaryValue(keyVectors)) {
-        keyVectors[0]->state->selVector = std::move(originalSelState);
+        keyVectors[0]->state->setSelVector(originalSelState);
         return;
     }
     sortState->append(keyVectors, payloadVectors);
-    keyVectors[0]->state->selVector = std::move(originalSelState);
+    keyVectors[0]->state->setSelVector(originalSelState);
 }
 
 void TopKBuffer::reduce() {
@@ -187,14 +187,13 @@ void TopKBuffer::initCompareFuncs() {
 void TopKBuffer::setBoundaryValue() {
     for (auto i = 0u; i < boundaryVecs.size(); i++) {
         auto boundaryVec = boundaryVecs[i].get();
-        auto dstData =
-            boundaryVec->getData() + boundaryVec->getNumBytesPerValue() *
-                                         boundaryVec->state->selVector->selectedPositions[0];
+        auto dstData = boundaryVec->getData() +
+                       boundaryVec->getNumBytesPerValue() * boundaryVec->state->getSelVector()[0];
         auto srcVector = lastKeyVecsToScan[i];
-        auto srcData = srcVector->getData() +
-                       srcVector->getNumBytesPerValue() *
-                           srcVector->state->selVector
-                               ->selectedPositions[srcVector->state->selVector->selectedSize - 1];
+        auto srcData =
+            srcVector->getData() +
+            srcVector->getNumBytesPerValue() *
+                srcVector->state->getSelVector()[srcVector->state->getSelVector().getSelSize() - 1];
         boundaryVec->copyFromVectorData(dstData, srcVector, srcData);
         hasBoundaryValue = true;
     }
@@ -205,7 +204,7 @@ bool TopKBuffer::compareBoundaryValue(const std::vector<common::ValueVector*>& k
         return compareFlatKeys(0 /* startKeyVectorIdxToCompare */, keyVectors);
     } else {
         compareUnflatKeys(0 /* startKeyVectorIdxToCompare */, keyVectors);
-        return keyVectors[0]->state->selVector->selectedSize > 0;
+        return keyVectors[0]->state->getSelVector().getSelSize() > 0;
     }
 }
 
@@ -238,21 +237,20 @@ void TopKBuffer::compareUnflatKeys(vector_idx_t vectorIdxToCompare,
         equalsSelVector->setToFiltered();
         if (equalsFuncs[vectorIdxToCompare](*keyVectors[vectorIdxToCompare],
                 *boundaryVecs[vectorIdxToCompare], *equalsSelVector)) {
-            keyVectors[vectorIdxToCompare]->state->selVector = equalsSelVector;
+            keyVectors[vectorIdxToCompare]->state->setSelVector(equalsSelVector);
             compareUnflatKeys(vectorIdxToCompare + 1, keyVectors);
             appendSelState(compareSelVector.get(), equalsSelVector.get());
         }
     }
-    keyVectors[vectorIdxToCompare]->state->selVector = std::move(compareSelVector);
+    keyVectors[vectorIdxToCompare]->state->setSelVector(std::move(compareSelVector));
 }
 
 void TopKBuffer::appendSelState(common::SelectionVector* selVector,
     common::SelectionVector* selVectorToAppend) {
-    for (auto i = 0u; i < selVectorToAppend->selectedSize; i++) {
-        selVector->selectedPositions[selVector->selectedSize + i] =
-            selVectorToAppend->selectedPositions[i];
+    for (auto i = 0u; i < selVectorToAppend->getSelSize(); i++) {
+        selVector->operator[](selVector->getSelSize() + i) = selVectorToAppend->operator[](i);
     }
-    selVector->selectedSize += selVectorToAppend->selectedSize;
+    selVector->incrementSelSize(selVectorToAppend->getSelSize());
 }
 
 void TopKLocalState::init(const OrderByDataInfo& orderByDataInfo,

@@ -123,9 +123,9 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
     }
 
     while (children[0]->getNextTuple(context)) {
-        auto originalSelVector = nodeLocalState->columnState->selVector;
+        auto originalSelVector = nodeLocalState->columnState->getSelVectorShared();
         copyToNodeGroup(context);
-        nodeLocalState->columnState->selVector = std::move(originalSelVector);
+        nodeLocalState->columnState->setSelVector(originalSelVector);
     }
     if (nodeLocalState->nodeGroup->getNumRows() > 0) {
         appendIncompleteNodeGroup(std::move(nodeLocalState->nodeGroup),
@@ -187,13 +187,13 @@ void NodeBatchInsert::copyToNodeGroup(ExecutionContext* context) {
     auto numAppendedTuples = 0ul;
     auto nodeLocalState =
         ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
-    auto numTuplesToAppend = nodeLocalState->columnState->getNumSelectedValues();
+    auto numTuplesToAppend = nodeLocalState->columnState->getSelVector().getSelSize();
     auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
     while (numAppendedTuples < numTuplesToAppend) {
-        auto numAppendedTuplesInNodeGroup =
-            nodeLocalState->nodeGroup->append(nodeLocalState->columnVectors,
-                *nodeLocalState->columnState->selVector, numTuplesToAppend - numAppendedTuples);
+        auto numAppendedTuplesInNodeGroup = nodeLocalState->nodeGroup->append(
+            nodeLocalState->columnVectors, nodeLocalState->columnState->getSelVectorUnsafe(),
+            numTuplesToAppend - numAppendedTuples);
         numAppendedTuples += numAppendedTuplesInNodeGroup;
         if (nodeLocalState->nodeGroup->isFull()) {
             writeAndResetNodeGroup(nodeSharedState->getNextNodeGroupIdx(), context,

@@ -15,7 +15,7 @@ bool CommentOn::getNextTuplesInternal(kuzu::processor::ExecutionContext* /*conte
     }
     commentOnInfo->catalog->setTableComment(commentOnInfo->tableID, commentOnInfo->comment);
     commentOnInfo->hasExecuted = true;
-    outputVector->setValue<std::string>(outputVector->state->selVector->selectedPositions[0],
+    outputVector->setValue<std::string>(outputVector->state->getSelVector()[0],
         stringFormat("Table {} comment updated.", commentOnInfo->tableName));
     metrics->numOutputTuple.increase(1);
     return true;

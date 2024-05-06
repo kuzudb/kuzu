@@ -101,7 +101,7 @@ offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
         pandasBackendScanSwitch(pandasScanData->columnBindData[i].get(), numValuesToOutput,
             pandasLocalState->start, output.dataChunk.getValueVector(i).get());
     }
-    output.dataChunk.state->selVector->selectedSize = numValuesToOutput;
+    output.dataChunk.state->getSelVectorUnsafe().setSelSize(numValuesToOutput);
     pandasLocalState->start += numValuesToOutput;
     pandasSharedState->numReadRows += numValuesToOutput;
     return numValuesToOutput;

@@ -83,7 +83,7 @@ void SimpleAggregate::computeDistinctAggregate(AggregateHashTable* distinctHT,
     auto multiplicity = 1; // Distinct aggregate should ignore multiplicity.
     if (distinctHT->isAggregateValueDistinctForGroupByKeys(std::vector<ValueVector*>{},
             input->aggregateVector)) {
-        auto pos = input->aggregateVector->state->selVector->selectedPositions[0];
+        auto pos = input->aggregateVector->state->getSelVector()[0];
         if (!input->aggregateVector->isNull(pos)) {
             function->updatePosState((uint8_t*)state, input->aggregateVector, multiplicity, pos,
                 memoryManager);
@@ -95,10 +95,10 @@ void SimpleAggregate::computeAggregate(function::AggregateFunction* function, Ag
     function::AggregateState* state, storage::MemoryManager* memoryManager) {
     auto multiplicity = resultSet->multiplicity;
     for (auto dataChunk : input->multiplicityChunks) {
-        multiplicity *= dataChunk->state->selVector->selectedSize;
+        multiplicity *= dataChunk->state->getSelVector().getSelSize();
     }
     if (input->aggregateVector && input->aggregateVector->state->isFlat()) {
-        auto pos = input->aggregateVector->state->selVector->selectedPositions[0];
+        auto pos = input->aggregateVector->state->getSelVector()[0];
         if (!input->aggregateVector->isNull(pos)) {
             function->updatePosState((uint8_t*)state, input->aggregateVector, multiplicity, pos,
                 memoryManager);

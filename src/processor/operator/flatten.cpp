@@ -14,24 +14,22 @@ void Flatten::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*c
 bool Flatten::getNextTuplesInternal(ExecutionContext* context) {
     if (localState->currentIdx == localState->sizeToFlatten) {
         dataChunkState->setToUnflat(); // TODO(Xiyang): this should be part of restore/save
-        restoreSelVector(dataChunkState->selVector);
+        restoreSelVector(*dataChunkState);
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
         localState->currentIdx = 0;
-        localState->sizeToFlatten = dataChunkState->selVector->selectedSize;
-        saveSelVector(dataChunkState->selVector);
+        localState->sizeToFlatten = dataChunkState->getSelVector().getSelSize();
+        saveSelVector(*dataChunkState);
         dataChunkState->setToFlat();
     }
-    currentSelVector->selectedPositions[0] =
-        prevSelVector->selectedPositions[localState->currentIdx++];
+    sel_t selPos = prevSelVector->operator[](localState->currentIdx++);
+    currentSelVector->operator[](0) = selPos;
     metrics->numOutputTuple.incrementByOne();
     return true;
 }
 
-void Flatten::resetToCurrentSelVector(std::shared_ptr<SelectionVector>& selVector) {
-    selVector = currentSelVector;
-}
+void Flatten::resetCurrentSelVector(const SelectionVector&) {}
 
 } // namespace processor
 } // namespace kuzu

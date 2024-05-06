@@ -60,7 +60,7 @@ std::pair<uint64_t, uint64_t> RdfInMemScanSharedState::getRange(const RdfStore& 
 static common::offset_t scanTableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto sharedState = reinterpret_cast<RdfScanSharedState*>(input.sharedState);
     sharedState->read(output.dataChunk);
-    return output.dataChunk.state->selVector->selectedSize;
+    return output.dataChunk.state->getSelVector().getSelSize();
 }
 
 static std::unique_ptr<TableFuncSharedState> inMemScanInitSharedState(

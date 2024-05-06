@@ -47,10 +47,10 @@ void StructColumnChunk::append(ValueVector* vector, const SelectionVector& selVe
     for (auto i = 0u; i < numFields; i++) {
         childChunks[i]->append(StructVector::getFieldVector(vector, i).get(), selVector);
     }
-    for (auto i = 0u; i < selVector.selectedSize; i++) {
-        nullChunk->setNull(numValues + i, vector->isNull(selVector.selectedPositions[i]));
+    for (auto i = 0u; i < selVector.getSelSize(); i++) {
+        nullChunk->setNull(numValues + i, vector->isNull(selVector[i]));
     }
-    numValues += selVector.selectedSize;
+    numValues += selVector.getSelSize();
 }
 
 void StructColumnChunk::lookup(offset_t offsetInChunk, ValueVector& output,

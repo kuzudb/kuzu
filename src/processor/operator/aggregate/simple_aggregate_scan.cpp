@@ -28,7 +28,7 @@ bool SimpleAggregateScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
     }
     KU_ASSERT(!aggregatesPos.empty());
     outDataChunk->state->initOriginalAndSelectedSize(1);
-    metrics->numOutputTuple.increase(outDataChunk->state->selVector->selectedSize);
+    metrics->numOutputTuple.increase(outDataChunk->state->getSelVector().getSelSize());
     return true;
 }
 

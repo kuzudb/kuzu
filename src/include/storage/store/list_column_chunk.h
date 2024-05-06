@@ -18,11 +18,11 @@ struct ListDataColumnChunk {
 
     void resizeBuffer(uint64_t numValues);
 
-    inline void append(common::ValueVector* dataVector, common::SelectionVector& selVector) const {
+    void append(common::ValueVector* dataVector, const common::SelectionVector& selVector) const {
         dataColumnChunk->append(dataVector, selVector);
     }
 
-    inline uint64_t getNumValues() const { return dataColumnChunk->getNumValues(); }
+    uint64_t getNumValues() const { return dataColumnChunk->getNumValues(); }
 };
 
 class ListColumnChunk final : public ColumnChunk {
@@ -31,15 +31,13 @@ public:
     ListColumnChunk(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
         bool inMemory);
 
-    inline ColumnChunk* getDataColumnChunk() const {
-        return listDataColumnChunk->dataColumnChunk.get();
-    }
+    ColumnChunk* getDataColumnChunk() const { return listDataColumnChunk->dataColumnChunk.get(); }
 
-    inline ColumnChunk* getSizeColumnChunk() const { return sizeColumnChunk.get(); }
+    ColumnChunk* getSizeColumnChunk() const { return sizeColumnChunk.get(); }
 
     void resetToEmpty() override;
 
-    inline void setNumValues(uint64_t numValues_) override {
+    void setNumValues(uint64_t numValues_) override {
         ColumnChunk::setNumValues(numValues_);
         sizeColumnChunk->setNumValues(numValues_);
     }
@@ -59,11 +57,9 @@ public:
     void copy(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
-    inline void resizeDataColumnChunk(uint64_t numValues) {
-        listDataColumnChunk->resizeBuffer(numValues);
-    }
+    void resizeDataColumnChunk(uint64_t numValues) { listDataColumnChunk->resizeBuffer(numValues); }
 
-    inline void resize(uint64_t newCapacity) override {
+    void resize(uint64_t newCapacity) override {
         ColumnChunk::resize(newCapacity);
         sizeColumnChunk->resize(newCapacity);
     }

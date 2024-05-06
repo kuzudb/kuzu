@@ -2,34 +2,36 @@
 
 #include <cstring>
 
+#include "common/data_chunk/data_chunk_state.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
 
-void SelVectorOverWriter::restoreSelVector(std::shared_ptr<SelectionVector>& selVector) {
+void SelVectorOverWriter::restoreSelVector(DataChunkState& dataChunkState) {
     if (prevSelVector != nullptr) {
-        selVector = prevSelVector;
+        dataChunkState.setSelVector(prevSelVector);
     }
 }
 
-void SelVectorOverWriter::saveSelVector(std::shared_ptr<SelectionVector>& selVector) {
+void SelVectorOverWriter::saveSelVector(DataChunkState& dataChunkState) {
     if (prevSelVector == nullptr) {
-        prevSelVector = selVector;
+        prevSelVector = dataChunkState.getSelVectorShared();
     }
-    resetToCurrentSelVector(selVector);
+    resetCurrentSelVector(dataChunkState.getSelVector());
+    dataChunkState.setSelVector(currentSelVector);
 }
 
-void SelVectorOverWriter::resetToCurrentSelVector(std::shared_ptr<SelectionVector>& selVector) {
-    currentSelVector->selectedSize = selVector->selectedSize;
-    if (selVector->isUnfiltered()) {
+void SelVectorOverWriter::resetCurrentSelVector(const SelectionVector& selVector) {
+    currentSelVector->setSelSize(selVector.getSelSize());
+    if (selVector.isUnfiltered()) {
         currentSelVector->setToUnfiltered();
     } else {
-        memcpy(currentSelVector->getMultableBuffer(), selVector->selectedPositions,
-            selVector->selectedSize * sizeof(sel_t));
+        std::memcpy(currentSelVector->getMultableBuffer().data(),
+            selVector.getSelectedPositions().data(), selVector.getSelSize() * sizeof(sel_t));
         currentSelVector->setToFiltered();
     }
-    selVector = currentSelVector;
 }
 
 } // namespace processor

@@ -106,7 +106,7 @@ void ListColumnChunk::resetToEmpty() {
 }
 
 void ListColumnChunk::append(ValueVector* vector, const SelectionVector& selVector) {
-    auto numToAppend = selVector.selectedSize;
+    auto numToAppend = selVector.getSelSize();
     auto newCapacity = capacity;
     while (numValues + numToAppend >= newCapacity) {
         newCapacity = std::ceil(newCapacity * 1.5);
@@ -116,8 +116,8 @@ void ListColumnChunk::append(ValueVector* vector, const SelectionVector& selVect
     }
     offset_t nextListOffsetInChunk = listDataColumnChunk->getNumValues();
     auto offsetBufferToWrite = (offset_t*)(buffer.get());
-    for (auto i = 0u; i < selVector.selectedSize; i++) {
-        auto pos = selVector.selectedPositions[i];
+    for (auto i = 0u; i < selVector.getSelSize(); i++) {
+        auto pos = selVector[i];
         auto listLen = vector->isNull(pos) ? 0 : vector->getValue<list_entry_t>(pos).size;
         sizeColumnChunk->setValue<list_size_t>(listLen, numValues + i);
         sizeColumnChunk->getNullChunk()->setNull(numValues + i, vector->isNull(pos));
@@ -129,9 +129,9 @@ void ListColumnChunk::append(ValueVector* vector, const SelectionVector& selVect
     auto dataVector = ListVector::getDataVector(vector);
     // TODO(Guodong): we should not set vector to a new state.
     dataVector->setState(std::make_unique<DataChunkState>());
-    dataVector->state->selVector->setToFiltered();
-    for (auto i = 0u; i < selVector.selectedSize; i++) {
-        auto pos = selVector.selectedPositions[i];
+    dataVector->state->getSelVectorUnsafe().setToFiltered();
+    for (auto i = 0u; i < selVector.getSelSize(); i++) {
+        auto pos = selVector[i];
         if (vector->isNull(pos)) {
             continue;
         }
@@ -212,14 +212,14 @@ void ListColumnChunk::write(ValueVector* vector, offset_t offsetInVector, offset
     checkOffsetSortedAsc = true;
     auto selVector = std::make_unique<SelectionVector>(1);
     selVector->setToFiltered();
-    selVector->selectedPositions[0] = offsetInVector;
+    selVector->operator[](0) = offsetInVector;
     auto appendSize =
         vector->isNull(offsetInVector) ? 0 : vector->getValue<list_entry_t>(offsetInVector).size;
     listDataColumnChunk->resizeBuffer(listDataColumnChunk->getNumValues() + appendSize);
     // TODO(Guodong): Do not set vector to a new state.
     auto dataVector = ListVector::getDataVector(vector);
     dataVector->setState(std::make_unique<DataChunkState>());
-    dataVector->state->selVector->setToFiltered();
+    dataVector->state->getSelVectorUnsafe().setToFiltered();
     copyListValues(vector->getValue<list_entry_t>(offsetInVector), dataVector);
     while (offsetInChunk >= numValues) {
         appendNullList();
@@ -279,12 +279,11 @@ void ListColumnChunk::copyListValues(const list_entry_t& entry, ValueVector* dat
     while (numListValuesCopied < numListValuesToCopy) {
         auto numListValuesToCopyInBatch =
             std::min<uint64_t>(numListValuesToCopy - numListValuesCopied, DEFAULT_VECTOR_CAPACITY);
-        dataVector->state->selVector->selectedSize = numListValuesToCopyInBatch;
+        dataVector->state->getSelVectorUnsafe().setSelSize(numListValuesToCopyInBatch);
         for (auto j = 0u; j < numListValuesToCopyInBatch; j++) {
-            dataVector->state->selVector->selectedPositions[j] =
-                entry.offset + numListValuesCopied + j;
+            dataVector->state->getSelVectorUnsafe()[j] = entry.offset + numListValuesCopied + j;
         }
-        listDataColumnChunk->append(dataVector, *dataVector->state->selVector);
+        listDataColumnChunk->append(dataVector, dataVector->state->getSelVector());
         numListValuesCopied += numListValuesToCopyInBatch;
     }
 }
