@@ -5,6 +5,10 @@
 #include "py_prepared_statement.h"
 #include "py_query_result.h"
 
+using kuzu::common::LogicalType;
+using kuzu::common::LogicalTypeID;
+using kuzu::common::Value;
+
 class PyConnection {
 
 public:
@@ -36,6 +40,12 @@ public:
         const std::string& dstTableName, size_t queryBatchSize);
 
     static bool isPandasDataframe(const py::object& object);
+
+    void createScalarFunction(const std::string& name, const py::function& udf,
+        const py::list& params, const std::string& retval);
+
+    static Value transformPythonValue(const py::handle& val);
+    static Value transformPythonValueAs(const py::handle& val, const LogicalType& type);
 
 private:
     std::unique_ptr<StorageDriver> storageDriver;

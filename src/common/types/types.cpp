@@ -5,6 +5,7 @@
 #include "common/exception/binder.h"
 #include "common/exception/conversion.h"
 #include "common/exception/not_implemented.h"
+#include "common/exception/runtime.h"
 #include "common/null_buffer.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
@@ -850,6 +851,82 @@ std::string LogicalTypeUtils::toString(LogicalTypeID dataTypeID) {
         KU_UNREACHABLE;
     }
     // LCOV_EXCL_STOP
+}
+
+LogicalTypeID LogicalTypeUtils::fromStringToID(const std::string& str) {
+    if (str == "ANY") {
+        return LogicalTypeID::ANY;
+    } else if (str == "NODE") {
+        return LogicalTypeID::NODE;
+    } else if (str == "REL") {
+        return LogicalTypeID::REL;
+    } else if (str == "RECURSIVE_REL") {
+        return LogicalTypeID::RECURSIVE_REL;
+    } else if (str == "INTERNAL_ID") {
+        return LogicalTypeID::INTERNAL_ID;
+    } else if (str == "BOOL") {
+        return LogicalTypeID::BOOL;
+    } else if (str == "INT64") {
+        return LogicalTypeID::INT64;
+    } else if (str == "INT32") {
+        return LogicalTypeID::INT32;
+    } else if (str == "INT16") {
+        return LogicalTypeID::INT16;
+    } else if (str == "INT8") {
+        return LogicalTypeID::INT8;
+    } else if (str == "UINT64") {
+        return LogicalTypeID::UINT64;
+    } else if (str == "UINT32") {
+        return LogicalTypeID::UINT32;
+    } else if (str == "UINT16") {
+        return LogicalTypeID::UINT16;
+    } else if (str == "UINT8") {
+        return LogicalTypeID::UINT8;
+    } else if (str == "INT128") {
+        return LogicalTypeID::INT128;
+    } else if (str == "DOUBLE") {
+        return LogicalTypeID::DOUBLE;
+    } else if (str == "FLOAT") {
+        return LogicalTypeID::FLOAT;
+    } else if (str == "DATE") {
+        return LogicalTypeID::DATE;
+    } else if (str == "TIMESTAMP_NS") {
+        return LogicalTypeID::TIMESTAMP_NS;
+    } else if (str == "TIMESTAMP_MS") {
+        return LogicalTypeID::TIMESTAMP_MS;
+    } else if (str == "TIMESTAMP_SEC") {
+        return LogicalTypeID::TIMESTAMP_SEC;
+    } else if (str == "TIMESTAMP_TZ") {
+        return LogicalTypeID::TIMESTAMP_TZ;
+    } else if (str == "TIMESTAMP") {
+        return LogicalTypeID::TIMESTAMP;
+    } else if (str == "INTERVAL") {
+        return LogicalTypeID::INTERVAL;
+    } else if (str == "BLOB") {
+        return LogicalTypeID::BLOB;
+    } else if (str == "UUID") {
+        return LogicalTypeID::UUID;
+    } else if (str == "STRING") {
+        return LogicalTypeID::STRING;
+    } else if (str == "LIST") {
+        return LogicalTypeID::LIST;
+    } else if (str == "ARRAY") {
+        return LogicalTypeID::ARRAY;
+    } else if (str == "STRUCT") {
+        return LogicalTypeID::STRUCT;
+    } else if (str == "RDF_VARIANT") {
+        return LogicalTypeID::RDF_VARIANT;
+    } else if (str == "SERIAL") {
+        return LogicalTypeID::SERIAL;
+    } else if (str == "MAP") {
+        return LogicalTypeID::MAP;
+    } else if (str == "UNION") {
+        return LogicalTypeID::UNION;
+    } else if (str == "POINTER") {
+        return LogicalTypeID::POINTER;
+    } else {
+        throw RuntimeException(stringFormat("Unknown type {}", str));
+    }
 }
 
 std::string LogicalTypeUtils::toString(const std::vector<LogicalType>& dataTypes) {

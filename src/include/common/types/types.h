@@ -539,6 +539,7 @@ struct LogicalTypeUtils {
     KUZU_API static std::string toString(LogicalTypeID dataTypeID);
     KUZU_API static std::string toString(const std::vector<LogicalType>& dataTypes);
     KUZU_API static std::string toString(const std::vector<LogicalTypeID>& dataTypeIDs);
+    static LogicalTypeID fromStringToID(const std::string& str);
     static uint32_t getRowLayoutSize(const LogicalType& logicalType);
     static bool isDate(const LogicalType& dataType);
     static bool isDate(const LogicalTypeID& dataType);

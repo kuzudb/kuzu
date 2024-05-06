@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 from . import _kuzu
 from .prepared_statement import PreparedStatement
@@ -11,12 +11,12 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from .database import Database
+    from .types import Type
 
     if sys.version_info >= (3, 11):
         from typing import Self
     else:
         from typing_extensions import Self
-
 
 class Connection:
     """Connection to a database."""
@@ -229,3 +229,31 @@ class Connection:
         """
         self.init_connection()
         self._connection.set_query_timeout(timeout_in_ms)
+
+    def create_function(
+        self,
+        name: str,
+        udf: Callable[[...], Any],
+        params_type: list[Type] | None = None,
+        return_type: Type | None = None
+    ) -> None:
+        """
+        Sets a User Defined Function (UDF) to use in cypher queries.
+
+        Parameters
+        ----------
+        name: str
+            name of function
+
+        udf: Callable[[...], Any]
+            function to be executed
+
+        params_type: Optional[list[Type]]
+            list of Type enums to describe the input parameters
+
+        return_type: Optional[Type]
+            a Type enum to describe the returned value
+        """
+        parsed_params_type = [] if params_type is None else [param_type.value for param_type in params_type]
+        parsed_return_type = "" if return_type is None else return_type.value
+        self._connection.create_function(name, udf, parsed_params_type, parsed_return_type)
