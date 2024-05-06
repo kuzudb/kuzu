@@ -11,7 +11,7 @@
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 1 RETURN e.length, e.place, e.tag
----- 1500
+---- 1501
 <FILE>:small_list_becomes_large_list_after_insertion_commit.txt
 
 -CASE smallListBecomesLargeListAfterInsertionCommitRecovery
@@ -25,7 +25,7 @@
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 1 RETURN e.length, e.place, e.tag
----- 1500
+---- 1501
 <FILE>:small_list_becomes_large_list_after_insertion_commit.txt
 
 -CASE smallListBecomesLargeListAfterInsertionRollbackNormalExecution
