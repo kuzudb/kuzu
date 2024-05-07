@@ -153,7 +153,9 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
         if (testAnswer.expectedResult.size() != testAnswer.numTuples) {
             spdlog::error("PLAN{} NOT PASSED.", planIdx);
             spdlog::info("PLAN: \n{}", planStr);
-            spdlog::info("TUPLE COUNT NOT MATCHING.");
+            spdlog::info("TUPLE COUNT NOT MATCHING:");
+            spdlog::info("    EXPECTED {} TUPLES IN ANSWER FILE.", testAnswer.numTuples);
+            spdlog::info("    FOUND {} TUPLES IN ANSWER FILE.", testAnswer.expectedResult.size());
             return false;
         }
         if (!statement->checkOutputOrder) {
