@@ -5,11 +5,17 @@
 #include "args.hxx"
 #include "common/file_system/virtual_file_system.h"
 #include "embedded_shell.h"
+#ifdef KUZU_BACKTRACE
+#include <cpptrace/cpptrace.hpp>
+#endif
 
 using namespace kuzu::main;
 using namespace kuzu::common;
 
 int main(int argc, char* argv[]) {
+#ifdef KUZU_BACKTRACE
+    cpptrace::register_terminate_handler();
+#endif
     args::ArgumentParser parser("KuzuDB Shell");
     args::Positional<std::string> inputDirFlag(parser, "databasePath", "Database path.",
         args::Options::Required);
