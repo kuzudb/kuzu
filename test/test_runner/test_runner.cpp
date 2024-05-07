@@ -194,6 +194,12 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
         }
     }
     if (statement->checkPrecision) {
+        if (!statement->checkOutputOrder) {
+            spdlog::error("PLAN{} NOT PASSED.", planIdx);
+            spdlog::info("PLAN: \n{}", planStr);
+            spdlog::info("CHECK_ORDER MUST BE ENABLED FOR CHECK_PRECISION");
+            return false;
+        }
         if (resultTuples.size() == actualNumTuples && resultTuples.size() == testAnswer.numTuples &&
             TestRunner::checkResultNumeric(*result, statement, resultIdx)) {
             spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
