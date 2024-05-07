@@ -12,7 +12,7 @@ public:
         : ReadingClause{common::ClauseType::IN_QUERY_CALL},
           functionExpr{std::move(functionExpr)} {}
 
-    const ParsedExpression* getFunctionExpr() const {
+    const ParsedExpression* getFunctionExpression() const {
         return functionExpr.get();
     }
 

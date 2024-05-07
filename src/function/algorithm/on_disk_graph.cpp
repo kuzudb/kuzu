@@ -1,6 +1,7 @@
-#include "graph/on_disk_graph.h"
+#include "function/algorithm/on_disk_graph.h"
 
 #include "common/enums/table_type.h"
+#include "function/algorithm/graph.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::storage;

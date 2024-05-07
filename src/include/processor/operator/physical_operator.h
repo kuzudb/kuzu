@@ -8,6 +8,7 @@ namespace processor {
 
 enum class PhysicalOperatorType : uint8_t {
     ALTER,
+    ALGORITHM_RUNNER,
     AGGREGATE,
     AGGREGATE_SCAN,
     ATTACH_DATABASE,

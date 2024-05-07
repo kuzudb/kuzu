@@ -1,14 +1,14 @@
-#include "graph/graph_function.h"
-
 #include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "common/types/value/nested.h"
+#include "function/algorithm/graph.h"
+#include "function/algorithm/graph_functions.h"
+#include "function/algorithm/on_disk_graph.h"
+#include "function/algorithm/parallel_utils.h"
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
 #include "function/table/call_functions.h"
 #include "function/table_functions.h"
-#include "graph/graph.h"
-#include "graph/on_disk_graph.h"
 
 using namespace kuzu::function;
 using namespace kuzu::main;
@@ -60,9 +60,10 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     numEdges = numEdges == 0 ? 1 : numEdges;
     double degree = numEdges / numNodes;
     auto vector = output.dataChunk.valueVectors[0].get();
-    vector->state->selVector->selectedSize = 1;
-    vector->setValue<double>(0, degree);
-    return 1;
+    vector->state->selVector->selectedSize = (morsel.endOffset - morsel.startOffset);
+    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++)
+        vector->setValue<double>(i, degree);
+    return morsel.endOffset - morsel.startOffset;
 }
 
 // TODO(Xiyang): I would just pass literal expression in TableFuncBindInput instead.
@@ -96,7 +97,13 @@ static std::unique_ptr<TableFuncBindData> bindFunc(
     columnTypes.push_back(*LogicalType::DOUBLE());
     columnNames.push_back("degree");
     return std::make_unique<DemoAlgoBindData>(
-        std::move(columnTypes), std::move(columnNames), 1, context, std::move(graphTableNames));
+        std::move(columnTypes), std::move(columnNames), 10, context, std::move(graphTableNames));
+}
+
+bool DemoAlgorithm::compute(ParallelUtils *parallelUtils, function::TableFunction tableFunction) {
+    parallelUtils->doParallel(&tableFunction);
+    parallelUtils->terminate();
+    return false;
 }
 
 function::function_set DemoAlgorithm::getFunctionSet() {
