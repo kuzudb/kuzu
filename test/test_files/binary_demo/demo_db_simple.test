@@ -1,0 +1,15 @@
+-DATASET KUZU binary-demo
+
+--
+
+-CASE DemoDBTestSimple
+
+-LOG AndClause
+-STATEMENT MATCH (a:User) WHERE a.name = 'Adam' AND a.age = 30 RETURN a.*;
+---- 1
+Adam|30
+
+-LOG NoAndClause
+-STATEMENT MATCH (a:User) WHERE a.name = 'Adam' RETURN a.*;
+---- 1
+Adam|30
