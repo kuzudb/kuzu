@@ -14,19 +14,19 @@ void Filter::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
 bool Filter::getNextTuplesInternal(ExecutionContext* context) {
     bool hasAtLeastOneSelectedValue;
     do {
-        restoreSelVector(dataChunkToSelect->state->selVector);
+        restoreSelVector(*dataChunkToSelect->state);
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
-        saveSelVector(dataChunkToSelect->state->selVector);
+        saveSelVector(*dataChunkToSelect->state);
         hasAtLeastOneSelectedValue = expressionEvaluator->select(
-            *dataChunkToSelect->state->selVector, context->clientContext);
+            dataChunkToSelect->state->getSelVectorUnsafe(), context->clientContext);
         if (!dataChunkToSelect->state->isFlat() &&
-            dataChunkToSelect->state->selVector->isUnfiltered()) {
-            dataChunkToSelect->state->selVector->setToFiltered();
+            dataChunkToSelect->state->getSelVector().isUnfiltered()) {
+            dataChunkToSelect->state->getSelVectorUnsafe().setToFiltered();
         }
     } while (!hasAtLeastOneSelectedValue);
-    metrics->numOutputTuple.increase(dataChunkToSelect->state->selVector->selectedSize);
+    metrics->numOutputTuple.increase(dataChunkToSelect->state->getSelVector().getSelSize());
     return true;
 }
 
@@ -38,23 +38,23 @@ void NodeLabelFiler::initLocalStateInternal(ResultSet* /*resultSet_*/,
 bool NodeLabelFiler::getNextTuplesInternal(ExecutionContext* context) {
     sel_t numSelectValue;
     do {
-        restoreSelVector(nodeIDVector->state->selVector);
+        restoreSelVector(*nodeIDVector->state);
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
-        saveSelVector(nodeIDVector->state->selVector);
+        saveSelVector(*nodeIDVector->state);
         numSelectValue = 0;
-        auto buffer = nodeIDVector->state->selVector->getMultableBuffer();
-        for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
-            auto pos = nodeIDVector->state->selVector->selectedPositions[i];
+        auto buffer = nodeIDVector->state->getSelVectorUnsafe().getMultableBuffer();
+        for (auto i = 0u; i < nodeIDVector->state->getSelVector().getSelSize(); ++i) {
+            auto pos = nodeIDVector->state->getSelVector()[i];
             buffer[numSelectValue] = pos;
             numSelectValue +=
                 info->nodeLabelSet.contains(nodeIDVector->getValue<nodeID_t>(pos).tableID);
         }
-        nodeIDVector->state->selVector->setToFiltered();
+        nodeIDVector->state->getSelVectorUnsafe().setToFiltered();
     } while (numSelectValue == 0);
-    nodeIDVector->state->selVector->selectedSize = numSelectValue;
-    metrics->numOutputTuple.increase(nodeIDVector->state->selVector->selectedSize);
+    nodeIDVector->state->getSelVectorUnsafe().setSelSize(numSelectValue);
+    metrics->numOutputTuple.increase(nodeIDVector->state->getSelVector().getSelSize());
     return true;
 }
 

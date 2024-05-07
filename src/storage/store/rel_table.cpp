@@ -73,7 +73,7 @@ void RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
 
 void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
     ValueVector* srcNodeIDVector, RelDetachDeleteState* deleteState) {
-    KU_ASSERT(srcNodeIDVector->state->selVector->selectedSize == 1);
+    KU_ASSERT(srcNodeIDVector->state->getSelVector().getSelSize() == 1);
     auto tableData =
         direction == RelDataDirection::FWD ? fwdRelTableData.get() : bwdRelTableData.get();
     auto reverseTableData =
@@ -94,7 +94,7 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
 void RelTable::checkIfNodeHasRels(Transaction* transaction, RelDataDirection direction,
     ValueVector* srcNodeIDVector) {
     KU_ASSERT(srcNodeIDVector->state->isFlat());
-    auto nodeIDPos = srcNodeIDVector->state->selVector->selectedPositions[0];
+    auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
     auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
     auto res = direction == common::RelDataDirection::FWD ?
                    fwdRelTableData->checkIfNodeHasRels(transaction, nodeOffset) :
@@ -114,10 +114,10 @@ row_idx_t RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableDat
     auto tempState = deleteState->dstNodeIDVector->state.get();
     while (relDataReadState->hasMoreToRead(transaction)) {
         scan(transaction, *relDataReadState);
-        auto numRelsScanned = tempState->selVector->selectedSize;
-        tempState->selVector->setToFiltered(1);
+        auto numRelsScanned = tempState->getSelVector().getSelSize();
+        tempState->getSelVectorUnsafe().setToFiltered(1);
         for (auto i = 0u; i < numRelsScanned; i++) {
-            tempState->selVector->selectedPositions[0] = i;
+            tempState->getSelVectorUnsafe()[0] = i;
             auto deleted =
                 tableData->delete_(transaction, srcNodeIDVector, deleteState->relIDVector.get());
             auto reverseDeleted = reverseTableData->delete_(transaction,
@@ -125,7 +125,7 @@ row_idx_t RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableDat
             KU_ASSERT(deleted == reverseDeleted);
             numRelsDeleted += (deleted && reverseDeleted);
         }
-        tempState->selVector->setToUnfiltered();
+        tempState->getSelVectorUnsafe().setToUnfiltered();
     }
     return numRelsDeleted;
 }

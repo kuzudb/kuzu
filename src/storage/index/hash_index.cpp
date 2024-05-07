@@ -694,8 +694,8 @@ void PrimaryKeyIndex::delete_(ValueVector* keyVector) {
     TypeUtils::visit(
         keyDataTypeID,
         [&]<IndexHashable T>(T) {
-            for (auto i = 0u; i < keyVector->state->selVector->selectedSize; i++) {
-                auto pos = keyVector->state->selVector->selectedPositions[i];
+            for (auto i = 0u; i < keyVector->state->getSelVector().getSelSize(); i++) {
+                auto pos = keyVector->state->getSelVector()[i];
                 if (keyVector->isNull(pos)) {
                     continue;
                 }

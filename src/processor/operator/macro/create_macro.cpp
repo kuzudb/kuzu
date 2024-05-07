@@ -14,7 +14,7 @@ bool CreateMacro::getNextTuplesInternal(kuzu::processor::ExecutionContext* /*con
     createMacroInfo->catalog->addScalarMacroFunction(createMacroInfo->macroName,
         createMacroInfo->macro->copy());
     hasExecuted = true;
-    outputVector->setValue<std::string>(outputVector->state->selVector->selectedPositions[0],
+    outputVector->setValue<std::string>(outputVector->state->getSelVector()[0],
         stringFormat("Macro: {} has been created.", createMacroInfo->macroName));
     metrics->numOutputTuple.increase(1);
     return true;

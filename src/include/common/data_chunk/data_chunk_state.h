@@ -14,32 +14,36 @@ enum class FStateType : uint8_t {
 class DataChunkState {
 public:
     DataChunkState() : DataChunkState(DEFAULT_VECTOR_CAPACITY) {}
-    explicit DataChunkState(uint64_t capacity) : fStateType{FStateType::UNFLAT}, originalSize{0} {
+    explicit DataChunkState(sel_t capacity) : fStateType{FStateType::UNFLAT}, originalSize{0} {
         selVector = std::make_shared<SelectionVector>(capacity);
     }
 
     // returns a dataChunkState for vectors holding a single value.
     static std::shared_ptr<DataChunkState> getSingleValueDataChunkState();
 
-    inline void initOriginalAndSelectedSize(uint64_t size) {
+    void initOriginalAndSelectedSize(uint64_t size) {
         originalSize = size;
-        selVector->selectedSize = size;
+        selVector->setSelSize(size);
     }
-    inline void setOriginalSize(uint64_t size) { originalSize = size; }
-    inline uint64_t getOriginalSize() const { return originalSize; }
-    inline bool isFlat() const { return fStateType == FStateType::FLAT; }
-    inline void setToFlat() { fStateType = FStateType::FLAT; }
-    inline void setToUnflat() { fStateType = FStateType::UNFLAT; }
+    void setOriginalSize(uint64_t size) { originalSize = size; }
+    uint64_t getOriginalSize() const { return originalSize; }
+    bool isFlat() const { return fStateType == FStateType::FLAT; }
+    void setToFlat() { fStateType = FStateType::FLAT; }
+    void setToUnflat() { fStateType = FStateType::UNFLAT; }
 
-    inline uint64_t getNumSelectedValues() const { return selVector->selectedSize; }
+    const SelectionVector& getSelVector() const { return *selVector; }
+    SelectionVector& getSelVectorUnsafe() { return *selVector; }
+    std::shared_ptr<SelectionVector> getSelVectorShared() { return selVector; }
+    void setSelVector(std::shared_ptr<SelectionVector> selVector_) {
+        this->selVector = std::move(selVector_);
+    }
 
     void slice(offset_t offset);
 
-public:
-    std::shared_ptr<SelectionVector> selVector;
-
 private:
+    std::shared_ptr<SelectionVector> selVector;
     FStateType fStateType;
+    // TODO: Get rid of this field.
     // We need to keep track of originalSize of DataChunks to perform consistent scans of vectors
     // or lists. This is because all the vectors in a data chunk has to be the same length as they
     // share the same selectedPositions array.Therefore, if there is a scan after a filter on the

@@ -68,7 +68,7 @@ bool ScanNodeID::getNextTuplesInternal(ExecutionContext* context) {
         if (state == nullptr) {
             return false;
         }
-        outValueVector->state->selVector->setToUnfiltered();
+        outValueVector->state->getSelVectorUnsafe().setToUnfiltered();
         auto nodeIDValues = (nodeID_t*)(outValueVector->getData());
         auto size = endOffset - startOffset;
         for (auto i = 0u; i < size; ++i) {
@@ -77,8 +77,8 @@ bool ScanNodeID::getNextTuplesInternal(ExecutionContext* context) {
         }
         outValueVector->state->initOriginalAndSelectedSize(size);
         setSelVector(context, state, startOffset, endOffset);
-    } while (outValueVector->state->selVector->selectedSize == 0);
-    metrics->numOutputTuple.increase(outValueVector->state->selVector->selectedSize);
+    } while (outValueVector->state->getSelVector().getSelSize() == 0);
+    metrics->numOutputTuple.increase(outValueVector->state->getSelVector().getSelSize());
     return true;
 }
 
@@ -88,8 +88,8 @@ void ScanNodeID::setSelVector(ExecutionContext* context, NodeTableScanState* tab
     tableState->getTable()->setSelVectorForDeletedOffsets(context->clientContext->getTx(),
         outValueVector.get());
     if (tableState->isSemiMaskEnabled()) {
-        auto buffer = outValueVector->state->selVector->getMultableBuffer();
-        sel_t prevSelectedSize = outValueVector->state->selVector->selectedSize;
+        auto buffer = outValueVector->state->getSelVectorUnsafe().getMultableBuffer();
+        sel_t prevSelectedSize = outValueVector->state->getSelVector().getSelSize();
         // Fill selected positions based on node mask for nodes between the given startOffset and
         // endOffset. If the node is masked (i.e., valid for read), then it is set to the selected
         // positions. Finally, we update the selectedSize for selVector.
@@ -98,9 +98,9 @@ void ScanNodeID::setSelVector(ExecutionContext* context, NodeTableScanState* tab
             buffer[numSelectedValues] = i;
             numSelectedValues += tableState->getSemiMask()->isNodeMasked(i + startOffset);
         }
-        outValueVector->state->selVector->selectedSize = numSelectedValues;
+        outValueVector->state->getSelVectorUnsafe().setSelSize(numSelectedValues);
         if (prevSelectedSize != numSelectedValues) {
-            outValueVector->state->selVector->setToFiltered();
+            outValueVector->state->getSelVectorUnsafe().setToFiltered();
         }
     }
 }

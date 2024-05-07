@@ -18,14 +18,15 @@ void CollectFunction::updateAll(uint8_t* state_, ValueVector* input, uint64_t mu
     MemoryManager* memoryManager) {
     KU_ASSERT(!input->state->isFlat());
     auto state = reinterpret_cast<CollectState*>(state_);
+    auto& inputSelVector = input->state->getSelVector();
     if (input->hasNoNullsGuarantee()) {
-        for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
-            auto pos = input->state->selVector->selectedPositions[i];
+        for (auto i = 0u; i < inputSelVector.getSelSize(); ++i) {
+            auto pos = inputSelVector[i];
             updateSingleValue(state, input, pos, multiplicity, memoryManager);
         }
     } else {
-        for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
-            auto pos = input->state->selVector->selectedPositions[i];
+        for (auto i = 0u; i < inputSelVector.getSelSize(); ++i) {
+            auto pos = inputSelVector[i];
             if (!input->isNull(pos)) {
                 updateSingleValue(state, input, pos, multiplicity, memoryManager);
             }

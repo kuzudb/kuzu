@@ -27,14 +27,15 @@ struct MinMaxFunction {
         storage::MemoryManager* memoryManager) {
         KU_ASSERT(!input->state->isFlat());
         auto* state = reinterpret_cast<MinMaxState*>(state_);
+        auto& inputSelVector = input->state->getSelVector();
         if (input->hasNoNullsGuarantee()) {
-            for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
-                auto pos = input->state->selVector->selectedPositions[i];
+            for (auto i = 0u; i < inputSelVector.getSelSize(); ++i) {
+                auto pos = inputSelVector[i];
                 updateSingleValue<OP>(state, input, pos, memoryManager);
             }
         } else {
-            for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
-                auto pos = input->state->selVector->selectedPositions[i];
+            for (auto i = 0u; i < inputSelVector.getSelSize(); ++i) {
+                auto pos = inputSelVector[i];
                 if (!input->isNull(pos)) {
                     updateSingleValue<OP>(state, input, pos, memoryManager);
                 }

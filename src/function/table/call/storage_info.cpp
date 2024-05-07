@@ -129,7 +129,7 @@ static std::unique_ptr<TableFuncSharedState> initStorageInfoSharedState(
 static void appendColumnChunkStorageInfo(node_group_idx_t nodeGroupIdx,
     const std::string& tableType, const Column* column, DataChunk& outputChunk,
     ClientContext* context) {
-    auto vectorPos = outputChunk.state->selVector->selectedSize;
+    auto vectorPos = outputChunk.state->getSelVector().getSelSize();
     auto metadata = column->getMetadata(nodeGroupIdx, context->getTx()->getType());
     auto columnType = column->getDataType().toString();
     outputChunk.getValueVector(0)->setValue<uint64_t>(vectorPos, nodeGroupIdx);
@@ -140,17 +140,17 @@ static void appendColumnChunkStorageInfo(node_group_idx_t nodeGroupIdx,
     outputChunk.getValueVector(5)->setValue<uint64_t>(vectorPos, metadata.numPages);
     outputChunk.getValueVector(6)->setValue<uint64_t>(vectorPos, metadata.numValues);
     outputChunk.getValueVector(7)->setValue(vectorPos, metadata.compMeta.toString());
-    outputChunk.state->selVector->selectedSize++;
+    outputChunk.state->getSelVectorUnsafe().incrementSelSize();
 }
 
 static void appendStorageInfoForColumn(StorageInfoLocalState* localState, std::string tableType,
     const Column* column, DataChunk& outputChunk, ClientContext* context) {
     auto numNodeGroups = column->getNumNodeGroups(context->getTx());
     for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
-        if (outputChunk.state->selVector->selectedSize == DEFAULT_VECTOR_CAPACITY) {
+        if (outputChunk.state->getSelVector().getSelSize() == DEFAULT_VECTOR_CAPACITY) {
             localState->dataChunkCollection->append(outputChunk);
             outputChunk.resetAuxiliaryBuffer();
-            outputChunk.state->selVector->selectedSize = 0;
+            outputChunk.state->getSelVectorUnsafe().setSelSize(0);
         }
         appendColumnChunkStorageInfo(nodeGroupIdx, tableType, column, outputChunk, context);
     }
@@ -161,12 +161,12 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     auto localState =
         ku_dynamic_cast<TableFuncLocalState*, StorageInfoLocalState*>(input.localState);
     auto sharedState = input.sharedState->ptrCast<StorageInfoSharedState>();
-    KU_ASSERT(dataChunk.state->selVector->isUnfiltered());
+    KU_ASSERT(dataChunk.state->getSelVector().isUnfiltered());
     while (true) {
         if (localState->currChunkIdx < localState->dataChunkCollection->getNumChunks()) {
             // Copy from local state chunk.
             auto& chunk = localState->dataChunkCollection->getChunkUnsafe(localState->currChunkIdx);
-            auto numValuesToOutput = chunk.state->selVector->selectedSize;
+            auto numValuesToOutput = chunk.state->getSelVector().getSelSize();
             for (auto columnIdx = 0u; columnIdx < dataChunk.getNumValueVectors(); columnIdx++) {
                 auto localVector = chunk.getValueVector(columnIdx);
                 auto outputVector = dataChunk.getValueVector(columnIdx);
@@ -174,7 +174,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
                     outputVector->copyFromVectorData(i, localVector.get(), i);
                 }
             }
-            dataChunk.state->selVector->setToUnfiltered(numValuesToOutput);
+            dataChunk.state->getSelVectorUnsafe().setToUnfiltered(numValuesToOutput);
             localState->currChunkIdx++;
             return numValuesToOutput;
         }
@@ -191,7 +191,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
         }
         localState->dataChunkCollection->append(dataChunk);
         dataChunk.resetAuxiliaryBuffer();
-        dataChunk.state->selVector->selectedSize = 0;
+        dataChunk.state->getSelVectorUnsafe().setSelSize(0);
     }
 }
 

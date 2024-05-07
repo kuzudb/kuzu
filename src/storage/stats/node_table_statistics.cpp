@@ -113,8 +113,8 @@ void NodeTableStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(ValueVector* no
         auto originalSize = nodeIDVector->state->getOriginalSize();
         auto itr = deletedNodeOffsets.begin();
         common::sel_t numSelectedValue = 0;
-        auto selectedBuffer = nodeIDVector->state->selVector->getMultableBuffer();
-        KU_ASSERT(nodeIDVector->state->selVector->isUnfiltered());
+        auto selectedBuffer = nodeIDVector->state->getSelVectorUnsafe().getMultableBuffer();
+        KU_ASSERT(nodeIDVector->state->getSelVector().isUnfiltered());
         for (auto pos = 0u; pos < nodeIDVector->state->getOriginalSize(); ++pos) {
             if (itr == deletedNodeOffsets.end()) { // no more deleted offset to check.
                 selectedBuffer[numSelectedValue++] = pos;
@@ -127,9 +127,9 @@ void NodeTableStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(ValueVector* no
             selectedBuffer[numSelectedValue++] = pos;
         }
         if (numSelectedValue != originalSize) {
-            nodeIDVector->state->selVector->setToFiltered();
+            nodeIDVector->state->getSelVectorUnsafe().setToFiltered();
         }
-        nodeIDVector->state->selVector->selectedSize = numSelectedValue;
+        nodeIDVector->state->getSelVectorUnsafe().setSelSize(numSelectedValue);
     }
 }
 

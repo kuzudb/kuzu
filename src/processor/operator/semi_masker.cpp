@@ -29,15 +29,15 @@ bool SingleTableSemiMasker::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
-    auto selVector = keyVector->state->selVector.get();
-    for (auto i = 0u; i < selVector->selectedSize; i++) {
-        auto pos = selVector->selectedPositions[i];
+    auto& selVector = keyVector->state->getSelVector();
+    for (auto i = 0u; i < selVector.getSelSize(); i++) {
+        auto pos = selVector[i];
         auto nodeID = keyVector->getValue<nodeID_t>(pos);
         for (auto& [mask, maskerIdx] : info->getSingleTableMasks()) {
             mask->incrementMaskValue(nodeID.offset, maskerIdx);
         }
     }
-    metrics->numOutputTuple.increase(selVector->selectedSize);
+    metrics->numOutputTuple.increase(selVector.getSelSize());
     return true;
 }
 
@@ -45,15 +45,15 @@ bool MultiTableSemiMasker::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
-    auto selVector = keyVector->state->selVector.get();
-    for (auto i = 0u; i < selVector->selectedSize; i++) {
-        auto pos = selVector->selectedPositions[i];
+    auto& selVector = keyVector->state->getSelVector();
+    for (auto i = 0u; i < selVector.getSelSize(); i++) {
+        auto pos = selVector[i];
         auto nodeID = keyVector->getValue<nodeID_t>(pos);
         for (auto& [mask, maskerIdx] : info->getTableMasks(nodeID.tableID)) {
             mask->incrementMaskValue(nodeID.offset, maskerIdx);
         }
     }
-    metrics->numOutputTuple.increase(selVector->selectedSize);
+    metrics->numOutputTuple.increase(selVector.getSelSize());
     return true;
 }
 

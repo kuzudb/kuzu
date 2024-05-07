@@ -38,13 +38,13 @@ static void copyParameterValueToStructFieldVector(const ValueVector* parameter,
     // If the parameter is unFlat, then its state must be consistent with the result's state.
     // Thus, we don't need to copy values to structFieldVector.
     KU_ASSERT(parameter->state->isFlat());
-    auto paramPos = parameter->state->selVector->selectedPositions[0];
+    auto paramPos = parameter->state->getSelVector()[0];
     if (structVectorState->isFlat()) {
-        auto pos = structVectorState->selVector->selectedPositions[0];
+        auto pos = structVectorState->getSelVector()[0];
         structField->copyFromVectorData(pos, parameter, paramPos);
     } else {
-        for (auto i = 0u; i < structVectorState->selVector->selectedSize; i++) {
-            auto pos = structVectorState->selVector->selectedPositions[i];
+        for (auto i = 0u; i < structVectorState->getSelVector().getSelSize(); i++) {
+            auto pos = structVectorState->getSelVector()[i];
             structField->copyFromVectorData(pos, parameter, paramPos);
         }
     }

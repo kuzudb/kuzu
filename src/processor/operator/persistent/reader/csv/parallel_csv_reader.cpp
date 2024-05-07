@@ -125,7 +125,7 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
         if (parallelCSVLocalState->reader != nullptr &&
             parallelCSVLocalState->reader->hasMoreToRead()) {
             auto result = parallelCSVLocalState->reader->continueBlock(outputChunk);
-            outputChunk.state->selVector->selectedSize = result;
+            outputChunk.state->getSelVectorUnsafe().setSelSize(result);
             if (result > 0) {
                 return result;
             }
@@ -142,7 +142,7 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
                 parallelCSVSharedState->numColumns, parallelCSVSharedState->context);
         }
         auto numRowsRead = parallelCSVLocalState->reader->parseBlock(blockIdx, outputChunk);
-        outputChunk.state->selVector->selectedSize = numRowsRead;
+        outputChunk.state->getSelVectorUnsafe().setSelSize(numRowsRead);
         if (numRowsRead > 0) {
             return numRowsRead;
         }

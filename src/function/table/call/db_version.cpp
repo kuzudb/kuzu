@@ -13,7 +13,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     if (!sharedState->getMorsel().hasMoreToOutput()) {
         return 0;
     }
-    auto pos = dataChunk.state->selVector->selectedPositions[0];
+    auto pos = dataChunk.state->getSelVector()[0];
     outputVector->setValue(pos, std::string(KUZU_VERSION));
     outputVector->setNull(pos, false);
     return 1;

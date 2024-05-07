@@ -40,17 +40,17 @@ static void writeToPropertyVector(ValueVector* internalIDVector, ValueVector* pr
 void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
     if (setInfo.columnID == common::INVALID_COLUMN_ID) {
         if (lhsVector != nullptr) {
-            for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
-                auto lhsPos = nodeIDVector->state->selVector->selectedPositions[i];
+            for (auto i = 0u; i < nodeIDVector->state->getSelVector().getSelSize(); ++i) {
+                auto lhsPos = nodeIDVector->state->getSelVector()[i];
                 lhsVector->setNull(lhsPos, true);
             }
         }
         return;
     }
     evaluator->evaluate(context->clientContext);
-    KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
-    auto lhsPos = nodeIDVector->state->selVector->selectedPositions[0];
-    auto rhsPos = rhsVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1);
+    auto lhsPos = nodeIDVector->state->getSelVector()[0];
+    auto rhsPos = rhsVector->state->getSelVector()[0];
     auto updateState = std::make_unique<storage::NodeTableUpdateState>(setInfo.columnID,
         *nodeIDVector, *rhsVector);
     setInfo.table->update(context->clientContext->getTx(), *updateState);
@@ -61,9 +61,9 @@ void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
 
 void MultiLabelNodeSetExecutor::set(ExecutionContext* context) {
     evaluator->evaluate(context->clientContext);
-    KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1 &&
-              rhsVector->state->selVector->selectedSize == 1);
-    auto lhsPos = nodeIDVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1 &&
+              rhsVector->state->getSelVector().getSelSize() == 1);
+    auto lhsPos = nodeIDVector->state->getSelVector()[0];
     auto& nodeID = nodeIDVector->getValue<internalID_t>(lhsPos);
     if (!tableIDToSetInfo.contains(nodeID.tableID)) {
         if (lhsVector != nullptr) {
@@ -71,13 +71,13 @@ void MultiLabelNodeSetExecutor::set(ExecutionContext* context) {
         }
         return;
     }
-    auto rhsPos = rhsVector->state->selVector->selectedPositions[0];
+    auto rhsPos = rhsVector->state->getSelVector()[0];
     auto& setInfo = tableIDToSetInfo.at(nodeID.tableID);
     auto updateState = std::make_unique<storage::NodeTableUpdateState>(setInfo.columnID,
         *nodeIDVector, *rhsVector);
     setInfo.table->update(context->clientContext->getTx(), *updateState);
     if (lhsVector != nullptr) {
-        KU_ASSERT(lhsVector->state->selVector->selectedSize == 1);
+        KU_ASSERT(lhsVector->state->getSelVector().getSelSize() == 1);
         writeToPropertyVector(nodeIDVector, lhsVector, lhsPos, rhsVector, rhsPos);
     }
 }
@@ -106,17 +106,17 @@ std::vector<std::unique_ptr<RelSetExecutor>> RelSetExecutor::copy(
 // Assume both input vectors are flat. Should be removed eventually.
 static void writeToPropertyVector(ValueVector* relIDVector, ValueVector* propertyVector,
     ValueVector* rhsVector) {
-    KU_ASSERT(propertyVector->state->selVector->selectedSize == 1);
-    auto propertyVectorPos = propertyVector->state->selVector->selectedPositions[0];
-    KU_ASSERT(rhsVector->state->selVector->selectedSize == 1);
-    auto rhsVectorPos = rhsVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(propertyVector->state->getSelVector().getSelSize() == 1);
+    auto propertyVectorPos = propertyVector->state->getSelVector()[0];
+    KU_ASSERT(rhsVector->state->getSelVector().getSelSize() == 1);
+    auto rhsVectorPos = rhsVector->state->getSelVector()[0];
     writeToPropertyVector(relIDVector, propertyVector, propertyVectorPos, rhsVector, rhsVectorPos);
 }
 
 void SingleLabelRelSetExecutor::set(ExecutionContext* context) {
     if (columnID == INVALID_COLUMN_ID) {
         if (lhsVector != nullptr) {
-            auto pos = relIDVector->state->selVector->selectedPositions[0];
+            auto pos = relIDVector->state->getSelVector()[0];
             lhsVector->setNull(pos, true);
         }
         return;
@@ -133,7 +133,7 @@ void SingleLabelRelSetExecutor::set(ExecutionContext* context) {
 void MultiLabelRelSetExecutor::set(ExecutionContext* context) {
     evaluator->evaluate(context->clientContext);
     KU_ASSERT(relIDVector->state->isFlat());
-    auto pos = relIDVector->state->selVector->selectedPositions[0];
+    auto pos = relIDVector->state->getSelVector()[0];
     auto relID = relIDVector->getValue<internalID_t>(pos);
     if (!tableIDToTableAndColumnID.contains(relID.tableID)) {
         if (lhsVector != nullptr) {

@@ -46,8 +46,8 @@ public:
     void setNull(uint32_t pos, bool isNull);
     uint8_t isNull(uint32_t pos) const { return nullMask.isNull(pos); }
     void setAsSingleNullEntry() {
-        state->selVector->selectedSize = 1;
-        setNull(state->selVector->selectedPositions[0], true);
+        state->getSelVectorUnsafe().setSelSize(1);
+        setNull(state->getSelVector()[0], true);
     }
 
     bool setNullFromBits(const uint64_t* srcNullEntries, uint64_t srcOffset, uint64_t dstOffset,
@@ -269,9 +269,8 @@ public:
 
     static inline void setTagField(ValueVector* vector, union_field_idx_t tag) {
         KU_ASSERT(vector->dataType.getLogicalTypeID() == LogicalTypeID::UNION);
-        for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
-            vector->setValue<struct_field_idx_t>(vector->state->selVector->selectedPositions[i],
-                tag);
+        for (auto i = 0u; i < vector->state->getSelVector().getSelSize(); i++) {
+            vector->setValue<struct_field_idx_t>(vector->state->getSelVector()[i], tag);
         }
     }
 };

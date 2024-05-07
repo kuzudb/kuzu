@@ -22,9 +22,9 @@ void StringColumnChunk::resetToEmpty() {
 }
 
 void StringColumnChunk::append(ValueVector* vector, const SelectionVector& selVector) {
-    for (auto i = 0u; i < selVector.selectedSize; i++) {
+    for (auto i = 0u; i < selVector.getSelSize(); i++) {
         // index is stored in main chunk, data is stored in the data chunk
-        auto pos = selVector.selectedPositions[i];
+        auto pos = selVector[i];
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
         // index is stored in main chunk, data is stored in the data chunk
         nullChunk->setNull(numValues, vector->isNull(pos));

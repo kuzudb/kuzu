@@ -180,8 +180,7 @@ void RelTableData::initializeReadState(Transaction* transaction, std::vector<col
     readState.columnIDs.insert(readState.columnIDs.end(), columnIDs.begin(), columnIDs.end());
     // Reset to read from persistent storage.
     readState.readFromLocalStorage = false;
-    auto nodeOffset =
-        inNodeIDVector.readNodeOffset(inNodeIDVector.state->selVector->selectedPositions[0]);
+    auto nodeOffset = inNodeIDVector.readNodeOffset(inNodeIDVector.state->getSelVector()[0]);
     // Reset to read from beginning for the csr of the new node offset.
     readState.posInCurrentCSR = 0;
     if (readState.isOutOfRange(nodeOffset)) {
@@ -234,7 +233,7 @@ void RelTableData::scan(Transaction* transaction, TableDataReadState& readState,
     KU_ASSERT(relReadState.readFromPersistentStorage);
     auto [startOffset, endOffset] = relReadState.getStartAndEndOffset();
     auto numRowsToRead = endOffset - startOffset;
-    outputVectors[0]->state->selVector->setToUnfiltered(numRowsToRead);
+    outputVectors[0]->state->getSelVectorUnsafe().setToUnfiltered(numRowsToRead);
     outputVectors[0]->state->setOriginalSize(numRowsToRead);
     auto relIDVectorIdx = INVALID_VECTOR_IDX;
     for (auto i = 0u; i < relReadState.columnIDs.size(); i++) {
@@ -251,8 +250,7 @@ void RelTableData::scan(Transaction* transaction, TableDataReadState& readState,
             outputVectors[outputVectorId], 0 /* offsetInVector */);
     }
     if (transaction->isWriteTransaction() && relReadState.localNodeGroup) {
-        auto nodeOffset =
-            inNodeIDVector.readNodeOffset(inNodeIDVector.state->selVector->selectedPositions[0]);
+        auto nodeOffset = inNodeIDVector.readNodeOffset(inNodeIDVector.state->getSelVector()[0]);
         KU_ASSERT(relIDVectorIdx != INVALID_VECTOR_IDX);
         auto relIDVector = outputVectors[relIDVectorIdx];
         relReadState.localNodeGroup->applyLocalChangesToScannedVectors(
@@ -278,7 +276,7 @@ bool RelTableData::delete_(Transaction* transaction, ValueVector* srcNodeIDVecto
 void RelTableData::checkRelMultiplicityConstraint(Transaction* transaction,
     ValueVector* srcNodeIDVector) const {
     KU_ASSERT(srcNodeIDVector->state->isFlat() && multiplicity == RelMultiplicity::ONE);
-    auto nodeIDPos = srcNodeIDVector->state->selVector->selectedPositions[0];
+    auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
     auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
     if (checkIfNodeHasRels(transaction, nodeOffset)) {
         throw RuntimeException(ExceptionMessage::violateRelMultiplicityConstraint(tableName,

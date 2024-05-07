@@ -31,7 +31,7 @@ row_idx_t LocalRelNG::scanCSR(offset_t srcOffsetInChunk, offset_t posToReadForOf
         }
     }
     auto numRelsRead = rowIdxesToRead.size();
-    outputVectors[0]->state->selVector->setToUnfiltered(numRelsRead);
+    outputVectors[0]->state->getSelVectorUnsafe().setToUnfiltered(numRelsRead);
     return numRelsRead;
 }
 
@@ -50,8 +50,8 @@ void LocalRelNG::applyLocalChangesToScannedVectors(offset_t srcOffset,
 void LocalRelNG::applyCSRUpdates(column_id_t columnID, ValueVector* relIDVector,
     ValueVector* outputVector) {
     auto& updateChunk = updateChunks[columnID];
-    for (auto i = 0u; i < relIDVector->state->selVector->selectedSize; i++) {
-        auto pos = relIDVector->state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < relIDVector->state->getSelVector().getSelSize(); i++) {
+        auto pos = relIDVector->state->getSelVector()[i];
         auto relOffset = relIDVector->getValue<relID_t>(pos).offset;
         if (updateChunk.hasOffset(relOffset)) {
             updateChunk.read(relOffset, 0, outputVector, pos);
@@ -66,19 +66,19 @@ void LocalRelNG::applyCSRDeletions(offset_t srcOffset, ValueVector* relIDVector)
     auto selectPos = 0u;
     auto selVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
     selVector->setToFiltered();
-    for (auto i = 0u; i < relIDVector->state->selVector->selectedSize; i++) {
-        auto relIDPos = relIDVector->state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < relIDVector->state->getSelVector().getSelSize(); i++) {
+        auto relIDPos = relIDVector->state->getSelVector()[i];
         auto relOffset = relIDVector->getValue<relID_t>(relIDPos).offset;
         if (deleteInfo.containsOffset(relOffset)) {
             continue;
         }
-        selVector->selectedPositions[selectPos++] = relIDPos;
+        selVector->operator[](selectPos++) = relIDPos;
     }
-    if (selectPos != relIDVector->state->selVector->selectedSize) {
-        relIDVector->state->selVector->setToFiltered();
-        memcpy(relIDVector->state->selVector->selectedPositions, selVector->selectedPositions,
-            selectPos * sizeof(sel_t));
-        relIDVector->state->selVector->selectedSize = selectPos;
+    if (selectPos != relIDVector->state->getSelVector().getSelSize()) {
+        relIDVector->state->getSelVectorUnsafe().setToFiltered();
+        memcpy(relIDVector->state->getSelVector().getSelectedPositions().data(),
+            selVector->getSelectedPositions().data(), selectPos * sizeof(sel_t));
+        relIDVector->state->getSelVectorUnsafe().setSelSize(selectPos);
     }
 }
 
@@ -88,10 +88,10 @@ bool LocalRelNG::insert(std::vector<ValueVector*> nodeIDVectors,
     KU_ASSERT(nodeIDVectors.size() == 2);
     auto srcNodeIDVector = nodeIDVectors[0];
     auto dstNodeIDVector = nodeIDVectors[1];
-    KU_ASSERT(srcNodeIDVector->state->selVector->selectedSize == 1 &&
-              dstNodeIDVector->state->selVector->selectedSize == 1);
-    auto srcNodeIDPos = srcNodeIDVector->state->selVector->selectedPositions[0];
-    auto dstNodeIDPos = dstNodeIDVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(srcNodeIDVector->state->getSelVector().getSelSize() == 1 &&
+              dstNodeIDVector->state->getSelVector().getSelSize() == 1);
+    auto srcNodeIDPos = srcNodeIDVector->state->getSelVector()[0];
+    auto dstNodeIDPos = dstNodeIDVector->state->getSelVector()[0];
     if (srcNodeIDVector->isNull(srcNodeIDPos) || dstNodeIDVector->isNull(dstNodeIDPos)) {
         return false;
     }
@@ -103,7 +103,7 @@ bool LocalRelNG::insert(std::vector<ValueVector*> nodeIDVectors,
     for (auto i = 0u; i < propertyVectors.size(); i++) {
         vectorsToInsert.push_back(propertyVectors[i]);
     }
-    auto relIDPos = vectorsToInsert[LOCAL_REL_ID_COLUMN_ID]->state->selVector->selectedPositions[0];
+    auto relIDPos = vectorsToInsert[LOCAL_REL_ID_COLUMN_ID]->state->getSelVector()[0];
     auto relOffset = vectorsToInsert[LOCAL_REL_ID_COLUMN_ID]->getValue<relID_t>(relIDPos).offset;
     insertChunks.append(srcNodeOffset, relOffset, vectorsToInsert);
     return true;
@@ -115,10 +115,10 @@ bool LocalRelNG::update(std::vector<ValueVector*> IDVectors, column_id_t columnI
     KU_ASSERT(IDVectors.size() == 2);
     auto srcNodeIDVector = IDVectors[0];
     auto relIDVector = IDVectors[1];
-    KU_ASSERT(srcNodeIDVector->state->selVector->selectedSize == 1 &&
-              relIDVector->state->selVector->selectedSize == 1);
-    auto srcNodeIDPos = srcNodeIDVector->state->selVector->selectedPositions[0];
-    auto relIDPos = relIDVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(srcNodeIDVector->state->getSelVector().getSelSize() == 1 &&
+              relIDVector->state->getSelVector().getSelSize() == 1);
+    auto srcNodeIDPos = srcNodeIDVector->state->getSelVector()[0];
+    auto relIDPos = relIDVector->state->getSelVector()[0];
     if (srcNodeIDVector->isNull(srcNodeIDPos) || relIDVector->isNull(relIDPos)) {
         return false;
     }
@@ -136,10 +136,10 @@ bool LocalRelNG::update(std::vector<ValueVector*> IDVectors, column_id_t columnI
 }
 
 bool LocalRelNG::delete_(ValueVector* srcNodeVector, ValueVector* relIDVector) {
-    KU_ASSERT(srcNodeVector->state->selVector->selectedSize == 1 &&
-              relIDVector->state->selVector->selectedSize == 1);
-    auto srcNodePos = srcNodeVector->state->selVector->selectedPositions[0];
-    auto relIDPos = relIDVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(srcNodeVector->state->getSelVector().getSelSize() == 1 &&
+              relIDVector->state->getSelVector().getSelSize() == 1);
+    auto srcNodePos = srcNodeVector->state->getSelVector()[0];
+    auto relIDPos = relIDVector->state->getSelVector()[0];
     if (srcNodeVector->isNull(srcNodePos) || relIDVector->isNull(relIDPos)) {
         return false;
     }
@@ -195,7 +195,7 @@ void LocalRelNG::getChangesPerCSRSegment(std::vector<int64_t>& sizeChangesPerSeg
 }
 
 LocalNodeGroup* LocalRelTableData::getOrCreateLocalNodeGroup(ValueVector* nodeIDVector) {
-    auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
+    auto nodeIDPos = nodeIDVector->state->getSelVector()[0];
     auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     if (!nodeGroups.contains(nodeGroupIdx)) {

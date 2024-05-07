@@ -33,10 +33,10 @@ void NodeInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
 }
 
 static void writeColumnVector(common::ValueVector* columnVector, common::ValueVector* dataVector) {
-    KU_ASSERT(columnVector->state->selVector->selectedSize == 1 &&
-              dataVector->state->selVector->selectedSize == 1);
-    auto lhsPos = columnVector->state->selVector->selectedPositions[0];
-    auto rhsPos = dataVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(columnVector->state->getSelVector().getSelSize() == 1 &&
+              dataVector->state->getSelVector().getSelSize() == 1);
+    auto lhsPos = columnVector->state->getSelVector()[0];
+    auto rhsPos = dataVector->state->getSelVector()[0];
     if (dataVector->isNull(rhsPos)) {
         columnVector->setNull(lhsPos, true);
     } else {
@@ -49,7 +49,7 @@ void NodeInsertExecutor::insert(Transaction* tx, ExecutionContext* context) {
     for (auto& evaluator : columnDataEvaluators) {
         evaluator->evaluate(context->clientContext);
     }
-    KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
+    KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1);
     if (checkConfict(tx)) {
         return;
     }
@@ -64,7 +64,7 @@ void NodeInsertExecutor::skipInsert(ExecutionContext* context) {
     for (auto& evaluator : columnDataEvaluators) {
         evaluator->evaluate(context->clientContext);
     }
-    nodeIDVector->setNull(nodeIDVector->state->selVector->selectedPositions[0], false);
+    nodeIDVector->setNull(nodeIDVector->state->getSelVector()[0], false);
     writeResult();
 }
 
@@ -73,7 +73,7 @@ bool NodeInsertExecutor::checkConfict(Transaction* transaction) {
         auto off = table->validateUniquenessConstraint(transaction, columnDataVectors);
         if (off != INVALID_OFFSET) {
             // Conflict. Skip insertion.
-            auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
+            auto nodeIDPos = nodeIDVector->state->getSelVector()[0];
             nodeIDVector->setNull(nodeIDPos, false);
             nodeIDVector->setValue<nodeID_t>(nodeIDPos, {off, table->getTableID()});
             return true;
@@ -90,12 +90,12 @@ void NodeInsertExecutor::writeResult() {
             // No need to project out lhs vector.
             continue;
         }
-        KU_ASSERT(columnVector->state->selVector->selectedSize == 1 &&
-                  dataVector->state->selVector->selectedSize == 1);
+        KU_ASSERT(columnVector->state->getSelVector().getSelSize() == 1 &&
+                  dataVector->state->getSelVector().getSelSize() == 1);
         if (columnVector->dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
             // Lhs vector is serial so there is no corresponding rhs vector.
-            auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
-            auto lhsPos = columnVector->state->selVector->selectedPositions[0];
+            auto nodeIDPos = nodeIDVector->state->getSelVector()[0];
+            auto lhsPos = columnVector->state->getSelVector()[0];
             auto nodeID = nodeIDVector->getValue<nodeID_t>(nodeIDPos);
             columnVector->setNull(lhsPos, false);
             columnVector->setValue<int64_t>(lhsPos, nodeID.offset);
@@ -131,8 +131,8 @@ void RelInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
 }
 
 void RelInsertExecutor::insert(transaction::Transaction* tx, ExecutionContext* context) {
-    auto srcNodeIDPos = srcNodeIDVector->state->selVector->selectedPositions[0];
-    auto dstNodeIDPos = dstNodeIDVector->state->selVector->selectedPositions[0];
+    auto srcNodeIDPos = srcNodeIDVector->state->getSelVector()[0];
+    auto dstNodeIDPos = dstNodeIDVector->state->getSelVector()[0];
     if (srcNodeIDVector->isNull(srcNodeIDPos) || dstNodeIDVector->isNull(dstNodeIDPos)) {
         // No need to insert.
         for (auto& columnVector : columnVectors) {
@@ -140,7 +140,7 @@ void RelInsertExecutor::insert(transaction::Transaction* tx, ExecutionContext* c
                 // No need to project out lhs vector.
                 continue;
             }
-            auto lhsPos = columnVector->state->selVector->selectedPositions[0];
+            auto lhsPos = columnVector->state->getSelVector()[0];
             columnVector->setNull(lhsPos, true);
         }
         return;

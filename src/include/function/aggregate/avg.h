@@ -29,13 +29,13 @@ struct AvgFunction {
         auto* state = reinterpret_cast<AvgState*>(state_);
         KU_ASSERT(!input->state->isFlat());
         if (input->hasNoNullsGuarantee()) {
-            for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
-                auto pos = input->state->selVector->selectedPositions[i];
+            for (auto i = 0u; i < input->state->getSelVector().getSelSize(); ++i) {
+                auto pos = input->state->getSelVector()[i];
                 updateSingleValue(state, input, pos, multiplicity);
             }
         } else {
-            for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
-                auto pos = input->state->selVector->selectedPositions[i];
+            for (auto i = 0u; i < input->state->getSelVector().getSelSize(); ++i) {
+                auto pos = input->state->getSelVector()[i];
                 if (!input->isNull(pos)) {
                     updateSingleValue(state, input, pos, multiplicity);
                 }

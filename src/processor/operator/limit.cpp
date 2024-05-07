@@ -20,7 +20,8 @@ bool Limit::getNextTuplesInternal(ExecutionContext* context) {
             // = limitNumber. So execution is terminated in above if statement.
             auto& dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
             KU_ASSERT(!dataChunkToSelect->state->isFlat());
-            dataChunkToSelect->state->selVector->selectedSize = numTupleToProcessInCurrentResultSet;
+            dataChunkToSelect->state->getSelVectorUnsafe().setSelSize(
+                numTupleToProcessInCurrentResultSet);
             metrics->numOutputTuple.increase(numTupleToProcessInCurrentResultSet);
         }
     } else {

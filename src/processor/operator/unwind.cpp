@@ -47,9 +47,9 @@ bool Unwind::getNextTuplesInternal(ExecutionContext* context) {
             return false;
         }
         expressionEvaluator->evaluate(context->clientContext);
-        auto pos = expressionEvaluator->resultVector->state->selVector->selectedPositions[0];
+        auto pos = expressionEvaluator->resultVector->state->getSelVector()[0];
         if (expressionEvaluator->resultVector->isNull(pos)) {
-            outValueVector->state->selVector->selectedSize = 0;
+            outValueVector->state->getSelVectorUnsafe().setSelSize(0);
             continue;
         }
         listEntry = expressionEvaluator->resultVector->getValue<list_entry_t>(pos);
@@ -58,7 +58,7 @@ bool Unwind::getNextTuplesInternal(ExecutionContext* context) {
         copyTuplesToOutVector(0, totalElementsCopy);
         startIndex += totalElementsCopy;
         outValueVector->state->initOriginalAndSelectedSize(startIndex);
-    } while (outValueVector->state->selVector->selectedSize == 0);
+    } while (outValueVector->state->getSelVector().getSelSize() == 0);
     return true;
 }
 

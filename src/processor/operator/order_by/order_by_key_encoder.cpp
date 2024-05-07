@@ -40,7 +40,7 @@ OrderByKeyEncoder::OrderByKeyEncoder(const OrderByDataInfo& orderByDataInfo,
 }
 
 void OrderByKeyEncoder::encodeKeys(const std::vector<common::ValueVector*>& orderByKeys) {
-    uint32_t numEntries = orderByKeys[0]->state->selVector->selectedSize;
+    uint32_t numEntries = orderByKeys[0]->state->getSelVector().getSelSize();
     uint32_t encodedTuples = 0;
     while (numEntries > 0) {
         allocateMemoryIfFull();
@@ -97,7 +97,7 @@ void OrderByKeyEncoder::flipBytesIfNecessary(uint32_t keyColIdx, uint8_t* tupleP
 
 void OrderByKeyEncoder::encodeFlatVector(ValueVector* vector, uint8_t* tuplePtr,
     uint32_t keyColIdx) {
-    auto pos = vector->state->selVector->selectedPositions[0];
+    auto pos = vector->state->getSelVector()[0];
     if (vector->isNull(pos)) {
         for (auto j = 0u; j < getEncodingSize(vector->dataType); j++) {
             *(tuplePtr + j) = UINT8_MAX;
@@ -111,7 +111,7 @@ void OrderByKeyEncoder::encodeFlatVector(ValueVector* vector, uint8_t* tuplePtr,
 
 void OrderByKeyEncoder::encodeUnflatVector(ValueVector* vector, uint8_t* tuplePtr,
     uint32_t encodedTuples, uint32_t numEntriesToEncode, uint32_t keyColIdx) {
-    if (vector->state->selVector->isUnfiltered()) {
+    if (vector->state->getSelVector().isUnfiltered()) {
         auto value = vector->getData() + encodedTuples * vector->getNumBytesPerValue();
         if (vector->hasNoNullsGuarantee()) {
             for (auto i = 0u; i < numEntriesToEncode; i++) {
@@ -138,16 +138,15 @@ void OrderByKeyEncoder::encodeUnflatVector(ValueVector* vector, uint8_t* tuplePt
         if (vector->hasNoNullsGuarantee()) {
             for (auto i = 0u; i < numEntriesToEncode; i++) {
                 *tuplePtr = 0;
-                encodeFunctions[keyColIdx](
-                    vector->getData() +
-                        vector->state->selVector->selectedPositions[i + encodedTuples] *
-                            vector->getNumBytesPerValue(),
+                encodeFunctions[keyColIdx](vector->getData() +
+                                               vector->state->getSelVector()[i + encodedTuples] *
+                                                   vector->getNumBytesPerValue(),
                     tuplePtr + 1, swapBytes);
                 tuplePtr += numBytesPerTuple;
             }
         } else {
             for (auto i = 0u; i < numEntriesToEncode; i++) {
-                auto pos = vector->state->selVector->selectedPositions[i + encodedTuples];
+                auto pos = vector->state->getSelVector()[i + encodedTuples];
                 if (vector->isNull(pos)) {
                     for (auto j = 0u; j < getEncodingSize(vector->dataType); j++) {
                         *(tuplePtr + j) = UINT8_MAX;

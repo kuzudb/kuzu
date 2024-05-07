@@ -10,18 +10,16 @@ namespace function {
 void ListCreationFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
     ValueVector& result, void* /*dataPtr*/) {
     result.resetAuxiliaryBuffer();
-    for (auto selectedPos = 0u; selectedPos < result.state->selVector->selectedSize;
+    for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
          ++selectedPos) {
-        auto pos = result.state->selVector->selectedPositions[selectedPos];
+        auto pos = result.state->getSelVector()[selectedPos];
         auto resultEntry = ListVector::addList(&result, parameters.size());
         result.setValue(pos, resultEntry);
         auto resultDataVector = ListVector::getDataVector(&result);
         auto resultPos = resultEntry.offset;
         for (auto i = 0u; i < parameters.size(); i++) {
             const auto& parameter = parameters[i];
-            auto paramPos = parameter->state->isFlat() ?
-                                parameter->state->selVector->selectedPositions[0] :
-                                pos;
+            auto paramPos = parameter->state->isFlat() ? parameter->state->getSelVector()[0] : pos;
             resultDataVector->copyFromVectorData(resultPos++, parameter.get(), paramPos);
         }
     }

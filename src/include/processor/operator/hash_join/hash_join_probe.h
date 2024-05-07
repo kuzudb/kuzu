@@ -10,12 +10,11 @@ namespace kuzu {
 namespace processor {
 
 struct ProbeState {
-    explicit ProbeState() : nextMatchedTupleIdx{0} {
+    explicit ProbeState()
+        : matchedSelVector{common::DEFAULT_VECTOR_CAPACITY}, nextMatchedTupleIdx{0} {
         matchedTuples = std::make_unique<uint8_t*[]>(common::DEFAULT_VECTOR_CAPACITY);
         probedTuples = std::make_unique<uint8_t*[]>(common::DEFAULT_VECTOR_CAPACITY);
-        matchedSelVector =
-            std::make_unique<common::SelectionVector>(common::DEFAULT_VECTOR_CAPACITY);
-        matchedSelVector->setToFiltered();
+        matchedSelVector.setToFiltered();
     }
 
     // Each key corresponds to a pointer with the same hash value from the ht directory.
@@ -23,7 +22,7 @@ struct ProbeState {
     // Pointers to tuples in ht that actually matched.
     std::unique_ptr<uint8_t*[]> matchedTuples;
     // Selective index mapping each probed tuple to its probe side key vector.
-    std::unique_ptr<common::SelectionVector> matchedSelVector;
+    common::SelectionVector matchedSelVector;
     common::sel_t nextMatchedTupleIdx;
 };
 

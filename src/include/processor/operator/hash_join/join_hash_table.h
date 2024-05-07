@@ -31,7 +31,7 @@ public:
         uint8_t** probedTuples, uint8_t** matchedTuples);
     // Input is multiple tuples, at most one match exist for each key.
     common::sel_t matchUnFlatKey(common::ValueVector* keyVector, uint8_t** probedTuples,
-        uint8_t** matchedTuples, common::SelectionVector* matchedTuplesSelVector);
+        uint8_t** matchedTuples, common::SelectionVector& matchedTuplesSelVector);
 
     void lookup(std::vector<common::ValueVector*>& vectors, std::vector<uint32_t>& colIdxesToScan,
         uint8_t** tuplesToRead, uint64_t startPos, uint64_t numTuplesToRead) {
