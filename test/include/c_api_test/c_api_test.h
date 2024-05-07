@@ -8,8 +8,8 @@ namespace testing {
 
 class CApiTest : public APIDBTest {
 public:
-    kuzu_database* _database;
-    kuzu_connection* connection;
+    kuzu_database _database;
+    kuzu_connection connection;
 
     void SetUp() override {
         APIDBTest::SetUp();
@@ -21,19 +21,19 @@ public:
         auto databasePathCStr = databasePath.c_str();
         auto systemConfig = kuzu_default_system_config();
         systemConfig.buffer_pool_size = 512 * 1024 * 1024;
-        _database = kuzu_database_init(databasePathCStr, systemConfig);
-        connection = kuzu_connection_init(_database);
+        kuzu_database_init(databasePathCStr, systemConfig, &_database);
+        kuzu_connection_init(&_database, &connection);
     }
 
     std::string getDatabasePath() { return databasePath; }
 
-    kuzu_database* getDatabase() const { return _database; }
+    kuzu_database* getDatabase() { return &_database; }
 
-    kuzu_connection* getConnection() const { return connection; }
+    kuzu_connection* getConnection() { return &connection; }
 
     void TearDown() override {
-        kuzu_connection_destroy(connection);
-        kuzu_database_destroy(_database);
+        kuzu_connection_destroy(&connection);
+        kuzu_database_destroy(&_database);
         APIDBTest::TearDown();
     }
 };
