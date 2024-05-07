@@ -3,6 +3,9 @@
 namespace kuzu {
 namespace graph {
 
+/*
+ * returns true if the master has not registered, else false to indicate worker thread
+ */
 bool ParallelUtils::init() {
     std::lock_guard<std::mutex> lck(mtx);
     if (!isMasterRegistered) {
@@ -12,6 +15,13 @@ bool ParallelUtils::init() {
     return false;
 }
 
+/*
+ * each worker threads runs in a loop here, until it gets a function to execute
+ * if the function returns > 0, exit from loop to return to parent operator
+ * if the function returns 0 & total threads registered is 0 -> the function's execution is complete
+ *
+ * TableFuncInput and TableFuncOutput currently store the thread local state such as value vectors
+ */
 bool ParallelUtils::runWorkerThread(function::TableFuncInput& input, function::TableFuncOutput& output) {
     std::unique_lock<std::mutex> lck{mtx, std::defer_lock};
     function::table_func_t tableFunction;
