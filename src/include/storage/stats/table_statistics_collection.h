@@ -81,7 +81,15 @@ public:
 
     void initTableStatisticsForWriteTrx();
 
-    void setToUpdated() { isUpdated = true; }
+#if KUZU_TSAN
+#if defined(__has_feature) && __has_feature(thread_sanitizer)
+    __attribute__((no_sanitize("thread")))
+#endif
+#endif
+    void
+    setToUpdated() {
+        isUpdated = true;
+    }
 
 protected:
     virtual std::unique_ptr<TableStatistics> constructTableStatistic(

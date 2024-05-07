@@ -77,7 +77,7 @@ void TablesStatistics::setPropertyStatisticsForTable(table_id_t tableID, propert
     KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
     setToUpdated();
     auto tableStatistics = readWriteVersion->tableStatisticPerTable.at(tableID).get();
-    tableStatistics->setPropertyStatistics(propertyID, stats);
+    tableStatistics->setPropertyStatistics(propertyID, std::move(stats));
 }
 
 std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(

@@ -74,6 +74,8 @@ struct BufferPoolConstants {
 // The default max size for a VMRegion.
 #ifdef __32BIT__
     static constexpr uint64_t DEFAULT_VM_REGION_MAX_SIZE = (uint64_t)1 << 30; // (1GB)
+#elif KUZU_TSAN
+    static constexpr uint64_t DEFAULT_VM_REGION_MAX_SIZE = (uint64_t)1 << 36; // (64GB)
 #else
     static constexpr uint64_t DEFAULT_VM_REGION_MAX_SIZE = (uint64_t)1 << 43; // (8TB)
 #endif

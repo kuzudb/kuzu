@@ -43,14 +43,15 @@ void RWPropertyStats::setHasNull(const transaction::Transaction& transaction) {
     // TODO(Guodong): INVALID_PROPERTY_ID is used here because we have a column, i.e., nbrIDColumn,
     // not exposed as property in table schema, but still have nullColumn. Should be fixed once we
     // properly align properties and chunks.
-    if (propertyID != common::INVALID_PROPERTY_ID) {
-        KU_ASSERT(tablesStatistics);
-        auto& propStats =
-            tablesStatistics->getPropertyStatisticsForTable(transaction, tableID, propertyID);
-        if (!propStats.mayHaveNull()) {
-            propStats.setHasNull();
-            tablesStatistics->setToUpdated();
-        }
+    if (propertyID == common::INVALID_PROPERTY_ID) {
+        return;
+    }
+    KU_ASSERT(tablesStatistics);
+    auto& propStats =
+        tablesStatistics->getPropertyStatisticsForTable(transaction, tableID, propertyID);
+    if (!propStats.mayHaveNull()) {
+        propStats.setHasNull();
+        tablesStatistics->setToUpdated();
     }
 }
 

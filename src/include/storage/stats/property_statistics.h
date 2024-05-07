@@ -18,7 +18,15 @@ public:
     void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<PropertyStatistics> deserialize(common::Deserializer& deserializer);
 
-    inline void setHasNull() { mayHaveNullValue = true; }
+#if KUZU_TSAN
+#if defined(__has_feature) && __has_feature(thread_sanitizer)
+    __attribute__((no_sanitize("thread")))
+#endif
+#endif
+    void
+    setHasNull() {
+        mayHaveNullValue = true;
+    }
 
 private:
     // Stores whether or not the property is known to have contained a null value

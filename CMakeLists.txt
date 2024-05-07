@@ -126,6 +126,7 @@ if(NOT MSVC)
 endif()
 
 if(${ENABLE_THREAD_SANITIZER})
+    add_compile_definitions(KUZU_TSAN)
     if(MSVC)
         message(FATAL_ERROR "Thread sanitizer is not supported on MSVC")
     else()
