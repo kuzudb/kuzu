@@ -3,7 +3,6 @@
 #include <algorithm>
 
 #include "binder/ddl/bound_alter_info.h"
-#include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"

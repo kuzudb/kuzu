@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/constants.h"
-#include "storage/buffer_manager/memory_manager.h"
+#include "common/types/types.h"
 
 namespace kuzu {
 namespace catalog {
@@ -20,7 +20,7 @@ public:
     static constexpr const uint64_t UNDO_MEMORY_BUFFER_SIZE =
         common::BufferPoolConstants::PAGE_4KB_SIZE;
 
-    UndoMemoryBuffer(uint64_t size) : size{size} {
+    explicit UndoMemoryBuffer(uint64_t size) : size{size} {
         data = std::make_unique<uint8_t[]>(size);
         currentPosition = 0;
     }
@@ -44,7 +44,7 @@ private:
 class UndoBuffer;
 class UndoBufferIterator {
 public:
-    UndoBufferIterator(const UndoBuffer& undoBuffer) : undoBuffer{undoBuffer} {}
+    explicit UndoBufferIterator(const UndoBuffer& undoBuffer) : undoBuffer{undoBuffer} {}
 
     template<typename F>
     void iterate(F&& callback);
@@ -64,7 +64,7 @@ public:
         CATALOG_ENTRY,
     };
 
-    UndoBuffer(main::ClientContext& clientContext);
+    explicit UndoBuffer(main::ClientContext& clientContext);
 
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
 

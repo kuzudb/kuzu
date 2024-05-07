@@ -79,7 +79,7 @@ Connection already has an active transaction. Applications can have one transact
 ---- ok
 -STATEMENT CALL table_info('t') RETURN *;
 ---- error
-Catalog exception: Cannot find catalog entry with name t.
+Catalog exception: t does not exist in catalog.
 
 
 # Test W-W conflict
@@ -115,7 +115,7 @@ Catalog exception: Write-write conflict on creating catalog entry with name t.
 -CREATE_CONNECTION conn2
 -STATEMENT [conn2] CALL table_info('t') RETURN *;
 ---- error
-Catalog exception: Cannot find catalog entry with name t.
+Catalog exception: t does not exist in catalog.
 -STATEMENT COMMIT;
 ---- ok
 -STATEMENT [conn2] CALL table_info('t') RETURN *;
@@ -139,7 +139,7 @@ Catalog exception: Cannot find catalog entry with name t.
 ---- ok
 -STATEMENT CALL table_info('t') RETURN *;
 ---- error
-Catalog exception: Cannot find catalog entry with name t.
+Catalog exception: t does not exist in catalog.
 
 -CASE DropTableRollback
 -STATEMENT BEGIN TRANSACTION;
@@ -158,7 +158,7 @@ Catalog exception: Cannot find catalog entry with name t.
 ---- ok
 -STATEMENT CALL table_info('t') RETURN *;
 ---- error
-Catalog exception: Cannot find catalog entry with name t.
+Catalog exception: t does not exist in catalog.
 -STATEMENT ROLLBACK;
 ---- ok
 -STATEMENT CALL table_info('t') RETURN *;
@@ -180,7 +180,7 @@ Catalog exception: Cannot find catalog entry with name t.
 -CREATE_CONNECTION conn2
 -STATEMENT [conn2] CALL table_info('t') RETURN *;
 ---- error
-Catalog exception: Cannot find catalog entry with name t.
+Catalog exception: t does not exist in catalog.
 -STATEMENT [conn2] BEGIN TRANSACTION;
 ---- ok
 -STATEMENT [conn2] DROP TABLE t;
@@ -240,14 +240,14 @@ Binder exception: Table t does not exist.
 1|b|INT32|False
 -STATEMENT [conn2] CALL table_info('t2') RETURN *;
 ---- error
-Catalog exception: Cannot find catalog entry with name t2.
+Catalog exception: t2 does not exist in catalog.
 -STATEMENT COMMIT;
 ---- ok
 -STATEMENT [conn2] COMMIT;
 ---- ok
 -STATEMENT CALL table_info('t') RETURN *;
 ---- error
-Catalog exception: Cannot find catalog entry with name t.
+Catalog exception: t does not exist in catalog.
 -STATEMENT CALL table_info('t2') RETURN *;
 ---- 2
 0|a|INT32|True

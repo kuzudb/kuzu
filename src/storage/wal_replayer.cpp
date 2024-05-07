@@ -2,9 +2,7 @@
 
 #include <unordered_map>
 
-#include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
-#include "common/exception/storage.h"
 #include "common/file_system/file_info.h"
 #include "common/serializer/buffered_file.h"
 #include "storage/storage_manager.h"
@@ -42,7 +40,8 @@ void WALReplayer::replay() {
     if (walFileSize == 0) {
         return;
     }
-    // TODO(Guodong): Handle the case that multiple transactions commit except the last one.
+    // TODO(Guodong): Handle the case that wal file is corrupted and there is no COMMIT record for
+    // the last transaction.
     try {
         Deserializer deserializer(std::make_unique<BufferedFileReader>(std::move(fileInfo)));
         std::unordered_map<DBFileID, std::unique_ptr<FileInfo>> fileCache;
@@ -226,19 +225,9 @@ void WALReplayer::replayDropTableRecord(const WALRecord& walRecord) {
     }
 }
 
-void WALReplayer::replayCopyTableRecord(const WALRecord&) {
-    if (isCheckpoint) {
-        if (!isRecovering) {
-            // CHECKPOINT. DO NOTHING.
-        } else {
-            // RECOVERY.
-            // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
-        }
-    } else {
-        // ROLLBACK.
-        // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
-        // TODO: Should rollback index for node table.
-    }
+void WALReplayer::replayCopyTableRecord(const WALRecord&) const {
+    // DO NOTHING.
+    // TODO(Guodong): Should handle metaDA and reclaim free pages when rollback.
 }
 
 void WALReplayer::truncateFileIfInsertion(BMFileHandle* fileHandle,

@@ -50,21 +50,28 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
     for (auto& thread : threads) {
         thread.join();
     }
+    clientContext->query("COMMIT");
 }
 
 uint64_t StorageDriver::getNumNodes(const std::string& nodeName) {
+    clientContext->query("BEGIN TRANSACTION READ ONLY;");
     auto nodeTableID = database->catalog->getTableID(clientContext->getTx(), nodeName);
     auto nodeStatistics =
         database->storageManager->getNodesStatisticsAndDeletedIDs()->getNodeStatisticsAndDeletedIDs(
             clientContext->getTx(), nodeTableID);
-    return nodeStatistics->getNumTuples();
+    auto numNodes = nodeStatistics->getNumTuples();
+    clientContext->query("COMMIT");
+    return numNodes;
 }
 
 uint64_t StorageDriver::getNumRels(const std::string& relName) {
+    clientContext->query("BEGIN TRANSACTION READ ONLY;");
     auto relTableID = database->catalog->getTableID(clientContext->getTx(), relName);
     auto relStatistics = database->storageManager->getRelsStatistics()->getRelStatistics(relTableID,
-        Transaction::getDummyReadOnlyTrx().get());
-    return relStatistics->getNumTuples();
+        clientContext->getTx());
+    auto numRels = relStatistics->getNumTuples();
+    clientContext->query("COMMIT");
+    return numRels;
 }
 
 void StorageDriver::scanColumn(Transaction* transaction, storage::Column* column, offset_t* offsets,

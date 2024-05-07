@@ -2,7 +2,6 @@
 
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_set.h"
-#include "common/case_insensitive_map.h"
 #include "common/keyword/rdf_keyword.h"
 
 namespace kuzu {

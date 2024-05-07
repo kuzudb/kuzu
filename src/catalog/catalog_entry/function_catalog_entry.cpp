@@ -1,7 +1,5 @@
 #include "catalog/catalog_entry/function_catalog_entry.h"
 
-#include "common/utils.h"
-
 namespace kuzu {
 namespace catalog {
 

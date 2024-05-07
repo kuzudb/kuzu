@@ -1,5 +1,7 @@
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 
+#include <sstream>
+
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"

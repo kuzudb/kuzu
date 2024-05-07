@@ -21,7 +21,6 @@
 #include "storage/storage_extension.h"
 #include "storage/storage_manager.h"
 #include "storage/wal_replayer.h"
-#include "transaction/transaction_action.h"
 #include "transaction/transaction_manager.h"
 
 using namespace kuzu::catalog;

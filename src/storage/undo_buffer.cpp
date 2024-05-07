@@ -1,7 +1,6 @@
 #include "storage/undo_buffer.h"
 
 #include "catalog/catalog_entry/catalog_entry.h"
-#include "common/constants.h"
 #include "main/client_context.h"
 #include "storage/storage_manager.h"
 
@@ -24,7 +23,6 @@ void UndoBufferIterator::iterate(F&& callback) {
             UndoBuffer::UndoEntryType entryType =
                 *reinterpret_cast<UndoBuffer::UndoEntryType const*>(current);
             // Only support catalog for now.
-            RUNTIME_CHECK(entryType);
             KU_ASSERT(entryType == UndoBuffer::UndoEntryType::CATALOG_ENTRY);
             current += sizeof(UndoBuffer::UndoEntryType);
             auto entrySize = *reinterpret_cast<uint32_t const*>(current);
@@ -50,7 +48,6 @@ void UndoBufferIterator::reverseIterate(F&& callback) {
             UndoBuffer::UndoEntryType entryType =
                 *reinterpret_cast<UndoBuffer::UndoEntryType const*>(current);
             // Only support catalog for now.
-            RUNTIME_CHECK(entryType);
             KU_ASSERT(entryType == UndoBuffer::UndoEntryType::CATALOG_ENTRY);
             current += sizeof(UndoBuffer::UndoEntryType);
             auto entrySize = *reinterpret_cast<uint32_t const*>(current);

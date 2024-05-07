@@ -32,19 +32,6 @@ enum class DBFileType : uint8_t {
     METADATA = 2,
 };
 
-static std::string DBFileTypeToString(DBFileType type) {
-    switch (type) {
-    case DBFileType::NODE_INDEX:
-        return "NODE_INDEX";
-    case DBFileType::DATA:
-        return "DATA";
-    case DBFileType::METADATA:
-        return "METADATA";
-    default:
-        return "INVALID";
-    }
-}
-
 // DBFileID start with 1 byte type and 1 byte isOverflow field followed with additional
 // bytes needed by the different log types. We don't need these to be byte aligned because they are
 // not stored in memory. These are used to serialize and deserialize log entries.
@@ -82,8 +69,6 @@ struct WALRecord {
     explicit WALRecord(WALRecordType type) : type{type} {}
     virtual ~WALRecord() = default;
 
-    virtual std::string toString() = 0;
-
     virtual void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<WALRecord> deserialize(common::Deserializer& deserializer);
 };
@@ -102,10 +87,6 @@ struct PageUpdateOrInsertRecord final : public WALRecord {
           pageIdxInOriginalFile{pageIdxInOriginalFile}, pageIdxInWAL{pageIdxInWAL},
           isInsert{isInsert} {}
 
-    std::string toString() override {
-        return common::stringFormat("[PAGE_UPDATE_OR_INSERT_RECORD] {}, oPageIdx {}, walPageIdx {}",
-            DBFileTypeToString(dbFileID.dbFileType), pageIdxInOriginalFile, pageIdxInWAL);
-    }
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<PageUpdateOrInsertRecord> deserialize(
         common::Deserializer& deserializer);
@@ -118,7 +99,6 @@ struct CommitRecord final : public WALRecord {
     explicit CommitRecord(uint64_t transactionID)
         : WALRecord{WALRecordType::COMMIT_RECORD}, transactionID{transactionID} {}
 
-    std::string toString() override { return "COMMIT_RECORD"; }
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<CommitRecord> deserialize(common::Deserializer& deserializer);
 };
@@ -130,7 +110,6 @@ struct CreateTableRecord final : public WALRecord {
     CreateTableRecord();
     explicit CreateTableRecord(catalog::CatalogEntry* catalogEntry);
 
-    std::string toString() override;
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<CreateTableRecord> deserialize(common::Deserializer& deserializer);
 };
@@ -142,9 +121,6 @@ struct CopyTableRecord final : public WALRecord {
     explicit CopyTableRecord(common::table_id_t tableID)
         : WALRecord{WALRecordType::COPY_TABLE_RECORD}, tableID{tableID} {}
 
-    std::string toString() override {
-        return common::stringFormat("[COPY_TABLE_RECORD]: {}", tableID);
-    }
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<CopyTableRecord> deserialize(common::Deserializer& deserializer);
 };
@@ -152,7 +128,6 @@ struct CopyTableRecord final : public WALRecord {
 struct CatalogRecord final : public WALRecord {
     CatalogRecord() : WALRecord{WALRecordType::CATALOG_RECORD} {}
 
-    std::string toString() override { return "[CATALOG_RECORD]"; }
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<CatalogRecord> deserialize(common::Deserializer& deserializer);
 };
@@ -164,7 +139,6 @@ struct TableStatisticsRecord final : public WALRecord {
     explicit TableStatisticsRecord(common::TableType tableType)
         : WALRecord{WALRecordType::TABLE_STATISTICS_RECORD}, tableType{tableType} {}
 
-    std::string toString() override;
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<TableStatisticsRecord> deserialize(common::Deserializer& deserializer);
 };
@@ -176,7 +150,6 @@ struct DropTableRecord final : public WALRecord {
     explicit DropTableRecord(common::table_id_t tableID)
         : WALRecord{WALRecordType::DROP_TABLE_RECORD}, tableID{tableID} {}
 
-    std::string toString() override;
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<DropTableRecord> deserialize(common::Deserializer& deserializer);
 };

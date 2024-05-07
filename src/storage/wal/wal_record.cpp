@@ -1,6 +1,6 @@
 #include "storage/wal/wal_record.h"
 
-#include "catalog/catalog_entry/table_catalog_entry.h"
+#include "catalog/catalog_entry/catalog_entry.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 
@@ -84,11 +84,6 @@ CreateTableRecord::CreateTableRecord() = default;
 CreateTableRecord::CreateTableRecord(catalog::CatalogEntry* catalogEntry)
     : WALRecord{WALRecordType::CREATE_TABLE_RECORD}, catalogEntry{catalogEntry} {}
 
-std::string CreateTableRecord::toString() {
-    return common::stringFormat("[CREATE_TABLE_RECORD] {}",
-        ownedCatalogEntry ? ownedCatalogEntry->getName() : catalogEntry->getName());
-}
-
 void CreateTableRecord::serialize(common::Serializer& serializer) const {
     WALRecord::serialize(serializer);
     catalogEntry->serialize(serializer);
@@ -121,11 +116,6 @@ std::unique_ptr<CatalogRecord> CatalogRecord::deserialize(common::Deserializer&)
     return std::make_unique<CatalogRecord>();
 }
 
-std::string TableStatisticsRecord::toString() {
-    return common::stringFormat("[TABLE_STATISTICS_RECORD] {}",
-        TableTypeUtils::toString(tableType));
-}
-
 void TableStatisticsRecord::serialize(common::Serializer& serializer) const {
     WALRecord::serialize(serializer);
     serializer.write(tableType);
@@ -136,10 +126,6 @@ std::unique_ptr<TableStatisticsRecord> TableStatisticsRecord::deserialize(
     auto retVal = std::make_unique<TableStatisticsRecord>();
     deserializer.deserializeValue(retVal->tableType);
     return retVal;
-}
-
-std::string DropTableRecord::toString() {
-    return common::stringFormat("[DROP_TABLE_RECORD] {}", tableID);
 }
 
 void DropTableRecord::serialize(common::Serializer& serializer) const {

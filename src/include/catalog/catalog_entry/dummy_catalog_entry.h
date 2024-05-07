@@ -7,7 +7,7 @@ namespace catalog {
 
 class DummyCatalogEntry : public CatalogEntry {
 public:
-    DummyCatalogEntry(std::string name)
+    explicit DummyCatalogEntry(std::string name)
         : CatalogEntry{CatalogEntryType::DUMMY_ENTRY, std::move(name)} {
         setDeleted(true);
         setTimestamp(0);

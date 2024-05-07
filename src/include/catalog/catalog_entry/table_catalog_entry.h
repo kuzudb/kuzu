@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "binder/ddl/bound_create_table_info.h"
 #include "catalog/property.h"
 #include "catalog_entry.h"
 #include "common/enums/table_type.h"
@@ -9,7 +10,6 @@
 
 namespace kuzu {
 namespace binder {
-struct BoundCreateTableInfo;
 struct BoundExtraCreateCatalogEntryInfo;
 struct BoundAlterInfo;
 } // namespace binder

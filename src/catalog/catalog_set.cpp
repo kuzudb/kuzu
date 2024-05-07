@@ -177,7 +177,8 @@ void CatalogSet::serialize(common::Serializer serializer) const {
         }
     }
     serializer.serializeValue(nextOID);
-    serializer.serializeValue(entriesToSerialize.size());
+    uint64_t numEntriesToSerialize = entriesToSerialize.size();
+    serializer.serializeValue(numEntriesToSerialize);
     for (auto entry : entriesToSerialize) {
         entry->serialize(serializer);
     }
@@ -185,8 +186,8 @@ void CatalogSet::serialize(common::Serializer serializer) const {
 
 std::unique_ptr<CatalogSet> CatalogSet::deserialize(common::Deserializer& deserializer) {
     std::unique_ptr<CatalogSet> catalogSet = std::make_unique<CatalogSet>();
-    uint64_t numEntries;
     deserializer.deserializeValue(catalogSet->nextOID);
+    uint64_t numEntries;
     deserializer.deserializeValue(numEntries);
     for (uint64_t i = 0; i < numEntries; i++) {
         auto entry = CatalogEntry::deserialize(deserializer);

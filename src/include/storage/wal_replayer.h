@@ -1,7 +1,5 @@
 #pragma once
 
-#include "catalog/catalog.h"
-#include "common/file_system/virtual_file_system.h"
 #include "storage/wal/wal_record.h"
 
 namespace kuzu {
@@ -31,7 +29,7 @@ private:
     void replayTableStatisticsRecord(const WALRecord& walRecord);
     void replayCreateTableRecord(const WALRecord& walRecord);
     void replayDropTableRecord(const WALRecord& walRecord);
-    void replayCopyTableRecord(const WALRecord& walRecord);
+    void replayCopyTableRecord(const WALRecord& walRecord) const;
 
     void checkpointOrRollbackVersionedFileHandleAndBufferManager(const WALRecord& walRecord,
         const DBFileID& dbFileID);

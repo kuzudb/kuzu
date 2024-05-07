@@ -54,7 +54,7 @@ class DBConfig {
 public:
     static ConfigurationOption* getOptionByName(const std::string& optionName);
 
-    DBConfig(SystemConfig& systemConfig);
+    explicit DBConfig(SystemConfig& systemConfig);
 
     uint64_t bufferPoolSize;
     uint64_t maxNumThreads;
