@@ -730,7 +730,7 @@ KUZU_C_API void kuzu_query_result_reset_iterator(kuzu_query_result* query_result
  * It is the caller's responsibility to call the release function to release the underlying data
  */
 KUZU_C_API kuzu_state kuzu_query_result_get_arrow_schema(kuzu_query_result* query_result,
-    ArrowSchema* out_schema);
+    struct ArrowSchema* out_schema);
 
 /**
  * @brief Returns the next chunk of the query result as ArrowArray.
@@ -744,7 +744,7 @@ KUZU_C_API kuzu_state kuzu_query_result_get_arrow_schema(kuzu_query_result* quer
  * It is the caller's responsibility to call the release function to release the underlying data
  */
 KUZU_C_API kuzu_state kuzu_query_result_get_next_arrow_chunk(kuzu_query_result* query_result,
-    int64_t chunk_size, ArrowArray* out_arrow_array);
+    int64_t chunk_size, struct ArrowArray* out_arrow_array);
 
 // FlatTuple
 /**
