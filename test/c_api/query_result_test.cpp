@@ -54,7 +54,8 @@ TEST_F(CApiQueryResultTest, GetNumColumns) {
     kuzu_query_result result;
     kuzu_state state;
     auto connection = getConnection();
-    state = kuzu_connection_query(connection, "MATCH (a:person) RETURN a.fName, a.age, a.height", &result);
+    state = kuzu_connection_query(connection, "MATCH (a:person) RETURN a.fName, a.age, a.height",
+        &result);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));
     ASSERT_EQ(kuzu_query_result_get_num_columns(&result), 3);
@@ -65,7 +66,8 @@ TEST_F(CApiQueryResultTest, GetColumnName) {
     kuzu_query_result result;
     kuzu_state state;
     auto connection = getConnection();
-    state = kuzu_connection_query(connection, "MATCH (a:person) RETURN a.fName, a.age, a.height", &result);
+    state = kuzu_connection_query(connection, "MATCH (a:person) RETURN a.fName, a.age, a.height",
+        &result);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));
     char* columnName;
@@ -86,7 +88,8 @@ TEST_F(CApiQueryResultTest, GetColumnDataType) {
     kuzu_query_result result;
     kuzu_state state;
     auto connection = getConnection();
-    state = kuzu_connection_query(connection, "MATCH (a:person) RETURN a.fName, a.age, a.height", &result);
+    state = kuzu_connection_query(connection, "MATCH (a:person) RETURN a.fName, a.age, a.height",
+        &result);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));
     kuzu_logical_type type;
@@ -127,7 +130,8 @@ TEST_F(CApiQueryResultTest, GetQuerySummary) {
     kuzu_query_result result;
     kuzu_state state;
     auto connection = getConnection();
-    state = kuzu_connection_query(connection, "MATCH (a:person) RETURN a.fName, a.age, a.height", &result);
+    state = kuzu_connection_query(connection, "MATCH (a:person) RETURN a.fName, a.age, a.height",
+        &result);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));
     kuzu_query_summary summary;

@@ -348,7 +348,8 @@ KUZU_C_API kuzu_system_config kuzu_default_system_config();
  * @param[out] out_connection The output parameter that will hold the connection instance.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_connection_init(kuzu_database* database, kuzu_connection* out_connection);
+KUZU_C_API kuzu_state kuzu_connection_init(kuzu_database* database,
+    kuzu_connection* out_connection);
 /**
  * @brief Destroys the connection instance and frees the allocated memory.
  * @param connection The connection instance to destroy.
@@ -366,11 +367,12 @@ KUZU_C_API kuzu_state kuzu_connection_set_max_num_thread_for_exec(kuzu_connectio
 /**
  * @brief Returns the maximum number of threads of the connection to use for executing queries.
  * @param connection The connection instance to return max number of threads for execution.
- * @param[out] out_result The output parameter that will hold the maximum number of threads to use for
- * executing queries.
+ * @param[out] out_result The output parameter that will hold the maximum number of threads to use
+ * for executing queries.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_connection_get_max_num_thread_for_exec(kuzu_connection* connection, uint64_t* out_result);
+KUZU_C_API kuzu_state kuzu_connection_get_max_num_thread_for_exec(kuzu_connection* connection,
+    uint64_t* out_result);
 /**
  * @brief Executes the given query and returns the result.
  * @param connection The connection instance to execute the query.
@@ -378,7 +380,8 @@ KUZU_C_API kuzu_state kuzu_connection_get_max_num_thread_for_exec(kuzu_connectio
  * @param[out] out_query_result The output parameter that will hold the result of the query.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_connection_query(kuzu_connection* connection, const char* query, kuzu_query_result* out_query_result);
+KUZU_C_API kuzu_state kuzu_connection_query(kuzu_connection* connection, const char* query,
+    kuzu_query_result* out_query_result);
 /**
  * @brief Prepares the given query and returns the prepared statement.
  * @param connection The connection instance to prepare the query.
@@ -386,8 +389,8 @@ KUZU_C_API kuzu_state kuzu_connection_query(kuzu_connection* connection, const c
  * @param[out] out_prepared_statement The output parameter that will hold the prepared statement.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_connection_prepare(kuzu_connection* connection,
-    const char* query, kuzu_prepared_statement* out_prepared_statement);
+KUZU_C_API kuzu_state kuzu_connection_prepare(kuzu_connection* connection, const char* query,
+    kuzu_prepared_statement* out_prepared_statement);
 /**
  * @brief Executes the prepared_statement using connection.
  * @param connection The connection instance to execute the prepared_statement.
@@ -452,8 +455,8 @@ KUZU_C_API kuzu_state kuzu_prepared_statement_bind_bool(kuzu_prepared_statement*
  * @param value The int64_t value to bind.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_prepared_statement_bind_int64(kuzu_prepared_statement* prepared_statement,
-    const char* param_name, int64_t value);
+KUZU_C_API kuzu_state kuzu_prepared_statement_bind_int64(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, int64_t value);
 /**
  * @brief Binds the given int32_t value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -461,8 +464,8 @@ KUZU_C_API kuzu_state kuzu_prepared_statement_bind_int64(kuzu_prepared_statement
  * @param value The int32_t value to bind.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_prepared_statement_bind_int32(kuzu_prepared_statement* prepared_statement,
-    const char* param_name, int32_t value);
+KUZU_C_API kuzu_state kuzu_prepared_statement_bind_int32(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, int32_t value);
 /**
  * @brief Binds the given int16_t value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -470,8 +473,8 @@ KUZU_C_API kuzu_state kuzu_prepared_statement_bind_int32(kuzu_prepared_statement
  * @param value The int16_t value to bind.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_prepared_statement_bind_int16(kuzu_prepared_statement* prepared_statement,
-    const char* param_name, int16_t value);
+KUZU_C_API kuzu_state kuzu_prepared_statement_bind_int16(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, int16_t value);
 /**
  * @brief Binds the given int8_t value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -488,8 +491,8 @@ KUZU_C_API kuzu_state kuzu_prepared_statement_bind_int8(kuzu_prepared_statement*
  * @param value The uint64_t value to bind.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_prepared_statement_bind_uint64(kuzu_prepared_statement* prepared_statement,
-    const char* param_name, uint64_t value);
+KUZU_C_API kuzu_state kuzu_prepared_statement_bind_uint64(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, uint64_t value);
 /**
  * @brief Binds the given uint32_t value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -497,8 +500,8 @@ KUZU_C_API kuzu_state kuzu_prepared_statement_bind_uint64(kuzu_prepared_statemen
  * @param value The uint32_t value to bind.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_prepared_statement_bind_uint32(kuzu_prepared_statement* prepared_statement,
-    const char* param_name, uint32_t value);
+KUZU_C_API kuzu_state kuzu_prepared_statement_bind_uint32(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, uint32_t value);
 /**
  * @brief Binds the given uint16_t value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -506,8 +509,8 @@ KUZU_C_API kuzu_state kuzu_prepared_statement_bind_uint32(kuzu_prepared_statemen
  * @param value The uint16_t value to bind.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_prepared_statement_bind_uint16(kuzu_prepared_statement* prepared_statement,
-    const char* param_name, uint16_t value);
+KUZU_C_API kuzu_state kuzu_prepared_statement_bind_uint16(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, uint16_t value);
 /**
  * @brief Binds the given int8_t value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -515,8 +518,8 @@ KUZU_C_API kuzu_state kuzu_prepared_statement_bind_uint16(kuzu_prepared_statemen
  * @param value The int8_t value to bind.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_prepared_statement_bind_uint8(kuzu_prepared_statement* prepared_statement,
-    const char* param_name, uint8_t value);
+KUZU_C_API kuzu_state kuzu_prepared_statement_bind_uint8(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, uint8_t value);
 
 /**
  * @brief Binds the given double value to the given parameter name in the prepared statement.
@@ -525,8 +528,8 @@ KUZU_C_API kuzu_state kuzu_prepared_statement_bind_uint8(kuzu_prepared_statement
  * @param value The double value to bind.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_prepared_statement_bind_double(kuzu_prepared_statement* prepared_statement,
-    const char* param_name, double value);
+KUZU_C_API kuzu_state kuzu_prepared_statement_bind_double(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, double value);
 /**
  * @brief Binds the given float value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -534,8 +537,8 @@ KUZU_C_API kuzu_state kuzu_prepared_statement_bind_double(kuzu_prepared_statemen
  * @param value The float value to bind.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_prepared_statement_bind_float(kuzu_prepared_statement* prepared_statement,
-    const char* param_name, float value);
+KUZU_C_API kuzu_state kuzu_prepared_statement_bind_float(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, float value);
 /**
  * @brief Binds the given date value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -589,8 +592,8 @@ KUZU_C_API kuzu_state kuzu_prepared_statement_bind_timestamp_ms(
  * @param value The timestamp value to bind.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_prepared_statement_bind_timestamp(kuzu_prepared_statement* prepared_statement,
-    const char* param_name, kuzu_timestamp_t value);
+KUZU_C_API kuzu_state kuzu_prepared_statement_bind_timestamp(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_timestamp_t value);
 /**
  * @brief Binds the given interval value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -598,8 +601,8 @@ KUZU_C_API kuzu_state kuzu_prepared_statement_bind_timestamp(kuzu_prepared_state
  * @param value The interval value to bind.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_prepared_statement_bind_interval(kuzu_prepared_statement* prepared_statement,
-    const char* param_name, kuzu_interval_t value);
+KUZU_C_API kuzu_state kuzu_prepared_statement_bind_interval(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_interval_t value);
 /**
  * @brief Binds the given string value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -607,8 +610,8 @@ KUZU_C_API kuzu_state kuzu_prepared_statement_bind_interval(kuzu_prepared_statem
  * @param value The string value to bind.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_prepared_statement_bind_string(kuzu_prepared_statement* prepared_statement,
-    const char* param_name, const char* value);
+KUZU_C_API kuzu_state kuzu_prepared_statement_bind_string(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, const char* value);
 /**
  * @brief Binds the given kuzu value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -616,8 +619,8 @@ KUZU_C_API kuzu_state kuzu_prepared_statement_bind_string(kuzu_prepared_statemen
  * @param value The kuzu value to bind.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_prepared_statement_bind_value(kuzu_prepared_statement* prepared_statement,
-    const char* param_name, kuzu_value* value);
+KUZU_C_API kuzu_state kuzu_prepared_statement_bind_value(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_value* value);
 
 // QueryResult
 /**
@@ -636,7 +639,8 @@ KUZU_C_API bool kuzu_query_result_is_success(kuzu_query_result* query_result);
  * @param[out] out_error_message The output parameter that will hold the error message.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_query_result_get_error_message(kuzu_query_result* query_result, char** out_error_message);
+KUZU_C_API kuzu_state kuzu_query_result_get_error_message(kuzu_query_result* query_result,
+    char** out_error_message);
 /**
  * @brief Returns the number of columns in the query result.
  * @param query_result The query result instance to return.
@@ -649,7 +653,8 @@ KUZU_C_API uint64_t kuzu_query_result_get_num_columns(kuzu_query_result* query_r
  * @param[out] out_column_name The output parameter that will hold the column name.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_query_result_get_column_name(kuzu_query_result* query_result, uint64_t index, char** out_column_name);
+KUZU_C_API kuzu_state kuzu_query_result_get_column_name(kuzu_query_result* query_result,
+    uint64_t index, char** out_column_name);
 /**
  * @brief Returns the data type of the column at the given index.
  * @param query_result The query result instance to return.
@@ -657,8 +662,8 @@ KUZU_C_API kuzu_state kuzu_query_result_get_column_name(kuzu_query_result* query
  * @param[out] out_column_data_type The output parameter that will hold the column data type.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_query_result_get_column_data_type(
-    kuzu_query_result* query_result, uint64_t index, kuzu_logical_type* out_column_data_type);
+KUZU_C_API kuzu_state kuzu_query_result_get_column_data_type(kuzu_query_result* query_result,
+    uint64_t index, kuzu_logical_type* out_column_data_type);
 /**
  * @brief Returns the number of tuples in the query result.
  * @param query_result The query result instance to return.
@@ -670,7 +675,8 @@ KUZU_C_API uint64_t kuzu_query_result_get_num_tuples(kuzu_query_result* query_re
  * @param[out] out_query_summary The output parameter that will hold the query summary.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_query_result_get_query_summary(kuzu_query_result* query_result, kuzu_query_summary* out_query_summary);
+KUZU_C_API kuzu_state kuzu_query_result_get_query_summary(kuzu_query_result* query_result,
+    kuzu_query_summary* out_query_summary);
 /**
  * @brief Returns true if we have not consumed all tuples in the query result, false otherwise.
  * @param query_result The query result instance to check.
@@ -697,8 +703,8 @@ KUZU_C_API bool kuzu_query_result_has_next_query_result(kuzu_query_result* query
  * @param[out] out_next_query_result The output parameter that will hold the next query result.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_query_result_get_next_query_result(
-    kuzu_query_result* query_result, kuzu_query_result* out_next_query_result);
+KUZU_C_API kuzu_state kuzu_query_result_get_next_query_result(kuzu_query_result* query_result,
+    kuzu_query_result* out_next_query_result);
 
 /**
  * @brief Returns the query result as a string.
@@ -706,7 +712,8 @@ KUZU_C_API kuzu_state kuzu_query_result_get_next_query_result(
  * @param[out] out_result The output parameter that will hold the query result as a string.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_query_result_to_string(kuzu_query_result* query_result, char** out_result);
+KUZU_C_API kuzu_state kuzu_query_result_to_string(kuzu_query_result* query_result,
+    char** out_result);
 /**
  * @brief Resets the iterator of the query result to the beginning of the query result.
  * @param query_result The query result instance to reset iterator.
@@ -716,19 +723,22 @@ KUZU_C_API void kuzu_query_result_reset_iterator(kuzu_query_result* query_result
 /**
  * @brief Returns the query result's schema as ArrowSchema.
  * @param query_result The query result instance to return.
- * @param[out] out_schema The output parameter that will hold the datatypes of the columns as an arrow schema.
+ * @param[out] out_schema The output parameter that will hold the datatypes of the columns as an
+ * arrow schema.
  * @return The state indicating the success or failure of the operation.
  *
  * It is the caller's responsibility to call the release function to release the underlying data
  */
-KUZU_C_API kuzu_state kuzu_query_result_get_arrow_schema(kuzu_query_result* query_result, ArrowSchema* out_schema);
+KUZU_C_API kuzu_state kuzu_query_result_get_arrow_schema(kuzu_query_result* query_result,
+    ArrowSchema* out_schema);
 
 /**
  * @brief Returns the next chunk of the query result as ArrowArray.
  * @param query_result The query result instance to return.
  * @param chunk_size The number of tuples to return in the chunk.
- * @param[out] out_arrow_array The output parameter that will hold the arrow array representation of the query result.
- * The arrow array internally stores an arrow struct with fields for each of the columns.
+ * @param[out] out_arrow_array The output parameter that will hold the arrow array representation of
+ * the query result. The arrow array internally stores an arrow struct with fields for each of the
+ * columns.
  * @return The state indicating the success or failure of the operation.
  *
  * It is the caller's responsibility to call the release function to release the underlying data
@@ -749,7 +759,8 @@ KUZU_C_API void kuzu_flat_tuple_destroy(kuzu_flat_tuple* flat_tuple);
  * @param[out] out_value The output parameter that will hold the value at index.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_flat_tuple_get_value(kuzu_flat_tuple* flat_tuple, uint64_t index, kuzu_value* out_value);
+KUZU_C_API kuzu_state kuzu_flat_tuple_get_value(kuzu_flat_tuple* flat_tuple, uint64_t index,
+    kuzu_value* out_value);
 /**
  * @brief Converts the flat tuple to a string.
  * @param flat_tuple The flat tuple instance to convert.
@@ -769,8 +780,8 @@ KUZU_C_API kuzu_state kuzu_flat_tuple_to_string(kuzu_flat_tuple* flat_tuple, cha
  * @param[out] out_type The output parameter that will hold the data type instance.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API void kuzu_data_type_create(kuzu_data_type_id id,
-    kuzu_logical_type* child_type, uint64_t num_elements_in_array, kuzu_logical_type* out_type);
+KUZU_C_API void kuzu_data_type_create(kuzu_data_type_id id, kuzu_logical_type* child_type,
+    uint64_t num_elements_in_array, kuzu_logical_type* out_type);
 /**
  * @brief Creates a new data type instance by cloning the given data type instance.
  * @param data_type The data type instance to clone.
@@ -800,7 +811,8 @@ KUZU_C_API kuzu_data_type_id kuzu_data_type_get_id(kuzu_logical_type* data_type)
  * @param[out] out_result The output parameter that will hold the number of elements in the array.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_data_type_get_num_elements_in_array(kuzu_logical_type* data_type, uint64_t* out_result);
+KUZU_C_API kuzu_state kuzu_data_type_get_num_elements_in_array(kuzu_logical_type* data_type,
+    uint64_t* out_result);
 
 // Value
 /**
@@ -989,7 +1001,8 @@ KUZU_C_API kuzu_state kuzu_value_get_list_size(kuzu_value* value, uint64_t* out_
  * @param[out] out_value The output parameter that will hold the element at index.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_value_get_list_element(kuzu_value* value, uint64_t index, kuzu_value* out_value);
+KUZU_C_API kuzu_state kuzu_value_get_list_element(kuzu_value* value, uint64_t index,
+    kuzu_value* out_value);
 /**
  * @brief Returns the number of fields of the given struct value. The value must be of type STRUCT.
  * @param value The STRUCT value to get number of fields.
@@ -1005,7 +1018,8 @@ KUZU_C_API kuzu_state kuzu_value_get_struct_num_fields(kuzu_value* value, uint64
  * @param[out] out_result The output parameter that will hold the field name at index.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_value_get_struct_field_name(kuzu_value* value, uint64_t index, char** out_result);
+KUZU_C_API kuzu_state kuzu_value_get_struct_field_name(kuzu_value* value, uint64_t index,
+    char** out_result);
 /**
  * @brief Returns the field value at index of the given struct value. The value must be of physical
  * type STRUCT (STRUCT, NODE, REL, RECURSIVE_REL, UNION).
@@ -1014,7 +1028,8 @@ KUZU_C_API kuzu_state kuzu_value_get_struct_field_name(kuzu_value* value, uint64
  * @param[out] out_value The output parameter that will hold the field value at index.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index, kuzu_value* out_value);
+KUZU_C_API kuzu_state kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index,
+    kuzu_value* out_value);
 /**
  * @brief Returns the list of nodes for recursive rel value. The value must be of type
  * RECURSIVE_REL.
@@ -1022,7 +1037,8 @@ KUZU_C_API kuzu_state kuzu_value_get_struct_field_value(kuzu_value* value, uint6
  * @param[out] out_value The output parameter that will hold the list of nodes.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_value_get_recursive_rel_node_list(kuzu_value* value, kuzu_value* out_value);
+KUZU_C_API kuzu_state kuzu_value_get_recursive_rel_node_list(kuzu_value* value,
+    kuzu_value* out_value);
 
 /**
  * @brief Returns the list of rels for recursive rel value. The value must be of type RECURSIVE_REL.
@@ -1030,7 +1046,8 @@ KUZU_C_API kuzu_state kuzu_value_get_recursive_rel_node_list(kuzu_value* value, 
  * @param[out] out_value The output parameter that will hold the list of rels.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_value_get_recursive_rel_rel_list(kuzu_value* value, kuzu_value* out_value);
+KUZU_C_API kuzu_state kuzu_value_get_recursive_rel_rel_list(kuzu_value* value,
+    kuzu_value* out_value);
 /**
  * @brief Returns internal type of the given value.
  * @param value The value to return.
@@ -1162,14 +1179,16 @@ KUZU_C_API kuzu_state kuzu_value_get_timestamp(kuzu_value* value, kuzu_timestamp
  * @param[out] out_result The output parameter that will hold the timestamp_ns value.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_value_get_timestamp_ns(kuzu_value* value, kuzu_timestamp_ns_t* out_result);
+KUZU_C_API kuzu_state kuzu_value_get_timestamp_ns(kuzu_value* value,
+    kuzu_timestamp_ns_t* out_result);
 /**
  * @brief Returns the timestamp_ms value of the given value. The value must be of type TIMESTAMP_MS.
  * @param value The value to return.
  * @param[out] out_result The output parameter that will hold the timestamp_ms value.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_value_get_timestamp_ms(kuzu_value* value, kuzu_timestamp_ms_t* out_result);
+KUZU_C_API kuzu_state kuzu_value_get_timestamp_ms(kuzu_value* value,
+    kuzu_timestamp_ms_t* out_result);
 /**
  * @brief Returns the timestamp_sec value of the given value. The value must be of type
  * TIMESTAMP_SEC.
@@ -1177,14 +1196,16 @@ KUZU_C_API kuzu_state kuzu_value_get_timestamp_ms(kuzu_value* value, kuzu_timest
  * @param[out] out_result The output parameter that will hold the timestamp_sec value.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_value_get_timestamp_sec(kuzu_value* value, kuzu_timestamp_sec_t* out_result);
+KUZU_C_API kuzu_state kuzu_value_get_timestamp_sec(kuzu_value* value,
+    kuzu_timestamp_sec_t* out_result);
 /**
  * @brief Returns the timestamp_tz value of the given value. The value must be of type TIMESTAMP_TZ.
  * @param value The value to return.
  * @param[out] out_result The output parameter that will hold the timestamp_tz value.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_value_get_timestamp_tz(kuzu_value* value, kuzu_timestamp_tz_t* out_result);
+KUZU_C_API kuzu_state kuzu_value_get_timestamp_tz(kuzu_value* value,
+    kuzu_timestamp_tz_t* out_result);
 /**
  * @brief Returns the interval value of the given value. The value must be of type INTERVAL.
  * @param value The value to return.
@@ -1250,7 +1271,8 @@ KUZU_C_API kuzu_state kuzu_node_val_get_property_size(kuzu_value* node_val, uint
  * @param[out] out_result The output parameter that will hold the property name at index.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_node_val_get_property_name_at(kuzu_value* node_val, uint64_t index, char** out_result);
+KUZU_C_API kuzu_state kuzu_node_val_get_property_name_at(kuzu_value* node_val, uint64_t index,
+    char** out_result);
 /**
  * @brief Returns the property value of the given node value at the given index.
  * @param node_val The node value to return.
@@ -1258,7 +1280,8 @@ KUZU_C_API kuzu_state kuzu_node_val_get_property_name_at(kuzu_value* node_val, u
  * @param[out] out_value The output parameter that will hold the property value at index.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_node_val_get_property_value_at(kuzu_value* node_val, uint64_t index, kuzu_value* out_value);
+KUZU_C_API kuzu_state kuzu_node_val_get_property_value_at(kuzu_value* node_val, uint64_t index,
+    kuzu_value* out_value);
 /**
  * @brief Converts the given node value to string.
  * @param node_val The node value to convert.
@@ -1302,7 +1325,8 @@ KUZU_C_API kuzu_state kuzu_rel_val_get_property_size(kuzu_value* rel_val, uint64
  * @param[out] out_result The output parameter that will hold the property name at index.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_rel_val_get_property_name_at(kuzu_value* rel_val, uint64_t index, char** out_result);
+KUZU_C_API kuzu_state kuzu_rel_val_get_property_name_at(kuzu_value* rel_val, uint64_t index,
+    char** out_result);
 /**
  * @brief Returns the property of the given rel value at the given index as kuzu value.
  * @param rel_val The rel value to return.
@@ -1310,7 +1334,8 @@ KUZU_C_API kuzu_state kuzu_rel_val_get_property_name_at(kuzu_value* rel_val, uin
  * @param[out] out_value The output parameter that will hold the property value at index.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_rel_val_get_property_value_at(kuzu_value* rel_val, uint64_t index, kuzu_value* out_value);
+KUZU_C_API kuzu_state kuzu_rel_val_get_property_value_at(kuzu_value* rel_val, uint64_t index,
+    kuzu_value* out_value);
 /**
  * @brief Converts the given rel value to string.
  * @param rel_val The rel value to convert.
@@ -1324,7 +1349,8 @@ KUZU_C_API kuzu_state kuzu_rel_val_to_string(kuzu_value* rel_val, char** out_res
  * @param[out] out_type The output parameter that will hold the data type of the rdf variant.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_type(kuzu_value* rdf_variant, kuzu_data_type_id* out_type);
+KUZU_C_API kuzu_state kuzu_rdf_variant_get_type(kuzu_value* rdf_variant,
+    kuzu_data_type_id* out_type);
 /**
  * @brief Returns the string value of the given rdf variant. The value must be of type STRING.
  * @param rdf_variant The rdf variant.
@@ -1427,17 +1453,20 @@ KUZU_C_API kuzu_state kuzu_rdf_variant_get_date(kuzu_value* rdf_variant, kuzu_da
 /**
  * @brief Returns the timestamp value of the given rdf variant. The value must be of type TIMESTAMP.
  * @param rdf_variant The rdf variant.
- * @param[out] out_result The output parameter that will hold the timestamp value of the rdf variant.
+ * @param[out] out_result The output parameter that will hold the timestamp value of the rdf
+ * variant.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_timestamp(kuzu_value* rdf_variant, kuzu_timestamp_t* out_result);
+KUZU_C_API kuzu_state kuzu_rdf_variant_get_timestamp(kuzu_value* rdf_variant,
+    kuzu_timestamp_t* out_result);
 /**
  * @brief Returns the interval value of the given rdf variant. The value must be of type INTERVAL.
  * @param rdf_variant The rdf variant.
  * @param[out] out_result The output parameter that will hold the interval value of the rdf variant.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_interval(kuzu_value* rdf_variant, kuzu_interval_t* out_result);
+KUZU_C_API kuzu_state kuzu_rdf_variant_get_interval(kuzu_value* rdf_variant,
+    kuzu_interval_t* out_result);
 /**
  * @brief Destroys any string created by the Kùzu C API, including both the error message and the
  * values returned by the API functions. This function is provided to avoid the inconsistency
@@ -1447,8 +1476,8 @@ KUZU_C_API kuzu_state kuzu_rdf_variant_get_interval(kuzu_value* rdf_variant, kuz
  */
 KUZU_C_API void kuzu_destroy_string(char* str);
 /**
- * @brief Destroys any blob created by the Kùzu C API. This function is provided to avoid the 
- * inconsistency between the memory allocation and deallocation across different libraries and 
+ * @brief Destroys any blob created by the Kùzu C API. This function is provided to avoid the
+ * inconsistency between the memory allocation and deallocation across different libraries and
  * is preferred over using the standard C free function.
  * @param blob The blob to destroy.
  */

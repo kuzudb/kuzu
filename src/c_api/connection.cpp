@@ -35,18 +35,19 @@ void kuzu_connection_destroy(kuzu_connection* connection) {
 
 kuzu_state kuzu_connection_set_max_num_thread_for_exec(kuzu_connection* connection,
     uint64_t num_threads) {
-        if (connection == nullptr || connection->_connection == nullptr) {
-            return KuzuError;
-        }
-        try {
-            static_cast<Connection*>(connection->_connection)->setMaxNumThreadForExec(num_threads);
-        } catch (Exception& e) {
-            return KuzuError;
-        }
-        return KuzuSuccess;
+    if (connection == nullptr || connection->_connection == nullptr) {
+        return KuzuError;
+    }
+    try {
+        static_cast<Connection*>(connection->_connection)->setMaxNumThreadForExec(num_threads);
+    } catch (Exception& e) {
+        return KuzuError;
+    }
+    return KuzuSuccess;
 }
 
-kuzu_state kuzu_connection_get_max_num_thread_for_exec(kuzu_connection* connection, uint64_t* out_result) {
+kuzu_state kuzu_connection_get_max_num_thread_for_exec(kuzu_connection* connection,
+    uint64_t* out_result) {
     if (connection == nullptr || connection->_connection == nullptr) {
         return KuzuError;
     }
@@ -58,7 +59,8 @@ kuzu_state kuzu_connection_get_max_num_thread_for_exec(kuzu_connection* connecti
     return KuzuSuccess;
 }
 
-kuzu_state kuzu_connection_query(kuzu_connection* connection, const char* query, kuzu_query_result* out_query_result) {
+kuzu_state kuzu_connection_query(kuzu_connection* connection, const char* query,
+    kuzu_query_result* out_query_result) {
     if (connection == nullptr || connection->_connection == nullptr) {
         return KuzuError;
     }
@@ -79,17 +81,20 @@ kuzu_state kuzu_connection_query(kuzu_connection* connection, const char* query,
     }
 }
 
-kuzu_state kuzu_connection_prepare(kuzu_connection* connection, const char* query, kuzu_prepared_statement* out_prepared_statement) {
+kuzu_state kuzu_connection_prepare(kuzu_connection* connection, const char* query,
+    kuzu_prepared_statement* out_prepared_statement) {
     if (connection == nullptr || connection->_connection == nullptr) {
         return KuzuError;
     }
     try {
-        auto prepared_statement = static_cast<Connection*>(connection->_connection)->prepare(query).release();
+        auto prepared_statement =
+            static_cast<Connection*>(connection->_connection)->prepare(query).release();
         if (prepared_statement == nullptr) {
             return KuzuError;
         }
         out_prepared_statement->_prepared_statement = prepared_statement;
-        out_prepared_statement->_bound_values = new std::unordered_map<std::string, std::unique_ptr<Value>>;
+        out_prepared_statement->_bound_values =
+            new std::unordered_map<std::string, std::unique_ptr<Value>>;
         return KuzuSuccess;
     } catch (Exception& e) {
         return KuzuError;
@@ -99,8 +104,9 @@ kuzu_state kuzu_connection_prepare(kuzu_connection* connection, const char* quer
 
 kuzu_state kuzu_connection_execute(kuzu_connection* connection,
     kuzu_prepared_statement* prepared_statement, kuzu_query_result* out_query_result) {
-    if (connection == nullptr || connection->_connection == nullptr || prepared_statement == nullptr ||
-        prepared_statement->_prepared_statement == nullptr || prepared_statement->_bound_values == nullptr) {
+    if (connection == nullptr || connection->_connection == nullptr ||
+        prepared_statement == nullptr || prepared_statement->_prepared_statement == nullptr ||
+        prepared_statement->_bound_values == nullptr) {
         return KuzuError;
     }
     try {

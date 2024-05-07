@@ -55,7 +55,8 @@ kuzu_data_type_id kuzu_data_type_get_id(kuzu_logical_type* data_type) {
     return static_cast<kuzu_data_type_id>(data_type_id_u8);
 }
 
-kuzu_state kuzu_data_type_get_num_elements_in_array(kuzu_logical_type* data_type, uint64_t* out_result) {
+kuzu_state kuzu_data_type_get_num_elements_in_array(kuzu_logical_type* data_type,
+    uint64_t* out_result) {
     auto parent_type = static_cast<LogicalType*>(data_type->_data_type);
     if (parent_type->getLogicalTypeID() != LogicalTypeID::ARRAY) {
         return KuzuError;
@@ -63,7 +64,7 @@ kuzu_state kuzu_data_type_get_num_elements_in_array(kuzu_logical_type* data_type
     try {
         *out_result = ArrayType::getNumElements(*parent_type);
     } catch (Exception& e) {
-		return KuzuError;
-	}
+        return KuzuError;
+    }
     return KuzuSuccess;
 }

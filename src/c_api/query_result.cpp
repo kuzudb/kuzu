@@ -22,18 +22,21 @@ bool kuzu_query_result_is_success(kuzu_query_result* query_result) {
     return static_cast<QueryResult*>(query_result->_query_result)->isSuccess();
 }
 
-kuzu_state kuzu_query_result_get_error_message(kuzu_query_result* query_result, char** out_error_message) {
-    if (out_error_message == nullptr || query_result == nullptr || query_result->_query_result == nullptr) {
+kuzu_state kuzu_query_result_get_error_message(kuzu_query_result* query_result,
+    char** out_error_message) {
+    if (out_error_message == nullptr || query_result == nullptr ||
+        query_result->_query_result == nullptr) {
         return KuzuError;
     }
     try {
-        auto error_message = static_cast<QueryResult*>(query_result->_query_result)->getErrorMessage();
+        auto error_message =
+            static_cast<QueryResult*>(query_result->_query_result)->getErrorMessage();
         if (error_message.empty()) {
             return KuzuError;
         }
         *out_error_message = convertToOwnedCString(error_message);
         return KuzuSuccess;
-    } catch (Exception & e) {
+    } catch (Exception& e) {
         return KuzuError;
     }
 }
@@ -42,7 +45,8 @@ uint64_t kuzu_query_result_get_num_columns(kuzu_query_result* query_result) {
     return static_cast<QueryResult*>(query_result->_query_result)->getNumColumns();
 }
 
-kuzu_state kuzu_query_result_get_column_name(kuzu_query_result* query_result, uint64_t index, char** out_column_name) {
+kuzu_state kuzu_query_result_get_column_name(kuzu_query_result* query_result, uint64_t index,
+    char** out_column_name) {
     auto column_names = static_cast<QueryResult*>(query_result->_query_result)->getColumnNames();
     if (index >= column_names.size()) {
         return KuzuError;
@@ -51,8 +55,8 @@ kuzu_state kuzu_query_result_get_column_name(kuzu_query_result* query_result, ui
     return KuzuSuccess;
 }
 
-kuzu_state kuzu_query_result_get_column_data_type(kuzu_query_result* query_result,
-    uint64_t index, kuzu_logical_type* out_column_data_type) {
+kuzu_state kuzu_query_result_get_column_data_type(kuzu_query_result* query_result, uint64_t index,
+    kuzu_logical_type* out_column_data_type) {
     auto column_data_types =
         static_cast<QueryResult*>(query_result->_query_result)->getColumnDataTypes();
     if (index >= column_data_types.size()) {
@@ -67,7 +71,8 @@ uint64_t kuzu_query_result_get_num_tuples(kuzu_query_result* query_result) {
     return static_cast<QueryResult*>(query_result->_query_result)->getNumTuples();
 }
 
-kuzu_state kuzu_query_result_get_query_summary(kuzu_query_result* query_result, kuzu_query_summary* out_query_summary) {
+kuzu_state kuzu_query_result_get_query_summary(kuzu_query_result* query_result,
+    kuzu_query_summary* out_query_summary) {
     if (out_query_summary == nullptr) {
         return KuzuError;
     }
@@ -84,7 +89,8 @@ bool kuzu_query_result_has_next_query_result(kuzu_query_result* query_result) {
     return static_cast<QueryResult*>(query_result->_query_result)->hasNextQueryResult();
 }
 
-kuzu_state kuzu_query_result_get_next_query_result(kuzu_query_result* query_result, kuzu_query_result* out_query_result) {
+kuzu_state kuzu_query_result_get_next_query_result(kuzu_query_result* query_result,
+    kuzu_query_result* out_query_result) {
     auto next_query_result =
         static_cast<QueryResult*>(query_result->_query_result)->getNextQueryResult();
     if (next_query_result == nullptr) {
@@ -95,22 +101,23 @@ kuzu_state kuzu_query_result_get_next_query_result(kuzu_query_result* query_resu
     return KuzuSuccess;
 }
 
-kuzu_state kuzu_query_result_get_next(kuzu_query_result* query_result, kuzu_flat_tuple* out_flat_tuple) {
+kuzu_state kuzu_query_result_get_next(kuzu_query_result* query_result,
+    kuzu_flat_tuple* out_flat_tuple) {
     try {
         auto flat_tuple = static_cast<QueryResult*>(query_result->_query_result)->getNext();
         out_flat_tuple->_flat_tuple = flat_tuple.get();
         out_flat_tuple->_is_owned_by_cpp = true;
         return KuzuSuccess;
-    } catch (Exception & e) {
+    } catch (Exception& e) {
         return KuzuError;
-	}
+    }
 }
 
 kuzu_state kuzu_query_result_to_string(kuzu_query_result* query_result, char** out_result) {
     std::string result_string = static_cast<QueryResult*>(query_result->_query_result)->toString();
     if (result_string.empty()) {
-		return KuzuError;
-	}
+        return KuzuError;
+    }
     *out_result = convertToOwnedCString(result_string);
     if (*out_result == nullptr) {
         return KuzuError;
@@ -122,11 +129,12 @@ void kuzu_query_result_reset_iterator(kuzu_query_result* query_result) {
     static_cast<QueryResult*>(query_result->_query_result)->resetIterator();
 }
 
-kuzu_state kuzu_query_result_get_arrow_schema(kuzu_query_result* query_result, ArrowSchema* out_schema) {
+kuzu_state kuzu_query_result_get_arrow_schema(kuzu_query_result* query_result,
+    ArrowSchema* out_schema) {
     try {
         *out_schema = *static_cast<QueryResult*>(query_result->_query_result)->getArrowSchema();
         return KuzuSuccess;
-    } catch (Exception & e) {
+    } catch (Exception& e) {
         return KuzuError;
     }
 }
@@ -134,9 +142,10 @@ kuzu_state kuzu_query_result_get_arrow_schema(kuzu_query_result* query_result, A
 kuzu_state kuzu_query_result_get_next_arrow_chunk(kuzu_query_result* query_result,
     int64_t chunk_size, ArrowArray* out_arrow_array) {
     try {
-        *out_arrow_array = *static_cast<QueryResult*>(query_result->_query_result)->getNextArrowChunk(chunk_size);
+        *out_arrow_array =
+            *static_cast<QueryResult*>(query_result->_query_result)->getNextArrowChunk(chunk_size);
         return KuzuSuccess;
-    } catch (Exception & e) {
+    } catch (Exception& e) {
         return KuzuError;
     }
 }

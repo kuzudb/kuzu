@@ -411,11 +411,16 @@ TEST_F(CApiPreparedStatementTest, BindTimestamp) {
     auto timestamp_ms = kuzu_timestamp_ms_t{2};
     auto timestamp_sec = kuzu_timestamp_sec_t{3};
     auto timestamp_tz = kuzu_timestamp_tz_t{4};
-    ASSERT_EQ(kuzu_prepared_statement_bind_timestamp(&preparedStatement, "1", timestamp), KuzuSuccess);
-    ASSERT_EQ(kuzu_prepared_statement_bind_timestamp_ns(&preparedStatement, "2", timestamp_ns), KuzuSuccess);
-    ASSERT_EQ(kuzu_prepared_statement_bind_timestamp_ms(&preparedStatement, "3", timestamp_ms), KuzuSuccess);
-    ASSERT_EQ(kuzu_prepared_statement_bind_timestamp_sec(&preparedStatement, "4", timestamp_sec), KuzuSuccess);
-    ASSERT_EQ(kuzu_prepared_statement_bind_timestamp_tz(&preparedStatement, "5", timestamp_tz), KuzuSuccess);
+    ASSERT_EQ(kuzu_prepared_statement_bind_timestamp(&preparedStatement, "1", timestamp),
+        KuzuSuccess);
+    ASSERT_EQ(kuzu_prepared_statement_bind_timestamp_ns(&preparedStatement, "2", timestamp_ns),
+        KuzuSuccess);
+    ASSERT_EQ(kuzu_prepared_statement_bind_timestamp_ms(&preparedStatement, "3", timestamp_ms),
+        KuzuSuccess);
+    ASSERT_EQ(kuzu_prepared_statement_bind_timestamp_sec(&preparedStatement, "4", timestamp_sec),
+        KuzuSuccess);
+    ASSERT_EQ(kuzu_prepared_statement_bind_timestamp_tz(&preparedStatement, "5", timestamp_tz),
+        KuzuSuccess);
     state = kuzu_connection_execute(connection, &preparedStatement, &result);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_NE(result._query_result, nullptr);
@@ -441,7 +446,8 @@ TEST_F(CApiPreparedStatementTest, BindInteval) {
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_TRUE(kuzu_prepared_statement_is_success(&preparedStatement));
     auto interval = kuzu_interval_t{0, 0, 0};
-    ASSERT_EQ(kuzu_prepared_statement_bind_interval(&preparedStatement, "1", interval), KuzuSuccess);
+    ASSERT_EQ(kuzu_prepared_statement_bind_interval(&preparedStatement, "1", interval),
+        KuzuSuccess);
     state = kuzu_connection_execute(connection, &preparedStatement, &result);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_NE(result._query_result, nullptr);
@@ -468,7 +474,8 @@ TEST_F(CApiPreparedStatementTest, BindValue) {
     ASSERT_TRUE(kuzu_prepared_statement_is_success(&preparedStatement));
     auto timestamp = kuzu_timestamp_t{0};
     auto timestampValue = kuzu_value_create_timestamp(timestamp);
-    ASSERT_EQ(kuzu_prepared_statement_bind_value(&preparedStatement, "1", timestampValue), KuzuSuccess);
+    ASSERT_EQ(kuzu_prepared_statement_bind_value(&preparedStatement, "1", timestampValue),
+        KuzuSuccess);
     kuzu_value_destroy(timestampValue);
     state = kuzu_connection_execute(connection, &preparedStatement, &result);
     ASSERT_EQ(state, KuzuSuccess);

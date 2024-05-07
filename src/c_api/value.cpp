@@ -205,7 +205,8 @@ void kuzu_value_destroy(kuzu_value* value) {
 }
 
 kuzu_state kuzu_value_get_list_size(kuzu_value* value, uint64_t* out_result) {
-    if (static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID() != LogicalTypeID::LIST) {
+    if (static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID() !=
+        LogicalTypeID::LIST) {
         return KuzuError;
     }
     *out_result = NestedVal::getChildrenSize(static_cast<Value*>(value->_value));
@@ -214,8 +215,8 @@ kuzu_state kuzu_value_get_list_size(kuzu_value* value, uint64_t* out_result) {
 
 kuzu_state kuzu_value_get_list_element(kuzu_value* value, uint64_t index, kuzu_value* out_value) {
     auto physical_type_id = static_cast<Value*>(value->_value)->getDataType()->getPhysicalType();
-    if (physical_type_id != PhysicalTypeID::ARRAY && physical_type_id != PhysicalTypeID::STRUCT 
-        && physical_type_id != PhysicalTypeID::LIST) {
+    if (physical_type_id != PhysicalTypeID::ARRAY && physical_type_id != PhysicalTypeID::STRUCT &&
+        physical_type_id != PhysicalTypeID::LIST) {
         return KuzuError;
     }
     auto listValue = static_cast<Value*>(value->_value);
@@ -248,13 +249,14 @@ kuzu_state kuzu_value_get_struct_field_name(kuzu_value* value, uint64_t index, c
     auto data_type = val->getDataType();
     std::string struct_field_name = StructType::getFields(*data_type)[index].getName();
     if (struct_field_name.empty()) {
-		return KuzuError;
-	}
+        return KuzuError;
+    }
     *out_result = convertToOwnedCString(struct_field_name);
     return KuzuSuccess;
 }
 
-kuzu_state kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index, kuzu_value* out_value) {
+kuzu_state kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index,
+    kuzu_value* out_value) {
     return kuzu_value_get_list_element(value, index, out_value);
 }
 
@@ -502,7 +504,8 @@ kuzu_state kuzu_value_get_interval(kuzu_value* value, kuzu_interval_t* out_resul
 
 kuzu_state kuzu_value_get_string(kuzu_value* value, char** out_result) {
     try {
-        *out_result = convertToOwnedCString(static_cast<Value*>(value->_value)->getValue<std::string>());
+        *out_result =
+            convertToOwnedCString(static_cast<Value*>(value->_value)->getValue<std::string>());
     } catch (Exception& e) {
         return KuzuError;
     }
@@ -521,7 +524,8 @@ kuzu_state kuzu_value_get_blob(kuzu_value* value, uint8_t** out_result) {
 
 kuzu_state kuzu_value_get_uuid(kuzu_value* value, char** out_result) {
     try {
-        *out_result = convertToOwnedCString(static_cast<Value*>(value->_value)->getValue<std::string>());
+        *out_result =
+            convertToOwnedCString(static_cast<Value*>(value->_value)->getValue<std::string>());
     } catch (Exception& e) {
         return KuzuError;
     }
@@ -568,12 +572,14 @@ kuzu_state kuzu_node_val_get_property_size(kuzu_value* node_val, uint64_t* out_r
     return KuzuSuccess;
 }
 
-kuzu_state kuzu_node_val_get_property_name_at(kuzu_value* node_val, uint64_t index, char** out_result) {
+kuzu_state kuzu_node_val_get_property_name_at(kuzu_value* node_val, uint64_t index,
+    char** out_result) {
     try {
-        std::string property_name = NodeVal::getPropertyName(static_cast<Value*>(node_val->_value), index);
+        std::string property_name =
+            NodeVal::getPropertyName(static_cast<Value*>(node_val->_value), index);
         if (property_name.empty()) {
-			return KuzuError;
-		}
+            return KuzuError;
+        }
         *out_result = convertToOwnedCString(property_name);
     } catch (Exception& e) {
         return KuzuError;
@@ -581,7 +587,8 @@ kuzu_state kuzu_node_val_get_property_name_at(kuzu_value* node_val, uint64_t ind
     return KuzuSuccess;
 }
 
-kuzu_state kuzu_node_val_get_property_value_at(kuzu_value* node_val, uint64_t index, kuzu_value* out_value) {
+kuzu_state kuzu_node_val_get_property_value_at(kuzu_value* node_val, uint64_t index,
+    kuzu_value* out_value) {
     try {
         auto value = NodeVal::getPropertyVal(static_cast<Value*>(node_val->_value), index);
         out_value->_value = value;
@@ -594,7 +601,8 @@ kuzu_state kuzu_node_val_get_property_value_at(kuzu_value* node_val, uint64_t in
 
 kuzu_state kuzu_node_val_to_string(kuzu_value* node_val, char** out_result) {
     try {
-        *out_result = convertToOwnedCString(NodeVal::toString(static_cast<Value*>(node_val->_value)));
+        *out_result =
+            convertToOwnedCString(NodeVal::toString(static_cast<Value*>(node_val->_value)));
     } catch (Exception& e) {
         return KuzuError;
     }
@@ -642,9 +650,11 @@ kuzu_state kuzu_rel_val_get_property_size(kuzu_value* rel_val, uint64_t* out_res
     }
     return KuzuSuccess;
 }
-kuzu_state kuzu_rel_val_get_property_name_at(kuzu_value* rel_val, uint64_t index, char** out_result) {
+kuzu_state kuzu_rel_val_get_property_name_at(kuzu_value* rel_val, uint64_t index,
+    char** out_result) {
     try {
-        std::string property_name = RelVal::getPropertyName(static_cast<Value*>(rel_val->_value), index);
+        std::string property_name =
+            RelVal::getPropertyName(static_cast<Value*>(rel_val->_value), index);
         if (property_name.empty()) {
             return KuzuError;
         }
@@ -655,7 +665,8 @@ kuzu_state kuzu_rel_val_get_property_name_at(kuzu_value* rel_val, uint64_t index
     return KuzuSuccess;
 }
 
-kuzu_state kuzu_rel_val_get_property_value_at(kuzu_value* rel_val, uint64_t index, kuzu_value* out_value) {
+kuzu_state kuzu_rel_val_get_property_value_at(kuzu_value* rel_val, uint64_t index,
+    kuzu_value* out_value) {
     try {
         auto value = RelVal::getPropertyVal(static_cast<Value*>(rel_val->_value), index);
         out_value->_value = value;
@@ -677,7 +688,8 @@ kuzu_state kuzu_rel_val_to_string(kuzu_value* rel_val, char** out_result) {
 
 kuzu_state kuzu_rdf_variant_get_type(kuzu_value* rdf_variant, kuzu_data_type_id* out_result) {
     try {
-        auto type = NestedVal::getChildVal(static_cast<Value*>(rdf_variant->_value), 0)->getValue<uint8_t>();
+        auto type = NestedVal::getChildVal(static_cast<Value*>(rdf_variant->_value), 0)
+                        ->getValue<uint8_t>();
         *out_result = static_cast<kuzu_data_type_id>(type);
     } catch (Exception& e) {
         return KuzuError;
@@ -817,7 +829,8 @@ kuzu_state kuzu_rdf_variant_get_date(kuzu_value* rdf_variant, kuzu_date_t* out_r
 
 kuzu_state kuzu_rdf_variant_get_timestamp(kuzu_value* rdf_variant, kuzu_timestamp_t* out_result) {
     try {
-        auto timestampVal = RdfVariant::getValue<timestamp_t>(static_cast<Value*>(rdf_variant->_value));
+        auto timestampVal =
+            RdfVariant::getValue<timestamp_t>(static_cast<Value*>(rdf_variant->_value));
         out_result->value = timestampVal.value;
     } catch (Exception& e) {
         return KuzuError;
@@ -827,7 +840,8 @@ kuzu_state kuzu_rdf_variant_get_timestamp(kuzu_value* rdf_variant, kuzu_timestam
 
 kuzu_state kuzu_rdf_variant_get_interval(kuzu_value* rdf_variant, kuzu_interval_t* out_result) {
     try {
-        auto intervalVal = RdfVariant::getValue<interval_t>(static_cast<Value*>(rdf_variant->_value));
+        auto intervalVal =
+            RdfVariant::getValue<interval_t>(static_cast<Value*>(rdf_variant->_value));
         out_result->months = intervalVal.months;
         out_result->days = intervalVal.days;
         out_result->micros = intervalVal.micros;

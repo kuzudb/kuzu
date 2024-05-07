@@ -38,7 +38,7 @@ TEST_F(CApiDatabaseTest, CreationReadOnly) {
     state = kuzu_database_init(databasePathCStr, systemConfig, &database);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_NE(database._database, nullptr);
-    auto databaseCpp = static_cast<Database*>(database._database); 
+    auto databaseCpp = static_cast<Database*>(database._database);
     ASSERT_NE(databaseCpp, nullptr);
     kuzu_database_destroy(&database);
     // Now, access the same database read-only.
@@ -52,7 +52,8 @@ TEST_F(CApiDatabaseTest, CreationReadOnly) {
     state = kuzu_connection_init(&database, &connection);
     ASSERT_EQ(state, KuzuSuccess);
     state = kuzu_connection_query(&connection,
-        "CREATE NODE TABLE User(name STRING, age INT64, reg_date DATE, PRIMARY KEY (name))", &queryResult);
+        "CREATE NODE TABLE User(name STRING, age INT64, reg_date DATE, PRIMARY KEY (name))",
+        &queryResult);
     ASSERT_EQ(state, KuzuError);
     ASSERT_FALSE(kuzu_query_result_is_success(&queryResult));
     kuzu_query_result_destroy(&queryResult);
