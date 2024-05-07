@@ -1,0 +1,74 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE UnwindListOfNodes
+
+-STATEMENT MATCH (a:person) WHERE a.ID < 4 WITH collect(a) AS list_a UNWIND list_a AS a RETURN a.fName;
+---- 3
+Alice
+Bob
+Carol
+
+-STATEMENT MATCH (a:person) WHERE a.ID < 4 WITH collect(a) AS list_a UNWIND list_a AS a MATCH (a)-[:knows]->(b:person) RETURN a.fName, b.fName
+---- 9
+Alice|Bob
+Alice|Carol
+Alice|Dan
+Bob|Alice
+Bob|Carol
+Bob|Dan
+Carol|Alice
+Carol|Bob
+Carol|Dan
+
+-STATEMENT CREATE NODE TABLE PPT (id UUID, type STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE PPI (id SERIAL, task_id UUID, di STRING, name STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE PPHT (FROM PPT TO PPI);
+---- ok
+-STATEMENT CREATE REL TABLE PPPI (FROM person TO PPI);
+---- ok
+-STATEMENT CREATE REL TABLE OPPI (FROM organisation TO PPI);
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person)-[:studyAt]->(o:organisation)
+          WHERE a.ID =0 AND b.ID = 2
+         WITH
+            a, o, collect(b) AS list_b
+         WITH
+            *, gen_random_uuid() AS task_id
+         CREATE (:PPT {
+            id: task_id,
+            type: 'p_install'
+         })-[:PPHT]->(t:PPI {
+            task_id: task_id,
+            di: o.name,
+            name: a.fName
+         }),
+            (a)-[:PPPI]->(t),
+            (o)-[:OPPI]->(t)
+         WITH t, list_b
+         UNWIND list_b AS b
+            CREATE (b)-[e:PPPI]->(t)
+         RETURN t.di, t.name, b.fName;
+---- 1
+ABFsUni|Alice|Bob
+# Check update result
+-STATEMENT MATCH (a:PPT) RETURN a.type;
+---- 1
+p_install
+-STATEMENT MATCH (a:PPI) RETURN a.di, a.name;
+---- 1
+ABFsUni|Alice
+-STATEMENT MATCH (a:PPT)-[:PPHT]->(t:PPI) RETURN a.type, t.di, t.name;
+---- 1
+p_install|ABFsUni|Alice
+-STATEMENT MATCH (a:person)-[:PPPI]->(t:PPI)<-[:OPPI]-(b:organisation) RETURN a.fName, b.name;
+---- 2
+Alice|ABFsUni
+Bob|ABFsUni
+
+-STATEMENT MATCH p = (a:person)-[:knows]->(b:person) UNWIND nodes(p) AS n MATCH (n)-[]->() RETURN COUNT(*);
+---- error
+Binder exception: Cannot bind n as node pattern.

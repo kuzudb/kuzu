@@ -1,0 +1,58 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE CastStrToTimestampError
+
+-LOG MissingDay
+-STATEMENT MATCH (a:person) return timestamp("2112-08 08:21:23.005612")
+---- error
+Conversion exception: Error occurred during parsing TIMESTAMP. Given: "2112-08 08:21:23.005612". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+-STATEMENT MATCH (a:person) return cast("2112-08 08:21:23.005612", "TIMESTAMP_MS");
+---- error
+Conversion exception: Error occurred during parsing TIMESTAMP_MS. Given: "2112-08 08:21:23.005612". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+
+-LOG MissingSecond
+-STATEMENT MATCH (a:person) return timestamp("2112-08-04 08:23.005612")
+---- error
+Conversion exception: Error occurred during parsing TIMESTAMP. Given: "2112-08-04 08:23.005612". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+-STATEMENT MATCH (a:person) return cast("2112-08-04 08:23.005612", "TIMESTAMP_NS");
+---- error
+Conversion exception: Error occurred during parsing TIMESTAMP_NS. Given: "2112-08-04 08:23.005612". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+
+-LOG MissingADigitInDay
+-STATEMENT MATCH (a:person) return timestamp("2112-08-0")
+---- error
+Conversion exception: Error occurred during parsing TIMESTAMP. Given: "2112-08-0". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+
+-LOG InvalidTimezoneFormat
+-STATEMENT MATCH (a:person) return timestamp("1992-04-28T09:33:56-XX:DD")
+---- error
+Conversion exception: Error occurred during parsing TIMESTAMP. Given: "1992-04-28T09:33:56-XX:DD". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+-STATEMENT MATCH (a:person) return cast("1992-04-28T09:33:56-XX:DD", "TIMESTAMP_S");
+---- error
+Conversion exception: Error occurred during parsing TIMESTAMP_SEC. Given: "1992-04-28T09:33:56-XX:DD". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+
+
+-LOG MissingPlusMinusSign
+-STATEMENT MATCH (a:person) return timestamp("2112-08-21 08:21:23.005612Z02:00")
+---- error
+Conversion exception: Error occurred during parsing TIMESTAMP. Given: "2112-08-21 08:21:23.005612Z02:00". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+-STATEMENT MATCH (a:person) return cast("2112-08-21 08:21:23.005612Z02:00", "TIMESTAMP_TZ");
+---- error
+Conversion exception: Error occurred during parsing TIMESTAMP_TZ. Given: "2112-08-21 08:21:23.005612Z02:00". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+
+
+-LOG IncorrectTimezoneMinutes
+-STATEMENT MATCH (a:person) return timestamp("2112-08-21 08:21:23.005612Z+02:100")
+---- error
+Conversion exception: Error occurred during parsing TIMESTAMP. Given: "2112-08-21 08:21:23.005612Z+02:100". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+-STATEMENT MATCH (a:person) return cast("2112-08-21 08:21:23.005612Z+02:100", "TIMESTAMP_SEC")
+---- error
+Conversion exception: Error occurred during parsing TIMESTAMP_SEC. Given: "2112-08-21 08:21:23.005612Z+02:100". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+
+
+-LOG IncorrectTimezoneHours
+-STATEMENT MATCH (a:person) return timestamp("2112-08-21 08:21:23.005612Z+021")
+---- error
+Conversion exception: Error occurred during parsing TIMESTAMP. Given: "2112-08-21 08:21:23.005612Z+021". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])

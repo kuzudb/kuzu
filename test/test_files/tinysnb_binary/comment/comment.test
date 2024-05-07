@@ -1,0 +1,38 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE Comment
+
+-STATEMENT BEGIN TRANSACTION
+-STATEMENT COMMENT ON TABLE person IS 'A test comment'
+---- 1
+Table person comment updated.
+
+-STATEMENT COMMENT ON TABLE knows IS 'Another test comment'
+---- 1
+Table knows comment updated.
+
+-STATEMENT CALL show_tables() RETURN *
+---- 8
+marries|REL|local(kuzu)|
+workAt|REL|local(kuzu)|
+knows|REL|local(kuzu)|Another test comment
+organisation|NODE|local(kuzu)|
+person|NODE|local(kuzu)|A test comment
+movies|NODE|local(kuzu)|
+studyAt|REL|local(kuzu)|
+meets|REL|local(kuzu)|
+
+-STATEMENT COMMIT
+
+-STATEMENT CALL show_tables() RETURN *
+---- 8
+marries|REL|local(kuzu)|
+workAt|REL|local(kuzu)|
+knows|REL|local(kuzu)|Another test comment
+organisation|NODE|local(kuzu)|
+person|NODE|local(kuzu)|A test comment
+movies|NODE|local(kuzu)|
+studyAt|REL|local(kuzu)|
+meets|REL|local(kuzu)|

@@ -1,0 +1,19 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE NullTest
+
+-STATEMENT MATCH (a)-[:knows]->(b:person) WHERE a.ID = 2 RETURN a.ID, a.name, a.name IS NULL;
+---- 3
+2||True
+2||True
+2||True
+
+-STATEMENT RETURN NULL IS NULL
+---- 1
+True
+
+-STATEMENT RETURN NULL IS NOT NULL
+---- 1
+False

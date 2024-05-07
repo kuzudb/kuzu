@@ -1,0 +1,43 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE SemanticTest
+
+
+-STATEMENT MATCH p = (a:person)-[e:knows*3..3]->(b:person) WHERE a.ID = 0 WITH p AS newP RETURN COUNT(*);
+---- 1
+27
+-STATEMENT MATCH p = (a:person)-[e:knows*2..2]->(b:person) WHERE a.ID = 0 WITH p AS newP RETURN COUNT(*);
+---- 1
+9
+-STATEMENT CALL recursive_pattern_semantic = 'Trail';
+---- ok
+-STATEMENT MATCH p = (a:person)-[e:knows*3..3]->(b:person) WHERE a.ID = 0 WITH p AS newP RETURN COUNT(*);
+---- 1
+24
+-STATEMENT CALL recursive_pattern_semantic = 'Acyclic';
+---- ok
+-STATEMENT MATCH p = (a:person)-[e:knows*2..2]->(b:person) WHERE a.ID = 0 WITH p AS newP RETURN COUNT(*);
+---- 1
+6
+-STATEMENT MATCH p = (a:person)-[e:knows*2..2]->(b:person) RETURN COUNT(*);
+---- error
+Runtime exception: Different path semantics for COUNT(*) optimization is not implemented. Try WALK semantic.
+-STATEMENT MATCH p = (a:person)-[e:knows* SHORTEST 1..2]->(b:person) RETURN p;
+---- error
+Runtime exception: Different path semantics for shortest path is not implemented. Try WALK semantic.
+-STATEMENT MATCH p = (a:person)-[e:knows* ALL SHORTEST 1..2]->(b:person) RETURN p;
+---- error
+Runtime exception: Different path semantics for all shortest path is not implemented. Try WALK semantic.
+-STATEMENT CALL recursive_pattern_semantic = 'x';
+---- error
+Binder exception: Cannot parse x as a path semantic. Supported inputs are [WALK, TRAIL, ACYCLIC]
+-STATEMENT CALL current_setting('recursive_pattern_semantic') RETURN *;
+---- 1
+ACYCLIC
+-STATEMENT CALL recursive_pattern_factor = 100;
+---- ok
+-STATEMENT CALL current_setting('recursive_pattern_factor') RETURN *;
+---- 1
+100
