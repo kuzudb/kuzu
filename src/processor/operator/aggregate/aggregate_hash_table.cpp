@@ -392,15 +392,16 @@ void AggregateHashTable::increaseSlotIdx(uint64_t& slotIdx) const {
 }
 
 void AggregateHashTable::initTmpHashSlotsAndIdxes() {
-    if (hashVector->state->getSelVector().isUnfiltered()) {
-        for (auto i = 0u; i < hashVector->state->getSelVector().getSelSize(); i++) {
+    auto& hashSelVector = hashVector->state->getSelVector();
+    if (hashSelVector.isUnfiltered()) {
+        for (auto i = 0u; i < hashSelVector.getSelSize(); i++) {
             tmpValueIdxes[i] = i;
             tmpSlotIdxes[i] = getSlotIdxForHash(hashVector->getValue<hash_t>(i));
             hashSlotsToUpdateAggState[i] = getHashSlot(tmpSlotIdxes[i]);
         }
     } else {
-        for (auto i = 0u; i < hashVector->state->getSelVector().getSelSize(); i++) {
-            auto pos = hashVector->state->getSelVector()[i];
+        for (auto i = 0u; i < hashSelVector.getSelSize(); i++) {
+            auto pos = hashSelVector[i];
             tmpValueIdxes[i] = pos;
             tmpSlotIdxes[pos] = getSlotIdxForHash(hashVector->getValue<hash_t>(pos));
             hashSlotsToUpdateAggState[pos] = getHashSlot(tmpSlotIdxes[pos]);
