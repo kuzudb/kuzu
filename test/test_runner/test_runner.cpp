@@ -16,6 +16,20 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace testing {
 
+template<typename T>
+static bool precisionEqual(T x, T y) {
+    // epsilon() gives gap size (ULP, unit in the last place) in interval [1, 2)
+    // scale it to the gap size in interval [2^e, 2^{e+1}). e is min exponent
+    const T m = std::min(std::fabs(x), std::fabs(y));
+
+    // Subnormal numbers have fixed exponent, which is `min_exponent - 1`.
+    const int exp = m < std::numeric_limits<T>::min() ? std::numeric_limits<T>::min_exponent - 1 :
+                                                        std::ilogb(m);
+
+    // Equal if abs difference is within 1 ULP
+    return std::fabs(x - y) <= std::ldexp(std::numeric_limits<T>::epsilon(), exp);
+}
+
 void TestRunner::runTest(TestStatement* statement, Connection& conn, std::string& databasePath) {
     // for batch statements
     if (!statement->batchStatmentsCSVFile.empty()) {
@@ -179,19 +193,73 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
             return false;
         }
     }
-    if (resultTuples.size() == actualNumTuples && resultTuples == testAnswer.expectedResult) {
-        spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
-            result->getQuerySummary()->getExecutionTime());
-        return true;
+    if (statement->checkPrecision) {
+        if (!statement->checkOutputOrder) {
+            spdlog::error("PLAN{} NOT PASSED.", planIdx);
+            spdlog::info("PLAN: \n{}", planStr);
+            spdlog::info("CHECK_ORDER MUST BE ENABLED FOR CHECK_PRECISION");
+            return false;
+        }
+        if (resultTuples.size() == actualNumTuples && resultTuples.size() == testAnswer.numTuples &&
+            TestRunner::checkResultNumeric(*result, statement, resultIdx)) {
+            spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
+                result->getQuerySummary()->getExecutionTime());
+            return true;
+        }
     } else {
-        spdlog::error("PLAN{} NOT PASSED.", planIdx);
-        spdlog::info("PLAN: \n{}", planStr);
-        spdlog::info("RESULT: \n");
-        for (auto& tuple : resultTuples) {
-            spdlog::info(tuple);
+        if (resultTuples.size() == actualNumTuples && resultTuples == testAnswer.expectedResult) {
+            spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
+                result->getQuerySummary()->getExecutionTime());
+            return true;
         }
     }
+    spdlog::error("PLAN{} NOT PASSED.", planIdx);
+    spdlog::info("PLAN: \n{}", planStr);
+    spdlog::info("RESULT: \n");
+    for (auto& tuple : resultTuples) {
+        spdlog::info(tuple);
+    }
     return false;
+}
+
+bool TestRunner::checkResultNumeric(QueryResult& queryResult, TestStatement* statement,
+    size_t resultIdx) {
+    queryResult.resetIterator();
+    std::vector<LogicalType> dataTypes = queryResult.getColumnDataTypes();
+    TestQueryResult& testAnswer = statement->result[resultIdx];
+    int rowIdx = statement->checkColumnNames;
+    while (queryResult.hasNext()) {
+        auto actualTuple = queryResult.getNext();
+        auto testTuple = StringUtils::split(testAnswer.expectedResult[rowIdx], "|");
+        if (actualTuple->len() != testTuple.size()) {
+            return false;
+        }
+        for (uint32_t i = 0; i < dataTypes.size(); i++) {
+            auto curValue = actualTuple->getValue(i);
+            switch (dataTypes[i].getLogicalTypeID()) {
+            case LogicalTypeID::FLOAT: {
+                if (!precisionEqual(curValue->getValue<float>(), std::stof(testTuple[i]))) {
+                    return false;
+                }
+                break;
+            }
+            case LogicalTypeID::DOUBLE: {
+                if (!precisionEqual(curValue->getValue<double>(), std::stod(testTuple[i]))) {
+                    return false;
+                }
+                break;
+            }
+            default: {
+                if (curValue->toString() != testTuple[i]) {
+                    return false;
+                }
+                break;
+            }
+            }
+        }
+        rowIdx++;
+    }
+    return true;
 }
 
 std::vector<std::string> TestRunner::convertResultToString(QueryResult& queryResult,
