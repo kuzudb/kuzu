@@ -4,10 +4,6 @@
 #include "test_runner/csv_to_parquet_converter.h"
 #include "test_runner/test_parser.h"
 
-#ifdef KUZU_BACKTRACE
-#include <cpptrace/cpptrace.hpp>
-#endif
-
 using ::testing::Test;
 using namespace kuzu::testing;
 using namespace kuzu::common;
@@ -146,9 +142,6 @@ void checkGtestParams(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
-#ifdef KUZU_BACKTRACE
-    cpptrace::register_terminate_handler();
-#endif
     checkGtestParams(argc, argv);
     testing::InitGoogleTest(&argc, argv);
     if (argc > 1) {

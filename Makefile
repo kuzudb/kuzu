@@ -57,6 +57,9 @@ endif
 release:
 	$(call run-cmake-release,)
 
+relwithdebinfo:
+	$(call run-cmake-relwithdebinfo,)
+
 debug:
 	$(call run-cmake-debug,)
 
