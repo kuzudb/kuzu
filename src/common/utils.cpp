@@ -72,6 +72,10 @@ uint64_t nextPowerOfTwo(uint64_t v) {
     return v;
 }
 
+uint64_t prevPowerOfTwo(uint64_t v) {
+    return nextPowerOfTwo((v / 2) + 1);
+}
+
 bool isLittleEndian() {
     // Little endian arch stores the least significant value in the lower bytes.
     int testNumber = 1;
