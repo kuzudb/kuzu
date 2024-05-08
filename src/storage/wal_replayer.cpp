@@ -76,8 +76,8 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord,
     case WALRecordType::COPY_TABLE_RECORD: {
         replayCopyTableRecord(walRecord);
     } break;
-    case WALRecordType::DROP_TABLE_RECORD: {
-        replayDropTableRecord(walRecord);
+    case WALRecordType::DROP_CATALOG_ENTRY_RECORD: {
+        replayDropCatalogEntryRecord(walRecord);
     } break;
     default:
         KU_UNREACHABLE;
@@ -210,11 +210,12 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) {
 }
 
 // Replay catalog should only work under RECOVERY mode.
-void WALReplayer::replayDropTableRecord(const WALRecord& walRecord) {
+void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) {
     if (!(isCheckpoint && isRecovering)) {
         return;
     }
-    auto dropTableRecord = ku_dynamic_cast<const WALRecord&, const DropTableRecord&>(walRecord);
+    auto dropTableRecord =
+        ku_dynamic_cast<const WALRecord&, const DropCatalogEntryRecord&>(walRecord);
     auto tableID = dropTableRecord.tableID;
     auto tableEntry =
         clientContext.getCatalog()->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID);

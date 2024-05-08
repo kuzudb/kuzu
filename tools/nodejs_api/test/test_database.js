@@ -191,55 +191,6 @@ describe("Database constructor", function () {
   });
 });
 
-describe("Set logging level", function () {
-  it("should set the logging level if the database is initialized", async function () {
-    assert.isTrue(db._isInitialized);
-    assert.exists(db._database);
-    db.setLoggingLevel(kuzu.LoggingLevel.DEBUG);
-    db.setLoggingLevel(kuzu.LoggingLevel.INFO);
-    db.setLoggingLevel(kuzu.LoggingLevel.ERROR);
-  });
-
-  it("should store the logging level if the database is not initialized", async function () {
-    const tmpDbPath = await new Promise((resolve, reject) => {
-      tmp.dir({ unsafeCleanup: true }, (err, path, _) => {
-        if (err) {
-          return reject(err);
-        }
-        return resolve(path);
-      });
-    });
-    const testDb = new kuzu.Database(tmpDbPath, 1 << 28 /* 256MB */);
-    assert.exists(testDb);
-    assert.isFalse(testDb._isInitialized);
-    testDb.setLoggingLevel(kuzu.LoggingLevel.DEBUG);
-    assert.equal(testDb._loggingLevel, kuzu.LoggingLevel.DEBUG);
-    testDb.setLoggingLevel(kuzu.LoggingLevel.INFO);
-    assert.equal(testDb._loggingLevel, kuzu.LoggingLevel.INFO);
-    testDb.setLoggingLevel(kuzu.LoggingLevel.ERROR);
-    assert.equal(testDb._loggingLevel, kuzu.LoggingLevel.ERROR);
-    await testDb.init();
-    assert.isTrue(testDb._isInitialized);
-    assert.exists(testDb._database);
-    // The logging level should be reset after initialization
-    assert.notExists(testDb._loggingLevel);
-  });
-
-  it("should throw error if the logging level is invalid", async function () {
-    assert.isTrue(db._isInitialized);
-    assert.exists(db._database);
-    try {
-      db.setLoggingLevel("TEST");
-      assert.fail("No error thrown when the logging level is invalid.");
-    } catch (e) {
-      assert.equal(
-        e.message,
-        "Invalid logging level: TEST. Valid logging levels are: kuzu.LoggingLevel.DEBUG, kuzu.LoggingLevel.INFO, kuzu.LoggingLevel.ERROR."
-      );
-    }
-  });
-});
-
 describe("Database close", function () {
   it("should allow initializing a new database after closing", async function () {
     if (process.platform === "win32") {

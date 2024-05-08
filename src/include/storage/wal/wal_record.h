@@ -1,14 +1,11 @@
 #pragma once
 
+#include "catalog/catalog_entry/catalog_entry.h"
 #include "common/enums/table_type.h"
 #include "common/types/internal_id_t.h"
 #include "function/hash/hash_functions.h"
 
 namespace kuzu {
-namespace catalog {
-class CatalogEntry;
-} // namespace catalog
-
 namespace common {
 class Serializer;
 class Deserializer;
@@ -57,8 +54,7 @@ enum class WALRecordType : uint8_t {
     COMMIT_RECORD = 2,
     COPY_TABLE_RECORD = 3,
     CREATE_CATALOG_ENTRY_RECORD = 4,
-    CREATE_SCALAR_MACRO_RECORD = 5,
-    DROP_TABLE_RECORD = 10,
+    DROP_CATALOG_ENTRY_RECORD = 10,
     PAGE_UPDATE_OR_INSERT_RECORD = 20,
     TABLE_STATISTICS_RECORD = 30,
 };
@@ -145,15 +141,15 @@ struct TableStatisticsRecord final : public WALRecord {
     static std::unique_ptr<TableStatisticsRecord> deserialize(common::Deserializer& deserializer);
 };
 
-struct DropTableRecord final : public WALRecord {
+struct DropCatalogEntryRecord final : public WALRecord {
     common::table_id_t tableID;
 
-    DropTableRecord() = default;
-    explicit DropTableRecord(common::table_id_t tableID)
-        : WALRecord{WALRecordType::DROP_TABLE_RECORD}, tableID{tableID} {}
+    DropCatalogEntryRecord() = default;
+    explicit DropCatalogEntryRecord(common::table_id_t tableID)
+        : WALRecord{WALRecordType::DROP_CATALOG_ENTRY_RECORD}, tableID{tableID} {}
 
     void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<DropTableRecord> deserialize(common::Deserializer& deserializer);
+    static std::unique_ptr<DropCatalogEntryRecord> deserialize(common::Deserializer& deserializer);
 };
 
 } // namespace storage

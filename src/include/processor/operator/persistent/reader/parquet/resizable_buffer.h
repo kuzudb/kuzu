@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstring>
+#include <memory>
+#include <stdexcept>
 
 #include "common/utils.h"
 

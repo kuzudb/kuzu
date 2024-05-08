@@ -2,7 +2,6 @@
 
 #include <fcntl.h>
 
-#include "catalog/catalog_entry/catalog_entry.h"
 #include "common/file_system/file_info.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
@@ -78,7 +77,7 @@ void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry) {
 
 void WAL::logDropTableRecord(table_id_t tableID) {
     lock_t lck{mtx};
-    DropTableRecord walRecord(tableID);
+    DropCatalogEntryRecord walRecord(tableID);
     addNewWALRecordNoLock(walRecord);
 }
 

@@ -1,4 +1,5 @@
 #pragma once
+
 #include "decode_utils.h"
 
 namespace kuzu {
@@ -28,14 +29,6 @@ public:
         bitpack_pos = 0;
         is_first_value = true;
     };
-
-    ByteBuffer BufferPtr() {
-        if (bitpack_pos != 0) {
-            buffer_.inc(1);
-            bitpack_pos = 0;
-        }
-        return buffer_;
-    }
 
     template<typename T>
     void GetBatch(uint8_t* values_target_ptr, uint32_t batch_size) {
@@ -98,15 +91,6 @@ public:
         }
         start_value = values[batch_size - 1];
     }
-    void Finalize() {
-        if (values_left_in_miniblock == 0) {
-            return;
-        }
-        auto data = std::unique_ptr<uint32_t[]>(new uint32_t[values_left_in_miniblock]);
-        GetBatch<uint32_t>(reinterpret_cast<uint8_t*>(data.get()), values_left_in_miniblock);
-    }
-
-    uint64_t TotalValues() const { return total_value_count; }
 
 private:
     ByteBuffer buffer_;

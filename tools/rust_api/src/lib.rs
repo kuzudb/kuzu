@@ -40,6 +40,16 @@
 //! - `KUZU_INCLUDE_DIR`: Directory of kuzu's headers
 //! - `KUZU_LIBRARY_DIR`: Directory containing kuzu's pre-built libraries.
 
+pub use connection::{Connection, PreparedStatement};
+pub use database::{Database, SystemConfig};
+pub use error::Error;
+pub use logical_type::LogicalType;
+#[cfg(feature = "arrow")]
+pub use query_result::ArrowIterator;
+pub use query_result::{CSVOptions, QueryResult};
+pub use rdf_variant::RDFVariant;
+pub use value::{InternalID, NodeVal, RelVal, Value};
+
 mod connection;
 mod database;
 mod error;
@@ -48,17 +58,6 @@ mod logical_type;
 mod query_result;
 mod rdf_variant;
 mod value;
-
-pub use connection::{Connection, PreparedStatement};
-pub use database::{Database, LoggingLevel, SystemConfig};
-pub use error::Error;
-pub use logical_type::LogicalType;
-pub use query_result::{CSVOptions, QueryResult};
-pub use rdf_variant::RDFVariant;
-pub use value::{InternalID, NodeVal, RelVal, Value};
-
-#[cfg(feature = "arrow")]
-pub use query_result::ArrowIterator;
 
 /// The version of the Kùzu crate as reported by Cargo's CARGO_PKG_VERSION environment variable
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

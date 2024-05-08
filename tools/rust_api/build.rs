@@ -108,7 +108,6 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
         kuzu_root.join("src/include"),
         build_dir.join("build/src"),
         kuzu_root.join("third_party/nlohmann_json"),
-        kuzu_root.join("third_party/spdlog"),
         kuzu_root.join("third_party/fastpfor"),
     ])
 }

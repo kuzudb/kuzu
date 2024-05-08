@@ -268,18 +268,6 @@ JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1database_1destroy(JNIEnv
     delete db;
 }
 
-JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1database_1set_1logging_1level(JNIEnv* env,
-    jclass, jstring logging_level) {
-    const char* lvl = env->GetStringUTFChars(logging_level, JNI_FALSE);
-    try {
-        Database::setLoggingLevel(lvl);
-        env->ReleaseStringUTFChars(logging_level, lvl);
-    } catch (const ConversionException& e) {
-        env->ReleaseStringUTFChars(logging_level, lvl);
-        env->ThrowNew(J_C_Exception, e.what());
-    }
-}
-
 /**
  * All Connection native functions
  */

@@ -124,8 +124,6 @@ public:
 private:
     void openLockFile();
     void initAndLockDBDir();
-    static void initLoggers();
-    static void dropLoggers();
 
 private:
     std::string databasePath;

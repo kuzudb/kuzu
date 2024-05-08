@@ -323,12 +323,6 @@ KUZU_C_API kuzu_database* kuzu_database_init(const char* database_path,
  * @param database The database instance to destroy.
  */
 KUZU_C_API void kuzu_database_destroy(kuzu_database* database);
-/**
- * @brief Sets the logging level of the database.
- * @param logging_level The logging level to set. Supported logging levels are: "info", "debug",
- * "err".
- */
-KUZU_C_API void kuzu_database_set_logging_level(const char* logging_level);
 
 KUZU_C_API kuzu_system_config kuzu_default_system_config();
 
