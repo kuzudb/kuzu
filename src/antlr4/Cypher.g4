@@ -25,6 +25,7 @@ oC_Statement
         | kU_CreateRelTable
         | kU_CreateRelTableGroup
         | kU_CreateRdfGraph
+        | kU_CreateSequence
         | kU_DropTable
         | kU_AlterTable
         | kU_CopyFrom
@@ -143,7 +144,7 @@ kU_CreateRelTable
     : CREATE SP REL SP TABLE SP oC_SchemaName SP? '(' SP? kU_RelTableConnection SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
 
 kU_CreateRelTableGroup
-   : CREATE SP REL SP TABLE SP GROUP SP oC_SchemaName SP? '(' SP? kU_RelTableConnection SP ? (',' SP? kU_RelTableConnection)+ SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
+    : CREATE SP REL SP TABLE SP GROUP SP oC_SchemaName SP? '(' SP? kU_RelTableConnection SP ? (',' SP? kU_RelTableConnection)+ SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
 
 GROUP : ( 'G' | 'g' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'U' | 'u' ) ( 'P' | 'p' ) ;
 
@@ -154,6 +155,37 @@ kU_CreateRdfGraph
     : CREATE SP RDFGRAPH SP oC_SchemaName ;
 
 RDFGRAPH : ('R' | 'r') ('D' | 'd') ('F' | 'f') ('G' | 'g') ('R' | 'r') ('A' | 'a') ('P' | 'p') ('H' | 'h') ;
+
+kU_CreateSequence
+    : CREATE SP SEQUENCE SP oC_SchemaName kU_SequenceOptions* ;
+
+SEQUENCE : ('S' | 's') ('E' | 'e') ('Q' | 'q') ('U' | 'u') ('E' | 'e') ('N' | 'n') ('C' | 'c') ('E' | 'e') ;
+
+kU_SequenceOptions
+    : kU_IncrementBy
+        | kU_MinMaxValue
+        | kU_StartWith
+        | kU_Cycle;
+
+kU_IncrementBy : INCREMENT SP ( BY SP )? oC_Expression ;
+
+INCREMENT : ('I' | 'i') ('N' | 'n') ('C' | 'c') ('R' | 'r') ('E' | 'e') ('M' | 'm') ('E' | 'e') ('N' | 'n') ('T' | 't') ;
+
+kU_MinMaxValue : ( MINVALUE | MAXVALUE ) SP oC_Expression ;
+
+MINVALUE : ('M' | 'm') ('I' | 'i') ('N' | 'n') ('V' | 'v') ('A' | 'a') ('L' | 'l') ('U' | 'u') ('E' | 'e') ;
+
+MAXVALUE : ('M' | 'm') ('A' | 'a') ('X' | 'x') ('V' | 'v') ('A' | 'a') ('L' | 'l') ('U' | 'u') ('E' | 'e') ;
+
+kU_StartWith : START SP ( WITH SP )? oC_Expression ;
+
+START : ('S' | 's') ('T' | 't') ('A' | 'a') ('R' | 'r') ('T' | 't') ;
+
+kU_Cycle : (NO SP)? CYCLE ;
+
+NO : ('N' | 'n') ('O' | 'o') ;
+
+CYCLE : ('C' | 'c') ('Y' | 'y') ('C' | 'c') ('L' | 'l') ('E' | 'e') ;
 
 kU_DropTable
     : DROP SP (TABLE | RDFGRAPH) SP oC_SchemaName ;
