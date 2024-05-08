@@ -115,8 +115,15 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
     auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), planIdx);
     TestQueryResult& testAnswer = statement->result[resultIdx];
     std::string expectedError;
+
+    
+    
     switch (testAnswer.type) {
     case ResultType::OK: {
+        auto planStrTest = preparedStatement->logicalPlans[planIdx]->toString();
+        if (planStrTest.find("HASH_JOIN") != std::string::npos) {
+            spdlog::info("CONTAINS HASH_JOIN");
+        }
         return result->isSuccess();
     }
     case ResultType::ERROR_MSG: {
@@ -144,6 +151,9 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
         auto planStr = preparedStatement->logicalPlans[planIdx]->toString();
         if (checkPlanResult(result, statement, resultIdx, planStr, planIdx)) {
             return true;
+        }
+        if (planStr.find("HASH_JOIN") != std::string::npos) {
+            spdlog::info("CONTAINS HASH_JOIN");
         }
         break;
     }
