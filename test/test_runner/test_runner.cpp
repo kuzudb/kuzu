@@ -116,8 +116,6 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
     TestQueryResult& testAnswer = statement->result[resultIdx];
     std::string expectedError;
 
-    
-    
     switch (testAnswer.type) {
     case ResultType::OK: {
         auto planStrTest = preparedStatement->logicalPlans[planIdx]->toString();
