@@ -82,6 +82,13 @@ public:
     PythonCachedItem NaT;
 };
 
+class PolarsCachedItem : public PythonCachedItem {
+public:
+    PolarsCachedItem() : PythonCachedItem("polars"), DataFrame("DataFrame", this) {}
+
+    PythonCachedItem DataFrame;
+};
+
 class PyarrowCachedItem : public PythonCachedItem {
 
     class RecordBatchCachedItem : public PythonCachedItem {

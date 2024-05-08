@@ -14,6 +14,7 @@
 #include "main/connection.h"
 #include "pandas/pandas_scan.h"
 #include "processor/result/factorized_table.h"
+#include "pyarrow/pyarrow_scan.h"
 
 using namespace kuzu::common;
 using namespace kuzu;
@@ -39,10 +40,71 @@ void PyConnection::initialize(py::handle& m) {
     PyDateTime_IMPORT;
 }
 
+static std::unique_ptr<function::ScanReplacementData> tryReplacePolars(py::dict& dict,
+    py::str& objectName) {
+    if (!dict.contains(objectName)) {
+        return nullptr;
+    }
+    auto entry = dict[objectName];
+    if (py::isinstance(entry, importCache->polars.DataFrame())) {
+        auto scanReplacementData = std::make_unique<function::ScanReplacementData>();
+        scanReplacementData->func = PyArrowTableScanFunction::getFunction();
+        auto bindInput = function::TableFuncBindInput();
+        bindInput.inputs.push_back(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())));
+        scanReplacementData->bindInput = std::move(bindInput);
+        return scanReplacementData;
+    } else {
+        return nullptr;
+    }
+}
+
+static std::unique_ptr<function::ScanReplacementData> replacePythonObject(
+    const std::string& objectName) {
+    py::gil_scoped_acquire acquire;
+    auto pyTableName = py::str(objectName);
+    // Here we do an exhaustive search on the frame lineage.
+    auto currentFrame = importCache->inspect.currentframe()();
+    bool nameMatchFound = false;
+    while (hasattr(currentFrame, "f_locals")) {
+        auto localDict = py::reinterpret_borrow<py::dict>(currentFrame.attr("f_locals"));
+        if (localDict) {
+            if (localDict.contains(pyTableName)) {
+                nameMatchFound = true;
+            }
+            auto result = tryReplacePD(localDict, pyTableName);
+            if (!result) {
+                result = tryReplacePolars(localDict, pyTableName);
+            }
+            if (result) {
+                return result;
+            }
+        }
+        auto globalDict = py::reinterpret_borrow<py::dict>(currentFrame.attr("f_globals"));
+        if (globalDict) {
+            if (globalDict.contains(pyTableName)) {
+                nameMatchFound = true;
+            }
+            auto result = tryReplacePD(globalDict, pyTableName);
+            if (!result) {
+                result = tryReplacePolars(localDict, pyTableName);
+            }
+            if (result) {
+                return result;
+            }
+        }
+        currentFrame = currentFrame.attr("f_back");
+    }
+    if (nameMatchFound) {
+        throw BinderException(
+            stringFormat("Variable {} found but no matches were DataFrames", objectName));
+    }
+    return nullptr;
+}
+
 PyConnection::PyConnection(PyDatabase* pyDatabase, uint64_t numThreads) {
     storageDriver = std::make_unique<kuzu::main::StorageDriver>(pyDatabase->database.get());
     conn = std::make_unique<Connection>(pyDatabase->database.get());
-    conn->getClientContext()->addScanReplace(function::ScanReplacement(kuzu::replacePD));
+    conn->getClientContext()->addScanReplace(function::ScanReplacement(replacePythonObject));
     if (numThreads > 0) {
         conn->setMaxNumThreadForExec(numThreads);
     }
