@@ -1,3 +1,4 @@
+#include "common/exception/runtime.h"
 #include "main_test_helper/main_test_helper.h"
 
 using namespace kuzu::common;
@@ -9,6 +10,15 @@ static int32_t add5(int32_t x) {
     return x + 5;
 }
 
+static int32_t throwRuntimeException() {
+    throw RuntimeException("test");
+    return 1;
+}
+
+static int32_t dontThrowRuntimeException() {
+    return 1;
+}
+
 TEST_F(ApiTest, UnaryUDFInt64) {
     conn->createScalarFunction("add5", &add5);
     // Dummy query to ensure the add5 function is persistent after a write transaction.
@@ -16,6 +26,28 @@ TEST_F(ApiTest, UnaryUDFInt64) {
     auto actualResult = TestHelper::convertResultToString(
         *conn->query("MATCH (p:person) return add5(to_int32(p.age))"));
     auto expectedResult = std::vector<std::string>{"40", "35", "50", "25", "25", "30", "45", "88"};
+    sortAndCheckTestResults(actualResult, expectedResult);
+}
+
+TEST_F(ApiTest, TestDropUDF) {
+    conn->createScalarFunction("add5", &add5);
+    conn->removeUDFFunction("add5");
+    conn->createScalarFunction("add5", &add5);
+}
+
+TEST_F(ApiTest, TestExceptUDF) {
+    conn->createScalarFunction("test", &throwRuntimeException);
+    auto result = conn->query("RETURN test()");
+    ASSERT_EQ(result->isSuccess(), false);
+    conn->removeUDFFunction("test");
+    conn->createScalarFunction("test", &dontThrowRuntimeException);
+    conn->query("RETURN test()");
+}
+
+TEST_F(ApiTest, TestZeroParamUDF) {
+    conn->createScalarFunction("test", &dontThrowRuntimeException);
+    auto actualResult = TestHelper::convertResultToString(*conn->query("MATCH (p:person) return test()"));
+    auto expectedResult = std::vector<std::string>{"1","1","1","1","1","1","1","1"};
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 

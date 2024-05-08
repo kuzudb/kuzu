@@ -159,6 +159,7 @@ private:
         PreparedStatement* preparedStatement, uint32_t planIdx = 0u, bool requiredNexTx = true);
 
     void addScalarFunction(std::string name, function::function_set definitions);
+    void removeScalarFunction(std::string name);
 
     bool startUDFAutoTrx(transaction::TransactionContext* trx);
 

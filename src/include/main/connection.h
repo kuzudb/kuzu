@@ -1,6 +1,8 @@
 #pragma once
 
 #include "client_context.h"
+#include "common/case_insensitive_map.h"
+#include "common/exception/runtime.h"
 #include "database.h"
 #include "function/udf_function.h"
 
@@ -99,9 +101,14 @@ public:
     void createScalarFunction(std::string name, TR (*udfFunc)(Args...)) {
         auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
-        addScalarFunction(std::move(nameCopy),
-            function::UDF::getFunction<TR, Args...>(std::move(name), udfFunc));
+        try {
+            addScalarFunction(std::move(nameCopy),
+                function::UDF::getFunction<TR, Args...>(name, udfFunc));
+        } catch (std::exception& e) {
+            throw;
+        }
         commitUDFTrx(autoTrx);
+        udfNames.insert(name);
     }
 
     template<typename TR, typename... Args>
@@ -109,25 +116,55 @@ public:
         common::LogicalTypeID returnType, TR (*udfFunc)(Args...)) {
         auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
-        addScalarFunction(std::move(nameCopy),
-            function::UDF::getFunction<TR, Args...>(std::move(name), udfFunc,
-                std::move(parameterTypes), returnType));
+        try {
+            addScalarFunction(std::move(nameCopy),
+                function::UDF::getFunction<TR, Args...>(name, udfFunc, std::move(parameterTypes),
+                    returnType));
+        } catch (std::exception& e) {
+            throw;
+        }
         commitUDFTrx(autoTrx);
+        udfNames.insert(name);
     }
 
     void addUDFFunctionSet(std::string name, function::function_set func) {
         auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
-        addScalarFunction(std::move(name), std::move(func));
+        try {
+            addScalarFunction(name, std::move(func));
+        } catch (std::exception& e) {
+            throw;
+        }
         commitUDFTrx(autoTrx);
+        udfNames.insert(name);
+    }
+
+    void removeUDFFunction(std::string name) {
+        if (!udfNames.contains(name)) {
+            throw common::RuntimeException(
+                common::stringFormat("No user defined function matches the name {}", name));
+        }
+        auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
+        try {
+            removeScalarFunction(name);
+        } catch (std::exception& e) {
+            throw;
+        }
+        commitUDFTrx(autoTrx);
+        udfNames.erase(name);
     }
 
     template<typename TR, typename... Args>
     void createVectorizedFunction(std::string name, function::scalar_func_exec_t scalarFunc) {
         auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
-        addScalarFunction(std::move(nameCopy), function::UDF::getVectorizedFunction<TR, Args...>(
-                                                   std::move(name), std::move(scalarFunc)));
+        try {
+            addScalarFunction(std::move(nameCopy),
+                function::UDF::getVectorizedFunction<TR, Args...>(name, std::move(scalarFunc)));
+        } catch (std::exception& e) {
+            throw;
+        }
         commitUDFTrx(autoTrx);
+        udfNames.insert(name);
     }
 
     void createVectorizedFunction(std::string name,
@@ -135,10 +172,15 @@ public:
         function::scalar_func_exec_t scalarFunc) {
         auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
-        addScalarFunction(std::move(nameCopy),
-            function::UDF::getVectorizedFunction(std::move(name), std::move(scalarFunc),
-                std::move(parameterTypes), returnType));
+        try {
+            addScalarFunction(std::move(nameCopy),
+                function::UDF::getVectorizedFunction(name, std::move(scalarFunc),
+                    std::move(parameterTypes), returnType));
+        } catch (std::exception& e) {
+            throw;
+        }
         commitUDFTrx(autoTrx);
+        udfNames.insert(name);
     }
 
     ClientContext* getClientContext() { return clientContext.get(); };
@@ -169,11 +211,15 @@ private:
         PreparedStatement* preparedStatement, uint32_t planIdx = 0u);
 
     KUZU_API void addScalarFunction(std::string name, function::function_set definitions);
+    KUZU_API void removeScalarFunction(std::string name);
 
     KUZU_API bool startUDFAutoTrx(transaction::TransactionContext* trx);
     KUZU_API void commitUDFTrx(bool isAutoCommitTrx);
 
 private:
+    std::unordered_set<std::string, common::CaseInsensitiveStringHashFunction,
+        common::CaseInsensitiveStringEquality>
+        udfNames;
     Database* database;
     std::unique_ptr<ClientContext> clientContext;
 };

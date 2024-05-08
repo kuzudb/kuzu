@@ -517,20 +517,8 @@ void ClientContext::addScalarFunction(std::string name, function::function_set d
         std::move(name), std::move(definitions));
 }
 
-bool ClientContext::startUDFAutoTrx(TransactionContext* trx) {
-    if (!trx->hasActiveTransaction()) {
-        auto res = query("BEGIN TRANSACTION");
-        KU_ASSERT(res->isSuccess());
-        return true;
-    }
-    return false;
-}
-
-void ClientContext::commitUDFTrx(bool isAutoCommitTrx) {
-    if (isAutoCommitTrx) {
-        auto res = query("COMMIT");
-        KU_ASSERT(res->isSuccess());
-    }
+void ClientContext::removeScalarFunction(std::string name) {
+    localDatabase->catalog->removeFunction(getTx(), std::move(name));
 }
 
 bool ClientContext::canExecuteWriteQuery() {

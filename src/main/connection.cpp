@@ -89,6 +89,10 @@ void Connection::addScalarFunction(std::string name, function::function_set defi
     clientContext->addScalarFunction(name, std::move(definitions));
 }
 
+void Connection::removeScalarFunction(std::string name) {
+    clientContext->removeScalarFunction(name);
+}
+
 bool Connection::startUDFAutoTrx(transaction::TransactionContext* trx) {
     return clientContext->startUDFAutoTrx(trx);
 }
