@@ -2,7 +2,6 @@
 
 #include <unordered_map>
 
-#include "catalog/catalog_entry/function_catalog_entry.h"
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/file_system/file_info.h"
