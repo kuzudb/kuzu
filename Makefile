@@ -90,8 +90,8 @@ alldebug:
 
 # Main tests
 test:
-	$(call run-cmake-debug, -DBUILD_TESTS=TRUE)
-	ctest --test-dir build/debug/test --output-on-failure -j ${TEST_JOBS}
+	$(call run-cmake-release, -DBUILD_TESTS=TRUE)
+	ctest --test-dir build/release/test --output-on-failure -j ${TEST_JOBS}
 
 lcov:
 	$(call run-cmake-release, -DBUILD_TESTS=TRUE -DBUILD_LCOV=TRUE)
