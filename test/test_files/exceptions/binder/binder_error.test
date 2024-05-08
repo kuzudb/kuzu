@@ -438,7 +438,7 @@ DISTINCT (SERIAL) -> SERIAL
 -LOG DropColumnFromNonExistedTable
 -STATEMENT alter table person1 drop k
 ---- error
-Catalog exception: Table: person1 does not exist.
+Catalog exception: person1 does not exist in catalog.
 
 -LOG DropNonExistedColumn
 -STATEMENT alter table person drop random
@@ -463,7 +463,7 @@ Binder exception: Expression 3.2 has data type STRING but expected INT64. Implic
 -LOG RenameNonExistedTable
 -STATEMENT alter table person1 rename to person2
 ---- error
-Catalog exception: Table: person1 does not exist.
+Catalog exception: person1 does not exist in catalog.
 
 -LOG RenameTableDuplicateName
 -STATEMENT alter table person rename to organisation
@@ -473,7 +473,7 @@ Binder exception: Table: organisation already exists.
 -LOG RenamePropertyOfNonExistedTable
 -STATEMENT alter table person1 rename col1 to col2
 ---- error
-Catalog exception: Table: person1 does not exist.
+Catalog exception: person1 does not exist in catalog.
 
 -LOG RenamePropertyDuplicateName
 -STATEMENT alter table person rename fName to gender

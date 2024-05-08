@@ -156,12 +156,14 @@ public:
         return std::make_pair(i / divisor, i % divisor);
     }
 
-    static inline void removeAllWALFiles(const std::string& directory) {
-        for (auto& folderIter : std::filesystem::directory_iterator(directory)) {
-            if (folderIter.path().extension() == common::StorageConstants::WAL_FILE_SUFFIX) {
-                std::filesystem::remove(folderIter.path());
-            }
-        }
+    static inline void removeCatalogAndStatsWALFiles(const std::string& directory,
+        common::VirtualFileSystem* vfs) {
+        vfs->removeFileIfExists(
+            StorageUtils::getCatalogFilePath(vfs, directory, common::FileVersionType::WAL_VERSION));
+        vfs->removeFileIfExists(StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(vfs,
+            directory, common::FileVersionType::WAL_VERSION));
+        vfs->removeFileIfExists(StorageUtils::getRelsStatisticsFilePath(vfs, directory,
+            common::FileVersionType::WAL_VERSION));
     }
 
     static inline std::string appendWALFileSuffixIfNecessary(const std::string& fileName,

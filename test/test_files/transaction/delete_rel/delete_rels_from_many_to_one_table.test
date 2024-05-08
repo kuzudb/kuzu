@@ -18,6 +18,9 @@
 22
 32
 33
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE deleteRelsFromManyToOneTableCommitRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -37,6 +40,8 @@
 22
 32
 33
+-STATEMENT COMMIT;
+---- ok
 
 
 -CASE deleteRelsFromManyToOneTableRollbackNormalExecution
@@ -58,6 +63,9 @@
 31
 32
 33
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE deleteRelsFromManyToOneTableRollbackRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -79,3 +87,5 @@
 31
 32
 33
+-STATEMENT COMMIT;
+---- ok

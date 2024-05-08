@@ -21,7 +21,7 @@
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_NEWLY_INSERTED_RELS
 -STATEMENT COMMIT
----- ok 
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) where p.ID > 4 return e.length
@@ -29,6 +29,8 @@
 
 55
 201
+-STATEMENT COMMIT;
+---- ok
 
 
 -CASE updateNewlyInsertedRelsCommitRecovery
@@ -45,6 +47,8 @@
 
 55
 201
+-STATEMENT COMMIT;
+---- ok
 
 
 -CASE updateNewlyInsertedRelsRollbackNormalExecution
@@ -52,21 +56,25 @@
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_NEWLY_INSERTED_RELS
 -STATEMENT Rollback
----- ok 
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) where p.ID > 4 return e.length
 ---- 0
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE updateNewlyInsertedRelsRollbackRecovery
--LOG updateNewlyInsertedRelsRollbackRecovery
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_NEWLY_INSERTED_RELS
 -STATEMENT ROLLBACK_SKIP_CHECKPOINT
----- ok 
+---- ok
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) where p.ID > 4 return e.length
 ---- 0
+-STATEMENT COMMIT;
+---- ok

@@ -34,6 +34,7 @@ public:
             transaction::TransactionType::WRITE, fs);
     }
 
+    void setToUpdated() { isUpdated = true; }
     bool hasUpdates() const { return isUpdated; }
 
     void checkpointInMemoryIfNecessary() {
@@ -56,7 +57,8 @@ public:
     }
     void removeTableStatistic(common::table_id_t tableID) {
         setToUpdated();
-        readOnlyVersion->tableStatisticPerTable.erase(tableID);
+        initTableStatisticsForWriteTrx();
+        readWriteVersion->tableStatisticPerTable.erase(tableID);
     }
 
     uint64_t getNumTuplesForTable(transaction::Transaction* transaction,
@@ -81,7 +83,8 @@ public:
 
     void initTableStatisticsForWriteTrx();
 
-    void setToUpdated() { isUpdated = true; }
+    void saveToFile(const std::string& directory, common::FileVersionType dbFileType,
+        transaction::TransactionType transactionType, common::VirtualFileSystem* fs);
 
 protected:
     virtual std::unique_ptr<TableStatistics> constructTableStatistic(
@@ -95,11 +98,8 @@ protected:
                                                                  readWriteVersion.get();
     }
 
-    void readFromFile(common::VirtualFileSystem* fs);
-    void readFromFile(common::FileVersionType dbFileType, common::VirtualFileSystem* fs);
-
-    void saveToFile(const std::string& directory, common::FileVersionType dbFileType,
-        transaction::TransactionType transactionType, common::VirtualFileSystem* fs);
+    void readFromFile(const std::string& dbPath, common::FileVersionType dbFileType,
+        common::VirtualFileSystem* fs);
 
     void initTableStatisticsForWriteTrxNoLock();
 

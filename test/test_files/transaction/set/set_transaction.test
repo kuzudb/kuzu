@@ -13,6 +13,9 @@
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age;
 ---- 1
 70
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE NullTest
 -STATEMENT BEGIN TRANSACTION
@@ -24,6 +27,10 @@
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age;
 ---- 1
+
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE TimeoutErrorTest
 -CHECKPOINT_WAIT_TIMEOUT 10000
@@ -37,10 +44,11 @@
 ---- ok
 -STATEMENT [conn2] COMMIT
 ---- error
-Timeout waiting for read transactions to leave the system before committing and checkpointing a write transaction. If you have an open read transaction close and try again.
+Timeout waiting for active transactions to leave the system before checkpointing. If you have an open transaction, please close it and try again.
 -STATEMENT [conn1] MATCH (a:person) WHERE a.ID=0 RETURN a.age;
 ---- 1
 35
+
 
 -CASE RollbackTest
 -STATEMENT BEGIN TRANSACTION;

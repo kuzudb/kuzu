@@ -557,7 +557,6 @@ void Column::writeValues(ChunkState& state, common::offset_t dstOffset, const ui
             writeFunc(frame, offsetInPage, data, srcOffset + numValuesWritten,
                 numValuesToWriteInPage, state.metadata.compMeta, nullChunkData);
         });
-
         numValuesWritten += numValuesToWriteInPage;
         cursor.nextPage();
     }

@@ -12,6 +12,8 @@
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID = 0 RETURN e.length
 ---- 0
+-STATEMENT COMMIT;
+---- ok
 
 
 -CASE deleteAllRelsFromLargeListCommitRecovery
@@ -26,6 +28,9 @@
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID = 0 RETURN e.length
 ---- 0
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE deleteAllRelsFromLargeListRollbackNormalExecution
 -STATEMENT BEGIN TRANSACTION
@@ -39,6 +44,9 @@
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID = 0 RETURN e.length
 ---- 2300
 <FILE>:delete_rels.txt
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE deleteAllRelsFromLargeListRollbackRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -53,6 +61,9 @@
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID = 0 RETURN e.length
 ---- 2300
 <FILE>:delete_rels.txt
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE detachDeleteNodeWithLageList
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) RETURN COUNT(*);

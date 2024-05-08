@@ -1,6 +1,7 @@
 #include "main/db_config.h"
 
 #include "common/string_utils.h"
+#include "main/database.h"
 #include "main/settings.h"
 
 using namespace kuzu::common;
@@ -17,7 +18,15 @@ static ConfigurationOption options[] = { // NOLINT(cert-err58-cpp):
     GET_CONFIGURATION(HomeDirectorySetting), GET_CONFIGURATION(FileSearchPathSetting),
     GET_CONFIGURATION(ProgressBarSetting), GET_CONFIGURATION(ProgressBarTimerSetting),
     GET_CONFIGURATION(RecursivePatternSemanticSetting),
-    GET_CONFIGURATION(RecursivePatternFactorSetting)};
+    GET_CONFIGURATION(RecursivePatternFactorSetting), GET_CONFIGURATION(EnableMVCCSetting)};
+
+DBConfig::DBConfig(SystemConfig& systemConfig) {
+    bufferPoolSize = systemConfig.bufferPoolSize;
+    maxNumThreads = systemConfig.maxNumThreads;
+    enableCompression = systemConfig.enableCompression;
+    readOnly = systemConfig.readOnly;
+    maxDBSize = systemConfig.maxDBSize;
+}
 
 ConfigurationOption* DBConfig::getOptionByName(const std::string& optionName) {
     auto lOptionName = optionName;

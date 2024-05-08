@@ -15,18 +15,21 @@ void Property::serialize(Serializer& serializer) const {
     serializer.serializeValue(name);
     dataType->serialize(serializer);
     serializer.serializeValue(propertyID);
+    serializer.serializeValue(columnID);
     serializer.serializeValue(tableID);
 }
 
 Property Property::deserialize(Deserializer& deserializer) {
     std::string name;
     property_id_t propertyID;
+    column_id_t columnID;
     table_id_t tableID;
     deserializer.deserializeValue(name);
     auto dataType = LogicalType::deserialize(deserializer);
     deserializer.deserializeValue(propertyID);
+    deserializer.deserializeValue(columnID);
     deserializer.deserializeValue(tableID);
-    return Property(name, std::move(dataType), propertyID, tableID);
+    return Property(name, std::move(dataType), propertyID, columnID, tableID);
 }
 
 std::string Property::toCypher(const std::vector<kuzu::catalog::Property>& properties) {

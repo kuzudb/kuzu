@@ -2,6 +2,7 @@
 
 #include <thread>
 
+#include "common/random_engine.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/storage_manager.h"
@@ -15,16 +16,21 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace main {
 
-StorageDriver::StorageDriver(Database* database)
-    : catalog{database->catalog.get()}, storageManager{database->storageManager.get()} {}
+StorageDriver::StorageDriver(Database* database) : database{database} {
+    clientContext = std::make_unique<ClientContext>(database);
+}
+
+StorageDriver::~StorageDriver() = default;
 
 void StorageDriver::scan(const std::string& nodeName, const std::string& propertyName,
     offset_t* offsets, size_t size, uint8_t* result, size_t numThreads) {
     // Resolve files to read from
-    auto nodeTableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, nodeName);
-    auto propertyID = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, nodeTableID)
+    clientContext->query("BEGIN TRANSACTION READ ONLY;");
+    auto nodeTableID = database->catalog->getTableID(clientContext->getTx(), nodeName);
+    auto propertyID = database->catalog->getTableCatalogEntry(clientContext->getTx(), nodeTableID)
                           ->getPropertyID(propertyName);
-    auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(storageManager->getTable(nodeTableID));
+    auto nodeTable =
+        ku_dynamic_cast<Table*, NodeTable*>(database->storageManager->getTable(nodeTableID));
     auto column = nodeTable->getColumn(propertyID);
     auto current_buffer = result;
     std::vector<std::thread> threads;
@@ -44,21 +50,28 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
     for (auto& thread : threads) {
         thread.join();
     }
+    clientContext->query("COMMIT");
 }
 
 uint64_t StorageDriver::getNumNodes(const std::string& nodeName) {
-    auto nodeTableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, nodeName);
+    clientContext->query("BEGIN TRANSACTION READ ONLY;");
+    auto nodeTableID = database->catalog->getTableID(clientContext->getTx(), nodeName);
     auto nodeStatistics =
-        storageManager->getNodesStatisticsAndDeletedIDs()->getNodeStatisticsAndDeletedIDs(
-            &DUMMY_READ_TRANSACTION, nodeTableID);
-    return nodeStatistics->getNumTuples();
+        database->storageManager->getNodesStatisticsAndDeletedIDs()->getNodeStatisticsAndDeletedIDs(
+            clientContext->getTx(), nodeTableID);
+    auto numNodes = nodeStatistics->getNumTuples();
+    clientContext->query("COMMIT");
+    return numNodes;
 }
 
 uint64_t StorageDriver::getNumRels(const std::string& relName) {
-    auto relTableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, relName);
-    auto relStatistics = storageManager->getRelsStatistics()->getRelStatistics(relTableID,
-        Transaction::getDummyReadOnlyTrx().get());
-    return relStatistics->getNumTuples();
+    clientContext->query("BEGIN TRANSACTION READ ONLY;");
+    auto relTableID = database->catalog->getTableID(clientContext->getTx(), relName);
+    auto relStatistics = database->storageManager->getRelsStatistics()->getRelStatistics(relTableID,
+        clientContext->getTx());
+    auto numRels = relStatistics->getNumTuples();
+    clientContext->query("COMMIT");
+    return numRels;
 }
 
 void StorageDriver::scanColumn(Transaction* transaction, storage::Column* column, offset_t* offsets,

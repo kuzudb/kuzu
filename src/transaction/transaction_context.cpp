@@ -16,7 +16,8 @@ TransactionContext::TransactionContext(main::ClientContext& clientContext)
 
 TransactionContext::~TransactionContext() {
     if (activeTransaction) {
-        clientContext.getDatabase()->transactionManager->rollback(activeTransaction.get());
+        clientContext.getDatabase()->transactionManager->rollback(clientContext,
+            activeTransaction.get(), false /*skipCheckPointing*/);
     }
 }
 
@@ -70,22 +71,26 @@ void TransactionContext::rollbackSkipCheckPointing() {
     rollbackInternal(true /* skipCheckPointing */);
 }
 
+void TransactionContext::clearTransaction() {
+    activeTransaction = nullptr;
+    mode = TransactionMode::AUTO;
+}
+
 void TransactionContext::commitInternal(bool skipCheckPointing) {
     if (!hasActiveTransaction()) {
         return;
     }
-    clientContext.getDatabase()->commit(activeTransaction.get(), skipCheckPointing);
-    activeTransaction.reset();
-    mode = TransactionMode::AUTO;
+    clientContext.getDatabase()->transactionManager->commit(clientContext, skipCheckPointing);
+    clearTransaction();
 }
 
 void TransactionContext::rollbackInternal(bool skipCheckPointing) {
     if (!hasActiveTransaction()) {
         return;
     }
-    clientContext.getDatabase()->rollback(activeTransaction.get(), skipCheckPointing);
-    activeTransaction.reset();
-    mode = TransactionMode::AUTO;
+    clientContext.getDatabase()->transactionManager->rollback(clientContext,
+        activeTransaction.get(), skipCheckPointing);
+    clearTransaction();
 }
 
 void TransactionContext::beginTransactionInternal(TransactionType transactionType) {
@@ -96,19 +101,8 @@ void TransactionContext::beginTransactionInternal(TransactionType transactionTyp
             "transactions, please open other connections. Current active transaction is "
             "not affected by this exception and can still be used.");
     }
-    switch (transactionType) {
-    case TransactionType::READ_ONLY: {
-        activeTransaction =
-            clientContext.getDatabase()->transactionManager->beginReadOnlyTransaction(
-                clientContext);
-    } break;
-    case TransactionType::WRITE: {
-        activeTransaction =
-            clientContext.getDatabase()->transactionManager->beginWriteTransaction(clientContext);
-    } break;
-    default:
-        KU_UNREACHABLE;
-    }
+    activeTransaction = clientContext.getDatabase()->transactionManager->beginTransaction(
+        clientContext, transactionType);
 }
 
 } // namespace transaction

@@ -1,12 +1,12 @@
 #pragma once
-#include "catalog/catalog_content.h"
+#include "catalog/catalog.h"
 
 namespace kuzu {
 namespace extension {
 
-class CatalogExtension : public catalog::CatalogContent {
+class CatalogExtension : public catalog::Catalog {
 public:
-    CatalogExtension() : CatalogContent() {}
+    CatalogExtension() : Catalog() {}
 
     virtual void init() = 0;
 

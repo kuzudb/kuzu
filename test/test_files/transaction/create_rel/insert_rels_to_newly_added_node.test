@@ -25,6 +25,9 @@
 43|
 50|long long string test
 |
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE insertRelsToNewlyAddedNodeCommitRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -40,6 +43,9 @@
 43|
 50|long long string test
 |
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE insertRelsToNewlyAddedNodeRollbackNormalExecution
 -STATEMENT BEGIN TRANSACTION
@@ -51,6 +57,9 @@
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(:person) WHERE a.ID > 2600 RETURN e.length, e.place
 ---- 0
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE insertRelsToNewlyAddedNodeRollbackRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -63,3 +72,5 @@
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(:person) WHERE a.ID > 2600 RETURN e.length, e.place
 ---- 0
+-STATEMENT COMMIT;
+---- ok

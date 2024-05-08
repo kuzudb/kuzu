@@ -12,29 +12,13 @@ namespace storage {
 // Note: This class is *not* thread-safe.
 class NodesStoreStatsAndDeletedIDs : public TablesStatistics {
 public:
-    // Should only be used by saveInitialNodesStatisticsAndDeletedIDsToFile to start a database
-    // from an empty directory.
-    NodesStoreStatsAndDeletedIDs()
-        : TablesStatistics{nullptr /* metadataFH */, nullptr /* bufferManager */,
-              nullptr /* wal */} {};
     // Should be used when an already loaded database is started from a directory.
-    NodesStoreStatsAndDeletedIDs(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        common::VirtualFileSystem* fs,
-        common::FileVersionType dbFileType = common::FileVersionType::ORIGINAL)
-        : TablesStatistics{metadataFH, bufferManager, wal} {
-        readFromFile(dbFileType, fs);
-    }
+    NodesStoreStatsAndDeletedIDs(const std::string& databasePath, BMFileHandle* metadataFH,
+        BufferManager* bufferManager, WAL* wal, common::VirtualFileSystem* fs);
 
     NodeTableStatsAndDeletedIDs* getNodeStatisticsAndDeletedIDs(
         transaction::Transaction* transaction, common::table_id_t tableID) const {
         return getNodeTableStats(transaction->getType(), tableID);
-    }
-
-    static void saveInitialNodesStatisticsAndDeletedIDsToFile(common::VirtualFileSystem* fs,
-        const std::string& directory) {
-        auto stats = NodesStoreStatsAndDeletedIDs();
-        stats.saveToFile(directory, common::FileVersionType::ORIGINAL,
-            transaction::TransactionType::READ_ONLY, fs);
     }
 
     void updateNumTuplesByValue(common::table_id_t tableID, int64_t value) override;
@@ -44,22 +28,10 @@ public:
 
     // This function assumes that there is a single write transaction. That is why for now we
     // keep the interface simple and no transaction is passed.
-    common::offset_t addNode(common::table_id_t tableID) {
-        lock_t lck{mtx};
-        initTableStatisticsForWriteTrxNoLock();
-        KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
-        setToUpdated();
-        return getNodeTableStats(transaction::TransactionType::WRITE, tableID)->addNode();
-    }
+    common::offset_t addNode(common::table_id_t tableID);
 
     // Refer to the comments for addNode.
-    void deleteNode(common::table_id_t tableID, common::offset_t nodeOffset) {
-        lock_t lck{mtx};
-        initTableStatisticsForWriteTrxNoLock();
-        KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
-        setToUpdated();
-        getNodeTableStats(transaction::TransactionType::WRITE, tableID)->deleteNode(nodeOffset);
-    }
+    void deleteNode(common::table_id_t tableID, common::offset_t nodeOffset);
 
     void setDeletedNodeOffsetsForMorsel(transaction::Transaction* tx,
         common::ValueVector* nodeIDVector, common::table_id_t tableID);

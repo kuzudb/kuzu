@@ -7,6 +7,7 @@
 #include "common/api.h"
 #include "common/case_insensitive_map.h"
 #include "kuzu_fwd.h"
+#include "main/db_config.h"
 
 namespace kuzu {
 namespace common {
@@ -34,6 +35,7 @@ class StorageExtension;
 namespace main {
 struct ExtensionOption;
 class DatabaseManager;
+class ClientContext;
 
 /**
  * @brief Stores runtime configuration for creating or opening a Database
@@ -121,23 +123,13 @@ public:
 
 private:
     void openLockFile();
-    void initDBDirAndCoreFilesIfNecessary();
+    void initAndLockDBDir();
     static void initLoggers();
     static void dropLoggers();
 
-    // Commits and checkpoints a write transaction or rolls that transaction back. This involves
-    // either replaying the WAL and either redoing or undoing and in either case at the end WAL is
-    // cleared.
-    // skipCheckpointForTestingRecovery is used to simulate a failure before checkpointing in tests.
-    void commit(transaction::Transaction* transaction, bool skipCheckpointForTestingRecovery);
-    void rollback(transaction::Transaction* transaction, bool skipCheckpointForTestingRecovery);
-    void checkpointAndClearWAL(storage::WALReplayMode walReplayMode);
-    void rollbackAndClearWAL();
-    void recoverIfNecessary();
-
 private:
     std::string databasePath;
-    SystemConfig systemConfig;
+    DBConfig dbConfig;
     std::unique_ptr<common::VirtualFileSystem> vfs;
     std::unique_ptr<storage::BufferManager> bufferManager;
     std::unique_ptr<storage::MemoryManager> memoryManager;
@@ -145,8 +137,6 @@ private:
     std::unique_ptr<catalog::Catalog> catalog;
     std::unique_ptr<storage::StorageManager> storageManager;
     std::unique_ptr<transaction::TransactionManager> transactionManager;
-    std::unique_ptr<storage::WAL> wal;
-    std::shared_ptr<spdlog::logger> logger;
     std::unique_ptr<common::FileInfo> lockFile;
     std::unique_ptr<extension::ExtensionOptions> extensionOptions;
     std::unique_ptr<DatabaseManager> databaseManager;

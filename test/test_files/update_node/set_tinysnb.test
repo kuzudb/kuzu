@@ -73,6 +73,7 @@ False
 ---- 1
 abcdefghijklmnopqrstuvwxyz
 
+
 -CASE SetLongListTest
 -DEFINE STRING_EXCEEDS_PAGE ARANGE 0 5990
 -STATEMENT BEGIN TRANSACTION
@@ -82,6 +83,9 @@ abcdefghijklmnopqrstuvwxyz
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.fName;
 ---- 1
 ${STRING_EXCEEDS_PAGE}
+-STATEMENT COMMIT
+---- ok
+
 
 -CASE SetVeryLongStringTest
 -DEFINE STRING_EXCEEDS_MEMORY_MANAGER_LIMIT ARANGE 0 50000
@@ -92,6 +96,9 @@ ${STRING_EXCEEDS_PAGE}
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.fName;
 ---- 1
 ${STRING_EXCEEDS_MEMORY_MANAGER_LIMIT}
+-STATEMENT COMMIT
+---- ok
+
 
 -CASE SetLongStringOver256KB
 -DEFINE test_long_string REPEAT 262146 "a"
@@ -101,12 +108,14 @@ ${STRING_EXCEEDS_MEMORY_MANAGER_LIMIT}
 ---- 1
 ${test_long_string}
 
+
 -CASE SetNodeIntervalPropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.lastJobDuration=interval('1 years 1 days')
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.lastJobDuration
 ---- 1
 1 year 1 day
+
 
 -CASE SetNodePropNullTest
 -STATEMENT MATCH (a:person) SET a.age=null
@@ -132,6 +141,7 @@ ${test_long_string}
 2|2
 3|3
 
+
 -CASE SetFlatUnFlatTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.ID=0 SET a.age=b.age
 ---- ok
@@ -140,6 +150,7 @@ ${test_long_string}
 0|20
 2|30
 3|45
+
 
 -CASE SetUnFlatFlatTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE b.ID=2 AND a.ID = 0 SET b.age=a.age
@@ -150,6 +161,7 @@ ${test_long_string}
 2|35
 3|45
 
+
 -CASE SetTwoHopTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE b.ID=0 AND c.fName = 'Bob' SET a.age=c.age
 ---- ok
@@ -159,6 +171,7 @@ ${test_long_string}
 2|30
 3|30
 5|30
+
 
 -CASE SetTwoHopNullTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) SET a.age=null
@@ -174,6 +187,7 @@ ${test_long_string}
 8|25
 9|40
 
+
 -CASE SetIndexNestedLoopJoinTest
 -STATEMENT MATCH (a:person), (b:person) WHERE a.ID = b.ID SET a.age=b.gender
 ---- ok
@@ -188,6 +202,7 @@ ${test_long_string}
 8|2
 9|2
 
+
 -CASE SetRelInt16PropTest
 -STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) WHERE a.ID = 0 SET e.length=99
 ---- ok
@@ -197,12 +212,14 @@ ${test_long_string}
 55
 99
 
+
 -CASE SetNodeListOfIntPropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.workedHours=[10,20]
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.workedHours
 ---- 1
 [10,20]
+
 
 -CASE SetNodeListOfShortStringPropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.usedNames=['intel','microsoft']
@@ -211,6 +228,7 @@ ${test_long_string}
 ---- 1
 [intel,microsoft]
 
+
 -CASE SetNodeListOfLongStringPropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.usedNames=['abcndwjbwesdsd','microsofthbbjuwgedsd']
 ---- ok
@@ -218,12 +236,14 @@ ${test_long_string}
 ---- 1
 [abcndwjbwesdsd,microsofthbbjuwgedsd]
 
+
 -CASE SetNodeListofListPropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=8 SET a.courseScoresPerTerm=[[10,20],[0,0,0]]
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=8 RETURN a.courseScoresPerTerm
 ---- 1
 [[10,20],[0,0,0]]
+
 
 -CASE SETMultiLabelNodePropTest
 -STATEMENT MATCH (a) WHERE a.ID < 2 SET a.age = 1;
@@ -248,6 +268,7 @@ ${test_long_string}
 ---- 2
 0|0
 1|10
+
 
 -CASE SETMultiLabelWithPruning
 -STATEMENT MATCH (a:person)-[:knows]->(b) WHERE a.ID=0 SET b.name = "a", b.fName = "XX" RETURN b.name, b.fName;
@@ -283,6 +304,7 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|
 |2023-11-11
 |2023-11-11
 
+
 -CASE SetNonNullValueWithWriteTransaction
 -STATEMENT BEGIN TRANSACTION
 ---- ok
@@ -294,6 +316,9 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age
 ---- 1
 70
+-STATEMENT COMMIT
+---- ok
+
 
 -CASE SetNullValueWithWriteTransaction
 -STATEMENT BEGIN TRANSACTION
@@ -305,6 +330,10 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age
 ---- 1
+
+-STATEMENT COMMIT
+---- ok
+
 
 -CASE MultipleSetListValue
 -STATEMENT BEGIN TRANSACTION

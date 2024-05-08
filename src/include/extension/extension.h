@@ -7,6 +7,9 @@
 #include "main/db_config.h"
 
 namespace kuzu {
+namespace function {
+struct TableFunction;
+} // namespace function
 namespace main {
 class Database;
 } // namespace main

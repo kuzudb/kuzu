@@ -5,7 +5,6 @@
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
 #include "storage/store/table.h"
-#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -37,7 +36,7 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
             }
             auto propertyID = property->getPropertyID(tableID);
             auto table = ku_dynamic_cast<Table*, NodeTable*>(storageManager->getTable(tableID));
-            auto columnID = catalog->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID)
+            auto columnID = catalog->getTableCatalogEntry(clientContext->getTx(), tableID)
                                 ->getColumnID(propertyID);
             tableIDToSetInfo.insert({tableID, NodeSetInfo{table, columnID}});
         }

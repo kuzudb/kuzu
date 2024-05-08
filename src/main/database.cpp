@@ -21,7 +21,6 @@
 #include "storage/storage_extension.h"
 #include "storage/storage_manager.h"
 #include "storage/wal_replayer.h"
-#include "transaction/transaction_action.h"
 #include "transaction/transaction_manager.h"
 
 using namespace kuzu::catalog;
@@ -73,27 +72,24 @@ static void getLockFileFlagsAndType(bool readOnly, bool createNew, int& flags, F
 }
 
 Database::Database(std::string_view databasePath, SystemConfig systemConfig)
-    : systemConfig{systemConfig} {
+    : dbConfig{systemConfig} {
     initLoggers();
-    logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::DATABASE);
     vfs = std::make_unique<VirtualFileSystem>();
     // To expand a path with home directory(~), we have to pass in a dummy clientContext which
     // handles the home directory expansion.
     auto clientContext = ClientContext(this);
     auto dbPathStr = std::string(databasePath);
     this->databasePath = vfs->expandPath(&clientContext, dbPathStr);
-    bufferManager = std::make_unique<BufferManager>(this->systemConfig.bufferPoolSize,
-        this->systemConfig.maxDBSize);
+    bufferManager =
+        std::make_unique<BufferManager>(this->dbConfig.bufferPoolSize, this->dbConfig.maxDBSize);
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get());
-    queryProcessor = std::make_unique<processor::QueryProcessor>(this->systemConfig.maxNumThreads);
-    initDBDirAndCoreFilesIfNecessary();
-    wal =
-        std::make_unique<WAL>(this->databasePath, systemConfig.readOnly, *bufferManager, vfs.get());
-    recoverIfNecessary();
-    catalog = std::make_unique<catalog::Catalog>(wal.get(), vfs.get());
-    storageManager = std::make_unique<storage::StorageManager>(systemConfig.readOnly, *catalog,
-        *memoryManager, wal.get(), systemConfig.enableCompression, vfs.get());
-    transactionManager = std::make_unique<transaction::TransactionManager>(*wal);
+    queryProcessor = std::make_unique<processor::QueryProcessor>(this->dbConfig.maxNumThreads);
+    initAndLockDBDir();
+    catalog = std::make_unique<Catalog>(this->databasePath, vfs.get());
+    StorageManager::recover(clientContext);
+    storageManager = std::make_unique<StorageManager>(this->databasePath, systemConfig.readOnly,
+        *catalog, *memoryManager, systemConfig.enableCompression, vfs.get());
+    transactionManager = std::make_unique<TransactionManager>(storageManager->getWAL());
     extensionOptions = std::make_unique<extension::ExtensionOptions>();
     databaseManager = std::make_unique<DatabaseManager>();
 }
@@ -112,19 +108,18 @@ void Database::addTableFunction(std::string name, function::function_set functio
         std::move(functionSet));
 }
 
-void Database::registerFileSystem(std::unique_ptr<common::FileSystem> fs) {
+void Database::registerFileSystem(std::unique_ptr<FileSystem> fs) {
     vfs->registerFileSystem(std::move(fs));
 }
 
 void Database::registerStorageExtension(std::string name,
-    std::unique_ptr<storage::StorageExtension> storageExtension) {
+    std::unique_ptr<StorageExtension> storageExtension) {
     storageExtensions.emplace(std::move(name), std::move(storageExtension));
 }
 
-void Database::addExtensionOption(std::string name, common::LogicalTypeID type,
-    common::Value defaultValue) {
+void Database::addExtensionOption(std::string name, LogicalTypeID type, Value defaultValue) {
     if (extensionOptions->getExtensionOption(name) != nullptr) {
-        throw ExtensionException{common::stringFormat("Extension option {} already exists.", name)};
+        throw ExtensionException{stringFormat("Extension option {} already exists.", name)};
     }
     extensionOptions->addExtensionOption(name, type, std::move(defaultValue));
 }
@@ -133,8 +128,7 @@ ExtensionOption* Database::getExtensionOption(std::string name) {
     return extensionOptions->getExtensionOption(std::move(name));
 }
 
-common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>>&
-Database::getStorageExtensions() {
+case_insensitive_map_t<std::unique_ptr<StorageExtension>>& Database::getStorageExtensions() {
     return storageExtensions;
 }
 
@@ -143,34 +137,21 @@ void Database::openLockFile() {
     FileLockType lock;
     auto lockFilePath = StorageUtils::getLockFilePath(vfs.get(), databasePath);
     if (!vfs->fileOrPathExists(lockFilePath)) {
-        getLockFileFlagsAndType(systemConfig.readOnly, true, flags, lock);
+        getLockFileFlagsAndType(dbConfig.readOnly, true, flags, lock);
     } else {
-        getLockFileFlagsAndType(systemConfig.readOnly, false, flags, lock);
+        getLockFileFlagsAndType(dbConfig.readOnly, false, flags, lock);
     }
     lockFile = vfs->openFile(lockFilePath, flags, nullptr /* clientContext */, lock);
 }
 
-void Database::initDBDirAndCoreFilesIfNecessary() {
+void Database::initAndLockDBDir() {
     if (!vfs->fileOrPathExists(databasePath)) {
-        if (systemConfig.readOnly) {
+        if (dbConfig.readOnly) {
             throw Exception("Cannot create an empty database under READ ONLY mode.");
         }
         vfs->createDir(databasePath);
     }
     openLockFile();
-    if (!vfs->fileOrPathExists(StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(vfs.get(),
-            databasePath, FileVersionType::ORIGINAL))) {
-        NodesStoreStatsAndDeletedIDs::saveInitialNodesStatisticsAndDeletedIDsToFile(vfs.get(),
-            databasePath);
-    }
-    if (!vfs->fileOrPathExists(StorageUtils::getRelsStatisticsFilePath(vfs.get(), databasePath,
-            FileVersionType::ORIGINAL))) {
-        RelsStoreStats::saveInitialRelsStatisticsToFile(vfs.get(), databasePath);
-    }
-    if (!vfs->fileOrPathExists(
-            StorageUtils::getCatalogFilePath(vfs.get(), databasePath, FileVersionType::ORIGINAL))) {
-        Catalog::saveInitialCatalogToFile(databasePath, vfs.get());
-    }
 }
 
 void Database::initLoggers() {
@@ -196,76 +177,6 @@ void Database::dropLoggers() {
     LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::CATALOG);
     LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::STORAGE);
     LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::WAL);
-}
-
-void Database::commit(Transaction* transaction, bool skipCheckpointForTestingRecovery) {
-    if (transaction->isReadOnly()) {
-        transactionManager->commit(transaction);
-        return;
-    }
-    KU_ASSERT(transaction->isWriteTransaction());
-    catalog->prepareCommitOrRollback(TransactionAction::COMMIT, vfs.get());
-    storageManager->prepareCommit(transaction, vfs.get());
-    // Note: It is enough to stop and wait transactions to leave the system instead of
-    // for example checking on the query processor's task scheduler. This is because the
-    // first and last steps that a connection performs when executing a query is to
-    // start and commit/rollback transaction. The query processor also ensures that it
-    // will only return results or error after all threads working on the tasks of a
-    // query stop working on the tasks of the query and these tasks are removed from the
-    // query.
-    transactionManager->stopNewTransactionsAndWaitUntilAllReadTransactionsLeave();
-    // Note: committing and stopping new transactions can be done in any order. This
-    // order allows us to throw exceptions if we have to wait a lot to stop.
-    transactionManager->commitButKeepActiveWriteTransaction(transaction);
-    if (skipCheckpointForTestingRecovery) {
-        wal->flushAllPages();
-        transactionManager->allowReceivingNewTransactions();
-        return;
-    }
-    checkpointAndClearWAL(WALReplayMode::COMMIT_CHECKPOINT);
-    transactionManager->manuallyClearActiveWriteTransaction(transaction);
-    transactionManager->allowReceivingNewTransactions();
-}
-
-void Database::rollback(transaction::Transaction* transaction,
-    bool skipCheckpointForTestingRecovery) {
-    if (transaction->isReadOnly()) {
-        transactionManager->rollback(transaction);
-        return;
-    }
-    KU_ASSERT(transaction->isWriteTransaction());
-    catalog->prepareCommitOrRollback(TransactionAction::ROLLBACK, vfs.get());
-    storageManager->prepareRollback(transaction);
-    if (skipCheckpointForTestingRecovery) {
-        wal->flushAllPages();
-        return;
-    }
-    rollbackAndClearWAL();
-    transactionManager->manuallyClearActiveWriteTransaction(transaction);
-}
-
-void Database::checkpointAndClearWAL(WALReplayMode replayMode) {
-    KU_ASSERT(replayMode == WALReplayMode::COMMIT_CHECKPOINT ||
-              replayMode == WALReplayMode::RECOVERY_CHECKPOINT);
-    auto walReplayer = std::make_unique<WALReplayer>(wal.get(), storageManager.get(),
-        bufferManager.get(), catalog.get(), replayMode, vfs.get());
-    walReplayer->replay();
-    wal->clearWAL();
-}
-
-void Database::rollbackAndClearWAL() {
-    auto walReplayer = std::make_unique<WALReplayer>(wal.get(), storageManager.get(),
-        bufferManager.get(), catalog.get(), WALReplayMode::ROLLBACK, vfs.get());
-    walReplayer->replay();
-    wal->clearWAL();
-}
-
-void Database::recoverIfNecessary() {
-    if (!wal->isEmptyWAL()) {
-        logger->info("Starting up StorageManager and found a non-empty WAL with a committed "
-                     "transaction. Replaying to checkpointInMemory.");
-        checkpointAndClearWAL(WALReplayMode::RECOVERY_CHECKPOINT);
-    }
 }
 
 } // namespace main

@@ -41,9 +41,10 @@ static std::string getQuery(const binder::BoundCreateTableInfo& info) {
         extraInfo->schemaName, info.tableName);
 }
 
+// TODO(Ziyi): Do u need to pass in `dbPath` and `catalogName` here? Why not use the private field?
 void DuckDBCatalog::createForeignTable(duckdb::Connection& con, const std::string& tableName,
     const std::string& dbPath, const std::string& catalogName) {
-    auto tableID = assignNextTableID();
+    auto tableID = tables->assignNextOID();
     auto info = bindCreateTableInfo(con, tableName, dbPath, catalogName);
     if (info == nullptr) {
         return;
@@ -58,12 +59,12 @@ void DuckDBCatalog::createForeignTable(duckdb::Connection& con, const std::strin
     }
     DuckDBScanBindData bindData(getQuery(*info), std::move(columnTypes), std::move(columnNames),
         std::bind(&DuckDBCatalog::getConnection, this, dbPath));
-    auto tableEntry = std::make_unique<catalog::DuckDBTableCatalogEntry>(info->tableName, tableID,
-        getScanFunction(std::move(bindData)));
+    auto tableEntry = std::make_unique<catalog::DuckDBTableCatalogEntry>(tables.get(),
+        info->tableName, tableID, getScanFunction(std::move(bindData)));
     for (auto& propertyInfo : extraInfo->propertyInfos) {
         tableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy());
     }
-    tables->createEntry(std::move(tableEntry));
+    tables->createEntry(&transaction::DUMMY_WRITE_TRANSACTION, std::move(tableEntry));
 }
 
 static bool getTableInfo(duckdb::Connection& con, const std::string& tableName,
@@ -91,6 +92,7 @@ static bool getTableInfo(duckdb::Connection& con, const std::string& tableName,
     return true;
 }
 
+// TODO(Ziyi): Do u need to pass in `catalogName` here? Why not use the private field?
 bool DuckDBCatalog::bindPropertyInfos(duckdb::Connection& con, const std::string& tableName,
     const std::string& catalogName, std::vector<binder::PropertyInfo>& propertyInfos) {
     std::vector<common::LogicalType> columnTypes;
@@ -106,6 +108,7 @@ bool DuckDBCatalog::bindPropertyInfos(duckdb::Connection& con, const std::string
     return true;
 }
 
+// TODO(Ziyi): Do u need to pass in `dbPath` and `catalogName` here? Why not use the private field?
 std::unique_ptr<binder::BoundCreateTableInfo> DuckDBCatalog::bindCreateTableInfo(
     duckdb::Connection& con, const std::string& tableName, const std::string& dbPath,
     const std::string& catalogName) {
@@ -122,6 +125,7 @@ std::string DuckDBCatalog::getDefaultSchemaName() const {
     return "main";
 }
 
+// TODO(Ziyi): Do u need to pass in `dbPath` here? Why not use the private field?
 std::pair<duckdb::DuckDB, duckdb::Connection> DuckDBCatalog::getConnection(
     const std::string& dbPath) const {
     try {

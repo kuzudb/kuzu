@@ -61,8 +61,7 @@ struct TestGroup {
         testCasesStatementBlocks;
     uint64_t bufferPoolSize = common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING;
     // for multiple connections
-    uint64_t checkpointWaitTimeout =
-        common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS;
+    uint64_t checkpointWaitTimeout = common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_IN_MICROS;
     std::unordered_map<std::string, std::set<std::string>> testCasesConnNames;
 
     enum class DatasetType { CSV, PARQUET, NPY, CSV_TO_PARQUET, TURTLE };

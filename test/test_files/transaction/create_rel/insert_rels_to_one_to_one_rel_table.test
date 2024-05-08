@@ -23,6 +23,9 @@
 43|
 50|long long string test
 |
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE insertRelsToOneToOneRelTableCommitRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -38,6 +41,9 @@
 43|
 50|long long string test
 |
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE insertRelsToOneToOneRelTableRollbackNormalExecution
 -STATEMENT BEGIN TRANSACTION
@@ -49,6 +55,9 @@
 ---- ok
 -STATEMENT MATCH (a:animal)-[e:hasOwner]->(:person) WHERE a.ID > 50 RETURN e.length, e.place
 ---- 0
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE insertRelsToOneToOneRelTableRollbackRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -61,3 +70,5 @@
 ---- ok
 -STATEMENT MATCH (a:animal)-[e:hasOwner]->(:person) WHERE a.ID > 50 RETURN e.length, e.place
 ---- 0
+-STATEMENT COMMIT;
+---- ok

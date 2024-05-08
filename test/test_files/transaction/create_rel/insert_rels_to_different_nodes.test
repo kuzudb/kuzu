@@ -27,6 +27,9 @@
 752|waterloo|[good test]
 |very very special string|
 ||
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE insertRelsToDifferentNodesCommitRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -43,6 +46,9 @@
 752|waterloo|[good test]
 |very very special string|
 ||
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE insertRelsToDifferentNodesRollbackNormalExecution
 -STATEMENT BEGIN TRANSACTION
@@ -54,6 +60,9 @@
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 50 RETURN e.length, e.place, e.tag
 ---- 0
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE insertRelsToDifferentNodesRollbackRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -66,3 +75,5 @@
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 50 RETURN e.length, e.place, e.tag
 ---- 0
+-STATEMENT COMMIT;
+---- ok

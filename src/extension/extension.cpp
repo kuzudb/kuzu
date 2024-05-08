@@ -65,12 +65,11 @@ void ExtensionUtils::registerTableFunction(main::Database& database,
     functionSet.push_back(std::move(function));
     auto catalog = database.getCatalog();
     if (catalog->getFunctions(transaction::Transaction::getDummyReadOnlyTrx().get())
-            ->containsEntry(name)) {
+            ->containsEntry(transaction::Transaction::getDummyReadOnlyTrx().get(), name)) {
         return;
     }
     catalog->addFunction(catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY, std::move(name),
         std::move(functionSet));
-    catalog->checkpointInMemory();
 }
 
 bool ExtensionUtils::isOfficialExtension(const std::string& extension) {
