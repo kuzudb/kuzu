@@ -36,7 +36,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         inputValues.push_back(literalExpr->getValue());
     }
     auto catalogSet = clientContext->getCatalog()->getFunctions(clientContext->getTx());
-    auto functionEntry = BuiltInFunctionsUtils::getFunctionCatalogEntry(functionName, catalogSet);
+    auto functionEntry = BuiltInFunctionsUtils::getFunctionCatalogEntry(clientContext->getTx(),
+        functionName, catalogSet);
     if (functionEntry->getType() != CatalogEntryType::TABLE_FUNCTION_ENTRY) {
         throw BinderException(stringFormat("{} is not a table function.", functionName));
     }

@@ -65,7 +65,7 @@ public:
         const std::string& comment) const;
 
     // ----------------------------- Functions ----------------------------
-    void addFunction(CatalogEntryType entryType, std::string name,
+    void addFunction(transaction::Transaction* tx, CatalogEntryType entryType, std::string name,
         function::function_set functionSet);
     void addBuiltInFunction(CatalogEntryType entryType, std::string name,
         function::function_set functionSet);
@@ -73,21 +73,19 @@ public:
     CatalogEntry* getFunctionEntry(transaction::Transaction* tx, const std::string& name);
 
     bool containsMacro(transaction::Transaction* tx, const std::string& macroName) const;
-    void addScalarMacroFunction(std::string name,
+    void addScalarMacroFunction(transaction::Transaction* tx, std::string name,
         std::unique_ptr<function::ScalarMacroFunction> macro);
-    // TODO(Ziyi): pass transaction pointer here.
-    function::ScalarMacroFunction* getScalarMacroFunction(const std::string& name) const;
+    function::ScalarMacroFunction* getScalarMacroFunction(transaction::Transaction* tx,
+        const std::string& name) const;
     std::vector<std::string> getMacroNames(transaction::Transaction* tx) const;
 
     void prepareCheckpoint(const std::string& databasePath, storage::WAL* wal,
         common::VirtualFileSystem* fs);
 
-    // TODO(GUODONG): Move to private?
-    void saveToFile(const std::string& directory, common::VirtualFileSystem* fs,
-        common::FileVersionType versionType);
-
 private:
     void readFromFile(const std::string& directory, common::VirtualFileSystem* fs,
+        common::FileVersionType versionType);
+    void saveToFile(const std::string& directory, common::VirtualFileSystem* fs,
         common::FileVersionType versionType);
 
     // ----------------------------- Functions ----------------------------

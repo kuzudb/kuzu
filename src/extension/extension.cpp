@@ -64,12 +64,12 @@ void ExtensionUtils::registerTableFunction(main::Database& database,
     function::function_set functionSet;
     functionSet.push_back(std::move(function));
     auto catalog = database.getCatalog();
-    if (catalog->getFunctions(transaction::Transaction::getDummyReadOnlyTrx().get())
-            ->containsEntry(transaction::Transaction::getDummyReadOnlyTrx().get(), name)) {
+    if (catalog->getFunctions(&transaction::DUMMY_READ_TRANSACTION)
+            ->containsEntry(&transaction::DUMMY_READ_TRANSACTION, name)) {
         return;
     }
-    catalog->addFunction(catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY, std::move(name),
-        std::move(functionSet));
+    catalog->addFunction(&transaction::DUMMY_WRITE_TRANSACTION,
+        catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY, std::move(name), std::move(functionSet));
 }
 
 bool ExtensionUtils::isOfficialExtension(const std::string& extension) {

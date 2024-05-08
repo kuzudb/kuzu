@@ -18,8 +18,8 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(common::Deserializer& deserial
     deserializer.deserializeValue(type);
     std::unique_ptr<WALRecord> walRecord;
     switch (type) {
-    case WALRecordType::CREATE_TABLE_RECORD: {
-        walRecord = CreateTableRecord::deserialize(deserializer);
+    case WALRecordType::CREATE_CATALOG_ENTRY_RECORD: {
+        walRecord = CreateCatalogEntryRecord::deserialize(deserializer);
     } break;
     case WALRecordType::DROP_TABLE_RECORD: {
         walRecord = DropTableRecord::deserialize(deserializer);
@@ -79,20 +79,20 @@ std::unique_ptr<CommitRecord> CommitRecord::deserialize(common::Deserializer& de
     return retVal;
 }
 
-CreateTableRecord::CreateTableRecord() = default;
+CreateCatalogEntryRecord::CreateCatalogEntryRecord() = default;
 
-CreateTableRecord::CreateTableRecord(catalog::CatalogEntry* catalogEntry)
-    : WALRecord{WALRecordType::CREATE_TABLE_RECORD}, catalogEntry{catalogEntry} {}
+CreateCatalogEntryRecord::CreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry)
+    : WALRecord{WALRecordType::CREATE_CATALOG_ENTRY_RECORD}, catalogEntry{catalogEntry} {}
 
-void CreateTableRecord::serialize(common::Serializer& serializer) const {
+void CreateCatalogEntryRecord::serialize(common::Serializer& serializer) const {
     WALRecord::serialize(serializer);
     catalogEntry->serialize(serializer);
 }
 
-std::unique_ptr<CreateTableRecord> CreateTableRecord::deserialize(
+std::unique_ptr<CreateCatalogEntryRecord> CreateCatalogEntryRecord::deserialize(
     common::Deserializer& deserializer) {
     auto catalogEntry = catalog::CatalogEntry::deserialize(deserializer);
-    auto retVal = std::make_unique<CreateTableRecord>();
+    auto retVal = std::make_unique<CreateCatalogEntryRecord>();
     retVal->ownedCatalogEntry = std::move(catalogEntry);
     return retVal;
 }

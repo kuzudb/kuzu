@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 
+#include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/file_system/file_info.h"
 #include "common/serializer/buffered_file.h"
@@ -69,8 +70,8 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord,
     } break;
     case WALRecordType::COMMIT_RECORD: {
     } break;
-    case WALRecordType::CREATE_TABLE_RECORD: {
-        replayCreateTableRecord(walRecord);
+    case WALRecordType::CREATE_CATALOG_ENTRY_RECORD: {
+        replayCreateCatalogEntryRecord(walRecord);
     } break;
     case WALRecordType::COPY_TABLE_RECORD: {
         replayCopyTableRecord(walRecord);
@@ -179,23 +180,28 @@ void WALReplayer::replayTableStatisticsRecord(const WALRecord& walRecord) {
     }
 }
 
-// Replay catalog should only work under RECOVERY mode.
-void WALReplayer::replayCreateTableRecord(const WALRecord& walRecord) {
+void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) {
     if (!(isCheckpoint && isRecovering)) {
         // Nothing to do.
         return;
     }
-    auto& createTableRecord =
-        ku_dynamic_cast<const WALRecord&, const CreateTableRecord&>(walRecord);
-    auto tableEntry = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(
-        createTableRecord.ownedCatalogEntry.get());
-    switch (tableEntry->getType()) {
+    auto& createEntryRecord =
+        ku_dynamic_cast<const WALRecord&, const CreateCatalogEntryRecord&>(walRecord);
+    switch (createEntryRecord.ownedCatalogEntry->getType()) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
     case CatalogEntryType::REL_TABLE_ENTRY:
     case CatalogEntryType::REL_GROUP_ENTRY:
     case CatalogEntryType::RDF_GRAPH_ENTRY: {
+        auto tableEntry = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(
+            createEntryRecord.ownedCatalogEntry.get());
         clientContext.getCatalog()->createTableSchema(&DUMMY_WRITE_TRANSACTION,
             tableEntry->getBoundCreateTableInfo(&DUMMY_WRITE_TRANSACTION));
+    } break;
+    case CatalogEntryType::SCALAR_MACRO_ENTRY: {
+        auto macroEntry = ku_dynamic_cast<CatalogEntry*, ScalarMacroCatalogEntry*>(
+            createEntryRecord.ownedCatalogEntry.get());
+        clientContext.getCatalog()->addScalarMacroFunction(&DUMMY_WRITE_TRANSACTION,
+            macroEntry->getName(), macroEntry->getMacroFunction()->copy());
     } break;
     default: {
         KU_UNREACHABLE;

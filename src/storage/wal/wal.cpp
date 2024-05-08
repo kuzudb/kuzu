@@ -9,6 +9,7 @@
 #include "common/serializer/serializer.h"
 #include "storage/storage_utils.h"
 
+using namespace kuzu::catalog;
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -69,9 +70,9 @@ void WAL::logTableStatisticsRecord(TableType tableType) {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logCreateTableRecord(catalog::CatalogEntry* catalogEntry) {
+void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry) {
     lock_t lck{mtx};
-    CreateTableRecord walRecord(catalogEntry);
+    CreateCatalogEntryRecord walRecord(catalogEntry);
     addNewWALRecordNoLock(walRecord);
 }
 

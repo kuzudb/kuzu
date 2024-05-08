@@ -472,8 +472,8 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
 }
 
 void ClientContext::addScalarFunction(std::string name, function::function_set definitions) {
-    database->catalog->addFunction(CatalogEntryType::SCALAR_FUNCTION_ENTRY, std::move(name),
-        std::move(definitions));
+    database->catalog->addFunction(getTx(), CatalogEntryType::SCALAR_FUNCTION_ENTRY,
+        std::move(name), std::move(definitions));
 }
 
 bool ClientContext::startUDFAutoTrx(transaction::TransactionContext* trx) {

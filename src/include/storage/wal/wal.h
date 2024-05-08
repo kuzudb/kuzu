@@ -38,7 +38,7 @@ public:
     common::page_idx_t logPageInsertRecord(DBFileID dbFileID,
         common::page_idx_t pageIdxInOriginalFile);
 
-    void logCreateTableRecord(catalog::CatalogEntry* catalogEntry);
+    void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry);
     void logDropTableRecord(common::table_id_t tableID);
 
     void logCopyTableRecord(common::table_id_t tableID);
