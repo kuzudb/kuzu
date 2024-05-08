@@ -35,6 +35,7 @@ public:
 };
 
 uint64_t nextPowerOfTwo(uint64_t v);
+uint64_t prevPowerOfTwo(uint64_t v);
 
 bool isLittleEndian();
 

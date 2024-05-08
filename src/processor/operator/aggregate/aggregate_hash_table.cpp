@@ -147,7 +147,7 @@ void AggregateHashTable::initializeFT(
 }
 
 void AggregateHashTable::initializeHashTable(uint64_t numEntriesToAllocate) {
-    auto numHashSlotsPerBlock = HASH_BLOCK_SIZE / sizeof(HashSlot);
+    auto numHashSlotsPerBlock = prevPowerOfTwo(HASH_BLOCK_SIZE / sizeof(HashSlot));
     setMaxNumHashSlots(nextPowerOfTwo(std::max(numHashSlotsPerBlock, numEntriesToAllocate)));
     initSlotConstant(numHashSlotsPerBlock);
     auto numDataBlocks =
