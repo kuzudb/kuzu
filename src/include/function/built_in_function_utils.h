@@ -4,6 +4,10 @@
 #include "function.h"
 
 namespace kuzu {
+namespace transaction {
+class Transaction;
+} // namespace transaction
+
 namespace catalog {
 class CatalogSet;
 class CatalogEntry;
@@ -13,14 +17,16 @@ namespace function {
 
 class BuiltInFunctionsUtils {
 public:
-    static void createFunctions(catalog::CatalogSet* catalogSet);
-
-    static catalog::CatalogEntry* getFunctionCatalogEntry(const std::string& name,
+    static void createFunctions(transaction::Transaction* transaction,
         catalog::CatalogSet* catalogSet);
-    static Function* matchFunction(const std::string& name, catalog::CatalogSet* catalogSet);
+
+    static catalog::CatalogEntry* getFunctionCatalogEntry(transaction::Transaction* transaction,
+        const std::string& name, catalog::CatalogSet* catalogSet);
+    static Function* matchFunction(transaction::Transaction* transaction, const std::string& name,
+        catalog::CatalogSet* catalogSet);
     // TODO(Ziyi): We should have a unified interface for matching table, aggregate and scalar
     // functions.
-    static Function* matchFunction(const std::string& name,
+    static Function* matchFunction(transaction::Transaction* transaction, const std::string& name,
         const std::vector<common::LogicalType>& inputTypes, catalog::CatalogSet* catalogSet);
     static Function* matchFunction(const std::string& name,
         const std::vector<common::LogicalType>& inputTypes,

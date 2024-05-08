@@ -56,10 +56,11 @@ enum class WALRecordType : uint8_t {
     CATALOG_RECORD = 1,
     COMMIT_RECORD = 2,
     COPY_TABLE_RECORD = 3,
-    CREATE_TABLE_RECORD = 4,
-    DROP_TABLE_RECORD = 5,
-    PAGE_UPDATE_OR_INSERT_RECORD = 6,
-    TABLE_STATISTICS_RECORD = 7,
+    CREATE_CATALOG_ENTRY_RECORD = 4,
+    CREATE_SCALAR_MACRO_RECORD = 5,
+    DROP_TABLE_RECORD = 10,
+    PAGE_UPDATE_OR_INSERT_RECORD = 20,
+    TABLE_STATISTICS_RECORD = 30,
 };
 
 struct WALRecord {
@@ -103,15 +104,16 @@ struct CommitRecord final : public WALRecord {
     static std::unique_ptr<CommitRecord> deserialize(common::Deserializer& deserializer);
 };
 
-struct CreateTableRecord final : public WALRecord {
+struct CreateCatalogEntryRecord final : public WALRecord {
     catalog::CatalogEntry* catalogEntry;
     std::unique_ptr<catalog::CatalogEntry> ownedCatalogEntry;
 
-    CreateTableRecord();
-    explicit CreateTableRecord(catalog::CatalogEntry* catalogEntry);
+    CreateCatalogEntryRecord();
+    explicit CreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry);
 
     void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<CreateTableRecord> deserialize(common::Deserializer& deserializer);
+    static std::unique_ptr<CreateCatalogEntryRecord> deserialize(
+        common::Deserializer& deserializer);
 };
 
 struct CopyTableRecord final : public WALRecord {

@@ -217,18 +217,18 @@ void Catalog::setTableComment(transaction::Transaction* transaction, table_id_t 
     ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(tableEntry)->setComment(comment);
 }
 
-void Catalog::addFunction(CatalogEntryType entryType, std::string name,
-    function::function_set definitions) {
-    if (functions->containsEntry(&transaction::DUMMY_READ_TRANSACTION, name)) {
+void Catalog::addFunction(transaction::Transaction* transaction, CatalogEntryType entryType,
+    std::string name, function::function_set functionSet) {
+    if (functions->containsEntry(transaction, name)) {
         throw CatalogException{common::stringFormat("function {} already exists.", name)};
     }
-    functions->createEntry(&transaction::DUMMY_READ_TRANSACTION,
-        std::make_unique<FunctionCatalogEntry>(entryType, std::move(name), std::move(definitions)));
+    functions->createEntry(transaction,
+        std::make_unique<FunctionCatalogEntry>(entryType, std::move(name), std::move(functionSet)));
 }
 
 void Catalog::addBuiltInFunction(CatalogEntryType entryType, std::string name,
     function::function_set functionSet) {
-    addFunction(entryType, std::move(name), std::move(functionSet));
+    addFunction(&DUMMY_WRITE_TRANSACTION, entryType, std::move(name), std::move(functionSet));
 }
 
 CatalogSet* Catalog::getFunctions(Transaction*) const {
@@ -243,21 +243,22 @@ CatalogEntry* Catalog::getFunctionEntry(Transaction* transaction, const std::str
     return catalogSet->getEntry(transaction, name);
 }
 
-bool Catalog::containsMacro(Transaction*, const std::string& macroName) const {
-    return functions->containsEntry(&transaction::DUMMY_READ_TRANSACTION, macroName);
+bool Catalog::containsMacro(Transaction* transaction, const std::string& macroName) const {
+    return functions->containsEntry(transaction, macroName);
 }
 
-function::ScalarMacroFunction* Catalog::getScalarMacroFunction(const std::string& name) const {
+function::ScalarMacroFunction* Catalog::getScalarMacroFunction(Transaction* transaction,
+    const std::string& name) const {
     return ku_dynamic_cast<CatalogEntry*, ScalarMacroCatalogEntry*>(
-        functions->getEntry(&transaction::DUMMY_READ_TRANSACTION, name))
+        functions->getEntry(transaction, name))
         ->getMacroFunction();
 }
 
-void Catalog::addScalarMacroFunction(std::string name,
+void Catalog::addScalarMacroFunction(transaction::Transaction* transaction, std::string name,
     std::unique_ptr<function::ScalarMacroFunction> macro) {
     auto scalarMacroCatalogEntry =
         std::make_unique<ScalarMacroCatalogEntry>(std::move(name), std::move(macro));
-    functions->createEntry(&DUMMY_WRITE_TRANSACTION, std::move(scalarMacroCatalogEntry));
+    functions->createEntry(transaction, std::move(scalarMacroCatalogEntry));
 }
 
 std::vector<std::string> Catalog::getMacroNames(Transaction* transaction) const {
@@ -331,7 +332,7 @@ void Catalog::readFromFile(const std::string& directory, common::VirtualFileSyst
 }
 
 void Catalog::registerBuiltInFunctions() {
-    function::BuiltInFunctionsUtils::createFunctions(functions.get());
+    function::BuiltInFunctionsUtils::createFunctions(&DUMMY_WRITE_TRANSACTION, functions.get());
 }
 
 void Catalog::alterRdfChildTableEntries(transaction::Transaction* transaction,

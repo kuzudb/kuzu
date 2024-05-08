@@ -75,7 +75,7 @@ std::string getSchemaCypher(ClientContext* clientContext, Transaction* tx, std::
 std::string getMacroCypher(Catalog* catalog, Transaction* tx) {
     stringstream ss;
     for (auto macroName : catalog->getMacroNames(tx)) {
-        ss << catalog->getScalarMacroFunction(macroName)->toCypher(macroName) << std::endl;
+        ss << catalog->getScalarMacroFunction(tx, macroName)->toCypher(macroName) << std::endl;
     }
     return ss.str();
 }

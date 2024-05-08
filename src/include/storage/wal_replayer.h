@@ -27,7 +27,7 @@ private:
         std::unordered_map<DBFileID, std::unique_ptr<common::FileInfo>>& fileCache);
     void replayCatalogRecord(const WALRecord& walRecord);
     void replayTableStatisticsRecord(const WALRecord& walRecord);
-    void replayCreateTableRecord(const WALRecord& walRecord);
+    void replayCreateCatalogEntryRecord(const WALRecord& walRecord);
     void replayDropTableRecord(const WALRecord& walRecord);
     void replayCopyTableRecord(const WALRecord& walRecord) const;
 

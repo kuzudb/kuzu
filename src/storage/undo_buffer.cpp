@@ -114,11 +114,15 @@ void UndoBuffer::commitEntry(const uint8_t* entry, transaction_t commitTS) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
     case CatalogEntryType::REL_TABLE_ENTRY:
     case CatalogEntryType::REL_GROUP_ENTRY:
-    case CatalogEntryType::RDF_GRAPH_ENTRY: {
+    case CatalogEntryType::RDF_GRAPH_ENTRY:
+    case CatalogEntryType::SCALAR_MACRO_ENTRY: {
         if (catalogEntry->getType() == CatalogEntryType::DUMMY_ENTRY) {
             KU_ASSERT(catalogEntry->isDeleted());
-            wal.logCreateTableRecord(newCatalogEntry);
+            wal.logCreateCatalogEntryRecord(newCatalogEntry);
         }
+    } break;
+    case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {
+        // DO NOTHING. We don't persistent function entries.
     } break;
     case CatalogEntryType::DUMMY_ENTRY: {
         KU_ASSERT(newCatalogEntry->isDeleted());
@@ -132,13 +136,14 @@ void UndoBuffer::commitEntry(const uint8_t* entry, transaction_t commitTS) {
             wal.logDropTableRecord(tableCatalogEntry->getTableID());
         } break;
         default: {
-            throw RuntimeException("Not supported yet.");
+            throw RuntimeException(stringFormat("Not supported catalog entry type {} yet.",
+                CatalogEntryTypeUtils::toString(catalogEntry->getType())));
         }
         }
-        break;
-    }
+    } break;
     default: {
-        throw RuntimeException("Not supported catalog entries yet.");
+        throw RuntimeException(stringFormat("Not supported catalog entry type {} yet.",
+            CatalogEntryTypeUtils::toString(catalogEntry->getType())));
     }
     }
 }

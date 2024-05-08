@@ -193,16 +193,16 @@ function::TableFunction Binder::getScanFunction(FileType fileType, const ReaderC
     auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
     switch (fileType) {
     case FileType::PARQUET: {
-        func = function::BuiltInFunctionsUtils::matchFunction(ParquetScanFunction::name, inputTypes,
-            functions);
+        func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
+            ParquetScanFunction::name, inputTypes, functions);
     } break;
     case FileType::NPY: {
-        func = function::BuiltInFunctionsUtils::matchFunction(NpyScanFunction::name, inputTypes,
-            functions);
+        func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
+            NpyScanFunction::name, inputTypes, functions);
     } break;
     case FileType::CSV: {
         auto csvConfig = CSVReaderConfig::construct(config.options);
-        func = function::BuiltInFunctionsUtils::matchFunction(
+        func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
             csvConfig.parallel ? ParallelCSVScan::name : SerialCSVScan::name, inputTypes,
             functions);
     } break;

@@ -49,7 +49,7 @@ void TransactionContext::validateManualTransaction(bool allowActiveTransaction,
     }
     if (!allowActiveTransaction) {
         throw ConnectionException(
-            "DDL, Copy, createMacro statements can only run in the AUTO_COMMIT mode. Please commit "
+            "DDL, Copy statements can only run in the AUTO_COMMIT mode. Please commit "
             "or rollback your previous transaction if there is any and issue the query without "
             "beginning a transaction");
     }

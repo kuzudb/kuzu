@@ -71,7 +71,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     auto childrenTypes = getTypes(children);
     auto functions = context->getCatalog()->getFunctions(context->getTx());
     auto function = ku_dynamic_cast<Function*, function::ScalarFunction*>(
-        function::BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, functions));
+        function::BuiltInFunctionsUtils::matchFunction(context->getTx(), functionName,
+            childrenTypes, functions));
     expression_vector childrenAfterCast;
     std::unique_ptr<function::FunctionBindData> bindData;
     if (functionName == CastAnyFunction::name) {
@@ -125,8 +126,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindRewriteFunctionExpression(
     }
     auto childrenTypes = getTypes(children);
     auto functions = context->getCatalog()->getFunctions(context->getTx());
-    auto match = BuiltInFunctionsUtils::matchFunction(funcExpr.getNormalizedFunctionName(),
-        childrenTypes, functions);
+    auto match = BuiltInFunctionsUtils::matchFunction(context->getTx(),
+        funcExpr.getNormalizedFunctionName(), childrenTypes, functions);
     auto function = match->constPtrCast<RewriteFunction>();
     KU_ASSERT(function->rewriteFunc != nullptr);
     return function->rewriteFunc(children, this);
@@ -171,7 +172,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindMacroExpression(
     const ParsedExpression& parsedExpression, const std::string& macroName) {
-    auto scalarMacroFunction = context->getCatalog()->getScalarMacroFunction(macroName);
+    auto scalarMacroFunction =
+        context->getCatalog()->getScalarMacroFunction(context->getTx(), macroName);
     auto macroExpr = scalarMacroFunction->expression->copy();
     auto parameterVals = scalarMacroFunction->getDefaultParameterVals();
     auto& parsedFuncExpr =
