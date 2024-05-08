@@ -204,17 +204,6 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) {
         clientContext.getCatalog()->addScalarMacroFunction(&DUMMY_WRITE_TRANSACTION,
             macroEntry->getName(), macroEntry->getMacroFunction()->copy());
     } break;
-    case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {
-        KU_ASSERT(false);
-        auto scalarFuncEntry = ku_dynamic_cast<CatalogEntry*, FunctionCatalogEntry*>(
-            createEntryRecord.ownedCatalogEntry.get());
-        function::function_set functions;
-        //        for (auto& func : scalarFuncEntry->getFunctionSet()) {
-        //            functions.push_back(func->copy());
-        //        }
-        clientContext.getCatalog()->addFunction(&DUMMY_WRITE_TRANSACTION,
-            scalarFuncEntry->getType(), scalarFuncEntry->getName(), std::move(functions));
-    } break;
     default: {
         KU_UNREACHABLE;
     }
