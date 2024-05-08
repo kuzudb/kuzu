@@ -37,7 +37,7 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|2544| the movie is very v
 49992|50|31.582059|False|2056-05-02||[62,24,94]|[LpQO8OT3x45a]|[[268,281,166],[144,16,126,208,298],[22,287]]|{ID: 936, "name": sGPSafxMAhKiP}
 -STATEMENT LOAD FROM tinysnb.person1 RETURN *;
 ---- error
-Catalog exception: Table: person1 does not exist.
+Catalog exception: person1 does not exist in catalog.
 -STATEMENT DETACH tinysnb;
 ---- 1
 Detached database successfully.
@@ -116,7 +116,7 @@ Used database successfully.
 -LOG WrongTableName
 -STATEMENT CALL TABLE_INFO('tinysnb.personxx') RETURN *;
 ---- error
-Catalog exception: Table: personxx does not exist.
+Catalog exception: personxx does not exist in catalog.
 -LOG WrongCatalogName
 -STATEMENT CALL TABLE_INFO('tinysnbxx.person') RETURN *;
 ---- error
