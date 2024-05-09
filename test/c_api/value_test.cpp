@@ -1413,3 +1413,160 @@ TEST_F(CApiValueTest, RelValToString) {
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
 }
+
+TEST_F(CApiValueTest, GetTmFromNonStandardTimestamp) {
+    kuzu_timestamp_ns_t timestamp_ns = kuzu_timestamp_ns_t{17515323532900000};
+    kuzu_timestamp_ms_t timestamp_ms = kuzu_timestamp_ms_t{1012323435341};
+    kuzu_timestamp_sec_t timestamp_sec = kuzu_timestamp_sec_t{1432135648};
+    kuzu_timestamp_tz_t timestamp_tz = kuzu_timestamp_tz_t{771513532900000};
+    struct tm tm;
+    ASSERT_EQ(kuzu_timestamp_ns_to_tm(timestamp_ns, &tm), KuzuSuccess);
+    ASSERT_EQ(tm.tm_year, 70);
+    ASSERT_EQ(tm.tm_mon, 6);
+    ASSERT_EQ(tm.tm_mday, 22);
+    ASSERT_EQ(tm.tm_hour, 17);
+    ASSERT_EQ(tm.tm_min, 22);
+    ASSERT_EQ(tm.tm_sec, 3 );
+    ASSERT_EQ(kuzu_timestamp_ms_to_tm(timestamp_ms, &tm), KuzuSuccess);
+    ASSERT_EQ(tm.tm_year, 102);
+    ASSERT_EQ(tm.tm_mon, 0);
+    ASSERT_EQ(tm.tm_mday, 29);
+    ASSERT_EQ(tm.tm_hour, 16);
+    ASSERT_EQ(tm.tm_min, 57);
+    ASSERT_EQ(tm.tm_sec, 15);
+    ASSERT_EQ(kuzu_timestamp_sec_to_tm(timestamp_sec, &tm), KuzuSuccess);
+    ASSERT_EQ(tm.tm_year, 115);
+    ASSERT_EQ(tm.tm_mon, 4);
+    ASSERT_EQ(tm.tm_mday, 20);
+    ASSERT_EQ(tm.tm_hour, 15);
+    ASSERT_EQ(tm.tm_min, 27);
+    ASSERT_EQ(tm.tm_sec, 28);
+    ASSERT_EQ(kuzu_timestamp_tz_to_tm(timestamp_tz, &tm), KuzuSuccess);
+    ASSERT_EQ(tm.tm_year, 94);
+    ASSERT_EQ(tm.tm_mon, 5);
+    ASSERT_EQ(tm.tm_mday, 13);
+    ASSERT_EQ(tm.tm_hour, 13);
+    ASSERT_EQ(tm.tm_min, 18);
+    ASSERT_EQ(tm.tm_sec, 52);
+}
+
+TEST_F(CApiValueTest, GetTmFromTimestamp) {
+    kuzu_timestamp_t timestamp = kuzu_timestamp_t{171513532900000};
+    struct tm tm;
+    ASSERT_EQ(kuzu_timestamp_to_tm(timestamp, &tm), KuzuSuccess);
+    ASSERT_EQ(tm.tm_year, 75);
+    ASSERT_EQ(tm.tm_mon, 5);
+    ASSERT_EQ(tm.tm_mday, 9);
+    ASSERT_EQ(tm.tm_hour, 2);
+    ASSERT_EQ(tm.tm_min, 38);
+    ASSERT_EQ(tm.tm_sec, 52);
+}
+
+TEST_F(CApiValueTest, GetTmFromDate) {
+    kuzu_date_t date = kuzu_date_t{-255};
+    struct tm tm;
+    ASSERT_EQ(kuzu_date_to_tm(date, &tm), KuzuSuccess);
+    ASSERT_EQ(tm.tm_year, 69);
+    ASSERT_EQ(tm.tm_mon, 3);
+    ASSERT_EQ(tm.tm_mday, 21);
+    ASSERT_EQ(tm.tm_hour, 0);
+    ASSERT_EQ(tm.tm_min, 0);
+    ASSERT_EQ(tm.tm_sec, 0);
+}
+
+TEST_F(CApiValueTest, GetTimestampFromTm) {
+    struct tm tm;
+    tm.tm_year = 75;
+    tm.tm_mon = 5;
+    tm.tm_mday = 9;
+    tm.tm_hour = 2;
+    tm.tm_min = 38;
+    tm.tm_sec = 52;
+    kuzu_timestamp_t timestamp;
+    ASSERT_EQ(kuzu_timestamp_from_tm(tm, &timestamp), KuzuSuccess);
+    ASSERT_EQ(timestamp.value, 171513532000000);
+}
+
+TEST_F(CApiValueTest, GetNonStandardTimestampFromTm) {
+    struct tm tm;
+    tm.tm_year = 70;
+    tm.tm_mon = 6;
+    tm.tm_mday = 22;
+    tm.tm_hour = 17;
+    tm.tm_min = 22;
+    tm.tm_sec = 3;
+    kuzu_timestamp_ns_t timestamp_ns;
+    ASSERT_EQ(kuzu_timestamp_ns_from_tm(tm, &timestamp_ns), KuzuSuccess);
+    ASSERT_EQ(timestamp_ns.value, 17515323000000000);
+    tm.tm_year = 102;
+    tm.tm_mon = 0;
+    tm.tm_mday = 29;
+    tm.tm_hour = 16;
+    tm.tm_min = 57;
+    tm.tm_sec = 15;
+    kuzu_timestamp_ms_t timestamp_ms;
+    ASSERT_EQ(kuzu_timestamp_ms_from_tm(tm, &timestamp_ms), KuzuSuccess);
+    ASSERT_EQ(timestamp_ms.value, 1012323435000);
+    tm.tm_year = 115;
+    tm.tm_mon = 4;
+    tm.tm_mday = 20;
+    tm.tm_hour = 15;
+    tm.tm_min = 27;
+    tm.tm_sec = 28;
+    kuzu_timestamp_sec_t timestamp_sec;
+    ASSERT_EQ(kuzu_timestamp_sec_from_tm(tm, &timestamp_sec), KuzuSuccess);
+    ASSERT_EQ(timestamp_sec.value, 1432135648);
+    tm.tm_year = 94;
+    tm.tm_mon = 5;
+    tm.tm_mday = 13;
+    tm.tm_hour = 13;
+    tm.tm_min = 18;
+    tm.tm_sec = 52;
+    kuzu_timestamp_tz_t timestamp_tz;
+    ASSERT_EQ(kuzu_timestamp_tz_from_tm(tm, &timestamp_tz), KuzuSuccess);
+    ASSERT_EQ(timestamp_tz.value, 771513532000000);
+}
+
+TEST_F(CApiValueTest, GetDateFromTm) {
+    struct tm tm;
+    tm.tm_year = 69;
+    tm.tm_mon = 3;
+    tm.tm_mday = 21;
+    tm.tm_hour = 0;
+    tm.tm_min = 0;
+    tm.tm_sec = 0;
+    kuzu_date_t date;
+    ASSERT_EQ(kuzu_date_from_tm(tm, &date), KuzuSuccess);
+    ASSERT_EQ(date.days, -255);
+}
+
+TEST_F(CApiValueTest, GetDateFromString) {
+    char input[] = "1969-04-21";
+    kuzu_date_t date;
+    ASSERT_EQ(kuzu_date_from_string(input, &date), KuzuSuccess);
+    ASSERT_EQ(date.days, -255);
+}
+
+TEST_F(CApiValueTest, GetStringFromDate) {
+    kuzu_date_t date = kuzu_date_t{-255};
+    char* str;
+    ASSERT_EQ(kuzu_date_to_string(date, &str), KuzuSuccess);
+    ASSERT_STREQ(str, "1969-04-21");
+    kuzu_destroy_string(str);
+}
+
+TEST_F(CApiValueTest, GetDifftimeFromInterval) {
+    kuzu_interval_t interval = kuzu_interval_t{36, 2, 46920000000};
+    double difftime;
+    kuzu_interval_to_difftime(interval, &difftime);
+    ASSERT_DOUBLE_EQ(difftime, 93531720);
+}
+
+TEST_F(CApiValueTest, GetIntervalFromDifftime) {
+    double difftime = 211110160.4692;
+    kuzu_interval_t interval;
+    kuzu_interval_from_difftime(difftime, &interval);
+    ASSERT_EQ(interval.months, 81);
+    ASSERT_EQ(interval.days, 13);
+    ASSERT_EQ(interval.micros, 34960469200);
+}

@@ -858,3 +858,219 @@ void kuzu_destroy_string(char* str) {
 void kuzu_destroy_blob(uint8_t* blob) {
     free(blob);
 }
+
+kuzu_state kuzu_timestamp_ns_to_tm(kuzu_timestamp_ns_t timestamp, struct tm* out_result) {
+    time_t time = timestamp.value / 1000000000;
+#ifdef _WIN32
+    if (convertTimeToTm(time, out_result) != 0) {
+        return KuzuError;
+    }
+#else
+    if (gmtime_r(&time, out_result) == nullptr) {
+        return KuzuError;
+    }
+#endif
+    return KuzuSuccess;
+}
+
+kuzu_state kuzu_timestamp_ms_to_tm(kuzu_timestamp_ms_t timestamp, struct tm* out_result) {
+    time_t time = timestamp.value / 1000;
+#ifdef _WIN32
+    if (convertTimeToTm(time, out_result) != 0) {
+        return KuzuError;
+    }
+#else
+    if (gmtime_r(&time, out_result) == nullptr) {
+        return KuzuError;
+    }
+#endif
+    return KuzuSuccess;
+}
+
+kuzu_state kuzu_timestamp_sec_to_tm(kuzu_timestamp_sec_t timestamp, struct tm* out_result) {
+    time_t time = timestamp.value;
+#ifdef _WIN32
+    if (convertTimeToTm(time, out_result) != 0) {
+        return KuzuError;
+    }
+#else
+    if (gmtime_r(&time, out_result) == nullptr) {
+        return KuzuError;
+    }
+#endif
+    return KuzuSuccess;
+}
+
+kuzu_state kuzu_timestamp_tz_to_tm(kuzu_timestamp_tz_t timestamp, struct tm* out_result) {
+    time_t time = timestamp.value / 1000000;
+#ifdef _WIN32
+    if (convertTimeToTm(time, out_result) != 0) {
+        return KuzuError;
+    }
+#else
+    if (gmtime_r(&time, out_result) == nullptr) {
+        return KuzuError;
+    }
+#endif
+    return KuzuSuccess;
+}
+
+kuzu_state kuzu_timestamp_to_tm(kuzu_timestamp_t timestamp, struct tm* out_result) {
+    time_t time = timestamp.value / 1000000;
+#ifdef _WIN32
+    if (convertTimeToTm(time, out_result) != 0) {
+        return KuzuError;
+    }
+#else
+    if (gmtime_r(&time, out_result) == nullptr) {
+        return KuzuError;
+    }
+#endif
+    return KuzuSuccess;
+}
+
+kuzu_state kuzu_timestamp_ns_from_tm(struct tm tm, kuzu_timestamp_ns_t* out_result) {
+#ifdef _WIN32
+    time_t time = convertTmToTime(tm);
+#else
+    time_t time = timegm(&tm);
+#endif
+    if (time == -1) {
+        return KuzuError;
+    }
+    if (time == -1) {
+	    return KuzuError;
+	}
+	out_result->value = time * 1000000000;
+	return KuzuSuccess;
+}
+
+kuzu_state kuzu_timestamp_ms_from_tm(struct tm tm, kuzu_timestamp_ms_t* out_result) {
+#ifdef _WIN32
+    time_t time = convertTmToTime(tm);
+#else
+    time_t time = timegm(&tm);
+#endif
+    if (time == -1) {
+        return KuzuError;
+    }
+    if (time == -1) {
+	    return KuzuError;
+	}
+	out_result->value = time * 1000;
+	return KuzuSuccess;
+}
+
+kuzu_state kuzu_timestamp_sec_from_tm(struct tm tm, kuzu_timestamp_sec_t* out_result) {
+#ifdef _WIN32
+    time_t time = convertTmToTime(tm);
+#else
+    time_t time = timegm(&tm);
+#endif
+    if (time == -1) {
+        return KuzuError;
+    }
+    if (time == -1) {
+	    return KuzuError;
+	}
+	out_result->value = time;
+	return KuzuSuccess;
+}
+
+kuzu_state kuzu_timestamp_tz_from_tm(struct tm tm, kuzu_timestamp_tz_t* out_result) {
+#ifdef _WIN32
+    time_t time = convertTmToTime(tm);
+#else
+    time_t time = timegm(&tm);
+#endif
+    if (time == -1) {
+        return KuzuError;
+    }
+    if (time == -1) {
+	    return KuzuError;
+	}
+	out_result->value = time * 1000000;
+	return KuzuSuccess;
+}
+
+kuzu_state kuzu_timestamp_from_tm(struct tm tm, kuzu_timestamp_t* out_result) {
+#ifdef _WIN32
+    time_t time = convertTmToTime(tm);
+#else
+    time_t time = timegm(&tm);
+#endif
+    if (time == -1) {
+        return KuzuError;
+    }
+    if (time == -1) {
+        return KuzuError;
+    }
+    out_result->value = time * 1000000;
+    return KuzuSuccess;
+}
+
+kuzu_state kuzu_date_to_tm(kuzu_date_t date, struct tm* out_result) {
+	time_t time = date.days * 86400;
+#ifdef _WIN32
+    if (convertTimeToTm(time, out_result) != 0) {
+		return KuzuError;
+	}
+#else
+	if (gmtime_r(&time, out_result) == nullptr) {
+        return KuzuError;
+    }
+#endif
+    out_result->tm_hour = 0;
+    out_result->tm_min = 0;
+    out_result->tm_sec = 0;
+	return KuzuSuccess;
+}
+
+kuzu_state kuzu_date_from_tm(struct tm tm, kuzu_date_t* out_result) {
+#ifdef _WIN32
+   time_t time = convertTmToTime(tm);
+#else
+    time_t time = timegm(&tm);
+#endif
+    if (time == -1) {
+        return KuzuError;
+    }
+    out_result->days = time / 86400;
+    return KuzuSuccess;
+}
+
+kuzu_state kuzu_date_to_string(kuzu_date_t date, char** out_result) {
+	struct tm tm;
+    if (kuzu_date_to_tm(date, &tm) != KuzuSuccess) {
+		return KuzuError;
+	}
+	char buffer[80];
+	strftime(buffer, 80, "%Y-%m-%d", &tm);
+	*out_result = convertToOwnedCString(buffer);
+	return KuzuSuccess;
+}
+
+kuzu_state kuzu_date_from_string(const char* str, kuzu_date_t* out_result) {
+	try {
+        date_t date = Date::fromCString(str, strlen(str));
+        out_result->days = date.days;
+    } catch (ConversionException& e) {
+        return KuzuError;
+    }
+    return KuzuSuccess; 
+}
+
+void kuzu_interval_to_difftime(kuzu_interval_t interval, double* out_result) {
+    auto micros = interval.micros + interval.months * Interval::MICROS_PER_MONTH + interval.days * Interval::MICROS_PER_DAY;
+    double seconds = micros / 1000000.0;
+    *out_result = seconds;
+}
+
+void kuzu_interval_from_difftime(double difftime, kuzu_interval_t* out_result) {
+    int64_t micros = difftime * 1000000;
+    out_result->months = micros / Interval::MICROS_PER_MONTH;
+    micros -= out_result->months * Interval::MICROS_PER_MONTH;
+    out_result->days = micros / Interval::MICROS_PER_DAY;
+    micros -= out_result->days * Interval::MICROS_PER_DAY;
+    out_result->micros = micros;
+}

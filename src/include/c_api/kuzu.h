@@ -1,6 +1,10 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
+#include <time.h>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 /* Export header from common/api.h */
 // Helpers
@@ -1500,7 +1504,117 @@ KUZU_C_API double kuzu_query_summary_get_compiling_time(kuzu_query_summary* quer
  */
 KUZU_C_API double kuzu_query_summary_get_execution_time(kuzu_query_summary* query_summary);
 
-// TODO: Bind utility functions for kuzu_date_t, kuzu_timestamp_t, and kuzu_interval_t
+// Utility functions
+/**
+ * @brief Convert timestamp_ns to corresponding tm struct.
+ * @param timestamp The timestamp_ns value to convert.
+ * @param[out] out_result The output parameter that will hold the tm struct.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_timestamp_ns_to_tm(kuzu_timestamp_ns_t timestamp, struct tm* out_result);
+/**
+ * @brief Convert timestamp_ms to corresponding tm struct.
+ * @param timestamp The timestamp_ms value to convert.
+ * @param[out] out_result The output parameter that will hold the tm struct.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_timestamp_ms_to_tm(kuzu_timestamp_ms_t timestamp, struct tm* out_result);
+/**
+ * @brief Convert timestamp_sec to corresponding tm struct.
+ * @param timestamp The timestamp_sec value to convert.
+ * @param[out] out_result The output parameter that will hold the tm struct.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_timestamp_sec_to_tm(kuzu_timestamp_sec_t timestamp, struct tm* out_result);
+/**
+ * @brief Convert timestamp_tz to corresponding tm struct.
+ * @param timestamp The timestamp_tz value to convert.
+ * @param[out] out_result The output parameter that will hold the tm struct.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_timestamp_tz_to_tm(kuzu_timestamp_tz_t timestamp, struct tm* out_result);
+/**
+ * @brief Convert timestamp to corresponding tm struct.
+ * @param timestamp The timestamp value to convert.
+ * @param[out] out_result The output parameter that will hold the tm struct.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_timestamp_to_tm(kuzu_timestamp_t timestamp, struct tm* out_result);
+/**
+ * @brief Convert tm struct to timestamp_ns value.
+ * @param tm The tm struct to convert.
+ * @param[out] out_result The output parameter that will hold the timestamp_ns value.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_timestamp_ns_from_tm(struct tm tm, kuzu_timestamp_ns_t* out_result);
+/**
+ * @brief Convert tm struct to timestamp_ms value.
+ * @param tm The tm struct to convert.
+ * @param[out] out_result The output parameter that will hold the timestamp_ms value.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_timestamp_ms_from_tm(struct tm tm, kuzu_timestamp_ms_t* out_result);
+/**
+ * @brief Convert tm struct to timestamp_sec value.
+ * @param tm The tm struct to convert.
+ * @param[out] out_result The output parameter that will hold the timestamp_sec value.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_timestamp_sec_from_tm(struct tm tm, kuzu_timestamp_sec_t* out_result);
+/**
+ * @brief Convert tm struct to timestamp_tz value.
+ * @param tm The tm struct to convert.
+ * @param[out] out_result The output parameter that will hold the timestamp_tz value.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_timestamp_tz_from_tm(struct tm tm, kuzu_timestamp_tz_t* out_result);
+/**
+ * @brief Convert timestamp_ns to corresponding string.
+ * @param timestamp The timestamp_ns value to convert.
+ * @param[out] out_result The output parameter that will hold the string value.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_timestamp_from_tm(struct tm tm, kuzu_timestamp_t* out_result);
+/**
+ * @brief Convert date to corresponding string.
+ * @param date The date value to convert.
+ * @param[out] out_result The output parameter that will hold the string value.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_date_to_string(kuzu_date_t date, char** out_result);
+/**
+ * @brief Convert a string to date value.
+ * @param str The string to convert.
+ * @param[out] out_result The output parameter that will hold the date value.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_date_from_string(const char* str, kuzu_date_t* out_result);
+/**
+ * @brief Convert date to corresponding tm struct.
+ * @param date The date value to convert.
+ * @param[out] out_result The output parameter that will hold the tm struct.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_date_to_tm(kuzu_date_t date, struct tm* out_result);
+/**
+ * @brief Convert tm struct to date value.
+ * @param tm The tm struct to convert.
+ * @param[out] out_result The output parameter that will hold the date value.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_date_from_tm(struct tm tm, kuzu_date_t* out_result);
+/**
+ * @brief Convert interval to corresponding difftime value in seconds.
+ * @param interval The interval value to convert.
+ * @param[out] out_result The output parameter that will hold the difftime value.
+*/
+KUZU_C_API void kuzu_interval_to_difftime(kuzu_interval_t interval, double* out_result);
+/**
+ * @brief Convert difftime value in seconds to interval.
+ * @param difftime The difftime value to convert.
+ * @param[out] out_result The output parameter that will hold the interval value.
+*/
+KUZU_C_API void kuzu_interval_from_difftime(double difftime, kuzu_interval_t* out_result);
 
 // Version
 /**
