@@ -359,3 +359,14 @@ def test_scan_from_py_arrow_pandas(tmp_path: Path) -> None:
     assert result.get_next() == ["Zhang", 50]
     assert result.get_next() == ["Noura", 25]
     assert result.has_next() is False
+
+
+def test_scan_long_utf8_string(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    data = {
+        "name": ["很长的一段中文", "短", "非常长的中文"]
+    }
+    df = pd.DataFrame(data)
+    result = conn.execute("LOAD FROM df WHERE name = '非常长的中文' RETURN count(*);")
+    assert result.get_next() == [1]

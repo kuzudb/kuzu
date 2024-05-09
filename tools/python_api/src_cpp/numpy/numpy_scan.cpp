@@ -66,6 +66,9 @@ static void appendPythonUnicode(T* codepoints, uint64_t codepointLength,
         KU_ASSERT(codePointLen >= 1);
         dataToWrite += codePointLen;
     }
+    if (!ku_string_t::isShortString(utf8StrLen)) {
+        memcpy(strToAppend.prefix, strToAppend.getData(), ku_string_t::PREFIX_LENGTH);
+    }
 }
 
 void NumpyScan::scan(PandasColumnBindData* bindData, uint64_t count, uint64_t offset,
