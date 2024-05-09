@@ -1,0 +1,23 @@
+-DATASET CSV empty
+
+--
+
+-CASE Play
+
+
+-STATEMENT CREATE NODE TABLE Test(
+                   pk STRING,
+                   PRIMARY KEY (pk));
+---- ok
+-STATEMENT COPY Test FROM (
+                LOAD WITH HEADERS (pk STRING)
+                FROM "${KUZU_ROOT_DIRECTORY}/dataset/issue/duplicate-primary-key/data.csv" (header=true)
+                WHERE NOT EXISTS { MATCH (t:Test) WHERE t.pk = pk }
+                RETURN *);
+---- 1
+9 tuples have been copied to the Test table.
+-STATEMENT LOAD WITH HEADERS (pk STRING)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/issue/duplicate-primary-key/data.csv" (header=true)
+           WHERE NOT EXISTS { MATCH (t:Test) WHERE t.pk = pk }
+           RETURN *;
+---- 0

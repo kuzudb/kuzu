@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from tools.python_api.test.type_aliases import ConnDB
+from type_aliases import ConnDB
 
 # required by python-lint
 
