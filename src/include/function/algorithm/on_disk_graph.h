@@ -15,6 +15,8 @@ public:
 
     common::offset_t getNumEdges() override;
 
+    uint64_t getFwdDegreeOffset(common::offset_t offset) override;
+
 private:
     std::unordered_map<std::string, storage::NodeTable*> nodeTables;
     std::unordered_map<std::string, storage::RelTable*> relTables;

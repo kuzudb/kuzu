@@ -51,5 +51,16 @@ common::offset_t OnDiskGraph::getNumEdges() {
     return numEdges;
 }
 
+uint64_t OnDiskGraph::getFwdDegreeOffset(common::offset_t offset) {
+    auto dummyTxn = transaction::Transaction::getDummyReadOnlyTrx();
+    uint64_t totalFwdDegree = 0LU;
+    for (auto& [_, relTable] : relTables) {
+        totalFwdDegree +=
+            relTable->getDirectedTableData(common::RelDataDirection::FWD)
+                ->getNodeRels(dummyTxn.get(), offset);
+    }
+    return totalFwdDegree;
+}
+
 } // namespace graph
 } // namespace kuzu

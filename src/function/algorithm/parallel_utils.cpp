@@ -25,7 +25,7 @@ bool ParallelUtils::init() {
 bool ParallelUtils::runWorkerThread(function::TableFuncInput& input, function::TableFuncOutput& output) {
     std::unique_lock<std::mutex> lck{mtx, std::defer_lock};
     function::table_func_t tableFunction;
-    while(true) {
+    while (true) {
         try {
             lck.lock();
             cv.wait(lck, [&] {

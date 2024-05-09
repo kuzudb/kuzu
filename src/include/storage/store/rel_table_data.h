@@ -148,6 +148,8 @@ public:
 
     void checkRelMultiplicityConstraint(transaction::Transaction* transaction,
         common::ValueVector* srcNodeIDVector) const;
+    // TEMP - This is just a temp function I added for my demo algorithm.
+    uint64_t getNodeRels(transaction::Transaction* transaction, common::offset_t nodeOffset) const;
     bool checkIfNodeHasRels(transaction::Transaction* transaction,
         common::offset_t nodeOffset) const;
     void append(ChunkedNodeGroup* nodeGroup) override;

@@ -18,6 +18,8 @@ public:
 
     virtual common::offset_t getNumEdges() = 0;
 
+    virtual uint64_t getFwdDegreeOffset(common::offset_t offset) = 0;
+
 protected:
     main::ClientContext* context;
 };

@@ -270,6 +270,23 @@ void RelTableData::checkRelMultiplicityConstraint(Transaction* transaction,
     }
 }
 
+// TEMP - This is just a temp function I added for my demo algorithm.
+uint64_t RelTableData::getNodeRels(transaction::Transaction* transaction,
+    common::offset_t nodeOffset) const {
+    auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
+    if (nodeGroupIdx >= csrHeaderColumns.length->getNumNodeGroups(transaction)) {
+        return false;
+    }
+    auto readState = csrHeaderColumns.length->getReadState(transaction->getType(), nodeGroupIdx);
+    if (offsetInChunk >= readState.metadata.numValues) {
+        return false;
+    }
+    length_t length;
+    csrHeaderColumns.length->scan(transaction, readState, offsetInChunk, offsetInChunk + 1,
+        reinterpret_cast<uint8_t*>(&length));
+    return length;
+}
+
 bool RelTableData::checkIfNodeHasRels(Transaction* transaction, offset_t nodeOffset) const {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     if (nodeGroupIdx >= csrHeaderColumns.length->getNumNodeGroups(transaction)) {
