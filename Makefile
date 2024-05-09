@@ -218,6 +218,8 @@ install:
 # Cleaning
 clean-extension:
 	cmake -E rm -rf extension/httpfs/build
+	cmake -E rm -rf extension/duckdb/build
+	cmake -E rm -rf extension/postgres/build
 
 clean-python-api:
 	cmake -E rm -rf tools/python_api/build

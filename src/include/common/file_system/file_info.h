@@ -4,6 +4,7 @@
 #include <string>
 
 #include "common/api.h"
+#include "common/cast.h"
 
 namespace kuzu {
 namespace common {
@@ -11,7 +12,7 @@ namespace common {
 class FileSystem;
 
 struct KUZU_API FileInfo {
-    FileInfo(std::string path, const FileSystem* fileSystem)
+    FileInfo(std::string path, FileSystem* fileSystem)
         : path{std::move(path)}, fileSystem{fileSystem} {}
 
     virtual ~FileInfo() = default;
@@ -30,9 +31,19 @@ struct KUZU_API FileInfo {
 
     void truncate(uint64_t size);
 
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<FileInfo*, TARGET*>(this);
+    }
+
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const FileInfo*, const TARGET*>(this);
+    }
+
     const std::string path;
 
-    const FileSystem* fileSystem;
+    FileSystem* fileSystem;
 };
 
 } // namespace common
