@@ -11,7 +11,7 @@ CallFuncMorsel CallFuncSharedState::getMorsel() {
     if (curOffset == maxOffset) {
         return CallFuncMorsel::createInvalidMorsel();
     } else {
-        auto numValuesToOutput = std::min(1LU, maxOffset - curOffset);
+        auto numValuesToOutput = std::min(morselSize, maxOffset - curOffset);
         curOffset += numValuesToOutput;
         return CallFuncMorsel{curOffset - numValuesToOutput, curOffset};
     }

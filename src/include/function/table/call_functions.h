@@ -24,9 +24,15 @@ struct CallFuncMorsel {
 struct CallFuncSharedState : public TableFuncSharedState {
     common::offset_t maxOffset;
     common::offset_t curOffset;
+    uint64_t morselSize;
     std::mutex mtx;
 
-    explicit CallFuncSharedState(common::offset_t maxOffset) : maxOffset{maxOffset}, curOffset{0} {}
+    explicit CallFuncSharedState(common::offset_t maxOffset) : maxOffset{maxOffset}, curOffset{0},
+    morselSize{common::DEFAULT_VECTOR_CAPACITY} {}
+
+    explicit CallFuncSharedState(common::offset_t maxOffset, common::offset_t curOffset,
+        common::offset_t morselSize) : maxOffset{maxOffset}, curOffset{curOffset},
+          morselSize{morselSize} {}
 
     CallFuncMorsel getMorsel();
 };
