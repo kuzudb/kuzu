@@ -10,7 +10,7 @@ namespace kuzu {
 namespace processor {
 
 void DropTable::executeDDLInternal(ExecutionContext* context) {
-    context->clientContext->getCatalog()->dropTableSchema(tableID);
+    context->clientContext->getCatalog()->dropTableSchema(context->clientContext->getTx(), tableID);
 }
 
 std::string DropTable::getOutputMsg() {

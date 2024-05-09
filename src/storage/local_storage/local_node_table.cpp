@@ -12,7 +12,7 @@ namespace storage {
 void LocalNodeNG::scan(const ValueVector& nodeIDVector, const std::vector<column_id_t>& columnIDs,
     const std::vector<ValueVector*>& outputVectors) {
     KU_ASSERT(columnIDs.size() == outputVectors.size());
-    for (auto pos = 0u; pos < nodeIDVector.state->selVector->selectedSize; pos++) {
+    for (auto pos = 0u; pos < nodeIDVector.state->getSelVector().getSelSize(); pos++) {
         lookup(nodeIDVector, pos, columnIDs, outputVectors);
     }
 }
@@ -20,7 +20,7 @@ void LocalNodeNG::scan(const ValueVector& nodeIDVector, const std::vector<column
 void LocalNodeNG::lookup(const common::ValueVector& nodeIDVector,
     common::offset_t offsetInVectorToLookup, const std::vector<column_id_t>& columnIDs,
     const std::vector<ValueVector*>& outputVectors) {
-    auto nodeIDPos = nodeIDVector.state->selVector->selectedPositions[offsetInVectorToLookup];
+    auto nodeIDPos = nodeIDVector.state->getSelVector()[offsetInVectorToLookup];
     auto nodeOffset = nodeIDVector.getValue<nodeID_t>(nodeIDPos).offset;
     if (deleteInfo.containsOffset(nodeOffset)) {
         // Node has been deleted.
@@ -31,8 +31,7 @@ void LocalNodeNG::lookup(const common::ValueVector& nodeIDVector,
         return;
     }
     for (auto i = 0u; i < columnIDs.size(); i++) {
-        auto posInOutputVector =
-            outputVectors[i]->state->selVector->selectedPositions[offsetInVectorToLookup];
+        auto posInOutputVector = outputVectors[i]->state->getSelVector()[offsetInVectorToLookup];
         if (columnIDs[i] == INVALID_COLUMN_ID) {
             outputVectors[i]->setNull(posInOutputVector, true);
             continue;
@@ -46,8 +45,8 @@ bool LocalNodeNG::insert(std::vector<common::ValueVector*> nodeIDVectors,
     std::vector<common::ValueVector*> propertyVectors) {
     KU_ASSERT(nodeIDVectors.size() == 1);
     auto nodeIDVector = nodeIDVectors[0];
-    KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
-    auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1);
+    auto nodeIDPos = nodeIDVector->state->getSelVector()[0];
     if (nodeIDVector->isNull(nodeIDPos)) {
         return false;
     }
@@ -62,8 +61,8 @@ bool LocalNodeNG::update(std::vector<common::ValueVector*> nodeIDVectors,
     common::column_id_t columnID, common::ValueVector* propertyVector) {
     KU_ASSERT(nodeIDVectors.size() == 1);
     auto nodeIDVector = nodeIDVectors[0];
-    KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
-    auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1);
+    auto nodeIDPos = nodeIDVector->state->getSelVector()[0];
     if (nodeIDVector->isNull(nodeIDPos)) {
         return false;
     }
@@ -79,8 +78,8 @@ bool LocalNodeNG::update(std::vector<common::ValueVector*> nodeIDVectors,
 }
 
 bool LocalNodeNG::delete_(common::ValueVector* nodeIDVector, common::ValueVector* /*extraVector*/) {
-    KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
-    auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1);
+    auto nodeIDPos = nodeIDVector->state->getSelVector()[0];
     if (nodeIDVector->isNull(nodeIDPos)) {
         return false;
     }
@@ -99,7 +98,7 @@ bool LocalNodeNG::delete_(common::ValueVector* nodeIDVector, common::ValueVector
 }
 
 LocalNodeGroup* LocalNodeTableData::getOrCreateLocalNodeGroup(common::ValueVector* nodeIDVector) {
-    auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
+    auto nodeIDPos = nodeIDVector->state->getSelVector()[0];
     auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     if (!nodeGroups.contains(nodeGroupIdx)) {

@@ -70,7 +70,7 @@ private:
         uint64_t& numTuplesRead);
     inline uint64_t getNumTuples(common::DataChunk* unflatChunk) {
         return unflatChunk->getNumValueVectors() != 0 ?
-                   unflatChunk->state->selVector->selectedSize :
+                   unflatChunk->state->getSelVector().getSelSize() :
                    1;
     }
 

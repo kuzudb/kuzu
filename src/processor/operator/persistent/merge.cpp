@@ -32,8 +32,8 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
-    KU_ASSERT(existenceVector->state->selVector->selectedSize == 1);
-    auto pos = existenceVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(existenceVector->state->getSelVector().getSelSize() == 1);
+    auto pos = existenceVector->state->getSelVector()[0];
     auto patternExist = existenceVector->getValue<bool>(pos);
     if (patternExist) {
         for (auto& executor : onMatchNodeSetExecutors) {
@@ -45,9 +45,9 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
     } else {
         auto patternHasBeenCreated = false;
         if (distinctVector != nullptr) {
-            KU_ASSERT(distinctVector->state->selVector->selectedSize == 1);
-            auto pos = distinctVector->state->selVector->selectedPositions[0];
-            patternHasBeenCreated = !distinctVector->getValue<bool>(pos);
+            KU_ASSERT(distinctVector->state->getSelVector().getSelSize() == 1);
+            auto distinctPos = distinctVector->state->getSelVector()[0];
+            patternHasBeenCreated = !distinctVector->getValue<bool>(distinctPos);
         }
         if (patternHasBeenCreated) {
             for (auto& executor : nodeInsertExecutors) {

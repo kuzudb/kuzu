@@ -13,8 +13,7 @@ bool Simple::getNextTuplesInternal(ExecutionContext* context) {
     }
     hasExecuted = true;
     executeInternal(context);
-    outputVector->setValue<std::string>(outputVector->state->selVector->selectedPositions[0],
-        getOutputMsg());
+    outputVector->setValue<std::string>(outputVector->state->getSelVector()[0], getOutputMsg());
     metrics->numOutputTuple.increase(1);
     return true;
 }

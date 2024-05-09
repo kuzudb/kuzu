@@ -18,6 +18,9 @@
 48
 49
 50
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE deleteMultipleRelsCommitRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -37,6 +40,9 @@
 48
 49
 50
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE deleteMultipleRelsRollbackNormalExecution
 -STATEMENT BEGIN TRANSACTION
@@ -100,6 +106,9 @@
 7
 8
 9
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE deleteMultipleRelsRollbackRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -164,3 +173,5 @@
 7
 8
 9
+-STATEMENT COMMIT;
+---- ok

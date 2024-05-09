@@ -13,11 +13,11 @@ std::shared_ptr<DataChunkState> DataChunkState::getSingleValueDataChunkState() {
 void DataChunkState::slice(offset_t offset) {
     // NOTE: this operation has performance penalty. Ideally we should directly modify selVector
     // instead of creating a new one.
-    auto slicedSelVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
-    slicedSelVector->setToFiltered(selVector->selectedSize - offset);
-    for (auto i = 0u; i < slicedSelVector->selectedSize; i++) {
-        slicedSelVector->selectedPositions[i] = selVector->selectedPositions[i + offset];
+    auto slicedSelVector = std::make_shared<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
+    for (auto i = 0u; i < selVector->getSelSize() - offset; i++) {
+        slicedSelVector->getMultableBuffer()[i] = selVector->operator[](i + offset);
     }
+    slicedSelVector->setToFiltered(selVector->getSelSize() - offset);
     selVector = std::move(slicedSelVector);
 }
 

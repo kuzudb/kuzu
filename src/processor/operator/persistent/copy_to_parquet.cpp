@@ -22,7 +22,7 @@ void CopyToParquetLocalState::init(CopyToInfo* info, storage::MemoryManager* mm,
 
 void CopyToParquetLocalState::sink(CopyToSharedState* sharedState, CopyToInfo* /*info*/) {
     ft->append(vectorsToAppend);
-    numTuplesInFT += countingVec->state->selVector->selectedSize;
+    numTuplesInFT += countingVec->state->getSelVector().getSelSize();
     if (numTuplesInFT > StorageConstants::NODE_GROUP_SIZE) {
         reinterpret_cast<CopyToParquetSharedState*>(sharedState)->flush(*ft);
         numTuplesInFT = 0;

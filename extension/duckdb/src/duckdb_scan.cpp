@@ -209,10 +209,10 @@ void convertDuckDBVectorToVector<struct_entry_t>(duckdb::Vector& duckDBVector, V
 static void convertDuckDBResultToVector(duckdb::DataChunk& duckDBResult, DataChunk& result,
     std::vector<duckdb_conversion_func_t> conversionFuncs) {
     for (auto i = 0u; i < conversionFuncs.size(); i++) {
-        result.state->selVector->selectedSize = duckDBResult.size();
+        result.state->getSelVectorUnsafe().setSelSize(duckDBResult.size());
         assert(duckDBResult.data[i].GetVectorType() == duckdb::VectorType::FLAT_VECTOR);
         conversionFuncs[i](duckDBResult.data[i], *result.getValueVector(i),
-            result.state->selVector->selectedSize);
+            result.state->getSelVector().getSelSize());
     }
 }
 
@@ -230,7 +230,7 @@ common::offset_t DuckDBScanFunction::tableFunc(function::TableFuncInput& input,
         return 0;
     }
     convertDuckDBResultToVector(*result, output.dataChunk, duckdbScanBindData->conversionFunctions);
-    return output.dataChunk.state->selVector->selectedSize;
+    return output.dataChunk.state->getSelVector().getSelSize();
 }
 
 std::unique_ptr<function::TableFuncBindData> DuckDBScanFunction::bindFunc(

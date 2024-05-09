@@ -6,29 +6,55 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-offset_t NodesStoreStatsAndDeletedIDs::getMaxNodeOffset(transaction::Transaction* transaction,
+NodesStoreStatsAndDeletedIDs::NodesStoreStatsAndDeletedIDs(const std::string& databasePath,
+    BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, VirtualFileSystem* fs)
+    : TablesStatistics{metadataFH, bufferManager, wal} {
+    if (fs->fileOrPathExists(StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(fs, databasePath,
+            FileVersionType::ORIGINAL))) {
+        readFromFile(databasePath, FileVersionType::ORIGINAL, fs);
+    } else {
+        saveToFile(databasePath, FileVersionType::ORIGINAL, TransactionType::READ_ONLY, fs);
+    }
+}
+
+offset_t NodesStoreStatsAndDeletedIDs::getMaxNodeOffset(Transaction* transaction,
     table_id_t tableID) {
     KU_ASSERT(transaction);
-    if (transaction->getType() == transaction::TransactionType::READ_ONLY) {
+    if (transaction->getType() == TransactionType::READ_ONLY) {
         return getNodeStatisticsAndDeletedIDs(transaction, tableID)->getMaxNodeOffset();
     } else {
         std::unique_lock xLck{mtx};
         return readWriteVersion == nullptr ?
                    getNodeStatisticsAndDeletedIDs(transaction, tableID)->getMaxNodeOffset() :
-                   getNodeTableStats(transaction::TransactionType::WRITE, tableID)
-                       ->getMaxNodeOffset();
+                   getNodeTableStats(TransactionType::WRITE, tableID)->getMaxNodeOffset();
     }
+}
+
+offset_t NodesStoreStatsAndDeletedIDs::addNode(table_id_t tableID) {
+    lock_t lck{mtx};
+    initTableStatisticsForWriteTrxNoLock();
+    KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
+    setToUpdated();
+    return getNodeTableStats(transaction::TransactionType::WRITE, tableID)->addNode();
+}
+
+void NodesStoreStatsAndDeletedIDs::deleteNode(table_id_t tableID, offset_t nodeOffset) {
+    lock_t lck{mtx};
+    initTableStatisticsForWriteTrxNoLock();
+    KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
+    setToUpdated();
+    getNodeTableStats(transaction::TransactionType::WRITE, tableID)->deleteNode(nodeOffset);
 }
 
 void NodesStoreStatsAndDeletedIDs::updateNumTuplesByValue(table_id_t tableID, int64_t value) {
     initTableStatisticsForWriteTrx();
     KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
     setToUpdated();
-    auto tableStats = getNodeTableStats(transaction::TransactionType::WRITE, tableID);
+    auto tableStats = getNodeTableStats(TransactionType::WRITE, tableID);
     tableStats->setNumTuples(tableStats->getNumTuples() + value);
 }
 
-void NodesStoreStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(transaction::Transaction* tx,
+void NodesStoreStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(Transaction* tx,
     ValueVector* nodeIDVector, table_id_t tableID) {
     // NOTE: We can remove the lock under the following assumptions, that should currently hold:
     // 1) During the phases when nodeStatisticsAndDeletedIDsPerTableForReadOnlyTrx change, which
@@ -80,8 +106,8 @@ void NodesStoreStatsAndDeletedIDs::removeMetadataDAHInfo(table_id_t tableID, col
     tableStats->removeMetadataDAHInfoForColumn(columnID);
 }
 
-MetadataDAHInfo* NodesStoreStatsAndDeletedIDs::getMetadataDAHInfo(
-    transaction::Transaction* transaction, table_id_t tableID, column_id_t columnID) {
+MetadataDAHInfo* NodesStoreStatsAndDeletedIDs::getMetadataDAHInfo(Transaction* transaction,
+    table_id_t tableID, column_id_t columnID) {
     if (transaction->isWriteTransaction()) {
         initTableStatisticsForWriteTrx();
     }

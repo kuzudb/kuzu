@@ -240,6 +240,9 @@ public:
 
     void validateType(common::LogicalTypeID targetTypeID) const;
 
+    bool hasNoneNullChildren() const;
+    bool allowTypeChange() const;
+
     uint64_t computeHash() const;
 
 private:

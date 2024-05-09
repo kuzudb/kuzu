@@ -213,7 +213,7 @@ void ColumnChunk::resetToEmpty() {
 void ColumnChunk::append(ValueVector* vector, const SelectionVector& selVector) {
     KU_ASSERT(vector->dataType.getPhysicalType() == dataType.getPhysicalType());
     copyVectorToBuffer(vector, numValues, selVector);
-    numValues += selVector.selectedSize;
+    numValues += selVector.getSelSize();
 }
 
 void ColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
@@ -323,19 +323,19 @@ void ColumnChunk::populateWithDefaultVal(ValueVector* defaultValueVector) {
     // operators on the pipeline so setting its state will affect others.
     // You can only set state for vectors that is local to this class.
     defaultValueVector->setState(std::make_shared<DataChunkState>());
-    auto valPos = defaultValueVector->state->selVector->selectedPositions[0];
-    auto positionBuffer = defaultValueVector->state->selVector->getMultableBuffer();
-    for (auto i = 0u; i < defaultValueVector->state->selVector->selectedSize; i++) {
+    auto valPos = defaultValueVector->state->getSelVector()[0];
+    auto positionBuffer = defaultValueVector->state->getSelVectorUnsafe().getMultableBuffer();
+    for (auto i = 0u; i < defaultValueVector->state->getSelVector().getSelSize(); i++) {
         positionBuffer[i] = valPos;
     }
-    defaultValueVector->state->selVector->setToFiltered(DEFAULT_VECTOR_CAPACITY);
+    defaultValueVector->state->getSelVectorUnsafe().setToFiltered(DEFAULT_VECTOR_CAPACITY);
     auto numValuesAppended = 0u;
     auto numValuesToPopulate = capacity;
     while (numValuesAppended < numValuesToPopulate) {
         auto numValuesToAppend =
             std::min(DEFAULT_VECTOR_CAPACITY, numValuesToPopulate - numValuesAppended);
-        defaultValueVector->state->selVector->selectedSize = numValuesToAppend;
-        append(defaultValueVector, *defaultValueVector->state->selVector);
+        defaultValueVector->state->getSelVectorUnsafe().setSelSize(numValuesToAppend);
+        append(defaultValueVector, defaultValueVector->state->getSelVector());
         numValuesAppended += numValuesToAppend;
     }
 }
@@ -343,17 +343,17 @@ void ColumnChunk::populateWithDefaultVal(ValueVector* defaultValueVector) {
 void ColumnChunk::copyVectorToBuffer(ValueVector* vector, offset_t startPosInChunk,
     const SelectionVector& selVector) {
     auto bufferToWrite = buffer.get() + startPosInChunk * numBytesPerValue;
-    KU_ASSERT(startPosInChunk + selVector.selectedSize <= capacity);
+    KU_ASSERT(startPosInChunk + selVector.getSelSize() <= capacity);
     auto vectorDataToWriteFrom = vector->getData();
     if (selVector.isUnfiltered()) {
-        memcpy(bufferToWrite, vectorDataToWriteFrom, selVector.selectedSize * numBytesPerValue);
+        memcpy(bufferToWrite, vectorDataToWriteFrom, selVector.getSelSize() * numBytesPerValue);
         // TODO(Guodong): Should be wrapped into nullChunk->append(vector);
-        for (auto i = 0u; i < selVector.selectedSize; i++) {
+        for (auto i = 0u; i < selVector.getSelSize(); i++) {
             nullChunk->setNull(startPosInChunk + i, vector->isNull(i));
         }
     } else {
-        for (auto i = 0u; i < selVector.selectedSize; i++) {
-            auto pos = selVector.selectedPositions[i];
+        for (auto i = 0u; i < selVector.getSelSize(); i++) {
+            auto pos = selVector[i];
             // TODO(Guodong): Should be wrapped into nullChunk->append(vector);
             nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
             memcpy(bufferToWrite, vectorDataToWriteFrom + pos * numBytesPerValue, numBytesPerValue);
@@ -420,12 +420,12 @@ uint64_t ColumnChunk::getBufferSize(uint64_t capacity_) const {
 
 void BoolColumnChunk::append(ValueVector* vector, const SelectionVector& selVector) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::BOOL);
-    for (auto i = 0u; i < selVector.selectedSize; i++) {
-        auto pos = selVector.selectedPositions[i];
+    for (auto i = 0u; i < selVector.getSelSize(); i++) {
+        auto pos = selVector[i];
         nullChunk->setNull(numValues + i, vector->isNull(pos));
         NullMask::setNull((uint64_t*)buffer.get(), numValues + i, vector->getValue<bool>(pos));
     }
-    numValues += selVector.selectedSize;
+    numValues += selVector.getSelSize();
 }
 
 void BoolColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
@@ -539,7 +539,7 @@ public:
             KU_UNREACHABLE;
         }
         }
-        numValues += selVector.selectedSize;
+        numValues += selVector.getSelSize();
     }
 
     void copyVectorToBuffer(ValueVector* vector, offset_t startPosInChunk,
@@ -547,10 +547,10 @@ public:
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
         auto relIDsInVector = (internalID_t*)vector->getData();
         if (commonTableID == INVALID_TABLE_ID) {
-            commonTableID = relIDsInVector[selVector.selectedPositions[0]].tableID;
+            commonTableID = relIDsInVector[selVector[0]].tableID;
         }
-        for (auto i = 0u; i < selVector.selectedSize; i++) {
-            auto pos = selVector.selectedPositions[i];
+        for (auto i = 0u; i < selVector.getSelSize(); i++) {
+            auto pos = selVector[i];
             KU_ASSERT(relIDsInVector[pos].tableID == commonTableID);
             nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
             memcpy(buffer.get() + (startPosInChunk + i) * numBytesPerValue,
@@ -561,8 +561,8 @@ public:
     void copyInt64VectorToBuffer(ValueVector* vector, offset_t startPosInChunk,
         const common::SelectionVector& selVector) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
-        for (auto i = 0u; i < selVector.selectedSize; i++) {
-            auto pos = selVector.selectedPositions[i];
+        for (auto i = 0u; i < selVector.getSelSize(); i++) {
+            auto pos = selVector[i];
             nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
             memcpy(buffer.get() + (startPosInChunk + i) * numBytesPerValue,
                 &vector->getValue<offset_t>(pos), numBytesPerValue);

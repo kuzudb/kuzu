@@ -71,16 +71,19 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     auto childrenTypes = getTypes(children);
     auto functions = context->getCatalog()->getFunctions(context->getTx());
     auto function = ku_dynamic_cast<Function*, function::ScalarFunction*>(
-        function::BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, functions));
+        function::BuiltInFunctionsUtils::matchFunction(context->getTx(), functionName,
+            childrenTypes, functions));
     expression_vector childrenAfterCast;
     std::unique_ptr<function::FunctionBindData> bindData;
     if (functionName == CastAnyFunction::name) {
         bindData = function->bindFunc(children, function);
         if (bindData == nullptr) { // No need to cast.
+            // TODO(Xiyang): We should return a deep copy otherwise the same expression might
+            // appear in the final projection list repeatedly.
+            // E.g. RETURN cast([NULL], "INT64[1][]"), cast([NULL], "INT64[1][][]")
             return children[0];
         }
         auto childAfterCast = children[0];
-        // See castBindFunc for explanation.
         if (children[0]->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
             childAfterCast = implicitCastIfNecessary(children[0], *LogicalType::STRING());
         }
@@ -123,8 +126,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindRewriteFunctionExpression(
     }
     auto childrenTypes = getTypes(children);
     auto functions = context->getCatalog()->getFunctions(context->getTx());
-    auto match = BuiltInFunctionsUtils::matchFunction(funcExpr.getNormalizedFunctionName(),
-        childrenTypes, functions);
+    auto match = BuiltInFunctionsUtils::matchFunction(context->getTx(),
+        funcExpr.getNormalizedFunctionName(), childrenTypes, functions);
     auto function = match->constPtrCast<RewriteFunction>();
     KU_ASSERT(function->rewriteFunc != nullptr);
     return function->rewriteFunc(children, this);
@@ -169,7 +172,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindMacroExpression(
     const ParsedExpression& parsedExpression, const std::string& macroName) {
-    auto scalarMacroFunction = context->getCatalog()->getScalarMacroFunction(macroName);
+    auto scalarMacroFunction =
+        context->getCatalog()->getScalarMacroFunction(context->getTx(), macroName);
     auto macroExpr = scalarMacroFunction->expression->copy();
     auto parameterVals = scalarMacroFunction->getDefaultParameterVals();
     auto& parsedFuncExpr =

@@ -10,21 +10,9 @@ namespace storage {
 // Manages the disk image of the numRels and numRelsPerDirectionBoundTable.
 class RelsStoreStats : public TablesStatistics {
 public:
-    // Should only be used by saveInitialRelsStatisticsToFile to start a database from an empty
-    // directory.
-    RelsStoreStats()
-        : TablesStatistics{nullptr /* metadataFH */, nullptr /* bufferManager */,
-              nullptr /* wal */} {};
     // Should be used when an already loaded database is started from a directory.
-    RelsStoreStats(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        common::VirtualFileSystem* vfs);
-
-    static void saveInitialRelsStatisticsToFile(common::VirtualFileSystem* fs,
-        const std::string& directory) {
-        auto stats = RelsStoreStats();
-        stats.saveToFile(directory, common::FileVersionType::ORIGINAL,
-            transaction::TransactionType::READ_ONLY, fs);
-    }
+    RelsStoreStats(const std::string& databasePath, BMFileHandle* metadataFH,
+        BufferManager* bufferManager, WAL* wal, common::VirtualFileSystem* vfs);
 
     RelTableStats* getRelStatistics(common::table_id_t tableID,
         transaction::Transaction* transaction) const {

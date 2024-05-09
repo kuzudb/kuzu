@@ -10,7 +10,7 @@ struct UnionTag {
         common::ValueVector& unionVector, common::ValueVector& tagVector) {
         auto tagIdxVector = common::UnionVector::getTagVector(&unionVector);
         auto tagIdx = tagIdxVector->getValue<common::union_field_idx_t>(
-            tagIdxVector->state->selVector->selectedPositions[unionValue.entry.pos]);
+            tagIdxVector->state->getSelVector()[unionValue.entry.pos]);
         auto tagName = common::UnionType::getFieldName(unionVector.dataType, tagIdx);
         if (tagName.length() > common::ku_string_t::SHORT_STR_LENGTH) {
             tag.overflowPtr =

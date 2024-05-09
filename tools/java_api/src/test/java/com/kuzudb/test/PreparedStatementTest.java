@@ -52,7 +52,7 @@ public class PreparedStatementTest extends TestBase {
         KuzuPreparedStatement preparedStatement2 = conn.prepare(query);
         assertNotNull(preparedStatement2);
         assertTrue(preparedStatement2.isSuccess());
-        assertFalse(preparedStatement2.allowActiveTransaction());
+        assertTrue(preparedStatement2.allowActiveTransaction());
         preparedStatement2.destroy();
     }
 

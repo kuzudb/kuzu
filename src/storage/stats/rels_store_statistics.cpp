@@ -10,10 +10,15 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-RelsStoreStats::RelsStoreStats(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    VirtualFileSystem* fs)
+RelsStoreStats::RelsStoreStats(const std::string& databasePath, BMFileHandle* metadataFH,
+    BufferManager* bufferManager, WAL* wal, VirtualFileSystem* fs)
     : TablesStatistics{metadataFH, bufferManager, wal} {
-    readFromFile(fs);
+    if (fs->fileOrPathExists(
+            StorageUtils::getRelsStatisticsFilePath(fs, databasePath, FileVersionType::ORIGINAL))) {
+        readFromFile(databasePath, FileVersionType::ORIGINAL, fs);
+    } else {
+        saveToFile(databasePath, FileVersionType::ORIGINAL, TransactionType::READ_ONLY, fs);
+    }
 }
 
 void RelsStoreStats::updateNumTuplesByValue(table_id_t relTableID, int64_t value) {

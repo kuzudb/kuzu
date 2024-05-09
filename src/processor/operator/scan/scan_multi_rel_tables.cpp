@@ -7,12 +7,13 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace processor {
 
-bool RelTableCollectionScanner::scan(common::SelectionVector* selVector, Transaction* transaction) {
+bool RelTableCollectionScanner::scan(const common::SelectionVector& selVector,
+    Transaction* transaction) {
     while (true) {
         if (readStates[currentTableIdx]->hasMoreToRead(transaction)) {
             auto scanInfo = scanInfos[currentTableIdx].get();
             scanInfo->table->read(transaction, *readStates[currentTableIdx]);
-            if (selVector->selectedSize > 0) {
+            if (selVector.getSelSize() > 0) {
                 return true;
             }
         } else {
@@ -54,17 +55,17 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
 bool ScanMultiRelTable::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
         if (currentScanner != nullptr &&
-            currentScanner->scan(outState->selVector.get(), context->clientContext->getTx())) {
-            metrics->numOutputTuple.increase(outState->selVector->selectedSize);
+            currentScanner->scan(outState->getSelVector(), context->clientContext->getTx())) {
+            metrics->numOutputTuple.increase(outState->getSelVector().getSelSize());
             return true;
         }
         if (!children[0]->getNextTuple(context)) {
             resetState();
             return false;
         }
-        auto currentIdx = nodeIDVector->state->selVector->selectedPositions[0];
+        auto currentIdx = nodeIDVector->state->getSelVector()[0];
         if (nodeIDVector->isNull(currentIdx)) {
-            outState->selVector->selectedSize = 0;
+            outState->getSelVectorUnsafe().setSelSize(0);
             continue;
         }
         auto nodeID = nodeIDVector->getValue<nodeID_t>(currentIdx);

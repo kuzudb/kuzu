@@ -31,6 +31,9 @@ kitchener
 2982
 
 2980
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE UpdateStrPropCommitRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -54,6 +57,9 @@ kitchener
 2982
 
 2980
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE UpdateStrPropRollbackNormalExecution
 -STATEMENT BEGIN TRANSACTION
@@ -76,6 +82,9 @@ kitchener
 2982
 2981
 2980
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE UpdateStrPropRollbackRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -99,3 +108,5 @@ kitchener
 2982
 2981
 2980
+-STATEMENT COMMIT;
+---- ok

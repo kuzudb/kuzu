@@ -25,6 +25,9 @@
 31
 512
 312
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE updateManyToOneRelTableCommitRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -44,6 +47,8 @@
 31
 512
 312
+-STATEMENT COMMIT;
+---- ok
 
 
 -CASE updateManyToOneRelTableRollbackNormalExecution
@@ -62,6 +67,9 @@
 31
 32
 33
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE updateManyToOneRelTableRollbackRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -80,3 +88,5 @@
 31
 32
 33
+-STATEMENT COMMIT;
+---- ok

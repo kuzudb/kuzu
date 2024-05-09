@@ -22,30 +22,33 @@ static void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidate
     const std::string& name, const std::vector<LogicalType>& inputTypes,
     const function::function_set& set);
 
-void BuiltInFunctionsUtils::createFunctions(CatalogSet* catalogSet) {
+void BuiltInFunctionsUtils::createFunctions(transaction::Transaction* transaction,
+    CatalogSet* catalogSet) {
     auto functions = FunctionCollection::getFunctions();
     for (auto i = 0u; functions[i].name != nullptr; ++i) {
         auto functionSet = functions[i].getFunctionSetFunc();
-        catalogSet->createEntry(std::make_unique<FunctionCatalogEntry>(
-            functions[i].catalogEntryType, functions[i].name, std::move(functionSet)));
+        catalogSet->createEntry(transaction,
+            std::make_unique<FunctionCatalogEntry>(functions[i].catalogEntryType, functions[i].name,
+                std::move(functionSet)));
     }
 }
 
-catalog::CatalogEntry* BuiltInFunctionsUtils::getFunctionCatalogEntry(const std::string& name,
-    CatalogSet* catalogSet) {
-    if (!catalogSet->containsEntry(name)) {
+catalog::CatalogEntry* BuiltInFunctionsUtils::getFunctionCatalogEntry(
+    transaction::Transaction* transaction, const std::string& name, CatalogSet* catalogSet) {
+    if (!catalogSet->containsEntry(transaction, name)) {
         throw CatalogException(stringFormat("{} function does not exist.", name));
     }
-    return catalogSet->getEntry(name);
+    return catalogSet->getEntry(transaction, name);
 }
 
-Function* BuiltInFunctionsUtils::matchFunction(const std::string& name, CatalogSet* catalogSet) {
-    return matchFunction(name, std::vector<LogicalType>{}, catalogSet);
+Function* BuiltInFunctionsUtils::matchFunction(transaction::Transaction* transaction,
+    const std::string& name, CatalogSet* catalogSet) {
+    return matchFunction(transaction, name, std::vector<LogicalType>{}, catalogSet);
 }
 
-Function* BuiltInFunctionsUtils::matchFunction(const std::string& name,
-    const std::vector<LogicalType>& inputTypes, CatalogSet* catalogSet) {
-    auto entry = getFunctionCatalogEntry(name, catalogSet);
+Function* BuiltInFunctionsUtils::matchFunction(transaction::Transaction* transaction,
+    const std::string& name, const std::vector<LogicalType>& inputTypes, CatalogSet* catalogSet) {
+    auto entry = getFunctionCatalogEntry(transaction, name, catalogSet);
     return matchFunction(name, inputTypes, entry);
 }
 
@@ -79,9 +82,10 @@ Function* BuiltInFunctionsUtils::matchFunction(const std::string& name,
 }
 
 AggregateFunction* BuiltInFunctionsUtils::matchAggregateFunction(const std::string& name,
-    const std::vector<LogicalType>& inputTypes, bool isDistinct, CatalogSet* catalogSet) {
-    auto& functionSet =
-        reinterpret_cast<FunctionCatalogEntry*>(catalogSet->getEntry(name))->getFunctionSet();
+    const std::vector<common::LogicalType>& inputTypes, bool isDistinct, CatalogSet* catalogSet) {
+    auto& functionSet = ku_dynamic_cast<CatalogEntry*, FunctionCatalogEntry*>(
+        catalogSet->getEntry(&transaction::DUMMY_WRITE_TRANSACTION, name))
+                            ->getFunctionSet();
     std::vector<AggregateFunction*> candidateFunctions;
     for (auto& function : functionSet) {
         auto aggregateFunction = ku_dynamic_cast<Function*, AggregateFunction*>(function.get());
@@ -412,8 +416,8 @@ uint32_t BuiltInFunctionsUtils::castArray(LogicalTypeID targetTypeID) {
 
 // When there is multiple candidates functions, e.g. double + int and double + double for input
 // "1.5 + parameter", we prefer the one without any implicit casting i.e. double + double.
-// Additionally, we prefer function with string parameter because string is most permissive and can
-// be cast to any type.
+// Additionally, we prefer function with string parameter because string is most permissive and
+// can be cast to any type.
 Function* BuiltInFunctionsUtils::getBestMatch(std::vector<Function*>& functionsToMatch) {
     KU_ASSERT(functionsToMatch.size() > 1);
     Function* result = nullptr;

@@ -107,15 +107,13 @@ function_set ArrayExtractFunction::getFunctionSet() {
 void ConcatFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
     ValueVector& result, void* /*dataPtr*/) {
     result.resetAuxiliaryBuffer();
-    for (auto selectedPos = 0u; selectedPos < result.state->selVector->selectedSize;
+    for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
          ++selectedPos) {
-        auto pos = result.state->selVector->selectedPositions[selectedPos];
+        auto pos = result.state->getSelVector()[selectedPos];
         auto strLen = 0u;
         for (auto i = 0u; i < parameters.size(); i++) {
             const auto& parameter = parameters[i];
-            auto paramPos = parameter->state->isFlat() ?
-                                parameter->state->selVector->selectedPositions[0] :
-                                pos;
+            auto paramPos = parameter->state->isFlat() ? parameter->state->getSelVector()[0] : pos;
             strLen += parameter->getValue<ku_string_t>(paramPos).len;
         }
         auto& resultStr = result.getValue<ku_string_t>(pos);
@@ -125,9 +123,7 @@ void ConcatFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>>& p
                            reinterpret_cast<uint8_t*>(resultStr.overflowPtr);
         for (auto i = 0u; i < parameters.size(); i++) {
             const auto& parameter = parameters[i];
-            auto paramPos = parameter->state->isFlat() ?
-                                parameter->state->selVector->selectedPositions[0] :
-                                pos;
+            auto paramPos = parameter->state->isFlat() ? parameter->state->getSelVector()[0] : pos;
             auto srcStr = parameter->getValue<ku_string_t>(paramPos);
             memcpy(dstData, srcStr.getData(), srcStr.len);
             dstData += srcStr.len;

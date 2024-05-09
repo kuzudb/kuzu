@@ -2,12 +2,18 @@
 
 #include <vector>
 
+#include "binder/ddl/bound_create_table_info.h"
 #include "catalog/property.h"
 #include "catalog_entry.h"
 #include "common/enums/table_type.h"
 #include "function/table_functions.h"
 
 namespace kuzu {
+namespace binder {
+struct BoundExtraCreateCatalogEntryInfo;
+struct BoundAlterInfo;
+} // namespace binder
+
 namespace catalog {
 
 class KUZU_API TableCatalogEntry : public CatalogEntry {
@@ -16,12 +22,13 @@ public:
     // constructors
     //===--------------------------------------------------------------------===//
     TableCatalogEntry() = default;
-    TableCatalogEntry(CatalogEntryType catalogType, std::string name, common::table_id_t tableID)
-        : CatalogEntry{catalogType, std::move(name)}, tableID{tableID}, nextPID{0} {}
-    TableCatalogEntry(const TableCatalogEntry& other)
-        : CatalogEntry{other}, tableID{other.tableID}, comment{other.comment},
-          nextPID{other.nextPID}, properties{copyVector(other.properties)} {}
+    TableCatalogEntry(CatalogSet* set, CatalogEntryType catalogType, std::string name,
+        common::table_id_t tableID)
+        : CatalogEntry{catalogType, std::move(name)}, set{set}, tableID{tableID}, nextPID{0},
+          nextColumnID{0} {}
     TableCatalogEntry& operator=(const TableCatalogEntry&) = delete;
+
+    std::unique_ptr<TableCatalogEntry> alter(const binder::BoundAlterInfo& alterInfo);
 
     //===--------------------------------------------------------------------===//
     // getter & setter
@@ -54,11 +61,22 @@ public:
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<TableCatalogEntry> deserialize(common::Deserializer& deserializer,
         CatalogEntryType type);
+    virtual std::unique_ptr<TableCatalogEntry> copy() const = 0;
+
+    binder::BoundCreateTableInfo getBoundCreateTableInfo(
+        transaction::Transaction* transaction) const;
 
 protected:
+    void copyFrom(const CatalogEntry& other) override;
+    virtual std::unique_ptr<binder::BoundExtraCreateCatalogEntryInfo> getBoundExtraCreateInfo(
+        transaction::Transaction* transaction) const = 0;
+
+protected:
+    CatalogSet* set;
     common::table_id_t tableID;
     std::string comment;
     common::property_id_t nextPID;
+    common::column_id_t nextColumnID;
     std::vector<Property> properties;
 };
 

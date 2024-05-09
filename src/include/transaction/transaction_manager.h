@@ -7,83 +7,79 @@
 #include "storage/wal/wal.h"
 #include "transaction.h"
 
-using lock_t = std::unique_lock<std::mutex>;
-
 namespace kuzu {
 namespace main {
 class ClientContext;
 } // namespace main
+
+namespace testing {
+class DBTest;
+} // namespace testing
+
 namespace transaction {
 
 class TransactionManager {
+    friend class testing::DBTest;
 
 public:
+    // Timestamp starts from 1. 0 is reserved for the dummy system transaction.
     explicit TransactionManager(storage::WAL& wal)
-        : wal{wal}, activeWriteTransactionID{INT64_MAX}, lastTransactionID{0}, lastCommitID{0} {};
-    std::unique_ptr<Transaction> beginWriteTransaction(main::ClientContext& clientContext);
-    std::unique_ptr<Transaction> beginReadOnlyTransaction(main::ClientContext& clientContext);
-    void commit(Transaction* transaction);
-    void commitButKeepActiveWriteTransaction(Transaction* transaction);
-    void manuallyClearActiveWriteTransaction(Transaction* transaction);
-    void rollback(Transaction* transaction);
-    // This functions locks the mutex to start new transactions. This lock needs to be manually
-    // unlocked later by calling allowReceivingNewTransactions() by the thread that called
-    // stopNewTransactionsAndWaitUntilAllReadTransactionsLeave().
-    void stopNewTransactionsAndWaitUntilAllReadTransactionsLeave();
-    void allowReceivingNewTransactions();
+        : wal{wal}, lastTransactionID{Transaction::START_TRANSACTION_ID}, lastTimestamp{1} {};
+
+    // TODO(Guodong): Should rewrite as `beginTransaction`.
+    std::unique_ptr<Transaction> beginTransaction(main::ClientContext& clientContext,
+        TransactionType type);
+
+    // skipCheckpoint is used to simulate a failure before checkpointing in tests.
+    void commit(main::ClientContext& clientContext, bool skipCheckPointing = false);
+    void rollback(main::ClientContext& clientContext, Transaction* transaction,
+        bool skipCheckPointing = false);
+    void checkpoint(main::ClientContext& clientContext);
 
     // Warning: Below public functions are for tests only
-    inline std::unordered_set<uint64_t>& getActiveReadOnlyTransactionIDs() {
-        lock_t lck{mtxForSerializingPublicFunctionCalls};
+    std::unordered_set<uint64_t>& getActiveReadOnlyTransactionIDs() {
+        std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
         return activeReadOnlyTransactionIDs;
     }
-    inline uint64_t getActiveWriteTransactionID() {
-        lock_t lck{mtxForSerializingPublicFunctionCalls};
-        return activeWriteTransactionID;
+    common::transaction_t getActiveWriteTransactionID() {
+        std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
+        KU_ASSERT(activeWriteTransactionID.size() == 1);
+        return *activeWriteTransactionID.begin();
     }
-    inline bool hasActiveWriteTransactionID() {
-        lock_t lck{mtxForSerializingPublicFunctionCalls};
-        return activeWriteTransactionID != INT64_MAX;
-    }
-    inline void setCheckPointWaitTimeoutForTransactionsToLeaveInMicros(uint64_t waitTimeInMicros) {
-        checkPointWaitTimeoutForTransactionsToLeaveInMicros = waitTimeInMicros;
+    bool hasActiveWriteTransactionID() {
+        std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
+        return !activeWriteTransactionID.empty();
     }
 
 private:
-    inline bool hasActiveWriteTransactionNoLock() const {
-        return activeWriteTransactionID != INT64_MAX;
+    bool canCheckpointNoLock();
+    void checkpointNoLock(main::ClientContext& clientContext);
+    // This functions locks the mutex to start new transactions. This lock needs to be manually
+    // unlocked later by calling allowReceivingNewTransactions() by the thread that called
+    // stopNewTransactionsAndWaitUntilAllTransactionsLeave().
+    void stopNewTransactionsAndWaitUntilAllTransactionsLeave();
+    void allowReceivingNewTransactions();
+
+    bool hasActiveWriteTransactionNoLock() const { return !activeWriteTransactionID.empty(); }
+    void clearActiveWriteTransactionIfWriteTransactionNoLock(Transaction* transaction);
+
+    // Note: Used by DBTest::createDB only.
+    void setCheckPointWaitTimeoutForTransactionsToLeaveInMicros(uint64_t waitTimeInMicros) {
+        checkpointWaitTimeoutInMicros = waitTimeInMicros;
     }
-    inline void clearActiveWriteTransactionIfWriteTransactionNoLock(Transaction* transaction) {
-        if (transaction->isWriteTransaction()) {
-            activeWriteTransactionID = INT64_MAX;
-        }
-    }
-    void commitOrRollbackNoLock(Transaction* transaction, bool isCommit);
-    void assertActiveWriteTransactionIsCorrectNoLock(Transaction* transaction) const;
 
 private:
     storage::WAL& wal;
-
-    uint64_t activeWriteTransactionID;
-
+    std::unordered_set<common::transaction_t> activeWriteTransactionID;
     std::unordered_set<uint64_t> activeReadOnlyTransactionIDs;
-
-    uint64_t lastTransactionID;
-
-    // ID of the last committed write transaction. This is currently used primarily for
-    // debugging purposes during development and is not written to disk in a db file.
-    // In particular, transactions do not use this to perform reads. Our current transaction design
-    // supports a concurrency model that requires on 2 versions, one for the read-only transactions
-    // and the for the writer transaction, so we can read correct version by looking at the type of
-    // the transaction.
-    uint64_t lastCommitID;
+    common::transaction_t lastTransactionID;
+    common::transaction_t lastTimestamp;
     // This mutex is used to ensure thread safety and letting only one public function to be called
     // at any time except the stopNewTransactionsAndWaitUntilAllReadTransactionsLeave
     // function, which needs to let calls to comming and rollback.
     std::mutex mtxForSerializingPublicFunctionCalls;
     std::mutex mtxForStartingNewTransactions;
-    uint64_t checkPointWaitTimeoutForTransactionsToLeaveInMicros =
-        common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS;
+    uint64_t checkpointWaitTimeoutInMicros = common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_IN_MICROS;
 };
 } // namespace transaction
 } // namespace kuzu

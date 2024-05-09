@@ -27,7 +27,7 @@ class PreparedStatement {
 
 public:
     /**
-     * @brief DDL and COPY statements are automatically wrapped in a transaction and committed.
+     * @brief COPY statements are automatically wrapped in a transaction and committed.
      * As such, they cannot be part of an active transaction.
      * @return the prepared statement is allowed to be part of an active transaction.
      */

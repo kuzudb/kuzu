@@ -66,11 +66,9 @@ public:
         expressionBinder.parameterMap = parameters;
     }
 
-    inline std::unordered_map<std::string, std::shared_ptr<common::Value>> getParameterMap() {
+    std::unordered_map<std::string, std::shared_ptr<common::Value>> getParameterMap() {
         return expressionBinder.parameterMap;
     }
-
-    static std::unique_ptr<common::LogicalType> bindDataType(const std::string& dataType);
 
     bool bindExportTableData(ExportedTableData& tableData, const catalog::TableCatalogEntry& entry,
         const catalog::Catalog& catalog, transaction::Transaction* tx);

@@ -2,8 +2,10 @@
 
 #include <sstream>
 
+#include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_set.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
@@ -11,15 +13,10 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace catalog {
 
-RelGroupCatalogEntry::RelGroupCatalogEntry(std::string tableName, common::table_id_t tableID,
-    std::vector<common::table_id_t> relTableIDs)
-    : TableCatalogEntry{CatalogEntryType::REL_GROUP_ENTRY, std::move(tableName), tableID},
+RelGroupCatalogEntry::RelGroupCatalogEntry(CatalogSet* set, std::string tableName,
+    common::table_id_t tableID, std::vector<common::table_id_t> relTableIDs)
+    : TableCatalogEntry{set, CatalogEntryType::REL_GROUP_ENTRY, std::move(tableName), tableID},
       relTableIDs{std::move(relTableIDs)} {}
-
-RelGroupCatalogEntry::RelGroupCatalogEntry(const RelGroupCatalogEntry& other)
-    : TableCatalogEntry{other} {
-    relTableIDs = other.relTableIDs;
-}
 
 bool RelGroupCatalogEntry::isParent(common::table_id_t childID) {
     auto it = find_if(relTableIDs.begin(), relTableIDs.end(),
@@ -41,8 +38,35 @@ std::unique_ptr<RelGroupCatalogEntry> RelGroupCatalogEntry::deserialize(
     return relGroupEntry;
 }
 
-std::unique_ptr<CatalogEntry> RelGroupCatalogEntry::copy() const {
-    return std::make_unique<RelGroupCatalogEntry>(*this);
+std::unique_ptr<TableCatalogEntry> RelGroupCatalogEntry::copy() const {
+    auto other = std::make_unique<RelGroupCatalogEntry>();
+    other->relTableIDs = relTableIDs;
+    other->copyFrom(*this);
+    return other;
+}
+
+static std::optional<binder::BoundCreateTableInfo> getBoundCreateTableInfoForTable(
+    transaction::Transaction* transaction, CatalogEntrySet entries, common::table_id_t tableID) {
+    for (auto& [name, entry] : entries) {
+        auto current = common::ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry);
+        if (current->getTableID() == tableID) {
+            auto boundInfo = current->getBoundCreateTableInfo(transaction);
+            return boundInfo;
+        }
+    }
+    return std::nullopt;
+}
+
+std::unique_ptr<binder::BoundExtraCreateCatalogEntryInfo>
+RelGroupCatalogEntry::getBoundExtraCreateInfo(transaction::Transaction* transaction) const {
+    std::vector<binder::BoundCreateTableInfo> infos;
+    auto entries = set->getEntries(transaction);
+    for (auto relTableID : relTableIDs) {
+        auto boundInfo = getBoundCreateTableInfoForTable(transaction, entries, relTableID);
+        KU_ASSERT(boundInfo.has_value());
+        infos.push_back(std::move(boundInfo.value()));
+    }
+    return std::make_unique<binder::BoundExtraCreateRelTableGroupInfo>(std::move(infos));
 }
 
 std::string RelGroupCatalogEntry::toCypher(ClientContext* clientContext) const {

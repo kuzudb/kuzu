@@ -18,7 +18,7 @@ bool ScanMultiNodeTables::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
-    auto pos = nodeIDVector->state->selVector->selectedPositions[0];
+    auto pos = nodeIDVector->state->getSelVector()[0];
     auto tableID = nodeIDVector->getValue<nodeID_t>(pos).tableID;
     KU_ASSERT(readStates.contains(tableID) && infos.contains(tableID));
     auto info = infos.at(tableID).get();

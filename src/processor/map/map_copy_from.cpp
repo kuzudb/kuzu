@@ -106,7 +106,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     auto prevOperator = mapOperator(copyFrom->getChild(0).get());
     auto nodeTable = storageManager->getTable(nodeTableEntry->getTableID());
     auto sharedState = std::make_shared<NodeBatchInsertSharedState>(nodeTable,
-        getSingleStringColumnFTable(), storageManager->getWAL());
+        getSingleStringColumnFTable(), &storageManager->getWAL());
     if (prevOperator->getOperatorType() == PhysicalOperatorType::IN_QUERY_CALL) {
         auto inQueryCall = ku_dynamic_cast<PhysicalOperator*, InQueryCall*>(prevOperator.get());
         sharedState->readerSharedState = inQueryCall->getSharedState();
@@ -214,7 +214,7 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
         columnTypes.push_back(*property.getDataType()->copy());
     }
     auto batchInsertSharedState = std::make_shared<BatchInsertSharedState>(relTable,
-        getSingleStringColumnFTable(), storageManager->getWAL());
+        getSingleStringColumnFTable(), &storageManager->getWAL());
     auto copyRelFWD = createCopyRel(partitionerSharedState, batchInsertSharedState, copyFrom,
         RelDataDirection::FWD, LogicalType::copy(columnTypes));
     auto copyRelBWD = createCopyRel(partitionerSharedState, batchInsertSharedState, copyFrom,

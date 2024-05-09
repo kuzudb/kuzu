@@ -14,9 +14,9 @@ namespace kuzu {
 namespace function {
 
 struct TableInfoBindData : public CallTableFuncBindData {
-    std::unique_ptr<CatalogEntry> catalogEntry;
+    std::unique_ptr<TableCatalogEntry> catalogEntry;
 
-    TableInfoBindData(std::unique_ptr<CatalogEntry> catalogEntry,
+    TableInfoBindData(std::unique_ptr<TableCatalogEntry> catalogEntry,
         std::vector<LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
         offset_t maxOffset)
         : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
@@ -71,7 +71,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     return vectorPos;
 }
 
-static std::unique_ptr<CatalogEntry> getTableCatalogEntry(main::ClientContext* context,
+static std::unique_ptr<TableCatalogEntry> getTableCatalogEntry(main::ClientContext* context,
     const std::string& tableName) {
     auto tableInfo = common::StringUtils::split(tableName, ".");
     if (tableInfo.size() == 1) {
@@ -85,8 +85,11 @@ static std::unique_ptr<CatalogEntry> getTableCatalogEntry(main::ClientContext* c
             throw common::RuntimeException{
                 common::stringFormat("Database: {} doesn't exist.", catalogName)};
         }
-        auto tableID = attachedDatabase->getCatalog()->getTableID(attachedTableName);
-        return attachedDatabase->getCatalog()->getTableCatalogEntry(tableID)->copy();
+        auto tableID =
+            attachedDatabase->getCatalog()->getTableID(context->getTx(), attachedTableName);
+        return attachedDatabase->getCatalog()
+            ->getTableCatalogEntry(context->getTx(), tableID)
+            ->copy();
     }
 }
 

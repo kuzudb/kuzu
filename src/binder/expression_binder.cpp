@@ -1,6 +1,7 @@
 #include "binder/expression_binder.h"
 
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "binder/expression_visitor.h"
 #include "common/exception/binder.h"
 #include "common/exception/not_implemented.h"
@@ -81,50 +82,12 @@ static std::string unsupportedImplicitCastException(const Expression& expression
         expression.toString(), expression.dataType.toString(), targetTypeStr);
 }
 
-static bool compatible(const LogicalType& type, const LogicalType& target) {
-    if (type.getLogicalTypeID() == LogicalTypeID::ANY) {
-        return true;
-    }
-    if (type.getLogicalTypeID() != target.getLogicalTypeID()) {
-        return false;
-    }
-    switch (type.getLogicalTypeID()) {
-    case LogicalTypeID::LIST: {
-        return compatible(ListType::getChildType(type), ListType::getChildType(target));
-    }
-    case LogicalTypeID::ARRAY: {
-        return compatible(ArrayType::getChildType(type), ArrayType::getChildType(target));
-    }
-    case LogicalTypeID::STRUCT: {
-        if (StructType::getNumFields(type) != StructType::getNumFields(target)) {
-            return false;
-        }
-        for (auto i = 0u; i < StructType::getNumFields(type); ++i) {
-            if (!compatible(StructType::getField(type, i).getType(),
-                    StructType::getField(target, i).getType())) {
-                return false;
-            }
-        }
-        return true;
-    }
-    case LogicalTypeID::RDF_VARIANT:
-    case LogicalTypeID::UNION:
-    case LogicalTypeID::MAP:
-    case LogicalTypeID::NODE:
-    case LogicalTypeID::REL:
-    case LogicalTypeID::RECURSIVE_REL:
-        return false;
-    default:
-        return true;
-    }
-}
-
 std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     const std::shared_ptr<Expression>& expression, const LogicalType& targetType) {
     if (expression->dataType == targetType || targetType.containsAny()) { // No need to cast.
         return expression;
     }
-    if (compatible(expression->getDataType(), targetType)) {
+    if (ExpressionUtil::canCastStatically(*expression, targetType)) {
         expression->cast(targetType);
         return expression;
     }

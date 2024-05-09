@@ -99,8 +99,9 @@ uint64_t ChunkedNodeGroup::append(const std::vector<ValueVector*>& columnVectors
     auto numValuesToAppendInChunk =
         std::min(numValuesToAppend, StorageConstants::NODE_GROUP_SIZE - numRows);
     auto serialSkip = 0u;
-    auto originalSize = selVector.selectedSize;
-    selVector.selectedSize = numValuesToAppendInChunk;
+    //    auto slicedSelVector = selVector.slice(numValuesToAppendInChunk);
+    auto originalSize = selVector.getSelSize();
+    selVector.setSelSize(numValuesToAppendInChunk);
     for (auto i = 0u; i < chunks.size(); i++) {
         auto chunk = chunks[i].get();
         if (chunk->getDataType().getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
@@ -112,7 +113,8 @@ uint64_t ChunkedNodeGroup::append(const std::vector<ValueVector*>& columnVectors
         auto columnVector = columnVectors[i - serialSkip];
         chunk->append(columnVector, selVector);
     }
-    selVector.selectedSize = originalSize;
+    selVector.setSelSize(originalSize);
+    //    selVector.selectedSize = originalSize;
     numRows += numValuesToAppendInChunk;
     return numValuesToAppendInChunk;
 }

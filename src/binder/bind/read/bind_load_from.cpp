@@ -26,8 +26,8 @@ static TableFunction getObjectScanFunc(const ObjectScanSource* objectSource,
     }
     auto tableName = objectSource->objectNames[1];
     auto attachedCatalog = attachedDB->getCatalog();
-    auto tableID = attachedCatalog->getTableID(tableName);
-    auto entry = attachedCatalog->getTableCatalogEntry(tableID);
+    auto tableID = attachedCatalog->getTableID(clientContext->getTx(), tableName);
+    auto entry = attachedCatalog->getTableCatalogEntry(clientContext->getTx(), tableID);
     auto tableEntry = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry);
     return tableEntry->getScanFunction();
 }
@@ -58,6 +58,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
                 throw BinderException(ExceptionMessage::variableNotInScope(objectName));
             }
         } else if (objectSource->objectNames.size() == 2) {
+            // Bind external database table
             scanFunction = getObjectScanFunc(objectSource, clientContext);
             auto bindInput = function::TableFuncBindInput();
             bindData = scanFunction.bindFunc(clientContext, &bindInput);
@@ -92,7 +93,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
         std::vector<LogicalType> expectedColumnTypes;
         for (auto& [name, type] : loadFrom.getColumnNameDataTypesRef()) {
             expectedColumnNames.push_back(name);
-            expectedColumnTypes.push_back(*bindDataType(type));
+            expectedColumnTypes.push_back(LogicalType::fromString(type));
         }
         scanFunction = getScanFunction(readerConfig->fileType, *readerConfig);
         auto bindInput = ScanTableFuncBindInput(readerConfig->copy(),

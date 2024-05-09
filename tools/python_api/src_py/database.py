@@ -26,15 +26,15 @@ class Database:
     """Kùzu database instance."""
 
     def __init__(
-        self,
-        database_path: str | Path,
-        *,
-        buffer_pool_size: int = 0,
-        max_num_threads: int = 0,
-        compression: bool = True,
-        lazy_init: bool = False,
-        read_only: bool = False,
-        max_db_size: int = (1 << 43),
+            self,
+            database_path: str | Path,
+            *,
+            buffer_pool_size: int = 0,
+            max_num_threads: int = 0,
+            compression: bool = True,
+            lazy_init: bool = False,
+            read_only: bool = False,
+            max_db_size: int = (1 << 43),
     ):
         """
         Parameters
@@ -92,10 +92,10 @@ class Database:
         return self
 
     def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        exc_traceback: TracebackType | None,
+            self,
+            exc_type: type[BaseException] | None,
+            exc_value: BaseException | None,
+            exc_traceback: TracebackType | None,
     ) -> None:
         self.close()
 
@@ -146,21 +146,8 @@ class Database:
                 self.max_db_size,
             )
 
-    def set_logging_level(self, level: str) -> None:
-        """
-        Set the logging level.
-
-        Parameters
-        ----------
-        level : str
-            Logging level. One of "debug", "info", "err".
-
-        """
-        self.check_for_database_close()
-        self._database.set_logging_level(level)
-
     def get_torch_geometric_remote_backend(
-        self, num_threads: int | None = None
+            self, num_threads: int | None = None
     ) -> tuple[KuzuFeatureStore, KuzuGraphStore]:
         """
         Use the database as the remote backend for torch_geometric.
@@ -213,13 +200,13 @@ class Database:
         )
 
     def _scan_node_table(
-        self,
-        table_name: str,
-        prop_name: str,
-        prop_type: str,
-        dim: int,
-        indices: IndexType,
-        num_threads: int,
+            self,
+            table_name: str,
+            prop_name: str,
+            prop_type: str,
+            dim: int,
+            indices: IndexType,
+            num_threads: int,
     ) -> NDArray[Any]:
         self.check_for_database_close()
         import numpy as np

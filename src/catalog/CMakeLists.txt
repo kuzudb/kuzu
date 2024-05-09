@@ -3,7 +3,6 @@ add_subdirectory(catalog_entry)
 add_library(kuzu_catalog
         OBJECT
         catalog.cpp
-        catalog_content.cpp
         catalog_set.cpp
         property.cpp)
 

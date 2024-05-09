@@ -85,10 +85,11 @@ public:
         Slot<T>* slot;
     };
 
+    // Leaves the slot pointer pointing at the last slot to make it easier to add a new one
     inline bool nextChainedSlot(SlotIterator& iter) {
+        iter.slotInfo.slotId = iter.slot->header.nextOvfSlotId;
+        iter.slotInfo.slotType = SlotType::OVF;
         if (iter.slot->header.nextOvfSlotId != 0) {
-            iter.slotInfo.slotId = iter.slot->header.nextOvfSlotId;
-            iter.slotInfo.slotType = SlotType::OVF;
             iter.slot = getSlot(iter.slotInfo);
             return true;
         }
@@ -96,6 +97,7 @@ public:
     }
 
     inline uint64_t numPrimarySlots() const { return pSlots->size(); }
+    inline uint64_t numOverflowSlots() const { return oSlots->size(); }
 
     inline HashIndexHeader getIndexHeader() { return indexHeader; }
 
@@ -113,6 +115,8 @@ private:
      * meaning they either stay in the existing slot, or move into the new one.
      */
     void splitSlot(HashIndexHeader& header);
+    // Reclaims empty overflow slots to be re-used, starting from the given slot iterator
+    void reclaimOverflowSlots(SlotIterator iter);
 
     inline bool equals(Key keyToLookup, const T& keyInEntry) const {
         return keyToLookup == keyInEntry;
@@ -130,6 +134,7 @@ private:
     void insertToNewOvfSlot(Key key, Slot<T>* previousSlot, common::offset_t offset,
         uint8_t fingerprint);
     common::hash_t hashStored(const T& key) const;
+    Slot<T>* clearNextOverflowAndAdvanceIter(SlotIterator& iter);
 
     // Finds the entry matching the given key. The iterator will be advanced and will either point
     // to the slot containing the matching entry, or the last slot available

@@ -24,11 +24,16 @@ enum class SlotType : uint8_t { PRIMARY = 0, OVF = 1 };
 struct SlotInfo {
     slot_id_t slotId{UINT64_MAX};
     SlotType slotType{SlotType::PRIMARY};
+
+    bool operator==(const SlotInfo&) const = default;
 };
 
 class HashIndexUtils {
 
 public:
+    static constexpr SlotInfo INVALID_OVF_INFO =
+        SlotInfo{SlotHeader::INVALID_OVERFLOW_SLOT_ID, SlotType::OVF};
+
     inline static bool areStringPrefixAndLenEqual(std::string_view keyToLookup,
         const common::ku_string_t& keyInEntry) {
         auto prefixLen = std::min((uint64_t)keyInEntry.len,

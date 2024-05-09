@@ -213,7 +213,7 @@ void NpyReader::readBlock(block_idx_t blockIdx, common::ValueVector* vectorToRea
     uint64_t rowNumber = DEFAULT_VECTOR_CAPACITY * blockIdx;
     auto numRows = getNumRows();
     if (rowNumber >= numRows) {
-        vectorToRead->state->selVector->selectedSize = 0;
+        vectorToRead->state->getSelVectorUnsafe().setSelSize(0);
     } else {
         auto rowPointer = getPointerToRow(rowNumber);
         auto numRowsToRead = std::min(DEFAULT_VECTOR_CAPACITY, getNumRows() - rowNumber);
@@ -227,11 +227,11 @@ void NpyReader::readBlock(block_idx_t blockIdx, common::ValueVector* vectorToRea
             auto dataVector = ListVector::getDataVector(vectorToRead);
             memcpy(dataVector->getData(), rowPointer,
                 numRowsToRead * numValuesPerRow * dataVector->getNumBytesPerValue());
-            vectorToRead->state->selVector->selectedSize = numRowsToRead;
+            vectorToRead->state->getSelVectorUnsafe().setSelSize(numRowsToRead);
         } else {
             memcpy(vectorToRead->getData(), rowPointer,
                 numRowsToRead * vectorToRead->getNumBytesPerValue());
-            vectorToRead->state->selVector->selectedSize = numRowsToRead;
+            vectorToRead->state->getSelVectorUnsafe().setSelSize(numRowsToRead);
         }
     }
 }
@@ -257,7 +257,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     auto sharedState = reinterpret_cast<NpyScanSharedState*>(input.sharedState);
     auto [_, blockIdx] = sharedState->getNext();
     sharedState->npyMultiFileReader->readBlock(blockIdx, output.dataChunk);
-    return output.dataChunk.state->selVector->selectedSize;
+    return output.dataChunk.state->getSelVector().getSelSize();
 }
 
 static std::unique_ptr<LogicalType> bindColumnType(const NpyReader& reader) {

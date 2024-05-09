@@ -13,28 +13,29 @@ template<typename OPERAND_TYPE, typename RESULT_TYPE>
 void UnaryHashFunctionExecutor::execute(ValueVector& operand, ValueVector& result) {
     auto resultValues = (RESULT_TYPE*)result.getData();
     if (operand.state->isFlat()) {
-        auto pos = operand.state->selVector->selectedPositions[0];
+        auto pos = operand.state->getSelVector()[0];
         if (!operand.isNull(pos)) {
             Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos], &operand);
         } else {
             result.setValue(pos, NULL_HASH);
         }
     } else {
+        auto& operandSelVector = operand.state->getSelVector();
         if (operand.hasNoNullsGuarantee()) {
-            if (operand.state->selVector->isUnfiltered()) {
-                for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
+            if (operandSelVector.isUnfiltered()) {
+                for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
                     Hash::operation(operand.getValue<OPERAND_TYPE>(i), resultValues[i], &operand);
                 }
             } else {
-                for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
-                    auto pos = operand.state->selVector->selectedPositions[i];
+                for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
+                    auto pos = operandSelVector[i];
                     Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos],
                         &operand);
                 }
             }
         } else {
-            if (operand.state->selVector->isUnfiltered()) {
-                for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
+            if (operandSelVector.isUnfiltered()) {
+                for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
                     if (!operand.isNull(i)) {
                         Hash::operation(operand.getValue<OPERAND_TYPE>(i), resultValues[i],
                             &operand);
@@ -43,8 +44,8 @@ void UnaryHashFunctionExecutor::execute(ValueVector& operand, ValueVector& resul
                     }
                 }
             } else {
-                for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
-                    auto pos = operand.state->selVector->selectedPositions[i];
+                for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
+                    auto pos = operandSelVector[i];
                     if (!operand.isNull(pos)) {
                         Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos],
                             &operand);
@@ -62,12 +63,12 @@ static std::unique_ptr<ValueVector> computeDataVecHash(ValueVector* operand) {
     auto numValuesInDataVec = ListVector::getDataVectorSize(operand);
     ListVector::resizeDataVector(hashVector.get(), numValuesInDataVec);
     auto selectionState = std::make_shared<DataChunkState>();
-    selectionState->selVector->setToFiltered();
+    selectionState->getSelVectorUnsafe().setToFiltered();
     ListVector::getDataVector(operand)->setState(selectionState);
     auto numValuesComputed = 0u;
     while (numValuesComputed < numValuesInDataVec) {
         for (auto i = 0u; i < DEFAULT_VECTOR_CAPACITY; i++) {
-            selectionState->selVector->selectedPositions[i] = numValuesComputed;
+            selectionState->getSelVectorUnsafe()[i] = numValuesComputed;
             numValuesComputed++;
         }
         VectorHashFunction::computeHash(ListVector::getDataVector(operand),
@@ -77,8 +78,8 @@ static std::unique_ptr<ValueVector> computeDataVecHash(ValueVector* operand) {
 }
 
 static void finalizeDataVecHash(ValueVector* operand, ValueVector* result, ValueVector* hashVec) {
-    for (auto i = 0u; i < result->state->getNumSelectedValues(); i++) {
-        auto pos = operand->state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < result->state->getSelVector().getSelSize(); i++) {
+        auto pos = operand->state->getSelVector()[i];
         auto entry = operand->getValue<list_entry_t>(pos);
         if (operand->isNull(pos)) {
             result->setValue(pos, NULL_HASH);

@@ -11,16 +11,6 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace testing {
 
-void BaseGraphTest::commitOrRollbackConnectionAndInitDBIfNecessary(bool isCommit,
-    TransactionTestType transactionTestType) {
-    commitOrRollbackConnection(isCommit, transactionTestType);
-    if (transactionTestType == TransactionTestType::RECOVERY) {
-        // This creates a new database/conn/readConn and should run the recovery algorithm.
-        createDBAndConn();
-        conn->query("BEGIN TRANSACTION");
-    }
-}
-
 void TestHelper::executeScript(const std::string& cypherScript, Connection& conn) {
     std::cout << "cypherScript: " << cypherScript << std::endl;
     if (!std::filesystem::exists(cypherScript)) {
@@ -114,24 +104,6 @@ void BaseGraphTest::initGraph() {
             *(connMap.begin()->second));
         TestHelper::executeScript(getInputDir() + TestHelper::COPY_FILE_NAME,
             *(connMap.begin()->second));
-    }
-}
-
-void BaseGraphTest::commitOrRollbackConnection(bool isCommit,
-    TransactionTestType transactionTestType) const {
-    if (transactionTestType == TransactionTestType::NORMAL_EXECUTION) {
-        if (isCommit) {
-            conn->query("COMMIT");
-        } else {
-            conn->query("ROLLBACK");
-        }
-        conn->query("BEGIN TRANSACTION");
-    } else {
-        if (isCommit) {
-            conn->query("COMMIT_SKIP_CHECKPOINT");
-        } else {
-            conn->query("ROLLBACK_SKIP_CHECKPOINT");
-        }
     }
 }
 

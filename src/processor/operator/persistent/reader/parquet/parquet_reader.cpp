@@ -117,7 +117,7 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
 
     auto thisOutputChunkRows =
         std::min<uint64_t>(DEFAULT_VECTOR_CAPACITY, getGroup(state).num_rows - state.groupOffset);
-    result.state->selVector->selectedSize = thisOutputChunkRows;
+    result.state->getSelVectorUnsafe().setSelSize(thisOutputChunkRows);
 
     if (thisOutputChunkRows == 0) {
         state.finished = true;
@@ -146,13 +146,13 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
         auto fileColIdx = colIdx;
         auto resultVector = result.getValueVector(colIdx);
         auto childReader = rootReader->getChildReader(fileColIdx);
-        auto rowsRead = childReader->read(resultVector->state->selVector->selectedSize, filterMask,
-            definePtr, repeatPtr, resultVector.get());
+        auto rowsRead = childReader->read(resultVector->state->getSelVector().getSelSize(),
+            filterMask, definePtr, repeatPtr, resultVector.get());
         // LCOV_EXCL_START
-        if (rowsRead != result.state->selVector->selectedSize) {
+        if (rowsRead != result.state->getSelVector().getSelSize()) {
             throw CopyException(
                 stringFormat("Mismatch in parquet read for column {}, expected {} rows, got {}",
-                    fileColIdx, result.state->selVector->selectedSize, rowsRead));
+                    fileColIdx, result.state->getSelVector().getSelSize(), rowsRead));
         }
         // LCOV_EXCL_STOP
     }
@@ -163,7 +163,7 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
 
 void ParquetReader::scan(processor::ParquetReaderScanState& state, DataChunk& result) {
     while (scanInternal(state, result)) {
-        if (result.state->selVector->selectedSize > 0) {
+        if (result.state->getSelVector().getSelSize() > 0) {
             break;
         }
     }
@@ -616,11 +616,11 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
         ku_dynamic_cast<TableFuncSharedState*, ParquetScanSharedState*>(input.sharedState);
     do {
         parquetScanLocalState->reader->scan(*parquetScanLocalState->state, outputChunk);
-        if (outputChunk.state->selVector->selectedSize > 0) {
-            return outputChunk.state->selVector->selectedSize;
+        if (outputChunk.state->getSelVector().getSelSize() > 0) {
+            return outputChunk.state->getSelVector().getSelSize();
         }
         if (!parquetSharedStateNext(*parquetScanLocalState, *parquetScanSharedState)) {
-            return outputChunk.state->selVector->selectedSize;
+            return outputChunk.state->getSelVector().getSelSize();
         }
     } while (true);
 }

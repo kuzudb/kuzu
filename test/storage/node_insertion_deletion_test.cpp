@@ -85,6 +85,7 @@ TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {
     conn->query("BEGIN TRANSACTION");
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10005);
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10005);
+    conn->query("COMMIT");
 }
 
 TEST_F(NodeInsertionDeletionTests, InsertManyNodesTest) {
@@ -136,5 +137,5 @@ TEST_F(NodeInsertionDeletionTests, TruncatedWalTest) {
         walFileInfo->truncate(BufferPoolConstants::PAGE_4KB_SIZE);
     }
     // Re-open database
-    EXPECT_THROW(database = std::make_unique<Database>(databasePath), RuntimeException);
+    EXPECT_THROW(database = std::make_unique<Database>(databasePath), Exception);
 }

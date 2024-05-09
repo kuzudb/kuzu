@@ -61,4 +61,4 @@ Binder exception: Expected literal input as the second argument for PROPERTIES()
 Binder exception: Invalid property name: abc.
 -STATEMENT MATCH path = (p:person)-[:follows* SHORTEST]-(q:person) RETURN properties([], "abc")
 ---- error
-Binder exception: Cannot extract properties from STRING[].
+Binder exception: Cannot extract properties from INT64[].

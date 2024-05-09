@@ -20,6 +20,8 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
         reinterpret_cast<PyObject*>(input->inputs[0].getValue<uint8_t*>())));
     if (py::isinstance(table, importCache->pandas.DataFrame())) {
         table = importCache->pyarrow.lib.Table.from_pandas()(table);
+    } else if (py::isinstance(table, importCache->polars.DataFrame())) {
+        table = table.attr("to_arrow")();
     }
     std::vector<LogicalType> returnTypes;
     std::vector<std::string> names;

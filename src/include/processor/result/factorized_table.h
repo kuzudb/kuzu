@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <numeric>
-#include <unordered_map>
 
 #include "common/in_mem_overflow_buffer.h"
 #include "common/types/value/value.h"
@@ -292,7 +291,7 @@ private:
     // TODO(Guodong): Unify these two `readUnflatCol()` with a (possibly templated) copy executor.
     void readUnflatCol(uint8_t** tuplesToRead, ft_col_idx_t colIdx,
         common::ValueVector& vector) const;
-    void readUnflatCol(const uint8_t* tupleToRead, const common::SelectionVector* selVector,
+    void readUnflatCol(const uint8_t* tupleToRead, const common::SelectionVector& selVector,
         ft_col_idx_t colIdx, common::ValueVector& vector) const;
     void readFlatColToFlatVector(uint8_t* tupleToRead, ft_col_idx_t colIdx,
         common::ValueVector& vector, common::sel_t pos) const;

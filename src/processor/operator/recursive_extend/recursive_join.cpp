@@ -206,7 +206,7 @@ bool RecursiveJoin::scanOutput() {
 
 void RecursiveJoin::computeBFS(ExecutionContext* context) {
     auto nodeID = vectors->srcNodeIDVector->getValue<nodeID_t>(
-        vectors->srcNodeIDVector->state->selVector->selectedPositions[0]);
+        vectors->srcNodeIDVector->state->getSelVector()[0]);
     bfsState->markSrc(nodeID);
     scanFrontier->setNodePredicateExecFlag(true);
     while (!bfsState->isComplete()) {
@@ -227,8 +227,9 @@ void RecursiveJoin::computeBFS(ExecutionContext* context) {
 
 void RecursiveJoin::updateVisitedNodes(nodeID_t boundNodeID) {
     auto boundNodeMultiplicity = bfsState->getMultiplicity(boundNodeID);
-    for (auto i = 0u; i < vectors->recursiveDstNodeIDVector->state->selVector->selectedSize; ++i) {
-        auto pos = vectors->recursiveDstNodeIDVector->state->selVector->selectedPositions[i];
+    auto& selVector = vectors->recursiveDstNodeIDVector->state->getSelVector();
+    for (auto i = 0u; i < selVector.getSelSize(); ++i) {
+        auto pos = selVector[i];
         auto nbrNodeID = vectors->recursiveDstNodeIDVector->getValue<nodeID_t>(pos);
         auto edgeID = vectors->recursiveEdgeIDVector->getValue<relID_t>(pos);
         bfsState->markVisited(boundNodeID, nbrNodeID, edgeID, boundNodeMultiplicity);

@@ -11,7 +11,7 @@ public:
     //===--------------------------------------------------------------------===//
     // constructors
     //===--------------------------------------------------------------------===//
-    DuckDBTableCatalogEntry(std::string name, common::table_id_t tableID,
+    DuckDBTableCatalogEntry(CatalogSet* set, std::string name, common::table_id_t tableID,
         function::TableFunction scanFunction);
 
     //===--------------------------------------------------------------------===//
@@ -23,7 +23,11 @@ public:
     //===--------------------------------------------------------------------===//
     // serialization & deserialization
     //===--------------------------------------------------------------------===//
-    std::unique_ptr<CatalogEntry> copy() const override;
+    std::unique_ptr<TableCatalogEntry> copy() const override;
+
+private:
+    std::unique_ptr<binder::BoundExtraCreateCatalogEntryInfo> getBoundExtraCreateInfo(
+        transaction::Transaction* transaction) const override;
 
 private:
     function::TableFunction scanFunction;

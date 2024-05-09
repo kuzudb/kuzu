@@ -104,9 +104,10 @@ struct UnaryFunctionExecutor {
     static void executeSwitch(common::ValueVector& operand, common::ValueVector& result,
         void* dataPtr) {
         result.resetAuxiliaryBuffer();
+        auto& operandSelVector = operand.state->getSelVector();
         if (operand.state->isFlat()) {
-            auto inputPos = operand.state->selVector->selectedPositions[0];
-            auto resultPos = result.state->selVector->selectedPositions[0];
+            auto inputPos = operandSelVector[0];
+            auto resultPos = result.state->getSelVector()[0];
             result.setNull(resultPos, operand.isNull(inputPos));
             if (!result.isNull(resultPos)) {
                 executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand, inputPos,
@@ -114,21 +115,21 @@ struct UnaryFunctionExecutor {
             }
         } else {
             if (operand.hasNoNullsGuarantee()) {
-                if (operand.state->selVector->isUnfiltered()) {
-                    for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
+                if (operandSelVector.isUnfiltered()) {
+                    for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
                         executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand, i,
                             result, i, dataPtr);
                     }
                 } else {
-                    for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
-                        auto pos = operand.state->selVector->selectedPositions[i];
+                    for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
+                        auto pos = operandSelVector[i];
                         executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand, pos,
                             result, pos, dataPtr);
                     }
                 }
             } else {
-                if (operand.state->selVector->isUnfiltered()) {
-                    for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
+                if (operandSelVector.isUnfiltered()) {
+                    for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
                         result.setNull(i, operand.isNull(i));
                         if (!result.isNull(i)) {
                             executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand, i,
@@ -136,8 +137,8 @@ struct UnaryFunctionExecutor {
                         }
                     }
                 } else {
-                    for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
-                        auto pos = operand.state->selVector->selectedPositions[i];
+                    for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
+                        auto pos = operandSelVector[i];
                         result.setNull(pos, operand.isNull(pos));
                         if (!result.isNull(pos)) {
                             executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand,

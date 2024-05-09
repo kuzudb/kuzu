@@ -21,8 +21,11 @@
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 0 RETURN e.length, e.place, e.tag
----- 2300
+---- 2304
 <FILE>:insert_rels_to_large_list_commit.txt
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE insertRelsToLargeListCommitRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -34,8 +37,11 @@
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 0 RETURN e.length, e.place, e.tag
----- 2300
+---- 2304
 <FILE>:insert_rels_to_large_list_commit.txt
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE insertRelsToLargeListRollbackNormalExecution
 -STATEMENT BEGIN TRANSACTION
@@ -46,8 +52,11 @@
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 0 RETURN e.length, e.place, e.tag
----- 2304
+---- 2300
 <FILE>:insert_rels_to_large_list_rollback.txt
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE insertRelsToLargeListRollbackRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -59,5 +68,7 @@
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 0 RETURN e.length, e.place, e.tag
----- 2304
+---- 2300
 <FILE>:insert_rels_to_large_list_rollback.txt
+-STATEMENT COMMIT;
+---- ok
