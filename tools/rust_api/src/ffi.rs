@@ -128,7 +128,6 @@ pub(crate) mod ffi {
             maxDBSize: u64,
         ) -> Result<UniquePtr<Database>>;
 
-        fn database_set_logging_level(database: Pin<&mut Database>, level: &CxxString);
     }
 
     #[namespace = "kuzu::main"]
