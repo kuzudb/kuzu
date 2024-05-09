@@ -44,7 +44,7 @@ struct S3FileInfo final : public HTTPFileInfo {
     // https://docs.aws.amazon.com/AmazonS3/latest/userguide/qfacts.html.
     static constexpr uint64_t AWS_MINIMUM_PART_SIZE = 5242880;
 
-    S3FileInfo(std::string path, common::FileSystem* fileSystem, int flags,
+    S3FileInfo(std::string path, const common::FileSystem* fileSystem, int flags,
         const S3AuthParams& authParams, const S3UploadParams& uploadParams);
 
     ~S3FileInfo() override;
@@ -110,7 +110,7 @@ private:
 public:
     std::unique_ptr<common::FileInfo> openFile(const std::string& path, int flags,
         main::ClientContext* context = nullptr,
-        common::FileLockType lock_type = common::FileLockType::NO_LOCK) override;
+        common::FileLockType lock_type = common::FileLockType::NO_LOCK) const override;
 
     std::vector<std::string> glob(main::ClientContext* context,
         const std::string& path) const override;

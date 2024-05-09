@@ -39,7 +39,7 @@ LocalFileInfo::~LocalFileInfo() {
 }
 
 std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int flags,
-    main::ClientContext* context, FileLockType lock_type) {
+    main::ClientContext* context, FileLockType lock_type) const {
     auto fullPath = expandPath(context, path);
 #if defined(_WIN32)
     auto dwDesiredAccess = 0ul;

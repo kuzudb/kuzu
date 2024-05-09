@@ -39,14 +39,14 @@ S3WriteBuffer::S3WriteBuffer(uint16_t partID, uint64_t startOffset, uint64_t siz
     this->partID = startOffset / size;
 }
 
-S3FileInfo::S3FileInfo(std::string path, common::FileSystem* fileSystem, int flags,
+S3FileInfo::S3FileInfo(std::string path, const common::FileSystem* fileSystem, int flags,
     const S3AuthParams& authParams, const S3UploadParams& uploadParams)
     : HTTPFileInfo{std::move(path), fileSystem, flags}, authParams{authParams},
       uploadParams{uploadParams}, uploadsInProgress{0}, numPartsUploaded{0}, uploadFinalized{false},
       uploaderHasException{false} {}
 
 S3FileInfo::~S3FileInfo() {
-    auto s3fs = ku_dynamic_cast<FileSystem*, S3FileSystem*>(fileSystem);
+    auto s3fs = (S3FileSystem*)(fileSystem);
     if ((((flags & O_ACCMODE) & O_WRONLY)) && !uploadFinalized) {
         s3fs->flushAllBuffers(this);
         if (numPartsUploaded) {
@@ -75,7 +75,7 @@ void S3FileInfo::initializeClient() {
 
 std::shared_ptr<S3WriteBuffer> S3FileInfo::getBuffer(uint16_t writeBufferIdx) {
     std::unique_lock<std::mutex> lck(writeBuffersLock);
-    auto s3FS = ku_dynamic_cast<common::FileSystem*, S3FileSystem*>(fileSystem);
+    auto s3FS = (S3FileSystem*)(fileSystem);
     if (writeBuffers.contains(writeBufferIdx)) {
         return writeBuffers.at(writeBufferIdx);
     }
@@ -121,7 +121,7 @@ S3UploadParams getS3UploadParams(main::ClientContext* context) {
 }
 
 std::unique_ptr<common::FileInfo> S3FileSystem::openFile(const std::string& path, int flags,
-    main::ClientContext* context, common::FileLockType /*lock_type*/) {
+    main::ClientContext* context, common::FileLockType /*lock_type*/) const {
     auto authParams = getS3AuthParams(context);
     auto uploadParams = getS3UploadParams(context);
     auto s3FileInfo = std::make_unique<S3FileInfo>(path, this, flags, authParams, uploadParams);
@@ -737,7 +737,7 @@ void S3FileSystem::flushBuffer(S3FileInfo* fileInfo,
 
 void S3FileSystem::uploadBuffer(S3FileInfo* fileInfo,
     std::shared_ptr<S3WriteBuffer> bufferToUpload) {
-    auto s3FileSystem = ku_dynamic_cast<FileSystem*, S3FileSystem*>(fileInfo->fileSystem);
+    auto s3FileSystem = (S3FileSystem*)(fileInfo->fileSystem);
     std::string queryParam =
         "partNumber=" + std::to_string(bufferToUpload->partID + 1) + "&" +
         "uploadId=" + S3FileSystem::encodeURL(fileInfo->multipartUploadID, true);

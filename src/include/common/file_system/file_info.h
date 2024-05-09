@@ -11,7 +11,7 @@ namespace common {
 class FileSystem;
 
 struct KUZU_API FileInfo {
-    FileInfo(std::string path, FileSystem* fileSystem)
+    FileInfo(std::string path, const FileSystem* fileSystem)
         : path{std::move(path)}, fileSystem{fileSystem} {}
 
     virtual ~FileInfo() = default;
@@ -32,7 +32,7 @@ struct KUZU_API FileInfo {
 
     const std::string path;
 
-    FileSystem* fileSystem;
+    const FileSystem* fileSystem;
 };
 
 } // namespace common

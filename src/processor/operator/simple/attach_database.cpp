@@ -1,6 +1,7 @@
 #include "processor/operator/simple/attach_database.h"
 
 #include "common/exception/runtime.h"
+#include "common/string_utils.h"
 #include "main/database.h"
 #include "main/database_manager.h"
 #include "storage/storage_extension.h"
@@ -10,6 +11,10 @@ namespace processor {
 
 void AttachDatabase::executeInternal(ExecutionContext* context) {
     auto client = context->clientContext;
+    if (common::StringUtils::getUpper(attachInfo.dbType) == "KUZU") {
+        context->clientContext->getDatabase()->attachNewDB(attachInfo.dbPath);
+        return;
+    }
     for (auto& [name, storageExtension] : client->getDatabase()->getStorageExtensions()) {
         if (storageExtension->canHandleDB(attachInfo.dbType)) {
             auto db = storageExtension->attach(attachInfo.dbAlias, attachInfo.dbPath, client);

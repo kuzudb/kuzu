@@ -121,6 +121,8 @@ public:
     common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>>&
     getStorageExtensions();
 
+    void attachNewDB(const std::string& path);
+
 private:
     void openLockFile();
     void initAndLockDBDir();

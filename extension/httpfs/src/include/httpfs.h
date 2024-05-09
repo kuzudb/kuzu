@@ -34,7 +34,7 @@ struct HTTPParams {
 };
 
 struct HTTPFileInfo : public common::FileInfo {
-    HTTPFileInfo(std::string path, common::FileSystem* fileSystem, int flags);
+    HTTPFileInfo(std::string path, const common::FileSystem* fileSystem, int flags);
 
     virtual void initialize();
 
@@ -60,12 +60,14 @@ class HTTPFileSystem : public common::FileSystem {
 public:
     std::unique_ptr<common::FileInfo> openFile(const std::string& path, int flags,
         main::ClientContext* context = nullptr,
-        common::FileLockType lock_type = common::FileLockType::NO_LOCK) override;
+        common::FileLockType lock_type = common::FileLockType::NO_LOCK) const override;
 
     std::vector<std::string> glob(main::ClientContext* context,
         const std::string& path) const override;
 
     bool canHandleFile(const std::string& path) const override;
+
+    bool fileOrPathExists(const std::string& path) const override;
 
     static std::unique_ptr<httplib::Client> getClient(const std::string& host);
 

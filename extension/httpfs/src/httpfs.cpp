@@ -16,7 +16,7 @@ HTTPResponse::HTTPResponse(httplib::Response& res, const std::string& url)
     }
 }
 
-HTTPFileInfo::HTTPFileInfo(std::string path, FileSystem* fileSystem, int flags)
+HTTPFileInfo::HTTPFileInfo(std::string path, const FileSystem* fileSystem, int flags)
     : FileInfo{std::move(path), fileSystem}, flags{flags}, length{0}, availableBuffer{0},
       bufferIdx{0}, fileOffset{0}, bufferStartPos{0}, bufferEndPos{0} {}
 
@@ -111,7 +111,7 @@ void HTTPFileInfo::initializeClient() {
 }
 
 std::unique_ptr<common::FileInfo> HTTPFileSystem::openFile(const std::string& path, int flags,
-    main::ClientContext* /*context*/, common::FileLockType /*lock_type*/) {
+    main::ClientContext* /*context*/, common::FileLockType /*lock_type*/) const {
     auto httpFileInfo = std::make_unique<HTTPFileInfo>(path, this, flags);
     httpFileInfo->initialize();
     return httpFileInfo;
@@ -125,6 +125,19 @@ std::vector<std::string> HTTPFileSystem::glob(main::ClientContext* /*context*/,
 
 bool HTTPFileSystem::canHandleFile(const std::string& path) const {
     return path.rfind("https://", 0) == 0 || path.rfind("http://", 0) == 0;
+}
+
+bool HTTPFileSystem::fileOrPathExists(const std::string& path) const {
+    try {
+        auto handle = openFile(path, O_RDONLY, nullptr, FileLockType::READ_LOCK);
+        auto& sfh = reinterpret_cast<HTTPFileInfo&>(*handle);
+        if (sfh.length == 0) {
+            return false;
+        }
+        return true;
+    } catch (...) {
+        return false;
+    }
 }
 
 void HTTPFileSystem::readFromFile(common::FileInfo& fileInfo, void* buffer, uint64_t numBytes,

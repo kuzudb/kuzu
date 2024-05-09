@@ -17,7 +17,7 @@ public:
 
     std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
         main::ClientContext* context = nullptr,
-        FileLockType lockType = FileLockType::NO_LOCK) override;
+        FileLockType lockType = FileLockType::NO_LOCK) const override;
 
     std::vector<std::string> glob(main::ClientContext* context,
         const std::string& path) const override;
