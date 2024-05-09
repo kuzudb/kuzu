@@ -51,21 +51,4 @@ public class DatabaseTest extends TestBase {
         } catch (Exception e) {
         }
     }
-
-    @Test
-    void DBSetLoggingLevel() {
-        try {
-            KuzuDatabase.setLoggingLevel("debug");
-            KuzuDatabase.setLoggingLevel("info");
-            KuzuDatabase.setLoggingLevel("err");
-        } catch (Exception e) {
-            fail("DBSetLoggingLevel failed: ");
-        }
-
-        try {
-            KuzuDatabase.setLoggingLevel("unsupported");
-            fail("DBSetLoggingLevel did not throw exception as expected.");
-        } catch (Exception e) {
-        }
-    }
 }

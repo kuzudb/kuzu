@@ -81,10 +81,6 @@ std::unique_ptr<Database> new_database(std::string_view databasePath, uint64_t b
     return std::make_unique<Database>(databasePath, systemConfig);
 }
 
-void database_set_logging_level(Database& database, const std::string& level) {
-    database.setLoggingLevel(level);
-}
-
 std::unique_ptr<kuzu::main::Connection> database_connect(kuzu::main::Database& database) {
     return std::make_unique<Connection>(&database);
 }

@@ -28,7 +28,7 @@ private:
     void replayCatalogRecord(const WALRecord& walRecord);
     void replayTableStatisticsRecord(const WALRecord& walRecord);
     void replayCreateCatalogEntryRecord(const WALRecord& walRecord);
-    void replayDropTableRecord(const WALRecord& walRecord);
+    void replayDropCatalogEntryRecord(const WALRecord& walRecord);
     void replayCopyTableRecord(const WALRecord& walRecord) const;
 
     void checkpointOrRollbackVersionedFileHandleAndBufferManager(const WALRecord& walRecord,
