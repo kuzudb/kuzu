@@ -1426,7 +1426,7 @@ TEST_F(CApiValueTest, GetTmFromNonStandardTimestamp) {
     ASSERT_EQ(tm.tm_mday, 22);
     ASSERT_EQ(tm.tm_hour, 17);
     ASSERT_EQ(tm.tm_min, 22);
-    ASSERT_EQ(tm.tm_sec, 3 );
+    ASSERT_EQ(tm.tm_sec, 3);
     ASSERT_EQ(kuzu_timestamp_ms_to_tm(timestamp_ms, &tm), KuzuSuccess);
     ASSERT_EQ(tm.tm_year, 102);
     ASSERT_EQ(tm.tm_mon, 0);

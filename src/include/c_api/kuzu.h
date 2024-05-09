@@ -1518,7 +1518,8 @@ KUZU_C_API kuzu_state kuzu_timestamp_ms_to_tm(kuzu_timestamp_ms_t timestamp, str
  * @param[out] out_result The output parameter that will hold the tm struct.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_timestamp_sec_to_tm(kuzu_timestamp_sec_t timestamp, struct tm* out_result);
+KUZU_C_API kuzu_state kuzu_timestamp_sec_to_tm(kuzu_timestamp_sec_t timestamp,
+    struct tm* out_result);
 /**
  * @brief Convert timestamp_tz to corresponding tm struct.
  * @param timestamp The timestamp_tz value to convert.
@@ -1600,13 +1601,13 @@ KUZU_C_API kuzu_state kuzu_date_from_tm(struct tm tm, kuzu_date_t* out_result);
  * @brief Convert interval to corresponding difftime value in seconds.
  * @param interval The interval value to convert.
  * @param[out] out_result The output parameter that will hold the difftime value.
-*/
+ */
 KUZU_C_API void kuzu_interval_to_difftime(kuzu_interval_t interval, double* out_result);
 /**
  * @brief Convert difftime value in seconds to interval.
  * @param difftime The difftime value to convert.
  * @param[out] out_result The output parameter that will hold the interval value.
-*/
+ */
 KUZU_C_API void kuzu_interval_from_difftime(double difftime, kuzu_interval_t* out_result);
 
 // Version

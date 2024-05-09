@@ -27,21 +27,21 @@ time_t convertTmToTime(struct tm tm) {
 
 int32_t convertTimeToTm(time_t time, struct tm* out_tm) {
     ULARGE_INTEGER ull;
-	ull.QuadPart = (time + SEC_TO_UNIX_EPOCH) * NS_TO_SEC;
-	FILETIME ft;
-	ft.dwLowDateTime = ull.LowPart;
-	ft.dwHighDateTime = ull.HighPart;
-	SYSTEMTIME st;
+    ull.QuadPart = (time + SEC_TO_UNIX_EPOCH) * NS_TO_SEC;
+    FILETIME ft;
+    ft.dwLowDateTime = ull.LowPart;
+    ft.dwHighDateTime = ull.HighPart;
+    SYSTEMTIME st;
     if (!FileTimeToSystemTime(&ft, &st)) {
-		return -1;
-	}
-	out_tm->tm_year = st.wYear - 1900;
-	out_tm->tm_mon = st.wMonth - 1;
-	out_tm->tm_mday = st.wDay;
-	out_tm->tm_hour = st.wHour;
-	out_tm->tm_min = st.wMinute;
-	out_tm->tm_sec = st.wSecond;
-	return 0;
+        return -1;
+    }
+    out_tm->tm_year = st.wYear - 1900;
+    out_tm->tm_mon = st.wMonth - 1;
+    out_tm->tm_mday = st.wDay;
+    out_tm->tm_hour = st.wHour;
+    out_tm->tm_min = st.wMinute;
+    out_tm->tm_sec = st.wSecond;
+    return 0;
 }
 #endif
 
