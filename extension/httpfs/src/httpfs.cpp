@@ -129,9 +129,9 @@ bool HTTPFileSystem::canHandleFile(const std::string& path) const {
 
 bool HTTPFileSystem::fileOrPathExists(const std::string& path) {
     try {
-        auto handle = openFile(path, O_RDONLY, nullptr, FileLockType::READ_LOCK);
-        auto& sfh = reinterpret_cast<HTTPFileInfo&>(*handle);
-        if (sfh.length == 0) {
+        auto fileInfo = openFile(path, O_RDONLY, nullptr, FileLockType::READ_LOCK);
+        auto httpFileInfo = fileInfo->constPtrCast<HTTPFileInfo>();
+        if (httpFileInfo->length == 0) {
             return false;
         }
         return true;
