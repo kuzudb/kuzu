@@ -363,6 +363,11 @@ void EmbeddedShell::run() {
                     printExecutionResult(*queryResult);
                 } else {
                     std::string lineStrTrimmed = lineStr;
+                    // TODO(Mattias): I don't think this is the correct way to find invalid Cypher
+                    // query, as it assumes valid Cypher syntax should always contain " \t\n\r\f\v",
+                    // which is not correct for cases like `COMMIT` and `ROLLBACK`.
+                    // The correct way should be to somehow learn from the parser that the query
+                    // syntax is invalid.
                     lineStrTrimmed =
                         lineStrTrimmed.erase(0, lineStr.find_first_not_of(" \t\n\r\f\v"));
                     if (lineStrTrimmed.find_first_of(" \t\n\r\f\v") == std::string::npos &&
