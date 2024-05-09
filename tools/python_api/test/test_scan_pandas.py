@@ -364,9 +364,7 @@ def test_scan_from_py_arrow_pandas(tmp_path: Path) -> None:
 def test_scan_long_utf8_string(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
-    data = {
-        "name": ["很长的一段中文", "短", "非常长的中文"]
-    }
+    data = {"name": ["很长的一段中文", "短", "非常长的中文"]}
     df = pd.DataFrame(data)
     result = conn.execute("LOAD FROM df WHERE name = '非常长的中文' RETURN count(*);")
     assert result.get_next() == [1]

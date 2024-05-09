@@ -166,6 +166,7 @@ def test_null_resolution(tmp_path: Path) -> None:
     assert not result.has_next()
     result.close()
 
+
 def test_param_error1(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
     with pytest.raises(RuntimeError, match="Parameter name must be of type string but got <class 'int'>"):

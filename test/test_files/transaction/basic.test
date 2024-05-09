@@ -1,7 +1,7 @@
 -DATASET CSV empty
 --
 
--CASE Invalid commit
+-CASE InvalidTransaction
 -STATEMENT COMMIT;
 ---- error
 No active transaction for COMMIT.

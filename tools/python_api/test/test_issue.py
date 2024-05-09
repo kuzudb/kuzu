@@ -80,6 +80,7 @@ def test_empty_list2(conn_db_readwrite: ConnDB) -> None:
     assert not result.has_next()
     result.close()
 
+
 def test_empty_map(conn_db_readwrite: ConnDB) -> None:
     conn, db = conn_db_readwrite
     conn.execute(
@@ -106,6 +107,7 @@ def test_empty_map(conn_db_readwrite: ConnDB) -> None:
     assert result.get_next() == [0, {}, {"a": []}]
     assert not result.has_next()
     result.close()
+
 
 # TODO(Maxwell): check if we should change getCastCost() for the following test
 # def test_issue_3248(conn_db_readwrite: ConnDB) -> None:

@@ -9,10 +9,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace main {
 
-bool PreparedStatement::allowActiveTransaction() const {
-    return StatementTypeUtils::allowActiveTransaction(preparedSummary.statementType);
-}
-
 bool PreparedStatement::isTransactionStatement() const {
     return preparedSummary.statementType == StatementType::TRANSACTION;
 }

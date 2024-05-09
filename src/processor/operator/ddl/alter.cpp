@@ -8,10 +8,8 @@ namespace kuzu {
 namespace processor {
 
 void Alter::executeDDLInternal(ExecutionContext* context) {
-    switch (info.alterType) {
-    case common::AlterType::ADD_PROPERTY: {
-        context->clientContext->getCatalog()->alterTableSchema(context->clientContext->getTx(),
-            info);
+    context->clientContext->getCatalog()->alterTableSchema(context->clientContext->getTx(), info);
+    if (info.alterType == common::AlterType::ADD_PROPERTY) {
         auto& boundAddPropInfo = common::ku_dynamic_cast<const binder::BoundExtraAlterInfo&,
             const binder::BoundExtraAddPropertyInfo&>(*info.extraInfo);
         KU_ASSERT(defaultValueEvaluator);
@@ -24,11 +22,6 @@ void Alter::executeDDLInternal(ExecutionContext* context) {
         storageManager->getTable(info.tableID)
             ->addColumn(context->clientContext->getTx(), *addedProp,
                 defaultValueEvaluator->resultVector.get());
-    } break;
-    default: {
-        context->clientContext->getCatalog()->alterTableSchema(context->clientContext->getTx(),
-            info);
-    }
     }
 }
 

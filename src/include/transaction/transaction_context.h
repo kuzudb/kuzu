@@ -37,7 +37,7 @@ public:
     void beginReadTransaction();
     void beginWriteTransaction();
     void beginAutoTransaction(bool readOnlyStatement);
-    void validateManualTransaction(bool allowActiveTransaction, bool readOnlyStatement);
+    void validateManualTransaction(bool readOnlyStatement);
 
     void commit();
     void rollback();
