@@ -931,13 +931,10 @@ kuzu_state kuzu_timestamp_to_tm(kuzu_timestamp_t timestamp, struct tm* out_resul
 
 kuzu_state kuzu_timestamp_ns_from_tm(struct tm tm, kuzu_timestamp_ns_t* out_result) {
 #ifdef _WIN32
-    time_t time = convertTmToTime(tm);
+    int64_t time = convertTmToTime(tm);
 #else
-    time_t time = timegm(&tm);
+    int64_t time = timegm(&tm);
 #endif
-    if (time == -1) {
-        return KuzuError;
-    }
     if (time == -1) {
         return KuzuError;
     }
@@ -947,13 +944,10 @@ kuzu_state kuzu_timestamp_ns_from_tm(struct tm tm, kuzu_timestamp_ns_t* out_resu
 
 kuzu_state kuzu_timestamp_ms_from_tm(struct tm tm, kuzu_timestamp_ms_t* out_result) {
 #ifdef _WIN32
-    time_t time = convertTmToTime(tm);
+    int64_t time = convertTmToTime(tm);
 #else
-    time_t time = timegm(&tm);
+    int64_t time = timegm(&tm);
 #endif
-    if (time == -1) {
-        return KuzuError;
-    }
     if (time == -1) {
         return KuzuError;
     }
@@ -963,13 +957,10 @@ kuzu_state kuzu_timestamp_ms_from_tm(struct tm tm, kuzu_timestamp_ms_t* out_resu
 
 kuzu_state kuzu_timestamp_sec_from_tm(struct tm tm, kuzu_timestamp_sec_t* out_result) {
 #ifdef _WIN32
-    time_t time = convertTmToTime(tm);
+    int64_t time = convertTmToTime(tm);
 #else
-    time_t time = timegm(&tm);
+    int64_t time = timegm(&tm);
 #endif
-    if (time == -1) {
-        return KuzuError;
-    }
     if (time == -1) {
         return KuzuError;
     }
@@ -979,13 +970,10 @@ kuzu_state kuzu_timestamp_sec_from_tm(struct tm tm, kuzu_timestamp_sec_t* out_re
 
 kuzu_state kuzu_timestamp_tz_from_tm(struct tm tm, kuzu_timestamp_tz_t* out_result) {
 #ifdef _WIN32
-    time_t time = convertTmToTime(tm);
+    int64_t time = convertTmToTime(tm);
 #else
-    time_t time = timegm(&tm);
+    int64_t time = timegm(&tm);
 #endif
-    if (time == -1) {
-        return KuzuError;
-    }
     if (time == -1) {
         return KuzuError;
     }
@@ -995,13 +983,10 @@ kuzu_state kuzu_timestamp_tz_from_tm(struct tm tm, kuzu_timestamp_tz_t* out_resu
 
 kuzu_state kuzu_timestamp_from_tm(struct tm tm, kuzu_timestamp_t* out_result) {
 #ifdef _WIN32
-    time_t time = convertTmToTime(tm);
+    int64_t time = convertTmToTime(tm);
 #else
-    time_t time = timegm(&tm);
+    int64_t time = timegm(&tm);
 #endif
-    if (time == -1) {
-        return KuzuError;
-    }
     if (time == -1) {
         return KuzuError;
     }
@@ -1028,9 +1013,9 @@ kuzu_state kuzu_date_to_tm(kuzu_date_t date, struct tm* out_result) {
 
 kuzu_state kuzu_date_from_tm(struct tm tm, kuzu_date_t* out_result) {
 #ifdef _WIN32
-    time_t time = convertTmToTime(tm);
+    int64_t time = convertTmToTime(tm);
 #else
-    time_t time = timegm(&tm);
+    int64_t time = timegm(&tm);
 #endif
     if (time == -1) {
         return KuzuError;
@@ -1070,10 +1055,10 @@ void kuzu_interval_to_difftime(kuzu_interval_t interval, double* out_result) {
 }
 
 void kuzu_interval_from_difftime(double difftime, kuzu_interval_t* out_result) {
-    int64_t micros = difftime * 1000000;
-    out_result->months = micros / Interval::MICROS_PER_MONTH;
+    double micros = difftime * 1000000;
+    out_result->months = static_cast<int64_t>(micros / Interval::MICROS_PER_MONTH);
     micros -= out_result->months * Interval::MICROS_PER_MONTH;
-    out_result->days = micros / Interval::MICROS_PER_DAY;
+    out_result->days = static_cast<int64_t>(micros / Interval::MICROS_PER_DAY);
     micros -= out_result->days * Interval::MICROS_PER_DAY;
-    out_result->micros = micros;
+    out_result->micros = static_cast<int64_t>(micros);
 }
