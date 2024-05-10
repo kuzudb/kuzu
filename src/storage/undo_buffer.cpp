@@ -1,6 +1,7 @@
 #include "storage/undo_buffer.h"
 
 #include "catalog/catalog_entry/catalog_entry.h"
+#include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "main/client_context.h"
 #include "storage/storage_manager.h"
 
@@ -124,6 +125,12 @@ void UndoBuffer::commitEntry(const uint8_t* entry, transaction_t commitTS) {
     case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {
         // DO NOTHING. We don't persistent function entries.
     } break;
+    case CatalogEntryType::SEQUENCE_ENTRY: {
+        if (catalogEntry->getType() == CatalogEntryType::DUMMY_ENTRY) {
+            KU_ASSERT(catalogEntry->isDeleted());
+            wal.logCreateSequenceRecord(newCatalogEntry);
+        }
+    } break;
     case CatalogEntryType::DUMMY_ENTRY: {
         KU_ASSERT(newCatalogEntry->isDeleted());
         switch (catalogEntry->getType()) {
@@ -134,6 +141,11 @@ void UndoBuffer::commitEntry(const uint8_t* entry, transaction_t commitTS) {
             auto tableCatalogEntry =
                 ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(catalogEntry);
             wal.logDropTableRecord(tableCatalogEntry->getTableID());
+        } break;
+        case CatalogEntryType::SEQUENCE_ENTRY: {
+            auto sequenceCatalogEntry =
+                ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(catalogEntry);
+            wal.logDropSequenceRecord(sequenceCatalogEntry->getSequenceID());
         } break;
         default: {
             throw RuntimeException(stringFormat("Not supported catalog entry type {} yet.",

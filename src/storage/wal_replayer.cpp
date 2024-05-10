@@ -4,6 +4,7 @@
 
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
+#include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/file_system/file_info.h"
 #include "common/serializer/buffered_file.h"
 #include "storage/storage_manager.h"
@@ -238,6 +239,30 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) {
 void WALReplayer::replayCopyTableRecord(const WALRecord&) const {
     // DO NOTHING.
     // TODO(Guodong): Should handle metaDA and reclaim free pages when rollback.
+}
+
+// Replay catalog should only work under RECOVERY mode.
+void WALReplayer::replayCreateSequenceRecord(const WALRecord& walRecord) {
+    if (!(isCheckpoint && isRecovering)) {
+        // Nothing to do.
+        return;
+    }
+    auto& createSequenceRecord =
+        ku_dynamic_cast<const WALRecord&, const CreateSequenceRecord&>(walRecord);
+    auto sequenceEntry = ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(
+        createSequenceRecord.ownedCatalogEntry.get());
+    clientContext.getCatalog()->createSequence(&DUMMY_WRITE_TRANSACTION,
+        sequenceEntry->getBoundCreateSequenceInfo());
+}
+
+// Replay catalog should only work under RECOVERY mode.
+void WALReplayer::replayDropSequenceRecord(const WALRecord& walRecord) {
+    if (!(isCheckpoint && isRecovering)) {
+        return;
+    }
+    auto dropSequenceRecord = ku_dynamic_cast<const WALRecord&, const DropSequenceRecord&>(walRecord);
+    auto sequenceID = dropSequenceRecord.sequenceID;
+    clientContext.getCatalog()->dropSequence(&DUMMY_WRITE_TRANSACTION, sequenceID);
 }
 
 void WALReplayer::truncateFileIfInsertion(BMFileHandle* fileHandle,

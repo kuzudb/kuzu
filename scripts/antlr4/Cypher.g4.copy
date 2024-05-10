@@ -825,6 +825,7 @@ kU_NonReservedKeywords
         | EXPORT
         | DATABASE
         | USE
+        | START
         ;
 
 UnescapedSymbolicName

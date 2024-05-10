@@ -36,6 +36,8 @@ public:
     static std::unique_ptr<SequenceCatalogEntry> deserialize(common::Deserializer& deserializer);
     // std::unique_ptr<SequenceCatalogEntry> copy() const;
 
+    binder::BoundCreateSequenceInfo getBoundCreateSequenceInfo() const;
+
 protected:
     void copyFrom(const CatalogEntry& other) override;
 

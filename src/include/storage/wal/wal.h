@@ -43,6 +43,9 @@ public:
 
     void logCopyTableRecord(common::table_id_t tableID);
 
+    void logCreateSequenceRecord(catalog::CatalogEntry* catalogEntry);
+    void logDropSequenceRecord(common::sequence_id_t sequenceID);
+
     void logCatalogRecord();
     void logTableStatisticsRecord(common::TableType tableType);
     void logCommit(uint64_t transactionID);

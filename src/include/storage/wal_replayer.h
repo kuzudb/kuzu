@@ -31,6 +31,9 @@ private:
     void replayDropCatalogEntryRecord(const WALRecord& walRecord);
     void replayCopyTableRecord(const WALRecord& walRecord) const;
 
+    void replayCreateSequenceRecord(const WALRecord& walRecord);
+    void replayDropSequenceRecord(const WALRecord& walRecord);
+
     void checkpointOrRollbackVersionedFileHandleAndBufferManager(const WALRecord& walRecord,
         const DBFileID& dbFileID);
     void truncateFileIfInsertion(BMFileHandle* fileHandle,

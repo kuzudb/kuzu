@@ -17,9 +17,9 @@ void SequenceCatalogEntry::serialize(common::Serializer& serializer) const {
 
 std::unique_ptr<SequenceCatalogEntry> SequenceCatalogEntry::deserialize(
     common::Deserializer& deserializer) {
-    common::table_id_t sequenceID;
+    common::sequence_id_t sequenceID;
     deserializer.deserializeValue(sequenceID);
-    std::unique_ptr<SequenceCatalogEntry> result;
+    auto result = std::make_unique<SequenceCatalogEntry>();
     result->sequenceID = sequenceID;
     return result;
 }
@@ -28,6 +28,10 @@ void SequenceCatalogEntry::copyFrom(const CatalogEntry& other) {
     CatalogEntry::copyFrom(other);
     auto& otherSequence = ku_dynamic_cast<const CatalogEntry&, const SequenceCatalogEntry&>(other);
     sequenceID = otherSequence.sequenceID;
+}
+
+binder::BoundCreateSequenceInfo SequenceCatalogEntry::getBoundCreateSequenceInfo() const {
+    return BoundCreateSequenceInfo(name, 0,0,0,0,0);
 }
 
 } // namespace catalog

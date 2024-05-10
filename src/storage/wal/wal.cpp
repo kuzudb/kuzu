@@ -88,6 +88,18 @@ void WAL::logCopyTableRecord(table_id_t tableID) {
     addNewWALRecordNoLock(walRecord);
 }
 
+void WAL::logCreateSequenceRecord(catalog::CatalogEntry* catalogEntry) {
+    lock_t lck{mtx};
+    CreateSequenceRecord walRecord(catalogEntry);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logDropSequenceRecord(sequence_id_t sequenceID) {
+    lock_t lck{mtx};
+    DropSequenceRecord walRecord(sequenceID);
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::clearWAL() {
     bufferManager.removeFilePagesFromFrames(*shadowingFH);
     shadowingFH->resetToZeroPagesAndPageCapacity();
