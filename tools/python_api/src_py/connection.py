@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     else:
         from typing_extensions import Self
 
+
 class Connection:
     """Connection to a database."""
 
@@ -122,8 +123,6 @@ class Connection:
 
         self.init_connection()
         if not isinstance(parameters, dict):
-            # TODO(Chang): remove ROLLBACK once we can guarantee database is deleted after conn
-            self._connection.execute(self.prepare("ROLLBACK")._prepared_statement, {})
             msg = f"Parameters must be a dict; found {type(parameters)}."
             raise RuntimeError(msg)  # noqa: TRY004
 
@@ -235,7 +234,7 @@ class Connection:
         name: str,
         udf: Callable[[...], Any],
         params_type: list[Type | str] | None = None,
-        return_type: Type | str = ""
+        return_type: Type | str = "",
     ) -> None:
         """
         Sets a User Defined Function (UDF) to use in cypher queries.
@@ -257,6 +256,6 @@ class Connection:
         if params_type is None:
             params_type = []
         parsed_params_type = [x if type(x) is str else x.value for x in params_type]
-        if (type(return_type) is not str):
+        if type(return_type) is not str:
             return_type = return_type.value
         self._connection.create_function(name, udf, parsed_params_type, return_type)

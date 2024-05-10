@@ -251,8 +251,6 @@
 -STATEMENT [conn_read] Match (a:person) where a.ID=10000099 RETURN COUNT(*);
 ---- 1
 0
--STATEMENT [conn_write] COMMIT
----- ok
 
 -CASE IndexScanAfterInsertionCommitNormalExecution
 -CREATE_CONNECTION conn_read

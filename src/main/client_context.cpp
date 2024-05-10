@@ -313,8 +313,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
             if (transactionContext->isAutoTransaction()) {
                 transactionContext->beginAutoTransaction(preparedStatement->readOnly);
             } else {
-                transactionContext->validateManualTransaction(
-                    preparedStatement->allowActiveTransaction(), preparedStatement->readOnly);
+                transactionContext->validateManualTransaction(preparedStatement->readOnly);
             }
             if (!this->getTx()->isReadOnly()) {
                 database->storageManager->initStatistics();

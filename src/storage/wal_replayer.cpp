@@ -224,7 +224,10 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) {
     case TableType::REL:
     case TableType::RDF: {
         clientContext.getCatalog()->dropTableSchema(&DUMMY_WRITE_TRANSACTION, tableID);
-        clientContext.getStorageManager()->dropTable(tableID);
+        // During recovery, storageManager does not exist.
+        if (clientContext.getStorageManager()) {
+            clientContext.getStorageManager()->dropTable(tableID);
+        }
     } break;
     default: {
         KU_UNREACHABLE;

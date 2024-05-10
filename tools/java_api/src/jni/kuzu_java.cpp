@@ -383,13 +383,6 @@ JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1prepared_1statement_1des
     delete ps;
 }
 
-JNIEXPORT jboolean JNICALL
-Java_com_kuzudb_KuzuNative_kuzu_1prepared_1statement_1allow_1active_1transaction(JNIEnv* env,
-    jclass, jobject thisPS) {
-    PreparedStatement* ps = getPreparedStatement(env, thisPS);
-    return static_cast<jboolean>(ps->allowActiveTransaction());
-}
-
 JNIEXPORT jboolean JNICALL Java_com_kuzudb_KuzuNative_kuzu_1prepared_1statement_1is_1success(
     JNIEnv* env, jclass, jobject thisPS) {
     PreparedStatement* ps = getPreparedStatement(env, thisPS);

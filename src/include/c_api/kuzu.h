@@ -393,13 +393,6 @@ KUZU_C_API void kuzu_connection_set_query_timeout(kuzu_connection* connection,
  */
 KUZU_C_API void kuzu_prepared_statement_destroy(kuzu_prepared_statement* prepared_statement);
 /**
- * @brief DDL and COPY statements are automatically wrapped in a transaction and committed.
- * As such, they cannot be part of an active transaction.
- * @return the prepared statement is allowed to be part of an active transaction.
- */
-KUZU_C_API bool kuzu_prepared_statement_allow_active_transaction(
-    kuzu_prepared_statement* prepared_statement);
-/**
  * @return the query is prepared successfully or not.
  */
 KUZU_C_API bool kuzu_prepared_statement_is_success(kuzu_prepared_statement* prepared_statement);
