@@ -1,8 +1,11 @@
 #include "parser/ddl/alter.h"
+#include "parser/ddl/create_sequence.h"
 #include "parser/ddl/create_table.h"
 #include "parser/ddl/drop.h"
 #include "parser/expression/parsed_literal_expression.h"
 #include "parser/transformer.h"
+#include "common/exception/parser.h"
+#include "common/types/value/value.h"
 
 using namespace kuzu::common;
 
@@ -85,6 +88,75 @@ std::unique_ptr<Statement> Transformer::transformCreateRdfGraphClause(
     auto rdfGraphName = transformSchemaName(*ctx.oC_SchemaName());
     auto createTableInfo = CreateTableInfo(TableType::RDF, rdfGraphName);
     return std::make_unique<CreateTable>(std::move(createTableInfo));
+}
+
+std::unique_ptr<Statement> Transformer::transformCreateSequence(
+    CypherParser::KU_CreateSequenceContext& ctx) {
+    auto sequenceName = transformSchemaName(*ctx.oC_SchemaName());
+    auto createSequenceInfo = CreateSequenceInfo(sequenceName);
+    std::unordered_set<SequenceInfoType> applied;
+    bool defaultMin = true;
+    bool defaultMax = true;
+    for (auto seqOption : ctx.kU_SequenceOptions()) {
+        SequenceInfoType type;
+        std::string typeString;
+        CypherParser::OC_IntegerLiteralContext* valLiteral = nullptr;
+        int64_t* valOption = nullptr;
+        if (seqOption->kU_StartWith()) {
+            type = SequenceInfoType::START;
+            typeString = "START";
+            valLiteral = seqOption->kU_StartWith()->oC_IntegerLiteral();
+            valOption = &createSequenceInfo.startWith;
+        } else if (seqOption->kU_IncrementBy()) {
+            type = SequenceInfoType::INCREMENT;
+            typeString = "INCREMENT";
+            valLiteral = seqOption->kU_IncrementBy()->oC_IntegerLiteral();
+            valOption = &createSequenceInfo.increment;
+        } else if (seqOption->kU_MinValue()) {
+            type = SequenceInfoType::MINVALUE;
+            typeString = "MINVALUE";
+            if (!seqOption->kU_MinValue()->NO()) {
+                valLiteral = seqOption->kU_MinValue()->oC_IntegerLiteral();
+                valOption = &createSequenceInfo.minValue;
+            }
+        } else if (seqOption->kU_MaxValue()) {
+            type = SequenceInfoType::MAXVALUE;
+            typeString = "MAXVALUE";
+            if (!seqOption->kU_MaxValue()->NO()) {
+                valLiteral = seqOption->kU_MaxValue()->oC_IntegerLiteral();
+                valOption = &createSequenceInfo.maxValue;
+            }
+        } else { // seqOption->kU_Cycle()
+            type = SequenceInfoType::CYCLE;
+            typeString = "CYCLE";
+            if (!seqOption->kU_MaxValue()->NO()) {
+                createSequenceInfo.cycle = true;
+            }
+        }
+        if (applied.find(type) != applied.end()) {
+            throw ParserException(typeString + " should be passed at most once.");
+        }
+        applied.insert(type);
+
+        if (valLiteral && valOption) {
+            auto valParsed = transformIntegerLiteral(*valLiteral);
+            auto value = 
+                ku_dynamic_cast<const ParsedExpression&, const ParsedLiteralExpression&>(*valParsed).getValue();
+            if (value.getDataType()->getLogicalTypeID() != LogicalTypeID::INT64) {
+                throw ParserException("Out of bounds: SEQUENCE accepts integers within INT64.");
+            }
+            *valOption = value.getValue<int64_t>();
+        }
+    }
+    if (createSequenceInfo.increment < 0) {
+        if (defaultMin) {
+            createSequenceInfo.minValue = INT64_MIN;
+        }
+        if (defaultMax) {
+            createSequenceInfo.maxValue = -1;
+        }
+    }
+    return std::make_unique<CreateSequence>(std::move(createSequenceInfo));
 }
 
 std::unique_ptr<Statement> Transformer::transformDropTable(CypherParser::KU_DropTableContext& ctx) {

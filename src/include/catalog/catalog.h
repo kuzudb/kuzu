@@ -7,6 +7,7 @@ namespace kuzu {
 namespace binder {
 struct BoundAlterInfo;
 struct BoundCreateTableInfo;
+struct BoundCreateSequenceInfo;
 } // namespace binder
 
 namespace function {
@@ -27,6 +28,8 @@ class NodeTableCatalogEntry;
 class RelTableCatalogEntry;
 class RelGroupCatalogEntry;
 class RDFGraphCatalogEntry;
+
+class SequenceCatalogEntry;
 
 class Catalog {
 public:
@@ -63,6 +66,16 @@ public:
 
     void setTableComment(transaction::Transaction* tx, common::table_id_t tableID,
         const std::string& comment) const;
+
+    // ----------------------------- Sequences ----------------------------
+    bool containsSequence(transaction::Transaction* tx, const std::string& sequenceName) const;
+
+    SequenceCatalogEntry* getSequenceCatalogEntry(transaction::Transaction* tx,
+        common::sequence_id_t sequenceID) const;
+    
+    common::sequence_id_t createSequence(transaction::Transaction* tx,
+        const binder::BoundCreateSequenceInfo& info);
+    void dropSequence(transaction::Transaction* tx, common::table_id_t tableID);
 
     // ----------------------------- Functions ----------------------------
     void addFunction(transaction::Transaction* tx, CatalogEntryType entryType, std::string name,
@@ -140,6 +153,7 @@ private:
 
 protected:
     std::unique_ptr<CatalogSet> tables;
+    std::unique_ptr<CatalogSet> sequences;
 
 private:
     std::unique_ptr<CatalogSet> functions;

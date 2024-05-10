@@ -37,6 +37,7 @@ private:
     virtual void visitWithClause(const WithClause* /*withClause*/) {}
     virtual void visitReturnClause(const ReturnClause* /*returnClause*/) {}
 
+    virtual void visitCreateSequence(const Statement& /*statement*/) {}
     virtual void visitCreateTable(const Statement& /*statement*/) {}
     virtual void visitDropTable(const Statement& /*statement*/) {}
     virtual void visitAlter(const Statement& /*statement*/) {}

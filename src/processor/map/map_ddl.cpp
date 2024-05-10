@@ -1,8 +1,10 @@
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_table.h"
+#include "planner/operator/ddl/logical_create_sequence.h"
 #include "planner/operator/ddl/logical_drop_table.h"
 #include "processor/operator/ddl/alter.h"
 #include "processor/operator/ddl/create_table.h"
+#include "processor/operator/ddl/create_sequence.h"
 #include "processor/operator/ddl/drop_table.h"
 #include "processor/plan_mapper.h"
 
@@ -23,6 +25,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateTable(LogicalOperator* lo
     auto createTable = (LogicalCreateTable*)logicalOperator;
     return std::make_unique<CreateTable>(createTable->getInfo()->copy(), getOutputPos(createTable),
         getOperatorID(), createTable->getExpressionsForPrinting());
+}
+
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateSequence(LogicalOperator* logicalOperator) {
+    auto createSequence = (LogicalCreateSequence*)logicalOperator;
+    return std::make_unique<CreateSequence>(createSequence->getInfo()->copy(), getOutputPos(createSequence),
+        getOperatorID(), createSequence->getExpressionsForPrinting());
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDropTable(LogicalOperator* logicalOperator) {

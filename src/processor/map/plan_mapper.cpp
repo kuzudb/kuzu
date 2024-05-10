@@ -132,6 +132,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::CREATE_TABLE: {
         physicalOperator = mapCreateTable(logicalOperator);
     } break;
+    case LogicalOperatorType::CREATE_SEQUENCE: {
+        physicalOperator = mapCreateSequence(logicalOperator);
+    } break;
     case LogicalOperatorType::COPY_FROM: {
         physicalOperator = mapCopyFrom(logicalOperator);
     } break;

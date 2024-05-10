@@ -16,6 +16,9 @@ void BoundStatementVisitor::visit(const BoundStatement& statement) {
     case StatementType::QUERY: {
         visitRegularQuery(statement);
     } break;
+    case StatementType::CREATE_SEQUENCE: {
+        visitCreateSequence(statement);
+    } break;
     case StatementType::CREATE_TABLE: {
         visitCreateTable(statement);
     } break;

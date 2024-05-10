@@ -42,6 +42,7 @@ public:
 private:
     // Plan simple statement.
     void appendCreateTable(const binder::BoundStatement& statement, LogicalPlan& plan);
+    void appendCreateSequence(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendDropTable(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendAlter(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendStandaloneCall(const binder::BoundStatement& statement, LogicalPlan& plan);
