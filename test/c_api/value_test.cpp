@@ -1563,10 +1563,10 @@ TEST_F(CApiValueTest, GetDifftimeFromInterval) {
 }
 
 TEST_F(CApiValueTest, GetIntervalFromDifftime) {
-    double difftime = 211110160.4692;
+    double difftime = 211110160.479;
     kuzu_interval_t interval;
     kuzu_interval_from_difftime(difftime, &interval);
     ASSERT_EQ(interval.months, 81);
     ASSERT_EQ(interval.days, 13);
-    ASSERT_EQ(interval.micros, 34960469200);
+    ASSERT_EQ(interval.micros, 34960479000);
 }
