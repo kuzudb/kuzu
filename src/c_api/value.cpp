@@ -1055,10 +1055,10 @@ void kuzu_interval_to_difftime(kuzu_interval_t interval, double* out_result) {
 }
 
 void kuzu_interval_from_difftime(double difftime, kuzu_interval_t* out_result) {
-    double micros = difftime * 1000000;
-    out_result->months = static_cast<int64_t>(micros / Interval::MICROS_PER_MONTH);
-    micros -= out_result->months * Interval::MICROS_PER_MONTH;
-    out_result->days = static_cast<int64_t>(micros / Interval::MICROS_PER_DAY);
-    micros -= out_result->days * Interval::MICROS_PER_DAY;
-    out_result->micros = static_cast<int64_t>(micros);
+    int64_t total_micros = static_cast<int64_t>(difftime * 1000000);
+    out_result->months = total_micros / Interval::MICROS_PER_MONTH;
+    total_micros -= out_result->months * Interval::MICROS_PER_MONTH;
+    out_result->days = total_micros / Interval::MICROS_PER_DAY;
+    total_micros -= out_result->days * Interval::MICROS_PER_DAY;
+    out_result->micros = total_micros;
 }
