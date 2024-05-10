@@ -369,7 +369,8 @@ void EmbeddedShell::run() {
                         std::string trimmedLineStr = lineStr;
                         trimmedLineStr.erase(0, trimmedLineStr.find_first_not_of(" \t\n\r\f\v"));
                         if (trimmedLineStr.find(' ') == std::string::npos) {
-                            printf("\"%s\" is not a valid Cypher query. Did you mean to issue a CLI command, e.g., \"%s\"?\n",
+                            printf("\"%s\" is not a valid Cypher query. Did you mean to issue a "
+                                      "CLI command, e.g., \"%s\"?\n",
                                     lineStr.c_str(), findClosestCommand(lineStr).c_str());
                         }
                     }
