@@ -362,21 +362,15 @@ void EmbeddedShell::run() {
                 if (queryResult->isSuccess()) {
                     printExecutionResult(*queryResult);
                 } else {
-                    std::string lineStrTrimmed = lineStr;
-                    // TODO(Mattias): I don't think this is the correct way to find invalid Cypher
-                    // query, as it assumes valid Cypher syntax should always contain " \t\n\r\f\v",
-                    // which is not correct for cases like `COMMIT` and `ROLLBACK`.
-                    // The correct way should be to somehow learn from the parser that the query
-                    // syntax is invalid.
-                    lineStrTrimmed =
-                        lineStrTrimmed.erase(0, lineStr.find_first_not_of(" \t\n\r\f\v"));
-                    if (lineStrTrimmed.find_first_of(" \t\n\r\f\v") == std::string::npos &&
-                        lineStrTrimmed.length() > 1) {
-                        printf("Error: \"%s\" is not a valid Cypher query. Did you mean to issue a "
-                               "CLI command, e.g., \"%s\"?\n",
-                            lineStr.c_str(), findClosestCommand(lineStrTrimmed).c_str());
-                    } else {
-                        printf("Error: %s\n", queryResult->getErrorMessage().c_str());
+                    std::string errMsg = queryResult->getErrorMessage();
+                    printf("Error: %s\n", errMsg.c_str());
+                    if (errMsg.find("Parser exception:") == 0) {
+                        std::string trimmedLineStr = lineStr;
+                        trimmedLineStr.erase(0, trimmedLineStr.find_first_not_of(" \t\n\r\f\v"));
+                        if (trimmedLineStr.find(' ') == std::string::npos) {
+                            printf("Error: \"%s\" is not a valid Cypher query. Did you mean to issue a CLI command, e.g., \"%s\"?\n",
+                                    lineStr.c_str(), findClosestCommand(lineStr).c_str());
+                        }
                     }
                 }
             }
