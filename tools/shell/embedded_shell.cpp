@@ -16,6 +16,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "common/exception/parser.h"
 #include "transaction/transaction.h"
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
@@ -364,11 +365,11 @@ void EmbeddedShell::run() {
                 } else {
                     std::string errMsg = queryResult->getErrorMessage();
                     printf("Error: %s\n", errMsg.c_str());
-                    if (errMsg.find("Parser exception:") == 0) {
+                    if (errMsg.find(ParserException::ERROR_PREFIX) == 0) {
                         std::string trimmedLineStr = lineStr;
                         trimmedLineStr.erase(0, trimmedLineStr.find_first_not_of(" \t\n\r\f\v"));
                         if (trimmedLineStr.find(' ') == std::string::npos) {
-                            printf("Error: \"%s\" is not a valid Cypher query. Did you mean to issue a CLI command, e.g., \"%s\"?\n",
+                            printf("\"%s\" is not a valid Cypher query. Did you mean to issue a CLI command, e.g., \"%s\"?\n",
                                     lineStr.c_str(), findClosestCommand(lineStr).c_str());
                         }
                     }
