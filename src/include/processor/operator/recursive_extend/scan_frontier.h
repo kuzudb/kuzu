@@ -13,7 +13,7 @@ struct ScanFrontierInfo {
 class ScanFrontier : public PhysicalOperator {
 public:
     ScanFrontier(ScanFrontierInfo info, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::SCAN_NODE_ID, id, paramsString}, info{info} {}
+        : PhysicalOperator{PhysicalOperatorType::SCAN_FRONTIER, id, paramsString}, info{info} {}
 
     inline bool isSource() const override { return true; }
 

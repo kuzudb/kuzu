@@ -41,9 +41,7 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
         threads.emplace_back(&StorageDriver::scanColumn, this, dummyReadOnlyTransaction.get(),
             column, offsets, sizeToRead, current_buffer);
         offsets += sizeToRead;
-        // TODO(Guodong/Xiyang/Chang): StorageDriver should figure numBytesPerValue from logicalType
-        // and not rely on Column to provide this information.
-        current_buffer += sizeToRead * column->getNumBytesPerValue();
+        current_buffer += sizeToRead * storage::getDataTypeSizeInChunk(column->getDataType());
         sizeLeft -= sizeToRead;
     }
     for (auto& thread : threads) {

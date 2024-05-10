@@ -110,7 +110,7 @@ TEST_F(OptimizerTest, RemoveUnnecessaryJoinTest) {
     op = op->getChild(0);
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::FLATTEN);
     op = op->getChild(0);
-    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_INTERNAL_ID);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_PROPERTY);
 }
 
 TEST_F(OptimizerTest, ProjectionPushDownJoinTest) {

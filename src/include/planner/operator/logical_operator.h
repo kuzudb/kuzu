@@ -51,7 +51,6 @@ enum class LogicalOperatorType : uint8_t {
     RECURSIVE_EXTEND,
     SCAN_FILE,
     SCAN_FRONTIER,
-    SCAN_INTERNAL_ID,
     SCAN_NODE_PROPERTY,
     SEMI_MASKER,
     SET_NODE_PROPERTY,

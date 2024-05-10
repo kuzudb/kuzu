@@ -9,19 +9,21 @@ namespace storage {
 
 struct TableReadState {
     // Read only input node id vector.
-    const common::ValueVector* nodeIDVector;
+    common::ValueVector* nodeIDVector;
     std::vector<common::column_id_t> columnIDs;
     std::vector<common::ValueVector*> outputVectors;
     std::unique_ptr<TableDataReadState> dataReadState;
 
     explicit TableReadState(std::vector<common::column_id_t> columnIDs)
-        : columnIDs{std::move(columnIDs)} {}
-    TableReadState(const common::ValueVector* nodeIDVector,
+        : nodeIDVector(nullptr), columnIDs{std::move(columnIDs)} {}
+    TableReadState(common::ValueVector* nodeIDVector,
         std::vector<common::column_id_t> columnIDs, std::vector<common::ValueVector*> outputVectors)
         : nodeIDVector{nodeIDVector}, columnIDs{std::move(columnIDs)},
           outputVectors{std::move(outputVectors)} {}
     virtual ~TableReadState() = default;
     DELETE_COPY_AND_MOVE(TableReadState);
+
+    virtual bool hasMoreToRead(const transaction::Transaction* transaction) const = 0;
 };
 
 struct TableInsertState {
@@ -48,7 +50,7 @@ struct TableDeleteState {
 class LocalTable;
 class Table {
 public:
-    Table(catalog::TableCatalogEntry* tableEntry, TablesStatistics* tablesStatistics,
+    Table(const catalog::TableCatalogEntry* tableEntry, TablesStatistics* tablesStatistics,
         MemoryManager* memoryManager, WAL* wal)
         : tableType{tableEntry->getTableType()}, tableID{tableEntry->getTableID()},
           tableName{tableEntry->getName()}, tablesStatistics{tablesStatistics},
@@ -56,12 +58,12 @@ public:
     }
     virtual ~Table() = default;
 
-    inline common::TableType getTableType() const { return tableType; }
-    inline common::table_id_t getTableID() const { return tableID; }
-    inline common::row_idx_t getNumTuples(transaction::Transaction* transaction) const {
+    common::TableType getTableType() const { return tableType; }
+    common::table_id_t getTableID() const { return tableID; }
+    common::row_idx_t getNumTuples(transaction::Transaction* transaction) const {
         return tablesStatistics->getNumTuplesForTable(transaction, tableID);
     }
-    inline void updateNumTuplesByValue(uint64_t numTuples) {
+    void updateNumTuplesByValue(uint64_t numTuples) const {
         tablesStatistics->updateNumTuplesByValue(tableID, numTuples);
     }
 

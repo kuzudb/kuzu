@@ -57,7 +57,7 @@ std::tuple<NodeTableScanState*, offset_t, offset_t> ScanNodeIDSharedState::getNe
     return std::make_tuple(tableStates[currentStateIdx].get(), startOffset, endOffset);
 }
 
-void ScanNodeID::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
+void ScanNodeID::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*) {
     outValueVector = resultSet->getValueVector(outDataPos);
     outValueVector->setSequential();
 }
@@ -69,7 +69,7 @@ bool ScanNodeID::getNextTuplesInternal(ExecutionContext* context) {
             return false;
         }
         outValueVector->state->getSelVectorUnsafe().setToUnfiltered();
-        auto nodeIDValues = (nodeID_t*)(outValueVector->getData());
+        auto nodeIDValues = reinterpret_cast<nodeID_t*>(outValueVector->getData());
         auto size = endOffset - startOffset;
         for (auto i = 0u; i < size; ++i) {
             nodeIDValues[i].offset = startOffset + i;
@@ -105,10 +105,10 @@ void ScanNodeID::setSelVector(ExecutionContext* context, NodeTableScanState* tab
     }
 }
 
-double ScanNodeID::getProgress(ExecutionContext* /*context*/) const {
+double ScanNodeID::getProgress(ExecutionContext*) const {
     uint64_t numNodes = sharedState->getNumNodes();
     uint64_t numReadNodes = sharedState->getNumNodesScanned();
-    return numNodes == 0 ? 0.0 : (double)numReadNodes / numNodes;
+    return numNodes == 0 ? 0.0 : static_cast<double>(numReadNodes) / numNodes;
 }
 
 } // namespace processor

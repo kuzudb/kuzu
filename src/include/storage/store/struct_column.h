@@ -13,11 +13,11 @@ public:
         bool enableCompression);
 
     void initChunkState(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, ChunkState& columnReadState) override;
+        common::node_group_idx_t nodeGroupIdx, ChunkState& chunkState) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         ColumnChunk* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
-    void scan(transaction::Transaction* transaction, ChunkState& readState,
+    void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector) override;
 
@@ -27,7 +27,7 @@ public:
     void rollbackInMemory() override;
     void prepareCommit() override;
 
-    Column* getChild(common::vector_idx_t childIdx) {
+    Column* getChild(common::vector_idx_t childIdx) const {
         KU_ASSERT(childIdx < childColumns.size());
         return childColumns[childIdx].get();
     }
@@ -45,9 +45,10 @@ public:
         common::offset_t startSrcOffset) override;
 
 protected:
-    void scanInternal(transaction::Transaction* transaction, ChunkState& readState,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
-    void lookupInternal(transaction::Transaction* transaction, ChunkState& readState,
+    void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
+        common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
+        common::ValueVector* resultVector) override;
+    void lookupInternal(transaction::Transaction* transaction, ChunkState& state,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
 private:

@@ -5,11 +5,15 @@ namespace processor {
 
 void ScanTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*) {
     nodeIDVector = resultSet->getValueVector(nodeIDPos).get();
-    KU_ASSERT(!outVectorsPos.empty());
-    outState = resultSet->getValueVector(outVectorsPos[0])->state.get();
+    // KU_ASSERT(!outVectorsPos.empty());
+    if (outVectorsPos.empty()) {
+        outState = nodeIDVector->state.get();
+    } else {
+        outState = resultSet->getValueVector(outVectorsPos[0])->state.get();
+    }
 }
 
-void ScanTable::initVectors(storage::TableReadState& state, const ResultSet& resultSet) {
+void ScanTable::initVectors(storage::TableReadState& state, const ResultSet& resultSet) const {
     state.nodeIDVector = resultSet.getValueVector(nodeIDPos).get();
     for (auto& pos : outVectorsPos) {
         state.outputVectors.push_back(resultSet.getValueVector(pos).get());

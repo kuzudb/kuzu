@@ -94,14 +94,10 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "RESULT_COLLECTOR";
     case PhysicalOperatorType::SCAN_FRONTIER:
         return "SCAN_FRONTIER";
-    case PhysicalOperatorType::SCAN_MULTI_NODE_TABLES:
+    case PhysicalOperatorType::SCAN_NODE_TABLES:
         return "SCAN_MULTI_NODE_TABLES";
     case PhysicalOperatorType::SCAN_MULTI_REL_TABLES:
         return "SCAN_MULTI_REL_TABLES";
-    case PhysicalOperatorType::SCAN_NODE_ID:
-        return "SCAN_NODE_ID";
-    case PhysicalOperatorType::SCAN_NODE_TABLE:
-        return "SCAN_NODE_TABLE";
     case PhysicalOperatorType::SCAN_REL_TABLE:
         return "SCAN_REL_TABLE";
     case PhysicalOperatorType::SEMI_MASKER:

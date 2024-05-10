@@ -28,9 +28,9 @@ protected:
     void visitFilter(planner::LogicalOperator* op) final { ops.push_back(op); }
 };
 
-class LogicalScanInternalIDCollector : public LogicalOperatorCollector {
+class LogicalScanNodePropertyCollector : public LogicalOperatorCollector {
 protected:
-    void visitScanInternalID(planner::LogicalOperator* op) final { ops.push_back(op); }
+    void visitScanNodeProperty(planner::LogicalOperator* op) final { ops.push_back(op); }
 };
 
 class LogicalIndexScanNodeCollector : public LogicalOperatorCollector {

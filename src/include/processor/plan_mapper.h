@@ -40,9 +40,9 @@ class PlanMapper {
 public:
     // Create plan mapper with default mapper context.
     explicit PlanMapper(main::ClientContext* clientContext)
-        : expressionMapper{}, clientContext{clientContext}, physicalOperatorID{0} {}
+        : clientContext{clientContext}, physicalOperatorID{0} {}
 
-    std::unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(planner::LogicalPlan* logicalPlan,
+    std::unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(const planner::LogicalPlan* logicalPlan,
         const binder::expression_vector& expressionsToCollect);
 
 private:
@@ -50,7 +50,6 @@ private:
     std::unique_ptr<PhysicalOperator> mapGDSCall(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapScanFile(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapScanFrontier(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapScanInternalID(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapIndexScan(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapEmptyResult(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapUnwind(planner::LogicalOperator* logicalOperator);

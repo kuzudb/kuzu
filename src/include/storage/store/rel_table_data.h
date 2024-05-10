@@ -8,7 +8,7 @@ namespace kuzu {
 namespace storage {
 
 class LocalRelNG;
-struct RelDataReadState : public TableDataReadState {
+struct RelDataReadState final : TableDataReadState {
     common::RelDataDirection direction;
     common::offset_t startNodeOffset;
     common::offset_t numNodes;
@@ -27,15 +27,15 @@ struct RelDataReadState : public TableDataReadState {
     explicit RelDataReadState();
     DELETE_COPY_DEFAULT_MOVE(RelDataReadState);
 
-    inline bool isOutOfRange(common::offset_t nodeOffset) const {
+    bool isOutOfRange(common::offset_t nodeOffset) const {
         return nodeOffset < startNodeOffset ||
                nodeOffset >= (startNodeOffset + common::StorageConstants::NODE_GROUP_SIZE);
     }
-    bool hasMoreToRead(transaction::Transaction* transaction);
+    bool hasMoreToRead(const transaction::Transaction* transaction) override;
     void populateCSRListEntries();
     std::pair<common::offset_t, common::offset_t> getStartAndEndOffset();
 
-    inline bool hasMoreToReadInPersistentStorage() {
+    bool hasMoreToReadInPersistentStorage() const {
         return (currentNodeOffset - startNodeOffset) < numNodes &&
                posInCurrentCSR < csrListEntries[(currentNodeOffset - startNodeOffset)].size;
     }
@@ -47,12 +47,12 @@ struct CSRHeaderColumns {
     std::unique_ptr<Column> offset;
     std::unique_ptr<Column> length;
 
-    inline void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        ChunkedCSRHeader& chunks) const {
+    void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+        const ChunkedCSRHeader& chunks) const {
         offset->scan(transaction, nodeGroupIdx, chunks.offset.get());
         length->scan(transaction, nodeGroupIdx, chunks.length.get());
     }
-    inline void append(const ChunkedCSRHeader& headerChunks, Column::ChunkState& offsetState,
+    void append(const ChunkedCSRHeader& headerChunks, Column::ChunkState& offsetState,
         Column::ChunkState& lengthState) const {
         offset->append(headerChunks.offset.get(), offsetState);
         length->append(headerChunks.length.get(), lengthState);
@@ -82,14 +82,14 @@ struct PackedCSRRegion {
     PackedCSRRegion() {}
     PackedCSRRegion(common::vector_idx_t regionIdx, common::vector_idx_t level);
 
-    inline std::pair<common::offset_t, common::offset_t> getNodeOffsetBoundaries() const {
+    std::pair<common::offset_t, common::offset_t> getNodeOffsetBoundaries() const {
         return std::make_pair(leftBoundary, rightBoundary);
     }
-    inline std::pair<common::vector_idx_t, common::vector_idx_t> getSegmentBoundaries() const {
+    std::pair<common::vector_idx_t, common::vector_idx_t> getSegmentBoundaries() const {
         auto left = regionIdx << level;
         return std::make_pair(left, left + (1 << level) - 1);
     }
-    inline bool isOutOfBoundary(common::offset_t nodeOffset) const {
+    bool isOutOfBoundary(common::offset_t nodeOffset) const {
         return nodeOffset < leftBoundary || nodeOffset > rightBoundary;
     }
 
@@ -114,7 +114,6 @@ public:
     };
 
     struct LocalState {
-    public:
         LocalRelNG* localNG;
         ChunkedCSRHeader header;
         PackedCSRRegion region;
@@ -130,7 +129,7 @@ public:
 
         explicit LocalState(LocalRelNG* localNG);
 
-        inline void setRegion(PackedCSRRegion& region_) { region = region_; }
+        void setRegion(const PackedCSRRegion& region_) { region = region_; }
     };
 
     RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager,
@@ -141,7 +140,7 @@ public:
         std::vector<common::column_id_t> columnIDs, const common::ValueVector& inNodeIDVector,
         RelDataReadState& readState);
     void scan(transaction::Transaction* transaction, TableDataReadState& readState,
-        const common::ValueVector& inNodeIDVector,
+        common::ValueVector& inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) override;
     void lookup(transaction::Transaction* transaction, TableDataReadState& readState,
         const common::ValueVector& inNodeIDVector,
@@ -149,7 +148,7 @@ public:
 
     // TODO: Should be removed. This is used by detachDelete for now.
     bool delete_(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
-        common::ValueVector* relIDVector);
+        common::ValueVector* relIDVector) const;
 
     void checkRelMultiplicityConstraint(transaction::Transaction* transaction,
         common::ValueVector* srcNodeIDVector) const;
@@ -157,9 +156,9 @@ public:
         common::offset_t nodeOffset) const;
     void append(transaction::Transaction* transaction, ChunkedNodeGroup* nodeGroup) override;
 
-    inline Column* getNbrIDColumn() const { return columns[NBR_ID_COLUMN_ID].get(); }
-    inline Column* getCSROffsetColumn() const { return csrHeaderColumns.offset.get(); }
-    inline Column* getCSRLengthColumn() const { return csrHeaderColumns.length.get(); }
+    Column* getNbrIDColumn() const { return columns[NBR_ID_COLUMN_ID].get(); }
+    Column* getCSROffsetColumn() const { return csrHeaderColumns.offset.get(); }
+    Column* getCSRLengthColumn() const { return csrHeaderColumns.length.get(); }
 
     bool isNewNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx) const;
@@ -174,8 +173,8 @@ public:
     void checkpointInMemory() override;
     void rollbackInMemory() override;
 
-    inline common::node_group_idx_t getNumNodeGroups(
-        transaction::Transaction* transaction) const override {
+    common::node_group_idx_t getNumNodeGroups(
+        const transaction::Transaction* transaction) const override {
         return columns[NBR_ID_COLUMN_ID]->getNumNodeGroups(transaction);
     }
 
@@ -184,88 +183,89 @@ private:
         const PackedCSRRegion& region, const LocalRelNG* localNG);
 
     void initializeColumnReadStates(transaction::Transaction* transaction,
-        RelDataReadState& readState, common::node_group_idx_t nodeGroupIdx);
+        RelDataReadState& readState, common::node_group_idx_t nodeGroupIdx) const;
 
     std::vector<PackedCSRRegion> findRegions(const ChunkedCSRHeader& headerChunks,
-        LocalState& localState);
-    common::length_t getNewRegionSize(const ChunkedCSRHeader& header,
+        LocalState& localState) const;
+    static common::length_t getNewRegionSize(const ChunkedCSRHeader& header,
         const std::vector<int64_t>& sizeChangesPerSegment, PackedCSRRegion& region);
     bool isWithinDensityBound(const ChunkedCSRHeader& headerChunks,
-        const std::vector<int64_t>& sizeChangesPerSegment, PackedCSRRegion& region);
+        const std::vector<int64_t>& sizeChangesPerSegment, PackedCSRRegion& region) const;
     double getHighDensity(uint64_t level) const;
 
     void updateCSRHeader(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup,
         PersistentState& persistentState, LocalState& localState);
-    void commitCSRHeaderChunk(transaction::Transaction* transaction, bool isNewNodeGroup,
+    static void commitCSRHeaderChunk(transaction::Transaction* transaction, bool isNewNodeGroup,
         common::node_group_idx_t nodeGroupIdx, Column* column, ColumnChunk* columnChunk,
-        LocalState& localState, const std::vector<common::offset_t>& dstOffsets);
+        const LocalState& localState, const std::vector<common::offset_t>& dstOffsets);
 
     void distributeOffsets(const ChunkedCSRHeader& header, LocalState& localState,
-        common::offset_t leftBoundary, common::offset_t rightBoundary);
+        common::offset_t leftBoundary, common::offset_t rightBoundary) const;
     void updateRegion(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         bool isNewNodeGroup, PersistentState& persistentState, LocalState& localState);
     void updateColumn(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        bool isNewNodeGroup, common::column_id_t columnID,
-        const RelTableData::PersistentState& persistentState, LocalState& localState);
+        bool isNewNodeGroup, common::column_id_t columnID, const PersistentState& persistentState,
+        LocalState& localState);
     void distributeAndUpdateColumn(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup, common::column_id_t columnID,
-        const PersistentState& persistentState, LocalState& localState);
+        const PersistentState& persistentState, const LocalState& localState) const;
 
-    void findPositionsForInsertions(common::offset_t nodeOffset, common::length_t numInsertions,
-        LocalState& localState);
-    void slideForInsertions(common::offset_t nodeOffset, common::length_t numInsertions,
-        LocalState& localState);
-    void slideLeftForInsertions(common::offset_t nodeOffset, common::offset_t leftBoundary,
-        LocalState& localState, uint64_t numValuesToInsert);
-    void slideRightForInsertions(common::offset_t nodeOffset, common::offset_t rightBoundary,
-        LocalState& localState, uint64_t numValuesToInsert);
+    static void findPositionsForInsertions(common::offset_t nodeOffset,
+        common::length_t numInsertions, LocalState& localState);
+    static void slideForInsertions(common::offset_t nodeOffset, common::length_t numInsertions,
+        const LocalState& localState);
+    static void slideLeftForInsertions(common::offset_t nodeOffset, common::offset_t leftBoundary,
+        const LocalState& localState, uint64_t numValuesToInsert);
+    static void slideRightForInsertions(common::offset_t nodeOffset, common::offset_t rightBoundary,
+        const LocalState& localState, uint64_t numValuesToInsert);
 
-    void applyUpdatesToChunk(const PersistentState& persistentState, LocalState& localState,
-        const ChunkCollection& localChunk, ColumnChunk* chunk, common::column_id_t columnID);
-    void applyInsertionsToChunk(const PersistentState& persistentState,
+    static void applyUpdatesToChunk(const PersistentState& persistentState,
+        const LocalState& localState, const ChunkCollection& localChunk, ColumnChunk* chunk,
+        common::column_id_t columnID);
+    static void applyInsertionsToChunk(const PersistentState& persistentState,
         const LocalState& localState, const ChunkCollection& localChunk, ColumnChunk* chunk);
-    void applyDeletionsToChunk(const PersistentState& persistentState, const LocalState& localState,
-        ColumnChunk* chunk);
+    static void applyDeletionsToChunk(const PersistentState& persistentState,
+        const LocalState& localState, ColumnChunk* chunk);
 
-    void applyUpdatesToColumn(transaction::Transaction* transaction,
+    static void applyUpdatesToColumn(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup, common::column_id_t columnID,
-        const PersistentState& persistentState, LocalState& localState, Column* column);
-    void applyInsertionsToColumn(transaction::Transaction* transaction,
+        const PersistentState& persistentState, const LocalState& localState, Column* column);
+    static void applyInsertionsToColumn(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup, common::column_id_t columnID,
-        LocalState& localState, const PersistentState& persistentState, Column* column);
+        const LocalState& localState, const PersistentState& persistentState, Column* column);
     void applyDeletionsToColumn(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup, LocalState& localState,
-        const PersistentState& persistentState, Column* column);
+        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup, const LocalState& localState,
+        const PersistentState& persistentState, Column* column) const;
     void applySliding(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        bool isNewNodeGroup, LocalState& localState, const PersistentState& persistentState,
-        Column* column);
+        bool isNewNodeGroup, const LocalState& localState, const PersistentState& persistentState,
+        Column* column) const;
 
-    std::vector<std::pair<common::offset_t, common::offset_t>> getSlidesForDeletions(
+    static std::vector<std::pair<common::offset_t, common::offset_t>> getSlidesForDeletions(
         const PersistentState& persistentState, const LocalState& localState);
 
     LocalRelNG* getLocalNodeGroup(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx);
+        common::node_group_idx_t nodeGroupIdx) const;
 
     template<typename T1, typename T2>
     static double divideNoRoundUp(T1 v1, T2 v2) {
-        static_assert(std::is_arithmetic<T1>::value && std::is_arithmetic<T2>::value);
-        return (double)v1 / (double)v2;
+        static_assert(std::is_arithmetic_v<T1> && std::is_arithmetic_v<T2>);
+        return static_cast<double>(v1) / static_cast<double>(v2);
     }
     template<typename T1, typename T2>
     static uint64_t multiplyAndRoundUpTo(T1 v1, T2 v2) {
-        static_assert(std::is_arithmetic<T1>::value && std::is_arithmetic<T2>::value);
-        return std::ceil((double)v1 * (double)v2);
+        static_assert(std::is_arithmetic_v<T1> && std::is_arithmetic_v<T2>);
+        return std::ceil(static_cast<double>(v1) * static_cast<double>(v2));
     }
 
-    inline void fillSequence(std::span<common::offset_t> offsets, common::offset_t startOffset) {
+    static void fillSequence(std::span<common::offset_t> offsets, common::offset_t startOffset) {
         for (auto i = 0u; i < offsets.size(); i++) {
             offsets[i] = i + startOffset;
         }
     }
 
-    common::offset_t findCSROffsetInRegion(const PersistentState& persistentState,
-        common::offset_t nodeOffset, common::offset_t relOffset) const;
+    static common::offset_t findCSROffsetInRegion(const PersistentState& persistentState,
+        common::offset_t nodeOffset, common::offset_t relOffset);
 
 private:
     PackedCSRInfo packedCSRInfo;

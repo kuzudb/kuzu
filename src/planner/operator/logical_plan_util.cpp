@@ -5,7 +5,7 @@
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
-#include "planner/operator/scan/logical_scan_internal_id.h"
+#include <planner/operator/scan/logical_scan_node_property.h>
 
 using namespace kuzu::binder;
 
@@ -47,8 +47,8 @@ void LogicalPlanUtil::encodeJoinRecursive(LogicalOperator* logicalOperator,
         encodeRecursiveExtend(logicalOperator, encodeString);
         encodeJoinRecursive(logicalOperator->getChild(0).get(), encodeString);
     } break;
-    case LogicalOperatorType::SCAN_INTERNAL_ID: {
-        encodeScanInternalID(logicalOperator, encodeString);
+    case LogicalOperatorType::SCAN_NODE_PROPERTY: {
+        encodeScanNodeProperty(logicalOperator, encodeString);
     } break;
     default:
         for (auto i = 0u; i < logicalOperator->getNumChildren(); ++i) {
@@ -86,10 +86,11 @@ void LogicalPlanUtil::encodeRecursiveExtend(LogicalOperator* logicalOperator,
     encodeString += "RE(" + logicalExtend->getNbrNode()->toString() + ")";
 }
 
-void LogicalPlanUtil::encodeScanInternalID(LogicalOperator* logicalOperator,
+void LogicalPlanUtil::encodeScanNodeProperty(LogicalOperator* logicalOperator,
     std::string& encodeString) {
-    auto scan = common::ku_dynamic_cast<LogicalOperator*, LogicalScanInternalID*>(logicalOperator);
-    encodeString += "S(" + scan->getInternalID()->toString() + ")";
+    auto scan =
+        common::ku_dynamic_cast<LogicalOperator*, LogicalScanNodeProperty*>(logicalOperator);
+    encodeString += "S(" + scan->getNodeID()->toString() + ")";
 }
 
 } // namespace planner

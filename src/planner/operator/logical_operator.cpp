@@ -92,8 +92,6 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "SCAN_FILE";
     case LogicalOperatorType::SCAN_FRONTIER:
         return "SCAN_FRONTIER";
-    case LogicalOperatorType::SCAN_INTERNAL_ID:
-        return "SCAN_INTERNAL_ID";
     case LogicalOperatorType::SCAN_NODE_PROPERTY:
         return "SCAN_NODE_PROPERTY";
     case LogicalOperatorType::SEMI_MASKER:

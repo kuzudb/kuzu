@@ -13,9 +13,9 @@ public:
         bool enableCompression);
 
     void initChunkState(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, ChunkState& columnReadState) override;
+        common::node_group_idx_t nodeGroupIdx, ChunkState& chunkState) override;
 
-    void scan(transaction::Transaction* transaction, ChunkState& readState,
+    void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector = 0) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
@@ -37,16 +37,17 @@ public:
     const DictionaryColumn& getDictionary() const { return dictionary; }
 
 protected:
-    void scanInternal(transaction::Transaction* transaction, ChunkState& readState,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
-    void scanUnfiltered(transaction::Transaction* transaction, ChunkState& readState,
+    void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
+        common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
+        common::ValueVector* resultVector) override;
+    void scanUnfiltered(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::offset_t numValuesToRead,
         common::ValueVector* resultVector, common::sel_t startPosInVector = 0);
-    void scanFiltered(transaction::Transaction* transaction, ChunkState& readState,
-        common::offset_t startOffsetInChunk, common::ValueVector* nodeIDVector,
+    void scanFiltered(transaction::Transaction* transaction, const ChunkState& state,
+        common::offset_t startOffsetInChunk, const common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
 
-    void lookupInternal(transaction::Transaction* transaction, ChunkState& readState,
+    void lookupInternal(transaction::Transaction* transaction, ChunkState& state,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
 private:

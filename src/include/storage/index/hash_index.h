@@ -237,8 +237,6 @@ public:
         common::PhysicalTypeID keyDataType, BufferManager& bufferManager, WAL* wal,
         common::VirtualFileSystem* vfs, main::ClientContext* context);
 
-    void initHashIndices();
-
     ~PrimaryKeyIndex();
 
     template<typename T>

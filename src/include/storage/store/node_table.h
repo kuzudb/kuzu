@@ -1,7 +1,5 @@
 #pragma once
 
-#include <utility>
-
 #include "common/assert.h"
 #include "common/cast.h"
 #include "common/types/types.h"
@@ -14,23 +12,28 @@
 namespace kuzu {
 namespace transaction {
 class Transaction;
-};
+} // namespace transaction
+
 namespace storage {
 class LocalNodeTable;
 
-struct NodeTableReadState : public TableReadState {
+struct NodeTableReadState final : TableReadState {
     explicit NodeTableReadState(std::vector<common::column_id_t> columnIDs)
         : TableReadState{std::move(columnIDs)} {
         dataReadState = std::make_unique<NodeDataReadState>();
     }
-    NodeTableReadState(const common::ValueVector* nodeIDVector,
+    NodeTableReadState(common::ValueVector* nodeIDVector,
         std::vector<common::column_id_t> columnIDs, std::vector<common::ValueVector*> outputVectors)
         : TableReadState{nodeIDVector, std::move(columnIDs), std::move(outputVectors)} {
         dataReadState = std::make_unique<NodeDataReadState>();
     }
+
+    bool hasMoreToRead(const transaction::Transaction* transaction) const override {
+        return dataReadState->hasMoreToRead(transaction);
+    }
 };
 
-struct NodeTableInsertState : public TableInsertState {
+struct NodeTableInsertState final : TableInsertState {
     common::ValueVector& nodeIDVector;
     const common::ValueVector& pkVector;
 
@@ -40,20 +43,19 @@ struct NodeTableInsertState : public TableInsertState {
           pkVector{pkVector} {}
 };
 
-struct NodeTableUpdateState : public TableUpdateState {
-    const common::ValueVector& nodeIDVector;
+struct NodeTableUpdateState final : TableUpdateState {
+    common::ValueVector& nodeIDVector;
 
-    NodeTableUpdateState(common::column_id_t columnID, const common::ValueVector& nodeIDVector,
+    NodeTableUpdateState(common::column_id_t columnID, common::ValueVector& nodeIDVector,
         const common::ValueVector& propertyVector)
         : TableUpdateState{columnID, propertyVector}, nodeIDVector{nodeIDVector} {}
 };
 
-struct NodeTableDeleteState : public TableDeleteState {
-    const common::ValueVector& nodeIDVector;
+struct NodeTableDeleteState final : TableDeleteState {
+    common::ValueVector& nodeIDVector;
     common::ValueVector& pkVector;
 
-    explicit NodeTableDeleteState(const common::ValueVector& nodeIDVector,
-        common::ValueVector& pkVector)
+    explicit NodeTableDeleteState(common::ValueVector& nodeIDVector, common::ValueVector& pkVector)
         : nodeIDVector{nodeIDVector}, pkVector{pkVector} {}
 };
 
@@ -68,22 +70,24 @@ public:
         common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     common::offset_t getMaxNodeOffset(transaction::Transaction* transaction) const {
-        auto nodesStats = common::ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(
-            tablesStatistics);
+        const auto nodesStats =
+            common::ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(
+                tablesStatistics);
         return nodesStats->getMaxNodeOffset(transaction, tableID);
     }
     void setSelVectorForDeletedOffsets(transaction::Transaction* trx,
         common::ValueVector* vector) const {
         KU_ASSERT(vector->isSequential());
-        auto nodeStateCollection =
+        const auto nodeStateCollection =
             common::ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(
                 tablesStatistics);
         nodeStateCollection->setDeletedNodeOffsetsForMorsel(trx, vector, tableID);
     }
 
     void initializeReadState(transaction::Transaction* transaction,
-        std::vector<common::column_id_t> columnIDs, TableReadState& readState) {
-        tableData->initializeReadState(transaction, std::move(columnIDs), *readState.nodeIDVector,
+        common::node_group_idx_t nodeGroupIdx, std::vector<common::column_id_t> columnIDs,
+        TableReadState& readState) const {
+        tableData->initializeReadState(transaction, nodeGroupIdx, std::move(columnIDs),
             *readState.dataReadState);
     }
     void readInternal(transaction::Transaction* transaction, TableReadState& readState) override;
@@ -107,32 +111,34 @@ public:
             tablesStatistics);
     }
     common::column_id_t getNumColumns() const { return tableData->getNumColumns(); }
-    Column* getColumn(common::column_id_t columnID) { return tableData->getColumn(columnID); }
+    Column* getColumn(common::column_id_t columnID) const { return tableData->getColumn(columnID); }
 
     void append(transaction::Transaction* transaction, ChunkedNodeGroup* nodeGroup) {
         tableData->append(transaction, nodeGroup);
     }
 
     void prepareCommitNodeGroup(common::node_group_idx_t nodeGroupIdx,
-        transaction::Transaction* transaction, storage::LocalNodeNG* localNodeGroup);
+        transaction::Transaction* transaction, LocalNodeNG* localNodeGroup);
     void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void prepareCommit() override;
     void prepareRollback(LocalTable* localTable) override;
     void checkpointInMemory() override;
     void rollbackInMemory() override;
 
-    inline common::node_group_idx_t getNumNodeGroups(transaction::Transaction* transaction) {
+    common::node_group_idx_t getNumNodeGroups(const transaction::Transaction* transaction) const {
+        // TODO: Should be consistent with ScanNodeTable on whether include local node groups or
+        // not.
         return tableData->getNumNodeGroups(transaction);
     }
 
-    inline common::offset_t getNumTuplesInNodeGroup(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx) {
+    common::offset_t getNumTuplesInNodeGroup(const transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx) const {
         return tableData->getNumTuplesInNodeGroup(transaction, nodeGroupIdx);
     }
 
 private:
     void updatePK(transaction::Transaction* transaction, common::column_id_t columnID,
-        const common::ValueVector& nodeIDVector, const common::ValueVector& pkVector);
+        common::ValueVector& nodeIDVector, const common::ValueVector& pkVector);
     void insertPK(const common::ValueVector& nodeIDVector,
         const common::ValueVector& primaryKeyVector);
 

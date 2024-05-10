@@ -17,6 +17,8 @@ struct TableDataReadState {
     DELETE_COPY_DEFAULT_MOVE(TableDataReadState);
 
     std::vector<common::column_id_t> columnIDs;
+
+    virtual bool hasMoreToRead(const transaction::Transaction* transaction) = 0;
 };
 
 class LocalTableData;
@@ -25,7 +27,7 @@ public:
     virtual ~TableData() = default;
 
     virtual void scan(transaction::Transaction* transaction, TableDataReadState& readState,
-        const common::ValueVector& nodeIDVector,
+        common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) = 0;
     virtual void lookup(transaction::Transaction* transaction, TableDataReadState& readState,
         const common::ValueVector& nodeIDVector,
@@ -39,7 +41,7 @@ public:
         const catalog::Property& property, common::ValueVector* defaultValueVector);
 
     common::vector_idx_t getNumColumns() const { return columns.size(); }
-    Column* getColumn(common::column_id_t columnID) {
+    Column* getColumn(common::column_id_t columnID) const {
         KU_ASSERT(columnID < columns.size() && columnID != common::INVALID_COLUMN_ID);
         return columns[columnID].get();
     }
@@ -52,7 +54,7 @@ public:
     virtual void prepareCommit();
 
     virtual common::node_group_idx_t getNumNodeGroups(
-        transaction::Transaction* transaction) const = 0;
+        const transaction::Transaction* transaction) const = 0;
 
 protected:
     TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,

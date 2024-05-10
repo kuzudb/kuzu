@@ -6,29 +6,26 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalScanNodeProperty : public LogicalOperator {
+class LogicalScanNodeProperty final : public LogicalOperator {
 public:
     LogicalScanNodeProperty(std::shared_ptr<binder::Expression> nodeID,
-        std::vector<common::table_id_t> nodeTableIDs, binder::expression_vector properties,
-        std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::SCAN_NODE_PROPERTY, std::move(child)},
-          nodeID{std::move(nodeID)}, nodeTableIDs{std::move(nodeTableIDs)},
-          properties{std::move(properties)} {}
+        std::vector<common::table_id_t> nodeTableIDs, binder::expression_vector properties)
+        : LogicalOperator{LogicalOperatorType::SCAN_NODE_PROPERTY}, nodeID{std::move(nodeID)},
+          nodeTableIDs{std::move(nodeTableIDs)}, properties{std::move(properties)} {}
 
-    void computeFactorizedSchema() final;
-    void computeFlatSchema() final;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
-    inline std::string getExpressionsForPrinting() const override {
+    std::string getExpressionsForPrinting() const override {
         return binder::ExpressionUtil::toString(properties);
     }
 
-    inline std::shared_ptr<binder::Expression> getNodeID() const { return nodeID; }
-    inline std::vector<common::table_id_t> getTableIDs() const { return nodeTableIDs; }
-    inline binder::expression_vector getProperties() const { return properties; }
+    std::shared_ptr<binder::Expression> getNodeID() const { return nodeID; }
+    std::vector<common::table_id_t> getTableIDs() const { return nodeTableIDs; }
+    binder::expression_vector getProperties() const { return properties; }
 
-    inline std::unique_ptr<LogicalOperator> copy() final {
-        return make_unique<LogicalScanNodeProperty>(nodeID, nodeTableIDs, properties,
-            children[0]->copy());
+    std::unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalScanNodeProperty>(nodeID, nodeTableIDs, properties);
     }
 
 private:

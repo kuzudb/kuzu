@@ -5,36 +5,70 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void ScanMultiNodeTables::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void ScanNodeTableSharedState::initialize(const transaction::Transaction* transaction,
+    storage::NodeTable* table) {
+    this->table = table;
+    this->currentGroupIdx = 0;
+    this->numNodeGroups = table->getNumNodeGroups(transaction);
+}
+
+node_group_idx_t ScanNodeTableSharedState::getNextMorsel() {
+    std::unique_lock lck{mtx};
+    if (currentGroupIdx == numNodeGroups) {
+        return INVALID_NODE_GROUP_IDX;
+    }
+    return currentGroupIdx++;
+}
+
+void ScanNodeTables::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
-    for (auto& [id, info] : infos) {
+    for (const auto& info : infos) {
         auto readState = std::make_unique<storage::NodeTableReadState>(info->columnIDs);
-        ScanTable::initVectors(*readState, *resultSet);
-        readStates.insert({id, std::move(readState)});
+        initVectors(*readState, *resultSet);
+        readStates.push_back(std::move(readState));
     }
 }
 
-bool ScanMultiNodeTables::getNextTuplesInternal(ExecutionContext* context) {
-    if (!children[0]->getNextTuple(context)) {
-        return false;
+void ScanNodeTables::initGlobalStateInternal(ExecutionContext* context) {
+    KU_ASSERT(sharedStates.size() == infos.size());
+    for (auto i = 0u; i < infos.size(); i++) {
+        sharedStates[i]->initialize(context->clientContext->getTx(), infos[i]->table);
     }
-    auto pos = nodeIDVector->state->getSelVector()[0];
-    auto tableID = nodeIDVector->getValue<nodeID_t>(pos).tableID;
-    KU_ASSERT(readStates.contains(tableID) && infos.contains(tableID));
-    auto info = infos.at(tableID).get();
-    info->table->initializeReadState(context->clientContext->getTx(), info->columnIDs,
-        *readStates[tableID]);
-    info->table->read(context->clientContext->getTx(), *readStates.at(tableID));
-    return true;
 }
 
-std::unique_ptr<PhysicalOperator> ScanMultiNodeTables::clone() {
-    common::table_id_map_t<std::unique_ptr<ScanNodeTableInfo>> clonedInfos;
-    for (auto& [id, info] : infos) {
-        clonedInfos.insert({id, info->copy()});
+bool ScanNodeTables::getNextTuplesInternal(ExecutionContext* context) {
+    while (currentTableIdx < infos.size()) {
+        const auto info = infos[currentTableIdx].get();
+        const auto readState = readStates[currentTableIdx].get();
+        while (true) {
+            if (readState->hasMoreToRead(context->clientContext->getTx())) {
+                info->table->read(context->clientContext->getTx(), *readState);
+                return true;
+            }
+            const auto nodeGroupIdx = sharedStates[currentTableIdx]->getNextMorsel();
+            if (nodeGroupIdx == INVALID_NODE_GROUP_IDX) {
+                // Current table out of data, move to the next one.
+                currentTableIdx++;
+                break;
+            }
+            info->table->initializeReadState(context->clientContext->getTx(), nodeGroupIdx,
+                info->columnIDs, *readState);
+            info->table->read(context->clientContext->getTx(), *readState);
+            if (readState->nodeIDVector->state->getSelVector().getSelSize() > 0) {
+                return true;
+            }
+        }
     }
-    return make_unique<ScanMultiNodeTables>(nodeIDPos, outVectorsPos, std::move(clonedInfos),
-        children[0]->clone(), id, paramsString);
+    return false;
+}
+
+std::unique_ptr<PhysicalOperator> ScanNodeTables::clone() {
+    std::vector<std::unique_ptr<ScanNodeTableInfo>> clonedInfos;
+    for (const auto& info : infos) {
+        clonedInfos.push_back(info->copy());
+    }
+    return make_unique<ScanNodeTables>(nodeIDPos, outVectorsPos, std::move(clonedInfos),
+        sharedStates, id, paramsString);
 }
 
 } // namespace processor

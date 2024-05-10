@@ -26,18 +26,18 @@ StringColumn::StringColumn(std::string name, LogicalType dataType,
           enableCompression} {}
 
 void StringColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    ChunkState& readState) {
-    Column::initChunkState(transaction, nodeGroupIdx, readState);
-    dictionary.initChunkState(transaction, nodeGroupIdx, readState);
+    ChunkState& state) {
+    Column::initChunkState(transaction, nodeGroupIdx, state);
+    dictionary.initChunkState(transaction, nodeGroupIdx, state);
 }
 
-void StringColumn::scan(Transaction* transaction, ChunkState& readState,
+void StringColumn::scan(Transaction* transaction, const ChunkState& state,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
     uint64_t offsetInVector) {
-    nullColumn->scan(transaction, *readState.nullState, startOffsetInGroup, endOffsetInGroup,
+    nullColumn->scan(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
         resultVector, offsetInVector);
-    scanUnfiltered(transaction, readState, startOffsetInGroup,
-        endOffsetInGroup - startOffsetInGroup, resultVector, offsetInVector);
+    scanUnfiltered(transaction, state, startOffsetInGroup, endOffsetInGroup - startOffsetInGroup,
+        resultVector, offsetInVector);
 }
 
 void StringColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -92,26 +92,24 @@ void StringColumn::write(ChunkState& state, offset_t dstOffset, ColumnChunk* dat
     }
 }
 
-void StringColumn::scanInternal(Transaction* transaction, ChunkState& readState,
-    ValueVector* nodeIDVector, ValueVector* resultVector) {
+void StringColumn::scanInternal(Transaction* transaction, const ChunkState& state,
+    vector_idx_t vectorIdx, row_idx_t numValuesToScan, ValueVector* resultVector) {
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-    auto [nodeGroupIdx, startOffsetInChunk] =
-        StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeIDVector->readNodeOffset(0));
-    if (nodeIDVector->state->getSelVector().isUnfiltered()) {
-        scanUnfiltered(transaction, readState, startOffsetInChunk,
-            nodeIDVector->state->getSelVector().getSelSize(), resultVector);
-    } else {
-        scanFiltered(transaction, readState, startOffsetInChunk, nodeIDVector, resultVector);
-    }
+    const auto startOffsetInChunk = vectorIdx * DEFAULT_VECTOR_CAPACITY;
+    // if (nodeIDVector->state->getSelVector().isUnfiltered()) {
+    scanUnfiltered(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
+    // } else {
+    // scanFiltered(transaction, state, startOffsetInChunk, nodeIDVector, resultVector);
+    // }
 }
 
-void StringColumn::scanUnfiltered(transaction::Transaction* transaction, ChunkState& readState,
+void StringColumn::scanUnfiltered(Transaction* transaction, const ChunkState& readState,
     offset_t startOffsetInChunk, offset_t numValuesToRead, ValueVector* resultVector,
     sel_t startPosInVector) {
     // TODO: Replace indices with ValueVector to avoid maintaining `scan` interface from uint8_t*.
     auto indices = std::make_unique<string_index_t[]>(numValuesToRead);
     Column::scan(transaction, readState, startOffsetInChunk, startOffsetInChunk + numValuesToRead,
-        (uint8_t*)indices.get());
+        reinterpret_cast<uint8_t*>(indices.get()));
 
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
     for (auto i = 0u; i < numValuesToRead; i++) {
@@ -129,17 +127,17 @@ void StringColumn::scanUnfiltered(transaction::Transaction* transaction, ChunkSt
         resultVector, readState.metadata);
 }
 
-void StringColumn::scanFiltered(transaction::Transaction* transaction, ChunkState& readState,
-    common::offset_t startOffsetInChunk, ValueVector* nodeIDVector, ValueVector* resultVector) {
+void StringColumn::scanFiltered(Transaction* transaction, const ChunkState& readState,
+    offset_t startOffsetInChunk, const ValueVector* nodeIDVector, ValueVector* resultVector) {
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
     for (auto i = 0u; i < nodeIDVector->state->getSelVector().getSelSize(); i++) {
-        auto pos = nodeIDVector->state->getSelVector()[i];
+        const auto pos = nodeIDVector->state->getSelVector()[i];
         if (!resultVector->isNull(pos)) {
             // TODO(bmwinger): optimize index scans by grouping them when adjacent
-            auto offsetInGroup = startOffsetInChunk + pos;
+            const auto offsetInGroup = startOffsetInChunk + pos;
             string_index_t index;
             Column::scan(transaction, readState, offsetInGroup, offsetInGroup + 1,
-                (uint8_t*)&index);
+                reinterpret_cast<uint8_t*>(&index));
             offsetsToScan.emplace_back(index, pos);
         }
     }

@@ -111,7 +111,6 @@ void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     if (pkIndex) {
         pkIndex->delete_(&nodeDeleteState.pkVector);
     }
-    auto nodeOffset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
     ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
         ->deleteNode(tableID, nodeOffset);
     auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
@@ -175,15 +174,18 @@ void NodeTable::rollbackInMemory() {
     }
 }
 
-void NodeTable::updatePK(Transaction* transaction, column_id_t columnID,
-    const ValueVector& nodeIDVector, const ValueVector& payloadVector) {
+void NodeTable::updatePK(Transaction* transaction, column_id_t columnID, ValueVector& nodeIDVector,
+    const ValueVector& payloadVector) {
     auto pkVector =
         std::make_unique<ValueVector>(getColumn(pkColumnID)->getDataType(), memoryManager);
     pkVector->state = nodeIDVector.state;
     auto outputVectors = std::vector<ValueVector*>{pkVector.get()};
     auto columnIDs = {columnID};
     auto readState = std::make_unique<NodeTableReadState>(&nodeIDVector, columnIDs, outputVectors);
-    initializeReadState(transaction, columnIDs, *readState);
+    auto pos = nodeIDVector.state->getSelVector()[0];
+    auto nodeOffset = nodeIDVector.readNodeOffset(pos);
+    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+    initializeReadState(transaction, nodeGroupIdx, columnIDs, *readState);
     read(transaction, *readState);
     pkIndex->delete_(pkVector.get());
     insertPK(nodeIDVector, payloadVector);

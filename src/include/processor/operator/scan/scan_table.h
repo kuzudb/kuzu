@@ -12,12 +12,18 @@ public:
         std::vector<DataPos> outVectorsPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
         const std::string& paramString)
         : PhysicalOperator{operatorType, std::move(child), id, paramString}, nodeIDPos{nodeIDPos},
-          outVectorsPos{std::move(outVectorsPos)} {}
+          outVectorsPos{std::move(outVectorsPos)}, nodeIDVector{nullptr} {}
+
+    // Scan Node Table constructor.
+    ScanTable(PhysicalOperatorType operatorType, const DataPos& nodeIDPos,
+        std::vector<DataPos> outVectorsPos, uint32_t id, const std::string& paramString)
+        : PhysicalOperator{operatorType, id, paramString}, nodeIDPos{nodeIDPos},
+          outVectorsPos{std::move(outVectorsPos)}, nodeIDVector{nullptr} {}
 
 protected:
     void initLocalStateInternal(ResultSet*, ExecutionContext*) override;
 
-    void initVectors(storage::TableReadState& state, const ResultSet& resultSet);
+    void initVectors(storage::TableReadState& state, const ResultSet& resultSet) const;
 
 protected:
     // Input node id vector position.

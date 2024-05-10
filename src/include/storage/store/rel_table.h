@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace storage {
 
-struct RelTableReadState : public TableReadState {
+struct RelTableReadState final : TableReadState {
     common::RelDataDirection direction;
 
     RelTableReadState(const std::vector<common::column_id_t>& columnIDs,
@@ -16,14 +16,12 @@ struct RelTableReadState : public TableReadState {
         dataReadState = std::make_unique<RelDataReadState>();
     }
 
-    bool hasMoreToRead(transaction::Transaction* transaction) const {
-        auto relDataReadState =
-            common::ku_dynamic_cast<TableDataReadState*, RelDataReadState*>(dataReadState.get());
-        return relDataReadState->hasMoreToRead(transaction);
+    bool hasMoreToRead(const transaction::Transaction* transaction) const override {
+        return dataReadState->hasMoreToRead(transaction);
     }
 };
 
-struct RelTableInsertState : public TableInsertState {
+struct RelTableInsertState final : TableInsertState {
     const common::ValueVector& srcNodeIDVector;
     const common::ValueVector& dstNodeIDVector;
 
@@ -34,7 +32,7 @@ struct RelTableInsertState : public TableInsertState {
           dstNodeIDVector{dstNodeIDVector} {}
 };
 
-struct RelTableUpdateState : public TableUpdateState {
+struct RelTableUpdateState final : TableUpdateState {
     const common::ValueVector& srcNodeIDVector;
     const common::ValueVector& dstNodeIDVector;
     const common::ValueVector& relIDVector;
@@ -46,7 +44,7 @@ struct RelTableUpdateState : public TableUpdateState {
           dstNodeIDVector{dstNodeIDVector}, relIDVector{relIDVector} {}
 };
 
-struct RelTableDeleteState : public TableDeleteState {
+struct RelTableDeleteState final : TableDeleteState {
     const common::ValueVector& srcNodeIDVector;
     const common::ValueVector& dstNodeIDVector;
     const common::ValueVector& relIDVector;
@@ -93,15 +91,15 @@ public:
         fwdRelTableData->dropColumn(columnID);
         bwdRelTableData->dropColumn(columnID);
     }
-    Column* getCSROffsetColumn(common::RelDataDirection direction) {
+    Column* getCSROffsetColumn(common::RelDataDirection direction) const {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData->getCSROffsetColumn() :
                                                             bwdRelTableData->getCSROffsetColumn();
     }
-    Column* getCSRLengthColumn(common::RelDataDirection direction) {
+    Column* getCSRLengthColumn(common::RelDataDirection direction) const {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData->getCSRLengthColumn() :
                                                             bwdRelTableData->getCSRLengthColumn();
     }
-    common::column_id_t getNumColumns() {
+    common::column_id_t getNumColumns() const {
         KU_ASSERT(fwdRelTableData->getNumColumns() == bwdRelTableData->getNumColumns());
         return fwdRelTableData->getNumColumns();
     }
@@ -123,7 +121,7 @@ public:
     }
 
     bool isNewNodeGroup(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::RelDataDirection direction) {
+        common::node_group_idx_t nodeGroupIdx, common::RelDataDirection direction) const {
         return direction == common::RelDataDirection::FWD ?
                    fwdRelTableData->isNewNodeGroup(transaction, nodeGroupIdx) :
                    bwdRelTableData->isNewNodeGroup(transaction, nodeGroupIdx);
@@ -135,7 +133,7 @@ public:
     void checkpointInMemory() override;
     void rollbackInMemory() override;
 
-    RelTableData* getDirectedTableData(common::RelDataDirection direction) {
+    RelTableData* getDirectedTableData(common::RelDataDirection direction) const {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData.get() :
                                                             bwdRelTableData.get();
     }

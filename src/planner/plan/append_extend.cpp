@@ -145,7 +145,7 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
         auto tmpPlan = std::make_unique<LogicalPlan>();
         cardinalityEstimator.addNodeIDDom(*rdfInfo->predicateID, rdfInfo->resourceTableIDs,
             clientContext->getTx());
-        appendScanInternalID(rdfInfo->predicateID, rdfInfo->resourceTableIDs, *tmpPlan);
+        // appendScanInternalID(rdfInfo->predicateID, rdfInfo->resourceTableIDs, *tmpPlan);
         appendScanNodeProperties(rdfInfo->predicateID, rdfInfo->resourceTableIDs,
             expression_vector{iri}, *tmpPlan);
         appendHashJoin(expression_vector{rdfInfo->predicateID}, JoinType::INNER, plan, *tmpPlan,
@@ -263,14 +263,15 @@ void Planner::createRecursivePlan(const RecursiveInfo& recursiveInfo, ExtendDire
 
 void Planner::createPathNodePropertyScanPlan(const std::shared_ptr<NodeExpression>& node,
     const expression_vector& properties, LogicalPlan& plan) {
-    appendScanInternalID(node->getInternalID(), node->getTableIDs(), plan);
+    // appendScanInternalID(node->getInternalID(), node->getTableIDs(), plan);
     appendScanNodeProperties(node->getInternalID(), node->getTableIDs(), properties, plan);
 }
 
 void Planner::createPathRelPropertyScanPlan(const std::shared_ptr<NodeExpression>& boundNode,
     const std::shared_ptr<NodeExpression>& nbrNode, const std::shared_ptr<RelExpression>& rel,
     ExtendDirection direction, const expression_vector& properties, LogicalPlan& plan) {
-    appendScanInternalID(boundNode->getInternalID(), boundNode->getTableIDs(), plan);
+    // appendScanInternalID(boundNode->getInternalID(), boundNode->getTableIDs(), plan);
+    appendScanNodeProperties(boundNode->getInternalID(), boundNode->getTableIDs(), {}, plan);
     appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, properties, plan);
     appendProjection(properties, plan);
 }
