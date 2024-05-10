@@ -46,8 +46,7 @@ Cannot start a new write transaction in the system. Only one write transaction a
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- error
-Connection already has an active transaction. Applications can have one transaction per connection at any point in time. For concurrent multiple transactions, please open other connections. Current active transaction is not affected by this exception and can still be used.
-
+Connection already has an active transaction. Cannot start a transaction within another one. For concurrent multiple transactions, please open other connections.
 
 # Test multiple DDL statements in a single manual transaction
 -CASE CreateTableManualCommit
@@ -159,8 +158,6 @@ Catalog exception: t does not exist in catalog.
 -STATEMENT CALL table_info('t') RETURN *;
 ---- error
 Catalog exception: t does not exist in catalog.
--STATEMENT ROLLBACK;
----- ok
 -STATEMENT CALL table_info('t') RETURN *;
 ---- 2
 0|a|INT32|True
@@ -242,8 +239,6 @@ Binder exception: Table t does not exist.
 ---- error
 Catalog exception: t2 does not exist in catalog.
 -STATEMENT COMMIT;
----- ok
--STATEMENT [conn2] COMMIT;
 ---- ok
 -STATEMENT CALL table_info('t') RETURN *;
 ---- error

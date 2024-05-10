@@ -27,11 +27,6 @@ void kuzu_prepared_statement_destroy(kuzu_prepared_statement* prepared_statement
     }
 }
 
-bool kuzu_prepared_statement_allow_active_transaction(kuzu_prepared_statement* prepared_statement) {
-    return static_cast<PreparedStatement*>(prepared_statement->_prepared_statement)
-        ->allowActiveTransaction();
-}
-
 bool kuzu_prepared_statement_is_success(kuzu_prepared_statement* prepared_statement) {
     return static_cast<PreparedStatement*>(prepared_statement->_prepared_statement)->isSuccess();
 }

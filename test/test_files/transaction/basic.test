@@ -1,0 +1,22 @@
+-DATASET CSV empty
+--
+
+-CASE InvalidTransaction
+-STATEMENT COMMIT;
+---- error
+No active transaction for COMMIT.
+-STATEMENT rollback;
+---- error
+No active transaction for ROLLBACK.
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE PERSON (id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CALL show_tables() return *;
+---- 1
+PERSON|NODE|local(kuzu)|
+-STATEMENT BEGIN TRANSACTION;
+---- error
+Connection already has an active transaction. Cannot start a transaction within another one. For concurrent multiple transactions, please open other connections.
+-STATEMENT CALL show_tables() return *;
+---- 0

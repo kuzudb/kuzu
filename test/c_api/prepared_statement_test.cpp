@@ -53,27 +53,6 @@ TEST_F(CApiPreparedStatementTest, GetErrorMessage) {
     kuzu_destroy_string(message);
 }
 
-TEST_F(CApiPreparedStatementTest, AllowActiveTransaction) {
-    kuzu_prepared_statement preparedStatement;
-    kuzu_state state;
-    auto connection = getConnection();
-    auto query = "MATCH (a:person) WHERE a.isStudent = $1 RETURN COUNT(*)";
-    state = kuzu_connection_prepare(connection, query, &preparedStatement);
-    ASSERT_EQ(state, KuzuSuccess);
-    ASSERT_NE(preparedStatement._prepared_statement, nullptr);
-    ASSERT_TRUE(kuzu_prepared_statement_is_success(&preparedStatement));
-    ASSERT_TRUE(kuzu_prepared_statement_allow_active_transaction(&preparedStatement));
-    kuzu_prepared_statement_destroy(&preparedStatement);
-
-    query = "create node table npytable (id INT64,i64 INT64[12],PRIMARY KEY(id));";
-    state = kuzu_connection_prepare(connection, query, &preparedStatement);
-    ASSERT_EQ(state, KuzuSuccess);
-    ASSERT_NE(preparedStatement._prepared_statement, nullptr);
-    ASSERT_TRUE(kuzu_prepared_statement_is_success(&preparedStatement));
-    ASSERT_FALSE(kuzu_prepared_statement_allow_active_transaction(&preparedStatement));
-    kuzu_prepared_statement_destroy(&preparedStatement);
-}
-
 TEST_F(CApiPreparedStatementTest, BindBool) {
     kuzu_prepared_statement preparedStatement;
     kuzu_query_result result;
