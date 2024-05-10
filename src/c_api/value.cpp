@@ -1046,8 +1046,8 @@ kuzu_state kuzu_date_to_string(kuzu_date_t date, char** out_result) {
     }
     char buffer[80];
     if (strftime(buffer, 80, "%Y-%m-%d", &tm) == 0) {
-		return KuzuError;
-	}
+        return KuzuError;
+    }
     *out_result = convertToOwnedCString(buffer);
     return KuzuSuccess;
 }
