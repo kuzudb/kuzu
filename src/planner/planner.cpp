@@ -39,6 +39,9 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const BoundStatement& statemen
     case StatementType::DROP_TABLE: {
         appendDropTable(statement, *plan);
     } break;
+    case StatementType::DROP_SEQUENCE: {
+        appendDropSequence(statement, *plan);
+    } break;
     case StatementType::ALTER: {
         appendAlter(statement, *plan);
     } break;

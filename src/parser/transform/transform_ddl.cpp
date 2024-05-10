@@ -159,9 +159,12 @@ std::unique_ptr<Statement> Transformer::transformCreateSequence(
     return std::make_unique<CreateSequence>(std::move(createSequenceInfo));
 }
 
-std::unique_ptr<Statement> Transformer::transformDropTable(CypherParser::KU_DropTableContext& ctx) {
-    auto tableName = transformSchemaName(*ctx.oC_SchemaName());
-    return std::make_unique<Drop>(tableName);
+std::unique_ptr<Statement> Transformer::transformDrop(CypherParser::KU_DropContext& ctx) {
+    auto name = transformSchemaName(*ctx.oC_SchemaName());
+    if (ctx.SEQUENCE()) {
+        return std::make_unique<Drop>(common::StatementType::DROP_SEQUENCE, name);
+    }
+    return std::make_unique<Drop>(common::StatementType::DROP_TABLE, name);
 }
 
 std::unique_ptr<Statement> Transformer::transformRenameTable(

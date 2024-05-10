@@ -86,7 +86,7 @@ void cypherParserInitialize() {
       "kU_CreateNodeTable", "kU_CreateRelTable", "kU_CreateRelTableGroup", 
       "kU_RelTableConnection", "kU_CreateRdfGraph", "kU_CreateSequence", 
       "kU_SequenceOptions", "kU_IncrementBy", "kU_MinValue", "kU_MaxValue", 
-      "kU_StartWith", "kU_Cycle", "kU_DropTable", "kU_AlterTable", "kU_AlterOptions", 
+      "kU_StartWith", "kU_Cycle", "kU_Drop", "kU_AlterTable", "kU_AlterOptions", 
       "kU_AddProperty", "kU_DropProperty", "kU_RenameTable", "kU_RenameProperty", 
       "kU_PropertyDefinitions", "kU_PropertyDefinition", "kU_CreateNodeConstraint", 
       "kU_DataType", "kU_ListIdentifiers", "kU_ListIdentifier", "oC_AnyCypherOption", 
@@ -2216,7 +2216,7 @@ void cypherParserInitialize() {
   	210,212,214,216,218,220,222,224,226,228,230,232,234,236,238,240,242,244,
   	246,248,250,252,254,256,258,260,262,264,266,268,270,272,274,276,278,280,
   	282,284,286,288,290,292,294,296,298,300,302,304,306,308,0,11,2,0,60,60,
-  	62,62,1,0,114,117,2,0,6,6,13,17,1,0,19,20,2,0,21,21,125,125,2,0,22,23,
+  	62,63,1,0,114,117,2,0,6,6,13,17,1,0,19,20,2,0,21,21,125,125,2,0,22,23,
   	108,108,1,0,134,135,9,0,48,48,50,50,56,59,67,67,77,77,81,81,128,128,136,
   	136,140,140,2,0,14,14,27,30,2,0,16,16,31,34,2,0,35,45,125,125,2723,0,
   	310,1,0,0,0,2,330,1,0,0,0,4,363,1,0,0,0,6,365,1,0,0,0,8,387,1,0,0,0,10,
@@ -3363,8 +3363,8 @@ CypherParser::KU_CreateSequenceContext* CypherParser::OC_StatementContext::kU_Cr
   return getRuleContext<CypherParser::KU_CreateSequenceContext>(0);
 }
 
-CypherParser::KU_DropTableContext* CypherParser::OC_StatementContext::kU_DropTable() {
-  return getRuleContext<CypherParser::KU_DropTableContext>(0);
+CypherParser::KU_DropContext* CypherParser::OC_StatementContext::kU_Drop() {
+  return getRuleContext<CypherParser::KU_DropContext>(0);
 }
 
 CypherParser::KU_AlterTableContext* CypherParser::OC_StatementContext::kU_AlterTable() {
@@ -3553,9 +3553,13 @@ CypherParser::OC_StatementContext* CypherParser::oC_Statement() {
       setState(346);
 =======
       setState(348);
+<<<<<<< HEAD
 >>>>>>> 4f175c93e (finish statement evaluation workflow)
       kU_DropTable();
 >>>>>>> 97f7ef93f (update parser for sequence)
+=======
+      kU_Drop();
+>>>>>>> 26305974a (finish drop sequence)
       break;
     }
 
@@ -8808,42 +8812,42 @@ CypherParser::KU_CycleContext* CypherParser::kU_Cycle() {
   return _localctx;
 }
 
-//----------------- KU_DropTableContext ------------------------------------------------------------------
+//----------------- KU_DropContext ------------------------------------------------------------------
 
-CypherParser::KU_DropTableContext::KU_DropTableContext(ParserRuleContext *parent, size_t invokingState)
+CypherParser::KU_DropContext::KU_DropContext(ParserRuleContext *parent, size_t invokingState)
   : ParserRuleContext(parent, invokingState) {
 }
 
-tree::TerminalNode* CypherParser::KU_DropTableContext::DROP() {
+tree::TerminalNode* CypherParser::KU_DropContext::DROP() {
   return getToken(CypherParser::DROP, 0);
 }
 
-std::vector<tree::TerminalNode *> CypherParser::KU_DropTableContext::SP() {
+std::vector<tree::TerminalNode *> CypherParser::KU_DropContext::SP() {
   return getTokens(CypherParser::SP);
 }
 
-tree::TerminalNode* CypherParser::KU_DropTableContext::SP(size_t i) {
+tree::TerminalNode* CypherParser::KU_DropContext::SP(size_t i) {
   return getToken(CypherParser::SP, i);
 }
 
-CypherParser::OC_SchemaNameContext* CypherParser::KU_DropTableContext::oC_SchemaName() {
+CypherParser::OC_SchemaNameContext* CypherParser::KU_DropContext::oC_SchemaName() {
   return getRuleContext<CypherParser::OC_SchemaNameContext>(0);
 }
 
-tree::TerminalNode* CypherParser::KU_DropTableContext::TABLE() {
+tree::TerminalNode* CypherParser::KU_DropContext::TABLE() {
   return getToken(CypherParser::TABLE, 0);
 }
 
-tree::TerminalNode* CypherParser::KU_DropTableContext::RDFGRAPH() {
+tree::TerminalNode* CypherParser::KU_DropContext::RDFGRAPH() {
   return getToken(CypherParser::RDFGRAPH, 0);
 }
 
-
-size_t CypherParser::KU_DropTableContext::getRuleIndex() const {
-  return CypherParser::RuleKU_DropTable;
+tree::TerminalNode* CypherParser::KU_DropContext::SEQUENCE() {
+  return getToken(CypherParser::SEQUENCE, 0);
 }
 
 
+<<<<<<< HEAD
 CypherParser::KU_DropTableContext* CypherParser::kU_DropTable() {
   KU_DropTableContext *_localctx = _tracker.createInstance<KU_DropTableContext>(_ctx, getState());
 <<<<<<< HEAD
@@ -8855,6 +8859,16 @@ CypherParser::KU_DropTableContext* CypherParser::kU_DropTable() {
 =======
   enterRule(_localctx, 66, CypherParser::RuleKU_DropTable);
 >>>>>>> 4f175c93e (finish statement evaluation workflow)
+=======
+size_t CypherParser::KU_DropContext::getRuleIndex() const {
+  return CypherParser::RuleKU_Drop;
+}
+
+
+CypherParser::KU_DropContext* CypherParser::kU_Drop() {
+  KU_DropContext *_localctx = _tracker.createInstance<KU_DropContext>(_ctx, getState());
+  enterRule(_localctx, 66, CypherParser::RuleKU_Drop);
+>>>>>>> 26305974a (finish drop sequence)
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -8888,9 +8902,8 @@ CypherParser::KU_DropTableContext* CypherParser::kU_DropTable() {
     setState(889);
 >>>>>>> 4f175c93e (finish statement evaluation workflow)
     _la = _input->LA(1);
-    if (!(_la == CypherParser::TABLE
-
-    || _la == CypherParser::RDFGRAPH)) {
+    if (!((((_la & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & -3458764513820540928) != 0))) {
     _errHandler->recoverInline(this);
     }
     else {

@@ -13,6 +13,7 @@ public:
 
 private:
     inline void visitCreateSequence(const Statement& /*statement*/) override { readOnly = false; }
+    inline void visitDropSequence(const Statement& /*statement*/) override { readOnly = false; }
     inline void visitCreateTable(const Statement& /*statement*/) override { readOnly = false; }
     inline void visitDropTable(const Statement& /*statement*/) override { readOnly = false; }
     inline void visitAlter(const Statement& /*statement*/) override { readOnly = false; }

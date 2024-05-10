@@ -2,10 +2,12 @@
 #include "planner/operator/ddl/logical_create_table.h"
 #include "planner/operator/ddl/logical_create_sequence.h"
 #include "planner/operator/ddl/logical_drop_table.h"
+#include "planner/operator/ddl/logical_drop_sequence.h"
 #include "processor/operator/ddl/alter.h"
 #include "processor/operator/ddl/create_table.h"
 #include "processor/operator/ddl/create_sequence.h"
 #include "processor/operator/ddl/drop_table.h"
+#include "processor/operator/ddl/drop_sequence.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::binder;
@@ -37,6 +39,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDropTable(LogicalOperator* logi
     auto dropTable = (LogicalDropTable*)logicalOperator;
     return std::make_unique<DropTable>(dropTable->getTableName(), dropTable->getTableID(),
         getOutputPos(dropTable), getOperatorID(), dropTable->getExpressionsForPrinting());
+}
+
+std::unique_ptr<PhysicalOperator> PlanMapper::mapDropSequence(LogicalOperator* logicalOperator) {
+    auto dropSequence = (LogicalDropSequence*)logicalOperator;
+    return std::make_unique<DropSequence>(dropSequence->getTableName(), dropSequence->getSequenceID(),
+        getOutputPos(dropSequence), getOperatorID(), dropSequence->getExpressionsForPrinting());
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapAlter(LogicalOperator* logicalOperator) {

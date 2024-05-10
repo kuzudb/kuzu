@@ -84,6 +84,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapCopyRdfFrom(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapPartitioner(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDropTable(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapDropSequence(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapAlter(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapStandaloneCall(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCommentOn(planner::LogicalOperator* logicalOperator);

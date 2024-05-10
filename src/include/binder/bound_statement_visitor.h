@@ -18,6 +18,7 @@ public:
 
 protected:
     virtual void visitCreateSequence(const BoundStatement&) {}
+    virtual void visitDropSequence(const BoundStatement&) {}
     virtual void visitCreateTable(const BoundStatement&) {}
     virtual void visitDropTable(const BoundStatement&) {}
     virtual void visitAlter(const BoundStatement&) {}

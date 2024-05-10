@@ -151,7 +151,7 @@ public:
 >>>>>>> 97f7ef93f (update parser for sequence)
 =======
     RuleKU_IncrementBy = 28, RuleKU_MinValue = 29, RuleKU_MaxValue = 30, 
-    RuleKU_StartWith = 31, RuleKU_Cycle = 32, RuleKU_DropTable = 33, RuleKU_AlterTable = 34, 
+    RuleKU_StartWith = 31, RuleKU_Cycle = 32, RuleKU_Drop = 33, RuleKU_AlterTable = 34, 
     RuleKU_AlterOptions = 35, RuleKU_AddProperty = 36, RuleKU_DropProperty = 37, 
     RuleKU_RenameTable = 38, RuleKU_RenameProperty = 39, RuleKU_PropertyDefinitions = 40, 
     RuleKU_PropertyDefinition = 41, RuleKU_CreateNodeConstraint = 42, RuleKU_DataType = 43, 
@@ -248,7 +248,7 @@ public:
   class KU_MaxValueContext;
   class KU_StartWithContext;
   class KU_CycleContext;
-  class KU_DropTableContext;
+  class KU_DropContext;
   class KU_AlterTableContext;
   class KU_AlterOptionsContext;
   class KU_AddPropertyContext;
@@ -410,7 +410,7 @@ public:
     KU_CreateRelTableGroupContext *kU_CreateRelTableGroup();
     KU_CreateRdfGraphContext *kU_CreateRdfGraph();
     KU_CreateSequenceContext *kU_CreateSequence();
-    KU_DropTableContext *kU_DropTable();
+    KU_DropContext *kU_Drop();
     KU_AlterTableContext *kU_AlterTable();
     KU_CopyFromContext *kU_CopyFrom();
     KU_CopyFromByColumnContext *kU_CopyFromByColumn();
@@ -921,9 +921,9 @@ public:
 
   KU_CycleContext* kU_Cycle();
 
-  class  KU_DropTableContext : public antlr4::ParserRuleContext {
+  class  KU_DropContext : public antlr4::ParserRuleContext {
   public:
-    KU_DropTableContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    KU_DropContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *DROP();
     std::vector<antlr4::tree::TerminalNode *> SP();
@@ -931,11 +931,12 @@ public:
     OC_SchemaNameContext *oC_SchemaName();
     antlr4::tree::TerminalNode *TABLE();
     antlr4::tree::TerminalNode *RDFGRAPH();
+    antlr4::tree::TerminalNode *SEQUENCE();
 
    
   };
 
-  KU_DropTableContext* kU_DropTable();
+  KU_DropContext* kU_Drop();
 
   class  KU_AlterTableContext : public antlr4::ParserRuleContext {
   public:

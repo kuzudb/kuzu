@@ -38,6 +38,9 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::COPY_TO: {
         boundStatement = bindCopyToClause(statement);
     } break;
+    case StatementType::DROP_SEQUENCE: {
+        boundStatement = bindDropSequence(statement);
+    } break;
     case StatementType::DROP_TABLE: {
         boundStatement = bindDropTable(statement);
     } break;
@@ -162,6 +165,12 @@ void Binder::validateTableType(table_id_t tableID, TableType expectedTableType) 
 void Binder::validateTableExist(const std::string& tableName) {
     if (!clientContext->getCatalog()->containsTable(clientContext->getTx(), tableName)) {
         throw BinderException("Table " + tableName + " does not exist.");
+    }
+}
+
+void Binder::validateSequenceExist(const std::string& sequenceName) {
+    if (!clientContext->getCatalog()->containsSequence(clientContext->getTx(), sequenceName)) {
+        throw BinderException("Sequence " + sequenceName + " does not exist.");
     }
 }
 

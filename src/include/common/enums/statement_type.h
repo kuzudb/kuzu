@@ -24,6 +24,7 @@ enum class StatementType : uint8_t {
     DETACH_DATABASE = 35,
     USE_DATABASE = 36,
     CREATE_SEQUENCE = 37,
+    DROP_SEQUENCE = 38,
 };
 
 } // namespace common

@@ -3,6 +3,7 @@
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_create_sequence.h"
 #include "binder/ddl/bound_drop_table.h"
+#include "binder/ddl/bound_drop_sequence.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
@@ -191,7 +192,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
 
 std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement) {
     auto& dropTable = ku_dynamic_cast<const Statement&, const Drop&>(statement);
-    auto tableName = dropTable.getTableName();
+    auto tableName = dropTable.getName();
     validateTableExist(tableName);
     auto catalog = clientContext->getCatalog();
     auto tableID = catalog->getTableID(clientContext->getTx(), tableName);
@@ -263,6 +264,16 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
         break;
     }
     return make_unique<BoundDropTable>(tableID, tableName);
+}
+
+std::unique_ptr<BoundStatement> Binder::bindDropSequence(const Statement& statement) {
+    auto& dropSequence = ku_dynamic_cast<const Statement&, const Drop&>(statement);
+    auto sequenceName = dropSequence.getName();
+    validateSequenceExist(sequenceName);
+    auto catalog = clientContext->getCatalog();
+    auto sequenceID = catalog->getSequenceID(clientContext->getTx(), sequenceName);
+    // TODO: Later check if sequence used/referenced by table
+    return make_unique<BoundDropSequence>(sequenceID, sequenceName);
 }
 
 std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {

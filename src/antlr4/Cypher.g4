@@ -26,7 +26,7 @@ oC_Statement
         | kU_CreateRelTableGroup
         | kU_CreateRdfGraph
         | kU_CreateSequence
-        | kU_DropTable
+        | kU_Drop
         | kU_AlterTable
         | kU_CopyFrom
         | kU_CopyFromByColumn
@@ -190,8 +190,8 @@ NO : ('N' | 'n') ('O' | 'o') ;
 
 CYCLE : ('C' | 'c') ('Y' | 'y') ('C' | 'c') ('L' | 'l') ('E' | 'e') ;
 
-kU_DropTable
-    : DROP SP (TABLE | RDFGRAPH) SP oC_SchemaName ;
+kU_Drop
+    : DROP SP (TABLE | RDFGRAPH | SEQUENCE) SP oC_SchemaName ;
 
 DROP : ( 'D' | 'd' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'P' | 'p' ) ;
 

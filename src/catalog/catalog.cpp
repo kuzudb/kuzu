@@ -226,10 +226,16 @@ bool Catalog::containsSequence(Transaction* transaction, const std::string& sequ
     return sequences->containsEntry(transaction, sequenceName);
 }
 
+sequence_id_t Catalog::getSequenceID(Transaction* transaction, const std::string& sequenceName) const {
+    auto entry = sequences->getEntry(transaction, sequenceName);
+    KU_ASSERT(entry);
+    return ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(entry)->getSequenceID();
+}
+
 SequenceCatalogEntry* Catalog::getSequenceCatalogEntry(Transaction* transaction,
     sequence_id_t sequenceID) const {
     SequenceCatalogEntry* result;
-    iterateCatalogEntries(transaction, [&](CatalogEntry* entry) {
+    iterateSequenceCatalogEntries(transaction, [&](CatalogEntry* entry) {
         if (ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(entry)->getSequenceID() == sequenceID) {
             result = ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(entry);
         }

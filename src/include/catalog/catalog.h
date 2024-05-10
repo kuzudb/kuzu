@@ -70,12 +70,13 @@ public:
     // ----------------------------- Sequences ----------------------------
     bool containsSequence(transaction::Transaction* tx, const std::string& sequenceName) const;
 
+    common::sequence_id_t getSequenceID(transaction::Transaction* tx, const std::string& sequenceName) const;
     SequenceCatalogEntry* getSequenceCatalogEntry(transaction::Transaction* tx,
         common::sequence_id_t sequenceID) const;
     
     common::sequence_id_t createSequence(transaction::Transaction* tx,
         const binder::BoundCreateSequenceInfo& info);
-    void dropSequence(transaction::Transaction* tx, common::table_id_t tableID);
+    void dropSequence(transaction::Transaction* tx, common::sequence_id_t sequenceID);
 
     // ----------------------------- Functions ----------------------------
     void addFunction(transaction::Transaction* tx, CatalogEntryType entryType, std::string name,
@@ -151,6 +152,13 @@ private:
     std::unique_ptr<CatalogEntry> createRdfGraphEntry(transaction::Transaction* transaction,
         common::table_id_t tableID, const binder::BoundCreateTableInfo& info);
 
+    // ----------------------------- Sequence entries ----------------------------
+    void iterateSequenceCatalogEntries(transaction::Transaction* transaction,
+        std::function<void(CatalogEntry*)> func) const {
+        for (auto& [_, entry] : sequences->getEntries(transaction)) {
+            func(entry);
+        }
+    }
 protected:
     std::unique_ptr<CatalogSet> tables;
     std::unique_ptr<CatalogSet> sequences;

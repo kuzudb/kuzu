@@ -19,6 +19,9 @@ void BoundStatementVisitor::visit(const BoundStatement& statement) {
     case StatementType::CREATE_SEQUENCE: {
         visitCreateSequence(statement);
     } break;
+    case StatementType::DROP_SEQUENCE: {
+        visitDropSequence(statement);
+    } break;
     case StatementType::CREATE_TABLE: {
         visitCreateTable(statement);
     } break;
