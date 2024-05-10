@@ -182,6 +182,8 @@ void OverflowFile::createEmptyFiles(const std::string& fName, common::VirtualFil
     uint8_t page[common::BufferPoolConstants::PAGE_4KB_SIZE];
     StringOverflowFileHeader header;
     memcpy(page, &header, sizeof(StringOverflowFileHeader));
+    // Zero free space at the end of the header page
+    std::fill(page + sizeof(header), page + BufferPoolConstants::PAGE_4KB_SIZE, 0);
     fileHandle.addNewPage();
     fileHandle.writePage(page, HEADER_PAGE_IDX);
 }
@@ -218,6 +220,8 @@ void OverflowFile::prepareCommit() {
         uint8_t page[BufferPoolConstants::PAGE_4KB_SIZE];
         header.pages = pageCounter;
         memcpy(page, &header, sizeof(header));
+        // Zero free space at the end of the header page
+        std::fill(page + sizeof(header), page + BufferPoolConstants::PAGE_4KB_SIZE, 0);
         writePageToDisk(HEADER_PAGE_IDX, page);
     }
 }

@@ -22,7 +22,7 @@ public:
     // instead restrict the capacity to 20
     static constexpr uint8_t FINGERPRINT_CAPACITY = 20;
 
-    SlotHeader() : validityMask{0}, nextOvfSlotId{0} {}
+    SlotHeader() : fingerprints{}, validityMask{0}, nextOvfSlotId{0} {}
 
     void reset() {
         validityMask = 0;
@@ -70,6 +70,7 @@ static constexpr uint8_t getSlotCapacity() {
 
 template<typename T>
 struct Slot {
+    Slot() : header{}, entries{} {}
     SlotHeader header;
     SlotEntry<T> entries[getSlotCapacity<T>()];
 };
