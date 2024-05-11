@@ -186,6 +186,9 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Scalar utility functions
         SCALAR_FUNCTION(CoalesceFunction), SCALAR_FUNCTION(IfNullFunction),
+        SCALAR_FUNCTION(ConstantOrNullFunction), SCALAR_FUNCTION(CountIfFunction),
+        SCALAR_FUNCTION(ErrorFunction), REWRITE_FUNCTION(NullIfFunction),
+        SCALAR_FUNCTION(TypeOfFunction),
 
         // Aggregate functions
         AGGREGATE_FUNCTION(CountStarFunction), AGGREGATE_FUNCTION(CountFunction),

@@ -1,0 +1,63 @@
+-DATASET CSV empty
+
+--
+
+-CASE ConstantTests
+
+-STATEMENT RETURN constant_or_null(1, NULL);
+---- 1
+
+
+-STATEMENT RETURN constant_or_null(1, 10);
+---- 1
+1
+
+-STATEMENT CREATE node table tbl(id INT64, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE (t:tbl {id: 1});
+---- ok
+-STATEMENT CREATE (t:tbl {id: 2});
+---- ok
+-STATEMENT CREATE (t:tbl {id: 3});
+---- ok
+-STATEMENT CREATE (t:tbl {id: 4});
+---- ok
+-STATEMENT CREATE (t:tbl {id: 5});
+---- ok
+
+-STATEMENT MATCH (t:tbl) RETURN constant_or_null(1, CASE WHEN t.id % 2 = 0 THEN NULL ELSE t.id END);
+---- 5
+1
+
+1
+
+1
+
+-STATEMENT RETURN constant_or_null(1);
+---- error
+Binder exception: Cannot match a built-in function for given function CONSTANT_OR_NULL(INT64). Supported inputs are
+(ANY,ANY) -> ANY
+
+-STATEMENT RETURN constant_or_null();
+---- error
+Binder exception: Cannot match a built-in function for given function CONSTANT_OR_NULL. Supported inputs are
+(ANY,ANY) -> ANY
+
+-CASE PredicateTests
+
+-STATEMENT CREATE node table tbl(id INT64, bool BOOLEAN, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE (t:tbl {id: 1, bool: true});
+---- ok
+-STATEMENT CREATE (t:tbl {id: 2, bool: false});
+---- ok
+-STATEMENT CREATE (t:tbl {id: 3, bool: NULL});
+---- ok
+-STATEMENT CREATE (t:tbl {id: 4, bool: true});
+---- ok
+
+-LOG CoalesceTest
+-STATEMENT MATCH (t:tbl) WHERE constant_or_null(t.bool, t.bool) RETURN t.id;
+---- 2
+1
+4

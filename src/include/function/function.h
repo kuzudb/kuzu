@@ -3,17 +3,24 @@
 #include "binder/expression/expression.h"
 
 namespace kuzu {
+
+namespace main {
+class ClientContext;
+}
+
 namespace function {
 
 struct FunctionBindData {
     std::vector<common::LogicalType> paramTypes;
     std::unique_ptr<common::LogicalType> resultType;
+    main::ClientContext* clientContext;
 
     explicit FunctionBindData(std::unique_ptr<common::LogicalType> dataType)
-        : resultType{std::move(dataType)} {}
+        : resultType{std::move(dataType)}, clientContext{nullptr} {}
     FunctionBindData(std::vector<common::LogicalType> paramTypes,
         std::unique_ptr<common::LogicalType> resultType)
-        : paramTypes{std::move(paramTypes)}, resultType{std::move(resultType)} {}
+        : paramTypes{std::move(paramTypes)}, resultType{std::move(resultType)},
+          clientContext{nullptr} {}
     DELETE_COPY_AND_MOVE(FunctionBindData);
 
     virtual ~FunctionBindData() = default;

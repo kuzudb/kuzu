@@ -1,0 +1,60 @@
+-DATASET CSV empty
+
+--
+
+-CASE NullIfTest
+
+-STATEMENT RETURN NULLIF(NULLIF ('hello', 'world'), 'blabla');
+---- 1
+hello
+
+-STATEMENT CREATE node table test(a STRING, PRIMARY KEY (a));
+---- ok
+-STATEMENT CREATE (t:test {a: 'hello'});
+---- ok
+-STATEMENT CREATE (t:test {a: 'world'});
+---- ok
+-STATEMENT CREATE (t:test {a: 'test'});
+---- ok
+
+-STATEMENT MATCH (t1:test) RETURN NULLIF(t1.a, 'hello');
+---- 3
+
+world
+test
+
+-STATEMENT CREATE node table test2(a STRING, b STRING, PRIMARY KEY (a));
+---- ok
+-STATEMENT CREATE (t:test2 {a: 'blabla', b: 'b'});
+---- ok
+-STATEMENT CREATE (t:test2 {a: 'blabla2', b: 'c'});
+---- ok
+-STATEMENT CREATE (t:test2 {a: 'blabla3', b: 'd'});
+---- ok
+
+-STATEMENT MATCH (t2:test2) RETURN NULLIF(t2.a, t2.b);
+---- 3
+blabla
+blabla2
+blabla3
+
+-STATEMENT CREATE node table test3(a INT64, b INT64, PRIMARY KEY (a));
+---- ok
+-STATEMENT CREATE (t:test3 {a: 11, b: 22});
+---- ok
+-STATEMENT CREATE (t:test3 {a: 13, b: 22});
+---- ok
+-STATEMENT CREATE (t:test3 {a: 12, b: 21});
+---- ok
+
+-STATEMENT MATCH (t3:test3) RETURN NULLIF(CAST(t3.a, "STRING"), '11');
+---- 3
+
+13
+12
+
+-STATEMENT MATCH (t3:test3) RETURN t3.a, CASE WHEN t3.a>11 THEN CAST(t3.a, "STRING") ELSE CAST(t3.b, "STRING") END ORDER BY t3.a;
+---- 3
+11|22
+12|12
+13|13
