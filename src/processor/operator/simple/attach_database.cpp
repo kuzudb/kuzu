@@ -2,17 +2,23 @@
 
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
+#include "main/attached_database.h"
 #include "main/database.h"
 #include "main/database_manager.h"
 #include "storage/storage_extension.h"
+#include "storage/storage_manager.h"
+#include "transaction/transaction_manager.h"
 
 namespace kuzu {
 namespace processor {
 
 void AttachDatabase::executeInternal(ExecutionContext* context) {
     auto client = context->clientContext;
-    if (common::StringUtils::getUpper(attachInfo.dbType) == "KUZU") {
-        context->clientContext->getDatabase()->attachNewDB(attachInfo.dbPath);
+    if (common::StringUtils::getUpper(attachInfo.dbType) == common::ATTACHED_KUZU_DB_TYPE) {
+        auto attachedKuzuDB = std::make_unique<main::AttachedKuzuDatabase>(attachInfo.dbPath,
+            attachInfo.dbAlias, common::ATTACHED_KUZU_DB_TYPE, context->clientContext);
+        client->setDefaultDatabase(attachedKuzuDB.get());
+        client->getDatabaseManager()->registerAttachedDatabase(std::move(attachedKuzuDB));
         return;
     }
     for (auto& [name, storageExtension] : client->getDatabase()->getStorageExtensions()) {

@@ -6,7 +6,9 @@
 #include "common/random_engine.h"
 #include "common/string_utils.h"
 #include "extension/extension.h"
+#include "main/attached_database.h"
 #include "main/database.h"
+#include "main/database_manager.h"
 #include "main/db_config.h"
 #include "optimizer/optimizer.h"
 #include "parser/parser.h"
@@ -45,6 +47,7 @@ ClientContext::ClientContext(Database* database)
     progressBar = std::make_unique<common::ProgressBar>();
     transactionContext = std::make_unique<TransactionContext>(*this);
     randomEngine = std::make_unique<common::RandomEngine>();
+    defaultDatabase = nullptr;
 #if defined(_WIN32)
     clientConfig.homeDirectory = getEnvVariable("USERPROFILE");
 #else
@@ -163,7 +166,11 @@ DatabaseManager* ClientContext::getDatabaseManager() const {
 }
 
 storage::StorageManager* ClientContext::getStorageManager() const {
-    return database->storageManager.get();
+    if (defaultDatabase == nullptr) {
+        return database->storageManager.get();
+    } else {
+        return defaultDatabase->getStorageManager();
+    }
 }
 
 storage::MemoryManager* ClientContext::getMemoryManager() {
@@ -171,11 +178,19 @@ storage::MemoryManager* ClientContext::getMemoryManager() {
 }
 
 catalog::Catalog* ClientContext::getCatalog() const {
-    return database->catalog.get();
+    if (defaultDatabase == nullptr) {
+        return database->catalog.get();
+    } else {
+        return defaultDatabase->getCatalog();
+    }
 }
 
 transaction::TransactionManager* ClientContext::getTransactionManagerUnsafe() const {
-    return database->transactionManager.get();
+    if (defaultDatabase == nullptr) {
+        return database->transactionManager.get();
+    } else {
+        return defaultDatabase->getTransactionManager();
+    }
 }
 
 VirtualFileSystem* ClientContext::getVFSUnsafe() const {
@@ -305,7 +320,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
         preparedStatement->preparedSummary.statementType = parsedStatement->getStatementType();
         preparedStatement->readOnly =
             parser::StatementReadWriteAnalyzer().isReadOnly(*parsedStatement);
-        if (dbConfig.readOnly && !preparedStatement->isReadOnly()) {
+        if (!canExecuteWriteQuery() && !preparedStatement->isReadOnly()) {
             throw ConnectionException("Cannot execute write operations in a read-only database!");
         }
         preparedStatement->parsedStatement = parsedStatement;
@@ -316,7 +331,11 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
                 transactionContext->validateManualTransaction(preparedStatement->readOnly);
             }
             if (!this->getTx()->isReadOnly()) {
-                database->storageManager->initStatistics();
+                if (this->defaultDatabase == nullptr) {
+                    database->storageManager->initStatistics();
+                } else {
+                    defaultDatabase->getStorageManager()->initStatistics();
+                }
             }
         }
         // binding
@@ -377,6 +396,14 @@ std::vector<std::shared_ptr<Statement>> ClientContext::parseQuery(std::string_vi
     return statements;
 }
 
+void ClientContext::setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_) {
+    this->defaultDatabase = defaultDatabase_;
+}
+
+bool ClientContext::hasDefaultDatabase() {
+    return this->defaultDatabase != nullptr;
+}
+
 std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement* preparedStatement,
     std::unordered_map<std::string, std::unique_ptr<Value>>
         inputParams) { // NOLINT(performance-unnecessary-value-param): It doesn't make sense to pass
@@ -421,7 +448,11 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
     if (preparedStatement->parsedStatement->requireTx() && requiredNexTx && getTx() == nullptr) {
         this->transactionContext->beginAutoTransaction(preparedStatement->isReadOnly());
         if (!preparedStatement->readOnly) {
-            database->storageManager->initStatistics();
+            if (defaultDatabase == nullptr) {
+                database->storageManager->initStatistics();
+            } else {
+                defaultDatabase->getStorageManager()->initStatistics();
+            }
         }
     }
     this->resetActiveQuery();
@@ -489,6 +520,21 @@ void ClientContext::commitUDFTrx(bool isAutoCommitTrx) {
         auto res = query("COMMIT");
         KU_ASSERT(res->isSuccess());
     }
+}
+
+bool ClientContext::canExecuteWriteQuery() {
+    if (dbConfig.readOnly) {
+        return false;
+    }
+    // Note: we can only attach a remote kuzu database in read-only mode and only one
+    // remote kuzu database can be attached. If there is one remote
+    auto dbManager = database->databaseManager.get();
+    for (auto& attachedDB : dbManager->getAttachedDatabases()) {
+        if (attachedDB->getDBType() == common::ATTACHED_KUZU_DB_TYPE) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void ClientContext::runQuery(std::string query) {

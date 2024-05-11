@@ -1,5 +1,6 @@
 add_library(kuzu_main
         OBJECT
+        attached_database.cpp
         client_context.cpp
         connection.cpp
         database.cpp

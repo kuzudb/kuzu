@@ -33,6 +33,7 @@ namespace main {
 class DBConfig;
 class Database;
 class DatabaseManager;
+class AttachedKuzuDatabase;
 
 struct ActiveQuery {
     explicit ActiveQuery();
@@ -115,6 +116,10 @@ public:
     // only use for test framework
     std::vector<std::shared_ptr<parser::Statement>> parseQuery(std::string_view query);
 
+    void setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_);
+
+    bool hasDefaultDatabase();
+
 private:
     std::unique_ptr<QueryResult> query(std::string_view query, std::string_view encodedJoin,
         bool enumerateAllPlans = true);
@@ -155,6 +160,8 @@ private:
 
     void commitUDFTrx(bool isAutoCommitTrx);
 
+    bool canExecuteWriteQuery();
+
     // Client side configurable settings.
     ClientConfig clientConfig;
     // Database configurable settings.
@@ -171,6 +178,8 @@ private:
     std::unique_ptr<common::RandomEngine> randomEngine;
     // Attached database.
     Database* database;
+    // Default database.
+    AttachedKuzuDatabase* defaultDatabase;
     // Progress bar for queries
     std::unique_ptr<common::ProgressBar> progressBar;
     std::mutex mtx;
