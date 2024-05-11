@@ -46,11 +46,11 @@ S3FileInfo::S3FileInfo(std::string path, common::FileSystem* fileSystem, int fla
       uploaderHasException{false} {}
 
 S3FileInfo::~S3FileInfo() {
-    auto s3fs = fileSystem->ptrCast<S3FileSystem>();
+    auto s3FS = fileSystem->ptrCast<S3FileSystem>();
     if ((((flags & O_ACCMODE) & O_WRONLY)) && !uploadFinalized) {
-        s3fs->flushAllBuffers(this);
+        s3FS->flushAllBuffers(this);
         if (numPartsUploaded) {
-            s3fs->finalizeMultipartUpload(this);
+            s3FS->finalizeMultipartUpload(this);
         }
     }
 }

@@ -14,6 +14,8 @@ public:
         std::unique_ptr<extension::CatalogExtension> catalog)
         : dbName{std::move(dbName)}, dbType{std::move(dbType)}, catalog{std::move(catalog)} {}
 
+    virtual ~AttachedDatabase() = default;
+
     std::string getDBName() const { return dbName; }
 
     std::string getDBType() const { return dbType; }
