@@ -221,18 +221,18 @@ void LocalFileSystem::readFromFile(FileInfo& fileInfo, void* buffer, uint64_t nu
     OVERLAPPED overlapped{0, 0, 0, 0};
     overlapped.Offset = position & 0xffffffff;
     overlapped.OffsetHigh = position >> 32;
-    if (!ReadFile((HANDLE)localFileInfo.handle, buffer, numBytes, &numBytesRead, &overlapped)) {
+    if (!ReadFile((HANDLE)localFileInfo->handle, buffer, numBytes, &numBytesRead, &overlapped)) {
         auto error = GetLastError();
         throw IOException(
             stringFormat("Cannot read from file: {} handle: {} "
                          "numBytesRead: {} numBytesToRead: {} position: {}. Error {}: {}",
-                fileInfo.path, (intptr_t)localFileInfo.handle, numBytesRead, numBytes, position,
+                fileInfo.path, (intptr_t)localFileInfo->handle, numBytesRead, numBytes, position,
                 error, std::system_category().message(error)));
     }
     if (numBytesRead != numBytes && fileInfo.getFileSize() != position + numBytesRead) {
         throw IOException(stringFormat("Cannot read from file: {} handle: {} "
                                        "numBytesRead: {} numBytesToRead: {} position: {}",
-            fileInfo.path, (intptr_t)localFileInfo.handle, numBytesRead, numBytes, position));
+            fileInfo.path, (intptr_t)localFileInfo->handle, numBytesRead, numBytes, position));
     }
 #else
     auto numBytesRead = pread(localFileInfo->fd, buffer, numBytes, position);
@@ -251,7 +251,7 @@ int64_t LocalFileSystem::readFile(FileInfo& fileInfo, void* buf, size_t nbyte) c
     auto localFileInfo = fileInfo.constPtrCast<LocalFileInfo>();
 #if defined(_WIN32)
     DWORD numBytesRead;
-    ReadFile((HANDLE)localFileInfo.handle, buf, nbyte, &numBytesRead, nullptr);
+    ReadFile((HANDLE)localFileInfo->handle, buf, nbyte, &numBytesRead, nullptr);
     return numBytesRead;
 #else
     return read(localFileInfo->fd, buf, nbyte);
@@ -273,13 +273,13 @@ void LocalFileSystem::writeFile(FileInfo& fileInfo, const uint8_t* buffer, uint6
         OVERLAPPED overlapped{0, 0, 0, 0};
         overlapped.Offset = offset & 0xffffffff;
         overlapped.OffsetHigh = offset >> 32;
-        if (!WriteFile((HANDLE)localFileInfo.handle, buffer + bufferOffset, numBytesToWrite,
+        if (!WriteFile((HANDLE)localFileInfo->handle, buffer + bufferOffset, numBytesToWrite,
                 &numBytesWritten, &overlapped)) {
             auto error = GetLastError();
             throw IOException(
                 stringFormat("Cannot write to file. path: {} handle: {} offsetToWrite: {} "
                              "numBytesToWrite: {} numBytesWritten: {}. Error {}: {}.",
-                    fileInfo.path, (intptr_t)localFileInfo.handle, offset, numBytesToWrite,
+                    fileInfo.path, (intptr_t)localFileInfo->handle, offset, numBytesToWrite,
                     numBytesWritten, error, std::system_category().message(error)));
         }
 #else
@@ -305,7 +305,7 @@ void LocalFileSystem::syncFile(const FileInfo& fileInfo) const {
     auto localFileInfo = fileInfo.constPtrCast<LocalFileInfo>();
 #if defined(_WIN32)
     // Note that `FlushFileBuffers` returns 0 when fail, while `fsync` returns 0 when succeed.
-    if (FlushFileBuffers((HANDLE)localFileInfo.handle) == 0) {
+    if (FlushFileBuffers((HANDLE)localFileInfo->handle) == 0) {
         auto error = GetLastError();
         throw IOException(stringFormat("Failed to sync file {}. Error {}: {}", fileInfo.path, error,
             std::system_category().message(error)));
@@ -323,7 +323,7 @@ int64_t LocalFileSystem::seek(FileInfo& fileInfo, uint64_t offset, int whence) c
     LARGE_INTEGER result;
     LARGE_INTEGER offset_;
     offset_.QuadPart = offset;
-    SetFilePointerEx((HANDLE)localFileInfo.handle, offset_, &result, whence);
+    SetFilePointerEx((HANDLE)localFileInfo->handle, offset_, &result, whence);
     return result.QuadPart;
 #else
     return lseek(localFileInfo->fd, offset, whence);
@@ -337,19 +337,19 @@ void LocalFileSystem::truncate(FileInfo& fileInfo, uint64_t size) const {
     LONG* offsetHighPtr = NULL;
     if (offsetHigh > 0)
         offsetHighPtr = &offsetHigh;
-    if (SetFilePointer((HANDLE)localFileInfo.handle, size & 0xffffffff, offsetHighPtr,
+    if (SetFilePointer((HANDLE)localFileInfo->handle, size & 0xffffffff, offsetHighPtr,
             FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
         auto error = GetLastError();
         throw IOException(stringFormat("Cannot set file pointer for file: {} handle: {} "
                                        "new position: {}. Error {}: {}",
-            fileInfo.path, (intptr_t)localFileInfo.handle, size, error,
+            fileInfo.path, (intptr_t)localFileInfo->handle, size, error,
             std::system_category().message(error)));
     }
-    if (!SetEndOfFile((HANDLE)localFileInfo.handle)) {
+    if (!SetEndOfFile((HANDLE)localFileInfo->handle)) {
         auto error = GetLastError();
         throw IOException(stringFormat("Cannot truncate file: {} handle: {} "
                                        "size: {}. Error {}: {}",
-            fileInfo.path, (intptr_t)localFileInfo.handle, size, error,
+            fileInfo.path, (intptr_t)localFileInfo->handle, size, error,
             std::system_category().message(error)));
     }
 #else
@@ -366,7 +366,7 @@ uint64_t LocalFileSystem::getFileSize(const FileInfo& fileInfo) const {
     auto localFileInfo = fileInfo.constPtrCast<LocalFileInfo>();
 #ifdef _WIN32
     LARGE_INTEGER size;
-    if (!GetFileSizeEx((HANDLE)localFileInfo.handle, &size)) {
+    if (!GetFileSizeEx((HANDLE)localFileInfo->handle, &size)) {
         auto error = GetLastError();
         throw IOException(stringFormat("Cannot read size of file. path: {} - Error {}: {}",
             fileInfo.path, error, systemErrMessage(error)));
