@@ -97,36 +97,34 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(LogicalOperator* logi
         getOperatorID(), paramsString);
 }
 
-static std::unique_ptr<FactorizedTableSchema> getFactorizedTableSchema(
-    const expression_vector& flatKeys, const expression_vector& unFlatKeys,
-    const expression_vector& payloads,
+static FactorizedTableSchema getFactorizedTableSchema(const expression_vector& flatKeys,
+    const expression_vector& unFlatKeys, const expression_vector& payloads,
     std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
     std::shared_ptr<Expression> markExpression) {
     auto isUnFlat = false;
-    auto dataChunkPos = 0u;
-    std::unique_ptr<FactorizedTableSchema> tableSchema = std::make_unique<FactorizedTableSchema>();
+    auto groupID = 0u;
+    auto tableSchema = FactorizedTableSchema();
     for (auto& flatKey : flatKeys) {
         auto size = LogicalTypeUtils::getRowLayoutSize(flatKey->dataType);
-        tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnFlat, dataChunkPos, size));
+        tableSchema.appendColumn(ColumnSchema(isUnFlat, groupID, size));
     }
     for (auto& unFlatKey : unFlatKeys) {
         auto size = LogicalTypeUtils::getRowLayoutSize(unFlatKey->dataType);
-        tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnFlat, dataChunkPos, size));
+        tableSchema.appendColumn(ColumnSchema(isUnFlat, groupID, size));
     }
     for (auto& payload : payloads) {
         auto size = LogicalTypeUtils::getRowLayoutSize(payload->dataType);
-        tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnFlat, dataChunkPos, size));
+        tableSchema.appendColumn(ColumnSchema(isUnFlat, groupID, size));
     }
     for (auto& aggregateFunc : aggregateFunctions) {
-        tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnFlat, dataChunkPos,
-            aggregateFunc->getAggregateStateSize()));
+        tableSchema.appendColumn(
+            ColumnSchema(isUnFlat, groupID, aggregateFunc->getAggregateStateSize()));
     }
     if (markExpression != nullptr) {
-        tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnFlat, dataChunkPos,
+        tableSchema.appendColumn(ColumnSchema(isUnFlat, groupID,
             LogicalTypeUtils::getRowLayoutSize(markExpression->dataType)));
     }
-    tableSchema->appendColumn(
-        std::make_unique<ColumnSchema>(isUnFlat, dataChunkPos, sizeof(hash_t)));
+    tableSchema.appendColumn(ColumnSchema(isUnFlat, groupID, sizeof(hash_t)));
     return tableSchema;
 }
 

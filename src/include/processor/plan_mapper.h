@@ -106,6 +106,7 @@ private:
     std::unique_ptr<ResultCollector> createResultCollector(common::AccumulateType accumulateType,
         const binder::expression_vector& expressions, planner::Schema* schema,
         std::unique_ptr<PhysicalOperator> prevOperator);
+
     // Scan fTable with row offset.
     std::unique_ptr<PhysicalOperator> createFTableScan(const binder::expression_vector& exprs,
         std::vector<ft_col_idx_t> colIndices, std::shared_ptr<binder::Expression> offset,
@@ -175,9 +176,7 @@ private:
     std::unique_ptr<RelSetExecutor> getRelSetExecutor(planner::LogicalSetPropertyInfo* info,
         const planner::Schema& inSchema) const;
 
-    std::shared_ptr<FactorizedTable> getSingleStringColumnFTable() const;
-
-    inline uint32_t getOperatorID() { return physicalOperatorID++; }
+    uint32_t getOperatorID() { return physicalOperatorID++; }
 
     static void mapSIPJoin(PhysicalOperator* probe);
 

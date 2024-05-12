@@ -9,7 +9,7 @@ namespace processor {
 class JoinHashTable : public BaseHashTable {
 public:
     JoinHashTable(storage::MemoryManager& memoryManager, common::logical_type_vec_t keyTypes,
-        std::unique_ptr<FactorizedTableSchema> tableSchema);
+        FactorizedTableSchema tableSchema);
 
     void appendVectors(const std::vector<common::ValueVector*>& keyVectors,
         const std::vector<common::ValueVector*>& payloadVectors, common::DataChunkState* keyState);

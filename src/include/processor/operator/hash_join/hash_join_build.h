@@ -38,18 +38,18 @@ class HashJoinBuildInfo {
 
 public:
     HashJoinBuildInfo(std::vector<DataPos> keysPos, std::vector<common::FStateType> fStateTypes,
-        std::vector<DataPos> payloadsPos, std::unique_ptr<FactorizedTableSchema> tableSchema)
+        std::vector<DataPos> payloadsPos, FactorizedTableSchema tableSchema)
         : keysPos{std::move(keysPos)}, fStateTypes{std::move(fStateTypes)},
           payloadsPos{std::move(payloadsPos)}, tableSchema{std::move(tableSchema)} {}
     HashJoinBuildInfo(const HashJoinBuildInfo& other)
         : keysPos{other.keysPos}, fStateTypes{other.fStateTypes}, payloadsPos{other.payloadsPos},
-          tableSchema{other.tableSchema->copy()} {}
+          tableSchema{other.tableSchema.copy()} {}
 
-    inline uint32_t getNumKeys() const { return keysPos.size(); }
+    uint32_t getNumKeys() const { return keysPos.size(); }
 
-    inline FactorizedTableSchema* getTableSchema() const { return tableSchema.get(); }
+    const FactorizedTableSchema* getTableSchema() const { return &tableSchema; }
 
-    inline std::unique_ptr<HashJoinBuildInfo> copy() const {
+    std::unique_ptr<HashJoinBuildInfo> copy() const {
         return std::make_unique<HashJoinBuildInfo>(*this);
     }
 
@@ -57,7 +57,7 @@ private:
     std::vector<DataPos> keysPos;
     std::vector<common::FStateType> fStateTypes;
     std::vector<DataPos> payloadsPos;
-    std::unique_ptr<FactorizedTableSchema> tableSchema;
+    FactorizedTableSchema tableSchema;
 };
 
 class HashJoinBuild : public Sink {

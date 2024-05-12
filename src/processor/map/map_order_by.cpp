@@ -23,23 +23,23 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logica
     std::vector<DataPos> payloadsPos;
     std::vector<std::unique_ptr<LogicalType>> payloadTypes;
     binder::expression_map<ft_col_idx_t> payloadToColIdx;
-    auto payloadSchema = std::make_unique<FactorizedTableSchema>();
+    auto payloadSchema = FactorizedTableSchema();
     auto mayContainUnFlatKey = inSchema->getNumGroups() == 1;
     for (auto i = 0u; i < payloadExpressions.size(); ++i) {
         auto expression = payloadExpressions[i];
         auto [dataChunkPos, vectorPos] = inSchema->getExpressionPos(*expression);
         payloadsPos.emplace_back(dataChunkPos, vectorPos);
         payloadTypes.push_back(expression->dataType.copy());
-        std::unique_ptr<ColumnSchema> columnSchema;
         if (!inSchema->getGroup(dataChunkPos)->isFlat() && !mayContainUnFlatKey) {
             // payload is unFlat and not in the same group as keys
-            columnSchema = std::make_unique<ColumnSchema>(true /* isUnFlat */, dataChunkPos,
-                sizeof(overflow_value_t));
+            auto columnSchema =
+                ColumnSchema(true /* isUnFlat */, dataChunkPos, sizeof(overflow_value_t));
+            payloadSchema.appendColumn(std::move(columnSchema));
         } else {
-            columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */, dataChunkPos,
+            auto columnSchema = ColumnSchema(false /* isUnFlat */, dataChunkPos,
                 LogicalTypeUtils::getRowLayoutSize(expression->getDataType()));
+            payloadSchema.appendColumn(std::move(columnSchema));
         }
-        payloadSchema->appendColumn(std::move(columnSchema));
         payloadToColIdx.insert({expression, i});
     }
     std::vector<DataPos> keysPos;

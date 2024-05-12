@@ -26,15 +26,15 @@ private:
 
 struct ResultCollectorInfo {
     common::AccumulateType accumulateType;
-    std::unique_ptr<FactorizedTableSchema> tableSchema;
+    FactorizedTableSchema tableSchema;
     std::vector<DataPos> payloadPositions;
 
-    ResultCollectorInfo(common::AccumulateType accumulateType,
-        std::unique_ptr<FactorizedTableSchema> tableSchema, std::vector<DataPos> payloadPositions)
+    ResultCollectorInfo(common::AccumulateType accumulateType, FactorizedTableSchema tableSchema,
+        std::vector<DataPos> payloadPositions)
         : accumulateType{accumulateType}, tableSchema{std::move(tableSchema)},
           payloadPositions{std::move(payloadPositions)} {}
     ResultCollectorInfo(const ResultCollectorInfo& other)
-        : accumulateType{other.accumulateType}, tableSchema{other.tableSchema->copy()},
+        : accumulateType{other.accumulateType}, tableSchema{other.tableSchema.copy()},
           payloadPositions{other.payloadPositions} {}
 
     inline std::unique_ptr<ResultCollectorInfo> copy() const {

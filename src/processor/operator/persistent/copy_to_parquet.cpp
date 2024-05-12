@@ -9,7 +9,7 @@ using namespace kuzu::storage;
 void CopyToParquetLocalState::init(CopyToInfo* info, storage::MemoryManager* mm,
     ResultSet* resultSet) {
     auto copyToInfo = info->constPtrCast<CopyToParquetInfo>();
-    ft = std::make_unique<FactorizedTable>(mm, copyToInfo->tableSchema->copy());
+    ft = std::make_unique<FactorizedTable>(mm, copyToInfo->tableSchema.copy());
     numTuplesInFT = 0;
     countingVec = nullptr;
     vectorsToAppend.reserve(info->dataPoses.size());

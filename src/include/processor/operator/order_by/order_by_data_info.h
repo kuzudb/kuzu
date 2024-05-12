@@ -1,7 +1,7 @@
 #pragma once
 
 #include "processor/data_pos.h"
-#include "processor/result/factorized_table.h"
+#include "processor/result/factorized_table_schema.h"
 
 namespace kuzu {
 namespace processor {
@@ -12,13 +12,13 @@ struct OrderByDataInfo {
     std::vector<std::unique_ptr<common::LogicalType>> keyTypes;
     std::vector<std::unique_ptr<common::LogicalType>> payloadTypes;
     std::vector<bool> isAscOrder;
-    std::unique_ptr<FactorizedTableSchema> payloadTableSchema;
+    FactorizedTableSchema payloadTableSchema;
     std::vector<uint32_t> keyInPayloadPos;
 
     OrderByDataInfo(std::vector<DataPos> keysPos, std::vector<DataPos> payloadsPos,
         std::vector<std::unique_ptr<common::LogicalType>> keyTypes,
         std::vector<std::unique_ptr<common::LogicalType>> payloadTypes,
-        std::vector<bool> isAscOrder, std::unique_ptr<FactorizedTableSchema> payloadTableSchema,
+        std::vector<bool> isAscOrder, FactorizedTableSchema payloadTableSchema,
         std::vector<uint32_t> keyInPayloadPos)
         : keysPos{std::move(keysPos)}, payloadsPos{std::move(payloadsPos)},
           keyTypes{std::move(keyTypes)}, payloadTypes{std::move(payloadTypes)},
@@ -28,7 +28,7 @@ struct OrderByDataInfo {
         : keysPos{other.keysPos}, payloadsPos{other.payloadsPos},
           keyTypes{common::LogicalType::copy(other.keyTypes)},
           payloadTypes{common::LogicalType::copy(other.payloadTypes)}, isAscOrder{other.isAscOrder},
-          payloadTableSchema{other.payloadTableSchema->copy()},
+          payloadTableSchema{other.payloadTableSchema.copy()},
           keyInPayloadPos{other.keyInPayloadPos} {}
 
     std::unique_ptr<OrderByDataInfo> copy() const {
