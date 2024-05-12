@@ -737,17 +737,21 @@ void FlatTupleIterator::updateNumElementsInDataChunk() {
     auto colOffsetInTupleBuffer = 0ul;
     for (auto i = 0u; i < factorizedTable.getTableSchema()->getNumColumns(); i++) {
         auto column = factorizedTable.getTableSchema()->getColumn(i);
-        // If this is an unflat column, the number of elements is stored in the
+        // If this is an unFlat column, the number of elements is stored in the
         // overflow_value_t struct. Otherwise, the number of elements is 1.
-        auto numElementsInDataChunk =
+        auto numElements =
             column->isFlat() ?
                 1 :
                 ((overflow_value_t*)(currentTupleBuffer + colOffsetInTupleBuffer))->numElements;
         if (column->getDataChunkPos() >= flatTuplePositionsInDataChunk.size()) {
             flatTuplePositionsInDataChunk.resize(column->getDataChunkPos() + 1);
         }
+        if (dataChunkPosToGroupIdx.contains()) {
+
+        }
+
         flatTuplePositionsInDataChunk[column->getDataChunkPos()] =
-            std::make_pair(0 /* nextIdxToReadInDataChunk */, numElementsInDataChunk);
+            std::make_pair(0 /* nextIdxToReadInDataChunk */, numElements);
         colOffsetInTupleBuffer += column->getNumBytes();
     }
 }

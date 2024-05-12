@@ -329,6 +329,10 @@ public:
         storage::MemoryManager* memoryManager);
 };
 
+struct GroupIteratorState {
+    uint64_t nextIdxToReadInDataChunk
+};
+
 class FlatTupleIterator {
 public:
     explicit FlatTupleIterator(FactorizedTable& factorizedTable,
@@ -381,7 +385,10 @@ private:
     ft_tuple_idx_t nextFlatTupleIdx;
     ft_tuple_idx_t nextTupleIdx;
     // This field stores the (nextIdxToReadInDataChunk, numElementsInDataChunk) of each dataChunk.
-    std::vector<std::pair<uint64_t, uint64_t>> flatTuplePositionsInDataChunk;
+//    std::vector<std::pair<uint64_t, uint64_t>> flatTuplePositionsInDataChunk;
+
+    std::unordered_map<common::idx_t, common::idx_t> dataChunkPosToGroupIdx;
+    std::vector<GroupIteratorState> groupIteratorStates;
 
     std::vector<common::Value*> values;
 };
