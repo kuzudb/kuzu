@@ -289,7 +289,7 @@ uint32_t InMemHashIndex<T>::allocateAOSlot() {
 }
 
 template<typename T>
-Slot<T>* InMemHashIndex<T>::getSlot(const SlotInfo& slotInfo) {
+Slot<T>* InMemHashIndex<T>::getSlot(const SlotInfo& slotInfo) const {
     if (slotInfo.slotType == SlotType::PRIMARY) {
         return &pSlots->operator[](slotInfo.slotId);
     } else {
@@ -365,6 +365,48 @@ void InMemHashIndex<T>::createEmptyIndexFiles(uint64_t indexPos, FileHandle& fil
     headerArray.saveToDisk();
     pSlots.saveToDisk();
     oSlots.saveToDisk();
+}
+
+template<typename T>
+bool InMemHashIndex<T>::deleteKey(Key key) {
+    if (this->indexHeader.numEntries == 0) {
+        return false;
+    }
+    auto hashValue = HashIndexUtils::hash(key);
+    auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
+    auto slotId = HashIndexUtils::getPrimarySlotIdForHash(this->indexHeader, hashValue);
+    SlotIterator iter(slotId, this);
+    std::optional<entry_pos_t> deletedPos = 0;
+    do {
+        for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
+            if (iter.slot->header.isEntryValid(entryPos) &&
+                iter.slot->header.fingerprints[entryPos] == fingerprint &&
+                equals(key, iter.slot->entries[entryPos].key)) {
+                deletedPos = entryPos;
+                iter.slot->header.setEntryInvalid(entryPos);
+                break;
+            }
+        }
+        if (deletedPos.has_value()) {
+            break;
+        }
+    } while (nextChainedSlot(iter));
+
+    if (deletedPos.has_value()) {
+        // Find the last valid entry and move it into the deleted position
+        auto newIter = iter;
+        while (nextChainedSlot(newIter))
+            ;
+        if (newIter.slotInfo != iter.slotInfo ||
+            *deletedPos != newIter.slot->header.numEntries() - 1) {
+            auto lastEntryPos = newIter.slot->header.numEntries();
+            iter.slot->entries[*deletedPos] = newIter.slot->entries[lastEntryPos];
+            iter.slot->header.setEntryValid(*deletedPos,
+                newIter.slot->header.fingerprints[lastEntryPos]);
+            newIter.slot->header.setEntryInvalid(lastEntryPos);
+        }
+    }
+    return false;
 }
 
 template class InMemHashIndex<int64_t>;
