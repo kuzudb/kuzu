@@ -157,7 +157,7 @@ kU_CreateRdfGraph
 RDFGRAPH : ('R' | 'r') ('D' | 'd') ('F' | 'f') ('G' | 'g') ('R' | 'r') ('A' | 'a') ('P' | 'p') ('H' | 'h') ;
 
 kU_CreateSequence
-    : CREATE SP SEQUENCE SP oC_SchemaName kU_SequenceOptions* ;
+    : CREATE SP SEQUENCE SP oC_SchemaName (SP kU_SequenceOptions)* ;
 
 SEQUENCE : ('S' | 's') ('E' | 'e') ('Q' | 'q') ('U' | 'u') ('E' | 'e') ('N' | 'n') ('C' | 'c') ('E' | 'e') ;
 

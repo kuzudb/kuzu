@@ -14,20 +14,45 @@ struct BoundAlterInfo;
 
 namespace catalog {
 
+struct SequenceData {
+    SequenceData() = default;
+	explicit SequenceData(const binder::BoundCreateSequenceInfo &info)
+        : usageCount{0}, nextVal{info.startWith}, currVal{info.startWith}, increment{info.increment}, 
+          startValue{info.startWith}, minValue{info.minValue}, maxValue{info.maxValue}, 
+          cycle{info.cycle} {}
+
+    uint64_t usageCount;
+    int64_t nextVal;
+    int64_t currVal;
+    int64_t increment;
+    int64_t startValue;
+    int64_t minValue;
+    int64_t maxValue;
+    bool cycle;
+};
+
 class KUZU_API SequenceCatalogEntry : public CatalogEntry {
 public:
     //===--------------------------------------------------------------------===//
     // constructors
     //===--------------------------------------------------------------------===//
     SequenceCatalogEntry() = default;
-    SequenceCatalogEntry(CatalogSet* set, std::string name, common::sequence_id_t sequenceID)
-        : CatalogEntry{CatalogEntryType::SEQUENCE_ENTRY, std::move(name)}, set{set}, 
-          sequenceID{sequenceID} {}
+    SequenceCatalogEntry(CatalogSet* set, common::sequence_id_t sequenceID,
+        const binder::BoundCreateSequenceInfo &sequenceInfo)
+        : CatalogEntry{CatalogEntryType::SEQUENCE_ENTRY, std::move(sequenceInfo.sequenceName)}, 
+          set{set}, sequenceID{sequenceID}, sequenceData{SequenceData(sequenceInfo)} {}
 
     //===--------------------------------------------------------------------===//
     // getter & setter
     //===--------------------------------------------------------------------===//
     common::sequence_id_t getSequenceID() const { return sequenceID; }
+    SequenceData getSequenceData() const { return sequenceData; }
+
+    //===--------------------------------------------------------------------===//
+    // sequence functions
+    //===--------------------------------------------------------------------===//
+    // int64_t CurrentValue();
+	// int64_t NextValue(Transaction* transaction);
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization
@@ -44,6 +69,7 @@ protected:
 protected:
     CatalogSet* set;
     common::sequence_id_t sequenceID;
+    SequenceData sequenceData;
 };
 
 } // namespace catalog

@@ -185,8 +185,8 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
         throw BinderException(sequenceName + " already exists in catalog.");
     }
     auto boundInfo = 
-        BoundCreateSequenceInfo(sequenceName, info->cycle, info->startWith, info->increment, 
-            info->minValue, info->maxValue);
+        BoundCreateSequenceInfo(sequenceName, info->startWith, info->increment, 
+            info->minValue, info->maxValue, info->cycle);
     return std::make_unique<BoundCreateSequence>(std::move(boundInfo));
 }
 

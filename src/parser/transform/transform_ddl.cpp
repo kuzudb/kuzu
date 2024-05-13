@@ -95,6 +95,7 @@ std::unique_ptr<Statement> Transformer::transformCreateSequence(
     auto sequenceName = transformSchemaName(*ctx.oC_SchemaName());
     auto createSequenceInfo = CreateSequenceInfo(sequenceName);
     std::unordered_set<SequenceInfoType> applied;
+    bool defaultStart = true;
     bool defaultMin = true;
     bool defaultMax = true;
     for (auto seqOption : ctx.kU_SequenceOptions()) {
@@ -107,6 +108,7 @@ std::unique_ptr<Statement> Transformer::transformCreateSequence(
             typeString = "START";
             valLiteral = seqOption->kU_StartWith()->oC_IntegerLiteral();
             valOption = &createSequenceInfo.startWith;
+            defaultStart = false;
         } else if (seqOption->kU_IncrementBy()) {
             type = SequenceInfoType::INCREMENT;
             typeString = "INCREMENT";
@@ -118,6 +120,7 @@ std::unique_ptr<Statement> Transformer::transformCreateSequence(
             if (!seqOption->kU_MinValue()->NO()) {
                 valLiteral = seqOption->kU_MinValue()->oC_IntegerLiteral();
                 valOption = &createSequenceInfo.minValue;
+                defaultMin = false;
             }
         } else if (seqOption->kU_MaxValue()) {
             type = SequenceInfoType::MAXVALUE;
@@ -125,11 +128,12 @@ std::unique_ptr<Statement> Transformer::transformCreateSequence(
             if (!seqOption->kU_MaxValue()->NO()) {
                 valLiteral = seqOption->kU_MaxValue()->oC_IntegerLiteral();
                 valOption = &createSequenceInfo.maxValue;
+                defaultMax = false;
             }
         } else { // seqOption->kU_Cycle()
             type = SequenceInfoType::CYCLE;
             typeString = "CYCLE";
-            if (!seqOption->kU_MaxValue()->NO()) {
+            if (!seqOption->kU_Cycle()->NO()) {
                 createSequenceInfo.cycle = true;
             }
         }
@@ -148,7 +152,15 @@ std::unique_ptr<Statement> Transformer::transformCreateSequence(
             *valOption = value.getValue<int64_t>();
         }
     }
-    if (createSequenceInfo.increment < 0) {
+    if (createSequenceInfo.increment == 0) {
+        throw ParserException("INCREMENT must be non-zero.");
+    }
+    bool isIncrement = createSequenceInfo.increment > 0;
+    if (defaultStart) {
+        createSequenceInfo.startWith = 
+            isIncrement ? createSequenceInfo.minValue : createSequenceInfo.maxValue;
+    }
+    if (!isIncrement) {
         if (defaultMin) {
             createSequenceInfo.minValue = INT64_MIN;
         }

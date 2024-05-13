@@ -244,12 +244,19 @@ SequenceCatalogEntry* Catalog::getSequenceCatalogEntry(Transaction* transaction,
     return result;
 }
 
+std::vector<SequenceCatalogEntry*> Catalog::getSequenceEntries(Transaction* transaction) const {
+    std::vector<SequenceCatalogEntry*> result;
+    for (auto& [_, entry] : sequences->getEntries(transaction)) {
+        result.push_back(ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(entry));
+    }
+    return result;
+}
+
 sequence_id_t Catalog::createSequence(transaction::Transaction* transaction,
     const BoundCreateSequenceInfo& info) {
     sequence_id_t sequenceID = sequences->assignNextOID();
     std::unique_ptr<CatalogEntry> entry = 
-        std::make_unique<SequenceCatalogEntry>(sequences.get(), info.sequenceName,
-        sequenceID);
+        std::make_unique<SequenceCatalogEntry>(sequences.get(), sequenceID, info);
     sequences->createEntry(transaction, std::move(entry));
     return sequenceID;
 }
