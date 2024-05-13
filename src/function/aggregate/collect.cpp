@@ -43,9 +43,9 @@ void CollectFunction::updatePos(uint8_t* state_, ValueVector* input, uint64_t mu
 void CollectFunction::initCollectStateIfNecessary(CollectState* state, MemoryManager* memoryManager,
     LogicalType& dataType) {
     if (state->factorizedTable == nullptr) {
-        auto tableSchema = std::make_unique<FactorizedTableSchema>();
-        tableSchema->appendColumn(std::make_unique<ColumnSchema>(false /* isUnflat */,
-            0 /* dataChunkPos */, StorageUtils::getDataTypeSize(dataType)));
+        auto tableSchema = FactorizedTableSchema();
+        tableSchema.appendColumn(ColumnSchema(false /* isUnflat */, 0 /* groupID */,
+            StorageUtils::getDataTypeSize(dataType)));
         state->factorizedTable =
             std::make_unique<FactorizedTable>(memoryManager, std::move(tableSchema));
     }

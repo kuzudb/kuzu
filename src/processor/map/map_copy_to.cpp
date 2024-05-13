@@ -2,6 +2,7 @@
 #include "processor/operator/persistent/copy_to_csv.h"
 #include "processor/operator/persistent/copy_to_parquet.h"
 #include "processor/plan_mapper.h"
+#include "processor/result/factorized_table_util.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;
@@ -16,24 +17,17 @@ std::unique_ptr<CopyToInfo> getCopyToInfo(Schema* childSchema, std::string fileP
     std::vector<bool> isFlat, bool canParallel) {
     switch (fileType) {
     case FileType::PARQUET: {
-        auto copyToSchema = std::make_unique<FactorizedTableSchema>();
-        auto copyToExpressions = childSchema->getExpressionsInScope();
-        auto countingVecPos = DataPos(childSchema->getExpressionPos(*copyToExpressions[0]));
-        for (auto& copyToExpression : copyToExpressions) {
-            auto [dataChunkPos, vectorPos] = childSchema->getExpressionPos(*copyToExpression);
-            std::unique_ptr<ColumnSchema> columnSchema;
-            if (!childSchema->getGroup(dataChunkPos)->isFlat()) {
-                // payload is unFlat and not in the same group as keys
-                columnSchema = std::make_unique<ColumnSchema>(true /* isUnFlat */, dataChunkPos,
-                    sizeof(overflow_value_t));
-                countingVecPos = DataPos(childSchema->getExpressionPos(*copyToExpression));
-            } else {
-                columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */, dataChunkPos,
-                    LogicalTypeUtils::getRowLayoutSize(copyToExpression->getDataType()));
+        auto expressions = childSchema->getExpressionsInScope();
+        auto tableSchema = FactorizedTableUtils::createFTableSchema(expressions, *childSchema);
+        auto countingVecPos = DataPos(childSchema->getExpressionPos(*expressions[0]));
+        for (auto& e : expressions) {
+            auto group = childSchema->getGroup(e->getUniqueName());
+            if (!group->isFlat()) {
+                countingVecPos = DataPos(childSchema->getExpressionPos(*e));
             }
-            copyToSchema->appendColumn(std::move(columnSchema));
         }
-        return std::make_unique<CopyToParquetInfo>(std::move(copyToSchema), std::move(columnsTypes),
+
+        return std::make_unique<CopyToParquetInfo>(std::move(tableSchema), std::move(columnsTypes),
             std::move(columnNames), std::move(vectorsToCopyPos), std::move(filePath),
             std::move(countingVecPos), canParallel);
     }
@@ -87,10 +81,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(LogicalOperator* logical
             std::move(copyToInfo), std::move(sharedState), std::move(prevOperator), getOperatorID(),
             copy->getExpressionsForPrinting());
     }
-    std::shared_ptr<FactorizedTable> fTable;
-    auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
-    fTable = std::make_shared<FactorizedTable>(clientContext->getMemoryManager(),
-        std::move(ftTableSchema));
+    auto fTable = std::make_shared<FactorizedTable>(clientContext->getMemoryManager(),
+        FactorizedTableSchema());
     return createEmptyFTableScan(fTable, 0, std::move(copyTo));
 }
 

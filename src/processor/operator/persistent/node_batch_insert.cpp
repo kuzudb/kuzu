@@ -9,6 +9,7 @@
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/index_builder.h"
 #include "processor/result/factorized_table.h"
+#include "processor/result/factorized_table_util.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/node_table.h"

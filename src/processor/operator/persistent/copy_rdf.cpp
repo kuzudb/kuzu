@@ -1,7 +1,7 @@
 #include "processor/operator/persistent/copy_rdf.h"
 
 #include "common/string_format.h"
-#include "processor/result/factorized_table.h"
+#include "processor/result/factorized_table_util.h"
 
 namespace kuzu {
 namespace processor {

@@ -13,7 +13,7 @@ AggregateHashTable::AggregateHashTable(MemoryManager& memoryManager,
     std::vector<LogicalType> keyTypes, std::vector<LogicalType> payloadTypes,
     const std::vector<std::unique_ptr<AggregateFunction>>& aggregateFunctions,
     const std::vector<LogicalType>& distinctAggKeyTypes, uint64_t numEntriesToAllocate,
-    std::unique_ptr<FactorizedTableSchema> tableSchema)
+    FactorizedTableSchema tableSchema)
     : BaseHashTable{memoryManager, std::move(keyTypes)}, payloadTypes{std::move(payloadTypes)} {
     initializeFT(aggregateFunctions, std::move(tableSchema));
     initializeHashTable(numEntriesToAllocate);
@@ -122,7 +122,7 @@ void AggregateHashTable::finalizeAggregateStates() {
 
 void AggregateHashTable::initializeFT(
     const std::vector<std::unique_ptr<AggregateFunction>>& aggFuncs,
-    std::unique_ptr<FactorizedTableSchema> tableSchema) {
+    FactorizedTableSchema tableSchema) {
     aggStateColIdxInFT = keyTypes.size() + payloadTypes.size();
     for (auto& dataType : keyTypes) {
         numBytesForKeys += LogicalTypeUtils::getRowLayoutSize(dataType);
@@ -141,8 +141,8 @@ void AggregateHashTable::initializeFT(
                                      &AggregateHashTable::updateDistinctAggState :
                                      &AggregateHashTable::updateAggState);
     }
-    hashColIdxInFT = tableSchema->getNumColumns() - 1;
-    hashColOffsetInFT = tableSchema->getColOffset(hashColIdxInFT);
+    hashColIdxInFT = tableSchema.getNumColumns() - 1;
+    hashColOffsetInFT = tableSchema.getColOffset(hashColIdxInFT);
     factorizedTable = std::make_unique<FactorizedTable>(&memoryManager, std::move(tableSchema));
 }
 
@@ -747,24 +747,22 @@ std::unique_ptr<AggregateHashTable> AggregateHashTableUtils::createDistinctHashT
     MemoryManager& memoryManager, const std::vector<LogicalType>& groupByKeyTypes,
     const LogicalType& distinctKeyType) {
     std::vector<LogicalType> hashKeyTypes(groupByKeyTypes.size() + 1);
-    auto tableSchema = std::make_unique<FactorizedTableSchema>();
+    auto tableSchema = FactorizedTableSchema();
     auto i = 0u;
     // Group by key columns
     for (; i < groupByKeyTypes.size(); i++) {
         hashKeyTypes[i] = groupByKeyTypes[i];
         auto size = LogicalTypeUtils::getRowLayoutSize(hashKeyTypes[i]);
-        auto columnSchema =
-            std::make_unique<ColumnSchema>(false /* isUnFlat */, 0 /* dataChunkPos */, size);
-        tableSchema->appendColumn(std::move(columnSchema));
+        auto columnSchema = ColumnSchema(false /* isUnFlat */, 0 /* groupID */, size);
+        tableSchema.appendColumn(std::move(columnSchema));
     }
     // Distinct key column
     hashKeyTypes[i] = distinctKeyType;
-    auto columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */, 0 /* dataChunkPos */,
+    auto columnSchema = ColumnSchema(false /* isUnFlat */, 0 /* groupID */,
         LogicalTypeUtils::getRowLayoutSize(distinctKeyType));
-    tableSchema->appendColumn(std::move(columnSchema));
+    tableSchema.appendColumn(std::move(columnSchema));
     // Hash column
-    tableSchema->appendColumn(
-        std::make_unique<ColumnSchema>(false /* isUnFlat */, 0 /* dataChunkPos */, sizeof(hash_t)));
+    tableSchema.appendColumn(ColumnSchema(false /* isUnFlat */, 0 /* groupID */, sizeof(hash_t)));
     return std::make_unique<AggregateHashTable>(memoryManager, std::move(hashKeyTypes),
         std::vector<LogicalType>{} /* empty payload types */, 0 /* numEntriesToAllocate */,
         std::move(tableSchema));

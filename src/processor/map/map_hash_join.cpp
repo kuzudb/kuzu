@@ -16,14 +16,14 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(const Schema&
     std::vector<DataPos> keysPos;
     std::vector<FStateType> fStateTypes;
     std::vector<DataPos> payloadsPos;
-    auto tableSchema = std::make_unique<FactorizedTableSchema>();
+    auto tableSchema = FactorizedTableSchema();
     for (auto& key : keys) {
         auto pos = DataPos(buildSchema.getExpressionPos(*key));
         keyGroupPosSet.insert(pos.dataChunkPos);
         // Keys are always stored in flat column.
-        auto columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */, pos.dataChunkPos,
+        auto columnSchema = ColumnSchema(false /* isUnFlat */, pos.dataChunkPos,
             LogicalTypeUtils::getRowLayoutSize(key->dataType));
-        tableSchema->appendColumn(std::move(columnSchema));
+        tableSchema.appendColumn(std::move(columnSchema));
         keysPos.push_back(pos);
         fStateTypes.push_back(buildSchema.getGroup(pos.dataChunkPos)->isFlat() ?
                                   FStateType::FLAT :
@@ -31,28 +31,28 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(const Schema&
     }
     for (auto& payload : payloads) {
         auto pos = DataPos(buildSchema.getExpressionPos(*payload));
-        std::unique_ptr<ColumnSchema> columnSchema;
         if (keyGroupPosSet.contains(pos.dataChunkPos) ||
             buildSchema.getGroup(pos.dataChunkPos)->isFlat()) {
             // Payloads need to be stored in flat column in 2 cases
             // 1. payload is in the same chunk as a key. Since keys are always stored as flat,
             // payloads must also be stored as flat.
             // 2. payload is in flat chunk
-            columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */, pos.dataChunkPos,
+            auto columnSchema = ColumnSchema(false /* isUnFlat */, pos.dataChunkPos,
                 LogicalTypeUtils::getRowLayoutSize(payload->dataType));
+            tableSchema.appendColumn(std::move(columnSchema));
         } else {
-            columnSchema = std::make_unique<ColumnSchema>(true /* isUnFlat */, pos.dataChunkPos,
+            auto columnSchema = ColumnSchema(true /* isUnFlat */, pos.dataChunkPos,
                 (uint32_t)sizeof(overflow_value_t));
+            tableSchema.appendColumn(std::move(columnSchema));
         }
-        tableSchema->appendColumn(std::move(columnSchema));
         payloadsPos.push_back(pos);
     }
-    auto hashValueColumn = std::make_unique<ColumnSchema>(false /* isUnFlat */,
-        INVALID_DATA_CHUNK_POS, LogicalTypeUtils::getRowLayoutSize(*LogicalType::HASH()));
-    tableSchema->appendColumn(std::move(hashValueColumn));
-    auto pointerColumn = std::make_unique<ColumnSchema>(false /* isUnFlat */,
-        INVALID_DATA_CHUNK_POS, LogicalTypeUtils::getRowLayoutSize(*LogicalType::INT64()));
-    tableSchema->appendColumn(std::move(pointerColumn));
+    auto hashValueColumn = ColumnSchema(false /* isUnFlat */, INVALID_DATA_CHUNK_POS,
+        LogicalTypeUtils::getRowLayoutSize(*LogicalType::HASH()));
+    tableSchema.appendColumn(std::move(hashValueColumn));
+    auto pointerColumn = ColumnSchema(false /* isUnFlat */, INVALID_DATA_CHUNK_POS,
+        LogicalTypeUtils::getRowLayoutSize(*LogicalType::INT64()));
+    tableSchema.appendColumn(std::move(pointerColumn));
     return std::make_unique<HashJoinBuildInfo>(std::move(keysPos), std::move(fStateTypes),
         std::move(payloadsPos), std::move(tableSchema));
 }

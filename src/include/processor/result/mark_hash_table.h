@@ -9,7 +9,7 @@ class MarkHashTable : public AggregateHashTable {
 public:
     MarkHashTable(storage::MemoryManager& memoryManager, std::vector<common::LogicalType> keyTypes,
         std::vector<common::LogicalType> payloadTypes, uint64_t numEntriesToAllocate,
-        std::unique_ptr<FactorizedTableSchema> tableSchema);
+        FactorizedTableSchema tableSchema);
 
     uint64_t matchFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors, uint64_t numMayMatches,

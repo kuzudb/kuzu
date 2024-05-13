@@ -37,11 +37,11 @@ struct HashAggregateInfo {
     std::vector<DataPos> flatKeysPos;
     std::vector<DataPos> unFlatKeysPos;
     std::vector<DataPos> dependentKeysPos;
-    std::unique_ptr<FactorizedTableSchema> tableSchema;
+    FactorizedTableSchema tableSchema;
     HashTableType hashTableType;
 
     HashAggregateInfo(std::vector<DataPos> flatKeysPos, std::vector<DataPos> unFlatKeysPos,
-        std::vector<DataPos> dependentKeysPos, std::unique_ptr<FactorizedTableSchema> tableSchema,
+        std::vector<DataPos> dependentKeysPos, FactorizedTableSchema tableSchema,
         HashTableType hashTableType);
     HashAggregateInfo(const HashAggregateInfo& other);
 };

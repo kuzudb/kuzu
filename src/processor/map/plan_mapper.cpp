@@ -202,14 +202,5 @@ std::vector<DataPos> PlanMapper::getDataPos(const binder::expression_vector& exp
     return result;
 }
 
-std::shared_ptr<FactorizedTable> PlanMapper::getSingleStringColumnFTable() const {
-    auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
-    ftTableSchema->appendColumn(
-        std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,
-            LogicalTypeUtils::getRowLayoutSize(LogicalType{LogicalTypeID::STRING})));
-    return std::make_shared<FactorizedTable>(clientContext->getMemoryManager(),
-        std::move(ftTableSchema));
-}
-
 } // namespace processor
 } // namespace kuzu
