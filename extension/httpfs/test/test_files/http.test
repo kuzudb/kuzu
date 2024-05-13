@@ -132,3 +132,10 @@ Binder exception: Table person does not exist.
 -STATEMENT attach 'http://localhost/databases/tinysnb1' as test (dbtype 'kuzu')
 ---- error
 Runtime exception: Cannot attach a remote kuzu database due to invalid path: http://localhost/databases/tinysnb1.
+
+-CASE AttachDBWithNonEmptyWAL
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT attach 'http://localhost/databases/non-empty-wal' as test (dbtype 'kuzu')
+---- error
+Runtime exception: Cannot attach a remote kuzu database with non-empty wal file.

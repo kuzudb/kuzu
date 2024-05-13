@@ -95,7 +95,7 @@ public:
 
     // Database component getters.
     std::string getDatabasePath() const;
-    KUZU_API Database* getDatabase() const { return database; }
+    KUZU_API Database* getDatabase() const { return localDatabase; }
     KUZU_API DatabaseManager* getDatabaseManager() const;
     storage::StorageManager* getStorageManager() const;
     KUZU_API storage::MemoryManager* getMemoryManager();
@@ -176,10 +176,10 @@ private:
     std::unordered_map<std::string, common::Value> extensionOptionValues;
     // Random generator for UUID.
     std::unique_ptr<common::RandomEngine> randomEngine;
-    // Attached database.
-    Database* database;
-    // Default database.
-    AttachedKuzuDatabase* defaultDatabase;
+    // Local database.
+    Database* localDatabase;
+    // Remote database.
+    AttachedKuzuDatabase* remoteDatabase;
     // Progress bar for queries
     std::unique_ptr<common::ProgressBar> progressBar;
     std::mutex mtx;
