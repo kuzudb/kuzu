@@ -26,6 +26,7 @@ class PatternElementChain;
 class RelPattern;
 struct ParsedCaseAlternative;
 struct BaseScanSource;
+struct AttachOption;
 
 class Transformer {
 public:
@@ -222,6 +223,7 @@ private:
     std::unique_ptr<Statement> transformAttachDatabase(CypherParser::KU_AttachDatabaseContext& ctx);
     std::unique_ptr<Statement> transformDetachDatabase(CypherParser::KU_DetachDatabaseContext& ctx);
     std::unique_ptr<Statement> transformUseDatabase(CypherParser::KU_UseDatabaseContext& ctx);
+    AttachOption transformAttachOptions(CypherParser::KU_AttachOptionsContext& ctx);
 
 private:
     CypherParser::Ku_StatementsContext& root;

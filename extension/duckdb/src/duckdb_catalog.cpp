@@ -9,7 +9,7 @@
 namespace kuzu {
 namespace duckdb_extension {
 
-void DuckDBCatalog::init() {
+void DuckDBCatalog::init(bool skipInvalidTable) {
     auto [db, con] = getConnection(dbPath);
     auto query = common::stringFormat(
         "select table_name from information_schema.tables where table_catalog = '{}' and "
@@ -69,7 +69,8 @@ void DuckDBCatalog::createForeignTable(duckdb::Connection& con, const std::strin
 
 static bool getTableInfo(duckdb::Connection& con, const std::string& tableName,
     const std::string& schemaName, const std::string& catalogName,
-    std::vector<common::LogicalType>& columnTypes, std::vector<std::string>& columnNames) {
+    std::vector<common::LogicalType>& columnTypes, std::vector<std::string>& columnNames,
+    bool skipInvalidTable) {
     auto query =
         common::stringFormat("select data_type,column_name from information_schema.columns where "
                              "table_name = '{}' and table_schema = '{}' and table_catalog = '{}';",
@@ -85,7 +86,10 @@ static bool getTableInfo(duckdb::Connection& con, const std::string& tableName,
             columnTypes.push_back(DuckDBTypeConverter::convertDuckDBType(
                 result->GetValue(0, i).GetValue<std::string>()));
         } catch (common::BinderException& e) {
-            return false;
+            if (skipInvalidTable) {
+                return false;
+            }
+            throw;
         }
         columnNames.push_back(result->GetValue(1, i).GetValue<std::string>());
     }
@@ -97,8 +101,8 @@ bool DuckDBCatalog::bindPropertyInfos(duckdb::Connection& con, const std::string
     const std::string& catalogName, std::vector<binder::PropertyInfo>& propertyInfos) {
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::string> columnNames;
-    if (!getTableInfo(con, tableName, getDefaultSchemaName(), catalogName, columnTypes,
-            columnNames)) {
+    if (!getTableInfo(con, tableName, getDefaultSchemaName(), catalogName, columnTypes, columnNames,
+            skipInvalidTable)) {
         return false;
     }
     for (auto i = 0u; i < columnNames.size(); i++) {

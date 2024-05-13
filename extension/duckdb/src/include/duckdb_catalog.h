@@ -38,7 +38,7 @@ public:
           catalogName{std::move(catalogName)},
           tableNamesVector{*common::LogicalType::STRING(), context->getMemoryManager()} {}
 
-    void init() override;
+    void init(bool skipInvalidTable) override;
 
 protected:
     bool bindPropertyInfos(duckdb::Connection& con, const std::string& tableName,
@@ -62,6 +62,7 @@ private:
     std::string dbPath;
     std::string catalogName;
     common::ValueVector tableNamesVector;
+    bool skipInvalidTable;
 };
 
 } // namespace duckdb_extension

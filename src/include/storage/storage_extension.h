@@ -6,7 +6,8 @@ namespace kuzu {
 namespace storage {
 
 using attach_function_t = std::unique_ptr<main::AttachedDatabase> (*)(std::string dbPath,
-    std::string dbName, main::ClientContext* clientContext);
+    std::string dbName, main::ClientContext* clientContext,
+    const parser::AttachOption& attachOption);
 
 class StorageExtension {
 public:
@@ -15,8 +16,8 @@ public:
     virtual bool canHandleDB(std::string /*dbType*/) const { return false; }
 
     std::unique_ptr<main::AttachedDatabase> attach(std::string dbPath, std::string dbName,
-        main::ClientContext* clientContext) const {
-        return attachFunction(dbPath, dbName, clientContext);
+        main::ClientContext* clientContext, const parser::AttachOption& attachOption) const {
+        return attachFunction(dbPath, dbName, clientContext, attachOption);
     }
 
     virtual ~StorageExtension() = default;

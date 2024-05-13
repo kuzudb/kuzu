@@ -66,10 +66,10 @@ kU_ImportDatabase
     : IMPORT SP DATABASE SP StringLiteral;
 
 kU_AttachDatabase
-    : ATTACH SP StringLiteral (SP AS SP oC_SchemaName)? SP '(' SP? DBTYPE SP StringLiteral (SP kU_AttachOptions)? SP? ')' ;
+    : ATTACH SP StringLiteral (SP AS SP oC_SchemaName)? SP '(' SP? DBTYPE SP oC_SymbolicName (SP? ',' SP? kU_AttachOptions)? SP? ')' ;
 
 kU_AttachOption
-    : StringLiteral SP? '=' SP? oC_Literal ;
+    : oC_SymbolicName SP? '=' SP? oC_Literal ;
 
 kU_AttachOptions
     : kU_AttachOption ( SP? ',' SP? kU_AttachOption )* ;
