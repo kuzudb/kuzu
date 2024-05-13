@@ -66,11 +66,13 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     columnTypes.emplace_back(*LogicalType::STRING());
     std::vector<TableInfo> tableInfos;
     auto localDatabaseName = "local(kuzu)";
-    for (auto& entry : context->getCatalog()->getTableEntries(context->getTx())) {
-        auto tableInfo =
-            TableInfo{entry->getName(), TableTypeUtils::toString(entry->getTableType()),
-                localDatabaseName, entry->getComment()};
-        tableInfos.push_back(std::move(tableInfo));
+    if (!context->hasDefaultDatabase()) {
+        for (auto& entry : context->getCatalog()->getTableEntries(context->getTx())) {
+            auto tableInfo =
+                TableInfo{entry->getName(), TableTypeUtils::toString(entry->getTableType()),
+                    localDatabaseName, entry->getComment()};
+            tableInfos.push_back(std::move(tableInfo));
+        }
     }
 
     auto databaseManager = context->getDatabaseManager();

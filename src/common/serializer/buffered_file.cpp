@@ -35,6 +35,9 @@ void BufferedFileWriter::write(const uint8_t* data, uint64_t size) {
 }
 
 void BufferedFileWriter::flush() {
+    if (bufferOffset == 0) {
+        return;
+    }
     fileInfo->writeFile(buffer.get(), bufferOffset, fileOffset);
     fileOffset += bufferOffset;
     bufferOffset = 0;

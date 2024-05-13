@@ -22,13 +22,13 @@ public:
     std::vector<std::string> glob(main::ClientContext* context,
         const std::string& path) const override;
 
-    void overwriteFile(const std::string& from, const std::string& to) const override;
+    void overwriteFile(const std::string& from, const std::string& to) override;
 
     void createDir(const std::string& dir) const override;
 
-    void removeFileIfExists(const std::string& path) const override;
+    void removeFileIfExists(const std::string& path) override;
 
-    bool fileOrPathExists(const std::string& path) const override;
+    bool fileOrPathExists(const std::string& path) override;
 
     std::string expandPath(main::ClientContext* context, const std::string& path) const override;
 

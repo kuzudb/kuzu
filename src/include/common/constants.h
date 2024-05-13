@@ -194,5 +194,7 @@ struct ImportDBConstants {
     static constexpr char MACRO_NAME[] = "macro.cypher";
 };
 
+static constexpr char ATTACHED_KUZU_DB_TYPE[] = "KUZU";
+
 } // namespace common
 } // namespace kuzu

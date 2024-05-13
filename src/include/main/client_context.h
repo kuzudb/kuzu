@@ -33,6 +33,7 @@ namespace main {
 class DBConfig;
 class Database;
 class DatabaseManager;
+class AttachedKuzuDatabase;
 
 struct ActiveQuery {
     explicit ActiveQuery();
@@ -94,7 +95,7 @@ public:
 
     // Database component getters.
     std::string getDatabasePath() const;
-    KUZU_API Database* getDatabase() const { return database; }
+    KUZU_API Database* getDatabase() const { return localDatabase; }
     KUZU_API DatabaseManager* getDatabaseManager() const;
     storage::StorageManager* getStorageManager() const;
     KUZU_API storage::MemoryManager* getMemoryManager();
@@ -114,6 +115,10 @@ public:
     std::unique_ptr<PreparedStatement> prepareTest(std::string_view query);
     // only use for test framework
     std::vector<std::shared_ptr<parser::Statement>> parseQuery(std::string_view query);
+
+    void setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_);
+
+    bool hasDefaultDatabase();
 
 private:
     std::unique_ptr<QueryResult> query(std::string_view query, std::string_view encodedJoin,
@@ -155,6 +160,8 @@ private:
 
     void commitUDFTrx(bool isAutoCommitTrx);
 
+    bool canExecuteWriteQuery();
+
     // Client side configurable settings.
     ClientConfig clientConfig;
     // Database configurable settings.
@@ -169,8 +176,10 @@ private:
     std::unordered_map<std::string, common::Value> extensionOptionValues;
     // Random generator for UUID.
     std::unique_ptr<common::RandomEngine> randomEngine;
-    // Attached database.
-    Database* database;
+    // Local database.
+    Database* localDatabase;
+    // Remote database.
+    AttachedKuzuDatabase* remoteDatabase;
     // Progress bar for queries
     std::unique_ptr<common::ProgressBar> progressBar;
     std::mutex mtx;

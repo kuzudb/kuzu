@@ -82,12 +82,18 @@ public:
     void prepareCheckpoint(const std::string& databasePath, storage::WAL* wal,
         common::VirtualFileSystem* fs);
 
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<Catalog*, TARGET*>(this);
+    }
+
 private:
     void readFromFile(const std::string& directory, common::VirtualFileSystem* fs,
         common::FileVersionType versionType);
     void saveToFile(const std::string& directory, common::VirtualFileSystem* fs,
         common::FileVersionType versionType);
 
+private:
     // ----------------------------- Functions ----------------------------
     void registerBuiltInFunctions();
 

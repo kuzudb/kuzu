@@ -3,11 +3,11 @@
 namespace kuzu {
 namespace common {
 
-void FileSystem::overwriteFile(const std::string& /*from*/, const std::string& /*to*/) const {
+void FileSystem::overwriteFile(const std::string& /*from*/, const std::string& /*to*/) {
     KU_UNREACHABLE;
 }
 
-void FileSystem::copyFile(const std::string& /*from*/, const std::string& /*to*/) const {
+void FileSystem::copyFile(const std::string& /*from*/, const std::string& /*to*/) {
     KU_UNREACHABLE;
 }
 
@@ -15,11 +15,11 @@ void FileSystem::createDir(const std::string& /*dir*/) const {
     KU_UNREACHABLE;
 }
 
-void FileSystem::removeFileIfExists(const std::string& /*path*/) const {
+void FileSystem::removeFileIfExists(const std::string& /*path*/) {
     KU_UNREACHABLE;
 }
 
-bool FileSystem::fileOrPathExists(const std::string& /*path*/) const {
+bool FileSystem::fileOrPathExists(const std::string& /*path*/) {
     KU_UNREACHABLE;
 }
 
