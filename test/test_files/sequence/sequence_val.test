@@ -1,0 +1,84 @@
+-DATASET CSV empty
+
+--
+
+-CASE ExpectedError
+-STATEMENT CREATE SEQUENCE err;
+---- ok
+-STATEMENT RETURN curr_val('err');
+---- error
+Catalog exception: curr_val: sequence "err" is not yet defined
+
+-CASE BasicIncDec
+-STATEMENT CREATE SEQUENCE inc;
+---- ok
+-STATEMENT CREATE SEQUENCE dec INCREMENT -1;
+---- ok
+-STATEMENT RETURN next_val('inc');
+---- 1
+1
+-STATEMENT RETURN next_val('dec');
+---- 1
+-1
+-STATEMENT RETURN curr_val('inc');
+---- 1
+1
+-STATEMENT RETURN curr_val('dec');
+---- 1
+-1
+
+-CASE EdgesNoCycle
+-STATEMENT CREATE SEQUENCE overflowMax START 9223372036854775807 INCREMENT 1;
+---- ok
+-STATEMENT CREATE SEQUENCE overflowMin START -9223372036854775808 INCREMENT -1;
+---- ok
+-STATEMENT CREATE SEQUENCE edgeMax START 10 INCREMENT 1 MAXVALUE 10;
+---- ok
+-STATEMENT CREATE SEQUENCE edgeMin START -10 INCREMENT -1 MINVALUE -10;
+---- ok
+-STATEMENT RETURN next_val('overflowMax');
+---- error
+Catalog exception: nextval: reached maximum value of sequence "overflowMax" 9223372036854775807
+-STATEMENT RETURN next_val('overflowMin');
+---- error
+Catalog exception: nextval: reached minimum value of sequence "overflowMin" -9223372036854775808
+-STATEMENT RETURN next_val('edgeMax');
+---- ok
+-STATEMENT RETURN next_val('edgeMax');
+---- error
+Catalog exception: nextval: reached maximum value of sequence "edgeMax" 10
+-STATEMENT RETURN next_val('edgeMin');
+---- ok
+-STATEMENT RETURN next_val('edgeMin');
+---- error
+Catalog exception: nextval: reached minimum value of sequence "edgeMin" -10
+
+-CASE EdgesCycle
+-STATEMENT CREATE SEQUENCE overflowMax START 9223372036854775807 INCREMENT 1 CYCLE;
+---- ok
+-STATEMENT CREATE SEQUENCE overflowMin START -9223372036854775808 INCREMENT -1 CYCLE;
+---- ok
+-STATEMENT CREATE SEQUENCE edgeMax START 10 INCREMENT 1 MAXVALUE 10 CYCLE;
+---- ok
+-STATEMENT CREATE SEQUENCE edgeMin START -10 INCREMENT -1 MINVALUE -10 CYCLE;
+---- ok
+-STATEMENT RETURN next_val('overflowMax');
+---- ok
+-STATEMENT RETURN next_val('overflowMin');
+---- ok
+-STATEMENT RETURN next_val('edgeMax');
+---- ok
+-STATEMENT RETURN next_val('edgeMin');
+---- ok
+-STATEMENT RETURN next_val('overflowMax');
+---- 1
+1
+-STATEMENT RETURN next_val('overflowMin');
+---- 1
+-1
+-STATEMENT RETURN next_val('edgeMax');
+---- 1
+1
+-STATEMENT RETURN next_val('edgeMin');
+---- 1
+-1

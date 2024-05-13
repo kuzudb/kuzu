@@ -168,19 +168,19 @@ kU_SequenceOptions
         | kU_StartWith
         | kU_Cycle;
 
-kU_IncrementBy : INCREMENT SP ( BY SP )? oC_IntegerLiteral ;
+kU_IncrementBy : INCREMENT SP ( BY SP )? MINUS? oC_IntegerLiteral ;
 
 INCREMENT : ('I' | 'i') ('N' | 'n') ('C' | 'c') ('R' | 'r') ('E' | 'e') ('M' | 'm') ('E' | 'e') ('N' | 'n') ('T' | 't') ;
 
-kU_MinValue : (NO SP MINVALUE) | (MINVALUE SP oC_IntegerLiteral) ;
+kU_MinValue : (NO SP MINVALUE) | (MINVALUE SP MINUS? oC_IntegerLiteral) ;
 
-kU_MaxValue : (NO SP MAXVALUE) | (MAXVALUE SP oC_IntegerLiteral) ;
+kU_MaxValue : (NO SP MAXVALUE) | (MAXVALUE SP MINUS? oC_IntegerLiteral) ;
 
 MINVALUE : ('M' | 'm') ('I' | 'i') ('N' | 'n') ('V' | 'v') ('A' | 'a') ('L' | 'l') ('U' | 'u') ('E' | 'e') ;
 
 MAXVALUE : ('M' | 'm') ('A' | 'a') ('X' | 'x') ('V' | 'v') ('A' | 'a') ('L' | 'l') ('U' | 'u') ('E' | 'e') ;
 
-kU_StartWith : START SP ( WITH SP )? oC_IntegerLiteral ;
+kU_StartWith : START SP ( WITH SP )? MINUS? oC_IntegerLiteral ;
 
 START : ('S' | 's') ('T' | 't') ('A' | 'a') ('R' | 'r') ('T' | 't') ;
 

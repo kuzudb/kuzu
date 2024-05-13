@@ -859,6 +859,7 @@ public:
     antlr4::tree::TerminalNode* SP(size_t i);
     OC_IntegerLiteralContext *oC_IntegerLiteral();
     antlr4::tree::TerminalNode *BY();
+    antlr4::tree::TerminalNode *MINUS();
 
    
   };
@@ -873,6 +874,7 @@ public:
     antlr4::tree::TerminalNode *SP();
     antlr4::tree::TerminalNode *MINVALUE();
     OC_IntegerLiteralContext *oC_IntegerLiteral();
+    antlr4::tree::TerminalNode *MINUS();
 
    
   };
@@ -887,6 +889,7 @@ public:
     antlr4::tree::TerminalNode *SP();
     antlr4::tree::TerminalNode *MAXVALUE();
     OC_IntegerLiteralContext *oC_IntegerLiteral();
+    antlr4::tree::TerminalNode *MINUS();
 
    
   };
@@ -902,6 +905,7 @@ public:
     antlr4::tree::TerminalNode* SP(size_t i);
     OC_IntegerLiteralContext *oC_IntegerLiteral();
     antlr4::tree::TerminalNode *WITH();
+    antlr4::tree::TerminalNode *MINUS();
 
    
   };

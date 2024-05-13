@@ -6,6 +6,8 @@
 #include "parser/transformer.h"
 #include "common/exception/parser.h"
 #include "common/types/value/value.h"
+#include "common/types/ku_string.h"
+#include "function/cast/functions/cast_from_string_functions.h"
 
 using namespace kuzu::common;
 
@@ -101,24 +103,28 @@ std::unique_ptr<Statement> Transformer::transformCreateSequence(
     for (auto seqOption : ctx.kU_SequenceOptions()) {
         SequenceInfoType type;
         std::string typeString;
-        CypherParser::OC_IntegerLiteralContext* valLiteral = nullptr;
+        CypherParser::OC_IntegerLiteralContext* valCtx = nullptr;
         int64_t* valOption = nullptr;
+        std::string rawVal = "";
         if (seqOption->kU_StartWith()) {
             type = SequenceInfoType::START;
             typeString = "START";
-            valLiteral = seqOption->kU_StartWith()->oC_IntegerLiteral();
+            rawVal = seqOption->kU_StartWith()->MINUS() ? "-" : "";
+            valCtx = seqOption->kU_StartWith()->oC_IntegerLiteral();
             valOption = &createSequenceInfo.startWith;
             defaultStart = false;
         } else if (seqOption->kU_IncrementBy()) {
             type = SequenceInfoType::INCREMENT;
             typeString = "INCREMENT";
-            valLiteral = seqOption->kU_IncrementBy()->oC_IntegerLiteral();
+            rawVal = seqOption->kU_IncrementBy()->MINUS() ? "-" : "";
+            valCtx = seqOption->kU_IncrementBy()->oC_IntegerLiteral();
             valOption = &createSequenceInfo.increment;
         } else if (seqOption->kU_MinValue()) {
             type = SequenceInfoType::MINVALUE;
             typeString = "MINVALUE";
             if (!seqOption->kU_MinValue()->NO()) {
-                valLiteral = seqOption->kU_MinValue()->oC_IntegerLiteral();
+                rawVal = seqOption->kU_MinValue()->MINUS() ? "-" : "";
+                valCtx = seqOption->kU_MinValue()->oC_IntegerLiteral();
                 valOption = &createSequenceInfo.minValue;
                 defaultMin = false;
             }
@@ -126,7 +132,8 @@ std::unique_ptr<Statement> Transformer::transformCreateSequence(
             type = SequenceInfoType::MAXVALUE;
             typeString = "MAXVALUE";
             if (!seqOption->kU_MaxValue()->NO()) {
-                valLiteral = seqOption->kU_MaxValue()->oC_IntegerLiteral();
+                rawVal = seqOption->kU_MaxValue()->MINUS() ? "-" : "";
+                valCtx = seqOption->kU_MaxValue()->oC_IntegerLiteral();
                 valOption = &createSequenceInfo.maxValue;
                 defaultMax = false;
             }
@@ -142,24 +149,20 @@ std::unique_ptr<Statement> Transformer::transformCreateSequence(
         }
         applied.insert(type);
 
-        if (valLiteral && valOption) {
-            auto valParsed = transformIntegerLiteral(*valLiteral);
-            auto value = 
-                ku_dynamic_cast<const ParsedExpression&, const ParsedLiteralExpression&>(*valParsed).getValue();
-            if (value.getDataType()->getLogicalTypeID() != LogicalTypeID::INT64) {
+        if (valCtx && valOption) {
+            rawVal += valCtx->DecimalInteger()->getText();
+            ku_string_t literal{rawVal.c_str(), rawVal.length()};
+            int64_t result;
+            if (!function::CastString::tryCast(literal, result)) {
                 throw ParserException("Out of bounds: SEQUENCE accepts integers within INT64.");
             }
-            *valOption = value.getValue<int64_t>();
+            *valOption = result;
         }
     }
     if (createSequenceInfo.increment == 0) {
         throw ParserException("INCREMENT must be non-zero.");
     }
     bool isIncrement = createSequenceInfo.increment > 0;
-    if (defaultStart) {
-        createSequenceInfo.startWith = 
-            isIncrement ? createSequenceInfo.minValue : createSequenceInfo.maxValue;
-    }
     if (!isIncrement) {
         if (defaultMin) {
             createSequenceInfo.minValue = INT64_MIN;
@@ -167,6 +170,10 @@ std::unique_ptr<Statement> Transformer::transformCreateSequence(
         if (defaultMax) {
             createSequenceInfo.maxValue = -1;
         }
+    }
+    if (defaultStart) {
+        createSequenceInfo.startWith = 
+            isIncrement ? createSequenceInfo.minValue : createSequenceInfo.maxValue;
     }
     return std::make_unique<CreateSequence>(std::move(createSequenceInfo));
 }
