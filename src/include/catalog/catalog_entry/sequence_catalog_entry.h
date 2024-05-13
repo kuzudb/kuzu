@@ -5,6 +5,7 @@
 #include "binder/ddl/bound_create_sequence_info.h"
 #include "catalog/property.h"
 #include "catalog_entry.h"
+#include "common/exception/exception.h"
 
 namespace kuzu {
 namespace binder {
@@ -46,13 +47,13 @@ public:
     // getter & setter
     //===--------------------------------------------------------------------===//
     common::sequence_id_t getSequenceID() const { return sequenceID; }
-    SequenceData getSequenceData() const { return sequenceData; }
+    SequenceData getSequenceData();
 
     //===--------------------------------------------------------------------===//
     // sequence functions
     //===--------------------------------------------------------------------===//
-    // int64_t CurrentValue();
-	// int64_t NextValue(Transaction* transaction);
+    int64_t currVal();
+	int64_t nextVal();
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization
@@ -69,6 +70,9 @@ protected:
 protected:
     CatalogSet* set;
     common::sequence_id_t sequenceID;
+
+private:
+    std::mutex mtx;
     SequenceData sequenceData;
 };
 

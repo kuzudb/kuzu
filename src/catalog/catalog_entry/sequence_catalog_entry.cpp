@@ -3,12 +3,64 @@
 #include <algorithm>
 
 #include "binder/ddl/bound_create_sequence_info.h"
+#include "common/exception/overflow.h"
+#include "common/exception/catalog.h"
+#include "function/arithmetic/add.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace catalog {
+
+SequenceData SequenceCatalogEntry::getSequenceData() {
+	std::lock_guard<std::mutex> lck(mtx);
+    return sequenceData;
+}
+
+int64_t SequenceCatalogEntry::currVal() {
+	std::lock_guard<std::mutex> lck(mtx);
+	int64_t result;
+	if (sequenceData.usageCount == 0u) {
+		throw CatalogException("currval: sequence \"" + name + "\" is not yet defined");
+	}
+	result = sequenceData.currVal;
+	return result;
+}
+
+// referenced from DuckDB
+int64_t SequenceCatalogEntry::nextVal() {
+	std::lock_guard<std::mutex> lck(mtx);
+	int64_t result;
+	result = sequenceData.nextVal;
+    bool overflow = false;
+    try {
+        function::Add::operation(sequenceData.nextVal, sequenceData.increment, sequenceData.nextVal);
+    } catch (const OverflowException& e) {
+        overflow = true;
+    }
+	if (sequenceData.cycle) {
+		if (overflow) {
+			sequenceData.nextVal = sequenceData.increment < 0 ? sequenceData.maxValue : sequenceData.minValue;
+		} else if (sequenceData.nextVal < sequenceData.minValue) {
+			sequenceData.nextVal = sequenceData.maxValue;
+		} else if (sequenceData.nextVal > sequenceData.maxValue) {
+			sequenceData.nextVal = sequenceData.minValue;
+		}
+	} else {
+		if (result < sequenceData.minValue || (overflow && sequenceData.increment < 0)) {
+			throw CatalogException("nextval: reached minimum value of sequence \""
+                + name + "\" " + std::to_string(sequenceData.minValue));
+		}
+		if (result > sequenceData.maxValue || overflow) {
+			throw CatalogException("nextval: reached maximum value of sequence \""
+                + name + "\" " + std::to_string(sequenceData.maxValue));
+		}
+	}
+	sequenceData.currVal = result;
+	sequenceData.usageCount++;
+	return result;
+}
 
 void SequenceCatalogEntry::serialize(common::Serializer& serializer) const {
     CatalogEntry::serialize(serializer);

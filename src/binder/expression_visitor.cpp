@@ -9,6 +9,7 @@
 #include "common/cast.h"
 #include "function/list/vector_list_functions.h"
 #include "function/uuid/vector_uuid_functions.h"
+#include "function/sequence/sequence_functions.h"
 
 using namespace kuzu::common;
 
@@ -92,6 +93,13 @@ expression_vector ExpressionChildrenCollector::collectRelChildren(const Expressi
 bool ExpressionVisitor::isConstant(const Expression& expression) {
     if (expression.expressionType == ExpressionType::AGGREGATE_FUNCTION) {
         return false; // We don't have a framework to fold aggregated constant.
+    }
+    if (expression.expressionType == ExpressionType::FUNCTION) {
+        auto& funcExpr = expression.constCast<FunctionExpression>();
+        if (funcExpr.getFunctionName() == function::CurrValFunction::name ||
+            funcExpr.getFunctionName() == function::NextValFunction::name) {
+            return false; // Sequence functions need access to client context
+        }
     }
     if (expression.getNumChildren() == 0 &&
         expression.expressionType != ExpressionType::CASE_ELSE) {

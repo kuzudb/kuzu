@@ -16,6 +16,7 @@
 #include "function/path/vector_path_functions.h"
 #include "function/rdf/vector_rdf_functions.h"
 #include "function/schema/vector_node_rel_functions.h"
+#include "function/sequence/sequence_functions.h"
 #include "function/string/vector_string_functions.h"
 #include "function/struct/vector_struct_functions.h"
 #include "function/table/call_functions.h"
@@ -189,6 +190,9 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION(ConstantOrNullFunction), SCALAR_FUNCTION(CountIfFunction),
         SCALAR_FUNCTION(ErrorFunction), REWRITE_FUNCTION(NullIfFunction),
         SCALAR_FUNCTION(TypeOfFunction),
+
+        // Sequence functions
+        SCALAR_FUNCTION(CurrValFunction), SCALAR_FUNCTION(NextValFunction),
 
         // Aggregate functions
         AGGREGATE_FUNCTION(CountStarFunction), AGGREGATE_FUNCTION(CountFunction),
