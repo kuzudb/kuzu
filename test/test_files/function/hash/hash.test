@@ -61,3 +61,41 @@ e129f5000a4b71ccc3a0e6353a86cc57989106e670793db98efa34b7527aefa5
 -STATEMENT RETURN hash('kuzu')
 ---- 1
 -144620710730482887
+
+-LOG HashMediumLengthStrings
+-STATEMENT RETURN hash('Some string')
+---- 1
+4300833454950395778
+-STATEMENT RETURN hash('Another string')
+---- 1
+-7455830751860279176
+-STATEMENT RETURN hash('aaaaaaaa')
+---- 1
+-7005506450880164945
+-STATEMENT RETURN hash('aaaaaaaaa')
+---- 1
+-393672730685262981
+-STATEMENT RETURN hash('aaaaaaaaaa')
+---- 1
+2482482096684464911
+-STATEMENT RETURN hash('aaaaaaaaaaa')
+---- 1
+-3480219808301464527
+-STATEMENT RETURN hash('aaaaaaaaaaaa')
+---- 1
+8029484162599640120
+-STATEMENT RETURN hash('aaaaaaaaaaaaa')
+---- 1
+-8789476897890830468
+-STATEMENT RETURN hash('aaaaaaaaaaaaaa')
+---- 1
+659393504505364758
+-STATEMENT RETURN hash('aaaaaaaaaaaaaaa')
+---- 1
+2646437354086420181
+
+-DEFINE test_long_string REPEAT 2147 "a"
+-LOG HashLongString
+-STATEMENT RETURN hash('${test_long_string}')
+---- 1
+-3617781442718183954
