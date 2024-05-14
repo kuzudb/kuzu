@@ -17,8 +17,15 @@ set(CMAKE_ENABLE_EXPORTS TRUE)
 
 option(ENABLE_WERROR "Treat all warnings as errors" FALSE)
 if(ENABLE_WERROR)
-    set(CMAKE_COMPILE_WARNING_AS_ERROR TRUE)
+    if (CMAKE_VERSION VERSION_GREATER "3.24.0" OR CMAKE_VERSION VERSION_EQUAL "3.24.0")
+        set(COMPILE_WARNING_AS_ERROR TRUE)
+    elseif (MSVC)
+        add_compile_options(\WX)
+    else ()
+        add_compile_options(-Werror)
+    endif()
 endif()
+
 # Detect OS and architecture, copied from DuckDB
 set(OS_NAME "unknown")
 set(OS_ARCH "amd64")
@@ -123,6 +130,10 @@ if(NOT MSVC)
     add_compile_options(-Wall -Wextra)
     # Disable warnings for unknown pragmas, which is used by several third-party libraries
     add_compile_options(-Wno-unknown-pragmas)
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(-Wno-restrict) # no restrict until https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105651 is fixed
 endif()
 
 if(${ENABLE_THREAD_SANITIZER})

@@ -60,7 +60,11 @@ int mbedtls_ct_memcmp(const void* a, const void* b, size_t n) {
         unsigned char x = A[i], y = B[i];
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-volatile"
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wvolatile"
         diff |= x ^ y;
+#pragma GCC diagnostic pop
 #pragma clang diagnostic pop
     }
 

@@ -358,7 +358,7 @@ template<typename T>
 bool IntegerBitpacking<T>::canUpdateInPlace(T value, const BitpackHeader& header) {
     T adjustedValue = value - (T)header.offset;
     // If there are negatives, the effective bit width is smaller
-    auto valueSize = std::bit_width((U)abs<T>(adjustedValue));
+    uint8_t valueSize = std::bit_width((U)abs<T>(adjustedValue));
     if (!header.hasNegative && adjustedValue < 0) {
         return false;
     }
