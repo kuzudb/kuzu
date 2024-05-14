@@ -10,7 +10,7 @@
 namespace kuzu {
 namespace storage {
 
-const uint64_t NUM_HASH_INDEXES_LOG2 = 1;
+const uint64_t NUM_HASH_INDEXES_LOG2 = 8;
 const uint64_t NUM_HASH_INDEXES = 1 << NUM_HASH_INDEXES_LOG2;
 
 static constexpr common::page_idx_t INDEX_HEADER_ARRAY_HEADER_PAGE_IDX = 0;
