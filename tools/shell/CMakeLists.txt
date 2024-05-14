@@ -3,7 +3,9 @@ add_executable(kuzu_shell
         embedded_shell.cpp
         linenoise.cpp
         shell_runner.cpp)
-set_target_properties(kuzu_shell PROPERTIES OUTPUT_NAME kuzu)
+if (NOT MSVC)
+        set_target_properties(kuzu_shell PROPERTIES OUTPUT_NAME kuzu)
+endif()
 
 target_link_libraries(kuzu_shell kuzu)
 if (MSVC)

@@ -24,7 +24,7 @@ jobs:
           move install\include\kuzu.hpp
           move install\bin\kuzu_shared.dll
           move install\lib\kuzu_shared.lib
-          move install\bin\kuzu.exe
+          move install\bin\kuzu_shell.exe kuzu.exe
 
       - uses: actions/upload-artifact@v3
         with:
