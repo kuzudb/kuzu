@@ -92,6 +92,8 @@ void ParallelUtils::doParallel(function::TableFunction* tableFunction) {
         if (newTask->error || !isActive) {
             removeTaskFromQueueNoLock(newTask->ID);
             lck.unlock();
+            isActive.store(false, std::memory_order_relaxed);
+            cv.notify_all();
             std::rethrow_exception(newTask->error);
         }
         // remove task from queue if worker threads indicated no more morsels left, but
