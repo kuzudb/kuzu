@@ -31,7 +31,7 @@ public:
         totalThreadsRegistered--;
     }
 
-    void completeTask(std::exception* exp) {
+    void completeTask(std::exception_ptr exp) {
         std::unique_lock lck{mtx};
         isComplete = true;
         error = exp;
@@ -42,9 +42,14 @@ public:
         return isComplete || error;
     }
 
+    uint64_t getTotalThreadsRegistered() {
+        std::unique_lock lck{mtx};
+        return totalThreadsRegistered;
+    }
+
 public:
     function::table_func_t function;
-    std::exception* error;
+    std::exception_ptr error;
     bool isComplete;
     uint64_t ID;
 
@@ -63,7 +68,7 @@ public:
 
     std::shared_ptr<Task> getTaskFromQueue();
 
-    bool doParallel(function::TableFunction* tableFunction);
+    void doParallel(function::TableFunction* tableFunction);
 
     void removeTaskFromQueueNoLock(uint64_t taskID);
 

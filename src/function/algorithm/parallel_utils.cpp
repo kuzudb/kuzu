@@ -46,8 +46,8 @@ bool ParallelUtils::runWorkerThread(function::TableFuncInput& input,
             } else {
                 return true;
             }
-        } catch (std::exception& e) {
-            task->completeTask(&e);
+        } catch (std::exception_ptr &e) {
+            task->completeTask(e);
             cv.notify_all();
         }
     }
@@ -72,7 +72,7 @@ std::shared_ptr<Task> ParallelUtils::getTaskFromQueue() {
  * Once the worker thread indicates that task is complete or error is encountered, remove task
  * from queue.
  */
-bool ParallelUtils::doParallel(function::TableFunction* tableFunction) {
+void ParallelUtils::doParallel(function::TableFunction* tableFunction) {
     std::unique_lock<std::mutex> lck{mtx, std::defer_lock};
     auto newTask = std::make_shared<Task>(tableFunction->tableFunc);
     lck.lock();
@@ -89,10 +89,18 @@ bool ParallelUtils::doParallel(function::TableFunction* tableFunction) {
             return !isActive;
         });
         // main thread exited from loop, meaning either task is completed OR there was an error
+        if (newTask->error || !isActive) {
+            removeTaskFromQueueNoLock(newTask->ID);
+            lck.unlock();
+            std::rethrow_exception(newTask->error);
+        }
+        // remove task from queue if worker threads indicated no more morsels left, but
+        // do not stop monitoring progress, since other workers may fail
         removeTaskFromQueueNoLock(newTask->ID);
         lck.unlock();
-        // return true if task is completed (isComplete == true)
-        return isActive;
+        if (newTask->getTotalThreadsRegistered() == 0) {
+            return;
+        }
     }
 }
 
