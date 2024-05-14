@@ -12,7 +12,7 @@ namespace function {
 
 struct CurrVal {
     static void operation(common::ku_string_t& input, int64_t& result, void* dataPtr) {
-        auto ctx = reinterpret_cast<main::ClientContext*>(dataPtr);
+        auto ctx = reinterpret_cast<FunctionBindData*>(dataPtr)->clientContext;
         auto catalog = ctx->getCatalog();
         auto sequenceName = input.getAsString();
         auto sequenceID = catalog->getSequenceID(ctx->getTx(), sequenceName);
@@ -23,7 +23,7 @@ struct CurrVal {
 
 struct NextVal {
     static void operation(common::ku_string_t& input, int64_t& result, void* dataPtr) {
-        auto ctx = reinterpret_cast<main::ClientContext*>(dataPtr);
+        auto ctx = reinterpret_cast<FunctionBindData*>(dataPtr)->clientContext;
         auto catalog = ctx->getCatalog();
         auto sequenceName = input.getAsString();
         auto sequenceID = catalog->getSequenceID(ctx->getTx(), sequenceName);
