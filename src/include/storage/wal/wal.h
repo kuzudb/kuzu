@@ -39,7 +39,7 @@ public:
         common::page_idx_t pageIdxInOriginalFile);
 
     void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry);
-    void logDropTableRecord(common::table_id_t tableID);
+    void logDropTableRecord(common::table_id_t tableID, catalog::CatalogEntryType type);
 
     void logCopyTableRecord(common::table_id_t tableID);
 

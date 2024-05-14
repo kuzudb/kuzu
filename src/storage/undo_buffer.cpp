@@ -140,7 +140,7 @@ void UndoBuffer::commitEntry(const uint8_t* entry, transaction_t commitTS) {
         case CatalogEntryType::RDF_GRAPH_ENTRY: {
             auto tableCatalogEntry =
                 ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(catalogEntry);
-            wal.logDropTableRecord(tableCatalogEntry->getTableID());
+            wal.logDropTableRecord(tableCatalogEntry->getTableID(), tableCatalogEntry->getType());
         } break;
         case CatalogEntryType::SEQUENCE_ENTRY: {
             auto sequenceCatalogEntry =
