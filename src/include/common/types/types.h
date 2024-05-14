@@ -49,6 +49,7 @@ using partition_idx_t = uint64_t;
 constexpr partition_idx_t INVALID_PARTITION_IDX = UINT64_MAX;
 using length_t = uint64_t;
 using list_size_t = uint32_t;
+using sequence_id_t = uint64_t;
 
 using transaction_t = uint64_t;
 constexpr transaction_t INVALID_TRANSACTION = UINT64_MAX;

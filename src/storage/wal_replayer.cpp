@@ -229,21 +229,10 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) {
     case CatalogEntryType::REL_TABLE_ENTRY:
     case CatalogEntryType::REL_GROUP_ENTRY:
     case CatalogEntryType::RDF_GRAPH_ENTRY: {
-        auto tableEntry =
-            clientContext.getCatalog()->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, entryID);
-        switch (tableEntry->getTableType()) {
-        case TableType::NODE:
-        case TableType::REL:
-        case TableType::RDF: {
-            clientContext.getCatalog()->dropTableSchema(&DUMMY_WRITE_TRANSACTION, entryID);
-            // During recovery, storageManager does not exist.
-            if (clientContext.getStorageManager()) {
-                clientContext.getStorageManager()->dropTable(entryID);
-            }
-        } break;
-        default: {
-            KU_UNREACHABLE;
-        }
+        clientContext.getCatalog()->dropTableSchema(&DUMMY_WRITE_TRANSACTION, entryID);
+        // During recovery, storageManager does not exist.
+        if (clientContext.getStorageManager()) {
+            clientContext.getStorageManager()->dropTable(entryID);
         }
     } break;
     case CatalogEntryType::SEQUENCE_ENTRY: {

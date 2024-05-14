@@ -168,12 +168,6 @@ void Binder::validateTableExist(const std::string& tableName) {
     }
 }
 
-void Binder::validateSequenceExist(const std::string& sequenceName) {
-    if (!clientContext->getCatalog()->containsSequence(clientContext->getTx(), sequenceName)) {
-        throw BinderException("Sequence " + sequenceName + " does not exist.");
-    }
-}
-
 std::string Binder::getUniqueExpressionName(const std::string& name) {
     return "_" + std::to_string(lastExpressionId++) + "_" + name;
 }

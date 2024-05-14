@@ -57,7 +57,6 @@ public:
     //===--------------------------------------------------------------------===//
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<SequenceCatalogEntry> deserialize(common::Deserializer& deserializer);
-    // std::unique_ptr<SequenceCatalogEntry> copy() const;
 
     binder::BoundCreateSequenceInfo getBoundCreateSequenceInfo() const;
 

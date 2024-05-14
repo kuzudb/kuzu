@@ -164,9 +164,9 @@ private:
 
 protected:
     std::unique_ptr<CatalogSet> tables;
-    std::unique_ptr<CatalogSet> sequences;
 
 private:
+    std::unique_ptr<CatalogSet> sequences;
     std::unique_ptr<CatalogSet> functions;
 };
 

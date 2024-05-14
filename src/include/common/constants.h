@@ -196,5 +196,7 @@ struct ImportDBConstants {
 
 static constexpr char ATTACHED_KUZU_DB_TYPE[] = "KUZU";
 
+static constexpr char LOCAL_DB_NAME[] = "local(kuzu)";
+
 } // namespace common
 } // namespace kuzu

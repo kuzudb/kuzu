@@ -14,8 +14,6 @@ struct internalID_t;
 using nodeID_t = internalID_t;
 using relID_t = internalID_t;
 
-using sequence_id_t = uint64_t;
-
 using table_id_t = uint64_t;
 using table_id_vector_t = std::vector<table_id_t>;
 using table_id_set_t = std::unordered_set<table_id_t>;

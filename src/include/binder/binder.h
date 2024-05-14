@@ -257,7 +257,6 @@ private:
 
     void validateTableType(common::table_id_t tableID, common::TableType expectedTableType);
     void validateTableExist(const std::string& tableName);
-    void validateSequenceExist(const std::string& tableName);
 
     /*** helpers ***/
     std::string getUniqueExpressionName(const std::string& name);

@@ -18,14 +18,19 @@ enum class SequenceInfoType {
 
 struct CreateSequenceInfo {
     std::string sequenceName;
-    int64_t startWith = 1;
-    int64_t increment = 1;
-    int64_t minValue = 1;
-    int64_t maxValue = std::numeric_limits<int64_t>::max();
+    std::string startWith = "";
+    std::string increment = "1";
+    std::string minValue = "";
+    std::string maxValue = "";
     bool cycle = false;
 
     explicit CreateSequenceInfo(std::string sequenceName) : sequenceName{std::move(sequenceName)} {}
-    DELETE_COPY_DEFAULT_MOVE(CreateSequenceInfo);
+    EXPLICIT_COPY_DEFAULT_MOVE(CreateSequenceInfo);
+
+private:
+    CreateSequenceInfo(const CreateSequenceInfo& other)
+        : sequenceName{other.sequenceName}, startWith{other.startWith}, increment{other.increment},
+          minValue{other.minValue}, maxValue{other.maxValue}, cycle{other.cycle} {}
 };
 
 } // namespace parser

@@ -1,7 +1,6 @@
 #include "common/exception/parser.h"
 #include "common/types/ku_string.h"
 #include "common/types/value/value.h"
-#include "function/cast/functions/cast_from_string_functions.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_sequence.h"
 #include "parser/ddl/create_table.h"
@@ -97,45 +96,38 @@ std::unique_ptr<Statement> Transformer::transformCreateSequence(
     auto sequenceName = transformSchemaName(*ctx.oC_SchemaName());
     auto createSequenceInfo = CreateSequenceInfo(sequenceName);
     std::unordered_set<SequenceInfoType> applied;
-    bool defaultStart = true;
-    bool defaultMin = true;
-    bool defaultMax = true;
     for (auto seqOption : ctx.kU_SequenceOptions()) {
         SequenceInfoType type;
         std::string typeString;
         CypherParser::OC_IntegerLiteralContext* valCtx = nullptr;
-        int64_t* valOption = nullptr;
-        std::string rawVal = "";
+        std::string* valOption = nullptr;
         if (seqOption->kU_StartWith()) {
             type = SequenceInfoType::START;
             typeString = "START";
-            rawVal = seqOption->kU_StartWith()->MINUS() ? "-" : "";
             valCtx = seqOption->kU_StartWith()->oC_IntegerLiteral();
             valOption = &createSequenceInfo.startWith;
-            defaultStart = false;
+            *valOption = seqOption->kU_StartWith()->MINUS() ? "-" : "";
         } else if (seqOption->kU_IncrementBy()) {
             type = SequenceInfoType::INCREMENT;
             typeString = "INCREMENT";
-            rawVal = seqOption->kU_IncrementBy()->MINUS() ? "-" : "";
             valCtx = seqOption->kU_IncrementBy()->oC_IntegerLiteral();
             valOption = &createSequenceInfo.increment;
+            *valOption = seqOption->kU_IncrementBy()->MINUS() ? "-" : "";
         } else if (seqOption->kU_MinValue()) {
             type = SequenceInfoType::MINVALUE;
             typeString = "MINVALUE";
             if (!seqOption->kU_MinValue()->NO()) {
-                rawVal = seqOption->kU_MinValue()->MINUS() ? "-" : "";
                 valCtx = seqOption->kU_MinValue()->oC_IntegerLiteral();
                 valOption = &createSequenceInfo.minValue;
-                defaultMin = false;
+                *valOption = seqOption->kU_MinValue()->MINUS() ? "-" : "";
             }
         } else if (seqOption->kU_MaxValue()) {
             type = SequenceInfoType::MAXVALUE;
             typeString = "MAXVALUE";
             if (!seqOption->kU_MaxValue()->NO()) {
-                rawVal = seqOption->kU_MaxValue()->MINUS() ? "-" : "";
                 valCtx = seqOption->kU_MaxValue()->oC_IntegerLiteral();
                 valOption = &createSequenceInfo.maxValue;
-                defaultMax = false;
+                *valOption = seqOption->kU_MaxValue()->MINUS() ? "-" : "";
             }
         } else { // seqOption->kU_Cycle()
             type = SequenceInfoType::CYCLE;
@@ -150,30 +142,8 @@ std::unique_ptr<Statement> Transformer::transformCreateSequence(
         applied.insert(type);
 
         if (valCtx && valOption) {
-            rawVal += valCtx->DecimalInteger()->getText();
-            ku_string_t literal{rawVal.c_str(), rawVal.length()};
-            int64_t result;
-            if (!function::CastString::tryCast(literal, result)) {
-                throw ParserException("Out of bounds: SEQUENCE accepts integers within INT64.");
-            }
-            *valOption = result;
+            *valOption += valCtx->DecimalInteger()->getText();
         }
-    }
-    if (createSequenceInfo.increment == 0) {
-        throw ParserException("INCREMENT must be non-zero.");
-    }
-    bool isIncrement = createSequenceInfo.increment > 0;
-    if (!isIncrement) {
-        if (defaultMin) {
-            createSequenceInfo.minValue = INT64_MIN;
-        }
-        if (defaultMax) {
-            createSequenceInfo.maxValue = -1;
-        }
-    }
-    if (defaultStart) {
-        createSequenceInfo.startWith =
-            isIncrement ? createSequenceInfo.minValue : createSequenceInfo.maxValue;
     }
     return std::make_unique<CreateSequence>(std::move(createSequenceInfo));
 }

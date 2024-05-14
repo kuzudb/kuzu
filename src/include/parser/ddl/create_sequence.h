@@ -11,7 +11,7 @@ public:
     explicit CreateSequence(CreateSequenceInfo info)
         : Statement{common::StatementType::CREATE_SEQUENCE}, info{std::move(info)} {}
 
-    inline const CreateSequenceInfo* getInfo() const { return &info; }
+    const CreateSequenceInfo getInfo() const { return info.copy(); }
 
 private:
     CreateSequenceInfo info;

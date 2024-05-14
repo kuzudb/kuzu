@@ -13,6 +13,7 @@
 #include "common/exception/message.h"
 #include "common/string_format.h"
 #include "common/types/types.h"
+#include "function/cast/functions/cast_from_string_functions.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_sequence.h"
 #include "parser/ddl/create_table.h"
@@ -180,12 +181,57 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& stateme
 std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& statement) {
     auto& createSequence = ku_dynamic_cast<const Statement&, const CreateSequence&>(statement);
     auto info = createSequence.getInfo();
-    auto sequenceName = info->sequenceName;
+    auto sequenceName = info.sequenceName;
+    int64_t startWith;
+    int64_t increment;
+    int64_t minValue;
+    int64_t maxValue;
+    ku_string_t literal;
     if (clientContext->getCatalog()->containsSequence(clientContext->getTx(), sequenceName)) {
         throw BinderException(sequenceName + " already exists in catalog.");
     }
-    auto boundInfo = BoundCreateSequenceInfo(sequenceName, info->startWith, info->increment,
-        info->minValue, info->maxValue, info->cycle);
+    literal = ku_string_t{info.increment.c_str(), info.increment.length()};
+    if (!function::CastString::tryCast(literal, increment)) {
+        throw BinderException("Out of bounds: SEQUENCE accepts integers within INT64.");
+    }
+    if (increment == 0) {
+        throw BinderException("INCREMENT must be non-zero.");
+    }
+
+    if (info.minValue == "") {
+        minValue = increment > 0 ? 1 : std::numeric_limits<int64_t>::min();
+    } else {
+        literal = ku_string_t{info.minValue.c_str(), info.minValue.length()};
+        if (!function::CastString::tryCast(literal, minValue)) {
+            throw BinderException("Out of bounds: SEQUENCE accepts integers within INT64.");
+        }
+    }
+    if (info.maxValue == "") {
+        maxValue = increment > 0 ? std::numeric_limits<int64_t>::max() : -1;
+    } else {
+        literal = ku_string_t{info.maxValue.c_str(), info.maxValue.length()};
+        if (!function::CastString::tryCast(literal, maxValue)) {
+            throw BinderException("Out of bounds: SEQUENCE accepts integers within INT64.");
+        }
+    }
+    if (info.startWith == "") {
+        startWith = increment > 0 ? minValue : maxValue;
+    } else {
+        literal = ku_string_t{info.startWith.c_str(), info.startWith.length()};
+        if (!function::CastString::tryCast(literal, startWith)) {
+            throw BinderException("Out of bounds: SEQUENCE accepts integers within INT64.");
+        }
+    }
+
+    if (maxValue < minValue) {
+        throw BinderException("SEQUENCE MAXVALUE should be greater than or equal to MINVALUE.");
+    }
+    if (startWith < minValue || startWith > maxValue) {
+        throw BinderException("SEQUENCE START value should be between MINVALUE and MAXVALUE.");
+    }
+
+    auto boundInfo = 
+        BoundCreateSequenceInfo(sequenceName, startWith, increment, minValue, maxValue, info.cycle);
     return std::make_unique<BoundCreateSequence>(std::move(boundInfo));
 }
 
@@ -268,7 +314,9 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
 std::unique_ptr<BoundStatement> Binder::bindDropSequence(const Statement& statement) {
     auto& dropSequence = ku_dynamic_cast<const Statement&, const Drop&>(statement);
     auto sequenceName = dropSequence.getName();
-    validateSequenceExist(sequenceName);
+    if (!clientContext->getCatalog()->containsSequence(clientContext->getTx(), sequenceName)) {
+        throw BinderException("Sequence " + sequenceName + " does not exist.");
+    }
     auto catalog = clientContext->getCatalog();
     auto sequenceID = catalog->getSequenceID(clientContext->getTx(), sequenceName);
     // TODO: Later check if sequence used/referenced by table

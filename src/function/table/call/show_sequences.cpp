@@ -79,28 +79,28 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     columnNames.emplace_back("cycle");
     columnTypes.emplace_back(*LogicalType::BOOL());
     std::vector<SequenceInfo> sequenceInfos;
-    auto localDatabaseName = "local(kuzu)";
     for (auto& entry : context->getCatalog()->getSequenceEntries(context->getTx())) {
         auto sequenceData = entry->getSequenceData();
-        auto sequenceInfo = SequenceInfo{entry->getName(), localDatabaseName,
+        auto sequenceInfo = SequenceInfo{entry->getName(), LOCAL_DB_NAME,
             sequenceData.startValue, sequenceData.increment, sequenceData.minValue,
             sequenceData.maxValue, sequenceData.cycle};
         sequenceInfos.push_back(std::move(sequenceInfo));
     }
 
-    auto databaseManager = context->getDatabaseManager();
-    for (auto attachedDatabase : databaseManager->getAttachedDatabases()) {
-        auto databaseName = attachedDatabase->getDBName();
-        auto databaseType = attachedDatabase->getDBType();
-        for (auto& entry : attachedDatabase->getCatalog()->getSequenceEntries(context->getTx())) {
-            auto sequenceData = entry->getSequenceData();
-            auto sequenceInfo =
-                SequenceInfo{entry->getName(), stringFormat("{}({})", databaseName, databaseType),
-                    sequenceData.startValue, sequenceData.increment, sequenceData.minValue,
-                    sequenceData.maxValue, sequenceData.cycle};
-            sequenceInfos.push_back(std::move(sequenceInfo));
-        }
-    }
+    // TODO: uncomment this when we can test it
+    // auto databaseManager = context->getDatabaseManager();
+    // for (auto attachedDatabase : databaseManager->getAttachedDatabases()) {
+    //     auto databaseName = attachedDatabase->getDBName();
+    //     auto databaseType = attachedDatabase->getDBType();
+    //     for (auto& entry : attachedDatabase->getCatalog()->getSequenceEntries(context->getTx())) {
+    //         auto sequenceData = entry->getSequenceData();
+    //         auto sequenceInfo =
+    //             SequenceInfo{entry->getName(), stringFormat("{}({})", databaseName, databaseType),
+    //                 sequenceData.startValue, sequenceData.increment, sequenceData.minValue,
+    //                 sequenceData.maxValue, sequenceData.cycle};
+    //         sequenceInfos.push_back(std::move(sequenceInfo));
+    //     }
+    // }
     return std::make_unique<ShowSequencesBindData>(std::move(sequenceInfos), std::move(columnTypes),
         std::move(columnNames), sequenceInfos.size());
 }

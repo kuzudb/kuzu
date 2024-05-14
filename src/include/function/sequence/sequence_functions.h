@@ -6,13 +6,13 @@ namespace kuzu {
 namespace function {
 
 struct CurrValFunction {
-    static constexpr const char* name = "CURR_VAL";
+    static constexpr const char* name = "CURRVAL";
 
     static function_set getFunctionSet();
 };
 
 struct NextValFunction {
-    static constexpr const char* name = "NEXT_VAL";
+    static constexpr const char* name = "NEXTVAL";
 
     static function_set getFunctionSet();
 };
