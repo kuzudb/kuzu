@@ -14,7 +14,7 @@ static std::unique_ptr<FunctionBindData> bindFuncListAggr(
     auto scalarFunction = function->ptrCast<ScalarFunction>();
     auto resultType = ListType::getChildType(arguments[0]->dataType);
     TypeUtils::visit(
-        resultType.getLogicalTypeID(),
+        resultType,
         [&scalarFunction]<NumericTypes T>(T) {
             scalarFunction->execFunc =
                 ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, T, OPERATION>;

@@ -5,7 +5,6 @@
 #include "common/exception/binder.h"
 #include "common/exception/conversion.h"
 #include "common/exception/not_implemented.h"
-#include "common/exception/runtime.h"
 #include "common/null_buffer.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
@@ -20,6 +19,36 @@ using kuzu::function::BuiltInFunctionsUtils;
 
 namespace kuzu {
 namespace common {
+
+std::string DecimalType::insertDecimalPoint(const std::string& value, uint32_t positionFromEnd) {
+    std::string retval;
+    if (positionFromEnd > value.size()) {
+        auto greaterBy = positionFromEnd - value.size();
+        retval = ".";
+        for (auto i = 0u; i < greaterBy; i++) {
+            retval += "0";
+        }
+        retval += value;
+    } else {
+        auto lessBy = value.size() - positionFromEnd;
+        retval = value.substr(0, lessBy);
+        retval += ".";
+        retval += value.substr(lessBy);
+    }
+    return retval;
+}
+
+uint32_t DecimalType::getPrecision(const LogicalType& type) {
+    KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::DECIMAL);
+    auto decimalTypeInfo = type.extraTypeInfo->constPtrCast<DecimalTypeInfo>();
+    return decimalTypeInfo->getPrecision();
+}
+
+uint32_t DecimalType::getScale(const LogicalType& type) {
+    KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::DECIMAL);
+    auto decimalTypeInfo = type.extraTypeInfo->constPtrCast<DecimalTypeInfo>();
+    return decimalTypeInfo->getScale();
+}
 
 LogicalType ListType::getChildType(const kuzu::common::LogicalType& type) {
     KU_ASSERT(type.getPhysicalType() == PhysicalTypeID::LIST ||
@@ -196,6 +225,31 @@ uint32_t PhysicalTypeUtils::getFixedTypeSize(PhysicalTypeID physicalType) {
     default:
         KU_UNREACHABLE;
     }
+}
+
+bool DecimalTypeInfo::operator==(const ExtraTypeInfo& other) const {
+    auto otherDecimalTypeInfo =
+        ku_dynamic_cast<const ExtraTypeInfo*, const DecimalTypeInfo*>(&other);
+    if (otherDecimalTypeInfo) {
+        return precision == otherDecimalTypeInfo->precision && scale == otherDecimalTypeInfo->scale;
+    }
+    return false;
+}
+
+std::unique_ptr<ExtraTypeInfo> DecimalTypeInfo::copy() const {
+    return std::make_unique<DecimalTypeInfo>(precision, scale);
+}
+
+std::unique_ptr<ExtraTypeInfo> DecimalTypeInfo::deserialize(Deserializer& deserializer) {
+    uint32_t precision, scale;
+    deserializer.deserializeValue<uint32_t>(precision);
+    deserializer.deserializeValue<uint32_t>(scale);
+    return std::make_unique<DecimalTypeInfo>(precision, scale);
+}
+
+void DecimalTypeInfo::serializeInternal(Serializer& serializer) const {
+    serializer.serializeValue(precision);
+    serializer.serializeValue(scale);
 }
 
 bool ListTypeInfo::containsAny() const {
@@ -391,32 +445,26 @@ static std::string getIncompleteTypeErrMsg(LogicalTypeID id) {
 }
 
 LogicalType::LogicalType(LogicalTypeID typeID) : typeID{typeID}, extraTypeInfo{nullptr} {
-    physicalType = getPhysicalType(typeID);
     // LCOV_EXCL_START
-    switch (physicalType) {
-    case PhysicalTypeID::LIST:
-    case PhysicalTypeID::ARRAY:
+    switch (typeID) {
+    case LogicalTypeID::DECIMAL:
+    case LogicalTypeID::LIST:
+    case LogicalTypeID::ARRAY:
+    case LogicalTypeID::STRUCT:
+    case LogicalTypeID::MAP:
+    case LogicalTypeID::UNION:
+    case LogicalTypeID::RDF_VARIANT:
         throw BinderException(getIncompleteTypeErrMsg(typeID));
-    case PhysicalTypeID::STRUCT: {
-        switch (typeID) {
-        // Node/Rel types are exempted due to some complex code in bind_graph_pattern.cpp
-        case LogicalTypeID::NODE:
-        case LogicalTypeID::REL:
-        case LogicalTypeID::RECURSIVE_REL:
-            return;
-        default:
-            throw BinderException(getIncompleteTypeErrMsg(typeID));
-        }
-    }
     default:
-        return;
+        break;
     }
+    physicalType = getPhysicalType(typeID);
     // LCOV_EXCL_STOP
 }
 
 LogicalType::LogicalType(LogicalTypeID typeID, std::unique_ptr<ExtraTypeInfo> extraTypeInfo)
     : typeID{typeID}, extraTypeInfo{std::move(extraTypeInfo)} {
-    physicalType = getPhysicalType(typeID);
+    physicalType = getPhysicalType(typeID, this->extraTypeInfo);
 }
 
 LogicalType::LogicalType(const LogicalType& other) {
@@ -497,6 +545,12 @@ std::string LogicalType::toString() const {
         dataTypeStr += structTypeInfo->getChildType(numFields - 1).toString();
         return dataTypeStr + ")";
     }
+    case LogicalTypeID::DECIMAL: {
+        auto decimalTypeInfo =
+            ku_dynamic_cast<ExtraTypeInfo*, DecimalTypeInfo*>(extraTypeInfo.get());
+        return "DECIMAL(" + std::to_string(decimalTypeInfo->getPrecision()) + ", " +
+               std::to_string(decimalTypeInfo->getScale()) + ")";
+    }
     case LogicalTypeID::ANY:
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
@@ -540,6 +594,7 @@ static std::vector<StructField> parseStructTypeInfo(const std::string& structTyp
 static std::unique_ptr<LogicalType> parseStructType(const std::string& trimmedStr);
 static std::unique_ptr<LogicalType> parseMapType(const std::string& trimmedStr);
 static std::unique_ptr<LogicalType> parseUnionType(const std::string& trimmedStr);
+static std::unique_ptr<LogicalType> parseDecimalType(const std::string& trimmedStr);
 
 LogicalType LogicalType::fromString(const std::string& str) {
     LogicalType dataType;
@@ -555,25 +610,24 @@ LogicalType LogicalType::fromString(const std::string& str) {
         dataType = *parseMapType(trimmedStr);
     } else if (upperDataTypeString.starts_with("UNION")) {
         dataType = *parseUnionType(trimmedStr);
+    } else if (upperDataTypeString.starts_with("DECIMAL") ||
+               upperDataTypeString.starts_with("NUMERIC")) {
+        dataType = *parseDecimalType(trimmedStr);
     } else if (upperDataTypeString == "RDF_VARIANT") {
         dataType = *LogicalType::RDF_VARIANT();
     } else {
         dataType.typeID = strToLogicalTypeID(upperDataTypeString);
+        dataType.physicalType =
+            LogicalType::getPhysicalType(dataType.typeID, dataType.extraTypeInfo);
     }
-    dataType.physicalType = LogicalType::getPhysicalType(dataType.typeID);
     return dataType;
 }
 
 void LogicalType::serialize(Serializer& serializer) const {
     serializer.serializeValue(typeID);
     serializer.serializeValue(physicalType);
-    switch (physicalType) {
-    case PhysicalTypeID::LIST:
-    case PhysicalTypeID::ARRAY:
-    case PhysicalTypeID::STRUCT:
+    if (extraTypeInfo != nullptr) {
         extraTypeInfo->serialize(serializer);
-    default:
-        break;
     }
 }
 
@@ -594,7 +648,11 @@ std::unique_ptr<LogicalType> LogicalType::deserialize(Deserializer& deserializer
         extraTypeInfo = StructTypeInfo::deserialize(deserializer);
     } break;
     default:
-        extraTypeInfo = nullptr;
+        if (typeID == LogicalTypeID::DECIMAL) {
+            extraTypeInfo = DecimalTypeInfo::deserialize(deserializer);
+        } else {
+            extraTypeInfo = nullptr;
+        }
     }
     auto result = std::make_unique<LogicalType>();
     result->typeID = typeID;
@@ -637,7 +695,8 @@ std::vector<LogicalType> LogicalType::copy(const std::vector<LogicalType*>& type
     return typesCopy;
 }
 
-PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID) {
+PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID,
+    const std::unique_ptr<ExtraTypeInfo>& extraTypeInfo) {
     switch (typeID) {
     case LogicalTypeID::ANY: {
         return PhysicalTypeID::ANY;
@@ -685,6 +744,24 @@ PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID) {
     } break;
     case LogicalTypeID::FLOAT: {
         return PhysicalTypeID::FLOAT;
+    } break;
+    case LogicalTypeID::DECIMAL: {
+        if (extraTypeInfo == nullptr) {
+            throw BinderException(getIncompleteTypeErrMsg(typeID));
+        }
+        auto decimalTypeInfo = extraTypeInfo->constPtrCast<DecimalTypeInfo>();
+        auto precision = decimalTypeInfo->getPrecision();
+        if (precision <= 4) {
+            return PhysicalTypeID::INT16;
+        } else if (precision <= 9) {
+            return PhysicalTypeID::INT32;
+        } else if (precision <= 18) {
+            return PhysicalTypeID::INT64;
+        } else if (precision <= 38) {
+            return PhysicalTypeID::INT128;
+        } else {
+            throw BinderException("Precision of decimal must be no greater than 38");
+        }
     } break;
     case LogicalTypeID::INTERVAL: {
         return PhysicalTypeID::INTERVAL;
@@ -745,6 +822,8 @@ LogicalTypeID strToLogicalTypeID(const std::string& str) {
         return LogicalTypeID::DOUBLE;
     } else if ("FLOAT" == upperStr || "FLOAT4" == upperStr || "REAL" == upperStr) {
         return LogicalTypeID::FLOAT;
+    } else if ("DECIMAL" == upperStr || "NUMERIC" == upperStr) {
+        return LogicalTypeID::DECIMAL;
     } else if ("BOOLEAN" == upperStr || "BOOL" == upperStr) {
         return LogicalTypeID::BOOL;
     } else if ("BYTEA" == upperStr || "BLOB" == upperStr) {
@@ -825,6 +904,8 @@ std::string LogicalTypeUtils::toString(LogicalTypeID dataTypeID) {
         return "TIMESTAMP";
     case LogicalTypeID::INTERVAL:
         return "INTERVAL";
+    case LogicalTypeID::DECIMAL:
+        return "DECIMAL";
     case LogicalTypeID::BLOB:
         return "BLOB";
     case LogicalTypeID::UUID:
@@ -851,82 +932,6 @@ std::string LogicalTypeUtils::toString(LogicalTypeID dataTypeID) {
         KU_UNREACHABLE;
     }
     // LCOV_EXCL_STOP
-}
-
-LogicalTypeID LogicalTypeUtils::fromStringToID(const std::string& str) {
-    if (str == "ANY") {
-        return LogicalTypeID::ANY;
-    } else if (str == "NODE") {
-        return LogicalTypeID::NODE;
-    } else if (str == "REL") {
-        return LogicalTypeID::REL;
-    } else if (str == "RECURSIVE_REL") {
-        return LogicalTypeID::RECURSIVE_REL;
-    } else if (str == "INTERNAL_ID") {
-        return LogicalTypeID::INTERNAL_ID;
-    } else if (str == "BOOL") {
-        return LogicalTypeID::BOOL;
-    } else if (str == "INT64") {
-        return LogicalTypeID::INT64;
-    } else if (str == "INT32") {
-        return LogicalTypeID::INT32;
-    } else if (str == "INT16") {
-        return LogicalTypeID::INT16;
-    } else if (str == "INT8") {
-        return LogicalTypeID::INT8;
-    } else if (str == "UINT64") {
-        return LogicalTypeID::UINT64;
-    } else if (str == "UINT32") {
-        return LogicalTypeID::UINT32;
-    } else if (str == "UINT16") {
-        return LogicalTypeID::UINT16;
-    } else if (str == "UINT8") {
-        return LogicalTypeID::UINT8;
-    } else if (str == "INT128") {
-        return LogicalTypeID::INT128;
-    } else if (str == "DOUBLE") {
-        return LogicalTypeID::DOUBLE;
-    } else if (str == "FLOAT") {
-        return LogicalTypeID::FLOAT;
-    } else if (str == "DATE") {
-        return LogicalTypeID::DATE;
-    } else if (str == "TIMESTAMP_NS") {
-        return LogicalTypeID::TIMESTAMP_NS;
-    } else if (str == "TIMESTAMP_MS") {
-        return LogicalTypeID::TIMESTAMP_MS;
-    } else if (str == "TIMESTAMP_SEC") {
-        return LogicalTypeID::TIMESTAMP_SEC;
-    } else if (str == "TIMESTAMP_TZ") {
-        return LogicalTypeID::TIMESTAMP_TZ;
-    } else if (str == "TIMESTAMP") {
-        return LogicalTypeID::TIMESTAMP;
-    } else if (str == "INTERVAL") {
-        return LogicalTypeID::INTERVAL;
-    } else if (str == "BLOB") {
-        return LogicalTypeID::BLOB;
-    } else if (str == "UUID") {
-        return LogicalTypeID::UUID;
-    } else if (str == "STRING") {
-        return LogicalTypeID::STRING;
-    } else if (str == "LIST") {
-        return LogicalTypeID::LIST;
-    } else if (str == "ARRAY") {
-        return LogicalTypeID::ARRAY;
-    } else if (str == "STRUCT") {
-        return LogicalTypeID::STRUCT;
-    } else if (str == "RDF_VARIANT") {
-        return LogicalTypeID::RDF_VARIANT;
-    } else if (str == "SERIAL") {
-        return LogicalTypeID::SERIAL;
-    } else if (str == "MAP") {
-        return LogicalTypeID::MAP;
-    } else if (str == "UNION") {
-        return LogicalTypeID::UNION;
-    } else if (str == "POINTER") {
-        return LogicalTypeID::POINTER;
-    } else {
-        throw RuntimeException(stringFormat("Unknown type {}", str));
-    }
 }
 
 std::string LogicalTypeUtils::toString(const std::vector<LogicalType>& dataTypes) {
@@ -1056,6 +1061,7 @@ bool LogicalTypeUtils::isNumerical(const LogicalTypeID& dataType) {
     case LogicalTypeID::DOUBLE:
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::SERIAL:
+    case LogicalTypeID::DECIMAL:
         return true;
     default:
         return false;
@@ -1107,6 +1113,7 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getNumericalLogicalTypeIDs() {
     auto integerTypes = getIntegerTypeIDs();
     auto floatingPointTypes = getFloatingPointTypeIDs();
     integerTypes.insert(integerTypes.end(), floatingPointTypes.begin(), floatingPointTypes.end());
+    // integerTypes.push_back(LogicalTypeID::DECIMAL); // fixed point numeric
     return integerTypes;
 }
 
@@ -1218,6 +1225,38 @@ std::unique_ptr<LogicalType> parseUnionType(const std::string& trimmedStr) {
         std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));
     unionFields.insert(unionFields.begin(), std::move(unionTagField));
     return LogicalType::UNION(std::move(unionFields));
+}
+
+std::unique_ptr<LogicalType> parseDecimalType(const std::string& trimmedStr) {
+    auto leftBracketPos = trimmedStr.find_last_of('(');
+    auto rightBracketPos = trimmedStr.find_last_of(')');
+    if (leftBracketPos == std::string::npos) {
+        return LogicalType::DECIMAL(18, 3);
+    }
+    auto paramSubstr = StringUtils::ltrim(StringUtils::rtrim(
+        trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1)));
+    auto commaPos = paramSubstr.find_last_of(',');
+    if (commaPos == std::string::npos) {
+        throw BinderException("Only found 1 parameter for NUMERIC/DECIMAL type, expected 2");
+    }
+    auto precisionStr = StringUtils::ltrim(StringUtils::rtrim(paramSubstr.substr(0, commaPos)));
+    auto scaleStr = StringUtils::ltrim(StringUtils::rtrim(paramSubstr.substr(commaPos + 1)));
+    auto precision = std::strtoll(precisionStr.c_str(), nullptr, 0);
+    auto scale = std::strtoll(scaleStr.c_str(), nullptr, 0);
+    if (precision <= 0 || precision > 38) {
+        throw BinderException(
+            "Precision of DECIMAL/NUMERIC must be a positive integer no greater than 38");
+    }
+    if (scale < 0 || scale > precision) {
+        throw BinderException(
+            "Scale of DECIMAL/NUMERIC must be a nonnegative integer no greater than the precision");
+    }
+    return LogicalType::DECIMAL((uint32_t)precision, (uint32_t)scale);
+}
+
+std::unique_ptr<LogicalType> LogicalType::DECIMAL(uint32_t precision, uint32_t scale) {
+    return std::unique_ptr<LogicalType>(new LogicalType(LogicalTypeID::DECIMAL,
+        std::make_unique<DecimalTypeInfo>(precision, scale)));
 }
 
 std::unique_ptr<LogicalType> LogicalType::STRUCT(std::vector<StructField>&& fields) {

@@ -53,7 +53,7 @@ struct Range {
 static scalar_func_exec_t getBinaryExecFunc(const LogicalType& type) {
     scalar_func_exec_t execFunc;
     TypeUtils::visit(
-        type.getLogicalTypeID(),
+        type,
         [&execFunc]<IntegerTypes T>(T) {
             execFunc = ScalarFunction::BinaryExecListStructFunction<T, T, list_entry_t, Range>;
         },
@@ -64,7 +64,7 @@ static scalar_func_exec_t getBinaryExecFunc(const LogicalType& type) {
 static scalar_func_exec_t getTernaryExecFunc(const LogicalType& type) {
     scalar_func_exec_t execFunc;
     TypeUtils::visit(
-        type.getLogicalTypeID(),
+        type,
         [&execFunc]<IntegerTypes T>(T) {
             execFunc = ScalarFunction::TernaryExecListStructFunction<T, T, T, list_entry_t, Range>;
         },

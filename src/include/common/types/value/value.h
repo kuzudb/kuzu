@@ -262,6 +262,7 @@ private:
     std::string structToString() const;
     std::string nodeToString() const;
     std::string relToString() const;
+    std::string decimalToString() const;
 
 public:
     union Val {

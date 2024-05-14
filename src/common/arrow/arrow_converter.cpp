@@ -147,6 +147,11 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
     case LogicalTypeID::FLOAT: {
         child.format = "f";
     } break;
+    case LogicalTypeID::DECIMAL: {
+        auto formatString = "d:" + std::to_string(DecimalType::getPrecision(dataType)) + "," +
+                            std::to_string(DecimalType::getScale(dataType));
+        child.format = copyName(rootHolder, formatString);
+    } break;
     case LogicalTypeID::DATE: {
         child.format = "tdD";
     } break;

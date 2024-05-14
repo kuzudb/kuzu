@@ -293,6 +293,7 @@ typedef enum {
     KUZU_TIMESTAMP_NS = 38,
     KUZU_TIMESTAMP_TZ = 39,
     KUZU_INTERVAL = 40,
+    KUZU_DECIMAL = 41,
     KUZU_INTERNAL_ID = 42,
     // variable size types
     KUZU_STRING = 50,

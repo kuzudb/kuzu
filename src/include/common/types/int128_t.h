@@ -52,6 +52,9 @@ struct int128_t {
 
     // cast operators
     explicit operator int64_t() const;
+    explicit operator int32_t() const;
+    explicit operator int16_t() const;
+    explicit operator int8_t() const;
 };
 
 class Int128_t {

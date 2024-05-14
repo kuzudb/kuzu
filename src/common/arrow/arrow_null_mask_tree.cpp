@@ -102,6 +102,7 @@ ArrowNullMaskTree::ArrowNullMaskTree(const ArrowSchema* schema, const ArrowArray
     case 'I':
     case 'l':
     case 'L':
+    case 'd':
     case 'f':
     case 'g':
         copyFromBuffer(array->buffers[0], srcOffset, count);

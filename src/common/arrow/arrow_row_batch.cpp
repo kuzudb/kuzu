@@ -24,8 +24,8 @@ ArrowRowBatch::ArrowRowBatch(std::vector<LogicalType> types, std::int64_t capaci
     }
 }
 
-static uint64_t getArrowMainBufferSize(LogicalTypeID type, uint64_t capacity) {
-    switch (type) {
+static uint64_t getArrowMainBufferSize(const LogicalType& type, uint64_t capacity) {
+    switch (type.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
         return getNumBytesForBits(capacity);
     case LogicalTypeID::SERIAL:
@@ -49,6 +49,7 @@ static uint64_t getArrowMainBufferSize(LogicalTypeID type, uint64_t capacity) {
     case LogicalTypeID::UINT8:
     case LogicalTypeID::INT8:
         return sizeof(int8_t) * capacity;
+    case LogicalTypeID::DECIMAL:
     case LogicalTypeID::INT128:
         return sizeof(int128_t) * capacity;
     case LogicalTypeID::DOUBLE:
@@ -78,7 +79,7 @@ static void resizeValidityBuffer(ArrowVector* vector, int64_t capacity) {
 }
 
 static void resizeMainBuffer(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
-    vector->data.resize(getArrowMainBufferSize(type.getLogicalTypeID(), capacity));
+    vector->data.resize(getArrowMainBufferSize(type, capacity));
 }
 
 static void resizeBLOBOverflow(ArrowVector* vector, int64_t capacity) {
@@ -166,6 +167,7 @@ static void resizeVector(ArrowVector* vector, const LogicalType& type, std::int6
     auto result = std::make_unique<ArrowVector>();
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
+    case LogicalTypeID::DECIMAL:
     case LogicalTypeID::INT128:
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64:
@@ -244,6 +246,13 @@ void ArrowRowBatch::templateCopyNonNullValue(ArrowVector* vector, const LogicalT
     Value* value, std::int64_t pos) {
     auto valSize = storage::StorageUtils::getDataTypeSize(LogicalType{DT});
     std::memcpy(vector->data.data() + pos * valSize, &value->val, valSize);
+}
+
+template<>
+void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::DECIMAL>(ArrowVector* vector,
+    const LogicalType& type, Value* value, std::int64_t pos) {
+    auto valSize = storage::StorageUtils::getDataTypeSize(type);
+    std::memcpy(vector->data.data() + pos * 16, &value->val, valSize);
 }
 
 template<>
@@ -403,6 +412,7 @@ void ArrowRowBatch::copyNonNullValue(ArrowVector* vector, const LogicalType& typ
     case LogicalTypeID::BOOL: {
         templateCopyNonNullValue<LogicalTypeID::BOOL>(vector, type, value, pos);
     } break;
+    case LogicalTypeID::DECIMAL:
     case LogicalTypeID::INT128: {
         templateCopyNonNullValue<LogicalTypeID::INT128>(vector, type, value, pos);
     } break;
@@ -561,6 +571,7 @@ void ArrowRowBatch::copyNullValue(ArrowVector* vector, Value* value, std::int64_
     case LogicalTypeID::BOOL: {
         templateCopyNullValue<LogicalTypeID::BOOL>(vector, pos);
     } break;
+    case LogicalTypeID::DECIMAL:
     case LogicalTypeID::INT128: {
         templateCopyNullValue<LogicalTypeID::INT128>(vector, pos);
     } break;
@@ -816,6 +827,7 @@ ArrowArray* ArrowRowBatch::convertVectorToArray(ArrowVector& vector, const Logic
     case LogicalTypeID::BOOL: {
         return templateCreateArray<LogicalTypeID::BOOL>(vector, type);
     }
+    case LogicalTypeID::DECIMAL:
     case LogicalTypeID::INT128: {
         return templateCreateArray<LogicalTypeID::INT128>(vector, type);
     }

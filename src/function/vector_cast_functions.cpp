@@ -944,6 +944,12 @@ function_set CastToFloatFunction::getFunctionSet() {
     return result;
 }
 
+function_set CastToDecimalFunction::getFunctionSet() {
+    function_set result;
+    // TODO(maxwell)
+    return result;
+}
+
 function_set CastToInt128Function::getFunctionSet() {
     function_set result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {

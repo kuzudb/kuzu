@@ -142,7 +142,7 @@ enum class LogicalTypeID : uint8_t {
     TIMESTAMP_NS = 38,
     TIMESTAMP_TZ = 39,
     INTERVAL = 40,
-
+    DECIMAL = 41,
     INTERNAL_ID = 42,
 
     STRING = 50,
@@ -191,6 +191,7 @@ class StructTypeInfo;
 
 class LogicalType {
     friend struct LogicalTypeUtils;
+    friend struct DecimalType;
     friend struct StructType;
     friend struct ListType;
     friend struct ArrayType;
@@ -215,7 +216,8 @@ public:
     bool containsAny() const;
 
     PhysicalTypeID getPhysicalType() const { return physicalType; }
-    static PhysicalTypeID getPhysicalType(LogicalTypeID logicalType);
+    static PhysicalTypeID getPhysicalType(LogicalTypeID logicalType,
+        const std::unique_ptr<ExtraTypeInfo>& extraTypeInfo = nullptr);
 
     void setExtraTypeInfo(std::unique_ptr<ExtraTypeInfo> typeInfo) {
         extraTypeInfo = std::move(typeInfo);
@@ -295,6 +297,7 @@ public:
     static std::unique_ptr<LogicalType> INTERVAL() {
         return std::make_unique<LogicalType>(LogicalTypeID::INTERVAL);
     }
+    static std::unique_ptr<LogicalType> DECIMAL(uint32_t precision, uint32_t scale);
     static std::unique_ptr<LogicalType> INTERNAL_ID() {
         return std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID);
     }
@@ -379,6 +382,28 @@ public:
 
 protected:
     virtual void serializeInternal(Serializer& serializer) const = 0;
+};
+
+class DecimalTypeInfo : public ExtraTypeInfo {
+public:
+    explicit DecimalTypeInfo(uint32_t precision = 18, uint32_t scale = 3)
+        : precision(precision), scale(scale) {}
+
+    uint32_t getPrecision() const { return precision; }
+    uint32_t getScale() const { return scale; }
+
+    bool containsAny() const override { return true; }
+
+    bool operator==(const ExtraTypeInfo& other) const override;
+
+    std::unique_ptr<ExtraTypeInfo> copy() const override;
+
+    static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
+
+protected:
+    void serializeInternal(Serializer& serializer) const override;
+
+    uint32_t precision, scale;
 };
 
 class ListTypeInfo : public ExtraTypeInfo {
@@ -485,6 +510,12 @@ private:
 
 using logical_type_vec_t = std::vector<LogicalType>;
 
+struct KUZU_API DecimalType {
+    static uint32_t getPrecision(const LogicalType& type);
+    static uint32_t getScale(const LogicalType& type);
+    static std::string insertDecimalPoint(const std::string& value, uint32_t posFromEnd);
+};
+
 struct KUZU_API ListType {
     static LogicalType getChildType(const LogicalType& type);
 };
@@ -543,7 +574,6 @@ struct LogicalTypeUtils {
     KUZU_API static std::string toString(LogicalTypeID dataTypeID);
     KUZU_API static std::string toString(const std::vector<LogicalType>& dataTypes);
     KUZU_API static std::string toString(const std::vector<LogicalTypeID>& dataTypeIDs);
-    static LogicalTypeID fromStringToID(const std::string& str);
     static uint32_t getRowLayoutSize(const LogicalType& logicalType);
     static bool isDate(const LogicalType& dataType);
     static bool isDate(const LogicalTypeID& dataType);
