@@ -12,7 +12,7 @@ public:
 
     static constexpr const char* skipUnsupportedTable = "SKIP_UNSUPPORTED_TABLE";
 
-    static constexpr bool skipInvalidTableDefaultVal = false;
+    static constexpr bool skipUnsupportedTableDefaultVal = false;
 
     explicit DuckDBStorageExtension(main::Database* database);
 
