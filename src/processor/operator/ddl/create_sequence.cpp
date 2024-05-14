@@ -1,7 +1,7 @@
 #include "processor/operator/ddl/create_sequence.h"
 
+#include "catalog/catalog.h"
 #include "common/string_format.h"
-#include "storage/storage_manager.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

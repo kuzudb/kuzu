@@ -1,7 +1,5 @@
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 
-#include <algorithm>
-
 #include "binder/ddl/bound_create_sequence_info.h"
 #include "common/exception/catalog.h"
 #include "common/exception/overflow.h"

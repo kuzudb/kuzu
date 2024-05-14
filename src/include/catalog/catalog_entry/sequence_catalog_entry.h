@@ -1,11 +1,8 @@
 #pragma once
 
-#include <vector>
-
 #include "binder/ddl/bound_create_sequence_info.h"
 #include "catalog/property.h"
 #include "catalog_entry.h"
-#include "common/exception/exception.h"
 
 namespace kuzu {
 namespace binder {

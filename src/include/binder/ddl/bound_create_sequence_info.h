@@ -1,12 +1,9 @@
 #pragma once
 
-#include "binder/expression/expression.h"
+#include <string>
 #include "common/copy_constructors.h"
 
 namespace kuzu {
-namespace common {
-enum class RelMultiplicity : uint8_t;
-}
 namespace binder {
 
 struct BoundCreateSequenceInfo {

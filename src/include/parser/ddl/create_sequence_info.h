@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <string>
 
 #include "common/copy_constructors.h"
@@ -20,10 +21,10 @@ struct CreateSequenceInfo {
     int64_t startWith = 1;
     int64_t increment = 1;
     int64_t minValue = 1;
-    int64_t maxValue = INT64_MAX;
+    int64_t maxValue = std::numeric_limits<int64_t>::max();
     bool cycle = false;
 
-    CreateSequenceInfo(std::string sequenceName) : sequenceName{std::move(sequenceName)} {}
+    explicit CreateSequenceInfo(std::string sequenceName) : sequenceName{std::move(sequenceName)} {}
     DELETE_COPY_DEFAULT_MOVE(CreateSequenceInfo);
 };
 
