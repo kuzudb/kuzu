@@ -204,6 +204,12 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) {
         clientContext.getCatalog()->addScalarMacroFunction(&DUMMY_WRITE_TRANSACTION,
             macroEntry->getName(), macroEntry->getMacroFunction()->copy());
     } break;
+    case CatalogEntryType::SEQUENCE_ENTRY: {
+        auto sequenceEntry = ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(
+            createEntryRecord.ownedCatalogEntry.get());
+        clientContext.getCatalog()->createSequence(&DUMMY_WRITE_TRANSACTION,
+            sequenceEntry->getBoundCreateSequenceInfo());
+    } break;
     default: {
         KU_UNREACHABLE;
     }
@@ -215,20 +221,33 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) {
     if (!(isCheckpoint && isRecovering)) {
         return;
     }
-    auto dropTableRecord =
+    auto dropEntryRecord =
         ku_dynamic_cast<const WALRecord&, const DropCatalogEntryRecord&>(walRecord);
-    auto tableID = dropTableRecord.tableID;
-    auto tableEntry =
-        clientContext.getCatalog()->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID);
-    switch (tableEntry->getTableType()) {
-    case TableType::NODE:
-    case TableType::REL:
-    case TableType::RDF: {
-        clientContext.getCatalog()->dropTableSchema(&DUMMY_WRITE_TRANSACTION, tableID);
-        // During recovery, storageManager does not exist.
-        if (clientContext.getStorageManager()) {
-            clientContext.getStorageManager()->dropTable(tableID);
+    auto entryID = dropEntryRecord.entryID;
+    switch (dropEntryRecord.entryType) {
+    case CatalogEntryType::NODE_TABLE_ENTRY:
+    case CatalogEntryType::REL_TABLE_ENTRY:
+    case CatalogEntryType::REL_GROUP_ENTRY:
+    case CatalogEntryType::RDF_GRAPH_ENTRY: {
+        auto tableEntry =
+            clientContext.getCatalog()->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, entryID);
+        switch (tableEntry->getTableType()) {
+        case TableType::NODE:
+        case TableType::REL:
+        case TableType::RDF: {
+            clientContext.getCatalog()->dropTableSchema(&DUMMY_WRITE_TRANSACTION, entryID);
+            // During recovery, storageManager does not exist.
+            if (clientContext.getStorageManager()) {
+                clientContext.getStorageManager()->dropTable(entryID);
+            }
+        } break;
+        default: {
+            KU_UNREACHABLE;
         }
+        }
+    } break;
+    case CatalogEntryType::SEQUENCE_ENTRY: {
+        clientContext.getCatalog()->dropSequence(&DUMMY_WRITE_TRANSACTION, entryID);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -239,30 +258,6 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) {
 void WALReplayer::replayCopyTableRecord(const WALRecord&) const {
     // DO NOTHING.
     // TODO(Guodong): Should handle metaDA and reclaim free pages when rollback.
-}
-
-// Replay catalog should only work under RECOVERY mode.
-void WALReplayer::replayCreateSequenceRecord(const WALRecord& walRecord) {
-    if (!(isCheckpoint && isRecovering)) {
-        // Nothing to do.
-        return;
-    }
-    auto& createSequenceRecord =
-        ku_dynamic_cast<const WALRecord&, const CreateSequenceRecord&>(walRecord);
-    auto sequenceEntry = ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(
-        createSequenceRecord.ownedCatalogEntry.get());
-    clientContext.getCatalog()->createSequence(&DUMMY_WRITE_TRANSACTION,
-        sequenceEntry->getBoundCreateSequenceInfo());
-}
-
-// Replay catalog should only work under RECOVERY mode.
-void WALReplayer::replayDropSequenceRecord(const WALRecord& walRecord) {
-    if (!(isCheckpoint && isRecovering)) {
-        return;
-    }
-    auto dropSequenceRecord = ku_dynamic_cast<const WALRecord&, const DropSequenceRecord&>(walRecord);
-    auto sequenceID = dropSequenceRecord.sequenceID;
-    clientContext.getCatalog()->dropSequence(&DUMMY_WRITE_TRANSACTION, sequenceID);
 }
 
 void WALReplayer::truncateFileIfInsertion(BMFileHandle* fileHandle,
