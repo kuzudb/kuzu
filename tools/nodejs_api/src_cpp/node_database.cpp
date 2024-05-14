@@ -6,7 +6,6 @@ Napi::Object NodeDatabase::Init(Napi::Env env, Napi::Object exports) {
     Napi::Function t = DefineClass(env, "NodeDatabase",
         {
             InstanceMethod("initAsync", &NodeDatabase::InitAsync),
-            InstanceMethod("setLoggingLevel", &NodeDatabase::SetLoggingLevel),
             InstanceMethod("close", &NodeDatabase::Close),
             StaticMethod("getVersion", &NodeDatabase::GetVersion),
             StaticMethod("getStorageVersion", &NodeDatabase::GetStorageVersion),
@@ -50,14 +49,6 @@ void NodeDatabase::InitCppDatabase() {
         systemConfig.maxDBSize = maxDBSize;
     }
     this->database = std::make_shared<Database>(databasePath, systemConfig);
-}
-
-void NodeDatabase::SetLoggingLevel(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    Napi::HandleScope scope(env);
-
-    auto loggingLevel = info[0].As<Napi::String>().Utf8Value();
-    database->setLoggingLevel(std::move(loggingLevel));
 }
 
 void NodeDatabase::Close(const Napi::CallbackInfo& info) {

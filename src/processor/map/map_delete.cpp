@@ -48,8 +48,8 @@ static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(LogicalDeleteNo
     } else {
         auto table = ku_dynamic_cast<Table*, NodeTable*>(
             storageManager->getTable(info->node->getSingleTableID()));
-        auto tableEntry = catalog->getTableCatalogEntry(&transaction::DUMMY_READ_TRANSACTION,
-            info->node->getSingleTableID());
+        auto tableEntry =
+            catalog->getTableCatalogEntry(clientContext->getTx(), info->node->getSingleTableID());
         auto nodeTableEntry =
             ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableEntry);
         auto fwdRelTableIDs = nodeTableEntry->getFwdRelTableIDSet();

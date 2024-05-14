@@ -25,8 +25,7 @@ public:
         bufferOffset = 0;
     }
 
-    uint64_t getFileOffset() const { return fileOffset; }
-
+    uint64_t getFileSize() const;
     FileInfo& getFileInfo() { return *fileInfo; }
 
 protected:

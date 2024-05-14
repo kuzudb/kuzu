@@ -107,7 +107,7 @@ private:
                                                  oSlots->update(slotInfo.slotId, slot);
     }
 
-    inline Slot<T> getSlot(transaction::TransactionType trxType, const SlotInfo& slotInfo) {
+    inline Slot<T> getSlot(transaction::TransactionType trxType, const SlotInfo& slotInfo) const {
         return slotInfo.slotType == SlotType::PRIMARY ? pSlots->get(slotInfo.slotId, trxType) :
                                                         oSlots->get(slotInfo.slotId, trxType);
     }
@@ -119,9 +119,7 @@ private:
     void splitSlots(HashIndexHeader& header, slot_id_t numSlotsToSplit);
 
     // Resizes the local storage to support the given number of new entries
-    inline void bulkReserve(uint64_t newEntries) override {
-        bulkInsertLocalStorage.reserve(newEntries);
-    }
+    void bulkReserve(uint64_t newEntries) override;
     // Resizes the on-disk index to support the given number of new entries
     void reserve(uint64_t newEntries);
 
@@ -131,9 +129,10 @@ private:
         const SlotEntry<T>* entry;
     };
 
-    void sortEntries(typename InMemHashIndex<T>::SlotIterator& slotToMerge,
+    void sortEntries(const InMemHashIndex<T>& insertLocalStorage,
+        typename InMemHashIndex<T>::SlotIterator& slotToMerge,
         std::vector<HashIndexEntryView>& partitions);
-    void mergeBulkInserts();
+    void mergeBulkInserts(const InMemHashIndex<T>& insertLocalStorage);
     // Returns the number of elements merged which matched the given slot id
     size_t mergeSlot(const std::vector<HashIndexEntryView>& slotToMerge,
         typename BaseDiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
@@ -172,7 +171,7 @@ private:
             getSlot(trxType, SlotInfo{slotId, SlotType::PRIMARY})};
     }
 
-    bool nextChainedSlot(transaction::TransactionType trxType, SlotIterator& iter) {
+    bool nextChainedSlot(transaction::TransactionType trxType, SlotIterator& iter) const {
         KU_ASSERT(iter.slotInfo.slotType == SlotType::PRIMARY ||
                   iter.slotInfo.slotId != iter.slot.header.nextOvfSlotId);
         if (iter.slot.header.nextOvfSlotId != 0) {
@@ -219,8 +218,7 @@ private:
     std::unique_ptr<BaseDiskArray<Slot<T>>> pSlots;
     std::unique_ptr<BaseDiskArray<Slot<T>>> oSlots;
     OverflowFileHandle* overflowFileHandle;
-    std::unique_ptr<HashIndexLocalStorage<BufferKeyType>> localStorage;
-    InMemHashIndex<T> bulkInsertLocalStorage;
+    std::unique_ptr<HashIndexLocalStorage<T>> localStorage;
     std::unique_ptr<HashIndexHeader> indexHeaderForReadTrx;
     std::unique_ptr<HashIndexHeader> indexHeaderForWriteTrx;
 };

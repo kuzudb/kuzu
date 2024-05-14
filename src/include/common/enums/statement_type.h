@@ -25,20 +25,5 @@ enum class StatementType : uint8_t {
     USE_DATABASE = 36,
 };
 
-struct StatementTypeUtils {
-    static bool allowActiveTransaction(StatementType statementType) {
-        switch (statementType) {
-        case StatementType::CREATE_TABLE:
-        case StatementType::DROP_TABLE:
-        case StatementType::ALTER:
-        case StatementType::CREATE_MACRO:
-        case StatementType::COPY_FROM:
-            return false;
-        default:
-            return true;
-        }
-    }
-};
-
 } // namespace common
 } // namespace kuzu

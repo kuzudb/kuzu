@@ -97,6 +97,7 @@ void InMemHashIndex<T>::splitSlot(HashIndexHeader& header) {
                           std::countr_one(originalSlot.slot->header.validityMask));
                 // There should be no gaps, so when we encounter an invalid entry we can return
                 // early
+                reclaimOverflowSlots(originalSlotForInsert);
                 header.incrementNextSplitSlotId();
                 return;
             }
@@ -135,7 +136,50 @@ void InMemHashIndex<T>::splitSlot(HashIndexHeader& header) {
                   std::countr_one(originalSlot.slot->header.validityMask));
     } while (nextChainedSlot(originalSlot));
 
+    reclaimOverflowSlots(originalSlotForInsert);
     header.incrementNextSplitSlotId();
+}
+
+template<typename T>
+void InMemHashIndex<T>::reclaimOverflowSlots(SlotIterator iter) {
+    // Reclaim empty overflow slots at the end of the chain.
+    // This saves the cost of having to iterate over them, and reduces memory usage by letting them
+    // be used instead of allocating new slots
+    if (iter.slot->header.nextOvfSlotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
+        // Skip past the last non-empty entry
+        Slot<T>* lastNonEmptySlot = iter.slot;
+        while (iter.slot->header.numEntries() > 0 || iter.slotInfo.slotType == SlotType::PRIMARY) {
+            lastNonEmptySlot = iter.slot;
+            if (!nextChainedSlot(iter)) {
+                break;
+            }
+        }
+        lastNonEmptySlot->header.nextOvfSlotId = SlotHeader::INVALID_OVERFLOW_SLOT_ID;
+        while (iter.slotInfo != HashIndexUtils::INVALID_OVF_INFO) {
+            // Remove empty overflow slots from slot chain
+            KU_ASSERT(iter.slot->header.numEntries() == 0);
+            auto slotInfo = iter.slotInfo;
+            auto slot = clearNextOverflowAndAdvanceIter(iter);
+            if (slotInfo.slotType == SlotType::OVF) {
+                // Insert empty slot into free slot chain
+                KU_ASSERT(slotInfo.slotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID);
+                slot->header.nextOvfSlotId = indexHeader.firstFreeOverflowSlotId;
+                indexHeader.firstFreeOverflowSlotId = slotInfo.slotId;
+            }
+        }
+    }
+}
+
+template<typename T>
+Slot<T>* InMemHashIndex<T>::clearNextOverflowAndAdvanceIter(SlotIterator& iter) {
+    auto originalSlot = iter.slot;
+    auto nextOverflowSlot = iter.slot->header.nextOvfSlotId;
+    iter.slot->header.nextOvfSlotId = SlotHeader::INVALID_OVERFLOW_SLOT_ID;
+    iter.slotInfo = SlotInfo{nextOverflowSlot, SlotType::OVF};
+    if (nextOverflowSlot != SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
+        iter.slot = getSlot(iter.slotInfo);
+    }
+    return originalSlot;
 }
 
 template<typename T>
@@ -228,14 +272,24 @@ uint32_t InMemHashIndex<T>::allocatePSlots(uint32_t numSlotsToAllocate) {
 
 template<typename T>
 uint32_t InMemHashIndex<T>::allocateAOSlot() {
-    auto oldNumSlots = oSlots->getNumElements();
-    auto newNumSlots = oldNumSlots + 1;
-    oSlots->resize(newNumSlots, true /*setToZero*/);
-    return oldNumSlots;
+    if (indexHeader.firstFreeOverflowSlotId == SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
+        auto oldNumSlots = oSlots->getNumElements();
+        auto newNumSlots = oldNumSlots + 1;
+        oSlots->resize(newNumSlots, true /*setToZero*/);
+        return oldNumSlots;
+    } else {
+        auto freeOSlotId = indexHeader.firstFreeOverflowSlotId;
+        auto& slot = (*oSlots)[freeOSlotId];
+        // Remove slot from the free slot chain
+        indexHeader.firstFreeOverflowSlotId = slot.header.nextOvfSlotId;
+        KU_ASSERT(slot.header.numEntries() == 0);
+        slot.header.nextOvfSlotId = SlotHeader::INVALID_OVERFLOW_SLOT_ID;
+        return freeOSlotId;
+    }
 }
 
 template<typename T>
-Slot<T>* InMemHashIndex<T>::getSlot(const SlotInfo& slotInfo) {
+Slot<T>* InMemHashIndex<T>::getSlot(const SlotInfo& slotInfo) const {
     if (slotInfo.slotType == SlotType::PRIMARY) {
         return &pSlots->operator[](slotInfo.slotId);
     } else {
@@ -311,6 +365,48 @@ void InMemHashIndex<T>::createEmptyIndexFiles(uint64_t indexPos, FileHandle& fil
     headerArray.saveToDisk();
     pSlots.saveToDisk();
     oSlots.saveToDisk();
+}
+
+template<typename T>
+bool InMemHashIndex<T>::deleteKey(Key key) {
+    if (this->indexHeader.numEntries == 0) {
+        return false;
+    }
+    auto hashValue = HashIndexUtils::hash(key);
+    auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
+    auto slotId = HashIndexUtils::getPrimarySlotIdForHash(this->indexHeader, hashValue);
+    SlotIterator iter(slotId, this);
+    std::optional<entry_pos_t> deletedPos = 0;
+    do {
+        for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
+            if (iter.slot->header.isEntryValid(entryPos) &&
+                iter.slot->header.fingerprints[entryPos] == fingerprint &&
+                equals(key, iter.slot->entries[entryPos].key)) {
+                deletedPos = entryPos;
+                iter.slot->header.setEntryInvalid(entryPos);
+                break;
+            }
+        }
+        if (deletedPos.has_value()) {
+            break;
+        }
+    } while (nextChainedSlot(iter));
+
+    if (deletedPos.has_value()) {
+        // Find the last valid entry and move it into the deleted position
+        auto newIter = iter;
+        while (nextChainedSlot(newIter))
+            ;
+        if (newIter.slotInfo != iter.slotInfo ||
+            *deletedPos != newIter.slot->header.numEntries() - 1) {
+            auto lastEntryPos = newIter.slot->header.numEntries();
+            iter.slot->entries[*deletedPos] = newIter.slot->entries[lastEntryPos];
+            iter.slot->header.setEntryValid(*deletedPos,
+                newIter.slot->header.fingerprints[lastEntryPos]);
+            newIter.slot->header.setEntryInvalid(lastEntryPos);
+        }
+    }
+    return false;
 }
 
 template class InMemHashIndex<int64_t>;

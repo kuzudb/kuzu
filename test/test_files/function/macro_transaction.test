@@ -1,0 +1,79 @@
+-DATASET CSV empty
+
+--
+
+-CASE MacroFuncTestCommit
+-STATEMENT Begin transaction
+---- ok
+-STATEMENT create macro addWithDefault(a,b:=3) as a + b;
+---- ok
+-STATEMENT return addWithDefault(2);
+---- 1
+5
+-STATEMENT Commit;
+---- ok
+-STATEMENT return addWithDefault(4,7);
+---- 1
+11
+
+-CASE MacroFuncTestCommitRecovery
+-STATEMENT Begin transaction
+---- ok
+-STATEMENT create macro addWithDefault(a,b:=3) as a + b;
+---- ok
+-STATEMENT return addWithDefault(2);
+---- 1
+5
+-STATEMENT Commit_skip_checkpoint;
+---- ok
+-RELOADDB
+-STATEMENT return addWithDefault(4,7);
+---- 1
+11
+
+-CASE MacroFuncTestRollback
+-STATEMENT Begin transaction
+---- ok
+-STATEMENT create macro addWithDefault(a,b:=3) as a + b;
+---- ok
+-STATEMENT return addWithDefault(2);
+---- 1
+5
+-STATEMENT Rollback;
+---- ok
+-STATEMENT return addWithDefault(4,7);
+---- error
+Catalog exception: function ADDWITHDEFAULT does not exist.
+
+-CASE MacroFuncTestRollbackRecovery
+-STATEMENT Begin transaction
+---- ok
+-STATEMENT create macro addWithDefault(a,b:=3) as a + b;
+---- ok
+-STATEMENT return addWithDefault(2);
+---- 1
+5
+-STATEMENT Rollback_skip_checkpoint;
+---- ok
+-STATEMENT return addWithDefault(4,7);
+---- error
+Catalog exception: function ADDWITHDEFAULT does not exist.
+
+-CASE MacroFuncTestRollbackCommit
+-STATEMENT Begin transaction
+---- ok
+-STATEMENT create macro addWithDefault(a,b:=3) as a + b;
+---- ok
+-STATEMENT return addWithDefault(2);
+---- 1
+5
+-STATEMENT Rollback;
+---- ok
+-STATEMENT return addWithDefault(4,7);
+---- error
+Catalog exception: function ADDWITHDEFAULT does not exist.
+-STATEMENT create macro addWithDefault(a,b:=3) as a + b;
+---- ok
+-STATEMENT return addWithDefault(4,7);
+---- 1
+11

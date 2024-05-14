@@ -32,25 +32,26 @@ public:
     explicit TransactionContext(main::ClientContext& clientContext);
     ~TransactionContext();
 
-    inline bool isAutoTransaction() const { return mode == TransactionMode::AUTO; }
+    bool isAutoTransaction() const { return mode == TransactionMode::AUTO; }
 
     void beginReadTransaction();
     void beginWriteTransaction();
     void beginAutoTransaction(bool readOnlyStatement);
-    void validateManualTransaction(bool allowActiveTransaction, bool readOnlyStatement);
+    void validateManualTransaction(bool readOnlyStatement);
 
     void commit();
     void rollback();
     void commitSkipCheckPointing();
     void rollbackSkipCheckPointing();
 
-    inline TransactionMode getTransactionMode() const { return mode; }
-    inline bool hasActiveTransaction() const { return activeTransaction != nullptr; }
-    inline Transaction* getActiveTransaction() const { return activeTransaction.get(); }
+    TransactionMode getTransactionMode() const { return mode; }
+    bool hasActiveTransaction() const { return activeTransaction != nullptr; }
+    Transaction* getActiveTransaction() const { return activeTransaction.get(); }
 
 private:
     void commitInternal(bool skipCheckPointing);
     void rollbackInternal(bool skipCheckPointing);
+    void clearTransaction();
 
 private:
     void beginTransactionInternal(TransactionType transactionType);
@@ -59,6 +60,7 @@ private:
     std::mutex mtx;
     main::ClientContext& clientContext;
     TransactionMode mode;
+    // TODO(Guodong): Should hold a raw pointer. Move ownership to TransactionManager.
     std::unique_ptr<Transaction> activeTransaction;
 };
 

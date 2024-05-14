@@ -10,11 +10,12 @@ class Column;
 
 namespace main {
 
+class ClientContext;
 class KUZU_API StorageDriver {
 public:
     explicit StorageDriver(Database* database);
 
-    ~StorageDriver() = default;
+    ~StorageDriver();
 
     void scan(const std::string& nodeName, const std::string& propertyName,
         common::offset_t* offsets, size_t size, uint8_t* result, size_t numThreads);
@@ -27,8 +28,8 @@ private:
         common::offset_t* offsets, size_t size, uint8_t* result);
 
 private:
-    catalog::Catalog* catalog;
-    storage::StorageManager* storageManager;
+    Database* database;
+    std::unique_ptr<ClientContext> clientContext;
 };
 
 } // namespace main

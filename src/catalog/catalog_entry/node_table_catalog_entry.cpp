@@ -1,19 +1,16 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 
+#include "binder/ddl/bound_create_table_info.h"
+
+using namespace kuzu::binder;
+
 namespace kuzu {
 namespace catalog {
 
-NodeTableCatalogEntry::NodeTableCatalogEntry(std::string name, common::table_id_t tableID,
-    common::property_id_t primaryKeyPID)
-    : TableCatalogEntry{CatalogEntryType::NODE_TABLE_ENTRY, std::move(name), tableID},
+NodeTableCatalogEntry::NodeTableCatalogEntry(CatalogSet* set, std::string name,
+    common::table_id_t tableID, common::property_id_t primaryKeyPID)
+    : TableCatalogEntry{set, CatalogEntryType::NODE_TABLE_ENTRY, std::move(name), tableID},
       primaryKeyPID{primaryKeyPID} {}
-
-NodeTableCatalogEntry::NodeTableCatalogEntry(const NodeTableCatalogEntry& other)
-    : TableCatalogEntry{other} {
-    primaryKeyPID = other.primaryKeyPID;
-    fwdRelTableIDSet = other.fwdRelTableIDSet;
-    bwdRelTableIDSet = other.bwdRelTableIDSet;
-}
 
 void NodeTableCatalogEntry::serialize(common::Serializer& serializer) const {
     TableCatalogEntry::serialize(serializer);
@@ -37,13 +34,29 @@ std::unique_ptr<NodeTableCatalogEntry> NodeTableCatalogEntry::deserialize(
     return nodeTableEntry;
 }
 
-std::unique_ptr<CatalogEntry> NodeTableCatalogEntry::copy() const {
-    return std::make_unique<NodeTableCatalogEntry>(*this);
-}
-
 std::string NodeTableCatalogEntry::toCypher(main::ClientContext* /*clientContext*/) const {
     return common::stringFormat("CREATE NODE TABLE {} ({} PRIMARY KEY({}));", getName(),
         Property::toCypher(getPropertiesRef()), getPrimaryKey()->getName());
+}
+
+std::unique_ptr<TableCatalogEntry> NodeTableCatalogEntry::copy() const {
+    auto other = std::make_unique<NodeTableCatalogEntry>();
+    other->primaryKeyPID = primaryKeyPID;
+    other->fwdRelTableIDSet = fwdRelTableIDSet;
+    other->bwdRelTableIDSet = bwdRelTableIDSet;
+    other->copyFrom(*this);
+    return other;
+}
+
+std::unique_ptr<BoundExtraCreateCatalogEntryInfo> NodeTableCatalogEntry::getBoundExtraCreateInfo(
+    transaction::Transaction*) const {
+    std::vector<PropertyInfo> propertyInfos;
+    for (const auto& property : properties) {
+        propertyInfos.emplace_back(property.getName(), *property.getDataType());
+    }
+    auto result =
+        std::make_unique<BoundExtraCreateNodeTableInfo>(primaryKeyPID, std::move(propertyInfos));
+    return result;
 }
 
 } // namespace catalog

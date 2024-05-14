@@ -267,15 +267,46 @@ def _get_git_revision_hash():
         return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode("utf-8").strip()
     except:
         return None
+    
+def _get_commit_message():
+    try:
+        return subprocess.check_output(['git', 'log', '-1', '--pretty=%B']).decode("utf-8").strip()
+    except:
+        return None
 
+def _get_commit_author():
+    try:
+        return subprocess.check_output(['git', 'log', '-1', "--pretty=%an"]).decode("utf-8").strip()
+    except:
+        return None
+
+def _get_commit_email():
+    try:
+        return subprocess.check_output(['git', 'log', '-1', "--pretty=%ae"]).decode("utf-8").strip()
+    except:
+        return None
 
 def get_run_info():
+    commit = {
+        'hash': os.environ.get('GITHUB_SHA', _get_git_revision_hash()),
+        'author': _get_commit_author(),
+        'email': _get_commit_email(),
+        'message': _get_commit_message()
+    }
     return {
-        'commit_id': os.environ.get('GITHUB_SHA', _get_git_revision_hash()),
-        'run_timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'commit': commit,
+        'timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         'note': args.note,
         'dataset': args.dataset
     }
+
+def get_total_files_size(path):
+    total_size = 0
+    for dirpath, _, filenames in os.walk(path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            total_size += os.path.getsize(fp)
+    return total_size
 
 
 def get_query_info():
@@ -294,10 +325,11 @@ def get_query_info():
     return results
 
 
-def upload_benchmark_result():
+def upload_benchmark_result(database_size=None):
     run = get_run_info()
     queries = get_query_info()
-    run['queries'] = queries
+    run['benchmarks'] = queries
+    run['database_size'] = database_size
 
     response = requests.post(
         benchmark_server_url, json=run, headers={
@@ -333,8 +365,12 @@ if __name__ == '__main__':
     benchmark_group.load()
 
     logging.info("Running benchmark...")
-    run_kuzu(serialized_graphs_path[args.dataset + '-ku'])
+    serialized_graph_path = serialized_graphs_path[args.dataset + '-ku']
+    run_kuzu(serialized_graph_path)
     logging.info("Benchmark finished")
+
+    total_size = get_total_files_size(serialized_graph_path)
+    logging.info("Serialized dataset size: %d MiB", total_size / 1024 ** 2)
 
     if is_dry_run:
         logging.info("Dry run, skipping upload")
@@ -342,5 +378,5 @@ if __name__ == '__main__':
 
     # upload benchmark result and logs
     logging.info("Uploading benchmark result...")
-    upload_benchmark_result()
+    upload_benchmark_result(total_size)
     logging.info("Benchmark result uploaded")

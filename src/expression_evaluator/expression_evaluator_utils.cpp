@@ -15,9 +15,9 @@ Value ExpressionEvaluatorUtils::evaluateConstantExpression(
     auto emptyResultSet = std::make_unique<ResultSet>(0);
     evaluator->init(*emptyResultSet, memoryManager);
     evaluator->evaluate(nullptr);
-    auto selVector = evaluator->resultVector->state->selVector.get();
-    KU_ASSERT(selVector->selectedSize == 1);
-    return *evaluator->resultVector->getAsValue(selVector->selectedPositions[0]);
+    auto& selVector = evaluator->resultVector->state->getSelVector();
+    KU_ASSERT(selVector.getSelSize() == 1);
+    return *evaluator->resultVector->getAsValue(selVector[0]);
 }
 
 } // namespace evaluator

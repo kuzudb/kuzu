@@ -13,7 +13,7 @@ void SortSharedState::init(const OrderByDataInfo& orderByDataInfo) {
             // If this is a string column, we need to find the factorizedTable offset for this
             // column.
             auto ftColIdx = orderByDataInfo.keyInPayloadPos[i];
-            strKeyColsInfo.emplace_back(orderByDataInfo.payloadTableSchema->getColOffset(ftColIdx),
+            strKeyColsInfo.emplace_back(orderByDataInfo.payloadTableSchema.getColOffset(ftColIdx),
                 encodedKeyBlockColOffset, orderByDataInfo.isAscOrder[i]);
         }
         encodedKeyBlockColOffset += OrderByKeyEncoder::getEncodingSize(*dataType);
@@ -55,7 +55,7 @@ std::vector<FactorizedTable*> SortSharedState::getPayloadTables() const {
 void SortLocalState::init(const OrderByDataInfo& orderByDataInfo, SortSharedState& sharedState,
     storage::MemoryManager* memoryManager) {
     auto [idx, table] =
-        sharedState.getLocalPayloadTable(*memoryManager, *orderByDataInfo.payloadTableSchema);
+        sharedState.getLocalPayloadTable(*memoryManager, orderByDataInfo.payloadTableSchema);
     globalIdx = idx;
     payloadTable = table;
     orderByKeyEncoder = std::make_unique<OrderByKeyEncoder>(orderByDataInfo, memoryManager,
@@ -181,9 +181,9 @@ void PayloadScanner::applyLimitOnResultVectors(std::vector<common::ValueVector*>
         }
     }
     if (unflatVector != nullptr) {
-        unflatVector->state->selVector->selectedSize =
-            std::min(limitNumber, unflatVector->state->selVector->selectedSize);
-        limitNumber -= unflatVector->state->selVector->selectedSize;
+        unflatVector->state->getSelVectorUnsafe().setSelSize(
+            std::min(limitNumber, (uint64_t)unflatVector->state->getSelVector().getSelSize()));
+        limitNumber -= unflatVector->state->getSelVector().getSelSize();
     } else {
         limitNumber--;
     }

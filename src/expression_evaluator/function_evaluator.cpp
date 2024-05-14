@@ -1,7 +1,6 @@
 #include "expression_evaluator/function_evaluator.h"
 
 #include "binder/expression/function_expression.h"
-#include "function/cast/vector_cast_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;
@@ -23,14 +22,11 @@ void FunctionExpressionEvaluator::evaluate(ClientContext* clientContext) {
     for (auto& child : children) {
         child->evaluate(clientContext);
     }
-    auto expr =
-        ku_dynamic_cast<binder::Expression*, binder::ScalarFunctionExpression*>(expression.get());
-    if (expr->getFunctionName() == function::CastAnyFunction::name) {
-        execFunc(parameters, *resultVector, expr->getBindData());
-        return;
-    }
+    auto expr = expression->constPtrCast<binder::ScalarFunctionExpression>();
     if (execFunc != nullptr) {
-        execFunc(parameters, *resultVector, clientContext);
+        auto bindData = expr->getBindData();
+        bindData->clientContext = clientContext;
+        execFunc(parameters, *resultVector, bindData);
     }
 }
 
@@ -45,13 +41,13 @@ bool FunctionExpressionEvaluator::select(SelectionVector& selVector,
         KU_ASSERT(resultVector->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
         execFunc(parameters, *resultVector, nullptr);
         auto numSelectedValues = 0u;
-        for (auto i = 0u; i < resultVector->state->selVector->selectedSize; ++i) {
-            auto pos = resultVector->state->selVector->selectedPositions[i];
+        for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); ++i) {
+            auto pos = resultVector->state->getSelVector()[i];
             auto selectedPosBuffer = selVector.getMultableBuffer();
             selectedPosBuffer[numSelectedValues] = pos;
             numSelectedValues += resultVector->getValue<bool>(pos);
         }
-        selVector.selectedSize = numSelectedValues;
+        selVector.setSelSize(numSelectedValues);
         return numSelectedValues > 0;
     }
     return selectFunc(parameters, selVector);

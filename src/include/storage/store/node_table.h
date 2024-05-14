@@ -57,14 +57,14 @@ struct NodeTableDeleteState : public TableDeleteState {
         : nodeIDVector{nodeIDVector}, pkVector{pkVector} {}
 };
 
+class StorageManager;
 class NodeTable final : public Table {
 public:
-    NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
-        catalog::NodeTableCatalogEntry* nodeTableEntry,
-        NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs, MemoryManager* memoryManager,
-        WAL* wal, bool readOnly, bool enableCompression, common::VirtualFileSystem* vfs);
+    NodeTable(StorageManager* storageManager, catalog::NodeTableCatalogEntry* nodeTableEntry,
+        MemoryManager* memoryManager, common::VirtualFileSystem* vfs);
 
-    void initializePKIndex(catalog::NodeTableCatalogEntry* nodeTableEntry, bool readOnly,
+    void initializePKIndex(const std::string& databasePath,
+        catalog::NodeTableCatalogEntry* nodeTableEntry, bool readOnly,
         common::VirtualFileSystem* vfs);
 
     common::offset_t getMaxNodeOffset(transaction::Transaction* transaction) const {

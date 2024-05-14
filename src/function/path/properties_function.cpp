@@ -52,23 +52,24 @@ static void compileFunc(FunctionBindData* bindData,
 
 static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
     ValueVector& result, void* /*dataPtr*/) {
+    auto& resultSelVector = result.state->getSelVector();
     if (parameters[0]->state->isFlat()) {
-        auto inputPos = parameters[0]->state->selVector->selectedPositions[0];
+        auto inputPos = parameters[0]->state->getSelVector()[0];
         if (parameters[0]->isNull(inputPos)) {
-            for (auto i = 0u; i < result.state->selVector->selectedSize; ++i) {
-                auto pos = result.state->selVector->selectedPositions[i];
+            for (auto i = 0u; i < resultSelVector.getSelSize(); ++i) {
+                auto pos = resultSelVector[i];
                 result.setNull(pos, true);
             }
         } else {
             auto& listEntry = parameters[0]->getValue<list_entry_t>(inputPos);
-            for (auto i = 0u; i < result.state->selVector->selectedSize; ++i) {
-                auto pos = result.state->selVector->selectedPositions[i];
+            for (auto i = 0u; i < resultSelVector.getSelSize(); ++i) {
+                auto pos = resultSelVector[i];
                 result.setValue(pos, listEntry);
             }
         }
     } else {
-        for (auto i = 0u; i < result.state->selVector->selectedSize; ++i) {
-            auto pos = result.state->selVector->selectedPositions[i];
+        for (auto i = 0u; i < resultSelVector.getSelSize(); ++i) {
+            auto pos = resultSelVector[i];
             if (parameters[0]->isNull(pos)) {
                 result.setNull(pos, true);
             } else {

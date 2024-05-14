@@ -174,7 +174,7 @@ void ListColumn::scanInternal(Transaction* transaction, ChunkState& readState,
         StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeIDVector->readNodeOffset(0));
     auto listOffsetSizeInfo = getListOffsetSizeInfo(transaction, readState.nodeGroupIdx,
         startOffsetInChunk, startOffsetInChunk + nodeIDVector->state->getOriginalSize());
-    if (resultVector->state->selVector->isUnfiltered()) {
+    if (resultVector->state->getSelVector().isUnfiltered()) {
         scanUnfiltered(transaction, readState, resultVector, listOffsetSizeInfo);
     } else {
         scanFiltered(transaction, readState, resultVector, listOffsetSizeInfo);
@@ -210,8 +210,8 @@ void ListColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
 
 void ListColumn::scanUnfiltered(Transaction* transaction, ChunkState& readState,
     ValueVector* resultVector, const ListOffsetSizeInfo& listOffsetInfoInStorage) {
-    auto numValuesToScan = resultVector->state->selVector->selectedSize;
-    numValuesToScan = std::min(numValuesToScan, listOffsetInfoInStorage.numTotal);
+    auto numValuesToScan = resultVector->state->getSelVector().getSelSize();
+    numValuesToScan = std::min((uint64_t)numValuesToScan, listOffsetInfoInStorage.numTotal);
     offset_t offsetInVector = 0;
     for (auto i = 0u; i < numValuesToScan; i++) {
         auto listLen = listOffsetInfoInStorage.getListSize(i);
@@ -244,16 +244,16 @@ void ListColumn::scanUnfiltered(Transaction* transaction, ChunkState& readState,
 void ListColumn::scanFiltered(Transaction* transaction, ChunkState& readState,
     ValueVector* resultVector, const ListOffsetSizeInfo& listOffsetSizeInfo) {
     offset_t listOffset = 0;
-    for (auto i = 0u; i < resultVector->state->selVector->selectedSize; i++) {
-        auto pos = resultVector->state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); i++) {
+        auto pos = resultVector->state->getSelVector()[i];
         auto listSize = listOffsetSizeInfo.getListSize(pos);
         resultVector->setValue(pos, list_entry_t{(offset_t)listOffset, listSize});
         listOffset += listSize;
     }
     ListVector::resizeDataVector(resultVector, listOffset);
     listOffset = 0;
-    for (auto i = 0u; i < resultVector->state->selVector->selectedSize; i++) {
-        auto pos = resultVector->state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); i++) {
+        auto pos = resultVector->state->getSelVector()[i];
         auto startOffsetInStorageToScan = listOffsetSizeInfo.getListStartOffset(pos);
         auto appendSize = listOffsetSizeInfo.getListSize(pos);
         auto dataVector = ListVector::getDataVector(resultVector);

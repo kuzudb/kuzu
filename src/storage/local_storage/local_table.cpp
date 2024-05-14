@@ -64,8 +64,7 @@ bool LocalChunkedGroupCollection::read(offset_t offset, const std::vector<column
     }
     auto rowIdx = offsetToRowIdx.at(offset);
     for (auto i = 0u; i < columnIDs.size(); i++) {
-        auto posInOutputVector =
-            outputVectors[i]->state->selVector->selectedPositions[offsetInOutputVector];
+        auto posInOutputVector = outputVectors[i]->state->getSelVector()[offsetInOutputVector];
         if (columnIDs[i] == INVALID_COLUMN_ID) {
             outputVectors[i]->setNull(posInOutputVector, true);
             continue;
@@ -91,7 +90,7 @@ void LocalChunkedGroupCollection::update(offset_t offset, column_id_t columnID,
     auto rowIdx = offsetToRowIdx.at(offset);
     auto [chunkIdx, offsetInChunk] = getChunkIdxAndOffsetInChunk(rowIdx);
     auto& chunk = chunkedGroups.getChunkedGroupUnsafe(chunkIdx)->getColumnChunkUnsafe(columnID);
-    auto pos = propertyVector->state->selVector->selectedPositions[0];
+    auto pos = propertyVector->state->getSelVector()[0];
     chunk.write(propertyVector, pos, offsetInChunk);
 }
 
@@ -120,8 +119,9 @@ row_idx_t LocalChunkedGroupCollection::append(std::vector<ValueVector*> vectors)
     KU_ASSERT(vectors.size() == dataTypes.size());
     auto lastChunkGroup = getLastChunkedGroupAndAddNewGroupIfNecessary();
     for (auto i = 0u; i < vectors.size(); i++) {
-        KU_ASSERT(vectors[i]->state->selVector->selectedSize == 1);
-        lastChunkGroup->getColumnChunkUnsafe(i).append(vectors[i], *vectors[i]->state->selVector);
+        KU_ASSERT(vectors[i]->state->getSelVector().getSelSize() == 1);
+        lastChunkGroup->getColumnChunkUnsafe(i).append(vectors[i],
+            vectors[i]->state->getSelVector());
     }
     lastChunkGroup->setNumRows(lastChunkGroup->getNumRows() + 1);
     return numRows++;

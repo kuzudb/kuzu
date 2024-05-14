@@ -1,29 +1,12 @@
 #pragma once
 
-#include <memory>
-#include <string>
+#include <cstdint>
 #include <vector>
 
 #include "common/assert.h"
-#include "common/constants.h"
-
-namespace spdlog {
-class logger;
-}
 
 namespace kuzu {
 namespace common {
-
-class LoggerUtils {
-public:
-    // Note: create logger is not thread safe.
-    static void createLogger(LoggerConstants::LoggerEnum loggerEnum);
-    static std::shared_ptr<spdlog::logger> getLogger(LoggerConstants::LoggerEnum loggerEnum);
-    static void dropLogger(LoggerConstants::LoggerEnum loggerEnum);
-
-private:
-    static std::string getLoggerName(LoggerConstants::LoggerEnum loggerEnum);
-};
 
 class BitmaskUtils {
 
@@ -35,6 +18,7 @@ public:
 };
 
 uint64_t nextPowerOfTwo(uint64_t v);
+uint64_t prevPowerOfTwo(uint64_t v);
 
 bool isLittleEndian();
 

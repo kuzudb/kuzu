@@ -4,32 +4,56 @@
 #include "common/case_insensitive_map.h"
 
 namespace kuzu {
-namespace catalog {
+namespace binder {
+struct BoundAlterInfo;
+} // namespace binder
 
+namespace storage {
+class UndoBuffer;
+} // namespace storage
+
+using CatalogEntrySet = common::case_insensitive_map_t<catalog::CatalogEntry*>;
+
+namespace catalog {
 class CatalogSet {
+    friend class storage::UndoBuffer;
+
 public:
     //===--------------------------------------------------------------------===//
     // getters & setters
     //===--------------------------------------------------------------------===//
-    bool containsEntry(const std::string& name) const;
-    CatalogEntry* getEntry(const std::string& name);
-    KUZU_API void createEntry(std::unique_ptr<CatalogEntry> entry);
-    void removeEntry(const std::string& name);
-    void renameEntry(const std::string& oldName, const std::string& newName);
-    common::case_insensitive_map_t<std::unique_ptr<CatalogEntry>>& getEntries() { return entries; }
+    bool containsEntry(transaction::Transaction* transaction, const std::string& name) const;
+    CatalogEntry* getEntry(transaction::Transaction* transaction, const std::string& name);
+    KUZU_API void createEntry(transaction::Transaction* transaction,
+        std::unique_ptr<CatalogEntry> entry);
+    void dropEntry(transaction::Transaction* transaction, const std::string& name);
+    void alterEntry(transaction::Transaction* transaction, const binder::BoundAlterInfo& alterInfo);
+    CatalogEntrySet getEntries(transaction::Transaction* transaction);
+
+    uint64_t assignNextOID() { return nextOID++; }
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization
     //===--------------------------------------------------------------------===//
     void serialize(common::Serializer serializer) const;
     static std::unique_ptr<CatalogSet> deserialize(common::Deserializer& deserializer);
-    std::unique_ptr<CatalogSet> copy() const;
 
 private:
-    void validateExist(const std::string& name) const;
-    void validateNotExist(const std::string& name) const;
+    void validateExist(transaction::Transaction* transaction, const std::string& name) const;
+    void validateNotExist(transaction::Transaction* transaction, const std::string& name) const;
+
+    void emplace(std::unique_ptr<CatalogEntry> entry);
+    void erase(const std::string& name);
+
+    std::unique_ptr<CatalogEntry> createDummyEntry(std::string name) const;
+
+    CatalogEntry* traverseVersionChainsForTransaction(transaction::Transaction* transaction,
+        CatalogEntry* currentEntry) const;
+    CatalogEntry* getCommittedEntry(CatalogEntry* entry) const;
+    bool checkWWConflict(transaction::Transaction* transaction, CatalogEntry* entry) const;
 
 private:
+    uint64_t nextOID = 0;
     common::case_insensitive_map_t<std::unique_ptr<CatalogEntry>> entries;
 };
 

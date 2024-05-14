@@ -26,6 +26,9 @@
 34|short|
 45||[123,good]
 ||
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE insertRelsToSmallListCommitRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -42,6 +45,9 @@
 34|short|
 45||[123,good]
 ||
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE insertRelsToSmallListRollbackNormalExecution
 -STATEMENT BEGIN TRANSACTION
@@ -53,6 +59,9 @@
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) where b.ID > 200 AND a.ID = 1 RETURN e.length, e.place, e.tag
 ---- 0
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE insertRelsToSmallListRollbackRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -65,3 +74,5 @@
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) where b.ID > 200 AND a.ID = 1 RETURN e.length, e.place, e.tag
 ---- 0
+-STATEMENT COMMIT;
+---- ok

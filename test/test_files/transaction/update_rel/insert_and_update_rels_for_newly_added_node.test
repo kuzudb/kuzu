@@ -31,6 +31,9 @@
 
 55
 201
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE insertAndUpdateRelsForNewlyAddedNodeCommitRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -46,6 +49,8 @@
 
 55
 201
+-STATEMENT COMMIT;
+---- ok
 
 
 -CASE insertAndUpdateRelsForNewlyAddedNodeRollbackNormalExecution
@@ -58,6 +63,9 @@
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) where p.ID > 4 return e.length
 ---- 0
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE insertAndUpdateRelsForNewlyAddedNodeRollbackRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -70,3 +78,5 @@
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) where p.ID > 4 return e.length
 ---- 0
+-STATEMENT COMMIT;
+---- ok

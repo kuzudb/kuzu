@@ -2,6 +2,8 @@
 
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
+#include "common/file_system/virtual_file_system.h"
+#include "main/database.h"
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/store/node_table.h"
 #include "storage/wal_replayer.h"
@@ -14,24 +16,27 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-StorageManager::StorageManager(bool readOnly, const Catalog& catalog, MemoryManager& memoryManager,
-    WAL* wal, bool enableCompression, VirtualFileSystem* vfs)
-    : memoryManager{memoryManager}, wal{wal}, enableCompression{enableCompression}, vfs{vfs} {
-    dataFH = memoryManager.getBufferManager()->getBMFileHandle(
-        StorageUtils::getDataFName(vfs, wal->getDirectory()),
+StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
+    const Catalog& catalog, MemoryManager& memoryManager, bool enableCompression,
+    VirtualFileSystem* vfs)
+    : databasePath{databasePath}, readOnly{readOnly}, memoryManager{memoryManager},
+      enableCompression{enableCompression}, vfs{vfs} {
+    dataFH = initFileHandle(StorageUtils::getDataFName(vfs, databasePath));
+    metadataFH = initFileHandle(StorageUtils::getMetadataFName(vfs, databasePath));
+    // TODO: Assert no wal file exists.
+    wal = std::make_unique<WAL>(databasePath, readOnly, *memoryManager.getBufferManager(), vfs);
+    nodesStatisticsAndDeletedIDs = std::make_unique<NodesStoreStatsAndDeletedIDs>(databasePath,
+        metadataFH.get(), memoryManager.getBufferManager(), wal.get(), vfs);
+    relsStatistics = std::make_unique<RelsStoreStats>(databasePath, metadataFH.get(),
+        memoryManager.getBufferManager(), wal.get(), vfs);
+    loadTables(catalog);
+}
+
+std::unique_ptr<BMFileHandle> StorageManager::initFileHandle(const std::string& filename) {
+    return memoryManager.getBufferManager()->getBMFileHandle(filename,
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
         BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs);
-    metadataFH = memoryManager.getBufferManager()->getBMFileHandle(
-        StorageUtils::getMetadataFName(vfs, wal->getDirectory()),
-        readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                   FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-        BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs);
-    nodesStatisticsAndDeletedIDs = std::make_unique<NodesStoreStatsAndDeletedIDs>(metadataFH.get(),
-        memoryManager.getBufferManager(), wal, vfs);
-    relsStatistics = std::make_unique<RelsStoreStats>(metadataFH.get(),
-        memoryManager.getBufferManager(), wal, vfs);
-    loadTables(readOnly, catalog);
 }
 
 static void setCommonTableIDToRdfRelTable(RelTable* relTable,
@@ -51,36 +56,63 @@ static void setCommonTableIDToRdfRelTable(RelTable* relTable,
     }
 }
 
-void StorageManager::loadTables(bool readOnly, const Catalog& catalog) {
+void StorageManager::loadTables(const Catalog& catalog) {
     for (auto& nodeTableEntry : catalog.getNodeTableEntries(&DUMMY_READ_TRANSACTION)) {
         KU_ASSERT(!tables.contains(nodeTableEntry->getTableID()));
-        tables[nodeTableEntry->getTableID()] = std::make_unique<NodeTable>(dataFH.get(),
-            metadataFH.get(), nodeTableEntry, nodesStatisticsAndDeletedIDs.get(), &memoryManager,
-            wal, readOnly, enableCompression, vfs);
+        tables[nodeTableEntry->getTableID()] =
+            std::make_unique<NodeTable>(this, nodeTableEntry, &memoryManager, vfs);
     }
     auto rdfGraphSchemas = catalog.getRdfGraphEntries(&DUMMY_READ_TRANSACTION);
     for (auto relTableEntry : catalog.getRelTableEntries(&DUMMY_READ_TRANSACTION)) {
         KU_ASSERT(!tables.contains(relTableEntry->getTableID()));
         auto relTable = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(),
-            relsStatistics.get(), &memoryManager, relTableEntry, wal, enableCompression);
+            relsStatistics.get(), &memoryManager, relTableEntry, wal.get(), enableCompression);
         setCommonTableIDToRdfRelTable(relTable.get(), rdfGraphSchemas);
         tables[relTableEntry->getTableID()] = std::move(relTable);
     }
 }
 
+void StorageManager::recover(main::ClientContext& clientContext) {
+    auto vfs = clientContext.getVFSUnsafe();
+    auto walFilePath =
+        vfs->joinPath(clientContext.getDatabasePath(), StorageConstants::WAL_FILE_SUFFIX);
+    if (!vfs->fileOrPathExists(walFilePath)) {
+        return;
+    }
+    try {
+        auto shadowFH = clientContext.getMemoryManager()->getBufferManager()->getBMFileHandle(
+            vfs->joinPath(clientContext.getDatabasePath(),
+                std::string(StorageConstants::SHADOWING_SUFFIX)),
+            FileHandle::O_PERSISTENT_FILE_NO_CREATE,
+            BMFileHandle::FileVersionedType::NON_VERSIONED_FILE, vfs);
+        auto walReplayer = std::make_unique<WALReplayer>(clientContext, *shadowFH,
+            WALReplayMode::RECOVERY_CHECKPOINT);
+        walReplayer->replay();
+        // Truncate .wal and .shadow to empty. Remove catalog and stats wal files.
+        auto walFileInfo = vfs->openFile(walFilePath, O_RDWR);
+        if (walFileInfo->getFileSize() > 0) {
+            walFileInfo->truncate(0);
+        }
+        if (shadowFH->getFileInfo()->getFileSize() > 0) {
+            shadowFH->getFileInfo()->truncate(0);
+        }
+        StorageUtils::removeCatalogAndStatsWALFiles(clientContext.getDatabasePath(), vfs);
+    } catch (std::exception& e) {
+        throw Exception(stringFormat("Error during recovery: {}", e.what()));
+    }
+}
+
 void StorageManager::createNodeTable(table_id_t tableID, NodeTableCatalogEntry* nodeTableEntry) {
     nodesStatisticsAndDeletedIDs->addNodeStatisticsAndDeletedIDs(nodeTableEntry);
-    WALReplayerUtils::createEmptyHashIndexFiles(nodeTableEntry, wal->getDirectory(), vfs);
-    tables[tableID] = std::make_unique<NodeTable>(dataFH.get(), metadataFH.get(), nodeTableEntry,
-        nodesStatisticsAndDeletedIDs.get(), &memoryManager, wal, false /* readOnly */,
-        enableCompression, vfs);
+    WALReplayerUtils::createEmptyHashIndexFiles(nodeTableEntry, databasePath, vfs);
+    tables[tableID] = std::make_unique<NodeTable>(this, nodeTableEntry, &memoryManager, vfs);
 }
 
 void StorageManager::createRelTable(table_id_t tableID, RelTableCatalogEntry* relTableEntry,
     Catalog* catalog, Transaction* transaction) {
     relsStatistics->addTableStatistic(relTableEntry);
     auto relTable = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(), relsStatistics.get(),
-        &memoryManager, relTableEntry, wal, enableCompression);
+        &memoryManager, relTableEntry, wal.get(), enableCompression);
     setCommonTableIDToRdfRelTable(relTable.get(), catalog->getRdfGraphEntries(transaction));
     tables[tableID] = std::move(relTable);
 }
@@ -151,13 +183,18 @@ PrimaryKeyIndex* StorageManager::getPKIndex(table_id_t tableID) {
     return table->getPKIndex();
 }
 
+WAL& StorageManager::getWAL() {
+    KU_ASSERT(wal);
+    return *wal;
+}
+
 void StorageManager::dropTable(table_id_t tableID) {
     KU_ASSERT(tables.contains(tableID));
     auto tableType = tables.at(tableID)->getTableType();
     switch (tableType) {
     case TableType::NODE: {
         nodesStatisticsAndDeletedIDs->removeTableStatistic(tableID);
-        WALReplayerUtils::removeHashIndexFile(vfs, tableID, wal->getDirectory());
+        WALReplayerUtils::removeHashIndexFile(vfs, tableID, databasePath);
     } break;
     case TableType::REL: {
         relsStatistics->removeTableStatistic(tableID);
@@ -169,8 +206,7 @@ void StorageManager::dropTable(table_id_t tableID) {
     tables.erase(tableID);
 }
 
-void StorageManager::prepareCommit(Transaction* transaction, common::VirtualFileSystem* fs) {
-    transaction->getLocalStorage()->prepareCommit();
+void StorageManager::prepareCommit(Transaction* transaction) {
     // Tables which are created but not inserted into may have pending writes
     // which need to be flushed (specifically, the metadata disk array header)
     // TODO(bmwinger): wal->getUpdatedTables isn't the ideal place to store this information
@@ -180,30 +216,34 @@ void StorageManager::prepareCommit(Transaction* transaction, common::VirtualFile
         }
     }
     if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
+        nodesStatisticsAndDeletedIDs->writeTablesStatisticsFileForWALRecord(databasePath, vfs);
         wal->logTableStatisticsRecord(TableType::NODE);
-        nodesStatisticsAndDeletedIDs->writeTablesStatisticsFileForWALRecord(wal->getDirectory(),
-            fs);
     }
     if (relsStatistics->hasUpdates()) {
+        relsStatistics->writeTablesStatisticsFileForWALRecord(databasePath, vfs);
         wal->logTableStatisticsRecord(TableType::REL);
-        relsStatistics->writeTablesStatisticsFileForWALRecord(wal->getDirectory(), fs);
     }
 }
 
-void StorageManager::prepareRollback(Transaction* transaction) {
+void StorageManager::prepareRollback() {
     if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
         wal->logTableStatisticsRecord(TableType::NODE);
     }
     if (relsStatistics->hasUpdates()) {
         wal->logTableStatisticsRecord(TableType::REL);
     }
-    transaction->getLocalStorage()->prepareRollback();
 }
 
 void StorageManager::checkpointInMemory() {
     for (auto tableID : wal->getUpdatedTables()) {
         KU_ASSERT(tables.contains(tableID));
         tables.at(tableID)->checkpointInMemory();
+    }
+    if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
+        nodesStatisticsAndDeletedIDs->checkpointInMemoryIfNecessary();
+    }
+    if (relsStatistics->hasUpdates()) {
+        relsStatistics->checkpointInMemoryIfNecessary();
     }
 }
 

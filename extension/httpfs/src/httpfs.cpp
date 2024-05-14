@@ -127,6 +127,19 @@ bool HTTPFileSystem::canHandleFile(const std::string& path) const {
     return path.rfind("https://", 0) == 0 || path.rfind("http://", 0) == 0;
 }
 
+bool HTTPFileSystem::fileOrPathExists(const std::string& path) {
+    try {
+        auto fileInfo = openFile(path, O_RDONLY, nullptr, FileLockType::READ_LOCK);
+        auto httpFileInfo = fileInfo->constPtrCast<HTTPFileInfo>();
+        if (httpFileInfo->length == 0) {
+            return false;
+        }
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
 void HTTPFileSystem::readFromFile(common::FileInfo& fileInfo, void* buffer, uint64_t numBytes,
     uint64_t position) const {
     auto& httpFileInfo = ku_dynamic_cast<FileInfo&, HTTPFileInfo&>(fileInfo);

@@ -1,11 +1,19 @@
 #pragma once
 
-#include "common/types/types.h"
+#include <string>
+
 #include "common/types/value/value.h"
-#include "main/client_context.h"
 
 namespace kuzu {
+namespace common {
+class Value;
+enum class LogicalTypeID : uint8_t;
+} // namespace common
+
 namespace main {
+
+class ClientContext;
+struct SystemConfig;
 
 typedef void (*set_context)(ClientContext* context, const common::Value& parameter);
 typedef common::Value (*get_setting)(ClientContext* context);
@@ -45,6 +53,15 @@ struct ExtensionOption : public Option {
 class DBConfig {
 public:
     static ConfigurationOption* getOptionByName(const std::string& optionName);
+
+    explicit DBConfig(SystemConfig& systemConfig);
+
+    uint64_t bufferPoolSize;
+    uint64_t maxNumThreads;
+    bool enableCompression;
+    bool readOnly;
+    uint64_t maxDBSize;
+    bool enableMultiWrites = false;
 };
 
 } // namespace main

@@ -45,3 +45,97 @@ Noura|25
 Waterloo|150000
 Kitchener|200000
 Guelph|75000
+
+-CASE AttachHTTPDatabase
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-LOG validateTableNotExists
+-STATEMENT CALL SHOW_TABLES() RETURN *
+---- 0
+-STATEMENT attach 'http://localhost/databases/tinysnb' as test (dbtype 'kuzu')
+---- ok
+-LOG validateTableExistsAfterAttach
+-STATEMENT CALL SHOW_TABLES() RETURN *
+---- 8
+knows|REL|test(KUZU)|
+marries|REL|test(KUZU)|
+meets|REL|test(KUZU)|
+movies|NODE|test(KUZU)|
+organisation|NODE|test(KUZU)|
+person|NODE|test(KUZU)|
+studyAt|REL|test(KUZU)|
+workAt|REL|test(KUZU)|
+
+-LOG QueryRemoteNodeTable
+-STATEMENT match (p:person) return p.*
+---- 8
+0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+2|Bob|2|True|False|30|5.100000|1900-01-01|2008-11-03 15:25:30.000526|10 years 5 months 13:00:00.000024|[12,8]|[Bobby]|[[8,9],[9,10]]|[98,42,93,88]|0.990000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
+3|Carol|1|False|True|45|5.000000|1940-06-22|1911-08-20 02:32:21|48:24:11|[4,5]|[Carmen,Fred]|[[8,10]]|[91,75,21,95]|1.000000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13
+5|Dan|2|False|True|20|4.800000|1950-07-23|2031-11-30 12:25:30|10 years 5 months 13:00:00.000024|[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]|[76,88,99,89]|1.300000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14
+7|Elizabeth|1|False|True|20|4.700000|1980-10-26|1976-12-23 11:21:42|48:24:11|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15
+8|Farooq|2|True|False|25|4.500000|1980-10-26|1972-07-31 13:22:30.678559|00:18:00.024|[3,4,5,6,7]|[Fesdwe]|[[8]]|[80,78,34,83]|1.510000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16
+9|Greg|2|False|False|40|4.900000|1980-10-26|1976-12-23 04:41:42|10 years 5 months 13:00:00.000024|[1]|[Grad]|[[10]]|[43,83,67,43]|1.600000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|True|83|4.900000|1990-11-27|2023-02-21 13:25:30|3 years 2 days 13:02:00|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]|[77,64,100,54]|1.323000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18
+-LOG QueryRemoteRelTable
+-STATEMENT match (p:person)-[e:knows]->(p1:person) return p.fName, p1.fName, e.date
+---- 14
+Alice|Bob|2021-06-30
+Alice|Carol|2021-06-30
+Alice|Dan|2021-06-30
+Bob|Alice|2021-06-30
+Bob|Carol|1950-05-14
+Bob|Dan|1950-05-14
+Carol|Alice|2021-06-30
+Carol|Bob|1950-05-14
+Carol|Dan|2000-01-01
+Dan|Alice|2021-06-30
+Dan|Bob|1950-05-14
+Dan|Carol|2000-01-01
+Elizabeth|Farooq|1905-12-12
+Elizabeth|Greg|1905-12-12
+-LOG CreateNodeError
+-STATEMENT CREATE (p:person {ID: 5})
+---- error
+Cannot execute write operations in a read-only database!
+-STATEMENT DETACH test
+---- ok
+-STATEMENT match (p:person) return p.*
+---- error
+Binder exception: Table person does not exist.
+-STATEMENT CREATE NODE TABLE PERSON(ID INT64, PRIMARY KEY(ID))
+---- ok
+-STATEMENT CREATE (p:PERSON {ID: 5})
+---- ok
+-STATEMENT match (p:PERSON) return p.*
+---- 1
+5
+-LOG AttachAgain
+-STATEMENT attach 'http://localhost/databases/tinysnb' (dbtype 'kuzu')
+---- ok
+-LOG QueryRemoteNodeTable
+-STATEMENT match (p:person) return p.*
+---- 8
+0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+2|Bob|2|True|False|30|5.100000|1900-01-01|2008-11-03 15:25:30.000526|10 years 5 months 13:00:00.000024|[12,8]|[Bobby]|[[8,9],[9,10]]|[98,42,93,88]|0.990000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
+3|Carol|1|False|True|45|5.000000|1940-06-22|1911-08-20 02:32:21|48:24:11|[4,5]|[Carmen,Fred]|[[8,10]]|[91,75,21,95]|1.000000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13
+5|Dan|2|False|True|20|4.800000|1950-07-23|2031-11-30 12:25:30|10 years 5 months 13:00:00.000024|[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]|[76,88,99,89]|1.300000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14
+7|Elizabeth|1|False|True|20|4.700000|1980-10-26|1976-12-23 11:21:42|48:24:11|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15
+8|Farooq|2|True|False|25|4.500000|1980-10-26|1972-07-31 13:22:30.678559|00:18:00.024|[3,4,5,6,7]|[Fesdwe]|[[8]]|[80,78,34,83]|1.510000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16
+9|Greg|2|False|False|40|4.900000|1980-10-26|1976-12-23 04:41:42|10 years 5 months 13:00:00.000024|[1]|[Grad]|[[10]]|[43,83,67,43]|1.600000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|True|83|4.900000|1990-11-27|2023-02-21 13:25:30|3 years 2 days 13:02:00|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]|[77,64,100,54]|1.323000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18
+
+
+-CASE AttachNotExistPath
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT attach 'http://localhost/databases/tinysnb1' as test (dbtype 'kuzu')
+---- error
+Runtime exception: Cannot attach a remote kuzu database due to invalid path: http://localhost/databases/tinysnb1.
+
+-CASE AttachDBWithNonEmptyWAL
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT attach 'http://localhost/databases/non-empty-wal' as test (dbtype 'kuzu')
+---- error
+Runtime exception: Cannot attach a remote kuzu database with non-empty wal file.

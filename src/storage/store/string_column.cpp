@@ -97,9 +97,9 @@ void StringColumn::scanInternal(Transaction* transaction, ChunkState& readState,
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto [nodeGroupIdx, startOffsetInChunk] =
         StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeIDVector->readNodeOffset(0));
-    if (nodeIDVector->state->selVector->isUnfiltered()) {
+    if (nodeIDVector->state->getSelVector().isUnfiltered()) {
         scanUnfiltered(transaction, readState, startOffsetInChunk,
-            nodeIDVector->state->selVector->selectedSize, resultVector);
+            nodeIDVector->state->getSelVector().getSelSize(), resultVector);
     } else {
         scanFiltered(transaction, readState, startOffsetInChunk, nodeIDVector, resultVector);
     }
@@ -132,8 +132,8 @@ void StringColumn::scanUnfiltered(transaction::Transaction* transaction, ChunkSt
 void StringColumn::scanFiltered(transaction::Transaction* transaction, ChunkState& readState,
     common::offset_t startOffsetInChunk, ValueVector* nodeIDVector, ValueVector* resultVector) {
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
-    for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
-        auto pos = nodeIDVector->state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < nodeIDVector->state->getSelVector().getSelSize(); i++) {
+        auto pos = nodeIDVector->state->getSelVector()[i];
         if (!resultVector->isNull(pos)) {
             // TODO(bmwinger): optimize index scans by grouping them when adjacent
             auto offsetInGroup = startOffsetInChunk + pos;
@@ -157,8 +157,8 @@ void StringColumn::lookupInternal(Transaction* transaction, ChunkState& readStat
     ValueVector* nodeIDVector, ValueVector* resultVector) {
     KU_ASSERT(dataType.getPhysicalType() == PhysicalTypeID::STRING);
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
-    for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
-        auto pos = nodeIDVector->state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < nodeIDVector->state->getSelVector().getSelSize(); i++) {
+        auto pos = nodeIDVector->state->getSelVector()[i];
         if (!nodeIDVector->isNull(pos)) {
             auto offsetInGroup = nodeIDVector->readNodeOffset(pos) -
                                  StorageUtils::getStartOffsetOfNodeGroup(readState.nodeGroupIdx);

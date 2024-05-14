@@ -17,8 +17,8 @@ void NodeRelExpressionEvaluator::evaluate(ClientContext* clientContext) {
     auto structType = nodeOrRel->getDataType();
     auto internalIDIdx = StructType::getFieldIdx(structType, InternalKeyword::ID);
     auto internalIDVector = StructVector::getFieldVector(resultVector.get(), internalIDIdx);
-    for (auto i = 0u; i < resultVector->state->selVector->selectedSize; ++i) {
-        auto pos = resultVector->state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); ++i) {
+        auto pos = resultVector->state->getSelVector()[i];
         resultVector->setNull(pos, internalIDVector->isNull(pos));
     }
 }

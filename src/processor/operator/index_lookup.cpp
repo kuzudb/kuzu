@@ -54,8 +54,8 @@ void IndexLookup::checkNullKeys(ValueVector* keyVector) {
     if (keyVector->hasNoNullsGuarantee()) {
         return;
     }
-    for (auto i = 0u; i < keyVector->state->selVector->selectedSize; i++) {
-        auto pos = keyVector->state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < keyVector->state->getSelVector().getSelSize(); i++) {
+        auto pos = keyVector->state->getSelVector()[i];
         if (keyVector->isNull(pos)) {
             throw RuntimeException(ExceptionMessage::nullPKException());
         }
@@ -64,10 +64,9 @@ void IndexLookup::checkNullKeys(ValueVector* keyVector) {
 
 void stringPKFillOffsetArraysFromVector(transaction::Transaction* transaction,
     const IndexLookupInfo& info, ValueVector* keyVector, offset_t* offsets) {
-    auto numKeys = keyVector->state->selVector->selectedSize;
+    auto numKeys = keyVector->state->getSelVector().getSelSize();
     for (auto i = 0u; i < numKeys; i++) {
-        auto key =
-            keyVector->getValue<ku_string_t>(keyVector->state->selVector->selectedPositions[i]);
+        auto key = keyVector->getValue<ku_string_t>(keyVector->state->getSelVector()[i]);
         if (!info.index->lookup(transaction, key.getAsStringView(), offsets[i])) {
             throw RuntimeException(ExceptionMessage::nonExistentPKException(key.getAsString()));
         }
@@ -77,9 +76,9 @@ void stringPKFillOffsetArraysFromVector(transaction::Transaction* transaction,
 template<HashablePrimitive T>
 void primitivePKFillOffsetArraysFromVector(transaction::Transaction* transaction,
     const IndexLookupInfo& info, ValueVector* keyVector, offset_t* offsets) {
-    auto numKeys = keyVector->state->selVector->selectedSize;
+    auto numKeys = keyVector->state->getSelVector().getSelSize();
     for (auto i = 0u; i < numKeys; i++) {
-        auto pos = keyVector->state->selVector->selectedPositions[i];
+        auto pos = keyVector->state->getSelVector()[i];
         auto key = keyVector->getValue<T>(pos);
         if (!info.index->lookup(transaction, key, offsets[i])) {
             throw RuntimeException(
@@ -100,9 +99,9 @@ void IndexLookup::fillOffsetArraysFromVector(transaction::Transaction* transacti
         },
         [&]<HashablePrimitive T>(T) {
             if (info.pkDataType->getLogicalTypeID() == LogicalTypeID::SERIAL) {
-                auto numKeys = keyVector->state->selVector->selectedSize;
+                auto numKeys = keyVector->state->getSelVector().getSelSize();
                 for (auto i = 0u; i < numKeys; i++) {
-                    auto pos = keyVector->state->selVector->selectedPositions[i];
+                    auto pos = keyVector->state->getSelVector()[i];
                     offsets[i] = keyVector->getValue<int64_t>(pos);
                 }
             } else {

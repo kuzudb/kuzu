@@ -51,7 +51,7 @@ void SerialCSVScanSharedState::read(DataChunk& outputChunk) {
         }
         uint64_t numRows = reader->parseBlock(0 /* unused by serial csv reader */, outputChunk);
         // TODO(Ziyi): parseBlock should set the selectedSize of dataChunk.
-        outputChunk.state->selVector->selectedSize = numRows;
+        outputChunk.state->getSelVectorUnsafe().setSelSize(numRows);
         if (numRows > 0) {
             return;
         }
@@ -72,7 +72,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     auto serialCSVScanSharedState =
         ku_dynamic_cast<TableFuncSharedState*, SerialCSVScanSharedState*>(input.sharedState);
     serialCSVScanSharedState->read(output.dataChunk);
-    return output.dataChunk.state->selVector->selectedSize;
+    return output.dataChunk.state->getSelVector().getSelSize();
 }
 
 static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_t fileIdx,

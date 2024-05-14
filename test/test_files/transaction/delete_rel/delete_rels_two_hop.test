@@ -20,6 +20,8 @@
 7
 8
 9
+-STATEMENT COMMIT;
+---- ok
 
 
 -CASE DeleteRelsTwoHopCommitRecovery
@@ -42,6 +44,9 @@
 7
 8
 9
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE DeleteRelsTwoHopRollbackNormalExecution
 -STATEMENT BEGIN TRANSACTION
@@ -64,6 +69,8 @@
 7
 8
 9
+-STATEMENT COMMIT;
+---- ok
 
 
 -CASE DeleteRelsTwoHopRollbackRecovery
@@ -88,3 +95,5 @@
 7
 8
 9
+-STATEMENT COMMIT;
+---- ok

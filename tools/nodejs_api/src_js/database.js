@@ -108,39 +108,7 @@ class Database {
   }
 
   /**
-   * Set the logging level for the database.
-   */
-  setLoggingLevel(loggingLevel) {
-    const validLoggingLevels = Object.values(LoggingLevel);
-
-    if (!validLoggingLevels.includes(loggingLevel)) {
-      const validLoggingLevelsEnum = Object.keys(LoggingLevel)
-        .map((k) => "kuzu.LoggingLevel." + k)
-        .join(", ");
-      throw new Error(
-        `Invalid logging level: ${loggingLevel}. Valid logging levels are: ${validLoggingLevelsEnum}.`
-      );
-    }
-
-    // If the database is not initialized yet, store the logging level
-    // and defer setting it until the database is initialized.
-    if (this._isInitialized) {
-      this._database.setLoggingLevel(loggingLevel);
-      return;
-    }
-    this._loggingLevel = loggingLevel;
-  }
-
-  /**
-   * Close the database. Once the database is closed, the lock on the database 
-   * files is released and the database can be opened in another process.
-   * 
-   * Note: Call to this method is not required. 
-   * The Node.js garbage collector will automatically close the database when no 
-   * references to the database object exist. It is recommended not to call this 
-   * method explicitly. If you decide to manually close the database, make sure 
-   * that all the QueryResult and Connection objects are closed before calling 
-   * this method.
+   * Close the database.
    */
   async close() {
     if (this._isClosed) {

@@ -268,18 +268,6 @@ JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1database_1destroy(JNIEnv
     delete db;
 }
 
-JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1database_1set_1logging_1level(JNIEnv* env,
-    jclass, jstring logging_level) {
-    const char* lvl = env->GetStringUTFChars(logging_level, JNI_FALSE);
-    try {
-        Database::setLoggingLevel(lvl);
-        env->ReleaseStringUTFChars(logging_level, lvl);
-    } catch (const ConversionException& e) {
-        env->ReleaseStringUTFChars(logging_level, lvl);
-        env->ThrowNew(J_C_Exception, e.what());
-    }
-}
-
 /**
  * All Connection native functions
  */
@@ -393,13 +381,6 @@ JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1prepared_1statement_1des
     jclass, jobject thisPS) {
     PreparedStatement* ps = getPreparedStatement(env, thisPS);
     delete ps;
-}
-
-JNIEXPORT jboolean JNICALL
-Java_com_kuzudb_KuzuNative_kuzu_1prepared_1statement_1allow_1active_1transaction(JNIEnv* env,
-    jclass, jobject thisPS) {
-    PreparedStatement* ps = getPreparedStatement(env, thisPS);
-    return static_cast<jboolean>(ps->allowActiveTransaction());
 }
 
 JNIEXPORT jboolean JNICALL Java_com_kuzudb_KuzuNative_kuzu_1prepared_1statement_1is_1success(

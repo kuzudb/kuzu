@@ -14,8 +14,8 @@ namespace processor {
 void PartitionerFunctions::partitionRelData(ValueVector* key, ValueVector* partitionIdxes) {
     KU_ASSERT(key->state == partitionIdxes->state &&
               key->dataType.getPhysicalType() == PhysicalTypeID::INT64);
-    for (auto i = 0u; i < key->state->selVector->selectedSize; i++) {
-        auto pos = key->state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < key->state->getSelVector().getSelSize(); i++) {
+        auto pos = key->state->getSelVector()[i];
         partition_idx_t partitionIdx =
             key->getValue<offset_t>(pos) >> StorageConstants::NODE_GROUP_SIZE_LOG2;
         partitionIdxes->setValue(pos, partitionIdx);
@@ -156,14 +156,14 @@ void Partitioner::copyDataToPartitions(partition_idx_t partitioningIdx, DataChun
     }
     SelectionVector selVector(1);
     selVector.setToFiltered(1);
-    for (auto i = 0u; i < chunkToCopyFrom.state->selVector->selectedSize; i++) {
-        auto posToCopyFrom = chunkToCopyFrom.state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < chunkToCopyFrom.state->getSelVector().getSelSize(); i++) {
+        auto posToCopyFrom = chunkToCopyFrom.state->getSelVector()[i];
         auto partitionIdx = partitionIdxes->getValue<partition_idx_t>(posToCopyFrom);
         KU_ASSERT(
             partitionIdx < localState->getPartitioningBuffer(partitioningIdx)->partitions.size());
         auto& partition =
             localState->getPartitioningBuffer(partitioningIdx)->partitions[partitionIdx];
-        selVector.selectedPositions[0] = posToCopyFrom;
+        selVector[0] = posToCopyFrom;
         partition.append(vectorsToAppend, selVector);
     }
 }

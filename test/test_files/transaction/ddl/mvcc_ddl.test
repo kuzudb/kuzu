@@ -1,0 +1,279 @@
+-DATASET CSV empty
+--
+
+# There are four case to test:
+# - commit transactions. checkpoint. continue with the same db. expect to see committed changes.
+# - rollback transactions. checkpoint. continue with the same db. expect to ingore uncommitted changes.
+# - commit transactions. skip checkpoint. recovery with a new db. expect to replay committed changes.
+# - rollback transactions. skip checkpoint. recovery with a new db. expect to ingore uncommitted changes.
+
+# Test CALL ENABLE_MULTI_WRITES=true
+-CASE MultiWritesException
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE t(a INT, b INT, PRIMARY KEY(a));
+---- ok
+-CREATE_CONNECTION conn2
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- error
+Cannot start a new write transaction in the system. Only one write transaction at a time is allowed in the system.
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT CALL table_info('t') RETURN *;
+---- 2
+0|a|INT32|True
+1|b|INT32|False
+
+-CASE EnableMultiWrites
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE t(a INT, b INT, PRIMARY KEY(a));
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-CREATE_CONNECTION conn2
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT [conn2] COMMIT_SKIP_CHECKPOINT;
+---- ok
+
+
+# Test TransactionContext activeTransaction
+-CASE ConnectionActiveTransactionException
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- error
+Connection already has an active transaction. Cannot start a transaction within another one. For concurrent multiple transactions, please open other connections.
+
+# Test multiple DDL statements in a single manual transaction
+-CASE CreateTableManualCommit
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE t(a INT, b INT, PRIMARY KEY(a));
+---- ok
+-STATEMENT CALL table_info('t') RETURN *;
+---- 2
+0|a|INT32|True
+1|b|INT32|False
+-STATEMENT CREATE REL TABLE e1(FROM t TO t);
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT CREATE REL TABLE e2(FROM t TO t);
+---- ok
+-STATEMENT CALL table_info('e1') RETURN *;
+---- 0
+-STATEMENT CALL table_info('e2') RETURN *;
+---- 0
+
+-CASE CreateTableManualRollback
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE t(a INT, b INT, PRIMARY KEY(a));
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT CALL table_info('t') RETURN *;
+---- error
+Catalog exception: t does not exist in catalog.
+
+
+# Test W-W conflict
+-CASE CreateTableWriteWriteConflict
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE t(a INT, b INT, PRIMARY KEY(a));
+---- ok
+-STATEMENT CALL table_info('t') RETURN *;
+---- 2
+0|a|INT32|True
+1|b|INT32|False
+-CREATE_CONNECTION conn2
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT [conn2] CREATE NODE TABLE t(a INT, b INT, PRIMARY KEY(a));
+---- error
+Catalog exception: Write-write conflict on creating catalog entry with name t.
+-STATEMENT COMMIT;
+---- ok
+
+-CASE ConcurrentWriteAndRead
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE t(a INT, b INT, PRIMARY KEY(a));
+---- ok
+-STATEMENT CALL table_info('t') RETURN *;
+---- 2
+0|a|INT32|True
+1|b|INT32|False
+-CREATE_CONNECTION conn2
+-STATEMENT [conn2] CALL table_info('t') RETURN *;
+---- error
+Catalog exception: t does not exist in catalog.
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT [conn2] CALL table_info('t') RETURN *;
+---- 2
+0|a|INT32|True
+1|b|INT32|False
+
+
+-CASE CreateAndDropTableSingleTransaction
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE t(a INT, b INT, PRIMARY KEY(a));
+---- ok
+-STATEMENT CALL table_info('t') RETURN *;
+---- 2
+0|a|INT32|True
+1|b|INT32|False
+-STATEMENT DROP TABLE t;
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT CALL table_info('t') RETURN *;
+---- error
+Catalog exception: t does not exist in catalog.
+
+-CASE DropTableRollback
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE t(a INT, b INT, PRIMARY KEY(a));
+---- ok
+-STATEMENT CALL table_info('t') RETURN *;
+---- 2
+0|a|INT32|True
+1|b|INT32|False
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT DROP TABLE t;
+---- ok
+-STATEMENT CALL table_info('t') RETURN *;
+---- error
+Catalog exception: t does not exist in catalog.
+-STATEMENT CALL table_info('t') RETURN *;
+---- 2
+0|a|INT32|True
+1|b|INT32|False
+
+-CASE CreateAndDropMultiConnections
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE t(a INT, b INT, PRIMARY KEY(a));
+---- ok
+-STATEMENT CALL table_info('t') RETURN *;
+---- 2
+0|a|INT32|True
+1|b|INT32|False
+-CREATE_CONNECTION conn2
+-STATEMENT [conn2] CALL table_info('t') RETURN *;
+---- error
+Catalog exception: t does not exist in catalog.
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT [conn2] DROP TABLE t;
+---- error
+Binder exception: Table t does not exist.
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT CALL table_info('t') RETURN *;
+---- 2
+0|a|INT32|True
+1|b|INT32|False
+
+-CASE AllColumns
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE t(a INT, b INT, PRIMARY KEY(a));
+---- ok
+-STATEMENT ALTER TABLE t ADD c INT;
+---- ok
+-STATEMENT CALL table_info('t') RETURN *;
+---- 3
+0|a|INT32|True
+1|b|INT32|False
+2|c|INT32|False
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT ALTER TABLE t DROP c;
+---- ok
+-STATEMENT CALL table_info('t') RETURN *;
+---- 2
+0|a|INT32|True
+1|b|INT32|False
+
+-CASE RenameTable
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE t(a INT, b INT, PRIMARY KEY(a));
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-CREATE_CONNECTION conn2
+-STATEMENT [conn2] CALL table_info('t') RETURN *;
+---- 2
+0|a|INT32|True
+1|b|INT32|False
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE t RENAME TO t2;
+---- ok
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT [conn2] CALL table_info('t') RETURN *;
+---- 2
+0|a|INT32|True
+1|b|INT32|False
+-STATEMENT [conn2] CALL table_info('t2') RETURN *;
+---- error
+Catalog exception: t2 does not exist in catalog.
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT CALL table_info('t') RETURN *;
+---- error
+Catalog exception: t does not exist in catalog.
+-STATEMENT CALL table_info('t2') RETURN *;
+---- 2
+0|a|INT32|True
+1|b|INT32|False
+
+-CASE RenameColumn
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE t(a INT, b INT, PRIMARY KEY(a));
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE t RENAME b TO c;
+---- ok
+-CREATE_CONNECTION conn2
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT [conn2] CALL table_info('t') RETURN *;
+---- 2
+0|a|INT32|True
+1|b|INT32|False
+-STATEMENT COMMIT_SKIP_CHECKPOINT;
+---- ok
+-STATEMENT [conn2] COMMIT;
+---- ok
+-STATEMENT [conn2] CALL table_info('t') RETURN *;
+---- 2
+0|a|INT32|True
+1|c|INT32|False
+#

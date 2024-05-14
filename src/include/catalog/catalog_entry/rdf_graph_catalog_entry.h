@@ -11,10 +11,9 @@ public:
     // constructors
     //===--------------------------------------------------------------------===//
     RDFGraphCatalogEntry() = default;
-    RDFGraphCatalogEntry(std::string name, common::table_id_t rdfID,
+    RDFGraphCatalogEntry(CatalogSet* set, std::string name, common::table_id_t rdfID,
         common::table_id_t resourceTableID, common::table_id_t literalTabelID,
         common::table_id_t resourceTripleTableID, common::table_id_t literalTripleTableID);
-    RDFGraphCatalogEntry(const RDFGraphCatalogEntry& other);
 
     //===--------------------------------------------------------------------===//
     // getter & setter
@@ -36,7 +35,11 @@ public:
     //===--------------------------------------------------------------------===//
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<RDFGraphCatalogEntry> deserialize(common::Deserializer& deserializer);
-    std::unique_ptr<CatalogEntry> copy() const override;
+    std::unique_ptr<TableCatalogEntry> copy() const override;
+
+private:
+    std::unique_ptr<binder::BoundExtraCreateCatalogEntryInfo> getBoundExtraCreateInfo(
+        transaction::Transaction* transaction) const override;
 
 private:
     common::table_id_t resourceTableID;

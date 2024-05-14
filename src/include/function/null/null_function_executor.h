@@ -11,20 +11,21 @@ struct NullOperationExecutor {
     static void execute(common::ValueVector& operand, common::ValueVector& result) {
         KU_ASSERT(result.dataType.getLogicalTypeID() == common::LogicalTypeID::BOOL);
         auto resultValues = (uint8_t*)result.getData();
+        auto& operandSelVector = operand.state->getSelVector();
         if (operand.state->isFlat()) {
-            auto pos = operand.state->selVector->selectedPositions[0];
-            auto resultPos = result.state->selVector->selectedPositions[0];
+            auto pos = operandSelVector[0];
+            auto resultPos = result.state->getSelVector()[0];
             FUNC::operation(operand.getValue<uint8_t>(pos), (bool)operand.isNull(pos),
                 resultValues[resultPos]);
         } else {
-            if (operand.state->selVector->isUnfiltered()) {
-                for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
+            if (operandSelVector.isUnfiltered()) {
+                for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
                     FUNC::operation(operand.getValue<uint8_t>(i), (bool)operand.isNull(i),
                         resultValues[i]);
                 }
             } else {
-                for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
-                    auto pos = operand.state->selVector->selectedPositions[i];
+                for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
+                    auto pos = operandSelVector[i];
                     FUNC::operation(operand.getValue<uint8_t>(pos), (bool)operand.isNull(pos),
                         resultValues[pos]);
                 }
@@ -34,26 +35,27 @@ struct NullOperationExecutor {
 
     template<typename FUNC>
     static bool select(common::ValueVector& operand, common::SelectionVector& selVector) {
+        auto& operandSelVector = operand.state->getSelVector();
         if (operand.state->isFlat()) {
-            auto pos = operand.state->selVector->selectedPositions[0];
+            auto pos = operandSelVector[0];
             uint8_t resultValue = 0;
             FUNC::operation(operand.getValue<uint8_t>(pos), operand.isNull(pos), resultValue);
             return resultValue == true;
         } else {
             uint64_t numSelectedValues = 0;
             auto buffer = selVector.getMultableBuffer();
-            for (auto i = 0ul; i < operand.state->selVector->selectedSize; i++) {
-                auto pos = operand.state->selVector->selectedPositions[i];
+            for (auto i = 0ul; i < operandSelVector.getSelSize(); i++) {
+                auto pos = operandSelVector[i];
                 selectOnValue<FUNC>(operand, pos, numSelectedValues, buffer);
             }
-            selVector.selectedSize = numSelectedValues;
+            selVector.setSelSize(numSelectedValues);
             return numSelectedValues > 0;
         }
     }
 
     template<typename FUNC>
     static void selectOnValue(common::ValueVector& operand, uint64_t operandPos,
-        uint64_t& numSelectedValues, common::sel_t* selectedPositionsBuffer) {
+        uint64_t& numSelectedValues, std::span<common::sel_t> selectedPositionsBuffer) {
         uint8_t resultValue = 0;
         FUNC::operation(operand.getValue<uint8_t>(operandPos), operand.isNull(operandPos),
             resultValue);

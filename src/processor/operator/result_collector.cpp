@@ -21,7 +21,7 @@ void ResultCollector::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         payloadAndMarkVectors.push_back(markVector.get());
     }
     localTable = std::make_unique<FactorizedTable>(context->clientContext->getMemoryManager(),
-        info->tableSchema->copy());
+        info->tableSchema.copy());
 }
 
 void ResultCollector::executeInternal(ExecutionContext* context) {

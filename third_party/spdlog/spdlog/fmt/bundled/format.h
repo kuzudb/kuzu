@@ -922,8 +922,16 @@ FMT_CONSTEXPR20 void basic_memory_buffer<T, SIZE, Allocator>::grow(
   T* new_data =
       std::allocator_traits<Allocator>::allocate(alloc_, new_capacity);
   // The following code doesn't throw, so the raw pointer above doesn't leak.
+
+// False positive warning when built in RelWithDebInfo mode
+// see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=109717
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
   std::uninitialized_copy(old_data, old_data + this->size(),
                           detail::make_checked(new_data, new_capacity));
+#pragma GCC diagnostic pop
   this->set(new_data, new_capacity);
   // deallocate must not throw according to the standard, but even if it does,
   // the buffer already uses the new storage and will deallocate it in

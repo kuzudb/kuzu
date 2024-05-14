@@ -19,7 +19,7 @@ constexpr bool DEFAULT_ENABLE_SEMI_MASK = true;
 // e.g., a worker thread is in TaskScheduler, needs to block.
 constexpr uint64_t THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS = 500;
 
-constexpr uint64_t DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS = 5000000;
+constexpr uint64_t DEFAULT_CHECKPOINT_WAIT_TIMEOUT_IN_MICROS = 5000000;
 
 // Note that some places use std::bit_ceil to calculate resizes,
 // which won't work for values other than 2. If this is changed, those will need to be updated
@@ -149,20 +149,6 @@ struct RdfConstants {
     static constexpr const char STRICT_OPTION[] = "STRICT";
 };
 
-struct LoggerConstants {
-    enum class LoggerEnum : uint8_t {
-        DATABASE = 0,
-        CSV_READER = 1,
-        LOADER = 2,
-        PROCESSOR = 3,
-        BUFFER_MANAGER = 4,
-        CATALOG = 5,
-        STORAGE = 6,
-        TRANSACTION_MANAGER = 7,
-        WAL = 8,
-    };
-};
-
 struct PlannerKnobs {
     static constexpr double NON_EQUALITY_PREDICATE_SELECTIVITY = 0.1;
     static constexpr double EQUALITY_PREDICATE_SELECTIVITY = 0.01;
@@ -207,6 +193,8 @@ struct ImportDBConstants {
     static constexpr char COPY_NAME[] = "copy.cypher";
     static constexpr char MACRO_NAME[] = "macro.cypher";
 };
+
+static constexpr char ATTACHED_KUZU_DB_TYPE[] = "KUZU";
 
 } // namespace common
 } // namespace kuzu

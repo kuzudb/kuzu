@@ -120,21 +120,6 @@ std::shared_ptr<Expression> Binder::createVariable(const std::string& name,
     return expression;
 }
 
-std::unique_ptr<LogicalType> Binder::bindDataType(const std::string& dataType) {
-    auto boundType = LogicalType::fromString(dataType);
-    if (boundType.getLogicalTypeID() == LogicalTypeID::ARRAY) {
-        auto numElementsInArray = ArrayType::getNumElements(boundType);
-        if (numElementsInArray == 0) {
-            // Note: the parser already guarantees that the number of elements is a non-negative
-            // number. However, we still need to check whether the number of elements is 0.
-            throw BinderException(
-                "The number of elements in an array must be greater than 0. Given: " +
-                std::to_string(numElementsInArray) + ".");
-        }
-    }
-    return std::make_unique<LogicalType>(boundType);
-}
-
 void Binder::validateProjectionColumnNamesAreUnique(const expression_vector& expressions) {
     auto existColumnNames = std::unordered_set<std::string>();
     for (auto& expression : expressions) {
@@ -208,16 +193,16 @@ function::TableFunction Binder::getScanFunction(FileType fileType, const ReaderC
     auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
     switch (fileType) {
     case FileType::PARQUET: {
-        func = function::BuiltInFunctionsUtils::matchFunction(ParquetScanFunction::name, inputTypes,
-            functions);
+        func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
+            ParquetScanFunction::name, inputTypes, functions);
     } break;
     case FileType::NPY: {
-        func = function::BuiltInFunctionsUtils::matchFunction(NpyScanFunction::name, inputTypes,
-            functions);
+        func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
+            NpyScanFunction::name, inputTypes, functions);
     } break;
     case FileType::CSV: {
         auto csvConfig = CSVReaderConfig::construct(config.options);
-        func = function::BuiltInFunctionsUtils::matchFunction(
+        func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
             csvConfig.parallel ? ParallelCSVScan::name : SerialCSVScan::name, inputTypes,
             functions);
     } break;

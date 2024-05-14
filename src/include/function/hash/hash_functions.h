@@ -158,7 +158,7 @@ inline void Hash::operation(const std::string_view& key, common::hash_t& result,
     }
     uint64_t last = 0;
     for (size_t i = 0u; i < key.size() % 8; i++) {
-        last |= key[key.size() / 8 * 8 + i] << i * 8;
+        last |= static_cast<uint64_t>(key[key.size() / 8 * 8 + i]) << i * 8;
     }
     hashValue = kuzu::function::combineHashScalar(hashValue, kuzu::function::murmurhash64(last));
     result = hashValue;

@@ -29,12 +29,11 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
 static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result,
     void* /*dataPtr*/) {
     result.resetAuxiliaryBuffer();
-    for (auto i = 0u; i < result.state->selVector->selectedSize; ++i) {
-        auto resultPos = result.state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < result.state->getSelVector().getSelSize(); ++i) {
+        auto resultPos = result.state->getSelVector()[i];
         auto isNull = true;
         for (auto& param : params) {
-            auto paramPos =
-                param->state->isFlat() ? param->state->selVector->selectedPositions[0] : resultPos;
+            auto paramPos = param->state->isFlat() ? param->state->getSelVector()[0] : resultPos;
             if (!param->isNull(paramPos)) {
                 result.copyFromVectorData(resultPos, param.get(), paramPos);
                 isNull = false;
@@ -57,12 +56,11 @@ static bool selectFunc(const std::vector<std::shared_ptr<ValueVector>>& params,
     }
     auto numSelectedValues = 0u;
     auto selectedPositionsBuffer = selVector.getMultableBuffer();
-    for (auto i = 0u; i < params[unFlatVectorIdx]->state->selVector->selectedSize; ++i) {
-        auto resultPos = params[unFlatVectorIdx]->state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < params[unFlatVectorIdx]->state->getSelVector().getSelSize(); ++i) {
+        auto resultPos = params[unFlatVectorIdx]->state->getSelVector()[i];
         auto resultValue = false;
         for (auto& param : params) {
-            auto paramPos =
-                param->state->isFlat() ? param->state->selVector->selectedPositions[0] : resultPos;
+            auto paramPos = param->state->isFlat() ? param->state->getSelVector()[0] : resultPos;
             if (!param->isNull(paramPos)) {
                 resultValue = param->getValue<bool>(paramPos);
                 break;
@@ -71,7 +69,7 @@ static bool selectFunc(const std::vector<std::shared_ptr<ValueVector>>& params,
         selectedPositionsBuffer[numSelectedValues] = resultPos;
         numSelectedValues += resultValue;
     }
-    selVector.selectedSize = numSelectedValues;
+    selVector.setSelSize(numSelectedValues);
     return numSelectedValues > 0;
 }
 

@@ -30,6 +30,9 @@
 4
 6
 8
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE deleteRelsFromOneToOneTableCommitRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -46,6 +49,9 @@
 4
 6
 8
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE deleteRelsFromOneToOneTableRollbackNormalExecution
 -STATEMENT BEGIN TRANSACTION
@@ -67,6 +73,9 @@
 8
 9
 11
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE deleteRelsFromOneToOneTableRollbackRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -89,3 +98,5 @@
 8
 9
 11
+-STATEMENT COMMIT;
+---- ok

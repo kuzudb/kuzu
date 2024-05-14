@@ -21,6 +21,7 @@ public:
     InspectCachedItem inspect;
     NumpyMaCachedItem numpyma;
     PandasCachedItem pandas;
+    PolarsCachedItem polars;
     PyarrowCachedItem pyarrow;
     UUIDCachedItem uuid;
 

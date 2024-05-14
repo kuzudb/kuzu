@@ -9,7 +9,7 @@ namespace processor {
 class JoinHashTable : public BaseHashTable {
 public:
     JoinHashTable(storage::MemoryManager& memoryManager, common::logical_type_vec_t keyTypes,
-        std::unique_ptr<FactorizedTableSchema> tableSchema);
+        FactorizedTableSchema tableSchema);
 
     void appendVectors(const std::vector<common::ValueVector*>& keyVectors,
         const std::vector<common::ValueVector*>& payloadVectors, common::DataChunkState* keyState);
@@ -31,7 +31,7 @@ public:
         uint8_t** probedTuples, uint8_t** matchedTuples);
     // Input is multiple tuples, at most one match exist for each key.
     common::sel_t matchUnFlatKey(common::ValueVector* keyVector, uint8_t** probedTuples,
-        uint8_t** matchedTuples, common::SelectionVector* matchedTuplesSelVector);
+        uint8_t** matchedTuples, common::SelectionVector& matchedTuplesSelVector);
 
     void lookup(std::vector<common::ValueVector*>& vectors, std::vector<uint32_t>& colIdxesToScan,
         uint8_t** tuplesToRead, uint64_t startPos, uint64_t numTuplesToRead) {

@@ -31,6 +31,9 @@
 28
 29
 300
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE UpdateIntPropCommitRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -54,6 +57,9 @@
 28
 29
 300
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE UpdateIntPropRollbackNormalExecution
 -STATEMENT BEGIN TRANSACTION
@@ -76,6 +82,9 @@
 28
 29
 30
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE UpdateIntPropRollbackRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -99,3 +108,5 @@
 28
 29
 30
+-STATEMENT COMMIT;
+---- ok

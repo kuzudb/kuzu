@@ -575,7 +575,7 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(const std::string& parse
 
 void Binder::bindQueryNodeProperties(NodeExpression& node) {
     auto tableSchemas =
-        clientContext->getCatalog()->getTableSchemas(clientContext->getTx(), node.getTableIDs());
+        clientContext->getCatalog()->getTableEntries(clientContext->getTx(), node.getTableIDs());
     auto propertyNames = getPropertyNames(tableSchemas);
     for (auto& propertyName : propertyNames) {
         auto property = createPropertyExpression(propertyName, node.getUniqueName(),
@@ -591,18 +591,18 @@ std::vector<table_id_t> Binder::bindTableIDs(const std::vector<std::string>& tab
     std::unordered_set<common::table_id_t> tableIDSet;
     if (tableNames.empty()) { // Rewrite empty table names as all tables.
         if (nodePattern) {    // Fill all node table schemas to node pattern.
-            if (!catalog->containsNodeTable(tx)) {
-                throw BinderException("No node table exists in database.");
-            }
             for (auto tableID : catalog->getNodeTableIDs(tx)) {
                 tableIDSet.insert(tableID);
             }
-        } else { // Fill all rel table schemas to rel pattern.
-            if (!catalog->containsRelTable(tx)) {
-                throw BinderException("No rel table exists in database.");
+            if (tableIDSet.empty()) {
+                throw BinderException("No node table exists in database.");
             }
+        } else { // Fill all rel table schemas to rel pattern.
             for (auto tableID : catalog->getRelTableIDs(tx)) {
                 tableIDSet.insert(tableID);
+            }
+            if (tableIDSet.empty()) {
+                throw BinderException("No rel table exists in database.");
             }
         }
     } else {

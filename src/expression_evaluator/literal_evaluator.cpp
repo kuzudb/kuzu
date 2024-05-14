@@ -11,7 +11,7 @@ namespace evaluator {
 
 bool LiteralExpressionEvaluator::select(SelectionVector&, ClientContext*) {
     KU_ASSERT(resultVector->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
-    auto pos = resultVector->state->selVector->selectedPositions[0];
+    auto pos = resultVector->state->getSelVector()[0];
     KU_ASSERT(pos == 0u);
     return resultVector->getValue<bool>(pos) && (!resultVector->isNull(pos));
 }
@@ -23,7 +23,7 @@ void LiteralExpressionEvaluator::resolveResultVector(const processor::ResultSet&
     if (value.isNull()) {
         resultVector->setNull(0 /* pos */, true);
     } else {
-        resultVector->copyFromValue(resultVector->state->selVector->selectedPositions[0], value);
+        resultVector->copyFromValue(resultVector->state->getSelVector()[0], value);
     }
 }
 

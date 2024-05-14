@@ -8,7 +8,7 @@ namespace common {
 
 class KUZU_API CatalogException : public Exception {
 public:
-    explicit CatalogException(const std::string& msg) : Exception("Catalog exception: " + msg){};
+    explicit CatalogException(const std::string& msg) : Exception("Catalog exception: " + msg) {};
 };
 
 } // namespace common

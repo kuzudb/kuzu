@@ -150,7 +150,7 @@ void CopyToCSVLocalState::writeRows(const CopyToCSVInfo* copyToCsvInfo) {
     uint64_t numRowsToWrite = 1;
     for (auto& vectorToCast : vectorsToCast) {
         if (!vectorToCast->state->isFlat()) {
-            numRowsToWrite = vectorToCast->state->selVector->selectedSize;
+            numRowsToWrite = vectorToCast->state->getSelVector().getSelSize();
         }
     }
     for (auto i = 0u; i < numRowsToWrite; i++) {
@@ -159,8 +159,8 @@ void CopyToCSVLocalState::writeRows(const CopyToCSVInfo* copyToCsvInfo) {
                 serializer->writeBufferData(copyToCsvInfo->copyToOption.delimiter);
             }
             auto vector = castVectors[j];
-            auto pos = vector->state->isFlat() ? vector->state->selVector->selectedPositions[0] :
-                                                 vector->state->selVector->selectedPositions[i];
+            auto pos = vector->state->isFlat() ? vector->state->getSelVector()[0] :
+                                                 vector->state->getSelVector()[i];
             if (vector->isNull(pos)) {
                 // write null value
                 serializer->writeBufferData(CopyToCSVConstants::DEFAULT_NULL_STR);

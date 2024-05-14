@@ -20,9 +20,9 @@ bool Profile::getNextTuplesInternal(ExecutionContext* context) {
     auto planPrinter = std::make_unique<main::PlanPrinter>(info.physicalPlan, context->profiler);
     auto planInString = planPrinter->printPlanToOstream().str();
     StringVector::addString(outputVector, profileStr, planInString.c_str(), planInString.length());
-    auto selVector = outputVector->state->selVector;
-    selVector->selectedSize = 1;
-    outputVector->setValue<ku_string_t>(selVector->selectedPositions[0], profileStr);
+    auto& selVector = outputVector->state->getSelVectorUnsafe();
+    selVector.setSelSize(1);
+    outputVector->setValue<ku_string_t>(selVector[0], profileStr);
     metrics->numOutputTuple.increase(1);
     return true;
 }

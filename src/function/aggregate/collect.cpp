@@ -18,14 +18,15 @@ void CollectFunction::updateAll(uint8_t* state_, ValueVector* input, uint64_t mu
     MemoryManager* memoryManager) {
     KU_ASSERT(!input->state->isFlat());
     auto state = reinterpret_cast<CollectState*>(state_);
+    auto& inputSelVector = input->state->getSelVector();
     if (input->hasNoNullsGuarantee()) {
-        for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
-            auto pos = input->state->selVector->selectedPositions[i];
+        for (auto i = 0u; i < inputSelVector.getSelSize(); ++i) {
+            auto pos = inputSelVector[i];
             updateSingleValue(state, input, pos, multiplicity, memoryManager);
         }
     } else {
-        for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
-            auto pos = input->state->selVector->selectedPositions[i];
+        for (auto i = 0u; i < inputSelVector.getSelSize(); ++i) {
+            auto pos = inputSelVector[i];
             if (!input->isNull(pos)) {
                 updateSingleValue(state, input, pos, multiplicity, memoryManager);
             }
@@ -42,9 +43,9 @@ void CollectFunction::updatePos(uint8_t* state_, ValueVector* input, uint64_t mu
 void CollectFunction::initCollectStateIfNecessary(CollectState* state, MemoryManager* memoryManager,
     LogicalType& dataType) {
     if (state->factorizedTable == nullptr) {
-        auto tableSchema = std::make_unique<FactorizedTableSchema>();
-        tableSchema->appendColumn(std::make_unique<ColumnSchema>(false /* isUnflat */,
-            0 /* dataChunkPos */, StorageUtils::getDataTypeSize(dataType)));
+        auto tableSchema = FactorizedTableSchema();
+        tableSchema.appendColumn(ColumnSchema(false /* isUnflat */, 0 /* groupID */,
+            StorageUtils::getDataTypeSize(dataType)));
         state->factorizedTable =
             std::make_unique<FactorizedTable>(memoryManager, std::move(tableSchema));
     }

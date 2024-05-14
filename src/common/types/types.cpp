@@ -1166,6 +1166,12 @@ std::unique_ptr<LogicalType> parseArrayType(const std::string& trimmedStr) {
     auto numElements = std::strtoll(
         trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1).c_str(),
         nullptr, 0 /* base */);
+    if (numElements <= 0) {
+        // Note: the parser already guarantees that the number of elements is a non-negative
+        // number. However, we still need to check whether the number of elements is 0.
+        throw BinderException("The number of elements in an array must be greater than 0. Given: " +
+                              std::to_string(numElements) + ".");
+    }
     return LogicalType::ARRAY(std::move(childType), numElements);
 }
 

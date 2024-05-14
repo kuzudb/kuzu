@@ -27,7 +27,7 @@ public:
     }
 
 private:
-    void resetToCurrentSelVector(std::shared_ptr<common::SelectionVector>& selVector) override;
+    void resetCurrentSelVector(const common::SelectionVector& selVector) override;
 
 private:
     data_chunk_pos_t dataChunkToFlattenPos;

@@ -3,6 +3,10 @@
 #include "common/data_chunk/sel_vector.h"
 
 namespace kuzu {
+namespace common {
+class DataChunkState;
+} // namespace common
+
 namespace processor {
 
 class SelVectorOverWriter {
@@ -14,12 +18,12 @@ public:
     virtual ~SelVectorOverWriter() = default;
 
 protected:
-    void restoreSelVector(std::shared_ptr<common::SelectionVector>& selVector);
+    void restoreSelVector(common::DataChunkState& dataChunkState);
 
-    void saveSelVector(std::shared_ptr<common::SelectionVector>& selVector);
+    void saveSelVector(common::DataChunkState& dataChunkState);
 
 private:
-    virtual void resetToCurrentSelVector(std::shared_ptr<common::SelectionVector>& selVector);
+    virtual void resetCurrentSelVector(const common::SelectionVector& selVector);
 
 protected:
     std::shared_ptr<common::SelectionVector> prevSelVector;

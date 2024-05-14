@@ -25,9 +25,13 @@
 31
 512
 312
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE updateManyToOneRelTableCommitRecovery
 -STATEMENT BEGIN TRANSACTION
+---- ok
 -STATEMENT CREATE (p:person {ID: 2501})
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_MANY_TO_ONE_REL_TABLE
@@ -44,6 +48,8 @@
 31
 512
 312
+-STATEMENT COMMIT;
+---- ok
 
 
 -CASE updateManyToOneRelTableRollbackNormalExecution
@@ -62,6 +68,9 @@
 31
 32
 33
+-STATEMENT COMMIT;
+---- ok
+
 
 -CASE updateManyToOneRelTableRollbackRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -80,3 +89,5 @@
 31
 32
 33
+-STATEMENT COMMIT;
+---- ok

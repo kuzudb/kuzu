@@ -52,14 +52,14 @@ std::pair<uint64_t, uint64_t> HashAggregateSharedState::getNextRangeToRead() {
 
 HashAggregateInfo::HashAggregateInfo(std::vector<DataPos> flatKeysPos,
     std::vector<DataPos> unFlatKeysPos, std::vector<DataPos> dependentKeysPos,
-    std::unique_ptr<FactorizedTableSchema> tableSchema, HashTableType hashTableType)
+    FactorizedTableSchema tableSchema, HashTableType hashTableType)
     : flatKeysPos{std::move(flatKeysPos)}, unFlatKeysPos{std::move(unFlatKeysPos)},
       dependentKeysPos{std::move(dependentKeysPos)}, tableSchema{std::move(tableSchema)},
       hashTableType{hashTableType} {}
 
 HashAggregateInfo::HashAggregateInfo(const HashAggregateInfo& other)
     : flatKeysPos{other.flatKeysPos}, unFlatKeysPos{other.unFlatKeysPos},
-      dependentKeysPos{other.dependentKeysPos}, tableSchema{other.tableSchema->copy()},
+      dependentKeysPos{other.dependentKeysPos}, tableSchema{other.tableSchema.copy()},
       hashTableType{other.hashTableType} {}
 
 void HashAggregateLocalState::init(ResultSet& resultSet, main::ClientContext* context,

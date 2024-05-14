@@ -28,6 +28,9 @@ public:
     }
 
 private:
+    void validateActiveTransaction(const transaction::TransactionContext& context) const;
+
+private:
     transaction::TransactionAction transactionAction;
     bool hasExecuted;
 };

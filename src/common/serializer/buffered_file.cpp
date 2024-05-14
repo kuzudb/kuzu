@@ -35,10 +35,17 @@ void BufferedFileWriter::write(const uint8_t* data, uint64_t size) {
 }
 
 void BufferedFileWriter::flush() {
+    if (bufferOffset == 0) {
+        return;
+    }
     fileInfo->writeFile(buffer.get(), bufferOffset, fileOffset);
     fileOffset += bufferOffset;
     bufferOffset = 0;
     memset(buffer.get(), 0, BUFFER_SIZE);
+}
+
+uint64_t BufferedFileWriter::getFileSize() const {
+    return fileInfo->getFileSize() + bufferOffset;
 }
 
 BufferedFileReader::BufferedFileReader(std::unique_ptr<FileInfo> fileInfo)
@@ -68,10 +75,12 @@ bool BufferedFileReader::finished() {
 }
 
 void BufferedFileReader::readNextPage() {
-    bufferSize = std::min(fileSize - fileOffset, BUFFER_SIZE);
-    if (bufferSize == 0) {
-        throw RuntimeException(stringFormat("Reading past the end of the file {}", fileInfo->path));
+    if (fileSize <= fileOffset) {
+        throw RuntimeException(
+            stringFormat("Reading past the end of the file {} with size {} at offset {}",
+                fileInfo->path, fileSize, fileOffset));
     }
+    bufferSize = std::min(fileSize - fileOffset, BUFFER_SIZE);
     fileInfo->readFromFile(buffer.get(), bufferSize, fileOffset);
     fileOffset += bufferSize;
     bufferOffset = 0;

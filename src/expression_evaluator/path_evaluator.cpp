@@ -84,9 +84,9 @@ void PathExpressionEvaluator::evaluate(ClientContext* clientContext) {
     for (auto& child : children) {
         child->evaluate(clientContext);
     }
-    auto selVector = resultVector->state->selVector;
-    for (auto i = 0u; i < selVector->selectedSize; ++i) {
-        auto pos = selVector->selectedPositions[i];
+    auto& selVector = resultVector->state->getSelVector();
+    for (auto i = 0u; i < selVector.getSelSize(); ++i) {
+        auto pos = selVector[i];
         auto numRels = copyRels(pos);
         copyNodes(pos, numRels == 0);
     }
@@ -94,7 +94,7 @@ void PathExpressionEvaluator::evaluate(ClientContext* clientContext) {
 
 static inline uint32_t getCurrentPos(ValueVector* vector, uint32_t pos) {
     if (vector->state->isFlat()) {
-        return vector->state->selVector->selectedPositions[0];
+        return vector->state->getSelVector()[0];
     }
     return pos;
 }

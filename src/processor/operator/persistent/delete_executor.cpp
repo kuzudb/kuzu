@@ -39,9 +39,9 @@ static void deleteFromRelTable(ExecutionContext* context, DeleteNodeType deleteT
 }
 
 void SingleLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
-    KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1 &&
+    KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1 &&
               pkVector->state == nodeIDVector->state);
-    auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
+    auto nodeIDPos = nodeIDVector->state->getSelVector()[0];
     if (nodeIDVector->isNull(nodeIDPos)) {
         return;
     }
@@ -68,8 +68,8 @@ void MultiLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* 
 }
 
 void MultiLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
-    KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
-    auto pos = nodeIDVector->state->selVector->selectedPositions[0];
+    KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1);
+    auto pos = nodeIDVector->state->getSelVector()[0];
     if (nodeIDVector->isNull(pos)) {
         return;
     }
@@ -111,7 +111,7 @@ void SingleLabelRelDeleteExecutor::delete_(ExecutionContext* context) {
 
 void MultiLabelRelDeleteExecutor::delete_(ExecutionContext* context) {
     KU_ASSERT(relIDVector->state->isFlat());
-    auto pos = relIDVector->state->selVector->selectedPositions[0];
+    auto pos = relIDVector->state->getSelVector()[0];
     auto relID = relIDVector->getValue<internalID_t>(pos);
     KU_ASSERT(tableIDToTableMap.contains(relID.tableID));
     auto table = tableIDToTableMap.at(relID.tableID);

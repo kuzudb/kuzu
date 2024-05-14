@@ -102,9 +102,6 @@ public class KuzuNative {
     // PreparedStatement
     protected static native void kuzu_prepared_statement_destroy(KuzuPreparedStatement prepared_statement);
 
-    protected static native boolean kuzu_prepared_statement_allow_active_transaction(
-            KuzuPreparedStatement prepared_statement);
-
     protected static native boolean kuzu_prepared_statement_is_success(KuzuPreparedStatement prepared_statement);
 
     protected static native String kuzu_prepared_statement_get_error_message(

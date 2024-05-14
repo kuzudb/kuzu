@@ -89,7 +89,7 @@ offset_t RdfReader::readChunk(DataChunk* dataChunk) {
     }
     auto numTuplesRead = readToVector(dataChunk);
     cursor += numTuplesRead;
-    dataChunk->state->selVector->selectedSize = numTuplesRead;
+    dataChunk->state->getSelVectorUnsafe().setSelSize(numTuplesRead);
     return numTuplesRead;
 }
 

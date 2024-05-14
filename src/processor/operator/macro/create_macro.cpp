@@ -7,14 +7,14 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-bool CreateMacro::getNextTuplesInternal(kuzu::processor::ExecutionContext* /*context*/) {
+bool CreateMacro::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
     if (hasExecuted) {
         return false;
     }
-    createMacroInfo->catalog->addScalarMacroFunction(createMacroInfo->macroName,
-        createMacroInfo->macro->copy());
+    createMacroInfo->catalog->addScalarMacroFunction(context->clientContext->getTx(),
+        createMacroInfo->macroName, createMacroInfo->macro->copy());
     hasExecuted = true;
-    outputVector->setValue<std::string>(outputVector->state->selVector->selectedPositions[0],
+    outputVector->setValue<std::string>(outputVector->state->getSelVector()[0],
         stringFormat("Macro: {} has been created.", createMacroInfo->macroName));
     metrics->numOutputTuple.increase(1);
     return true;

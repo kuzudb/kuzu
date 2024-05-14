@@ -32,7 +32,7 @@ uint64_t ResultSet::getNumTuplesWithoutMultiplicity(
     uint64_t numTuples = 1;
     for (auto& dataChunkPos : dataChunksPosInScope) {
         auto state = dataChunks[dataChunkPos]->state;
-        numTuples *= state->getNumSelectedValues();
+        numTuples *= state->getSelVector().getSelSize();
     }
     return numTuples;
 }

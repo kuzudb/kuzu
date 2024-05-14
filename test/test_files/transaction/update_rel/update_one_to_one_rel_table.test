@@ -30,6 +30,8 @@
 1999
 db
 kuzu
+-STATEMENT COMMIT;
+---- ok
 
 -CASE updateOneToOneRelTableCommitRecovery
 -STATEMENT BEGIN TRANSACTION
@@ -52,7 +54,8 @@ kuzu
 1999
 db
 kuzu
-
+-STATEMENT COMMIT;
+---- ok
 
 -CASE updateOneToOneRelTableRollbackNormalExecution
 -STATEMENT BEGIN TRANSACTION
@@ -74,6 +77,8 @@ kuzu
 1997
 199819981998
 1999
+-STATEMENT COMMIT;
+---- ok
 
 
 -CASE updateOneToOneRelTableRollbackRecovery
@@ -97,3 +102,5 @@ kuzu
 1997
 199819981998
 1999
+-STATEMENT COMMIT;
+---- ok

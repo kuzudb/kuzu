@@ -39,7 +39,7 @@ void CaseExpressionEvaluator::evaluate(ClientContext* clientContext) {
         } else {
             fillSelected(*whenSelVector, thenVector);
         }
-        if (filledMask.count() == resultVector->state->selVector->selectedSize) {
+        if (filledMask.count() == resultVector->state->getSelVector().getSelSize()) {
             return;
         }
     }
@@ -49,16 +49,16 @@ void CaseExpressionEvaluator::evaluate(ClientContext* clientContext) {
 
 bool CaseExpressionEvaluator::select(SelectionVector& selVector, ClientContext* clientContext) {
     evaluate(clientContext);
-    KU_ASSERT(resultVector->state->selVector->selectedSize == selVector.selectedSize);
+    KU_ASSERT(resultVector->state->getSelVector().getSelSize() == selVector.getSelSize());
     auto numSelectedValues = 0u;
     auto selectedPosBuffer = selVector.getMultableBuffer();
-    for (auto i = 0u; i < selVector.selectedSize; ++i) {
-        auto selVectorPos = selVector.selectedPositions[i];
-        auto resultVectorPos = resultVector->state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < selVector.getSelSize(); ++i) {
+        auto selVectorPos = selVector[i];
+        auto resultVectorPos = resultVector->state->getSelVector()[i];
         selectedPosBuffer[numSelectedValues] = selVectorPos;
         numSelectedValues += resultVector->getValue<bool>(resultVectorPos);
     }
-    selVector.selectedSize = numSelectedValues;
+    selVector.setSelSize(numSelectedValues);
     return numSelectedValues > 0;
 }
 
@@ -86,16 +86,16 @@ void CaseExpressionEvaluator::resolveResultVector(const ResultSet& /*resultSet*/
 
 void CaseExpressionEvaluator::fillSelected(const SelectionVector& selVector,
     ValueVector* srcVector) {
-    for (auto i = 0u; i < selVector.selectedSize; ++i) {
-        auto resultPos = selVector.selectedPositions[i];
+    for (auto i = 0u; i < selVector.getSelSize(); ++i) {
+        auto resultPos = selVector[i];
         fillEntry(resultPos, srcVector);
     }
 }
 
 void CaseExpressionEvaluator::fillAll(ValueVector* srcVector) {
-    auto resultSelVector = resultVector->state->selVector.get();
-    for (auto i = 0u; i < resultSelVector->selectedSize; ++i) {
-        auto resultPos = resultSelVector->selectedPositions[i];
+    auto& resultSelVector = resultVector->state->getSelVector();
+    for (auto i = 0u; i < resultSelVector.getSelSize(); ++i) {
+        auto resultPos = resultSelVector[i];
         fillEntry(resultPos, srcVector);
     }
 }
@@ -105,8 +105,7 @@ void CaseExpressionEvaluator::fillEntry(sel_t resultPos, ValueVector* srcVector)
         return;
     }
     filledMask[resultPos] = true;
-    auto srcPos =
-        srcVector->state->isFlat() ? srcVector->state->selVector->selectedPositions[0] : resultPos;
+    auto srcPos = srcVector->state->isFlat() ? srcVector->state->getSelVector()[0] : resultPos;
     resultVector->copyFromVectorData(resultPos, srcVector, srcPos);
 }
 

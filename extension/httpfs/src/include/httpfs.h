@@ -67,6 +67,8 @@ public:
 
     bool canHandleFile(const std::string& path) const override;
 
+    bool fileOrPathExists(const std::string& path) override;
+
     static std::unique_ptr<httplib::Client> getClient(const std::string& host);
 
     static std::unique_ptr<httplib::Headers> getHTTPHeaders(HeaderMap& headerMap);
