@@ -147,7 +147,8 @@ struct DropCatalogEntryRecord final : public WALRecord {
 
     DropCatalogEntryRecord() = default;
     explicit DropCatalogEntryRecord(common::table_id_t entryID, catalog::CatalogEntryType entryType)
-        : WALRecord{WALRecordType::DROP_CATALOG_ENTRY_RECORD}, entryID{entryID}, entryType{entryType} {}
+        : WALRecord{WALRecordType::DROP_CATALOG_ENTRY_RECORD}, entryID{entryID},
+          entryType{entryType} {}
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<DropCatalogEntryRecord> deserialize(common::Deserializer& deserializer);

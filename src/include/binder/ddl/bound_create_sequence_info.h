@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+
 #include "common/copy_constructors.h"
 
 namespace kuzu {
