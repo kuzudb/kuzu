@@ -70,11 +70,12 @@ public:
     // ----------------------------- Sequences ----------------------------
     bool containsSequence(transaction::Transaction* tx, const std::string& sequenceName) const;
 
-    common::sequence_id_t getSequenceID(transaction::Transaction* tx, const std::string& sequenceName) const;
+    common::sequence_id_t getSequenceID(transaction::Transaction* tx,
+        const std::string& sequenceName) const;
     SequenceCatalogEntry* getSequenceCatalogEntry(transaction::Transaction* tx,
         common::sequence_id_t sequenceID) const;
     std::vector<SequenceCatalogEntry*> getSequenceEntries(transaction::Transaction* tx) const;
-    
+
     common::sequence_id_t createSequence(transaction::Transaction* tx,
         const binder::BoundCreateSequenceInfo& info);
     void dropSequence(transaction::Transaction* tx, common::sequence_id_t sequenceID);
@@ -160,6 +161,7 @@ private:
             func(entry);
         }
     }
+
 protected:
     std::unique_ptr<CatalogSet> tables;
     std::unique_ptr<CatalogSet> sequences;

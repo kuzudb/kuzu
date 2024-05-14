@@ -12,15 +12,15 @@ namespace function {
 struct SequenceInfo {
     std::string name;
     std::string databaseName;
-	int64_t startValue;
-	int64_t increment;
-	int64_t minValue;
-	int64_t maxValue;
-	bool cycle;
+    int64_t startValue;
+    int64_t increment;
+    int64_t minValue;
+    int64_t maxValue;
+    bool cycle;
 
-    SequenceInfo(std::string name, std::string databaseName, int64_t startValue, int64_t increment, 
-        int64_t minValue, int64_t maxValue, bool cycle) 
-        : name{std::move(name)}, databaseName{std::move(databaseName)}, startValue{startValue}, 
+    SequenceInfo(std::string name, std::string databaseName, int64_t startValue, int64_t increment,
+        int64_t minValue, int64_t maxValue, bool cycle)
+        : name{std::move(name)}, databaseName{std::move(databaseName)}, startValue{startValue},
           increment{increment}, minValue{minValue}, maxValue{maxValue}, cycle{cycle} {}
 };
 
@@ -33,7 +33,8 @@ struct ShowSequencesBindData : public CallTableFuncBindData {
           sequences{std::move(sequences)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowSequencesBindData>(sequences, columnTypes, columnNames, maxOffset);
+        return std::make_unique<ShowSequencesBindData>(sequences, columnTypes, columnNames,
+            maxOffset);
     }
 };
 
@@ -81,9 +82,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto localDatabaseName = "local(kuzu)";
     for (auto& entry : context->getCatalog()->getSequenceEntries(context->getTx())) {
         auto sequenceData = entry->getSequenceData();
-        auto sequenceInfo =
-            SequenceInfo{entry->getName(), localDatabaseName, sequenceData.startValue, 
-                sequenceData.increment, sequenceData.minValue, sequenceData.maxValue, sequenceData.cycle};
+        auto sequenceInfo = SequenceInfo{entry->getName(), localDatabaseName,
+            sequenceData.startValue, sequenceData.increment, sequenceData.minValue,
+            sequenceData.maxValue, sequenceData.cycle};
         sequenceInfos.push_back(std::move(sequenceInfo));
     }
 
@@ -94,8 +95,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         for (auto& entry : attachedDatabase->getCatalog()->getSequenceEntries(context->getTx())) {
             auto sequenceData = entry->getSequenceData();
             auto sequenceInfo =
-                SequenceInfo{entry->getName(), stringFormat("{}({})", databaseName, databaseType), 
-                    sequenceData.startValue, sequenceData.increment, sequenceData.minValue, 
+                SequenceInfo{entry->getName(), stringFormat("{}({})", databaseName, databaseType),
+                    sequenceData.startValue, sequenceData.increment, sequenceData.minValue,
                     sequenceData.maxValue, sequenceData.cycle};
             sequenceInfos.push_back(std::move(sequenceInfo));
         }

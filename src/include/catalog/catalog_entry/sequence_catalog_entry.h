@@ -17,10 +17,10 @@ namespace catalog {
 
 struct SequenceData {
     SequenceData() = default;
-	explicit SequenceData(const binder::BoundCreateSequenceInfo &info)
-        : usageCount{0}, nextVal{info.startWith}, currVal{info.startWith}, increment{info.increment}, 
-          startValue{info.startWith}, minValue{info.minValue}, maxValue{info.maxValue}, 
-          cycle{info.cycle} {}
+    explicit SequenceData(const binder::BoundCreateSequenceInfo& info)
+        : usageCount{0}, nextVal{info.startWith}, currVal{info.startWith},
+          increment{info.increment}, startValue{info.startWith}, minValue{info.minValue},
+          maxValue{info.maxValue}, cycle{info.cycle} {}
 
     uint64_t usageCount;
     int64_t nextVal;
@@ -39,8 +39,8 @@ public:
     //===--------------------------------------------------------------------===//
     SequenceCatalogEntry() = default;
     SequenceCatalogEntry(CatalogSet* set, common::sequence_id_t sequenceID,
-        const binder::BoundCreateSequenceInfo &sequenceInfo)
-        : CatalogEntry{CatalogEntryType::SEQUENCE_ENTRY, std::move(sequenceInfo.sequenceName)}, 
+        const binder::BoundCreateSequenceInfo& sequenceInfo)
+        : CatalogEntry{CatalogEntryType::SEQUENCE_ENTRY, std::move(sequenceInfo.sequenceName)},
           set{set}, sequenceID{sequenceID}, sequenceData{SequenceData(sequenceInfo)} {}
 
     //===--------------------------------------------------------------------===//
@@ -53,7 +53,7 @@ public:
     // sequence functions
     //===--------------------------------------------------------------------===//
     int64_t currVal();
-	int64_t nextVal();
+    int64_t nextVal();
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization

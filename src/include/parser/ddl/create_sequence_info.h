@@ -8,11 +8,11 @@ namespace kuzu {
 namespace parser {
 
 enum class SequenceInfoType {
-	START,
-	INCREMENT,
-	MINVALUE,
-	MAXVALUE,
-	CYCLE,
+    START,
+    INCREMENT,
+    MINVALUE,
+    MAXVALUE,
+    CYCLE,
 };
 
 struct CreateSequenceInfo {
@@ -23,8 +23,7 @@ struct CreateSequenceInfo {
     int64_t maxValue = INT64_MAX;
     bool cycle = false;
 
-    CreateSequenceInfo(std::string sequenceName)
-        : sequenceName{std::move(sequenceName)} {}
+    CreateSequenceInfo(std::string sequenceName) : sequenceName{std::move(sequenceName)} {}
     DELETE_COPY_DEFAULT_MOVE(CreateSequenceInfo);
 };
 

@@ -3,8 +3,8 @@
 #include <algorithm>
 
 #include "binder/ddl/bound_create_sequence_info.h"
-#include "common/exception/overflow.h"
 #include "common/exception/catalog.h"
+#include "common/exception/overflow.h"
 #include "function/arithmetic/add.h"
 
 using namespace kuzu::binder;
@@ -14,52 +14,54 @@ namespace kuzu {
 namespace catalog {
 
 SequenceData SequenceCatalogEntry::getSequenceData() {
-	std::lock_guard<std::mutex> lck(mtx);
+    std::lock_guard<std::mutex> lck(mtx);
     return sequenceData;
 }
 
 int64_t SequenceCatalogEntry::currVal() {
-	std::lock_guard<std::mutex> lck(mtx);
-	int64_t result;
-	if (sequenceData.usageCount == 0u) {
-		throw CatalogException("curr_val: sequence \"" + name + "\" is not yet defined");
-	}
-	result = sequenceData.currVal;
-	return result;
+    std::lock_guard<std::mutex> lck(mtx);
+    int64_t result;
+    if (sequenceData.usageCount == 0u) {
+        throw CatalogException("curr_val: sequence \"" + name + "\" is not yet defined");
+    }
+    result = sequenceData.currVal;
+    return result;
 }
 
 // referenced from DuckDB
 int64_t SequenceCatalogEntry::nextVal() {
-	std::lock_guard<std::mutex> lck(mtx);
-	int64_t result;
-	result = sequenceData.nextVal;
+    std::lock_guard<std::mutex> lck(mtx);
+    int64_t result;
+    result = sequenceData.nextVal;
     bool overflow = false;
     try {
-        function::Add::operation(sequenceData.nextVal, sequenceData.increment, sequenceData.nextVal);
+        function::Add::operation(sequenceData.nextVal, sequenceData.increment,
+            sequenceData.nextVal);
     } catch (const OverflowException& e) {
         overflow = true;
     }
-	if (sequenceData.cycle) {
-		if (overflow) {
-			sequenceData.nextVal = sequenceData.increment < 0 ? sequenceData.maxValue : sequenceData.minValue;
-		} else if (sequenceData.nextVal < sequenceData.minValue) {
-			sequenceData.nextVal = sequenceData.maxValue;
-		} else if (sequenceData.nextVal > sequenceData.maxValue) {
-			sequenceData.nextVal = sequenceData.minValue;
-		}
-	} else {
-		if (result < sequenceData.minValue || (overflow && sequenceData.increment < 0)) {
-			throw CatalogException("nextval: reached minimum value of sequence \""
-                + name + "\" " + std::to_string(sequenceData.minValue));
-		}
-		if (result > sequenceData.maxValue || overflow) {
-			throw CatalogException("nextval: reached maximum value of sequence \""
-                + name + "\" " + std::to_string(sequenceData.maxValue));
-		}
-	}
-	sequenceData.currVal = result;
-	sequenceData.usageCount++;
-	return result;
+    if (sequenceData.cycle) {
+        if (overflow) {
+            sequenceData.nextVal =
+                sequenceData.increment < 0 ? sequenceData.maxValue : sequenceData.minValue;
+        } else if (sequenceData.nextVal < sequenceData.minValue) {
+            sequenceData.nextVal = sequenceData.maxValue;
+        } else if (sequenceData.nextVal > sequenceData.maxValue) {
+            sequenceData.nextVal = sequenceData.minValue;
+        }
+    } else {
+        if (result < sequenceData.minValue || (overflow && sequenceData.increment < 0)) {
+            throw CatalogException("nextval: reached minimum value of sequence \"" + name + "\" " +
+                                   std::to_string(sequenceData.minValue));
+        }
+        if (result > sequenceData.maxValue || overflow) {
+            throw CatalogException("nextval: reached maximum value of sequence \"" + name + "\" " +
+                                   std::to_string(sequenceData.maxValue));
+        }
+    }
+    sequenceData.currVal = result;
+    sequenceData.usageCount++;
+    return result;
 }
 
 void SequenceCatalogEntry::serialize(common::Serializer& serializer) const {
@@ -79,13 +81,13 @@ std::unique_ptr<SequenceCatalogEntry> SequenceCatalogEntry::deserialize(
     common::Deserializer& deserializer) {
     common::sequence_id_t sequenceID;
     uint64_t usageCount;
-	int64_t nextVal;
-	int64_t currVal;
-	int64_t increment;
-	int64_t startValue;
-	int64_t minValue;
-	int64_t maxValue;
-	bool cycle;
+    int64_t nextVal;
+    int64_t currVal;
+    int64_t increment;
+    int64_t startValue;
+    int64_t minValue;
+    int64_t maxValue;
+    bool cycle;
     deserializer.deserializeValue(sequenceID);
     deserializer.deserializeValue(usageCount);
     deserializer.deserializeValue(nextVal);

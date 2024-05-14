@@ -1,9 +1,9 @@
 #include "binder/binder.h"
 #include "binder/ddl/bound_alter.h"
-#include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_create_sequence.h"
-#include "binder/ddl/bound_drop_table.h"
+#include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_drop_sequence.h"
+#include "binder/ddl/bound_drop_table.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
@@ -14,9 +14,9 @@
 #include "common/string_format.h"
 #include "common/types/types.h"
 #include "parser/ddl/alter.h"
+#include "parser/ddl/create_sequence.h"
 #include "parser/ddl/create_table.h"
 #include "parser/ddl/create_table_info.h"
-#include "parser/ddl/create_sequence.h"
 #include "parser/ddl/drop.h"
 
 using namespace kuzu::common;
@@ -184,9 +184,8 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
     if (clientContext->getCatalog()->containsSequence(clientContext->getTx(), sequenceName)) {
         throw BinderException(sequenceName + " already exists in catalog.");
     }
-    auto boundInfo = 
-        BoundCreateSequenceInfo(sequenceName, info->startWith, info->increment, 
-            info->minValue, info->maxValue, info->cycle);
+    auto boundInfo = BoundCreateSequenceInfo(sequenceName, info->startWith, info->increment,
+        info->minValue, info->maxValue, info->cycle);
     return std::make_unique<BoundCreateSequence>(std::move(boundInfo));
 }
 

@@ -7,8 +7,8 @@ namespace processor {
 
 class DropSequence : public DDL {
 public:
-    DropSequence(std::string sequenceName, common::sequence_id_t sequenceID, const DataPos& outputPos,
-        uint32_t id, const std::string& paramsString)
+    DropSequence(std::string sequenceName, common::sequence_id_t sequenceID,
+        const DataPos& outputPos, uint32_t id, const std::string& paramsString)
         : DDL{PhysicalOperatorType::DROP_TABLE, outputPos, id, paramsString},
           sequenceName{std::move(sequenceName)}, sequenceID{sequenceID} {}
 

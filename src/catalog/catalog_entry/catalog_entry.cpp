@@ -1,8 +1,8 @@
 #include "catalog/catalog_entry/catalog_entry.h"
 
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
-#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 
 namespace kuzu {
 namespace catalog {

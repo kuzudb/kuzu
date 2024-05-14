@@ -8,16 +8,16 @@
 #include "binder/bound_transaction_statement.h"
 #include "binder/bound_use_database.h"
 #include "binder/ddl/bound_alter.h"
-#include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_create_sequence.h"
-#include "binder/ddl/bound_drop_table.h"
+#include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_drop_sequence.h"
+#include "binder/ddl/bound_drop_table.h"
 #include "common/cast.h"
 #include "planner/operator/ddl/logical_alter.h"
-#include "planner/operator/ddl/logical_create_table.h"
 #include "planner/operator/ddl/logical_create_sequence.h"
-#include "planner/operator/ddl/logical_drop_table.h"
+#include "planner/operator/ddl/logical_create_table.h"
 #include "planner/operator/ddl/logical_drop_sequence.h"
+#include "planner/operator/ddl/logical_drop_table.h"
 #include "planner/operator/logical_comment_on.h"
 #include "planner/operator/logical_create_macro.h"
 #include "planner/operator/logical_explain.h"
@@ -44,7 +44,8 @@ void Planner::appendCreateTable(const BoundStatement& statement, LogicalPlan& pl
 }
 
 void Planner::appendCreateSequence(const BoundStatement& statement, LogicalPlan& plan) {
-    auto& createSequence = ku_dynamic_cast<const BoundStatement&, const BoundCreateSequence&>(statement);
+    auto& createSequence =
+        ku_dynamic_cast<const BoundStatement&, const BoundCreateSequence&>(statement);
     auto info = createSequence.getInfo();
     auto op = make_shared<LogicalCreateSequence>(info->sequenceName, info->copy(),
         statement.getStatementResult()->getSingleColumnExpr());
@@ -59,9 +60,10 @@ void Planner::appendDropTable(const BoundStatement& statement, LogicalPlan& plan
 }
 
 void Planner::appendDropSequence(const BoundStatement& statement, LogicalPlan& plan) {
-    auto& dropSequence = ku_dynamic_cast<const BoundStatement&, const BoundDropSequence&>(statement);
-    auto op = make_shared<LogicalDropSequence>(dropSequence.getSequenceID(), dropSequence.getSequenceName(),
-        statement.getStatementResult()->getSingleColumnExpr());
+    auto& dropSequence =
+        ku_dynamic_cast<const BoundStatement&, const BoundDropSequence&>(statement);
+    auto op = make_shared<LogicalDropSequence>(dropSequence.getSequenceID(),
+        dropSequence.getSequenceName(), statement.getStatementResult()->getSingleColumnExpr());
     plan.setLastOperator(std::move(op));
 }
 

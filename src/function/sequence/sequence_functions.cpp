@@ -1,8 +1,9 @@
-#include "function/scalar_function.h"
 #include "function/sequence/sequence_functions.h"
-#include "main/client_context.h"
+
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
+#include "function/scalar_function.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 
@@ -33,17 +34,17 @@ struct NextVal {
 
 function_set CurrValFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
-        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING},
-            LogicalTypeID::INT64, ScalarFunction::UnaryPointerExecFunction<common::ku_string_t, int64_t, CurrVal>));
+    functionSet.push_back(make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::INT64,
+        ScalarFunction::UnaryPointerExecFunction<common::ku_string_t, int64_t, CurrVal>));
     return functionSet;
 }
 
 function_set NextValFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
-        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING},
-            LogicalTypeID::INT64, ScalarFunction::UnaryPointerExecFunction<common::ku_string_t, int64_t, NextVal>));
+    functionSet.push_back(make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::INT64,
+        ScalarFunction::UnaryPointerExecFunction<common::ku_string_t, int64_t, NextVal>));
     return functionSet;
 }
 

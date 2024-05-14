@@ -63,8 +63,8 @@ const std::array<const char*, 113> keywordList = {"CALL", "CREATE", "DELETE", "D
     "MINUS", "COUNT", "PRIMARY", "COPY", "RDFGRAPH", "ALTER", "RENAME", "COMMENT", "MACRO", "GLOB",
     "COLUMN", "GROUP", "DEFAULT", "TO", "BEGIN", "TRANSACTION", "READ", "ONLY", "WRITE",
     "COMMIT_SKIP_CHECKPOINT", "ROLLBACK", "ROLLBACK_SKIP_CHECKPOINT", "INSTALL", "EXTENSION",
-    "SHORTEST", "ATTACH", "IMPORT", "EXPORT", "USE", "SEQUENCE", "INCREMENT", "MINVALUE", "MAXVALUE",
-    "NO", "CYCLE"};
+    "SHORTEST", "ATTACH", "IMPORT", "EXPORT", "USE", "SEQUENCE", "INCREMENT", "MINVALUE",
+    "MAXVALUE", "NO", "CYCLE"};
 
 const char* keywordColorPrefix = "\033[32m\033[1m";
 const char* keywordResetPostfix = "\033[39m\033[22m";

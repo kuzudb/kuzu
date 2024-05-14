@@ -3,15 +3,15 @@
 #include <fcntl.h>
 
 #include "binder/ddl/bound_alter_info.h"
-#include "binder/ddl/bound_create_table_info.h"
 #include "binder/ddl/bound_create_sequence_info.h"
-#include "catalog/catalog_entry/sequence_catalog_entry.h"
+#include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/function_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
+#include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/cast.h"
 #include "common/exception/catalog.h"
 #include "common/file_system/virtual_file_system.h"
@@ -221,12 +221,12 @@ void Catalog::setTableComment(transaction::Transaction* transaction, table_id_t 
     ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(tableEntry)->setComment(comment);
 }
 
-
 bool Catalog::containsSequence(Transaction* transaction, const std::string& sequenceName) const {
     return sequences->containsEntry(transaction, sequenceName);
 }
 
-sequence_id_t Catalog::getSequenceID(Transaction* transaction, const std::string& sequenceName) const {
+sequence_id_t Catalog::getSequenceID(Transaction* transaction,
+    const std::string& sequenceName) const {
     auto entry = sequences->getEntry(transaction, sequenceName);
     KU_ASSERT(entry);
     return ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(entry)->getSequenceID();
@@ -236,7 +236,8 @@ SequenceCatalogEntry* Catalog::getSequenceCatalogEntry(Transaction* transaction,
     sequence_id_t sequenceID) const {
     SequenceCatalogEntry* result;
     iterateSequenceCatalogEntries(transaction, [&](CatalogEntry* entry) {
-        if (ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(entry)->getSequenceID() == sequenceID) {
+        if (ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(entry)->getSequenceID() ==
+            sequenceID) {
             result = ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(entry);
         }
     });
@@ -255,7 +256,7 @@ std::vector<SequenceCatalogEntry*> Catalog::getSequenceEntries(Transaction* tran
 sequence_id_t Catalog::createSequence(transaction::Transaction* transaction,
     const BoundCreateSequenceInfo& info) {
     sequence_id_t sequenceID = sequences->assignNextOID();
-    std::unique_ptr<CatalogEntry> entry = 
+    std::unique_ptr<CatalogEntry> entry =
         std::make_unique<SequenceCatalogEntry>(sequences.get(), sequenceID, info);
     sequences->createEntry(transaction, std::move(entry));
     return sequenceID;

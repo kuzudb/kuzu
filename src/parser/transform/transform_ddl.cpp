@@ -1,13 +1,13 @@
+#include "common/exception/parser.h"
+#include "common/types/ku_string.h"
+#include "common/types/value/value.h"
+#include "function/cast/functions/cast_from_string_functions.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_sequence.h"
 #include "parser/ddl/create_table.h"
 #include "parser/ddl/drop.h"
 #include "parser/expression/parsed_literal_expression.h"
 #include "parser/transformer.h"
-#include "common/exception/parser.h"
-#include "common/types/value/value.h"
-#include "common/types/ku_string.h"
-#include "function/cast/functions/cast_from_string_functions.h"
 
 using namespace kuzu::common;
 
@@ -172,7 +172,7 @@ std::unique_ptr<Statement> Transformer::transformCreateSequence(
         }
     }
     if (defaultStart) {
-        createSequenceInfo.startWith = 
+        createSequenceInfo.startWith =
             isIncrement ? createSequenceInfo.minValue : createSequenceInfo.maxValue;
     }
     return std::make_unique<CreateSequence>(std::move(createSequenceInfo));
