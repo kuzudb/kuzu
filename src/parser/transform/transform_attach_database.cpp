@@ -22,7 +22,8 @@ std::unique_ptr<Statement> Transformer::transformAttachDatabase(
     auto dbPath = transformStringLiteral(*ctx.StringLiteral());
     auto dbAlias = ctx.oC_SchemaName() ? transformSchemaName(*ctx.oC_SchemaName()) : "";
     auto dbType = transformSymbolicName(*ctx.oC_SymbolicName());
-    auto attachOption = transformAttachOptions(*ctx.kU_AttachOptions());
+    auto attachOption =
+        ctx.kU_AttachOptions() ? transformAttachOptions(*ctx.kU_AttachOptions()) : AttachOption{};
     AttachInfo attachInfo{std::move(dbPath), std::move(dbAlias), std::move(dbType),
         std::move(attachOption)};
     return std::make_unique<AttachDatabase>(std::move(attachInfo));

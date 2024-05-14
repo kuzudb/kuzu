@@ -3,6 +3,10 @@
 #include "main/attached_database.h"
 
 namespace kuzu {
+namespace parser {
+struct AttachOption;
+}
+
 namespace storage {
 
 using attach_function_t = std::unique_ptr<main::AttachedDatabase> (*)(std::string dbPath,

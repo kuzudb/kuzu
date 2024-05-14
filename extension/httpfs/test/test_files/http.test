@@ -52,7 +52,7 @@ Guelph|75000
 -LOG validateTableNotExists
 -STATEMENT CALL SHOW_TABLES() RETURN *
 ---- 0
--STATEMENT attach 'http://localhost/databases/tinysnb' as test (dbtype 'kuzu')
+-STATEMENT attach 'http://localhost/databases/tinysnb' as test (dbtype kuzu)
 ---- ok
 -LOG validateTableExistsAfterAttach
 -STATEMENT CALL SHOW_TABLES() RETURN *
@@ -111,7 +111,7 @@ Binder exception: Table person does not exist.
 ---- 1
 5
 -LOG AttachAgain
--STATEMENT attach 'http://localhost/databases/tinysnb' (dbtype 'kuzu')
+-STATEMENT attach 'http://localhost/databases/tinysnb' (dbtype kuzu)
 ---- ok
 -LOG QueryRemoteNodeTable
 -STATEMENT match (p:person) return p.*
@@ -129,13 +129,13 @@ Binder exception: Table person does not exist.
 -CASE AttachNotExistPath
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
 ---- ok
--STATEMENT attach 'http://localhost/databases/tinysnb1' as test (dbtype 'kuzu')
+-STATEMENT attach 'http://localhost/databases/tinysnb1' as test (dbtype kuzu)
 ---- error
 Runtime exception: Cannot attach a remote kuzu database due to invalid path: http://localhost/databases/tinysnb1.
 
 -CASE AttachDBWithNonEmptyWAL
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
 ---- ok
--STATEMENT attach 'http://localhost/databases/non-empty-wal' as test (dbtype 'kuzu')
+-STATEMENT attach 'http://localhost/databases/non-empty-wal' as test (dbtype kuzu)
 ---- error
 Runtime exception: Cannot attach a remote kuzu database with non-empty wal file.

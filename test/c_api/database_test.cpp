@@ -70,14 +70,3 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database_destroy(database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
-
-TEST_F(APIEmptyDBTest, CreationHomeDir1) {
-    createDBAndConn();
-    printf("%s", conn->query("load extension duckdb")->toString().c_str());
-    printf("%s", conn->query("attach "
-                             "'/Users/z473chen/Desktop/code/kuzu/extension/duckdb/test/"
-                             "duckdb_database/tinysnb.db' as test (dbtype duckdb, "
-                             "skip_malformed_table = 'true')")
-                     ->toString()
-                     .c_str());
-}

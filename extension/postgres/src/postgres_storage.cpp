@@ -21,12 +21,13 @@ std::string extractDBName(const std::string& connectionInfo) {
 }
 
 std::unique_ptr<main::AttachedDatabase> attachPostgres(std::string dbName, std::string dbPath,
-    main::ClientContext* clientContext) {
+    main::ClientContext* clientContext, const parser::AttachOption& attachOption) {
     auto catalogName = extractDBName(dbPath);
     if (dbName == "") {
         dbName = catalogName;
     }
-    auto postgresCatalog = std::make_unique<PostgresCatalog>(dbPath, catalogName, clientContext);
+    auto postgresCatalog =
+        std::make_unique<PostgresCatalog>(dbPath, catalogName, clientContext, attachOption);
     postgresCatalog->init();
     return std::make_unique<main::AttachedDatabase>(dbName, PostgresStorageExtension::dbType,
         std::move(postgresCatalog));

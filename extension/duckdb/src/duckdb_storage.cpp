@@ -8,7 +8,6 @@
 #include "duckdb_catalog.h"
 #include "duckdb_functions.h"
 #include "extension/extension.h"
-#include "parser/parsed_data/attach_info.h"
 
 namespace kuzu {
 namespace duckdb_extension {
@@ -33,18 +32,9 @@ std::unique_ptr<main::AttachedDatabase> attachDuckDB(std::string dbName, std::st
         dbName = catalogName;
     }
     validateDuckDBPathExistence(dbPath);
-    auto& options = attachOption.options;
-    bool skipTableWithUnknownType = DuckDBStorageExtension::skipInvalidTableDefaultVal;
-    if (options.contains(DuckDBStorageExtension::skipInvalidTable)) {
-        auto val = options.at(DuckDBStorageExtension::skipInvalidTable);
-        if (val.getDataType()->getLogicalTypeID() != common::LogicalTypeID::BOOL) {
-            throw common::RuntimeException{common::stringFormat("Invalid option value for {}",
-                DuckDBStorageExtension::skipInvalidTable)};
-        }
-        skipTableWithUnknownType = val.getValue<bool>();
-    }
-    auto duckdbCatalog = std::make_unique<DuckDBCatalog>(dbPath, catalogName, clientContext);
-    duckdbCatalog->init(skipTableWithUnknownType);
+    auto duckdbCatalog =
+        std::make_unique<DuckDBCatalog>(dbPath, catalogName, clientContext, attachOption);
+    duckdbCatalog->init();
     return std::make_unique<main::AttachedDatabase>(dbName, DuckDBStorageExtension::dbType,
         std::move(duckdbCatalog));
 }

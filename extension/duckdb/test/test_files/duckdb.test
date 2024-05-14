@@ -5,7 +5,11 @@
 -CASE ScanDuckDBTable
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension"
 ---- ok
--STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb/test/duckdb_database/tinysnb.db' as tinysnb (dbtype 'duckdb');
+-LOG AttachUnsupportedTableError
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb/test/duckdb_database/tinysnb.db' as tinysnb (dbtype duckdb);
+---- error
+Binder exception: Unsupported duckdb type: ENUM('sad', 'ok', 'happy').
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb/test/duckdb_database/tinysnb.db' as tinysnb (dbtype duckdb, skip_unsupported_table = true);
 ---- 1
 Attached database successfully.
 -STATEMENT LOAD FROM tinysnb.person RETURN *;
@@ -45,10 +49,10 @@ Detached database successfully.
 ---- error
 Binder exception: No database named tinysnb has been attached.
 -LOG AttachMultipleDuckDB
--STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb/test/duckdb_database/tinysnb.db' (dbtype 'duckdb');
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb/test/duckdb_database/tinysnb.db' (dbtype duckdb, skip_unsupported_table = true);
 ---- 1
 Attached database successfully.
--STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb/test/duckdb_database/other.db' as Other1 (dbtype 'duckdb');
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb/test/duckdb_database/other.db' as Other1 (dbtype duckdb, skip_unsupported_table = true);
 ---- 1
 Attached database successfully.
 -STATEMENT CALL SHOW_TABLES() RETURN *;
@@ -138,14 +142,14 @@ Runtime exception: No database named NONEXIST.
 -CASE ScanDuckdbDatabaseWithoutExt
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension"
 ---- ok
--STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb/test/duckdb_database/dbfilewithoutext' (dbtype 'duckdb');
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb/test/duckdb_database/dbfilewithoutext' (dbtype duckdb);
 ---- ok
 -STATEMENT LOAD FROM dbfilewithoutext.persons RETURN *
 ---- 2
 Jeff|32
 Wendy|28
 -LOG AttachSameDBError
--STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb/test/duckdb_database/dbfilewithoutext' (dbtype 'duckdb');
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb/test/duckdb_database/dbfilewithoutext' (dbtype duckdb);
 ---- error
 Runtime exception: Database with name: dbfilewithoutext has already been attached.
 -LOG DetachExistDB
@@ -156,21 +160,21 @@ Runtime exception: Database with name: dbfilewithoutext has already been attache
 ---- error
 Runtime exception: Database: dbfilewithoutext doesn't exist.
 -LOG AttachNotExistDBError
--STATEMENT ATTACH 'notexist.db' (dbtype 'duckdb');
+-STATEMENT ATTACH 'notexist.db' (dbtype duckdb);
 ---- error
 Runtime exception: 'notexist.db' is not a valid duckdb database path.
 
 -CASE AttachDBWithoutLoadingExtension
--STATEMENT ATTACH 'notexist.db' (dbtype 'duckdb');
+-STATEMENT ATTACH 'notexist.db' (dbtype duckdb);
 ---- error
 Runtime exception: No loaded extension can handle database type: duckdb.
 Did you forget to load duckdb extension?
 You can load it by: load extension duckdb;
--STATEMENT ATTACH 'notexist.db' (dbtype 'postgres');
+-STATEMENT ATTACH 'notexist.db' (dbtype postgres);
 ---- error
 Runtime exception: No loaded extension can handle database type: postgres.
 Did you forget to load postgres extension?
 You can load it by: load extension postgres;
--STATEMENT ATTACH 'notexist.db' (dbtype 'sqlite');
+-STATEMENT ATTACH 'notexist.db' (dbtype sqlite);
 ---- error
 Runtime exception: No loaded extension can handle database type: sqlite.

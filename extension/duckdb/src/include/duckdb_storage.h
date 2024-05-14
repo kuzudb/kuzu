@@ -10,7 +10,7 @@ class DuckDBStorageExtension final : public storage::StorageExtension {
 public:
     static constexpr const char* dbType = "DUCKDB";
 
-    static constexpr const char* skipInvalidTable = "SKIPINVALIDTABLE";
+    static constexpr const char* skipUnsupportedTable = "SKIP_UNSUPPORTED_TABLE";
 
     static constexpr bool skipInvalidTableDefaultVal = false;
 

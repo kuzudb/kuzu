@@ -3,13 +3,32 @@
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "duckdb_scan.h"
+#include "duckdb_storage.h"
 #include "duckdb_table_catalog_entry.h"
 #include "duckdb_type_converter.h"
+#include "parser/parsed_data/attach_info.h"
 
 namespace kuzu {
 namespace duckdb_extension {
 
-void DuckDBCatalog::init(bool skipInvalidTable) {
+DuckDBCatalog::DuckDBCatalog(std::string dbPath, std::string catalogName,
+    main::ClientContext* context, const parser::AttachOption& attachOption)
+    : CatalogExtension::CatalogExtension{}, dbPath{std::move(dbPath)},
+      catalogName{std::move(catalogName)},
+      tableNamesVector{*common::LogicalType::STRING(), context->getMemoryManager()} {
+    skipUnsupportedTable = DuckDBStorageExtension::skipInvalidTableDefaultVal;
+    auto& options = attachOption.options;
+    if (options.contains(DuckDBStorageExtension::skipUnsupportedTable)) {
+        auto val = options.at(DuckDBStorageExtension::skipUnsupportedTable);
+        if (val.getDataType()->getLogicalTypeID() != common::LogicalTypeID::BOOL) {
+            throw common::RuntimeException{common::stringFormat("Invalid option value for {}",
+                DuckDBStorageExtension::skipUnsupportedTable)};
+        }
+        skipUnsupportedTable = val.getValue<bool>();
+    }
+}
+
+void DuckDBCatalog::init() {
     auto [db, con] = getConnection(dbPath);
     auto query = common::stringFormat(
         "select table_name from information_schema.tables where table_catalog = '{}' and "
@@ -102,7 +121,7 @@ bool DuckDBCatalog::bindPropertyInfos(duckdb::Connection& con, const std::string
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::string> columnNames;
     if (!getTableInfo(con, tableName, getDefaultSchemaName(), catalogName, columnTypes, columnNames,
-            skipInvalidTable)) {
+            skipUnsupportedTable)) {
         return false;
     }
     for (auto i = 0u; i < columnNames.size(); i++) {
