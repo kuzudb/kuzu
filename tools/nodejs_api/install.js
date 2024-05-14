@@ -112,7 +112,7 @@ if (process.platform === "win32") {
   );
 }
 
-childProcess.execSync("make nodejs LTO=1 NUM_THREADS=" + THREADS, {
+childProcess.execSync("make nodejs NUM_THREADS=" + THREADS, {
   env,
   cwd: path.join(__dirname, "kuzu-source"),
   stdio: "inherit",

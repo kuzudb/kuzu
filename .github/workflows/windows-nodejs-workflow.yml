@@ -19,7 +19,7 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-          make nodejs LTO=1 NUM_THREADS=48
+          make nodejs NUM_THREADS=48
 
       - name: Move Node.js native module
         working-directory: tools/nodejs_api/build

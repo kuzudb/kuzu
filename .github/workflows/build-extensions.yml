@@ -9,7 +9,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Build precompiled extensions
-        run: make extension-release LTO=1 NUM_THREADS=$(nproc)
+        run: make extension-release NUM_THREADS=$(nproc)
 
       - name: Collect built artifacts
         run: |
@@ -30,7 +30,7 @@ jobs:
       - name: Build precompiled extensions
         run: |
           source /opt/rh/devtoolset-11/enable
-          make extension-release LTO=1 NUM_THREADS=$(nproc)
+          make extension-release NUM_THREADS=$(nproc)
 
       - name: Collect built artifacts
         run: |
@@ -50,7 +50,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Build precompiled extensions
-        run: make extension-release LTO=1 NUM_THREADS=$(nproc)
+        run: make extension-release NUM_THREADS=$(nproc)
 
       - name: Collect built artifacts
         run: |
@@ -83,8 +83,8 @@ jobs:
 
       - name: Build precompiled extensions
         run: |
-          docker exec kuzu-x86 make extension-release LTO=1 NUM_THREADS=$(nproc)
-      
+          docker exec kuzu-x86 make extension-release NUM_THREADS=$(nproc)
+
       - name: Collect built artifacts
         run: |
           mkdir -p extension-artifacts
@@ -107,7 +107,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Build precompiled extensions
-        run: env OPENSSL_ROOT_DIR=/opt/homebrew/Cellar/openssl@3/3.3.0 make extension-release LTO=1 NUM_THREADS=$(sysctl -n hw.logicalcpu)
+        run: env OPENSSL_ROOT_DIR=/opt/homebrew/Cellar/openssl@3/3.3.0 make extension-release NUM_THREADS=$(sysctl -n hw.logicalcpu)
         env:
           MACOSX_DEPLOYMENT_TARGET: 11.0
           CMAKE_OSX_ARCHITECTURES: "arm64"
@@ -129,7 +129,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Build precompiled extensions
-        run: make extension-release LTO=1 NUM_THREADS=$(sysctl -n hw.logicalcpu)
+        run: make extension-release NUM_THREADS=$(sysctl -n hw.logicalcpu)
         env:
           MACOSX_DEPLOYMENT_TARGET: 11.0
           CMAKE_OSX_ARCHITECTURES: "x86_64"

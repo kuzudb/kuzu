@@ -7,7 +7,7 @@ import re
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 kuzu_exec_path = os.path.join(
-    base_dir, '..', 'build', 'release', 'tools', 'shell', 'kuzu_shell')
+    base_dir, '..', 'build', 'release', 'tools', 'shell', 'kuzu')
 
 
 def _get_kuzu_version():

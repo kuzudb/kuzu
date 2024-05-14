@@ -51,9 +51,9 @@ if (WIN32)
         # appealing:
         #       1. Link against the shared library. This works well assuming
         #       the DLL is locatable, but this assumption isn't valid for users
-        #       of kuzu_shell.exe.
-        #       2. Link against the executable (kuzu_shell.exe). This is
-        #       strange but works well for kuzu_shell.exe. However, it forces
+        #       of kuzu.exe.
+        #       2. Link against the executable (kuzu.exe). This is
+        #       strange but works well for kuzu.exe. However, it forces
         #       users who are embedding kuzu in their application to recompile
         #       the extension _and_ export the symbols for the extension to
         #       locate on load.

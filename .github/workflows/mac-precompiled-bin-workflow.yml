@@ -12,7 +12,7 @@ jobs:
 
       - name: Build universal precompiled binaries
         run: |
-          make LTO=1 NUM_THREADS=$(sysctl -n hw.ncpu)
+          make NUM_THREADS=$(sysctl -n hw.ncpu)
           make install
         env:
           MACOSX_DEPLOYMENT_TARGET: 11.0
@@ -23,7 +23,7 @@ jobs:
           mv install/include/kuzu.h .
           mv install/include/kuzu.hpp .
           mv install/lib/libkuzu.dylib .
-          mv install/bin/kuzu_shell kuzu
+          mv install/bin/kuzu .
 
       - name: Verify binary information
         run: |

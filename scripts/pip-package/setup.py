@@ -80,7 +80,7 @@ class CMakeBuild(build_ext):
         subprocess.run(['make', 'clean'], check=True, cwd=build_dir)
 
         # Build the native extension.
-        full_cmd = ['make', 'python', 'LTO=1', 'NUM_THREADS=%d' % num_cores]
+        full_cmd = ['make', 'python', 'NUM_THREADS=%d' % num_cores]
         subprocess.run(full_cmd, cwd=build_dir, check=True, env=env_vars)
         self.announce("Done building native extension.")
         self.announce("Copying native extension...")

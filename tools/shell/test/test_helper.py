@@ -14,7 +14,7 @@ KUZU_EXEC_PATH = os.path.join(
     "release",
     "tools",
     "shell",
-    "kuzu_shell",
+    "kuzu",
 )
 
 

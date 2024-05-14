@@ -212,7 +212,7 @@ clangd-diagnostics: | allconfig java_native_header
 
 # Installation
 install:
-	cmake --install build/release --prefix $(PREFIX) --strip
+	cmake --install build/release --prefix $(PREFIX)
 
 
 # Cleaning

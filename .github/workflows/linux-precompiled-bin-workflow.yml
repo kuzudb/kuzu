@@ -13,7 +13,7 @@ jobs:
       - name: Build precompiled binaries
         run: |
           source /opt/rh/devtoolset-11/enable
-          make LTO=1 NUM_THREADS=$(nproc)
+          make NUM_THREADS=$(nproc)
           make install
 
       - name: Collect artifacts
@@ -21,7 +21,7 @@ jobs:
           mv install/include/kuzu.h .
           mv install/include/kuzu.hpp .
           mv install/lib64/libkuzu.so .
-          mv install/bin/kuzu_shell kuzu
+          mv install/bin/kuzu .
 
       - name: Create tarball
         run: |
@@ -45,7 +45,7 @@ jobs:
 
       - name: Build precompiled binaries
         run: |
-          make LTO=1 NUM_THREADS=$(nproc)
+          make NUM_THREADS=$(nproc)
           make install
 
       - name: Collect artifacts
@@ -53,8 +53,8 @@ jobs:
           mv install/include/kuzu.h .
           mv install/include/kuzu.hpp .
           mv install/lib64/libkuzu.so .
-          mv install/bin/kuzu_shell kuzu
-      
+          mv install/bin/kuzu .
+
       - name: Create tarball
         run: |
           tar -czvf libkuzu-linux-x86_64.tar.gz kuzu.h kuzu.hpp libkuzu.so
@@ -71,7 +71,7 @@ jobs:
 
       - name: Build precompiled binaries
         run: |
-          make LTO=1 NUM_THREADS=$(nproc)
+          make NUM_THREADS=$(nproc)
           make install
 
       - name: Collect artifacts
@@ -79,8 +79,8 @@ jobs:
           mv install/include/kuzu.h .
           mv install/include/kuzu.hpp .
           mv install/lib64/libkuzu.so .
-          mv install/bin/kuzu_shell kuzu
-      
+          mv install/bin/kuzu .
+
       - name: Create tarball
         run: |
           tar -czvf libkuzu-linux-aarch64.tar.gz kuzu.h kuzu.hpp libkuzu.so
