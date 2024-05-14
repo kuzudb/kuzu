@@ -61,10 +61,3 @@ class TransactionContext;
 } // namespace transaction
 
 } // namespace kuzu
-
-namespace spdlog {
-class logger;
-namespace level {
-enum level_enum : int;
-} // namespace level
-} // namespace spdlog

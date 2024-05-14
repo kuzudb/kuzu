@@ -9,6 +9,7 @@
 #include "processor/operator/persistent/node_batch_insert.h"
 #include "processor/operator/persistent/rel_batch_insert.h"
 #include "processor/plan_mapper.h"
+#include "processor/result/factorized_table_util.h"
 #include "storage/storage_manager.h"
 
 using namespace kuzu::binder;
@@ -105,8 +106,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     // Map reader.
     auto prevOperator = mapOperator(copyFrom->getChild(0).get());
     auto nodeTable = storageManager->getTable(nodeTableEntry->getTableID());
-    auto sharedState = std::make_shared<NodeBatchInsertSharedState>(nodeTable,
-        getSingleStringColumnFTable(), &storageManager->getWAL());
+    auto fTable =
+        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+    auto sharedState =
+        std::make_shared<NodeBatchInsertSharedState>(nodeTable, fTable, &storageManager->getWAL());
     if (prevOperator->getOperatorType() == PhysicalOperatorType::IN_QUERY_CALL) {
         auto inQueryCall = ku_dynamic_cast<PhysicalOperator*, InQueryCall*>(prevOperator.get());
         sharedState->readerSharedState = inQueryCall->getSharedState();
@@ -213,8 +216,10 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
     for (auto& property : relTableEntry->getPropertiesRef()) {
         columnTypes.push_back(*property.getDataType()->copy());
     }
-    auto batchInsertSharedState = std::make_shared<BatchInsertSharedState>(relTable,
-        getSingleStringColumnFTable(), &storageManager->getWAL());
+    auto fTable =
+        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+    auto batchInsertSharedState =
+        std::make_shared<BatchInsertSharedState>(relTable, fTable, &storageManager->getWAL());
     auto copyRelFWD = createCopyRel(partitionerSharedState, batchInsertSharedState, copyFrom,
         RelDataDirection::FWD, LogicalType::copy(columnTypes));
     auto copyRelBWD = createCopyRel(partitionerSharedState, batchInsertSharedState, copyFrom,
@@ -265,7 +270,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRdfFrom(LogicalOperator* lo
     auto rrlLookup = ku_dynamic_cast<PhysicalOperator*, IndexLookup*>(rrlChildren[2]->getChild(0));
     rrlLookup->setBatchInsertSharedState(rCopy->getSharedState());
     auto sharedState = std::make_shared<CopyRdfSharedState>();
-    auto fTable = getSingleStringColumnFTable();
+    auto fTable =
+        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     sharedState->fTable = fTable;
     auto copyRdf = std::make_unique<CopyRdf>(std::move(sharedState),
         std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), getOperatorID(), "");

@@ -15,7 +15,6 @@ void PyDatabase::initialize(py::handle& m) {
             py::arg("database_path"), py::arg("buffer_pool_size") = 0,
             py::arg("max_num_threads") = 0, py::arg("compression") = true,
             py::arg("read_only") = false, py::arg("max_db_size") = (uint64_t)1 << 43)
-        .def("set_logging_level", &PyDatabase::setLoggingLevel, py::arg("logging_level"))
         .def("scan_node_table_as_int64", &PyDatabase::scanNodeTable<std::int64_t>,
             py::arg("table_name"), py::arg("prop_name"), py::arg("indices"), py::arg("np_array"),
             py::arg("num_threads"))

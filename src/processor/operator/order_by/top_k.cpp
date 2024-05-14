@@ -107,7 +107,7 @@ void TopKBuffer::initVectors() {
         auto type = orderByDataInfo->payloadTypes[i].get();
         auto payloadVec = std::make_unique<common::ValueVector>(*type, memoryManager);
         auto lastPayloadVec = std::make_unique<common::ValueVector>(*type, memoryManager);
-        if (orderByDataInfo->payloadTableSchema->getColumn(i)->isFlat()) {
+        if (orderByDataInfo->payloadTableSchema.getColumn(i)->isFlat()) {
             payloadVec->setState(payloadFlatState);
             lastPayloadVec->setState(lastPayloadFlatState);
         } else {

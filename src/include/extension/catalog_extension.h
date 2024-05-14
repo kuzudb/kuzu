@@ -10,10 +10,7 @@ public:
 
     virtual void init() = 0;
 
-    void invalidateCache() {
-        tables = std::make_unique<catalog::CatalogSet>();
-        init();
-    }
+    void invalidateCache();
 };
 
 } // namespace extension

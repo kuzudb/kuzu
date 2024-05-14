@@ -22,31 +22,33 @@ static void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidate
     const std::string& name, const std::vector<LogicalType>& inputTypes,
     const function::function_set& set);
 
-void BuiltInFunctionsUtils::createFunctions(CatalogSet* catalogSet) {
+void BuiltInFunctionsUtils::createFunctions(transaction::Transaction* transaction,
+    CatalogSet* catalogSet) {
     auto functions = FunctionCollection::getFunctions();
     for (auto i = 0u; functions[i].name != nullptr; ++i) {
         auto functionSet = functions[i].getFunctionSetFunc();
-        catalogSet->createEntry(&transaction::DUMMY_WRITE_TRANSACTION,
+        catalogSet->createEntry(transaction,
             std::make_unique<FunctionCatalogEntry>(functions[i].catalogEntryType, functions[i].name,
                 std::move(functionSet)));
     }
 }
 
-catalog::CatalogEntry* BuiltInFunctionsUtils::getFunctionCatalogEntry(const std::string& name,
-    CatalogSet* catalogSet) {
-    if (!catalogSet->containsEntry(&transaction::DUMMY_WRITE_TRANSACTION, name)) {
+catalog::CatalogEntry* BuiltInFunctionsUtils::getFunctionCatalogEntry(
+    transaction::Transaction* transaction, const std::string& name, CatalogSet* catalogSet) {
+    if (!catalogSet->containsEntry(transaction, name)) {
         throw CatalogException(stringFormat("{} function does not exist.", name));
     }
-    return catalogSet->getEntry(&transaction::DUMMY_WRITE_TRANSACTION, name);
+    return catalogSet->getEntry(transaction, name);
 }
 
-Function* BuiltInFunctionsUtils::matchFunction(const std::string& name, CatalogSet* catalogSet) {
-    return matchFunction(name, std::vector<LogicalType>{}, catalogSet);
+Function* BuiltInFunctionsUtils::matchFunction(transaction::Transaction* transaction,
+    const std::string& name, CatalogSet* catalogSet) {
+    return matchFunction(transaction, name, std::vector<LogicalType>{}, catalogSet);
 }
 
-Function* BuiltInFunctionsUtils::matchFunction(const std::string& name,
-    const std::vector<LogicalType>& inputTypes, CatalogSet* catalogSet) {
-    auto entry = getFunctionCatalogEntry(name, catalogSet);
+Function* BuiltInFunctionsUtils::matchFunction(transaction::Transaction* transaction,
+    const std::string& name, const std::vector<LogicalType>& inputTypes, CatalogSet* catalogSet) {
+    auto entry = getFunctionCatalogEntry(transaction, name, catalogSet);
     return matchFunction(name, inputTypes, entry);
 }
 

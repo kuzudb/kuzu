@@ -12,7 +12,7 @@ namespace processor {
 
 // A ReadHead for prefetching data in a specific range
 struct ReadHead {
-    ReadHead(uint64_t location, uint64_t size) : location(location), size(size){};
+    ReadHead(uint64_t location, uint64_t size) : location(location), size(size) {};
     // Hint info
     uint64_t location;
     uint64_t size;

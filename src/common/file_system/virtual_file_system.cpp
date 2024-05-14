@@ -25,7 +25,7 @@ std::vector<std::string> VirtualFileSystem::glob(main::ClientContext* context,
     return findFileSystem(path)->glob(context, path);
 }
 
-void VirtualFileSystem::overwriteFile(const std::string& from, const std::string& to) const {
+void VirtualFileSystem::overwriteFile(const std::string& from, const std::string& to) {
     findFileSystem(from)->overwriteFile(from, to);
 }
 
@@ -33,11 +33,11 @@ void VirtualFileSystem::createDir(const std::string& dir) const {
     findFileSystem(dir)->createDir(dir);
 }
 
-void VirtualFileSystem::removeFileIfExists(const std::string& path) const {
+void VirtualFileSystem::removeFileIfExists(const std::string& path) {
     findFileSystem(path)->removeFileIfExists(path);
 }
 
-bool VirtualFileSystem::fileOrPathExists(const std::string& path) const {
+bool VirtualFileSystem::fileOrPathExists(const std::string& path) {
     return findFileSystem(path)->fileOrPathExists(path);
 }
 

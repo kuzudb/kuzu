@@ -8,7 +8,7 @@ namespace common {
 
 class KUZU_API NotImplementedException : public Exception {
 public:
-    explicit NotImplementedException(const std::string& msg) : Exception(msg){};
+    explicit NotImplementedException(const std::string& msg) : Exception(msg) {};
 };
 
 } // namespace common

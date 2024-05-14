@@ -2,13 +2,13 @@
 
 #include <fcntl.h>
 
-#include "catalog/catalog_entry/catalog_entry.h"
 #include "common/file_system/file_info.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/serializer.h"
 #include "storage/storage_utils.h"
 
+using namespace kuzu::catalog;
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -69,15 +69,15 @@ void WAL::logTableStatisticsRecord(TableType tableType) {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logCreateTableRecord(catalog::CatalogEntry* catalogEntry) {
+void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry) {
     lock_t lck{mtx};
-    CreateTableRecord walRecord(catalogEntry);
+    CreateCatalogEntryRecord walRecord(catalogEntry);
     addNewWALRecordNoLock(walRecord);
 }
 
 void WAL::logDropTableRecord(table_id_t tableID) {
     lock_t lck{mtx};
-    DropTableRecord walRecord(tableID);
+    DropCatalogEntryRecord walRecord(tableID);
     addNewWALRecordNoLock(walRecord);
 }
 

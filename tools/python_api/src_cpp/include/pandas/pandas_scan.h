@@ -55,6 +55,6 @@ struct PandasScanFunctionData : public function::TableFuncBindData {
     }
 };
 
-std::unique_ptr<function::ScanReplacementData> replacePD(const std::string& objectName);
+std::unique_ptr<function::ScanReplacementData> tryReplacePD(py::dict& dict, py::str& objectName);
 
 } // namespace kuzu

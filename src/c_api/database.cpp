@@ -29,10 +29,6 @@ void kuzu_database_destroy(kuzu_database* database) {
     free(database);
 }
 
-void kuzu_database_set_logging_level(const char* logging_level) {
-    Database::setLoggingLevel(logging_level);
-}
-
 kuzu_system_config kuzu_default_system_config() {
     return {0 /*bufferPoolSize*/, 0 /*maxNumThreads*/, true /*enableCompression*/,
         false /*readOnly*/, BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE};

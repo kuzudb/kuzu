@@ -36,16 +36,6 @@ public class KuzuPreparedStatement {
     }
 
     /**
-     * DDL and COPY_CSV statements are automatically wrapped in a transaction and committed. As such, they cannot be
-     * part of an active transaction.
-     * @throws KuzuObjectRefDestroyedException If the prepared statement has been destroyed.
-     */
-    public boolean allowActiveTransaction() throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        return KuzuNative.kuzu_prepared_statement_allow_active_transaction(this);
-    }
-
-    /**
      * Check if the query is prepared successfully or not.
      * @return The query is prepared successfully or not.
      * @throws KuzuObjectRefDestroyedException If the prepared statement has been destroyed.

@@ -323,12 +323,6 @@ KUZU_C_API kuzu_database* kuzu_database_init(const char* database_path,
  * @param database The database instance to destroy.
  */
 KUZU_C_API void kuzu_database_destroy(kuzu_database* database);
-/**
- * @brief Sets the logging level of the database.
- * @param logging_level The logging level to set. Supported logging levels are: "info", "debug",
- * "err".
- */
-KUZU_C_API void kuzu_database_set_logging_level(const char* logging_level);
 
 KUZU_C_API kuzu_system_config kuzu_default_system_config();
 
@@ -398,13 +392,6 @@ KUZU_C_API void kuzu_connection_set_query_timeout(kuzu_connection* connection,
  * @param prepared_statement The prepared statement instance to destroy.
  */
 KUZU_C_API void kuzu_prepared_statement_destroy(kuzu_prepared_statement* prepared_statement);
-/**
- * @brief DDL and COPY statements are automatically wrapped in a transaction and committed.
- * As such, they cannot be part of an active transaction.
- * @return the prepared statement is allowed to be part of an active transaction.
- */
-KUZU_C_API bool kuzu_prepared_statement_allow_active_transaction(
-    kuzu_prepared_statement* prepared_statement);
 /**
  * @return the query is prepared successfully or not.
  */

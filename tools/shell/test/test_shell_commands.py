@@ -136,5 +136,5 @@ def test_bad_command(temp_db) -> None:
     result.check_stdout('Error: Unknown command: ":quiy". Enter ":help" for help')
     result.check_stdout('Did you mean: ":quit"?')
     result.check_stdout(
-        'Error: "clearr;" is not a valid Cypher query. Did you mean to issue a CLI command, e.g., ":clear"?',
+        '"clearr;" is not a valid Cypher query. Did you mean to issue a CLI command, e.g., ":clear"?',
     )

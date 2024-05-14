@@ -46,24 +46,24 @@ S3FileInfo::S3FileInfo(std::string path, common::FileSystem* fileSystem, int fla
       uploaderHasException{false} {}
 
 S3FileInfo::~S3FileInfo() {
-    auto s3fs = ku_dynamic_cast<FileSystem*, S3FileSystem*>(fileSystem);
+    auto s3FS = fileSystem->ptrCast<S3FileSystem>();
     if ((((flags & O_ACCMODE) & O_WRONLY)) && !uploadFinalized) {
-        s3fs->flushAllBuffers(this);
+        s3FS->flushAllBuffers(this);
         if (numPartsUploaded) {
-            s3fs->finalizeMultipartUpload(this);
+            s3FS->finalizeMultipartUpload(this);
         }
     }
 }
 
 void S3FileInfo::initialize() {
     HTTPFileInfo::initialize();
-    auto s3fs = ku_dynamic_cast<const common::FileSystem*, const S3FileSystem*>(fileSystem);
+    auto s3FS = fileSystem->constPtrCast<S3FileSystem>();
     if ((flags & O_ACCMODE) & O_WRONLY) {
         auto maxNumParts = uploadParams.maxNumPartsPerFile;
         auto requiredPartSize = uploadParams.maxFileSize / maxNumParts;
         partSize = std::max<uint64_t>(AWS_MINIMUM_PART_SIZE, requiredPartSize);
         KU_ASSERT(partSize * maxNumParts >= uploadParams.maxFileSize);
-        multipartUploadID = s3fs->initializeMultiPartUpload(this);
+        multipartUploadID = s3FS->initializeMultiPartUpload(this);
     }
 }
 
@@ -75,7 +75,7 @@ void S3FileInfo::initializeClient() {
 
 std::shared_ptr<S3WriteBuffer> S3FileInfo::getBuffer(uint16_t writeBufferIdx) {
     std::unique_lock<std::mutex> lck(writeBuffersLock);
-    auto s3FS = ku_dynamic_cast<common::FileSystem*, S3FileSystem*>(fileSystem);
+    auto s3FS = fileSystem->ptrCast<S3FileSystem>();
     if (writeBuffers.contains(writeBufferIdx)) {
         return writeBuffers.at(writeBufferIdx);
     }
@@ -458,8 +458,8 @@ std::string S3FileSystem::initializeMultiPartUpload(S3FileInfo* fileInfo) const 
 
 void S3FileSystem::writeFile(common::FileInfo& fileInfo, const uint8_t* buffer, uint64_t numBytes,
     uint64_t offset) const {
-    auto& s3FileInfo = ku_dynamic_cast<FileInfo&, S3FileInfo&>(fileInfo);
-    if (!((s3FileInfo.flags & O_ACCMODE) & O_WRONLY)) {
+    auto s3FileInfo = fileInfo.ptrCast<S3FileInfo>();
+    if (!((s3FileInfo->flags & O_ACCMODE) & O_WRONLY)) {
         throw IOException("Write called on a file which is not open in write mode.");
     }
     uint64_t numBytesWritten = 0;
@@ -468,20 +468,20 @@ void S3FileSystem::writeFile(common::FileInfo& fileInfo, const uint8_t* buffer, 
         // We use amazon multipart upload API which segments an object into a set of parts. Since we
         // don't track the usage of individual part, determining whether we can upload a part is
         // challenging if we allow non-sequential write.
-        if (currOffset != s3FileInfo.fileOffset) {
+        if (currOffset != s3FileInfo->fileOffset) {
             throw InternalException("Non-sequential write not supported.");
         }
-        auto writeBufferIdx = currOffset / s3FileInfo.partSize;
-        auto writeBuffer = s3FileInfo.getBuffer(writeBufferIdx);
+        auto writeBufferIdx = currOffset / s3FileInfo->partSize;
+        auto writeBuffer = s3FileInfo->getBuffer(writeBufferIdx);
         auto offsetToWrite = currOffset - writeBuffer->startOffset;
         auto numBytesToWrite =
-            std::min<uint64_t>(numBytes - numBytesWritten, s3FileInfo.partSize - offsetToWrite);
+            std::min<uint64_t>(numBytes - numBytesWritten, s3FileInfo->partSize - offsetToWrite);
         memcpy(writeBuffer->getData() + offsetToWrite, buffer + numBytesWritten, numBytesToWrite);
         writeBuffer->numBytesWritten += numBytesToWrite;
-        if (writeBuffer->numBytesWritten >= s3FileInfo.partSize) {
-            flushBuffer(&s3FileInfo, writeBuffer);
+        if (writeBuffer->numBytesWritten >= s3FileInfo->partSize) {
+            flushBuffer(s3FileInfo, writeBuffer);
         }
-        s3FileInfo.fileOffset += numBytesToWrite;
+        s3FileInfo->fileOffset += numBytesToWrite;
         numBytesWritten += numBytesToWrite;
     }
 }
@@ -541,8 +541,7 @@ static void verifyUploadResult(const std::string& result, const HTTPResponse& re
 }
 
 void S3FileSystem::finalizeMultipartUpload(S3FileInfo* fileInfo) {
-    auto s3FS =
-        ku_dynamic_cast<const common::FileSystem*, const S3FileSystem*>(fileInfo->fileSystem);
+    auto s3FS = fileInfo->fileSystem->constPtrCast<S3FileSystem>();
     fileInfo->uploadFinalized = true;
     auto finalizeUploadQueryBody = getFinalizeUploadQueryBody(fileInfo);
     auto body = finalizeUploadQueryBody.str();
@@ -653,7 +652,7 @@ HeaderMap S3FileSystem::createS3Header(std::string url, std::string query, std::
 
 std::unique_ptr<HTTPResponse> S3FileSystem::headRequest(common::FileInfo* fileInfo,
     const std::string& url, HeaderMap /*headerMap*/) const {
-    auto& authParams = ku_dynamic_cast<FileInfo*, S3FileInfo*>(fileInfo)->authParams;
+    auto& authParams = fileInfo->ptrCast<S3FileInfo>()->authParams;
     auto parsedS3URL = parseS3URL(url, authParams);
     auto httpURL = parsedS3URL.getHTTPURL();
     auto headers = createS3Header(parsedS3URL.path, "", parsedS3URL.host, "s3", "HEAD", authParams);
@@ -663,7 +662,7 @@ std::unique_ptr<HTTPResponse> S3FileSystem::headRequest(common::FileInfo* fileIn
 std::unique_ptr<HTTPResponse> S3FileSystem::getRangeRequest(common::FileInfo* fileInfo,
     const std::string& url, HeaderMap /*headerMap*/, uint64_t fileOffset, char* buffer,
     uint64_t bufferLen) const {
-    auto& authParams = ku_dynamic_cast<FileInfo*, S3FileInfo*>(fileInfo)->authParams;
+    auto& authParams = fileInfo->ptrCast<S3FileInfo>()->authParams;
     auto parsedS3URL = parseS3URL(url, authParams);
     auto s3HTTPUrl = parsedS3URL.getHTTPURL();
     auto headers = createS3Header(parsedS3URL.path, "", parsedS3URL.host, "s3", "GET", authParams);
@@ -675,7 +674,7 @@ std::unique_ptr<HTTPResponse> S3FileSystem::postRequest(common::FileInfo* fileIn
     const std::string& url, kuzu::httpfs::HeaderMap /*headerMap*/,
     std::unique_ptr<uint8_t[]>& outputBuffer, uint64_t& outputBufferLen, const uint8_t* inputBuffer,
     uint64_t inputBufferLen, std::string httpParams) const {
-    auto& authParams = ku_dynamic_cast<FileInfo*, S3FileInfo*>(fileInfo)->authParams;
+    auto& authParams = fileInfo->ptrCast<S3FileInfo>()->authParams;
     auto parsedS3URL = parseS3URL(url, authParams);
     auto httpURL = parsedS3URL.getHTTPURL(httpParams);
     auto payloadHash = getPayloadHash(inputBuffer, inputBufferLen);
@@ -688,7 +687,7 @@ std::unique_ptr<HTTPResponse> S3FileSystem::postRequest(common::FileInfo* fileIn
 std::unique_ptr<HTTPResponse> S3FileSystem::putRequest(common::FileInfo* fileInfo,
     const std::string& url, kuzu::httpfs::HeaderMap /*headerMap*/, const uint8_t* inputBuffer,
     uint64_t inputBufferLen, std::string httpParams) const {
-    auto& authParams = ku_dynamic_cast<FileInfo*, S3FileInfo*>(fileInfo)->authParams;
+    auto& authParams = fileInfo->ptrCast<S3FileInfo>()->authParams;
     auto parsedS3URL = parseS3URL(url, authParams);
     auto httpURL = parsedS3URL.getHTTPURL(httpParams);
     auto payloadHash = getPayloadHash(inputBuffer, inputBufferLen);
@@ -737,7 +736,7 @@ void S3FileSystem::flushBuffer(S3FileInfo* fileInfo,
 
 void S3FileSystem::uploadBuffer(S3FileInfo* fileInfo,
     std::shared_ptr<S3WriteBuffer> bufferToUpload) {
-    auto s3FileSystem = ku_dynamic_cast<FileSystem*, S3FileSystem*>(fileInfo->fileSystem);
+    auto s3FileSystem = fileInfo->fileSystem->ptrCast<S3FileSystem>();
     std::string queryParam =
         "partNumber=" + std::to_string(bufferToUpload->partID + 1) + "&" +
         "uploadId=" + S3FileSystem::encodeURL(fileInfo->multipartUploadID, true);

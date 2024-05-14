@@ -152,7 +152,7 @@ static bool isPyArrowBacked(const py::handle& df) {
     return false;
 }
 
-static std::unique_ptr<ScanReplacementData> tryReplacePD(py::dict& dict, py::str& objectName) {
+std::unique_ptr<ScanReplacementData> tryReplacePD(py::dict& dict, py::str& objectName) {
     if (!dict.contains(objectName)) {
         return nullptr;
     }
@@ -169,33 +169,8 @@ static std::unique_ptr<ScanReplacementData> tryReplacePD(py::dict& dict, py::str
         scanReplacementData->bindInput = std::move(bindInput);
         return scanReplacementData;
     } else {
-        throw RuntimeException{"Only pandas dataframe is supported."};
+        return nullptr;
     }
-}
-
-std::unique_ptr<ScanReplacementData> replacePD(const std::string& objectName) {
-    py::gil_scoped_acquire acquire;
-    auto pyTableName = py::str(objectName);
-    // Here we do an exhaustive search on the frame lineage.
-    auto currentFrame = importCache->inspect.currentframe()();
-    while (hasattr(currentFrame, "f_locals")) {
-        auto localDict = py::reinterpret_borrow<py::dict>(currentFrame.attr("f_locals"));
-        if (localDict) {
-            auto result = tryReplacePD(localDict, pyTableName);
-            if (result) {
-                return result;
-            }
-        }
-        auto globalDict = py::reinterpret_borrow<py::dict>(currentFrame.attr("f_globals"));
-        if (globalDict) {
-            auto result = tryReplacePD(globalDict, pyTableName);
-            if (result) {
-                return result;
-            }
-        }
-        currentFrame = currentFrame.attr("f_back");
-    }
-    return nullptr;
 }
 
 } // namespace kuzu

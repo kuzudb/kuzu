@@ -27,7 +27,7 @@ static constexpr uint64_t NUM_PAGE_IDXS_PER_PIP =
  */
 struct DiskArrayHeader {
     // This constructor is needed when loading the database from file.
-    DiskArrayHeader() : DiskArrayHeader(1){};
+    DiskArrayHeader() : DiskArrayHeader(1) {};
 
     explicit DiskArrayHeader(uint64_t elementSize);
 
@@ -283,8 +283,8 @@ class BaseDiskArray {
 
 public:
     // Used by copiers.
-    BaseDiskArray(FileHandle& fileHandle, common::page_idx_t headerPageIdx, uint64_t elementSize)
-        : diskArray(fileHandle, headerPageIdx, elementSize) {}
+    BaseDiskArray(FileHandle& fileHandle, common::page_idx_t headerPageIdx)
+        : diskArray(fileHandle, headerPageIdx, getAlignedElementSize()) {}
     // Used when loading from file
     // If bypassWAL is set, the buffer manager is used to pages new to this transaction to the
     // original file, but does not handle flushing them. BufferManager::flushAllDirtyPagesInFrames
@@ -356,9 +356,7 @@ public:
 
     inline WriteIterator iter_mut() { return WriteIterator{diskArray.iter_mut(sizeof(U))}; }
     inline uint64_t getAPIdx(uint64_t idx) const { return diskArray.getAPIdx(idx); }
-    static constexpr uint32_t getAlignedElementSize() {
-        return (1 << (std::bit_width(sizeof(U)) - 1));
-    }
+    static constexpr uint32_t getAlignedElementSize() { return std::bit_ceil(sizeof(U)); }
 
 private:
     BaseDiskArrayInternal diskArray;

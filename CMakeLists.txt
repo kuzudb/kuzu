@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(Kuzu VERSION 0.4.1.1 LANGUAGES CXX C)
+project(Kuzu VERSION 0.4.1.2 LANGUAGES CXX C)
 
 find_package(Threads REQUIRED)
 
@@ -167,16 +167,35 @@ option(BUILD_SINGLE_FILE_HEADER "Build single file header. Requires Python >= 3.
 option(BUILD_TESTS "Build C++ tests." FALSE)
 option(BUILD_EXTENSION_TESTS "Build C++ extension tests." FALSE)
 option(BUILD_KUZU "Build Kuzu." TRUE)
+option(ENABLE_BACKTRACES "Enable backtrace printing for exceptions and segfaults" FALSE)
 
 option(BUILD_LCOV "Build coverage report." FALSE)
 if(${BUILD_LCOV})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
 endif()
 
+if (ENABLE_BACKTRACES)
+    find_package(cpptrace)
+    if (NOT cpptrace_FOUND)
+        include(FetchContent)
+        FetchContent_Declare(
+          cpptrace
+          GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
+          GIT_TAG        v0.5.4
+          GIT_SHALLOW    TRUE
+        )
+        FetchContent_MakeAvailable(cpptrace)
+    endif()
+    add_compile_definitions(KUZU_BACKTRACE)
+endif()
+
 function(add_kuzu_test TEST_NAME)
     set(SRCS ${ARGN})
     add_executable(${TEST_NAME} ${SRCS})
     target_link_libraries(${TEST_NAME} PRIVATE test_helper test_runner graph_test)
+    if (ENABLE_BACKTRACES)
+        target_link_libraries(${TEST_NAME} PRIVATE register_backtrace_signal_handler)
+    endif()
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include)
     include(GoogleTest)
     gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 600 DISCOVERY_MODE PRE_TEST)
@@ -186,6 +205,9 @@ function(add_kuzu_api_test TEST_NAME)
     set(SRCS ${ARGN})
     add_executable(${TEST_NAME} ${SRCS})
     target_link_libraries(${TEST_NAME} PRIVATE api_graph_test api_test_helper)
+    if (ENABLE_BACKTRACES)
+        target_link_libraries(${TEST_NAME} PRIVATE register_backtrace_signal_handler)
+    endif()
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include)
     include(GoogleTest)
     gtest_discover_tests(${TEST_NAME})
@@ -208,7 +230,11 @@ include_directories(third_party/pybind11/include)
 include_directories(third_party/pyparse)
 include_directories(third_party/re2/include)
 include_directories(third_party/serd/include)
-include_directories(third_party/spdlog)
+if (${BUILD_TESTS})
+    include_directories(third_party/spdlog)
+elseif (${BUILD_BENCHMARK})
+    include_directories(third_party/spdlog)
+endif ()
 include_directories(third_party/utf8proc/include)
 include_directories(third_party/zstd/include)
 include_directories(third_party/httplib)
@@ -219,7 +245,7 @@ add_subdirectory(third_party)
 if(${BUILD_KUZU})
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
-add_definitions(-DKUZU_EXTENSION_VERSION="0.3.2")
+add_definitions(-DKUZU_EXTENSION_VERSION="0.3.4")
 
 include_directories(src/include)
 

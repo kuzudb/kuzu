@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "common/assert.h"
+#include "common/cast.h"
 #include "file_info.h"
 
 namespace kuzu {
@@ -27,15 +28,15 @@ public:
     virtual std::vector<std::string> glob(main::ClientContext* context,
         const std::string& path) const = 0;
 
-    virtual void overwriteFile(const std::string& from, const std::string& to) const;
+    virtual void overwriteFile(const std::string& from, const std::string& to);
 
-    virtual void copyFile(const std::string& from, const std::string& to) const;
+    virtual void copyFile(const std::string& from, const std::string& to);
 
     virtual void createDir(const std::string& dir) const;
 
-    virtual void removeFileIfExists(const std::string& path) const;
+    virtual void removeFileIfExists(const std::string& path);
 
-    virtual bool fileOrPathExists(const std::string& path) const;
+    virtual bool fileOrPathExists(const std::string& path);
 
     virtual std::string expandPath(main::ClientContext* context, const std::string& path) const;
 
@@ -46,6 +47,16 @@ public:
     virtual bool canHandleFile(const std::string& /*path*/) const { KU_UNREACHABLE; }
 
     virtual void syncFile(const FileInfo& fileInfo) const = 0;
+
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<FileSystem*, TARGET*>(this);
+    }
+
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const FileSystem*, const TARGET*>(this);
+    }
 
 protected:
     virtual void readFromFile(FileInfo& fileInfo, void* buffer, uint64_t numBytes,

@@ -20,6 +20,7 @@
 #include "storage/index/hash_index_utils.h"
 #include "storage/index/in_mem_hash_index.h"
 #include "storage/storage_structure/disk_array.h"
+#include "storage/storage_structure/overflow_file.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;
@@ -37,14 +38,16 @@ enum class HashIndexLocalLookupState : uint8_t { KEY_FOUND, KEY_DELETED, KEY_NOT
 template<typename T>
 class HashIndexLocalStorage {
 public:
-    using Key = typename std::conditional<std::same_as<T, std::string>, std::string_view, T>::type;
+    explicit HashIndexLocalStorage(OverflowFileHandle* handle)
+        : localDeletions{}, localInsertions{handle} {}
+    using OwnedKeyType =
+        typename std::conditional<std::same_as<T, common::ku_string_t>, std::string, T>::type;
+    using Key = typename std::conditional<std::same_as<T, ku_string_t>, std::string_view, T>::type;
     HashIndexLocalLookupState lookup(Key key, common::offset_t& result) {
         if (localDeletions.contains(key)) {
             return HashIndexLocalLookupState::KEY_DELETED;
         }
-        auto elem = localInsertions.find(key);
-        if (elem != localInsertions.end()) {
-            result = elem->second;
+        if (localInsertions.lookup(key, result)) {
             return HashIndexLocalLookupState::KEY_FOUND;
         } else {
             return HashIndexLocalLookupState::KEY_NOT_EXIST;
@@ -52,11 +55,8 @@ public:
     }
 
     void deleteKey(Key key) {
-        auto iter = localInsertions.find(key);
-        if (iter != localInsertions.end()) {
-            localInsertions.erase(iter);
-        } else {
-            localDeletions.insert(static_cast<T>(key));
+        if (!localInsertions.deleteKey(key)) {
+            localDeletions.insert(static_cast<OwnedKeyType>(key));
         }
     }
 
@@ -65,11 +65,11 @@ public:
         if (iter != localDeletions.end()) {
             localDeletions.erase(iter);
         }
-        if (localInsertions.contains(key)) {
-            return false;
-        }
-        localInsertions[static_cast<T>(key)] = value;
-        return true;
+        return localInsertions.append(key, value);
+    }
+
+    size_t append(const IndexBuffer<OwnedKeyType>& buffer) {
+        return localInsertions.append(buffer);
     }
 
     inline bool hasUpdates() const { return !(localInsertions.empty() && localDeletions.empty()); }
@@ -83,23 +83,25 @@ public:
         localDeletions.clear();
     }
 
-    void applyLocalChanges(const std::function<void(T)>& deleteOp,
-        const std::function<void(T, common::offset_t)>& insertOp) {
+    void applyLocalChanges(const std::function<void(Key)>& deleteOp,
+        const std::function<void(const InMemHashIndex<T>&)>& insertOp) {
         for (auto& key : localDeletions) {
             deleteOp(key);
         }
-        for (auto& [key, val] : localInsertions) {
-            insertOp(key, val);
-        }
+        insertOp(localInsertions);
     }
+
+    void reserveInserts(uint64_t newEntries) { localInsertions.reserve(newEntries); }
+
+    const InMemHashIndex<T>& getInsertions() { return localInsertions; }
 
 private:
     // When the storage type is string, allow the key type to be string_view with a custom hash
     // function
-    using hash_function = typename std::conditional<std::is_same<T, std::string>::value,
+    using hash_function = typename std::conditional<std::is_same<OwnedKeyType, std::string>::value,
         common::StringUtils::string_hash, std::hash<T>>::type;
-    std::unordered_map<T, common::offset_t, hash_function, std::equal_to<>> localInsertions;
-    std::unordered_set<T, hash_function, std::equal_to<>> localDeletions;
+    std::unordered_set<OwnedKeyType, hash_function, std::equal_to<>> localDeletions;
+    InMemHashIndex<T> localInsertions;
 };
 
 template<typename T>
@@ -107,7 +109,7 @@ HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName,
     const std::shared_ptr<BMFileHandle>& fileHandle, OverflowFileHandle* overflowFileHandle,
     uint64_t indexPos, BufferManager& bufferManager, WAL* wal)
     : dbFileIDAndName{dbFileIDAndName}, bm{bufferManager}, wal{wal}, fileHandle(fileHandle),
-      overflowFileHandle(overflowFileHandle), bulkInsertLocalStorage{overflowFileHandle} {
+      overflowFileHandle(overflowFileHandle) {
     // TODO: Handle data not existing
     headerArray = std::make_unique<BaseDiskArray<HashIndexHeader>>(*fileHandle,
         dbFileIDAndName.dbFileID, NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX,
@@ -125,7 +127,7 @@ HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName,
         NUM_HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX, &bm, wal,
         Transaction::getDummyReadOnlyTrx().get(), true /*bypassWAL*/);
     // Initialize functions.
-    localStorage = std::make_unique<HashIndexLocalStorage<BufferKeyType>>();
+    localStorage = std::make_unique<HashIndexLocalStorage<T>>(overflowFileHandle);
 }
 
 // For read transactions, local storage is skipped, lookups are performed on the persistent
@@ -145,8 +147,7 @@ bool HashIndex<T>::lookupInternal(Transaction* transaction, Key key, offset_t& r
         auto localLookupState = localStorage->lookup(key, result);
         if (localLookupState == HashIndexLocalLookupState::KEY_DELETED) {
             return false;
-        } else if (localLookupState == HashIndexLocalLookupState::KEY_FOUND ||
-                   bulkInsertLocalStorage.lookup(key, result)) {
+        } else if (localLookupState == HashIndexLocalLookupState::KEY_FOUND) {
             return true;
         } else {
             KU_ASSERT(localLookupState == HashIndexLocalLookupState::KEY_NOT_EXIST);
@@ -194,7 +195,7 @@ size_t HashIndex<T>::append(const IndexBuffer<BufferKeyType>& buffer) {
             }
         }
     }
-    return bulkInsertLocalStorage.append(buffer);
+    return localStorage->append(buffer);
 }
 
 template<typename T>
@@ -286,16 +287,8 @@ void HashIndex<T>::prepareCommit() {
         if (netInserts > 0) {
             reserve(netInserts);
         }
-        localStorage->applyLocalChanges(
-            [this](Key key) -> void { this->deleteFromPersistentIndex(key); },
-            [this](Key key, offset_t value) -> void {
-                this->insertIntoPersistentIndex(key, value);
-            });
-        headerArray->update(INDEX_HEADER_IDX_IN_ARRAY, *indexHeaderForWriteTrx);
-    }
-    if (bulkInsertLocalStorage.size() > 0) {
-        wal->addToUpdatedTables(dbFileIDAndName.dbFileID.nodeIndexID.tableID);
-        mergeBulkInserts();
+        localStorage->applyLocalChanges([&](Key key) { deleteFromPersistentIndex(key); },
+            [&](const auto& insertions) { mergeBulkInserts(insertions); });
         headerArray->update(INDEX_HEADER_IDX_IN_ARRAY, *indexHeaderForWriteTrx);
     }
     headerArray->prepareCommit();
@@ -312,7 +305,7 @@ void HashIndex<T>::prepareRollback() {
 
 template<typename T>
 void HashIndex<T>::checkpointInMemory() {
-    if (!localStorage->hasUpdates() && bulkInsertLocalStorage.size() == 0) {
+    if (!localStorage->hasUpdates()) {
         return;
     }
     *indexHeaderForReadTrx = *indexHeaderForWriteTrx;
@@ -323,19 +316,17 @@ void HashIndex<T>::checkpointInMemory() {
     if constexpr (std::same_as<ku_string_t, T>) {
         overflowFileHandle->checkpointInMemory();
     }
-    bulkInsertLocalStorage.clear();
 }
 
 template<typename T>
 void HashIndex<T>::rollbackInMemory() {
-    if (!localStorage->hasUpdates() && bulkInsertLocalStorage.size() == 0) {
+    if (!localStorage->hasUpdates()) {
         return;
     }
     headerArray->rollbackInMemoryIfNecessary();
     pSlots->rollbackInMemoryIfNecessary();
     oSlots->rollbackInMemoryIfNecessary();
     localStorage->clear();
-    bulkInsertLocalStorage.clear();
     *indexHeaderForWriteTrx = *indexHeaderForReadTrx;
 }
 
@@ -461,7 +452,8 @@ void HashIndex<T>::reserve(uint64_t newEntries) {
 }
 
 template<typename T>
-void HashIndex<T>::sortEntries(typename InMemHashIndex<T>::SlotIterator& slotToMerge,
+void HashIndex<T>::sortEntries(const InMemHashIndex<T>& insertLocalStorage,
+    typename InMemHashIndex<T>::SlotIterator& slotToMerge,
     std::vector<HashIndexEntryView>& entries) {
     do {
         auto numEntries = slotToMerge.slot->header.numEntries();
@@ -473,7 +465,7 @@ void HashIndex<T>::sortEntries(typename InMemHashIndex<T>::SlotIterator& slotToM
             entries.push_back(HashIndexEntryView{primarySlot,
                 slotToMerge.slot->header.fingerprints[entryPos], entry});
         }
-    } while (bulkInsertLocalStorage.nextChainedSlot(slotToMerge));
+    } while (insertLocalStorage.nextChainedSlot(slotToMerge));
     std::sort(entries.begin(), entries.end(), [&](auto entry1, auto entry2) -> bool {
         // Sort based on the entry's disk slot ID so that the first slot is at the end
         // Sorting is done reversed so that we can process from the back of the list,
@@ -483,7 +475,7 @@ void HashIndex<T>::sortEntries(typename InMemHashIndex<T>::SlotIterator& slotToM
 }
 
 template<typename T>
-void HashIndex<T>::mergeBulkInserts() {
+void HashIndex<T>::mergeBulkInserts(const InMemHashIndex<T>& insertLocalStorage) {
     // TODO: Ideally we can split slots at the same time that we insert new ones
     // Compute the new number of primary slots, and iterate over each slot, determining if it
     // needs to be split (and how many times, which is complicated) and insert/rehash each element
@@ -494,8 +486,8 @@ void HashIndex<T>::mergeBulkInserts() {
     //
     // On the other hand, two passes may not be significantly slower than one
     // TODO: one pass would also reduce locking when frames are unpinned,
-    // which is useful if this can be paralellized
-    reserve(bulkInsertLocalStorage.size());
+    // which is useful if this can be parallelized
+    reserve(insertLocalStorage.size());
     RUNTIME_CHECK(auto originalNumEntries = this->indexHeaderForWriteTrx->numEntries;);
 
     // Storing as many slots in-memory as on-disk shouldn't be necessary (for one it makes memory
@@ -522,17 +514,17 @@ void HashIndex<T>::mergeBulkInserts() {
     // which map to a given page on disk, then horizontally to the next page in the set. These pages
     // may not be consecutive, but we reduce the memory overhead for storing the information about
     // the sorted data and still just process each page once.
-    for (uint64_t localSlotId = 0; localSlotId < bulkInsertLocalStorage.numPrimarySlots();
+    for (uint64_t localSlotId = 0; localSlotId < insertLocalStorage.numPrimarySlots();
          localSlotId += NUM_SLOTS_PER_PAGE) {
         for (size_t i = 0;
-             i < NUM_SLOTS_PER_PAGE && localSlotId + i < bulkInsertLocalStorage.numPrimarySlots();
+             i < NUM_SLOTS_PER_PAGE && localSlotId + i < insertLocalStorage.numPrimarySlots();
              i++) {
             auto localSlot =
-                typename InMemHashIndex<T>::SlotIterator(localSlotId + i, &bulkInsertLocalStorage);
+                typename InMemHashIndex<T>::SlotIterator(localSlotId + i, &insertLocalStorage);
             partitionedEntries[i].clear();
             // Results are sorted in reverse, so we can process the end first and pop_back to remove
             // them from the vector
-            sortEntries(localSlot, partitionedEntries[i]);
+            sortEntries(insertLocalStorage, localSlot, partitionedEntries[i]);
         }
         // Repeat until there are no un-processed partitions in partitionedEntries
         // This will run at most NUM_SLOTS_PER_PAGE times the number of entries
@@ -560,7 +552,7 @@ void HashIndex<T>::mergeBulkInserts() {
             }
         }
     }
-    KU_ASSERT(originalNumEntries + bulkInsertLocalStorage.getIndexHeader().numEntries ==
+    KU_ASSERT(originalNumEntries + insertLocalStorage.getIndexHeader().numEntries ==
               indexHeaderForWriteTrx->numEntries);
 }
 
@@ -615,6 +607,11 @@ size_t HashIndex<T>::mergeSlot(const std::vector<HashIndexEntryView>& slotToMerg
         merged++;
     }
     return merged;
+}
+
+template<typename T>
+void HashIndex<T>::bulkReserve(uint64_t newEntries) {
+    return localStorage->reserveInserts(newEntries);
 }
 
 template<typename T>

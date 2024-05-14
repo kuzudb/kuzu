@@ -149,20 +149,6 @@ struct RdfConstants {
     static constexpr const char STRICT_OPTION[] = "STRICT";
 };
 
-struct LoggerConstants {
-    enum class LoggerEnum : uint8_t {
-        DATABASE = 0,
-        CSV_READER = 1,
-        LOADER = 2,
-        PROCESSOR = 3,
-        BUFFER_MANAGER = 4,
-        CATALOG = 5,
-        STORAGE = 6,
-        TRANSACTION_MANAGER = 7,
-        WAL = 8,
-    };
-};
-
 struct PlannerKnobs {
     static constexpr double NON_EQUALITY_PREDICATE_SELECTIVITY = 0.1;
     static constexpr double EQUALITY_PREDICATE_SELECTIVITY = 0.01;
@@ -207,6 +193,8 @@ struct ImportDBConstants {
     static constexpr char COPY_NAME[] = "copy.cypher";
     static constexpr char MACRO_NAME[] = "macro.cypher";
 };
+
+static constexpr char ATTACHED_KUZU_DB_TYPE[] = "KUZU";
 
 } // namespace common
 } // namespace kuzu

@@ -184,7 +184,7 @@ void ParquetWriter::prepareRowGroup(FactorizedTable& ft, PreparedRowGroup& resul
     KU_ASSERT(ft.getTableSchema()->getNumColumns() == columnWriters.size());
     std::vector<std::unique_ptr<ColumnWriterState>> writerStates;
     std::unique_ptr<DataChunk> unflatDataChunkToRead =
-        std::make_unique<DataChunk>(ft.getTableSchema()->getNumUnflatColumns());
+        std::make_unique<DataChunk>(ft.getTableSchema()->getNumUnFlatColumns());
     std::unique_ptr<DataChunk> flatDataChunkToRead = std::make_unique<DataChunk>(
         ft.getTableSchema()->getNumFlatColumns(), DataChunkState::getSingleValueDataChunkState());
     std::vector<ValueVector*> vectorsToRead;
@@ -266,7 +266,7 @@ void ParquetWriter::flushRowGroup(PreparedRowGroup& rowGroup) {
 void ParquetWriter::readFromFT(FactorizedTable& ft, std::vector<ValueVector*> vectorsToRead,
     uint64_t& numTuplesRead) {
     auto numTuplesToRead =
-        ft.getTableSchema()->getNumUnflatColumns() != 0 ?
+        ft.getTableSchema()->getNumUnFlatColumns() != 0 ?
             1 :
             std::min<uint64_t>(ft.getNumTuples() - numTuplesRead, DEFAULT_VECTOR_CAPACITY);
     ft.scan(vectorsToRead, numTuplesRead, numTuplesToRead);

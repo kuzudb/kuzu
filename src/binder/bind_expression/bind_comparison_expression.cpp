@@ -40,7 +40,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     std::vector<LogicalType> childrenTypes =
         std::vector<LogicalType>(children.size(), combinedType);
     auto function = ku_dynamic_cast<function::Function*, function::ScalarFunction*>(
-        function::BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, functions));
+        function::BuiltInFunctionsUtils::matchFunction(context->getTx(), functionName,
+            childrenTypes, functions));
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {
         if (children[i]->dataType != combinedType) {

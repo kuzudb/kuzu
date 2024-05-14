@@ -8,7 +8,9 @@ namespace common {
 
 class KUZU_API ParserException : public Exception {
 public:
-    explicit ParserException(const std::string& msg) : Exception("Parser exception: " + msg){};
+    static constexpr const char* ERROR_PREFIX = "Parser exception: ";
+
+    explicit ParserException(const std::string& msg) : Exception(ERROR_PREFIX + msg) {};
 };
 
 } // namespace common

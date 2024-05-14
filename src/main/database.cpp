@@ -12,12 +12,9 @@
 #include "common/exception/exception.h"
 #include "common/exception/extension.h"
 #include "common/file_system/virtual_file_system.h"
-#include "common/logging_level_utils.h"
-#include "common/utils.h"
 #include "extension/extension.h"
 #include "main/db_config.h"
 #include "processor/processor.h"
-#include "spdlog/spdlog.h"
 #include "storage/storage_extension.h"
 #include "storage/storage_manager.h"
 #include "storage/wal_replayer.h"
@@ -73,7 +70,6 @@ static void getLockFileFlagsAndType(bool readOnly, bool createNew, int& flags, F
 
 Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     : dbConfig{systemConfig} {
-    initLoggers();
     vfs = std::make_unique<VirtualFileSystem>();
     // To expand a path with home directory(~), we have to pass in a dummy clientContext which
     // handles the home directory expansion.
@@ -95,12 +91,7 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
 }
 
 Database::~Database() {
-    dropLoggers();
     bufferManager->clearEvictionQueue();
-}
-
-void Database::setLoggingLevel(std::string loggingLevel) {
-    spdlog::set_level(LoggingLevelUtils::convertStrToLevelEnum(std::move(loggingLevel)));
 }
 
 void Database::addTableFunction(std::string name, function::function_set functionSet) {
@@ -152,31 +143,6 @@ void Database::initAndLockDBDir() {
         vfs->createDir(databasePath);
     }
     openLockFile();
-}
-
-void Database::initLoggers() {
-    // To avoid multi-threading issue in creating logger, we create all loggers together with
-    // database instance. All system components should get logger instead of creating.
-    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::DATABASE);
-    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::CSV_READER);
-    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::LOADER);
-    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::PROCESSOR);
-    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
-    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::CATALOG);
-    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::STORAGE);
-    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::WAL);
-    spdlog::set_level(spdlog::level::err);
-}
-
-void Database::dropLoggers() {
-    LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::DATABASE);
-    LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::CSV_READER);
-    LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::LOADER);
-    LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::PROCESSOR);
-    LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
-    LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::CATALOG);
-    LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::STORAGE);
-    LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::WAL);
 }
 
 } // namespace main

@@ -53,6 +53,11 @@ class InMemHashIndex final {
     // Size of the validity mask
     static_assert(getSlotCapacity<T>() <= sizeof(SlotHeader().validityMask) * 8);
     static_assert(getSlotCapacity<T>() <= std::numeric_limits<entry_pos_t>::max() + 1);
+    static_assert(BaseDiskArray<Slot<T>>::getAlignedElementSize() <=
+                  common::HashIndexConstants::SLOT_CAPACITY_BYTES);
+    static_assert(BaseDiskArray<Slot<T>>::getAlignedElementSize() >= sizeof(Slot<T>));
+    static_assert(BaseDiskArray<Slot<T>>::getAlignedElementSize() >
+                  common::HashIndexConstants::SLOT_CAPACITY_BYTES / 2);
 
 public:
     explicit InMemHashIndex(OverflowFileHandle* overflowFileHandle);
@@ -67,28 +72,34 @@ public:
 
     using BufferKeyType =
         typename std::conditional<std::same_as<T, common::ku_string_t>, std::string, T>::type;
+    using Key =
+        typename std::conditional<std::same_as<T, common::ku_string_t>, std::string_view, T>::type;
     // Appends the buffer to the index. Returns the number of values successfully inserted.
     // I.e. if a key fails to insert, its index will be the return value
     size_t append(const IndexBuffer<BufferKeyType>& buffer);
-    using Key =
-        typename std::conditional<std::same_as<T, common::ku_string_t>, std::string_view, T>::type;
+    inline bool append(Key key, common::offset_t value) {
+        reserve(indexHeader.numEntries + 1);
+        return appendInternal(key, value, HashIndexUtils::hash(key));
+    }
     bool lookup(Key key, common::offset_t& result);
 
-    uint64_t size() { return this->indexHeader.numEntries; }
+    uint64_t size() const { return this->indexHeader.numEntries; }
+    bool empty() const { return size() == 0; }
 
     void clear();
 
     struct SlotIterator {
-        explicit SlotIterator(slot_id_t newSlotId, InMemHashIndex<T>* builder)
+        explicit SlotIterator(slot_id_t newSlotId, const InMemHashIndex<T>* builder)
             : slotInfo{newSlotId, SlotType::PRIMARY}, slot(builder->getSlot(slotInfo)) {}
         SlotInfo slotInfo;
         Slot<T>* slot;
     };
 
-    inline bool nextChainedSlot(SlotIterator& iter) {
+    // Leaves the slot pointer pointing at the last slot to make it easier to add a new one
+    inline bool nextChainedSlot(SlotIterator& iter) const {
+        iter.slotInfo.slotId = iter.slot->header.nextOvfSlotId;
+        iter.slotInfo.slotType = SlotType::OVF;
         if (iter.slot->header.nextOvfSlotId != 0) {
-            iter.slotInfo.slotId = iter.slot->header.nextOvfSlotId;
-            iter.slotInfo.slotType = SlotType::OVF;
             iter.slot = getSlot(iter.slotInfo);
             return true;
         }
@@ -96,13 +107,18 @@ public:
     }
 
     inline uint64_t numPrimarySlots() const { return pSlots->size(); }
+    inline uint64_t numOverflowSlots() const { return oSlots->size(); }
 
-    inline HashIndexHeader getIndexHeader() { return indexHeader; }
+    inline const HashIndexHeader& getIndexHeader() const { return indexHeader; }
+
+    // Deletes key, maintaining gapless structure by replacing it with the last entry in the
+    // slot
+    bool deleteKey(Key key);
 
 private:
     // Assumes that space has already been allocated for the entry
     bool appendInternal(Key key, common::offset_t value, common::hash_t hash);
-    Slot<T>* getSlot(const SlotInfo& slotInfo);
+    Slot<T>* getSlot(const SlotInfo& slotInfo) const;
 
     uint32_t allocatePSlots(uint32_t numSlotsToAllocate);
     uint32_t allocateAOSlot();
@@ -113,6 +129,8 @@ private:
      * meaning they either stay in the existing slot, or move into the new one.
      */
     void splitSlot(HashIndexHeader& header);
+    // Reclaims empty overflow slots to be re-used, starting from the given slot iterator
+    void reclaimOverflowSlots(SlotIterator iter);
 
     inline bool equals(Key keyToLookup, const T& keyInEntry) const {
         return keyToLookup == keyInEntry;
@@ -130,6 +148,7 @@ private:
     void insertToNewOvfSlot(Key key, Slot<T>* previousSlot, common::offset_t offset,
         uint8_t fingerprint);
     common::hash_t hashStored(const T& key) const;
+    Slot<T>* clearNextOverflowAndAdvanceIter(SlotIterator& iter);
 
     // Finds the entry matching the given key. The iterator will be advanced and will either point
     // to the slot containing the matching entry, or the last slot available
