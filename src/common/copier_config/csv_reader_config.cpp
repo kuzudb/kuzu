@@ -1,5 +1,7 @@
 #include "common/copier_config/csv_reader_config.h"
 
+#include <algorithm>
+
 #include "common/exception/binder.h"
 
 namespace kuzu {
