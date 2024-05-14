@@ -104,5 +104,19 @@ function_set MonthNameFunction::getFunctionSet() {
     return result;
 }
 
+function_set CurrentDateFunction::getFunctionSet() {
+    function_set definitions;
+    definitions.push_back(make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{},
+        LogicalTypeID::DATE, ScalarFunction::PoniterExecFunction<date_t, CurrentDate>));
+    return definitions;
+}
+
+function_set CurrentTimestampFunction::getFunctionSet() {
+	function_set definitions;
+	definitions.push_back(make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{},
+		LogicalTypeID::TIMESTAMP, ScalarFunction::PoniterExecFunction<timestamp_tz_t, CurrentTimestamp>));
+	return definitions;
+}
+
 } // namespace function
 } // namespace kuzu

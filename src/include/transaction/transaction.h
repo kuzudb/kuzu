@@ -4,6 +4,7 @@
 
 #include "storage/local_storage/local_storage.h"
 #include "storage/undo_buffer.h"
+#include "common/types/timestamp_t.h"
 
 namespace kuzu {
 namespace catalog {
@@ -35,6 +36,7 @@ public:
         : type{transactionType}, ID{transactionID}, startTS{startTS} {
         localStorage = std::make_unique<storage::LocalStorage>(clientContext);
         undoBuffer = std::make_unique<storage::UndoBuffer>(clientContext);
+        currentTS = common::Timestamp::getCurrentTimestamp().value;
     }
 
     constexpr explicit Transaction(TransactionType transactionType) noexcept
@@ -47,6 +49,7 @@ public:
     inline common::transaction_t getID() const { return ID; }
     inline common::transaction_t getStartTS() const { return startTS; }
     inline common::transaction_t getCommitTS() const { return commitTS; }
+    inline int64_t getCurrentTS() const { return currentTS; }
 
     void commit(storage::WAL* wal);
     void rollback();
@@ -67,6 +70,7 @@ private:
     common::transaction_t ID;
     common::transaction_t startTS;
     common::transaction_t commitTS;
+    int64_t currentTS;
     std::unique_ptr<storage::LocalStorage> localStorage;
     std::unique_ptr<storage::UndoBuffer> undoBuffer;
 };
