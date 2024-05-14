@@ -16,13 +16,13 @@ DuckDBCatalog::DuckDBCatalog(std::string dbPath, std::string catalogName,
     : CatalogExtension::CatalogExtension{}, dbPath{std::move(dbPath)},
       catalogName{std::move(catalogName)},
       tableNamesVector{*common::LogicalType::STRING(), context->getMemoryManager()} {
-    skipUnsupportedTable = DuckDBStorageExtension::skipUnsupportedTableDefaultVal;
+    skipUnsupportedTable = DuckDBStorageExtension::SKIP_UNSUPPORTED_TABLE_DEFAULT_VAL;
     auto& options = attachOption.options;
-    if (options.contains(DuckDBStorageExtension::skipUnsupportedTable)) {
-        auto val = options.at(DuckDBStorageExtension::skipUnsupportedTable);
+    if (options.contains(DuckDBStorageExtension::SKIP_UNSUPPORTED_TABLE_KEY)) {
+        auto val = options.at(DuckDBStorageExtension::SKIP_UNSUPPORTED_TABLE_KEY);
         if (val.getDataType()->getLogicalTypeID() != common::LogicalTypeID::BOOL) {
             throw common::RuntimeException{common::stringFormat("Invalid option value for {}",
-                DuckDBStorageExtension::skipUnsupportedTable)};
+                DuckDBStorageExtension::SKIP_UNSUPPORTED_TABLE_KEY)};
         }
         skipUnsupportedTable = val.getValue<bool>();
     }

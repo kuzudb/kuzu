@@ -35,7 +35,7 @@ std::unique_ptr<main::AttachedDatabase> attachDuckDB(std::string dbName, std::st
     auto duckdbCatalog =
         std::make_unique<DuckDBCatalog>(dbPath, catalogName, clientContext, attachOption);
     duckdbCatalog->init();
-    return std::make_unique<main::AttachedDatabase>(dbName, DuckDBStorageExtension::dbType,
+    return std::make_unique<main::AttachedDatabase>(dbName, DuckDBStorageExtension::DB_TYPE,
         std::move(duckdbCatalog));
 }
 
@@ -48,7 +48,7 @@ DuckDBStorageExtension::DuckDBStorageExtension(main::Database* database)
 
 bool DuckDBStorageExtension::canHandleDB(std::string dbType_) const {
     common::StringUtils::toUpper(dbType_);
-    return dbType_ == dbType;
+    return dbType_ == DB_TYPE;
 }
 
 } // namespace duckdb_extension
