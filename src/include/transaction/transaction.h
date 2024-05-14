@@ -2,9 +2,9 @@
 
 #include <memory>
 
+#include "common/types/timestamp_t.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/undo_buffer.h"
-#include "common/types/timestamp_t.h"
 
 namespace kuzu {
 namespace catalog {

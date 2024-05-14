@@ -156,15 +156,15 @@ struct CurrentDate {
         auto currentTS =
             reinterpret_cast<FunctionBindData*>(dataPtr)->clientContext->getTx()->getCurrentTS();
         result = common::Timestamp::getDate(common::timestamp_tz_t(currentTS));
-	}
+    }
 };
 
 struct CurrentTimestamp {
-	static inline void operation(common::timestamp_tz_t& result, void* dataPtr) {
+    static inline void operation(common::timestamp_tz_t& result, void* dataPtr) {
         auto currentTS =
             reinterpret_cast<FunctionBindData*>(dataPtr)->clientContext->getTx()->getCurrentTS();
-		result = common::timestamp_tz_t(currentTS);
-	}
+        result = common::timestamp_tz_t(currentTS);
+    }
 };
 
 } // namespace function

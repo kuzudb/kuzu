@@ -112,10 +112,11 @@ function_set CurrentDateFunction::getFunctionSet() {
 }
 
 function_set CurrentTimestampFunction::getFunctionSet() {
-	function_set definitions;
-	definitions.push_back(make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{},
-		LogicalTypeID::TIMESTAMP, ScalarFunction::PoniterExecFunction<timestamp_tz_t, CurrentTimestamp>));
-	return definitions;
+    function_set definitions;
+    definitions.push_back(
+        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{}, LogicalTypeID::TIMESTAMP,
+            ScalarFunction::PoniterExecFunction<timestamp_tz_t, CurrentTimestamp>));
+    return definitions;
 }
 
 } // namespace function

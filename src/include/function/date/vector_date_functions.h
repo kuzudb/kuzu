@@ -64,9 +64,9 @@ struct CurrentDateFunction {
 };
 
 struct CurrentTimestampFunction {
-	static constexpr const char* name = "CURRENT_TIMESTAMP";
+    static constexpr const char* name = "CURRENT_TIMESTAMP";
 
-	static function_set getFunctionSet();
+    static function_set getFunctionSet();
 };
 
 } // namespace function

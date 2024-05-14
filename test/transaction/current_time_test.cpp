@@ -15,11 +15,17 @@ protected:
 
 public:
     common::timestamp_t getCurrentTimestamp() {
-        return conn->query("RETURN CURRENT_TIMESTAMP()")->getNext()->getValue(0)->getValue<common::timestamp_t>();
+        return conn->query("RETURN CURRENT_TIMESTAMP()")
+            ->getNext()
+            ->getValue(0)
+            ->getValue<common::timestamp_t>();
     }
 
     common::date_t getCurrentDate() {
-        return conn->query("RETURN CURRENT_DATE()")->getNext()->getValue(0)->getValue<common::date_t>();
+        return conn->query("RETURN CURRENT_DATE()")
+            ->getNext()
+            ->getValue(0)
+            ->getValue<common::date_t>();
     }
 };
 

@@ -138,7 +138,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION(DayNameFunction), SCALAR_FUNCTION(GreatestFunction),
         SCALAR_FUNCTION(LastDayFunction), SCALAR_FUNCTION(LeastFunction),
         SCALAR_FUNCTION(MakeDateFunction), SCALAR_FUNCTION(MonthNameFunction),
-        SCALAR_FUNCTION(CurrentDateFunction), 
+        SCALAR_FUNCTION(CurrentDateFunction),
 
         // Timestamp functions
         SCALAR_FUNCTION(CenturyFunction), SCALAR_FUNCTION(EpochMsFunction),
