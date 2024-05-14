@@ -14,7 +14,7 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-          make LTO=1 NUM_THREADS=%NUMBER_OF_PROCESSORS%
+          make NUM_THREADS=%NUMBER_OF_PROCESSORS%
           make install
 
       - name: Collect artifacts
@@ -25,7 +25,6 @@ jobs:
           move install\bin\kuzu_shared.dll
           move install\lib\kuzu_shared.lib
           move install\bin\kuzu_shell.exe kuzu.exe
-
 
       - uses: actions/upload-artifact@v3
         with:

@@ -426,7 +426,7 @@ dependencies = [
 
 [[package]]
 name = "kuzu"
-version = "0.3.2"
+version = "0.4.2"
 dependencies = [
  "anyhow",
  "arrow",

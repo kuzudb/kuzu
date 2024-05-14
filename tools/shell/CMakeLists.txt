@@ -1,9 +1,14 @@
 include_directories(include ${PROJECT_SOURCE_DIR}/third_party/taywee_args/include)
-
 add_executable(kuzu_shell
         embedded_shell.cpp
         linenoise.cpp
         shell_runner.cpp)
+if (NOT MSVC)
+        # On Windows, rename the executable to kuzu.exe will cause an error
+        # "multiple rules generate src/kuzu.lib", so we do not set the output 
+        # name for MSVC.
+        set_target_properties(kuzu_shell PROPERTIES OUTPUT_NAME kuzu)
+endif()
 
 target_link_libraries(kuzu_shell kuzu)
 if (ENABLE_BACKTRACES)
