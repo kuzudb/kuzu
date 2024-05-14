@@ -22,40 +22,47 @@ bool ParallelUtils::init() {
  *
  * TableFuncInput and TableFuncOutput currently store the thread local state such as value vectors
  */
-bool ParallelUtils::runWorkerThread(function::TableFuncInput& input, function::TableFuncOutput& output) {
+bool ParallelUtils::runWorkerThread(function::TableFuncInput& input,
+    function::TableFuncOutput& output) {
     std::unique_lock<std::mutex> lck{mtx, std::defer_lock};
-    function::table_func_t tableFunction;
+    std::shared_ptr<Task> task = nullptr;
     while (true) {
         try {
             lck.lock();
             cv.wait(lck, [&] {
-                if (!pendingQueue.empty()) {
-                    tableFunction = pendingQueue.front();
-                    totalThreadsRegistered++;
-                    return true;
-                }
-                return !isActive;
+                task = getTaskFromQueue();
+                return task || !isActive;
             });
             lck.unlock();
             if (!isActive) {
                 return false;
             }
             // the actual function to be executed, add it below this
-            auto ret = tableFunction(input, output);
-            lck.lock();
-            if (--totalThreadsRegistered == 0 && ret == 0) {
-                isComplete = true;
-            }
-            lck.unlock();
-            cv.notify_all();
-            if (ret > 0) {
+            auto ret = task->function(input, output);
+            task->deregisterThread();
+            if (ret == 0) {
+                task->completeTask(nullptr /* exception */);
+                cv.notify_all();
+            } else {
                 return true;
             }
-        } catch (std::exception &e) {
-            isActive.store(false, std::memory_order_relaxed);
-            // also set an exception pointer
+        } catch (std::exception& e) {
+            task->completeTask(&e);
+            cv.notify_all();
         }
     }
+}
+
+std::shared_ptr<Task> ParallelUtils::getTaskFromQueue() {
+    if (pendingQueue.empty()) {
+        return nullptr;
+    }
+    for (auto it : pendingQueue) {
+        if (it->registerThread()) {
+            return it;
+        }
+    }
+    return nullptr;
 }
 
 /*
@@ -65,33 +72,47 @@ bool ParallelUtils::runWorkerThread(function::TableFuncInput& input, function::T
  * Once the worker thread indicates that task is complete or error is encountered, remove task
  * from queue.
  */
-bool ParallelUtils::doParallel(function::TableFunction *tableFunction) {
+bool ParallelUtils::doParallel(function::TableFunction* tableFunction) {
     std::unique_lock<std::mutex> lck{mtx, std::defer_lock};
+    auto newTask = std::make_shared<Task>(tableFunction->tableFunc);
     lck.lock();
-    pendingQueue.push_back(tableFunction->tableFunc);
-    isComplete = false;
+    pendingQueue.emplace_back(newTask);
     lck.unlock();
     cv.notify_one();
     // now monitor progress
-    while(true) {
+    while (true) {
         lck.lock();
         cv.wait(lck, [&] {
-           if (isComplete) {
-               return true;
-           }
-           return !isActive;
+            if (newTask->isCompleteOrHasException()) {
+                return true;
+            }
+            return !isActive;
         });
         // main thread exited from loop, meaning either task is completed OR there was an error
-        pendingQueue.pop_front();
+        removeTaskFromQueueNoLock(newTask->ID);
         lck.unlock();
         // return true if task is completed (isComplete == true)
-        return isComplete && isActive;
+        return isActive;
     }
 }
 
-void ParallelUtils::terminate() {
-    isActive.store(false, std::memory_order_relaxed);
+void ParallelUtils::removeTaskFromQueueNoLock(uint64_t taskID) {
+    for (auto i = 0u; i < pendingQueue.size(); i++) {
+        if (pendingQueue[i]->ID == taskID) {
+            pendingQueue.erase(pendingQueue.begin() + i);
+            return;
+        }
+    }
 }
 
+/*
+ * Notify all worker threads to exit the infinite loop as the master has signalled no more functions
+ * need to be executed.
+ */
+void ParallelUtils::terminate() {
+    isActive.store(false, std::memory_order_relaxed);
+    cv.notify_all();
 }
-}
+
+} // namespace graph
+} // namespace kuzu
