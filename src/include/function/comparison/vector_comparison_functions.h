@@ -13,7 +13,7 @@ struct ComparisonFunction {
     template<typename OP>
     static function_set getFunctionSet(const std::string& name) {
         function_set functionSet;
-        for (auto& comparableType : common::LogicalTypeUtils::getAllValidLogicTypes()) {
+        for (auto& comparableType : common::LogicalTypeUtils::getAllValidLogicTypeIDs()) {
             if (comparableType != common::LogicalTypeID::DECIMAL) {
                 // TODO(maxwell): implement decimal functionalities
                 functionSet.push_back(getFunction<OP>(name, comparableType, comparableType));

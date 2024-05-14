@@ -261,6 +261,8 @@ public:
             KU_UNREACHABLE;
             // Needed for return type deduction to work
             return func(uint8_t());
+        default:
+            KU_UNREACHABLE;
         }
     }
 };

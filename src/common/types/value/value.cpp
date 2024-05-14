@@ -124,7 +124,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::UINT8:
         return Value((uint8_t)0);
     case LogicalTypeID::INT128:
-        return Value(int128_t(0));
+        return Value(int128_t((int32_t)0));
     case LogicalTypeID::BOOL:
         return Value(true);
     case LogicalTypeID::DOUBLE:
@@ -156,6 +156,8 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::DECIMAL: {
         Value ret(*dataType.copy());
         ret.val.int128Val = 0;
+        ret.isNull_ = false;
+        ret.childrenSize = 0;
         return ret;
     }
     case LogicalTypeID::ARRAY: {

@@ -105,6 +105,7 @@ Binder exception: Cannot match a built-in function for given function +(INTERNAL
 (UINT8,UINT8) -> UINT8
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
+(DECIMAL,DECIMAL) -> DECIMAL
 (LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
@@ -131,6 +132,7 @@ Binder exception: Cannot match a built-in function for given function +(DATE,DAT
 (UINT8,UINT8) -> UINT8
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
+(DECIMAL,DECIMAL) -> DECIMAL
 (LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
@@ -157,6 +159,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (UINT8,UINT8) -> UINT8
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
+(DECIMAL,DECIMAL) -> DECIMAL
 (LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
@@ -183,6 +186,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (UINT8,UINT8) -> UINT8
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
+(DECIMAL,DECIMAL) -> DECIMAL
 (LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
@@ -516,6 +520,7 @@ Binder exception: Cannot match a built-in function for given function +(INT64,ST
 (UINT8,UINT8) -> UINT8
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
+(DECIMAL,DECIMAL) -> DECIMAL
 (LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
@@ -576,6 +581,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (UINT8,UINT8) -> UINT8
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
+(DECIMAL,DECIMAL) -> DECIMAL
 (LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
@@ -600,6 +606,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (UINT8,UINT8) -> UINT8
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
+(DECIMAL,DECIMAL) -> DECIMAL
 (LIST,LIST) -> LIST
 (STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL

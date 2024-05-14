@@ -230,7 +230,7 @@ TEST_F(ApiTest, MultipleExecutionOfPreparedStatement) {
 TEST_F(ApiTest, issueTest4) {
     auto preparedStatement = conn->prepare("RETURN CAST($1, 'STRING')");
     auto result = conn->execute(preparedStatement.get(),
-        std::make_pair(std::string("1"), int128_t(-123456789)));
+        std::make_pair(std::string("1"), int128_t((int32_t)-123456789)));
     ASSERT_TRUE(result->hasNext());
     checkTuple(result->getNext().get(), "-123456789\n");
     ASSERT_FALSE(result->hasNext());

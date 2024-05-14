@@ -683,22 +683,26 @@ static bool tryCastUnionField(ValueVector* vector, uint64_t rowToAdd, const char
         switch (targetType.getPhysicalType()) {
         case PhysicalTypeID::INT16: {
             int16_t result;
-            tryDecimalCast(input, len, result, DecimalType::getScale(targetType));
+            tryDecimalCast(input, len, result, DecimalType::getPrecision(targetType),
+                DecimalType::getScale(targetType));
             testAndSetValue(vector, rowToAdd, result, success);
         } break;
         case PhysicalTypeID::INT32: {
             int32_t result;
-            tryDecimalCast(input, len, result, DecimalType::getScale(targetType));
+            tryDecimalCast(input, len, result, DecimalType::getPrecision(targetType),
+                DecimalType::getScale(targetType));
             testAndSetValue(vector, rowToAdd, result, success);
         } break;
         case PhysicalTypeID::INT64: {
             int64_t result;
-            tryDecimalCast(input, len, result, DecimalType::getScale(targetType));
+            tryDecimalCast(input, len, result, DecimalType::getPrecision(targetType),
+                DecimalType::getScale(targetType));
             testAndSetValue(vector, rowToAdd, result, success);
         } break;
         case PhysicalTypeID::INT128: {
             int128_t result;
-            tryDecimalCast(input, len, result, DecimalType::getScale(targetType));
+            tryDecimalCast(input, len, result, DecimalType::getPrecision(targetType),
+                DecimalType::getScale(targetType));
             testAndSetValue(vector, rowToAdd, result, success);
         } break;
         default:

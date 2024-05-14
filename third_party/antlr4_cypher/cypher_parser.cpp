@@ -16705,10 +16705,6 @@ tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::CYCLE() {
   return getToken(CypherParser::CYCLE, 0);
 }
 
-tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::DECIMAL() {
-  return getToken(CypherParser::DECIMAL, 0);
-}
-
 tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::CONTAINS() {
   return getToken(CypherParser::CONTAINS, 0);
 }
@@ -16727,6 +16723,10 @@ tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::PROJECT() {
 
 tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::GRAPH() {
   return getToken(CypherParser::GRAPH, 0);
+}
+
+tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::DECIMAL() {
+  return getToken(CypherParser::DECIMAL, 0);
 }
 
 

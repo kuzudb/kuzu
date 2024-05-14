@@ -31,7 +31,6 @@ add_library(kuzu_function
         vector_boolean_functions.cpp
         vector_cast_functions.cpp
         vector_date_functions.cpp
-        vector_decimal_functions.cpp
         vector_hash_functions.cpp
         vector_null_functions.cpp
         vector_rdf_functions.cpp

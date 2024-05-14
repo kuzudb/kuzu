@@ -21,6 +21,10 @@ namespace kuzu {
 namespace common {
 
 std::string DecimalType::insertDecimalPoint(const std::string& value, uint32_t positionFromEnd) {
+    if (positionFromEnd == 0) {
+        return value;
+        // Don't want to end up with cases where integral values are followed by a useless dot
+    }
     std::string retval;
     if (positionFromEnd > value.size()) {
         auto greaterBy = positionFromEnd - value.size();
@@ -1125,7 +1129,7 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getNumericalLogicalTypeIDs() {
     return integerTypes;
 }
 
-std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidLogicTypes() {
+std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidLogicTypeIDs() {
     return std::vector<LogicalTypeID>{LogicalTypeID::INTERNAL_ID, LogicalTypeID::BOOL,
         LogicalTypeID::INT64, LogicalTypeID::INT32, LogicalTypeID::INT16, LogicalTypeID::INT8,
         LogicalTypeID::UINT64, LogicalTypeID::UINT32, LogicalTypeID::UINT16, LogicalTypeID::UINT8,
@@ -1136,6 +1140,21 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidLogicTypes() {
         LogicalTypeID::ARRAY, LogicalTypeID::MAP, LogicalTypeID::FLOAT, LogicalTypeID::SERIAL,
         LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT, LogicalTypeID::UNION,
         LogicalTypeID::RDF_VARIANT};
+}
+
+std::vector<LogicalType> LogicalTypeUtils::getAllValidLogicTypes() {
+    return std::vector<LogicalType>{*LogicalType::INTERNAL_ID(), *LogicalType::BOOL(),
+        *LogicalType::INT64(), *LogicalType::INT32(), *LogicalType::INT16(), *LogicalType::INT8(),
+        *LogicalType::UINT64(), *LogicalType::UINT32(), *LogicalType::UINT16(),
+        *LogicalType::UINT8(), *LogicalType::INT128(), *LogicalType::DOUBLE(),
+        *LogicalType::STRING(), *LogicalType::BLOB(), *LogicalType::UUID(), *LogicalType::DATE(),
+        *LogicalType::TIMESTAMP(), *LogicalType::TIMESTAMP_NS(), *LogicalType::TIMESTAMP_MS(),
+        *LogicalType::TIMESTAMP_SEC(), *LogicalType::TIMESTAMP_TZ(), *LogicalType::INTERVAL(),
+        *LogicalType::LIST(LogicalType::ANY()), *LogicalType::ARRAY(LogicalType::ANY(), 0),
+        *LogicalType::MAP(LogicalType::ANY(), LogicalType::ANY()), *LogicalType::FLOAT(),
+        *LogicalType::SERIAL(), *LogicalType::NODE(std::make_unique<StructTypeInfo>()),
+        *LogicalType::REL(std::make_unique<StructTypeInfo>()), *LogicalType::STRUCT({}),
+        *LogicalType::UNION({}), *LogicalType::RDF_VARIANT()};
 }
 
 std::vector<std::string> parseStructFields(const std::string& structTypeStr) {
@@ -1646,6 +1665,22 @@ static inline bool isSemanticallyNested(LogicalTypeID ID) {
     return LogicalTypeUtils::isNested(ID) && ID != LogicalTypeID::RDF_VARIANT;
 }
 
+static inline bool tryCombineDecimalTypes(const LogicalType& left, const LogicalType& right,
+    LogicalType& result) {
+    auto precisionLeft = DecimalType::getPrecision(left);
+    auto scaleLeft = DecimalType::getScale(left);
+    auto precisionRight = DecimalType::getPrecision(right);
+    auto scaleRight = DecimalType::getScale(right);
+    auto resultingScale = std::max(scaleLeft, scaleRight);
+    auto resultingPrecision =
+        std::max(precisionLeft - scaleLeft, precisionRight - scaleRight) + resultingScale;
+    if (resultingPrecision > DECIMAL_PRECISION_LIMIT) {
+        return false;
+    }
+    result = *LogicalType::DECIMAL(resultingPrecision, resultingScale);
+    return true;
+}
+
 bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const LogicalType& right,
     LogicalType& result) {
     if (canAlwaysCast(left.typeID) && canAlwaysCast(right.typeID)) {
@@ -1663,6 +1698,9 @@ bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const Logic
     if (canAlwaysCast(right.typeID)) {
         result = left;
         return true;
+    }
+    if (left.typeID == LogicalTypeID::DECIMAL && right.typeID == LogicalTypeID::DECIMAL) {
+        return tryCombineDecimalTypes(left, right, result);
     }
     if (isSemanticallyNested(left.typeID) || isSemanticallyNested(right.typeID)) {
         if (left.typeID == LogicalTypeID::LIST && right.typeID == LogicalTypeID::ARRAY) {
@@ -1694,7 +1732,14 @@ bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const Logic
     if (!tryGetMaxLogicalTypeID(left.typeID, right.typeID, resultID)) {
         return false;
     }
-    result = LogicalType(resultID);
+    // attempt to make complete types first
+    if (resultID == left.typeID) {
+        result = left;
+    } else if (resultID == right.typeID) {
+        result = right;
+    } else {
+        result = LogicalType(resultID);
+    }
     return true;
 }
 
