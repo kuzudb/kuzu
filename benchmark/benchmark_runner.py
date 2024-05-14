@@ -53,7 +53,7 @@ if serialized_base_dir is None:
     logging.error("SERIALIZED_DIR is not set, exiting...")
     sys.exit(1)
 
-benchmark_server_url = os.getenv('BENCHMARK_SERVER_URL')
+benchmark_server_url = "https://benchmark.mew.im/api/internalbenchmarkresults"
 if benchmark_server_url is None and not is_dry_run:
     logging.error("BENCHMARK_SERVER_URL is not set, exiting...")
     sys.exit(1)
