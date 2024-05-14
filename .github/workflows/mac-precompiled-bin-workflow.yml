@@ -23,7 +23,7 @@ jobs:
           mv install/include/kuzu.h .
           mv install/include/kuzu.hpp .
           mv install/lib/libkuzu.dylib .
-          mv install/bin/kuzu_shell kuzu
+          mv install/bin/kuzu .
 
       - name: Verify binary information
         run: |

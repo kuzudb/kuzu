@@ -21,7 +21,7 @@ jobs:
           mv install/include/kuzu.h .
           mv install/include/kuzu.hpp .
           mv install/lib64/libkuzu.so .
-          mv install/bin/kuzu_shell kuzu
+          mv install/bin/kuzu .
 
       - name: Create tarball
         run: |
@@ -53,7 +53,7 @@ jobs:
           mv install/include/kuzu.h .
           mv install/include/kuzu.hpp .
           mv install/lib64/libkuzu.so .
-          mv install/bin/kuzu_shell kuzu
+          mv install/bin/kuzu .
 
       - name: Create tarball
         run: |
@@ -79,7 +79,7 @@ jobs:
           mv install/include/kuzu.h .
           mv install/include/kuzu.hpp .
           mv install/lib64/libkuzu.so .
-          mv install/bin/kuzu_shell kuzu
+          mv install/bin/kuzu .
 
       - name: Create tarball
         run: |
