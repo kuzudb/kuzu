@@ -20,7 +20,9 @@ int64_t SequenceCatalogEntry::currVal() {
     std::lock_guard<std::mutex> lck(mtx);
     int64_t result;
     if (sequenceData.usageCount == 0u) {
-        throw CatalogException("currval: sequence \"" + name + "\" is not yet defined. To define the sequence, call nextval first.");
+        throw CatalogException(
+            "currval: sequence \"" + name +
+            "\" is not yet defined. To define the sequence, call nextval first.");
     }
     result = sequenceData.currVal;
     return result;

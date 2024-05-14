@@ -81,9 +81,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     std::vector<SequenceInfo> sequenceInfos;
     for (auto& entry : context->getCatalog()->getSequenceEntries(context->getTx())) {
         auto sequenceData = entry->getSequenceData();
-        auto sequenceInfo = SequenceInfo{entry->getName(), LOCAL_DB_NAME,
-            sequenceData.startValue, sequenceData.increment, sequenceData.minValue,
-            sequenceData.maxValue, sequenceData.cycle};
+        auto sequenceInfo = SequenceInfo{entry->getName(), LOCAL_DB_NAME, sequenceData.startValue,
+            sequenceData.increment, sequenceData.minValue, sequenceData.maxValue,
+            sequenceData.cycle};
         sequenceInfos.push_back(std::move(sequenceInfo));
     }
 
@@ -92,10 +92,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     // for (auto attachedDatabase : databaseManager->getAttachedDatabases()) {
     //     auto databaseName = attachedDatabase->getDBName();
     //     auto databaseType = attachedDatabase->getDBType();
-    //     for (auto& entry : attachedDatabase->getCatalog()->getSequenceEntries(context->getTx())) {
+    //     for (auto& entry : attachedDatabase->getCatalog()->getSequenceEntries(context->getTx()))
+    //     {
     //         auto sequenceData = entry->getSequenceData();
     //         auto sequenceInfo =
-    //             SequenceInfo{entry->getName(), stringFormat("{}({})", databaseName, databaseType),
+    //             SequenceInfo{entry->getName(), stringFormat("{}({})", databaseName,
+    //             databaseType),
     //                 sequenceData.startValue, sequenceData.increment, sequenceData.minValue,
     //                 sequenceData.maxValue, sequenceData.cycle};
     //         sequenceInfos.push_back(std::move(sequenceInfo));
