@@ -111,12 +111,14 @@ Catalog exception: nextval: reached maximum value of sequence "overflowMax" 9223
 ---- error
 Catalog exception: nextval: reached minimum value of sequence "overflowMin" -9223372036854775808
 -STATEMENT RETURN nextval('edgeMax');
----- ok
+---- 1
+10
 -STATEMENT RETURN nextval('edgeMax');
 ---- error
 Catalog exception: nextval: reached maximum value of sequence "edgeMax" 10
 -STATEMENT RETURN nextval('edgeMin');
----- ok
+---- 1
+-10
 -STATEMENT RETURN nextval('edgeMin');
 ---- error
 Catalog exception: nextval: reached minimum value of sequence "edgeMin" -10
@@ -131,13 +133,17 @@ Catalog exception: nextval: reached minimum value of sequence "edgeMin" -10
 -STATEMENT CREATE SEQUENCE edgeMin START -10 INCREMENT -1 MINVALUE -10 CYCLE;
 ---- ok
 -STATEMENT RETURN nextval('overflowMax');
----- ok
+---- 1
+9223372036854775807
 -STATEMENT RETURN nextval('overflowMin');
----- ok
+---- 1
+-9223372036854775808
 -STATEMENT RETURN nextval('edgeMax');
----- ok
+---- 1
+10
 -STATEMENT RETURN nextval('edgeMin');
----- ok
+---- 1
+-10
 -STATEMENT RETURN nextval('overflowMax');
 ---- 1
 1
