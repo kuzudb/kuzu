@@ -112,9 +112,10 @@ function_set CurrentDateFunction::getFunctionSet() {
 }
 
 function_set CurrentTimestampFunction::getFunctionSet() {
-	function_set result;
-	result.push_back(make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{},
-		LogicalTypeID::TIMESTAMP, ScalarFunction::NullaryAuxilaryExecFunction<timestamp_tz_t, CurrentTimestamp>));
+    function_set result;
+    result.push_back(
+        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{}, LogicalTypeID::TIMESTAMP,
+            ScalarFunction::NullaryAuxilaryExecFunction<timestamp_tz_t, CurrentTimestamp>));
     return result;
 }
 
