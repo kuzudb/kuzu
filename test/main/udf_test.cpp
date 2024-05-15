@@ -46,8 +46,9 @@ TEST_F(ApiTest, TestExceptUDF) {
 
 TEST_F(ApiTest, TestZeroParamUDF) {
     conn->createScalarFunction("test", &dontThrowRuntimeException);
-    auto actualResult = TestHelper::convertResultToString(*conn->query("MATCH (p:person) return test()"));
-    auto expectedResult = std::vector<std::string>{"1","1","1","1","1","1","1","1"};
+    auto actualResult =
+        TestHelper::convertResultToString(*conn->query("MATCH (p:person) return test()"));
+    auto expectedResult = std::vector<std::string>{"1", "1", "1", "1", "1", "1", "1", "1"};
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 
