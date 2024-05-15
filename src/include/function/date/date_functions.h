@@ -4,7 +4,6 @@
 #include "common/types/date_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/timestamp_t.h"
-#include "main/client_context.h"
 
 namespace kuzu {
 namespace function {
@@ -152,19 +151,11 @@ struct MakeDate {
 };
 
 struct CurrentDate {
-    static inline void operation(common::date_t& result, void* dataPtr) {
-        auto currentTS =
-            reinterpret_cast<FunctionBindData*>(dataPtr)->clientContext->getTx()->getCurrentTS();
-        result = common::Timestamp::getDate(common::timestamp_tz_t(currentTS));
-    }
+    static void operation(common::date_t& result, void* dataPtr);
 };
 
 struct CurrentTimestamp {
-    static inline void operation(common::timestamp_tz_t& result, void* dataPtr) {
-        auto currentTS =
-            reinterpret_cast<FunctionBindData*>(dataPtr)->clientContext->getTx()->getCurrentTS();
-        result = common::timestamp_tz_t(currentTS);
-    }
+    static void operation(common::timestamp_tz_t& result, void* dataPtr);
 };
 
 } // namespace function

@@ -43,25 +43,25 @@ public:
         : type{transactionType}, ID{0}, startTS{0} {}
 
 public:
-    inline TransactionType getType() const { return type; }
-    inline bool isReadOnly() const { return TransactionType::READ_ONLY == type; }
-    inline bool isWriteTransaction() const { return TransactionType::WRITE == type; }
-    inline common::transaction_t getID() const { return ID; }
-    inline common::transaction_t getStartTS() const { return startTS; }
-    inline common::transaction_t getCommitTS() const { return commitTS; }
-    inline int64_t getCurrentTS() const { return currentTS; }
+    TransactionType getType() const { return type; }
+    bool isReadOnly() const { return TransactionType::READ_ONLY == type; }
+    bool isWriteTransaction() const { return TransactionType::WRITE == type; }
+    common::transaction_t getID() const { return ID; }
+    common::transaction_t getStartTS() const { return startTS; }
+    common::transaction_t getCommitTS() const { return commitTS; }
+    int64_t getCurrentTS() const { return currentTS; }
 
     void commit(storage::WAL* wal);
     void rollback();
 
-    inline storage::LocalStorage* getLocalStorage() { return localStorage.get(); }
+    storage::LocalStorage* getLocalStorage() { return localStorage.get(); }
 
     void addCatalogEntry(catalog::CatalogSet* catalogSet, catalog::CatalogEntry* catalogEntry);
 
-    static inline std::unique_ptr<Transaction> getDummyWriteTrx() {
+    static std::unique_ptr<Transaction> getDummyWriteTrx() {
         return std::make_unique<Transaction>(TransactionType::WRITE);
     }
-    static inline std::unique_ptr<Transaction> getDummyReadOnlyTrx() {
+    static std::unique_ptr<Transaction> getDummyReadOnlyTrx() {
         return std::make_unique<Transaction>(TransactionType::READ_ONLY);
     }
 
