@@ -2,7 +2,6 @@
 
 #include <string>
 
-#include "common/types/value/value.h"
 #include "parser/expression/parsed_expression.h"
 
 namespace kuzu {
