@@ -52,7 +52,7 @@ std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& f
 }
 
 std::unordered_map<std::string, Value> Binder::bindParsingOptions(
-    const parser::parsing_option_t& parsingOptions) {
+    const parser::options_t& parsingOptions) {
     std::unordered_map<std::string, Value> options;
     for (auto& option : parsingOptions) {
         auto name = option.first;
@@ -66,7 +66,7 @@ std::unordered_map<std::string, Value> Binder::bindParsingOptions(
 }
 
 std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(BaseScanSource* source,
-    const parsing_option_t& options, const std::vector<std::string>& expectedColumnNames,
+    const options_t& options, const std::vector<std::string>& expectedColumnNames,
     const std::vector<LogicalType>& expectedColumnTypes) {
     switch (source->type) {
     case common::ScanSourceType::FILE: {

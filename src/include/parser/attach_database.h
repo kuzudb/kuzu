@@ -11,7 +11,7 @@ public:
     explicit AttachDatabase(AttachInfo attachInfo)
         : Statement{common::StatementType::ATTACH_DATABASE}, attachInfo{std::move(attachInfo)} {}
 
-    AttachInfo getAttachInfo() const { return attachInfo; }
+    const AttachInfo& getAttachInfo() const { return attachInfo; }
 
 private:
     AttachInfo attachInfo;

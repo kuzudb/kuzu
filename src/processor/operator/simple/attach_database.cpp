@@ -23,7 +23,8 @@ void AttachDatabase::executeInternal(ExecutionContext* context) {
     }
     for (auto& [name, storageExtension] : client->getDatabase()->getStorageExtensions()) {
         if (storageExtension->canHandleDB(attachInfo.dbType)) {
-            auto db = storageExtension->attach(attachInfo.dbAlias, attachInfo.dbPath, client);
+            auto db = storageExtension->attach(attachInfo.dbAlias, attachInfo.dbPath, client,
+                attachInfo.options);
             client->getDatabaseManager()->registerAttachedDatabase(std::move(db));
             return;
         }

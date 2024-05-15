@@ -7,7 +7,7 @@ namespace postgres_extension {
 
 class PostgresStorageExtension final : public storage::StorageExtension {
 public:
-    static constexpr const char* dbType = "POSTGRES";
+    static constexpr const char* DB_TYPE = "POSTGRES";
 
     explicit PostgresStorageExtension(main::Database* database);
 

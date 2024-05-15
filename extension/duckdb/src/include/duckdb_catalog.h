@@ -11,6 +11,10 @@
 #pragma GCC diagnostic pop
 
 namespace kuzu {
+namespace binder {
+struct AttachOption;
+} // namespace binder
+
 namespace duckdb_extension {
 
 struct BoundExtraCreateDuckDBTableInfo : public binder::BoundExtraCreateTableInfo {
@@ -33,10 +37,8 @@ struct BoundExtraCreateDuckDBTableInfo : public binder::BoundExtraCreateTableInf
 
 class DuckDBCatalog : public extension::CatalogExtension {
 public:
-    DuckDBCatalog(std::string dbPath, std::string catalogName, main::ClientContext* context)
-        : CatalogExtension::CatalogExtension{}, dbPath{std::move(dbPath)},
-          catalogName{std::move(catalogName)},
-          tableNamesVector{*common::LogicalType::STRING(), context->getMemoryManager()} {}
+    DuckDBCatalog(std::string dbPath, std::string catalogName, main::ClientContext* context,
+        const binder::AttachOption& attachOption);
 
     void init() override;
 
@@ -62,6 +64,7 @@ private:
     std::string dbPath;
     std::string catalogName;
     common::ValueVector tableNamesVector;
+    bool skipUnsupportedTable;
 };
 
 } // namespace duckdb_extension

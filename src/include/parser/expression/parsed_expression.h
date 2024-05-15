@@ -90,7 +90,7 @@ protected:
     parsed_expr_vector children;
 };
 
-using parsing_option_t = std::unordered_map<std::string, std::unique_ptr<parser::ParsedExpression>>;
+using options_t = std::unordered_map<std::string, std::unique_ptr<parser::ParsedExpression>>;
 
 } // namespace parser
 } // namespace kuzu
