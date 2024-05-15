@@ -6,11 +6,11 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalScanNodeProperty final : public LogicalOperator {
+class LogicalScanNodeTable final : public LogicalOperator {
 public:
-    LogicalScanNodeProperty(std::shared_ptr<binder::Expression> nodeID,
+    LogicalScanNodeTable(std::shared_ptr<binder::Expression> nodeID,
         std::vector<common::table_id_t> nodeTableIDs, binder::expression_vector properties)
-        : LogicalOperator{LogicalOperatorType::SCAN_NODE_PROPERTY}, nodeID{std::move(nodeID)},
+        : LogicalOperator{LogicalOperatorType::SCAN_NODE_TABLE}, nodeID{std::move(nodeID)},
           nodeTableIDs{std::move(nodeTableIDs)}, properties{std::move(properties)} {}
 
     void computeFactorizedSchema() override;
@@ -25,7 +25,7 @@ public:
     binder::expression_vector getProperties() const { return properties; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalScanNodeProperty>(nodeID, nodeTableIDs, properties);
+        return make_unique<LogicalScanNodeTable>(nodeID, nodeTableIDs, properties);
     }
 
 private:

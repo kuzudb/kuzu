@@ -6,8 +6,8 @@
 #include "planner/operator/logical_accumulate.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
+#include "planner/operator/scan/logical_scan_node_table.h"
 #include "planner/operator/sip/logical_semi_masker.h"
-#include <planner/operator/scan/logical_scan_node_property.h>
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -189,10 +189,10 @@ std::vector<LogicalOperator*> HashJoinSIPOptimizer::resolveOperatorsToApplySemiM
 std::vector<LogicalOperator*> HashJoinSIPOptimizer::resolveScanInternalIDsToApplySemiMask(
     const Expression& nodeID, LogicalOperator* root) {
     std::vector<LogicalOperator*> result;
-    auto collector = LogicalScanNodePropertyCollector();
+    auto collector = LogicalScanNodeTableCollector();
     collector.collect(root);
     for (auto& op : collector.getOperators()) {
-        auto scan = ku_dynamic_cast<LogicalOperator*, LogicalScanNodeProperty*>(op);
+        auto scan = ku_dynamic_cast<LogicalOperator*, LogicalScanNodeTable*>(op);
         if (nodeID.getUniqueName() == scan->getNodeID()->getUniqueName()) {
             result.push_back(op);
         }
@@ -223,8 +223,8 @@ std::shared_ptr<LogicalOperator> HashJoinSIPOptimizer::appendNodeSemiMasker(
     std::shared_ptr<Expression> key;
     std::vector<table_id_t> nodeTableIDs;
     switch (op->getOperatorType()) {
-    case LogicalOperatorType::SCAN_NODE_PROPERTY: {
-        const auto scan = ku_dynamic_cast<LogicalOperator*, LogicalScanNodeProperty*>(op);
+    case LogicalOperatorType::SCAN_NODE_TABLE: {
+        const auto scan = ku_dynamic_cast<LogicalOperator*, LogicalScanNodeTable*>(op);
         key = scan->getNodeID();
         nodeTableIDs = scan->getTableIDs();
     } break;
@@ -248,8 +248,8 @@ std::shared_ptr<LogicalOperator> HashJoinSIPOptimizer::appendPathSemiMasker(
     const std::shared_ptr<LogicalOperator>& child) {
     KU_ASSERT(!opsToApplySemiMask.empty());
     const auto op = opsToApplySemiMask[0];
-    KU_ASSERT(op->getOperatorType() == LogicalOperatorType::SCAN_NODE_PROPERTY);
-    const auto scan = ku_dynamic_cast<LogicalOperator*, LogicalScanNodeProperty*>(op);
+    KU_ASSERT(op->getOperatorType() == LogicalOperatorType::SCAN_NODE_TABLE);
+    const auto scan = ku_dynamic_cast<LogicalOperator*, LogicalScanNodeTable*>(op);
     auto semiMasker = std::make_shared<LogicalSemiMasker>(SemiMaskType::PATH, pathExpression,
         scan->getTableIDs(), opsToApplySemiMask, child);
     semiMasker->computeFlatSchema();

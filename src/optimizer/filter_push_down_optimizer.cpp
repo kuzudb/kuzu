@@ -9,7 +9,7 @@
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/scan/logical_dummy_scan.h"
 #include "planner/operator/scan/logical_index_scan.h"
-#include "planner/operator/scan/logical_scan_node_property.h"
+#include "planner/operator/scan/logical_scan_node_table.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -32,7 +32,7 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitOperator(
         return visitCrossProductReplace(op);
     }
         // TODO: temporarily disable filter push down for scan node table
-    // case LogicalOperatorType::SCAN_NODE_PROPERTY: {
+    // case LogicalOperatorType::SCAN_NODE_TABLE: {
     // return visitScanNodePropertyReplace(op);
     // }
     default: { // Stop current push down for unhandled operator.
@@ -125,7 +125,7 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductRepla
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodePropertyReplace(
     const std::shared_ptr<LogicalOperator>& op) {
     return op;
-    // auto scan = (LogicalScanNodeProperty*)op.get();
+    // auto scan = (LogicalScanNodeTable*)op.get();
     // auto nodeID = scan->getNodeID();
     // auto tableIDs = scan->getTableIDs();
     // std::shared_ptr<Expression> primaryKeyEqualityComparison = nullptr;
@@ -207,7 +207,7 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::appendScanNodeProperty
     if (properties.empty()) {
         return child;
     }
-    auto scanNodeProperty = std::make_shared<LogicalScanNodeProperty>(std::move(nodeID),
+    auto scanNodeProperty = std::make_shared<LogicalScanNodeTable>(std::move(nodeID),
         std::move(nodeTableIDs), std::move(properties));
     scanNodeProperty->computeFlatSchema();
     return scanNodeProperty;

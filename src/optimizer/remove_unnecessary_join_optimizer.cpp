@@ -1,7 +1,7 @@
 #include "optimizer/remove_unnecessary_join_optimizer.h"
 
 #include "planner/operator/logical_hash_join.h"
-#include <planner/operator/scan/logical_scan_node_property.h>
+#include "planner/operator/scan/logical_scan_node_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;
@@ -37,17 +37,17 @@ std::shared_ptr<LogicalOperator> RemoveUnnecessaryJoinOptimizer::visitHashJoinRe
         break;
     }
     // TODO(Xiyang): Double check on these changes here.
-    if (op->getChild(1)->getOperatorType() == LogicalOperatorType::SCAN_NODE_PROPERTY) {
+    if (op->getChild(1)->getOperatorType() == LogicalOperatorType::SCAN_NODE_TABLE) {
         const auto scanNode =
-            ku_dynamic_cast<LogicalOperator*, LogicalScanNodeProperty*>(op->getChild(1).get());
+            ku_dynamic_cast<LogicalOperator*, LogicalScanNodeTable*>(op->getChild(1).get());
         if (scanNode->getProperties().empty()) {
             // Build side is trivial. Prune build side.
             return op->getChild(0);
         }
     }
-    if (op->getChild(0)->getOperatorType() == LogicalOperatorType::SCAN_NODE_PROPERTY) {
+    if (op->getChild(0)->getOperatorType() == LogicalOperatorType::SCAN_NODE_TABLE) {
         const auto scanNode =
-            ku_dynamic_cast<LogicalOperator*, LogicalScanNodeProperty*>(op->getChild(0).get());
+            ku_dynamic_cast<LogicalOperator*, LogicalScanNodeTable*>(op->getChild(0).get());
         if (scanNode->getProperties().empty()) {
             // Probe side is trivial. Prune probe side.
             return op->getChild(1);

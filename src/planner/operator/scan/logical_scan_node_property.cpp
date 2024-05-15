@@ -1,9 +1,9 @@
-#include "planner/operator/scan/logical_scan_node_property.h"
+#include "planner/operator/scan/logical_scan_node_table.h"
 
 namespace kuzu {
 namespace planner {
 
-void LogicalScanNodeProperty::computeFactorizedSchema() {
+void LogicalScanNodeTable::computeFactorizedSchema() {
     createEmptySchema();
     const auto groupPos = schema->createGroup();
     schema->insertToGroupAndScope(nodeID, groupPos);
@@ -12,7 +12,7 @@ void LogicalScanNodeProperty::computeFactorizedSchema() {
     }
 }
 
-void LogicalScanNodeProperty::computeFlatSchema() {
+void LogicalScanNodeTable::computeFlatSchema() {
     createEmptySchema();
     schema->createGroup();
     schema->insertToGroupAndScope(nodeID, 0);

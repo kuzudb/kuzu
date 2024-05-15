@@ -42,8 +42,8 @@ public:
 
 private:
     std::shared_ptr<SelectionVector> selVector;
-    FStateType fStateType;
     // TODO: Get rid of this field.
+    FStateType fStateType;
     // We need to keep track of originalSize of DataChunks to perform consistent scans of vectors
     // or lists. This is because all the vectors in a data chunk has to be the same length as they
     // share the same selectedPositions array.Therefore, if there is a scan after a filter on the

@@ -6,75 +6,72 @@
 namespace kuzu {
 namespace processor {
 
-// class ScanNodeTableSharedState {
-// public:
-//     ScanNodeTableSharedState()
-//         : table{nullptr}, currentGroupIdx{common::INVALID_NODE_GROUP_IDX}, numNodeGroups{0} {};
-//
-//     void initialize(const transaction::Transaction* transaction, storage::NodeTable* table);
-//
-//     common::node_group_idx_t getNextMorsel();
-//
-// private:
-//     std::mutex mtx;
-//     storage::NodeTable* table;
-//     common::node_group_idx_t currentGroupIdx;
-//     // TODO: Should we differentiate local, persistent and delta node groups?
-//     common::node_group_idx_t numNodeGroups;
-// };
-//
-// struct ScanNodeTableInfo {
-//     storage::NodeTable* table;
-//     std::vector<common::column_id_t> columnIDs;
-//
-//     ScanNodeTableInfo(storage::NodeTable* table, std::vector<common::column_id_t> columnIDs)
-//         : table{table}, columnIDs{std::move(columnIDs)} {}
-//     ScanNodeTableInfo(const ScanNodeTableInfo& other)
-//         : table{other.table}, columnIDs{other.columnIDs} {}
-//
-//     std::unique_ptr<ScanNodeTableInfo> copy() const {
-//         return std::make_unique<ScanNodeTableInfo>(*this);
-//     }
-// };
+class ScanNodeTableSharedState {
+public:
+    ScanNodeTableSharedState()
+        : table{nullptr}, currentGroupIdx{common::INVALID_NODE_GROUP_IDX}, numNodeGroups{0} {};
 
-// class ScanNodeTable final : public ScanTable {
-// public:
-//     ScanNodeTable(std::unique_ptr<ScanNodeTableInfo> info, const DataPos& inVectorPos,
-//         std::vector<DataPos> outVectorsPos, std::shared_ptr<ScanNodeTableSharedState>
-//         sharedState, uint32_t id, const std::string& paramsString) :
-//         ScanNodeTable{PhysicalOperatorType::SCAN_NODE_TABLE, std::move(info), inVectorPos,
-//               std::move(outVectorsPos), std::move(sharedState), id, paramsString} {}
-//
-//     bool isSource() const override { return true; }
-//
-//     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
-//
-//     bool getNextTuplesInternal(ExecutionContext* context) override;
-//
-//     std::unique_ptr<PhysicalOperator> clone() override {
-//         return make_unique<ScanNodeTable>(info->copy(), nodeIDPos, outVectorsPos, sharedState,
-//         id,
-//             paramsString);
-//     }
+    void initialize(const transaction::Transaction* transaction, storage::NodeTable* table);
 
-// protected:
-//     ScanNodeTable(PhysicalOperatorType operatorType, std::unique_ptr<ScanNodeTableInfo> info,
-//         const DataPos& inVectorPos, std::vector<DataPos> outVectorsPos,
-//         std::shared_ptr<ScanNodeTableSharedState> sharedState, uint32_t id,
-//         const std::string& paramsString)
-//         : ScanTable{operatorType, inVectorPos, std::move(outVectorsPos), id, paramsString},
-//           info{std::move(info)}, sharedState{std::move(sharedState)} {}
-//
-// private:
-//     void initGlobalStateInternal(ExecutionContext* context) override {
-//         sharedState->initialize(context->clientContext->getTx(), info->table);
-//     }
-//
-// private:
-//     std::unique_ptr<ScanNodeTableInfo> info;
-//     std::shared_ptr<ScanNodeTableSharedState> sharedState;
-//     std::unique_ptr<storage::NodeTableReadState> readState;
-// };
+    common::node_group_idx_t getNextMorsel();
+
+private:
+    std::mutex mtx;
+    storage::NodeTable* table;
+    common::node_group_idx_t currentGroupIdx;
+    // TODO: Should we differentiate local, persistent and delta node groups?
+    common::node_group_idx_t numNodeGroups;
+};
+
+struct ScanNodeTableInfo {
+    storage::NodeTable* table;
+    std::vector<common::column_id_t> columnIDs;
+
+    ScanNodeTableInfo(storage::NodeTable* table, std::vector<common::column_id_t> columnIDs)
+        : table{table}, columnIDs{std::move(columnIDs)} {}
+    ScanNodeTableInfo(const ScanNodeTableInfo& other)
+        : table{other.table}, columnIDs{other.columnIDs} {}
+
+    std::unique_ptr<ScanNodeTableInfo> copy() const {
+        return std::make_unique<ScanNodeTableInfo>(*this);
+    }
+};
+
+class ScanNodeTables final : public ScanTable {
+public:
+    ScanNodeTables(const DataPos& inVectorPos, std::vector<DataPos> outVectorsPos,
+        std::vector<std::unique_ptr<ScanNodeTableInfo>> infos,
+        std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates, uint32_t id,
+        const std::string& paramsString)
+        : ScanTable{PhysicalOperatorType::SCAN_NODE_TABLE, inVectorPos, std::move(outVectorsPos),
+              id, paramsString},
+          currentTableIdx{0}, infos{std::move(infos)}, sharedStates{std::move(sharedStates)} {
+        KU_ASSERT(infos.size() == sharedStates.size());
+    }
+
+    bool isSource() const override { return true; }
+
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
+
+    bool getNextTuplesInternal(ExecutionContext* context) override;
+
+    common::vector_idx_t getNumTables() const { return sharedStates.size(); }
+    const ScanNodeTableSharedState& getSharedState(common::vector_idx_t idx) const {
+        KU_ASSERT(idx < sharedStates.size());
+        return *sharedStates[idx];
+    }
+
+    std::unique_ptr<PhysicalOperator> clone() override;
+
+private:
+    void initGlobalStateInternal(ExecutionContext* context) override;
+
+private:
+    common::vector_idx_t currentTableIdx;
+    std::vector<std::unique_ptr<ScanNodeTableInfo>> infos;
+    std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates;
+    std::vector<std::unique_ptr<storage::NodeTableReadState>> readStates;
+};
 
 } // namespace processor
 } // namespace kuzu

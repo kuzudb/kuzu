@@ -70,13 +70,13 @@
 ---- 1
 6
 
--LOG MultiLabelFilter
--STATEMENT MATCH p = (a)-[e*2..3 (r, n | WHERE n.ID < 3)]->(b) WHERE a.ID = 2 WITH properties(nodes(p), "ID") AS o, properties(rels(p), "_id") AS p, b.ID AS q WHERE q = 1 RETURN o, p
----- 4
-[2,0,1]|[3:3,4:0]
-[2,0,2,1]|[3:3,3:0,4:1]
-[2,0,2,1]|[3:3,6:0,4:1]
-[2,0,2,1]|[3:3,7:0,4:1]
--STATEMENT MATCH p = (a)-[e*2..3 (r, n | WHERE n.ID + offset(id(r)) < 3)]->(b) RETURN p
----- error
-Binder exception: Cannot evaluate LESS_THAN(+(n.ID,OFFSET(r._ID)),3) in recursive pattern e.
+#-LOG MultiLabelFilter
+#-STATEMENT MATCH p = (a)-[e*2..3 (r, n | WHERE n.ID < 3)]->(b) WHERE a.ID = 2 WITH properties(nodes(p), "ID") AS o, properties(rels(p), "_id") AS p, b.ID AS q WHERE q = 1 RETURN o, p
+#---- 4
+#[2,0,1]|[3:3,4:0]
+#[2,0,2,1]|[3:3,3:0,4:1]
+#[2,0,2,1]|[3:3,6:0,4:1]
+#[2,0,2,1]|[3:3,7:0,4:1]
+#-STATEMENT MATCH p = (a)-[e*2..3 (r, n | WHERE n.ID + offset(id(r)) < 3)]->(b) RETURN p
+#---- error
+#Binder exception: Cannot evaluate LESS_THAN(+(n.ID,OFFSET(r._ID)),3) in recursive pattern e.

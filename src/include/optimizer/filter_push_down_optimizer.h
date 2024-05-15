@@ -52,13 +52,13 @@ private:
     std::shared_ptr<planner::LogicalOperator> visitCrossProductReplace(
         const std::shared_ptr<planner::LogicalOperator>& op);
 
-    // Push FILTER before SCAN_NODE_PROPERTY.
+    // Push FILTER before SCAN_NODE_TABLE.
     // Push index lookup into SCAN_NODE_ID.
     std::shared_ptr<planner::LogicalOperator> visitScanNodePropertyReplace(
         const std::shared_ptr<planner::LogicalOperator>& op);
 
-    // Rewrite SCAN_NODE_ID->SCAN_NODE_PROPERTY->FILTER as
-    // SCAN_NODE_ID->(SCAN_NODE_PROPERTY->FILTER)*->SCAN_NODE_PROPERTY
+    // Rewrite SCAN_NODE_ID->SCAN_NODE_TABLE->FILTER as
+    // SCAN_NODE_ID->(SCAN_NODE_TABLE->FILTER)*->SCAN_NODE_TABLE
     // so that filter with higher selectivity is applied before scanning.
     std::shared_ptr<planner::LogicalOperator> pushDownToScanNode(
         std::shared_ptr<binder::Expression> nodeID, std::vector<common::table_id_t> tableIDs,

@@ -2,6 +2,7 @@
 
 #include "common/enums/rel_direction.h"
 #include "expression_mapper.h"
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_plan.h"
 #include "processor/operator/result_collector.h"
 #include "processor/physical_plan.h"
@@ -60,8 +61,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapFlatten(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapFilter(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapProjection(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapScanNodeProperty(
-        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapScanNodeTable(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSemiMasker(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapHashJoin(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapIntersect(planner::LogicalOperator* logicalOperator);

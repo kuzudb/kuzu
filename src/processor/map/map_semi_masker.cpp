@@ -1,8 +1,8 @@
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
+#include "processor/operator/scan/scan_node_table.h"
 #include "processor/operator/semi_masker.h"
 #include "processor/plan_mapper.h"
-#include <processor/operator/scan/scan_multi_node_tables.h>
 
 using namespace kuzu::common;
 using namespace kuzu::planner;
@@ -22,7 +22,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
     for (auto& op : semiMasker->getOperators()) {
         const auto physicalOp = logicalOpToPhysicalOpMap.at(op);
         switch (physicalOp->getOperatorType()) {
-        case PhysicalOperatorType::SCAN_NODE_TABLES: {
+        case PhysicalOperatorType::SCAN_NODE_TABLE: {
             // auto scanNodeTables = ku_dynamic_cast<PhysicalOperator*,
             // ScanNodeTables*>(physicalOp); for (auto i = 0u; i < scanNodeTables->getNumTables();
             // ++i) {

@@ -50,7 +50,7 @@ enum class PhysicalOperatorType : uint8_t {
     RENAME_TABLE,
     RESULT_COLLECTOR,
     SCAN_FRONTIER,
-    SCAN_NODE_TABLES,
+    SCAN_NODE_TABLE,
     SCAN_MULTI_REL_TABLES,
     SCAN_REL_TABLE,
     SEMI_MASKER,

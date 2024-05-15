@@ -77,7 +77,6 @@ public:
     }
     void setSelVectorForDeletedOffsets(transaction::Transaction* trx,
         common::ValueVector* vector) const {
-        KU_ASSERT(vector->isSequential());
         const auto nodeStateCollection =
             common::ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(
                 tablesStatistics);

@@ -1,7 +1,7 @@
 #include "binder/expression_visitor.h"
 #include "common/enums/join_type.h"
 #include "planner/join_order/cost_model.h"
-#include "planner/operator/scan/logical_scan_node_property.h"
+#include "planner/operator/scan/logical_scan_node_table.h"
 #include "planner/planner.h"
 
 using namespace kuzu::binder;
@@ -217,7 +217,6 @@ void Planner::planBaseTableScans(SubqueryType subqueryType,
     case SubqueryType::INTERNAL_ID_CORRELATED: {
         for (auto nodePos = 0u; nodePos < queryGraph->getNumQueryNodes(); ++nodePos) {
             auto queryNode = queryGraph->getQueryNode(nodePos);
-            // planNodeScan(nodePos);
             if (correlatedExpressionSet.contains(queryNode->getInternalID())) {
                 // In un-nested subquery, e.g. MATCH (a) OPTIONAL MATCH (a)-[e1]->(b), the inner
                 // query ("(a)-[e1]->(b)") needs to scan a, which is already scanned in the outer
@@ -273,9 +272,8 @@ void Planner::planNodeScan(uint32_t nodePos) {
     auto newSubgraph = context.getEmptySubqueryGraph();
     newSubgraph.addQueryNode(nodePos);
     auto plan = std::make_unique<LogicalPlan>();
-    // appendScanInternalID(node->getInternalID(), node->getTableIDs(), *plan);
     auto properties = getProperties(*node);
-    appendScanNodeProperties(node->getInternalID(), node->getTableIDs(), properties, *plan);
+    appendScanNodeTable(node->getInternalID(), node->getTableIDs(), properties, *plan);
     auto predicates = getNewlyMatchedExpressions(context.getEmptySubqueryGraph(), newSubgraph,
         context.getWhereExpressions());
     appendFilters(predicates, *plan);
@@ -287,7 +285,7 @@ void Planner::planNodeIDScan(uint32_t nodePos) {
     auto newSubgraph = context.getEmptySubqueryGraph();
     newSubgraph.addQueryNode(nodePos);
     auto plan = std::make_unique<LogicalPlan>();
-    appendScanNodeProperties(node->getInternalID(), node->getTableIDs(), {}, *plan);
+    appendScanNodeTable(node->getInternalID(), node->getTableIDs(), {}, *plan);
     context.addPlan(newSubgraph, std::move(plan));
 }
 
@@ -311,7 +309,7 @@ void Planner::planRelScan(uint32_t relPos) {
         auto plan = std::make_unique<LogicalPlan>();
         auto [boundNode, nbrNode] = getBoundAndNbrNodes(*rel, direction);
         const auto extendDirection = ExtendDirectionUtils::getExtendDirection(*rel, *boundNode);
-        appendScanNodeProperties(boundNode->getInternalID(), boundNode->getTableIDs(), {}, *plan);
+        appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), {}, *plan);
         appendExtendAndFilter(boundNode, nbrNode, rel, extendDirection, predicates, *plan);
         context.addPlan(newSubgraph, std::move(plan));
     }
@@ -386,7 +384,7 @@ static LogicalOperator* getSequentialScan(LogicalOperator* op) {
     case LogicalOperatorType::PROJECTION: { // operators we directly search through
         return getSequentialScan(op->getChild(0).get());
     }
-    case LogicalOperatorType::SCAN_NODE_PROPERTY: {
+    case LogicalOperatorType::SCAN_NODE_TABLE: {
         return op;
     }
     default:
@@ -400,8 +398,7 @@ static bool isNodeSequentialOnPlan(const LogicalPlan& plan, const NodeExpression
     if (seqScan == nullptr) {
         return false;
     }
-    const auto sequentialScan =
-        ku_dynamic_cast<LogicalOperator*, LogicalScanNodeProperty*>(seqScan);
+    const auto sequentialScan = ku_dynamic_cast<LogicalOperator*, LogicalScanNodeTable*>(seqScan);
     return sequentialScan->getNodeID()->getUniqueName() == node.getInternalID()->getUniqueName();
 }
 
