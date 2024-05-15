@@ -1,6 +1,5 @@
 #include "binder/expression_binder.h"
 
-#include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression_visitor.h"
 #include "common/exception/binder.h"
