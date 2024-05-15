@@ -73,7 +73,6 @@ void SequenceCatalogEntry::replayVal(uint64_t usageCount, int64_t currVal, int64
     }
 }
 
-
 void SequenceCatalogEntry::serialize(common::Serializer& serializer) const {
     CatalogEntry::serialize(serializer);
     serializer.write(sequenceID);

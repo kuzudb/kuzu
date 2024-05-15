@@ -31,8 +31,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateTable(LogicalOperator* lo
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateSequence(LogicalOperator* logicalOperator) {
     auto createSequence = (LogicalCreateSequence*)logicalOperator;
-    return std::make_unique<CreateSequence>(createSequence->getInfo(),
-        getOutputPos(createSequence), getOperatorID(), createSequence->getExpressionsForPrinting());
+    return std::make_unique<CreateSequence>(createSequence->getInfo(), getOutputPos(createSequence),
+        getOperatorID(), createSequence->getExpressionsForPrinting());
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDropTable(LogicalOperator* logicalOperator) {
