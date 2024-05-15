@@ -478,7 +478,7 @@ function_set BitShiftRightFunction::getFunctionSet() {
 function_set PiFunction::getFunctionSet() {
     function_set result;
     result.push_back(make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{},
-        LogicalTypeID::DOUBLE, ScalarFunction::ConstExecFunction<double, Pi>));
+        LogicalTypeID::DOUBLE, ScalarFunction::NullaryExecFunction<double, Pi>));
     return result;
 }
 

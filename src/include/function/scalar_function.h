@@ -164,7 +164,7 @@ struct ScalarFunction final : public BaseScalarFunction {
     }
 
     template<typename RESULT_TYPE, typename FUNC>
-    static void ConstExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
+    static void NullaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.empty());
         (void)params;
@@ -172,7 +172,8 @@ struct ScalarFunction final : public BaseScalarFunction {
     }
 
     template<typename RESULT_TYPE, typename FUNC>
-    static void PoniterExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
+    static void NullaryAuxilaryExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* dataPtr) {
         KU_ASSERT(params.empty());
         (void)params;
