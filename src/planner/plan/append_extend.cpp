@@ -22,6 +22,9 @@ namespace planner {
 
 static bool extendHasAtMostOneNbrGuarantee(RelExpression& rel, NodeExpression& boundNode,
     ExtendDirection direction, const main::ClientContext& clientContext) {
+    if (rel.isEmpty()) {
+        return false;
+    }
     if (boundNode.isMultiLabeled()) {
         return false;
     }

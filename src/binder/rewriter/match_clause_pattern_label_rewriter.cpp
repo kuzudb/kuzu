@@ -7,15 +7,14 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace binder {
 
-void MatchClausePatternLabelRewriter::visitMatch(const BoundReadingClause& readingClause) {
-    auto& matchClause =
-        ku_dynamic_cast<const BoundReadingClause&, const BoundMatchClause&>(readingClause);
+void MatchClausePatternLabelRewriter::visitMatchUnsafe(BoundReadingClause& readingClause) {
+    auto& matchClause = readingClause.cast<BoundMatchClause>();
     if (matchClause.getMatchClauseType() == MatchClauseType::OPTIONAL_MATCH) {
         return;
     }
-    auto collection = matchClause.getQueryGraphCollection();
+    auto collection = matchClause.getQueryGraphCollectionUnsafe();
     for (auto i = 0u; i < collection->getNumQueryGraphs(); ++i) {
-        analyzer.pruneLabel(*collection->getQueryGraph(i));
+        analyzer.pruneLabel(*collection->getQueryGraphUnsafe(i));
     }
 }
 

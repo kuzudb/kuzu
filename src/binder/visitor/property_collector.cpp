@@ -26,6 +26,10 @@ expression_vector PropertyCollector::getProperties() {
 void PropertyCollector::visitMatch(const BoundReadingClause& readingClause) {
     auto& matchClause = (BoundMatchClause&)readingClause;
     for (auto& rel : matchClause.getQueryGraphCollection()->getQueryRels()) {
+        if (rel->isEmpty()) {
+            // If a query rel is empty then it does not have an internal id property.
+            continue;
+        }
         if (rel->getRelType() == QueryRelType::NON_RECURSIVE) {
             properties.insert(rel->getInternalIDProperty());
         }

@@ -179,6 +179,9 @@ private:
         std::vector<std::unique_ptr<LogicalPlan>> leftPlans,
         std::vector<std::unique_ptr<LogicalPlan>> rightPlans);
 
+    // Append empty result
+    void appendEmptyResult(LogicalPlan& plan);
+
     // Append updating operators
     void appendInsertNode(const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos,
         LogicalPlan& plan);

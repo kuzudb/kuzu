@@ -33,6 +33,7 @@ public:
         }
     }
 
+    bool isEmpty() const { return tableIDs.empty(); }
     bool isMultiLabeled() const { return tableIDs.size() > 1; }
     uint32_t getNumTableIDs() const { return tableIDs.size(); }
     std::vector<common::table_id_t> getTableIDs() const { return tableIDs; }

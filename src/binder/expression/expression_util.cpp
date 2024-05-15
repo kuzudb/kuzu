@@ -1,6 +1,7 @@
 #include "binder/expression/expression_util.h"
 
 #include "binder/expression/literal_expression.h"
+#include "binder/expression/node_rel_expression.h"
 #include "binder/expression/parameter_expression.h"
 #include "common/exception/binder.h"
 #include "common/types/value/nested.h"
@@ -112,6 +113,13 @@ expression_vector ExpressionUtil::removeDuplication(const expression_vector& exp
         expressionSet.insert(expression);
     }
     return result;
+}
+
+bool ExpressionUtil::isEmptyPattern(const Expression& expression) {
+    if (expression.expressionType != ExpressionType::PATTERN) {
+        return false;
+    }
+    return expression.constCast<NodeOrRelExpression>().isEmpty();
 }
 
 bool ExpressionUtil::isNodePattern(const Expression& expression) {

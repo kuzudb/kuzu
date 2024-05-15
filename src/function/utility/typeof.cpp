@@ -19,9 +19,8 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
     return bindData;
 }
 
-static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result,
+static void execFunc(const std::vector<std::shared_ptr<ValueVector>>&, ValueVector& result,
     void* dataPtr) {
-    KU_ASSERT(params.size() == 1);
     result.resetAuxiliaryBuffer();
     auto typeData = reinterpret_cast<FunctionStringBindData*>(dataPtr);
     for (auto i = 0u; i < result.state->getSelVector().getSelSize(); ++i) {

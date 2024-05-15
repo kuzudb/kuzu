@@ -21,6 +21,15 @@ public:
 
     BoundStatementResult* getStatementResultUnsafe() { return &statementResult; }
 
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const BoundStatement&, const TARGET&>(*this);
+    }
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<BoundStatement&, TARGET&>(*this);
+    }
+
 private:
     common::StatementType statementType;
     BoundStatementResult statementResult;

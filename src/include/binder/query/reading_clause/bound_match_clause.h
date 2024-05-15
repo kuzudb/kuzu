@@ -8,19 +8,17 @@ namespace binder {
 
 class BoundMatchClause : public BoundReadingClause {
 public:
-    BoundMatchClause(QueryGraphCollection queryGraphCollection,
-        common::MatchClauseType matchClauseType)
-        : BoundReadingClause{common::ClauseType::MATCH},
-          queryGraphCollection{std::move(queryGraphCollection)}, matchClauseType{matchClauseType} {}
+    BoundMatchClause(QueryGraphCollection collection, common::MatchClauseType matchClauseType)
+        : BoundReadingClause{common::ClauseType::MATCH}, collection{std::move(collection)},
+          matchClauseType{matchClauseType} {}
 
-    inline const QueryGraphCollection* getQueryGraphCollection() const {
-        return &queryGraphCollection;
-    }
+    QueryGraphCollection* getQueryGraphCollectionUnsafe() { return &collection; }
+    const QueryGraphCollection* getQueryGraphCollection() const { return &collection; }
 
-    inline common::MatchClauseType getMatchClauseType() const { return matchClauseType; }
+    common::MatchClauseType getMatchClauseType() const { return matchClauseType; }
 
 private:
-    QueryGraphCollection queryGraphCollection;
+    QueryGraphCollection collection;
     common::MatchClauseType matchClauseType;
 };
 

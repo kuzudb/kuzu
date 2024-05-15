@@ -594,15 +594,9 @@ std::vector<table_id_t> Binder::bindTableIDs(const std::vector<std::string>& tab
             for (auto tableID : catalog->getNodeTableIDs(tx)) {
                 tableIDSet.insert(tableID);
             }
-            if (tableIDSet.empty()) {
-                throw BinderException("No node table exists in database.");
-            }
         } else { // Fill all rel table schemas to rel pattern.
             for (auto tableID : catalog->getRelTableIDs(tx)) {
                 tableIDSet.insert(tableID);
-            }
-            if (tableIDSet.empty()) {
-                throw BinderException("No rel table exists in database.");
             }
         }
     } else {

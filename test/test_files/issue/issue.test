@@ -425,3 +425,39 @@ myid|[{input1=value1}]
 ---- ok
 -STATEMENT COMMIT
 ---- ok
+
+
+-CASE 3488
+-STATEMENT MATCH (n) RETURN COUNT(*);
+---- 1
+0
+-STATEMENT MATCH (n) RETURN n;
+---- 0
+-STATEMENT MATCH (n) RETURN n.id;
+---- error
+Binder exception: Cannot find property id for n.
+-STATEMENT MATCH (n) RETURN id(n);
+---- 0
+-STATEMENT MATCH (a)-[e]->(b) RETURN a, e, b;
+---- 0
+-STATEMENT CREATE NODE TABLE label1 (id SERIAL, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE label2 (id SERIAL, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (n:label1) RETURN n;
+---- ok
+-STATEMENT CREATE (n:label2) RETURN n;
+---- ok
+-STATEMENT MATCH (n:label1)-[r]->() WHERE n.id = 0 RETURN r;
+---- 0
+-STATEMENT MATCH (n:label1)-[r:rel2]->() WHERE n.id = 0 RETURN r;
+---- error
+Binder exception: Table rel2 does not exist.
+-STATEMENT MATCH (n:label1)-[r]->(k:label1) WHERE n.id = 0 RETURN r;
+---- 0
+-STATEMENT MATCH (n:label2)-[r]->() WHERE n.id = 0 RETURN r;
+---- 0
+-STATEMENT MATCH (n1) WHERE NOT (n1)-[]->() RETURN n1;
+---- 2
+{_ID: 0:0, _LABEL: label1, id: 0}
+{_ID: 1:0, _LABEL: label2, id: 0}

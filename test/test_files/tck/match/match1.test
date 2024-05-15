@@ -5,8 +5,7 @@
 # Match non-existent nodes returns empty
 -CASE Scenario1
 -STATEMENT MATCH (n) RETURN n;
----- error
-Binder exception: No node table exists in database.
+---- 0
 
 # Matching all nodes
 -CASE Scenario2

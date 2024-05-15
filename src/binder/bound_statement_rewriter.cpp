@@ -13,7 +13,7 @@ void BoundStatementRewriter::rewrite(BoundStatement& boundStatement,
     withClauseProjectionRewriter.visitUnsafe(boundStatement);
 
     auto matchClausePatternLabelRewriter = MatchClausePatternLabelRewriter(clientContext);
-    matchClausePatternLabelRewriter.visit(boundStatement);
+    matchClausePatternLabelRewriter.visitUnsafe(boundStatement);
 
     auto defaultTypeSolver = DefaultTypeSolver();
     defaultTypeSolver.visit(boundStatement);
