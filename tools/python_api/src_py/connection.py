@@ -279,7 +279,7 @@ class Connection:
 
     def remove_function(self, name: str) -> None:
         """
-        Removes a User Defined Function (UDF)
+        Removes a User Defined Function (UDF).
 
         Parameters
         ----------
