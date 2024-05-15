@@ -66,13 +66,13 @@ kU_ImportDatabase
     : IMPORT SP DATABASE SP StringLiteral;
 
 kU_AttachDatabase
-    : ATTACH SP StringLiteral (SP AS SP oC_SchemaName)? SP '(' SP? DBTYPE SP oC_SymbolicName (SP? ',' SP? kU_AttachOptions)? SP? ')' ;
+    : ATTACH SP StringLiteral (SP AS SP oC_SchemaName)? SP '(' SP? DBTYPE SP oC_SymbolicName (SP? ',' SP? kU_Options)? SP? ')' ;
 
-kU_AttachOption
+kU_Option
     : oC_SymbolicName SP? '=' SP? oC_Literal ;
 
-kU_AttachOptions
-    : kU_AttachOption ( SP? ',' SP? kU_AttachOption )* ;
+kU_Options
+    : kU_Option ( SP? ',' SP? kU_Option )* ;
 
 ATTACH:
     ( 'A' | 'a') ( 'T' | 't') ( 'T' | 't') ( 'A' | 'a') ( 'C' | 'c') ( 'H' | 'h');
@@ -118,10 +118,7 @@ kU_FilePaths
 GLOB : ( 'G' | 'g' ) ( 'L' | 'l' ) ( 'O' | 'o' ) ( 'B' | 'b' ) ;
 
 kU_ParsingOptions
-    : '(' SP? kU_ParsingOption ( SP? ',' SP? kU_ParsingOption )*  SP? ')' ;
-
-kU_ParsingOption
-    : oC_SymbolicName SP? '=' SP? oC_Literal;
+    : '(' SP? kU_Options SP? ')' ;
 
 COPY : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'P' | 'p') ( 'Y' | 'y' ) ;
 

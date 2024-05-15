@@ -1,19 +1,19 @@
 #pragma once
 
+#include "binder/bound_attach_info.h"
 #include "logical_simple.h"
-#include "parser/parsed_data/attach_info.h"
 
 namespace kuzu {
 namespace planner {
 
 class LogicalAttachDatabase final : public LogicalSimple {
 public:
-    explicit LogicalAttachDatabase(parser::AttachInfo attachInfo,
+    explicit LogicalAttachDatabase(binder::AttachInfo attachInfo,
         std::shared_ptr<binder::Expression> outputExpression)
         : LogicalSimple{LogicalOperatorType::ATTACH_DATABASE, std::move(outputExpression)},
           attachInfo{std::move(attachInfo)} {}
 
-    parser::AttachInfo getAttachInfo() const { return attachInfo; }
+    binder::AttachInfo getAttachInfo() const { return attachInfo; }
 
     std::string getExpressionsForPrinting() const override { return attachInfo.dbPath; }
 
@@ -22,7 +22,7 @@ public:
     }
 
 private:
-    parser::AttachInfo attachInfo;
+    binder::AttachInfo attachInfo;
 };
 
 } // namespace planner

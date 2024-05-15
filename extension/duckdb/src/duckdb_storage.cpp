@@ -26,7 +26,7 @@ static void validateDuckDBPathExistence(const std::string& dbPath) {
 }
 
 std::unique_ptr<main::AttachedDatabase> attachDuckDB(std::string dbName, std::string dbPath,
-    main::ClientContext* clientContext, const parser::AttachOption& attachOption) {
+    main::ClientContext* clientContext, const binder::AttachOption& attachOption) {
     auto catalogName = getCatalogNameFromPath(dbPath);
     if (dbName == "") {
         dbName = catalogName;

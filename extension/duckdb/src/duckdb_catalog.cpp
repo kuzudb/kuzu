@@ -1,18 +1,18 @@
 #include "duckdb_catalog.h"
 
+#include "binder/bound_attach_info.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "duckdb_scan.h"
 #include "duckdb_storage.h"
 #include "duckdb_table_catalog_entry.h"
 #include "duckdb_type_converter.h"
-#include "parser/parsed_data/attach_info.h"
 
 namespace kuzu {
 namespace duckdb_extension {
 
 DuckDBCatalog::DuckDBCatalog(std::string dbPath, std::string catalogName,
-    main::ClientContext* context, const parser::AttachOption& attachOption)
+    main::ClientContext* context, const binder::AttachOption& attachOption)
     : CatalogExtension::CatalogExtension{}, dbPath{std::move(dbPath)},
       catalogName{std::move(catalogName)},
       tableNamesVector{*common::LogicalType::STRING(), context->getMemoryManager()} {

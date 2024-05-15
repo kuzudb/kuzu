@@ -13,11 +13,11 @@ class Copy : public Statement {
 public:
     explicit Copy(common::StatementType type) : Statement{type} {}
 
-    void setParsingOption(parsing_option_t options) { parsingOptions = std::move(options); }
-    const parsing_option_t& getParsingOptionsRef() const { return parsingOptions; }
+    void setParsingOption(options_t options) { parsingOptions = std::move(options); }
+    const options_t& getParsingOptionsRef() const { return parsingOptions; }
 
 protected:
-    parsing_option_t parsingOptions;
+    options_t parsingOptions;
 };
 
 class CopyFrom : public Copy {

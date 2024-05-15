@@ -53,7 +53,7 @@ private:
     std::vector<std::string> transformFilePaths(
         const std::vector<antlr4::tree::TerminalNode*>& stringLiteral);
     std::unique_ptr<BaseScanSource> transformScanSource(CypherParser::KU_ScanSourceContext& ctx);
-    parsing_option_t transformParsingOptions(CypherParser::KU_ParsingOptionsContext& ctx);
+    options_t transformOptions(CypherParser::KU_OptionsContext& ctx);
 
     std::unique_ptr<Statement> transformExportDatabase(CypherParser::KU_ExportDatabaseContext& ctx);
     std::unique_ptr<Statement> transformImportDatabase(CypherParser::KU_ImportDatabaseContext& ctx);
@@ -223,7 +223,6 @@ private:
     std::unique_ptr<Statement> transformAttachDatabase(CypherParser::KU_AttachDatabaseContext& ctx);
     std::unique_ptr<Statement> transformDetachDatabase(CypherParser::KU_DetachDatabaseContext& ctx);
     std::unique_ptr<Statement> transformUseDatabase(CypherParser::KU_UseDatabaseContext& ctx);
-    AttachOption transformAttachOptions(CypherParser::KU_AttachOptionsContext& ctx);
 
 private:
     CypherParser::Ku_StatementsContext& root;

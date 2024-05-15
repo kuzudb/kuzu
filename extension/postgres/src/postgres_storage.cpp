@@ -21,7 +21,7 @@ std::string extractDBName(const std::string& connectionInfo) {
 }
 
 std::unique_ptr<main::AttachedDatabase> attachPostgres(std::string dbName, std::string dbPath,
-    main::ClientContext* clientContext, const parser::AttachOption& attachOption) {
+    main::ClientContext* clientContext, const binder::AttachOption& attachOption) {
     auto catalogName = extractDBName(dbPath);
     if (dbName == "") {
         dbName = catalogName;

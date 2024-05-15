@@ -60,7 +60,7 @@ std::unique_ptr<ReadingClause> Transformer::transformLoadFrom(
             transformPropertyDefinitions(*ctx.kU_PropertyDefinitions()));
     }
     if (ctx.kU_ParsingOptions()) {
-        loadFrom->setParingOptions(transformParsingOptions(*ctx.kU_ParsingOptions()));
+        loadFrom->setParingOptions(transformOptions(*ctx.kU_ParsingOptions()->kU_Options()));
     }
     if (ctx.oC_Where()) {
         loadFrom->setWherePredicate(transformWhere(*ctx.oC_Where()));

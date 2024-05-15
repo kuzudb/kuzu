@@ -28,7 +28,7 @@ struct BoundExtraCreatePostgresTableInfo final
 class PostgresCatalog final : public duckdb_extension::DuckDBCatalog {
 public:
     PostgresCatalog(std::string dbPath, std::string /*catalogName*/, main::ClientContext* context,
-        const parser::AttachOption& attachOption)
+        const binder::AttachOption& attachOption)
         : duckdb_extension::DuckDBCatalog{std::move(dbPath), DEFAULT_CATALOG_NAME, context,
               attachOption} {}
 

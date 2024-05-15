@@ -11,9 +11,9 @@
 #pragma GCC diagnostic pop
 
 namespace kuzu {
-namespace parser {
+namespace binder {
 struct AttachOption;
-} // namespace parser
+} // namespace binder
 
 namespace duckdb_extension {
 
@@ -38,7 +38,7 @@ struct BoundExtraCreateDuckDBTableInfo : public binder::BoundExtraCreateTableInf
 class DuckDBCatalog : public extension::CatalogExtension {
 public:
     DuckDBCatalog(std::string dbPath, std::string catalogName, main::ClientContext* context,
-        const parser::AttachOption& attachOption);
+        const binder::AttachOption& attachOption);
 
     void init() override;
 

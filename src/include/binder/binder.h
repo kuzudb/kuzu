@@ -123,11 +123,11 @@ private:
 
     /*** bind scan source ***/
     std::unique_ptr<BoundBaseScanSource> bindScanSource(parser::BaseScanSource* scanSource,
-        const parser::parsing_option_t& options, const std::vector<std::string>& columnNames,
+        const parser::options_t& options, const std::vector<std::string>& columnNames,
         const std::vector<common::LogicalType>& columnTypes);
 
     std::unordered_map<std::string, common::Value> bindParsingOptions(
-        const parser::parsing_option_t& parsingOptions);
+        const parser::options_t& parsingOptions);
     common::FileType bindFileType(const std::vector<std::string>& filePaths);
     common::FileType bindFileType(const std::string& filePath);
     std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);
