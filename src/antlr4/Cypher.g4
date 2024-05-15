@@ -826,6 +826,12 @@ kU_NonReservedKeywords
         | DATABASE
         | USE
         | START
+        | SEQUENCE
+        | INCREMENT
+        | MINVALUE
+        | MAXVALUE
+        | NO
+        | CYCLE
         ;
 
 UnescapedSymbolicName

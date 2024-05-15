@@ -51,6 +51,7 @@ public:
     //===--------------------------------------------------------------------===//
     int64_t currVal();
     int64_t nextVal();
+    void replayVal(uint64_t usageCount, int64_t currVal, int64_t nextVal);
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization

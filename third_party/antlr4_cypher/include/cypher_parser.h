@@ -2637,6 +2637,12 @@ public:
     antlr4::tree::TerminalNode *DATABASE();
     antlr4::tree::TerminalNode *USE();
     antlr4::tree::TerminalNode *START();
+    antlr4::tree::TerminalNode *SEQUENCE();
+    antlr4::tree::TerminalNode *INCREMENT();
+    antlr4::tree::TerminalNode *MINVALUE();
+    antlr4::tree::TerminalNode *MAXVALUE();
+    antlr4::tree::TerminalNode *NO();
+    antlr4::tree::TerminalNode *CYCLE();
 
    
   };

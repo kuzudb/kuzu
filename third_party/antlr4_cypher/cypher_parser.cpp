@@ -2226,7 +2226,7 @@ void cypherParserInitialize() {
   	246,248,250,252,254,256,258,260,262,264,266,268,270,272,274,276,278,280,
   	282,284,286,288,290,292,294,296,298,300,302,304,306,308,0,11,2,0,60,60,
   	62,63,1,0,114,117,2,0,6,6,13,17,1,0,19,20,2,0,21,21,125,125,2,0,22,23,
-  	108,108,1,0,134,135,9,0,48,48,50,50,56,59,67,67,77,77,81,81,128,128,136,
+  	108,108,1,0,134,135,9,0,48,48,50,50,56,59,63,69,77,77,81,81,128,128,136,
   	136,140,140,2,0,14,14,27,30,2,0,16,16,31,34,2,0,35,45,125,125,2740,0,
   	310,1,0,0,0,2,330,1,0,0,0,4,363,1,0,0,0,6,365,1,0,0,0,8,387,1,0,0,0,10,
   	429,1,0,0,0,12,431,1,0,0,0,14,461,1,0,0,0,16,482,1,0,0,0,18,493,1,0,0,
@@ -6683,6 +6683,7 @@ CypherParser::KU_CreateMacroContext* CypherParser::kU_CreateMacro() {
     if (((((_la - 48) & ~ 0x3fULL) == 0) &&
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
       ((1ULL << (_la - 48)) & 71307013) != 0) || ((((_la - 121) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 121)) & 302256385) != 0)) {
       setState(592);
@@ -6694,6 +6695,9 @@ CypherParser::KU_CreateMacroContext* CypherParser::kU_CreateMacro() {
 =======
       ((1ULL << (_la - 48)) & 9127333637) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
 >>>>>>> aed81ff20 (create sequence complete)
+=======
+      ((1ULL << (_la - 48)) & 9130970885) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
+>>>>>>> a8e8d83d4 (further address comments, setup WAL for sequences, and fix clangd)
       ((1ULL << (_la - 128)) & 302256385) != 0)) {
       setState(576);
       kU_DefaultArg();
@@ -12489,7 +12493,13 @@ CypherParser::KU_LoadExtensionContext* CypherParser::kU_LoadExtension() {
       case CypherParser::IMPORT:
       case CypherParser::DATABASE:
       case CypherParser::NODE:
+      case CypherParser::SEQUENCE:
+      case CypherParser::INCREMENT:
+      case CypherParser::MINVALUE:
+      case CypherParser::MAXVALUE:
       case CypherParser::START:
+      case CypherParser::NO:
+      case CypherParser::CYCLE:
       case CypherParser::REL:
       case CypherParser::BEGIN:
       case CypherParser::IN:
@@ -17490,7 +17500,13 @@ CypherParser::OC_ProjectionItemsContext* CypherParser::oC_ProjectionItems() {
       case CypherParser::IMPORT:
       case CypherParser::DATABASE:
       case CypherParser::NODE:
+      case CypherParser::SEQUENCE:
+      case CypherParser::INCREMENT:
+      case CypherParser::MINVALUE:
+      case CypherParser::MAXVALUE:
       case CypherParser::START:
+      case CypherParser::NO:
+      case CypherParser::CYCLE:
       case CypherParser::REL:
       case CypherParser::BEGIN:
       case CypherParser::NOT:
@@ -18710,7 +18726,13 @@ CypherParser::OC_PatternPartContext* CypherParser::oC_PatternPart() {
       case CypherParser::IMPORT:
       case CypherParser::DATABASE:
       case CypherParser::NODE:
+      case CypherParser::SEQUENCE:
+      case CypherParser::INCREMENT:
+      case CypherParser::MINVALUE:
+      case CypherParser::MAXVALUE:
       case CypherParser::START:
+      case CypherParser::NO:
+      case CypherParser::CYCLE:
       case CypherParser::REL:
       case CypherParser::BEGIN:
       case CypherParser::IN:
@@ -19372,9 +19394,15 @@ CypherParser::OC_NodePatternContext* CypherParser::oC_NodePattern() {
     _errHandler->sync(this);
 
     _la = _input->LA(1);
+<<<<<<< HEAD
     if (_la == CypherParser::T__8) {
 =======
 >>>>>>> 6a075a2f7 (add basic tests for sequence)
+=======
+    if (((((_la - 48) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 48)) & 9130970885) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 128)) & 302256385) != 0)) {
+>>>>>>> a8e8d83d4 (further address comments, setup WAL for sequences, and fix clangd)
       setState(1532);
       oC_Variable();
       setState(1534);
@@ -20379,6 +20407,7 @@ CypherParser::OC_RelationshipDetailContext* CypherParser::oC_RelationshipDetail(
     _errHandler->sync(this);
 
     _la = _input->LA(1);
+<<<<<<< HEAD
     if (_la == CypherParser::STAR) {
       setState(1608);
       oC_RangeLiteral();
@@ -20391,6 +20420,11 @@ CypherParser::OC_RelationshipDetailContext* CypherParser::oC_RelationshipDetail(
 >>>>>>> 4f175c93e (finish statement evaluation workflow)
 =======
 =======
+=======
+    if (((((_la - 48) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 48)) & 9130970885) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 128)) & 302256385) != 0)) {
+>>>>>>> a8e8d83d4 (further address comments, setup WAL for sequences, and fix clangd)
       setState(1608);
       oC_Variable();
 >>>>>>> 6a075a2f7 (add basic tests for sequence)
@@ -20660,6 +20694,7 @@ CypherParser::KU_PropertiesContext* CypherParser::kU_Properties() {
     if (((((_la - 48) & ~ 0x3fULL) == 0) &&
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
       ((1ULL << (_la - 48)) & 71307013) != 0) || ((((_la - 121) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 121)) & 302256385) != 0)) {
       setState(1562);
@@ -20670,6 +20705,9 @@ CypherParser::KU_PropertiesContext* CypherParser::kU_Properties() {
 =======
       ((1ULL << (_la - 48)) & 9127333637) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
 >>>>>>> aed81ff20 (create sequence complete)
+=======
+      ((1ULL << (_la - 48)) & 9130970885) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
+>>>>>>> a8e8d83d4 (further address comments, setup WAL for sequences, and fix clangd)
       ((1ULL << (_la - 128)) & 302256385) != 0)) {
       setState(1638);
       oC_PropertyKeyName();
@@ -22637,6 +22675,7 @@ CypherParser::KU_IntermediateNodeProjectionItemsContext* CypherParser::kU_Interm
     if ((((_la & ~ 0x3fULL) == 0) &&
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
       ((1ULL << _la) & 1082271285519581828) != 0) || ((((_la - 70) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 70)) & -4681139966783258607) != 0) || ((((_la - 136) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 136)) & 9741) != 0)) {
@@ -22671,6 +22710,11 @@ CypherParser::KU_IntermediateNodeProjectionItemsContext* CypherParser::kU_Interm
     setState(1789);
 >>>>>>> b1de44dd3 (finish show_sequences() and debug)
 =======
+=======
+      ((1ULL << _la) & -8141100751335193980) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 64)) & 2882321353703301183) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 128)) & 319199201) != 0)) {
+>>>>>>> a8e8d83d4 (further address comments, setup WAL for sequences, and fix clangd)
       setState(1797);
       oC_ProjectionItems();
     }
@@ -22843,6 +22887,7 @@ CypherParser::KU_IntermediateRelProjectionItemsContext* CypherParser::kU_Interme
     if ((((_la & ~ 0x3fULL) == 0) &&
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
       ((1ULL << _la) & 1082271285519581828) != 0) || ((((_la - 70) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 70)) & -4681139966783258607) != 0) || ((((_la - 136) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 136)) & 9741) != 0)) {
@@ -22877,6 +22922,11 @@ CypherParser::KU_IntermediateRelProjectionItemsContext* CypherParser::kU_Interme
     setState(1801);
 >>>>>>> b1de44dd3 (finish show_sequences() and debug)
 =======
+=======
+      ((1ULL << _la) & -8141100751335193980) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 64)) & 2882321353703301183) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 128)) & 319199201) != 0)) {
+>>>>>>> a8e8d83d4 (further address comments, setup WAL for sequences, and fix clangd)
       setState(1809);
       oC_ProjectionItems();
     }
@@ -26492,6 +26542,7 @@ CypherParser::OC_ListOperatorExpressionContext* CypherParser::oC_ListOperatorExp
       if ((((_la & ~ 0x3fULL) == 0) &&
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         ((1ULL << _la) & 1082271285519581828) != 0) || ((((_la - 70) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 70)) & -4681139968930742255) != 0) || ((((_la - 136) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 136)) & 9741) != 0)) {
@@ -26517,6 +26568,11 @@ CypherParser::OC_ListOperatorExpressionContext* CypherParser::oC_ListOperatorExp
         setState(2038);
 >>>>>>> b1de44dd3 (finish show_sequences() and debug)
 =======
+=======
+        ((1ULL << _la) & -8141100751335193980) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
+        ((1ULL << (_la - 64)) & 2882303761517256767) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
+        ((1ULL << (_la - 128)) & 319199201) != 0)) {
+>>>>>>> a8e8d83d4 (further address comments, setup WAL for sequences, and fix clangd)
         setState(2050);
 >>>>>>> 6a075a2f7 (add basic tests for sequence)
         oC_Expression();
@@ -26541,6 +26597,7 @@ CypherParser::OC_ListOperatorExpressionContext* CypherParser::oC_ListOperatorExp
 
       _la = _input->LA(1);
       if ((((_la & ~ 0x3fULL) == 0) &&
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
         ((1ULL << _la) & 1082271285519581828) != 0) || ((((_la - 70) & ~ 0x3fULL) == 0) &&
@@ -26577,6 +26634,11 @@ CypherParser::OC_ListOperatorExpressionContext* CypherParser::oC_ListOperatorExp
       setState(2045);
 >>>>>>> b1de44dd3 (finish show_sequences() and debug)
 =======
+=======
+        ((1ULL << _la) & -8141100751335193980) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
+        ((1ULL << (_la - 64)) & 2882303761517256767) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
+        ((1ULL << (_la - 128)) & 319199201) != 0)) {
+>>>>>>> a8e8d83d4 (further address comments, setup WAL for sequences, and fix clangd)
         setState(2054);
         oC_Expression();
       }
@@ -28089,6 +28151,7 @@ CypherParser::OC_ListLiteralContext* CypherParser::oC_ListLiteral() {
     if ((((_la & ~ 0x3fULL) == 0) &&
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
       ((1ULL << _la) & 1082271285519581828) != 0) || ((((_la - 70) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 70)) & -4681139968930742255) != 0) || ((((_la - 136) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 136)) & 9741) != 0)) {
@@ -28120,6 +28183,11 @@ CypherParser::OC_ListLiteralContext* CypherParser::oC_ListLiteral() {
       setState(2120);
 >>>>>>> b1de44dd3 (finish show_sequences() and debug)
 =======
+=======
+      ((1ULL << _la) & -8141100751335193980) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 64)) & 2882303761517256767) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 128)) & 319199201) != 0)) {
+>>>>>>> a8e8d83d4 (further address comments, setup WAL for sequences, and fix clangd)
       setState(2130);
       oC_Expression();
       setState(2132);
@@ -28359,6 +28427,7 @@ CypherParser::KU_ListEntryContext* CypherParser::kU_ListEntry() {
     if ((((_la & ~ 0x3fULL) == 0) &&
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
       ((1ULL << _la) & 1082271285519581828) != 0) || ((((_la - 70) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 70)) & -4681139968930742255) != 0) || ((((_la - 136) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 136)) & 9741) != 0)) {
@@ -28384,6 +28453,11 @@ CypherParser::KU_ListEntryContext* CypherParser::kU_ListEntry() {
       setState(2139);
 >>>>>>> b1de44dd3 (finish show_sequences() and debug)
 =======
+=======
+      ((1ULL << _la) & -8141100751335193980) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 64)) & 2882303761517256767) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 128)) & 319199201) != 0)) {
+>>>>>>> a8e8d83d4 (further address comments, setup WAL for sequences, and fix clangd)
       setState(2151);
 >>>>>>> 6a075a2f7 (add basic tests for sequence)
       oC_Expression();
@@ -28747,7 +28821,13 @@ CypherParser::KU_StructFieldContext* CypherParser::kU_StructField() {
       case CypherParser::IMPORT:
       case CypherParser::DATABASE:
       case CypherParser::NODE:
+      case CypherParser::SEQUENCE:
+      case CypherParser::INCREMENT:
+      case CypherParser::MINVALUE:
+      case CypherParser::MAXVALUE:
       case CypherParser::START:
+      case CypherParser::NO:
+      case CypherParser::CYCLE:
       case CypherParser::REL:
       case CypherParser::BEGIN:
       case CypherParser::IN:
@@ -29452,6 +29532,7 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
       if ((((_la & ~ 0x3fULL) == 0) &&
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         ((1ULL << _la) & 1082271285519581828) != 0) || ((((_la - 70) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 70)) & -4681139968930742255) != 0) || ((((_la - 136) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 136)) & 9741) != 0)) {
@@ -29483,6 +29564,11 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
         setState(2217);
 >>>>>>> b1de44dd3 (finish show_sequences() and debug)
 =======
+=======
+        ((1ULL << _la) & -8141100751335193980) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
+        ((1ULL << (_la - 64)) & 2882303761517256767) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
+        ((1ULL << (_la - 128)) & 319199201) != 0)) {
+>>>>>>> a8e8d83d4 (further address comments, setup WAL for sequences, and fix clangd)
         setState(2227);
         kU_FunctionParameter();
         setState(2229);
@@ -30871,7 +30957,13 @@ CypherParser::OC_PropertyLookupContext* CypherParser::oC_PropertyLookup() {
       case CypherParser::IMPORT:
       case CypherParser::DATABASE:
       case CypherParser::NODE:
+      case CypherParser::SEQUENCE:
+      case CypherParser::INCREMENT:
+      case CypherParser::MINVALUE:
+      case CypherParser::MAXVALUE:
       case CypherParser::START:
+      case CypherParser::NO:
+      case CypherParser::CYCLE:
       case CypherParser::REL:
       case CypherParser::BEGIN:
       case CypherParser::IN:
@@ -31938,7 +32030,13 @@ CypherParser::OC_ParameterContext* CypherParser::oC_Parameter() {
       case CypherParser::IMPORT:
       case CypherParser::DATABASE:
       case CypherParser::NODE:
+      case CypherParser::SEQUENCE:
+      case CypherParser::INCREMENT:
+      case CypherParser::MINVALUE:
+      case CypherParser::MAXVALUE:
       case CypherParser::START:
+      case CypherParser::NO:
+      case CypherParser::CYCLE:
       case CypherParser::REL:
       case CypherParser::BEGIN:
       case CypherParser::IN:
@@ -32532,7 +32630,13 @@ CypherParser::OC_SymbolicNameContext* CypherParser::oC_SymbolicName() {
       case CypherParser::IMPORT:
       case CypherParser::DATABASE:
       case CypherParser::NODE:
+      case CypherParser::SEQUENCE:
+      case CypherParser::INCREMENT:
+      case CypherParser::MINVALUE:
+      case CypherParser::MAXVALUE:
       case CypherParser::START:
+      case CypherParser::NO:
+      case CypherParser::CYCLE:
       case CypherParser::REL:
       case CypherParser::BEGIN:
       case CypherParser::IN:
@@ -32628,6 +32732,30 @@ tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::START() {
   return getToken(CypherParser::START, 0);
 }
 
+tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::SEQUENCE() {
+  return getToken(CypherParser::SEQUENCE, 0);
+}
+
+tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::INCREMENT() {
+  return getToken(CypherParser::INCREMENT, 0);
+}
+
+tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::MINVALUE() {
+  return getToken(CypherParser::MINVALUE, 0);
+}
+
+tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::MAXVALUE() {
+  return getToken(CypherParser::MAXVALUE, 0);
+}
+
+tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::NO() {
+  return getToken(CypherParser::NO, 0);
+}
+
+tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::CYCLE() {
+  return getToken(CypherParser::CYCLE, 0);
+}
+
 
 size_t CypherParser::KU_NonReservedKeywordsContext::getRuleIndex() const {
   return CypherParser::RuleKU_NonReservedKeywords;
@@ -32675,7 +32803,7 @@ CypherParser::KU_NonReservedKeywordsContext* CypherParser::kU_NonReservedKeyword
 >>>>>>> 6a075a2f7 (add basic tests for sequence)
     _la = _input->LA(1);
     if (!(((((_la - 48) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 48)) & 9127333637) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 48)) & 9130970885) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 128)) & 4353) != 0))) {
     _errHandler->recoverInline(this);
     }

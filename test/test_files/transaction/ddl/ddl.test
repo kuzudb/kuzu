@@ -25,3 +25,112 @@
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
 ---- 1
 (0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: 9223372036854775808, temprature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+
+# TODO(FIX-ME): Function write status check
+-CASE SequenceReadTrxError
+-SKIP
+-STATEMENT CREATE SEQUENCE before;
+---- ok
+-STATEMENT BEGIN TRANSACTION READ ONLY;
+---- ok
+-STATEMENT RETURN nextval('before');
+---- 1
+1
+-STATEMENT CREATE SEQUENCE after;
+---- error
+Can not execute a write query inside a read-only transaction.
+-STATEMENT RETURN currval('before');
+---- 1
+1
+-STATEMENT RETURN nextval('before');
+---- error
+Can not execute a write query inside a read-only transaction.
+
+# TODO(FIX-ME): Need undo buffer to support non-catalogEntry undos
+-CASE SequenceTestCommit
+-SKIP
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE SEQUENCE next;
+---- ok
+-STATEMENT RETURN nextval('next');
+---- 1
+1
+-STATEMENT Commit;
+---- ok
+-STATEMENT RETURN currval('next');
+---- 1
+1
+
+# TODO(FIX-ME): Need undo buffer to support non-catalogEntry undos
+-CASE SequenceTestCommitRecovery
+-SKIP
+-STATEMENT CREATE SEQUENCE before;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE SEQUENCE after;
+---- ok
+-STATEMENT RETURN nextval('before');
+---- 1
+1
+-STATEMENT RETURN nextval('after');
+---- 1
+1
+-STATEMENT Commit_skip_checkpoint;
+---- ok
+-RELOADDB
+-STATEMENT RETURN currval('before');
+---- 1
+1
+-STATEMENT RETURN currval('after');
+---- error
+Catalog exception: currval: sequence "after" is not yet defined. To define the sequence, call nextval first.
+
+# TODO(FIX-ME): Need undo buffer to support non-catalogEntry undos
+-CASE SequenceTestRollback
+-SKIP
+-STATEMENT CREATE SEQUENCE before;
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE SEQUENCE after;
+---- ok
+-STATEMENT RETURN nextval('before');
+---- 1
+1
+-STATEMENT RETURN nextval('after');
+---- 1
+1
+-STATEMENT Rollback;
+---- ok
+-STATEMENT RETURN currval('before');
+---- error
+Catalog exception: currval: sequence "before" is not yet defined. To define the sequence, call nextval first.
+-STATEMENT RETURN currval('after');
+---- error
+Catalog exception: after does not exist in catalog.
+
+# TODO(FIX-ME): Need undo buffer to support non-catalogEntry undos
+-CASE SequenceTestRollbackRecovery
+-SKIP
+-STATEMENT CREATE SEQUENCE before;
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE SEQUENCE after;
+---- ok
+-STATEMENT RETURN nextval('before');
+---- 1
+1
+-STATEMENT RETURN nextval('after');
+---- 1
+1
+-STATEMENT Rollback_skip_checkpoint;
+---- ok
+-STATEMENT RETURN currval('before');
+---- error
+Catalog exception: currval: sequence "before" is not yet defined. To define the sequence, call nextval first.
+-STATEMENT RETURN currval('after');
+---- error
+Catalog exception: after does not exist in catalog.

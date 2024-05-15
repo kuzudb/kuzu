@@ -19,7 +19,7 @@ SequenceData SequenceCatalogEntry::getSequenceData() {
 int64_t SequenceCatalogEntry::currVal() {
     std::lock_guard<std::mutex> lck(mtx);
     int64_t result;
-    if (sequenceData.usageCount == 0u) {
+    if (sequenceData.usageCount == 0) {
         throw CatalogException(
             "currval: sequence \"" + name +
             "\" is not yet defined. To define the sequence, call nextval first.");
@@ -63,6 +63,16 @@ int64_t SequenceCatalogEntry::nextVal() {
     sequenceData.usageCount++;
     return result;
 }
+
+void SequenceCatalogEntry::replayVal(uint64_t usageCount, int64_t currVal, int64_t nextVal) {
+    std::lock_guard<std::mutex> lck(mtx);
+    if (usageCount > sequenceData.usageCount) {
+        sequenceData.usageCount = usageCount;
+        sequenceData.currVal = currVal;
+        sequenceData.nextVal = nextVal;
+    }
+}
+
 
 void SequenceCatalogEntry::serialize(common::Serializer& serializer) const {
     CatalogEntry::serialize(serializer);

@@ -94,13 +94,6 @@ bool ExpressionVisitor::isConstant(const Expression& expression) {
     if (expression.expressionType == ExpressionType::AGGREGATE_FUNCTION) {
         return false; // We don't have a framework to fold aggregated constant.
     }
-    if (expression.expressionType == ExpressionType::FUNCTION) {
-        auto& funcExpr = expression.constCast<FunctionExpression>();
-        if (funcExpr.getFunctionName() == function::CurrValFunction::name ||
-            funcExpr.getFunctionName() == function::NextValFunction::name) {
-            return false; // Sequence functions need access to client context
-        }
-    }
     if (expression.getNumChildren() == 0 &&
         expression.expressionType != ExpressionType::CASE_ELSE) {
         // If a function does not have children, we should be able to evaluate them as a constant.

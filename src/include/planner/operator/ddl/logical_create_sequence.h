@@ -14,7 +14,7 @@ public:
               std::move(outputExpression)},
           info{std::move(info)} {}
 
-    inline const binder::BoundCreateSequenceInfo* getInfo() const { return &info; }
+    binder::BoundCreateSequenceInfo getInfo() const { return info.copy(); }
 
     inline std::unique_ptr<LogicalOperator> copy() final {
         return std::make_unique<LogicalCreateSequence>(tableName, info.copy(), outputExpression);

@@ -1,5 +1,4 @@
 #include "common/exception/parser.h"
-#include "common/types/ku_string.h"
 #include "common/types/value/value.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_sequence.h"
