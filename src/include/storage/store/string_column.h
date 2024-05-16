@@ -39,7 +39,7 @@ public:
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
-        common::ValueVector* resultVector) override;
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
     void scanUnfiltered(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::offset_t numValuesToRead,
         common::ValueVector* resultVector, common::sel_t startPosInVector = 0);

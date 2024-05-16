@@ -13,20 +13,17 @@ struct NodeDataReadState : TableDataReadState {
     NodeDataReadState() : TableDataReadState{} {}
     DELETE_COPY_DEFAULT_MOVE(NodeDataReadState);
 
-    common::vector_idx_t vectorIdx = 0;
+    common::row_idx_t numRowsToScan = 0;
+    common::vector_idx_t vectorIdx = common::INVALID_VECTOR_IDX;
     common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
-    common::row_idx_t numRows = 0;
+    common::row_idx_t numRowsInNodeGroup = 0;
 
     bool readFromPersistent = false;
     std::vector<Column::ChunkState> chunkReadStates;
     LocalNodeNG* localNodeGroup = nullptr;
 
-    bool hasMoreToRead(const transaction::Transaction*) override {
-        if (vectorIdx * common::DEFAULT_VECTOR_CAPACITY >= numRows) {
-            return false;
-        }
-        return vectorIdx * common::DEFAULT_VECTOR_CAPACITY < numRows;
-    }
+    bool hasMoreToRead(const transaction::Transaction*) override;
+    void nextVector();
 };
 
 class LocalTableData;
@@ -38,11 +35,12 @@ public:
         bool enableCompression);
 
     // This interface is node table specific, as rel table requires also relDataDirection.
-    void initializeReadState(transaction::Transaction* transaction,
+    void initializeScanState(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, const std::vector<common::column_id_t>& columnIDs,
         TableDataReadState& readState) const;
-    void read(transaction::Transaction* transaction, TableDataReadState& readState,
-        common::ValueVector& nodeIDVector, const std::vector<common::ValueVector*>& outputVectors);
+    void scan(transaction::Transaction* transaction, TableDataReadState& readState,
+        common::ValueVector& nodeIDVector,
+        const std::vector<common::ValueVector*>& outputVectors) override;
 
     // Flush the nodeGroup to disk and update metadataDAs.
     void append(transaction::Transaction* transaction, ChunkedNodeGroup* nodeGroup) override;
@@ -64,15 +62,12 @@ public:
     }
 
 private:
-    void initializeColumnReadStates(transaction::Transaction* transaction,
+    void initializeColumnScanStates(transaction::Transaction* transaction,
         NodeDataReadState& readState, common::node_group_idx_t nodeGroupIdx) const;
     void initializeLocalNodeReadState(transaction::Transaction* transaction,
         NodeDataReadState& readState, common::node_group_idx_t nodeGroupIdx) const;
 
-    void scan(transaction::Transaction* transaction, TableDataReadState& readState,
-        common::ValueVector& nodeIDVector,
-        const std::vector<common::ValueVector*>& outputVectors) override;
-    void lookup(transaction::Transaction* transaction, TableDataReadState& readState,
+    void lookup(transaction::Transaction* transaction, TableDataReadState& state,
         const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) override;
 

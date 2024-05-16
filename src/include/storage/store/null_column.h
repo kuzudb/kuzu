@@ -19,7 +19,7 @@ public:
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
-        common::ValueVector* resultVector) override;
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector) override;

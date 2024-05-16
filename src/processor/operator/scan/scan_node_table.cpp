@@ -20,29 +20,29 @@ node_group_idx_t ScanNodeTableSharedState::getNextMorsel() {
     return currentGroupIdx++;
 }
 
-void ScanNodeTables::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
     for (const auto& info : infos) {
-        auto readState = std::make_unique<storage::NodeTableReadState>(info->columnIDs);
-        initVectors(*readState, *resultSet);
-        readStates.push_back(std::move(readState));
+        auto scanState = std::make_unique<storage::NodeTableReadState>(info->columnIDs);
+        initVectors(*scanState, *resultSet);
+        scanStates.push_back(std::move(scanState));
     }
 }
 
-void ScanNodeTables::initGlobalStateInternal(ExecutionContext* context) {
+void ScanNodeTable::initGlobalStateInternal(ExecutionContext* context) {
     KU_ASSERT(sharedStates.size() == infos.size());
     for (auto i = 0u; i < infos.size(); i++) {
         sharedStates[i]->initialize(context->clientContext->getTx(), infos[i]->table);
     }
 }
 
-bool ScanNodeTables::getNextTuplesInternal(ExecutionContext* context) {
+bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     while (currentTableIdx < infos.size()) {
         const auto info = infos[currentTableIdx].get();
-        const auto readState = readStates[currentTableIdx].get();
+        const auto readState = scanStates[currentTableIdx].get();
         while (true) {
             if (readState->hasMoreToRead(context->clientContext->getTx())) {
-                info->table->read(context->clientContext->getTx(), *readState);
+                info->table->scan(context->clientContext->getTx(), *readState);
                 return true;
             }
             const auto nodeGroupIdx = sharedStates[currentTableIdx]->getNextMorsel();
@@ -51,9 +51,9 @@ bool ScanNodeTables::getNextTuplesInternal(ExecutionContext* context) {
                 currentTableIdx++;
                 break;
             }
-            info->table->initializeReadState(context->clientContext->getTx(), nodeGroupIdx,
+            info->table->initializeScanState(context->clientContext->getTx(), nodeGroupIdx,
                 info->columnIDs, *readState);
-            info->table->read(context->clientContext->getTx(), *readState);
+            info->table->scan(context->clientContext->getTx(), *readState);
             if (readState->nodeIDVector->state->getSelVector().getSelSize() > 0) {
                 return true;
             }
@@ -62,12 +62,12 @@ bool ScanNodeTables::getNextTuplesInternal(ExecutionContext* context) {
     return false;
 }
 
-std::unique_ptr<PhysicalOperator> ScanNodeTables::clone() {
+std::unique_ptr<PhysicalOperator> ScanNodeTable::clone() {
     std::vector<std::unique_ptr<ScanNodeTableInfo>> clonedInfos;
     for (const auto& info : infos) {
         clonedInfos.push_back(info->copy());
     }
-    return make_unique<ScanNodeTables>(nodeIDPos, outVectorsPos, std::move(clonedInfos),
+    return make_unique<ScanNodeTable>(nodeIDPos, outVectorsPos, std::move(clonedInfos),
         sharedStates, id, paramsString);
 }
 

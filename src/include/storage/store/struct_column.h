@@ -47,7 +47,7 @@ public:
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
-        common::ValueVector* resultVector) override;
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
     void lookupInternal(transaction::Transaction* transaction, ChunkState& state,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 

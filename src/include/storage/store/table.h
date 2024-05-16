@@ -16,8 +16,8 @@ struct TableReadState {
 
     explicit TableReadState(std::vector<common::column_id_t> columnIDs)
         : nodeIDVector(nullptr), columnIDs{std::move(columnIDs)} {}
-    TableReadState(common::ValueVector* nodeIDVector,
-        std::vector<common::column_id_t> columnIDs, std::vector<common::ValueVector*> outputVectors)
+    TableReadState(common::ValueVector* nodeIDVector, std::vector<common::column_id_t> columnIDs,
+        std::vector<common::ValueVector*> outputVectors)
         : nodeIDVector{nodeIDVector}, columnIDs{std::move(columnIDs)},
           outputVectors{std::move(outputVectors)} {}
     virtual ~TableReadState() = default;
@@ -67,11 +67,11 @@ public:
         tablesStatistics->updateNumTuplesByValue(tableID, numTuples);
     }
 
-    void read(transaction::Transaction* transaction, TableReadState& readState) {
+    void scan(transaction::Transaction* transaction, TableReadState& readState) {
         for (auto& vector : readState.outputVectors) {
             vector->resetAuxiliaryBuffer();
         }
-        readInternal(transaction, readState);
+        scanInternal(transaction, readState);
     }
 
     virtual void insert(transaction::Transaction* transaction, TableInsertState& insertState) = 0;
@@ -95,7 +95,7 @@ public:
     }
 
 protected:
-    virtual void readInternal(transaction::Transaction* transaction, TableReadState& readState) = 0;
+    virtual void scanInternal(transaction::Transaction* transaction, TableReadState& readState) = 0;
 
 protected:
     common::TableType tableType;

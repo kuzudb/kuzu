@@ -235,7 +235,6 @@ void RelTableData::scan(Transaction* transaction, TableDataReadState& readState,
     auto [startOffset, endOffset] = relReadState.getStartAndEndOffset();
     auto numRowsToRead = endOffset - startOffset;
     outputVectors[0]->state->getSelVectorUnsafe().setToUnfiltered(numRowsToRead);
-    outputVectors[0]->state->setOriginalSize(numRowsToRead);
     auto relIDVectorIdx = INVALID_VECTOR_IDX;
     for (auto i = 0u; i < relReadState.columnIDs.size(); i++) {
         auto columnID = relReadState.columnIDs[i];

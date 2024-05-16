@@ -70,11 +70,11 @@ public:
         MemoryManager* memoryManager, catalog::RelTableCatalogEntry* relTableEntry, WAL* wal,
         bool enableCompression);
 
-    void initializeReadState(transaction::Transaction* transaction,
+    void initializeScanState(transaction::Transaction* transaction,
         common::RelDataDirection direction, const std::vector<common::column_id_t>& columnIDs,
         RelTableReadState& readState);
 
-    void readInternal(transaction::Transaction* transaction, TableReadState& readState) override;
+    void scanInternal(transaction::Transaction* transaction, TableReadState& scanState) override;
 
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
@@ -139,8 +139,6 @@ public:
     }
 
 private:
-    void scan(transaction::Transaction* transaction, RelTableReadState& scanState);
-
     common::row_idx_t detachDeleteForCSRRels(transaction::Transaction* transaction,
         RelTableData* tableData, RelTableData* reverseTableData,
         common::ValueVector* srcNodeIDVector, RelTableReadState* relDataReadState,

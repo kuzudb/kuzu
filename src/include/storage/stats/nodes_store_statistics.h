@@ -34,9 +34,6 @@ public:
     // Refer to the comments for addNode.
     void deleteNode(common::table_id_t tableID, common::offset_t nodeOffset);
 
-    void setDeletedNodeOffsetsForMorsel(transaction::Transaction* tx,
-        common::ValueVector* nodeIDVector, common::table_id_t tableID);
-
     void addNodeStatisticsAndDeletedIDs(catalog::NodeTableCatalogEntry* nodeTableEntry);
 
     void addMetadataDAHInfo(common::table_id_t tableID, const common::LogicalType& dataType);

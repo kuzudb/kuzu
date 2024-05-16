@@ -93,14 +93,15 @@ void StringColumn::write(ChunkState& state, offset_t dstOffset, ColumnChunk* dat
 }
 
 void StringColumn::scanInternal(Transaction* transaction, const ChunkState& state,
-    vector_idx_t vectorIdx, row_idx_t numValuesToScan, ValueVector* resultVector) {
+    vector_idx_t vectorIdx, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
+    ValueVector* resultVector) {
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     const auto startOffsetInChunk = vectorIdx * DEFAULT_VECTOR_CAPACITY;
-    // if (nodeIDVector->state->getSelVector().isUnfiltered()) {
-    scanUnfiltered(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
-    // } else {
-    // scanFiltered(transaction, state, startOffsetInChunk, nodeIDVector, resultVector);
-    // }
+    if (nodeIDVector->state->getSelVector().isUnfiltered()) {
+        scanUnfiltered(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
+    } else {
+        scanFiltered(transaction, state, startOffsetInChunk, nodeIDVector, resultVector);
+    }
 }
 
 void StringColumn::scanUnfiltered(Transaction* transaction, const ChunkState& readState,

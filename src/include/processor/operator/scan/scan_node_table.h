@@ -37,9 +37,9 @@ struct ScanNodeTableInfo {
     }
 };
 
-class ScanNodeTables final : public ScanTable {
+class ScanNodeTable final : public ScanTable {
 public:
-    ScanNodeTables(const DataPos& inVectorPos, std::vector<DataPos> outVectorsPos,
+    ScanNodeTable(const DataPos& inVectorPos, std::vector<DataPos> outVectorsPos,
         std::vector<std::unique_ptr<ScanNodeTableInfo>> infos,
         std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates, uint32_t id,
         const std::string& paramsString)
@@ -68,9 +68,10 @@ private:
 
 private:
     common::vector_idx_t currentTableIdx;
+    // TODO: Refactor following three fields into a single struct.
     std::vector<std::unique_ptr<ScanNodeTableInfo>> infos;
     std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates;
-    std::vector<std::unique_ptr<storage::NodeTableReadState>> readStates;
+    std::vector<std::unique_ptr<storage::NodeTableReadState>> scanStates;
 };
 
 } // namespace processor

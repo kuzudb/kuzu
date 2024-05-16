@@ -31,7 +31,7 @@ RelTable::RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStat
         relTableEntry, relsStoreStats, RelDataDirection::BWD, enableCompression);
 }
 
-void RelTable::initializeReadState(Transaction* transaction, RelDataDirection direction,
+void RelTable::initializeScanState(Transaction* transaction, RelDataDirection direction,
     const std::vector<column_id_t>& columnIDs, RelTableReadState& readState) {
     auto& dataState =
         ku_dynamic_cast<TableDataReadState&, RelDataReadState&>(*readState.dataReadState);
@@ -41,9 +41,11 @@ void RelTable::initializeReadState(Transaction* transaction, RelDataDirection di
                                                     columnIDs, *readState.nodeIDVector, dataState);
 }
 
-void RelTable::readInternal(Transaction* transaction, TableReadState& readState) {
-    auto& relReadState = ku_dynamic_cast<TableReadState&, RelTableReadState&>(readState);
-    scan(transaction, relReadState);
+void RelTable::scanInternal(Transaction* transaction, TableReadState& scanState) {
+    auto& relScanState = ku_dynamic_cast<TableReadState&, RelTableReadState&>(scanState);
+    auto tableData = getDirectedTableData(relScanState.direction);
+    tableData->scan(transaction, *scanState.dataReadState, *scanState.nodeIDVector,
+        scanState.outputVectors);
 }
 
 void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
@@ -83,7 +85,7 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     auto relReadState = std::make_unique<RelTableReadState>(relIDColumns, direction);
     relReadState->nodeIDVector = srcNodeIDVector;
     relReadState->outputVectors = relIDVectors;
-    initializeReadState(transaction, direction, relIDColumns, *relReadState);
+    initializeScanState(transaction, direction, relIDColumns, *relReadState);
     row_idx_t numRelsDeleted = detachDeleteForCSRRels(transaction, tableData, reverseTableData,
         srcNodeIDVector, relReadState.get(), deleteState);
     auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
@@ -127,12 +129,6 @@ row_idx_t RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableDat
         tempState->getSelVectorUnsafe().setToUnfiltered();
     }
     return numRelsDeleted;
-}
-
-void RelTable::scan(Transaction* transaction, RelTableReadState& scanState) {
-    auto tableData = getDirectedTableData(scanState.direction);
-    tableData->scan(transaction, *scanState.dataReadState, *scanState.nodeIDVector,
-        scanState.outputVectors);
 }
 
 void RelTable::addColumn(Transaction* transaction, const Property& property,

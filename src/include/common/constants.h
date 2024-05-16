@@ -105,6 +105,8 @@ struct StorageConstants {
 
     static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = 17; // 64 * 2048 nodes per group
     static constexpr uint64_t NODE_GROUP_SIZE = (uint64_t)1 << NODE_GROUP_SIZE_LOG2;
+    static constexpr uint64_t NUM_VECTORS_PER_NODE_GROUP =
+        NODE_GROUP_SIZE / DEFAULT_VECTOR_CAPACITY;
 
     static constexpr double PACKED_CSR_DENSITY = 0.8;
     static constexpr double LEAF_LOW_CSR_DENSITY = 0.1;

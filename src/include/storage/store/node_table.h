@@ -75,21 +75,14 @@ public:
                 tablesStatistics);
         return nodesStats->getMaxNodeOffset(transaction, tableID);
     }
-    void setSelVectorForDeletedOffsets(transaction::Transaction* trx,
-        common::ValueVector* vector) const {
-        const auto nodeStateCollection =
-            common::ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(
-                tablesStatistics);
-        nodeStateCollection->setDeletedNodeOffsetsForMorsel(trx, vector, tableID);
-    }
 
-    void initializeReadState(transaction::Transaction* transaction,
+    void initializeScanState(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, std::vector<common::column_id_t> columnIDs,
         TableReadState& readState) const {
-        tableData->initializeReadState(transaction, nodeGroupIdx, std::move(columnIDs),
+        tableData->initializeScanState(transaction, nodeGroupIdx, std::move(columnIDs),
             *readState.dataReadState);
     }
-    void readInternal(transaction::Transaction* transaction, TableReadState& readState) override;
+    void scanInternal(transaction::Transaction* transaction, TableReadState& readState) override;
 
     // Return the max node offset during insertions.
     common::offset_t validateUniquenessConstraint(transaction::Transaction* transaction,

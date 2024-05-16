@@ -24,7 +24,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
         switch (physicalOp->getOperatorType()) {
         case PhysicalOperatorType::SCAN_NODE_TABLE: {
             // auto scanNodeTables = ku_dynamic_cast<PhysicalOperator*,
-            // ScanNodeTables*>(physicalOp); for (auto i = 0u; i < scanNodeTables->getNumTables();
+            // ScanNodeTable*>(physicalOp); for (auto i = 0u; i < scanNodeTables->getNumTables();
             // ++i) {
             //     auto& tableState = scanNodeTables->getSharedState(i);
             //     auto tableID = tableState.getTable()->getTableID();

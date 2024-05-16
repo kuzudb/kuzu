@@ -11,7 +11,7 @@ bool RelTableCollectionScanner::scan(const SelectionVector& selVector, Transacti
     while (true) {
         if (readStates[currentTableIdx]->hasMoreToRead(transaction)) {
             const auto scanInfo = scanInfos[currentTableIdx].get();
-            scanInfo->table->read(transaction, *readStates[currentTableIdx]);
+            scanInfo->table->scan(transaction, *readStates[currentTableIdx]);
             if (selVector.getSelSize() > 0) {
                 return true;
             }
@@ -21,7 +21,7 @@ bool RelTableCollectionScanner::scan(const SelectionVector& selVector, Transacti
                 return false;
             }
             const auto scanInfo = scanInfos[currentTableIdx].get();
-            scanInfo->table->initializeReadState(transaction, scanInfo->direction,
+            scanInfo->table->initializeScanState(transaction, scanInfo->direction,
                 scanInfo->columnIDs, *readStates[currentTableIdx]);
             nextTableIdx++;
         }

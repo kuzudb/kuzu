@@ -14,13 +14,13 @@ void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext
 bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
         if (readState->hasMoreToRead(context->clientContext->getTx())) {
-            info->table->read(context->clientContext->getTx(), *readState);
+            info->table->scan(context->clientContext->getTx(), *readState);
             return true;
         }
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
-        info->table->initializeReadState(context->clientContext->getTx(), info->direction,
+        info->table->initializeScanState(context->clientContext->getTx(), info->direction,
             info->columnIDs, *readState);
     }
 }

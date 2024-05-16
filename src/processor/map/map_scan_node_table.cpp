@@ -41,7 +41,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
             std::move(columnIDs)));
         sharedStates.push_back(std::make_shared<ScanNodeTableSharedState>());
     }
-    return std::make_unique<ScanNodeTables>(inputNodeIDVectorPos, std::move(outVectorsPos),
+    return std::make_unique<ScanNodeTable>(inputNodeIDVectorPos, std::move(outVectorsPos),
         std::move(tableInfos), std::move(sharedStates), getOperatorID(),
         scanProperty->getExpressionsForPrinting());
 }

@@ -100,7 +100,7 @@ public:
               false /*requireNullColumn*/} {}
 
     void scan(Transaction*, const ChunkState& chunkState, vector_idx_t vectorIdx,
-        row_idx_t numValuesToScan, ValueVector* resultVector) override {
+        row_idx_t numValuesToScan, ValueVector*, ValueVector* resultVector) override {
         // Serial column cannot contain null values.
         const auto nodeGroupStartOffset =
             StorageUtils::getStartOffsetOfNodeGroup(chunkState.nodeGroupIdx);
@@ -281,12 +281,13 @@ void Column::initChunkState(Transaction* transaction, node_group_idx_t nodeGroup
 }
 
 void Column::scan(Transaction* transaction, const ChunkState& state, vector_idx_t vectorIdx,
-    row_idx_t numValuesToScan, ValueVector* resultVector) {
+    row_idx_t numValuesToScan, ValueVector* nodeIDVector, ValueVector* resultVector) {
     if (nullColumn) {
         KU_ASSERT(state.nullState);
-        nullColumn->scan(transaction, *state.nullState, vectorIdx, numValuesToScan, resultVector);
+        nullColumn->scan(transaction, *state.nullState, vectorIdx, numValuesToScan, nodeIDVector,
+            resultVector);
     }
-    scanInternal(transaction, state, vectorIdx, numValuesToScan, resultVector);
+    scanInternal(transaction, state, vectorIdx, numValuesToScan, nodeIDVector, resultVector);
 }
 
 void Column::scan(Transaction* transaction, const ChunkState& state, offset_t startOffsetInGroup,
@@ -364,14 +365,16 @@ void Column::scan(Transaction* transaction, const ChunkState& state, offset_t st
 }
 
 void Column::scanInternal(Transaction* transaction, const ChunkState& state, vector_idx_t vectorIdx,
-    row_idx_t numValuesToScan, ValueVector* resultVector) {
+    row_idx_t numValuesToScan, ValueVector* nodeIDVector, ValueVector* resultVector) {
     const auto startOffsetInChunk = vectorIdx * DEFAULT_VECTOR_CAPACITY;
     auto cursor = getPageCursorForOffsetInGroup(startOffsetInChunk, state);
-    // if (nodeIDVector->state->getSelVector().isUnfiltered()) {
-    scanUnfiltered(transaction, cursor, numValuesToScan, resultVector, state.metadata);
-    // } else {
-    // scanFiltered(transaction, cursor, nodeIDVector, resultVector, readState.metadata);
-    // }
+    // TODO: Handle deletions here.
+    if (nodeIDVector->state->getSelVector().isUnfiltered()) {
+        scanUnfiltered(transaction, cursor, numValuesToScan, resultVector, state.metadata);
+    } else {
+        scanFiltered(transaction, cursor, numValuesToScan, nodeIDVector->state->getSelVector(),
+            resultVector, state.metadata);
+    }
 }
 
 void Column::scanUnfiltered(Transaction* transaction, PageCursor& pageCursor,
@@ -394,13 +397,12 @@ void Column::scanUnfiltered(Transaction* transaction, PageCursor& pageCursor,
 }
 
 void Column::scanFiltered(Transaction* transaction, PageCursor& pageCursor,
-    ValueVector* nodeIDVector, ValueVector* resultVector, const ColumnChunkMetadata& chunkMeta) {
-    auto numValuesToScan = nodeIDVector->state->getOriginalSize();
+    uint64_t numValuesToScan, const SelectionVector& selVector, ValueVector* resultVector,
+    const ColumnChunkMetadata& chunkMeta) {
     auto numValuesScanned = 0u;
     auto posInSelVector = 0u;
     auto numValuesPerPage =
         chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
-    auto& selVector = nodeIDVector->state->getSelVector();
     while (numValuesScanned < numValuesToScan) {
         uint64_t numValuesToScanInPage = std::min(numValuesPerPage - pageCursor.elemPosInPage,
             numValuesToScan - numValuesScanned);

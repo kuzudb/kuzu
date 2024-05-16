@@ -42,15 +42,38 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
     }
 }
 
-void NodeTable::readInternal(Transaction* transaction, TableReadState& readState) {
-    tableData->read(transaction, *readState.dataReadState, *readState.nodeIDVector,
-        readState.outputVectors);
-    auto& dataReadState = ku_dynamic_cast<const TableDataReadState&, const NodeDataReadState&>(
-        *readState.dataReadState);
-    if (dataReadState.localNodeGroup) {
+void NodeTable::scanInternal(Transaction* transaction, TableReadState& scanState) {
+    KU_ASSERT(scanState.columnIDs.size() == scanState.outputVectors.size());
+    for (auto& outputVector : scanState.outputVectors) {
+        KU_ASSERT(outputVector->state == scanState.nodeIDVector->state);
+    }
+    auto& dataScanState =
+        ku_dynamic_cast<TableDataReadState&, NodeDataReadState&>(*scanState.dataReadState);
+    // Move scan state to the next vector.
+    dataScanState.nextVector();
+    // Fill nodeIDVector and set selVector from deleted node offsets.
+    auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(dataScanState.nodeGroupIdx) +
+                           dataScanState.vectorIdx * DEFAULT_VECTOR_CAPACITY;
+    for (auto i = 0u; i < dataScanState.numRowsToScan; i++) {
+        scanState.nodeIDVector->setValue<nodeID_t>(i, {startNodeOffset + i, tableID});
+    }
+    scanState.nodeIDVector->state->getSelVectorUnsafe().setSelSize(dataScanState.numRowsToScan);
+    auto tableStats =
+        getNodeStatisticsAndDeletedIDs()->getNodeStatisticsAndDeletedIDs(transaction, tableID);
+    tableStats->setDeletedNodeOffsetsForVector(scanState.nodeIDVector, dataScanState.nodeGroupIdx,
+        dataScanState.vectorIdx, dataScanState.numRowsToScan);
+
+    // Scan from persistent storage.
+    if (dataScanState.readFromPersistent) {
+        tableData->scan(transaction, *scanState.dataReadState, *scanState.nodeIDVector,
+            scanState.outputVectors);
+    }
+
+    // Scan from local storage.
+    if (dataScanState.localNodeGroup) {
         KU_ASSERT(transaction->isWriteTransaction());
-        dataReadState.localNodeGroup->scan(*readState.nodeIDVector, readState.columnIDs,
-            readState.outputVectors);
+        dataScanState.localNodeGroup->scan(*scanState.nodeIDVector, scanState.columnIDs,
+            scanState.outputVectors);
     }
 }
 
@@ -111,6 +134,7 @@ void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     if (pkIndex) {
         pkIndex->delete_(&nodeDeleteState.pkVector);
     }
+    auto nodeOffset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
     ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
         ->deleteNode(tableID, nodeOffset);
     auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
@@ -185,8 +209,8 @@ void NodeTable::updatePK(Transaction* transaction, column_id_t columnID, ValueVe
     auto pos = nodeIDVector.state->getSelVector()[0];
     auto nodeOffset = nodeIDVector.readNodeOffset(pos);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-    initializeReadState(transaction, nodeGroupIdx, columnIDs, *readState);
-    read(transaction, *readState);
+    initializeScanState(transaction, nodeGroupIdx, columnIDs, *readState);
+    scan(transaction, *readState);
     pkIndex->delete_(pkVector.get());
     insertPK(nodeIDVector, payloadVector);
 }

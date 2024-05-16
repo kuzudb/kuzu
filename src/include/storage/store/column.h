@@ -65,7 +65,7 @@ public:
 
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
-        common::ValueVector* resultVector);
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     virtual void lookup(transaction::Transaction* transaction, ChunkState& state,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
 
@@ -143,13 +143,13 @@ public:
 protected:
     virtual void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
-        common::ValueVector* resultVector);
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     void scanUnfiltered(transaction::Transaction* transaction, PageCursor& pageCursor,
         uint64_t numValuesToScan, common::ValueVector* resultVector,
         const ColumnChunkMetadata& chunkMeta, uint64_t startPosInVector = 0);
     void scanFiltered(transaction::Transaction* transaction, PageCursor& pageCursor,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector,
-        const ColumnChunkMetadata& chunkMeta);
+        uint64_t numValuesToScan, const common::SelectionVector& selVector,
+        common::ValueVector* resultVector, const ColumnChunkMetadata& chunkMeta);
     virtual void lookupInternal(transaction::Transaction* transaction, ChunkState& state,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     virtual void lookupValue(transaction::Transaction* transaction, ChunkState& state,
@@ -244,8 +244,8 @@ public:
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
-        common::ValueVector* resultVector) override {
-        Column::scan(transaction, state, vectorIdx, numValuesToScan, resultVector);
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override {
+        Column::scan(transaction, state, vectorIdx, numValuesToScan, nodeIDVector, resultVector);
         populateCommonTableID(resultVector);
     }
 

@@ -14,6 +14,7 @@ namespace common {
 class Serializer;
 class Deserializer;
 } // namespace common
+
 namespace storage {
 
 class NodeTableStatsAndDeletedIDs : public TableStatistics {
@@ -31,7 +32,9 @@ public:
     void deleteNode(common::offset_t nodeOffset);
 
     // This function assumes nodeIDVector have consecutive node offsets and the same tableID.
-    void setDeletedNodeOffsetsForMorsel(common::ValueVector* nodeIDVector) const;
+    void setDeletedNodeOffsetsForVector(common::ValueVector* nodeIDVector,
+        common::node_group_idx_t nodeGroupIdx, common::vector_idx_t vectorIdxInNodeGroup,
+        common::row_idx_t numRowsToScan) const;
 
     void setNumTuples(uint64_t numTuples) override;
 
@@ -70,8 +73,8 @@ private:
 
 private:
     std::vector<std::unique_ptr<MetadataDAHInfo>> metadataDAHInfos;
-    std::vector<bool> hasDeletedNodesPerMorsel;
-    std::map<uint64_t, std::set<common::offset_t>> deletedNodeOffsetsPerMorsel;
+    std::vector<bool> hasDeletedNodesPerVector;
+    std::map<uint64_t, std::set<common::offset_t>> deletedNodeOffsetsPerVector;
 };
 
 } // namespace storage
