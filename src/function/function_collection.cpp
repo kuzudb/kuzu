@@ -36,17 +36,16 @@ namespace kuzu {
 namespace function {
 
 #define SCALAR_FUNCTION(_PARAM)                                                                    \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::SCALAR_FUNCTION_ENTRY}
 #define SCALAR_FUNCTION_ALIAS(_PARAM)                                                              \
-    { _PARAM::getFunctionSet, _PARAM::alias, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::alias, CatalogEntryType::SCALAR_FUNCTION_ENTRY}
 #define REWRITE_FUNCTION(_PARAM)                                                                   \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::REWRITE_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::REWRITE_FUNCTION_ENTRY}
 #define AGGREGATE_FUNCTION(_PARAM)                                                                 \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::AGGREGATE_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::AGGREGATE_FUNCTION_ENTRY}
 #define TABLE_FUNCTION(_PARAM)                                                                     \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::TABLE_FUNCTION_ENTRY }
-#define FINAL_FUNCTION                                                                             \
-    { nullptr, nullptr, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::TABLE_FUNCTION_ENTRY}
+#define FINAL_FUNCTION {nullptr, nullptr, CatalogEntryType::SCALAR_FUNCTION_ENTRY}
 
 FunctionCollection* FunctionCollection::getFunctions() {
     static FunctionCollection functions[] = {
