@@ -40,7 +40,9 @@ uint64_t SerialCSVReader::parseBlock(block_idx_t blockIdx, DataChunk& resultChun
         handleFirstBlock();
     }
     SerialParsingDriver driver(resultChunk, this);
-    return parseCSV(driver);
+    auto numRowsRead = parseCSV(driver);
+    resultChunk.state->getSelVectorUnsafe().setSelSize(numRowsRead);
+    return numRowsRead;
 }
 
 void SerialCSVScanSharedState::read(DataChunk& outputChunk) {
@@ -49,9 +51,7 @@ void SerialCSVScanSharedState::read(DataChunk& outputChunk) {
         if (fileIdx > readerConfig.getNumFiles()) {
             return;
         }
-        uint64_t numRows = reader->parseBlock(0 /* unused by serial csv reader */, outputChunk);
-        // TODO(Ziyi): parseBlock should set the selectedSize of dataChunk.
-        outputChunk.state->getSelVectorUnsafe().setSelSize(numRows);
+        uint64_t numRows = reader->parseBlock(reader->getFileOffset() == 0 ? 0 : 1, outputChunk);
         if (numRows > 0) {
             return;
         }
