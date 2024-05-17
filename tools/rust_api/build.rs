@@ -21,11 +21,7 @@ fn link_libraries() {
     println!("cargo:rustc-link-lib={}=kuzu", link_mode());
     if link_mode() == "static" {
         if cfg!(windows) {
-            if get_target() == "debug" {
-                println!("cargo:rustc-link-lib=dylib=msvcrtd");
-            } else {
-                println!("cargo:rustc-link-lib=dylib=msvcrt");
-            }
+            println!("cargo:rustc-link-lib=dylib=msvcrt");
             println!("cargo:rustc-link-lib=dylib=shell32");
             println!("cargo:rustc-link-lib=dylib=ole32");
         } else if cfg!(target_os = "macos") {
@@ -70,6 +66,8 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
     if cfg!(windows) {
         build.generator("Ninja");
         build.cxxflag("/EHsc");
+        build.define("CMAKE_MSVC_RUNTIME_LIBRARY", "MultiThreadedDLL");
+        build.define("CMAKE_POLICY_DEFAULT_CMP0091", "NEW");
     }
     let build_dir = build.build();
 
@@ -143,6 +141,7 @@ fn build_ffi(
 
     if cfg!(windows) {
         build.flag("/std:c++20");
+        build.flag("/MD");
     } else {
         build.flag("-std=c++2a");
     }

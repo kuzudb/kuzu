@@ -276,8 +276,8 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           set KUZU_TESTING=1
-          set CFLAGS=/MDd
-          set CXXFLAGS=/MDd /std:c++20
+          set CFLAGS=/MD
+          set CXXFLAGS=/MD /std:c++20
           cargo test --locked -- --test-threads=1
 
       - name: Java test
