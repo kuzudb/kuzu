@@ -35,5 +35,5 @@ common::property_id_t PropertyExpression::getPropertyID(common::table_id_t table
     return infos.at(tableID).id;
 }
 
-}
-}
+} // namespace binder
+} // namespace kuzu

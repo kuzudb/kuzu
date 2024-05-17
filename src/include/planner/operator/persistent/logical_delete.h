@@ -8,8 +8,10 @@ namespace planner {
 
 class LogicalDelete : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::DELETE;
+
 public:
-    LogicalDelete(std::vector<binder::BoundDeleteInfo> infos, std::shared_ptr<LogicalOperator> child)
+    LogicalDelete(std::vector<binder::BoundDeleteInfo> infos,
+        std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{type_, std::move(child)}, infos{std::move(infos)} {}
 
     common::TableType getTableType() const {

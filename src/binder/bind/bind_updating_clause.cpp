@@ -347,8 +347,7 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
             if (rel->getDirectionType() == RelDirectionType::BOTH) {
                 throw BinderException("Delete undirected rel is not supported.");
             }
-            auto deleteRel =
-                BoundDeleteInfo(deleteType, TableType::REL, pattern);
+            auto deleteRel = BoundDeleteInfo(deleteType, TableType::REL, pattern);
             boundDeleteClause->addInfo(std::move(deleteRel));
         } else {
             throw BinderException(stringFormat(

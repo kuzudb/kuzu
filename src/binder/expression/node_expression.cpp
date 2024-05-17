@@ -1,4 +1,5 @@
 #include "binder/expression/node_expression.h"
+
 #include "binder/expression/property_expression.h"
 
 namespace kuzu {
@@ -13,5 +14,5 @@ std::shared_ptr<Expression> NodeExpression::getPrimaryKey(common::table_id_t tab
     KU_UNREACHABLE;
 }
 
-}
-}
+} // namespace binder
+} // namespace kuzu

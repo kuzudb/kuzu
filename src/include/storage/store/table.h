@@ -89,7 +89,7 @@ public:
 
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<Table*,  TARGET*>(this);
+        return common::ku_dynamic_cast<Table*, TARGET*>(this);
     }
 
 protected:

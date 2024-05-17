@@ -27,15 +27,13 @@ public:
         common::table_id_map_t<SingleLabelPropertyInfo> infos)
         : Expression{common::ExpressionType::PROPERTY, std::move(dataType),
               uniqueVariableName + "." + propertyName},
-          propertyName{propertyName},
-          uniqueVariableName{uniqueVariableName}, rawVariableName{rawVariableName},
-          infos{std::move(infos)} {}
+          propertyName{propertyName}, uniqueVariableName{uniqueVariableName},
+          rawVariableName{rawVariableName}, infos{std::move(infos)} {}
 
     PropertyExpression(const PropertyExpression& other)
         : Expression{common::ExpressionType::PROPERTY, other.dataType, other.uniqueName},
-          propertyName{other.propertyName},
-          uniqueVariableName{other.uniqueVariableName}, rawVariableName{other.rawVariableName},
-          infos{copyMap(other.infos)} {}
+          propertyName{other.propertyName}, uniqueVariableName{other.uniqueVariableName},
+          rawVariableName{other.rawVariableName}, infos{copyMap(other.infos)} {}
 
     // If this property is primary key on all tables.
     bool isPrimaryKey() const;
@@ -57,9 +55,7 @@ public:
         return make_unique<PropertyExpression>(*this);
     }
 
-    std::string toStringInternal() const final {
-        return rawVariableName + "." + propertyName;
-    }
+    std::string toStringInternal() const final { return rawVariableName + "." + propertyName; }
 
 private:
     std::string propertyName;

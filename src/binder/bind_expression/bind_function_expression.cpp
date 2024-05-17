@@ -305,8 +305,7 @@ std::unique_ptr<Expression> ExpressionBinder::createInternalLengthExpression(
         infos.insert({tableID, SingleLabelPropertyInfo{false, INVALID_PROPERTY_ID}});
     }
     return std::make_unique<PropertyExpression>(LogicalType(LogicalTypeID::INT64),
-        InternalKeyword::LENGTH, rel.getUniqueName(), rel.getVariableName(),
-        std::move(infos));
+        InternalKeyword::LENGTH, rel.getUniqueName(), rel.getVariableName(), std::move(infos));
 }
 
 } // namespace binder

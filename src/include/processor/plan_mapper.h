@@ -11,7 +11,7 @@ namespace main {
 class ClientContext;
 }
 
-namespace binder{
+namespace binder {
 struct BoundDeleteInfo;
 }
 
@@ -186,8 +186,10 @@ private:
         const planner::Schema& inSchema) const;
     std::unique_ptr<RelSetExecutor> getRelSetExecutor(planner::LogicalSetPropertyInfo* info,
         const planner::Schema& inSchema) const;
-    std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(const binder::BoundDeleteInfo& info, const planner::Schema& schema) const;
-    std::unique_ptr<RelDeleteExecutor> getRelDeleteExecutor(const binder::BoundDeleteInfo& info, const planner::Schema& schema) const;
+    std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(const binder::BoundDeleteInfo& info,
+        const planner::Schema& schema) const;
+    std::unique_ptr<RelDeleteExecutor> getRelDeleteExecutor(const binder::BoundDeleteInfo& info,
+        const planner::Schema& schema) const;
     ExtraNodeDeleteInfo getExtraNodeDeleteInfo(common::table_id_t tableID, DataPos pkPos) const;
 
     uint32_t getOperatorID() { return physicalOperatorID++; }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vector>
 #include <unordered_map>
+#include <vector>
 // This file defines many macros for controlling copy constructors and move constructors on classes.
 
 // NOLINTBEGIN(bugprone-macro-parentheses): Although this is a good check in general, here, we

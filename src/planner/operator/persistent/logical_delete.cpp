@@ -1,9 +1,9 @@
 #include "planner/operator/persistent/logical_delete.h"
 
-#include "planner/operator/factorization/flatten_resolver.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/node_expression.h"
 #include "binder/expression/rel_expression.h"
+#include "planner/operator/factorization/flatten_resolver.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -29,14 +29,14 @@ f_group_pos_set LogicalDelete::getGroupsPosToFlatten() const {
             auto nodeID = info.pattern->constCast<NodeExpression>().getInternalID();
             dependentGroupPos.insert(childSchema->getGroupPos(*nodeID));
         }
-    } break ;
+    } break;
     case TableType::REL: {
         for (auto& info : infos) {
             auto& rel = info.pattern->constCast<RelExpression>();
             dependentGroupPos.insert(childSchema->getGroupPos(*rel.getSrcNode()->getInternalID()));
             dependentGroupPos.insert(childSchema->getGroupPos(*rel.getDstNode()->getInternalID()));
         }
-    } break ;
+    } break;
     default:
         KU_UNREACHABLE;
     }

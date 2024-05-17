@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/enums/clause_type.h"
 #include "common/cast.h"
+#include "common/enums/clause_type.h"
 
 namespace kuzu {
 namespace binder {

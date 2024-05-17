@@ -194,7 +194,7 @@ void ProjectionPushDownOptimizer::visitDelete(planner::LogicalOperator* op) {
                 collectExpressionsInUse(node.getPrimaryKey(id));
             }
         }
-    } break ;
+    } break;
     case TableType::REL: {
         for (auto& info : infos) {
             auto& rel = info.pattern->constCast<RelExpression>();
@@ -202,7 +202,7 @@ void ProjectionPushDownOptimizer::visitDelete(planner::LogicalOperator* op) {
             collectExpressionsInUse(rel.getDstNode()->getInternalID());
             collectExpressionsInUse(rel.getInternalIDProperty());
         }
-    } break ;
+    } break;
     default:
         KU_UNREACHABLE;
     }

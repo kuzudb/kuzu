@@ -1,8 +1,8 @@
 #pragma once
 
+#include "common/enums/delete_type.h"
 #include "parser/expression/parsed_expression.h"
 #include "updating_clause.h"
-#include "common/enums/delete_type.h"
 
 namespace kuzu {
 namespace parser {

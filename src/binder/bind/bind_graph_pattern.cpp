@@ -146,7 +146,7 @@ static std::unique_ptr<Expression> createPropertyExpression(const std::string& p
         // Bind property id
         auto propertyID = INVALID_PROPERTY_ID;
         if (entry->containProperty(propertyName)) {
-            propertyID  = entry->getPropertyID(propertyName);
+            propertyID = entry->getPropertyID(propertyName);
             dataTypes.push_back(*entry->getProperty(propertyID)->getDataType());
         }
         // Bind isPrimaryKey

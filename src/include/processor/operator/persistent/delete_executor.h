@@ -28,8 +28,7 @@ class NodeDeleteExecutor {
 public:
     explicit NodeDeleteExecutor(NodeDeleteInfo info)
         : info{std::move(info)}, nodeIDVector(nullptr) {}
-    NodeDeleteExecutor(const NodeDeleteExecutor& other)
-        : info{other.info.copy()} {}
+    NodeDeleteExecutor(const NodeDeleteExecutor& other) : info{other.info.copy()} {}
     virtual ~NodeDeleteExecutor() = default;
 
     virtual void init(ResultSet* resultSet, ExecutionContext* context);
@@ -52,14 +51,17 @@ struct ExtraNodeDeleteInfo {
     DataPos pkPos;
     common::ValueVector* pkVector;
 
-    ExtraNodeDeleteInfo(storage::NodeTable* table, std::unordered_set<storage::RelTable*> fwdRelTables,
-        std::unordered_set<storage::RelTable*> bwdRelTables, DataPos pkPos) : table{table},
-          fwdRelTables{std::move(fwdRelTables)}, bwdRelTables{std::move(bwdRelTables)}, pkPos{std::move(pkPos)} {};
+    ExtraNodeDeleteInfo(storage::NodeTable* table,
+        std::unordered_set<storage::RelTable*> fwdRelTables,
+        std::unordered_set<storage::RelTable*> bwdRelTables, DataPos pkPos)
+        : table{table}, fwdRelTables{std::move(fwdRelTables)},
+          bwdRelTables{std::move(bwdRelTables)}, pkPos{std::move(pkPos)} {};
     EXPLICIT_COPY_DEFAULT_MOVE(ExtraNodeDeleteInfo);
 
 private:
     ExtraNodeDeleteInfo(const ExtraNodeDeleteInfo& other)
-        : table{other.table}, fwdRelTables{other.fwdRelTables}, bwdRelTables{other.bwdRelTables}, pkPos{other.pkPos} {}
+        : table{other.table}, fwdRelTables{other.fwdRelTables}, bwdRelTables{other.bwdRelTables},
+          pkPos{other.pkPos} {}
 };
 
 class SingleLabelNodeDeleteExecutor final : public NodeDeleteExecutor {
@@ -82,10 +84,9 @@ private:
 
 class MultiLabelNodeDeleteExecutor final : public NodeDeleteExecutor {
 public:
-    MultiLabelNodeDeleteExecutor(
-        NodeDeleteInfo info, common::table_id_map_t<ExtraNodeDeleteInfo> extraInfos)
-        : NodeDeleteExecutor(std::move(info)),
-          extraInfos{std::move(extraInfos)} {}
+    MultiLabelNodeDeleteExecutor(NodeDeleteInfo info,
+        common::table_id_map_t<ExtraNodeDeleteInfo> extraInfos)
+        : NodeDeleteExecutor(std::move(info)), extraInfos{std::move(extraInfos)} {}
     MultiLabelNodeDeleteExecutor(const MultiLabelNodeDeleteExecutor& other)
         : NodeDeleteExecutor(other), extraInfos{copyMap(other.extraInfos)} {}
 

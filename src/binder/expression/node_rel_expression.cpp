@@ -19,13 +19,15 @@ common::table_id_t NodeOrRelExpression::getSingleTableID() const {
     return tableIDs[0];
 }
 
-void NodeOrRelExpression::addPropertyExpression(const std::string& propertyName, std::unique_ptr<Expression> property) {
+void NodeOrRelExpression::addPropertyExpression(const std::string& propertyName,
+    std::unique_ptr<Expression> property) {
     KU_ASSERT(!propertyNameToIdx.contains(propertyName));
     propertyNameToIdx.insert({propertyName, propertyExprs.size()});
     propertyExprs.push_back(std::move(property));
 }
 
-std::shared_ptr<Expression> NodeOrRelExpression::getPropertyExpression(const std::string& propertyName) const {
+std::shared_ptr<Expression> NodeOrRelExpression::getPropertyExpression(
+    const std::string& propertyName) const {
     KU_ASSERT(propertyNameToIdx.contains(propertyName));
     return propertyExprs[propertyNameToIdx.at(propertyName)]->copy();
 }
@@ -38,6 +40,5 @@ expression_vector NodeOrRelExpression::getPropertyExprs() const {
     return result;
 }
 
-}
-}
-
+} // namespace binder
+} // namespace kuzu

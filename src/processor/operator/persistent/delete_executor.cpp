@@ -50,7 +50,8 @@ void SingleLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
         deleteFromRelTable(context, info.deleteType, RelDataDirection::BWD, relTable, nodeIDVector,
             detachDeleteState.get());
     }
-    auto deleteState = std::make_unique<storage::NodeTableDeleteState>(*nodeIDVector, *extraInfo.pkVector);
+    auto deleteState =
+        std::make_unique<storage::NodeTableDeleteState>(*nodeIDVector, *extraInfo.pkVector);
     extraInfo.table->delete_(context->clientContext->getTx(), *deleteState);
 }
 
@@ -78,14 +79,15 @@ void MultiLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
         // TODO(Guodong): For detach delete, there can possibly be a case where the same relTable is
         // in both fwd and bwd rel tables set. the rels can be deleted twice. This is a temporary
         // hack.
-        if (info.deleteType == DeleteNodeType::DETACH_DELETE && extraInfo.fwdRelTables.contains(relTable)) {
+        if (info.deleteType == DeleteNodeType::DETACH_DELETE &&
+            extraInfo.fwdRelTables.contains(relTable)) {
             continue;
         }
         deleteFromRelTable(context, info.deleteType, RelDataDirection::BWD, relTable, nodeIDVector,
             detachDeleteState.get());
     }
-    auto deleteState = std::make_unique<storage::NodeTableDeleteState>(*nodeIDVector,
-        *extraInfo.pkVector);
+    auto deleteState =
+        std::make_unique<storage::NodeTableDeleteState>(*nodeIDVector, *extraInfo.pkVector);
     extraInfo.table->delete_(context->clientContext->getTx(), *deleteState);
 }
 

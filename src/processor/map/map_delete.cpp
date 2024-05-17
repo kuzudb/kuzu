@@ -1,9 +1,9 @@
+#include "binder/expression/node_expression.h"
+#include "binder/expression/rel_expression.h"
 #include "planner/operator/persistent/logical_delete.h"
 #include "processor/operator/persistent/delete.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
-#include "binder/expression/node_expression.h"
-#include "binder/expression/rel_expression.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
@@ -31,7 +31,8 @@ ExtraNodeDeleteInfo PlanMapper::getExtraNodeDeleteInfo(table_id_t tableID, DataP
     return ExtraNodeDeleteInfo(table, std::move(fwdRelTables), std::move(bwdRelTables), pkPos);
 }
 
-std::unique_ptr<NodeDeleteExecutor> PlanMapper::getNodeDeleteExecutor(const BoundDeleteInfo& boundInfo, const Schema& schema) const {
+std::unique_ptr<NodeDeleteExecutor> PlanMapper::getNodeDeleteExecutor(
+    const BoundDeleteInfo& boundInfo, const Schema& schema) const {
     KU_ASSERT(boundInfo.tableType == TableType::NODE);
     auto& node = boundInfo.pattern->constCast<NodeExpression>();
     auto nodeIDPos = getDataPos(*node.getInternalID(), schema);
@@ -42,7 +43,8 @@ std::unique_ptr<NodeDeleteExecutor> PlanMapper::getNodeDeleteExecutor(const Boun
             auto pkPos = getDataPos(*node.getPrimaryKey(id), schema);
             extraInfos.insert({id, getExtraNodeDeleteInfo(id, pkPos)});
         }
-        return std::make_unique<MultiLabelNodeDeleteExecutor>(std::move(info), std::move(extraInfos));
+        return std::make_unique<MultiLabelNodeDeleteExecutor>(std::move(info),
+            std::move(extraInfos));
     }
     auto pkPos = getDataPos(*node.getPrimaryKey(node.getSingleTableID()), schema);
     auto extraInfo = getExtraNodeDeleteInfo(node.getSingleTableID(), pkPos);
@@ -51,7 +53,7 @@ std::unique_ptr<NodeDeleteExecutor> PlanMapper::getNodeDeleteExecutor(const Boun
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDelete(planner::LogicalOperator* logicalOperator) {
     auto delete_ = logicalOperator->constPtrCast<LogicalDelete>();
-    switch (delete_->getTableType()){
+    switch (delete_->getTableType()) {
     case TableType::NODE: {
         return mapDeleteNode(logicalOperator);
     }
@@ -75,7 +77,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteNode(LogicalOperator* log
         getOperatorID(), delete_->getExpressionsForPrinting());
 }
 
-std::unique_ptr<RelDeleteExecutor> PlanMapper::getRelDeleteExecutor(const BoundDeleteInfo& info, const Schema& schema) const {
+std::unique_ptr<RelDeleteExecutor> PlanMapper::getRelDeleteExecutor(const BoundDeleteInfo& info,
+    const Schema& schema) const {
     auto sm = clientContext->getStorageManager();
     auto& rel = info.pattern->constCast<RelExpression>();
     auto srcNodePos = getDataPos(*rel.getSrcNode()->getInternalID(), schema);
@@ -91,10 +94,8 @@ std::unique_ptr<RelDeleteExecutor> PlanMapper::getRelDeleteExecutor(const BoundD
             srcNodePos, dstNodePos, relIDPos);
     }
     auto table = sm->getTable(rel.getSingleTableID())->ptrCast<RelTable>();
-    return std::make_unique<SingleLabelRelDeleteExecutor>(table, srcNodePos, dstNodePos,
-        relIDPos);
+    return std::make_unique<SingleLabelRelDeleteExecutor>(table, srcNodePos, dstNodePos, relIDPos);
 }
-
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteRel(LogicalOperator* logicalOperator) {
     auto delete_ = logicalOperator->constPtrCast<LogicalDelete>();
