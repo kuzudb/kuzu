@@ -74,6 +74,12 @@ struct TableInfoFunction : public CallFunction {
     static function_set getFunctionSet();
 };
 
+struct ShowSequencesFunction : public CallFunction {
+    static constexpr const char* name = "SHOW_SEQUENCES";
+
+    static function_set getFunctionSet();
+};
+
 struct ShowConnectionFunction final : public CallFunction {
     static constexpr const char* name = "SHOW_CONNECTION";
 

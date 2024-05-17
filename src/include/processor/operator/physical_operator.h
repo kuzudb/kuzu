@@ -16,6 +16,7 @@ enum class PhysicalOperatorType : uint8_t {
     COPY_RDF,
     COPY_TO,
     CREATE_MACRO,
+    CREATE_SEQUENCE,
     CREATE_TABLE,
     CROSS_PRODUCT,
     DETACH_DATABASE,

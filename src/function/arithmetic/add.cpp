@@ -72,10 +72,11 @@ bool AddInPlace::operation(int64_t& left, int64_t& right, int64_t& result) {
     }
 #else
     // https://blog.regehr.org/archives/1139
-    result = int64_t((uint64_t)left + (uint64_t)right);
-    if ((left < 0 && right < 0 && result >= 0) || (left >= 0 && right >= 0 && result < 0)) {
+    int64_t tmp = int64_t((uint64_t)left + (uint64_t)right);
+    if ((left < 0 && right < 0 && tmp >= 0) || (left >= 0 && right >= 0 && tmp < 0)) {
         return false;
     }
+    result = std::move(tmp);
 #endif
     return true;
 }

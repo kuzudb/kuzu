@@ -9,13 +9,13 @@ namespace parser {
 
 class Drop : public Statement {
 public:
-    explicit Drop(std::string tableName)
-        : Statement{common::StatementType::DROP_TABLE}, tableName{std::move(tableName)} {}
+    explicit Drop(common::StatementType type, std::string name)
+        : Statement{type}, name{std::move(name)} {}
 
-    inline std::string getTableName() const { return tableName; }
+    inline std::string getName() const { return name; }
 
 private:
-    std::string tableName;
+    std::string name;
 };
 
 } // namespace parser

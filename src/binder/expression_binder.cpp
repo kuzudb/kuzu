@@ -1,6 +1,5 @@
 #include "binder/expression_binder.h"
 
-#include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression_visitor.h"
 #include "common/exception/binder.h"
@@ -60,8 +59,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::foldExpression(
     const std::shared_ptr<Expression>& expression) {
-    auto value = evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(expression,
-        context->getMemoryManager());
+    auto value =
+        evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(expression, context);
     auto result = createLiteralExpression(value);
     // Fold result should preserve the alias original expression. E.g.
     // RETURN 2, 1 + 1 AS x

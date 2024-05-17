@@ -3,6 +3,7 @@
 #include <fcntl.h>
 
 #include "binder/ddl/bound_alter_info.h"
+#include "binder/ddl/bound_create_sequence_info.h"
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/function_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
@@ -10,6 +11,7 @@
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
+#include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/cast.h"
 #include "common/exception/catalog.h"
 #include "common/file_system/virtual_file_system.h"
@@ -33,6 +35,7 @@ namespace catalog {
 
 Catalog::Catalog() {
     tables = std::make_unique<CatalogSet>();
+    sequences = std::make_unique<CatalogSet>();
     functions = std::make_unique<CatalogSet>();
     registerBuiltInFunctions();
 }
@@ -43,6 +46,7 @@ Catalog::Catalog(std::string directory, VirtualFileSystem* fs) {
         readFromFile(directory, fs, FileVersionType::ORIGINAL);
     } else {
         tables = std::make_unique<CatalogSet>();
+        sequences = std::make_unique<CatalogSet>();
         functions = std::make_unique<CatalogSet>();
         saveToFile(directory, fs, FileVersionType::ORIGINAL);
     }
@@ -217,6 +221,52 @@ void Catalog::setTableComment(transaction::Transaction* transaction, table_id_t 
     ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(tableEntry)->setComment(comment);
 }
 
+bool Catalog::containsSequence(Transaction* transaction, const std::string& sequenceName) const {
+    return sequences->containsEntry(transaction, sequenceName);
+}
+
+sequence_id_t Catalog::getSequenceID(Transaction* transaction,
+    const std::string& sequenceName) const {
+    auto entry = sequences->getEntry(transaction, sequenceName);
+    KU_ASSERT(entry);
+    return ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(entry)->getSequenceID();
+}
+
+SequenceCatalogEntry* Catalog::getSequenceCatalogEntry(Transaction* transaction,
+    sequence_id_t sequenceID) const {
+    SequenceCatalogEntry* result;
+    iterateSequenceCatalogEntries(transaction, [&](CatalogEntry* entry) {
+        if (ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(entry)->getSequenceID() ==
+            sequenceID) {
+            result = ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(entry);
+        }
+    });
+    KU_ASSERT(result);
+    return result;
+}
+
+std::vector<SequenceCatalogEntry*> Catalog::getSequenceEntries(Transaction* transaction) const {
+    std::vector<SequenceCatalogEntry*> result;
+    for (auto& [_, entry] : sequences->getEntries(transaction)) {
+        result.push_back(ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(entry));
+    }
+    return result;
+}
+
+sequence_id_t Catalog::createSequence(transaction::Transaction* transaction,
+    const BoundCreateSequenceInfo& info) {
+    sequence_id_t sequenceID = sequences->assignNextOID();
+    std::unique_ptr<CatalogEntry> entry =
+        std::make_unique<SequenceCatalogEntry>(sequences.get(), sequenceID, info);
+    sequences->createEntry(transaction, std::move(entry));
+    return sequenceID;
+}
+
+void Catalog::dropSequence(transaction::Transaction* transaction, sequence_id_t sequenceID) {
+    auto sequenceEntry = getSequenceCatalogEntry(transaction, sequenceID);
+    sequences->dropEntry(transaction, sequenceEntry->getName());
+}
+
 void Catalog::addFunction(transaction::Transaction* transaction, CatalogEntryType entryType,
     std::string name, function::function_set functionSet) {
     if (functions->containsEntry(transaction, name)) {
@@ -315,6 +365,7 @@ void Catalog::saveToFile(const std::string& directory, common::VirtualFileSystem
     writeMagicBytes(serializer);
     serializer.serializeValue(StorageVersionInfo::getStorageVersion());
     tables->serialize(serializer);
+    sequences->serialize(serializer);
     functions->serialize(serializer);
 }
 
@@ -328,6 +379,7 @@ void Catalog::readFromFile(const std::string& directory, common::VirtualFileSyst
     deserializer.deserializeValue(savedStorageVersion);
     validateStorageVersion(savedStorageVersion);
     tables = CatalogSet::deserialize(deserializer);
+    sequences = CatalogSet::deserialize(deserializer);
     functions = CatalogSet::deserialize(deserializer);
 }
 

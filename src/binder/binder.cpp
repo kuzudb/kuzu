@@ -29,11 +29,17 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::CREATE_TABLE: {
         boundStatement = bindCreateTable(statement);
     } break;
+    case StatementType::CREATE_SEQUENCE: {
+        boundStatement = bindCreateSequence(statement);
+    } break;
     case StatementType::COPY_FROM: {
         boundStatement = bindCopyFromClause(statement);
     } break;
     case StatementType::COPY_TO: {
         boundStatement = bindCopyToClause(statement);
+    } break;
+    case StatementType::DROP_SEQUENCE: {
+        boundStatement = bindDropSequence(statement);
     } break;
     case StatementType::DROP_TABLE: {
         boundStatement = bindDropTable(statement);

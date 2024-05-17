@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
+#include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/file_system/file_info.h"
 #include "common/serializer/buffered_file.h"
@@ -203,6 +204,12 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) {
         clientContext.getCatalog()->addScalarMacroFunction(&DUMMY_WRITE_TRANSACTION,
             macroEntry->getName(), macroEntry->getMacroFunction()->copy());
     } break;
+    case CatalogEntryType::SEQUENCE_ENTRY: {
+        auto sequenceEntry = ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(
+            createEntryRecord.ownedCatalogEntry.get());
+        clientContext.getCatalog()->createSequence(&DUMMY_WRITE_TRANSACTION,
+            sequenceEntry->getBoundCreateSequenceInfo());
+    } break;
     default: {
         KU_UNREACHABLE;
     }
@@ -214,20 +221,22 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) {
     if (!(isCheckpoint && isRecovering)) {
         return;
     }
-    auto dropTableRecord =
+    auto dropEntryRecord =
         ku_dynamic_cast<const WALRecord&, const DropCatalogEntryRecord&>(walRecord);
-    auto tableID = dropTableRecord.tableID;
-    auto tableEntry =
-        clientContext.getCatalog()->getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID);
-    switch (tableEntry->getTableType()) {
-    case TableType::NODE:
-    case TableType::REL:
-    case TableType::RDF: {
-        clientContext.getCatalog()->dropTableSchema(&DUMMY_WRITE_TRANSACTION, tableID);
+    auto entryID = dropEntryRecord.entryID;
+    switch (dropEntryRecord.entryType) {
+    case CatalogEntryType::NODE_TABLE_ENTRY:
+    case CatalogEntryType::REL_TABLE_ENTRY:
+    case CatalogEntryType::REL_GROUP_ENTRY:
+    case CatalogEntryType::RDF_GRAPH_ENTRY: {
+        clientContext.getCatalog()->dropTableSchema(&DUMMY_WRITE_TRANSACTION, entryID);
         // During recovery, storageManager does not exist.
         if (clientContext.getStorageManager()) {
-            clientContext.getStorageManager()->dropTable(tableID);
+            clientContext.getStorageManager()->dropTable(entryID);
         }
+    } break;
+    case CatalogEntryType::SEQUENCE_ENTRY: {
+        clientContext.getCatalog()->dropSequence(&DUMMY_WRITE_TRANSACTION, entryID);
     } break;
     default: {
         KU_UNREACHABLE;

@@ -29,6 +29,8 @@ std::string CatalogEntryTypeUtils::toString(CatalogEntryType type) {
         return "FOREIGN_TABLE_ENTRY";
     case CatalogEntryType::DUMMY_ENTRY:
         return "DUMMY_ENTRY";
+    case CatalogEntryType::SEQUENCE_ENTRY:
+        return "SEQUENCE_ENTRY";
     default:
         KU_UNREACHABLE;
     }

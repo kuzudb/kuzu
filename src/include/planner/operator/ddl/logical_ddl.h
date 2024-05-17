@@ -5,6 +5,7 @@
 namespace kuzu {
 namespace planner {
 
+// TODO: Now that DDL includes sequence, should rename to not be specified by table
 class LogicalDDL : public LogicalOperator {
 public:
     LogicalDDL(LogicalOperatorType operatorType, std::string tableName,

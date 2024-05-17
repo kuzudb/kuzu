@@ -18,6 +18,7 @@ enum class CatalogEntryType : uint8_t {
     TABLE_FUNCTION_ENTRY = 8,
     FOREIGN_TABLE_ENTRY = 9,
     DUMMY_ENTRY = 10,
+    SEQUENCE_ENTRY = 11,
 };
 
 struct CatalogEntryTypeUtils {

@@ -25,7 +25,8 @@ oC_Statement
         | kU_CreateRelTable
         | kU_CreateRelTableGroup
         | kU_CreateRdfGraph
-        | kU_DropTable
+        | kU_CreateSequence
+        | kU_Drop
         | kU_AlterTable
         | kU_CopyFrom
         | kU_CopyFromByColumn
@@ -143,7 +144,7 @@ kU_CreateRelTable
     : CREATE SP REL SP TABLE SP oC_SchemaName SP? '(' SP? kU_RelTableConnection SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
 
 kU_CreateRelTableGroup
-   : CREATE SP REL SP TABLE SP GROUP SP oC_SchemaName SP? '(' SP? kU_RelTableConnection SP ? (',' SP? kU_RelTableConnection)+ SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
+    : CREATE SP REL SP TABLE SP GROUP SP oC_SchemaName SP? '(' SP? kU_RelTableConnection SP ? (',' SP? kU_RelTableConnection)+ SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
 
 GROUP : ( 'G' | 'g' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'U' | 'u' ) ( 'P' | 'p' ) ;
 
@@ -155,8 +156,42 @@ kU_CreateRdfGraph
 
 RDFGRAPH : ('R' | 'r') ('D' | 'd') ('F' | 'f') ('G' | 'g') ('R' | 'r') ('A' | 'a') ('P' | 'p') ('H' | 'h') ;
 
-kU_DropTable
-    : DROP SP (TABLE | RDFGRAPH) SP oC_SchemaName ;
+kU_CreateSequence
+    : CREATE SP SEQUENCE SP oC_SchemaName (SP kU_SequenceOptions)* ;
+
+SEQUENCE : ('S' | 's') ('E' | 'e') ('Q' | 'q') ('U' | 'u') ('E' | 'e') ('N' | 'n') ('C' | 'c') ('E' | 'e') ;
+
+kU_SequenceOptions
+    : kU_IncrementBy
+        | kU_MinValue
+        | kU_MaxValue
+        | kU_StartWith
+        | kU_Cycle;
+
+kU_IncrementBy : INCREMENT SP ( BY SP )? MINUS? oC_IntegerLiteral ;
+
+INCREMENT : ('I' | 'i') ('N' | 'n') ('C' | 'c') ('R' | 'r') ('E' | 'e') ('M' | 'm') ('E' | 'e') ('N' | 'n') ('T' | 't') ;
+
+kU_MinValue : (NO SP MINVALUE) | (MINVALUE SP MINUS? oC_IntegerLiteral) ;
+
+kU_MaxValue : (NO SP MAXVALUE) | (MAXVALUE SP MINUS? oC_IntegerLiteral) ;
+
+MINVALUE : ('M' | 'm') ('I' | 'i') ('N' | 'n') ('V' | 'v') ('A' | 'a') ('L' | 'l') ('U' | 'u') ('E' | 'e') ;
+
+MAXVALUE : ('M' | 'm') ('A' | 'a') ('X' | 'x') ('V' | 'v') ('A' | 'a') ('L' | 'l') ('U' | 'u') ('E' | 'e') ;
+
+kU_StartWith : START SP ( WITH SP )? MINUS? oC_IntegerLiteral ;
+
+START : ('S' | 's') ('T' | 't') ('A' | 'a') ('R' | 'r') ('T' | 't') ;
+
+kU_Cycle : (NO SP)? CYCLE ;
+
+NO : ('N' | 'n') ('O' | 'o') ;
+
+CYCLE : ('C' | 'c') ('Y' | 'y') ('C' | 'c') ('L' | 'l') ('E' | 'e') ;
+
+kU_Drop
+    : DROP SP (TABLE | RDFGRAPH | SEQUENCE) SP oC_SchemaName ;
 
 DROP : ( 'D' | 'd' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'P' | 'p' ) ;
 
@@ -790,6 +825,13 @@ kU_NonReservedKeywords
         | EXPORT
         | DATABASE
         | USE
+        | START
+        | SEQUENCE
+        | INCREMENT
+        | MINVALUE
+        | MAXVALUE
+        | NO
+        | CYCLE
         ;
 
 UnescapedSymbolicName
