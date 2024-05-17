@@ -17,8 +17,7 @@ void Planner::appendOptionalAccumulate(std::shared_ptr<Expression> mark, Logical
         plan);
 }
 
-void Planner::appendAccumulate(const expression_vector& flatExprs,
-    kuzu::planner::LogicalPlan& plan) {
+void Planner::appendAccumulate(const expression_vector& flatExprs, LogicalPlan& plan) {
     appendAccumulate(AccumulateType::REGULAR, flatExprs, nullptr /* offset */, nullptr /* mark */,
         plan);
 }

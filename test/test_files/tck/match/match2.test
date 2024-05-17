@@ -6,8 +6,7 @@
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT MATCH ()-[r]->() RETURN r;
----- error
-Binder exception: No rel table exists in database.
+---- 0
 
 # Matching a relationship pattern using a label predicate on both sides
 -CASE Scenario2

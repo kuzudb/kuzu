@@ -8,17 +8,17 @@ namespace binder {
 
 class QueryGraphLabelAnalyzer {
 public:
-    // TODO(Jiamin): remove catalog
-    explicit QueryGraphLabelAnalyzer(const main::ClientContext& clientContext)
-        : clientContext{clientContext} {}
+    explicit QueryGraphLabelAnalyzer(const main::ClientContext& clientContext, bool throwOnViolate)
+        : throwOnViolate{throwOnViolate}, clientContext{clientContext} {}
 
-    void pruneLabel(const QueryGraph& graph);
+    void pruneLabel(QueryGraph& graph);
 
 private:
     void pruneNode(const QueryGraph& graph, NodeExpression& node);
     void pruneRel(RelExpression& rel);
 
 private:
+    bool throwOnViolate;
     const main::ClientContext& clientContext;
 };
 

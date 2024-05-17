@@ -142,7 +142,13 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraph(SubqueryT
     while (context.currentLevel < context.maxLevel) {
         planLevel(context.currentLevel++);
     }
-    return std::move(context.getPlans(context.getFullyMatchedSubqueryGraph()));
+    auto plans = std::move(context.getPlans(context.getFullyMatchedSubqueryGraph()));
+    if (queryGraph.isEmpty()) {
+        for (auto& plan : plans) {
+            appendEmptyResult(*plan);
+        }
+    }
+    return plans;
 }
 
 void Planner::planLevel(uint32_t level) {

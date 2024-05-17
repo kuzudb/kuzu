@@ -7,6 +7,7 @@ add_library(kuzu_planner_plan_operator
         append_delete.cpp
         append_distinct.cpp
         append_dummy_scan.cpp
+        append_empty_result.cpp
         append_expressions_scan.cpp
         append_extend.cpp
         append_filter.cpp

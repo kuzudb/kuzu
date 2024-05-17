@@ -143,6 +143,20 @@ subquery_graph_set_t SubqueryGraph::getNextNbrSubgraphs(const SubqueryGraph& pre
     return result;
 }
 
+bool QueryGraph::isEmpty() const {
+    for (auto& n : queryNodes) {
+        if (n->isEmpty()) {
+            return true;
+        }
+    }
+    for (auto& r : queryRels) {
+        if (r->isEmpty()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::vector<std::shared_ptr<NodeOrRelExpression>> QueryGraph::getAllPatterns() const {
     std::vector<std::shared_ptr<NodeOrRelExpression>> patterns;
     for (auto& p : queryNodes) {

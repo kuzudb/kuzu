@@ -5,21 +5,31 @@
 namespace kuzu {
 namespace planner {
 
-// Avoid executing if a sub-plan is known to have empty result (e.g. WHERE False)
-// See FilterPushDownOptimizer::visitFilterReplace for more details on the optimization.
 class LogicalEmptyResult final : public LogicalOperator {
 public:
     explicit LogicalEmptyResult(const Schema& schema)
-        : LogicalOperator{LogicalOperatorType::EMPTY_RESULT} {
+        : LogicalOperator{LogicalOperatorType::EMPTY_RESULT}, originalSchema{schema.copy()} {
         this->schema = schema.copy();
     }
 
-    void computeFactorizedSchema() override {}
-    void computeFlatSchema() override {}
+    void computeFactorizedSchema() override { schema = originalSchema->copy(); }
+    void computeFlatSchema() override {
+        createEmptySchema();
+        schema->createGroup();
+        for (auto& e : originalSchema->getExpressionsInScope()) {
+            schema->insertToGroupAndScope(e, 0);
+        }
+    }
 
     std::string getExpressionsForPrinting() const override { return std::string{}; }
 
-    inline std::unique_ptr<LogicalOperator> copy() override { KU_UNREACHABLE; }
+    std::unique_ptr<LogicalOperator> copy() override {
+        return std::make_unique<LogicalEmptyResult>(*originalSchema);
+    }
+
+private:
+    // The original schema of the plan that generates empty result.
+    std::unique_ptr<Schema> originalSchema;
 };
 
 } // namespace planner

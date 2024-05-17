@@ -100,14 +100,13 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindMergeClause(
     return boundMergeClause;
 }
 
-std::vector<BoundInsertInfo> Binder::bindInsertInfos(
-    const QueryGraphCollection& queryGraphCollection,
+std::vector<BoundInsertInfo> Binder::bindInsertInfos(QueryGraphCollection& queryGraphCollection,
     const std::unordered_set<std::string>& patternsInScope_) {
     auto patternsInScope = patternsInScope_;
     std::vector<BoundInsertInfo> result;
-    auto analyzer = QueryGraphLabelAnalyzer(*clientContext);
+    auto analyzer = QueryGraphLabelAnalyzer(*clientContext, true /* throwOnViolate */);
     for (auto i = 0u; i < queryGraphCollection.getNumQueryGraphs(); ++i) {
-        auto queryGraph = queryGraphCollection.getQueryGraph(i);
+        auto queryGraph = queryGraphCollection.getQueryGraphUnsafe(i);
         // Ensure query graph does not violate declared schema.
         analyzer.pruneLabel(*queryGraph);
         for (auto j = 0u; j < queryGraph->getNumQueryNodes(); ++j) {

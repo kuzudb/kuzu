@@ -257,7 +257,10 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
     expression_vector children;
     switch (expression.getDataType().getLogicalTypeID()) {
     case LogicalTypeID::NODE: {
-        auto& node = (NodeExpression&)expression;
+        auto& node = expression.constCast<NodeExpression>();
+        if (node.isEmpty()) {
+            return createLiteralExpression("");
+        }
         if (!node.isMultiLabeled()) {
             auto labelName = catalog->getTableName(context->getTx(), node.getSingleTableID());
             return createLiteralExpression(Value(LogicalType::STRING(), labelName));
@@ -269,7 +272,10 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
         children.push_back(createLiteralExpression(std::move(labelsValue)));
     } break;
     case LogicalTypeID::REL: {
-        auto& rel = (RelExpression&)expression;
+        auto& rel = expression.constCast<RelExpression>();
+        if (rel.isEmpty()) {
+            return createLiteralExpression("");
+        }
         if (!rel.isMultiLabeled()) {
             auto labelName = catalog->getTableName(context->getTx(), rel.getSingleTableID());
             return createLiteralExpression(Value(LogicalType::STRING(), labelName));
