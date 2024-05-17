@@ -29,8 +29,7 @@ private:
     void visitFilter(planner::LogicalOperator* op) override;
     void visitSetNodeProperty(planner::LogicalOperator* op) override;
     void visitSetRelProperty(planner::LogicalOperator* op) override;
-    void visitDeleteNode(planner::LogicalOperator* op) override;
-    void visitDeleteRel(planner::LogicalOperator* op) override;
+    void visitDelete(planner::LogicalOperator* op) override;
     void visitInsert(planner::LogicalOperator* op) override;
     void visitMerge(planner::LogicalOperator* op) override;
     void visitCopyTo(planner::LogicalOperator* op) override;

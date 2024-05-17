@@ -10,32 +10,32 @@ class BoundDeleteClause : public BoundUpdatingClause {
 public:
     BoundDeleteClause() : BoundUpdatingClause{common::ClauseType::DELETE_} {};
 
-    inline void addInfo(BoundDeleteInfo info) { infos.push_back(std::move(info)); }
+    void addInfo(BoundDeleteInfo info) { infos.push_back(std::move(info)); }
 
-    inline bool hasNodeInfo() const {
+    bool hasNodeInfo() const {
         return hasInfo([](const BoundDeleteInfo& info) {
-            return info.updateTableType == UpdateTableType::NODE;
+            return info.tableType == common::TableType::NODE;
         });
     }
-    inline std::vector<const BoundDeleteInfo*> getNodeInfos() const {
+    std::vector<BoundDeleteInfo> getNodeInfos() const {
         return getInfos([](const BoundDeleteInfo& info) {
-            return info.updateTableType == UpdateTableType::NODE;
+            return info.tableType == common::TableType::NODE;
         });
     }
-    inline bool hasRelInfo() const {
+    bool hasRelInfo() const {
         return hasInfo([](const BoundDeleteInfo& info) {
-            return info.updateTableType == UpdateTableType::REL;
+            return info.tableType == common::TableType::REL;
         });
     }
-    inline std::vector<const BoundDeleteInfo*> getRelInfos() const {
+    std::vector<BoundDeleteInfo> getRelInfos() const {
         return getInfos([](const BoundDeleteInfo& info) {
-            return info.updateTableType == UpdateTableType::REL;
+            return info.tableType == common::TableType::REL;
         });
     }
 
 private:
     bool hasInfo(const std::function<bool(const BoundDeleteInfo& info)>& check) const;
-    std::vector<const BoundDeleteInfo*> getInfos(
+    std::vector<BoundDeleteInfo> getInfos(
         const std::function<bool(const BoundDeleteInfo& info)>& check) const;
 
 private:

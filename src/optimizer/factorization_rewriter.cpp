@@ -177,18 +177,10 @@ void FactorizationRewriter::visitSetRelProperty(planner::LogicalOperator* op) {
     }
 }
 
-void FactorizationRewriter::visitDeleteNode(planner::LogicalOperator* op) {
-    auto deleteNode = (LogicalDeleteNode*)op;
+void FactorizationRewriter::visitDelete(planner::LogicalOperator* op) {
+    auto deleteNode = op->ptrCast<LogicalDelete>();
     auto groupsPosToFlatten = deleteNode->getGroupsPosToFlatten();
     deleteNode->setChild(0, appendFlattens(deleteNode->getChild(0), groupsPosToFlatten));
-}
-
-void FactorizationRewriter::visitDeleteRel(planner::LogicalOperator* op) {
-    auto deleteRel = (LogicalDeleteRel*)op;
-    for (auto i = 0u; i < deleteRel->getRelsRef().size(); ++i) {
-        auto groupsPosToFlatten = deleteRel->getGroupsPosToFlatten(i);
-        deleteRel->setChild(0, appendFlattens(deleteRel->getChild(0), groupsPosToFlatten));
-    }
 }
 
 void FactorizationRewriter::visitInsert(planner::LogicalOperator* op) {

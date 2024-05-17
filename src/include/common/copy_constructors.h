@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <unordered_map>
 // This file defines many macros for controlling copy constructors and move constructors on classes.
 
 // NOLINTBEGIN(bugprone-macro-parentheses): Although this is a good check in general, here, we
@@ -70,6 +71,15 @@ static std::vector<T> copyVector(const std::vector<T>& objects) {
     result.reserve(objects.size());
     for (auto& object : objects) {
         result.push_back(object.copy());
+    }
+    return result;
+}
+
+template<typename K, typename V>
+static std::unordered_map<K, V> copyMap(const std::unordered_map<K, V>& objects) {
+    std::unordered_map<K, V> result;
+    for (auto& [k, v] : objects) {
+        result.insert({k, v.copy()});
     }
     return result;
 }

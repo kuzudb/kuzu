@@ -2,24 +2,25 @@
 
 #include "parser/expression/parsed_expression.h"
 #include "updating_clause.h"
+#include "common/enums/delete_type.h"
 
 namespace kuzu {
 namespace parser {
 
 class DeleteClause final : public UpdatingClause {
 public:
-    explicit DeleteClause(common::DeleteClauseType deleteClauseType)
-        : UpdatingClause{common::ClauseType::DELETE_}, deleteClauseType{deleteClauseType} {};
+    explicit DeleteClause(common::DeleteNodeType deleteType)
+        : UpdatingClause{common::ClauseType::DELETE_}, deleteType{deleteType} {};
 
-    inline void addExpression(std::unique_ptr<ParsedExpression> expression) {
+    void addExpression(std::unique_ptr<ParsedExpression> expression) {
         expressions.push_back(std::move(expression));
     }
-    inline common::DeleteClauseType getDeleteClauseType() const { return deleteClauseType; }
-    inline uint32_t getNumExpressions() const { return expressions.size(); }
-    inline ParsedExpression* getExpression(uint32_t idx) const { return expressions[idx].get(); }
+    common::DeleteNodeType getDeleteClauseType() const { return deleteType; }
+    uint32_t getNumExpressions() const { return expressions.size(); }
+    ParsedExpression* getExpression(uint32_t idx) const { return expressions[idx].get(); }
 
 private:
-    common::DeleteClauseType deleteClauseType;
+    common::DeleteNodeType deleteType;
     parsed_expr_vector expressions;
 };
 

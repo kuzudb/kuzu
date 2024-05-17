@@ -14,12 +14,12 @@ bool BoundDeleteClause::hasInfo(const std::function<bool(const BoundDeleteInfo&)
     return false;
 }
 
-std::vector<const BoundDeleteInfo*> BoundDeleteClause::getInfos(
+std::vector<BoundDeleteInfo> BoundDeleteClause::getInfos(
     const std::function<bool(const BoundDeleteInfo&)>& check) const {
-    std::vector<const BoundDeleteInfo*> result;
+    std::vector<BoundDeleteInfo> result;
     for (auto& info : infos) {
         if (check(info)) {
-            result.push_back(&info);
+            result.push_back(info.copy());
         }
     }
     return result;

@@ -1,52 +1,46 @@
 #include "planner/operator/persistent/logical_delete.h"
 
 #include "planner/operator/factorization/flatten_resolver.h"
+#include "binder/expression/expression_util.h"
+#include "binder/expression/node_expression.h"
+#include "binder/expression/rel_expression.h"
+
+using namespace kuzu::binder;
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace planner {
 
-std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> LogicalDeleteNodeInfo::copy(
-    const std::vector<std::unique_ptr<LogicalDeleteNodeInfo>>& infos) {
-    std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> result;
-    result.reserve(infos.size());
+std::string LogicalDelete::getExpressionsForPrinting() const {
+    expression_vector patterns;
     for (auto& info : infos) {
-        result.push_back(info->copy());
+        patterns.push_back(info.pattern);
     }
-    return result;
+    return ExpressionUtil::toString(patterns);
 }
 
-std::string LogicalDeleteNode::getExpressionsForPrinting() const {
-    std::string result;
-    for (auto& info : infos) {
-        result += info->node->toString() + ",";
-    }
-    return result;
-}
-
-f_group_pos_set LogicalDeleteNode::getGroupsPosToFlatten() {
-    f_group_pos_set dependentGroupPos;
+f_group_pos_set LogicalDelete::getGroupsPosToFlatten() const {
+    KU_ASSERT(!infos.empty());
     auto childSchema = children[0]->getSchema();
-    for (auto& info : infos) {
-        dependentGroupPos.insert(childSchema->getGroupPos(*info->node->getInternalID()));
+    f_group_pos_set dependentGroupPos;
+    switch (infos[0].tableType) {
+    case TableType::NODE: {
+        for (auto& info : infos) {
+            auto nodeID = info.pattern->constCast<NodeExpression>().getInternalID();
+            dependentGroupPos.insert(childSchema->getGroupPos(*nodeID));
+        }
+    } break ;
+    case TableType::REL: {
+        for (auto& info : infos) {
+            auto& rel = info.pattern->constCast<RelExpression>();
+            dependentGroupPos.insert(childSchema->getGroupPos(*rel.getSrcNode()->getInternalID()));
+            dependentGroupPos.insert(childSchema->getGroupPos(*rel.getDstNode()->getInternalID()));
+        }
+    } break ;
+    default:
+        KU_UNREACHABLE;
     }
     return factorization::FlattenAll::getGroupsPosToFlatten(dependentGroupPos, childSchema);
-}
-
-std::string LogicalDeleteRel::getExpressionsForPrinting() const {
-    std::string result;
-    for (auto& rel : rels) {
-        result += rel->toString() + ",";
-    }
-    return result;
-}
-
-f_group_pos_set LogicalDeleteRel::getGroupsPosToFlatten(uint32_t idx) {
-    f_group_pos_set result;
-    auto rel = rels[idx];
-    auto childSchema = children[0]->getSchema();
-    result.insert(childSchema->getGroupPos(*rel->getSrcNode()->getInternalID()));
-    result.insert(childSchema->getGroupPos(*rel->getDstNode()->getInternalID()));
-    return factorization::FlattenAll::getGroupsPosToFlatten(result, childSchema);
 }
 
 } // namespace planner

@@ -11,21 +11,21 @@ public:
     explicit BoundInsertClause(std::vector<BoundInsertInfo> infos)
         : BoundUpdatingClause{common::ClauseType::INSERT}, infos{std::move(infos)} {}
 
-    inline const std::vector<BoundInsertInfo>& getInfosRef() { return infos; }
+    const std::vector<BoundInsertInfo>& getInfos() { return infos; }
 
-    inline bool hasNodeInfo() const {
+    bool hasNodeInfo() const {
         return hasInfo(
             [](const BoundInsertInfo& info) { return info.tableType == common::TableType::NODE; });
     }
-    inline std::vector<const BoundInsertInfo*> getNodeInfos() const {
+    std::vector<const BoundInsertInfo*> getNodeInfos() const {
         return getInfos(
             [](const BoundInsertInfo& info) { return info.tableType == common::TableType::NODE; });
     }
-    inline bool hasRelInfo() const {
+    bool hasRelInfo() const {
         return hasInfo(
             [](const BoundInsertInfo& info) { return info.tableType == common::TableType::REL; });
     }
-    inline std::vector<const BoundInsertInfo*> getRelInfos() const {
+    std::vector<const BoundInsertInfo*> getRelInfos() const {
         return getInfos(
             [](const BoundInsertInfo& info) { return info.tableType == common::TableType::REL; });
     }

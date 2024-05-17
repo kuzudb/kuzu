@@ -10,10 +10,10 @@ class DeleteNode : public PhysicalOperator {
 public:
     DeleteNode(std::vector<std::unique_ptr<NodeDeleteExecutor>> executors,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::DELETE_NODE, std::move(child), id, paramsString},
+        : PhysicalOperator{PhysicalOperatorType::DELETE_, std::move(child), id, paramsString},
           executors{std::move(executors)} {}
 
-    inline bool canParallel() const final { return false; }
+    bool canParallel() const final { return false; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 
@@ -29,10 +29,10 @@ class DeleteRel : public PhysicalOperator {
 public:
     DeleteRel(std::vector<std::unique_ptr<RelDeleteExecutor>> executors,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::DELETE_REL, std::move(child), id, paramsString},
+        : PhysicalOperator{PhysicalOperatorType::DELETE_, std::move(child), id, paramsString},
           executors{std::move(executors)} {}
 
-    inline bool canParallel() const final { return false; }
+    bool canParallel() const final { return false; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 

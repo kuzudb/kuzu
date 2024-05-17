@@ -107,12 +107,6 @@ void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     if (nodeDeleteState.nodeIDVector.isNull(pos)) {
         return;
     }
-    auto pkColumnIDs = {pkColumnID};
-    auto pkVectors = std::vector<ValueVector*>{&nodeDeleteState.pkVector};
-    auto readState =
-        std::make_unique<NodeTableReadState>(&nodeDeleteState.nodeIDVector, pkColumnIDs, pkVectors);
-    initializeReadState(transaction, pkColumnIDs, *readState);
-    read(transaction, *readState);
     if (pkIndex) {
         pkIndex->delete_(&nodeDeleteState.pkVector);
     }

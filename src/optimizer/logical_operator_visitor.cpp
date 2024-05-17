@@ -73,11 +73,8 @@ void LogicalOperatorVisitor::visitOperatorSwitch(planner::LogicalOperator* op) {
     case LogicalOperatorType::SET_REL_PROPERTY: {
         visitSetRelProperty(op);
     } break;
-    case LogicalOperatorType::DELETE_NODE: {
-        visitDeleteNode(op);
-    } break;
-    case LogicalOperatorType::DELETE_REL: {
-        visitDeleteRel(op);
+    case LogicalOperatorType::DELETE: {
+        visitDelete(op);
     } break;
     case LogicalOperatorType::INSERT: {
         visitInsert(op);
@@ -165,11 +162,8 @@ std::shared_ptr<planner::LogicalOperator> LogicalOperatorVisitor::visitOperatorR
     case LogicalOperatorType::SET_REL_PROPERTY: {
         return visitSetRelPropertyReplace(op);
     }
-    case LogicalOperatorType::DELETE_NODE: {
-        return visitDeleteNodeReplace(op);
-    }
-    case LogicalOperatorType::DELETE_REL: {
-        return visitDeleteRelReplace(op);
+    case LogicalOperatorType::DELETE: {
+        return visitDeleteReplace(op);
     }
     case LogicalOperatorType::INSERT: {
         return visitInsertReplace(op);

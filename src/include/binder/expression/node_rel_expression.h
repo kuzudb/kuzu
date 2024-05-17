@@ -13,7 +13,6 @@ public:
         std::string variableName, std::vector<common::table_id_t> tableIDs)
         : Expression{common::ExpressionType::PATTERN, std::move(dataType), std::move(uniqueName)},
           variableName(std::move(variableName)), tableIDs{std::move(tableIDs)} {}
-    ~NodeOrRelExpression() override = default;
 
     // Note: ideally I would try to remove this function. But for now, we have to create type
     // after expression.
@@ -24,14 +23,7 @@ public:
     std::string getVariableName() const { return variableName; }
 
     void setTableIDs(common::table_id_vector_t tableIDs_) { tableIDs = std::move(tableIDs_); }
-    void addTableIDs(const common::table_id_vector_t& tableIDsToAdd) {
-        auto tableIDsSet = getTableIDsSet();
-        for (auto tableID : tableIDsToAdd) {
-            if (!tableIDsSet.contains(tableID)) {
-                tableIDs.push_back(tableID);
-            }
-        }
-    }
+    void addTableIDs(const common::table_id_vector_t& tableIDsToAdd);
 
     bool isEmpty() const { return tableIDs.empty(); }
     bool isMultiLabeled() const { return tableIDs.size() > 1; }
@@ -40,34 +32,23 @@ public:
     std::unordered_set<common::table_id_t> getTableIDsSet() const {
         return {tableIDs.begin(), tableIDs.end()};
     }
-    common::table_id_t getSingleTableID() const {
-        KU_ASSERT(tableIDs.size() == 1);
-        return tableIDs[0];
-    }
+    common::table_id_t getSingleTableID() const;
 
     void addPropertyExpression(const std::string& propertyName,
-        std::unique_ptr<Expression> property) {
-        KU_ASSERT(!propertyNameToIdx.contains(propertyName));
-        propertyNameToIdx.insert({propertyName, propertyExprs.size()});
-        propertyExprs.push_back(std::move(property));
-    }
+        std::unique_ptr<Expression> property);
     bool hasPropertyExpression(const std::string& propertyName) const {
         return propertyNameToIdx.contains(propertyName);
     }
-    std::shared_ptr<Expression> getPropertyExpression(const std::string& propertyName) const {
-        KU_ASSERT(propertyNameToIdx.contains(propertyName));
-        return propertyExprs[propertyNameToIdx.at(propertyName)]->copy();
-    }
+    // Deep copy expression.
+    std::shared_ptr<Expression> getPropertyExpression(const std::string& propertyName) const;
     const std::vector<std::unique_ptr<Expression>>& getPropertyExprsRef() const {
         return propertyExprs;
     }
-    expression_vector getPropertyExprs() const {
-        expression_vector result;
-        for (auto& expr : propertyExprs) {
-            result.push_back(expr->copy());
-        }
-        return result;
-    }
+    // Deep copy expressions.
+    expression_vector getPropertyExprs() const;
+
+    bool hasPrimaryKey() const;
+    std::shared_ptr<Expression> getPrimaryKey() const;
 
     void setLabelExpression(std::shared_ptr<Expression> expression) {
         labelExpression = std::move(expression);

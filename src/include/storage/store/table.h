@@ -87,6 +87,11 @@ public:
     virtual void checkpointInMemory() = 0;
     virtual void rollbackInMemory() = 0;
 
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<Table*,  TARGET*>(this);
+    }
+
 protected:
     virtual void readInternal(transaction::Transaction* transaction, TableReadState& readState) = 0;
 

@@ -1,5 +1,4 @@
 #include "binder/query/updating_clause/bound_delete_info.h"
-#include "common/enums/clause_type.h"
 #include "planner/operator/persistent/logical_delete.h"
 #include "planner/planner.h"
 
@@ -8,39 +7,12 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-void Planner::appendDeleteNode(const std::vector<const BoundDeleteInfo*>& boundInfos,
-    LogicalPlan& plan) {
-    std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> infos;
-    infos.reserve(boundInfos.size());
-    for (auto& boundInfo : boundInfos) {
-        infos.push_back(std::make_unique<LogicalDeleteNodeInfo>(
-            // TODO: Add kuzu_dynamic_pointer_cast, and should use that instead for safety checks.
-            std::static_pointer_cast<NodeExpression>(boundInfo->nodeOrRel),
-            boundInfo->deleteClauseType == common::DeleteClauseType::DETACH_DELETE ?
-                common::DeleteNodeType::DETACH_DELETE :
-                common::DeleteNodeType::DELETE));
-    }
-    auto deleteNode = std::make_shared<LogicalDeleteNode>(std::move(infos), plan.getLastOperator());
-    appendFlattens(deleteNode->getGroupsPosToFlatten(), plan);
-    deleteNode->setChild(0, plan.getLastOperator());
-    deleteNode->computeFactorizedSchema();
-    plan.setLastOperator(std::move(deleteNode));
-}
-
-void Planner::appendDeleteRel(const std::vector<const BoundDeleteInfo*>& boundInfos,
-    LogicalPlan& plan) {
-    std::vector<std::shared_ptr<RelExpression>> rels;
-    for (auto& info : boundInfos) {
-        auto rel = std::static_pointer_cast<RelExpression>(info->nodeOrRel);
-        rels.push_back(rel);
-    }
-    auto deleteRel = std::make_shared<LogicalDeleteRel>(rels, plan.getLastOperator());
-    for (auto i = 0u; i < boundInfos.size(); ++i) {
-        appendFlattens(deleteRel->getGroupsPosToFlatten(i), plan);
-        deleteRel->setChild(0, plan.getLastOperator());
-    }
-    deleteRel->computeFactorizedSchema();
-    plan.setLastOperator(std::move(deleteRel));
+void Planner::appendDelete(const std::vector<BoundDeleteInfo>& infos, LogicalPlan& plan) {
+    auto delete_ = std::make_shared<LogicalDelete>(copyVector(infos), plan.getLastOperator());
+    appendFlattens(delete_->getGroupsPosToFlatten(), plan);
+    delete_->setChild(0, plan.getLastOperator());
+    delete_->computeFactorizedSchema();
+    plan.setLastOperator(std::move(delete_));
 }
 
 } // namespace planner
