@@ -81,9 +81,9 @@ std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(
     const LogicalType& dataType, BMFileHandle& metadataFH, BufferManager* bm, WAL* wal) {
     auto metadataDAHInfo = std::make_unique<MetadataDAHInfo>();
     metadataDAHInfo->dataDAHPageIdx =
-        InMemDiskArray<ColumnChunkMetadata>::addDAHPageToFile(metadataFH, bm, wal);
+        DiskArray<ColumnChunkMetadata>::addDAHPageToFile(metadataFH, bm, wal);
     metadataDAHInfo->nullDAHPageIdx =
-        InMemDiskArray<ColumnChunkMetadata>::addDAHPageToFile(metadataFH, bm, wal);
+        DiskArray<ColumnChunkMetadata>::addDAHPageToFile(metadataFH, bm, wal);
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
         auto fields = StructType::getFields(dataType);
@@ -109,9 +109,9 @@ std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(
         auto dataMetadataDAHInfo = std::make_unique<MetadataDAHInfo>();
         auto offsetMetadataDAHInfo = std::make_unique<MetadataDAHInfo>();
         dataMetadataDAHInfo->dataDAHPageIdx =
-            InMemDiskArray<ColumnChunkMetadata>::addDAHPageToFile(metadataFH, bm, wal);
+            DiskArray<ColumnChunkMetadata>::addDAHPageToFile(metadataFH, bm, wal);
         offsetMetadataDAHInfo->dataDAHPageIdx =
-            InMemDiskArray<ColumnChunkMetadata>::addDAHPageToFile(metadataFH, bm, wal);
+            DiskArray<ColumnChunkMetadata>::addDAHPageToFile(metadataFH, bm, wal);
         metadataDAHInfo->childrenInfos.push_back(std::move(dataMetadataDAHInfo));
         metadataDAHInfo->childrenInfos.push_back(std::move(offsetMetadataDAHInfo));
     } break;

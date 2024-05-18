@@ -4,6 +4,7 @@
 
 #include <cstring>
 
+#include "common/constants.h"
 #include "common/type_utils.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
@@ -22,13 +23,8 @@ namespace storage {
 
 template<typename T>
 InMemHashIndex<T>::InMemHashIndex(OverflowFileHandle* overflowFileHandle)
-    // TODO(bmwinger): Remove temp file and make the builder a completely separate class from the
-    // disk array Or remove it entirely (though it might have some benefit as a custom version of
-    // std::deque with a reasonable chunk size).
-    : overflowFileHandle(overflowFileHandle),
-      dummy{"dummyfile", FileHandle::O_IN_MEM_TEMP_FILE, nullptr},
-      pSlots{std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 0, true)},
-      oSlots{std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 1, true)},
+    : overflowFileHandle(overflowFileHandle), pSlots{std::make_unique<BlockVector<Slot<T>>>()},
+      oSlots{std::make_unique<BlockVector<Slot<T>>>()},
       indexHeader{TypeUtils::getPhysicalTypeIDForType<T>()} {
     // Match HashIndex in allocating at least one page of slots so that we don't split within the
     // same page
@@ -38,8 +34,8 @@ InMemHashIndex<T>::InMemHashIndex(OverflowFileHandle* overflowFileHandle)
 template<typename T>
 void InMemHashIndex<T>::clear() {
     indexHeader = HashIndexHeader(TypeUtils::getPhysicalTypeIDForType<T>());
-    pSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 0, true);
-    oSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(dummy, 0, 1, true);
+    pSlots = std::make_unique<BlockVector<Slot<T>>>();
+    oSlots = std::make_unique<BlockVector<Slot<T>>>();
     allocateSlots(BufferPoolConstants::PAGE_4KB_SIZE / pSlots->getAlignedElementSize());
 }
 
@@ -86,7 +82,7 @@ void InMemHashIndex<T>::splitSlot(HashIndexHeader& header) {
     // maintained
     SlotIterator originalSlotForInsert(header.nextSplitSlotId, this);
     auto entryPosToInsert = 0u;
-    SlotIterator newSlot(pSlots->getNumElements() - 1, this);
+    SlotIterator newSlot(pSlots->size() - 1, this);
     entry_pos_t newSlotPos = 0;
     bool gaps = false;
     do {
@@ -264,18 +260,18 @@ bool InMemHashIndex<T>::lookup(Key key, offset_t& result) {
 
 template<typename T>
 uint32_t InMemHashIndex<T>::allocatePSlots(uint32_t numSlotsToAllocate) {
-    auto oldNumSlots = pSlots->getNumElements();
+    auto oldNumSlots = pSlots->size();
     auto newNumSlots = oldNumSlots + numSlotsToAllocate;
-    pSlots->resize(newNumSlots, true /*setToZero*/);
+    pSlots->resize(newNumSlots);
     return oldNumSlots;
 }
 
 template<typename T>
 uint32_t InMemHashIndex<T>::allocateAOSlot() {
     if (indexHeader.firstFreeOverflowSlotId == SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
-        auto oldNumSlots = oSlots->getNumElements();
+        auto oldNumSlots = oSlots->size();
         auto newNumSlots = oldNumSlots + 1;
-        oSlots->resize(newNumSlots, true /*setToZero*/);
+        oSlots->resize(newNumSlots);
         return oldNumSlots;
     } else {
         auto freeOSlotId = indexHeader.firstFreeOverflowSlotId;
@@ -351,20 +347,17 @@ bool InMemHashIndex<ku_string_t>::equals(std::string_view keyToLookup,
 
 template<typename T>
 void InMemHashIndex<T>::createEmptyIndexFiles(uint64_t indexPos, FileHandle& fileHandle) {
-    InMemDiskArrayBuilder<HashIndexHeader> headerArray(fileHandle,
-        NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, 0 /*numElements*/);
+    // Write header
+    std::array<uint8_t, BufferPoolConstants::PAGE_4KB_SIZE> buffer{};
     HashIndexHeader indexHeader(TypeUtils::getPhysicalTypeIDForType<T>());
-    headerArray.resize(1, true /*setToZero=*/);
-    headerArray[0] = indexHeader;
-    InMemDiskArrayBuilder<Slot<T>> pSlots(fileHandle,
-        NUM_HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX, 0 /*numElements */);
-    // Reserve a slot for oSlots, which is always skipped, as we treat slot idx 0 as NULL.
-    InMemDiskArrayBuilder<Slot<T>> oSlots(fileHandle,
-        NUM_HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX, 1 /*numElements */);
+    memcpy(buffer.data(), &indexHeader, sizeof(indexHeader));
+    fileHandle.writePage(buffer.data(),
+        NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX);
 
-    headerArray.saveToDisk();
-    pSlots.saveToDisk();
-    oSlots.saveToDisk();
+    DiskArray<Slot<T>>::addDAHPageToFile(fileHandle,
+        NUM_HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX);
+    DiskArray<Slot<T>>::addDAHPageToFile(fileHandle,
+        NUM_HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX);
 }
 
 template<typename T>

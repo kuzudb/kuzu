@@ -37,7 +37,7 @@ public:
         columns.erase(columns.begin() + columnID);
     }
     void addColumn(transaction::Transaction* transaction, const std::string& colNamePrefix,
-        InMemDiskArray<ColumnChunkMetadata>* metadataDA, const MetadataDAHInfo& metadataDahInfo,
+        DiskArray<ColumnChunkMetadata>* metadataDA, const MetadataDAHInfo& metadataDahInfo,
         const catalog::Property& property, common::ValueVector* defaultValueVector,
         TablesStatistics* tableStats);
 

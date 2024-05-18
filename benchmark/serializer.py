@@ -26,7 +26,7 @@ def serialize(dataset_name, dataset_path, serialized_graph_path, benchmark_copy_
         os.mkdir(serialized_graph_path)
 
     if os.path.exists(os.path.join(serialized_graph_path, 'version.txt')):
-        with open(os.path.join(serialized_graph_path, 'version.txt')) as f:
+        with open(os.path.join(serialized_graph_path, 'version.txt'), encoding="utf-8") as f:
             dataset_version = f.readline().strip()
             if dataset_version == bin_version:
                 logging.info(
@@ -88,8 +88,8 @@ def serialize(dataset_name, dataset_path, serialized_graph_path, benchmark_copy_
         if process.returncode != 0:
             raise RuntimeError(f'Error {process.returncode} executing query: {s}')
 
-    with open(os.path.join(serialized_graph_path, 'version.txt'), 'w') as f:
-        f.write(bin_version)
+    with open(os.path.join(serialized_graph_path, 'version.txt'), 'w', encoding="utf-8") as f:
+        print(bin_version, file=f)
 
 
 if __name__ == '__main__':

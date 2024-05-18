@@ -53,10 +53,10 @@ class InMemHashIndex final {
     // Size of the validity mask
     static_assert(getSlotCapacity<T>() <= sizeof(SlotHeader().validityMask) * 8);
     static_assert(getSlotCapacity<T>() <= std::numeric_limits<entry_pos_t>::max() + 1);
-    static_assert(BaseDiskArray<Slot<T>>::getAlignedElementSize() <=
+    static_assert(DiskArray<Slot<T>>::getAlignedElementSize() <=
                   common::HashIndexConstants::SLOT_CAPACITY_BYTES);
-    static_assert(BaseDiskArray<Slot<T>>::getAlignedElementSize() >= sizeof(Slot<T>));
-    static_assert(BaseDiskArray<Slot<T>>::getAlignedElementSize() >
+    static_assert(DiskArray<Slot<T>>::getAlignedElementSize() >= sizeof(Slot<T>));
+    static_assert(DiskArray<Slot<T>>::getAlignedElementSize() >
                   common::HashIndexConstants::SLOT_CAPACITY_BYTES / 2);
 
 public:
@@ -99,7 +99,7 @@ public:
     inline bool nextChainedSlot(SlotIterator& iter) const {
         iter.slotInfo.slotId = iter.slot->header.nextOvfSlotId;
         iter.slotInfo.slotType = SlotType::OVF;
-        if (iter.slot->header.nextOvfSlotId != 0) {
+        if (iter.slot->header.nextOvfSlotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
             iter.slot = getSlot(iter.slotInfo);
             return true;
         }
@@ -158,9 +158,8 @@ private:
     // TODO: might be more efficient to use a vector for each slot since this is now only needed
     // in-memory and it would remove the need to handle overflow slots.
     OverflowFileHandle* overflowFileHandle;
-    FileHandle dummy;
-    std::unique_ptr<InMemDiskArrayBuilder<Slot<T>>> pSlots;
-    std::unique_ptr<InMemDiskArrayBuilder<Slot<T>>> oSlots;
+    std::unique_ptr<BlockVector<Slot<T>>> pSlots;
+    std::unique_ptr<BlockVector<Slot<T>>> oSlots;
     HashIndexHeader indexHeader;
 };
 

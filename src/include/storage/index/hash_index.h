@@ -27,7 +27,7 @@ class BMFileHandle;
 class BufferManager;
 class OverflowFileHandle;
 template<typename T>
-class BaseDiskArray;
+class DiskArray;
 
 template<typename T>
 class HashIndexLocalStorage;
@@ -135,8 +135,8 @@ private:
     void mergeBulkInserts(const InMemHashIndex<T>& insertLocalStorage);
     // Returns the number of elements merged which matched the given slot id
     size_t mergeSlot(const std::vector<HashIndexEntryView>& slotToMerge,
-        typename BaseDiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
-        typename BaseDiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator, slot_id_t slotId);
+        typename DiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
+        typename DiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator, slot_id_t slotId);
 
     inline bool equals(transaction::TransactionType /*trxType*/, Key keyToLookup,
         const T& keyInEntry) const {
@@ -174,7 +174,7 @@ private:
     bool nextChainedSlot(transaction::TransactionType trxType, SlotIterator& iter) const {
         KU_ASSERT(iter.slotInfo.slotType == SlotType::PRIMARY ||
                   iter.slotInfo.slotId != iter.slot.header.nextOvfSlotId);
-        if (iter.slot.header.nextOvfSlotId != 0) {
+        if (iter.slot.header.nextOvfSlotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
             iter.slotInfo.slotId = iter.slot.header.nextOvfSlotId;
             iter.slotInfo.slotType = SlotType::OVF;
             iter.slot = getSlot(trxType, iter.slotInfo);
@@ -213,10 +213,10 @@ private:
     DBFileIDAndName dbFileIDAndName;
     BufferManager& bm;
     WAL* wal;
+    uint64_t headerPageIdx;
     std::shared_ptr<BMFileHandle> fileHandle;
-    std::unique_ptr<BaseDiskArray<HashIndexHeader>> headerArray;
-    std::unique_ptr<BaseDiskArray<Slot<T>>> pSlots;
-    std::unique_ptr<BaseDiskArray<Slot<T>>> oSlots;
+    std::unique_ptr<DiskArray<Slot<T>>> pSlots;
+    std::unique_ptr<DiskArray<Slot<T>>> oSlots;
     OverflowFileHandle* overflowFileHandle;
     std::unique_ptr<HashIndexLocalStorage<T>> localStorage;
     std::unique_ptr<HashIndexHeader> indexHeaderForReadTrx;

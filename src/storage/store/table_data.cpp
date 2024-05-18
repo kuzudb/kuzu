@@ -16,7 +16,7 @@ TableData::TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
       enableCompression{enableCompression} {}
 
 void TableData::addColumn(Transaction* transaction, const std::string& colNamePrefix,
-    InMemDiskArray<ColumnChunkMetadata>* metadataDA, const MetadataDAHInfo& metadataDAHInfo,
+    DiskArray<ColumnChunkMetadata>* metadataDA, const MetadataDAHInfo& metadataDAHInfo,
     const catalog::Property& property, ValueVector* defaultValueVector,
     TablesStatistics* tablesStats) {
     auto colName = StorageUtils::getColumnName(property.getName(),

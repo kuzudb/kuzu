@@ -108,22 +108,21 @@ template<typename T>
 HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName,
     const std::shared_ptr<BMFileHandle>& fileHandle, OverflowFileHandle* overflowFileHandle,
     uint64_t indexPos, BufferManager& bufferManager, WAL* wal)
-    : dbFileIDAndName{dbFileIDAndName}, bm{bufferManager}, wal{wal}, fileHandle(fileHandle),
-      overflowFileHandle(overflowFileHandle) {
-    // TODO: Handle data not existing
-    headerArray = std::make_unique<BaseDiskArray<HashIndexHeader>>(*fileHandle,
-        dbFileIDAndName.dbFileID, NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX,
-        &bm, wal, Transaction::getDummyReadOnlyTrx().get(), true /*bypassWAL*/);
+    : dbFileIDAndName{dbFileIDAndName}, bm{bufferManager}, wal{wal},
+      headerPageIdx{NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX},
+      fileHandle(fileHandle), overflowFileHandle(overflowFileHandle) {
+    this->indexHeaderForReadTrx = std::make_unique<HashIndexHeader>();
+    bufferManager.optimisticRead(*fileHandle, headerPageIdx, [&](auto* frame) {
+        memcpy(this->indexHeaderForReadTrx.get(), frame, sizeof(HashIndexHeader));
+    });
     // Read indexHeader from the headerArray, which contains only one element.
-    this->indexHeaderForReadTrx = std::make_unique<HashIndexHeader>(
-        headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::READ_ONLY));
     this->indexHeaderForWriteTrx = std::make_unique<HashIndexHeader>(*indexHeaderForReadTrx);
     KU_ASSERT(
         this->indexHeaderForReadTrx->keyDataTypeID == TypeUtils::getPhysicalTypeIDForType<T>());
-    pSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, dbFileIDAndName.dbFileID,
+    pSlots = std::make_unique<DiskArray<Slot<T>>>(*fileHandle, dbFileIDAndName.dbFileID,
         NUM_HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX, &bm, wal,
         Transaction::getDummyReadOnlyTrx().get(), true /*bypassWAL*/);
-    oSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, dbFileIDAndName.dbFileID,
+    oSlots = std::make_unique<DiskArray<Slot<T>>>(*fileHandle, dbFileIDAndName.dbFileID,
         NUM_HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX, &bm, wal,
         Transaction::getDummyReadOnlyTrx().get(), true /*bypassWAL*/);
     // Initialize functions.
@@ -289,9 +288,11 @@ void HashIndex<T>::prepareCommit() {
         }
         localStorage->applyLocalChanges([&](Key key) { deleteFromPersistentIndex(key); },
             [&](const auto& insertions) { mergeBulkInserts(insertions); });
-        headerArray->update(INDEX_HEADER_IDX_IN_ARRAY, *indexHeaderForWriteTrx);
+        DBFileUtils::updatePage(*fileHandle, dbFileIDAndName.dbFileID, headerPageIdx,
+            true /*don't need to read original data*/, bm, *wal, [&](auto* frame) {
+                memcpy(frame, indexHeaderForWriteTrx.get(), sizeof(HashIndexHeader));
+            });
     }
-    headerArray->prepareCommit();
     pSlots->prepareCommit();
     oSlots->prepareCommit();
 }
@@ -309,7 +310,6 @@ void HashIndex<T>::checkpointInMemory() {
         return;
     }
     *indexHeaderForReadTrx = *indexHeaderForWriteTrx;
-    headerArray->checkpointInMemoryIfNecessary();
     pSlots->checkpointInMemoryIfNecessary();
     oSlots->checkpointInMemoryIfNecessary();
     localStorage->clear();
@@ -323,7 +323,6 @@ void HashIndex<T>::rollbackInMemory() {
     if (!localStorage->hasUpdates()) {
         return;
     }
-    headerArray->rollbackInMemoryIfNecessary();
     pSlots->rollbackInMemoryIfNecessary();
     oSlots->rollbackInMemoryIfNecessary();
     localStorage->clear();
@@ -384,7 +383,7 @@ void HashIndex<T>::splitSlots(HashIndexHeader& header, slot_id_t numSlotsToSplit
                     newEntryPos++;
                 }
             }
-        } while (originalSlot->header.nextOvfSlotId != 0 &&
+        } while (originalSlot->header.nextOvfSlotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID &&
                  (originalSlot = &*overflowSlotIterator.seek(originalSlot->header.nextOvfSlotId)));
         header.incrementNextSplitSlotId();
     }
@@ -397,7 +396,8 @@ template<typename T>
 std::vector<std::pair<SlotInfo, Slot<T>>> HashIndex<T>::getChainedSlots(slot_id_t pSlotId) {
     std::vector<std::pair<SlotInfo, Slot<T>>> slots;
     SlotInfo slotInfo{pSlotId, SlotType::PRIMARY};
-    while (slotInfo.slotType == SlotType::PRIMARY || slotInfo.slotId != 0) {
+    while (slotInfo.slotType == SlotType::PRIMARY ||
+           slotInfo.slotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
         auto slot = getSlot(TransactionType::WRITE, slotInfo);
         slots.emplace_back(slotInfo, slot);
         slotInfo.slotId = slot.header.nextOvfSlotId;
@@ -508,7 +508,7 @@ void HashIndex<T>::mergeBulkInserts(const InMemHashIndex<T>& insertLocalStorage)
     // Store sorted slot positions. Re-use to avoid re-allocating memory
     // TODO: Unify implementations to make sure this matches the size used by the disk array
     constexpr size_t NUM_SLOTS_PER_PAGE =
-        BufferPoolConstants::PAGE_4KB_SIZE / BaseDiskArray<Slot<T>>::getAlignedElementSize();
+        BufferPoolConstants::PAGE_4KB_SIZE / DiskArray<Slot<T>>::getAlignedElementSize();
     std::array<std::vector<HashIndexEntryView>, NUM_SLOTS_PER_PAGE> partitionedEntries;
     // Sort entries for a page of slots at a time, then move vertically and process all entries
     // which map to a given page on disk, then horizontally to the next page in the set. These pages
@@ -558,9 +558,8 @@ void HashIndex<T>::mergeBulkInserts(const InMemHashIndex<T>& insertLocalStorage)
 
 template<typename T>
 size_t HashIndex<T>::mergeSlot(const std::vector<HashIndexEntryView>& slotToMerge,
-    typename BaseDiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
-    typename BaseDiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator,
-    slot_id_t diskSlotId) {
+    typename DiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
+    typename DiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator, slot_id_t diskSlotId) {
     slot_id_t diskEntryPos = 0u;
     // mergeSlot should only be called when there is at least one entry for the given disk slot id
     // in the slot to merge
@@ -576,7 +575,7 @@ size_t HashIndex<T>::mergeSlot(const std::vector<HashIndexEntryView>& slotToMerg
             diskSlot->header.isEntryValid(diskEntryPos) || diskEntryPos >= getSlotCapacity<T>()) {
             diskEntryPos++;
             if (diskEntryPos >= getSlotCapacity<T>()) {
-                if (diskSlot->header.nextOvfSlotId == 0) {
+                if (diskSlot->header.nextOvfSlotId == SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
                     // If there are no more disk slots in this chain, we need to add one
                     diskSlot->header.nextOvfSlotId = diskOverflowSlotIterator.size();
                     // This may invalidate diskSlot
