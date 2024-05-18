@@ -68,16 +68,24 @@ void PropertyCollector::visitSet(const BoundUpdatingClause& updatingClause) {
 }
 
 void PropertyCollector::visitDelete(const BoundUpdatingClause& updatingClause) {
-    auto& boundDeleteClause = (BoundDeleteClause&)updatingClause;
+    auto& boundDeleteClause = updatingClause.constCast<BoundDeleteClause>();
+    // Read primary key if we are deleting nodes;
+    for (auto& info : boundDeleteClause.getNodeInfos()) {
+        auto& node = info.pattern->constCast<NodeExpression>();
+        for (auto id : node.getTableIDs()) {
+            properties.insert(node.getPrimaryKey(id));
+        }
+    }
+    // Read rel internal id if we are deleting relationships.
     for (auto& info : boundDeleteClause.getRelInfos()) {
-        auto rel = (RelExpression*)info->nodeOrRel.get();
-        properties.insert(rel->getInternalIDProperty());
+        auto& rel = info.pattern->constCast<RelExpression>();
+        properties.insert(rel.getInternalIDProperty());
     }
 }
 
 void PropertyCollector::visitInsert(const BoundUpdatingClause& updatingClause) {
     auto& insertClause = (BoundInsertClause&)updatingClause;
-    for (auto& info : insertClause.getInfosRef()) {
+    for (auto& info : insertClause.getInfos()) {
         for (auto& expr : info.columnDataExprs) {
             collectPropertyExpressions(expr);
         }

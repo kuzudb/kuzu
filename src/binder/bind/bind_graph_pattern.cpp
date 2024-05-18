@@ -140,32 +140,35 @@ static std::vector<std::string> getPropertyNames(
 static std::unique_ptr<Expression> createPropertyExpression(const std::string& propertyName,
     const std::string& uniqueVariableName, const std::string& rawVariableName,
     const std::vector<TableCatalogEntry*>& entries) {
-    bool isPrimaryKey = false;
-    if (entries.size() == 1 && entries[0]->getTableType() == TableType::NODE) {
-        auto nodeTableEntry =
-            ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(entries[0]);
-        isPrimaryKey =
-            nodeTableEntry->getPrimaryKeyPID() == nodeTableEntry->getPropertyID(propertyName);
-    }
-    std::unordered_map<common::table_id_t, common::property_id_t> tableIDToPropertyID;
-    std::vector<const LogicalType*> propertyDataTypes;
+    common::table_id_map_t<SingleLabelPropertyInfo> infos;
+    std::vector<LogicalType> dataTypes;
     for (auto& entry : entries) {
-        if (!entry->containProperty(propertyName)) {
-            continue;
+        // Bind property id
+        auto propertyID = INVALID_PROPERTY_ID;
+        if (entry->containProperty(propertyName)) {
+            propertyID = entry->getPropertyID(propertyName);
+            dataTypes.push_back(*entry->getProperty(propertyID)->getDataType());
         }
-        auto propertyID = entry->getPropertyID(propertyName);
-        propertyDataTypes.push_back(entry->getProperty(propertyID)->getDataType());
-        tableIDToPropertyID.insert({entry->getTableID(), propertyID});
+        // Bind isPrimaryKey
+        auto isPrimaryKey = false;
+        if (entry->getTableType() == common::TableType::NODE) {
+            auto nodeEntry = entry->constPtrCast<NodeTableCatalogEntry>();
+            isPrimaryKey = nodeEntry->getPrimaryKeyPID() == propertyID;
+        }
+        auto info = SingleLabelPropertyInfo(isPrimaryKey, propertyID);
+        infos.insert({entry->getTableID(), std::move(info)});
     }
-    for (auto type : propertyDataTypes) {
-        if (*propertyDataTypes[0] != *type) {
+    // Validate property under the same name has the same type.
+    KU_ASSERT(!dataTypes.empty());
+    for (auto type : dataTypes) {
+        if (dataTypes[0] != type) {
             throw BinderException(
                 stringFormat("Expected the same data type for property {} but found {} and {}.",
-                    propertyName, type->toString(), propertyDataTypes[0]->toString()));
+                    propertyName, type.toString(), dataTypes[0].toString()));
         }
     }
-    return make_unique<PropertyExpression>(*propertyDataTypes[0], propertyName, uniqueVariableName,
-        rawVariableName, tableIDToPropertyID, isPrimaryKey);
+    return make_unique<PropertyExpression>(dataTypes[0], propertyName, uniqueVariableName,
+        rawVariableName, std::move(infos));
 }
 
 std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern,
@@ -494,13 +497,12 @@ void Binder::bindQueryRelProperties(RelExpression& rel) {
 }
 
 static std::unique_ptr<Expression> createInternalNodeIDExpression(const NodeExpression& node) {
-    std::unordered_map<table_id_t, property_id_t> propertyIDPerTable;
+    common::table_id_map_t<SingleLabelPropertyInfo> infos;
     for (auto tableID : node.getTableIDs()) {
-        propertyIDPerTable.insert({tableID, INVALID_PROPERTY_ID});
+        infos.insert({tableID, SingleLabelPropertyInfo{false, INVALID_PROPERTY_ID}});
     }
     return std::make_unique<PropertyExpression>(*LogicalType::INTERNAL_ID(), InternalKeyword::ID,
-        node.getUniqueName(), node.getVariableName(), std::move(propertyIDPerTable),
-        false /* isPrimaryKey */);
+        node.getUniqueName(), node.getVariableName(), std::move(infos));
 }
 
 std::shared_ptr<NodeExpression> Binder::bindQueryNode(const NodePattern& nodePattern,

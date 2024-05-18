@@ -34,10 +34,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "CROSS_PRODUCT";
     case PhysicalOperatorType::DETACH_DATABASE:
         return "DETACH_DATABASE";
-    case PhysicalOperatorType::DELETE_NODE:
-        return "DELETE_NODE";
-    case PhysicalOperatorType::DELETE_REL:
-        return "DELETE_REL";
+    case PhysicalOperatorType::DELETE_:
+        return "DELETE";
     case PhysicalOperatorType::DROP_TABLE:
         return "DROP_TABLE";
     case PhysicalOperatorType::EMPTY_RESULT:

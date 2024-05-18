@@ -20,6 +20,9 @@ public:
         return internalID->copy();
     }
 
+    // Get primary key property expression for a given table ID.
+    std::shared_ptr<Expression> getPrimaryKey(common::table_id_t tableID) const;
+
 private:
     std::unique_ptr<Expression> internalID;
 };

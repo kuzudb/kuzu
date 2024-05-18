@@ -140,13 +140,12 @@ void Planner::planSetClause(const BoundUpdatingClause* updatingClause, LogicalPl
 
 void Planner::planDeleteClause(const BoundUpdatingClause* updatingClause, LogicalPlan& plan) {
     appendAccumulate(plan);
-    auto deleteClause =
-        ku_dynamic_cast<const BoundUpdatingClause*, const BoundDeleteClause*>(updatingClause);
-    if (deleteClause->hasRelInfo()) {
-        appendDeleteRel(deleteClause->getRelInfos(), plan);
+    auto& deleteClause = updatingClause->constCast<BoundDeleteClause>();
+    if (deleteClause.hasRelInfo()) {
+        appendDelete(deleteClause.getRelInfos(), plan);
     }
-    if (deleteClause->hasNodeInfo()) {
-        appendDeleteNode(deleteClause->getNodeInfos(), plan);
+    if (deleteClause.hasNodeInfo()) {
+        appendDelete(deleteClause.getNodeInfos(), plan);
     }
 }
 

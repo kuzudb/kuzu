@@ -147,14 +147,8 @@ protected:
         return op;
     }
 
-    virtual void visitDeleteNode(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitDeleteNodeReplace(
-        std::shared_ptr<planner::LogicalOperator> op) {
-        return op;
-    }
-
-    virtual void visitDeleteRel(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitDeleteRelReplace(
+    virtual void visitDelete(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitDeleteReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }

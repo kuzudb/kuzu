@@ -11,6 +11,10 @@ namespace main {
 class ClientContext;
 }
 
+namespace binder {
+struct BoundDeleteInfo;
+}
+
 namespace planner {
 struct LogicalSetPropertyInfo;
 struct LogicalInsertInfo;
@@ -25,6 +29,10 @@ class NodeInsertExecutor;
 class RelInsertExecutor;
 class NodeSetExecutor;
 class RelSetExecutor;
+class NodeDeleteExecutor;
+class RelDeleteExecutor;
+struct ExtraNodeDeleteInfo;
+
 struct BatchInsertSharedState;
 struct PartitionerSharedState;
 
@@ -73,6 +81,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapInsert(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetNodeProperty(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetRelProperty(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapDelete(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDeleteNode(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDeleteRel(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCreateTable(planner::LogicalOperator* logicalOperator);
@@ -177,6 +186,11 @@ private:
         const planner::Schema& inSchema) const;
     std::unique_ptr<RelSetExecutor> getRelSetExecutor(planner::LogicalSetPropertyInfo* info,
         const planner::Schema& inSchema) const;
+    std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(const binder::BoundDeleteInfo& info,
+        const planner::Schema& schema) const;
+    std::unique_ptr<RelDeleteExecutor> getRelDeleteExecutor(const binder::BoundDeleteInfo& info,
+        const planner::Schema& schema) const;
+    ExtraNodeDeleteInfo getExtraNodeDeleteInfo(common::table_id_t tableID, DataPos pkPos) const;
 
     uint32_t getOperatorID() { return physicalOperatorID++; }
 

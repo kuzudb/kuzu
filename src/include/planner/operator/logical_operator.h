@@ -19,8 +19,7 @@ enum class LogicalOperatorType : uint8_t {
     CREATE_SEQUENCE,
     CREATE_TABLE,
     CROSS_PRODUCT,
-    DELETE_NODE,
-    DELETE_REL,
+    DELETE,
     DETACH_DATABASE,
     DISTINCT,
     DROP_SEQUENCE,
@@ -111,6 +110,10 @@ public:
     template<class TARGET>
     const TARGET* constPtrCast() const {
         return common::ku_dynamic_cast<const LogicalOperator*, const TARGET*>(this);
+    }
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<LogicalOperator*, TARGET*>(this);
     }
 
 protected:
