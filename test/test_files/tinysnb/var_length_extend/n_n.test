@@ -130,18 +130,18 @@ Greg
 [5,3,0]|[20,,35]|[(0:3)-{_LABEL: knows, _ID: 3:11, meetTime: 1999-04-21 15:12:11.42}->(0:2),(0:2)-{_LABEL: knows, _ID: 3:6, meetTime: 2002-07-31 11:42:53.12342}->(0:0)]
 [5,3,5]|[20,,20]|[(0:3)-{_LABEL: knows, _ID: 3:11, meetTime: 1999-04-21 15:12:11.42}->(0:2),(0:2)-{_LABEL: knows, _ID: 3:8, meetTime: 1998-10-02 13:09:22.423}->(0:3)]
 [5,3]|[20,45]|[(0:3)-{_LABEL: knows, _ID: 3:11, meetTime: 1999-04-21 15:12:11.42}->(0:2)]
--STATEMENT MATCH p = (a:person)-[e:knows*2..2 (r, n | WHERE n.fName = 'Alice')]->(b:person) RETURN properties(nodes(p), 'fName')
----- 9
-[Bob,Alice,Bob]
-[Bob,Alice,Carol]
-[Bob,Alice,Dan]
-[Carol,Alice,Bob]
-[Carol,Alice,Carol]
-[Carol,Alice,Dan]
-[Dan,Alice,Bob]
-[Dan,Alice,Carol]
-[Dan,Alice,Dan]
--STATEMENT MATCH p = (a:person)-[e:knows*2..2 (r, n | WHERE n.fName = 'Dan' AND r.date > date("1999-01-01"))]->(b:person)  WHERE a.ID = 0 RETURN properties(nodes(p), 'fName'), properties(rels(p), 'date')
----- 2
-[Alice,Dan,Alice]|[2021-06-30,2021-06-30]
-[Alice,Dan,Carol]|[2021-06-30,2000-01-01]
+#-STATEMENT MATCH p = (a:person)-[e:knows*2..2 (r, n | WHERE n.fName = 'Alice')]->(b:person) RETURN properties(nodes(p), 'fName')
+#---- 9
+#[Bob,Alice,Bob]
+#[Bob,Alice,Carol]
+#[Bob,Alice,Dan]
+#[Carol,Alice,Bob]
+#[Carol,Alice,Carol]
+#[Carol,Alice,Dan]
+#[Dan,Alice,Bob]
+#[Dan,Alice,Carol]
+#[Dan,Alice,Dan]
+#-STATEMENT MATCH p = (a:person)-[e:knows*2..2 (r, n | WHERE n.fName = 'Dan' AND r.date > date("1999-01-01"))]->(b:person)  WHERE a.ID = 0 RETURN properties(nodes(p), 'fName'), properties(rels(p), 'date')
+#---- 2
+#[Alice,Dan,Alice]|[2021-06-30,2021-06-30]
+#[Alice,Dan,Carol]|[2021-06-30,2000-01-01]
