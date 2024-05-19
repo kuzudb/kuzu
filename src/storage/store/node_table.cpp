@@ -57,7 +57,8 @@ void NodeTable::scanInternal(Transaction* transaction, TableReadState& scanState
     for (auto i = 0u; i < dataScanState.numRowsToScan; i++) {
         scanState.nodeIDVector->setValue<nodeID_t>(i, {startNodeOffset + i, tableID});
     }
-    scanState.nodeIDVector->state->getSelVectorUnsafe().setSelSize(dataScanState.numRowsToScan);
+    scanState.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(
+        dataScanState.numRowsToScan);
     auto tableStats =
         getNodeStatisticsAndDeletedIDs()->getNodeStatisticsAndDeletedIDs(transaction, tableID);
     tableStats->setDeletedNodeOffsetsForVector(scanState.nodeIDVector, dataScanState.nodeGroupIdx,

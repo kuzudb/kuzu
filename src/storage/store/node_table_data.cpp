@@ -15,8 +15,8 @@ namespace kuzu {
 namespace storage {
 
 bool NodeDataReadState::hasMoreToRead(const Transaction*) {
-    if (vectorIdx == common::INVALID_VECTOR_IDX ||
-        (vectorIdx * common::DEFAULT_VECTOR_CAPACITY + numRowsToScan) >= numRowsInNodeGroup) {
+    if (vectorIdx == INVALID_VECTOR_IDX ||
+        (vectorIdx * DEFAULT_VECTOR_CAPACITY + numRowsToScan) >= numRowsInNodeGroup) {
         return false;
     }
     return true;
@@ -78,6 +78,7 @@ void NodeTableData::initializeScanState(Transaction* transaction, node_group_idx
         initializeLocalNodeReadState(transaction, dataReadState, nodeGroupIdx);
     }
     dataReadState.nodeGroupIdx = nodeGroupIdx;
+    dataReadState.vectorIdx = INVALID_VECTOR_IDX;
     dataReadState.numRowsInNodeGroup =
         columns[0]->getMetadata(nodeGroupIdx, transaction->getType()).numValues;
 }
