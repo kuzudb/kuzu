@@ -17,7 +17,7 @@ class KUZU_API VirtualFileSystem final : public FileSystem {
 public:
     explicit VirtualFileSystem(main::Database* database);
 
-    ~VirtualFileSystem();
+    ~VirtualFileSystem() override;
 
     void registerFileSystem(std::unique_ptr<FileSystem> fileSystem);
 

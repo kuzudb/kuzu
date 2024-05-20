@@ -38,7 +38,7 @@ struct HTTPFileInfo : public common::FileInfo {
     HTTPFileInfo(std::string path, common::FileSystem* fileSystem, int flags,
         main::ClientContext* context);
 
-    virtual ~HTTPFileInfo();
+    ~HTTPFileInfo() override;
 
     virtual void initialize();
 
