@@ -73,7 +73,7 @@ public:
 
     bool canHandleFile(const std::string& path) const override;
 
-    bool fileOrPathExists(const std::string& path, main::ClientContext* context) override;
+    bool fileOrPathExists(const std::string& path, main::ClientContext* context = nullptr) override;
 
     static std::unique_ptr<httplib::Client> getClient(const std::string& host);
 

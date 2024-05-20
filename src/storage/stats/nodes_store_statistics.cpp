@@ -10,8 +10,7 @@ NodesStoreStatsAndDeletedIDs::NodesStoreStatsAndDeletedIDs(const std::string& da
     BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, VirtualFileSystem* fs)
     : TablesStatistics{metadataFH, bufferManager, wal} {
     if (fs->fileOrPathExists(StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(fs, databasePath,
-                                 FileVersionType::ORIGINAL),
-            nullptr)) {
+            FileVersionType::ORIGINAL))) {
         readFromFile(databasePath, FileVersionType::ORIGINAL, fs);
     } else {
         saveToFile(databasePath, FileVersionType::ORIGINAL, TransactionType::READ_ONLY, fs);

@@ -32,7 +32,7 @@ public:
 
     void removeFileIfExists(const std::string& path) override;
 
-    bool fileOrPathExists(const std::string& path, main::ClientContext* context) override;
+    bool fileOrPathExists(const std::string& path, main::ClientContext* context = nullptr) override;
 
     std::string expandPath(main::ClientContext* context, const std::string& path) const override;
 

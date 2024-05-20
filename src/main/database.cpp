@@ -127,16 +127,16 @@ void Database::openLockFile() {
     int flags;
     FileLockType lock;
     auto lockFilePath = StorageUtils::getLockFilePath(vfs.get(), databasePath);
-    if (!vfs->fileOrPathExists(lockFilePath, nullptr)) {
+    if (!vfs->fileOrPathExists(lockFilePath)) {
         getLockFileFlagsAndType(dbConfig.readOnly, true, flags, lock);
     } else {
         getLockFileFlagsAndType(dbConfig.readOnly, false, flags, lock);
     }
-    lockFile = vfs->openFile(lockFilePath, flags, nullptr, lock);
+    lockFile = vfs->openFile(lockFilePath, flags, nullptr /* clientContext */, lock);
 }
 
 void Database::initAndLockDBDir() {
-    if (!vfs->fileOrPathExists(databasePath, nullptr)) {
+    if (!vfs->fileOrPathExists(databasePath)) {
         if (dbConfig.readOnly) {
             throw Exception("Cannot create an empty database under READ ONLY mode.");
         }

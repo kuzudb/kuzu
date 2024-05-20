@@ -36,7 +36,7 @@ public:
 
     virtual void removeFileIfExists(const std::string& path);
 
-    virtual bool fileOrPathExists(const std::string& path, main::ClientContext* context);
+    virtual bool fileOrPathExists(const std::string& path, main::ClientContext* context = nullptr);
 
     virtual std::string expandPath(main::ClientContext* context, const std::string& path) const;
 

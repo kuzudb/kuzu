@@ -20,7 +20,8 @@ HTTPResponse::HTTPResponse(httplib::Response& res, const std::string& url)
 HTTPFileInfo::HTTPFileInfo(std::string path, FileSystem* fileSystem, int flags,
     main::ClientContext* context)
     : FileInfo{std::move(path), fileSystem}, flags{flags}, length{0}, availableBuffer{0},
-      bufferIdx{0}, fileOffset{0}, bufferStartPos{0}, bufferEndPos{0}, httpConfig{context} {}
+      bufferIdx{0}, fileOffset{0}, bufferStartPos{0}, bufferEndPos{0}, httpConfig{context},
+      cachedFileInfo{nullptr} {}
 
 HTTPFileInfo::~HTTPFileInfo() {
     if (cachedFileInfo != nullptr) {
@@ -159,7 +160,6 @@ void HTTPFileSystem::readFromFile(common::FileInfo& fileInfo, void* buffer, uint
     auto numBytesToRead = numBytes;
     auto bufferOffset = 0;
     if (httpFileInfo.cachedFileInfo != nullptr) {
-        assert(false);
         httpFileInfo.cachedFileInfo->readFromFile(buffer, numBytes, position);
         httpFileInfo.fileOffset = position + numBytes;
         return;

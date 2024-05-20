@@ -18,9 +18,9 @@ void VirtualFileSystem::registerFileSystem(std::unique_ptr<FileSystem> fileSyste
 }
 
 std::unique_ptr<FileInfo> VirtualFileSystem::openFile(const std::string& path, int flags,
-    main::ClientContext* context_, FileLockType lockType) {
+    main::ClientContext* userContext, FileLockType lockType) {
     return findFileSystem(path)->openFile(path, flags,
-        context_ == nullptr ? this->context.get() : context_, lockType);
+        userContext == nullptr ? this->context.get() : userContext, lockType);
 }
 
 std::vector<std::string> VirtualFileSystem::glob(main::ClientContext* context,

@@ -14,8 +14,7 @@ RelsStoreStats::RelsStoreStats(const std::string& databasePath, BMFileHandle* me
     BufferManager* bufferManager, WAL* wal, VirtualFileSystem* fs)
     : TablesStatistics{metadataFH, bufferManager, wal} {
     if (fs->fileOrPathExists(
-            StorageUtils::getRelsStatisticsFilePath(fs, databasePath, FileVersionType::ORIGINAL),
-            nullptr)) {
+            StorageUtils::getRelsStatisticsFilePath(fs, databasePath, FileVersionType::ORIGINAL))) {
         readFromFile(databasePath, FileVersionType::ORIGINAL, fs);
     } else {
         saveToFile(databasePath, FileVersionType::ORIGINAL, TransactionType::READ_ONLY, fs);

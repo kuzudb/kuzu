@@ -19,7 +19,7 @@ void FileSystem::removeFileIfExists(const std::string& /*path*/) {
     KU_UNREACHABLE;
 }
 
-bool FileSystem::fileOrPathExists(const std::string& /*path*/, main::ClientContext* context) {
+bool FileSystem::fileOrPathExists(const std::string& /*path*/, main::ClientContext* /*context*/) {
     KU_UNREACHABLE;
 }
 
