@@ -21,7 +21,6 @@ HTTPConfig::HTTPConfig(main::ClientContext* context) {
     }
     cacheInMemory = context->getCurrentSetting(HTTPCacheInMemoryConfig::HTTP_CACHE_FILE_OPTION)
                         .getValue<bool>();
-    bool val = 5;
 }
 
 void HTTPConfigEnvProvider::setOptionValue(main::ClientContext* context) {

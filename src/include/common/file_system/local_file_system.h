@@ -25,7 +25,7 @@ struct LocalFileInfo : public FileInfo {
 #endif
 };
 
-class LocalFileSystem final : public FileSystem {
+class KUZU_API LocalFileSystem final : public FileSystem {
 public:
     std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
         main::ClientContext* context = nullptr,

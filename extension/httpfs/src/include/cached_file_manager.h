@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "common/case_insensitive_map.h"
 #include "common/file_system/virtual_file_system.h"
 
@@ -19,6 +21,8 @@ struct CachedFile {
 class CachedFileManager {
 public:
     explicit CachedFileManager(main::ClientContext* context);
+
+    ~CachedFileManager();
 
     common::FileInfo* getCachedFileInfo(const std::string& path);
 
