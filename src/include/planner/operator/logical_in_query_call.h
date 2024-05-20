@@ -27,7 +27,7 @@ public:
 
     inline binder::expression_vector getOutputExpressions() const { return outputExpressions; }
 
-    inline binder::Expression* getRowIDExpression() const { return rowIDExpression.get(); }
+    inline std::shared_ptr<binder::Expression> getRowIDExpression() const { return rowIDExpression; }
 
     inline std::string getExpressionsForPrinting() const override { return "CALL TABLE FUNC"; }
 

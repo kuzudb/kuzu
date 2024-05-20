@@ -39,16 +39,16 @@ struct DemoAlgoBindData : public CallTableFuncBindData {
 struct DemoAlgoSharedState : public CallFuncSharedState {
     std::unique_ptr<Graph> graph;
 
-    DemoAlgoSharedState(common::offset_t maxOffset, common::offset_t curOffset,
-        uint64_t morselSize, std::unique_ptr<Graph> graph)
+    DemoAlgoSharedState(common::offset_t maxOffset, common::offset_t curOffset, uint64_t morselSize,
+        std::unique_ptr<Graph> graph)
         : CallFuncSharedState{maxOffset, curOffset, morselSize}, graph{std::move(graph)} {}
 };
 
 std::unique_ptr<TableFuncSharedState> demoAlgoInitSharedState(TableFunctionInitInput& input) {
     auto bindData = ku_dynamic_cast<TableFuncBindData*, DemoAlgoBindData*>(input.bindData);
     auto graph = std::make_unique<OnDiskGraph>(bindData->context, bindData->graphTableNames);
-    return std::make_unique<DemoAlgoSharedState>(bindData->maxOffset, bindData->curOffset,
-        1LU /* morsel size */, std::move(graph));
+    return std::make_unique<DemoAlgoSharedState>(
+        bindData->maxOffset, bindData->curOffset, 1LU /* morsel size */, std::move(graph));
 }
 
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
@@ -99,18 +99,17 @@ static std::unique_ptr<TableFuncBindData> bindFunc(
         endOffset, startOffset, context, std::move(graphTableNames));
 }
 
-bool DemoAlgorithm::compute(ParallelUtils *parallelUtils, function::TableFunction tableFunction) {
-    parallelUtils->doParallel(&tableFunction);
-    parallelUtils->terminate();
+bool DemoAlgorithm::compute(Sink *sink, ExecutionContext* executionContext,
+    std::shared_ptr<ParallelUtils> parallelUtils) {
+    parallelUtils->doParallel(sink, executionContext);
     return false;
 }
 
 function::function_set DemoAlgorithm::getFunctionSet() {
     function_set functionSet;
-    auto function =
-        std::make_unique<TableFunction>(name, tableFunc, bindFunc, demoAlgoInitSharedState,
-            CallFunction::initEmptyLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING,
-                                                   LogicalTypeID::INT64, LogicalTypeID::INT64});
+    auto function = std::make_unique<TableFunction>(name, tableFunc, bindFunc,
+        demoAlgoInitSharedState, CallFunction::initEmptyLocalState, std::vector<LogicalTypeID>{
+            LogicalTypeID::STRING, LogicalTypeID::INT64, LogicalTypeID::INT64});
     functionSet.push_back(std::move(function));
     return functionSet;
 }

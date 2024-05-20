@@ -6,6 +6,7 @@
 
 #include "client_config.h"
 #include "common/task_system/progress_bar.h"
+#include "common/task_system/task_scheduler.h"
 #include "common/timer.h"
 #include "common/types/value/value.h"
 #include "function/table/scan_replacement.h"
@@ -23,6 +24,7 @@ class ExpressionBinder;
 
 namespace common {
 class RandomEngine;
+class TaskScheduler;
 }
 
 namespace extension {
@@ -73,6 +75,8 @@ public:
     // Transaction.
     transaction::Transaction* getTx() const;
     KUZU_API transaction::TransactionContext* getTransactionContext() const;
+
+    common::TaskScheduler* getTaskScheduler() const;
 
     // Progress bar
     common::ProgressBar* getProgressBar() const;

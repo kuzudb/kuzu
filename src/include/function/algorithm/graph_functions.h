@@ -11,7 +11,8 @@ struct GraphAlgorithm {
 public:
     GraphAlgorithm() {}
     virtual ~GraphAlgorithm() = default;
-    virtual bool compute(ParallelUtils *parallelUtils, function::TableFunction tableFunction) = 0;
+    virtual bool compute(Sink *sink, ExecutionContext* executionContext,
+        std::shared_ptr<ParallelUtils> parallelUtils) = 0;
 };
 
 // CallFunction has the assumption that number of output is known before execution.
@@ -21,18 +22,20 @@ struct DemoAlgorithm : public GraphAlgorithm {
 public:
     DemoAlgorithm() {}
     static constexpr const char* name = "DEMO_ALGORITHM";
-    bool compute(ParallelUtils *parallelUtils, function::TableFunction tableFunction) override;
+    bool compute(Sink *sink, ExecutionContext* executionContext,
+        std::shared_ptr<ParallelUtils> parallelUtils) override;
     static function::function_set getFunctionSet();
 };
 
-struct VariableLengthPath  {
+struct VariableLengthPath {
     static constexpr const char* name = "VARIABLE_LENGTH_PATH";
 
     static function::function_set getFunctionSet();
 };
 
-struct ShortestPath {
-    static constexpr const char* name = "DEMO_ALGO";
+struct ShortestPath : public GraphAlgorithm {
+public:
+    static constexpr const char* name = "SHORTEST_PATH";
 
     static function::function_set getFunctionSet();
 };

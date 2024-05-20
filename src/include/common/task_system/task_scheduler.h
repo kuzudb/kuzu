@@ -7,6 +7,14 @@
 #include "processor/execution_context.h"
 
 namespace kuzu {
+namespace processor {
+
+struct ExecutionContext;
+
+}
+}
+
+namespace kuzu {
 namespace common {
 
 struct ScheduledTask {

@@ -12,6 +12,10 @@ class ProcessorTask : public common::Task {
 public:
     ProcessorTask(Sink* sink, ExecutionContext* executionContext);
 
+    inline void setSharedStateInitialized() {
+        sharedStateInitialized = true;
+    }
+
     void run() override;
     void finalizeIfNecessary() override;
 

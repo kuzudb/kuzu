@@ -4,6 +4,14 @@
 #include "main/client_context.h"
 
 namespace kuzu {
+namespace main {
+
+class ClientContext;
+
+}
+}
+
+namespace kuzu {
 namespace processor {
 
 struct ExecutionContext {

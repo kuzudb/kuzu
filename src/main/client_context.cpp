@@ -121,6 +121,10 @@ TransactionContext* ClientContext::getTransactionContext() const {
     return transactionContext.get();
 }
 
+TaskScheduler* ClientContext::getTaskScheduler() const {
+    return database->queryProcessor->getTaskScheduler();
+}
+
 common::ProgressBar* ClientContext::getProgressBar() const {
     return progressBar.get();
 }
