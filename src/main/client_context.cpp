@@ -65,6 +65,8 @@ ClientContext::ClientContext(Database* database)
         ClientConfigDefault::RECURSIVE_PATTERN_FACTOR;
 }
 
+ClientContext::~ClientContext() {}
+
 uint64_t ClientContext::getTimeoutRemainingInMS() const {
     KU_ASSERT(hasTimeout());
     auto elapsed = activeQuery.timer.getElapsedTimeInMS();

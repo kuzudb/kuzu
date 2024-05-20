@@ -4,7 +4,6 @@
 
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
-#include "common/random_engine.h"
 #include "common/string_utils.h"
 #include "duckdb_catalog.h"
 #include "duckdb_functions.h"

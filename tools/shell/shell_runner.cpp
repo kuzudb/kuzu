@@ -4,8 +4,6 @@
 
 #include "args.hxx"
 #include "common/file_system/local_file_system.h"
-#include "common/file_system/virtual_file_system.h"
-#include "common/random_engine.h"
 #include "embedded_shell.h"
 
 using namespace kuzu::main;

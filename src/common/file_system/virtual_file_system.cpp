@@ -2,7 +2,6 @@
 
 #include "common/assert.h"
 #include "common/file_system/local_file_system.h"
-#include "common/random_engine.h"
 #include "main/client_context.h"
 
 namespace kuzu {
