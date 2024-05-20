@@ -17,6 +17,8 @@ class KUZU_API VirtualFileSystem final : public FileSystem {
 public:
     explicit VirtualFileSystem(main::Database* database);
 
+    ~VirtualFileSystem();
+
     void registerFileSystem(std::unique_ptr<FileSystem> fileSystem);
 
     std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,

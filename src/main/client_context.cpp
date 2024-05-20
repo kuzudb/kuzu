@@ -65,7 +65,7 @@ ClientContext::ClientContext(Database* database)
         ClientConfigDefault::RECURSIVE_PATTERN_FACTOR;
 }
 
-ClientContext::~ClientContext() {}
+ClientContext::~ClientContext() = default;
 
 uint64_t ClientContext::getTimeoutRemainingInMS() const {
     KU_ASSERT(hasTimeout());

@@ -12,6 +12,8 @@ VirtualFileSystem::VirtualFileSystem(main::Database* database)
     defaultFS = std::make_unique<LocalFileSystem>();
 }
 
+VirtualFileSystem::~VirtualFileSystem() = default;
+
 void VirtualFileSystem::registerFileSystem(std::unique_ptr<FileSystem> fileSystem) {
     subSystems.push_back(std::move(fileSystem));
 }
