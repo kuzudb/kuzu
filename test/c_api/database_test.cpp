@@ -70,22 +70,3 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database_destroy(database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
-
-TEST_F(APIEmptyDBTest, CreationHomeDir1) {
-    createDBAndConn();
-    printf("%s", conn->query("load extension "
-                             "'/Users/z473chen/Desktop/code/kuzu/extension/duckdb/build/"
-                             "libduckdb.kuzu_extension'")
-                     ->toString()
-                     .c_str());
-    //    printf("%s",
-    //        conn->query("attach 'http://localhost/ldbc1' as test (dbtype
-    //        kuzu)")->toString().c_str());
-    //    printf("%s", conn->query("match (t:Comment) return count(t)")->toString().c_str());
-    //    printf("%s", conn->query("detach test")->toString().c_str());
-    //    printf("%s", conn->query("CALL HTTP_CACHE_FILE=TRUE")->toString().c_str());
-    //    printf("%s",
-    //        conn->query("attach 'http://localhost/ldbc1' as test (dbtype
-    //        kuzu)")->toString().c_str());
-    //    printf("%s", conn->query("match (t:Comment) return count(t)")->toString().c_str());
-}
