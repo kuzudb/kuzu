@@ -48,12 +48,13 @@ void InstallExtension::saveExtensionToLocalFile(const std::string& extensionData
     auto extensionDir = context->getExtensionDir();
     auto extensionPath = ExtensionUtils::getExtensionPath(extensionDir, name);
     auto vfs = context->getVFSUnsafe();
-    if (!vfs->fileOrPathExists(extensionDir)) {
+    if (!vfs->fileOrPathExists(extensionDir, context)) {
         vfs->createDir(extensionDir);
     }
     auto fileInfo = vfs->openFile(extensionPath, O_WRONLY | O_CREAT);
     fileInfo->writeFile(reinterpret_cast<const uint8_t*>(extensionData.c_str()),
         extensionData.size(), 0 /* offset */);
+    fileInfo->syncFile();
 }
 
 void InstallExtension::installExtension(main::ClientContext* context) {

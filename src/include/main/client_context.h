@@ -61,6 +61,7 @@ public:
     const DBConfig* getDBConfig() const { return &dbConfig; }
     DBConfig* getDBConfigUnsafe() { return &dbConfig; }
     KUZU_API common::Value getCurrentSetting(const std::string& optionName);
+    KUZU_API bool isOptionSet(const std::string& name) const;
     // Timer and timeout
     void interrupt() { activeQuery.interrupted = true; }
     bool interrupted() const { return activeQuery.interrupted; }
@@ -94,14 +95,14 @@ public:
     KUZU_API std::string getEnvVariable(const std::string& name);
 
     // Database component getters.
-    std::string getDatabasePath() const;
+    KUZU_API std::string getDatabasePath() const;
     KUZU_API Database* getDatabase() const { return localDatabase; }
     KUZU_API DatabaseManager* getDatabaseManager() const;
     storage::StorageManager* getStorageManager() const;
     KUZU_API storage::MemoryManager* getMemoryManager();
     catalog::Catalog* getCatalog() const;
     transaction::TransactionManager* getTransactionManagerUnsafe() const;
-    common::VirtualFileSystem* getVFSUnsafe() const;
+    KUZU_API common::VirtualFileSystem* getVFSUnsafe() const;
     common::RandomEngine* getRandomEngine();
 
     // Query.

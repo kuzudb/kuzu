@@ -70,7 +70,7 @@ static void getLockFileFlagsAndType(bool readOnly, bool createNew, int& flags, F
 
 Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     : dbConfig{systemConfig} {
-    vfs = std::make_unique<VirtualFileSystem>();
+    vfs = std::make_unique<VirtualFileSystem>(this);
     // To expand a path with home directory(~), we have to pass in a dummy clientContext which
     // handles the home directory expansion.
     auto clientContext = ClientContext(this);
@@ -127,16 +127,16 @@ void Database::openLockFile() {
     int flags;
     FileLockType lock;
     auto lockFilePath = StorageUtils::getLockFilePath(vfs.get(), databasePath);
-    if (!vfs->fileOrPathExists(lockFilePath)) {
+    if (!vfs->fileOrPathExists(lockFilePath, nullptr)) {
         getLockFileFlagsAndType(dbConfig.readOnly, true, flags, lock);
     } else {
         getLockFileFlagsAndType(dbConfig.readOnly, false, flags, lock);
     }
-    lockFile = vfs->openFile(lockFilePath, flags, nullptr /* clientContext */, lock);
+    lockFile = vfs->openFile(lockFilePath, flags, nullptr, lock);
 }
 
 void Database::initAndLockDBDir() {
-    if (!vfs->fileOrPathExists(databasePath)) {
+    if (!vfs->fileOrPathExists(databasePath, nullptr)) {
         if (dbConfig.readOnly) {
             throw Exception("Cannot create an empty database under READ ONLY mode.");
         }

@@ -4,6 +4,7 @@
 
 #include "args.hxx"
 #include "common/file_system/virtual_file_system.h"
+#include "common/random_engine.h"
 #include "embedded_shell.h"
 
 using namespace kuzu::main;
@@ -45,8 +46,8 @@ int main(int argc, char* argv[]) {
     if (readOnlyMode) {
         systemConfig.readOnly = true;
     }
+    std::unique_ptr<Database> database = std::make_unique<Database>(databasePath, systemConfig);
     if (version) {
-        std::unique_ptr<Database> database = std::make_unique<Database>(databasePath, systemConfig);
         std::unique_ptr<Connection> conn = std::make_unique<Connection>(database.get());
         auto queryResult = conn->query("CALL db_version() RETURN version");
         if (queryResult->isSuccess()) {
@@ -62,7 +63,7 @@ int main(int argc, char* argv[]) {
         pathToHistory += '/';
     }
     pathToHistory += "history.txt";
-    std::unique_ptr<VirtualFileSystem> vfs = std::make_unique<VirtualFileSystem>();
+    std::unique_ptr<VirtualFileSystem> vfs = std::make_unique<VirtualFileSystem>(database.get());
     try {
         std::unique_ptr<FileInfo> fp = vfs->openFile(pathToHistory, O_CREAT);
     } catch (Exception& e) {

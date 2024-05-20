@@ -76,7 +76,7 @@ void StorageManager::recover(main::ClientContext& clientContext) {
     auto vfs = clientContext.getVFSUnsafe();
     auto walFilePath =
         vfs->joinPath(clientContext.getDatabasePath(), StorageConstants::WAL_FILE_SUFFIX);
-    if (!vfs->fileOrPathExists(walFilePath)) {
+    if (!vfs->fileOrPathExists(walFilePath, &clientContext)) {
         return;
     }
     try {

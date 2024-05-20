@@ -2,12 +2,14 @@
 
 #include "common/assert.h"
 #include "common/file_system/local_file_system.h"
+#include "common/random_engine.h"
 #include "main/client_context.h"
 
 namespace kuzu {
 namespace common {
 
-VirtualFileSystem::VirtualFileSystem() {
+VirtualFileSystem::VirtualFileSystem(main::Database* database)
+    : context{std::make_unique<main::ClientContext>(database)} {
     defaultFS = std::make_unique<LocalFileSystem>();
 }
 
@@ -16,8 +18,9 @@ void VirtualFileSystem::registerFileSystem(std::unique_ptr<FileSystem> fileSyste
 }
 
 std::unique_ptr<FileInfo> VirtualFileSystem::openFile(const std::string& path, int flags,
-    main::ClientContext* context, FileLockType lockType) {
-    return findFileSystem(path)->openFile(path, flags, context, lockType);
+    main::ClientContext* context_, FileLockType lockType) {
+    return findFileSystem(path)->openFile(path, flags,
+        context_ == nullptr ? this->context.get() : context_, lockType);
 }
 
 std::vector<std::string> VirtualFileSystem::glob(main::ClientContext* context,
@@ -37,8 +40,11 @@ void VirtualFileSystem::removeFileIfExists(const std::string& path) {
     findFileSystem(path)->removeFileIfExists(path);
 }
 
-bool VirtualFileSystem::fileOrPathExists(const std::string& path) {
-    return findFileSystem(path)->fileOrPathExists(path);
+bool VirtualFileSystem::fileOrPathExists(const std::string& path, main::ClientContext* context) {
+    if (context == nullptr) {
+        context = this->context.get();
+    }
+    return findFileSystem(path)->fileOrPathExists(path, context);
 }
 
 std::string VirtualFileSystem::expandPath(main::ClientContext* context,

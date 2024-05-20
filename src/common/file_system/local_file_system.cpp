@@ -128,7 +128,7 @@ std::vector<std::string> LocalFileSystem::glob(main::ClientContext* context,
 }
 
 void LocalFileSystem::overwriteFile(const std::string& from, const std::string& to) {
-    if (!fileOrPathExists(from) || !fileOrPathExists(to))
+    if (!fileOrPathExists(from, nullptr) || !fileOrPathExists(to, nullptr))
         return;
     std::error_code errorCode;
     if (!std::filesystem::copy_file(from, to, std::filesystem::copy_options::overwrite_existing,
@@ -141,7 +141,7 @@ void LocalFileSystem::overwriteFile(const std::string& from, const std::string& 
 }
 
 void LocalFileSystem::copyFile(const std::string& from, const std::string& to) {
-    if (!fileOrPathExists(from))
+    if (!fileOrPathExists(from, nullptr))
         return;
     std::error_code errorCode;
     if (!std::filesystem::copy_file(from, to, std::filesystem::copy_options::none, errorCode)) {
@@ -188,7 +188,7 @@ void LocalFileSystem::createDir(const std::string& dir) const {
 }
 
 void LocalFileSystem::removeFileIfExists(const std::string& path) {
-    if (!fileOrPathExists(path))
+    if (!fileOrPathExists(path, nullptr))
         return;
     if (remove(path.c_str()) != 0) {
         // LCOV_EXCL_START
@@ -198,7 +198,7 @@ void LocalFileSystem::removeFileIfExists(const std::string& path) {
     }
 }
 
-bool LocalFileSystem::fileOrPathExists(const std::string& path) {
+bool LocalFileSystem::fileOrPathExists(const std::string& path, main::ClientContext* context) {
     return std::filesystem::exists(path);
 }
 

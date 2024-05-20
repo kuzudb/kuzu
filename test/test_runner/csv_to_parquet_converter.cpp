@@ -19,7 +19,7 @@ void CSVToParquetConverter::copySchemaFile() {
         localFileSystem.joinPath(csvDatasetPath, std::string(TestHelper::SCHEMA_FILE_NAME));
     auto parquetSchemaFile =
         localFileSystem.joinPath(parquetDatasetPath, std::string(TestHelper::SCHEMA_FILE_NAME));
-    if (!localFileSystem.fileOrPathExists(parquetSchemaFile)) {
+    if (!localFileSystem.fileOrPathExists(parquetSchemaFile, nullptr)) {
         localFileSystem.copyFile(csvSchemaFile, parquetSchemaFile);
     } else {
         localFileSystem.overwriteFile(csvSchemaFile, parquetSchemaFile);
@@ -158,7 +158,7 @@ void CSVToParquetConverter::convertCSVFilesToParquet() {
 
 void CSVToParquetConverter::convertCSVDatasetToParquet() {
     LocalFileSystem localFileSystem;
-    if (!localFileSystem.fileOrPathExists(parquetDatasetPath)) {
+    if (!localFileSystem.fileOrPathExists(parquetDatasetPath, nullptr)) {
         localFileSystem.createDir(parquetDatasetPath);
     }
 

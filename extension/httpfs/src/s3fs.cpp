@@ -40,8 +40,9 @@ S3WriteBuffer::S3WriteBuffer(uint16_t partID, uint64_t startOffset, uint64_t siz
 }
 
 S3FileInfo::S3FileInfo(std::string path, common::FileSystem* fileSystem, int flags,
-    const S3AuthParams& authParams, const S3UploadParams& uploadParams)
-    : HTTPFileInfo{std::move(path), fileSystem, flags}, authParams{authParams},
+    main::ClientContext* context, const S3AuthParams& authParams,
+    const S3UploadParams& uploadParams)
+    : HTTPFileInfo{std::move(path), fileSystem, flags, context}, authParams{authParams},
       uploadParams{uploadParams}, uploadsInProgress{0}, numPartsUploaded{0}, uploadFinalized{false},
       uploaderHasException{false} {}
 
@@ -55,8 +56,8 @@ S3FileInfo::~S3FileInfo() {
     }
 }
 
-void S3FileInfo::initialize() {
-    HTTPFileInfo::initialize();
+void S3FileInfo::initialize(main::ClientContext* context) {
+    HTTPFileInfo::initialize(context);
     auto s3FS = fileSystem->constPtrCast<S3FileSystem>();
     if ((flags & O_ACCMODE) & O_WRONLY) {
         auto maxNumParts = uploadParams.maxNumPartsPerFile;
@@ -124,8 +125,9 @@ std::unique_ptr<common::FileInfo> S3FileSystem::openFile(const std::string& path
     main::ClientContext* context, common::FileLockType /*lock_type*/) {
     auto authParams = getS3AuthParams(context);
     auto uploadParams = getS3UploadParams(context);
-    auto s3FileInfo = std::make_unique<S3FileInfo>(path, this, flags, authParams, uploadParams);
-    s3FileInfo->initialize();
+    auto s3FileInfo =
+        std::make_unique<S3FileInfo>(path, this, flags, context, authParams, uploadParams);
+    s3FileInfo->initialize(context);
     return s3FileInfo;
 }
 

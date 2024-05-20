@@ -22,7 +22,8 @@ add_library(httpfs
         src/httpfs.cpp
         src/httpfs_extension.cpp
         src/s3fs.cpp
-        src/crypto.cpp)
+        src/crypto.cpp
+        src/http_config.cpp)
 
 target_link_libraries(httpfs
         PRIVATE

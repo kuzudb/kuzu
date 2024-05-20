@@ -3,6 +3,7 @@
 #include "common/cast.h"
 #include "common/exception/io.h"
 #include "common/exception/not_implemented.h"
+#include "common/file_system/virtual_file_system.h"
 
 namespace kuzu {
 namespace httpfs {
@@ -16,14 +17,22 @@ HTTPResponse::HTTPResponse(httplib::Response& res, const std::string& url)
     }
 }
 
-HTTPFileInfo::HTTPFileInfo(std::string path, FileSystem* fileSystem, int flags)
+HTTPFileInfo::HTTPFileInfo(std::string path, FileSystem* fileSystem, int flags,
+    main::ClientContext* context)
     : FileInfo{std::move(path), fileSystem}, flags{flags}, length{0}, availableBuffer{0},
-      bufferIdx{0}, fileOffset{0}, bufferStartPos{0}, bufferEndPos{0} {}
+      bufferIdx{0}, fileOffset{0}, bufferStartPos{0}, bufferEndPos{0}, httpConfig{context} {}
 
-void HTTPFileInfo::initialize() {
+HTTPFileInfo::~HTTPFileInfo() {
+    if (cachedFileInfo != nullptr) {
+        auto hfs = fileSystem->ptrCast<HTTPFileSystem>();
+        hfs->getCachedFileManager().destroyCachedFileInfo(path);
+    }
+}
+
+void HTTPFileInfo::initialize(main::ClientContext* context) {
     initializeClient();
-    auto hfs = ku_dynamic_cast<const FileSystem*, const HTTPFileSystem*>(fileSystem);
-    auto res = hfs->headRequest(ku_dynamic_cast<HTTPFileInfo*, FileInfo*>(this), path, {});
+    auto hfs = fileSystem->ptrCast<HTTPFileSystem>();
+    auto res = hfs->headRequest(this->ptrCast<HTTPFileInfo>(), path, {});
     std::string rangeLength;
     if (res->code != 200) {
         auto accessMode = flags & O_ACCMODE;
@@ -103,6 +112,9 @@ void HTTPFileInfo::initialize() {
             // LCOV_EXCL_STOP
         }
     }
+    if (httpConfig.cacheInMemory) {
+        cachedFileInfo = hfs->getCachedFileManager().getCachedFileInfo(path);
+    }
 }
 
 void HTTPFileInfo::initializeClient() {
@@ -110,10 +122,53 @@ void HTTPFileInfo::initializeClient() {
     httpClient = HTTPFileSystem::getClient(host.c_str());
 }
 
+void CachedFileManager::downloadFile(const std::string& path, FileInfo* info) {
+    auto url = HTTPFileSystem::parseUrl(path);
+    httplib::Client cli(url.first);
+    httplib::Headers headers = {{}};
+    auto fileContent = cli.Get(url.second, headers)->body;
+    info->writeFile(reinterpret_cast<const uint8_t*>(fileContent.c_str()), fileContent.size(),
+        0 /* offset */);
+}
+
+CachedFileManager::CachedFileManager(main::ClientContext* context) : vfs{context->getVFSUnsafe()} {
+    cacheDir = context->getDatabasePath() + "/cached_files";
+    if (!vfs->fileOrPathExists(cacheDir, context)) {
+        vfs->createDir(cacheDir);
+    }
+}
+
+common::FileInfo* CachedFileManager::getCachedFileInfo(const std::string& path) {
+    std::unique_lock<std::mutex> lck{mtx};
+    if (!cachedFiles.contains(path)) {
+        auto fileName = FileSystem::getFileName(path);
+        auto cachedFilePath = getCachedFilePath(fileName);
+        auto fileInfo = vfs->openFile(cachedFilePath, O_CREAT | O_RDWR);
+        downloadFile(path, fileInfo.get());
+        cachedFiles.emplace(path, std::make_unique<CachedFile>(std::move(fileInfo)));
+    }
+    cachedFiles.at(path)->counter++;
+    return cachedFiles.at(path)->getFileInfo();
+}
+
+void CachedFileManager::destroyCachedFileInfo(const std::string& path) {
+    std::unique_lock<std::mutex> lck{mtx};
+    KU_ASSERT(cachedFiles.contains(path));
+    cachedFiles.at(path)->counter--;
+    if (cachedFiles.at(path)->counter == 0) {
+        cachedFiles.erase(path);
+    }
+}
+
+std::string CachedFileManager::getCachedFilePath(const std::string& originalFileName) {
+    return common::stringFormat("{}/{}-{}", cacheDir, originalFileName, std::time(nullptr));
+}
+
 std::unique_ptr<common::FileInfo> HTTPFileSystem::openFile(const std::string& path, int flags,
-    main::ClientContext* /*context*/, common::FileLockType /*lock_type*/) {
-    auto httpFileInfo = std::make_unique<HTTPFileInfo>(path, this, flags);
-    httpFileInfo->initialize();
+    main::ClientContext* context, common::FileLockType /*lock_type*/) {
+    initCachedFileManager(context);
+    auto httpFileInfo = std::make_unique<HTTPFileInfo>(path, this, flags, context);
+    httpFileInfo->initialize(context);
     return httpFileInfo;
 }
 
@@ -127,9 +182,9 @@ bool HTTPFileSystem::canHandleFile(const std::string& path) const {
     return path.rfind("https://", 0) == 0 || path.rfind("http://", 0) == 0;
 }
 
-bool HTTPFileSystem::fileOrPathExists(const std::string& path) {
+bool HTTPFileSystem::fileOrPathExists(const std::string& path, main::ClientContext* context) {
     try {
-        auto fileInfo = openFile(path, O_RDONLY, nullptr, FileLockType::READ_LOCK);
+        auto fileInfo = openFile(path, O_RDONLY, context, FileLockType::READ_LOCK);
         auto httpFileInfo = fileInfo->constPtrCast<HTTPFileInfo>();
         if (httpFileInfo->length == 0) {
             return false;
@@ -145,6 +200,11 @@ void HTTPFileSystem::readFromFile(common::FileInfo& fileInfo, void* buffer, uint
     auto& httpFileInfo = ku_dynamic_cast<FileInfo&, HTTPFileInfo&>(fileInfo);
     auto numBytesToRead = numBytes;
     auto bufferOffset = 0;
+    if (httpFileInfo.cachedFileInfo != nullptr) {
+        httpFileInfo.cachedFileInfo->readFromFile(buffer, numBytes, position);
+        httpFileInfo.fileOffset = position + numBytes;
+        return;
+    }
     if (position >= httpFileInfo.bufferStartPos && position < httpFileInfo.bufferEndPos) {
         httpFileInfo.fileOffset = position;
         httpFileInfo.bufferIdx = position - httpFileInfo.bufferStartPos;
@@ -441,7 +501,7 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::postRequest(common::FileInfo* file
 }
 
 std::unique_ptr<HTTPResponse> HTTPFileSystem::putRequest(common::FileInfo* fileInfo,
-    const std::string& url, kuzu::httpfs::HeaderMap headerMap, const uint8_t* inputBuffer,
+    const std::string& url, HeaderMap headerMap, const uint8_t* inputBuffer,
     uint64_t inputBufferLen, std::string /*params*/) const {
     auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
     auto hostPath = parseUrl(url).second;
@@ -453,6 +513,50 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::putRequest(common::FileInfo* fileI
     });
 
     return runRequestWithRetry(request, url, "PUT");
+}
+//
+// std::unique_ptr<HTTPResponse> HTTPFileSystem::getRequest(common::FileInfo* handle, std::string
+// url,
+//    HeaderMap headerMap) const {
+//    auto hfh = handle->ptrCast<HTTPFileInfo>();
+//    std::string path, proto_host_port;
+//    auto hostPath = parseUrl(url).second;
+//    auto headers = getHTTPHeaders(headerMap);
+//    uint64_t originalLen = 0;
+//    std::function<httplib::Result(void)> request([&]() {
+//        return hfh->httpClient->Get(
+//            hostPath, *headers,
+//            [&](const httplib::Response& response) {
+//                if (response.status >= 400) {
+//                    auto error = common::stringFormat("HTTP GET error on '{}' (HTTP {})", url,
+//                        response.status);
+//                    if (response.status == 416) {
+//                        error += "Try confirm the server supports range requests.";
+//                    }
+//                    throw IOException(error);
+//                }
+//                return true;
+//            },
+//            [&](const char* data, size_t dataLen) {
+//                auto oldBuffer = std::move(hfh->cachedFileHandle);
+//                hfh->cachedFileHandle = std::make_unique<uint8_t[]>(dataLen + originalLen);
+//                if (oldBuffer != nullptr) {
+//                    memcpy(hfh->cachedFileHandle.get(), oldBuffer.get(), originalLen);
+//                }
+//                memcpy(hfh->cachedFileHandle.get() + originalLen, data, dataLen);
+//                originalLen += dataLen;
+//                return true;
+//            });
+//    });
+//
+//    std::function<void(void)> on_retry([&]() { hfh->httpClient = getClient(proto_host_port); });
+//    return runRequestWithRetry(request, url, "GET" /* method */, on_retry);
+//}
+
+void HTTPFileSystem::initCachedFileManager(main::ClientContext* context) {
+    if (cachedFileManager == nullptr) {
+        cachedFileManager = std::make_unique<CachedFileManager>(context);
+    }
 }
 
 } // namespace httpfs

@@ -2,6 +2,8 @@
 
 #include "common/case_insensitive_map.h"
 #include "common/file_system/file_system.h"
+#include "common/file_system/local_file_system.h"
+#include "http_config.h"
 #include "httplib.h"
 #include "main/client_context.h"
 
@@ -34,9 +36,12 @@ struct HTTPParams {
 };
 
 struct HTTPFileInfo : public common::FileInfo {
-    HTTPFileInfo(std::string path, common::FileSystem* fileSystem, int flags);
+    HTTPFileInfo(std::string path, common::FileSystem* fileSystem, int flags,
+        main::ClientContext* context);
 
-    virtual void initialize();
+    virtual ~HTTPFileInfo();
+
+    virtual void initialize(main::ClientContext* context);
 
     virtual void initializeClient();
 
@@ -52,6 +57,37 @@ struct HTTPFileInfo : public common::FileInfo {
     uint64_t bufferEndPos;
     std::unique_ptr<uint8_t[]> readBuffer;
     constexpr static uint64_t READ_BUFFER_LEN = 1000000;
+    HTTPConfig httpConfig;
+    common::FileInfo* cachedFileInfo;
+};
+
+struct CachedFile {
+    uint64_t counter;
+    std::unique_ptr<common::FileInfo> fileInfo;
+
+    explicit CachedFile(std::unique_ptr<common::FileInfo> fileInfo)
+        : counter{0}, fileInfo{std::move(fileInfo)} {}
+
+    common::FileInfo* getFileInfo() { return fileInfo.get(); }
+};
+
+class CachedFileManager {
+public:
+    explicit CachedFileManager(main::ClientContext* context);
+
+    common::FileInfo* getCachedFileInfo(const std::string& path);
+
+    void destroyCachedFileInfo(const std::string& path);
+
+private:
+    std::string getCachedFilePath(const std::string& originalFileName);
+    void downloadFile(const std::string& path, common::FileInfo* info);
+
+private:
+    common::case_insensitive_map_t<std::unique_ptr<CachedFile>> cachedFiles;
+    common::VirtualFileSystem* vfs;
+    std::string cacheDir;
+    std::mutex mtx;
 };
 
 class HTTPFileSystem : public common::FileSystem {
@@ -67,13 +103,17 @@ public:
 
     bool canHandleFile(const std::string& path) const override;
 
-    bool fileOrPathExists(const std::string& path) override;
+    bool fileOrPathExists(const std::string& path, main::ClientContext* context) override;
 
     static std::unique_ptr<httplib::Client> getClient(const std::string& host);
 
     static std::unique_ptr<httplib::Headers> getHTTPHeaders(HeaderMap& headerMap);
 
     void syncFile(const common::FileInfo& fileInfo) const override;
+
+    static std::pair<std::string, std::string> parseUrl(const std::string& url);
+
+    CachedFileManager& getCachedFileManager() { return *cachedFileManager; }
 
 protected:
     void readFromFile(common::FileInfo& fileInfo, void* buffer, uint64_t numBytes,
@@ -84,8 +124,6 @@ protected:
     int64_t seek(common::FileInfo& fileInfo, uint64_t offset, int whence) const override;
 
     uint64_t getFileSize(const common::FileInfo& fileInfo) const override;
-
-    static std::pair<std::string, std::string> parseUrl(const std::string& url);
 
     static std::unique_ptr<HTTPResponse> runRequestWithRetry(
         const std::function<httplib::Result(void)>& request, const std::string& url,
@@ -106,6 +144,15 @@ protected:
     virtual std::unique_ptr<HTTPResponse> putRequest(common::FileInfo* fileInfo,
         const std::string& url, HeaderMap headerMap, const uint8_t* inputBuffer,
         uint64_t inputBufferLen, std::string params = "") const;
+
+    void initCachedFileManager(main::ClientContext* context);
+
+    //    virtual std::unique_ptr<HTTPResponse> getRequest(common::FileInfo* fileInfo, std::string
+    //    url,
+    //        HeaderMap headerMap) const;
+
+private:
+    std::unique_ptr<CachedFileManager> cachedFileManager;
 };
 
 } // namespace httpfs

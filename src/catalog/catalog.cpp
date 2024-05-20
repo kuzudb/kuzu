@@ -42,7 +42,7 @@ Catalog::Catalog() {
 
 Catalog::Catalog(std::string directory, VirtualFileSystem* fs) {
     if (fs->fileOrPathExists(
-            StorageUtils::getCatalogFilePath(fs, directory, FileVersionType::ORIGINAL))) {
+            StorageUtils::getCatalogFilePath(fs, directory, FileVersionType::ORIGINAL), nullptr)) {
         readFromFile(directory, fs, FileVersionType::ORIGINAL);
     } else {
         tables = std::make_unique<CatalogSet>();

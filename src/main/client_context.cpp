@@ -115,6 +115,10 @@ Value ClientContext::getCurrentSetting(const std::string& optionName) {
     throw RuntimeException{"Invalid option name: " + lowerCaseOptionName + "."};
 }
 
+bool ClientContext::isOptionSet(const std::string& optionName) const {
+    return extensionOptionValues.contains(StringUtils::getLower(optionName));
+}
+
 transaction::Transaction* ClientContext::getTx() const {
     return transactionContext->getActiveTransaction();
 }

@@ -6,12 +6,16 @@
 #include "file_system.h"
 
 namespace kuzu {
+namespace main {
+class Database;
+}
+
 namespace common {
 
 class KUZU_API VirtualFileSystem final : public FileSystem {
 
 public:
-    VirtualFileSystem();
+    explicit VirtualFileSystem(main::Database* database);
 
     void registerFileSystem(std::unique_ptr<FileSystem> fileSystem);
 
@@ -28,7 +32,7 @@ public:
 
     void removeFileIfExists(const std::string& path) override;
 
-    bool fileOrPathExists(const std::string& path) override;
+    bool fileOrPathExists(const std::string& path, main::ClientContext* context) override;
 
     std::string expandPath(main::ClientContext* context, const std::string& path) const override;
 
@@ -55,6 +59,8 @@ private:
 private:
     std::vector<std::unique_ptr<FileSystem>> subSystems;
     std::unique_ptr<FileSystem> defaultFS;
+    // The default clientContext which is created when the database starts.
+    std::unique_ptr<main::ClientContext> context;
 };
 
 } // namespace common
