@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "args.hxx"
+#include "common/file_system/local_file_system.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/random_engine.h"
 #include "embedded_shell.h"
@@ -63,9 +64,9 @@ int main(int argc, char* argv[]) {
         pathToHistory += '/';
     }
     pathToHistory += "history.txt";
-    std::unique_ptr<VirtualFileSystem> vfs = std::make_unique<VirtualFileSystem>(database.get());
+    auto localFileSystem = std::make_unique<LocalFileSystem>();
     try {
-        std::unique_ptr<FileInfo> fp = vfs->openFile(pathToHistory, O_CREAT);
+        localFileSystem->openFile(pathToHistory, O_CREAT);
     } catch (Exception& e) {
         std::cerr << "Invalid path to directory for history file" << '\n';
         return 1;

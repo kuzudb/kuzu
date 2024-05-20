@@ -56,8 +56,8 @@ S3FileInfo::~S3FileInfo() {
     }
 }
 
-void S3FileInfo::initialize(main::ClientContext* context) {
-    HTTPFileInfo::initialize(context);
+void S3FileInfo::initialize() {
+    HTTPFileInfo::initialize();
     auto s3FS = fileSystem->constPtrCast<S3FileSystem>();
     if ((flags & O_ACCMODE) & O_WRONLY) {
         auto maxNumParts = uploadParams.maxNumPartsPerFile;
@@ -127,7 +127,7 @@ std::unique_ptr<common::FileInfo> S3FileSystem::openFile(const std::string& path
     auto uploadParams = getS3UploadParams(context);
     auto s3FileInfo =
         std::make_unique<S3FileInfo>(path, this, flags, context, authParams, uploadParams);
-    s3FileInfo->initialize(context);
+    s3FileInfo->initialize();
     return s3FileInfo;
 }
 

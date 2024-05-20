@@ -29,7 +29,7 @@ HTTPFileInfo::~HTTPFileInfo() {
     }
 }
 
-void HTTPFileInfo::initialize(main::ClientContext* context) {
+void HTTPFileInfo::initialize() {
     initializeClient();
     auto hfs = fileSystem->ptrCast<HTTPFileSystem>();
     auto res = hfs->headRequest(this->ptrCast<HTTPFileInfo>(), path, {});
@@ -122,53 +122,11 @@ void HTTPFileInfo::initializeClient() {
     httpClient = HTTPFileSystem::getClient(host.c_str());
 }
 
-void CachedFileManager::downloadFile(const std::string& path, FileInfo* info) {
-    auto url = HTTPFileSystem::parseUrl(path);
-    httplib::Client cli(url.first);
-    httplib::Headers headers = {{}};
-    auto fileContent = cli.Get(url.second, headers)->body;
-    info->writeFile(reinterpret_cast<const uint8_t*>(fileContent.c_str()), fileContent.size(),
-        0 /* offset */);
-}
-
-CachedFileManager::CachedFileManager(main::ClientContext* context) : vfs{context->getVFSUnsafe()} {
-    cacheDir = context->getDatabasePath() + "/cached_files";
-    if (!vfs->fileOrPathExists(cacheDir, context)) {
-        vfs->createDir(cacheDir);
-    }
-}
-
-common::FileInfo* CachedFileManager::getCachedFileInfo(const std::string& path) {
-    std::unique_lock<std::mutex> lck{mtx};
-    if (!cachedFiles.contains(path)) {
-        auto fileName = FileSystem::getFileName(path);
-        auto cachedFilePath = getCachedFilePath(fileName);
-        auto fileInfo = vfs->openFile(cachedFilePath, O_CREAT | O_RDWR);
-        downloadFile(path, fileInfo.get());
-        cachedFiles.emplace(path, std::make_unique<CachedFile>(std::move(fileInfo)));
-    }
-    cachedFiles.at(path)->counter++;
-    return cachedFiles.at(path)->getFileInfo();
-}
-
-void CachedFileManager::destroyCachedFileInfo(const std::string& path) {
-    std::unique_lock<std::mutex> lck{mtx};
-    KU_ASSERT(cachedFiles.contains(path));
-    cachedFiles.at(path)->counter--;
-    if (cachedFiles.at(path)->counter == 0) {
-        cachedFiles.erase(path);
-    }
-}
-
-std::string CachedFileManager::getCachedFilePath(const std::string& originalFileName) {
-    return common::stringFormat("{}/{}-{}", cacheDir, originalFileName, std::time(nullptr));
-}
-
 std::unique_ptr<common::FileInfo> HTTPFileSystem::openFile(const std::string& path, int flags,
     main::ClientContext* context, common::FileLockType /*lock_type*/) {
     initCachedFileManager(context);
     auto httpFileInfo = std::make_unique<HTTPFileInfo>(path, this, flags, context);
-    httpFileInfo->initialize(context);
+    httpFileInfo->initialize();
     return httpFileInfo;
 }
 
@@ -201,6 +159,7 @@ void HTTPFileSystem::readFromFile(common::FileInfo& fileInfo, void* buffer, uint
     auto numBytesToRead = numBytes;
     auto bufferOffset = 0;
     if (httpFileInfo.cachedFileInfo != nullptr) {
+        assert(false);
         httpFileInfo.cachedFileInfo->readFromFile(buffer, numBytes, position);
         httpFileInfo.fileOffset = position + numBytes;
         return;
@@ -514,44 +473,6 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::putRequest(common::FileInfo* fileI
 
     return runRequestWithRetry(request, url, "PUT");
 }
-//
-// std::unique_ptr<HTTPResponse> HTTPFileSystem::getRequest(common::FileInfo* handle, std::string
-// url,
-//    HeaderMap headerMap) const {
-//    auto hfh = handle->ptrCast<HTTPFileInfo>();
-//    std::string path, proto_host_port;
-//    auto hostPath = parseUrl(url).second;
-//    auto headers = getHTTPHeaders(headerMap);
-//    uint64_t originalLen = 0;
-//    std::function<httplib::Result(void)> request([&]() {
-//        return hfh->httpClient->Get(
-//            hostPath, *headers,
-//            [&](const httplib::Response& response) {
-//                if (response.status >= 400) {
-//                    auto error = common::stringFormat("HTTP GET error on '{}' (HTTP {})", url,
-//                        response.status);
-//                    if (response.status == 416) {
-//                        error += "Try confirm the server supports range requests.";
-//                    }
-//                    throw IOException(error);
-//                }
-//                return true;
-//            },
-//            [&](const char* data, size_t dataLen) {
-//                auto oldBuffer = std::move(hfh->cachedFileHandle);
-//                hfh->cachedFileHandle = std::make_unique<uint8_t[]>(dataLen + originalLen);
-//                if (oldBuffer != nullptr) {
-//                    memcpy(hfh->cachedFileHandle.get(), oldBuffer.get(), originalLen);
-//                }
-//                memcpy(hfh->cachedFileHandle.get() + originalLen, data, dataLen);
-//                originalLen += dataLen;
-//                return true;
-//            });
-//    });
-//
-//    std::function<void(void)> on_retry([&]() { hfh->httpClient = getClient(proto_host_port); });
-//    return runRequestWithRetry(request, url, "GET" /* method */, on_retry);
-//}
 
 void HTTPFileSystem::initCachedFileManager(main::ClientContext* context) {
     if (cachedFileManager == nullptr) {

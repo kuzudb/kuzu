@@ -80,5 +80,10 @@ TEST_F(APIEmptyDBTest, CreationHomeDir1) {
                      .c_str());
     printf("%s",
         conn->query("attach 'http://localhost/ldbc1' as test (dbtype kuzu)")->toString().c_str());
-    printf("%s", conn->query("match (t:Comment) return t.*")->toString().c_str());
+    printf("%s", conn->query("match (t:Comment) return count(t)")->toString().c_str());
+    printf("%s", conn->query("detach test")->toString().c_str());
+    printf("%s", conn->query("CALL HTTP_CACHE_FILE=TRUE")->toString().c_str());
+    printf("%s",
+        conn->query("attach 'http://localhost/ldbc1' as test (dbtype kuzu)")->toString().c_str());
+    printf("%s", conn->query("match (t:Comment) return count(t)")->toString().c_str());
 }

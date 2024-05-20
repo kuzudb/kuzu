@@ -6,31 +6,32 @@ namespace kuzu {
 namespace httpfs {
 
 HTTPConfig::HTTPConfig(main::ClientContext* context) {
-    assert(context != nullptr);
-    if (!context->isOptionSet(HTTPCacheInMemoryConfig::HTTP_CACHE_IN_MEMORY_OPTION)) {
-        auto cacheInMemoryStrVal =
-            context->getEnvVariable(HTTPCacheInMemoryConfig::HTTP_CACHE_IN_MEMORY_ENV_VAR);
-        if (cacheInMemoryStrVal != "") {
-            bool cacheInMemory_;
+    KU_ASSERT(context != nullptr);
+    if (!context->isOptionSet(HTTPCacheInMemoryConfig::HTTP_CACHE_FILE_OPTION)) {
+        auto cacheInMemoryEnvVal =
+            context->getEnvVariable(HTTPCacheInMemoryConfig::HTTP_CACHE_FILE_ENV_VAR);
+        if (cacheInMemoryEnvVal != "") {
+            bool cacheInMemory;
             function::CastString::operation(
-                ku_string_t{cacheInMemoryStrVal.c_str(), cacheInMemoryStrVal.length()},
-                cacheInMemory_);
-            context->setExtensionOption(HTTPCacheInMemoryConfig::HTTP_CACHE_IN_MEMORY_OPTION,
-                Value::createValue(cacheInMemory_));
+                ku_string_t{cacheInMemoryEnvVal.c_str(), cacheInMemoryEnvVal.length()},
+                cacheInMemory);
+            context->setExtensionOption(HTTPCacheInMemoryConfig::HTTP_CACHE_FILE_OPTION,
+                Value::createValue(cacheInMemory));
         }
     }
-    cacheInMemory = context->getCurrentSetting(HTTPCacheInMemoryConfig::HTTP_CACHE_IN_MEMORY_OPTION)
+    cacheInMemory = context->getCurrentSetting(HTTPCacheInMemoryConfig::HTTP_CACHE_FILE_OPTION)
                         .getValue<bool>();
+    bool val = 5;
 }
 
 void HTTPConfigEnvProvider::setOptionValue(main::ClientContext* context) {
     auto cacheInMemoryStrVal =
-        context->getEnvVariable(HTTPCacheInMemoryConfig::HTTP_CACHE_IN_MEMORY_ENV_VAR);
+        context->getEnvVariable(HTTPCacheInMemoryConfig::HTTP_CACHE_FILE_ENV_VAR);
     if (cacheInMemoryStrVal != "") {
         bool cacheInMemory;
         function::CastString::operation(
             ku_string_t{cacheInMemoryStrVal.c_str(), cacheInMemoryStrVal.length()}, cacheInMemory);
-        context->setExtensionOption(HTTPCacheInMemoryConfig::HTTP_CACHE_IN_MEMORY_OPTION,
+        context->setExtensionOption(HTTPCacheInMemoryConfig::HTTP_CACHE_FILE_OPTION,
             Value::createValue(cacheInMemory));
     }
 }

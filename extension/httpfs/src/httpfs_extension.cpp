@@ -26,7 +26,7 @@ void HttpfsExtension::load(main::ClientContext* context) {
         common::Value{(int64_t)10000});
     db->addExtensionOption("s3_uploader_threads_limit", common::LogicalTypeID::INT64,
         common::Value{(int64_t)50});
-    db->addExtensionOption(HTTPCacheInMemoryConfig::HTTP_CACHE_IN_MEMORY_OPTION,
+    db->addExtensionOption(HTTPCacheInMemoryConfig::HTTP_CACHE_FILE_OPTION,
         common::LogicalTypeID::BOOL,
         common::Value{HTTPCacheInMemoryConfig::DEFAULT_CACHE_IN_MEMORY});
     AWSEnvironmentCredentialsProvider::setOptionValue(context);

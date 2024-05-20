@@ -110,6 +110,7 @@ Binder exception: Table person does not exist.
 -STATEMENT match (p:PERSON) return p.*
 ---- 1
 5
+-STATEMENT CALL HTTP_CACHE_FILE=FALSE
 -LOG AttachAgain
 -STATEMENT attach 'http://localhost/databases/tinysnb' (dbtype kuzu)
 ---- ok

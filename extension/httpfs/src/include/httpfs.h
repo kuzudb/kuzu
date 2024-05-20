@@ -1,7 +1,6 @@
 #pragma once
 
-#include "common/case_insensitive_map.h"
-#include "common/file_system/file_system.h"
+#include "cached_file_manager.h"
 #include "common/file_system/local_file_system.h"
 #include "http_config.h"
 #include "httplib.h"
@@ -41,7 +40,7 @@ struct HTTPFileInfo : public common::FileInfo {
 
     virtual ~HTTPFileInfo();
 
-    virtual void initialize(main::ClientContext* context);
+    virtual void initialize();
 
     virtual void initializeClient();
 
@@ -59,35 +58,6 @@ struct HTTPFileInfo : public common::FileInfo {
     constexpr static uint64_t READ_BUFFER_LEN = 1000000;
     HTTPConfig httpConfig;
     common::FileInfo* cachedFileInfo;
-};
-
-struct CachedFile {
-    uint64_t counter;
-    std::unique_ptr<common::FileInfo> fileInfo;
-
-    explicit CachedFile(std::unique_ptr<common::FileInfo> fileInfo)
-        : counter{0}, fileInfo{std::move(fileInfo)} {}
-
-    common::FileInfo* getFileInfo() { return fileInfo.get(); }
-};
-
-class CachedFileManager {
-public:
-    explicit CachedFileManager(main::ClientContext* context);
-
-    common::FileInfo* getCachedFileInfo(const std::string& path);
-
-    void destroyCachedFileInfo(const std::string& path);
-
-private:
-    std::string getCachedFilePath(const std::string& originalFileName);
-    void downloadFile(const std::string& path, common::FileInfo* info);
-
-private:
-    common::case_insensitive_map_t<std::unique_ptr<CachedFile>> cachedFiles;
-    common::VirtualFileSystem* vfs;
-    std::string cacheDir;
-    std::mutex mtx;
 };
 
 class HTTPFileSystem : public common::FileSystem {
@@ -146,10 +116,6 @@ protected:
         uint64_t inputBufferLen, std::string params = "") const;
 
     void initCachedFileManager(main::ClientContext* context);
-
-    //    virtual std::unique_ptr<HTTPResponse> getRequest(common::FileInfo* fileInfo, std::string
-    //    url,
-    //        HeaderMap headerMap) const;
 
 private:
     std::unique_ptr<CachedFileManager> cachedFileManager;
