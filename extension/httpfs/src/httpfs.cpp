@@ -113,7 +113,7 @@ void HTTPFileInfo::initialize() {
             // LCOV_EXCL_STOP
         }
     }
-    if (httpConfig.cacheInMemory) {
+    if (httpConfig.cacheFile) {
         cachedFileInfo = hfs->getCachedFileManager().getCachedFileInfo(path);
     }
 }
@@ -475,6 +475,7 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::putRequest(common::FileInfo* fileI
 }
 
 void HTTPFileSystem::initCachedFileManager(main::ClientContext* context) {
+    std::unique_lock<std::mutex> lck{cachedFileManagerMtx};
     if (cachedFileManager == nullptr) {
         cachedFileManager = std::make_unique<CachedFileManager>(context);
     }

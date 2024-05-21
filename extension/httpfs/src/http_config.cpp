@@ -19,7 +19,7 @@ HTTPConfig::HTTPConfig(main::ClientContext* context) {
                 Value::createValue(cacheInMemory));
         }
     }
-    cacheInMemory = context->getCurrentSetting(HTTPCacheInMemoryConfig::HTTP_CACHE_FILE_OPTION)
+    cacheFile = context->getCurrentSetting(HTTPCacheInMemoryConfig::HTTP_CACHE_FILE_OPTION)
                         .getValue<bool>();
 }
 

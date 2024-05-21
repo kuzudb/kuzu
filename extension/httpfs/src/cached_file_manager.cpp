@@ -8,7 +8,7 @@ namespace httpfs {
 using namespace common;
 
 CachedFileManager::CachedFileManager(main::ClientContext* context) : vfs{context->getVFSUnsafe()} {
-    cacheDir = context->getDatabasePath() + "/cached_files";
+    cacheDir = context->getDatabasePath() + "/.cached_files";
     if (!vfs->fileOrPathExists(cacheDir, context)) {
         vfs->createDir(cacheDir);
     }

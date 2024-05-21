@@ -20,8 +20,6 @@ class RandomEngine {
 public:
     RandomEngine();
 
-    ~RandomEngine() = default;
-
     uint32_t nextRandomInteger();
 
 private:

@@ -119,6 +119,7 @@ protected:
 
 private:
     std::unique_ptr<CachedFileManager> cachedFileManager;
+    std::mutex cachedFileManagerMtx;
 };
 
 } // namespace httpfs
