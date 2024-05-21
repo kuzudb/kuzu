@@ -60,12 +60,12 @@ public:
     }
 
 private:
-    static void appendNewNodeGroup(const RelBatchInsertInfo& relInfo,
-        RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
-        const PartitionerSharedState& partitionerSharedState);
-    static void mergeNodeGroup(ExecutionContext* context, const RelBatchInsertInfo& relInfo,
-        RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
-        const PartitionerSharedState& partitionerSharedState);
+    static void appendNewNodeGroup(transaction::Transaction* transaction,
+        const RelBatchInsertInfo& relInfo, RelBatchInsertLocalState& localState,
+        BatchInsertSharedState& sharedState, const PartitionerSharedState& partitionerSharedState);
+    static void mergeNodeGroup(transaction::Transaction* transaction,
+        const RelBatchInsertInfo& relInfo, RelBatchInsertLocalState& localState,
+        BatchInsertSharedState& sharedState, const PartitionerSharedState& partitionerSharedState);
 
     static void prepareCSRNodeGroup(const storage::ChunkedNodeGroupCollection& partition,
         common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo,

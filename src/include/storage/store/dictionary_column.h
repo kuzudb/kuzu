@@ -18,7 +18,7 @@ public:
     void initChunkState(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, Column::ChunkState& columnReadState);
 
-    void append(common::node_group_idx_t nodeGroupIdx, const DictionaryChunk& dictChunk);
+    void append(Column::ChunkState& state, const DictionaryChunk& dictChunk);
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         DictionaryChunk& dictChunk);

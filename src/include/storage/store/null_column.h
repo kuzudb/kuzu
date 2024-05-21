@@ -32,7 +32,7 @@ public:
     void lookup(Transaction* transaction, ChunkState& readState, ValueVector* nodeIDVector,
         ValueVector* resultVector) override;
 
-    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) override;
+    void append(ColumnChunk* columnChunk, ChunkState& state) override;
 
     bool isNull(Transaction* transaction, const ChunkState& state, offset_t offsetInChunk);
     void setNull(ChunkState& state, offset_t offsetInChunk, uint64_t value = true);

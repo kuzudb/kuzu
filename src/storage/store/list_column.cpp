@@ -118,8 +118,8 @@ void ListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     if (nodeGroupIdx >= metadataDA->getNumElements(transaction->getType())) {
         columnChunk->setNumValues(0);
     } else {
-        auto listColumnChunk = ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(columnChunk);
         Column::scan(transaction, nodeGroupIdx, columnChunk, startOffset, endOffset);
+        auto listColumnChunk = ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(columnChunk);
         auto sizeColumnChunk = listColumnChunk->getSizeColumnChunk();
         // TODO: Should use readState here too.
         sizeColumn->scan(transaction, nodeGroupIdx, sizeColumnChunk, startOffset, endOffset);
@@ -198,14 +198,14 @@ void ListColumn::lookupValue(Transaction* transaction, ChunkState& readState, of
         listStartOffset, listEndOffset, dataVector, offsetInVector);
 }
 
-void ListColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
+void ListColumn::append(ColumnChunk* columnChunk, ChunkState& state) {
     KU_ASSERT(columnChunk->getDataType().getPhysicalType() == dataType.getPhysicalType());
     auto listColumnChunk = ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(columnChunk);
-    Column::append(listColumnChunk, nodeGroupIdx);
+    Column::append(listColumnChunk, state);
     auto sizeColumnChunk = listColumnChunk->getSizeColumnChunk();
-    sizeColumn->append(sizeColumnChunk, nodeGroupIdx);
+    sizeColumn->append(sizeColumnChunk, state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX]);
     auto dataColumnChunk = listColumnChunk->getDataColumnChunk();
-    dataColumn->append(dataColumnChunk, nodeGroupIdx);
+    dataColumn->append(dataColumnChunk, state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
 }
 
 void ListColumn::scanUnfiltered(Transaction* transaction, ChunkState& readState,
@@ -367,12 +367,13 @@ void ListColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkSt
         dataColumn->canCommitInPlace(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
             dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
     if (!dataColumnCanCommitInPlace) {
-        commitColumnChunkOutOfPlace(transaction, state.nodeGroupIdx, false /*isNewNodeGroup*/,
-            dstOffsets, chunk, startSrcOffset);
+        commitColumnChunkOutOfPlace(transaction, state, false /*isNewNodeGroup*/, dstOffsets, chunk,
+            startSrcOffset);
     } else {
         // TODO: Shouldn't here be in place commit?
-        dataColumn->commitColumnChunkOutOfPlace(transaction, state.nodeGroupIdx,
-            false /*isNewNodeGroup*/, dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
+        dataColumn->commitColumnChunkOutOfPlace(transaction,
+            state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX], false /*isNewNodeGroup*/,
+            dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
         sizeColumn->prepareCommitForExistingChunk(transaction,
             state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX], dstOffsets,
             listChunk->getSizeColumnChunk(), startSrcOffset);
@@ -401,7 +402,7 @@ void ListColumn::prepareCommitForOffsetChunk(Transaction* transaction, ChunkStat
 }
 
 void ListColumn::commitOffsetColumnChunkOutOfPlace(Transaction* transaction,
-    const ChunkState& offsetState, const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk,
+    ChunkState& offsetState, const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk,
     offset_t startSrcOffset) {
     auto listChunk = ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(chunk);
     auto offsetColumnChunk = ColumnChunkFactory::createColumnChunk(*dataType.copy(),
@@ -416,7 +417,7 @@ void ListColumn::commitOffsetColumnChunkOutOfPlace(Transaction* transaction,
     }
     auto offsetListChunk = ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(offsetColumnChunk.get());
     offsetListChunk->getSizeColumnChunk()->setNumValues(offsetColumnChunk->getNumValues());
-    Column::append(offsetColumnChunk.get(), offsetState.nodeGroupIdx);
+    Column::append(offsetColumnChunk.get(), offsetState);
 }
 
 } // namespace storage
