@@ -11,7 +11,7 @@ class LocalRelNG;
 // TODO: Rename to RelDataScanState.
 struct RelDataReadState final : TableDataScanState {
     common::RelDataDirection direction;
-    common::offset_t startNodeOffset;
+    common::node_group_idx_t nodeGroupIdx;
     common::offset_t numNodes;
     common::offset_t currentNodeOffset;
     common::offset_t posInCurrentCSR;
@@ -25,21 +25,15 @@ struct RelDataReadState final : TableDataScanState {
     bool readFromLocalStorage;
     LocalRelNG* localNodeGroup;
 
-    explicit RelDataReadState();
+    explicit RelDataReadState(const std::vector<common::column_id_t>& columnIDs);
     DELETE_COPY_DEFAULT_MOVE(RelDataReadState);
 
-    bool isOutOfRange(common::offset_t nodeOffset) const {
-        return nodeOffset < startNodeOffset ||
-               nodeOffset >= (startNodeOffset + common::StorageConstants::NODE_GROUP_SIZE);
-    }
     bool hasMoreToRead(const transaction::Transaction* transaction);
     void populateCSRListEntries();
     std::pair<common::offset_t, common::offset_t> getStartAndEndOffset();
 
-    bool hasMoreToReadInPersistentStorage() const {
-        return (currentNodeOffset - startNodeOffset) < numNodes &&
-               posInCurrentCSR < csrListEntries[(currentNodeOffset - startNodeOffset)].size;
-    }
+    bool hasMoreToReadInPersistentStorage() const;
+
     bool hasMoreToReadFromLocalStorage() const;
     bool trySwitchToLocalStorage();
 };
@@ -138,7 +132,6 @@ public:
         common::RelDataDirection direction, bool enableCompression);
 
     void initializeScanState(transaction::Transaction* transaction,
-        const std::vector<common::column_id_t>& columnIDs,
         TableScanState& scanState) const override;
     void scan(transaction::Transaction* transaction, TableDataScanState& readState,
         common::ValueVector& inNodeIDVector,

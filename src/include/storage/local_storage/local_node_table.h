@@ -16,8 +16,7 @@ public:
         : LocalNodeGroup{nodeGroupStartOffset, dataTypes}, tableID{tableID} {}
     DELETE_COPY_DEFAULT_MOVE(LocalNodeNG);
 
-    void initializeScanState(const std::vector<common::column_id_t>& columnIDs,
-        TableScanState& scanState) const;
+    void initializeScanState(TableScanState& scanState) const;
     void scan(TableScanState& scanState);
     void lookup(const common::ValueVector& nodeIDVector,
         const std::vector<common::column_id_t>& columnIDs,

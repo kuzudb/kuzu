@@ -69,7 +69,7 @@ public:
     }
 
     virtual void initializeScanState(transaction::Transaction* transaction,
-        const std::vector<common::column_id_t>& columnIDs, TableScanState& readState) const = 0;
+        TableScanState& readState) const = 0;
     bool scan(transaction::Transaction* transaction, TableScanState& scanState) {
         for (const auto& vector : scanState.outputVectors) {
             vector->resetAuxiliaryBuffer();

@@ -31,12 +31,11 @@ RelTable::RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStat
         relTableEntry, relsStoreStats, RelDataDirection::BWD, enableCompression);
 }
 
-void RelTable::initializeScanState(Transaction* transaction,
-    const std::vector<column_id_t>& columnIDs, TableScanState& scanState) const {
+void RelTable::initializeScanState(Transaction* transaction, TableScanState& scanState) const {
     auto& dataScanState =
         ku_dynamic_cast<TableDataScanState&, RelDataReadState&>(*scanState.dataScanState);
     const auto tableData = getDirectedTableData(dataScanState.direction);
-    tableData->initializeScanState(transaction, columnIDs, scanState);
+    tableData->initializeScanState(transaction, scanState);
 }
 
 bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState) {
@@ -90,7 +89,7 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     const auto nodeOffset = relReadState->nodeIDVector->readNodeOffset(
         relReadState->nodeIDVector->state->getSelVector()[0]);
     relReadState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-    initializeScanState(transaction, relIDColumns, *relReadState);
+    initializeScanState(transaction, *relReadState);
     const row_idx_t numRelsDeleted = detachDeleteForCSRRels(transaction, tableData,
         reverseTableData, srcNodeIDVector, relReadState.get(), deleteState);
     const auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);

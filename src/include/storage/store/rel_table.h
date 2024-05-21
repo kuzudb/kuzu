@@ -13,7 +13,10 @@ struct RelTableScanState final : TableScanState {
     RelTableScanState(const std::vector<common::column_id_t>& columnIDs,
         common::RelDataDirection direction)
         : TableScanState{columnIDs}, direction{direction} {
-        dataScanState = std::make_unique<RelDataReadState>();
+        // TODO(Guodong): Move the NBR_ID_COLUMN_ID to binder phase.
+        std::vector<common::column_id_t> dataScanColumnIDs{NBR_ID_COLUMN_ID};
+        dataScanColumnIDs.insert(dataScanColumnIDs.end(), columnIDs.begin(), columnIDs.end());
+        dataScanState = std::make_unique<RelDataReadState>(dataScanColumnIDs);
     }
 
     bool hasMoreToRead(const transaction::Transaction* transaction) const {
@@ -72,7 +75,6 @@ public:
         bool enableCompression);
 
     void initializeScanState(transaction::Transaction* transaction,
-        const std::vector<common::column_id_t>& columnIDs,
         TableScanState& scanState) const override;
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;

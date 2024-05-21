@@ -42,16 +42,15 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
     }
 }
 
-void NodeTable::initializeScanState(Transaction* transaction,
-    const std::vector<column_id_t>& columnIDs, TableScanState& scanState) const {
+void NodeTable::initializeScanState(Transaction* transaction, TableScanState& scanState) const {
     switch (scanState.source) {
     case TableScanSource::COMMITTED: {
-        tableData->initializeScanState(transaction, std::move(columnIDs), scanState);
+        tableData->initializeScanState(transaction, scanState);
     } break;
     case TableScanSource::UNCOMMITTED: {
         const auto localNodeNG =
             ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(scanState.localNodeGroup);
-        localNodeNG->initializeScanState(std::move(columnIDs), scanState);
+        localNodeNG->initializeScanState(scanState);
     } break;
     default: {
         // DO NOTHING.
@@ -241,7 +240,7 @@ void NodeTable::updatePK(Transaction* transaction, column_id_t columnID, ValueVe
     const auto pos = nodeIDVector.state->getSelVector()[0];
     const auto nodeOffset = nodeIDVector.readNodeOffset(pos);
     readState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-    initializeScanState(transaction, columnIDs, *readState);
+    initializeScanState(transaction, *readState);
     scan(transaction, *readState);
     pkIndex->delete_(pkVector.get());
     insertPK(nodeIDVector, payloadVector);

@@ -47,15 +47,13 @@ NodeTableData::NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     }
 }
 
-void NodeTableData::initializeScanState(Transaction* transaction,
-    const std::vector<column_id_t>& columnIDs, TableScanState& scanState) const {
-    scanState.columnIDs = columnIDs;
+void NodeTableData::initializeScanState(Transaction* transaction, TableScanState& scanState) const {
     auto& dataScanState =
         ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState);
     if (dataScanState.nodeGroupIdx == INVALID_NODE_GROUP_IDX) {
-        dataScanState.chunkReadStates.resize(columnIDs.size());
+        dataScanState.chunkReadStates.resize(scanState.columnIDs.size());
     }
-    KU_ASSERT(dataScanState.chunkReadStates.size() == columnIDs.size());
+    KU_ASSERT(dataScanState.chunkReadStates.size() == scanState.columnIDs.size());
     if (scanState.dataScanState) {
         initializeColumnScanStates(transaction, dataScanState, scanState.nodeGroupIdx);
     }

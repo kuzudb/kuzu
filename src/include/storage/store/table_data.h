@@ -13,7 +13,7 @@ namespace storage {
 struct TableScanState;
 
 struct TableDataScanState {
-    TableDataScanState() = default;
+    TableDataScanState(const std::vector<common::column_id_t>& columnIDs) : columnIDs{columnIDs} {};
     virtual ~TableDataScanState() = default;
     DELETE_COPY_DEFAULT_MOVE(TableDataScanState);
 
@@ -26,7 +26,7 @@ public:
     virtual ~TableData() = default;
 
     virtual void initializeScanState(transaction::Transaction* transaction,
-        const std::vector<common::column_id_t>& columnIDs, TableScanState& scanState) const = 0;
+        TableScanState& scanState) const = 0;
     virtual void scan(transaction::Transaction* transaction, TableDataScanState& readState,
         common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) = 0;

@@ -22,12 +22,12 @@ struct NodeTableScanState final : TableScanState {
 
     explicit NodeTableScanState(std::vector<common::column_id_t> columnIDs)
         : TableScanState{std::move(columnIDs)} {
-        dataScanState = std::make_unique<NodeDataScanState>();
+        dataScanState = std::make_unique<NodeDataScanState>(this->columnIDs);
     }
     NodeTableScanState(common::ValueVector* nodeIDVector,
         std::vector<common::column_id_t> columnIDs, std::vector<common::ValueVector*> outputVectors)
         : TableScanState{nodeIDVector, std::move(columnIDs), std::move(outputVectors)} {
-        dataScanState = std::make_unique<NodeDataScanState>();
+        dataScanState = std::make_unique<NodeDataScanState>(this->columnIDs);
     }
 };
 
@@ -75,7 +75,6 @@ public:
     }
 
     void initializeScanState(transaction::Transaction* transaction,
-        const std::vector<common::column_id_t>& columnIDs,
         TableScanState& scanState) const override;
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
 

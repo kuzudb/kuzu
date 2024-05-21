@@ -20,8 +20,7 @@ bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
-        info->table->initializeScanState(context->clientContext->getTx(), info->columnIDs,
-            *readState);
+        info->table->initializeScanState(context->clientContext->getTx(), *readState);
     }
 }
 

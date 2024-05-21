@@ -47,6 +47,7 @@ void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     for (const auto& info : infos) {
         auto scanState = std::make_unique<NodeTableScanState>(info->columnIDs);
         initVectors(*scanState, *resultSet);
+        scanState->dataScanState->columnIDs = info->columnIDs;
         scanStates.push_back(std::move(scanState));
     }
 }
@@ -72,8 +73,7 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
         if (scanState.source == TableScanSource::NONE) {
             currentTableIdx++;
         } else {
-            info.table->initializeScanState(context->clientContext->getTx(), info.columnIDs,
-                scanState);
+            info.table->initializeScanState(context->clientContext->getTx(), scanState);
         }
     }
     return false;

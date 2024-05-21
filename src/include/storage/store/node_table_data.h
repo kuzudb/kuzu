@@ -15,7 +15,8 @@ struct NodeDataReadState : TableDataReadState {
     DELETE_COPY_DEFAULT_MOVE(NodeDataReadState);
 =======
 struct NodeDataScanState final : TableDataScanState {
-    NodeDataScanState() : TableDataScanState{} {}
+    NodeDataScanState(const std::vector<common::column_id_t>& columnIDs)
+        : TableDataScanState{columnIDs} {}
     DELETE_COPY_DEFAULT_MOVE(NodeDataScanState);
 >>>>>>> 3dadfa109 (WIP: scan local node table)
 
@@ -38,7 +39,6 @@ public:
 
     // This interface is node table specific, as rel table requires also relDataDirection.
     void initializeScanState(transaction::Transaction* transaction,
-        const std::vector<common::column_id_t>& columnIDs,
         TableScanState& scanState) const override;
     void scan(transaction::Transaction* transaction, TableDataScanState& readState,
         common::ValueVector& nodeIDVector,

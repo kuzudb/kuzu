@@ -22,8 +22,7 @@ bool RelTableCollectionScanner::scan(const SelectionVector& selVector, Transacti
             }
             const auto scanInfo = scanInfos[currentTableIdx].get();
             readStates[currentTableIdx]->direction = scanInfo->direction;
-            scanInfo->table->initializeScanState(transaction, scanInfo->columnIDs,
-                *readStates[currentTableIdx]);
+            scanInfo->table->initializeScanState(transaction, *readStates[currentTableIdx]);
             nextTableIdx++;
         }
     }

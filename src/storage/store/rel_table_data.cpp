@@ -14,20 +14,22 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-RelDataReadState::RelDataReadState()
-    : direction{}, startNodeOffset{INVALID_OFFSET}, numNodes{0}, currentNodeOffset{0},
-      posInCurrentCSR{0}, readFromPersistentStorage{false}, readFromLocalStorage{false},
-      localNodeGroup{nullptr} {
+RelDataReadState::RelDataReadState(const std::vector<common::column_id_t>& columnIDs)
+    : TableDataScanState{columnIDs}, direction{}, nodeGroupIdx{INVALID_NODE_GROUP_IDX}, numNodes{0},
+      currentNodeOffset{0}, posInCurrentCSR{0}, readFromPersistentStorage{false},
+      readFromLocalStorage{false}, localNodeGroup{nullptr} {
     csrListEntries.resize(StorageConstants::NODE_GROUP_SIZE, {0, 0});
 }
 
 bool RelDataReadState::hasMoreToReadFromLocalStorage() const {
     KU_ASSERT(localNodeGroup);
+    auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     return posInCurrentCSR <
            localNodeGroup->getNumInsertedRels(currentNodeOffset - startNodeOffset);
 }
 
 bool RelDataReadState::trySwitchToLocalStorage() {
+    auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     if (localNodeGroup &&
         localNodeGroup->getNumInsertedRels(currentNodeOffset - startNodeOffset) > 0) {
         readFromLocalStorage = true;
@@ -52,6 +54,15 @@ bool RelDataReadState::hasMoreToRead(const Transaction* transaction) {
     return hasMoreToReadInPersistentStorage();
 }
 
+bool RelDataReadState::hasMoreToReadInPersistentStorage() const {
+    if (nodeGroupIdx == INVALID_NODE_GROUP_IDX) {
+        return false;
+    }
+    auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    return (currentNodeOffset - nodeGroupStartOffset) < numNodes &&
+           posInCurrentCSR < csrListEntries[(currentNodeOffset - nodeGroupStartOffset)].size;
+}
+
 void RelDataReadState::populateCSRListEntries() {
     for (auto i = 0u; i < numNodes; i++) {
         csrListEntries[i].size = csrHeaderChunks.getCSRLength(i);
@@ -62,6 +73,7 @@ void RelDataReadState::populateCSRListEntries() {
 }
 
 std::pair<offset_t, offset_t> RelDataReadState::getStartAndEndOffset() {
+    auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     auto currCSRListEntry = csrListEntries[currentNodeOffset - startNodeOffset];
     auto currCSRSize = currCSRListEntry.size;
     auto startOffset = currCSRListEntry.offset + posInCurrentCSR;
@@ -173,30 +185,26 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     packedCSRInfo = PackedCSRInfo();
 }
 
-void RelTableData::initializeScanState(Transaction* transaction,
-    const std::vector<column_id_t>& columnIDs, TableScanState& scanState) const {
+void RelTableData::initializeScanState(Transaction* transaction, TableScanState& scanState) const {
     auto& relScanState =
         ku_dynamic_cast<TableDataScanState&, RelDataReadState&>(*scanState.dataScanState);
-    relScanState.columnIDs.clear();
-    relScanState.columnIDs.push_back(NBR_ID_COLUMN_ID);
-    relScanState.columnIDs.insert(relScanState.columnIDs.end(), columnIDs.begin(), columnIDs.end());
     relScanState.readFromLocalStorage = false;
     const auto nodeOffset =
         scanState.nodeIDVector->readNodeOffset(scanState.nodeIDVector->state->getSelVector()[0]);
     // Reset to read from beginning for the csr of the new node offset.
     relScanState.posInCurrentCSR = 0;
-    const auto nodeGroupIdx = scanState.nodeGroupIdx;
-    // TODO: This can be simplified to check if the nodeGroupIdx is matched.
-    if (relScanState.isOutOfRange(nodeOffset)) {
+    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+    if (relScanState.nodeGroupIdx != nodeGroupIdx) {
         // Scan csr offsets and populate csr list entries for the new node group.
-        relScanState.startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+        relScanState.nodeGroupIdx = nodeGroupIdx;
+        auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         csrHeaderColumns.scan(transaction, nodeGroupIdx, relScanState.csrHeaderChunks);
         KU_ASSERT(relScanState.csrHeaderChunks.offset->getNumValues() ==
                   relScanState.csrHeaderChunks.length->getNumValues());
         relScanState.numNodes = relScanState.csrHeaderChunks.offset->getNumValues();
         relScanState.readFromPersistentStorage =
             nodeGroupIdx < columns[REL_ID_COLUMN_ID]->getNumCommittedNodeGroups() &&
-            (nodeOffset - relScanState.startNodeOffset) < relScanState.numNodes;
+            (nodeOffset - startNodeOffset) < relScanState.numNodes;
         if (relScanState.readFromPersistentStorage) {
             relScanState.populateCSRListEntries();
             initializeColumnReadStates(transaction, relScanState, nodeGroupIdx);
@@ -225,8 +233,9 @@ void RelTableData::initializeColumnReadStates(Transaction* transaction, RelDataR
 void RelTableData::scan(Transaction* transaction, TableDataScanState& readState,
     ValueVector& inNodeIDVector, const std::vector<ValueVector*>& outputVectors) {
     auto& relReadState = ku_dynamic_cast<TableDataScanState&, RelDataReadState&>(readState);
+    auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(relReadState.nodeGroupIdx);
     if (relReadState.readFromLocalStorage) {
-        auto offsetInChunk = relReadState.currentNodeOffset - relReadState.startNodeOffset;
+        auto offsetInChunk = relReadState.currentNodeOffset - startNodeOffset;
         KU_ASSERT(relReadState.localNodeGroup);
         auto numValuesRead = relReadState.localNodeGroup->scanCSR(offsetInChunk,
             relReadState.posInCurrentCSR, relReadState.columnIDs, outputVectors);
@@ -255,9 +264,8 @@ void RelTableData::scan(Transaction* transaction, TableDataScanState& readState,
         auto nodeOffset = inNodeIDVector.readNodeOffset(inNodeIDVector.state->getSelVector()[0]);
         KU_ASSERT(relIDVectorIdx != INVALID_VECTOR_IDX);
         auto relIDVector = outputVectors[relIDVectorIdx];
-        relReadState.localNodeGroup->applyLocalChangesToScannedVectors(
-            nodeOffset - relReadState.startNodeOffset, relReadState.columnIDs, relIDVector,
-            outputVectors);
+        relReadState.localNodeGroup->applyLocalChangesToScannedVectors(nodeOffset - startNodeOffset,
+            relReadState.columnIDs, relIDVector, outputVectors);
     }
 }
 

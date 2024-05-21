@@ -9,9 +9,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-void LocalNodeNG::initializeScanState(const std::vector<column_id_t>& columnIDs,
-    TableScanState& scanState) const {
-    scanState.columnIDs = columnIDs;
+void LocalNodeNG::initializeScanState(TableScanState& scanState) const {
     auto& dataScanState =
         ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState);
     dataScanState.nodeGroupIdx = scanState.nodeGroupIdx;
