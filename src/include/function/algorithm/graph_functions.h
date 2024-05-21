@@ -36,7 +36,8 @@ struct VariableLengthPath {
 struct ShortestPath : public GraphAlgorithm {
 public:
     static constexpr const char* name = "SHORTEST_PATH";
-
+    bool compute(Sink *sink, ExecutionContext* executionContext,
+        std::shared_ptr<ParallelUtils> parallelUtils) override;
     static function::function_set getFunctionSet();
 };
 

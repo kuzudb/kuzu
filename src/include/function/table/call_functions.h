@@ -34,7 +34,7 @@ struct CallFuncSharedState : public TableFuncSharedState {
         common::offset_t morselSize) : maxOffset{maxOffset}, curOffset{curOffset},
           morselSize{morselSize} {}
 
-    CallFuncMorsel getMorsel();
+    virtual CallFuncMorsel getMorsel();
 };
 
 struct CallTableFuncBindData : public TableFuncBindData {
