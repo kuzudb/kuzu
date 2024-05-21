@@ -13,11 +13,14 @@ namespace storage {
 struct TableScanState;
 
 struct TableDataScanState {
-    TableDataScanState(const std::vector<common::column_id_t>& columnIDs) : columnIDs{columnIDs} {};
+    TableDataScanState(const std::vector<common::column_id_t>& columnIDs) : columnIDs{columnIDs} {
+        chunkStates.resize(this->columnIDs.size());
+    };
     virtual ~TableDataScanState() = default;
     DELETE_COPY_DEFAULT_MOVE(TableDataScanState);
 
     std::vector<common::column_id_t> columnIDs;
+    std::vector<Column::ChunkState> chunkStates;
 };
 
 class LocalTableData;

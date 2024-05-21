@@ -10,7 +10,6 @@ namespace storage {
 class LocalRelNG;
 // TODO: Rename to RelDataScanState.
 struct RelDataReadState final : TableDataScanState {
-    common::RelDataDirection direction;
     common::node_group_idx_t nodeGroupIdx;
     common::offset_t numNodes;
     common::offset_t currentNodeOffset;
@@ -18,7 +17,6 @@ struct RelDataReadState final : TableDataScanState {
     std::vector<common::list_entry_t> csrListEntries;
     // Temp auxiliary data structure to scan the offset of each CSR node in the offset column chunk.
     ChunkedCSRHeader csrHeaderChunks = ChunkedCSRHeader(false /*enableCompression*/);
-    std::vector<Column::ChunkState> columnStates;
 
     bool readFromPersistentStorage;
     // Following fields are used for local storage.

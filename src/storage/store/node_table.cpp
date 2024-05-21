@@ -77,9 +77,8 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
     // TODO: Wrap following into scanCommitted.
     KU_ASSERT(scanState.source == TableScanSource::COMMITTED);
     // Fill nodeIDVector and set selVector from deleted node offsets.
-    const auto startNodeOffset =
-        StorageUtils::getStartOffsetOfNodeGroup(dataScanState.nodeGroupIdx) +
-        dataScanState.vectorIdx * DEFAULT_VECTOR_CAPACITY;
+    const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx) +
+                                 dataScanState.vectorIdx * DEFAULT_VECTOR_CAPACITY;
     for (auto i = 0u; i < dataScanState.numRowsToScan; i++) {
         scanState.nodeIDVector->setValue<nodeID_t>(i, {startNodeOffset + i, tableID});
     }
@@ -87,7 +86,7 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
         dataScanState.numRowsToScan);
     const auto tableStats =
         getNodeStatisticsAndDeletedIDs()->getNodeStatisticsAndDeletedIDs(transaction, tableID);
-    tableStats->setDeletedNodeOffsetsForVector(scanState.nodeIDVector, dataScanState.nodeGroupIdx,
+    tableStats->setDeletedNodeOffsetsForVector(scanState.nodeIDVector, scanState.nodeGroupIdx,
         dataScanState.vectorIdx, dataScanState.numRowsToScan);
 
     KU_ASSERT(scanState.source == TableScanSource::COMMITTED);

@@ -22,9 +22,7 @@ struct NodeDataScanState final : TableDataScanState {
 
     common::row_idx_t numRowsToScan = 0;
     common::vector_idx_t vectorIdx = common::INVALID_VECTOR_IDX;
-    common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
     common::row_idx_t numRowsInNodeGroup = 0;
-    std::vector<Column::ChunkState> chunkReadStates;
 
     bool nextVector();
 };

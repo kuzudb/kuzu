@@ -50,17 +50,13 @@ NodeTableData::NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
 void NodeTableData::initializeScanState(Transaction* transaction, TableScanState& scanState) const {
     auto& dataScanState =
         ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState);
-    if (dataScanState.nodeGroupIdx == INVALID_NODE_GROUP_IDX) {
-        dataScanState.chunkReadStates.resize(scanState.columnIDs.size());
-    }
-    KU_ASSERT(dataScanState.chunkReadStates.size() == scanState.columnIDs.size());
+    KU_ASSERT(dataScanState.chunkStates.size() == scanState.columnIDs.size());
     if (scanState.dataScanState) {
         initializeColumnScanStates(transaction, dataScanState, scanState.nodeGroupIdx);
     }
     if (transaction->isWriteTransaction()) {
         initializeLocalNodeReadState(transaction, scanState, scanState.nodeGroupIdx);
     }
-    dataScanState.nodeGroupIdx = scanState.nodeGroupIdx;
     dataScanState.vectorIdx = INVALID_VECTOR_IDX;
     dataScanState.numRowsInNodeGroup =
         columns[0]->getMetadata(scanState.nodeGroupIdx, TransactionType::READ_ONLY).numValues;
@@ -72,25 +68,24 @@ void NodeTableData::initializeColumnScanStates(Transaction* transaction,
     for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
         if (scanState.columnIDs[i] != INVALID_COLUMN_ID) {
             getColumn(scanState.columnIDs[i])
-                ->initChunkState(transaction, nodeGroupIdx, dataReadState.chunkReadStates[i]);
+                ->initChunkState(transaction, nodeGroupIdx, dataReadState.chunkStates[i]);
         }
     }
     KU_ASSERT(sanityCheckOnColumnNumValues(dataReadState));
 }
 
 bool NodeTableData::sanityCheckOnColumnNumValues(const NodeDataScanState& scanState) {
-    // Sanity check on that all valid columns should have the same numValues in the node
-    // group.
+    // Sanity check on that all valid columns should have the same numValues.
     const auto validColumn = std::ranges::find_if(scanState.columnIDs,
         [](column_id_t columnID) { return columnID != INVALID_COLUMN_ID; });
     if (validColumn != scanState.columnIDs.end()) {
         const auto numValues =
-            scanState.chunkReadStates[validColumn - scanState.columnIDs.begin()].metadata.numValues;
+            scanState.chunkStates[validColumn - scanState.columnIDs.begin()].metadata.numValues;
         for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
             if (scanState.columnIDs[i] == INVALID_COLUMN_ID) {
                 continue;
             }
-            if (scanState.chunkReadStates[i].metadata.numValues != numValues) {
+            if (scanState.chunkStates[i].metadata.numValues != numValues) {
                 KU_ASSERT(false);
                 return false;
             }
@@ -121,7 +116,7 @@ void NodeTableData::scan(Transaction* transaction, TableDataScanState& scanState
             outputVectors[i]->setAllNull();
         } else {
             KU_ASSERT(scanState.columnIDs[i] < columns.size());
-            columns[scanState.columnIDs[i]]->scan(transaction, nodeScanState.chunkReadStates[i],
+            columns[scanState.columnIDs[i]]->scan(transaction, nodeScanState.chunkStates[i],
                 nodeScanState.vectorIdx, nodeScanState.numRowsToScan, &nodeIDVector,
                 outputVectors[i]);
         }
@@ -145,8 +140,8 @@ void NodeTableData::lookup(Transaction* transaction, TableDataScanState& readSta
                 ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(readState);
             // TODO: Remove `const_cast` on nodeIDVector.
             columns[readState.columnIDs[columnIdx]]->lookup(transaction,
-                nodeDataReadState.chunkReadStates[columnIdx],
-                const_cast<ValueVector*>(&nodeIDVector), outputVectors[columnIdx]);
+                nodeDataReadState.chunkStates[columnIdx], const_cast<ValueVector*>(&nodeIDVector),
+                outputVectors[columnIdx]);
         }
     }
 }

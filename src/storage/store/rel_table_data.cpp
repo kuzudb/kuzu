@@ -15,7 +15,7 @@ namespace kuzu {
 namespace storage {
 
 RelDataReadState::RelDataReadState(const std::vector<common::column_id_t>& columnIDs)
-    : TableDataScanState{columnIDs}, direction{}, nodeGroupIdx{INVALID_NODE_GROUP_IDX}, numNodes{0},
+    : TableDataScanState{columnIDs}, nodeGroupIdx{INVALID_NODE_GROUP_IDX}, numNodes{0},
       currentNodeOffset{0}, posInCurrentCSR{0}, readFromPersistentStorage{false},
       readFromLocalStorage{false}, localNodeGroup{nullptr} {
     csrListEntries.resize(StorageConstants::NODE_GROUP_SIZE, {0, 0});
@@ -220,13 +220,13 @@ void RelTableData::initializeScanState(Transaction* transaction, TableScanState&
 
 void RelTableData::initializeColumnReadStates(Transaction* transaction, RelDataReadState& readState,
     node_group_idx_t nodeGroupIdx) const {
-    readState.columnStates.resize(readState.columnIDs.size());
+    KU_ASSERT(readState.columnIDs.size() == readState.chunkStates.size());
     for (auto i = 0u; i < readState.columnIDs.size(); i++) {
         auto columnID = readState.columnIDs[i];
         if (columnID == INVALID_COLUMN_ID) {
             continue;
         }
-        getColumn(columnID)->initChunkState(transaction, nodeGroupIdx, readState.columnStates[i]);
+        getColumn(columnID)->initChunkState(transaction, nodeGroupIdx, readState.chunkStates[i]);
     }
 }
 
@@ -257,7 +257,7 @@ void RelTableData::scan(Transaction* transaction, TableDataScanState& readState,
         if (columnID == REL_ID_COLUMN_ID) {
             relIDVectorIdx = outputVectorId;
         }
-        getColumn(columnID)->scan(transaction, relReadState.columnStates[i], startOffset, endOffset,
+        getColumn(columnID)->scan(transaction, relReadState.chunkStates[i], startOffset, endOffset,
             outputVectors[outputVectorId], 0 /* offsetInVector */);
     }
     if (transaction->isWriteTransaction() && relReadState.localNodeGroup) {

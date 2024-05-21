@@ -32,9 +32,8 @@ RelTable::RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStat
 }
 
 void RelTable::initializeScanState(Transaction* transaction, TableScanState& scanState) const {
-    auto& dataScanState =
-        ku_dynamic_cast<TableDataScanState&, RelDataReadState&>(*scanState.dataScanState);
-    const auto tableData = getDirectedTableData(dataScanState.direction);
+    const auto& relScanState = ku_dynamic_cast<TableScanState&, RelTableScanState&>(scanState);
+    const auto tableData = getDirectedTableData(relScanState.direction);
     tableData->initializeScanState(transaction, scanState);
 }
 
