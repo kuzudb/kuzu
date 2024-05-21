@@ -4,6 +4,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "common/api.h"
+
 namespace kuzu {
 namespace storage {
 
@@ -18,7 +20,7 @@ struct StorageVersionInfo {
             {"0.0.3", 1}};
     }
 
-    static storage_version_t getStorageVersion();
+    static KUZU_API storage_version_t getStorageVersion();
 
     static constexpr const char* MAGIC_BYTES = "KUZU";
 };

@@ -71,6 +71,14 @@ jobs:
       - name: Java test
         run: make javatest
 
+      - name: Rust test with pre-built library
+        working-directory: tools/rust_api
+        env:
+          KUZU_SHARED: 1
+          KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
+          KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
+        run: cargo test --locked --features arrow -- --test-threads=1
+
   code-coverage:
     name: code coverage
     runs-on: ubuntu-22.04
@@ -217,6 +225,14 @@ jobs:
       - name: Java test
         run: make javatest
 
+      - name: Rust test with pre-built library
+        working-directory: tools/rust_api
+        env:
+          KUZU_SHARED: 1
+          KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
+          KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
+        run: cargo test --locked --features arrow -- --test-threads=1
+
   msvc-build-test:
     name: msvc build & test
     needs: [clang-format, sanity-checks, python-lint-check]
@@ -278,7 +294,6 @@ jobs:
         working-directory: tools/rust_api
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-          set KUZU_TESTING=1
           set CFLAGS=/MD
           set CXXFLAGS=/MD /std:c++20
           cargo test --locked -- --test-threads=1
@@ -288,6 +303,19 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           make javatest
+
+      - name: Rust test with pre-built library
+        working-directory: tools/rust_api
+        env:
+          KUZU_SHARED: 1
+          KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
+          KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          set PATH=%PATH%;${{ github.workspace }}/build/release/src
+          cargo test --locked --features arrow -- --test-threads=1
+
 
   sanity-checks:
     name: sanity checks
@@ -474,6 +502,10 @@ jobs:
           ulimit -n 10240
           source /Users/runner/.cargo/env
           cargo build --locked --features arrow
+
+      # TODO(bmwinger): rust pre-built library test for macos
+      # When last tried it had issues finding libkuzu.dylib when running the tests
+      # Using LD_LIBRARY_PATH (and similar variables) did not work for some reason
 
   shell-test:
     name: shell test

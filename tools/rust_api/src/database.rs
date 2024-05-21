@@ -1,4 +1,4 @@
-use cxx::{let_cxx_string, UniquePtr};
+use cxx::UniquePtr;
 use std::cell::UnsafeCell;
 use std::fmt;
 use std::path::Path;
@@ -115,9 +115,10 @@ mod tests {
     // working with multiple databases in parallel.
     // Tests can be run serially with `cargo test -- --test-threads=1` to work around this.
 
+    #[test]
     fn create_database() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let mut db = Database::new(temp_dir.path(), SystemConfig::default())?;
+        let _db = Database::new(temp_dir.path(), SystemConfig::default())?;
         temp_dir.close()?;
         Ok(())
     }

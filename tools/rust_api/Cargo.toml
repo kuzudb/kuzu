@@ -22,7 +22,6 @@ include = [
 ]
 
 edition = "2018"
-links = "kuzu"
 
 [dependencies]
 cxx = "1.0"
