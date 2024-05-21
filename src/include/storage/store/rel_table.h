@@ -7,17 +7,18 @@
 namespace kuzu {
 namespace storage {
 
-struct RelTableReadState final : TableReadState {
+struct RelTableScanState final : TableScanState {
     common::RelDataDirection direction;
 
-    RelTableReadState(const std::vector<common::column_id_t>& columnIDs,
+    RelTableScanState(const std::vector<common::column_id_t>& columnIDs,
         common::RelDataDirection direction)
-        : TableReadState{columnIDs}, direction{direction} {
-        dataReadState = std::make_unique<RelDataReadState>();
+        : TableScanState{columnIDs}, direction{direction} {
+        dataScanState = std::make_unique<RelDataReadState>();
     }
 
-    bool hasMoreToRead(const transaction::Transaction* transaction) const override {
-        return dataReadState->hasMoreToRead(transaction);
+    bool hasMoreToRead(const transaction::Transaction* transaction) const {
+        return common::ku_dynamic_cast<TableDataScanState*, RelDataReadState*>(dataScanState.get())
+            ->hasMoreToRead(transaction);
     }
 };
 
@@ -71,10 +72,10 @@ public:
         bool enableCompression);
 
     void initializeScanState(transaction::Transaction* transaction,
-        common::RelDataDirection direction, const std::vector<common::column_id_t>& columnIDs,
-        RelTableReadState& readState);
+        const std::vector<common::column_id_t>& columnIDs,
+        TableScanState& scanState) const override;
 
-    void scanInternal(transaction::Transaction* transaction, TableReadState& scanState) override;
+    bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
 
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
@@ -103,7 +104,7 @@ public:
         KU_ASSERT(fwdRelTableData->getNumColumns() == bwdRelTableData->getNumColumns());
         return fwdRelTableData->getNumColumns();
     }
-    Column* getColumn(common::column_id_t columnID, common::RelDataDirection direction) {
+    Column* getColumn(common::column_id_t columnID, common::RelDataDirection direction) const {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData->getColumn(columnID) :
                                                             bwdRelTableData->getColumn(columnID);
     }
@@ -141,7 +142,7 @@ public:
 private:
     common::row_idx_t detachDeleteForCSRRels(transaction::Transaction* transaction,
         RelTableData* tableData, RelTableData* reverseTableData,
-        common::ValueVector* srcNodeIDVector, RelTableReadState* relDataReadState,
+        common::ValueVector* srcNodeIDVector, RelTableScanState* relDataReadState,
         RelDetachDeleteState* deleteState);
 
 private:

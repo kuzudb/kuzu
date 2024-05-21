@@ -5,6 +5,7 @@
 #include "common/exception/message.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/stats/rels_store_statistics.h"
+#include "storage/store/table.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -71,8 +72,8 @@ std::pair<offset_t, offset_t> RelDataReadState::getStartAndEndOffset() {
 
 offset_t CSRHeaderColumns::getNumNodes(Transaction* transaction,
     node_group_idx_t nodeGroupIdx) const {
-    auto numPersistentNodeGroups = offset->getNumNodeGroups(transaction);
-    return nodeGroupIdx >= numPersistentNodeGroups ?
+    const auto numCommittedNodeGroups = offset->getNumCommittedNodeGroups();
+    return nodeGroupIdx >= numCommittedNodeGroups ?
                0 :
                offset->getMetadata(nodeGroupIdx, transaction->getType()).numValues;
 }
@@ -172,39 +173,40 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     packedCSRInfo = PackedCSRInfo();
 }
 
-// TODO: avoid scan the whole group of the csr header. just scan the vector.
-void RelTableData::initializeReadState(Transaction* transaction, std::vector<column_id_t> columnIDs,
-    const ValueVector& inNodeIDVector, RelDataReadState& readState) {
-    readState.direction = direction;
-    readState.columnIDs.clear();
-    readState.columnIDs.push_back(NBR_ID_COLUMN_ID);
-    readState.columnIDs.insert(readState.columnIDs.end(), columnIDs.begin(), columnIDs.end());
-    // Reset to read from persistent storage.
-    readState.readFromLocalStorage = false;
-    auto nodeOffset = inNodeIDVector.readNodeOffset(inNodeIDVector.state->getSelVector()[0]);
+void RelTableData::initializeScanState(Transaction* transaction,
+    const std::vector<column_id_t>& columnIDs, TableScanState& scanState) const {
+    auto& relScanState =
+        ku_dynamic_cast<TableDataScanState&, RelDataReadState&>(*scanState.dataScanState);
+    relScanState.columnIDs.clear();
+    relScanState.columnIDs.push_back(NBR_ID_COLUMN_ID);
+    relScanState.columnIDs.insert(relScanState.columnIDs.end(), columnIDs.begin(), columnIDs.end());
+    relScanState.readFromLocalStorage = false;
+    const auto nodeOffset =
+        scanState.nodeIDVector->readNodeOffset(scanState.nodeIDVector->state->getSelVector()[0]);
     // Reset to read from beginning for the csr of the new node offset.
-    readState.posInCurrentCSR = 0;
-    if (readState.isOutOfRange(nodeOffset)) {
+    relScanState.posInCurrentCSR = 0;
+    const auto nodeGroupIdx = scanState.nodeGroupIdx;
+    // TODO: This can be simplified to check if the nodeGroupIdx is matched.
+    if (relScanState.isOutOfRange(nodeOffset)) {
         // Scan csr offsets and populate csr list entries for the new node group.
-        auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-        readState.startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-        csrHeaderColumns.scan(transaction, nodeGroupIdx, readState.csrHeaderChunks);
-        KU_ASSERT(readState.csrHeaderChunks.offset->getNumValues() ==
-                  readState.csrHeaderChunks.length->getNumValues());
-        readState.numNodes = readState.csrHeaderChunks.offset->getNumValues();
-        readState.readFromPersistentStorage =
-            nodeGroupIdx < columns[REL_ID_COLUMN_ID]->getNumNodeGroups(transaction) &&
-            (nodeOffset - readState.startNodeOffset) < readState.numNodes;
-        if (readState.readFromPersistentStorage) {
-            readState.populateCSRListEntries();
-            initializeColumnReadStates(transaction, readState, nodeGroupIdx);
+        relScanState.startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+        csrHeaderColumns.scan(transaction, nodeGroupIdx, relScanState.csrHeaderChunks);
+        KU_ASSERT(relScanState.csrHeaderChunks.offset->getNumValues() ==
+                  relScanState.csrHeaderChunks.length->getNumValues());
+        relScanState.numNodes = relScanState.csrHeaderChunks.offset->getNumValues();
+        relScanState.readFromPersistentStorage =
+            nodeGroupIdx < columns[REL_ID_COLUMN_ID]->getNumCommittedNodeGroups() &&
+            (nodeOffset - relScanState.startNodeOffset) < relScanState.numNodes;
+        if (relScanState.readFromPersistentStorage) {
+            relScanState.populateCSRListEntries();
+            initializeColumnReadStates(transaction, relScanState, nodeGroupIdx);
         }
         if (transaction->isWriteTransaction()) {
-            readState.localNodeGroup = getLocalNodeGroup(transaction, nodeGroupIdx);
+            relScanState.localNodeGroup = getLocalNodeGroup(transaction, nodeGroupIdx);
         }
     }
-    if (nodeOffset != readState.currentNodeOffset) {
-        readState.currentNodeOffset = nodeOffset;
+    if (nodeOffset != relScanState.currentNodeOffset) {
+        relScanState.currentNodeOffset = nodeOffset;
     }
 }
 
@@ -220,9 +222,9 @@ void RelTableData::initializeColumnReadStates(Transaction* transaction, RelDataR
     }
 }
 
-void RelTableData::scan(Transaction* transaction, TableDataReadState& readState,
+void RelTableData::scan(Transaction* transaction, TableDataScanState& readState,
     ValueVector& inNodeIDVector, const std::vector<ValueVector*>& outputVectors) {
-    auto& relReadState = ku_dynamic_cast<TableDataReadState&, RelDataReadState&>(readState);
+    auto& relReadState = ku_dynamic_cast<TableDataScanState&, RelDataReadState&>(readState);
     if (relReadState.readFromLocalStorage) {
         auto offsetInChunk = relReadState.currentNodeOffset - relReadState.startNodeOffset;
         KU_ASSERT(relReadState.localNodeGroup);
@@ -259,7 +261,7 @@ void RelTableData::scan(Transaction* transaction, TableDataReadState& readState,
     }
 }
 
-void RelTableData::lookup(Transaction*, TableDataReadState&, const ValueVector&,
+void RelTableData::lookup(Transaction*, TableDataScanState&, const ValueVector&,
     const std::vector<ValueVector*>&) {
     KU_ASSERT(false);
 }
@@ -366,7 +368,7 @@ offset_t RelTableData::findCSROffsetInRegion(const PersistentState& persistentSt
 }
 
 bool RelTableData::isNewNodeGroup(Transaction* transaction, node_group_idx_t nodeGroupIdx) const {
-    if (nodeGroupIdx >= getNumNodeGroups(transaction) ||
+    if (nodeGroupIdx >= csrHeaderColumns.offset->getNumNodeGroups(transaction) ||
         getNbrIDColumn()->getMetadata(nodeGroupIdx, transaction->getType()).numValues == 0) {
         return true;
     }

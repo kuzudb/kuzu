@@ -9,18 +9,20 @@ namespace processor {
 class ScanNodeTableSharedState {
 public:
     ScanNodeTableSharedState()
-        : table{nullptr}, currentGroupIdx{common::INVALID_NODE_GROUP_IDX}, numNodeGroups{0} {};
+        : table{nullptr}, currentCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX},
+          currentUnCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX}, numCommittedNodeGroups{0} {};
 
-    void initialize(const transaction::Transaction* transaction, storage::NodeTable* table);
+    void initialize(transaction::Transaction* transaction, storage::NodeTable* table);
 
-    common::node_group_idx_t getNextMorsel();
+    void nextMorsel(storage::NodeTableScanState& scanState);
 
 private:
     std::mutex mtx;
     storage::NodeTable* table;
-    common::node_group_idx_t currentGroupIdx;
-    // TODO: Should we differentiate local, persistent and delta node groups?
-    common::node_group_idx_t numNodeGroups;
+    common::node_group_idx_t currentCommittedGroupIdx;
+    common::node_group_idx_t currentUnCommittedGroupIdx;
+    common::node_group_idx_t numCommittedNodeGroups;
+    std::vector<storage::LocalNodeGroup*> localNodeGroups;
 };
 
 struct ScanNodeTableInfo {
@@ -71,7 +73,7 @@ private:
     // TODO: Refactor following three fields into a single struct.
     std::vector<std::unique_ptr<ScanNodeTableInfo>> infos;
     std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates;
-    std::vector<std::unique_ptr<storage::NodeTableReadState>> scanStates;
+    std::vector<std::unique_ptr<storage::NodeTableScanState>> scanStates;
 };
 
 } // namespace processor

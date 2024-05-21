@@ -23,7 +23,7 @@ public:
 
 private:
     std::vector<std::unique_ptr<ScanRelTableInfo>> scanInfos;
-    std::vector<std::unique_ptr<storage::RelTableReadState>> readStates;
+    std::vector<std::unique_ptr<storage::RelTableScanState>> readStates;
     uint32_t currentTableIdx = UINT32_MAX;
     uint32_t nextTableIdx = 0;
 };

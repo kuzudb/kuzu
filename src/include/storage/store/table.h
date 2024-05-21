@@ -2,28 +2,29 @@
 
 #include "storage/stats/table_statistics_collection.h"
 #include "storage/store/table_data.h"
-#include "storage/wal/wal.h"
 
 namespace kuzu {
 namespace storage {
 
-struct TableReadState {
-    // Read only input node id vector.
+enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = 2 };
+struct TableScanState {
     common::ValueVector* nodeIDVector;
     std::vector<common::column_id_t> columnIDs;
     std::vector<common::ValueVector*> outputVectors;
-    std::unique_ptr<TableDataReadState> dataReadState;
 
-    explicit TableReadState(std::vector<common::column_id_t> columnIDs)
+    TableScanSource source = TableScanSource::NONE;
+    std::unique_ptr<TableDataScanState> dataScanState;
+    common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+    LocalNodeGroup* localNodeGroup = nullptr;
+
+    explicit TableScanState(std::vector<common::column_id_t> columnIDs)
         : nodeIDVector(nullptr), columnIDs{std::move(columnIDs)} {}
-    TableReadState(common::ValueVector* nodeIDVector, std::vector<common::column_id_t> columnIDs,
+    TableScanState(common::ValueVector* nodeIDVector, std::vector<common::column_id_t> columnIDs,
         std::vector<common::ValueVector*> outputVectors)
         : nodeIDVector{nodeIDVector}, columnIDs{std::move(columnIDs)},
           outputVectors{std::move(outputVectors)} {}
-    virtual ~TableReadState() = default;
-    DELETE_COPY_AND_MOVE(TableReadState);
-
-    virtual bool hasMoreToRead(const transaction::Transaction* transaction) const = 0;
+    virtual ~TableScanState() = default;
+    DELETE_COPY_AND_MOVE(TableScanState);
 };
 
 struct TableInsertState {
@@ -67,11 +68,13 @@ public:
         tablesStatistics->updateNumTuplesByValue(tableID, numTuples);
     }
 
-    void scan(transaction::Transaction* transaction, TableReadState& readState) {
-        for (auto& vector : readState.outputVectors) {
+    virtual void initializeScanState(transaction::Transaction* transaction,
+        const std::vector<common::column_id_t>& columnIDs, TableScanState& readState) const = 0;
+    bool scan(transaction::Transaction* transaction, TableScanState& scanState) {
+        for (const auto& vector : scanState.outputVectors) {
             vector->resetAuxiliaryBuffer();
         }
-        scanInternal(transaction, readState);
+        return scanInternal(transaction, scanState);
     }
 
     virtual void insert(transaction::Transaction* transaction, TableInsertState& insertState) = 0;
@@ -95,7 +98,7 @@ public:
     }
 
 protected:
-    virtual void scanInternal(transaction::Transaction* transaction, TableReadState& readState) = 0;
+    virtual bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) = 0;
 
 protected:
     common::TableType tableType;

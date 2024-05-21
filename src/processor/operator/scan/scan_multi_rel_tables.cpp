@@ -21,8 +21,9 @@ bool RelTableCollectionScanner::scan(const SelectionVector& selVector, Transacti
                 return false;
             }
             const auto scanInfo = scanInfos[currentTableIdx].get();
-            scanInfo->table->initializeScanState(transaction, scanInfo->direction,
-                scanInfo->columnIDs, *readStates[currentTableIdx]);
+            readStates[currentTableIdx]->direction = scanInfo->direction;
+            scanInfo->table->initializeScanState(transaction, scanInfo->columnIDs,
+                *readStates[currentTableIdx]);
             nextTableIdx++;
         }
     }
@@ -44,7 +45,7 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
         for (auto i = 0u; i < scanner->scanInfos.size(); i++) {
             const auto scanInfo = scanner->scanInfos[i].get();
             scanner->readStates[i] =
-                std::make_unique<RelTableReadState>(scanInfo->columnIDs, scanInfo->direction);
+                std::make_unique<RelTableScanState>(scanInfo->columnIDs, scanInfo->direction);
             initVectors(*scanner->readStates[i], *resultSet);
         }
     }

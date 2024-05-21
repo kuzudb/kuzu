@@ -10,15 +10,14 @@ class Property;
 } // namespace catalog
 
 namespace storage {
+struct TableScanState;
 
-struct TableDataReadState {
-    TableDataReadState() = default;
-    virtual ~TableDataReadState() = default;
-    DELETE_COPY_DEFAULT_MOVE(TableDataReadState);
+struct TableDataScanState {
+    TableDataScanState() = default;
+    virtual ~TableDataScanState() = default;
+    DELETE_COPY_DEFAULT_MOVE(TableDataScanState);
 
     std::vector<common::column_id_t> columnIDs;
-
-    virtual bool hasMoreToRead(const transaction::Transaction* transaction) = 0;
 };
 
 class LocalTableData;
@@ -26,10 +25,12 @@ class TableData {
 public:
     virtual ~TableData() = default;
 
-    virtual void scan(transaction::Transaction* transaction, TableDataReadState& readState,
+    virtual void initializeScanState(transaction::Transaction* transaction,
+        const std::vector<common::column_id_t>& columnIDs, TableScanState& scanState) const = 0;
+    virtual void scan(transaction::Transaction* transaction, TableDataScanState& readState,
         common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) = 0;
-    virtual void lookup(transaction::Transaction* transaction, TableDataReadState& readState,
+    virtual void lookup(transaction::Transaction* transaction, TableDataScanState& readState,
         const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) = 0;
 
@@ -53,8 +54,7 @@ public:
     virtual void rollbackInMemory();
     virtual void prepareCommit();
 
-    virtual common::node_group_idx_t getNumNodeGroups(
-        const transaction::Transaction* transaction) const = 0;
+    virtual common::node_group_idx_t getNumCommittedNodeGroups() const = 0;
 
 protected:
     TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,

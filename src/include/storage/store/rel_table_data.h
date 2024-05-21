@@ -8,7 +8,8 @@ namespace kuzu {
 namespace storage {
 
 class LocalRelNG;
-struct RelDataReadState final : TableDataReadState {
+// TODO: Rename to RelDataScanState.
+struct RelDataReadState final : TableDataScanState {
     common::RelDataDirection direction;
     common::offset_t startNodeOffset;
     common::offset_t numNodes;
@@ -31,7 +32,7 @@ struct RelDataReadState final : TableDataReadState {
         return nodeOffset < startNodeOffset ||
                nodeOffset >= (startNodeOffset + common::StorageConstants::NODE_GROUP_SIZE);
     }
-    bool hasMoreToRead(const transaction::Transaction* transaction) override;
+    bool hasMoreToRead(const transaction::Transaction* transaction);
     void populateCSRListEntries();
     std::pair<common::offset_t, common::offset_t> getStartAndEndOffset();
 
@@ -136,13 +137,13 @@ public:
         WAL* wal, catalog::TableCatalogEntry* tableEntry, RelsStoreStats* relsStoreStats,
         common::RelDataDirection direction, bool enableCompression);
 
-    void initializeReadState(transaction::Transaction* transaction,
-        std::vector<common::column_id_t> columnIDs, const common::ValueVector& inNodeIDVector,
-        RelDataReadState& readState);
-    void scan(transaction::Transaction* transaction, TableDataReadState& readState,
+    void initializeScanState(transaction::Transaction* transaction,
+        const std::vector<common::column_id_t>& columnIDs,
+        TableScanState& scanState) const override;
+    void scan(transaction::Transaction* transaction, TableDataScanState& readState,
         common::ValueVector& inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) override;
-    void lookup(transaction::Transaction* transaction, TableDataReadState& readState,
+    void lookup(transaction::Transaction* transaction, TableDataScanState& readState,
         const common::ValueVector& inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) override;
 
@@ -173,9 +174,8 @@ public:
     void checkpointInMemory() override;
     void rollbackInMemory() override;
 
-    common::node_group_idx_t getNumNodeGroups(
-        const transaction::Transaction* transaction) const override {
-        return columns[NBR_ID_COLUMN_ID]->getNumNodeGroups(transaction);
+    common::node_group_idx_t getNumCommittedNodeGroups() const override {
+        return columns[NBR_ID_COLUMN_ID]->getNumCommittedNodeGroups();
     }
 
 private:

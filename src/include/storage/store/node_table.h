@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/assert.h"
 #include "common/cast.h"
 #include "common/types/types.h"
 #include "storage/index/hash_index.h"
@@ -17,19 +16,18 @@ class Transaction;
 namespace storage {
 class LocalNodeTable;
 
-struct NodeTableReadState final : TableReadState {
-    explicit NodeTableReadState(std::vector<common::column_id_t> columnIDs)
-        : TableReadState{std::move(columnIDs)} {
-        dataReadState = std::make_unique<NodeDataReadState>();
-    }
-    NodeTableReadState(common::ValueVector* nodeIDVector,
-        std::vector<common::column_id_t> columnIDs, std::vector<common::ValueVector*> outputVectors)
-        : TableReadState{nodeIDVector, std::move(columnIDs), std::move(outputVectors)} {
-        dataReadState = std::make_unique<NodeDataReadState>();
-    }
+struct NodeTableScanState final : TableScanState {
+    // Local storage node group.
+    LocalNodeNG* localNodeGroup = nullptr;
 
-    bool hasMoreToRead(const transaction::Transaction* transaction) const override {
-        return dataReadState->hasMoreToRead(transaction);
+    explicit NodeTableScanState(std::vector<common::column_id_t> columnIDs)
+        : TableScanState{std::move(columnIDs)} {
+        dataScanState = std::make_unique<NodeDataScanState>();
+    }
+    NodeTableScanState(common::ValueVector* nodeIDVector,
+        std::vector<common::column_id_t> columnIDs, std::vector<common::ValueVector*> outputVectors)
+        : TableScanState{nodeIDVector, std::move(columnIDs), std::move(outputVectors)} {
+        dataScanState = std::make_unique<NodeDataScanState>();
     }
 };
 
@@ -66,7 +64,7 @@ public:
         MemoryManager* memoryManager, common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     void initializePKIndex(const std::string& databasePath,
-        catalog::NodeTableCatalogEntry* nodeTableEntry, bool readOnly,
+        const catalog::NodeTableCatalogEntry* nodeTableEntry, bool readOnly,
         common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     common::offset_t getMaxNodeOffset(transaction::Transaction* transaction) const {
@@ -77,16 +75,13 @@ public:
     }
 
     void initializeScanState(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, std::vector<common::column_id_t> columnIDs,
-        TableReadState& readState) const {
-        tableData->initializeScanState(transaction, nodeGroupIdx, std::move(columnIDs),
-            *readState.dataReadState);
-    }
-    void scanInternal(transaction::Transaction* transaction, TableReadState& readState) override;
+        const std::vector<common::column_id_t>& columnIDs,
+        TableScanState& scanState) const override;
+    bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
 
     // Return the max node offset during insertions.
     common::offset_t validateUniquenessConstraint(transaction::Transaction* transaction,
-        const std::vector<common::ValueVector*>& propertyVectors);
+        const std::vector<common::ValueVector*>& propertyVectors) const;
 
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
@@ -117,12 +112,13 @@ public:
     void checkpointInMemory() override;
     void rollbackInMemory() override;
 
-    common::node_group_idx_t getNumNodeGroups(const transaction::Transaction* transaction) const {
-        // TODO: Should be consistent with ScanNodeTable on whether include local node groups or
-        // not.
-        return tableData->getNumNodeGroups(transaction);
+    common::node_group_idx_t getNumCommittedNodeGroups() const {
+        return tableData->getNumCommittedNodeGroups();
     }
 
+    common::node_group_idx_t getNumNodeGroups(transaction::Transaction* transaction) const {
+        return tableData->getNumNodeGroups(transaction);
+    }
     common::offset_t getNumTuplesInNodeGroup(const transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx) const {
         return tableData->getNumTuplesInNodeGroup(transaction, nodeGroupIdx);
@@ -130,9 +126,8 @@ public:
 
 private:
     void updatePK(transaction::Transaction* transaction, common::column_id_t columnID,
-        common::ValueVector& nodeIDVector, const common::ValueVector& pkVector);
-    void insertPK(const common::ValueVector& nodeIDVector,
-        const common::ValueVector& primaryKeyVector);
+        common::ValueVector& nodeIDVector, const common::ValueVector& payloadVector);
+    void insertPK(const common::ValueVector& nodeIDVector, const common::ValueVector& pkVector);
 
 private:
     std::unique_ptr<NodeTableData> tableData;

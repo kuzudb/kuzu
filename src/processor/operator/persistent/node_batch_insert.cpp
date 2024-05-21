@@ -21,7 +21,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void NodeBatchInsertSharedState::initPKIndex(kuzu::processor::ExecutionContext* /*context*/) {
+void NodeBatchInsertSharedState::initPKIndex(ExecutionContext*) {
     KU_ASSERT(pkType.getLogicalTypeID() != LogicalTypeID::SERIAL);
     uint64_t numRows;
     if (readerSharedState != nullptr) {
@@ -153,7 +153,7 @@ void NodeBatchInsert::writeAndResetNewNodeGroup(transaction::Transaction* transa
     nodeGroup->resetToEmpty();
 }
 
-common::offset_t NodeBatchInsert::writeToExistingNodeGroup(transaction::Transaction* transaction,
+offset_t NodeBatchInsert::writeToExistingNodeGroup(transaction::Transaction* transaction,
     node_group_idx_t nodeGroupIdx, std::optional<IndexBuilder>& indexBuilder,
     column_id_t pkColumnID, NodeTable* table, ChunkedNodeGroup* nodeGroup) {
     auto numExistingTuplesInChunk = table->getNumTuplesInNodeGroup(transaction, nodeGroupIdx);
@@ -166,8 +166,8 @@ common::offset_t NodeBatchInsert::writeToExistingNodeGroup(transaction::Transact
             numRowsToWrite);
     }
     auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
-    LocalNodeNG localNodeGroup(StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx),
-        nodeInfo->columnTypes);
+    LocalNodeNG localNodeGroup(table->getTableID(),
+        StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx), nodeInfo->columnTypes);
     auto& insertChunks = localNodeGroup.getInsertChunks();
     insertChunks.append(numExistingTuplesInChunk, nodeGroup, numRowsToWrite);
     table->prepareCommitNodeGroup(nodeGroupIdx, transaction, &localNodeGroup);
@@ -175,7 +175,7 @@ common::offset_t NodeBatchInsert::writeToExistingNodeGroup(transaction::Transact
 }
 
 void NodeBatchInsert::clearToIndex(std::unique_ptr<ChunkedNodeGroup>& nodeGroup,
-    common::offset_t startIndexInGroup) {
+    offset_t startIndexInGroup) {
     // Create a new chunked node group and move the unwritten values to it
     // TODO(bmwinger): Can probably re-use the chunk and shift the values
     auto oldNodeGroup = std::move(nodeGroup);

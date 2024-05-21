@@ -14,7 +14,7 @@ namespace kuzu {
 namespace storage {
 
 RelDetachDeleteState::RelDetachDeleteState() {
-    auto tempSharedState = std::make_shared<DataChunkState>();
+    const auto tempSharedState = std::make_shared<DataChunkState>();
     dstNodeIDVector = std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
     relIDVector = std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
     dstNodeIDVector->setState(tempSharedState);
@@ -31,43 +31,44 @@ RelTable::RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStat
         relTableEntry, relsStoreStats, RelDataDirection::BWD, enableCompression);
 }
 
-void RelTable::initializeScanState(Transaction* transaction, RelDataDirection direction,
-    const std::vector<column_id_t>& columnIDs, RelTableReadState& readState) {
-    auto& dataState =
-        ku_dynamic_cast<TableDataReadState&, RelDataReadState&>(*readState.dataReadState);
-    return direction == RelDataDirection::FWD ? fwdRelTableData->initializeReadState(transaction,
-                                                    columnIDs, *readState.nodeIDVector, dataState) :
-                                                bwdRelTableData->initializeReadState(transaction,
-                                                    columnIDs, *readState.nodeIDVector, dataState);
+void RelTable::initializeScanState(Transaction* transaction,
+    const std::vector<column_id_t>& columnIDs, TableScanState& scanState) const {
+    auto& dataScanState =
+        ku_dynamic_cast<TableDataScanState&, RelDataReadState&>(*scanState.dataScanState);
+    const auto tableData = getDirectedTableData(dataScanState.direction);
+    tableData->initializeScanState(transaction, columnIDs, scanState);
 }
 
-void RelTable::scanInternal(Transaction* transaction, TableReadState& scanState) {
-    auto& relScanState = ku_dynamic_cast<TableReadState&, RelTableReadState&>(scanState);
-    auto tableData = getDirectedTableData(relScanState.direction);
-    tableData->scan(transaction, *scanState.dataReadState, *scanState.nodeIDVector,
+bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState) {
+    const auto& relScanState = ku_dynamic_cast<TableScanState&, RelTableScanState&>(scanState);
+    const auto tableData = getDirectedTableData(relScanState.direction);
+    tableData->scan(transaction, *scanState.dataScanState, *scanState.nodeIDVector,
         scanState.outputVectors);
+    return true;
 }
 
 void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
-    auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+    const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
     if (localTable->insert(insertState)) {
-        auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
+        const auto relsStats =
+            ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
         relsStats->updateNumTuplesByValue(tableID, 1);
     }
 }
 
 void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
-    auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+    const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
     localTable->update(updateState);
 }
 
 void RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
-    auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+    const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
     if (localTable->delete_(deleteState)) {
-        auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
+        const auto relsStats =
+            ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
         relsStats->updateNumTuplesByValue(tableID, -1);
     }
 }
@@ -75,20 +76,24 @@ void RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
 void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
     ValueVector* srcNodeIDVector, RelDetachDeleteState* deleteState) {
     KU_ASSERT(srcNodeIDVector->state->getSelVector().getSelSize() == 1);
-    auto tableData =
+    const auto tableData =
         direction == RelDataDirection::FWD ? fwdRelTableData.get() : bwdRelTableData.get();
-    auto reverseTableData =
+    const auto reverseTableData =
         direction == RelDataDirection::FWD ? bwdRelTableData.get() : fwdRelTableData.get();
     std::vector<column_id_t> relIDColumns = {REL_ID_COLUMN_ID};
-    auto relIDVectors = std::vector<ValueVector*>{deleteState->dstNodeIDVector.get(),
+    const auto relIDVectors = std::vector<ValueVector*>{deleteState->dstNodeIDVector.get(),
         deleteState->relIDVector.get()};
-    auto relReadState = std::make_unique<RelTableReadState>(relIDColumns, direction);
+    auto relReadState = std::make_unique<RelTableScanState>(relIDColumns, direction);
     relReadState->nodeIDVector = srcNodeIDVector;
     relReadState->outputVectors = relIDVectors;
-    initializeScanState(transaction, direction, relIDColumns, *relReadState);
-    row_idx_t numRelsDeleted = detachDeleteForCSRRels(transaction, tableData, reverseTableData,
-        srcNodeIDVector, relReadState.get(), deleteState);
-    auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
+    relReadState->direction = direction;
+    const auto nodeOffset = relReadState->nodeIDVector->readNodeOffset(
+        relReadState->nodeIDVector->state->getSelVector()[0]);
+    relReadState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+    initializeScanState(transaction, relIDColumns, *relReadState);
+    const row_idx_t numRelsDeleted = detachDeleteForCSRRels(transaction, tableData,
+        reverseTableData, srcNodeIDVector, relReadState.get(), deleteState);
+    const auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
     relsStats->updateNumTuplesByValue(tableID, -numRelsDeleted);
 }
 
@@ -110,7 +115,7 @@ void RelTable::checkIfNodeHasRels(Transaction* transaction, RelDataDirection dir
 // TODO(Guodong): Rework detach delete to go through local storage.
 row_idx_t RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* tableData,
     RelTableData* reverseTableData, ValueVector* srcNodeIDVector,
-    RelTableReadState* relDataReadState, RelDetachDeleteState* deleteState) {
+    RelTableScanState* relDataReadState, RelDetachDeleteState* deleteState) {
     row_idx_t numRelsDeleted = 0;
     auto tempState = deleteState->dstNodeIDVector->state.get();
     while (relDataReadState->hasMoreToRead(transaction)) {
@@ -133,7 +138,7 @@ row_idx_t RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableDat
 
 void RelTable::addColumn(Transaction* transaction, const Property& property,
     ValueVector* defaultValueVector) {
-    auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
+    const auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
     relsStats->addMetadataDAHInfo(tableID, *property.getDataType());
     fwdRelTableData->addColumn(transaction,
         RelDataDirectionUtils::relDirectionToString(RelDataDirection::FWD),
@@ -154,7 +159,7 @@ void RelTable::addColumn(Transaction* transaction, const Property& property,
 
 void RelTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
     wal->addToUpdatedTables(tableID);
-    auto localRelTable = ku_dynamic_cast<LocalTable*, LocalRelTable*>(localTable);
+    const auto localRelTable = ku_dynamic_cast<LocalTable*, LocalRelTable*>(localTable);
     fwdRelTableData->prepareLocalTableToCommit(transaction,
         localRelTable->getTableData(RelDataDirection::FWD));
     bwdRelTableData->prepareLocalTableToCommit(transaction,

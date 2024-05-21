@@ -86,6 +86,9 @@ public:
     uint64_t getNumNodeGroups(const transaction::Transaction* transaction) const {
         return metadataDA->getNumElements(transaction->getType());
     }
+    uint64_t getNumCommittedNodeGroups() const {
+        return metadataDA->getNumElements(transaction::TransactionType::READ_ONLY);
+    }
 
     Column* getNullColumn() const;
 
