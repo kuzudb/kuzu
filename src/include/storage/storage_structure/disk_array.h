@@ -106,7 +106,7 @@ public:
     // Used when loading from file
     DiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID, common::page_idx_t headerPageIdx,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
-        bool bypassWAL = false);
+        uint64_t elementSize, bool bypassWAL = false);
 
     virtual ~DiskArrayInternal() = default;
 
@@ -273,7 +273,7 @@ public:
     DiskArray(FileHandle& fileHandle, DBFileID dbFileID, common::page_idx_t headerPageIdx,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
         bool bypassWAL = false)
-        : diskArray(fileHandle, dbFileID, headerPageIdx, bufferManager, wal, transaction,
+        : diskArray(fileHandle, dbFileID, headerPageIdx, bufferManager, wal, transaction, sizeof(U),
               bypassWAL) {}
 
     // Note: This function is to be used only by the WRITE trx.

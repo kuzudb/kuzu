@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 
 #include "common/constants.h"
@@ -43,7 +44,7 @@ public:
     inline entry_pos_t numEntries() const { return std::popcount(validityMask); }
 
 public:
-    uint8_t fingerprints[FINGERPRINT_CAPACITY];
+    std::array<uint8_t, FINGERPRINT_CAPACITY> fingerprints;
     uint32_t validityMask;
     slot_id_t nextOvfSlotId;
 };
@@ -72,7 +73,7 @@ template<typename T>
 struct Slot {
     Slot() : header{}, entries{} {}
     SlotHeader header;
-    SlotEntry<T> entries[getSlotCapacity<T>()];
+    std::array<SlotEntry<T>, getSlotCapacity<T>()> entries;
 };
 
 } // namespace storage
