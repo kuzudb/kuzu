@@ -1,6 +1,7 @@
 add_library(kuzu_algorithm_graph
         OBJECT
         demo_algorithm.cpp
+        ife_morsel.cpp
         page_rank.cpp
         shortest_path.cpp
         variable_length_path.cpp)
