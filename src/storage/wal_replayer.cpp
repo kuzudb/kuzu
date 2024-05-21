@@ -33,7 +33,7 @@ WALReplayer::WALReplayer(main::ClientContext& clientContext, BMFileHandle& shado
 }
 
 void WALReplayer::replay() {
-    if (!clientContext.getVFSUnsafe()->fileOrPathExists(walFilePath)) {
+    if (!clientContext.getVFSUnsafe()->fileOrPathExists(walFilePath, &clientContext)) {
         return;
     }
     auto fileInfo = clientContext.getVFSUnsafe()->openFile(walFilePath, O_RDONLY);
@@ -135,7 +135,7 @@ void WALReplayer::replayTableStatisticsRecord(const WALRecord& walRecord) {
         case TableType::NODE: {
             auto checkpointFile = StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(vfs,
                 clientContext.getDatabasePath(), common::FileVersionType::WAL_VERSION);
-            if (!vfs->fileOrPathExists(walFilePath)) {
+            if (!vfs->fileOrPathExists(walFilePath, &clientContext)) {
                 // This is a temp hack: multiple transactions can log multiple table stats records
                 // before checkpoint.
                 return;
@@ -150,7 +150,7 @@ void WALReplayer::replayTableStatisticsRecord(const WALRecord& walRecord) {
         case TableType::REL: {
             auto checkpointFile = StorageUtils::getRelsStatisticsFilePath(vfs,
                 clientContext.getDatabasePath(), common::FileVersionType::WAL_VERSION);
-            if (!vfs->fileOrPathExists(checkpointFile)) {
+            if (!vfs->fileOrPathExists(checkpointFile, &clientContext)) {
                 // This is a temp hack: multiple transactions can log multiple table stats records
                 // before checkpoint.
                 return;

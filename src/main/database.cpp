@@ -1,6 +1,5 @@
 #include "main/database.h"
 
-#include "common/random_engine.h"
 #include "main/database_manager.h"
 
 #if defined(_WIN32)
@@ -70,7 +69,7 @@ static void getLockFileFlagsAndType(bool readOnly, bool createNew, int& flags, F
 
 Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     : dbConfig{systemConfig} {
-    vfs = std::make_unique<VirtualFileSystem>();
+    vfs = std::make_unique<VirtualFileSystem>(this);
     // To expand a path with home directory(~), we have to pass in a dummy clientContext which
     // handles the home directory expansion.
     auto clientContext = ClientContext(this);

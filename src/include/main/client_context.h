@@ -47,20 +47,22 @@ struct ActiveQuery {
  * @brief Contain client side configuration. We make profiler associated per query, so profiler is
  * not maintained in client context.
  */
-class ClientContext {
+class KUZU_API ClientContext {
     friend class Connection;
     friend class binder::Binder;
     friend class binder::ExpressionBinder;
 
 public:
     explicit ClientContext(Database* database);
+    ~ClientContext();
 
     // Client config
     const ClientConfig* getClientConfig() const { return &clientConfig; }
     ClientConfig* getClientConfigUnsafe() { return &clientConfig; }
     const DBConfig* getDBConfig() const { return &dbConfig; }
     DBConfig* getDBConfigUnsafe() { return &dbConfig; }
-    KUZU_API common::Value getCurrentSetting(const std::string& optionName);
+    common::Value getCurrentSetting(const std::string& optionName);
+    bool isOptionSet(const std::string& name) const;
     // Timer and timeout
     void interrupt() { activeQuery.interrupted = true; }
     bool interrupted() const { return activeQuery.interrupted; }
@@ -77,7 +79,7 @@ public:
 
     // Transaction.
     transaction::Transaction* getTx() const;
-    KUZU_API transaction::TransactionContext* getTransactionContext() const;
+    transaction::TransactionContext* getTransactionContext() const;
 
     // Progress bar
     common::ProgressBar* getProgressBar() const;
@@ -86,19 +88,19 @@ public:
     void addScanReplace(function::ScanReplacement scanReplacement);
     std::unique_ptr<function::ScanReplacementData> tryReplace(const std::string& objectName) const;
     // Extension
-    KUZU_API void setExtensionOption(std::string name, common::Value value);
+    void setExtensionOption(std::string name, common::Value value);
     extension::ExtensionOptions* getExtensionOptions() const;
     std::string getExtensionDir() const;
 
     // Environment.
-    KUZU_API std::string getEnvVariable(const std::string& name);
+    std::string getEnvVariable(const std::string& name);
 
     // Database component getters.
     std::string getDatabasePath() const;
-    KUZU_API Database* getDatabase() const { return localDatabase; }
-    KUZU_API DatabaseManager* getDatabaseManager() const;
+    Database* getDatabase() const { return localDatabase; }
+    DatabaseManager* getDatabaseManager() const;
     storage::StorageManager* getStorageManager() const;
-    KUZU_API storage::MemoryManager* getMemoryManager();
+    storage::MemoryManager* getMemoryManager();
     catalog::Catalog* getCatalog() const;
     transaction::TransactionManager* getTransactionManagerUnsafe() const;
     common::VirtualFileSystem* getVFSUnsafe() const;
@@ -106,7 +108,7 @@ public:
 
     // Query.
     std::unique_ptr<PreparedStatement> prepare(std::string_view query);
-    KUZU_API std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
+    std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
         std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams);
     std::unique_ptr<QueryResult> query(std::string_view queryStatement);
     void runQuery(std::string query);

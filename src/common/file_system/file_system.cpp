@@ -19,7 +19,7 @@ void FileSystem::removeFileIfExists(const std::string& /*path*/) {
     KU_UNREACHABLE;
 }
 
-bool FileSystem::fileOrPathExists(const std::string& /*path*/) {
+bool FileSystem::fileOrPathExists(const std::string& /*path*/, main::ClientContext* /*context*/) {
     KU_UNREACHABLE;
 }
 
@@ -34,6 +34,10 @@ std::string FileSystem::joinPath(const std::string& base, const std::string& par
 
 std::string FileSystem::getFileExtension(const std::filesystem::path& path) {
     return path.extension().string();
+}
+
+std::string FileSystem::getFileName(const std::filesystem::path& path) {
+    return path.filename().string();
 }
 
 void FileSystem::writeFile(FileInfo& /*fileInfo*/, const uint8_t* /*buffer*/, uint64_t /*numBytes*/,

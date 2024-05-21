@@ -25,7 +25,7 @@ struct LocalFileInfo : public FileInfo {
 #endif
 };
 
-class LocalFileSystem final : public FileSystem {
+class KUZU_API LocalFileSystem final : public FileSystem {
 public:
     std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
         main::ClientContext* context = nullptr,
@@ -42,7 +42,7 @@ public:
 
     void removeFileIfExists(const std::string& path) override;
 
-    bool fileOrPathExists(const std::string& path) override;
+    bool fileOrPathExists(const std::string& path, main::ClientContext* context = nullptr) override;
 
     std::string expandPath(main::ClientContext* context, const std::string& path) const override;
 

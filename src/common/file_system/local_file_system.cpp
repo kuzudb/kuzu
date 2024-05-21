@@ -198,7 +198,7 @@ void LocalFileSystem::removeFileIfExists(const std::string& path) {
     }
 }
 
-bool LocalFileSystem::fileOrPathExists(const std::string& path) {
+bool LocalFileSystem::fileOrPathExists(const std::string& path, main::ClientContext* /*context*/) {
     return std::filesystem::exists(path);
 }
 

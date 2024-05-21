@@ -40,6 +40,8 @@ Noura|25
 -CASE ScanFromHTTPS
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
 ---- ok
+-STATEMENT CALL HTTP_CACHE_FILE=FALSE
+---- ok
 -STATEMENT load from "https://raw.githubusercontent.com/kuzudb/extension/main/dataset/test/city.csv" return *;
 ---- 3
 Waterloo|150000
@@ -110,6 +112,7 @@ Binder exception: Table person does not exist.
 -STATEMENT match (p:PERSON) return p.*
 ---- 1
 5
+-STATEMENT CALL HTTP_CACHE_FILE=FALSE
 -LOG AttachAgain
 -STATEMENT attach 'http://localhost/databases/tinysnb' (dbtype kuzu)
 ---- ok

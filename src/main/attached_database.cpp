@@ -19,11 +19,12 @@ AttachedKuzuDatabase::AttachedKuzuDatabase(std::string dbPath, std::string dbNam
     : AttachedDatabase{std::move(dbName), std::move(dbType), nullptr /* catalog */} {
     auto vfs = clientContext->getVFSUnsafe();
     auto path = vfs->expandPath(clientContext, dbPath);
-    if (!vfs->fileOrPathExists(path)) {
+    if (!vfs->fileOrPathExists(path, clientContext)) {
         throw common::RuntimeException(common::stringFormat(
             "Cannot attach a remote kuzu database due to invalid path: {}.", dbPath));
     }
-    auto walFile = vfs->openFile(path + "/" + common::StorageConstants::WAL_FILE_SUFFIX, O_RDONLY);
+    auto walFile = vfs->openFile(path + "/" + common::StorageConstants::WAL_FILE_SUFFIX, O_RDONLY,
+        clientContext);
     if (walFile->getFileSize() > 0) {
         throw common::RuntimeException(
             common::stringFormat("Cannot attach a remote kuzu database with non-empty wal file."));

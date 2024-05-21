@@ -36,13 +36,15 @@ public:
 
     virtual void removeFileIfExists(const std::string& path);
 
-    virtual bool fileOrPathExists(const std::string& path);
+    virtual bool fileOrPathExists(const std::string& path, main::ClientContext* context = nullptr);
 
     virtual std::string expandPath(main::ClientContext* context, const std::string& path) const;
 
     static std::string joinPath(const std::string& base, const std::string& part);
 
     static std::string getFileExtension(const std::filesystem::path& path);
+
+    static std::string getFileName(const std::filesystem::path& path);
 
     virtual bool canHandleFile(const std::string& /*path*/) const { KU_UNREACHABLE; }
 

@@ -65,6 +65,8 @@ ClientContext::ClientContext(Database* database)
         ClientConfigDefault::RECURSIVE_PATTERN_FACTOR;
 }
 
+ClientContext::~ClientContext() = default;
+
 uint64_t ClientContext::getTimeoutRemainingInMS() const {
     KU_ASSERT(hasTimeout());
     auto elapsed = activeQuery.timer.getElapsedTimeInMS();
@@ -113,6 +115,10 @@ Value ClientContext::getCurrentSetting(const std::string& optionName) {
         return defaultOption->defaultValue;
     }
     throw RuntimeException{"Invalid option name: " + lowerCaseOptionName + "."};
+}
+
+bool ClientContext::isOptionSet(const std::string& optionName) const {
+    return extensionOptionValues.contains(StringUtils::getLower(optionName));
 }
 
 transaction::Transaction* ClientContext::getTx() const {

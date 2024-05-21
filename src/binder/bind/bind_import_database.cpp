@@ -18,9 +18,9 @@ namespace kuzu {
 namespace binder {
 
 static std::string getQueryFromFile(common::VirtualFileSystem* vfs, const std::string boundFilePath,
-    const std::string fileName) {
+    const std::string fileName, main::ClientContext* context) {
     auto filePath = vfs->joinPath(boundFilePath, fileName);
-    if (!vfs->fileOrPathExists(filePath)) {
+    if (!vfs->fileOrPathExists(filePath, context)) {
         throw BinderException(stringFormat("File {} does not exist.", filePath));
     }
     auto fileInfo = vfs->openFile(filePath, O_RDONLY
@@ -38,13 +38,15 @@ std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement
     auto& importDatabaseStatement = ku_dynamic_cast<const Statement&, const ImportDB&>(statement);
     auto boundFilePath = importDatabaseStatement.getFilePath();
     auto fs = clientContext->getVFSUnsafe();
-    if (!fs->fileOrPathExists(boundFilePath)) {
+    if (!fs->fileOrPathExists(boundFilePath, clientContext)) {
         throw BinderException(stringFormat("Directory {} does not exist.", boundFilePath));
     }
     std::string finalQueryStatements;
-    finalQueryStatements += getQueryFromFile(fs, boundFilePath, ImportDBConstants::SCHEMA_NAME);
+    finalQueryStatements +=
+        getQueryFromFile(fs, boundFilePath, ImportDBConstants::SCHEMA_NAME, clientContext);
     // replace the path in copy from statement with the bound path
-    auto copyQuery = getQueryFromFile(fs, boundFilePath, ImportDBConstants::COPY_NAME);
+    auto copyQuery =
+        getQueryFromFile(fs, boundFilePath, ImportDBConstants::COPY_NAME, clientContext);
     if (!copyQuery.empty()) {
         auto parsedStatements = Parser::parseQuery(copyQuery);
         for (auto& parsedStatement : parsedStatements) {
@@ -71,8 +73,10 @@ std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement
             finalQueryStatements += query;
         }
     }
-    finalQueryStatements += getQueryFromFile(fs, boundFilePath, ImportDBConstants::MACRO_NAME);
+    finalQueryStatements +=
+        getQueryFromFile(fs, boundFilePath, ImportDBConstants::MACRO_NAME, clientContext);
     return std::make_unique<BoundImportDatabase>(boundFilePath, finalQueryStatements);
 }
+
 } // namespace binder
 } // namespace kuzu

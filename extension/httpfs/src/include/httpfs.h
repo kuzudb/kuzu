@@ -1,7 +1,8 @@
 #pragma once
 
-#include "common/case_insensitive_map.h"
-#include "common/file_system/file_system.h"
+#include "cached_file_manager.h"
+#include "common/file_system/local_file_system.h"
+#include "http_config.h"
 #include "httplib.h"
 #include "main/client_context.h"
 
@@ -34,7 +35,10 @@ struct HTTPParams {
 };
 
 struct HTTPFileInfo : public common::FileInfo {
-    HTTPFileInfo(std::string path, common::FileSystem* fileSystem, int flags);
+    HTTPFileInfo(std::string path, common::FileSystem* fileSystem, int flags,
+        main::ClientContext* context);
+
+    ~HTTPFileInfo() override;
 
     virtual void initialize();
 
@@ -52,6 +56,8 @@ struct HTTPFileInfo : public common::FileInfo {
     uint64_t bufferEndPos;
     std::unique_ptr<uint8_t[]> readBuffer;
     constexpr static uint64_t READ_BUFFER_LEN = 1000000;
+    HTTPConfig httpConfig;
+    common::FileInfo* cachedFileInfo;
 };
 
 class HTTPFileSystem : public common::FileSystem {
@@ -67,13 +73,17 @@ public:
 
     bool canHandleFile(const std::string& path) const override;
 
-    bool fileOrPathExists(const std::string& path) override;
+    bool fileOrPathExists(const std::string& path, main::ClientContext* context = nullptr) override;
 
     static std::unique_ptr<httplib::Client> getClient(const std::string& host);
 
     static std::unique_ptr<httplib::Headers> getHTTPHeaders(HeaderMap& headerMap);
 
     void syncFile(const common::FileInfo& fileInfo) const override;
+
+    static std::pair<std::string, std::string> parseUrl(const std::string& url);
+
+    CachedFileManager& getCachedFileManager() { return *cachedFileManager; }
 
 protected:
     void readFromFile(common::FileInfo& fileInfo, void* buffer, uint64_t numBytes,
@@ -84,8 +94,6 @@ protected:
     int64_t seek(common::FileInfo& fileInfo, uint64_t offset, int whence) const override;
 
     uint64_t getFileSize(const common::FileInfo& fileInfo) const override;
-
-    static std::pair<std::string, std::string> parseUrl(const std::string& url);
 
     static std::unique_ptr<HTTPResponse> runRequestWithRetry(
         const std::function<httplib::Result(void)>& request, const std::string& url,
@@ -106,6 +114,12 @@ protected:
     virtual std::unique_ptr<HTTPResponse> putRequest(common::FileInfo* fileInfo,
         const std::string& url, HeaderMap headerMap, const uint8_t* inputBuffer,
         uint64_t inputBufferLen, std::string params = "") const;
+
+    void initCachedFileManager(main::ClientContext* context);
+
+private:
+    std::unique_ptr<CachedFileManager> cachedFileManager;
+    std::mutex cachedFileManagerMtx;
 };
 
 } // namespace httpfs

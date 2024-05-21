@@ -19,10 +19,12 @@ struct RandomState {
 class RandomEngine {
 public:
     RandomEngine();
+
     uint32_t nextRandomInteger();
 
 private:
     RandomState randomState;
 };
+
 } // namespace common
 } // namespace kuzu

@@ -12,7 +12,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-struct CastString {
+struct KUZU_API CastString {
     static void copyStringToVector(ValueVector* vector, uint64_t vectorPos, std::string_view strVal,
         const CSVOption* option);
 
