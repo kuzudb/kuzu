@@ -53,7 +53,7 @@ struct PropertyInfo {
     PropertyInfo(std::string name, common::LogicalType type,
         const std::unique_ptr<parser::ParsedExpression>& defaultValue)
         : name{std::move(name)}, type{std::move(type)},
-          defaultValue{defaultValue ? std::move(defaultValue->copy()) : nullptr} {}
+          defaultValue{defaultValue ? defaultValue->copy() : nullptr} {}
     EXPLICIT_COPY_DEFAULT_MOVE(PropertyInfo);
 
 private:
