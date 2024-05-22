@@ -23,10 +23,12 @@ public:
     Property(std::string name, std::unique_ptr<common::LogicalType> dataType,
         std::unique_ptr<parser::ParsedExpression> defaultExpr, common::property_id_t propertyID,
         common::column_id_t columnID, common::table_id_t tableID)
-        : name{std::move(name)}, defaultExpr{defaultExpr ? std::move(defaultExpr) : 
-            std::make_unique<parser::ParsedLiteralExpression>(
-                common::Value::createNullValue(*dataType), "NULL")},
-          dataType{std::move(dataType)}, propertyID{propertyID}, columnID{columnID}, tableID{tableID} {}
+        : name{std::move(name)},
+          defaultExpr{defaultExpr ? std::move(defaultExpr) :
+                                    std::make_unique<parser::ParsedLiteralExpression>(
+                                        common::Value::createNullValue(*dataType), "NULL")},
+          dataType{std::move(dataType)}, propertyID{propertyID}, columnID{columnID},
+          tableID{tableID} {}
     EXPLICIT_COPY_DEFAULT_MOVE(Property);
 
     std::string getName() const { return name; }
@@ -46,9 +48,9 @@ public:
 
 private:
     Property(const Property& other)
-        : name{other.name}, defaultExpr{other.defaultExpr->copy()}, 
-          dataType{other.dataType->copy()}, propertyID{other.propertyID},
-          columnID{other.columnID}, tableID{other.tableID} {}
+        : name{other.name}, defaultExpr{other.defaultExpr->copy()},
+          dataType{other.dataType->copy()}, propertyID{other.propertyID}, columnID{other.columnID},
+          tableID{other.tableID} {}
 
 private:
     std::string name;
