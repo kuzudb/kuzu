@@ -31,10 +31,7 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitOperator(
     case LogicalOperatorType::CROSS_PRODUCT: {
         return visitCrossProductReplace(op);
     }
-        // TODO: temporarily disable filter push down for scan node table
-    // case LogicalOperatorType::SCAN_NODE_TABLE: {
-    // return visitScanNodePropertyReplace(op);
-    // }
+        // TODO(Guodong/Xiyang/Ben): Add back filter push down to node tables.
     default: { // Stop current push down for unhandled operator.
         for (auto i = 0u; i < op->getNumChildren(); ++i) {
             // Start new push down for child.
@@ -167,7 +164,7 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodePropertyR
     // }
     // properties.push_back(property);
     // }
-    // return appendScanNodeProperty(nodeID, tableIDs, properties, currentRoot);
+    // return appendScanNodeTable(nodeID, tableIDs, properties, currentRoot);
 }
 
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::pushDownToScanNode(
@@ -185,7 +182,7 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::pushDownToScanNode(
                   ((PropertyExpression&)*nodeID).getVariableName());
         propertiesSet.insert(expression);
     }
-    auto scanNodeProperty = appendScanNodeProperty(std::move(nodeID), std::move(tableIDs),
+    auto scanNodeProperty = appendScanNodeTable(std::move(nodeID), std::move(tableIDs),
         expression_vector{propertiesSet.begin(), propertiesSet.end()}, std::move(child));
     return appendFilter(std::move(predicate), scanNodeProperty);
 }
@@ -201,16 +198,16 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::finishPushDown(
     return root;
 }
 
-std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::appendScanNodeProperty(
-    std::shared_ptr<Expression> nodeID, std::vector<table_id_t> nodeTableIDs,
-    expression_vector properties, std::shared_ptr<LogicalOperator> child) {
+std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::appendScanNodeTable(
+    std::shared_ptr<binder::Expression> nodeID, std::vector<common::table_id_t> nodeTableIDs,
+    binder::expression_vector properties, std::shared_ptr<planner::LogicalOperator> child) {
     if (properties.empty()) {
         return child;
     }
-    auto scanNodeProperty = std::make_shared<LogicalScanNodeTable>(std::move(nodeID),
+    auto scanNodeTable = std::make_shared<LogicalScanNodeTable>(std::move(nodeID),
         std::move(nodeTableIDs), std::move(properties));
-    scanNodeProperty->computeFlatSchema();
-    return scanNodeProperty;
+    scanNodeTable->computeFlatSchema();
+    return scanNodeTable;
 }
 
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::appendFilters(

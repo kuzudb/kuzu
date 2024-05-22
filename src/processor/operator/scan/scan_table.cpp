@@ -5,7 +5,6 @@ namespace processor {
 
 void ScanTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*) {
     nodeIDVector = resultSet->getValueVector(nodeIDPos).get();
-    // KU_ASSERT(!outVectorsPos.empty());
     if (outVectorsPos.empty()) {
         outState = nodeIDVector->state.get();
     } else {

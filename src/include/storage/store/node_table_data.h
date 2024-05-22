@@ -9,16 +9,10 @@ namespace storage {
 class TablesStatistics;
 
 class LocalNodeNG;
-<<<<<<< HEAD
-struct NodeDataReadState : TableDataReadState {
-    NodeDataReadState() : TableDataReadState{} {}
-    DELETE_COPY_DEFAULT_MOVE(NodeDataReadState);
-=======
 struct NodeDataScanState final : TableDataScanState {
-    NodeDataScanState(const std::vector<common::column_id_t>& columnIDs)
+    explicit NodeDataScanState(const std::vector<common::column_id_t>& columnIDs)
         : TableDataScanState{columnIDs} {}
     DELETE_COPY_DEFAULT_MOVE(NodeDataScanState);
->>>>>>> 3dadfa109 (WIP: scan local node table)
 
     common::row_idx_t numRowsToScan = 0;
     common::vector_idx_t vectorIdx = common::INVALID_VECTOR_IDX;

@@ -128,6 +128,8 @@ private:
         common::ValueVector& nodeIDVector, const common::ValueVector& payloadVector);
     void insertPK(const common::ValueVector& nodeIDVector,
         const common::ValueVector& pkVector) const;
+    bool scanCommitted(transaction::Transaction* transaction, NodeTableScanState& scanState);
+    bool scanUnCommitted(NodeTableScanState& scanState);
 
 private:
     std::unique_ptr<NodeTableData> tableData;

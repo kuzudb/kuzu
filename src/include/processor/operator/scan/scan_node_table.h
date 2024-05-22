@@ -70,7 +70,7 @@ private:
 
 private:
     common::vector_idx_t currentTableIdx;
-    // TODO: Refactor following three fields into a single struct.
+    // TODO(Guodong): Refactor following three fields into a vector of structs.
     std::vector<std::unique_ptr<ScanNodeTableInfo>> infos;
     std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates;
     std::vector<std::unique_ptr<storage::NodeTableScanState>> scanStates;

@@ -5,9 +5,9 @@
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/stats/nodes_store_statistics.h"
+#include "storage/store/node_table.h"
 #include "storage/store/table.h"
 #include "transaction/transaction.h"
-#include <storage/store/node_table.h>
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

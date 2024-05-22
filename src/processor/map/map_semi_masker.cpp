@@ -23,6 +23,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
         const auto physicalOp = logicalOpToPhysicalOpMap.at(op);
         switch (physicalOp->getOperatorType()) {
         case PhysicalOperatorType::SCAN_NODE_TABLE: {
+            // TODO(Guodong): Semi mask is temporarily disabled for SCAN_NODE_TABLE.
             // auto scanNodeTables = ku_dynamic_cast<PhysicalOperator*,
             // ScanNodeTable*>(physicalOp); for (auto i = 0u; i < scanNodeTables->getNumTables();
             // ++i) {
