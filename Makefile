@@ -121,7 +121,6 @@ python-debug:
 
 rust:
 ifeq ($(OS),Windows_NT)
-	set KUZU_TESTING=1
 	set CFLAGS=/MDd
 	set CXXFLAGS=/MDd /std:c++20
 	set CARGO_BUILD_JOBS=$(NUM_THREADS)

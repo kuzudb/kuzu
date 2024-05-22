@@ -425,7 +425,7 @@ private:
     uint64_t numElements;
 };
 
-class StructField {
+class KUZU_API StructField {
 public:
     StructField() : type{std::make_unique<LogicalType>()} {}
     StructField(std::string name, std::unique_ptr<LogicalType> type)
@@ -485,7 +485,7 @@ private:
 
 using logical_type_vec_t = std::vector<LogicalType>;
 
-struct ListType {
+struct KUZU_API ListType {
     static LogicalType getChildType(const LogicalType& type);
 };
 
@@ -494,7 +494,7 @@ struct KUZU_API ArrayType {
     static uint64_t getNumElements(const LogicalType& type);
 };
 
-struct StructType {
+struct KUZU_API StructType {
     static std::vector<LogicalType> getFieldTypes(const LogicalType& type);
 
     static std::vector<std::string> getFieldNames(const LogicalType& type);
@@ -512,13 +512,13 @@ struct StructType {
     static struct_field_idx_t getFieldIdx(const LogicalType& type, const std::string& key);
 };
 
-struct MapType {
+struct KUZU_API MapType {
     static LogicalType getKeyType(const LogicalType& type);
 
     static LogicalType getValueType(const LogicalType& type);
 };
 
-struct UnionType {
+struct KUZU_API UnionType {
     static constexpr union_field_idx_t TAG_FIELD_IDX = 0;
 
     static constexpr LogicalTypeID TAG_FIELD_TYPE = LogicalTypeID::INT8;

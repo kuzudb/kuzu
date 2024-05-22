@@ -202,7 +202,6 @@ mod tests {
     use crate::connection::Connection;
     use crate::database::{Database, SystemConfig};
     use crate::logical_type::LogicalType;
-    use crate::query_result::CSVOptions;
 
     #[test]
     fn test_query_result_metadata() -> anyhow::Result<()> {
