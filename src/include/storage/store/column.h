@@ -174,7 +174,7 @@ protected:
         const std::function<void(uint8_t*, common::offset_t)>& writeOp);
 
     static common::offset_t getMaxOffset(const std::vector<common::offset_t>& offsets) {
-        return offsets.empty() ? 0 : *std::ranges::max_element(offsets);
+        return offsets.empty() ? 0 : *std::max_element(offsets.begin(), offsets.end());
     }
     static common::offset_t getMaxOffset(const offset_to_row_idx_t& offsets) {
         return offsets.empty() ? 0 : offsets.rbegin()->first;

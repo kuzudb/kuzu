@@ -150,7 +150,7 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
         enableCompression, false /* requireNUllColumn */);
     // Columns (nbrID + properties).
     auto& properties = tableEntry->getPropertiesRef();
-    auto maxColumnID = std::ranges::max_element(properties, [](auto& a, auto& b) {
+    auto maxColumnID = std::max_element(properties.begin(), properties.end(), [](auto& a, auto& b) {
         return a.getColumnID() < b.getColumnID();
     })->getColumnID();
     // The first column is reserved for NBR_ID, which is not a property.

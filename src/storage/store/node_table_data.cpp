@@ -31,9 +31,10 @@ NodeTableData::NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     const std::vector<Property>& properties, TablesStatistics* tablesStatistics,
     bool enableCompression)
     : TableData{dataFH, metadataFH, tableEntry, bufferManager, wal, enableCompression} {
-    const auto maxColumnID = std::ranges::max_element(properties, [](auto& a, auto& b) {
-        return a.getColumnID() < b.getColumnID();
-    })->getColumnID();
+    const auto maxColumnID =
+        std::max_element(properties.begin(), properties.end(), [](auto& a, auto& b) {
+            return a.getColumnID() < b.getColumnID();
+        })->getColumnID();
     columns.resize(maxColumnID + 1);
     for (auto i = 0u; i < properties.size(); i++) {
         auto& property = properties[i];
@@ -76,7 +77,7 @@ void NodeTableData::initializeColumnScanStates(Transaction* transaction,
 
 bool NodeTableData::sanityCheckOnColumnNumValues(const NodeDataScanState& scanState) {
     // Sanity check on that all valid columns should have the same numValues.
-    const auto validColumn = std::ranges::find_if(scanState.columnIDs,
+    const auto validColumn = std::find_if(scanState.columnIDs.begin(), scanState.columnIDs.end(),
         [](column_id_t columnID) { return columnID != INVALID_COLUMN_ID; });
     if (validColumn != scanState.columnIDs.end()) {
         const auto numValues =
