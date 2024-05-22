@@ -1,4 +1,8 @@
+#include <memory>
 #include <thread>
+
+#include "main/connection.h"
+#include "main/database.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -143,4 +147,15 @@ TEST_F(ApiTest, Prepare) {
                       "N, MANY_MANY);MATCH (a:N)-[:E]->(b:N) WHERE a.ID = 0 return b.ID;");
     ASSERT_EQ(result->getErrorMessage(),
         "Connection Exception: We do not support prepare multiple statements.");
+}
+
+TEST_F(ApiTest, CreateTableAfterClosingDatabase) {
+    database = std::make_unique<Database>(databasePath, *systemConfig);
+    conn = std::make_unique<Connection>(database.get());
+
+    auto result = conn->query("CREATE NODE TABLE Test(name STRING, age INT64, PRIMARY KEY(name));");
+    ASSERT_TRUE(result->isSuccess()) << result->toString();
+    result = conn->query("CREATE (:Test {name: 'Alice', age: 25});"
+                         "MATCH (a:Test) where a.name='Alice' return a.age;");
+    ASSERT_TRUE(result->isSuccess()) << result->toString();
 }

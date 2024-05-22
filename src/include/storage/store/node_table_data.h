@@ -24,7 +24,7 @@ struct NodeDataScanState final : TableDataScanState {
 class LocalTableData;
 class NodeTableData final : public TableData {
 public:
-    NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
+    NodeTableData(BMFileHandle* dataFH, DiskArrayCollection* metadataDAC,
         catalog::TableCatalogEntry* tableEntry, BufferManager* bufferManager, WAL* wal,
         const std::vector<catalog::Property>& properties, TablesStatistics* tablesStatistics,
         bool enableCompression);

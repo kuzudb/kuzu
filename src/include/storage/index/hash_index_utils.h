@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+#include "common/constants.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "function/hash/hash_functions.h"
@@ -14,7 +15,8 @@ const uint64_t NUM_HASH_INDEXES_LOG2 = 8;
 const uint64_t NUM_HASH_INDEXES = 1 << NUM_HASH_INDEXES_LOG2;
 
 static constexpr common::page_idx_t INDEX_HEADER_PAGES = 2;
-static constexpr uint64_t INDEX_HEADERS_PER_PAGE = 4096 / sizeof(HashIndexHeaderOnDisk);
+static constexpr uint64_t INDEX_HEADERS_PER_PAGE =
+    common::BufferPoolConstants::PAGE_4KB_SIZE / sizeof(HashIndexHeaderOnDisk);
 
 static constexpr common::page_idx_t P_SLOTS_HEADER_PAGE_IDX = 0;
 static constexpr common::page_idx_t O_SLOTS_HEADER_PAGE_IDX = 1;

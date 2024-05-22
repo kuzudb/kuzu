@@ -7,11 +7,13 @@
 namespace kuzu {
 namespace storage {
 
+class DiskArrayCollection;
+
 // Manages the disk image of the numRels and numRelsPerDirectionBoundTable.
 class RelsStoreStats : public TablesStatistics {
 public:
     // Should be used when an already loaded database is started from a directory.
-    RelsStoreStats(const std::string& databasePath, BMFileHandle* metadataFH,
+    RelsStoreStats(const std::string& databasePath, DiskArrayCollection& metadataDAC,
         BufferManager* bufferManager, WAL* wal, common::VirtualFileSystem* vfs,
         main::ClientContext* context);
 
@@ -43,7 +45,7 @@ public:
 protected:
     std::unique_ptr<TableStatistics> constructTableStatistic(
         catalog::TableCatalogEntry* tableEntry) override {
-        return std::make_unique<RelTableStats>(metadataFH, *tableEntry, bufferManager, wal);
+        return std::make_unique<RelTableStats>(metadataDAC, *tableEntry);
     }
 
     std::string getTableStatisticsFilePath(const std::string& directory,

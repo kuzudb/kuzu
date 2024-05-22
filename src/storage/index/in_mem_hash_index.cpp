@@ -5,10 +5,8 @@
 #include <cstring>
 
 #include "common/constants.h"
-#include "common/type_utils.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
-#include "storage/file_handle.h"
 #include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_slot.h"
 #include "storage/index/hash_index_utils.h"
@@ -342,14 +340,6 @@ bool InMemHashIndex<ku_string_t>::equals(std::string_view keyToLookup,
         return overflowFileHandle->equals(transaction::TransactionType::WRITE, keyToLookup,
             keyInEntry);
     }
-}
-
-template<typename T>
-void InMemHashIndex<T>::createEmptyIndexFiles(uint64_t indexPos, FileHandle& fileHandle) {
-    DiskArray<Slot<T>>::addDAHPageToFile(fileHandle,
-        INDEX_HEADER_PAGES + NUM_HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX);
-    DiskArray<Slot<T>>::addDAHPageToFile(fileHandle,
-        INDEX_HEADER_PAGES + NUM_HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX);
 }
 
 template<typename T>

@@ -4,10 +4,9 @@
 #include <set>
 
 #include "common/vector/value_vector.h"
-#include "storage/buffer_manager/buffer_manager.h"
 #include "storage/stats/metadata_dah_info.h"
 #include "storage/stats/table_statistics.h"
-#include "storage/wal/wal.h"
+#include "storage/storage_structure/disk_array_collection.h"
 
 namespace kuzu {
 namespace common {
@@ -19,8 +18,8 @@ namespace storage {
 
 class NodeTableStatsAndDeletedIDs : public TableStatistics {
 public:
-    NodeTableStatsAndDeletedIDs(BMFileHandle* metadataFH, const catalog::TableCatalogEntry& entry,
-        BufferManager* bufferManager, WAL* wal);
+    NodeTableStatsAndDeletedIDs(DiskArrayCollection& metadataDAC,
+        const catalog::TableCatalogEntry& entry);
     NodeTableStatsAndDeletedIDs(common::table_id_t tableID, common::offset_t maxNodeOffset,
         const std::vector<common::offset_t>& deletedNodeOffsets);
     NodeTableStatsAndDeletedIDs(const NodeTableStatsAndDeletedIDs& other);

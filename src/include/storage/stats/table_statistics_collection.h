@@ -9,6 +9,8 @@
 namespace kuzu {
 namespace storage {
 
+class DiskArrayCollection;
+
 struct TablesStatisticsContent {
     std::unordered_map<common::table_id_t, std::unique_ptr<TableStatistics>> tableStatisticPerTable;
 
@@ -21,7 +23,7 @@ struct TablesStatisticsContent {
 class WAL;
 class TablesStatistics {
 public:
-    TablesStatistics(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal);
+    TablesStatistics(DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal);
 
     virtual ~TablesStatistics() = default;
 
@@ -73,7 +75,7 @@ public:
     }
 
     static std::unique_ptr<MetadataDAHInfo> createMetadataDAHInfo(
-        const common::LogicalType& dataType, BMFileHandle& metadataFH, BufferManager* bm, WAL* wal);
+        const common::LogicalType& dataType, DiskArrayCollection& metadataDAC);
 
     void initTableStatisticsForWriteTrx();
 
@@ -100,7 +102,7 @@ protected:
     void resetToNotUpdated() { isUpdated = false; }
 
 protected:
-    BMFileHandle* metadataFH;
+    DiskArrayCollection& metadataDAC;
     BufferManager* bufferManager;
     WAL* wal;
     bool isUpdated;

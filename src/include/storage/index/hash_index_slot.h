@@ -51,6 +51,7 @@ public:
 
 template<typename T>
 struct SlotEntry {
+    SlotEntry() : key{}, value{} {}
     T key;
     common::offset_t value;
 

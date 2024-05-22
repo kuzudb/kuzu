@@ -5,6 +5,7 @@
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/stats/nodes_store_statistics.h"
+#include "storage/storage_structure/disk_array_collection.h"
 #include "storage/store/node_table.h"
 #include "storage/store/table.h"
 #include "transaction/transaction.h"
@@ -27,11 +28,11 @@ bool NodeDataScanState::nextVector() {
     return true;
 }
 
-NodeTableData::NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
+NodeTableData::NodeTableData(BMFileHandle* dataFH, DiskArrayCollection* metadataDAC,
     TableCatalogEntry* tableEntry, BufferManager* bufferManager, WAL* wal,
     const std::vector<Property>& properties, TablesStatistics* tablesStatistics,
     bool enableCompression)
-    : TableData{dataFH, metadataFH, tableEntry, bufferManager, wal, enableCompression} {
+    : TableData{dataFH, metadataDAC, tableEntry, bufferManager, wal, enableCompression} {
     const auto maxColumnID =
         std::max_element(properties.begin(), properties.end(), [](auto& a, auto& b) {
             return a.getColumnID() < b.getColumnID();
@@ -44,7 +45,7 @@ NodeTableData::NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
         const auto columnName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT, "");
         columns[property.getColumnID()] = ColumnFactory::createColumn(columnName,
-            *property.getDataType()->copy(), *metadataDAHInfo, dataFH, metadataFH, bufferManager,
+            *property.getDataType()->copy(), *metadataDAHInfo, dataFH, *metadataDAC, bufferManager,
             wal, &DUMMY_WRITE_TRANSACTION, enableCompression);
     }
 }

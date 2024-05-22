@@ -4,21 +4,23 @@
 #include "common/serializer/serializer.h"
 #include "common/string_format.h"
 #include "storage/stats/table_statistics_collection.h"
+#include "storage/storage_structure/disk_array_collection.h"
 #include "storage/storage_utils.h"
+#include "storage/wal/wal_record.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
-NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(BMFileHandle* metadataFH,
-    const catalog::TableCatalogEntry& entry, BufferManager* bufferManager, WAL* wal)
+NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(DiskArrayCollection& metadataDAC,
+    const catalog::TableCatalogEntry& entry)
     : TableStatistics{entry} {
     metadataDAHInfos.clear();
     metadataDAHInfos.reserve(entry.getNumProperties());
     for (auto& property : entry.getPropertiesRef()) {
-        metadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(*property.getDataType(),
-            *metadataFH, bufferManager, wal));
+        metadataDAHInfos.push_back(
+            TablesStatistics::createMetadataDAHInfo(*property.getDataType(), metadataDAC));
     }
 }
 

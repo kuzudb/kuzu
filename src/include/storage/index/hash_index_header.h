@@ -13,7 +13,9 @@ struct HashIndexHeaderOnDisk {
     uint64_t numEntries;
     slot_id_t firstFreeOverflowSlotId;
     uint8_t currentLevel;
+    uint8_t _padding[7]{};
 };
+static_assert(std::has_unique_object_representations_v<HashIndexHeaderOnDisk>);
 
 class HashIndexHeader {
 public:

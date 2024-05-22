@@ -77,10 +77,9 @@ struct StringOverflowFileHeader {
     PageCursor cursors[NUM_HASH_INDEXES];
 
     // pages starts at one to reserve space for this header
-    StringOverflowFileHeader() : pages{1} {
-        std::fill(cursors, cursors + NUM_HASH_INDEXES, PageCursor());
-    }
+    StringOverflowFileHeader() : pages{1}, cursors{} {}
 };
+static_assert(std::has_unique_object_representations_v<StringOverflowFileHeader>);
 
 class OverflowFile {
     friend class OverflowFileHandle;

@@ -28,6 +28,7 @@ class BufferManager;
 class OverflowFileHandle;
 template<typename T>
 class DiskArray;
+class DiskArrayCollection;
 
 template<typename T>
 class HashIndexLocalStorage;
@@ -65,11 +66,10 @@ public:
 // S is the stored type, which is usually the same as T, with the exception of strings
 template<typename T>
 class HashIndex final : public OnDiskHashIndex {
-
 public:
     HashIndex(const DBFileIDAndName& dbFileIDAndName,
         const std::shared_ptr<BMFileHandle>& fileHandle, OverflowFileHandle* overflowFileHandle,
-        uint64_t indexPos, BufferManager& bufferManager, WAL* wal,
+        DiskArrayCollection& diskArrays, uint64_t indexPos, BufferManager& bufferManager, WAL* wal,
         const HashIndexHeader& indexHeaderForReadTrx, HashIndexHeader& indexHeaderForWriteTrx);
 
     ~HashIndex() override;
@@ -331,6 +331,8 @@ private:
     BufferManager& bufferManager;
     DBFileIDAndName dbFileIDAndName;
     WAL& wal;
+    // Stores both primary and overflow slots
+    std::unique_ptr<DiskArrayCollection> hashIndexDiskArrays;
 };
 
 } // namespace storage
