@@ -7,6 +7,7 @@
 
 #include "common/copy_constructors.h"
 #include "common/enums/table_type.h"
+#include "parser/expression/parsed_expression.h"
 
 namespace kuzu {
 namespace parser {
@@ -18,7 +19,8 @@ struct ExtraCreateTableInfo {
 struct CreateTableInfo {
     common::TableType tableType;
     std::string tableName;
-    std::vector<std::pair<std::string, std::string>> propertyNameDataTypes;
+    std::vector<std::tuple<std::string, std::string, std::unique_ptr<ParsedExpression>>>
+        propertyDefinitions;
     std::unique_ptr<ExtraCreateTableInfo> extraInfo;
 
     CreateTableInfo(common::TableType tableType, std::string tableName)

@@ -749,6 +749,7 @@ void Value::copyFromUnion(const uint8_t* kuUnion) {
 void Value::serialize(Serializer& serializer) const {
     dataType->serialize(serializer);
     serializer.serializeValue(isNull_);
+    serializer.serializeValue(childrenSize);
     switch (dataType->getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         serializer.serializeValue(val.booleanVal);
@@ -806,14 +807,13 @@ void Value::serialize(Serializer& serializer) const {
         KU_UNREACHABLE;
     }
     }
-    serializer.serializeValue(childrenSize);
 }
 
 std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
     LogicalType dataType = *LogicalType::deserialize(deserializer);
-    bool isNull;
-    deserializer.deserializeValue(isNull);
     std::unique_ptr<Value> val = std::make_unique<Value>(createDefaultValue(dataType));
+    deserializer.deserializeValue(val->isNull_);
+    deserializer.deserializeValue(val->childrenSize);
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         deserializer.deserializeValue(val->val.booleanVal);
@@ -863,14 +863,15 @@ std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST:
     case PhysicalTypeID::STRUCT: {
-        deserializer.deserializeVectorOfPtrs(val->children);
+        val->children.reserve(val->childrenSize);
+        for (auto i = 0u; i < val->childrenSize; i++) {
+            val->children.push_back(deserialize(deserializer));
+        }
     } break;
     default: {
         KU_UNREACHABLE;
     }
     }
-    deserializer.deserializeValue(val->childrenSize);
-    val->setNull(isNull);
     return val;
 }
 

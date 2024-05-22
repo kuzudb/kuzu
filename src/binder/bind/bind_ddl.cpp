@@ -19,6 +19,7 @@
 #include "parser/ddl/create_table.h"
 #include "parser/ddl/create_table_info.h"
 #include "parser/ddl/drop.h"
+#include "parser/expression/parsed_literal_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -39,12 +40,19 @@ static void validateUniquePropertyName(const std::vector<PropertyInfo>& infos) {
 }
 
 std::vector<PropertyInfo> Binder::bindPropertyInfo(
-    const std::vector<std::pair<std::string, std::string>>& propertyNameDataTypes) {
+    const std::vector<std::tuple<std::string, std::string, std::unique_ptr<ParsedExpression>>>&
+        propertyDefinitions) {
     std::vector<PropertyInfo> propertyInfos;
-    propertyInfos.reserve(propertyNameDataTypes.size());
-    for (auto& propertyNameDataType : propertyNameDataTypes) {
-        propertyInfos.emplace_back(propertyNameDataType.first,
-            LogicalType::fromString(propertyNameDataType.second));
+    propertyInfos.reserve(propertyDefinitions.size());
+    for (auto& propertyDef : propertyDefinitions) {
+        auto type = LogicalType::fromString(std::get<1>(propertyDef));
+        if (std::get<2>(propertyDef)) {
+            // This will check the type correctness of the default value expression
+            expressionBinder.implicitCastIfNecessary(
+                expressionBinder.bindExpression(*std::get<2>(propertyDef)), type);
+        }
+        propertyInfos.emplace_back(std::get<0>(propertyDef), std::move(type),
+            std::get<2>(propertyDef));
     }
     validateUniquePropertyName(propertyInfos);
     for (auto& info : propertyInfos) {
@@ -109,7 +117,7 @@ BoundCreateTableInfo Binder::bindCreateTableInfo(const parser::CreateTableInfo* 
 }
 
 BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo* info) {
-    auto propertyInfos = bindPropertyInfo(info->propertyNameDataTypes);
+    auto propertyInfos = bindPropertyInfo(info->propertyDefinitions);
     auto extraInfo = ku_dynamic_cast<const ExtraCreateTableInfo*, const ExtraCreateNodeTableInfo*>(
         info->extraInfo.get());
     auto primaryKeyIdx = bindPrimaryKey(extraInfo->pKName, propertyInfos);
@@ -126,7 +134,7 @@ BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo* info
 BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info) {
     std::vector<PropertyInfo> propertyInfos;
     propertyInfos.emplace_back(InternalKeyword::ID, *LogicalType::INTERNAL_ID());
-    for (auto& propertyInfo : bindPropertyInfo(info->propertyNameDataTypes)) {
+    for (auto& propertyInfo : bindPropertyInfo(info->propertyDefinitions)) {
         propertyInfos.push_back(propertyInfo.copy());
     }
     for (auto& propertyInfo : propertyInfos) {
@@ -151,14 +159,17 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
     auto extraInfo = (ExtraCreateRelTableGroupInfo*)info->extraInfo.get();
     auto relMultiplicity = extraInfo->relMultiplicity;
     std::vector<BoundCreateTableInfo> boundCreateRelTableInfos;
+    auto relCreateInfo = std::make_unique<CreateTableInfo>(TableType::REL, "");
+    for (auto& [name, type, defaultValue] : info->propertyDefinitions) {
+        relCreateInfo->propertyDefinitions.emplace_back(name, type,
+            defaultValue ? defaultValue->copy() : nullptr);
+    }
     for (auto& [srcTableName, dstTableName] : extraInfo->srcDstTablePairs) {
-        auto relTableName = std::string(relGroupName)
-                                .append("_")
-                                .append(srcTableName)
-                                .append("_")
-                                .append(dstTableName);
-        auto relCreateInfo = std::make_unique<CreateTableInfo>(TableType::REL, relTableName);
-        relCreateInfo->propertyNameDataTypes = info->propertyNameDataTypes;
+        relCreateInfo->tableName = std::string(relGroupName)
+                                       .append("_")
+                                       .append(srcTableName)
+                                       .append("_")
+                                       .append(dstTableName);
         relCreateInfo->extraInfo =
             std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity, srcTableName, dstTableName);
         boundCreateRelTableInfos.push_back(bindCreateRelTableInfo(relCreateInfo.get()));
@@ -416,10 +427,15 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
         throw BinderException("Serial property in node table must be the primary key.");
     }
-    auto defaultVal = expressionBinder.implicitCastIfNecessary(
-        expressionBinder.bindExpression(*extraInfo->defaultValue), dataType);
-    auto boundExtraInfo =
-        std::make_unique<BoundExtraAddPropertyInfo>(propertyName, dataType, std::move(defaultVal));
+    auto defaultValue = std::move(extraInfo->defaultValue);
+    if (!defaultValue) {
+        defaultValue = std::make_unique<parser::ParsedLiteralExpression>(
+            common::Value::createNullValue(dataType), "NULL");
+    }
+    auto boundDefault = expressionBinder.implicitCastIfNecessary(
+        expressionBinder.bindExpression(*defaultValue), dataType);
+    auto boundExtraInfo = std::make_unique<BoundExtraAddPropertyInfo>(propertyName, dataType,
+        std::move(defaultValue), std::move(boundDefault));
     auto boundInfo =
         BoundAlterInfo(AlterType::ADD_PROPERTY, tableName, tableID, std::move(boundExtraInfo));
     return std::make_unique<BoundAlter>(std::move(boundInfo));

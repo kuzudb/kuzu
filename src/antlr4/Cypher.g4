@@ -226,7 +226,7 @@ ADD: ( 'A' | 'a' ) ( 'D' | 'd' ) ( 'D' | 'd' ) ;
 
 kU_PropertyDefinitions : kU_PropertyDefinition ( SP? ',' SP? kU_PropertyDefinition )* ;
 
-kU_PropertyDefinition : oC_PropertyKeyName SP kU_DataType ;
+kU_PropertyDefinition : oC_PropertyKeyName SP kU_DataType ( SP DEFAULT SP oC_Expression )?;
 
 kU_CreateNodeConstraint : PRIMARY SP KEY SP? '(' SP? oC_PropertyKeyName SP? ')' ;
 

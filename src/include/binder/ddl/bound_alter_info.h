@@ -2,6 +2,7 @@
 
 #include "binder/expression/expression.h"
 #include "common/enums/alter_type.h"
+#include "parser/expression/parsed_expression.h"
 
 namespace kuzu {
 namespace binder {
@@ -49,15 +50,17 @@ struct BoundExtraRenameTableInfo : public BoundExtraAlterInfo {
 struct BoundExtraAddPropertyInfo : public BoundExtraAlterInfo {
     std::string propertyName;
     common::LogicalType dataType;
-    std::shared_ptr<Expression> defaultValue;
+    std::unique_ptr<parser::ParsedExpression> defaultValue;
+    std::shared_ptr<Expression> boundDefault;
 
     BoundExtraAddPropertyInfo(std::string propertyName, common::LogicalType dataType,
-        std::shared_ptr<Expression> defaultValue)
+        std::unique_ptr<parser::ParsedExpression> defaultValue,
+        std::shared_ptr<Expression> boundDefault)
         : propertyName{std::move(propertyName)}, dataType{std::move(dataType)},
-          defaultValue{std::move(defaultValue)} {}
+          defaultValue{std::move(defaultValue)}, boundDefault{std::move(boundDefault)} {}
     BoundExtraAddPropertyInfo(const BoundExtraAddPropertyInfo& other)
         : propertyName{other.propertyName}, dataType{other.dataType},
-          defaultValue{other.defaultValue} {}
+          defaultValue{other.defaultValue->copy()}, boundDefault{other.boundDefault} {}
 
     inline std::unique_ptr<BoundExtraAlterInfo> copy() const final {
         return std::make_unique<BoundExtraAddPropertyInfo>(*this);

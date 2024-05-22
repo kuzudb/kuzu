@@ -954,8 +954,11 @@ public:
     KU_PropertyDefinitionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     OC_PropertyKeyNameContext *oC_PropertyKeyName();
-    antlr4::tree::TerminalNode *SP();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
     KU_DataTypeContext *kU_DataType();
+    antlr4::tree::TerminalNode *DEFAULT();
+    OC_ExpressionContext *oC_Expression();
 
    
   };

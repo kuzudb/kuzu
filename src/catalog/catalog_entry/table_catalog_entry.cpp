@@ -34,7 +34,8 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::alter(const BoundAlterInfo
         auto& addPropInfo =
             ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraAddPropertyInfo&>(
                 *alterInfo.extraInfo);
-        newEntry->addProperty(addPropInfo.propertyName, addPropInfo.dataType.copy());
+        newEntry->addProperty(addPropInfo.propertyName, addPropInfo.dataType.copy(),
+            addPropInfo.defaultValue->copy());
     } break;
     case AlterType::DROP_PROPERTY: {
         auto& dropPropInfo =
@@ -82,9 +83,10 @@ bool TableCatalogEntry::containPropertyType(const common::LogicalType& logicalTy
 }
 
 void TableCatalogEntry::addProperty(std::string propertyName,
-    std::unique_ptr<common::LogicalType> dataType) {
-    properties.emplace_back(std::move(propertyName), std::move(dataType), nextPID++, nextColumnID++,
-        tableID);
+    std::unique_ptr<common::LogicalType> dataType,
+    std::unique_ptr<parser::ParsedExpression> defaultExpr) {
+    properties.emplace_back(std::move(propertyName), std::move(dataType), std::move(defaultExpr),
+        nextPID++, nextColumnID++, tableID);
 }
 
 void TableCatalogEntry::dropProperty(common::property_id_t propertyID) {

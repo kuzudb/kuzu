@@ -56,7 +56,7 @@ std::unique_ptr<ReadingClause> Transformer::transformLoadFrom(
     auto source = transformScanSource(*ctx.kU_ScanSource());
     auto loadFrom = std::make_unique<LoadFrom>(std::move(source));
     if (ctx.kU_PropertyDefinitions()) {
-        loadFrom->setColumnNameDataTypes(
+        loadFrom->setPropertyDefinitions(
             transformPropertyDefinitions(*ctx.kU_PropertyDefinitions()));
     }
     if (ctx.kU_ParsingOptions()) {

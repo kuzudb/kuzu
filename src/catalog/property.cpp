@@ -14,6 +14,7 @@ namespace catalog {
 void Property::serialize(Serializer& serializer) const {
     serializer.serializeValue(name);
     dataType->serialize(serializer);
+    defaultExpr->serialize(serializer);
     serializer.serializeValue(propertyID);
     serializer.serializeValue(columnID);
     serializer.serializeValue(tableID);
@@ -26,10 +27,12 @@ Property Property::deserialize(Deserializer& deserializer) {
     table_id_t tableID;
     deserializer.deserializeValue(name);
     auto dataType = LogicalType::deserialize(deserializer);
+    auto defaultExpr = parser::ParsedExpression::deserialize(deserializer);
     deserializer.deserializeValue(propertyID);
     deserializer.deserializeValue(columnID);
     deserializer.deserializeValue(tableID);
-    return Property(name, std::move(dataType), propertyID, columnID, tableID);
+    return Property(name, std::move(dataType), std::move(defaultExpr), propertyID, columnID,
+        tableID);
 }
 
 std::string Property::toCypher(const std::vector<kuzu::catalog::Property>& properties) {

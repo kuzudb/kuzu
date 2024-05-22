@@ -260,7 +260,7 @@ expression_vector Binder::bindInsertColumnDataExprs(
         if (propertyRhsExpr.contains(property.getName())) {
             rhs = propertyRhsExpr.at(property.getName());
         } else {
-            rhs = expressionBinder.createNullLiteralExpression();
+            rhs = expressionBinder.bindExpression(*property.getDefaultExpr());
         }
         rhs = expressionBinder.implicitCastIfNecessary(rhs, *property.getDataType());
         result.push_back(std::move(rhs));

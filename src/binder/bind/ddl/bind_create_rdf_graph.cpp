@@ -3,6 +3,7 @@
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "common/keyword/rdf_keyword.h"
 #include "parser/ddl/create_table_info.h"
+#include "parser/expression/parsed_literal_expression.h"
 
 using namespace kuzu::parser;
 using namespace kuzu::common;
@@ -25,7 +26,9 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     auto literalTableName = RDFGraphCatalogEntry::getLiteralTableName(rdfGraphName);
     std::vector<PropertyInfo> literalProperties;
     literalProperties.emplace_back(std::string(rdf::ID), *LogicalType::SERIAL());
-    literalProperties.emplace_back(std::string(rdf::VAL), *LogicalType::RDF_VARIANT());
+    literalProperties.emplace_back(std::string(rdf::VAL), *LogicalType::RDF_VARIANT(),
+        std::make_unique<ParsedLiteralExpression>(
+            Value::createDefaultValue(*LogicalType::RDF_VARIANT())));
     literalProperties.emplace_back(std::string(rdf::LANG), *LogicalType::STRING());
     auto literalExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(0 /* primaryKeyIdx */,
         std::move(literalProperties));

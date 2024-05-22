@@ -2,6 +2,8 @@
 
 #include "common/copy_constructors.h"
 #include "common/types/types.h"
+#include "common/types/value/value.h"
+#include "parser/expression/parsed_literal_expression.h"
 
 namespace kuzu {
 namespace common {
@@ -14,13 +16,17 @@ namespace catalog {
 class Property {
 public:
     Property() = default;
-    Property(std::string name, std::unique_ptr<common::LogicalType> dataType)
-        : Property{std::move(name), std::move(dataType), common::INVALID_PROPERTY_ID,
-              common::INVALID_COLUMN_ID, common::INVALID_TABLE_ID} {}
     Property(std::string name, std::unique_ptr<common::LogicalType> dataType,
-        common::property_id_t propertyID, common::column_id_t columnID, common::table_id_t tableID)
-        : name{std::move(name)}, dataType{std::move(dataType)}, propertyID{propertyID},
-          columnID{columnID}, tableID{tableID} {}
+        std::unique_ptr<parser::ParsedExpression> defaultExpr)
+        : Property{std::move(name), std::move(dataType), std::move(defaultExpr),
+              common::INVALID_PROPERTY_ID, common::INVALID_COLUMN_ID, common::INVALID_TABLE_ID} {}
+    Property(std::string name, std::unique_ptr<common::LogicalType> dataType,
+        std::unique_ptr<parser::ParsedExpression> defaultExpr, common::property_id_t propertyID,
+        common::column_id_t columnID, common::table_id_t tableID)
+        : name{std::move(name)}, defaultExpr{defaultExpr ? std::move(defaultExpr) : 
+            std::make_unique<parser::ParsedLiteralExpression>(
+                common::Value::createNullValue(*dataType), "NULL")},
+          dataType{std::move(dataType)}, propertyID{propertyID}, columnID{columnID}, tableID{tableID} {}
     EXPLICIT_COPY_DEFAULT_MOVE(Property);
 
     std::string getName() const { return name; }
@@ -29,6 +35,7 @@ public:
     common::property_id_t getPropertyID() const { return propertyID; }
     common::column_id_t getColumnID() const { return columnID; }
     common::table_id_t getTableID() const { return tableID; }
+    std::unique_ptr<parser::ParsedExpression> getDefaultExpr() const { return defaultExpr->copy(); }
 
     void rename(std::string newName) { name = std::move(newName); }
 
@@ -39,11 +46,13 @@ public:
 
 private:
     Property(const Property& other)
-        : name{other.name}, dataType{other.dataType->copy()}, propertyID{other.propertyID},
+        : name{other.name}, defaultExpr{other.defaultExpr->copy()}, 
+          dataType{other.dataType->copy()}, propertyID{other.propertyID},
           columnID{other.columnID}, tableID{other.tableID} {}
 
 private:
     std::string name;
+    std::unique_ptr<parser::ParsedExpression> defaultExpr;
     std::unique_ptr<common::LogicalType> dataType;
     common::property_id_t propertyID;
     common::column_id_t columnID;

@@ -17,13 +17,15 @@ public:
     inline void setParingOptions(options_t options) { parsingOptions = std::move(options); }
     inline const options_t& getParsingOptionsRef() const { return parsingOptions; }
 
-    inline void setColumnNameDataTypes(
-        std::vector<std::pair<std::string, std::string>> nameDataTypes) {
-        columnNameDataTypes = std::move(nameDataTypes);
+    inline void setPropertyDefinitions(
+        std::vector<std::tuple<std::string, std::string, std::unique_ptr<ParsedExpression>>>
+            nameDataTypes) {
+        propertyDefinitions = std::move(nameDataTypes);
     }
-    inline const std::vector<std::pair<std::string, std::string>>&
-    getColumnNameDataTypesRef() const {
-        return columnNameDataTypes;
+    inline const std::vector<
+        std::tuple<std::string, std::string, std::unique_ptr<ParsedExpression>>>&
+    getPropertyDefinitionsRef() const {
+        return propertyDefinitions;
     }
 
     inline void setWherePredicate(std::unique_ptr<ParsedExpression> expression) {
@@ -34,7 +36,8 @@ public:
 
 private:
     std::unique_ptr<BaseScanSource> source;
-    std::vector<std::pair<std::string, std::string>> columnNameDataTypes;
+    std::vector<std::tuple<std::string, std::string, std::unique_ptr<ParsedExpression>>>
+        propertyDefinitions;
     options_t parsingOptions;
     std::unique_ptr<ParsedExpression> wherePredicate;
 };

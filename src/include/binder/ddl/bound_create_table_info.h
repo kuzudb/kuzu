@@ -4,13 +4,13 @@
 #include "common/enums/rel_multiplicity.h"
 #include "common/enums/table_type.h"
 #include "common/types/types.h"
+#include "parser/expression/parsed_expression.h"
 
 namespace kuzu {
 namespace common {
 enum class RelMultiplicity : uint8_t;
 }
 namespace binder {
-
 struct BoundExtraCreateCatalogEntryInfo {
     virtual ~BoundExtraCreateCatalogEntryInfo() = default;
 
@@ -46,13 +46,20 @@ private:
 struct PropertyInfo {
     std::string name;
     common::LogicalType type;
+    std::unique_ptr<parser::ParsedExpression> defaultValue;
 
-    PropertyInfo(std::string name, common::LogicalType type)
-        : name{std::move(name)}, type{std::move(type)} {}
+    PropertyInfo(std::string name, common::LogicalType type): PropertyInfo{name, type, nullptr} {}
+
+    PropertyInfo(std::string name, common::LogicalType type,
+        const std::unique_ptr<parser::ParsedExpression>& defaultValue)
+        : name{std::move(name)}, type{std::move(type)}, 
+          defaultValue{defaultValue ? std::move(defaultValue->copy()) : nullptr} {}
     EXPLICIT_COPY_DEFAULT_MOVE(PropertyInfo);
 
 private:
-    PropertyInfo(const PropertyInfo& other) : name{other.name}, type{other.type} {}
+    PropertyInfo(const PropertyInfo& other)
+        : name{other.name}, type{other.type}, 
+          defaultValue{other.defaultValue ? other.defaultValue->copy() : nullptr} {}
 };
 
 struct BoundExtraCreateTableInfo : public BoundExtraCreateCatalogEntryInfo {

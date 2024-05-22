@@ -1,10 +1,8 @@
 #include "common/exception/parser.h"
-#include "common/types/value/value.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_sequence.h"
 #include "parser/ddl/create_table.h"
 #include "parser/ddl/drop.h"
-#include "parser/expression/parsed_literal_expression.h"
 #include "parser/transformer.h"
 
 using namespace kuzu::common;
@@ -33,7 +31,7 @@ std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
         pkName = transformPrimaryKey(*ctx.kU_CreateNodeConstraint());
     }
     auto createTableInfo = CreateTableInfo(TableType::NODE, tableName);
-    createTableInfo.propertyNameDataTypes =
+    createTableInfo.propertyDefinitions =
         transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
     createTableInfo.extraInfo = std::make_unique<ExtraCreateNodeTableInfo>(pkName);
     return std::make_unique<CreateTable>(std::move(createTableInfo));
@@ -50,7 +48,7 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
     auto dstTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(1));
     auto createTableInfo = CreateTableInfo(TableType::REL, tableName);
     if (ctx.kU_PropertyDefinitions()) {
-        createTableInfo.propertyNameDataTypes =
+        createTableInfo.propertyDefinitions =
             transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
     }
     createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity,
@@ -75,7 +73,7 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTableGroup(
     }
     auto createTableInfo = CreateTableInfo(TableType::REL_GROUP, tableName);
     if (ctx.kU_PropertyDefinitions()) {
-        createTableInfo.propertyNameDataTypes =
+        createTableInfo.propertyDefinitions =
             transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
     }
     createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableGroupInfo>(relMultiplicity,
@@ -170,11 +168,9 @@ std::unique_ptr<Statement> Transformer::transformAddProperty(
     auto addPropertyCtx = ctx.kU_AlterOptions()->kU_AddProperty();
     auto propertyName = transformPropertyKeyName(*addPropertyCtx->oC_PropertyKeyName());
     auto dataType = transformDataType(*addPropertyCtx->kU_DataType());
-    std::unique_ptr<ParsedExpression> defaultValue;
+    std::unique_ptr<ParsedExpression> defaultValue = nullptr;
     if (addPropertyCtx->oC_Expression()) {
         defaultValue = transformExpression(*addPropertyCtx->oC_Expression());
-    } else {
-        defaultValue = std::make_unique<ParsedLiteralExpression>(Value::createNullValue(), "NULL");
     }
     auto extraInfo = std::make_unique<ExtraAddPropertyInfo>(std::move(propertyName),
         std::move(dataType), std::move(defaultValue));
@@ -204,15 +200,19 @@ std::unique_ptr<Statement> Transformer::transformRenameProperty(
     return std::make_unique<Alter>(std::move(info));
 }
 
-std::vector<std::pair<std::string, std::string>> Transformer::transformPropertyDefinitions(
-    CypherParser::KU_PropertyDefinitionsContext& ctx) {
-    std::vector<std::pair<std::string, std::string>> propertyNameDataTypes;
+std::vector<std::tuple<std::string, std::string, std::unique_ptr<ParsedExpression>>>
+Transformer::transformPropertyDefinitions(CypherParser::KU_PropertyDefinitionsContext& ctx) {
+    std::vector<std::tuple<std::string, std::string, std::unique_ptr<ParsedExpression>>>
+        propertyDefns;
     for (auto property : ctx.kU_PropertyDefinition()) {
-        propertyNameDataTypes.emplace_back(
-            transformPropertyKeyName(*property->oC_PropertyKeyName()),
-            transformDataType(*property->kU_DataType()));
+        std::unique_ptr<ParsedExpression> defaultValue = nullptr;
+        if (property->oC_Expression()) {
+            defaultValue = transformExpression(*property->oC_Expression());
+        }
+        propertyDefns.emplace_back(transformPropertyKeyName(*property->oC_PropertyKeyName()),
+            transformDataType(*property->kU_DataType()), std::move(defaultValue));
     }
-    return propertyNameDataTypes;
+    return propertyDefns;
 }
 
 std::string Transformer::transformDataType(CypherParser::KU_DataTypeContext& ctx) {

@@ -294,7 +294,7 @@ private:
     // iterating with nested value. So children.size() reflects the capacity() rather the actual
     // size.
     std::vector<std::unique_ptr<Value>> children;
-    uint32_t childrenSize;
+    uint32_t childrenSize = 0;
 };
 
 /**
