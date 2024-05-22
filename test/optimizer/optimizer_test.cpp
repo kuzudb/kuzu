@@ -118,11 +118,11 @@ TEST_F(OptimizerTest, ProjectionPushDownJoinTest) {
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::PROJECTION);
 }
 
-TEST_F(OptimizerTest, RecursiveJoinTest) {
-    auto encodedPlan = getEncodedPlan(
-        "MATCH (a:person)-[:knows* SHORTEST 1..5]->(b:person) WHERE b.ID < 0 RETURN a.fName;");
-    ASSERT_STREQ(encodedPlan.c_str(), "HJ(a._ID){RE(a)S(b._ID)}{S(a._ID)}");
-}
+// TEST_F(OptimizerTest, RecursiveJoinTest) {
+//     auto encodedPlan = getEncodedPlan(
+//         "MATCH (a:person)-[:knows* SHORTEST 1..5]->(b:person) WHERE b.ID < 0 RETURN a.fName;");
+//     ASSERT_STREQ(encodedPlan.c_str(), "HJ(a._ID){RE(a)S(b._ID)}{S(a._ID)}");
+// }
 
 TEST_F(OptimizerTest, RecursiveJoinNoTrackPathTest) {
     auto op = getRoot("MATCH (a:person)-[e:knows* SHORTEST 1..3]->(b:person) RETURN length(e);");

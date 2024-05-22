@@ -25,14 +25,16 @@ public:
         const std::vector<common::offset_t>& deletedNodeOffsets);
     NodeTableStatsAndDeletedIDs(const NodeTableStatsAndDeletedIDs& other);
 
-    common::offset_t getMaxNodeOffset() { return getMaxNodeOffsetFromNumTuples(getNumTuples()); }
+    common::offset_t getMaxNodeOffset() const {
+        return getMaxNodeOffsetFromNumTuples(getNumTuples());
+    }
 
     common::offset_t addNode();
 
     void deleteNode(common::offset_t nodeOffset);
 
     // This function assumes nodeIDVector have consecutive node offsets and the same tableID.
-    void setDeletedNodeOffsetsForVector(common::ValueVector* nodeIDVector,
+    void setDeletedNodeOffsetsForVector(const common::ValueVector* nodeIDVector,
         common::node_group_idx_t nodeGroupIdx, common::vector_idx_t vectorIdxInNodeGroup,
         common::row_idx_t numRowsToScan) const;
 
@@ -54,7 +56,7 @@ public:
         KU_ASSERT(columnID < metadataDAHInfos.size());
         metadataDAHInfos.erase(metadataDAHInfos.begin() + columnID);
     }
-    MetadataDAHInfo* getMetadataDAHInfo(common::column_id_t columnID) {
+    MetadataDAHInfo* getMetadataDAHInfo(common::column_id_t columnID) const {
         KU_ASSERT(columnID < metadataDAHInfos.size());
         return metadataDAHInfos[columnID].get();
     }

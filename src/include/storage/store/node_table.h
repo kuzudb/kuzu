@@ -104,7 +104,7 @@ public:
     }
 
     void prepareCommitNodeGroup(common::node_group_idx_t nodeGroupIdx,
-        transaction::Transaction* transaction, LocalNodeNG* localNodeGroup);
+        transaction::Transaction* transaction, LocalNodeNG* localNodeGroup) const;
     void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void prepareCommit() override;
     void prepareRollback(LocalTable* localTable) override;
@@ -126,7 +126,8 @@ public:
 private:
     void updatePK(transaction::Transaction* transaction, common::column_id_t columnID,
         common::ValueVector& nodeIDVector, const common::ValueVector& payloadVector);
-    void insertPK(const common::ValueVector& nodeIDVector, const common::ValueVector& pkVector);
+    void insertPK(const common::ValueVector& nodeIDVector,
+        const common::ValueVector& pkVector) const;
 
 private:
     std::unique_ptr<NodeTableData> tableData;

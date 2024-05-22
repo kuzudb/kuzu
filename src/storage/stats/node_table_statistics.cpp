@@ -56,10 +56,10 @@ offset_t NodeTableStatsAndDeletedIDs::addNode() {
         return getMaxNodeOffset();
     }
     // We return the last element in the first non-empty morsel we find
-    auto iter = deletedNodeOffsetsPerVector.begin();
+    const auto iter = deletedNodeOffsetsPerVector.begin();
     auto nodeOffsetIter = iter->second.end();
-    nodeOffsetIter--;
-    offset_t retVal = *nodeOffsetIter;
+    --nodeOffsetIter;
+    const offset_t retVal = *nodeOffsetIter;
     iter->second.erase(nodeOffsetIter);
     if (iter->second.empty()) {
         hasDeletedNodesPerVector[iter->first] = false;
@@ -72,7 +72,7 @@ void NodeTableStatsAndDeletedIDs::deleteNode(offset_t nodeOffset) {
     // TODO(Semih/Guodong): This check can go into nodeOffsetsInfoForWriteTrx->deleteNode
     // once errorIfNodeHasEdges is removed. This function would then just be a wrapper to init
     // nodeOffsetsInfoForWriteTrx before calling delete on it.
-    auto maxNodeOffset = getMaxNodeOffset();
+    const auto maxNodeOffset = getMaxNodeOffset();
     if (maxNodeOffset == UINT64_MAX || nodeOffset > maxNodeOffset) {
         throw RuntimeException(
             stringFormat("Cannot delete nodeOffset {} in nodeTable {}. maxNodeOffset "
@@ -96,16 +96,16 @@ void NodeTableStatsAndDeletedIDs::deleteNode(offset_t nodeOffset) {
 
 // Note: this function will always be called right after scanNodeID, so we have the guarantee
 // that the nodeOffsetVector is always unselected.
-void NodeTableStatsAndDeletedIDs::setDeletedNodeOffsetsForVector(common::ValueVector* nodeIDVector,
-    common::node_group_idx_t nodeGroupIdx, common::vector_idx_t vectorIdxInNodeGroup,
-    common::row_idx_t numRowsToScan) const {
-    auto vectorIdx =
+void NodeTableStatsAndDeletedIDs::setDeletedNodeOffsetsForVector(const ValueVector* nodeIDVector,
+    node_group_idx_t nodeGroupIdx, vector_idx_t vectorIdxInNodeGroup,
+    row_idx_t numRowsToScan) const {
+    const auto vectorIdx =
         nodeGroupIdx * StorageConstants::NUM_VECTORS_PER_NODE_GROUP + vectorIdxInNodeGroup;
     if (hasDeletedNodesPerVector[vectorIdx]) {
         auto& deletedNodeOffsets = deletedNodeOffsetsPerVector.at(vectorIdx);
-        uint64_t vectorBeginOffset = vectorIdx * DEFAULT_VECTOR_CAPACITY;
+        const uint64_t vectorBeginOffset = vectorIdx * DEFAULT_VECTOR_CAPACITY;
         auto itr = deletedNodeOffsets.begin();
-        common::sel_t numSelectedValue = 0;
+        sel_t numSelectedValue = 0;
         auto selectedBuffer = nodeIDVector->state->getSelVectorUnsafe().getMultableBuffer();
         KU_ASSERT(nodeIDVector->state->getSelVector().isUnfiltered());
         for (auto pos = 0u; pos < numRowsToScan; ++pos) {
@@ -114,7 +114,7 @@ void NodeTableStatsAndDeletedIDs::setDeletedNodeOffsetsForVector(common::ValueVe
                 continue;
             }
             if (pos + vectorBeginOffset == *itr) { // node has been deleted.
-                itr++;
+                ++itr;
                 continue;
             }
             selectedBuffer[numSelectedValue++] = pos;
@@ -138,7 +138,7 @@ std::vector<offset_t> NodeTableStatsAndDeletedIDs::getDeletedNodeOffsets() const
     auto morselIter = deletedNodeOffsetsPerVector.begin();
     while (morselIter != deletedNodeOffsetsPerVector.end()) {
         retVal.insert(retVal.cend(), morselIter->second.begin(), morselIter->second.end());
-        morselIter++;
+        ++morselIter;
     }
     return retVal;
 }
@@ -161,7 +161,7 @@ std::unique_ptr<NodeTableStatsAndDeletedIDs> NodeTableStatsAndDeletedIDs::deseri
 }
 
 bool NodeTableStatsAndDeletedIDs::isDeleted(offset_t nodeOffset, uint64_t morselIdx) {
-    auto iter = deletedNodeOffsetsPerVector.find(morselIdx);
+    const auto iter = deletedNodeOffsetsPerVector.find(morselIdx);
     if (iter != deletedNodeOffsetsPerVector.end()) {
         return iter->second.contains(nodeOffset);
     }

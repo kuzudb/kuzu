@@ -48,9 +48,8 @@ void NodeTable::initializeScanState(Transaction* transaction, TableScanState& sc
         tableData->initializeScanState(transaction, scanState);
     } break;
     case TableScanSource::UNCOMMITTED: {
-        const auto localNodeNG =
-            ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(scanState.localNodeGroup);
-        localNodeNG->initializeScanState(scanState);
+        ku_dynamic_cast<TableScanState&, NodeTableScanState&>(scanState)
+            .localNodeGroup->initializeScanState(scanState);
     } break;
     default: {
         // DO NOTHING.
@@ -64,6 +63,8 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
     for (const auto& outputVector : scanState.outputVectors) {
         KU_ASSERT(outputVector->state == scanState.nodeIDVector->state);
     }
+    auto& nodeScanState =
+        ku_dynamic_cast<const TableScanState&, const NodeTableScanState&>(scanState);
     auto& dataScanState =
         ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState);
     // Move scan state to the next vector.
@@ -71,7 +72,7 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
         return false;
     }
     if (scanState.source == TableScanSource::UNCOMMITTED) {
-        ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(scanState.localNodeGroup)->scan(scanState);
+        nodeScanState.localNodeGroup->scan(scanState);
         return true;
     }
     // TODO: Wrap following into scanCommitted.
@@ -94,11 +95,10 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
         scanState.outputVectors);
 
     // Scan updates from local storage.
-    if (scanState.localNodeGroup) {
+    if (nodeScanState.localNodeGroup) {
         KU_ASSERT(transaction->isWriteTransaction());
-        const auto localNodeNG =
-            ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(scanState.localNodeGroup);
-        localNodeNG->lookup(*scanState.nodeIDVector, scanState.columnIDs, scanState.outputVectors);
+        nodeScanState.localNodeGroup->lookup(*scanState.nodeIDVector, scanState.columnIDs,
+            scanState.outputVectors);
     }
     return true;
 }
@@ -185,7 +185,7 @@ void NodeTable::addColumn(Transaction* transaction, const Property& property,
 }
 
 void NodeTable::prepareCommitNodeGroup(node_group_idx_t nodeGroupIdx, Transaction* transaction,
-    LocalNodeNG* localNodeGroup) {
+    LocalNodeNG* localNodeGroup) const {
     tableData->prepareLocalNodeGroupToCommit(nodeGroupIdx, transaction, localNodeGroup);
 }
 
@@ -239,13 +239,22 @@ void NodeTable::updatePK(Transaction* transaction, column_id_t columnID, ValueVe
     const auto pos = nodeIDVector.state->getSelVector()[0];
     const auto nodeOffset = nodeIDVector.readNodeOffset(pos);
     readState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+    // TODO(Xiyang): This logic should be handled in the front-end, so when we update pk property,
+    // we need to scan out the original pk property first. try scan from committed data.
+    readState->source = TableScanSource::COMMITTED;
     initializeScanState(transaction, *readState);
     scan(transaction, *readState);
+    if (pkVector->state->getSelVector().getSelSize() == 0) {
+        // try scan from uncommitted data.
+        readState->source = TableScanSource::UNCOMMITTED;
+        initializeScanState(transaction, *readState);
+        scan(transaction, *readState);
+    }
     pkIndex->delete_(pkVector.get());
     insertPK(nodeIDVector, payloadVector);
 }
 
-void NodeTable::insertPK(const ValueVector& nodeIDVector, const ValueVector& pkVector) {
+void NodeTable::insertPK(const ValueVector& nodeIDVector, const ValueVector& pkVector) const {
     for (auto i = 0u; i < nodeIDVector.state->getSelVector().getSelSize(); i++) {
         const auto nodeIDPos = nodeIDVector.state->getSelVector()[0];
         const auto offset = nodeIDVector.readNodeOffset(nodeIDPos);

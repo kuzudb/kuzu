@@ -64,13 +64,13 @@ public:
         common::ValueVector* outputVector, common::sel_t posInOutputVector) const;
 
     ChunkedNodeGroup* getLastChunkedGroupAndAddNewGroupIfNecessary();
-    void append(common::offset_t offset, std::vector<common::ValueVector*> vectors) {
+    void append(common::offset_t offset, const std::vector<common::ValueVector*>& vectors) {
         offsetToRowIdx[offset] = append(vectors);
     }
     void append(common::offset_t offset, ChunkedNodeGroup* nodeGroup, common::offset_t numValues);
     // Only used for rel tables. Should be moved out later.
     void append(common::offset_t nodeOffset, common::offset_t relOffset,
-        std::vector<common::ValueVector*> vectors) {
+        const std::vector<common::ValueVector*>& vectors) {
         append(relOffset, vectors);
         srcNodeOffsetToRelOffsets[nodeOffset].push_back(relOffset);
     }
@@ -93,7 +93,7 @@ public:
     }
 
 private:
-    common::row_idx_t append(std::vector<common::ValueVector*> vectors);
+    common::row_idx_t append(const std::vector<common::ValueVector*>& vectors);
 
 private:
     std::vector<common::LogicalType> dataTypes;
@@ -120,6 +120,10 @@ public:
         }
         deletedOffsets.insert(offset);
         return true;
+    }
+    void clearNodeOffset(common::offset_t offset) {
+        KU_ASSERT(containsOffset(offset));
+        deletedOffsets.erase(offset);
     }
 
     // For rel tables only.
@@ -193,13 +197,10 @@ public:
         common::ValueVector* propertyVector);
     bool delete_(common::ValueVector* nodeIDVector, common::ValueVector* extraVector = nullptr);
 
-    std::vector<LocalNodeGroup*> getNewNodeGroups(
-        common::node_group_idx_t numCommittedNodeGroups) const {
+    std::vector<LocalNodeGroup*> getNodeGroups() const {
         std::vector<LocalNodeGroup*> nodeGroups;
-        for (const auto& [nodeGroupIdx, nodeGroup] : this->nodeGroups) {
-            if (nodeGroupIdx >= numCommittedNodeGroups) {
-                nodeGroups.push_back(nodeGroup.get());
-            }
+        for (const auto& [_, nodeGroup] : this->nodeGroups) {
+            nodeGroups.push_back(nodeGroup.get());
         }
         return nodeGroups;
     }

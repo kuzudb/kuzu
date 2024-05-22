@@ -16,12 +16,9 @@ void ScanNodeTableSharedState::initialize(transaction::Transaction* transaction,
     if (transaction->isWriteTransaction()) {
         if (const auto localTable = transaction->getLocalStorage()->getLocalTable(
                 this->table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
-            for (const auto localNodeTable =
-                     ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable);
-                 auto& localNG :
-                 localNodeTable->getTableData()->getNewNodeGroups(this->numCommittedNodeGroups)) {
-                localNodeGroups.push_back(localNG);
-            }
+            localNodeGroups = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable)
+                                  ->getTableData()
+                                  ->getNodeGroups();
         }
     }
 }
@@ -47,7 +44,6 @@ void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     for (const auto& info : infos) {
         auto scanState = std::make_unique<NodeTableScanState>(info->columnIDs);
         initVectors(*scanState, *resultSet);
-        scanState->dataScanState->columnIDs = info->columnIDs;
         scanStates.push_back(std::move(scanState));
     }
 }

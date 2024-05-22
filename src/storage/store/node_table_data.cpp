@@ -7,6 +7,7 @@
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/store/table.h"
 #include "transaction/transaction.h"
+#include <storage/store/node_table.h>
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -99,11 +100,12 @@ void NodeTableData::initializeLocalNodeReadState(Transaction* transaction,
     TableScanState& scanState, node_group_idx_t nodeGroupIdx) const {
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::RETURN_NULL);
-    scanState.localNodeGroup = nullptr;
+    auto& nodeScanState = ku_dynamic_cast<TableScanState&, NodeTableScanState&>(scanState);
+    nodeScanState.localNodeGroup = nullptr;
     if (localTable) {
-        auto localNodeTable = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable);
+        const auto localNodeTable = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable);
         if (localNodeTable->getTableData()->nodeGroups.contains(nodeGroupIdx)) {
-            scanState.localNodeGroup = ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(
+            nodeScanState.localNodeGroup = ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(
                 localNodeTable->getTableData()->nodeGroups.at(nodeGroupIdx).get());
         }
     }
@@ -111,7 +113,8 @@ void NodeTableData::initializeLocalNodeReadState(Transaction* transaction,
 
 void NodeTableData::scan(Transaction* transaction, TableDataScanState& scanState,
     ValueVector& nodeIDVector, const std::vector<ValueVector*>& outputVectors) {
-    auto& nodeScanState = ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(scanState);
+    auto& nodeScanState =
+        ku_dynamic_cast<const TableDataScanState&, const NodeDataScanState&>(scanState);
     for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
         if (scanState.columnIDs[i] == INVALID_COLUMN_ID) {
             outputVectors[i]->setAllNull();
@@ -127,12 +130,12 @@ void NodeTableData::scan(Transaction* transaction, TableDataScanState& scanState
 void NodeTableData::lookup(Transaction* transaction, TableDataScanState& readState,
     const ValueVector& nodeIDVector, const std::vector<ValueVector*>& outputVectors) {
     for (auto columnIdx = 0u; columnIdx < readState.columnIDs.size(); columnIdx++) {
-        auto columnID = readState.columnIDs[columnIdx];
+        const auto columnID = readState.columnIDs[columnIdx];
         if (columnID == INVALID_COLUMN_ID) {
             KU_ASSERT(outputVectors[columnIdx]->state == nodeIDVector.state);
             for (auto i = 0u; i < outputVectors[columnIdx]->state->getSelVector().getSelSize();
                  i++) {
-                auto pos = outputVectors[columnIdx]->state->getSelVector()[i];
+                const auto pos = outputVectors[columnIdx]->state->getSelVector()[i];
                 outputVectors[i]->setNull(pos, true);
             }
         } else {
@@ -163,7 +166,7 @@ void NodeTableData::prepareLocalNodeGroupToCommit(node_group_idx_t nodeGroupIdx,
     auto numNodeGroups = getNumCommittedNodeGroups();
     const auto isNewNodeGroup = nodeGroupIdx >= numNodeGroups;
     KU_ASSERT(std::find_if(columns.begin(), columns.end(), [&](const auto& column) {
-        return column->getNumNodeGroups(transaction) != numNodeGroups;
+        return column->getNumCommittedNodeGroups() != numNodeGroups;
     }) == columns.end());
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         const auto column = columns[columnID].get();

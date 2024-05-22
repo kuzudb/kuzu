@@ -70,6 +70,9 @@ bool LocalNodeNG::insert(std::vector<ValueVector*> nodeIDVectors,
     const auto nodeOffset =
         nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset - nodeGroupStartOffset;
     KU_ASSERT(nodeOffset < StorageConstants::NODE_GROUP_SIZE);
+    if (deleteInfo.containsOffset(nodeOffset)) {
+        deleteInfo.clearNodeOffset(nodeOffset);
+    }
     insertChunks.append(nodeOffset, propertyVectors);
     return true;
 }

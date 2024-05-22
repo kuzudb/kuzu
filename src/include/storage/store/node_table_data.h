@@ -38,7 +38,7 @@ public:
     // This interface is node table specific, as rel table requires also relDataDirection.
     void initializeScanState(transaction::Transaction* transaction,
         TableScanState& scanState) const override;
-    void scan(transaction::Transaction* transaction, TableDataScanState& readState,
+    void scan(transaction::Transaction* transaction, TableDataScanState& scanState,
         common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) override;
 

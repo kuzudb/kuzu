@@ -118,7 +118,7 @@ ChunkedNodeGroup* LocalChunkedGroupCollection::getLastChunkedGroupAndAddNewGroup
     return chunkedGroups.getChunkedGroupUnsafe(chunkedGroups.getNumChunkedGroups() - 1);
 }
 
-row_idx_t LocalChunkedGroupCollection::append(std::vector<ValueVector*> vectors) {
+row_idx_t LocalChunkedGroupCollection::append(const std::vector<ValueVector*>& vectors) {
     KU_ASSERT(vectors.size() == dataTypes.size());
     const auto lastChunkGroup = getLastChunkedGroupAndAddNewGroupIfNecessary();
     for (auto i = 0u; i < vectors.size(); i++) {

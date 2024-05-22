@@ -15,7 +15,6 @@ struct TableScanState {
     TableScanSource source = TableScanSource::NONE;
     std::unique_ptr<TableDataScanState> dataScanState;
     common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
-    LocalNodeGroup* localNodeGroup = nullptr;
 
     explicit TableScanState(std::vector<common::column_id_t> columnIDs)
         : nodeIDVector(nullptr), columnIDs{std::move(columnIDs)} {}
