@@ -40,9 +40,7 @@ Noura|25
 -CASE ScanFromHTTPS
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
 ---- ok
--STATEMENT CALL HTTP_CACHE_FILE=FALSE
----- ok
--STATEMENT load from "https://raw.githubusercontent.com/kuzudb/extension/main/dataset/test/city.csv" return *;
+-STATEMENT load from "https://extension.kuzudb.com/dataset/test/city.csv" return *;
 ---- 3
 Waterloo|150000
 Kitchener|200000
