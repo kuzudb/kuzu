@@ -16,10 +16,14 @@ Checks:
   -cert-str34-c,
 
   concurrency-*,
-
+  
+  cppcoreguidelines-avoid-goto,
+  cppcoreguidelines-pro-type-const-cast,
+  cppcoreguidelines-narrowing-conversions,
   cppcoreguidelines-virtual-class-destructor,
+  cppcoreguidelines-pro-type-cstyle-cast,
 
-  google-explicit-constructor
+  google-explicit-constructor,
 
   misc-unused-parameters,
 
