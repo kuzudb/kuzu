@@ -368,7 +368,6 @@ void Column::scanInternal(Transaction* transaction, const ChunkState& state, vec
     row_idx_t numValuesToScan, ValueVector* nodeIDVector, ValueVector* resultVector) {
     const auto startOffsetInChunk = vectorIdx * DEFAULT_VECTOR_CAPACITY;
     auto cursor = getPageCursorForOffsetInGroup(startOffsetInChunk, state);
-    // TODO: Handle deletions here.
     if (nodeIDVector->state->getSelVector().isUnfiltered()) {
         scanUnfiltered(transaction, cursor, numValuesToScan, resultVector, state.metadata);
     } else {
