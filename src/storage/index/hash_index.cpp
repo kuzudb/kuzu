@@ -631,15 +631,15 @@ template class HashIndex<ku_string_t>;
 
 PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
     common::PhysicalTypeID keyDataType, BufferManager& bufferManager, WAL* wal,
-    VirtualFileSystem* vfs)
+    VirtualFileSystem* vfs, main::ClientContext* context)
     : hasRunPrepareCommit{false}, keyDataTypeID(keyDataType), bufferManager{bufferManager} {
     fileHandle = bufferManager.getBMFileHandle(dbFileIDAndName.fName,
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_NO_CREATE,
-        BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs);
+        BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs, context);
     if (keyDataTypeID == PhysicalTypeID::STRING) {
-        overflowFile =
-            std::make_unique<OverflowFile>(dbFileIDAndName, &bufferManager, wal, readOnly, vfs);
+        overflowFile = std::make_unique<OverflowFile>(dbFileIDAndName, &bufferManager, wal,
+            readOnly, vfs, context);
     }
 
     hashIndices.reserve(NUM_HASH_INDEXES);
@@ -750,14 +750,15 @@ void PrimaryKeyIndex::prepareRollback() {
 PrimaryKeyIndex::~PrimaryKeyIndex() = default;
 
 void PrimaryKeyIndex::createEmptyHashIndexFiles(PhysicalTypeID typeID, const std::string& fName,
-    VirtualFileSystem* vfs) {
-    FileHandle fileHandle(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs);
+    VirtualFileSystem* vfs, main::ClientContext* context) {
+    FileHandle fileHandle(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs, context);
     fileHandle.addNewPages(NUM_HEADER_PAGES * NUM_HASH_INDEXES);
     common::TypeUtils::visit(
         typeID,
         [&]<common::IndexHashable T>(T) {
             if constexpr (std::same_as<T, common::ku_string_t>) {
-                OverflowFile::createEmptyFiles(StorageUtils::getOverflowFileName(fName), vfs);
+                OverflowFile::createEmptyFiles(StorageUtils::getOverflowFileName(fName), vfs,
+                    context);
             }
             for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
                 InMemHashIndex<T>::createEmptyIndexFiles(i, fileHandle);

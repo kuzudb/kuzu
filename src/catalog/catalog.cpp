@@ -370,10 +370,10 @@ void Catalog::saveToFile(const std::string& directory, common::VirtualFileSystem
 }
 
 void Catalog::readFromFile(const std::string& directory, common::VirtualFileSystem* fs,
-    common::FileVersionType versionType) {
+    common::FileVersionType versionType, main::ClientContext* context) {
     auto catalogPath = StorageUtils::getCatalogFilePath(fs, directory, versionType);
     Deserializer deserializer(
-        std::make_unique<BufferedFileReader>(fs->openFile(catalogPath, O_RDONLY)));
+        std::make_unique<BufferedFileReader>(fs->openFile(catalogPath, O_RDONLY, context)));
     validateMagicBytes(deserializer);
     storage_version_t savedStorageVersion;
     deserializer.deserializeValue(savedStorageVersion);

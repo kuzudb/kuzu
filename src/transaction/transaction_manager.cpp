@@ -44,7 +44,7 @@ void TransactionManager::commit(main::ClientContext& clientContext, bool skipChe
     lastTimestamp++;
     transaction->commitTS = lastTimestamp;
     transaction->commit(&wal);
-    clientContext.getStorageManager()->prepareCommit(transaction);
+    clientContext.getStorageManager()->prepareCommit(transaction, clientContext.getVFSUnsafe());
     wal.flushAllPages();
     clearActiveWriteTransactionIfWriteTransactionNoLock(transaction);
     if (!skipCheckPointing) {

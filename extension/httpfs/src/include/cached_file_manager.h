@@ -21,6 +21,7 @@ struct CachedFile {
 };
 
 class CachedFileManager {
+public:
     // Typical MTU size is 1500 bytes(including the headers). To avoid fragmentation and ensure
     // optimal performance, we choose to use a safer value of 1300 bytes.
     static constexpr uint64_t MAX_SEGMENT_SIZE = 1300;

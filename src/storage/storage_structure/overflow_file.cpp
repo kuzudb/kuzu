@@ -159,14 +159,14 @@ static inline DBFileIDAndName constructDBFileIDAndName(
 }
 
 OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager* bufferManager,
-    WAL* wal, bool readOnly, common::VirtualFileSystem* vfs)
+    WAL* wal, bool readOnly, common::VirtualFileSystem* vfs, main::ClientContext* context)
     : bufferManager{bufferManager}, wal{wal}, headerChanged{false} {
     auto overflowFileIDAndName = constructDBFileIDAndName(dbFileIdAndName);
     dbFileID = overflowFileIDAndName.dbFileID;
     fileHandle = bufferManager->getBMFileHandle(overflowFileIDAndName.fName,
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_NO_CREATE,
-        BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs);
+        BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs, context);
     if (vfs->fileOrPathExists(overflowFileIDAndName.fName)) {
         readFromDisk(transaction::TransactionType::READ_ONLY, HEADER_PAGE_IDX,
             [&](auto* frame) { memcpy(&header, frame, sizeof(header)); });
@@ -177,8 +177,9 @@ OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager
     }
 }
 
-void OverflowFile::createEmptyFiles(const std::string& fName, common::VirtualFileSystem* vfs) {
-    FileHandle fileHandle(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs);
+void OverflowFile::createEmptyFiles(const std::string& fName, common::VirtualFileSystem* vfs,
+    main::ClientContext* context) {
+    FileHandle fileHandle(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs, context);
     uint8_t page[common::BufferPoolConstants::PAGE_4KB_SIZE];
     StringOverflowFileHeader header;
     memcpy(page, &header, sizeof(StringOverflowFileHeader));

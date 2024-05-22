@@ -232,7 +232,7 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) {
         clientContext.getCatalog()->dropTableSchema(&DUMMY_WRITE_TRANSACTION, entryID);
         // During recovery, storageManager does not exist.
         if (clientContext.getStorageManager()) {
-            clientContext.getStorageManager()->dropTable(entryID);
+            clientContext.getStorageManager()->dropTable(entryID, clientContext.getVFSUnsafe());
         }
     } break;
     case CatalogEntryType::SEQUENCE_ENTRY: {

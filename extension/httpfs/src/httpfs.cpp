@@ -113,7 +113,7 @@ void HTTPFileInfo::initialize() {
             // LCOV_EXCL_STOP
         }
     }
-    if (httpConfig.cacheFile) {
+    if (httpConfig.cacheFile && length > CachedFileManager::MAX_SEGMENT_SIZE * 5) {
         cachedFileInfo = hfs->getCachedFileManager().getCachedFileInfo(this);
     }
 }

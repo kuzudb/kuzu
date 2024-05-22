@@ -15,17 +15,17 @@ namespace kuzu {
 namespace storage {
 
 WAL::WAL(const std::string& directory, bool readOnly, BufferManager& bufferManager,
-    VirtualFileSystem* vfs)
+    VirtualFileSystem* vfs, main::ClientContext* context)
     : directory{directory}, bufferManager{bufferManager}, vfs{vfs} {
     auto fileInfo =
         vfs->openFile(vfs->joinPath(directory, std::string(StorageConstants::WAL_FILE_SUFFIX)),
-            readOnly ? O_RDONLY : O_CREAT | O_RDWR);
+            readOnly ? O_RDONLY : O_CREAT | O_RDWR, context);
     bufferedWriter = std::make_shared<BufferedFileWriter>(std::move(fileInfo));
     shadowingFH = bufferManager.getBMFileHandle(
         vfs->joinPath(directory, std::string(StorageConstants::SHADOWING_SUFFIX)),
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-        BMFileHandle::FileVersionedType::NON_VERSIONED_FILE, vfs);
+        BMFileHandle::FileVersionedType::NON_VERSIONED_FILE, vfs, context);
 }
 
 WAL::~WAL() {}

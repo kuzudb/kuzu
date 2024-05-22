@@ -1,5 +1,6 @@
 #include "common/exception/transaction_manager.h"
 #include "graph_test/graph_test.h"
+#include "main/client_context.h"
 #include "transaction/transaction_manager.h"
 
 using namespace kuzu::common;
@@ -15,11 +16,12 @@ protected:
         EmptyDBTest::SetUp();
         std::filesystem::create_directory(databasePath);
         createDBAndConn();
+        context = std::make_unique<kuzu::main::ClientContext>(database.get());
         bufferManager = getBufferManager(*database);
         std::make_unique<BufferManager>(BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING,
             BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE);
         wal = std::make_unique<WAL>(databasePath, false /* readOnly */, *bufferManager,
-            getFileSystem(*database));
+            getFileSystem(*database), context.get());
         transactionManager = std::make_unique<TransactionManager>(*wal);
     }
 
@@ -51,6 +53,7 @@ public:
 private:
     BufferManager* bufferManager;
     std::unique_ptr<WAL> wal;
+    std::unique_ptr<kuzu::main::ClientContext> context;
 };
 
 // TODO: Rewrite to end to end test.

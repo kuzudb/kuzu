@@ -9,6 +9,10 @@
 #include "common/types/types.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
+
 namespace common {
 class VirtualFileSystem;
 }
@@ -36,7 +40,9 @@ class MemoryAllocator {
     friend class MemoryBuffer;
 
 public:
-    explicit MemoryAllocator(BufferManager* bm, common::VirtualFileSystem* vfs);
+    MemoryAllocator(BufferManager* bm, common::VirtualFileSystem* vfs,
+        main::ClientContext* context);
+
     ~MemoryAllocator();
 
     std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero, uint64_t size);
@@ -70,8 +76,10 @@ private:
  */
 class MemoryManager {
 public:
-    explicit MemoryManager(BufferManager* bm, common::VirtualFileSystem* vfs) : bm{bm} {
-        allocator = std::make_unique<MemoryAllocator>(bm, vfs);
+    explicit MemoryManager(BufferManager* bm, common::VirtualFileSystem* vfs,
+        main::ClientContext* context)
+        : bm{bm} {
+        allocator = std::make_unique<MemoryAllocator>(bm, vfs, context);
     }
 
     std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero = false,
