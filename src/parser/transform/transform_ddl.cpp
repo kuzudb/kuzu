@@ -200,10 +200,9 @@ std::unique_ptr<Statement> Transformer::transformRenameProperty(
     return std::make_unique<Alter>(std::move(info));
 }
 
-std::vector<std::tuple<std::string, std::string, std::unique_ptr<ParsedExpression>>>
+std::vector<PropertyDefinition>
 Transformer::transformPropertyDefinitions(CypherParser::KU_PropertyDefinitionsContext& ctx) {
-    std::vector<std::tuple<std::string, std::string, std::unique_ptr<ParsedExpression>>>
-        propertyDefns;
+    std::vector<PropertyDefinition> propertyDefns;
     for (auto property : ctx.kU_PropertyDefinition()) {
         std::unique_ptr<ParsedExpression> defaultValue = nullptr;
         if (property->oC_Expression()) {
@@ -212,7 +211,7 @@ Transformer::transformPropertyDefinitions(CypherParser::KU_PropertyDefinitionsCo
         propertyDefns.emplace_back(transformPropertyKeyName(*property->oC_PropertyKeyName()),
             transformDataType(*property->kU_DataType()), std::move(defaultValue));
     }
-    return propertyDefns;
+    return std::move(propertyDefns);
 }
 
 std::string Transformer::transformDataType(CypherParser::KU_DataTypeContext& ctx) {

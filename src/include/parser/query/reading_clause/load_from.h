@@ -1,6 +1,7 @@
 #pragma once
 
 #include "parser/expression/parsed_expression.h"
+#include "parser/ddl/create_table_info.h"
 #include "parser/scan_source.h"
 #include "reading_clause.h"
 
@@ -17,14 +18,10 @@ public:
     inline void setParingOptions(options_t options) { parsingOptions = std::move(options); }
     inline const options_t& getParsingOptionsRef() const { return parsingOptions; }
 
-    inline void setPropertyDefinitions(
-        std::vector<std::tuple<std::string, std::string, std::unique_ptr<ParsedExpression>>>
-            nameDataTypes) {
-        propertyDefinitions = std::move(nameDataTypes);
+    inline void setPropertyDefinitions(std::vector<PropertyDefinition> propertyDefns) {
+        propertyDefinitions = std::move(propertyDefns);
     }
-    inline const std::vector<
-        std::tuple<std::string, std::string, std::unique_ptr<ParsedExpression>>>&
-    getPropertyDefinitionsRef() const {
+    inline const std::vector<PropertyDefinition>& getPropertyDefinitionsRef() const {
         return propertyDefinitions;
     }
 
@@ -36,8 +33,7 @@ public:
 
 private:
     std::unique_ptr<BaseScanSource> source;
-    std::vector<std::tuple<std::string, std::string, std::unique_ptr<ParsedExpression>>>
-        propertyDefinitions;
+    std::vector<PropertyDefinition> propertyDefinitions;
     options_t parsingOptions;
     std::unique_ptr<ParsedExpression> wherePredicate;
 };

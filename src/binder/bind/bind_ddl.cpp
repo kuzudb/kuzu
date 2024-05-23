@@ -39,20 +39,17 @@ static void validateUniquePropertyName(const std::vector<PropertyInfo>& infos) {
     }
 }
 
-std::vector<PropertyInfo> Binder::bindPropertyInfo(
-    const std::vector<std::tuple<std::string, std::string, std::unique_ptr<ParsedExpression>>>&
-        propertyDefinitions) {
+std::vector<PropertyInfo> Binder::bindPropertyInfo(const std::vector<PropertyDefinition>& propertyDefinitions) {
     std::vector<PropertyInfo> propertyInfos;
     propertyInfos.reserve(propertyDefinitions.size());
     for (auto& propertyDef : propertyDefinitions) {
-        auto type = LogicalType::fromString(std::get<1>(propertyDef));
-        if (std::get<2>(propertyDef)) {
+        auto type = LogicalType::fromString(propertyDef.type);
+        if (propertyDef.expr) {
             // This will check the type correctness of the default value expression
             expressionBinder.implicitCastIfNecessary(
-                expressionBinder.bindExpression(*std::get<2>(propertyDef)), type);
+                expressionBinder.bindExpression(*propertyDef.expr), type);
         }
-        propertyInfos.emplace_back(std::get<0>(propertyDef), std::move(type),
-            std::get<2>(propertyDef));
+        propertyInfos.emplace_back(propertyDef.name, std::move(type), propertyDef.expr);
     }
     validateUniquePropertyName(propertyInfos);
     for (auto& info : propertyInfos) {

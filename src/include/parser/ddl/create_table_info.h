@@ -16,11 +16,20 @@ struct ExtraCreateTableInfo {
     virtual ~ExtraCreateTableInfo() = default;
 };
 
+struct PropertyDefinition {
+    std::string name;
+    std::string type;
+    std::unique_ptr<ParsedExpression> expr;
+
+    PropertyDefinition(std::string name, std::string type, std::unique_ptr<ParsedExpression> expr)
+        : name{std::move(name)}, type{std::move(type)}, expr{std::move(expr)} {}
+    DELETE_COPY_DEFAULT_MOVE(PropertyDefinition);
+};
+
 struct CreateTableInfo {
     common::TableType tableType;
     std::string tableName;
-    std::vector<std::tuple<std::string, std::string, std::unique_ptr<ParsedExpression>>>
-        propertyDefinitions;
+    std::vector<PropertyDefinition> propertyDefinitions;
     std::unique_ptr<ExtraCreateTableInfo> extraInfo;
 
     CreateTableInfo(common::TableType tableType, std::string tableName)
