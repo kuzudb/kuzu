@@ -28,7 +28,6 @@ public:
     template<class TARGET>
     const TARGET& constCast() const {
         return common::ku_dynamic_cast<const BoundReadingClause&, const TARGET&>(*this);
-
     }
     template<class TARGET>
     const TARGET* constPtrCast() const {

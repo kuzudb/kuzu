@@ -22,7 +22,8 @@ struct NbrScanState {
 
 class OnDiskGraph : public Graph {
 public:
-    OnDiskGraph(main::ClientContext* context, const std::string& nodeName, const std::string& relName);
+    OnDiskGraph(main::ClientContext* context, const std::string& nodeName,
+        const std::string& relName);
 
     common::table_id_t getNodeTableID() override { return nodeTable->getTableID(); }
 

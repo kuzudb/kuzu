@@ -37,7 +37,8 @@ public:
         vectors.push_back(rankVector.get());
     }
 
-    void materialize(graph::Graph* graph, const std::vector<double>& ranks, FactorizedTable& table) const {
+    void materialize(graph::Graph* graph, const std::vector<double>& ranks,
+        FactorizedTable& table) const {
         for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
             nodeIDVector->setValue<nodeID_t>(0, {offset, graph->getNodeTableID()});
             rankVector->setValue<double>(0, ranks[offset]);
@@ -60,19 +61,17 @@ public:
         return {LogicalTypeID::ANY};
     }
 
-    std::vector<std::string> getResultColumnNames() const override {
-        return {"node_id", "rank"};
-    }
+    std::vector<std::string> getResultColumnNames() const override { return {"node_id", "rank"}; }
 
     std::vector<common::LogicalType> getResultColumnTypes() const override {
         return {*LogicalType::INTERNAL_ID(), *LogicalType::DOUBLE()};
     }
 
-    void bind(const binder::expression_vector &) override {
+    void bind(const binder::expression_vector&) override {
         bindData = std::make_unique<PageRankBindData>();
     }
 
-    void initLocalState(main::ClientContext *context) override {
+    void initLocalState(main::ClientContext* context) override {
         localState = std::make_unique<PageRankLocalState>(context);
     }
 
@@ -83,7 +82,7 @@ public:
         std::vector<double> ranks;
         ranks.resize(graph->getNumNodes());
         for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
-            ranks[offset] = (double )1 / graph->getNumNodes();
+            ranks[offset] = (double)1 / graph->getNumNodes();
         }
         auto dampingValue = (1 - extraData->dampingFactor) / graph->getNumNodes();
         // Compute page rank.
@@ -105,7 +104,7 @@ public:
                 ranks[offset] = rank;
             }
             if (change < extraData->delta) {
-                break ;
+                break;
             }
         }
         // Materialize result.

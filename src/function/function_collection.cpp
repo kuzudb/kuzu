@@ -3,13 +3,13 @@
 #include "function/aggregate/collect.h"
 #include "function/aggregate/count.h"
 #include "function/aggregate/count_star.h"
-#include "function/gds/gds_function_collection.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/array/vector_array_functions.h"
 #include "function/blob/vector_blob_functions.h"
 #include "function/cast/vector_cast_functions.h"
 #include "function/comparison/vector_comparison_functions.h"
 #include "function/date/vector_date_functions.h"
+#include "function/gds/gds_function_collection.h"
 #include "function/graph/graph_functions.h"
 #include "function/hash/vector_hash_functions.h"
 #include "function/interval/vector_interval_functions.h"
@@ -39,19 +39,18 @@ namespace kuzu {
 namespace function {
 
 #define SCALAR_FUNCTION(_PARAM)                                                                    \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::SCALAR_FUNCTION_ENTRY}
 #define SCALAR_FUNCTION_ALIAS(_PARAM)                                                              \
-    { _PARAM::getFunctionSet, _PARAM::alias, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::alias, CatalogEntryType::SCALAR_FUNCTION_ENTRY}
 #define REWRITE_FUNCTION(_PARAM)                                                                   \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::REWRITE_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::REWRITE_FUNCTION_ENTRY}
 #define AGGREGATE_FUNCTION(_PARAM)                                                                 \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::AGGREGATE_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::AGGREGATE_FUNCTION_ENTRY}
 #define TABLE_FUNCTION(_PARAM)                                                                     \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::TABLE_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::TABLE_FUNCTION_ENTRY}
 #define ALGORITHM_FUNCTION(_PARAM)                                                                 \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::GDS_FUNCTION_ENTRY }
-#define FINAL_FUNCTION                                                                             \
-    { nullptr, nullptr, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::GDS_FUNCTION_ENTRY}
+#define FINAL_FUNCTION {nullptr, nullptr, CatalogEntryType::SCALAR_FUNCTION_ENTRY}
 
 FunctionCollection* FunctionCollection::getFunctions() {
     static FunctionCollection functions[] = {
@@ -225,7 +224,8 @@ FunctionCollection* FunctionCollection::getFunctions() {
         TABLE_FUNCTION(RdfLiteralTripleInMemScan), TABLE_FUNCTION(FTableScan),
 
         // Algorithm functions
-        ALGORITHM_FUNCTION(VariableLengthPathsFunction), ALGORITHM_FUNCTION(WeaklyConnectedComponentsFunction),
+        ALGORITHM_FUNCTION(VariableLengthPathsFunction),
+        ALGORITHM_FUNCTION(WeaklyConnectedComponentsFunction),
         ALGORITHM_FUNCTION(ShortestPathsFunction), ALGORITHM_FUNCTION(PageRankFunction),
 
         // End of array

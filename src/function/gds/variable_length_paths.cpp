@@ -63,7 +63,8 @@ public:
         vectors.push_back(numPathVector.get());
     }
 
-    void materialize(const VariableLengthPathSourceState& sourceState, uint8_t length, FactorizedTable& table) const {
+    void materialize(const VariableLengthPathSourceState& sourceState, uint8_t length,
+        FactorizedTable& table) const {
         srcNodeIDVector->setValue<nodeID_t>(0, sourceState.sourceNodeID);
         for (auto dstNodeID : sourceState.nextFrontier.getNodeIDs()) {
             dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
@@ -96,10 +97,11 @@ public:
     }
 
     std::vector<common::LogicalType> getResultColumnTypes() const override {
-        return {*LogicalType::INTERNAL_ID(), *LogicalType::INTERNAL_ID(), *LogicalType::INT64(), *LogicalType::INT64()};
+        return {*LogicalType::INTERNAL_ID(), *LogicalType::INTERNAL_ID(), *LogicalType::INT64(),
+            *LogicalType::INT64()};
     }
 
-    void bind(const binder::expression_vector & params) override {
+    void bind(const binder::expression_vector& params) override {
         KU_ASSERT(params.size() == 3);
         for (auto i = 1u; i < 3u; ++i) {
             ExpressionUtil::validateExpressionType(*params[i], ExpressionType::LITERAL);
@@ -113,7 +115,7 @@ public:
         bindData = std::make_unique<VariableLengthPathBindData>(lowerBound, upperBound);
     }
 
-    void initLocalState(main::ClientContext *context) override {
+    void initLocalState(main::ClientContext* context) override {
         localState = std::make_unique<VariableLengthPathLocalState>(context);
     }
 
@@ -121,13 +123,14 @@ public:
         auto extraData = bindData->ptrCast<VariableLengthPathBindData>();
         auto variableLengthPathLocalState = localState->ptrCast<VariableLengthPathLocalState>();
         for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
-            auto sourceNodeID = nodeID_t {offset, graph->getNodeTableID()};
+            auto sourceNodeID = nodeID_t{offset, graph->getNodeTableID()};
             auto sourceState = VariableLengthPathSourceState(sourceNodeID);
             // Start recursive computation for current source node ID.
             for (auto currentLevel = 1; currentLevel <= extraData->upperBound; ++currentLevel) {
                 // Compute next frontier.
                 for (auto currentNodeID : sourceState.currentFrontier.getNodeIDs()) {
-                    auto currentMultiplicity = sourceState.currentFrontier.getMultiplicity(currentNodeID);
+                    auto currentMultiplicity =
+                        sourceState.currentFrontier.getMultiplicity(currentNodeID);
                     auto nbrs = graph->getNbrs(currentNodeID.offset);
                     for (auto nbr : nbrs) {
                         sourceState.nextFrontier.addNode(nbr, currentMultiplicity);
@@ -152,7 +155,6 @@ function_set VariableLengthPathsFunction::getFunctionSet() {
     result.push_back(std::move(function));
     return result;
 }
-
 
 } // namespace function
 } // namespace kuzu

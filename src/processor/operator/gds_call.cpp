@@ -15,8 +15,8 @@ void GDSCall::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
 
 void GDSCall::initGlobalStateInternal(ExecutionContext* context) {
     auto graphExpr_ = info.graphExpr->constPtrCast<GraphExpression>();
-    sharedState->graph =
-        std::make_unique<OnDiskGraph>(context->clientContext, graphExpr_->getNodeName(), graphExpr_->getRelName());
+    sharedState->graph = std::make_unique<OnDiskGraph>(context->clientContext,
+        graphExpr_->getNodeName(), graphExpr_->getRelName());
 }
 
 void GDSCall::executeInternal(ExecutionContext*) {

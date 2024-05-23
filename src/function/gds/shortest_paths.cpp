@@ -34,7 +34,8 @@ struct ShortestPathSourceState {
     common::offset_t numVisited = 0;
     std::vector<int64_t> visitedArray;
 
-    explicit ShortestPathSourceState(nodeID_t sourceNodeID, common::offset_t numNodes) : sourceNodeID{sourceNodeID} {
+    explicit ShortestPathSourceState(nodeID_t sourceNodeID, common::offset_t numNodes)
+        : sourceNodeID{sourceNodeID} {
         visitedArray.resize(numNodes);
         for (auto i = 0u; i < numNodes; ++i) {
             visitedArray[i] = -1;
@@ -44,19 +45,13 @@ struct ShortestPathSourceState {
         nextFrontier = Frontier();
     }
 
-    bool allVisited() const {
-        return numVisited == visitedArray.size();
-    }
-    bool visited(offset_t offset) const {
-        return visitedArray[offset] != -1;
-    }
+    bool allVisited() const { return numVisited == visitedArray.size(); }
+    bool visited(offset_t offset) const { return visitedArray[offset] != -1; }
     void markVisited(nodeID_t nodeID, int64_t length) {
         numVisited++;
         visitedArray[nodeID.offset] = length;
     }
-    int64_t getLength(offset_t offset) const {
-        return visitedArray[offset];
-    }
+    int64_t getLength(offset_t offset) const { return visitedArray[offset]; }
 
     void initNextFrontier() {
         currentFrontier = std::move(nextFrontier);
@@ -116,13 +111,13 @@ public:
         return {*LogicalType::INTERNAL_ID(), *LogicalType::INTERNAL_ID(), *LogicalType::INT64()};
     }
 
-    void bind(const binder::expression_vector & params) override {
+    void bind(const binder::expression_vector& params) override {
         ExpressionUtil::validateExpressionType(*params[1], ExpressionType::LITERAL);
         auto upperBound = params[1]->constCast<LiteralExpression>().getValue().getValue<int64_t>();
         bindData = std::make_unique<ShortestPathBindData>(upperBound);
     }
 
-    void initLocalState(main::ClientContext *context) override {
+    void initLocalState(main::ClientContext* context) override {
         localState = std::make_unique<ShortestPathLocalState>(context);
     }
 
@@ -130,12 +125,12 @@ public:
         auto extraData = bindData->ptrCast<ShortestPathBindData>();
         auto shortestPathLocalState = localState->ptrCast<ShortestPathLocalState>();
         for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
-            auto sourceNodeID = nodeID_t {offset, graph->getNodeTableID()};
+            auto sourceNodeID = nodeID_t{offset, graph->getNodeTableID()};
             auto sourceState = ShortestPathSourceState(sourceNodeID, graph->getNumNodes());
             // Start recursive computation for current source node ID.
             for (auto currentLevel = 0; currentLevel <= extraData->upperBound; ++currentLevel) {
                 if (sourceState.allVisited()) {
-                    continue ;
+                    continue;
                 }
                 // Compute next frontier.
                 for (auto currentNodeID : sourceState.currentFrontier.getNodeIDs()) {

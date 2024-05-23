@@ -27,7 +27,7 @@ static constexpr uint64_t NUM_PAGE_IDXS_PER_PIP =
  */
 struct DiskArrayHeader {
     // This constructor is needed when loading the database from file.
-    DiskArrayHeader() : DiskArrayHeader(1){};
+    DiskArrayHeader() : DiskArrayHeader(1) {};
 
     explicit DiskArrayHeader(uint64_t elementSize);
 

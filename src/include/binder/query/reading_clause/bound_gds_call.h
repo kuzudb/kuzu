@@ -10,8 +10,7 @@ class BoundGDSCall : public BoundReadingClause {
     static constexpr common::ClauseType clauseType_ = common::ClauseType::GDS_CALL;
 
 public:
-    BoundGDSCall(function::GDSFunction func,
-        std::shared_ptr<Expression> graphExpr,
+    BoundGDSCall(function::GDSFunction func, std::shared_ptr<Expression> graphExpr,
         expression_vector outExprs)
         : BoundReadingClause{clauseType_}, func{std::move(func)}, graphExpr{std::move(graphExpr)},
           outExprs{std::move(outExprs)} {}

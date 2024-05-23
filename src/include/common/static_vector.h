@@ -29,7 +29,7 @@ class StaticVector {
     }
 
 public:
-    StaticVector() : len(0){};
+    StaticVector() : len(0) {};
     StaticVector(StaticVector&& other) : len(other.len) {
         std::uninitialized_move(other.begin(), other.end(), begin());
         other.len = 0;

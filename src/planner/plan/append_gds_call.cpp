@@ -9,8 +9,8 @@ namespace planner {
 
 std::shared_ptr<LogicalOperator> Planner::getAlgorithm(const BoundReadingClause& readingClause) {
     auto& call = readingClause.constCast<BoundGDSCall>();
-    return std::make_shared<LogicalGDSCall>(call.getFunc(),
-        call.getGraphExpr(), call.getOutExprs());
+    return std::make_shared<LogicalGDSCall>(call.getFunc(), call.getGraphExpr(),
+        call.getOutExprs());
 }
 
 } // namespace planner

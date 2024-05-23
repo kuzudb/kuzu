@@ -24,7 +24,8 @@ public:
         vectors.push_back(groupVector.get());
     }
 
-    void materialize(graph::Graph* graph, const std::vector<int64_t>& groupArray, FactorizedTable& table) const {
+    void materialize(graph::Graph* graph, const std::vector<int64_t>& groupArray,
+        FactorizedTable& table) const {
         for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
             nodeIDVector->setValue<nodeID_t>(0, {offset, graph->getNodeTableID()});
             groupVector->setValue<int64_t>(0, groupArray[offset]);
@@ -55,7 +56,7 @@ public:
         return {*LogicalType::INTERNAL_ID(), *LogicalType::INT64()};
     }
 
-    void initLocalState(main::ClientContext *context) override {
+    void initLocalState(main::ClientContext* context) override {
         localState = std::make_unique<WeaklyConnectedComponentLocalState>(context);
     }
 
@@ -101,10 +102,11 @@ private:
 
 function_set WeaklyConnectedComponentsFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(name, std::make_unique<WeaklyConnectedComponent>());
+    auto function =
+        std::make_unique<GDSFunction>(name, std::make_unique<WeaklyConnectedComponent>());
     result.push_back(std::move(function));
     return result;
 }
 
-}
-}
+} // namespace function
+} // namespace kuzu

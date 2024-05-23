@@ -1,7 +1,7 @@
 #pragma once
 
-#include "graph/graph.h"
 #include "binder/expression/expression.h"
+#include "graph/graph.h"
 
 namespace kuzu {
 namespace main {
@@ -45,17 +45,14 @@ public:
     }
     virtual ~GDSAlgorithm() = default;
 
-    virtual std::vector<common::LogicalTypeID> getParameterTypeIDs() const {
-        return {};
-    }
+    virtual std::vector<common::LogicalTypeID> getParameterTypeIDs() const { return {}; }
     virtual std::vector<std::string> getResultColumnNames() const = 0;
     virtual std::vector<common::LogicalType> getResultColumnTypes() const = 0;
 
-    virtual void bind(const binder::expression_vector&) {
-        bindData = nullptr;
-    }
+    virtual void bind(const binder::expression_vector&) { bindData = nullptr; }
 
-    void init(graph::Graph* graph_, processor::FactorizedTable* table_, main::ClientContext* context) {
+    void init(graph::Graph* graph_, processor::FactorizedTable* table_,
+        main::ClientContext* context) {
         graph = graph_;
         table = table_;
         initLocalState(context);
@@ -63,9 +60,9 @@ public:
 
     virtual void exec() = 0;
 
-    // TODO: We should get rid of this copy interface (e.g. using stateless design) or at least make sure
-    // the fields that cannot be copied, such as graph or factorized table and localState, are wrapped in
-    // a different class.
+    // TODO: We should get rid of this copy interface (e.g. using stateless design) or at least make
+    // sure the fields that cannot be copied, such as graph or factorized table and localState, are
+    // wrapped in a different class.
     virtual std::unique_ptr<GDSAlgorithm> copy() const = 0;
 
 protected:
@@ -78,5 +75,5 @@ protected:
     std::unique_ptr<GDSLocalState> localState;
 };
 
-}
-}
+} // namespace function
+} // namespace kuzu

@@ -22,7 +22,9 @@ NbrScanState::NbrScanState(storage::MemoryManager* mm) {
     fwdReadState->outputVectors.push_back(dstNodeIDVector.get());
 }
 
-OnDiskGraph::OnDiskGraph(main::ClientContext* context, const std::string& nodeName, const std::string& relName) : context{context} {
+OnDiskGraph::OnDiskGraph(main::ClientContext* context, const std::string& nodeName,
+    const std::string& relName)
+    : context{context} {
     auto catalog = context->getCatalog();
     auto storage = context->getStorageManager();
     auto tx = context->getTx();
@@ -49,7 +51,7 @@ std::vector<common::nodeID_t> OnDiskGraph::getNbrs(common::offset_t offset) {
     auto dstVector = nbrScanState->dstNodeIDVector.get();
     std::vector<nodeID_t> nbrs;
     relTable->initializeReadState(tx, RelDataDirection::FWD, nbrScanState->columnIDs, *readState);
-    while (nbrScanState->fwdReadState->hasMoreToRead(tx))  {
+    while (nbrScanState->fwdReadState->hasMoreToRead(tx)) {
         relTable->read(tx, *readState);
         KU_ASSERT(dstState->getSelVector().isUnfiltered());
         for (auto i = 0u; i < dstState->getSelVector().getSelSize(); ++i) {
