@@ -1,6 +1,5 @@
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
-#include "processor/operator/scan/scan_node_table.h"
 #include "processor/operator/semi_masker.h"
 #include "processor/plan_mapper.h"
 

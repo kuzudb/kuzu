@@ -1,7 +1,5 @@
 #include "storage/local_storage/local_table.h"
 
-#include <algorithm>
-
 #include "common/types/internal_id_t.h"
 #include "storage/store/chunked_node_group.h"
 

@@ -32,7 +32,7 @@ offset_t NodesStoreStatsAndDeletedIDs::getMaxNodeOffset(Transaction* transaction
     }
 }
 
-offset_t NodesStoreStatsAndDeletedIDs::addNode(table_id_t tableID) {
+std::pair<offset_t, bool> NodesStoreStatsAndDeletedIDs::addNode(table_id_t tableID) {
     lock_t lck{mtx};
     initTableStatisticsForWriteTrxNoLock();
     KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));

@@ -50,12 +50,12 @@ NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(table_id_t tableID, off
     }
 }
 
-offset_t NodeTableStatsAndDeletedIDs::addNode() {
+std::pair<offset_t, bool> NodeTableStatsAndDeletedIDs::addNode() {
     if (deletedNodeOffsetsPerVector.empty()) {
         setNumTuples(getNumTuples() + 1);
-        return getMaxNodeOffset();
+        return {getMaxNodeOffset(), true};
     }
-    // We return the last element in the first non-empty morsel we find
+    // We return the last element in the first non-empty vector we find.
     const auto iter = deletedNodeOffsetsPerVector.begin();
     auto nodeOffsetIter = iter->second.end();
     --nodeOffsetIter;
@@ -65,7 +65,7 @@ offset_t NodeTableStatsAndDeletedIDs::addNode() {
         hasDeletedNodesPerVector[iter->first] = false;
         deletedNodeOffsetsPerVector.erase(iter);
     }
-    return retVal;
+    return {retVal, false};
 }
 
 void NodeTableStatsAndDeletedIDs::deleteNode(offset_t nodeOffset) {

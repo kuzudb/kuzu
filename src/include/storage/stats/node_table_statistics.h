@@ -29,7 +29,7 @@ public:
         return getMaxNodeOffsetFromNumTuples(getNumTuples());
     }
 
-    common::offset_t addNode();
+    std::pair<common::offset_t, bool> addNode();
 
     void deleteNode(common::offset_t nodeOffset);
 

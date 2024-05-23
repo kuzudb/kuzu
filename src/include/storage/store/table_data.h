@@ -13,7 +13,8 @@ namespace storage {
 struct TableScanState;
 
 struct TableDataScanState {
-    TableDataScanState(const std::vector<common::column_id_t>& columnIDs) : columnIDs{columnIDs} {
+    explicit TableDataScanState(const std::vector<common::column_id_t>& columnIDs)
+        : columnIDs{columnIDs} {
         chunkStates.resize(this->columnIDs.size());
     };
     virtual ~TableDataScanState() = default;

@@ -140,15 +140,23 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
         ku_dynamic_cast<TableInsertState&, NodeTableInsertState&>(insertState);
     KU_ASSERT(nodeInsertState.nodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto pos = nodeInsertState.nodeIDVector.state->getSelVector()[0];
-    const auto offset = nodesStats->addNode(tableID);
+    const auto [offset, isNewNode] = nodesStats->addNode(tableID);
     nodeInsertState.nodeIDVector.setValue(pos, nodeID_t{offset, tableID});
     nodeInsertState.nodeIDVector.setNull(pos, false);
-    if (pkIndex) {
-        insertPK(nodeInsertState.nodeIDVector, nodeInsertState.pkVector);
-    }
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
-    localTable->insert(insertState);
+    if (isNewNode) {
+        if (pkIndex) {
+            insertPK(nodeInsertState.nodeIDVector, nodeInsertState.pkVector);
+        }
+        localTable->insert(insertState);
+    } else {
+        for (auto columnID = 0u; columnID < getNumColumns(); columnID++) {
+            NodeTableUpdateState updateState{columnID, nodeInsertState.nodeIDVector,
+                *nodeInsertState.propertyVectors[columnID]};
+            localTable->update(updateState);
+        }
+    }
 }
 
 void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) {

@@ -7,8 +7,6 @@
 #include "planner/operator/logical_empty_result.h"
 #include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_hash_join.h"
-#include "planner/operator/scan/logical_dummy_scan.h"
-#include "planner/operator/scan/logical_index_scan.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 
 using namespace kuzu::binder;
