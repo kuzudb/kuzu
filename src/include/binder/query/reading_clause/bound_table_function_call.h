@@ -8,12 +8,14 @@
 namespace kuzu {
 namespace binder {
 
-class BoundInQueryCall : public BoundReadingClause {
+class BoundTableFunctionCall : public BoundReadingClause {
+    static constexpr common::ClauseType clauseType_ = common::ClauseType::TABLE_FUNCTION_CALL;
+
 public:
-    BoundInQueryCall(function::TableFunction tableFunc,
+    BoundTableFunctionCall(function::TableFunction tableFunc,
         std::unique_ptr<function::TableFuncBindData> bindData,
         std::shared_ptr<Expression> rowIdxExpr, expression_vector outExprs)
-        : BoundReadingClause{common::ClauseType::IN_QUERY_CALL}, tableFunc{std::move(tableFunc)},
+        : BoundReadingClause{clauseType_}, tableFunc{std::move(tableFunc)},
           bindData{std::move(bindData)}, rowIdxExpr{std::move(rowIdxExpr)},
           outExprs{std::move(outExprs)} {}
 

@@ -62,7 +62,7 @@ static bool bindExportNodeTableDataQuery(ExportedTableData& tableData,
             if (entry.getNumProperties() == 1) {
                 return false;
             }
-            tableData.canParallel = false;
+            tableData.isParallel = false;
             continue;
         }
         exportQuery += stringFormat("a.{}", prop.getName());
@@ -106,7 +106,7 @@ bool Binder::bindExportTableData(ExportedTableData& tableData, const TableCatalo
         return false;
     }
     std::string exportQuery;
-    tableData.canParallel = true;
+    tableData.isParallel = true;
     tableData.tableName = entry.getName();
     if (!bindExportQuery(tableData, exportQuery, entry, catalog, tx)) {
         return false;
@@ -129,9 +129,6 @@ std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement
     auto& exportDB = statement.constCast<ExportDB>();
     auto boundFilePath = exportDB.getFilePath();
     auto exportData = getExportInfo(*clientContext->getCatalog(), clientContext->getTx(), this);
-    //    if (exportData.empty()) {
-    //        throw BinderException("Cannot export an empty database.");
-    //    }
     auto parsedOptions = bindParsingOptions(exportDB.getParsingOptionsRef());
     auto fileType = getFileType(parsedOptions);
     if (fileType != FileType::CSV && fileType != FileType::PARQUET) {

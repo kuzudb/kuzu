@@ -1,20 +1,20 @@
-#include "processor/operator/call/in_query_call.h"
+#include "processor/operator/table_function_call.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
 
-common::row_idx_t InQueryCallSharedState::getAndIncreaseRowIdx(uint64_t numRows) {
+common::row_idx_t TableFunctionCallSharedState::getAndIncreaseRowIdx(uint64_t numRows) {
     std::lock_guard lock{mtx};
     auto curRowIdx = nextRowIdx;
     nextRowIdx += numRows;
     return curRowIdx;
 }
 
-void InQueryCall::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void TableFunctionCall::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     // Init local state.
-    localState = InQueryCallLocalState();
+    localState = TableFunctionCallLocalState();
     // Init table function output.
     switch (info.outputType) {
     case TableScanOutputType::EMPTY:
@@ -46,12 +46,12 @@ void InQueryCall::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*
         sharedState->funcState.get()};
 }
 
-void InQueryCall::initGlobalStateInternal(ExecutionContext*) {
+void TableFunctionCall::initGlobalStateInternal(ExecutionContext*) {
     function::TableFunctionInitInput tableFunctionInitInput{info.bindData.get()};
     sharedState->funcState = info.function.initSharedStateFunc(tableFunctionInitInput);
 }
 
-bool InQueryCall::getNextTuplesInternal(ExecutionContext*) {
+bool TableFunctionCall::getNextTuplesInternal(ExecutionContext*) {
     localState.funcOutput.dataChunk.state->getSelVectorUnsafe().setSelSize(0);
     localState.funcOutput.dataChunk.resetAuxiliaryBuffer();
     auto numTuplesScanned = info.function.tableFunc(localState.funcInput, localState.funcOutput);
@@ -65,7 +65,7 @@ bool InQueryCall::getNextTuplesInternal(ExecutionContext*) {
     return numTuplesScanned != 0;
 }
 
-double InQueryCall::getProgress(ExecutionContext* /*context*/) const {
+double TableFunctionCall::getProgress(ExecutionContext* /*context*/) const {
     return info.function.progressFunc(sharedState->funcState.get());
 }
 

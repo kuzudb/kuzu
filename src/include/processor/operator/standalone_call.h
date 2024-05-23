@@ -28,7 +28,7 @@ public:
           standaloneCallInfo{std::move(localState)} {}
 
     bool isSource() const override { return true; }
-    bool canParallel() const final { return false; }
+    bool isParallel() const final { return false; }
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 

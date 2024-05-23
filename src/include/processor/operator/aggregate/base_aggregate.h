@@ -34,7 +34,7 @@ protected:
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    bool canParallel() const final { return !containDistinctAggregate(); }
+    bool isParallel() const final { return !containDistinctAggregate(); }
 
     void finalize(ExecutionContext* context) override = 0;
 

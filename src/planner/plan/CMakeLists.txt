@@ -13,7 +13,7 @@ add_library(kuzu_planner_plan_operator
         append_extend.cpp
         append_filter.cpp
         append_flatten.cpp
-        append_in_query_call.cpp
+        append_table_function_call.cpp
         append_join.cpp
         append_limit.cpp
         append_mark_accumulate.cpp

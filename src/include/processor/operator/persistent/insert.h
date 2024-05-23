@@ -14,7 +14,7 @@ public:
         : PhysicalOperator{PhysicalOperatorType::INSERT, std::move(child), id, paramsString},
           nodeExecutors{std::move(nodeExecutors)}, relExecutors{std::move(relExecutors)} {}
 
-    inline bool canParallel() const final { return false; }
+    inline bool isParallel() const final { return false; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 

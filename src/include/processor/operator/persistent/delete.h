@@ -13,7 +13,7 @@ public:
         : PhysicalOperator{PhysicalOperatorType::DELETE_, std::move(child), id, paramsString},
           executors{std::move(executors)} {}
 
-    bool canParallel() const final { return false; }
+    bool isParallel() const final { return false; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 
@@ -32,7 +32,7 @@ public:
         : PhysicalOperator{PhysicalOperatorType::DELETE_, std::move(child), id, paramsString},
           executors{std::move(executors)} {}
 
-    bool canParallel() const final { return false; }
+    bool isParallel() const final { return false; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 

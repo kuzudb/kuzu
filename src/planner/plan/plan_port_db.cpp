@@ -34,7 +34,7 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
                                                           copyToSuffix,
             fileType, exportTableData.columnNames, exportTableData.getColumnTypesRef(),
             boundExportDatabase.getCopyOption(), tablePlan->getLastOperator(),
-            exportTableData.canParallel);
+            exportTableData.isParallel);
         logicalOperators.push_back(std::move(copyTo));
     }
     auto exportDatabase =

@@ -22,7 +22,7 @@ void CopyTo::executeInternal(processor::ExecutionContext* context) {
     localState->finalize(sharedState.get());
 }
 
-bool CopyTo::canParallel() const {
+bool CopyTo::isParallel() const {
     return info->canParallel;
 }
 

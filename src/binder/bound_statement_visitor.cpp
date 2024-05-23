@@ -168,8 +168,8 @@ void BoundStatementVisitor::visitReadingClause(const BoundReadingClause& reading
     case ClauseType::UNWIND: {
         visitUnwind(readingClause);
     } break;
-    case ClauseType::IN_QUERY_CALL: {
-        visitInQueryCall(readingClause);
+    case ClauseType::TABLE_FUNCTION_CALL: {
+        visitTableFunctionCall(readingClause);
     } break;
     case ClauseType::GDS_CALL: {
         visitGDSCall(readingClause);
@@ -190,8 +190,8 @@ void BoundStatementVisitor::visitReadingClauseUnsafe(BoundReadingClause& reading
     case ClauseType::UNWIND: {
         visitUnwind(readingClause);
     } break;
-    case ClauseType::IN_QUERY_CALL: {
-        visitInQueryCall(readingClause);
+    case ClauseType::TABLE_FUNCTION_CALL: {
+        visitTableFunctionCall(readingClause);
     } break;
     case ClauseType::GDS_CALL: {
         visitGDSCall(readingClause);

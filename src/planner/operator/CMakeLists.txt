@@ -19,7 +19,7 @@ add_library(kuzu_planner_operator
         logical_filter.cpp
         logical_flatten.cpp
         logical_hash_join.cpp
-        logical_in_query_call.cpp
+        logical_table_function_call.cpp
         logical_intersect.cpp
         logical_limit.cpp
         logical_mark_accumulate.cpp

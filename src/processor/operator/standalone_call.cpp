@@ -1,4 +1,4 @@
-#include "processor/operator/call/standalone_call.h"
+#include "processor/operator/standalone_call.h"
 
 #include "common/cast.h"
 

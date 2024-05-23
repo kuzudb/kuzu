@@ -1,6 +1,6 @@
 #include "binder/expression/literal_expression.h"
 #include "planner/operator/logical_standalone_call.h"
-#include "processor/operator/call/standalone_call.h"
+#include "processor/operator/standalone_call.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::planner;
