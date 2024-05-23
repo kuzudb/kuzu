@@ -201,11 +201,14 @@ std::unique_ptr<Statement> Transformer::transformRenameProperty(
 }
 
 std::vector<PropertyDefinition> Transformer::transformPropertyDefinitions(
-    CypherParser::KU_PropertyDefinitionsContext& ctx) {
+    CypherParser::KU_PropertyDefinitionsContext& ctx, bool defaultAllowed) {
     std::vector<PropertyDefinition> propertyDefns;
     for (auto property : ctx.kU_PropertyDefinition()) {
         std::unique_ptr<ParsedExpression> defaultValue = nullptr;
         if (property->oC_Expression()) {
+            if (!defaultAllowed) { 
+                throw ParserException("DEFAULT is not supported here.");
+            }
             defaultValue = transformExpression(*property->oC_Expression());
         }
         propertyDefns.emplace_back(transformPropertyKeyName(*property->oC_PropertyKeyName()),

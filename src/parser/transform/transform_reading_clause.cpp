@@ -57,7 +57,7 @@ std::unique_ptr<ReadingClause> Transformer::transformLoadFrom(
     auto loadFrom = std::make_unique<LoadFrom>(std::move(source));
     if (ctx.kU_PropertyDefinitions()) {
         loadFrom->setPropertyDefinitions(
-            transformPropertyDefinitions(*ctx.kU_PropertyDefinitions()));
+            transformPropertyDefinitions(*ctx.kU_PropertyDefinitions(), false));
     }
     if (ctx.kU_ParsingOptions()) {
         loadFrom->setParingOptions(transformOptions(*ctx.kU_ParsingOptions()->kU_Options()));

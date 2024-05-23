@@ -202,7 +202,7 @@ private:
     std::string transformDataType(CypherParser::KU_DataTypeContext& ctx);
     std::string transformPrimaryKey(CypherParser::KU_CreateNodeConstraintContext& ctx);
     std::vector<PropertyDefinition> transformPropertyDefinitions(
-        CypherParser::KU_PropertyDefinitionsContext& ctx);
+        CypherParser::KU_PropertyDefinitionsContext& ctx, bool defaultAllowed = true);
 
     // Transform standalone call.
     std::unique_ptr<Statement> transformStandaloneCall(CypherParser::KU_StandaloneCallContext& ctx);
