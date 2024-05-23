@@ -115,9 +115,7 @@ public:
     virtual bool isSink() const { return false; }
     virtual bool isParallel() const { return true; }
 
-    void addChild(std::unique_ptr<PhysicalOperator> op) {
-        children.push_back(std::move(op));
-    }
+    void addChild(std::unique_ptr<PhysicalOperator> op) { children.push_back(std::move(op)); }
     PhysicalOperator* getChild(uint64_t idx) const { return children[idx].get(); }
     uint64_t getNumChildren() const { return children.size(); }
     std::unique_ptr<PhysicalOperator> moveUnaryChild();

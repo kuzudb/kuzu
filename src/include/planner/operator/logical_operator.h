@@ -108,7 +108,6 @@ public:
     virtual std::unique_ptr<LogicalOperator> copy() = 0;
     static logical_op_vector_t copy(const logical_op_vector_t& ops);
 
-
     template<class TARGET>
     const TARGET& constCast() const {
         return common::ku_dynamic_cast<const LogicalOperator&, const TARGET&>(*this);

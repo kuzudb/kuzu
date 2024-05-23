@@ -8,7 +8,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapTableFunctionCall(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapTableFunctionCall(
+    LogicalOperator* logicalOperator) {
     auto& call = logicalOperator->constCast<LogicalTableFunctionCall>();
     std::vector<DataPos> outPosV;
     auto outSchema = call.getSchema();

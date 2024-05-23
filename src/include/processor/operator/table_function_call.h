@@ -53,11 +53,13 @@ private:
 
 class TableFunctionCall : public PhysicalOperator {
 public:
-    TableFunctionCall(TableFunctionCallInfo info, std::shared_ptr<TableFunctionCallSharedState> sharedState,
-        uint32_t id, const std::string& paramsString)
+    TableFunctionCall(TableFunctionCallInfo info,
+        std::shared_ptr<TableFunctionCallSharedState> sharedState, uint32_t id,
+        const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::IN_QUERY_CALL, id, paramsString},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
-    TableFunctionCall(TableFunctionCallInfo info, std::shared_ptr<TableFunctionCallSharedState> sharedState,
+    TableFunctionCall(TableFunctionCallInfo info,
+        std::shared_ptr<TableFunctionCallSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::IN_QUERY_CALL, std::move(child), id, paramsString},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}

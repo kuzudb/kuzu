@@ -16,8 +16,7 @@ public:
     bool isSource() const final { return true; }
     bool isParallel() const final { return false; }
 
-    void initLocalStateInternal(ResultSet* /*resultSet_*/,
-        ExecutionContext* /*context*/) final {
+    void initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) final {
         hasExecuted = false;
     }
 

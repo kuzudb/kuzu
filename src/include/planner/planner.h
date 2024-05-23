@@ -292,7 +292,8 @@ private:
 
     // Get operators
     std::shared_ptr<LogicalOperator> getScanFile(const binder::BoundFileScanInfo* info);
-    std::shared_ptr<LogicalOperator> getTableFunctionCall(const binder::BoundReadingClause& readingClause);
+    std::shared_ptr<LogicalOperator> getTableFunctionCall(
+        const binder::BoundReadingClause& readingClause);
     std::shared_ptr<LogicalOperator> getGDSCall(const binder::BoundReadingClause& readingClause);
 
     std::unique_ptr<LogicalPlan> createUnionPlan(

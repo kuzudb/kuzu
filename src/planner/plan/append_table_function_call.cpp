@@ -7,10 +7,11 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-std::shared_ptr<LogicalOperator> Planner::getTableFunctionCall(const BoundReadingClause& readingClause) {
+std::shared_ptr<LogicalOperator> Planner::getTableFunctionCall(
+    const BoundReadingClause& readingClause) {
     auto& call = readingClause.constCast<BoundTableFunctionCall>();
-    return std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(), call.getBindData()->copy(),
-        call.getOutExprs(), call.getRowIdxExpr());
+    return std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(),
+        call.getBindData()->copy(), call.getOutExprs(), call.getRowIdxExpr());
 }
 
 } // namespace planner

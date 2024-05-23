@@ -108,8 +108,8 @@ void Planner::planTableFunctionCall(const BoundReadingClause& readingClause,
     auto& call = readingClause.constCast<BoundTableFunctionCall>();
     expression_vector predicatesToPull;
     expression_vector predicatesToPush;
-    splitPredicates(call.getOutExprs(), call.getConjunctivePredicates(),
-        predicatesToPull, predicatesToPush);
+    splitPredicates(call.getOutExprs(), call.getConjunctivePredicates(), predicatesToPull,
+        predicatesToPush);
     // Empty join condition. Table functions do not take input from previous scope.
     expression_vector joinConditions;
     for (auto& plan : plans) {

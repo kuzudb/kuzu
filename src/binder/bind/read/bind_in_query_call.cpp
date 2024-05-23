@@ -58,8 +58,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         }
         auto offset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
             std::string(InternalKeyword::ROW_OFFSET));
-        boundReadingClause = std::make_unique<BoundTableFunctionCall>(*tableFunc, std::move(bindData),
-            std::move(offset), std::move(outExprs));
+        boundReadingClause = std::make_unique<BoundTableFunctionCall>(*tableFunc,
+            std::move(bindData), std::move(offset), std::move(outExprs));
     } break;
     case CatalogEntryType::GDS_FUNCTION_ENTRY: {
         auto gdsFunc = *func->constPtrCast<GDSFunction>();
