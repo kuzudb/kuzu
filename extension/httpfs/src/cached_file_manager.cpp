@@ -47,16 +47,16 @@ std::string CachedFileManager::getCachedFilePath(const std::string& originalFile
     return common::stringFormat("{}/{}-{}", cacheDir, originalFileName, std::time(nullptr));
 }
 
-void CachedFileManager::downloadFile(HTTPFileInfo* fileToDownload, FileInfo* info) {
+void CachedFileManager::downloadFile(HTTPFileInfo* fileToDownload, FileInfo* cacheFileInfo) {
     uint64_t numBytesRead;
     uint64_t offsetToWrite = 0;
     do {
         numBytesRead = fileToDownload->readFile(downloadBuffer.get(), MAX_SEGMENT_SIZE);
-        info->writeFile(downloadBuffer.get(), numBytesRead, offsetToWrite);
+        cacheFileInfo->writeFile(downloadBuffer.get(), numBytesRead, offsetToWrite);
         offsetToWrite += numBytesRead;
     } while (numBytesRead != 0);
     fileToDownload->seek(0, SEEK_SET /* whence is unused by http filesystem seek */);
-    info->syncFile();
+    cacheFileInfo->syncFile();
 }
 
 } // namespace httpfs

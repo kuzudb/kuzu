@@ -22,9 +22,7 @@ struct CachedFile {
 
 class CachedFileManager {
 public:
-    // Typical MTU size is 1500 bytes(including the headers). To avoid fragmentation and ensure
-    // optimal performance, we choose to use a safer value of 1300 bytes.
-    static constexpr uint64_t MAX_SEGMENT_SIZE = 1300;
+    static constexpr uint64_t MAX_SEGMENT_SIZE = 50000000; // 50MB
 
 public:
     explicit CachedFileManager(main::ClientContext* context);
@@ -37,7 +35,7 @@ public:
 
 private:
     std::string getCachedFilePath(const std::string& originalFileName);
-    void downloadFile(HTTPFileInfo* fileToDownload, common::FileInfo* info);
+    void downloadFile(HTTPFileInfo* fileToDownload, common::FileInfo* cacheFileInfo);
 
 private:
     common::case_insensitive_map_t<std::unique_ptr<CachedFile>> cachedFiles;
