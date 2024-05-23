@@ -37,7 +37,7 @@ public:
     common::property_id_t getPropertyID() const { return propertyID; }
     common::column_id_t getColumnID() const { return columnID; }
     common::table_id_t getTableID() const { return tableID; }
-    std::unique_ptr<parser::ParsedExpression> getDefaultExpr() const { return defaultExpr->copy(); }
+    const parser::ParsedExpression* getDefaultExpr() const { return defaultExpr.get(); }
 
     void rename(std::string newName) { name = std::move(newName); }
 

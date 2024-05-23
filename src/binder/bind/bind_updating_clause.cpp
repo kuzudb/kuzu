@@ -143,6 +143,9 @@ std::vector<BoundInsertInfo> Binder::bindInsertInfos(QueryGraphCollection& query
 static void validatePrimaryKeyExistence(const NodeTableCatalogEntry* nodeTableEntry,
     const NodeExpression& node) {
     auto primaryKey = nodeTableEntry->getPrimaryKey();
+    if (primaryKey->getDefaultExpr()->getRawName() != "NULL") {
+        return; // This column has a non-NULL default value expr for PKey
+    }
     if (*primaryKey->getDataType() == *LogicalType::SERIAL()) {
         if (node.hasPropertyDataExpr(primaryKey->getName())) {
             throw BinderException(
