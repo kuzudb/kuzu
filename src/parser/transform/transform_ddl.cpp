@@ -211,7 +211,7 @@ std::vector<PropertyDefinition> Transformer::transformPropertyDefinitions(
         propertyDefns.emplace_back(transformPropertyKeyName(*property->oC_PropertyKeyName()),
             transformDataType(*property->kU_DataType()), std::move(defaultValue));
     }
-    return std::move(propertyDefns);
+    return propertyDefns;
 }
 
 std::string Transformer::transformDataType(CypherParser::KU_DataTypeContext& ctx) {
