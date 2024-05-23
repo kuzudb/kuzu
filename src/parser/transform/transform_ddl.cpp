@@ -200,8 +200,8 @@ std::unique_ptr<Statement> Transformer::transformRenameProperty(
     return std::make_unique<Alter>(std::move(info));
 }
 
-std::vector<PropertyDefinition>
-Transformer::transformPropertyDefinitions(CypherParser::KU_PropertyDefinitionsContext& ctx) {
+std::vector<PropertyDefinition> Transformer::transformPropertyDefinitions(
+    CypherParser::KU_PropertyDefinitionsContext& ctx) {
     std::vector<PropertyDefinition> propertyDefns;
     for (auto property : ctx.kU_PropertyDefinition()) {
         std::unique_ptr<ParsedExpression> defaultValue = nullptr;

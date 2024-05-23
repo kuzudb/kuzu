@@ -39,7 +39,8 @@ static void validateUniquePropertyName(const std::vector<PropertyInfo>& infos) {
     }
 }
 
-std::vector<PropertyInfo> Binder::bindPropertyInfo(const std::vector<PropertyDefinition>& propertyDefinitions) {
+std::vector<PropertyInfo> Binder::bindPropertyInfo(
+    const std::vector<PropertyDefinition>& propertyDefinitions) {
     std::vector<PropertyInfo> propertyInfos;
     propertyInfos.reserve(propertyDefinitions.size());
     for (auto& propertyDef : propertyDefinitions) {

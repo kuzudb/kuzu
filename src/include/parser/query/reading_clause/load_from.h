@@ -1,7 +1,7 @@
 #pragma once
 
-#include "parser/expression/parsed_expression.h"
 #include "parser/ddl/create_table_info.h"
+#include "parser/expression/parsed_expression.h"
 #include "parser/scan_source.h"
 #include "reading_clause.h"
 
