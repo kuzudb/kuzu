@@ -190,10 +190,17 @@ void LocalFileSystem::createDir(const std::string& dir) const {
 void LocalFileSystem::removeFileIfExists(const std::string& path) {
     if (!fileOrPathExists(path))
         return;
-    if (remove(path.c_str()) != 0) {
+    std::error_code errCode;
+    bool success;
+    if (std::filesystem::is_directory(path)) {
+        success = std::filesystem::remove_all(path, errCode);
+    } else {
+        success = std::filesystem::remove(path, errCode);
+    }
+    if (!success) {
         // LCOV_EXCL_START
         throw IOException(stringFormat("Error removing directory or file {}.  Error Message: {}",
-            path, posixErrMessage()));
+            path, errCode.message()));
         // LCOV_EXCL_STOP
     }
 }

@@ -36,9 +36,6 @@ std::unique_ptr<FileInfo> CachedFileManager::getCachedFileInfo(HTTPFileInfo* htt
     return vfs->openFile(cacheFilePath, O_RDONLY);
 }
 
-// ldbc10:  kuzu:      attach:  2.32s, scan  1.957s
-//          duckdb:    attach:
-
 std::string CachedFileManager::getCachedFilePath(const std::string& originalFileName,
     common::transaction_t transactionID) {
     return common::stringFormat("{}/{}/{}", cacheDir, transactionID, originalFileName);
