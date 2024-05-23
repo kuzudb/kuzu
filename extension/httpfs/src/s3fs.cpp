@@ -125,10 +125,9 @@ std::unique_ptr<common::FileInfo> S3FileSystem::openFile(const std::string& path
     main::ClientContext* context, common::FileLockType /*lock_type*/) {
     auto authParams = getS3AuthParams(context);
     auto uploadParams = getS3UploadParams(context);
+    initCachedFileManager(context);
     auto s3FileInfo =
         std::make_unique<S3FileInfo>(path, this, flags, context, authParams, uploadParams);
-    // TODO(Ziyi): Enable cache for s3.
-    s3FileInfo->httpConfig.cacheFile = false;
     s3FileInfo->initialize();
     return s3FileInfo;
 }

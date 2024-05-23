@@ -99,7 +99,7 @@ protected:
     }
 
     void readFromFile(const std::string& dbPath, common::FileVersionType dbFileType,
-        common::VirtualFileSystem* fs);
+        common::VirtualFileSystem* fs, main::ClientContext* context);
 
     void initTableStatisticsForWriteTrxNoLock();
 

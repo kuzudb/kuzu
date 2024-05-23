@@ -23,7 +23,7 @@ public:
 
     // Create empty hash index file for the new node table.
     static void createEmptyHashIndexFiles(catalog::NodeTableCatalogEntry* nodeTableEntry,
-        const std::string& directory, common::VirtualFileSystem* vfs);
+        const std::string& directory, common::VirtualFileSystem* vfs, main::ClientContext* context);
 };
 
 } // namespace storage

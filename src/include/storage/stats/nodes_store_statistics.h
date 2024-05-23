@@ -14,7 +14,8 @@ class NodesStoreStatsAndDeletedIDs : public TablesStatistics {
 public:
     // Should be used when an already loaded database is started from a directory.
     NodesStoreStatsAndDeletedIDs(const std::string& databasePath, BMFileHandle* metadataFH,
-        BufferManager* bufferManager, WAL* wal, common::VirtualFileSystem* fs);
+        BufferManager* bufferManager, WAL* wal, common::VirtualFileSystem* fs,
+        main::ClientContext* context);
 
     NodeTableStatsAndDeletedIDs* getNodeStatisticsAndDeletedIDs(
         transaction::Transaction* transaction, common::table_id_t tableID) const {

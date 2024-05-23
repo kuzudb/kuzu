@@ -12,6 +12,7 @@ CachedFileManager::CachedFileManager(main::ClientContext* context) : vfs{context
     if (!vfs->fileOrPathExists(cacheDir, context)) {
         vfs->createDir(cacheDir);
     }
+    downloadBuffer = std::make_unique<uint8_t[]>(MAX_SEGMENT_SIZE);
 }
 
 CachedFileManager::~CachedFileManager() {
@@ -19,13 +20,14 @@ CachedFileManager::~CachedFileManager() {
     localFileSystem->removeFileIfExists(cacheDir);
 }
 
-common::FileInfo* CachedFileManager::getCachedFileInfo(const std::string& path) {
+common::FileInfo* CachedFileManager::getCachedFileInfo(HTTPFileInfo* httpFileInfo) {
     std::unique_lock<std::mutex> lck{mtx};
+    auto path = httpFileInfo->path;
     if (!cachedFiles.contains(path)) {
         auto fileName = FileSystem::getFileName(path);
         auto cachedFilePath = getCachedFilePath(fileName);
         auto fileInfo = vfs->openFile(cachedFilePath, O_CREAT | O_RDWR);
-        downloadFile(path, fileInfo.get());
+        downloadFile(httpFileInfo, fileInfo.get());
         cachedFiles.emplace(path, std::make_unique<CachedFile>(std::move(fileInfo)));
     }
     cachedFiles.at(path)->counter++;
@@ -45,13 +47,16 @@ std::string CachedFileManager::getCachedFilePath(const std::string& originalFile
     return common::stringFormat("{}/{}-{}", cacheDir, originalFileName, std::time(nullptr));
 }
 
-void CachedFileManager::downloadFile(const std::string& path, FileInfo* info) {
-    auto url = HTTPFileSystem::parseUrl(path);
-    httplib::Client cli(url.first);
-    httplib::Headers headers = {{}};
-    auto fileContent = cli.Get(url.second, headers)->body;
-    info->writeFile(reinterpret_cast<const uint8_t*>(fileContent.c_str()), fileContent.size(),
-        0 /* offset */);
+void CachedFileManager::downloadFile(HTTPFileInfo* fileToDownload, FileInfo* cacheFileInfo) {
+    uint64_t numBytesRead;
+    uint64_t offsetToWrite = 0;
+    do {
+        numBytesRead = fileToDownload->readFile(downloadBuffer.get(), MAX_SEGMENT_SIZE);
+        cacheFileInfo->writeFile(downloadBuffer.get(), numBytesRead, offsetToWrite);
+        offsetToWrite += numBytesRead;
+    } while (numBytesRead != 0);
+    fileToDownload->seek(0, SEEK_SET /* whence is unused by http filesystem seek */);
+    cacheFileInfo->syncFile();
 }
 
 } // namespace httpfs

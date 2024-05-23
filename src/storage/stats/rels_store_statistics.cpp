@@ -11,11 +11,12 @@ namespace kuzu {
 namespace storage {
 
 RelsStoreStats::RelsStoreStats(const std::string& databasePath, BMFileHandle* metadataFH,
-    BufferManager* bufferManager, WAL* wal, VirtualFileSystem* fs)
+    BufferManager* bufferManager, WAL* wal, VirtualFileSystem* fs, main::ClientContext* context)
     : TablesStatistics{metadataFH, bufferManager, wal} {
     if (fs->fileOrPathExists(
-            StorageUtils::getRelsStatisticsFilePath(fs, databasePath, FileVersionType::ORIGINAL))) {
-        readFromFile(databasePath, FileVersionType::ORIGINAL, fs);
+            StorageUtils::getRelsStatisticsFilePath(fs, databasePath, FileVersionType::ORIGINAL),
+            context)) {
+        readFromFile(databasePath, FileVersionType::ORIGINAL, fs, context);
     } else {
         saveToFile(databasePath, FileVersionType::ORIGINAL, TransactionType::READ_ONLY, fs);
     }

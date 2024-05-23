@@ -147,7 +147,7 @@ public:
 
     BMFileHandle(const std::string& path, uint8_t flags, BufferManager* bm,
         common::PageSizeClass pageSizeClass, FileVersionedType fileVersionedType,
-        common::VirtualFileSystem* vfs);
+        common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     ~BMFileHandle() override;
 

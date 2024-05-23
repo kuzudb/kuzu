@@ -15,7 +15,7 @@ namespace common {
 class KUZU_API VirtualFileSystem final : public FileSystem {
 
 public:
-    explicit VirtualFileSystem(main::Database* database);
+    VirtualFileSystem();
 
     ~VirtualFileSystem() override;
 
@@ -61,8 +61,6 @@ private:
 private:
     std::vector<std::unique_ptr<FileSystem>> subSystems;
     std::unique_ptr<FileSystem> defaultFS;
-    // The default clientContext which is created when the database starts.
-    std::unique_ptr<main::ClientContext> context;
 };
 
 } // namespace common

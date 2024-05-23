@@ -61,11 +61,11 @@ class StorageManager;
 class NodeTable final : public Table {
 public:
     NodeTable(StorageManager* storageManager, catalog::NodeTableCatalogEntry* nodeTableEntry,
-        MemoryManager* memoryManager, common::VirtualFileSystem* vfs);
+        MemoryManager* memoryManager, common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     void initializePKIndex(const std::string& databasePath,
         catalog::NodeTableCatalogEntry* nodeTableEntry, bool readOnly,
-        common::VirtualFileSystem* vfs);
+        common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     common::offset_t getMaxNodeOffset(transaction::Transaction* transaction) const {
         auto nodesStats = common::ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(

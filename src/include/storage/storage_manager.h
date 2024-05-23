@@ -17,15 +17,16 @@ namespace storage {
 class StorageManager {
 public:
     StorageManager(const std::string& databasePath, bool readOnly, const catalog::Catalog& catalog,
-        MemoryManager& memoryManager, bool enableCompression, common::VirtualFileSystem* vfs);
+        MemoryManager& memoryManager, bool enableCompression, common::VirtualFileSystem* vfs,
+        main::ClientContext* context);
 
     static void recover(main::ClientContext& clientContext);
 
     void createTable(common::table_id_t tableID, catalog::Catalog* catalog,
-        transaction::Transaction* transaction);
-    void dropTable(common::table_id_t tableID);
+        main::ClientContext* context);
+    void dropTable(common::table_id_t tableID, common::VirtualFileSystem* vfs);
 
-    void prepareCommit(transaction::Transaction* transaction);
+    void prepareCommit(transaction::Transaction* transaction, common::VirtualFileSystem* vfs);
     void prepareRollback();
     void checkpointInMemory();
     void rollbackInMemory();
@@ -53,16 +54,19 @@ public:
     bool compressionEnabled() const { return enableCompression; }
 
 private:
-    std::unique_ptr<BMFileHandle> initFileHandle(const std::string& filename);
+    std::unique_ptr<BMFileHandle> initFileHandle(const std::string& filename,
+        common::VirtualFileSystem* vfs, main::ClientContext* context);
 
-    void loadTables(const catalog::Catalog& catalog);
-    void createNodeTable(common::table_id_t tableID, catalog::NodeTableCatalogEntry* tableSchema);
+    void loadTables(const catalog::Catalog& catalog, common::VirtualFileSystem* vfs,
+        main::ClientContext* context);
+    void createNodeTable(common::table_id_t tableID, catalog::NodeTableCatalogEntry* tableSchema,
+        main::ClientContext* context);
     void createRelTable(common::table_id_t tableID, catalog::RelTableCatalogEntry* tableSchema,
         catalog::Catalog* catalog, transaction::Transaction* transaction);
     void createRelTableGroup(common::table_id_t tableID, catalog::RelGroupCatalogEntry* tableSchema,
         catalog::Catalog* catalog, transaction::Transaction* transaction);
     void createRdfGraph(common::table_id_t tableID, catalog::RDFGraphCatalogEntry* tableSchema,
-        catalog::Catalog* catalog, transaction::Transaction* transaction);
+        catalog::Catalog* catalog, main::ClientContext* context);
 
 private:
     std::string databasePath;
@@ -75,7 +79,6 @@ private:
     MemoryManager& memoryManager;
     std::unique_ptr<WAL> wal;
     bool enableCompression;
-    common::VirtualFileSystem* vfs;
 };
 
 } // namespace storage

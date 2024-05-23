@@ -4,6 +4,10 @@
 #include "common/cast.h"
 
 namespace kuzu {
+namespace main {
+class AttachedKuzuDatabase;
+} // namespace main
+
 namespace binder {
 struct BoundAlterInfo;
 struct BoundCreateTableInfo;
@@ -32,6 +36,8 @@ class RDFGraphCatalogEntry;
 class SequenceCatalogEntry;
 
 class Catalog {
+    friend class main::AttachedKuzuDatabase;
+
 public:
     // This is extended by DuckCatalog and PostgresCatalog.
     KUZU_API Catalog();
@@ -104,8 +110,10 @@ public:
     }
 
 private:
+    // The clientContext needs to be used when reading from a remote filesystem which
+    // requires some user-specific configs (e.g. s3 username, password).
     void readFromFile(const std::string& directory, common::VirtualFileSystem* fs,
-        common::FileVersionType versionType);
+        common::FileVersionType versionType, main::ClientContext* context = nullptr);
     void saveToFile(const std::string& directory, common::VirtualFileSystem* fs,
         common::FileVersionType versionType);
 

@@ -7,18 +7,6 @@ namespace httpfs {
 
 HTTPConfig::HTTPConfig(main::ClientContext* context) {
     KU_ASSERT(context != nullptr);
-    if (!context->isOptionSet(HTTPCacheInMemoryConfig::HTTP_CACHE_FILE_OPTION)) {
-        auto cacheInMemoryEnvVal =
-            context->getEnvVariable(HTTPCacheInMemoryConfig::HTTP_CACHE_FILE_ENV_VAR);
-        if (cacheInMemoryEnvVal != "") {
-            bool cacheInMemory;
-            function::CastString::operation(
-                ku_string_t{cacheInMemoryEnvVal.c_str(), cacheInMemoryEnvVal.length()},
-                cacheInMemory);
-            context->setExtensionOption(HTTPCacheInMemoryConfig::HTTP_CACHE_FILE_OPTION,
-                Value::createValue(cacheInMemory));
-        }
-    }
     cacheFile = context->getCurrentSetting(HTTPCacheInMemoryConfig::HTTP_CACHE_FILE_OPTION)
                     .getValue<bool>();
 }

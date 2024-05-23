@@ -88,10 +88,11 @@ class OverflowFile {
 public:
     // For reading an existing overflow file
     OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager* bufferManager, WAL* wal,
-        bool readOnly, common::VirtualFileSystem* vfs);
+        bool readOnly, common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     // For creating an overflow file from scratch
-    static void createEmptyFiles(const std::string& fName, common::VirtualFileSystem* vfs);
+    static void createEmptyFiles(const std::string& fName, common::VirtualFileSystem* vfs,
+        main::ClientContext* context);
 
     // Handles contain a reference to the overflow file
     OverflowFile(OverflowFile&& other) = delete;

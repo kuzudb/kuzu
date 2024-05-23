@@ -18,7 +18,7 @@ static std::string getCatalogNameFromPath(const std::string& dbPath) {
 }
 
 static void validateDuckDBPathExistence(const std::string& dbPath, main::ClientContext* context) {
-    auto vfs = std::make_unique<common::VirtualFileSystem>(context->getDatabase());
+    auto vfs = std::make_unique<common::VirtualFileSystem>();
     if (!vfs->fileOrPathExists(dbPath, context)) {
         throw common::RuntimeException{
             common::stringFormat("'{}' is not a valid duckdb database path.", dbPath)};

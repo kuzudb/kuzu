@@ -18,7 +18,7 @@ namespace kuzu {
 namespace storage {
 
 NodeTable::NodeTable(StorageManager* storageManager, NodeTableCatalogEntry* nodeTableEntry,
-    MemoryManager* memoryManager, VirtualFileSystem* vfs)
+    MemoryManager* memoryManager, VirtualFileSystem* vfs, main::ClientContext* context)
     : Table{nodeTableEntry, storageManager->getNodesStatisticsAndDeletedIDs(), memoryManager,
           &storageManager->getWAL()},
       pkColumnID{nodeTableEntry->getColumnID(nodeTableEntry->getPrimaryKeyPID())} {
@@ -27,17 +27,18 @@ NodeTable::NodeTable(StorageManager* storageManager, NodeTableCatalogEntry* node
         nodeTableEntry->getPropertiesRef(), storageManager->getNodesStatisticsAndDeletedIDs(),
         storageManager->compressionEnabled());
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
-        storageManager->isReadOnly(), vfs);
+        storageManager->isReadOnly(), vfs, context);
 }
 
 void NodeTable::initializePKIndex(const std::string& databasePath,
-    NodeTableCatalogEntry* nodeTableEntry, bool readOnly, VirtualFileSystem* vfs) {
+    NodeTableCatalogEntry* nodeTableEntry, bool readOnly, VirtualFileSystem* vfs,
+    main::ClientContext* context) {
     if (nodeTableEntry->getPrimaryKey()->getDataType()->getLogicalTypeID() !=
         LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndex>(
             StorageUtils::getNodeIndexIDAndFName(vfs, databasePath, tableID), readOnly,
             nodeTableEntry->getPrimaryKey()->getDataType()->getPhysicalType(), *bufferManager, wal,
-            vfs);
+            vfs, context);
     }
 }
 

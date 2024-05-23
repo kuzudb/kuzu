@@ -235,7 +235,7 @@ class PrimaryKeyIndex {
 public:
     PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
         common::PhysicalTypeID keyDataType, BufferManager& bufferManager, WAL* wal,
-        common::VirtualFileSystem* vfs);
+        common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     void initHashIndices();
 
@@ -314,10 +314,10 @@ public:
     BMFileHandle* getFileHandle() { return fileHandle.get(); }
     OverflowFile* getOverflowFile() { return overflowFile.get(); }
 
-    inline common::PhysicalTypeID keyTypeID() { return keyDataTypeID; }
+    common::PhysicalTypeID keyTypeID() { return keyDataTypeID; }
 
     static void createEmptyHashIndexFiles(common::PhysicalTypeID typeID, const std::string& fName,
-        common::VirtualFileSystem* vfs);
+        common::VirtualFileSystem* vfs, main::ClientContext* context);
 
 private:
     // When doing batch inserts, prepareCommit needs to be run before the COPY TABLE record is

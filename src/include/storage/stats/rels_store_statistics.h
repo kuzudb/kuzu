@@ -12,7 +12,8 @@ class RelsStoreStats : public TablesStatistics {
 public:
     // Should be used when an already loaded database is started from a directory.
     RelsStoreStats(const std::string& databasePath, BMFileHandle* metadataFH,
-        BufferManager* bufferManager, WAL* wal, common::VirtualFileSystem* vfs);
+        BufferManager* bufferManager, WAL* wal, common::VirtualFileSystem* vfs,
+        main::ClientContext* context);
 
     RelTableStats* getRelStatistics(common::table_id_t tableID,
         transaction::Transaction* transaction) const {

@@ -114,7 +114,7 @@ void HTTPFileInfo::initialize() {
         }
     }
     if (httpConfig.cacheFile) {
-        cachedFileInfo = hfs->getCachedFileManager().getCachedFileInfo(path);
+        cachedFileInfo = hfs->getCachedFileManager().getCachedFileInfo(this);
     }
 }
 
