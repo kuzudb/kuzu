@@ -48,7 +48,7 @@ public:
         : ScanTable{PhysicalOperatorType::SCAN_NODE_TABLE, inVectorPos, std::move(outVectorsPos),
               id, paramsString},
           currentTableIdx{0}, infos{std::move(infos)}, sharedStates{std::move(sharedStates)} {
-        KU_ASSERT(infos.size() == sharedStates.size());
+        KU_ASSERT(this->infos.size() == this->sharedStates.size());
     }
 
     bool isSource() const override { return true; }
