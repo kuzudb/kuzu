@@ -115,9 +115,11 @@ public:
                                                             bwdRelTableData->getColumns();
     }
 
-    void append(ChunkedNodeGroup* nodeGroup, common::RelDataDirection direction) {
-        direction == common::RelDataDirection::FWD ? fwdRelTableData->append(nodeGroup) :
-                                                     bwdRelTableData->append(nodeGroup);
+    void append(transaction::Transaction* transaction, ChunkedNodeGroup* nodeGroup,
+        common::RelDataDirection direction) {
+        direction == common::RelDataDirection::FWD ?
+            fwdRelTableData->append(transaction, nodeGroup) :
+            bwdRelTableData->append(transaction, nodeGroup);
     }
 
     bool isNewNodeGroup(transaction::Transaction* transaction,

@@ -304,12 +304,19 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction, offset_t nodeOff
     return length > 0;
 }
 
-void RelTableData::append(ChunkedNodeGroup* nodeGroup) {
+void RelTableData::append(Transaction* transaction, ChunkedNodeGroup* nodeGroup) {
     auto csrNodeGroup = ku_dynamic_cast<ChunkedNodeGroup*, ChunkedCSRNodeGroup*>(nodeGroup);
-    csrHeaderColumns.append(csrNodeGroup->getCSRHeader(), nodeGroup->getNodeGroupIdx());
+    Column::ChunkState csrOffsetState, csrLengthState;
+    csrHeaderColumns.offset->initChunkState(transaction, csrNodeGroup->getNodeGroupIdx(),
+        csrOffsetState);
+    csrHeaderColumns.length->initChunkState(transaction, csrNodeGroup->getNodeGroupIdx(),
+        csrLengthState);
+    csrHeaderColumns.append(csrNodeGroup->getCSRHeader(), csrOffsetState, csrLengthState);
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
-        getColumn(columnID)->append(&nodeGroup->getColumnChunkUnsafe(columnID),
-            nodeGroup->getNodeGroupIdx());
+        auto column = getColumn(columnID);
+        Column::ChunkState state;
+        column->initChunkState(&DUMMY_WRITE_TRANSACTION, csrNodeGroup->getNodeGroupIdx(), state);
+        getColumn(columnID)->append(&nodeGroup->getColumnChunkUnsafe(columnID), state);
     }
 }
 
@@ -939,9 +946,9 @@ void RelTableData::updateCSRHeader(Transaction* transaction, node_group_idx_t no
 void RelTableData::commitCSRHeaderChunk(Transaction* transaction, bool isNewNodeGroup,
     node_group_idx_t nodeGroupIdx, Column* column, ColumnChunk* chunk, LocalState& localState,
     const std::vector<common::offset_t>& dstOffsets) {
+    Column::ChunkState state;
+    column->initChunkState(transaction, nodeGroupIdx, state);
     if (!isNewNodeGroup) {
-        Column::ChunkState state;
-        column->initChunkState(transaction, nodeGroupIdx, state);
         if (column->canCommitInPlace(state, dstOffsets, chunk, localState.region.leftBoundary)) {
             // TODO: We're assuming dstOffsets are consecutive here. This is a bad interface.
             column->write(state, dstOffsets[0], chunk, localState.region.leftBoundary,
@@ -950,8 +957,8 @@ void RelTableData::commitCSRHeaderChunk(Transaction* transaction, bool isNewNode
             return;
         }
     }
-    column->commitColumnChunkOutOfPlace(transaction, nodeGroupIdx, isNewNodeGroup, dstOffsets,
-        chunk, localState.region.leftBoundary);
+    column->commitColumnChunkOutOfPlace(transaction, state, isNewNodeGroup, dstOffsets, chunk,
+        localState.region.leftBoundary);
 }
 
 void RelTableData::distributeOffsets(const ChunkedCSRHeader& header, LocalState& localState,

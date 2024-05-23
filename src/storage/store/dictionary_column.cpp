@@ -34,10 +34,12 @@ void DictionaryColumn::initChunkState(Transaction* transaction, node_group_idx_t
         readState.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
 }
 
-void DictionaryColumn::append(node_group_idx_t nodeGroupIdx, const DictionaryChunk& dictChunk) {
+void DictionaryColumn::append(Column::ChunkState& state, const DictionaryChunk& dictChunk) {
     KU_ASSERT(dictChunk.sanityCheck());
-    dataColumn->append(dictChunk.getStringDataChunk(), nodeGroupIdx);
-    offsetColumn->append(dictChunk.getOffsetChunk(), nodeGroupIdx);
+    dataColumn->append(dictChunk.getStringDataChunk(),
+        state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
+    offsetColumn->append(dictChunk.getOffsetChunk(),
+        state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
 }
 
 void DictionaryColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,

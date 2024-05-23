@@ -114,12 +114,12 @@ void StructColumn::write(ChunkState& state, offset_t offsetInChunk, ColumnChunk*
     }
 }
 
-void StructColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
-    Column::append(columnChunk, nodeGroupIdx);
+void StructColumn::append(ColumnChunk* columnChunk, ChunkState& state) {
+    Column::append(columnChunk, state);
     KU_ASSERT(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     auto structColumnChunk = static_cast<StructColumnChunk*>(columnChunk);
     for (auto i = 0u; i < childColumns.size(); i++) {
-        childColumns[i]->append(structColumnChunk->getChild(i), nodeGroupIdx);
+        childColumns[i]->append(structColumnChunk->getChild(i), state.childrenStates[i]);
     }
 }
 

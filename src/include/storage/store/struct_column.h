@@ -21,7 +21,7 @@ public:
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector) override;
 
-    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) override;
+    void append(ColumnChunk* columnChunk, ChunkState& state) override;
 
     void checkpointInMemory() override;
     void rollbackInMemory() override;

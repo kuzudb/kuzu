@@ -112,13 +112,15 @@ public:
             resultSetDescriptor->copy(), children[0]->clone(), id, paramsString);
     }
 
-    static void writeAndResetNewNodeGroup(common::node_group_idx_t nodeGroupIdx,
-        std::optional<IndexBuilder>& indexBuilder, common::column_id_t pkColumnID,
-        storage::NodeTable* table, storage::ChunkedNodeGroup* nodeGroup);
+    static void writeAndResetNewNodeGroup(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, std::optional<IndexBuilder>& indexBuilder,
+        common::column_id_t pkColumnID, storage::NodeTable* table,
+        storage::ChunkedNodeGroup* nodeGroup);
 
     // The node group will be reset so that the only values remaining are the ones which were not
     // written
-    void writeAndResetNodeGroup(common::node_group_idx_t nodeGroupIdx, ExecutionContext* context,
+    void writeAndResetNodeGroup(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx,
         std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
         std::optional<IndexBuilder>& indexBuilder);
 
@@ -129,12 +131,13 @@ private:
         common::column_id_t pkColumnID, storage::NodeTable* table,
         storage::ChunkedNodeGroup* nodeGroup);
 
-    void appendIncompleteNodeGroup(std::unique_ptr<storage::ChunkedNodeGroup> localNodeGroup,
-        std::optional<IndexBuilder>& indexBuilder, ExecutionContext* context);
+    void appendIncompleteNodeGroup(transaction::Transaction* transaction,
+        std::unique_ptr<storage::ChunkedNodeGroup> localNodeGroup,
+        std::optional<IndexBuilder>& indexBuilder);
     void clearToIndex(std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
         common::offset_t startIndexInGroup);
 
-    void copyToNodeGroup(ExecutionContext* context);
+    void copyToNodeGroup(transaction::Transaction* transaction);
 };
 
 } // namespace processor

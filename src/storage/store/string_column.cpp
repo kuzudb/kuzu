@@ -50,10 +50,10 @@ void StringColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     dictionary.scan(transaction, nodeGroupIdx, stringColumnChunk->getDictionaryChunk());
 }
 
-void StringColumn::append(ColumnChunk* columnChunk, node_group_idx_t nodeGroupIdx) {
-    Column::append(columnChunk, nodeGroupIdx);
+void StringColumn::append(ColumnChunk* columnChunk, ChunkState& state) {
+    Column::append(columnChunk, state);
     auto stringColumnChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(columnChunk);
-    dictionary.append(nodeGroupIdx, stringColumnChunk->getDictionaryChunk());
+    dictionary.append(state, stringColumnChunk->getDictionaryChunk());
 }
 
 void StringColumn::writeValue(ChunkState& state, offset_t offsetInChunk,

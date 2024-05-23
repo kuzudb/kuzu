@@ -88,9 +88,7 @@ void NodeTableData::initializeColumnReadStates(Transaction* transaction,
                 ->initChunkState(transaction, nodeGroupIdx, dataReadState.columnReadStates[i]);
         }
     }
-    if (nodeGroupIdx != dataReadState.nodeGroupIdx) {
-        KU_ASSERT(sanityCheckOnColumnNumValues(dataReadState));
-    }
+    KU_ASSERT(sanityCheckOnColumnNumValues(dataReadState));
 }
 
 bool NodeTableData::sanityCheckOnColumnNumValues(
@@ -186,11 +184,14 @@ void NodeTableData::lookup(Transaction* transaction, TableDataReadState& readSta
     }
 }
 
-void NodeTableData::append(ChunkedNodeGroup* nodeGroup) {
+void NodeTableData::append(Transaction* transaction, ChunkedNodeGroup* nodeGroup) {
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         auto& columnChunk = nodeGroup->getColumnChunkUnsafe(columnID);
         KU_ASSERT(columnID < columns.size());
-        columns[columnID]->append(&columnChunk, nodeGroup->getNodeGroupIdx());
+        auto column = columns[columnID].get();
+        Column::ChunkState state;
+        column->initChunkState(transaction, nodeGroup->getNodeGroupIdx(), state);
+        columns[columnID]->append(&columnChunk, state);
     }
 }
 

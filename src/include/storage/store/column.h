@@ -79,7 +79,7 @@ public:
         common::offset_t endOffset = common::INVALID_OFFSET);
 
     // Append column chunk in a new node group.
-    virtual void append(ColumnChunk* columnChunk, common::node_group_idx_t nodeGroupIdx);
+    virtual void append(ColumnChunk* columnChunk, ChunkState& state);
 
     common::LogicalType& getDataType() { return dataType; }
     const common::LogicalType& getDataType() const { return dataType; }
@@ -199,18 +199,16 @@ private:
         const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
         const offset_set_t& deleteInfo);
     virtual void commitLocalChunkOutOfPlace(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup,
-        const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
-        const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
-        const offset_set_t& deleteInfo);
+        ChunkState& state, bool isNewNodeGroup, const ChunkCollection& localInsertChunks,
+        const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,
+        const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo);
 
     virtual void commitColumnChunkInPlace(ChunkState& state,
         const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
         common::offset_t srcOffset);
     virtual void commitColumnChunkOutOfPlace(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup,
-        const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
-        common::offset_t srcOffset);
+        ChunkState& state, bool isNewNodeGroup, const std::vector<common::offset_t>& dstOffsets,
+        ColumnChunk* chunk, common::offset_t srcOffset);
 
     void applyLocalChunkToColumn(ChunkState& state, const ChunkCollection& localChunks,
         const offset_to_row_idx_t& info);

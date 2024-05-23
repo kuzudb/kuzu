@@ -52,10 +52,10 @@ struct CSRHeaderColumns {
         offset->scan(transaction, nodeGroupIdx, chunks.offset.get());
         length->scan(transaction, nodeGroupIdx, chunks.length.get());
     }
-    inline void append(const ChunkedCSRHeader& headerChunks,
-        common::node_group_idx_t nodeGroupIdx) const {
-        offset->append(headerChunks.offset.get(), nodeGroupIdx);
-        length->append(headerChunks.length.get(), nodeGroupIdx);
+    inline void append(const ChunkedCSRHeader& headerChunks, Column::ChunkState& offsetState,
+        Column::ChunkState& lengthState) const {
+        offset->append(headerChunks.offset.get(), offsetState);
+        length->append(headerChunks.length.get(), lengthState);
     }
 
     common::offset_t getNumNodes(transaction::Transaction* transaction,
@@ -155,7 +155,7 @@ public:
         common::ValueVector* srcNodeIDVector) const;
     bool checkIfNodeHasRels(transaction::Transaction* transaction,
         common::offset_t nodeOffset) const;
-    void append(ChunkedNodeGroup* nodeGroup) override;
+    void append(transaction::Transaction* transaction, ChunkedNodeGroup* nodeGroup) override;
 
     inline Column* getNbrIDColumn() const { return columns[NBR_ID_COLUMN_ID].get(); }
     inline Column* getCSROffsetColumn() const { return csrHeaderColumns.offset.get(); }

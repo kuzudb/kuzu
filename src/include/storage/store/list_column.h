@@ -73,7 +73,7 @@ protected:
         common::offset_t nodeOffset, common::ValueVector* resultVector,
         uint32_t posInVector) override;
 
-    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) override;
+    void append(ColumnChunk* columnChunk, ChunkState& state) override;
 
 private:
     void scanUnfiltered(transaction::Transaction* transaction, ChunkState& readState,
@@ -106,7 +106,7 @@ private:
         const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
         common::offset_t startSrcOffset);
     void commitOffsetColumnChunkOutOfPlace(transaction::Transaction* transaction,
-        const ChunkState& offsetState, const std::vector<common::offset_t>& dstOffsets,
+        ChunkState& offsetState, const std::vector<common::offset_t>& dstOffsets,
         ColumnChunk* chunk, common::offset_t startSrcOffset);
 
 private:

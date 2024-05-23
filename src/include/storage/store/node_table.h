@@ -109,7 +109,9 @@ public:
     common::column_id_t getNumColumns() const { return tableData->getNumColumns(); }
     Column* getColumn(common::column_id_t columnID) { return tableData->getColumn(columnID); }
 
-    void append(ChunkedNodeGroup* nodeGroup) { tableData->append(nodeGroup); }
+    void append(transaction::Transaction* transaction, ChunkedNodeGroup* nodeGroup) {
+        tableData->append(transaction, nodeGroup);
+    }
 
     void prepareCommitNodeGroup(common::node_group_idx_t nodeGroupIdx,
         transaction::Transaction* transaction, storage::LocalNodeNG* localNodeGroup);
