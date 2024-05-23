@@ -77,7 +77,6 @@ public:
         return common::ku_dynamic_cast<const ParsedExpression*, const TARGET*>(this);
     }
 
-protected:
     parsed_expr_vector copyChildren() const;
 
 private:
