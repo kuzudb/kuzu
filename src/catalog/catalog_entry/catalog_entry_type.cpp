@@ -15,6 +15,8 @@ std::string CatalogEntryTypeUtils::toString(CatalogEntryType type) {
         return "REL_GROUP_ENTRY";
     case CatalogEntryType::RDF_GRAPH_ENTRY:
         return "RDF_GRAPH_ENTRY";
+    case CatalogEntryType::FOREIGN_TABLE_ENTRY:
+        return "FOREIGN_TABLE_ENTRY";
     case CatalogEntryType::SCALAR_MACRO_ENTRY:
         return "SCALAR_MACRO_ENTRY";
     case CatalogEntryType::AGGREGATE_FUNCTION_ENTRY:
@@ -25,8 +27,8 @@ std::string CatalogEntryTypeUtils::toString(CatalogEntryType type) {
         return "REWRITE_FUNCTION_ENTRY";
     case CatalogEntryType::TABLE_FUNCTION_ENTRY:
         return "TABLE_FUNCTION_ENTRY";
-    case CatalogEntryType::FOREIGN_TABLE_ENTRY:
-        return "FOREIGN_TABLE_ENTRY";
+    case CatalogEntryType::GDS_FUNCTION_ENTRY:
+        return "GDS_FUNCTION_ENTRY";
     case CatalogEntryType::DUMMY_ENTRY:
         return "DUMMY_ENTRY";
     case CatalogEntryType::SEQUENCE_ENTRY:

@@ -19,11 +19,11 @@ public:
         : PhysicalOperator{operatorType, std::move(child), id, paramsString},
           resultSetDescriptor{std::move(resultSetDescriptor)} {}
 
-    inline bool isSink() const override { return true; }
+    bool isSink() const override { return true; }
 
     ResultSetDescriptor* getResultSetDescriptor() { return resultSetDescriptor.get(); }
 
-    inline void execute(ResultSet* resultSet, ExecutionContext* context) {
+    void execute(ResultSet* resultSet, ExecutionContext* context) {
         initLocalState(resultSet, context);
         metrics->executionTime.start();
         executeInternal(context);

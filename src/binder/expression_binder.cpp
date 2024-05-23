@@ -1,5 +1,6 @@
 #include "binder/expression_binder.h"
 
+#include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression_visitor.h"
 #include "common/exception/binder.h"
@@ -119,6 +120,10 @@ void validateAggregationExpressionIsNotNested(const Expression& expression) {
         throw BinderException(
             stringFormat("Expression {} contains nested aggregation.", expression.toString()));
     }
+}
+
+std::string ExpressionBinder::getUniqueName(const std::string& name) const {
+    return binder->getUniqueExpressionName(name);
 }
 
 } // namespace binder

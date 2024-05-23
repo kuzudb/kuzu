@@ -110,7 +110,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
     auto info = BoundFileScanInfo(scanFunction, std::move(bindData), std::move(columns));
     auto boundLoadFrom = std::make_unique<BoundLoadFrom>(std::move(info));
     if (loadFrom.hasWherePredicate()) {
-        auto wherePredicate = expressionBinder.bindExpression(*loadFrom.getWherePredicate());
+        auto wherePredicate = bindWhereExpression(*loadFrom.getWherePredicate());
         boundLoadFrom->setPredicate(std::move(wherePredicate));
     }
     return boundLoadFrom;

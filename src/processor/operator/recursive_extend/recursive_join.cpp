@@ -254,7 +254,7 @@ void RecursiveJoin::initLocalRecursivePlan(ExecutionContext* context) {
 }
 
 void RecursiveJoin::populateTargetDstNodes(ExecutionContext* context) {
-    frontier::node_id_set_t targetNodeIDs;
+    node_id_set_t targetNodeIDs;
     uint64_t numTargetNodes = 0;
     for (auto& semiMask : sharedState->semiMasks) {
         auto nodeTable = semiMask->getNodeTable();

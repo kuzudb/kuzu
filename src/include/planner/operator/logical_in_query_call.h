@@ -17,19 +17,17 @@ public:
           bindData{std::move(bindData)}, outputExpressions{std::move(outputExpressions)},
           rowIDExpression{std::move(rowIDExpression)} {}
 
-    inline function::TableFunction getTableFunc() const { return tableFunc; }
-
-    inline function::TableFuncBindData* getBindData() const { return bindData.get(); }
+    function::TableFunction getTableFunc() const { return tableFunc; }
+    function::TableFuncBindData* getBindData() const { return bindData.get(); }
 
     void computeFlatSchema() override;
-
     void computeFactorizedSchema() override;
 
-    inline binder::expression_vector getOutputExpressions() const { return outputExpressions; }
+    binder::expression_vector getOutputExpressions() const { return outputExpressions; }
 
-    inline binder::Expression* getRowIDExpression() const { return rowIDExpression.get(); }
+    binder::Expression* getRowIDExpression() const { return rowIDExpression.get(); }
 
-    inline std::string getExpressionsForPrinting() const override { return "CALL TABLE FUNC"; }
+    std::string getExpressionsForPrinting() const override { return tableFunc.name; }
 
     std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalInQueryCall>(tableFunc, bindData->copy(), outputExpressions,

@@ -156,7 +156,7 @@ enum class LogicalTypeID : uint8_t {
     RDF_VARIANT = 57,
     POINTER = 58,
 
-    UUID = 59
+    UUID = 59,
 };
 
 enum class PhysicalTypeID : uint8_t {

@@ -167,6 +167,7 @@ void CatalogSet::serialize(common::Serializer serializer) const {
         case CatalogEntryType::REWRITE_FUNCTION_ENTRY:
         case CatalogEntryType::AGGREGATE_FUNCTION_ENTRY:
         case CatalogEntryType::TABLE_FUNCTION_ENTRY:
+        case CatalogEntryType::GDS_FUNCTION_ENTRY:
             continue;
         default: {
             auto committedEntry = getCommittedEntry(entry.get());

@@ -21,5 +21,5 @@ Binder exception: Cannot bind MANY_LOT as relationship multiplicity.
 Binder exception: DB_VERSION is a TABLE_FUNCTION_ENTRY. Scalar function, aggregate function or macro was expected.
 -STATEMENT CALL lower('AAA') RETURN *;
 ---- error
-Binder exception: lower is not a table function.
+Binder exception: lower is not a table or algorithm function.
 
