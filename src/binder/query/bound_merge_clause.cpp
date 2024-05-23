@@ -36,12 +36,12 @@ bool BoundMergeClause::hasOnMatchSetInfo(
     return false;
 }
 
-std::vector<const BoundSetPropertyInfo*> BoundMergeClause::getOnMatchSetInfos(
+std::vector<BoundSetPropertyInfo> BoundMergeClause::getOnMatchSetInfos(
     const std::function<bool(const BoundSetPropertyInfo&)>& check) const {
-    std::vector<const BoundSetPropertyInfo*> result;
+    std::vector<BoundSetPropertyInfo> result;
     for (auto& info : onMatchSetPropertyInfos) {
         if (check(info)) {
-            result.push_back(&info);
+            result.push_back(info.copy());
         }
     }
     return result;
@@ -57,12 +57,12 @@ bool BoundMergeClause::hasOnCreateSetInfo(
     return false;
 }
 
-std::vector<const BoundSetPropertyInfo*> BoundMergeClause::getOnCreateSetInfos(
+std::vector<BoundSetPropertyInfo> BoundMergeClause::getOnCreateSetInfos(
     const std::function<bool(const BoundSetPropertyInfo&)>& check) const {
-    std::vector<const BoundSetPropertyInfo*> result;
+    std::vector<BoundSetPropertyInfo> result;
     for (auto& info : onCreateSetPropertyInfos) {
         if (check(info)) {
-            result.push_back(&info);
+            result.push_back(info.copy());
         }
     }
     return result;

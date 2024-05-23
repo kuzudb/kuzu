@@ -10,33 +10,33 @@ class BoundSetClause : public BoundUpdatingClause {
 public:
     BoundSetClause() : BoundUpdatingClause{common::ClauseType::SET} {}
 
-    inline void addInfo(BoundSetPropertyInfo info) { infos.push_back(std::move(info)); }
-    inline const std::vector<BoundSetPropertyInfo>& getInfosRef() { return infos; }
+    void addInfo(BoundSetPropertyInfo info) { infos.push_back(std::move(info)); }
+    const std::vector<BoundSetPropertyInfo>& getInfos() const { return infos; }
 
-    inline bool hasNodeInfo() const {
+    bool hasNodeInfo() const {
         return hasInfo([](const BoundSetPropertyInfo& info) {
-            return info.updateTableType == UpdateTableType::NODE;
+            return info.tableType == common::TableType::NODE;
         });
     }
-    inline std::vector<const BoundSetPropertyInfo*> getNodeInfos() const {
+    std::vector<BoundSetPropertyInfo> getNodeInfos() const {
         return getInfos([](const BoundSetPropertyInfo& info) {
-            return info.updateTableType == UpdateTableType::NODE;
+            return info.tableType == common::TableType::NODE;
         });
     }
-    inline bool hasRelInfo() const {
+    bool hasRelInfo() const {
         return hasInfo([](const BoundSetPropertyInfo& info) {
-            return info.updateTableType == UpdateTableType::REL;
+            return info.tableType == common::TableType::REL;
         });
     }
-    inline std::vector<const BoundSetPropertyInfo*> getRelInfos() const {
+    std::vector<BoundSetPropertyInfo> getRelInfos() const {
         return getInfos([](const BoundSetPropertyInfo& info) {
-            return info.updateTableType == UpdateTableType::REL;
+            return info.tableType == common::TableType::REL;
         });
     }
 
 private:
     bool hasInfo(const std::function<bool(const BoundSetPropertyInfo& info)>& check) const;
-    std::vector<const BoundSetPropertyInfo*> getInfos(
+    std::vector<BoundSetPropertyInfo> getInfos(
         const std::function<bool(const BoundSetPropertyInfo& info)>& check) const;
 
 private:

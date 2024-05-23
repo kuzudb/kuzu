@@ -78,48 +78,38 @@ void Planner::planMergeClause(const BoundUpdatingClause* updatingClause, Logical
     auto existenceMark = mergeClause->getExistenceMark();
     planOptionalMatch(*mergeClause->getQueryGraphCollection(), predicates, corrExprs, existenceMark,
         plan);
-    std::vector<LogicalInsertInfo> logicalInsertNodeInfos;
+    auto merge = std::make_shared<LogicalMerge>(existenceMark, distinctMark,
+        plan.getLastOperator());
     if (mergeClause->hasInsertNodeInfo()) {
-        auto boundInsertNodeInfos = mergeClause->getInsertNodeInfos();
-        for (auto& info : boundInsertNodeInfos) {
-            logicalInsertNodeInfos.push_back(createLogicalInsertInfo(info)->copy());
+        for (auto& info : mergeClause->getInsertNodeInfos()) {
+            merge->addInsertNodeInfo(createLogicalInsertInfo(info)->copy());
         }
     }
-    std::vector<LogicalInsertInfo> logicalInsertRelInfos;
     if (mergeClause->hasInsertRelInfo()) {
         for (auto& info : mergeClause->getInsertRelInfos()) {
-            logicalInsertRelInfos.push_back(createLogicalInsertInfo(info)->copy());
+            merge->addInsertRelInfo(createLogicalInsertInfo(info)->copy());
         }
     }
-    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalOnCreateSetNodeInfos;
     if (mergeClause->hasOnCreateSetNodeInfo()) {
         for (auto& info : mergeClause->getOnCreateSetNodeInfos()) {
-            logicalOnCreateSetNodeInfos.push_back(createLogicalSetPropertyInfo(info));
+            merge->addOnCreateSetNodeInfo(info.copy());
         }
     }
-    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalOnCreateSetRelInfos;
     if (mergeClause->hasOnCreateSetRelInfo()) {
         for (auto& info : mergeClause->getOnCreateSetRelInfos()) {
-            logicalOnCreateSetRelInfos.push_back(createLogicalSetPropertyInfo(info));
+            merge->addOnCreateSetRelInfo(info.copy());
         }
     }
-    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalOnMatchSetNodeInfos;
     if (mergeClause->hasOnMatchSetNodeInfo()) {
         for (auto& info : mergeClause->getOnMatchSetNodeInfos()) {
-            logicalOnMatchSetNodeInfos.push_back(createLogicalSetPropertyInfo(info));
+            merge->addOnMatchSetNodeInfo(info.copy());
         }
     }
-    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalOnMatchSetRelInfos;
     if (mergeClause->hasOnMatchSetRelInfo()) {
         for (auto& info : mergeClause->getOnMatchSetRelInfos()) {
-            logicalOnMatchSetRelInfos.push_back(createLogicalSetPropertyInfo(info));
+            merge->addOnMatchSetRelInfo(info.copy());
         }
     }
-    auto merge = std::make_shared<LogicalMerge>(existenceMark, distinctMark,
-        std::move(logicalInsertNodeInfos), std::move(logicalInsertRelInfos),
-        std::move(logicalOnCreateSetNodeInfos), std::move(logicalOnCreateSetRelInfos),
-        std::move(logicalOnMatchSetNodeInfos), std::move(logicalOnMatchSetRelInfos),
-        plan.getLastOperator());
     appendFlattens(merge->getGroupsPosToFlatten(), plan);
     merge->setChild(0, plan.getLastOperator());
     merge->computeFactorizedSchema();
@@ -128,13 +118,12 @@ void Planner::planMergeClause(const BoundUpdatingClause* updatingClause, Logical
 
 void Planner::planSetClause(const BoundUpdatingClause* updatingClause, LogicalPlan& plan) {
     appendAccumulate(plan);
-    auto setClause =
-        ku_dynamic_cast<const BoundUpdatingClause*, const BoundSetClause*>(updatingClause);
-    if (setClause->hasNodeInfo()) {
-        appendSetNodeProperty(setClause->getNodeInfos(), plan);
+    auto& setClause = updatingClause->constCast<BoundSetClause>();
+    if (setClause.hasNodeInfo()) {
+        appendSetProperty(setClause.getNodeInfos(), plan);
     }
-    if (setClause->hasRelInfo()) {
-        appendSetRelProperty(setClause->getRelInfos(), plan);
+    if (setClause.hasRelInfo()) {
+        appendSetProperty(setClause.getRelInfos(), plan);
     }
 }
 

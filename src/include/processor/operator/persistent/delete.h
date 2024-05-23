@@ -7,10 +7,12 @@ namespace kuzu {
 namespace processor {
 
 class DeleteNode : public PhysicalOperator {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DELETE_;
+
 public:
     DeleteNode(std::vector<std::unique_ptr<NodeDeleteExecutor>> executors,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::DELETE_, std::move(child), id, paramsString},
+        : PhysicalOperator{type_, std::move(child), id, paramsString},
           executors{std::move(executors)} {}
 
     bool isParallel() const final { return false; }
@@ -26,10 +28,12 @@ private:
 };
 
 class DeleteRel : public PhysicalOperator {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DELETE_;
+
 public:
     DeleteRel(std::vector<std::unique_ptr<RelDeleteExecutor>> executors,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::DELETE_, std::move(child), id, paramsString},
+        : PhysicalOperator{type_, std::move(child), id, paramsString},
           executors{std::move(executors)} {}
 
     bool isParallel() const final { return false; }

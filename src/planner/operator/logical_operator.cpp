@@ -96,10 +96,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "SCAN_NODE_TABLE";
     case LogicalOperatorType::SEMI_MASKER:
         return "SEMI_MASKER";
-    case LogicalOperatorType::SET_NODE_PROPERTY:
-        return "SET_NODE_PROPERTY";
-    case LogicalOperatorType::SET_REL_PROPERTY:
-        return "SET_REL_PROPERTY";
+    case LogicalOperatorType::SET_PROPERTY:
+        return "SET_PROPERTY";
     case LogicalOperatorType::STANDALONE_CALL:
         return "STANDALONE_CALL";
     case LogicalOperatorType::TABLE_FUNCTION_CALL:
@@ -122,8 +120,7 @@ bool LogicalOperatorUtils::isUpdate(LogicalOperatorType type) {
     switch (type) {
     case LogicalOperatorType::INSERT:
     case LogicalOperatorType::DELETE:
-    case LogicalOperatorType::SET_NODE_PROPERTY:
-    case LogicalOperatorType::SET_REL_PROPERTY:
+    case LogicalOperatorType::SET_PROPERTY:
     case LogicalOperatorType::MERGE:
         return true;
     default:

@@ -20,7 +20,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-static bool isPageIdxValid(page_idx_t pageIdx, const ColumnChunkMetadata& metadata) { // NOLINT
+static bool isPageIdxValid(page_idx_t pageIdx, const ColumnChunkMetadata& metadata) {
     return (metadata.pageIdx <= pageIdx && pageIdx < metadata.pageIdx + metadata.numPages) ||
            (pageIdx == INVALID_PAGE_IDX && metadata.compMeta.isConstant());
 }
@@ -252,6 +252,7 @@ void Column::batchLookup(Transaction* transaction, const offset_t* nodeOffsets, 
         initChunkState(transaction, nodeGroupIdx, state);
         auto cursor = getPageCursorForOffsetInGroup(offsetInChunk, state);
         auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
+        (void)isPageIdxValid;
         KU_ASSERT(isPageIdxValid(cursor.pageIdx, chunkMeta));
         readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
             batchLookupFunc(frame, cursor, result, i, 1, chunkMeta.compMeta);
@@ -468,7 +469,7 @@ void Column::readFromPage(Transaction* transaction, page_idx_t pageIdx,
 }
 
 static bool sanityCheckForWrites(const ColumnChunkMetadata& metadata,
-    const LogicalType& dataType) { // NOLINT
+    const LogicalType& dataType) {
     if (metadata.compMeta.compression == CompressionType::CONSTANT) {
         return metadata.numPages == 0;
     }
@@ -489,6 +490,7 @@ void Column::append(ColumnChunk* columnChunk, ChunkState& state) {
     auto preScanMetadata = columnChunk->getMetadataToFlush();
     auto startPageIdx = dataFH->addNewPages(preScanMetadata.numPages);
     state.metadata = columnChunk->flushBuffer(dataFH, startPageIdx, preScanMetadata);
+    (void)sanityCheckForWrites;
     KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
     metadataDA->resize(state.nodeGroupIdx + 1);
     metadataDA->update(state.nodeGroupIdx, state.metadata);

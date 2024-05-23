@@ -18,28 +18,28 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapMerge(planner::LogicalOperator*
         distinctMarkPos = getDataPos(*logicalMerge->getDistinctMark(), *inSchema);
     }
     std::vector<NodeInsertExecutor> nodeInsertExecutors;
-    for (auto& info : logicalMerge->getInsertNodeInfosRef()) {
+    for (auto& info : logicalMerge->getInsertNodeInfos()) {
         nodeInsertExecutors.push_back(getNodeInsertExecutor(&info, *inSchema, *outSchema)->copy());
     }
     std::vector<RelInsertExecutor> relInsertExecutors;
-    for (auto& info : logicalMerge->getInsertRelInfosRef()) {
+    for (auto& info : logicalMerge->getInsertRelInfos()) {
         relInsertExecutors.push_back(getRelInsertExecutor(&info, *inSchema, *outSchema)->copy());
     }
     std::vector<std::unique_ptr<NodeSetExecutor>> onCreateNodeSetExecutors;
-    for (auto& info : logicalMerge->getOnCreateSetNodeInfosRef()) {
-        onCreateNodeSetExecutors.push_back(getNodeSetExecutor(info.get(), *inSchema));
+    for (auto& info : logicalMerge->getOnCreateSetNodeInfos()) {
+        onCreateNodeSetExecutors.push_back(getNodeSetExecutor(info, *inSchema));
     }
     std::vector<std::unique_ptr<RelSetExecutor>> onCreateRelSetExecutors;
-    for (auto& info : logicalMerge->getOnCreateSetRelInfosRef()) {
-        onCreateRelSetExecutors.push_back(getRelSetExecutor(info.get(), *inSchema));
+    for (auto& info : logicalMerge->getOnCreateSetRelInfos()) {
+        onCreateRelSetExecutors.push_back(getRelSetExecutor(info, *inSchema));
     }
     std::vector<std::unique_ptr<NodeSetExecutor>> onMatchNodeSetExecutors;
-    for (auto& info : logicalMerge->getOnMatchSetNodeInfosRef()) {
-        onMatchNodeSetExecutors.push_back(getNodeSetExecutor(info.get(), *inSchema));
+    for (auto& info : logicalMerge->getOnMatchSetNodeInfos()) {
+        onMatchNodeSetExecutors.push_back(getNodeSetExecutor(info, *inSchema));
     }
     std::vector<std::unique_ptr<RelSetExecutor>> onMatchRelSetExecutors;
-    for (auto& info : logicalMerge->getOnMatchSetRelInfosRef()) {
-        onMatchRelSetExecutors.push_back(getRelSetExecutor(info.get(), *inSchema));
+    for (auto& info : logicalMerge->getOnMatchSetRelInfos()) {
+        onMatchRelSetExecutors.push_back(getRelSetExecutor(info, *inSchema));
     }
     return std::make_unique<Merge>(existenceMarkPos, distinctMarkPos,
         std::move(nodeInsertExecutors), std::move(relInsertExecutors),

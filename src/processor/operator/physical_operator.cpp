@@ -102,10 +102,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "SCAN_REL_TABLE";
     case PhysicalOperatorType::SEMI_MASKER:
         return "SEMI_MASKER";
-    case PhysicalOperatorType::SET_NODE_PROPERTY:
-        return "SET_NODE_PROPERTY";
-    case PhysicalOperatorType::SET_REL_PROPERTY:
-        return "SET_REL_PROPERTY";
+    case PhysicalOperatorType::SET_PROPERTY:
+        return "SET_PROPERTY";
     case PhysicalOperatorType::SKIP:
         return "SKIP";
     case PhysicalOperatorType::STANDALONE_CALL:

@@ -28,7 +28,6 @@ class BoundProjectionBody;
 namespace planner {
 
 struct LogicalInsertInfo;
-struct LogicalSetPropertyInfo;
 
 class Planner {
 public:
@@ -194,14 +193,10 @@ private:
         LogicalPlan& plan);
     void appendInsertRel(const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos,
         LogicalPlan& plan);
-    void appendSetNodeProperty(const std::vector<const binder::BoundSetPropertyInfo*>& boundInfos,
-        LogicalPlan& plan);
-    void appendSetRelProperty(const std::vector<const binder::BoundSetPropertyInfo*>& boundInfos,
-        LogicalPlan& plan);
+
+    void appendSetProperty(const std::vector<binder::BoundSetPropertyInfo>& infos, LogicalPlan& plan);
     void appendDelete(const std::vector<binder::BoundDeleteInfo>& infos, LogicalPlan& plan);
     std::unique_ptr<LogicalInsertInfo> createLogicalInsertInfo(const binder::BoundInsertInfo* info);
-    std::unique_ptr<LogicalSetPropertyInfo> createLogicalSetPropertyInfo(
-        const binder::BoundSetPropertyInfo* boundSetPropertyInfo);
 
     // Append projection operators
     void appendProjection(const binder::expression_vector& expressionsToProject, LogicalPlan& plan);

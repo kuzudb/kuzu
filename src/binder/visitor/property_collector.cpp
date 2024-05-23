@@ -60,8 +60,11 @@ void PropertyCollector::visitTableFunctionCall(const BoundReadingClause& reading
 }
 
 void PropertyCollector::visitSet(const BoundUpdatingClause& updatingClause) {
-    auto& boundSetClause = (BoundSetClause&)updatingClause;
-    for (auto& info : boundSetClause.getInfosRef()) {
+    auto& boundSetClause = updatingClause.constCast<BoundSetClause>();
+    for (auto& info : boundSetClause.getInfos()) {
+        if (info.pkExpr != nullptr) {
+            properties.insert(info.pkExpr);
+        }
         collectPropertyExpressions(info.setItem.second);
     }
 }

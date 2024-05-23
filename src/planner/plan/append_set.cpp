@@ -7,44 +7,15 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-std::unique_ptr<LogicalSetPropertyInfo> Planner::createLogicalSetPropertyInfo(
-    const BoundSetPropertyInfo* boundSetPropertyInfo) {
-    return std::make_unique<LogicalSetPropertyInfo>(boundSetPropertyInfo->nodeOrRel,
-        boundSetPropertyInfo->setItem);
-}
-
-void Planner::appendSetNodeProperty(
-    const std::vector<const binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan) {
-    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalInfos;
-    logicalInfos.reserve(boundInfos.size());
-    for (auto& boundInfo : boundInfos) {
-        logicalInfos.push_back(createLogicalSetPropertyInfo(boundInfo));
+void Planner::appendSetProperty(const std::vector<BoundSetPropertyInfo>& infos, LogicalPlan& plan) {
+    auto set = std::make_shared<LogicalSetProperty>(copyVector(infos), plan.getLastOperator());
+    for (auto i = 0u; i < set->getInfos().size(); ++i) {
+        auto groupsPos = set->getGroupsPosToFlatten(i);
+        appendFlattens(groupsPos, plan);
+        set->setChild(0, plan.getLastOperator());
     }
-    auto setNodeProperty =
-        std::make_shared<LogicalSetNodeProperty>(std::move(logicalInfos), plan.getLastOperator());
-    for (auto i = 0u; i < boundInfos.size(); ++i) {
-        appendFlattens(setNodeProperty->getGroupsPosToFlatten(i), plan);
-        setNodeProperty->setChild(0, plan.getLastOperator());
-    }
-    setNodeProperty->computeFactorizedSchema();
-    plan.setLastOperator(setNodeProperty);
-}
-
-void Planner::appendSetRelProperty(
-    const std::vector<const binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan) {
-    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalInfos;
-    logicalInfos.reserve(boundInfos.size());
-    for (auto& boundInfo : boundInfos) {
-        logicalInfos.push_back(createLogicalSetPropertyInfo(boundInfo));
-    }
-    auto setRelProperty =
-        std::make_shared<LogicalSetRelProperty>(std::move(logicalInfos), plan.getLastOperator());
-    for (auto i = 0u; i < boundInfos.size(); ++i) {
-        appendFlattens(setRelProperty->getGroupsPosToFlatten(i), plan);
-        setRelProperty->setChild(0, plan.getLastOperator());
-    }
-    setRelProperty->computeFactorizedSchema();
-    plan.setLastOperator(setRelProperty);
+    set->computeFactorizedSchema();
+    plan.setLastOperator(std::move(set));
 }
 
 } // namespace planner
