@@ -20,31 +20,32 @@ CachedFileManager::~CachedFileManager() {
     localFileSystem->removeFileIfExists(cacheDir);
 }
 
-common::FileInfo* CachedFileManager::getCachedFileInfo(HTTPFileInfo* httpFileInfo) {
+std::unique_ptr<FileInfo> CachedFileManager::getCachedFileInfo(HTTPFileInfo* httpFileInfo,
+    common::transaction_t transactionID) {
     std::unique_lock<std::mutex> lck{mtx};
-    auto path = httpFileInfo->path;
-    if (!cachedFiles.contains(path)) {
-        auto fileName = FileSystem::getFileName(path);
-        auto cachedFilePath = getCachedFilePath(fileName);
-        auto fileInfo = vfs->openFile(cachedFilePath, O_CREAT | O_RDWR);
-        downloadFile(httpFileInfo, fileInfo.get());
-        cachedFiles.emplace(path, std::make_unique<CachedFile>(std::move(fileInfo)));
+    auto cachePathForTrx = getCachedDirForTrx(transactionID);
+    if (!vfs->fileOrPathExists(cachePathForTrx)) {
+        vfs->createDir(cachePathForTrx);
     }
-    cachedFiles.at(path)->counter++;
-    return cachedFiles.at(path)->getFileInfo();
+    auto fileName = FileSystem::getFileName(httpFileInfo->path);
+    auto cacheFilePath = getCachedFilePath(fileName, transactionID);
+    if (!vfs->fileOrPathExists(cacheFilePath)) {
+        auto cacheFileInfo = vfs->openFile(cacheFilePath, O_CREAT | O_RDWR);
+        downloadFile(httpFileInfo, cacheFileInfo.get());
+    }
+    return vfs->openFile(cacheFilePath, O_RDONLY);
 }
 
-void CachedFileManager::destroyCachedFileInfo(const std::string& path) {
-    std::unique_lock<std::mutex> lck{mtx};
-    KU_ASSERT(cachedFiles.contains(path));
-    cachedFiles.at(path)->counter--;
-    if (cachedFiles.at(path)->counter == 0) {
-        cachedFiles.erase(path);
-    }
+// ldbc10:  kuzu:      attach:  2.32s, scan  1.957s
+//          duckdb:    attach:
+
+std::string CachedFileManager::getCachedFilePath(const std::string& originalFileName,
+    common::transaction_t transactionID) {
+    return common::stringFormat("{}/{}/{}", cacheDir, transactionID, originalFileName);
 }
 
-std::string CachedFileManager::getCachedFilePath(const std::string& originalFileName) {
-    return common::stringFormat("{}/{}-{}", cacheDir, originalFileName, std::time(nullptr));
+std::string CachedFileManager::getCachedDirForTrx(common::transaction_t transactionID) {
+    return common::stringFormat("{}/{}", cacheDir, transactionID);
 }
 
 void CachedFileManager::downloadFile(HTTPFileInfo* fileToDownload, FileInfo* cacheFileInfo) {

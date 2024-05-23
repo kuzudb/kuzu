@@ -50,7 +50,7 @@ struct S3FileInfo final : public HTTPFileInfo {
 
     ~S3FileInfo() override;
 
-    void initialize() override;
+    void initialize(main::ClientContext* context) override;
 
     void initializeClient() override;
 
