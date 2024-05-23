@@ -138,6 +138,25 @@ Bob
 ---- 1
 7
 
+-LOG ContainsFunctionUTF8
+-STATEMENT MATCH (a:movies) RETURN contains(a.name, "😂😃")
+---- 3
+False
+True
+False
+
+-LOG ContainsFunction
+-STATEMENT MATCH (a:person) RETURN contains(a.fName, "a")
+---- 8
+False
+False
+True
+True
+True
+True
+False
+True
+
 -LOG StartsWithReturn1
 -STATEMENT MATCH (a:person) RETURN a.fName, a.fName STARTS WITH "A" ORDER BY a.fName
 ---- 8
