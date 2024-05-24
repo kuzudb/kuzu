@@ -30,7 +30,7 @@ public:
           commentOnInfo{std::move(localState)} {}
 
     inline bool isSource() const override { return true; }
-    inline bool canParallel() const final { return false; }
+    inline bool isParallel() const final { return false; }
 
     inline void initLocalStateInternal(ResultSet* resultSet,
         ExecutionContext* /*context*/) override {

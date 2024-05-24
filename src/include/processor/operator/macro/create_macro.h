@@ -31,7 +31,7 @@ public:
           createMacroInfo{std::move(createMacroInfo)} {}
 
     inline bool isSource() const override { return true; }
-    inline bool canParallel() const final { return false; }
+    inline bool isParallel() const final { return false; }
 
     inline void initLocalStateInternal(ResultSet* resultSet,
         ExecutionContext* /*context*/) override {

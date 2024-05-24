@@ -2,7 +2,7 @@
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/query/reading_clause/bound_gds_call.h"
-#include "binder/query/reading_clause/bound_in_query_call.h"
+#include "binder/query/reading_clause/bound_table_function_call.h"
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
@@ -58,8 +58,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         }
         auto offset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
             std::string(InternalKeyword::ROW_OFFSET));
-        boundReadingClause = std::make_unique<BoundInQueryCall>(*tableFunc, std::move(bindData),
-            std::move(offset), std::move(outExprs));
+        boundReadingClause = std::make_unique<BoundTableFunctionCall>(*tableFunc,
+            std::move(bindData), std::move(offset), std::move(outExprs));
     } break;
     case CatalogEntryType::GDS_FUNCTION_ENTRY: {
         auto gdsFunc = *func->constPtrCast<GDSFunction>();

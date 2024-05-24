@@ -45,7 +45,7 @@ protected:
     virtual void visitMatch(const BoundReadingClause&) {}
     virtual void visitMatchUnsafe(BoundReadingClause&) {}
     virtual void visitUnwind(const BoundReadingClause& /*readingClause*/) {}
-    virtual void visitInQueryCall(const BoundReadingClause& /*statement*/) {}
+    virtual void visitTableFunctionCall(const BoundReadingClause&) {}
     virtual void visitGDSCall(const BoundReadingClause&) {}
     virtual void visitLoadFrom(const BoundReadingClause& /*statement*/) {}
     void visitUpdatingClause(const BoundUpdatingClause& updatingClause);

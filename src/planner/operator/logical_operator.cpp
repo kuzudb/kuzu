@@ -60,8 +60,6 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "GDS_CALL";
     case LogicalOperatorType::HASH_JOIN:
         return "HASH_JOIN";
-    case LogicalOperatorType::IN_QUERY_CALL:
-        return "IN_QUERY_CALL";
     case LogicalOperatorType::INDEX_SCAN_NODE:
         return "INDEX_SCAN_NODE";
     case LogicalOperatorType::IMPORT_DATABASE:
@@ -106,6 +104,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "SET_REL_PROPERTY";
     case LogicalOperatorType::STANDALONE_CALL:
         return "STANDALONE_CALL";
+    case LogicalOperatorType::TABLE_FUNCTION_CALL:
+        return "TABLE_FUNCTION_CALL";
     case LogicalOperatorType::TRANSACTION:
         return "TRANSACTION";
     case LogicalOperatorType::UNION_ALL:

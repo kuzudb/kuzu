@@ -82,21 +82,20 @@ private:
         std::vector<std::unique_ptr<LogicalPlan>> prevPlans);
 
     // Plan read.
-    void planReadingClause(const binder::BoundReadingClause* readingClause,
+    void planReadingClause(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& prevPlans);
-    void planMatchClause(const binder::BoundReadingClause* readingClause,
+    void planMatchClause(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
-    void planUnwindClause(const binder::BoundReadingClause* readingClause,
+    void planUnwindClause(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
-    void planInQueryCall(const binder::BoundReadingClause* readingClause,
+    void planTableFunctionCall(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
-    void planGDSCall(const binder::BoundReadingClause* readingClause,
+    void planGDSCall(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
     void planReadOp(std::shared_ptr<LogicalOperator> op,
         const binder::expression_vector& predicates,
         const binder::expression_vector& joinConditions, LogicalPlan& plan);
-
-    void planLoadFrom(const binder::BoundReadingClause* readingClause,
+    void planLoadFrom(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
 
     // Plan updating
@@ -293,8 +292,9 @@ private:
 
     // Get operators
     std::shared_ptr<LogicalOperator> getScanFile(const binder::BoundFileScanInfo* info);
-    std::shared_ptr<LogicalOperator> getCall(const binder::BoundReadingClause& readingClause);
-    std::shared_ptr<LogicalOperator> getAlgorithm(const binder::BoundReadingClause& readingClause);
+    std::shared_ptr<LogicalOperator> getTableFunctionCall(
+        const binder::BoundReadingClause& readingClause);
+    std::shared_ptr<LogicalOperator> getGDSCall(const binder::BoundReadingClause& readingClause);
 
     std::unique_ptr<LogicalPlan> createUnionPlan(
         std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);

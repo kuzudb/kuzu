@@ -1,9 +1,9 @@
 #include "binder/visitor/property_collector.h"
 
 #include "binder/expression_visitor.h"
-#include "binder/query/reading_clause/bound_in_query_call.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
+#include "binder/query/reading_clause/bound_table_function_call.h"
 #include "binder/query/reading_clause/bound_unwind_clause.h"
 #include "binder/query/updating_clause/bound_delete_clause.h"
 #include "binder/query/updating_clause/bound_insert_clause.h"
@@ -52,11 +52,10 @@ void PropertyCollector::visitLoadFrom(const BoundReadingClause& readingClause) {
     }
 }
 
-void PropertyCollector::visitInQueryCall(const BoundReadingClause& readingClause) {
-    auto& inQueryCallClause =
-        ku_dynamic_cast<const BoundReadingClause&, const BoundInQueryCall&>(readingClause);
-    if (inQueryCallClause.hasPredicate()) {
-        collectPropertyExpressions(inQueryCallClause.getPredicate());
+void PropertyCollector::visitTableFunctionCall(const BoundReadingClause& readingClause) {
+    auto& call = readingClause.constCast<BoundTableFunctionCall>();
+    if (call.hasPredicate()) {
+        collectPropertyExpressions(call.getPredicate());
     }
 }
 

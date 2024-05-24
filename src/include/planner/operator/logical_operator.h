@@ -35,7 +35,6 @@ enum class LogicalOperatorType : uint8_t {
     FLATTEN,
     GDS_CALL,
     HASH_JOIN,
-    IN_QUERY_CALL,
     INDEX_SCAN_NODE,
     IMPORT_DATABASE,
     INTERSECT,
@@ -58,6 +57,7 @@ enum class LogicalOperatorType : uint8_t {
     SET_NODE_PROPERTY,
     SET_REL_PROPERTY,
     STANDALONE_CALL,
+    TABLE_FUNCTION_CALL,
     TRANSACTION,
     UNION_ALL,
     UNWIND,
@@ -108,6 +108,10 @@ public:
     virtual std::unique_ptr<LogicalOperator> copy() = 0;
     static logical_op_vector_t copy(const logical_op_vector_t& ops);
 
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const LogicalOperator&, const TARGET&>(*this);
+    }
     template<class TARGET>
     const TARGET* constPtrCast() const {
         return common::ku_dynamic_cast<const LogicalOperator*, const TARGET*>(this);

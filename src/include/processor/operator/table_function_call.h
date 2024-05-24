@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace processor {
 
-struct InQueryCallSharedState {
+struct TableFunctionCallSharedState {
     std::unique_ptr<function::TableFuncSharedState> funcState;
     common::row_idx_t nextRowIdx = 0;
     std::mutex mtx;
@@ -15,14 +15,14 @@ struct InQueryCallSharedState {
     common::row_idx_t getAndIncreaseRowIdx(uint64_t numRows);
 };
 
-struct InQueryCallLocalState {
+struct TableFunctionCallLocalState {
     std::unique_ptr<function::TableFuncLocalState> funcState;
     function::TableFuncInput funcInput;
     function::TableFuncOutput funcOutput;
     common::ValueVector* rowOffsetVector;
 
-    InQueryCallLocalState() = default;
-    DELETE_COPY_DEFAULT_MOVE(InQueryCallLocalState);
+    TableFunctionCallLocalState() = default;
+    DELETE_COPY_DEFAULT_MOVE(TableFunctionCallLocalState);
 };
 
 enum class TableScanOutputType : uint8_t {
@@ -31,18 +31,18 @@ enum class TableScanOutputType : uint8_t {
     MULTI_DATA_CHUNK = 2,
 };
 
-struct InQueryCallInfo {
+struct TableFunctionCallInfo {
     function::TableFunction function;
     std::unique_ptr<function::TableFuncBindData> bindData;
     std::vector<DataPos> outPosV;
     DataPos rowOffsetPos;
     TableScanOutputType outputType;
 
-    InQueryCallInfo() = default;
-    EXPLICIT_COPY_DEFAULT_MOVE(InQueryCallInfo);
+    TableFunctionCallInfo() = default;
+    EXPLICIT_COPY_DEFAULT_MOVE(TableFunctionCallInfo);
 
 private:
-    InQueryCallInfo(const InQueryCallInfo& other) {
+    TableFunctionCallInfo(const TableFunctionCallInfo& other) {
         function = other.function;
         bindData = other.bindData->copy();
         outPosV = other.outPosV;
@@ -51,22 +51,24 @@ private:
     }
 };
 
-class InQueryCall : public PhysicalOperator {
+class TableFunctionCall : public PhysicalOperator {
 public:
-    InQueryCall(InQueryCallInfo info, std::shared_ptr<InQueryCallSharedState> sharedState,
-        uint32_t id, const std::string& paramsString)
+    TableFunctionCall(TableFunctionCallInfo info,
+        std::shared_ptr<TableFunctionCallSharedState> sharedState, uint32_t id,
+        const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::IN_QUERY_CALL, id, paramsString},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
-    InQueryCall(InQueryCallInfo info, std::shared_ptr<InQueryCallSharedState> sharedState,
+    TableFunctionCall(TableFunctionCallInfo info,
+        std::shared_ptr<TableFunctionCallSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::IN_QUERY_CALL, std::move(child), id, paramsString},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
-    InQueryCallSharedState* getSharedState() { return sharedState.get(); }
+    TableFunctionCallSharedState* getSharedState() { return sharedState.get(); }
 
     bool isSource() const override { return true; }
 
-    bool canParallel() const override { return info.function.canParallelFunc(); }
+    bool isParallel() const override { return info.function.canParallelFunc(); }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -77,13 +79,13 @@ public:
     double getProgress(ExecutionContext* context) const override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<InQueryCall>(info.copy(), sharedState, id, paramsString);
+        return std::make_unique<TableFunctionCall>(info.copy(), sharedState, id, paramsString);
     }
 
 private:
-    InQueryCallInfo info;
-    std::shared_ptr<InQueryCallSharedState> sharedState;
-    InQueryCallLocalState localState;
+    TableFunctionCallInfo info;
+    std::shared_ptr<TableFunctionCallSharedState> sharedState;
+    TableFunctionCallLocalState localState;
 };
 
 } // namespace processor

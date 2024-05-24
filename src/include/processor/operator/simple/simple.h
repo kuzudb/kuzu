@@ -18,7 +18,7 @@ public:
           outputPos{outputPos}, outputVector{nullptr}, hasExecuted{false} {}
 
     bool isSource() const final { return true; }
-    bool canParallel() const final { return false; }
+    bool isParallel() const final { return false; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

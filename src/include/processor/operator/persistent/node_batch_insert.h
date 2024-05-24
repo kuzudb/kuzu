@@ -4,9 +4,9 @@
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "processor/operator/aggregate/hash_aggregate.h"
-#include "processor/operator/call/in_query_call.h"
 #include "processor/operator/persistent/batch_insert.h"
 #include "processor/operator/persistent/index_builder.h"
+#include "processor/operator/table_function_call.h"
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/node_table.h"
 
@@ -45,7 +45,7 @@ struct NodeBatchInsertSharedState final : public BatchInsertSharedState {
     common::LogicalType pkType;
     std::optional<IndexBuilder> globalIndexBuilder = std::nullopt;
 
-    InQueryCallSharedState* readerSharedState;
+    TableFunctionCallSharedState* readerSharedState;
     HashAggregateSharedState* distinctSharedState;
 
     uint64_t currentNodeGroupIdx;
@@ -71,8 +71,6 @@ struct NodeBatchInsertSharedState final : public BatchInsertSharedState {
     inline uint64_t getCurNodeGroupIdx() const { return currentNodeGroupIdx; }
 
     inline common::offset_t getNextNodeGroupIdxWithoutLock() { return currentNodeGroupIdx++; }
-
-    void calculateNumTuples();
 };
 
 struct NodeBatchInsertLocalState final : public BatchInsertLocalState {
@@ -94,7 +92,7 @@ public:
         children.push_back(std::move(child));
     }
 
-    inline bool canParallel() const override {
+    inline bool isParallel() const override {
         auto nodeInfo = common::ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
         return !nodeInfo->containSerial;
     }

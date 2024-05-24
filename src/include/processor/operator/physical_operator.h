@@ -107,22 +107,20 @@ public:
 
     virtual ~PhysicalOperator() = default;
 
-    inline uint32_t getOperatorID() const { return id; }
+    uint32_t getOperatorID() const { return id; }
 
-    inline PhysicalOperatorType getOperatorType() const { return operatorType; }
+    PhysicalOperatorType getOperatorType() const { return operatorType; }
 
-    inline virtual bool isSource() const { return false; }
-    inline virtual bool isSink() const { return false; }
-    inline virtual bool canParallel() const { return true; }
+    virtual bool isSource() const { return false; }
+    virtual bool isSink() const { return false; }
+    virtual bool isParallel() const { return true; }
 
-    inline void addChild(std::unique_ptr<PhysicalOperator> op) {
-        children.push_back(std::move(op));
-    }
-    inline PhysicalOperator* getChild(uint64_t idx) const { return children[idx].get(); }
-    inline uint64_t getNumChildren() const { return children.size(); }
+    void addChild(std::unique_ptr<PhysicalOperator> op) { children.push_back(std::move(op)); }
+    PhysicalOperator* getChild(uint64_t idx) const { return children[idx].get(); }
+    uint64_t getNumChildren() const { return children.size(); }
     std::unique_ptr<PhysicalOperator> moveUnaryChild();
 
-    inline std::string getParamsString() const { return paramsString; }
+    std::string getParamsString() const { return paramsString; }
 
     // Global state is initialized once.
     void initGlobalState(ExecutionContext* context);
@@ -139,14 +137,19 @@ public:
 
     virtual double getProgress(ExecutionContext* context) const;
 
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<PhysicalOperator*, TARGET*>(this);
+    }
+
 protected:
     virtual void initGlobalStateInternal(ExecutionContext* /*context*/) {}
     virtual void initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {}
     // Return false if no more tuples to pull, otherwise return true
     virtual bool getNextTuplesInternal(ExecutionContext* context) = 0;
 
-    inline std::string getTimeMetricKey() const { return "time-" + std::to_string(id); }
-    inline std::string getNumTupleMetricKey() const { return "numTuple-" + std::to_string(id); }
+    std::string getTimeMetricKey() const { return "time-" + std::to_string(id); }
+    std::string getNumTupleMetricKey() const { return "numTuple-" + std::to_string(id); }
 
     void registerProfilingMetrics(common::Profiler* profiler);
 

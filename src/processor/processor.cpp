@@ -55,12 +55,12 @@ void QueryProcessor::initTask(Task* task) {
     auto processorTask = ku_dynamic_cast<Task*, ProcessorTask*>(task);
     PhysicalOperator* op = processorTask->sink;
     while (!op->isSource()) {
-        if (!op->canParallel()) {
+        if (!op->isParallel()) {
             task->setSingleThreadedTask();
         }
         op = op->getChild(0);
     }
-    if (!op->canParallel()) {
+    if (!op->isParallel()) {
         task->setSingleThreadedTask();
     }
     for (auto& child : task->children) {

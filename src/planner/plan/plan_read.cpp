@@ -1,8 +1,8 @@
 #include "binder/expression_visitor.h"
 #include "binder/query/reading_clause/bound_gds_call.h"
-#include "binder/query/reading_clause/bound_in_query_call.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
+#include "binder/query/reading_clause/bound_table_function_call.h"
 #include "common/enums/join_type.h"
 #include "planner/planner.h"
 
@@ -12,9 +12,9 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-void Planner::planReadingClause(const BoundReadingClause* readingClause,
+void Planner::planReadingClause(const BoundReadingClause& readingClause,
     std::vector<std::unique_ptr<LogicalPlan>>& prevPlans) {
-    auto readingClauseType = readingClause->getClauseType();
+    auto readingClauseType = readingClause.getClauseType();
     switch (readingClauseType) {
     case ClauseType::MATCH: {
         planMatchClause(readingClause, prevPlans);
@@ -22,8 +22,8 @@ void Planner::planReadingClause(const BoundReadingClause* readingClause,
     case ClauseType::UNWIND: {
         planUnwindClause(readingClause, prevPlans);
     } break;
-    case ClauseType::IN_QUERY_CALL: {
-        planInQueryCall(readingClause, prevPlans);
+    case ClauseType::TABLE_FUNCTION_CALL: {
+        planTableFunctionCall(readingClause, prevPlans);
     } break;
     case ClauseType::GDS_CALL: {
         planGDSCall(readingClause, prevPlans);
@@ -36,13 +36,12 @@ void Planner::planReadingClause(const BoundReadingClause* readingClause,
     }
 }
 
-void Planner::planMatchClause(const BoundReadingClause* boundReadingClause,
+void Planner::planMatchClause(const BoundReadingClause& readingClause,
     std::vector<std::unique_ptr<LogicalPlan>>& plans) {
-    auto boundMatchClause =
-        ku_dynamic_cast<const BoundReadingClause*, const BoundMatchClause*>(boundReadingClause);
-    auto queryGraphCollection = boundMatchClause->getQueryGraphCollection();
-    auto predicates = boundMatchClause->getConjunctivePredicates();
-    switch (boundMatchClause->getMatchClauseType()) {
+    auto& boundMatchClause = readingClause.constCast<BoundMatchClause>();
+    auto queryGraphCollection = boundMatchClause.getQueryGraphCollection();
+    auto predicates = boundMatchClause.getConjunctivePredicates();
+    switch (boundMatchClause.getMatchClauseType()) {
     case MatchClauseType::MATCH: {
         if (plans.size() == 1 && plans[0]->isEmpty()) {
             plans = enumerateQueryGraphCollection(*queryGraphCollection, predicates);
@@ -67,13 +66,13 @@ void Planner::planMatchClause(const BoundReadingClause* boundReadingClause,
     }
 }
 
-void Planner::planUnwindClause(const BoundReadingClause* boundReadingClause,
+void Planner::planUnwindClause(const BoundReadingClause& boundReadingClause,
     std::vector<std::unique_ptr<LogicalPlan>>& plans) {
     for (auto& plan : plans) {
         if (plan->isEmpty()) { // UNWIND [1, 2, 3, 4] AS x RETURN x
             appendDummyScan(*plan);
         }
-        appendUnwind(*boundReadingClause, *plan);
+        appendUnwind(boundReadingClause, *plan);
     }
 }
 
@@ -104,52 +103,52 @@ static void splitPredicates(const expression_vector& outputExprs,
     }
 }
 
-void Planner::planInQueryCall(const BoundReadingClause* readingClause,
+void Planner::planTableFunctionCall(const BoundReadingClause& readingClause,
     std::vector<std::unique_ptr<LogicalPlan>>& plans) {
-    auto inQueryCall = readingClause->constPtrCast<BoundInQueryCall>();
+    auto& call = readingClause.constCast<BoundTableFunctionCall>();
     expression_vector predicatesToPull;
     expression_vector predicatesToPush;
-    splitPredicates(inQueryCall->getOutExprs(), inQueryCall->getConjunctivePredicates(),
-        predicatesToPull, predicatesToPush);
+    splitPredicates(call.getOutExprs(), call.getConjunctivePredicates(), predicatesToPull,
+        predicatesToPush);
     // Empty join condition. Table functions do not take input from previous scope.
     expression_vector joinConditions;
     for (auto& plan : plans) {
-        planReadOp(getCall(*readingClause), predicatesToPush, joinConditions, *plan);
+        planReadOp(getTableFunctionCall(readingClause), predicatesToPush, joinConditions, *plan);
         if (!predicatesToPull.empty()) {
             appendFilters(predicatesToPull, *plan);
         }
     }
 }
 
-void Planner::planGDSCall(const BoundReadingClause* readingClause,
+void Planner::planGDSCall(const BoundReadingClause& readingClause,
     std::vector<std::unique_ptr<LogicalPlan>>& plans) {
-    auto algoCall = readingClause->constPtrCast<BoundGDSCall>();
+    auto& call = readingClause.constCast<BoundGDSCall>();
     expression_vector predicatesToPull;
     expression_vector predicatesToPush;
-    splitPredicates(algoCall->getOutExprs(), algoCall->getConjunctivePredicates(), predicatesToPull,
+    splitPredicates(call.getOutExprs(), call.getConjunctivePredicates(), predicatesToPull,
         predicatesToPush);
     // TODO(Xiyang): support join algorithm call with other plan.
     expression_vector joinConditions;
     for (auto& plan : plans) {
-        planReadOp(getAlgorithm(*readingClause), predicatesToPush, joinConditions, *plan);
+        planReadOp(getGDSCall(readingClause), predicatesToPush, joinConditions, *plan);
         if (!predicatesToPull.empty()) {
             appendFilters(predicatesToPull, *plan);
         }
     }
 }
 
-void Planner::planLoadFrom(const BoundReadingClause* readingClause,
+void Planner::planLoadFrom(const BoundReadingClause& readingClause,
     std::vector<std::unique_ptr<LogicalPlan>>& plans) {
-    auto loadFrom = readingClause->constPtrCast<BoundLoadFrom>();
+    auto& loadFrom = readingClause.constCast<BoundLoadFrom>();
     expression_vector predicatesToPull;
     expression_vector predicatesToPush;
-    splitPredicates(loadFrom->getInfo()->columns, loadFrom->getConjunctivePredicates(),
+    splitPredicates(loadFrom.getInfo()->columns, loadFrom.getConjunctivePredicates(),
         predicatesToPull, predicatesToPush);
     // Empty join condition. LOAD FROM does not take input from previous scope. So there is no
     // join condition.
     expression_vector joinConditions;
     for (auto& plan : plans) {
-        auto op = getScanFile(loadFrom->getInfo());
+        auto op = getScanFile(loadFrom.getInfo());
         planReadOp(std::move(op), predicatesToPush, joinConditions, *plan);
         if (!predicatesToPull.empty()) {
             appendFilters(predicatesToPull, *plan);

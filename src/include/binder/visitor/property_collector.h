@@ -14,7 +14,7 @@ private:
     void visitMatch(const BoundReadingClause& readingClause) override;
     void visitUnwind(const BoundReadingClause& readingClause) override;
     void visitLoadFrom(const BoundReadingClause& readingClause) override;
-    void visitInQueryCall(const BoundReadingClause& readingClause) override;
+    void visitTableFunctionCall(const BoundReadingClause&) override;
 
     void visitSet(const BoundUpdatingClause& updatingClause) override;
     void visitDelete(const BoundUpdatingClause& updatingClause) override;

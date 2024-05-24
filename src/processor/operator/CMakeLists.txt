@@ -8,7 +8,6 @@ add_subdirectory(scan)
 add_subdirectory(simple)
 add_subdirectory(table_scan)
 add_subdirectory(recursive_extend)
-add_subdirectory(call)
 add_subdirectory(macro)
 
 add_library(kuzu_processor_operator
@@ -32,6 +31,8 @@ add_library(kuzu_processor_operator
         scan_node_id.cpp
         semi_masker.cpp
         skip.cpp
+        standalone_call.cpp
+        table_function_call.cpp
         transaction.cpp
         unwind.cpp)
 

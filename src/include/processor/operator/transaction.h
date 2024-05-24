@@ -13,17 +13,16 @@ public:
         : PhysicalOperator{PhysicalOperatorType::TRANSACTION, id, paramsString},
           transactionAction{transactionAction}, hasExecuted{false} {}
 
-    inline bool isSource() const final { return true; }
-    inline bool canParallel() const final { return false; }
+    bool isSource() const final { return true; }
+    bool isParallel() const final { return false; }
 
-    inline void initLocalStateInternal(ResultSet* /*resultSet_*/,
-        ExecutionContext* /*context*/) final {
+    void initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) final {
         hasExecuted = false;
     }
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<Transaction>(transactionAction, id, paramsString);
     }
 
