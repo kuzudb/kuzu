@@ -38,9 +38,7 @@ struct HTTPFileInfo : public common::FileInfo {
     HTTPFileInfo(std::string path, common::FileSystem* fileSystem, int flags,
         main::ClientContext* context);
 
-    ~HTTPFileInfo() override;
-
-    virtual void initialize();
+    virtual void initialize(main::ClientContext* context);
 
     virtual void initializeClient();
 
@@ -57,7 +55,7 @@ struct HTTPFileInfo : public common::FileInfo {
     std::unique_ptr<uint8_t[]> readBuffer;
     constexpr static uint64_t READ_BUFFER_LEN = 1000000;
     HTTPConfig httpConfig;
-    common::FileInfo* cachedFileInfo;
+    std::unique_ptr<common::FileInfo> cachedFileInfo;
 };
 
 class HTTPFileSystem : public common::FileSystem {
@@ -84,6 +82,8 @@ public:
     static std::pair<std::string, std::string> parseUrl(const std::string& url);
 
     CachedFileManager& getCachedFileManager() { return *cachedFileManager; }
+
+    void cleanUP(main::ClientContext* context) override;
 
 protected:
     void readFromFile(common::FileInfo& fileInfo, void* buffer, uint64_t numBytes,

@@ -23,14 +23,7 @@ HTTPFileInfo::HTTPFileInfo(std::string path, FileSystem* fileSystem, int flags,
       bufferIdx{0}, fileOffset{0}, bufferStartPos{0}, bufferEndPos{0}, httpConfig{context},
       cachedFileInfo{nullptr} {}
 
-HTTPFileInfo::~HTTPFileInfo() {
-    if (cachedFileInfo != nullptr) {
-        auto hfs = fileSystem->ptrCast<HTTPFileSystem>();
-        hfs->getCachedFileManager().destroyCachedFileInfo(path);
-    }
-}
-
-void HTTPFileInfo::initialize() {
+void HTTPFileInfo::initialize(main::ClientContext* context) {
     initializeClient();
     auto hfs = fileSystem->ptrCast<HTTPFileSystem>();
     auto res = hfs->headRequest(this->ptrCast<HTTPFileInfo>(), path, {});
@@ -114,7 +107,8 @@ void HTTPFileInfo::initialize() {
         }
     }
     if (httpConfig.cacheFile) {
-        cachedFileInfo = hfs->getCachedFileManager().getCachedFileInfo(this);
+        cachedFileInfo =
+            hfs->getCachedFileManager().getCachedFileInfo(this, context->getTx()->getID());
     }
 }
 
@@ -127,7 +121,7 @@ std::unique_ptr<common::FileInfo> HTTPFileSystem::openFile(const std::string& pa
     main::ClientContext* context, common::FileLockType /*lock_type*/) {
     initCachedFileManager(context);
     auto httpFileInfo = std::make_unique<HTTPFileInfo>(path, this, flags, context);
-    httpFileInfo->initialize();
+    httpFileInfo->initialize(context);
     return httpFileInfo;
 }
 
@@ -151,6 +145,12 @@ bool HTTPFileSystem::fileOrPathExists(const std::string& path, main::ClientConte
         return true;
     } catch (...) {
         return false;
+    }
+}
+
+void HTTPFileSystem::cleanUP(main::ClientContext* context) {
+    if (cachedFileManager != nullptr) {
+        cachedFileManager->cleanUP(context);
     }
 }
 

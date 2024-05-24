@@ -122,6 +122,8 @@ public:
 
     bool hasDefaultDatabase();
 
+    void cleanUP();
+
 private:
     std::unique_ptr<QueryResult> query(std::string_view query, std::string_view encodedJoin,
         bool enumerateAllPlans = true);

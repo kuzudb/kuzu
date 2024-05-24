@@ -66,6 +66,13 @@ void VirtualFileSystem::syncFile(const FileInfo& fileInfo) const {
     findFileSystem(fileInfo.path)->syncFile(fileInfo);
 }
 
+void VirtualFileSystem::cleanUP(main::ClientContext* context) {
+    for (auto& subSystem : subSystems) {
+        subSystem->cleanUP(context);
+    }
+    defaultFS->cleanUP(context);
+}
+
 int64_t VirtualFileSystem::seek(FileInfo& /*fileInfo*/, uint64_t /*offset*/, int /*whence*/) const {
     KU_UNREACHABLE;
 }

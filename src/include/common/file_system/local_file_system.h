@@ -48,6 +48,8 @@ public:
 
     void syncFile(const FileInfo& fileInfo) const override;
 
+    void cleanUP(main::ClientContext* /*context*/) override {};
+
 protected:
     void readFromFile(FileInfo& fileInfo, void* buffer, uint64_t numBytes,
         uint64_t position) const override;

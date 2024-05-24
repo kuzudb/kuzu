@@ -4,6 +4,7 @@
 
 #include "common/case_insensitive_map.h"
 #include "common/file_system/virtual_file_system.h"
+#include "common/types/types.h"
 
 namespace kuzu {
 namespace httpfs {
@@ -27,14 +28,15 @@ public:
 public:
     explicit CachedFileManager(main::ClientContext* context);
 
-    ~CachedFileManager();
+    std::unique_ptr<common::FileInfo> getCachedFileInfo(HTTPFileInfo* httpFileInfo,
+        common::transaction_t transactionID);
 
-    common::FileInfo* getCachedFileInfo(HTTPFileInfo* httpFileInfo);
-
-    void destroyCachedFileInfo(const std::string& path);
+    void cleanUP(main::ClientContext* context);
 
 private:
-    std::string getCachedFilePath(const std::string& originalFileName);
+    std::string getCachedFilePath(const std::string& originalFileName,
+        common::transaction_t transactionID);
+    std::string getCachedDirForTrx(common::transaction_t transactionID);
     void downloadFile(HTTPFileInfo* fileToDownload, common::FileInfo* cacheFileInfo);
 
 private:
