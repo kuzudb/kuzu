@@ -145,6 +145,7 @@ function_set AddFunction::getFunctionSet() {
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getBinaryFunction<Add>(name, typeID));
     }
+
     // list + list -> list
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::LIST}, LogicalTypeID::LIST,
@@ -478,7 +479,7 @@ function_set BitShiftRightFunction::getFunctionSet() {
 function_set PiFunction::getFunctionSet() {
     function_set result;
     result.push_back(make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{},
-        LogicalTypeID::DOUBLE, ScalarFunction::ConstExecFunction<double, Pi>));
+        LogicalTypeID::DOUBLE, ScalarFunction::NullaryExecFunction<double, Pi>));
     return result;
 }
 

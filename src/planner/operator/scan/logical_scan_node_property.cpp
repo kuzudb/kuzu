@@ -1,18 +1,21 @@
-#include "planner/operator/scan/logical_scan_node_property.h"
+#include "planner/operator/scan/logical_scan_node_table.h"
 
 namespace kuzu {
 namespace planner {
 
-void LogicalScanNodeProperty::computeFactorizedSchema() {
-    copyChildSchema(0);
-    auto groupPos = schema->getGroupPos(*nodeID);
+void LogicalScanNodeTable::computeFactorizedSchema() {
+    createEmptySchema();
+    const auto groupPos = schema->createGroup();
+    schema->insertToGroupAndScope(nodeID, groupPos);
     for (auto& property : properties) {
         schema->insertToGroupAndScope(property, groupPos);
     }
 }
 
-void LogicalScanNodeProperty::computeFlatSchema() {
-    copyChildSchema(0);
+void LogicalScanNodeTable::computeFlatSchema() {
+    createEmptySchema();
+    schema->createGroup();
+    schema->insertToGroupAndScope(nodeID, 0);
     for (auto& property : properties) {
         schema->insertToGroupAndScope(property, 0);
     }

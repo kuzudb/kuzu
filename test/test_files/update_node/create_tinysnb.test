@@ -131,9 +131,7 @@ a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20
 ---- 1
 100|50|4:3|5:3
 
-# TODO: Fix issue 2257 to enable this test
 -CASE InsertNodeWithListTest
--SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT CREATE (:person {ID:11, workedHours:[1,2,3], usedNames:['A', 'this is a long name']})
@@ -143,11 +141,10 @@ a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20
 10|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]
 11|[1,2,3]|[A,this is a long name]
 9|[1]|[Grad]
-#-COMMIT
+-STATEMENT COMMIT
+---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID > 8 RETURN a.ID, a.workedHours,a.usedNames
 ---- 3
 10|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]
 11|[1,2,3]|[A,this is a long name]
 9|[1]|[Grad]
--STATEMENT COMMIT
----- ok

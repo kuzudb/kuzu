@@ -42,7 +42,9 @@ public:
 private:
     // Plan simple statement.
     void appendCreateTable(const binder::BoundStatement& statement, LogicalPlan& plan);
+    void appendCreateSequence(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendDropTable(const binder::BoundStatement& statement, LogicalPlan& plan);
+    void appendDropSequence(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendAlter(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendStandaloneCall(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendCommentOn(const binder::BoundStatement& statement, LogicalPlan& plan);
@@ -80,15 +82,20 @@ private:
         std::vector<std::unique_ptr<LogicalPlan>> prevPlans);
 
     // Plan read.
-    void planReadingClause(const binder::BoundReadingClause* readingClause,
+    void planReadingClause(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& prevPlans);
-    void planMatchClause(const binder::BoundReadingClause* readingClause,
+    void planMatchClause(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
-    void planUnwindClause(const binder::BoundReadingClause* readingClause,
+    void planUnwindClause(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
-    void planInQueryCall(const binder::BoundReadingClause* readingClause,
+    void planTableFunctionCall(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
-    void planLoadFrom(const binder::BoundReadingClause* readingClause,
+    void planGDSCall(const binder::BoundReadingClause& readingClause,
+        std::vector<std::unique_ptr<LogicalPlan>>& plans);
+    void planReadOp(std::shared_ptr<LogicalOperator> op,
+        const binder::expression_vector& predicates,
+        const binder::expression_vector& joinConditions, LogicalPlan& plan);
+    void planLoadFrom(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
 
     // Plan updating
@@ -179,6 +186,9 @@ private:
         std::vector<std::unique_ptr<LogicalPlan>> leftPlans,
         std::vector<std::unique_ptr<LogicalPlan>> rightPlans);
 
+    // Append empty result
+    void appendEmptyResult(LogicalPlan& plan);
+
     // Append updating operators
     void appendInsertNode(const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos,
         LogicalPlan& plan);
@@ -188,10 +198,7 @@ private:
         LogicalPlan& plan);
     void appendSetRelProperty(const std::vector<const binder::BoundSetPropertyInfo*>& boundInfos,
         LogicalPlan& plan);
-    void appendDeleteNode(const std::vector<const binder::BoundDeleteInfo*>& boundInfos,
-        LogicalPlan& plan);
-    void appendDeleteRel(const std::vector<const binder::BoundDeleteInfo*>& boundInfos,
-        LogicalPlan& plan);
+    void appendDelete(const std::vector<binder::BoundDeleteInfo>& infos, LogicalPlan& plan);
     std::unique_ptr<LogicalInsertInfo> createLogicalInsertInfo(const binder::BoundInsertInfo* info);
     std::unique_ptr<LogicalSetPropertyInfo> createLogicalSetPropertyInfo(
         const binder::BoundSetPropertyInfo* boundSetPropertyInfo);
@@ -207,9 +214,7 @@ private:
 
     // Append scan operators
     void appendExpressionsScan(const binder::expression_vector& expressions, LogicalPlan& plan);
-    void appendScanInternalID(std::shared_ptr<binder::Expression> internalID,
-        std::vector<common::table_id_t> tableIDs, LogicalPlan& plan);
-    void appendScanNodeProperties(std::shared_ptr<binder::Expression> nodeID,
+    void appendScanNodeTable(std::shared_ptr<binder::Expression> nodeID,
         std::vector<common::table_id_t> tableIDs, const binder::expression_vector& properties,
         LogicalPlan& plan);
 
@@ -269,8 +274,6 @@ private:
 
     void appendUnwind(const binder::BoundReadingClause& boundReadingClause, LogicalPlan& plan);
 
-    void appendInQueryCall(const binder::BoundReadingClause& boundReadingClause, LogicalPlan& plan);
-
     void appendFlattens(const f_group_pos_set& groupsPos, LogicalPlan& plan);
     void appendFlattenIfNecessary(f_group_pos groupPos, LogicalPlan& plan);
 
@@ -284,6 +287,12 @@ private:
         std::shared_ptr<binder::Expression> offset, LogicalPlan& plan);
 
     void appendDistinct(const binder::expression_vector& keys, LogicalPlan& plan);
+
+    // Get operators
+    std::shared_ptr<LogicalOperator> getScanFile(const binder::BoundFileScanInfo* info);
+    std::shared_ptr<LogicalOperator> getTableFunctionCall(
+        const binder::BoundReadingClause& readingClause);
+    std::shared_ptr<LogicalOperator> getGDSCall(const binder::BoundReadingClause& readingClause);
 
     std::unique_ptr<LogicalPlan> createUnionPlan(
         std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);

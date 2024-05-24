@@ -60,8 +60,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::foldExpression(
     const std::shared_ptr<Expression>& expression) {
-    auto value = evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(expression,
-        context->getMemoryManager());
+    auto value =
+        evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(expression, context);
     auto result = createLiteralExpression(value);
     // Fold result should preserve the alias original expression. E.g.
     // RETURN 2, 1 + 1 AS x
@@ -120,6 +120,10 @@ void validateAggregationExpressionIsNotNested(const Expression& expression) {
         throw BinderException(
             stringFormat("Expression {} contains nested aggregation.", expression.toString()));
     }
+}
+
+std::string ExpressionBinder::getUniqueName(const std::string& name) const {
+    return binder->getUniqueExpressionName(name);
 }
 
 } // namespace binder

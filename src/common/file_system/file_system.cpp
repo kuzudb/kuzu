@@ -3,11 +3,11 @@
 namespace kuzu {
 namespace common {
 
-void FileSystem::overwriteFile(const std::string& /*from*/, const std::string& /*to*/) const {
+void FileSystem::overwriteFile(const std::string& /*from*/, const std::string& /*to*/) {
     KU_UNREACHABLE;
 }
 
-void FileSystem::copyFile(const std::string& /*from*/, const std::string& /*to*/) const {
+void FileSystem::copyFile(const std::string& /*from*/, const std::string& /*to*/) {
     KU_UNREACHABLE;
 }
 
@@ -15,11 +15,11 @@ void FileSystem::createDir(const std::string& /*dir*/) const {
     KU_UNREACHABLE;
 }
 
-void FileSystem::removeFileIfExists(const std::string& /*path*/) const {
+void FileSystem::removeFileIfExists(const std::string& /*path*/) {
     KU_UNREACHABLE;
 }
 
-bool FileSystem::fileOrPathExists(const std::string& /*path*/) const {
+bool FileSystem::fileOrPathExists(const std::string& /*path*/, main::ClientContext* /*context*/) {
     KU_UNREACHABLE;
 }
 
@@ -34,6 +34,10 @@ std::string FileSystem::joinPath(const std::string& base, const std::string& par
 
 std::string FileSystem::getFileExtension(const std::filesystem::path& path) {
     return path.extension().string();
+}
+
+std::string FileSystem::getFileName(const std::filesystem::path& path) {
+    return path.filename().string();
 }
 
 void FileSystem::writeFile(FileInfo& /*fileInfo*/, const uint8_t* /*buffer*/, uint64_t /*numBytes*/,

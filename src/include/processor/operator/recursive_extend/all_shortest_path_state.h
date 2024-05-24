@@ -61,7 +61,7 @@ private:
 private:
     uint32_t minDistance; // Min distance to add dst nodes that have been reached.
     uint64_t numVisitedDstNodes;
-    frontier::node_id_map_t<int64_t> visitedNodeToDistance;
+    common::node_id_map_t<int64_t> visitedNodeToDistance;
 };
 
 } // namespace processor

@@ -159,15 +159,15 @@ static inline DBFileIDAndName constructDBFileIDAndName(
 }
 
 OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager* bufferManager,
-    WAL* wal, bool readOnly, common::VirtualFileSystem* vfs)
+    WAL* wal, bool readOnly, common::VirtualFileSystem* vfs, main::ClientContext* context)
     : bufferManager{bufferManager}, wal{wal}, headerChanged{false} {
     auto overflowFileIDAndName = constructDBFileIDAndName(dbFileIdAndName);
     dbFileID = overflowFileIDAndName.dbFileID;
     fileHandle = bufferManager->getBMFileHandle(overflowFileIDAndName.fName,
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_NO_CREATE,
-        BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs);
-    if (vfs->fileOrPathExists(overflowFileIDAndName.fName)) {
+        BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs, context);
+    if (vfs->fileOrPathExists(overflowFileIDAndName.fName, context)) {
         readFromDisk(transaction::TransactionType::READ_ONLY, HEADER_PAGE_IDX,
             [&](auto* frame) { memcpy(&header, frame, sizeof(header)); });
         pageCounter = numPagesOnDisk = header.pages;
@@ -177,11 +177,14 @@ OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager
     }
 }
 
-void OverflowFile::createEmptyFiles(const std::string& fName, common::VirtualFileSystem* vfs) {
-    FileHandle fileHandle(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs);
+void OverflowFile::createEmptyFiles(const std::string& fName, common::VirtualFileSystem* vfs,
+    main::ClientContext* context) {
+    FileHandle fileHandle(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs, context);
     uint8_t page[common::BufferPoolConstants::PAGE_4KB_SIZE];
     StringOverflowFileHeader header;
     memcpy(page, &header, sizeof(StringOverflowFileHeader));
+    // Zero free space at the end of the header page
+    std::fill(page + sizeof(header), page + BufferPoolConstants::PAGE_4KB_SIZE, 0);
     fileHandle.addNewPage();
     fileHandle.writePage(page, HEADER_PAGE_IDX);
 }
@@ -218,6 +221,8 @@ void OverflowFile::prepareCommit() {
         uint8_t page[BufferPoolConstants::PAGE_4KB_SIZE];
         header.pages = pageCounter;
         memcpy(page, &header, sizeof(header));
+        // Zero free space at the end of the header page
+        std::fill(page + sizeof(header), page + BufferPoolConstants::PAGE_4KB_SIZE, 0);
         writePageToDisk(HEADER_PAGE_IDX, page);
     }
 }

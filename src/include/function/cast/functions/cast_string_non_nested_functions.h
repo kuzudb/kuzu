@@ -48,7 +48,7 @@ struct IntegerCastOperation {
 
 // cast string to bool
 bool tryCastToBool(const char* input, uint64_t len, bool& result);
-void castStringToBool(const char* input, uint64_t len, bool& result);
+void KUZU_API castStringToBool(const char* input, uint64_t len, bool& result);
 
 // cast to numerical values
 // TODO(Kebing): support exponent + decimal
@@ -255,6 +255,65 @@ template<>
 bool inline TryCastStringToTimestamp::tryCast<timestamp_tz_t>(const char* input, uint64_t len,
     timestamp_t& result) {
     return Timestamp::tryConvertTimestamp(input, len, result);
+}
+
+// ---------------------- cast String to Decimal -------------------- //
+
+template<typename T>
+bool tryDecimalCast(const char* input, uint64_t len, T& result, uint32_t scale) {
+    StringUtils::removeCStringWhiteSpaces(input, len);
+    if (len == 0) {
+        return false;
+    }
+
+    bool negativeFlag = input[0] == '-';
+    if (negativeFlag) {
+        input++;
+    }
+
+    IntegerCastData<T> res{0};
+    uint64_t pos = 0;
+    uint64_t periodPos = len;
+    while (pos < len) {
+        if (input[pos] == '.') {
+            periodPos = pos;
+        }
+        if (!StringUtils::CharacterIsDigit(input[pos])) {
+            return false;
+        }
+        uint8_t digit = input[pos] - '0';
+        if (pos - periodPos > scale) {
+            // then determine rounding
+            if (digit >= 5) {
+                res.result += 1;
+            }
+            break;
+        }
+        if (!IntegerCastOperation::handleDigit<IntegerCastData<T>, true>(res, digit)) {
+            return false;
+        }
+        pos++;
+    }
+    if (negativeFlag) {
+        res.result = -res.result;
+    }
+    while (pos - periodPos < scale) {
+        // trailing 0's
+        if (!IntegerCastOperation::handleDigit<IntegerCastData<T>, true>(res, 0)) {
+            return false;
+        }
+        pos++;
+    }
+    result = res.result;
+    return true;
+}
+
+template<typename T>
+void decimalCast(const char* input, uint64_t len, T& result, const LogicalType& type) {
+    if (!tryDecimalCast(input, len, result, DecimalType::getScale(type))) {
+        throw ConversionException(stringFormat("Cast failed. {} is not in {} range.",
+            std::string{input, len}, type.toString()));
+    }
 }
 
 } // namespace function

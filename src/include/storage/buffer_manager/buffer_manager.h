@@ -182,11 +182,11 @@ public:
     void removePageFromFrameIfNecessary(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
 
     // For files that are managed by BM, their FileHandles should be created through this function.
-    inline std::unique_ptr<BMFileHandle> getBMFileHandle(const std::string& filePath, uint8_t flags,
+    std::unique_ptr<BMFileHandle> getBMFileHandle(const std::string& filePath, uint8_t flags,
         BMFileHandle::FileVersionedType fileVersionedType, common::VirtualFileSystem* vfs,
-        common::PageSizeClass pageSizeClass = common::PAGE_4KB) {
+        main::ClientContext* context, common::PageSizeClass pageSizeClass = common::PAGE_4KB) {
         return std::make_unique<BMFileHandle>(filePath, flags, this, pageSizeClass,
-            fileVersionedType, vfs);
+            fileVersionedType, vfs, context);
     }
     inline common::frame_group_idx_t addNewFrameGroup(common::PageSizeClass pageSizeClass) {
         return vmRegions[pageSizeClass]->addNewFrameGroup();

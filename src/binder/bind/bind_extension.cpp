@@ -27,7 +27,8 @@ static void bindLoadExtension(const ExtensionStatement* extensionStatement) {
         return;
     }
     auto localFileSystem = common::LocalFileSystem();
-    if (!localFileSystem.fileOrPathExists(extensionStatement->getPath())) {
+    if (!localFileSystem.fileOrPathExists(extensionStatement->getPath(),
+            nullptr /* clientContext */)) {
         throw common::BinderException(
             common::stringFormat("The extension {} is neither an official extension, nor does "
                                  "the extension path: '{}' exists.",

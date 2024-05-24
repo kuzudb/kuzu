@@ -25,7 +25,7 @@ struct LocalFileInfo : public FileInfo {
 #endif
 };
 
-class LocalFileSystem final : public FileSystem {
+class KUZU_API LocalFileSystem final : public FileSystem {
 public:
     std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
         main::ClientContext* context = nullptr,
@@ -34,19 +34,21 @@ public:
     std::vector<std::string> glob(main::ClientContext* context,
         const std::string& path) const override;
 
-    void overwriteFile(const std::string& from, const std::string& to) const override;
+    void overwriteFile(const std::string& from, const std::string& to) override;
 
-    void copyFile(const std::string& from, const std::string& to) const override;
+    void copyFile(const std::string& from, const std::string& to) override;
 
     void createDir(const std::string& dir) const override;
 
-    void removeFileIfExists(const std::string& path) const override;
+    void removeFileIfExists(const std::string& path) override;
 
-    bool fileOrPathExists(const std::string& path) const override;
+    bool fileOrPathExists(const std::string& path, main::ClientContext* context = nullptr) override;
 
     std::string expandPath(main::ClientContext* context, const std::string& path) const override;
 
     void syncFile(const FileInfo& fileInfo) const override;
+
+    void cleanUP(main::ClientContext* /*context*/) override {};
 
 protected:
     void readFromFile(FileInfo& fileInfo, void* buffer, uint64_t numBytes,

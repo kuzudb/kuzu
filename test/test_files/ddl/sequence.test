@@ -1,0 +1,158 @@
+-DATASET CSV empty
+
+--
+
+-CASE CreateDrop
+-STATEMENT CREATE NODE TABLE test(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE SEQUENCE test;
+---- ok
+-STATEMENT DROP TABLE test;
+---- ok
+-STATEMENT DROP SEQUENCE test;
+---- ok
+
+-CASE CreateOptions
+-STATEMENT CREATE SEQUENCE a;
+           CREATE SEQUENCE b START 10;
+           CREATE SEQUENCE c START WITH 20;
+           CREATE SEQUENCE d INCREMENT 10;
+           CREATE SEQUENCE e INCREMENT BY -5;
+           CREATE SEQUENCE f NO MINVALUE;
+           CREATE SEQUENCE g NO MAXVALUE;
+           CREATE SEQUENCE h MINVALUE 100;
+           CREATE SEQUENCE i MAXVALUE 100;
+           CREATE SEQUENCE j NO CYCLE;
+           CREATE SEQUENCE k CYCLE;
+           CREATE SEQUENCE l START 10 INCREMENT 5 MINVALUE -100 MAXVALUE 100 CYCLE;
+---- ok
+---- ok
+---- ok
+---- ok
+---- ok
+---- ok
+---- ok
+---- ok
+---- ok
+---- ok
+---- ok
+---- ok
+
+-STATEMENT CALL SHOW_SEQUENCES() RETURN * ORDER BY name;
+---- 12
+a|local(kuzu)|1|1|1|9223372036854775807|False
+b|local(kuzu)|10|1|1|9223372036854775807|False
+c|local(kuzu)|20|1|1|9223372036854775807|False
+d|local(kuzu)|1|10|1|9223372036854775807|False
+e|local(kuzu)|-1|-5|-9223372036854775808|-1|False
+f|local(kuzu)|1|1|1|9223372036854775807|False
+g|local(kuzu)|1|1|1|9223372036854775807|False
+h|local(kuzu)|100|1|100|9223372036854775807|False
+i|local(kuzu)|1|1|1|100|False
+j|local(kuzu)|1|1|1|9223372036854775807|False
+k|local(kuzu)|1|1|1|9223372036854775807|True
+l|local(kuzu)|10|5|-100|100|True
+
+-CASE ExpectedError
+-STATEMENT CREATE SEQUENCE err START 9223372036854775808;
+---- error
+Binder exception: Out of bounds: SEQUENCE accepts integers within INT64.
+-STATEMENT CREATE SEQUENCE err START -9223372036854775809;
+---- error
+Binder exception: Out of bounds: SEQUENCE accepts integers within INT64.
+-STATEMENT CREATE SEQUENCE err MINVALUE 10 MAXVALUE -10;
+---- error
+Binder exception: SEQUENCE MAXVALUE should be greater than or equal to MINVALUE.
+-STATEMENT CREATE SEQUENCE err START -1;
+---- error
+Binder exception: SEQUENCE START value should be between MINVALUE and MAXVALUE.
+-STATEMENT CREATE SEQUENCE err START WITH 1 INCREMENT -1;
+---- error
+Binder exception: SEQUENCE START value should be between MINVALUE and MAXVALUE.
+
+-CASE ExpectedFunctionError
+-STATEMENT CREATE SEQUENCE err;
+---- ok
+-STATEMENT RETURN currval('err');
+---- error
+Catalog exception: currval: sequence "err" is not yet defined. To define the sequence, call nextval first.
+
+-CASE BasicIncDec
+-STATEMENT CREATE SEQUENCE inc;
+---- ok
+-STATEMENT CREATE SEQUENCE dec INCREMENT -1;
+---- ok
+-STATEMENT RETURN nextval('inc');
+---- 1
+1
+-STATEMENT RETURN nextval('dec');
+---- 1
+-1
+-STATEMENT RETURN currval('inc');
+---- 1
+1
+-STATEMENT RETURN currval('dec');
+---- 1
+-1
+
+-CASE EdgesNoCycle
+-STATEMENT CREATE SEQUENCE overflowMax START 9223372036854775807 INCREMENT 1;
+---- ok
+-STATEMENT CREATE SEQUENCE overflowMin START -9223372036854775808 INCREMENT -1;
+---- ok
+-STATEMENT CREATE SEQUENCE edgeMax START 10 INCREMENT 1 MAXVALUE 10;
+---- ok
+-STATEMENT CREATE SEQUENCE edgeMin START -10 INCREMENT -1 MINVALUE -10;
+---- ok
+-STATEMENT RETURN nextval('overflowMax');
+---- error
+Catalog exception: nextval: reached maximum value of sequence "overflowMax" 9223372036854775807
+-STATEMENT RETURN nextval('overflowMin');
+---- error
+Catalog exception: nextval: reached minimum value of sequence "overflowMin" -9223372036854775808
+-STATEMENT RETURN nextval('edgeMax');
+---- 1
+10
+-STATEMENT RETURN nextval('edgeMax');
+---- error
+Catalog exception: nextval: reached maximum value of sequence "edgeMax" 10
+-STATEMENT RETURN nextval('edgeMin');
+---- 1
+-10
+-STATEMENT RETURN nextval('edgeMin');
+---- error
+Catalog exception: nextval: reached minimum value of sequence "edgeMin" -10
+
+-CASE EdgesCycle
+-STATEMENT CREATE SEQUENCE overflowMax START 9223372036854775807 INCREMENT 1 CYCLE;
+---- ok
+-STATEMENT CREATE SEQUENCE overflowMin START -9223372036854775808 INCREMENT -1 CYCLE;
+---- ok
+-STATEMENT CREATE SEQUENCE edgeMax START 10 INCREMENT 1 MAXVALUE 10 CYCLE;
+---- ok
+-STATEMENT CREATE SEQUENCE edgeMin START -10 INCREMENT -1 MINVALUE -10 CYCLE;
+---- ok
+-STATEMENT RETURN nextval('overflowMax');
+---- 1
+9223372036854775807
+-STATEMENT RETURN nextval('overflowMin');
+---- 1
+-9223372036854775808
+-STATEMENT RETURN nextval('edgeMax');
+---- 1
+10
+-STATEMENT RETURN nextval('edgeMin');
+---- 1
+-10
+-STATEMENT RETURN nextval('overflowMax');
+---- 1
+1
+-STATEMENT RETURN nextval('overflowMin');
+---- 1
+-1
+-STATEMENT RETURN nextval('edgeMax');
+---- 1
+1
+-STATEMENT RETURN nextval('edgeMin');
+---- 1
+-1

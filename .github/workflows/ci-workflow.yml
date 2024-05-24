@@ -42,6 +42,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       RUN_ID: "$(hostname)-$(date +%s)"
+      HTTP_CACHE_FILE: TRUE
 
     steps:
       - uses: actions/checkout@v3
@@ -69,6 +70,14 @@ jobs:
 
       - name: Java test
         run: make javatest
+
+      - name: Rust test with pre-built library
+        working-directory: tools/rust_api
+        env:
+          KUZU_SHARED: 1
+          KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
+          KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
+        run: cargo test --locked --features arrow -- --test-threads=1
 
   code-coverage:
     name: code coverage
@@ -188,6 +197,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       RUN_ID: "$(hostname)-$(date +%s)"
+      HTTP_CACHE_FILE: TRUE
     steps:
       - uses: actions/checkout@v3
 
@@ -215,6 +225,14 @@ jobs:
       - name: Java test
         run: make javatest
 
+      - name: Rust test with pre-built library
+        working-directory: tools/rust_api
+        env:
+          KUZU_SHARED: 1
+          KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
+          KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
+        run: cargo test --locked --features arrow -- --test-threads=1
+
   msvc-build-test:
     name: msvc build & test
     needs: [clang-format, sanity-checks, python-lint-check]
@@ -234,6 +252,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
+      HTTP_CACHE_FILE: TRUE
     steps:
       - uses: actions/checkout@v3
 
@@ -275,9 +294,8 @@ jobs:
         working-directory: tools/rust_api
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-          set KUZU_TESTING=1
-          set CFLAGS=/MDd
-          set CXXFLAGS=/MDd /std:c++20
+          set CFLAGS=/MD
+          set CXXFLAGS=/MD /std:c++20
           cargo test --locked -- --test-threads=1
 
       - name: Java test
@@ -285,6 +303,19 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           make javatest
+
+      - name: Rust test with pre-built library
+        working-directory: tools/rust_api
+        env:
+          KUZU_SHARED: 1
+          KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
+          KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          set PATH=%PATH%;${{ github.workspace }}/build/release/src
+          cargo test --locked --features arrow -- --test-threads=1
+
 
   sanity-checks:
     name: sanity checks
@@ -418,6 +449,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$(date +%s)"
+      HTTP_CACHE_FILE: TRUE
     steps:
       - uses: actions/checkout@v3
 
@@ -471,6 +503,10 @@ jobs:
           source /Users/runner/.cargo/env
           cargo build --locked --features arrow
 
+      # TODO(bmwinger): rust pre-built library test for macos
+      # When last tried it had issues finding libkuzu.dylib when running the tests
+      # Using LD_LIBRARY_PATH (and similar variables) did not work for some reason
+
   shell-test:
     name: shell test
     runs-on: ubuntu-latest
@@ -508,6 +544,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       RUN_ID: "$(hostname)-$(date +%s)"
+      HTTP_CACHE_FILE: TRUE
       ASAN_OPTIONS: detect_leaks=0
       WERROR: 0
 
@@ -547,6 +584,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$(date +%s)"
+      HTTP_CACHE_FILE: TRUE
     steps:
       - uses: actions/checkout@v3
 
@@ -586,6 +624,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
+      HTTP_CACHE_FILE: TRUE
     steps:
       - uses: actions/checkout@v3
 

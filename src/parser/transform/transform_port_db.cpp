@@ -11,7 +11,7 @@ std::unique_ptr<Statement> Transformer::transformExportDatabase(
     std::string filePath = transformStringLiteral(*ctx.StringLiteral());
     auto exportDB = std::make_unique<ExportDB>(std::move(filePath));
     if (ctx.kU_ParsingOptions()) {
-        exportDB->setParsingOption(transformParsingOptions(*ctx.kU_ParsingOptions()));
+        exportDB->setParsingOption(transformOptions(*ctx.kU_ParsingOptions()->kU_Options()));
     }
     return exportDB;
 }

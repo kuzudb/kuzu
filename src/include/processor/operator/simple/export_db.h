@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace processor {
 
-class ExportDB : public Simple {
+class ExportDB final : public Simple {
 public:
     ExportDB(common::ReaderConfig boundFileInfo, const DataPos& outputPos, uint32_t id,
         const std::string& paramsString, std::vector<std::unique_ptr<PhysicalOperator>> children)
@@ -14,8 +14,8 @@ public:
               paramsString},
           boundFileInfo{std::move(boundFileInfo)} {}
 
-    void executeInternal(ExecutionContext* context) final;
-    std::string getOutputMsg() final;
+    void executeInternal(ExecutionContext* context) override;
+    std::string getOutputMsg() override;
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<ExportDB>(std::move(boundFileInfo), outputPos, id, paramsString,
             std::move(children));

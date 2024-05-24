@@ -11,7 +11,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-RelTableStats::RelTableStats(BMFileHandle* metadataFH, const catalog::TableCatalogEntry& tableEntry,
+RelTableStats::RelTableStats(BMFileHandle* metadataFH, const TableCatalogEntry& tableEntry,
     BufferManager* bufferManager, WAL* wal)
     : TableStatistics{tableEntry}, nextRelOffset{0} {
     fwdCSROffsetMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(

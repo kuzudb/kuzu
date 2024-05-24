@@ -8,11 +8,11 @@ add_subdirectory(scan)
 add_subdirectory(simple)
 add_subdirectory(table_scan)
 add_subdirectory(recursive_extend)
-add_subdirectory(call)
 add_subdirectory(macro)
 
 add_library(kuzu_processor_operator
         OBJECT
+        gds_call.cpp
         comment_on.cpp
         cross_product.cpp
         empty_result.cpp
@@ -28,9 +28,10 @@ add_library(kuzu_processor_operator
         projection.cpp
         profile.cpp
         result_collector.cpp
-        scan_node_id.cpp
         semi_masker.cpp
         skip.cpp
+        standalone_call.cpp
+        table_function_call.cpp
         transaction.cpp
         unwind.cpp)
 

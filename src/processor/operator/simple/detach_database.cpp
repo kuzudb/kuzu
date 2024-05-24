@@ -8,6 +8,10 @@ namespace processor {
 
 void DetachDatabase::executeInternal(kuzu::processor::ExecutionContext* context) {
     auto dbManager = context->clientContext->getDatabaseManager();
+    if (dbManager->getAttachedDatabase(dbName) != nullptr &&
+        dbManager->getAttachedDatabase(dbName)->getDBType() == common::ATTACHED_KUZU_DB_TYPE) {
+        context->clientContext->setDefaultDatabase(nullptr /* defaultDatabase */);
+    }
     dbManager->detachDatabase(dbName);
 }
 

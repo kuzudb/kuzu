@@ -679,6 +679,32 @@ static bool tryCastUnionField(ValueVector* vector, uint64_t rowToAdd, const char
         success = function::tryDoubleCast(input, len, result);
         testAndSetValue(vector, rowToAdd, result, success);
     } break;
+    case LogicalTypeID::DECIMAL: {
+        switch (targetType.getPhysicalType()) {
+        case PhysicalTypeID::INT16: {
+            int16_t result;
+            tryDecimalCast(input, len, result, DecimalType::getScale(targetType));
+            testAndSetValue(vector, rowToAdd, result, success);
+        } break;
+        case PhysicalTypeID::INT32: {
+            int32_t result;
+            tryDecimalCast(input, len, result, DecimalType::getScale(targetType));
+            testAndSetValue(vector, rowToAdd, result, success);
+        } break;
+        case PhysicalTypeID::INT64: {
+            int64_t result;
+            tryDecimalCast(input, len, result, DecimalType::getScale(targetType));
+            testAndSetValue(vector, rowToAdd, result, success);
+        } break;
+        case PhysicalTypeID::INT128: {
+            int128_t result;
+            tryDecimalCast(input, len, result, DecimalType::getScale(targetType));
+            testAndSetValue(vector, rowToAdd, result, success);
+        } break;
+        default:
+            KU_UNREACHABLE;
+        }
+    } break;
     case LogicalTypeID::DATE: {
         date_t result;
         uint64_t pos;
@@ -817,6 +843,32 @@ void CastString::copyStringToVector(ValueVector* vector, uint64_t vectorPos,
         float val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(vectorPos, val);
+    } break;
+    case LogicalTypeID::DECIMAL: {
+        switch (type.getPhysicalType()) {
+        case PhysicalTypeID::INT16: {
+            int16_t val;
+            decimalCast(strVal.data(), strVal.length(), val, type);
+            vector->setValue(vectorPos, val);
+        } break;
+        case PhysicalTypeID::INT32: {
+            int32_t val;
+            decimalCast(strVal.data(), strVal.length(), val, type);
+            vector->setValue(vectorPos, val);
+        } break;
+        case PhysicalTypeID::INT64: {
+            int64_t val;
+            decimalCast(strVal.data(), strVal.length(), val, type);
+            vector->setValue(vectorPos, val);
+        } break;
+        case PhysicalTypeID::INT128: {
+            int128_t val;
+            decimalCast(strVal.data(), strVal.length(), val, type);
+            vector->setValue(vectorPos, val);
+        } break;
+        default:
+            KU_UNREACHABLE;
+        }
     } break;
     case LogicalTypeID::DOUBLE: {
         double val;

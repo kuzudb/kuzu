@@ -181,19 +181,30 @@ void ProjectionPushDownOptimizer::visitInsertInfo(const planner::LogicalInsertIn
     }
 }
 
-void ProjectionPushDownOptimizer::visitDeleteNode(planner::LogicalOperator* op) {
-    auto deleteNode = (LogicalDeleteNode*)op;
-    for (auto info : deleteNode->getInfos()) {
-        collectExpressionsInUse(info->node->getInternalID());
-    }
-}
-
-void ProjectionPushDownOptimizer::visitDeleteRel(planner::LogicalOperator* op) {
-    auto deleteRel = (LogicalDeleteRel*)op;
-    for (auto& rel : deleteRel->getRelsRef()) {
-        collectExpressionsInUse(rel->getSrcNode()->getInternalID());
-        collectExpressionsInUse(rel->getDstNode()->getInternalID());
-        collectExpressionsInUse(rel->getInternalIDProperty());
+void ProjectionPushDownOptimizer::visitDelete(planner::LogicalOperator* op) {
+    auto delete_ = op->constPtrCast<LogicalDelete>();
+    auto& infos = delete_->getInfos();
+    KU_ASSERT(!infos.empty());
+    switch (infos[0].tableType) {
+    case TableType::NODE: {
+        for (auto& info : infos) {
+            auto& node = info.pattern->constCast<NodeExpression>();
+            collectExpressionsInUse(node.getInternalID());
+            for (auto id : node.getTableIDs()) {
+                collectExpressionsInUse(node.getPrimaryKey(id));
+            }
+        }
+    } break;
+    case TableType::REL: {
+        for (auto& info : infos) {
+            auto& rel = info.pattern->constCast<RelExpression>();
+            collectExpressionsInUse(rel.getSrcNode()->getInternalID());
+            collectExpressionsInUse(rel.getDstNode()->getInternalID());
+            collectExpressionsInUse(rel.getInternalIDProperty());
+        }
+    } break;
+    default:
+        KU_UNREACHABLE;
     }
 }
 

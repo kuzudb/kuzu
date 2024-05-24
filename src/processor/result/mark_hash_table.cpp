@@ -5,7 +5,7 @@ namespace processor {
 
 MarkHashTable::MarkHashTable(storage::MemoryManager& memoryManager,
     std::vector<common::LogicalType> keyTypes, std::vector<common::LogicalType> payloadTypes,
-    uint64_t numEntriesToAllocate, std::unique_ptr<FactorizedTableSchema> tableSchema)
+    uint64_t numEntriesToAllocate, FactorizedTableSchema tableSchema)
     : AggregateHashTable(memoryManager, std::move(keyTypes), std::move(payloadTypes),
           std::vector<std::unique_ptr<function::AggregateFunction>>{} /* empty aggregates */,
           std::vector<common::LogicalType>{} /* empty distinct agg key*/, numEntriesToAllocate,

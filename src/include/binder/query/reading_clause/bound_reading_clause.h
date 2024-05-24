@@ -14,13 +14,24 @@ public:
 
     common::ClauseType getClauseType() const { return clauseType; }
 
-    inline void setPredicate(std::shared_ptr<Expression> predicate_) {
-        predicate = std::move(predicate_);
-    }
-    inline bool hasPredicate() const { return predicate != nullptr; }
-    inline std::shared_ptr<Expression> getPredicate() const { return predicate; }
-    inline expression_vector getConjunctivePredicates() const {
+    void setPredicate(std::shared_ptr<Expression> predicate_) { predicate = std::move(predicate_); }
+    bool hasPredicate() const { return predicate != nullptr; }
+    std::shared_ptr<Expression> getPredicate() const { return predicate; }
+    expression_vector getConjunctivePredicates() const {
         return hasPredicate() ? predicate->splitOnAND() : expression_vector{};
+    }
+
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<BoundReadingClause&, TARGET&>(*this);
+    }
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const BoundReadingClause&, const TARGET&>(*this);
+    }
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const BoundReadingClause*, const TARGET*>(this);
     }
 
 private:

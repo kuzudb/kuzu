@@ -11,10 +11,24 @@
 namespace kuzu {
 namespace processor {
 
+struct NodeDeleteInfo {
+    common::DeleteNodeType deleteType;
+    DataPos nodeIDPos;
+
+    NodeDeleteInfo(common::DeleteNodeType deleteType, const DataPos& nodeIDPos)
+        : deleteType{deleteType}, nodeIDPos{nodeIDPos} {};
+    EXPLICIT_COPY_DEFAULT_MOVE(NodeDeleteInfo);
+
+private:
+    NodeDeleteInfo(const NodeDeleteInfo& other)
+        : deleteType{other.deleteType}, nodeIDPos{other.nodeIDPos} {}
+};
+
 class NodeDeleteExecutor {
 public:
-    NodeDeleteExecutor(common::DeleteNodeType deleteType, const DataPos& nodeIDPos)
-        : deleteType{deleteType}, nodeIDPos{nodeIDPos}, nodeIDVector(nullptr) {}
+    explicit NodeDeleteExecutor(NodeDeleteInfo info)
+        : info{std::move(info)}, nodeIDVector(nullptr) {}
+    NodeDeleteExecutor(const NodeDeleteExecutor& other) : info{other.info.copy()} {}
     virtual ~NodeDeleteExecutor() = default;
 
     virtual void init(ResultSet* resultSet, ExecutionContext* context);
@@ -24,69 +38,67 @@ public:
     virtual std::unique_ptr<NodeDeleteExecutor> copy() const = 0;
 
 protected:
-    common::DeleteNodeType deleteType;
-    DataPos nodeIDPos;
+    NodeDeleteInfo info;
+
     common::ValueVector* nodeIDVector;
     std::unique_ptr<storage::RelDetachDeleteState> detachDeleteState;
 };
 
+struct ExtraNodeDeleteInfo {
+    storage::NodeTable* table;
+    std::unordered_set<storage::RelTable*> fwdRelTables;
+    std::unordered_set<storage::RelTable*> bwdRelTables;
+    DataPos pkPos;
+    common::ValueVector* pkVector;
+
+    ExtraNodeDeleteInfo(storage::NodeTable* table,
+        std::unordered_set<storage::RelTable*> fwdRelTables,
+        std::unordered_set<storage::RelTable*> bwdRelTables, DataPos pkPos)
+        : table{table}, fwdRelTables{std::move(fwdRelTables)},
+          bwdRelTables{std::move(bwdRelTables)}, pkPos{std::move(pkPos)} {};
+    EXPLICIT_COPY_DEFAULT_MOVE(ExtraNodeDeleteInfo);
+
+private:
+    ExtraNodeDeleteInfo(const ExtraNodeDeleteInfo& other)
+        : table{other.table}, fwdRelTables{other.fwdRelTables}, bwdRelTables{other.bwdRelTables},
+          pkPos{other.pkPos} {}
+};
+
 class SingleLabelNodeDeleteExecutor final : public NodeDeleteExecutor {
 public:
-    SingleLabelNodeDeleteExecutor(storage::NodeTable* table,
-        std::unordered_set<storage::RelTable*> fwdRelTables,
-        std::unordered_set<storage::RelTable*> bwdRelTables, common::DeleteNodeType deleteType,
-        const DataPos& nodeIDPos)
-        : NodeDeleteExecutor(deleteType, nodeIDPos), table{table},
-          fwdRelTables{std::move(fwdRelTables)}, bwdRelTables{std::move(bwdRelTables)} {}
+    SingleLabelNodeDeleteExecutor(NodeDeleteInfo info, ExtraNodeDeleteInfo extraInfo)
+        : NodeDeleteExecutor(std::move(info)), extraInfo{std::move(extraInfo)} {}
     SingleLabelNodeDeleteExecutor(const SingleLabelNodeDeleteExecutor& other)
-        : NodeDeleteExecutor(other.deleteType, other.nodeIDPos), table{other.table},
-          fwdRelTables{other.fwdRelTables}, bwdRelTables{other.bwdRelTables} {}
+        : NodeDeleteExecutor(other), extraInfo{other.extraInfo.copy()} {}
 
     void init(ResultSet* resultSet, ExecutionContext* context) override;
     void delete_(ExecutionContext* context) override;
 
-    inline std::unique_ptr<NodeDeleteExecutor> copy() const override {
+    std::unique_ptr<NodeDeleteExecutor> copy() const override {
         return std::make_unique<SingleLabelNodeDeleteExecutor>(*this);
     }
 
 private:
-    storage::NodeTable* table;
-    std::unique_ptr<common::ValueVector> pkVector;
-    std::unordered_set<storage::RelTable*> fwdRelTables;
-    std::unordered_set<storage::RelTable*> bwdRelTables;
+    ExtraNodeDeleteInfo extraInfo;
 };
 
 class MultiLabelNodeDeleteExecutor final : public NodeDeleteExecutor {
-    using rel_tables_set_t = std::unordered_set<storage::RelTable*>;
-
 public:
-    MultiLabelNodeDeleteExecutor(
-        std::unordered_map<common::table_id_t, storage::NodeTable*> tableIDToTableMap,
-        std::unordered_map<common::table_id_t, rel_tables_set_t> tableIDToFwdRelTablesMap,
-        std::unordered_map<common::table_id_t, rel_tables_set_t> tableIDToBwdRelTablesMap,
-        common::DeleteNodeType deleteType, const DataPos& nodeIDPos)
-        : NodeDeleteExecutor(deleteType, nodeIDPos),
-          tableIDToTableMap{std::move(tableIDToTableMap)},
-          tableIDToFwdRelTablesMap{std::move(tableIDToFwdRelTablesMap)},
-          tableIDToBwdRelTablesMap{std::move(tableIDToBwdRelTablesMap)} {}
+    MultiLabelNodeDeleteExecutor(NodeDeleteInfo info,
+        common::table_id_map_t<ExtraNodeDeleteInfo> extraInfos)
+        : NodeDeleteExecutor(std::move(info)), extraInfos{std::move(extraInfos)} {}
     MultiLabelNodeDeleteExecutor(const MultiLabelNodeDeleteExecutor& other)
-        : NodeDeleteExecutor(other.deleteType, other.nodeIDPos),
-          tableIDToTableMap{other.tableIDToTableMap},
-          tableIDToFwdRelTablesMap{other.tableIDToFwdRelTablesMap},
-          tableIDToBwdRelTablesMap{other.tableIDToBwdRelTablesMap} {}
+        : NodeDeleteExecutor(other), extraInfos{copyMap(other.extraInfos)} {}
 
     void init(ResultSet* resultSet, ExecutionContext* context) override;
     void delete_(ExecutionContext* context) override;
 
-    inline std::unique_ptr<NodeDeleteExecutor> copy() const override {
+    std::unique_ptr<NodeDeleteExecutor> copy() const override {
         return std::make_unique<MultiLabelNodeDeleteExecutor>(*this);
     }
 
 private:
-    std::unordered_map<common::table_id_t, storage::NodeTable*> tableIDToTableMap;
-    std::unordered_map<common::table_id_t, rel_tables_set_t> tableIDToFwdRelTablesMap;
-    std::unordered_map<common::table_id_t, rel_tables_set_t> tableIDToBwdRelTablesMap;
-    std::unordered_map<common::table_id_t, std::unique_ptr<common::ValueVector>> pkVectors;
+    common::table_id_map_t<ExtraNodeDeleteInfo> extraInfos;
 };
 
 class RelDeleteExecutor {
@@ -147,7 +159,7 @@ public:
     }
 
 private:
-    std::unordered_map<common::table_id_t, storage::RelTable*> tableIDToTableMap;
+    common::table_id_map_t<storage::RelTable*> tableIDToTableMap;
 };
 
 } // namespace processor

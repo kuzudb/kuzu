@@ -18,14 +18,14 @@ fn get_target() -> String {
 }
 
 fn link_libraries() {
-    println!("cargo:rustc-link-lib={}=kuzu", link_mode());
+    if cfg!(windows) && link_mode() == "dylib" {
+        println!("cargo:rustc-link-lib=dylib=kuzu_shared");
+    } else {
+        println!("cargo:rustc-link-lib={}=kuzu", link_mode());
+    }
     if link_mode() == "static" {
         if cfg!(windows) {
-            if get_target() == "debug" {
-                println!("cargo:rustc-link-lib=dylib=msvcrtd");
-            } else {
-                println!("cargo:rustc-link-lib=dylib=msvcrt");
-            }
+            println!("cargo:rustc-link-lib=dylib=msvcrt");
             println!("cargo:rustc-link-lib=dylib=shell32");
             println!("cargo:rustc-link-lib=dylib=ole32");
         } else if cfg!(target_os = "macos") {
@@ -70,6 +70,8 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
     if cfg!(windows) {
         build.generator("Ninja");
         build.cxxflag("/EHsc");
+        build.define("CMAKE_MSVC_RUNTIME_LIBRARY", "MultiThreadedDLL");
+        build.define("CMAKE_POLICY_DEFAULT_CMP0091", "NEW");
     }
     let build_dir = build.build();
 
@@ -134,8 +136,6 @@ fn build_ffi(
 
     build.includes(include_paths);
 
-    link_libraries();
-
     println!("cargo:rerun-if-env-changed=KUZU_SHARED");
 
     println!("cargo:rerun-if-changed=include/kuzu_rs.h");
@@ -143,6 +143,7 @@ fn build_ffi(
 
     if cfg!(windows) {
         build.flag("/std:c++20");
+        build.flag("/MD");
     } else {
         build.flag("-std=c++2a");
     }
@@ -163,15 +164,15 @@ fn main() {
         (env::var("KUZU_LIBRARY_DIR"), env::var("KUZU_INCLUDE_DIR"))
     {
         println!("cargo:rustc-link-search=native={}", kuzu_lib_dir);
-        if cfg!(windows) && link_mode() == "dylib" {
-            println!("cargo:rustc-link-lib=dylib=kuzu_shared");
-        } else {
-            println!("cargo:rustc-link-lib={}=kuzu", link_mode());
-        }
+        // Also add to environment used by cargo run and tests
+        println!("cargo:rustc-env=LD_LIBRARY_PATH={}", kuzu_lib_dir);
         include_paths.push(Path::new(&kuzu_include).to_path_buf());
     } else {
         include_paths.extend(build_bundled_cmake().expect("Bundled build failed!"));
         bundled = true;
+    }
+    if link_mode() == "static" {
+        link_libraries();
     }
     build_ffi(
         "src/ffi.rs",
@@ -189,5 +190,8 @@ fn main() {
             bundled,
             &include_paths,
         );
+    }
+    if link_mode() == "dylib" {
+        link_libraries();
     }
 }

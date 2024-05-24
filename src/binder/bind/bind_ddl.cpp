@@ -1,6 +1,8 @@
 #include "binder/binder.h"
 #include "binder/ddl/bound_alter.h"
+#include "binder/ddl/bound_create_sequence.h"
 #include "binder/ddl/bound_create_table.h"
+#include "binder/ddl/bound_drop_sequence.h"
 #include "binder/ddl/bound_drop_table.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
@@ -11,7 +13,9 @@
 #include "common/exception/message.h"
 #include "common/string_format.h"
 #include "common/types/types.h"
+#include "function/cast/functions/cast_from_string_functions.h"
 #include "parser/ddl/alter.h"
+#include "parser/ddl/create_sequence.h"
 #include "parser/ddl/create_table.h"
 #include "parser/ddl/create_table_info.h"
 #include "parser/ddl/drop.h"
@@ -174,9 +178,66 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& stateme
     return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo));
 }
 
+std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& statement) {
+    auto& createSequence = ku_dynamic_cast<const Statement&, const CreateSequence&>(statement);
+    auto info = createSequence.getInfo();
+    auto sequenceName = info.sequenceName;
+    int64_t startWith;
+    int64_t increment;
+    int64_t minValue;
+    int64_t maxValue;
+    ku_string_t literal;
+    if (clientContext->getCatalog()->containsSequence(clientContext->getTx(), sequenceName)) {
+        throw BinderException(sequenceName + " already exists in catalog.");
+    }
+    literal = ku_string_t{info.increment.c_str(), info.increment.length()};
+    if (!function::CastString::tryCast(literal, increment)) {
+        throw BinderException("Out of bounds: SEQUENCE accepts integers within INT64.");
+    }
+    if (increment == 0) {
+        throw BinderException("INCREMENT must be non-zero.");
+    }
+
+    if (info.minValue == "") {
+        minValue = increment > 0 ? 1 : std::numeric_limits<int64_t>::min();
+    } else {
+        literal = ku_string_t{info.minValue.c_str(), info.minValue.length()};
+        if (!function::CastString::tryCast(literal, minValue)) {
+            throw BinderException("Out of bounds: SEQUENCE accepts integers within INT64.");
+        }
+    }
+    if (info.maxValue == "") {
+        maxValue = increment > 0 ? std::numeric_limits<int64_t>::max() : -1;
+    } else {
+        literal = ku_string_t{info.maxValue.c_str(), info.maxValue.length()};
+        if (!function::CastString::tryCast(literal, maxValue)) {
+            throw BinderException("Out of bounds: SEQUENCE accepts integers within INT64.");
+        }
+    }
+    if (info.startWith == "") {
+        startWith = increment > 0 ? minValue : maxValue;
+    } else {
+        literal = ku_string_t{info.startWith.c_str(), info.startWith.length()};
+        if (!function::CastString::tryCast(literal, startWith)) {
+            throw BinderException("Out of bounds: SEQUENCE accepts integers within INT64.");
+        }
+    }
+
+    if (maxValue < minValue) {
+        throw BinderException("SEQUENCE MAXVALUE should be greater than or equal to MINVALUE.");
+    }
+    if (startWith < minValue || startWith > maxValue) {
+        throw BinderException("SEQUENCE START value should be between MINVALUE and MAXVALUE.");
+    }
+
+    auto boundInfo =
+        BoundCreateSequenceInfo(sequenceName, startWith, increment, minValue, maxValue, info.cycle);
+    return std::make_unique<BoundCreateSequence>(std::move(boundInfo));
+}
+
 std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement) {
     auto& dropTable = ku_dynamic_cast<const Statement&, const Drop&>(statement);
-    auto tableName = dropTable.getTableName();
+    auto tableName = dropTable.getName();
     validateTableExist(tableName);
     auto catalog = clientContext->getCatalog();
     auto tableID = catalog->getTableID(clientContext->getTx(), tableName);
@@ -248,6 +309,18 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
         break;
     }
     return make_unique<BoundDropTable>(tableID, tableName);
+}
+
+std::unique_ptr<BoundStatement> Binder::bindDropSequence(const Statement& statement) {
+    auto& dropSequence = ku_dynamic_cast<const Statement&, const Drop&>(statement);
+    auto sequenceName = dropSequence.getName();
+    if (!clientContext->getCatalog()->containsSequence(clientContext->getTx(), sequenceName)) {
+        throw BinderException("Sequence " + sequenceName + " does not exist.");
+    }
+    auto catalog = clientContext->getCatalog();
+    auto sequenceID = catalog->getSequenceID(clientContext->getTx(), sequenceName);
+    // TODO: Later check if sequence used/referenced by table
+    return make_unique<BoundDropSequence>(sequenceID, sequenceName);
 }
 
 std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {

@@ -4,9 +4,14 @@
 #include "common/cast.h"
 
 namespace kuzu {
+namespace main {
+class AttachedKuzuDatabase;
+} // namespace main
+
 namespace binder {
 struct BoundAlterInfo;
 struct BoundCreateTableInfo;
+struct BoundCreateSequenceInfo;
 } // namespace binder
 
 namespace function {
@@ -28,7 +33,11 @@ class RelTableCatalogEntry;
 class RelGroupCatalogEntry;
 class RDFGraphCatalogEntry;
 
+class SequenceCatalogEntry;
+
 class Catalog {
+    friend class main::AttachedKuzuDatabase;
+
 public:
     // This is extended by DuckCatalog and PostgresCatalog.
     KUZU_API Catalog();
@@ -64,6 +73,19 @@ public:
     void setTableComment(transaction::Transaction* tx, common::table_id_t tableID,
         const std::string& comment) const;
 
+    // ----------------------------- Sequences ----------------------------
+    bool containsSequence(transaction::Transaction* tx, const std::string& sequenceName) const;
+
+    common::sequence_id_t getSequenceID(transaction::Transaction* tx,
+        const std::string& sequenceName) const;
+    SequenceCatalogEntry* getSequenceCatalogEntry(transaction::Transaction* tx,
+        common::sequence_id_t sequenceID) const;
+    std::vector<SequenceCatalogEntry*> getSequenceEntries(transaction::Transaction* tx) const;
+
+    common::sequence_id_t createSequence(transaction::Transaction* tx,
+        const binder::BoundCreateSequenceInfo& info);
+    void dropSequence(transaction::Transaction* tx, common::sequence_id_t sequenceID);
+
     // ----------------------------- Functions ----------------------------
     void addFunction(transaction::Transaction* tx, CatalogEntryType entryType, std::string name,
         function::function_set functionSet);
@@ -82,12 +104,20 @@ public:
     void prepareCheckpoint(const std::string& databasePath, storage::WAL* wal,
         common::VirtualFileSystem* fs);
 
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<Catalog*, TARGET*>(this);
+    }
+
 private:
+    // The clientContext needs to be used when reading from a remote filesystem which
+    // requires some user-specific configs (e.g. s3 username, password).
     void readFromFile(const std::string& directory, common::VirtualFileSystem* fs,
-        common::FileVersionType versionType);
+        common::FileVersionType versionType, main::ClientContext* context = nullptr);
     void saveToFile(const std::string& directory, common::VirtualFileSystem* fs,
         common::FileVersionType versionType);
 
+private:
     // ----------------------------- Functions ----------------------------
     void registerBuiltInFunctions();
 
@@ -132,10 +162,19 @@ private:
     std::unique_ptr<CatalogEntry> createRdfGraphEntry(transaction::Transaction* transaction,
         common::table_id_t tableID, const binder::BoundCreateTableInfo& info);
 
+    // ----------------------------- Sequence entries ----------------------------
+    void iterateSequenceCatalogEntries(transaction::Transaction* transaction,
+        std::function<void(CatalogEntry*)> func) const {
+        for (auto& [_, entry] : sequences->getEntries(transaction)) {
+            func(entry);
+        }
+    }
+
 protected:
     std::unique_ptr<CatalogSet> tables;
 
 private:
+    std::unique_ptr<CatalogSet> sequences;
     std::unique_ptr<CatalogSet> functions;
 };
 

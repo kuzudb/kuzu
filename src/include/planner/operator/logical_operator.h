@@ -16,12 +16,13 @@ enum class LogicalOperatorType : uint8_t {
     COPY_FROM,
     COPY_TO,
     CREATE_MACRO,
+    CREATE_SEQUENCE,
     CREATE_TABLE,
     CROSS_PRODUCT,
-    DELETE_NODE,
-    DELETE_REL,
+    DELETE,
     DETACH_DATABASE,
     DISTINCT,
+    DROP_SEQUENCE,
     DROP_TABLE,
     DUMMY_SCAN,
     EMPTY_RESULT,
@@ -32,8 +33,8 @@ enum class LogicalOperatorType : uint8_t {
     EXPORT_DATABASE,
     FILTER,
     FLATTEN,
+    GDS_CALL,
     HASH_JOIN,
-    IN_QUERY_CALL,
     INDEX_SCAN_NODE,
     IMPORT_DATABASE,
     INTERSECT,
@@ -50,12 +51,12 @@ enum class LogicalOperatorType : uint8_t {
     RECURSIVE_EXTEND,
     SCAN_FILE,
     SCAN_FRONTIER,
-    SCAN_INTERNAL_ID,
-    SCAN_NODE_PROPERTY,
+    SCAN_NODE_TABLE,
     SEMI_MASKER,
     SET_NODE_PROPERTY,
     SET_REL_PROPERTY,
     STANDALONE_CALL,
+    TABLE_FUNCTION_CALL,
     TRANSACTION,
     UNION_ALL,
     UNWIND,
@@ -107,8 +108,16 @@ public:
     static logical_op_vector_t copy(const logical_op_vector_t& ops);
 
     template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const LogicalOperator&, const TARGET&>(*this);
+    }
+    template<class TARGET>
     const TARGET* constPtrCast() const {
         return common::ku_dynamic_cast<const LogicalOperator*, const TARGET*>(this);
+    }
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<LogicalOperator*, TARGET*>(this);
     }
 
 protected:

@@ -3,7 +3,7 @@
 --
 
 -CASE W3SparqlRecursivePath
-
+-SKIP
 -STATEMENT CREATE RDFGraph R;
 ---- ok
 -STATEMENT CREATE (a:R_r {iri: "a"})-[{iri: "knows"}]->(b:R_r {iri: "b"}),

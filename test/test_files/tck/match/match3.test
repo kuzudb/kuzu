@@ -382,8 +382,8 @@ Binder exception: Bind relationship r to relationship with same name is not supp
            WITH a
            MATCH (a)-->(b)
            RETURN b
----- error
-Binder exception: No rel table exists in database.
+---- 0
+
 
 # Matching from null nodes should return no results owing to matches being filtered out
 #-CASE Scenario28

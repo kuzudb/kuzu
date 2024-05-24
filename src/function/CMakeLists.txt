@@ -2,10 +2,14 @@ add_subdirectory(aggregate)
 add_subdirectory(arithmetic)
 add_subdirectory(array)
 add_subdirectory(cast)
+add_subdirectory(date)
+add_subdirectory(gds)
+add_subdirectory(graph)
 add_subdirectory(list)
 add_subdirectory(map)
 add_subdirectory(path)
 add_subdirectory(pattern)
+add_subdirectory(sequence)
 add_subdirectory(struct)
 add_subdirectory(table)
 add_subdirectory(union)
@@ -27,6 +31,7 @@ add_library(kuzu_function
         vector_boolean_functions.cpp
         vector_cast_functions.cpp
         vector_date_functions.cpp
+        vector_decimal_functions.cpp
         vector_hash_functions.cpp
         vector_null_functions.cpp
         vector_rdf_functions.cpp

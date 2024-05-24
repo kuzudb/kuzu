@@ -1,9 +1,9 @@
 #include "binder/visitor/property_collector.h"
 
 #include "binder/expression_visitor.h"
-#include "binder/query/reading_clause/bound_in_query_call.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
+#include "binder/query/reading_clause/bound_table_function_call.h"
 #include "binder/query/reading_clause/bound_unwind_clause.h"
 #include "binder/query/updating_clause/bound_delete_clause.h"
 #include "binder/query/updating_clause/bound_insert_clause.h"
@@ -26,6 +26,10 @@ expression_vector PropertyCollector::getProperties() {
 void PropertyCollector::visitMatch(const BoundReadingClause& readingClause) {
     auto& matchClause = (BoundMatchClause&)readingClause;
     for (auto& rel : matchClause.getQueryGraphCollection()->getQueryRels()) {
+        if (rel->isEmpty()) {
+            // If a query rel is empty then it does not have an internal id property.
+            continue;
+        }
         if (rel->getRelType() == QueryRelType::NON_RECURSIVE) {
             properties.insert(rel->getInternalIDProperty());
         }
@@ -48,11 +52,10 @@ void PropertyCollector::visitLoadFrom(const BoundReadingClause& readingClause) {
     }
 }
 
-void PropertyCollector::visitInQueryCall(const BoundReadingClause& readingClause) {
-    auto& inQueryCallClause =
-        ku_dynamic_cast<const BoundReadingClause&, const BoundInQueryCall&>(readingClause);
-    if (inQueryCallClause.hasPredicate()) {
-        collectPropertyExpressions(inQueryCallClause.getPredicate());
+void PropertyCollector::visitTableFunctionCall(const BoundReadingClause& readingClause) {
+    auto& call = readingClause.constCast<BoundTableFunctionCall>();
+    if (call.hasPredicate()) {
+        collectPropertyExpressions(call.getPredicate());
     }
 }
 
@@ -64,16 +67,24 @@ void PropertyCollector::visitSet(const BoundUpdatingClause& updatingClause) {
 }
 
 void PropertyCollector::visitDelete(const BoundUpdatingClause& updatingClause) {
-    auto& boundDeleteClause = (BoundDeleteClause&)updatingClause;
+    auto& boundDeleteClause = updatingClause.constCast<BoundDeleteClause>();
+    // Read primary key if we are deleting nodes;
+    for (auto& info : boundDeleteClause.getNodeInfos()) {
+        auto& node = info.pattern->constCast<NodeExpression>();
+        for (auto id : node.getTableIDs()) {
+            properties.insert(node.getPrimaryKey(id));
+        }
+    }
+    // Read rel internal id if we are deleting relationships.
     for (auto& info : boundDeleteClause.getRelInfos()) {
-        auto rel = (RelExpression*)info->nodeOrRel.get();
-        properties.insert(rel->getInternalIDProperty());
+        auto& rel = info.pattern->constCast<RelExpression>();
+        properties.insert(rel.getInternalIDProperty());
     }
 }
 
 void PropertyCollector::visitInsert(const BoundUpdatingClause& updatingClause) {
     auto& insertClause = (BoundInsertClause&)updatingClause;
-    for (auto& info : insertClause.getInfosRef()) {
+    for (auto& info : insertClause.getInfos()) {
         for (auto& expr : info.columnDataExprs) {
             collectPropertyExpressions(expr);
         }

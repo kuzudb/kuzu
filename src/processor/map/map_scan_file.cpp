@@ -1,5 +1,5 @@
 #include "planner/operator/scan/logical_scan_file.h"
-#include "processor/operator/call/in_query_call.h"
+#include "processor/operator/table_function_call.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::storage;
@@ -18,7 +18,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanFile(LogicalOperator* logic
     for (auto& expr : scanFileInfo->columns) {
         outPosV.emplace_back(getDataPos(*expr, *outSchema));
     }
-    auto info = InQueryCallInfo();
+    auto info = TableFunctionCallInfo();
     info.function = scanFileInfo->func;
     info.bindData = scanFileInfo->bindData->copy();
     info.outPosV = outPosV;
@@ -29,8 +29,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanFile(LogicalOperator* logic
     }
     info.outputType =
         outPosV.empty() ? TableScanOutputType::EMPTY : TableScanOutputType::SINGLE_DATA_CHUNK;
-    auto sharedState = std::make_shared<InQueryCallSharedState>();
-    return std::make_unique<InQueryCall>(std::move(info), sharedState, getOperatorID(),
+    auto sharedState = std::make_shared<TableFunctionCallSharedState>();
+    return std::make_unique<TableFunctionCall>(std::move(info), sharedState, getOperatorID(),
         scanFile->getExpressionsForPrinting());
 }
 

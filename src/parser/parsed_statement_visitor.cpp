@@ -14,6 +14,12 @@ void StatementVisitor::visit(const Statement& statement) {
     case StatementType::QUERY: {
         visitQuery(statement);
     } break;
+    case StatementType::CREATE_SEQUENCE: {
+        visitCreateSequence(statement);
+    } break;
+    case StatementType::DROP_SEQUENCE: {
+        visitDropSequence(statement);
+    } break;
     case StatementType::CREATE_TABLE: {
         visitCreateTable(statement);
     } break;

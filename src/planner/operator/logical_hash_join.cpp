@@ -3,7 +3,7 @@
 #include "common/cast.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/operator/factorization/sink_util.h"
-#include "planner/operator/scan/logical_scan_internal_id.h"
+#include "planner/operator/scan/logical_scan_node_table.h"
 
 using namespace kuzu::common;
 
@@ -181,11 +181,11 @@ bool LogicalHashJoin::isJoinKeyUniqueOnBuildSide(const binder::Expression& joinN
         }
         op = op->getChild(0).get();
     }
-    if (op->getOperatorType() != LogicalOperatorType::SCAN_INTERNAL_ID) {
+    if (op->getOperatorType() != LogicalOperatorType::SCAN_NODE_TABLE) {
         return false;
     }
-    auto scan = ku_dynamic_cast<LogicalOperator*, LogicalScanInternalID*>(op);
-    if (scan->getInternalID()->getUniqueName() != joinNodeID.getUniqueName()) {
+    auto scan = ku_dynamic_cast<LogicalOperator*, LogicalScanNodeTable*>(op);
+    if (scan->getNodeID()->getUniqueName() != joinNodeID.getUniqueName()) {
         return false;
     }
     return true;

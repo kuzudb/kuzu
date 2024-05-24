@@ -27,7 +27,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::planQueryPart(
     std::vector<std::unique_ptr<LogicalPlan>> plans = std::move(prevPlans);
     // plan read
     for (auto i = 0u; i < queryPart->getNumReadingClause(); i++) {
-        planReadingClause(queryPart->getReadingClause(i), plans);
+        planReadingClause(*queryPart->getReadingClause(i), plans);
     }
     // plan update
     for (auto i = 0u; i < queryPart->getNumUpdatingClause(); ++i) {

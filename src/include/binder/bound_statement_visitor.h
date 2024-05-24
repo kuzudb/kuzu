@@ -12,11 +12,15 @@ public:
     virtual ~BoundStatementVisitor() = default;
 
     void visit(const BoundStatement& statement);
+    // Unsafe visitors are implemented on-demand. We may reuse safe visitor inside unsafe visitor
+    // if no other class need to overwrite an unsafe visitor.
     void visitUnsafe(BoundStatement& statement);
 
     virtual void visitSingleQuery(const NormalizedSingleQuery& singleQuery);
 
 protected:
+    virtual void visitCreateSequence(const BoundStatement&) {}
+    virtual void visitDropSequence(const BoundStatement&) {}
     virtual void visitCreateTable(const BoundStatement&) {}
     virtual void visitDropTable(const BoundStatement&) {}
     virtual void visitAlter(const BoundStatement&) {}
@@ -33,12 +37,16 @@ protected:
 
     virtual void visitRegularQuery(const BoundStatement& statement);
     virtual void visitRegularQueryUnsafe(BoundStatement& statement);
-    virtual void visitSingleQueryUnsafe(NormalizedSingleQuery&) {}
+    virtual void visitSingleQueryUnsafe(NormalizedSingleQuery& singleQuery);
     virtual void visitQueryPart(const NormalizedQueryPart& queryPart);
+    virtual void visitQueryPartUnsafe(NormalizedQueryPart& queryPart);
     void visitReadingClause(const BoundReadingClause& readingClause);
-    virtual void visitMatch(const BoundReadingClause& /*readingClause*/) {}
+    void visitReadingClauseUnsafe(BoundReadingClause& readingClause);
+    virtual void visitMatch(const BoundReadingClause&) {}
+    virtual void visitMatchUnsafe(BoundReadingClause&) {}
     virtual void visitUnwind(const BoundReadingClause& /*readingClause*/) {}
-    virtual void visitInQueryCall(const BoundReadingClause& /*statement*/) {}
+    virtual void visitTableFunctionCall(const BoundReadingClause&) {}
+    virtual void visitGDSCall(const BoundReadingClause&) {}
     virtual void visitLoadFrom(const BoundReadingClause& /*statement*/) {}
     void visitUpdatingClause(const BoundUpdatingClause& updatingClause);
     virtual void visitSet(const BoundUpdatingClause& /*updatingClause*/) {}

@@ -11,11 +11,11 @@ namespace processor {
 struct CopyToParquetInfo final : public CopyToInfo {
     kuzu_parquet::format::CompressionCodec::type codec =
         kuzu_parquet::format::CompressionCodec::SNAPPY;
-    std::unique_ptr<FactorizedTableSchema> tableSchema;
+    FactorizedTableSchema tableSchema;
     std::vector<std::unique_ptr<common::LogicalType>> types;
     DataPos countingVecPos;
 
-    CopyToParquetInfo(std::unique_ptr<FactorizedTableSchema> tableSchema,
+    CopyToParquetInfo(FactorizedTableSchema tableSchema,
         std::vector<std::unique_ptr<common::LogicalType>> types, std::vector<std::string> names,
         std::vector<DataPos> dataPoses, std::string fileName, DataPos countingVecPos,
         bool canParallel)
@@ -24,7 +24,7 @@ struct CopyToParquetInfo final : public CopyToInfo {
           countingVecPos{std::move(countingVecPos)} {}
 
     std::unique_ptr<CopyToInfo> copy() override {
-        return std::make_unique<CopyToParquetInfo>(tableSchema->copy(),
+        return std::make_unique<CopyToParquetInfo>(tableSchema.copy(),
             common::LogicalType::copy(types), names, dataPoses, fileName, countingVecPos,
             canParallel);
     }

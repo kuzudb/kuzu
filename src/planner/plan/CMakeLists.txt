@@ -2,16 +2,18 @@ add_library(kuzu_planner_plan_operator
         OBJECT
         append_accumulate.cpp
         append_aggregate.cpp
+        append_gds_call.cpp
         append_insert.cpp
         append_cross_product.cpp
         append_delete.cpp
         append_distinct.cpp
         append_dummy_scan.cpp
+        append_empty_result.cpp
         append_expressions_scan.cpp
         append_extend.cpp
         append_filter.cpp
         append_flatten.cpp
-        append_in_query_call.cpp
+        append_table_function_call.cpp
         append_join.cpp
         append_limit.cpp
         append_mark_accumulate.cpp
@@ -19,7 +21,7 @@ add_library(kuzu_planner_plan_operator
         append_order_by.cpp
         append_projection.cpp
         append_scan_file.cpp
-        append_scan_node.cpp
+        append_scan_node_table.cpp
         append_set.cpp
         append_simple.cpp
         append_unwind.cpp

@@ -1,4 +1,5 @@
 import math
+from decimal import Decimal
 import random
 import struct
 from datetime import datetime, timedelta
@@ -632,3 +633,23 @@ def test_pyarrow_map_offset(conn_db_readonly: ConnDB) -> None:
         idx += 1
 
     assert idx == 48
+
+def test_pyarrow_decimal(conn_db_readwrite: ConnDB) -> None:
+    conn, db = conn_db_readwrite
+    datalength = 4
+    index = pa.array(range(datalength))
+    decimal52 = pa.array(map(Decimal, ['1.2', '2', '0.5', '100']), type=pa.decimal128(7, 2))
+    decimal380 = pa.array(map(Decimal, ['2938103', '109283091238', '1028391238012', '1283019283123']), type=pa.decimal128(38, 0))
+    df = pd.DataFrame({
+        'index': arrowtopd(index),
+        'col1': arrowtopd(decimal52),
+        'col2': arrowtopd(decimal380)
+    })
+    conn.execute("CREATE NODE TABLE tab(id INT64, col1 DECIMAL(7, 2), col2 DECIMAL(38, 0), primary key(id))")
+    conn.execute("LOAD FROM df CREATE (t:tab {id: index, col1: col1, col2: col2})")
+    result = conn.execute("MATCH (t:tab) RETURN t.id as index, t.col1 as col1, t.col2 as col2").get_as_arrow()
+    expected = pa.Table.from_arrays([index, decimal52, decimal380],
+        names=['index', 'col1', 'col2'])
+    print(result)
+    print(expected)
+    assert tables_equal(result, expected)

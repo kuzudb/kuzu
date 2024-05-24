@@ -16,14 +16,12 @@ TableData::TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
       enableCompression{enableCompression} {}
 
 void TableData::addColumn(Transaction* transaction, const std::string& colNamePrefix,
-    InMemDiskArray<ColumnChunkMetadata>* metadataDA, const MetadataDAHInfo& metadataDAHInfo,
-    const catalog::Property& property, ValueVector* defaultValueVector,
-    TablesStatistics* tablesStats) {
+    DiskArray<ColumnChunkMetadata>* metadataDA, const MetadataDAHInfo& metadataDAHInfo,
+    const catalog::Property& property, ValueVector* defaultValueVector) {
     auto colName = StorageUtils::getColumnName(property.getName(),
         StorageUtils::ColumnType::DEFAULT, colNamePrefix);
     auto column = ColumnFactory::createColumn(colName, *property.getDataType()->copy(),
-        metadataDAHInfo, dataFH, metadataFH, bufferManager, wal, transaction,
-        RWPropertyStats(tablesStats, tableID, property.getPropertyID()), enableCompression);
+        metadataDAHInfo, dataFH, metadataFH, bufferManager, wal, transaction, enableCompression);
     column->populateWithDefaultVal(transaction, metadataDA, defaultValueVector);
     columns.push_back(std::move(column));
 }

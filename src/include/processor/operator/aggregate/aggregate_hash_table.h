@@ -43,7 +43,7 @@ public:
     AggregateHashTable(storage::MemoryManager& memoryManager,
         const std::vector<common::LogicalType>& keyTypes,
         const std::vector<common::LogicalType>& payloadTypes, uint64_t numEntriesToAllocate,
-        std::unique_ptr<FactorizedTableSchema> tableSchema)
+        FactorizedTableSchema tableSchema)
         : AggregateHashTable(memoryManager, keyTypes, payloadTypes,
               std::vector<std::unique_ptr<function::AggregateFunction>>{} /* empty aggregates */,
               std::vector<common::LogicalType>{} /* empty distinct agg key*/, numEntriesToAllocate,
@@ -53,7 +53,7 @@ public:
         std::vector<common::LogicalType> keyTypes, std::vector<common::LogicalType> payloadTypes,
         const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
         const std::vector<common::LogicalType>& distinctAggKeyTypes, uint64_t numEntriesToAllocate,
-        std::unique_ptr<FactorizedTableSchema> tableSchema);
+        FactorizedTableSchema tableSchema);
 
     uint8_t* getEntry(uint64_t idx) { return factorizedTable->getTuple(idx); }
 
@@ -106,7 +106,7 @@ protected:
 private:
     void initializeFT(
         const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
-        std::unique_ptr<FactorizedTableSchema> tableSchema);
+        FactorizedTableSchema tableSchema);
 
     void initializeHashTable(uint64_t numEntriesToAllocate);
 

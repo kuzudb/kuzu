@@ -25,7 +25,8 @@ oC_Statement
         | kU_CreateRelTable
         | kU_CreateRelTableGroup
         | kU_CreateRdfGraph
-        | kU_DropTable
+        | kU_CreateSequence
+        | kU_Drop
         | kU_AlterTable
         | kU_CopyFrom
         | kU_CopyFromByColumn
@@ -66,7 +67,13 @@ kU_ImportDatabase
     : IMPORT SP DATABASE SP StringLiteral;
 
 kU_AttachDatabase
-    : ATTACH SP StringLiteral (SP AS SP oC_SchemaName SP)?  (SP? '(' SP? DBTYPE SP StringLiteral SP? ')')?;
+    : ATTACH SP StringLiteral (SP AS SP oC_SchemaName)? SP '(' SP? DBTYPE SP oC_SymbolicName (SP? ',' SP? kU_Options)? SP? ')' ;
+
+kU_Option
+    : oC_SymbolicName SP? '=' SP? oC_Literal ;
+
+kU_Options
+    : kU_Option ( SP? ',' SP? kU_Option )* ;
 
 ATTACH:
     ( 'A' | 'a') ( 'T' | 't') ( 'T' | 't') ( 'A' | 'a') ( 'C' | 'c') ( 'H' | 'h');
@@ -112,10 +119,7 @@ kU_FilePaths
 GLOB : ( 'G' | 'g' ) ( 'L' | 'l' ) ( 'O' | 'o' ) ( 'B' | 'b' ) ;
 
 kU_ParsingOptions
-    : '(' SP? kU_ParsingOption ( SP? ',' SP? kU_ParsingOption )*  SP? ')' ;
-
-kU_ParsingOption
-    : oC_SymbolicName SP? '=' SP? oC_Literal;
+    : '(' SP? kU_Options SP? ')' ;
 
 COPY : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'P' | 'p') ( 'Y' | 'y' ) ;
 
@@ -140,7 +144,7 @@ kU_CreateRelTable
     : CREATE SP REL SP TABLE SP oC_SchemaName SP? '(' SP? kU_RelTableConnection SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
 
 kU_CreateRelTableGroup
-   : CREATE SP REL SP TABLE SP GROUP SP oC_SchemaName SP? '(' SP? kU_RelTableConnection SP ? (',' SP? kU_RelTableConnection)+ SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
+    : CREATE SP REL SP TABLE SP GROUP SP oC_SchemaName SP? '(' SP? kU_RelTableConnection SP ? (',' SP? kU_RelTableConnection)+ SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
 
 GROUP : ( 'G' | 'g' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'U' | 'u' ) ( 'P' | 'p' ) ;
 
@@ -152,8 +156,42 @@ kU_CreateRdfGraph
 
 RDFGRAPH : ('R' | 'r') ('D' | 'd') ('F' | 'f') ('G' | 'g') ('R' | 'r') ('A' | 'a') ('P' | 'p') ('H' | 'h') ;
 
-kU_DropTable
-    : DROP SP (TABLE | RDFGRAPH) SP oC_SchemaName ;
+kU_CreateSequence
+    : CREATE SP SEQUENCE SP oC_SchemaName (SP kU_SequenceOptions)* ;
+
+SEQUENCE : ('S' | 's') ('E' | 'e') ('Q' | 'q') ('U' | 'u') ('E' | 'e') ('N' | 'n') ('C' | 'c') ('E' | 'e') ;
+
+kU_SequenceOptions
+    : kU_IncrementBy
+        | kU_MinValue
+        | kU_MaxValue
+        | kU_StartWith
+        | kU_Cycle;
+
+kU_IncrementBy : INCREMENT SP ( BY SP )? MINUS? oC_IntegerLiteral ;
+
+INCREMENT : ('I' | 'i') ('N' | 'n') ('C' | 'c') ('R' | 'r') ('E' | 'e') ('M' | 'm') ('E' | 'e') ('N' | 'n') ('T' | 't') ;
+
+kU_MinValue : (NO SP MINVALUE) | (MINVALUE SP MINUS? oC_IntegerLiteral) ;
+
+kU_MaxValue : (NO SP MAXVALUE) | (MAXVALUE SP MINUS? oC_IntegerLiteral) ;
+
+MINVALUE : ('M' | 'm') ('I' | 'i') ('N' | 'n') ('V' | 'v') ('A' | 'a') ('L' | 'l') ('U' | 'u') ('E' | 'e') ;
+
+MAXVALUE : ('M' | 'm') ('A' | 'a') ('X' | 'x') ('V' | 'v') ('A' | 'a') ('L' | 'l') ('U' | 'u') ('E' | 'e') ;
+
+kU_StartWith : START SP ( WITH SP )? MINUS? oC_IntegerLiteral ;
+
+START : ('S' | 's') ('T' | 't') ('A' | 'a') ('R' | 'r') ('T' | 't') ;
+
+kU_Cycle : (NO SP)? CYCLE ;
+
+NO : ('N' | 'n') ('O' | 'o') ;
+
+CYCLE : ('C' | 'c') ('Y' | 'y') ('C' | 'c') ('L' | 'l') ('E' | 'e') ;
+
+kU_Drop
+    : DROP SP (TABLE | RDFGRAPH | SEQUENCE) SP oC_SchemaName ;
 
 DROP : ( 'D' | 'd' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'P' | 'p' ) ;
 
@@ -200,12 +238,15 @@ REL: ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'L' | 'l' ) ;
 
 TO: ( 'T' | 't' ) ( 'O' | 'o' ) ;
 
+DECIMAL: ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'C' | 'c' ) ( 'I' | 'i' ) ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ;
+
 kU_DataType
     : oC_SymbolicName
         | kU_DataType kU_ListIdentifiers
         | UNION SP? '(' SP? kU_PropertyDefinitions SP? ')'
         | oC_SymbolicName SP? '(' SP? kU_PropertyDefinitions SP? ')'
-        | oC_SymbolicName SP? '(' SP? kU_DataType SP? ',' SP? kU_DataType SP? ')' ;
+        | oC_SymbolicName SP? '(' SP? kU_DataType SP? ',' SP? kU_DataType SP? ')'
+        | DECIMAL SP? '(' SP? oC_IntegerLiteral SP? ',' SP? oC_IntegerLiteral SP? ')' ;
 
 kU_ListIdentifiers : kU_ListIdentifier ( kU_ListIdentifier )* ;
 
@@ -787,6 +828,15 @@ kU_NonReservedKeywords
         | EXPORT
         | DATABASE
         | USE
+        | START
+        | SEQUENCE
+        | INCREMENT
+        | MINVALUE
+        | MAXVALUE
+        | NO
+        | CYCLE
+        | DECIMAL
+        | CONTAINS
         ;
 
 UnescapedSymbolicName

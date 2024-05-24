@@ -96,7 +96,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::getInitialEmptyPlans() {
     return plans;
 }
 
-expression_vector Planner::getProperties(const binder::Expression& nodeOrRel) {
+expression_vector Planner::getProperties(const Expression& nodeOrRel) {
     KU_ASSERT(ExpressionUtil::isNodePattern(nodeOrRel) || ExpressionUtil::isRelPattern(nodeOrRel));
     expression_vector result;
     for (auto& expression : propertiesToScan) {

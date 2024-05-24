@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(Kuzu VERSION 0.4.1.1 LANGUAGES CXX C)
+project(Kuzu VERSION 0.4.2.3 LANGUAGES CXX C)
 
 find_package(Threads REQUIRED)
 
@@ -17,8 +17,15 @@ set(CMAKE_ENABLE_EXPORTS TRUE)
 
 option(ENABLE_WERROR "Treat all warnings as errors" FALSE)
 if(ENABLE_WERROR)
-    set(CMAKE_COMPILE_WARNING_AS_ERROR TRUE)
+    if (CMAKE_VERSION VERSION_GREATER "3.24.0" OR CMAKE_VERSION VERSION_EQUAL "3.24.0")
+        set(COMPILE_WARNING_AS_ERROR TRUE)
+    elseif (MSVC)
+        add_compile_options(\WX)
+    else ()
+        add_compile_options(-Werror)
+    endif()
 endif()
+
 # Detect OS and architecture, copied from DuckDB
 set(OS_NAME "unknown")
 set(OS_ARCH "amd64")
@@ -125,6 +132,10 @@ if(NOT MSVC)
     add_compile_options(-Wno-unknown-pragmas)
 endif()
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(-Wno-restrict) # no restrict until https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105651 is fixed
+endif()
+
 if(${ENABLE_THREAD_SANITIZER})
     if(MSVC)
         message(FATAL_ERROR "Thread sanitizer is not supported on MSVC")
@@ -167,16 +178,35 @@ option(BUILD_SINGLE_FILE_HEADER "Build single file header. Requires Python >= 3.
 option(BUILD_TESTS "Build C++ tests." FALSE)
 option(BUILD_EXTENSION_TESTS "Build C++ extension tests." FALSE)
 option(BUILD_KUZU "Build Kuzu." TRUE)
+option(ENABLE_BACKTRACES "Enable backtrace printing for exceptions and segfaults" FALSE)
 
 option(BUILD_LCOV "Build coverage report." FALSE)
 if(${BUILD_LCOV})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
 endif()
 
+if (ENABLE_BACKTRACES)
+    find_package(cpptrace)
+    if (NOT cpptrace_FOUND)
+        include(FetchContent)
+        FetchContent_Declare(
+          cpptrace
+          GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
+          GIT_TAG        v0.5.4
+          GIT_SHALLOW    TRUE
+        )
+        FetchContent_MakeAvailable(cpptrace)
+    endif()
+    add_compile_definitions(KUZU_BACKTRACE)
+endif()
+
 function(add_kuzu_test TEST_NAME)
     set(SRCS ${ARGN})
     add_executable(${TEST_NAME} ${SRCS})
     target_link_libraries(${TEST_NAME} PRIVATE test_helper test_runner graph_test)
+    if (ENABLE_BACKTRACES)
+        target_link_libraries(${TEST_NAME} PRIVATE register_backtrace_signal_handler)
+    endif()
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include)
     include(GoogleTest)
     gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 600 DISCOVERY_MODE PRE_TEST)
@@ -186,6 +216,9 @@ function(add_kuzu_api_test TEST_NAME)
     set(SRCS ${ARGN})
     add_executable(${TEST_NAME} ${SRCS})
     target_link_libraries(${TEST_NAME} PRIVATE api_graph_test api_test_helper)
+    if (ENABLE_BACKTRACES)
+        target_link_libraries(${TEST_NAME} PRIVATE register_backtrace_signal_handler)
+    endif()
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include)
     include(GoogleTest)
     gtest_discover_tests(${TEST_NAME})
@@ -223,7 +256,7 @@ add_subdirectory(third_party)
 if(${BUILD_KUZU})
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
-add_definitions(-DKUZU_EXTENSION_VERSION="0.3.3")
+add_definitions(-DKUZU_EXTENSION_VERSION="0.3.11")
 
 include_directories(src/include)
 

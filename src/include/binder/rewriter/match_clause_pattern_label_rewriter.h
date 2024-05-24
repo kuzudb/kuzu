@@ -6,12 +6,12 @@
 namespace kuzu {
 namespace binder {
 
-class MatchClausePatternLabelRewriter : public BoundStatementVisitor {
+class MatchClausePatternLabelRewriter final : public BoundStatementVisitor {
 public:
     explicit MatchClausePatternLabelRewriter(const main::ClientContext& clientContext)
-        : analyzer{clientContext} {}
+        : analyzer{clientContext, false /* throwOnViolate */} {}
 
-    void visitMatch(const BoundReadingClause& readingClause) final;
+    void visitMatchUnsafe(BoundReadingClause& readingClause) override;
 
 private:
     QueryGraphLabelAnalyzer analyzer;

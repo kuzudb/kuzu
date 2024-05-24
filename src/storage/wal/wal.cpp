@@ -15,17 +15,17 @@ namespace kuzu {
 namespace storage {
 
 WAL::WAL(const std::string& directory, bool readOnly, BufferManager& bufferManager,
-    VirtualFileSystem* vfs)
+    VirtualFileSystem* vfs, main::ClientContext* context)
     : directory{directory}, bufferManager{bufferManager}, vfs{vfs} {
     auto fileInfo =
         vfs->openFile(vfs->joinPath(directory, std::string(StorageConstants::WAL_FILE_SUFFIX)),
-            readOnly ? O_RDONLY : O_CREAT | O_RDWR);
+            readOnly ? O_RDONLY : O_CREAT | O_RDWR, context);
     bufferedWriter = std::make_shared<BufferedFileWriter>(std::move(fileInfo));
     shadowingFH = bufferManager.getBMFileHandle(
         vfs->joinPath(directory, std::string(StorageConstants::SHADOWING_SUFFIX)),
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-        BMFileHandle::FileVersionedType::NON_VERSIONED_FILE, vfs);
+        BMFileHandle::FileVersionedType::NON_VERSIONED_FILE, vfs, context);
 }
 
 WAL::~WAL() {}
@@ -75,9 +75,9 @@ void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry) {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logDropTableRecord(table_id_t tableID) {
+void WAL::logDropTableRecord(table_id_t tableID, catalog::CatalogEntryType type) {
     lock_t lck{mtx};
-    DropCatalogEntryRecord walRecord(tableID);
+    DropCatalogEntryRecord walRecord(tableID, type);
     addNewWALRecordNoLock(walRecord);
 }
 
@@ -85,6 +85,18 @@ void WAL::logCopyTableRecord(table_id_t tableID) {
     lock_t lck{mtx};
     CopyTableRecord walRecord(tableID);
     addToUpdatedTables(tableID);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logCreateSequenceRecord(catalog::CatalogEntry* catalogEntry) {
+    lock_t lck{mtx};
+    CreateCatalogEntryRecord walRecord(catalogEntry);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logDropSequenceRecord(sequence_id_t sequenceID) {
+    lock_t lck{mtx};
+    DropCatalogEntryRecord walRecord(sequenceID, catalog::CatalogEntryType::SEQUENCE_ENTRY);
     addNewWALRecordNoLock(walRecord);
 }
 

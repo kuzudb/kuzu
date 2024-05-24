@@ -3,7 +3,6 @@ add_library(kuzu_storage_stats
         metadata_dah_info.cpp
         node_table_statistics.cpp
         nodes_store_statistics.cpp
-        property_statistics.cpp
         rel_table_statistics.cpp
         rels_store_statistics.cpp
         table_statistics.cpp

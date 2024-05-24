@@ -17,7 +17,7 @@ struct ScanRelTableInfo {
     ScanRelTableInfo(const ScanRelTableInfo& other)
         : table{other.table}, direction{other.direction}, columnIDs{other.columnIDs} {}
 
-    inline std::unique_ptr<ScanRelTableInfo> copy() const {
+    std::unique_ptr<ScanRelTableInfo> copy() const {
         return std::make_unique<ScanRelTableInfo>(*this);
     }
 };
@@ -30,7 +30,7 @@ public:
         : ScanRelTable{PhysicalOperatorType::SCAN_REL_TABLE, std::move(info), inVectorPos,
               std::move(outVectorsPos), std::move(child), id, paramsString} {}
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* executionContext) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
@@ -49,7 +49,7 @@ protected:
 
 protected:
     std::unique_ptr<ScanRelTableInfo> info;
-    std::unique_ptr<storage::RelTableReadState> readState;
+    std::unique_ptr<storage::RelTableScanState> readState;
 };
 
 } // namespace processor

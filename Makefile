@@ -7,7 +7,7 @@
 	clangd tidy clangd-diagnostics \
 	install \
 	clean-extension clean-python-api clean-java clean \
-	extension-test shell-test 
+	extension-test shell-test
 
 .ONESHELL:
 .SHELLFLAGS = -ec
@@ -57,6 +57,9 @@ endif
 release:
 	$(call run-cmake-release,)
 
+relwithdebinfo:
+	$(call run-cmake-relwithdebinfo,)
+
 debug:
 	$(call run-cmake-debug,)
 
@@ -90,8 +93,8 @@ alldebug:
 
 # Main tests
 test:
-	$(call run-cmake-release, -DBUILD_TESTS=TRUE)
-	ctest --test-dir build/release/test --output-on-failure -j ${TEST_JOBS}
+	$(call run-cmake-relwithdebinfo, -DBUILD_TESTS=TRUE -DENABLE_BACKTRACES=TRUE)
+	ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS}
 
 lcov:
 	$(call run-cmake-release, -DBUILD_TESTS=TRUE -DBUILD_LCOV=TRUE)
@@ -118,7 +121,6 @@ python-debug:
 
 rust:
 ifeq ($(OS),Windows_NT)
-	set KUZU_TESTING=1
 	set CFLAGS=/MDd
 	set CXXFLAGS=/MDd /std:c++20
 	set CARGO_BUILD_JOBS=$(NUM_THREADS)
@@ -161,12 +163,13 @@ example:
 	$(call run-cmake-release, -DBUILD_EXAMPLES=TRUE)
 
 extension-test:
-	$(call run-cmake-release, \
+	$(call run-cmake-relwithdebinfo, \
 		-DBUILD_EXTENSIONS="httpfs;duckdb;postgres" \
 		-DBUILD_EXTENSION_TESTS=TRUE \
 		-DENABLE_ADDRESS_SANITIZER=TRUE \
+		-DENABLE_BACKTRACES=TRUE \
 	)
-	ctest --test-dir build/release/extension --output-on-failure -j ${TEST_JOBS}
+	ctest --test-dir build/relwithdebinfo/extension --output-on-failure -j ${TEST_JOBS}
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
 
 extension-debug:
@@ -182,10 +185,10 @@ extension-release:
 	)
 
 shell-test:
-	$(call run-cmake-release, \
+	$(call run-cmake-relwithdebinfo, \
 		-DBUILD_SHELL=TRUE \
 	)
-	cd tools/shell/test && python3 -m pytest -v 
+	cd tools/shell/test && python3 -m pytest -v
 
 # Clang-related tools and checks
 
@@ -208,12 +211,14 @@ clangd-diagnostics: | allconfig java_native_header
 
 # Installation
 install:
-	cmake --install build/release --prefix $(PREFIX) --strip
+	cmake --install build/release --prefix $(PREFIX)
 
 
 # Cleaning
 clean-extension:
 	cmake -E rm -rf extension/httpfs/build
+	cmake -E rm -rf extension/duckdb/build
+	cmake -E rm -rf extension/postgres/build
 
 clean-python-api:
 	cmake -E rm -rf tools/python_api/build
@@ -247,11 +252,24 @@ define build-cmake-release
 	$(call build-cmake,release,Release,$1)
 endef
 
+define build-cmake-relwithdebinfo
+	$(call build-cmake,relwithdebinfo,RelWithDebInfo,$1)
+endef
+
 define config-cmake-release
 	$(call config-cmake,release,Release,$1)
+endef
+
+define config-cmake-relwithdebinfo
+	$(call config-cmake,relwithdebinfo,RelWithDebInfo,$1)
 endef
 
 define run-cmake-release
 	$(call config-cmake-release,$1)
 	$(call build-cmake-release,$1)
+endef
+
+define run-cmake-relwithdebinfo
+	$(call config-cmake-relwithdebinfo,$1)
+	$(call build-cmake-relwithdebinfo,$1)
 endef

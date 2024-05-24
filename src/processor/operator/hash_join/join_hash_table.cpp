@@ -11,12 +11,12 @@ namespace kuzu {
 namespace processor {
 
 JoinHashTable::JoinHashTable(MemoryManager& memoryManager, logical_type_vec_t keyTypes,
-    std::unique_ptr<FactorizedTableSchema> tableSchema)
+    FactorizedTableSchema tableSchema)
     : BaseHashTable{memoryManager, std::move(keyTypes)} {
     auto numSlotsPerBlock = HASH_BLOCK_SIZE / sizeof(uint8_t*);
     initSlotConstant(numSlotsPerBlock);
     // Prev pointer is always the last column in the table.
-    prevPtrColOffset = tableSchema->getColOffset(tableSchema->getNumColumns() - PREV_PTR_COL_IDX);
+    prevPtrColOffset = tableSchema.getColOffset(tableSchema.getNumColumns() - PREV_PTR_COL_IDX);
     factorizedTable = std::make_unique<FactorizedTable>(&memoryManager, std::move(tableSchema));
     this->tableSchema = factorizedTable->getTableSchema();
 }

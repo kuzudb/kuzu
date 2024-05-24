@@ -10,19 +10,19 @@ public:
     StringColumn(std::string name, common::LogicalType dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
-        RWPropertyStats propertyStatistics, bool enableCompression);
+        bool enableCompression);
 
     void initChunkState(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, ChunkState& columnReadState) override;
+        common::node_group_idx_t nodeGroupIdx, ChunkState& chunkState) override;
 
-    void scan(transaction::Transaction* transaction, ChunkState& readState,
+    void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector = 0) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         ColumnChunk* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
 
-    void append(ColumnChunk* columnChunk, common::node_group_idx_t nodeGroupIdx) override;
+    void append(ColumnChunk* columnChunk, ChunkState& state) override;
 
     void writeValue(ChunkState& state, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
@@ -34,19 +34,20 @@ public:
     void checkpointInMemory() override;
     void rollbackInMemory() override;
 
-    inline const DictionaryColumn& getDictionary() const { return dictionary; }
+    const DictionaryColumn& getDictionary() const { return dictionary; }
 
 protected:
-    void scanInternal(transaction::Transaction* transaction, ChunkState& readState,
+    void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
+        common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
-    void scanUnfiltered(transaction::Transaction* transaction, ChunkState& readState,
+    void scanUnfiltered(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::offset_t numValuesToRead,
         common::ValueVector* resultVector, common::sel_t startPosInVector = 0);
-    void scanFiltered(transaction::Transaction* transaction, ChunkState& readState,
-        common::offset_t startOffsetInChunk, common::ValueVector* nodeIDVector,
+    void scanFiltered(transaction::Transaction* transaction, const ChunkState& state,
+        common::offset_t startOffsetInChunk, const common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
 
-    void lookupInternal(transaction::Transaction* transaction, ChunkState& readState,
+    void lookupInternal(transaction::Transaction* transaction, ChunkState& state,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
 private:
@@ -56,7 +57,7 @@ private:
     bool canCommitInPlace(const ChunkState& state, const std::vector<common::offset_t>& dstOffsets,
         ColumnChunk* chunk, common::offset_t srcOffset) override;
 
-    bool canIndexCommitInPlace(const Column::ChunkState& dataState, uint64_t numStrings,
+    bool canIndexCommitInPlace(const ChunkState& dataState, uint64_t numStrings,
         common::offset_t maxOffset);
 
 private:

@@ -153,6 +153,11 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         return Value(LogicalType::STRING(), std::string(""));
     case LogicalTypeID::FLOAT:
         return Value((float)0);
+    case LogicalTypeID::DECIMAL: {
+        Value ret(*dataType.copy());
+        ret.val.int128Val = 0;
+        return ret;
+    }
     case LogicalTypeID::ARRAY: {
         std::vector<std::unique_ptr<Value>> children;
         auto childType = ArrayType::getChildType(dataType);
@@ -370,6 +375,24 @@ void Value::copyFromRowLayout(const uint8_t* value) {
     case LogicalTypeID::FLOAT: {
         val.floatVal = *((float*)value);
     } break;
+    case LogicalTypeID::DECIMAL: {
+        switch (dataType->getPhysicalType()) {
+        case PhysicalTypeID::INT16:
+            val.int16Val = (*(int16_t*)value);
+            break;
+        case PhysicalTypeID::INT32:
+            val.int32Val = (*(int32_t*)value);
+            break;
+        case PhysicalTypeID::INT64:
+            val.int64Val = (*(int64_t*)value);
+            break;
+        case PhysicalTypeID::INT128:
+            val.int128Val = (*(int128_t*)value);
+            break;
+        default:
+            KU_UNREACHABLE;
+        }
+    } break;
     case LogicalTypeID::INTERVAL: {
         val.intervalVal = *((interval_t*)value);
     } break;
@@ -567,6 +590,8 @@ std::string Value::toString() const {
         return TypeUtils::toString(val.doubleVal);
     case LogicalTypeID::FLOAT:
         return TypeUtils::toString(val.floatVal);
+    case LogicalTypeID::DECIMAL:
+        return decimalToString();
     case LogicalTypeID::POINTER:
         return TypeUtils::toString((uint64_t)val.pointer);
     case LogicalTypeID::DATE:
@@ -1106,6 +1131,25 @@ std::string Value::relToString() const {
     }
     result += "}->(" + children[1]->toString() + ")";
     return result;
+}
+
+std::string Value::decimalToString() const {
+    switch (dataType->getPhysicalType()) {
+    case PhysicalTypeID::INT16:
+        return DecimalType::insertDecimalPoint(TypeUtils::toString(val.int16Val),
+            DecimalType::getScale(*dataType));
+    case PhysicalTypeID::INT32:
+        return DecimalType::insertDecimalPoint(TypeUtils::toString(val.int32Val),
+            DecimalType::getScale(*dataType));
+    case PhysicalTypeID::INT64:
+        return DecimalType::insertDecimalPoint(TypeUtils::toString(val.int64Val),
+            DecimalType::getScale(*dataType));
+    case PhysicalTypeID::INT128:
+        return DecimalType::insertDecimalPoint(TypeUtils::toString(val.int128Val),
+            DecimalType::getScale(*dataType));
+    default:
+        KU_UNREACHABLE;
+    }
 }
 
 } // namespace common

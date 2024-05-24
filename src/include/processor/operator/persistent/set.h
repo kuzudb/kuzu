@@ -14,7 +14,7 @@ public:
               paramsString},
           executors{std::move(executors)} {}
 
-    inline bool canParallel() const final { return false; }
+    inline bool isParallel() const final { return false; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 
@@ -37,7 +37,7 @@ public:
               paramsString},
           executors{std::move(executors)} {}
 
-    inline bool canParallel() const final { return false; }
+    inline bool isParallel() const final { return false; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 

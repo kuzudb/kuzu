@@ -3,6 +3,7 @@
 #include "common/cast.h"
 #include "common/exception/io.h"
 #include "common/exception/not_implemented.h"
+#include "common/file_system/virtual_file_system.h"
 
 namespace kuzu {
 namespace httpfs {
@@ -16,14 +17,16 @@ HTTPResponse::HTTPResponse(httplib::Response& res, const std::string& url)
     }
 }
 
-HTTPFileInfo::HTTPFileInfo(std::string path, FileSystem* fileSystem, int flags)
+HTTPFileInfo::HTTPFileInfo(std::string path, FileSystem* fileSystem, int flags,
+    main::ClientContext* context)
     : FileInfo{std::move(path), fileSystem}, flags{flags}, length{0}, availableBuffer{0},
-      bufferIdx{0}, fileOffset{0}, bufferStartPos{0}, bufferEndPos{0} {}
+      bufferIdx{0}, fileOffset{0}, bufferStartPos{0}, bufferEndPos{0}, httpConfig{context},
+      cachedFileInfo{nullptr} {}
 
-void HTTPFileInfo::initialize() {
+void HTTPFileInfo::initialize(main::ClientContext* context) {
     initializeClient();
-    auto hfs = ku_dynamic_cast<const FileSystem*, const HTTPFileSystem*>(fileSystem);
-    auto res = hfs->headRequest(ku_dynamic_cast<HTTPFileInfo*, FileInfo*>(this), path, {});
+    auto hfs = fileSystem->ptrCast<HTTPFileSystem>();
+    auto res = hfs->headRequest(this->ptrCast<HTTPFileInfo>(), path, {});
     std::string rangeLength;
     if (res->code != 200) {
         auto accessMode = flags & O_ACCMODE;
@@ -103,6 +106,10 @@ void HTTPFileInfo::initialize() {
             // LCOV_EXCL_STOP
         }
     }
+    if (httpConfig.cacheFile) {
+        cachedFileInfo =
+            hfs->getCachedFileManager().getCachedFileInfo(this, context->getTx()->getID());
+    }
 }
 
 void HTTPFileInfo::initializeClient() {
@@ -111,9 +118,10 @@ void HTTPFileInfo::initializeClient() {
 }
 
 std::unique_ptr<common::FileInfo> HTTPFileSystem::openFile(const std::string& path, int flags,
-    main::ClientContext* /*context*/, common::FileLockType /*lock_type*/) {
-    auto httpFileInfo = std::make_unique<HTTPFileInfo>(path, this, flags);
-    httpFileInfo->initialize();
+    main::ClientContext* context, common::FileLockType /*lock_type*/) {
+    initCachedFileManager(context);
+    auto httpFileInfo = std::make_unique<HTTPFileInfo>(path, this, flags, context);
+    httpFileInfo->initialize(context);
     return httpFileInfo;
 }
 
@@ -127,11 +135,35 @@ bool HTTPFileSystem::canHandleFile(const std::string& path) const {
     return path.rfind("https://", 0) == 0 || path.rfind("http://", 0) == 0;
 }
 
+bool HTTPFileSystem::fileOrPathExists(const std::string& path, main::ClientContext* context) {
+    try {
+        auto fileInfo = openFile(path, O_RDONLY, context, FileLockType::READ_LOCK);
+        auto httpFileInfo = fileInfo->constPtrCast<HTTPFileInfo>();
+        if (httpFileInfo->length == 0) {
+            return false;
+        }
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+void HTTPFileSystem::cleanUP(main::ClientContext* context) {
+    if (cachedFileManager != nullptr) {
+        cachedFileManager->cleanUP(context);
+    }
+}
+
 void HTTPFileSystem::readFromFile(common::FileInfo& fileInfo, void* buffer, uint64_t numBytes,
     uint64_t position) const {
     auto& httpFileInfo = ku_dynamic_cast<FileInfo&, HTTPFileInfo&>(fileInfo);
     auto numBytesToRead = numBytes;
     auto bufferOffset = 0;
+    if (httpFileInfo.cachedFileInfo != nullptr) {
+        httpFileInfo.cachedFileInfo->readFromFile(buffer, numBytes, position);
+        httpFileInfo.fileOffset = position + numBytes;
+        return;
+    }
     if (position >= httpFileInfo.bufferStartPos && position < httpFileInfo.bufferEndPos) {
         httpFileInfo.fileOffset = position;
         httpFileInfo.bufferIdx = position - httpFileInfo.bufferStartPos;
@@ -428,7 +460,7 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::postRequest(common::FileInfo* file
 }
 
 std::unique_ptr<HTTPResponse> HTTPFileSystem::putRequest(common::FileInfo* fileInfo,
-    const std::string& url, kuzu::httpfs::HeaderMap headerMap, const uint8_t* inputBuffer,
+    const std::string& url, HeaderMap headerMap, const uint8_t* inputBuffer,
     uint64_t inputBufferLen, std::string /*params*/) const {
     auto httpFileInfo = ku_dynamic_cast<FileInfo*, HTTPFileInfo*>(fileInfo);
     auto hostPath = parseUrl(url).second;
@@ -440,6 +472,13 @@ std::unique_ptr<HTTPResponse> HTTPFileSystem::putRequest(common::FileInfo* fileI
     });
 
     return runRequestWithRetry(request, url, "PUT");
+}
+
+void HTTPFileSystem::initCachedFileManager(main::ClientContext* context) {
+    std::unique_lock<std::mutex> lck{cachedFileManagerMtx};
+    if (cachedFileManager == nullptr) {
+        cachedFileManager = std::make_unique<CachedFileManager>(context);
+    }
 }
 
 } // namespace httpfs

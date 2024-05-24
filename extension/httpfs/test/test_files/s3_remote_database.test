@@ -1,0 +1,55 @@
+-DATASET CSV empty
+
+--
+
+# TODO(Ziyi): Find a better way to auto update S3 datasets.
+-CASE UWS3RemoteDB
+-SKIP
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT CALL s3_access_key_id='${UW_S3_ACCESS_KEY_ID}'
+---- ok
+-STATEMENT CALL s3_secret_access_key='${UW_S3_SECRET_ACCESS_KEY}'
+---- ok
+-STATEMENT CALL s3_endpoint='rgw.cs.uwaterloo.ca'
+---- ok
+-STATEMENT CALL s3_url_style='path'
+---- ok
+-STATEMENT CALL s3_region='US'
+---- ok
+-STATEMENT CALL HTTP_CACHE_FILE=TRUE
+---- ok
+-STATEMENT ATTACH 's3://kuzu-test/ldbc01' as ldbc (dbtype kuzu)
+---- 1
+Attached database successfully.
+-STATEMENT match (c:Comment) WHERE c.id = 412316862213 RETURN c.creationDate
+---- 1
+20110223170841168
+-STATEMENT DETACH ldbc
+---- 1
+Detached database successfully.
+# There is a performance issue related to reading remote s3 files without cache.
+# TODO: The serialized tinysnb has 40M, which is not expected?
+-SKIP
+-LOG AttachWithoutCache
+-STATEMENT CALL HTTP_CACHE_FILE=FALSE
+---- ok
+-STATEMENT ATTACH 's3://kuzu-test/tinysnb' as ldbc (dbtype kuzu)
+---- 1
+Attached database successfully.
+-STATEMENT match (p0:person)-[:knows]->(p1:person) return p0.ID, p1.ID
+---- 14
+0|2
+0|3
+0|5
+2|0
+2|3
+2|5
+3|0
+3|2
+3|5
+5|0
+5|2
+5|3
+7|8
+7|9

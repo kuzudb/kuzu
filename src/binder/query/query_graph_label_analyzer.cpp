@@ -13,7 +13,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace binder {
 
-void QueryGraphLabelAnalyzer::pruneLabel(const QueryGraph& graph) {
+void QueryGraphLabelAnalyzer::pruneLabel(QueryGraph& graph) {
     for (auto i = 0u; i < graph.getNumQueryNodes(); ++i) {
         pruneNode(graph, *graph.getQueryNode(i));
     }
@@ -70,7 +70,7 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
                 }
             }
         }
-        if (candidates.empty()) {
+        if (candidates.empty()) { // No need to prune.
             return;
         }
         common::table_id_vector_t prunedTableIDs;
@@ -80,18 +80,20 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
             }
             prunedTableIDs.push_back(tableID);
         }
+        node.setTableIDs(prunedTableIDs);
         if (prunedTableIDs.empty()) {
-            auto candidateNames =
-                std::vector<std::string>{candidateNamesSet.begin(), candidateNamesSet.end()};
-            auto candidateStr = candidateNames[0];
-            for (auto j = 1u; j < candidateNames.size(); ++j) {
-                candidateStr += ", " + candidateNames[j];
+            if (throwOnViolate) {
+                auto candidateNames =
+                    std::vector<std::string>{candidateNamesSet.begin(), candidateNamesSet.end()};
+                auto candidateStr = candidateNames[0];
+                for (auto j = 1u; j < candidateNames.size(); ++j) {
+                    candidateStr += ", " + candidateNames[j];
+                }
+                throw BinderException(
+                    stringFormat("Query node {} violates schema. Expected labels are {}.",
+                        node.toString(), candidateStr));
             }
-            throw BinderException(
-                stringFormat("Query node {} violates schema. Expected labels are {}.",
-                    node.toString(), candidateStr));
         }
-        node.setTableIDs(std::move(prunedTableIDs));
     }
 }
 
@@ -133,16 +135,18 @@ void QueryGraphLabelAnalyzer::pruneRel(RelExpression& rel) {
             prunedTableIDs.push_back(relTableID);
         }
     }
+    rel.setTableIDs(prunedTableIDs);
     // Note the pruning for node should guarantee the following exception won't be triggered.
     // For safety (and consistency) reason, we still write the check but skip coverage check.
     // LCOV_EXCL_START
     if (prunedTableIDs.empty()) {
-        throw BinderException(stringFormat(
-            "Cannot find a label for relationship {} that connects to all of its neighbour nodes.",
-            rel.toString()));
+        if (throwOnViolate) {
+            throw BinderException(stringFormat("Cannot find a label for relationship {} that "
+                                               "connects to all of its neighbour nodes.",
+                rel.toString()));
+        }
     }
     // LCOV_EXCL_STOP
-    rel.setTableIDs(std::move(prunedTableIDs));
 }
 
 } // namespace binder

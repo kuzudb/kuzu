@@ -1,5 +1,6 @@
 #include "common/arrow/arrow_converter.h"
 #include "common/exception/not_implemented.h"
+#include "common/string_utils.h"
 
 namespace kuzu {
 namespace common {
@@ -58,8 +59,13 @@ LogicalType ArrowConverter::fromArrowSchema(const ArrowSchema* schema) {
             KU_UNREACHABLE;
         }
 
-    case 'd':
-        throw NotImplementedException("Decimals are not supported");
+    case 'd': {
+        auto split = StringUtils::splitComma(std::string(arrowType + 2));
+        if (split.size() > 2 && split[2] != "128") {
+            throw NotImplementedException("Decimal bitwidths other than 128 are not implemented");
+        }
+        return *LogicalType::DECIMAL(stoul(split[0]), stoul(split[1]));
+    }
     case 'w':
         return LogicalType(LogicalTypeID::BLOB); // fixed width binary
     case 't':

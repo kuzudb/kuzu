@@ -14,7 +14,8 @@ class NodesStoreStatsAndDeletedIDs : public TablesStatistics {
 public:
     // Should be used when an already loaded database is started from a directory.
     NodesStoreStatsAndDeletedIDs(const std::string& databasePath, BMFileHandle* metadataFH,
-        BufferManager* bufferManager, WAL* wal, common::VirtualFileSystem* fs);
+        BufferManager* bufferManager, WAL* wal, common::VirtualFileSystem* fs,
+        main::ClientContext* context);
 
     NodeTableStatsAndDeletedIDs* getNodeStatisticsAndDeletedIDs(
         transaction::Transaction* transaction, common::table_id_t tableID) const {
@@ -28,13 +29,10 @@ public:
 
     // This function assumes that there is a single write transaction. That is why for now we
     // keep the interface simple and no transaction is passed.
-    common::offset_t addNode(common::table_id_t tableID);
+    std::pair<common::offset_t, bool> addNode(common::table_id_t tableID);
 
     // Refer to the comments for addNode.
     void deleteNode(common::table_id_t tableID, common::offset_t nodeOffset);
-
-    void setDeletedNodeOffsetsForMorsel(transaction::Transaction* tx,
-        common::ValueVector* nodeIDVector, common::table_id_t tableID);
 
     void addNodeStatisticsAndDeletedIDs(catalog::NodeTableCatalogEntry* nodeTableEntry);
 

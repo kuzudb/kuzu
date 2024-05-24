@@ -34,10 +34,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "CROSS_PRODUCT";
     case PhysicalOperatorType::DETACH_DATABASE:
         return "DETACH_DATABASE";
-    case PhysicalOperatorType::DELETE_NODE:
-        return "DELETE_NODE";
-    case PhysicalOperatorType::DELETE_REL:
-        return "DELETE_REL";
+    case PhysicalOperatorType::DELETE_:
+        return "DELETE";
     case PhysicalOperatorType::DROP_TABLE:
         return "DROP_TABLE";
     case PhysicalOperatorType::EMPTY_RESULT:
@@ -48,6 +46,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "FILTER";
     case PhysicalOperatorType::FLATTEN:
         return "FLATTEN";
+    case PhysicalOperatorType::GDS_CALL:
+        return "GDS_CALL";
     case PhysicalOperatorType::HASH_JOIN_BUILD:
         return "HASH_JOIN_BUILD";
     case PhysicalOperatorType::HASH_JOIN_PROBE:
@@ -94,14 +94,10 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "RESULT_COLLECTOR";
     case PhysicalOperatorType::SCAN_FRONTIER:
         return "SCAN_FRONTIER";
-    case PhysicalOperatorType::SCAN_MULTI_NODE_TABLES:
-        return "SCAN_MULTI_NODE_TABLES";
+    case PhysicalOperatorType::SCAN_NODE_TABLE:
+        return "SCAN_MULTI_NODE_TABLE";
     case PhysicalOperatorType::SCAN_MULTI_REL_TABLES:
         return "SCAN_MULTI_REL_TABLES";
-    case PhysicalOperatorType::SCAN_NODE_ID:
-        return "SCAN_NODE_ID";
-    case PhysicalOperatorType::SCAN_NODE_TABLE:
-        return "SCAN_NODE_TABLE";
     case PhysicalOperatorType::SCAN_REL_TABLE:
         return "SCAN_REL_TABLE";
     case PhysicalOperatorType::SEMI_MASKER:

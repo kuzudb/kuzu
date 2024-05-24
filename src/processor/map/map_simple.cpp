@@ -63,7 +63,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     auto boundFileInfo = exportDatabase->getBoundFileInfo();
     KU_ASSERT(boundFileInfo->filePaths.size() == 1);
     auto filePath = boundFileInfo->filePaths[0];
-    if (!fs->fileOrPathExists(filePath)) {
+    if (!fs->fileOrPathExists(filePath, clientContext)) {
         fs->createDir(filePath);
     } else {
         throw RuntimeException(stringFormat("Directory {} already exists.", filePath));

@@ -318,10 +318,21 @@ Elizabeth
 7|8
 
 -LOG OrderByFlatUnflat1
--STATEMENT MATCH (p:person)-[:knows]->(p1:person) return p.ID, p1.ID ORDER BY p.ID limit 3
+-STATEMENT MATCH (p:person)-[:knows]->(p1:person) return p.ID, p1.ID ORDER BY p.ID, p1.ID
 -CHECK_ORDER
 -ENUMERATE
----- 3
+---- 14
 0|2
 0|3
 0|5
+2|0
+2|3
+2|5
+3|0
+3|2
+3|5
+5|0
+5|2
+5|3
+7|8
+7|9

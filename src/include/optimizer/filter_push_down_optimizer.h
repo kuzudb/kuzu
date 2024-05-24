@@ -52,14 +52,13 @@ private:
     std::shared_ptr<planner::LogicalOperator> visitCrossProductReplace(
         const std::shared_ptr<planner::LogicalOperator>& op);
 
-    // Push FILTER before SCAN_NODE_PROPERTY.
-    // Push index lookup into SCAN_NODE_ID.
+    // TODO(Xiyang/Guodong): This should be reworked for pushing filters into ScanNodeTable.
+    //                       Also, should be reworked for IndexScan.
+    // Push FILTER into SCAN_NODE_TABLE, and turn index lookup into INDEX_SCAN.
     std::shared_ptr<planner::LogicalOperator> visitScanNodePropertyReplace(
         const std::shared_ptr<planner::LogicalOperator>& op);
 
-    // Rewrite SCAN_NODE_ID->SCAN_NODE_PROPERTY->FILTER as
-    // SCAN_NODE_ID->(SCAN_NODE_PROPERTY->FILTER)*->SCAN_NODE_PROPERTY
-    // so that filter with higher selectivity is applied before scanning.
+    // Push down FILTER into SCAN_NODE_TABLE.
     std::shared_ptr<planner::LogicalOperator> pushDownToScanNode(
         std::shared_ptr<binder::Expression> nodeID, std::vector<common::table_id_t> tableIDs,
         std::shared_ptr<binder::Expression> predicate,
@@ -73,7 +72,7 @@ private:
         const binder::expression_vector& predicates,
         std::shared_ptr<planner::LogicalOperator> child);
 
-    std::shared_ptr<planner::LogicalOperator> appendScanNodeProperty(
+    std::shared_ptr<planner::LogicalOperator> appendScanNodeTable(
         std::shared_ptr<binder::Expression> nodeID, std::vector<common::table_id_t> nodeTableIDs,
         binder::expression_vector properties, std::shared_ptr<planner::LogicalOperator> child);
     std::shared_ptr<planner::LogicalOperator> appendFilter(

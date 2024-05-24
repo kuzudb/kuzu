@@ -14,42 +14,40 @@ public:
     NormalizedQueryPart() = default;
     DELETE_COPY_DEFAULT_MOVE(NormalizedQueryPart);
 
-    inline void addReadingClause(std::unique_ptr<BoundReadingClause> boundReadingClause) {
+    void addReadingClause(std::unique_ptr<BoundReadingClause> boundReadingClause) {
         readingClauses.push_back(std::move(boundReadingClause));
     }
-    inline bool hasReadingClause() const { return !readingClauses.empty(); }
-    inline uint32_t getNumReadingClause() const { return readingClauses.size(); }
-    inline BoundReadingClause* getReadingClause(uint32_t idx) const {
-        return readingClauses[idx].get();
-    }
+    bool hasReadingClause() const { return !readingClauses.empty(); }
+    uint32_t getNumReadingClause() const { return readingClauses.size(); }
+    BoundReadingClause* getReadingClause(uint32_t idx) const { return readingClauses[idx].get(); }
 
-    inline void addUpdatingClause(std::unique_ptr<BoundUpdatingClause> boundUpdatingClause) {
+    void addUpdatingClause(std::unique_ptr<BoundUpdatingClause> boundUpdatingClause) {
         updatingClauses.push_back(std::move(boundUpdatingClause));
     }
-    inline bool hasUpdatingClause() const { return !updatingClauses.empty(); }
-    inline uint32_t getNumUpdatingClause() const { return updatingClauses.size(); }
-    inline BoundUpdatingClause* getUpdatingClause(uint32_t idx) const {
+    bool hasUpdatingClause() const { return !updatingClauses.empty(); }
+    uint32_t getNumUpdatingClause() const { return updatingClauses.size(); }
+    BoundUpdatingClause* getUpdatingClause(uint32_t idx) const {
         return updatingClauses[idx].get();
     }
 
-    inline void setProjectionBody(BoundProjectionBody boundProjectionBody) {
+    void setProjectionBody(BoundProjectionBody boundProjectionBody) {
         projectionBody = std::move(boundProjectionBody);
     }
-    inline bool hasProjectionBody() const { return projectionBody.has_value(); }
-    inline BoundProjectionBody* getProjectionBodyUnsafe() {
+    bool hasProjectionBody() const { return projectionBody.has_value(); }
+    BoundProjectionBody* getProjectionBodyUnsafe() {
         KU_ASSERT(projectionBody.has_value());
         return &projectionBody.value();
     }
-    inline const BoundProjectionBody* getProjectionBody() const {
+    const BoundProjectionBody* getProjectionBody() const {
         KU_ASSERT(projectionBody.has_value());
         return &projectionBody.value();
     }
 
-    inline bool hasProjectionBodyPredicate() const { return projectionBodyPredicate != nullptr; }
-    inline std::shared_ptr<Expression> getProjectionBodyPredicate() const {
+    bool hasProjectionBodyPredicate() const { return projectionBodyPredicate != nullptr; }
+    std::shared_ptr<Expression> getProjectionBodyPredicate() const {
         return projectionBodyPredicate;
     }
-    inline void setProjectionBodyPredicate(const std::shared_ptr<Expression>& predicate) {
+    void setProjectionBodyPredicate(const std::shared_ptr<Expression>& predicate) {
         projectionBodyPredicate = predicate;
     }
 

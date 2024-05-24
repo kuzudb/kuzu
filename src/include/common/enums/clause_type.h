@@ -16,17 +16,14 @@ enum class ClauseType : uint8_t {
     MATCH = 10,
     UNWIND = 11,
     IN_QUERY_CALL = 12,
-    LOAD_FROM = 13,
+    TABLE_FUNCTION_CALL = 13,
+    GDS_CALL = 14,
+    LOAD_FROM = 15,
 };
 
 enum class MatchClauseType : uint8_t {
     MATCH = 0,
     OPTIONAL_MATCH = 1,
-};
-
-enum class DeleteClauseType : uint8_t {
-    DELETE = 0,
-    DETACH_DELETE = 1,
 };
 
 } // namespace common

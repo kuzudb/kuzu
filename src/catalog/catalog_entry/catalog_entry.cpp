@@ -1,6 +1,7 @@
 #include "catalog/catalog_entry/catalog_entry.h"
 
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
+#include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 
 namespace kuzu {
@@ -26,6 +27,9 @@ std::unique_ptr<CatalogEntry> CatalogEntry::deserialize(common::Deserializer& de
     } break;
     case CatalogEntryType::SCALAR_MACRO_ENTRY: {
         entry = ScalarMacroCatalogEntry::deserialize(deserializer);
+    } break;
+    case CatalogEntryType::SEQUENCE_ENTRY: {
+        entry = SequenceCatalogEntry::deserialize(deserializer);
     } break;
     default:
         KU_UNREACHABLE;

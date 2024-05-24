@@ -1,12 +1,29 @@
 #pragma once
 
-#include <utility>
-
 #include "processor/operator/scan/scan_table.h"
 #include "storage/store/node_table.h"
 
 namespace kuzu {
 namespace processor {
+
+class ScanNodeTableSharedState {
+public:
+    ScanNodeTableSharedState()
+        : table{nullptr}, currentCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX},
+          currentUnCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX}, numCommittedNodeGroups{0} {};
+
+    void initialize(transaction::Transaction* transaction, storage::NodeTable* table);
+
+    void nextMorsel(storage::NodeTableScanState& scanState);
+
+private:
+    std::mutex mtx;
+    storage::NodeTable* table;
+    common::node_group_idx_t currentCommittedGroupIdx;
+    common::node_group_idx_t currentUnCommittedGroupIdx;
+    common::node_group_idx_t numCommittedNodeGroups;
+    std::vector<storage::LocalNodeGroup*> localNodeGroups;
+};
 
 struct ScanNodeTableInfo {
     storage::NodeTable* table;
@@ -17,39 +34,46 @@ struct ScanNodeTableInfo {
     ScanNodeTableInfo(const ScanNodeTableInfo& other)
         : table{other.table}, columnIDs{other.columnIDs} {}
 
-    inline std::unique_ptr<ScanNodeTableInfo> copy() const {
+    std::unique_ptr<ScanNodeTableInfo> copy() const {
         return std::make_unique<ScanNodeTableInfo>(*this);
     }
 };
 
 class ScanNodeTable final : public ScanTable {
 public:
-    ScanNodeTable(std::unique_ptr<ScanNodeTableInfo> info, const DataPos& inVectorPos,
-        std::vector<DataPos> outVectorsPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
+    ScanNodeTable(const DataPos& inVectorPos, std::vector<DataPos> outVectorsPos,
+        std::vector<std::unique_ptr<ScanNodeTableInfo>> infos,
+        std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates, uint32_t id,
         const std::string& paramsString)
-        : ScanNodeTable{PhysicalOperatorType::SCAN_NODE_TABLE, std::move(info), inVectorPos,
-              std::move(outVectorsPos), std::move(child), id, paramsString} {}
+        : ScanTable{PhysicalOperatorType::SCAN_NODE_TABLE, inVectorPos, std::move(outVectorsPos),
+              id, paramsString},
+          currentTableIdx{0}, infos{std::move(infos)}, sharedStates{std::move(sharedStates)} {
+        KU_ASSERT(this->infos.size() == this->sharedStates.size());
+    }
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* executionContext) override;
+    bool isSource() const override { return true; }
+
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ScanNodeTable>(info->copy(), nodeIDPos, outVectorsPos,
-            children[0]->clone(), id, paramsString);
+    common::vector_idx_t getNumTables() const { return sharedStates.size(); }
+    const ScanNodeTableSharedState& getSharedState(common::vector_idx_t idx) const {
+        KU_ASSERT(idx < sharedStates.size());
+        return *sharedStates[idx];
     }
 
-protected:
-    ScanNodeTable(PhysicalOperatorType operatorType, std::unique_ptr<ScanNodeTableInfo> info,
-        const DataPos& inVectorPos, std::vector<DataPos> outVectorsPos,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : ScanTable{operatorType, inVectorPos, std::move(outVectorsPos), std::move(child), id,
-              paramsString},
-          info{std::move(info)} {}
+    std::unique_ptr<PhysicalOperator> clone() override;
 
 private:
-    std::unique_ptr<ScanNodeTableInfo> info;
-    std::unique_ptr<storage::NodeTableReadState> readState;
+    void initGlobalStateInternal(ExecutionContext* context) override;
+
+private:
+    common::vector_idx_t currentTableIdx;
+    // TODO(Guodong): Refactor following three fields into a vector of structs.
+    std::vector<std::unique_ptr<ScanNodeTableInfo>> infos;
+    std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates;
+    std::vector<std::unique_ptr<storage::NodeTableScanState>> scanStates;
 };
 
 } // namespace processor

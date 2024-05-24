@@ -13,10 +13,9 @@ namespace storage {
 
 StructColumn::StructColumn(std::string name, LogicalType dataType,
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
-    BufferManager* bufferManager, WAL* wal, Transaction* transaction,
-    RWPropertyStats propertyStatistics, bool enableCompression)
+    BufferManager* bufferManager, WAL* wal, Transaction* transaction, bool enableCompression)
     : Column{name, std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
-          transaction, propertyStatistics, enableCompression, true /* requireNullColumn */} {
+          transaction, enableCompression, true /* requireNullColumn */} {
     auto fieldTypes = StructType::getFieldTypes(this->dataType);
     KU_ASSERT(metaDAHeaderInfo.childrenInfos.size() == fieldTypes.size());
     childColumns.resize(fieldTypes.size());
@@ -25,7 +24,7 @@ StructColumn::StructColumn(std::string name, LogicalType dataType,
             StorageUtils::ColumnType::STRUCT_CHILD, std::to_string(i));
         childColumns[i] = ColumnFactory::createColumn(childColName, *fieldTypes[i].copy(),
             *metaDAHeaderInfo.childrenInfos[i], dataFH, metadataFH, bufferManager, wal, transaction,
-            propertyStatistics, enableCompression);
+            enableCompression);
     }
 }
 
@@ -59,23 +58,25 @@ void StructColumn::initChunkState(Transaction* transaction, node_group_idx_t nod
     }
 }
 
-void StructColumn::scan(Transaction* transaction, ChunkState& readState,
+void StructColumn::scan(Transaction* transaction, const ChunkState& state,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
     uint64_t offsetInVector) {
-    nullColumn->scan(transaction, *readState.nullState, startOffsetInGroup, endOffsetInGroup,
+    nullColumn->scan(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
         resultVector, offsetInVector);
     for (auto i = 0u; i < childColumns.size(); i++) {
         auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
-        childColumns[i]->scan(transaction, readState.childrenStates[i], startOffsetInGroup,
+        childColumns[i]->scan(transaction, state.childrenStates[i], startOffsetInGroup,
             endOffsetInGroup, fieldVector, offsetInVector);
     }
 }
 
-void StructColumn::scanInternal(Transaction* transaction, ChunkState& readState,
-    ValueVector* nodeIDVector, ValueVector* resultVector) {
+void StructColumn::scanInternal(Transaction* transaction, const ChunkState& state,
+    vector_idx_t vectorIdx, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
+    ValueVector* resultVector) {
     for (auto i = 0u; i < childColumns.size(); i++) {
-        auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
-        childColumns[i]->scan(transaction, readState.childrenStates[i], nodeIDVector, fieldVector);
+        const auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
+        childColumns[i]->scan(transaction, state.childrenStates[i], vectorIdx, numValuesToScan,
+            nodeIDVector, fieldVector);
     }
 }
 
@@ -114,12 +115,12 @@ void StructColumn::write(ChunkState& state, offset_t offsetInChunk, ColumnChunk*
     }
 }
 
-void StructColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
-    Column::append(columnChunk, nodeGroupIdx);
+void StructColumn::append(ColumnChunk* columnChunk, ChunkState& state) {
+    Column::append(columnChunk, state);
     KU_ASSERT(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     auto structColumnChunk = static_cast<StructColumnChunk*>(columnChunk);
     for (auto i = 0u; i < childColumns.size(); i++) {
-        childColumns[i]->append(structColumnChunk->getChild(i), nodeGroupIdx);
+        childColumns[i]->append(structColumnChunk->getChild(i), state.childrenStates[i]);
     }
 }
 

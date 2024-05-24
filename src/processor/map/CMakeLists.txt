@@ -6,9 +6,9 @@ add_library(kuzu_processor_mapper
         map_acc_hash_join.cpp
         map_accumulate.cpp
         map_aggregate.cpp
-        map_acc_hash_join.cpp
+        map_gds.cpp
         map_standalone_call.cpp
-        map_in_query_call.cpp
+        map_table_function_call.cpp
         map_comment_on.cpp
         map_copy_to.cpp
         map_copy_from.cpp
@@ -39,8 +39,7 @@ add_library(kuzu_processor_mapper
         map_recursive_extend.cpp
         map_scan_file.cpp
         map_scan_frontier.cpp
-        map_scan_node.cpp
-        map_scan_node_property.cpp
+        map_scan_node_table.cpp
         map_semi_masker.cpp
         map_set.cpp
         map_simple.cpp

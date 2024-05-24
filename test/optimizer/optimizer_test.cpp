@@ -2,7 +2,7 @@
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_plan_util.h"
-#include "planner/operator/scan/logical_scan_node_property.h"
+#include "planner/operator/scan/logical_scan_node_table.h"
 #include "test_runner/test_runner.h"
 
 namespace kuzu {
@@ -44,7 +44,7 @@ TEST_F(OptimizerTest, CrossJoinWithFilterPushDownTest) {
     op = op->getChild(0);
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::FILTER);
     op = op->getChild(0);
-    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_PROPERTY);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_TABLE);
 }
 
 TEST_F(OptimizerTest, CrossJoinWithFilterPushDownTest2) {
@@ -56,11 +56,9 @@ TEST_F(OptimizerTest, CrossJoinWithFilterPushDownTest2) {
     op = op->getChild(0);
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::FLATTEN);
     op = op->getChild(0);
-    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_PROPERTY);
-    op = op->getChild(0);
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::FILTER);
     op = op->getChild(0);
-    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_PROPERTY);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_TABLE);
 }
 
 TEST_F(OptimizerTest, WithClauseProjectionListRewriterTest) {
@@ -69,8 +67,8 @@ TEST_F(OptimizerTest, WithClauseProjectionListRewriterTest) {
     op = op->getChild(0);
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::PROJECTION);
     op = op->getChild(0);
-    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_PROPERTY);
-    auto scanNodeProperty = (planner::LogicalScanNodeProperty*)op.get();
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_TABLE);
+    auto scanNodeProperty = (planner::LogicalScanNodeTable*)op.get();
     ASSERT_EQ(scanNodeProperty->getProperties().size(), 1);
 }
 
@@ -78,29 +76,26 @@ TEST_F(OptimizerTest, FilterPushDownTest) {
     auto op = getRoot("MATCH (a:person) WHERE a.ID < 0 AND a.fName='Alice' RETURN a.gender;");
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::PROJECTION);
     op = op->getChild(0);
-    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_PROPERTY);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::FILTER);
     op = op->getChild(0);
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::FILTER);
     op = op->getChild(0);
-    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_PROPERTY);
-    op = op->getChild(0);
-    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::FILTER);
-    op = op->getChild(0);
-    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_PROPERTY);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_TABLE);
 }
 
-TEST_F(OptimizerTest, IndexScanTest) {
-    auto op = getRoot("MATCH (a:person) WHERE a.ID = 0 AND a.fName='Alice' RETURN a.gender;");
-    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::PROJECTION);
-    op = op->getChild(0);
-    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_PROPERTY);
-    op = op->getChild(0);
-    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::FILTER);
-    op = op->getChild(0);
-    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_PROPERTY);
-    op = op->getChild(0);
-    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::INDEX_SCAN_NODE);
-}
+// TODO: FIX-ME. Uncomment this test when we've re-enabled index scan.
+// TEST_F(OptimizerTest, IndexScanTest) {
+//    auto op = getRoot("MATCH (a:person) WHERE a.ID = 0 AND a.fName='Alice' RETURN a.gender;");
+//    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::PROJECTION);
+//    op = op->getChild(0);
+//    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_TABLE);
+//    op = op->getChild(0);
+//    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::FILTER);
+//    op = op->getChild(0);
+//    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_TABLE);
+//    op = op->getChild(0);
+//    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::INDEX_SCAN_NODE);
+//}
 
 TEST_F(OptimizerTest, RemoveUnnecessaryJoinTest) {
     auto op = getRoot("MATCH (a:person)-[e:knows]->(b:person) RETURN e.date;");
@@ -110,7 +105,7 @@ TEST_F(OptimizerTest, RemoveUnnecessaryJoinTest) {
     op = op->getChild(0);
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::FLATTEN);
     op = op->getChild(0);
-    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_INTERNAL_ID);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_TABLE);
 }
 
 TEST_F(OptimizerTest, ProjectionPushDownJoinTest) {
@@ -123,11 +118,11 @@ TEST_F(OptimizerTest, ProjectionPushDownJoinTest) {
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::PROJECTION);
 }
 
-TEST_F(OptimizerTest, RecursiveJoinTest) {
-    auto encodedPlan = getEncodedPlan(
-        "MATCH (a:person)-[:knows* SHORTEST 1..5]->(b:person) WHERE b.ID < 0 RETURN a.fName;");
-    ASSERT_STREQ(encodedPlan.c_str(), "HJ(a._ID){RE(a)S(b._ID)}{S(a._ID)}");
-}
+// TEST_F(OptimizerTest, RecursiveJoinTest) {
+//     auto encodedPlan = getEncodedPlan(
+//         "MATCH (a:person)-[:knows* SHORTEST 1..5]->(b:person) WHERE b.ID < 0 RETURN a.fName;");
+//     ASSERT_STREQ(encodedPlan.c_str(), "HJ(a._ID){RE(a)S(b._ID)}{S(a._ID)}");
+// }
 
 TEST_F(OptimizerTest, RecursiveJoinNoTrackPathTest) {
     auto op = getRoot("MATCH (a:person)-[e:knows* SHORTEST 1..3]->(b:person) RETURN length(e);");

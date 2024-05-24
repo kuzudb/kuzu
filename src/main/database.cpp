@@ -1,6 +1,5 @@
 #include "main/database.h"
 
-#include "common/random_engine.h"
 #include "main/database_manager.h"
 
 #if defined(_WIN32)
@@ -78,13 +77,13 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     this->databasePath = vfs->expandPath(&clientContext, dbPathStr);
     bufferManager =
         std::make_unique<BufferManager>(this->dbConfig.bufferPoolSize, this->dbConfig.maxDBSize);
-    memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get());
+    memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get(), nullptr);
     queryProcessor = std::make_unique<processor::QueryProcessor>(this->dbConfig.maxNumThreads);
     initAndLockDBDir();
     catalog = std::make_unique<Catalog>(this->databasePath, vfs.get());
     StorageManager::recover(clientContext);
     storageManager = std::make_unique<StorageManager>(this->databasePath, systemConfig.readOnly,
-        *catalog, *memoryManager, systemConfig.enableCompression, vfs.get());
+        *catalog, *memoryManager, systemConfig.enableCompression, vfs.get(), nullptr);
     transactionManager = std::make_unique<TransactionManager>(storageManager->getWAL());
     extensionOptions = std::make_unique<extension::ExtensionOptions>();
     databaseManager = std::make_unique<DatabaseManager>();

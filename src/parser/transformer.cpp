@@ -38,8 +38,10 @@ std::unique_ptr<Statement> Transformer::transformStatement(CypherParser::OC_Stat
         return transformCreateRelTableGroup(*ctx.kU_CreateRelTableGroup());
     } else if (ctx.kU_CreateRdfGraph()) {
         return transformCreateRdfGraphClause(*ctx.kU_CreateRdfGraph());
-    } else if (ctx.kU_DropTable()) {
-        return transformDropTable(*ctx.kU_DropTable());
+    } else if (ctx.kU_CreateSequence()) {
+        return transformCreateSequence(*ctx.kU_CreateSequence());
+    } else if (ctx.kU_Drop()) {
+        return transformDrop(*ctx.kU_Drop());
     } else if (ctx.kU_AlterTable()) {
         return transformAlterTable(*ctx.kU_AlterTable());
     } else if (ctx.kU_CopyFromByColumn()) {

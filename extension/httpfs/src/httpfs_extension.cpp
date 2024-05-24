@@ -2,6 +2,7 @@
 
 #include "common/types/types.h"
 #include "common/types/value/value.h"
+#include "http_config.h"
 #include "main/database.h"
 #include "s3fs.h"
 
@@ -25,7 +26,10 @@ void HttpfsExtension::load(main::ClientContext* context) {
         common::Value{(int64_t)10000});
     db->addExtensionOption("s3_uploader_threads_limit", common::LogicalTypeID::INT64,
         common::Value{(int64_t)50});
+    db->addExtensionOption(HTTPCacheInMemoryConfig::HTTP_CACHE_FILE_OPTION,
+        common::LogicalTypeID::BOOL, common::Value{HTTPCacheInMemoryConfig::DEFAULT_CACHE_FILE});
     AWSEnvironmentCredentialsProvider::setOptionValue(context);
+    HTTPConfigEnvProvider::setOptionValue(context);
 }
 
 } // namespace httpfs

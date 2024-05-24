@@ -1,13 +1,32 @@
 #include "duckdb_catalog.h"
 
+#include "binder/bound_attach_info.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "duckdb_scan.h"
+#include "duckdb_storage.h"
 #include "duckdb_table_catalog_entry.h"
 #include "duckdb_type_converter.h"
 
 namespace kuzu {
 namespace duckdb_extension {
+
+DuckDBCatalog::DuckDBCatalog(std::string dbPath, std::string catalogName,
+    main::ClientContext* context, const binder::AttachOption& attachOption)
+    : CatalogExtension::CatalogExtension{}, dbPath{std::move(dbPath)},
+      catalogName{std::move(catalogName)},
+      tableNamesVector{*common::LogicalType::STRING(), context->getMemoryManager()} {
+    skipUnsupportedTable = DuckDBStorageExtension::SKIP_UNSUPPORTED_TABLE_DEFAULT_VAL;
+    auto& options = attachOption.options;
+    if (options.contains(DuckDBStorageExtension::SKIP_UNSUPPORTED_TABLE_KEY)) {
+        auto val = options.at(DuckDBStorageExtension::SKIP_UNSUPPORTED_TABLE_KEY);
+        if (val.getDataType()->getLogicalTypeID() != common::LogicalTypeID::BOOL) {
+            throw common::RuntimeException{common::stringFormat("Invalid option value for {}",
+                DuckDBStorageExtension::SKIP_UNSUPPORTED_TABLE_KEY)};
+        }
+        skipUnsupportedTable = val.getValue<bool>();
+    }
+}
 
 void DuckDBCatalog::init() {
     auto [db, con] = getConnection(dbPath);
@@ -69,7 +88,8 @@ void DuckDBCatalog::createForeignTable(duckdb::Connection& con, const std::strin
 
 static bool getTableInfo(duckdb::Connection& con, const std::string& tableName,
     const std::string& schemaName, const std::string& catalogName,
-    std::vector<common::LogicalType>& columnTypes, std::vector<std::string>& columnNames) {
+    std::vector<common::LogicalType>& columnTypes, std::vector<std::string>& columnNames,
+    bool skipUnsupportedTable) {
     auto query =
         common::stringFormat("select data_type,column_name from information_schema.columns where "
                              "table_name = '{}' and table_schema = '{}' and table_catalog = '{}';",
@@ -85,7 +105,10 @@ static bool getTableInfo(duckdb::Connection& con, const std::string& tableName,
             columnTypes.push_back(DuckDBTypeConverter::convertDuckDBType(
                 result->GetValue(0, i).GetValue<std::string>()));
         } catch (common::BinderException& e) {
-            return false;
+            if (skipUnsupportedTable) {
+                return false;
+            }
+            throw;
         }
         columnNames.push_back(result->GetValue(1, i).GetValue<std::string>());
     }
@@ -97,8 +120,8 @@ bool DuckDBCatalog::bindPropertyInfos(duckdb::Connection& con, const std::string
     const std::string& catalogName, std::vector<binder::PropertyInfo>& propertyInfos) {
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::string> columnNames;
-    if (!getTableInfo(con, tableName, getDefaultSchemaName(), catalogName, columnTypes,
-            columnNames)) {
+    if (!getTableInfo(con, tableName, getDefaultSchemaName(), catalogName, columnTypes, columnNames,
+            skipUnsupportedTable)) {
         return false;
     }
     for (auto i = 0u; i < columnNames.size(); i++) {

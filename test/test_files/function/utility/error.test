@@ -1,0 +1,17 @@
+-DATASET CSV empty
+
+--
+
+-CASE ErrorTest
+
+-STATEMENT RETURN error('access_mode');
+---- error
+Runtime exception: access_mode
+
+-STATEMENT RETURN 42=error('hello world');
+---- error
+Runtime exception: hello world
+
+-STATEMENT RETURN error('hello world') IS NULL;
+---- error
+Runtime exception: hello world

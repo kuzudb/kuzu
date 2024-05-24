@@ -93,7 +93,10 @@ private:
     BoundCreateTableInfo bindCreateRdfGraphInfo(const parser::CreateTableInfo* info);
     std::unique_ptr<BoundStatement> bindCreateTable(const parser::Statement& statement);
 
+    std::unique_ptr<BoundStatement> bindCreateSequence(const parser::Statement& statement);
+
     std::unique_ptr<BoundStatement> bindDropTable(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindDropSequence(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindAlter(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindRenameTable(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindAddProperty(const parser::Statement& statement);
@@ -123,11 +126,11 @@ private:
 
     /*** bind scan source ***/
     std::unique_ptr<BoundBaseScanSource> bindScanSource(parser::BaseScanSource* scanSource,
-        const parser::parsing_option_t& options, const std::vector<std::string>& columnNames,
+        const parser::options_t& options, const std::vector<std::string>& columnNames,
         const std::vector<common::LogicalType>& columnTypes);
 
     std::unordered_map<std::string, common::Value> bindParsingOptions(
-        const parser::parsing_option_t& parsingOptions);
+        const parser::options_t& parsingOptions);
     common::FileType bindFileType(const std::vector<std::string>& filePaths);
     common::FileType bindFileType(const std::string& filePath);
     std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);
@@ -177,7 +180,7 @@ private:
     std::unique_ptr<BoundUpdatingClause> bindDeleteClause(
         const parser::UpdatingClause& updatingClause);
 
-    std::vector<BoundInsertInfo> bindInsertInfos(const QueryGraphCollection& queryGraphCollection,
+    std::vector<BoundInsertInfo> bindInsertInfos(QueryGraphCollection& queryGraphCollection,
         const std::unordered_set<std::string>& patternsInScope);
     void bindInsertNode(std::shared_ptr<NodeExpression> node, std::vector<BoundInsertInfo>& infos);
     void bindInsertRel(std::shared_ptr<RelExpression> rel, std::vector<BoundInsertInfo>& infos);

@@ -86,9 +86,6 @@ public:
         return getValue<nodeID_t>(pos).offset;
     }
 
-    void setSequential() { _isSequential = true; }
-    bool isSequential() const { return _isSequential; }
-
     void resetAuxiliaryBuffer();
 
     // If there is still non-null values after discarding, return true. Otherwise, return false.
@@ -104,7 +101,6 @@ public:
     std::shared_ptr<DataChunkState> state;
 
 private:
-    bool _isSequential = false;
     std::unique_ptr<uint8_t[]> valueBuffer;
     NullMask nullMask;
     uint32_t numBytesPerValue;

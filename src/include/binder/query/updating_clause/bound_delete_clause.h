@@ -10,32 +10,28 @@ class BoundDeleteClause : public BoundUpdatingClause {
 public:
     BoundDeleteClause() : BoundUpdatingClause{common::ClauseType::DELETE_} {};
 
-    inline void addInfo(BoundDeleteInfo info) { infos.push_back(std::move(info)); }
+    void addInfo(BoundDeleteInfo info) { infos.push_back(std::move(info)); }
 
-    inline bool hasNodeInfo() const {
-        return hasInfo([](const BoundDeleteInfo& info) {
-            return info.updateTableType == UpdateTableType::NODE;
-        });
+    bool hasNodeInfo() const {
+        return hasInfo(
+            [](const BoundDeleteInfo& info) { return info.tableType == common::TableType::NODE; });
     }
-    inline std::vector<const BoundDeleteInfo*> getNodeInfos() const {
-        return getInfos([](const BoundDeleteInfo& info) {
-            return info.updateTableType == UpdateTableType::NODE;
-        });
+    std::vector<BoundDeleteInfo> getNodeInfos() const {
+        return getInfos(
+            [](const BoundDeleteInfo& info) { return info.tableType == common::TableType::NODE; });
     }
-    inline bool hasRelInfo() const {
-        return hasInfo([](const BoundDeleteInfo& info) {
-            return info.updateTableType == UpdateTableType::REL;
-        });
+    bool hasRelInfo() const {
+        return hasInfo(
+            [](const BoundDeleteInfo& info) { return info.tableType == common::TableType::REL; });
     }
-    inline std::vector<const BoundDeleteInfo*> getRelInfos() const {
-        return getInfos([](const BoundDeleteInfo& info) {
-            return info.updateTableType == UpdateTableType::REL;
-        });
+    std::vector<BoundDeleteInfo> getRelInfos() const {
+        return getInfos(
+            [](const BoundDeleteInfo& info) { return info.tableType == common::TableType::REL; });
     }
 
 private:
     bool hasInfo(const std::function<bool(const BoundDeleteInfo& info)>& check) const;
-    std::vector<const BoundDeleteInfo*> getInfos(
+    std::vector<BoundDeleteInfo> getInfos(
         const std::function<bool(const BoundDeleteInfo& info)>& check) const;
 
 private:

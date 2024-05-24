@@ -14,8 +14,8 @@ public:
 
     inline BaseScanSource* getSource() const { return source.get(); }
 
-    inline void setParingOptions(parsing_option_t options) { parsingOptions = std::move(options); }
-    inline const parsing_option_t& getParsingOptionsRef() const { return parsingOptions; }
+    inline void setParingOptions(options_t options) { parsingOptions = std::move(options); }
+    inline const options_t& getParsingOptionsRef() const { return parsingOptions; }
 
     inline void setColumnNameDataTypes(
         std::vector<std::pair<std::string, std::string>> nameDataTypes) {
@@ -35,7 +35,7 @@ public:
 private:
     std::unique_ptr<BaseScanSource> source;
     std::vector<std::pair<std::string, std::string>> columnNameDataTypes;
-    parsing_option_t parsingOptions;
+    options_t parsingOptions;
     std::unique_ptr<ParsedExpression> wherePredicate;
 };
 

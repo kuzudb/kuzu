@@ -9,6 +9,8 @@
 #include "function/cast/vector_cast_functions.h"
 #include "function/comparison/vector_comparison_functions.h"
 #include "function/date/vector_date_functions.h"
+#include "function/gds/gds_function_collection.h"
+#include "function/graph/graph_functions.h"
 #include "function/hash/vector_hash_functions.h"
 #include "function/interval/vector_interval_functions.h"
 #include "function/list/vector_list_functions.h"
@@ -16,6 +18,7 @@
 #include "function/path/vector_path_functions.h"
 #include "function/rdf/vector_rdf_functions.h"
 #include "function/schema/vector_node_rel_functions.h"
+#include "function/sequence/sequence_functions.h"
 #include "function/string/vector_string_functions.h"
 #include "function/struct/vector_struct_functions.h"
 #include "function/table/call_functions.h"
@@ -45,6 +48,8 @@ namespace function {
     {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::AGGREGATE_FUNCTION_ENTRY}
 #define TABLE_FUNCTION(_PARAM)                                                                     \
     {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::TABLE_FUNCTION_ENTRY}
+#define ALGORITHM_FUNCTION(_PARAM)                                                                 \
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::GDS_FUNCTION_ENTRY}
 #define FINAL_FUNCTION {nullptr, nullptr, CatalogEntryType::SCALAR_FUNCTION_ENTRY}
 
 FunctionCollection* FunctionCollection::getFunctions() {
@@ -138,10 +143,11 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION(DayNameFunction), SCALAR_FUNCTION(GreatestFunction),
         SCALAR_FUNCTION(LastDayFunction), SCALAR_FUNCTION(LeastFunction),
         SCALAR_FUNCTION(MakeDateFunction), SCALAR_FUNCTION(MonthNameFunction),
+        SCALAR_FUNCTION(CurrentDateFunction),
 
         // Timestamp functions
         SCALAR_FUNCTION(CenturyFunction), SCALAR_FUNCTION(EpochMsFunction),
-        SCALAR_FUNCTION(ToTimestampFunction),
+        SCALAR_FUNCTION(ToTimestampFunction), SCALAR_FUNCTION(CurrentTimestampFunction),
 
         // Interval functions
         SCALAR_FUNCTION(ToYearsFunction), SCALAR_FUNCTION(ToMonthsFunction),
@@ -171,6 +177,9 @@ FunctionCollection* FunctionCollection::getFunctions() {
         // Node/rel functions
         SCALAR_FUNCTION(OffsetFunction), REWRITE_FUNCTION(IDFunction),
 
+        // Graph functions
+        REWRITE_FUNCTION(CreateGraphFunction),
+
         // Path functions
         SCALAR_FUNCTION(NodesFunction), SCALAR_FUNCTION(RelsFunction),
         SCALAR_FUNCTION(PropertiesFunction), SCALAR_FUNCTION(IsTrailFunction),
@@ -185,6 +194,12 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Scalar utility functions
         SCALAR_FUNCTION(CoalesceFunction), SCALAR_FUNCTION(IfNullFunction),
+        SCALAR_FUNCTION(ConstantOrNullFunction), SCALAR_FUNCTION(CountIfFunction),
+        SCALAR_FUNCTION(ErrorFunction), REWRITE_FUNCTION(NullIfFunction),
+        SCALAR_FUNCTION(TypeOfFunction),
+
+        // Sequence functions
+        SCALAR_FUNCTION(CurrValFunction), SCALAR_FUNCTION(NextValFunction),
 
         // Aggregate functions
         AGGREGATE_FUNCTION(CountStarFunction), AGGREGATE_FUNCTION(CountFunction),
@@ -197,8 +212,9 @@ FunctionCollection* FunctionCollection::getFunctions() {
         TABLE_FUNCTION(ShowTablesFunction), TABLE_FUNCTION(TableInfoFunction),
         TABLE_FUNCTION(ShowConnectionFunction), TABLE_FUNCTION(StorageInfoFunction),
         TABLE_FUNCTION(ShowAttachedDatabasesFunction), TABLE_FUNCTION(CheckpointFunction),
+        TABLE_FUNCTION(ShowSequencesFunction),
 
-        // Read functions
+        // Scan functions
         TABLE_FUNCTION(ParquetScanFunction), TABLE_FUNCTION(NpyScanFunction),
         TABLE_FUNCTION(SerialCSVScan), TABLE_FUNCTION(ParallelCSVScan),
         TABLE_FUNCTION(RdfResourceScan), TABLE_FUNCTION(RdfLiteralScan),
@@ -206,6 +222,11 @@ FunctionCollection* FunctionCollection::getFunctions() {
         TABLE_FUNCTION(RdfAllTripleScan), TABLE_FUNCTION(RdfResourceInMemScan),
         TABLE_FUNCTION(RdfLiteralInMemScan), TABLE_FUNCTION(RdfResourceTripleInMemScan),
         TABLE_FUNCTION(RdfLiteralTripleInMemScan), TABLE_FUNCTION(FTableScan),
+
+        // Algorithm functions
+        ALGORITHM_FUNCTION(VariableLengthPathsFunction),
+        ALGORITHM_FUNCTION(WeaklyConnectedComponentsFunction),
+        ALGORITHM_FUNCTION(ShortestPathsFunction), ALGORITHM_FUNCTION(PageRankFunction),
 
         // End of array
         FINAL_FUNCTION};

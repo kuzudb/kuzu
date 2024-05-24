@@ -12,34 +12,20 @@ namespace kuzu {
 namespace storage {
 
 TableStatistics::TableStatistics(const catalog::TableCatalogEntry& tableEntry)
-    : tableType{tableEntry.getTableType()}, numTuples{0}, tableID{tableEntry.getTableID()} {
-    for (auto& property : tableEntry.getPropertiesRef()) {
-        propertyStatistics[property.getPropertyID()] = std::make_unique<PropertyStatistics>();
-    }
-}
+    : tableType{tableEntry.getTableType()}, numTuples{0}, tableID{tableEntry.getTableID()} {}
 
-TableStatistics::TableStatistics(common::TableType tableType, uint64_t numTuples,
-    common::table_id_t tableID,
-    std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
-        propertyStatistics)
-    : tableType{tableType}, numTuples{numTuples}, tableID{tableID},
-      propertyStatistics{std::move(propertyStatistics)} {
+TableStatistics::TableStatistics(TableType tableType, uint64_t numTuples, table_id_t tableID)
+    : tableType{tableType}, numTuples{numTuples}, tableID{tableID} {
     KU_ASSERT(numTuples != UINT64_MAX);
 }
 
 TableStatistics::TableStatistics(const TableStatistics& other)
-    : tableType{other.tableType}, numTuples{other.numTuples}, tableID{other.tableID} {
-    for (auto& propertyStats : other.propertyStatistics) {
-        propertyStatistics[propertyStats.first] =
-            std::make_unique<PropertyStatistics>(*propertyStats.second.get());
-    }
-}
+    : tableType{other.tableType}, numTuples{other.numTuples}, tableID{other.tableID} {}
 
 void TableStatistics::serialize(Serializer& serializer) {
     serializer.serializeValue(tableType);
     serializer.serializeValue(numTuples);
     serializer.serializeValue(tableID);
-    serializer.serializeUnorderedMap(propertyStatistics);
     serializeInternal(serializer);
 }
 
@@ -47,11 +33,9 @@ std::unique_ptr<TableStatistics> TableStatistics::deserialize(Deserializer& dese
     TableType tableType;
     uint64_t numTuples;
     table_id_t tableID;
-    std::unordered_map<property_id_t, std::unique_ptr<PropertyStatistics>> propertyStatistics;
     deserializer.deserializeValue(tableType);
     deserializer.deserializeValue(numTuples);
     deserializer.deserializeValue(tableID);
-    deserializer.deserializeUnorderedMap(propertyStatistics);
     std::unique_ptr<TableStatistics> result;
     switch (tableType) {
     case TableType::NODE: {
@@ -68,7 +52,6 @@ std::unique_ptr<TableStatistics> TableStatistics::deserialize(Deserializer& dese
     result->tableType = tableType;
     result->numTuples = numTuples;
     result->tableID = tableID;
-    result->propertyStatistics = std::move(propertyStatistics);
     return result;
 }
 

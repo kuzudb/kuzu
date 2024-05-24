@@ -1,6 +1,6 @@
 #pragma once
 
-#include "parser/parsed_data/attach_info.h"
+#include "binder/bound_attach_info.h"
 #include "processor/operator/simple/simple.h"
 
 namespace kuzu {
@@ -8,7 +8,7 @@ namespace processor {
 
 class AttachDatabase final : public Simple {
 public:
-    AttachDatabase(parser::AttachInfo attachInfo, const DataPos& outputPos, uint32_t id,
+    AttachDatabase(binder::AttachInfo attachInfo, const DataPos& outputPos, uint32_t id,
         const std::string& paramsString)
         : Simple{PhysicalOperatorType::ATTACH_DATABASE, outputPos, id, paramsString},
           attachInfo{std::move(attachInfo)} {}
@@ -21,7 +21,7 @@ public:
     }
 
 private:
-    parser::AttachInfo attachInfo;
+    binder::AttachInfo attachInfo;
 };
 
 } // namespace processor

@@ -2,6 +2,7 @@
 
 #include "common/enums/rel_direction.h"
 #include "expression_mapper.h"
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_plan.h"
 #include "processor/operator/result_collector.h"
 #include "processor/physical_plan.h"
@@ -9,6 +10,10 @@
 namespace kuzu {
 namespace main {
 class ClientContext;
+}
+
+namespace binder {
+struct BoundDeleteInfo;
 }
 
 namespace planner {
@@ -25,6 +30,10 @@ class NodeInsertExecutor;
 class RelInsertExecutor;
 class NodeSetExecutor;
 class RelSetExecutor;
+class NodeDeleteExecutor;
+class RelDeleteExecutor;
+struct ExtraNodeDeleteInfo;
+
 struct BatchInsertSharedState;
 struct PartitionerSharedState;
 
@@ -32,16 +41,16 @@ class PlanMapper {
 public:
     // Create plan mapper with default mapper context.
     explicit PlanMapper(main::ClientContext* clientContext)
-        : expressionMapper{}, clientContext{clientContext}, physicalOperatorID{0} {}
+        : clientContext{clientContext}, physicalOperatorID{0} {}
 
-    std::unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(planner::LogicalPlan* logicalPlan,
+    std::unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(const planner::LogicalPlan* logicalPlan,
         const binder::expression_vector& expressionsToCollect);
 
 private:
     std::unique_ptr<PhysicalOperator> mapOperator(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapGDSCall(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapScanFile(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapScanFrontier(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapScanInternalID(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapIndexScan(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapEmptyResult(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapUnwind(planner::LogicalOperator* logicalOperator);
@@ -52,8 +61,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapFlatten(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapFilter(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapProjection(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapScanNodeProperty(
-        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapScanNodeTable(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSemiMasker(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapHashJoin(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapIntersect(planner::LogicalOperator* logicalOperator);
@@ -73,9 +81,11 @@ private:
     std::unique_ptr<PhysicalOperator> mapInsert(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetNodeProperty(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetRelProperty(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapDelete(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDeleteNode(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDeleteRel(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCreateTable(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapCreateSequence(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCopyFrom(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCopyTo(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCopyNodeFrom(planner::LogicalOperator* logicalOperator);
@@ -83,10 +93,12 @@ private:
     std::unique_ptr<PhysicalOperator> mapCopyRdfFrom(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapPartitioner(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDropTable(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapDropSequence(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapAlter(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapStandaloneCall(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCommentOn(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapInQueryCall(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapTableFunctionCall(
+        planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapExplain(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapExpressionsScan(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCreateMacro(planner::LogicalOperator* logicalOperator);
@@ -106,6 +118,7 @@ private:
     std::unique_ptr<ResultCollector> createResultCollector(common::AccumulateType accumulateType,
         const binder::expression_vector& expressions, planner::Schema* schema,
         std::unique_ptr<PhysicalOperator> prevOperator);
+
     // Scan fTable with row offset.
     std::unique_ptr<PhysicalOperator> createFTableScan(const binder::expression_vector& exprs,
         std::vector<ft_col_idx_t> colIndices, std::shared_ptr<binder::Expression> offset,
@@ -174,10 +187,13 @@ private:
         const planner::Schema& inSchema) const;
     std::unique_ptr<RelSetExecutor> getRelSetExecutor(planner::LogicalSetPropertyInfo* info,
         const planner::Schema& inSchema) const;
+    std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(const binder::BoundDeleteInfo& info,
+        const planner::Schema& schema) const;
+    std::unique_ptr<RelDeleteExecutor> getRelDeleteExecutor(const binder::BoundDeleteInfo& info,
+        const planner::Schema& schema) const;
+    ExtraNodeDeleteInfo getExtraNodeDeleteInfo(common::table_id_t tableID, DataPos pkPos) const;
 
-    std::shared_ptr<FactorizedTable> getSingleStringColumnFTable() const;
-
-    inline uint32_t getOperatorID() { return physicalOperatorID++; }
+    uint32_t getOperatorID() { return physicalOperatorID++; }
 
     static void mapSIPJoin(PhysicalOperator* probe);
 

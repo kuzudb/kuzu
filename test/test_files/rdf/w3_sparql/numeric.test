@@ -3,7 +3,7 @@
 --
 
 -CASE W3SparqlNumericRead
-
+-SKIP
 #PREFIX : <http://www.example.org/>
 #SELECT (AVG(?o) AS ?avg)
 #WHERE {

@@ -8,7 +8,7 @@ namespace processor {
 void Frontier::addEdge(nodeID_t boundNodeID, nodeID_t nbrNodeID, nodeID_t relID) {
     if (!bwdEdges.contains(nbrNodeID)) {
         nodeIDs.push_back(nbrNodeID);
-        bwdEdges.insert({nbrNodeID, std::vector<frontier::node_rel_id_t>{}});
+        bwdEdges.insert({nbrNodeID, std::vector<node_rel_id_t>{}});
     }
     bwdEdges.at(nbrNodeID).emplace_back(boundNodeID, relID);
 }

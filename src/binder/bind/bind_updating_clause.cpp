@@ -100,14 +100,13 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindMergeClause(
     return boundMergeClause;
 }
 
-std::vector<BoundInsertInfo> Binder::bindInsertInfos(
-    const QueryGraphCollection& queryGraphCollection,
+std::vector<BoundInsertInfo> Binder::bindInsertInfos(QueryGraphCollection& queryGraphCollection,
     const std::unordered_set<std::string>& patternsInScope_) {
     auto patternsInScope = patternsInScope_;
     std::vector<BoundInsertInfo> result;
-    auto analyzer = QueryGraphLabelAnalyzer(*clientContext);
+    auto analyzer = QueryGraphLabelAnalyzer(*clientContext, true /* throwOnViolate */);
     for (auto i = 0u; i < queryGraphCollection.getNumQueryGraphs(); ++i) {
-        auto queryGraph = queryGraphCollection.getQueryGraph(i);
+        auto queryGraph = queryGraphCollection.getQueryGraphUnsafe(i);
         // Ensure query graph does not violate declared schema.
         analyzer.pruneLabel(*queryGraph);
         for (auto j = 0u; j < queryGraph->getNumQueryNodes(); ++j) {
@@ -330,31 +329,30 @@ static void validateRdfResourceDeletion(Expression* pattern, main::ClientContext
 
 std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
     const UpdatingClause& updatingClause) {
-    auto& deleteClause = (DeleteClause&)updatingClause;
+    auto& deleteClause = updatingClause.constCast<DeleteClause>();
+    auto deleteType = deleteClause.getDeleteClauseType();
     auto boundDeleteClause = std::make_unique<BoundDeleteClause>();
     for (auto i = 0u; i < deleteClause.getNumExpressions(); ++i) {
-        auto nodeOrRel = expressionBinder.bindExpression(*deleteClause.getExpression(i));
-        if (ExpressionUtil::isNodePattern(*nodeOrRel)) {
-            validateRdfResourceDeletion(nodeOrRel.get(), clientContext);
-            auto deleteNodeInfo = BoundDeleteInfo(UpdateTableType::NODE, nodeOrRel,
-                deleteClause.getDeleteClauseType());
+        auto pattern = expressionBinder.bindExpression(*deleteClause.getExpression(i));
+        if (ExpressionUtil::isNodePattern(*pattern)) {
+            validateRdfResourceDeletion(pattern.get(), clientContext);
+            auto deleteNodeInfo = BoundDeleteInfo(deleteType, TableType::NODE, pattern);
             boundDeleteClause->addInfo(std::move(deleteNodeInfo));
-        } else if (ExpressionUtil::isRelPattern(*nodeOrRel)) {
-            if (deleteClause.getDeleteClauseType() == DeleteClauseType::DETACH_DELETE) {
+        } else if (ExpressionUtil::isRelPattern(*pattern)) {
+            if (deleteClause.getDeleteClauseType() == DeleteNodeType::DETACH_DELETE) {
                 // TODO(Xiyang): Dummy check here. Make sure this is the correct semantic.
                 throw BinderException("Detach delete on rel tables is not supported.");
             }
-            auto rel = (RelExpression*)nodeOrRel.get();
+            auto rel = pattern->constPtrCast<RelExpression>();
             if (rel->getDirectionType() == RelDirectionType::BOTH) {
                 throw BinderException("Delete undirected rel is not supported.");
             }
-            auto deleteRel =
-                BoundDeleteInfo(UpdateTableType::REL, nodeOrRel, DeleteClauseType::DELETE);
+            auto deleteRel = BoundDeleteInfo(deleteType, TableType::REL, pattern);
             boundDeleteClause->addInfo(std::move(deleteRel));
         } else {
             throw BinderException(stringFormat(
                 "Cannot delete expression {} with type {}. Expect node or rel pattern.",
-                nodeOrRel->toString(), expressionTypeToString(nodeOrRel->expressionType)));
+                pattern->toString(), expressionTypeToString(pattern->expressionType)));
         }
     }
     return boundDeleteClause;

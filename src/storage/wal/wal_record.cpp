@@ -130,13 +130,13 @@ std::unique_ptr<TableStatisticsRecord> TableStatisticsRecord::deserialize(
 
 void DropCatalogEntryRecord::serialize(Serializer& serializer) const {
     WALRecord::serialize(serializer);
-    serializer.write(tableID);
+    serializer.write(entryID);
 }
 
 std::unique_ptr<DropCatalogEntryRecord> DropCatalogEntryRecord::deserialize(
     Deserializer& deserializer) {
     auto retVal = std::make_unique<DropCatalogEntryRecord>();
-    deserializer.deserializeValue(retVal->tableID);
+    deserializer.deserializeValue(retVal->entryID);
     return retVal;
 }
 

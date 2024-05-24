@@ -123,11 +123,11 @@ public:
      * See https://en.cppreference.com/w/cpp/utility/variant/visit
      */
     template<typename... Fs>
-    static inline void visit(LogicalTypeID dataType, Fs... funcs) {
+    static inline void visit(const LogicalType& dataType, Fs... funcs) {
         // Note: arguments are used only for type deduction and have no meaningful value.
         // They should be optimized out by the compiler
         auto func = overload(funcs...);
-        switch (dataType) {
+        switch (dataType.getLogicalTypeID()) {
         /* NOLINTBEGIN(bugprone-branch-clone)*/
         case LogicalTypeID::INT8:
             return func(int8_t());
@@ -154,6 +154,19 @@ public:
             return func(double());
         case LogicalTypeID::FLOAT:
             return func(float());
+        case LogicalTypeID::DECIMAL:
+            switch (dataType.getPhysicalType()) {
+            case PhysicalTypeID::INT16:
+                return func(int16_t());
+            case PhysicalTypeID::INT32:
+                return func(int32_t());
+            case PhysicalTypeID::INT64:
+                return func(int64_t());
+            case PhysicalTypeID::INT128:
+                return func(int128_t());
+            default:
+                KU_UNREACHABLE;
+            }
         case LogicalTypeID::INTERVAL:
             return func(interval_t());
         case LogicalTypeID::INTERNAL_ID:

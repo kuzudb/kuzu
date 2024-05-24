@@ -12,23 +12,25 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-FileHandle::FileHandle(const std::string& path, uint8_t flags, VirtualFileSystem* vfs)
+FileHandle::FileHandle(const std::string& path, uint8_t flags, VirtualFileSystem* vfs,
+    main::ClientContext* context)
     : flags{flags} {
     if (!isNewTmpFile()) {
-        constructExistingFileHandle(path, vfs);
+        constructExistingFileHandle(path, vfs, context);
     } else {
-        constructNewFileHandle(path);
+        constructNewFileHandle(path, vfs, context);
     }
 }
 
-void FileHandle::constructExistingFileHandle(const std::string& path, VirtualFileSystem* vfs) {
+void FileHandle::constructExistingFileHandle(const std::string& path, VirtualFileSystem* vfs,
+    main::ClientContext* context) {
     int openFlags;
     if (isReadOnlyFile()) {
         openFlags = O_RDONLY;
     } else {
         openFlags = O_RDWR | ((createFileIfNotExists()) ? O_CREAT : 0x00000000);
     }
-    fileInfo = vfs->openFile(path, openFlags);
+    fileInfo = vfs->openFile(path, openFlags, context);
     auto fileLength = fileInfo->getFileSize();
     numPages = ceil((double)fileLength / (double)getPageSize());
     pageCapacity = 0;
@@ -37,12 +39,9 @@ void FileHandle::constructExistingFileHandle(const std::string& path, VirtualFil
     }
 }
 
-void FileHandle::constructNewFileHandle(const std::string& path) {
-#ifdef _WIN32
-    fileInfo = make_unique<FileInfo>(path, nullptr /* fs */);
-#else
-    fileInfo = make_unique<FileInfo>(path, nullptr /* fs */);
-#endif
+void FileHandle::constructNewFileHandle(const std::string& path, VirtualFileSystem* vfs,
+    main::ClientContext* context) {
+    fileInfo = vfs->openFile(path, O_CREAT | O_RDWR, context);
     numPages = 0;
     pageCapacity = 0;
 }

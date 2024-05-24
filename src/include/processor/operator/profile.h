@@ -21,7 +21,7 @@ public:
           outputPos{outputPos}, info{info}, localState{localState} {}
 
     inline bool isSource() const override { return true; }
-    inline bool canParallel() const final { return false; }
+    inline bool isParallel() const final { return false; }
 
     inline void setPhysicalPlan(PhysicalPlan* physicalPlan) { info.physicalPlan = physicalPlan; }
 

@@ -85,6 +85,12 @@ struct CastToFloatFunction {
     static function_set getFunctionSet();
 };
 
+struct CastToDecimalFunction {
+    static constexpr const char* name = "TO_DECIMAL";
+
+    static function_set getFunctionSet();
+};
+
 struct CastToSerialFunction {
     static constexpr const char* name = "TO_SERIAL";
 

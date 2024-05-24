@@ -2,9 +2,6 @@
 
 #include "storage/store/column.h"
 
-using namespace kuzu::common;
-using namespace kuzu::transaction;
-
 namespace kuzu {
 namespace storage {
 
@@ -16,29 +13,31 @@ public:
     // without the possibility of memory errors from reading/writing off the end of a page.
     static_assert(PageUtils::getNumElementsInAPage(1, false /*requireNullColumn*/) % 8 == 0);
 
-    NullColumn(std::string name, page_idx_t metaDAHPageIdx, BMFileHandle* dataFH,
-        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, Transaction* transaction,
-        RWPropertyStats propertyStatistics, bool enableCompression);
+    NullColumn(std::string name, common::page_idx_t metaDAHPageIdx, BMFileHandle* dataFH,
+        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+        transaction::Transaction* transaction, bool enableCompression);
 
-    void scan(Transaction* transaction, ChunkState& readState, ValueVector* nodeIDVector,
-        ValueVector* resultVector) override;
-    void scan(transaction::Transaction* transaction, ChunkState& readState,
-        offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-        uint64_t offsetInVector) override;
-    void scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    void scan(transaction::Transaction* transaction, const ChunkState& state,
+        common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
+    void scan(transaction::Transaction* transaction, const ChunkState& state,
+        common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
+        common::ValueVector* resultVector, uint64_t offsetInVector) override;
+    void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         ColumnChunk* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
 
-    void lookup(Transaction* transaction, ChunkState& readState, ValueVector* nodeIDVector,
-        ValueVector* resultVector) override;
+    void lookup(transaction::Transaction* transaction, ChunkState& readState,
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
-    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) override;
+    void append(ColumnChunk* columnChunk, ChunkState& state) override;
 
-    bool isNull(Transaction* transaction, const ChunkState& state, offset_t offsetInChunk);
-    void setNull(ChunkState& state, offset_t offsetInChunk, uint64_t value = true);
+    bool isNull(transaction::Transaction* transaction, const ChunkState& state,
+        common::offset_t offsetInChunk);
+    void setNull(ChunkState& state, common::offset_t offsetInChunk, uint64_t value = true);
 
-    void write(ChunkState& state, offset_t offsetInChunk, ValueVector* vectorToWriteFrom,
-        uint32_t posInVectorToWriteFrom) override;
+    void write(ChunkState& state, common::offset_t offsetInChunk,
+        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
     void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunk* data,
         common::offset_t dataOffset, common::length_t numValues) override;
 

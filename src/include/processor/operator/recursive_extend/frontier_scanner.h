@@ -58,7 +58,7 @@ using path_semantic_check_t =
     std::function<bool(const std::vector<common::nodeID_t>&, const std::vector<common::relID_t>&)>;
 
 class PathScanner : public BaseFrontierScanner {
-    using nbrs_t = std::vector<frontier::node_rel_id_t>*;
+    using nbrs_t = std::vector<node_rel_id_t>*;
 
 public:
     PathScanner(TargetDstNodes* targetDstNodes, size_t k,
@@ -85,7 +85,7 @@ private:
         common::sel_t& nodeIDDataVectorPos, common::sel_t& relIDDataVectorPos) final;
 
     // Initialize stacks for given offset.
-    void initDfs(const frontier::node_rel_id_t& nodeAndRelID, size_t currentDepth);
+    void initDfs(const node_rel_id_t& nodeAndRelID, size_t currentDepth);
 
     void writePathToVector(RecursiveJoinVectors* vectors, common::sel_t& vectorPos,
         common::sel_t& nodeIDDataVectorPos, common::sel_t& relIDDataVectorPos);

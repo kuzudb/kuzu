@@ -52,7 +52,7 @@ private:
 
 private:
     uint64_t numVisitedDstNodes;
-    frontier::node_id_set_t visited;
+    common::node_id_set_t visited;
 };
 
 } // namespace processor
