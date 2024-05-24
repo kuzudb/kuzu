@@ -44,7 +44,8 @@ public:
     void createDB();
     void createConns(const std::set<std::string>& connNames);
 
-    void initGraph();
+    void initGraph() { initGraph(getInputDir()); }
+    void initGraph(std::string datasetDir);
 
     void setIEDatabasePath(std::string filePath) { ieDBPath = filePath; }
     void removeIEDBPath() const {

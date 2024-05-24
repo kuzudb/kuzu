@@ -59,3 +59,7 @@ scripts/generate-cpp-docs/c/kuzu.h
 scripts/generate-cpp-docs/cpp/headers
 scripts/generate-cpp-docs/cpp/docs
 scripts/generate-cpp-docs/c/docs
+
+# Generated datasets
+dataset/binary-demo
+dataset/databases/tinysnb
