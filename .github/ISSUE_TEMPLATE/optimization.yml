@@ -1,0 +1,17 @@
+name: Performance optimization suggestion
+description: Suggestion a new performance optimization idea for Kùzu
+title: "Optimization: "
+labels: [performance optimization]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share a new idea for improving Kùzu's performance.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: |
+        Describe the idea and why it would be useful.
+    validations:
+      required: true
