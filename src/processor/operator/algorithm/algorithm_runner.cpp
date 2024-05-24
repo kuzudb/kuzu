@@ -62,7 +62,6 @@ void AlgorithmRunner::initLocalStateInternal(ResultSet*, ExecutionContext* conte
 void AlgorithmRunner::executeInternal(ExecutionContext* executionContext) {
     if (isMaster) {
         bool ret = graphAlgorithm->compute(this, executionContext, parallelUtils);
-        printf("master returning %d from here ...\n", ret);
     } else {
         runWorker();
     }
@@ -72,8 +71,8 @@ void AlgorithmRunner::runWorker() {
     while(true) {
         localState.funcOutput.dataChunk.state->selVector->selectedSize = 0;
         localState.funcOutput.dataChunk.resetAuxiliaryBuffer();
-        auto numTuplesScanned = info.function.tableFunc(localState.funcInput,
-            localState.funcOutput);
+        auto numTuplesScanned = info.function.tableFuncs[sharedState->tableFuncIdx]
+                                (localState.funcInput, localState.funcOutput);
         localState.funcOutput.dataChunk.state->selVector->selectedSize = numTuplesScanned;
         if (localState.rowOffsetVector != nullptr) {
             auto rowIdx = sharedState->getAndIncreaseRowIdx(numTuplesScanned);

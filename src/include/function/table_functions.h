@@ -67,6 +67,7 @@ using table_func_progress_t = std::function<double(TableFuncSharedState* sharedS
 
 struct TableFunction final : public Function {
     table_func_t tableFunc;
+    std::vector<table_func_t> tableFuncs;
     table_func_bind_t bindFunc;
     table_func_init_shared_t initSharedStateFunc;
     table_func_init_local_t initLocalStateFunc;
@@ -81,6 +82,12 @@ struct TableFunction final : public Function {
         std::vector<common::LogicalTypeID> inputTypes)
         : Function{FunctionType::TABLE, std::move(name), std::move(inputTypes)},
           tableFunc{tableFunc}, bindFunc{bindFunc}, initSharedStateFunc{initSharedFunc},
+          initLocalStateFunc{initLocalFunc} {}
+    TableFunction(std::string name, std::vector<table_func_t> tableFuncs, table_func_bind_t bindFunc,
+        table_func_init_shared_t initSharedFunc, table_func_init_local_t initLocalFunc,
+        std::vector<common::LogicalTypeID> inputTypes)
+        : Function{FunctionType::TABLE, std::move(name), std::move(inputTypes)},
+          tableFuncs{std::move(tableFuncs)}, bindFunc{bindFunc}, initSharedStateFunc{initSharedFunc},
           initLocalStateFunc{initLocalFunc} {}
     TableFunction(std::string name, table_func_t tableFunc, table_func_bind_t bindFunc,
         table_func_init_shared_t initSharedFunc, table_func_init_local_t initLocalFunc,
