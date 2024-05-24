@@ -148,6 +148,12 @@ bool HTTPFileSystem::fileOrPathExists(const std::string& path, main::ClientConte
     }
 }
 
+void HTTPFileSystem::cleanUP(main::ClientContext* context) {
+    if (cachedFileManager != nullptr) {
+        cachedFileManager->cleanUP(context);
+    }
+}
+
 void HTTPFileSystem::readFromFile(common::FileInfo& fileInfo, void* buffer, uint64_t numBytes,
     uint64_t position) const {
     auto& httpFileInfo = ku_dynamic_cast<FileInfo&, HTTPFileInfo&>(fileInfo);

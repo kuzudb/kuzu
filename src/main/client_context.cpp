@@ -410,6 +410,10 @@ bool ClientContext::hasDefaultDatabase() {
     return this->remoteDatabase != nullptr;
 }
 
+void ClientContext::cleanUP() {
+    getVFSUnsafe()->cleanUP(this);
+}
+
 std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement* preparedStatement,
     std::unordered_map<std::string, std::unique_ptr<Value>>
         inputParams) { // NOLINT(performance-unnecessary-value-param): It doesn't make sense to pass

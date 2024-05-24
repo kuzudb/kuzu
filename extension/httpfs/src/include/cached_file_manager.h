@@ -28,10 +28,10 @@ public:
 public:
     explicit CachedFileManager(main::ClientContext* context);
 
-    ~CachedFileManager();
-
     std::unique_ptr<common::FileInfo> getCachedFileInfo(HTTPFileInfo* httpFileInfo,
         common::transaction_t transactionID);
+
+    void cleanUP(main::ClientContext* context);
 
 private:
     std::string getCachedFilePath(const std::string& originalFileName,

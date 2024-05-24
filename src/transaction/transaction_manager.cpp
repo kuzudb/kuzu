@@ -36,6 +36,7 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
 
 void TransactionManager::commit(main::ClientContext& clientContext, bool skipCheckPointing) {
     lock_t lck{mtxForSerializingPublicFunctionCalls};
+    clientContext.cleanUP();
     auto transaction = clientContext.getTx();
     if (transaction->isReadOnly()) {
         activeReadOnlyTransactionIDs.erase(transaction->getID());
@@ -58,6 +59,7 @@ void TransactionManager::commit(main::ClientContext& clientContext, bool skipChe
 void TransactionManager::rollback(main::ClientContext& clientContext, Transaction* transaction,
     bool skipCheckPointing) {
     lock_t lck{mtxForSerializingPublicFunctionCalls};
+    clientContext.cleanUP();
     if (transaction->isReadOnly()) {
         activeReadOnlyTransactionIDs.erase(transaction->getID());
         return;

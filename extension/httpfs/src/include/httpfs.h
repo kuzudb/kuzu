@@ -83,6 +83,8 @@ public:
 
     CachedFileManager& getCachedFileManager() { return *cachedFileManager; }
 
+    void cleanUP(main::ClientContext* context) override;
+
 protected:
     void readFromFile(common::FileInfo& fileInfo, void* buffer, uint64_t numBytes,
         uint64_t position) const override;

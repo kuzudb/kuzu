@@ -60,6 +60,8 @@ public:
         return common::ku_dynamic_cast<const FileSystem*, const TARGET*>(this);
     }
 
+    virtual void cleanUP(main::ClientContext* context) = 0;
+
 protected:
     virtual void readFromFile(FileInfo& fileInfo, void* buffer, uint64_t numBytes,
         uint64_t position) const = 0;

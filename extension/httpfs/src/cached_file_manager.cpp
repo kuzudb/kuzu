@@ -15,11 +15,6 @@ CachedFileManager::CachedFileManager(main::ClientContext* context) : vfs{context
     downloadBuffer = std::make_unique<uint8_t[]>(MAX_SEGMENT_SIZE);
 }
 
-CachedFileManager::~CachedFileManager() {
-    auto localFileSystem = std::make_unique<LocalFileSystem>();
-    localFileSystem->removeFileIfExists(cacheDir);
-}
-
 std::unique_ptr<FileInfo> CachedFileManager::getCachedFileInfo(HTTPFileInfo* httpFileInfo,
     common::transaction_t transactionID) {
     std::unique_lock<std::mutex> lck{mtx};
@@ -34,6 +29,11 @@ std::unique_ptr<FileInfo> CachedFileManager::getCachedFileInfo(HTTPFileInfo* htt
         downloadFile(httpFileInfo, cacheFileInfo.get());
     }
     return vfs->openFile(cacheFilePath, O_RDONLY);
+}
+
+void CachedFileManager::cleanUP(main::ClientContext* context) {
+    auto cacheDirForTrx = getCachedDirForTrx(context->getTx()->getID());
+    vfs->removeFileIfExists(cacheDirForTrx);
 }
 
 std::string CachedFileManager::getCachedFilePath(const std::string& originalFileName,
