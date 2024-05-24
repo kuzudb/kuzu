@@ -94,7 +94,7 @@ bool ExpressionVisitor::isConstant(const Expression& expression) {
     if (expression.expressionType == ExpressionType::AGGREGATE_FUNCTION) {
         return false; // We don't have a framework to fold aggregated constant.
     }
-    // TODO: this is a bypass to allow nextval to not be folded during binding
+    // TODO(Xiyang): this is a bypass to allow nextval to not be folded during binding
     if (expression.expressionType == ExpressionType::FUNCTION) {
         auto& funcExpr = expression.constCast<FunctionExpression>();
         if (funcExpr.getFunctionName() == function::NextValFunction::name) {

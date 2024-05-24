@@ -179,6 +179,21 @@ Catalog exception: nextval: reached minimum value of sequence "edgeMin" -10
 ---- 1
 1
 
+-CASE CycleSequencePKey
+-STATEMENT CREATE SEQUENCE test START 1 MAXVALUE 3;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT64 DEFAULT nextval('test'), PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test);
+           CREATE (t:test);
+           CREATE (t:test);
+---- ok
+---- ok
+---- ok
+-STATEMENT CREATE (t:test);
+---- error
+Catalog exception: nextval: reached maximum value of sequence "test" 3
+
 -CASE AddPropertySequence
 -SKIP
 # TODO: This fails since we don't yet support non-default add property
@@ -193,3 +208,21 @@ Catalog exception: nextval: reached minimum value of sequence "edgeMin" -10
 -STATEMENT MATCH (c:Comment) RETURN SUM(c.propx);
 ---- 1
 ???
+
+-CASE DefaultSharedSequence
+-STATEMENT CREATE SEQUENCE shared;
+---- ok
+-STATEMENT CREATE NODE TABLE tba(id INT64, seq INT64 DEFAULT nextval('shared'), PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE tbb(id INT64 DEFAULT nextval('shared'), PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:tba {id:0});
+---- ok
+-STATEMENT CREATE (t:tbb);
+---- ok
+-STATEMENT MATCH (t:tba) RETURN t.*;
+---- 1
+0|1
+-STATEMENT MATCH (t:tbb) RETURN t.*;
+---- 1
+2
