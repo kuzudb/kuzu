@@ -51,8 +51,8 @@ void InstallExtension::saveExtensionToLocalFile(const std::string& extensionData
     if (!vfs->fileOrPathExists(extensionDir, context)) {
         vfs->createDir(extensionDir);
     }
-    auto fileInfo = vfs->openFile(
-        extensionPath, FileFlags::FILE_FLAGS_FILE_CREATE_NEW | FileFlags::FILE_FLAGS_WRITE);
+    auto fileInfo = vfs->openFile(extensionPath,
+        FileFlags::FILE_FLAGS_FILE_CREATE_NEW | FileFlags::FILE_FLAGS_WRITE);
     fileInfo->writeFile(reinterpret_cast<const uint8_t*>(extensionData.c_str()),
         extensionData.size(), 0 /* offset */);
     fileInfo->syncFile();
