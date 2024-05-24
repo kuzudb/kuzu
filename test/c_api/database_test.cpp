@@ -70,8 +70,3 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database_destroy(database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
-
-TEST_F(APIEmptyDBTest, dasda) {
-    createDBAndConn();
-    printf("%s", conn->query("return string_split('a bcde', 'bc');")->toString().c_str());
-}
