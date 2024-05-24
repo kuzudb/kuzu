@@ -312,3 +312,7 @@ jobs:
             --title "Update extensions (CI) - $RELEASE_VERSION" \
             --head "extensions-update-${{ github.sha }}" \
             --base "main"
+
+      - name: Merge pull request
+        run: |
+          gh pr merge --auto --squash --delete-branch
