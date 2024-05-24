@@ -206,7 +206,7 @@ std::vector<PropertyDefinition> Transformer::transformPropertyDefinitions(
     for (auto property : ctx.kU_PropertyDefinition()) {
         std::unique_ptr<ParsedExpression> defaultValue = nullptr;
         if (property->oC_Expression()) {
-            if (!defaultAllowed) { 
+            if (!defaultAllowed) {
                 throw ParserException("DEFAULT is not supported here.");
             }
             defaultValue = transformExpression(*property->oC_Expression());
