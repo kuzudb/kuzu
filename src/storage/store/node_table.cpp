@@ -123,19 +123,17 @@ void NodeTable::addColumn(Transaction* transaction, const Property& property,
     ValueVector* defaultValueVector) {
     auto nodesStats =
         ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics);
-    nodesStats->setPropertyStatisticsForTable(tableID, property.getPropertyID(),
-        PropertyStatistics(!defaultValueVector->hasNoNullsGuarantee()));
     nodesStats->addMetadataDAHInfo(tableID, *property.getDataType());
     tableData->addColumn(transaction, "", tableData->getColumn(pkColumnID)->getMetadataDA(),
         *nodesStats->getMetadataDAHInfo(transaction, tableID, tableData->getNumColumns()), property,
-        defaultValueVector, nodesStats);
+        defaultValueVector);
     // TODO(Guodong): addColumn is not going through localStorage design for now. So it needs to add
     // tableID into the wal's updated table set separately, as it won't trigger prepareCommit.
     wal->addToUpdatedTables(tableID);
 }
 
-void NodeTable::prepareCommitNodeGroup(node_group_idx_t nodeGroupIdx,
-    transaction::Transaction* transaction, LocalNodeNG* localNodeGroup) {
+void NodeTable::prepareCommitNodeGroup(node_group_idx_t nodeGroupIdx, Transaction* transaction,
+    LocalNodeNG* localNodeGroup) {
     tableData->prepareLocalNodeGroupToCommit(nodeGroupIdx, transaction, localNodeGroup);
 }
 

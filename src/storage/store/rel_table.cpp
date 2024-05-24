@@ -34,12 +34,11 @@ RelTable::RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStat
 void RelTable::initializeReadState(Transaction* transaction, RelDataDirection direction,
     const std::vector<column_id_t>& columnIDs, RelTableReadState& readState) {
     auto& dataState =
-        common::ku_dynamic_cast<TableDataReadState&, RelDataReadState&>(*readState.dataReadState);
-    return direction == common::RelDataDirection::FWD ?
-               fwdRelTableData->initializeReadState(transaction, columnIDs, *readState.nodeIDVector,
-                   dataState) :
-               bwdRelTableData->initializeReadState(transaction, columnIDs, *readState.nodeIDVector,
-                   dataState);
+        ku_dynamic_cast<TableDataReadState&, RelDataReadState&>(*readState.dataReadState);
+    return direction == RelDataDirection::FWD ? fwdRelTableData->initializeReadState(transaction,
+                                                    columnIDs, *readState.nodeIDVector, dataState) :
+                                                bwdRelTableData->initializeReadState(transaction,
+                                                    columnIDs, *readState.nodeIDVector, dataState);
 }
 
 void RelTable::readInternal(Transaction* transaction, TableReadState& readState) {
@@ -139,21 +138,19 @@ void RelTable::scan(Transaction* transaction, RelTableReadState& scanState) {
 void RelTable::addColumn(Transaction* transaction, const Property& property,
     ValueVector* defaultValueVector) {
     auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
-    relsStats->setPropertyStatisticsForTable(tableID, property.getPropertyID(),
-        PropertyStatistics{!defaultValueVector->hasNoNullsGuarantee()});
     relsStats->addMetadataDAHInfo(tableID, *property.getDataType());
     fwdRelTableData->addColumn(transaction,
         RelDataDirectionUtils::relDirectionToString(RelDataDirection::FWD),
         fwdRelTableData->getNbrIDColumn()->getMetadataDA(),
         *relsStats->getColumnMetadataDAHInfo(transaction, tableID, fwdRelTableData->getNumColumns(),
             RelDataDirection::FWD),
-        property, defaultValueVector, relsStats);
+        property, defaultValueVector);
     bwdRelTableData->addColumn(transaction,
         RelDataDirectionUtils::relDirectionToString(RelDataDirection::BWD),
         bwdRelTableData->getNbrIDColumn()->getMetadataDA(),
         *relsStats->getColumnMetadataDAHInfo(transaction, tableID, bwdRelTableData->getNumColumns(),
             RelDataDirection::BWD),
-        property, defaultValueVector, relsStats);
+        property, defaultValueVector);
     // TODO(Guodong): addColumn is not going through localStorage design for now. So it needs to add
     // tableID into the wal's updated table set separately, as it won't trigger prepareCommit.
     wal->addToUpdatedTables(tableID);

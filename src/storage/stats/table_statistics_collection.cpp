@@ -54,29 +54,6 @@ void TablesStatistics::initTableStatisticsForWriteTrxNoLock() {
     }
 }
 
-PropertyStatistics& TablesStatistics::getPropertyStatisticsForTable(
-    const transaction::Transaction& transaction, table_id_t tableID, property_id_t propertyID) {
-    if (transaction.isReadOnly()) {
-        KU_ASSERT(readOnlyVersion->tableStatisticPerTable.contains(tableID));
-        auto tableStatistics = readOnlyVersion->tableStatisticPerTable.at(tableID).get();
-        return tableStatistics->getPropertyStatistics(propertyID);
-    } else {
-        initTableStatisticsForWriteTrx();
-        KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
-        auto tableStatistics = readWriteVersion->tableStatisticPerTable.at(tableID).get();
-        return tableStatistics->getPropertyStatistics(propertyID);
-    }
-}
-
-void TablesStatistics::setPropertyStatisticsForTable(table_id_t tableID, property_id_t propertyID,
-    PropertyStatistics stats) {
-    initTableStatisticsForWriteTrx();
-    KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
-    setToUpdated();
-    auto tableStatistics = readWriteVersion->tableStatisticPerTable.at(tableID).get();
-    tableStatistics->setPropertyStatistics(propertyID, stats);
-}
-
 std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(
     const LogicalType& dataType, BMFileHandle& metadataFH, BufferManager* bm, WAL* wal) {
     auto metadataDAHInfo = std::make_unique<MetadataDAHInfo>();

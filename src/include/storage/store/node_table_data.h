@@ -6,9 +6,10 @@
 
 namespace kuzu {
 namespace storage {
+class TablesStatistics;
 
 class LocalNodeNG;
-struct NodeDataReadState : public TableDataReadState {
+struct NodeDataReadState : TableDataReadState {
     NodeDataReadState() : TableDataReadState{} {}
     DELETE_COPY_DEFAULT_MOVE(NodeDataReadState);
 
@@ -29,7 +30,7 @@ public:
         bool enableCompression);
 
     // This interface is node table specific, as rel table requires also relDataDirection.
-    virtual void initializeReadState(transaction::Transaction* transaction,
+    void initializeReadState(transaction::Transaction* transaction,
         std::vector<common::column_id_t> columnIDs, const common::ValueVector& inNodeIDVector,
         TableDataReadState& readState);
     void read(transaction::Transaction* transaction, TableDataReadState& readState,

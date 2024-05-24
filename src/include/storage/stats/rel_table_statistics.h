@@ -14,14 +14,7 @@ public:
     RelTableStats(BMFileHandle* metadataFH, const catalog::TableCatalogEntry& tableEntry,
         BufferManager* bufferManager, WAL* wal);
     RelTableStats(uint64_t numRels, common::table_id_t tableID, common::offset_t nextRelOffset)
-        : TableStatistics{common::TableType::REL, numRels, tableID, {}},
-          nextRelOffset{nextRelOffset} {}
-    RelTableStats(uint64_t numRels, common::table_id_t tableID,
-        std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
-            propertyStats,
-        common::offset_t nextRelOffset)
-        : TableStatistics{common::TableType::REL, numRels, tableID, std::move(propertyStats)},
-          nextRelOffset{nextRelOffset} {}
+        : TableStatistics{common::TableType::REL, numRels, tableID}, nextRelOffset{nextRelOffset} {}
 
     RelTableStats(const RelTableStats& other);
 

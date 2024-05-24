@@ -51,7 +51,7 @@ public:
     ListColumn(std::string name, common::LogicalType dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
-        RWPropertyStats propertyStatistics, bool enableCompression);
+        bool enableCompression);
 
     void initChunkState(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, ChunkState& columnReadState) override;

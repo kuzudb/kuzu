@@ -22,10 +22,6 @@ public:
         BufferManager* bufferManager, WAL* wal);
     NodeTableStatsAndDeletedIDs(common::table_id_t tableID, common::offset_t maxNodeOffset,
         const std::vector<common::offset_t>& deletedNodeOffsets);
-    NodeTableStatsAndDeletedIDs(common::table_id_t tableID, common::offset_t maxNodeOffset,
-        const std::vector<common::offset_t>& deletedNodeOffsets,
-        std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
-            propertyStatistics);
     NodeTableStatsAndDeletedIDs(const NodeTableStatsAndDeletedIDs& other);
 
     common::offset_t getMaxNodeOffset() { return getMaxNodeOffsetFromNumTuples(getNumTuples()); }
@@ -73,7 +69,6 @@ private:
     bool isDeleted(common::offset_t nodeOffset, uint64_t morselIdx);
 
 private:
-    common::table_id_t tableID;
     std::vector<std::unique_ptr<MetadataDAHInfo>> metadataDAHInfos;
     std::vector<bool> hasDeletedNodesPerMorsel;
     std::map<uint64_t, std::set<common::offset_t>> deletedNodeOffsetsPerMorsel;
