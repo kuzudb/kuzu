@@ -1,9 +1,9 @@
 #pragma once
 
-#include "binder/expression/expression.h"
 #include "function/gds/gds.h"
 #include "graph/graph.h"
 #include "processor/operator/sink.h"
+#include "graph/graph_entry.h"
 
 namespace kuzu {
 namespace processor {
@@ -19,15 +19,15 @@ struct GDSCallSharedState {
 
 struct GDSCallInfo {
     std::unique_ptr<function::GDSAlgorithm> gds;
-    std::shared_ptr<binder::Expression> graphExpr;
+    graph::GraphEntry graphEntry;
 
     GDSCallInfo(std::unique_ptr<function::GDSAlgorithm> gds,
-        std::shared_ptr<binder::Expression> graphExpr)
-        : gds{std::move(gds)}, graphExpr{std::move(graphExpr)} {}
+        graph::GraphEntry graphEntry)
+        : gds{std::move(gds)}, graphEntry{std::move(graphEntry)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(GDSCallInfo);
 
 private:
-    GDSCallInfo(const GDSCallInfo& other) : gds{other.gds->copy()}, graphExpr{other.graphExpr} {}
+    GDSCallInfo(const GDSCallInfo& other) : gds{other.gds->copy()}, graphEntry{other.graphEntry.copy()} {}
 };
 
 class GDSCall : public Sink {

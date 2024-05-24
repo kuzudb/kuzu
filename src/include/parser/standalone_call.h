@@ -12,9 +12,9 @@ public:
         : Statement{common::StatementType::STANDALONE_CALL}, optionName{std::move(optionName)},
           optionValue{std::move(optionValue)} {}
 
-    inline std::string getOptionName() const { return optionName; }
+    std::string getOptionName() const { return optionName; }
 
-    inline ParsedExpression* getOptionValue() const { return optionValue.get(); }
+    ParsedExpression* getOptionValue() const { return optionValue.get(); }
 
 private:
     std::string optionName;

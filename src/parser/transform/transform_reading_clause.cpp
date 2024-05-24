@@ -48,6 +48,9 @@ std::unique_ptr<ReadingClause> Transformer::transformInQueryCall(
     if (ctx.oC_Where()) {
         inQueryCall->setWherePredicate(transformWhere(*ctx.oC_Where()));
     }
+    if (ctx.kU_ProjectGraph()) {
+        inQueryCall->setProjectGraph(transformProjectGraph(*ctx.kU_ProjectGraph()));
+    }
     return inQueryCall;
 }
 

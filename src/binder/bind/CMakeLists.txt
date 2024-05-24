@@ -8,6 +8,7 @@ add_library(
         bind_attach_database.cpp
         bind_comment_on.cpp
         bind_create_macro.cpp
+        bind_project_graph.cpp
         bind_ddl.cpp
         bind_detach_database.cpp
         bind_explain.cpp

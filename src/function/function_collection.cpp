@@ -10,7 +10,6 @@
 #include "function/comparison/vector_comparison_functions.h"
 #include "function/date/vector_date_functions.h"
 #include "function/gds/gds_function_collection.h"
-#include "function/graph/graph_functions.h"
 #include "function/hash/vector_hash_functions.h"
 #include "function/interval/vector_interval_functions.h"
 #include "function/list/vector_list_functions.h"
@@ -178,9 +177,6 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Node/rel functions
         SCALAR_FUNCTION(OffsetFunction), REWRITE_FUNCTION(IDFunction),
-
-        // Graph functions
-        REWRITE_FUNCTION(CreateGraphFunction),
 
         // Path functions
         SCALAR_FUNCTION(NodesFunction), SCALAR_FUNCTION(RelsFunction),
