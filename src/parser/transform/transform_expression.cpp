@@ -397,7 +397,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformLiteral(
             Value(LogicalType::STRING(), transformStringLiteral(*ctx.StringLiteral())),
             ctx.getText());
     } else if (ctx.NULL_()) {
-        return std::make_unique<ParsedLiteralExpression>(Value(Value::createNullValue()),
+        return std::make_unique<ParsedLiteralExpression>(Value::createNullValue(),
             ctx.getText());
     } else if (ctx.kU_StructLiteral()) {
         return transformStructLiteral(*ctx.kU_StructLiteral());

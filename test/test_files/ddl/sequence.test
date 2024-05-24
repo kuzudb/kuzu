@@ -196,7 +196,7 @@ Catalog exception: nextval: reached maximum value of sequence "test" 3
 
 -CASE AddPropertySequence
 -SKIP
-# TODO: This fails since we don't yet support non-default add property
+# TODO(Guodong/Sam): This fails since we don't yet support non-default add property
 -STATEMENT CREATE SEQUENCE test;
 ---- ok
 -STATEMENT create node table Comment (id int64, PRIMARY KEY (id));

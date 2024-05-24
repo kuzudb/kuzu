@@ -188,6 +188,9 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         }
         return Value(dataType.copy(), std::move(children));
     }
+    case LogicalTypeID::ANY: {
+        return createNullValue();
+    }
     default:
         KU_UNREACHABLE;
     }
@@ -750,6 +753,7 @@ void Value::serialize(Serializer& serializer) const {
     dataType->serialize(serializer);
     serializer.serializeValue(isNull_);
     serializer.serializeValue(childrenSize);
+
     switch (dataType->getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         serializer.serializeValue(val.booleanVal);
@@ -801,6 +805,12 @@ void Value::serialize(Serializer& serializer) const {
     case PhysicalTypeID::STRUCT: {
         for (auto i = 0u; i < childrenSize; ++i) {
             children[i]->serialize(serializer);
+        }
+    } break;
+    case PhysicalTypeID::ANY: {
+        // We want to be able to ser/deser values that are meant to just be null
+        if (!isNull_) {
+            KU_UNREACHABLE;
         }
     } break;
     default: {
@@ -866,6 +876,12 @@ std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
         val->children.reserve(val->childrenSize);
         for (auto i = 0u; i < val->childrenSize; i++) {
             val->children.push_back(deserialize(deserializer));
+        }
+    } break;
+    case PhysicalTypeID::ANY: {
+        // We want to be able to ser/deser values that are meant to just be null
+        if (!val->isNull_) {
+            KU_UNREACHABLE;
         }
     } break;
     default: {
