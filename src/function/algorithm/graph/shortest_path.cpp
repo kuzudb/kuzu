@@ -171,6 +171,11 @@ ShortestPathAlgoSharedState* ShortestPath::getSharedState(Sink* sink) {
     return ku_dynamic_cast<TableFuncSharedState*, ShortestPathAlgoSharedState*>(sharedState);
 }
 
+void ShortestPath::incrementTableFuncIdx(kuzu::processor::Sink* sink) {
+    auto algorithmRunner = ku_dynamic_cast<Sink*, AlgorithmRunner*>(sink);
+    algorithmRunner->incrementTableFuncIdx();
+}
+
 bool ShortestPath::compute(Sink* sink, ExecutionContext* executionContext,
     std::shared_ptr<ParallelUtils> parallelUtils) {
     auto shortestPathSharedState = getSharedState(sink);
@@ -180,12 +185,14 @@ bool ShortestPath::compute(Sink* sink, ExecutionContext* executionContext,
         parallelUtils->doParallel(sink, executionContext);
         ifeMorsel->initializeNextFrontierNoLock();
     }
-    parallelUtils->doParallel(sink, executionContext, shortestPathOutputFunc);
+    incrementTableFuncIdx(sink);
+    parallelUtils->doParallel(sink, executionContext);
 }
 
 function::function_set ShortestPath::getFunctionSet() {
     function_set functionSet;
-    auto function = std::make_unique<TableFunction>(name, extendFrontierFunc, bindFunc,
+    auto functionList = std::vector<table_func_t>({extendFrontierFunc, shortestPathOutputFunc});
+    auto function = std::make_unique<TableFunction>(name, functionList, bindFunc,
         shortestPathAlgoInitSharedState, CallFunction::initEmptyLocalState,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
             LogicalTypeID::INT64, LogicalTypeID::INT64, LogicalTypeID::INT64});

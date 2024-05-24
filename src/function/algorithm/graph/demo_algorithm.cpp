@@ -108,7 +108,8 @@ bool DemoAlgorithm::compute(Sink *sink, ExecutionContext* executionContext,
 
 function::function_set DemoAlgorithm::getFunctionSet() {
     function_set functionSet;
-    auto function = std::make_unique<TableFunction>(name, tableFunc, bindFunc,
+    auto functionList = std::vector<table_func_t>({tableFunc});
+    auto function = std::make_unique<TableFunction>(name, functionList, bindFunc,
         demoAlgoInitSharedState, CallFunction::initEmptyLocalState, std::vector<LogicalTypeID>{
             LogicalTypeID::STRING, LogicalTypeID::INT64, LogicalTypeID::INT64});
     functionSet.push_back(std::move(function));

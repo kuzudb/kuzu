@@ -12,22 +12,21 @@ namespace processor {
 
 class AlgorithmRunner : public Sink {
 public:
-    AlgorithmRunner(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        InQueryCallInfo info, std::shared_ptr<InQueryCallSharedState> sharedState,
+    AlgorithmRunner(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, InQueryCallInfo info,
+        std::shared_ptr<InQueryCallSharedState> sharedState,
         std::unique_ptr<FactorizedTableSchema> tableSchema,
         std::shared_ptr<graph::GraphAlgorithm> graphAlgorithm,
         std::shared_ptr<graph::ParallelUtils> parallelUtils, uint32_t id,
-        const std::string& paramString) : Sink{std::move(resultSetDescriptor),
-              PhysicalOperatorType::ALGORITHM_RUNNER, id, paramString}, info{std::move(info)},
-          sharedState{std::move(sharedState)}, tableSchema{std::move(tableSchema)},
-          graphAlgorithm{std::move(graphAlgorithm)},
-          parallelUtils{std::move(parallelUtils)} {}
+        const std::string& paramString)
+        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::ALGORITHM_RUNNER, id,
+              paramString},
+          info{std::move(info)}, sharedState{std::move(sharedState)}, tableSchema{std::move(
+                                                                          tableSchema)},
+          graphAlgorithm{std::move(graphAlgorithm)}, parallelUtils{std::move(parallelUtils)} {}
 
     bool isSource() const override { return true; }
 
-    inline bool canParallel() const final {
-        return false;
-    }
+    inline bool canParallel() const final { return false; }
 
     void initGlobalStateInternal(ExecutionContext* context) final;
 
@@ -41,13 +40,13 @@ public:
         return sharedState->funcState.get();
     }
 
+    inline void incrementTableFuncIdx() {
+        sharedState->tableFuncIdx++;
+    }
+
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<AlgorithmRunner>(resultSetDescriptor->copy(), info.copy(),
             sharedState, tableSchema->copy(), graphAlgorithm, parallelUtils, id, paramsString);
-    }
-
-    inline void setTableFunc(function::table_func_t function1) {
-        info.function.tableFunc = function1;
     }
 
 private:
@@ -62,5 +61,5 @@ private:
     std::shared_ptr<graph::ParallelUtils> parallelUtils;
 };
 
-}
-}
+} // namespace processor
+} // namespace kuzu

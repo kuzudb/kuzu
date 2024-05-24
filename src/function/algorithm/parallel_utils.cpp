@@ -1,6 +1,5 @@
 #include "function/algorithm/parallel_utils.h"
 
-#include "processor/operator/algorithm/algorithm_runner.h"
 #include "processor/processor_task.h"
 #include "processor/result/factorized_table.h"
 
@@ -26,15 +25,6 @@ void ParallelUtils::mergeResults(kuzu::processor::FactorizedTable* factorizedTab
 
 void ParallelUtils::doParallel(Sink *sink, ExecutionContext* executionContext) {
     auto taskScheduler = executionContext->clientContext->getTaskScheduler();
-    auto parallelUtilsTask = std::make_shared<ProcessorTask>(sink, executionContext);
-    parallelUtilsTask->setSharedStateInitialized();
-    taskScheduler->scheduleTaskAndWaitOrError(parallelUtilsTask, executionContext);
-}
-
-void ParallelUtils::doParallel(Sink* sink, ExecutionContext* executionContext, table_func_t func) {
-    auto taskScheduler = executionContext->clientContext->getTaskScheduler();
-    auto algorithmRunner = ku_dynamic_cast<Sink*, AlgorithmRunner*>(sink);
-    algorithmRunner->setTableFunc(func);
     auto parallelUtilsTask = std::make_shared<ProcessorTask>(sink, executionContext);
     parallelUtilsTask->setSharedStateInitialized();
     taskScheduler->scheduleTaskAndWaitOrError(parallelUtilsTask, executionContext);

@@ -40,6 +40,7 @@ struct ShortestPath : public GraphAlgorithm {
 public:
     static constexpr const char* name = "SHORTEST_PATH";
     ShortestPathAlgoSharedState* getSharedState(Sink *sink);
+    void incrementTableFuncIdx(Sink *sink);
     bool compute(Sink *sink, ExecutionContext* executionContext,
         std::shared_ptr<ParallelUtils> parallelUtils) override;
     static function::function_set getFunctionSet();
