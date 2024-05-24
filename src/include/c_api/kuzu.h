@@ -422,13 +422,11 @@ KUZU_C_API void kuzu_prepared_statement_destroy(kuzu_prepared_statement* prepare
  */
 KUZU_C_API bool kuzu_prepared_statement_is_success(kuzu_prepared_statement* prepared_statement);
 /**
- * @return the error message if the statement is not prepared successfully.
  * @param prepared_statement The prepared statement instance.
- * @param[out] out_error_message The output parameter that will hold the error message.
- * @return The state indicating the success or failure of the operation.
+ * @return the error message if the statement is not prepared successfully.
  */
-KUZU_C_API kuzu_state kuzu_prepared_statement_get_error_message(
-    kuzu_prepared_statement* prepared_statement, char** out_error_message);
+KUZU_C_API char* kuzu_prepared_statement_get_error_message(
+    kuzu_prepared_statement* prepared_statement);
 /**
  * @brief Binds the given boolean value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -626,11 +624,9 @@ KUZU_C_API bool kuzu_query_result_is_success(kuzu_query_result* query_result);
 /**
  * @brief Returns the error message if the query is failed.
  * @param query_result The query result instance to check and return error message.
- * @param[out] out_error_message The output parameter that will hold the error message.
- * @return The state indicating the success or failure of the operation.
+ * @return the error message if the query has failed.
  */
-KUZU_C_API kuzu_state kuzu_query_result_get_error_message(kuzu_query_result* query_result,
-    char** out_error_message);
+KUZU_C_API char* kuzu_query_result_get_error_message(kuzu_query_result* query_result);
 /**
  * @brief Returns the number of columns in the query result.
  * @param query_result The query result instance to return.
@@ -699,11 +695,9 @@ KUZU_C_API kuzu_state kuzu_query_result_get_next_query_result(kuzu_query_result*
 /**
  * @brief Returns the query result as a string.
  * @param query_result The query result instance to return.
- * @param[out] out_result The output parameter that will hold the query result as a string.
- * @return The state indicating the success or failure of the operation.
+ * @return The query result as a string.
  */
-KUZU_C_API kuzu_state kuzu_query_result_to_string(kuzu_query_result* query_result,
-    char** out_result);
+KUZU_C_API char* kuzu_query_result_to_string(kuzu_query_result* query_result);
 /**
  * @brief Resets the iterator of the query result to the beginning of the query result.
  * @param query_result The query result instance to reset iterator.
@@ -754,10 +748,9 @@ KUZU_C_API kuzu_state kuzu_flat_tuple_get_value(kuzu_flat_tuple* flat_tuple, uin
 /**
  * @brief Converts the flat tuple to a string.
  * @param flat_tuple The flat tuple instance to convert.
- * @param[out] out_result The output parameter that will hold the flat tuple as a string.
- * @return The state indicating the success or failure of the operation.
+ * @return The flat tuple as a string.
  */
-KUZU_C_API kuzu_state kuzu_flat_tuple_to_string(kuzu_flat_tuple* flat_tuple, char** out_result);
+KUZU_C_API char* kuzu_flat_tuple_to_string(kuzu_flat_tuple* flat_tuple);
 
 // DataType
 // TODO(Chang): Refactor the datatype constructor to follow the cpp way of creating dataTypes.
@@ -968,9 +961,8 @@ KUZU_C_API kuzu_value* kuzu_value_clone(kuzu_value* value);
  * @brief Copies the other value to the value.
  * @param value The value to copy to.
  * @param other The value to copy from.
- * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_value_copy(kuzu_value* value, kuzu_value* other);
+KUZU_C_API void kuzu_value_copy(kuzu_value* value, kuzu_value* other);
 /**
  * @brief Destroys the value.
  * @param value The value to destroy.
@@ -1229,10 +1221,9 @@ KUZU_C_API kuzu_state kuzu_value_get_uuid(kuzu_value* value, char** out_result);
 /**
  * @brief Converts the given value to string.
  * @param value The value to convert.
- * @param[out] out_result The output parameter that will hold the value as a string.
- * @return The state indicating the success or failure of the operation.
+ * @return The value as a string.
  */
-KUZU_C_API kuzu_state kuzu_value_to_string(kuzu_value* value, char** out_result);
+KUZU_C_API char* kuzu_value_to_string(kuzu_value* value);
 /**
  * @brief Returns the internal id value of the given node value as a kuzu value.
  * @param node_val The node value to return.

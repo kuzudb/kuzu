@@ -13,6 +13,7 @@ using namespace kuzu::main;
 
 kuzu_state kuzu_connection_init(kuzu_database* database, kuzu_connection* out_connection) {
     if (database == nullptr || database->_database == nullptr) {
+        out_connection->_connection = nullptr;
         return KuzuError;
     }
     try {

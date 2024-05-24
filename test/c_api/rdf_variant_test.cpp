@@ -43,12 +43,12 @@ TEST_F(CApiRdfVariantTest, GetValue) {
     state = kuzu_connection_query(connection, "MATCH (a:T_l) RETURN a.val ORDER BY a.id;", &result);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));
-    char* errorMessage;
-    ASSERT_EQ(kuzu_query_result_get_error_message(&result, &errorMessage), KuzuError);
+    char* errorMessage = kuzu_query_result_get_error_message(&result);
     ASSERT_EQ(kuzu_query_result_get_num_tuples(&result), 16);
     ASSERT_EQ(kuzu_query_result_get_num_columns(&result), 1);
     auto i = 0u;
     kuzu_flat_tuple flatTuple;
+    kuzu_value* badValue = kuzu_value_create_string("abcdefg");
     while (kuzu_query_result_has_next(&result)) {
         state = kuzu_query_result_get_next(&result, &flatTuple);
         ASSERT_EQ(state, KuzuSuccess);
@@ -62,6 +62,8 @@ TEST_F(CApiRdfVariantTest, GetValue) {
             ASSERT_EQ(type, kuzu_data_type_id::KUZU_INT64);
             ASSERT_EQ(kuzu_rdf_variant_get_int64(&value, &result), KuzuSuccess);
             ASSERT_EQ(result, 12);
+
+            ASSERT_EQ(kuzu_rdf_variant_get_int64(badValue, &result), KuzuError);
             break;
         }
         case 1: {
@@ -71,6 +73,8 @@ TEST_F(CApiRdfVariantTest, GetValue) {
             ASSERT_EQ(type, kuzu_data_type_id::KUZU_INT32);
             ASSERT_EQ(kuzu_rdf_variant_get_int32(&value, &result), KuzuSuccess);
             ASSERT_EQ(result, 43);
+
+            ASSERT_EQ(kuzu_rdf_variant_get_int32(badValue, &result), KuzuError);
             break;
         }
         case 2: {
@@ -80,6 +84,8 @@ TEST_F(CApiRdfVariantTest, GetValue) {
             ASSERT_EQ(type, kuzu_data_type_id::KUZU_INT16);
             ASSERT_EQ(kuzu_rdf_variant_get_int16(&value, &result), KuzuSuccess);
             ASSERT_EQ(result, 33);
+
+            ASSERT_EQ(kuzu_rdf_variant_get_int16(badValue, &result), KuzuError);
             break;
         }
         case 3: {
@@ -89,6 +95,8 @@ TEST_F(CApiRdfVariantTest, GetValue) {
             ASSERT_EQ(type, kuzu_data_type_id::KUZU_INT8);
             ASSERT_EQ(kuzu_rdf_variant_get_int8(&value, &result), KuzuSuccess);
             ASSERT_EQ(result, 2);
+
+            ASSERT_EQ(kuzu_rdf_variant_get_int8(badValue, &result), KuzuError);
             break;
         }
         case 4: {
@@ -98,6 +106,8 @@ TEST_F(CApiRdfVariantTest, GetValue) {
             ASSERT_EQ(type, kuzu_data_type_id::KUZU_UINT64);
             ASSERT_EQ(kuzu_rdf_variant_get_uint64(&value, &result), KuzuSuccess);
             ASSERT_EQ(result, 90);
+
+            ASSERT_EQ(kuzu_rdf_variant_get_uint64(badValue, &result), KuzuError);
             break;
         }
         case 5: {
@@ -107,6 +117,8 @@ TEST_F(CApiRdfVariantTest, GetValue) {
             ASSERT_EQ(type, kuzu_data_type_id::KUZU_UINT32);
             ASSERT_EQ(kuzu_rdf_variant_get_uint32(&value, &result), KuzuSuccess);
             ASSERT_EQ(result, 77);
+
+            ASSERT_EQ(kuzu_rdf_variant_get_uint32(badValue, &result), KuzuError);
             break;
         }
         case 6: {
@@ -116,6 +128,8 @@ TEST_F(CApiRdfVariantTest, GetValue) {
             ASSERT_EQ(type, kuzu_data_type_id::KUZU_UINT16);
             ASSERT_EQ(kuzu_rdf_variant_get_uint16(&value, &result), KuzuSuccess);
             ASSERT_EQ(result, 12);
+
+            ASSERT_EQ(kuzu_rdf_variant_get_uint16(badValue, &result), KuzuError);
             break;
         }
         case 7: {
@@ -125,6 +139,8 @@ TEST_F(CApiRdfVariantTest, GetValue) {
             ASSERT_EQ(type, kuzu_data_type_id::KUZU_UINT8);
             ASSERT_EQ(kuzu_rdf_variant_get_uint8(&value, &result), KuzuSuccess);
             ASSERT_EQ(result, 1);
+
+            ASSERT_EQ(kuzu_rdf_variant_get_uint8(badValue, &result), KuzuError);
             break;
         }
         case 8: {
@@ -134,6 +150,8 @@ TEST_F(CApiRdfVariantTest, GetValue) {
             ASSERT_EQ(type, kuzu_data_type_id::KUZU_DOUBLE);
             ASSERT_EQ(kuzu_rdf_variant_get_double(&value, &result), KuzuSuccess);
             ASSERT_DOUBLE_EQ(result, 4.4);
+
+            ASSERT_EQ(kuzu_rdf_variant_get_double(badValue, &result), KuzuError);
             break;
         }
         case 9: {
@@ -143,6 +161,8 @@ TEST_F(CApiRdfVariantTest, GetValue) {
             ASSERT_EQ(type, kuzu_data_type_id::KUZU_FLOAT);
             ASSERT_EQ(kuzu_rdf_variant_get_float(&value, &result), KuzuSuccess);
             ASSERT_FLOAT_EQ(result, 1.2);
+
+            ASSERT_EQ(kuzu_rdf_variant_get_float(badValue, &result), KuzuError);
             break;
         }
         case 10: {
@@ -152,6 +172,8 @@ TEST_F(CApiRdfVariantTest, GetValue) {
             ASSERT_EQ(type, kuzu_data_type_id::KUZU_BOOL);
             ASSERT_EQ(kuzu_rdf_variant_get_bool(&value, &result), KuzuSuccess);
             ASSERT_EQ(result, true);
+
+            ASSERT_EQ(kuzu_rdf_variant_get_bool(badValue, &result), KuzuError);
             break;
         }
         case 11: {
@@ -162,6 +184,8 @@ TEST_F(CApiRdfVariantTest, GetValue) {
             ASSERT_EQ(kuzu_rdf_variant_get_string(&value, &str), KuzuSuccess);
             ASSERT_STREQ(str, "hhh");
             kuzu_destroy_string(str);
+
+            ASSERT_EQ(kuzu_rdf_variant_get_string(badValue, &str), KuzuError);
             break;
         }
         case 12: {
@@ -171,6 +195,8 @@ TEST_F(CApiRdfVariantTest, GetValue) {
             ASSERT_EQ(type, kuzu_data_type_id::KUZU_DATE);
             ASSERT_EQ(kuzu_rdf_variant_get_date(&value, &date), KuzuSuccess);
             ASSERT_EQ(date.days, 19723);
+
+            ASSERT_EQ(kuzu_rdf_variant_get_date(badValue, &date), KuzuError);
             break;
         }
         case 13: {
@@ -180,6 +206,8 @@ TEST_F(CApiRdfVariantTest, GetValue) {
             ASSERT_EQ(type, kuzu_data_type_id::KUZU_TIMESTAMP);
             ASSERT_EQ(kuzu_rdf_variant_get_timestamp(&value, &time), KuzuSuccess);
             ASSERT_EQ(time.value, 1704108330000000);
+
+            ASSERT_EQ(kuzu_rdf_variant_get_timestamp(badValue, &time), KuzuError);
             break;
         }
         case 14: {
@@ -191,6 +219,8 @@ TEST_F(CApiRdfVariantTest, GetValue) {
             ASSERT_EQ(interval.days, 2);
             ASSERT_EQ(interval.months, 0);
             ASSERT_EQ(interval.micros, 0);
+
+            ASSERT_EQ(kuzu_rdf_variant_get_interval(badValue, &interval), KuzuError);
             break;
         }
         case 15: {
@@ -202,6 +232,8 @@ TEST_F(CApiRdfVariantTest, GetValue) {
             ASSERT_EQ(strlen((char*)blob), 1);
             ASSERT_EQ(blob[0], 0xB2);
             kuzu_destroy_blob(blob);
+
+            ASSERT_EQ(kuzu_rdf_variant_get_blob(badValue, &blob), KuzuError);
             break;
         }
 
@@ -215,4 +247,8 @@ TEST_F(CApiRdfVariantTest, GetValue) {
     kuzu_flat_tuple_destroy(&flatTuple);
     ASSERT_EQ(i, 16);
     kuzu_query_result_destroy(&result);
+
+    kuzu_data_type_id type;
+    ASSERT_EQ(kuzu_rdf_variant_get_type(badValue, &type), KuzuError);
+    kuzu_value_destroy(badValue);
 }

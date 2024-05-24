@@ -37,17 +37,14 @@ TEST_F(CApiPreparedStatementTest, GetErrorMessage) {
     state = kuzu_connection_prepare(connection, query, &preparedStatement);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_NE(preparedStatement._prepared_statement, nullptr);
-    char* message;
-    state = kuzu_prepared_statement_get_error_message(&preparedStatement, &message);
-    ASSERT_EQ(state, KuzuError);
+    char* message = kuzu_prepared_statement_get_error_message(&preparedStatement);
     kuzu_prepared_statement_destroy(&preparedStatement);
 
     query = "MATCH (a:personnnn) WHERE a.isStudent = $1 RETURN COUNT(*)";
     state = kuzu_connection_prepare(connection, query, &preparedStatement);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_NE(preparedStatement._prepared_statement, nullptr);
-    state = kuzu_prepared_statement_get_error_message(&preparedStatement, &message);
-    ASSERT_EQ(state, KuzuSuccess);
+    message = kuzu_prepared_statement_get_error_message(&preparedStatement);
     ASSERT_EQ(std::string(message), "Binder exception: Table personnnn does not exist.");
     kuzu_prepared_statement_destroy(&preparedStatement);
     kuzu_destroy_string(message);

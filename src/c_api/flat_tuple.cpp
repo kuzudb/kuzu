@@ -32,11 +32,7 @@ kuzu_state kuzu_flat_tuple_get_value(kuzu_flat_tuple* flat_tuple, uint64_t index
     return KuzuSuccess;
 }
 
-kuzu_state kuzu_flat_tuple_to_string(kuzu_flat_tuple* flat_tuple, char** out_result) {
+char* kuzu_flat_tuple_to_string(kuzu_flat_tuple* flat_tuple) {
     auto flat_tuple_ptr = static_cast<FlatTuple*>(flat_tuple->_flat_tuple);
-    *out_result = convertToOwnedCString(flat_tuple_ptr->toString());
-    if (*out_result == nullptr) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
+    return convertToOwnedCString(flat_tuple_ptr->toString());
 }

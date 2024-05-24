@@ -333,6 +333,10 @@ TEST_F(CApiValueTest, GetListSize) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_list_size(badValue, &size), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetListElement) {
@@ -360,7 +364,6 @@ TEST_F(CApiValueTest, GetListElement) {
     int64_t int64Result;
     ASSERT_EQ(kuzu_value_get_int64(&listElement, &int64Result), KuzuSuccess);
     ASSERT_EQ(int64Result, 10);
-    kuzu_value_destroy(&listElement);
 
     ASSERT_EQ(kuzu_value_get_list_element(&value, 1, &listElement), KuzuSuccess);
     ASSERT_TRUE(listElement._is_owned_by_cpp);
@@ -396,6 +399,10 @@ TEST_F(CApiValueTest, GetStructNumFields) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_struct_num_fields(badValue, &numFields), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetStructFieldName) {
@@ -450,6 +457,8 @@ TEST_F(CApiValueTest, GetStructFieldName) {
     ASSERT_STREQ(fieldName, "film");
     kuzu_destroy_string(fieldName);
 
+    ASSERT_EQ(kuzu_value_get_struct_field_name(&value, 222, &fieldName), KuzuError);
+
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
@@ -479,12 +488,10 @@ TEST_F(CApiValueTest, GetStructFieldValue) {
     ASSERT_EQ(kuzu_value_get_double(&fieldValue, &doubleValue), KuzuSuccess);
     ASSERT_DOUBLE_EQ(doubleValue, 1223);
     kuzu_data_type_destroy(&fieldType);
-    kuzu_value_destroy(&fieldValue);
 
     ASSERT_EQ(kuzu_value_get_struct_field_value(&value, 1, &fieldValue), KuzuSuccess);
     kuzu_value_get_data_type(&fieldValue, &fieldType);
     kuzu_data_type_destroy(&fieldType);
-    kuzu_value_destroy(&fieldValue);
 
     ASSERT_EQ(kuzu_value_get_struct_field_value(&value, 2, &fieldValue), KuzuSuccess);
     kuzu_value_get_data_type(&fieldValue, &fieldType);
@@ -492,7 +499,6 @@ TEST_F(CApiValueTest, GetStructFieldValue) {
     int64_t int64Value;
     ASSERT_EQ(kuzu_value_get_int64(&fieldValue, &int64Value), KuzuSuccess);
     kuzu_data_type_destroy(&fieldType);
-    kuzu_value_destroy(&fieldValue);
 
     ASSERT_EQ(kuzu_value_get_struct_field_value(&value, 3, &fieldValue), KuzuSuccess);
     kuzu_value_get_data_type(&fieldValue, &fieldType);
@@ -501,7 +507,6 @@ TEST_F(CApiValueTest, GetStructFieldValue) {
     ASSERT_EQ(kuzu_value_get_timestamp(&fieldValue, &timestamp), KuzuSuccess);
     ASSERT_EQ(timestamp.value, 1297442662000000);
     kuzu_data_type_destroy(&fieldType);
-    kuzu_value_destroy(&fieldValue);
 
     ASSERT_EQ(kuzu_value_get_struct_field_value(&value, 4, &fieldValue), KuzuSuccess);
     kuzu_value_get_data_type(&fieldValue, &fieldType);
@@ -510,7 +515,6 @@ TEST_F(CApiValueTest, GetStructFieldValue) {
     ASSERT_EQ(kuzu_value_get_timestamp_ns(&fieldValue, &timestamp_ns), KuzuSuccess);
     ASSERT_EQ(timestamp_ns.value, 1297442662123456000);
     kuzu_data_type_destroy(&fieldType);
-    kuzu_value_destroy(&fieldValue);
 
     ASSERT_EQ(kuzu_value_get_struct_field_value(&value, 5, &fieldValue), KuzuSuccess);
     kuzu_value_get_data_type(&fieldValue, &fieldType);
@@ -519,7 +523,6 @@ TEST_F(CApiValueTest, GetStructFieldValue) {
     ASSERT_EQ(kuzu_value_get_timestamp_ms(&fieldValue, &timestamp_ms), KuzuSuccess);
     ASSERT_EQ(timestamp_ms.value, 1297442662123);
     kuzu_data_type_destroy(&fieldType);
-    kuzu_value_destroy(&fieldValue);
 
     ASSERT_EQ(kuzu_value_get_struct_field_value(&value, 6, &fieldValue), KuzuSuccess);
     kuzu_value_get_data_type(&fieldValue, &fieldType);
@@ -528,7 +531,6 @@ TEST_F(CApiValueTest, GetStructFieldValue) {
     ASSERT_EQ(kuzu_value_get_timestamp_sec(&fieldValue, &timestamp_sec), KuzuSuccess);
     ASSERT_EQ(timestamp_sec.value, 1297442662);
     kuzu_data_type_destroy(&fieldType);
-    kuzu_value_destroy(&fieldValue);
 
     ASSERT_EQ(kuzu_value_get_struct_field_value(&value, 7, &fieldValue), KuzuSuccess);
     kuzu_value_get_data_type(&fieldValue, &fieldType);
@@ -537,7 +539,6 @@ TEST_F(CApiValueTest, GetStructFieldValue) {
     ASSERT_EQ(kuzu_value_get_timestamp_tz(&fieldValue, &timestamp_tz), KuzuSuccess);
     ASSERT_EQ(timestamp_tz.value, 1297442662123456);
     kuzu_data_type_destroy(&fieldType);
-    kuzu_value_destroy(&fieldValue);
 
     ASSERT_EQ(kuzu_value_get_struct_field_value(&value, 8, &fieldValue), KuzuSuccess);
     kuzu_value_get_data_type(&fieldValue, &fieldType);
@@ -547,6 +548,8 @@ TEST_F(CApiValueTest, GetStructFieldValue) {
     ASSERT_EQ(date.days, 15758);
     kuzu_data_type_destroy(&fieldType);
     kuzu_value_destroy(&fieldValue);
+
+    ASSERT_EQ(kuzu_value_get_struct_field_value(&value, 222, &fieldValue), KuzuError);
 
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
@@ -571,13 +574,11 @@ TEST_F(CApiValueTest, GetDataType) {
     kuzu_value_get_data_type(&value, &dataType);
     ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_STRING);
     kuzu_data_type_destroy(&dataType);
-    kuzu_value_destroy(&value);
 
     ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 1, &value), KuzuSuccess);
     kuzu_value_get_data_type(&value, &dataType);
     ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_BOOL);
     kuzu_data_type_destroy(&dataType);
-    kuzu_value_destroy(&value);
 
     ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 2, &value), KuzuSuccess);
     kuzu_value_get_data_type(&value, &dataType);
@@ -611,6 +612,10 @@ TEST_F(CApiValueTest, GetBool) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_bool(badValue, &boolValue), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetInt8) {
@@ -636,6 +641,10 @@ TEST_F(CApiValueTest, GetInt8) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_int8(badValue, &int8Value), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetInt16) {
@@ -661,6 +670,10 @@ TEST_F(CApiValueTest, GetInt16) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_int16(badValue, &int16Value), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetInt32) {
@@ -685,6 +698,10 @@ TEST_F(CApiValueTest, GetInt32) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_int32(badValue, &int32Value), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetInt64) {
@@ -709,6 +726,10 @@ TEST_F(CApiValueTest, GetInt64) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_int64(badValue, &int64Value), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetUInt8) {
@@ -734,6 +755,10 @@ TEST_F(CApiValueTest, GetUInt8) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_uint8(badValue, &uint8Value), KuzuError);
+	kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetUInt16) {
@@ -758,6 +783,10 @@ TEST_F(CApiValueTest, GetUInt16) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_uint16(badValue, &uint16Value), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetUInt32) {
@@ -784,6 +813,10 @@ TEST_F(CApiValueTest, GetUInt32) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_uint32(badValue, &uint32Value), KuzuError);
+	kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetUInt64) {
@@ -809,6 +842,10 @@ TEST_F(CApiValueTest, GetUInt64) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_uint64(badValue, &uint64Value), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetInt128) {
@@ -834,6 +871,10 @@ TEST_F(CApiValueTest, GetInt128) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_int128(badValue, &int128), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, StringToInt128Test) {
@@ -842,6 +883,10 @@ TEST_F(CApiValueTest, StringToInt128Test) {
     ASSERT_EQ(kuzu_int128_t_from_string(input, &int128_val), KuzuSuccess);
     ASSERT_EQ(int128_val.high, 100000000);
     ASSERT_EQ(int128_val.low, 211111111);
+
+    char badInput[] = "this is not a int128";
+    kuzu_int128_t int128_val2;
+    ASSERT_EQ(kuzu_int128_t_from_string(badInput, &int128_val2), KuzuError);
 }
 
 TEST_F(CApiValueTest, Int128ToStringTest) {
@@ -873,6 +918,10 @@ TEST_F(CApiValueTest, GetFloat) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_float(badValue, &floatValue), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetDouble) {
@@ -896,6 +945,10 @@ TEST_F(CApiValueTest, GetDouble) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_double(badValue, &doubleValue), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetInternalID) {
@@ -923,6 +976,10 @@ TEST_F(CApiValueTest, GetInternalID) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_internal_id(badValue, &internalID), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetRelVal) {
@@ -967,6 +1024,10 @@ TEST_F(CApiValueTest, GetRelVal) {
     kuzu_value_destroy(&rel);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_rel_val_get_src_id_val(badValue, &relSrcIDVal), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetDate) {
@@ -990,6 +1051,10 @@ TEST_F(CApiValueTest, GetDate) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_date(badValue, &date), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetTimestamp) {
@@ -1012,6 +1077,10 @@ TEST_F(CApiValueTest, GetTimestamp) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_timestamp(badValue, &timestamp), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetInterval) {
@@ -1037,6 +1106,10 @@ TEST_F(CApiValueTest, GetInterval) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_interval(badValue, &interval), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetString) {
@@ -1062,6 +1135,10 @@ TEST_F(CApiValueTest, GetString) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_int32(123);
+    ASSERT_EQ(kuzu_value_get_string(badValue, &str), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetBlob) {
@@ -1091,6 +1168,10 @@ TEST_F(CApiValueTest, GetBlob) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_blob(badValue, &blob), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetUUID) {
@@ -1116,6 +1197,10 @@ TEST_F(CApiValueTest, GetUUID) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_value_get_uuid(badValue, &str), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, ToSting) {
@@ -1136,20 +1221,17 @@ TEST_F(CApiValueTest, ToSting) {
 
     kuzu_value value;
     ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 0, &value), KuzuSuccess);
-    char* str;
-    ASSERT_EQ(kuzu_value_to_string(&value, &str), KuzuSuccess);
+    char* str = kuzu_value_to_string(&value);
     ASSERT_STREQ(str, "Alice");
     kuzu_destroy_string(str);
-    kuzu_value_destroy(&value);
 
     ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 1, &value), KuzuSuccess);
-    ASSERT_EQ(kuzu_value_to_string(&value, &str), KuzuSuccess);
+    str = kuzu_value_to_string(&value);
     ASSERT_STREQ(str, "True");
     kuzu_destroy_string(str);
-    kuzu_value_destroy(&value);
 
     ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 2, &value), KuzuSuccess);
-    ASSERT_EQ(kuzu_value_to_string(&value, &str), KuzuSuccess);
+    str = kuzu_value_to_string(&value);
     ASSERT_STREQ(str, "[10,5]");
     kuzu_destroy_string(str);
     kuzu_value_destroy(&value);
@@ -1183,6 +1265,10 @@ TEST_F(CApiValueTest, NodeValGetLabelVal) {
     kuzu_value_destroy(&nodeVal);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_node_val_get_label_val(badValue, &labelVal), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, NodeValGetID) {
@@ -1211,6 +1297,10 @@ TEST_F(CApiValueTest, NodeValGetID) {
     kuzu_value_destroy(&nodeVal);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_node_val_get_id_val(badValue, &nodeIDVal), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, NodeValGetLabelName) {
@@ -1238,6 +1328,10 @@ TEST_F(CApiValueTest, NodeValGetLabelName) {
     kuzu_value_destroy(&nodeVal);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_node_val_get_label_val(badValue, &labelVal), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, NodeValGetProperty) {
@@ -1273,18 +1367,15 @@ TEST_F(CApiValueTest, NodeValGetProperty) {
     int64_t propertyValueID;
     ASSERT_EQ(kuzu_value_get_int64(&propertyValue, &propertyValueID), KuzuSuccess);
     ASSERT_EQ(propertyValueID, 0);
-    kuzu_value_destroy(&propertyValue);
     ASSERT_EQ(kuzu_node_val_get_property_value_at(&node, 1, &propertyValue), KuzuSuccess);
     char* propertyValuefName;
     ASSERT_EQ(kuzu_value_get_string(&propertyValue, &propertyValuefName), KuzuSuccess);
     ASSERT_STREQ(propertyValuefName, "Alice");
     kuzu_destroy_string(propertyValuefName);
-    kuzu_value_destroy(&propertyValue);
     ASSERT_EQ(kuzu_node_val_get_property_value_at(&node, 2, &propertyValue), KuzuSuccess);
     int64_t propertyValueGender;
     ASSERT_EQ(kuzu_value_get_int64(&propertyValue, &propertyValueGender), KuzuSuccess);
     ASSERT_EQ(propertyValueGender, 1);
-    kuzu_value_destroy(&propertyValue);
     ASSERT_EQ(kuzu_node_val_get_property_value_at(&node, 3, &propertyValue), KuzuSuccess);
     bool propertyValueIsStudent;
     ASSERT_EQ(kuzu_value_get_bool(&propertyValue, &propertyValueIsStudent), KuzuSuccess);
@@ -1294,6 +1385,10 @@ TEST_F(CApiValueTest, NodeValGetProperty) {
     kuzu_value_destroy(&node);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_node_val_get_property_name_at(badValue, 0, &propertyName), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, NodeValToString) {
@@ -1311,8 +1406,7 @@ TEST_F(CApiValueTest, NodeValToString) {
     ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 0, &node), KuzuSuccess);
     ASSERT_TRUE(node._is_owned_by_cpp);
 
-    char* str;
-    ASSERT_EQ(kuzu_value_to_string(&node, &str), KuzuSuccess);
+    char* str = kuzu_value_to_string(&node);
     ASSERT_STREQ(str,
         "{_ID: 1:0, _LABEL: organisation, ID: 1, name: ABFsUni, orgCode: 325, mark: 3.700000, "
         "score: -2, history: 10 years 5 months 13 hours 24 us, licenseValidInterval: 3 years "
@@ -1362,7 +1456,6 @@ TEST_F(CApiValueTest, RelValGetProperty) {
     int64_t propertyValueYear;
     ASSERT_EQ(kuzu_value_get_int64(&propertyValue, &propertyValueYear), KuzuSuccess);
     ASSERT_EQ(propertyValueYear, 2015);
-    kuzu_value_destroy(&propertyValue);
 
     ASSERT_EQ(kuzu_rel_val_get_property_value_at(&rel, 1, &propertyValue), KuzuSuccess);
     kuzu_value listValue;
@@ -1370,12 +1463,10 @@ TEST_F(CApiValueTest, RelValGetProperty) {
     double listValueGrading;
     ASSERT_EQ(kuzu_value_get_double(&listValue, &listValueGrading), KuzuSuccess);
     ASSERT_DOUBLE_EQ(listValueGrading, 3.8);
-    kuzu_value_destroy(&listValue);
     ASSERT_EQ(kuzu_value_get_list_element(&propertyValue, 1, &listValue), KuzuSuccess);
     ASSERT_EQ(kuzu_value_get_double(&listValue, &listValueGrading), KuzuSuccess);
     ASSERT_DOUBLE_EQ(listValueGrading, 2.5);
     kuzu_value_destroy(&listValue);
-    kuzu_value_destroy(&propertyValue);
 
     ASSERT_EQ(kuzu_rel_val_get_property_value_at(&rel, 2, &propertyValue), KuzuSuccess);
     float propertyValueRating;
@@ -1386,6 +1477,10 @@ TEST_F(CApiValueTest, RelValGetProperty) {
     kuzu_value_destroy(&rel);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_rel_val_get_property_name_at(badValue, 0, &propertyName), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, RelValToString) {
@@ -1412,6 +1507,10 @@ TEST_F(CApiValueTest, RelValToString) {
     kuzu_value_destroy(&rel);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+
+    kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
+    ASSERT_EQ(kuzu_rel_val_to_string(badValue, &str), KuzuError);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetTmFromNonStandardTimestamp) {
@@ -1448,6 +1547,11 @@ TEST_F(CApiValueTest, GetTmFromNonStandardTimestamp) {
     ASSERT_EQ(tm.tm_hour, 13);
     ASSERT_EQ(tm.tm_min, 18);
     ASSERT_EQ(tm.tm_sec, 52);
+
+    kuzu_timestamp_ns_t badTimestamp_ns = kuzu_timestamp_ns_t{9223372036854775807};
+    kuzu_timestamp_ms_t badTimestamp_ms = kuzu_timestamp_ms_t{10123234353410};
+    kuzu_timestamp_sec_t badTimestamp_sec = kuzu_timestamp_sec_t{14321356480};
+    kuzu_timestamp_tz_t badTimestamp_tz = kuzu_timestamp_tz_t{7715135329000000};
 }
 
 TEST_F(CApiValueTest, GetTmFromTimestamp) {
@@ -1485,6 +1589,9 @@ TEST_F(CApiValueTest, GetTimestampFromTm) {
     kuzu_timestamp_t timestamp;
     ASSERT_EQ(kuzu_timestamp_from_tm(tm, &timestamp), KuzuSuccess);
     ASSERT_EQ(timestamp.value, 171513532000000);
+
+    tm.tm_year = 1237123127883;
+    ASSERT_EQ(kuzu_timestamp_from_tm(tm, &timestamp), KuzuError);
 }
 
 TEST_F(CApiValueTest, GetNonStandardTimestampFromTm) {
@@ -1525,6 +1632,12 @@ TEST_F(CApiValueTest, GetNonStandardTimestampFromTm) {
     kuzu_timestamp_tz_t timestamp_tz;
     ASSERT_EQ(kuzu_timestamp_tz_from_tm(tm, &timestamp_tz), KuzuSuccess);
     ASSERT_EQ(timestamp_tz.value, 771513532000000);
+
+    tm.tm_year = 1237123127883;
+    ASSERT_EQ(kuzu_timestamp_ns_from_tm(tm, &timestamp_ns), KuzuError);
+    ASSERT_EQ(kuzu_timestamp_ms_from_tm(tm, &timestamp_ms), KuzuError);
+    ASSERT_EQ(kuzu_timestamp_sec_from_tm(tm, &timestamp_sec), KuzuError);
+    ASSERT_EQ(kuzu_timestamp_tz_from_tm(tm, &timestamp_tz), KuzuError);
 }
 
 TEST_F(CApiValueTest, GetDateFromTm) {
@@ -1538,6 +1651,9 @@ TEST_F(CApiValueTest, GetDateFromTm) {
     kuzu_date_t date;
     ASSERT_EQ(kuzu_date_from_tm(tm, &date), KuzuSuccess);
     ASSERT_EQ(date.days, -255);
+
+    tm.tm_year = 1237123122342787883;
+    ASSERT_EQ(kuzu_date_from_tm(tm, &date), KuzuError);
 }
 
 TEST_F(CApiValueTest, GetDateFromString) {
@@ -1545,6 +1661,9 @@ TEST_F(CApiValueTest, GetDateFromString) {
     kuzu_date_t date;
     ASSERT_EQ(kuzu_date_from_string(input, &date), KuzuSuccess);
     ASSERT_EQ(date.days, -255);
+
+    char badInput[] = "this is not a date";
+    ASSERT_EQ(kuzu_date_from_string(badInput, &date), KuzuError);
 }
 
 TEST_F(CApiValueTest, GetStringFromDate) {

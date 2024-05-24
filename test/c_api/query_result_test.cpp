@@ -21,16 +21,13 @@ TEST_F(CApiQueryResultTest, GetErrorMessage) {
     state = kuzu_connection_query(connection, "MATCH (a:person) RETURN COUNT(*)", &result);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));
-    char* errorMessage;
-    state = kuzu_query_result_get_error_message(&result, &errorMessage);
-    ASSERT_EQ(state, KuzuError);
+    char* errorMessage = kuzu_query_result_get_error_message(&result);
     kuzu_query_result_destroy(&result);
 
     state = kuzu_connection_query(connection, "MATCH (a:personnnn) RETURN COUNT(*)", &result);
     ASSERT_EQ(state, KuzuError);
     ASSERT_FALSE(kuzu_query_result_is_success(&result));
-    state = kuzu_query_result_get_error_message(&result, &errorMessage);
-    ASSERT_EQ(state, KuzuSuccess);
+    errorMessage = kuzu_query_result_get_error_message(&result);
     ASSERT_EQ(std::string(errorMessage), "Binder exception: Table personnnn does not exist.");
     kuzu_query_result_destroy(&result);
     kuzu_destroy_string(errorMessage);
@@ -43,8 +40,7 @@ TEST_F(CApiQueryResultTest, ToString) {
     state = kuzu_connection_query(connection, "MATCH (a:person) RETURN COUNT(*)", &result);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));
-    char* str_repr;
-    state = kuzu_query_result_to_string(&result, &str_repr);
+    char* str_repr = kuzu_query_result_to_string(&result);
     ASSERT_EQ(state, KuzuSuccess);
     kuzu_destroy_string(str_repr);
     kuzu_query_result_destroy(&result);
@@ -170,6 +166,12 @@ TEST_F(CApiQueryResultTest, GetNext) {
     ASSERT_EQ(flatTupleCpp->getValue(1)->getValue<int64_t>(), 30);
     kuzu_flat_tuple_destroy(&row);
 
+    while (kuzu_query_result_has_next(&result)) {
+		kuzu_query_result_get_next(&result, &row);
+	}
+    ASSERT_FALSE(kuzu_query_result_has_next(&result));
+    state = kuzu_query_result_get_next(&result, &row);
+    ASSERT_EQ(state, KuzuError);
     kuzu_query_result_destroy(&result);
 }
 
@@ -211,8 +213,7 @@ TEST_F(CApiQueryResultTest, MultipleQuery) {
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));
 
-    char* str;
-    ASSERT_EQ(kuzu_query_result_to_string(&result, &str), KuzuSuccess);
+    char* str = kuzu_query_result_to_string(&result);
     ASSERT_EQ(std::string(str), "1\n1\n");
     kuzu_destroy_string(str);
 
@@ -220,16 +221,19 @@ TEST_F(CApiQueryResultTest, MultipleQuery) {
     kuzu_query_result next_query_result;
     ASSERT_EQ(kuzu_query_result_get_next_query_result(&result, &next_query_result), KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&next_query_result));
-    ASSERT_EQ(kuzu_query_result_to_string(&next_query_result, &str), KuzuSuccess);
+    str = kuzu_query_result_to_string(&next_query_result);
     ASSERT_EQ(std::string(str), "2\n2\n");
     kuzu_destroy_string(str);
     kuzu_query_result_destroy(&next_query_result);
 
     ASSERT_EQ(kuzu_query_result_get_next_query_result(&result, &next_query_result), KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&next_query_result));
-    ASSERT_EQ(kuzu_query_result_to_string(&next_query_result, &str), KuzuSuccess);
+    str = kuzu_query_result_to_string(&next_query_result);
     ASSERT_EQ(std::string(str), "3\n3\n");
     kuzu_destroy_string(str);
+
+    ASSERT_FALSE(kuzu_query_result_has_next_query_result(&result));
+    ASSERT_EQ(kuzu_query_result_get_next_query_result(&result, &next_query_result), KuzuError);
     kuzu_query_result_destroy(&next_query_result);
 
     kuzu_query_result_destroy(&result);

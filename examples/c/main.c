@@ -26,23 +26,22 @@ int main() {
 
     // Fetch each value.
     kuzu_flat_tuple tuple;
+    kuzu_value value;
     while (kuzu_query_result_has_next(&result)) {
         kuzu_query_result_get_next(&result, &tuple);
 
-        kuzu_value value;
         kuzu_flat_tuple_get_value(&tuple, 0, &value);
         char* name;
         kuzu_value_get_string(&value, &name);
-        kuzu_value_destroy(&value);
 
         kuzu_flat_tuple_get_value(&tuple, 1, &value);
         int64_t age;
         kuzu_value_get_int64(&value, &age);
-        kuzu_value_destroy(&value);
 
         printf("name: %s, age: %" PRIi64 " \n", name, age);
         kuzu_destroy_string(name);
     }
+    kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&tuple);
 
     // Print query result.

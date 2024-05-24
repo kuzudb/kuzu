@@ -31,23 +31,11 @@ bool kuzu_prepared_statement_is_success(kuzu_prepared_statement* prepared_statem
     return static_cast<PreparedStatement*>(prepared_statement->_prepared_statement)->isSuccess();
 }
 
-kuzu_state kuzu_prepared_statement_get_error_message(kuzu_prepared_statement* prepared_statement,
-    char** out_error_message) {
-    if (prepared_statement == nullptr || prepared_statement->_prepared_statement == nullptr) {
-        return KuzuError;
-    }
-    try {
-        auto error_message =
-            static_cast<PreparedStatement*>(prepared_statement->_prepared_statement)
-                ->getErrorMessage();
-        if (error_message.empty()) {
-            return KuzuError;
-        }
-        *out_error_message = convertToOwnedCString(error_message);
-        return KuzuSuccess;
-    } catch (Exception& e) {
-        return KuzuError;
-    }
+char* kuzu_prepared_statement_get_error_message(kuzu_prepared_statement* prepared_statement) {
+    auto error_message =
+        static_cast<PreparedStatement*>(prepared_statement->_prepared_statement)
+            ->getErrorMessage();
+    return convertToOwnedCString(error_message);
 }
 
 kuzu_state kuzu_prepared_statement_bind_bool(kuzu_prepared_statement* prepared_statement,

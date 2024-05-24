@@ -68,6 +68,12 @@ TEST_F(CApiConnectionTest, SetGetMaxNumThreadForExec) {
     state = kuzu_connection_get_max_num_thread_for_exec(connection, &maxNumThreadForExec);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_EQ(maxNumThreadForExec, 8);
+    kuzu_connection badConnection;
+    ASSERT_EQ(kuzu_connection_init(nullptr, &badConnection), KuzuError);
+    state = kuzu_connection_set_max_num_thread_for_exec(&badConnection, 4);
+	ASSERT_EQ(state, KuzuError);
+    state = kuzu_connection_get_max_num_thread_for_exec(&badConnection, &maxNumThreadForExec);
+	ASSERT_EQ(state, KuzuError);
 }
 
 TEST_F(CApiConnectionTest, Prepare) {
@@ -116,11 +122,25 @@ TEST_F(CApiConnectionTest, Execute) {
     kuzu_query_result_destroy(&result);
 }
 
+TEST_F(CApiConnectionTest, ExecuteError) {
+    kuzu_prepared_statement preparedStatement;
+    kuzu_state state;
+    auto connection = getConnection();
+    auto query = "MATCH (a:person) WHERE a.isStudent = $1 RETURN COUNT(*)";
+    state = kuzu_connection_prepare(connection, query, &preparedStatement);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_NE(preparedStatement._prepared_statement, nullptr);
+    ASSERT_EQ(kuzu_prepared_statement_bind_int64(&preparedStatement, "1", 30), KuzuSuccess);
+    kuzu_query_result result;
+    ASSERT_EQ(kuzu_connection_execute(connection, &preparedStatement, &result), KuzuError);
+    ASSERT_FALSE(kuzu_query_result_is_success(&result));
+}
+
 TEST_F(CApiConnectionTest, QueryTimeout) {
     kuzu_query_result result;
     kuzu_state state;
     auto connection = getConnection();
-    kuzu_connection_set_query_timeout(connection, 1);
+    ASSERT_EQ(kuzu_connection_set_query_timeout(connection, 1), KuzuSuccess);
     state = kuzu_connection_query(connection,
         "MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);", &result);
     ASSERT_EQ(state, KuzuError);
@@ -130,6 +150,9 @@ TEST_F(CApiConnectionTest, QueryTimeout) {
     ASSERT_FALSE(resultCpp->isSuccess());
     ASSERT_EQ(resultCpp->getErrorMessage(), "Interrupted.");
     kuzu_query_result_destroy(&result);
+    kuzu_connection badConnection;
+    ASSERT_EQ(kuzu_connection_init(nullptr, &badConnection), KuzuError);
+    ASSERT_EQ(kuzu_connection_set_query_timeout(&badConnection, 1), KuzuError);
 }
 
 TEST_F(CApiConnectionTest, Interrupt) {

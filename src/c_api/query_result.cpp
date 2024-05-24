@@ -22,23 +22,10 @@ bool kuzu_query_result_is_success(kuzu_query_result* query_result) {
     return static_cast<QueryResult*>(query_result->_query_result)->isSuccess();
 }
 
-kuzu_state kuzu_query_result_get_error_message(kuzu_query_result* query_result,
-    char** out_error_message) {
-    if (out_error_message == nullptr || query_result == nullptr ||
-        query_result->_query_result == nullptr) {
-        return KuzuError;
-    }
-    try {
-        auto error_message =
-            static_cast<QueryResult*>(query_result->_query_result)->getErrorMessage();
-        if (error_message.empty()) {
-            return KuzuError;
-        }
-        *out_error_message = convertToOwnedCString(error_message);
-        return KuzuSuccess;
-    } catch (Exception& e) {
-        return KuzuError;
-    }
+char* kuzu_query_result_get_error_message(kuzu_query_result* query_result) {
+    auto error_message =
+        static_cast<QueryResult*>(query_result->_query_result)->getErrorMessage();
+    return convertToOwnedCString(error_message);
 }
 
 uint64_t kuzu_query_result_get_num_columns(kuzu_query_result* query_result) {
@@ -91,6 +78,9 @@ bool kuzu_query_result_has_next_query_result(kuzu_query_result* query_result) {
 
 kuzu_state kuzu_query_result_get_next_query_result(kuzu_query_result* query_result,
     kuzu_query_result* out_query_result) {
+    if (!kuzu_query_result_has_next_query_result(query_result)) {
+		return KuzuError;
+	}
     auto next_query_result =
         static_cast<QueryResult*>(query_result->_query_result)->getNextQueryResult();
     if (next_query_result == nullptr) {
@@ -113,16 +103,9 @@ kuzu_state kuzu_query_result_get_next(kuzu_query_result* query_result,
     }
 }
 
-kuzu_state kuzu_query_result_to_string(kuzu_query_result* query_result, char** out_result) {
+char* kuzu_query_result_to_string(kuzu_query_result* query_result) {
     std::string result_string = static_cast<QueryResult*>(query_result->_query_result)->toString();
-    if (result_string.empty()) {
-        return KuzuError;
-    }
-    *out_result = convertToOwnedCString(result_string);
-    if (*out_result == nullptr) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
+    return convertToOwnedCString(result_string);
 }
 
 void kuzu_query_result_reset_iterator(kuzu_query_result* query_result) {
