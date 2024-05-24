@@ -131,8 +131,7 @@ TEST_F(NodeInsertionDeletionTests, TruncatedWalTest) {
     // Close database
     database.reset();
     {
-        auto walFileInfo =
-            fs.openFile(walPath, FileFlags::FILE_FLAGS_READ | FileFlags::FILE_FLAGS_WRITE);
+        auto walFileInfo = fs.openFile(walPath, FileFlags::READ_ONLY | FileFlags::WRITE);
         ASSERT_GT(walFileInfo->getFileSize(), BufferPoolConstants::PAGE_4KB_SIZE)
             << "Test needs a wal file with more than one page";
         walFileInfo->truncate(BufferPoolConstants::PAGE_4KB_SIZE);
