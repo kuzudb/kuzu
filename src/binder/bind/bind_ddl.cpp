@@ -40,17 +40,15 @@ static void validateUniquePropertyName(const std::vector<PropertyInfo>& infos) {
 }
 
 std::vector<PropertyInfo> Binder::bindPropertyInfo(
-    const std::vector<PropertyDefinition>& propertyDefinitions) {
+    const std::vector<PropertyDefinitionDDL>& propertyDefinitions) {
     std::vector<PropertyInfo> propertyInfos;
     propertyInfos.reserve(propertyDefinitions.size());
     for (auto& propertyDef : propertyDefinitions) {
         auto type = LogicalType::fromString(propertyDef.type);
-        if (propertyDef.expr) {
-            // This will check the type correctness of the default value expression
-            expressionBinder.implicitCastIfNecessary(
-                expressionBinder.bindExpression(*propertyDef.expr), type);
-        }
-        propertyInfos.emplace_back(propertyDef.name, std::move(type), propertyDef.expr);
+        // This will check the type correctness of the default value expression
+        expressionBinder.implicitCastIfNecessary(
+            expressionBinder.bindExpression(*propertyDef.expr), type);
+        propertyInfos.emplace_back(propertyDef.name, std::move(type), propertyDef.expr->copy());
     }
     validateUniquePropertyName(propertyInfos);
     for (auto& info : propertyInfos) {
@@ -158,9 +156,9 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
     auto relMultiplicity = extraInfo->relMultiplicity;
     std::vector<BoundCreateTableInfo> boundCreateRelTableInfos;
     auto relCreateInfo = std::make_unique<CreateTableInfo>(TableType::REL, "");
-    for (auto& [name, type, defaultValue] : info->propertyDefinitions) {
-        relCreateInfo->propertyDefinitions.emplace_back(name, type,
-            defaultValue ? defaultValue->copy() : nullptr);
+    for (auto& propertyDef : info->propertyDefinitions) {
+        relCreateInfo->propertyDefinitions.emplace_back(propertyDef.name, propertyDef.type,
+            propertyDef.expr->copy());
     }
     for (auto& [srcTableName, dstTableName] : extraInfo->srcDstTablePairs) {
         relCreateInfo->tableName = std::string(relGroupName)
@@ -426,10 +424,6 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
         throw BinderException("Serial property in node table must be the primary key.");
     }
     auto defaultValue = std::move(extraInfo->defaultValue);
-    if (!defaultValue) {
-        defaultValue = std::make_unique<parser::ParsedLiteralExpression>(
-            common::Value::createNullValue(dataType), "NULL");
-    }
     auto boundDefault = expressionBinder.implicitCastIfNecessary(
         expressionBinder.bindExpression(*defaultValue), dataType);
     auto boundExtraInfo = std::make_unique<BoundExtraAddPropertyInfo>(propertyName, dataType,

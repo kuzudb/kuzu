@@ -196,128 +196,128 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     }
 }
 
-Value::Value(bool val_) : isNull_{false} {
+Value::Value(bool val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::BOOL();
     val.booleanVal = val_;
 }
 
-Value::Value(int8_t val_) : isNull_{false} {
+Value::Value(int8_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::INT8();
     val.int8Val = val_;
 }
 
-Value::Value(int16_t val_) : isNull_{false} {
+Value::Value(int16_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::INT16();
     val.int16Val = val_;
 }
 
-Value::Value(int32_t val_) : isNull_{false} {
+Value::Value(int32_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::INT32();
     val.int32Val = val_;
 }
 
-Value::Value(int64_t val_) : isNull_{false} {
+Value::Value(int64_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::INT64();
     val.int64Val = val_;
 }
 
-Value::Value(uint8_t val_) : isNull_{false} {
+Value::Value(uint8_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::UINT8();
     val.uint8Val = val_;
 }
 
-Value::Value(uint16_t val_) : isNull_{false} {
+Value::Value(uint16_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::UINT16();
     val.uint16Val = val_;
 }
 
-Value::Value(uint32_t val_) : isNull_{false} {
+Value::Value(uint32_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::UINT32();
     val.uint32Val = val_;
 }
 
-Value::Value(uint64_t val_) : isNull_{false} {
+Value::Value(uint64_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::UINT64();
     val.uint64Val = val_;
 }
 
-Value::Value(int128_t val_) : isNull_{false} {
+Value::Value(int128_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::INT128();
     val.int128Val = val_;
 }
 
-Value::Value(ku_uuid_t val_) : isNull_{false} {
+Value::Value(ku_uuid_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::UUID();
     val.int128Val = val_.value;
 }
 
-Value::Value(float val_) : isNull_{false} {
+Value::Value(float val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::FLOAT();
     val.floatVal = val_;
 }
 
-Value::Value(double val_) : isNull_{false} {
+Value::Value(double val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::DOUBLE();
     val.doubleVal = val_;
 }
 
-Value::Value(date_t val_) : isNull_{false} {
+Value::Value(date_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::DATE();
     val.int32Val = val_.days;
 }
 
-Value::Value(timestamp_ns_t val_) : isNull_{false} {
+Value::Value(timestamp_ns_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::TIMESTAMP_NS();
     val.int64Val = val_.value;
 }
 
-Value::Value(timestamp_ms_t val_) : isNull_{false} {
+Value::Value(timestamp_ms_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::TIMESTAMP_MS();
     val.int64Val = val_.value;
 }
 
-Value::Value(timestamp_sec_t val_) : isNull_{false} {
+Value::Value(timestamp_sec_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::TIMESTAMP_SEC();
     val.int64Val = val_.value;
 }
 
-Value::Value(timestamp_tz_t val_) : isNull_{false} {
+Value::Value(timestamp_tz_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::TIMESTAMP_TZ();
     val.int64Val = val_.value;
 }
 
-Value::Value(timestamp_t val_) : isNull_{false} {
+Value::Value(timestamp_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::TIMESTAMP();
     val.int64Val = val_.value;
 }
 
-Value::Value(interval_t val_) : isNull_{false} {
+Value::Value(interval_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::INTERVAL();
     val.intervalVal = val_;
 }
 
-Value::Value(internalID_t val_) : isNull_{false} {
+Value::Value(internalID_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::INTERNAL_ID();
     val.internalIDVal = val_;
 }
 
-Value::Value(const char* val_) : isNull_{false} {
+Value::Value(const char* val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::STRING();
     strVal = std::string(val_);
 }
 
-Value::Value(const std::string& val_) : isNull_{false} {
+Value::Value(const std::string& val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::STRING();
     strVal = val_;
 }
 
-Value::Value(uint8_t* val_) : isNull_{false} {
+Value::Value(uint8_t* val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::POINTER();
     val.pointer = val_;
 }
 
 Value::Value(std::unique_ptr<LogicalType> type, std::string val_)
-    : dataType{std::move(type)}, isNull_{false} {
+    : dataType{std::move(type)}, isNull_{false}, childrenSize{0} {
     strVal = std::move(val_);
 }
 
@@ -649,11 +649,11 @@ std::string Value::toString() const {
     }
 }
 
-Value::Value() : isNull_{true} {
+Value::Value() : isNull_{true}, childrenSize{0} {
     dataType = std::make_unique<LogicalType>(LogicalTypeID::ANY);
 }
 
-Value::Value(const LogicalType& dataType_) : isNull_{true} {
+Value::Value(const LogicalType& dataType_) : isNull_{true}, childrenSize{0} {
     dataType = dataType_.copy();
 }
 

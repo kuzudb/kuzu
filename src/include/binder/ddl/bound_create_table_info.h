@@ -4,7 +4,8 @@
 #include "common/enums/rel_multiplicity.h"
 #include "common/enums/table_type.h"
 #include "common/types/types.h"
-#include "parser/expression/parsed_expression.h"
+#include "common/types/value/value.h"
+#include "parser/expression/parsed_literal_expression.h"
 
 namespace kuzu {
 namespace common {
@@ -48,18 +49,19 @@ struct PropertyInfo {
     common::LogicalType type;
     std::unique_ptr<parser::ParsedExpression> defaultValue;
 
-    PropertyInfo(std::string name, common::LogicalType type) : PropertyInfo{name, type, nullptr} {}
+    PropertyInfo(std::string name, common::LogicalType type)
+        : PropertyInfo{name, type, std::make_unique<parser::ParsedLiteralExpression>(
+            common::Value::createNullValue(), "NULL")} {}
 
     PropertyInfo(std::string name, common::LogicalType type,
-        const std::unique_ptr<parser::ParsedExpression>& defaultValue)
-        : name{std::move(name)}, type{std::move(type)},
-          defaultValue{defaultValue ? defaultValue->copy() : nullptr} {}
+        std::unique_ptr<parser::ParsedExpression> defaultValue)
+        : name{std::move(name)}, type{std::move(type)}, defaultValue{std::move(defaultValue)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(PropertyInfo);
 
 private:
     PropertyInfo(const PropertyInfo& other)
         : name{other.name}, type{other.type},
-          defaultValue{other.defaultValue ? other.defaultValue->copy() : nullptr} {}
+          defaultValue{other.defaultValue->copy()} {}
 };
 
 struct BoundExtraCreateTableInfo : public BoundExtraCreateCatalogEntryInfo {

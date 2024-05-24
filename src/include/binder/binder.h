@@ -12,7 +12,7 @@
 
 namespace kuzu {
 namespace parser {
-struct PropertyDefinition;
+struct PropertyDefinitionDDL;
 struct CreateTableInfo;
 struct BaseScanSource;
 } // namespace parser
@@ -105,7 +105,7 @@ private:
     std::unique_ptr<BoundStatement> bindRenameProperty(const parser::Statement& statement);
 
     std::vector<PropertyInfo> bindPropertyInfo(
-        const std::vector<parser::PropertyDefinition>& propertyNameDataTypes);
+        const std::vector<parser::PropertyDefinitionDDL>& propertyDefinitions);
 
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);

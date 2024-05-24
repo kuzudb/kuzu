@@ -134,17 +134,17 @@ IMPORT: ( 'I' | 'i') ( 'M' | 'm') ( 'P' | 'p') ( 'O' | 'o') ( 'R' | 'r') ( 'T' |
 DATABASE: ( 'D' | 'd') ( 'A' | 'a') ( 'T' | 't') ( 'A' | 'a') ( 'B' | 'b') ( 'A' | 'a') ( 'S' | 's')( 'E' | 'e');
 
 kU_CreateNodeTable
-    : CREATE SP NODE SP TABLE SP oC_SchemaName SP? '(' SP? kU_PropertyDefinitions SP? ( ',' SP? kU_CreateNodeConstraint ) SP? ')' ;
+    : CREATE SP NODE SP TABLE SP oC_SchemaName SP? '(' SP? kU_PropertyDefinitionsDDL SP? ( ',' SP? kU_CreateNodeConstraint ) SP? ')' ;
 
 NODE : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ;
 
 TABLE: ( 'T' | 't' ) ( 'A' | 'a' ) ( 'B' | 'b' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
 
 kU_CreateRelTable
-    : CREATE SP REL SP TABLE SP oC_SchemaName SP? '(' SP? kU_RelTableConnection SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
+    : CREATE SP REL SP TABLE SP oC_SchemaName SP? '(' SP? kU_RelTableConnection SP? ( ',' SP? kU_PropertyDefinitionsDDL SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
 
 kU_CreateRelTableGroup
-    : CREATE SP REL SP TABLE SP GROUP SP oC_SchemaName SP? '(' SP? kU_RelTableConnection SP ? (',' SP? kU_RelTableConnection)+ SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
+    : CREATE SP REL SP TABLE SP GROUP SP oC_SchemaName SP? '(' SP? kU_RelTableConnection SP ? (',' SP? kU_RelTableConnection)+ SP? ( ',' SP? kU_PropertyDefinitionsDDL SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
 
 GROUP : ( 'G' | 'g' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'U' | 'u' ) ( 'P' | 'p' ) ;
 
@@ -226,7 +226,11 @@ ADD: ( 'A' | 'a' ) ( 'D' | 'd' ) ( 'D' | 'd' ) ;
 
 kU_PropertyDefinitions : kU_PropertyDefinition ( SP? ',' SP? kU_PropertyDefinition )* ;
 
-kU_PropertyDefinition : oC_PropertyKeyName SP kU_DataType ( SP DEFAULT SP oC_Expression )?;
+kU_PropertyDefinition : oC_PropertyKeyName SP kU_DataType ;
+
+kU_PropertyDefinitionsDDL : kU_PropertyDefinitionDDL ( SP? ',' SP? kU_PropertyDefinitionDDL )* ;
+
+kU_PropertyDefinitionDDL : oC_PropertyKeyName SP kU_DataType ( SP DEFAULT SP oC_Expression )? ;
 
 kU_CreateNodeConstraint : PRIMARY SP KEY SP? '(' SP? oC_PropertyKeyName SP? ')' ;
 

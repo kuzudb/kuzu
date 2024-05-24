@@ -19,17 +19,24 @@ struct ExtraCreateTableInfo {
 struct PropertyDefinition {
     std::string name;
     std::string type;
+
+    PropertyDefinition(std::string name, std::string type)
+        : name{std::move(name)}, type{std::move(type)} {}
+    DELETE_COPY_DEFAULT_MOVE(PropertyDefinition);
+};
+
+struct PropertyDefinitionDDL : public PropertyDefinition {
     std::unique_ptr<ParsedExpression> expr;
 
-    PropertyDefinition(std::string name, std::string type, std::unique_ptr<ParsedExpression> expr)
-        : name{std::move(name)}, type{std::move(type)}, expr{std::move(expr)} {}
-    DELETE_COPY_DEFAULT_MOVE(PropertyDefinition);
+    PropertyDefinitionDDL(std::string name, std::string type, std::unique_ptr<ParsedExpression> expr)
+        : PropertyDefinition{name, type}, expr{std::move(expr)} {}
+    DELETE_COPY_DEFAULT_MOVE(PropertyDefinitionDDL);
 };
 
 struct CreateTableInfo {
     common::TableType tableType;
     std::string tableName;
-    std::vector<PropertyDefinition> propertyDefinitions;
+    std::vector<PropertyDefinitionDDL> propertyDefinitions;
     std::unique_ptr<ExtraCreateTableInfo> extraInfo;
 
     CreateTableInfo(common::TableType tableType, std::string tableName)

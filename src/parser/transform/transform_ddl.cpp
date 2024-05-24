@@ -3,6 +3,7 @@
 #include "parser/ddl/create_sequence.h"
 #include "parser/ddl/create_table.h"
 #include "parser/ddl/drop.h"
+#include "parser/expression/parsed_literal_expression.h"
 #include "parser/transformer.h"
 
 using namespace kuzu::common;
@@ -32,7 +33,7 @@ std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
     }
     auto createTableInfo = CreateTableInfo(TableType::NODE, tableName);
     createTableInfo.propertyDefinitions =
-        transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
+        transformPropertyDefinitionsDDL(*ctx.kU_PropertyDefinitionsDDL());
     createTableInfo.extraInfo = std::make_unique<ExtraCreateNodeTableInfo>(pkName);
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
@@ -47,9 +48,9 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
     auto srcTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(0));
     auto dstTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(1));
     auto createTableInfo = CreateTableInfo(TableType::REL, tableName);
-    if (ctx.kU_PropertyDefinitions()) {
+    if (ctx.kU_PropertyDefinitionsDDL()) {
         createTableInfo.propertyDefinitions =
-            transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
+            transformPropertyDefinitionsDDL(*ctx.kU_PropertyDefinitionsDDL());
     }
     createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity,
         std::move(srcTableName), std::move(dstTableName));
@@ -72,9 +73,9 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTableGroup(
         srcDstTablePairs.emplace_back(srcTableName, dstTableName);
     }
     auto createTableInfo = CreateTableInfo(TableType::REL_GROUP, tableName);
-    if (ctx.kU_PropertyDefinitions()) {
+    if (ctx.kU_PropertyDefinitionsDDL()) {
         createTableInfo.propertyDefinitions =
-            transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
+            transformPropertyDefinitionsDDL(*ctx.kU_PropertyDefinitionsDDL());
     }
     createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableGroupInfo>(relMultiplicity,
         std::move(srcDstTablePairs));
@@ -168,9 +169,12 @@ std::unique_ptr<Statement> Transformer::transformAddProperty(
     auto addPropertyCtx = ctx.kU_AlterOptions()->kU_AddProperty();
     auto propertyName = transformPropertyKeyName(*addPropertyCtx->oC_PropertyKeyName());
     auto dataType = transformDataType(*addPropertyCtx->kU_DataType());
-    std::unique_ptr<ParsedExpression> defaultValue = nullptr;
+    std::unique_ptr<ParsedExpression> defaultValue;
     if (addPropertyCtx->oC_Expression()) {
         defaultValue = transformExpression(*addPropertyCtx->oC_Expression());
+    } else {
+        defaultValue = std::make_unique<ParsedLiteralExpression>(Value::createNullValue(),
+        "NULL");
     }
     auto extraInfo = std::make_unique<ExtraAddPropertyInfo>(std::move(propertyName),
         std::move(dataType), std::move(defaultValue));
@@ -201,15 +205,25 @@ std::unique_ptr<Statement> Transformer::transformRenameProperty(
 }
 
 std::vector<PropertyDefinition> Transformer::transformPropertyDefinitions(
-    CypherParser::KU_PropertyDefinitionsContext& ctx, bool defaultAllowed) {
+    CypherParser::KU_PropertyDefinitionsContext& ctx) {
     std::vector<PropertyDefinition> propertyDefns;
     for (auto property : ctx.kU_PropertyDefinition()) {
-        std::unique_ptr<ParsedExpression> defaultValue = nullptr;
+        propertyDefns.emplace_back(transformPropertyKeyName(*property->oC_PropertyKeyName()),
+            transformDataType(*property->kU_DataType()));
+    }
+    return propertyDefns;
+}
+
+std::vector<PropertyDefinitionDDL> Transformer::transformPropertyDefinitionsDDL(
+    CypherParser::KU_PropertyDefinitionsDDLContext& ctx) {
+    std::vector<PropertyDefinitionDDL> propertyDefns;
+    for (auto property : ctx.kU_PropertyDefinitionDDL()) {
+        std::unique_ptr<ParsedExpression> defaultValue;
         if (property->oC_Expression()) {
-            if (!defaultAllowed) {
-                throw ParserException("DEFAULT is not supported here.");
-            }
             defaultValue = transformExpression(*property->oC_Expression());
+        } else {
+            defaultValue = std::make_unique<ParsedLiteralExpression>(Value::createNullValue(),
+            "NULL");
         }
         propertyDefns.emplace_back(transformPropertyKeyName(*property->oC_PropertyKeyName()),
             transformDataType(*property->kU_DataType()), std::move(defaultValue));
