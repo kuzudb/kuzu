@@ -624,7 +624,7 @@ KUZU_C_API bool kuzu_query_result_is_success(kuzu_query_result* query_result);
 /**
  * @brief Returns the error message if the query is failed.
  * @param query_result The query result instance to check and return error message.
- * @return the error message if the query has failed.
+ * @return The error message if the query has failed.
  */
 KUZU_C_API char* kuzu_query_result_get_error_message(kuzu_query_result* query_result);
 /**
