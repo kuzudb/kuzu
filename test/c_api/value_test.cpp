@@ -758,7 +758,7 @@ TEST_F(CApiValueTest, GetUInt8) {
 
     kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
     ASSERT_EQ(kuzu_value_get_uint8(badValue, &uint8Value), KuzuError);
-	kuzu_value_destroy(badValue);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetUInt16) {
@@ -816,7 +816,7 @@ TEST_F(CApiValueTest, GetUInt32) {
 
     kuzu_value* badValue = kuzu_value_create_string((char*)"abcdefg");
     ASSERT_EQ(kuzu_value_get_uint32(badValue, &uint32Value), KuzuError);
-	kuzu_value_destroy(badValue);
+    kuzu_value_destroy(badValue);
 }
 
 TEST_F(CApiValueTest, GetUInt64) {

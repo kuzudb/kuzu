@@ -33,8 +33,7 @@ bool kuzu_prepared_statement_is_success(kuzu_prepared_statement* prepared_statem
 
 char* kuzu_prepared_statement_get_error_message(kuzu_prepared_statement* prepared_statement) {
     auto error_message =
-        static_cast<PreparedStatement*>(prepared_statement->_prepared_statement)
-            ->getErrorMessage();
+        static_cast<PreparedStatement*>(prepared_statement->_prepared_statement)->getErrorMessage();
     return convertToOwnedCString(error_message);
 }
 
