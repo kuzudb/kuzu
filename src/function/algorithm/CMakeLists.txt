@@ -5,7 +5,6 @@ add_library(kuzu_algorithm
         graph.cpp
         on_disk_graph.cpp
         parallel_utils.cpp
-        extend_frontier_task.cpp
         )
 
 set(ALL_OBJECT_FILES
