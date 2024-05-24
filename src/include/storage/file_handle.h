@@ -51,6 +51,7 @@ public:
         fileInfo->writeFile(buffer, getPageSize(), pageIdx * getPageSize());
     }
 
+    // TODO: These should be refactored to use functions of `FileFlags`.
     inline bool isLargePaged() const { return flags & isLargePagedMask; }
     inline bool isNewTmpFile() const { return flags & isNewInMemoryTmpFileMask; }
     inline bool isReadOnlyFile() const { return flags & isReadOnlyMask; }

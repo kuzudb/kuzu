@@ -60,9 +60,9 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, boo
 }
 
 static void getLockFileFlagsAndType(bool readOnly, bool createNew, int& flags, FileLockType& lock) {
-    flags = readOnly ? FileFlags::FILE_FLAGS_READ : FileFlags::FILE_FLAGS_WRITE;
+    flags = readOnly ? FileFlags::READ_ONLY : FileFlags::WRITE;
     if (createNew && !readOnly) {
-        flags |= FileFlags::FILE_FLAGS_FILE_CREATE_NEW;
+        flags |= FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS;
     }
     lock = readOnly ? FileLockType::READ_LOCK : FileLockType::WRITE_LOCK;
 }

@@ -26,10 +26,10 @@ void FileHandle::constructExistingFileHandle(const std::string& path, VirtualFil
     main::ClientContext* context) {
     int openFlags;
     if (isReadOnlyFile()) {
-        openFlags = FileFlags::FILE_FLAGS_READ;
+        openFlags = FileFlags::READ_ONLY;
     } else {
-        openFlags = FileFlags::FILE_FLAGS_WRITE | FileFlags::FILE_FLAGS_READ |
-                    ((createFileIfNotExists()) ? FileFlags::FILE_FLAGS_FILE_CREATE : 0x00000000);
+        openFlags = FileFlags::WRITE | FileFlags::READ_ONLY |
+                    ((createFileIfNotExists()) ? FileFlags::CREATE_IF_NOT_EXISTS : 0x00000000);
     }
     fileInfo = vfs->openFile(path, openFlags, context);
     auto fileLength = fileInfo->getFileSize();

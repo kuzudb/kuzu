@@ -38,17 +38,16 @@ LocalFileInfo::~LocalFileInfo() {
 }
 
 static void validateFileFlags(uint8_t flags) {
-    bool isRead = flags & FileFlags::FILE_FLAGS_READ;
-    bool isWrite = flags & FileFlags::FILE_FLAGS_WRITE;
+    bool isRead = flags & FileFlags::READ_ONLY;
+    bool isWrite = flags & FileFlags::WRITE;
     // Require either READ or WRITE (or both).
     KU_ASSERT(isRead || isWrite);
-    // CREATE/Append flags require writing.
-    KU_ASSERT(isWrite || !(flags & FileFlags::FILE_FLAGS_APPEND));
-    KU_ASSERT(isWrite || !(flags & FileFlags::FILE_FLAGS_FILE_CREATE));
-    KU_ASSERT(isWrite || !(flags & FileFlags::FILE_FLAGS_FILE_CREATE_NEW));
-    // CREATE and CREATE_NEW flags cannot be combined.
-    KU_ASSERT(!(flags & FileFlags::FILE_FLAGS_FILE_CREATE &&
-                flags & FileFlags::FILE_FLAGS_FILE_CREATE_NEW));
+    // CREATE flags require writing.
+    KU_ASSERT(isWrite || !(flags & FileFlags::CREATE_IF_NOT_EXISTS));
+    KU_ASSERT(isWrite || !(flags & FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS));
+    // CREATE_IF_NOT_EXISTS and CREATE_AND_TRUNCATE_IF_EXISTS flags cannot be combined.
+    KU_ASSERT(!(flags & FileFlags::CREATE_IF_NOT_EXISTS &&
+                flags & FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS));
 }
 
 std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int flags,
@@ -62,8 +61,8 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int
     validateFileFlags(flags);
 
     int openFlags = 0;
-    bool readMode = flags & FileFlags::FILE_FLAGS_READ;
-    bool writeMode = flags & FileFlags::FILE_FLAGS_WRITE;
+    bool readMode = flags & FileFlags::READ_ONLY;
+    bool writeMode = flags & FileFlags::WRITE;
     if (readMode && writeMode) {
         openFlags = O_RDWR;
     } else if (readMode) {
@@ -76,15 +75,12 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int
         // LCOV_EXCL_STOP
     }
     if (writeMode) {
-        KU_ASSERT(flags & FileFlags::FILE_FLAGS_WRITE);
+        KU_ASSERT(flags & FileFlags::WRITE);
         openFlags |= O_CLOEXEC;
-        if (flags & FileFlags::FILE_FLAGS_FILE_CREATE) {
+        if (flags & FileFlags::CREATE_IF_NOT_EXISTS) {
             openFlags |= O_CREAT;
-        } else if (flags & FileFlags::FILE_FLAGS_FILE_CREATE_NEW) {
+        } else if (flags & FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS) {
             openFlags |= O_CREAT | O_TRUNC;
-        }
-        if (flags & FileFlags::FILE_FLAGS_APPEND) {
-            openFlags |= O_APPEND;
         }
     }
 

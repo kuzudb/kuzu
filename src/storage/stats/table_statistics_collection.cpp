@@ -24,15 +24,15 @@ void TablesStatistics::readFromFile(const std::string& dbPath, FileVersionType f
     VirtualFileSystem* fs, main::ClientContext* context) {
     auto filePath = getTableStatisticsFilePath(dbPath, fileVersionType, fs);
     auto deser = Deserializer(std::make_unique<BufferedFileReader>(
-        fs->openFile(filePath, FileFlags::FILE_FLAGS_READ, context)));
+        fs->openFile(filePath, FileFlags::READ_ONLY, context)));
     deser.deserializeUnorderedMap(readOnlyVersion->tableStatisticPerTable);
 }
 
 void TablesStatistics::saveToFile(const std::string& directory, FileVersionType fileVersionType,
     transaction::TransactionType transactionType, VirtualFileSystem* fs) {
     auto filePath = getTableStatisticsFilePath(directory, fileVersionType, fs);
-    auto ser = Serializer(std::make_unique<BufferedFileWriter>(fs->openFile(filePath,
-        FileFlags::FILE_FLAGS_WRITE | FileFlags::FILE_FLAGS_FILE_CREATE_NEW)));
+    auto ser = Serializer(std::make_unique<BufferedFileWriter>(
+        fs->openFile(filePath, FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS)));
     auto& tablesStatisticsContent = (transactionType == transaction::TransactionType::READ_ONLY ||
                                         readWriteVersion == nullptr) ?
                                         readOnlyVersion :
