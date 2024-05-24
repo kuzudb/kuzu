@@ -14,9 +14,13 @@ struct MapCreationFunctions {
 struct MapExtractFunctions {
     static constexpr const char* name = "MAP_EXTRACT";
 
-    static constexpr const char* alias = "ELEMENT_AT";
-
     static function_set getFunctionSet();
+};
+
+struct ElementAtFunctions {
+    using alias = MapExtractFunctions;
+
+    static constexpr const char* name = "ELEMENT_AT";
 };
 
 struct MapKeysFunctions {

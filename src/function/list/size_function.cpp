@@ -29,7 +29,7 @@ function_set SizeFunction::getFunctionSet() {
     listFunc->bindFunc = sizeBindFunc;
     result.push_back(std::move(listFunc));
     // size(map)
-    auto mapFunc = std::make_unique<ScalarFunction>(alias,
+    auto mapFunc = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::MAP}, LogicalTypeID::INT64,
         ScalarFunction::UnaryExecFunction<list_entry_t, int64_t, ListLen>);
     mapFunc->bindFunc = sizeBindFunc;

@@ -724,6 +724,13 @@ Roma
 [G,r,e,g]
 [H,u,b,e,r,t, ,B,l,a,i,n,e, ,W,o,l,f,e,s,c,h,l,e,g,e,l,s,t,e,i,n,h,a,u,s,e,n,b,e,r,g,e,r,d,o,r,f,f]
 
+-LOG StringSplitFuncWithParam
+-STATEMENT match (o:organisation) return string_to_array(o.name, o.name[2])
+---- 3
+[A,FsUni]
+[C,Work]
+[D,sWork]
+
 -LOG splitStrPart
 -STATEMENT match (p:person) return split_part(p.fName, '', 5);
 ---- 8
@@ -735,3 +742,11 @@ a
 o
 
 r
+
+
+-LOG splitPartWithParam
+-STATEMENT match (o:organisation) return split_part(o.name, o.name[3], 1)
+---- 3
+AB
+Cs
+DE
