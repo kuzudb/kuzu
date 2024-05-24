@@ -21,6 +21,20 @@ static void scanArrowArrayFixedSizePrimitive(const ArrowArray* array, ValueVecto
         arrayBuffer + srcOffset * sizeof(T), count * sizeof(T));
 }
 
+template<typename SRC, typename DST>
+static void scanArrowArrayFixedSizePrimitiveAndCastTo(const ArrowArray* array,
+    ValueVector& outputVector, ArrowNullMaskTree* mask, uint64_t srcOffset, uint64_t dstOffset,
+    uint64_t count) {
+    auto arrayBuffer = (const SRC*)array->buffers[1];
+    mask->copyToValueVector(&outputVector, dstOffset, count);
+    for (uint64_t i = 0; i < count; i++) {
+        if (!mask->isNull(i)) {
+            auto curValue = arrayBuffer[i + srcOffset];
+            outputVector.setValue<DST>(i + dstOffset, (DST)curValue);
+        }
+    }
+}
+
 template<>
 void scanArrowArrayFixedSizePrimitive<bool>(const ArrowArray* array, ValueVector& outputVector,
     ArrowNullMaskTree* mask, uint64_t srcOffset, uint64_t dstOffset, uint64_t count) {
@@ -433,6 +447,24 @@ void ArrowConverter::fromArrowArray(const ArrowSchema* schema, const ArrowArray*
         default:
             KU_UNREACHABLE;
         }
+    case 'd': {
+        switch (outputVector.dataType.getPhysicalType()) {
+        case PhysicalTypeID::INT16:
+            return scanArrowArrayFixedSizePrimitiveAndCastTo<int128_t, int16_t>(array, outputVector,
+                mask, srcOffset, dstOffset, count);
+        case PhysicalTypeID::INT32:
+            return scanArrowArrayFixedSizePrimitiveAndCastTo<int128_t, int32_t>(array, outputVector,
+                mask, srcOffset, dstOffset, count);
+        case PhysicalTypeID::INT64:
+            return scanArrowArrayFixedSizePrimitiveAndCastTo<int128_t, int64_t>(array, outputVector,
+                mask, srcOffset, dstOffset, count);
+        case PhysicalTypeID::INT128:
+            return scanArrowArrayFixedSizePrimitive<int128_t>(array, outputVector, mask, srcOffset,
+                dstOffset, count);
+        default:
+            KU_UNREACHABLE;
+        }
+    }
     case 'w':
         // FIXED BLOB
         return scanArrowArrayFixedBLOB(array, outputVector, mask, std::stoi(arrowType + 2),

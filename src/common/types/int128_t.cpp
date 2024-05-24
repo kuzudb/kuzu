@@ -627,6 +627,18 @@ int128_t::operator int64_t() const {
     return NarrowCast<int64_t>(*this);
 }
 
+int128_t::operator int32_t() const {
+    return NarrowCast<int32_t>(*this);
+}
+
+int128_t::operator int16_t() const {
+    return NarrowCast<int16_t>(*this);
+}
+
+int128_t::operator int8_t() const {
+    return NarrowCast<int8_t>(*this);
+}
+
 } // namespace kuzu::common
 
 std::size_t std::hash<kuzu::common::int128_t>::operator()(

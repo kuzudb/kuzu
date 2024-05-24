@@ -139,6 +139,8 @@ uint32_t BuiltInFunctionsUtils::getCastCost(LogicalTypeID inputTypeID, LogicalTy
         return castDouble(targetTypeID);
     case LogicalTypeID::FLOAT:
         return castFloat(targetTypeID);
+    case LogicalTypeID::DECIMAL:
+        return castDecimal(targetTypeID);
     case LogicalTypeID::DATE:
         return castDate(targetTypeID);
     case LogicalTypeID::UUID:
@@ -164,6 +166,8 @@ uint32_t BuiltInFunctionsUtils::getCastCost(LogicalTypeID inputTypeID, LogicalTy
 uint32_t BuiltInFunctionsUtils::getTargetTypeCost(LogicalTypeID typeID) {
     switch (typeID) {
     case LogicalTypeID::SERIAL:
+    case LogicalTypeID::INT16:
+        return 100;
     case LogicalTypeID::INT64:
         return 101;
     case LogicalTypeID::INT32:
@@ -332,6 +336,18 @@ uint32_t BuiltInFunctionsUtils::castDouble(LogicalTypeID targetTypeID) {
 uint32_t BuiltInFunctionsUtils::castFloat(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
     case LogicalTypeID::DOUBLE:
+        return getTargetTypeCost(targetTypeID);
+    default:
+        return UNDEFINED_CAST_COST;
+    }
+}
+
+uint32_t BuiltInFunctionsUtils::castDecimal(LogicalTypeID targetTypeID) {
+    switch (targetTypeID) {
+    case LogicalTypeID::INT128:
+    case LogicalTypeID::INT64:
+    case LogicalTypeID::INT32:
+    case LogicalTypeID::INT16:
         return getTargetTypeCost(targetTypeID);
     default:
         return UNDEFINED_CAST_COST;

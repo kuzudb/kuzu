@@ -65,6 +65,8 @@ private:
 
     static uint32_t castFloat(common::LogicalTypeID targetTypeID);
 
+    static uint32_t castDecimal(common::LogicalTypeID targetTypeID);
+
     static uint32_t castDate(common::LogicalTypeID targetTypeID);
 
     static uint32_t castSerial(common::LogicalTypeID targetTypeID);

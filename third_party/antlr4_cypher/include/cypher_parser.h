@@ -24,23 +24,23 @@ public:
     IMPORT = 57, DATABASE = 58, NODE = 59, TABLE = 60, GROUP = 61, RDFGRAPH = 62, 
     SEQUENCE = 63, INCREMENT = 64, MINVALUE = 65, MAXVALUE = 66, START = 67, 
     NO = 68, CYCLE = 69, DROP = 70, ALTER = 71, DEFAULT = 72, RENAME = 73, 
-    ADD = 74, PRIMARY = 75, KEY = 76, REL = 77, TO = 78, EXPLAIN = 79, PROFILE = 80, 
-    BEGIN = 81, TRANSACTION = 82, READ = 83, ONLY = 84, WRITE = 85, COMMIT = 86, 
-    COMMIT_SKIP_CHECKPOINT = 87, ROLLBACK = 88, ROLLBACK_SKIP_CHECKPOINT = 89, 
-    INSTALL = 90, EXTENSION = 91, UNION = 92, ALL = 93, LOAD = 94, HEADERS = 95, 
-    OPTIONAL = 96, MATCH = 97, UNWIND = 98, CREATE = 99, MERGE = 100, ON = 101, 
-    SET = 102, DETACH = 103, DELETE = 104, WITH = 105, RETURN = 106, DISTINCT = 107, 
-    STAR = 108, AS = 109, ORDER = 110, BY = 111, L_SKIP = 112, LIMIT = 113, 
-    ASCENDING = 114, ASC = 115, DESCENDING = 116, DESC = 117, WHERE = 118, 
-    SHORTEST = 119, OR = 120, XOR = 121, AND = 122, NOT = 123, INVALID_NOT_EQUAL = 124, 
-    MINUS = 125, FACTORIAL = 126, COLON = 127, IN = 128, STARTS = 129, ENDS = 130, 
-    CONTAINS = 131, IS = 132, NULL_ = 133, TRUE = 134, FALSE = 135, COUNT = 136, 
-    EXISTS = 137, CASE = 138, ELSE = 139, END = 140, WHEN = 141, THEN = 142, 
-    StringLiteral = 143, EscapedChar = 144, DecimalInteger = 145, HexLetter = 146, 
-    HexDigit = 147, Digit = 148, NonZeroDigit = 149, NonZeroOctDigit = 150, 
-    ZeroDigit = 151, RegularDecimalReal = 152, UnescapedSymbolicName = 153, 
-    IdentifierStart = 154, IdentifierPart = 155, EscapedSymbolicName = 156, 
-    SP = 157, WHITESPACE = 158, Comment = 159, Unknown = 160
+    ADD = 74, PRIMARY = 75, KEY = 76, REL = 77, TO = 78, DECIMAL = 79, EXPLAIN = 80, 
+    PROFILE = 81, BEGIN = 82, TRANSACTION = 83, READ = 84, ONLY = 85, WRITE = 86, 
+    COMMIT = 87, COMMIT_SKIP_CHECKPOINT = 88, ROLLBACK = 89, ROLLBACK_SKIP_CHECKPOINT = 90, 
+    INSTALL = 91, EXTENSION = 92, UNION = 93, ALL = 94, LOAD = 95, HEADERS = 96, 
+    OPTIONAL = 97, MATCH = 98, UNWIND = 99, CREATE = 100, MERGE = 101, ON = 102, 
+    SET = 103, DETACH = 104, DELETE = 105, WITH = 106, RETURN = 107, DISTINCT = 108, 
+    STAR = 109, AS = 110, ORDER = 111, BY = 112, L_SKIP = 113, LIMIT = 114, 
+    ASCENDING = 115, ASC = 116, DESCENDING = 117, DESC = 118, WHERE = 119, 
+    SHORTEST = 120, OR = 121, XOR = 122, AND = 123, NOT = 124, INVALID_NOT_EQUAL = 125, 
+    MINUS = 126, FACTORIAL = 127, COLON = 128, IN = 129, STARTS = 130, ENDS = 131, 
+    CONTAINS = 132, IS = 133, NULL_ = 134, TRUE = 135, FALSE = 136, COUNT = 137, 
+    EXISTS = 138, CASE = 139, ELSE = 140, END = 141, WHEN = 142, THEN = 143, 
+    StringLiteral = 144, EscapedChar = 145, DecimalInteger = 146, HexLetter = 147, 
+    HexDigit = 148, Digit = 149, NonZeroDigit = 150, NonZeroOctDigit = 151, 
+    ZeroDigit = 152, RegularDecimalReal = 153, UnescapedSymbolicName = 154, 
+    IdentifierStart = 155, IdentifierPart = 156, EscapedSymbolicName = 157, 
+    SP = 158, WHITESPACE = 159, Comment = 160, Unknown = 161
   };
 
   enum {
@@ -988,6 +988,9 @@ public:
     antlr4::tree::TerminalNode* SP(size_t i);
     std::vector<KU_DataTypeContext *> kU_DataType();
     KU_DataTypeContext* kU_DataType(size_t i);
+    antlr4::tree::TerminalNode *DECIMAL();
+    std::vector<OC_IntegerLiteralContext *> oC_IntegerLiteral();
+    OC_IntegerLiteralContext* oC_IntegerLiteral(size_t i);
     KU_ListIdentifiersContext *kU_ListIdentifiers();
 
    
@@ -2545,6 +2548,7 @@ public:
     antlr4::tree::TerminalNode *MAXVALUE();
     antlr4::tree::TerminalNode *NO();
     antlr4::tree::TerminalNode *CYCLE();
+    antlr4::tree::TerminalNode *DECIMAL();
     antlr4::tree::TerminalNode *CONTAINS();
 
    

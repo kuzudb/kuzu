@@ -33,6 +33,28 @@ std::string TypeUtils::entryToString(const LogicalType& dataType, const uint8_t*
         return TypeUtils::toString(*reinterpret_cast<const double*>(value));
     case LogicalTypeID::FLOAT:
         return TypeUtils::toString(*reinterpret_cast<const float*>(value));
+    case LogicalTypeID::DECIMAL:
+        switch (dataType.getPhysicalType()) {
+        case PhysicalTypeID::INT16:
+            return DecimalType::insertDecimalPoint(
+                TypeUtils::toString(*reinterpret_cast<const int16_t*>(value)),
+                DecimalType::getScale(dataType));
+        case PhysicalTypeID::INT32:
+            return DecimalType::insertDecimalPoint(
+                TypeUtils::toString(*reinterpret_cast<const int32_t*>(value)),
+                DecimalType::getScale(dataType));
+        case PhysicalTypeID::INT64:
+            return DecimalType::insertDecimalPoint(
+                TypeUtils::toString(*reinterpret_cast<const int64_t*>(value)),
+                DecimalType::getScale(dataType));
+        case PhysicalTypeID::INT128:
+            return DecimalType::insertDecimalPoint(
+                TypeUtils::toString(*reinterpret_cast<const int128_t*>(value)),
+                DecimalType::getScale(dataType));
+        default:
+            // decimals should always be backed by one of these four
+            KU_UNREACHABLE;
+        }
     case LogicalTypeID::DATE:
         return TypeUtils::toString(*reinterpret_cast<const date_t*>(value));
     case LogicalTypeID::TIMESTAMP_NS:

@@ -25,7 +25,7 @@ function_set CountIfFunction::getFunctionSet() {
     scalar_func_exec_t execFunc;
     for (auto operandTypeID : operandTypeIDs) {
         TypeUtils::visit(
-            operandTypeID,
+            LogicalType(operandTypeID),
             [&execFunc]<NumericTypes T>(
                 T) { execFunc = ScalarFunction::UnaryExecFunction<T, uint8_t, CountIf>; },
             [&execFunc](
