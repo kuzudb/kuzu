@@ -69,7 +69,7 @@ ClientContext::~ClientContext() = default;
 
 uint64_t ClientContext::getTimeoutRemainingInMS() const {
     KU_ASSERT(hasTimeout());
-    auto elapsed = activeQuery.timer.getElapsedTimeInMS();
+    const auto elapsed = activeQuery.timer.getElapsedTimeInMS();
     return elapsed >= clientConfig.timeoutInMS ? 0 : clientConfig.timeoutInMS - elapsed;
 }
 
@@ -101,7 +101,7 @@ Value ClientContext::getCurrentSetting(const std::string& optionName) {
     auto lowerCaseOptionName = optionName;
     StringUtils::toLower(lowerCaseOptionName);
     // Firstly, try to find in built-in options.
-    auto option = main::DBConfig::getOptionByName(lowerCaseOptionName);
+    const auto option = DBConfig::getOptionByName(lowerCaseOptionName);
     if (option != nullptr) {
         return option->getSetting(this);
     }
@@ -110,7 +110,8 @@ Value ClientContext::getCurrentSetting(const std::string& optionName) {
         return extensionOptionValues.at(lowerCaseOptionName);
     }
     // Lastly, find the default value in db clientConfig.
-    auto defaultOption = localDatabase->extensionOptions->getExtensionOption(lowerCaseOptionName);
+    const auto defaultOption =
+        localDatabase->extensionOptions->getExtensionOption(lowerCaseOptionName);
     if (defaultOption != nullptr) {
         return defaultOption->defaultValue;
     }
@@ -121,7 +122,7 @@ bool ClientContext::isOptionSet(const std::string& optionName) const {
     return extensionOptionValues.contains(StringUtils::getLower(optionName));
 }
 
-transaction::Transaction* ClientContext::getTx() const {
+Transaction* ClientContext::getTx() const {
     return transactionContext->getActiveTransaction();
 }
 
@@ -129,7 +130,7 @@ TransactionContext* ClientContext::getTransactionContext() const {
     return transactionContext.get();
 }
 
-common::ProgressBar* ClientContext::getProgressBar() const {
+ProgressBar* ClientContext::getProgressBar() const {
     return progressBar.get();
 }
 
@@ -149,7 +150,7 @@ std::unique_ptr<function::ScanReplacementData> ClientContext::tryReplace(
     return nullptr;
 }
 
-void ClientContext::setExtensionOption(std::string name, common::Value value) {
+void ClientContext::setExtensionOption(std::string name, Value value) {
     StringUtils::toLower(name);
     extensionOptionValues.insert_or_assign(name, std::move(value));
 }
@@ -159,7 +160,7 @@ extension::ExtensionOptions* ClientContext::getExtensionOptions() const {
 }
 
 std::string ClientContext::getExtensionDir() const {
-    return common::stringFormat("{}/.kuzu/extension/{}/{}", clientConfig.homeDirectory,
+    return stringFormat("{}/.kuzu/extension/{}/{}", clientConfig.homeDirectory,
         KUZU_EXTENSION_VERSION, kuzu::extension::getPlatform());
 }
 
@@ -183,7 +184,7 @@ storage::MemoryManager* ClientContext::getMemoryManager() {
     return localDatabase->memoryManager.get();
 }
 
-catalog::Catalog* ClientContext::getCatalog() const {
+Catalog* ClientContext::getCatalog() const {
     if (remoteDatabase == nullptr) {
         return localDatabase->catalog.get();
     } else {
@@ -191,7 +192,7 @@ catalog::Catalog* ClientContext::getCatalog() const {
     }
 }
 
-transaction::TransactionManager* ClientContext::getTransactionManagerUnsafe() const {
+TransactionManager* ClientContext::getTransactionManagerUnsafe() const {
     if (remoteDatabase == nullptr) {
         return localDatabase->transactionManager.get();
     } else {
@@ -203,13 +204,13 @@ VirtualFileSystem* ClientContext::getVFSUnsafe() const {
     return localDatabase->vfs.get();
 }
 
-common::RandomEngine* ClientContext::getRandomEngine() {
+RandomEngine* ClientContext::getRandomEngine() {
     return randomEngine.get();
 }
 
 std::string ClientContext::getEnvVariable(const std::string& name) {
 #if defined(_WIN32)
-    auto envValue = common::WindowsUtils::utf8ToUnicode(name.c_str());
+    auto envValue = WindowsUtils::utf8ToUnicode(name.c_str());
     auto result = _wgetenv(envValue.c_str());
     if (!result) {
         return std::string();
@@ -318,7 +319,7 @@ std::unique_ptr<PreparedStatement> ClientContext::preparedStatementWithError(
 std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
     std::shared_ptr<Statement> parsedStatement, bool enumerateAllPlans,
     std::string_view encodedJoin, bool requireNewTx,
-    std::optional<std::unordered_map<std::string, std::shared_ptr<common::Value>>> inputParams) {
+    std::optional<std::unordered_map<std::string, std::shared_ptr<Value>>> inputParams) {
     auto preparedStatement = std::make_unique<PreparedStatement>();
     auto compilingTimer = TimeMetric(true /* enable */);
     compilingTimer.start();
@@ -516,7 +517,7 @@ void ClientContext::addScalarFunction(std::string name, function::function_set d
         std::move(name), std::move(definitions));
 }
 
-bool ClientContext::startUDFAutoTrx(transaction::TransactionContext* trx) {
+bool ClientContext::startUDFAutoTrx(TransactionContext* trx) {
     if (!trx->hasActiveTransaction()) {
         auto res = query("BEGIN TRANSACTION");
         KU_ASSERT(res->isSuccess());

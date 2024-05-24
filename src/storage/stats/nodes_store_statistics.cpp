@@ -32,7 +32,7 @@ offset_t NodesStoreStatsAndDeletedIDs::getMaxNodeOffset(Transaction* transaction
     }
 }
 
-offset_t NodesStoreStatsAndDeletedIDs::addNode(table_id_t tableID) {
+std::pair<offset_t, bool> NodesStoreStatsAndDeletedIDs::addNode(table_id_t tableID) {
     lock_t lck{mtx};
     initTableStatisticsForWriteTrxNoLock();
     KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
@@ -54,29 +54,6 @@ void NodesStoreStatsAndDeletedIDs::updateNumTuplesByValue(table_id_t tableID, in
     setToUpdated();
     auto tableStats = getNodeTableStats(TransactionType::WRITE, tableID);
     tableStats->setNumTuples(tableStats->getNumTuples() + value);
-}
-
-void NodesStoreStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(Transaction* tx,
-    ValueVector* nodeIDVector, table_id_t tableID) {
-    // NOTE: We can remove the lock under the following assumptions, that should currently hold:
-    // 1) During the phases when nodeStatisticsAndDeletedIDsPerTableForReadOnlyTrx change, which
-    // is during checkpointing, this function, which is called during scans, cannot be called.
-    // 2) In a read-only transaction, the same morsel cannot be scanned concurrently. 3) A
-    // write transaction cannot have two concurrent pipelines where one is writing and the
-    // other is reading nodeStatisticsAndDeletedIDsPerTableForWriteTrx. That is the pipeline in a
-    // query where scans/reads happen in a write transaction cannot run concurrently with the
-    // pipeline that performs an add/delete node.
-    lock_t lck{mtx};
-    const TablesStatisticsContent* content;
-    if (tx->isReadOnly() || readWriteVersion == nullptr) {
-        content = getVersion(TransactionType::READ_ONLY);
-    } else {
-        content = getVersion(TransactionType::WRITE);
-    }
-    auto tableStat = content->getTableStat(tableID);
-    auto nodeStat =
-        ku_dynamic_cast<const TableStatistics*, const NodeTableStatsAndDeletedIDs*>(tableStat);
-    nodeStat->setDeletedNodeOffsetsForMorsel(nodeIDVector);
 }
 
 void NodesStoreStatsAndDeletedIDs::addNodeStatisticsAndDeletedIDs(

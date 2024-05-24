@@ -214,9 +214,7 @@ private:
 
     // Append scan operators
     void appendExpressionsScan(const binder::expression_vector& expressions, LogicalPlan& plan);
-    void appendScanInternalID(std::shared_ptr<binder::Expression> internalID,
-        std::vector<common::table_id_t> tableIDs, LogicalPlan& plan);
-    void appendScanNodeProperties(std::shared_ptr<binder::Expression> nodeID,
+    void appendScanNodeTable(std::shared_ptr<binder::Expression> nodeID,
         std::vector<common::table_id_t> tableIDs, const binder::expression_vector& properties,
         LogicalPlan& plan);
 

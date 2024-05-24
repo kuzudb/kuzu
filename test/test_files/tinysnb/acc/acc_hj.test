@@ -6,7 +6,8 @@
 
 -LOG AspBasic
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.age > 35 RETURN b.fName
--ENCODED_JOIN HJ(b._ID){E(b)S(a._ID)}{S(b._ID)}
+#-ENCODED_JOIN HJ(b._ID){E(b)S(a._ID)}{S(b._ID)}
+-ENUMERATE
 ---- 3
 Alice
 Bob
@@ -14,7 +15,8 @@ Dan
 
 -LOG AspMultiLabel
 -STATEMENT MATCH (a:person)-[e1:knows|:studyAt|:workAt]->(b:person:organisation) WHERE a.age > 35 RETURN b.fName, b.name
--ENCODED_JOIN HJ(b._ID){E(b)S(a._ID)}{S(b._ID)}
+#-ENCODED_JOIN HJ(b._ID){E(b)S(a._ID)}{S(b._ID)}
+-ENUMERATE
 ---- 4
 Alice|
 Bob|

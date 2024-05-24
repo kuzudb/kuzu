@@ -2,6 +2,9 @@
 
 #include "transaction/transaction.h"
 
+using namespace kuzu::common;
+using namespace kuzu::transaction;
+
 namespace kuzu {
 namespace storage {
 
@@ -44,14 +47,15 @@ NullColumn::NullColumn(std::string name, page_idx_t metaDAHPageIdx, BMFileHandle
     batchLookupFunc = nullptr;
 }
 
-void NullColumn::scan(Transaction* transaction, ChunkState& readState, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
-    scanInternal(transaction, readState, nodeIDVector, resultVector);
+void NullColumn::scan(Transaction* transaction, const ChunkState& state, vector_idx_t vectorIdx,
+    row_idx_t numValuesToScan, ValueVector* nodeIDVector, ValueVector* resultVector) {
+    scanInternal(transaction, state, vectorIdx, numValuesToScan, nodeIDVector, resultVector);
 }
 
-void NullColumn::scan(Transaction* transaction, ChunkState& readState, offset_t startOffsetInGroup,
-    offset_t endOffsetInGroup, ValueVector* resultVector, uint64_t offsetInVector) {
-    Column::scan(transaction, readState, startOffsetInGroup, endOffsetInGroup, resultVector,
+void NullColumn::scan(Transaction* transaction, const ChunkState& state,
+    offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
+    uint64_t offsetInVector) {
+    Column::scan(transaction, state, startOffsetInGroup, endOffsetInGroup, resultVector,
         offsetInVector);
 }
 
@@ -103,7 +107,7 @@ void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ValueVector* v
 
 void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ColumnChunk* data,
     offset_t dataOffset, length_t numValues) {
-    writeValues(state, offsetInChunk, data->getData(), nullptr /*nullChunkData=*/, dataOffset,
+    writeValues(state, offsetInChunk, data->getData(), nullptr /*nullChunkData*/, dataOffset,
         numValues);
     if (offsetInChunk + numValues > state.metadata.numValues) {
         state.metadata.numValues = offsetInChunk + numValues;

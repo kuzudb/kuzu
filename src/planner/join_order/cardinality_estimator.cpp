@@ -2,7 +2,7 @@
 
 #include "binder/expression/property_expression.h"
 #include "planner/join_order/join_order_util.h"
-#include "planner/operator/scan/logical_scan_internal_id.h"
+#include "planner/operator/scan/logical_scan_node_table.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -34,8 +34,8 @@ void CardinalityEstimator::addNodeIDDom(const binder::Expression& nodeID,
 }
 
 uint64_t CardinalityEstimator::estimateScanNode(LogicalOperator* op) {
-    auto scan = ku_dynamic_cast<LogicalOperator*, LogicalScanInternalID*>(op);
-    return atLeastOne(getNodeIDDom(scan->getInternalID()->getUniqueName()));
+    auto scan = ku_dynamic_cast<LogicalOperator*, LogicalScanNodeTable*>(op);
+    return atLeastOne(getNodeIDDom(scan->getNodeID()->getUniqueName()));
 }
 
 uint64_t CardinalityEstimator::estimateHashJoin(const expression_vector& joinKeys,

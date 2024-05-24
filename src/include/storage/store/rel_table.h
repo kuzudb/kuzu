@@ -7,23 +7,25 @@
 namespace kuzu {
 namespace storage {
 
-struct RelTableReadState : public TableReadState {
+struct RelTableScanState final : TableScanState {
     common::RelDataDirection direction;
 
-    RelTableReadState(const std::vector<common::column_id_t>& columnIDs,
+    RelTableScanState(const std::vector<common::column_id_t>& columnIDs,
         common::RelDataDirection direction)
-        : TableReadState{columnIDs}, direction{direction} {
-        dataReadState = std::make_unique<RelDataReadState>();
+        : TableScanState{columnIDs}, direction{direction} {
+        // TODO(Guodong): Move the NBR_ID_COLUMN_ID to binder phase.
+        std::vector<common::column_id_t> dataScanColumnIDs{NBR_ID_COLUMN_ID};
+        dataScanColumnIDs.insert(dataScanColumnIDs.end(), columnIDs.begin(), columnIDs.end());
+        dataScanState = std::make_unique<RelDataReadState>(dataScanColumnIDs);
     }
 
-    bool hasMoreToRead(transaction::Transaction* transaction) const {
-        auto relDataReadState =
-            common::ku_dynamic_cast<TableDataReadState*, RelDataReadState*>(dataReadState.get());
-        return relDataReadState->hasMoreToRead(transaction);
+    bool hasMoreToRead(const transaction::Transaction* transaction) const {
+        return common::ku_dynamic_cast<TableDataScanState*, RelDataReadState*>(dataScanState.get())
+            ->hasMoreToRead(transaction);
     }
 };
 
-struct RelTableInsertState : public TableInsertState {
+struct RelTableInsertState final : TableInsertState {
     const common::ValueVector& srcNodeIDVector;
     const common::ValueVector& dstNodeIDVector;
 
@@ -34,7 +36,7 @@ struct RelTableInsertState : public TableInsertState {
           dstNodeIDVector{dstNodeIDVector} {}
 };
 
-struct RelTableUpdateState : public TableUpdateState {
+struct RelTableUpdateState final : TableUpdateState {
     const common::ValueVector& srcNodeIDVector;
     const common::ValueVector& dstNodeIDVector;
     const common::ValueVector& relIDVector;
@@ -46,7 +48,7 @@ struct RelTableUpdateState : public TableUpdateState {
           dstNodeIDVector{dstNodeIDVector}, relIDVector{relIDVector} {}
 };
 
-struct RelTableDeleteState : public TableDeleteState {
+struct RelTableDeleteState final : TableDeleteState {
     const common::ValueVector& srcNodeIDVector;
     const common::ValueVector& dstNodeIDVector;
     const common::ValueVector& relIDVector;
@@ -72,11 +74,10 @@ public:
         MemoryManager* memoryManager, catalog::RelTableCatalogEntry* relTableEntry, WAL* wal,
         bool enableCompression);
 
-    void initializeReadState(transaction::Transaction* transaction,
-        common::RelDataDirection direction, const std::vector<common::column_id_t>& columnIDs,
-        RelTableReadState& readState);
+    void initializeScanState(transaction::Transaction* transaction,
+        TableScanState& scanState) const override;
 
-    void readInternal(transaction::Transaction* transaction, TableReadState& readState) override;
+    bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
 
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
@@ -93,19 +94,19 @@ public:
         fwdRelTableData->dropColumn(columnID);
         bwdRelTableData->dropColumn(columnID);
     }
-    Column* getCSROffsetColumn(common::RelDataDirection direction) {
+    Column* getCSROffsetColumn(common::RelDataDirection direction) const {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData->getCSROffsetColumn() :
                                                             bwdRelTableData->getCSROffsetColumn();
     }
-    Column* getCSRLengthColumn(common::RelDataDirection direction) {
+    Column* getCSRLengthColumn(common::RelDataDirection direction) const {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData->getCSRLengthColumn() :
                                                             bwdRelTableData->getCSRLengthColumn();
     }
-    common::column_id_t getNumColumns() {
+    common::column_id_t getNumColumns() const {
         KU_ASSERT(fwdRelTableData->getNumColumns() == bwdRelTableData->getNumColumns());
         return fwdRelTableData->getNumColumns();
     }
-    Column* getColumn(common::column_id_t columnID, common::RelDataDirection direction) {
+    Column* getColumn(common::column_id_t columnID, common::RelDataDirection direction) const {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData->getColumn(columnID) :
                                                             bwdRelTableData->getColumn(columnID);
     }
@@ -123,7 +124,7 @@ public:
     }
 
     bool isNewNodeGroup(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::RelDataDirection direction) {
+        common::node_group_idx_t nodeGroupIdx, common::RelDataDirection direction) const {
         return direction == common::RelDataDirection::FWD ?
                    fwdRelTableData->isNewNodeGroup(transaction, nodeGroupIdx) :
                    bwdRelTableData->isNewNodeGroup(transaction, nodeGroupIdx);
@@ -135,17 +136,15 @@ public:
     void checkpointInMemory() override;
     void rollbackInMemory() override;
 
-    RelTableData* getDirectedTableData(common::RelDataDirection direction) {
+    RelTableData* getDirectedTableData(common::RelDataDirection direction) const {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData.get() :
                                                             bwdRelTableData.get();
     }
 
 private:
-    void scan(transaction::Transaction* transaction, RelTableReadState& scanState);
-
     common::row_idx_t detachDeleteForCSRRels(transaction::Transaction* transaction,
         RelTableData* tableData, RelTableData* reverseTableData,
-        common::ValueVector* srcNodeIDVector, RelTableReadState* relDataReadState,
+        common::ValueVector* srcNodeIDVector, RelTableScanState* relDataReadState,
         RelDetachDeleteState* deleteState);
 
 private:

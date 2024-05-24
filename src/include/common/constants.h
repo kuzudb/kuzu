@@ -13,7 +13,7 @@ constexpr uint64_t DEFAULT_VECTOR_CAPACITY = (uint64_t)1 << DEFAULT_VECTOR_CAPAC
 
 constexpr double DEFAULT_HT_LOAD_FACTOR = 1.5;
 constexpr uint32_t DEFAULT_VAR_LENGTH_EXTEND_MAX_DEPTH = 30;
-constexpr bool DEFAULT_ENABLE_SEMI_MASK = true;
+constexpr bool DEFAULT_ENABLE_SEMI_MASK = false;
 
 // This is the default thread sleep time we use when a thread,
 // e.g., a worker thread is in TaskScheduler, needs to block.
@@ -105,6 +105,8 @@ struct StorageConstants {
 
     static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = 17; // 64 * 2048 nodes per group
     static constexpr uint64_t NODE_GROUP_SIZE = (uint64_t)1 << NODE_GROUP_SIZE_LOG2;
+    static constexpr uint64_t NUM_VECTORS_PER_NODE_GROUP =
+        NODE_GROUP_SIZE / DEFAULT_VECTOR_CAPACITY;
 
     static constexpr double PACKED_CSR_DENSITY = 0.8;
     static constexpr double LEAF_LOW_CSR_DENSITY = 0.1;

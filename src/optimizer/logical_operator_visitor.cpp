@@ -5,7 +5,7 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace optimizer {
 
-void LogicalOperatorVisitor::visitOperatorSwitch(planner::LogicalOperator* op) {
+void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
     switch (op->getOperatorType()) {
     case LogicalOperatorType::FLATTEN: {
         visitFlatten(op);
@@ -16,8 +16,8 @@ void LogicalOperatorVisitor::visitOperatorSwitch(planner::LogicalOperator* op) {
     case LogicalOperatorType::EXPRESSIONS_SCAN: {
         visitExpressionsScan(op);
     } break;
-    case LogicalOperatorType::SCAN_INTERNAL_ID: {
-        visitScanInternalID(op);
+    case LogicalOperatorType::SCAN_NODE_TABLE: {
+        visitScanNodeTable(op);
     } break;
     case LogicalOperatorType::INDEX_SCAN_NODE: {
         visitIndexScanNode(op);
@@ -93,8 +93,8 @@ void LogicalOperatorVisitor::visitOperatorSwitch(planner::LogicalOperator* op) {
     }
 }
 
-std::shared_ptr<planner::LogicalOperator> LogicalOperatorVisitor::visitOperatorReplaceSwitch(
-    std::shared_ptr<planner::LogicalOperator> op) {
+std::shared_ptr<LogicalOperator> LogicalOperatorVisitor::visitOperatorReplaceSwitch(
+    std::shared_ptr<LogicalOperator> op) {
     switch (op->getOperatorType()) {
     case LogicalOperatorType::FLATTEN: {
         return visitFlattenReplace(op);
@@ -105,8 +105,8 @@ std::shared_ptr<planner::LogicalOperator> LogicalOperatorVisitor::visitOperatorR
     case LogicalOperatorType::EXPRESSIONS_SCAN: {
         return visitExpressionsScanReplace(op);
     }
-    case LogicalOperatorType::SCAN_INTERNAL_ID: {
-        return visitScanInternalIDReplace(op);
+    case LogicalOperatorType::SCAN_NODE_TABLE: {
+        return visitScanNodePropertyReplace(op);
     }
     case LogicalOperatorType::INDEX_SCAN_NODE: {
         return visitIndexScanNodeReplace(op);

@@ -8,15 +8,14 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-static void setPhysicalPlanIfProfile(planner::LogicalPlan* logicalPlan,
-    PhysicalPlan* physicalPlan) {
+static void setPhysicalPlanIfProfile(const LogicalPlan* logicalPlan, PhysicalPlan* physicalPlan) {
     if (logicalPlan->isProfile()) {
         ku_dynamic_cast<PhysicalOperator*, Profile*>(physicalPlan->lastOperator->getChild(0))
             ->setPhysicalPlan(physicalPlan);
     }
 }
 
-std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(LogicalPlan* logicalPlan,
+std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(const LogicalPlan* logicalPlan,
     const binder::expression_vector& expressionsToCollect) {
     auto lastOperator = mapOperator(logicalPlan->getLastOperator().get());
     lastOperator = createResultCollector(AccumulateType::REGULAR, expressionsToCollect,
@@ -28,19 +27,15 @@ std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(LogicalPlan* 
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logicalOperator) {
     std::unique_ptr<PhysicalOperator> physicalOperator;
-    auto operatorType = logicalOperator->getOperatorType();
-    switch (operatorType) {
-    case planner::LogicalOperatorType::GDS_CALL: {
+    switch (logicalOperator->getOperatorType()) {
+    case LogicalOperatorType::GDS_CALL: {
         physicalOperator = mapGDSCall(logicalOperator);
     } break;
-    case planner::LogicalOperatorType::SCAN_FILE: {
+    case LogicalOperatorType::SCAN_FILE: {
         physicalOperator = mapScanFile(logicalOperator);
     } break;
     case LogicalOperatorType::SCAN_FRONTIER: {
         physicalOperator = mapScanFrontier(logicalOperator);
-    } break;
-    case LogicalOperatorType::SCAN_INTERNAL_ID: {
-        physicalOperator = mapScanInternalID(logicalOperator);
     } break;
     case LogicalOperatorType::INDEX_SCAN_NODE: {
         physicalOperator = mapIndexScan(logicalOperator);
@@ -81,8 +76,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::CROSS_PRODUCT: {
         physicalOperator = mapCrossProduct(logicalOperator);
     } break;
-    case LogicalOperatorType::SCAN_NODE_PROPERTY: {
-        physicalOperator = mapScanNodeProperty(logicalOperator);
+    case LogicalOperatorType::SCAN_NODE_TABLE: {
+        physicalOperator = mapScanNodeTable(logicalOperator);
     } break;
     case LogicalOperatorType::MULTIPLICITY_REDUCER: {
         physicalOperator = mapMultiplicityReducer(logicalOperator);
@@ -200,7 +195,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
 }
 
 std::vector<DataPos> PlanMapper::getDataPos(const binder::expression_vector& expressions,
-    const planner::Schema& schema) {
+    const Schema& schema) {
     std::vector<DataPos> result;
     for (auto& expression : expressions) {
         result.emplace_back(getDataPos(*expression, schema));

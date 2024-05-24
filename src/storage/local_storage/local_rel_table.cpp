@@ -213,8 +213,9 @@ LocalRelTable::LocalRelTable(Table& table) : LocalTable{table} {
         types.push_back(relTable.getColumn(i, RelDataDirection::FWD)->getDataType());
     }
     // FWD and BWD local rel table data.
-    localTableDataCollection.push_back(std::make_unique<LocalRelTableData>(types));
-    localTableDataCollection.push_back(std::make_unique<LocalRelTableData>(types));
+    auto tableID = relTable.getTableID();
+    localTableDataCollection.push_back(std::make_unique<LocalRelTableData>(tableID, types));
+    localTableDataCollection.push_back(std::make_unique<LocalRelTableData>(tableID, types));
 }
 
 bool LocalRelTable::insert(TableInsertState& state) {

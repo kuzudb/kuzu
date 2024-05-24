@@ -33,8 +33,8 @@ protected:
         return op;
     }
 
-    virtual void visitScanInternalID(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitScanInternalIDReplace(
+    virtual void visitScanNodeTable(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitScanNodePropertyReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }

@@ -39,8 +39,7 @@ add_library(kuzu_processor_mapper
         map_recursive_extend.cpp
         map_scan_file.cpp
         map_scan_frontier.cpp
-        map_scan_node.cpp
-        map_scan_node_property.cpp
+        map_scan_node_table.cpp
         map_semi_masker.cpp
         map_set.cpp
         map_simple.cpp

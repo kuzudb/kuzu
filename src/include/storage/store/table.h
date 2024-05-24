@@ -2,26 +2,28 @@
 
 #include "storage/stats/table_statistics_collection.h"
 #include "storage/store/table_data.h"
-#include "storage/wal/wal.h"
 
 namespace kuzu {
 namespace storage {
 
-struct TableReadState {
-    // Read only input node id vector.
-    const common::ValueVector* nodeIDVector;
+enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = 2 };
+struct TableScanState {
+    common::ValueVector* nodeIDVector;
     std::vector<common::column_id_t> columnIDs;
     std::vector<common::ValueVector*> outputVectors;
-    std::unique_ptr<TableDataReadState> dataReadState;
 
-    explicit TableReadState(std::vector<common::column_id_t> columnIDs)
-        : columnIDs{std::move(columnIDs)} {}
-    TableReadState(const common::ValueVector* nodeIDVector,
-        std::vector<common::column_id_t> columnIDs, std::vector<common::ValueVector*> outputVectors)
+    TableScanSource source = TableScanSource::NONE;
+    std::unique_ptr<TableDataScanState> dataScanState;
+    common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+
+    explicit TableScanState(std::vector<common::column_id_t> columnIDs)
+        : nodeIDVector(nullptr), columnIDs{std::move(columnIDs)} {}
+    TableScanState(common::ValueVector* nodeIDVector, std::vector<common::column_id_t> columnIDs,
+        std::vector<common::ValueVector*> outputVectors)
         : nodeIDVector{nodeIDVector}, columnIDs{std::move(columnIDs)},
           outputVectors{std::move(outputVectors)} {}
-    virtual ~TableReadState() = default;
-    DELETE_COPY_AND_MOVE(TableReadState);
+    virtual ~TableScanState() = default;
+    DELETE_COPY_AND_MOVE(TableScanState);
 };
 
 struct TableInsertState {
@@ -48,7 +50,7 @@ struct TableDeleteState {
 class LocalTable;
 class Table {
 public:
-    Table(catalog::TableCatalogEntry* tableEntry, TablesStatistics* tablesStatistics,
+    Table(const catalog::TableCatalogEntry* tableEntry, TablesStatistics* tablesStatistics,
         MemoryManager* memoryManager, WAL* wal)
         : tableType{tableEntry->getTableType()}, tableID{tableEntry->getTableID()},
           tableName{tableEntry->getName()}, tablesStatistics{tablesStatistics},
@@ -56,20 +58,22 @@ public:
     }
     virtual ~Table() = default;
 
-    inline common::TableType getTableType() const { return tableType; }
-    inline common::table_id_t getTableID() const { return tableID; }
-    inline common::row_idx_t getNumTuples(transaction::Transaction* transaction) const {
+    common::TableType getTableType() const { return tableType; }
+    common::table_id_t getTableID() const { return tableID; }
+    common::row_idx_t getNumTuples(transaction::Transaction* transaction) const {
         return tablesStatistics->getNumTuplesForTable(transaction, tableID);
     }
-    inline void updateNumTuplesByValue(uint64_t numTuples) {
+    void updateNumTuplesByValue(uint64_t numTuples) const {
         tablesStatistics->updateNumTuplesByValue(tableID, numTuples);
     }
 
-    void read(transaction::Transaction* transaction, TableReadState& readState) {
-        for (auto& vector : readState.outputVectors) {
+    virtual void initializeScanState(transaction::Transaction* transaction,
+        TableScanState& readState) const = 0;
+    bool scan(transaction::Transaction* transaction, TableScanState& scanState) {
+        for (const auto& vector : scanState.outputVectors) {
             vector->resetAuxiliaryBuffer();
         }
-        readInternal(transaction, readState);
+        return scanInternal(transaction, scanState);
     }
 
     virtual void insert(transaction::Transaction* transaction, TableInsertState& insertState) = 0;
@@ -93,7 +97,7 @@ public:
     }
 
 protected:
-    virtual void readInternal(transaction::Transaction* transaction, TableReadState& readState) = 0;
+    virtual bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) = 0;
 
 protected:
     common::TableType tableType;

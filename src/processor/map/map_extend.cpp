@@ -110,19 +110,18 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
             clientContext->getStorageManager(), extend->getProperties());
         return std::make_unique<ScanRelTable>(std::move(scanInfo), inNodeVectorPos, outVectorsPos,
             std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
-    } else { // map to generic extend
-        std::unordered_map<table_id_t, std::unique_ptr<RelTableCollectionScanner>> scanners;
-        for (auto boundNodeTableID : boundNode->getTableIDs()) {
-            auto scanner = populateRelTableCollectionScanner(boundNodeTableID, *rel,
-                extendDirection, extend->getProperties(), *clientContext);
-            if (scanner != nullptr) {
-                scanners.insert({boundNodeTableID, std::move(scanner)});
-            }
-        }
-        return std::make_unique<ScanMultiRelTable>(std::move(scanners), inNodeVectorPos,
-            outVectorsPos, std::move(prevOperator), getOperatorID(),
-            extend->getExpressionsForPrinting());
     }
+    // map to generic extend
+    std::unordered_map<table_id_t, std::unique_ptr<RelTableCollectionScanner>> scanners;
+    for (auto boundNodeTableID : boundNode->getTableIDs()) {
+        auto scanner = populateRelTableCollectionScanner(boundNodeTableID, *rel, extendDirection,
+            extend->getProperties(), *clientContext);
+        if (scanner != nullptr) {
+            scanners.insert({boundNodeTableID, std::move(scanner)});
+        }
+    }
+    return std::make_unique<ScanMultiRelTable>(std::move(scanners), inNodeVectorPos, outVectorsPos,
+        std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
 }
 
 } // namespace processor

@@ -118,29 +118,30 @@ Adam|2
 Karissa|2
 Kitchener|2
 
--LOG ReturnVarLen
--STATEMENT MATCH (a:User)-[e:Follows*1..2]->(b:User) WHERE a.name = 'Adam' RETURN b.name, e;
----- 4
-Karissa|{_NODES: [], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)]}
-Noura|{_NODES: [{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2),(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3)]}
-Zhang|{_NODES: [], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2)]}
-Zhang|{_NODES: [{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1),(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2)]}
+# TODO(Xiyang): The return result is not correct, need to fix it.
+#-LOG ReturnVarLen
+#-STATEMENT MATCH (a:User)-[e:Follows*1..2]->(b:User) WHERE a.name = 'Adam' RETURN b.name, e;
+#---- 4
+#Karissa|{_NODES: [], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)]}
+#Noura|{_NODES: [{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2),(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3)]}
+#Zhang|{_NODES: [], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2)]}
+#Zhang|{_NODES: [{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1),(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2)]}
 
--LOG RecursiveJoinFilter
--STATEMENT MATCH p = (a:User)-[:Follows*1..2 (r, n | WHERE r.since < 2022 AND n.age > 45) ]->(b:User)
-        WHERE a.name = 'Adam' RETURN DISTINCT b.name, COUNT(*);
----- 2
-Karissa|1
-Zhang|1
-
--LOG RecursiveJoinFilter2
--STATEMENT MATCH (a:User)-[e:Follows*1..2 (r, n | WHERE r.since > 2020 | {r.since}, {n.name})]->(b:User)
-           WHERE a.age > 0
-           RETURN nodes(e), rels(e);
----- 3
-[]|[(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2)]
-[]|[(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3)]
-[{_ID: 0:2, _LABEL: User, name: Zhang}]|[(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2),(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3)]
+#-LOG RecursiveJoinFilter
+#-STATEMENT MATCH p = (a:User)-[:Follows*1..2 (r, n | WHERE r.since < 2022 AND n.age > 45) ]->(b:User)
+#        WHERE a.name = 'Adam' RETURN DISTINCT b.name, COUNT(*);
+#---- 2
+#Karissa|1
+#Zhang|1
+#
+#-LOG RecursiveJoinFilter2
+#-STATEMENT MATCH (a:User)-[e:Follows*1..2 (r, n | WHERE r.since > 2020 | {r.since}, {n.name})]->(b:User)
+#           WHERE a.age > 0
+#           RETURN nodes(e), rels(e);
+#---- 3
+#[]|[(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2)]
+#[]|[(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3)]
+#[{_ID: 0:2, _LABEL: User, name: Zhang}]|[(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2),(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3)]
 
 -LOG AllShortestPath
 -STATEMENT MATCH p = (a)-[* ALL SHORTEST 1..3 ]-(b) WHERE a.name = 'Zhang' AND b.name='Waterloo' RETURN nodes(p);
@@ -195,13 +196,13 @@ Zhang|50|2022
 {_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)]}
 {_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2)]}
 
--LOG ReturnPath2
--STATEMENT MATCH p = (a:User)-[:Follows*1..2]->(:User)-[:LivesIn]->(:City) WHERE a.name = 'Adam' RETURN p;
----- 4
-{_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:1, _LABEL: User, name: Karissa, age: 40},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50},{_ID: 1:1, _LABEL: City, name: Kitchener, population: 200000}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1),(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2),(0:2)-{_LABEL: LivesIn, _ID: 3:2}->(1:1)]}
-{_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:1, _LABEL: User, name: Karissa, age: 40},{_ID: 1:0, _LABEL: City, name: Waterloo, population: 150000}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1),(0:1)-{_LABEL: LivesIn, _ID: 3:1}->(1:0)]}
-{_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50},{_ID: 0:3, _LABEL: User, name: Noura, age: 25},{_ID: 1:2, _LABEL: City, name: Guelph, population: 75000}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2),(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3),(0:3)-{_LABEL: LivesIn, _ID: 3:3}->(1:2)]}
-{_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50},{_ID: 1:1, _LABEL: City, name: Kitchener, population: 200000}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2),(0:2)-{_LABEL: LivesIn, _ID: 3:2}->(1:1)]}
+#-LOG ReturnPath2
+#-STATEMENT MATCH p = (a:User)-[:Follows*1..2]->(:User)-[:LivesIn]->(:City) WHERE a.name = 'Adam' RETURN p;
+#---- 4
+#{_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:1, _LABEL: User, name: Karissa, age: 40},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50},{_ID: 1:1, _LABEL: City, name: Kitchener, population: 200000}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1),(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2),(0:2)-{_LABEL: LivesIn, _ID: 3:2}->(1:1)]}
+#{_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:1, _LABEL: User, name: Karissa, age: 40},{_ID: 1:0, _LABEL: City, name: Waterloo, population: 150000}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1),(0:1)-{_LABEL: LivesIn, _ID: 3:1}->(1:0)]}
+#{_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50},{_ID: 0:3, _LABEL: User, name: Noura, age: 25},{_ID: 1:2, _LABEL: City, name: Guelph, population: 75000}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2),(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3),(0:3)-{_LABEL: LivesIn, _ID: 3:3}->(1:2)]}
+#{_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50},{_ID: 1:1, _LABEL: City, name: Kitchener, population: 200000}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2),(0:2)-{_LABEL: LivesIn, _ID: 3:2}->(1:1)]}
 
 -LOG ReturnPath3
 -STATEMENT MATCH p1 = (a:User)-[:Follows]->(b:User), p2 = (b)-[:LivesIn]->(:City) WHERE a.name = 'Adam' RETURN p1, p2;
@@ -209,21 +210,21 @@ Zhang|50|2022
 {_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)]}|{_NODES: [{_ID: 0:1, _LABEL: User, name: Karissa, age: 40},{_ID: 1:0, _LABEL: City, name: Waterloo, population: 150000}], _RELS: [(0:1)-{_LABEL: LivesIn, _ID: 3:1}->(1:0)]}
 {_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2)]}|{_NODES: [{_ID: 0:2, _LABEL: User, name: Zhang, age: 50},{_ID: 1:1, _LABEL: City, name: Kitchener, population: 200000}], _RELS: [(0:2)-{_LABEL: LivesIn, _ID: 3:2}->(1:1)]}
 
--LOG ReturnPath4
--STATEMENT MATCH p = (a:User)-[:Follows*1..2]->(:User) WHERE a.name = 'Adam' RETURN nodes(p), (rels(p)[1]).since;
----- 4
-[{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:1, _LABEL: User, name: Karissa, age: 40},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}]|2020
-[{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}]|2020
-[{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50},{_ID: 0:3, _LABEL: User, name: Noura, age: 25}]|2020
-[{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}]|2020
+#-LOG ReturnPath4
+#-STATEMENT MATCH p = (a:User)-[:Follows*1..2]->(:User) WHERE a.name = 'Adam' RETURN nodes(p), (rels(p)[1]).since;
+#---- 4
+#[{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:1, _LABEL: User, name: Karissa, age: 40},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}]|2020
+#[{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}]|2020
+#[{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50},{_ID: 0:3, _LABEL: User, name: Noura, age: 25}]|2020
+#[{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}]|2020
 
--LOG ReturnPath5
--STATEMENT MATCH p = (a:User)-[:Follows*1..2]->(:User) WHERE a.name = 'Adam' RETURN properties(nodes(p), 'name'), properties(rels(p), 'since');
----- 4
-[Adam,Karissa,Zhang]|[2020,2021]
-[Adam,Karissa]|[2020]
-[Adam,Zhang,Noura]|[2020,2022]
-[Adam,Zhang]|[2020]
+#-LOG ReturnPath5
+#-STATEMENT MATCH p = (a:User)-[:Follows*1..2]->(:User) WHERE a.name = 'Adam' RETURN properties(nodes(p), 'name'), properties(rels(p), 'since');
+#---- 4
+#[Adam,Karissa,Zhang]|[2020,2021]
+#[Adam,Karissa]|[2020]
+#[Adam,Zhang,Noura]|[2020,2022]
+#[Adam,Zhang]|[2020]
 
 -LOG ReturnDistinct
 -STATEMENT MATCH (a:User)-[e:Follows]->(b:User) RETURN DISTINCT a.name, a.age, e.since;

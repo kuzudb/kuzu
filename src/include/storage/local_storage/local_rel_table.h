@@ -51,8 +51,9 @@ class LocalRelTableData final : public LocalTableData {
     friend class RelTableData;
 
 public:
-    explicit LocalRelTableData(std::vector<common::LogicalType> dataTypes)
-        : LocalTableData{std::move(dataTypes)} {}
+    explicit LocalRelTableData(common::table_id_t tableID,
+        std::vector<common::LogicalType> dataTypes)
+        : LocalTableData{tableID, std::move(dataTypes)} {}
 
 private:
     LocalNodeGroup* getOrCreateLocalNodeGroup(common::ValueVector* nodeIDVector) override;

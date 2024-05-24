@@ -28,7 +28,6 @@ add_library(kuzu_processor_operator
         projection.cpp
         profile.cpp
         result_collector.cpp
-        scan_node_id.cpp
         semi_masker.cpp
         skip.cpp
         standalone_call.cpp

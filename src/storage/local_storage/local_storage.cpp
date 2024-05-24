@@ -16,7 +16,7 @@ LocalTable* LocalStorage::getLocalTable(table_id_t tableID, NotExistAction actio
     if (!tables.contains(tableID)) {
         switch (action) {
         case NotExistAction::CREATE: {
-            auto table = clientContext.getStorageManager()->getTable(tableID);
+            const auto table = clientContext.getStorageManager()->getTable(tableID);
             switch (table->getTableType()) {
             case TableType::NODE: {
                 tables[tableID] = std::make_unique<LocalNodeTable>(*table);

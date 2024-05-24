@@ -6,11 +6,13 @@
 namespace kuzu {
 namespace catalog {
 class TableSchema;
-}
+} // namespace catalog
+
 namespace common {
 class Serializer;
 class Deserializer;
 } // namespace common
+
 namespace storage {
 
 class TableStatistics {

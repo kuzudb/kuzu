@@ -7,12 +7,11 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace processor {
 
-bool RelTableCollectionScanner::scan(const common::SelectionVector& selVector,
-    Transaction* transaction) {
+bool RelTableCollectionScanner::scan(const SelectionVector& selVector, Transaction* transaction) {
     while (true) {
         if (readStates[currentTableIdx]->hasMoreToRead(transaction)) {
-            auto scanInfo = scanInfos[currentTableIdx].get();
-            scanInfo->table->read(transaction, *readStates[currentTableIdx]);
+            const auto scanInfo = scanInfos[currentTableIdx].get();
+            scanInfo->table->scan(transaction, *readStates[currentTableIdx]);
             if (selVector.getSelSize() > 0) {
                 return true;
             }
@@ -21,9 +20,9 @@ bool RelTableCollectionScanner::scan(const common::SelectionVector& selVector,
             if (currentTableIdx == readStates.size()) {
                 return false;
             }
-            auto scanInfo = scanInfos[currentTableIdx].get();
-            scanInfo->table->initializeReadState(transaction, scanInfo->direction,
-                scanInfo->columnIDs, *readStates[currentTableIdx]);
+            const auto scanInfo = scanInfos[currentTableIdx].get();
+            readStates[currentTableIdx]->direction = scanInfo->direction;
+            scanInfo->table->initializeScanState(transaction, *readStates[currentTableIdx]);
             nextTableIdx++;
         }
     }
@@ -43,10 +42,10 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
     for (auto& [_, scanner] : scannerPerNodeTable) {
         scanner->readStates.resize(scanner->scanInfos.size());
         for (auto i = 0u; i < scanner->scanInfos.size(); i++) {
-            auto scanInfo = scanner->scanInfos[i].get();
+            const auto scanInfo = scanner->scanInfos[i].get();
             scanner->readStates[i] =
-                std::make_unique<RelTableReadState>(scanInfo->columnIDs, scanInfo->direction);
-            ScanTable::initVectors(*scanner->readStates[i], *resultSet);
+                std::make_unique<RelTableScanState>(scanInfo->columnIDs, scanInfo->direction);
+            initVectors(*scanner->readStates[i], *resultSet);
         }
     }
     currentScanner = nullptr;
@@ -63,7 +62,7 @@ bool ScanMultiRelTable::getNextTuplesInternal(ExecutionContext* context) {
             resetState();
             return false;
         }
-        auto currentIdx = nodeIDVector->state->getSelVector()[0];
+        const auto currentIdx = nodeIDVector->state->getSelVector()[0];
         if (nodeIDVector->isNull(currentIdx)) {
             outState->getSelVectorUnsafe().setSelSize(0);
             continue;

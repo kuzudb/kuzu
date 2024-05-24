@@ -29,13 +29,10 @@ public:
 
     // This function assumes that there is a single write transaction. That is why for now we
     // keep the interface simple and no transaction is passed.
-    common::offset_t addNode(common::table_id_t tableID);
+    std::pair<common::offset_t, bool> addNode(common::table_id_t tableID);
 
     // Refer to the comments for addNode.
     void deleteNode(common::table_id_t tableID, common::offset_t nodeOffset);
-
-    void setDeletedNodeOffsetsForMorsel(transaction::Transaction* tx,
-        common::ValueVector* nodeIDVector, common::table_id_t tableID);
 
     void addNodeStatisticsAndDeletedIDs(catalog::NodeTableCatalogEntry* nodeTableEntry);
 

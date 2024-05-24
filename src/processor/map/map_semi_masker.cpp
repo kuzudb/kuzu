@@ -1,6 +1,5 @@
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
-#include "processor/operator/scan_node_id.h"
 #include "processor/operator/semi_masker.h"
 #include "processor/plan_mapper.h"
 
@@ -11,25 +10,27 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* logicalOperator) {
-    auto semiMasker = (LogicalSemiMasker*)logicalOperator;
-    auto inSchema = semiMasker->getChild(0)->getSchema();
+    const auto semiMasker = ku_dynamic_cast<LogicalOperator*, LogicalSemiMasker*>(logicalOperator);
+    const auto inSchema = semiMasker->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    auto tableIDs = semiMasker->getNodeTableIDs();
+    const auto tableIDs = semiMasker->getNodeTableIDs();
     std::unordered_map<table_id_t, std::vector<SemiMaskerInfo::mask_with_idx>> masksPerTable;
     for (auto tableID : tableIDs) {
         masksPerTable.insert({tableID, std::vector<SemiMaskerInfo::mask_with_idx>{}});
     }
     for (auto& op : semiMasker->getOperators()) {
-        auto physicalOp = logicalOpToPhysicalOpMap.at(op);
+        const auto physicalOp = logicalOpToPhysicalOpMap.at(op);
         switch (physicalOp->getOperatorType()) {
-        case PhysicalOperatorType::SCAN_NODE_ID: {
-            auto scanNodeID = (ScanNodeID*)physicalOp;
-            for (auto i = 0u; i < scanNodeID->getSharedState()->getNumTableStates(); ++i) {
-                auto tableState = scanNodeID->getSharedState()->getTableState(i);
-                auto tableID = tableState->getTable()->getTableID();
-                masksPerTable.at(tableID).emplace_back(tableState->getSemiMask(),
-                    0 /* initial mask idx */);
-            }
+        case PhysicalOperatorType::SCAN_NODE_TABLE: {
+            // TODO(Guodong): Semi mask is temporarily disabled for SCAN_NODE_TABLE.
+            // auto scanNodeTables = ku_dynamic_cast<PhysicalOperator*,
+            // ScanNodeTable*>(physicalOp); for (auto i = 0u; i < scanNodeTables->getNumTables();
+            // ++i) {
+            //     auto& tableState = scanNodeTables->getSharedState(i);
+            //     auto tableID = tableState.getTable()->getTableID();
+            //     masksPerTable.at(tableID).emplace_back(tableState.getSemiMask(),
+            //         0 /* initial mask idx */);
+            // }
         } break;
         case PhysicalOperatorType::RECURSIVE_JOIN: {
             auto recursiveJoin = (RecursiveJoin*)physicalOp;
