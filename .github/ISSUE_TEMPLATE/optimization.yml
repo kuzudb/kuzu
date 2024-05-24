@@ -1,6 +1,6 @@
 name: Performance optimization suggestion
 description: Suggestion a new performance optimization idea for Kùzu
-title: "Performance optimization: "
+title: "Optimization: "
 labels: [performance optimization]
 body:
   - type: markdown
