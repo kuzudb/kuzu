@@ -43,7 +43,7 @@ TEST_F(CApiRdfVariantTest, GetValue) {
     state = kuzu_connection_query(connection, "MATCH (a:T_l) RETURN a.val ORDER BY a.id;", &result);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));
-    char* errorMessage = kuzu_query_result_get_error_message(&result);
+    ASSERT_EQ(kuzu_query_result_get_error_message(&result), nullptr);
     ASSERT_EQ(kuzu_query_result_get_num_tuples(&result), 16);
     ASSERT_EQ(kuzu_query_result_get_num_columns(&result), 1);
     auto i = 0u;

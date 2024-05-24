@@ -45,8 +45,7 @@ int main() {
     kuzu_flat_tuple_destroy(&tuple);
 
     // Print query result.
-    char* result_string;
-    kuzu_query_result_to_string(&result, &result_string);
+    char* result_string = kuzu_query_result_to_string(&result);
     printf("%s", result_string);
     kuzu_destroy_string(result_string);
 
