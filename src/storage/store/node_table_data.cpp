@@ -29,11 +29,9 @@ NodeTableData::NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
                                    ->getMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION, tableID, i);
         auto columnName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT, "");
-        columns[property.getColumnID()] =
-            ColumnFactory::createColumn(columnName, *property.getDataType()->copy(),
-                *metadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_WRITE_TRANSACTION,
-                RWPropertyStats(tablesStatistics, tableID, property.getPropertyID()),
-                enableCompression);
+        columns[property.getColumnID()] = ColumnFactory::createColumn(columnName,
+            *property.getDataType()->copy(), *metadataDAHInfo, dataFH, metadataFH, bufferManager,
+            wal, &DUMMY_WRITE_TRANSACTION, enableCompression);
     }
 }
 

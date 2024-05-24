@@ -10,7 +10,7 @@ public:
     StringColumn(std::string name, common::LogicalType dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
-        RWPropertyStats propertyStatistics, bool enableCompression);
+        bool enableCompression);
 
     void initChunkState(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, ChunkState& columnReadState) override;
@@ -34,7 +34,7 @@ public:
     void checkpointInMemory() override;
     void rollbackInMemory() override;
 
-    inline const DictionaryColumn& getDictionary() const { return dictionary; }
+    const DictionaryColumn& getDictionary() const { return dictionary; }
 
 protected:
     void scanInternal(transaction::Transaction* transaction, ChunkState& readState,
@@ -56,7 +56,7 @@ private:
     bool canCommitInPlace(const ChunkState& state, const std::vector<common::offset_t>& dstOffsets,
         ColumnChunk* chunk, common::offset_t srcOffset) override;
 
-    bool canIndexCommitInPlace(const Column::ChunkState& dataState, uint64_t numStrings,
+    bool canIndexCommitInPlace(const ChunkState& dataState, uint64_t numStrings,
         common::offset_t maxOffset);
 
 private:

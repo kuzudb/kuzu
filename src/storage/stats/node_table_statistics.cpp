@@ -13,7 +13,7 @@ namespace storage {
 
 NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(BMFileHandle* metadataFH,
     const catalog::TableCatalogEntry& entry, BufferManager* bufferManager, WAL* wal)
-    : TableStatistics{entry}, tableID{entry.getTableID()} {
+    : TableStatistics{entry} {
     metadataDAHInfos.clear();
     metadataDAHInfos.reserve(entry.getNumProperties());
     for (auto& property : entry.getPropertiesRef()) {
@@ -22,13 +22,8 @@ NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(BMFileHandle* metadataF
     }
 }
 
-NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(table_id_t tableID, offset_t maxNodeOffset,
-    const std::vector<offset_t>& deletedNodeOffsets)
-    : NodeTableStatsAndDeletedIDs{tableID, maxNodeOffset, deletedNodeOffsets, {}} {}
-
 NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(const NodeTableStatsAndDeletedIDs& other)
-    : TableStatistics{other}, tableID{other.tableID},
-      hasDeletedNodesPerMorsel{other.hasDeletedNodesPerMorsel},
+    : TableStatistics{other}, hasDeletedNodesPerMorsel{other.hasDeletedNodesPerMorsel},
       deletedNodeOffsetsPerMorsel{other.deletedNodeOffsetsPerMorsel} {
     metadataDAHInfos.clear();
     metadataDAHInfos.reserve(other.metadataDAHInfos.size());
@@ -38,11 +33,8 @@ NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(const NodeTableStatsAnd
 }
 
 NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(table_id_t tableID, offset_t maxNodeOffset,
-    const std::vector<offset_t>& deletedNodeOffsets,
-    std::unordered_map<property_id_t, std::unique_ptr<PropertyStatistics>>&& propertyStatistics)
-    : TableStatistics{TableType::NODE, getNumTuplesFromMaxNodeOffset(maxNodeOffset), tableID,
-          std::move(propertyStatistics)},
-      tableID{tableID} {
+    const std::vector<offset_t>& deletedNodeOffsets)
+    : TableStatistics{TableType::NODE, getNumTuplesFromMaxNodeOffset(maxNodeOffset), tableID} {
     if (getNumTuples() > 0) {
         hasDeletedNodesPerMorsel.resize((getNumTuples() / DEFAULT_VECTOR_CAPACITY) + 1, false);
     }

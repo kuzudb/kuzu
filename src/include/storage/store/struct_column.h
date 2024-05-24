@@ -10,7 +10,7 @@ public:
     StructColumn(std::string name, common::LogicalType dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
-        RWPropertyStats propertyStatistics, bool enableCompression);
+        bool enableCompression);
 
     void initChunkState(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, ChunkState& columnReadState) override;
@@ -27,7 +27,7 @@ public:
     void rollbackInMemory() override;
     void prepareCommit() override;
 
-    inline Column* getChild(common::vector_idx_t childIdx) {
+    Column* getChild(common::vector_idx_t childIdx) {
         KU_ASSERT(childIdx < childColumns.size());
         return childColumns[childIdx].get();
     }

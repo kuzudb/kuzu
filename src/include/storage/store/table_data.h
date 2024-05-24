@@ -33,20 +33,17 @@ public:
 
     virtual void append(transaction::Transaction* transaction, ChunkedNodeGroup* nodeGroup) = 0;
 
-    inline void dropColumn(common::column_id_t columnID) {
-        columns.erase(columns.begin() + columnID);
-    }
+    void dropColumn(common::column_id_t columnID) { columns.erase(columns.begin() + columnID); }
     void addColumn(transaction::Transaction* transaction, const std::string& colNamePrefix,
         DiskArray<ColumnChunkMetadata>* metadataDA, const MetadataDAHInfo& metadataDahInfo,
-        const catalog::Property& property, common::ValueVector* defaultValueVector,
-        TablesStatistics* tableStats);
+        const catalog::Property& property, common::ValueVector* defaultValueVector);
 
-    inline common::vector_idx_t getNumColumns() const { return columns.size(); }
-    inline Column* getColumn(common::column_id_t columnID) {
+    common::vector_idx_t getNumColumns() const { return columns.size(); }
+    Column* getColumn(common::column_id_t columnID) {
         KU_ASSERT(columnID < columns.size() && columnID != common::INVALID_COLUMN_ID);
         return columns[columnID].get();
     }
-    inline const std::vector<std::unique_ptr<Column>>& getColumns() const { return columns; }
+    const std::vector<std::unique_ptr<Column>>& getColumns() const { return columns; }
 
     virtual void prepareLocalTableToCommit(transaction::Transaction* transaction,
         LocalTableData* localTable) = 0;

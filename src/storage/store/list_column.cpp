@@ -49,18 +49,17 @@ bool ListOffsetSizeInfo::isOffsetSortedAscending(uint64_t startPos, uint64_t end
 
 ListColumn::ListColumn(std::string name, LogicalType dataType,
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
-    BufferManager* bufferManager, WAL* wal, Transaction* transaction,
-    RWPropertyStats propertyStatistics, bool enableCompression)
+    BufferManager* bufferManager, WAL* wal, Transaction* transaction, bool enableCompression)
     : Column{name, std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
-          transaction, propertyStatistics, enableCompression, true /* requireNullColumn */} {
+          transaction, enableCompression, true /* requireNullColumn */} {
     auto sizeColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "");
     auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
     sizeColumn = ColumnFactory::createColumn(sizeColName, *LogicalType::UINT32(),
         *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataFH, bufferManager, wal, transaction,
-        propertyStatistics, enableCompression);
+        enableCompression);
     dataColumn = ColumnFactory::createColumn(dataColName,
         *ListType::getChildType(this->dataType).copy(), *metaDAHeaderInfo.childrenInfos[1], dataFH,
-        metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
+        metadataFH, bufferManager, wal, transaction, enableCompression);
 }
 
 void ListColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,

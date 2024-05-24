@@ -72,12 +72,6 @@ public:
         return readOnlyVersion->tableStatisticPerTable.at(tableID)->getNumTuples();
     }
 
-    PropertyStatistics& getPropertyStatisticsForTable(const transaction::Transaction& transaction,
-        common::table_id_t tableID, common::property_id_t propertyID);
-
-    void setPropertyStatisticsForTable(common::table_id_t tableID, common::property_id_t propertyID,
-        PropertyStatistics stats);
-
     static std::unique_ptr<MetadataDAHInfo> createMetadataDAHInfo(
         const common::LogicalType& dataType, BMFileHandle& metadataFH, BufferManager* bm, WAL* wal);
 
