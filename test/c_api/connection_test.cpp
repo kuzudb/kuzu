@@ -71,9 +71,9 @@ TEST_F(CApiConnectionTest, SetGetMaxNumThreadForExec) {
     kuzu_connection badConnection;
     ASSERT_EQ(kuzu_connection_init(nullptr, &badConnection), KuzuError);
     state = kuzu_connection_set_max_num_thread_for_exec(&badConnection, 4);
-	ASSERT_EQ(state, KuzuError);
+    ASSERT_EQ(state, KuzuError);
     state = kuzu_connection_get_max_num_thread_for_exec(&badConnection, &maxNumThreadForExec);
-	ASSERT_EQ(state, KuzuError);
+    ASSERT_EQ(state, KuzuError);
 }
 
 TEST_F(CApiConnectionTest, Prepare) {

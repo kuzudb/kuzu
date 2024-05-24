@@ -167,8 +167,8 @@ TEST_F(CApiQueryResultTest, GetNext) {
     kuzu_flat_tuple_destroy(&row);
 
     while (kuzu_query_result_has_next(&result)) {
-		kuzu_query_result_get_next(&result, &row);
-	}
+        kuzu_query_result_get_next(&result, &row);
+    }
     ASSERT_FALSE(kuzu_query_result_has_next(&result));
     state = kuzu_query_result_get_next(&result, &row);
     ASSERT_EQ(state, KuzuError);

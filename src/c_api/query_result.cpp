@@ -23,8 +23,7 @@ bool kuzu_query_result_is_success(kuzu_query_result* query_result) {
 }
 
 char* kuzu_query_result_get_error_message(kuzu_query_result* query_result) {
-    auto error_message =
-        static_cast<QueryResult*>(query_result->_query_result)->getErrorMessage();
+    auto error_message = static_cast<QueryResult*>(query_result->_query_result)->getErrorMessage();
     return convertToOwnedCString(error_message);
 }
 
@@ -79,8 +78,8 @@ bool kuzu_query_result_has_next_query_result(kuzu_query_result* query_result) {
 kuzu_state kuzu_query_result_get_next_query_result(kuzu_query_result* query_result,
     kuzu_query_result* out_query_result) {
     if (!kuzu_query_result_has_next_query_result(query_result)) {
-		return KuzuError;
-	}
+        return KuzuError;
+    }
     auto next_query_result =
         static_cast<QueryResult*>(query_result->_query_result)->getNextQueryResult();
     if (next_query_result == nullptr) {
