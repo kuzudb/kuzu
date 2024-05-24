@@ -15,7 +15,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapInQueryCall(LogicalOperator* lo
     auto call = ku_dynamic_cast<LogicalOperator*, LogicalInQueryCall*>(logicalOperator);
     // TODO: The frontend is not steady for the table function call of graph algorithms.
     // This is temporary only for the purpose of this demo algorithm.
-    if (call->getTableFunc().name == graph::DemoAlgorithm::name) {
+    if (call->getTableFunc().name == graph::DemoAlgorithm::name ||
+        call->getTableFunc().name == graph::ShortestPath::name) {
         std::vector<DataPos> outPosV;
         auto outSchema = call->getSchema();
         for (auto& expr : call->getOutputExpressions()) {
@@ -44,7 +45,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapInQueryCall(LogicalOperator* lo
         auto fTable = std::make_shared<FactorizedTable>(
             clientContext->getMemoryManager(), ftableSchema->copy());
         auto parallelUtils = std::make_shared<graph::ParallelUtils>(fTable);
-        auto graphAlgorithm = std::make_shared<graph::DemoAlgorithm>();
+        std::shared_ptr<graph::GraphAlgorithm> graphAlgorithm;
+        if (call->getTableFunc().name == graph::DemoAlgorithm::name) {
+            graphAlgorithm = std::make_shared<graph::DemoAlgorithm>();
+        } else {
+            graphAlgorithm = std::make_shared<graph::ShortestPath>();
+        }
         auto sharedState = std::make_shared<InQueryCallSharedState>();
         auto resultSetDescriptor = std::make_unique<ResultSetDescriptor>(outSchema);
         auto algorithmRunner = std::make_unique<AlgorithmRunner>(std::move(resultSetDescriptor),

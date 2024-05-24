@@ -2,6 +2,7 @@
 
 #include "function/algorithm/graph_functions.h"
 #include "function/algorithm/parallel_utils.h"
+#include "function/table_functions.h"
 #include "processor/operator/call/in_query_call.h"
 #include "processor/operator/sink.h"
 #include "processor/result/factorized_table.h"
@@ -36,9 +37,17 @@ public:
 
     void runWorker();
 
+    inline function::TableFuncSharedState* getFuncSharedState() {
+        return sharedState->funcState.get();
+    }
+
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<AlgorithmRunner>(resultSetDescriptor->copy(), info.copy(),
             sharedState, tableSchema->copy(), graphAlgorithm, parallelUtils, id, paramsString);
+    }
+
+    inline void setTableFunc(function::table_func_t function1) {
+        info.function.tableFunc = function1;
     }
 
 private:

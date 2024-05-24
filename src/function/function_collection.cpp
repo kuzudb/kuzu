@@ -206,6 +206,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Graph functions
         TABLE_FUNCTION(graph::DemoAlgorithm),
+        TABLE_FUNCTION(graph::ShortestPath),
 
         // End of array
         FINAL_FUNCTION};

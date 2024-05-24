@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/types/types.h"
+#include "common/vector/value_vector.h"
 
 namespace kuzu {
 namespace main {
@@ -19,6 +20,8 @@ public:
     virtual common::offset_t getNumEdges() = 0;
 
     virtual uint64_t getFwdDegreeOffset(common::offset_t offset) = 0;
+
+    virtual common::ValueVector* getFwdNbrs(common::offset_t offset) = 0;
 
 protected:
     main::ClientContext* context;

@@ -46,7 +46,8 @@ struct DemoAlgoSharedState : public CallFuncSharedState {
 
 std::unique_ptr<TableFuncSharedState> demoAlgoInitSharedState(TableFunctionInitInput& input) {
     auto bindData = ku_dynamic_cast<TableFuncBindData*, DemoAlgoBindData*>(input.bindData);
-    auto graph = std::make_unique<OnDiskGraph>(bindData->context, bindData->graphTableNames);
+    auto graph = std::make_unique<OnDiskGraph>(bindData->context, "" /* node table name */,
+        bindData->graphTableNames[0] /* rel table name */);
     return std::make_unique<DemoAlgoSharedState>(
         bindData->maxOffset, bindData->curOffset, 1LU /* morsel size */, std::move(graph));
 }

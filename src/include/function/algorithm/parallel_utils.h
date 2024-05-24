@@ -25,6 +25,8 @@ public:
 
     void doParallel(Sink *sink, ExecutionContext* executionContext);
 
+    void doParallel(Sink *sink, ExecutionContext *executionContext, function::table_func_t func);
+
 private:
     std::mutex mtx;
     std::shared_ptr<FactorizedTable> globalFTable;

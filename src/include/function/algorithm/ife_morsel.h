@@ -1,4 +1,11 @@
+#pragma once
+
+#include <atomic>
+#include <mutex>
 #include <vector>
+
+#include "common/types/internal_id_t.h"
+#include "function/table/call_functions.h"
 
 namespace kuzu {
 namespace graph {
@@ -15,31 +22,29 @@ enum VisitedState : uint8_t {
 struct IFEMorsel {
 public:
     IFEMorsel(uint64_t upperBound_, uint64_t lowerBound_, uint64_t maxNodeOffset_)
-        : mutex{std::mutex()}, currentLevel{0u},
-          nextScanStartIdx{0u}, numVisitedNodes{0u}, visitedNodes{std::vector<uint8_t>(
-                                                         maxNodeOffset_ + 1, NOT_VISITED)},
-          pathLength{std::vector<uint8_t>(maxNodeOffset_ + 1, 0u)},
-          bfsLevelNodeOffsets{std::vector<common::offset_t>()}, srcOffset{0u},
-          maxOffset{maxNodeOffset_}, upperBound{upperBound_}, lowerBound{lowerBound_},
-          numThreadsBFSActive{0u}, nextDstScanStartIdx{0u} {}
+        : mutex{std::mutex()}, currentLevel{0u}, nextScanStartIdx{0u}, numVisitedDstNodes{0u},
+          numDstNodesToVisit{maxNodeOffset_ + 1},
+          visitedNodes{std::vector<std::atomic<uint8_t>>(maxNodeOffset_ + 1)},
+          pathLength{std::vector<std::atomic<uint16_t>>(maxNodeOffset_ + 1)},
+          bfsLevelNodeOffsets{std::vector<common::offset_t>()}, maxOffset{maxNodeOffset_},
+          upperBound{upperBound_}, lowerBound{lowerBound_}, nextDstScanStartIdx{0u} {
+        for (auto i = 0u; i < maxNodeOffset_ + 1; i++) {
+            visitedNodes[i].store(NOT_VISITED_DST, std::memory_order::relaxed);
+            pathLength[i].store(0u, std::memory_order_relaxed);
+        }
+    }
 
+    void initSourceNoLock(common::offset_t srcOffset);
 
+    function::CallFuncMorsel getMorsel(uint64_t &morselSize);
 
-    /*void reset(TargetDstNodes* targetDstNodes, common::QueryRelType queryRelType,
-        planner::RecursiveJoinType joinType);
+    function::CallFuncMorsel getDstWriteMorsel(uint64_t& morselSize);
 
-    SSSPLocalState getBFSMorsel(BaseBFSMorsel* bfsMorsel);
+    bool isCompleteNoLock() const;
 
-    bool finishBFSMorsel(BaseBFSMorsel* bfsMorsel, common::QueryRelType queryRelType);
+    void mergeResults(uint64_t numDstVisitedLocal);
 
-    // If BFS has completed.
-    bool isBFSComplete(uint64_t numDstNodesToVisit, common::QueryRelType queryRelType);
-    // Mark src as visited.
-    void markSrc(bool isSrcDestination, common::QueryRelType queryRelType);
-
-    void moveNextLevelAsCurrentLevel();
-
-    std::pair<uint64_t, int64_t> getDstPathLengthMorsel();*/
+    void initializeNextFrontierNoLock();
 
 public:
     std::mutex mutex;
@@ -47,17 +52,15 @@ public:
     uint64_t nextScanStartIdx;
 
     // Visited state
-    uint64_t numVisitedNodes;
-    std::vector<uint8_t> visitedNodes;
-    std::vector<uint8_t> pathLength;
+    uint64_t numVisitedDstNodes;
+    uint64_t numDstNodesToVisit;
+    std::vector<std::atomic_uint8_t> visitedNodes;
+    std::vector<std::atomic_uint16_t> pathLength;
     std::vector<common::offset_t> bfsLevelNodeOffsets;
-    // Offset of src node.
-    common::offset_t srcOffset;
     // Maximum offset of dst nodes.
     common::offset_t maxOffset;
     uint64_t upperBound;
     uint64_t lowerBound;
-    uint32_t numThreadsBFSActive;
     uint64_t nextDstScanStartIdx;
 };
 

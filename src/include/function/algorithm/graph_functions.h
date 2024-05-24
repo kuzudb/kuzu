@@ -2,10 +2,13 @@
 
 #include "function/function.h"
 #include "function/table/call_functions.h"
+#include "ife_morsel.h"
 #include "parallel_utils.h"
 
 namespace kuzu {
 namespace graph {
+
+struct ShortestPathAlgoSharedState;
 
 struct GraphAlgorithm {
 public:
@@ -36,6 +39,7 @@ struct VariableLengthPath {
 struct ShortestPath : public GraphAlgorithm {
 public:
     static constexpr const char* name = "SHORTEST_PATH";
+    ShortestPathAlgoSharedState* getSharedState(Sink *sink);
     bool compute(Sink *sink, ExecutionContext* executionContext,
         std::shared_ptr<ParallelUtils> parallelUtils) override;
     static function::function_set getFunctionSet();
