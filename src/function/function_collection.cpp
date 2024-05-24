@@ -39,18 +39,21 @@ namespace kuzu {
 namespace function {
 
 #define SCALAR_FUNCTION(_PARAM)                                                                    \
-    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::SCALAR_FUNCTION_ENTRY}
+    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
 #define SCALAR_FUNCTION_ALIAS(_PARAM)                                                              \
-    {_PARAM::getFunctionSet, _PARAM::alias, CatalogEntryType::SCALAR_FUNCTION_ENTRY}
+    { _PARAM::getFunctionSet, _PARAM::alias, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
+#define SCALAR_FUNCTION_ALIAS_1(_PARAM)                                                            \
+    { _PARAM::getFunctionSet, _PARAM::alias1, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
 #define REWRITE_FUNCTION(_PARAM)                                                                   \
-    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::REWRITE_FUNCTION_ENTRY}
+    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::REWRITE_FUNCTION_ENTRY }
 #define AGGREGATE_FUNCTION(_PARAM)                                                                 \
-    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::AGGREGATE_FUNCTION_ENTRY}
+    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::AGGREGATE_FUNCTION_ENTRY }
 #define TABLE_FUNCTION(_PARAM)                                                                     \
-    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::TABLE_FUNCTION_ENTRY}
+    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::TABLE_FUNCTION_ENTRY }
 #define ALGORITHM_FUNCTION(_PARAM)                                                                 \
-    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::GDS_FUNCTION_ENTRY}
-#define FINAL_FUNCTION {nullptr, nullptr, CatalogEntryType::SCALAR_FUNCTION_ENTRY}
+    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::GDS_FUNCTION_ENTRY }
+#define FINAL_FUNCTION                                                                             \
+    { nullptr, nullptr, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
 
 FunctionCollection* FunctionCollection::getFunctions() {
     static FunctionCollection functions[] = {
@@ -91,7 +94,9 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION(RegexpFullMatchFunction), SCALAR_FUNCTION(RegexpMatchesFunction),
         SCALAR_FUNCTION(RegexpReplaceFunction), SCALAR_FUNCTION(RegexpExtractFunction),
         SCALAR_FUNCTION(RegexpExtractAllFunction), SCALAR_FUNCTION(LevenshteinFunction),
-        SCALAR_FUNCTION(InitcapFunction),
+        SCALAR_FUNCTION(InitCapFunction), SCALAR_FUNCTION(StringSplitFunction),
+        SCALAR_FUNCTION_ALIAS(StringSplitFunction), SCALAR_FUNCTION_ALIAS_1(StringSplitFunction),
+        SCALAR_FUNCTION(SplitPartFunction),
 
         // Array Functions
         SCALAR_FUNCTION(ArrayValueFunction), SCALAR_FUNCTION(ArrayCrossProductFunction),

@@ -3,9 +3,7 @@
 #include "function/string/functions/array_extract_function.h"
 #include "function/string/functions/contains_function.h"
 #include "function/string/functions/ends_with_function.h"
-#include "function/string/functions/initcap_function.h"
 #include "function/string/functions/left_operation.h"
-#include "function/string/functions/levenshtein_function.h"
 #include "function/string/functions/lpad_function.h"
 #include "function/string/functions/regexp_extract_all_function.h"
 #include "function/string/functions/regexp_extract_function.h"
@@ -303,25 +301,6 @@ function_set RegexpExtractAllFunction::getFunctionSet() {
 std::unique_ptr<FunctionBindData> RegexpExtractAllFunction::bindFunc(
     const binder::expression_vector& /*arguments*/, Function* /*definition*/) {
     return std::make_unique<FunctionBindData>(LogicalType::LIST(LogicalType::STRING()));
-}
-
-function_set LevenshteinFunction::getFunctionSet() {
-    function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
-        LogicalTypeID::INT64,
-        ScalarFunction::BinaryExecFunction<ku_string_t, ku_string_t, int64_t, Levenshtein>, nullptr,
-        nullptr));
-    return functionSet;
-}
-
-function_set InitcapFunction::getFunctionSet() {
-    function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::STRING,
-        ScalarFunction::UnaryStringExecFunction<ku_string_t, ku_string_t, Initcap>, nullptr,
-        nullptr));
-    return functionSet;
 }
 
 } // namespace function

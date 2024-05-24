@@ -177,8 +177,24 @@ struct LevenshteinFunction : public VectorStringFunction {
     static function_set getFunctionSet();
 };
 
-struct InitcapFunction : public VectorStringFunction {
+struct InitCapFunction : public VectorStringFunction {
     static constexpr const char* name = "INITCAP";
+
+    static function_set getFunctionSet();
+};
+
+struct StringSplitFunction {
+    static constexpr const char* name = "STRING_SPLIT";
+
+    static constexpr const char* alias = "STR_SPLIT";
+
+    static constexpr const char* alias1 = "STRING_TO_ARRAY";
+
+    static function_set getFunctionSet();
+};
+
+struct SplitPartFunction {
+    static constexpr const char* name = "SPLIT_PART";
 
     static function_set getFunctionSet();
 };
