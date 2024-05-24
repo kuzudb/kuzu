@@ -15,7 +15,7 @@ struct NbrScanState {
 
     static constexpr common::RelDataDirection direction = common::RelDataDirection::FWD;
     std::vector<common::column_id_t> columnIDs;
-    std::unique_ptr<storage::RelTableReadState> fwdReadState;
+    std::unique_ptr<storage::RelTableScanState> fwdReadState;
 
     explicit NbrScanState(storage::MemoryManager* mm);
 };

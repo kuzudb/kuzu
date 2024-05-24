@@ -14,7 +14,6 @@ public:
         : PhysicalOperator{operatorType, std::move(child), id, paramString}, nodeIDPos{nodeIDPos},
           outVectorsPos{std::move(outVectorsPos)}, nodeIDVector{nullptr}, outState{nullptr} {}
 
-    // ScanNodeTable is a source operator without a child op.
     ScanTable(PhysicalOperatorType operatorType, const DataPos& nodeIDPos,
         std::vector<DataPos> outVectorsPos, uint32_t id, const std::string& paramString)
         : PhysicalOperator{operatorType, id, paramString}, nodeIDPos{nodeIDPos},
