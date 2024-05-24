@@ -24,6 +24,9 @@ bool kuzu_query_result_is_success(kuzu_query_result* query_result) {
 
 char* kuzu_query_result_get_error_message(kuzu_query_result* query_result) {
     auto error_message = static_cast<QueryResult*>(query_result->_query_result)->getErrorMessage();
+    if (error_message.empty()) {
+        return nullptr;
+    }
     return convertToOwnedCString(error_message);
 }
 

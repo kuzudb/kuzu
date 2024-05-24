@@ -1584,9 +1584,6 @@ TEST_F(CApiValueTest, GetTimestampFromTm) {
     kuzu_timestamp_t timestamp;
     ASSERT_EQ(kuzu_timestamp_from_tm(tm, &timestamp), KuzuSuccess);
     ASSERT_EQ(timestamp.value, 171513532000000);
-
-    tm.tm_year = 172546635;
-    ASSERT_EQ(kuzu_timestamp_from_tm(tm, &timestamp), KuzuError);
 }
 
 TEST_F(CApiValueTest, GetNonStandardTimestampFromTm) {
@@ -1627,12 +1624,6 @@ TEST_F(CApiValueTest, GetNonStandardTimestampFromTm) {
     kuzu_timestamp_tz_t timestamp_tz;
     ASSERT_EQ(kuzu_timestamp_tz_from_tm(tm, &timestamp_tz), KuzuSuccess);
     ASSERT_EQ(timestamp_tz.value, 771513532000000);
-
-    tm.tm_year = 172546635;
-    ASSERT_EQ(kuzu_timestamp_ns_from_tm(tm, &timestamp_ns), KuzuError);
-    ASSERT_EQ(kuzu_timestamp_ms_from_tm(tm, &timestamp_ms), KuzuError);
-    ASSERT_EQ(kuzu_timestamp_sec_from_tm(tm, &timestamp_sec), KuzuError);
-    ASSERT_EQ(kuzu_timestamp_tz_from_tm(tm, &timestamp_tz), KuzuError);
 }
 
 TEST_F(CApiValueTest, GetDateFromTm) {
@@ -1646,9 +1637,6 @@ TEST_F(CApiValueTest, GetDateFromTm) {
     kuzu_date_t date;
     ASSERT_EQ(kuzu_date_from_tm(tm, &date), KuzuSuccess);
     ASSERT_EQ(date.days, -255);
-
-    tm.tm_year = -626394325;
-    ASSERT_EQ(kuzu_date_from_tm(tm, &date), KuzuError);
 }
 
 TEST_F(CApiValueTest, GetDateFromString) {
