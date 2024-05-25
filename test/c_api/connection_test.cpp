@@ -134,6 +134,7 @@ TEST_F(CApiConnectionTest, ExecuteError) {
     kuzu_query_result result;
     ASSERT_EQ(kuzu_connection_execute(connection, &preparedStatement, &result), KuzuError);
     ASSERT_FALSE(kuzu_query_result_is_success(&result));
+    kuzu_query_result_destroy(&result);
     kuzu_prepared_statement_destroy(&preparedStatement);
 }
 
