@@ -23,27 +23,39 @@ struct ListRangeFunction {
 struct SizeFunction {
     static constexpr const char* name = "SIZE";
 
-    static constexpr const char* alias = "CARDINALITY";
-
     static function_set getFunctionSet();
+};
+
+struct CardinalityFunction {
+    using alias = SizeFunction;
+
+    static constexpr const char* name = "CARDINALITY";
 };
 
 struct ListExtractFunction {
     static constexpr const char* name = "LIST_EXTRACT";
 
-    static constexpr const char* alias = "LIST_ELEMENT";
-
     static function_set getFunctionSet();
+};
+
+struct ListElementFunction {
+    using alias = ListExtractFunction;
+
+    static constexpr const char* name = "LIST_ELEMENT";
 };
 
 struct ListConcatFunction {
     static constexpr const char* name = "LIST_CONCAT";
 
-    static constexpr const char* alias = "LIST_CAT";
-
     static function_set getFunctionSet();
     static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
         Function* function);
+};
+
+struct ListCatFunction {
+    using alias = ListConcatFunction;
+
+    static constexpr const char* name = "LIST_CAT";
 };
 
 struct ListAppendFunction {
@@ -61,17 +73,25 @@ struct ListPrependFunction {
 struct ListPositionFunction {
     static constexpr const char* name = "LIST_POSITION";
 
-    static constexpr const char* alias = "LIST_INDEXOF";
-
     static function_set getFunctionSet();
+};
+
+struct ListIndexOfFunction {
+    using alias = ListPositionFunction;
+
+    static constexpr const char* name = "LIST_INDEXOF";
 };
 
 struct ListContainsFunction {
     static constexpr const char* name = "LIST_CONTAINS";
 
-    static constexpr const char* alias = "LIST_HAS";
-
     static function_set getFunctionSet();
+};
+
+struct ListHasFunction {
+    using alias = ListContainsFunction;
+
+    static constexpr const char* name = "LIST_HAS";
 };
 
 struct ListSliceFunction {

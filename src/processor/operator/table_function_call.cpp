@@ -54,6 +54,9 @@ void TableFunctionCall::initGlobalStateInternal(ExecutionContext*) {
 bool TableFunctionCall::getNextTuplesInternal(ExecutionContext*) {
     localState.funcOutput.dataChunk.state->getSelVectorUnsafe().setSelSize(0);
     localState.funcOutput.dataChunk.resetAuxiliaryBuffer();
+    for (auto i = 0u; i < localState.funcOutput.dataChunk.getNumValueVectors(); i++) {
+        localState.funcOutput.dataChunk.getValueVector(i)->setAllNonNull();
+    }
     auto numTuplesScanned = info.function.tableFunc(localState.funcInput, localState.funcOutput);
     localState.funcOutput.dataChunk.state->getSelVectorUnsafe().setSelSize(numTuplesScanned);
     if (localState.rowOffsetVector != nullptr) {

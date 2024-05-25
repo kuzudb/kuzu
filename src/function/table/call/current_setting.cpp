@@ -31,7 +31,6 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
     auto currentSettingBindData = data.bindData->constPtrCast<CurrentSettingBindData>();
     auto pos = dataChunk.state->getSelVector()[0];
     outputVector->setValue(pos, currentSettingBindData->result);
-    outputVector->setNull(pos, false);
     return 1;
 }
 

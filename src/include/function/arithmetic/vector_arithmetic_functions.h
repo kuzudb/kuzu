@@ -38,9 +38,13 @@ struct ModuloFunction {
 struct PowerFunction {
     static constexpr const char* name = "^";
 
-    static constexpr const char* alias = "POW";
-
     static function_set getFunctionSet();
+};
+
+struct PowFunction {
+    using alias = PowerFunction;
+
+    static constexpr const char* name = "POW";
 };
 
 struct AbsFunction {
@@ -112,9 +116,13 @@ struct CbrtFunction {
 struct CeilFunction {
     static constexpr const char* name = "CEIL";
 
-    static constexpr const char* alias = "CEILING";
-
     static function_set getFunctionSet();
+};
+
+struct CeilingFunction {
+    using alias = CeilFunction;
+
+    static constexpr const char* name = "CEILING";
 };
 
 struct CosFunction {
@@ -177,6 +185,12 @@ struct LogFunction {
     static constexpr const char* alias = "LOG10";
 
     static function_set getFunctionSet();
+};
+
+struct Log10Function {
+    using alias = LogFunction;
+
+    static constexpr const char* name = "LOG10";
 };
 
 struct Log2Function {

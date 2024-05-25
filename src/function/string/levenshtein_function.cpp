@@ -1,11 +1,9 @@
-#pragma once
-
-#include <vector>
-
-#include "common/types/ku_string.h"
+#include "function/string/vector_string_functions.h"
 
 namespace kuzu {
 namespace function {
+
+using namespace kuzu::common;
 
 struct Levenshtein {
 public:
@@ -51,6 +49,15 @@ public:
         result = distances0[right.len];
     }
 };
+
+function_set LevenshteinFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
+        LogicalTypeID::INT64,
+        ScalarFunction::BinaryExecFunction<ku_string_t, ku_string_t, int64_t, Levenshtein>));
+    return functionSet;
+}
 
 } // namespace function
 } // namespace kuzu

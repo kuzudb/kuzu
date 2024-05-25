@@ -48,9 +48,13 @@ struct ContainsFunction : public VectorStringFunction {
 struct EndsWithFunction : public VectorStringFunction {
     static constexpr const char* name = "ENDS_WITH";
 
-    static constexpr const char* alias = "SUFFIX";
-
     static function_set getFunctionSet();
+};
+
+struct SuffixFunction {
+    using alias = EndsWithFunction;
+
+    static constexpr const char* name = "SUFFIX";
 };
 
 struct LeftFunction : public VectorStringFunction {
@@ -62,9 +66,13 @@ struct LeftFunction : public VectorStringFunction {
 struct LowerFunction : public VectorStringFunction {
     static constexpr const char* name = "LOWER";
 
-    static constexpr const char* alias = "LCASE";
-
     static inline function_set getFunctionSet() { return getUnaryStrFunction<Lower>(name); }
+};
+
+struct LcaseFunction {
+    using alias = LowerFunction;
+
+    static constexpr const char* name = "LCASE";
 };
 
 struct LpadFunction : public VectorStringFunction {
@@ -112,17 +120,25 @@ struct RtrimFunction : public VectorStringFunction {
 struct StartsWithFunction : public VectorStringFunction {
     static constexpr const char* name = "STARTS_WITH";
 
-    static constexpr const char* alias = "PREFIX";
-
     static function_set getFunctionSet();
+};
+
+struct PrefixFunction {
+    using alias = StartsWithFunction;
+
+    static constexpr const char* name = "PREFIX";
 };
 
 struct SubStrFunction : public VectorStringFunction {
     static constexpr const char* name = "SUBSTR";
 
-    static constexpr const char* alias = "SUBSTRING";
-
     static function_set getFunctionSet();
+};
+
+struct SubstringFunction {
+    using alias = SubStrFunction;
+
+    static constexpr const char* name = "SUBSTRING";
 };
 
 struct TrimFunction : public VectorStringFunction {
@@ -134,9 +150,13 @@ struct TrimFunction : public VectorStringFunction {
 struct UpperFunction : public VectorStringFunction {
     static constexpr const char* name = "UPPER";
 
-    static constexpr const char* alias = "UCASE";
-
     static inline function_set getFunctionSet() { return getUnaryStrFunction<Upper>(name); }
+};
+
+struct UCaseFunction {
+    using alias = UpperFunction;
+
+    static constexpr const char* name = "UCASE";
 };
 
 struct RegexpFullMatchFunction : public VectorStringFunction {
@@ -177,8 +197,32 @@ struct LevenshteinFunction : public VectorStringFunction {
     static function_set getFunctionSet();
 };
 
-struct InitcapFunction : public VectorStringFunction {
+struct InitCapFunction : public VectorStringFunction {
     static constexpr const char* name = "INITCAP";
+
+    static function_set getFunctionSet();
+};
+
+struct StringSplitFunction {
+    static constexpr const char* name = "STRING_SPLIT";
+
+    static function_set getFunctionSet();
+};
+
+struct StrSplitFunction {
+    using alias = StringSplitFunction;
+
+    static constexpr const char* name = "STR_SPLIT";
+};
+
+struct StringToArrayFunction {
+    using alias = StringSplitFunction;
+
+    static constexpr const char* name = "STRING_TO_ARRAY";
+};
+
+struct SplitPartFunction {
+    static constexpr const char* name = "SPLIT_PART";
 
     static function_set getFunctionSet();
 };

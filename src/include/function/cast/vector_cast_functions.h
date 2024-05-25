@@ -24,9 +24,13 @@ struct CastFunction {
 struct CastToDateFunction {
     static constexpr const char* name = "TO_DATE";
 
-    static constexpr const char* alias = "DATE";
-
     static function_set getFunctionSet();
+};
+
+struct DateFunction {
+    using alias = CastToDateFunction;
+
+    static constexpr const char* name = "DATE";
 };
 
 struct CastToTimestampFunction {
@@ -38,33 +42,49 @@ struct CastToTimestampFunction {
 struct CastToIntervalFunction {
     static constexpr const char* name = "TO_INTERVAL";
 
-    static constexpr const char* alias = "INTERVAL";
-
     static function_set getFunctionSet();
+};
+
+struct IntervalFunctionAlias {
+    using alias = CastToIntervalFunction;
+
+    static constexpr const char* name = "INTERVAL";
 };
 
 struct CastToStringFunction {
     static constexpr const char* name = "TO_STRING";
 
-    static constexpr const char* alias = "STRING";
-
     static function_set getFunctionSet();
+};
+
+struct StringFunction {
+    using alias = CastToStringFunction;
+
+    static constexpr const char* name = "STRING";
 };
 
 struct CastToBlobFunction {
     static constexpr const char* name = "TO_BLOB";
 
-    static constexpr const char* alias = "BLOB";
-
     static function_set getFunctionSet();
+};
+
+struct BlobFunction {
+    using alias = CastToBlobFunction;
+
+    static constexpr const char* name = "BLOB";
 };
 
 struct CastToUUIDFunction {
     static constexpr const char* name = "TO_UUID";
 
-    static constexpr const char* alias = "UUID";
-
     static function_set getFunctionSet();
+};
+
+struct UUIDFunction {
+    using alias = CastToUUIDFunction;
+
+    static constexpr const char* name = "UUID";
 };
 
 struct CastToBoolFunction {

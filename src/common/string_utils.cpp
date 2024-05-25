@@ -25,18 +25,25 @@ std::vector<std::string> StringUtils::splitComma(const std::string& input) {
     return result;
 }
 
+uint64_t findDelim(const std::string& input, const std::string& delimiter, uint64_t prevPos) {
+    if (delimiter != "") {
+        return input.find(delimiter, prevPos);
+    }
+    return prevPos < input.size() - 1 ? prevPos + 1 : std::string::npos;
+}
+
 std::vector<std::string> StringUtils::split(const std::string& input, const std::string& delimiter,
     bool ignoreEmptyStringParts) {
     auto result = std::vector<std::string>();
     auto prevPos = 0u;
-    auto currentPos = input.find(delimiter, prevPos);
+    auto currentPos = findDelim(input, delimiter, prevPos);
     while (currentPos != std::string::npos) {
         auto stringPart = input.substr(prevPos, currentPos - prevPos);
         if (!ignoreEmptyStringParts || !stringPart.empty()) {
             result.push_back(input.substr(prevPos, currentPos - prevPos));
         }
-        prevPos = currentPos + 1;
-        currentPos = input.find(delimiter, prevPos);
+        prevPos = currentPos + delimiter.size();
+        currentPos = findDelim(input, delimiter, prevPos);
     }
     result.push_back(input.substr(prevPos));
     return result;

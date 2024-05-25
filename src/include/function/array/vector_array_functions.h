@@ -44,32 +44,52 @@ struct ArrayDotProductFunction {
 
 struct ArrayConcatFunction : public ListConcatFunction {
     static constexpr const char* name = "ARRAY_CONCAT";
+};
 
-    static constexpr const char* alias = "ARRAY_CAT";
+struct ArrayCatFunction {
+    using alias = ArrayConcatFunction;
+
+    static constexpr const char* name = "ARRAY_CAT";
 };
 
 struct ArrayAppendFunction : public ListAppendFunction {
     static constexpr const char* name = "ARRAY_APPEND";
+};
 
-    static constexpr const char* alias = "ARRAY_PUSH_BACK";
+struct ArrayPushBackFunction {
+    using alias = ArrayAppendFunction;
+
+    static constexpr const char* name = "ARRAY_PUSH_BACK";
 };
 
 struct ArrayPrependFunction : public ListPrependFunction {
     static constexpr const char* name = "ARRAY_PREPEND";
+};
 
-    static constexpr const char* alias = "ARRAY_PUSH_FRONT";
+struct ArrayPushFrontFunction {
+    using alias = ArrayPrependFunction;
+
+    static constexpr const char* name = "ARRAY_PUSH_FRONT";
 };
 
 struct ArrayPositionFunction : public ListPositionFunction {
     static constexpr const char* name = "ARRAY_POSITION";
+};
 
-    static constexpr const char* alias = "ARRAY_INDEXOF";
+struct ArrayIndexOfFunction {
+    using alias = ArrayPositionFunction;
+
+    static constexpr const char* name = "ARRAY_INDEXOF";
 };
 
 struct ArrayContainsFunction : public ListContainsFunction {
     static constexpr const char* name = "ARRAY_CONTAINS";
+};
 
-    static constexpr const char* alias = "ARRAY_HAS";
+struct ArrayHasFunction {
+    using alias = ArrayContainsFunction;
+
+    static constexpr const char* name = "ARRAY_HAS";
 };
 
 struct ArraySliceFunction : public ListSliceFunction {
