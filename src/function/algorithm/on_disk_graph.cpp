@@ -30,7 +30,6 @@ OnDiskGraph::OnDiskGraph(ClientContext* context, const std::string& nodeTableNam
     auto catalog = context->getCatalog();
     auto storage = context->getStorageManager();
     auto tx = context->getTx();
-    nbrScanState = std::make_unique<NbrScanState>(context->getMemoryManager());
     if (!nodeTableName.empty()) {
         auto nodeTableID = catalog->getTableID(tx, nodeTableName);
         nodeTable = ku_dynamic_cast<Table*, NodeTable*>(storage->getTable(nodeTableID));
@@ -54,17 +53,17 @@ uint64_t OnDiskGraph::getFwdDegreeOffset(common::offset_t offset) {
         ->getNodeRels(context->getTx(), offset);
 }
 
-void OnDiskGraph::initializeStateFwdNbrs(common::offset_t offset) {
+void OnDiskGraph::initializeStateFwdNbrs(common::offset_t offset, NbrScanState *nbrScanState) {
     nbrScanState->srcNodeIDVector->setValue<nodeID_t>(0, {offset, nodeTable->getTableID()});
     relTable->initializeReadState(context->getTx(), nbrScanState->direction,
         nbrScanState->columnIDs, *nbrScanState->srcNodeIDVector, *nbrScanState->fwdReadState.get());
 }
 
-bool OnDiskGraph::hasMoreFwdNbrs() {
+bool OnDiskGraph::hasMoreFwdNbrs(NbrScanState *nbrScanState) {
     return nbrScanState->fwdReadState->hasMoreToRead(context->getTx());
 }
 
-common::ValueVector* OnDiskGraph::getFwdNbrs() {
+common::ValueVector* OnDiskGraph::getFwdNbrs(NbrScanState *nbrScanState) {
     auto tx = context->getTx();
     auto readState = nbrScanState->fwdReadState.get();
     relTable->read(tx, *readState);

@@ -84,6 +84,14 @@ struct ShortestPathAlgoSharedState : public CallFuncSharedState {
           srcOffset{srcOffset}, ifeMorsel{std::move(ifeMorsel)} {}
 };
 
+struct ShortestPathAlgoLocalState : public TableFuncLocalState {
+    std::unique_ptr<NbrScanState> nbrScanState;
+
+    explicit ShortestPathAlgoLocalState(storage::MemoryManager *mm) :
+          nbrScanState{std::make_unique<NbrScanState>(mm)} {}
+
+};
+
 std::unique_ptr<TableFuncSharedState> shortestPathAlgoInitSharedState(
     TableFunctionInitInput& input) {
     auto bindData = ku_dynamic_cast<TableFuncBindData*, ShortestPathAlgoBindData*>(input.bindData);
@@ -95,6 +103,11 @@ std::unique_ptr<TableFuncSharedState> shortestPathAlgoInitSharedState(
     return std::make_unique<ShortestPathAlgoSharedState>(maxOffset, 0LU /* curOffset */,
         64LU /* hard-coding a morsel size for now*/, bindData->srcOffset, std::move(ifeMorsel),
         std::move(graph));
+}
+
+std::unique_ptr<TableFuncLocalState> shortestPathAlgoInitLocalState(TableFunctionInitInput&,
+    TableFuncSharedState*, storage::MemoryManager* memoryManager) {
+    return std::make_unique<ShortestPathAlgoLocalState>(memoryManager);
 }
 
 static uint64_t visitNbrs(IFEMorsel* ifeMorsel, ValueVector* dstNodeIDVector) {
@@ -124,22 +137,24 @@ static uint64_t visitNbrs(IFEMorsel* ifeMorsel, ValueVector* dstNodeIDVector) {
 static common::offset_t extendFrontierFunc(TableFuncInput& input, TableFuncOutput& /*output*/) {
     auto sharedState =
         ku_dynamic_cast<TableFuncSharedState*, ShortestPathAlgoSharedState*>(input.sharedState);
+    auto localState =
+        ku_dynamic_cast<TableFuncLocalState*, ShortestPathAlgoLocalState*>(input.localState);
     auto& graph = sharedState->graph;
     auto& ifeMorsel = sharedState->ifeMorsel;
-    auto morsel = ifeMorsel->getMorsel(sharedState->morselSize);
+    auto frontierMorsel = ifeMorsel->getMorsel(sharedState->morselSize);
     uint64_t numDstVisitedLocal = 0u;
-    ValueVector *dstNodeIDVector;
-    while (!ifeMorsel->isCompleteNoLock() && morsel.hasMoreToOutput()) {
-        for (auto i = morsel.startOffset; i < morsel.endOffset; i++) {
+    ValueVector* dstNodeIDVector;
+    while (!ifeMorsel->isCompleteNoLock() && frontierMorsel.hasMoreToOutput()) {
+        for (auto i = frontierMorsel.startOffset; i < frontierMorsel.endOffset; i++) {
             auto frontierOffset = ifeMorsel->bfsLevelNodeOffsets[i];
-            graph->initializeStateFwdNbrs(frontierOffset);
+            graph->initializeStateFwdNbrs(frontierOffset, localState->nbrScanState.get());
             do {
-                dstNodeIDVector = graph->getFwdNbrs();
+                dstNodeIDVector = graph->getFwdNbrs(localState->nbrScanState.get());
                 numDstVisitedLocal += visitNbrs(ifeMorsel.get(), dstNodeIDVector);
-            } while(graph->hasMoreFwdNbrs());
+            } while (graph->hasMoreFwdNbrs(localState->nbrScanState.get()));
         }
         ifeMorsel->mergeResults(numDstVisitedLocal);
-        morsel = ifeMorsel->getMorsel(sharedState->morselSize);
+        frontierMorsel = ifeMorsel->getMorsel(sharedState->morselSize);
     }
     return 0;
 }
@@ -201,7 +216,7 @@ function::function_set ShortestPath::getFunctionSet() {
     function_set functionSet;
     auto functionList = std::vector<table_func_t>({extendFrontierFunc, shortestPathOutputFunc});
     auto function = std::make_unique<TableFunction>(name, functionList, bindFunc,
-        shortestPathAlgoInitSharedState, CallFunction::initEmptyLocalState,
+        shortestPathAlgoInitSharedState, shortestPathAlgoInitLocalState,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
             LogicalTypeID::INT64, LogicalTypeID::INT64, LogicalTypeID::INT64});
     functionSet.push_back(std::move(function));
