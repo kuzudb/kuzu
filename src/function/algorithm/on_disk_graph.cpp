@@ -20,8 +20,8 @@ NbrScanState::NbrScanState(storage::MemoryManager* mm) {
     dstNodeIDVector->state = dstNodeIDVectorState;
     outputNodeIDVectors = std::vector<ValueVector*>();
     outputNodeIDVectors.push_back(dstNodeIDVector.get());
-    fwdReadState = std::make_unique<RelTableReadState>(
-        *srcNodeIDVector, columnIDs, outputNodeIDVectors, direction);
+    fwdReadState = std::make_unique<RelTableReadState>(*srcNodeIDVector, columnIDs,
+        outputNodeIDVectors, direction);
 }
 
 OnDiskGraph::OnDiskGraph(ClientContext* context, const std::string& nodeTableName,
@@ -51,19 +51,22 @@ common::offset_t OnDiskGraph::getNumEdges() {
 
 uint64_t OnDiskGraph::getFwdDegreeOffset(common::offset_t offset) {
     return relTable->getDirectedTableData(common::RelDataDirection::FWD)
-               ->getNodeRels(context->getTx(), offset);
+        ->getNodeRels(context->getTx(), offset);
 }
 
-common::ValueVector* OnDiskGraph::getFwdNbrs(common::offset_t offset) {
+void OnDiskGraph::initializeStateFwdNbrs(common::offset_t offset) {
     nbrScanState->srcNodeIDVector->setValue<nodeID_t>(0, {offset, nodeTable->getTableID()});
+    relTable->initializeReadState(context->getTx(), nbrScanState->direction,
+        nbrScanState->columnIDs, *nbrScanState->srcNodeIDVector, *nbrScanState->fwdReadState.get());
+}
+
+bool OnDiskGraph::hasMoreFwdNbrs() {
+    return nbrScanState->fwdReadState->hasMoreToRead(context->getTx());
+}
+
+common::ValueVector* OnDiskGraph::getFwdNbrs() {
     auto tx = context->getTx();
     auto readState = nbrScanState->fwdReadState.get();
-    if (nbrScanState->fwdReadState->hasMoreToRead(tx)) {
-        relTable->read(tx, *readState);
-        return nbrScanState->outputNodeIDVectors[0];
-    }
-    relTable->initializeReadState(tx, nbrScanState->direction, nbrScanState->columnIDs,
-        *nbrScanState->srcNodeIDVector, *readState);
     relTable->read(tx, *readState);
     return nbrScanState->outputNodeIDVectors[0];
 }

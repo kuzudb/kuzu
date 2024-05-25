@@ -32,7 +32,11 @@ public:
 
     uint64_t getFwdDegreeOffset(common::offset_t offset) override;
 
-    common::ValueVector* getFwdNbrs(common::offset_t offset) override;
+    void initializeStateFwdNbrs(common::offset_t offset) override;
+
+    inline bool hasMoreFwdNbrs() override;
+
+    common::ValueVector* getFwdNbrs() override;
 
 private:
     storage::NodeTable* nodeTable;

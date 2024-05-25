@@ -21,7 +21,11 @@ public:
 
     virtual uint64_t getFwdDegreeOffset(common::offset_t offset) = 0;
 
-    virtual common::ValueVector* getFwdNbrs(common::offset_t offset) = 0;
+    virtual void initializeStateFwdNbrs(common::offset_t offset) = 0;
+
+    virtual bool hasMoreFwdNbrs() = 0;
+
+    virtual common::ValueVector* getFwdNbrs() = 0;
 
 protected:
     main::ClientContext* context;

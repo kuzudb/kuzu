@@ -97,6 +97,27 @@ std::unique_ptr<TableFuncSharedState> shortestPathAlgoInitSharedState(
         std::move(graph));
 }
 
+static uint64_t visitNbrs(IFEMorsel* ifeMorsel, ValueVector* dstNodeIDVector) {
+    uint64_t numDstVisitedLocal = 0u;
+    for (auto j = 0u; j < dstNodeIDVector->state->selVector->selectedSize; j++) {
+        auto pos = dstNodeIDVector->state->selVector->selectedPositions[j];
+        auto dstNodeID = dstNodeIDVector->getValue<common::nodeID_t>(pos);
+        auto state = ifeMorsel->visitedNodes[dstNodeID.offset].load(std::memory_order_acq_rel);
+        if (state == NOT_VISITED_DST) {
+            auto tryCAS = ifeMorsel->visitedNodes[dstNodeID.offset].compare_exchange_strong(state,
+                VISITED_DST_NEW, std::memory_order_acq_rel);
+            if (tryCAS) {
+                numDstVisitedLocal++;
+                ifeMorsel->pathLength[dstNodeID.offset].store(ifeMorsel->currentLevel + 1,
+                    std::memory_order_relaxed);
+            }
+        } else if (state == NOT_VISITED) {
+            ifeMorsel->visitedNodes[dstNodeID.offset].store(VISITED_NEW, std::memory_order_acq_rel);
+        }
+    }
+    return numDstVisitedLocal;
+}
+
 /*
  * This will be main function for logic, doing frontier extension and updating state.
  */
@@ -107,28 +128,15 @@ static common::offset_t extendFrontierFunc(TableFuncInput& input, TableFuncOutpu
     auto& ifeMorsel = sharedState->ifeMorsel;
     auto morsel = ifeMorsel->getMorsel(sharedState->morselSize);
     uint64_t numDstVisitedLocal = 0u;
+    ValueVector *dstNodeIDVector;
     while (!ifeMorsel->isCompleteNoLock() && morsel.hasMoreToOutput()) {
         for (auto i = morsel.startOffset; i < morsel.endOffset; i++) {
             auto frontierOffset = ifeMorsel->bfsLevelNodeOffsets[i];
-            auto dstNodeIDVector = sharedState->graph->getFwdNbrs(frontierOffset);
-            for (auto j = 0u; j < dstNodeIDVector->state->selVector->selectedSize; j++) {
-                auto pos = dstNodeIDVector->state->selVector->selectedPositions[j];
-                auto dstNodeID = dstNodeIDVector->getValue<common::nodeID_t>(pos);
-                auto state =
-                    ifeMorsel->visitedNodes[dstNodeID.offset].load(std::memory_order_acq_rel);
-                if (state == NOT_VISITED_DST) {
-                    auto tryCAS = ifeMorsel->visitedNodes[dstNodeID.offset].compare_exchange_strong(
-                        state, VISITED_DST_NEW, std::memory_order_acq_rel);
-                    if (tryCAS) {
-                        numDstVisitedLocal++;
-                        ifeMorsel->pathLength[dstNodeID.offset].store(ifeMorsel->currentLevel + 1,
-                            std::memory_order_relaxed);
-                    }
-                } else if (state == NOT_VISITED) {
-                    ifeMorsel->visitedNodes[dstNodeID.offset].store(VISITED_NEW,
-                        std::memory_order_acq_rel);
-                }
-            }
+            graph->initializeStateFwdNbrs(frontierOffset);
+            do {
+                dstNodeIDVector = graph->getFwdNbrs();
+                numDstVisitedLocal += visitNbrs(ifeMorsel.get(), dstNodeIDVector);
+            } while(graph->hasMoreFwdNbrs());
         }
         ifeMorsel->mergeResults(numDstVisitedLocal);
         morsel = ifeMorsel->getMorsel(sharedState->morselSize);
