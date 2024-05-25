@@ -61,7 +61,7 @@ void AlgorithmRunner::initLocalStateInternal(ResultSet*, ExecutionContext* conte
 
 void AlgorithmRunner::executeInternal(ExecutionContext* executionContext) {
     if (isMaster) {
-        bool ret = graphAlgorithm->compute(this, executionContext, parallelUtils);
+        graphAlgorithm->compute(this, executionContext, parallelUtils);
     } else {
         runWorker();
     }

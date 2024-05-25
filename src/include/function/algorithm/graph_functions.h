@@ -14,7 +14,7 @@ struct GraphAlgorithm {
 public:
     GraphAlgorithm() {}
     virtual ~GraphAlgorithm() = default;
-    virtual bool compute(Sink *sink, ExecutionContext* executionContext,
+    virtual void compute(Sink *sink, ExecutionContext* executionContext,
         std::shared_ptr<ParallelUtils> parallelUtils) = 0;
 };
 
@@ -25,7 +25,7 @@ struct DemoAlgorithm : public GraphAlgorithm {
 public:
     DemoAlgorithm() {}
     static constexpr const char* name = "DEMO_ALGORITHM";
-    bool compute(Sink *sink, ExecutionContext* executionContext,
+    void compute(Sink *sink, ExecutionContext* executionContext,
         std::shared_ptr<ParallelUtils> parallelUtils) override;
     static function::function_set getFunctionSet();
 };
@@ -41,7 +41,7 @@ public:
     static constexpr const char* name = "SHORTEST_PATH";
     ShortestPathAlgoSharedState* getSharedState(Sink *sink);
     void incrementTableFuncIdx(Sink *sink);
-    bool compute(Sink *sink, ExecutionContext* executionContext,
+    void compute(Sink *sink, ExecutionContext* executionContext,
         std::shared_ptr<ParallelUtils> parallelUtils) override;
     static function::function_set getFunctionSet();
 };

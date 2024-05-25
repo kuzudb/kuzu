@@ -176,7 +176,7 @@ void ShortestPath::incrementTableFuncIdx(kuzu::processor::Sink* sink) {
     algorithmRunner->incrementTableFuncIdx();
 }
 
-bool ShortestPath::compute(Sink* sink, ExecutionContext* executionContext,
+void ShortestPath::compute(Sink* sink, ExecutionContext* executionContext,
     std::shared_ptr<ParallelUtils> parallelUtils) {
     auto shortestPathSharedState = getSharedState(sink);
     auto ifeMorsel = shortestPathSharedState->ifeMorsel.get();
