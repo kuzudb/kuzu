@@ -49,10 +49,10 @@ public:
 public:
     std::mutex mutex;
     uint8_t currentLevel;
-    uint64_t nextScanStartIdx;
+    std::atomic<uint64_t> nextScanStartIdx;
 
     // Visited state
-    uint64_t numVisitedDstNodes;
+    std::atomic<uint64_t> numVisitedDstNodes;
     uint64_t numDstNodesToVisit;
     std::vector<std::atomic_uint8_t> visitedNodes;
     std::vector<std::atomic_uint16_t> pathLength;
@@ -61,7 +61,7 @@ public:
     common::offset_t maxOffset;
     uint64_t upperBound;
     uint64_t lowerBound;
-    uint64_t nextDstScanStartIdx;
+    std::atomic<uint64_t> nextDstScanStartIdx;
 };
 
 }

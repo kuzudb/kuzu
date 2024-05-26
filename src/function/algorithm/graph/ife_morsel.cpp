@@ -1,4 +1,5 @@
 #include "function/algorithm/ife_morsel.h"
+
 #include "function/table/call_functions.h"
 
 namespace kuzu {
@@ -6,30 +7,34 @@ namespace graph {
 
 void IFEMorsel::initSourceNoLock(common::offset_t srcOffset) {
     visitedNodes[srcOffset].store(VISITED_DST, std::memory_order_acq_rel);
-    numVisitedDstNodes++;
+    numVisitedDstNodes.fetch_add(1);
     bfsLevelNodeOffsets.push_back(srcOffset);
 }
 
-function::CallFuncMorsel IFEMorsel::getMorsel(uint64_t &morselSize) {
-    std::unique_lock lck{mutex};
-    if (nextScanStartIdx >= bfsLevelNodeOffsets.size()) {
+function::CallFuncMorsel IFEMorsel::getMorsel(uint64_t& morselSize) {
+    auto curStartIdx = nextScanStartIdx.load(std::memory_order_acq_rel);
+    if (curStartIdx >= bfsLevelNodeOffsets.size()) {
         return function::CallFuncMorsel::createInvalidMorsel();
     }
-    auto startIdx = nextScanStartIdx;
-    auto endIdx = std::min(bfsLevelNodeOffsets.size(), nextScanStartIdx + morselSize);
-    nextScanStartIdx += morselSize;
-    return {startIdx, endIdx};
+    auto nextStartIdx = std::min(curStartIdx + morselSize, bfsLevelNodeOffsets.size());
+    while (!nextScanStartIdx.compare_exchange_strong(curStartIdx, nextStartIdx,
+        std::memory_order_acq_rel)) {
+        nextStartIdx = std::min(curStartIdx + morselSize, bfsLevelNodeOffsets.size());
+    }
+    return {curStartIdx, nextStartIdx};
 }
 
 function::CallFuncMorsel IFEMorsel::getDstWriteMorsel(uint64_t& morselSize) {
-    std::unique_lock lck{mutex};
-    if (nextDstScanStartIdx >= visitedNodes.size()) {
+    auto curStartIdx = nextDstScanStartIdx.load(std::memory_order_acq_rel);
+    if (curStartIdx >= visitedNodes.size()) {
         return function::CallFuncMorsel::createInvalidMorsel();
     }
-    auto startIdx = nextDstScanStartIdx;
-    auto endIdx = std::min(visitedNodes.size(), nextDstScanStartIdx + morselSize);
-    nextDstScanStartIdx += morselSize;
-    return {startIdx, endIdx};
+    auto nextStartIdx = std::min(curStartIdx + morselSize, visitedNodes.size());
+    while (!nextDstScanStartIdx.compare_exchange_strong(curStartIdx, nextStartIdx,
+        std::memory_order_acq_rel)) {
+        nextStartIdx = std::min(curStartIdx + morselSize, visitedNodes.size());
+    }
+    return {curStartIdx, nextStartIdx};
 }
 
 bool IFEMorsel::isCompleteNoLock() const {
@@ -39,15 +44,14 @@ bool IFEMorsel::isCompleteNoLock() const {
     if (bfsLevelNodeOffsets.empty()) {
         return true;
     }
-    if (numVisitedDstNodes == numDstNodesToVisit) {
+    if (numVisitedDstNodes.load(std::memory_order_acq_rel) == numDstNodesToVisit) {
         return true;
     }
     return false;
 }
 
 void IFEMorsel::mergeResults(uint64_t numDstVisitedLocal) {
-    std::unique_lock lck{mutex};
-    numVisitedDstNodes += numDstVisitedLocal;
+    numVisitedDstNodes.fetch_add(numDstVisitedLocal, std::memory_order_acq_rel);
 }
 
 void IFEMorsel::initializeNextFrontierNoLock() {
@@ -69,5 +73,5 @@ void IFEMorsel::initializeNextFrontierNoLock() {
     }
 }
 
-}
-}
+} // namespace graph
+} // namespace kuzu
