@@ -1,6 +1,6 @@
 #pragma once
 
-#include "function/algorithm/graph_functions.h"
+#include "function/algorithm/graph_algorithms.h"
 #include "function/algorithm/parallel_utils.h"
 #include "function/table_functions.h"
 #include "processor/operator/call/in_query_call.h"

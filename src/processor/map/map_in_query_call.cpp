@@ -1,4 +1,4 @@
-#include "function/algorithm/graph_functions.h"
+#include "function/algorithm/graph_algorithms.h"
 #include "function/algorithm/parallel_utils.h"
 #include "planner/operator/logical_in_query_call.h"
 #include "processor/operator/algorithm/algorithm_runner.h"

@@ -2,7 +2,7 @@
 
 #include "common/cast.h"
 #include "common/vector/value_vector.h"
-#include "function/algorithm/graph_functions.h"
+#include "function/algorithm/graph_algorithms.h"
 #include "processor/result/factorized_table.h"
 
 using namespace kuzu::processor;

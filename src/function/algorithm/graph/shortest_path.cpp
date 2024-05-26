@@ -2,7 +2,7 @@
 #include "common/exception/binder.h"
 #include "common/types/value/nested.h"
 #include "function/algorithm/graph.h"
-#include "function/algorithm/graph_functions.h"
+#include "function/algorithm/graph_algorithms.h"
 #include "function/algorithm/ife_morsel.h"
 #include "function/algorithm/on_disk_graph.h"
 #include "function/algorithm/parallel_utils.h"
