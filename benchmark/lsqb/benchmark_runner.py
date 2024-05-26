@@ -41,7 +41,15 @@ datasets = {'0.1', '0.3', '1', '3', '10', '30', '100'}
 
 csv_base_dir = os.path.join(os.getenv('CSV_DIR'), 'lsqb-datasets')
 serialized_base_dir = os.getenv('SERIALIZED_DIR')
+timeout = os.getenv('TIMEOUT', None)
+if timeout is not None:
+    timeout = int(timeout)
+
 benchmark_files = os.path.join(base_dir, 'queries')
+
+scale_factor = os.getenv('SCALE_FACTOR', '100')
+threads = os.getenv('THREADS', str(cpu_count))
+threads = int(threads)
 
 if csv_base_dir is None:
     logging.error("CSV_DIR is not set, exiting...")
@@ -107,12 +115,11 @@ def run_query(conn, query_spec):
     return execution_time, compiling_time, ram_change, result
 
 
-def run_kuzu(sf, serialized_graph_path):
-    numThreads = int(args.thread)
-
+def run_kuzu(sf, serialized_graph_path, num_threads):
     db = kuzu.Database(serialized_graph_path)
-    conn = kuzu.Connection(db, num_threads=numThreads)
-    conn.set_query_timeout(600000) # Set timeout to 10 minutes
+    conn = kuzu.Connection(db, num_threads=num_threads)
+    if timeout is not None:
+        conn.set_query_timeout(timeout)
 
     with open(os.path.join(benchmark_result_dir, "results.csv"), "a+") as results_file:
         for i in range(1, 10):
@@ -124,8 +131,8 @@ def run_kuzu(sf, serialized_graph_path):
                     # Warm up run
                     execution_time, compiling_time, memory, result = run_query(conn, query_spec)
                 except TimeoutError:
-                    logging.info("Query timed out after 10 minutes\n")
-                    results_file.write(f"KuzuDB\t{i}\t{numThreads} threads\t{sf}\tTimeout\tNA\tNA\t\n")
+                    logging.info("Query timed out after " + str(timeout/1000) + " seconds")
+                    results_file.write(f"KuzuDB\t{i}\t{num_threads} threads\t{sf}\tTimeout\tNA\tNA\t\n")
                     results_file.flush()
                     continue
 
@@ -166,35 +173,36 @@ def run_kuzu(sf, serialized_graph_path):
                 logging.info(f"Memory used: {memory / (1024 ** 3):.2f} GB\n")
 
                 # Upload the result
-                results_file.write(f"KuzuDB\t{i}\t{numThreads} threads\t{sf}\t{execution_time / 1000:.4f}\t{memory / (1024 ** 3):.2f} GB\t{result[0]}\n")
+                results_file.write(f"KuzuDB\t{i}\t{num_threads} threads\t{sf}\t{execution_time / 1000:.4f}\t{memory / (1024 ** 3):.2f} GB\t{result[0]}\n")
                 results_file.flush()
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--sf', default='100',
-                        help='scale factor to run benchmark')
-    parser.add_argument('--thread', default=str(cpu_count),
-                        help='number of threads to run benchmark')
-    return parser.parse_args()
-
 
 if __name__ == '__main__':
-    args = parse_args()
-    dataset_name = 'lsqb-sf' + args.sf + '-ku'
+    dataset_name = 'lsqb-sf' + scale_factor + '-ku'
     dataset_path = datasets_path[dataset_name]
 
-    logging.getLogger().setLevel(logging.INFO)
-    logging.info("Running benchmark for scale factor %s", args.sf)
+    logging.basicConfig(
+        level=logging.INFO,
+        handlers=[
+            logging.FileHandler(os.path.join("lsqb.log")),
+            logging.StreamHandler()
+        ]
+    )
+    logging.info("Running benchmark for scale factor %s", scale_factor)
     logging.info("Database version: %s", _get_kuzu_version())
     logging.info("CPU cores: %d", cpu_count)
-    logging.info("Using %s threads", args.thread)
+    logging.info("Using %s threads", threads)
     logging.info("Total memory: %d GiB", max_memory / 1024 ** 3)
-    logging.info("bm-size: %d MiB", bm_size)
+    logging.info("Buffer manager size: %d MiB", bm_size)
+    if timeout is not None:
+        logging.info("Query timeout: %d ms", timeout)
+    else:
+        logging.info("Query timeout is not set, queries will run until completion")
 
     # serialize dataset
     serialize_dataset(dataset_name)
 
     logging.info("Running benchmark...")
-    run_kuzu(args.sf, serialized_graphs_path[dataset_name])
+    run_kuzu(scale_factor, serialized_graphs_path[dataset_name], threads)
     logging.info("Benchmark finished")
