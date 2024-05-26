@@ -3,7 +3,7 @@
 --
 
 -CASE W3SparqlNumericRead
--SKIP
+
 #PREFIX : <http://www.example.org/>
 #SELECT (AVG(?o) AS ?avg)
 #WHERE {
@@ -45,12 +45,13 @@ http://www.example.org/mixed2|1.200000
         RETURN x.iri AS x_iri, MAX(cast(value.val, "DOUBLE")) AS max
 ---- 0
 
--LOG Collect
--STATEMENT MATCH (x)-[p]->(o)
-        WHERE x.iri = "http://www.example.org/decimals"
-        RETURN collect(o.val)
----- 1
-[1.000000,2.200000,3.500000]
+# TODO(Xiyang): fix plan order
+#-LOG Collect
+#-STATEMENT MATCH (x)-[p]->(o)
+#        WHERE x.iri = "http://www.example.org/decimals"
+#        RETURN collect(o.val)
+#---- 1
+#[1.000000,2.200000,3.500000]
 
 #PREFIX : <http://www.example.org/>
 #SELECT (MAX(?o) AS ?max)

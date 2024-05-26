@@ -93,22 +93,23 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
     auto rel = extend->getRel();
     auto extendDirection = extend->getDirection();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    auto inNodeVectorPos = DataPos(inFSchema->getExpressionPos(*boundNode->getInternalID()));
-    auto outNodeVectorPos = DataPos(outFSchema->getExpressionPos(*nbrNode->getInternalID()));
+    auto inNodeIDPos = getDataPos(*boundNode->getInternalID(), *inFSchema);
+    auto outNodeIDPos = getDataPos(*nbrNode->getInternalID(), *outFSchema);
     std::vector<DataPos> outVectorsPos;
-    outVectorsPos.push_back(outNodeVectorPos);
+    outVectorsPos.push_back(outNodeIDPos);
     for (auto& expression : extend->getProperties()) {
         outVectorsPos.emplace_back(outFSchema->getExpressionPos(*expression));
     }
+    auto scanInfo = ScanTableInfo(inNodeIDPos, outVectorsPos);
     if (!rel->isMultiLabeled() && !boundNode->isMultiLabeled() &&
         extendDirection != ExtendDirection::BOTH) {
         auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
             clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(),
                 rel->getSingleTableID()));
         auto relDataDirection = ExtendDirectionUtils::getRelDataDirection(extendDirection);
-        auto scanInfo = getRelTableScanInfo(relTableEntry, relDataDirection,
+        auto scanRelInfo = getRelTableScanInfo(relTableEntry, relDataDirection,
             clientContext->getStorageManager(), extend->getProperties());
-        return std::make_unique<ScanRelTable>(std::move(scanInfo), inNodeVectorPos, outVectorsPos,
+        return std::make_unique<ScanRelTable>(std::move(scanInfo), std::move(scanRelInfo),
             std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
     }
     // map to generic extend
@@ -120,7 +121,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
             scanners.insert({boundNodeTableID, std::move(scanner)});
         }
     }
-    return std::make_unique<ScanMultiRelTable>(std::move(scanners), inNodeVectorPos, outVectorsPos,
+    return std::make_unique<ScanMultiRelTable>(std::move(scanInfo), std::move(scanners),
         std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
 }
 

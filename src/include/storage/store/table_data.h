@@ -22,6 +22,11 @@ struct TableDataScanState {
 
     std::vector<common::column_id_t> columnIDs;
     std::vector<Column::ChunkState> chunkStates;
+
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<TableDataScanState&, TARGET&>(*this);
+    }
 };
 
 class LocalTableData;

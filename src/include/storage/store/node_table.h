@@ -80,6 +80,7 @@ public:
     void initializeScanState(transaction::Transaction* transaction,
         TableScanState& scanState) const override;
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
+    void lookup(transaction::Transaction* transaction, TableScanState& scanState);
 
     // Return the max node offset during insertions.
     common::offset_t validateUniquenessConstraint(transaction::Transaction* transaction,
