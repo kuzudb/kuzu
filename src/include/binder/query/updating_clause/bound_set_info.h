@@ -1,26 +1,26 @@
 #pragma once
 
 #include "binder/expression/expression.h"
-#include "update_table_type.h"
+#include "common/enums/table_type.h"
 
 namespace kuzu {
 namespace binder {
 
 struct BoundSetPropertyInfo {
-    UpdateTableType updateTableType;
-    std::shared_ptr<Expression> nodeOrRel;
+    common::TableType tableType;
+    std::shared_ptr<Expression> pattern;
     expression_pair setItem;
+    std::shared_ptr<Expression> pkExpr = nullptr;
 
-    BoundSetPropertyInfo(UpdateTableType updateTableType, std::shared_ptr<Expression> nodeOrRel,
+    BoundSetPropertyInfo(common::TableType tableType, std::shared_ptr<Expression> pattern,
         expression_pair setItem)
-        : updateTableType{updateTableType}, nodeOrRel{std::move(nodeOrRel)},
-          setItem{std::move(setItem)} {}
+        : tableType{tableType}, pattern{std::move(pattern)}, setItem{std::move(setItem)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundSetPropertyInfo);
 
 private:
     BoundSetPropertyInfo(const BoundSetPropertyInfo& other)
-        : updateTableType{other.updateTableType}, nodeOrRel{other.nodeOrRel},
-          setItem{other.setItem} {}
+        : tableType{other.tableType}, pattern{other.pattern}, setItem{other.setItem},
+          pkExpr{other.pkExpr} {}
 };
 
 } // namespace binder

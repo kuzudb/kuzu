@@ -14,12 +14,12 @@ bool BoundSetClause::hasInfo(const std::function<bool(const BoundSetPropertyInfo
     return false;
 }
 
-std::vector<const BoundSetPropertyInfo*> BoundSetClause::getInfos(
+std::vector<BoundSetPropertyInfo> BoundSetClause::getInfos(
     const std::function<bool(const BoundSetPropertyInfo&)>& check) const {
-    std::vector<const BoundSetPropertyInfo*> result;
+    std::vector<BoundSetPropertyInfo> result;
     for (auto& info : infos) {
         if (check(info)) {
-            result.push_back(&info);
+            result.push_back(info.copy());
         }
     }
     return result;

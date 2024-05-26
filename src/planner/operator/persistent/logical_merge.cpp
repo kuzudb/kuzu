@@ -37,5 +37,16 @@ f_group_pos_set LogicalMerge::getGroupsPosToFlatten() {
         childSchema);
 }
 
+std::unique_ptr<LogicalOperator> LogicalMerge::copy() {
+    auto merge = std::make_unique<LogicalMerge>(existenceMark, distinctMark, children[0]->copy());
+    merge->insertNodeInfos = copyVector(insertNodeInfos);
+    merge->insertRelInfos = copyVector(insertRelInfos);
+    merge->onCreateSetNodeInfos = copyVector(onCreateSetNodeInfos);
+    merge->onCreateSetRelInfos = copyVector(onCreateSetRelInfos);
+    merge->onMatchSetNodeInfos = copyVector(onMatchSetNodeInfos);
+    merge->onMatchSetRelInfos = copyVector(onMatchSetRelInfos);
+    return merge;
+}
+
 } // namespace planner
 } // namespace kuzu

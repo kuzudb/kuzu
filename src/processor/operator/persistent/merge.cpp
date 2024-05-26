@@ -81,5 +81,13 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
     return true;
 }
 
+std::unique_ptr<PhysicalOperator> Merge::clone() {
+    return std::make_unique<Merge>(existenceMark, distinctMark, copyVector(nodeInsertExecutors),
+        copyVector(relInsertExecutors), NodeSetExecutor::copy(onCreateNodeSetExecutors),
+        RelSetExecutor::copy(onCreateRelSetExecutors),
+        NodeSetExecutor::copy(onMatchNodeSetExecutors),
+        RelSetExecutor::copy(onMatchRelSetExecutors), children[0]->clone(), id, paramsString);
+}
+
 } // namespace processor
 } // namespace kuzu

@@ -1,80 +1,35 @@
 #pragma once
 
+#include "binder/query/updating_clause/bound_set_info.h"
 #include "planner/operator/logical_operator.h"
 
 namespace kuzu {
 namespace planner {
 
-struct LogicalSetPropertyInfo {
-    std::shared_ptr<binder::Expression> nodeOrRel;
-    binder::expression_pair setItem;
+class LogicalSetProperty final : public LogicalOperator {
+    static constexpr LogicalOperatorType type_ = LogicalOperatorType::SET_PROPERTY;
 
-    LogicalSetPropertyInfo(std::shared_ptr<binder::Expression> nodeOrRel,
-        binder::expression_pair setItem)
-        : nodeOrRel{std::move(nodeOrRel)}, setItem{std::move(setItem)} {}
-    LogicalSetPropertyInfo(const LogicalSetPropertyInfo& other)
-        : nodeOrRel{other.nodeOrRel}, setItem{other.setItem} {}
-
-    inline std::unique_ptr<LogicalSetPropertyInfo> copy() const {
-        return std::make_unique<LogicalSetPropertyInfo>(*this);
-    }
-
-    static std::vector<std::unique_ptr<LogicalSetPropertyInfo>> copy(
-        const std::vector<std::unique_ptr<LogicalSetPropertyInfo>>& infos);
-};
-
-class LogicalSetNodeProperty : public LogicalOperator {
 public:
-    LogicalSetNodeProperty(std::vector<std::unique_ptr<LogicalSetPropertyInfo>> infos,
+    LogicalSetProperty(std::vector<binder::BoundSetPropertyInfo> infos,
         std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::SET_NODE_PROPERTY, std::move(child)},
-          infos{std::move(infos)} {}
+        : LogicalOperator{type_, std::move(child)}, infos{std::move(infos)} {}
 
-    inline void computeFactorizedSchema() final { copyChildSchema(0); }
-    inline void computeFlatSchema() final { copyChildSchema(0); }
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
-    inline const std::vector<std::unique_ptr<LogicalSetPropertyInfo>>& getInfosRef() const {
-        return infos;
-    }
+    f_group_pos_set getGroupsPosToFlatten(uint32_t idx) const;
 
-    f_group_pos_set getGroupsPosToFlatten(uint32_t idx);
+    std::string getExpressionsForPrinting() const override;
 
-    std::string getExpressionsForPrinting() const final;
+    common::TableType getTableType() const;
+    const std::vector<binder::BoundSetPropertyInfo>& getInfos() const { return infos; }
 
-    inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalSetNodeProperty>(LogicalSetPropertyInfo::copy(infos),
-            children[0]->copy());
+    std::unique_ptr<LogicalOperator> copy() override {
+        return std::make_unique<LogicalSetProperty>(copyVector(infos), children[0]->copy());
     }
 
 private:
-    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> infos;
-};
-
-class LogicalSetRelProperty : public LogicalOperator {
-public:
-    LogicalSetRelProperty(std::vector<std::unique_ptr<LogicalSetPropertyInfo>> infos,
-        std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::SET_REL_PROPERTY, std::move(child)},
-          infos{std::move(infos)} {}
-
-    inline void computeFactorizedSchema() final { copyChildSchema(0); }
-    inline void computeFlatSchema() final { copyChildSchema(0); }
-
-    inline const std::vector<std::unique_ptr<LogicalSetPropertyInfo>>& getInfosRef() const {
-        return infos;
-    }
-
-    f_group_pos_set getGroupsPosToFlatten(uint32_t idx);
-
-    std::string getExpressionsForPrinting() const final;
-
-    inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalSetRelProperty>(LogicalSetPropertyInfo::copy(infos),
-            children[0]->copy());
-    }
-
-private:
-    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> infos;
+    std::vector<binder::BoundSetPropertyInfo> infos;
 };
 
 } // namespace planner

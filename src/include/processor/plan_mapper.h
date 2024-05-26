@@ -14,10 +14,10 @@ class ClientContext;
 
 namespace binder {
 struct BoundDeleteInfo;
-}
+struct BoundSetPropertyInfo;
+} // namespace binder
 
 namespace planner {
-struct LogicalSetPropertyInfo;
 struct LogicalInsertInfo;
 class LogicalCopyFrom;
 } // namespace planner
@@ -79,6 +79,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapMarkAccumulate(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDummyScan(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapInsert(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapSetProperty(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetNodeProperty(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetRelProperty(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDelete(planner::LogicalOperator* logicalOperator);
@@ -183,10 +184,10 @@ private:
         const planner::Schema& outSchema) const;
     std::unique_ptr<RelInsertExecutor> getRelInsertExecutor(const planner::LogicalInsertInfo* info,
         const planner::Schema& inSchema, const planner::Schema& outSchema) const;
-    std::unique_ptr<NodeSetExecutor> getNodeSetExecutor(planner::LogicalSetPropertyInfo* info,
-        const planner::Schema& inSchema) const;
-    std::unique_ptr<RelSetExecutor> getRelSetExecutor(planner::LogicalSetPropertyInfo* info,
-        const planner::Schema& inSchema) const;
+    std::unique_ptr<NodeSetExecutor> getNodeSetExecutor(const binder::BoundSetPropertyInfo& info,
+        const planner::Schema& schema) const;
+    std::unique_ptr<RelSetExecutor> getRelSetExecutor(const binder::BoundSetPropertyInfo& info,
+        const planner::Schema& schema) const;
     std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(const binder::BoundDeleteInfo& info,
         const planner::Schema& schema) const;
     std::unique_ptr<RelDeleteExecutor> getRelDeleteExecutor(const binder::BoundDeleteInfo& info,

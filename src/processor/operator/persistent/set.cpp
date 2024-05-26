@@ -19,6 +19,11 @@ bool SetNodeProperty::getNextTuplesInternal(ExecutionContext* context) {
     return true;
 }
 
+std::unique_ptr<PhysicalOperator> SetNodeProperty::clone() {
+    return std::make_unique<SetNodeProperty>(NodeSetExecutor::copy(executors), children[0]->clone(),
+        id, paramsString);
+}
+
 void SetRelProperty::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& executor : executors) {
         executor->init(resultSet, context);
@@ -33,6 +38,11 @@ bool SetRelProperty::getNextTuplesInternal(ExecutionContext* context) {
         executor->set(context);
     }
     return true;
+}
+
+std::unique_ptr<PhysicalOperator> SetRelProperty::clone() {
+    return std::make_unique<SetRelProperty>(RelSetExecutor::copy(executors), children[0]->clone(),
+        id, paramsString);
 }
 
 } // namespace processor

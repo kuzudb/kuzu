@@ -115,11 +115,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::INSERT: {
         physicalOperator = mapInsert(logicalOperator);
     } break;
-    case LogicalOperatorType::SET_NODE_PROPERTY: {
-        physicalOperator = mapSetNodeProperty(logicalOperator);
-    } break;
-    case LogicalOperatorType::SET_REL_PROPERTY: {
-        physicalOperator = mapSetRelProperty(logicalOperator);
+    case LogicalOperatorType::SET_PROPERTY: {
+        physicalOperator = mapSetProperty(logicalOperator);
     } break;
     case LogicalOperatorType::DELETE: {
         physicalOperator = mapDelete(logicalOperator);

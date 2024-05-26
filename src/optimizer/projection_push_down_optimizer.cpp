@@ -162,22 +162,7 @@ void ProjectionPushDownOptimizer::visitUnwind(planner::LogicalOperator* op) {
 void ProjectionPushDownOptimizer::visitInsert(planner::LogicalOperator* op) {
     auto insert = (LogicalInsert*)op;
     for (auto& info : insert->getInfosRef()) {
-        visitInsertInfo(&info);
-    }
-}
-
-void ProjectionPushDownOptimizer::visitInsertInfo(const planner::LogicalInsertInfo* info) {
-    if (info->tableType == common::TableType::REL) {
-        auto rel = (RelExpression*)info->pattern.get();
-        collectExpressionsInUse(rel->getSrcNode()->getInternalID());
-        collectExpressionsInUse(rel->getDstNode()->getInternalID());
-        collectExpressionsInUse(rel->getInternalIDProperty());
-    }
-    for (auto i = 0u; i < info->columnExprs.size(); ++i) {
-        if (info->isReturnColumnExprs[i]) {
-            collectExpressionsInUse(info->columnExprs[i]);
-        }
-        collectExpressionsInUse(info->columnDataExprs[i]);
+        visitInsertInfo(info);
     }
 }
 
@@ -208,62 +193,36 @@ void ProjectionPushDownOptimizer::visitDelete(planner::LogicalOperator* op) {
     }
 }
 
-// TODO(Xiyang): come back and refactor this after changing insert interface
 void ProjectionPushDownOptimizer::visitMerge(planner::LogicalOperator* op) {
     auto merge = (LogicalMerge*)op;
     if (merge->hasDistinctMark()) {
         collectExpressionsInUse(merge->getDistinctMark());
     }
     collectExpressionsInUse(merge->getExistenceMark());
-    for (auto& info : merge->getInsertNodeInfosRef()) {
-        visitInsertInfo(&info);
+    for (auto& info : merge->getInsertNodeInfos()) {
+        visitInsertInfo(info);
     }
-    for (auto& info : merge->getInsertRelInfosRef()) {
-        visitInsertInfo(&info);
+    for (auto& info : merge->getInsertRelInfos()) {
+        visitInsertInfo(info);
     }
-    for (auto& info : merge->getOnCreateSetNodeInfosRef()) {
-        auto node = (NodeExpression*)info->nodeOrRel.get();
-        collectExpressionsInUse(node->getInternalID());
-        collectExpressionsInUse(info->setItem.second);
+    for (auto& info : merge->getOnCreateSetNodeInfos()) {
+        visitSetInfo(info);
     }
-    for (auto& info : merge->getOnMatchSetNodeInfosRef()) {
-        auto node = (NodeExpression*)info->nodeOrRel.get();
-        collectExpressionsInUse(node->getInternalID());
-        collectExpressionsInUse(info->setItem.second);
+    for (auto& info : merge->getOnMatchSetNodeInfos()) {
+        visitSetInfo(info);
     }
-    for (auto& info : merge->getOnCreateSetRelInfosRef()) {
-        auto rel = (RelExpression*)info->nodeOrRel.get();
-        collectExpressionsInUse(rel->getSrcNode()->getInternalID());
-        collectExpressionsInUse(rel->getDstNode()->getInternalID());
-        collectExpressionsInUse(rel->getInternalIDProperty());
-        collectExpressionsInUse(info->setItem.second);
+    for (auto& info : merge->getOnCreateSetRelInfos()) {
+        visitSetInfo(info);
     }
-    for (auto& info : merge->getOnMatchSetRelInfosRef()) {
-        auto rel = (RelExpression*)info->nodeOrRel.get();
-        collectExpressionsInUse(rel->getSrcNode()->getInternalID());
-        collectExpressionsInUse(rel->getDstNode()->getInternalID());
-        collectExpressionsInUse(rel->getInternalIDProperty());
-        collectExpressionsInUse(info->setItem.second);
+    for (auto& info : merge->getOnMatchSetRelInfos()) {
+        visitSetInfo(info);
     }
 }
 
-void ProjectionPushDownOptimizer::visitSetNodeProperty(planner::LogicalOperator* op) {
-    auto setNodeProperty = (LogicalSetNodeProperty*)op;
-    for (auto& info : setNodeProperty->getInfosRef()) {
-        auto node = (NodeExpression*)info->nodeOrRel.get();
-        collectExpressionsInUse(node->getInternalID());
-        collectExpressionsInUse(info->setItem.second);
-    }
-}
-
-void ProjectionPushDownOptimizer::visitSetRelProperty(planner::LogicalOperator* op) {
-    auto setRelProperty = (LogicalSetRelProperty*)op;
-    for (auto& info : setRelProperty->getInfosRef()) {
-        auto rel = (RelExpression*)info->nodeOrRel.get();
-        collectExpressionsInUse(rel->getSrcNode()->getInternalID());
-        collectExpressionsInUse(rel->getDstNode()->getInternalID());
-        collectExpressionsInUse(rel->getInternalIDProperty());
-        collectExpressionsInUse(info->setItem.second);
+void ProjectionPushDownOptimizer::visitSetProperty(planner::LogicalOperator* op) {
+    auto set = op->ptrCast<LogicalSetProperty>();
+    for (auto& info : set->getInfos()) {
+        visitSetInfo(info);
     }
 }
 
@@ -273,6 +232,42 @@ void ProjectionPushDownOptimizer::visitCopyFrom(planner::LogicalOperator* op) {
         collectExpressionsInUse(expr);
     }
     collectExpressionsInUse(copyFrom->getInfo()->offset);
+}
+
+void ProjectionPushDownOptimizer::visitSetInfo(const binder::BoundSetPropertyInfo& info) {
+    switch (info.tableType) {
+    case TableType::NODE: {
+        auto& node = info.pattern->constCast<NodeExpression>();
+        collectExpressionsInUse(node.getInternalID());
+        if (info.pkExpr != nullptr) {
+            collectExpressionsInUse(info.pkExpr);
+        }
+    } break;
+    case TableType::REL: {
+        auto& rel = info.pattern->constCast<RelExpression>();
+        collectExpressionsInUse(rel.getSrcNode()->getInternalID());
+        collectExpressionsInUse(rel.getDstNode()->getInternalID());
+        collectExpressionsInUse(rel.getInternalIDProperty());
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
+    collectExpressionsInUse(info.setItem.second);
+}
+
+void ProjectionPushDownOptimizer::visitInsertInfo(const planner::LogicalInsertInfo& info) {
+    if (info.tableType == common::TableType::REL) {
+        auto& rel = info.pattern->constCast<RelExpression>();
+        collectExpressionsInUse(rel.getSrcNode()->getInternalID());
+        collectExpressionsInUse(rel.getDstNode()->getInternalID());
+        collectExpressionsInUse(rel.getInternalIDProperty());
+    }
+    for (auto i = 0u; i < info.columnExprs.size(); ++i) {
+        if (info.isReturnColumnExprs[i]) {
+            collectExpressionsInUse(info.columnExprs[i]);
+        }
+        collectExpressionsInUse(info.columnDataExprs[i]);
+    }
 }
 
 // See comments above this class for how to collect expressions in use.

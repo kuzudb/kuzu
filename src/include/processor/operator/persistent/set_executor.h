@@ -9,11 +9,25 @@
 namespace kuzu {
 namespace processor {
 
+struct NodeSetInfo {
+    DataPos nodeIDPos;
+    DataPos lhsPos;
+    DataPos pkPos = DataPos::getInvalidPos();
+
+    NodeSetInfo(DataPos nodeIDPos, DataPos lhsPos) : nodeIDPos{nodeIDPos}, lhsPos{lhsPos} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(NodeSetInfo);
+
+private:
+    NodeSetInfo(const NodeSetInfo& other)
+        : nodeIDPos{other.nodeIDPos}, lhsPos{other.lhsPos}, pkPos{other.pkPos} {}
+};
+
 class NodeSetExecutor {
 public:
-    NodeSetExecutor(const DataPos& nodeIDPos, const DataPos& lhsVectorPos,
-        std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
-        : nodeIDPos{nodeIDPos}, lhsVectorPos{lhsVectorPos}, evaluator{std::move(evaluator)} {}
+    NodeSetExecutor(NodeSetInfo info, std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
+        : info{std::move(info)}, evaluator{std::move(evaluator)} {}
+    NodeSetExecutor(const NodeSetExecutor& other)
+        : info{other.info.copy()}, evaluator{other.evaluator->clone()} {}
     virtual ~NodeSetExecutor() = default;
 
     void init(ResultSet* resultSet, ExecutionContext* context);
@@ -23,11 +37,10 @@ public:
     virtual std::unique_ptr<NodeSetExecutor> copy() const = 0;
 
     static std::vector<std::unique_ptr<NodeSetExecutor>> copy(
-        const std::vector<std::unique_ptr<NodeSetExecutor>>& executors);
+        const std::vector<std::unique_ptr<NodeSetExecutor>>& others);
 
 protected:
-    DataPos nodeIDPos;
-    DataPos lhsVectorPos;
+    NodeSetInfo info;
     std::unique_ptr<evaluator::ExpressionEvaluator> evaluator;
 
     common::ValueVector* nodeIDVector = nullptr;
@@ -35,52 +48,60 @@ protected:
     // (rhs)
     common::ValueVector* lhsVector = nullptr;
     common::ValueVector* rhsVector = nullptr;
+    common::ValueVector* pkVector = nullptr;
 };
 
-struct NodeSetInfo {
+struct ExtraNodeSetInfo {
     storage::NodeTable* table;
     common::column_id_t columnID;
+
+    ExtraNodeSetInfo(storage::NodeTable* table, common::column_id_t columnID)
+        : table{table}, columnID{columnID} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(ExtraNodeSetInfo);
+
+private:
+    ExtraNodeSetInfo(const ExtraNodeSetInfo& other)
+        : table{other.table}, columnID{other.columnID} {}
 };
 
 class SingleLabelNodeSetExecutor final : public NodeSetExecutor {
 public:
-    SingleLabelNodeSetExecutor(NodeSetInfo setInfo, const DataPos& nodeIDPos,
-        const DataPos& lhsVectorPos, std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
-        : NodeSetExecutor{nodeIDPos, lhsVectorPos, std::move(evaluator)}, setInfo{setInfo} {}
+    SingleLabelNodeSetExecutor(NodeSetInfo setInfo,
+        std::unique_ptr<evaluator::ExpressionEvaluator> evaluator, ExtraNodeSetInfo extraInfo)
+        : NodeSetExecutor{std::move(setInfo), std::move(evaluator)},
+          extraInfo{std::move(extraInfo)} {}
 
     SingleLabelNodeSetExecutor(const SingleLabelNodeSetExecutor& other)
-        : NodeSetExecutor{other.nodeIDPos, other.lhsVectorPos, other.evaluator->clone()},
-          setInfo(other.setInfo) {}
+        : NodeSetExecutor{other}, extraInfo(other.extraInfo.copy()) {}
 
     void set(ExecutionContext* context) override;
 
-    inline std::unique_ptr<NodeSetExecutor> copy() const override {
+    std::unique_ptr<NodeSetExecutor> copy() const override {
         return std::make_unique<SingleLabelNodeSetExecutor>(*this);
     }
 
 private:
-    NodeSetInfo setInfo;
+    ExtraNodeSetInfo extraInfo;
 };
 
 class MultiLabelNodeSetExecutor final : public NodeSetExecutor {
 public:
-    MultiLabelNodeSetExecutor(std::unordered_map<common::table_id_t, NodeSetInfo> tableIDToSetInfo,
-        const DataPos& nodeIDPos, const DataPos& lhsVectorPos,
-        std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
-        : NodeSetExecutor{nodeIDPos, lhsVectorPos, std::move(evaluator)},
-          tableIDToSetInfo{std::move(tableIDToSetInfo)} {}
+    MultiLabelNodeSetExecutor(NodeSetInfo info,
+        std::unique_ptr<evaluator::ExpressionEvaluator> evaluator,
+        common::table_id_map_t<ExtraNodeSetInfo> extraInfos)
+        : NodeSetExecutor{std::move(info), std::move(evaluator)},
+          extraInfos{std::move(extraInfos)} {}
     MultiLabelNodeSetExecutor(const MultiLabelNodeSetExecutor& other)
-        : NodeSetExecutor{other.nodeIDPos, other.lhsVectorPos, other.evaluator->clone()},
-          tableIDToSetInfo{other.tableIDToSetInfo} {}
+        : NodeSetExecutor{other}, extraInfos{copyMap(other.extraInfos)} {}
 
     void set(ExecutionContext* context) override;
 
-    inline std::unique_ptr<NodeSetExecutor> copy() const override {
+    std::unique_ptr<NodeSetExecutor> copy() const override {
         return std::make_unique<MultiLabelNodeSetExecutor>(*this);
     }
 
 private:
-    std::unordered_map<common::table_id_t, NodeSetInfo> tableIDToSetInfo;
+    common::table_id_map_t<ExtraNodeSetInfo> extraInfos;
 };
 
 class RelSetExecutor {
@@ -130,7 +151,7 @@ public:
 
     void set(ExecutionContext* context) override;
 
-    inline std::unique_ptr<RelSetExecutor> copy() const override {
+    std::unique_ptr<RelSetExecutor> copy() const override {
         return std::make_unique<SingleLabelRelSetExecutor>(*this);
     }
 
@@ -155,7 +176,7 @@ public:
 
     void set(ExecutionContext* context) override;
 
-    inline std::unique_ptr<RelSetExecutor> copy() const override {
+    std::unique_ptr<RelSetExecutor> copy() const override {
         return std::make_unique<MultiLabelRelSetExecutor>(*this);
     }
 

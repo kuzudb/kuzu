@@ -167,8 +167,8 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
     KU_ASSERT(nodeUpdateState.nodeIDVector.state->getSelVector().getSelSize() == 1 &&
               nodeUpdateState.propertyVector.state->getSelVector().getSelSize() == 1);
     if (nodeUpdateState.columnID == pkColumnID && pkIndex) {
-        updatePK(transaction, updateState.columnID, nodeUpdateState.nodeIDVector,
-            updateState.propertyVector);
+        pkIndex->delete_(nodeUpdateState.pkVector);
+        insertPK(nodeUpdateState.nodeIDVector, nodeUpdateState.propertyVector);
     }
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
@@ -248,34 +248,6 @@ void NodeTable::rollbackInMemory() {
     if (pkIndex) {
         pkIndex->rollbackInMemory();
     }
-}
-
-void NodeTable::updatePK(Transaction* transaction, column_id_t columnID, ValueVector& nodeIDVector,
-    const ValueVector& payloadVector) {
-    const auto pkVector =
-        std::make_unique<ValueVector>(getColumn(pkColumnID)->getDataType(), memoryManager);
-    pkVector->state = nodeIDVector.state;
-    auto outputVectors = std::vector<ValueVector*>{pkVector.get()};
-    auto columnIDs = {columnID};
-    const auto readState =
-        std::make_unique<NodeTableScanState>(&nodeIDVector, columnIDs, outputVectors);
-    const auto pos = nodeIDVector.state->getSelVector()[0];
-    const auto nodeOffset = nodeIDVector.readNodeOffset(pos);
-    readState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-    // TODO(Xiyang): This logic should be handled in the front-end, so when we update pk
-    // property, we need to scan out the original pk property first. try scan from committed
-    // data.
-    readState->source = TableScanSource::COMMITTED;
-    initializeScanState(transaction, *readState);
-    scan(transaction, *readState);
-    if (pkVector->state->getSelVector().getSelSize() == 0) {
-        // try scan from uncommitted data.
-        readState->source = TableScanSource::UNCOMMITTED;
-        initializeScanState(transaction, *readState);
-        scan(transaction, *readState);
-    }
-    pkIndex->delete_(pkVector.get());
-    insertPK(nodeIDVector, payloadVector);
 }
 
 void NodeTable::insertPK(const ValueVector& nodeIDVector, const ValueVector& pkVector) const {

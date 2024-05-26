@@ -67,11 +67,8 @@ void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
     case LogicalOperatorType::FILTER: {
         visitFilter(op);
     } break;
-    case LogicalOperatorType::SET_NODE_PROPERTY: {
-        visitSetNodeProperty(op);
-    } break;
-    case LogicalOperatorType::SET_REL_PROPERTY: {
-        visitSetRelProperty(op);
+    case LogicalOperatorType::SET_PROPERTY: {
+        visitSetProperty(op);
     } break;
     case LogicalOperatorType::DELETE: {
         visitDelete(op);
@@ -156,11 +153,8 @@ std::shared_ptr<LogicalOperator> LogicalOperatorVisitor::visitOperatorReplaceSwi
     case LogicalOperatorType::FILTER: {
         return visitFilterReplace(op);
     }
-    case LogicalOperatorType::SET_NODE_PROPERTY: {
-        return visitSetNodePropertyReplace(op);
-    }
-    case LogicalOperatorType::SET_REL_PROPERTY: {
-        return visitSetRelPropertyReplace(op);
+    case LogicalOperatorType::SET_PROPERTY: {
+        return visitSetPropertyReplace(op);
     }
     case LogicalOperatorType::DELETE: {
         return visitDeleteReplace(op);

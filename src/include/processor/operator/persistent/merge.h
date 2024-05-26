@@ -26,19 +26,13 @@ public:
           onMatchNodeSetExecutors{std::move(onMatchNodeSetExecutors)},
           onMatchRelSetExecutors{std::move(onMatchRelSetExecutors)} {}
 
-    inline bool isParallel() const final { return false; }
+    bool isParallel() const final { return false; }
 
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) final;
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
-    inline std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<Merge>(existenceMark, distinctMark, copyVector(nodeInsertExecutors),
-            copyVector(relInsertExecutors), NodeSetExecutor::copy(onCreateNodeSetExecutors),
-            RelSetExecutor::copy(onCreateRelSetExecutors),
-            NodeSetExecutor::copy(onMatchNodeSetExecutors),
-            RelSetExecutor::copy(onMatchRelSetExecutors), children[0]->clone(), id, paramsString);
-    }
+    std::unique_ptr<PhysicalOperator> clone() final;
 
 private:
     DataPos existenceMark;

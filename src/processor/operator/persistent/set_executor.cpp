@@ -6,22 +6,24 @@ namespace kuzu {
 namespace processor {
 
 void NodeSetExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
-    nodeIDVector = resultSet->getValueVector(nodeIDPos).get();
-    if (lhsVectorPos.dataChunkPos != INVALID_DATA_CHUNK_POS) {
-        lhsVector = resultSet->getValueVector(lhsVectorPos).get();
+    nodeIDVector = resultSet->getValueVector(info.nodeIDPos).get();
+    if (info.lhsPos.isValid()) {
+        lhsVector = resultSet->getValueVector(info.lhsPos).get();
     }
     evaluator->init(*resultSet, context->clientContext->getMemoryManager());
     rhsVector = evaluator->resultVector.get();
+    if (info.pkPos.isValid()) {
+        pkVector = resultSet->getValueVector(info.pkPos).get();
+    }
 }
 
 std::vector<std::unique_ptr<NodeSetExecutor>> NodeSetExecutor::copy(
-    const std::vector<std::unique_ptr<NodeSetExecutor>>& executors) {
-    std::vector<std::unique_ptr<NodeSetExecutor>> executorsCopy;
-    executorsCopy.reserve(executors.size());
-    for (auto& executor : executors) {
-        executorsCopy.push_back(executor->copy());
+    const std::vector<std::unique_ptr<NodeSetExecutor>>& others) {
+    std::vector<std::unique_ptr<NodeSetExecutor>> result;
+    for (auto& other : others) {
+        result.push_back(other->copy());
     }
-    return executorsCopy;
+    return result;
 }
 
 static void writeToPropertyVector(ValueVector* internalIDVector, ValueVector* propertyVector,
@@ -38,7 +40,7 @@ static void writeToPropertyVector(ValueVector* internalIDVector, ValueVector* pr
 }
 
 void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
-    if (setInfo.columnID == common::INVALID_COLUMN_ID) {
+    if (extraInfo.columnID == common::INVALID_COLUMN_ID) {
         if (lhsVector != nullptr) {
             for (auto i = 0u; i < nodeIDVector->state->getSelVector().getSelSize(); ++i) {
                 auto lhsPos = nodeIDVector->state->getSelVector()[i];
@@ -51,9 +53,10 @@ void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
     KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1);
     auto lhsPos = nodeIDVector->state->getSelVector()[0];
     auto rhsPos = rhsVector->state->getSelVector()[0];
-    auto updateState = std::make_unique<storage::NodeTableUpdateState>(setInfo.columnID,
+    auto updateState = std::make_unique<storage::NodeTableUpdateState>(extraInfo.columnID,
         *nodeIDVector, *rhsVector);
-    setInfo.table->update(context->clientContext->getTx(), *updateState);
+    updateState->pkVector = pkVector;
+    extraInfo.table->update(context->clientContext->getTx(), *updateState);
     if (lhsVector != nullptr) {
         writeToPropertyVector(nodeIDVector, lhsVector, lhsPos, rhsVector, rhsPos);
     }
@@ -65,17 +68,17 @@ void MultiLabelNodeSetExecutor::set(ExecutionContext* context) {
               rhsVector->state->getSelVector().getSelSize() == 1);
     auto lhsPos = nodeIDVector->state->getSelVector()[0];
     auto& nodeID = nodeIDVector->getValue<internalID_t>(lhsPos);
-    if (!tableIDToSetInfo.contains(nodeID.tableID)) {
+    if (!extraInfos.contains(nodeID.tableID)) {
         if (lhsVector != nullptr) {
             lhsVector->setNull(lhsPos, true);
         }
         return;
     }
     auto rhsPos = rhsVector->state->getSelVector()[0];
-    auto& setInfo = tableIDToSetInfo.at(nodeID.tableID);
-    auto updateState = std::make_unique<storage::NodeTableUpdateState>(setInfo.columnID,
+    auto& extraInfo = extraInfos.at(nodeID.tableID);
+    auto updateState = std::make_unique<storage::NodeTableUpdateState>(extraInfo.columnID,
         *nodeIDVector, *rhsVector);
-    setInfo.table->update(context->clientContext->getTx(), *updateState);
+    extraInfo.table->update(context->clientContext->getTx(), *updateState);
     if (lhsVector != nullptr) {
         KU_ASSERT(lhsVector->state->getSelVector().getSelSize() == 1);
         writeToPropertyVector(nodeIDVector, lhsVector, lhsPos, rhsVector, rhsPos);

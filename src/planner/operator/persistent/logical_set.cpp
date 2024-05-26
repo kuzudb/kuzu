@@ -1,63 +1,57 @@
 #include "planner/operator/persistent/logical_set.h"
 
+#include "binder/expression/expression_util.h"
 #include "binder/expression/rel_expression.h"
-#include "common/cast.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 
 using namespace kuzu::binder;
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace planner {
 
-std::vector<std::unique_ptr<LogicalSetPropertyInfo>> LogicalSetPropertyInfo::copy(
-    const std::vector<std::unique_ptr<LogicalSetPropertyInfo>>& infos) {
-    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> infosCopy;
-    infosCopy.reserve(infos.size());
-    for (auto& info : infos) {
-        infosCopy.push_back(info->copy());
-    }
-    return infosCopy;
+void LogicalSetProperty::computeFactorizedSchema() {
+    copyChildSchema(0);
 }
 
-std::string LogicalSetNodeProperty::getExpressionsForPrinting() const {
-    std::string result;
-    for (auto& info : infos) {
-        result += info->setItem.first->toString() + " = " + info->setItem.second->toString() + ",";
-    }
-    return result;
+void LogicalSetProperty::computeFlatSchema() {
+    copyChildSchema(0);
 }
 
-f_group_pos_set LogicalSetNodeProperty::getGroupsPosToFlatten(uint32_t idx) {
+f_group_pos_set LogicalSetProperty::getGroupsPosToFlatten(uint32_t idx) const {
     f_group_pos_set result;
-    auto node = common::ku_dynamic_cast<Expression*, NodeExpression*>(infos[idx]->nodeOrRel.get());
-    auto rhs = infos[idx]->setItem.second;
     auto childSchema = children[0]->getSchema();
-    result.insert(childSchema->getGroupPos(*node->getInternalID()));
-    for (auto groupPos : childSchema->getDependentGroupsPos(rhs)) {
+    auto& info = infos[idx];
+    switch (getTableType()) {
+    case TableType::NODE: {
+        auto node = info.pattern->constPtrCast<NodeExpression>();
+        result.insert(childSchema->getGroupPos(*node->getInternalID()));
+    } break;
+    case TableType::REL: {
+        auto rel = info.pattern->constPtrCast<RelExpression>();
+        result.insert(childSchema->getGroupPos(*rel->getSrcNode()->getInternalID()));
+        result.insert(childSchema->getGroupPos(*rel->getDstNode()->getInternalID()));
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
+    for (auto& groupPos : childSchema->getDependentGroupsPos(info.setItem.second)) {
         result.insert(groupPos);
     }
     return factorization::FlattenAll::getGroupsPosToFlatten(result, childSchema);
 }
 
-std::string LogicalSetRelProperty::getExpressionsForPrinting() const {
-    std::string result;
-    for (auto& info : infos) {
-        result += info->setItem.first->toString() + " = " + info->setItem.second->toString() + ",";
+std::string LogicalSetProperty::getExpressionsForPrinting() const {
+    std::string result = ExpressionUtil::toString(infos[0].setItem);
+    for (auto i = 1u; i < infos.size(); ++i) {
+        result += ExpressionUtil::toString(infos[i].setItem);
     }
     return result;
 }
 
-f_group_pos_set LogicalSetRelProperty::getGroupsPosToFlatten(uint32_t idx) {
-    f_group_pos_set result;
-    auto rel = common::ku_dynamic_cast<Expression*, RelExpression*>(infos[idx]->nodeOrRel.get());
-    auto rhs = infos[idx]->setItem.second;
-    auto childSchema = children[0]->getSchema();
-    result.insert(childSchema->getGroupPos(*rel->getSrcNode()->getInternalID()));
-    result.insert(childSchema->getGroupPos(*rel->getDstNode()->getInternalID()));
-    for (auto groupPos : childSchema->getDependentGroupsPos(rhs)) {
-        result.insert(groupPos);
-    }
-    return factorization::FlattenAll::getGroupsPosToFlatten(result, childSchema);
+common::TableType LogicalSetProperty::getTableType() const {
+    KU_ASSERT(!infos.empty());
+    return infos[0].tableType;
 }
 
 } // namespace planner

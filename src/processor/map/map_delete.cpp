@@ -79,7 +79,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteNode(LogicalOperator* log
 
 std::unique_ptr<RelDeleteExecutor> PlanMapper::getRelDeleteExecutor(const BoundDeleteInfo& info,
     const Schema& schema) const {
-    auto sm = clientContext->getStorageManager();
+    auto storageManager = clientContext->getStorageManager();
     auto& rel = info.pattern->constCast<RelExpression>();
     auto srcNodePos = getDataPos(*rel.getSrcNode()->getInternalID(), schema);
     auto dstNodePos = getDataPos(*rel.getDstNode()->getInternalID(), schema);
@@ -87,13 +87,13 @@ std::unique_ptr<RelDeleteExecutor> PlanMapper::getRelDeleteExecutor(const BoundD
     if (rel.isMultiLabeled()) {
         common::table_id_map_t<storage::RelTable*> tableIDToTableMap;
         for (auto tableID : rel.getTableIDs()) {
-            auto table = sm->getTable(tableID)->ptrCast<RelTable>();
+            auto table = storageManager->getTable(tableID)->ptrCast<RelTable>();
             tableIDToTableMap.insert({tableID, table});
         }
         return std::make_unique<MultiLabelRelDeleteExecutor>(std::move(tableIDToTableMap),
             srcNodePos, dstNodePos, relIDPos);
     }
-    auto table = sm->getTable(rel.getSingleTableID())->ptrCast<RelTable>();
+    auto table = storageManager->getTable(rel.getSingleTableID())->ptrCast<RelTable>();
     return std::make_unique<SingleLabelRelDeleteExecutor>(table, srcNodePos, dstNodePos, relIDPos);
 }
 

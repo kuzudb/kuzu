@@ -24,6 +24,7 @@ void UndoBufferIterator::iterate(F&& callback) {
             UndoBuffer::UndoEntryType entryType =
                 *reinterpret_cast<UndoBuffer::UndoEntryType const*>(current);
             // Only support catalog for now.
+            (void)entryType;
             KU_ASSERT(entryType == UndoBuffer::UndoEntryType::CATALOG_ENTRY);
             current += sizeof(UndoBuffer::UndoEntryType);
             auto entrySize = *reinterpret_cast<uint32_t const*>(current);
@@ -49,6 +50,7 @@ void UndoBufferIterator::reverseIterate(F&& callback) {
             UndoBuffer::UndoEntryType entryType =
                 *reinterpret_cast<UndoBuffer::UndoEntryType const*>(current);
             // Only support catalog for now.
+            (void)entryType;
             KU_ASSERT(entryType == UndoBuffer::UndoEntryType::CATALOG_ENTRY);
             current += sizeof(UndoBuffer::UndoEntryType);
             auto entrySize = *reinterpret_cast<uint32_t const*>(current);

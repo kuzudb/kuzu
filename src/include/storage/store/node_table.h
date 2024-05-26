@@ -43,6 +43,8 @@ struct NodeTableInsertState final : TableInsertState {
 
 struct NodeTableUpdateState final : TableUpdateState {
     common::ValueVector& nodeIDVector;
+    // pkVector is nullptr if we are not updating primary key column.
+    common::ValueVector* pkVector;
 
     NodeTableUpdateState(common::column_id_t columnID, common::ValueVector& nodeIDVector,
         const common::ValueVector& propertyVector)
@@ -124,8 +126,6 @@ public:
     }
 
 private:
-    void updatePK(transaction::Transaction* transaction, common::column_id_t columnID,
-        common::ValueVector& nodeIDVector, const common::ValueVector& payloadVector);
     void insertPK(const common::ValueVector& nodeIDVector,
         const common::ValueVector& pkVector) const;
     bool scanCommitted(transaction::Transaction* transaction, NodeTableScanState& scanState);

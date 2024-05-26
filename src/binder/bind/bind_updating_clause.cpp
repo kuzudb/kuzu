@@ -279,18 +279,19 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause&
 
 BoundSetPropertyInfo Binder::bindSetPropertyInfo(parser::ParsedExpression* lhs,
     parser::ParsedExpression* rhs) {
-    auto pattern = expressionBinder.bindExpression(*lhs->getChild(0));
-    auto isNode = ExpressionUtil::isNodePattern(*pattern);
-    auto isRel = ExpressionUtil::isRelPattern(*pattern);
+    auto expr = expressionBinder.bindExpression(*lhs->getChild(0));
+    auto isNode = ExpressionUtil::isNodePattern(*expr);
+    auto isRel = ExpressionUtil::isRelPattern(*expr);
     if (!isNode && !isRel) {
         throw BinderException(
             stringFormat("Cannot set expression {} with type {}. Expect node or rel pattern.",
-                pattern->toString(), expressionTypeToString(pattern->expressionType)));
+                expr->toString(), expressionTypeToString(expr->expressionType)));
     }
-    auto patternExpr = ku_dynamic_cast<Expression*, NodeOrRelExpression*>(pattern.get());
+    auto& patternExpr = expr->constCast<NodeOrRelExpression>();
     auto boundSetItem = bindSetItem(lhs, rhs);
+    // Validate not updating tables belong to RDFGraph.
     auto catalog = clientContext->getCatalog();
-    for (auto tableID : patternExpr->getTableIDs()) {
+    for (auto tableID : patternExpr.getTableIDs()) {
         auto tableName = catalog->getTableCatalogEntry(clientContext->getTx(), tableID)->getName();
         for (auto& rdfGraphEntry : catalog->getRdfGraphEntries(clientContext->getTx())) {
             if (rdfGraphEntry->isParent(tableID)) {
@@ -301,8 +302,20 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(parser::ParsedExpression* lhs,
             }
         }
     }
-    return BoundSetPropertyInfo(isNode ? UpdateTableType::NODE : UpdateTableType::REL, pattern,
-        std::move(boundSetItem));
+    if (isNode) {
+        auto info = BoundSetPropertyInfo(TableType::NODE, expr, boundSetItem);
+        auto& property = boundSetItem.first->constCast<PropertyExpression>();
+        for (auto id : patternExpr.getTableIDs()) {
+            if (property.isPrimaryKey(id)) {
+                info.pkExpr = boundSetItem.first;
+                if (info.pkExpr->dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
+                    throw BinderException("Updating SERIAL primary key is not supported.");
+                }
+            }
+        }
+        return info;
+    }
+    return BoundSetPropertyInfo(TableType::REL, expr, std::move(boundSetItem));
 }
 
 expression_pair Binder::bindSetItem(parser::ParsedExpression* lhs, parser::ParsedExpression* rhs) {

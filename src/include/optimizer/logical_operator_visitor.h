@@ -135,14 +135,8 @@ protected:
         return op;
     }
 
-    virtual void visitSetNodeProperty(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitSetNodePropertyReplace(
-        std::shared_ptr<planner::LogicalOperator> op) {
-        return op;
-    }
-
-    virtual void visitSetRelProperty(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitSetRelPropertyReplace(
+    virtual void visitSetProperty(planner::LogicalOperator*) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitSetPropertyReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }
