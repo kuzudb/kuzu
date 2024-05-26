@@ -315,9 +315,7 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(parser::ParsedExpression* lhs,
         }
         return info;
     }
-   return BoundSetPropertyInfo(TableType::REL, expr,
-        std::move(boundSetItem));
-
+    return BoundSetPropertyInfo(TableType::REL, expr, std::move(boundSetItem));
 }
 
 expression_pair Binder::bindSetItem(parser::ParsedExpression* lhs, parser::ParsedExpression* rhs) {

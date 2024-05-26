@@ -1,8 +1,8 @@
 #include "planner/operator/persistent/logical_set.h"
 
+#include "binder/expression/expression_util.h"
 #include "binder/expression/rel_expression.h"
 #include "planner/operator/factorization/flatten_resolver.h"
-#include "binder/expression/expression_util.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -26,12 +26,12 @@ f_group_pos_set LogicalSetProperty::getGroupsPosToFlatten(uint32_t idx) const {
     case TableType::NODE: {
         auto node = info.pattern->constPtrCast<NodeExpression>();
         result.insert(childSchema->getGroupPos(*node->getInternalID()));
-    } break ;
+    } break;
     case TableType::REL: {
         auto rel = info.pattern->constPtrCast<RelExpression>();
         result.insert(childSchema->getGroupPos(*rel->getSrcNode()->getInternalID()));
         result.insert(childSchema->getGroupPos(*rel->getDstNode()->getInternalID()));
-    } break ;
+    } break;
     default:
         KU_UNREACHABLE;
     }

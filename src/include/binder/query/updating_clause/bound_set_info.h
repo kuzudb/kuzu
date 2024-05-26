@@ -14,14 +14,13 @@ struct BoundSetPropertyInfo {
 
     BoundSetPropertyInfo(common::TableType tableType, std::shared_ptr<Expression> pattern,
         expression_pair setItem)
-        : tableType{tableType}, pattern{std::move(pattern)},
-          setItem{std::move(setItem)} {}
+        : tableType{tableType}, pattern{std::move(pattern)}, setItem{std::move(setItem)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundSetPropertyInfo);
 
 private:
     BoundSetPropertyInfo(const BoundSetPropertyInfo& other)
-        : tableType{other.tableType}, pattern{other.pattern},
-          setItem{other.setItem}, pkExpr{other.pkExpr} {}
+        : tableType{other.tableType}, pattern{other.pattern}, setItem{other.setItem},
+          pkExpr{other.pkExpr} {}
 };
 
 } // namespace binder

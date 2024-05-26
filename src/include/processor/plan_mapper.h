@@ -15,7 +15,7 @@ class ClientContext;
 namespace binder {
 struct BoundDeleteInfo;
 struct BoundSetPropertyInfo;
-}
+} // namespace binder
 
 namespace planner {
 struct LogicalInsertInfo;

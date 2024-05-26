@@ -14,8 +14,7 @@ struct NodeSetInfo {
     DataPos lhsPos;
     DataPos pkPos = DataPos::getInvalidPos();
 
-    NodeSetInfo(DataPos nodeIDPos, DataPos lhsPos)
-        : nodeIDPos{nodeIDPos}, lhsPos{lhsPos} {}
+    NodeSetInfo(DataPos nodeIDPos, DataPos lhsPos) : nodeIDPos{nodeIDPos}, lhsPos{lhsPos} {}
     EXPLICIT_COPY_DEFAULT_MOVE(NodeSetInfo);
 
 private:
@@ -37,7 +36,8 @@ public:
 
     virtual std::unique_ptr<NodeSetExecutor> copy() const = 0;
 
-    static std::vector<std::unique_ptr<NodeSetExecutor>> copy(const std::vector<std::unique_ptr<NodeSetExecutor>>& others);
+    static std::vector<std::unique_ptr<NodeSetExecutor>> copy(
+        const std::vector<std::unique_ptr<NodeSetExecutor>>& others);
 
 protected:
     NodeSetInfo info;
@@ -66,8 +66,10 @@ private:
 
 class SingleLabelNodeSetExecutor final : public NodeSetExecutor {
 public:
-    SingleLabelNodeSetExecutor(NodeSetInfo setInfo, std::unique_ptr<evaluator::ExpressionEvaluator> evaluator, ExtraNodeSetInfo extraInfo)
-        : NodeSetExecutor{std::move(setInfo), std::move(evaluator)}, extraInfo{std::move(extraInfo)} {}
+    SingleLabelNodeSetExecutor(NodeSetInfo setInfo,
+        std::unique_ptr<evaluator::ExpressionEvaluator> evaluator, ExtraNodeSetInfo extraInfo)
+        : NodeSetExecutor{std::move(setInfo), std::move(evaluator)},
+          extraInfo{std::move(extraInfo)} {}
 
     SingleLabelNodeSetExecutor(const SingleLabelNodeSetExecutor& other)
         : NodeSetExecutor{other}, extraInfo(other.extraInfo.copy()) {}
@@ -85,7 +87,8 @@ private:
 class MultiLabelNodeSetExecutor final : public NodeSetExecutor {
 public:
     MultiLabelNodeSetExecutor(NodeSetInfo info,
-        std::unique_ptr<evaluator::ExpressionEvaluator> evaluator, common::table_id_map_t<ExtraNodeSetInfo> extraInfos)
+        std::unique_ptr<evaluator::ExpressionEvaluator> evaluator,
+        common::table_id_map_t<ExtraNodeSetInfo> extraInfos)
         : NodeSetExecutor{std::move(info), std::move(evaluator)},
           extraInfos{std::move(extraInfos)} {}
     MultiLabelNodeSetExecutor(const MultiLabelNodeSetExecutor& other)

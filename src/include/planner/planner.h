@@ -194,7 +194,8 @@ private:
     void appendInsertRel(const std::vector<const binder::BoundInsertInfo*>& boundInsertInfos,
         LogicalPlan& plan);
 
-    void appendSetProperty(const std::vector<binder::BoundSetPropertyInfo>& infos, LogicalPlan& plan);
+    void appendSetProperty(const std::vector<binder::BoundSetPropertyInfo>& infos,
+        LogicalPlan& plan);
     void appendDelete(const std::vector<binder::BoundDeleteInfo>& infos, LogicalPlan& plan);
     std::unique_ptr<LogicalInsertInfo> createLogicalInsertInfo(const binder::BoundInsertInfo* info);
 

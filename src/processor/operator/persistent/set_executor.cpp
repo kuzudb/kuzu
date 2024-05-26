@@ -17,7 +17,8 @@ void NodeSetExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     }
 }
 
-std::vector<std::unique_ptr<NodeSetExecutor>> NodeSetExecutor::copy(const std::vector<std::unique_ptr<NodeSetExecutor>>& others) {
+std::vector<std::unique_ptr<NodeSetExecutor>> NodeSetExecutor::copy(
+    const std::vector<std::unique_ptr<NodeSetExecutor>>& others) {
     std::vector<std::unique_ptr<NodeSetExecutor>> result;
     for (auto& other : others) {
         result.push_back(other->copy());

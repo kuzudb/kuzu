@@ -16,7 +16,8 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-static ExtraNodeSetInfo getExtraNodeSetInfo(main::ClientContext* context, common::table_id_t tableID, const PropertyExpression& propertyExpr) {
+static ExtraNodeSetInfo getExtraNodeSetInfo(main::ClientContext* context,
+    common::table_id_t tableID, const PropertyExpression& propertyExpr) {
     auto storageManager = context->getStorageManager();
     auto catalog = context->getCatalog();
     auto table = storageManager->getTable(tableID)->ptrCast<NodeTable>();
@@ -29,8 +30,8 @@ static ExtraNodeSetInfo getExtraNodeSetInfo(main::ClientContext* context, common
     return ExtraNodeSetInfo(table, columnID);
 }
 
-std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
-    const BoundSetPropertyInfo& info, const Schema& schema) const {
+std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(const BoundSetPropertyInfo& info,
+    const Schema& schema) const {
     auto& node = info.pattern->constCast<NodeExpression>();
     auto nodeIDPos = getDataPos(*node.getInternalID(), schema);
     auto& property = info.setItem.first->constCast<PropertyExpression>();
@@ -48,17 +49,20 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
         for (auto tableID : node.getTableIDs()) {
             auto extraInfo = getExtraNodeSetInfo(clientContext, tableID, property);
             if (extraInfo.columnID == INVALID_COLUMN_ID) {
-                continue ;
+                continue;
             }
             extraInfos.insert({tableID, std::move(extraInfo)});
         }
-        return std::make_unique<MultiLabelNodeSetExecutor>(std::move(setInfo), std::move(evaluator), std::move(extraInfos));
+        return std::make_unique<MultiLabelNodeSetExecutor>(std::move(setInfo), std::move(evaluator),
+            std::move(extraInfos));
     }
     auto extraInfo = getExtraNodeSetInfo(clientContext, node.getSingleTableID(), property);
-    return std::make_unique<SingleLabelNodeSetExecutor>(std::move(setInfo), std::move(evaluator), std::move(extraInfo));
+    return std::make_unique<SingleLabelNodeSetExecutor>(std::move(setInfo), std::move(evaluator),
+        std::move(extraInfo));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapSetProperty(planner::LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapSetProperty(
+    planner::LogicalOperator* logicalOperator) {
     auto set = logicalOperator->constPtrCast<LogicalSetProperty>();
     switch (set->getTableType()) {
     case TableType::NODE: {
@@ -84,7 +88,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetNodeProperty(LogicalOperator
         getOperatorID(), set->getExpressionsForPrinting());
 }
 
-std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(const BoundSetPropertyInfo& info, const Schema& schema) const {
+std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(const BoundSetPropertyInfo& info,
+    const Schema& schema) const {
     auto storageManager = clientContext->getStorageManager();
     auto catalog = clientContext->getCatalog();
     auto& rel = info.pattern->constCast<RelExpression>();
@@ -117,8 +122,8 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(const BoundSetProp
     auto columnID = common::INVALID_COLUMN_ID;
     if (property.hasPropertyID(tableID)) {
         auto propertyID = property.getPropertyID(tableID);
-        columnID = catalog->getTableCatalogEntry(clientContext->getTx(), tableID)
-                       ->getColumnID(propertyID);
+        columnID =
+            catalog->getTableCatalogEntry(clientContext->getTx(), tableID)->getColumnID(propertyID);
     }
     return std::make_unique<SingleLabelRelSetExecutor>(table, columnID, srcNodePos, dstNodePos,
         relIDPos, propertyPos, std::move(evaluator));

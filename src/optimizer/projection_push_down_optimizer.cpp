@@ -242,13 +242,13 @@ void ProjectionPushDownOptimizer::visitSetInfo(const binder::BoundSetPropertyInf
         if (info.pkExpr != nullptr) {
             collectExpressionsInUse(info.pkExpr);
         }
-    } break ;
+    } break;
     case TableType::REL: {
         auto& rel = info.pattern->constCast<RelExpression>();
         collectExpressionsInUse(rel.getSrcNode()->getInternalID());
         collectExpressionsInUse(rel.getDstNode()->getInternalID());
         collectExpressionsInUse(rel.getInternalIDProperty());
-    } break ;
+    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -269,7 +269,6 @@ void ProjectionPushDownOptimizer::visitInsertInfo(const planner::LogicalInsertIn
         collectExpressionsInUse(info.columnDataExprs[i]);
     }
 }
-
 
 // See comments above this class for how to collect expressions in use.
 void ProjectionPushDownOptimizer::collectExpressionsInUse(

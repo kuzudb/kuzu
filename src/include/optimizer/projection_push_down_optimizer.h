@@ -37,7 +37,7 @@ private:
     void visitProjection(planner::LogicalOperator* op) override;
     void visitOrderBy(planner::LogicalOperator* op) override;
     void visitUnwind(planner::LogicalOperator* op) override;
-    void visitSetProperty(planner::LogicalOperator * op) override;
+    void visitSetProperty(planner::LogicalOperator* op) override;
     void visitInsert(planner::LogicalOperator* op) override;
     void visitDelete(planner::LogicalOperator* op) override;
     void visitMerge(planner::LogicalOperator* op) override;

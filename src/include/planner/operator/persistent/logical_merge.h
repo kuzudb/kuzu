@@ -1,8 +1,8 @@
 #pragma once
 
+#include "binder/query/updating_clause/bound_set_info.h"
 #include "planner/operator/logical_operator.h"
 #include "planner/operator/persistent/logical_insert.h"
-#include "binder/query/updating_clause/bound_set_info.h"
 
 namespace kuzu {
 namespace planner {
@@ -12,10 +12,9 @@ class LogicalMerge final : public LogicalOperator {
 
 public:
     LogicalMerge(std::shared_ptr<binder::Expression> existenceMark,
-        std::shared_ptr<binder::Expression> distinctMark,
-        std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{type_, std::move(child)},
-          existenceMark{std::move(existenceMark)}, distinctMark{std::move(distinctMark)} {}
+        std::shared_ptr<binder::Expression> distinctMark, std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{type_, std::move(child)}, existenceMark{std::move(existenceMark)},
+          distinctMark{std::move(distinctMark)} {}
 
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
@@ -28,18 +27,11 @@ public:
     bool hasDistinctMark() const { return distinctMark != nullptr; }
     std::shared_ptr<binder::Expression> getDistinctMark() const { return distinctMark; }
 
-
-    void addInsertNodeInfo(LogicalInsertInfo info) {
-        insertNodeInfos.push_back(std::move(info));
-    }
+    void addInsertNodeInfo(LogicalInsertInfo info) { insertNodeInfos.push_back(std::move(info)); }
     const std::vector<LogicalInsertInfo>& getInsertNodeInfos() const { return insertNodeInfos; }
 
-
-    void addInsertRelInfo(LogicalInsertInfo info) {
-        insertRelInfos.push_back(std::move(info));
-    }
+    void addInsertRelInfo(LogicalInsertInfo info) { insertRelInfos.push_back(std::move(info)); }
     const std::vector<LogicalInsertInfo>& getInsertRelInfos() const { return insertRelInfos; }
-
 
     void addOnCreateSetNodeInfo(binder::BoundSetPropertyInfo info) {
         onCreateSetNodeInfos.push_back(std::move(info));

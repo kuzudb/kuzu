@@ -468,8 +468,7 @@ void Column::readFromPage(Transaction* transaction, page_idx_t pageIdx,
     bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, func);
 }
 
-static bool sanityCheckForWrites(const ColumnChunkMetadata& metadata,
-    const LogicalType& dataType) {
+static bool sanityCheckForWrites(const ColumnChunkMetadata& metadata, const LogicalType& dataType) {
     if (metadata.compMeta.compression == CompressionType::CONSTANT) {
         return metadata.numPages == 0;
     }

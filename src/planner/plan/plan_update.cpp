@@ -78,8 +78,8 @@ void Planner::planMergeClause(const BoundUpdatingClause* updatingClause, Logical
     auto existenceMark = mergeClause->getExistenceMark();
     planOptionalMatch(*mergeClause->getQueryGraphCollection(), predicates, corrExprs, existenceMark,
         plan);
-    auto merge = std::make_shared<LogicalMerge>(existenceMark, distinctMark,
-        plan.getLastOperator());
+    auto merge =
+        std::make_shared<LogicalMerge>(existenceMark, distinctMark, plan.getLastOperator());
     if (mergeClause->hasInsertNodeInfo()) {
         for (auto& info : mergeClause->getInsertNodeInfos()) {
             merge->addInsertNodeInfo(createLogicalInsertInfo(info)->copy());
