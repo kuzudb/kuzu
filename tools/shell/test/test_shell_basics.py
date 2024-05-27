@@ -107,6 +107,15 @@ def test_column_truncation(temp_db, csv_path) -> None:
     result.check_stdout("| ... |")
     result.check_stdout("(13 columns, 4 shown)")
 
+    # test column name truncation
+    long_name = "a" * 100
+    test = ShellTest().add_argument(temp_db).statement(f'RETURN "databases rule" AS {long_name};')
+    result = test.run()
+    result.check_stdout("-" * 80)
+    result.check_not_stdout("-" * 81)
+    result.check_stdout(f"| {long_name[:73]}... |")
+    result.check_stdout("| databases rule")
+
 
 def long_messages(temp_db) -> None:
     long_message = "-" * 4096
