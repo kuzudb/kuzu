@@ -48,7 +48,8 @@ struct NodeTableUpdateState final : TableUpdateState {
 
     NodeTableUpdateState(common::column_id_t columnID, common::ValueVector& nodeIDVector,
         const common::ValueVector& propertyVector)
-        : TableUpdateState{columnID, propertyVector}, nodeIDVector{nodeIDVector} {}
+        : TableUpdateState{columnID, propertyVector}, nodeIDVector{nodeIDVector},
+          pkVector{nullptr} {}
 };
 
 struct NodeTableDeleteState final : TableDeleteState {
