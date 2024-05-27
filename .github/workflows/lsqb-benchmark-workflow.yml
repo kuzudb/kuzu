@@ -1,11 +1,26 @@
 name: LSQB-Benchmark
 
-env:
-  RUNTIME_CHECKS: 1
-  WERROR: 1
-
 on:
   workflow_dispatch:
+    inputs:
+      scale_factor:
+        description: 'Scale factor'
+        required: true
+        default: "0.3"
+        type: choice
+        options:
+          - "0.1"
+          - "0.3"
+          - "1"
+          - "3"
+          - "10"
+          - "30"
+          - "100"
+      timeout:
+        description: 'Timeout in milliseconds'
+        required: true
+        default: 60000
+        type: number
 
 jobs:
   benchmark:
@@ -13,6 +28,8 @@ jobs:
     env:
       NUM_THREADS: 30
       GEN: ninja
+      TIMEOUT: ${{ github.event.inputs.timeout }}
+      SCALE_FACTOR: ${{ github.event.inputs.scale_factor }}
     runs-on: kuzu-self-hosted-benchmarking
     steps:
       - uses: actions/checkout@v3
@@ -23,10 +40,19 @@ jobs:
           make python
 
       - name: Benchmark
-        run: python3 benchmark/lsqb/benchmark_runner.py --sf 100 --thread 30
+        run: python3 benchmark/lsqb/benchmark_runner.py
 
-      - name: Upload Result CSV
+      - name: Upload result csv
         uses: actions/upload-artifact@v3
         with:
           name: lsqb-benchmark-result
           path: /tmp/benchmark_result/results.csv
+      
+      - name: Upload log
+        uses: actions/upload-artifact@v3
+        with:
+          name: lsqb-benchmark-log
+          path: lsqb.log
+
+      - name: Report result to server
+        run:  python3 benchmark/lsqb/results_reporter.py
