@@ -8,7 +8,7 @@ import psutil
 from serializer import _get_kuzu_version
 import multiprocessing
 
-# Get the number of CPUs, try to use sched_getaffinity if available to account 
+# Get the number of CPUs, try to use sched_getaffinity if available to account
 # for Docker CPU limits
 try:
     cpu_count = len(os.sched_getaffinity(0))
@@ -16,7 +16,7 @@ except AttributeError:
     cpu_count = multiprocessing.cpu_count()
 
 # Use 90% of the available memory size as bm-size
-# First try to read the memory limit from cgroup to account for Docker RAM 
+# First try to read the memory limit from cgroup to account for Docker RAM
 # limit, if not available use the total memory size
 try:
     # cgroup v2
@@ -25,30 +25,31 @@ except FileNotFoundError:
     try:
         # cgroup v1
         max_memory = int(
-            open("/sys/fs/cgroup/memory/memory.limit_in_bytes").readline().strip())
+            open("/sys/fs/cgroup/memory/memory.limit_in_bytes").readline().strip()
+        )
     except FileNotFoundError:
         max_memory = psutil.virtual_memory().total
 
-bm_size = int((max_memory / 1024 ** 2) * .9)
+bm_size = int((max_memory / 1024**2) * 0.9)
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
 # import kuzu Python API
-sys.path.append(os.path.join(base_dir, '..', '..'))
+sys.path.append(os.path.join(base_dir, "..", ".."))
 import tools.python_api.build.kuzu as kuzu
 
 # dataset registration
-datasets = {'0.1', '0.3', '1', '3', '10', '30', '100'}
+datasets = {"0.1", "0.3", "1", "3", "10", "30", "100"}
 
-csv_base_dir = os.path.join(os.getenv('CSV_DIR'), 'lsqb-datasets')
-serialized_base_dir = os.getenv('SERIALIZED_DIR')
-timeout = os.getenv('TIMEOUT', None)
+csv_base_dir = os.path.join(os.getenv("CSV_DIR"), "lsqb-datasets")
+serialized_base_dir = os.getenv("SERIALIZED_DIR")
+timeout = os.getenv("TIMEOUT", None)
 if timeout is not None:
     timeout = int(timeout)
 
-benchmark_files = os.path.join(base_dir, 'queries')
+benchmark_files = os.path.join(base_dir, "queries")
 
-scale_factor = os.getenv('SCALE_FACTOR', '100')
-threads = os.getenv('THREADS', str(cpu_count))
+scale_factor = os.getenv("SCALE_FACTOR", "100")
+threads = os.getenv("NUM_THREADS", str(cpu_count))
 threads = int(threads)
 
 if csv_base_dir is None:
@@ -59,26 +60,26 @@ if serialized_base_dir is None:
     sys.exit(1)
 
 datasets_path = {
-    'lsqb-sf0.1-ku': os.path.join(csv_base_dir,  'social-network-sf0.1-projected-fk'),
-    'lsqb-sf0.3-ku': os.path.join(csv_base_dir,  'social-network-sf0.3-projected-fk'),
-    'lsqb-sf1-ku': os.path.join(csv_base_dir,  'social-network-sf1-projected-fk'),
-    'lsqb-sf3-ku': os.path.join(csv_base_dir,  'social-network-sf3-projected-fk'),
-    'lsqb-sf10-ku': os.path.join(csv_base_dir,  'social-network-sf10-projected-fk'),
-    'lsqb-sf30-ku': os.path.join(csv_base_dir,  'social-network-sf30-projected-fk'),
-    'lsqb-sf100-ku': os.path.join(csv_base_dir,  'social-network-sf100-projected-fk')
+    "lsqb-sf0.1-ku": os.path.join(csv_base_dir, "social-network-sf0.1-projected-fk"),
+    "lsqb-sf0.3-ku": os.path.join(csv_base_dir, "social-network-sf0.3-projected-fk"),
+    "lsqb-sf1-ku": os.path.join(csv_base_dir, "social-network-sf1-projected-fk"),
+    "lsqb-sf3-ku": os.path.join(csv_base_dir, "social-network-sf3-projected-fk"),
+    "lsqb-sf10-ku": os.path.join(csv_base_dir, "social-network-sf10-projected-fk"),
+    "lsqb-sf30-ku": os.path.join(csv_base_dir, "social-network-sf30-projected-fk"),
+    "lsqb-sf100-ku": os.path.join(csv_base_dir, "social-network-sf100-projected-fk"),
 }
 
 serialized_graphs_path = {
-    'lsqb-sf0.1-ku': os.path.join(serialized_base_dir, 'lsqb-sf0.1-serialized'),
-    'lsqb-sf0.3-ku': os.path.join(serialized_base_dir, 'lsqb-sf0.3-serialized'),
-    'lsqb-sf1-ku': os.path.join(serialized_base_dir, 'lsqb-sf1-serialized'),
-    'lsqb-sf3-ku': os.path.join(serialized_base_dir, 'lsqb-sf3-serialized'),
-    'lsqb-sf10-ku': os.path.join(serialized_base_dir, 'lsqb-sf10-serialized'),
-    'lsqb-sf30-ku': os.path.join(serialized_base_dir, 'lsqb-sf30-serialized'),
-    'lsqb-sf100-ku': os.path.join(serialized_base_dir, 'lsqb-sf100-serialized'),
+    "lsqb-sf0.1-ku": os.path.join(serialized_base_dir, "lsqb-sf0.1-serialized"),
+    "lsqb-sf0.3-ku": os.path.join(serialized_base_dir, "lsqb-sf0.3-serialized"),
+    "lsqb-sf1-ku": os.path.join(serialized_base_dir, "lsqb-sf1-serialized"),
+    "lsqb-sf3-ku": os.path.join(serialized_base_dir, "lsqb-sf3-serialized"),
+    "lsqb-sf10-ku": os.path.join(serialized_base_dir, "lsqb-sf10-serialized"),
+    "lsqb-sf30-ku": os.path.join(serialized_base_dir, "lsqb-sf30-serialized"),
+    "lsqb-sf100-ku": os.path.join(serialized_base_dir, "lsqb-sf100-serialized"),
 }
 
-benchmark_result_dir = os.path.join("/tmp", 'benchmark_result')
+benchmark_result_dir = os.path.join("/tmp", "benchmark_result")
 shutil.rmtree(benchmark_result_dir, ignore_errors=True)
 os.mkdir(benchmark_result_dir)
 
@@ -88,8 +89,16 @@ def serialize_dataset(dataset_name):
     serialized_graph_path = serialized_graphs_path[dataset_name]
     serializer_script = os.path.join(base_dir, "serializer.py")
     try:
-        subprocess.run([sys.executable, serializer_script, dataset_name,
-                       dataset_path, serialized_graph_path], check=True)
+        subprocess.run(
+            [
+                sys.executable,
+                serializer_script,
+                dataset_name,
+                dataset_path,
+                serialized_graph_path,
+            ],
+            check=True,
+        )
     except subprocess.CalledProcessError as e:
         logging.error("Failed to serialize dataset: %s", e)
         sys.exit(1)
@@ -124,15 +133,23 @@ def run_kuzu(sf, serialized_graph_path, num_threads):
     with open(os.path.join(benchmark_result_dir, "results.csv"), "a+") as results_file:
         for i in range(1, 10):
             logging.info(f"Running query {i}")
-            with open(os.path.join(base_dir, f"queries/q{i}.cypher"), "r") as query_file:
+            with open(
+                os.path.join(base_dir, f"queries/q{i}.cypher"), "r"
+            ) as query_file:
                 query_spec = query_file.read()
 
                 try:
                     # Warm up run
-                    execution_time, compiling_time, memory, result = run_query(conn, query_spec)
+                    execution_time, compiling_time, memory, result = run_query(
+                        conn, query_spec
+                    )
                 except TimeoutError:
-                    logging.info("Query timed out after " + str(timeout/1000) + " seconds")
-                    results_file.write(f"KuzuDB\t{i}\t{num_threads} threads\t{sf}\tTimeout\tNA\tNA\t\n")
+                    logging.info(
+                        "Query timed out after " + str(timeout / 1000) + " seconds"
+                    )
+                    results_file.write(
+                        f"KuzuDB\t{i}\t{num_threads} threads\t{sf}\tTimeout\tNA\tNA\t\n"
+                    )
                     results_file.flush()
                     continue
 
@@ -144,14 +161,16 @@ def run_kuzu(sf, serialized_graph_path, num_threads):
 
                 # Run the queries multiple times
                 for _ in range(num_trials):
-                    execution_time, compiling_time, memory, result = run_query(conn, query_spec)
+                    execution_time, compiling_time, memory, result = run_query(
+                        conn, query_spec
+                    )
                     execution_times.append(execution_time)
                     compiling_times.append(compiling_time)
                     memories.append(memory)
 
                 # Get avg execution time
                 max_execution_time = max(execution_times)
-                execution_times.remove(max_execution_time) # Remove the worst record
+                execution_times.remove(max_execution_time)  # Remove the worst record
                 execution_time = sum(execution_times) / len(execution_times)
 
                 # Get avg compiling time
@@ -173,27 +192,28 @@ def run_kuzu(sf, serialized_graph_path, num_threads):
                 logging.info(f"Memory used: {memory / (1024 ** 3):.2f} GB\n")
 
                 # Upload the result
-                results_file.write(f"KuzuDB\t{i}\t{num_threads} threads\t{sf}\t{execution_time / 1000:.4f}\t{memory / (1024 ** 3):.2f} GB\t{result[0]}\n")
+                results_file.write(
+                    f"KuzuDB\t{i}\t{num_threads} threads\t{sf}\t{execution_time / 1000:.4f}\t{memory / (1024 ** 3):.2f} GB\t{result[0]}\n"
+                )
                 results_file.flush()
 
 
-
-if __name__ == '__main__':
-    dataset_name = 'lsqb-sf' + scale_factor + '-ku'
+if __name__ == "__main__":
+    dataset_name = "lsqb-sf" + scale_factor + "-ku"
     dataset_path = datasets_path[dataset_name]
 
     logging.basicConfig(
         level=logging.INFO,
         handlers=[
             logging.FileHandler(os.path.join("lsqb.log")),
-            logging.StreamHandler()
-        ]
+            logging.StreamHandler(),
+        ],
     )
     logging.info("Running benchmark for scale factor %s", scale_factor)
     logging.info("Database version: %s", _get_kuzu_version())
     logging.info("CPU cores: %d", cpu_count)
     logging.info("Using %s threads", threads)
-    logging.info("Total memory: %d GiB", max_memory / 1024 ** 3)
+    logging.info("Total memory: %d GiB", max_memory / 1024**3)
     logging.info("Buffer manager size: %d MiB", bm_size)
     if timeout is not None:
         logging.info("Query timeout: %d ms", timeout)

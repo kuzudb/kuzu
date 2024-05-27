@@ -129,7 +129,7 @@ def get_results():
                     "query_number": query_number,
                     "threads": threads,
                     "is_timeout": is_query_timeout,
-                    "is_success": is_query_success,
+                    "is_successful": is_query_success,
                     "query_time": query_time,
                     "memory_usage": memory_usage,
                     "output": output,
@@ -143,7 +143,7 @@ def get_payload():
     payload = get_run_info()
     payload["log"] = get_log()
     payload["benchmarks"] = get_results()
-    payload["is_success"] = all([b["is_success"] for b in payload["benchmarks"]])
+    payload["is_successful"] = all([b["is_successful"] for b in payload["benchmarks"]])
     return payload
 
 
@@ -174,5 +174,12 @@ def main():
         logging.error("JWT_TOKEN is not set, exiting...")
         sys.exit(1)
 
+    logging.info("Generating benchmark result payload...")
     payload = get_payload()
+    logging.info("Uploading benchmark result...")
     upload_benchmark_result(benchmark_server_url, jwt_token, payload)
+    logging.info("Benchmark result uploaded successfully!")
+
+
+if __name__ == "__main__":
+    main()
