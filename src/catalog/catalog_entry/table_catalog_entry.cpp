@@ -69,7 +69,7 @@ const Property* TableCatalogEntry::getProperty(common::property_id_t propertyID)
     return &(*it);
 }
 
-size_t TableCatalogEntry::getPropertyPos(common::property_id_t propertyID) const {
+uint32_t TableCatalogEntry::getPropertyPos(common::property_id_t propertyID) const {
     auto it = std::find_if(properties.begin(), properties.end(),
         [&propertyID](const auto& property) { return property.getPropertyID() == propertyID; });
     KU_ASSERT(it != properties.end());

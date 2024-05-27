@@ -153,10 +153,9 @@ static void validatePrimaryKeyExistence(const NodeTableCatalogEntry* nodeTableEn
         }
         return; // No input needed for SERIAL primary key.
     }
-    auto pkeyDefault = defaultExprs.at(nodeTableEntry->getPrimaryKeyPos());
+    auto pkeyDefaultExpr = defaultExprs.at(nodeTableEntry->getPrimaryKeyPos());
     if (!node.hasPropertyDataExpr(primaryKey->getName()) &&
-        pkeyDefault->expressionType == ExpressionType::LITERAL &&
-        pkeyDefault->constPtrCast<binder::LiteralExpression>()->getValue().isNull()) {
+        ExpressionUtil::isNullLiteral(*pkeyDefaultExpr)) {
         throw BinderException(
             common::stringFormat("Create node {} expects primary key {} as input.", node.toString(),
                 primaryKey->getName()));

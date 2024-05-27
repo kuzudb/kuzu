@@ -137,6 +137,11 @@ bool ExpressionUtil::isRecursiveRelPattern(const Expression& expression) {
            expression.dataType.getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL;
 }
 
+bool ExpressionUtil::isNullLiteral(const Expression& expression) {
+    return expression.expressionType == ExpressionType::LITERAL &&
+           expression.constCast<binder::LiteralExpression>().getValue().isNull();
+}
+
 void ExpressionUtil::validateExpressionType(const Expression& expr,
     common::ExpressionType expectedType) {
     if (expr.expressionType == expectedType) {
