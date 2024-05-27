@@ -16,7 +16,6 @@ void kuzu_query_result_destroy(kuzu_query_result* query_result) {
             delete static_cast<QueryResult*>(query_result->_query_result);
         }
     }
-    free(query_result);
 }
 
 bool kuzu_query_result_is_success(kuzu_query_result* query_result) {
@@ -35,36 +34,40 @@ uint64_t kuzu_query_result_get_num_columns(kuzu_query_result* query_result) {
     return static_cast<QueryResult*>(query_result->_query_result)->getNumColumns();
 }
 
-char* kuzu_query_result_get_column_name(kuzu_query_result* query_result, uint64_t index) {
+kuzu_state kuzu_query_result_get_column_name(kuzu_query_result* query_result, uint64_t index,
+    char** out_column_name) {
     auto column_names = static_cast<QueryResult*>(query_result->_query_result)->getColumnNames();
     if (index >= column_names.size()) {
-        return nullptr;
+        return KuzuError;
     }
-    return convertToOwnedCString(column_names[index]);
+    *out_column_name = convertToOwnedCString(column_names[index]);
+    return KuzuSuccess;
 }
 
-kuzu_logical_type* kuzu_query_result_get_column_data_type(kuzu_query_result* query_result,
-    uint64_t index) {
+kuzu_state kuzu_query_result_get_column_data_type(kuzu_query_result* query_result, uint64_t index,
+    kuzu_logical_type* out_column_data_type) {
     auto column_data_types =
         static_cast<QueryResult*>(query_result->_query_result)->getColumnDataTypes();
     if (index >= column_data_types.size()) {
-        return nullptr;
+        return KuzuError;
     }
     auto column_data_type = column_data_types[index];
-    auto* column_data_type_c = (kuzu_logical_type*)malloc(sizeof(kuzu_logical_type));
-    column_data_type_c->_data_type = new LogicalType(column_data_type);
-    return column_data_type_c;
+    out_column_data_type->_data_type = new LogicalType(column_data_type);
+    return KuzuSuccess;
 }
 
 uint64_t kuzu_query_result_get_num_tuples(kuzu_query_result* query_result) {
     return static_cast<QueryResult*>(query_result->_query_result)->getNumTuples();
 }
 
-kuzu_query_summary* kuzu_query_result_get_query_summary(kuzu_query_result* query_result) {
+kuzu_state kuzu_query_result_get_query_summary(kuzu_query_result* query_result,
+    kuzu_query_summary* out_query_summary) {
+    if (out_query_summary == nullptr) {
+        return KuzuError;
+    }
     auto query_summary = static_cast<QueryResult*>(query_result->_query_result)->getQuerySummary();
-    auto* query_summary_c = (kuzu_query_summary*)malloc(sizeof(kuzu_query_summary));
-    query_summary_c->_query_summary = query_summary;
-    return query_summary_c;
+    out_query_summary->_query_summary = query_summary;
+    return KuzuSuccess;
 }
 
 bool kuzu_query_result_has_next(kuzu_query_result* query_result) {
@@ -75,39 +78,59 @@ bool kuzu_query_result_has_next_query_result(kuzu_query_result* query_result) {
     return static_cast<QueryResult*>(query_result->_query_result)->hasNextQueryResult();
 }
 
-kuzu_query_result* kuzu_query_result_get_next_query_result(kuzu_query_result* query_result) {
+kuzu_state kuzu_query_result_get_next_query_result(kuzu_query_result* query_result,
+    kuzu_query_result* out_query_result) {
+    if (!kuzu_query_result_has_next_query_result(query_result)) {
+        return KuzuError;
+    }
     auto next_query_result =
         static_cast<QueryResult*>(query_result->_query_result)->getNextQueryResult();
     if (next_query_result == nullptr) {
-        return nullptr;
+        return KuzuError;
     }
-    auto* c_query_result = (kuzu_query_result*)malloc(sizeof(kuzu_query_result));
-    c_query_result->_query_result = next_query_result;
-    c_query_result->_is_owned_by_cpp = true;
-    return c_query_result;
+    out_query_result->_query_result = next_query_result;
+    out_query_result->_is_owned_by_cpp = true;
+    return KuzuSuccess;
 }
 
-kuzu_flat_tuple* kuzu_query_result_get_next(kuzu_query_result* query_result) {
-    auto flat_tuple = static_cast<QueryResult*>(query_result->_query_result)->getNext();
-    auto* flat_tuple_c = (kuzu_flat_tuple*)malloc(sizeof(kuzu_flat_tuple));
-    flat_tuple_c->_flat_tuple = new std::shared_ptr<FlatTuple>(flat_tuple);
-    return flat_tuple_c;
+kuzu_state kuzu_query_result_get_next(kuzu_query_result* query_result,
+    kuzu_flat_tuple* out_flat_tuple) {
+    try {
+        auto flat_tuple = static_cast<QueryResult*>(query_result->_query_result)->getNext();
+        out_flat_tuple->_flat_tuple = flat_tuple.get();
+        out_flat_tuple->_is_owned_by_cpp = true;
+        return KuzuSuccess;
+    } catch (Exception& e) {
+        return KuzuError;
+    }
 }
 
 char* kuzu_query_result_to_string(kuzu_query_result* query_result) {
-    return convertToOwnedCString(
-        static_cast<QueryResult*>(query_result->_query_result)->toString());
+    std::string result_string = static_cast<QueryResult*>(query_result->_query_result)->toString();
+    return convertToOwnedCString(result_string);
 }
 
 void kuzu_query_result_reset_iterator(kuzu_query_result* query_result) {
     static_cast<QueryResult*>(query_result->_query_result)->resetIterator();
 }
 
-struct ArrowSchema kuzu_query_result_get_arrow_schema(kuzu_query_result* query_result) {
-    return *static_cast<QueryResult*>(query_result->_query_result)->getArrowSchema();
+kuzu_state kuzu_query_result_get_arrow_schema(kuzu_query_result* query_result,
+    ArrowSchema* out_schema) {
+    try {
+        *out_schema = *static_cast<QueryResult*>(query_result->_query_result)->getArrowSchema();
+        return KuzuSuccess;
+    } catch (Exception& e) {
+        return KuzuError;
+    }
 }
 
-struct ArrowArray kuzu_query_result_get_next_arrow_chunk(kuzu_query_result* query_result,
-    int64_t chunk_size) {
-    return *static_cast<QueryResult*>(query_result->_query_result)->getNextArrowChunk(chunk_size);
+kuzu_state kuzu_query_result_get_next_arrow_chunk(kuzu_query_result* query_result,
+    int64_t chunk_size, ArrowArray* out_arrow_array) {
+    try {
+        *out_arrow_array =
+            *static_cast<QueryResult*>(query_result->_query_result)->getNextArrowChunk(chunk_size);
+        return KuzuSuccess;
+    } catch (Exception& e) {
+        return KuzuError;
+    }
 }

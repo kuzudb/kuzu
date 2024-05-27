@@ -11,14 +11,16 @@ public:
 };
 
 TEST_F(CApiDatabaseTest, CreationAndDestroy) {
+    kuzu_database database;
+    kuzu_state state;
     auto databasePathCStr = databasePath.c_str();
     auto systemConfig = kuzu_default_system_config();
-    auto database = kuzu_database_init(databasePathCStr, systemConfig);
-    ASSERT_NE(database, nullptr);
-    ASSERT_NE(database->_database, nullptr);
-    auto databaseCpp = static_cast<Database*>(database->_database);
+    state = kuzu_database_init(databasePathCStr, systemConfig, &database);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_NE(database._database, nullptr);
+    auto databaseCpp = static_cast<Database*>(database._database);
     ASSERT_NE(databaseCpp, nullptr);
-    kuzu_database_destroy(database);
+    kuzu_database_destroy(&database);
 }
 
 TEST_F(CApiDatabaseTest, CreationReadOnly) {
@@ -26,47 +28,59 @@ TEST_F(CApiDatabaseTest, CreationReadOnly) {
 #ifdef _WIN32
     return;
 #endif
+    kuzu_database database;
+    kuzu_connection connection;
+    kuzu_query_result queryResult;
+    kuzu_state state;
     auto databasePathCStr = databasePath.c_str();
     auto systemConfig = kuzu_default_system_config();
     // First, create a read-write database.
-    auto database = kuzu_database_init(databasePathCStr, systemConfig);
-    ASSERT_NE(database, nullptr);
-    ASSERT_NE(database->_database, nullptr);
-    auto databaseCpp = static_cast<Database*>(database->_database);
+    state = kuzu_database_init(databasePathCStr, systemConfig, &database);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_NE(database._database, nullptr);
+    auto databaseCpp = static_cast<Database*>(database._database);
     ASSERT_NE(databaseCpp, nullptr);
-    kuzu_database_destroy(database);
+    kuzu_database_destroy(&database);
     // Now, access the same database read-only.
     systemConfig.read_only = true;
-    database = kuzu_database_init(databasePathCStr, systemConfig);
-    ASSERT_NE(database, nullptr);
-    ASSERT_NE(database->_database, nullptr);
-    databaseCpp = static_cast<Database*>(database->_database);
+    state = kuzu_database_init(databasePathCStr, systemConfig, &database);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_NE(database._database, nullptr);
+    databaseCpp = static_cast<Database*>(database._database);
     ASSERT_NE(databaseCpp, nullptr);
     // Try to write to the database.
-    auto connection = kuzu_connection_init(database);
-    ASSERT_NE(connection, nullptr);
-    auto queryResult = kuzu_connection_query(connection,
-        "CREATE NODE TABLE User(name STRING, age INT64, reg_date DATE, PRIMARY KEY (name))");
-    ASSERT_FALSE(kuzu_query_result_is_success(queryResult));
-    kuzu_query_result_destroy(queryResult);
-    kuzu_connection_destroy(connection);
-    kuzu_database_destroy(database);
+    state = kuzu_connection_init(&database, &connection);
+    ASSERT_EQ(state, KuzuSuccess);
+    state = kuzu_connection_query(&connection,
+        "CREATE NODE TABLE User(name STRING, age INT64, reg_date DATE, PRIMARY KEY (name))",
+        &queryResult);
+    ASSERT_EQ(state, KuzuError);
+    ASSERT_FALSE(kuzu_query_result_is_success(&queryResult));
+    kuzu_query_result_destroy(&queryResult);
+    kuzu_connection_destroy(&connection);
+    kuzu_database_destroy(&database);
 }
 
 TEST_F(CApiDatabaseTest, CreationInvalidPath) {
+    kuzu_database database;
+    kuzu_state state;
     auto databasePathCStr = (char*)"";
-    auto database = kuzu_database_init(databasePathCStr, kuzu_default_system_config());
-    ASSERT_EQ(database, nullptr);
+    state = kuzu_database_init(databasePathCStr, kuzu_default_system_config(), &database);
+    ASSERT_EQ(state, KuzuError);
 }
 
 TEST_F(CApiDatabaseTest, CreationHomeDir) {
+    kuzu_database database;
+    kuzu_connection connection;
+    kuzu_state state;
     auto databasePathCStr = (char*)"~/ku_test.db/";
-    auto database = kuzu_database_init(databasePathCStr, kuzu_default_system_config());
-    auto connection = kuzu_connection_init(database);
+    state = kuzu_database_init(databasePathCStr, kuzu_default_system_config(), &database);
+    ASSERT_EQ(state, KuzuSuccess);
+    state = kuzu_connection_init(&database, &connection);
+    ASSERT_EQ(state, KuzuSuccess);
     auto homePath =
-        getClientContext(*(Connection*)(connection->_connection))->getClientConfig()->homeDirectory;
-    ASSERT_NE(database, nullptr);
-    kuzu_connection_destroy(connection);
-    kuzu_database_destroy(database);
+        getClientContext(*(Connection*)(connection._connection))->getClientConfig()->homeDirectory;
+    kuzu_connection_destroy(&connection);
+    kuzu_database_destroy(&database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }

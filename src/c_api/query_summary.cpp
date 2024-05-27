@@ -12,7 +12,6 @@ void kuzu_query_summary_destroy(kuzu_query_summary* query_summary) {
     }
     // The query summary is owned by the query result, so it should not be deleted here.
     query_summary->_query_summary = nullptr;
-    free(query_summary);
 }
 
 double kuzu_query_summary_get_compiling_time(kuzu_query_summary* query_summary) {
