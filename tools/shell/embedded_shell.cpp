@@ -618,8 +618,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                 }
                 printString += "| ";
                 printString += columnName;
-                printString +=
-                    std::string(colsWidth[i] - columnName.length() - 1, ' ');
+                printString += std::string(colsWidth[i] - columnName.length() - 1, ' ');
             }
             if (j >= k) {
                 printString += "| ... ";
@@ -631,8 +630,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                 }
                 printString += "| ";
                 printString += columnName;
-                printString +=
-                    std::string(colsWidth[i] - columnName.length() - 1, ' ');
+                printString += std::string(colsWidth[i] - columnName.length() - 1, ' ');
             }
             printf("%s|\n", printString.c_str());
             printf("%s\n", lineSeparator.c_str());
