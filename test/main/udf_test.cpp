@@ -1,4 +1,3 @@
-#include "common/exception/runtime.h"
 #include "main_test_helper/main_test_helper.h"
 
 using namespace kuzu::common;

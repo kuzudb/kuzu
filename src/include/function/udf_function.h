@@ -88,7 +88,8 @@ struct UDF {
     template<typename RESULT_TYPE>
     static function::scalar_func_exec_t createEmptyParameterExecFunc(RESULT_TYPE (*udfFunc)(),
         const std::vector<common::LogicalTypeID>&) {
-        return [=](const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        (void*)(udfFunc); // Disable compiler warnings.
+        return [udfFunc](const std::vector<std::shared_ptr<common::ValueVector>>& params,
                    common::ValueVector& result, void* /*dataPtr*/ = nullptr) -> void {
             KU_ASSERT(params.size() == 0);
             auto& resultSelVector = result.state->getSelVector();

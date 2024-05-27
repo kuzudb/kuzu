@@ -1,8 +1,6 @@
 #pragma once
 
 #include "client_context.h"
-#include "common/case_insensitive_map.h"
-#include "common/exception/runtime.h"
 #include "database.h"
 #include "function/udf_function.h"
 
@@ -41,10 +39,6 @@ public:
      * @return the maximum number of threads to use for execution in the current connection.
      */
     KUZU_API uint64_t getMaxNumThreadForExec();
-
-    void setProgressBarPrinting(bool enable) {
-        clientContext->progressBar->toggleProgressBarPrinting(enable);
-    }
 
     /**
      * @brief Executes the given query and returns the result.
@@ -106,37 +100,22 @@ public:
     }
 
     void addUDFFunctionSet(std::string name, function::function_set func) {
-        try {
-            addScalarFunction(name, std::move(func));
-        } catch (std::exception& e) {
-            throw;
-        }
+        addScalarFunction(name, std::move(func));
     }
 
     void removeUDFFunction(std::string name) { removeScalarFunction(name); }
 
     template<typename TR, typename... Args>
     void createVectorizedFunction(std::string name, function::scalar_func_exec_t scalarFunc) {
-        auto nameCopy = std::string(name);
-        try {
-            addScalarFunction(std::move(nameCopy),
-                function::UDF::getVectorizedFunction<TR, Args...>(name, std::move(scalarFunc)));
-        } catch (std::exception& e) {
-            throw;
-        }
+        addScalarFunction(name,
+            function::UDF::getVectorizedFunction<TR, Args...>(name, std::move(scalarFunc)));
     }
 
     void createVectorizedFunction(std::string name,
         std::vector<common::LogicalTypeID> parameterTypes, common::LogicalTypeID returnType,
         function::scalar_func_exec_t scalarFunc) {
-        auto nameCopy = std::string(name);
-        try {
-            addScalarFunction(std::move(nameCopy),
-                function::UDF::getVectorizedFunction(name, std::move(scalarFunc),
-                    std::move(parameterTypes), returnType));
-        } catch (std::exception& e) {
-            throw;
-        }
+        addScalarFunction(name, function::UDF::getVectorizedFunction(name, std::move(scalarFunc),
+                                    std::move(parameterTypes), returnType));
     }
 
     ClientContext* getClientContext() { return clientContext.get(); };
@@ -168,9 +147,6 @@ private:
 
     KUZU_API void addScalarFunction(std::string name, function::function_set definitions);
     KUZU_API void removeScalarFunction(std::string name);
-
-    KUZU_API bool startUDFAutoTrx(transaction::TransactionContext* trx);
-    KUZU_API void commitUDFTrx(bool isAutoCommitTrx);
 
 private:
     Database* database;
