@@ -612,19 +612,25 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         if (queryResult.getNumColumns() != 0 && !queryResult.getColumnNames()[0].empty()) {
             std::string printString = "";
             for (auto i = 0; i < k; i++) {
+                std::string columnName = queryResult.getColumnNames()[i];
+                if (columnName.length() > colsWidth[i] - 2) {
+                    columnName = columnName.substr(0, colsWidth[i] - 5) + "...";
+                }
                 printString += "| ";
-                printString += queryResult.getColumnNames()[i];
-                printString +=
-                    std::string(colsWidth[i] - queryResult.getColumnNames()[i].length() - 1, ' ');
+                printString += columnName;
+                printString += std::string(colsWidth[i] - columnName.length() - 1, ' ');
             }
             if (j >= k) {
                 printString += "| ... ";
             }
             for (auto i = j + 1; i < (int)colsWidth.size(); i++) {
+                std::string columnName = queryResult.getColumnNames()[i];
+                if (columnName.length() > colsWidth[i] - 2) {
+                    columnName = columnName.substr(0, colsWidth[i] - 5) + "...";
+                }
                 printString += "| ";
-                printString += queryResult.getColumnNames()[i];
-                printString +=
-                    std::string(colsWidth[i] - queryResult.getColumnNames()[i].length() - 1, ' ');
+                printString += columnName;
+                printString += std::string(colsWidth[i] - columnName.length() - 1, ' ');
             }
             printf("%s|\n", printString.c_str());
             printf("%s\n", lineSeparator.c_str());
