@@ -56,4 +56,3 @@ jobs:
 
       - name: Report result to server
         run:  python3 benchmark/lsqb/results_reporter.py
-          
