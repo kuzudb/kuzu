@@ -1,7 +1,7 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
-#include "binder/expression/property_expression.h"
 #include "binder/expression/literal_expression.h"
+#include "binder/expression/property_expression.h"
 #include "binder/query/query_graph_label_analyzer.h"
 #include "binder/query/updating_clause/bound_delete_clause.h"
 #include "binder/query/updating_clause/bound_insert_clause.h"
@@ -189,7 +189,7 @@ void Binder::bindInsertNode(std::shared_ptr<NodeExpression> node,
     insertInfo.columnDataExprs =
         bindInsertColumnDataExprs(node->getPropertyDataExprRef(), tableSchema->getPropertiesRef());
     validatePrimaryKeyExistence(
-        ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableSchema), *node, 
+        ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableSchema), *node,
         insertInfo.columnDataExprs);
     infos.push_back(std::move(insertInfo));
 }

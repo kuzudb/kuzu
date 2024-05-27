@@ -46,8 +46,8 @@ std::vector<PropertyInfo> Binder::bindPropertyInfo(
     for (auto& propertyDef : propertyDefinitions) {
         auto type = LogicalType::fromString(propertyDef.type);
         // This will check the type correctness of the default value expression
-        expressionBinder.implicitCastIfNecessary(
-            expressionBinder.bindExpression(*propertyDef.expr), type);
+        expressionBinder.implicitCastIfNecessary(expressionBinder.bindExpression(*propertyDef.expr),
+            type);
         propertyInfos.emplace_back(propertyDef.name, std::move(type), propertyDef.expr->copy());
     }
     validateUniquePropertyName(propertyInfos);

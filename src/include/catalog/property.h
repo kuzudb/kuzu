@@ -23,9 +23,8 @@ public:
     Property(std::string name, std::unique_ptr<common::LogicalType> dataType,
         std::unique_ptr<parser::ParsedExpression> defaultExpr, common::property_id_t propertyID,
         common::column_id_t columnID, common::table_id_t tableID)
-        : name{std::move(name)}, defaultExpr{std::move(defaultExpr)},
-          dataType{std::move(dataType)}, propertyID{propertyID}, columnID{columnID},
-          tableID{tableID} {}
+        : name{std::move(name)}, defaultExpr{std::move(defaultExpr)}, dataType{std::move(dataType)},
+          propertyID{propertyID}, columnID{columnID}, tableID{tableID} {}
     EXPLICIT_COPY_DEFAULT_MOVE(Property);
 
     std::string getName() const { return name; }

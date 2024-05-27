@@ -28,7 +28,8 @@ struct PropertyDefinition {
 struct PropertyDefinitionDDL : public PropertyDefinition {
     std::unique_ptr<ParsedExpression> expr;
 
-    PropertyDefinitionDDL(std::string name, std::string type, std::unique_ptr<ParsedExpression> expr)
+    PropertyDefinitionDDL(std::string name, std::string type,
+        std::unique_ptr<ParsedExpression> expr)
         : PropertyDefinition{name, type}, expr{std::move(expr)} {}
     DELETE_COPY_DEFAULT_MOVE(PropertyDefinitionDDL);
 };
