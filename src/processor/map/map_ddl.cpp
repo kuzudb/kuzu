@@ -56,7 +56,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAlter(LogicalOperator* logicalO
             ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraAddPropertyInfo&>(
                 *alter->getInfo()->extraInfo);
         defaultValueEvaluator =
-            ExpressionMapper::getEvaluator(addPropInfo.defaultValue, alter->getSchema());
+            ExpressionMapper::getEvaluator(addPropInfo.boundDefault, alter->getSchema());
     }
     return std::make_unique<Alter>(alter->getInfo()->copy(), std::move(defaultValueEvaluator),
         getOutputPos(alter), getOperatorID(), alter->getExpressionsForPrinting());

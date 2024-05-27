@@ -95,7 +95,8 @@ std::unique_ptr<binder::BoundExtraCreateCatalogEntryInfo>
 RelTableCatalogEntry::getBoundExtraCreateInfo(transaction::Transaction*) const {
     std::vector<binder::PropertyInfo> propertyInfos;
     for (const auto& property : properties) {
-        propertyInfos.emplace_back(property.getName(), *property.getDataType());
+        propertyInfos.emplace_back(property.getName(), *property.getDataType(),
+            property.getDefaultExpr()->copy());
     }
     auto boundExtraCreateInfo = std::make_unique<binder::BoundExtraCreateRelTableInfo>(
         srcMultiplicity, dstMultiplicity, srcTableID, dstTableID, std::move(propertyInfos));

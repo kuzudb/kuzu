@@ -91,7 +91,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
         // Bind columns from input.
         std::vector<std::string> expectedColumnNames;
         std::vector<LogicalType> expectedColumnTypes;
-        for (auto& [name, type] : loadFrom.getColumnNameDataTypesRef()) {
+        for (auto& [name, type] : loadFrom.getPropertyDefinitionsRef()) {
             expectedColumnNames.push_back(name);
             expectedColumnTypes.push_back(LogicalType::fromString(type));
         }

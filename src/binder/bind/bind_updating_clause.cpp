@@ -141,7 +141,7 @@ std::vector<BoundInsertInfo> Binder::bindInsertInfos(QueryGraphCollection& query
 }
 
 static void validatePrimaryKeyExistence(const NodeTableCatalogEntry* nodeTableEntry,
-    const NodeExpression& node) {
+    const NodeExpression& node, const expression_vector& defaultExprs) {
     auto primaryKey = nodeTableEntry->getPrimaryKey();
     if (*primaryKey->getDataType() == *LogicalType::SERIAL()) {
         if (node.hasPropertyDataExpr(primaryKey->getName())) {
@@ -152,7 +152,9 @@ static void validatePrimaryKeyExistence(const NodeTableCatalogEntry* nodeTableEn
         }
         return; // No input needed for SERIAL primary key.
     }
-    if (!node.hasPropertyDataExpr(primaryKey->getName())) {
+    auto pkeyDefaultExpr = defaultExprs.at(nodeTableEntry->getPrimaryKeyPos());
+    if (!node.hasPropertyDataExpr(primaryKey->getName()) &&
+        ExpressionUtil::isNullLiteral(*pkeyDefaultExpr)) {
         throw BinderException(
             common::stringFormat("Create node {} expects primary key {} as input.", node.toString(),
                 primaryKey->getName()));
@@ -169,8 +171,6 @@ void Binder::bindInsertNode(std::shared_ptr<NodeExpression> node,
     auto tableID = node->getSingleTableID();
     auto tableSchema = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
     KU_ASSERT(tableSchema->getTableType() == TableType::NODE);
-    validatePrimaryKeyExistence(
-        ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableSchema), *node);
     auto insertInfo = BoundInsertInfo(TableType::NODE, node);
     for (auto& entry : catalog->getRdfGraphEntries(clientContext->getTx())) {
         auto rdfEntry = ku_dynamic_cast<CatalogEntry*, RDFGraphCatalogEntry*>(entry);
@@ -186,6 +186,9 @@ void Binder::bindInsertNode(std::shared_ptr<NodeExpression> node,
     }
     insertInfo.columnDataExprs =
         bindInsertColumnDataExprs(node->getPropertyDataExprRef(), tableSchema->getPropertiesRef());
+    validatePrimaryKeyExistence(
+        ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableSchema), *node,
+        insertInfo.columnDataExprs);
     infos.push_back(std::move(insertInfo));
 }
 
@@ -260,7 +263,7 @@ expression_vector Binder::bindInsertColumnDataExprs(
         if (propertyRhsExpr.contains(property.getName())) {
             rhs = propertyRhsExpr.at(property.getName());
         } else {
-            rhs = expressionBinder.createNullLiteralExpression();
+            rhs = expressionBinder.bindExpression(*property.getDefaultExpr());
         }
         rhs = expressionBinder.implicitCastIfNecessary(rhs, *property.getDataType());
         result.push_back(std::move(rhs));

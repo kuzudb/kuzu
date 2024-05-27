@@ -234,9 +234,9 @@ public:
      */
     KUZU_API std::string toString() const;
 
-    void serialize(Serializer& serializer) const;
+    KUZU_API void serialize(Serializer& serializer) const;
 
-    static std::unique_ptr<Value> deserialize(Deserializer& deserializer);
+    KUZU_API static std::unique_ptr<Value> deserialize(Deserializer& deserializer);
 
     void validateType(common::LogicalTypeID targetTypeID) const;
 

@@ -433,7 +433,8 @@ std::unique_ptr<CatalogEntry> Catalog::createNodeTableEntry(transaction::Transac
     auto nodeTableEntry = std::make_unique<NodeTableCatalogEntry>(tables.get(), info.tableName,
         tableID, extraInfo->primaryKeyIdx);
     for (auto& propertyInfo : extraInfo->propertyInfos) {
-        nodeTableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy());
+        nodeTableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy(),
+            std::move(propertyInfo.defaultValue));
     }
     return nodeTableEntry;
 }
@@ -453,7 +454,8 @@ std::unique_ptr<CatalogEntry> Catalog::createRelTableEntry(transaction::Transact
         tableID, extraInfo->srcMultiplicity, extraInfo->dstMultiplicity, extraInfo->srcTableID,
         extraInfo->dstTableID);
     for (auto& propertyInfo : extraInfo->propertyInfos) {
-        relTableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy());
+        relTableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy(),
+            std::move(propertyInfo.defaultValue));
     }
     return relTableEntry;
 }

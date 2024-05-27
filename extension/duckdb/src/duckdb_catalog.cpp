@@ -81,7 +81,8 @@ void DuckDBCatalog::createForeignTable(duckdb::Connection& con, const std::strin
     auto tableEntry = std::make_unique<catalog::DuckDBTableCatalogEntry>(tables.get(),
         info->tableName, tableID, getScanFunction(std::move(bindData)));
     for (auto& propertyInfo : extraInfo->propertyInfos) {
-        tableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy());
+        tableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy(),
+            propertyInfo.defaultValue->copy());
     }
     tables->createEntry(&transaction::DUMMY_WRITE_TRANSACTION, std::move(tableEntry));
 }

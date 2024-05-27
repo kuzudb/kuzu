@@ -21,6 +21,7 @@ public:
     bool isParent(common::table_id_t /*tableID*/) override { return false; }
     common::TableType getTableType() const override { return common::TableType::NODE; }
     const Property* getPrimaryKey() const { return getProperty(primaryKeyPID); }
+    uint32_t getPrimaryKeyPos() const { return getPropertyPos(primaryKeyPID); }
     common::property_id_t getPrimaryKeyPID() const { return primaryKeyPID; }
     void addFwdRelTableID(common::table_id_t tableID) { fwdRelTableIDSet.insert(tableID); }
     void addBWdRelTableID(common::table_id_t tableID) { bwdRelTableIDSet.insert(tableID); }

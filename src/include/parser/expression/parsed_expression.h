@@ -26,7 +26,7 @@ using parsed_expr_pair =
     std::pair<std::unique_ptr<ParsedExpression>, std::unique_ptr<ParsedExpression>>;
 using s_parsed_expr_pair = std::pair<std::string, std::unique_ptr<ParsedExpression>>;
 
-class ParsedExpression {
+class KUZU_API ParsedExpression {
     friend class ParsedExpressionChildrenVisitor;
 
 public:

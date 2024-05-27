@@ -30,6 +30,13 @@ Binder exception: Table movies does not exist.
 ---- ok
 -STATEMENT match (:person)-[s:studyAt]->(:organisation) return s.year
 ---- ok
+-STATEMENT CREATE NODE TABLE books (ID INT64, rating DOUBLE DEFAULT 0, PRIMARY KEY (ID));
+---- ok
+-STATEMENT CREATE (b:books {ID: 0});
+---- ok
+-STATEMENT MATCH (b:books) RETURN b.*;
+---- 1
+0|0.000000
 
 -CASE DDLOutputMessages
 -STATEMENT CREATE NODE TABLE university(ID INT64, PRIMARY KEY(ID))
@@ -117,6 +124,11 @@ Binder exception: Table knows does not exist.
 -STATEMENT MATCH (c:Comment) RETURN SUM(c.propy);
 ---- 1
 215488
+-STATEMENT create (c:Comment {id: 12345});
+---- ok
+-STATEMENT MATCH (c:Comment) RETURN SUM(c.propy);
+---- 1
+215489
 
 -CASE AddRelProperty
 -STATEMENT create node table Comment (id int64, PRIMARY KEY (id));
