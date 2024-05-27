@@ -9,7 +9,7 @@ import json
 
 
 REPORT_CSV_PATH = "/tmp/benchmark_result/results.csv"
-LOG_PATH = os.path.join(__file__, "..", "..", "lsqb.log")
+LOG_PATH = "lsqb.log"
 QUERIES_PATH = (Path(__file__).parent / "queries").resolve()
 
 
