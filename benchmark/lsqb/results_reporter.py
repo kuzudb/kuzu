@@ -177,7 +177,7 @@ def main():
 
     logging.info("Generating benchmark result payload...")
     payload = get_payload()
-    logging.info("Payload: %s", json.dumps(payload, indent=2))
+    logging.debug("Payload: %s", json.dumps(payload, indent=2))
     logging.info("Uploading benchmark result...")
     upload_benchmark_result(benchmark_server_url, jwt_token, payload)
     logging.info("Benchmark result uploaded successfully!")
