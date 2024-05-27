@@ -186,10 +186,10 @@ def test_udf_remove(conn_db_readwrite: ConnDB) -> None:
     
     conn.create_function("myfunction", myfunction)
 
-    with pytest.raises(RuntimeError, match="No user defined function matches the name notmyfunction"):
+    with pytest.raises(RuntimeError, match="Catalog exception: function notmyfunction doesn't exist."):
         conn.remove_function("notmyfunction")
     
     conn.remove_function("myfunction")
 
-    with pytest.raises(RuntimeError, match="No user defined function matches the name list_create"):
+    with pytest.raises(RuntimeError, match="Catalog exception: function list_create doesn't exist."):
         conn.remove_function("list_create")

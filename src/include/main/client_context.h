@@ -158,6 +158,7 @@ private:
     std::unique_ptr<QueryResult> executeAndAutoCommitIfNecessaryNoLock(
         PreparedStatement* preparedStatement, uint32_t planIdx = 0u, bool requiredNexTx = true);
 
+    void runFunctionInTransaction(const std::function<void(void)>& fun);
     void addScalarFunction(std::string name, function::function_set definitions);
     void removeScalarFunction(std::string name);
 

@@ -91,71 +91,32 @@ public:
      */
     KUZU_API void setQueryTimeOut(uint64_t timeoutInMS);
 
-    /**
-     * @brief gets the query timeout value of the current connection. A value of zero (the default)
-     * disables the timeout.
-     */
-    KUZU_API uint64_t getQueryTimeOut();
-
+    // Note: this function throws exception if creating scalar function fails.
     template<typename TR, typename... Args>
     void createScalarFunction(std::string name, TR (*udfFunc)(Args...)) {
-        auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
-        auto nameCopy = std::string(name);
-        try {
-            addScalarFunction(std::move(nameCopy),
-                function::UDF::getFunction<TR, Args...>(name, udfFunc));
-        } catch (std::exception& e) {
-            throw;
-        }
-        commitUDFTrx(autoTrx);
-        udfNames.insert(name);
+        addScalarFunction(name, function::UDF::getFunction<TR, Args...>(name, udfFunc));
     }
 
+    // Note: this function throws exception if creating scalar function fails.
     template<typename TR, typename... Args>
     void createScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypes,
         common::LogicalTypeID returnType, TR (*udfFunc)(Args...)) {
-        auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
-        auto nameCopy = std::string(name);
-        try {
-            addScalarFunction(std::move(nameCopy),
-                function::UDF::getFunction<TR, Args...>(name, udfFunc, std::move(parameterTypes),
-                    returnType));
-        } catch (std::exception& e) {
-            throw;
-        }
-        commitUDFTrx(autoTrx);
-        udfNames.insert(name);
+        addScalarFunction(name, function::UDF::getFunction<TR, Args...>(name, udfFunc,
+                                    std::move(parameterTypes), returnType));
     }
 
     void addUDFFunctionSet(std::string name, function::function_set func) {
-        auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         try {
             addScalarFunction(name, std::move(func));
         } catch (std::exception& e) {
             throw;
         }
-        commitUDFTrx(autoTrx);
-        udfNames.insert(name);
     }
 
-    void removeUDFFunction(std::string name) {
-        if (!udfNames.contains(name)) {
-            throw common::RuntimeException(
-                common::stringFormat("No user defined function matches the name {}", name));
-        }
-        auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
-        try {
-            removeScalarFunction(name);
-        } catch (std::exception& e) {
-            throw;
-        }
-        commitUDFTrx(autoTrx);
-        udfNames.erase(name);
-    }
+    void removeUDFFunction(std::string name) { removeScalarFunction(name); }
 
     template<typename TR, typename... Args>
     void createVectorizedFunction(std::string name, function::scalar_func_exec_t scalarFunc) {
-        auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
         try {
             addScalarFunction(std::move(nameCopy),
@@ -163,14 +124,11 @@ public:
         } catch (std::exception& e) {
             throw;
         }
-        commitUDFTrx(autoTrx);
-        udfNames.insert(name);
     }
 
     void createVectorizedFunction(std::string name,
         std::vector<common::LogicalTypeID> parameterTypes, common::LogicalTypeID returnType,
         function::scalar_func_exec_t scalarFunc) {
-        auto autoTrx = startUDFAutoTrx(clientContext->getTransactionContext());
         auto nameCopy = std::string(name);
         try {
             addScalarFunction(std::move(nameCopy),
@@ -179,8 +137,6 @@ public:
         } catch (std::exception& e) {
             throw;
         }
-        commitUDFTrx(autoTrx);
-        udfNames.insert(name);
     }
 
     ClientContext* getClientContext() { return clientContext.get(); };
@@ -217,9 +173,6 @@ private:
     KUZU_API void commitUDFTrx(bool isAutoCommitTrx);
 
 private:
-    std::unordered_set<std::string, common::CaseInsensitiveStringHashFunction,
-        common::CaseInsensitiveStringEquality>
-        udfNames;
     Database* database;
     std::unique_ptr<ClientContext> clientContext;
 };
