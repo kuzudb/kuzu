@@ -19,7 +19,6 @@
 #include "parser/ddl/create_table.h"
 #include "parser/ddl/create_table_info.h"
 #include "parser/ddl/drop.h"
-#include "parser/expression/parsed_literal_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;

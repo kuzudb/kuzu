@@ -3,7 +3,7 @@
 #include "common/copy_constructors.h"
 #include "common/types/types.h"
 #include "common/types/value/value.h"
-#include "parser/expression/parsed_literal_expression.h"
+#include "parser/expression/parsed_expression.h"
 
 namespace kuzu {
 namespace common {
