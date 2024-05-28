@@ -116,7 +116,7 @@ struct UDF {
         }
         validateType<OPERAND_TYPE>(parameterTypes[0]);
         function::scalar_func_exec_t execFunc =
-            [=](const std::vector<std::shared_ptr<common::ValueVector>>& params,
+            [udfFunc](const std::vector<std::shared_ptr<common::ValueVector>>& params,
                 common::ValueVector& result, void* /*dataPtr*/ = nullptr) -> void {
             KU_ASSERT(params.size() == 1);
             UnaryFunctionExecutor::executeUDF<OPERAND_TYPE, RESULT_TYPE, UnaryUDFExecutor>(
@@ -143,7 +143,7 @@ struct UDF {
         validateType<LEFT_TYPE>(parameterTypes[0]);
         validateType<RIGHT_TYPE>(parameterTypes[1]);
         function::scalar_func_exec_t execFunc =
-            [=](const std::vector<std::shared_ptr<common::ValueVector>>& params,
+            [udfFunc](const std::vector<std::shared_ptr<common::ValueVector>>& params,
                 common::ValueVector& result, void* /*dataPtr*/ = nullptr) -> void {
             KU_ASSERT(params.size() == 2);
             BinaryFunctionExecutor::executeUDF<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE,
@@ -171,7 +171,7 @@ struct UDF {
         validateType<B_TYPE>(parameterTypes[1]);
         validateType<C_TYPE>(parameterTypes[2]);
         function::scalar_func_exec_t execFunc =
-            [=](const std::vector<std::shared_ptr<common::ValueVector>>& params,
+            [udfFunc](const std::vector<std::shared_ptr<common::ValueVector>>& params,
                 common::ValueVector& result, void* /*dataPtr*/ = nullptr) -> void {
             KU_ASSERT(params.size() == 3);
             TernaryFunctionExecutor::executeUDF<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE,
