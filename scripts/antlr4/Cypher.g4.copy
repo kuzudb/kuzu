@@ -144,11 +144,7 @@ kU_CreateRelTable
     : CREATE SP REL SP TABLE SP oC_SchemaName SP? '(' SP? kU_RelTableConnection SP? ( ',' SP? kU_PropertyDefinitionsDDL SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
 
 kU_CreateRelTableGroup
-<<<<<<< HEAD
     : CREATE SP REL SP TABLE SP GROUP SP oC_SchemaName SP? '(' SP? kU_RelTableConnection SP ? (',' SP? kU_RelTableConnection)+ SP? ( ',' SP? kU_PropertyDefinitionsDDL SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
-=======
-    : CREATE SP REL SP TABLE SP GROUP SP oC_SchemaName SP? '(' SP? kU_RelTableConnection ( SP? ',' SP? kU_RelTableConnection )+ SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
->>>>>>> 0e46901f9 (Fix issue 3543)
 
 GROUP : ( 'G' | 'g' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'U' | 'u' ) ( 'P' | 'p' ) ;
 
