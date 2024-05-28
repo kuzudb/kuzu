@@ -1,66 +1,75 @@
 name: LDBC-Fintech-Benchmark
 
-env:
-  RUNTIME_CHECKS: 1
-  WERROR: 1
-
 on:
   workflow_dispatch:
+    inputs:
+      scale_factor:
+        description: 'Scale factor'
+        required: true
+        default: "1"
+        type: choice
+        options:
+          - "1"
+          - "10"
 
 jobs:
   benchmark:
     name: ldbc-fintech-benchmark
     runs-on: kuzu-self-hosted-benchmarking
+    env:
+      SCALE_FACTOR: ${{ github.event.inputs.scale_factor }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Build Kuzu
+    - name: Set checkout dir
+      run: |
+        echo "KUZU_DIR=$(pwd)" >> $GITHUB_ENV
+
+    - name: Build kuzu
       run: |
         pip3 install -r tools/python_api/requirements_dev.txt
         make python NUM_THREADS=$(nproc)
         make java NUM_THREADS=$(nproc)
-        
-    - name: Update Driver Implementation
+    
+    - name: Clone implementation
+      uses: actions/checkout@v4
+      with:
+        repository: kuzudb/ldbc_finbench_transaction_impls
+        token: ${{ secrets.DOC_PUSH_TOKEN }}
+        path: ldbc_finbench_transaction_impls
+      
+    - name: Update implementation
+      working-directory: ldbc_finbench_transaction_impls
       run: |
-        cd $SERIALIZED_DIR
-        if ! test -d ldbc_finbench_transaction_impls ; then
-          echo "Implementation repo not found. Cloning from remote."
-          git clone https://${{ secrets.DOC_PUSH_TOKEN }}@github.com/kuzudb/ldbc_finbench_transaction_impls.git
-        fi
-        cd ldbc_finbench_transaction_impls
-        git fetch
-        if [[ $(git rev-parse HEAD) != $(git rev-parse origin) ]]; then
-          echo "Local implementation is not up to date with remote. Updating implementation."
-          git restore .
-          git pull
-        fi
-        cp ${{ github.workspace }}/tools/java_api/build/kuzu_java.jar kuzu/src/main/resources/
+        ln -s $KUZU_DIR/tools/java_api/build/kuzu_java.jar kuzu/src/main/resources/kuzu_java.jar
+        ln -s $KUZU_DIR/tools/python_api/build/kuzu kuzu/scripts/kuzu
+        mkdir -p kuzu/src/main/resources/data
+        ln -s $CSV_DIR/finbench-datasets/sf${SCALE_FACTOR} kuzu/src/main/resources/data/sf${SCALE_FACTOR}
         mvn clean package -DskipTests
 
-    - name: Load Data
-      run: |
-        cd $SERIALIZED_DIR/ldbc_finbench_transaction_impls/kuzu
-        if ! test -d src/main/resources/data ; then
-          echo "Dataset not found. Downloading dataset."
-          mkdir src/main/resources/data
-          cp -r $CSV_DIR/finbench-datasets/sf1 src/main/resources/data/
-        fi
-        cp -r ${{ github.workspace }}/tools/python_api/build/kuzu scripts/
-        python3 scripts/import_data.py sf1 
+    - name: Load data
+      working-directory: ldbc_finbench_transaction_impls
+      run: python3 kuzu/scripts/import_data.py sf${SCALE_FACTOR}
 
-    - name: Run Benchmark
-      run: |
-        cd $SERIALIZED_DIR/ldbc_finbench_transaction_impls/kuzu
-        java -cp target/kuzu-0.1.0-alpha.jar:target/classes/kuzu_java.jar org.ldbcouncil.finbench.driver.driver.Driver -P sf1_finbench_benchmark.properties
-        if ! test -d /tmp/benchmark_result ; then
-          echo "Benchmark results directory not found. Creating /tmp/benchmark_result."
-          mkdir /tmp/benchmark_result
-        fi
-        cat results/LDBC-FinBench-results.json > /tmp/benchmark_result/finbench-results.json
-
-    - name: Submit Results
+    - name: Run benchmark
+      working-directory: ldbc_finbench_transaction_impls/kuzu
+      run:
+        java -cp target/kuzu-0.1.0-alpha.jar:target/classes/kuzu_java.jar org.ldbcouncil.finbench.driver.driver.Driver -P sf${SCALE_FACTOR}_finbench_benchmark.properties | tee LDBC-FinBench.log
+     
+    - name: Upload results
       uses: actions/upload-artifact@v3
       with:
         name: LDBC-FinBench-results
-        path: /tmp/benchmark_result/finbench-results.json
+        path: ldbc_finbench_transaction_impls/kuzu/results/LDBC-FinBench-results.json
+
+    - name: Upload logs
+      uses: actions/upload-artifact@v3
+      with:
+        name: LDBC-FinBench-logs
+        path: ldbc_finbench_transaction_impls/kuzu/LDBC-FinBench.log
+    
+    - name: Report result to server
+      working-directory: ldbc_finbench_transaction_impls
+      run: |
+        python3 kuzu/scripts/report_results.py
