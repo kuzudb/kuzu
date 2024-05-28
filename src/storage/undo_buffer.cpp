@@ -139,7 +139,9 @@ void UndoBuffer::commitEntry(const uint8_t* entry, transaction_t commitTS) {
         case CatalogEntryType::NODE_TABLE_ENTRY:
         case CatalogEntryType::REL_TABLE_ENTRY:
         case CatalogEntryType::REL_GROUP_ENTRY:
-        case CatalogEntryType::RDF_GRAPH_ENTRY: {
+        case CatalogEntryType::RDF_GRAPH_ENTRY:
+            // TODO: Add support for dropping macro.
+        case CatalogEntryType::SCALAR_MACRO_ENTRY: {
             auto tableCatalogEntry =
                 ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(catalogEntry);
             wal.logDropTableRecord(tableCatalogEntry->getTableID(), tableCatalogEntry->getType());
@@ -148,6 +150,9 @@ void UndoBuffer::commitEntry(const uint8_t* entry, transaction_t commitTS) {
             auto sequenceCatalogEntry =
                 ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(catalogEntry);
             wal.logDropSequenceRecord(sequenceCatalogEntry->getSequenceID());
+        } break;
+        case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {
+            // DO NOTHING. We don't persistent function entries.
         } break;
         default: {
             throw RuntimeException(stringFormat("Not supported catalog entry type {} yet.",

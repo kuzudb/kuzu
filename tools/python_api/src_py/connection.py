@@ -235,6 +235,9 @@ class Connection:
         udf: Callable[[...], Any],
         params_type: list[Type | str] | None = None,
         return_type: Type | str = "",
+        *,
+        default_null_handling: bool = True,
+        catch_exceptions: bool = False
     ) -> None:
         """
         Sets a User Defined Function (UDF) to use in cypher queries.
@@ -252,10 +255,35 @@ class Connection:
 
         return_type: Optional[Type]
             a Type enum to describe the returned value
+
+        default_null_handling: Optional[bool]
+            if true, when any parameter is null, the resulting value will be null
+
+        catch_exceptions: Optional[bool]
+            if true, when an exception is thrown from python, the function output will be null
+            Otherwise, the exception will be rethrown
         """
         if params_type is None:
             params_type = []
         parsed_params_type = [x if type(x) is str else x.value for x in params_type]
         if type(return_type) is not str:
             return_type = return_type.value
-        self._connection.create_function(name, udf, parsed_params_type, return_type)
+        
+        self._connection.create_function(
+            name=name,
+            udf=udf,
+            params_type=parsed_params_type,
+            return_value=return_type,
+            default_null=default_null_handling,
+            catch_exceptions=catch_exceptions)
+
+    def remove_function(self, name: str) -> None:
+        """
+        Removes a User Defined Function (UDF).
+
+        Parameters
+        ----------
+        name: str
+            name of function to be removed.
+        """
+        self._connection.remove_function(name)

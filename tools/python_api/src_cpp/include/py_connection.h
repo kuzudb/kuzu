@@ -42,7 +42,8 @@ public:
     static bool isPandasDataframe(const py::object& object);
 
     void createScalarFunction(const std::string& name, const py::function& udf,
-        const py::list& params, const std::string& retval);
+        const py::list& params, const std::string& retval, bool defaultNull, bool catchExceptions);
+    void removeScalarFunction(const std::string& name);
 
     static Value transformPythonValue(const py::handle& val);
     static Value transformPythonValueAs(const py::handle& val, const LogicalType& type);

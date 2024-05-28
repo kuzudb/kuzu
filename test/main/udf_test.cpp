@@ -9,6 +9,16 @@ static int32_t add5(int32_t x) {
     return x + 5;
 }
 
+class UserDefinedException : public std::exception {
+public:
+    explicit UserDefinedException(const std::string& message) : message_(message) {}
+
+    const char* what() const noexcept override { return message_.c_str(); }
+
+private:
+    std::string message_;
+};
+
 TEST_F(ApiTest, UnaryUDFInt64) {
     conn->createScalarFunction("add5", &add5);
     // Dummy query to ensure the add5 function is persistent after a write transaction.
@@ -16,6 +26,38 @@ TEST_F(ApiTest, UnaryUDFInt64) {
     auto actualResult = TestHelper::convertResultToString(
         *conn->query("MATCH (p:person) return add5(to_int32(p.age))"));
     auto expectedResult = std::vector<std::string>{"40", "35", "50", "25", "25", "30", "45", "88"};
+    sortAndCheckTestResults(actualResult, expectedResult);
+}
+
+TEST_F(ApiTest, TestDropUDF) {
+    conn->createScalarFunction("add5", &add5);
+    conn->removeUDFFunction("add5");
+    conn->createScalarFunction("add5", &add5);
+    printf("%s", conn->query("return add5(cast(5, 'int32'));")->toString().c_str());
+}
+
+static int32_t throwUDE() {
+    throw UserDefinedException{"Input is too long."};
+}
+
+TEST_F(ApiTest, TestExceptUDF) {
+    conn->createScalarFunction("throwUDE", &throwUDE);
+    auto result = conn->query("return throwUDE();");
+    ASSERT_EQ(result->getErrorMessage(), "Input is too long.");
+    conn->removeUDFFunction("throwUDE");
+    result = conn->query("return throwUDE();");
+    ASSERT_EQ(result->getErrorMessage(), "Catalog exception: function THROWUDE does not exist.");
+}
+
+static int32_t constantFunc() {
+    return 1;
+}
+
+TEST_F(ApiTest, TestZeroParamUDF) {
+    conn->createScalarFunction("constantFunc", &constantFunc);
+    auto actualResult =
+        TestHelper::convertResultToString(*conn->query("MATCH (p:person) return constantFunc()"));
+    auto expectedResult = std::vector<std::string>{"1", "1", "1", "1", "1", "1", "1", "1"};
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 
@@ -341,20 +383,35 @@ TEST_F(ApiTest, vectorizedTernaryConditionalAdd) {
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 
-// TODO: FIX-ME. Add transaction to functions.
-// TEST_F(ApiTest, UDFTrxTest) {
-//    ASSERT_TRUE(conn->query("BEGIN TRANSACTION;")->isSuccess());
-//    conn->createScalarFunction("add5", &add5);
-//    auto actualResult = TestHelper::convertResultToString(*conn->query("return
-//    add5(to_int32(5))")); auto expectedResult = std::vector<std::string>{"10"};
-//    sortAndCheckTestResults(actualResult, expectedResult);
-//    ASSERT_TRUE(conn->query("COMMIT;")->isSuccess());
-//    ASSERT_TRUE(conn->query("BEGIN TRANSACTION;")->isSuccess());
-//    conn->createScalarFunction("times2", &times2);
-//    ASSERT_TRUE(conn->query("ROLLBACK;")->isSuccess());
-//    ASSERT_EQ(conn->query("return times2(5)")->getErrorMessage(),
-//        "Catalog exception: function TIMES2 does not exist.");
-//}
+TEST_F(ApiTest, UDFTrxTest) {
+    ASSERT_TRUE(conn->query("BEGIN TRANSACTION;")->isSuccess());
+    conn->createScalarFunction("add5", &add5);
+    auto actualResult = TestHelper::convertResultToString(*conn->query("return add5(to_int32(5))"));
+    auto expectedResult = std::vector<std::string>{"10"};
+    sortAndCheckTestResults(actualResult, expectedResult);
+    ASSERT_TRUE(conn->query("COMMIT;")->isSuccess());
+    ASSERT_TRUE(conn->query("BEGIN TRANSACTION;")->isSuccess());
+    conn->createScalarFunction("times2", &times2);
+    ASSERT_TRUE(conn->query("ROLLBACK;")->isSuccess());
+    ASSERT_EQ(conn->query("return times2(5)")->getErrorMessage(),
+        "Catalog exception: function TIMES2 does not exist.");
+}
+
+TEST_F(ApiTest, CreateUDFExceptionTest) {
+    conn->createScalarFunction("add5", &add5);
+    try {
+        conn->createScalarFunction("add5", &add5);
+        FAIL();
+    } catch (std::exception& e) {
+        ASSERT_EQ(std::string(e.what()), "Catalog exception: function add5 already exists.");
+    }
+    try {
+        conn->removeUDFFunction("add6");
+        FAIL();
+    } catch (std::exception& e) {
+        ASSERT_EQ(std::string(e.what()), "Catalog exception: function add6 doesn't exist.");
+    }
+}
 
 } // namespace testing
 } // namespace kuzu

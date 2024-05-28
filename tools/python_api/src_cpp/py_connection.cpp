@@ -36,7 +36,9 @@ void PyConnection::initialize(py::handle& m) {
             py::arg("np_array"), py::arg("src_table_name"), py::arg("rel_name"),
             py::arg("dst_table_name"), py::arg("query_batch_size"))
         .def("create_function", &PyConnection::createScalarFunction, py::arg("name"),
-            py::arg("udf"), py::arg("params_type"), py::arg("return_value"));
+            py::arg("udf"), py::arg("params_type"), py::arg("return_value"),
+            py::arg("default_null"), py::arg("catch_exceptions"))
+        .def("remove_function", &PyConnection::removeScalarFunction, py::arg("name"));
     PyDateTime_IMPORT;
 }
 
@@ -478,6 +480,11 @@ std::unique_ptr<PyQueryResult> PyConnection::checkAndWrapQueryResult(
 }
 
 void PyConnection::createScalarFunction(const std::string& name, const py::function& udf,
-    const py::list& params, const std::string& retval) {
-    conn->addUDFFunctionSet(name, PyUDF::toFunctionSet(name, udf, params, retval));
+    const py::list& params, const std::string& retval, bool defaultNull, bool catchExceptions) {
+    conn->addUDFFunctionSet(name,
+        PyUDF::toFunctionSet(name, udf, params, retval, defaultNull, catchExceptions));
+}
+
+void PyConnection::removeScalarFunction(const std::string& name) {
+    conn->removeUDFFunction(name);
 }

@@ -4,6 +4,10 @@ from datetime import date, datetime, timedelta  # noqa: TCH003
 
 import pandas as pd
 import pyarrow as pa
+import pytest
+from datetime import date, datetime, timedelta # noqa: TCH003
+
+import kuzu
 from kuzu import Type
 from type_aliases import ConnDB
 
@@ -141,3 +145,51 @@ def test_udf(conn_db_readwrite: ConnDB) -> None:
         [("a", 1), ("b", 2), ("c", 3), ("x", -1), ("y", -2), ("z", -3)],
         [("l", 1), ("m", 2), ("n", 3), ("one", -1), ("two", -2), ("three", -3)],
     ]
+
+def test_udf_null(conn_db_readwrite: ConnDB) -> None:
+    conn, db = conn_db_readwrite
+
+    def get5(x: int) -> int:
+        return 5
+    
+    conn.create_function("get5", get5)
+    assert conn.execute("RETURN get5(NULL)").get_next() == [None]
+
+    conn.remove_function("get5")
+    conn.create_function("get5", get5, default_null_handling = False)
+    assert conn.execute("RETURN get5(NULL)").get_next() == [5]
+
+def test_udf_except(conn_db_readwrite: ConnDB) -> None:
+    class TestException(Exception):
+        pass
+
+    conn, db = conn_db_readwrite
+
+    def throw() -> int:
+        errmsg = "test"
+        raise TestException(errmsg)
+    
+    conn.create_function("testexcept", throw)
+
+    pytest.raises(RuntimeError, conn.execute, "RETURN testexcept()")
+
+    conn.remove_function("testexcept")
+    conn.create_function("testexcept", throw, catch_exceptions = True)
+
+    assert conn.execute("RETURN testexcept()").get_next() == [None]
+
+def test_udf_remove(conn_db_readwrite: ConnDB) -> None:
+    conn, db = conn_db_readwrite
+
+    def myfunction() -> int:
+        return 1
+    
+    conn.create_function("myfunction", myfunction)
+
+    with pytest.raises(RuntimeError, match="Catalog exception: function notmyfunction doesn't exist."):
+        conn.remove_function("notmyfunction")
+    
+    conn.remove_function("myfunction")
+
+    with pytest.raises(RuntimeError, match="Catalog exception: function list_create doesn't exist."):
+        conn.remove_function("list_create")

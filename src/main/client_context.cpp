@@ -425,9 +425,8 @@ std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement*
     }
     try {
         bindParametersNoLock(preparedStatement, inputParams);
-    } catch (Exception& exception) {
-        std::string errMsg = exception.what();
-        return queryResultWithError(errMsg);
+    } catch (std::exception& e) {
+        return queryResultWithError(e.what());
     }
     // rebind
     KU_ASSERT(preparedStatement->parsedStatement != nullptr);
@@ -475,9 +474,9 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
             physicalPlan =
                 mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[planIdx].get(),
                     preparedStatement->statementResult->getColumns());
-        } catch (std::exception& exception) {
+        } catch (std::exception& e) {
             this->transactionContext->rollback();
-            return queryResultWithError(exception.what());
+            return queryResultWithError(e.what());
         }
     }
     auto queryResult = std::make_unique<QueryResult>(preparedStatement->preparedSummary);
@@ -501,9 +500,9 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
                     executionContext.get());
             }
         }
-    } catch (Exception& exception) {
-        this->transactionContext->rollback();
-        return queryResultWithError(std::string(exception.what()));
+    } catch (std::exception& e) {
+        transactionContext->rollback();
+        return queryResultWithError(e.what());
     }
     executingTimer.stop();
     queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
@@ -512,25 +511,36 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
     return queryResult;
 }
 
+// If there is an active transaction in the context, we execute the function in current active
+// transaction. If there is no active transaction, we start an auto commit transaction.
+void ClientContext::runFuncInTransaction(const std::function<void(void)>& fun) {
+    // check if we are on AutoCommit. In this case we should start a transaction
+    bool startNewTrx = !transactionContext->hasActiveTransaction();
+    if (startNewTrx) {
+        transactionContext->beginAutoTransaction(false /* readOnlyStatement */);
+    }
+    try {
+        fun();
+    } catch (std::exception& e) {
+        if (startNewTrx) {
+            transactionContext->rollback();
+        }
+        throw;
+    }
+    if (startNewTrx) {
+        transactionContext->commit();
+    }
+}
+
 void ClientContext::addScalarFunction(std::string name, function::function_set definitions) {
-    localDatabase->catalog->addFunction(getTx(), CatalogEntryType::SCALAR_FUNCTION_ENTRY,
-        std::move(name), std::move(definitions));
+    runFuncInTransaction([&]() {
+        localDatabase->catalog->addFunction(getTx(), CatalogEntryType::SCALAR_FUNCTION_ENTRY,
+            std::move(name), std::move(definitions));
+    });
 }
 
-bool ClientContext::startUDFAutoTrx(TransactionContext* trx) {
-    if (!trx->hasActiveTransaction()) {
-        auto res = query("BEGIN TRANSACTION");
-        KU_ASSERT(res->isSuccess());
-        return true;
-    }
-    return false;
-}
-
-void ClientContext::commitUDFTrx(bool isAutoCommitTrx) {
-    if (isAutoCommitTrx) {
-        auto res = query("COMMIT");
-        KU_ASSERT(res->isSuccess());
-    }
+void ClientContext::removeScalarFunction(std::string name) {
+    runFuncInTransaction([&]() { localDatabase->catalog->dropFunction(getTx(), std::move(name)); });
 }
 
 bool ClientContext::canExecuteWriteQuery() {

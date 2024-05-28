@@ -80,6 +80,27 @@ struct UDF {
     }
 
     template<typename RESULT_TYPE, typename... Args>
+    static function::scalar_func_exec_t createEmptyParameterExecFunc(RESULT_TYPE (*)(Args...),
+        const std::vector<common::LogicalTypeID>&) {
+        KU_UNREACHABLE;
+    }
+
+    template<typename RESULT_TYPE>
+    static function::scalar_func_exec_t createEmptyParameterExecFunc(RESULT_TYPE (*udfFunc)(),
+        const std::vector<common::LogicalTypeID>&) {
+        (void*)(udfFunc); // Disable compiler warnings.
+        return [udfFunc](const std::vector<std::shared_ptr<common::ValueVector>>& params,
+                   common::ValueVector& result, void* /*dataPtr*/ = nullptr) -> void {
+            KU_ASSERT(params.size() == 0);
+            auto& resultSelVector = result.state->getSelVector();
+            for (auto i = 0u; i < resultSelVector.getSelSize(); ++i) {
+                auto resultPos = resultSelVector[i];
+                result.copyFromValue(resultPos, common::Value(udfFunc()));
+            }
+        };
+    }
+
+    template<typename RESULT_TYPE, typename... Args>
     static function::scalar_func_exec_t createUnaryExecFunc(RESULT_TYPE (* /*udfFunc*/)(Args...),
         const std::vector<common::LogicalTypeID>& /*parameterTypes*/) {
         KU_UNREACHABLE;
@@ -164,6 +185,8 @@ struct UDF {
         std::vector<common::LogicalTypeID> parameterTypes) {
         constexpr auto numArgs = sizeof...(Args);
         switch (numArgs) {
+        case 0:
+            return createEmptyParameterExecFunc<TR, Args...>(udfFunc, std::move(parameterTypes));
         case 1:
             return createUnaryExecFunc<TR, Args...>(udfFunc, std::move(parameterTypes));
         case 2:
@@ -210,7 +233,9 @@ struct UDF {
     template<typename... Args>
     static std::vector<common::LogicalTypeID> getParameterTypes() {
         std::vector<common::LogicalTypeID> parameterTypes;
-        getParameterTypesRecursive<Args...>(parameterTypes);
+        if constexpr (sizeof...(Args) > 0) {
+            getParameterTypesRecursive<Args...>(parameterTypes);
+        }
         return parameterTypes;
     }
 
