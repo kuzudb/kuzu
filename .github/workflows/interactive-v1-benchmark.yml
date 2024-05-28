@@ -65,7 +65,7 @@ jobs:
       run: |
         workflow_scripts/load-in-one-step.sh
 
-    - name: Run Benchmark
+    - name: Run benchmark
       working-directory: ldbc_snb_interactive_v1_impl/kuzu
       run: |
         echo "ldbc.snb.interactive.updates_dir=${KUZU_CSV_DIR}" >> driver/benchmark.properties
