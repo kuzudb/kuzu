@@ -16,9 +16,7 @@ void ScanNodeTableSharedState::initialize(transaction::Transaction* transaction,
     if (transaction->isWriteTransaction()) {
         if (const auto localTable = transaction->getLocalStorage()->getLocalTable(
                 this->table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
-            localNodeGroups = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable)
-                                  ->getTableData()
-                                  ->getNodeGroups();
+            localNodeTable = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable);
         }
     }
 }
@@ -30,10 +28,11 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
         scanState.source = TableScanSource::COMMITTED;
         return;
     }
-    if (currentUnCommittedGroupIdx < localNodeGroups.size()) {
-        scanState.localNodeGroup = ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(
-            localNodeGroups[currentUnCommittedGroupIdx++]);
+    // TODO(Guodong): We should split scan of local node table to multiple morsels, too.
+    if (localNodeTable && currentUnCommittedGroupIdx < 1) {
+        scanState.localNodeTable = localNodeTable;
         scanState.source = TableScanSource::UNCOMMITTED;
+        currentUnCommittedGroupIdx++;
         return;
     }
     scanState.source = TableScanSource::NONE;
@@ -42,7 +41,8 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
 void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
     for (auto& nodeInfo : nodeInfos) {
-        nodeInfo.localScanState = std::make_unique<NodeTableScanState>(nodeInfo.columnIDs);
+        nodeInfo.localScanState =
+            std::make_unique<NodeTableScanState>(nodeInfo.table->getTableID(), nodeInfo.columnIDs);
         nodeInfo.localScanState->columnPredicateSets = copyVector(nodeInfo.columnPredicates);
         initVectors(*nodeInfo.localScanState, *resultSet);
     }

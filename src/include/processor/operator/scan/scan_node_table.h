@@ -11,7 +11,8 @@ class ScanNodeTableSharedState {
 public:
     ScanNodeTableSharedState()
         : table{nullptr}, currentCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX},
-          currentUnCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX}, numCommittedNodeGroups{0} {};
+          currentUnCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX}, numCommittedNodeGroups{0},
+          localNodeTable{nullptr} {};
 
     void initialize(transaction::Transaction* transaction, storage::NodeTable* table);
 
@@ -23,7 +24,7 @@ private:
     common::node_group_idx_t currentCommittedGroupIdx;
     common::node_group_idx_t currentUnCommittedGroupIdx;
     common::node_group_idx_t numCommittedNodeGroups;
-    std::vector<storage::LocalNodeGroup*> localNodeGroups;
+    storage::LocalNodeTable* localNodeTable;
 };
 
 struct ScanNodeTableInfo {

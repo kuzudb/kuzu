@@ -8,20 +8,7 @@ namespace kuzu {
 namespace storage {
 class TablesStatistics;
 
-class LocalNodeNG;
-struct NodeDataScanState final : TableDataScanState {
-    explicit NodeDataScanState(const std::vector<common::column_id_t>& columnIDs)
-        : TableDataScanState{columnIDs} {}
-    DELETE_COPY_DEFAULT_MOVE(NodeDataScanState);
-
-    common::row_idx_t numRowsToScan = 0;
-    common::vector_idx_t vectorIdx = common::INVALID_VECTOR_IDX;
-    common::row_idx_t numRowsInNodeGroup = 0;
-
-    bool nextVector();
-};
-
-class LocalTableData;
+class LocalNodeTable;
 class NodeTableData final : public TableData {
 public:
     NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
@@ -37,25 +24,14 @@ public:
         const std::vector<common::ValueVector*>& outputVectors) override;
 
     // Flush the nodeGroup to disk and update metadataDAs.
-    void append(transaction::Transaction* transaction, ChunkedNodeGroup* nodeGroup) override;
-
-    void prepareLocalNodeGroupToCommit(common::node_group_idx_t nodeGroupIdx,
-        transaction::Transaction* transaction, LocalNodeNG* localNodeGroup) const;
-    void prepareLocalTableToCommit(transaction::Transaction* transaction,
-        LocalTableData* localTable) override;
+    common::offset_t append(transaction::Transaction* transaction,
+        ChunkedNodeGroup* nodeGroup) override;
 
     common::node_group_idx_t getNumCommittedNodeGroups() const override {
         return columns[0]->getNumCommittedNodeGroups();
     }
-
-    common::node_group_idx_t getNumNodeGroups(const transaction::Transaction* transaction) const {
-        return columns[0]->getNumNodeGroups(transaction);
-    }
-    common::offset_t getNumTuplesInNodeGroup(const transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx) const {
-        KU_ASSERT(nodeGroupIdx < getNumCommittedNodeGroups());
-        return columns[0]->getMetadata(nodeGroupIdx, transaction->getType()).numValues;
-    }
+    std::unique_ptr<ChunkedNodeGroup> getCommittedNodeGroup(
+        common::node_group_idx_t nodeGroupIdx) const override;
 
     void lookup(transaction::Transaction* transaction, TableDataScanState& state,
         const common::ValueVector& nodeIDVector,
@@ -66,8 +42,6 @@ private:
         TableScanState& scanState, common::node_group_idx_t nodeGroupIdx) const;
     void initializeLocalNodeReadState(transaction::Transaction* transaction,
         TableScanState& scanState, common::node_group_idx_t nodeGroupIdx) const;
-
-    static bool sanityCheckOnColumnNumValues(const NodeDataScanState& scanState);
 };
 
 } // namespace storage

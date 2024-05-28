@@ -1,6 +1,7 @@
 #include "storage/store/string_column_chunk.h"
 
 #include "common/data_chunk/sel_vector.h"
+#include "common/vector/value_vector.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/dictionary_chunk.h"
 
@@ -61,6 +62,14 @@ void StringColumnChunk::lookup(offset_t offsetInChunk, ValueVector& output,
     }
     auto str = getValue<std::string_view>(offsetInChunk);
     output.setValue<std::string_view>(posInOutputVector, str);
+}
+
+void StringColumnChunk::initializeScanState(ChunkState& state) const {
+    ColumnChunk::initializeScanState(state);
+    dictionaryChunk->getOffsetChunk()->initializeScanState(
+        state.childrenStates[DictionaryChunk::OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
+    dictionaryChunk->getStringDataChunk()->initializeScanState(
+        state.childrenStates[DictionaryChunk::DATA_COLUMN_CHILD_READ_STATE_IDX]);
 }
 
 void StringColumnChunk::write(ValueVector* vector, offset_t offsetInVector,

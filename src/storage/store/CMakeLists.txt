@@ -16,8 +16,10 @@ add_library(kuzu_storage_store
         struct_column_chunk.cpp
         struct_column.cpp
         table_data.cpp
+        list_column.cpp
         list_column_chunk.cpp
-        list_column.cpp)
+        node_group.cpp
+        node_group_collection.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_storage_store>

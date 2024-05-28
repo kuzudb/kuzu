@@ -9,7 +9,6 @@ using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
-
 bool ChunkedCSRHeader::sanityCheck() const {
     if (offset->getNumValues() != length->getNumValues()) {
         return false;
@@ -47,9 +46,10 @@ void ChunkedCSRHeader::fillDefaultValues(offset_t newNumValues) const {
         offset->getNumValues() >= newNumValues && length->getNumValues() == offset->getNumValues());
 }
 
-ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<common::LogicalType>& columnTypes,
-    bool enableCompression, uint64_t capacity)
-    : nodeGroupIdx{UINT64_MAX}, numRows{0} {
+ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<LogicalType>& columnTypes,
+    bool enableCompression, uint64_t capacity, offset_t startOffset)
+    : nodeGroupIdx{INVALID_NODE_GROUP_IDX}, startNodeOffset{startOffset}, capacity{capacity},
+      numRows{0} {
     chunks.reserve(columnTypes.size());
     for (auto& type : columnTypes) {
         chunks.push_back(
@@ -59,11 +59,12 @@ ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<common::LogicalType>& colum
 
 ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<std::unique_ptr<Column>>& columns,
     bool enableCompression)
-    : nodeGroupIdx{UINT64_MAX}, numRows{0} {
+    : nodeGroupIdx{INVALID_NODE_GROUP_IDX}, startNodeOffset{INVALID_OFFSET},
+      capacity{StorageConstants::NODE_GROUP_SIZE}, numRows{0} {
     chunks.reserve(columns.size());
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         chunks.push_back(ColumnChunkFactory::createColumnChunk(
-            *columns[columnID]->getDataType().copy(), enableCompression));
+            *columns[columnID]->getDataType().copy(), enableCompression, capacity));
     }
 }
 
@@ -81,7 +82,7 @@ void ChunkedNodeGroup::setAllNull() {
     }
 }
 
-void ChunkedNodeGroup::setNumRows(common::offset_t numRows_) {
+void ChunkedNodeGroup::setNumRows(offset_t numRows_) {
     for (auto& chunk : chunks) {
         chunk->setNumValues(numRows_);
     }
@@ -99,12 +100,11 @@ uint64_t ChunkedNodeGroup::append(const std::vector<ValueVector*>& columnVectors
     auto numValuesToAppendInChunk =
         std::min(numValuesToAppend, StorageConstants::NODE_GROUP_SIZE - numRows);
     auto serialSkip = 0u;
-    //    auto slicedSelVector = selVector.slice(numValuesToAppendInChunk);
     auto originalSize = selVector.getSelSize();
     selVector.setSelSize(numValuesToAppendInChunk);
     for (auto i = 0u; i < chunks.size(); i++) {
         auto chunk = chunks[i].get();
-        if (chunk->getDataType().getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
+        if (chunk->getDataType().getLogicalTypeID() == LogicalTypeID::SERIAL) {
             chunk->setNumValues(chunk->getNumValues() + numValuesToAppendInChunk);
             serialSkip++;
             continue;
@@ -114,18 +114,18 @@ uint64_t ChunkedNodeGroup::append(const std::vector<ValueVector*>& columnVectors
         chunk->append(columnVector, selVector);
     }
     selVector.setSelSize(originalSize);
-    //    selVector.selectedSize = originalSize;
     numRows += numValuesToAppendInChunk;
     return numValuesToAppendInChunk;
 }
 
-offset_t ChunkedNodeGroup::append(ChunkedNodeGroup* other, offset_t offsetInOtherNodeGroup,
+offset_t ChunkedNodeGroup::append(const ChunkedNodeGroup& other, offset_t offsetInOtherNodeGroup,
     offset_t numValues) {
-    KU_ASSERT(other->chunks.size() == chunks.size());
-    auto numNodesToAppend = std::min(std::min(numValues, other->numRows - offsetInOtherNodeGroup),
-        chunks[0]->getCapacity() - numRows);
+    KU_ASSERT(other.chunks.size() == chunks.size());
+    const auto numNodesToAppend =
+        std::min(std::min(numValues, other.numRows - offsetInOtherNodeGroup),
+            chunks[0]->getCapacity() - numRows);
     for (auto i = 0u; i < chunks.size(); i++) {
-        chunks[i]->append(other->chunks[i].get(), offsetInOtherNodeGroup, numNodesToAppend);
+        chunks[i]->append(other.chunks[i].get(), offsetInOtherNodeGroup, numNodesToAppend);
     }
     numRows += numNodesToAppend;
     return numNodesToAppend;
@@ -153,11 +153,30 @@ void ChunkedNodeGroup::write(const ChunkedNodeGroup& data, column_id_t offsetCol
     write(data.chunks, offsetColumnID);
 }
 
+void ChunkedNodeGroup::scan(const std::vector<column_id_t>& columnIDs,
+    const std::vector<ValueVector*>& outputVectors, offset_t offset, length_t length) const {
+    KU_ASSERT(columnIDs.size() == outputVectors.size());
+    KU_ASSERT(offset + length <= numRows);
+    for (auto i = 0u; i < columnIDs.size(); i++) {
+        auto columnID = columnIDs[i];
+        KU_ASSERT(columnID < chunks.size());
+        chunks[columnID]->scan(*outputVectors[i], offset, length);
+    }
+}
+
 void ChunkedNodeGroup::finalize(uint64_t nodeGroupIdx_) {
     nodeGroupIdx = nodeGroupIdx_;
     for (auto i = 0u; i < chunks.size(); i++) {
         chunks[i]->finalize();
     }
+}
+
+std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flush(BMFileHandle& dataFH) const {
+    std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
+    for (auto i = 0u; i < getNumColumns(); i++) {
+        flushedChunks[i] = Column::flushChunk(getColumnChunk(i), dataFH);
+    }
+    return std::make_unique<ChunkedNodeGroup>(std::move(flushedChunks), 0 /*startNodeOffset*/);
 }
 
 ChunkedCSRHeader::ChunkedCSRHeader(bool enableCompression, uint64_t capacity) {
@@ -191,7 +210,7 @@ ChunkedCSRNodeGroup::ChunkedCSRNodeGroup(const std::vector<LogicalType>& columnT
     bool enableCompression)
     // By default, initialize all column chunks except for the csrOffsetChunk to empty, as they
     // should be resized after csr offset calculation (e.g., during RelBatchInsert).
-    : ChunkedNodeGroup{columnTypes, enableCompression, 0 /* capacity */} {
+    : ChunkedNodeGroup{columnTypes, enableCompression, 0 /* capacity */, INVALID_OFFSET} {
     csrHeader = ChunkedCSRHeader(enableCompression);
 }
 

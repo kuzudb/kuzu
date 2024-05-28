@@ -7,7 +7,8 @@ namespace processor {
 
 void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
-    readState = std::make_unique<RelTableScanState>(relInfo.columnIDs, relInfo.direction);
+    readState = std::make_unique<RelTableScanState>(relInfo.table->getTableID(), relInfo.columnIDs,
+        relInfo.direction);
     initVectors(*readState, *resultSet);
 }
 

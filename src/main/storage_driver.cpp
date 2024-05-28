@@ -41,7 +41,7 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
         threads.emplace_back(&StorageDriver::scanColumn, this, dummyReadOnlyTransaction.get(),
             column, offsets, sizeToRead, current_buffer);
         offsets += sizeToRead;
-        current_buffer += sizeToRead * storage::getDataTypeSizeInChunk(column->getDataType());
+        current_buffer += sizeToRead * getDataTypeSizeInChunk(column->getDataType());
         sizeLeft -= sizeToRead;
     }
     for (auto& thread : threads) {
@@ -71,7 +71,7 @@ uint64_t StorageDriver::getNumRels(const std::string& relName) {
     return numRels;
 }
 
-void StorageDriver::scanColumn(Transaction* transaction, storage::Column* column, offset_t* offsets,
+void StorageDriver::scanColumn(Transaction* transaction, Column* column, offset_t* offsets,
     size_t size, uint8_t* result) {
     auto dataType = column->getDataType();
     if (dataType.getPhysicalType() == PhysicalTypeID::LIST ||
@@ -81,7 +81,7 @@ void StorageDriver::scanColumn(Transaction* transaction, storage::Column* column
             auto nodeOffset = offsets[i];
             auto [nodeGroupIdx, offsetInChunk] =
                 StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
-            Column::ChunkState readState;
+            ChunkState readState;
             column->initChunkState(transaction, nodeGroupIdx, readState);
             column->scan(transaction, readState, offsetInChunk, offsetInChunk + 1, &resultVector,
                 i);

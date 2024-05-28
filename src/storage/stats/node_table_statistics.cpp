@@ -68,6 +68,12 @@ std::pair<offset_t, bool> NodeTableStatsAndDeletedIDs::addNode() {
     return {retVal, false};
 }
 
+offset_t NodeTableStatsAndDeletedIDs::addNodes(offset_t numNodes) {
+    auto currentOffset = getMaxNodeOffset();
+    setNumTuples(getNumTuples() + numNodes);
+    return currentOffset;
+}
+
 void NodeTableStatsAndDeletedIDs::deleteNode(offset_t nodeOffset) {
     // TODO(Semih/Guodong): This check can go into nodeOffsetsInfoForWriteTrx->deleteNode
     // once errorIfNodeHasEdges is removed. This function would then just be a wrapper to init

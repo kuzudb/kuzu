@@ -19,6 +19,7 @@
 #include "storage/index/hash_index_slot.h"
 #include "storage/index/hash_index_utils.h"
 #include "storage/index/in_mem_hash_index.h"
+#include "storage/local_storage/hash_index_local_storage.h"
 #include "storage/storage_structure/disk_array.h"
 #include "storage/storage_structure/overflow_file.h"
 #include "transaction/transaction.h"
@@ -28,81 +29,6 @@ using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
-
-enum class HashIndexLocalLookupState : uint8_t { KEY_FOUND, KEY_DELETED, KEY_NOT_EXIST };
-
-// Local storage consists of two in memory indexes. One (localInsertionIndex) is to keep track of
-// all newly inserted entries, and the other (localDeletionIndex) is to keep track of newly deleted
-// entries (not available in localInsertionIndex). We assume that in a transaction, the insertions
-// and deletions are very small, thus they can be kept in memory.
-template<typename T>
-class HashIndexLocalStorage {
-public:
-    explicit HashIndexLocalStorage(OverflowFileHandle* handle)
-        : localDeletions{}, localInsertions{handle} {}
-    using OwnedKeyType =
-        typename std::conditional<std::same_as<T, common::ku_string_t>, std::string, T>::type;
-    using Key = typename std::conditional<std::same_as<T, ku_string_t>, std::string_view, T>::type;
-    HashIndexLocalLookupState lookup(Key key, common::offset_t& result) {
-        if (localDeletions.contains(key)) {
-            return HashIndexLocalLookupState::KEY_DELETED;
-        }
-        if (localInsertions.lookup(key, result)) {
-            return HashIndexLocalLookupState::KEY_FOUND;
-        } else {
-            return HashIndexLocalLookupState::KEY_NOT_EXIST;
-        }
-    }
-
-    void deleteKey(Key key) {
-        if (!localInsertions.deleteKey(key)) {
-            localDeletions.insert(static_cast<OwnedKeyType>(key));
-        }
-    }
-
-    bool insert(Key key, common::offset_t value) {
-        auto iter = localDeletions.find(key);
-        if (iter != localDeletions.end()) {
-            localDeletions.erase(iter);
-        }
-        return localInsertions.append(key, value);
-    }
-
-    size_t append(const IndexBuffer<OwnedKeyType>& buffer) {
-        return localInsertions.append(buffer);
-    }
-
-    inline bool hasUpdates() const { return !(localInsertions.empty() && localDeletions.empty()); }
-
-    inline int64_t getNetInserts() const {
-        return static_cast<int64_t>(localInsertions.size()) - localDeletions.size();
-    }
-
-    inline void clear() {
-        localInsertions.clear();
-        localDeletions.clear();
-    }
-
-    void applyLocalChanges(const std::function<void(Key)>& deleteOp,
-        const std::function<void(const InMemHashIndex<T>&)>& insertOp) {
-        for (auto& key : localDeletions) {
-            deleteOp(key);
-        }
-        insertOp(localInsertions);
-    }
-
-    void reserveInserts(uint64_t newEntries) { localInsertions.reserve(newEntries); }
-
-    const InMemHashIndex<T>& getInsertions() { return localInsertions; }
-
-private:
-    // When the storage type is string, allow the key type to be string_view with a custom hash
-    // function
-    using hash_function = typename std::conditional<std::is_same<OwnedKeyType, std::string>::value,
-        common::StringUtils::string_hash, std::hash<T>>::type;
-    std::unordered_set<OwnedKeyType, hash_function, std::equal_to<>> localDeletions;
-    InMemHashIndex<T> localInsertions;
-};
 
 template<typename T>
 HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName,

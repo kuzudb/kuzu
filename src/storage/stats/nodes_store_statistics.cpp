@@ -37,7 +37,15 @@ std::pair<offset_t, bool> NodesStoreStatsAndDeletedIDs::addNode(table_id_t table
     initTableStatisticsForWriteTrxNoLock();
     KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
     setToUpdated();
-    return getNodeTableStats(transaction::TransactionType::WRITE, tableID)->addNode();
+    return getNodeTableStats(TransactionType::WRITE, tableID)->addNode();
+}
+
+offset_t NodesStoreStatsAndDeletedIDs::addNodes(table_id_t tableID, offset_t numNodes) {
+    lock_t lck{mtx};
+    initTableStatisticsForWriteTrxNoLock();
+    KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
+    setToUpdated();
+    return getNodeTableStats(TransactionType::WRITE, tableID)->addNodes(numNodes);
 }
 
 void NodesStoreStatsAndDeletedIDs::deleteNode(table_id_t tableID, offset_t nodeOffset) {
@@ -45,7 +53,7 @@ void NodesStoreStatsAndDeletedIDs::deleteNode(table_id_t tableID, offset_t nodeO
     initTableStatisticsForWriteTrxNoLock();
     KU_ASSERT(readWriteVersion && readWriteVersion->tableStatisticPerTable.contains(tableID));
     setToUpdated();
-    getNodeTableStats(transaction::TransactionType::WRITE, tableID)->deleteNode(nodeOffset);
+    getNodeTableStats(TransactionType::WRITE, tableID)->deleteNode(nodeOffset);
 }
 
 void NodesStoreStatsAndDeletedIDs::updateNumTuplesByValue(table_id_t tableID, int64_t value) {

@@ -17,6 +17,21 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
+bool NodeTableScanState::nextVector() {
+    if (source == TableScanSource::COMMITTED) {
+        return nodeGroupScanState.hasNext();
+    }
+    KU_ASSERT(source == TableScanSource::UNCOMMITTED);
+    vectorIdx++;
+    const auto startOffsetInNodeGroup = vectorIdx * DEFAULT_VECTOR_CAPACITY;
+    if (startOffsetInNodeGroup >= numTotalRows) {
+        numRowsToScan = 0;
+        return false;
+    }
+    numRowsToScan = std::min(DEFAULT_VECTOR_CAPACITY, numTotalRows - startOffsetInNodeGroup);
+    return true;
+}
+
 NodeTable::NodeTable(StorageManager* storageManager, NodeTableCatalogEntry* nodeTableEntry,
     MemoryManager* memoryManager, VirtualFileSystem* vfs, main::ClientContext* context)
     : Table{nodeTableEntry, storageManager->getNodesStatisticsAndDeletedIDs(), memoryManager,
@@ -26,6 +41,8 @@ NodeTable::NodeTable(StorageManager* storageManager, NodeTableCatalogEntry* node
         storageManager->getMetadataFH(), nodeTableEntry, bufferManager, wal,
         nodeTableEntry->getPropertiesRef(), storageManager->getNodesStatisticsAndDeletedIDs(),
         storageManager->compressionEnabled());
+    deltaNodeGroups = std::make_unique<NodeGroupCollection>(getTableColumnTypes(*this),
+        storageManager->getDataFH(), *tableData);
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
         storageManager->isReadOnly(), vfs, context);
 }
@@ -45,10 +62,16 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
 void NodeTable::initializeScanState(Transaction* transaction, TableScanState& scanState) const {
     switch (scanState.source) {
     case TableScanSource::COMMITTED: {
-        tableData->initializeScanState(transaction, scanState);
+        auto& nodeScanState = scanState.cast<NodeTableScanState>();
+        // TODO(Guodong): Should we move nodeGroup into nodeGroupScanState?
+        nodeScanState.nodeGroup = &deltaNodeGroups->getNodeGroup(scanState.nodeGroupIdx);
+        nodeScanState.nodeGroup->initializeScanState(transaction, scanState);
+        for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
+            nodeScanState.columns[i] = tableData->getColumn(scanState.columnIDs[i]);
+        }
     } break;
     case TableScanSource::UNCOMMITTED: {
-        scanState.cast<NodeTableScanState>().localNodeGroup->initializeScanState(scanState);
+        scanState.cast<NodeTableScanState>().localNodeTable->initializeScanState(scanState);
     } break;
     default: {
         // DO NOTHING.
@@ -63,10 +86,8 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
         (void)outputVector;
         KU_ASSERT(outputVector->state == scanState.nodeIDVector->state);
     }
-    auto& nodeScanState = ku_dynamic_cast<TableScanState&, NodeTableScanState&>(scanState);
-    auto& dataScanState =
-        ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState);
-    if (!dataScanState.nextVector()) {
+    auto& nodeScanState = scanState.cast<NodeTableScanState>();
+    if (!nodeScanState.nextVector()) {
         return false;
     }
     switch (scanState.source) {
@@ -90,37 +111,28 @@ void NodeTable::lookup(transaction::Transaction* transaction, TableScanState& sc
 }
 
 bool NodeTable::scanUnCommitted(NodeTableScanState& scanState) {
-    scanState.localNodeGroup->scan(scanState);
+    scanState.localNodeTable->scan(scanState);
     return true;
 }
 
 bool NodeTable::scanCommitted(Transaction* transaction, NodeTableScanState& scanState) {
     KU_ASSERT(scanState.source == TableScanSource::COMMITTED);
-    auto& dataScanState =
-        ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState);
-    // Fill nodeIDVector and set selVector from deleted node offsets.
-    const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx) +
-                                 dataScanState.vectorIdx * DEFAULT_VECTOR_CAPACITY;
-    for (auto i = 0u; i < dataScanState.numRowsToScan; i++) {
-        scanState.nodeIDVector->setValue<nodeID_t>(i, {startNodeOffset + i, tableID});
-    }
-    scanState.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(
-        dataScanState.numRowsToScan);
-    const auto tableStats =
-        getNodeStatisticsAndDeletedIDs()->getNodeStatisticsAndDeletedIDs(transaction, tableID);
-    tableStats->setDeletedNodeOffsetsForVector(scanState.nodeIDVector, scanState.nodeGroupIdx,
-        dataScanState.vectorIdx, dataScanState.numRowsToScan);
+    // const auto tableStats =
+    // getNodeStatisticsAndDeletedIDs()->getNodeStatisticsAndDeletedIDs(transaction, tableID);
+    // tableStats->setDeletedNodeOffsetsForVector(scanState.nodeIDVector, scanState.nodeGroupIdx,
+    // scanState.vectorIdx, scanState.numRowsToScan);
+    scanState.nodeGroup->scan(transaction, scanState);
 
-    KU_ASSERT(scanState.source == TableScanSource::COMMITTED);
-    tableData->scan(transaction, *scanState.dataScanState, *scanState.nodeIDVector,
-        scanState.outputVectors);
+    // tableData->scan(transaction, *scanState.dataScanState, *scanState.nodeIDVector,
+    // scanState.outputVectors);
 
+    // TODO(Guodong): This should be reworked to scan updates from committed node groups.
     // Scan updates from local storage.
-    if (scanState.localNodeGroup) {
-        KU_ASSERT(transaction->isWriteTransaction());
-        scanState.localNodeGroup->lookup(*scanState.nodeIDVector, scanState.columnIDs,
-            scanState.outputVectors);
-    }
+    // if (scanState.localNodeTable) {
+    // KU_ASSERT(transaction->isWriteTransaction());
+    // scanState.localNodeTable->lookup(*scanState.nodeIDVector, scanState.columnIDs,
+    // scanState.outputVectors);
+    // }
     return true;
 }
 
@@ -140,29 +152,17 @@ offset_t NodeTable::validateUniquenessConstraint(Transaction* transaction,
 }
 
 void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) {
-    const auto nodesStats =
-        ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics);
+    // TODO: Eventually the logic should be like this:
+    //       - Check node groups had been cheeckpointed first to find deleted offsets.
+    //       - If there is no deleted offset, then insert the node.
+    //       - If there is a deleted offset, then reuse the offset, and turn this into an update.
+    //       Turned off the reusing of deleted offsets for now.
     const auto& nodeInsertState =
         ku_dynamic_cast<TableInsertState&, NodeTableInsertState&>(insertState);
-    KU_ASSERT(nodeInsertState.nodeIDVector.state->getSelVector().getSelSize() == 1);
-    const auto pos = nodeInsertState.nodeIDVector.state->getSelVector()[0];
-    const auto [offset, isNewNode] = nodesStats->addNode(tableID);
-    nodeInsertState.nodeIDVector.setValue(pos, nodeID_t{offset, tableID});
-    nodeInsertState.nodeIDVector.setNull(pos, false);
+    KU_ASSERT(nodeInsertState.propertyVectors[0]->state->getSelVector().getSelSize() == 1);
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
-    if (pkIndex) {
-        insertPK(nodeInsertState.nodeIDVector, nodeInsertState.pkVector);
-    }
-    if (isNewNode) {
-        localTable->insert(insertState);
-    } else {
-        for (auto columnID = 0u; columnID < getNumColumns(); columnID++) {
-            NodeTableUpdateState updateState{columnID, nodeInsertState.nodeIDVector,
-                *nodeInsertState.propertyVectors[columnID]};
-            localTable->update(updateState);
-        }
-    }
+    localTable->insert(insertState);
 }
 
 void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) {
@@ -213,18 +213,51 @@ void NodeTable::addColumn(Transaction* transaction, const Property& property,
     wal->addToUpdatedTables(tableID);
 }
 
-void NodeTable::prepareCommitNodeGroup(node_group_idx_t nodeGroupIdx, Transaction* transaction,
-    LocalNodeNG* localNodeGroup) const {
-    tableData->prepareLocalNodeGroupToCommit(nodeGroupIdx, transaction, localNodeGroup);
+offset_t NodeTable::append(Transaction* transaction, ChunkedNodeGroup* chunkedGroup,
+    offset_t startOffsetToAppend, row_idx_t numRowsToAppend) {
+    deltaNodeGroups->merge(transaction, chunkedGroup->getNodeGroupIdx(), *chunkedGroup);
 }
 
 void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
+    std::unique_lock xLck{mtx};
+    const auto localNodeTable = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable);
+    // 1. Grab a set of node offsets from table statistics for local insertions.
+    const auto nodesStats =
+        ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics);
+    const auto numNodesCheckpointed = nodesStats->getNumTuplesForTable(transaction, tableID);
+    auto startNodeOffset = numNodesCheckpointed + deltaNodeGroups->getNumRows();
+
+    // 2. Populate hash index.
+    std::vector<column_id_t> columnsToScan{pkColumnID};
+    const auto state = std::make_shared<DataChunkState>();
+    ValueVector nodeIDVector(*LogicalType::INTERNAL_ID());
+    nodeIDVector.setState(state);
+    ValueVector pkVector(tableData->getColumn(pkColumnID)->getDataType());
+    pkVector.setState(state);
+    std::vector<ValueVector*> outputVectors{&pkVector};
+    const auto scanState =
+        std::make_unique<NodeTableScanState>(tableID, &nodeIDVector, columnsToScan, outputVectors);
+    scanState->source = TableScanSource::UNCOMMITTED;
+    scanState->localNodeTable = localNodeTable;
+    localNodeTable->initializeScanState(*scanState);
+    auto& nodeScanState = scanState->cast<NodeTableScanState>();
+    while (nodeScanState.nextVector()) {
+        localNodeTable->scan(*scanState);
+        KU_ASSERT(nodeScanState.numRowsToScan ==
+                  scanState->nodeIDVector->state->getSelVector().getSelSize());
+        for (auto i = 0u; i < scanState->nodeIDVector->state->getSelVector().getSelSize(); i++) {
+            scanState->nodeIDVector->setValue(i, nodeID_t{startNodeOffset + i, tableID});
+        }
+        insertPK(nodeIDVector, pkVector);
+        startNodeOffset += nodeScanState.numRowsToScan;
+    }
+
+    // 3. Append the node groups to the table data.
+    deltaNodeGroups->append(localNodeTable->getChunkedGroups());
+
     if (pkIndex) {
         pkIndex->prepareCommit();
     }
-    const auto localNodeTable = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable);
-    tableData->prepareLocalTableToCommit(transaction, localNodeTable->getTableData());
-    tableData->prepareCommit();
     wal->addToUpdatedTables(tableID);
 }
 
@@ -240,6 +273,26 @@ void NodeTable::prepareRollback(LocalTable* localTable) {
         pkIndex->prepareRollback();
     }
     localTable->clear();
+}
+
+void NodeTable::checkpoint() {
+    // 1. Flush the delta node groups to disk.
+    deltaNodeGroups->checkpoint();
+    // 2. Update metadata disk arrays.
+    const auto numNodeGroups = deltaNodeGroups->getNumNodeGroups();
+    for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
+        auto& nodeGroup = deltaNodeGroups->getNodeGroup(nodeGroupIdx);
+        KU_ASSERT(
+            nodeGroup.getNumChunkedGroups() == 1 && nodeGroup.getType() == NodeGroupType::ON_DISK);
+        auto& chunkedGroup = nodeGroup.getChunkedGroup(0);
+        for (auto columnID = 0u; columnID < chunkedGroup.getNumColumns(); columnID++) {
+            tableData->getColumn(columnID)->setMetadataFromChunk(nodeGroupIdx,
+                chunkedGroup.getColumnChunk(columnID));
+        }
+    }
+    // 3. Should also update table statistics.
+    tablesStatistics->updateNumTuplesByValue(tableID, deltaNodeGroups->getNumRows());
+    checkpointInMemory();
 }
 
 void NodeTable::checkpointInMemory() {
@@ -258,9 +311,9 @@ void NodeTable::rollbackInMemory() {
 
 void NodeTable::insertPK(const ValueVector& nodeIDVector, const ValueVector& pkVector) const {
     for (auto i = 0u; i < nodeIDVector.state->getSelVector().getSelSize(); i++) {
-        const auto nodeIDPos = nodeIDVector.state->getSelVector()[0];
+        const auto nodeIDPos = nodeIDVector.state->getSelVector()[i];
         const auto offset = nodeIDVector.readNodeOffset(nodeIDPos);
-        auto pkPos = pkVector.state->getSelVector()[0];
+        auto pkPos = pkVector.state->getSelVector()[i];
         if (pkVector.isNull(pkPos)) {
             throw RuntimeException(ExceptionMessage::nullPKException());
         }

@@ -17,7 +17,7 @@ struct NbrScanState {
     std::vector<common::column_id_t> columnIDs;
     std::unique_ptr<storage::RelTableScanState> fwdReadState;
 
-    explicit NbrScanState(storage::MemoryManager* mm);
+    explicit NbrScanState(common::table_id_t relTableID, storage::MemoryManager* mm);
 };
 
 class OnDiskGraph : public Graph {

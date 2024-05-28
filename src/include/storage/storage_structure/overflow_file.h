@@ -90,6 +90,8 @@ public:
     OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager* bufferManager, WAL* wal,
         bool readOnly, common::VirtualFileSystem* vfs, main::ClientContext* context);
 
+    virtual ~OverflowFile() = default;
+
     // For creating an overflow file from scratch
     static void createEmptyFiles(const std::string& fName, common::VirtualFileSystem* vfs,
         main::ClientContext* context);
@@ -137,5 +139,12 @@ private:
     std::atomic<common::page_idx_t> pageCounter;
     std::atomic<bool> headerChanged;
 };
+
+class InMemOverflowFile final : public OverflowFile {
+public:
+    explicit InMemOverflowFile(const DBFileIDAndName& dbFileIDAndName)
+        : OverflowFile{dbFileIDAndName, nullptr, nullptr, false, nullptr, nullptr} {}
+};
+
 } // namespace storage
 } // namespace kuzu

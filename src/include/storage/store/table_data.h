@@ -21,7 +21,7 @@ struct TableDataScanState {
     DELETE_COPY_DEFAULT_MOVE(TableDataScanState);
 
     std::vector<common::column_id_t> columnIDs;
-    std::vector<Column::ChunkState> chunkStates;
+    std::vector<ChunkState> chunkStates;
 
     template<class TARGET>
     TARGET& cast() {
@@ -43,7 +43,8 @@ public:
         const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) = 0;
 
-    virtual void append(transaction::Transaction* transaction, ChunkedNodeGroup* nodeGroup) = 0;
+    virtual common::offset_t append(transaction::Transaction* transaction,
+        ChunkedNodeGroup* nodeGroup) = 0;
 
     void dropColumn(common::column_id_t columnID) { columns.erase(columns.begin() + columnID); }
     void addColumn(transaction::Transaction* transaction, const std::string& colNamePrefix,
@@ -58,12 +59,16 @@ public:
     const std::vector<std::unique_ptr<Column>>& getColumns() const { return columns; }
 
     virtual void prepareLocalTableToCommit(transaction::Transaction* transaction,
-        LocalTableData* localTable) = 0;
+        LocalTableData* localTable) {
+        // TODO(Guodong): Remove this.
+    }
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();
     virtual void prepareCommit();
 
     virtual common::node_group_idx_t getNumCommittedNodeGroups() const = 0;
+    virtual std::unique_ptr<ChunkedNodeGroup> getCommittedNodeGroup(
+        common::node_group_idx_t nodeGroupIdx) const = 0;
 
 protected:
     TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,

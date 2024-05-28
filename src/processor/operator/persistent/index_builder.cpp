@@ -89,7 +89,7 @@ void IndexBuilderSharedState::quitProducer() {
 }
 
 void IndexBuilder::insert(const ColumnChunk& chunk, offset_t nodeOffset, offset_t numNodes) {
-    checkNonNullConstraint(chunk.getNullChunk(), numNodes);
+    checkNonNullConstraint(*chunk.getNullChunk(), numNodes);
 
     TypeUtils::visit(
         chunk.getDataType().getPhysicalType(),

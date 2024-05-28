@@ -31,32 +31,20 @@ class StructColumn;
 class RelTableData;
 class Column {
     friend class StringColumn;
-    friend class ListLocalColumn;
     friend class StructColumn;
     friend class ListColumn;
     friend class RelTableData;
 
 public:
-    // TODO(bmwinger): Hide access to variables and store a modified flag
-    // so that we can tell if the value has changed and the metadataDA needs to be updated
-    struct ChunkState {
-        explicit ChunkState() = default;
-        ChunkState(ColumnChunkMetadata metadata, uint64_t numValuesPerPage)
-            : metadata{std::move(metadata)}, numValuesPerPage{numValuesPerPage} {}
-
-        ColumnChunkMetadata metadata;
-        uint64_t numValuesPerPage = UINT64_MAX;
-        common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
-        std::unique_ptr<ChunkState> nullState = nullptr;
-        // Used for struct/list/string columns.
-        std::vector<ChunkState> childrenStates;
-    };
-
     Column(std::string name, common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
         BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, bool enableCompression,
         bool requireNullColumn = true);
     virtual ~Column();
+
+    static std::unique_ptr<ColumnChunk> flushChunk(const ColumnChunk& chunk, BMFileHandle& dataFH);
+    static std::unique_ptr<ColumnChunk> flushNonNestedChunk(const ColumnChunk& chunk,
+        BMFileHandle& dataFH);
 
     // Expose for feature store
     virtual void batchLookup(transaction::Transaction* transaction,
@@ -66,7 +54,7 @@ public:
         common::node_group_idx_t nodeGroupIdx, ChunkState& state);
 
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
-        common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
+        common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     virtual void lookup(transaction::Transaction* transaction, ChunkState& state,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
@@ -124,6 +112,10 @@ public:
         return metadataDA->get(nodeGroupIdx, transaction);
     }
     DiskArray<ColumnChunkMetadata>* getMetadataDA() const { return metadataDA.get(); }
+    virtual void setMetadataFromChunk(common::node_group_idx_t nodeGroupIdx,
+        const ColumnChunk& chunk);
+    virtual void setMetadataToChunk(common::node_group_idx_t nodeGroupIdx,
+        ColumnChunk& chunk) const;
 
     std::string getName() const { return name; }
 
@@ -147,7 +139,7 @@ public:
 
 protected:
     virtual void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
-        common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
+        common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     void scanUnfiltered(transaction::Transaction* transaction, PageCursor& pageCursor,
         uint64_t numValuesToScan, common::ValueVector* resultVector,
@@ -250,9 +242,10 @@ public:
         transaction::Transaction* transaction, bool enableCompression);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
-        common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
+        common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override {
-        Column::scan(transaction, state, vectorIdx, numValuesToScan, nodeIDVector, resultVector);
+        Column::scan(transaction, state, startOffsetInChunk, numValuesToScan, nodeIDVector,
+            resultVector);
         populateCommonTableID(resultVector);
     }
 

@@ -4,7 +4,6 @@
 
 #include "common/types/internal_id_t.h"
 #include "common/vector/value_vector.h"
-#include "storage/store/chunked_node_group.h"
 #include "storage/store/chunked_node_group_collection.h"
 
 namespace kuzu {
@@ -63,7 +62,7 @@ public:
     bool read(common::offset_t offset, common::column_id_t columnID,
         common::ValueVector* outputVector, common::sel_t posInOutputVector) const;
 
-    ChunkedNodeGroup* getLastChunkedGroupAndAddNewGroupIfNecessary();
+    ChunkedNodeGroup& getLastChunkedGroupAndAddNewGroupIfNecessary();
     void append(common::offset_t offset, const std::vector<common::ValueVector*>& vectors) {
         offsetToRowIdx[offset] = append(vectors);
     }

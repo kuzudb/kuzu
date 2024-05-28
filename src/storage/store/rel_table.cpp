@@ -81,7 +81,7 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     std::vector<column_id_t> relIDColumns = {REL_ID_COLUMN_ID};
     const auto relIDVectors = std::vector<ValueVector*>{deleteState->dstNodeIDVector.get(),
         deleteState->relIDVector.get()};
-    auto relReadState = std::make_unique<RelTableScanState>(relIDColumns, direction);
+    auto relReadState = std::make_unique<RelTableScanState>(tableID, relIDColumns, direction);
     relReadState->nodeIDVector = srcNodeIDVector;
     relReadState->outputVectors = relIDVectors;
     relReadState->direction = direction;
@@ -187,6 +187,10 @@ void RelTable::prepareRollback(LocalTable* localTable) {
 void RelTable::prepareCommit() {
     fwdRelTableData->prepareCommit();
     bwdRelTableData->prepareCommit();
+}
+
+void RelTable::checkpoint() {
+    checkpointInMemory();
 }
 
 void RelTable::checkpointInMemory() {

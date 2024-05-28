@@ -50,9 +50,11 @@ NullColumn::NullColumn(std::string name, page_idx_t metaDAHPageIdx, BMFileHandle
     batchLookupFunc = nullptr;
 }
 
-void NullColumn::scan(Transaction* transaction, const ChunkState& state, vector_idx_t vectorIdx,
-    row_idx_t numValuesToScan, ValueVector* nodeIDVector, ValueVector* resultVector) {
-    scanInternal(transaction, state, vectorIdx, numValuesToScan, nodeIDVector, resultVector);
+void NullColumn::scan(Transaction* transaction, const ChunkState& state,
+    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
+    ValueVector* resultVector) {
+    scanInternal(transaction, state, startOffsetInChunk, numValuesToScan, nodeIDVector,
+        resultVector);
 }
 
 void NullColumn::scan(Transaction* transaction, const ChunkState& state,

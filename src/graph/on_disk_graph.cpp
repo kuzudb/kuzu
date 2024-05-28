@@ -10,14 +10,14 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace graph {
 
-NbrScanState::NbrScanState(MemoryManager* mm) {
+NbrScanState::NbrScanState(table_id_t relTableID, MemoryManager* mm) {
     srcNodeIDVectorState = DataChunkState::getSingleValueDataChunkState();
     dstNodeIDVectorState = std::make_shared<DataChunkState>();
     srcNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
     srcNodeIDVector->state = srcNodeIDVectorState;
     dstNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
     dstNodeIDVector->state = dstNodeIDVectorState;
-    fwdReadState = std::make_unique<RelTableScanState>(columnIDs, direction);
+    fwdReadState = std::make_unique<RelTableScanState>(relTableID, columnIDs, direction);
     fwdReadState->nodeIDVector = srcNodeIDVector.get();
     fwdReadState->outputVectors.push_back(dstNodeIDVector.get());
 }
@@ -32,7 +32,7 @@ OnDiskGraph::OnDiskGraph(ClientContext* context, const std::string& nodeName,
     nodeTable = storage->getTable(nodeTableID)->ptrCast<NodeTable>();
     auto relTableID = catalog->getTableID(tx, relName);
     relTable = storage->getTable(relTableID)->ptrCast<RelTable>();
-    nbrScanState = std::make_unique<NbrScanState>(context->getMemoryManager());
+    nbrScanState = std::make_unique<NbrScanState>(relTableID, context->getMemoryManager());
 }
 
 offset_t OnDiskGraph::getNumNodes() {

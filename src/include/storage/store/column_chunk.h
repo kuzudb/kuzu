@@ -7,8 +7,6 @@
 #include "common/enums/rel_multiplicity.h"
 #include "common/null_mask.h"
 #include "common/types/types.h"
-#include "common/vector/value_vector.h"
-#include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/compression/compression.h"
 
 namespace kuzu {
@@ -31,6 +29,26 @@ struct ColumnChunkMetadata {
         : pageIdx(pageIdx), numPages(numPages), numValues(numNodesInChunk), compMeta(compMeta) {}
 };
 
+enum class ColumnChunkedType : uint8_t { IN_MEMORY = 0, ON_DISK = 1 };
+
+// TODO(bmwinger): Hide access to variables and store a modified flag
+// so that we can tell if the value has changed and the metadataDA needs to be updated
+struct ChunkState {
+    explicit ChunkState() = default;
+    ChunkState(ColumnChunkMetadata metadata, uint64_t numValuesPerPage)
+        : metadata{std::move(metadata)}, numValuesPerPage{numValuesPerPage} {
+        nullState = std::make_unique<ChunkState>();
+    }
+
+    ColumnChunkMetadata metadata;
+    uint64_t numValuesPerPage = UINT64_MAX;
+    common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+    std::unique_ptr<ChunkState> nullState;
+    // Used for struct/list/string columns.
+    std::vector<ChunkState> childrenStates;
+};
+
+class BMFileHandle;
 // Base data segment covers all fixed-sized data types.
 class ColumnChunk {
 public:
@@ -45,38 +63,51 @@ public:
     virtual ~ColumnChunk() = default;
 
     template<typename T>
-    inline T getValue(common::offset_t pos) const {
+    void setValue(T val, common::offset_t pos) {
+        KU_ASSERT(pos < capacity);
+        ((T*)buffer.get())[pos] = val;
+        if (pos >= numValues) {
+            numValues = pos + 1;
+        }
+    }
+
+    template<typename T>
+    T getValue(common::offset_t pos) const {
         KU_ASSERT(pos < numValues);
         return ((T*)buffer.get())[pos];
     }
 
-    inline NullColumnChunk* getNullChunk() { return nullChunk.get(); }
-    inline const NullColumnChunk& getNullChunk() const { return *nullChunk; }
-    inline common::LogicalType& getDataType() { return dataType; }
-    inline const common::LogicalType& getDataType() const { return dataType; }
+    NullColumnChunk* getNullChunk() const { return nullChunk.get(); }
+    common::LogicalType& getDataType() { return dataType; }
+    const common::LogicalType& getDataType() const { return dataType; }
 
     virtual void resetToEmpty();
 
     // Note that the startPageIdx is not known, so it will always be common::INVALID_PAGE_IDX
     virtual ColumnChunkMetadata getMetadataToFlush() const;
+    void setMetadata(const ColumnChunkMetadata& metadata_) { metadata = metadata_; }
+    const ColumnChunkMetadata& getFlushedMetadata() const { return metadata; }
 
     virtual void append(common::ValueVector* vector, const common::SelectionVector& selVector);
     virtual void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend);
 
     ColumnChunkMetadata flushBuffer(BMFileHandle* dataFH, common::page_idx_t startPageIdx,
-        const ColumnChunkMetadata& metadata);
+        const ColumnChunkMetadata& metadata) const;
 
-    static inline common::page_idx_t getNumPagesForBytes(uint64_t numBytes) {
+    static common::page_idx_t getNumPagesForBytes(uint64_t numBytes) {
         return (numBytes + common::BufferPoolConstants::PAGE_4KB_SIZE - 1) /
                common::BufferPoolConstants::PAGE_4KB_SIZE;
     }
 
-    inline uint64_t getNumBytesPerValue() const { return numBytesPerValue; }
-    inline uint8_t* getData() const { return buffer.get(); }
+    uint64_t getNumBytesPerValue() const { return numBytesPerValue; }
+    uint8_t* getData() const { return buffer.get(); }
 
     virtual void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const;
+
+    virtual void initializeScanState(ChunkState& state) const;
+    void scan(common::ValueVector& output, common::offset_t offset, common::length_t length) const;
 
     // TODO(Guodong): In general, this is not a good interface. Instead of passing in
     // `offsetInVector`, we should flatten the vector to pos at `offsetInVector`.
@@ -94,26 +125,26 @@ public:
     // with
     virtual void resize(uint64_t newCapacity);
 
-    template<typename T>
-    void setValue(T val, common::offset_t pos) {
-        KU_ASSERT(pos < capacity);
-        ((T*)buffer.get())[pos] = val;
-        if (pos >= numValues) {
-            numValues = pos + 1;
-        }
-    }
-
     void populateWithDefaultVal(common::ValueVector* defaultValueVector);
     virtual void finalize() { // DO NOTHING.
     }
 
-    inline uint64_t getCapacity() const { return capacity; }
-    inline uint64_t getNumValues() const { return numValues; }
+    uint64_t getCapacity() const { return capacity; }
+    uint64_t getNumValues() const { return numValues; }
     virtual void setNumValues(uint64_t numValues_);
     virtual bool numValuesSanityCheck() const;
     bool isCompressionEnabled() const { return enableCompression; }
 
-    virtual bool sanityCheck();
+    virtual bool sanityCheck() const;
+
+    template<typename T>
+    T& cast() {
+        return common::ku_dynamic_cast<ColumnChunk&, T&>(*this);
+    }
+    template<typename T>
+    const T& constCast() const {
+        return common::ku_dynamic_cast<const ColumnChunk&, const T&>(*this);
+    }
 
 protected:
     // Initializes the data buffer. Is (and should be) only called in constructor.
@@ -127,6 +158,12 @@ private:
     uint64_t getBufferSize(uint64_t capacity_) const;
 
 protected:
+    using flush_buffer_func_t = std::function<ColumnChunkMetadata(const uint8_t*, uint64_t,
+        BMFileHandle*, common::page_idx_t, const ColumnChunkMetadata&)>;
+    using get_metadata_func_t =
+        std::function<ColumnChunkMetadata(const uint8_t*, uint64_t, uint64_t, uint64_t)>;
+
+    ColumnChunkedType type;
     common::LogicalType dataType;
     uint32_t numBytesPerValue;
     uint64_t bufferSize;
@@ -134,13 +171,11 @@ protected:
     std::unique_ptr<uint8_t[]> buffer;
     std::unique_ptr<NullColumnChunk> nullChunk;
     uint64_t numValues;
-    std::function<ColumnChunkMetadata(const uint8_t*, uint64_t, BMFileHandle*, common::page_idx_t,
-        const ColumnChunkMetadata&)>
-        flushBufferFunction;
-    std::function<ColumnChunkMetadata(const uint8_t*, uint64_t, uint64_t, uint64_t, StorageValue,
-        StorageValue)>
-        getMetadataFunction;
+    flush_buffer_func_t flushBufferFunction;
+    get_metadata_func_t getMetadataFunction;
     bool enableCompression;
+    // Only used when the chunk is on-disk.
+    ColumnChunkMetadata metadata;
 };
 
 template<>
@@ -184,25 +219,25 @@ public:
         : BoolColumnChunk(capacity, enableCompression, false /*hasNullChunk*/),
           mayHaveNullValue{false} {}
     // Maybe this should be combined with BoolColumnChunk if the only difference is these functions?
-    inline bool isNull(common::offset_t pos) const { return getValue<bool>(pos); }
+    bool isNull(common::offset_t pos) const { return getValue<bool>(pos); }
     void setNull(common::offset_t pos, bool isNull);
 
-    inline bool mayHaveNull() const { return mayHaveNullValue; }
+    bool mayHaveNull() const { return mayHaveNullValue; }
 
-    inline void resetToEmpty() override {
+    void resetToEmpty() override {
         resetToNoNull();
         numValues = 0;
     }
-    inline void resetToNoNull() {
+    void resetToNoNull() {
         memset(buffer.get(), 0 /* non null */, bufferSize);
         mayHaveNullValue = false;
     }
-    inline void resetToAllNull() {
+    void resetToAllNull() {
         memset(buffer.get(), 0xFF /* null */, bufferSize);
         mayHaveNullValue = true;
     }
 
-    inline void copyFromBuffer(uint64_t* srcBuffer, uint64_t srcOffset, uint64_t dstOffset,
+    void copyFromBuffer(uint64_t* srcBuffer, uint64_t srcOffset, uint64_t dstOffset,
         uint64_t numBits, bool invert = false) {
         if (common::NullMask::copyNullMask(srcBuffer, srcOffset, (uint64_t*)buffer.get(), dstOffset,
                 numBits, invert)) {

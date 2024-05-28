@@ -241,10 +241,10 @@ void StorageManager::prepareRollback() {
     }
 }
 
-void StorageManager::checkpointInMemory() {
+void StorageManager::checkpoint() {
     for (auto tableID : wal->getUpdatedTables()) {
         KU_ASSERT(tables.contains(tableID));
-        tables.at(tableID)->checkpointInMemory();
+        tables.at(tableID)->checkpoint();
     }
     if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
         nodesStatisticsAndDeletedIDs->checkpointInMemoryIfNecessary();

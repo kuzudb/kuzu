@@ -12,6 +12,8 @@ public:
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
         bool enableCompression);
 
+    static std::unique_ptr<ColumnChunk> flushChunk(const ColumnChunk& chunk, BMFileHandle& dataFH);
+
     void initChunkState(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, ChunkState& chunkState) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
@@ -44,9 +46,14 @@ public:
         const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
         common::offset_t startSrcOffset) override;
 
+    void setMetadataFromChunk(common::node_group_idx_t nodeGroupIdx,
+        const ColumnChunk& chunk) override;
+    void setMetadataToChunk(common::node_group_idx_t nodeGroupIdx,
+        ColumnChunk& chunk) const override;
+
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
-        common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
+        common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
     void lookupInternal(transaction::Transaction* transaction, ChunkState& state,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;

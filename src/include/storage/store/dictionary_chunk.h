@@ -9,6 +9,8 @@ class DictionaryChunk {
 public:
     using string_offset_t = uint64_t;
     using string_index_t = uint32_t;
+    static constexpr common::vector_idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 0;
+    static constexpr common::vector_idx_t OFFSET_COLUMN_CHILD_READ_STATE_IDX = 1;
 
     DictionaryChunk(uint64_t capacity, bool enableCompression);
     // A pointer to the dictionary chunk is stored in the StringOps for the indexTable
@@ -23,8 +25,12 @@ public:
 
     std::string_view getString(string_index_t index) const;
 
-    inline ColumnChunk* getStringDataChunk() const { return stringDataChunk.get(); }
-    inline ColumnChunk* getOffsetChunk() const { return offsetChunk.get(); }
+    ColumnChunk* getStringDataChunk() const { return stringDataChunk.get(); }
+    ColumnChunk* getOffsetChunk() const { return offsetChunk.get(); }
+    void setOffsetChunk(std::unique_ptr<ColumnChunk> chunk) { offsetChunk = std::move(chunk); }
+    void setStringDataChunk(std::unique_ptr<ColumnChunk> chunk) {
+        stringDataChunk = std::move(chunk);
+    }
 
     bool sanityCheck() const;
 

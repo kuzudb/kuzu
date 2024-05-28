@@ -28,7 +28,7 @@ public:
 
     void prepareCommit(transaction::Transaction* transaction, common::VirtualFileSystem* vfs);
     void prepareRollback();
-    void checkpointInMemory();
+    void checkpoint();
     void rollbackInMemory();
 
     PrimaryKeyIndex* getPKIndex(common::table_id_t tableID);

@@ -18,6 +18,11 @@ namespace storage {
 constexpr size_t BUFFER_SIZE = 1024;
 template<typename T>
 using IndexBuffer = common::StaticVector<std::pair<T, common::offset_t>, BUFFER_SIZE>;
+
+template<typename T>
+using HashIndexType =
+    std::conditional_t<std::same_as<T, std::string_view> || std::same_as<T, std::string>,
+        common::ku_string_t, T>;
 /**
  * Basic index file consists of three disk arrays: indexHeader, primary slots (pSlots), and overflow
  * slots (oSlots).
@@ -70,14 +75,13 @@ public:
     // Allocates the given number of new slots, ignoo
     void allocateSlots(uint32_t numSlots);
 
-    using BufferKeyType =
-        typename std::conditional<std::same_as<T, common::ku_string_t>, std::string, T>::type;
-    using Key =
-        typename std::conditional<std::same_as<T, common::ku_string_t>, std::string_view, T>::type;
+    using BufferKeyType = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string, T>;
+    // TODO(Ben): Ideally, `Key` should reuse `HashIndexType`.
+    using Key = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string_view, T>;
     // Appends the buffer to the index. Returns the number of values successfully inserted.
     // I.e. if a key fails to insert, its index will be the return value
     size_t append(const IndexBuffer<BufferKeyType>& buffer);
-    inline bool append(Key key, common::offset_t value) {
+    bool append(Key key, common::offset_t value) {
         reserve(indexHeader.numEntries + 1);
         return appendInternal(key, value, HashIndexUtils::hash(key));
     }
@@ -89,14 +93,14 @@ public:
     void clear();
 
     struct SlotIterator {
-        explicit SlotIterator(slot_id_t newSlotId, const InMemHashIndex<T>* builder)
+        explicit SlotIterator(slot_id_t newSlotId, const InMemHashIndex* builder)
             : slotInfo{newSlotId, SlotType::PRIMARY}, slot(builder->getSlot(slotInfo)) {}
         SlotInfo slotInfo;
         Slot<T>* slot;
     };
 
     // Leaves the slot pointer pointing at the last slot to make it easier to add a new one
-    inline bool nextChainedSlot(SlotIterator& iter) const {
+    bool nextChainedSlot(SlotIterator& iter) const {
         iter.slotInfo.slotId = iter.slot->header.nextOvfSlotId;
         iter.slotInfo.slotType = SlotType::OVF;
         if (iter.slot->header.nextOvfSlotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
@@ -106,10 +110,10 @@ public:
         return false;
     }
 
-    inline uint64_t numPrimarySlots() const { return pSlots->size(); }
-    inline uint64_t numOverflowSlots() const { return oSlots->size(); }
+    uint64_t numPrimarySlots() const { return pSlots->size(); }
+    uint64_t numOverflowSlots() const { return oSlots->size(); }
 
-    inline const HashIndexHeader& getIndexHeader() const { return indexHeader; }
+    const HashIndexHeader& getIndexHeader() const { return indexHeader; }
 
     // Deletes key, maintaining gapless structure by replacing it with the last entry in the
     // slot
@@ -132,11 +136,9 @@ private:
     // Reclaims empty overflow slots to be re-used, starting from the given slot iterator
     void reclaimOverflowSlots(SlotIterator iter);
 
-    inline bool equals(Key keyToLookup, const T& keyInEntry) const {
-        return keyToLookup == keyInEntry;
-    }
+    bool equals(Key keyToLookup, const T& keyInEntry) const { return keyToLookup == keyInEntry; }
 
-    inline void insert(Key key, Slot<T>* slot, uint8_t entryPos, common::offset_t value,
+    void insert(Key key, Slot<T>* slot, uint8_t entryPos, common::offset_t value,
         uint8_t fingerprint) {
         auto& entry = slot->entries[entryPos];
         entry.key = key;

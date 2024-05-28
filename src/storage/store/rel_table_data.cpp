@@ -258,7 +258,7 @@ void RelTableData::scan(Transaction* transaction, TableDataScanState& readState,
             relIDVectorIdx = outputVectorId;
         }
         getColumn(columnID)->scan(transaction, relReadState.chunkStates[i], startOffset, endOffset,
-            outputVectors[outputVectorId], 0 /* offsetInVector */);
+            outputVectors[outputVectorId], static_cast<uint64_t>(0) /* offsetInVector */);
     }
     if (transaction->isWriteTransaction() && relReadState.localNodeGroup) {
         auto nodeOffset = inNodeIDVector.readNodeOffset(inNodeIDVector.state->getSelVector()[0]);
@@ -299,7 +299,7 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction, offset_t nodeOff
     if (nodeGroupIdx >= csrHeaderColumns.length->getNumNodeGroups(transaction)) {
         return false;
     }
-    Column::ChunkState readState;
+    ChunkState readState;
     csrHeaderColumns.length->initChunkState(transaction, nodeGroupIdx, readState);
     if (offsetInChunk >= readState.metadata.numValues) {
         return false;
@@ -310,9 +310,9 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction, offset_t nodeOff
     return length > 0;
 }
 
-void RelTableData::append(Transaction* transaction, ChunkedNodeGroup* nodeGroup) {
+offset_t RelTableData::append(Transaction* transaction, ChunkedNodeGroup* nodeGroup) {
     auto csrNodeGroup = ku_dynamic_cast<ChunkedNodeGroup*, ChunkedCSRNodeGroup*>(nodeGroup);
-    Column::ChunkState csrOffsetState, csrLengthState;
+    ChunkState csrOffsetState, csrLengthState;
     csrHeaderColumns.offset->initChunkState(transaction, csrNodeGroup->getNodeGroupIdx(),
         csrOffsetState);
     csrHeaderColumns.length->initChunkState(transaction, csrNodeGroup->getNodeGroupIdx(),
@@ -320,10 +320,11 @@ void RelTableData::append(Transaction* transaction, ChunkedNodeGroup* nodeGroup)
     csrHeaderColumns.append(csrNodeGroup->getCSRHeader(), csrOffsetState, csrLengthState);
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         auto column = getColumn(columnID);
-        Column::ChunkState state;
+        ChunkState state;
         column->initChunkState(&DUMMY_WRITE_TRANSACTION, csrNodeGroup->getNodeGroupIdx(), state);
         getColumn(columnID)->append(&nodeGroup->getColumnChunkUnsafe(columnID), state);
     }
+    return StorageUtils::getStartOffsetOfNodeGroup(nodeGroup->getNodeGroupIdx());
 }
 
 static length_t getGapSizeForNode(const ChunkedCSRHeader& header, offset_t nodeOffset) {
@@ -952,8 +953,8 @@ void RelTableData::updateCSRHeader(Transaction* transaction, node_group_idx_t no
 
 void RelTableData::commitCSRHeaderChunk(Transaction* transaction, bool isNewNodeGroup,
     node_group_idx_t nodeGroupIdx, Column* column, ColumnChunk* chunk, const LocalState& localState,
-    const std::vector<common::offset_t>& dstOffsets) {
-    Column::ChunkState state;
+    const std::vector<offset_t>& dstOffsets) {
+    ChunkState state;
     column->initChunkState(transaction, nodeGroupIdx, state);
     if (!isNewNodeGroup) {
         if (column->canCommitInPlace(state, dstOffsets, chunk, localState.region.leftBoundary)) {

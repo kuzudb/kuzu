@@ -58,8 +58,8 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
         scanner->readStates.resize(scanner->scanInfos.size());
         for (auto i = 0u; i < scanner->scanInfos.size(); i++) {
             const auto scanInfo = scanner->scanInfos[i].get();
-            scanner->readStates[i] =
-                std::make_unique<RelTableScanState>(scanInfo->columnIDs, scanInfo->direction);
+            scanner->readStates[i] = std::make_unique<RelTableScanState>(
+                scanInfo->table->getTableID(), scanInfo->columnIDs, scanInfo->direction);
             initVectors(*scanner->readStates[i], *resultSet);
             if (directionInfo.directionPos.isValid()) {
                 scanner->directionVector =

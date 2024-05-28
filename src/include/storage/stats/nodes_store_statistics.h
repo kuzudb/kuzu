@@ -31,6 +31,8 @@ public:
     // keep the interface simple and no transaction is passed.
     std::pair<common::offset_t, bool> addNode(common::table_id_t tableID);
 
+    common::offset_t addNodes(common::table_id_t tableID, common::offset_t numNodes);
+
     // Refer to the comments for addNode.
     void deleteNode(common::table_id_t tableID, common::offset_t nodeOffset);
 

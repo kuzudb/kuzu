@@ -6,6 +6,7 @@
 #include "storage/predicate/column_predicate.h"
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/store/chunked_node_group.h"
+#include "storage/store/node_group_collection.h"
 #include "storage/store/node_table_data.h"
 #include "storage/store/table.h"
 
@@ -18,26 +19,41 @@ namespace storage {
 class LocalNodeTable;
 
 struct NodeTableScanState final : TableScanState {
-    // Local storage node group.
-    LocalNodeNG* localNodeGroup = nullptr;
     std::vector<ColumnPredicateSet> columnPredicateSets;
+    // States for scanning from local storage.
+    LocalNodeTable* localNodeTable = nullptr;
+    // TODO(Guodong): Should by default set vectorIdx to 0 and not rely on invalid+1==0;
+    common::vector_idx_t vectorIdx = common::INVALID_VECTOR_IDX;
+    common::row_idx_t numRowsToScan = 0;
+    // TODO(Guodong): We should not keep this field, instead should let nodeGroup figure it out.
+    common::row_idx_t numTotalRows = 0;
 
-    explicit NodeTableScanState(std::vector<common::column_id_t> columnIDs)
-        : TableScanState{std::move(columnIDs)} {
-        dataScanState = std::make_unique<NodeDataScanState>(this->columnIDs);
+    std::vector<Column*> columns;
+    // States for scanning from a committed node group.
+    const NodeGroup* nodeGroup = nullptr;
+    std::vector<ChunkState> chunkStates;
+
+    explicit NodeTableScanState(common::table_id_t tableID,
+        std::vector<common::column_id_t> columnIDs)
+        : TableScanState{tableID, std::move(columnIDs)} {
+        chunkStates.resize(this->columnIDs.size());
+        columns.resize(this->columnIDs.size());
     }
-    NodeTableScanState(common::ValueVector* nodeIDVector,
+    NodeTableScanState(common::table_id_t tableID, common::ValueVector* nodeIDVector,
         std::vector<common::column_id_t> columnIDs, std::vector<common::ValueVector*> outputVectors)
-        : TableScanState{nodeIDVector, std::move(columnIDs), std::move(outputVectors)} {
-        dataScanState = std::make_unique<NodeDataScanState>(this->columnIDs);
+        : TableScanState{tableID, nodeIDVector, std::move(columnIDs), std::move(outputVectors)} {
+        chunkStates.resize(this->columnIDs.size());
     }
+
+    bool nextVector();
 };
 
 struct NodeTableInsertState final : TableInsertState {
     common::ValueVector& nodeIDVector;
     const common::ValueVector& pkVector;
 
-    NodeTableInsertState(common::ValueVector& nodeIDVector, const common::ValueVector& pkVector,
+    explicit NodeTableInsertState(common::ValueVector& nodeIDVector,
+        const common::ValueVector& pkVector,
         const std::vector<common::ValueVector*>& propertyVectors)
         : TableInsertState{std::move(propertyVectors)}, nodeIDVector{nodeIDVector},
           pkVector{pkVector} {}
@@ -65,6 +81,14 @@ struct NodeTableDeleteState final : TableDeleteState {
 class StorageManager;
 class NodeTable final : public Table {
 public:
+    static std::vector<common::LogicalType> getTableColumnTypes(const NodeTable& table) {
+        std::vector<common::LogicalType> types;
+        for (auto i = 0u; i < table.getNumColumns(); i++) {
+            types.push_back(table.getColumn(i)->getDataType());
+        }
+        return types;
+    }
+
     NodeTable(StorageManager* storageManager, catalog::NodeTableCatalogEntry* nodeTableEntry,
         MemoryManager* memoryManager, common::VirtualFileSystem* vfs, main::ClientContext* context);
 
@@ -106,28 +130,27 @@ public:
     common::column_id_t getNumColumns() const { return tableData->getNumColumns(); }
     Column* getColumn(common::column_id_t columnID) const { return tableData->getColumn(columnID); }
 
-    void append(transaction::Transaction* transaction, ChunkedNodeGroup* nodeGroup) {
-        tableData->append(transaction, nodeGroup);
-    }
+    common::offset_t append(transaction::Transaction* transaction, ChunkedNodeGroup* nodeGroup,
+        common::offset_t startOffsetToAppend, common::row_idx_t numRowsToAppend);
 
-    void prepareCommitNodeGroup(common::node_group_idx_t nodeGroupIdx,
-        transaction::Transaction* transaction, LocalNodeNG* localNodeGroup) const;
     void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void prepareCommit() override;
     void prepareRollback(LocalTable* localTable) override;
-    void checkpointInMemory() override;
+    void checkpoint() override;
     void rollbackInMemory() override;
 
     common::node_group_idx_t getNumCommittedNodeGroups() const {
-        return tableData->getNumCommittedNodeGroups();
+        return deltaNodeGroups->getNumNodeGroups();
     }
 
-    common::node_group_idx_t getNumNodeGroups(transaction::Transaction* transaction) const {
-        return tableData->getNumNodeGroups(transaction);
+    // TODO: Fix this. This is used by NodeBatchInsert.
+    common::node_group_idx_t getNumNodeGroups(transaction::Transaction*) const {
+        return deltaNodeGroups->getNumNodeGroups();
     }
-    common::offset_t getNumTuplesInNodeGroup(const transaction::Transaction* transaction,
+    // TODO: Fix this. This is used by NodeBatchInsert.
+    common::offset_t getNumTuplesInNodeGroup(const transaction::Transaction*,
         common::node_group_idx_t nodeGroupIdx) const {
-        return tableData->getNumTuplesInNodeGroup(transaction, nodeGroupIdx);
+        return deltaNodeGroups->getNodeGroup(nodeGroupIdx).getNumRows();
     }
 
 private:
@@ -136,8 +159,12 @@ private:
     bool scanCommitted(transaction::Transaction* transaction, NodeTableScanState& scanState);
     bool scanUnCommitted(NodeTableScanState& scanState);
 
+    void checkpointInMemory() override;
+
 private:
+    std::mutex mtx;
     std::unique_ptr<NodeTableData> tableData;
+    std::unique_ptr<NodeGroupCollection> deltaNodeGroups;
     common::column_id_t pkColumnID;
     std::unique_ptr<PrimaryKeyIndex> pkIndex;
 };

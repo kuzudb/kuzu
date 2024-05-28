@@ -123,7 +123,7 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     // query.
     stopNewTransactionsAndWaitUntilAllTransactionsLeave();
     KU_ASSERT(canCheckpointNoLock());
-    clientContext.getCatalog()->prepareCheckpoint(clientContext.getDatabasePath(), &wal,
+    clientContext.getCatalog()->checkpoint(clientContext.getDatabasePath(), &wal,
         clientContext.getVFSUnsafe());
     wal.flushAllPages();
     // Replay the WAL to commit page updates/inserts, and table statistics.
@@ -131,7 +131,7 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
         WALReplayMode::COMMIT_CHECKPOINT);
     walReplayer->replay();
     // We next perform an in-memory checkpointing of node/relTables.
-    clientContext.getStorageManager()->checkpointInMemory();
+    clientContext.getStorageManager()->checkpoint();
     // Resume receiving new transactions.
     allowReceivingNewTransactions();
     // Clear the wal.

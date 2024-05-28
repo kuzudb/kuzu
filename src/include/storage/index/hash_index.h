@@ -240,10 +240,6 @@ public:
     ~PrimaryKeyIndex();
 
     template<typename T>
-    using HashIndexType =
-        typename std::conditional<std::same_as<T, std::string_view> || std::same_as<T, std::string>,
-            common::ku_string_t, T>::type;
-    template<typename T>
     inline HashIndex<HashIndexType<T>>* getTypedHashIndex(T key) {
         return common::ku_dynamic_cast<OnDiskHashIndex*, HashIndex<HashIndexType<T>>*>(
             hashIndices[HashIndexUtils::getHashIndexPosition(key)].get());

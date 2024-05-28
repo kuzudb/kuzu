@@ -14,13 +14,14 @@ public:
     StringColumnChunk(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
         bool inMemory);
 
-    void resetToEmpty() final;
-    void append(common::ValueVector* vector, const common::SelectionVector& selVector) final;
+    void resetToEmpty() override;
+    void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
+    void initializeScanState(ChunkState& state) const override;
 
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
@@ -41,8 +42,8 @@ public:
         return dictionaryChunk->getStringLength(index);
     }
 
-    inline DictionaryChunk& getDictionaryChunk() { return *dictionaryChunk; }
-    inline const DictionaryChunk& getDictionaryChunk() const { return *dictionaryChunk; }
+    DictionaryChunk& getDictionaryChunk() { return *dictionaryChunk; }
+    const DictionaryChunk& getDictionaryChunk() const { return *dictionaryChunk; }
 
     void finalize() override;
 

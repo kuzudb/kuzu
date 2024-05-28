@@ -10,9 +10,9 @@ namespace storage {
 struct RelTableScanState final : TableScanState {
     common::RelDataDirection direction;
 
-    RelTableScanState(const std::vector<common::column_id_t>& columnIDs,
+    RelTableScanState(common::table_id_t tableID, const std::vector<common::column_id_t>& columnIDs,
         common::RelDataDirection direction)
-        : TableScanState{columnIDs}, direction{direction} {
+        : TableScanState{tableID, columnIDs}, direction{direction} {
         // TODO(Guodong): Move the NBR_ID_COLUMN_ID to binder phase.
         std::vector<common::column_id_t> dataScanColumnIDs{NBR_ID_COLUMN_ID};
         dataScanColumnIDs.insert(dataScanColumnIDs.end(), columnIDs.begin(), columnIDs.end());
@@ -133,7 +133,7 @@ public:
     void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void prepareCommit() override;
     void prepareRollback(LocalTable* localTable) override;
-    void checkpointInMemory() override;
+    void checkpoint() override;
     void rollbackInMemory() override;
 
     RelTableData* getDirectedTableData(common::RelDataDirection direction) const {
@@ -146,6 +146,7 @@ private:
         RelTableData* tableData, RelTableData* reverseTableData,
         common::ValueVector* srcNodeIDVector, RelTableScanState* relDataReadState,
         RelDetachDeleteState* deleteState);
+    void checkpointInMemory() override;
 
 private:
     std::unique_ptr<RelTableData> fwdRelTableData;

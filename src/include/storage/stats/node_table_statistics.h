@@ -31,6 +31,8 @@ public:
 
     std::pair<common::offset_t, bool> addNode();
 
+    common::offset_t addNodes(common::offset_t numNodes);
+
     void deleteNode(common::offset_t nodeOffset);
 
     // This function assumes nodeIDVector have consecutive node offsets and the same tableID.

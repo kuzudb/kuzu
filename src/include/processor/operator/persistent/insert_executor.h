@@ -37,7 +37,7 @@ public:
 private:
     NodeInsertExecutor(const NodeInsertExecutor& other);
 
-    bool checkConfict(transaction::Transaction* transaction);
+    bool checkConfict(transaction::Transaction* transaction) const;
 
     void writeResult();
 

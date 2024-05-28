@@ -3,6 +3,7 @@
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include "storage/store/column_chunk.h"
 
 using namespace kuzu::common;
@@ -64,6 +65,13 @@ void StructColumnChunk::lookup(offset_t offsetInChunk, ValueVector& output,
     }
 }
 
+void StructColumnChunk::initializeScanState(ChunkState& state) const {
+    ColumnChunk::initializeScanState(state);
+    for (auto i = 0u; i < childChunks.size(); i++) {
+        childChunks[i]->initializeScanState(state.childrenStates[i]);
+    }
+}
+
 void StructColumnChunk::resize(uint64_t newCapacity) {
     ColumnChunk::resize(newCapacity);
     capacity = newCapacity;
@@ -104,7 +112,7 @@ void StructColumnChunk::write(ColumnChunk* chunk, ColumnChunk* dstOffsets,
     }
     auto structChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(chunk);
     for (auto i = 0u; i < childChunks.size(); i++) {
-        childChunks[i]->write(structChunk->getChild(i), dstOffsets, multiplicity);
+        childChunks[i]->write(&structChunk->getChild(i), dstOffsets, multiplicity);
     }
 }
 
