@@ -137,6 +137,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     auto columnPositions =
         getColumnDataPositions(columnNamesExcludingSerial, inputColumns, *outFSchema);
     auto containsSerial = nodeTableEntry->containPropertyType(*LogicalType::SERIAL());
+    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> defaultEvaluators;
+    for (auto& defaultExpr: copyFromInfo->defaultExprs) {
+        defaultEvaluators.emplace_back(ExpressionMapper::getEvaluator(defaultExpr, outFSchema));
+    }
     auto info =
         std::make_unique<NodeBatchInsertInfo>(nodeTableEntry, storageManager->compressionEnabled(),
             std::move(columnPositions), containsSerial, std::move(columnTypes));

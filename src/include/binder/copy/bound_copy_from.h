@@ -1,6 +1,7 @@
 #pragma once
 
 #include "binder/bound_scan_source.h"
+#include "binder/expression/expression.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "index_look_up_info.h"
 
@@ -19,8 +20,15 @@ struct BoundCopyFromInfo {
     std::unique_ptr<BoundBaseScanSource> source;
     // Row offset of input data to generate internal ID.
     std::shared_ptr<Expression> offset;
+    expression_vector defaultExprs;
     std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo;
 
+    // TODO(Sam): REL and RDF copy PR should ensure default exprs is always passed
+    BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry,
+        std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
+        expression_vector defaultExprs, std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
+        : tableEntry{tableEntry}, source{std::move(source)}, offset{offset}, 
+          defaultExprs{defaultExprs}, extraInfo{std::move(extraInfo)} {}
     BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry,
         std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
         std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)

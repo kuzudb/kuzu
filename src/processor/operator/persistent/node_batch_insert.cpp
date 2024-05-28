@@ -77,7 +77,7 @@ void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     }
 }
 
-void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*) {
+void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     std::shared_ptr<DataChunkState> state;
     auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
     for (auto& pos : nodeInfo->columnPositions) {
@@ -98,17 +98,23 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     // NOLINTEND(bugprone-unchecked-optional-access)
 
     KU_ASSERT(state != nullptr);
+    auto numTuples = state->getSelVector().getSelSize();
     for (auto i = 0u; i < nodeInfo->columnPositions.size(); ++i) {
         auto pos = nodeInfo->columnPositions[i];
         if (pos.isValid()) {
             nodeLocalState->columnVectors.push_back(resultSet->getValueVector(pos).get());
         } else {
             auto& columnType = nodeInfo->columnTypes[i];
-            auto nullVector = std::make_shared<ValueVector>(columnType);
-            nullVector->setState(state);
-            nullVector->setAllNull();
-            nodeLocalState->nullColumnVectors.push_back(nullVector);
-            nodeLocalState->columnVectors.push_back(nullVector.get());
+            auto& defaultEvaluator = nodeInfo->defaultEvaluators[i];
+            std::shared_ptr<ValueVector> defaultVector = std::make_shared<ValueVector>(columnType);;
+            defaultVector->setAllNull();
+            defaultVector->setState(state);
+            for (auto i = 0; i < numTuples; ++i) {
+                defaultEvaluator->evaluate(context->clientContext);
+                defaultVector->copyFromVectorData(i, defaultEvaluator->resultVector.get(), 0);
+            }
+            nodeLocalState->columnVectors.push_back(defaultVector.get());
+            nodeLocalState->defaultColumnVectors.push_back(std::move(defaultVector));
         }
     }
     nodeLocalState->nodeGroup = NodeGroupFactory::createNodeGroup(ColumnDataFormat::REGULAR,
