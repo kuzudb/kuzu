@@ -50,7 +50,6 @@ enum class LogicalOperatorType : uint8_t {
     PROJECTION,
     RECURSIVE_EXTEND,
     SCAN_FILE,
-    SCAN_FRONTIER,
     SCAN_NODE_TABLE,
     SEMI_MASKER,
     SET_PROPERTY,
@@ -109,6 +108,10 @@ public:
     template<class TARGET>
     const TARGET& constCast() const {
         return common::ku_dynamic_cast<const LogicalOperator&, const TARGET&>(*this);
+    }
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<LogicalOperator&, TARGET&>(*this);
     }
     template<class TARGET>
     const TARGET* constPtrCast() const {

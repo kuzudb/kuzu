@@ -22,11 +22,11 @@ public:
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    inline void setJoinType(RecursiveJoinType joinType_) { joinType = joinType_; }
-    inline RecursiveJoinType getJoinType() const { return joinType; }
-    inline std::shared_ptr<LogicalOperator> getRecursiveChild() const { return recursiveChild; }
+    void setJoinType(RecursiveJoinType joinType_) { joinType = joinType_; }
+    RecursiveJoinType getJoinType() const { return joinType; }
+    std::shared_ptr<LogicalOperator> getRecursiveChild() const { return recursiveChild; }
 
-    inline std::unique_ptr<LogicalOperator> copy() override {
+    std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalRecursiveExtend>(boundNode, nbrNode, rel, direction,
             joinType, children[0]->copy(), recursiveChild->copy());
     }
@@ -50,17 +50,17 @@ public:
 
     std::string getExpressionsForPrinting() const override { return recursiveRel->toString(); }
 
-    inline std::shared_ptr<binder::RelExpression> getRel() const { return recursiveRel; }
+    std::shared_ptr<binder::RelExpression> getRel() const { return recursiveRel; }
 
-    inline void setJoinType(RecursiveJoinType joinType_) { joinType = joinType_; }
-    inline RecursiveJoinType getJoinType() const { return joinType; }
+    void setJoinType(RecursiveJoinType joinType_) { joinType = joinType_; }
+    RecursiveJoinType getJoinType() const { return joinType; }
 
-    inline void setSIP(SidewaysInfoPassing sip_) { sip = sip_; }
-    inline SidewaysInfoPassing getSIP() const { return sip; }
-    inline std::shared_ptr<LogicalOperator> getNodeChild() const { return nodeChild; }
-    inline std::shared_ptr<LogicalOperator> getRelChild() const { return relChild; }
+    void setSIP(SidewaysInfoPassing sip_) { sip = sip_; }
+    SidewaysInfoPassing getSIP() const { return sip; }
+    std::shared_ptr<LogicalOperator> getNodeChild() const { return nodeChild; }
+    std::shared_ptr<LogicalOperator> getRelChild() const { return relChild; }
 
-    inline std::unique_ptr<LogicalOperator> copy() override {
+    std::unique_ptr<LogicalOperator> copy() override {
         auto nodeChildCopy = nodeChild == nullptr ? nullptr : nodeChild->copy();
         auto relChildCopy = relChild == nullptr ? nullptr : relChild->copy();
         return std::make_unique<LogicalPathPropertyProbe>(recursiveRel, children[0]->copy(),
@@ -73,32 +73,6 @@ private:
     std::shared_ptr<LogicalOperator> relChild;
     RecursiveJoinType joinType;
     SidewaysInfoPassing sip;
-};
-
-class LogicalScanFrontier : public LogicalOperator {
-public:
-    LogicalScanFrontier(std::shared_ptr<binder::Expression> nodeID,
-        std::shared_ptr<binder::Expression> nodePredicateExecFlag)
-        : LogicalOperator{LogicalOperatorType::SCAN_FRONTIER}, nodeID{std::move(nodeID)},
-          nodePredicateExecFlag{std::move(nodePredicateExecFlag)} {}
-
-    void computeFactorizedSchema() final;
-    void computeFlatSchema() final;
-
-    std::string getExpressionsForPrinting() const override { return std::string(); }
-
-    inline std::shared_ptr<binder::Expression> getNodeID() const { return nodeID; }
-    inline std::shared_ptr<binder::Expression> getNodePredicateExecutionFlag() const {
-        return nodePredicateExecFlag;
-    }
-
-    inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalScanFrontier>(nodeID, nodePredicateExecFlag);
-    }
-
-private:
-    std::shared_ptr<binder::Expression> nodeID;
-    std::shared_ptr<binder::Expression> nodePredicateExecFlag;
 };
 
 } // namespace planner

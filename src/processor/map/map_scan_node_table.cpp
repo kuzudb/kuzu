@@ -1,5 +1,6 @@
 #include "binder/expression/property_expression.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
+#include "processor/operator/scan/lookup_node_table.h"
 #include "processor/operator/scan/scan_node_table.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
@@ -12,38 +13,47 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* logicalOperator) {
-    const auto scanProperty =
-        ku_dynamic_cast<LogicalOperator*, LogicalScanNodeTable*>(logicalOperator);
-    const auto outSchema = scanProperty->getSchema();
-    auto inputNodeIDVectorPos = DataPos(outSchema->getExpressionPos(*scanProperty->getNodeID()));
+    auto catalog = clientContext->getCatalog();
+    auto storageManager = clientContext->getStorageManager();
+    auto transaction = clientContext->getTx();
+    auto& scan = logicalOperator->constCast<LogicalScanNodeTable>();
+    const auto outSchema = scan.getSchema();
+    auto nodeIDPos = getDataPos(*scan.getNodeID(), *outSchema);
     std::vector<DataPos> outVectorsPos;
-    for (auto& expression : scanProperty->getProperties()) {
-        outVectorsPos.emplace_back(outSchema->getExpressionPos(*expression));
+    for (auto& expression : scan.getProperties()) {
+        outVectorsPos.emplace_back(getDataPos(*expression, *outSchema));
     }
-    const auto tableIDs = scanProperty->getTableIDs();
-    std::vector<std::unique_ptr<ScanNodeTableInfo>> tableInfos;
+    auto scanInfo = ScanTableInfo(nodeIDPos, outVectorsPos);
+    const auto tableIDs = scan.getTableIDs();
+    std::vector<ScanNodeTableInfo> tableInfos;
     std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates;
     for (const auto& tableID : tableIDs) {
         std::vector<column_id_t> columnIDs;
-        for (auto& expression : scanProperty->getProperties()) {
-            const auto property = static_pointer_cast<PropertyExpression>(expression);
-            if (!property->hasPropertyID(tableID)) {
+        for (auto& expression : scan.getProperties()) {
+            auto& property = expression->constCast<PropertyExpression>();
+            if (!property.hasPropertyID(tableID)) {
                 columnIDs.push_back(UINT32_MAX);
             } else {
-                columnIDs.push_back(clientContext->getCatalog()
-                                        ->getTableCatalogEntry(clientContext->getTx(), tableID)
-                                        ->getColumnID(property->getPropertyID(tableID)));
+                auto propertyID = property.getPropertyID(tableID);
+                auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);
+                columnIDs.push_back(tableEntry->getColumnID(propertyID));
             }
         }
-        tableInfos.push_back(std::make_unique<ScanNodeTableInfo>(
-            ku_dynamic_cast<storage::Table*, storage::NodeTable*>(
-                clientContext->getStorageManager()->getTable(tableID)),
-            std::move(columnIDs)));
+        auto table = storageManager->getTable(tableID)->ptrCast<storage::NodeTable>();
+        tableInfos.push_back(ScanNodeTableInfo(table, std::move(columnIDs)));
         sharedStates.push_back(std::make_shared<ScanNodeTableSharedState>());
     }
-    return std::make_unique<ScanNodeTable>(inputNodeIDVectorPos, std::move(outVectorsPos),
-        std::move(tableInfos), std::move(sharedStates), getOperatorID(),
-        scanProperty->getExpressionsForPrinting());
+    if (scan.getScanType() == planner::LogicalScanNodeTableType::SCAN) {
+        return std::make_unique<ScanNodeTable>(std::move(scanInfo), std::move(tableInfos),
+            std::move(sharedStates), getOperatorID(), scan.getExpressionsForPrinting());
+    }
+    KU_ASSERT(scan.getScanType() == planner::LogicalScanNodeTableType::OFFSET_LOOK_UP);
+    common::table_id_map_t<ScanNodeTableInfo> tableInfosMap;
+    for (auto& info : tableInfos) {
+        tableInfosMap.insert({info.table->getTableID(), info.copy()});
+    }
+    return std::make_unique<LookupNodeTable>(std::move(scanInfo), std::move(tableInfosMap),
+        getOperatorID(), scan.getExpressionsForPrinting());
 }
 
 } // namespace processor

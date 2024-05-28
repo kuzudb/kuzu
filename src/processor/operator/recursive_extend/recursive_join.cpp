@@ -1,9 +1,9 @@
 #include "processor/operator/recursive_extend/recursive_join.h"
 
 #include "processor/operator/recursive_extend/all_shortest_path_state.h"
-#include "processor/operator/recursive_extend/scan_frontier.h"
 #include "processor/operator/recursive_extend/shortest_path_state.h"
 #include "processor/operator/recursive_extend/variable_length_state.h"
+#include "processor/operator/scan/lookup_node_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;
@@ -208,19 +208,19 @@ void RecursiveJoin::computeBFS(ExecutionContext* context) {
     auto nodeID = vectors->srcNodeIDVector->getValue<nodeID_t>(
         vectors->srcNodeIDVector->state->getSelVector()[0]);
     bfsState->markSrc(nodeID);
-    scanFrontier->setNodePredicateExecFlag(true);
+    vectors->recursiveNodePredicateExecFlagVector->setValue<bool>(0, true);
     while (!bfsState->isComplete()) {
         auto boundNodeID = bfsState->getNextNodeID();
         if (boundNodeID.offset != INVALID_OFFSET) {
             // Found a starting node from current frontier.
-            scanFrontier->setNodeID(boundNodeID);
+            recursiveSource->init(boundNodeID);
             while (recursiveRoot->getNextTuple(context)) { // Exhaust recursive plan.
                 updateVisitedNodes(boundNodeID);
             }
         } else {
             // Otherwise move to the next frontier.
             bfsState->finalizeCurrentLevel();
-            scanFrontier->setNodePredicateExecFlag(false);
+            vectors->recursiveNodePredicateExecFlagVector->setValue<bool>(0, false);
         }
     }
 }
@@ -236,21 +236,28 @@ void RecursiveJoin::updateVisitedNodes(nodeID_t boundNodeID) {
     }
 }
 
-void RecursiveJoin::initLocalRecursivePlan(ExecutionContext* context) {
-    auto op = recursiveRoot.get();
-    while (!op->isSource()) {
+static PhysicalOperator* getSource(PhysicalOperator* op) {
+    while (op->getNumChildren() != 0) {
         KU_ASSERT(op->getNumChildren() == 1);
         op = op->getChild(0);
     }
+    return op;
+}
+
+void RecursiveJoin::initLocalRecursivePlan(ExecutionContext* context) {
     auto& dataInfo = info.dataInfo;
-    scanFrontier = (ScanFrontier*)op;
     localResultSet = std::make_unique<ResultSet>(dataInfo.localResultSetDescriptor.get(),
         context->clientContext->getMemoryManager());
+    vectors->recursiveSrcNodeIDVector =
+        localResultSet->getValueVector(dataInfo.recursiveSrcNodeIDPos).get();
     vectors->recursiveDstNodeIDVector =
         localResultSet->getValueVector(dataInfo.recursiveDstNodeIDPos).get();
+    vectors->recursiveNodePredicateExecFlagVector =
+        localResultSet->getValueVector(dataInfo.recursiveNodePredicateExecFlagPos).get();
     vectors->recursiveEdgeIDVector =
         localResultSet->getValueVector(dataInfo.recursiveEdgeIDPos).get();
     recursiveRoot->initLocalState(localResultSet.get(), context);
+    recursiveSource = getSource(recursiveRoot.get())->ptrCast<LookupNodeTable>();
 }
 
 void RecursiveJoin::populateTargetDstNodes(ExecutionContext* context) {

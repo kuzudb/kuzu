@@ -12,7 +12,7 @@ void Planner::appendScanNodeTable(std::shared_ptr<Expression> nodeID,
     std::vector<table_id_t> tableIDs, const expression_vector& properties, LogicalPlan& plan) {
     expression_vector propertiesToScan_;
     for (auto& property : properties) {
-        if (ku_dynamic_cast<Expression&, PropertyExpression&>(*property).isInternalID()) {
+        if (property->constCast<PropertyExpression>().isInternalID()) {
             continue;
         }
         propertiesToScan_.push_back(property);

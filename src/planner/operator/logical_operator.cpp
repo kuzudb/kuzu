@@ -90,8 +90,6 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "RECURSIVE_EXTEND";
     case LogicalOperatorType::SCAN_FILE:
         return "SCAN_FILE";
-    case LogicalOperatorType::SCAN_FRONTIER:
-        return "SCAN_FRONTIER";
     case LogicalOperatorType::SCAN_NODE_TABLE:
         return "SCAN_NODE_TABLE";
     case LogicalOperatorType::SEMI_MASKER:

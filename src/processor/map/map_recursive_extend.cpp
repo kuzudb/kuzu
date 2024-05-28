@@ -41,6 +41,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(LogicalOperator
     dataInfo.dstNodeTableIDs = nbrNode->getTableIDsSet();
     dataInfo.pathLengthPos = getDataPos(*rel->getLengthExpression(), *outSchema);
     dataInfo.localResultSetDescriptor = std::make_unique<ResultSetDescriptor>(recursivePlanSchema);
+    dataInfo.recursiveSrcNodeIDPos =
+        getDataPos(*recursiveInfo->node->getInternalID(), *recursivePlanSchema);
+    dataInfo.recursiveNodePredicateExecFlagPos =
+        getDataPos(*recursiveInfo->nodePredicateExecFlag, *recursivePlanSchema);
     dataInfo.recursiveDstNodeIDPos =
         getDataPos(*recursiveInfo->nodeCopy->getInternalID(), *recursivePlanSchema);
     dataInfo.recursiveDstNodeTableIDs = recursiveInfo->node->getTableIDsSet();

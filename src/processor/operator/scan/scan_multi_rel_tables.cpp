@@ -77,7 +77,7 @@ std::unique_ptr<PhysicalOperator> ScanMultiRelTable::clone() {
     for (auto& [tableID, scanner] : scannerPerNodeTable) {
         clonedScanners.insert({tableID, scanner->clone()});
     }
-    return make_unique<ScanMultiRelTable>(std::move(clonedScanners), nodeIDPos, outVectorsPos,
+    return make_unique<ScanMultiRelTable>(info.copy(), std::move(clonedScanners),
         children[0]->clone(), id, paramsString);
 }
 

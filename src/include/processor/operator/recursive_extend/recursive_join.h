@@ -11,7 +11,7 @@
 namespace kuzu {
 namespace processor {
 
-class ScanFrontier;
+class LookupNodeTable;
 
 struct RecursiveJoinSharedState {
     std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks;
@@ -29,6 +29,8 @@ struct RecursiveJoinDataInfo {
     DataPos pathLengthPos;
     // Recursive join info.
     std::unique_ptr<ResultSetDescriptor> localResultSetDescriptor;
+    DataPos recursiveSrcNodeIDPos;
+    DataPos recursiveNodePredicateExecFlagPos;
     DataPos recursiveDstNodeIDPos;
     std::unordered_set<common::table_id_t> recursiveDstNodeTableIDs;
     DataPos recursiveEdgeIDPos;
@@ -46,6 +48,8 @@ private:
         dstNodeTableIDs = other.dstNodeTableIDs;
         pathLengthPos = other.pathLengthPos;
         localResultSetDescriptor = other.localResultSetDescriptor->copy();
+        recursiveSrcNodeIDPos = other.recursiveSrcNodeIDPos;
+        recursiveNodePredicateExecFlagPos = other.recursiveNodePredicateExecFlagPos;
         recursiveDstNodeIDPos = other.recursiveDstNodeIDPos;
         recursiveDstNodeTableIDs = other.recursiveDstNodeTableIDs;
         recursiveEdgeIDPos = other.recursiveEdgeIDPos;
@@ -69,7 +73,9 @@ struct RecursiveJoinVectors {
     common::ValueVector* pathRelsLabelDataVector = nullptr;  // STRING
 
     common::ValueVector* recursiveEdgeIDVector = nullptr;
+    common::ValueVector* recursiveSrcNodeIDVector = nullptr;
     common::ValueVector* recursiveDstNodeIDVector = nullptr;
+    common::ValueVector* recursiveNodePredicateExecFlagVector = nullptr;
 };
 
 struct RecursiveJoinInfo {
@@ -134,7 +140,7 @@ private:
     // Local recursive plan
     std::unique_ptr<ResultSet> localResultSet;
     std::unique_ptr<PhysicalOperator> recursiveRoot;
-    ScanFrontier* scanFrontier;
+    LookupNodeTable* recursiveSource;
 
     std::unique_ptr<RecursiveJoinVectors> vectors;
     std::unique_ptr<BaseBFSState> bfsState;

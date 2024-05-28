@@ -41,24 +41,23 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
 
 void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
-    for (const auto& info : infos) {
-        auto scanState = std::make_unique<NodeTableScanState>(info->columnIDs);
-        initVectors(*scanState, *resultSet);
-        scanStates.push_back(std::move(scanState));
+    for (auto& nodeInfo : nodeInfos) {
+        nodeInfo.localScanState = std::make_unique<NodeTableScanState>(nodeInfo.columnIDs);
+        initVectors(*nodeInfo.localScanState, *resultSet);
     }
 }
 
 void ScanNodeTable::initGlobalStateInternal(ExecutionContext* context) {
-    KU_ASSERT(sharedStates.size() == infos.size());
-    for (auto i = 0u; i < infos.size(); i++) {
-        sharedStates[i]->initialize(context->clientContext->getTx(), infos[i]->table);
+    KU_ASSERT(sharedStates.size() == nodeInfos.size());
+    for (auto i = 0u; i < nodeInfos.size(); i++) {
+        sharedStates[i]->initialize(context->clientContext->getTx(), nodeInfos[i].table);
     }
 }
 
 bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
-    while (currentTableIdx < infos.size()) {
-        const auto& info = *infos[currentTableIdx];
-        auto& scanState = *scanStates[currentTableIdx];
+    while (currentTableIdx < nodeInfos.size()) {
+        const auto& info = nodeInfos[currentTableIdx];
+        auto& scanState = *info.localScanState;
         while (scanState.source != TableScanSource::NONE &&
                info.table->scan(context->clientContext->getTx(), scanState)) {
             if (scanState.nodeIDVector->state->getSelVector().getSelSize() > 0) {
@@ -76,12 +75,8 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
 }
 
 std::unique_ptr<PhysicalOperator> ScanNodeTable::clone() {
-    std::vector<std::unique_ptr<ScanNodeTableInfo>> clonedInfos;
-    for (const auto& info : infos) {
-        clonedInfos.push_back(info->copy());
-    }
-    return make_unique<ScanNodeTable>(nodeIDPos, outVectorsPos, std::move(clonedInfos),
-        sharedStates, id, paramsString);
+    return make_unique<ScanNodeTable>(info.copy(), copyVector(nodeInfos), sharedStates, id,
+        paramsString);
 }
 
 } // namespace processor

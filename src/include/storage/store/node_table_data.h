@@ -57,20 +57,15 @@ public:
         return columns[0]->getMetadata(nodeGroupIdx, transaction->getType()).numValues;
     }
 
+    void lookup(transaction::Transaction* transaction, TableDataScanState& state,
+        const common::ValueVector& nodeIDVector,
+        const std::vector<common::ValueVector*>& outputVectors) override;
+
 private:
     void initializeColumnScanStates(transaction::Transaction* transaction,
         NodeDataScanState& scanState, common::node_group_idx_t nodeGroupIdx) const;
     void initializeLocalNodeReadState(transaction::Transaction* transaction,
         TableScanState& scanState, common::node_group_idx_t nodeGroupIdx) const;
-
-    void lookup(transaction::Transaction* transaction, TableDataScanState& state,
-        const common::ValueVector& nodeIDVector,
-        const std::vector<common::ValueVector*>& outputVectors) override;
-
-    void append(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        LocalNodeGroup* localNodeGroup);
-    void merge(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        LocalNodeGroup* nodeGroup);
 
     static bool sanityCheckOnColumnNumValues(const NodeDataScanState& scanState);
 };

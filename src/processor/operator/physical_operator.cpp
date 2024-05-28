@@ -71,7 +71,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::LIMIT:
         return "LIMIT";
     case PhysicalOperatorType::LOAD_EXTENSION:
-        return "LOAD EXTENSION";
+        return "LOAD_EXTENSION";
+    case PhysicalOperatorType::LOOK_UP_NODE_TABLE:
+        return "LOOK_UP_NODE_TABLE";
     case PhysicalOperatorType::MERGE:
         return "MERGE";
     case PhysicalOperatorType::MULTIPLICITY_REDUCER:
@@ -92,12 +94,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "RENAME_TABLE";
     case PhysicalOperatorType::RESULT_COLLECTOR:
         return "RESULT_COLLECTOR";
-    case PhysicalOperatorType::SCAN_FRONTIER:
-        return "SCAN_FRONTIER";
     case PhysicalOperatorType::SCAN_NODE_TABLE:
         return "SCAN_MULTI_NODE_TABLE";
-    case PhysicalOperatorType::SCAN_MULTI_REL_TABLES:
-        return "SCAN_MULTI_REL_TABLES";
     case PhysicalOperatorType::SCAN_REL_TABLE:
         return "SCAN_REL_TABLE";
     case PhysicalOperatorType::SEMI_MASKER:

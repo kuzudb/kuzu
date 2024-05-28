@@ -91,6 +91,7 @@ struct UDF {
         (void*)(udfFunc); // Disable compiler warnings.
         return [udfFunc](const std::vector<std::shared_ptr<common::ValueVector>>& params,
                    common::ValueVector& result, void* /*dataPtr*/ = nullptr) -> void {
+            (void)params;
             KU_ASSERT(params.size() == 0);
             auto& resultSelVector = result.state->getSelVector();
             for (auto i = 0u; i < resultSelVector.getSelSize(); ++i) {

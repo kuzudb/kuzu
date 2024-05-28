@@ -266,24 +266,24 @@
 ---- 1
 {_NODES: [{_ID: 0:0, _LABEL: A, ID: 0}], _RELS: []}
 
+#TODO(Xiyang): Fixme
 # Return a var length path
--CASE Scenario16
--SKIP
--STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
----- ok
--STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
----- ok
--STATEMENT CREATE NODE TABLE C(ID SERIAL, name STRING, PRIMARY KEY(ID));
----- ok
--STATEMENT CREATE REL TABLE GROUP KNOWS(FROM A TO B, FROM B TO C, num INT64);
----- ok
--STATEMENT CREATE (a:A {name: 'A'})-[:KNOWS_A_B {num: 1}]->(b:B {name: 'B'})-[:KNOWS_B_C {num: 2}]->(c:C {name: 'C'});
----- ok
--STATEMENT MATCH p = (n {name: 'A'})-[:KNOWS*1..2]->(x)
-           RETURN p;
----- 2
-{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B},{_ID: 2:0, _LABEL: C, ID: 0, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS_A_B, _ID: 4:0, num: 1}->(1:0),(1:0)-{_LABEL: KNOWS_B_C, _ID: 5:0, num: 2}->(2:0)]}
-{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS_A_B, _ID: 4:0, num: 1}->(1:0)]}
+#-CASE Scenario16
+#-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+#---- ok
+#-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+#---- ok
+#-STATEMENT CREATE NODE TABLE C(ID SERIAL, name STRING, PRIMARY KEY(ID));
+#---- ok
+#-STATEMENT CREATE REL TABLE GROUP KNOWS(FROM A TO B, FROM B TO C, num INT64);
+#---- ok
+#-STATEMENT CREATE (a:A {name: 'A'})-[:KNOWS_A_B {num: 1}]->(b:B {name: 'B'})-[:KNOWS_B_C {num: 2}]->(c:C {name: 'C'});
+#---- ok
+#-STATEMENT MATCH p = (n {name: 'A'})-[:KNOWS*1..2]->(x)
+#           RETURN p;
+#---- 2
+#{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B},{_ID: 2:0, _LABEL: C, ID: 0, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS_A_B, _ID: 4:0, num: 1}->(1:0),(1:0)-{_LABEL: KNOWS_B_C, _ID: 5:0, num: 2}->(2:0)]}
+#{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS_A_B, _ID: 4:0, num: 1}->(1:0)]}
 
 # Return a named var length path of length zero
 -CASE Scenario17
@@ -324,39 +324,39 @@
 ---- 1
 {_NODES: [{_ID: 0:0, _LABEL: Movie, ID: 0},{_ID: 1:0, _LABEL: A, ID: 0}], _RELS: [(1:0)-{_LABEL: T, _ID: 2:0}->(0:0)]}
 
+#TODO(Xiyang): Fixme
 # Variable length relationship without lower bound
--CASE Scenario19
--SKIP
--STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
----- ok
--STATEMENT CREATE REL TABLE KNOWS(FROM A TO A);
----- ok
--STATEMENT CREATE (a:A {name: 'A'}), (b:A {name: 'B'}), (c:A {name: 'C'})
-           CREATE (a)-[:KNOWS]->(b),
-                  (b)-[:KNOWS]->(c);
----- ok
--STATEMENT MATCH p = ({name: 'A'})-[:KNOWS*..2]->()
-           RETURN p;
----- 2
-{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B},{_ID: 0:2, _LABEL: A, ID: 2, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:1),(0:1)-{_LABEL: KNOWS, _ID: 1:1}->(0:2)]}
-{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:1)]}
+#-CASE Scenario19
+#-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+#---- ok
+#-STATEMENT CREATE REL TABLE KNOWS(FROM A TO A);
+#---- ok
+#-STATEMENT CREATE (a:A {name: 'A'}), (b:A {name: 'B'}), (c:A {name: 'C'})
+#           CREATE (a)-[:KNOWS]->(b),
+#                  (b)-[:KNOWS]->(c);
+#---- ok
+#-STATEMENT MATCH p = ({name: 'A'})-[:KNOWS*..2]->()
+#           RETURN p;
+#---- 2
+#{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B},{_ID: 0:2, _LABEL: A, ID: 2, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:1),(0:1)-{_LABEL: KNOWS, _ID: 1:1}->(0:2)]}
+#{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:1)]}
 
+#TODO(Xiyang): Fixme
 # Variable length relationship without bounds
--CASE Scenario20
--SKIP
--STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
----- ok
--STATEMENT CREATE REL TABLE KNOWS(FROM A TO A);
----- ok
--STATEMENT CREATE (a:A {name: 'A'}), (b:A {name: 'B'}), (c:A {name: 'C'})
-           CREATE (a)-[:KNOWS]->(b),
-                  (b)-[:KNOWS]->(c);
----- ok
--STATEMENT MATCH p = ({name: 'A'})-[:KNOWS*..]->()
-           RETURN p;
----- 2
-{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B},{_ID: 0:2, _LABEL: A, ID: 2, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:1),(0:1)-{_LABEL: KNOWS, _ID: 1:1}->(0:2)]}
-{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:1)]}
+#-CASE Scenario20
+#-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+#---- ok
+#-STATEMENT CREATE REL TABLE KNOWS(FROM A TO A);
+#---- ok
+#-STATEMENT CREATE (a:A {name: 'A'}), (b:A {name: 'B'}), (c:A {name: 'C'})
+#           CREATE (a)-[:KNOWS]->(b),
+#                  (b)-[:KNOWS]->(c);
+#---- ok
+#-STATEMENT MATCH p = ({name: 'A'})-[:KNOWS*..]->()
+#           RETURN p;
+#---- 2
+#{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B},{_ID: 0:2, _LABEL: A, ID: 2, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:1),(0:1)-{_LABEL: KNOWS, _ID: 1:1}->(0:2)]}
+#{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:1)]}
 
 # Fail when a node has the same variable in a preceding MATCH
 -CASE Scenario21

@@ -6,7 +6,8 @@
 namespace kuzu {
 namespace storage {
 
-enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = 2 };
+enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = 3 };
+
 struct TableScanState {
     common::ValueVector* nodeIDVector;
     std::vector<common::column_id_t> columnIDs;
@@ -24,6 +25,11 @@ struct TableScanState {
           outputVectors{std::move(outputVectors)} {}
     virtual ~TableScanState() = default;
     DELETE_COPY_AND_MOVE(TableScanState);
+
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<TableScanState&, TARGET&>(*this);
+    }
 };
 
 struct TableInsertState {

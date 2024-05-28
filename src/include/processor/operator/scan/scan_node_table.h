@@ -29,26 +29,27 @@ struct ScanNodeTableInfo {
     storage::NodeTable* table;
     std::vector<common::column_id_t> columnIDs;
 
+    std::unique_ptr<storage::NodeTableScanState> localScanState;
+
     ScanNodeTableInfo(storage::NodeTable* table, std::vector<common::column_id_t> columnIDs)
         : table{table}, columnIDs{std::move(columnIDs)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(ScanNodeTableInfo);
+
+private:
     ScanNodeTableInfo(const ScanNodeTableInfo& other)
         : table{other.table}, columnIDs{other.columnIDs} {}
-
-    std::unique_ptr<ScanNodeTableInfo> copy() const {
-        return std::make_unique<ScanNodeTableInfo>(*this);
-    }
 };
 
 class ScanNodeTable final : public ScanTable {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SCAN_NODE_TABLE;
+
 public:
-    ScanNodeTable(const DataPos& inVectorPos, std::vector<DataPos> outVectorsPos,
-        std::vector<std::unique_ptr<ScanNodeTableInfo>> infos,
+    ScanNodeTable(ScanTableInfo info, std::vector<ScanNodeTableInfo> nodeInfos,
         std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates, uint32_t id,
         const std::string& paramsString)
-        : ScanTable{PhysicalOperatorType::SCAN_NODE_TABLE, inVectorPos, std::move(outVectorsPos),
-              id, paramsString},
-          currentTableIdx{0}, infos{std::move(infos)}, sharedStates{std::move(sharedStates)} {
-        KU_ASSERT(this->infos.size() == this->sharedStates.size());
+        : ScanTable{type_, std::move(info), id, paramsString}, currentTableIdx{0},
+          nodeInfos{std::move(nodeInfos)}, sharedStates{std::move(sharedStates)} {
+        KU_ASSERT(this->nodeInfos.size() == this->sharedStates.size());
     }
 
     bool isSource() const override { return true; }
@@ -57,7 +58,6 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    common::vector_idx_t getNumTables() const { return sharedStates.size(); }
     const ScanNodeTableSharedState& getSharedState(common::vector_idx_t idx) const {
         KU_ASSERT(idx < sharedStates.size());
         return *sharedStates[idx];
@@ -71,9 +71,8 @@ private:
 private:
     common::vector_idx_t currentTableIdx;
     // TODO(Guodong): Refactor following three fields into a vector of structs.
-    std::vector<std::unique_ptr<ScanNodeTableInfo>> infos;
+    std::vector<ScanNodeTableInfo> nodeInfos;
     std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates;
-    std::vector<std::unique_ptr<storage::NodeTableScanState>> scanStates;
 };
 
 } // namespace processor

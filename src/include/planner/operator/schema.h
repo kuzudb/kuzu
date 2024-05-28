@@ -22,28 +22,28 @@ public:
           cardinalityMultiplier{other.cardinalityMultiplier}, expressions{other.expressions},
           expressionNameToPos{other.expressionNameToPos} {}
 
-    inline void setFlat() {
+    void setFlat() {
         KU_ASSERT(!flat);
         flat = true;
     }
-    inline bool isFlat() const { return flat; }
-    inline void setSingleState() {
+    bool isFlat() const { return flat; }
+    void setSingleState() {
         KU_ASSERT(!singleState);
         singleState = true;
         setFlat();
     }
-    inline bool isSingleState() const { return singleState; }
+    bool isSingleState() const { return singleState; }
 
-    inline void setMultiplier(double multiplier) { cardinalityMultiplier = multiplier; }
-    inline double getMultiplier() const { return cardinalityMultiplier; }
+    void setMultiplier(double multiplier) { cardinalityMultiplier = multiplier; }
+    double getMultiplier() const { return cardinalityMultiplier; }
 
-    inline void insertExpression(const std::shared_ptr<binder::Expression>& expression) {
+    void insertExpression(const std::shared_ptr<binder::Expression>& expression) {
         KU_ASSERT(!expressionNameToPos.contains(expression->getUniqueName()));
         expressionNameToPos.insert({expression->getUniqueName(), expressions.size()});
         expressions.push_back(expression);
     }
-    inline binder::expression_vector getExpressions() const { return expressions; }
-    inline uint32_t getExpressionPos(const binder::Expression& expression) {
+    binder::expression_vector getExpressions() const { return expressions; }
+    uint32_t getExpressionPos(const binder::Expression& expression) {
         KU_ASSERT(expressionNameToPos.contains(expression.getUniqueName()));
         return expressionNameToPos.at(expression.getUniqueName());
     }
@@ -58,20 +58,19 @@ private:
 
 class Schema {
 public:
-    inline size_t getNumGroups() const { return groups.size(); }
-    inline size_t getNumFlatGroups() const { return getNumGroups(true /* isFlat */); }
-    inline size_t getNumUnFlatGroups() const { return getNumGroups(false /* isFlat */); }
+    size_t getNumGroups() const { return groups.size(); }
+    size_t getNumFlatGroups() const { return getNumGroups(true /* isFlat */); }
+    size_t getNumUnFlatGroups() const { return getNumGroups(false /* isFlat */); }
 
-    inline FactorizationGroup* getGroup(
-        const std::shared_ptr<binder::Expression>& expression) const {
+    FactorizationGroup* getGroup(const std::shared_ptr<binder::Expression>& expression) const {
         return getGroup(getGroupPos(expression->getUniqueName()));
     }
 
-    inline FactorizationGroup* getGroup(const std::string& expressionName) const {
+    FactorizationGroup* getGroup(const std::string& expressionName) const {
         return getGroup(getGroupPos(expressionName));
     }
 
-    inline FactorizationGroup* getGroup(uint32_t pos) const { return groups[pos].get(); }
+    FactorizationGroup* getGroup(uint32_t pos) const { return groups[pos].get(); }
 
     f_group_pos createGroup();
 
@@ -87,14 +86,13 @@ public:
 
     void insertToGroupAndScope(const binder::expression_vector& expressions, uint32_t groupPos);
 
-    inline f_group_pos getGroupPos(const binder::Expression& expression) const {
+    f_group_pos getGroupPos(const binder::Expression& expression) const {
         return getGroupPos(expression.getUniqueName());
     }
 
     f_group_pos getGroupPos(const std::string& expressionName) const;
 
-    inline std::pair<f_group_pos, uint32_t> getExpressionPos(
-        const binder::Expression& expression) const {
+    std::pair<f_group_pos, uint32_t> getExpressionPos(const binder::Expression& expression) const {
         auto groupPos = getGroupPos(expression);
         return std::make_pair(groupPos, groups[groupPos]->getExpressionPos(expression));
     }
@@ -115,7 +113,7 @@ public:
     std::unordered_set<f_group_pos> getDependentGroupsPos(
         const std::shared_ptr<binder::Expression>& expression);
 
-    inline void clearExpressionsInScope() {
+    void clearExpressionsInScope() {
         expressionNameToGroupPos.clear();
         expressionsInScope.clear();
     }

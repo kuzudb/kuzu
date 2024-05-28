@@ -29,15 +29,14 @@ private:
 };
 
 class ScanMultiRelTable : public ScanTable {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SCAN_REL_TABLE;
     using node_table_id_scanner_map_t =
         std::unordered_map<common::table_id_t, std::unique_ptr<RelTableCollectionScanner>>;
 
 public:
-    ScanMultiRelTable(node_table_id_scanner_map_t scannerPerNodeTable, const DataPos& inVectorPos,
-        std::vector<DataPos> outVectorsPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        const std::string& paramsString)
-        : ScanTable{PhysicalOperatorType::SCAN_MULTI_REL_TABLES, inVectorPos,
-              std::move(outVectorsPos), std::move(child), id, paramsString},
+    ScanMultiRelTable(ScanTableInfo info, node_table_id_scanner_map_t scannerPerNodeTable,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
+        : ScanTable{type_, std::move(info), std::move(child), id, paramsString},
           scannerPerNodeTable{std::move(scannerPerNodeTable)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;

@@ -42,6 +42,7 @@
 ---- 2
 Carol
 Elizabeth
+#TODO(Xiyang): Fixme
 #-STATEMENT MATCH p = (a:person)-[e:meets*1..2 (r, n | {r.location, r.times}, {n.fName})]->(b:person) WHERE a.ID = 3 RETURN properties(nodes(p), "ID"), properties(nodes(p), "fName"), rels(p)
 #---- 2
 #[3,,3]|[Carol,Elizabeth,Carol]|[(0:2)-{_LABEL: meets, _ID: 6:2, location: [3.650000,8.440000], times: 3}->(0:4),(0:4)-{_LABEL: meets, _ID: 6:3, location: [2.110000,3.100000], times: 7}->(0:2)]
