@@ -34,8 +34,8 @@ class ScanMultiRelTable : public ScanTable {
         std::unordered_map<common::table_id_t, std::unique_ptr<RelTableCollectionScanner>>;
 
 public:
-    ScanMultiRelTable(ScanTableInfo info, node_table_id_scanner_map_t scannerPerNodeTable, std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        const std::string& paramsString)
+    ScanMultiRelTable(ScanTableInfo info, node_table_id_scanner_map_t scannerPerNodeTable,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : ScanTable{type_, std::move(info), std::move(child), id, paramsString},
           scannerPerNodeTable{std::move(scannerPerNodeTable)} {}
 

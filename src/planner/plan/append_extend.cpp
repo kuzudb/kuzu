@@ -10,8 +10,8 @@
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_node_label_filter.h"
-#include "planner/planner.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
+#include "planner/planner.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -232,7 +232,8 @@ void Planner::createRecursivePlan(const RecursiveInfo& recursiveInfo, ExtendDire
         ExpressionUtil::removeDuplication(nodeProperties), plan);
     auto& scan = plan.getLastOperator()->cast<LogicalScanNodeTable>();
     scan.setScanType(LogicalScanNodeTableType::OFFSET_LOOK_UP);
-    scan.setRecursiveJoinScanInfo(std::make_unique<RecursiveJoinScanInfo>(recursiveInfo.nodePredicateExecFlag));
+    scan.setRecursiveJoinScanInfo(
+        std::make_unique<RecursiveJoinScanInfo>(recursiveInfo.nodePredicateExecFlag));
     scan.computeFactorizedSchema();
     if (recursiveInfo.nodePredicate) {
         appendFilters(recursiveInfo.nodePredicate->splitOnAND(), plan);

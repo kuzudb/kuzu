@@ -75,8 +75,8 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
 }
 
 std::unique_ptr<PhysicalOperator> ScanNodeTable::clone() {
-    return make_unique<ScanNodeTable>(info.copy(), copyVector(nodeInfos),
-        sharedStates, id, paramsString);
+    return make_unique<ScanNodeTable>(info.copy(), copyVector(nodeInfos), sharedStates, id,
+        paramsString);
 }
 
 } // namespace processor

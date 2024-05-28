@@ -248,10 +248,12 @@ void RecursiveJoin::initLocalRecursivePlan(ExecutionContext* context) {
     auto& dataInfo = info.dataInfo;
     localResultSet = std::make_unique<ResultSet>(dataInfo.localResultSetDescriptor.get(),
         context->clientContext->getMemoryManager());
-    vectors->recursiveSrcNodeIDVector = localResultSet->getValueVector(dataInfo.recursiveSrcNodeIDPos).get();
+    vectors->recursiveSrcNodeIDVector =
+        localResultSet->getValueVector(dataInfo.recursiveSrcNodeIDPos).get();
     vectors->recursiveDstNodeIDVector =
         localResultSet->getValueVector(dataInfo.recursiveDstNodeIDPos).get();
-    vectors->recursiveNodePredicateExecFlagVector = localResultSet->getValueVector(dataInfo.recursiveNodePredicateExecFlagPos).get();
+    vectors->recursiveNodePredicateExecFlagVector =
+        localResultSet->getValueVector(dataInfo.recursiveNodePredicateExecFlagPos).get();
     vectors->recursiveEdgeIDVector =
         localResultSet->getValueVector(dataInfo.recursiveEdgeIDPos).get();
     recursiveRoot->initLocalState(localResultSet.get(), context);

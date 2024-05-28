@@ -48,7 +48,7 @@ void NodeTable::initializeScanState(Transaction* transaction, TableScanState& sc
         tableData->initializeScanState(transaction, scanState);
     } break;
     case TableScanSource::UNCOMMITTED: {
-       scanState.cast<NodeTableScanState>().localNodeGroup->initializeScanState(scanState);
+        scanState.cast<NodeTableScanState>().localNodeGroup->initializeScanState(scanState);
     } break;
     default: {
         // DO NOTHING.
@@ -60,7 +60,7 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
     KU_ASSERT(scanState.source != TableScanSource::NONE &&
               scanState.columnIDs.size() == scanState.outputVectors.size());
     for (const auto& outputVector : scanState.outputVectors) {
-       (void)outputVector;
+        (void)outputVector;
         KU_ASSERT(outputVector->state == scanState.nodeIDVector->state);
     }
     auto& nodeScanState = ku_dynamic_cast<TableScanState&, NodeTableScanState&>(scanState);
@@ -85,7 +85,8 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
 
 void NodeTable::lookup(transaction::Transaction* transaction, TableScanState& scanState) {
     KU_ASSERT(scanState.nodeIDVector->state->getSelVector().getSelSize() == 1);
-    tableData->lookup(transaction, *scanState.dataScanState, *scanState.nodeIDVector, scanState.outputVectors);
+    tableData->lookup(transaction, *scanState.dataScanState, *scanState.nodeIDVector,
+        scanState.outputVectors);
 }
 
 bool NodeTable::scanUnCommitted(NodeTableScanState& scanState) {

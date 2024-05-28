@@ -72,7 +72,6 @@ struct RecursiveJoinVectors {
     common::ValueVector* pathRelsIDDataVector = nullptr;     // INTERNAL_ID
     common::ValueVector* pathRelsLabelDataVector = nullptr;  // STRING
 
-
     common::ValueVector* recursiveEdgeIDVector = nullptr;
     common::ValueVector* recursiveSrcNodeIDVector = nullptr;
     common::ValueVector* recursiveDstNodeIDVector = nullptr;

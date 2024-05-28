@@ -62,8 +62,7 @@ public:
     size_t getNumFlatGroups() const { return getNumGroups(true /* isFlat */); }
     size_t getNumUnFlatGroups() const { return getNumGroups(false /* isFlat */); }
 
-    FactorizationGroup* getGroup(
-        const std::shared_ptr<binder::Expression>& expression) const {
+    FactorizationGroup* getGroup(const std::shared_ptr<binder::Expression>& expression) const {
         return getGroup(getGroupPos(expression->getUniqueName()));
     }
 
@@ -93,8 +92,7 @@ public:
 
     f_group_pos getGroupPos(const std::string& expressionName) const;
 
-    std::pair<f_group_pos, uint32_t> getExpressionPos(
-        const binder::Expression& expression) const {
+    std::pair<f_group_pos, uint32_t> getExpressionPos(const binder::Expression& expression) const {
         auto groupPos = getGroupPos(expression);
         return std::make_pair(groupPos, groups[groupPos]->getExpressionPos(expression));
     }

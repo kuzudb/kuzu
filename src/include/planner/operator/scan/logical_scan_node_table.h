@@ -43,9 +43,7 @@ public:
         return binder::ExpressionUtil::toString(properties);
     }
 
-    void setScanType(LogicalScanNodeTableType scanType_) {
-        scanType = scanType_;
-    }
+    void setScanType(LogicalScanNodeTableType scanType_) { scanType = scanType_; }
     LogicalScanNodeTableType getScanType() const { return scanType; }
 
     std::shared_ptr<binder::Expression> getNodeID() const { return nodeID; }
@@ -55,9 +53,7 @@ public:
     void setRecursiveJoinScanInfo(std::unique_ptr<RecursiveJoinScanInfo> info) {
         recursiveJoinScanInfo = std::move(info);
     }
-    bool hasRecursiveJoinScanInfo() const {
-        return recursiveJoinScanInfo != nullptr;
-    }
+    bool hasRecursiveJoinScanInfo() const { return recursiveJoinScanInfo != nullptr; }
 
     std::unique_ptr<LogicalOperator> copy() override;
 
