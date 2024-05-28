@@ -68,3 +68,8 @@ jobs:
       with:
         name: LDBC-FinBench-logs
         path: ldbc_finbench_transaction_impls/kuzu/LDBC-FinBench.log
+    
+    - name: Report result to server
+      working-directory: ldbc_finbench_transaction_impls
+      run: |
+        python3 kuzu/scripts/report_results.py
