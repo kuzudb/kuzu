@@ -39,9 +39,9 @@ void FileHandle::constructExistingFileHandle(const std::string& path, VirtualFil
     }
 }
 
-void FileHandle::constructNewFileHandle(const std::string& path, VirtualFileSystem* vfs,
-    main::ClientContext* context) {
-    fileInfo = vfs->openFile(path, O_CREAT | O_RDWR, context);
+void FileHandle::constructNewFileHandle(const std::string& path, VirtualFileSystem*,
+    main::ClientContext*) {
+    fileInfo = std::make_unique<FileInfo>(path, nullptr);
     numPages = 0;
     pageCapacity = 0;
 }

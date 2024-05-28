@@ -2,6 +2,7 @@
 
 #include "storage/store/null_column.h"
 #include "storage/store/struct_column_chunk.h"
+#include <storage/store/string_column_chunk.h>
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -25,6 +26,18 @@ StructColumn::StructColumn(std::string name, LogicalType dataType,
             *metaDAHeaderInfo.childrenInfos[i], dataFH, metadataDAC, bufferManager, wal,
             transaction, enableCompression);
     }
+}
+
+std::unique_ptr<ColumnChunkData> StructColumn::flushChunk(const ColumnChunkData& chunk,
+    BMFileHandle& dataFH) {
+    auto flushedChunk = flushNonNestedChunk(chunk, dataFH);
+    auto& structChunk = chunk.cast<StructChunkData>();
+    auto& flushedStructChunk = flushedChunk->cast<StructChunkData>();
+    for (auto i = 0u; i < structChunk.getNumChildren(); i++) {
+        auto flushedChildChunk = Column::flushChunk(structChunk.getChild(i), dataFH);
+        flushedStructChunk.setChild(i, std::move(flushedChildChunk));
+    }
+    return flushedChunk;
 }
 
 void StructColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -69,12 +82,13 @@ void StructColumn::scan(Transaction* transaction, const ChunkState& state,
     }
 }
 
-void StructColumn::scanInternal(Transaction* transaction, const ChunkState& state, idx_t vectorIdx,
-    row_idx_t numValuesToScan, ValueVector* nodeIDVector, ValueVector* resultVector) {
+void StructColumn::scanInternal(Transaction* transaction, const ChunkState& state,
+    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
+    ValueVector* resultVector) {
     for (auto i = 0u; i < childColumns.size(); i++) {
         const auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
-        childColumns[i]->scan(transaction, state.childrenStates[i], vectorIdx, numValuesToScan,
-            nodeIDVector, fieldVector);
+        childColumns[i]->scan(transaction, state.childrenStates[i], startOffsetInChunk,
+            numValuesToScan, nodeIDVector, fieldVector);
     }
 }
 
@@ -119,6 +133,23 @@ void StructColumn::append(ColumnChunkData* columnChunk, ChunkState& state) {
     auto structColumnChunk = static_cast<StructChunkData*>(columnChunk);
     for (auto i = 0u; i < childColumns.size(); i++) {
         childColumns[i]->append(structColumnChunk->getChild(i), state.childrenStates[i]);
+    }
+}
+
+void StructColumn::setMetadataFromChunk(node_group_idx_t nodeGroupIdx,
+    const ColumnChunkData& chunk) {
+    Column::setMetadataFromChunk(nodeGroupIdx, chunk);
+    auto& structChunk = chunk.cast<StructChunkData>();
+    for (auto i = 0u; i < childColumns.size(); i++) {
+        childColumns[i]->setMetadataFromChunk(nodeGroupIdx, structChunk.getChild(i));
+    }
+}
+
+void StructColumn::setMetadataToChunk(node_group_idx_t nodeGroupIdx, ColumnChunkData& chunk) const {
+    Column::setMetadataToChunk(nodeGroupIdx, chunk);
+    auto& structChunk = chunk.cast<StructChunkData>();
+    for (auto i = 0u; i < childColumns.size(); i++) {
+        childColumns[i]->setMetadataToChunk(nodeGroupIdx, *structChunk.getChild(i));
     }
 }
 

@@ -13,15 +13,25 @@ class Column;
 class ChunkedNodeGroup {
 public:
     explicit ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunkData>> chunks)
-        : chunks{std::move(chunks)} {}
+        : ChunkedNodeGroup{std::move(chunks), common::INVALID_OFFSET} {}
+    explicit ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunkData>> chunks,
+        common::offset_t startNodeOffset)
+        : chunks{std::move(chunks)}, nodeGroupIdx{common::INVALID_NODE_GROUP_IDX},
+          startNodeOffset{startNodeOffset}, capacity{common::StorageConstants::NODE_GROUP_SIZE} {
+        numRows = this->chunks.empty() ? 0 : this->chunks[0]->getNumValues();
+        for (auto columnID = 1; columnID < this->chunks.size(); columnID++) {
+            KU_ASSERT(this->chunks[columnID]->getNumValues() == numRows);
+        }
+    }
     ChunkedNodeGroup(const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
-        uint64_t capacity);
+        uint64_t capacity, common::offset_t startOffset);
     ChunkedNodeGroup(const std::vector<std::unique_ptr<Column>>& columns, bool enableCompression);
     DELETE_COPY_DEFAULT_MOVE(ChunkedNodeGroup);
     virtual ~ChunkedNodeGroup() = default;
 
     uint64_t getNodeGroupIdx() const { return nodeGroupIdx; }
     common::idx_t getNumColumns() const { return chunks.size(); }
+    common::offset_t getStartNodeOffset() const { return startNodeOffset; }
     const ColumnChunkData& getColumnChunk(common::column_id_t columnID) const {
         KU_ASSERT(columnID < chunks.size());
         return *chunks[columnID];
@@ -42,12 +52,16 @@ public:
     uint64_t append(const std::vector<common::ValueVector*>& columnVectors,
         common::SelectionVector& selVector, uint64_t numValuesToAppend);
     // Appends up to numValuesToAppend from the other chunked node group, returning the actual
-    // number of values appended
-    common::offset_t append(ChunkedNodeGroup* other, common::offset_t offsetInOtherNodeGroup,
+    // number of values appended.
+    common::offset_t append(const ChunkedNodeGroup& other, common::offset_t offsetInOtherNodeGroup,
         common::offset_t numValuesToAppend = common::StorageConstants::NODE_GROUP_SIZE);
     void write(const std::vector<std::unique_ptr<ColumnChunkData>>& data,
         common::column_id_t offsetColumnID);
     void write(const ChunkedNodeGroup& data, common::column_id_t offsetColumnID);
+
+    void scan(const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<common::ValueVector*>& outputVectors, common::offset_t offset,
+        common::length_t length) const;
 
     void finalize(uint64_t nodeGroupIdx_);
 
@@ -56,11 +70,17 @@ public:
         chunks[chunkIdx]->write(data[vectorIdx].get(), &offsetChunk, common::RelMultiplicity::ONE);
     }
 
+    std::unique_ptr<ChunkedNodeGroup> flush(BMFileHandle& dataFH) const;
+
 protected:
     std::vector<std::unique_ptr<ColumnChunkData>> chunks;
 
 private:
+    // TODO: This should be removed. See comment on `getNodeGroupIdx()`. Instead, should only keep
+    // `startNodeOffset`.
     uint64_t nodeGroupIdx;
+    common::offset_t startNodeOffset;
+    uint64_t capacity;
     common::row_idx_t numRows;
 };
 
@@ -86,7 +106,7 @@ struct ChunkedCSRHeader {
     }
 };
 
-class ChunkedCSRNodeGroup : public ChunkedNodeGroup {
+class ChunkedCSRNodeGroup final : public ChunkedNodeGroup {
 public:
     ChunkedCSRNodeGroup(const std::vector<common::LogicalType>& columnTypes,
         bool enableCompression);
@@ -110,7 +130,8 @@ struct NodeGroupFactory {
         const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
         uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE) {
         return dataFormat == common::ColumnDataFormat::REGULAR ?
-                   std::make_unique<ChunkedNodeGroup>(columnTypes, enableCompression, capacity) :
+                   std::make_unique<ChunkedNodeGroup>(columnTypes, enableCompression, capacity,
+                       common::INVALID_OFFSET) :
                    std::make_unique<ChunkedCSRNodeGroup>(columnTypes, enableCompression);
     }
 };

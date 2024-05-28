@@ -9,6 +9,7 @@
 #include "common/types/interval_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/compression/compression.h"
 #include "storage/store/list_column_chunk.h"
@@ -383,6 +384,23 @@ void ColumnChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     }
 }
 
+void ColumnChunkData::initializeScanState(ChunkState& state) const {
+    if (nullChunk) {
+        nullChunk->initializeScanState(*state.nullState);
+    }
+    state.metadata = metadata;
+    state.numValuesPerPage =
+        state.metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+}
+
+void ColumnChunkData::scan(ValueVector& output, offset_t offset, length_t length) const {
+    KU_ASSERT(offset + length <= numValues);
+    // TODO(Guodong): Rework properly as scan.
+    for (auto i = 0u; i < length; i++) {
+        lookup(offset + i, output, i);
+    }
+}
+
 void ColumnChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
     RelMultiplicity multiplicity) {
     KU_ASSERT(chunk->dataType.getPhysicalType() == dataType.getPhysicalType() &&
@@ -521,7 +539,7 @@ bool ColumnChunkData::numValuesSanityCheck() const {
     return numValues <= capacity;
 }
 
-bool ColumnChunkData::sanityCheck() {
+bool ColumnChunkData::sanityCheck() const {
     if (nullChunk) {
         return nullChunk->sanityCheck() && numValuesSanityCheck();
     }

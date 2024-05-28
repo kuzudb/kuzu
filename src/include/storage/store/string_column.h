@@ -12,6 +12,9 @@ public:
         DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, bool enableCompression);
 
+    static std::unique_ptr<ColumnChunkData> flushChunk(const ColumnChunkData& chunk,
+        BMFileHandle& dataFH);
+
     void initChunkState(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, ChunkState& chunkState) override;
 
@@ -30,6 +33,11 @@ public:
     void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunkData* data,
         common::offset_t dataOffset, common::length_t numValues) override;
 
+    void setMetadataFromChunk(common::node_group_idx_t nodeGroupIdx,
+        const ColumnChunkData& chunk) override;
+    void setMetadataToChunk(common::node_group_idx_t nodeGroupIdx,
+        ColumnChunkData& chunk) const override;
+
     void prepareCommit() override;
     void checkpointInMemory() override;
     void rollbackInMemory() override;
@@ -38,7 +46,7 @@ public:
 
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
-        common::idx_t vectorIdx, common::row_idx_t numValuesToScan,
+        common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
     void scanUnfiltered(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::offset_t numValuesToRead,

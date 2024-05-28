@@ -10,8 +10,8 @@ namespace processor {
 
 NodeInsertExecutor::NodeInsertExecutor(const NodeInsertExecutor& other)
     : table{other.table}, fwdRelTables{other.fwdRelTables}, bwdRelTables{other.bwdRelTables},
-      nodeIDVectorPos{other.nodeIDVectorPos}, columnVectorsPos{other.columnVectorsPos},
-      conflictAction{other.conflictAction} {
+      nodeIDVectorPos{other.nodeIDVectorPos}, nodeIDVector{nullptr},
+      columnVectorsPos{other.columnVectorsPos}, conflictAction{other.conflictAction} {
     for (auto& evaluator : other.columnDataEvaluators) {
         columnDataEvaluators.push_back(evaluator->clone());
     }
@@ -32,7 +32,7 @@ void NodeInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     }
 }
 
-static void writeColumnVector(common::ValueVector* columnVector, common::ValueVector* dataVector) {
+static void writeColumnVector(ValueVector* columnVector, ValueVector* dataVector) {
     KU_ASSERT(columnVector->state->getSelVector().getSelSize() == 1 &&
               dataVector->state->getSelVector().getSelSize() == 1);
     auto lhsPos = columnVector->state->getSelVector()[0];
@@ -68,7 +68,7 @@ void NodeInsertExecutor::skipInsert() {
     writeResult();
 }
 
-bool NodeInsertExecutor::checkConfict(Transaction* transaction) {
+bool NodeInsertExecutor::checkConfict(Transaction* transaction) const {
     if (conflictAction == ConflictAction::ON_CONFLICT_DO_NOTHING) {
         auto off = table->validateUniquenessConstraint(transaction, columnDataVectors);
         if (off != INVALID_OFFSET) {
@@ -82,6 +82,7 @@ bool NodeInsertExecutor::checkConfict(Transaction* transaction) {
     return false;
 }
 
+// TODO(Guodong/Xiyang): We should rework in the front-end to reference the column vector directly.
 void NodeInsertExecutor::writeResult() {
     for (auto i = 0u; i < columnVectors.size(); ++i) {
         auto columnVector = columnVectors[i];

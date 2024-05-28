@@ -16,9 +16,7 @@ void ScanNodeTableSharedState::initialize(transaction::Transaction* transaction,
     if (transaction->isWriteTransaction()) {
         if (const auto localTable = transaction->getLocalStorage()->getLocalTable(
                 this->table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
-            localNodeGroups = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable)
-                                  ->getTableData()
-                                  ->getNodeGroups();
+            localNodeTable = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable);
         }
     }
 }
@@ -30,17 +28,19 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
         scanState.source = TableScanSource::COMMITTED;
         return;
     }
-    if (currentUnCommittedGroupIdx < localNodeGroups.size()) {
-        scanState.localNodeGroup = ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(
-            localNodeGroups[currentUnCommittedGroupIdx++]);
+    // TODO(Guodong): We should split scan of local node table to multiple morsels, too.
+    if (localNodeTable && currentUnCommittedGroupIdx < 1) {
+        scanState.localNodeTable = localNodeTable;
         scanState.source = TableScanSource::UNCOMMITTED;
+        currentUnCommittedGroupIdx++;
         return;
     }
     scanState.source = TableScanSource::NONE;
 }
 
 void ScanNodeTableInfo::initScanState() {
-    localScanState = std::make_unique<NodeTableScanState>(columnIDs, copyVector(columnPredicates));
+    localScanState = std::make_unique<NodeTableScanState>(table->getTableID(), columnIDs,
+        copyVector(columnPredicates));
 }
 
 void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {

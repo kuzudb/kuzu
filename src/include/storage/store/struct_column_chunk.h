@@ -20,6 +20,16 @@ public:
 
     void finalize() override;
 
+    common::vector_idx_t getNumChildren() const { return childChunks.size(); }
+    const ColumnChunkData& getChild(common::vector_idx_t childIdx) const {
+        KU_ASSERT(childIdx < childChunks.size());
+        return *childChunks[childIdx];
+    }
+    void setChild(common::vector_idx_t childIdx, std::unique_ptr<ColumnChunkData> childChunk) {
+        KU_ASSERT(childIdx < childChunks.size());
+        childChunks[childIdx] = std::move(childChunk);
+    }
+
 protected:
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
@@ -27,6 +37,7 @@ protected:
 
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
+    void initializeScanState(ChunkState& state) const override;
 
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;

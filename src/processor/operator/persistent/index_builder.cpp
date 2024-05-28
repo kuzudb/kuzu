@@ -90,7 +90,6 @@ void IndexBuilderSharedState::quitProducer() {
 
 void IndexBuilder::insert(const ColumnChunkData& chunk, offset_t nodeOffset, offset_t numNodes) {
     checkNonNullConstraint(chunk.getNullChunk(), numNodes);
-
     TypeUtils::visit(
         chunk.getDataType().getPhysicalType(),
         [&]<HashablePrimitive T>(T) {

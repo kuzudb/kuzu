@@ -376,8 +376,8 @@ std::vector<std::string> Catalog::getMacroNames(Transaction* transaction) const 
     return macroNames;
 }
 
-void Catalog::prepareCheckpoint(const std::string& databasePath, WAL* wal, VirtualFileSystem* fs) {
-    saveToFile(databasePath, fs, common::FileVersionType::WAL_VERSION);
+void Catalog::checkpoint(const std::string& databasePath, WAL* wal, VirtualFileSystem* fs) {
+    saveToFile(databasePath, fs, FileVersionType::WAL_VERSION);
     wal->logCatalogRecord();
 }
 

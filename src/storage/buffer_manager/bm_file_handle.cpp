@@ -28,7 +28,9 @@ BMFileHandle::BMFileHandle(const std::string& path, uint8_t flags, BufferManager
 }
 
 BMFileHandle::~BMFileHandle() {
-    bm->removeFilePagesFromFrames(*this);
+    if (bm) {
+        bm->removeFilePagesFromFrames(*this);
+    }
 }
 
 page_idx_t BMFileHandle::addNewPageWithoutLock() {

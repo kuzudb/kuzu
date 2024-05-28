@@ -43,14 +43,14 @@ struct ListOffsetSizeInfo {
 };
 
 class ListColumn final : public Column {
-    static constexpr common::idx_t SIZE_COLUMN_CHILD_READ_STATE_IDX = 0;
-    static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 1;
-
 public:
     ListColumn(std::string name, common::LogicalType dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
         DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, bool enableCompression);
+
+    static std::unique_ptr<ColumnChunkData> flushChunk(const ColumnChunkData& chunk,
+        BMFileHandle& dataFH);
 
     void initChunkState(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, ChunkState& chunkState) override;
@@ -62,11 +62,16 @@ public:
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
 
+    void setMetadataFromChunk(common::node_group_idx_t nodeGroupIdx,
+        const ColumnChunkData& chunk) override;
+    void setMetadataToChunk(common::node_group_idx_t nodeGroupIdx,
+        ColumnChunkData& chunk) const override;
+
     Column* getDataColumn() const { return dataColumn.get(); }
 
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
-        common::idx_t vectorIdx, common::row_idx_t numValuesToScan,
+        common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
     void lookupValue(transaction::Transaction* transaction, ChunkState& state,

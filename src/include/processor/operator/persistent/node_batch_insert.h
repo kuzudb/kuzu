@@ -18,7 +18,9 @@ class Transaction;
 namespace processor {
 struct ExecutionContext;
 
-struct NodeBatchInsertInfo final : public BatchInsertInfo {
+struct NodeBatchInsertInfo final : BatchInsertInfo {
+    std::vector<DataPos> columnPositions;
+    bool containSerial = false;
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
     std::vector<bool> defaultColumns;
@@ -37,12 +39,12 @@ struct NodeBatchInsertInfo final : public BatchInsertInfo {
           columnEvaluators{evaluator::ExpressionEvaluator::copy(other.columnEvaluators)},
           defaultColumns{other.defaultColumns} {}
 
-    inline std::unique_ptr<BatchInsertInfo> copy() const override {
+    std::unique_ptr<BatchInsertInfo> copy() const override {
         return std::make_unique<NodeBatchInsertInfo>(*this);
     }
 };
 
-struct NodeBatchInsertSharedState final : public BatchInsertSharedState {
+struct NodeBatchInsertSharedState final : BatchInsertSharedState {
     // Primary key info
     storage::PrimaryKeyIndex* pkIndex;
     common::idx_t pkColumnIdx;
@@ -104,12 +106,12 @@ public:
 
     void finalize(ExecutionContext* context) override;
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<NodeBatchInsert>(info->copy(), sharedState,
             resultSetDescriptor->copy(), children[0]->clone(), id, paramsString);
     }
 
-    static void writeAndResetNewNodeGroup(transaction::Transaction* transaction,
+    void writeAndResetNewNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, std::optional<IndexBuilder>& indexBuilder,
         common::column_id_t pkColumnID, storage::NodeTable* table,
         storage::ChunkedNodeGroup* nodeGroup);

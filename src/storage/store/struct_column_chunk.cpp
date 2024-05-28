@@ -3,6 +3,7 @@
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include "storage/store/column_chunk.h"
 #include <storage/store/string_column_chunk.h>
 
@@ -62,6 +63,13 @@ void StructChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     for (auto i = 0u; i < numFields; i++) {
         childChunks[i]->lookup(offsetInChunk, *StructVector::getFieldVector(&output, i).get(),
             posInOutputVector);
+    }
+}
+
+void StructChunkData::initializeScanState(ChunkState& state) const {
+    ColumnChunkData::initializeScanState(state);
+    for (auto i = 0u; i < childChunks.size(); i++) {
+        childChunks[i]->initializeScanState(state.childrenStates[i]);
     }
 }
 

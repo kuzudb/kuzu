@@ -27,6 +27,20 @@ StringColumn::StringColumn(std::string name, LogicalType dataType,
       dictionary{name, metaDAHeaderInfo, dataFH, metadataDAC, bufferManager, wal, transaction,
           enableCompression} {}
 
+std::unique_ptr<ColumnChunkData> StringColumn::flushChunk(const ColumnChunkData& chunk,
+    BMFileHandle& dataFH) {
+    auto flushedChunk = flushNonNestedChunk(chunk, dataFH);
+    auto& flushedStringChunk = flushedChunk->cast<StringChunkData>();
+
+    auto& stringChunk = chunk.cast<StringChunkData>();
+    auto& dictChunk = stringChunk.getDictionaryChunk();
+    flushedStringChunk.getDictionaryChunk().setOffsetChunk(
+        Column::flushChunk(*dictChunk.getOffsetChunk(), dataFH));
+    flushedStringChunk.getDictionaryChunk().setStringDataChunk(
+        Column::flushChunk(*dictChunk.getStringDataChunk(), dataFH));
+    return flushedChunk;
+}
+
 void StringColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     ChunkState& state) {
     Column::initChunkState(transaction, nodeGroupIdx, state);
@@ -96,10 +110,10 @@ void StringColumn::write(ChunkState& state, offset_t dstOffset, ColumnChunkData*
     updateStatistics(state.metadata, dstOffset + numValues - 1, minWritten, maxWritten);
 }
 
-void StringColumn::scanInternal(Transaction* transaction, const ChunkState& state, idx_t vectorIdx,
-    row_idx_t numValuesToScan, ValueVector* nodeIDVector, ValueVector* resultVector) {
+void StringColumn::scanInternal(Transaction* transaction, const ChunkState& state,
+    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
+    ValueVector* resultVector) {
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-    const auto startOffsetInChunk = vectorIdx * DEFAULT_VECTOR_CAPACITY;
     if (nodeIDVector->state->getSelVector().isUnfiltered()) {
         scanUnfiltered(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
     } else {
@@ -126,8 +140,8 @@ void StringColumn::scanUnfiltered(Transaction* transaction, const ChunkState& re
         return;
     }
     dictionary.scan(transaction,
-        readState.childrenStates[DictionaryColumn::OFFSET_COLUMN_CHILD_READ_STATE_IDX],
-        readState.childrenStates[DictionaryColumn::DATA_COLUMN_CHILD_READ_STATE_IDX], offsetsToScan,
+        readState.childrenStates[DictionaryChunk::OFFSET_COLUMN_CHILD_READ_STATE_IDX],
+        readState.childrenStates[DictionaryChunk::DATA_COLUMN_CHILD_READ_STATE_IDX], offsetsToScan,
         resultVector, readState.metadata);
 }
 
@@ -150,8 +164,8 @@ void StringColumn::scanFiltered(Transaction* transaction, const ChunkState& read
         return;
     }
     dictionary.scan(transaction,
-        readState.childrenStates[DictionaryColumn::OFFSET_COLUMN_CHILD_READ_STATE_IDX],
-        readState.childrenStates[DictionaryColumn::DATA_COLUMN_CHILD_READ_STATE_IDX], offsetsToScan,
+        readState.childrenStates[DictionaryChunk::OFFSET_COLUMN_CHILD_READ_STATE_IDX],
+        readState.childrenStates[DictionaryChunk::DATA_COLUMN_CHILD_READ_STATE_IDX], offsetsToScan,
         resultVector, readState.metadata);
 }
 
@@ -175,8 +189,8 @@ void StringColumn::lookupInternal(Transaction* transaction, ChunkState& readStat
         return;
     }
     dictionary.scan(transaction,
-        readState.childrenStates[DictionaryColumn::OFFSET_COLUMN_CHILD_READ_STATE_IDX],
-        readState.childrenStates[DictionaryColumn::DATA_COLUMN_CHILD_READ_STATE_IDX], offsetsToScan,
+        readState.childrenStates[DictionaryChunk::OFFSET_COLUMN_CHILD_READ_STATE_IDX],
+        readState.childrenStates[DictionaryChunk::DATA_COLUMN_CHILD_READ_STATE_IDX], offsetsToScan,
         resultVector, readState.metadata);
 }
 
@@ -235,7 +249,7 @@ bool StringColumn::canIndexCommitInPlace(const ChunkState& state, uint64_t numSt
         return true;
     }
     auto totalStringsAfterUpdate =
-        state.childrenStates[DictionaryColumn::OFFSET_COLUMN_CHILD_READ_STATE_IDX]
+        state.childrenStates[DictionaryChunk::OFFSET_COLUMN_CHILD_READ_STATE_IDX]
             .metadata.numValues +
         numStrings;
     // Check if the index column can store the largest new index in-place
@@ -244,6 +258,25 @@ bool StringColumn::canIndexCommitInPlace(const ChunkState& state, uint64_t numSt
         return false;
     }
     return true;
+}
+
+void StringColumn::setMetadataFromChunk(node_group_idx_t nodeGroupIdx,
+    const ColumnChunkData& chunk) {
+    Column::setMetadataFromChunk(nodeGroupIdx, chunk);
+    auto& stringChunk = chunk.cast<StringChunkData>();
+    dictionary.getOffsetColumn()->setMetadataFromChunk(nodeGroupIdx,
+        *stringChunk.getDictionaryChunk().getOffsetChunk());
+    dictionary.getDataColumn()->setMetadataFromChunk(nodeGroupIdx,
+        *stringChunk.getDictionaryChunk().getStringDataChunk());
+}
+
+void StringColumn::setMetadataToChunk(node_group_idx_t nodeGroupIdx, ColumnChunkData& chunk) const {
+    Column::setMetadataToChunk(nodeGroupIdx, chunk);
+    auto& stringChunk = chunk.cast<StringChunkData>();
+    dictionary.getOffsetColumn()->setMetadataToChunk(nodeGroupIdx,
+        *stringChunk.getDictionaryChunk().getOffsetChunk());
+    dictionary.getDataColumn()->setMetadataToChunk(nodeGroupIdx,
+        *stringChunk.getDictionaryChunk().getStringDataChunk());
 }
 
 void StringColumn::prepareCommit() {

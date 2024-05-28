@@ -39,13 +39,13 @@ struct BatchInsertSharedState {
         return result;
     }
 
-    inline void incrementNumRows(common::row_idx_t numRowsToIncrement) {
+    void incrementNumRows(common::row_idx_t numRowsToIncrement) {
         numRows.fetch_add(numRowsToIncrement);
     }
-    inline common::row_idx_t getNumRows() { return numRows.load(); }
+    common::row_idx_t getNumRows() const { return numRows.load(); }
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
-    inline void logBatchInsertWALRecord() { wal->logCopyTableRecord(table->getTableID()); }
-    inline void updateNumTuplesForTable() { table->updateNumTuplesByValue(getNumRows()); }
+    void logBatchInsertWALRecord() const { wal->logCopyTableRecord(table->getTableID()); }
+    void updateNumTuplesForTable() const { table->updateNumTuplesByValue(getNumRows()); }
 };
 
 struct BatchInsertLocalState {
@@ -68,7 +68,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override = 0;
 
-    inline std::shared_ptr<BatchInsertSharedState> getSharedState() const { return sharedState; }
+    std::shared_ptr<BatchInsertSharedState> getSharedState() const { return sharedState; }
 
 protected:
     std::unique_ptr<BatchInsertInfo> info;

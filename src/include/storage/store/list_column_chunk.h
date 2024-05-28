@@ -26,16 +26,23 @@ struct ListDataColumnChunk {
 };
 
 class ListChunkData final : public ColumnChunkData {
-
 public:
+    static constexpr common::idx_t SIZE_COLUMN_CHILD_READ_STATE_IDX = 0;
+    static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 1;
+
     ListChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
         bool inMemory);
 
     ColumnChunkData* getDataColumnChunk() const {
         return listDataColumnChunk->dataColumnChunk.get();
     }
-
     ColumnChunkData* getSizeColumnChunk() const { return sizeColumnChunk.get(); }
+    void setDataColumnChunk(std::unique_ptr<ColumnChunkData> dataColumnChunk) {
+        listDataColumnChunk->dataColumnChunk = std::move(dataColumnChunk);
+    }
+    void setSizeColumnChunk(std::unique_ptr<ColumnChunkData> sizeColumnChunk_) {
+        sizeColumnChunk = std::move(sizeColumnChunk_);
+    }
 
     void resetToEmpty() override;
 
@@ -48,6 +55,7 @@ public:
 
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
+    void initializeScanState(ChunkState& state) const override;
 
     // Note: `write` assumes that no `append` will be called afterward.
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
@@ -76,7 +84,7 @@ public:
     void resetFromOtherChunk(ListChunkData* other);
     void finalize() override;
     bool isOffsetsConsecutiveAndSortedAscending(uint64_t startPos, uint64_t endPos) const;
-    bool sanityCheck() override;
+    bool sanityCheck() const override;
 
 protected:
     void copyListValues(const common::list_entry_t& entry, common::ValueVector* dataVector);

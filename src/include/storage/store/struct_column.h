@@ -12,6 +12,9 @@ public:
         DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, bool enableCompression);
 
+    static std::unique_ptr<ColumnChunkData> flushChunk(const ColumnChunkData& chunk,
+        BMFileHandle& dataFH);
+
     void initChunkState(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, ChunkState& chunkState) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
@@ -44,9 +47,14 @@ public:
         const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
         common::offset_t startSrcOffset) override;
 
+    void setMetadataFromChunk(common::node_group_idx_t nodeGroupIdx,
+        const ColumnChunkData& chunk) override;
+    void setMetadataToChunk(common::node_group_idx_t nodeGroupIdx,
+        ColumnChunkData& chunk) const override;
+
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
-        common::idx_t vectorIdx, common::row_idx_t numValuesToScan,
+        common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
     void lookupInternal(transaction::Transaction* transaction, ChunkState& state,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;

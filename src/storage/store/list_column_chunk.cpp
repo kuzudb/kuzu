@@ -5,6 +5,7 @@
 #include "common/cast.h"
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/value/value.h"
+#include "common/vector/value_vector.h"
 #include "storage/store/column_chunk.h"
 
 using namespace kuzu::common;
@@ -68,7 +69,7 @@ offset_t ListChunkData::getListEndOffset(offset_t offset) const {
     return getValue<uint64_t>(offset);
 }
 
-list_size_t ListChunkData::getListSize(common::offset_t offset) const {
+list_size_t ListChunkData::getListSize(offset_t offset) const {
     if (numValues == 0)
         return 0;
     KU_ASSERT(offset < sizeColumnChunk->getNumValues());
@@ -173,6 +174,13 @@ void ListChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     }
     // reset offset
     output.setValue<list_entry_t>(posInOutputVector, list_entry_t{currentListDataSize, listSize});
+}
+
+void ListChunkData::initializeScanState(ChunkState& state) const {
+    ColumnChunkData::initializeScanState(state);
+    sizeColumnChunk->initializeScanState(state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX]);
+    listDataColumnChunk->dataColumnChunk->initializeScanState(
+        state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
 }
 
 void ListChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
@@ -341,7 +349,7 @@ void ListChunkData::finalize() {
         }
         currentIndex++;
     }
-    newListChunk->sanityCheck();
+    KU_ASSERT(newListChunk->sanityCheck());
     // Move offsets, null, data from newListChunk to this column chunk. And release indices.
     resetFromOtherChunk(newListChunk);
 }
@@ -354,7 +362,7 @@ void ListChunkData::resetFromOtherChunk(ListChunkData* other) {
     checkOffsetSortedAsc = false;
 }
 
-bool ListChunkData::sanityCheck() {
+bool ListChunkData::sanityCheck() const {
     KU_ASSERT(ColumnChunkData::sanityCheck());
     KU_ASSERT(sizeColumnChunk->sanityCheck());
     KU_ASSERT(getDataColumnChunk()->sanityCheck());

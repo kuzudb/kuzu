@@ -140,6 +140,40 @@ Column* Column::getNullColumn() const {
     return nullColumn.get();
 }
 
+std::unique_ptr<ColumnChunkData> Column::flushChunk(const ColumnChunkData& chunk,
+    BMFileHandle& dataFH) {
+    switch (chunk.getDataType().getPhysicalType()) {
+    case PhysicalTypeID::STRUCT: {
+        return StructColumn::flushChunk(chunk, dataFH);
+    }
+    case PhysicalTypeID::STRING: {
+        return StringColumn::flushChunk(chunk, dataFH);
+    }
+    case PhysicalTypeID::ARRAY:
+    case PhysicalTypeID::LIST: {
+        return ListColumn::flushChunk(chunk, dataFH);
+    }
+    default: {
+        return flushNonNestedChunk(chunk, dataFH);
+    }
+    }
+}
+
+std::unique_ptr<ColumnChunkData> Column::flushNonNestedChunk(const ColumnChunkData& chunk,
+    BMFileHandle& dataFH) {
+    KU_ASSERT(chunk.sanityCheck());
+    const auto preScanMetadata = chunk.getMetadataToFlush();
+    const auto startPageIdx = dataFH.addNewPages(preScanMetadata.numPages);
+    auto flushedChunk = ColumnChunkFactory::createColumnChunkData(chunk.getDataType(),
+        chunk.isCompressionEnabled(), 0);
+    flushedChunk->setMetadata(chunk.flushBuffer(&dataFH, startPageIdx, preScanMetadata));
+    flushedChunk->setNumValues(preScanMetadata.numValues);
+    if (chunk.hasNullChunk()) {
+        flushNonNestedChunk(chunk.getNullChunk(), dataFH);
+    }
+    return flushedChunk;
+}
+
 // NOTE: This function should only be called on node tables.
 void Column::batchLookup(Transaction* transaction, const offset_t* nodeOffsets, size_t size,
     uint8_t* result) {
@@ -162,9 +196,6 @@ void Column::batchLookup(Transaction* transaction, const offset_t* nodeOffsets, 
 void Column::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     ChunkState& readState) {
     if (nullColumn) {
-        if (!readState.nullState) {
-            readState.nullState = std::make_unique<ChunkState>();
-        }
         nullColumn->initChunkState(transaction, nodeGroupIdx, *readState.nullState);
     }
     if (readState.nodeGroupIdx != nodeGroupIdx) {
@@ -180,14 +211,15 @@ void Column::initChunkState(Transaction* transaction, node_group_idx_t nodeGroup
     }
 }
 
-void Column::scan(Transaction* transaction, const ChunkState& state, idx_t vectorIdx,
+void Column::scan(Transaction* transaction, const ChunkState& state, offset_t startOffsetInChunk,
     row_idx_t numValuesToScan, ValueVector* nodeIDVector, ValueVector* resultVector) {
     if (nullColumn) {
         KU_ASSERT(state.nullState);
-        nullColumn->scan(transaction, *state.nullState, vectorIdx, numValuesToScan, nodeIDVector,
-            resultVector);
+        nullColumn->scan(transaction, *state.nullState, startOffsetInChunk, numValuesToScan,
+            nodeIDVector, resultVector);
     }
-    scanInternal(transaction, state, vectorIdx, numValuesToScan, nodeIDVector, resultVector);
+    scanInternal(transaction, state, startOffsetInChunk, numValuesToScan, nodeIDVector,
+        resultVector);
 }
 
 void Column::scan(Transaction* transaction, const ChunkState& state, offset_t startOffsetInGroup,
@@ -264,9 +296,9 @@ void Column::scan(Transaction* transaction, const ChunkState& state, offset_t st
     }
 }
 
-void Column::scanInternal(Transaction* transaction, const ChunkState& state, idx_t vectorIdx,
-    row_idx_t numValuesToScan, ValueVector* nodeIDVector, ValueVector* resultVector) {
-    const auto startOffsetInChunk = vectorIdx * DEFAULT_VECTOR_CAPACITY;
+void Column::scanInternal(Transaction* transaction, const ChunkState& state,
+    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
+    ValueVector* resultVector) {
     auto cursor = getPageCursorForOffsetInGroup(startOffsetInChunk, state);
     if (nodeIDVector->state->getSelVector().isUnfiltered()) {
         scanUnfiltered(transaction, cursor, numValuesToScan, resultVector, state.metadata);
@@ -848,6 +880,21 @@ void Column::populateWithDefaultVal(Transaction* transaction,
             columnChunk->setNumValues(chunkMeta.numValues);
             append(columnChunk.get(), state);
         }
+    }
+}
+
+void Column::setMetadataFromChunk(node_group_idx_t nodeGroupIdx, const ColumnChunkData& chunk) {
+    metadataDA->resize(nodeGroupIdx + 1);
+    metadataDA->update(nodeGroupIdx, chunk.getFlushedMetadata());
+    if (nullColumn) {
+        nullColumn->setMetadataFromChunk(nodeGroupIdx, chunk.getNullChunk());
+    }
+}
+
+void Column::setMetadataToChunk(node_group_idx_t nodeGroupIdx, ColumnChunkData& chunk) const {
+    chunk.setMetadata(metadataDA->get(nodeGroupIdx, TransactionType::READ_ONLY));
+    if (nullColumn) {
+        nullColumn->setMetadataToChunk(nodeGroupIdx, *chunk.getNullChunk());
     }
 }
 

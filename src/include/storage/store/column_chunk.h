@@ -7,7 +7,6 @@
 #include "common/enums/rel_multiplicity.h"
 #include "common/null_mask.h"
 #include "common/types/types.h"
-#include "common/vector/value_vector.h"
 #include "storage/compression/compression.h"
 
 namespace kuzu {
@@ -31,6 +30,26 @@ struct ColumnChunkMetadata {
         : pageIdx(pageIdx), numPages(numPages), numValues(numNodesInChunk), compMeta(compMeta) {}
 };
 
+enum class ColumnChunkedType : uint8_t { IN_MEMORY = 0, ON_DISK = 1 };
+
+// TODO(bmwinger): Hide access to variables and store a modified flag
+// so that we can tell if the value has changed and the metadataDA needs to be updated
+struct ChunkState {
+    explicit ChunkState() = default;
+    ChunkState(ColumnChunkMetadata metadata, uint64_t numValuesPerPage)
+        : metadata{std::move(metadata)}, numValuesPerPage{numValuesPerPage} {
+        nullState = std::make_unique<ChunkState>();
+    }
+
+    ColumnChunkMetadata metadata;
+    uint64_t numValuesPerPage = UINT64_MAX;
+    common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+    std::unique_ptr<ChunkState> nullState;
+    // Used for struct/list/string columns.
+    std::vector<ChunkState> childrenStates;
+};
+
+class BMFileHandle;
 // Base data segment covers all fixed-sized data types.
 class ColumnChunkData {
 public:
@@ -59,6 +78,7 @@ public:
     }
 
     NullChunkData* getNullChunk() { return nullChunk.get(); }
+    bool hasNullChunk() const { return nullChunk != nullptr; }
     const NullChunkData& getNullChunk() const { return *nullChunk; }
     common::LogicalType& getDataType() { return dataType; }
     const common::LogicalType& getDataType() const { return dataType; }
@@ -67,6 +87,8 @@ public:
 
     // Note that the startPageIdx is not known, so it will always be common::INVALID_PAGE_IDX
     virtual ColumnChunkMetadata getMetadataToFlush() const;
+    void setMetadata(const ColumnChunkMetadata& metadata_) { metadata = metadata_; }
+    const ColumnChunkMetadata& getFlushedMetadata() const { return metadata; }
 
     virtual void append(common::ValueVector* vector, const common::SelectionVector& selVector);
     virtual void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
@@ -85,6 +107,9 @@ public:
 
     virtual void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const;
+
+    virtual void initializeScanState(ChunkState& state) const;
+    void scan(common::ValueVector& output, common::offset_t offset, common::length_t length) const;
 
     // TODO(Guodong): In general, this is not a good interface. Instead of passing in
     // `offsetInVector`, we should flatten the vector to pos at `offsetInVector`.
@@ -112,7 +137,7 @@ public:
     virtual bool numValuesSanityCheck() const;
     bool isCompressionEnabled() const { return enableCompression; }
 
-    virtual bool sanityCheck();
+    virtual bool sanityCheck() const;
 
     template<typename TARGET>
     TARGET& cast() {
@@ -154,6 +179,8 @@ protected:
     get_metadata_func_t getMetadataFunction;
     get_min_max_func_t getMinMaxFunction;
     bool enableCompression;
+    // Only used when the chunk is on-disk.
+    ColumnChunkMetadata metadata;
 };
 
 template<>
