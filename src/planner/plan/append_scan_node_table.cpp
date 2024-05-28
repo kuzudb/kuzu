@@ -12,7 +12,7 @@ static expression_vector removeInternalIDProperty(const expression_vector& expre
     expression_vector result;
     for (auto expr : expressions) {
         if (expr->constCast<PropertyExpression>().isInternalID()) {
-            continue ;
+            continue;
         }
         result.push_back(expr);
     }
@@ -22,8 +22,8 @@ static expression_vector removeInternalIDProperty(const expression_vector& expre
 void Planner::appendScanNodeTable(std::shared_ptr<Expression> nodeID,
     std::vector<table_id_t> tableIDs, const expression_vector& properties, LogicalPlan& plan) {
     auto propertiesToScan_ = removeInternalIDProperty(properties);
-    auto scan = make_shared<LogicalScanNodeTable>(std::move(nodeID),
-        std::move(tableIDs), propertiesToScan_);
+    auto scan = make_shared<LogicalScanNodeTable>(std::move(nodeID), std::move(tableIDs),
+        propertiesToScan_);
     scan->computeFactorizedSchema();
     plan.setCardinality(cardinalityEstimator.estimateScanNode(scan.get()));
     plan.setLastOperator(std::move(scan));
