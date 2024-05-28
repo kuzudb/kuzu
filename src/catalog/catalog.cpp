@@ -276,11 +276,11 @@ void Catalog::addFunction(transaction::Transaction* transaction, CatalogEntryTyp
         std::make_unique<FunctionCatalogEntry>(entryType, std::move(name), std::move(functionSet)));
 }
 
-void Catalog::removeFunction(transaction::Transaction* transaction, const std::string& name) {
-    if (!functions->containsEntry(transaction, name)) {
+void Catalog::dropFunction(transaction::Transaction* tx, const std::string& name) {
+    if (!functions->containsEntry(tx, name)) {
         throw CatalogException{common::stringFormat("function {} doesn't exist.", name)};
     }
-    functions->dropEntry(transaction, std::move(name));
+    functions->dropEntry(tx, std::move(name));
 }
 
 void Catalog::addBuiltInFunction(CatalogEntryType entryType, std::string name,

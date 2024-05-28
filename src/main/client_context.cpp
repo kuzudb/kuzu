@@ -513,7 +513,7 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
 
 // If there is an active transaction in the context, we execute the function in current active
 // transaction. If there is no active transaction, we start an auto commit transaction.
-void ClientContext::runFunctionInTransaction(const std::function<void(void)>& fun) {
+void ClientContext::runFuncInTransaction(const std::function<void(void)>& fun) {
     // check if we are on AutoCommit. In this case we should start a transaction
     bool startNewTrx = !transactionContext->hasActiveTransaction();
     if (startNewTrx) {
@@ -533,15 +533,14 @@ void ClientContext::runFunctionInTransaction(const std::function<void(void)>& fu
 }
 
 void ClientContext::addScalarFunction(std::string name, function::function_set definitions) {
-    runFunctionInTransaction([&]() {
+    runFuncInTransaction([&]() {
         localDatabase->catalog->addFunction(getTx(), CatalogEntryType::SCALAR_FUNCTION_ENTRY,
             std::move(name), std::move(definitions));
     });
 }
 
 void ClientContext::removeScalarFunction(std::string name) {
-    runFunctionInTransaction(
-        [&]() { localDatabase->catalog->removeFunction(getTx(), std::move(name)); });
+    runFuncInTransaction([&]() { localDatabase->catalog->dropFunction(getTx(), std::move(name)); });
 }
 
 bool ClientContext::canExecuteWriteQuery() {

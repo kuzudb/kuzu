@@ -480,9 +480,9 @@ std::unique_ptr<PyQueryResult> PyConnection::checkAndWrapQueryResult(
 }
 
 void PyConnection::createScalarFunction(const std::string& name, const py::function& udf,
-    const py::list& params, const std::string& retval, bool defaultNull, bool catchExcept) {
+    const py::list& params, const std::string& retval, bool defaultNull, bool catchExceptions) {
     conn->addUDFFunctionSet(name,
-        PyUDF::toFunctionSet(name, udf, params, retval, defaultNull, catchExcept));
+        PyUDF::toFunctionSet(name, udf, params, retval, defaultNull, catchExceptions));
 }
 
 void PyConnection::removeScalarFunction(const std::string& name) {
