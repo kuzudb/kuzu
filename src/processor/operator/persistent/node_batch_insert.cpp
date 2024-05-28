@@ -106,7 +106,8 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         } else {
             auto& columnType = nodeInfo->columnTypes[i];
             auto& defaultEvaluator = nodeInfo->defaultEvaluators[i];
-            std::shared_ptr<ValueVector> defaultVector = std::make_shared<ValueVector>(columnType);;
+            std::shared_ptr<ValueVector> defaultVector = std::make_shared<ValueVector>(columnType);
+            ;
             defaultVector->setAllNull();
             defaultVector->setState(state);
             for (auto i = 0; i < numTuples; ++i) {

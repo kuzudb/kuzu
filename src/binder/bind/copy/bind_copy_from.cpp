@@ -84,14 +84,13 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
         }
     }
     expression_vector defaultExprs;
-    for (auto& property: nodeTableEntry->getPropertiesRef()) {
+    for (auto& property : nodeTableEntry->getPropertiesRef()) {
         defaultExprs.push_back(expressionBinder.bindExpression(*property.getDefaultExpr()));
     }
     auto offset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
         std::string(InternalKeyword::ANONYMOUS));
-    auto boundCopyFromInfo =
-        BoundCopyFromInfo(nodeTableEntry, std::move(boundSource), offset, std::move(defaultExprs),
-                          nullptr /* extraInfo */);
+    auto boundCopyFromInfo = BoundCopyFromInfo(nodeTableEntry, std::move(boundSource), offset,
+        std::move(defaultExprs), nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 

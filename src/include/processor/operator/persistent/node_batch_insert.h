@@ -41,8 +41,8 @@ struct NodeBatchInsertInfo final : public BatchInsertInfo {
         : BatchInsertInfo{other.tableEntry, other.compressionEnabled},
           columnPositions{other.columnPositions}, containSerial{other.containSerial},
           columnTypes{common::LogicalType::copy(other.columnTypes)} {}
-          // TODO(Sam): Make a vector copy for this
-          // defaultEvaluators{other.defaultEvaluators} 
+    // TODO(Sam): Make a vector copy for this
+    // defaultEvaluators{other.defaultEvaluators}
 
     inline std::unique_ptr<BatchInsertInfo> copy() const override {
         return std::make_unique<NodeBatchInsertInfo>(*this);
