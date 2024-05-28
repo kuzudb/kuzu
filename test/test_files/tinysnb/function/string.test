@@ -752,6 +752,6 @@ Cs
 DE
 
 -LOG splitEmptyStr
--STATEMENT return str_split('', ',')
+-STATEMENT return size(str_split('', ','))
 ---- 1
-[]
+1
