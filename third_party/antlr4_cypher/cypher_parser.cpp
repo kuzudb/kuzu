@@ -545,7 +545,7 @@ void cypherParserInitialize() {
   	25,0,800,793,1,0,0,0,801,802,1,0,0,0,802,800,1,0,0,0,802,803,1,0,0,0,
   	803,805,1,0,0,0,804,806,5,158,0,0,805,804,1,0,0,0,805,806,1,0,0,0,806,
   	815,1,0,0,0,807,809,5,3,0,0,808,810,5,158,0,0,809,808,1,0,0,0,809,810,
-  	1,0,0,0,810,811,1,0,0,0,811,813,3,82,41,0,812,814,5,158,0,0,813,812,1,
+  	1,0,0,0,810,811,1,0,0,0,811,813,3,86,43,0,812,814,5,158,0,0,813,812,1,
   	0,0,0,813,814,1,0,0,0,814,816,1,0,0,0,815,807,1,0,0,0,815,816,1,0,0,0,
   	816,825,1,0,0,0,817,819,5,3,0,0,818,820,5,158,0,0,819,818,1,0,0,0,819,
   	820,1,0,0,0,820,821,1,0,0,0,821,823,3,306,153,0,822,824,5,158,0,0,823,
@@ -3949,8 +3949,8 @@ CypherParser::KU_RelTableConnectionContext* CypherParser::KU_CreateRelTableGroup
   return getRuleContext<CypherParser::KU_RelTableConnectionContext>(i);
 }
 
-CypherParser::KU_PropertyDefinitionsContext* CypherParser::KU_CreateRelTableGroupContext::kU_PropertyDefinitions() {
-  return getRuleContext<CypherParser::KU_PropertyDefinitionsContext>(0);
+CypherParser::KU_PropertyDefinitionsDDLContext* CypherParser::KU_CreateRelTableGroupContext::kU_PropertyDefinitionsDDL() {
+  return getRuleContext<CypherParser::KU_PropertyDefinitionsDDLContext>(0);
 }
 
 CypherParser::OC_SymbolicNameContext* CypherParser::KU_CreateRelTableGroupContext::oC_SymbolicName() {
@@ -4076,7 +4076,7 @@ CypherParser::KU_CreateRelTableGroupContext* CypherParser::kU_CreateRelTableGrou
         match(CypherParser::SP);
       }
       setState(811);
-      kU_PropertyDefinitions();
+      kU_PropertyDefinitionsDDL();
       setState(813);
       _errHandler->sync(this);
 

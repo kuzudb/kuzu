@@ -684,7 +684,7 @@ public:
     OC_SchemaNameContext *oC_SchemaName();
     std::vector<KU_RelTableConnectionContext *> kU_RelTableConnection();
     KU_RelTableConnectionContext* kU_RelTableConnection(size_t i);
-    KU_PropertyDefinitionsContext *kU_PropertyDefinitions();
+    KU_PropertyDefinitionsDDLContext *kU_PropertyDefinitionsDDL();
     OC_SymbolicNameContext *oC_SymbolicName();
 
    
