@@ -8,19 +8,25 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-void Planner::appendScanNodeTable(std::shared_ptr<Expression> nodeID,
-    std::vector<table_id_t> tableIDs, const expression_vector& properties, LogicalPlan& plan) {
-    expression_vector propertiesToScan_;
-    for (auto& property : properties) {
-        if (property->constCast<PropertyExpression>().isInternalID()) {
+static expression_vector removeInternalIDProperty(const expression_vector& expressions) {
+    expression_vector result;
+    for (auto expr : expressions) {
+        if (expr->constCast<PropertyExpression>().isInternalID()) {
             continue;
         }
-        propertiesToScan_.push_back(property);
+        result.push_back(expr);
     }
-    auto scanNodeProperty = make_shared<LogicalScanNodeTable>(std::move(nodeID),
-        std::move(tableIDs), propertiesToScan_);
-    scanNodeProperty->computeFactorizedSchema();
-    plan.setLastOperator(std::move(scanNodeProperty));
+    return result;
+}
+
+void Planner::appendScanNodeTable(std::shared_ptr<Expression> nodeID,
+    std::vector<table_id_t> tableIDs, const expression_vector& properties, LogicalPlan& plan) {
+    auto propertiesToScan_ = removeInternalIDProperty(properties);
+    auto scan = make_shared<LogicalScanNodeTable>(std::move(nodeID), std::move(tableIDs),
+        propertiesToScan_);
+    scan->computeFactorizedSchema();
+    plan.setCardinality(cardinalityEstimator.estimateScanNode(scan.get()));
+    plan.setLastOperator(std::move(scan));
 }
 
 } // namespace planner

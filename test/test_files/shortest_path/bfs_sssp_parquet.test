@@ -4,17 +4,16 @@
 
 -CASE BfsParquet
 
-#TODO(Xiyang): Fixme
-#-LOG SingleSourceAllDestinationsSSP
-#-STATEMENT MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' RETURN a.fName, b.fName, properties(nodes(r), 'fName')
-#---- 7
-#Alice|Bob|[]
-#Alice|Carol|[]
-#Alice|Dan|[]
-#Alice|Elizabeth|[Bob]
-#Alice|Farooq|[Bob,Elizabeth]
-#Alice|Greg|[Bob,Elizabeth]
-#Alice|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|[Bob,Elizabeth]
+-LOG SingleSourceAllDestinationsSSP
+-STATEMENT MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' RETURN a.fName, b.fName, properties(nodes(r), 'fName')
+---- 7
+Alice|Bob|[]
+Alice|Carol|[]
+Alice|Dan|[]
+Alice|Elizabeth|[Bob]
+Alice|Farooq|[Bob,Elizabeth]
+Alice|Greg|[Bob,Elizabeth]
+Alice|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|[Bob,Elizabeth]
 
 -LOG AllSourcesSingleDestinationQuery
 -STATEMENT MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE b.fName = 'Alice' RETURN a.fName, b.fName, properties(nodes(r), 'usedNames')
