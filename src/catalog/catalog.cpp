@@ -134,8 +134,7 @@ std::vector<TableCatalogEntry*> Catalog::getTableEntries(Transaction* transactio
     const table_id_vector_t& tableIDs) const {
     std::vector<TableCatalogEntry*> result;
     for (auto tableID : tableIDs) {
-        result.push_back(ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(
-            getTableCatalogEntry(transaction, tableID)));
+        result.push_back(getTableCatalogEntry(transaction, tableID));
     }
     return result;
 }

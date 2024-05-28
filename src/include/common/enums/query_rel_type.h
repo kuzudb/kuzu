@@ -13,7 +13,7 @@ enum class QueryRelType : uint8_t {
 };
 
 struct QueryRelTypeUtils {
-    static inline bool isRecursive(QueryRelType queryRelType) {
+    static bool isRecursive(QueryRelType queryRelType) {
         return queryRelType != QueryRelType::NON_RECURSIVE;
     }
 };

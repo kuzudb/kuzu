@@ -121,12 +121,11 @@ std::shared_ptr<Expression> Binder::createPath(const std::string& pathName,
         uniqueName, pathName, std::move(nodeType), std::move(relType), children);
 }
 
-static std::vector<std::string> getPropertyNames(
-    const std::vector<TableCatalogEntry*>& tableCatalogEntries) {
+static std::vector<std::string> getPropertyNames(const std::vector<TableCatalogEntry*>& entries) {
     std::vector<std::string> result;
     std::unordered_set<std::string> propertyNamesSet;
-    for (auto& tableEntry : tableCatalogEntries) {
-        for (auto& property : tableEntry->getPropertiesRef()) {
+    for (auto& entry : entries) {
+        for (auto& property : entry->getPropertiesRef()) {
             if (propertyNamesSet.contains(property.getName())) {
                 continue;
             }
@@ -169,6 +168,12 @@ static std::unique_ptr<Expression> createPropertyExpression(const std::string& p
     }
     return make_unique<PropertyExpression>(dataTypes[0], propertyName, uniqueVariableName,
         rawVariableName, std::move(infos));
+}
+
+static std::unique_ptr<Expression> createPropertyExpression(const std::string& propertyName,
+    const Expression& pattern, const std::vector<TableCatalogEntry*>& entries) {
+    return createPropertyExpression(propertyName, pattern.getUniqueName(), pattern.toString(),
+        entries);
 }
 
 std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern,
@@ -240,6 +245,10 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     auto queryRel = make_shared<RelExpression>(LogicalType(LogicalTypeID::REL),
         getUniqueExpressionName(parsedName), parsedName, relTableIDs, std::move(srcNode),
         std::move(dstNode), directionType, QueryRelType::NON_RECURSIVE);
+    if (directionType == RelDirectionType::BOTH) {
+        queryRel->setDirectionExpr(expressionBinder.createVariableExpression(*LogicalType::BOOL(),
+            queryRel->getUniqueName() + InternalKeyword::DIRECTION));
+    }
     queryRel->setAlias(parsedName);
     bindQueryRelProperties(*queryRel);
     // Try bind rdf rel table.
@@ -293,8 +302,8 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
                 catalog->getTableCatalogEntry(clientContext->getTx(), tableID));
         }
         // Mock existence of pIRI property.
-        auto pIRI = createPropertyExpression(std::string(rdf::IRI), queryRel->getUniqueName(),
-            queryRel->getVariableName(), resourceTableSchemas);
+        auto pIRI =
+            createPropertyExpression(std::string(rdf::IRI), *queryRel, resourceTableSchemas);
         queryRel->addPropertyExpression(std::string(rdf::IRI), std::move(pIRI));
     }
     std::vector<StructField> fields;
@@ -433,7 +442,8 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
         *getRecursiveRelLogicalType(node->getDataType(), rel->getDataType()),
         getUniqueExpressionName(parsedName), parsedName, relTableIDs, std::move(srcNode),
         std::move(dstNode), directionType, relPattern.getRelType());
-    auto lengthExpression = expressionBinder.createInternalLengthExpression(*queryRel);
+    auto lengthExpression =
+        PropertyExpression::construct(*LogicalType::INT64(), InternalKeyword::LENGTH, *queryRel);
     auto [lowerBound, upperBound] = bindVariableLengthRelBound(relPattern);
     auto recursiveInfo = std::make_unique<RecursiveInfo>();
     recursiveInfo->lowerBound = lowerBound;
@@ -482,27 +492,19 @@ std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
 }
 
 void Binder::bindQueryRelProperties(RelExpression& rel) {
+    if (rel.isEmpty()) {
+        auto internalID =
+            PropertyExpression::construct(*LogicalType::INTERNAL_ID(), InternalKeyword::ID, rel);
+        rel.addPropertyExpression(InternalKeyword::ID, std::move(internalID));
+        return;
+    }
     auto catalog = clientContext->getCatalog();
-    std::vector<TableCatalogEntry*> tableCatalogEntries;
-    for (auto tableID : rel.getTableIDs()) {
-        auto entry = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
-        tableCatalogEntries.push_back(entry);
-    }
-    auto propertyNames = getPropertyNames(tableCatalogEntries);
+    auto entries = catalog->getTableEntries(clientContext->getTx(), rel.getTableIDs());
+    auto propertyNames = getPropertyNames(entries);
     for (auto& propertyName : propertyNames) {
-        rel.addPropertyExpression(propertyName,
-            createPropertyExpression(propertyName, rel.getUniqueName(), rel.getVariableName(),
-                tableCatalogEntries));
+        auto property = createPropertyExpression(propertyName, rel, entries);
+        rel.addPropertyExpression(propertyName, std::move(property));
     }
-}
-
-static std::unique_ptr<Expression> createInternalNodeIDExpression(const NodeExpression& node) {
-    common::table_id_map_t<SingleLabelPropertyInfo> infos;
-    for (auto tableID : node.getTableIDs()) {
-        infos.insert({tableID, SingleLabelPropertyInfo{false, INVALID_PROPERTY_ID}});
-    }
-    return std::make_unique<PropertyExpression>(*LogicalType::INTERNAL_ID(), InternalKeyword::ID,
-        node.getUniqueName(), node.getVariableName(), std::move(infos));
 }
 
 std::shared_ptr<NodeExpression> Binder::bindQueryNode(const NodePattern& nodePattern,
@@ -557,7 +559,8 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(const std::string& parse
     std::vector<std::string> fieldNames;
     std::vector<std::unique_ptr<LogicalType>> fieldTypes;
     // Bind internal expressions
-    queryNode->setInternalID(createInternalNodeIDExpression(*queryNode));
+    queryNode->setInternalID(PropertyExpression::construct(*LogicalType::INTERNAL_ID(),
+        InternalKeyword::ID, *queryNode));
     queryNode->setLabelExpression(expressionBinder.bindLabelFunction(*queryNode));
     fieldNames.emplace_back(InternalKeyword::ID);
     fieldNames.emplace_back(InternalKeyword::LABEL);
@@ -576,12 +579,11 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(const std::string& parse
 }
 
 void Binder::bindQueryNodeProperties(NodeExpression& node) {
-    auto tableSchemas =
-        clientContext->getCatalog()->getTableEntries(clientContext->getTx(), node.getTableIDs());
-    auto propertyNames = getPropertyNames(tableSchemas);
+    auto catalog = clientContext->getCatalog();
+    auto entries = catalog->getTableEntries(clientContext->getTx(), node.getTableIDs());
+    auto propertyNames = getPropertyNames(entries);
     for (auto& propertyName : propertyNames) {
-        auto property = createPropertyExpression(propertyName, node.getUniqueName(),
-            node.getVariableName(), tableSchemas);
+        auto property = createPropertyExpression(propertyName, node, entries);
         node.addPropertyExpression(propertyName, std::move(property));
     }
 }

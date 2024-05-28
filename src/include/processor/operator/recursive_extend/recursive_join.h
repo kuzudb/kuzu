@@ -1,9 +1,9 @@
 #pragma once
 
 #include "bfs_state.h"
+#include "common/enums/extend_direction.h"
 #include "common/enums/query_rel_type.h"
 #include "frontier_scanner.h"
-#include "planner/operator/extend/extend_direction.h"
 #include "planner/operator/extend/recursive_join_type.h"
 #include "processor/operator/mask.h"
 #include "processor/operator/physical_operator.h"
@@ -84,7 +84,7 @@ struct RecursiveJoinInfo {
     uint8_t upperBound;
     common::QueryRelType queryRelType;
     planner::RecursiveJoinType joinType;
-    planner::ExtendDirection direction;
+    common::ExtendDirection direction;
 
     RecursiveJoinInfo() = default;
     EXPLICIT_COPY_DEFAULT_MOVE(RecursiveJoinInfo);

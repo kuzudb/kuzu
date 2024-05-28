@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/expression/rel_expression.h"
-#include "planner/operator/extend/extend_direction.h"
+#include "common/enums/extend_direction.h"
 #include "planner/operator/logical_operator.h"
 
 namespace kuzu {
@@ -12,23 +12,33 @@ public:
     BaseLogicalExtend(LogicalOperatorType operatorType,
         std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
-        ExtendDirection direction, std::shared_ptr<LogicalOperator> child)
+        common::ExtendDirection direction, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{operatorType, std::move(child)}, boundNode{std::move(boundNode)},
           nbrNode{std::move(nbrNode)}, rel{std::move(rel)}, direction{direction} {}
 
-    inline std::shared_ptr<binder::NodeExpression> getBoundNode() const { return boundNode; }
-    inline std::shared_ptr<binder::NodeExpression> getNbrNode() const { return nbrNode; }
-    inline std::shared_ptr<binder::RelExpression> getRel() const { return rel; }
-    inline ExtendDirection getDirection() const { return direction; }
+    std::shared_ptr<binder::NodeExpression> getBoundNode() const { return boundNode; }
+    std::shared_ptr<binder::NodeExpression> getNbrNode() const { return nbrNode; }
+    std::shared_ptr<binder::RelExpression> getRel() const { return rel; }
+    common::ExtendDirection getDirection() const { return direction; }
+
+    bool extendFromSourceNode() const {
+        if (rel->getSrcNode() == nullptr) {
+            return false; // For recursive plan, intermediate rel does not have a source or dst.
+        }
+        return *boundNode == *rel->getSrcNode();
+    }
+
     virtual f_group_pos_set getGroupsPosToFlatten() = 0;
 
     std::string getExpressionsForPrinting() const override;
 
 protected:
+    // Start node of extension.
     std::shared_ptr<binder::NodeExpression> boundNode;
+    // End node of extension.
     std::shared_ptr<binder::NodeExpression> nbrNode;
     std::shared_ptr<binder::RelExpression> rel;
-    ExtendDirection direction;
+    common::ExtendDirection direction;
 };
 
 } // namespace planner

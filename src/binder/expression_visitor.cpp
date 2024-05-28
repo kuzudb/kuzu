@@ -70,7 +70,7 @@ expression_vector ExpressionChildrenCollector::collectSubqueryChildren(
 
 expression_vector ExpressionChildrenCollector::collectNodeChildren(const Expression& expression) {
     expression_vector result;
-    auto& node = (NodeExpression&)expression;
+    auto& node = expression.constCast<NodeExpression>();
     for (auto& property : node.getPropertyExprs()) {
         result.push_back(property);
     }
@@ -80,11 +80,14 @@ expression_vector ExpressionChildrenCollector::collectNodeChildren(const Express
 
 expression_vector ExpressionChildrenCollector::collectRelChildren(const Expression& expression) {
     expression_vector result;
-    auto& rel = (RelExpression&)expression;
+    auto& rel = expression.constCast<RelExpression>();
     result.push_back(rel.getSrcNode()->getInternalID());
     result.push_back(rel.getDstNode()->getInternalID());
     for (auto& property : rel.getPropertyExprs()) {
         result.push_back(property);
+    }
+    if (rel.hasDirectionExpr()) {
+        result.push_back(rel.getDirectionExpr());
     }
     return result;
 }

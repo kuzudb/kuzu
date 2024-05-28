@@ -16,39 +16,29 @@ struct ScanRelTableInfo {
         : table{table}, direction{direction}, columnIDs{std::move(columnIDs)} {}
     ScanRelTableInfo(const ScanRelTableInfo& other)
         : table{other.table}, direction{other.direction}, columnIDs{other.columnIDs} {}
-
-    std::unique_ptr<ScanRelTableInfo> copy() const {
-        return std::make_unique<ScanRelTableInfo>(*this);
-    }
+    EXPLICIT_COPY_DEFAULT_MOVE(ScanRelTableInfo);
 };
 
 class ScanRelTable : public ScanTable {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SCAN_REL_TABLE;
 
 public:
-    ScanRelTable(ScanTableInfo info, std::unique_ptr<ScanRelTableInfo> relInfo,
+    ScanRelTable(ScanTableInfo info, ScanRelTableInfo relInfo,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : ScanRelTable{type_, std::move(info), std::move(relInfo), std::move(child), id,
-              paramsString} {}
+        : ScanTable{type_, std::move(info), std::move(child), id, paramsString},
+          relInfo{std::move(relInfo)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<ScanRelTable>(info.copy(), relInfo->copy(), children[0]->clone(),
-            id, paramsString);
+        return std::make_unique<ScanRelTable>(info.copy(), relInfo.copy(), children[0]->clone(), id,
+            paramsString);
     }
 
 protected:
-    ScanRelTable(PhysicalOperatorType operatorType, ScanTableInfo info,
-        std::unique_ptr<ScanRelTableInfo> relInfo, std::unique_ptr<PhysicalOperator> child,
-        uint32_t id, const std::string& paramsString)
-        : ScanTable{operatorType, std::move(info), std::move(child), id, paramsString},
-          relInfo{std::move(relInfo)} {}
-
-protected:
-    std::unique_ptr<ScanRelTableInfo> relInfo;
+    ScanRelTableInfo relInfo;
     std::unique_ptr<storage::RelTableScanState> readState;
 };
 

@@ -30,5 +30,14 @@ void ExpressionEvaluator::resolveResultStateFromChildren(
     resultVector->setState(DataChunkState::getSingleValueDataChunkState());
 }
 
+std::vector<std::unique_ptr<ExpressionEvaluator>> ExpressionEvaluator::copy(
+    const std::vector<std::unique_ptr<ExpressionEvaluator>>& evaluators) {
+    std::vector<std::unique_ptr<ExpressionEvaluator>> result;
+    for (auto& e : evaluators) {
+        result.push_back(e->clone());
+    }
+    return result;
+}
+
 } // namespace evaluator
 } // namespace kuzu

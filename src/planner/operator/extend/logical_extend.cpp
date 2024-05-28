@@ -25,6 +25,9 @@ void LogicalExtend::computeFactorizedSchema() {
     for (auto& property : properties) {
         schema->insertToGroupAndScope(property, nbrGroupPos);
     }
+    if (rel->hasDirectionExpr()) {
+        schema->insertToGroupAndScope(rel->getDirectionExpr(), nbrGroupPos);
+    }
 }
 
 void LogicalExtend::computeFlatSchema() {
@@ -32,6 +35,9 @@ void LogicalExtend::computeFlatSchema() {
     schema->insertToGroupAndScope(nbrNode->getInternalID(), 0);
     for (auto& property : properties) {
         schema->insertToGroupAndScope(property, 0);
+    }
+    if (rel->hasDirectionExpr()) {
+        schema->insertToGroupAndScope(rel->getDirectionExpr(), 0);
     }
 }
 

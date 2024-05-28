@@ -23,17 +23,21 @@ private:
 class PropertyExpression : public Expression {
 public:
     PropertyExpression(common::LogicalType dataType, const std::string& propertyName,
-        const std::string& uniqueVariableName, const std::string& rawVariableName,
+        const std::string& uniqueVarName, const std::string& rawVariableName,
         common::table_id_map_t<SingleLabelPropertyInfo> infos)
         : Expression{common::ExpressionType::PROPERTY, std::move(dataType),
-              uniqueVariableName + "." + propertyName},
-          propertyName{propertyName}, uniqueVariableName{uniqueVariableName},
+              uniqueVarName + "." + propertyName},
+          propertyName{propertyName}, uniqueVarName{uniqueVarName},
           rawVariableName{rawVariableName}, infos{std::move(infos)} {}
 
     PropertyExpression(const PropertyExpression& other)
         : Expression{common::ExpressionType::PROPERTY, other.dataType, other.uniqueName},
-          propertyName{other.propertyName}, uniqueVariableName{other.uniqueVariableName},
+          propertyName{other.propertyName}, uniqueVarName{other.uniqueVarName},
           rawVariableName{other.rawVariableName}, infos{copyMap(other.infos)} {}
+
+    // Construct from a virtual property, i.e. no propertyID available.
+    static std::unique_ptr<PropertyExpression> construct(common::LogicalType type,
+        const std::string& propertyName, const Expression& pattern);
 
     // If this property is primary key on all tables.
     bool isPrimaryKey() const;
@@ -42,7 +46,7 @@ public:
 
     std::string getPropertyName() const { return propertyName; }
 
-    std::string getVariableName() const { return uniqueVariableName; }
+    std::string getVariableName() const { return uniqueVarName; }
 
     // If this property exists for given table.
     bool hasPropertyID(common::table_id_t tableID) const;
@@ -60,7 +64,7 @@ public:
 private:
     std::string propertyName;
     // unique identifier references to a node/rel table.
-    std::string uniqueVariableName;
+    std::string uniqueVarName;
     // printable identifier references to a node/rel table.
     std::string rawVariableName;
     // The same property name may have different info on each table.

@@ -7,11 +7,27 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace processor {
 
+bool DirectionInfo::needFlip(RelDataDirection relDataDirection) const {
+    if (extendFromSource && relDataDirection == common::RelDataDirection::BWD) {
+        return true;
+    }
+    if (!extendFromSource && relDataDirection == common::RelDataDirection::FWD) {
+        return true;
+    }
+    return false;
+}
+
 bool RelTableCollectionScanner::scan(const SelectionVector& selVector, Transaction* transaction) {
     while (true) {
         if (readStates[currentTableIdx]->hasMoreToRead(transaction)) {
             const auto scanInfo = scanInfos[currentTableIdx].get();
             scanInfo->table->scan(transaction, *readStates[currentTableIdx]);
+            if (directionVector != nullptr) {
+                KU_ASSERT(selVector.isUnfiltered());
+                for (auto i = 0u; i < selVector.getSelSize(); ++i) {
+                    directionVector->setValue<bool>(i, directionValues[currentTableIdx]);
+                }
+            }
             if (selVector.getSelSize() > 0) {
                 return true;
             }
@@ -29,12 +45,11 @@ bool RelTableCollectionScanner::scan(const SelectionVector& selVector, Transacti
 }
 
 std::unique_ptr<RelTableCollectionScanner> RelTableCollectionScanner::clone() const {
-    std::vector<std::unique_ptr<ScanRelTableInfo>> clonedScanInfos;
-    clonedScanInfos.reserve(scanInfos.size());
+    std::vector<std::unique_ptr<ScanRelTableInfo>> scanInfosCopy;
     for (auto& scanInfo : scanInfos) {
-        clonedScanInfos.push_back(scanInfo->copy());
+        scanInfosCopy.push_back(std::make_unique<ScanRelTableInfo>(*scanInfo));
     }
-    return make_unique<RelTableCollectionScanner>(std::move(clonedScanInfos));
+    return make_unique<RelTableCollectionScanner>(std::move(scanInfosCopy));
 }
 
 void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
@@ -46,6 +61,11 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
             scanner->readStates[i] =
                 std::make_unique<RelTableScanState>(scanInfo->columnIDs, scanInfo->direction);
             initVectors(*scanner->readStates[i], *resultSet);
+            if (directionInfo.directionPos.isValid()) {
+                scanner->directionVector =
+                    resultSet->getValueVector(directionInfo.directionPos).get();
+                scanner->directionValues.push_back(directionInfo.needFlip(scanInfo->direction));
+            }
         }
     }
     currentScanner = nullptr;
@@ -77,8 +97,8 @@ std::unique_ptr<PhysicalOperator> ScanMultiRelTable::clone() {
     for (auto& [tableID, scanner] : scannerPerNodeTable) {
         clonedScanners.insert({tableID, scanner->clone()});
     }
-    return make_unique<ScanMultiRelTable>(info.copy(), std::move(clonedScanners),
-        children[0]->clone(), id, paramsString);
+    return make_unique<ScanMultiRelTable>(info.copy(), directionInfo.copy(),
+        std::move(clonedScanners), children[0]->clone(), id, paramsString);
 }
 
 void ScanMultiRelTable::resetState() {

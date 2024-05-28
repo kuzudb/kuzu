@@ -1,4 +1,5 @@
 #include "binder/expression/property_expression.h"
+#include "common/enums/extend_direction.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "processor/operator/scan/scan_multi_rel_tables.h"
 #include "processor/operator/scan/scan_rel_table.h"
@@ -85,7 +86,7 @@ static std::unique_ptr<RelTableCollectionScanner> populateRelTableCollectionScan
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logicalOperator) {
-    auto extend = (LogicalExtend*)logicalOperator;
+    auto extend = logicalOperator->constPtrCast<LogicalExtend>();
     auto outFSchema = extend->getSchema();
     auto inFSchema = extend->getChild(0)->getSchema();
     auto boundNode = extend->getBoundNode();
@@ -98,7 +99,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
     std::vector<DataPos> outVectorsPos;
     outVectorsPos.push_back(outNodeIDPos);
     for (auto& expression : extend->getProperties()) {
-        outVectorsPos.emplace_back(outFSchema->getExpressionPos(*expression));
+        outVectorsPos.push_back(getDataPos(*expression, *outFSchema));
     }
     auto scanInfo = ScanTableInfo(inNodeIDPos, outVectorsPos);
     if (!rel->isMultiLabeled() && !boundNode->isMultiLabeled() &&
@@ -106,13 +107,18 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
         auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
             clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(),
                 rel->getSingleTableID()));
-        auto relDataDirection = ExtendDirectionUtils::getRelDataDirection(extendDirection);
+        auto relDataDirection = ExtendDirectionUtil::getRelDataDirection(extendDirection);
         auto scanRelInfo = getRelTableScanInfo(relTableEntry, relDataDirection,
             clientContext->getStorageManager(), extend->getProperties());
-        return std::make_unique<ScanRelTable>(std::move(scanInfo), std::move(scanRelInfo),
+        return std::make_unique<ScanRelTable>(std::move(scanInfo), *scanRelInfo,
             std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
     }
     // map to generic extend
+    auto directionInfo = DirectionInfo();
+    directionInfo.extendFromSource = extend->extendFromSourceNode();
+    if (rel->hasDirectionExpr()) {
+        directionInfo.directionPos = getDataPos(*rel->getDirectionExpr(), *outFSchema);
+    }
     std::unordered_map<table_id_t, std::unique_ptr<RelTableCollectionScanner>> scanners;
     for (auto boundNodeTableID : boundNode->getTableIDs()) {
         auto scanner = populateRelTableCollectionScanner(boundNodeTableID, *rel, extendDirection,
@@ -121,8 +127,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
             scanners.insert({boundNodeTableID, std::move(scanner)});
         }
     }
-    return std::make_unique<ScanMultiRelTable>(std::move(scanInfo), std::move(scanners),
-        std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
+    return std::make_unique<ScanMultiRelTable>(std::move(scanInfo), std::move(directionInfo),
+        std::move(scanners), std::move(prevOperator), getOperatorID(),
+        extend->getExpressionsForPrinting());
 }
 
 } // namespace processor
