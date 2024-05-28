@@ -14,7 +14,7 @@
 namespace kuzu {
 namespace optimizer {
 
-void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* client) {
+void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* context) {
     // Factorization structure should be removed before further optimization can be applied.
     auto removeFactorizationRewriter = RemoveFactorizationRewriter();
     removeFactorizationRewriter.rewrite(plan);
@@ -25,13 +25,13 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* client
     auto removeUnnecessaryJoinOptimizer = RemoveUnnecessaryJoinOptimizer();
     removeUnnecessaryJoinOptimizer.rewrite(plan);
 
-    auto filterPushDownOptimizer = FilterPushDownOptimizer();
+    auto filterPushDownOptimizer = FilterPushDownOptimizer(context);
     filterPushDownOptimizer.rewrite(plan);
 
     auto projectionPushDownOptimizer = ProjectionPushDownOptimizer();
     projectionPushDownOptimizer.rewrite(plan);
 
-    if (client->getClientConfig()->enableSemiMask) {
+    if (context->getClientConfig()->enableSemiMask) {
         // HashJoinSIPOptimizer should be applied after optimizers that manipulate hash join.
         auto hashJoinSIPOptimizer = HashJoinSIPOptimizer();
         hashJoinSIPOptimizer.rewrite(plan);

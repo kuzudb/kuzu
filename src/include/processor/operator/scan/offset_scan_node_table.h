@@ -5,14 +5,16 @@
 namespace kuzu {
 namespace processor {
 
-class LookupNodeTable : public ScanTable {
-    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::LOOK_UP_NODE_TABLE;
+// OffsetScanNodeTable is only used as the source operator for RecursiveJoin and thus cannot be
+// executed in parallel. Therefore, it does not have a shared state.
+class OffsetScanNodeTable : public ScanTable {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::OFFSET_SCAN_NODE_TABLE;
 
 public:
-    LookupNodeTable(ScanTableInfo info, common::table_id_map_t<ScanNodeTableInfo> tableIDToNodeInfo,
+    OffsetScanNodeTable(ScanTableInfo info, common::table_id_map_t<ScanNodeTableInfo> tableIDToNodeInfo,
         uint32_t id, const std::string& paramString)
         : ScanTable{type_, std::move(info), id, paramString},
-          tableIDToNodeInfo{std::move(tableIDToNodeInfo)}, hasExecuted{false} {}
+          tableIDToNodeInfo{std::move(tableIDToNodeInfo)}, executed{false} {}
 
     void init(common::nodeID_t nodeID);
 
@@ -23,14 +25,15 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<LookupNodeTable>(info.copy(), copyMap(tableIDToNodeInfo), id,
+        return std::make_unique<OffsetScanNodeTable>(info.copy(), copyMap(tableIDToNodeInfo), id,
             paramsString);
     }
 
 private:
     common::table_id_map_t<ScanNodeTableInfo> tableIDToNodeInfo;
-    bool hasExecuted;
+    bool executed;
 };
 
-} // namespace processor
-} // namespace kuzu
+
+}
+}

@@ -3,6 +3,9 @@
 #include "planner/operator/logical_plan.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
 namespace optimizer {
 
 struct PredicateSet {
@@ -31,9 +34,9 @@ private:
 
 class FilterPushDownOptimizer {
 public:
-    FilterPushDownOptimizer() { predicateSet = PredicateSet(); }
-    explicit FilterPushDownOptimizer(PredicateSet predicateSet)
-        : predicateSet{std::move(predicateSet)} {}
+    explicit FilterPushDownOptimizer(main::ClientContext* context) : context{context} { predicateSet = PredicateSet(); }
+    explicit FilterPushDownOptimizer(main::ClientContext* context, PredicateSet predicateSet)
+        : predicateSet{std::move(predicateSet)}, context{context} {}
 
     void rewrite(planner::LogicalPlan* plan);
 
@@ -46,16 +49,14 @@ private:
     // Push primary key lookup into CROSS_PRODUCT
     // E.g.
     //      Filter(a.ID=b.ID)
-    //      CrossProduct                   to           IndexNestedLoopJoin(b)
-    //   S(a)           S(b)                            S(a)
+    //      CrossProduct                   to                  HashJoin
+    //   S(a)           S(b)                            S(a)             S(b)
     // This is a temporary solution in the absence of a generic hash join operator.
     std::shared_ptr<planner::LogicalOperator> visitCrossProductReplace(
         const std::shared_ptr<planner::LogicalOperator>& op);
 
-    // TODO(Xiyang/Guodong): This should be reworked for pushing filters into ScanNodeTable.
-    //                       Also, should be reworked for IndexScan.
     // Push FILTER into SCAN_NODE_TABLE, and turn index lookup into INDEX_SCAN.
-    std::shared_ptr<planner::LogicalOperator> visitScanNodePropertyReplace(
+    std::shared_ptr<planner::LogicalOperator> visitScanNodeTableReplace(
         const std::shared_ptr<planner::LogicalOperator>& op);
 
     // Push down FILTER into SCAN_NODE_TABLE.
@@ -81,6 +82,7 @@ private:
 
 private:
     PredicateSet predicateSet;
+    main::ClientContext* context;
 };
 
 } // namespace optimizer

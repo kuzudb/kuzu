@@ -72,16 +72,18 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "LIMIT";
     case PhysicalOperatorType::LOAD_EXTENSION:
         return "LOAD_EXTENSION";
-    case PhysicalOperatorType::LOOK_UP_NODE_TABLE:
-        return "LOOK_UP_NODE_TABLE";
     case PhysicalOperatorType::MERGE:
         return "MERGE";
     case PhysicalOperatorType::MULTIPLICITY_REDUCER:
         return "MULTIPLICITY_REDUCER";
+    case PhysicalOperatorType::OFFSET_SCAN_NODE_TABLE:
+        return "OFFSET_SCAN_NODE_TABLE";
     case PhysicalOperatorType::PARTITIONER:
         return "PARTITIONER";
     case PhysicalOperatorType::PATH_PROPERTY_PROBE:
         return "PATH_PROPERTY_PROBE";
+    case PhysicalOperatorType::PRIMARY_KEY_SCAN_NODE_TABLE:
+        return "PRIMARY_KEY_SCAN_NODE_TABLE";
     case PhysicalOperatorType::PROJECTION:
         return "PROJECTION";
     case PhysicalOperatorType::PROFILE:

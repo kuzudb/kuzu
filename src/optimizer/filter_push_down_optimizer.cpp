@@ -1,13 +1,13 @@
 #include "optimizer/filter_push_down_optimizer.h"
 
-#include "binder/expression/literal_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression_visitor.h"
-#include "common/cast.h"
 #include "planner/operator/logical_empty_result.h"
 #include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
+#include "main/client_context.h"
+#include "binder/expression/literal_expression.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -29,11 +29,13 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitOperator(
     case LogicalOperatorType::CROSS_PRODUCT: {
         return visitCrossProductReplace(op);
     }
-        // TODO(Guodong/Xiyang/Ben): Add back filter push down to node tables.
+    case LogicalOperatorType::SCAN_NODE_TABLE: {
+        return visitScanNodeTableReplace(op);
+    }
     default: { // Stop current push down for unhandled operator.
         for (auto i = 0u; i < op->getNumChildren(); ++i) {
             // Start new push down for child.
-            auto optimizer = FilterPushDownOptimizer();
+            auto optimizer = FilterPushDownOptimizer(context);
             op->setChild(i, optimizer.visitOperator(op->getChild(i)));
         }
         op->computeFlatSchema();
@@ -44,18 +46,19 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitOperator(
 
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitFilterReplace(
     const std::shared_ptr<LogicalOperator>& op) {
-    auto filter = (LogicalFilter*)op.get();
-    auto predicate = filter->getPredicate();
+    auto& filter = op->constCast<LogicalFilter>();
+    auto predicate = filter.getPredicate();
     if (predicate->expressionType == ExpressionType::LITERAL) {
         // Avoid executing child plan if literal is Null or False.
-        auto literalExpr = ku_dynamic_cast<Expression*, LiteralExpression*>(predicate.get());
-        if (literalExpr->isNull() || !literalExpr->getValue().getValue<bool>()) {
+        auto& literalExpr = predicate->constCast<LiteralExpression>();
+        if (literalExpr.isNull() || !literalExpr.getValue().getValue<bool>()) {
             return std::make_shared<LogicalEmptyResult>(*op->getSchema());
         }
+        // Ignore if literal is True.
     } else {
         predicateSet.addPredicate(predicate);
     }
-    return visitOperator(filter->getChild(0));
+    return visitOperator(filter.getChild(0));
 }
 
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductReplace(
@@ -76,10 +79,10 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductRepla
     }
     KU_ASSERT(op->getNumChildren() == 2);
     // Push probe side
-    auto probeOptimizer = FilterPushDownOptimizer(std::move(probePSet));
+    auto probeOptimizer = FilterPushDownOptimizer(context, std::move(probePSet));
     op->setChild(0, probeOptimizer.visitOperator(op->getChild(0)));
     // Push build side
-    auto buildOptimizer = FilterPushDownOptimizer(std::move(buildPSet));
+    auto buildOptimizer = FilterPushDownOptimizer(context, std::move(buildPSet));
     op->setChild(1, buildOptimizer.visitOperator(op->getChild(1)));
 
     auto probeSchema = op->getChild(0)->getSchema();
@@ -117,52 +120,32 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductRepla
     return appendFilters(predicates, hashJoin);
 }
 
-std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodePropertyReplace(
+std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodeTableReplace(
     const std::shared_ptr<LogicalOperator>& op) {
-    return op;
-    // auto scan = (LogicalScanNodeTable*)op.get();
-    // auto nodeID = scan->getNodeID();
-    // auto tableIDs = scan->getTableIDs();
-    // std::shared_ptr<Expression> primaryKeyEqualityComparison = nullptr;
-    // if (tableIDs.size() == 1) {
-    // primaryKeyEqualityComparison = predicateSet.popNodePKEqualityComparison(*nodeID);
-    // }
-    // if (primaryKeyEqualityComparison != nullptr) { // Try rewrite index scan
-    // auto rhs = primaryKeyEqualityComparison->getChild(1);
-    //        if (rhs->expressionType == ExpressionType::LITERAL) {
-    //            // Rewrite to index scan
-    //            auto expressionsScan = std::make_shared<LogicalDummyScan>();
-    //            expressionsScan->computeFlatSchema();
-    //            std::vector<IndexLookupInfo> infos;
-    //            KU_ASSERT(tableIDs.size() == 1);
-    //            infos.push_back(IndexLookupInfo(tableIDs[0], nodeID, rhs,
-    //            rhs->getDataType())); auto indexScan =
-    //            std::make_shared<LogicalIndexScanNode>(std::move(infos),
-    //                std::move(expressionsScan));
-    //            indexScan->computeFlatSchema();
-    //            op->setChild(0, std::move(indexScan));
-    //        } else {
-    // Cannot rewrite and add predicate back.
-    // predicateSet.addPredicate(primaryKeyEqualityComparison);
-    //        }
-    // }
-    // Perform filter push down.
-    // auto currentRoot = scan->getChild(0);
-    // for (auto& predicate : predicateSet.equalityPredicates) {
-    // currentRoot = pushDownToScanNode(nodeID, tableIDs, predicate, currentRoot);
-    // }
-    // for (auto& predicate : predicateSet.nonEqualityPredicates) {
-    // currentRoot = pushDownToScanNode(nodeID, tableIDs, predicate, currentRoot);
-    // }
-    // Scan remaining properties.
-    // expression_vector properties;
-    // for (auto& property : scan->getProperties()) {
-    // if (currentRoot->getSchema()->isExpressionInScope(*property)) {
-    // continue;
-    // }
-    // properties.push_back(property);
-    // }
-    // return appendScanNodeTable(nodeID, tableIDs, properties, currentRoot);
+    // TODO(Guodong): make index scan works under write transaction
+    if (context->getTx()->isWriteTransaction()) {
+        return finishPushDown(op);
+    }
+    auto& scan = op->cast<LogicalScanNodeTable>();
+    auto nodeID = scan.getNodeID();
+    auto tableIDs = scan.getTableIDs();
+    std::shared_ptr<Expression> primaryKeyEqualityComparison = nullptr;
+    if (tableIDs.size() == 1) {
+        primaryKeyEqualityComparison = predicateSet.popNodePKEqualityComparison(*nodeID);
+    }
+    if (primaryKeyEqualityComparison != nullptr) { // Try rewrite index scan
+        auto rhs = primaryKeyEqualityComparison->getChild(1);
+        if (rhs->expressionType == ExpressionType::LITERAL) {
+            auto extraInfo = std::make_unique<PrimaryKeyScanInfo>(rhs);
+            scan.setScanType(LogicalScanNodeTableType::PRIMARY_KEY_SCAN);
+            scan.setExtraInfo(std::move(extraInfo));
+            scan.computeFlatSchema();
+        } else {
+            // Cannot rewrite and add predicate back.
+            predicateSet.addPredicate(primaryKeyEqualityComparison);
+        }
+    }
+    return finishPushDown(op);
 }
 
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::pushDownToScanNode(
@@ -240,12 +223,12 @@ static bool isNodePrimaryKey(const Expression& expression, const Expression& nod
         // not property
         return false;
     }
-    auto& propertyExpression = (PropertyExpression&)expression;
-    if (propertyExpression.getVariableName() != ((PropertyExpression&)nodeID).getVariableName()) {
+    auto& property = expression.constCast<PropertyExpression>();
+    if (property.getVariableName() != nodeID.constCast<PropertyExpression>().getVariableName()) {
         // not property for node
         return false;
     }
-    return propertyExpression.isPrimaryKey();
+    return property.isPrimaryKey();
 }
 
 std::shared_ptr<Expression> PredicateSet::popNodePKEqualityComparison(const Expression& nodeID) {

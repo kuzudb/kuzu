@@ -4,7 +4,7 @@
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "planner/operator/persistent/logical_copy_to.h"
-#include "planner/operator/scan/logical_index_scan.h"
+#include "planner/operator/scan/logical_index_look_up.h"
 #include "planner/planner.h"
 
 using namespace kuzu::binder;
@@ -18,7 +18,7 @@ namespace planner {
 
 static void appendIndexScan(std::vector<IndexLookupInfo> infos, LogicalPlan& plan) {
     auto indexScan =
-        std::make_shared<LogicalIndexScanNode>(std::move(infos), plan.getLastOperator());
+        std::make_shared<LogicalPrimaryKeyLookup>(std::move(infos), plan.getLastOperator());
     indexScan->computeFactorizedSchema();
     plan.setLastOperator(std::move(indexScan));
 }

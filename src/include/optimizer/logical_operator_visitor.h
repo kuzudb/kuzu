@@ -34,13 +34,7 @@ protected:
     }
 
     virtual void visitScanNodeTable(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitScanNodePropertyReplace(
-        std::shared_ptr<planner::LogicalOperator> op) {
-        return op;
-    }
-
-    virtual void visitIndexScanNode(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitIndexScanNodeReplace(
+    virtual std::shared_ptr<planner::LogicalOperator> visitScanNodeTableReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }

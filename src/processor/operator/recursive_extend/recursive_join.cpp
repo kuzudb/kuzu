@@ -3,7 +3,7 @@
 #include "processor/operator/recursive_extend/all_shortest_path_state.h"
 #include "processor/operator/recursive_extend/shortest_path_state.h"
 #include "processor/operator/recursive_extend/variable_length_state.h"
-#include "processor/operator/scan/lookup_node_table.h"
+#include "processor/operator/scan/offset_scan_node_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;
@@ -257,7 +257,7 @@ void RecursiveJoin::initLocalRecursivePlan(ExecutionContext* context) {
     vectors->recursiveEdgeIDVector =
         localResultSet->getValueVector(dataInfo.recursiveEdgeIDPos).get();
     recursiveRoot->initLocalState(localResultSet.get(), context);
-    recursiveSource = getSource(recursiveRoot.get())->ptrCast<LookupNodeTable>();
+    recursiveSource = getSource(recursiveRoot.get())->ptrCast<OffsetScanNodeTable>();
 }
 
 void RecursiveJoin::populateTargetDstNodes(ExecutionContext* context) {

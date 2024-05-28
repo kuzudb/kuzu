@@ -6,8 +6,8 @@ namespace planner {
 LogicalScanNodeTable::LogicalScanNodeTable(const LogicalScanNodeTable& other)
     : LogicalOperator{type_}, scanType{other.scanType}, nodeID{other.nodeID},
       nodeTableIDs{other.nodeTableIDs}, properties{other.properties} {
-    if (other.hasRecursiveJoinScanInfo()) {
-        setRecursiveJoinScanInfo(other.recursiveJoinScanInfo->copy());
+    if (other.extraInfo != nullptr) {
+        setExtraInfo(other.extraInfo->copy());
     }
 }
 
@@ -19,11 +19,17 @@ void LogicalScanNodeTable::computeFactorizedSchema() {
     for (auto& property : properties) {
         schema->insertToGroupAndScope(property, groupPos);
     }
-    if (scanType == LogicalScanNodeTableType::OFFSET_LOOK_UP) {
+    switch (scanType) {
+    case LogicalScanNodeTableType::OFFSET_SCAN: {
         schema->setGroupAsSingleState(groupPos);
-    }
-    if (hasRecursiveJoinScanInfo()) {
-        schema->insertToGroupAndScope(recursiveJoinScanInfo->nodePredicateExecFlag, groupPos);
+        auto recursiveJoinInfo = extraInfo->constCast<RecursiveJoinScanInfo>();
+        schema->insertToGroupAndScope(recursiveJoinInfo.nodePredicateExecFlag, groupPos);
+    } break ;
+    case LogicalScanNodeTableType::PRIMARY_KEY_SCAN: {
+        schema->setGroupAsSingleState(groupPos);
+    } break ;
+    default:
+        break ;
     }
 }
 
@@ -34,8 +40,9 @@ void LogicalScanNodeTable::computeFlatSchema() {
     for (auto& property : properties) {
         schema->insertToGroupAndScope(property, 0);
     }
-    if (hasRecursiveJoinScanInfo()) {
-        schema->insertToGroupAndScope(recursiveJoinScanInfo->nodePredicateExecFlag, 0);
+    if (scanType == LogicalScanNodeTableType::OFFSET_SCAN) {
+        auto recursiveJoinInfo = extraInfo->constCast<RecursiveJoinScanInfo>();
+        schema->insertToGroupAndScope(recursiveJoinInfo.nodePredicateExecFlag, 0);
     }
 }
 
