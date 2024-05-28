@@ -34,8 +34,8 @@ void CardinalityEstimator::addNodeIDDom(const binder::Expression& nodeID,
 }
 
 uint64_t CardinalityEstimator::estimateScanNode(LogicalOperator* op) {
-    auto scan = ku_dynamic_cast<LogicalOperator*, LogicalScanNodeTable*>(op);
-    return atLeastOne(getNodeIDDom(scan->getNodeID()->getUniqueName()));
+    auto& scan = op->constCast<LogicalScanNodeTable>();
+    return atLeastOne(getNodeIDDom(scan.getNodeID()->getUniqueName()));
 }
 
 uint64_t CardinalityEstimator::estimateHashJoin(const expression_vector& joinKeys,
