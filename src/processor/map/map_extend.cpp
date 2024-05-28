@@ -1,10 +1,10 @@
 #include "binder/expression/property_expression.h"
+#include "common/enums/extend_direction.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "processor/operator/scan/scan_multi_rel_tables.h"
 #include "processor/operator/scan/scan_rel_table.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
-#include "common/enums/extend_direction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -127,8 +127,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
             scanners.insert({boundNodeTableID, std::move(scanner)});
         }
     }
-    return std::make_unique<ScanMultiRelTable>(std::move(scanInfo), std::move(directionInfo), std::move(scanners),
-        std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
+    return std::make_unique<ScanMultiRelTable>(std::move(scanInfo), std::move(directionInfo),
+        std::move(scanners), std::move(prevOperator), getOperatorID(),
+        extend->getExpressionsForPrinting());
 }
 
 } // namespace processor

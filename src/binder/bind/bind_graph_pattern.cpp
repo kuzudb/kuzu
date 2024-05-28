@@ -136,7 +136,6 @@ static std::vector<std::string> getPropertyNames(const std::vector<TableCatalogE
     return result;
 }
 
-
 static std::unique_ptr<Expression> createPropertyExpression(const std::string& propertyName,
     const std::string& uniqueVariableName, const std::string& rawVariableName,
     const std::vector<TableCatalogEntry*>& entries) {
@@ -173,9 +172,9 @@ static std::unique_ptr<Expression> createPropertyExpression(const std::string& p
 
 static std::unique_ptr<Expression> createPropertyExpression(const std::string& propertyName,
     const Expression& pattern, const std::vector<TableCatalogEntry*>& entries) {
-    return createPropertyExpression(propertyName, pattern.getUniqueName(), pattern.toString(), entries);
+    return createPropertyExpression(propertyName, pattern.getUniqueName(), pattern.toString(),
+        entries);
 }
-
 
 std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern,
     const std::shared_ptr<NodeExpression>& leftNode,
@@ -303,7 +302,8 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
                 catalog->getTableCatalogEntry(clientContext->getTx(), tableID));
         }
         // Mock existence of pIRI property.
-        auto pIRI = createPropertyExpression(std::string(rdf::IRI), *queryRel, resourceTableSchemas);
+        auto pIRI =
+            createPropertyExpression(std::string(rdf::IRI), *queryRel, resourceTableSchemas);
         queryRel->addPropertyExpression(std::string(rdf::IRI), std::move(pIRI));
     }
     std::vector<StructField> fields;
@@ -493,9 +493,10 @@ std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
 
 void Binder::bindQueryRelProperties(RelExpression& rel) {
     if (rel.isEmpty()) {
-        auto internalID = PropertyExpression::construct(*LogicalType::INTERNAL_ID(),  InternalKeyword::ID, rel);
+        auto internalID =
+            PropertyExpression::construct(*LogicalType::INTERNAL_ID(), InternalKeyword::ID, rel);
         rel.addPropertyExpression(InternalKeyword::ID, std::move(internalID));
-        return ;
+        return;
     }
     auto catalog = clientContext->getCatalog();
     auto entries = catalog->getTableEntries(clientContext->getTx(), rel.getTableIDs());

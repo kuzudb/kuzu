@@ -62,7 +62,8 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
                 std::make_unique<RelTableScanState>(scanInfo->columnIDs, scanInfo->direction);
             initVectors(*scanner->readStates[i], *resultSet);
             if (directionInfo.directionPos.isValid()) {
-                scanner->directionVector = resultSet->getValueVector(directionInfo.directionPos).get();
+                scanner->directionVector =
+                    resultSet->getValueVector(directionInfo.directionPos).get();
                 scanner->directionValues.push_back(directionInfo.needFlip(scanInfo->direction));
             }
         }
@@ -96,8 +97,8 @@ std::unique_ptr<PhysicalOperator> ScanMultiRelTable::clone() {
     for (auto& [tableID, scanner] : scannerPerNodeTable) {
         clonedScanners.insert({tableID, scanner->clone()});
     }
-    return make_unique<ScanMultiRelTable>(info.copy(), directionInfo.copy(), std::move(clonedScanners),
-        children[0]->clone(), id, paramsString);
+    return make_unique<ScanMultiRelTable>(info.copy(), directionInfo.copy(),
+        std::move(clonedScanners), children[0]->clone(), id, paramsString);
 }
 
 void ScanMultiRelTable::resetState() {

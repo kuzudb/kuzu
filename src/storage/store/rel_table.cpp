@@ -135,7 +135,7 @@ row_idx_t RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableDat
 }
 
 //=======
-//void RelTable::scan(Transaction* transaction, RelTableReadState& scanState) {
+// void RelTable::scan(Transaction* transaction, RelTableReadState& scanState) {
 //    auto tableData = getDirectedTableData(scanState.direction);
 //    tableData->scan(transaction, *scanState.dataReadState, *scanState.nodeIDVector,
 //        scanState.outputVectors);

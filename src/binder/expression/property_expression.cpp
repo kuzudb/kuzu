@@ -1,4 +1,5 @@
 #include "binder/expression/property_expression.h"
+
 #include "binder/expression/node_rel_expression.h"
 
 using namespace kuzu::common;
@@ -19,7 +20,6 @@ std::unique_ptr<PropertyExpression> PropertyExpression::construct(LogicalType ty
     }
     return std::make_unique<PropertyExpression>(type, propertyName, uniqueName, variableName,
         std::move(infos));
-
 }
 
 bool PropertyExpression::isPrimaryKey() const {

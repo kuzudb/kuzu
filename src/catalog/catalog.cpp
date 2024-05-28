@@ -130,7 +130,6 @@ std::vector<TableCatalogEntry*> Catalog::getTableEntries(Transaction* transactio
     return result;
 }
 
-
 std::vector<TableCatalogEntry*> Catalog::getTableEntries(Transaction* transaction,
     const table_id_vector_t& tableIDs) const {
     std::vector<TableCatalogEntry*> result;

@@ -25,8 +25,7 @@ class ScanRelTable : public ScanTable {
 public:
     ScanRelTable(ScanTableInfo info, ScanRelTableInfo relInfo,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : ScanTable{type_, std::move(info), std::move(child), id,
-              paramsString},
+        : ScanTable{type_, std::move(info), std::move(child), id, paramsString},
           relInfo{std::move(relInfo)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
@@ -34,8 +33,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<ScanRelTable>(info.copy(), relInfo.copy(), children[0]->clone(),
-            id, paramsString);
+        return std::make_unique<ScanRelTable>(info.copy(), relInfo.copy(), children[0]->clone(), id,
+            paramsString);
     }
 
 protected:
