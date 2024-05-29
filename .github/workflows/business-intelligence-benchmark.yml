@@ -6,63 +6,69 @@ env:
 
 on:
   workflow_dispatch:
+    inputs:
+      scale_factor:
+        description: 'Scale factor'
+        required: true
+        default: "1"
+        type: choice
+        options:
+          - "1"
+          # TODO: Add more scale factors here
 
 jobs:
   benchmark:
     name: business-intelligence-benchmark
     runs-on: kuzu-self-hosted-benchmarking
+    env:
+      SF: ${{ github.event.inputs.scale_factor }}
+      NUM_THREADS: 30
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
     
-    - name: Build Kuzu
+    - name: Set environment variables
+      run: |
+        echo "KUZU_CSV_DIR=$CSV_DIR/bi-dataset/bi-sf${SF}-composite-projected-fk/graphs/csv/bi/composite-projected-fk/" >> $GITHUB_ENV
+        echo "KUZU_DIR=$(pwd)" >> $GITHUB_ENV
+        echo "KUZU_BUILD_PATH=$(pwd)/tools/python_api/build" >> $GITHUB_ENV
+
+    - name: Build kuzu
       run: |
         pip3 install -r tools/python_api/requirements_dev.txt
-        make python NUM_THREADS=$(nproc)
+        make python
     
-    - name: Update Implementation
-      run: |
-        cd $SERIALIZED_DIR
-        if ! test -d ldbc_snb_bi; then
-          echo "BI Implementation not found. Cloning from remote."
-          git clone https://${{ secrets.DOC_PUSH_TOKEN }}@github.com/kuzudb/ldbc_snb_bi
-        fi
-        cd ldbc_snb_bi
-        git fetch
-        if [[ $(git rev-parse HEAD) != $(git rev-parse origin) ]]; then
-          echo "Local BI implementation is not up to date with remote. Updating implementation."
-          git pull
-        fi
+    - name: Clone implementation
+      uses: actions/checkout@v4
+      with:
+        repository: kuzudb/ldbc_snb_bi
+        path: ldbc_snb_bi
+        token: ${{ secrets.DOC_PUSH_TOKEN }}
     
-    - name: Fetch Substitution Parameters
+    - name: Link substitution parameters
+      working-directory: ldbc_snb_bi
       run: |
-        cd $SERIALIZED_DIR/ldbc_snb_bi/parameters
-        if ! test -d parameters-sf1; then
-          echo "Subsitution parameters not found. Fetching."
-          curl https://pub-383410a98aef4cb686f0c7601eddd25f.r2.dev/snb-bi/ldbc-snb-bi-parameters-sf1-to-sf30000.zip > ldbc-snb-bi-parameters-sf1-to-sf30000.zip
-          unzip -o ldbc-snb-bi-parameters-sf1-to-sf30000.zip
-          mv ldbc-snb-bi-parameters-sf1-to-sf30000/parameters-sf* .
-        fi
-        echo "Substitution parameters fetched."
+        rm -rf parameters
+        ln -s $CSV_DIR/bi-dataset/ldbc-snb-bi-parameters-sf1-to-sf30000 parameters
     
-    - name: Load Database
+    - name: Load database
+      working-directory: ldbc_snb_bi/kuzu
       run: |
-        cd $SERIALIZED_DIR/ldbc_snb_bi/kuzu
-        export SF=1
-        export KUZU_CSV_DIR="$CSV_DIR/bi-dataset/bi-sf1-composite-projected-fk/graphs/csv/bi/composite-projected-fk/"
         workflow-scripts/decompress-gz.sh
         workflow-scripts/load-database.sh
     
-    - name: Run Benchmark
-      run: |
-        cd $SERIALIZED_DIR/ldbc_snb_bi/kuzu
-        export SF=1
-        export KUZU_CSV_DIR="$CSV_DIR/bi-dataset/bi-sf1-composite-projected-fk/graphs/csv/bi/composite-projected-fk/"
-        workflow-scripts/benchmark.sh
-        cat output/output-sf1/* > /tmp/LDBC-SNB-Business-Intelligence-results.csv
+    - name: Run benchmark
+      working-directory: ldbc_snb_bi/kuzu
+      run: workflow-scripts/benchmark.sh
     
-    - name: Submit Results
+    - name: Upload results
       uses: actions/upload-artifact@v3
       with:
         name: LDBC-SNB-Business-Intelligence-results
-        path: /tmp/LDBC-SNB-Business-Intelligence-results.csv
+        path: ldbc_snb_bi/kuzu/output/
+
+    - name: Report result to server
+      working-directory: ldbc_snb_bi/kuzu/
+      run: |
+        python3 workflow-scripts/report_results.py
