@@ -34,8 +34,7 @@ std::shared_ptr<Expression> ExpressionBinder::createNullLiteralExpression() {
 }
 
 std::shared_ptr<Expression> ExpressionBinder::createNullLiteralExpression(const Value& value) {
-    return make_shared<LiteralExpression>(value,
-        binder->getUniqueExpressionName("NULL"));
+    return make_shared<LiteralExpression>(value, binder->getUniqueExpressionName("NULL"));
 }
 
 } // namespace binder

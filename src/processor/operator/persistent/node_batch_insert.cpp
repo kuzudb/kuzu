@@ -111,7 +111,7 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
             nodeLocalState->defaultColumnVectors.push_back(std::move(defaultVector));
         }
     }
-    for (auto& evaluator: nodeInfo->defaultEvaluators) {
+    for (auto& evaluator : nodeInfo->defaultEvaluators) {
         evaluator->init(*resultSet, context->clientContext->getMemoryManager());
     }
 
