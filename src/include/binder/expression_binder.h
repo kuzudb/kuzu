@@ -84,6 +84,7 @@ public:
     std::shared_ptr<Expression> createLiteralExpression(const common::Value& value);
     std::shared_ptr<Expression> createLiteralExpression(const std::string& strVal);
     std::shared_ptr<Expression> createNullLiteralExpression();
+    std::shared_ptr<Expression> createNullLiteralExpression(const common::Value& value);
     // Variable expressions.
     std::shared_ptr<Expression> bindVariableExpression(
         const parser::ParsedExpression& parsedExpression);

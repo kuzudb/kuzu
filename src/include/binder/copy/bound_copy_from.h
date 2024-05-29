@@ -38,7 +38,8 @@ struct BoundCopyFromInfo {
 
 private:
     BoundCopyFromInfo(const BoundCopyFromInfo& other)
-        : tableEntry{other.tableEntry}, source{other.source->copy()}, offset{other.offset} {
+        : tableEntry{other.tableEntry}, source{other.source->copy()}, offset{other.offset},
+          defaultExprs{other.defaultExprs} {
         if (other.extraInfo) {
             extraInfo = other.extraInfo->copy();
         }

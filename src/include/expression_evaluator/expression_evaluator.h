@@ -28,6 +28,9 @@ public:
 
     virtual std::unique_ptr<ExpressionEvaluator> clone() = 0;
 
+    static std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>>
+        copy(const std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>>& evaluators);
+
 protected:
     virtual void resolveResultVector(const processor::ResultSet& resultSet,
         storage::MemoryManager* memoryManager) = 0;

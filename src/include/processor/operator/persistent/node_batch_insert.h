@@ -40,9 +40,8 @@ struct NodeBatchInsertInfo final : public BatchInsertInfo {
     NodeBatchInsertInfo(const NodeBatchInsertInfo& other)
         : BatchInsertInfo{other.tableEntry, other.compressionEnabled},
           columnPositions{other.columnPositions}, containSerial{other.containSerial},
-          columnTypes{common::LogicalType::copy(other.columnTypes)} {}
-    // TODO(Sam): Make a vector copy for this
-    // defaultEvaluators{other.defaultEvaluators}
+          columnTypes{common::LogicalType::copy(other.columnTypes)},
+          defaultEvaluators{evaluator::ExpressionEvaluator::copy(other.defaultEvaluators)} {}
 
     inline std::unique_ptr<BatchInsertInfo> copy() const override {
         return std::make_unique<NodeBatchInsertInfo>(*this);
