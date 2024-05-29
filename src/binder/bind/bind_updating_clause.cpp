@@ -288,7 +288,7 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(parser::ParsedExpression* lhs,
     if (!isNode && !isRel) {
         throw BinderException(
             stringFormat("Cannot set expression {} with type {}. Expect node or rel pattern.",
-                expr->toString(), expressionTypeToString(expr->expressionType)));
+                expr->toString(), ExpressionTypeUtil::toString(expr->expressionType)));
     }
     auto& patternExpr = expr->constCast<NodeOrRelExpression>();
     auto boundSetItem = bindSetItem(lhs, rhs);
@@ -368,7 +368,7 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
         } else {
             throw BinderException(stringFormat(
                 "Cannot delete expression {} with type {}. Expect node or rel pattern.",
-                pattern->toString(), expressionTypeToString(pattern->expressionType)));
+                pattern->toString(), ExpressionTypeUtil::toString(pattern->expressionType)));
         }
     }
     return boundDeleteClause;

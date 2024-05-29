@@ -20,7 +20,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
         children.push_back(std::move(boundChild));
     }
     auto expressionType = parsedExpression.getExpressionType();
-    auto functionName = expressionTypeToString(expressionType);
+    auto functionName = ExpressionTypeUtil::toString(expressionType);
     function::scalar_func_exec_t execFunc;
     function::VectorNullFunction::bindExecFunction(expressionType, children, execFunc);
     function::scalar_func_select_t selectFunc;

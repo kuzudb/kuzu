@@ -566,7 +566,7 @@ struct KUZU_API UnionType {
 };
 
 struct PhysicalTypeUtils {
-    static std::string physicalTypeToString(PhysicalTypeID physicalType);
+    static std::string toString(PhysicalTypeID physicalType);
     static uint32_t getFixedTypeSize(PhysicalTypeID physicalType);
 };
 

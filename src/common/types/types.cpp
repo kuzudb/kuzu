@@ -145,7 +145,7 @@ uint64_t UnionType::getNumFields(const LogicalType& type) {
     return StructType::getNumFields(type) - 1;
 }
 
-std::string PhysicalTypeUtils::physicalTypeToString(PhysicalTypeID physicalType) {
+std::string PhysicalTypeUtils::toString(PhysicalTypeID physicalType) {
     // LCOV_EXCL_START
     switch (physicalType) {
     case PhysicalTypeID::BOOL:

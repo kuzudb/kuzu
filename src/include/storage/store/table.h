@@ -2,6 +2,7 @@
 
 #include "storage/stats/table_statistics_collection.h"
 #include "storage/store/table_data.h"
+#include "common/enums/zone_map_check_result.h"
 
 namespace kuzu {
 namespace storage {
@@ -16,6 +17,7 @@ struct TableScanState {
     TableScanSource source = TableScanSource::NONE;
     std::unique_ptr<TableDataScanState> dataScanState;
     common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+    common::ZoneMapCheckResult zoneMapResult = common::ZoneMapCheckResult::ALWAYS_SCAN;
 
     explicit TableScanState(std::vector<common::column_id_t> columnIDs)
         : nodeIDVector(nullptr), columnIDs{std::move(columnIDs)} {}

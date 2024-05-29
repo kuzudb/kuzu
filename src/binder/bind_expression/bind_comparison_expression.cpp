@@ -26,7 +26,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
 std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     ExpressionType expressionType, const expression_vector& children) {
     auto functions = context->getCatalog()->getFunctions(binder->clientContext->getTx());
-    auto functionName = expressionTypeToString(expressionType);
+    auto functionName = ExpressionTypeUtil::toString(expressionType);
     LogicalType combinedType(LogicalTypeID::ANY);
     if (!ExpressionUtil::tryCombineDataType(children, combinedType)) {
         throw BinderException(stringFormat("Type Mismatch: Cannot compare types {} and {}",

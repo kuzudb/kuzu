@@ -35,7 +35,7 @@ expression_vector ExpressionBinder::bindPropertyStarExpression(
         return bindStructPropertyStarExpression(child);
     } else {
         throw BinderException(stringFormat("Cannot bind property for expression {} with type {}.",
-            child->toString(), expressionTypeToString(child->expressionType)));
+            child->toString(), ExpressionTypeUtil::toString(child->expressionType)));
     }
 }
 
@@ -86,7 +86,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
         return bindStructPropertyExpression(child, propertyName);
     } else {
         throw BinderException(stringFormat("Cannot bind property for expression {} with type {}.",
-            child->toString(), expressionTypeToString(child->expressionType)));
+            child->toString(), ExpressionTypeUtil::toString(child->expressionType)));
     }
 }
 

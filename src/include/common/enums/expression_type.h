@@ -49,16 +49,17 @@ enum class ExpressionType : uint8_t {
     GRAPH = 210,
 };
 
-bool isExpressionUnary(ExpressionType type);
-bool isExpressionBinary(ExpressionType type);
-bool isExpressionBoolConnection(ExpressionType type);
-bool isExpressionComparison(ExpressionType type);
-bool isExpressionNullOperator(ExpressionType type);
-bool isExpressionLiteral(ExpressionType type);
-bool isExpressionAggregate(ExpressionType type);
-bool isExpressionSubquery(ExpressionType type);
+struct ExpressionTypeUtil {
+    static bool isUnary(ExpressionType type);
+    static bool isBinary(ExpressionType type);
+    static bool isBoolean(ExpressionType type);
+    static bool isComparison(ExpressionType type);
+    static bool isNullOperator(ExpressionType type);
 
-std::string expressionTypeToString(ExpressionType type);
+    static ExpressionType reverseComparisonDirection(ExpressionType type);
+
+    static std::string toString(ExpressionType type);
+};
 
 } // namespace common
 } // namespace kuzu

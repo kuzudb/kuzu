@@ -23,13 +23,13 @@ class ExpressionVisitor {
 public:
     static inline bool hasAggregate(const Expression& expression) {
         return satisfyAny(expression, [&](const Expression& expression) {
-            return common::isExpressionAggregate(expression.expressionType);
+            return expression.expressionType == common::ExpressionType::AGGREGATE_FUNCTION;
         });
     }
 
     static inline bool hasSubquery(const Expression& expression) {
         return satisfyAny(expression, [&](const Expression& expression) {
-            return common::isExpressionSubquery(expression.expressionType);
+            return expression.expressionType == common::ExpressionType::SUBQUERY;
         });
     }
 
