@@ -1,9 +1,16 @@
 #include "storage/store/column.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <memory>
+
 #include "common/assert.h"
 #include "common/null_mask.h"
+#include "common/type_utils.h"
 #include "common/types/internal_id_t.h"
+#include "common/types/ku_string.h"
 #include "common/types/types.h"
+#include "storage/compression/compression.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/list_column.h"
@@ -192,6 +199,7 @@ public:
     void append(ColumnChunk* columnChunk, ChunkState& state) override {
         KU_ASSERT(state.nodeGroupIdx != INVALID_NODE_GROUP_IDX);
         state.metadata.numValues = columnChunk->getNumValues();
+        // Note that SERIAL columns do not store or update statistics
         metadataDA->resize(state.nodeGroupIdx + 1);
         metadataDA->update(state.nodeGroupIdx, state.metadata);
     }
@@ -506,8 +514,26 @@ void Column::write(ChunkState& state, offset_t offsetInChunk, ValueVector* vecto
     if (!isNull) {
         writeValue(state, offsetInChunk, vectorToWriteFrom, posInVectorToWriteFrom);
     }
-    if (offsetInChunk >= state.metadata.numValues) {
-        state.metadata.numValues = offsetInChunk + 1;
+    auto valueToWrite = StorageValue::readFromVector(*vectorToWriteFrom, posInVectorToWriteFrom);
+    updateStatistics(state.metadata, offsetInChunk, valueToWrite, valueToWrite);
+}
+
+void Column::updateStatistics(ColumnChunkMetadata& metadata, offset_t maxIndex,
+    std::optional<StorageValue> min, std::optional<StorageValue> max) {
+    if (maxIndex >= metadata.numValues) {
+        metadata.numValues = maxIndex + 1;
+        KU_ASSERT(sanityCheckForWrites(metadata, dataType));
+    }
+    // Either both or neither should be provided
+    KU_ASSERT((!min && !max) || (min && max));
+    if (min && max) {
+        // FIXME(bmwinger): this is causing test failures
+        // If new values are outside of the existing min/max, update them
+        if (max->gt(metadata.compMeta.max, dataType.getPhysicalType())) {
+            metadata.compMeta.max = *max;
+        } else if (metadata.compMeta.min.gt(*min, dataType.getPhysicalType())) {
+            metadata.compMeta.min = *min;
+        }
     }
 }
 
@@ -520,6 +546,41 @@ void Column::writeValue(ChunkState& state, offset_t offsetInChunk, ValueVector* 
         });
 }
 
+inline std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMax(
+    const uint8_t* data, uint64_t numValues, PhysicalTypeID physicalType) {
+    // TODO(bmwinger): STRING and maybe LIST columns should store their offsets in separate columns
+    // with actual integer types so that we can store statistics about the values in the main column
+    // metadata. This should also simplify some code as we no longer need to sometimes treat those
+    // columns as integers.
+    std::optional<StorageValue> min, max;
+    TypeUtils::visit(
+        physicalType,
+        [&]<typename T>(T)
+            requires(std::integral<T> || std::floating_point<T>)
+        {
+            auto typedData = std::span(reinterpret_cast<const T*>(data), numValues);
+            auto [minRaw, maxRaw] = std::minmax_element(typedData.begin(), typedData.end());
+            min = StorageValue(*minRaw);
+            max = StorageValue(*maxRaw);
+        },
+        [&](ku_string_t) {
+            auto typedData = std::span(reinterpret_cast<const uint32_t*>(data), numValues);
+            auto [minRaw, maxRaw] = std::minmax_element(typedData.begin(), typedData.end());
+            min = StorageValue(*minRaw);
+            max = StorageValue(*maxRaw);
+        },
+        [&]<typename T>(T)
+            requires(std::same_as<T, list_entry_t> || std::same_as<T, internalID_t>)
+        {
+            auto typedData = std::span(reinterpret_cast<const uint64_t*>(data), numValues);
+            auto [minRaw, maxRaw] = std::minmax_element(typedData.begin(), typedData.end());
+            min = StorageValue(*minRaw);
+            max = StorageValue(*maxRaw);
+        },
+        [&](auto) {});
+    return std::make_pair(min, max);
+}
+
 void Column::write(ChunkState& state, offset_t offsetInChunk, ColumnChunk* data,
     offset_t dataOffset, length_t numValues) {
     NullMask nullMask{std::span<uint64_t>()};
@@ -529,9 +590,10 @@ void Column::write(ChunkState& state, offset_t offsetInChunk, ColumnChunk* data,
         nullMaskPtr = &nullMask;
     }
     writeValues(state, offsetInChunk, data->getData(), nullMaskPtr, dataOffset, numValues);
-    if (offsetInChunk + numValues > state.metadata.numValues) {
-        state.metadata.numValues = offsetInChunk + numValues;
-    }
+
+    auto [minWritten, maxWritten] =
+        getMinMax(data->getData(), numValues, dataType.getPhysicalType());
+    updateStatistics(state.metadata, offsetInChunk + numValues - 1, minWritten, maxWritten);
 }
 
 void Column::writeValues(ChunkState& state, offset_t dstOffset, const uint8_t* data,
@@ -558,8 +620,12 @@ offset_t Column::appendValues(ChunkState& state, const uint8_t* data, const Null
     // TODO: writeValues should return new pages appended if any.
     writeValues(state, state.metadata.numValues, data, nullChunkData, 0 /*dataOffset*/, numValues);
     auto newNumPages = dataFH->getNumPages();
-    state.metadata.numValues += numValues;
     state.metadata.numPages += (newNumPages - numPages);
+
+    auto [minWritten, maxWritten] = getMinMax(data, numValues, dataType.getPhysicalType());
+    updateStatistics(state.metadata, startOffset + numValues - 1, minWritten, maxWritten);
+    // TODO(bmwinger): it shouldn't be necessary to do this here; it should be handled in
+    // prepareCommit
     metadataDA->update(state.nodeGroupIdx, state.metadata);
     return startOffset;
 }
@@ -633,6 +699,7 @@ void Column::prepareCommitForExistingChunk(Transaction* transaction, ChunkState&
         commitLocalChunkInPlace(state, localInsertChunks, insertInfo, localUpdateChunks, updateInfo,
             deleteInfo);
         KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
+        // TODO(bmwinger): avoid updating metadata if it has not changed
         metadataDA->update(state.nodeGroupIdx, state.metadata);
         if (nullColumn) {
             KU_ASSERT(state.nullState);

@@ -1,6 +1,9 @@
 #include "storage/store/string_column.h"
 
+#include <algorithm>
+
 #include "common/null_mask.h"
+#include "storage/compression/compression.h"
 #include "storage/store/column.h"
 #include "storage/store/null_column.h"
 #include "storage/store/string_column_chunk.h"
@@ -65,6 +68,7 @@ void StringColumn::writeValue(ChunkState& state, offset_t offsetInChunk,
     // null data
     KU_ASSERT(!vectorToWriteFrom->isNull(posInVectorToWriteFrom));
     Column::writeValues(state, offsetInChunk, (uint8_t*)&index, nullptr /*nullChunkData*/);
+    updateStatistics(state.metadata, offsetInChunk, StorageValue(index), StorageValue(index));
 }
 
 void StringColumn::write(ChunkState& state, offset_t dstOffset, ColumnChunk* data,
@@ -87,9 +91,10 @@ void StringColumn::write(ChunkState& state, offset_t dstOffset, ColumnChunk* dat
     // Write index to main column
     Column::writeValues(state, dstOffset, reinterpret_cast<const uint8_t*>(&indices[0]), &nullMask,
         0 /*srcOffset*/, numValues);
-    if (dstOffset + numValues > state.metadata.numValues) {
-        state.metadata.numValues = dstOffset + numValues;
-    }
+    auto [min, max] = std::minmax_element(indices.begin(), indices.end());
+    StorageValue minWritten = StorageValue(*min);
+    StorageValue maxWritten = StorageValue(*max);
+    updateStatistics(state.metadata, dstOffset + numValues - 1, minWritten, maxWritten);
 }
 
 void StringColumn::scanInternal(Transaction* transaction, const ChunkState& state,

@@ -1,5 +1,6 @@
 #include "storage/store/null_column.h"
 
+#include "storage/compression/compression.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;
@@ -16,7 +17,9 @@ struct NullColumnFunc {
         // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
         // Otherwise, it could read off the end of the page.
         if (metadata.isConstant()) {
-            auto value = ConstantCompression::getValue<bool>(metadata);
+            bool value;
+            ConstantCompression::decompressValues(reinterpret_cast<uint8_t*>(&value), 0 /*offset*/,
+                1 /*numValues*/, PhysicalTypeID::BOOL, 1 /*numBytesPerValue*/, metadata);
             resultVector->setNullRange(posInVector, numValuesToRead, value);
         } else {
             resultVector->setNullFromBits((uint64_t*)frame, pageCursor.elemPosInPage, posInVector,
@@ -92,26 +95,34 @@ void NullColumn::setNull(ChunkState& state, offset_t offsetInChunk, uint64_t val
     // Must be aligned to an 8-byte chunk for NullMask read to not overflow
     writeValues(state, offsetInChunk, reinterpret_cast<const uint8_t*>(&value),
         nullptr /*nullChunkData=*/);
-    if (offsetInChunk >= state.metadata.numValues) {
-        state.metadata.numValues = offsetInChunk + 1;
-    }
+    updateStatistics(state.metadata, offsetInChunk, StorageValue((bool)value),
+        StorageValue((bool)value));
 }
 
 void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ValueVector* vectorToWriteFrom,
     uint32_t posInVectorToWriteFrom) {
     writeValue(state, offsetInChunk, vectorToWriteFrom, posInVectorToWriteFrom);
-    if (offsetInChunk >= state.metadata.numValues) {
-        state.metadata.numValues = offsetInChunk + 1;
-    }
+    auto value = StorageValue(vectorToWriteFrom->isNull(posInVectorToWriteFrom));
+    updateStatistics(state.metadata, offsetInChunk, value, value);
 }
 
 void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ColumnChunk* data,
     offset_t dataOffset, length_t numValues) {
     writeValues(state, offsetInChunk, data->getData(), nullptr /*nullChunkData*/, dataOffset,
         numValues);
-    if (offsetInChunk + numValues > state.metadata.numValues) {
-        state.metadata.numValues = offsetInChunk + numValues;
+    auto nullChunk = ku_dynamic_cast<ColumnChunk*, NullColumnChunk*>(data);
+    KU_ASSERT(numValues > 0);
+    bool min = nullChunk->isNull(dataOffset);
+    bool max = min;
+    for (auto i = 0u; i < numValues; i++) {
+        if (nullChunk->isNull(dataOffset + i)) {
+            max = true;
+        } else {
+            min = false;
+        }
     }
+    updateStatistics(state.metadata, offsetInChunk + numValues - 1, StorageValue(min),
+        StorageValue(max));
 }
 
 void NullColumn::commitLocalChunkInPlace(ChunkState& state,
