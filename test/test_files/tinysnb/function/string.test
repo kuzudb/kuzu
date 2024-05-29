@@ -750,3 +750,8 @@ r
 AB
 Cs
 DE
+
+-LOG splitEmptyStr
+-STATEMENT return size(str_split('', ','))
+---- 1
+1
