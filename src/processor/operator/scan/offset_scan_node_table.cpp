@@ -1,4 +1,4 @@
-#include "processor/operator/scan/lookup_node_table.h"
+#include "processor/operator/scan/offset_scan_node_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -6,24 +6,24 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void LookupNodeTable::init(common::nodeID_t nodeID) {
+void OffsetScanNodeTable::init(common::nodeID_t nodeID) {
     nodeIDVector->setValue<nodeID_t>(0, nodeID);
-    hasExecuted = false;
+    executed = false;
 }
 
-void LookupNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void OffsetScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
-    for (auto& [_, info] : tableIDToNodeInfo) {
-        info.localScanState = std::make_unique<NodeTableScanState>(info.columnIDs);
-        initVectors(*info.localScanState, *resultSet);
+    for (auto& [_, nodeInfo] : tableIDToNodeInfo) {
+        nodeInfo.localScanState = std::make_unique<NodeTableScanState>(nodeInfo.columnIDs);
+        initVectors(*nodeInfo.localScanState, *resultSet);
     }
 }
 
-bool LookupNodeTable::getNextTuplesInternal(ExecutionContext* context) {
-    if (hasExecuted) {
+bool OffsetScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
+    if (executed) {
         return false;
     }
-    hasExecuted = true;
+    executed = true;
     auto transaction = context->clientContext->getTx();
     auto nodeID = nodeIDVector->getValue<nodeID_t>(0);
     KU_ASSERT(tableIDToNodeInfo.contains(nodeID.tableID));

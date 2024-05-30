@@ -151,10 +151,10 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
     nodeInsertState.nodeIDVector.setNull(pos, false);
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
+    if (pkIndex) {
+        insertPK(nodeInsertState.nodeIDVector, nodeInsertState.pkVector);
+    }
     if (isNewNode) {
-        if (pkIndex) {
-            insertPK(nodeInsertState.nodeIDVector, nodeInsertState.pkVector);
-        }
         localTable->insert(insertState);
     } else {
         for (auto columnID = 0u; columnID < getNumColumns(); columnID++) {

@@ -1,6 +1,7 @@
 #include "binder/expression/property_expression.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
-#include "processor/operator/scan/lookup_node_table.h"
+#include "processor/operator/scan/offset_scan_node_table.h"
+#include "processor/operator/scan/primary_key_scan_node_table.h"
 #include "processor/operator/scan/scan_node_table.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
@@ -43,17 +44,31 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
         tableInfos.push_back(ScanNodeTableInfo(table, std::move(columnIDs)));
         sharedStates.push_back(std::make_shared<ScanNodeTableSharedState>());
     }
-    if (scan.getScanType() == planner::LogicalScanNodeTableType::SCAN) {
+
+    switch (scan.getScanType()) {
+    case LogicalScanNodeTableType::SCAN: {
         return std::make_unique<ScanNodeTable>(std::move(scanInfo), std::move(tableInfos),
             std::move(sharedStates), getOperatorID(), scan.getExpressionsForPrinting());
     }
-    KU_ASSERT(scan.getScanType() == planner::LogicalScanNodeTableType::OFFSET_LOOK_UP);
-    common::table_id_map_t<ScanNodeTableInfo> tableInfosMap;
-    for (auto& info : tableInfos) {
-        tableInfosMap.insert({info.table->getTableID(), info.copy()});
+    case LogicalScanNodeTableType::OFFSET_SCAN: {
+        common::table_id_map_t<ScanNodeTableInfo> tableInfosMap;
+        for (auto& info : tableInfos) {
+            tableInfosMap.insert({info.table->getTableID(), info.copy()});
+        }
+        return std::make_unique<OffsetScanNodeTable>(std::move(scanInfo), std::move(tableInfosMap),
+            getOperatorID(), scan.getExpressionsForPrinting());
     }
-    return std::make_unique<LookupNodeTable>(std::move(scanInfo), std::move(tableInfosMap),
-        getOperatorID(), scan.getExpressionsForPrinting());
+    case LogicalScanNodeTableType::PRIMARY_KEY_SCAN: {
+        auto& primaryKeyScanInfo = scan.getExtraInfo()->constCast<PrimaryKeyScanInfo>();
+        auto evaluator = ExpressionMapper::getEvaluator(primaryKeyScanInfo.key, outSchema);
+        auto sharedState = std::make_shared<PrimaryKeyScanSharedState>(tableInfos.size());
+        return std::make_unique<PrimaryKeyScanNodeTable>(std::move(scanInfo), std::move(tableInfos),
+            std::move(evaluator), std::move(sharedState), getOperatorID(),
+            scan.getExpressionsForPrinting());
+    }
+    default:
+        KU_UNREACHABLE;
+    }
 }
 
 } // namespace processor

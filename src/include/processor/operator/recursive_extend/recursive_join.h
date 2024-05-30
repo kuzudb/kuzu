@@ -11,7 +11,7 @@
 namespace kuzu {
 namespace processor {
 
-class LookupNodeTable;
+class OffsetScanNodeTable;
 
 struct RecursiveJoinSharedState {
     std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks;
@@ -140,7 +140,7 @@ private:
     // Local recursive plan
     std::unique_ptr<ResultSet> localResultSet;
     std::unique_ptr<PhysicalOperator> recursiveRoot;
-    LookupNodeTable* recursiveSource;
+    OffsetScanNodeTable* recursiveSource;
 
     std::unique_ptr<RecursiveJoinVectors> vectors;
     std::unique_ptr<BaseBFSState> bfsState;

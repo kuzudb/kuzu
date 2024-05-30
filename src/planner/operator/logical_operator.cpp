@@ -60,10 +60,10 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "GDS_CALL";
     case LogicalOperatorType::HASH_JOIN:
         return "HASH_JOIN";
-    case LogicalOperatorType::INDEX_SCAN_NODE:
-        return "INDEX_SCAN_NODE";
     case LogicalOperatorType::IMPORT_DATABASE:
         return "IMPORT_DATABASE";
+    case LogicalOperatorType::INDEX_LOOK_UP:
+        return "INDEX_LOOK_UP";
     case LogicalOperatorType::INTERSECT:
         return "INTERSECT";
     case LogicalOperatorType::INSERT:

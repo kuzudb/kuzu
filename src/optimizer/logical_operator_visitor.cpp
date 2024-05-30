@@ -19,9 +19,6 @@ void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         visitScanNodeTable(op);
     } break;
-    case LogicalOperatorType::INDEX_SCAN_NODE: {
-        visitIndexScanNode(op);
-    } break;
     case LogicalOperatorType::EXTEND: {
         visitExtend(op);
     } break;
@@ -103,10 +100,7 @@ std::shared_ptr<LogicalOperator> LogicalOperatorVisitor::visitOperatorReplaceSwi
         return visitExpressionsScanReplace(op);
     }
     case LogicalOperatorType::SCAN_NODE_TABLE: {
-        return visitScanNodePropertyReplace(op);
-    }
-    case LogicalOperatorType::INDEX_SCAN_NODE: {
-        return visitIndexScanNodeReplace(op);
+        return visitScanNodeTableReplace(op);
     }
     case LogicalOperatorType::EXTEND: {
         return visitExtendReplace(op);

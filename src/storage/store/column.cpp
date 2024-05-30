@@ -445,7 +445,7 @@ void Column::lookupInternal(Transaction* transaction, ChunkState& readState,
     auto& selVector = nodeIDVector->state->getSelVector();
     for (auto i = 0ul; i < selVector.getSelSize(); i++) {
         auto pos = selVector[i];
-        if (nodeIDVector->isNull(pos)) {
+        if (nodeIDVector->isNull(pos) && resultVector->isNull(pos)) {
             continue;
         }
         auto nodeOffset = nodeIDVector->readNodeOffset(pos);

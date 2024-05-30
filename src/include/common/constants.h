@@ -12,8 +12,6 @@ constexpr uint64_t DEFAULT_VECTOR_CAPACITY_LOG_2 = 11;
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY = (uint64_t)1 << DEFAULT_VECTOR_CAPACITY_LOG_2;
 
 constexpr double DEFAULT_HT_LOAD_FACTOR = 1.5;
-constexpr uint32_t DEFAULT_VAR_LENGTH_EXTEND_MAX_DEPTH = 30;
-constexpr bool DEFAULT_ENABLE_SEMI_MASK = false;
 
 // This is the default thread sleep time we use when a thread,
 // e.g., a worker thread is in TaskScheduler, needs to block.

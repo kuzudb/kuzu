@@ -123,23 +123,38 @@ bool ExpressionUtil::isEmptyPattern(const Expression& expression) {
 }
 
 bool ExpressionUtil::isNodePattern(const Expression& expression) {
-    return expression.expressionType == ExpressionType::PATTERN &&
-           expression.dataType.getLogicalTypeID() == LogicalTypeID::NODE;
+    if (expression.expressionType != ExpressionType::PATTERN) {
+        return false;
+    }
+    return expression.dataType.getLogicalTypeID() == LogicalTypeID::NODE;
 };
 
 bool ExpressionUtil::isRelPattern(const Expression& expression) {
-    return expression.expressionType == ExpressionType::PATTERN &&
-           expression.dataType.getLogicalTypeID() == LogicalTypeID::REL;
+    if (expression.expressionType != ExpressionType::PATTERN) {
+        return false;
+    }
+    return expression.dataType.getLogicalTypeID() == LogicalTypeID::REL;
 }
 
 bool ExpressionUtil::isRecursiveRelPattern(const Expression& expression) {
-    return expression.expressionType == ExpressionType::PATTERN &&
-           expression.dataType.getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL;
+    if (expression.expressionType != ExpressionType::PATTERN) {
+        return false;
+    }
+    return expression.dataType.getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL;
 }
 
 bool ExpressionUtil::isNullLiteral(const Expression& expression) {
-    return expression.expressionType == ExpressionType::LITERAL &&
-           expression.constCast<binder::LiteralExpression>().getValue().isNull();
+    if (expression.expressionType != ExpressionType::LITERAL) {
+        return false;
+    }
+    return expression.constCast<LiteralExpression>().getValue().isNull();
+}
+
+bool ExpressionUtil::isFalseLiteral(const Expression& expression) {
+    if (expression.expressionType != ExpressionType::LITERAL) {
+        return false;
+    }
+    return expression.constCast<LiteralExpression>().getValue().getValue<bool>() == false;
 }
 
 void ExpressionUtil::validateExpressionType(const Expression& expr,

@@ -163,7 +163,7 @@ void StringColumn::lookupInternal(Transaction* transaction, ChunkState& readStat
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
     for (auto i = 0u; i < nodeIDVector->state->getSelVector().getSelSize(); i++) {
         auto pos = nodeIDVector->state->getSelVector()[i];
-        if (!nodeIDVector->isNull(pos)) {
+        if (!nodeIDVector->isNull(pos) && !resultVector->isNull(pos)) {
             auto offsetInGroup = nodeIDVector->readNodeOffset(pos) -
                                  StorageUtils::getStartOffsetOfNodeGroup(readState.nodeGroupIdx);
             string_index_t index;
