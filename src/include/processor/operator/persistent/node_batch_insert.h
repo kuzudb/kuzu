@@ -24,17 +24,18 @@ struct NodeBatchInsertInfo final : public BatchInsertInfo {
     std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
     std::vector<bool> defaultColumns;
 
-    NodeBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled, 
+    NodeBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
         bool containSerial, std::vector<common::LogicalType> columnTypes,
-        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators, 
+        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
         std::vector<bool> defaultColumns)
-        : BatchInsertInfo{tableEntry, compressionEnabled}, containSerial{containSerial}, 
-          columnTypes{std::move(columnTypes)}, columnEvaluators{std::move(columnEvaluators)}, 
+        : BatchInsertInfo{tableEntry, compressionEnabled}, containSerial{containSerial},
+          columnTypes{std::move(columnTypes)}, columnEvaluators{std::move(columnEvaluators)},
           defaultColumns{std::move(defaultColumns)} {}
 
     NodeBatchInsertInfo(const NodeBatchInsertInfo& other)
         : BatchInsertInfo{other.tableEntry, other.compressionEnabled},
-          containSerial{other.containSerial}, columnTypes{common::LogicalType::copy(other.columnTypes)},
+          containSerial{other.containSerial},
+          columnTypes{common::LogicalType::copy(other.columnTypes)},
           columnEvaluators{evaluator::ExpressionEvaluator::copy(other.columnEvaluators)},
           defaultColumns{other.defaultColumns} {}
 

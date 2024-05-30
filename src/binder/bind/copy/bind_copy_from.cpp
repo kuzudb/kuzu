@@ -115,8 +115,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     // columnExprs.push_back(offset);
     // columnTypes.push_back(*LogicalType::INT64());
     // defaultColumns.push_back(false);
-    auto boundCopyFromInfo = BoundCopyFromInfo(nodeTableEntry, std::move(boundSource), 
-        std::move(offset), std::move(columnExprs), std::move(columnTypes), 
+    auto boundCopyFromInfo = BoundCopyFromInfo(nodeTableEntry, std::move(boundSource),
+        std::move(offset), std::move(columnExprs), std::move(columnTypes),
         std::move(defaultColumns), nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
