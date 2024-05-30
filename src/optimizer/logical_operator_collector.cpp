@@ -1,4 +1,5 @@
 #include "optimizer/logical_operator_collector.h"
+
 #include "planner/operator/scan/logical_scan_node_table.h"
 
 namespace kuzu {

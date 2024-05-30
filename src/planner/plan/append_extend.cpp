@@ -232,8 +232,7 @@ void Planner::createRecursivePlan(const RecursiveInfo& recursiveInfo, ExtendDire
         ExpressionUtil::removeDuplication(nodeProperties), plan);
     auto& scan = plan.getLastOperator()->cast<LogicalScanNodeTable>();
     scan.setScanType(LogicalScanNodeTableType::OFFSET_SCAN);
-    scan.setExtraInfo(
-        std::make_unique<RecursiveJoinScanInfo>(recursiveInfo.nodePredicateExecFlag));
+    scan.setExtraInfo(std::make_unique<RecursiveJoinScanInfo>(recursiveInfo.nodePredicateExecFlag));
     scan.computeFactorizedSchema();
     if (recursiveInfo.nodePredicate) {
         appendFilters(recursiveInfo.nodePredicate->splitOnAND(), plan);

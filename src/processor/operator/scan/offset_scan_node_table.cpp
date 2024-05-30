@@ -36,5 +36,5 @@ bool OffsetScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     return true;
 }
 
-}
-}
+} // namespace processor
+} // namespace kuzu

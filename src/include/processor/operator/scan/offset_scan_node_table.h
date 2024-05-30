@@ -11,8 +11,9 @@ class OffsetScanNodeTable : public ScanTable {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::OFFSET_SCAN_NODE_TABLE;
 
 public:
-    OffsetScanNodeTable(ScanTableInfo info, common::table_id_map_t<ScanNodeTableInfo> tableIDToNodeInfo,
-        uint32_t id, const std::string& paramString)
+    OffsetScanNodeTable(ScanTableInfo info,
+        common::table_id_map_t<ScanNodeTableInfo> tableIDToNodeInfo, uint32_t id,
+        const std::string& paramString)
         : ScanTable{type_, std::move(info), id, paramString},
           tableIDToNodeInfo{std::move(tableIDToNodeInfo)}, executed{false} {}
 
@@ -34,6 +35,5 @@ private:
     bool executed;
 };
 
-
-}
-}
+} // namespace processor
+} // namespace kuzu

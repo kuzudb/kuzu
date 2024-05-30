@@ -178,9 +178,9 @@ std::vector<LogicalOperator*> HashJoinSIPOptimizer::resolveOperatorsToApplySemiM
     const Expression& nodeID, LogicalOperator* root) {
     std::vector<LogicalOperator*> result;
     // TODO(Xiyang/Guodong): enable semi mask to ScanNodeTable
-//    for (auto& op : resolveScanInternalIDsToApplySemiMask(nodeID, root)) {
-//        result.push_back(op);
-//    }
+    //    for (auto& op : resolveScanInternalIDsToApplySemiMask(nodeID, root)) {
+    //        result.push_back(op);
+    //    }
     for (auto& op : resolveShortestPathExtendToApplySemiMask(nodeID, root)) {
         result.push_back(op);
     }

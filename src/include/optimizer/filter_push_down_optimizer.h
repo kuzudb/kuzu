@@ -34,7 +34,9 @@ private:
 
 class FilterPushDownOptimizer {
 public:
-    explicit FilterPushDownOptimizer(main::ClientContext* context) : context{context} { predicateSet = PredicateSet(); }
+    explicit FilterPushDownOptimizer(main::ClientContext* context) : context{context} {
+        predicateSet = PredicateSet();
+    }
     explicit FilterPushDownOptimizer(main::ClientContext* context, PredicateSet predicateSet)
         : predicateSet{std::move(predicateSet)}, context{context} {}
 

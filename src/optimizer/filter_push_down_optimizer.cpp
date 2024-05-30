@@ -1,13 +1,13 @@
 #include "optimizer/filter_push_down_optimizer.h"
 
+#include "binder/expression/literal_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression_visitor.h"
+#include "main/client_context.h"
 #include "planner/operator/logical_empty_result.h"
 #include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
-#include "main/client_context.h"
-#include "binder/expression/literal_expression.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

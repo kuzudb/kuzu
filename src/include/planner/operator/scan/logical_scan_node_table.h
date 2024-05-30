@@ -9,7 +9,7 @@ namespace planner {
 enum class LogicalScanNodeTableType : uint8_t {
     SCAN = 0,
     OFFSET_SCAN = 1,
-    PRIMARY_KEY_SCAN= 2,
+    PRIMARY_KEY_SCAN = 2,
 };
 
 struct ExtraScanNodeTableInfo {
@@ -39,8 +39,7 @@ struct RecursiveJoinScanInfo final : ExtraScanNodeTableInfo {
 struct PrimaryKeyScanInfo final : ExtraScanNodeTableInfo {
     std::shared_ptr<binder::Expression> key;
 
-    explicit PrimaryKeyScanInfo(std::shared_ptr<binder::Expression> key)
-        : key{std::move(key)} {}
+    explicit PrimaryKeyScanInfo(std::shared_ptr<binder::Expression> key) : key{std::move(key)} {}
 
     std::unique_ptr<ExtraScanNodeTableInfo> copy() const override {
         return std::make_unique<PrimaryKeyScanInfo>(key);
@@ -66,21 +65,15 @@ public:
     }
 
     LogicalScanNodeTableType getScanType() const { return scanType; }
-    void setScanType(LogicalScanNodeTableType scanType_) {
-        scanType = scanType_;
-    }
+    void setScanType(LogicalScanNodeTableType scanType_) { scanType = scanType_; }
 
     std::shared_ptr<binder::Expression> getNodeID() const { return nodeID; }
     std::vector<common::table_id_t> getTableIDs() const { return nodeTableIDs; }
     binder::expression_vector getProperties() const { return properties; }
 
-    void setExtraInfo(std::unique_ptr<ExtraScanNodeTableInfo> info) {
-        extraInfo = std::move(info);
-    }
+    void setExtraInfo(std::unique_ptr<ExtraScanNodeTableInfo> info) { extraInfo = std::move(info); }
 
-    ExtraScanNodeTableInfo* getExtraInfo() const {
-        return extraInfo.get();
-    }
+    ExtraScanNodeTableInfo* getExtraInfo() const { return extraInfo.get(); }
 
     std::unique_ptr<LogicalOperator> copy() override;
 

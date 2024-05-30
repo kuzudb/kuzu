@@ -24,12 +24,12 @@ void LogicalScanNodeTable::computeFactorizedSchema() {
         schema->setGroupAsSingleState(groupPos);
         auto recursiveJoinInfo = extraInfo->constCast<RecursiveJoinScanInfo>();
         schema->insertToGroupAndScope(recursiveJoinInfo.nodePredicateExecFlag, groupPos);
-    } break ;
+    } break;
     case LogicalScanNodeTableType::PRIMARY_KEY_SCAN: {
         schema->setGroupAsSingleState(groupPos);
-    } break ;
+    } break;
     default:
-        break ;
+        break;
     }
 }
 

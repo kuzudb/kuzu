@@ -62,8 +62,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
         auto& primaryKeyScanInfo = scan.getExtraInfo()->constCast<PrimaryKeyScanInfo>();
         auto evaluator = ExpressionMapper::getEvaluator(primaryKeyScanInfo.key, outSchema);
         auto sharedState = std::make_shared<PrimaryKeyScanSharedState>(tableInfos.size());
-        return std::make_unique<PrimaryKeyScanNodeTable>(std::move(scanInfo), std::move(tableInfos), std::move(evaluator),
-            std::move(sharedState), getOperatorID(), scan.getExpressionsForPrinting());
+        return std::make_unique<PrimaryKeyScanNodeTable>(std::move(scanInfo), std::move(tableInfos),
+            std::move(evaluator), std::move(sharedState), getOperatorID(),
+            scan.getExpressionsForPrinting());
     }
     default:
         KU_UNREACHABLE;
