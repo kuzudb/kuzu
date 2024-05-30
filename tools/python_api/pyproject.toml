@@ -93,5 +93,5 @@ strict = true
 docstring-code-format = true
 
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools", "wheel","cmake"]
 build-backend = "setuptools.build_meta"
