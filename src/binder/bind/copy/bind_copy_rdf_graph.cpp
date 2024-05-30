@@ -81,7 +81,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     auto lTableID = rdfGraphEntry->getLiteralTableID();
     auto lEntry = catalog->getTableCatalogEntry(clientContext->getTx(), lTableID);
     auto lCopyInfo = BoundCopyFromInfo(lEntry, std::move(lSource), offset, std::move(lColumns),
-        logical_type_vec_t{*LogicalType::RDF_VARIANT(), *LogicalType::STRING()},
+        logical_type_vec_t{*LogicalType::SERIAL(), *LogicalType::RDF_VARIANT(), *LogicalType::STRING()},
         std::vector<bool>{false, false}, nullptr /* extraInfo */);
     // Bind copy resource triples
     func = inMemory ? BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
