@@ -66,7 +66,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     auto rSource = std::make_unique<BoundFileScanSource>(std::move(rFileScanInfo));
     auto rTableID = rdfGraphEntry->getResourceTableID();
     auto rEntry = catalog->getTableCatalogEntry(clientContext->getTx(), rTableID);
-    auto rCopyInfo = BoundCopyFromInfo(rEntry, std::move(rSource), offset, nullptr /* extraInfo */);
+    auto rCopyInfo = BoundCopyFromInfo(rEntry, std::move(rSource), offset, rColumns,
+        logical_type_vec_t{*LogicalType::STRING()}, std::vector<bool>{false}, nullptr /* extraInfo */);
     // Bind copy literal.
     func = inMemory ? BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
                           RdfLiteralInMemScan::name, functions) :
@@ -78,7 +79,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     auto lSource = std::make_unique<BoundFileScanSource>(std::move(lFileScanInfo));
     auto lTableID = rdfGraphEntry->getLiteralTableID();
     auto lEntry = catalog->getTableCatalogEntry(clientContext->getTx(), lTableID);
-    auto lCopyInfo = BoundCopyFromInfo(lEntry, std::move(lSource), offset, nullptr /* extraInfo */);
+    auto lCopyInfo = BoundCopyFromInfo(lEntry, std::move(lSource), offset, lColumns,
+        logical_type_vec_t{*LogicalType::RDF_VARIANT(), *LogicalType::STRING()}, 
+        std::vector<bool>{false, false}, nullptr /* extraInfo */);
     // Bind copy resource triples
     func = inMemory ? BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
                           RdfResourceTripleInMemScan::name, functions) :

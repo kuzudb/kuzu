@@ -92,9 +92,6 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     }
     // NOLINTEND(bugprone-unchecked-optional-access)
 
-    for (auto& evaluator : nodeInfo->columnEvaluators) {
-        evaluator->init(*resultSet, context->clientContext->getMemoryManager());
-    }
     for (auto i = 0u; i < nodeInfo->columnEvaluators.size(); ++i) {
         auto& evaluator = nodeInfo->columnEvaluators[i];
         evaluator->init(*resultSet, context->clientContext->getMemoryManager());
@@ -136,9 +133,9 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
                 auto defaultVector = nodeLocalState->columnVectors[i];
                 defaultVector->setState(nodeLocalState->columnState);
                 auto& defaultEvaluator = nodeInfo->columnEvaluators[i];
-                for (auto i = 0; i < numTuples; ++i) {
+                for (auto j = 0; j < numTuples; ++j) {
                     defaultEvaluator->evaluate(context->clientContext);
-                    defaultVector->copyFromVectorData(i, defaultEvaluator->resultVector.get(), 0);
+                    defaultVector->copyFromVectorData(j, defaultEvaluator->resultVector.get(), 0);
                 }
             }
         }
