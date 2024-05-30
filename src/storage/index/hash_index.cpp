@@ -208,22 +208,6 @@ bool HashIndex<T>::lookupInPersistentIndex(TransactionType trxType, Key key, off
 }
 
 template<typename T>
-void HashIndex<T>::insertIntoPersistentIndex(Key key, offset_t value) {
-    auto& header = this->indexHeaderForWriteTrx;
-    reserve(1);
-    auto hashValue = HashIndexUtils::hash(key);
-    auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
-    auto iter = getSlotIterator(HashIndexUtils::getPrimarySlotIdForHash(header, hashValue),
-        TransactionType::WRITE);
-    // Find a slot with free entries
-    while (iter.slot.header.numEntries() == getSlotCapacity<T>() &&
-           nextChainedSlot(TransactionType::WRITE, iter))
-        ;
-    copyKVOrEntryToSlot<Key, false /* insert kv */>(iter, key, value, fingerprint);
-    header.numEntries++;
-}
-
-template<typename T>
 void HashIndex<T>::deleteFromPersistentIndex(Key key) {
     auto trxType = TransactionType::WRITE;
     auto& header = this->indexHeaderForWriteTrx;
@@ -327,13 +311,6 @@ inline bool HashIndex<ku_string_t>::equals(transaction::TransactionType trxType,
     return false;
 }
 
-template<>
-inline void HashIndex<ku_string_t>::insert(std::string_view key, SlotEntry<ku_string_t>& entry,
-    common::offset_t offset) {
-    entry.key = overflowFileHandle->writeString(key);
-    entry.value = offset;
-}
-
 template<typename T>
 void HashIndex<T>::splitSlots(HashIndexHeader& header, slot_id_t numSlotsToSplit) {
     auto originalSlotIterator = pSlots->iter_mut();
@@ -360,12 +337,12 @@ void HashIndex<T>::splitSlots(HashIndexHeader& header, slot_id_t numSlotsToSplit
                 }
                 // Copy entry from old slot to new slot
                 const auto& key = originalSlot->entries[originalEntryPos].key;
-                hash_t hash = this->hashStored(TransactionType::WRITE, key);
-                auto newSlotId = hash & header.higherLevelHashMask;
+                const hash_t hash = this->hashStored(TransactionType::WRITE, key);
+                const auto newSlotId = hash & header.higherLevelHashMask;
                 if (newSlotId != header.nextSplitSlotId) {
                     KU_ASSERT(newSlotId == newSlotIterator.idx());
-                    copyAndUpdateSlotHeader<const T&, true>(*newSlot, newEntryPos,
-                        originalSlot->entries[originalEntryPos].key, UINT32_MAX,
+                    newSlot->entries[newEntryPos] = originalSlot->entries[originalEntryPos];
+                    newSlot->header.setEntryValid(newEntryPos,
                         originalSlot->header.fingerprints[originalEntryPos]);
                     originalSlot->header.setEntryInvalid(originalEntryPos);
                     newEntryPos++;
@@ -394,17 +371,6 @@ std::vector<std::pair<SlotInfo, Slot<T>>> HashIndex<T>::getChainedSlots(slot_id_
     return slots;
 }
 
-template<typename T>
-void HashIndex<T>::copyEntryToSlot(slot_id_t slotId, const T& entry, uint8_t fingerprint) {
-    auto iter = getSlotIterator(slotId, TransactionType::WRITE);
-    do {
-        if (iter.slot.header.numEntries() < getSlotCapacity<T>()) {
-            // Found a slot with empty space.
-            break;
-        }
-    } while (nextChainedSlot(TransactionType::WRITE, iter));
-    copyKVOrEntryToSlot<const T&, true /* copy entry */>(iter, entry, UINT32_MAX, fingerprint);
-}
 template<typename T>
 void HashIndex<T>::reserve(uint64_t newEntries) {
     slot_id_t numRequiredEntries =
@@ -586,12 +552,12 @@ size_t HashIndex<T>::mergeSlot(const std::vector<HashIndexEntryView>& slotToMerg
             }
         }
         KU_ASSERT(diskEntryPos < getSlotCapacity<T>());
-        copyAndUpdateSlotHeader<const T&, true>(*diskSlot, diskEntryPos, it->entry->key, UINT32_MAX,
-            it->fingerprint);
+        diskSlot->entries[diskEntryPos] = *it->entry;
+        diskSlot->header.setEntryValid(diskEntryPos, it->fingerprint);
         KU_ASSERT([&]() {
-            auto key = it->entry->key;
-            auto hash = hashStored(TransactionType::WRITE, key);
-            auto primarySlot =
+            const auto& key = it->entry->key;
+            const auto hash = hashStored(TransactionType::WRITE, key);
+            const auto primarySlot =
                 HashIndexUtils::getPrimarySlotIdForHash(indexHeaderForWriteTrx, hash);
             KU_ASSERT(it->fingerprint == HashIndexUtils::getFingerprintForHash(hash));
             KU_ASSERT(primarySlot == diskSlotId);
@@ -665,6 +631,7 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
             readOnly, vfs, context);
     }
     if (newIndex) {
+        // Each index has a primary slot array and an overflow slot array
         for (size_t i = 0; i < NUM_HASH_INDEXES * 2; i++) {
             hashIndexDiskArrays->addDiskArray();
         }
