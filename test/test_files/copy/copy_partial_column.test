@@ -231,6 +231,7 @@ Binder exception: Column `dateColumn` type mismatch. Expected DATE but got INT64
 
 -LOG PartialColumnsDefaultSequence
 -STATEMENT CREATE SEQUENCE seq;
+---- ok
 -STATEMENT CREATE NODE TABLE tableOfTypes15 (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN,
                                             dateColumn DATE, timestampColumn TIMESTAMP, stringColumn STRING,
                                             listOfInt INT64[], seqColumn INT64 DEFAULT nextval('seq'),

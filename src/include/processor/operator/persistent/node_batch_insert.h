@@ -19,29 +19,24 @@ namespace processor {
 struct ExecutionContext;
 
 struct NodeBatchInsertInfo final : public BatchInsertInfo {
-    std::vector<DataPos> columnPositions;
     bool containSerial = false;
     std::vector<common::LogicalType> columnTypes;
-    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> defaultEvaluators;
+    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
+    std::vector<bool> defaultColumns;
 
-    NodeBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
-        std::vector<DataPos> columnPositions, bool containSerial,
-        std::vector<common::LogicalType> columnTypes,
-        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> defaultEvaluators)
-        : BatchInsertInfo{tableEntry, compressionEnabled}, columnPositions{columnPositions},
-          containSerial{containSerial}, columnTypes{std::move(columnTypes)},
-          defaultEvaluators{std::move(defaultEvaluators)} {}
-    NodeBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
-        std::vector<DataPos> columnPositions, bool containSerial,
-        std::vector<common::LogicalType> columnTypes)
-        : BatchInsertInfo{tableEntry, compressionEnabled}, columnPositions{columnPositions},
-          containSerial{containSerial}, columnTypes{std::move(columnTypes)} {}
+    NodeBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled, 
+        bool containSerial, std::vector<common::LogicalType> columnTypes,
+        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators, 
+        std::vector<bool> defaultColumns)
+        : BatchInsertInfo{tableEntry, compressionEnabled}, containSerial{containSerial}, 
+          columnTypes{std::move(columnTypes)}, columnEvaluators{std::move(columnEvaluators)}, 
+          defaultColumns{std::move(defaultColumns)} {}
 
     NodeBatchInsertInfo(const NodeBatchInsertInfo& other)
         : BatchInsertInfo{other.tableEntry, other.compressionEnabled},
-          columnPositions{other.columnPositions}, containSerial{other.containSerial},
-          columnTypes{common::LogicalType::copy(other.columnTypes)},
-          defaultEvaluators{evaluator::ExpressionEvaluator::copy(other.defaultEvaluators)} {}
+          containSerial{other.containSerial}, columnTypes{common::LogicalType::copy(other.columnTypes)},
+          columnEvaluators{evaluator::ExpressionEvaluator::copy(other.columnEvaluators)},
+          defaultColumns{other.defaultColumns} {}
 
     inline std::unique_ptr<BatchInsertInfo> copy() const override {
         return std::make_unique<NodeBatchInsertInfo>(*this);
@@ -86,7 +81,7 @@ struct NodeBatchInsertSharedState final : public BatchInsertSharedState {
 struct NodeBatchInsertLocalState final : public BatchInsertLocalState {
     std::optional<IndexBuilder> localIndexBuilder;
 
-    common::DataChunkState* columnState;
+    std::shared_ptr<common::DataChunkState> columnState;
     std::vector<std::shared_ptr<common::ValueVector>> defaultColumnVectors;
     std::vector<common::ValueVector*> columnVectors;
 };
