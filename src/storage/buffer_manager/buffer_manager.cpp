@@ -242,15 +242,23 @@ void BufferManager::unpin(BMFileHandle& fileHandle, page_idx_t pageIdx) {
 bool BufferManager::claimAFrame(BMFileHandle& fileHandle, page_idx_t pageIdx,
     PageReadPolicy pageReadPolicy) {
     page_offset_t pageSizeToClaim = fileHandle.getPageSize();
+    if (!reserve(pageSizeToClaim)) {
+        return false;
+    }
+    cachePageIntoFrame(fileHandle, pageIdx, pageReadPolicy);
+    return true;
+}
+
+bool BufferManager::reserve(uint64_t sizeToReserve) {
     // Reserve the memory for the page.
-    auto currentUsedMem = reserveUsedMemory(pageSizeToClaim);
+    auto currentUsedMem = reserveUsedMemory(sizeToReserve);
     uint64_t claimedMemory = 0;
     // Evict pages if necessary until we have enough memory.
-    while ((currentUsedMem + pageSizeToClaim - claimedMemory) > bufferPoolSize.load()) {
+    while ((currentUsedMem + sizeToReserve - claimedMemory) > bufferPoolSize.load()) {
         EvictionCandidate evictionCandidate;
         if (!evictionQueue->dequeue(evictionCandidate)) {
             // Cannot find more pages to be evicted. Free the memory we reserved and return false.
-            freeUsedMemory(pageSizeToClaim);
+            freeUsedMemory(sizeToReserve + claimedMemory);
             return false;
         }
         auto pageStateAndVersion = evictionCandidate.pageState->getStateAndVersion();
@@ -267,13 +275,12 @@ bool BufferManager::claimAFrame(BMFileHandle& fileHandle, page_idx_t pageIdx,
         claimedMemory += tryEvictPage(evictionCandidate);
         currentUsedMem = usedMemory.load();
     }
-    if ((currentUsedMem + pageSizeToClaim - claimedMemory) > bufferPoolSize.load()) {
+    if ((currentUsedMem + sizeToReserve - claimedMemory) > bufferPoolSize.load()) {
         // Cannot claim the memory needed. Free the memory we reserved and return false.
-        freeUsedMemory(pageSizeToClaim);
+        freeUsedMemory(sizeToReserve + claimedMemory);
         return false;
     }
-    // Have enough memory available now, load the page into its corresponding frame.
-    cachePageIntoFrame(fileHandle, pageIdx, pageReadPolicy);
+    // Have enough memory available now
     freeUsedMemory(claimedMemory);
     return true;
 }

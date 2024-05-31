@@ -5,6 +5,7 @@
 
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/buffer_manager/locked_queue.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
 namespace storage {
@@ -161,6 +162,8 @@ private:
  */
 
 class BufferManager {
+    friend class MemoryAllocator;
+
 public:
     enum class PageReadPolicy : uint8_t { READ_PAGE = 0, DONT_READ_PAGE = 1 };
 
@@ -193,9 +196,14 @@ public:
     }
     inline void clearEvictionQueue() { evictionQueue = std::make_unique<EvictionQueue>(); }
 
+    inline uint64_t getUsedMemory() const { return usedMemory; }
+
 private:
     static void verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize);
 
+    // Reclaims used memory until the given size to reserve is available
+    // The specified amount of memory will be recorded as being used
+    bool reserve(uint64_t sizeToReserve);
     bool claimAFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
         PageReadPolicy pageReadPolicy);
     // Return number of bytes freed.

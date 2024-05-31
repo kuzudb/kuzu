@@ -7,6 +7,7 @@
 
 #include "common/constants.h"
 #include "common/types/types.h"
+#include <span>
 
 namespace kuzu {
 namespace main {
@@ -30,10 +31,9 @@ public:
     ~MemoryBuffer();
 
 public:
-    uint8_t* buffer;
+    std::span<uint8_t> buffer;
     common::page_idx_t pageIdx;
     MemoryAllocator* allocator;
-    uint64_t size;
 };
 
 class MemoryAllocator {
@@ -49,7 +49,7 @@ public:
     inline common::page_offset_t getPageSize() const { return pageSize; }
 
 private:
-    void freeBlock(common::page_idx_t pageIdx, uint8_t* buffer);
+    void freeBlock(common::page_idx_t pageIdx, std::span<uint8_t> buffer);
 
 private:
     std::unique_ptr<BMFileHandle> fh;
