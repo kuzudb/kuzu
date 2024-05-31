@@ -1,8 +1,8 @@
 #pragma once
 
-#include "progress_bar_display.h"
-
 #include <iostream>
+
+#include "progress_bar_display.h"
 
 namespace kuzu {
 namespace common {
@@ -13,7 +13,7 @@ namespace common {
 class TerminalProgressBarDisplay : public ProgressBarDisplay {
 
 public:
-    TerminalProgressBarDisplay() = default; 
+    TerminalProgressBarDisplay() = default;
 
     void updateProgress(double newPipelineProgress, uint32_t newNumPipelinesFinished) override;
 

@@ -6,7 +6,7 @@ namespace kuzu {
 namespace common {
 
 ProgressBar::ProgressBar() {
-	display = DefaultProgressBarDisplay();
+    display = DefaultProgressBarDisplay();
     numPipelines = 0;
     numPipelinesFinished = 0;
     queryTimer = std::make_unique<TimeMetric>(true);
