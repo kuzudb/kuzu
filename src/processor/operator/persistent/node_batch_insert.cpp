@@ -96,7 +96,7 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         auto& evaluator = nodeInfo->columnEvaluators[i];
         evaluator->init(*resultSet, context->clientContext->getMemoryManager());
         if (nodeInfo->defaultColumns[i]) {
-            auto& columnType = nodeInfo->columnTypes[i];
+            auto& columnType = evaluator->resultVector->dataType;
             std::shared_ptr<ValueVector> defaultVector = std::make_shared<ValueVector>(columnType);
             defaultVector->setAllNull();
             nodeLocalState->columnVectors.push_back(defaultVector.get());
