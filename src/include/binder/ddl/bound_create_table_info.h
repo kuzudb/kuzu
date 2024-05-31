@@ -48,7 +48,7 @@ struct BoundCreateTableInfo {
 
 private:
     BoundCreateTableInfo(const BoundCreateTableInfo& other)
-        : type{other.type}, tableName{other.tableName}, 
+        : type{other.type}, tableName{other.tableName},
           serialSequences{copyVector(other.serialSequences)}, extraInfo{other.extraInfo->copy()} {}
 };
 

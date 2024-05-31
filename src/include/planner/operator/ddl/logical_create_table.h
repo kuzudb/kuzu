@@ -17,7 +17,8 @@ public:
     inline const binder::BoundCreateTableInfo* getInfo() const { return &info; }
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        auto result = std::make_unique<LogicalCreateTable>(tableName, info.copy(), outputExpression);
+        auto result =
+            std::make_unique<LogicalCreateTable>(tableName, info.copy(), outputExpression);
         result->setChildren(children);
         return result;
     }
