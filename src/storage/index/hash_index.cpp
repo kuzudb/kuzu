@@ -631,15 +631,12 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
     : hasRunPrepareCommit{false}, keyDataTypeID(keyDataType),
       fileHandle{bufferManager.getBMFileHandle(dbFileIDAndName.fName,
           readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                     FileHandle::O_PERSISTENT_FILE_NO_CREATE,
+                     FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
           BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs, context)},
-      bufferManager{bufferManager}, dbFileIDAndName{dbFileIDAndName}, wal{*wal},
-      hashIndexDiskArrays{std::make_unique<DiskArrayCollection>(*fileHandle,
-          dbFileIDAndName.dbFileID, &bufferManager, wal,
-          INDEX_HEADER_PAGES /*firstHeaderPage follows the index header pages*/,
-          true /*bypassWAL*/)} {
+      bufferManager{bufferManager}, dbFileIDAndName{dbFileIDAndName}, wal{*wal} {
+    bool newIndex = fileHandle->getNumPages() == 0;
 
-    if (fileHandle->getNumPages() == 0) {
+    if (newIndex) {
         fileHandle->addNewPages(INDEX_HEADER_PAGES);
         hashIndexHeadersForReadTrx.resize(NUM_HASH_INDEXES);
         hashIndexHeadersForWriteTrx.resize(NUM_HASH_INDEXES);
@@ -659,10 +656,18 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
             hashIndexHeadersForReadTrx.end());
         KU_ASSERT(headerIdx == NUM_HASH_INDEXES);
     }
+    hashIndexDiskArrays = std::make_unique<DiskArrayCollection>(*fileHandle,
+        dbFileIDAndName.dbFileID, &bufferManager, wal,
+        INDEX_HEADER_PAGES /*firstHeaderPage follows the index header pages*/, true /*bypassWAL*/);
 
     if (keyDataTypeID == PhysicalTypeID::STRING) {
         overflowFile = std::make_unique<OverflowFile>(dbFileIDAndName, &bufferManager, wal,
             readOnly, vfs, context);
+    }
+    if (newIndex) {
+        for (size_t i = 0; i < NUM_HASH_INDEXES * 2; i++) {
+            hashIndexDiskArrays->addDiskArray();
+        }
     }
 
     hashIndices.reserve(NUM_HASH_INDEXES);
@@ -814,30 +819,6 @@ void PrimaryKeyIndex::prepareRollback() {
 }
 
 PrimaryKeyIndex::~PrimaryKeyIndex() = default;
-
-void PrimaryKeyIndex::createEmptyHashIndexFiles(PhysicalTypeID typeID, const std::string& fName,
-    VirtualFileSystem* vfs, main::ClientContext* context) {
-    FileHandle fileHandle(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs, context);
-    fileHandle.addNewPages(INDEX_HEADER_PAGES);
-    // Write HashIndexHeaders
-    std::array<uint8_t, BufferPoolConstants::PAGE_4KB_SIZE> buffer{};
-    HashIndexHeaderOnDisk indexHeader{};
-    auto* data = reinterpret_cast<HashIndexHeaderOnDisk*>(buffer.data());
-    for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE; i++) {
-        memcpy(data + i, &indexHeader, sizeof(indexHeader));
-    }
-    for (size_t i = 0; i < INDEX_HEADER_PAGES; i++) {
-        fileHandle.writePage(buffer.data(), i);
-    }
-
-    // Write Disk Array Headers (one for each pSlot and oSlot disk array)
-    DiskArrayCollection::writeEmptyHeadersToFile(fileHandle, INDEX_HEADER_PAGES,
-        NUM_HASH_INDEXES * 2);
-
-    if (typeID == PhysicalTypeID::STRING) {
-        OverflowFile::createEmptyFiles(StorageUtils::getOverflowFileName(fName), vfs, context);
-    }
-}
 
 } // namespace storage
 } // namespace kuzu

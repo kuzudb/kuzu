@@ -315,9 +315,6 @@ public:
 
     common::PhysicalTypeID keyTypeID() { return keyDataTypeID; }
 
-    static void createEmptyHashIndexFiles(common::PhysicalTypeID typeID, const std::string& fName,
-        common::VirtualFileSystem* vfs, main::ClientContext* context);
-
     void writeHeaders();
 
 private:
