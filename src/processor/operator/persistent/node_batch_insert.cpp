@@ -108,7 +108,7 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         }
     }
 
-    for (auto& defaultVector: nodeLocalState->defaultColumnVectors) {
+    for (auto& defaultVector : nodeLocalState->defaultColumnVectors) {
         defaultVector->setState(state);
     }
 
