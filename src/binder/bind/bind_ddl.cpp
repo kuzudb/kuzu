@@ -15,12 +15,15 @@
 #include "common/string_format.h"
 #include "common/types/types.h"
 #include "function/cast/functions/cast_from_string_functions.h"
+#include "function/sequence/sequence_functions.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_sequence.h"
 #include "parser/ddl/create_table.h"
 #include "parser/ddl/create_table_info.h"
 #include "parser/ddl/create_type.h"
 #include "parser/ddl/drop.h"
+#include "parser/expression/parsed_function_expression.h"
+#include "parser/expression/parsed_literal_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -40,16 +43,45 @@ static void validateUniquePropertyName(const std::vector<PropertyInfo>& infos) {
     }
 }
 
+static std::unique_ptr<parser::ParsedFunctionExpression> createSerialDefaultExpr(std::string name) {
+    std::string literalRaw = "'" + name + "'";
+    auto param = std::make_unique<parser::ParsedLiteralExpression>(Value(name), literalRaw);
+    std::string functionRaw = "nextval(" + literalRaw + ")";
+    return std::make_unique<parser::ParsedFunctionExpression>
+        (function::NextValFunction::name, std::move(param), functionRaw);
+}
+
+static BoundCreateSequenceInfo createBoundSerialSequence(std::string name) {
+    return BoundCreateSequenceInfo(name, 0, 1, 0, std::numeric_limits<int64_t>::max(), false);
+}
+
+static std::vector<BoundCreateSequenceInfo> 
+bindSerialSequence(std::vector<PropertyInfo>& propertyInfos, const std::string& tableName) {
+    std::vector<BoundCreateSequenceInfo> serialSequences;
+    for (auto& property: propertyInfos) {
+        if (property.type.getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            auto sequenceName = std::string(tableName).append("_")
+                                                       .append(property.name)
+                                                       .append("_")
+                                                       .append("serial");
+            property.defaultValue = createSerialDefaultExpr(sequenceName);
+            serialSequences.push_back(createBoundSerialSequence(sequenceName));
+        }
+    }
+    return serialSequences;
+}
+
 std::vector<PropertyInfo> Binder::bindPropertyInfo(
     const std::vector<PropertyDefinitionDDL>& propertyDefinitions) {
     std::vector<PropertyInfo> propertyInfos;
     propertyInfos.reserve(propertyDefinitions.size());
     for (auto& propertyDef : propertyDefinitions) {
         auto type = clientContext->getCatalog()->getType(clientContext->getTx(), propertyDef.type);
+        auto expr = propertyDef.expr->copy();
         // This will check the type correctness of the default value expression
         expressionBinder.implicitCastIfNecessary(expressionBinder.bindExpression(*propertyDef.expr),
             type);
-        propertyInfos.emplace_back(propertyDef.name, std::move(type), propertyDef.expr->copy());
+        propertyInfos.emplace_back(propertyDef.name, std::move(type), std::move(expr));
     }
     validateUniquePropertyName(propertyInfos);
     for (auto& info : propertyInfos) {
@@ -115,17 +147,14 @@ BoundCreateTableInfo Binder::bindCreateTableInfo(const parser::CreateTableInfo* 
 
 BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo* info) {
     auto propertyInfos = bindPropertyInfo(info->propertyDefinitions);
+    auto serialSequences = bindSerialSequence(propertyInfos, info->tableName);
     auto extraInfo = ku_dynamic_cast<const ExtraCreateTableInfo*, const ExtraCreateNodeTableInfo*>(
         info->extraInfo.get());
     auto primaryKeyIdx = bindPrimaryKey(extraInfo->pKName, propertyInfos);
-    for (auto i = 0u; i < propertyInfos.size(); ++i) {
-        if (propertyInfos[i].type == *LogicalType::SERIAL() && primaryKeyIdx != i) {
-            throw BinderException("Serial property in node table must be the primary key.");
-        }
-    }
     auto boundExtraInfo =
         std::make_unique<BoundExtraCreateNodeTableInfo>(primaryKeyIdx, std::move(propertyInfos));
-    return BoundCreateTableInfo(TableType::NODE, info->tableName, std::move(boundExtraInfo));
+    return BoundCreateTableInfo(TableType::NODE, info->tableName, std::move(serialSequences),
+        std::move(boundExtraInfo));
 }
 
 BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info) {
@@ -134,11 +163,7 @@ BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info)
     for (auto& propertyInfo : bindPropertyInfo(info->propertyDefinitions)) {
         propertyInfos.push_back(propertyInfo.copy());
     }
-    for (auto& propertyInfo : propertyInfos) {
-        if (propertyInfo.type.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            throw BinderException("SERIAL properties are not supported in rel tables.");
-        }
-    }
+    auto serialSequences = bindSerialSequence(propertyInfos, info->tableName);
     auto extraInfo = (ExtraCreateRelTableInfo*)info->extraInfo.get();
     auto srcMultiplicity = RelMultiplicityUtils::getFwd(extraInfo->relMultiplicity);
     auto dstMultiplicity = RelMultiplicityUtils::getBwd(extraInfo->relMultiplicity);
@@ -148,7 +173,8 @@ BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info)
     validateTableType(dstTableID, TableType::NODE);
     auto boundExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(srcMultiplicity,
         dstMultiplicity, srcTableID, dstTableID, std::move(propertyInfos));
-    return BoundCreateTableInfo(TableType::REL, info->tableName, std::move(boundExtraInfo));
+    return BoundCreateTableInfo(TableType::REL, info->tableName, std::move(serialSequences),
+        std::move(boundExtraInfo));
 }
 
 BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* info) {
@@ -157,6 +183,7 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
     auto relMultiplicity = extraInfo->relMultiplicity;
     std::vector<BoundCreateTableInfo> boundCreateRelTableInfos;
     auto relCreateInfo = std::make_unique<CreateTableInfo>(TableType::REL, "");
+    std::vector<BoundCreateSequenceInfo> serialSequences;
     for (auto& propertyDef : info->propertyDefinitions) {
         relCreateInfo->propertyDefinitions.emplace_back(propertyDef.name, propertyDef.type,
             propertyDef.expr->copy());
@@ -169,11 +196,16 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
                                        .append(dstTableName);
         relCreateInfo->extraInfo =
             std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity, srcTableName, dstTableName);
-        boundCreateRelTableInfos.push_back(bindCreateRelTableInfo(relCreateInfo.get()));
+        auto boundCreateInfo = bindCreateRelTableInfo(relCreateInfo.get());
+        for (auto& sequence : boundCreateInfo.serialSequences) {
+            serialSequences.push_back(std::move(sequence));
+        }
+        boundCreateRelTableInfos.push_back(std::move(boundCreateInfo));
     }
     auto boundExtraInfo =
         std::make_unique<BoundExtraCreateRelTableGroupInfo>(std::move(boundCreateRelTableInfos));
-    return BoundCreateTableInfo(TableType::REL_GROUP, info->tableName, std::move(boundExtraInfo));
+    return BoundCreateTableInfo(TableType::REL_GROUP, info->tableName, std::move(serialSequences), 
+        std::move(boundExtraInfo));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& statement) {
@@ -436,9 +468,6 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     auto tableSchema = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
     validatePropertyDDLOnTable(tableSchema, "add");
     validatePropertyNotExist(tableSchema, propertyName);
-    if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-        throw BinderException("Serial property in node table must be the primary key.");
-    }
     auto defaultValue = std::move(extraInfo->defaultValue);
     auto boundDefault = expressionBinder.implicitCastIfNecessary(
         expressionBinder.bindExpression(*defaultValue), dataType);
