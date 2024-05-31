@@ -99,8 +99,6 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
             auto& columnType = nodeInfo->columnTypes[i];
             std::shared_ptr<ValueVector> defaultVector = std::make_shared<ValueVector>(columnType);
             defaultVector->setAllNull();
-            // TODO(Sam): Figure out how to ensure this state is set
-            // defaultVector->setState(state);
             nodeLocalState->columnVectors.push_back(defaultVector.get());
             nodeLocalState->defaultColumnVectors.push_back(std::move(defaultVector));
         } else {
@@ -108,6 +106,10 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
             state = evaluator->resultVector->state;
             nodeLocalState->columnVectors.push_back(evaluator->resultVector.get());
         }
+    }
+
+    for (auto& defaultVector: nodeLocalState->defaultColumnVectors) {
+        defaultVector->setState(state);
     }
 
     KU_ASSERT(state != nullptr);
@@ -131,7 +133,6 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
         for (auto i = 0u; i < nodeInfo->defaultColumns.size(); ++i) {
             if (nodeInfo->defaultColumns[i]) {
                 auto defaultVector = nodeLocalState->columnVectors[i];
-                defaultVector->setState(nodeLocalState->columnState);
                 auto& defaultEvaluator = nodeInfo->columnEvaluators[i];
                 for (auto j = 0; j < numTuples; ++j) {
                     defaultEvaluator->evaluate(context->clientContext);
