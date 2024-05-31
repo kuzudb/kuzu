@@ -70,8 +70,7 @@
 -STATEMENT CREATE REL TABLE KIND_OF3(FROM T TO T, myprops MAP(STRING,STRING));
 ---- ok
 -STATEMENT CREATE REL TABLE KIND_OF4(FROM T TO T, myprops SERIAL);
----- error
-Binder exception: SERIAL properties are not supported in rel tables.
+---- ok
 -STATEMENT CREATE (:T {name: "Foo"});
 ---- ok
 -STATEMENT CREATE (:T {name: "Bar"});
