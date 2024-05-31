@@ -502,6 +502,7 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
         }
     } catch (std::exception& e) {
         transactionContext->rollback();
+        progressBar->endProgress();
         return queryResultWithError(e.what());
     }
     executingTimer.stop();
