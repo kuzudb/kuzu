@@ -1,7 +1,7 @@
 #include "processor/operator/ddl/create_table.h"
-#include "processor/operator/ddl/create_sequence.h"
 
 #include "common/string_format.h"
+#include "processor/operator/ddl/create_sequence.h"
 #include "storage/storage_manager.h"
 
 using namespace kuzu::catalog;
@@ -11,7 +11,7 @@ namespace kuzu {
 namespace processor {
 
 void CreateTable::executeDDLInternal(ExecutionContext* context) {
-    for (auto& child: children) {
+    for (auto& child : children) {
         auto createSequence = child->ptrCast<CreateSequence>();
         createSequence->executeDDLInternal(context);
     }

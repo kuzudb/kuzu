@@ -47,23 +47,24 @@ static std::unique_ptr<parser::ParsedFunctionExpression> createSerialDefaultExpr
     std::string literalRaw = "'" + name + "'";
     auto param = std::make_unique<parser::ParsedLiteralExpression>(Value(name), literalRaw);
     std::string functionRaw = "nextval(" + literalRaw + ")";
-    return std::make_unique<parser::ParsedFunctionExpression>
-        (function::NextValFunction::name, std::move(param), functionRaw);
+    return std::make_unique<parser::ParsedFunctionExpression>(function::NextValFunction::name,
+        std::move(param), functionRaw);
 }
 
 static BoundCreateSequenceInfo createBoundSerialSequence(std::string name) {
     return BoundCreateSequenceInfo(name, 0, 1, 0, std::numeric_limits<int64_t>::max(), false);
 }
 
-static std::vector<BoundCreateSequenceInfo> 
-bindSerialSequence(std::vector<PropertyInfo>& propertyInfos, const std::string& tableName) {
+static std::vector<BoundCreateSequenceInfo> bindSerialSequence(
+    std::vector<PropertyInfo>& propertyInfos, const std::string& tableName) {
     std::vector<BoundCreateSequenceInfo> serialSequences;
-    for (auto& property: propertyInfos) {
+    for (auto& property : propertyInfos) {
         if (property.type.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            auto sequenceName = std::string(tableName).append("_")
-                                                       .append(property.name)
-                                                       .append("_")
-                                                       .append("serial");
+            auto sequenceName = std::string(tableName)
+                                    .append("_")
+                                    .append(property.name)
+                                    .append("_")
+                                    .append("serial");
             property.defaultValue = createSerialDefaultExpr(sequenceName);
             serialSequences.push_back(createBoundSerialSequence(sequenceName));
         }
@@ -204,7 +205,7 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
     }
     auto boundExtraInfo =
         std::make_unique<BoundExtraCreateRelTableGroupInfo>(std::move(boundCreateRelTableInfos));
-    return BoundCreateTableInfo(TableType::REL_GROUP, info->tableName, std::move(serialSequences), 
+    return BoundCreateTableInfo(TableType::REL_GROUP, info->tableName, std::move(serialSequences),
         std::move(boundExtraInfo));
 }
 

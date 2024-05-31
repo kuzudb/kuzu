@@ -43,8 +43,9 @@ void Planner::appendCreateTable(const BoundStatement& statement, LogicalPlan& pl
         statement.getStatementResult()->getSingleColumnExpr());
     logical_op_vector_t children;
     for (auto& sequenceInfo : info->serialSequences) {
-        children.push_back(make_shared<LogicalCreateSequence>(sequenceInfo.sequenceName, sequenceInfo.copy(),
-            BoundStatementResult::createSingleStringColumnResult().getSingleColumnExpr()));
+        children.push_back(
+            make_shared<LogicalCreateSequence>(sequenceInfo.sequenceName, sequenceInfo.copy(),
+                BoundStatementResult::createSingleStringColumnResult().getSingleColumnExpr()));
     }
     op->setChildren(std::move(children));
     plan.setLastOperator(std::move(op));

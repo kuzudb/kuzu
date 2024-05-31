@@ -20,7 +20,7 @@ public:
     std::unique_ptr<PhysicalOperator> clone() final {
         auto result = std::make_unique<CreateTable>(info.copy(), outputPos, id, paramsString);
         result->children.reserve(children.size());
-        for (auto& child: children) {
+        for (auto& child : children) {
             result->children.push_back(child->clone());
         }
         return result;
