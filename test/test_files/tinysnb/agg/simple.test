@@ -335,7 +335,7 @@ False
 250
 
 -LOG SimpleAggSumUInt8Test
--STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) 
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation)
 		   WHERE s.year = 2020
 		   RETURN SUM(s.ulevel)
 -PARALLELISM 2

@@ -61,12 +61,6 @@ private:
     std::shared_ptr<planner::LogicalOperator> visitScanNodeTableReplace(
         const std::shared_ptr<planner::LogicalOperator>& op);
 
-    // Push down FILTER into SCAN_NODE_TABLE.
-    std::shared_ptr<planner::LogicalOperator> pushDownToScanNode(
-        std::shared_ptr<binder::Expression> nodeID, std::vector<common::table_id_t> tableIDs,
-        std::shared_ptr<binder::Expression> predicate,
-        std::shared_ptr<planner::LogicalOperator> child);
-
     // Finish the current push down optimization by apply remaining predicates as a single filter.
     // And heuristically reorder equality predicates first in the filter.
     std::shared_ptr<planner::LogicalOperator> finishPushDown(

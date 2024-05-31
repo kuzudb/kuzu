@@ -43,6 +43,7 @@ void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     ScanTable::initLocalStateInternal(resultSet, context);
     for (auto& nodeInfo : nodeInfos) {
         nodeInfo.localScanState = std::make_unique<NodeTableScanState>(nodeInfo.columnIDs);
+        nodeInfo.localScanState->columnPredicateSets = copyVector(nodeInfo.columnPredicates);
         initVectors(*nodeInfo.localScanState, *resultSet);
     }
 }
@@ -55,20 +56,25 @@ void ScanNodeTable::initGlobalStateInternal(ExecutionContext* context) {
 }
 
 bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
+    auto transaction = context->clientContext->getTx();
     while (currentTableIdx < nodeInfos.size()) {
         const auto& info = nodeInfos[currentTableIdx];
         auto& scanState = *info.localScanState;
-        while (scanState.source != TableScanSource::NONE &&
-               info.table->scan(context->clientContext->getTx(), scanState)) {
-            if (scanState.nodeIDVector->state->getSelVector().getSelSize() > 0) {
-                return true;
+        auto skipScan =
+            transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;
+        if (!skipScan) {
+            while (scanState.source != TableScanSource::NONE &&
+                   info.table->scan(transaction, scanState)) {
+                if (scanState.nodeIDVector->state->getSelVector().getSelSize() > 0) {
+                    return true;
+                }
             }
         }
         sharedStates[currentTableIdx]->nextMorsel(scanState);
         if (scanState.source == TableScanSource::NONE) {
             currentTableIdx++;
         } else {
-            info.table->initializeScanState(context->clientContext->getTx(), scanState);
+            info.table->initializeScanState(transaction, scanState);
         }
     }
     return false;

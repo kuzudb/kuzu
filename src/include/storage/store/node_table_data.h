@@ -63,7 +63,7 @@ public:
 
 private:
     void initializeColumnScanStates(transaction::Transaction* transaction,
-        NodeDataScanState& scanState, common::node_group_idx_t nodeGroupIdx) const;
+        TableScanState& scanState, common::node_group_idx_t nodeGroupIdx) const;
     void initializeLocalNodeReadState(transaction::Transaction* transaction,
         TableScanState& scanState, common::node_group_idx_t nodeGroupIdx) const;
 

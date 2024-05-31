@@ -50,11 +50,10 @@ NodeTableData::NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
 }
 
 void NodeTableData::initializeScanState(Transaction* transaction, TableScanState& scanState) const {
-    auto& dataScanState =
-        ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState);
+    auto& dataScanState = scanState.dataScanState->cast<NodeDataScanState>();
     KU_ASSERT(dataScanState.chunkStates.size() == scanState.columnIDs.size());
     if (scanState.dataScanState) {
-        initializeColumnScanStates(transaction, dataScanState, scanState.nodeGroupIdx);
+        initializeColumnScanStates(transaction, scanState, scanState.nodeGroupIdx);
     }
     if (transaction->isWriteTransaction()) {
         initializeLocalNodeReadState(transaction, scanState, scanState.nodeGroupIdx);
@@ -64,13 +63,20 @@ void NodeTableData::initializeScanState(Transaction* transaction, TableScanState
         columns[0]->getMetadata(scanState.nodeGroupIdx, TransactionType::READ_ONLY).numValues;
 }
 
-void NodeTableData::initializeColumnScanStates(Transaction* transaction,
-    NodeDataScanState& scanState, node_group_idx_t nodeGroupIdx) const {
-    auto& dataReadState = ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(scanState);
+void NodeTableData::initializeColumnScanStates(Transaction* transaction, TableScanState& scanState,
+    node_group_idx_t nodeGroupIdx) const {
+    auto& tableScanState = scanState.cast<NodeTableScanState>();
+    auto& dataReadState = scanState.dataScanState->cast<NodeDataScanState>();
     for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
-        if (scanState.columnIDs[i] != INVALID_COLUMN_ID) {
-            getColumn(scanState.columnIDs[i])
-                ->initChunkState(transaction, nodeGroupIdx, dataReadState.chunkStates[i]);
+        if (scanState.columnIDs[i] == INVALID_COLUMN_ID) {
+            continue;
+        }
+        auto column = getColumn(scanState.columnIDs[i]);
+        auto& chunkState = dataReadState.chunkStates[i];
+        column->initChunkState(transaction, nodeGroupIdx, chunkState);
+        if (!tableScanState.columnPredicateSets.empty()) {
+            tableScanState.zoneMapResult =
+                tableScanState.columnPredicateSets[i].checkZoneMap(chunkState.metadata.compMeta);
         }
     }
     KU_ASSERT(sanityCheckOnColumnNumValues(dataReadState));

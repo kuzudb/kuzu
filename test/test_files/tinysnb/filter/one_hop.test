@@ -38,15 +38,15 @@
 ---- 1
 6
 
-#-LOG OneHopCrossProduct
-#-STATEMENT MATCH (a:person {age:30}), (c:person)-[:knows]->(d:person{fName:'Greg'}) RETURN a.ID, c.ID
-#-ENUMERATE
-#---- 1
-#2|7
+-LOG OneHopCrossProduct
+-STATEMENT MATCH (a:person {age:30}), (c:person)-[:knows]->(d:person{fName:'Greg'}) RETURN a.ID, c.ID
+-ENUMERATE
+---- 1
+2|7
 
-#-LOG EdgeFilter
-#-STATEMENT MATCH (a:person)-[e1:knows {date:date('1905-12-12')}]->(b:person) RETURN a.ID, b.ID
-#-ENUMERATE
-#---- 2
-#7|8
-#7|9
+-LOG EdgeFilter
+-STATEMENT MATCH (a:person)-[e1:knows {date:date('1905-12-12')}]->(b:person) RETURN a.ID, b.ID
+-ENUMERATE
+---- 2
+7|8
+7|9

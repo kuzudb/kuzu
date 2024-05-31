@@ -2,6 +2,7 @@
 
 #include "binder/expression/expression_util.h"
 #include "planner/operator/logical_operator.h"
+#include "storage/predicate/column_predicate.h"
 
 namespace kuzu {
 namespace planner {
@@ -69,7 +70,14 @@ public:
 
     std::shared_ptr<binder::Expression> getNodeID() const { return nodeID; }
     std::vector<common::table_id_t> getTableIDs() const { return nodeTableIDs; }
+
     binder::expression_vector getProperties() const { return properties; }
+    void setPropertyPredicates(std::vector<storage::ColumnPredicateSet> predicates) {
+        propertyPredicates = std::move(predicates);
+    }
+    const std::vector<storage::ColumnPredicateSet>& getPropertyPredicates() const {
+        return propertyPredicates;
+    }
 
     void setExtraInfo(std::unique_ptr<ExtraScanNodeTableInfo> info) { extraInfo = std::move(info); }
 
@@ -82,6 +90,7 @@ private:
     std::shared_ptr<binder::Expression> nodeID;
     std::vector<common::table_id_t> nodeTableIDs;
     binder::expression_vector properties;
+    std::vector<storage::ColumnPredicateSet> propertyPredicates;
     std::unique_ptr<ExtraScanNodeTableInfo> extraInfo;
 };
 

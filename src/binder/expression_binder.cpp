@@ -22,11 +22,11 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
     const parser::ParsedExpression& parsedExpression) {
     std::shared_ptr<Expression> expression;
     auto expressionType = parsedExpression.getExpressionType();
-    if (isExpressionBoolConnection(expressionType)) {
+    if (ExpressionTypeUtil::isBoolean(expressionType)) {
         expression = bindBooleanExpression(parsedExpression);
-    } else if (isExpressionComparison(expressionType)) {
+    } else if (ExpressionTypeUtil::isComparison(expressionType)) {
         expression = bindComparisonExpression(parsedExpression);
-    } else if (isExpressionNullOperator(expressionType)) {
+    } else if (ExpressionTypeUtil::isNullOperator(expressionType)) {
         expression = bindNullOperatorExpression(parsedExpression);
     } else if (ExpressionType::FUNCTION == expressionType) {
         expression = bindFunctionExpression(parsedExpression);
@@ -34,7 +34,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
         expression = bindPropertyExpression(parsedExpression);
     } else if (ExpressionType::PARAMETER == expressionType) {
         expression = bindParameterExpression(parsedExpression);
-    } else if (isExpressionLiteral(expressionType)) {
+    } else if (ExpressionType::LITERAL == expressionType) {
         expression = bindLiteralExpression(parsedExpression);
     } else if (ExpressionType::VARIABLE == expressionType) {
         expression = bindVariableExpression(parsedExpression);
@@ -44,12 +44,12 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
         expression = bindCaseExpression(parsedExpression);
     } else {
         throw NotImplementedException(
-            "bindExpression(" + expressionTypeToString(expressionType) + ").");
+            "bindExpression(" + ExpressionTypeUtil::toString(expressionType) + ").");
     }
     if (parsedExpression.hasAlias()) {
         expression->setAlias(parsedExpression.getAlias());
     }
-    if (isExpressionAggregate(expression->expressionType)) {
+    if (ExpressionType::AGGREGATE_FUNCTION == expression->expressionType) {
         validateAggregationExpressionIsNotNested(*expression);
     }
     if (ExpressionVisitor::needFold(*expression)) {

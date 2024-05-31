@@ -114,7 +114,7 @@ bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos,
                 throw common::StorageException(
                     "Attempted to read from a column chunk which uses integer bitpacking but does "
                     "not have a supported integer physical type: " +
-                    PhysicalTypeUtils::physicalTypeToString(physicalType));
+                    PhysicalTypeUtils::toString(physicalType));
                 return false;
             });
     }
@@ -159,7 +159,7 @@ uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& da
             throw common::StorageException(
                 "Attempted to read from a column chunk which uses integer bitpacking but does not "
                 "have a supported integer physical type: " +
-                PhysicalTypeUtils::physicalTypeToString(dataType.getPhysicalType()));
+                PhysicalTypeUtils::toString(dataType.getPhysicalType()));
         }
         }
     }
@@ -293,7 +293,7 @@ void ConstantCompression::decompressValues(uint8_t* dstBuffer, uint64_t dstOffse
         },
         [&](auto) {
             throw NotImplementedException("CONSTANT compression is not implemented for type " +
-                                          PhysicalTypeUtils::physicalTypeToString(physicalType));
+                                          PhysicalTypeUtils::toString(physicalType));
             ;
         });
 }
@@ -659,7 +659,7 @@ void ReadCompressedValuesFromPageToVector::operator()(const uint8_t* frame, Page
         }
         default: {
             throw NotImplementedException("INTEGER_BITPACKING is not implemented for type " +
-                                          PhysicalTypeUtils::physicalTypeToString(physicalType));
+                                          PhysicalTypeUtils::toString(physicalType));
         }
         }
     }
@@ -721,7 +721,7 @@ void ReadCompressedValuesFromPage::operator()(const uint8_t* frame, PageCursor& 
         }
         default: {
             throw NotImplementedException("INTEGER_BITPACKING is not implemented for type " +
-                                          PhysicalTypeUtils::physicalTypeToString(physicalType));
+                                          PhysicalTypeUtils::toString(physicalType));
         }
         }
     }
@@ -759,9 +759,8 @@ void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame
                 return IntegerBitpacking<uint32_t>().setValuesFromUncompressed(data, dataOffset,
                     frame, posInFrame, numValues, metadata, nullMask);
             } else {
-                throw NotImplementedException(
-                    "INTEGER_BITPACKING is not implemented for type " +
-                    PhysicalTypeUtils::physicalTypeToString(physicalType));
+                throw NotImplementedException("INTEGER_BITPACKING is not implemented for type " +
+                                              PhysicalTypeUtils::toString(physicalType));
             }
         });
     }

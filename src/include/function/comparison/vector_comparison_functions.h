@@ -119,9 +119,8 @@ private:
         } break;
         default:
             throw common::RuntimeException(
-                "Invalid input data types(" +
-                common::PhysicalTypeUtils::physicalTypeToString(leftType) + "," +
-                common::PhysicalTypeUtils::physicalTypeToString(rightType) + ") for getExecFunc.");
+                "Invalid input data types(" + common::PhysicalTypeUtils::toString(leftType) + "," +
+                common::PhysicalTypeUtils::toString(rightType) + ") for getExecFunc.");
         }
     }
 
@@ -185,10 +184,8 @@ private:
         } break;
         default:
             throw common::RuntimeException(
-                "Invalid input data types(" +
-                common::PhysicalTypeUtils::physicalTypeToString(leftTypeID) + "," +
-                common::PhysicalTypeUtils::physicalTypeToString(rightTypeID) +
-                ") for getSelectFunc.");
+                "Invalid input data types(" + common::PhysicalTypeUtils::toString(leftTypeID) +
+                "," + common::PhysicalTypeUtils::toString(rightTypeID) + ") for getSelectFunc.");
         }
     }
 };

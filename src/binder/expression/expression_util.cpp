@@ -163,7 +163,8 @@ void ExpressionUtil::validateExpressionType(const Expression& expr,
         return;
     }
     throw BinderException(stringFormat("{} has type {} but {} was expected.", expr.toString(),
-        expressionTypeToString(expr.expressionType), expressionTypeToString(expectedType)));
+        ExpressionTypeUtil::toString(expr.expressionType),
+        ExpressionTypeUtil::toString(expectedType)));
 }
 
 void ExpressionUtil::validateDataType(const Expression& expr, const LogicalType& expectedType) {

@@ -3,6 +3,7 @@
 #include "common/cast.h"
 #include "common/types/types.h"
 #include "storage/index/hash_index.h"
+#include "storage/predicate/column_predicate.h"
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/node_table_data.h"
@@ -19,6 +20,7 @@ class LocalNodeTable;
 struct NodeTableScanState final : TableScanState {
     // Local storage node group.
     LocalNodeNG* localNodeGroup = nullptr;
+    std::vector<ColumnPredicateSet> columnPredicateSets;
 
     explicit NodeTableScanState(std::vector<common::column_id_t> columnIDs)
         : TableScanState{std::move(columnIDs)} {
@@ -79,6 +81,7 @@ public:
 
     void initializeScanState(transaction::Transaction* transaction,
         TableScanState& scanState) const override;
+
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
     void lookup(transaction::Transaction* transaction, TableScanState& scanState);
 

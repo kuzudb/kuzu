@@ -54,7 +54,7 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getEvaluator(
     auto expressionType = expression->expressionType;
     if (schema->isExpressionInScope(*expression)) {
         return getReferenceEvaluator(expression, schema);
-    } else if (isExpressionLiteral(expressionType)) {
+    } else if (ExpressionType::LITERAL == expressionType) {
         return getLiteralEvaluator(*expression);
     } else if (ExpressionUtil::isNodePattern(*expression)) {
         return getNodeEvaluator(expression, schema);
@@ -71,7 +71,7 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getEvaluator(
     } else {
         // LCOV_EXCL_START
         throw NotImplementedException(stringFormat("Cannot evaluate expression with type {}.",
-            expressionTypeToString(expressionType)));
+            ExpressionTypeUtil::toString(expressionType)));
         // LCOV_EXCL_STOP
     }
 }
@@ -80,7 +80,7 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getConstantEvaluator(
     const std::shared_ptr<Expression>& expression) {
     KU_ASSERT(ExpressionVisitor::isConstant(*expression));
     auto expressionType = expression->expressionType;
-    if (isExpressionLiteral(expressionType)) {
+    if (ExpressionType::LITERAL == expressionType) {
         return getLiteralEvaluator(*expression);
     } else if (ExpressionType::CASE_ELSE == expressionType) {
         return getCaseEvaluator(expression, nullptr);
@@ -89,7 +89,7 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getConstantEvaluator(
     } else {
         // LCOV_EXCL_START
         throw NotImplementedException(stringFormat("Cannot evaluate expression with type {}.",
-            expressionTypeToString(expressionType)));
+            ExpressionTypeUtil::toString(expressionType)));
         // LCOV_EXCL_STOP
     }
 }

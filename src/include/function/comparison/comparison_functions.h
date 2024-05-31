@@ -11,6 +11,13 @@ struct Equals {
         common::ValueVector* /*leftVector*/, common::ValueVector* /*rightVector*/) {
         result = left == right;
     }
+
+    template<class T>
+    static bool operation(const T& left, const T& right) {
+        uint8_t result;
+        operation<T>(left, right, result, nullptr, nullptr);
+        return result;
+    }
 };
 
 struct NotEquals {
@@ -20,6 +27,13 @@ struct NotEquals {
         Equals::operation(left, right, result, leftVector, rightVector);
         result = !result;
     }
+
+    template<class T>
+    static bool operation(const T& left, const T& right) {
+        uint8_t result;
+        operation<T>(left, right, result, nullptr, nullptr);
+        return result;
+    }
 };
 
 struct GreaterThan {
@@ -27,6 +41,13 @@ struct GreaterThan {
     static inline void operation(const A& left, const B& right, uint8_t& result,
         common::ValueVector* /*leftVector*/, common::ValueVector* /*rightVector*/) {
         result = left > right;
+    }
+
+    template<class T>
+    static bool operation(const T& left, const T& right) {
+        uint8_t result;
+        operation<T>(left, right, result, nullptr, nullptr);
+        return result;
     }
 };
 
@@ -40,6 +61,13 @@ struct GreaterThanEquals {
         Equals::operation(left, right, isEqual, leftVector, rightVector);
         result = isGreater || isEqual;
     }
+
+    template<class T>
+    static bool operation(const T& left, const T& right) {
+        uint8_t result;
+        operation<T>(left, right, result, nullptr, nullptr);
+        return result;
+    }
 };
 
 struct LessThan {
@@ -49,6 +77,13 @@ struct LessThan {
         GreaterThanEquals::operation(left, right, result, leftVector, rightVector);
         result = !result;
     }
+
+    template<class T>
+    static bool operation(const T& left, const T& right) {
+        uint8_t result;
+        operation<T>(left, right, result, nullptr, nullptr);
+        return result;
+    }
 };
 
 struct LessThanEquals {
@@ -57,6 +92,13 @@ struct LessThanEquals {
         common::ValueVector* leftVector, common::ValueVector* rightVector) {
         GreaterThan::operation(left, right, result, leftVector, rightVector);
         result = !result;
+    }
+
+    template<class T>
+    static bool operation(const T& left, const T& right) {
+        uint8_t result;
+        operation<T>(left, right, result, nullptr, nullptr);
+        return result;
     }
 };
 

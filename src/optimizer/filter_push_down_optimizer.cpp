@@ -2,7 +2,6 @@
 
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/property_expression.h"
-#include "binder/expression_visitor.h"
 #include "main/client_context.h"
 #include "planner/operator/logical_empty_result.h"
 #include "planner/operator/logical_filter.h"
@@ -12,6 +11,7 @@
 using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::planner;
+using namespace kuzu::storage;
 
 namespace kuzu {
 namespace optimizer {
@@ -122,12 +122,29 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductRepla
 
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodeTableReplace(
     const std::shared_ptr<LogicalOperator>& op) {
+    auto& scan = op->cast<LogicalScanNodeTable>();
+    auto nodeID = scan.getNodeID();
+    // Apply column predicates.
+    std::vector<ColumnPredicateSet> propertyPredicateSets;
+    for (auto& expr : scan.getProperties()) {
+        auto propertyPredicateSet = ColumnPredicateSet();
+        for (auto& p : predicateSet.getAllPredicates()) {
+            auto propertyPredicate = ColumnPredicateUtil::tryConvert(*expr, *p);
+            if (propertyPredicate == nullptr) {
+                continue;
+            }
+            propertyPredicateSet.addPredicate(std::move(propertyPredicate));
+        }
+        propertyPredicateSets.push_back(std::move(propertyPredicateSet));
+    }
+    scan.setPropertyPredicates(std::move(propertyPredicateSets));
+
     // TODO(Guodong): make index scan works under write transaction
     if (context->getTx()->isWriteTransaction()) {
         return finishPushDown(op);
     }
-    auto& scan = op->cast<LogicalScanNodeTable>();
-    auto nodeID = scan.getNodeID();
+
+    // Apply index scan
     auto tableIDs = scan.getTableIDs();
     std::shared_ptr<Expression> primaryKeyEqualityComparison = nullptr;
     if (tableIDs.size() == 1) {
@@ -146,26 +163,6 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodeTableRepl
         }
     }
     return finishPushDown(op);
-}
-
-std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::pushDownToScanNode(
-    std::shared_ptr<Expression> nodeID, std::vector<table_id_t> tableIDs,
-    std::shared_ptr<Expression> predicate, std::shared_ptr<LogicalOperator> child) {
-    expression_set propertiesSet;
-    auto expressionCollector = std::make_unique<ExpressionCollector>();
-    for (auto& expression : expressionCollector->collectPropertyExpressions(predicate)) {
-        auto propertyExpression = (PropertyExpression*)expression.get();
-        if (child->getSchema()->isExpressionInScope(*propertyExpression)) {
-            // Property already matched
-            continue;
-        }
-        KU_ASSERT(propertyExpression->getVariableName() ==
-                  ((PropertyExpression&)*nodeID).getVariableName());
-        propertiesSet.insert(expression);
-    }
-    auto scanNodeProperty = appendScanNodeTable(std::move(nodeID), std::move(tableIDs),
-        expression_vector{propertiesSet.begin(), propertiesSet.end()}, std::move(child));
-    return appendFilter(std::move(predicate), scanNodeProperty);
 }
 
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::finishPushDown(
