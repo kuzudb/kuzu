@@ -1,8 +1,11 @@
 #include "binder/binder.h"
 #include "binder/ddl/bound_create_table_info.h"
+#include "binder/ddl/bound_create_sequence_info.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "common/keyword/rdf_keyword.h"
+#include "function/sequence/sequence_functions.h"
 #include "parser/ddl/create_table_info.h"
+#include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
 
 using namespace kuzu::parser;
@@ -12,8 +15,17 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace binder {
 
+static std::unique_ptr<parser::ParsedFunctionExpression> createSerialDefaultExpr(std::string name) {
+    std::string literalRaw = "'" + name + "'";
+    auto param = std::make_unique<parser::ParsedLiteralExpression>(Value(name), literalRaw);
+    std::string functionRaw = "nextval(" + literalRaw + ")";
+    return std::make_unique<parser::ParsedFunctionExpression>
+        (function::NextValFunction::name, std::move(param), functionRaw);
+}
+
 BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info) {
     auto rdfGraphName = info->tableName;
+    std::vector<BoundCreateSequenceInfo> serialSequences;
     // Resource table.
     auto resourceTableName = RDFGraphCatalogEntry::getResourceTableName(rdfGraphName);
     std::vector<PropertyInfo> resourceProperties;
@@ -25,10 +37,12 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     // Literal table.
     auto literalTableName = RDFGraphCatalogEntry::getLiteralTableName(rdfGraphName);
     std::vector<PropertyInfo> literalProperties;
-    literalProperties.emplace_back(std::string(rdf::ID), *LogicalType::SERIAL());
-    literalProperties.emplace_back(std::string(rdf::VAL), *LogicalType::RDF_VARIANT(),
-        std::make_unique<ParsedLiteralExpression>(
-            Value::createDefaultValue(*LogicalType::RDF_VARIANT())));
+    auto sequenceName = std::string(rdfGraphName).append("_").append("serial");
+    serialSequences.push_back(
+        BoundCreateSequenceInfo(sequenceName, 0, 1, 0, std::numeric_limits<int64_t>::max(), false));
+    literalProperties.emplace_back(std::string(rdf::ID), *LogicalType::SERIAL(), 
+        createSerialDefaultExpr(sequenceName));
+    literalProperties.emplace_back(std::string(rdf::VAL), *LogicalType::RDF_VARIANT());
     literalProperties.emplace_back(std::string(rdf::LANG), *LogicalType::STRING());
     auto literalExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(0 /* primaryKeyIdx */,
         std::move(literalProperties));
@@ -53,12 +67,13 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
         std::make_unique<BoundExtraCreateRelTableInfo>(RelMultiplicity::MANY, RelMultiplicity::MANY,
             INVALID_TABLE_ID, INVALID_TABLE_ID, std::move(literalTripleProperties));
     auto boundLiteralTripleCreateInfo = BoundCreateTableInfo(TableType::REL, literalTripleTableName,
-        std::move(boundLiteralTripleExtraInfo));
+     std::move(boundLiteralTripleExtraInfo));
     // Rdf table.
     auto boundExtraInfo = std::make_unique<BoundExtraCreateRdfGraphInfo>(
         std::move(resourceCreateInfo), std::move(literalCreateInfo),
         std::move(boundResourceTripleCreateInfo), std::move(boundLiteralTripleCreateInfo));
-    return BoundCreateTableInfo(TableType::RDF, rdfGraphName, std::move(boundExtraInfo));
+    return BoundCreateTableInfo(TableType::RDF, rdfGraphName, std::move(serialSequences),
+        std::move(boundExtraInfo));
 }
 
 } // namespace binder

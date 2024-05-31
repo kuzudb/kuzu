@@ -25,8 +25,12 @@ static DataPos getOutputPos(LogicalDDL* logicalDDL) {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateTable(LogicalOperator* logicalOperator) {
     auto createTable = (LogicalCreateTable*)logicalOperator;
-    return std::make_unique<CreateTable>(createTable->getInfo()->copy(), getOutputPos(createTable),
+    auto op = std::make_unique<CreateTable>(createTable->getInfo()->copy(), getOutputPos(createTable),
         getOperatorID(), createTable->getExpressionsForPrinting());
+    for (auto& child: createTable->getChildren()) {
+        op->addChild(mapOperator(child.get()));
+    }
+    return op;
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateSequence(LogicalOperator* logicalOperator) {
