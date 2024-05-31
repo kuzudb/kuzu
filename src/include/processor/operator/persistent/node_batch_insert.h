@@ -4,6 +4,7 @@
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "expression_evaluator/expression_evaluator.h"
+#include "main/client_context.h"
 #include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/operator/persistent/batch_insert.h"
 #include "processor/operator/persistent/index_builder.h"
@@ -142,6 +143,7 @@ private:
         common::offset_t startIndexInGroup);
 
     void copyToNodeGroup(transaction::Transaction* transaction);
+    void populateDefaultColumns(main::ClientContext* context);
 };
 
 } // namespace processor
