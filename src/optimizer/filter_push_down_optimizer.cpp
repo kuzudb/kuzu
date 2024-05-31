@@ -131,7 +131,7 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodeTableRepl
         for (auto& p : predicateSet.getAllPredicates()) {
             auto propertyPredicate = ColumnPredicateUtil::tryConvert(*expr, *p);
             if (propertyPredicate == nullptr) {
-                continue ;
+                continue;
             }
             propertyPredicateSet.addPredicate(std::move(propertyPredicate));
         }

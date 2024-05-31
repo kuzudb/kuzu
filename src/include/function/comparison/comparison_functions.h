@@ -14,9 +14,9 @@ struct Equals {
 
     template<class T>
     static bool operation(const T& left, const T& right) {
-         uint8_t result;
-         operation<T>(left, right, result, nullptr, nullptr);
-         return result;
+        uint8_t result;
+        operation<T>(left, right, result, nullptr, nullptr);
+        return result;
     }
 };
 

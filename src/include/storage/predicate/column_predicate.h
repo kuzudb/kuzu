@@ -1,8 +1,8 @@
 #pragma once
 
+#include "binder/expression/expression.h"
 #include "common/cast.h"
 #include "common/enums/zone_map_check_result.h"
-#include "binder/expression/expression.h"
 
 namespace kuzu {
 namespace storage {
@@ -43,8 +43,9 @@ public:
 };
 
 struct ColumnPredicateUtil {
-    static std::unique_ptr<ColumnPredicate> tryConvert(const binder::Expression& property, const binder::Expression& predicate);
+    static std::unique_ptr<ColumnPredicate> tryConvert(const binder::Expression& property,
+        const binder::Expression& predicate);
 };
 
-}
-}
+} // namespace storage
+} // namespace kuzu

@@ -759,9 +759,8 @@ void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame
                 return IntegerBitpacking<uint32_t>().setValuesFromUncompressed(data, dataOffset,
                     frame, posInFrame, numValues, metadata, nullMask);
             } else {
-                throw NotImplementedException(
-                    "INTEGER_BITPACKING is not implemented for type " +
-                    PhysicalTypeUtils::toString(physicalType));
+                throw NotImplementedException("INTEGER_BITPACKING is not implemented for type " +
+                                              PhysicalTypeUtils::toString(physicalType));
             }
         });
     }

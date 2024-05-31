@@ -1,8 +1,8 @@
 #pragma once
 
+#include "common/enums/zone_map_check_result.h"
 #include "storage/stats/table_statistics_collection.h"
 #include "storage/store/table_data.h"
-#include "common/enums/zone_map_check_result.h"
 
 namespace kuzu {
 namespace storage {

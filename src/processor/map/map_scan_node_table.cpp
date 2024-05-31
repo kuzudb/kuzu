@@ -41,7 +41,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
             }
         }
         auto table = storageManager->getTable(tableID)->ptrCast<storage::NodeTable>();
-        tableInfos.emplace_back(table, std::move(columnIDs), copyVector(scan.getPropertyPredicates()));
+        tableInfos.emplace_back(table, std::move(columnIDs),
+            copyVector(scan.getPropertyPredicates()));
         sharedStates.push_back(std::make_shared<ScanNodeTableSharedState>());
     }
 

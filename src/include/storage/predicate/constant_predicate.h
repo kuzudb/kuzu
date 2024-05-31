@@ -12,7 +12,7 @@ public:
     ColumnConstantPredicate(common::ExpressionType expressionType, common::Value value)
         : expressionType{expressionType}, value{std::move(value)} {}
 
-    common::ZoneMapCheckResult checkZoneMap(const CompressionMetadata &metadata) const override;
+    common::ZoneMapCheckResult checkZoneMap(const CompressionMetadata& metadata) const override;
 
     std::unique_ptr<ColumnPredicate> copy() const override {
         return std::make_unique<ColumnConstantPredicate>(expressionType, value);
@@ -23,5 +23,5 @@ private:
     common::Value value;
 };
 
-}
-}
+} // namespace storage
+} // namespace kuzu

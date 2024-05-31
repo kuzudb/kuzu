@@ -3,11 +3,11 @@
 #include "common/cast.h"
 #include "common/types/types.h"
 #include "storage/index/hash_index.h"
+#include "storage/predicate/column_predicate.h"
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/node_table_data.h"
 #include "storage/store/table.h"
-#include "storage/predicate/column_predicate.h"
 
 namespace kuzu {
 namespace transaction {
@@ -81,7 +81,6 @@ public:
 
     void initializeScanState(transaction::Transaction* transaction,
         TableScanState& scanState) const override;
-
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
     void lookup(transaction::Transaction* transaction, TableScanState& scanState);

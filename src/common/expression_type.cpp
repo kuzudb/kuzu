@@ -14,8 +14,8 @@ bool ExpressionTypeUtil::isUnary(ExpressionType type) {
 }
 
 bool ExpressionTypeUtil::isBinary(ExpressionType type) {
-    return isComparison(type) || ExpressionType::OR == type ||
-           ExpressionType::XOR == type || ExpressionType::AND == type;
+    return isComparison(type) || ExpressionType::OR == type || ExpressionType::XOR == type ||
+           ExpressionType::AND == type;
 }
 
 bool ExpressionTypeUtil::isBoolean(ExpressionType type) {

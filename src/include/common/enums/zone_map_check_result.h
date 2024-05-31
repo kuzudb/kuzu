@@ -11,4 +11,4 @@ enum class ZoneMapCheckResult : uint8_t {
 };
 
 }
-}
+} // namespace kuzu

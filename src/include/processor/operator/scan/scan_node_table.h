@@ -1,8 +1,8 @@
 #pragma once
 
 #include "processor/operator/scan/scan_table.h"
-#include "storage/store/node_table.h"
 #include "storage/predicate/column_predicate.h"
+#include "storage/store/node_table.h"
 
 namespace kuzu {
 namespace processor {
@@ -33,13 +33,16 @@ struct ScanNodeTableInfo {
 
     std::unique_ptr<storage::NodeTableScanState> localScanState;
 
-    ScanNodeTableInfo(storage::NodeTable* table, std::vector<common::column_id_t> columnIDs, std::vector<storage::ColumnPredicateSet> columnPredicates)
-        : table{table}, columnIDs{std::move(columnIDs)}, columnPredicates{std::move(columnPredicates)} {}
+    ScanNodeTableInfo(storage::NodeTable* table, std::vector<common::column_id_t> columnIDs,
+        std::vector<storage::ColumnPredicateSet> columnPredicates)
+        : table{table}, columnIDs{std::move(columnIDs)},
+          columnPredicates{std::move(columnPredicates)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ScanNodeTableInfo);
 
 private:
     ScanNodeTableInfo(const ScanNodeTableInfo& other)
-        : table{other.table}, columnIDs{other.columnIDs}, columnPredicates{copyVector(other.columnPredicates)} {}
+        : table{other.table}, columnIDs{other.columnIDs},
+          columnPredicates{copyVector(other.columnPredicates)} {}
 };
 
 class ScanNodeTable final : public ScanTable {

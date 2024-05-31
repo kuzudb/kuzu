@@ -60,7 +60,8 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     while (currentTableIdx < nodeInfos.size()) {
         const auto& info = nodeInfos[currentTableIdx];
         auto& scanState = *info.localScanState;
-        auto skipScan = transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;
+        auto skipScan =
+            transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;
         if (!skipScan) {
             while (scanState.source != TableScanSource::NONE &&
                    info.table->scan(transaction, scanState)) {
