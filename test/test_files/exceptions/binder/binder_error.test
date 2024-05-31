@@ -489,21 +489,6 @@ Binder exception: person table already has property gender.
 ---- error
 Binder exception: The number of elements in an array must be greater than 0. Given: 0.
 
--LOG NonPKSerialType
--STATEMENT CREATE NODE TABLE test(ID INT64, seq SERIAL, PRIMARY KEY(ID))
----- error
-Binder exception: Serial property in node table must be the primary key.
-
--LOG AddSerialProperty
--STATEMENT ALTER TABLE person ADD seq SERIAL
----- error
-Binder exception: Serial property in node table must be the primary key.
-
--LOG SerialInRelTable
--STATEMENT CREATE REL TABLE test(FROM person TO person, seq SERIAL)
----- error
-Binder exception: SERIAL properties are not supported in rel tables.
-
 -LOG MatchBuiltIn
 -STATEMENT MATCH (a:person) RETURN a.age + 'hh'
 ---- error
