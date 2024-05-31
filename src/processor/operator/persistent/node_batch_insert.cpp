@@ -93,7 +93,7 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     // NOLINTEND(bugprone-unchecked-optional-access)
 
     auto numColumns = nodeInfo->columnEvaluators.size();
-    nodeLocalState->columnVectors.reserve(numColumns);
+    nodeLocalState->columnVectors.resize(numColumns);
 
     for (auto i = 0u; i < numColumns; ++i) {
         if (!nodeInfo->defaultColumns[i]) {
