@@ -57,8 +57,8 @@ class ScanNodeTable final : public ScanTable {
 public:
     ScanNodeTable(ScanTableInfo info, std::vector<ScanNodeTableInfo> nodeInfos,
         std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates, uint32_t id,
-        const std::string& paramsString)
-        : ScanTable{type_, std::move(info), id, paramsString}, currentTableIdx{0},
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : ScanTable{type_, std::move(info), id, std::move(printInfo)}, currentTableIdx{0},
           nodeInfos{std::move(nodeInfos)}, sharedStates{std::move(sharedStates)} {
         KU_ASSERT(this->nodeInfos.size() == this->sharedStates.size());
     }

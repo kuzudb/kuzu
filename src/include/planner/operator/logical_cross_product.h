@@ -1,17 +1,18 @@
 #pragma once
 
-#include "common/enums/join_type.h"
+#include "common/enums/accumulate_type.h"
 #include "planner/operator/logical_operator.h"
 
 namespace kuzu {
 namespace planner {
 
 class LogicalCrossProduct : public LogicalOperator {
+    static constexpr LogicalOperatorType type_ = LogicalOperatorType::CROSS_PRODUCT;
+
 public:
     LogicalCrossProduct(common::AccumulateType accumulateType,
         std::shared_ptr<LogicalOperator> probeChild, std::shared_ptr<LogicalOperator> buildChild)
-        : LogicalOperator{LogicalOperatorType::CROSS_PRODUCT, std::move(probeChild),
-              std::move(buildChild)},
+        : LogicalOperator{type_, std::move(probeChild), std::move(buildChild)},
           accumulateType{accumulateType} {}
 
     void computeFactorizedSchema() override;

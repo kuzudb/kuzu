@@ -84,7 +84,7 @@ bool ScanMultiRelTable::getNextTuplesInternal(ExecutionContext* context) {
 
 std::unique_ptr<PhysicalOperator> ScanMultiRelTable::clone() {
     return make_unique<ScanMultiRelTable>(info.copy(), directionInfo.copy(), copyMap(scanners),
-        children[0]->clone(), id, paramsString);
+        children[0]->clone(), id, printInfo->copy());
 }
 
 void ScanMultiRelTable::resetState() {

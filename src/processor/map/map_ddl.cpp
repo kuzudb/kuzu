@@ -27,46 +27,50 @@ static DataPos getOutputPos(const LogicalDDL& logicalDDL) {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateTable(LogicalOperator* logicalOperator) {
     auto& createTable = logicalOperator->constCast<LogicalCreateTable>();
+    auto printInfo = std::make_unique<OPPrintInfo>(createTable.getExpressionsForPrinting());
     return std::make_unique<CreateTable>(createTable.getInfo()->copy(), getOutputPos(createTable),
-        getOperatorID(), createTable.getExpressionsForPrinting());
+        getOperatorID(), std::move(printInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateType(LogicalOperator* logicalOperator) {
     auto& createType = logicalOperator->constCast<LogicalCreateType>();
+    auto printInfo = std::make_unique<OPPrintInfo>(createType.getExpressionsForPrinting());
     return std::make_unique<CreateType>(createType.getTableName(), createType.getType(),
-        getOutputPos(createType), getOperatorID(), createType.getExpressionsForPrinting());
+        getOutputPos(createType), getOperatorID(), std::move(printInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateSequence(LogicalOperator* logicalOperator) {
     auto& createSequence = logicalOperator->constCast<LogicalCreateSequence>();
+    auto printInfo = std::make_unique<OPPrintInfo>(createSequence.getExpressionsForPrinting());
     return std::make_unique<CreateSequence>(createSequence.getInfo(), getOutputPos(createSequence),
-        getOperatorID(), createSequence.getExpressionsForPrinting());
+        getOperatorID(), std::move(printInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDropTable(LogicalOperator* logicalOperator) {
     auto& dropTable = logicalOperator->constCast<LogicalDropTable>();
+    auto printInfo = std::make_unique<OPPrintInfo>(dropTable.getExpressionsForPrinting());
     return std::make_unique<DropTable>(dropTable.getTableName(), dropTable.getTableID(),
-        getOutputPos(dropTable), getOperatorID(), dropTable.getExpressionsForPrinting());
+        getOutputPos(dropTable), getOperatorID(), std::move(printInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDropSequence(LogicalOperator* logicalOperator) {
     auto& dropSequence = logicalOperator->constCast<LogicalDropSequence>();
+    auto printInfo = std::make_unique<OPPrintInfo>(dropSequence.getExpressionsForPrinting());
     return std::make_unique<DropSequence>(dropSequence.getTableName(), dropSequence.getSequenceID(),
-        getOutputPos(dropSequence), getOperatorID(), dropSequence.getExpressionsForPrinting());
+        getOutputPos(dropSequence), getOperatorID(), std::move(printInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapAlter(LogicalOperator* logicalOperator) {
     auto& alter = logicalOperator->constCast<LogicalAlter>();
     std::unique_ptr<evaluator::ExpressionEvaluator> defaultValueEvaluator;
     if (alter.getInfo()->alterType == AlterType::ADD_PROPERTY) {
-        auto& addPropInfo =
-            ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraAddPropertyInfo&>(
-                *alter.getInfo()->extraInfo);
+        auto& addPropInfo = alter.getInfo()->extraInfo->constCast<BoundExtraAddPropertyInfo>();
         defaultValueEvaluator =
             ExpressionMapper::getEvaluator(addPropInfo.boundDefault, alter.getSchema());
     }
+    auto printInfo = std::make_unique<OPPrintInfo>(alter.getExpressionsForPrinting());
     return std::make_unique<Alter>(alter.getInfo()->copy(), std::move(defaultValueEvaluator),
-        getOutputPos(alter), getOperatorID(), alter.getExpressionsForPrinting());
+        getOutputPos(alter), getOperatorID(), std::move(printInfo));
 }
 
 } // namespace processor

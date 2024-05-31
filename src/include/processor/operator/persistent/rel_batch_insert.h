@@ -41,9 +41,9 @@ public:
         std::shared_ptr<PartitionerSharedState> partitionerSharedState,
         std::shared_ptr<BatchInsertSharedState> sharedState,
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, uint32_t id,
-        const std::string& paramsString)
+        std::unique_ptr<OPPrintInfo> printInfo)
         : BatchInsert{std::move(info), std::move(sharedState), std::move(resultSetDescriptor), id,
-              paramsString},
+              std::move(printInfo)},
           partitionerSharedState{std::move(partitionerSharedState)} {}
 
     inline bool isSource() const override { return true; }
@@ -56,7 +56,7 @@ public:
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<RelBatchInsert>(info->copy(), partitionerSharedState, sharedState,
-            resultSetDescriptor->copy(), id, paramsString);
+            resultSetDescriptor->copy(), id, printInfo->copy());
     }
 
 private:

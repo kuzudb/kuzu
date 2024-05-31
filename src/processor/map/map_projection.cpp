@@ -8,7 +8,7 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapProjection(LogicalOperator* logicalOperator) {
-    auto& logicalProjection = (const LogicalProjection&)*logicalOperator;
+    auto& logicalProjection = logicalOperator->constCast<LogicalProjection>();
     auto outSchema = logicalProjection.getSchema();
     auto inSchema = logicalProjection.getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
@@ -18,9 +18,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapProjection(LogicalOperator* log
         expressionEvaluators.push_back(ExpressionMapper::getEvaluator(expression, inSchema));
         expressionsOutputPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
+    auto printInfo = std::make_unique<OPPrintInfo>(logicalProjection.getExpressionsForPrinting());
     return make_unique<Projection>(std::move(expressionEvaluators), std::move(expressionsOutputPos),
         logicalProjection.getDiscardedGroupsPos(), std::move(prevOperator), getOperatorID(),
-        logicalProjection.getExpressionsForPrinting());
+        std::move(printInfo));
 }
 
 } // namespace processor

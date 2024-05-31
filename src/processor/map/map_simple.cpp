@@ -31,22 +31,25 @@ static DataPos getOutputPos(const LogicalSimple* logicalSimple) {
 std::unique_ptr<PhysicalOperator> PlanMapper::mapUseDatabase(
     planner::LogicalOperator* logicalOperator) {
     auto useDatabase = logicalOperator->constPtrCast<LogicalUseDatabase>();
+    auto printInfo = std::make_unique<OPPrintInfo>(useDatabase->getExpressionsForPrinting());
     return std::make_unique<UseDatabase>(useDatabase->getDBName(), getOutputPos(useDatabase),
-        getOperatorID(), useDatabase->getExpressionsForPrinting());
+        getOperatorID(), std::move(printInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapAttachDatabase(
     planner::LogicalOperator* logicalOperator) {
     auto attachDatabase = logicalOperator->constPtrCast<LogicalAttachDatabase>();
+    auto printInfo = std::make_unique<OPPrintInfo>(attachDatabase->getExpressionsForPrinting());
     return std::make_unique<AttachDatabase>(attachDatabase->getAttachInfo(),
-        getOutputPos(attachDatabase), getOperatorID(), attachDatabase->getExpressionsForPrinting());
+        getOutputPos(attachDatabase), getOperatorID(), std::move(printInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
     planner::LogicalOperator* logicalOperator) {
     auto detachDatabase = logicalOperator->constPtrCast<LogicalDetachDatabase>();
+    auto printInfo = std::make_unique<OPPrintInfo>(detachDatabase->getExpressionsForPrinting());
     return std::make_unique<DetachDatabase>(detachDatabase->getDBName(),
-        getOutputPos(detachDatabase), getOperatorID(), detachDatabase->getExpressionsForPrinting());
+        getOutputPos(detachDatabase), getOperatorID(), std::move(printInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
@@ -68,29 +71,31 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
         auto childPhysicalOperator = mapOperator(childCopyTo.get());
         children.push_back(std::move(childPhysicalOperator));
     }
+    auto printInfo = std::make_unique<OPPrintInfo>(exportDatabase->getExpressionsForPrinting());
     return std::make_unique<ExportDB>(exportDatabase->getBoundFileInfo()->copy(),
-        getOutputPos(exportDatabase), getOperatorID(), exportDatabase->getExpressionsForPrinting(),
-        std::move(children));
+        getOutputPos(exportDatabase), getOperatorID(), std::move(children), std::move(printInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapImportDatabase(
     planner::LogicalOperator* logicalOperator) {
     auto importDatabase = logicalOperator->constPtrCast<LogicalImportDatabase>();
+    auto printInfo = std::make_unique<OPPrintInfo>(importDatabase->getExpressionsForPrinting());
     return std::make_unique<ImportDB>(importDatabase->getQuery(), getOutputPos(importDatabase),
-        getOperatorID(), importDatabase->getExpressionsForPrinting());
+        getOperatorID(), std::move(printInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapExtension(
     planner::LogicalOperator* logicalOperator) {
     auto logicalExtension = logicalOperator->constPtrCast<LogicalExtension>();
     auto outputPos = getOutputPos(logicalExtension);
+    auto printInfo = std::make_unique<OPPrintInfo>(logicalExtension->getExpressionsForPrinting());
     switch (logicalExtension->getAction()) {
     case ExtensionAction::INSTALL:
         return std::make_unique<InstallExtension>(logicalExtension->getPath(), outputPos,
-            getOperatorID(), logicalExtension->getExpressionsForPrinting());
+            getOperatorID(), std::move(printInfo));
     case ExtensionAction::LOAD:
         return std::make_unique<LoadExtension>(logicalExtension->getPath(), outputPos,
-            getOperatorID(), logicalExtension->getExpressionsForPrinting());
+            getOperatorID(), std::move(printInfo));
     default:
         KU_UNREACHABLE;
     }

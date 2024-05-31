@@ -26,7 +26,7 @@ std::unique_ptr<PhysicalOperator> DeleteNode::clone() {
         executorsCopy.push_back(executor->copy());
     }
     return std::make_unique<DeleteNode>(std::move(executorsCopy), children[0]->clone(), id,
-        paramsString);
+        printInfo->copy());
 }
 
 void DeleteRel::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
@@ -52,7 +52,7 @@ std::unique_ptr<PhysicalOperator> DeleteRel::clone() {
         executorsCopy.push_back(executor->copy());
     }
     return std::make_unique<DeleteRel>(std::move(executorsCopy), children[0]->clone(), id,
-        paramsString);
+        printInfo->copy());
 }
 
 } // namespace processor

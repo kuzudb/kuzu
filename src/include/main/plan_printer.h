@@ -96,9 +96,9 @@ public:
 
     std::ostringstream printPlanToOstream();
 
-    static inline std::string getOperatorName(processor::PhysicalOperator* physicalOperator);
+    static std::string getOperatorName(processor::PhysicalOperator* physicalOperator);
 
-    static inline std::string getOperatorParams(processor::PhysicalOperator* physicalOperator);
+    static std::string getOperatorParams(processor::PhysicalOperator* physicalOperator);
 
 private:
     nlohmann::json toJson(processor::PhysicalOperator* physicalOperator,

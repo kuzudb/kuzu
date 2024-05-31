@@ -39,7 +39,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
             auto& recursiveJoin = physicalOp->constCast<RecursiveJoin>();
             initMaskIdx(masksPerTable, recursiveJoin.getSemiMask());
         } break;
-        case PhysicalOperatorType::IN_QUERY_CALL: {
+        case PhysicalOperatorType::TABLE_FUNCTION_CALL: {
             KU_ASSERT(physicalOp->getChild(0)->getOperatorType() == PhysicalOperatorType::GDS_CALL);
             auto gds = physicalOp->getChild(0)->ptrCast<GDSCall>();
             KU_ASSERT(gds->hasSemiMask());
@@ -51,23 +51,24 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
     }
     auto keyPos = DataPos(inSchema->getExpressionPos(*semiMasker.getKey()));
     auto info = std::make_unique<SemiMaskerInfo>(keyPos, std::move(masksPerTable));
+    auto printInfo = std::make_unique<OPPrintInfo>(semiMasker.getExpressionsForPrinting());
     switch (semiMasker.getType()) {
     case planner::SemiMaskConstructionType::NODE: {
         if (tableIDs.size() > 1) {
             return std::make_unique<MultiTableSemiMasker>(std::move(info), std::move(prevOperator),
-                getOperatorID(), semiMasker.getExpressionsForPrinting());
+                getOperatorID(), std::move(printInfo));
         } else {
             return std::make_unique<SingleTableSemiMasker>(std::move(info), std::move(prevOperator),
-                getOperatorID(), semiMasker.getExpressionsForPrinting());
+                getOperatorID(), std::move(printInfo));
         }
     }
     case planner::SemiMaskConstructionType::PATH: {
         if (tableIDs.size() > 1) {
             return std::make_unique<PathMultipleTableSemiMasker>(std::move(info),
-                std::move(prevOperator), getOperatorID(), semiMasker.getExpressionsForPrinting());
+                std::move(prevOperator), getOperatorID(), std::move(printInfo));
         } else {
             return std::make_unique<PathSingleTableSemiMasker>(std::move(info),
-                std::move(prevOperator), getOperatorID(), semiMasker.getExpressionsForPrinting());
+                std::move(prevOperator), getOperatorID(), std::move(printInfo));
         }
     }
     default:

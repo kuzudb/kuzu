@@ -20,7 +20,7 @@ public:
 
     std::pair<uint64_t, uint64_t> getNextRangeToRead() override;
 
-    inline function::AggregateState* getAggregateState(uint64_t idx) {
+    function::AggregateState* getAggregateState(uint64_t idx) {
         return globalAggregateStates[idx].get();
     }
 
@@ -33,10 +33,9 @@ public:
     SimpleAggregate(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::shared_ptr<SimpleAggregateSharedState> sharedState,
         std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
-        std::vector<AggregateInfo> aggInfos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        const std::string& paramsString)
+        std::vector<AggregateInfo> aggInfos, std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
         : BaseAggregate{std::move(resultSetDescriptor), std::move(aggregateFunctions),
-              std::move(aggInfos), std::move(child), id, paramsString},
+              std::move(aggInfos), std::move(child), id, std::move(printInfo)},
           sharedState{std::move(sharedState)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
@@ -49,7 +48,7 @@ public:
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<SimpleAggregate>(resultSetDescriptor->copy(), sharedState,
-            cloneAggFunctions(), copyVector(aggInfos), children[0]->clone(), id, paramsString);
+            cloneAggFunctions(), copyVector(aggInfos), children[0]->clone(), id, printInfo->copy());
     }
 
 private:

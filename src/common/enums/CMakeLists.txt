@@ -1,5 +1,6 @@
 add_library(kuzu_common_enums
         OBJECT
+        accumulate_type.cpp
         path_semantic.cpp
         rel_direction.cpp
         rel_multiplicity.cpp

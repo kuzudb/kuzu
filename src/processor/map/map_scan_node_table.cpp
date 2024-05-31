@@ -51,10 +51,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
         sharedStates.push_back(std::make_shared<ScanNodeTableSharedState>(std::move(semiMask)));
     }
 
+    auto printInfo = std::make_unique<OPPrintInfo>(scan.getExpressionsForPrinting());
     switch (scan.getScanType()) {
     case LogicalScanNodeTableType::SCAN: {
         return std::make_unique<ScanNodeTable>(std::move(scanInfo), std::move(tableInfos),
-            std::move(sharedStates), getOperatorID(), scan.getExpressionsForPrinting());
+            std::move(sharedStates), getOperatorID(), std::move(printInfo));
     }
     case LogicalScanNodeTableType::OFFSET_SCAN: {
         common::table_id_map_t<ScanNodeTableInfo> tableInfosMap;
@@ -62,15 +63,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
             tableInfosMap.insert({info.table->getTableID(), info.copy()});
         }
         return std::make_unique<OffsetScanNodeTable>(std::move(scanInfo), std::move(tableInfosMap),
-            getOperatorID(), scan.getExpressionsForPrinting());
+            getOperatorID(), std::move(printInfo));
     }
     case LogicalScanNodeTableType::PRIMARY_KEY_SCAN: {
         auto& primaryKeyScanInfo = scan.getExtraInfo()->constCast<PrimaryKeyScanInfo>();
         auto evaluator = ExpressionMapper::getEvaluator(primaryKeyScanInfo.key, outSchema);
         auto sharedState = std::make_shared<PrimaryKeyScanSharedState>(tableInfos.size());
         return std::make_unique<PrimaryKeyScanNodeTable>(std::move(scanInfo), std::move(tableInfos),
-            std::move(evaluator), std::move(sharedState), getOperatorID(),
-            scan.getExpressionsForPrinting());
+            std::move(evaluator), std::move(sharedState), getOperatorID(), std::move(printInfo));
     }
     default:
         KU_UNREACHABLE;

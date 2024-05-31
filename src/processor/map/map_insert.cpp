@@ -84,13 +84,13 @@ std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapInsert(LogicalOperator* logicalOperator) {
-    auto logicalInsert = ku_dynamic_cast<LogicalOperator*, LogicalInsert*>(logicalOperator);
-    auto inSchema = logicalInsert->getChild(0)->getSchema();
-    auto outSchema = logicalInsert->getSchema();
+    auto& logicalInsert = logicalOperator->constCast<LogicalInsert>();
+    auto inSchema = logicalInsert.getChild(0)->getSchema();
+    auto outSchema = logicalInsert.getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     std::vector<NodeInsertExecutor> nodeExecutors;
     std::vector<RelInsertExecutor> relExecutors;
-    for (auto& info : logicalInsert->getInfosRef()) {
+    for (auto& info : logicalInsert.getInfosRef()) {
         switch (info.tableType) {
         case TableType::NODE: {
             nodeExecutors.push_back(getNodeInsertExecutor(&info, *inSchema, *outSchema)->copy());
@@ -102,8 +102,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapInsert(LogicalOperator* logical
             KU_UNREACHABLE;
         }
     }
+    auto printInfo = std::make_unique<OPPrintInfo>(logicalInsert.getExpressionsForPrinting());
     return std::make_unique<Insert>(std::move(nodeExecutors), std::move(relExecutors),
-        std::move(prevOperator), getOperatorID(), logicalOperator->getExpressionsForPrinting());
+        std::move(prevOperator), getOperatorID(), std::move(printInfo));
 }
 
 } // namespace processor

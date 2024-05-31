@@ -97,6 +97,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
         outVectorsPos.push_back(getDataPos(*expression, *outFSchema));
     }
     auto scanInfo = ScanTableInfo(inNodeIDPos, outVectorsPos);
+    auto printInfo = std::make_unique<OPPrintInfo>(extend->getExpressionsForPrinting());
     if (scanSingleRelTable(*rel, *boundNode, extendDirection)) {
         auto relTableID = rel->getSingleTableID();
         auto entry =
@@ -107,7 +108,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
         auto scanRelInfo = getRelTableScanInfo(*entry, relDataDirection, relTable,
             extend->getProperties(), extend->getPropertyPredicates());
         return std::make_unique<ScanRelTable>(std::move(scanInfo), std::move(scanRelInfo),
-            std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
+            std::move(prevOperator), getOperatorID(), printInfo->copy());
     }
     // map to generic extend
     auto directionInfo = DirectionInfo();
@@ -124,8 +125,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
         }
     }
     return std::make_unique<ScanMultiRelTable>(std::move(scanInfo), std::move(directionInfo),
-        std::move(scanners), std::move(prevOperator), getOperatorID(),
-        extend->getExpressionsForPrinting());
+        std::move(scanners), std::move(prevOperator), getOperatorID(), printInfo->copy());
 }
 
 } // namespace processor

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <iterator>
 #include <memory>
 #include <vector>
+#include <iterator>
 
 namespace kuzu {
 namespace storage {

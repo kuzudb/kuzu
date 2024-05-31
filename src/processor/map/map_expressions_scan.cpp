@@ -5,29 +5,29 @@
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
+using namespace kuzu::planner;
 
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapExpressionsScan(
-    planner::LogicalOperator* logicalOperator) {
-    auto expressionsScan = (planner::LogicalExpressionsScan*)logicalOperator;
-    auto outerAccumulate = (planner::LogicalAccumulate*)expressionsScan->getOuterAccumulate();
+std::unique_ptr<PhysicalOperator> PlanMapper::mapExpressionsScan(LogicalOperator* logicalOperator) {
+    auto& expressionsScan = logicalOperator->constCast<LogicalExpressionsScan>();
+    auto outerAccumulate = expressionsScan.getOuterAccumulate()->ptrCast<LogicalAccumulate>();
     expression_map<ft_col_idx_t> materializedExpressionToColIdx;
     auto materializedExpressions = outerAccumulate->getPayloads();
     for (auto i = 0u; i < materializedExpressions.size(); ++i) {
         materializedExpressionToColIdx.insert({materializedExpressions[i], i});
     }
-    auto expressionsToScan = expressionsScan->getExpressions();
+    auto expressionsToScan = expressionsScan.getExpressions();
     std::vector<ft_col_idx_t> colIndicesToScan;
     for (auto& expression : expressionsToScan) {
         KU_ASSERT(materializedExpressionToColIdx.contains(expression));
         colIndicesToScan.push_back(materializedExpressionToColIdx.at(expression));
     }
-    auto schema = expressionsScan->getSchema();
+    auto schema = expressionsScan.getSchema();
     KU_ASSERT(logicalOpToPhysicalOpMap.contains(outerAccumulate));
     auto physicalOp = logicalOpToPhysicalOpMap.at(outerAccumulate);
-    KU_ASSERT(physicalOp->getOperatorType() == PhysicalOperatorType::IN_QUERY_CALL);
+    KU_ASSERT(physicalOp->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL);
     KU_ASSERT(physicalOp->getChild(0)->getOperatorType() == PhysicalOperatorType::RESULT_COLLECTOR);
     auto resultCollector = (ResultCollector*)physicalOp->getChild(0);
     auto table = resultCollector->getResultFactorizedTable();

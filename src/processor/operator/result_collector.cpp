@@ -6,14 +6,27 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
+std::string ResultCollectorPrintInfo::toString() const {
+    std::string result = "";
+    if (accumulateType == AccumulateType::OPTIONAL_) {
+        result += "Type: " + AccumulateTypeUtil::toString(accumulateType) + ".\n";
+    }
+    result += "Expressions: [";
+    for (auto& expr : expressions) {
+        result += expr->toString() + ", ";
+    }
+    result += "])";
+    return result;
+}
+
 void ResultCollector::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    payloadVectors.reserve(info->payloadPositions.size());
-    for (auto& pos : info->payloadPositions) {
+    payloadVectors.reserve(info.payloadPositions.size());
+    for (auto& pos : info.payloadPositions) {
         auto vec = resultSet->getValueVector(pos).get();
         payloadVectors.push_back(vec);
         payloadAndMarkVectors.push_back(vec);
     }
-    if (info->accumulateType == AccumulateType::OPTIONAL_) {
+    if (info.accumulateType == AccumulateType::OPTIONAL_) {
         markVector = std::make_unique<ValueVector>(*LogicalType::BOOL(),
             context->clientContext->getMemoryManager());
         markVector->state = DataChunkState::getSingleValueDataChunkState();
@@ -21,7 +34,7 @@ void ResultCollector::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         payloadAndMarkVectors.push_back(markVector.get());
     }
     localTable = std::make_unique<FactorizedTable>(context->clientContext->getMemoryManager(),
-        info->tableSchema.copy());
+        info.tableSchema.copy());
 }
 
 void ResultCollector::executeInternal(ExecutionContext* context) {
@@ -38,7 +51,7 @@ void ResultCollector::executeInternal(ExecutionContext* context) {
 }
 
 void ResultCollector::finalize(ExecutionContext* /*context*/) {
-    switch (info->accumulateType) {
+    switch (info.accumulateType) {
     case AccumulateType::OPTIONAL_: {
         // We should remove currIdx completely as some of the code still relies on currIdx = -1 to
         // check if the state if unFlat or not. This should no longer be necessary.
