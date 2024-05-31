@@ -28,14 +28,14 @@ public:
 
     virtual std::unique_ptr<ExpressionEvaluator> clone() = 0;
 
+    static std::vector<std::unique_ptr<ExpressionEvaluator>> copy(
+        const std::vector<std::unique_ptr<ExpressionEvaluator>>& evaluators);
+
 protected:
     virtual void resolveResultVector(const processor::ResultSet& resultSet,
         storage::MemoryManager* memoryManager) = 0;
 
     void resolveResultStateFromChildren(const std::vector<ExpressionEvaluator*>& inputEvaluators);
-
-    static std::vector<std::unique_ptr<ExpressionEvaluator>> copy(
-        const std::vector<std::unique_ptr<ExpressionEvaluator>>& evaluators);
 
 public:
     std::shared_ptr<common::ValueVector> resultVector;

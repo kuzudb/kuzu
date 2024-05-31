@@ -14,7 +14,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
     auto& literalExpression = parsedExpression.constCast<ParsedLiteralExpression>();
     auto value = literalExpression.getValue();
     if (value.isNull()) {
-        return createNullLiteralExpression();
+        return createNullLiteralExpression(value);
     }
     return createLiteralExpression(value);
 }
@@ -31,6 +31,10 @@ std::shared_ptr<Expression> ExpressionBinder::createLiteralExpression(const std:
 std::shared_ptr<Expression> ExpressionBinder::createNullLiteralExpression() {
     return make_shared<LiteralExpression>(Value::createNullValue(),
         binder->getUniqueExpressionName("NULL"));
+}
+
+std::shared_ptr<Expression> ExpressionBinder::createNullLiteralExpression(const Value& value) {
+    return make_shared<LiteralExpression>(value, binder->getUniqueExpressionName("NULL"));
 }
 
 } // namespace binder

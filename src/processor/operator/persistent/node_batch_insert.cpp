@@ -77,14 +77,9 @@ void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     }
 }
 
-void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*) {
+void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     std::shared_ptr<DataChunkState> state;
     auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
-    for (auto& pos : nodeInfo->columnPositions) {
-        if (pos.isValid()) {
-            state = resultSet->getValueVector(pos)->state;
-        }
-    }
 
     auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
@@ -97,23 +92,52 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     }
     // NOLINTEND(bugprone-unchecked-optional-access)
 
-    KU_ASSERT(state != nullptr);
-    for (auto i = 0u; i < nodeInfo->columnPositions.size(); ++i) {
-        auto pos = nodeInfo->columnPositions[i];
-        if (pos.isValid()) {
-            nodeLocalState->columnVectors.push_back(resultSet->getValueVector(pos).get());
-        } else {
-            auto& columnType = nodeInfo->columnTypes[i];
-            auto nullVector = std::make_shared<ValueVector>(columnType);
-            nullVector->setState(state);
-            nullVector->setAllNull();
-            nodeLocalState->nullColumnVectors.push_back(nullVector);
-            nodeLocalState->columnVectors.push_back(nullVector.get());
+    auto numColumns = nodeInfo->columnEvaluators.size();
+    nodeLocalState->columnVectors.resize(numColumns);
+
+    for (auto i = 0u; i < numColumns; ++i) {
+        if (!nodeInfo->defaultColumns[i]) {
+            auto& evaluator = nodeInfo->columnEvaluators[i];
+            evaluator->init(*resultSet, context->clientContext->getMemoryManager());
+            evaluator->evaluate(context->clientContext);
+            state = evaluator->resultVector->state;
+            nodeLocalState->columnVectors[i] = evaluator->resultVector.get();
         }
     }
+    KU_ASSERT(state != nullptr);
+    for (auto i = 0u; i < numColumns; ++i) {
+        if (nodeInfo->defaultColumns[i]) {
+            auto& evaluator = nodeInfo->columnEvaluators[i];
+            evaluator->init(*resultSet, context->clientContext->getMemoryManager());
+            auto& columnType = evaluator->resultVector->dataType;
+            std::shared_ptr<ValueVector> defaultVector = std::make_shared<ValueVector>(columnType);
+            defaultVector->setAllNull();
+            defaultVector->setState(state);
+            nodeLocalState->columnVectors[i] = defaultVector.get();
+            nodeLocalState->defaultColumnVectors.push_back(std::move(defaultVector));
+        }
+    }
+
     nodeLocalState->nodeGroup = NodeGroupFactory::createNodeGroup(ColumnDataFormat::REGULAR,
         nodeInfo->columnTypes, info->compressionEnabled);
-    nodeLocalState->columnState = state.get();
+    nodeLocalState->columnState = std::move(state);
+}
+
+void NodeBatchInsert::populateDefaultColumns(main::ClientContext* context) {
+    auto nodeLocalState =
+        ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
+    auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
+    auto numTuples = nodeLocalState->columnState->getSelVector().getSelSize();
+    for (auto i = 0u; i < nodeInfo->defaultColumns.size(); ++i) {
+        if (nodeInfo->defaultColumns[i]) {
+            auto defaultVector = nodeLocalState->columnVectors[i];
+            auto& defaultEvaluator = nodeInfo->columnEvaluators[i];
+            for (auto j = 0; j < numTuples; ++j) {
+                defaultEvaluator->evaluate(context);
+                defaultVector->copyFromVectorData(j, defaultEvaluator->resultVector.get(), 0);
+            }
+        }
+    }
 }
 
 void NodeBatchInsert::executeInternal(ExecutionContext* context) {
@@ -126,6 +150,7 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
 
     while (children[0]->getNextTuple(context)) {
         auto originalSelVector = nodeLocalState->columnState->getSelVectorShared();
+        populateDefaultColumns(context->clientContext);
         copyToNodeGroup(context->clientContext->getTx());
         nodeLocalState->columnState->setSelVector(originalSelVector);
     }

@@ -49,14 +49,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
     }
 }
 
-static void getNodeColumnsInCopyOrder(TableCatalogEntry* tableEntry,
-    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
-    for (auto& property : tableEntry->getPropertiesRef()) {
-        columnNames.push_back(property.getName());
-        columnTypes.push_back(*property.getDataType()->copy());
-    }
-}
-
 static void getRelColumnNamesInCopyOrder(TableCatalogEntry* tableEntry,
     std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     columnNames.emplace_back(InternalKeyword::SRC_OFFSET);
@@ -122,24 +114,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     auto pk = nodeTableEntry->getPrimaryKey();
     sharedState->pkColumnIdx = nodeTableEntry->getColumnID(pk->getPropertyID());
     sharedState->pkType = *pk->getDataType();
-    std::vector<std::string> columnNames;
-    std::vector<LogicalType> columnTypes;
-    getNodeColumnsInCopyOrder(nodeTableEntry, columnNames, columnTypes);
-    std::vector<std::string> columnNamesExcludingSerial;
-    for (auto i = 0u; i < columnNames.size(); ++i) {
-        if (columnTypes[i].getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
-            continue;
-        }
-        columnNamesExcludingSerial.push_back(columnNames[i]);
-    }
-    auto inputColumns = copyFromInfo->source->getColumns();
-    inputColumns.push_back(copyFromInfo->offset);
-    auto columnPositions =
-        getColumnDataPositions(columnNamesExcludingSerial, inputColumns, *outFSchema);
     auto containsSerial = nodeTableEntry->containPropertyType(*LogicalType::SERIAL());
-    auto info =
-        std::make_unique<NodeBatchInsertInfo>(nodeTableEntry, storageManager->compressionEnabled(),
-            std::move(columnPositions), containsSerial, std::move(columnTypes));
+    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
+    for (auto& columnExpr : copyFromInfo->columnExprs) {
+        columnEvaluators.push_back(ExpressionMapper::getEvaluator(columnExpr, outFSchema));
+    }
+    auto info = std::make_unique<NodeBatchInsertInfo>(nodeTableEntry,
+        storageManager->compressionEnabled(), containsSerial, std::move(copyFromInfo->columnTypes),
+        std::move(columnEvaluators), std::move(copyFromInfo->defaultColumns));
     return std::make_unique<NodeBatchInsert>(std::move(info), sharedState,
         std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
         getOperatorID(), copyFrom->getExpressionsForPrinting());

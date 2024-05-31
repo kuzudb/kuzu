@@ -173,7 +173,8 @@ std::unique_ptr<Statement> Transformer::transformAddProperty(
     if (addPropertyCtx->oC_Expression()) {
         defaultValue = transformExpression(*addPropertyCtx->oC_Expression());
     } else {
-        defaultValue = std::make_unique<ParsedLiteralExpression>(Value::createNullValue(), "NULL");
+        defaultValue = std::make_unique<ParsedLiteralExpression>(
+            Value::createNullValue(LogicalType::fromString(dataType)), "NULL");
     }
     auto extraInfo = std::make_unique<ExtraAddPropertyInfo>(std::move(propertyName),
         std::move(dataType), std::move(defaultValue));
@@ -218,14 +219,15 @@ std::vector<PropertyDefinitionDDL> Transformer::transformPropertyDefinitionsDDL(
     std::vector<PropertyDefinitionDDL> propertyDefns;
     for (auto property : ctx.kU_PropertyDefinitionDDL()) {
         std::unique_ptr<ParsedExpression> defaultValue;
+        auto dataType = transformDataType(*property->kU_DataType());
         if (property->oC_Expression()) {
             defaultValue = transformExpression(*property->oC_Expression());
         } else {
-            defaultValue =
-                std::make_unique<ParsedLiteralExpression>(Value::createNullValue(), "NULL");
+            defaultValue = std::make_unique<ParsedLiteralExpression>(
+                Value::createNullValue(LogicalType::fromString(dataType)), "NULL");
         }
         propertyDefns.emplace_back(transformPropertyKeyName(*property->oC_PropertyKeyName()),
-            transformDataType(*property->kU_DataType()), std::move(defaultValue));
+            std::move(dataType), std::move(defaultValue));
     }
     return propertyDefns;
 }

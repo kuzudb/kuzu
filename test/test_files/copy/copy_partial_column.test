@@ -207,3 +207,43 @@ listOfString, listOfListOfInt64, structColumn) FROM
 "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k*.parquet";
 ---- error
 Binder exception: Column `dateColumn` type mismatch. Expected DATE but got INT64.
+
+-LOG PartialColumnsDefault
+-STATEMENT CREATE NODE TABLE tableOfTypes14 (nullDateColumn DATE DEFAULT date('2022-06-06'), booleanColumn BOOLEAN, 
+                                            stringColumn STRING, int64Column INT64, nullBooleanColumn BOOLEAN DEFAULT true, 
+                                            nullStringColumn STRING DEFAULT 'default', timestampColumn TIMESTAMP, 
+                                            nullDoubleColumn DOUBLE DEFAULT 1.0, nullInt64Column INT64 DEFAULT 10,
+                                            dateColumn DATE, nullListOfInt INT64[] DEFAULT [1, 2, 3], 
+                                            doubleColumn DOUBLE, listOfInt INT64[], id INT64, 
+                                            nullTimestampColumn TIMESTAMP DEFAULT timestamp("1970-01-01 00:00:00.004666-10"),
+                                            PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY tableOfTypes14 (id, int64Column, doubleColumn, booleanColumn, dateColumn, timestampColumn, stringColumn,
+    listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
+---- ok
+-STATEMENT MATCH (row:tableOfTypes14) WHERE row.id >= 20 AND row.id <= 24 RETURN row.*;
+---- 5
+2022-06-06|False|AjbxHQThEtDDlOjbzMjCQSXlvGQEjcFLykESrnFHwPKX|7|True|default|1307-01-26 03:31:08|1.000000|10|1307-01-26|[1,2,3]|64.630960|[]|21|1970-01-01 10:00:00.004666
+2022-06-06|False|ISImRVpUjynGMFRQyYmeIUVjM|58|True|default|1181-10-16 18:19:43|1.000000|10|1181-10-16|[1,2,3]|42.774957||23|1970-01-01 10:00:00.004666
+2022-06-06|False|naDlQ|75|True|default|1942-10-24 09:30:16|1.000000|10|1942-10-24|[1,2,3]|53.813224|[97,91,28,26,]|24|1970-01-01 10:00:00.004666
+2022-06-06|True|OdM|0|True|default|1731-09-26 03:30:08|1.000000|10|1731-09-26|[1,2,3]|57.579280|[93,,86,37]|20|1970-01-01 10:00:00.004666
+2022-06-06|True|dRvHHdyNXYfSUcicaxBoQEKQUfgex|71|True|default|1455-07-26 03:07:03|1.000000|10|1455-07-26|[1,2,3]|37.963386|[72,,45,,81]|22|1970-01-01 10:00:00.004666
+
+-LOG PartialColumnsDefaultSequence
+-STATEMENT CREATE SEQUENCE seq;
+---- ok
+-STATEMENT CREATE NODE TABLE tableOfTypes15 (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN,
+                                            dateColumn DATE, timestampColumn TIMESTAMP, stringColumn STRING,
+                                            listOfInt INT64[], seqColumn INT64 DEFAULT nextval('seq'),
+                                            PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY tableOfTypes15 (id, int64Column, doubleColumn, booleanColumn, dateColumn, timestampColumn, stringColumn,
+    listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
+---- ok
+-STATEMENT MATCH (row:tableOfTypes15) WHERE row.id >= 20 AND row.id <= 24 RETURN row.*;
+---- 5
+20|0|57.579280|True|1731-09-26|1731-09-26 03:30:08|OdM|[93,,86,37]|21
+21|7|64.630960|False|1307-01-26|1307-01-26 03:31:08|AjbxHQThEtDDlOjbzMjCQSXlvGQEjcFLykESrnFHwPKX|[]|22
+22|71|37.963386|True|1455-07-26|1455-07-26 03:07:03|dRvHHdyNXYfSUcicaxBoQEKQUfgex|[72,,45,,81]|23
+23|58|42.774957|False|1181-10-16|1181-10-16 18:19:43|ISImRVpUjynGMFRQyYmeIUVjM||24
+24|75|53.813224|False|1942-10-24|1942-10-24 09:30:16|naDlQ|[97,91,28,26,]|25

@@ -62,11 +62,13 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
                           RdfResourceScan::name, functions);
     auto rScanFunc = ku_dynamic_cast<Function*, TableFunction*>(func);
     auto rColumns = expression_vector{r};
-    auto rFileScanInfo = BoundFileScanInfo(*rScanFunc, bindData->copy(), std::move(rColumns));
+    auto rFileScanInfo = BoundFileScanInfo(*rScanFunc, bindData->copy(), rColumns);
     auto rSource = std::make_unique<BoundFileScanSource>(std::move(rFileScanInfo));
     auto rTableID = rdfGraphEntry->getResourceTableID();
     auto rEntry = catalog->getTableCatalogEntry(clientContext->getTx(), rTableID);
-    auto rCopyInfo = BoundCopyFromInfo(rEntry, std::move(rSource), offset, nullptr /* extraInfo */);
+    auto rCopyInfo = BoundCopyFromInfo(rEntry, std::move(rSource), offset, std::move(rColumns),
+        logical_type_vec_t{*LogicalType::STRING()}, std::vector<bool>{false},
+        nullptr /* extraInfo */);
     // Bind copy literal.
     func = inMemory ? BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
                           RdfLiteralInMemScan::name, functions) :
@@ -74,11 +76,14 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
                           RdfLiteralScan::name, functions);
     auto lScanFunc = ku_dynamic_cast<Function*, TableFunction*>(func);
     auto lColumns = expression_vector{l, lang};
-    auto lFileScanInfo = BoundFileScanInfo(*lScanFunc, bindData->copy(), std::move(lColumns));
+    auto lFileScanInfo = BoundFileScanInfo(*lScanFunc, bindData->copy(), lColumns);
     auto lSource = std::make_unique<BoundFileScanSource>(std::move(lFileScanInfo));
     auto lTableID = rdfGraphEntry->getLiteralTableID();
     auto lEntry = catalog->getTableCatalogEntry(clientContext->getTx(), lTableID);
-    auto lCopyInfo = BoundCopyFromInfo(lEntry, std::move(lSource), offset, nullptr /* extraInfo */);
+    auto lCopyInfo = BoundCopyFromInfo(lEntry, std::move(lSource), offset, std::move(lColumns),
+        logical_type_vec_t{*LogicalType::SERIAL(), *LogicalType::RDF_VARIANT(),
+            *LogicalType::STRING()},
+        std::vector<bool>{false, false}, nullptr /* extraInfo */);
     // Bind copy resource triples
     func = inMemory ? BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
                           RdfResourceTripleInMemScan::name, functions) :

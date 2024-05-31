@@ -63,6 +63,16 @@ static void bindExpectedRelColumns(RelTableCatalogEntry* relTableEntry,
     const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
     std::vector<LogicalType>& columnTypes, main::ClientContext* context);
 
+static std::shared_ptr<Expression> matchColumnExpression(const expression_vector& columnExpressions,
+    const std::string& columnName) {
+    for (auto& expression : columnExpressions) {
+        if (columnName == expression->toString()) {
+            return expression;
+        }
+    }
+    return nullptr;
+}
+
 std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statement,
     NodeTableCatalogEntry* nodeTableEntry) {
     auto& copyStatement = ku_dynamic_cast<const Statement&, const CopyFrom&>(statement);
@@ -83,10 +93,28 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
                 FileTypeUtils::toString(bindData->config.fileType)));
         }
     }
+    expression_vector columnExprs;
+    logical_type_vec_t columnTypes;
+    std::vector<bool> defaultColumns;
+    for (auto& property : nodeTableEntry->getPropertiesRef()) {
+        columnTypes.push_back(*property.getDataType()->copy());
+        if (property.getDataType()->getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
+            continue;
+        }
+        auto expr = matchColumnExpression(boundSource->getColumns(), property.getName());
+        auto isDefault = !expr;
+        defaultColumns.emplace_back(isDefault);
+        if (isDefault) {
+            columnExprs.push_back(expressionBinder.bindExpression(*property.getDefaultExpr()));
+        } else {
+            columnExprs.push_back(std::move(expr));
+        }
+    }
     auto offset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
         std::string(InternalKeyword::ANONYMOUS));
-    auto boundCopyFromInfo =
-        BoundCopyFromInfo(nodeTableEntry, std::move(boundSource), offset, nullptr /* extraInfo */);
+    auto boundCopyFromInfo = BoundCopyFromInfo(nodeTableEntry, std::move(boundSource),
+        std::move(offset), std::move(columnExprs), std::move(columnTypes),
+        std::move(defaultColumns), nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
