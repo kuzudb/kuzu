@@ -19,10 +19,10 @@ on:
 jobs:
   benchmark:
     name: business-intelligence-benchmark
-    runs-on: kuzu-self-hosted-benchmarking
+    runs-on: kuzu-self-hosted-benchmarking-xl
     env:
       SF: ${{ github.event.inputs.scale_factor }}
-      NUM_THREADS: 30
+      NUM_THREADS: 128
 
     steps:
     - name: Checkout

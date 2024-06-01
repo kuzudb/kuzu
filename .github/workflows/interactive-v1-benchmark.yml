@@ -15,9 +15,10 @@ on:
 jobs:
   benchmark:
     name: interactive-v1-benchmark
-    runs-on: kuzu-self-hosted-benchmarking
+    runs-on: kuzu-self-hosted-benchmarking-xl
     env:
       SCALE_FACTOR: ${{ github.event.inputs.scale_factor }}
+      NUM_THREADS: 128
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -33,8 +34,8 @@ jobs:
     - name: Build kuzu
       run: |
         pip3 install -r tools/python_api/requirements_dev.txt
-        make python NUM_THREADS=$(nproc)
-        make java NUM_THREADS=$(nproc)
+        make python
+        make java
 
     - name: Clone driver
       uses: actions/checkout@v4
