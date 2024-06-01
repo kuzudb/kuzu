@@ -15,6 +15,8 @@ class TerminalProgressBarDisplay : public ProgressBarDisplay {
 public:
     TerminalProgressBarDisplay() = default; 
 
+    ~TerminalProgressBarDisplay() = default;
+
     void updateProgress(double newPipelineProgress, uint32_t newNumPipelinesFinished) override;
 
     void finishProgress() override;
