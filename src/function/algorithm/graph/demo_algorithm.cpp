@@ -100,9 +100,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(
         endOffset, startOffset, context, std::move(graphTableNames));
 }
 
-void DemoAlgorithm::compute(Sink *sink, ExecutionContext* executionContext,
-    std::shared_ptr<ParallelUtils> parallelUtils) {
-    parallelUtils->doParallel(sink, executionContext);
+void DemoAlgorithm::compute(ExecutionContext* executionContext) {
+    parallelUtils->doParallel(executionContext);
 }
 
 function::function_set DemoAlgorithm::getFunctionSet() {

@@ -12,10 +12,12 @@ struct ShortestPathAlgoSharedState;
 
 struct GraphAlgorithm {
 public:
-    GraphAlgorithm() {}
+    explicit GraphAlgorithm(std::shared_ptr<ParallelUtils> parallelUtils) : parallelUtils{std::move(parallelUtils)} {}
     virtual ~GraphAlgorithm() = default;
-    virtual void compute(Sink *sink, ExecutionContext* executionContext,
-        std::shared_ptr<ParallelUtils> parallelUtils) = 0;
+    virtual void compute(ExecutionContext* executionContext) = 0;
+
+protected:
+    std::shared_ptr<ParallelUtils> parallelUtils;
 };
 
 // CallFunction has the assumption that number of output is known before execution.
@@ -23,10 +25,9 @@ public:
 // So each algorithm need to decide its own shared state to control when to terminate.
 struct DemoAlgorithm : public GraphAlgorithm {
 public:
-    DemoAlgorithm() {}
+    explicit DemoAlgorithm(std::shared_ptr<ParallelUtils> parallelUtils) : GraphAlgorithm(parallelUtils) {}
     static constexpr const char* name = "DEMO_ALGORITHM";
-    void compute(Sink *sink, ExecutionContext* executionContext,
-        std::shared_ptr<ParallelUtils> parallelUtils) override;
+    void compute(ExecutionContext* executionContext) override;
     static function::function_set getFunctionSet();
 };
 
@@ -38,11 +39,9 @@ struct VariableLengthPath {
 
 struct ShortestPath : public GraphAlgorithm {
 public:
+    explicit ShortestPath(std::shared_ptr<ParallelUtils> parallelUtils) : GraphAlgorithm(parallelUtils) {}
     static constexpr const char* name = "SHORTEST_PATH";
-    ShortestPathAlgoSharedState* getSharedState(Sink *sink);
-    void incrementTableFuncIdx(Sink *sink);
-    void compute(Sink *sink, ExecutionContext* executionContext,
-        std::shared_ptr<ParallelUtils> parallelUtils) override;
+    void compute(ExecutionContext* executionContext) override;
     static function::function_set getFunctionSet();
 };
 
