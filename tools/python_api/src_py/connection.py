@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, List
+from typing import TYPE_CHECKING, Any, Callable
 
 from . import _kuzu
 from .prepared_statement import PreparedStatement
@@ -98,7 +98,7 @@ class Connection:
         self,
         query: str | PreparedStatement,
         parameters: dict[str, Any] | None = None,
-    ) -> QueryResult | List[QueryResult]:
+    ) -> QueryResult | list[QueryResult]:
         """
         Execute a query.
 
