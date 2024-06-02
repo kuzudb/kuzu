@@ -411,8 +411,8 @@ if __name__ == '__main__':
 
     compare_result = get_compare_result(object_id)
     with open(os.path.join(base_dir, 'compare_result.md'), 'w') as f:
-        f.write("# Benchmark Result\n")
+        f.write("# Benchmark Result\n\n")
         f.write("Master commit hash: `{}` \n".format(_get_master_commit_hash()))
-        f.write("Branch commit hash: `{}` \n".format(_get_git_revision_hash()))
+        f.write("Branch commit hash: `{}` \n\n".format(_get_git_revision_hash()))
         f.write(compare_result)
     logging.info("Compare result saved to compare_result.md")
