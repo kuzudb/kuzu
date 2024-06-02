@@ -18,3 +18,9 @@ jobs:
 
       - name: Benchmark
         run: python3 benchmark/benchmark_runner.py --dataset ldbc-sf100 --thread 10
+
+      - name: Upload comparison results
+        uses: actions/upload-artifact@v3
+        with:
+          name: comparison-results
+          path: benchmark/compare_result.md
