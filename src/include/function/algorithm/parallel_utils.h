@@ -6,6 +6,8 @@
 
 #include "common/task_system/task_scheduler.h"
 #include "function/table_functions.h"
+#include "ife_morsel.h"
+#include "processor/operator/algorithm/algorithm_runner_worker.h"
 #include "processor/operator/call/in_query_call.h"
 #include "processor/operator/sink.h"
 
@@ -16,19 +18,21 @@ namespace graph {
 
 class ParallelUtils {
 public:
-    explicit ParallelUtils(std::shared_ptr<FactorizedTable> globalFTable) :
-          globalFTable{std::move(globalFTable)}, registerMaster{false} {}
+    explicit ParallelUtils(std::unique_ptr<AlgorithmRunnerWorker> algorithmRunnerWorker) :
+    algorithmRunnerWorker{std::move(algorithmRunnerWorker)} {}
 
-    bool init();
+    inline function::TableFuncSharedState* getFuncSharedState() {
+        return algorithmRunnerWorker->getInQuerySharedState();
+    }
 
-    void mergeResults(FactorizedTable *factorizedTable);
+    inline void incrementTableFuncIdx() {
+        algorithmRunnerWorker->incrementTableFuncIdx();
+    }
 
-    void doParallel(Sink *sink, ExecutionContext* executionContext);
+    void doParallel(ExecutionContext* executionContext);
 
 private:
-    std::mutex mtx;
-    std::shared_ptr<FactorizedTable> globalFTable;
-    bool registerMaster;
+    std::unique_ptr<AlgorithmRunnerWorker> algorithmRunnerWorker;
 };
 
 } // namespace graph

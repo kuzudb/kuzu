@@ -10,7 +10,7 @@
 #include "function/table/bind_input.h"
 #include "function/table/call_functions.h"
 #include "function/table_functions.h"
-#include "processor/operator/algorithm/algorithm_runner.h"
+#include "processor/operator/algorithm/algorithm_runner_main.h"
 
 using namespace kuzu::function;
 using namespace kuzu::main;
@@ -87,9 +87,8 @@ struct ShortestPathAlgoSharedState : public CallFuncSharedState {
 struct ShortestPathAlgoLocalState : public TableFuncLocalState {
     std::unique_ptr<NbrScanState> nbrScanState;
 
-    explicit ShortestPathAlgoLocalState(storage::MemoryManager *mm) :
-          nbrScanState{std::make_unique<NbrScanState>(mm)} {}
-
+    explicit ShortestPathAlgoLocalState(storage::MemoryManager* mm)
+        : nbrScanState{std::make_unique<NbrScanState>(mm)} {}
 };
 
 std::unique_ptr<TableFuncSharedState> shortestPathAlgoInitSharedState(
@@ -188,28 +187,18 @@ static common::offset_t shortestPathOutputFunc(TableFuncInput& input, TableFuncO
     return pos;
 }
 
-ShortestPathAlgoSharedState* ShortestPath::getSharedState(Sink* sink) {
-    auto algorithmRunner = ku_dynamic_cast<Sink*, AlgorithmRunner*>(sink);
-    auto sharedState = algorithmRunner->getFuncSharedState();
-    return ku_dynamic_cast<TableFuncSharedState*, ShortestPathAlgoSharedState*>(sharedState);
-}
-
-void ShortestPath::incrementTableFuncIdx(kuzu::processor::Sink* sink) {
-    auto algorithmRunner = ku_dynamic_cast<Sink*, AlgorithmRunner*>(sink);
-    algorithmRunner->incrementTableFuncIdx();
-}
-
-void ShortestPath::compute(Sink* sink, ExecutionContext* executionContext,
-    std::shared_ptr<ParallelUtils> parallelUtils) {
-    auto shortestPathSharedState = getSharedState(sink);
-    auto ifeMorsel = shortestPathSharedState->ifeMorsel.get();
-    ifeMorsel->initSourceNoLock(shortestPathSharedState->srcOffset);
+void ShortestPath::compute(ExecutionContext* executionContext) {
+    auto tableFuncSharedState = parallelUtils->getFuncSharedState();
+    auto algoSharedState = ku_dynamic_cast<TableFuncSharedState*, ShortestPathAlgoSharedState*>(
+        tableFuncSharedState);
+    auto& ifeMorsel = algoSharedState->ifeMorsel;
+    ifeMorsel->initSourceNoLock(algoSharedState->srcOffset);
     while (!ifeMorsel->isCompleteNoLock()) {
-        parallelUtils->doParallel(sink, executionContext);
+        parallelUtils->doParallel(executionContext);
         ifeMorsel->initializeNextFrontierNoLock();
     }
-    incrementTableFuncIdx(sink);
-    parallelUtils->doParallel(sink, executionContext);
+    parallelUtils->incrementTableFuncIdx();
+    parallelUtils->doParallel(executionContext);
 }
 
 function::function_set ShortestPath::getFunctionSet() {
