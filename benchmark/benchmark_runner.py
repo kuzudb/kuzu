@@ -347,6 +347,7 @@ def upload_benchmark_result(database_size=None):
         logging.error(
             "An error has occurred while uploading benchmark result!")
         sys.exit(1)
+    return response
 
 def get_compare_result(report_id):
     master_commit_hash = _get_master_commit_hash()
