@@ -98,7 +98,7 @@ class Connection:
         self,
         query: str | PreparedStatement,
         parameters: dict[str, Any] | None = None,
-    ) -> QueryResult | [QueryResult]:
+    ) -> QueryResult | list[QueryResult]:
         """
         Execute a query.
 
