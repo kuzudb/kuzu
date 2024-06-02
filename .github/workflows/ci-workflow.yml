@@ -403,7 +403,7 @@ jobs:
 
   benchmark:
     name: benchmark
-    # needs: [gcc-build-test, clang-build-test]
+    needs: [gcc-build-test, clang-build-test]
     uses: ./.github/workflows/benchmark-workflow.yml
   
   report-benchmark-result:
