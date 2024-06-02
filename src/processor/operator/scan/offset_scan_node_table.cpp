@@ -14,7 +14,8 @@ void OffsetScanNodeTable::init(common::nodeID_t nodeID) {
 void OffsetScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
     for (auto& [_, nodeInfo] : tableIDToNodeInfo) {
-        nodeInfo.localScanState = std::make_unique<NodeTableScanState>(nodeInfo.columnIDs);
+        nodeInfo.localScanState =
+            std::make_unique<NodeTableScanState>(nodeInfo.table->getTableID(), nodeInfo.columnIDs);
         initVectors(*nodeInfo.localScanState, *resultSet);
     }
 }

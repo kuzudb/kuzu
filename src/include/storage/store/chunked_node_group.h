@@ -12,7 +12,6 @@ class Column;
 
 class ChunkedNodeGroup {
 public:
-    // TODO: Figure out a correct consutrctor to pass in startNodeOffset.
     explicit ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks)
         : ChunkedNodeGroup{std::move(chunks), common::INVALID_OFFSET} {}
     explicit ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks,
@@ -20,7 +19,7 @@ public:
         : chunks{std::move(chunks)}, nodeGroupIdx{common::INVALID_NODE_GROUP_IDX},
           startNodeOffset{startNodeOffset}, capacity{common::StorageConstants::NODE_GROUP_SIZE} {
         numRows = this->chunks.empty() ? 0 : this->chunks[0]->getNumValues();
-        for (auto columnID = 1; columnID < this->chunks.size(); columnID++) {
+        for (auto columnID = 1u; columnID < this->chunks.size(); columnID++) {
             KU_ASSERT(this->chunks[columnID]->getNumValues() == numRows);
         }
     }

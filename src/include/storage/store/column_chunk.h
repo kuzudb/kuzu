@@ -160,8 +160,8 @@ private:
 protected:
     using flush_buffer_func_t = std::function<ColumnChunkMetadata(const uint8_t*, uint64_t,
         BMFileHandle*, common::page_idx_t, const ColumnChunkMetadata&)>;
-    using get_metadata_func_t =
-        std::function<ColumnChunkMetadata(const uint8_t*, uint64_t, uint64_t, uint64_t)>;
+    using get_metadata_func_t = std::function<ColumnChunkMetadata(const uint8_t*, uint64_t,
+        uint64_t, uint64_t, StorageValue, StorageValue)>;
 
     ColumnChunkedType type;
     common::LogicalType dataType;
