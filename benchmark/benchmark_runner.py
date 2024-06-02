@@ -354,7 +354,7 @@ def get_compare_result(report_id):
     params = {
         'master_commit_hash': master_commit_hash,
         'branch_result_id': report_id,
-        'compare_highlight_threshold': 10,
+        'compare_highlight_threshold': 20,
     }
 
     url = benchmark_server_url + '/compare'
