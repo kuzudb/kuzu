@@ -60,18 +60,18 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
 }
 
 void NodeTable::initializeScanState(Transaction* transaction, TableScanState& scanState) const {
-    switch (scanState.source) {
+    switch (auto& nodeScanState = scanState.cast<NodeTableScanState>(); nodeScanState.source) {
     case TableScanSource::COMMITTED: {
-        auto& nodeScanState = scanState.cast<NodeTableScanState>();
-        // TODO(Guodong): Should we move nodeGroup into nodeGroupScanState?
         nodeScanState.nodeGroup = &deltaNodeGroups->getNodeGroup(scanState.nodeGroupIdx);
         nodeScanState.nodeGroup->initializeScanState(transaction, scanState);
-        for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
-            nodeScanState.columns[i] = tableData->getColumn(scanState.columnIDs[i]);
-        }
     } break;
     case TableScanSource::UNCOMMITTED: {
-        scanState.cast<NodeTableScanState>().localNodeTable->initializeScanState(scanState);
+        const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+            LocalStorage::NotExistAction::RETURN_NULL);
+        KU_ASSERT(localTable);
+        auto& localNodeTable = localTable->cast<LocalNodeTable>();
+        nodeScanState.nodeGroup = &localNodeTable.getNodeGroup(scanState.nodeGroupIdx);
+        nodeScanState.nodeGroup->initializeScanState(transaction, scanState);
     } break;
     default: {
         // DO NOTHING.
@@ -86,54 +86,12 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
         (void)outputVector;
         KU_ASSERT(outputVector->state == scanState.nodeIDVector->state);
     }
-    auto& nodeScanState = scanState.cast<NodeTableScanState>();
-    if (!nodeScanState.nextVector()) {
-        return false;
-    }
-    switch (scanState.source) {
-    case TableScanSource::UNCOMMITTED: {
-        return scanUnCommitted(nodeScanState);
-    }
-    case TableScanSource::COMMITTED: {
-        return scanCommitted(transaction, nodeScanState);
-    }
-    default: {
-        KU_ASSERT(false);
-        return false;
-    }
-    }
+    return scanState.cast<NodeTableScanState>().nodeGroup->scan(transaction, scanState);
 }
 
-void NodeTable::lookup(transaction::Transaction* transaction, TableScanState& scanState) {
+void NodeTable::lookup(Transaction* transaction, TableScanState& scanState) const {
     KU_ASSERT(scanState.nodeIDVector->state->getSelVector().getSelSize() == 1);
-    tableData->lookup(transaction, *scanState.dataScanState, *scanState.nodeIDVector,
-        scanState.outputVectors);
-}
-
-bool NodeTable::scanUnCommitted(NodeTableScanState& scanState) {
-    scanState.localNodeTable->scan(scanState);
-    return true;
-}
-
-bool NodeTable::scanCommitted(Transaction* transaction, NodeTableScanState& scanState) {
-    KU_ASSERT(scanState.source == TableScanSource::COMMITTED);
-    // const auto tableStats =
-    // getNodeStatisticsAndDeletedIDs()->getNodeStatisticsAndDeletedIDs(transaction, tableID);
-    // tableStats->setDeletedNodeOffsetsForVector(scanState.nodeIDVector, scanState.nodeGroupIdx,
-    // scanState.vectorIdx, scanState.numRowsToScan);
-    scanState.nodeGroup->scan(transaction, scanState);
-
-    // tableData->scan(transaction, *scanState.dataScanState, *scanState.nodeIDVector,
-    // scanState.outputVectors);
-
-    // TODO(Guodong): This should be reworked to scan updates from committed node groups.
-    // Scan updates from local storage.
-    // if (scanState.localNodeTable) {
-    // KU_ASSERT(transaction->isWriteTransaction());
-    // scanState.localNodeTable->lookup(*scanState.nodeIDVector, scanState.columnIDs,
-    // scanState.outputVectors);
-    // }
-    return true;
+    scanState.constCast<NodeTableScanState>().nodeGroup->lookup(transaction, scanState);
 }
 
 offset_t NodeTable::validateUniquenessConstraint(Transaction* transaction,
@@ -220,7 +178,7 @@ offset_t NodeTable::append(Transaction* transaction, ChunkedNodeGroup* chunkedGr
 
 void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
     std::unique_lock xLck{mtx};
-    const auto localNodeTable = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable);
+    auto& localNodeTable = localTable->cast<LocalNodeTable>();
     // 1. Grab a set of node offsets from table statistics for local insertions.
     const auto nodesStats =
         ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics);
@@ -229,31 +187,33 @@ void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) 
 
     // 2. Populate hash index.
     std::vector<column_id_t> columnsToScan{pkColumnID};
-    const auto state = std::make_shared<DataChunkState>();
+    const auto dataChunkState = std::make_shared<DataChunkState>();
     ValueVector nodeIDVector(*LogicalType::INTERNAL_ID());
-    nodeIDVector.setState(state);
+    nodeIDVector.setState(dataChunkState);
     ValueVector pkVector(tableData->getColumn(pkColumnID)->getDataType());
-    pkVector.setState(state);
+    pkVector.setState(dataChunkState);
     std::vector<ValueVector*> outputVectors{&pkVector};
+    node_group_idx_t nodeGroupToScan = 0u;
+    auto numNodeGroupsToScan = localNodeTable.getNumNodeGroups();
     const auto scanState =
         std::make_unique<NodeTableScanState>(tableID, &nodeIDVector, columnsToScan, outputVectors);
     scanState->source = TableScanSource::UNCOMMITTED;
-    scanState->localNodeTable = localNodeTable;
-    localNodeTable->initializeScanState(*scanState);
-    auto& nodeScanState = scanState->cast<NodeTableScanState>();
-    while (nodeScanState.nextVector()) {
-        localNodeTable->scan(*scanState);
-        KU_ASSERT(nodeScanState.numRowsToScan ==
-                  scanState->nodeIDVector->state->getSelVector().getSelSize());
-        for (auto i = 0u; i < scanState->nodeIDVector->state->getSelVector().getSelSize(); i++) {
-            scanState->nodeIDVector->setValue(i, nodeID_t{startNodeOffset + i, tableID});
+    while (nodeGroupToScan < numNodeGroupsToScan) {
+        scanState->nodeGroup = &localNodeTable.getNodeGroup(nodeGroupToScan);
+        scanState->nodeGroup->initializeScanState(transaction, *scanState);
+        while (scanState->nodeGroup->scan(transaction, *scanState)) {
+            const auto numRowsScanned = scanState->nodeIDVector->state->getSelVector().getSelSize();
+            for (auto i = 0u; i < numRowsScanned; i++) {
+                scanState->nodeIDVector->setValue(i, nodeID_t{startNodeOffset + i, tableID});
+            }
+            insertPK(nodeIDVector, pkVector);
+            startNodeOffset += numRowsScanned;
         }
-        insertPK(nodeIDVector, pkVector);
-        startNodeOffset += nodeScanState.numRowsToScan;
+        nodeGroupToScan++;
     }
 
     // 3. Append the node groups to the table data.
-    deltaNodeGroups->append(localNodeTable->getChunkedGroups());
+    deltaNodeGroups->append(localNodeTable.getNodeGroups());
 
     if (pkIndex) {
         pkIndex->prepareCommit();

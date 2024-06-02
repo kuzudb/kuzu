@@ -11,11 +11,16 @@ class TableData;
 
 class NodeGroupCollection {
 public:
-    NodeGroupCollection() = default;
+    explicit NodeGroupCollection() : startNodeOffset{0}, dataFH{nullptr} {}
     explicit NodeGroupCollection(const std::vector<common::LogicalType>& types,
-        BMFileHandle* dataFH, const TableData& tableData);
+        common::offset_t startNodeOffset = 0);
+    NodeGroupCollection(const std::vector<common::LogicalType>& types, BMFileHandle* dataFH,
+        const TableData& tableData);
 
+    void append(std::vector<common::ValueVector*> vectors);
     void append(const ChunkedNodeGroupCollection& chunkedGroupCollection);
+    void append(const NodeGroupCollection& other);
+
     common::row_idx_t getNumRows();
     common::node_group_idx_t getNumNodeGroups() {
         std::shared_lock sLck{mtx};
@@ -40,9 +45,10 @@ public:
 
 private:
     std::shared_mutex mtx;
+    common::offset_t startNodeOffset;
     std::vector<common::LogicalType> types;
     std::vector<std::unique_ptr<NodeGroup>> nodeGroups;
-    BMFileHandle* dataFH = nullptr;
+    BMFileHandle* dataFH;
 };
 
 } // namespace storage

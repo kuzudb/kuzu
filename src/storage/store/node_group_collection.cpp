@@ -11,9 +11,13 @@ namespace kuzu {
 namespace storage {
 
 NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
+    offset_t startNodeOffset)
+    : startNodeOffset{startNodeOffset}, types{types}, dataFH{nullptr} {}
+
+NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
     BMFileHandle* dataFH, const TableData& tableData)
-    : types{types}, dataFH{dataFH} {
-    auto numNodeGroups = tableData.getNumCommittedNodeGroups();
+    : startNodeOffset{0}, types{types}, dataFH{dataFH} {
+    const auto numNodeGroups = tableData.getNumCommittedNodeGroups();
     nodeGroups.reserve(numNodeGroups);
     for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
         auto nodeGroup = std::make_unique<NodeGroup>(nodeGroupIdx, types);
@@ -21,6 +25,10 @@ NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
         nodeGroup->merge(&DUMMY_WRITE_TRANSACTION, std::move(chunkedGroup));
         nodeGroups.push_back(std::move(nodeGroup));
     }
+}
+
+void NodeGroupCollection::append(std::vector<ValueVector*> vectors) {
+    // TODO: Implement this.
 }
 
 void NodeGroupCollection::append(const ChunkedNodeGroupCollection& chunkedGroupCollection) {
@@ -46,6 +54,10 @@ void NodeGroupCollection::append(const ChunkedNodeGroupCollection& chunkedGroupC
     }
 }
 
+void NodeGroupCollection::append(const NodeGroupCollection& other) {
+    // TODO: Implement this.
+}
+
 row_idx_t NodeGroupCollection::getNumRows() {
     std::shared_lock sLck{mtx};
     row_idx_t numRows = 0;
@@ -64,7 +76,7 @@ void NodeGroupCollection::merge(Transaction* transaction, node_group_idx_t nodeG
             nodeGroups[nodeGroupIdx] = std::make_unique<NodeGroup>(nodeGroupIdx, types);
         }
     }
-    if (chunkedGroup.isFull()) {
+    if (dataFH && chunkedGroup.isFull()) {
         // Flush chunks to disk.
         auto flushedChunkedGroup = chunkedGroup.flush(*dataFH);
         auto flushedNodeGroup = std::make_unique<NodeGroup>(nodeGroupIdx, types);
@@ -78,7 +90,7 @@ void NodeGroupCollection::merge(Transaction* transaction, node_group_idx_t nodeG
         auto& nodeGroup = *nodeGroups[nodeGroupIdx];
         // TODO: Should grad a lock on the node group.
         nodeGroup.append(transaction, chunkedGroup);
-        if (nodeGroup.isFull()) {
+        if (dataFH && nodeGroup.isFull()) {
             nodeGroup.flush(*dataFH);
         }
     }

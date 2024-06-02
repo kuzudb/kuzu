@@ -29,6 +29,7 @@ public:
         KU_ASSERT(groupIdx < chunkedGroups.size());
         return *chunkedGroups[groupIdx].get();
     }
+    const ChunkedNodeGroup& findChunkedGroupFromOffset(common::offset_t offset) const;
     ChunkedNodeGroup& getChunkedGroupUnsafe(common::node_group_idx_t groupIdx) const {
         KU_ASSERT(groupIdx < chunkedGroups.size());
         return *chunkedGroups[groupIdx].get();

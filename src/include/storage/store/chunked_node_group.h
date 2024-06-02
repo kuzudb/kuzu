@@ -65,6 +65,8 @@ public:
     void scan(const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors, common::offset_t offset,
         common::length_t length) const;
+    void lookup(const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<common::ValueVector*>& outputVectors, common::offset_t offset) const;
 
     void finalize(uint64_t nodeGroupIdx_);
 

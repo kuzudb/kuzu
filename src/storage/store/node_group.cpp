@@ -33,7 +33,7 @@ void NodeGroup::initializeScanState(Transaction*, TableScanState& state) const {
     }
 }
 
-void NodeGroup::scan(Transaction* transaction, TableScanState& state) const {
+bool NodeGroup::scan(Transaction* transaction, TableScanState& state) const {
     // TODO: Should handle transaction to resolve version visibility here.
     KU_ASSERT(state.source == TableScanSource::COMMITTED);
     auto& nodeGroupState = state.nodeGroupScanState;
@@ -46,7 +46,7 @@ void NodeGroup::scan(Transaction* transaction, TableScanState& state) const {
     }
     if (nodeGroupState.chunkedGroupIdx >= chunkedGroups.getNumChunkedGroups()) {
         state.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(0);
-        return;
+        return false;
     }
     auto& chunkedGroupToScan = chunkedGroups.getChunkedGroup(nodeGroupState.chunkedGroupIdx);
     const auto offsetToScan =
@@ -70,7 +70,28 @@ void NodeGroup::scan(Transaction* transaction, TableScanState& state) const {
     state.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(numRowsToScan);
 
     nodeGroupState.nextRowToScan += numRowsToScan;
+    return true;
 }
+
+void NodeGroup::lookup(Transaction* transaction, TableScanState& state) const {
+    KU_ASSERT(state.nodeIDVector->state->getSelVector().getSelSize() == 1);
+    if (type == NodeGroupType::IN_MEMORY) {
+        const auto nodeOffset = state.nodeIDVector->getValue<nodeID_t>(0).offset;
+        const auto offsetInGroup = nodeOffset - startNodeOffset;
+        auto& chunkedGroupToScan = chunkedGroups.findChunkedGroupFromOffset(offsetInGroup);
+        chunkedGroupToScan.lookup(state.columnIDs, state.outputVectors, offsetInGroup);
+    } else {
+        auto& nodeScanState = state.cast<NodeTableScanState>();
+        for (auto i = 0u; i < state.columnIDs.size(); i++) {
+            nodeScanState.columns[i]->lookup(transaction, nodeScanState.chunkStates[i],
+                nodeScanState.nodeIDVector, state.outputVectors[i]);
+        }
+    }
+}
+
+void NodeGroup::update() {}
+
+void NodeGroup::delete_() {}
 
 void NodeGroup::flush(BMFileHandle& dataFH) {
     if (chunkedGroups.getNumChunkedGroups() == 0) {

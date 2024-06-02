@@ -19,18 +19,14 @@ namespace storage {
 class LocalNodeTable;
 
 struct NodeTableScanState final : TableScanState {
+    std::vector<Column*> columns;
     std::vector<ColumnPredicateSet> columnPredicateSets;
-    // States for scanning from local storage.
-    LocalNodeTable* localNodeTable = nullptr;
+    const NodeGroup* nodeGroup = nullptr;
     // TODO(Guodong): Should by default set vectorIdx to 0 and not rely on invalid+1==0;
     common::vector_idx_t vectorIdx = common::INVALID_VECTOR_IDX;
     common::row_idx_t numRowsToScan = 0;
     // TODO(Guodong): We should not keep this field, instead should let nodeGroup figure it out.
     common::row_idx_t numTotalRows = 0;
-
-    std::vector<Column*> columns;
-    // States for scanning from a committed node group.
-    const NodeGroup* nodeGroup = nullptr;
     std::vector<ChunkState> chunkStates;
 
     explicit NodeTableScanState(common::table_id_t tableID,
@@ -107,7 +103,7 @@ public:
         TableScanState& scanState) const override;
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
-    void lookup(transaction::Transaction* transaction, TableScanState& scanState);
+    void lookup(transaction::Transaction* transaction, TableScanState& scanState) const;
 
     // Return the max node offset during insertions.
     common::offset_t validateUniquenessConstraint(transaction::Transaction* transaction,
@@ -156,8 +152,6 @@ public:
 private:
     void insertPK(const common::ValueVector& nodeIDVector,
         const common::ValueVector& pkVector) const;
-    bool scanCommitted(transaction::Transaction* transaction, NodeTableScanState& scanState);
-    bool scanUnCommitted(NodeTableScanState& scanState);
 
     void checkpointInMemory() override;
 

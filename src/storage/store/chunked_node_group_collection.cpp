@@ -6,6 +6,18 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
+const ChunkedNodeGroup& ChunkedNodeGroupCollection::findChunkedGroupFromOffset(
+    offset_t offset) const {
+    KU_ASSERT(offset < getNumRows());
+    for (const auto& chunkedGroup : chunkedGroups) {
+        if (chunkedGroup->getStartNodeOffset() <= offset &&
+            chunkedGroup->getStartNodeOffset() + chunkedGroup->getNumRows() >= offset) {
+            return *chunkedGroup;
+        }
+    }
+    KU_UNREACHABLE;
+}
+
 void ChunkedNodeGroupCollection::append(const std::vector<ValueVector*>& vectors,
     const SelectionVector& selVector) {
     if (chunkedGroups.empty()) {

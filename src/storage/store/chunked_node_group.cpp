@@ -164,6 +164,19 @@ void ChunkedNodeGroup::scan(const std::vector<column_id_t>& columnIDs,
     }
 }
 
+void ChunkedNodeGroup::lookup(const std::vector<column_id_t>& columnIDs,
+    const std::vector<ValueVector*>& outputVectors, offset_t offset) const {
+    KU_ASSERT(columnIDs.size() == outputVectors.size());
+    KU_ASSERT(offset + 1 <= numRows);
+    for (auto i = 0u; i < columnIDs.size(); i++) {
+        const auto columnID = columnIDs[i];
+        KU_ASSERT(columnID < chunks.size());
+        KU_ASSERT(outputVectors[i]->state->getSelVector().getSelSize() == 1);
+        chunks[columnID]->lookup(offset, *outputVectors[i],
+            outputVectors[i]->state->getSelVector().getSelectedPositions()[0]);
+    }
+}
+
 void ChunkedNodeGroup::finalize(uint64_t nodeGroupIdx_) {
     nodeGroupIdx = nodeGroupIdx_;
     for (auto i = 0u; i < chunks.size(); i++) {

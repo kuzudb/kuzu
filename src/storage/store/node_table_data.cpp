@@ -37,30 +37,22 @@ NodeTableData::NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     }
 }
 
-void NodeTableData::initializeScanState(Transaction* transaction, TableScanState& scanState) const {
+void NodeTableData::initializeScanState(Transaction*, TableScanState&) const {
     KU_UNREACHABLE;
 }
 
-void NodeTableData::scan(Transaction* transaction, TableDataScanState& scanState,
-    ValueVector& nodeIDVector, const std::vector<ValueVector*>& outputVectors) {
+void NodeTableData::scan(Transaction*, TableDataScanState&, ValueVector&,
+    const std::vector<ValueVector*>&) {
     KU_UNREACHABLE;
 }
 
-void NodeTableData::lookup(Transaction* transaction, TableDataScanState& readState,
-    const ValueVector& nodeIDVector, const std::vector<ValueVector*>& outputVectors) {
+void NodeTableData::lookup(Transaction*, TableDataScanState&, const ValueVector&,
+    const std::vector<ValueVector*>&) {
     KU_UNREACHABLE;
 }
 
-offset_t NodeTableData::append(Transaction* transaction, ChunkedNodeGroup* nodeGroup) {
-    for (auto columnID = 0u; columnID < columns.size(); columnID++) {
-        auto& columnChunk = nodeGroup->getColumnChunkUnsafe(columnID);
-        KU_ASSERT(columnID < columns.size());
-        auto column = columns[columnID].get();
-        ChunkState state;
-        column->initChunkState(transaction, nodeGroup->getNodeGroupIdx(), state);
-        columns[columnID]->append(&columnChunk, state);
-    }
-    return nodeGroup->getNodeGroupIdx() * StorageConstants::NODE_GROUP_SIZE;
+offset_t NodeTableData::append(Transaction*, ChunkedNodeGroup*) {
+    KU_UNREACHABLE;
 }
 
 std::unique_ptr<ChunkedNodeGroup> NodeTableData::getCommittedNodeGroup(
@@ -75,7 +67,7 @@ std::unique_ptr<ChunkedNodeGroup> NodeTableData::getCommittedNodeGroup(
             chunkedNodeGroup->getColumnChunkUnsafe(columnID));
     }
     const row_idx_t numRows = chunkedNodeGroup->getColumnChunk(0).getFlushedMetadata().numValues;
-    for (auto columnID = 1; columnID < columns.size(); columnID++) {
+    for (auto columnID = 1u; columnID < columns.size(); columnID++) {
         KU_ASSERT(
             numRows == chunkedNodeGroup->getColumnChunk(columnID).getFlushedMetadata().numValues);
     }
