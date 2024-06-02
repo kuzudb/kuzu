@@ -66,9 +66,9 @@ struct ArrowBuffer {
 private:
     void reserveInternal(uint64_t bytes) {
         if (dataptr) {
-            dataptr = (uint8_t*)realloc(dataptr, bytes);
+            dataptr = static_cast<uint8_t*>(realloc(dataptr, bytes));
         } else {
-            dataptr = (uint8_t*)malloc(bytes);
+            dataptr = static_cast<uint8_t*>(malloc(bytes));
         }
         capacity = bytes;
     }

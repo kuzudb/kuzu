@@ -113,7 +113,7 @@ struct DateToStringCast {
             ptr[0] = '-';
             if (date[i] < 10) {
                 ptr[1] = '0';
-                ptr[2] = '0' + date[i];
+                ptr[2] = static_cast<char>('0' + date[i]);
             } else {
                 auto index = static_cast<unsigned>(date[i] * 2);
                 ptr[1] = digits[index];
@@ -138,8 +138,8 @@ struct TimeToStringCast {
         while (endptr > micro_buffer) {
             *--endptr = '0';
         }
-        uint64_t trailing_zeros = 0;
-        for (uint64_t i = 5; i > 0; i--) {
+        int32_t trailing_zeros = 0;
+        for (int32_t i = 5; i > 0; i--) {
             if (micro_buffer[i] != '0') {
                 break;
             }
@@ -168,10 +168,10 @@ struct TimeToStringCast {
         return length;
     }
 
-    static void FormatTwoDigits(char* ptr, int32_t value) {
+    static void FormatTwoDigits(char* ptr, int64_t value) {
         if (value < 10) {
             ptr[0] = '0';
-            ptr[1] = '0' + value;
+            ptr[1] = static_cast<char>('0' + value);
         } else {
             auto index = static_cast<unsigned>(value * 2);
             ptr[0] = digits[index];
