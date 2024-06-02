@@ -39,6 +39,8 @@ struct ScanNodeTableInfo {
           columnPredicates{std::move(columnPredicates)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ScanNodeTableInfo);
 
+    void initScanState();
+
 private:
     ScanNodeTableInfo(const ScanNodeTableInfo& other)
         : table{other.table}, columnIDs{other.columnIDs},
@@ -63,7 +65,7 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    const ScanNodeTableSharedState& getSharedState(common::vector_idx_t idx) const {
+    const ScanNodeTableSharedState& getSharedState(common::idx_t idx) const {
         KU_ASSERT(idx < sharedStates.size());
         return *sharedStates[idx];
     }
@@ -74,8 +76,7 @@ private:
     void initGlobalStateInternal(ExecutionContext* context) override;
 
 private:
-    common::vector_idx_t currentTableIdx;
-    // TODO(Guodong): Refactor following three fields into a vector of structs.
+    common::idx_t currentTableIdx;
     std::vector<ScanNodeTableInfo> nodeInfos;
     std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates;
 };

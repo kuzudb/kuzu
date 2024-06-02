@@ -44,8 +44,8 @@ struct ListOffsetSizeInfo {
 class ListColumn final : public Column {
     friend class ListLocalColumn;
 
-    static constexpr common::vector_idx_t SIZE_COLUMN_CHILD_READ_STATE_IDX = 0;
-    static constexpr common::vector_idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 1;
+    static constexpr common::idx_t SIZE_COLUMN_CHILD_READ_STATE_IDX = 0;
+    static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 1;
 
 public:
     ListColumn(std::string name, common::LogicalType dataType,
@@ -67,7 +67,7 @@ public:
 
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
-        common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
+        common::idx_t vectorIdx, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
     void lookupValue(transaction::Transaction* transaction, ChunkState& state,

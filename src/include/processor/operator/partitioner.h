@@ -47,12 +47,12 @@ struct PartitionerSharedState {
         : columnTypes{std::move(columnTypes)} {}
 
     void initialize(std::vector<std::unique_ptr<PartitioningInfo>>& infos);
-    common::partition_idx_t getNextPartition(common::vector_idx_t partitioningIdx);
+    common::partition_idx_t getNextPartition(common::idx_t partitioningIdx);
     void resetState();
     void merge(std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates);
 
     inline const storage::ChunkedNodeGroupCollection& getPartitionBuffer(
-        common::vector_idx_t partitioningIdx, common::partition_idx_t partitionIdx) const {
+        common::idx_t partitioningIdx, common::partition_idx_t partitionIdx) const {
         KU_ASSERT(partitioningIdx < partitioningBuffers.size());
         KU_ASSERT(partitionIdx < partitioningBuffers[partitioningIdx]->partitions.size());
         return partitioningBuffers[partitioningIdx]->partitions[partitionIdx];

@@ -34,7 +34,7 @@ public:
 
     // This function assumes nodeIDVector have consecutive node offsets and the same tableID.
     void setDeletedNodeOffsetsForVector(const common::ValueVector* nodeIDVector,
-        common::node_group_idx_t nodeGroupIdx, common::vector_idx_t vectorIdxInNodeGroup,
+        common::node_group_idx_t nodeGroupIdx, common::idx_t vectorIdxInNodeGroup,
         common::row_idx_t numRowsToScan) const;
 
     void setNumTuples(uint64_t numTuples) override;

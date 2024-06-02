@@ -48,7 +48,7 @@ void PartitionerSharedState::initialize(std::vector<std::unique_ptr<Partitioning
     Partitioner::initializePartitioningStates(infos, partitioningBuffers, numPartitions);
 }
 
-partition_idx_t PartitionerSharedState::getNextPartition(vector_idx_t partitioningIdx) {
+partition_idx_t PartitionerSharedState::getNextPartition(idx_t partitioningIdx) {
     std::unique_lock xLck{mtx};
     if (nextPartitionIdx >= numPartitions[partitioningIdx]) {
         return INVALID_PARTITION_IDX;

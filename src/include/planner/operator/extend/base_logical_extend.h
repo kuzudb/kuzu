@@ -19,6 +19,7 @@ public:
     std::shared_ptr<binder::NodeExpression> getBoundNode() const { return boundNode; }
     std::shared_ptr<binder::NodeExpression> getNbrNode() const { return nbrNode; }
     std::shared_ptr<binder::RelExpression> getRel() const { return rel; }
+    bool isRecursive() const { return rel->isRecursive(); }
     common::ExtendDirection getDirection() const { return direction; }
 
     bool extendFromSourceNode() const {

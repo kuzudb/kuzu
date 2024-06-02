@@ -38,7 +38,7 @@ public:
         std::vector<bool>& hasChangesPerSegment);
 
 private:
-    static common::vector_idx_t getSegmentIdx(common::offset_t offset) {
+    static common::idx_t getSegmentIdx(common::offset_t offset) {
         return offset >> common::StorageConstants::CSR_SEGMENT_SIZE_LOG2;
     }
 

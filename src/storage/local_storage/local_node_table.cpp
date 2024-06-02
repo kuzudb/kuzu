@@ -12,7 +12,7 @@ namespace storage {
 void LocalNodeNG::initializeScanState(TableScanState& scanState) const {
     auto& dataScanState =
         ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState);
-    dataScanState.vectorIdx = INVALID_VECTOR_IDX;
+    dataScanState.vectorIdx = INVALID_IDX;
     dataScanState.numRowsInNodeGroup = insertChunks.getOffsetToRowIdx().size();
 }
 

@@ -130,7 +130,7 @@ private:
  */
 struct FrontiersScanner {
     std::vector<std::unique_ptr<BaseFrontierScanner>> scanners;
-    common::vector_idx_t cursor;
+    common::idx_t cursor;
 
     explicit FrontiersScanner(std::vector<std::unique_ptr<BaseFrontierScanner>> scanners)
         : scanners{std::move(scanners)}, cursor{0} {}

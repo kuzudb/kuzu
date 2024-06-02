@@ -77,7 +77,7 @@ protected:
     // A pattern may bind to multiple tables.
     std::vector<common::table_id_t> tableIDs;
     // Index over propertyExprs on property name.
-    std::unordered_map<std::string, common::vector_idx_t> propertyNameToIdx;
+    std::unordered_map<std::string, common::idx_t> propertyNameToIdx;
     // Property expressions with order (aligned with catalog).
     std::vector<std::unique_ptr<Expression>> propertyExprs;
     std::shared_ptr<Expression> labelExpression;

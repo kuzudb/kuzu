@@ -53,12 +53,14 @@ private:
     //      Filter(a.ID=b.ID)
     //      CrossProduct                   to                  HashJoin
     //   S(a)           S(b)                            S(a)             S(b)
-    // This is a temporary solution in the absence of a generic hash join operator.
     std::shared_ptr<planner::LogicalOperator> visitCrossProductReplace(
         const std::shared_ptr<planner::LogicalOperator>& op);
 
     // Push FILTER into SCAN_NODE_TABLE, and turn index lookup into INDEX_SCAN.
     std::shared_ptr<planner::LogicalOperator> visitScanNodeTableReplace(
+        const std::shared_ptr<planner::LogicalOperator>& op);
+    // Push Filter into EXTEND.
+    std::shared_ptr<planner::LogicalOperator> visitExtendReplace(
         const std::shared_ptr<planner::LogicalOperator>& op);
 
     // Finish the current push down optimization by apply remaining predicates as a single filter.

@@ -69,7 +69,7 @@ public:
         common::node_group_idx_t nodeGroupIdx, ChunkState& state);
 
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
-        common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
+        common::idx_t vectorIdx, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     virtual void lookup(transaction::Transaction* transaction, ChunkState& state,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
@@ -150,7 +150,7 @@ public:
 
 protected:
     virtual void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
-        common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
+        common::idx_t vectorIdx, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     void scanUnfiltered(transaction::Transaction* transaction, PageCursor& pageCursor,
         uint64_t numValuesToScan, common::ValueVector* resultVector,
@@ -252,7 +252,7 @@ public:
         WAL* wal, transaction::Transaction* transaction, bool enableCompression);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
-        common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
+        common::idx_t vectorIdx, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override {
         Column::scan(transaction, state, vectorIdx, numValuesToScan, nodeIDVector, resultVector);
         populateCommonTableID(resultVector);

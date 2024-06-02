@@ -71,7 +71,7 @@ void StructColumn::scan(Transaction* transaction, const ChunkState& state,
 }
 
 void StructColumn::scanInternal(Transaction* transaction, const ChunkState& state,
-    vector_idx_t vectorIdx, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
+    idx_t vectorIdx, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
     ValueVector* resultVector) {
     for (auto i = 0u; i < childColumns.size(); i++) {
         const auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
@@ -186,7 +186,7 @@ void StructColumn::prepareCommitForExistingChunk(Transaction* transaction, Chunk
 }
 
 ChunkCollection StructColumn::getStructChildChunkCollection(const ChunkCollection& chunkCollection,
-    vector_idx_t childIdx) {
+    idx_t childIdx) {
     ChunkCollection childChunkCollection;
     for (const auto& chunk : chunkCollection) {
         auto structChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(chunk);

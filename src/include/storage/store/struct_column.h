@@ -27,7 +27,7 @@ public:
     void rollbackInMemory() override;
     void prepareCommit() override;
 
-    Column* getChild(common::vector_idx_t childIdx) const {
+    Column* getChild(common::idx_t childIdx) const {
         KU_ASSERT(childIdx < childColumns.size());
         return childColumns[childIdx].get();
     }
@@ -46,14 +46,14 @@ public:
 
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
-        common::vector_idx_t vectorIdx, common::row_idx_t numValuesToScan,
+        common::idx_t vectorIdx, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
     void lookupInternal(transaction::Transaction* transaction, ChunkState& state,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
 private:
     static ChunkCollection getStructChildChunkCollection(const ChunkCollection& chunkCollection,
-        common::vector_idx_t childIdx);
+        common::idx_t childIdx);
 
 private:
     std::vector<std::unique_ptr<Column>> childColumns;

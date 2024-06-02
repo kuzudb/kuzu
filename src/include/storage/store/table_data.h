@@ -54,7 +54,7 @@ public:
         DiskArray<ColumnChunkMetadata>* metadataDA, const MetadataDAHInfo& metadataDahInfo,
         const catalog::Property& property, common::ValueVector* defaultValueVector);
 
-    common::vector_idx_t getNumColumns() const { return columns.size(); }
+    common::idx_t getNumColumns() const { return columns.size(); }
     Column* getColumn(common::column_id_t columnID) const {
         KU_ASSERT(columnID < columns.size() && columnID != common::INVALID_COLUMN_ID);
         return columns[columnID].get();

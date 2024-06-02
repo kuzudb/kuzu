@@ -39,11 +39,14 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
     scanState.source = TableScanSource::NONE;
 }
 
+void ScanNodeTableInfo::initScanState() {
+    localScanState = std::make_unique<NodeTableScanState>(columnIDs, copyVector(columnPredicates));
+}
+
 void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
     for (auto& nodeInfo : nodeInfos) {
-        nodeInfo.localScanState = std::make_unique<NodeTableScanState>(nodeInfo.columnIDs);
-        nodeInfo.localScanState->columnPredicateSets = copyVector(nodeInfo.columnPredicates);
+        nodeInfo.initScanState();
         initVectors(*nodeInfo.localScanState, *resultSet);
     }
 }

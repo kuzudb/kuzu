@@ -168,7 +168,7 @@ void ListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
 }
 
 void ListColumn::scanInternal(Transaction* transaction, const ChunkState& state,
-    vector_idx_t vectorIdx, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
+    idx_t vectorIdx, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
     ValueVector* resultVector) {
     KU_ASSERT(resultVector->state);
     auto startOffsetInChunk = vectorIdx * DEFAULT_VECTOR_CAPACITY;

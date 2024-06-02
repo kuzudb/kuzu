@@ -65,20 +65,20 @@ struct PackedCSRInfo {
 };
 
 struct PackedCSRRegion {
-    common::vector_idx_t regionIdx = common::INVALID_VECTOR_IDX;
-    common::vector_idx_t level = common::INVALID_VECTOR_IDX;
+    common::idx_t regionIdx = common::INVALID_IDX;
+    common::idx_t level = common::INVALID_IDX;
     int64_t sizeChange = 0;
     // Left most and right most node offset of the region.
     common::offset_t leftBoundary = common::INVALID_OFFSET;
     common::offset_t rightBoundary = common::INVALID_OFFSET;
 
     PackedCSRRegion() {}
-    PackedCSRRegion(common::vector_idx_t regionIdx, common::vector_idx_t level);
+    PackedCSRRegion(common::idx_t regionIdx, common::idx_t level);
 
     std::pair<common::offset_t, common::offset_t> getNodeOffsetBoundaries() const {
         return std::make_pair(leftBoundary, rightBoundary);
     }
-    std::pair<common::vector_idx_t, common::vector_idx_t> getSegmentBoundaries() const {
+    std::pair<common::idx_t , common::idx_t> getSegmentBoundaries() const {
         auto left = regionIdx << level;
         return std::make_pair(left, left + (1 << level) - 1);
     }
@@ -173,8 +173,8 @@ private:
     static common::offset_t getMaxNumNodesInRegion(const ChunkedCSRHeader& header,
         const PackedCSRRegion& region, const LocalRelNG* localNG);
 
-    void initializeColumnReadStates(transaction::Transaction* transaction,
-        RelDataReadState& readState, common::node_group_idx_t nodeGroupIdx) const;
+    void initializeColumnScanStates(transaction::Transaction* transaction,
+        TableScanState& scanState, common::node_group_idx_t nodeGroupIdx) const;
 
     std::vector<PackedCSRRegion> findRegions(const ChunkedCSRHeader& headerChunks,
         LocalState& localState) const;

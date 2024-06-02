@@ -18,9 +18,9 @@ struct RelsFunction {
 };
 
 struct PropertiesBindData : public FunctionBindData {
-    common::vector_idx_t childIdx;
+    common::idx_t childIdx;
 
-    PropertiesBindData(std::unique_ptr<common::LogicalType> dataType, common::vector_idx_t childIdx)
+    PropertiesBindData(std::unique_ptr<common::LogicalType> dataType, common::idx_t childIdx)
         : FunctionBindData{std::move(dataType)}, childIdx{childIdx} {}
 };
 
