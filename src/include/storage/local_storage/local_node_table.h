@@ -3,6 +3,7 @@
 #include "common/copy_constructors.h"
 #include "storage/local_storage/hash_index_local_storage.h"
 #include "storage/local_storage/local_table.h"
+#include "storage/store/node_group_collection.h"
 
 namespace kuzu {
 namespace storage {
@@ -20,18 +21,19 @@ public:
     bool update(TableUpdateState& updateState) override;
     bool delete_(TableDeleteState& deleteState) override;
 
-    void initializeScanState(TableScanState& scanState) const;
-    void scan(TableScanState& scanState) const;
+    common::row_idx_t getNumRows() { return nodeGroups.getNumRows(); }
+    common::node_group_idx_t getNumNodeGroups() { return nodeGroups.getNumNodeGroups(); }
 
-    common::row_idx_t getNumRows() const { return chunkedGroups.getNumRows(); }
-
-    const ChunkedNodeGroupCollection& getChunkedGroups() const { return chunkedGroups; }
+    const NodeGroup& getNodeGroup(common::node_group_idx_t nodeGroupIdx) {
+        return nodeGroups.getNodeGroup(nodeGroupIdx);
+    }
+    const NodeGroupCollection& getNodeGroups() const { return nodeGroups; }
 
 private:
     std::unique_ptr<OverflowFile> overflowFile;
     std::unique_ptr<OverflowFileHandle> overflowFileHandle;
     std::unique_ptr<LocalHashIndex> hashIndex;
-    ChunkedNodeGroupCollection chunkedGroups;
+    NodeGroupCollection nodeGroups;
 };
 
 } // namespace storage

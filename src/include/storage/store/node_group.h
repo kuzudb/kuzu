@@ -10,7 +10,6 @@ class Transaction;
 namespace storage {
 
 struct NodeGroupScanState {
-
     common::vector_idx_t chunkedGroupIdx = 0;
     common::row_idx_t nextRowToScan = 0;
     common::row_idx_t maxNumRowsToScan = 0;
@@ -45,7 +44,11 @@ public:
         std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
 
     void initializeScanState(transaction::Transaction* transaction, TableScanState& state) const;
-    void scan(transaction::Transaction* transaction, TableScanState& state) const;
+    bool scan(transaction::Transaction* transaction, TableScanState& state) const;
+    void lookup(transaction::Transaction* transaction, TableScanState& state) const;
+
+    void update();
+    void delete_();
 
     void flush(BMFileHandle& dataFH);
 

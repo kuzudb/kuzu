@@ -228,6 +228,15 @@ public:
 
     void clear() { localTableDataCollection.clear(); }
 
+    template<class TARGET>
+    const TARGET& constCast() {
+        return common::ku_dynamic_cast<const LocalTable&, const TARGET&>(*this);
+    }
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<LocalTable&, TARGET&>(*this);
+    }
+
 protected:
     explicit LocalTable(Table& table) : table{table} {}
 

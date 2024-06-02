@@ -12,7 +12,7 @@ public:
     ScanNodeTableSharedState()
         : table{nullptr}, currentCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX},
           currentUnCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX}, numCommittedNodeGroups{0},
-          localNodeTable{nullptr} {};
+          numUnCommittedNodeGroups{0} {};
 
     void initialize(transaction::Transaction* transaction, storage::NodeTable* table);
 
@@ -24,7 +24,7 @@ private:
     common::node_group_idx_t currentCommittedGroupIdx;
     common::node_group_idx_t currentUnCommittedGroupIdx;
     common::node_group_idx_t numCommittedNodeGroups;
-    storage::LocalNodeTable* localNodeTable;
+    common::node_group_idx_t numUnCommittedNodeGroups;
 };
 
 struct ScanNodeTableInfo {
@@ -32,7 +32,7 @@ struct ScanNodeTableInfo {
     std::vector<common::column_id_t> columnIDs;
     std::vector<storage::ColumnPredicateSet> columnPredicates;
 
-    std::unique_ptr<storage::NodeTableScanState> localScanState;
+    std::unique_ptr<storage::NodeTableScanState> localScanState = nullptr;
 
     ScanNodeTableInfo(storage::NodeTable* table, std::vector<common::column_id_t> columnIDs,
         std::vector<storage::ColumnPredicateSet> columnPredicates)
@@ -75,6 +75,8 @@ public:
 
 private:
     void initGlobalStateInternal(ExecutionContext* context) override;
+    static void initColumns(storage::NodeTableScanState& scanState,
+        const storage::NodeTable& table);
 
 private:
     common::idx_t currentTableIdx;
