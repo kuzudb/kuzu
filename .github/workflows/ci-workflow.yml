@@ -405,6 +405,22 @@ jobs:
     name: benchmark
     needs: [gcc-build-test, clang-build-test]
     uses: ./.github/workflows/benchmark-workflow.yml
+  
+  report-benchmark-result:
+    name: report benchmark result
+    needs: [benchmark]
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Download comparison results
+        uses: actions/download-artifact@v3
+        with:
+          name: comparison-results
+
+      - name: Report benchmark result
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          filePath: compare_result.md
 
   clang-tidy:
     name: clang tidy & clangd diagnostics check

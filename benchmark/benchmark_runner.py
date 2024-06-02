@@ -11,7 +11,7 @@ from serializer import _get_kuzu_version
 import multiprocessing
 import re
 
-# Get the number of CPUs, try to use sched_getaffinity if available to account 
+# Get the number of CPUs, try to use sched_getaffinity if available to account
 # for Docker CPU limits
 try:
     cpu_count = len(os.sched_getaffinity(0))
@@ -19,7 +19,7 @@ except AttributeError:
     cpu_count = multiprocessing.cpu_count()
 
 # Use 90% of the available memory size as bm-size
-# First try to read the memory limit from cgroup to account for Docker RAM 
+# First try to read the memory limit from cgroup to account for Docker RAM
 # limit, if not available use the total memory size
 try:
     # cgroup v2
@@ -261,13 +261,19 @@ def parse_args():
         '--note', default='automated benchmark run', help='note about this run')
     return parser.parse_args()
 
+def _get_master_commit_hash():
+    try:
+        return subprocess.check_output(['git', 'rev-parse', 'origin/master']).decode("utf-8").strip()
+    except:
+        return None
+
 
 def _get_git_revision_hash():
     try:
         return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode("utf-8").strip()
     except:
         return None
-    
+
 def _get_commit_message():
     try:
         return subprocess.check_output(['git', 'log', '-1', '--pretty=%B']).decode("utf-8").strip()
@@ -341,7 +347,27 @@ def upload_benchmark_result(database_size=None):
         logging.error(
             "An error has occurred while uploading benchmark result!")
         sys.exit(1)
+    return response
 
+def get_compare_result(report_id):
+    master_commit_hash = _get_master_commit_hash()
+    params = {
+        'master_commit_hash': master_commit_hash,
+        'branch_result_id': report_id,
+        'compare_highlight_threshold': 20,
+    }
+
+    url = benchmark_server_url + '/compare'
+    response = requests.get(url, params=params, headers={
+        'Authorization': 'Bearer ' + jwt_token
+    })
+    if response.status_code != 200:
+        logging.error(
+            "An error has occurred while comparing benchmark result!")
+        return None
+    else:
+        return response.text
+        
 
 if __name__ == '__main__':
     args = parse_args()
@@ -378,5 +404,16 @@ if __name__ == '__main__':
 
     # upload benchmark result and logs
     logging.info("Uploading benchmark result...")
-    upload_benchmark_result(total_size)
+    res = upload_benchmark_result(total_size)
     logging.info("Benchmark result uploaded")
+
+    object_id = res.json()['_id']
+    logging.info("Benchmark ID: %s", object_id)
+
+    compare_result = get_compare_result(object_id)
+    with open(os.path.join(base_dir, 'compare_result.md'), 'w') as f:
+        f.write("# Benchmark Result\n\n")
+        f.write("Master commit hash: `{}` \n".format(_get_master_commit_hash()))
+        f.write("Branch commit hash: `{}` \n\n".format(_get_git_revision_hash()))
+        f.write(compare_result)
+    logging.info("Compare result saved to compare_result.md")
