@@ -15,11 +15,11 @@ struct TableReadState;
 class LocalNodeTable final : public LocalTable {
 public:
     explicit LocalNodeTable(Table& table);
-    DELETE_COPY_DEFAULT_MOVE(LocalNodeTable);
+    DELETE_COPY_AND_MOVE(LocalNodeTable);
 
-    bool insert(TableInsertState& insertState) override;
+    bool insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     bool update(TableUpdateState& updateState) override;
-    bool delete_(TableDeleteState& deleteState) override;
+    bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
 
     common::row_idx_t getNumRows() { return nodeGroups.getNumRows(); }
     common::node_group_idx_t getNumNodeGroups() { return nodeGroups.getNumNodeGroups(); }

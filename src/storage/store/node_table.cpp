@@ -17,21 +17,6 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-bool NodeTableScanState::nextVector() {
-    if (source == TableScanSource::COMMITTED) {
-        return nodeGroupScanState.hasNext();
-    }
-    KU_ASSERT(source == TableScanSource::UNCOMMITTED);
-    vectorIdx++;
-    const auto startOffsetInNodeGroup = vectorIdx * DEFAULT_VECTOR_CAPACITY;
-    if (startOffsetInNodeGroup >= numTotalRows) {
-        numRowsToScan = 0;
-        return false;
-    }
-    numRowsToScan = std::min(DEFAULT_VECTOR_CAPACITY, numTotalRows - startOffsetInNodeGroup);
-    return true;
-}
-
 NodeTable::NodeTable(StorageManager* storageManager, NodeTableCatalogEntry* nodeTableEntry,
     MemoryManager* memoryManager, VirtualFileSystem* vfs, main::ClientContext* context)
     : Table{nodeTableEntry, storageManager->getNodesStatisticsAndDeletedIDs(), memoryManager,
@@ -114,7 +99,7 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
     KU_ASSERT(nodeInsertState.propertyVectors[0]->state->getSelVector().getSelSize() == 1);
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
-    localTable->insert(insertState);
+    localTable->insert(transaction, insertState);
 }
 
 void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) {
@@ -141,13 +126,20 @@ void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     if (nodeDeleteState.nodeIDVector.isNull(pos)) {
         return;
     }
-    pkIndex->delete_(&nodeDeleteState.pkVector);
     const auto nodeOffset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
-    ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
-        ->deleteNode(tableID, nodeOffset);
-    const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
-        LocalStorage::NotExistAction::CREATE);
-    localTable->delete_(deleteState);
+    if (nodeOffset > StorageConstants::MAX_NUM_NODES_IN_TABLE) {
+        const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+            LocalStorage::NotExistAction::RETURN_NULL);
+        KU_ASSERT(localTable);
+        localTable->delete_(transaction, deleteState);
+    } else {
+        const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+        auto actualDeleted =
+            deltaNodeGroups->getNodeGroup(nodeGroupIdx).delete_(transaction, nodeOffset);
+        if (actualDeleted) {
+            // TODO: Add record to undo buffer.
+        }
+    }
 }
 
 void NodeTable::addColumn(Transaction* transaction, const Property& property,
@@ -165,6 +157,7 @@ void NodeTable::addColumn(Transaction* transaction, const Property& property,
 
 offset_t NodeTable::append(Transaction* transaction, ChunkedNodeGroup* chunkedGroup,
     offset_t startOffsetToAppend, row_idx_t numRowsToAppend) {
+    // TODO: handle startOffsetToAppend and numRowsToAppend.
     deltaNodeGroups->merge(transaction, chunkedGroup->getNodeGroupIdx(), *chunkedGroup);
 }
 
@@ -177,7 +170,7 @@ void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) 
     const auto numNodesCheckpointed = nodesStats->getNumTuplesForTable(transaction, tableID);
     auto startNodeOffset = numNodesCheckpointed + deltaNodeGroups->getNumRows();
 
-    // 2. Populate hash index.
+    // 2. Scan local table to populate hash index.
     std::vector<column_id_t> columnsToScan{pkColumnID};
     const auto dataChunkState = std::make_shared<DataChunkState>();
     ValueVector nodeIDVector(*LogicalType::INTERNAL_ID());
@@ -205,7 +198,9 @@ void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) 
     }
 
     // 3. Append the node groups to the table data.
-    deltaNodeGroups->append(localNodeTable.getNodeGroups());
+    deltaNodeGroups->append(transaction, localNodeTable.getNodeGroups());
+
+    // 4. TODO: Add record to undo buffer.
 
     if (pkIndex) {
         pkIndex->prepareCommit();

@@ -63,9 +63,9 @@ class LocalRelTable final : public LocalTable {
 public:
     explicit LocalRelTable(Table& table);
 
-    bool insert(TableInsertState& insertState) override;
+    bool insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     bool update(TableUpdateState& updateState) override;
-    bool delete_(TableDeleteState& deleteState) override;
+    bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
 
     LocalRelTableData* getTableData(common::RelDataDirection direction) {
         KU_ASSERT(localTableDataCollection.size() == 2);

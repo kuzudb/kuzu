@@ -48,7 +48,7 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
 void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
-    if (localTable->insert(insertState)) {
+    if (localTable->insert(transaction, insertState)) {
         const auto relsStats =
             ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
         relsStats->updateNumTuplesByValue(tableID, 1);
@@ -64,7 +64,7 @@ void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
 void RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
-    if (localTable->delete_(deleteState)) {
+    if (localTable->delete_(transaction, deleteState)) {
         const auto relsStats =
             ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
         relsStats->updateNumTuplesByValue(tableID, -1);

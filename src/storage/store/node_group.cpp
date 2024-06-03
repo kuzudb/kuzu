@@ -9,8 +9,30 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
+void NodeGroup::append(Transaction* transaction, const ChunkedNodeGroupCollection& chunkCollection,
+    row_idx_t offset, row_idx_t numRowsToAppend) {
+    const auto startOffset = chunkedGroups.append(chunkCollection, offset, numRowsToAppend);
+    versionInfo.append(transaction->getID(), startOffset, numRowsToAppend);
+}
+
 void NodeGroup::append(Transaction* transaction, const ChunkedNodeGroup& chunkedGroup) {
-    chunkedGroups.append(transaction, chunkedGroup);
+    const auto startOffset = chunkedGroups.append(transaction, chunkedGroup);
+    const auto numRows = chunkedGroup.getNumRows();
+    versionInfo.append(transaction->getID(), startOffset, numRows);
+}
+
+void NodeGroup::append(Transaction* transaction, const std::vector<ValueVector*>& vectors,
+    row_idx_t startRowIdx, row_idx_t numRowsToAppend) {
+    // TODO: Remove the assumption of all vectors have the same selVector.
+    auto& anchorSelVector = vectors[0]->state->getSelVector();
+    SelectionVector selVector(DEFAULT_VECTOR_CAPACITY);
+    auto selVectorBuffer = selVector.getMultableBuffer();
+    for (auto i = 0u; i < numRowsToAppend; i++) {
+        selVectorBuffer[i] = anchorSelVector[startRowIdx + i];
+    }
+    selVector.setToFiltered(numRowsToAppend);
+    const auto startOffset = chunkedGroups.append(vectors, selVector);
+    versionInfo.append(transaction->getID(), startOffset, numRowsToAppend);
 }
 
 void NodeGroup::merge(Transaction*, std::unique_ptr<ChunkedNodeGroup> chunkedGroup) {
@@ -52,6 +74,7 @@ bool NodeGroup::scan(Transaction* transaction, TableScanState& state) const {
     const auto offsetToScan =
         nodeGroupState.nextRowToScan - chunkedGroupToScan.getStartNodeOffset();
     KU_ASSERT(offsetToScan < chunkedGroupToScan.getNumRows());
+    // TODO: Should handle transaction to resolve version visibility here.
     const auto numRowsToScan =
         std::min(chunkedGroupToScan.getNumRows() - offsetToScan, DEFAULT_VECTOR_CAPACITY);
     if (type == NodeGroupType::IN_MEMORY) {
@@ -91,7 +114,10 @@ void NodeGroup::lookup(Transaction* transaction, TableScanState& state) const {
 
 void NodeGroup::update() {}
 
-void NodeGroup::delete_() {}
+bool NodeGroup::delete_(Transaction* transaction, offset_t nodeOffset) {
+    const auto offsetInGroup = nodeOffset - startNodeOffset;
+    return versionInfo.delete_(transaction->getID(), offsetInGroup);
+}
 
 void NodeGroup::flush(BMFileHandle& dataFH) {
     if (chunkedGroups.getNumChunkedGroups() == 0) {

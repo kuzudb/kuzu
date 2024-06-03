@@ -4,6 +4,7 @@
 #include "storage/store/node_table.h"
 
 using namespace kuzu::common;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
@@ -22,7 +23,7 @@ LocalNodeTable::LocalNodeTable(Table& table)
         overflowFileHandle.get());
 }
 
-bool LocalNodeTable::insert(TableInsertState& insertState) {
+bool LocalNodeTable::insert(Transaction* transaction, TableInsertState& insertState) {
     auto& nodeInsertState = insertState.constCast<NodeTableInsertState>();
     const auto numRowsInLocalTable = nodeGroups.getNumRows();
     const auto nodeOffset = StorageConstants::MAX_NUM_NODES_IN_TABLE + numRowsInLocalTable;
@@ -34,7 +35,7 @@ bool LocalNodeTable::insert(TableInsertState& insertState) {
     const auto nodeIDPos =
         nodeInsertState.nodeIDVector.state->getSelVector().getSelectedPositions()[0];
     nodeInsertState.nodeIDVector.setValue(nodeIDPos, internalID_t{nodeOffset, table.getTableID()});
-    nodeGroups.append(insertState.propertyVectors);
+    nodeGroups.append(transaction, insertState.propertyVectors);
     return true;
 }
 
@@ -42,9 +43,15 @@ bool LocalNodeTable::update(TableUpdateState& state) {
     const auto& updateState = ku_dynamic_cast<TableUpdateState&, NodeTableUpdateState&>(state);
 }
 
-bool LocalNodeTable::delete_(TableDeleteState& deleteState) {
-    const auto& deleteState_ =
+bool LocalNodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
+    const auto& nodeDeleteState =
         ku_dynamic_cast<TableDeleteState&, NodeTableDeleteState&>(deleteState);
+    KU_ASSERT(nodeDeleteState.nodeIDVector.state->getSelVector().getSelSize() == 1);
+    const auto pos = nodeDeleteState.nodeIDVector.state->getSelVector()[0];
+    const auto offset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
+    auto& nodeGroup = nodeGroups.findNodeGroupFromOffset(offset);
+    nodeGroup.delete_(transaction, offset);
+    return true;
 }
 
 } // namespace storage

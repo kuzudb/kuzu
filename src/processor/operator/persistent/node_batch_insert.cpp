@@ -188,15 +188,6 @@ offset_t NodeBatchInsert::writeToExistingNodeGroup(transaction::Transaction* tra
         indexBuilder->insert(chunkedGroup->getColumnChunkUnsafe(pkColumnID), nodeOffset,
             numRowsToWrite);
     }
-    // auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
-    // TODO: append this to localTable.
-    // LocalNodeNG localNodeGroup(table->getTableID(),
-    // StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx), nodeInfo->columnTypes);
-    // auto& insertChunks = localNodeGroup.getInsertChunks();
-    // insertChunks.append(numExistingTuplesInChunk, nodeGroup, numRowsToWrite);
-    // table->prepareCommitNodeGroup(nodeGroupIdx, transaction, &localNodeGroup);
-    // TODO(Guodong): Rework this. Should use local node table instead.
-    // Eventually batch insert should get away with local storage.
     return numRowsToWrite;
 }
 

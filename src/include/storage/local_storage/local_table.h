@@ -222,9 +222,9 @@ class LocalTable {
 public:
     virtual ~LocalTable() = default;
 
-    virtual bool insert(TableInsertState& insertState) = 0;
+    virtual bool insert(transaction::Transaction* transaction, TableInsertState& insertState) = 0;
     virtual bool update(TableUpdateState& updateState) = 0;
-    virtual bool delete_(TableDeleteState& deleteState) = 0;
+    virtual bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) = 0;
 
     void clear() { localTableDataCollection.clear(); }
 

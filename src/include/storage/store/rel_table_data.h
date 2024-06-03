@@ -170,7 +170,7 @@ public:
         return columns[NBR_ID_COLUMN_ID]->getNumCommittedNodeGroups();
     }
     std::unique_ptr<ChunkedNodeGroup> getCommittedNodeGroup(
-        common::node_group_idx_t nodeGroupIdx) const override {
+        common::node_group_idx_t) const override {
         KU_UNREACHABLE;
     }
 

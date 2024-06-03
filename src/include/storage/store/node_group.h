@@ -1,6 +1,7 @@
 #pragma once
 
 #include "storage/store/chunked_node_group_collection.h"
+#include "storage/store/version_info.h"
 
 namespace kuzu {
 namespace transaction {
@@ -35,11 +36,14 @@ public:
         return chunkedGroups.getNumRows() == common::StorageConstants::NODE_GROUP_SIZE;
     }
     const std::vector<common::LogicalType>& getDataTypes() const { return dataTypes; }
-    void append(const ChunkedNodeGroupCollection& chunkCollection, common::row_idx_t offset,
-        common::row_idx_t numRowsToAppend) {
-        chunkedGroups.append(chunkCollection, offset, numRowsToAppend);
-    }
+    void append(transaction::Transaction* transaction,
+        const ChunkedNodeGroupCollection& chunkCollection, common::row_idx_t offset,
+        common::row_idx_t numRowsToAppend);
     void append(transaction::Transaction* transaction, const ChunkedNodeGroup& chunkedGroup);
+    void append(transaction::Transaction* transaction,
+        const std::vector<common::ValueVector*>& vectors, common::row_idx_t startRowIdx,
+        common::row_idx_t numRowsToAppend);
+
     void merge(transaction::Transaction* transaction,
         std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
 
@@ -48,7 +52,7 @@ public:
     void lookup(transaction::Transaction* transaction, TableScanState& state) const;
 
     void update();
-    void delete_();
+    bool delete_(transaction::Transaction* transaction, common::offset_t nodeOffset);
 
     void flush(BMFileHandle& dataFH);
 
@@ -56,8 +60,10 @@ public:
     const ChunkedNodeGroup& getChunkedGroup(common::vector_idx_t idx) const {
         return chunkedGroups.getChunkedGroup(idx);
     }
+    const ChunkedNodeGroupCollection& getChunkedGroups() const { return chunkedGroups; }
 
     NodeGroupType getType() const { return type; }
+    common::offset_t getStartNodeOffset() const { return startNodeOffset; }
 
 private:
     void setToOnDisk() { type = NodeGroupType::ON_DISK; }
@@ -69,6 +75,7 @@ private:
     // Offset of the first node in the group.
     common::offset_t startNodeOffset;
     ChunkedNodeGroupCollection chunkedGroups;
+    NodeGroupVersionInfo versionInfo;
 };
 
 } // namespace storage
