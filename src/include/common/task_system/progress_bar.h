@@ -16,7 +16,6 @@ typedef std::unique_ptr<ProgressBarDisplay> (*progress_bar_display_create_func_t
  * pipeline and the overall progress.
  */
 class ProgressBar {
-
 public:
     ProgressBar();
 

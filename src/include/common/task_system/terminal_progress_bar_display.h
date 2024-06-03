@@ -10,21 +10,16 @@ namespace common {
 /**
  * @brief A class that displays a progress bar in the terminal.
  */
-class TerminalProgressBarDisplay : public ProgressBarDisplay {
-
+class TerminalProgressBarDisplay final: public ProgressBarDisplay {
 public:
-    TerminalProgressBarDisplay() = default;
-
-    ~TerminalProgressBarDisplay() override = default;
-
     void updateProgress(double newPipelineProgress, uint32_t newNumPipelinesFinished) override;
 
     void finishProgress() override;
 
 private:
-    inline void setGreenFont() const { std::cerr << "\033[1;32m"; }
+    void setGreenFont() const { std::cerr << "\033[1;32m"; }
 
-    inline void setDefaultFont() const { std::cerr << "\033[0m"; }
+    void setDefaultFont() const { std::cerr << "\033[0m"; }
 
     void printProgressBar();
 
