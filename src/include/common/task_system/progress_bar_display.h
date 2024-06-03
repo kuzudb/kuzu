@@ -12,6 +12,8 @@ class ProgressBarDisplay {
 public:
     ProgressBarDisplay() : pipelineProgress{0}, numPipelines{0}, numPipelinesFinished{0} {};
 
+    virtual ~ProgressBarDisplay() = default;
+
     // Update the progress of the pipeline and the number of finished pipelines
     virtual void updateProgress(double newPipelineProgress, uint32_t newNumPipelinesFinished) = 0;
 
