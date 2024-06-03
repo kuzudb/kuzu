@@ -10,7 +10,7 @@ namespace common {
 /**
  * @brief A class that displays a progress bar in the terminal.
  */
-class TerminalProgressBarDisplay final: public ProgressBarDisplay {
+class TerminalProgressBarDisplay final : public ProgressBarDisplay {
 public:
     void updateProgress(double newPipelineProgress, uint32_t newNumPipelinesFinished) override;
 
