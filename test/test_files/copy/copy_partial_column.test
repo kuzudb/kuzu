@@ -151,13 +151,17 @@ Binder exception: Detect duplicate column name booleanColumn during COPY.
 -STATEMENT COPY tableOfTypes10 (id, int64Column, doubleColumn, booleanColumn, dateColumn, timestampColumn, stringColumn,
     listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
 ---- ok
--STATEMENT MATCH (row:tableOfTypes10) WHERE row.id >= 20 AND row.id <= 24 RETURN row.*;
+-STATEMENT MATCH (row:tableOfTypes10) WHERE row.id >= 20 AND row.id <= 24 RETURN 
+    row.id, row.int64Column, row.doubleColumn, row.booleanColumn, row.dateColumn, row.timestampColumn, row.stringColumn, row.listOfInt;
 ---- 5
-20|0|57.579280|True|1731-09-26|1731-09-26 03:30:08|OdM|[93,,86,37]|20
-21|7|64.630960|False|1307-01-26|1307-01-26 03:31:08|AjbxHQThEtDDlOjbzMjCQSXlvGQEjcFLykESrnFHwPKX|[]|21
-22|71|37.963386|True|1455-07-26|1455-07-26 03:07:03|dRvHHdyNXYfSUcicaxBoQEKQUfgex|[72,,45,,81]|22
-23|58|42.774957|False|1181-10-16|1181-10-16 18:19:43|ISImRVpUjynGMFRQyYmeIUVjM||23
-24|75|53.813224|False|1942-10-24|1942-10-24 09:30:16|naDlQ|[97,91,28,26,]|24
+20|0|57.579280|True|1731-09-26|1731-09-26 03:30:08|OdM|[93,,86,37]
+21|7|64.630960|False|1307-01-26|1307-01-26 03:31:08|AjbxHQThEtDDlOjbzMjCQSXlvGQEjcFLykESrnFHwPKX|[]
+22|71|37.963386|True|1455-07-26|1455-07-26 03:07:03|dRvHHdyNXYfSUcicaxBoQEKQUfgex|[72,,45,,81]
+23|58|42.774957|False|1181-10-16|1181-10-16 18:19:43|ISImRVpUjynGMFRQyYmeIUVjM|
+24|75|53.813224|False|1942-10-24|1942-10-24 09:30:16|naDlQ|[97,91,28,26,]
+-STATEMENT MATCH (row:tableOfTypes10) RETURN sum(row.serialPk);
+---- 1
+1249925001
 
 -LOG PartialCopyException5
 -STATEMENT CREATE NODE TABLE tableOfTypes11 (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN,

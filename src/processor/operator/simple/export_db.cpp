@@ -39,21 +39,10 @@ static void writeCopyStatement(stringstream& ss, std::string tableName,
         csvConfig.option.toCypher());
 }
 
-static bool containOnlySerialProperty(NodeTableCatalogEntry* tableEntry) {
-    return tableEntry->getPrimaryKey()->getDataType()->getLogicalTypeID() ==
-               LogicalTypeID::SERIAL &&
-           tableEntry->getNumProperties() == 1;
-}
-
 std::string getSchemaCypher(ClientContext* clientContext, Transaction* tx, std::string& extraMsg) {
     stringstream ss;
     auto catalog = clientContext->getCatalog();
     for (auto& nodeTableEntry : catalog->getNodeTableEntries(tx)) {
-        if (containOnlySerialProperty(nodeTableEntry)) {
-            extraMsg = stringFormat("\nTable: {} is skipped since it only has one serial column.",
-                nodeTableEntry->getName());
-            continue;
-        }
         ss << nodeTableEntry->toCypher(clientContext) << std::endl;
     }
     for (auto& entry : catalog->getRelTableEntries(tx)) {
@@ -87,9 +76,6 @@ std::string getCopyCypher(Catalog* catalog, Transaction* tx, ReaderConfig* bound
             continue;
         }
         auto tableName = nodeTableEntry->getName();
-        if (containOnlySerialProperty(nodeTableEntry)) {
-            continue;
-        }
         writeCopyStatement(ss, tableName, boundFileInfo);
     }
     for (auto& entry : catalog->getRelTableEntries(tx)) {

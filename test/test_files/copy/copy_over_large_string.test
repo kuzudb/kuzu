@@ -5,7 +5,7 @@
 -CASE OverLargeStringProp
 -STATEMENT CREATE NODE TABLE person(id SERIAL, prop STRING, PRIMARY KEY(id));
 ---- ok
--STATEMENT COPY person FROM '${KUZU_ROOT_DIRECTORY}/dataset/over-large-string/nodes.csv';
+-STATEMENT COPY person (prop) FROM '${KUZU_ROOT_DIRECTORY}/dataset/over-large-string/nodes.csv';
 ---- ok
 -STATEMENT MATCH (p:person) RETURN SIZE(p.prop);
 ---- 10

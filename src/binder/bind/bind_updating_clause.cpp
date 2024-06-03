@@ -143,15 +143,6 @@ std::vector<BoundInsertInfo> Binder::bindInsertInfos(QueryGraphCollection& query
 static void validatePrimaryKeyExistence(const NodeTableCatalogEntry* nodeTableEntry,
     const NodeExpression& node, const expression_vector& defaultExprs) {
     auto primaryKey = nodeTableEntry->getPrimaryKey();
-    if (*primaryKey->getDataType() == *LogicalType::SERIAL()) {
-        if (node.hasPropertyDataExpr(primaryKey->getName())) {
-            throw BinderException(
-                common::stringFormat("The primary key of {} is serial, specifying primary key "
-                                     "value is not allowed in the create statement.",
-                    nodeTableEntry->getName()));
-        }
-        return; // No input needed for SERIAL primary key.
-    }
     auto pkeyDefaultExpr = defaultExprs.at(nodeTableEntry->getPrimaryKeyPos());
     if (!node.hasPropertyDataExpr(primaryKey->getName()) &&
         ExpressionUtil::isNullLiteral(*pkeyDefaultExpr)) {
@@ -311,9 +302,6 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(parser::ParsedExpression* lhs,
         for (auto id : patternExpr.getTableIDs()) {
             if (property.isPrimaryKey(id)) {
                 info.pkExpr = boundSetItem.first;
-                if (info.pkExpr->dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-                    throw BinderException("Updating SERIAL primary key is not supported.");
-                }
             }
         }
         return info;

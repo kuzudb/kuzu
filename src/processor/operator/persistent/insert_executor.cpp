@@ -92,16 +92,7 @@ void NodeInsertExecutor::writeResult() {
         }
         KU_ASSERT(columnVector->state->getSelVector().getSelSize() == 1 &&
                   dataVector->state->getSelVector().getSelSize() == 1);
-        if (columnVector->dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            // Lhs vector is serial so there is no corresponding rhs vector.
-            auto nodeIDPos = nodeIDVector->state->getSelVector()[0];
-            auto lhsPos = columnVector->state->getSelVector()[0];
-            auto nodeID = nodeIDVector->getValue<nodeID_t>(nodeIDPos);
-            columnVector->setNull(lhsPos, false);
-            columnVector->setValue<int64_t>(lhsPos, nodeID.offset);
-        } else {
-            writeColumnVector(columnVector, dataVector);
-        }
+        writeColumnVector(columnVector, dataVector);
     }
 }
 

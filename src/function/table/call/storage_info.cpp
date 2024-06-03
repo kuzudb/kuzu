@@ -160,6 +160,7 @@ static void appendColumnChunkStorageInfo(node_group_idx_t nodeGroupIdx,
         [&]<typename T>(T)
             requires(std::integral<T> || std::floating_point<T>)
         {
+            // TODO(Sam): Check if this needs any change
             if (column->getDataType().getLogicalTypeID() == LogicalTypeID::SERIAL) {
                 customToString(uint64_t());
             } else {

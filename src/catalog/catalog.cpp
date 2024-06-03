@@ -205,6 +205,17 @@ void Catalog::dropTableSchema(transaction::Transaction* transaction, table_id_t 
         // DO NOTHING.
     }
     }
+    for (auto& property: tableEntry->getPropertiesRef()) {
+        if (property.getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            auto seqName = std::string(tableEntry->getName())
+                               .append("_")
+                               .append(property.getName())
+                               .append("_")
+                               .append("serial");
+            auto seqID = getSequenceID(transaction, seqName);
+            dropSequence(transaction, seqID);
+        }
+    }
     tables->dropEntry(transaction, tableEntry->getName());
 }
 
