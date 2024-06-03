@@ -799,6 +799,7 @@ void CastString::copyStringToVector(ValueVector* vector, uint64_t vectorPos,
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(vectorPos, val);
     } break;
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
         int64_t val;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);

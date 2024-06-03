@@ -170,7 +170,7 @@ std::unique_ptr<Statement> Transformer::transformAddProperty(
     auto propertyName = transformPropertyKeyName(*addPropertyCtx->oC_PropertyKeyName());
     auto dataType = transformDataType(*addPropertyCtx->kU_DataType());
     std::unique_ptr<ParsedExpression> defaultValue;
-    // TODO(Sam): Do we want to warn users to not set default on SERIAL?
+    // TODO(Sam): Do we want to warn users to not set default on SERIAL (i.e. it will be overwritten)?
     if (addPropertyCtx->oC_Expression()) {
         defaultValue = transformExpression(*addPropertyCtx->oC_Expression());
     } else {

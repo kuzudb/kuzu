@@ -18,13 +18,10 @@ void WALReplayerUtils::removeHashIndexFile(common::VirtualFileSystem* vfs, table
 void WALReplayerUtils::createEmptyHashIndexFiles(catalog::NodeTableCatalogEntry* nodeTableEntry,
     const std::string& directory, VirtualFileSystem* vfs, main::ClientContext* context) {
     auto pk = nodeTableEntry->getPrimaryKey();
-    auto dt = pk->getDataType();
-    if (dt->getLogicalTypeID() != LogicalTypeID::SERIAL) {
-        PrimaryKeyIndex::createEmptyHashIndexFiles(pk->getDataType()->getPhysicalType(),
-            StorageUtils::getNodeIndexFName(vfs, directory, nodeTableEntry->getTableID(),
-                FileVersionType::ORIGINAL),
-            vfs, context);
-    }
+    PrimaryKeyIndex::createEmptyHashIndexFiles(pk->getDataType()->getPhysicalType(),
+        StorageUtils::getNodeIndexFName(vfs, directory, nodeTableEntry->getTableID(),
+            FileVersionType::ORIGINAL),
+        vfs, context);
 }
 
 } // namespace storage

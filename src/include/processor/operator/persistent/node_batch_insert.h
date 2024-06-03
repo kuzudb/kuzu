@@ -20,22 +20,19 @@ namespace processor {
 struct ExecutionContext;
 
 struct NodeBatchInsertInfo final : public BatchInsertInfo {
-    bool containSerial = false;
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
     std::vector<bool> defaultColumns;
 
     NodeBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
-        bool containSerial, std::vector<common::LogicalType> columnTypes,
+        std::vector<common::LogicalType> columnTypes,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
         std::vector<bool> defaultColumns)
-        : BatchInsertInfo{tableEntry, compressionEnabled}, containSerial{containSerial},
-          columnTypes{std::move(columnTypes)}, columnEvaluators{std::move(columnEvaluators)},
-          defaultColumns{std::move(defaultColumns)} {}
+        : BatchInsertInfo{tableEntry, compressionEnabled}, columnTypes{std::move(columnTypes)}, 
+          columnEvaluators{std::move(columnEvaluators)}, defaultColumns{std::move(defaultColumns)} {}
 
     NodeBatchInsertInfo(const NodeBatchInsertInfo& other)
         : BatchInsertInfo{other.tableEntry, other.compressionEnabled},
-          containSerial{other.containSerial},
           columnTypes{common::LogicalType::copy(other.columnTypes)},
           columnEvaluators{evaluator::ExpressionEvaluator::copy(other.columnEvaluators)},
           defaultColumns{other.defaultColumns} {}
@@ -97,11 +94,6 @@ public:
         : BatchInsert{std::move(info), std::move(sharedState), std::move(resultSetDescriptor), id,
               paramsString} {
         children.push_back(std::move(child));
-    }
-
-    inline bool isParallel() const override {
-        auto nodeInfo = common::ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
-        return !nodeInfo->containSerial;
     }
 
     void initGlobalStateInternal(ExecutionContext* context) override;

@@ -37,7 +37,11 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     // Literal table.
     auto literalTableName = RDFGraphCatalogEntry::getLiteralTableName(rdfGraphName);
     std::vector<PropertyInfo> literalProperties;
-    auto sequenceName = std::string(rdfGraphName).append("_").append("serial");
+    auto sequenceName = std::string(literalTableName)
+                            .append("_")
+                            .append(std::string(rdf::ID))
+                            .append("_")
+                            .append("serial");
     serialSequences.push_back(
         BoundCreateSequenceInfo(sequenceName, 0, 1, 0, std::numeric_limits<int64_t>::max(), false));
     literalProperties.emplace_back(std::string(rdf::ID), *LogicalType::SERIAL(),

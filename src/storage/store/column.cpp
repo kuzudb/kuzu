@@ -97,6 +97,7 @@ static write_values_func_t getWriteValuesFunc(const LogicalType& logicalType) {
     }
 }
 
+// TODO(Sam): This entire class needs to change
 class SerialColumn final : public Column {
 public:
     SerialColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
@@ -969,6 +970,7 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalTyp
     case PhysicalTypeID::DOUBLE:
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::INTERVAL: {
+        // TODO(Sam): Verify if we can change this
         if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
             return std::make_unique<SerialColumn>(name, metaDAHeaderInfo, dataFH, metadataFH,
                 bufferManager, wal, transaction);

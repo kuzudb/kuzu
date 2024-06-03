@@ -22,7 +22,6 @@ namespace kuzu {
 namespace processor {
 
 void NodeBatchInsertSharedState::initPKIndex(ExecutionContext*) {
-    KU_ASSERT(pkType.getLogicalTypeID() != LogicalTypeID::SERIAL);
     uint64_t numRows;
     if (readerSharedState != nullptr) {
         KU_ASSERT(distinctSharedState == nullptr);
@@ -61,9 +60,7 @@ void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transa
 void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
-    if (nodeSharedState->pkType.getLogicalTypeID() != LogicalTypeID::SERIAL) {
-        nodeSharedState->initPKIndex(context);
-    }
+    nodeSharedState->initPKIndex(context);
     // Set initial node group index, which should be the last one available on disk which is not
     // full, or the next index.
     auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(nodeSharedState->table);

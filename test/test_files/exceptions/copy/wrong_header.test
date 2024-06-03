@@ -112,7 +112,7 @@ Binder exception: Number of columns mismatch. Expected 4 but got 3.
 ---- ok
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k_1.parquet"
 ---- error
-Binder exception: Number of columns mismatch. Expected 3 but got 10.
+Binder exception: Number of columns mismatch. Expected 4 but got 10.
 
 -CASE RelUnmatchedNumColumns
 -STATEMENT create node table person (ID1 SERIAL, ID INT64, fName INT64, age INT64, PRIMARY KEY (ID1))
