@@ -3,7 +3,8 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "storage/stats/table_statistics_collection.h"
-#include "storage/wal/wal.h"
+#include "storage/storage_structure/disk_array_collection.h"
+#include "storage/wal/wal_record.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -11,29 +12,29 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-RelTableStats::RelTableStats(BMFileHandle* metadataFH, const TableCatalogEntry& tableEntry,
-    BufferManager* bufferManager, WAL* wal)
+RelTableStats::RelTableStats(DiskArrayCollection& metadataDAC,
+    const catalog::TableCatalogEntry& tableEntry)
     : TableStatistics{tableEntry}, nextRelOffset{0} {
-    fwdCSROffsetMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
-        LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
-    fwdCSRLengthMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
-        LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
-    bwdCSROffsetMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
-        LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
-    bwdCSRLengthMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
-        LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
+    fwdCSROffsetMetadataDAHInfo =
+        TablesStatistics::createMetadataDAHInfo(LogicalType{LogicalTypeID::INT64}, metadataDAC);
+    fwdCSRLengthMetadataDAHInfo =
+        TablesStatistics::createMetadataDAHInfo(LogicalType{LogicalTypeID::INT64}, metadataDAC);
+    bwdCSROffsetMetadataDAHInfo =
+        TablesStatistics::createMetadataDAHInfo(LogicalType{LogicalTypeID::INT64}, metadataDAC);
+    bwdCSRLengthMetadataDAHInfo =
+        TablesStatistics::createMetadataDAHInfo(LogicalType{LogicalTypeID::INT64}, metadataDAC);
     KU_ASSERT(fwdMetadataDAHInfos.empty() && bwdMetadataDAHInfos.empty());
     fwdMetadataDAHInfos.reserve(tableEntry.getNumProperties() + 1);
     bwdMetadataDAHInfos.reserve(tableEntry.getNumProperties() + 1);
     fwdMetadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(
-        LogicalType{LogicalTypeID::INTERNAL_ID}, *metadataFH, bufferManager, wal));
+        LogicalType{LogicalTypeID::INTERNAL_ID}, metadataDAC));
     bwdMetadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(
-        LogicalType{LogicalTypeID::INTERNAL_ID}, *metadataFH, bufferManager, wal));
+        LogicalType{LogicalTypeID::INTERNAL_ID}, metadataDAC));
     for (auto& property : tableEntry.getPropertiesRef()) {
-        fwdMetadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(
-            *property.getDataType(), *metadataFH, bufferManager, wal));
-        bwdMetadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(
-            *property.getDataType(), *metadataFH, bufferManager, wal));
+        fwdMetadataDAHInfos.push_back(
+            TablesStatistics::createMetadataDAHInfo(*property.getDataType(), metadataDAC));
+        bwdMetadataDAHInfos.push_back(
+            TablesStatistics::createMetadataDAHInfo(*property.getDataType(), metadataDAC));
     }
 }
 

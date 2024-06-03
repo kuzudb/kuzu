@@ -12,6 +12,10 @@ class Property;
 namespace storage {
 struct TableScanState;
 
+class DiskArrayCollection;
+template<typename T>
+class DiskArray;
+
 struct TableDataScanState {
     explicit TableDataScanState(const std::vector<common::column_id_t>& columnIDs)
         : columnIDs{columnIDs} {
@@ -66,13 +70,13 @@ public:
     virtual common::node_group_idx_t getNumCommittedNodeGroups() const = 0;
 
 protected:
-    TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
+    TableData(BMFileHandle* dataFH, DiskArrayCollection* metadataDAC,
         catalog::TableCatalogEntry* tableEntry, BufferManager* bufferManager, WAL* wal,
         bool enableCompression);
 
 protected:
     BMFileHandle* dataFH;
-    BMFileHandle* metadataFH;
+    DiskArrayCollection* metadataDAC;
     common::table_id_t tableID;
     std::string tableName;
     BufferManager* bufferManager;

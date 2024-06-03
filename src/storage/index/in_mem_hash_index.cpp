@@ -5,10 +5,8 @@
 #include <cstring>
 
 #include "common/constants.h"
-#include "common/type_utils.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
-#include "storage/file_handle.h"
 #include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_slot.h"
 #include "storage/index/hash_index_utils.h"
@@ -24,8 +22,7 @@ namespace storage {
 template<typename T>
 InMemHashIndex<T>::InMemHashIndex(OverflowFileHandle* overflowFileHandle)
     : overflowFileHandle(overflowFileHandle), pSlots{std::make_unique<BlockVector<Slot<T>>>()},
-      oSlots{std::make_unique<BlockVector<Slot<T>>>()},
-      indexHeader{TypeUtils::getPhysicalTypeIDForType<T>()} {
+      oSlots{std::make_unique<BlockVector<Slot<T>>>()}, indexHeader{} {
     // Match HashIndex in allocating at least one page of slots so that we don't split within the
     // same page
     allocateSlots(BufferPoolConstants::PAGE_4KB_SIZE / pSlots->getAlignedElementSize());
@@ -33,7 +30,7 @@ InMemHashIndex<T>::InMemHashIndex(OverflowFileHandle* overflowFileHandle)
 
 template<typename T>
 void InMemHashIndex<T>::clear() {
-    indexHeader = HashIndexHeader(TypeUtils::getPhysicalTypeIDForType<T>());
+    indexHeader = HashIndexHeader();
     pSlots = std::make_unique<BlockVector<Slot<T>>>();
     oSlots = std::make_unique<BlockVector<Slot<T>>>();
     allocateSlots(BufferPoolConstants::PAGE_4KB_SIZE / pSlots->getAlignedElementSize());
@@ -343,21 +340,6 @@ bool InMemHashIndex<ku_string_t>::equals(std::string_view keyToLookup,
         return overflowFileHandle->equals(transaction::TransactionType::WRITE, keyToLookup,
             keyInEntry);
     }
-}
-
-template<typename T>
-void InMemHashIndex<T>::createEmptyIndexFiles(uint64_t indexPos, FileHandle& fileHandle) {
-    // Write header
-    std::array<uint8_t, BufferPoolConstants::PAGE_4KB_SIZE> buffer{};
-    HashIndexHeader indexHeader(TypeUtils::getPhysicalTypeIDForType<T>());
-    memcpy(buffer.data(), &indexHeader, sizeof(indexHeader));
-    fileHandle.writePage(buffer.data(),
-        NUM_HEADER_PAGES * indexPos + INDEX_HEADER_ARRAY_HEADER_PAGE_IDX);
-
-    DiskArray<Slot<T>>::addDAHPageToFile(fileHandle,
-        NUM_HEADER_PAGES * indexPos + P_SLOTS_HEADER_PAGE_IDX);
-    DiskArray<Slot<T>>::addDAHPageToFile(fileHandle,
-        NUM_HEADER_PAGES * indexPos + O_SLOTS_HEADER_PAGE_IDX);
 }
 
 template<typename T>

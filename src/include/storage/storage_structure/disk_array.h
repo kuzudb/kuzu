@@ -6,9 +6,9 @@
 #include "common/copy_constructors.h"
 #include "common/types/types.h"
 #include "db_file_utils.h"
-#include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/storage_utils.h"
 #include "storage/wal/wal.h"
+#include "storage/wal/wal_record.h"
 #include "transaction/transaction.h"
 #include <bit>
 #include <span>
@@ -16,36 +16,32 @@
 namespace kuzu {
 namespace storage {
 
-class FileHandle;
+class BMFileHandle;
+class BufferManager;
 
 static constexpr uint64_t NUM_PAGE_IDXS_PER_PIP =
     (common::BufferPoolConstants::PAGE_4KB_SIZE - sizeof(common::page_idx_t)) /
     sizeof(common::page_idx_t);
 
-/**
- * Header page of a disk array.
- */
 struct DiskArrayHeader {
-    // This constructor is needed when loading the database from file.
-    DiskArrayHeader() : DiskArrayHeader(1) {};
-
-    explicit DiskArrayHeader(uint64_t elementSize);
-
-    void saveToDisk(FileHandle& fileHandle, uint64_t headerPageIdx);
-
-    void readFromFile(FileHandle& fileHandle, uint64_t headerPageIdx);
-
+    DiskArrayHeader() : numElements{0}, firstPIPPageIdx{common::INVALID_PAGE_IDX} {}
     bool operator==(const DiskArrayHeader& other) const = default;
 
-    // We do not need to store numElementsPerPageLog2, elementPageOffsetMask, and numArrayPages or
-    // save them on disk as they are functions of elementSize and numElements but we
-    // nonetheless store them (and save them to disk) for simplicity.
-    uint64_t alignedElementSizeLog2;
-    uint64_t numElementsPerPageLog2;
-    uint64_t elementPageOffsetMask;
-    uint64_t firstPIPPageIdx;
     uint64_t numElements;
-    uint64_t numAPs;
+    common::page_idx_t firstPIPPageIdx;
+    uint32_t _padding{};
+};
+static_assert(std::has_unique_object_representations_v<DiskArrayHeader>);
+
+/**
+ * Data for page-based storage helper functions
+ */
+struct PageStorageInfo {
+    explicit PageStorageInfo(uint64_t elementSize);
+
+    uint64_t alignedElementSize;
+    uint64_t numElementsPerPage;
+    uint64_t elementPageOffsetMask;
 };
 
 struct PIP {
@@ -104,9 +100,9 @@ struct PIPUpdates {
 class DiskArrayInternal {
 public:
     // Used when loading from file
-    DiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID, common::page_idx_t headerPageIdx,
-        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
-        bool bypassWAL = false);
+    DiskArrayInternal(BMFileHandle& fileHandle, DBFileID dbFileID,
+        const DiskArrayHeader& headerForReadTrx, DiskArrayHeader& headerForWriteTrx,
+        BufferManager* bufferManager, WAL* wal, uint64_t elementSize, bool bypassWAL = false);
 
     virtual ~DiskArrayInternal() = default;
 
@@ -202,12 +198,13 @@ protected:
         return getDiskArrayHeader(trxType).numElements;
     }
 
-    inline uint64_t getNumAPsNoLock(transaction::TransactionType trxType) {
-        return getDiskArrayHeader(trxType).numAPs;
+    inline uint64_t getNumAPs(const DiskArrayHeader& header) const {
+        return (header.numElements + storageInfo.numElementsPerPage - 1) /
+               storageInfo.numElementsPerPage;
     }
 
-    void setNextPIPPageIDxOfPIPNoLock(DiskArrayHeader* updatedDiskArrayHeader,
-        uint64_t pipIdxOfPreviousPIP, common::page_idx_t nextPIPPageIdx);
+    void setNextPIPPageIDxOfPIPNoLock(uint64_t pipIdxOfPreviousPIP,
+        common::page_idx_t nextPIPPageIdx);
 
     // This function does division and mod and should not be used in performance critical code.
     common::page_idx_t getAPPageIdxNoLock(common::page_idx_t apIdx,
@@ -236,16 +233,14 @@ private:
     // Returns the apPageIdx of the AP with idx apIdx and a bool indicating whether the apPageIdx is
     // a newly inserted page.
     std::pair<common::page_idx_t, bool> getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
-        DiskArrayHeader* updatedDiskArrayHeader, common::page_idx_t apIdx);
-
-public:
-    DiskArrayHeader header;
+        common::page_idx_t apIdx);
 
 protected:
-    FileHandle& fileHandle;
+    PageStorageInfo storageInfo;
+    BMFileHandle& fileHandle;
     DBFileID dbFileID;
-    common::page_idx_t headerPageIdx;
-    DiskArrayHeader headerForWriteTrx;
+    const DiskArrayHeader& header;
+    DiskArrayHeader& headerForWriteTrx;
     bool hasTransactionalUpdates;
     BufferManager* bufferManager;
     WAL* wal;
@@ -270,11 +265,11 @@ public:
     // If bypassWAL is set, the buffer manager is used to pages new to this transaction to the
     // original file, but does not handle flushing them. BufferManager::flushAllDirtyPagesInFrames
     // should be called on this file handle exactly once during prepare commit.
-    DiskArray(FileHandle& fileHandle, DBFileID dbFileID, common::page_idx_t headerPageIdx,
-        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
+    DiskArray(BMFileHandle& fileHandle, DBFileID dbFileID, const DiskArrayHeader& headerForReadTrx,
+        DiskArrayHeader& headerForWriteTrx, BufferManager* bufferManager, WAL* wal,
         bool bypassWAL = false)
-        : diskArray(fileHandle, dbFileID, headerPageIdx, bufferManager, wal, transaction,
-              bypassWAL) {}
+        : diskArray(fileHandle, dbFileID, headerForReadTrx, headerForWriteTrx, bufferManager, wal,
+              sizeof(U), bypassWAL) {}
 
     // Note: This function is to be used only by the WRITE trx.
     // The return value is the idx of val in array.
@@ -338,35 +333,20 @@ public:
     inline uint64_t getAPIdx(uint64_t idx) const { return diskArray.getAPIdx(idx); }
     static constexpr uint32_t getAlignedElementSize() { return std::bit_ceil(sizeof(U)); }
 
-    static inline common::page_idx_t addDAHPageToFile(BMFileHandle& fileHandle,
-        BufferManager* bufferManager, WAL* wal) {
-        DiskArrayHeader daHeader(sizeof(U));
-        return DBFileUtils::insertNewPage(fileHandle, DBFileID{DBFileType::METADATA},
-            *bufferManager, *wal,
-            [&](uint8_t* frame) -> void { memcpy(frame, &daHeader, sizeof(DiskArrayHeader)); });
-    }
-
-    static inline void addDAHPageToFile(FileHandle& fileHandle, common::page_idx_t pageIdx) {
-        std::array<uint8_t, common::BufferPoolConstants::PAGE_4KB_SIZE> buffer;
-        DiskArrayHeader header(sizeof(U));
-        memcpy(buffer.data(), &header, sizeof(DiskArrayHeader));
-        fileHandle.writePage(buffer.data(), pageIdx);
-    }
-
 private:
     DiskArrayInternal diskArray;
 };
 
 class BlockVectorInternal {
 public:
-    explicit BlockVectorInternal(size_t elementSize) : header{elementSize} {}
+    explicit BlockVectorInternal(size_t elementSize) : storageInfo{elementSize}, numElements{0} {}
 
     // This function is designed to be used during building of a disk array, i.e., during loading.
     // In particular, it changes the needed capacity non-transactionally, i.e., without writing
     // anything to the wal.
     void resize(uint64_t newNumElements, std::span<std::byte> defaultVal);
 
-    inline uint64_t size() const { return header.numElements; }
+    inline uint64_t size() const { return numElements; }
 
     // [] operator can be used to update elements, e.g., diskArray[5] = 4, when building an
     // InMemDiskArrayBuilder without transactional updates. This changes the contents directly in
@@ -386,14 +366,15 @@ protected:
 
 private:
     inline uint64_t getNumArrayPagesNeededForElements(uint64_t numElements) const {
-        return (numElements >> this->header.numElementsPerPageLog2) +
-               ((numElements & this->header.elementPageOffsetMask) > 0 ? 1 : 0);
+        return (numElements + this->storageInfo.numElementsPerPage - 1) /
+               this->storageInfo.numElementsPerPage;
     }
     void addNewArrayPageForBuilding();
 
 protected:
     std::vector<std::unique_ptr<uint8_t[]>> inMemArrayPages;
-    DiskArrayHeader header;
+    PageStorageInfo storageInfo;
+    uint64_t numElements;
 };
 
 template<typename U>

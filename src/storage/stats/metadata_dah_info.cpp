@@ -9,7 +9,7 @@ namespace kuzu {
 namespace storage {
 
 std::unique_ptr<MetadataDAHInfo> MetadataDAHInfo::copy() {
-    auto result = std::make_unique<MetadataDAHInfo>(dataDAHPageIdx, nullDAHPageIdx);
+    auto result = std::make_unique<MetadataDAHInfo>(dataDAHIdx, nullDAHIdx);
     result->childrenInfos.resize(childrenInfos.size());
     for (size_t i = 0; i < childrenInfos.size(); ++i) {
         result->childrenInfos[i] = childrenInfos[i]->copy();
@@ -18,15 +18,15 @@ std::unique_ptr<MetadataDAHInfo> MetadataDAHInfo::copy() {
 }
 
 void MetadataDAHInfo::serialize(Serializer& serializer) const {
-    serializer.serializeValue(dataDAHPageIdx);
-    serializer.serializeValue(nullDAHPageIdx);
+    serializer.serializeValue(dataDAHIdx);
+    serializer.serializeValue(nullDAHIdx);
     serializer.serializeVectorOfPtrs(childrenInfos);
 }
 
 std::unique_ptr<MetadataDAHInfo> MetadataDAHInfo::deserialize(Deserializer& deserializer) {
     auto metadataDAHInfo = std::make_unique<MetadataDAHInfo>();
-    deserializer.deserializeValue(metadataDAHInfo->dataDAHPageIdx);
-    deserializer.deserializeValue(metadataDAHInfo->nullDAHPageIdx);
+    deserializer.deserializeValue(metadataDAHInfo->dataDAHIdx);
+    deserializer.deserializeValue(metadataDAHInfo->nullDAHIdx);
     deserializer.deserializeVectorOfPtrs(metadataDAHInfo->childrenInfos);
     return metadataDAHInfo;
 }

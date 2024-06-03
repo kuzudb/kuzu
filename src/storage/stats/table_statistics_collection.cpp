@@ -6,16 +6,16 @@
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
-#include "storage/storage_structure/disk_array.h"
-#include "storage/store/column_chunk.h"
+#include "storage/storage_structure//disk_array_collection.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
-TablesStatistics::TablesStatistics(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal)
-    : metadataFH{metadataFH}, bufferManager{bufferManager}, wal{wal}, isUpdated{false} {
+TablesStatistics::TablesStatistics(DiskArrayCollection& metadataDAC, BufferManager* bufferManager,
+    WAL* wal)
+    : metadataDAC{metadataDAC}, bufferManager{bufferManager}, wal{wal}, isUpdated{false} {
     readOnlyVersion = std::make_unique<TablesStatisticsContent>();
 }
 
@@ -55,40 +55,36 @@ void TablesStatistics::initTableStatisticsForWriteTrxNoLock() {
 }
 
 std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(
-    const LogicalType& dataType, BMFileHandle& metadataFH, BufferManager* bm, WAL* wal) {
+    const LogicalType& dataType, DiskArrayCollection& metadataDAC) {
     auto metadataDAHInfo = std::make_unique<MetadataDAHInfo>();
-    metadataDAHInfo->dataDAHPageIdx =
-        DiskArray<ColumnChunkMetadata>::addDAHPageToFile(metadataFH, bm, wal);
-    metadataDAHInfo->nullDAHPageIdx =
-        DiskArray<ColumnChunkMetadata>::addDAHPageToFile(metadataFH, bm, wal);
+    metadataDAHInfo->dataDAHIdx = metadataDAC.addDiskArray();
+    metadataDAHInfo->nullDAHIdx = metadataDAC.addDiskArray();
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
         auto fields = StructType::getFields(dataType);
         metadataDAHInfo->childrenInfos.resize(fields.size());
         for (auto i = 0u; i < fields.size(); i++) {
             metadataDAHInfo->childrenInfos[i] =
-                createMetadataDAHInfo(fields[i].getType(), metadataFH, bm, wal);
+                createMetadataDAHInfo(fields[i].getType(), metadataDAC);
         }
     } break;
     case PhysicalTypeID::LIST: {
         metadataDAHInfo->childrenInfos.push_back(
-            createMetadataDAHInfo(*LogicalType::UINT32(), metadataFH, bm, wal));
+            createMetadataDAHInfo(*LogicalType::UINT32(), metadataDAC));
         metadataDAHInfo->childrenInfos.push_back(
-            createMetadataDAHInfo(ListType::getChildType(dataType), metadataFH, bm, wal));
+            createMetadataDAHInfo(ListType::getChildType(dataType), metadataDAC));
     } break;
     case PhysicalTypeID::ARRAY: {
         metadataDAHInfo->childrenInfos.push_back(
-            createMetadataDAHInfo(*LogicalType::UINT32(), metadataFH, bm, wal));
+            createMetadataDAHInfo(*LogicalType::UINT32(), metadataDAC));
         metadataDAHInfo->childrenInfos.push_back(
-            createMetadataDAHInfo(ArrayType::getChildType(dataType), metadataFH, bm, wal));
+            createMetadataDAHInfo(ArrayType::getChildType(dataType), metadataDAC));
     } break;
     case PhysicalTypeID::STRING: {
         auto dataMetadataDAHInfo = std::make_unique<MetadataDAHInfo>();
         auto offsetMetadataDAHInfo = std::make_unique<MetadataDAHInfo>();
-        dataMetadataDAHInfo->dataDAHPageIdx =
-            DiskArray<ColumnChunkMetadata>::addDAHPageToFile(metadataFH, bm, wal);
-        offsetMetadataDAHInfo->dataDAHPageIdx =
-            DiskArray<ColumnChunkMetadata>::addDAHPageToFile(metadataFH, bm, wal);
+        dataMetadataDAHInfo->dataDAHIdx = metadataDAC.addDiskArray();
+        offsetMetadataDAHInfo->dataDAHIdx = metadataDAC.addDiskArray();
         metadataDAHInfo->childrenInfos.push_back(std::move(dataMetadataDAHInfo));
         metadataDAHInfo->childrenInfos.push_back(std::move(offsetMetadataDAHInfo));
     } break;

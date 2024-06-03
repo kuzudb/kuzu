@@ -1,5 +1,7 @@
 #include "storage/stats/nodes_store_statistics.h"
 
+#include "storage/storage_structure/disk_array_collection.h"
+
 using namespace kuzu::common;
 using namespace kuzu::transaction;
 
@@ -7,9 +9,9 @@ namespace kuzu {
 namespace storage {
 
 NodesStoreStatsAndDeletedIDs::NodesStoreStatsAndDeletedIDs(const std::string& databasePath,
-    BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, VirtualFileSystem* fs,
+    DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal, VirtualFileSystem* fs,
     main::ClientContext* context)
-    : TablesStatistics{metadataFH, bufferManager, wal} {
+    : TablesStatistics{metadataDAC, bufferManager, wal} {
     if (fs->fileOrPathExists(StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(fs, databasePath,
                                  FileVersionType::ORIGINAL),
             context)) {
@@ -72,8 +74,7 @@ void NodesStoreStatsAndDeletedIDs::addMetadataDAHInfo(table_id_t tableID,
     setToUpdated();
     auto tableStats = dynamic_cast<NodeTableStatsAndDeletedIDs*>(
         readWriteVersion->tableStatisticPerTable[tableID].get());
-    tableStats->addMetadataDAHInfoForColumn(
-        createMetadataDAHInfo(dataType, *metadataFH, bufferManager, wal));
+    tableStats->addMetadataDAHInfoForColumn(createMetadataDAHInfo(dataType, metadataDAC));
 }
 
 void NodesStoreStatsAndDeletedIDs::removeMetadataDAHInfo(table_id_t tableID, column_id_t columnID) {

@@ -11,6 +11,8 @@
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "storage/compression/compression.h"
+#include "storage/storage_structure/disk_array.h"
+#include "storage/storage_structure/disk_array_collection.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/list_column.h"
@@ -100,8 +102,9 @@ static write_values_func_t getWriteValuesFunc(const LogicalType& logicalType) {
 class SerialColumn final : public Column {
 public:
     SerialColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, Transaction* transaction)
-        : Column{name, *LogicalType::SERIAL(), metaDAHeaderInfo, dataFH, metadataFH,
+        DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
+        Transaction* transaction)
+        : Column{name, *LogicalType::SERIAL(), metaDAHeaderInfo, dataFH, metadataDAC,
               // Serials can't be null, so they don't need PropertyStatistics
               bufferManager, wal, transaction, false /* enableCompression */,
               false /*requireNullColumn*/} {}
@@ -206,10 +209,10 @@ public:
 };
 
 InternalIDColumn::InternalIDColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo,
-    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+    BMFileHandle* dataFH, DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
     transaction::Transaction* transaction, bool enableCompression)
-    : Column{name, *LogicalType::INTERNAL_ID(), metaDAHeaderInfo, dataFH, metadataFH, bufferManager,
-          wal, transaction, enableCompression, false /*requireNullColumn*/},
+    : Column{name, *LogicalType::INTERNAL_ID(), metaDAHeaderInfo, dataFH, metadataDAC,
+          bufferManager, wal, transaction, enableCompression, false /*requireNullColumn*/},
       commonTableID{INVALID_TABLE_ID} {}
 
 void InternalIDColumn::populateCommonTableID(const ValueVector* resultVector) const {
@@ -222,14 +225,11 @@ void InternalIDColumn::populateCommonTableID(const ValueVector* resultVector) co
 }
 
 Column::Column(std::string name, LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
-    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+    BMFileHandle* dataFH, DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
     transaction::Transaction* transaction, bool enableCompression, bool requireNullColumn)
     : name{std::move(name)}, dbFileID{DBFileID::newDataFileID()}, dataType{std::move(dataType)},
-      dataFH{dataFH}, metadataFH{metadataFH}, bufferManager{bufferManager}, wal{wal},
-      enableCompression{enableCompression} {
-    metadataDA =
-        std::make_unique<DiskArray<ColumnChunkMetadata>>(*metadataFH, DBFileID::newMetadataFileID(),
-            metaDAHeaderInfo.dataDAHPageIdx, bufferManager, wal, transaction);
+      dataFH{dataFH}, bufferManager{bufferManager}, wal{wal}, enableCompression{enableCompression} {
+    metadataDA = metadataDAC.getDiskArray<ColumnChunkMetadata>(metaDAHeaderInfo.dataDAHIdx);
     readToVectorFunc = getReadValuesToVectorFunc(this->dataType);
     readToPageFunc = ReadCompressedValuesFromPage(this->dataType);
     batchLookupFunc = ReadCompressedValuesFromPage(this->dataType);
@@ -238,8 +238,8 @@ Column::Column(std::string name, LogicalType dataType, const MetadataDAHInfo& me
     if (requireNullColumn) {
         auto columnName =
             StorageUtils::getColumnName(this->name, StorageUtils::ColumnType::NULL_MASK, "");
-        nullColumn = std::make_unique<NullColumn>(columnName, metaDAHeaderInfo.nullDAHPageIdx,
-            dataFH, metadataFH, bufferManager, wal, transaction, enableCompression);
+        nullColumn = std::make_unique<NullColumn>(columnName, metaDAHeaderInfo.nullDAHIdx, dataFH,
+            metadataDAC, bufferManager, wal, transaction, enableCompression);
     }
 }
 
@@ -953,7 +953,7 @@ ChunkCollection Column::getNullChunkCollection(const ChunkCollection& chunkColle
 }
 
 std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalType dataType,
-    const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
+    const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, DiskArrayCollection& metadataDAC,
     BufferManager* bufferManager, WAL* wal, Transaction* transaction, bool enableCompression) {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL:
@@ -970,29 +970,29 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalTyp
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::INTERVAL: {
         if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            return std::make_unique<SerialColumn>(name, metaDAHeaderInfo, dataFH, metadataFH,
+            return std::make_unique<SerialColumn>(name, metaDAHeaderInfo, dataFH, metadataDAC,
                 bufferManager, wal, transaction);
         } else {
             return std::make_unique<Column>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
-                metadataFH, bufferManager, wal, transaction, enableCompression);
+                metadataDAC, bufferManager, wal, transaction, enableCompression);
         }
     }
     case PhysicalTypeID::INTERNAL_ID: {
-        return std::make_unique<InternalIDColumn>(name, metaDAHeaderInfo, dataFH, metadataFH,
+        return std::make_unique<InternalIDColumn>(name, metaDAHeaderInfo, dataFH, metadataDAC,
             bufferManager, wal, transaction, enableCompression);
     }
     case PhysicalTypeID::STRING: {
         return std::make_unique<StringColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
-            metadataFH, bufferManager, wal, transaction, enableCompression);
+            metadataDAC, bufferManager, wal, transaction, enableCompression);
     }
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
         return std::make_unique<ListColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
-            metadataFH, bufferManager, wal, transaction, enableCompression);
+            metadataDAC, bufferManager, wal, transaction, enableCompression);
     }
     case PhysicalTypeID::STRUCT: {
         return std::make_unique<StructColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
-            metadataFH, bufferManager, wal, transaction, enableCompression);
+            metadataDAC, bufferManager, wal, transaction, enableCompression);
     }
     default: {
         KU_UNREACHABLE;

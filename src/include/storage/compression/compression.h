@@ -92,6 +92,7 @@ union StorageValue {
     static std::optional<StorageValue> readFromVector(const common::ValueVector& vector,
         common::offset_t posInVector);
 };
+static_assert(std::is_trivial_v<StorageValue>);
 
 // Returns the size of the data type in bytes
 uint32_t getDataTypeSizeInChunk(const common::LogicalType& dataType);
@@ -114,6 +115,7 @@ struct CompressionMetadata {
     StorageValue min;
     StorageValue max;
     CompressionType compression;
+    uint8_t _padding[7]{};
 
     CompressionMetadata(StorageValue min, StorageValue max, CompressionType compression)
         : min(min), max(max), compression(compression) {}
@@ -130,6 +132,9 @@ struct CompressionMetadata {
 
     std::string toString(const common::PhysicalTypeID physicalType) const;
 };
+// Padding should be kept to a minimum, but must be stored explicitly for consistent binary output
+// when writing the padding to disk.
+static_assert(sizeof(CompressionMetadata) == sizeof(StorageValue) * 2 + 8);
 
 class CompressionAlg {
 public:

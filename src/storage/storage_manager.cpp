@@ -1,11 +1,15 @@
 #include "storage/storage_manager.h"
 
+#include <memory>
+
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/file_system/virtual_file_system.h"
 #include "main/database.h"
 #include "storage/stats/nodes_store_statistics.h"
+#include "storage/storage_structure/disk_array_collection.h"
 #include "storage/store/node_table.h"
+#include "storage/wal/wal_record.h"
 #include "storage/wal_replayer.h"
 #include "storage/wal_replayer_utils.h"
 
@@ -27,9 +31,11 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
     // TODO: should we disable WAL in readonly mode?
     wal = std::make_unique<WAL>(databasePath, readOnly, *memoryManager.getBufferManager(), vfs,
         context);
+    metadataDAC = std::make_unique<DiskArrayCollection>(*metadataFH, DBFileID::newMetadataFileID(),
+        memoryManager.getBufferManager(), wal.get());
     nodesStatisticsAndDeletedIDs = std::make_unique<NodesStoreStatsAndDeletedIDs>(databasePath,
-        metadataFH.get(), memoryManager.getBufferManager(), wal.get(), vfs, context);
-    relsStatistics = std::make_unique<RelsStoreStats>(databasePath, metadataFH.get(),
+        *metadataDAC, memoryManager.getBufferManager(), wal.get(), vfs, context);
+    relsStatistics = std::make_unique<RelsStoreStats>(databasePath, *metadataDAC,
         memoryManager.getBufferManager(), wal.get(), vfs, context);
     loadTables(catalog, vfs, context);
 }
@@ -69,7 +75,7 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
     auto rdfGraphSchemas = catalog.getRdfGraphEntries(&DUMMY_READ_TRANSACTION);
     for (auto relTableEntry : catalog.getRelTableEntries(&DUMMY_READ_TRANSACTION)) {
         KU_ASSERT(!tables.contains(relTableEntry->getTableID()));
-        auto relTable = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(),
+        auto relTable = std::make_unique<RelTable>(dataFH.get(), metadataDAC.get(),
             relsStatistics.get(), &memoryManager, relTableEntry, wal.get(), enableCompression);
         setCommonTableIDToRdfRelTable(relTable.get(), rdfGraphSchemas);
         tables[relTableEntry->getTableID()] = std::move(relTable);
@@ -119,8 +125,8 @@ void StorageManager::createNodeTable(table_id_t tableID, NodeTableCatalogEntry* 
 void StorageManager::createRelTable(table_id_t tableID, RelTableCatalogEntry* relTableEntry,
     Catalog* catalog, Transaction* transaction) {
     relsStatistics->addTableStatistic(relTableEntry);
-    auto relTable = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(), relsStatistics.get(),
-        &memoryManager, relTableEntry, wal.get(), enableCompression);
+    auto relTable = std::make_unique<RelTable>(dataFH.get(), metadataDAC.get(),
+        relsStatistics.get(), &memoryManager, relTableEntry, wal.get(), enableCompression);
     setCommonTableIDToRdfRelTable(relTable.get(), catalog->getRdfGraphEntries(transaction));
     tables[tableID] = std::move(relTable);
 }
@@ -222,6 +228,7 @@ void StorageManager::prepareCommit(Transaction* transaction, common::VirtualFile
             getTable(tableID)->prepareCommit();
         }
     }
+    metadataDAC->prepareCommit();
     if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
         nodesStatisticsAndDeletedIDs->writeTablesStatisticsFileForWALRecord(databasePath, vfs);
         wal->logTableStatisticsRecord(TableType::NODE);
@@ -246,6 +253,7 @@ void StorageManager::checkpointInMemory() {
         KU_ASSERT(tables.contains(tableID));
         tables.at(tableID)->checkpointInMemory();
     }
+    metadataDAC->checkpointInMemory();
     if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
         nodesStatisticsAndDeletedIDs->checkpointInMemoryIfNecessary();
     }
@@ -259,6 +267,7 @@ void StorageManager::rollbackInMemory() {
         KU_ASSERT(tables.contains(tableID));
         tables.at(tableID)->rollbackInMemory();
     }
+    metadataDAC->rollbackInMemory();
 }
 
 } // namespace storage

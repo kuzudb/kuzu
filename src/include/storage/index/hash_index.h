@@ -28,6 +28,7 @@ class BufferManager;
 class OverflowFileHandle;
 template<typename T>
 class DiskArray;
+class DiskArrayCollection;
 
 template<typename T>
 class HashIndexLocalStorage;
@@ -35,10 +36,10 @@ class HashIndexLocalStorage;
 class OnDiskHashIndex {
 public:
     virtual ~OnDiskHashIndex() = default;
-    virtual void prepareCommit() = 0;
+    virtual bool prepareCommit() = 0;
     virtual void prepareRollback() = 0;
-    virtual void checkpointInMemory() = 0;
-    virtual void rollbackInMemory() = 0;
+    virtual bool checkpointInMemory() = 0;
+    virtual bool rollbackInMemory() = 0;
     virtual void bulkReserve(uint64_t numValuesToAppend) = 0;
 };
 
@@ -65,11 +66,11 @@ public:
 // S is the stored type, which is usually the same as T, with the exception of strings
 template<typename T>
 class HashIndex final : public OnDiskHashIndex {
-
 public:
     HashIndex(const DBFileIDAndName& dbFileIDAndName,
         const std::shared_ptr<BMFileHandle>& fileHandle, OverflowFileHandle* overflowFileHandle,
-        uint64_t indexPos, BufferManager& bufferManager, WAL* wal);
+        DiskArrayCollection& diskArrays, uint64_t indexPos, BufferManager& bufferManager, WAL* wal,
+        const HashIndexHeader& indexHeaderForReadTrx, HashIndexHeader& indexHeaderForWriteTrx);
 
     ~HashIndex() override;
 
@@ -86,10 +87,10 @@ public:
     // or the index of the first value which cannot be inserted.
     size_t append(const IndexBuffer<BufferKeyType>& buffer);
 
-    void prepareCommit() override;
+    bool prepareCommit() override;
     void prepareRollback() override;
-    void checkpointInMemory() override;
-    void rollbackInMemory() override;
+    bool checkpointInMemory() override;
+    bool rollbackInMemory() override;
     inline BMFileHandle* getFileHandle() const { return fileHandle.get(); }
 
 private:
@@ -219,8 +220,8 @@ private:
     std::unique_ptr<DiskArray<Slot<T>>> oSlots;
     OverflowFileHandle* overflowFileHandle;
     std::unique_ptr<HashIndexLocalStorage<T>> localStorage;
-    std::unique_ptr<HashIndexHeader> indexHeaderForReadTrx;
-    std::unique_ptr<HashIndexHeader> indexHeaderForWriteTrx;
+    const HashIndexHeader& indexHeaderForReadTrx;
+    HashIndexHeader& indexHeaderForWriteTrx;
 };
 
 template<>
@@ -317,19 +318,21 @@ public:
     static void createEmptyHashIndexFiles(common::PhysicalTypeID typeID, const std::string& fName,
         common::VirtualFileSystem* vfs, main::ClientContext* context);
 
+    void writeHeaders();
+
 private:
-    // When doing batch inserts, prepareCommit needs to be run before the COPY TABLE record is
-    // logged to the WAL file, since the index is reloaded when that record is replayed. However
-    // prepareCommit will also be run later, and the local storage can't cleared from the
-    // HashIndices until checkpointing is done, and entries will get added twice if
-    // HashIndex::prepareCommit is run twice. It seems simplest to just track whether or not
-    // prepareCommit has been run.
     bool hasRunPrepareCommit;
     common::PhysicalTypeID keyDataTypeID;
     std::shared_ptr<BMFileHandle> fileHandle;
     std::unique_ptr<OverflowFile> overflowFile;
     std::vector<std::unique_ptr<OnDiskHashIndex>> hashIndices;
+    std::vector<HashIndexHeader> hashIndexHeadersForReadTrx;
+    std::vector<HashIndexHeader> hashIndexHeadersForWriteTrx;
     BufferManager& bufferManager;
+    DBFileIDAndName dbFileIDAndName;
+    WAL& wal;
+    // Stores both primary and overflow slots
+    std::unique_ptr<DiskArrayCollection> hashIndexDiskArrays;
 };
 
 } // namespace storage

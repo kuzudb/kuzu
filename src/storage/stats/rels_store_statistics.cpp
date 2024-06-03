@@ -2,6 +2,7 @@
 
 #include "common/assert.h"
 #include "storage/stats/rel_table_statistics.h"
+#include "storage/storage_structure/disk_array_collection.h"
 #include "storage/wal/wal.h"
 
 using namespace kuzu::common;
@@ -10,9 +11,9 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-RelsStoreStats::RelsStoreStats(const std::string& databasePath, BMFileHandle* metadataFH,
+RelsStoreStats::RelsStoreStats(const std::string& databasePath, DiskArrayCollection& metadataDAC,
     BufferManager* bufferManager, WAL* wal, VirtualFileSystem* fs, main::ClientContext* context)
-    : TablesStatistics{metadataFH, bufferManager, wal} {
+    : TablesStatistics{metadataDAC, bufferManager, wal} {
     if (fs->fileOrPathExists(
             StorageUtils::getRelsStatisticsFilePath(fs, databasePath, FileVersionType::ORIGINAL),
             context)) {
@@ -53,10 +54,10 @@ void RelsStoreStats::addMetadataDAHInfo(table_id_t tableID, const LogicalType& d
     setToUpdated();
     auto tableStats =
         dynamic_cast<RelTableStats*>(readWriteVersion->tableStatisticPerTable[tableID].get());
-    tableStats->addMetadataDAHInfoForColumn(
-        createMetadataDAHInfo(dataType, *metadataFH, bufferManager, wal), RelDataDirection::FWD);
-    tableStats->addMetadataDAHInfoForColumn(
-        createMetadataDAHInfo(dataType, *metadataFH, bufferManager, wal), RelDataDirection::BWD);
+    tableStats->addMetadataDAHInfoForColumn(createMetadataDAHInfo(dataType, metadataDAC),
+        RelDataDirection::FWD);
+    tableStats->addMetadataDAHInfoForColumn(createMetadataDAHInfo(dataType, metadataDAC),
+        RelDataDirection::BWD);
 }
 
 void RelsStoreStats::removeMetadataDAHInfo(table_id_t tableID, column_id_t columnID) {

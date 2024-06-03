@@ -1,5 +1,6 @@
 #include "storage/store/dictionary_column.h"
 
+#include "storage/storage_structure/disk_array_collection.h"
 #include <bit>
 
 using namespace kuzu::common;
@@ -12,15 +13,15 @@ using string_index_t = DictionaryChunk::string_index_t;
 using string_offset_t = DictionaryChunk::string_offset_t;
 
 DictionaryColumn::DictionaryColumn(const std::string& name, const MetadataDAHInfo& metaDAHeaderInfo,
-    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+    BMFileHandle* dataFH, DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
     Transaction* transaction, bool enableCompression) {
     auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
     dataColumn = std::make_unique<Column>(dataColName, *LogicalType::UINT8(),
-        *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataFH, bufferManager, wal, transaction,
+        *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataDAC, bufferManager, wal, transaction,
         false /*enableCompression*/, false /*requireNullColumn*/);
     auto offsetColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "");
     offsetColumn = std::make_unique<Column>(offsetColName, *LogicalType::UINT64(),
-        *metaDAHeaderInfo.childrenInfos[1], dataFH, metadataFH, bufferManager, wal, transaction,
+        *metaDAHeaderInfo.childrenInfos[1], dataFH, metadataDAC, bufferManager, wal, transaction,
         enableCompression, false /*requireNullColumn*/);
 }
 

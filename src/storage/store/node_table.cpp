@@ -23,7 +23,7 @@ NodeTable::NodeTable(StorageManager* storageManager, NodeTableCatalogEntry* node
           &storageManager->getWAL()},
       pkColumnID{nodeTableEntry->getColumnID(nodeTableEntry->getPrimaryKeyPID())} {
     tableData = std::make_unique<NodeTableData>(storageManager->getDataFH(),
-        storageManager->getMetadataFH(), nodeTableEntry, bufferManager, wal,
+        storageManager->getMetadataDAC(), nodeTableEntry, bufferManager, wal,
         nodeTableEntry->getPropertiesRef(), storageManager->getNodesStatisticsAndDeletedIDs(),
         storageManager->compressionEnabled());
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,

@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+#include "common/constants.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "function/hash/hash_functions.h"
@@ -13,11 +14,18 @@ namespace storage {
 const uint64_t NUM_HASH_INDEXES_LOG2 = 8;
 const uint64_t NUM_HASH_INDEXES = 1 << NUM_HASH_INDEXES_LOG2;
 
-static constexpr common::page_idx_t INDEX_HEADER_ARRAY_HEADER_PAGE_IDX = 0;
-static constexpr common::page_idx_t P_SLOTS_HEADER_PAGE_IDX = 1;
-static constexpr common::page_idx_t O_SLOTS_HEADER_PAGE_IDX = 2;
-static constexpr common::page_idx_t NUM_HEADER_PAGES = 3;
+static constexpr common::page_idx_t INDEX_HEADER_PAGES = 2;
+static constexpr uint64_t INDEX_HEADERS_PER_PAGE =
+    common::BufferPoolConstants::PAGE_4KB_SIZE / sizeof(HashIndexHeaderOnDisk);
+
+static constexpr common::page_idx_t P_SLOTS_HEADER_PAGE_IDX = 0;
+static constexpr common::page_idx_t O_SLOTS_HEADER_PAGE_IDX = 1;
+static constexpr common::page_idx_t NUM_HEADER_PAGES = 2;
 static constexpr uint64_t INDEX_HEADER_IDX_IN_ARRAY = 0;
+
+// so that all 256 hash indexes can be stored in two pages, the HashIndexHeaderOnDisk must be
+// smaller than 32 bytes
+static_assert(NUM_HASH_INDEXES * sizeof(HashIndexHeaderOnDisk) <= 4096 * INDEX_HEADER_PAGES);
 
 enum class SlotType : uint8_t { PRIMARY = 0, OVF = 1 };
 

@@ -7,15 +7,15 @@ namespace storage {
 
 // DAH is the abbreviation for Disk Array Header.
 struct MetadataDAHInfo {
-    common::page_idx_t dataDAHPageIdx = common::INVALID_PAGE_IDX;
-    common::page_idx_t nullDAHPageIdx = common::INVALID_PAGE_IDX;
+    common::page_idx_t dataDAHIdx = common::INVALID_PAGE_IDX;
+    common::page_idx_t nullDAHIdx = common::INVALID_PAGE_IDX;
     std::vector<std::unique_ptr<MetadataDAHInfo>> childrenInfos;
 
     MetadataDAHInfo() : MetadataDAHInfo{common::INVALID_PAGE_IDX, common::INVALID_PAGE_IDX} {}
     explicit MetadataDAHInfo(common::page_idx_t dataDAHPageIdx)
         : MetadataDAHInfo{dataDAHPageIdx, common::INVALID_PAGE_IDX} {}
-    MetadataDAHInfo(common::page_idx_t dataDAHPageIdx, common::page_idx_t nullDAHPageIdx)
-        : dataDAHPageIdx{dataDAHPageIdx}, nullDAHPageIdx{nullDAHPageIdx} {}
+    MetadataDAHInfo(common::page_idx_t dataDAHIdx, common::page_idx_t nullDAHIdx)
+        : dataDAHIdx{dataDAHIdx}, nullDAHIdx{nullDAHIdx} {}
 
     std::unique_ptr<MetadataDAHInfo> copy();
 

@@ -12,8 +12,8 @@ public:
     static constexpr common::vector_idx_t OFFSET_COLUMN_CHILD_READ_STATE_IDX = 1;
 
     DictionaryColumn(const std::string& name, const MetadataDAHInfo& metaDAHeaderInfo,
-        BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, bool enableCompression);
+        BMFileHandle* dataFH, DiskArrayCollection& metadataFH, BufferManager* bufferManager,
+        WAL* wal, transaction::Transaction* transaction, bool enableCompression);
 
     void initChunkState(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, Column::ChunkState& columnReadState);

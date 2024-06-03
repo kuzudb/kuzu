@@ -8,12 +8,14 @@
 namespace kuzu {
 namespace storage {
 
+class DiskArrayCollection;
+
 // Manages the disk image of the maxNodeOffsets and deleted node IDs (per node table).
 // Note: This class is *not* thread-safe.
 class NodesStoreStatsAndDeletedIDs : public TablesStatistics {
 public:
     // Should be used when an already loaded database is started from a directory.
-    NodesStoreStatsAndDeletedIDs(const std::string& databasePath, BMFileHandle* metadataFH,
+    NodesStoreStatsAndDeletedIDs(const std::string& databasePath, DiskArrayCollection& metadataDAC,
         BufferManager* bufferManager, WAL* wal, common::VirtualFileSystem* fs,
         main::ClientContext* context);
 
@@ -44,8 +46,7 @@ public:
 protected:
     std::unique_ptr<TableStatistics> constructTableStatistic(
         catalog::TableCatalogEntry* tableEntry) override {
-        return std::make_unique<NodeTableStatsAndDeletedIDs>(metadataFH, *tableEntry, bufferManager,
-            wal);
+        return std::make_unique<NodeTableStatsAndDeletedIDs>(metadataDAC, *tableEntry);
     }
 
     std::string getTableStatisticsFilePath(const std::string& directory,

@@ -32,8 +32,11 @@ struct PageCursor {
     }
 
     common::page_idx_t pageIdx;
-    uint16_t elemPosInPage;
+    // Larger than necessary, but PageCursor is directly written to disk
+    // and adding an explicit padding field messes with structured bindings
+    uint32_t elemPosInPage;
 };
+static_assert(std::has_unique_object_representations_v<PageCursor>);
 
 struct PageUtils {
     static constexpr uint32_t getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
