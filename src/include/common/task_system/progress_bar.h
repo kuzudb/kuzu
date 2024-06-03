@@ -1,25 +1,23 @@
 #pragma once
 
-#include <iostream>
 #include <memory>
 #include <mutex>
 
 #include "common/metric.h"
+#include "progress_bar_display.h"
 
 namespace kuzu {
 namespace common {
+
+typedef std::unique_ptr<ProgressBarDisplay> (*progress_bar_display_create_func_t)();
 
 /**
  * @brief Progress bar for tracking the progress of a pipeline. Prints the progress of each query
  * pipeline and the overall progress.
  */
 class ProgressBar {
-
 public:
-    ProgressBar()
-        : numPipelines{0}, numPipelinesFinished{0}, prevCurPipelineProgress{0.0},
-          trackProgress{false}, printing{false}, queryTimer{std::make_unique<TimeMetric>(true)},
-          showProgressAfter{1000} {};
+    ProgressBar();
 
     void addPipeline();
 
@@ -39,26 +37,25 @@ public:
 
     void updateProgress(double curPipelineProgress);
 
+    void setDisplay(std::shared_ptr<ProgressBarDisplay> progressBarDipslay);
+
 private:
-    inline void setGreenFont() const { std::cerr << "\033[1;32m"; }
-
-    inline void setDefaultFont() const { std::cerr << "\033[0m"; }
-
-    void printProgressBar(double curPipelineProgress);
+    static std::shared_ptr<ProgressBarDisplay> DefaultProgressBarDisplay();
 
     void resetProgressBar();
 
-    bool shouldPrintProgress() const;
+    void updateDisplay(double curPipelineProgress);
+
+    bool shouldUpdateProgress() const;
 
 private:
     uint32_t numPipelines;
     uint32_t numPipelinesFinished;
-    double prevCurPipelineProgress;
     std::mutex progressBarLock;
     bool trackProgress;
-    bool printing;
     std::unique_ptr<TimeMetric> queryTimer;
     uint64_t showProgressAfter;
+    std::shared_ptr<ProgressBarDisplay> display;
 };
 
 } // namespace common

@@ -1,7 +1,26 @@
 #include "common/task_system/progress_bar.h"
 
+#include "common/task_system/terminal_progress_bar_display.h"
+
 namespace kuzu {
 namespace common {
+
+ProgressBar::ProgressBar() {
+    display = DefaultProgressBarDisplay();
+    numPipelines = 0;
+    numPipelinesFinished = 0;
+    queryTimer = std::make_unique<TimeMetric>(true);
+    showProgressAfter = 1000;
+    trackProgress = false;
+}
+
+std::shared_ptr<ProgressBarDisplay> ProgressBar::DefaultProgressBarDisplay() {
+    return std::make_shared<TerminalProgressBarDisplay>();
+}
+
+void ProgressBar::setDisplay(std::shared_ptr<ProgressBarDisplay> progressBarDipslay) {
+    display = progressBarDipslay;
+}
 
 void ProgressBar::startProgress() {
     if (!trackProgress) {
@@ -9,7 +28,7 @@ void ProgressBar::startProgress() {
     }
     std::lock_guard<std::mutex> lock(progressBarLock);
     queryTimer->start();
-    printProgressBar(0.0);
+    updateDisplay(0.0);
 }
 
 void ProgressBar::endProgress() {
@@ -23,6 +42,7 @@ void ProgressBar::addPipeline() {
         return;
     }
     numPipelines++;
+    display->setNumPipelines(numPipelines);
 }
 
 void ProgressBar::finishPipeline() {
@@ -30,11 +50,6 @@ void ProgressBar::finishPipeline() {
         return;
     }
     numPipelinesFinished++;
-    if (printing) {
-        std::cout << "\033[1A\033[2K\033[1B";
-    }
-    // This ensures that the progress bar is updated back to 0% after a pipeline is finished.
-    prevCurPipelineProgress = -0.01;
     updateProgress(0.0);
 }
 
@@ -43,56 +58,31 @@ void ProgressBar::updateProgress(double curPipelineProgress) {
         return;
     }
     std::lock_guard<std::mutex> lock(progressBarLock);
-    // Only update the progress bar if the progress has changed by at least 1%.
-    if (curPipelineProgress - prevCurPipelineProgress < 0.01) {
-        return;
-    }
-    prevCurPipelineProgress = curPipelineProgress;
-    if (printing) {
-        std::cout << "\033[2A";
-    }
-    printProgressBar(curPipelineProgress);
-}
-
-void ProgressBar::printProgressBar(double curPipelineProgress) {
-    if (!shouldPrintProgress()) {
-        return;
-    }
-    printing = true;
-    float pipelineProgress = 0.0;
-    if (numPipelines > 0) {
-        pipelineProgress = (float)numPipelinesFinished / (float)numPipelines;
-    }
-    setGreenFont();
-    std::cout << "Pipelines Finished: " << int(pipelineProgress * 100.0) << "%"
-              << "\n";
-    std::cout << "Current Pipeline Progress: " << int(curPipelineProgress * 100.0) << "%"
-              << "\n";
-    std::cout.flush();
-    setDefaultFont();
+    updateDisplay(curPipelineProgress);
 }
 
 void ProgressBar::resetProgressBar() {
-    if (printing) {
-        std::cout << "\033[2A\033[2K\033[1B\033[2K\033[1A";
-        std::cout.flush();
-    }
     numPipelines = 0;
     numPipelinesFinished = 0;
-    prevCurPipelineProgress = 0.0;
-    printing = false;
     if (queryTimer->isStarted) {
         queryTimer->stop();
     }
+    display->finishProgress();
 }
 
-bool ProgressBar::shouldPrintProgress() const {
+bool ProgressBar::shouldUpdateProgress() const {
     if (queryTimer->isStarted) {
         queryTimer->stop();
     }
-    bool shouldPrint = queryTimer->getElapsedTimeMS() > showProgressAfter;
+    bool shouldUpdate = queryTimer->getElapsedTimeMS() > showProgressAfter;
     queryTimer->start();
-    return shouldPrint;
+    return shouldUpdate;
+}
+
+void ProgressBar::updateDisplay(double curPipelineProgress) {
+    if (shouldUpdateProgress()) {
+        display->updateProgress(curPipelineProgress, numPipelinesFinished);
+    }
 }
 
 void ProgressBar::toggleProgressBarPrinting(bool enable) {
