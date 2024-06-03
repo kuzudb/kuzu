@@ -74,9 +74,25 @@ bool NodeGroup::scan(Transaction* transaction, TableScanState& state) const {
     const auto offsetToScan =
         nodeGroupState.nextRowToScan - chunkedGroupToScan.getStartNodeOffset();
     KU_ASSERT(offsetToScan < chunkedGroupToScan.getNumRows());
-    // TODO: Should handle transaction to resolve version visibility here.
     const auto numRowsToScan =
         std::min(chunkedGroupToScan.getNumRows() - offsetToScan, DEFAULT_VECTOR_CAPACITY);
+    SelectionVector selVector(DEFAULT_VECTOR_CAPACITY);
+    versionInfo.getSelVectorToScan(transaction->getStartTS(), transaction->getID(), selVector,
+        offsetToScan, numRowsToScan);
+    if (selVector.getSelSize() == 0) {
+        return true;
+    }
+    const auto nodeOffset = startNodeOffset + nodeGroupState.nextRowToScan;
+    for (auto i = 0u; i < numRowsToScan; i++) {
+        state.nodeIDVector->setValue<nodeID_t>(i, {nodeOffset + i, state.tableID});
+    }
+    if (selVector.getSelSize() == numRowsToScan) {
+        state.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(numRowsToScan);
+    } else {
+        std::memcpy(state.nodeIDVector->state->getSelVectorUnsafe().getMultableBuffer().data(),
+            selVector.getMultableBuffer().data(), selVector.getSelSize() * sizeof(sel_t));
+        state.nodeIDVector->state->getSelVectorUnsafe().setToFiltered(selVector.getSelSize());
+    }
     if (type == NodeGroupType::IN_MEMORY) {
         chunkedGroupToScan.scan(state.columnIDs, state.outputVectors, offsetToScan, numRowsToScan);
     } else {
@@ -86,12 +102,6 @@ bool NodeGroup::scan(Transaction* transaction, TableScanState& state) const {
                 numRowsToScan, nodeScanState.nodeIDVector, state.outputVectors[i]);
         }
     }
-    const auto nodeOffset = startNodeOffset + nodeGroupState.nextRowToScan;
-    for (auto i = 0u; i < numRowsToScan; i++) {
-        state.nodeIDVector->setValue<nodeID_t>(i, {nodeOffset + i, state.tableID});
-    }
-    state.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(numRowsToScan);
-
     nodeGroupState.nextRowToScan += numRowsToScan;
     return true;
 }

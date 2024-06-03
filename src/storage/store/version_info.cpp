@@ -10,7 +10,7 @@ namespace storage {
 
 row_idx_t VectorVersionInfo::append(transaction_t transactionID, row_idx_t startRow,
     row_idx_t numRows) {
-    anyValidVersions = true;
+    anyInserted = true;
     for (auto i = 0u; i < numRows; i++) {
         KU_ASSERT(insertedVersions[startRow + i] == INVALID_TRANSACTION);
         insertedVersions[startRow + i] = transactionID;
@@ -19,7 +19,7 @@ row_idx_t VectorVersionInfo::append(transaction_t transactionID, row_idx_t start
 }
 
 bool VectorVersionInfo::delete_(transaction_t transactionID, row_idx_t rowIdx) {
-    anyValidVersions = true;
+    anyDeleted = true;
     if (deletedVersions[rowIdx] == transactionID) {
         return false;
     }
@@ -31,6 +31,42 @@ bool VectorVersionInfo::delete_(transaction_t transactionID, row_idx_t rowIdx) {
     return true;
 }
 
+void VectorVersionInfo::getSelVectorForScan(transaction_t startTS, transaction_t transactionID,
+    SelectionVector& selVector, row_idx_t startRow, row_idx_t numRows) const {
+    const auto numValues = selVector.getSelSize();
+    auto numSelected = selVector.getSelSize();
+    if (!anyDeleted && !anyInserted) {
+        for (auto i = 0u; i < numRows; i++) {
+            selVector.getMultableBuffer()[numSelected++] = numValues + i;
+        }
+    } else {
+        for (auto i = 0u; i < numRows; i++) {
+            const auto rowIdx = startRow + i;
+            if (isInserted(startTS, transactionID, rowIdx) &&
+                !isDeleted(startTS, transactionID, rowIdx)) {
+                selVector.getMultableBuffer()[numSelected++] = numValues + i;
+            }
+        }
+    }
+    selVector.setToFiltered(numSelected);
+}
+
+bool VectorVersionInfo::isDeleted(transaction_t startTS, transaction_t transactionID,
+    row_idx_t rowIdx) const {
+    const auto deletion = deletedVersions[rowIdx];
+    const auto isDeletedWithinSameTransaction = deletion == transactionID;
+    const auto isDeletedByPrevCommittedTransaction = deletion < startTS;
+    return isDeletedWithinSameTransaction || isDeletedByPrevCommittedTransaction;
+}
+
+bool VectorVersionInfo::isInserted(transaction_t startTS, transaction_t transactionID,
+    row_idx_t rowIdx) const {
+    const auto insertion = insertedVersions[rowIdx];
+    const auto isInsertedWithinSameTransaction = insertion == transactionID;
+    const auto isInsertedByPrevCommittedTransaction = insertion < startTS;
+    return isInsertedWithinSameTransaction || isInsertedByPrevCommittedTransaction;
+}
+
 VectorVersionInfo& NodeGroupVersionInfo::getVersionInfo(vector_idx_t vectorIdx) {
     if (vectorsInfo.size() <= vectorIdx) {
         vectorsInfo.resize(vectorIdx + 1);
@@ -38,6 +74,12 @@ VectorVersionInfo& NodeGroupVersionInfo::getVersionInfo(vector_idx_t vectorIdx) 
     if (!vectorsInfo[vectorIdx]) {
         vectorsInfo[vectorIdx] = std::make_unique<VectorVersionInfo>();
     }
+    return *vectorsInfo[vectorIdx];
+}
+
+const VectorVersionInfo& NodeGroupVersionInfo::getVersionInfo(vector_idx_t vectorIdx) const {
+    KU_ASSERT(vectorIdx < vectorsInfo.size());
+    KU_ASSERT(vectorsInfo[vectorIdx]);
     return *vectorsInfo[vectorIdx];
 }
 
@@ -59,10 +101,28 @@ row_idx_t NodeGroupVersionInfo::append(transaction_t transactionID, row_idx_t st
 }
 
 bool NodeGroupVersionInfo::delete_(transaction_t transactionID, row_idx_t rowIdx) {
-    auto [vectorIdx, offsetInVector] =
+    auto [vectorIdx, rowIdxInVector] =
         StorageUtils::getQuotientRemainder(rowIdx, DEFAULT_VECTOR_CAPACITY);
     auto& vectorVersionInfo = getVersionInfo(vectorIdx);
-    return vectorVersionInfo.delete_(transactionID, offsetInVector);
+    return vectorVersionInfo.delete_(transactionID, rowIdxInVector);
+}
+
+void NodeGroupVersionInfo::getSelVectorToScan(transaction_t startTS, transaction_t transactionID,
+    SelectionVector& selVector, row_idx_t startRow, row_idx_t numRows) const {
+    auto [startVectorIdx, startRowIdxInVector] =
+        StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
+    auto [endVectorIdx, endRowIdxInVector] =
+        StorageUtils::getQuotientRemainder(startRow + numRows, DEFAULT_VECTOR_CAPACITY);
+    auto vectorIdx = startVectorIdx;
+    while (vectorIdx <= endVectorIdx) {
+        auto& vectorVersionInfo = getVersionInfo(startVectorIdx);
+        const auto startRowIdx = vectorIdx == startVectorIdx ? startRowIdxInVector : 0;
+        const auto endRowIdx =
+            vectorIdx == endVectorIdx ? endRowIdxInVector : DEFAULT_VECTOR_CAPACITY;
+        vectorVersionInfo.getSelVectorForScan(startTS, transactionID, selVector, startRowIdx,
+            endRowIdx - startRowIdx);
+        vectorIdx++;
+    }
 }
 
 } // namespace storage

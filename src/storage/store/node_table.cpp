@@ -140,7 +140,7 @@ void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
         localTable->delete_(transaction, deleteState);
     } else {
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-        auto actualDeleted =
+        const auto actualDeleted =
             deltaNodeGroups->getNodeGroup(nodeGroupIdx).delete_(transaction, nodeOffset);
         if (actualDeleted) {
             // TODO: Add record to undo buffer.
