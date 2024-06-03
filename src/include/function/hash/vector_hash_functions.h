@@ -8,11 +8,13 @@ namespace function {
 
 struct UnaryHashFunctionExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE>
-    static void execute(common::ValueVector& operand, common::ValueVector& result);
+    static void execute(common::ValueVector& operand, common::SelectionVector& operandSelectVec,
+        common::ValueVector& result, common::SelectionVector& resultSelectVec);
 };
 
 struct VectorHashFunction {
-    static void computeHash(common::ValueVector* operand, common::ValueVector* result);
+    static void computeHash(common::ValueVector& operand, common::SelectionVector& operandSelectVec,
+        common::ValueVector& result, common::SelectionVector& resultSelectVec);
 
     static void combineHash(common::ValueVector* left, common::ValueVector* right,
         common::ValueVector* result);

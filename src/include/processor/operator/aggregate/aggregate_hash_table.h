@@ -153,10 +153,6 @@ private:
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
         const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity);
 
-    // ! This function will only be used by distinct aggregate, which assumes that all keyVectors
-    // are flat.
-    bool matchFlatGroupByKeys(const std::vector<common::ValueVector*>& keyVectors, uint8_t* entry);
-
     void fillEntryWithInitialNullAggregateState(uint8_t* entry);
 
     //! find an uninitialized hash slot for given hash and fill hash slot with block id and offset

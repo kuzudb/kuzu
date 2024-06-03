@@ -155,7 +155,7 @@ sel_t JoinHashTable::matchFlatKeys(const std::vector<ValueVector*>& keyVectors,
         }
         auto currentTuple = probedTuples[0];
         matchedTuples[numMatchedTuples] = currentTuple;
-        numMatchedTuples += compareFlatKeys(keyVectors, currentTuple);
+        numMatchedTuples += matchFlatVecWithEntry(keyVectors, currentTuple);
         probedTuples[0] = *getPrevTuple(currentTuple);
     }
     return numMatchedTuples;
@@ -193,20 +193,6 @@ uint8_t* JoinHashTable::insertEntry(uint8_t* tuple) const {
     auto prevPtr = *slot;
     *slot = tuple;
     return prevPtr;
-}
-
-bool JoinHashTable::compareFlatKeys(const std::vector<ValueVector*>& keyVectors,
-    const uint8_t* tuple) {
-    for (auto i = 0u; i < keyVectors.size(); i++) {
-        auto keyVector = keyVectors[i];
-        KU_ASSERT(keyVector->state->getSelVector().getSelSize() == 1);
-        auto pos = keyVector->state->getSelVector()[0];
-        auto equal = compareEntryFuncs[i](keyVector, pos, tuple + tableSchema->getColOffset(i));
-        if (!equal) {
-            return false;
-        }
-    }
-    return true;
 }
 
 void JoinHashTable::computeVectorHashes(std::vector<common::ValueVector*> keyVectors) {

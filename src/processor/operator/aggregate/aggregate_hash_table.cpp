@@ -173,7 +173,7 @@ uint8_t* AggregateHashTable::findEntryInDistinctHT(
         auto slot = (HashSlot*)getHashSlot(slotIdx);
         if (slot->entry == nullptr) {
             return nullptr;
-        } else if ((slot->hash == hash) && matchFlatGroupByKeys(groupByKeyVectors, slot->entry)) {
+        } else if ((slot->hash == hash) && matchFlatVecWithEntry(groupByKeyVectors, slot->entry)) {
             return slot->entry;
         }
         increaseSlotIdx(slotIdx);
@@ -511,30 +511,6 @@ void AggregateHashTable::updateAggStates(const std::vector<ValueVector*>& flatKe
             aggregateInputs[i].aggregateVector, multiplicity, i, aggregateStateOffset);
         aggregateStateOffset += aggregateFunctions[i]->getAggregateStateSize();
     }
-}
-
-bool AggregateHashTable::matchFlatGroupByKeys(const std::vector<ValueVector*>& keyVectors,
-    uint8_t* entry) {
-    for (auto i = 0u; i < keyVectors.size(); i++) {
-        auto keyVector = keyVectors[i];
-        KU_ASSERT(keyVector->state->isFlat());
-        auto pos = keyVector->state->getSelVector()[0];
-        auto isKeyVectorNull = keyVector->isNull(pos);
-        auto isEntryKeyNull = factorizedTable->isNonOverflowColNull(
-            entry + factorizedTable->getTableSchema()->getNullMapOffset(), i);
-        // If either key or entry is null, we shouldn't compare the value of keyVector and
-        // entry.
-        if (isKeyVectorNull && isEntryKeyNull) {
-            continue;
-        } else if (isKeyVectorNull != isEntryKeyNull) {
-            return false;
-        }
-        if (!compareEntryFuncs[i](keyVector, pos,
-                entry + factorizedTable->getTableSchema()->getColOffset(i))) {
-            return false;
-        }
-    }
-    return true;
 }
 
 void AggregateHashTable::fillEntryWithInitialNullAggregateState(uint8_t* entry) {

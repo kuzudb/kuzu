@@ -55,8 +55,6 @@ private:
     // This function returns the pointer that previously stored in the same slot.
     uint8_t* insertEntry(uint8_t* tuple) const;
 
-    bool compareFlatKeys(const std::vector<common::ValueVector*>& keyVectors, const uint8_t* tuple);
-
     // Join hash table assumes all keys to be flat.
     void computeVectorHashes(std::vector<common::ValueVector*> keyVectors);
 
