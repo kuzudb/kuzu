@@ -97,9 +97,8 @@ void IndexLookup::fillOffsetArraysFromVector(transaction::Transaction* transacti
         [&](ku_string_t) {
             stringPKFillOffsetArraysFromVector(transaction, info, keyVector, offsets);
         },
-        [&]<HashablePrimitive T>(T) {
-            primitivePKFillOffsetArraysFromVector<T>(transaction, info, keyVector, offsets);
-        },
+        [&]<HashablePrimitive T>(
+            T) { primitivePKFillOffsetArraysFromVector<T>(transaction, info, keyVector, offsets); },
         [&](auto) { KU_UNREACHABLE; });
 }
 

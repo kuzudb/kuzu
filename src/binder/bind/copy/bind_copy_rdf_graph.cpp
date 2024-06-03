@@ -83,11 +83,11 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     auto lEntry = catalog->getTableCatalogEntry(clientContext->getTx(), lTableID);
     auto lNodeEntry = lEntry->constPtrCast<NodeTableCatalogEntry>();
     auto ser = expressionBinder.bindExpression(*lNodeEntry->getPrimaryKey()->getDefaultExpr());
-    auto lCopyInfo = BoundCopyFromInfo(lEntry, std::move(lSource), offset, 
-        expression_vector{ser, l, lang},
-        logical_type_vec_t{*LogicalType::SERIAL(), *LogicalType::RDF_VARIANT(),
-            *LogicalType::STRING()},
-        std::vector<bool>{true, false, false}, nullptr /* extraInfo */);
+    auto lCopyInfo =
+        BoundCopyFromInfo(lEntry, std::move(lSource), offset, expression_vector{ser, l, lang},
+            logical_type_vec_t{*LogicalType::SERIAL(), *LogicalType::RDF_VARIANT(),
+                *LogicalType::STRING()},
+            std::vector<bool>{true, false, false}, nullptr /* extraInfo */);
     // Bind copy resource triples
     func = inMemory ? BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
                           RdfResourceTripleInMemScan::name, functions) :

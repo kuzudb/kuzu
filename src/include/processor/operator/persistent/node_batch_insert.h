@@ -28,8 +28,9 @@ struct NodeBatchInsertInfo final : public BatchInsertInfo {
         std::vector<common::LogicalType> columnTypes,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
         std::vector<bool> defaultColumns)
-        : BatchInsertInfo{tableEntry, compressionEnabled}, columnTypes{std::move(columnTypes)}, 
-          columnEvaluators{std::move(columnEvaluators)}, defaultColumns{std::move(defaultColumns)} {}
+        : BatchInsertInfo{tableEntry, compressionEnabled}, columnTypes{std::move(columnTypes)},
+          columnEvaluators{std::move(columnEvaluators)}, defaultColumns{std::move(defaultColumns)} {
+    }
 
     NodeBatchInsertInfo(const NodeBatchInsertInfo& other)
         : BatchInsertInfo{other.tableEntry, other.compressionEnabled},

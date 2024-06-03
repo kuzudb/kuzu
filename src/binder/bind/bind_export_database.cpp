@@ -74,7 +74,7 @@ static void bindExportRelTableDataQuery(const TableCatalogEntry& entry, std::str
         relName, dstName, srcPrimaryKeyName, dstPrimaryKeyName);
 }
 
-static bool bindExportQuery(std::string& exportQuery, const TableCatalogEntry& entry, 
+static bool bindExportQuery(std::string& exportQuery, const TableCatalogEntry& entry,
     const Catalog& catalog, transaction::Transaction* tx) {
     switch (entry.getTableType()) {
     case common::TableType::NODE: {
