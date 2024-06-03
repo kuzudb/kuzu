@@ -203,6 +203,7 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
         case LogicalTypeID::TIMESTAMP_TZ:
         case LogicalTypeID::TIMESTAMP_MS:
         case LogicalTypeID::TIMESTAMP:
+        case LogicalTypeID::SERIAL:
         case LogicalTypeID::INT64:
             return std::make_unique<StandardColumnWriter<int64_t, int64_t>>(writer, schemaIdx,
                 std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,

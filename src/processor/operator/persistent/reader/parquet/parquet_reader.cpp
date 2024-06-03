@@ -491,6 +491,15 @@ std::unique_ptr<LogicalType> ParquetReader::deriveLogicalType(
                     "UTF8 converted type can only be set for Type::(FIXED_LEN_)BYTE_ARRAY");
                 // LCOV_EXCL_STOP
             }
+        case ConvertedType::SERIAL:
+            if (s_ele.type == Type::INT64) {
+                return LogicalType::SERIAL();
+            } else {
+                // LCOV_EXCL_START
+                throw CopyException{
+                    "SERIAL converted type can only be set for value of Type::INT64"};
+                // LCOV_EXCL_STOP
+            }
         default:
             // LCOV_EXCL_START
             throw CopyException{"Unsupported converted type"};
