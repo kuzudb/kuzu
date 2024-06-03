@@ -23,7 +23,7 @@ LocalNodeTable::LocalNodeTable(Table& table)
         overflowFileHandle.get());
 }
 
-bool LocalNodeTable::insert(Transaction* transaction, TableInsertState& insertState) {
+bool LocalNodeTable::insert(Transaction*, TableInsertState& insertState) {
     auto& nodeInsertState = insertState.constCast<NodeTableInsertState>();
     const auto numRowsInLocalTable = nodeGroups.getNumRows();
     const auto nodeOffset = StorageConstants::MAX_NUM_NODES_IN_TABLE + numRowsInLocalTable;
@@ -35,7 +35,7 @@ bool LocalNodeTable::insert(Transaction* transaction, TableInsertState& insertSt
     const auto nodeIDPos =
         nodeInsertState.nodeIDVector.state->getSelVector().getSelectedPositions()[0];
     nodeInsertState.nodeIDVector.setValue(nodeIDPos, internalID_t{nodeOffset, table.getTableID()});
-    nodeGroups.append(transaction, insertState.propertyVectors);
+    nodeGroups.append(&DUMMY_WRITE_TRANSACTION, insertState.propertyVectors);
     return true;
 }
 
@@ -43,15 +43,15 @@ bool LocalNodeTable::update(TableUpdateState& state) {
     const auto& updateState = ku_dynamic_cast<TableUpdateState&, NodeTableUpdateState&>(state);
 }
 
-bool LocalNodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
+bool LocalNodeTable::delete_(Transaction*, TableDeleteState& deleteState) {
     const auto& nodeDeleteState =
         ku_dynamic_cast<TableDeleteState&, NodeTableDeleteState&>(deleteState);
     KU_ASSERT(nodeDeleteState.nodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto pos = nodeDeleteState.nodeIDVector.state->getSelVector()[0];
     const auto offset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
+    hashIndex->delete_(nodeDeleteState.pkVector);
     auto& nodeGroup = nodeGroups.findNodeGroupFromOffset(offset);
-    nodeGroup.delete_(transaction, offset);
-    return true;
+    return nodeGroup.delete_(&DUMMY_WRITE_TRANSACTION, offset);
 }
 
 } // namespace storage

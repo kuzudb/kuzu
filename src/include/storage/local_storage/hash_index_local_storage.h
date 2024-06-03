@@ -128,7 +128,26 @@ public:
             ->insert(key, value);
     }
 
-    void lookup(common::ValueVector& keyVector, common::ValueVector& nodeOffsetVector);
+    void delete_(const common::ValueVector& keyVector) {
+        common::TypeUtils::visit(
+            keyDataTypeID,
+            [&]<common::IndexHashable T>(T) {
+                for (auto i = 0u; i < keyVector.state->getSelVector().getSelSize(); i++) {
+                    const auto pos = keyVector.state->getSelVector().getSelectedPositions()[i];
+                    delete_(keyVector.getValue<T>(pos));
+                }
+            },
+            [](auto) { KU_UNREACHABLE; });
+    }
+
+    void delete_(const common::ku_string_t key) { delete_(key.getAsStringView()); }
+    template<common::IndexHashable T>
+    void delete_(T key) {
+        KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
+        common::ku_dynamic_cast<BaseHashIndexLocalStorage*,
+            HashIndexLocalStorage<HashIndexType<T>>*>(localIndex.get())
+            ->deleteKey(key);
+    }
 
 private:
     common::PhysicalTypeID keyDataTypeID;

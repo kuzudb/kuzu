@@ -8,17 +8,32 @@ namespace storage {
 struct VectorVersionInfo {
     std::array<common::transaction_t, common::DEFAULT_VECTOR_CAPACITY> insertedVersions;
     std::array<common::transaction_t, common::DEFAULT_VECTOR_CAPACITY> deletedVersions;
-    bool anyValidVersions;
+    bool anyInserted;
+    bool anyDeleted;
+    // TODO: Keep an additional boolean flag on whether all rows are under the same version.
 
-    VectorVersionInfo() : insertedVersions{}, deletedVersions{}, anyValidVersions{false} {
+    VectorVersionInfo()
+        : insertedVersions{}, deletedVersions{}, anyInserted{false}, anyDeleted{false} {
         insertedVersions.fill(common::INVALID_TRANSACTION);
         deletedVersions.fill(common::INVALID_TRANSACTION);
     }
 
-    bool anyVersions() const { return anyValidVersions; }
+    bool anyVersions() const { return anyInserted || anyDeleted; }
     common::row_idx_t append(common::transaction_t transactionID, common::row_idx_t startRow,
         common::row_idx_t numRows);
     bool delete_(common::transaction_t transactionID, common::row_idx_t rowIdx);
+
+    void getSelVectorForScan(common::transaction_t startTS, common::transaction_t transactionID,
+        common::SelectionVector& selVector, common::row_idx_t startRow,
+        common::row_idx_t numRows) const;
+
+private:
+    // Given startTS and transactionID, if the row is deleted to the transaction, return true.
+    bool isDeleted(common::transaction_t startTS, common::transaction_t transactionID,
+        common::row_idx_t rowIdx) const;
+    // Given startTS and transactionID, if the row is readable to the transaction, return true.
+    bool isInserted(common::transaction_t startTS, common::transaction_t transactionID,
+        common::row_idx_t rowIdx) const;
 };
 
 class NodeGroupVersionInfo {
@@ -29,8 +44,13 @@ public:
         common::row_idx_t numRows);
     bool delete_(common::transaction_t transactionID, common::row_idx_t rowIdx);
 
+    void getSelVectorToScan(common::transaction_t startTS, common::transaction_t transactionID,
+        common::SelectionVector& selVector, common::row_idx_t startRow,
+        common::row_idx_t numRows) const;
+
 private:
     VectorVersionInfo& getVersionInfo(common::vector_idx_t vectorIdx);
+    const VectorVersionInfo& getVersionInfo(common::vector_idx_t vectorIdx) const;
 
 private:
     std::vector<std::unique_ptr<VectorVersionInfo>> vectorsInfo;
