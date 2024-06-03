@@ -19,7 +19,8 @@ add_library(kuzu_storage_store
         list_column.cpp
         list_column_chunk.cpp
         node_group.cpp
-        node_group_collection.cpp)
+        node_group_collection.cpp
+        version_info.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_storage_store>

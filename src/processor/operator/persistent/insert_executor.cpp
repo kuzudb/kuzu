@@ -10,8 +10,8 @@ namespace processor {
 
 NodeInsertExecutor::NodeInsertExecutor(const NodeInsertExecutor& other)
     : table{other.table}, fwdRelTables{other.fwdRelTables}, bwdRelTables{other.bwdRelTables},
-      nodeIDVectorPos{other.nodeIDVectorPos}, nodeIDVector{nullptr},
-      columnVectorsPos{other.columnVectorsPos}, conflictAction{other.conflictAction} {
+      nodeIDVectorPos{other.nodeIDVectorPos}, columnVectorsPos{other.columnVectorsPos},
+      conflictAction{other.conflictAction}, nodeIDVector{nullptr} {
     for (auto& evaluator : other.columnDataEvaluators) {
         columnDataEvaluators.push_back(evaluator->clone());
     }

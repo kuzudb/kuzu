@@ -218,7 +218,7 @@ LocalRelTable::LocalRelTable(Table& table) : LocalTable{table} {
     localTableDataCollection.push_back(std::make_unique<LocalRelTableData>(tableID, types));
 }
 
-bool LocalRelTable::insert(TableInsertState& state) {
+bool LocalRelTable::insert(transaction::Transaction*, TableInsertState& state) {
     auto& insertState = ku_dynamic_cast<TableInsertState&, RelTableInsertState&>(state);
     auto fwdIDVectors =
         std::vector<ValueVector*>{const_cast<ValueVector*>(&insertState.srcNodeIDVector),
@@ -250,7 +250,7 @@ bool LocalRelTable::update(TableUpdateState& updateState) {
     return fwdUpdated && bwdUpdated;
 }
 
-bool LocalRelTable::delete_(TableDeleteState& deleteState) {
+bool LocalRelTable::delete_(transaction::Transaction*, TableDeleteState& deleteState) {
     auto& state = ku_dynamic_cast<TableDeleteState&, RelTableDeleteState&>(deleteState);
     auto fwdDeleted = getTableData(RelDataDirection::FWD)
                           ->delete_(const_cast<ValueVector*>(&state.srcNodeIDVector),

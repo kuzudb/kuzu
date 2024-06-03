@@ -22,11 +22,6 @@ struct NodeTableScanState final : TableScanState {
     std::vector<Column*> columns;
     std::vector<ColumnPredicateSet> columnPredicateSets;
     const NodeGroup* nodeGroup = nullptr;
-    // TODO(Guodong): Should by default set vectorIdx to 0 and not rely on invalid+1==0;
-    common::vector_idx_t vectorIdx = common::INVALID_VECTOR_IDX;
-    common::row_idx_t numRowsToScan = 0;
-    // TODO(Guodong): We should not keep this field, instead should let nodeGroup figure it out.
-    common::row_idx_t numTotalRows = 0;
     std::vector<ChunkState> chunkStates;
 
     explicit NodeTableScanState(common::table_id_t tableID,
@@ -40,8 +35,6 @@ struct NodeTableScanState final : TableScanState {
         : TableScanState{tableID, nodeIDVector, std::move(columnIDs), std::move(outputVectors)} {
         chunkStates.resize(this->columnIDs.size());
     }
-
-    bool nextVector();
 };
 
 struct NodeTableInsertState final : TableInsertState {

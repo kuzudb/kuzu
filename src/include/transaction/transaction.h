@@ -1,7 +1,5 @@
 #pragma once
 
-#include <memory>
-
 #include "common/types/timestamp_t.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/undo_buffer.h"
@@ -23,26 +21,28 @@ namespace transaction {
 class TransactionManager;
 
 enum class TransactionType : uint8_t { READ_ONLY, WRITE };
-constexpr uint64_t INVALID_TRANSACTION_ID = UINT64_MAX;
 
 class Transaction {
     friend class TransactionManager;
 
 public:
-    static constexpr common::transaction_t START_TRANSACTION_ID = (common::transaction_t)1 << 63;
+    static constexpr common::transaction_t START_TRANSACTION_ID =
+        static_cast<common::transaction_t>(1) << 63;
 
     Transaction(main::ClientContext& clientContext, TransactionType transactionType,
         common::transaction_t transactionID, common::transaction_t startTS)
-        : type{transactionType}, ID{transactionID}, startTS{startTS} {
+        : type{transactionType}, ID{transactionID}, startTS{startTS},
+          commitTS{common::INVALID_TRANSACTION} {
         localStorage = std::make_unique<storage::LocalStorage>(clientContext);
         undoBuffer = std::make_unique<storage::UndoBuffer>(clientContext);
         currentTS = common::Timestamp::getCurrentTimestamp().value;
     }
 
     constexpr explicit Transaction(TransactionType transactionType) noexcept
-        : type{transactionType}, ID{0}, startTS{0} {}
+        : type{transactionType}, ID{0}, startTS{0}, commitTS{common::INVALID_TRANSACTION} {
+        currentTS = common::Timestamp::getCurrentTimestamp().value;
+    }
 
-public:
     TransactionType getType() const { return type; }
     bool isReadOnly() const { return TransactionType::READ_ONLY == type; }
     bool isWriteTransaction() const { return TransactionType::WRITE == type; }

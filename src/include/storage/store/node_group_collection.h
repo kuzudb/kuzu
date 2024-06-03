@@ -17,16 +17,19 @@ public:
     NodeGroupCollection(const std::vector<common::LogicalType>& types, BMFileHandle* dataFH,
         const TableData& tableData);
 
-    void append(std::vector<common::ValueVector*> vectors);
-    void append(const ChunkedNodeGroupCollection& chunkedGroupCollection);
-    void append(const NodeGroupCollection& other);
+    void append(transaction::Transaction* transaction,
+        const std::vector<common::ValueVector*>& vectors);
+    void append(transaction::Transaction* transaction,
+        const ChunkedNodeGroupCollection& chunkedGroupCollection);
+    void append(transaction::Transaction* transaction, const NodeGroupCollection& other);
 
     common::row_idx_t getNumRows();
     common::node_group_idx_t getNumNodeGroups() {
         std::shared_lock sLck{mtx};
         return nodeGroups.size();
     }
-    const NodeGroup& getNodeGroup(common::node_group_idx_t groupIdx) {
+    NodeGroup& findNodeGroupFromOffset(common::offset_t offset);
+    NodeGroup& getNodeGroup(common::node_group_idx_t groupIdx) {
         std::shared_lock sLck{mtx};
         KU_ASSERT(groupIdx < nodeGroups.size());
         return *nodeGroups[groupIdx];
@@ -37,7 +40,6 @@ public:
         nodeGroups[nodeGroupIdx] = std::move(group);
     }
 
-    // TODO(Guodong): Rename to `mergeAndFlushWhenFull`.
     void merge(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         const ChunkedNodeGroup& chunkedGroup);
 

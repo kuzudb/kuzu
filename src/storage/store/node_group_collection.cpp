@@ -27,20 +27,31 @@ NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
     }
 }
 
-void NodeGroupCollection::append(std::vector<ValueVector*> vectors) {
-    // TODO: Implement this.
+NodeGroup& NodeGroupCollection::findNodeGroupFromOffset(offset_t offset) {
+    std::shared_lock sLck{mtx};
+    KU_ASSERT(offset < getNumRows());
+    for (const auto& nodeGroup : nodeGroups) {
+        if (nodeGroup->getStartNodeOffset() <= offset &&
+            nodeGroup->getStartNodeOffset() + nodeGroup->getNumRows() > offset) {
+            return *nodeGroup;
+        }
+    }
+    KU_UNREACHABLE;
 }
 
-void NodeGroupCollection::append(const ChunkedNodeGroupCollection& chunkedGroupCollection) {
+void NodeGroupCollection::append(Transaction* transaction,
+    const std::vector<ValueVector*>& vectors) {
     std::unique_lock xLck{mtx};
-    const auto numRowsToAppend = chunkedGroupCollection.getNumRows();
-    row_idx_t numRowsAppended = 0u;
+    const auto numRowsToAppend = vectors[0]->state->getSelVector().getSelSize();
+    for (auto i = 1u; i < vectors.size(); i++) {
+        KU_ASSERT(vectors[i]->state->getSelVector().getSelSize() == numRowsToAppend);
+    }
     if (nodeGroups.empty()) {
         nodeGroups.push_back(std::make_unique<NodeGroup>(nodeGroups.size(), types));
     }
+    row_idx_t numRowsAppended = 0u;
     while (numRowsAppended < numRowsToAppend) {
         if (nodeGroups.back()->isFull()) {
-            // TODO: Should flush the node group to disk.
             if (dataFH) {
                 nodeGroups.back()->flush(*dataFH);
             }
@@ -49,13 +60,39 @@ void NodeGroupCollection::append(const ChunkedNodeGroupCollection& chunkedGroupC
         const auto& lastNodeGroup = nodeGroups.back();
         const auto numToAppendInNodeGroup =
             std::min(numRowsToAppend - numRowsAppended, StorageConstants::NODE_GROUP_SIZE);
-        lastNodeGroup->append(chunkedGroupCollection, numRowsAppended, numToAppendInNodeGroup);
+        lastNodeGroup->append(transaction, vectors, numRowsAppended, numToAppendInNodeGroup);
         numRowsAppended += numToAppendInNodeGroup;
     }
 }
 
-void NodeGroupCollection::append(const NodeGroupCollection& other) {
-    // TODO: Implement this.
+void NodeGroupCollection::append(Transaction* transaction,
+    const ChunkedNodeGroupCollection& chunkedGroupCollection) {
+    std::unique_lock xLck{mtx};
+    const auto numRowsToAppend = chunkedGroupCollection.getNumRows();
+    row_idx_t numRowsAppended = 0u;
+    if (nodeGroups.empty()) {
+        nodeGroups.push_back(std::make_unique<NodeGroup>(nodeGroups.size(), types));
+    }
+    while (numRowsAppended < numRowsToAppend) {
+        if (nodeGroups.back()->isFull()) {
+            if (dataFH) {
+                nodeGroups.back()->flush(*dataFH);
+            }
+            nodeGroups.push_back(std::make_unique<NodeGroup>(nodeGroups.size(), types));
+        }
+        const auto& lastNodeGroup = nodeGroups.back();
+        const auto numToAppendInNodeGroup =
+            std::min(numRowsToAppend - numRowsAppended, StorageConstants::NODE_GROUP_SIZE);
+        lastNodeGroup->append(transaction, chunkedGroupCollection, numRowsAppended,
+            numToAppendInNodeGroup);
+        numRowsAppended += numToAppendInNodeGroup;
+    }
+}
+
+void NodeGroupCollection::append(Transaction* transaction, const NodeGroupCollection& other) {
+    for (auto& nodeGroup : other.nodeGroups) {
+        append(transaction, nodeGroup->getChunkedGroups());
+    }
 }
 
 row_idx_t NodeGroupCollection::getNumRows() {

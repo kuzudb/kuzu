@@ -29,7 +29,7 @@ public:
         KU_ASSERT(groupIdx < chunkedGroups.size());
         return *chunkedGroups[groupIdx].get();
     }
-    const ChunkedNodeGroup& findChunkedGroupFromOffset(common::offset_t offset) const;
+    ChunkedNodeGroup& findChunkedGroupFromOffset(common::offset_t offset) const;
     ChunkedNodeGroup& getChunkedGroupUnsafe(common::node_group_idx_t groupIdx) const {
         KU_ASSERT(groupIdx < chunkedGroups.size());
         return *chunkedGroups[groupIdx].get();
@@ -40,11 +40,13 @@ public:
         chunkedGroups[groupIdx] = std::move(group);
     }
 
-    void append(const std::vector<common::ValueVector*>& vectors,
+    // Return num of rows before append.
+    common::row_idx_t append(const std::vector<common::ValueVector*>& vectors,
         const common::SelectionVector& selVector);
-    void append(transaction::Transaction* transaction, const ChunkedNodeGroup& chunkedGroup);
-    void append(const ChunkedNodeGroupCollection& other, common::offset_t offsetInOtherCollection,
-        common::offset_t numRowsToAppend);
+    common::row_idx_t append(transaction::Transaction* transaction,
+        const ChunkedNodeGroup& chunkedGroup);
+    common::row_idx_t append(const ChunkedNodeGroupCollection& other,
+        common::offset_t offsetInOtherCollection, common::offset_t numRowsToAppend);
 
     // `merge` are directly moving the chunkedGroup to the collection.
     void merge(std::unique_ptr<ChunkedNodeGroup> chunkedGroup);

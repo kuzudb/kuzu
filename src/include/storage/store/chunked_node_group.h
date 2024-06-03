@@ -6,6 +6,10 @@
 #include "storage/store/column_chunk.h"
 
 namespace kuzu {
+namespace transaction {
+class Transaction;
+} // namespace transaction
+
 namespace storage {
 
 class Column;
