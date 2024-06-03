@@ -65,6 +65,7 @@ Type::type ParquetWriter::convertToParquetType(const LogicalType& type) {
         return Type::INT32;
     case LogicalTypeID::UINT64:
     case LogicalTypeID::INT64:
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::TIMESTAMP_TZ:
     case LogicalTypeID::TIMESTAMP_NS:
     case LogicalTypeID::TIMESTAMP_MS:
@@ -155,6 +156,10 @@ void ParquetWriter::setSchemaProperties(const LogicalType& type, SchemaElement& 
         schemaElement.logicalType.__isset.TIMESTAMP = true;
         schemaElement.logicalType.TIMESTAMP.isAdjustedToUTC = false;
         schemaElement.logicalType.TIMESTAMP.unit.__isset.MILLIS = true;
+    } break;
+    case LogicalTypeID::SERIAL: {
+        schemaElement.converted_type = ConvertedType::SERIAL;
+        schemaElement.__isset.converted_type = true;
     } break;
     default:
         break;
