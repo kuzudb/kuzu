@@ -2,14 +2,16 @@
 
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "common/string_utils.h"
 
 namespace kuzu {
 namespace common {
 
 RelMultiplicity RelMultiplicityUtils::getFwd(const std::string& multiplicityStr) {
-    if ("ONE_ONE" == multiplicityStr || "ONE_MANY" == multiplicityStr) {
+    auto normalizedMultiStr = common::StringUtils::getUpper(multiplicityStr);
+    if ("ONE_ONE" == normalizedMultiStr || "ONE_MANY" == normalizedMultiStr) {
         return RelMultiplicity::ONE;
-    } else if ("MANY_ONE" == multiplicityStr || "MANY_MANY" == multiplicityStr) {
+    } else if ("MANY_ONE" == normalizedMultiStr || "MANY_MANY" == normalizedMultiStr) {
         return RelMultiplicity::MANY;
     }
     throw BinderException(
@@ -17,9 +19,10 @@ RelMultiplicity RelMultiplicityUtils::getFwd(const std::string& multiplicityStr)
 }
 
 RelMultiplicity RelMultiplicityUtils::getBwd(const std::string& multiplicityStr) {
-    if ("ONE_ONE" == multiplicityStr || "MANY_ONE" == multiplicityStr) {
+    auto normalizedMultiStr = common::StringUtils::getUpper(multiplicityStr);
+    if ("ONE_ONE" == normalizedMultiStr || "MANY_ONE" == normalizedMultiStr) {
         return RelMultiplicity::ONE;
-    } else if ("ONE_MANY" == multiplicityStr || "MANY_MANY" == multiplicityStr) {
+    } else if ("ONE_MANY" == normalizedMultiStr || "MANY_MANY" == normalizedMultiStr) {
         return RelMultiplicity::MANY;
     }
     throw BinderException(
