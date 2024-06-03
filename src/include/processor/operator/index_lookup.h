@@ -17,13 +17,12 @@ struct IndexLookupInfo {
     DataPos keyVectorPos;
     DataPos resultVectorPos;
 
-    IndexLookupInfo(
-        storage::PrimaryKeyIndex* index, const DataPos& keyVectorPos,
+    IndexLookupInfo(storage::PrimaryKeyIndex* index, const DataPos& keyVectorPos,
         const DataPos& resultVectorPos)
-        : index{index}, batchInsertSharedState{nullptr},
-          keyVectorPos{keyVectorPos}, resultVectorPos{resultVectorPos} {}
+        : index{index}, batchInsertSharedState{nullptr}, keyVectorPos{keyVectorPos},
+          resultVectorPos{resultVectorPos} {}
     IndexLookupInfo(const IndexLookupInfo& other)
-        : index{other.index}, batchInsertSharedState{other.batchInsertSharedState}, 
+        : index{other.index}, batchInsertSharedState{other.batchInsertSharedState},
           keyVectorPos{other.keyVectorPos}, resultVectorPos{other.resultVectorPos} {}
 
     inline std::unique_ptr<IndexLookupInfo> copy() {

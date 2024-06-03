@@ -21,11 +21,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIndexScan(
         for (auto i = 0u; i < logicalIndexScan->getNumInfos(); ++i) {
             auto& info = logicalIndexScan->getInfo(i);
             auto storageIndex = common::ku_dynamic_cast<storage::Table*, storage::NodeTable*>(
-                storageManager->getTable(info.nodeTableID))->getPKIndex();
+                storageManager->getTable(info.nodeTableID))
+                                    ->getPKIndex();
             auto offsetPos = DataPos(outSchema->getExpressionPos(*info.offset));
             auto keyPos = DataPos(outSchema->getExpressionPos(*info.key));
-            indexLookupInfos.push_back(std::make_unique<IndexLookupInfo>(
-                storageIndex, keyPos, offsetPos));
+            indexLookupInfos.push_back(
+                std::make_unique<IndexLookupInfo>(storageIndex, keyPos, offsetPos));
         }
         return std::make_unique<IndexLookup>(std::move(indexLookupInfos), std::move(prevOperator),
             getOperatorID(), logicalIndexScan->getExpressionsForPrinting());
