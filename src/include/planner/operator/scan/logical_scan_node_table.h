@@ -62,7 +62,7 @@ public:
     void computeFlatSchema() override;
 
     std::string getExpressionsForPrinting() const override {
-        return binder::ExpressionUtil::toString(properties);
+        return nodeID->toString() + " " + binder::ExpressionUtil::toString(properties);
     }
 
     LogicalScanNodeTableType getScanType() const { return scanType; }
