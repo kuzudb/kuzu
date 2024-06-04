@@ -24,7 +24,8 @@ public:
     void buildHashSlots();
 
     void probe(const std::vector<common::ValueVector*>& keyVectors, common::ValueVector& hashVector,
-        common::ValueVector& tmpHashResultVector, uint8_t** probedTuples);
+        common::SelectionVector& hashSelVec, common::ValueVector& tmpHashResultVector,
+        uint8_t** probedTuples);
     // All key vectors must be flat. Thus input is a tuple, multiple matches can be found for the
     // given key tuple.
     common::sel_t matchFlatKeys(const std::vector<common::ValueVector*>& keyVectors,

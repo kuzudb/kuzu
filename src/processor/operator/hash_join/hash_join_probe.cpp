@@ -47,7 +47,7 @@ bool HashJoinProbe::getMatchedTuplesForFlatKey(ExecutionContext* context) {
             return false;
         }
         saveSelVector(*keyVectors[0]->state);
-        sharedState->getHashTable()->probe(keyVectors, *hashVector, *tmpHashVector,
+        sharedState->getHashTable()->probe(keyVectors, *hashVector, hashSelVec, *tmpHashVector,
             probeState->probedTuples.get());
     }
     auto numMatchedTuples = sharedState->getHashTable()->matchFlatKeys(keyVectors,
@@ -65,7 +65,7 @@ bool HashJoinProbe::getMatchedTuplesForUnFlatKey(ExecutionContext* context) {
         return false;
     }
     saveSelVector(*keyVector->state);
-    sharedState->getHashTable()->probe(keyVectors, *hashVector, *tmpHashVector,
+    sharedState->getHashTable()->probe(keyVectors, *hashVector, hashSelVec, *tmpHashVector,
         probeState->probedTuples.get());
     auto numMatchedTuples =
         sharedState->getHashTable()->matchUnFlatKey(keyVector, probeState->probedTuples.get(),

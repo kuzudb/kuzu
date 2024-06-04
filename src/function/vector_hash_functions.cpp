@@ -99,12 +99,11 @@ void BinaryHashFunctionExecutor::execute(const common::ValueVector& left,
                 result, resultPos);
         }
     } else {
-        KU_ASSERT(leftSelVec.getSelSize() == 1 || rightSelVec.getSelSize() == 1);
         for (auto i = 0u; i < leftSelVec.getSelSize(); i++) {
             for (auto j = 0u; j < rightSelVec.getSelSize(); j++) {
                 auto leftPos = leftSelVec[i];
                 auto rightPos = rightSelVec[j];
-                auto resultPos = resultSelVec[leftSelVec.getSelSize() > 1 ? i : j];
+                auto resultPos = resultSelVec[leftSelVec.getSelSize() == 1 ? j : i];
                 executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(left, leftPos, right,
                     rightPos, result, resultPos);
             }

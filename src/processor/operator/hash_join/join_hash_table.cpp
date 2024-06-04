@@ -126,7 +126,7 @@ void JoinHashTable::buildHashSlots() {
 }
 
 void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, ValueVector& hashVector,
-    ValueVector& tmpHashResultVector, uint8_t** probedTuples) {
+    SelectionVector& hashSelVec, ValueVector& tmpHashResultVector, uint8_t** probedTuples) {
     KU_ASSERT(keyVectors.size() == keyTypes.size());
     if (getNumTuples() == 0) {
         return;
@@ -134,20 +134,19 @@ void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, ValueVect
     if (!discardNullFromKeys(keyVectors)) {
         return;
     }
-    SelectionVector selVec;
-    selVec.setSelSize(keyVectors[0]->state->getSelVector().getSelSize());
+    hashSelVec.setSelSize(keyVectors[0]->state->getSelVector().getSelSize());
     function::VectorHashFunction::computeHash(*keyVectors[0], keyVectors[0]->state->getSelVector(),
-        hashVector, selVec);
+        hashVector, hashSelVec);
     for (auto i = 1u; i < keyVectors.size(); i++) {
-        selVec.setSelSize(keyVectors[i]->state->getSelVector().getSelSize());
+        hashSelVec.setSelSize(keyVectors[i]->state->getSelVector().getSelSize());
         function::VectorHashFunction::computeHash(*keyVectors[i],
-            keyVectors[i]->state->getSelVector(), tmpHashResultVector, selVec);
-        function::VectorHashFunction::combineHash(hashVector, selVec, tmpHashResultVector, selVec,
-            hashVector, selVec);
+            keyVectors[i]->state->getSelVector(), tmpHashResultVector, hashSelVec);
+        function::VectorHashFunction::combineHash(hashVector, hashSelVec, tmpHashResultVector,
+            hashSelVec, hashVector, hashSelVec);
     }
-    for (auto i = 0u; i < selVec.getSelSize(); i++) {
+    for (auto i = 0u; i < hashSelVec.getSelSize(); i++) {
         KU_ASSERT(i < DEFAULT_VECTOR_CAPACITY);
-        probedTuples[i] = getTupleForHash(hashVector.getValue<hash_t>(selVec[i]));
+        probedTuples[i] = getTupleForHash(hashVector.getValue<hash_t>(hashSelVec[i]));
     }
 }
 

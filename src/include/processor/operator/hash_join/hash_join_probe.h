@@ -108,6 +108,7 @@ private:
 
     std::unique_ptr<common::ValueVector> hashVector;
     std::unique_ptr<common::ValueVector> tmpHashVector;
+    common::SelectionVector hashSelVec;
 };
 
 } // namespace processor
