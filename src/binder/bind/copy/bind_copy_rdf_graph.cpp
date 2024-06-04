@@ -85,9 +85,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     auto ser = expressionBinder.bindExpression(*lNodeEntry->getPrimaryKey()->getDefaultExpr());
     auto lCopyColumns = expression_vector{ser, l, lang};
     auto lColumnTypes = logical_type_vec_t{*LogicalType::SERIAL(), *LogicalType::RDF_VARIANT(),
-                *LogicalType::STRING()};
+        *LogicalType::STRING()};
     auto lCopyInfo = BoundCopyFromInfo(lEntry, std::move(lSource), offset, lCopyColumns,
-            lColumnTypes, std::vector<bool>{true, false, false}, nullptr /* extraInfo */);
+        lColumnTypes, std::vector<bool>{true, false, false}, nullptr /* extraInfo */);
     // Bind copy resource triples
     func = inMemory ? BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
                           RdfResourceTripleInMemScan::name, functions) :
