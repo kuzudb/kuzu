@@ -75,19 +75,20 @@ static std::unique_ptr<ValueVector> computeDataVecHash(ValueVector& operand) {
 }
 
 static void finalizeDataVecHash(ValueVector& operand, SelectionVector& operandSelVec,
-    ValueVector& result, ValueVector& hashVec) {
+    ValueVector& result, SelectionVector& resultSelVec, ValueVector& tmpHashVec) {
     for (auto i = 0u; i < operandSelVec.getSelSize(); i++) {
-        auto pos = operand.state->getSelVector()[i];
+        auto pos = operandSelVec[i];
+        auto resultPos = resultSelVec[i];
         auto entry = operand.getValue<list_entry_t>(pos);
         if (operand.isNull(pos)) {
-            result.setValue(pos, NULL_HASH);
+            result.setValue(resultPos, NULL_HASH);
         } else {
             auto hashValue = NULL_HASH;
             for (auto j = 0u; j < entry.size; j++) {
                 hashValue = combineHashScalar(hashValue,
-                    ListVector::getDataVector(&hashVec)->getValue<hash_t>(entry.offset + j));
+                    ListVector::getDataVector(&tmpHashVec)->getValue<hash_t>(entry.offset + j));
             }
-            result.setValue(pos, hashValue);
+            result.setValue(resultPos, hashValue);
         }
     }
 }
@@ -96,7 +97,7 @@ static void computeListVectorHash(ValueVector& operand, SelectionVector& operand
     ValueVector& result, SelectionVector& resultSelectVec) {
     // TODO(Ziyi): fix
     auto dataVecHash = computeDataVecHash(operand);
-    finalizeDataVecHash(operand, operandSelectVec, result, *dataVecHash);
+    finalizeDataVecHash(operand, operandSelectVec, result, resultSelectVec, *dataVecHash);
 }
 
 static void computeStructVecHash(ValueVector& operand, SelectionVector& operandSelectVec,

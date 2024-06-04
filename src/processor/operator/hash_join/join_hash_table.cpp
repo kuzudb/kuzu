@@ -125,8 +125,8 @@ void JoinHashTable::buildHashSlots() {
     }
 }
 
-void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, ValueVector* hashVector,
-    ValueVector* tmpHashVector, uint8_t** probedTuples) {
+void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, ValueVector& hashVector,
+    ValueVector& tmpHashResultVector, uint8_t** probedTuples) {
     KU_ASSERT(keyVectors.size() == keyTypes.size());
     if (getNumTuples() == 0) {
         return;
@@ -134,21 +134,22 @@ void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, ValueVect
     if (!discardNullFromKeys(keyVectors)) {
         return;
     }
-    hashVector->state = keyVectors[0]->state;
+    SelectionVector selVec;
+    auto size = keyVectors[0]->state->getSelVector().getSelSize();
+    selVec.setSelSize(keyVectors[0]->state->getSelVector().getSelSize());
     function::VectorHashFunction::computeHash(*keyVectors[0],
-        keyVectors[0]->state->getSelVectorUnsafe(), *hashVector,
-        hashVector->state->getSelVectorUnsafe());
+        keyVectors[0]->state->getSelVectorUnsafe(), hashVector, selVec);
     for (auto i = 1u; i < keyVectors.size(); i++) {
-        tmpHashVector->state = keyVectors[i]->state;
+        selVec.setSelSize(keyVectors[i]->state->getSelVector().getSelSize());
         function::VectorHashFunction::computeHash(*keyVectors[i],
-            keyVectors[i]->state->getSelVectorUnsafe(), *tmpHashVector,
-            tmpHashVector->state->getSelVectorUnsafe());
-        function::VectorHashFunction::combineHash(hashVector, tmpHashVector, hashVector);
+            keyVectors[i]->state->getSelVectorUnsafe(), tmpHashResultVector, selVec);
+        function::VectorHashFunction::combineHash(hashVector, selVec, tmpHashResultVector, selVec,
+            hashVector, selVec);
     }
-    for (auto i = 0u; i < hashVector->state->getSelVector().getSelSize(); i++) {
-        auto pos = hashVector->state->getSelVector()[i];
+    for (auto i = 0u; i < selVec.getSelSize(); i++) {
         KU_ASSERT(i < DEFAULT_VECTOR_CAPACITY);
-        probedTuples[i] = getTupleForHash(hashVector->getValue<hash_t>(pos));
+        auto hash = hashVector.getValue<hash_t>(selVec[i]);
+        probedTuples[i] = getTupleForHash(hashVector.getValue<hash_t>(selVec[i]));
     }
 }
 

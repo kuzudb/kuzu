@@ -84,3 +84,23 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database_destroy(&database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
+
+class Dadasd : public CApiDatabaseTest {
+public:
+    void SetUp() override {
+        CApiDatabaseTest::SetUp();
+        createDBAndConn();
+        initGraph();
+    }
+
+    std::string getInputDir() override {
+        return "/Users/z473chen/Desktop/code/kuzu/dataset/tinysnb/";
+    }
+};
+
+TEST_F(Dadasd, dsad) {
+    printf("%s", conn->query("MATCH (a:person), (b:person) WHERE a.workedHours = b.workedHours "
+                             "RETURN a.ID, b.ID")
+                     ->toString()
+                     .c_str());
+}
