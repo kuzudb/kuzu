@@ -105,7 +105,8 @@ private:
     std::unique_ptr<BoundStatement> bindRenameProperty(const parser::Statement& statement);
 
     std::vector<PropertyInfo> bindPropertyInfo(
-        const std::vector<parser::PropertyDefinitionDDL>& propertyDefinitions);
+        const std::vector<parser::PropertyDefinitionDDL>& propertyDefinitions, 
+        const std::string& tableName);
 
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
