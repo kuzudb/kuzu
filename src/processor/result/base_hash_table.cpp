@@ -34,6 +34,8 @@ void BaseHashTable::computeAndCombineVecHash(const std::vector<ValueVector*>& un
             std::make_unique<ValueVector>(LogicalTypeID::INT64, &memoryManager);
         auto tmpHashCombineResultVector =
             std::make_unique<ValueVector>(LogicalTypeID::INT64, &memoryManager);
+        tmpHashResultVector->state = keyVector->state;
+        tmpHashCombineResultVector->state = keyVector->state;
         VectorHashFunction::computeHash(*keyVector, keyVector->state->getSelVectorUnsafe(),
             *tmpHashResultVector, tmpHashResultVector->state->getSelVectorUnsafe());
         VectorHashFunction::combineHash(hashVector.get(), tmpHashResultVector.get(),
@@ -53,7 +55,9 @@ void BaseHashTable::computeVectorHashes(const std::vector<ValueVector*>& flatKey
         computeAndCombineVecHash(unFlatKeyVectors, 0 /* startVecIdx */);
     } else {
         hashVector->state = unFlatKeyVectors[0]->state;
-        VectorHashFunction::computeHash(unFlatKeyVectors[0], hashVector.get());
+        VectorHashFunction::computeHash(*unFlatKeyVectors[0],
+            unFlatKeyVectors[0]->state->getSelVectorUnsafe(), *hashVector.get(),
+            hashVector->state->getSelVectorUnsafe());
         computeAndCombineVecHash(unFlatKeyVectors, 1 /* startVecIdx */);
     }
 }

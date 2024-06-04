@@ -134,9 +134,15 @@ void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, ValueVect
     if (!discardNullFromKeys(keyVectors)) {
         return;
     }
-    function::VectorHashFunction::computeHash(keyVectors[0], hashVector);
+    hashVector->state = keyVectors[0]->state;
+    function::VectorHashFunction::computeHash(*keyVectors[0],
+        keyVectors[0]->state->getSelVectorUnsafe(), *hashVector,
+        hashVector->state->getSelVectorUnsafe());
     for (auto i = 1u; i < keyVectors.size(); i++) {
-        function::VectorHashFunction::computeHash(keyVectors[i], tmpHashVector);
+        tmpHashVector->state = keyVectors[i]->state;
+        function::VectorHashFunction::computeHash(*keyVectors[i],
+            keyVectors[i]->state->getSelVectorUnsafe(), *tmpHashVector,
+            tmpHashVector->state->getSelVectorUnsafe());
         function::VectorHashFunction::combineHash(hashVector, tmpHashVector, hashVector);
     }
     for (auto i = 0u; i < hashVector->state->getSelVector().getSelSize(); i++) {
