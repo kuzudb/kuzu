@@ -123,11 +123,11 @@ static std::unique_ptr<ValueVector> computeDataVecHash(const ValueVector& operan
     auto numValuesComputed = 0u;
     uint64_t numValuesToComputeHash;
     while (numValuesComputed < numValuesInDataVec) {
-        numValuesToComputeHash = 0;
-        for (auto i = 0u; i < DEFAULT_VECTOR_CAPACITY; i++) {
+        numValuesToComputeHash =
+            std::min(DEFAULT_VECTOR_CAPACITY, numValuesInDataVec - numValuesComputed);
+        for (auto i = 0u; i < numValuesToComputeHash; i++) {
             selectionVector[i] = numValuesComputed;
             numValuesComputed++;
-            numValuesToComputeHash++;
         }
         selectionVector.setSelSize(numValuesToComputeHash);
         VectorHashFunction::computeHash(*ListVector::getDataVector(&operand), selectionVector,
@@ -238,7 +238,7 @@ static void HashExecFunc(const std::vector<std::shared_ptr<common::ValueVector>>
 function_set HashFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::INT64, HashExecFunc));
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::UINT64, HashExecFunc));
     return functionSet;
 }
 

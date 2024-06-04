@@ -84,3 +84,8 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database_destroy(&database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
+
+TEST_F(APIEmptyDBTest, dasd) {
+    createDBAndConn();
+    printf("%s", conn->query("RETURN hash(567);")->toString().c_str());
+}

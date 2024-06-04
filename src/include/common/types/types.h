@@ -248,7 +248,7 @@ public:
         return std::make_unique<LogicalType>(LogicalTypeID::BOOL);
     }
     static std::unique_ptr<LogicalType> HASH() {
-        return std::make_unique<LogicalType>(LogicalTypeID::INT64);
+        return std::make_unique<LogicalType>(LogicalTypeID::UINT64);
     }
     static std::unique_ptr<LogicalType> INT64() {
         return std::make_unique<LogicalType>(LogicalTypeID::INT64);
