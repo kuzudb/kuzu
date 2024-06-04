@@ -36,10 +36,13 @@ void BaseHashTable::computeAndCombineVecHash(const std::vector<ValueVector*>& un
             std::make_unique<ValueVector>(LogicalTypeID::INT64, &memoryManager);
         tmpHashResultVector->state = keyVector->state;
         tmpHashCombineResultVector->state = keyVector->state;
-        VectorHashFunction::computeHash(*keyVector, keyVector->state->getSelVectorUnsafe(),
-            *tmpHashResultVector, tmpHashResultVector->state->getSelVectorUnsafe());
-        VectorHashFunction::combineHash(hashVector.get(), tmpHashResultVector.get(),
-            tmpHashCombineResultVector.get());
+        VectorHashFunction::computeHash(*keyVector, keyVector->state->getSelVector(),
+            *tmpHashResultVector, tmpHashResultVector->state->getSelVector());
+        tmpHashCombineResultVector->state =
+            !tmpHashResultVector->state->isFlat() ? tmpHashResultVector->state : hashVector->state;
+        VectorHashFunction::combineHash(*hashVector, hashVector->state->getSelVector(),
+            *tmpHashResultVector, tmpHashResultVector->state->getSelVector(),
+            *tmpHashCombineResultVector, tmpHashCombineResultVector->state->getSelVector());
         hashVector = std::move(tmpHashCombineResultVector);
     }
 }
@@ -49,15 +52,15 @@ void BaseHashTable::computeVectorHashes(const std::vector<ValueVector*>& flatKey
     if (!flatKeyVectors.empty()) {
         hashVector->state = flatKeyVectors[0]->state;
         VectorHashFunction::computeHash(*flatKeyVectors[0],
-            flatKeyVectors[0]->state->getSelVectorUnsafe(), *hashVector.get(),
-            hashVector->state->getSelVectorUnsafe());
+            flatKeyVectors[0]->state->getSelVector(), *hashVector.get(),
+            hashVector->state->getSelVector());
         computeAndCombineVecHash(flatKeyVectors, 1 /* startVecIdx */);
         computeAndCombineVecHash(unFlatKeyVectors, 0 /* startVecIdx */);
     } else {
         hashVector->state = unFlatKeyVectors[0]->state;
         VectorHashFunction::computeHash(*unFlatKeyVectors[0],
-            unFlatKeyVectors[0]->state->getSelVectorUnsafe(), *hashVector.get(),
-            hashVector->state->getSelVectorUnsafe());
+            unFlatKeyVectors[0]->state->getSelVector(), *hashVector.get(),
+            hashVector->state->getSelVector());
         computeAndCombineVecHash(unFlatKeyVectors, 1 /* startVecIdx */);
     }
 }

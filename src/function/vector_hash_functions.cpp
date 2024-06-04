@@ -10,22 +10,29 @@ namespace kuzu {
 namespace function {
 
 template<typename OPERAND_TYPE, typename RESULT_TYPE>
-void UnaryHashFunctionExecutor::execute(ValueVector& operand, SelectionVector& operandSelectVec,
-    ValueVector& result, SelectionVector& resultSelectVec) {
+static void executeOnValue(const ValueVector& operand, sel_t operandPos, ValueVector& result,
+    sel_t resultPos) {
+    Hash::operation(operand.getValue<OPERAND_TYPE>(operandPos),
+        result.getValue<RESULT_TYPE>(resultPos));
+}
+
+template<typename OPERAND_TYPE, typename RESULT_TYPE>
+void UnaryHashFunctionExecutor::execute(const ValueVector& operand,
+    const SelectionVector& operandSelectVec, ValueVector& result,
+    const SelectionVector& resultSelectVec) {
     auto resultValues = (RESULT_TYPE*)result.getData();
     if (operand.hasNoNullsGuarantee()) {
         if (operandSelectVec.isUnfiltered()) {
             for (auto i = 0u; i < operandSelectVec.getSelSize(); i++) {
                 auto resultPos = resultSelectVec[i];
-                Hash::operation(operand.getValue<OPERAND_TYPE>(i), resultValues[resultPos],
-                    &operand);
+                executeOnValue<OPERAND_TYPE, RESULT_TYPE>(operand, i, result, resultPos);
             }
         } else {
             for (auto i = 0u; i < operandSelectVec.getSelSize(); i++) {
                 auto operandPos = operandSelectVec[i];
                 auto resultPos = resultSelectVec[i];
-                Hash::operation(operand.getValue<OPERAND_TYPE>(operandPos), resultValues[resultPos],
-                    &operand);
+                Hash::operation(operand.getValue<OPERAND_TYPE>(operandPos),
+                    resultValues[resultPos]);
             }
         }
     } else {
@@ -33,8 +40,7 @@ void UnaryHashFunctionExecutor::execute(ValueVector& operand, SelectionVector& o
             for (auto i = 0u; i < operandSelectVec.getSelSize(); i++) {
                 auto resultPos = resultSelectVec[i];
                 if (!operand.isNull(i)) {
-                    Hash::operation(operand.getValue<OPERAND_TYPE>(i), resultValues[resultPos],
-                        &operand);
+                    Hash::operation(operand.getValue<OPERAND_TYPE>(i), resultValues[resultPos]);
                 } else {
                     result.setValue(resultPos, NULL_HASH);
                 }
@@ -45,7 +51,7 @@ void UnaryHashFunctionExecutor::execute(ValueVector& operand, SelectionVector& o
                 auto resultPos = resultSelectVec[i];
                 if (!operand.isNull(operandPos)) {
                     Hash::operation(operand.getValue<OPERAND_TYPE>(operandPos),
-                        resultValues[resultPos], &operand);
+                        resultValues[resultPos]);
                 } else {
                     result.setValue(resultPos, NULL_HASH);
                 }
@@ -54,7 +60,59 @@ void UnaryHashFunctionExecutor::execute(ValueVector& operand, SelectionVector& o
     }
 }
 
-static std::unique_ptr<ValueVector> computeDataVecHash(ValueVector& operand) {
+template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
+static void executeOnValue(const common::ValueVector& left, common::sel_t leftPos,
+    const common::ValueVector& right, common::sel_t rightPos, common::ValueVector& result,
+    common::sel_t resultPos) {
+    FUNC::operation(left.getValue<LEFT_TYPE>(leftPos), right.getValue<RIGHT_TYPE>(rightPos),
+        result.getValue<RESULT_TYPE>(resultPos));
+}
+
+static void validateSelState(const common::SelectionVector& leftSelVec,
+    const common::SelectionVector& rightSelVec, const common::SelectionVector& resultSelVec) {
+    auto leftSelSize = leftSelVec.getSelSize();
+    auto rightSelSize = rightSelVec.getSelSize();
+    auto resultSelSize = resultSelVec.getSelSize();
+    if (leftSelSize > 1 && rightSelSize > 1) {
+        KU_ASSERT(leftSelSize == rightSelSize);
+        KU_ASSERT(leftSelSize == resultSelSize);
+    } else if (leftSelSize > 1) {
+        KU_ASSERT(leftSelSize == resultSelSize);
+    } else if (rightSelSize > 1) {
+        KU_ASSERT(rightSelSize == resultSelSize);
+    }
+}
+
+template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
+void BinaryHashFunctionExecutor::execute(const common::ValueVector& left,
+    const common::SelectionVector& leftSelVec, const common::ValueVector& right,
+    const common::SelectionVector& rightSelVec, common::ValueVector& result,
+    const common::SelectionVector& resultSelVec) {
+    validateSelState(leftSelVec, rightSelVec, resultSelVec);
+    result.resetAuxiliaryBuffer();
+    if (leftSelVec.getSelSize() > 1 && rightSelVec.getSelSize() > 1) {
+        for (auto i = 0u; i < leftSelVec.getSelSize(); i++) {
+            auto leftPos = leftSelVec[i];
+            auto rightPos = rightSelVec[i];
+            auto resultPos = resultSelVec[i];
+            executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(left, leftPos, right, rightPos,
+                result, resultPos);
+        }
+    } else {
+        KU_ASSERT(leftSelVec.getSelSize() == 1 || rightSelVec.getSelSize() == 1);
+        for (auto i = 0u; i < leftSelVec.getSelSize(); i++) {
+            for (auto j = 0u; j < rightSelVec.getSelSize(); j++) {
+                auto leftPos = leftSelVec[i];
+                auto rightPos = rightSelVec[j];
+                auto resultPos = resultSelVec[leftSelVec.getSelSize() > 1 ? i : j];
+                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(left, leftPos, right,
+                    rightPos, result, resultPos);
+            }
+        }
+    }
+}
+
+static std::unique_ptr<ValueVector> computeDataVecHash(const ValueVector& operand) {
     auto hashVector = std::make_unique<ValueVector>(*LogicalType::LIST(LogicalType::HASH()));
     auto numValuesInDataVec = ListVector::getDataVectorSize(&operand);
     ListVector::resizeDataVector(hashVector.get(), numValuesInDataVec);
@@ -74,8 +132,8 @@ static std::unique_ptr<ValueVector> computeDataVecHash(ValueVector& operand) {
     return hashVector;
 }
 
-static void finalizeDataVecHash(ValueVector& operand, SelectionVector& operandSelVec,
-    ValueVector& result, SelectionVector& resultSelVec, ValueVector& tmpHashVec) {
+static void finalizeDataVecHash(const ValueVector& operand, const SelectionVector& operandSelVec,
+    ValueVector& result, const SelectionVector& resultSelVec, ValueVector& tmpHashVec) {
     for (auto i = 0u; i < operandSelVec.getSelSize(); i++) {
         auto pos = operandSelVec[i];
         auto resultPos = resultSelVec[i];
@@ -93,37 +151,36 @@ static void finalizeDataVecHash(ValueVector& operand, SelectionVector& operandSe
     }
 }
 
-static void computeListVectorHash(ValueVector& operand, SelectionVector& operandSelectVec,
-    ValueVector& result, SelectionVector& resultSelectVec) {
-    // TODO(Ziyi): fix
+static void computeListVectorHash(const ValueVector& operand,
+    const SelectionVector& operandSelectVec, ValueVector& result,
+    const SelectionVector& resultSelectVec) {
     auto dataVecHash = computeDataVecHash(operand);
     finalizeDataVecHash(operand, operandSelectVec, result, resultSelectVec, *dataVecHash);
 }
 
-static void computeStructVecHash(ValueVector& operand, SelectionVector& operandSelectVec,
-    ValueVector& result, SelectionVector& resultSelectVec) {
+static void computeStructVecHash(const ValueVector& operand, const SelectionVector& operandSelVec,
+    ValueVector& result, const SelectionVector& resultSelVec) {
     switch (operand.dataType.getLogicalTypeID()) {
     case LogicalTypeID::NODE: {
         KU_ASSERT(0 == common::StructType::getFieldIdx(operand.dataType, InternalKeyword::ID));
         UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
-            *StructVector::getFieldVector(&operand, 0), operandSelectVec, result, resultSelectVec);
+            *StructVector::getFieldVector(&operand, 0), operandSelVec, result, resultSelVec);
     } break;
     case LogicalTypeID::REL: {
         KU_ASSERT(3 == StructType::getFieldIdx(operand.dataType, InternalKeyword::ID));
         UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
-            *StructVector::getFieldVector(&operand, 3), operandSelectVec, result, resultSelectVec);
+            *StructVector::getFieldVector(&operand, 3), operandSelVec, result, resultSelVec);
     } break;
     case LogicalTypeID::STRUCT: {
-        result.state = operand.state;
         VectorHashFunction::computeHash(*StructVector::getFieldVector(&operand, 0 /* idx */),
-            operandSelectVec, result, resultSelectVec);
+            operandSelVec, result, resultSelVec);
         auto tmpHashVector = std::make_unique<ValueVector>(LogicalTypeID::INT64);
         for (auto i = 1u; i < StructType::getNumFields(operand.dataType); i++) {
             auto fieldVector = StructVector::getFieldVector(&operand, i);
-            VectorHashFunction::computeHash(*fieldVector, operandSelectVec, *tmpHashVector,
-                resultSelectVec);
-            VectorHashFunction::combineHash(*tmpHashVector, resultSelectVec, result,
-                resultSelectVec, result, resultSelectVec);
+            VectorHashFunction::computeHash(*fieldVector, operandSelVec, *tmpHashVector,
+                resultSelVec);
+            VectorHashFunction::combineHash(*tmpHashVector, resultSelVec, result, resultSelVec,
+                result, resultSelVec);
         }
     } break;
     default:
@@ -131,8 +188,9 @@ static void computeStructVecHash(ValueVector& operand, SelectionVector& operandS
     }
 }
 
-void VectorHashFunction::computeHash(ValueVector& operand, SelectionVector& operandSelectVec,
-    ValueVector& result, SelectionVector& resultSelectVec) {
+void VectorHashFunction::computeHash(const ValueVector& operand,
+    const SelectionVector& operandSelectVec, ValueVector& result,
+    const SelectionVector& resultSelectVec) {
     result.state = operand.state;
     KU_ASSERT(result.dataType.getLogicalTypeID() == LogicalType::HASH()->getLogicalTypeID());
     TypeUtils::visit(
@@ -154,19 +212,10 @@ void VectorHashFunction::computeHash(ValueVector& operand, SelectionVector& oper
         });
 }
 
-void VectorHashFunction::combineHash(ValueVector* left, ValueVector* right, ValueVector* result) {
-    KU_ASSERT(left->dataType.getLogicalTypeID() == LogicalTypeID::INT64);
-    KU_ASSERT(left->dataType.getLogicalTypeID() == right->dataType.getLogicalTypeID());
-    KU_ASSERT(left->dataType.getLogicalTypeID() == result->dataType.getLogicalTypeID());
-    // TODO(Xiyang/Guodong): we should resolve result state of hash vector at compile time.
-    result->state = !right->state->isFlat() ? right->state : left->state;
-    BinaryFunctionExecutor::execute<hash_t, hash_t, hash_t, CombineHash>(*left, *right, *result);
-}
-
-void VectorHashFunction::combineHash(ValueVector& left, SelectionVector& leftSelVec,
-    ValueVector& right, SelectionVector& rightSelVec, ValueVector& result,
-    SelectionVector& resultSelVec) {
-    KU_ASSERT(left.dataType.getLogicalTypeID() == LogicalTypeID::INT64);
+void VectorHashFunction::combineHash(const ValueVector& left, const SelectionVector& leftSelVec,
+    const ValueVector& right, const SelectionVector& rightSelVec, ValueVector& result,
+    const SelectionVector& resultSelVec) {
+    KU_ASSERT(left.dataType.getLogicalTypeID() == LogicalType::HASH()->getLogicalTypeID());
     KU_ASSERT(left.dataType.getLogicalTypeID() == right.dataType.getLogicalTypeID());
     KU_ASSERT(left.dataType.getLogicalTypeID() == result.dataType.getLogicalTypeID());
     BinaryHashFunctionExecutor::execute<hash_t, hash_t, hash_t, CombineHash>(left, leftSelVec,
@@ -176,7 +225,7 @@ void VectorHashFunction::combineHash(ValueVector& left, SelectionVector& leftSel
 static void HashExecFunc(const std::vector<std::shared_ptr<common::ValueVector>>& params,
     common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
     KU_ASSERT(params.size() == 1);
-    // Todo(ziyi): revisit this code.
+    // TODO(Ziyi): evaluators should resolve the state for result vector.
     result.state = params[0]->state;
     VectorHashFunction::computeHash(*params[0], params[0]->state->getSelVectorUnsafe(), result,
         result.state->getSelVectorUnsafe());

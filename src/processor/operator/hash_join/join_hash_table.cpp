@@ -135,20 +135,18 @@ void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, ValueVect
         return;
     }
     SelectionVector selVec;
-    auto size = keyVectors[0]->state->getSelVector().getSelSize();
     selVec.setSelSize(keyVectors[0]->state->getSelVector().getSelSize());
-    function::VectorHashFunction::computeHash(*keyVectors[0],
-        keyVectors[0]->state->getSelVectorUnsafe(), hashVector, selVec);
+    function::VectorHashFunction::computeHash(*keyVectors[0], keyVectors[0]->state->getSelVector(),
+        hashVector, selVec);
     for (auto i = 1u; i < keyVectors.size(); i++) {
         selVec.setSelSize(keyVectors[i]->state->getSelVector().getSelSize());
         function::VectorHashFunction::computeHash(*keyVectors[i],
-            keyVectors[i]->state->getSelVectorUnsafe(), tmpHashResultVector, selVec);
+            keyVectors[i]->state->getSelVector(), tmpHashResultVector, selVec);
         function::VectorHashFunction::combineHash(hashVector, selVec, tmpHashResultVector, selVec,
             hashVector, selVec);
     }
     for (auto i = 0u; i < selVec.getSelSize(); i++) {
         KU_ASSERT(i < DEFAULT_VECTOR_CAPACITY);
-        auto hash = hashVector.getValue<hash_t>(selVec[i]);
         probedTuples[i] = getTupleForHash(hashVector.getValue<hash_t>(selVec[i]));
     }
 }

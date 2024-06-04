@@ -46,6 +46,7 @@ protected:
     // Temporary arrays to hold intermediate results for appending.
     std::shared_ptr<common::DataChunkState> hashState;
     std::unique_ptr<common::ValueVector> hashVector;
+    common::SelectionVector hashSelVec;
 };
 
 } // namespace processor

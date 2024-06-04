@@ -12,7 +12,7 @@ using namespace kuzu_parquet::format;
 
 std::size_t StringHash::operator()(const ku_string_t& k) const {
     hash_t result;
-    function::Hash::operation(k, result, nullptr /* keyVector */);
+    function::Hash::operation(k, result);
     return result;
 }
 
