@@ -9,7 +9,9 @@
 -ENUMERATE
 ---- 1
 12
-
+-STATEMENT MATCH (a:person)-[:knows]->(b:person), (b)-[:knows]->(a), (a)-[:knows]->(b)  RETURN COUNT(*)
+---- 1
+12
 -LOG TwoNodeCycleWithProjectionTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person), (b)-[:knows]->(a) RETURN a.fName, b.fName
 -ENUMERATE

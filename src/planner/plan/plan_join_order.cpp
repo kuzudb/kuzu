@@ -459,6 +459,17 @@ void Planner::planWCOJoin(const SubqueryGraph& subgraph,
     auto predicates =
         getNewlyMatchedExpressions(prevSubgraphs, newSubgraph, context.getWhereExpressions());
     for (auto& leftPlan : context.getPlans(subgraph)) {
+        // Disable WCOJ if intersect node is in the scope of probe plan. This happens in the case
+        // like, MATCH (a)-[e1]->(b), (b)-[e2]->(a), (a)-[e3]->(b).
+        // When we perform edge-at-a-time enumeration, at some point we will in the state of e1 as
+        // probe side and e2, e3 as build side and we attempt to apply WCOJ. However, the right
+        // approach is to build e1, e2, e3 and intersect on a common node (either a or b).
+        // I tend to disable WCOJ for this case for now. The proper fix should be move to
+        // node-at-a-time enumeration and re-enable WCOJ.
+        // TODO(Xiyang): Fixme according to the description above.
+        if (leftPlan->getSchema()->isExpressionInScope(*intersectNode->getInternalID())) {
+            continue;
+        }
         auto leftPlanCopy = leftPlan->shallowCopy();
         std::vector<std::unique_ptr<LogicalPlan>> rightPlansCopy;
         rightPlansCopy.reserve(relPlans.size());
