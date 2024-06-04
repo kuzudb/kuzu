@@ -468,7 +468,7 @@ void Planner::planWCOJoin(const SubqueryGraph& subgraph,
         // node-at-a-time enumeration and re-enable WCOJ.
         // TODO(Xiyang): Fixme according to the description above.
         if (leftPlan->getSchema()->isExpressionInScope(*intersectNode->getInternalID())) {
-            continue ;
+            continue;
         }
         auto leftPlanCopy = leftPlan->shallowCopy();
         std::vector<std::unique_ptr<LogicalPlan>> rightPlansCopy;
