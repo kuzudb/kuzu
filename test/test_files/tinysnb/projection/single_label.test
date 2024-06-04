@@ -345,7 +345,7 @@ Dan|Carol
 95
 
 -LOG StudyAtPropertyProjectionTest
--STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) RETURN e.year, e.level, e.code, e.temprature, e.ulength
+-STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) RETURN e.year, e.level, e.code, e.temperature, e.ulength
 -ENUMERATE
 ---- 3
 2020|120|6689|1|90

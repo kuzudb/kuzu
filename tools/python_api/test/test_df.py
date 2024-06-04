@@ -146,8 +146,8 @@ def test_to_df(conn_db_readonly: ConnDB) -> None:
         assert str(pd["r.level"].dtype) == "int8"
         assert pd["r.code"].tolist() == [9223372036854775808, 23, 6689]
         assert str(pd["r.code"].dtype) == "uint64"
-        assert pd["r.temprature"].tolist() == [32800, 20, 1]
-        assert str(pd["r.temprature"].dtype) == "uint32"
+        assert pd["r.temperature"].tolist() == [32800, 20, 1]
+        assert str(pd["r.temperature"].dtype) == "uint32"
         assert pd["r.ulength"].tolist() == [33768, 180, 90]
         assert str(pd["r.ulength"].dtype) == "uint16"
         assert pd["r.ulevel"].tolist() == [250, 12, 220]

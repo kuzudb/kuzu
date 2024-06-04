@@ -8,7 +8,6 @@
 #include "common/null_mask.h"
 #include "common/type_utils.h"
 #include "common/types/internal_id_t.h"
-#include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "storage/compression/compression.h"
 #include "storage/storage_structure/disk_array.h"
@@ -447,58 +446,9 @@ void Column::writeValue(ChunkState& state, offset_t offsetInChunk, ValueVector* 
         });
 }
 
-inline std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMax(
-    const uint8_t* data, uint64_t offset, uint64_t numValues, PhysicalTypeID physicalType,
-    const NullMask* nullMask) {
-    // TODO(bmwinger): STRING and maybe LIST columns should store their offsets in separate columns
-    // with actual integer types so that we can store statistics about the values in the main column
-    // metadata. This should also simplify some code as we no longer need to sometimes treat those
-    // columns as integers.
-    std::optional<StorageValue> min, max;
-
-    auto minmax_element = [&]<typename T>(std::span<T> data) {
-        if (!nullMask || nullMask->hasNoNullsGuarantee()) {
-            auto [minRaw, maxRaw] = std::minmax_element(data.begin(), data.end());
-            min = StorageValue(*minRaw);
-            max = StorageValue(*maxRaw);
-        } else {
-            for (uint64_t i = 0; i < numValues; i++) {
-                if (!nullMask->isNull(offset + i)) {
-                    if (!min || data[i] < min->get<T>()) {
-                        min = StorageValue(data[i]);
-                    }
-                    if (!max || data[i] > max->get<T>()) {
-                        max = StorageValue(data[i]);
-                    }
-                }
-            }
-        }
-    };
-    TypeUtils::visit(
-        physicalType,
-        [&]<typename T>(T)
-            requires(std::integral<T> || std::floating_point<T>)
-        {
-            auto typedData = std::span(reinterpret_cast<const T*>(data) + offset, numValues);
-            minmax_element(typedData);
-        },
-        [&](ku_string_t) {
-            auto typedData = std::span(reinterpret_cast<const uint32_t*>(data) + offset, numValues);
-            minmax_element(typedData);
-        },
-        [&]<typename T>(T)
-            requires(std::same_as<T, list_entry_t> || std::same_as<T, internalID_t>)
-        {
-            auto typedData = std::span(reinterpret_cast<const uint64_t*>(data) + offset, numValues);
-            minmax_element(typedData);
-        },
-        [&](auto) {});
-    return std::make_pair(min, max);
-}
-
 void Column::write(ChunkState& state, offset_t offsetInChunk, ColumnChunkData* data,
     offset_t dataOffset, length_t numValues) {
-    NullMask nullMask{std::span<uint64_t>()};
+    NullMask nullMask{std::span<uint64_t>(), false};
     NullMask* nullMaskPtr = nullptr;
     if (data->getNullChunk()) {
         nullMask = data->getNullChunk()->getNullMask();
@@ -506,8 +456,8 @@ void Column::write(ChunkState& state, offset_t offsetInChunk, ColumnChunkData* d
     }
     writeValues(state, offsetInChunk, data->getData(), nullMaskPtr, dataOffset, numValues);
 
-    auto [minWritten, maxWritten] =
-        getMinMax(data->getData(), dataOffset, numValues, dataType.getPhysicalType(), nullMaskPtr);
+    auto [minWritten, maxWritten] = getMinMaxStorageValue(data->getData(), dataOffset, numValues,
+        dataType.getPhysicalType(), nullMaskPtr);
     updateStatistics(state.metadata, offsetInChunk + numValues - 1, minWritten, maxWritten);
 }
 
@@ -537,8 +487,8 @@ offset_t Column::appendValues(ChunkState& state, const uint8_t* data, const Null
     auto newNumPages = dataFH->getNumPages();
     state.metadata.numPages += (newNumPages - numPages);
 
-    auto [minWritten, maxWritten] =
-        getMinMax(data, 0 /*offset*/, numValues, dataType.getPhysicalType(), nullChunkData);
+    auto [minWritten, maxWritten] = getMinMaxStorageValue(data, 0 /*offset*/, numValues,
+        dataType.getPhysicalType(), nullChunkData);
     updateStatistics(state.metadata, startOffset + numValues - 1, minWritten, maxWritten);
     // TODO(bmwinger): it shouldn't be necessary to do this here; it should be handled in
     // prepareCommit

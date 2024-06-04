@@ -140,8 +140,6 @@ protected:
         BMFileHandle*, common::page_idx_t, const ColumnChunkMetadata&)>;
     using get_metadata_func_t = std::function<ColumnChunkMetadata(const uint8_t*, uint64_t,
         uint64_t, uint64_t, StorageValue, StorageValue)>;
-    using get_min_max_func_t =
-        std::function<std::pair<StorageValue, StorageValue>(const uint8_t*, uint64_t)>;
 
     common::LogicalType dataType;
     uint32_t numBytesPerValue;
@@ -152,7 +150,6 @@ protected:
     uint64_t numValues;
     flush_buffer_func_t flushBufferFunction;
     get_metadata_func_t getMetadataFunction;
-    get_min_max_func_t getMinMaxFunction;
     bool enableCompression;
 };
 
@@ -232,7 +229,8 @@ public:
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
     common::NullMask getNullMask() const {
-        return common::NullMask(std::span(reinterpret_cast<uint64_t*>(getData()), capacity / 64));
+        return common::NullMask(std::span(reinterpret_cast<uint64_t*>(getData()), capacity / 64),
+            mayHaveNullValue);
     }
 
 protected:

@@ -10,6 +10,7 @@
 #include "common/null_mask.h"
 #include "common/type_utils.h"
 #include "common/types/internal_id_t.h"
+#include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "fastpfor/bitpackinghelpers.h"
@@ -768,6 +769,82 @@ std::optional<StorageValue> StorageValue::readFromVector(const common::ValueVect
         [&]<StorageValueType T>(
             T) { return std::make_optional(StorageValue(vector.getValue<T>(posInVector))); },
         [](auto) { return std::optional<StorageValue>(); });
+}
+
+template<typename T>
+auto getTypedMinMax(std::span<T> data, const NullMask* nullMask, uint64_t nullMaskOffset) {
+    std::optional<StorageValue> min, max;
+    if (!nullMask || nullMask->hasNoNullsGuarantee()) {
+        auto [minRaw, maxRaw] = std::minmax_element(data.begin(), data.end());
+        min = StorageValue(*minRaw);
+        max = StorageValue(*maxRaw);
+    } else {
+        for (uint64_t i = 0; i < data.size(); i++) {
+            if (!nullMask->isNull(nullMaskOffset + i)) {
+                if (!min || data[i] < min->get<T>()) {
+                    min = StorageValue(data[i]);
+                }
+                if (!max || data[i] > max->get<T>()) {
+                    max = StorageValue(data[i]);
+                }
+            }
+        }
+    }
+    return std::make_pair(min, max);
+}
+
+std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxStorageValue(
+    const uint8_t* data, uint64_t offset, uint64_t numValues, PhysicalTypeID physicalType,
+    const NullMask* nullMask, bool valueRequiredIfUnsupported) {
+    std::pair<std::optional<StorageValue>, std::optional<StorageValue>> returnValue;
+    TypeUtils::visit(
+        physicalType,
+        [&](bool) {
+            auto boolData = reinterpret_cast<const uint64_t*>(data);
+            if (!nullMask || nullMask->hasNoNullsGuarantee()) {
+                auto [minRaw, maxRaw] = NullMask::getMinMax(boolData, numValues);
+                returnValue = std::make_pair(std::optional(StorageValue(minRaw)),
+                    std::optional(StorageValue(maxRaw)));
+            } else {
+                std::optional<StorageValue> min, max;
+                for (size_t i = 0; i < numValues; i++) {
+                    if (!nullMask || !nullMask->isNull(i)) {
+                        auto boolValue = NullMask::isNull(boolData, i);
+                        if (!max || boolValue > max->get<bool>()) {
+                            returnValue.first = boolValue;
+                        }
+                        if (!min || boolValue < min->get<bool>()) {
+                            returnValue.second = boolValue;
+                        }
+                    }
+                }
+            }
+        },
+        [&]<typename T>(T)
+            requires(std::integral<T> || std::floating_point<T>)
+        {
+            auto typedData = std::span(reinterpret_cast<const T*>(data) + offset, numValues);
+            returnValue = getTypedMinMax(typedData, nullMask, offset);
+        },
+        [&]<typename T>(T)
+            requires(std::same_as<T, list_entry_t> || std::same_as<T, internalID_t>)
+        {
+            auto typedData = std::span(reinterpret_cast<const uint64_t*>(data) + offset, numValues);
+            returnValue = getTypedMinMax(typedData, nullMask, offset);
+        },
+        [&]<typename T>(T)
+            requires(std::same_as<T, int128_t> || std::same_as<T, interval_t> ||
+                     std::same_as<T, struct_entry_t> || std::same_as<T, ku_string_t>)
+        {
+            if (valueRequiredIfUnsupported) {
+                // For unsupported types on the first copy,
+                // they need a non-optional value to distinguish them
+                // from supported types where every value is null
+                returnValue.first = std::numeric_limits<uint64_t>::min();
+                returnValue.second = std::numeric_limits<uint64_t>::max();
+            }
+        });
+    return returnValue;
 }
 
 } // namespace storage

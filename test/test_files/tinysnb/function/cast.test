@@ -53,10 +53,10 @@
 90|90|90|90|90.000000|90.000000
 
 -LOG CastFromUINT32
--STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=2 RETURN to_int8(e.temprature), to_int16(e.temprature), to_int32(e.temprature), to_int128(e.temprature), to_float(e.temprature), to_double(e.temprature)
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=2 RETURN to_int8(e.temperature), to_int16(e.temperature), to_int32(e.temperature), to_int128(e.temperature), to_float(e.temperature), to_double(e.temperature)
 ---- 1
 1|1|1|1|1.000000|1.000000
--STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=2 RETURN cast(e.temprature, "int8"), cast(e.temprature, "int16"), cast(e.temprature, "int32"), cast(e.temprature, "int128"), cast(e.temprature, "float"), cast(e.temprature, "double")
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=2 RETURN cast(e.temperature, "int8"), cast(e.temperature, "int16"), cast(e.temperature, "int32"), cast(e.temperature, "int128"), cast(e.temperature, "float"), cast(e.temperature, "double")
 ---- 1
 1|1|1|1|1.000000|1.000000
 

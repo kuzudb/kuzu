@@ -100,7 +100,7 @@ False
 2|1
 
 -LOG UINT32KeyTest
--STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.temprature = 1 RETURN p.ID, o.ID
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.temperature = 1 RETURN p.ID, o.ID
 -ENUMERATE
 ---- 1
 2|1
@@ -155,7 +155,7 @@ False
 [9223372036854775808,6689,23]
 
 -LOG SimpleCollectUINT32Test
--STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.temprature)
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.temperature)
 ---- 1
 [32800,1,20]
 
@@ -300,14 +300,14 @@ False
 9223372036854782520
 
 -LOG SimpleAggMaxUInt32Test
--STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.temprature)
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.temperature)
 -PARALLELISM 2
 -ENUMERATE
 ---- 1
 32800
 
 -LOG SimpleAggSumUInt32Test
--STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.temprature)
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.temperature)
 -PARALLELISM 2
 -ENUMERATE
 ---- 1
