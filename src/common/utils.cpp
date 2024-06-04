@@ -65,5 +65,13 @@ bool integerFitsIn<uint8_t>(int64_t val) {
     return val >= 0 && val <= UINT8_MAX;
 }
 
+std::string genSerialName(const std::string& tableName, const std::string& propertyName) {
+    return std::string(tableName)
+               .append("_")
+               .append(propertyName)
+               .append("_")
+               .append("serial");
+}
+
 } // namespace common
 } // namespace kuzu

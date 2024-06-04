@@ -38,18 +38,12 @@ struct BoundCreateTableInfo {
 
     BoundCreateTableInfo(common::TableType type, std::string tableName,
         std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo)
-        : BoundCreateTableInfo{std::move(type), std::move(tableName), {}, std::move(extraInfo)} {}
-    BoundCreateTableInfo(common::TableType type, std::string tableName,
-        std::vector<BoundCreateSequenceInfo> serialSequences,
-        std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo)
-        : type{type}, tableName{std::move(tableName)}, serialSequences{std::move(serialSequences)},
-          extraInfo{std::move(extraInfo)} {}
+        : type{type}, tableName{std::move(tableName)}, extraInfo{std::move(extraInfo)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundCreateTableInfo);
 
 private:
     BoundCreateTableInfo(const BoundCreateTableInfo& other)
-        : type{other.type}, tableName{other.tableName},
-          serialSequences{copyVector(other.serialSequences)}, extraInfo{other.extraInfo->copy()} {}
+        : type{other.type}, tableName{other.tableName}, extraInfo{other.extraInfo->copy()} {}
 };
 
 struct PropertyInfo {

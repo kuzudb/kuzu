@@ -3,6 +3,7 @@
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "common/keyword/rdf_keyword.h"
+#include "common/utils.h"
 #include "function/sequence/sequence_functions.h"
 #include "parser/ddl/create_table_info.h"
 #include "parser/expression/parsed_function_expression.h"
@@ -25,7 +26,6 @@ static std::unique_ptr<parser::ParsedFunctionExpression> createSerialDefaultExpr
 
 BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info) {
     auto rdfGraphName = info->tableName;
-    std::vector<BoundCreateSequenceInfo> serialSequences;
     // Resource table.
     auto resourceTableName = RDFGraphCatalogEntry::getResourceTableName(rdfGraphName);
     std::vector<PropertyInfo> resourceProperties;
@@ -37,15 +37,8 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     // Literal table.
     auto literalTableName = RDFGraphCatalogEntry::getLiteralTableName(rdfGraphName);
     std::vector<PropertyInfo> literalProperties;
-    auto sequenceName = std::string(literalTableName)
-                            .append("_")
-                            .append(std::string(rdf::ID))
-                            .append("_")
-                            .append("serial");
-    serialSequences.push_back(
-        BoundCreateSequenceInfo(sequenceName, 0, 1, 0, std::numeric_limits<int64_t>::max(), false));
     literalProperties.emplace_back(std::string(rdf::ID), *LogicalType::SERIAL(),
-        createSerialDefaultExpr(sequenceName));
+        createSerialDefaultExpr(common::genSerialName(literalTableName, std::string(rdf::ID))));
     literalProperties.emplace_back(std::string(rdf::VAL), *LogicalType::RDF_VARIANT());
     literalProperties.emplace_back(std::string(rdf::LANG), *LogicalType::STRING());
     auto literalExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(0 /* primaryKeyIdx */,
@@ -76,8 +69,7 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     auto boundExtraInfo = std::make_unique<BoundExtraCreateRdfGraphInfo>(
         std::move(resourceCreateInfo), std::move(literalCreateInfo),
         std::move(boundResourceTripleCreateInfo), std::move(boundLiteralTripleCreateInfo));
-    return BoundCreateTableInfo(TableType::RDF, rdfGraphName, std::move(serialSequences),
-        std::move(boundExtraInfo));
+    return BoundCreateTableInfo(TableType::RDF, rdfGraphName, std::move(boundExtraInfo));
 }
 
 } // namespace binder

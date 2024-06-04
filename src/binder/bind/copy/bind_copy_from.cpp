@@ -134,7 +134,6 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
         std::string(InternalKeyword::ROW_OFFSET));
     auto srcTableID = relTableEntry->getSrcTableID();
     auto dstTableID = relTableEntry->getDstTableID();
-    auto catalog = clientContext->getCatalog();
     auto srcKey = columns[0];
     auto dstKey = columns[1];
     expression_vector propertyColumns;

@@ -35,5 +35,7 @@ std::vector<T> copyVector(const std::vector<T>& objects) {
     return result;
 }
 
+std::string genSerialName(const std::string& tableName, const std::string& propertyName);
+
 } // namespace common
 } // namespace kuzu

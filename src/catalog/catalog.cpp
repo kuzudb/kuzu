@@ -20,6 +20,7 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/string_format.h"
+#include "common/utils.h"
 #include "function/built_in_function_utils.h"
 #include "storage/storage_utils.h"
 #include "storage/storage_version_info.h"
@@ -180,6 +181,15 @@ table_id_t Catalog::createTableSchema(transaction::Transaction* transaction,
     } break;
     default:
         KU_UNREACHABLE;
+    }
+    auto tableEntry = entry->constPtrCast<TableCatalogEntry>();
+    for (auto& property : tableEntry->getPropertiesRef()) {
+        if (property.getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            auto seqName = common::genSerialName(tableEntry->getName(), property.getName());
+            auto seqInfo = 
+                BoundCreateSequenceInfo(seqName, 0, 1, 0, std::numeric_limits<int64_t>::max(), false);
+            createSequence(transaction, seqInfo);
+        }
     }
     tables->createEntry(transaction, std::move(entry));
     return tableID;
