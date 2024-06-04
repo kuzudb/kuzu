@@ -1,6 +1,6 @@
 #include "function/hash/vector_hash_functions.h"
 
-#include "function/binary_function_executor.h"
+#include "common/type_utils.h"
 #include "function/hash/hash_functions.h"
 #include "function/scalar_function.h"
 
@@ -121,11 +121,15 @@ static std::unique_ptr<ValueVector> computeDataVecHash(const ValueVector& operan
     SelectionVector selectionVector{DEFAULT_VECTOR_CAPACITY};
     selectionVector.setToFiltered();
     auto numValuesComputed = 0u;
+    uint64_t numValuesToComputeHash;
     while (numValuesComputed < numValuesInDataVec) {
+        numValuesToComputeHash = 0;
         for (auto i = 0u; i < DEFAULT_VECTOR_CAPACITY; i++) {
             selectionVector[i] = numValuesComputed;
             numValuesComputed++;
+            numValuesToComputeHash++;
         }
+        selectionVector.setSelSize(numValuesToComputeHash);
         VectorHashFunction::computeHash(*ListVector::getDataVector(&operand), selectionVector,
             *ListVector::getDataVector(hashVector.get()), selectionVector);
     }
