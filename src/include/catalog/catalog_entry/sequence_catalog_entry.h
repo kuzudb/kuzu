@@ -51,6 +51,7 @@ public:
     //===--------------------------------------------------------------------===//
     int64_t currVal();
     int64_t nextVal();
+    std::shared_ptr<common::ValueVector> nextKVal(const uint64_t& count);
     void replayVal(uint64_t usageCount, int64_t currVal, int64_t nextVal);
 
     //===--------------------------------------------------------------------===//

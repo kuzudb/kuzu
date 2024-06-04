@@ -1,10 +1,12 @@
 #include "processor/operator/persistent/node_batch_insert.h"
 
+#include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/cast.h"
 #include "common/constants.h"
 #include "common/string_format.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
+#include "common/utils.h"
 #include "function/table/scan_functions.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/index_builder.h"
@@ -129,6 +131,17 @@ void NodeBatchInsert::populateDefaultColumns(main::ClientContext* context) {
         if (nodeInfo->defaultColumns[i]) {
             auto defaultVector = nodeLocalState->columnVectors[i];
             auto& defaultEvaluator = nodeInfo->columnEvaluators[i];
+            if (nodeInfo->columnTypes[i].getLogicalTypeID() == LogicalTypeID::SERIAL) {
+                auto catalog = context->getCatalog();
+                auto seqName = common::genSerialName(nodeInfo->tableEntry->getName(), 
+                    nodeInfo->tableEntry->getProperty(i)->getName());
+                auto seqID = catalog->getSequenceID(context->getTx(), seqName);
+                auto seqEntry = catalog->getSequenceCatalogEntry(context->getTx(), seqID);
+                auto result = seqEntry->nextKVal(numTuples);
+                nodeLocalState->columnVectors[i] = result.get();
+                nodeLocalState->defaultColumnVectors.emplace_back(std::move(result));
+                continue;
+            }
             for (auto j = 0; j < numTuples; ++j) {
                 defaultEvaluator->evaluate(context);
                 defaultVector->copyFromVectorData(j, defaultEvaluator->resultVector.get(), 0);
