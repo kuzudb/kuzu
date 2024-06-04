@@ -178,7 +178,7 @@ static void computeStructVecHash(const ValueVector& operand, const SelectionVect
     case LogicalTypeID::STRUCT: {
         VectorHashFunction::computeHash(*StructVector::getFieldVector(&operand, 0 /* idx */),
             operandSelVec, result, resultSelVec);
-        auto tmpHashVector = std::make_unique<ValueVector>(LogicalTypeID::INT64);
+        auto tmpHashVector = std::make_unique<ValueVector>(*LogicalType::HASH());
         for (auto i = 1u; i < StructType::getNumFields(operand.dataType); i++) {
             auto fieldVector = StructVector::getFieldVector(&operand, i);
             VectorHashFunction::computeHash(*fieldVector, operandSelVec, *tmpHashVector,
