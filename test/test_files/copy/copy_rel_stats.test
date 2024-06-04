@@ -1,0 +1,17 @@
+-DATASET CSV tinysnb
+
+--
+-CASE CopyRelStatistics
+-STATEMENT CALL storage_info('knows') WHERE column_name = "bwd_date" RETURN min, max;
+---- 1
+1905-12-12|2021-06-30
+-STATEMENT CALL storage_info('knows') WHERE column_name = "fwd_date" RETURN min, max;
+---- 1
+1905-12-12|2021-06-30
+
+-STATEMENT CALL storage_info('knows') WHERE column_name = "bwd_meetTime" RETURN min, max;
+---- 1
+1936-11-02 11:02:01|2025-01-01 11:22:33.52
+-STATEMENT CALL storage_info('knows') WHERE column_name = "fwd_meetTime" RETURN min, max;
+---- 1
+1936-11-02 11:02:01|2025-01-01 11:22:33.52

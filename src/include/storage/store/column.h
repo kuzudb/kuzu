@@ -187,7 +187,7 @@ protected:
 
     static ChunkCollection getNullChunkCollection(const ChunkCollection& chunkCollection);
     void updateStatistics(ColumnChunkMetadata& metadata, common::offset_t maxIndex,
-        std::optional<StorageValue> min, std::optional<StorageValue> max);
+        const std::optional<StorageValue>& min, const std::optional<StorageValue>& max);
 
 private:
     bool isInsertionsOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
