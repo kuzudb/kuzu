@@ -25,6 +25,8 @@ protected:
     void computeVectorHashes(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors);
     void initSlotConstant(uint64_t numSlotsPerBlock_);
+    bool matchFlatVecWithEntry(const std::vector<common::ValueVector*>& keyVectors,
+        const uint8_t* entry);
 
 private:
     void initCompareFuncs();
@@ -44,6 +46,7 @@ protected:
     // Temporary arrays to hold intermediate results for appending.
     std::shared_ptr<common::DataChunkState> hashState;
     std::unique_ptr<common::ValueVector> hashVector;
+    common::SelectionVector hashSelVec;
 };
 
 } // namespace processor

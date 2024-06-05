@@ -8,14 +8,27 @@ namespace function {
 
 struct UnaryHashFunctionExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE>
-    static void execute(common::ValueVector& operand, common::ValueVector& result);
+    static void execute(const common::ValueVector& operand,
+        const common::SelectionVector& operandSelectVec, common::ValueVector& result,
+        const common::SelectionVector& resultSelectVec);
+};
+
+struct BinaryHashFunctionExecutor {
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void execute(const common::ValueVector& left, const common::SelectionVector& leftSelVec,
+        const common::ValueVector& right, const common::SelectionVector& rightSelVec,
+        common::ValueVector& result, const common::SelectionVector& resultSelVec);
 };
 
 struct VectorHashFunction {
-    static void computeHash(common::ValueVector* operand, common::ValueVector* result);
+    static void computeHash(const common::ValueVector& operand,
+        const common::SelectionVector& operandSelectVec, common::ValueVector& result,
+        const common::SelectionVector& resultSelectVec);
 
-    static void combineHash(common::ValueVector* left, common::ValueVector* right,
-        common::ValueVector* result);
+    static void combineHash(const common::ValueVector& left,
+        const common::SelectionVector& leftSelVec, const common::ValueVector& right,
+        const common::SelectionVector& rightSelVec, common::ValueVector& result,
+        const common::SelectionVector& resultSelVec);
 };
 
 struct MD5Function {

@@ -1,6 +1,6 @@
 #include "function/hash/vector_hash_functions.h"
 
-#include "function/binary_function_executor.h"
+#include "common/type_utils.h"
 #include "function/hash/hash_functions.h"
 #include "function/scalar_function.h"
 
@@ -10,115 +10,186 @@ namespace kuzu {
 namespace function {
 
 template<typename OPERAND_TYPE, typename RESULT_TYPE>
-void UnaryHashFunctionExecutor::execute(ValueVector& operand, ValueVector& result) {
+static void executeOnValue(const ValueVector& operand, sel_t operandPos, ValueVector& result,
+    sel_t resultPos) {
+    Hash::operation(operand.getValue<OPERAND_TYPE>(operandPos),
+        result.getValue<RESULT_TYPE>(resultPos));
+}
+
+template<typename OPERAND_TYPE, typename RESULT_TYPE>
+void UnaryHashFunctionExecutor::execute(const ValueVector& operand,
+    const SelectionVector& operandSelectVec, ValueVector& result,
+    const SelectionVector& resultSelectVec) {
     auto resultValues = (RESULT_TYPE*)result.getData();
-    if (operand.state->isFlat()) {
-        auto pos = operand.state->getSelVector()[0];
-        if (!operand.isNull(pos)) {
-            Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos], &operand);
+    if (operand.hasNoNullsGuarantee()) {
+        if (operandSelectVec.isUnfiltered()) {
+            for (auto i = 0u; i < operandSelectVec.getSelSize(); i++) {
+                auto resultPos = resultSelectVec[i];
+                executeOnValue<OPERAND_TYPE, RESULT_TYPE>(operand, i, result, resultPos);
+            }
         } else {
-            result.setValue(pos, NULL_HASH);
+            for (auto i = 0u; i < operandSelectVec.getSelSize(); i++) {
+                auto operandPos = operandSelectVec[i];
+                auto resultPos = resultSelectVec[i];
+                Hash::operation(operand.getValue<OPERAND_TYPE>(operandPos),
+                    resultValues[resultPos]);
+            }
         }
     } else {
-        auto& operandSelVector = operand.state->getSelVector();
-        if (operand.hasNoNullsGuarantee()) {
-            if (operandSelVector.isUnfiltered()) {
-                for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
-                    Hash::operation(operand.getValue<OPERAND_TYPE>(i), resultValues[i], &operand);
-                }
-            } else {
-                for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
-                    auto pos = operandSelVector[i];
-                    Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos],
-                        &operand);
+        if (operandSelectVec.isUnfiltered()) {
+            for (auto i = 0u; i < operandSelectVec.getSelSize(); i++) {
+                auto resultPos = resultSelectVec[i];
+                if (!operand.isNull(i)) {
+                    Hash::operation(operand.getValue<OPERAND_TYPE>(i), resultValues[resultPos]);
+                } else {
+                    result.setValue(resultPos, NULL_HASH);
                 }
             }
         } else {
-            if (operandSelVector.isUnfiltered()) {
-                for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
-                    if (!operand.isNull(i)) {
-                        Hash::operation(operand.getValue<OPERAND_TYPE>(i), resultValues[i],
-                            &operand);
-                    } else {
-                        result.setValue(i, NULL_HASH);
-                    }
-                }
-            } else {
-                for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
-                    auto pos = operandSelVector[i];
-                    if (!operand.isNull(pos)) {
-                        Hash::operation(operand.getValue<OPERAND_TYPE>(pos), resultValues[pos],
-                            &operand);
-                    } else {
-                        resultValues[pos] = NULL_HASH;
-                    }
+            for (auto i = 0u; i < operandSelectVec.getSelSize(); i++) {
+                auto operandPos = operandSelectVec[i];
+                auto resultPos = resultSelectVec[i];
+                if (!operand.isNull(operandPos)) {
+                    Hash::operation(operand.getValue<OPERAND_TYPE>(operandPos),
+                        resultValues[resultPos]);
+                } else {
+                    result.setValue(resultPos, NULL_HASH);
                 }
             }
         }
     }
 }
 
-static std::unique_ptr<ValueVector> computeDataVecHash(ValueVector* operand) {
+template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
+static void executeOnValue(const common::ValueVector& left, common::sel_t leftPos,
+    const common::ValueVector& right, common::sel_t rightPos, common::ValueVector& result,
+    common::sel_t resultPos) {
+    FUNC::operation(left.getValue<LEFT_TYPE>(leftPos), right.getValue<RIGHT_TYPE>(rightPos),
+        result.getValue<RESULT_TYPE>(resultPos));
+}
+
+static void validateSelState(const common::SelectionVector& leftSelVec,
+    const common::SelectionVector& rightSelVec, const common::SelectionVector& resultSelVec) {
+    auto leftSelSize = leftSelVec.getSelSize();
+    auto rightSelSize = rightSelVec.getSelSize();
+    auto resultSelSize = resultSelVec.getSelSize();
+    if (leftSelSize > 1 && rightSelSize > 1) {
+        KU_ASSERT(leftSelSize == rightSelSize);
+        KU_ASSERT(leftSelSize == resultSelSize);
+    } else if (leftSelSize > 1) {
+        KU_ASSERT(leftSelSize == resultSelSize);
+    } else if (rightSelSize > 1) {
+        KU_ASSERT(rightSelSize == resultSelSize);
+    }
+}
+
+template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
+void BinaryHashFunctionExecutor::execute(const common::ValueVector& left,
+    const common::SelectionVector& leftSelVec, const common::ValueVector& right,
+    const common::SelectionVector& rightSelVec, common::ValueVector& result,
+    const common::SelectionVector& resultSelVec) {
+    validateSelState(leftSelVec, rightSelVec, resultSelVec);
+    result.resetAuxiliaryBuffer();
+    if (leftSelVec.getSelSize() != 1 && rightSelVec.getSelSize() != 1) {
+        for (auto i = 0u; i < leftSelVec.getSelSize(); i++) {
+            auto leftPos = leftSelVec[i];
+            auto rightPos = rightSelVec[i];
+            auto resultPos = resultSelVec[i];
+            executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(left, leftPos, right, rightPos,
+                result, resultPos);
+        }
+    } else if (leftSelVec.getSelSize() == 1) {
+        auto leftPos = leftSelVec[0];
+        for (auto i = 0u; i < rightSelVec.getSelSize(); i++) {
+            auto rightPos = rightSelVec[i];
+            auto resultPos = resultSelVec[i];
+            executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(left, leftPos, right, rightPos,
+                result, resultPos);
+        }
+    } else {
+        auto rightPos = rightSelVec[0];
+        for (auto i = 0u; i < leftSelVec.getSelSize(); i++) {
+            auto leftPos = leftSelVec[i];
+            auto resultPos = resultSelVec[i];
+            executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(left, leftPos, right, rightPos,
+                result, resultPos);
+        }
+    }
+}
+
+static std::unique_ptr<ValueVector> computeDataVecHash(const ValueVector& operand) {
     auto hashVector = std::make_unique<ValueVector>(*LogicalType::LIST(LogicalType::HASH()));
-    auto numValuesInDataVec = ListVector::getDataVectorSize(operand);
+    auto numValuesInDataVec = ListVector::getDataVectorSize(&operand);
     ListVector::resizeDataVector(hashVector.get(), numValuesInDataVec);
-    auto selectionState = std::make_shared<DataChunkState>();
-    selectionState->getSelVectorUnsafe().setToFiltered();
-    ListVector::getDataVector(operand)->setState(selectionState);
+    // TODO(Ziyi): Allow selection size to be greater than default vector capacity, so we don't have
+    // to chunk the selectionVector.
+    SelectionVector selectionVector{DEFAULT_VECTOR_CAPACITY};
+    selectionVector.setToFiltered();
     auto numValuesComputed = 0u;
+    uint64_t numValuesToComputeHash;
     while (numValuesComputed < numValuesInDataVec) {
-        for (auto i = 0u; i < DEFAULT_VECTOR_CAPACITY; i++) {
-            selectionState->getSelVectorUnsafe()[i] = numValuesComputed;
+        numValuesToComputeHash =
+            std::min(DEFAULT_VECTOR_CAPACITY, numValuesInDataVec - numValuesComputed);
+        for (auto i = 0u; i < numValuesToComputeHash; i++) {
+            selectionVector[i] = numValuesComputed;
             numValuesComputed++;
         }
-        VectorHashFunction::computeHash(ListVector::getDataVector(operand),
-            ListVector::getDataVector(hashVector.get()));
+        selectionVector.setSelSize(numValuesToComputeHash);
+        VectorHashFunction::computeHash(*ListVector::getDataVector(&operand), selectionVector,
+            *ListVector::getDataVector(hashVector.get()), selectionVector);
     }
     return hashVector;
 }
 
-static void finalizeDataVecHash(ValueVector* operand, ValueVector* result, ValueVector* hashVec) {
-    for (auto i = 0u; i < result->state->getSelVector().getSelSize(); i++) {
-        auto pos = operand->state->getSelVector()[i];
-        auto entry = operand->getValue<list_entry_t>(pos);
-        if (operand->isNull(pos)) {
-            result->setValue(pos, NULL_HASH);
+static void finalizeDataVecHash(const ValueVector& operand, const SelectionVector& operandSelVec,
+    ValueVector& result, const SelectionVector& resultSelVec, ValueVector& tmpHashVec) {
+    for (auto i = 0u; i < operandSelVec.getSelSize(); i++) {
+        auto pos = operandSelVec[i];
+        auto resultPos = resultSelVec[i];
+        auto entry = operand.getValue<list_entry_t>(pos);
+        if (operand.isNull(pos)) {
+            result.setValue(resultPos, NULL_HASH);
         } else {
             auto hashValue = NULL_HASH;
             for (auto j = 0u; j < entry.size; j++) {
                 hashValue = combineHashScalar(hashValue,
-                    ListVector::getDataVector(hashVec)->getValue<hash_t>(entry.offset + j));
+                    ListVector::getDataVector(&tmpHashVec)->getValue<hash_t>(entry.offset + j));
             }
-            result->setValue(pos, hashValue);
+            result.setValue(resultPos, hashValue);
         }
     }
 }
 
-static void computeListVectorHash(ValueVector* operand, ValueVector* result) {
+static void computeListVectorHash(const ValueVector& operand,
+    const SelectionVector& operandSelectVec, ValueVector& result,
+    const SelectionVector& resultSelectVec) {
     auto dataVecHash = computeDataVecHash(operand);
-    finalizeDataVecHash(operand, result, dataVecHash.get());
+    finalizeDataVecHash(operand, operandSelectVec, result, resultSelectVec, *dataVecHash);
 }
 
-static void computeStructVecHash(ValueVector* operand, ValueVector* result) {
-    switch (operand->dataType.getLogicalTypeID()) {
+static void computeStructVecHash(const ValueVector& operand, const SelectionVector& operandSelVec,
+    ValueVector& result, const SelectionVector& resultSelVec) {
+    switch (operand.dataType.getLogicalTypeID()) {
     case LogicalTypeID::NODE: {
-        KU_ASSERT(0 == common::StructType::getFieldIdx(operand->dataType, InternalKeyword::ID));
+        KU_ASSERT(0 == common::StructType::getFieldIdx(operand.dataType, InternalKeyword::ID));
         UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
-            *StructVector::getFieldVector(operand, 0), *result);
+            *StructVector::getFieldVector(&operand, 0), operandSelVec, result, resultSelVec);
     } break;
     case LogicalTypeID::REL: {
-        KU_ASSERT(3 == StructType::getFieldIdx(operand->dataType, InternalKeyword::ID));
+        KU_ASSERT(3 == StructType::getFieldIdx(operand.dataType, InternalKeyword::ID));
         UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
-            *StructVector::getFieldVector(operand, 3), *result);
+            *StructVector::getFieldVector(&operand, 3), operandSelVec, result, resultSelVec);
     } break;
     case LogicalTypeID::STRUCT: {
-        VectorHashFunction::computeHash(StructVector::getFieldVector(operand, 0 /* idx */).get(),
-            result);
-        auto tmpHashVector = std::make_unique<ValueVector>(LogicalTypeID::INT64);
-        for (auto i = 1u; i < StructType::getNumFields(operand->dataType); i++) {
-            auto fieldVector = StructVector::getFieldVector(operand, i);
-            VectorHashFunction::computeHash(fieldVector.get(), tmpHashVector.get());
-            VectorHashFunction::combineHash(tmpHashVector.get(), result, result);
+        VectorHashFunction::computeHash(*StructVector::getFieldVector(&operand, 0 /* idx */),
+            operandSelVec, result, resultSelVec);
+        auto tmpHashVector = std::make_unique<ValueVector>(*LogicalType::HASH());
+        for (auto i = 1u; i < StructType::getNumFields(operand.dataType); i++) {
+            auto fieldVector = StructVector::getFieldVector(&operand, i);
+            VectorHashFunction::computeHash(*fieldVector, operandSelVec, *tmpHashVector,
+                resultSelVec);
+            VectorHashFunction::combineHash(*tmpHashVector, resultSelVec, result, resultSelVec,
+                result, resultSelVec);
         }
     } break;
     default:
@@ -126,89 +197,53 @@ static void computeStructVecHash(ValueVector* operand, ValueVector* result) {
     }
 }
 
-void VectorHashFunction::computeHash(ValueVector* operand, ValueVector* result) {
-    result->state = operand->state;
-    KU_ASSERT(result->dataType.getLogicalTypeID() == LogicalTypeID::INT64);
-    switch (operand->dataType.getPhysicalType()) {
-    case PhysicalTypeID::INTERNAL_ID: {
-        UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(*operand, *result);
-    } break;
-    case PhysicalTypeID::BOOL: {
-        UnaryHashFunctionExecutor::execute<bool, hash_t>(*operand, *result);
-    } break;
-    case PhysicalTypeID::INT64: {
-        UnaryHashFunctionExecutor::execute<int64_t, hash_t>(*operand, *result);
-    } break;
-    case PhysicalTypeID::INT32: {
-        UnaryHashFunctionExecutor::execute<int32_t, hash_t>(*operand, *result);
-    } break;
-    case PhysicalTypeID::INT16: {
-        UnaryHashFunctionExecutor::execute<int16_t, hash_t>(*operand, *result);
-    } break;
-    case PhysicalTypeID::INT8: {
-        UnaryHashFunctionExecutor::execute<int8_t, hash_t>(*operand, *result);
-    } break;
-    case PhysicalTypeID::UINT64: {
-        UnaryHashFunctionExecutor::execute<uint64_t, hash_t>(*operand, *result);
-    } break;
-    case PhysicalTypeID::UINT32: {
-        UnaryHashFunctionExecutor::execute<uint32_t, hash_t>(*operand, *result);
-    } break;
-    case PhysicalTypeID::UINT16: {
-        UnaryHashFunctionExecutor::execute<uint16_t, hash_t>(*operand, *result);
-    } break;
-    case PhysicalTypeID::UINT8: {
-        UnaryHashFunctionExecutor::execute<uint8_t, hash_t>(*operand, *result);
-    } break;
-    case PhysicalTypeID::INT128: {
-        UnaryHashFunctionExecutor::execute<int128_t, hash_t>(*operand, *result);
-    } break;
-    case PhysicalTypeID::DOUBLE: {
-        UnaryHashFunctionExecutor::execute<double, hash_t>(*operand, *result);
-    } break;
-    case PhysicalTypeID::FLOAT: {
-        UnaryHashFunctionExecutor::execute<float, hash_t>(*operand, *result);
-    } break;
-    case PhysicalTypeID::STRING: {
-        UnaryHashFunctionExecutor::execute<ku_string_t, hash_t>(*operand, *result);
-    } break;
-    case PhysicalTypeID::INTERVAL: {
-        UnaryHashFunctionExecutor::execute<interval_t, hash_t>(*operand, *result);
-    } break;
-    case PhysicalTypeID::STRUCT: {
-        computeStructVecHash(operand, result);
-    } break;
-    case PhysicalTypeID::ARRAY:
-    case PhysicalTypeID::LIST: {
-        computeListVectorHash(operand, result);
-    } break;
-        // LCOV_EXCL_START
-    default: {
-        throw RuntimeException("Cannot hash data type " + operand->dataType.toString());
-    }
-        // LCOV_EXCL_STOP
-    }
+void VectorHashFunction::computeHash(const ValueVector& operand,
+    const SelectionVector& operandSelectVec, ValueVector& result,
+    const SelectionVector& resultSelectVec) {
+    result.state = operand.state;
+    KU_ASSERT(result.dataType.getLogicalTypeID() == LogicalType::HASH()->getLogicalTypeID());
+    TypeUtils::visit(
+        operand.dataType.getPhysicalType(),
+        [&]<HashableNonNestedTypes T>(T) {
+            UnaryHashFunctionExecutor::execute<T, hash_t>(operand, operandSelectVec, result,
+                resultSelectVec);
+        },
+        [&](struct_entry_t) {
+            computeStructVecHash(operand, operandSelectVec, result, resultSelectVec);
+        },
+        [&](list_entry_t) {
+            computeListVectorHash(operand, operandSelectVec, result, resultSelectVec);
+        },
+        [&operand](auto) {
+            // LCOV_EXCL_START
+            throw RuntimeException("Cannot hash data type " + operand.dataType.toString());
+            // LCOV_EXCL_STOP
+        });
 }
 
-void VectorHashFunction::combineHash(ValueVector* left, ValueVector* right, ValueVector* result) {
-    KU_ASSERT(left->dataType.getLogicalTypeID() == LogicalTypeID::INT64);
-    KU_ASSERT(left->dataType.getLogicalTypeID() == right->dataType.getLogicalTypeID());
-    KU_ASSERT(left->dataType.getLogicalTypeID() == result->dataType.getLogicalTypeID());
-    // TODO(Xiyang/Guodong): we should resolve result state of hash vector at compile time.
-    result->state = !right->state->isFlat() ? right->state : left->state;
-    BinaryFunctionExecutor::execute<hash_t, hash_t, hash_t, CombineHash>(*left, *right, *result);
+void VectorHashFunction::combineHash(const ValueVector& left, const SelectionVector& leftSelVec,
+    const ValueVector& right, const SelectionVector& rightSelVec, ValueVector& result,
+    const SelectionVector& resultSelVec) {
+    KU_ASSERT(left.dataType.getLogicalTypeID() == LogicalType::HASH()->getLogicalTypeID());
+    KU_ASSERT(left.dataType.getLogicalTypeID() == right.dataType.getLogicalTypeID());
+    KU_ASSERT(left.dataType.getLogicalTypeID() == result.dataType.getLogicalTypeID());
+    BinaryHashFunctionExecutor::execute<hash_t, hash_t, hash_t, CombineHash>(left, leftSelVec,
+        right, rightSelVec, result, resultSelVec);
 }
 
 static void HashExecFunc(const std::vector<std::shared_ptr<common::ValueVector>>& params,
     common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
     KU_ASSERT(params.size() == 1);
-    VectorHashFunction::computeHash(params[0].get(), &result);
+    // TODO(Ziyi): evaluators should resolve the state for result vector.
+    result.state = params[0]->state;
+    VectorHashFunction::computeHash(*params[0], params[0]->state->getSelVectorUnsafe(), result,
+        result.state->getSelVectorUnsafe());
 }
 
 function_set HashFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::INT64, HashExecFunc));
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::UINT64, HashExecFunc));
     return functionSet;
 }
 

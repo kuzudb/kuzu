@@ -77,7 +77,7 @@ void PathPropertyProbe::probe(kuzu::processor::JoinHashTable* hashTable, uint64_
     // Hash
     for (auto i = 0u; i < sizeToProbe; ++i) {
         function::Hash::operation(idVector->getValue<internalID_t>(sizeProbed + i),
-            localState->hashes[i], nullptr /* keyVector */);
+            localState->hashes[i]);
     }
     // Probe hash
     for (auto i = 0u; i < sizeToProbe; ++i) {

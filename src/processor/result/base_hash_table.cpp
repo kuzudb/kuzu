@@ -31,12 +31,18 @@ void BaseHashTable::computeAndCombineVecHash(const std::vector<ValueVector*>& un
     for (; startVecIdx < unFlatKeyVectors.size(); startVecIdx++) {
         auto keyVector = unFlatKeyVectors[startVecIdx];
         auto tmpHashResultVector =
-            std::make_unique<ValueVector>(LogicalTypeID::INT64, &memoryManager);
+            std::make_unique<ValueVector>(*LogicalType::HASH(), &memoryManager);
         auto tmpHashCombineResultVector =
-            std::make_unique<ValueVector>(LogicalTypeID::INT64, &memoryManager);
-        VectorHashFunction::computeHash(keyVector, tmpHashResultVector.get());
-        VectorHashFunction::combineHash(hashVector.get(), tmpHashResultVector.get(),
-            tmpHashCombineResultVector.get());
+            std::make_unique<ValueVector>(*LogicalType::HASH(), &memoryManager);
+        tmpHashResultVector->state = keyVector->state;
+        tmpHashCombineResultVector->state = keyVector->state;
+        VectorHashFunction::computeHash(*keyVector, keyVector->state->getSelVector(),
+            *tmpHashResultVector, tmpHashResultVector->state->getSelVector());
+        tmpHashCombineResultVector->state =
+            !tmpHashResultVector->state->isFlat() ? tmpHashResultVector->state : hashVector->state;
+        VectorHashFunction::combineHash(*hashVector, hashVector->state->getSelVector(),
+            *tmpHashResultVector, tmpHashResultVector->state->getSelVector(),
+            *tmpHashCombineResultVector, tmpHashCombineResultVector->state->getSelVector());
         hashVector = std::move(tmpHashCombineResultVector);
     }
 }
@@ -44,11 +50,17 @@ void BaseHashTable::computeAndCombineVecHash(const std::vector<ValueVector*>& un
 void BaseHashTable::computeVectorHashes(const std::vector<ValueVector*>& flatKeyVectors,
     const std::vector<ValueVector*>& unFlatKeyVectors) {
     if (!flatKeyVectors.empty()) {
-        VectorHashFunction::computeHash(flatKeyVectors[0], hashVector.get());
+        hashVector->state = flatKeyVectors[0]->state;
+        VectorHashFunction::computeHash(*flatKeyVectors[0],
+            flatKeyVectors[0]->state->getSelVector(), *hashVector.get(),
+            hashVector->state->getSelVector());
         computeAndCombineVecHash(flatKeyVectors, 1 /* startVecIdx */);
         computeAndCombineVecHash(unFlatKeyVectors, 0 /* startVecIdx */);
     } else {
-        VectorHashFunction::computeHash(unFlatKeyVectors[0], hashVector.get());
+        hashVector->state = unFlatKeyVectors[0]->state;
+        VectorHashFunction::computeHash(*unFlatKeyVectors[0],
+            unFlatKeyVectors[0]->state->getSelVector(), *hashVector.get(),
+            hashVector->state->getSelVector());
         computeAndCombineVecHash(unFlatKeyVectors, 1 /* startVecIdx */);
     }
 }
@@ -152,6 +164,33 @@ void BaseHashTable::initSlotConstant(uint64_t numSlotsPerBlock_) {
     numSlotsPerBlockLog2 = std::log2(numSlotsPerBlock);
     slotIdxInBlockMask =
         common::BitmaskUtils::all1sMaskForLeastSignificantBits(numSlotsPerBlockLog2);
+}
+
+// ! This function will only be used by distinct aggregate and hashJoin, which assumes that all
+// keyVectors are flat.
+bool BaseHashTable::matchFlatVecWithEntry(const std::vector<common::ValueVector*>& keyVectors,
+    const uint8_t* entry) {
+    for (auto i = 0u; i < keyVectors.size(); i++) {
+        auto keyVector = keyVectors[i];
+        KU_ASSERT(keyVector->state->isFlat());
+        KU_ASSERT(keyVector->state->getSelVector().getSelSize() == 1);
+        auto pos = keyVector->state->getSelVector()[0];
+        auto isKeyVectorNull = keyVector->isNull(pos);
+        auto isEntryKeyNull = factorizedTable->isNonOverflowColNull(
+            entry + factorizedTable->getTableSchema()->getNullMapOffset(), i);
+        // If either key or entry is null, we shouldn't compare the value of keyVector and
+        // entry.
+        if (isKeyVectorNull && isEntryKeyNull) {
+            continue;
+        } else if (isKeyVectorNull != isEntryKeyNull) {
+            return false;
+        }
+        if (!compareEntryFuncs[i](keyVector, pos,
+                entry + factorizedTable->getTableSchema()->getColOffset(i))) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void BaseHashTable::initCompareFuncs() {

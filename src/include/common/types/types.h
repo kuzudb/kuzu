@@ -109,10 +109,17 @@ concept IndexHashable =
         std::is_same_v<T, std::string_view> || std::same_as<T, std::string>);
 
 template<typename T>
-concept HashableTypes = (std::integral<T> || std::floating_point<T> ||
-                         std::is_same_v<T, common::int128_t> || std::is_same_v<T, struct_entry_t> ||
-                         std::is_same_v<T, list_entry_t> || std::is_same_v<T, internalID_t> ||
-                         std::is_same_v<T, interval_t> || std::is_same_v<T, ku_string_t>);
+concept HashableNonNestedTypes =
+    (std::integral<T> || std::floating_point<T> || std::is_same_v<T, common::int128_t> ||
+        std::is_same_v<T, internalID_t> || std::is_same_v<T, interval_t> ||
+        std::is_same_v<T, ku_string_t>);
+
+template<typename T>
+concept HashableNestedTypes =
+    (std::is_same_v<T, list_entry_t> || std::is_same_v<T, struct_entry_t>);
+
+template<typename T>
+concept HashableTypes = (HashableNestedTypes<T> || HashableNonNestedTypes<T>);
 
 enum class LogicalTypeID : uint8_t {
     ANY = 0,
@@ -241,7 +248,7 @@ public:
         return std::make_unique<LogicalType>(LogicalTypeID::BOOL);
     }
     static std::unique_ptr<LogicalType> HASH() {
-        return std::make_unique<LogicalType>(LogicalTypeID::INT64);
+        return std::make_unique<LogicalType>(LogicalTypeID::UINT64);
     }
     static std::unique_ptr<LogicalType> INT64() {
         return std::make_unique<LogicalType>(LogicalTypeID::INT64);

@@ -18,6 +18,8 @@ public:
         setToUnfiltered();
     }
 
+    SelectionVector() : SelectionVector{DEFAULT_VECTOR_CAPACITY} {}
+
     bool isUnfiltered() const { return selectedPositions == (sel_t*)&INCREMENTAL_SELECTED_POS; }
 
     void setToUnfiltered() { selectedPositions = (sel_t*)&INCREMENTAL_SELECTED_POS; }

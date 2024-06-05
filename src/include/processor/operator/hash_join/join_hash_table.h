@@ -23,8 +23,9 @@ public:
     void allocateHashSlots(uint64_t numTuples);
     void buildHashSlots();
 
-    void probe(const std::vector<common::ValueVector*>& keyVectors, common::ValueVector* hashVector,
-        common::ValueVector* tmpHashVector, uint8_t** probedTuples);
+    void probe(const std::vector<common::ValueVector*>& keyVectors, common::ValueVector& hashVector,
+        common::SelectionVector& hashSelVec, common::ValueVector& tmpHashResultVector,
+        uint8_t** probedTuples);
     // All key vectors must be flat. Thus input is a tuple, multiple matches can be found for the
     // given key tuple.
     common::sel_t matchFlatKeys(const std::vector<common::ValueVector*>& keyVectors,
@@ -54,8 +55,6 @@ private:
     uint8_t** findHashSlot(const uint8_t* tuple) const;
     // This function returns the pointer that previously stored in the same slot.
     uint8_t* insertEntry(uint8_t* tuple) const;
-
-    bool compareFlatKeys(const std::vector<common::ValueVector*>& keyVectors, const uint8_t* tuple);
 
     // Join hash table assumes all keys to be flat.
     void computeVectorHashes(std::vector<common::ValueVector*> keyVectors);
