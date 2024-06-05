@@ -15,13 +15,13 @@ public:
     void initChunkState(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, ChunkState& chunkState) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        ColumnChunk* columnChunk, common::offset_t startOffset = 0,
+        ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector) override;
 
-    void append(ColumnChunk* columnChunk, ChunkState& state) override;
+    void append(ColumnChunkData* columnChunk, ChunkState& state) override;
 
     void checkpointInMemory() override;
     void rollbackInMemory() override;
@@ -33,7 +33,7 @@ public:
     }
     void write(ChunkState& state, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
-    void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunk* data,
+    void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunkData* data,
         common::offset_t dataOffset, common::length_t numValues) override;
 
     void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
@@ -41,7 +41,7 @@ public:
         const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
         const offset_set_t& deleteInfo) override;
     void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
-        const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
+        const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
         common::offset_t startSrcOffset) override;
 
 protected:

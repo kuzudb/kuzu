@@ -24,13 +24,13 @@ public:
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        ColumnChunk* columnChunk, common::offset_t startOffset = 0,
+        ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
 
     void lookup(transaction::Transaction* transaction, ChunkState& readState,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
-    void append(ColumnChunk* columnChunk, ChunkState& state) override;
+    void append(ColumnChunkData* columnChunk, ChunkState& state) override;
 
     bool isNull(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t offsetInChunk);
@@ -38,7 +38,7 @@ public:
 
     void write(ChunkState& state, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
-    void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunk* data,
+    void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunkData* data,
         common::offset_t dataOffset, common::length_t numValues) override;
 
     void commitLocalChunkInPlace(ChunkState& state, const ChunkCollection& localInsertChunk,
@@ -46,8 +46,8 @@ public:
         const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) override;
 
 private:
-    std::unique_ptr<ColumnChunk> getEmptyChunkForCommit(uint64_t capacity) override {
-        return ColumnChunkFactory::createNullColumnChunk(enableCompression, capacity);
+    std::unique_ptr<ColumnChunkData> getEmptyChunkForCommit(uint64_t capacity) override {
+        return ColumnChunkFactory::createNullChunkData(enableCompression, capacity);
     }
 };
 

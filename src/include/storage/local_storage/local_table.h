@@ -17,7 +17,7 @@ using offset_set_t = std::unordered_set<common::offset_t>;
 static constexpr common::column_id_t NBR_ID_COLUMN_ID = 0;
 static constexpr common::column_id_t REL_ID_COLUMN_ID = 1;
 
-using ChunkCollection = std::vector<ColumnChunk*>;
+using ChunkCollection = std::vector<ColumnChunkData*>;
 
 class LocalChunkedGroupCollection {
 public:
@@ -51,7 +51,7 @@ public:
     }
     const offset_to_row_idx_t& getOffsetToRowIdx() const { return offsetToRowIdx; }
 
-    void appendChunkedGroup(ColumnChunk* srcOffsetChunk,
+    void appendChunkedGroup(ColumnChunkData* srcOffsetChunk,
         std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
 
     bool isEmpty() const { return offsetToRowIdx.empty() && srcNodeOffsetToRelOffsets.empty(); }

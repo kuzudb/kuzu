@@ -92,7 +92,7 @@ void RelBatchInsert::mergeNodeGroup(transaction::Transaction* transaction,
         auto& offsetChunk = chunkedGroup->getColumnChunkUnsafe(relInfo.offsetColumnID);
         numRels += chunkedGroup->getNumRows();
         setOffsetToWithinNodeGroup(offsetChunk, startNodeOffset);
-        std::vector<std::unique_ptr<ColumnChunk>> chunksToAppend;
+        std::vector<std::unique_ptr<ColumnChunkData>> chunksToAppend;
         for (auto i = 0u; i < chunkedGroup->getNumColumns(); i++) {
             if (i == relInfo.offsetColumnID) {
                 // Skip the offset vector.
@@ -155,7 +155,7 @@ std::vector<offset_t> RelBatchInsert::populateStartCSROffsetsAndLengths(ChunkedC
     return gaps;
 }
 
-void RelBatchInsert::setOffsetToWithinNodeGroup(ColumnChunk& chunk, offset_t startOffset) {
+void RelBatchInsert::setOffsetToWithinNodeGroup(ColumnChunkData& chunk, offset_t startOffset) {
     KU_ASSERT(chunk.getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     auto offsets = (offset_t*)chunk.getData();
     for (auto i = 0u; i < chunk.getNumValues(); i++) {
@@ -163,8 +163,8 @@ void RelBatchInsert::setOffsetToWithinNodeGroup(ColumnChunk& chunk, offset_t sta
     }
 }
 
-void RelBatchInsert::setOffsetFromCSROffsets(ColumnChunk& nodeOffsetChunk,
-    ColumnChunk& csrOffsetChunk) {
+void RelBatchInsert::setOffsetFromCSROffsets(ColumnChunkData& nodeOffsetChunk,
+    ColumnChunkData& csrOffsetChunk) {
     KU_ASSERT(nodeOffsetChunk.getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     for (auto i = 0u; i < nodeOffsetChunk.getNumValues(); i++) {
         auto nodeOffset = nodeOffsetChunk.getValue<offset_t>(i);

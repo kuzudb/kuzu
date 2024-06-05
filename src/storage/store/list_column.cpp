@@ -114,21 +114,21 @@ void ListColumn::scan(Transaction* transaction, const ChunkState& state,
 }
 
 void ListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    ColumnChunk* columnChunk, offset_t startOffset, offset_t endOffset) {
+    ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
     if (nodeGroupIdx >= metadataDA->getNumElements(transaction->getType())) {
         columnChunk->setNumValues(0);
     } else {
         Column::scan(transaction, nodeGroupIdx, columnChunk, startOffset, endOffset);
-        auto listColumnChunk = ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(columnChunk);
-        auto sizeColumnChunk = listColumnChunk->getSizeColumnChunk();
+        auto& listColumnChunk = columnChunk->cast<ListChunkData>();
+        auto sizeColumnChunk = listColumnChunk.getSizeColumnChunk();
         // TODO: Should use readState here too.
         sizeColumn->scan(transaction, nodeGroupIdx, sizeColumnChunk, startOffset, endOffset);
-        auto resizeNumValues = listColumnChunk->getDataColumnChunk()->getNumValues();
+        auto resizeNumValues = listColumnChunk.getDataColumnChunk()->getNumValues();
         bool isOffsetSortedAscending = true;
-        offset_t prevOffset = listColumnChunk->getListStartOffset(0);
+        offset_t prevOffset = listColumnChunk.getListStartOffset(0);
         for (auto i = 0u; i < columnChunk->getNumValues(); i++) {
-            auto currentEndOffset = listColumnChunk->getListEndOffset(i);
-            auto appendSize = listColumnChunk->getListSize(i);
+            auto currentEndOffset = listColumnChunk.getListEndOffset(i);
+            auto appendSize = listColumnChunk.getListSize(i);
             prevOffset += appendSize;
             if (currentEndOffset != prevOffset) {
                 isOffsetSortedAscending = false;
@@ -136,24 +136,24 @@ void ListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
             resizeNumValues += appendSize;
         }
         if (isOffsetSortedAscending) {
-            listColumnChunk->resizeDataColumnChunk(std::bit_ceil(resizeNumValues));
-            offset_t startListOffset = listColumnChunk->getListStartOffset(0);
+            listColumnChunk.resizeDataColumnChunk(std::bit_ceil(resizeNumValues));
+            offset_t startListOffset = listColumnChunk.getListStartOffset(0);
             offset_t endListOffset =
-                listColumnChunk->getListStartOffset(columnChunk->getNumValues());
+                listColumnChunk.getListStartOffset(columnChunk->getNumValues());
             // TODO: Should use readState here too.
-            dataColumn->scan(transaction, nodeGroupIdx, listColumnChunk->getDataColumnChunk(),
+            dataColumn->scan(transaction, nodeGroupIdx, listColumnChunk.getDataColumnChunk(),
                 startListOffset, endListOffset);
-            listColumnChunk->resetOffset();
+            listColumnChunk.resetOffset();
         } else {
-            listColumnChunk->resizeDataColumnChunk(std::bit_ceil(resizeNumValues));
+            listColumnChunk.resizeDataColumnChunk(std::bit_ceil(resizeNumValues));
             auto tmpDataColumnChunk =
-                std::make_unique<ListDataColumnChunk>(ColumnChunkFactory::createColumnChunk(
+                std::make_unique<ListDataColumnChunk>(ColumnChunkFactory::createColumnChunkData(
                     *ListType::getChildType(this->dataType).copy(), enableCompression,
                     std::bit_ceil(resizeNumValues)));
-            auto dataListColumnChunk = listColumnChunk->getDataColumnChunk();
+            auto dataListColumnChunk = listColumnChunk.getDataColumnChunk();
             for (auto i = 0u; i < columnChunk->getNumValues(); i++) {
-                offset_t startListOffset = listColumnChunk->getListStartOffset(i);
-                offset_t endListOffset = listColumnChunk->getListEndOffset(i);
+                offset_t startListOffset = listColumnChunk.getListStartOffset(i);
+                offset_t endListOffset = listColumnChunk.getListEndOffset(i);
                 // TODO: Should use readState here too.
                 dataColumn->scan(transaction, nodeGroupIdx,
                     tmpDataColumnChunk->dataColumnChunk.get(), startListOffset, endListOffset);
@@ -162,7 +162,7 @@ void ListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
                 dataListColumnChunk->append(tmpDataColumnChunk->dataColumnChunk.get(), 0,
                     tmpDataColumnChunk->dataColumnChunk->getNumValues());
             }
-            listColumnChunk->resetOffset();
+            listColumnChunk.resetOffset();
         }
     }
 }
@@ -197,13 +197,13 @@ void ListColumn::lookupValue(Transaction* transaction, ChunkState& readState, of
         listStartOffset, listEndOffset, dataVector, offsetInVector);
 }
 
-void ListColumn::append(ColumnChunk* columnChunk, ChunkState& state) {
+void ListColumn::append(ColumnChunkData* columnChunk, ChunkState& state) {
     KU_ASSERT(columnChunk->getDataType().getPhysicalType() == dataType.getPhysicalType());
-    auto listColumnChunk = ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(columnChunk);
-    Column::append(listColumnChunk, state);
-    auto sizeColumnChunk = listColumnChunk->getSizeColumnChunk();
+    auto& listColumnChunk = columnChunk->cast<ListChunkData>();
+    Column::append(&listColumnChunk, state);
+    auto sizeColumnChunk = listColumnChunk.getSizeColumnChunk();
     sizeColumn->append(sizeColumnChunk, state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX]);
-    auto dataColumnChunk = listColumnChunk->getDataColumnChunk();
+    auto dataColumnChunk = listColumnChunk.getDataColumnChunk();
     dataColumn->append(dataColumnChunk, state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
 }
 
@@ -306,9 +306,9 @@ list_size_t ListColumn::readSize(Transaction* transaction, const ChunkState& rea
 ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
     node_group_idx_t nodeGroupIdx, offset_t startOffsetInNodeGroup, offset_t endOffsetInNodeGroup) {
     auto numOffsetsToRead = endOffsetInNodeGroup - startOffsetInNodeGroup;
-    auto offsetColumnChunk = ColumnChunkFactory::createColumnChunk(*common::LogicalType::INT64(),
+    auto offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(*LogicalType::INT64(),
         enableCompression, numOffsetsToRead);
-    auto sizeColumnChunk = ColumnChunkFactory::createColumnChunk(*common::LogicalType::UINT32(),
+    auto sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(*LogicalType::UINT32(),
         enableCompression, numOffsetsToRead);
     // TODO: Should use readState here too.
     Column::scan(transaction, nodeGroupIdx, offsetColumnChunk.get(), startOffsetInNodeGroup,
@@ -345,20 +345,20 @@ void ListColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkSt
 }
 
 void ListColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkState& state,
-    const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk, offset_t startSrcOffset) {
+    const std::vector<offset_t>& dstOffsets, ColumnChunkData* chunk, offset_t startSrcOffset) {
     // we first check if we can in place commit data column chunk
     // if we can not in place commit data column chunk, we will out place commit offset/size/data
     // column chunk otherwise, we commit data column chunk in place and separately commit
     // offset/size column chunk
-    auto listChunk = ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(chunk);
+    auto& listChunk = chunk->cast<ListChunkData>();
     auto dataColumnSize = state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX].metadata.numValues;
-    auto dataColumnChunk = listChunk->getDataColumnChunk();
+    auto dataColumnChunk = listChunk.getDataColumnChunk();
     auto numListsToAppend = std::min(chunk->getNumValues(), (uint64_t)dstOffsets.size());
     auto dataSize = 0u;
-    auto startListOffset = listChunk->getListStartOffset(startSrcOffset);
-    std::vector<common::offset_t> dstOffsetsInDataColumn;
+    auto startListOffset = listChunk.getListStartOffset(startSrcOffset);
+    std::vector<offset_t> dstOffsetsInDataColumn;
     for (auto i = 0u; i < numListsToAppend; i++) {
-        for (auto j = 0u; j < listChunk->getListSize(startSrcOffset + i); j++) {
+        for (auto j = 0u; j < listChunk.getListSize(startSrcOffset + i); j++) {
             dstOffsetsInDataColumn.push_back(dataColumnSize + dataSize++);
         }
     }
@@ -375,9 +375,9 @@ void ListColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkSt
             dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
         sizeColumn->prepareCommitForExistingChunk(transaction,
             state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX], dstOffsets,
-            listChunk->getSizeColumnChunk(), startSrcOffset);
+            listChunk.getSizeColumnChunk(), startSrcOffset);
         for (auto i = 0u; i < numListsToAppend; i++) {
-            auto listEndOffset = listChunk->getListEndOffset(startSrcOffset + i);
+            auto listEndOffset = listChunk.getListEndOffset(startSrcOffset + i);
             chunk->setValue<offset_t>(dataColumnSize + listEndOffset, startSrcOffset + i);
         }
         prepareCommitForOffsetChunk(transaction, state, dstOffsets, chunk, startSrcOffset);
@@ -385,7 +385,7 @@ void ListColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkSt
 }
 
 void ListColumn::prepareCommitForOffsetChunk(Transaction* transaction, ChunkState& offsetState,
-    const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk, offset_t startSrcOffset) {
+    const std::vector<offset_t>& dstOffsets, ColumnChunkData* chunk, offset_t startSrcOffset) {
     metadataDA->prepareCommit();
     if (canCommitInPlace(offsetState, dstOffsets, chunk, startSrcOffset)) {
         Column::commitColumnChunkInPlace(offsetState, dstOffsets, chunk, startSrcOffset);
@@ -401,21 +401,21 @@ void ListColumn::prepareCommitForOffsetChunk(Transaction* transaction, ChunkStat
 }
 
 void ListColumn::commitOffsetColumnChunkOutOfPlace(Transaction* transaction,
-    ChunkState& offsetState, const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk,
+    ChunkState& offsetState, const std::vector<offset_t>& dstOffsets, ColumnChunkData* chunk,
     offset_t startSrcOffset) {
-    auto listChunk = ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(chunk);
-    auto offsetColumnChunk = ColumnChunkFactory::createColumnChunk(*dataType.copy(),
+    auto& listChunk = chunk->cast<ListChunkData>();
+    auto offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(*dataType.copy(),
         enableCompression, 1.5 * std::bit_ceil(offsetState.metadata.numValues + dstOffsets.size()));
     Column::scan(transaction, offsetState.nodeGroupIdx, offsetColumnChunk.get());
     auto numListsToAppend = std::min(chunk->getNumValues(), (uint64_t)dstOffsets.size());
     for (auto i = 0u; i < numListsToAppend; i++) {
-        auto listEndOffset = listChunk->getListEndOffset(startSrcOffset + i);
-        auto isNull = listChunk->getNullChunk()->isNull(startSrcOffset + i);
+        auto listEndOffset = listChunk.getListEndOffset(startSrcOffset + i);
+        auto isNull = listChunk.getNullChunk()->isNull(startSrcOffset + i);
         offsetColumnChunk->setValue<offset_t>(listEndOffset, dstOffsets[i]);
         offsetColumnChunk->getNullChunk()->setNull(dstOffsets[i], isNull);
     }
-    auto offsetListChunk = ku_dynamic_cast<ColumnChunk*, ListColumnChunk*>(offsetColumnChunk.get());
-    offsetListChunk->getSizeColumnChunk()->setNumValues(offsetColumnChunk->getNumValues());
+    auto& offsetListChunk = offsetColumnChunk->cast<ListChunkData>();
+    offsetListChunk.getSizeColumnChunk()->setNumValues(offsetColumnChunk->getNumValues());
     Column::append(offsetColumnChunk.get(), offsetState);
 }
 

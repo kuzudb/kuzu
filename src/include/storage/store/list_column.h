@@ -26,11 +26,12 @@ namespace storage {
 
 struct ListOffsetSizeInfo {
     common::offset_t numTotal;
-    std::unique_ptr<ColumnChunk> offsetColumnChunk;
-    std::unique_ptr<ColumnChunk> sizeColumnChunk;
+    std::unique_ptr<ColumnChunkData> offsetColumnChunk;
+    std::unique_ptr<ColumnChunkData> sizeColumnChunk;
 
-    ListOffsetSizeInfo(common::offset_t numTotal, std::unique_ptr<ColumnChunk> offsetColumnChunk,
-        std::unique_ptr<ColumnChunk> sizeColumnChunk)
+    ListOffsetSizeInfo(common::offset_t numTotal,
+        std::unique_ptr<ColumnChunkData> offsetColumnChunk,
+        std::unique_ptr<ColumnChunkData> sizeColumnChunk)
         : numTotal{numTotal}, offsetColumnChunk{std::move(offsetColumnChunk)},
           sizeColumnChunk{std::move(sizeColumnChunk)} {}
 
@@ -42,8 +43,6 @@ struct ListOffsetSizeInfo {
 };
 
 class ListColumn final : public Column {
-    friend class ListLocalColumn;
-
     static constexpr common::idx_t SIZE_COLUMN_CHILD_READ_STATE_IDX = 0;
     static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 1;
 
@@ -60,7 +59,7 @@ public:
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector = 0) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        ColumnChunk* columnChunk, common::offset_t startOffset = 0,
+        ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
 
     Column* getDataColumn() const { return dataColumn.get(); }
@@ -74,7 +73,7 @@ protected:
         common::offset_t nodeOffset, common::ValueVector* resultVector,
         uint32_t posInVector) override;
 
-    void append(ColumnChunk* columnChunk, ChunkState& state) override;
+    void append(ColumnChunkData* columnChunk, ChunkState& state) override;
 
 private:
     void scanUnfiltered(transaction::Transaction* transaction, const ChunkState& state,
@@ -101,15 +100,15 @@ private:
         const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
         const offset_set_t& deleteInfo) override;
     void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
-        const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
+        const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
         common::offset_t startSrcOffset) override;
 
     void prepareCommitForOffsetChunk(transaction::Transaction* transaction, ChunkState& offsetState,
-        const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
+        const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
         common::offset_t startSrcOffset);
     void commitOffsetColumnChunkOutOfPlace(transaction::Transaction* transaction,
         ChunkState& offsetState, const std::vector<common::offset_t>& dstOffsets,
-        ColumnChunk* chunk, common::offset_t startSrcOffset);
+        ColumnChunkData* chunk, common::offset_t startSrcOffset);
 
 private:
     std::unique_ptr<Column> sizeColumn;
