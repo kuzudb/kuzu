@@ -38,21 +38,22 @@ public:
 
     // Warning: Below public functions are for tests only
     std::unordered_set<uint64_t>& getActiveReadOnlyTransactionIDs() {
-        std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
+        std::unique_lock lck{mtxForSerializingPublicFunctionCalls};
         return activeReadOnlyTransactionIDs;
     }
     common::transaction_t getActiveWriteTransactionID() {
-        std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
+        std::unique_lock lck{mtxForSerializingPublicFunctionCalls};
         KU_ASSERT(activeWriteTransactionID.size() == 1);
         return *activeWriteTransactionID.begin();
     }
     bool hasActiveWriteTransactionID() {
-        std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
+        std::unique_lock lck{mtxForSerializingPublicFunctionCalls};
         return !activeWriteTransactionID.empty();
     }
 
 private:
-    bool canCheckpointNoLock();
+    bool canAutoCheckpoint(const main::ClientContext& clientContext) const;
+    bool canCheckpointNoLock() const;
     void checkpointNoLock(main::ClientContext& clientContext);
     // This functions locks the mutex to start new transactions. This lock needs to be manually
     // unlocked later by calling allowReceivingNewTransactions() by the thread that called
@@ -61,7 +62,7 @@ private:
     void allowReceivingNewTransactions();
 
     bool hasActiveWriteTransactionNoLock() const { return !activeWriteTransactionID.empty(); }
-    void clearActiveWriteTransactionIfWriteTransactionNoLock(Transaction* transaction);
+    void clearActiveWriteTransactionIfWriteTransactionNoLock(const Transaction* transaction);
 
     // Note: Used by DBTest::createDB only.
     void setCheckPointWaitTimeoutForTransactionsToLeaveInMicros(uint64_t waitTimeInMicros) {

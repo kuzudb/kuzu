@@ -8,10 +8,10 @@ namespace kuzu {
 namespace processor {
 
 bool DirectionInfo::needFlip(RelDataDirection relDataDirection) const {
-    if (extendFromSource && relDataDirection == common::RelDataDirection::BWD) {
+    if (extendFromSource && relDataDirection == RelDataDirection::BWD) {
         return true;
     }
-    if (!extendFromSource && relDataDirection == common::RelDataDirection::FWD) {
+    if (!extendFromSource && relDataDirection == RelDataDirection::FWD) {
         return true;
     }
     return false;
@@ -19,13 +19,13 @@ bool DirectionInfo::needFlip(RelDataDirection relDataDirection) const {
 
 bool RelTableCollectionScanner::scan(const SelectionVector& selVector, Transaction* transaction) {
     while (true) {
-        auto& scanState = *relInfos[currentTableIdx].localScanState;
-        auto skipScan =
+        const auto& relInfo = relInfos[currentTableIdx];
+        auto& scanState = *relInfo.localScanState;
+        const auto skipScan =
             transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;
-        if (!skipScan && scanState.hasMoreToRead(transaction)) {
-            relInfos[currentTableIdx].table->scan(transaction, scanState);
+        if (!skipScan && scanState.source != TableScanSource::NONE &&
+            relInfo.table->scan(transaction, scanState)) {
             if (directionVector != nullptr) {
-                KU_ASSERT(selVector.isUnfiltered());
                 for (auto i = 0u; i < selVector.getSelSize(); ++i) {
                     directionVector->setValue<bool>(i, directionValues[currentTableIdx]);
                 }
@@ -51,6 +51,13 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
         for (auto& relInfo : scanner.relInfos) {
             relInfo.initScanState();
             initVectors(*relInfo.localScanState, *resultSet);
+            // TODO(Guodong/Xiyang): Temp solution here. Should be moved to `info`.
+            boundNodeIDVector = resultSet->getValueVector(relInfo.boundNodeIDPos).get();
+            auto& scanState = relInfo.localScanState->cast<RelTableScanState>();
+            scanState.boundNodeIDVector = resultSet->getValueVector(relInfo.boundNodeIDPos).get();
+            scanState.localRelTable =
+                context->clientContext->getTx()->getLocalStorage()->getLocalTable(
+                    relInfo.table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL);
             if (directionInfo.directionPos.isValid()) {
                 scanner.directionVector =
                     resultSet->getValueVector(directionInfo.directionPos).get();
@@ -72,12 +79,12 @@ bool ScanMultiRelTable::getNextTuplesInternal(ExecutionContext* context) {
             resetState();
             return false;
         }
-        const auto currentIdx = nodeIDVector->state->getSelVector()[0];
-        if (nodeIDVector->isNull(currentIdx)) {
+        const auto currentIdx = IDVector->state->getSelVector()[0];
+        if (boundNodeIDVector->isNull(currentIdx)) {
             outState->getSelVectorUnsafe().setSelSize(0);
             continue;
         }
-        auto nodeID = nodeIDVector->getValue<nodeID_t>(currentIdx);
+        auto nodeID = boundNodeIDVector->getValue<nodeID_t>(currentIdx);
         initCurrentScanner(nodeID);
     }
 }

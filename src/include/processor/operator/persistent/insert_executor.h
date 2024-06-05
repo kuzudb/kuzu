@@ -34,7 +34,7 @@ private:
 
     bool checkConflict(transaction::Transaction* transaction);
 
-    void writeResult();
+    void writeResult() const;
 
 private:
     // Node table to insert.
@@ -54,11 +54,11 @@ private:
 
 class RelInsertExecutor {
 public:
-    RelInsertExecutor(storage::RelsStoreStats* relsStatistics, storage::RelTable* table,
-        const DataPos& srcNodePos, const DataPos& dstNodePos, std::vector<DataPos> columnVectorsPos,
+    RelInsertExecutor(storage::RelTable* table, const DataPos& srcNodePos,
+        const DataPos& dstNodePos, std::vector<DataPos> columnVectorsPos,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnDataEvaluators)
-        : relsStatistics{relsStatistics}, table{table}, srcNodePos{srcNodePos},
-          dstNodePos{dstNodePos}, columnVectorsPos{std::move(columnVectorsPos)},
+        : table{table}, srcNodePos{srcNodePos}, dstNodePos{dstNodePos},
+          columnVectorsPos{std::move(columnVectorsPos)},
           columnDataEvaluators{std::move(columnDataEvaluators)}, srcNodeIDVector{nullptr},
           dstNodeIDVector{nullptr} {}
     EXPLICIT_COPY_DEFAULT_MOVE(RelInsertExecutor);
@@ -68,15 +68,14 @@ public:
     void insert(transaction::Transaction* transaction);
 
     // See comment in NodeInsertExecutor.
-    void skipInsert();
+    void skipInsert() const;
 
 private:
     RelInsertExecutor(const RelInsertExecutor& other);
 
-    void writeResult();
+    void writeResult() const;
 
 private:
-    storage::RelsStoreStats* relsStatistics;
     storage::RelTable* table;
     DataPos srcNodePos;
     DataPos dstNodePos;
