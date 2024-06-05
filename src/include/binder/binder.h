@@ -93,7 +93,7 @@ private:
     BoundCreateTableInfo bindCreateRelTableGroupInfo(const parser::CreateTableInfo* info);
     BoundCreateTableInfo bindCreateRdfGraphInfo(const parser::CreateTableInfo* info);
     std::unique_ptr<BoundStatement> bindCreateTable(const parser::Statement& statement);
-
+    std::unique_ptr<BoundStatement> bindCreateType(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateSequence(const parser::Statement& statement);
 
     std::unique_ptr<BoundStatement> bindDropTable(const parser::Statement& statement);

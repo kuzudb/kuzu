@@ -586,7 +586,7 @@ std::string LogicalType::toString() const {
     }
 }
 
-static LogicalTypeID strToLogicalTypeID(const std::string& trimmedStr);
+static bool tryGetIDFromString(const std::string& trimmedStr, LogicalTypeID& id);
 static std::vector<std::string> parseStructFields(const std::string& structTypeStr);
 static std::unique_ptr<LogicalType> parseListType(const std::string& trimmedStr);
 static std::unique_ptr<LogicalType> parseArrayType(const std::string& trimmedStr);
@@ -596,31 +596,38 @@ static std::unique_ptr<LogicalType> parseMapType(const std::string& trimmedStr);
 static std::unique_ptr<LogicalType> parseUnionType(const std::string& trimmedStr);
 static std::unique_ptr<LogicalType> parseDecimalType(const std::string& trimmedStr);
 
-LogicalType LogicalType::fromString(const std::string& str) {
-    LogicalType dataType;
+bool LogicalType::tryConvertFromString(const std::string& str, LogicalType& type) {
     auto trimmedStr = StringUtils::ltrim(StringUtils::rtrim(str));
     auto upperDataTypeString = StringUtils::getUpper(trimmedStr);
     if (upperDataTypeString.ends_with("[]")) {
-        dataType = *parseListType(trimmedStr);
+        type = *parseListType(trimmedStr);
     } else if (upperDataTypeString.ends_with("]")) {
-        dataType = *parseArrayType(trimmedStr);
+        type = *parseArrayType(trimmedStr);
     } else if (upperDataTypeString.starts_with("STRUCT")) {
-        dataType = *parseStructType(trimmedStr);
+        type = *parseStructType(trimmedStr);
     } else if (upperDataTypeString.starts_with("MAP")) {
-        dataType = *parseMapType(trimmedStr);
+        type = *parseMapType(trimmedStr);
     } else if (upperDataTypeString.starts_with("UNION")) {
-        dataType = *parseUnionType(trimmedStr);
+        type = *parseUnionType(trimmedStr);
     } else if (upperDataTypeString.starts_with("DECIMAL") ||
                upperDataTypeString.starts_with("NUMERIC")) {
-        dataType = *parseDecimalType(trimmedStr);
+        type = *parseDecimalType(trimmedStr);
     } else if (upperDataTypeString == "RDF_VARIANT") {
-        dataType = *LogicalType::RDF_VARIANT();
+        type = *LogicalType::RDF_VARIANT();
+    } else if (tryGetIDFromString(upperDataTypeString, type.typeID)) {
+        type.physicalType = LogicalType::getPhysicalType(type.typeID, type.extraTypeInfo);
     } else {
-        dataType.typeID = strToLogicalTypeID(upperDataTypeString);
-        dataType.physicalType =
-            LogicalType::getPhysicalType(dataType.typeID, dataType.extraTypeInfo);
+        return false;
     }
-    return dataType;
+    return true;
+}
+
+LogicalType LogicalType::fromString(const std::string& str) {
+    LogicalType type;
+    if (!tryConvertFromString(str, type)) {
+        throw NotImplementedException(common::stringFormat("Cannot parse dataTypeID: {}", str));
+    }
+    return type;
 }
 
 void LogicalType::serialize(Serializer& serializer) const {
@@ -796,61 +803,62 @@ PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID,
     }
 }
 
-LogicalTypeID strToLogicalTypeID(const std::string& str) {
+bool tryGetIDFromString(const std::string& str, LogicalTypeID& id) {
     auto upperStr = StringUtils::getUpper(str);
     if ("INTERNAL_ID" == upperStr) {
-        return LogicalTypeID::INTERNAL_ID;
+        id = LogicalTypeID::INTERNAL_ID;
     } else if ("INT64" == upperStr) {
-        return LogicalTypeID::INT64;
+        id = LogicalTypeID::INT64;
     } else if ("INT32" == upperStr || "INT" == upperStr) {
-        return LogicalTypeID::INT32;
+        id = LogicalTypeID::INT32;
     } else if ("INT16" == upperStr) {
-        return LogicalTypeID::INT16;
+        id = LogicalTypeID::INT16;
     } else if ("INT8" == upperStr) {
-        return LogicalTypeID::INT8;
+        id = LogicalTypeID::INT8;
     } else if ("UINT64" == upperStr) {
-        return LogicalTypeID::UINT64;
+        id = LogicalTypeID::UINT64;
     } else if ("UINT32" == upperStr) {
-        return LogicalTypeID::UINT32;
+        id = LogicalTypeID::UINT32;
     } else if ("UINT16" == upperStr) {
-        return LogicalTypeID::UINT16;
+        id = LogicalTypeID::UINT16;
     } else if ("UINT8" == upperStr) {
-        return LogicalTypeID::UINT8;
+        id = LogicalTypeID::UINT8;
     } else if ("INT128" == upperStr) {
-        return LogicalTypeID::INT128;
+        id = LogicalTypeID::INT128;
     } else if ("DOUBLE" == upperStr || "FLOAT8" == upperStr) {
-        return LogicalTypeID::DOUBLE;
+        id = LogicalTypeID::DOUBLE;
     } else if ("FLOAT" == upperStr || "FLOAT4" == upperStr || "REAL" == upperStr) {
-        return LogicalTypeID::FLOAT;
+        id = LogicalTypeID::FLOAT;
     } else if ("DECIMAL" == upperStr || "NUMERIC" == upperStr) {
-        return LogicalTypeID::DECIMAL;
+        id = LogicalTypeID::DECIMAL;
     } else if ("BOOLEAN" == upperStr || "BOOL" == upperStr) {
-        return LogicalTypeID::BOOL;
+        id = LogicalTypeID::BOOL;
     } else if ("BYTEA" == upperStr || "BLOB" == upperStr) {
-        return LogicalTypeID::BLOB;
+        id = LogicalTypeID::BLOB;
     } else if ("UUID" == upperStr) {
-        return LogicalTypeID::UUID;
+        id = LogicalTypeID::UUID;
     } else if ("STRING" == upperStr) {
-        return LogicalTypeID::STRING;
+        id = LogicalTypeID::STRING;
     } else if ("DATE" == upperStr) {
-        return LogicalTypeID::DATE;
+        id = LogicalTypeID::DATE;
     } else if ("TIMESTAMP" == upperStr) {
-        return LogicalTypeID::TIMESTAMP;
+        id = LogicalTypeID::TIMESTAMP;
     } else if ("TIMESTAMP_NS" == upperStr) {
-        return LogicalTypeID::TIMESTAMP_NS;
+        id = LogicalTypeID::TIMESTAMP_NS;
     } else if ("TIMESTAMP_MS" == upperStr) {
-        return LogicalTypeID::TIMESTAMP_MS;
+        id = LogicalTypeID::TIMESTAMP_MS;
     } else if ("TIMESTAMP_SEC" == upperStr || "TIMESTAMP_S" == upperStr) {
-        return LogicalTypeID::TIMESTAMP_SEC;
+        id = LogicalTypeID::TIMESTAMP_SEC;
     } else if ("TIMESTAMP_TZ" == upperStr) {
-        return LogicalTypeID::TIMESTAMP_TZ;
+        id = LogicalTypeID::TIMESTAMP_TZ;
     } else if ("INTERVAL" == upperStr || "DURATION" == upperStr) {
-        return LogicalTypeID::INTERVAL;
+        id = LogicalTypeID::INTERVAL;
     } else if ("SERIAL" == upperStr) {
-        return LogicalTypeID::SERIAL;
+        id = LogicalTypeID::SERIAL;
     } else {
-        throw NotImplementedException("Cannot parse dataTypeID: " + str);
+        return false;
     }
+    return true;
 }
 
 std::string LogicalTypeUtils::toString(LogicalTypeID dataTypeID) {

@@ -786,7 +786,7 @@ Conversion exception: Unsupported casting LIST with incorrect list entry to ARRA
 Cannot parse dataTypeID:
 -STATEMENT RETURN cast("nop", "STRUCT(a=fds)");
 ---- error
-Cannot parse dataTypeID: A=FDS
+Cannot parse dataTypeID: a=fds
 -STATEMENT RETURN cast("nop", "STRUCT(a: )");
 ---- error
 Cannot parse dataTypeID:
@@ -798,11 +798,10 @@ Cannot parse dataTypeID:
 Cannot parse map type: MAP(
 -STATEMENT RETURN cast("nop", "UNION(a:STRING)");
 ---- error
-Cannot parse dataTypeID: A:STRING
+Cannot parse dataTypeID: a:STRING
 -STATEMENT RETURN cast("nop", "MAP(int)");
 ---- error
 Cannot parse dataTypeID:
 -STATEMENT RETURN cast("nop", "STRUCT(a: INT, b MAP(INT, STRING, INT))");
 ---- error
-Cannot parse dataTypeID: STRING, INT
-
+Cannot parse dataTypeID:  STRING, INT

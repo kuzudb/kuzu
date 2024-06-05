@@ -68,6 +68,11 @@ struct WALRecord {
 
     virtual void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<WALRecord> deserialize(common::Deserializer& deserializer);
+
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const WALRecord&, const TARGET&>(*this);
+    }
 };
 
 struct PageUpdateOrInsertRecord final : public WALRecord {

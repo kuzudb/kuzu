@@ -26,6 +26,7 @@ oC_Statement
         | kU_CreateRelTableGroup
         | kU_CreateRdfGraph
         | kU_CreateSequence
+        | kU_CreateType
         | kU_Drop
         | kU_AlterTable
         | kU_CopyFrom
@@ -160,6 +161,11 @@ kU_CreateSequence
     : CREATE SP SEQUENCE SP oC_SchemaName (SP kU_SequenceOptions)* ;
 
 SEQUENCE : ('S' | 's') ('E' | 'e') ('Q' | 'q') ('U' | 'u') ('E' | 'e') ('N' | 'n') ('C' | 'c') ('E' | 'e') ;
+
+kU_CreateType
+    : CREATE SP TYPE SP oC_SchemaName SP AS SP kU_DataType SP? ;
+
+TYPE : ('T' | 't') ('Y' | 'y') ('P' | 'p') ('E' | 'e') ;
 
 kU_SequenceOptions
     : kU_IncrementBy
@@ -841,6 +847,7 @@ kU_NonReservedKeywords
         | CYCLE
         | DECIMAL
         | CONTAINS
+        | TYPE
         ;
 
 UnescapedSymbolicName

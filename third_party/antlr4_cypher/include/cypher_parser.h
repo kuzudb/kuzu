@@ -22,25 +22,26 @@ public:
     T__44 = 45, ATTACH = 46, DBTYPE = 47, USE = 48, CALL = 49, COMMENT_ = 50, 
     MACRO = 51, GLOB = 52, COPY = 53, FROM = 54, COLUMN = 55, EXPORT = 56, 
     IMPORT = 57, DATABASE = 58, NODE = 59, TABLE = 60, GROUP = 61, RDFGRAPH = 62, 
-    SEQUENCE = 63, INCREMENT = 64, MINVALUE = 65, MAXVALUE = 66, START = 67, 
-    NO = 68, CYCLE = 69, DROP = 70, ALTER = 71, DEFAULT = 72, RENAME = 73, 
-    ADD = 74, PRIMARY = 75, KEY = 76, REL = 77, TO = 78, DECIMAL = 79, EXPLAIN = 80, 
-    PROFILE = 81, BEGIN = 82, TRANSACTION = 83, READ = 84, ONLY = 85, WRITE = 86, 
-    COMMIT = 87, COMMIT_SKIP_CHECKPOINT = 88, ROLLBACK = 89, ROLLBACK_SKIP_CHECKPOINT = 90, 
-    INSTALL = 91, EXTENSION = 92, UNION = 93, ALL = 94, LOAD = 95, HEADERS = 96, 
-    OPTIONAL = 97, MATCH = 98, UNWIND = 99, CREATE = 100, MERGE = 101, ON = 102, 
-    SET = 103, DETACH = 104, DELETE = 105, WITH = 106, RETURN = 107, DISTINCT = 108, 
-    STAR = 109, AS = 110, ORDER = 111, BY = 112, L_SKIP = 113, LIMIT = 114, 
-    ASCENDING = 115, ASC = 116, DESCENDING = 117, DESC = 118, WHERE = 119, 
-    SHORTEST = 120, OR = 121, XOR = 122, AND = 123, NOT = 124, INVALID_NOT_EQUAL = 125, 
-    MINUS = 126, FACTORIAL = 127, COLON = 128, IN = 129, STARTS = 130, ENDS = 131, 
-    CONTAINS = 132, IS = 133, NULL_ = 134, TRUE = 135, FALSE = 136, COUNT = 137, 
-    EXISTS = 138, CASE = 139, ELSE = 140, END = 141, WHEN = 142, THEN = 143, 
-    StringLiteral = 144, EscapedChar = 145, DecimalInteger = 146, HexLetter = 147, 
-    HexDigit = 148, Digit = 149, NonZeroDigit = 150, NonZeroOctDigit = 151, 
-    ZeroDigit = 152, RegularDecimalReal = 153, UnescapedSymbolicName = 154, 
-    IdentifierStart = 155, IdentifierPart = 156, EscapedSymbolicName = 157, 
-    SP = 158, WHITESPACE = 159, Comment = 160, Unknown = 161
+    SEQUENCE = 63, TYPE = 64, INCREMENT = 65, MINVALUE = 66, MAXVALUE = 67, 
+    START = 68, NO = 69, CYCLE = 70, DROP = 71, ALTER = 72, DEFAULT = 73, 
+    RENAME = 74, ADD = 75, PRIMARY = 76, KEY = 77, REL = 78, TO = 79, DECIMAL = 80, 
+    EXPLAIN = 81, PROFILE = 82, BEGIN = 83, TRANSACTION = 84, READ = 85, 
+    ONLY = 86, WRITE = 87, COMMIT = 88, COMMIT_SKIP_CHECKPOINT = 89, ROLLBACK = 90, 
+    ROLLBACK_SKIP_CHECKPOINT = 91, INSTALL = 92, EXTENSION = 93, UNION = 94, 
+    ALL = 95, LOAD = 96, HEADERS = 97, OPTIONAL = 98, MATCH = 99, UNWIND = 100, 
+    CREATE = 101, MERGE = 102, ON = 103, SET = 104, DETACH = 105, DELETE = 106, 
+    WITH = 107, RETURN = 108, DISTINCT = 109, STAR = 110, AS = 111, ORDER = 112, 
+    BY = 113, L_SKIP = 114, LIMIT = 115, ASCENDING = 116, ASC = 117, DESCENDING = 118, 
+    DESC = 119, WHERE = 120, SHORTEST = 121, OR = 122, XOR = 123, AND = 124, 
+    NOT = 125, INVALID_NOT_EQUAL = 126, MINUS = 127, FACTORIAL = 128, COLON = 129, 
+    IN = 130, STARTS = 131, ENDS = 132, CONTAINS = 133, IS = 134, NULL_ = 135, 
+    TRUE = 136, FALSE = 137, COUNT = 138, EXISTS = 139, CASE = 140, ELSE = 141, 
+    END = 142, WHEN = 143, THEN = 144, StringLiteral = 145, EscapedChar = 146, 
+    DecimalInteger = 147, HexLetter = 148, HexDigit = 149, Digit = 150, 
+    NonZeroDigit = 151, NonZeroOctDigit = 152, ZeroDigit = 153, RegularDecimalReal = 154, 
+    UnescapedSymbolicName = 155, IdentifierStart = 156, IdentifierPart = 157, 
+    EscapedSymbolicName = 158, SP = 159, WHITESPACE = 160, Comment = 161, 
+    Unknown = 162
   };
 
   enum {
@@ -53,51 +54,52 @@ public:
     RuleKU_DefaultArg = 19, RuleKU_FilePaths = 20, RuleKU_ParsingOptions = 21, 
     RuleKU_CreateNodeTable = 22, RuleKU_CreateRelTable = 23, RuleKU_CreateRelTableGroup = 24, 
     RuleKU_RelTableConnection = 25, RuleKU_CreateRdfGraph = 26, RuleKU_CreateSequence = 27, 
-    RuleKU_SequenceOptions = 28, RuleKU_IncrementBy = 29, RuleKU_MinValue = 30, 
-    RuleKU_MaxValue = 31, RuleKU_StartWith = 32, RuleKU_Cycle = 33, RuleKU_Drop = 34, 
-    RuleKU_AlterTable = 35, RuleKU_AlterOptions = 36, RuleKU_AddProperty = 37, 
-    RuleKU_DropProperty = 38, RuleKU_RenameTable = 39, RuleKU_RenameProperty = 40, 
-    RuleKU_PropertyDefinitions = 41, RuleKU_PropertyDefinition = 42, RuleKU_PropertyDefinitionsDDL = 43, 
-    RuleKU_PropertyDefinitionDDL = 44, RuleKU_CreateNodeConstraint = 45, 
-    RuleKU_DataType = 46, RuleKU_ListIdentifiers = 47, RuleKU_ListIdentifier = 48, 
-    RuleOC_AnyCypherOption = 49, RuleOC_Explain = 50, RuleOC_Profile = 51, 
-    RuleKU_Transaction = 52, RuleKU_Extension = 53, RuleKU_LoadExtension = 54, 
-    RuleKU_InstallExtension = 55, RuleOC_Query = 56, RuleOC_RegularQuery = 57, 
-    RuleOC_Union = 58, RuleOC_SingleQuery = 59, RuleOC_SinglePartQuery = 60, 
-    RuleOC_MultiPartQuery = 61, RuleKU_QueryPart = 62, RuleOC_UpdatingClause = 63, 
-    RuleOC_ReadingClause = 64, RuleKU_LoadFrom = 65, RuleKU_InQueryCall = 66, 
-    RuleOC_Match = 67, RuleOC_Unwind = 68, RuleOC_Create = 69, RuleOC_Merge = 70, 
-    RuleOC_MergeAction = 71, RuleOC_Set = 72, RuleOC_SetItem = 73, RuleOC_Delete = 74, 
-    RuleOC_With = 75, RuleOC_Return = 76, RuleOC_ProjectionBody = 77, RuleOC_ProjectionItems = 78, 
-    RuleOC_ProjectionItem = 79, RuleOC_Order = 80, RuleOC_Skip = 81, RuleOC_Limit = 82, 
-    RuleOC_SortItem = 83, RuleOC_Where = 84, RuleOC_Pattern = 85, RuleOC_PatternPart = 86, 
-    RuleOC_AnonymousPatternPart = 87, RuleOC_PatternElement = 88, RuleOC_NodePattern = 89, 
-    RuleOC_PatternElementChain = 90, RuleOC_RelationshipPattern = 91, RuleOC_RelationshipDetail = 92, 
-    RuleKU_Properties = 93, RuleOC_RelationshipTypes = 94, RuleOC_NodeLabels = 95, 
-    RuleOC_NodeLabel = 96, RuleOC_RangeLiteral = 97, RuleKU_RecursiveRelationshipComprehension = 98, 
-    RuleKU_IntermediateNodeProjectionItems = 99, RuleKU_IntermediateRelProjectionItems = 100, 
-    RuleOC_LowerBound = 101, RuleOC_UpperBound = 102, RuleOC_LabelName = 103, 
-    RuleOC_RelTypeName = 104, RuleOC_Expression = 105, RuleOC_OrExpression = 106, 
-    RuleOC_XorExpression = 107, RuleOC_AndExpression = 108, RuleOC_NotExpression = 109, 
-    RuleOC_ComparisonExpression = 110, RuleKU_ComparisonOperator = 111, 
-    RuleKU_BitwiseOrOperatorExpression = 112, RuleKU_BitwiseAndOperatorExpression = 113, 
-    RuleKU_BitShiftOperatorExpression = 114, RuleKU_BitShiftOperator = 115, 
-    RuleOC_AddOrSubtractExpression = 116, RuleKU_AddOrSubtractOperator = 117, 
-    RuleOC_MultiplyDivideModuloExpression = 118, RuleKU_MultiplyDivideModuloOperator = 119, 
-    RuleOC_PowerOfExpression = 120, RuleOC_UnaryAddSubtractOrFactorialExpression = 121, 
-    RuleOC_StringListNullOperatorExpression = 122, RuleOC_ListOperatorExpression = 123, 
-    RuleOC_StringOperatorExpression = 124, RuleOC_RegularExpression = 125, 
-    RuleOC_NullOperatorExpression = 126, RuleOC_PropertyOrLabelsExpression = 127, 
-    RuleOC_Atom = 128, RuleOC_Literal = 129, RuleOC_BooleanLiteral = 130, 
-    RuleOC_ListLiteral = 131, RuleKU_ListEntry = 132, RuleKU_StructLiteral = 133, 
-    RuleKU_StructField = 134, RuleOC_ParenthesizedExpression = 135, RuleOC_FunctionInvocation = 136, 
-    RuleOC_FunctionName = 137, RuleKU_FunctionParameter = 138, RuleOC_PathPatterns = 139, 
-    RuleOC_ExistSubquery = 140, RuleKU_CountSubquery = 141, RuleOC_PropertyLookup = 142, 
-    RuleOC_CaseExpression = 143, RuleOC_CaseAlternative = 144, RuleOC_Variable = 145, 
-    RuleOC_NumberLiteral = 146, RuleOC_Parameter = 147, RuleOC_PropertyExpression = 148, 
-    RuleOC_PropertyKeyName = 149, RuleOC_IntegerLiteral = 150, RuleOC_DoubleLiteral = 151, 
-    RuleOC_SchemaName = 152, RuleOC_SymbolicName = 153, RuleKU_NonReservedKeywords = 154, 
-    RuleOC_LeftArrowHead = 155, RuleOC_RightArrowHead = 156, RuleOC_Dash = 157
+    RuleKU_CreateType = 28, RuleKU_SequenceOptions = 29, RuleKU_IncrementBy = 30, 
+    RuleKU_MinValue = 31, RuleKU_MaxValue = 32, RuleKU_StartWith = 33, RuleKU_Cycle = 34, 
+    RuleKU_Drop = 35, RuleKU_AlterTable = 36, RuleKU_AlterOptions = 37, 
+    RuleKU_AddProperty = 38, RuleKU_DropProperty = 39, RuleKU_RenameTable = 40, 
+    RuleKU_RenameProperty = 41, RuleKU_PropertyDefinitions = 42, RuleKU_PropertyDefinition = 43, 
+    RuleKU_PropertyDefinitionsDDL = 44, RuleKU_PropertyDefinitionDDL = 45, 
+    RuleKU_CreateNodeConstraint = 46, RuleKU_DataType = 47, RuleKU_ListIdentifiers = 48, 
+    RuleKU_ListIdentifier = 49, RuleOC_AnyCypherOption = 50, RuleOC_Explain = 51, 
+    RuleOC_Profile = 52, RuleKU_Transaction = 53, RuleKU_Extension = 54, 
+    RuleKU_LoadExtension = 55, RuleKU_InstallExtension = 56, RuleOC_Query = 57, 
+    RuleOC_RegularQuery = 58, RuleOC_Union = 59, RuleOC_SingleQuery = 60, 
+    RuleOC_SinglePartQuery = 61, RuleOC_MultiPartQuery = 62, RuleKU_QueryPart = 63, 
+    RuleOC_UpdatingClause = 64, RuleOC_ReadingClause = 65, RuleKU_LoadFrom = 66, 
+    RuleKU_InQueryCall = 67, RuleOC_Match = 68, RuleOC_Unwind = 69, RuleOC_Create = 70, 
+    RuleOC_Merge = 71, RuleOC_MergeAction = 72, RuleOC_Set = 73, RuleOC_SetItem = 74, 
+    RuleOC_Delete = 75, RuleOC_With = 76, RuleOC_Return = 77, RuleOC_ProjectionBody = 78, 
+    RuleOC_ProjectionItems = 79, RuleOC_ProjectionItem = 80, RuleOC_Order = 81, 
+    RuleOC_Skip = 82, RuleOC_Limit = 83, RuleOC_SortItem = 84, RuleOC_Where = 85, 
+    RuleOC_Pattern = 86, RuleOC_PatternPart = 87, RuleOC_AnonymousPatternPart = 88, 
+    RuleOC_PatternElement = 89, RuleOC_NodePattern = 90, RuleOC_PatternElementChain = 91, 
+    RuleOC_RelationshipPattern = 92, RuleOC_RelationshipDetail = 93, RuleKU_Properties = 94, 
+    RuleOC_RelationshipTypes = 95, RuleOC_NodeLabels = 96, RuleOC_NodeLabel = 97, 
+    RuleOC_RangeLiteral = 98, RuleKU_RecursiveRelationshipComprehension = 99, 
+    RuleKU_IntermediateNodeProjectionItems = 100, RuleKU_IntermediateRelProjectionItems = 101, 
+    RuleOC_LowerBound = 102, RuleOC_UpperBound = 103, RuleOC_LabelName = 104, 
+    RuleOC_RelTypeName = 105, RuleOC_Expression = 106, RuleOC_OrExpression = 107, 
+    RuleOC_XorExpression = 108, RuleOC_AndExpression = 109, RuleOC_NotExpression = 110, 
+    RuleOC_ComparisonExpression = 111, RuleKU_ComparisonOperator = 112, 
+    RuleKU_BitwiseOrOperatorExpression = 113, RuleKU_BitwiseAndOperatorExpression = 114, 
+    RuleKU_BitShiftOperatorExpression = 115, RuleKU_BitShiftOperator = 116, 
+    RuleOC_AddOrSubtractExpression = 117, RuleKU_AddOrSubtractOperator = 118, 
+    RuleOC_MultiplyDivideModuloExpression = 119, RuleKU_MultiplyDivideModuloOperator = 120, 
+    RuleOC_PowerOfExpression = 121, RuleOC_UnaryAddSubtractOrFactorialExpression = 122, 
+    RuleOC_StringListNullOperatorExpression = 123, RuleOC_ListOperatorExpression = 124, 
+    RuleOC_StringOperatorExpression = 125, RuleOC_RegularExpression = 126, 
+    RuleOC_NullOperatorExpression = 127, RuleOC_PropertyOrLabelsExpression = 128, 
+    RuleOC_Atom = 129, RuleOC_Literal = 130, RuleOC_BooleanLiteral = 131, 
+    RuleOC_ListLiteral = 132, RuleKU_ListEntry = 133, RuleKU_StructLiteral = 134, 
+    RuleKU_StructField = 135, RuleOC_ParenthesizedExpression = 136, RuleOC_FunctionInvocation = 137, 
+    RuleOC_FunctionName = 138, RuleKU_FunctionParameter = 139, RuleOC_PathPatterns = 140, 
+    RuleOC_ExistSubquery = 141, RuleKU_CountSubquery = 142, RuleOC_PropertyLookup = 143, 
+    RuleOC_CaseExpression = 144, RuleOC_CaseAlternative = 145, RuleOC_Variable = 146, 
+    RuleOC_NumberLiteral = 147, RuleOC_Parameter = 148, RuleOC_PropertyExpression = 149, 
+    RuleOC_PropertyKeyName = 150, RuleOC_IntegerLiteral = 151, RuleOC_DoubleLiteral = 152, 
+    RuleOC_SchemaName = 153, RuleOC_SymbolicName = 154, RuleKU_NonReservedKeywords = 155, 
+    RuleOC_LeftArrowHead = 156, RuleOC_RightArrowHead = 157, RuleOC_Dash = 158
   };
 
   explicit CypherParser(antlr4::TokenStream *input);
@@ -145,6 +147,7 @@ public:
   class KU_RelTableConnectionContext;
   class KU_CreateRdfGraphContext;
   class KU_CreateSequenceContext;
+  class KU_CreateTypeContext;
   class KU_SequenceOptionsContext;
   class KU_IncrementByContext;
   class KU_MinValueContext;
@@ -315,6 +318,7 @@ public:
     KU_CreateRelTableGroupContext *kU_CreateRelTableGroup();
     KU_CreateRdfGraphContext *kU_CreateRdfGraph();
     KU_CreateSequenceContext *kU_CreateSequence();
+    KU_CreateTypeContext *kU_CreateType();
     KU_DropContext *kU_Drop();
     KU_AlterTableContext *kU_AlterTable();
     KU_CopyFromContext *kU_CopyFrom();
@@ -739,6 +743,23 @@ public:
   };
 
   KU_CreateSequenceContext* kU_CreateSequence();
+
+  class  KU_CreateTypeContext : public antlr4::ParserRuleContext {
+  public:
+    KU_CreateTypeContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *CREATE();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+    antlr4::tree::TerminalNode *TYPE();
+    OC_SchemaNameContext *oC_SchemaName();
+    antlr4::tree::TerminalNode *AS();
+    KU_DataTypeContext *kU_DataType();
+
+   
+  };
+
+  KU_CreateTypeContext* kU_CreateType();
 
   class  KU_SequenceOptionsContext : public antlr4::ParserRuleContext {
   public:
@@ -2583,6 +2604,7 @@ public:
     antlr4::tree::TerminalNode *CYCLE();
     antlr4::tree::TerminalNode *DECIMAL();
     antlr4::tree::TerminalNode *CONTAINS();
+    antlr4::tree::TerminalNode *TYPE();
 
    
   };

@@ -86,6 +86,12 @@ public:
         const binder::BoundCreateSequenceInfo& info);
     void dropSequence(transaction::Transaction* tx, common::sequence_id_t sequenceID);
 
+    // ----------------------------- Types ----------------------------
+    void createType(transaction::Transaction* transaction, std::string name,
+        common::LogicalType type);
+    common::LogicalType getType(transaction::Transaction*, std::string name);
+    bool containsType(transaction::Transaction* transaction, const std::string& typeName);
+
     // ----------------------------- Functions ----------------------------
     void addFunction(transaction::Transaction* tx, CatalogEntryType entryType, std::string name,
         function::function_set functionSet);
@@ -177,6 +183,7 @@ protected:
 private:
     std::unique_ptr<CatalogSet> sequences;
     std::unique_ptr<CatalogSet> functions;
+    std::unique_ptr<CatalogSet> types;
 };
 
 } // namespace catalog

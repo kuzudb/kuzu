@@ -2,6 +2,7 @@
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_sequence.h"
 #include "parser/ddl/create_table.h"
+#include "parser/ddl/create_type.h"
 #include "parser/ddl/drop.h"
 #include "parser/expression/parsed_literal_expression.h"
 #include "parser/transformer.h"
@@ -146,6 +147,13 @@ std::unique_ptr<Statement> Transformer::transformCreateSequence(
     return std::make_unique<CreateSequence>(std::move(createSequenceInfo));
 }
 
+std::unique_ptr<Statement> Transformer::transformCreateType(
+    CypherParser::KU_CreateTypeContext& ctx) {
+    auto name = transformSchemaName(*ctx.oC_SchemaName());
+    auto type = transformDataType(*ctx.kU_DataType());
+    return std::make_unique<CreateType>(name, type);
+}
+
 std::unique_ptr<Statement> Transformer::transformDrop(CypherParser::KU_DropContext& ctx) {
     auto name = transformSchemaName(*ctx.oC_SchemaName());
     if (ctx.SEQUENCE()) {
@@ -223,8 +231,12 @@ std::vector<PropertyDefinitionDDL> Transformer::transformPropertyDefinitionsDDL(
         if (property->oC_Expression()) {
             defaultValue = transformExpression(*property->oC_Expression());
         } else {
+            LogicalType type;
+            if (!LogicalType::tryConvertFromString(dataType, type)) {
+                type = *LogicalType::ANY();
+            }
             defaultValue = std::make_unique<ParsedLiteralExpression>(
-                Value::createNullValue(LogicalType::fromString(dataType)), "NULL");
+                Value::createNullValue(std::move(type)), "NULL");
         }
         propertyDefns.emplace_back(transformPropertyKeyName(*property->oC_PropertyKeyName()),
             std::move(dataType), std::move(defaultValue));

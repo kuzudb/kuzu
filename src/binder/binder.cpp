@@ -29,6 +29,9 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::CREATE_TABLE: {
         boundStatement = bindCreateTable(statement);
     } break;
+    case StatementType::CREATE_TYPE: {
+        boundStatement = bindCreateType(statement);
+    } break;
     case StatementType::CREATE_SEQUENCE: {
         boundStatement = bindCreateSequence(statement);
     } break;

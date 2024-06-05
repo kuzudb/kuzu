@@ -133,6 +133,12 @@ void UndoBuffer::commitEntry(const uint8_t* entry, transaction_t commitTS) {
             wal.logCreateSequenceRecord(newCatalogEntry);
         }
     } break;
+    case CatalogEntryType::TYPE_ENTRY: {
+        if (catalogEntry->getType() == CatalogEntryType::DUMMY_ENTRY) {
+            KU_ASSERT(catalogEntry->isDeleted());
+            wal.logCreateTypeRecord(newCatalogEntry);
+        }
+    } break;
     case CatalogEntryType::DUMMY_ENTRY: {
         KU_ASSERT(newCatalogEntry->isDeleted());
         switch (catalogEntry->getType()) {

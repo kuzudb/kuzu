@@ -23,6 +23,9 @@ void StatementVisitor::visit(const Statement& statement) {
     case StatementType::CREATE_TABLE: {
         visitCreateTable(statement);
     } break;
+    case StatementType::CREATE_TYPE: {
+        visitCreateType(statement);
+    } break;
     case StatementType::DROP_TABLE: {
         visitDropTable(statement);
     } break;

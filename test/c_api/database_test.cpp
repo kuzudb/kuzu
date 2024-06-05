@@ -84,3 +84,14 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database_destroy(&database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
+
+TEST_F(APIEmptyDBTest, CreationInvalidPath1) {
+    createDBAndConn();
+    conn->query("CREATE TYPE many_things AS STRUCT(k int64, l string);");
+    printf("%s", conn->query("CREATE NODE TABLE PERSON1 (ID INT64, a many_things, primary key(ID))")
+                     ->toString()
+                     .c_str());
+    printf("%s",
+        conn->query("create (p:person1 {ID: 6,a: {'k': 5, l: 'aa'}})")->toString().c_str());
+    printf("%s", conn->query("match (p:person1) return *;")->toString().c_str());
+}

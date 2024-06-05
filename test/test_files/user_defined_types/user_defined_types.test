@@ -1,0 +1,55 @@
+-DATASET CSV empty
+
+--
+
+-CASE UDT
+
+-LOG UDT
+-STATEMENT CREATE TYPE DESCRIPTION AS STRUCT(age int64, name string);
+---- ok
+-STATEMENT CREATE NODE TABLE person (id INT64, description DESCRIPTION, primary key(id));
+---- ok
+-STATEMENT CREATE (:person {id: 5, description: {age: 5, name: 'Alice'}});
+---- ok
+-STATEMENT CREATE (:person {id: 8, description: {age: 3, name: 'Bob'}});
+---- ok
+-STATEMENT CREATE (:person {id: 12, description: {age: 1, name: 'Dan'}});
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.*;
+---- 3
+12|{age: 1, name: Dan}
+5|{age: 5, name: Alice}
+8|{age: 3, name: Bob}
+-STATEMENT CREATE TYPE timeinfo AS STRUCT(meetDate date, length interval);
+---- ok
+-STATEMENT CREATE REL TABLE knows (FROM person TO person, info timeinfo);
+---- ok
+-STATEMENT MATCH (p:person {id: 5}), (p1:person {id: 8}) CREATE (p)-[:knows {info: {meetDate: date('2020-05-03'), length: interval('3 years 2 hours')}}]->(p1)
+---- ok
+-STATEMENT MATCH (p:person {id: 12}), (p1:person {id: 8}) CREATE (p)-[:knows {info: {meetDate: date('2011-11-12'), length: interval('3 days 2 minutes')}}]->(p1)
+---- ok
+-STATEMENT MATCH (p:person {id: 8}), (p1:person {id: 5}) CREATE (p)-[:knows {info: {meetDate: date('1988-02-21'), length: interval('3 hours')}}]->(p1)
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person) return p.description, p1.description, e.info
+---- 3
+{age: 1, name: Dan}|{age: 3, name: Bob}|{meetDate: 2011-11-12, length: 3 days 00:02:00}
+{age: 3, name: Bob}|{age: 5, name: Alice}|{meetDate: 1988-02-21, length: 03:00:00}
+{age: 5, name: Alice}|{age: 3, name: Bob}|{meetDate: 2020-05-03, length: 3 years 02:00:00}
+-STATEMENT CALL TABLE_INFO('person') RETURN *;
+---- 2
+0|id|INT64|True
+1|description|STRUCT(age INT64, name STRING)|False
+-STATEMENT CALL TABLE_INFO('knows') RETURN *;
+---- 1
+1|info|STRUCT(meetDate DATE, length INTERVAL)
+
+-CASE InvalidUserDefinedType
+-LOG InvalidUserDefinedTypeErr
+-STATEMENT CREATE TYPE DESCRIPTION AS STRING;
+---- error
+Binder exception: User defined type must be a struct.
+-STATEMENT CREATE TYPE DESCRIPTION AS STRUCT(age int64, name string);
+---- ok
+-STATEMENT CREATE TYPE DESCRIPTION AS STRUCT(age int64, name string);
+---- error
+Binder exception: Duplicated type name: DESCRIPTION.
