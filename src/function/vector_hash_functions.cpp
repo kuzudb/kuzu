@@ -90,7 +90,7 @@ void BinaryHashFunctionExecutor::execute(const common::ValueVector& left,
     const common::SelectionVector& resultSelVec) {
     validateSelState(leftSelVec, rightSelVec, resultSelVec);
     result.resetAuxiliaryBuffer();
-    if (leftSelVec.getSelSize() > 1 && rightSelVec.getSelSize() > 1) {
+    if (leftSelVec.getSelSize() != 1 && rightSelVec.getSelSize() != 1) {
         for (auto i = 0u; i < leftSelVec.getSelSize(); i++) {
             auto leftPos = leftSelVec[i];
             auto rightPos = rightSelVec[i];
@@ -98,15 +98,21 @@ void BinaryHashFunctionExecutor::execute(const common::ValueVector& left,
             executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(left, leftPos, right, rightPos,
                 result, resultPos);
         }
+    } else if (leftSelVec.getSelSize() == 1) {
+        auto leftPos = leftSelVec[0];
+        for (auto i = 0u; i < rightSelVec.getSelSize(); i++) {
+            auto rightPos = rightSelVec[i];
+            auto resultPos = resultSelVec[i];
+            executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(left, leftPos, right, rightPos,
+                result, resultPos);
+        }
     } else {
+        auto rightPos = rightSelVec[0];
         for (auto i = 0u; i < leftSelVec.getSelSize(); i++) {
-            for (auto j = 0u; j < rightSelVec.getSelSize(); j++) {
-                auto leftPos = leftSelVec[i];
-                auto rightPos = rightSelVec[j];
-                auto resultPos = resultSelVec[leftSelVec.getSelSize() == 1 ? j : i];
-                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(left, leftPos, right,
-                    rightPos, result, resultPos);
-            }
+            auto leftPos = leftSelVec[i];
+            auto resultPos = resultSelVec[i];
+            executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(left, leftPos, right, rightPos,
+                result, resultPos);
         }
     }
 }
