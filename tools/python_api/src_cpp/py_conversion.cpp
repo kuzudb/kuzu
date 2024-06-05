@@ -1,7 +1,9 @@
 #include "py_conversion.h"
 
 #include "cached_import/py_cached_import.h"
+#include "common/exception/not_implemented.h"
 #include "common/type_utils.h"
+#include "common/types/uuid.h"
 
 namespace kuzu {
 
@@ -13,6 +15,7 @@ PythonObjectType getPythonObjectType(py::handle& ele) {
     auto pyDateTime = importCache->datetime.datetime();
     auto pandasNat = importCache->pandas.NaT();
     auto pyDate = importCache->datetime.date();
+    auto uuid = importCache->uuid.UUID();
     if (ele.is_none() || ele.is(pandasNa) || ele.is(pandasNat)) {
         return PythonObjectType::None;
     } else if (py::isinstance<py::bool_>(ele)) {
@@ -29,8 +32,11 @@ PythonObjectType getPythonObjectType(py::handle& ele) {
         return PythonObjectType::String;
     } else if (py::isinstance<py::list>(ele)) {
         return PythonObjectType::List;
+    } else if (py::isinstance(ele, uuid)) {
+        return PythonObjectType::UUID;
     } else {
-        KU_UNREACHABLE;
+        throw NotImplementedException(stringFormat("Scanning of type {} has not been implemented",
+            py::str(py::type::of(ele)).cast<std::string>()));
     }
 }
 
@@ -104,6 +110,12 @@ void transformPythonValue(common::ValueVector* outputVector, uint64_t pos, py::h
     } break;
     case PythonObjectType::List: {
         transformListValue(outputVector, pos, ele);
+    } break;
+    case PythonObjectType::UUID: {
+        outputVector->setNull(pos, false /* isNull */);
+        int128_t result;
+        UUID::fromString(ele.attr("hex").cast<std::string>(), result);
+        outputVector->setValue(pos, result);
     } break;
     default:
         KU_UNREACHABLE;

@@ -72,6 +72,8 @@ common::LogicalType PandasAnalyzer::getItemType(py::object ele, bool& canConvert
         return *common::LogicalType::STRING();
     case PythonObjectType::List:
         return *common::LogicalType::LIST(getListType(ele, canConvert));
+    case PythonObjectType::UUID:
+        return *common::LogicalType::UUID();
     default:
         KU_UNREACHABLE;
     }

@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
+from uuid import UUID
 
 try:
     from zoneinfo import ZoneInfo
@@ -40,6 +41,7 @@ def validate_scan_pandas_results(results: kuzu.QueryResult) -> None:
         ["Alice", None],
         datetime.date(1996, 2, 15),
         "12331",
+        UUID('d5a8ed71-6fc4-4cb3-acbc-2f5b73fd14bc'),
     ]
     assert results.get_next() == [
         False,
@@ -66,6 +68,7 @@ def validate_scan_pandas_results(results: kuzu.QueryResult) -> None:
         [],
         datetime.date(2013, 2, 22),
         "test string",
+        UUID('9a2fc988-5c5d-4217-af9e-220aef5ce7b8'),
     ]
     assert results.get_next() == [
         None,
@@ -92,6 +95,7 @@ def validate_scan_pandas_results(results: kuzu.QueryResult) -> None:
         None,
         datetime.date(2055, 1, 14),
         "5.623",
+        UUID('166055ee-a481-4e67-a4fc-98682d3a3e20'),
     ]
     assert results.get_next() == [
         False,
@@ -118,6 +122,7 @@ def validate_scan_pandas_results(results: kuzu.QueryResult) -> None:
         ["Dan, Ella", "George"],
         datetime.date(2018, 3, 17),
         None,
+        UUID('d5a8ed71-6fc4-4cb3-acbc-2f5b73fd14bc'),
     ]
 
 
@@ -189,6 +194,10 @@ def test_scan_pandas(tmp_path: Path) -> None:
             dtype=object,
         ),
         "mixed_type": np.array([12331, "test string", 5.623, None], dtype="object"),
+        "uuid_type": [UUID('d5a8ed71-6fc4-4cb3-acbc-2f5b73fd14bc'),
+            UUID('9a2fc988-5c5d-4217-af9e-220aef5ce7b8'),
+            UUID('166055ee-a481-4e67-a4fc-98682d3a3e20'),
+            UUID('d5a8ed71-6fc4-4cb3-acbc-2f5b73fd14bc')]
     }
     df = pd.DataFrame(data)
     df["datetime_microseconds_tz"] = df["datetime_microseconds_tz"].dt.tz_localize("US/Eastern")

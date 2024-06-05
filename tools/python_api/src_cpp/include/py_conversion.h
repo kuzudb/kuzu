@@ -19,6 +19,7 @@ enum class PythonObjectType : uint8_t {
     Date,
     String,
     List,
+    UUID,
 };
 
 PythonObjectType getPythonObjectType(py::handle& ele);
