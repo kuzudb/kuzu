@@ -208,7 +208,7 @@ public:
     // Nothing to do; constant compressed data is only updated if the update is to the same value
     void setValuesFromUncompressed(const uint8_t*, common::offset_t, uint8_t*, common::offset_t,
         common::offset_t, const CompressionMetadata&,
-        const common::NullMask* /*nullMask*/) const override{};
+        const common::NullMask* /*nullMask*/) const override {};
 
     CompressionType getCompressionType() const override { return CompressionType::CONSTANT; }
 
