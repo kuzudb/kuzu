@@ -242,11 +242,11 @@ void QueryGraphCollection::finalize() {
 std::vector<QueryGraph> QueryGraphCollection::mergeGraphs(common::idx_t baseGraphIdx) {
     KU_ASSERT(baseGraphIdx < queryGraphs.size());
     auto baseGraph = std::move(queryGraphs[baseGraphIdx]);
-    std::unordered_set<common::vector_idx_t> mergedGraphIndices;
+    std::unordered_set<common::idx_t> mergedGraphIndices;
     mergedGraphIndices.insert(baseGraphIdx);
     while (true) {
         // find graph to merge
-        common::vector_idx_t graphToMergeIdx = common::INVALID_VECTOR_IDX;
+        common::idx_t graphToMergeIdx = common::INVALID_IDX;
         for (auto i = 0u; i < queryGraphs.size(); ++i) {
             if (mergedGraphIndices.contains(i)) { // graph has been merged.
                 continue;
@@ -256,7 +256,7 @@ std::vector<QueryGraph> QueryGraphCollection::mergeGraphs(common::idx_t baseGrap
                 break;
             }
         }
-        if (graphToMergeIdx == common::INVALID_VECTOR_IDX) { // No graph can be merged. Terminate.
+        if (graphToMergeIdx == common::INVALID_IDX) { // No graph can be merged. Terminate.
             break;
         }
         // Perform merge

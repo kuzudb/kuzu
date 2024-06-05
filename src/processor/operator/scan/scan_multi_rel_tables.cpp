@@ -19,9 +19,11 @@ bool DirectionInfo::needFlip(RelDataDirection relDataDirection) const {
 
 bool RelTableCollectionScanner::scan(const SelectionVector& selVector, Transaction* transaction) {
     while (true) {
-        if (readStates[currentTableIdx]->hasMoreToRead(transaction)) {
-            const auto scanInfo = scanInfos[currentTableIdx].get();
-            scanInfo->table->scan(transaction, *readStates[currentTableIdx]);
+        auto& scanState = *relInfos[currentTableIdx].localScanState;
+        auto skipScan =
+            transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;
+        if (!skipScan && scanState.hasMoreToRead(transaction)) {
+            relInfos[currentTableIdx].table->scan(transaction, scanState);
             if (directionVector != nullptr) {
                 KU_ASSERT(selVector.isUnfiltered());
                 for (auto i = 0u; i < selVector.getSelSize(); ++i) {
@@ -33,38 +35,26 @@ bool RelTableCollectionScanner::scan(const SelectionVector& selVector, Transacti
             }
         } else {
             currentTableIdx = nextTableIdx;
-            if (currentTableIdx == readStates.size()) {
+            if (currentTableIdx == relInfos.size()) {
                 return false;
             }
-            const auto scanInfo = scanInfos[currentTableIdx].get();
-            readStates[currentTableIdx]->direction = scanInfo->direction;
-            scanInfo->table->initializeScanState(transaction, *readStates[currentTableIdx]);
+            relInfos[currentTableIdx].table->initializeScanState(transaction,
+                *relInfos[currentTableIdx].localScanState);
             nextTableIdx++;
         }
     }
 }
 
-std::unique_ptr<RelTableCollectionScanner> RelTableCollectionScanner::clone() const {
-    std::vector<std::unique_ptr<ScanRelTableInfo>> scanInfosCopy;
-    for (auto& scanInfo : scanInfos) {
-        scanInfosCopy.push_back(std::make_unique<ScanRelTableInfo>(*scanInfo));
-    }
-    return make_unique<RelTableCollectionScanner>(std::move(scanInfosCopy));
-}
-
 void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
-    for (auto& [_, scanner] : scannerPerNodeTable) {
-        scanner->readStates.resize(scanner->scanInfos.size());
-        for (auto i = 0u; i < scanner->scanInfos.size(); i++) {
-            const auto scanInfo = scanner->scanInfos[i].get();
-            scanner->readStates[i] =
-                std::make_unique<RelTableScanState>(scanInfo->columnIDs, scanInfo->direction);
-            initVectors(*scanner->readStates[i], *resultSet);
+    for (auto& [_, scanner] : scanners) {
+        for (auto& relInfo : scanner.relInfos) {
+            relInfo.initScanState();
+            initVectors(*relInfo.localScanState, *resultSet);
             if (directionInfo.directionPos.isValid()) {
-                scanner->directionVector =
+                scanner.directionVector =
                     resultSet->getValueVector(directionInfo.directionPos).get();
-                scanner->directionValues.push_back(directionInfo.needFlip(scanInfo->direction));
+                scanner.directionValues.push_back(directionInfo.needFlip(relInfo.direction));
             }
         }
     }
@@ -93,24 +83,20 @@ bool ScanMultiRelTable::getNextTuplesInternal(ExecutionContext* context) {
 }
 
 std::unique_ptr<PhysicalOperator> ScanMultiRelTable::clone() {
-    node_table_id_scanner_map_t clonedScanners;
-    for (auto& [tableID, scanner] : scannerPerNodeTable) {
-        clonedScanners.insert({tableID, scanner->clone()});
-    }
-    return make_unique<ScanMultiRelTable>(info.copy(), directionInfo.copy(),
-        std::move(clonedScanners), children[0]->clone(), id, paramsString);
+    return make_unique<ScanMultiRelTable>(info.copy(), directionInfo.copy(), copyMap(scanners),
+        children[0]->clone(), id, paramsString);
 }
 
 void ScanMultiRelTable::resetState() {
     currentScanner = nullptr;
-    for (auto& [_, scanner] : scannerPerNodeTable) {
-        scanner->resetState();
+    for (auto& [_, scanner] : scanners) {
+        scanner.resetState();
     }
 }
 
 void ScanMultiRelTable::initCurrentScanner(const nodeID_t& nodeID) {
-    if (scannerPerNodeTable.contains(nodeID.tableID)) {
-        currentScanner = scannerPerNodeTable.at(nodeID.tableID).get();
+    if (scanners.contains(nodeID.tableID)) {
+        currentScanner = &scanners.at(nodeID.tableID);
         currentScanner->resetState();
     } else {
         currentScanner = nullptr;

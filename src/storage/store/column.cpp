@@ -109,7 +109,7 @@ public:
               bufferManager, wal, transaction, false /* enableCompression */,
               false /*requireNullColumn*/} {}
 
-    void scan(Transaction*, const ChunkState& chunkState, vector_idx_t vectorIdx,
+    void scan(Transaction*, const ChunkState& chunkState, idx_t vectorIdx,
         row_idx_t numValuesToScan, ValueVector*, ValueVector* resultVector) override {
         // Serial column cannot contain null values.
         const auto nodeGroupStartOffset =
@@ -289,7 +289,7 @@ void Column::initChunkState(Transaction* transaction, node_group_idx_t nodeGroup
     }
 }
 
-void Column::scan(Transaction* transaction, const ChunkState& state, vector_idx_t vectorIdx,
+void Column::scan(Transaction* transaction, const ChunkState& state, idx_t vectorIdx,
     row_idx_t numValuesToScan, ValueVector* nodeIDVector, ValueVector* resultVector) {
     if (nullColumn) {
         KU_ASSERT(state.nullState);
@@ -373,7 +373,7 @@ void Column::scan(Transaction* transaction, const ChunkState& state, offset_t st
     }
 }
 
-void Column::scanInternal(Transaction* transaction, const ChunkState& state, vector_idx_t vectorIdx,
+void Column::scanInternal(Transaction* transaction, const ChunkState& state, idx_t vectorIdx,
     row_idx_t numValuesToScan, ValueVector* nodeIDVector, ValueVector* resultVector) {
     const auto startOffsetInChunk = vectorIdx * DEFAULT_VECTOR_CAPACITY;
     auto cursor = getPageCursorForOffsetInGroup(startOffsetInChunk, state);

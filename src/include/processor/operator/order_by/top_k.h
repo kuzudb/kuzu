@@ -73,10 +73,10 @@ private:
 
     bool compareBoundaryValue(const std::vector<common::ValueVector*>& keyVectors);
 
-    bool compareFlatKeys(common::vector_idx_t vectorIdxToCompare,
+    bool compareFlatKeys(common::idx_t vectorIdxToCompare,
         const std::vector<common::ValueVector*> keyVectors);
 
-    void compareUnflatKeys(common::vector_idx_t vectorIdxToCompare,
+    void compareUnflatKeys(common::idx_t vectorIdxToCompare,
         const std::vector<common::ValueVector*> keyVectors);
 
     static void appendSelState(common::SelectionVector* selVector,

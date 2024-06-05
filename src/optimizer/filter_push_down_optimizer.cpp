@@ -3,6 +3,7 @@
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/property_expression.h"
 #include "main/client_context.h"
+#include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/logical_empty_result.h"
 #include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_hash_join.h"
@@ -29,6 +30,10 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitOperator(
     case LogicalOperatorType::CROSS_PRODUCT: {
         return visitCrossProductReplace(op);
     }
+        // TODO(Xiyang/Ben): enable filter push down to EXTEND after fixing zonemap of rel table.
+        //    case LogicalOperatorType::EXTEND: {
+        //        return visitExtendReplace(op);
+        //    }
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         return visitScanNodeTableReplace(op);
     }
@@ -120,30 +125,37 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductRepla
     return appendFilters(predicates, hashJoin);
 }
 
+static ColumnPredicateSet getPropertyPredicateSet(const Expression& property,
+    const binder::expression_vector& predicates) {
+    auto propertyPredicateSet = ColumnPredicateSet();
+    for (auto& predicate : predicates) {
+        auto columnPredicate = ColumnPredicateUtil::tryConvert(property, *predicate);
+        if (columnPredicate == nullptr) {
+            continue;
+        }
+        propertyPredicateSet.addPredicate(std::move(columnPredicate));
+    }
+    return propertyPredicateSet;
+}
+
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodeTableReplace(
     const std::shared_ptr<LogicalOperator>& op) {
     auto& scan = op->cast<LogicalScanNodeTable>();
     auto nodeID = scan.getNodeID();
     // Apply column predicates.
-    std::vector<ColumnPredicateSet> propertyPredicateSets;
-    for (auto& expr : scan.getProperties()) {
-        auto propertyPredicateSet = ColumnPredicateSet();
-        for (auto& p : predicateSet.getAllPredicates()) {
-            auto propertyPredicate = ColumnPredicateUtil::tryConvert(*expr, *p);
-            if (propertyPredicate == nullptr) {
-                continue;
-            }
-            propertyPredicateSet.addPredicate(std::move(propertyPredicate));
+    if (context->getClientConfig()->enableZoneMap) {
+        std::vector<ColumnPredicateSet> propertyPredicateSets;
+        auto predicates = predicateSet.getAllPredicates();
+        for (auto& property : scan.getProperties()) {
+            propertyPredicateSets.push_back(getPropertyPredicateSet(*property, predicates));
         }
-        propertyPredicateSets.push_back(std::move(propertyPredicateSet));
+        scan.setPropertyPredicates(std::move(propertyPredicateSets));
     }
-    scan.setPropertyPredicates(std::move(propertyPredicateSets));
 
     // TODO(Guodong): make index scan works under write transaction
     if (context->getTx()->isWriteTransaction()) {
         return finishPushDown(op);
     }
-
     // Apply index scan
     auto tableIDs = scan.getTableIDs();
     std::shared_ptr<Expression> primaryKeyEqualityComparison = nullptr;
@@ -162,6 +174,23 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodeTableRepl
             predicateSet.addPredicate(primaryKeyEqualityComparison);
         }
     }
+    return finishPushDown(op);
+}
+
+std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitExtendReplace(
+    const std::shared_ptr<LogicalOperator>& op) {
+    if (op->ptrCast<BaseLogicalExtend>()->isRecursive() ||
+        !context->getClientConfig()->enableZoneMap) {
+        return finishPushDown(op);
+    }
+    auto& extend = op->cast<LogicalExtend>();
+    // Apply column predicates.
+    std::vector<ColumnPredicateSet> propertyPredicateSets;
+    auto predicates = predicateSet.getAllPredicates();
+    for (auto& property : extend.getProperties()) {
+        propertyPredicateSets.push_back(getPropertyPredicateSet(*property, predicates));
+    }
+    extend.setPropertyPredicates(std::move(propertyPredicateSets));
     return finishPushDown(op);
 }
 
@@ -230,7 +259,7 @@ static bool isNodePrimaryKey(const Expression& expression, const Expression& nod
 
 std::shared_ptr<Expression> PredicateSet::popNodePKEqualityComparison(const Expression& nodeID) {
     // We pop when the first primary key equality comparison is found.
-    auto resultPredicateIdx = INVALID_VECTOR_IDX;
+    auto resultPredicateIdx = INVALID_IDX;
     for (auto i = 0u; i < equalityPredicates.size(); ++i) {
         auto predicate = equalityPredicates[i];
         if (isNodePrimaryKey(*predicate->getChild(0), nodeID)) {
@@ -246,7 +275,7 @@ std::shared_ptr<Expression> PredicateSet::popNodePKEqualityComparison(const Expr
             break;
         }
     }
-    if (resultPredicateIdx != INVALID_VECTOR_IDX) {
+    if (resultPredicateIdx != INVALID_IDX) {
         auto result = equalityPredicates[resultPredicateIdx];
         equalityPredicates.erase(equalityPredicates.begin() + resultPredicateIdx);
         return result;

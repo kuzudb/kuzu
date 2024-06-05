@@ -1,6 +1,7 @@
 #pragma once
 
 #include "processor/operator/scan/scan_table.h"
+#include "storage/predicate/column_predicate.h"
 #include "storage/store/rel_table.h"
 
 namespace kuzu {
@@ -10,13 +11,23 @@ struct ScanRelTableInfo {
     storage::RelTable* table;
     common::RelDataDirection direction;
     std::vector<common::column_id_t> columnIDs;
+    std::vector<storage::ColumnPredicateSet> columnPredicates;
+
+    std::unique_ptr<storage::RelTableScanState> localScanState;
 
     ScanRelTableInfo(storage::RelTable* table, common::RelDataDirection direction,
-        std::vector<common::column_id_t> columnIDs)
-        : table{table}, direction{direction}, columnIDs{std::move(columnIDs)} {}
-    ScanRelTableInfo(const ScanRelTableInfo& other)
-        : table{other.table}, direction{other.direction}, columnIDs{other.columnIDs} {}
+        std::vector<common::column_id_t> columnIDs,
+        std::vector<storage::ColumnPredicateSet> columnPredicates)
+        : table{table}, direction{direction}, columnIDs{std::move(columnIDs)},
+          columnPredicates{std::move(columnPredicates)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ScanRelTableInfo);
+
+    void initScanState();
+
+private:
+    ScanRelTableInfo(const ScanRelTableInfo& other)
+        : table{other.table}, direction{other.direction}, columnIDs{other.columnIDs},
+          columnPredicates{copyVector(other.columnPredicates)} {}
 };
 
 class ScanRelTable : public ScanTable {
@@ -39,7 +50,6 @@ public:
 
 protected:
     ScanRelTableInfo relInfo;
-    std::unique_ptr<storage::RelTableScanState> readState;
 };
 
 } // namespace processor

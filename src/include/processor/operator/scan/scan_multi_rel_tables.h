@@ -23,8 +23,11 @@ class RelTableCollectionScanner {
     friend class ScanMultiRelTable;
 
 public:
-    explicit RelTableCollectionScanner(std::vector<std::unique_ptr<ScanRelTableInfo>> scanInfos)
-        : scanInfos{std::move(scanInfos)} {}
+    explicit RelTableCollectionScanner(std::vector<ScanRelTableInfo> relInfos)
+        : relInfos{std::move(relInfos)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(RelTableCollectionScanner);
+
+    bool empty() const { return relInfos.empty(); }
 
     void resetState() {
         currentTableIdx = 0;
@@ -33,29 +36,27 @@ public:
 
     bool scan(const common::SelectionVector& selVector, transaction::Transaction* transaction);
 
-    std::unique_ptr<RelTableCollectionScanner> clone() const;
+private:
+    RelTableCollectionScanner(const RelTableCollectionScanner& other)
+        : relInfos{copyVector(other.relInfos)} {}
 
 private:
-    std::vector<std::unique_ptr<ScanRelTableInfo>> scanInfos;
-    std::vector<std::unique_ptr<storage::RelTableScanState>> readStates;
+    std::vector<ScanRelTableInfo> relInfos;
     std::vector<bool> directionValues;
     common::ValueVector* directionVector = nullptr;
-    uint32_t currentTableIdx = UINT32_MAX;
+    common::idx_t currentTableIdx = common::INVALID_IDX;
     uint32_t nextTableIdx = 0;
 };
 
 class ScanMultiRelTable : public ScanTable {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SCAN_REL_TABLE;
-    using node_table_id_scanner_map_t =
-        std::unordered_map<common::table_id_t, std::unique_ptr<RelTableCollectionScanner>>;
 
 public:
     ScanMultiRelTable(ScanTableInfo info, DirectionInfo directionInfo,
-        node_table_id_scanner_map_t scannerPerNodeTable, std::unique_ptr<PhysicalOperator> child,
-        uint32_t id, const std::string& paramsString)
+        common::table_id_map_t<RelTableCollectionScanner> scanners,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : ScanTable{type_, std::move(info), std::move(child), id, paramsString},
-          directionInfo{std::move(directionInfo)},
-          scannerPerNodeTable{std::move(scannerPerNodeTable)} {}
+          directionInfo{std::move(directionInfo)}, scanners{std::move(scanners)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 
@@ -69,7 +70,7 @@ private:
 
 private:
     DirectionInfo directionInfo;
-    node_table_id_scanner_map_t scannerPerNodeTable;
+    common::table_id_map_t<RelTableCollectionScanner> scanners;
     RelTableCollectionScanner* currentScanner = nullptr;
 };
 

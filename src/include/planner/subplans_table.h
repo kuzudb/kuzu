@@ -43,7 +43,7 @@ private:
     uint64_t maxCost = UINT64_MAX;
     binder::expression_vector nodeIDsToEncode;
     std::vector<std::unique_ptr<LogicalPlan>> plans;
-    std::unordered_map<std::bitset<binder::MAX_NUM_QUERY_VARIABLES>, common::vector_idx_t>
+    std::unordered_map<std::bitset<binder::MAX_NUM_QUERY_VARIABLES>, common::idx_t>
         encodedPlan2PlanIdx;
 };
 

@@ -15,7 +15,7 @@ namespace storage {
 template<typename F>
 void UndoBufferIterator::iterate(F&& callback) {
     uint8_t const* end;
-    common::vector_idx_t bufferIdx = 0;
+    common::idx_t bufferIdx = 0;
     while (bufferIdx < undoBuffer.memoryBuffers.size()) {
         auto& currentBuffer = undoBuffer.memoryBuffers[bufferIdx];
         auto current = currentBuffer.getData();
@@ -39,7 +39,7 @@ void UndoBufferIterator::iterate(F&& callback) {
 template<typename F>
 void UndoBufferIterator::reverseIterate(F&& callback) {
     uint8_t const* end;
-    common::vector_idx_t numBuffersLeft = undoBuffer.memoryBuffers.size();
+    common::idx_t numBuffersLeft = undoBuffer.memoryBuffers.size();
     while (numBuffersLeft > 0) {
         auto bufferIdx = numBuffersLeft - 1;
         auto& currentBuffer = undoBuffer.memoryBuffers[bufferIdx];

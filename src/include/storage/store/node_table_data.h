@@ -15,7 +15,7 @@ struct NodeDataScanState final : TableDataScanState {
     DELETE_COPY_DEFAULT_MOVE(NodeDataScanState);
 
     common::row_idx_t numRowsToScan = 0;
-    common::vector_idx_t vectorIdx = common::INVALID_VECTOR_IDX;
+    common::idx_t vectorIdx = common::INVALID_IDX;
     common::row_idx_t numRowsInNodeGroup = 0;
 
     bool nextVector();

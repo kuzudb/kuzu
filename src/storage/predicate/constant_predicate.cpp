@@ -1,5 +1,6 @@
 #include "storage/predicate/constant_predicate.h"
 
+#include "common/type_utils.h"
 #include "function/comparison/comparison_functions.h"
 #include "storage/compression/compression.h"
 
@@ -62,30 +63,11 @@ ZoneMapCheckResult checkZoneMapSwitch(const CompressionMetadata& metadata,
 ZoneMapCheckResult ColumnConstantPredicate::checkZoneMap(
     const CompressionMetadata& metadata) const {
     auto physicalType = value.getDataType()->getPhysicalType();
-    switch (physicalType) {
-    case PhysicalTypeID::INT8:
-        return checkZoneMapSwitch<int8_t>(metadata, expressionType, value);
-    case PhysicalTypeID::INT16:
-        return checkZoneMapSwitch<int16_t>(metadata, expressionType, value);
-    case PhysicalTypeID::INT32:
-        return checkZoneMapSwitch<int32_t>(metadata, expressionType, value);
-    case PhysicalTypeID::INT64:
-        return checkZoneMapSwitch<int64_t>(metadata, expressionType, value);
-    case PhysicalTypeID::UINT8:
-        return checkZoneMapSwitch<uint8_t>(metadata, expressionType, value);
-    case PhysicalTypeID::UINT16:
-        return checkZoneMapSwitch<uint16_t>(metadata, expressionType, value);
-    case PhysicalTypeID::UINT32:
-        return checkZoneMapSwitch<uint32_t>(metadata, expressionType, value);
-    case PhysicalTypeID::UINT64:
-        return checkZoneMapSwitch<uint64_t>(metadata, expressionType, value);
-    case PhysicalTypeID::FLOAT:
-        return checkZoneMapSwitch<float>(metadata, expressionType, value);
-    case PhysicalTypeID::DOUBLE:
-        return checkZoneMapSwitch<double>(metadata, expressionType, value);
-    default:
-        return ZoneMapCheckResult::ALWAYS_SCAN;
-    }
+    return TypeUtils::visit(
+        physicalType,
+        [&]<StorageValueType T>(
+            T) { return checkZoneMapSwitch<T>(metadata, expressionType, value); },
+        [&](auto) { return ZoneMapCheckResult::ALWAYS_SCAN; });
 }
 
 } // namespace storage

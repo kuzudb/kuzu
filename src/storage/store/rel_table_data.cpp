@@ -101,7 +101,7 @@ PackedCSRInfo::PackedCSRInfo() {
         static_cast<double>(calibratorTreeHeight);
 }
 
-PackedCSRRegion::PackedCSRRegion(vector_idx_t regionIdx, vector_idx_t level)
+PackedCSRRegion::PackedCSRRegion(idx_t regionIdx, idx_t level)
     : regionIdx{regionIdx}, level{level} {
     auto startSegmentIdx = regionIdx << level;
     leftBoundary = startSegmentIdx << StorageConstants::CSR_SEGMENT_SIZE_LOG2;
@@ -186,8 +186,7 @@ RelTableData::RelTableData(BMFileHandle* dataFH, DiskArrayCollection* metadataDA
 }
 
 void RelTableData::initializeScanState(Transaction* transaction, TableScanState& scanState) const {
-    auto& relScanState =
-        ku_dynamic_cast<TableDataScanState&, RelDataReadState&>(*scanState.dataScanState);
+    auto& relScanState = scanState.dataScanState->cast<RelDataReadState>();
     relScanState.readFromLocalStorage = false;
     const auto nodeOffset =
         scanState.nodeIDVector->readNodeOffset(scanState.nodeIDVector->state->getSelVector()[0]);
@@ -207,7 +206,7 @@ void RelTableData::initializeScanState(Transaction* transaction, TableScanState&
             (nodeOffset - startNodeOffset) < relScanState.numNodes;
         if (relScanState.readFromPersistentStorage) {
             relScanState.populateCSRListEntries();
-            initializeColumnReadStates(transaction, relScanState, nodeGroupIdx);
+            initializeColumnScanStates(transaction, scanState, nodeGroupIdx);
         }
         if (transaction->isWriteTransaction()) {
             relScanState.localNodeGroup = getLocalNodeGroup(transaction, nodeGroupIdx);
@@ -218,15 +217,24 @@ void RelTableData::initializeScanState(Transaction* transaction, TableScanState&
     }
 }
 
-void RelTableData::initializeColumnReadStates(Transaction* transaction, RelDataReadState& readState,
+void RelTableData::initializeColumnScanStates(Transaction* transaction, TableScanState& scanState,
     node_group_idx_t nodeGroupIdx) const {
-    KU_ASSERT(readState.columnIDs.size() == readState.chunkStates.size());
-    for (auto i = 0u; i < readState.columnIDs.size(); i++) {
-        auto columnID = readState.columnIDs[i];
-        if (columnID == INVALID_COLUMN_ID) {
+    scanState.zoneMapResult = ZoneMapCheckResult::ALWAYS_SCAN;
+    auto& dataScanState = scanState.dataScanState->cast<RelDataReadState>();
+    KU_ASSERT(dataScanState.columnIDs.size() == dataScanState.chunkStates.size());
+    for (auto i = 0u; i < dataScanState.columnIDs.size(); i++) {
+        if (dataScanState.columnIDs[i] == INVALID_COLUMN_ID) {
             continue;
         }
-        getColumn(columnID)->initChunkState(transaction, nodeGroupIdx, readState.chunkStates[i]);
+        auto column = getColumn(dataScanState.columnIDs[i]);
+        auto& chunkState = dataScanState.chunkStates[i];
+        column->initChunkState(transaction, nodeGroupIdx, chunkState);
+        if (!scanState.columnPredicateSets.empty()) {
+            if (scanState.columnPredicateSets[i].checkZoneMap(chunkState.metadata.compMeta) ==
+                ZoneMapCheckResult::SKIP_SCAN) {
+                scanState.zoneMapResult = ZoneMapCheckResult::SKIP_SCAN;
+            }
+        }
     }
 }
 
@@ -246,7 +254,7 @@ void RelTableData::scan(Transaction* transaction, TableDataScanState& readState,
     auto [startOffset, endOffset] = relReadState.getStartAndEndOffset();
     auto numRowsToRead = endOffset - startOffset;
     outputVectors[0]->state->getSelVectorUnsafe().setToUnfiltered(numRowsToRead);
-    auto relIDVectorIdx = INVALID_VECTOR_IDX;
+    auto relIDVectorIdx = INVALID_IDX;
     for (auto i = 0u; i < relReadState.columnIDs.size(); i++) {
         auto columnID = relReadState.columnIDs[i];
         auto outputVectorId = i; // Skip output from nbrID column.
@@ -262,7 +270,7 @@ void RelTableData::scan(Transaction* transaction, TableDataScanState& readState,
     }
     if (transaction->isWriteTransaction() && relReadState.localNodeGroup) {
         auto nodeOffset = inNodeIDVector.readNodeOffset(inNodeIDVector.state->getSelVector()[0]);
-        KU_ASSERT(relIDVectorIdx != INVALID_VECTOR_IDX);
+        KU_ASSERT(relIDVectorIdx != INVALID_IDX);
         auto relIDVector = outputVectors[relIDVectorIdx];
         relReadState.localNodeGroup->applyLocalChangesToScannedVectors(nodeOffset - startNodeOffset,
             relReadState.columnIDs, relIDVector, outputVectors);
@@ -973,7 +981,7 @@ void RelTableData::distributeOffsets(const ChunkedCSRHeader& header, LocalState&
     if (localState.region.level > packedCSRInfo.calibratorTreeHeight) {
         // Need to resize the capacity and reset regionToDistribute to the top level one.
         localState.region =
-            PackedCSRRegion{0, static_cast<vector_idx_t>(packedCSRInfo.calibratorTreeHeight)};
+            PackedCSRRegion{0, static_cast<idx_t>(packedCSRInfo.calibratorTreeHeight)};
         localState.regionSize =
             getNewRegionSize(header, localState.sizeChangesPerSegment, localState.region);
         localState.regionCapacity = StorageUtils::divideAndRoundUpTo(localState.regionSize,

@@ -97,9 +97,8 @@ void StringColumn::write(ChunkState& state, offset_t dstOffset, ColumnChunk* dat
     updateStatistics(state.metadata, dstOffset + numValues - 1, minWritten, maxWritten);
 }
 
-void StringColumn::scanInternal(Transaction* transaction, const ChunkState& state,
-    vector_idx_t vectorIdx, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
+void StringColumn::scanInternal(Transaction* transaction, const ChunkState& state, idx_t vectorIdx,
+    row_idx_t numValuesToScan, ValueVector* nodeIDVector, ValueVector* resultVector) {
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     const auto startOffsetInChunk = vectorIdx * DEFAULT_VECTOR_CAPACITY;
     if (nodeIDVector->state->getSelVector().isUnfiltered()) {

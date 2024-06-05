@@ -48,7 +48,7 @@ struct NodeBatchInsertInfo final : public BatchInsertInfo {
 struct NodeBatchInsertSharedState final : public BatchInsertSharedState {
     // Primary key info
     storage::PrimaryKeyIndex* pkIndex;
-    common::vector_idx_t pkColumnIdx;
+    common::idx_t pkColumnIdx;
     common::LogicalType pkType;
     std::optional<IndexBuilder> globalIndexBuilder = std::nullopt;
 

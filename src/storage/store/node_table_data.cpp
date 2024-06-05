@@ -59,28 +59,30 @@ void NodeTableData::initializeScanState(Transaction* transaction, TableScanState
     if (transaction->isWriteTransaction()) {
         initializeLocalNodeReadState(transaction, scanState, scanState.nodeGroupIdx);
     }
-    dataScanState.vectorIdx = INVALID_VECTOR_IDX;
+    dataScanState.vectorIdx = INVALID_IDX;
     dataScanState.numRowsInNodeGroup =
         columns[0]->getMetadata(scanState.nodeGroupIdx, TransactionType::READ_ONLY).numValues;
 }
 
 void NodeTableData::initializeColumnScanStates(Transaction* transaction, TableScanState& scanState,
     node_group_idx_t nodeGroupIdx) const {
-    auto& tableScanState = scanState.cast<NodeTableScanState>();
-    auto& dataReadState = scanState.dataScanState->cast<NodeDataScanState>();
+    scanState.zoneMapResult = ZoneMapCheckResult::ALWAYS_SCAN;
+    auto& dataScanState = scanState.dataScanState->cast<NodeDataScanState>();
     for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
         if (scanState.columnIDs[i] == INVALID_COLUMN_ID) {
             continue;
         }
         auto column = getColumn(scanState.columnIDs[i]);
-        auto& chunkState = dataReadState.chunkStates[i];
+        auto& chunkState = dataScanState.chunkStates[i];
         column->initChunkState(transaction, nodeGroupIdx, chunkState);
-        if (!tableScanState.columnPredicateSets.empty()) {
-            tableScanState.zoneMapResult =
-                tableScanState.columnPredicateSets[i].checkZoneMap(chunkState.metadata.compMeta);
+        if (!scanState.columnPredicateSets.empty()) {
+            if (scanState.columnPredicateSets[i].checkZoneMap(chunkState.metadata.compMeta) ==
+                ZoneMapCheckResult::SKIP_SCAN) {
+                scanState.zoneMapResult = ZoneMapCheckResult::SKIP_SCAN;
+            }
         }
     }
-    KU_ASSERT(sanityCheckOnColumnNumValues(dataReadState));
+    KU_ASSERT(sanityCheckOnColumnNumValues(dataScanState));
 }
 
 bool NodeTableData::sanityCheckOnColumnNumValues(const NodeDataScanState& scanState) {

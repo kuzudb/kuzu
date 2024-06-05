@@ -46,7 +46,26 @@
 
 -LOG EdgeFilter
 -STATEMENT MATCH (a:person)-[e1:knows {date:date('1905-12-12')}]->(b:person) RETURN a.ID, b.ID
--ENUMERATE
 ---- 2
 7|8
 7|9
+
+-LOG Zonemap
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE e1.date > date('2024-01-01') RETURN e1
+---- 0
+
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE e1.date < date('1900-01-01') RETURN e1
+---- 0
+
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE e1.meetTime < timestamp('1900-08-25 19:07:22') RETURN e1
+---- 0
+
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE e1.meetTime > timestamp('2024-01-01 19:07:22') RETURN e1.meetTime
+---- 1
+2025-01-01 11:22:33.52
+
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE e1.meetTime > timestamp('2025-01-01 11:22:33.53') RETURN e1.meetTime
+---- 0
+
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE e1.validInterval > cast('200 year', 'interval') RETURN e1
+---- 0

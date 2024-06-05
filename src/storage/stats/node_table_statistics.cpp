@@ -99,8 +99,7 @@ void NodeTableStatsAndDeletedIDs::deleteNode(offset_t nodeOffset) {
 // Note: this function will always be called right after scanNodeID, so we have the guarantee
 // that the nodeOffsetVector is always unselected.
 void NodeTableStatsAndDeletedIDs::setDeletedNodeOffsetsForVector(const ValueVector* nodeIDVector,
-    node_group_idx_t nodeGroupIdx, vector_idx_t vectorIdxInNodeGroup,
-    row_idx_t numRowsToScan) const {
+    node_group_idx_t nodeGroupIdx, idx_t vectorIdxInNodeGroup, row_idx_t numRowsToScan) const {
     const auto vectorIdx =
         nodeGroupIdx * StorageConstants::NUM_VECTORS_PER_NODE_GROUP + vectorIdxInNodeGroup;
     if (hasDeletedNodesPerVector[vectorIdx]) {

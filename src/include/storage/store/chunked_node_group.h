@@ -21,7 +21,7 @@ public:
     virtual ~ChunkedNodeGroup() = default;
 
     inline uint64_t getNodeGroupIdx() const { return nodeGroupIdx; }
-    inline common::vector_idx_t getNumColumns() const { return chunks.size(); }
+    inline common::idx_t getNumColumns() const { return chunks.size(); }
     inline const ColumnChunk& getColumnChunk(common::column_id_t columnID) const {
         KU_ASSERT(columnID < chunks.size());
         return *chunks[columnID];
@@ -51,9 +51,8 @@ public:
 
     void finalize(uint64_t nodeGroupIdx_);
 
-    virtual inline void writeToColumnChunk(common::vector_idx_t chunkIdx,
-        common::vector_idx_t vectorIdx, const std::vector<std::unique_ptr<ColumnChunk>>& data,
-        ColumnChunk& offsetChunk) {
+    virtual inline void writeToColumnChunk(common::idx_t chunkIdx, common::idx_t vectorIdx,
+        const std::vector<std::unique_ptr<ColumnChunk>>& data, ColumnChunk& offsetChunk) {
         chunks[chunkIdx]->write(data[vectorIdx].get(), &offsetChunk, common::RelMultiplicity::ONE);
     }
 
@@ -96,7 +95,7 @@ public:
     ChunkedCSRHeader& getCSRHeader() { return csrHeader; }
     const ChunkedCSRHeader& getCSRHeader() const { return csrHeader; }
 
-    inline void writeToColumnChunk(common::vector_idx_t chunkIdx, common::vector_idx_t vectorIdx,
+    inline void writeToColumnChunk(common::idx_t chunkIdx, common::idx_t vectorIdx,
         const std::vector<std::unique_ptr<ColumnChunk>>& data, ColumnChunk& offsetChunk) override {
         chunks[chunkIdx]->write(data[vectorIdx].get(), &offsetChunk, common::RelMultiplicity::MANY);
     }

@@ -24,7 +24,7 @@ namespace function {
 
 struct StorageInfoLocalState final : public TableFuncLocalState {
     std::unique_ptr<DataChunkCollection> dataChunkCollection;
-    vector_idx_t currChunkIdx;
+    idx_t currChunkIdx;
 
     explicit StorageInfoLocalState(storage::MemoryManager* mm) : currChunkIdx{0} {
         dataChunkCollection = std::make_unique<DataChunkCollection>(mm);

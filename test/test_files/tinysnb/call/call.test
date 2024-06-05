@@ -75,7 +75,7 @@ True
 ---- 1
 0
 
--LOG disableSemihMaskOptimization
+-LOG SemiMaskConfig
 -STATEMENT CALL enable_semi_mask=true
 ---- ok
 -STATEMENT CALL current_setting('enable_semi_mask') RETURN *
@@ -84,6 +84,18 @@ True
 -STATEMENT CALL enable_semi_mask=false
 ---- ok
 -STATEMENT CALL current_setting('enable_semi_mask') RETURN *
+---- 1
+False
+
+-LOG ZoneMapConfig
+-STATEMENT CALL enable_zone_map=true
+---- ok
+-STATEMENT CALL current_setting('enable_zone_map') RETURN *
+---- 1
+True
+-STATEMENT CALL enable_zone_map=false
+---- ok
+-STATEMENT CALL current_setting('enable_zone_map') RETURN *
 ---- 1
 False
 

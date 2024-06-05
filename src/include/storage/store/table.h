@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/enums/zone_map_check_result.h"
+#include "storage/predicate/column_predicate.h"
 #include "storage/stats/table_statistics_collection.h"
 #include "storage/store/table_data.h"
 
@@ -17,14 +18,14 @@ struct TableScanState {
     TableScanSource source = TableScanSource::NONE;
     std::unique_ptr<TableDataScanState> dataScanState;
     common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+
+    std::vector<ColumnPredicateSet> columnPredicateSets;
     common::ZoneMapCheckResult zoneMapResult = common::ZoneMapCheckResult::ALWAYS_SCAN;
 
-    explicit TableScanState(std::vector<common::column_id_t> columnIDs)
-        : nodeIDVector(nullptr), columnIDs{std::move(columnIDs)} {}
-    TableScanState(common::ValueVector* nodeIDVector, std::vector<common::column_id_t> columnIDs,
-        std::vector<common::ValueVector*> outputVectors)
-        : nodeIDVector{nodeIDVector}, columnIDs{std::move(columnIDs)},
-          outputVectors{std::move(outputVectors)} {}
+    TableScanState(std::vector<common::column_id_t> columnIDs,
+        std::vector<ColumnPredicateSet> columnPredicateSets)
+        : nodeIDVector(nullptr), columnIDs{std::move(columnIDs)},
+          columnPredicateSets{std::move(columnPredicateSets)} {}
     virtual ~TableScanState() = default;
     DELETE_COPY_AND_MOVE(TableScanState);
 
