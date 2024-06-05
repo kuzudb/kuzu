@@ -1,9 +1,9 @@
 #pragma once
 
 #include <iostream>
-#include <napi.h>
 
 #include "common/task_system/progress_bar_display.h"
+#include <napi.h>
 
 using namespace kuzu;
 using namespace common;
@@ -13,7 +13,8 @@ using namespace common;
  */
 class NodeProgressBarDisplay : public ProgressBarDisplay {
 public:
-    NodeProgressBarDisplay(Napi::ThreadSafeFunction callback, Napi::Env env) : callback(callback), env(env) {}
+    NodeProgressBarDisplay(Napi::ThreadSafeFunction callback, Napi::Env env)
+        : callback(callback), env(env) {}
 
     void updateProgress(double newPipelineProgress, uint32_t newNumPipelinesFinished) override;
 

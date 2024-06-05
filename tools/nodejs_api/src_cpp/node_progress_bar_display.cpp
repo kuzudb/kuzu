@@ -12,7 +12,8 @@ void NodeProgressBarDisplay::updateProgress(double newPipelineProgress,
         numPipelinesFinished = newNumPipelinesFinished;
         callback.BlockingCall([this](Napi::Env env, Napi::Function jsCallback) {
             jsCallback.Call({Napi::Number::New(env, pipelineProgress),
-                Napi::Number::New(env, numPipelinesFinished), Napi::Number::New(env, numPipelines)});
+                Napi::Number::New(env, numPipelinesFinished),
+                Napi::Number::New(env, numPipelines)});
         });
     }
 }

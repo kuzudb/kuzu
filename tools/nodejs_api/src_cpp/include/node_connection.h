@@ -5,8 +5,8 @@
 #include "main/kuzu.h"
 #include "node_database.h"
 #include "node_prepared_statement.h"
-#include "node_query_result.h"
 #include "node_progress_bar_display.h"
+#include "node_query_result.h"
 #include <napi.h>
 
 using namespace kuzu::main;
@@ -64,13 +64,15 @@ class ConnectionExecuteAsyncWorker : public Napi::AsyncWorker {
 public:
     ConnectionExecuteAsyncWorker(Napi::Function& callback, std::shared_ptr<Connection>& connection,
         std::shared_ptr<PreparedStatement> preparedStatement, NodeQueryResult* nodeQueryResult,
-        std::unordered_map<std::string, std::unique_ptr<Value>> params, Napi::Value progressCallback)
+        std::unordered_map<std::string, std::unique_ptr<Value>> params,
+        Napi::Value progressCallback)
         : Napi::AsyncWorker(callback), connection(connection),
           preparedStatement(std::move(preparedStatement)), nodeQueryResult(nodeQueryResult),
           params(std::move(params)) {
         if (progressCallback.IsFunction()) {
-            this->progressCallback = Napi::ThreadSafeFunction::New(Env(), progressCallback.As<Napi::Function>(), "ProgressCallback", 0, 1);
-		}
+            this->progressCallback = Napi::ThreadSafeFunction::New(Env(),
+                progressCallback.As<Napi::Function>(), "ProgressCallback", 0, 1);
+        }
     }
 
     ~ConnectionExecuteAsyncWorker() override = default;
@@ -80,7 +82,8 @@ public:
         bool trackProgress = progressBar->getProgressBarPrinting();
         if (progressCallback) {
             progressBar->toggleProgressBarPrinting(true);
-            progressBar->setDisplay(std::make_shared<NodeProgressBarDisplay>(*progressCallback, Env()));
+            progressBar->setDisplay(
+                std::make_shared<NodeProgressBarDisplay>(*progressCallback, Env()));
         }
         try {
             auto result =
