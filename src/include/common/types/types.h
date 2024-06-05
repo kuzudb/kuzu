@@ -33,6 +33,7 @@ using property_id_t = uint32_t;
 constexpr property_id_t INVALID_PROPERTY_ID = UINT32_MAX;
 using column_id_t = property_id_t;
 constexpr column_id_t INVALID_COLUMN_ID = INVALID_PROPERTY_ID;
+constexpr column_id_t ROW_IDX_COLUMN_ID = INVALID_COLUMN_ID - 1;
 using idx_t = uint32_t;
 const idx_t INVALID_IDX = UINT32_MAX;
 using block_idx_t = uint64_t;

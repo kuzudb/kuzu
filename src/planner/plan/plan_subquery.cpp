@@ -1,6 +1,7 @@
 #include "binder/expression/expression_util.h"
 #include "binder/expression/subquery_expression.h"
 #include "binder/expression_visitor.h"
+#include "common/exception/runtime.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/planner.h"
 

@@ -42,8 +42,7 @@ void SingleLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
     if (nodeIDVector->isNull(nodeIDPos)) {
         return;
     }
-    auto deleteState =
-        std::make_unique<storage::NodeTableDeleteState>(*nodeIDVector, *extraInfo.pkVector);
+    auto deleteState = std::make_unique<NodeTableDeleteState>(*nodeIDVector, *extraInfo.pkVector);
     if (!extraInfo.table->delete_(context->clientContext->getTx(), *deleteState)) {
         return;
     }
@@ -72,8 +71,7 @@ void MultiLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
     }
     auto nodeID = nodeIDVector->getValue<internalID_t>(pos);
     auto& extraInfo = extraInfos.at(nodeID.tableID);
-    auto deleteState =
-        std::make_unique<storage::NodeTableDeleteState>(*nodeIDVector, *extraInfo.pkVector);
+    auto deleteState = std::make_unique<NodeTableDeleteState>(*nodeIDVector, *extraInfo.pkVector);
     if (!extraInfo.table->delete_(context->clientContext->getTx(), *deleteState)) {
         return;
     }
@@ -102,8 +100,8 @@ void RelDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* /*context*/
 }
 
 void SingleLabelRelDeleteExecutor::delete_(ExecutionContext* context) {
-    auto deleteState = std::make_unique<storage::RelTableDeleteState>(*srcNodeIDVector,
-        *dstNodeIDVector, *relIDVector);
+    auto deleteState =
+        std::make_unique<RelTableDeleteState>(*srcNodeIDVector, *dstNodeIDVector, *relIDVector);
     table->delete_(context->clientContext->getTx(), *deleteState);
 }
 
@@ -113,8 +111,8 @@ void MultiLabelRelDeleteExecutor::delete_(ExecutionContext* context) {
     auto relID = relIDVector->getValue<internalID_t>(pos);
     KU_ASSERT(tableIDToTableMap.contains(relID.tableID));
     auto table = tableIDToTableMap.at(relID.tableID);
-    auto deleteState = std::make_unique<storage::RelTableDeleteState>(*srcNodeIDVector,
-        *dstNodeIDVector, *relIDVector);
+    auto deleteState =
+        std::make_unique<RelTableDeleteState>(*srcNodeIDVector, *dstNodeIDVector, *relIDVector);
     table->delete_(context->clientContext->getTx(), *deleteState);
 }
 

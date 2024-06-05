@@ -7,6 +7,7 @@
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "common/serializer/deserializer.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

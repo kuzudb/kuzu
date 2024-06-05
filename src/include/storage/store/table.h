@@ -1,9 +1,9 @@
 #pragma once
 
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/enums/zone_map_check_result.h"
 #include "storage/predicate/column_predicate.h"
-#include "storage/stats/table_statistics_collection.h"
-#include "storage/store/table_data.h"
+#include "storage/store/column.h"
 
 namespace kuzu {
 namespace evaluator {
@@ -14,27 +14,54 @@ namespace storage {
 enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = 3 };
 
 struct TableScanState {
-    common::ValueVector* nodeIDVector;
-    std::vector<common::column_id_t> columnIDs;
+    common::table_id_t tableID;
+    std::unique_ptr<common::ValueVector> rowIdxVector;
+    // Node/Rel ID vector. We assume all output vectors are within the same DataChunk as this one.
+    common::ValueVector* IDVector;
     std::vector<common::ValueVector*> outputVectors;
+    std::vector<common::column_id_t> columnIDs;
+
+    // Only used when scan from checkpointed data.
+    std::vector<Column*> columns;
 
     TableScanSource source = TableScanSource::NONE;
-    std::unique_ptr<TableDataScanState> dataScanState;
     common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+    NodeGroup* nodeGroup = nullptr;
+    std::unique_ptr<NodeGroupScanState> nodeGroupScanState;
 
     std::vector<ColumnPredicateSet> columnPredicateSets;
     common::ZoneMapCheckResult zoneMapResult = common::ZoneMapCheckResult::ALWAYS_SCAN;
 
-    TableScanState(std::vector<common::column_id_t> columnIDs,
-        std::vector<ColumnPredicateSet> columnPredicateSets)
-        : nodeIDVector(nullptr), columnIDs{std::move(columnIDs)},
-          columnPredicateSets{std::move(columnPredicateSets)} {}
+    TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
+        std::vector<Column*> columns, std::vector<ColumnPredicateSet> columnPredicateSets)
+        : tableID{tableID}, IDVector(nullptr), columnIDs{std::move(columnIDs)},
+          columns{std::move(columns)}, columnPredicateSets{std::move(columnPredicateSets)} {
+        rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
+    }
+    explicit TableScanState(const common::table_id_t tableID,
+        std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns)
+        : tableID{tableID}, IDVector(nullptr), columnIDs{std::move(columnIDs)},
+          columns{std::move(columns)} {
+        rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
+    }
     virtual ~TableScanState() = default;
-    DELETE_COPY_AND_MOVE(TableScanState);
+    DELETE_COPY_DEFAULT_MOVE(TableScanState);
+
+    virtual void resetState() {
+        source = TableScanSource::NONE;
+        nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+        nodeGroup = nullptr;
+        nodeGroupScanState->resetState();
+        zoneMapResult = common::ZoneMapCheckResult::ALWAYS_SCAN;
+    }
 
     template<class TARGET>
     TARGET& cast() {
         return common::ku_dynamic_cast<TableScanState&, TARGET&>(*this);
+    }
+    template<class TARGETT>
+    const TARGETT& cast() const {
+        return common::ku_dynamic_cast<const TableScanState&, const TARGETT&>(*this);
     }
 };
 
@@ -44,43 +71,66 @@ struct TableInsertState {
     explicit TableInsertState(const std::vector<common::ValueVector*>& propertyVectors)
         : propertyVectors{propertyVectors} {}
     virtual ~TableInsertState() = default;
+
+    template<typename T>
+    const T& constCast() const {
+        return common::ku_dynamic_cast<const TableInsertState&, const T&>(*this);
+    }
+    template<typename T>
+    T& cast() {
+        return common::ku_dynamic_cast<TableInsertState&, T&>(*this);
+    }
 };
 
 struct TableUpdateState {
     common::column_id_t columnID;
-    const common::ValueVector& propertyVector;
+    common::ValueVector& propertyVector;
 
-    TableUpdateState(common::column_id_t columnID, const common::ValueVector& propertyVector)
+    TableUpdateState(common::column_id_t columnID, common::ValueVector& propertyVector)
         : columnID{columnID}, propertyVector{propertyVector} {}
     virtual ~TableUpdateState() = default;
+
+    template<typename T>
+    const T& constCast() const {
+        return common::ku_dynamic_cast<const TableUpdateState&, const T&>(*this);
+    }
+    template<typename T>
+    T& cast() {
+        return common::ku_dynamic_cast<TableUpdateState&, T&>(*this);
+    }
 };
 
 struct TableDeleteState {
     virtual ~TableDeleteState() = default;
+
+    template<typename T>
+    const T& constCast() const {
+        return common::ku_dynamic_cast<const TableDeleteState&, const T&>(*this);
+    }
+    template<typename T>
+    T& cast() {
+        return common::ku_dynamic_cast<TableDeleteState&, T&>(*this);
+    }
 };
 
 class LocalTable;
+class StorageManager;
 class Table {
 public:
-    Table(const catalog::TableCatalogEntry* tableEntry, TablesStatistics* tablesStatistics,
-        MemoryManager* memoryManager, WAL* wal)
-        : tableType{tableEntry->getTableType()}, tableID{tableEntry->getTableID()},
-          tableName{tableEntry->getName()}, tablesStatistics{tablesStatistics},
-          memoryManager{memoryManager}, bufferManager{memoryManager->getBufferManager()}, wal{wal} {
-    }
+    Table(const catalog::TableCatalogEntry* tableEntry, StorageManager* storageManager,
+        MemoryManager* memoryManager);
     virtual ~Table() = default;
+
+    static std::unique_ptr<Table> loadTable(common::Deserializer& deSer,
+        const catalog::Catalog& catalog, StorageManager* storageManager,
+        MemoryManager* memoryManager, common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     common::TableType getTableType() const { return tableType; }
     common::table_id_t getTableID() const { return tableID; }
-    common::row_idx_t getNumTuples(transaction::Transaction* transaction) const {
-        return tablesStatistics->getNumTuplesForTable(transaction, tableID);
-    }
-    void updateNumTuplesByValue(uint64_t numTuples) const {
-        tablesStatistics->updateNumTuplesByValue(tableID, numTuples);
-    }
+    BMFileHandle* getDataFH() const { return dataFH; }
 
     virtual void initializeScanState(transaction::Transaction* transaction,
-        TableScanState& readState) const = 0;
+        TableScanState& readState) = 0;
     bool scan(transaction::Transaction* transaction, TableScanState& scanState) {
         for (const auto& vector : scanState.outputVectors) {
             vector->resetAuxiliaryBuffer();
@@ -98,11 +148,27 @@ public:
 
     virtual void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) = 0;
     // For metadata-only updates
-    virtual void prepareCommit() = 0;
+    virtual void prepareCommit() {
+        // DO NOTHING
+    }
     virtual void prepareRollback(LocalTable* localTable) = 0;
-    virtual void checkpointInMemory() = 0;
-    virtual void rollbackInMemory() = 0;
+    virtual void checkpoint(common::Serializer& ser) = 0;
+    virtual void rollbackInMemory() {
+        // DO NOTHING
+    }
 
+    virtual uint64_t getEstimatedMemoryUsage() const = 0;
+
+    virtual common::row_idx_t getNumRows() = 0;
+
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<Table&, TARGET&>(*this);
+    }
+    template<class TARGET>
+    const TARGET& cast() const {
+        return common::ku_dynamic_cast<const Table&, const TARGET&>(*this);
+    }
     template<class TARGET>
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<Table*, TARGET*>(this);
@@ -110,12 +176,20 @@ public:
 
 protected:
     virtual bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) = 0;
+    virtual void checkpointInMemory() {
+        // DO NOTHING
+    }
+
+    virtual void serialize(common::Serializer& serializer) const;
+
+    std::unique_ptr<common::DataChunk> constructDataChunk(std::vector<common::LogicalType>& types);
 
 protected:
     common::TableType tableType;
     common::table_id_t tableID;
     std::string tableName;
-    TablesStatistics* tablesStatistics;
+    bool enableCompression;
+    BMFileHandle* dataFH;
     MemoryManager* memoryManager;
     BufferManager* bufferManager;
     WAL* wal;

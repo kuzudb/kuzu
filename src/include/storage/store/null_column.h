@@ -13,12 +13,11 @@ public:
     // without the possibility of memory errors from reading/writing off the end of a page.
     static_assert(PageUtils::getNumElementsInAPage(1, false /*requireNullColumn*/) % 8 == 0);
 
-    NullColumn(std::string name, common::page_idx_t metaDAHIdx, BMFileHandle* dataFH,
-        DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, bool enableCompression);
+    NullColumn(std::string name, BMFileHandle* dataFH, BufferManager* bufferManager, WAL* wal,
+        bool enableCompression);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
-        common::idx_t vectorIdx, common::row_idx_t numValuesToScan,
+        common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
@@ -41,13 +40,14 @@ public:
     void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunkData* data,
         common::offset_t dataOffset, common::length_t numValues) override;
 
-    void commitLocalChunkInPlace(ChunkState& state, const ChunkCollection& localInsertChunk,
-        const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunk,
-        const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) override;
+    // void commitLocalChunkInPlace(ChunkState& state, const ChunkDataCollection& localInsertChunk,
+    // const offset_to_row_idx_t& insertInfo, const ChunkDataCollection& localUpdateChunk,
+    // const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) override;
 
 private:
     std::unique_ptr<ColumnChunkData> getEmptyChunkForCommit(uint64_t capacity) override {
-        return ColumnChunkFactory::createNullChunkData(enableCompression, capacity);
+        return ColumnChunkFactory::createNullChunkData(enableCompression, capacity,
+            ResidencyState::IN_MEMORY);
     }
 };
 

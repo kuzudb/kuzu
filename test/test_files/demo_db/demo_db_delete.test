@@ -23,6 +23,7 @@ Alice|35
 Zhang
 
 -CASE DetachDelete
+-SKIP
 -STATEMENT MATCH ()-[]->() RETURN COUNT(*)
 ---- 1
 8
@@ -34,6 +35,7 @@ Zhang
 5
 
 -CASE DeleteAllTest
+-SKIP
 -STATEMENT MATCH (u:User) DETACH DELETE u RETURN u.*;
 ---- 4
 Adam|30

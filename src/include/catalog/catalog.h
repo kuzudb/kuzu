@@ -118,7 +118,7 @@ public:
         const std::string& name) const;
     std::vector<std::string> getMacroNames(transaction::Transaction* tx) const;
 
-    void prepareCheckpoint(const std::string& databasePath, storage::WAL* wal,
+    void checkpoint(const std::string& databasePath, storage::WAL* wal,
         common::VirtualFileSystem* fs);
 
     template<class TARGET>

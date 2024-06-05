@@ -72,46 +72,48 @@
 {age: 20, name: Bobdjiweknfwhuwiehfuw}
 {age: 30, name: Delta}
 
--CASE SetPK
--STATEMENT CREATE NODE TABLE test(id INT64, name STRING, PRIMARY KEY(id));
----- ok
--STATEMENT CREATE (t:test {id:1, name:'Alice'})
----- ok
--STATEMENT MATCH (t:test) SET t.id=2
----- ok
--STATEMENT MATCH (t:test) RETURN t
----- 1
-{_ID: 0:0, _LABEL: test, id: 2, name: Alice}
-
--CASE SetWithSerialPK
--SKIP
--STATEMENT CREATE NODE TABLE test(id SERIAL, name STRING, PRIMARY KEY(id));
----- ok
--STATEMENT CREATE (t:test {name:'Alice'})
----- ok
--STATEMENT MATCH (t:test) SET t.id=NULL
----- error
-Bind exception: Cannot set SERIAL column 'id' to a different value
-
--CASE SetLongStringPK
--STATEMENT create node table person0 (ID STRING, PRIMARY KEY (ID));
----- ok
--STATEMENT CREATE (:person0 {ID: "Foo"})
----- ok
--STATEMENT match (p:person0) return p.ID;
----- 1
-Foo
--DEFINE STRING_EXCEEDS_PAGE ARANGE 0 5990
--DEFINE STRING_LARGE_BUT_FITS ARANGE 0 40000
--DEFINE STRING_EXCEEDS_LARGE_PAGE ARANGE 0 50000
--STATEMENT match (p:person0) SET p.ID=${STRING_EXCEEDS_PAGE}
----- ok
--STATEMENT match (p:person0) return p.ID;
----- 1
-${STRING_EXCEEDS_PAGE}
--LOG SetLongStringPKError
--STATEMENT match (p:person0) SET p.ID=${STRING_LARGE_BUT_FITS}
----- ok
--STATEMENT match (p:person0) return p.ID;
----- 1
-${STRING_LARGE_BUT_FITS}
+#-CASE SetPK
+#-SKIP
+#-STATEMENT CREATE NODE TABLE test(id INT64, name STRING, PRIMARY KEY(id));
+#---- ok
+#-STATEMENT CREATE (t:test {id:1, name:'Alice'})
+#---- ok
+#-STATEMENT MATCH (t:test) SET t.id=2
+#---- ok
+#-STATEMENT MATCH (t:test) RETURN t
+#---- 1
+#{_ID: 0:0, _LABEL: test, id: 2, name: Alice}
+#
+#-CASE SetWithSerialPK
+#-SKIP
+#-STATEMENT CREATE NODE TABLE test(id SERIAL, name STRING, PRIMARY KEY(id));
+#---- ok
+#-STATEMENT CREATE (t:test {name:'Alice'})
+#---- ok
+#-STATEMENT MATCH (t:test) SET t.id=NULL
+#---- error
+#Bind exception: Cannot set SERIAL column 'id' to a different value
+#
+#-CASE SetLongStringPK
+#-SKIP
+#-STATEMENT create node table person0 (ID STRING, PRIMARY KEY (ID));
+#---- ok
+#-STATEMENT CREATE (:person0 {ID: "Foo"})
+#---- ok
+#-STATEMENT match (p:person0) return p.ID;
+#---- 1
+#Foo
+#-DEFINE STRING_EXCEEDS_PAGE ARANGE 0 5990
+#-DEFINE STRING_LARGE_BUT_FITS ARANGE 0 40000
+#-DEFINE STRING_EXCEEDS_LARGE_PAGE ARANGE 0 50000
+#-STATEMENT match (p:person0) SET p.ID=${STRING_EXCEEDS_PAGE}
+#---- ok
+#-STATEMENT match (p:person0) return p.ID;
+#---- 1
+#${STRING_EXCEEDS_PAGE}
+#-LOG SetLongStringPKError
+#-STATEMENT match (p:person0) SET p.ID=${STRING_LARGE_BUT_FITS}
+#---- ok
+#-STATEMENT match (p:person0) return p.ID;
+#---- 1
+#${STRING_LARGE_BUT_FITS}

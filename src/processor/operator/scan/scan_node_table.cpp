@@ -16,9 +16,8 @@ void ScanNodeTableSharedState::initialize(transaction::Transaction* transaction,
     if (transaction->isWriteTransaction()) {
         if (const auto localTable = transaction->getLocalStorage()->getLocalTable(
                 this->table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
-            localNodeGroups = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable)
-                                  ->getTableData()
-                                  ->getNodeGroups();
+            auto& localNodeTable = localTable->cast<LocalNodeTable>();
+            this->numUnCommittedNodeGroups = localNodeTable.getNumNodeGroups();
         }
     }
 }
@@ -30,9 +29,8 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
         scanState.source = TableScanSource::COMMITTED;
         return;
     }
-    if (currentUnCommittedGroupIdx < localNodeGroups.size()) {
-        scanState.localNodeGroup = ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(
-            localNodeGroups[currentUnCommittedGroupIdx++]);
+    if (currentUnCommittedGroupIdx < numUnCommittedNodeGroups) {
+        scanState.nodeGroupIdx = currentUnCommittedGroupIdx++;
         scanState.source = TableScanSource::UNCOMMITTED;
         return;
     }
@@ -40,8 +38,18 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
 }
 
 void ScanNodeTableInfo::initScanState(NodeSemiMask* semiMask) {
-    localScanState =
-        std::make_unique<NodeTableScanState>(columnIDs, copyVector(columnPredicates), semiMask);
+    std::vector<Column*> columns;
+    columns.reserve(columnIDs.size());
+    for (const auto columnID : columnIDs) {
+        if (columnID == INVALID_COLUMN_ID) {
+            columns.push_back(nullptr);
+        } else {
+            columns.push_back(&table->getColumn(columnID));
+        }
+    }
+    localScanState = std::make_unique<NodeTableScanState>(table->getTableID(), columnIDs, columns,
+        copyVector(columnPredicates));
+    localScanState->semiMask = semiMask;
 }
 
 std::vector<NodeSemiMask*> ScanNodeTable::getSemiMasks() {
@@ -69,16 +77,16 @@ void ScanNodeTable::initGlobalStateInternal(ExecutionContext* context) {
 }
 
 bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
-    auto transaction = context->clientContext->getTx();
+    const auto transaction = context->clientContext->getTx();
     while (currentTableIdx < nodeInfos.size()) {
         const auto& info = nodeInfos[currentTableIdx];
         auto& scanState = *info.localScanState;
-        auto skipScan =
+        const auto skipScan =
             transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;
         if (!skipScan) {
             while (scanState.source != TableScanSource::NONE &&
                    info.table->scan(transaction, scanState)) {
-                if (scanState.nodeIDVector->state->getSelVector().getSelSize() > 0) {
+                if (scanState.IDVector->state->getSelVector().getSelSize() > 0) {
                     return true;
                 }
             }

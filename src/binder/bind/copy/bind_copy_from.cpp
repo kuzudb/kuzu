@@ -103,6 +103,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
             columnExprs.push_back(std::move(expr));
         }
     }
+    // TODO(Guodong): Should remove this expression.
     auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         std::string(InternalKeyword::ANONYMOUS));
     auto boundCopyFromInfo =

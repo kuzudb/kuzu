@@ -57,10 +57,6 @@ void IndexBuilderGlobalQueues::maybeConsumeIndex(size_t index) {
         std::move(queues));
 }
 
-void IndexBuilderGlobalQueues::flushToDisk() const {
-    pkIndex->prepareCommit();
-}
-
 IndexBuilderLocalBuffers::IndexBuilderLocalBuffers(IndexBuilderGlobalQueues& globalQueues)
     : globalQueues(&globalQueues) {
     TypeUtils::visit(
@@ -90,8 +86,7 @@ void IndexBuilderSharedState::quitProducer() {
 }
 
 void IndexBuilder::insert(const ColumnChunkData& chunk, offset_t nodeOffset, offset_t numNodes) {
-    checkNonNullConstraint(chunk.getNullChunk(), numNodes);
-
+    checkNonNullConstraint(chunk.getNullData(), numNodes);
     TypeUtils::visit(
         chunk.getDataType().getPhysicalType(),
         [&]<HashablePrimitive T>(T) {
@@ -127,7 +122,6 @@ void IndexBuilder::finalize(ExecutionContext* /*context*/) {
     localBuffers.flush();
 
     sharedState->consume();
-    sharedState->flush();
 }
 
 void IndexBuilder::checkNonNullConstraint(const NullChunkData& nullChunk, offset_t numNodes) {
