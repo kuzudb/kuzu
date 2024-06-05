@@ -19,6 +19,8 @@ class ProgressBar {
 public:
     ProgressBar();
 
+    static std::shared_ptr<ProgressBarDisplay> DefaultProgressBarDisplay();
+
     void addPipeline();
 
     void finishPipeline();
@@ -39,9 +41,9 @@ public:
 
     void setDisplay(std::shared_ptr<ProgressBarDisplay> progressBarDipslay);
 
-private:
-    static std::shared_ptr<ProgressBarDisplay> DefaultProgressBarDisplay();
+    bool getProgressBarPrinting() const { return trackProgress; }
 
+private:
     void resetProgressBar();
 
     void updateDisplay(double curPipelineProgress);

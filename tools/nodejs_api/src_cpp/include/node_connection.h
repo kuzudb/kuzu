@@ -5,6 +5,7 @@
 #include "main/kuzu.h"
 #include "node_database.h"
 #include "node_prepared_statement.h"
+#include "node_progress_bar_display.h"
 #include "node_query_result.h"
 #include <napi.h>
 
@@ -63,23 +64,41 @@ class ConnectionExecuteAsyncWorker : public Napi::AsyncWorker {
 public:
     ConnectionExecuteAsyncWorker(Napi::Function& callback, std::shared_ptr<Connection>& connection,
         std::shared_ptr<PreparedStatement> preparedStatement, NodeQueryResult* nodeQueryResult,
-        std::unordered_map<std::string, std::unique_ptr<Value>> params)
+        std::unordered_map<std::string, std::unique_ptr<Value>> params,
+        Napi::Value progressCallback)
         : Napi::AsyncWorker(callback), connection(connection),
           preparedStatement(std::move(preparedStatement)), nodeQueryResult(nodeQueryResult),
-          params(std::move(params)) {}
+          params(std::move(params)) {
+        if (progressCallback.IsFunction()) {
+            this->progressCallback = Napi::ThreadSafeFunction::New(Env(),
+                progressCallback.As<Napi::Function>(), "ProgressCallback", 0, 1);
+        }
+    }
+
     ~ConnectionExecuteAsyncWorker() override = default;
 
     void Execute() override {
+        auto progressBar = connection->getClientContext()->getProgressBar();
+        bool trackProgress = progressBar->getProgressBarPrinting();
+        if (progressCallback) {
+            progressBar->toggleProgressBarPrinting(true);
+            progressBar->setDisplay(
+                std::make_shared<NodeProgressBarDisplay>(*progressCallback, Env()));
+        }
         try {
             auto result =
                 connection->executeWithParams(preparedStatement.get(), std::move(params)).release();
             nodeQueryResult->SetQueryResult(result, true);
             if (!result->isSuccess()) {
                 SetError(result->getErrorMessage());
-                return;
             }
         } catch (const std::exception& exc) {
             SetError(std::string(exc.what()));
+        }
+        if (progressCallback) {
+            progressBar->toggleProgressBarPrinting(trackProgress);
+            progressBar->setDisplay(ProgressBar::DefaultProgressBarDisplay());
+            progressCallback->Release();
         }
     }
 
@@ -92,27 +111,44 @@ private:
     std::shared_ptr<PreparedStatement> preparedStatement;
     NodeQueryResult* nodeQueryResult;
     std::unordered_map<std::string, std::unique_ptr<Value>> params;
+    std::optional<Napi::ThreadSafeFunction> progressCallback;
 };
 
 class ConnectionQueryAsyncWorker : public Napi::AsyncWorker {
 public:
     ConnectionQueryAsyncWorker(Napi::Function& callback, std::shared_ptr<Connection>& connection,
-        std::string statement, NodeQueryResult* nodeQueryResult)
+        std::string statement, NodeQueryResult* nodeQueryResult, Napi::Value progressCallback)
         : Napi::AsyncWorker(callback), connection(connection), statement(std::move(statement)),
-          nodeQueryResult(nodeQueryResult) {}
+          nodeQueryResult(nodeQueryResult) {
+        if (progressCallback.IsFunction()) {
+            this->progressCallback = Napi::ThreadSafeFunction::New(Env(),
+                progressCallback.As<Napi::Function>(), "ProgressCallback", 0, 1);
+        }
+    }
 
     ~ConnectionQueryAsyncWorker() override = default;
 
     void Execute() override {
+        auto progressBar = connection->getClientContext()->getProgressBar();
+        bool trackProgress = progressBar->getProgressBarPrinting();
+        if (progressCallback) {
+            progressBar->toggleProgressBarPrinting(true);
+            progressBar->setDisplay(
+                std::make_shared<NodeProgressBarDisplay>(*progressCallback, Env()));
+        }
         try {
             auto result = connection->query(statement).release();
             nodeQueryResult->SetQueryResult(result, true);
             if (!result->isSuccess()) {
                 SetError(result->getErrorMessage());
-                return;
             }
         } catch (const std::exception& exc) {
             SetError(std::string(exc.what()));
+        }
+        if (progressCallback) {
+            progressBar->toggleProgressBarPrinting(trackProgress);
+            progressBar->setDisplay(ProgressBar::DefaultProgressBarDisplay());
+            progressCallback->Release();
         }
     }
 
@@ -124,4 +160,5 @@ private:
     std::shared_ptr<Connection> connection;
     std::string statement;
     NodeQueryResult* nodeQueryResult;
+    std::optional<Napi::ThreadSafeFunction> progressCallback;
 };
