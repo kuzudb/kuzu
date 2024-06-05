@@ -159,8 +159,7 @@ public:
     void finalize(ExecutionContext* context);
 
 private:
-    void checkNonNullConstraint(const storage::NullChunkData& nullChunk,
-        common::offset_t numNodes);
+    void checkNonNullConstraint(const storage::NullChunkData& nullChunk, common::offset_t numNodes);
     std::shared_ptr<IndexBuilderSharedState> sharedState;
 
     IndexBuilderLocalBuffers localBuffers;

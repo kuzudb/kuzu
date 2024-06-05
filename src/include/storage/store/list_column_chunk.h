@@ -31,7 +31,9 @@ public:
     ListChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
         bool inMemory);
 
-    ColumnChunkData* getDataColumnChunk() const { return listDataColumnChunk->dataColumnChunk.get(); }
+    ColumnChunkData* getDataColumnChunk() const {
+        return listDataColumnChunk->dataColumnChunk.get();
+    }
 
     ColumnChunkData* getSizeColumnChunk() const { return sizeColumnChunk.get(); }
 
