@@ -26,7 +26,7 @@ public:
     }
 
     uint64_t getFileSize() const;
-    FileInfo& getFileInfo() { return *fileInfo; }
+    FileInfo& getFileInfo() const { return *fileInfo; }
 
 protected:
     std::unique_ptr<uint8_t[]> buffer;

@@ -19,41 +19,41 @@ namespace storage {
 using string_index_t = DictionaryChunk::string_index_t;
 using string_offset_t = DictionaryChunk::string_offset_t;
 
-StringColumn::StringColumn(std::string name, LogicalType dataType,
-    const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, DiskArrayCollection& metadataDAC,
-    BufferManager* bufferManager, WAL* wal, Transaction* transaction, bool enableCompression)
-    : Column{name, std::move(dataType), metaDAHeaderInfo, dataFH, metadataDAC, bufferManager, wal,
-          transaction, enableCompression, true /* requireNullColumn */},
-      dictionary{name, metaDAHeaderInfo, dataFH, metadataDAC, bufferManager, wal, transaction,
-          enableCompression} {
-
+StringColumn::StringColumn(std::string name, LogicalType dataType, BMFileHandle* dataFH,
+    BufferManager* bufferManager, WAL* wal, bool enableCompression)
+    : Column{name, std::move(dataType), dataFH, bufferManager, wal, enableCompression,
+          true /* requireNullColumn */},
+      dictionary{name, dataFH, bufferManager, wal, enableCompression} {
     auto indexColumnName =
         StorageUtils::getColumnName(name, StorageUtils::ColumnType::INDEX, "index");
-    indexColumn = std::make_unique<Column>(indexColumnName, LogicalType::UINT32(),
-        *metaDAHeaderInfo.childrenInfos[2], dataFH, metadataDAC, bufferManager, wal, transaction,
-        enableCompression, false /*requireNullColumn*/);
+    indexColumn = std::make_unique<Column>(indexColumnName, LogicalType::UINT32(), dataFH,
+        bufferManager, wal, enableCompression, false /*requireNullColumn*/);
 }
 
-Column::ChunkState& StringColumn::getChildState(ChunkState& state, ChildStateIndex child) {
-    const auto childIdx = static_cast<common::idx_t>(child);
+ChunkState& StringColumn::getChildState(ChunkState& state, ChildStateIndex child) {
+    const auto childIdx = static_cast<idx_t>(child);
     return state.getChildState(childIdx);
 }
 
-const Column::ChunkState& StringColumn::getChildState(const ChunkState& state,
-    ChildStateIndex child) {
-    const auto childIdx = static_cast<common::idx_t>(child);
+const ChunkState& StringColumn::getChildState(const ChunkState& state, ChildStateIndex child) {
+    const auto childIdx = static_cast<idx_t>(child);
     return state.getChildState(childIdx);
 }
 
-void StringColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    ChunkState& state) {
-    Column::initChunkState(transaction, nodeGroupIdx, state);
-    state.childrenStates.resize(CHILD_STATE_COUNT);
-    indexColumn->initChunkState(transaction, nodeGroupIdx,
-        getChildState(state, ChildStateIndex::INDEX));
-    dictionary.initChunkState(transaction, nodeGroupIdx, state);
-    KU_ASSERT(state.metadata.numValues ==
-              getChildState(state, ChildStateIndex::INDEX).metadata.numValues);
+std::unique_ptr<ColumnChunkData> StringColumn::flushChunkData(const ColumnChunkData& chunkData,
+    BMFileHandle& dataFH) {
+    auto flushedChunkData = flushNonNestedChunkData(chunkData, dataFH);
+    auto& flushedStringData = flushedChunkData->cast<StringChunkData>();
+
+    auto& stringChunk = chunkData.cast<StringChunkData>();
+    flushedStringData.setIndexChunk(
+        Column::flushChunkData(*stringChunk.getIndexColumnChunk(), dataFH));
+    auto& dictChunk = stringChunk.getDictionaryChunk();
+    flushedStringData.getDictionaryChunk().setOffsetChunk(
+        Column::flushChunkData(*dictChunk.getOffsetChunk(), dataFH));
+    flushedStringData.getDictionaryChunk().setStringDataChunk(
+        Column::flushChunkData(*dictChunk.getStringDataChunk(), dataFH));
+    return flushedChunkData;
 }
 
 void StringColumn::scan(Transaction* transaction, const ChunkState& state,
@@ -96,7 +96,7 @@ void StringColumn::writeValue(ChunkState& state, offset_t offsetInChunk,
     // null data
     KU_ASSERT(!vectorToWriteFrom->isNull(posInVectorToWriteFrom));
     indexColumn->writeValues(getChildState(state, ChildStateIndex::INDEX), offsetInChunk,
-        (uint8_t*)&index, nullptr /*nullChunkData*/);
+        reinterpret_cast<uint8_t*>(&index), nullptr /*nullChunkData*/);
     updateStatistics(state.metadata, offsetInChunk, StorageValue(index), StorageValue(index));
     indexColumn->updateStatistics(getChildState(state, ChildStateIndex::INDEX).metadata,
         offsetInChunk, StorageValue(index), StorageValue(index));
@@ -109,7 +109,7 @@ void StringColumn::write(ChunkState& state, offset_t dstOffset, ColumnChunkData*
     std::vector<string_index_t> indices;
     indices.resize(numValues);
     for (auto i = 0u; i < numValues; i++) {
-        if (strChunk.getNullChunk()->isNull(i + srcOffset)) {
+        if (strChunk.getNullData()->isNull(i + srcOffset)) {
             indices[i] = 0;
             continue;
         }
@@ -117,8 +117,8 @@ void StringColumn::write(ChunkState& state, offset_t dstOffset, ColumnChunkData*
         indices[i] = dictionary.append(state, strVal);
     }
     NullMask nullMask(numValues);
-    nullMask.copyFromNullBits(data->getNullChunk()->getNullMask().getData(), srcOffset,
-        0 /*dstOffset=*/, numValues);
+    nullMask.copyFromNullBits(data->getNullData()->getNullMask().getData(), srcOffset,
+        0 /*dstOffset*/, numValues);
     // Write index to main column
     indexColumn->writeValues(getChildState(state, ChildStateIndex::INDEX), dstOffset,
         reinterpret_cast<const uint8_t*>(&indices[0]), &nullMask, 0 /*srcOffset*/, numValues);
@@ -130,10 +130,10 @@ void StringColumn::write(ChunkState& state, offset_t dstOffset, ColumnChunkData*
         dstOffset + numValues - 1, minWritten, maxWritten);
 }
 
-void StringColumn::scanInternal(Transaction* transaction, const ChunkState& state, idx_t vectorIdx,
-    row_idx_t numValuesToScan, ValueVector* nodeIDVector, ValueVector* resultVector) {
+void StringColumn::scanInternal(Transaction* transaction, const ChunkState& state,
+    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
+    ValueVector* resultVector) {
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-    const auto startOffsetInChunk = vectorIdx * DEFAULT_VECTOR_CAPACITY;
     if (nodeIDVector->state->getSelVector().isUnfiltered()) {
         scanUnfiltered(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
     } else {
@@ -144,7 +144,8 @@ void StringColumn::scanInternal(Transaction* transaction, const ChunkState& stat
 void StringColumn::scanUnfiltered(Transaction* transaction, const ChunkState& readState,
     offset_t startOffsetInChunk, offset_t numValuesToRead, ValueVector* resultVector,
     sel_t startPosInVector) {
-    // TODO: Replace indices with ValueVector to avoid maintaining `scan` interface from uint8_t*.
+    // TODO: Replace indices with ValueVector to avoid maintaining `scan` interface from
+    // uint8_t*.
     auto indices = std::make_unique<string_index_t[]>(numValuesToRead);
     indexColumn->scan(transaction, getChildState(readState, ChildStateIndex::INDEX),
         startOffsetInChunk, startOffsetInChunk + numValuesToRead,
@@ -214,32 +215,32 @@ void StringColumn::lookupInternal(Transaction* transaction, ChunkState& readStat
         getChildState(readState, ChildStateIndex::INDEX).metadata);
 }
 
-bool StringColumn::canCommitInPlace(const ChunkState& state,
-    const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
-    const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo) {
-    auto strLenToAdd = 0u;
-    for (auto& [_, rowIdx] : updateInfo) {
-        auto [chunkIdx, offsetInLocalChunk] =
-            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-        auto& localUpdateChunk = localUpdateChunks[chunkIdx]->cast<StringChunkData>();
-        strLenToAdd += localUpdateChunk.getStringLength(offsetInLocalChunk);
-    }
-    offset_t maxOffset = 0u;
-    for (auto& [offset, rowIdx] : insertInfo) {
-        if (offset > maxOffset) {
-            maxOffset = offset;
-        }
-        auto [chunkIdx, offsetInLocalChunk] =
-            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-        auto& localInsertChunk = localInsertChunks[chunkIdx]->cast<StringChunkData>();
-        strLenToAdd += localInsertChunk.getStringLength(offsetInLocalChunk);
-    }
-    auto numStrings = insertInfo.size() + updateInfo.size();
-    if (!dictionary.canCommitInPlace(state, numStrings, strLenToAdd)) {
-        return false;
-    }
-    return canIndexCommitInPlace(state, numStrings, maxOffset);
-}
+// bool StringColumn::canCommitInPlace(const ChunkState& state,
+//     const ChunkDataCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+//     const ChunkDataCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo) {
+//     auto strLenToAdd = 0u;
+//     for (auto& [_, rowIdx] : updateInfo) {
+//     auto [chunkIdx, offsetInLocalChunk] =
+//     LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+//     auto& localUpdateChunk = localUpdateChunks[chunkIdx]->cast<StringChunkData>();
+//     strLenToAdd += localUpdateChunk.getStringLength(offsetInLocalChunk);
+//     }
+//     offset_t maxOffset = 0u;
+//     for (auto& [offset, rowIdx] : insertInfo) {
+//         if (offset > maxOffset) {
+//             maxOffset = offset;
+//         }
+//         auto [chunkIdx, offsetInLocalChunk] =
+//         LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+//         auto& localInsertChunk = localInsertChunks[chunkIdx]->cast<StringChunkData>();
+//         strLenToAdd += localInsertChunk.getStringLength(offsetInLocalChunk);
+//     }
+//     auto numStrings = insertInfo.size() + updateInfo.size();
+//     if (!dictionary.canCommitInPlace(state, numStrings, strLenToAdd)) {
+//         return false;
+//     }
+//     return canIndexCommitInPlace(state, numStrings, maxOffset);
+// }
 
 bool StringColumn::canCommitInPlace(const ChunkState& state,
     const std::vector<offset_t>& dstOffsets, ColumnChunkData* chunk, offset_t srcOffset) {
@@ -247,7 +248,7 @@ bool StringColumn::canCommitInPlace(const ChunkState& state,
     auto& strChunk = chunk->cast<StringChunkData>();
     auto length = std::min((uint64_t)dstOffsets.size(), strChunk.getNumValues());
     for (auto i = 0u; i < length; i++) {
-        if (strChunk.getNullChunk()->isNull(i)) {
+        if (strChunk.getNullData()->isNull(i)) {
             continue;
         }
         strLenToAdd += strChunk.getStringLength(i + srcOffset);
@@ -277,48 +278,6 @@ bool StringColumn::canIndexCommitInPlace(const ChunkState& state, uint64_t numSt
         return false;
     }
     return true;
-}
-
-void StringColumn::prepareCommit() {
-    Column::prepareCommit();
-    indexColumn->prepareCommit();
-    dictionary.prepareCommit();
-}
-
-void StringColumn::checkpointInMemory() {
-    Column::checkpointInMemory();
-    indexColumn->checkpointInMemory();
-    dictionary.checkpointInMemory();
-}
-
-void StringColumn::rollbackInMemory() {
-    Column::rollbackInMemory();
-    indexColumn->rollbackInMemory();
-    dictionary.rollbackInMemory();
-}
-
-void StringColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkState& state,
-    const ChunkCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
-    const ChunkCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo,
-    const offset_set_t& deleteInfo) {
-    Column::prepareCommitForExistingChunk(transaction, state, localInsertChunk, insertInfo,
-        localUpdateChunk, updateInfo, deleteInfo);
-
-    const auto& indexState = getChildState(state, ChildStateIndex::INDEX);
-    // The changes for the child column are commited by the main column.
-    // Explicitly applying the commit for the child column could overwrite the column with the
-    // incorrect values. For example, the indices are set by the main column and not the child.
-    // Thus, we call prepareCommitForExistingChunk() on the main column only
-    indexColumn->metadataDA->update(transaction, indexState.nodeGroupIdx, indexState.metadata);
-}
-
-void StringColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkState& state,
-    const std::vector<offset_t>& dstOffsets, ColumnChunkData* chunk, offset_t srcOffset) {
-    KU_ASSERT(chunk->getDataType().getPhysicalType() == dataType.getPhysicalType());
-    Column::prepareCommitForExistingChunk(transaction, state, dstOffsets, chunk, srcOffset);
-
-    const auto& indexState = getChildState(state, ChildStateIndex::INDEX);
-    indexColumn->metadataDA->update(transaction, indexState.nodeGroupIdx, indexState.metadata);
 }
 
 void StringColumn::updateStateMetadataNumValues(ChunkState& state, size_t numValues) {

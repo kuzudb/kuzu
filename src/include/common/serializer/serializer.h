@@ -61,6 +61,17 @@ public:
         }
     }
 
+    template<typename T, uint64_t ARRAY_SIZE>
+    void serializeArray(const std::array<T, ARRAY_SIZE>& values) {
+        for (auto& value : values) {
+            if constexpr (requires(Serializer& ser) { value.serialize(ser); }) {
+                value.serialize(*this);
+            } else {
+                serializeValue<T>(value);
+            }
+        }
+    }
+
     template<typename T>
     void serializeVectorOfPtrs(const std::vector<std::unique_ptr<T>>& values) {
         uint64_t vectorSize = values.size();

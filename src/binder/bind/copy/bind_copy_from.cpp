@@ -104,6 +104,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
         columns.push_back(column);
         evaluateTypes.push_back(evaluateType);
     }
+    // TODO(Guodong): Should remove this expression.
     auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         std::string(InternalKeyword::ANONYMOUS));
     auto boundCopyFromInfo = BoundCopyFromInfo(nodeTableEntry, std::move(boundSource),

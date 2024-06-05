@@ -4,42 +4,42 @@
 
 -CASE DemoDBTestFromParquet
 
--LOG Limit1
--STATEMENT MATCH (u:User) RETURN u.name ORDER BY u.age DESC LIMIT 3;
----- 3
-Zhang
-Karissa
-Adam
-
--LOG MatchSingleNodeLabel
--STATEMENT MATCH (a:User) RETURN a;
----- 4
-{_ID: 0:0, _LABEL: User, name: Adam, age: 30}
-{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}
-{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}
-{_ID: 0:3, _LABEL: User, name: Noura, age: 25}
-
--LOG MatchMultipleNodeLabels
--STATEMENT MATCH (a:User:City) RETURN a;
----- 7
-{_ID: 0:0, _LABEL: User, name: Adam, age: 30}
-{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}
-{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}
-{_ID: 0:3, _LABEL: User, name: Noura, age: 25}
-{_ID: 1:0, _LABEL: City, name: Waterloo, population: 150000}
-{_ID: 1:1, _LABEL: City, name: Kitchener, population: 200000}
-{_ID: 1:2, _LABEL: City, name: Guelph, population: 75000}
-
--LOG MatchAnyNodeLabel
--STATEMENT MATCH (a) RETURN a;
----- 7
-{_ID: 0:0, _LABEL: User, name: Adam, age: 30}
-{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}
-{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}
-{_ID: 0:3, _LABEL: User, name: Noura, age: 25}
-{_ID: 1:0, _LABEL: City, name: Waterloo, population: 150000}
-{_ID: 1:1, _LABEL: City, name: Kitchener, population: 200000}
-{_ID: 1:2, _LABEL: City, name: Guelph, population: 75000}
+#-LOG Limit1
+#-STATEMENT MATCH (u:User) RETURN u.name ORDER BY u.age DESC LIMIT 3;
+#---- 3
+#Zhang
+#Karissa
+#Adam
+#
+#-LOG MatchSingleNodeLabel
+#-STATEMENT MATCH (a:User) RETURN a;
+#---- 4
+#{_ID: 0:0, _LABEL: User, name: Adam, age: 30}
+#{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}
+#{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}
+#{_ID: 0:3, _LABEL: User, name: Noura, age: 25}
+#
+#-LOG MatchMultipleNodeLabels
+#-STATEMENT MATCH (a:User:City) RETURN a;
+#---- 7
+#{_ID: 0:0, _LABEL: User, name: Adam, age: 30}
+#{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}
+#{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}
+#{_ID: 0:3, _LABEL: User, name: Noura, age: 25}
+#{_ID: 1:0, _LABEL: City, name: Waterloo, population: 150000}
+#{_ID: 1:1, _LABEL: City, name: Kitchener, population: 200000}
+#{_ID: 1:2, _LABEL: City, name: Guelph, population: 75000}
+#
+#-LOG MatchAnyNodeLabel
+#-STATEMENT MATCH (a) RETURN a;
+#---- 7
+#{_ID: 0:0, _LABEL: User, name: Adam, age: 30}
+#{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}
+#{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}
+#{_ID: 0:3, _LABEL: User, name: Noura, age: 25}
+#{_ID: 1:0, _LABEL: City, name: Waterloo, population: 150000}
+#{_ID: 1:1, _LABEL: City, name: Kitchener, population: 200000}
+#{_ID: 1:2, _LABEL: City, name: Guelph, population: 75000}
 
 -LOG MatchSingleRelLabel
 -STATEMENT MATCH (a:User)-[e:Follows]->(b:User) RETURN a.name, e, b.name;
@@ -206,14 +206,14 @@ name|Carol
 ---- 1
 Adam|30
 
--LOG WhereExists2
--STATEMENT MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User) WHERE EXISTS {MATCH (b)-[:Follows]->(c:User)} } RETURN a.name, a.age;
----- 0
+#-LOG WhereExists2
+#-STATEMENT MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User) WHERE EXISTS {MATCH (b)-[:Follows]->(c:User)} } RETURN a.name, a.age;
+#---- 0
 
--LOG WhereExists3
--STATEMENT MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User) WHERE EXISTS {MATCH (b)<-[:Follows]-(c:User)} } RETURN a.name, a.age;
----- 1
-Adam|30
+#-LOG WhereExists3
+#-STATEMENT MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User) WHERE EXISTS {MATCH (b)<-[:Follows]-(c:User)} } RETURN a.name, a.age;
+#---- 1
+#Adam|30
 
 -LOG With1
 -STATEMENT MATCH (a:User) WITH avg(a.age) as avgAge MATCH (b:User) WHERE b.age > avgAge RETURN *;

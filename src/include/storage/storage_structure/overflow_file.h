@@ -150,5 +150,6 @@ public:
     explicit InMemOverflowFile(const DBFileIDAndName& dbFileIDAndName)
         : OverflowFile{dbFileIDAndName} {}
 };
+
 } // namespace storage
 } // namespace kuzu
