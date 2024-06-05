@@ -41,7 +41,7 @@ public:
 
     void setDisplay(std::shared_ptr<ProgressBarDisplay> progressBarDipslay);
 
-    bool getProgressBarPrinting() { return trackProgress; }
+    bool getProgressBarPrinting() const { return trackProgress; }
 
 private:
     void resetProgressBar();
