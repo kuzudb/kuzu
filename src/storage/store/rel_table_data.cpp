@@ -952,7 +952,7 @@ void RelTableData::updateCSRHeader(Transaction* transaction, node_group_idx_t no
 
 void RelTableData::commitCSRHeaderChunk(Transaction* transaction, bool isNewNodeGroup,
     node_group_idx_t nodeGroupIdx, Column* column, ColumnChunkData* chunk,
-    const LocalState& localState, const std::vector<common::offset_t>& dstOffsets) {
+    const LocalState& localState, const std::vector<offset_t>& dstOffsets) {
     Column::ChunkState state;
     column->initChunkState(transaction, nodeGroupIdx, state);
     if (!isNewNodeGroup) {
