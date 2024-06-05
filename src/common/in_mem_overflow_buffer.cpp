@@ -7,7 +7,7 @@ uint8_t* InMemOverflowBuffer::allocateSpace(uint64_t size) {
     if (requireNewBlock(size)) {
         allocateNewBlock(size);
     }
-    auto data = currentBlock->block->buffer + currentBlock->currentOffset;
+    auto data = currentBlock->data() + currentBlock->currentOffset;
     currentBlock->currentOffset += size;
     return data;
 }

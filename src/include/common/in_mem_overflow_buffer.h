@@ -11,10 +11,12 @@ namespace common {
 struct BufferBlock {
 public:
     explicit BufferBlock(std::unique_ptr<storage::MemoryBuffer> block)
-        : size{block->size}, currentOffset{0}, block{std::move(block)} {}
+        : currentOffset{0}, block{std::move(block)} {}
+
+    inline uint64_t size() const { return block->buffer.size(); }
+    inline uint8_t* data() const { return block->buffer.data(); }
 
 public:
-    uint64_t size;
     uint64_t currentOffset;
     std::unique_ptr<storage::MemoryBuffer> block;
 
@@ -47,7 +49,7 @@ public:
 private:
     bool requireNewBlock(uint64_t sizeToAllocate) {
         return currentBlock == nullptr ||
-               (currentBlock->currentOffset + sizeToAllocate) > currentBlock->size;
+               (currentBlock->currentOffset + sizeToAllocate) > currentBlock->size();
     }
 
     void allocateNewBlock(uint64_t size);

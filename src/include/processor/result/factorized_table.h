@@ -24,18 +24,17 @@ struct BlockAppendingInfo {
 // released when this struct goes out of scope.
 class DataBlock {
 public:
-    DataBlock(storage::MemoryManager* mm, uint64_t size)
-        : numTuples{0}, totalSize{size}, freeSize{size} {
+    DataBlock(storage::MemoryManager* mm, uint64_t size) : numTuples{0}, freeSize{size} {
         block = mm->allocateBuffer(true /* initializeToZero */, size);
     }
 
-    uint8_t* getData() const { return block->buffer; }
-    uint8_t* getWritableData() const { return block->buffer + totalSize - freeSize; }
+    uint8_t* getData() const { return block->buffer.data(); }
+    uint8_t* getWritableData() const { return block->buffer.last(freeSize).data(); }
     void resetNumTuplesAndFreeSize() {
-        freeSize = totalSize;
+        freeSize = block->buffer.size();
         numTuples = 0;
     }
-    void resetToZero() { memset(block->buffer, 0, totalSize); }
+    void resetToZero() { memset(block->buffer.data(), 0, block->buffer.size()); }
 
     static void copyTuples(DataBlock* blockToCopyFrom, ft_tuple_idx_t tupleIdxToCopyFrom,
         DataBlock* blockToCopyInto, ft_tuple_idx_t tupleIdxToCopyTo, uint32_t numTuplesToCopy,
@@ -43,7 +42,6 @@ public:
 
 public:
     uint32_t numTuples;
-    uint64_t totalSize;
     uint64_t freeSize;
 
 private:

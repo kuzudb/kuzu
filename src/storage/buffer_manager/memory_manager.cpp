@@ -11,10 +11,10 @@ namespace storage {
 
 MemoryBuffer::MemoryBuffer(MemoryAllocator* allocator, page_idx_t pageIdx, uint8_t* buffer,
     uint64_t size)
-    : buffer{buffer}, pageIdx{pageIdx}, allocator{allocator}, size{size} {}
+    : buffer{buffer, size}, pageIdx{pageIdx}, allocator{allocator} {}
 
 MemoryBuffer::~MemoryBuffer() {
-    if (buffer != nullptr) {
+    if (buffer.data() != nullptr) {
         allocator->freeBlock(pageIdx, buffer);
     }
 }
@@ -32,6 +32,7 @@ MemoryAllocator::~MemoryAllocator() = default;
 std::unique_ptr<MemoryBuffer> MemoryAllocator::allocateBuffer(bool initializeToZero,
     uint64_t size) {
     if (size > BufferPoolConstants::PAGE_256KB_SIZE) [[unlikely]] {
+        bm->reserve(size);
         auto buffer = malloc(size);
         if (initializeToZero) {
             memset(buffer, 0, size);
@@ -52,14 +53,15 @@ std::unique_ptr<MemoryBuffer> MemoryAllocator::allocateBuffer(bool initializeToZ
     auto buffer = bm->pin(*fh, pageIdx, BufferManager::PageReadPolicy::DONT_READ_PAGE);
     auto memoryBuffer = std::make_unique<MemoryBuffer>(this, pageIdx, buffer);
     if (initializeToZero) {
-        memset(memoryBuffer->buffer, 0, pageSize);
+        memset(memoryBuffer->buffer.data(), 0, pageSize);
     }
     return memoryBuffer;
 }
 
-void MemoryAllocator::freeBlock(page_idx_t pageIdx, uint8_t* buffer) {
+void MemoryAllocator::freeBlock(page_idx_t pageIdx, std::span<uint8_t> buffer) {
     if (pageIdx == INVALID_PAGE_IDX) {
-        std::free(buffer);
+        bm->freeUsedMemory(buffer.size());
+        std::free(buffer.data());
         return;
     } else {
         bm->unpin(*fh, pageIdx);
