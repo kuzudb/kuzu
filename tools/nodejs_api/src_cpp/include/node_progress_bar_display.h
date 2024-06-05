@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iostream>
-
 #include "common/task_system/progress_bar_display.h"
 #include <napi.h>
 
