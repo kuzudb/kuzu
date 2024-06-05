@@ -129,23 +129,9 @@ void NodeBatchInsert::populateDefaultColumns(main::ClientContext* context) {
     auto numTuples = nodeLocalState->columnState->getSelVector().getSelSize();
     for (auto i = 0u; i < nodeInfo->defaultColumns.size(); ++i) {
         if (nodeInfo->defaultColumns[i]) {
-            auto defaultVector = nodeLocalState->columnVectors[i];
             auto& defaultEvaluator = nodeInfo->columnEvaluators[i];
-            if (nodeInfo->columnTypes[i].getLogicalTypeID() == LogicalTypeID::SERIAL) {
-                auto catalog = context->getCatalog();
-                auto seqName = common::genSerialName(nodeInfo->tableEntry->getName(), 
-                    nodeInfo->tableEntry->getProperty(i)->getName());
-                auto seqID = catalog->getSequenceID(context->getTx(), seqName);
-                auto seqEntry = catalog->getSequenceCatalogEntry(context->getTx(), seqID);
-                auto result = seqEntry->nextKVal(numTuples);
-                nodeLocalState->columnVectors[i] = result.get();
-                nodeLocalState->defaultColumnVectors.emplace_back(std::move(result));
-                continue;
-            }
-            for (auto j = 0; j < numTuples; ++j) {
-                defaultEvaluator->evaluate(context);
-                defaultVector->copyFromVectorData(j, defaultEvaluator->resultVector.get(), 0);
-            }
+            defaultEvaluator->evaluateMultiple(context, numTuples);
+            nodeLocalState->columnVectors[i] = defaultEvaluator->resultVector.get();
         }
     }
 }

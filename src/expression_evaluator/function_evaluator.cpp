@@ -1,6 +1,10 @@
 #include "expression_evaluator/function_evaluator.h"
 
 #include "binder/expression/function_expression.h"
+#include "catalog/catalog.h"
+#include "catalog/catalog_entry/sequence_catalog_entry.h"
+#include "function/sequence/sequence_functions.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;
@@ -28,6 +32,26 @@ void FunctionExpressionEvaluator::evaluate(ClientContext* clientContext) {
         bindData->clientContext = clientContext;
         execFunc(parameters, *resultVector, bindData);
     }
+}
+
+void FunctionExpressionEvaluator::evaluateMultiple(ClientContext* clientContext, const uint64_t& count) {
+    for (auto& child : children) {
+        child->evaluateMultiple(clientContext, count);
+    }
+    auto expr = expression->constPtrCast<binder::ScalarFunctionExpression>();
+    if (expr->getFunctionName() == function::NextValFunction::name) {
+        auto catalog = clientContext->getCatalog();
+        auto seqName = children[0]->resultVector->getAsValue(0)->strVal;
+        auto seqID = catalog->getSequenceID(clientContext->getTx(), seqName);
+        auto seqEntry = catalog->getSequenceCatalogEntry(clientContext->getTx(), seqID);
+        resultVector = seqEntry->nextKVal(count);
+    } else if (execFunc != nullptr) {
+        auto bindData = expr->getBindData();
+        bindData->clientContext = clientContext;
+        execFunc(parameters, *resultVector, bindData);
+    }
+    resultVector->state = std::make_shared<DataChunkState>(count);
+    resultVector->state->getSelVectorUnsafe().setSelSize(count);
 }
 
 bool FunctionExpressionEvaluator::select(SelectionVector& selVector,

@@ -13,7 +13,10 @@ public:
         : ExpressionEvaluator{std::move(children)}, pattern{std::move(pattern)} {}
 
     void evaluate(main::ClientContext* clientContext) override;
-
+    
+    void evaluateMultiple(main::ClientContext* /* clientContext */, const uint64_t& /* count */) 
+        override { KU_UNREACHABLE; };
+        
     bool select(common::SelectionVector&, main::ClientContext*) override { KU_UNREACHABLE; }
 
     std::unique_ptr<ExpressionEvaluator> clone() override;

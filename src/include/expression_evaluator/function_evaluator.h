@@ -22,6 +22,8 @@ public:
 
     void evaluate(main::ClientContext* clientContext) override;
 
+    void evaluateMultiple(main::ClientContext* clientContext, const uint64_t& count) override;
+
     bool select(common::SelectionVector& selVector, main::ClientContext* clientContext) override;
 
     std::unique_ptr<ExpressionEvaluator> clone() override;

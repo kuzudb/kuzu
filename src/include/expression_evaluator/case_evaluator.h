@@ -42,6 +42,9 @@ public:
         storage::MemoryManager* memoryManager) override;
 
     void evaluate(main::ClientContext* clientContext) override;
+    
+    void evaluateMultiple(main::ClientContext* /* clientContext */, const uint64_t& /* count */) 
+        override { KU_UNREACHABLE; };
 
     bool select(common::SelectionVector& selVector, main::ClientContext* clientContext) override;
 

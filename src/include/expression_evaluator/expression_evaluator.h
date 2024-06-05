@@ -24,6 +24,8 @@ public:
 
     virtual void evaluate(main::ClientContext* clientContext) = 0;
 
+    virtual void evaluateMultiple(main::ClientContext* clientContext, const uint64_t& count) = 0;
+
     virtual bool select(common::SelectionVector& selVector, main::ClientContext* clientContext) = 0;
 
     virtual std::unique_ptr<ExpressionEvaluator> clone() = 0;
