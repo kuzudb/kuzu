@@ -3,11 +3,11 @@
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/property_expression.h"
 #include "main/client_context.h"
+#include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/logical_empty_result.h"
 #include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
-#include "planner/operator/extend/logical_extend.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -31,9 +31,9 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitOperator(
         return visitCrossProductReplace(op);
     }
         // TODO(Xiyang/Ben): enable filter push down to EXTEND after fixing zonemap of rel table.
-//    case LogicalOperatorType::EXTEND: {
-//        return visitExtendReplace(op);
-//    }
+        //    case LogicalOperatorType::EXTEND: {
+        //        return visitExtendReplace(op);
+        //    }
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         return visitScanNodeTableReplace(op);
     }
@@ -125,7 +125,8 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductRepla
     return appendFilters(predicates, hashJoin);
 }
 
-static ColumnPredicateSet getPropertyPredicateSet(const Expression& property, const binder::expression_vector& predicates) {
+static ColumnPredicateSet getPropertyPredicateSet(const Expression& property,
+    const binder::expression_vector& predicates) {
     auto propertyPredicateSet = ColumnPredicateSet();
     for (auto& predicate : predicates) {
         auto columnPredicate = ColumnPredicateUtil::tryConvert(property, *predicate);
@@ -176,8 +177,10 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodeTableRepl
     return finishPushDown(op);
 }
 
-std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitExtendReplace(const std::shared_ptr<LogicalOperator>& op) {
-    if (op->ptrCast<BaseLogicalExtend>()->isRecursive() || !context->getClientConfig()->enableZoneMap) {
+std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitExtendReplace(
+    const std::shared_ptr<LogicalOperator>& op) {
+    if (op->ptrCast<BaseLogicalExtend>()->isRecursive() ||
+        !context->getClientConfig()->enableZoneMap) {
         return finishPushDown(op);
     }
     auto& extend = op->cast<LogicalExtend>();

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "common/enums/zone_map_check_result.h"
+#include "storage/predicate/column_predicate.h"
 #include "storage/stats/table_statistics_collection.h"
 #include "storage/store/table_data.h"
-#include "storage/predicate/column_predicate.h"
 
 namespace kuzu {
 namespace storage {
@@ -22,8 +22,10 @@ struct TableScanState {
     std::vector<ColumnPredicateSet> columnPredicateSets;
     common::ZoneMapCheckResult zoneMapResult = common::ZoneMapCheckResult::ALWAYS_SCAN;
 
-    TableScanState(std::vector<common::column_id_t> columnIDs, std::vector<ColumnPredicateSet> columnPredicateSets)
-        : nodeIDVector(nullptr), columnIDs{std::move(columnIDs)}, columnPredicateSets{std::move(columnPredicateSets)} {}
+    TableScanState(std::vector<common::column_id_t> columnIDs,
+        std::vector<ColumnPredicateSet> columnPredicateSets)
+        : nodeIDVector(nullptr), columnIDs{std::move(columnIDs)},
+          columnPredicateSets{std::move(columnPredicateSets)} {}
     virtual ~TableScanState() = default;
     DELETE_COPY_AND_MOVE(TableScanState);
 

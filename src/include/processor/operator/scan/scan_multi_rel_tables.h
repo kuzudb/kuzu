@@ -27,9 +27,7 @@ public:
         : relInfos{std::move(relInfos)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(RelTableCollectionScanner);
 
-    bool empty() const {
-        return relInfos.empty();
-    }
+    bool empty() const { return relInfos.empty(); }
 
     void resetState() {
         currentTableIdx = 0;
@@ -55,11 +53,10 @@ class ScanMultiRelTable : public ScanTable {
 
 public:
     ScanMultiRelTable(ScanTableInfo info, DirectionInfo directionInfo,
-        common::table_id_map_t<RelTableCollectionScanner> scanners, std::unique_ptr<PhysicalOperator> child,
-        uint32_t id, const std::string& paramsString)
+        common::table_id_map_t<RelTableCollectionScanner> scanners,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : ScanTable{type_, std::move(info), std::move(child), id, paramsString},
-          directionInfo{std::move(directionInfo)},
-          scanners{std::move(scanners)} {}
+          directionInfo{std::move(directionInfo)}, scanners{std::move(scanners)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 

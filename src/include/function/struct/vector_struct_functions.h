@@ -27,8 +27,7 @@ struct StructPackFunctions {
 struct StructExtractBindData : public FunctionBindData {
     common::idx_t childIdx;
 
-    StructExtractBindData(std::unique_ptr<common::LogicalType> dataType,
-        common::idx_t childIdx)
+    StructExtractBindData(std::unique_ptr<common::LogicalType> dataType, common::idx_t childIdx)
         : FunctionBindData{std::move(dataType)}, childIdx{childIdx} {}
 };
 

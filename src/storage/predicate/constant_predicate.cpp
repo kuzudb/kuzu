@@ -1,8 +1,8 @@
 #include "storage/predicate/constant_predicate.h"
 
+#include "common/type_utils.h"
 #include "function/comparison/comparison_functions.h"
 #include "storage/compression/compression.h"
-#include "common/type_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -63,10 +63,11 @@ ZoneMapCheckResult checkZoneMapSwitch(const CompressionMetadata& metadata,
 ZoneMapCheckResult ColumnConstantPredicate::checkZoneMap(
     const CompressionMetadata& metadata) const {
     auto physicalType = value.getDataType()->getPhysicalType();
-    return TypeUtils::visit(physicalType,
-        [&]<StorageValueType T>(T) { return checkZoneMapSwitch<T>(metadata, expressionType, value); },
-        [&](auto) { return ZoneMapCheckResult::ALWAYS_SCAN; }
-    );
+    return TypeUtils::visit(
+        physicalType,
+        [&]<StorageValueType T>(
+            T) { return checkZoneMapSwitch<T>(metadata, expressionType, value); },
+        [&](auto) { return ZoneMapCheckResult::ALWAYS_SCAN; });
 }
 
 } // namespace storage

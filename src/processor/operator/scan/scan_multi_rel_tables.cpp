@@ -38,7 +38,8 @@ bool RelTableCollectionScanner::scan(const SelectionVector& selVector, Transacti
             if (currentTableIdx == relInfos.size()) {
                 return false;
             }
-            relInfos[currentTableIdx].table->initializeScanState(transaction, *relInfos[currentTableIdx].localScanState);
+            relInfos[currentTableIdx].table->initializeScanState(transaction,
+                *relInfos[currentTableIdx].localScanState);
             nextTableIdx++;
         }
     }
@@ -82,8 +83,8 @@ bool ScanMultiRelTable::getNextTuplesInternal(ExecutionContext* context) {
 }
 
 std::unique_ptr<PhysicalOperator> ScanMultiRelTable::clone() {
-    return make_unique<ScanMultiRelTable>(info.copy(), directionInfo.copy(),
-        copyMap(scanners), children[0]->clone(), id, paramsString);
+    return make_unique<ScanMultiRelTable>(info.copy(), directionInfo.copy(), copyMap(scanners),
+        children[0]->clone(), id, paramsString);
 }
 
 void ScanMultiRelTable::resetState() {

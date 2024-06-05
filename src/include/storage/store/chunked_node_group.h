@@ -51,9 +51,8 @@ public:
 
     void finalize(uint64_t nodeGroupIdx_);
 
-    virtual inline void writeToColumnChunk(common::idx_t chunkIdx,
-        common::idx_t vectorIdx, const std::vector<std::unique_ptr<ColumnChunk>>& data,
-        ColumnChunk& offsetChunk) {
+    virtual inline void writeToColumnChunk(common::idx_t chunkIdx, common::idx_t vectorIdx,
+        const std::vector<std::unique_ptr<ColumnChunk>>& data, ColumnChunk& offsetChunk) {
         chunks[chunkIdx]->write(data[vectorIdx].get(), &offsetChunk, common::RelMultiplicity::ONE);
     }
 

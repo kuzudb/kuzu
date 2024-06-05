@@ -14,14 +14,15 @@ struct RelTableScanState final : TableScanState {
         common::RelDataDirection direction)
         : RelTableScanState(columnIDs, direction, std::vector<ColumnPredicateSet>{}) {}
     RelTableScanState(const std::vector<common::column_id_t>& columnIDs,
-        common::RelDataDirection direction,std::vector<ColumnPredicateSet> columnPredicateSets)
+        common::RelDataDirection direction, std::vector<ColumnPredicateSet> columnPredicateSets)
         : TableScanState{columnIDs, std::move(columnPredicateSets)}, direction{direction} {
         // TODO(Guodong): Move the NBR_ID_COLUMN_ID to binder phase.
         std::vector<common::column_id_t> dataScanColumnIDs{NBR_ID_COLUMN_ID};
         dataScanColumnIDs.insert(dataScanColumnIDs.end(), columnIDs.begin(), columnIDs.end());
         if (!this->columnPredicateSets.empty()) {
             // Since we insert a nbr column. We need to pad an empty nbr column predicate set.
-            this->columnPredicateSets.insert(this->columnPredicateSets.begin(), ColumnPredicateSet());
+            this->columnPredicateSets.insert(this->columnPredicateSets.begin(),
+                ColumnPredicateSet());
         }
         dataScanState = std::make_unique<RelDataReadState>(dataScanColumnIDs);
     }

@@ -78,7 +78,7 @@ struct PackedCSRRegion {
     std::pair<common::offset_t, common::offset_t> getNodeOffsetBoundaries() const {
         return std::make_pair(leftBoundary, rightBoundary);
     }
-    std::pair<common::idx_t , common::idx_t> getSegmentBoundaries() const {
+    std::pair<common::idx_t, common::idx_t> getSegmentBoundaries() const {
         auto left = regionIdx << level;
         return std::make_pair(left, left + (1 << level) - 1);
     }

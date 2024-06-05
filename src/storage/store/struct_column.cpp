@@ -70,9 +70,8 @@ void StructColumn::scan(Transaction* transaction, const ChunkState& state,
     }
 }
 
-void StructColumn::scanInternal(Transaction* transaction, const ChunkState& state,
-    idx_t vectorIdx, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
+void StructColumn::scanInternal(Transaction* transaction, const ChunkState& state, idx_t vectorIdx,
+    row_idx_t numValuesToScan, ValueVector* nodeIDVector, ValueVector* resultVector) {
     for (auto i = 0u; i < childColumns.size(); i++) {
         const auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
         childColumns[i]->scan(transaction, state.childrenStates[i], vectorIdx, numValuesToScan,

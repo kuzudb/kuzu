@@ -76,7 +76,8 @@ void NodeTableData::initializeColumnScanStates(Transaction* transaction, TableSc
         auto& chunkState = dataScanState.chunkStates[i];
         column->initChunkState(transaction, nodeGroupIdx, chunkState);
         if (!scanState.columnPredicateSets.empty()) {
-            if (scanState.columnPredicateSets[i].checkZoneMap(chunkState.metadata.compMeta) == ZoneMapCheckResult::SKIP_SCAN) {
+            if (scanState.columnPredicateSets[i].checkZoneMap(chunkState.metadata.compMeta) ==
+                ZoneMapCheckResult::SKIP_SCAN) {
                 scanState.zoneMapResult = ZoneMapCheckResult::SKIP_SCAN;
             }
         }
