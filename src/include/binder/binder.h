@@ -9,6 +9,7 @@
 #include "common/enums/table_type.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/query/regular_query.h"
+#include "graph/graph_entry.h"
 
 namespace kuzu {
 namespace parser {
@@ -62,7 +63,7 @@ class Binder {
 
 public:
     explicit Binder(main::ClientContext* clientContext)
-        : lastExpressionId{0}, scope{}, expressionBinder{this, clientContext},
+        : lastExpressionId{0}, scope{}, graphEntrySet{}, expressionBinder{this, clientContext},
           clientContext{clientContext} {}
 
     std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
@@ -78,6 +79,8 @@ public:
 
     bool bindExportTableData(ExportedTableData& tableData, const catalog::TableCatalogEntry& entry,
         const catalog::Catalog& catalog, transaction::Transaction* tx);
+    std::shared_ptr<Expression> createVariable(const std::string& name,
+        const common::LogicalType& dataType);
 
 private:
     std::shared_ptr<Expression> bindWhereExpression(
@@ -88,8 +91,7 @@ private:
     std::shared_ptr<Expression> createVariable(std::string_view name, common::LogicalTypeID typeID);
     std::shared_ptr<Expression> createVariable(const std::string& name,
         common::LogicalTypeID typeID);
-    std::shared_ptr<Expression> createVariable(const std::string& name,
-        const common::LogicalType& dataType);
+
 
     /*** bind DDL ***/
     BoundCreateTableInfo bindCreateTableInfo(const parser::CreateTableInfo* info);
@@ -280,6 +282,7 @@ private:
 private:
     uint32_t lastExpressionId;
     BinderScope scope;
+    graph::GraphEntrySet graphEntrySet;
     ExpressionBinder expressionBinder;
     main::ClientContext* clientContext;
 };

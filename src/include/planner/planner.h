@@ -90,7 +90,7 @@ private:
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
     void planReadOp(std::shared_ptr<LogicalOperator> op,
         const binder::expression_vector& predicates,
-        const binder::expression_vector& joinConditions, LogicalPlan& plan);
+        LogicalPlan& plan);
     void planLoadFrom(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
 

@@ -5,6 +5,7 @@
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "common/enums/join_type.h"
 #include "planner/planner.h"
+#include "function/gds_function.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -110,10 +111,8 @@ void Planner::planTableFunctionCall(const BoundReadingClause& readingClause,
     expression_vector predicatesToPush;
     splitPredicates(call.getOutExprs(), call.getConjunctivePredicates(), predicatesToPull,
         predicatesToPush);
-    // Empty join condition. Table functions do not take input from previous scope.
-    expression_vector joinConditions;
     for (auto& plan : plans) {
-        planReadOp(getTableFunctionCall(readingClause), predicatesToPush, joinConditions, *plan);
+        planReadOp(getTableFunctionCall(readingClause), predicatesToPush, *plan);
         if (!predicatesToPull.empty()) {
             appendFilters(predicatesToPull, *plan);
         }
@@ -127,10 +126,27 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
     expression_vector predicatesToPush;
     splitPredicates(call.getInfo().outExprs, call.getConjunctivePredicates(), predicatesToPull,
         predicatesToPush);
-    // TODO(Xiyang): support join algorithm call with other plan.
-    expression_vector joinConditions;
+    auto bindData = call.getInfo().func->ptrCast<function::GDSFunction>()->gds->getBindData();
+    if (bindData->hasNodeInput()) {
+        auto& node = bindData->nodeInput->constCast<NodeExpression>();
+        expression_vector joinConditions;
+        joinConditions.push_back(node.getInternalID());
+        for (auto& plan : plans) {
+            auto probePlan = LogicalPlan();
+            auto gdsCall = getGDSCall(readingClause);
+            gdsCall->computeFactorizedSchema();
+            probePlan.setLastOperator(gdsCall);
+            if (!predicatesToPush.empty()) {
+                appendFilters(predicatesToPush, probePlan);
+            }
+            appendHashJoin(joinConditions, JoinType::INNER, probePlan, *plan, *plan);
+        }
+    } else {
+        for (auto& plan : plans) {
+            planReadOp(getGDSCall(readingClause), predicatesToPush, *plan);
+        }
+    }
     for (auto& plan : plans) {
-        planReadOp(getGDSCall(readingClause), predicatesToPush, joinConditions, *plan);
         if (!predicatesToPull.empty()) {
             appendFilters(predicatesToPull, *plan);
         }
@@ -144,12 +160,9 @@ void Planner::planLoadFrom(const BoundReadingClause& readingClause,
     expression_vector predicatesToPush;
     splitPredicates(loadFrom.getInfo()->columns, loadFrom.getConjunctivePredicates(),
         predicatesToPull, predicatesToPush);
-    // Empty join condition. LOAD FROM does not take input from previous scope. So there is no
-    // join condition.
-    expression_vector joinConditions;
     for (auto& plan : plans) {
         auto op = getScanFile(loadFrom.getInfo());
-        planReadOp(std::move(op), predicatesToPush, joinConditions, *plan);
+        planReadOp(std::move(op), predicatesToPush, *plan);
         if (!predicatesToPull.empty()) {
             appendFilters(predicatesToPull, *plan);
         }
@@ -157,7 +170,7 @@ void Planner::planLoadFrom(const BoundReadingClause& readingClause,
 }
 
 void Planner::planReadOp(std::shared_ptr<LogicalOperator> op, const expression_vector& predicates,
-    const expression_vector& joinConditions, LogicalPlan& plan) {
+    LogicalPlan& plan) {
     op->computeFactorizedSchema();
     if (!plan.isEmpty()) {
         auto tmpPlan = LogicalPlan();
@@ -165,11 +178,7 @@ void Planner::planReadOp(std::shared_ptr<LogicalOperator> op, const expression_v
         if (!predicates.empty()) {
             appendFilters(predicates, tmpPlan);
         }
-        if (joinConditions.empty()) {
-            appendCrossProduct(AccumulateType::REGULAR, plan, tmpPlan, plan);
-        } else {
-            appendHashJoin(joinConditions, JoinType::INNER, plan, tmpPlan, plan);
-        }
+        appendCrossProduct(AccumulateType::REGULAR, plan, tmpPlan, plan);
     } else {
         plan.setLastOperator(std::move(op));
         if (!predicates.empty()) {

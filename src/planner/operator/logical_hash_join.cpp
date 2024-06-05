@@ -127,6 +127,13 @@ binder::expression_vector LogicalHashJoin::getExpressionsToMaterialize() const {
     }
 }
 
+std::unique_ptr<LogicalOperator> LogicalHashJoin::copy() {
+    auto op = std::make_unique<LogicalHashJoin>(joinConditions, joinType, mark, children[0]->copy(),
+        children[1]->copy());
+    op->sipInfo = sipInfo;
+    return op;
+}
+
 bool LogicalHashJoin::isNodeIDOnlyJoin() const {
     for (auto& [probeKey, buildKey] : joinConditions) {
         if (probeKey->getUniqueName() != buildKey->getUniqueName() ||

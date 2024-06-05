@@ -1,22 +1,34 @@
 #pragma once
 
 #include "binder/expression/expression.h"
-#include "graph/graph.h"
 
 namespace kuzu {
+namespace binder {
+class Binder;
+}
 namespace main {
 class ClientContext;
 }
 namespace processor {
+struct GDSCallSharedState;
 class FactorizedTable;
 }
 namespace function {
 
 // Struct maintaining GDS specific information that needs to be obtained at compile time.
 struct GDSBindData {
+    std::shared_ptr<binder::Expression> nodeInput = nullptr;
+
+    GDSBindData() = default;
+    explicit GDSBindData(std::shared_ptr<binder::Expression> nodeInput) : nodeInput{std::move(nodeInput)} {}
+    GDSBindData(const GDSBindData& other) : nodeInput{other.nodeInput} {}
     virtual ~GDSBindData() = default;
 
-    virtual std::unique_ptr<GDSBindData> copy() const = 0;
+    bool hasNodeInput() const { return nodeInput != nullptr; }
+
+    virtual std::unique_ptr<GDSBindData> copy() const {
+        return std::make_unique<GDSBindData>(*this);
+    }
 
     template<class TARGET>
     TARGET* ptrCast() {
@@ -46,17 +58,12 @@ public:
     virtual ~GDSAlgorithm() = default;
 
     virtual std::vector<common::LogicalTypeID> getParameterTypeIDs() const { return {}; }
-    virtual std::vector<std::string> getResultColumnNames() const = 0;
-    virtual std::vector<common::LogicalType> getResultColumnTypes() const = 0;
+    virtual binder::expression_vector getResultColumns(binder::Binder* binder) const = 0;
 
-    virtual void bind(const binder::expression_vector&) { bindData = nullptr; }
+    virtual void bind(const binder::expression_vector&) { bindData = std::make_unique<GDSBindData>(); }
+    GDSBindData* getBindData() const { return bindData.get(); }
 
-    void init(graph::Graph* graph_, processor::FactorizedTable* table_,
-        main::ClientContext* context) {
-        graph = graph_;
-        table = table_;
-        initLocalState(context);
-    }
+    void init(processor::GDSCallSharedState* sharedState, main::ClientContext* context);
 
     virtual void exec() = 0;
 
@@ -70,8 +77,7 @@ protected:
 
 protected:
     std::unique_ptr<GDSBindData> bindData;
-    graph::Graph* graph;
-    processor::FactorizedTable* table;
+    processor::GDSCallSharedState* sharedState;
     std::unique_ptr<GDSLocalState> localState;
 };
 

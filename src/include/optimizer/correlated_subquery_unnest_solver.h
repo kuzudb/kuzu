@@ -15,10 +15,6 @@ private:
     void visitOperator(planner::LogicalOperator* op);
     void visitExpressionsScan(planner::LogicalOperator* op) final;
 
-    inline bool isAccHashJoin(planner::LogicalOperator* op) const {
-        return op->getOperatorType() == planner::LogicalOperatorType::HASH_JOIN &&
-               op->getChild(0)->getOperatorType() == planner::LogicalOperatorType::ACCUMULATE;
-    }
     void solveAccHashJoin(planner::LogicalOperator* op) const;
 
 private:

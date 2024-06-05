@@ -130,6 +130,11 @@ bool LogicalOperatorUtils::isUpdate(LogicalOperatorType type) {
     }
 }
 
+bool LogicalOperatorUtils::isAccHashJoin(const LogicalOperator& op) {
+    return op.getOperatorType() == LogicalOperatorType::HASH_JOIN &&
+           op.getChild(0)->getOperatorType() == LogicalOperatorType::ACCUMULATE;
+}
+
 LogicalOperator::LogicalOperator(LogicalOperatorType operatorType,
     std::shared_ptr<LogicalOperator> child)
     : operatorType{operatorType} {

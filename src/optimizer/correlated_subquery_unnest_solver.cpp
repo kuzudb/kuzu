@@ -13,7 +13,7 @@ void CorrelatedSubqueryUnnestSolver::solve(planner::LogicalOperator* root_) {
 
 void CorrelatedSubqueryUnnestSolver::visitOperator(LogicalOperator* op) {
     visitOperatorSwitch(op);
-    if (isAccHashJoin(op)) {
+    if (LogicalOperatorUtils::isAccHashJoin(*op)) {
         solveAccHashJoin(op);
         return;
     }
@@ -23,18 +23,19 @@ void CorrelatedSubqueryUnnestSolver::visitOperator(LogicalOperator* op) {
 }
 
 void CorrelatedSubqueryUnnestSolver::solveAccHashJoin(LogicalOperator* op) const {
-    auto hashJoin = (LogicalHashJoin*)op;
+    auto& hashJoin = op->cast<LogicalHashJoin>();
+    auto& sipInfo = hashJoin.getSIPInfoUnsafe();
+    sipInfo.dependency = SIPDependency::BUILD_DEPENDS_ON_PROBE;
+    sipInfo.direction = SIPDirection::PROBE_TO_BUILD;
     auto acc = op->getChild(0).get();
-    hashJoin->setSIP(planner::SidewaysInfoPassing::PROBE_TO_BUILD);
-    hashJoin->setJoinSubPlanSolveOrder(JoinSubPlanSolveOrder::PROBE_BUILD);
     auto rightSolver = std::make_unique<CorrelatedSubqueryUnnestSolver>(acc);
-    rightSolver->solve(hashJoin->getChild(1).get());
+    rightSolver->solve(hashJoin.getChild(1).get());
     auto leftSolver = std::make_unique<CorrelatedSubqueryUnnestSolver>(nullptr);
     leftSolver->solve(acc->getChild(0).get());
 }
 
 void CorrelatedSubqueryUnnestSolver::visitExpressionsScan(LogicalOperator* op) {
-    auto expressionsScan = (LogicalExpressionsScan*)op;
+    auto expressionsScan = op->ptrCast<LogicalExpressionsScan>();
     KU_ASSERT(accumulateOp != nullptr);
     expressionsScan->setOuterAccumulate(accumulateOp);
 }

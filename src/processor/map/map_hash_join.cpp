@@ -64,7 +64,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logic
     std::unique_ptr<PhysicalOperator> probeSidePrevOperator;
     std::unique_ptr<PhysicalOperator> buildSidePrevOperator;
     // Map the side into which semi mask is passed first.
-    if (hashJoin->getJoinSubPlanSolveOrder() == JoinSubPlanSolveOrder::BUILD_PROBE) {
+    if (hashJoin->getSIPInfo().dependency == SIPDependency::PROBE_DEPENDS_ON_BUILD) {
         buildSidePrevOperator = mapOperator(hashJoin->getChild(1).get());
         probeSidePrevOperator = mapOperator(hashJoin->getChild(0).get());
     } else {
@@ -110,7 +110,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logic
     auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState, hashJoin->getJoinType(),
         hashJoin->requireFlatProbeKeys(), probeDataInfo, std::move(probeSidePrevOperator),
         std::move(hashJoinBuild), getOperatorID(), paramsString);
-    if (hashJoin->getSIP() == planner::SidewaysInfoPassing::PROBE_TO_BUILD) {
+    if (hashJoin->getSIPInfo().direction == SIPDirection::PROBE_TO_BUILD) {
         mapSIPJoin(hashJoinProbe.get());
     }
     return hashJoinProbe;
