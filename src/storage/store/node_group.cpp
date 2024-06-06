@@ -43,7 +43,7 @@ void NodeGroup::initializeScanState(Transaction*, TableScanState& state) const {
     auto& nodeGroupState = state.nodeGroupScanState;
     // TODO: Should handle transaction to resolve version visibility here.
     nodeGroupState.maxNumRowsToScan = getNumRows();
-    if (type == NodeGroupType::ON_DISK) {
+    if (residencyState == ResidencyState::ON_DISK) {
         auto& nodeScanState = state.cast<NodeTableScanState>();
         KU_ASSERT(chunkedGroups.getNumChunkedGroups() == 1);
         auto& chunkedGroup = chunkedGroups.getChunkedGroup(0);
@@ -61,7 +61,7 @@ bool NodeGroup::scan(Transaction* transaction, TableScanState& state) const {
     auto& nodeGroupState = state.nodeGroupScanState;
     KU_ASSERT(nodeGroupState.chunkedGroupIdx < chunkedGroups.getNumChunkedGroups());
     KU_ASSERT(nodeGroupState.nextRowToScan < nodeGroupState.maxNumRowsToScan);
-    auto& chunkedGroup = chunkedGroups.getChunkedGroup(nodeGroupState.chunkedGroupIdx);
+    const auto& chunkedGroup = chunkedGroups.getChunkedGroup(nodeGroupState.chunkedGroupIdx);
     if (nodeGroupState.nextRowToScan ==
         chunkedGroup.getStartNodeOffset() + chunkedGroup.getNumRows()) {
         nodeGroupState.chunkedGroupIdx++;
@@ -93,14 +93,22 @@ bool NodeGroup::scan(Transaction* transaction, TableScanState& state) const {
             selVector.getMultableBuffer().data(), selVector.getSelSize() * sizeof(sel_t));
         state.nodeIDVector->state->getSelVectorUnsafe().setToFiltered(selVector.getSelSize());
     }
-    if (type == NodeGroupType::IN_MEMORY) {
-        chunkedGroupToScan.scan(state.columnIDs, state.outputVectors, offsetToScan, numRowsToScan);
-    } else {
+    switch (residencyState) {
+    case ResidencyState::IN_MEMORY:
+    case ResidencyState::TEMPORARY: {
+        chunkedGroupToScan.scan(transaction, state.columnIDs, state.outputVectors, offsetToScan,
+            numRowsToScan);
+    } break;
+    case ResidencyState::ON_DISK: {
         auto& nodeScanState = state.constCast<NodeTableScanState>();
         for (auto i = 0u; i < state.columnIDs.size(); i++) {
             nodeScanState.columns[i]->scan(transaction, nodeScanState.chunkStates[i], offsetToScan,
                 numRowsToScan, nodeScanState.nodeIDVector, state.outputVectors[i]);
         }
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
     }
     nodeGroupState.nextRowToScan += numRowsToScan;
     return true;
@@ -108,24 +116,37 @@ bool NodeGroup::scan(Transaction* transaction, TableScanState& state) const {
 
 void NodeGroup::lookup(Transaction* transaction, TableScanState& state) const {
     KU_ASSERT(state.nodeIDVector->state->getSelVector().getSelSize() == 1);
-    if (type == NodeGroupType::IN_MEMORY) {
+    switch (residencyState) {
+    case ResidencyState::IN_MEMORY:
+    case ResidencyState::TEMPORARY: {
         const auto nodeOffset = state.nodeIDVector->getValue<nodeID_t>(0).offset;
         const auto offsetInGroup = nodeOffset - startNodeOffset;
-        auto& chunkedGroupToScan = chunkedGroups.findChunkedGroupFromOffset(offsetInGroup);
-        chunkedGroupToScan.lookup(state.columnIDs, state.outputVectors, offsetInGroup);
-    } else {
+        const auto& chunkedGroupToScan = chunkedGroups.findChunkedGroupFromOffset(offsetInGroup);
+        chunkedGroupToScan.lookup(transaction, state.columnIDs, state.outputVectors, offsetInGroup);
+    } break;
+    case ResidencyState::ON_DISK: {
         auto& nodeScanState = state.cast<NodeTableScanState>();
         for (auto i = 0u; i < state.columnIDs.size(); i++) {
             nodeScanState.columns[i]->lookup(transaction, nodeScanState.chunkStates[i],
                 nodeScanState.nodeIDVector, state.outputVectors[i]);
         }
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
     }
 }
 
-void NodeGroup::update() {}
+void NodeGroup::update(Transaction* transaction, offset_t offset, column_id_t columnID,
+    ValueVector& propertyVector) {
+    KU_ASSERT(propertyVector.state->getSelVector().getSelSize() == 1);
+    const auto offsetInGroup = offset - startNodeOffset;
+    auto& chunkedGroup = chunkedGroups.findChunkedGroupFromOffset(offsetInGroup);
+    chunkedGroup.update(transaction, offsetInGroup, columnID, propertyVector);
+}
 
-bool NodeGroup::delete_(Transaction* transaction, offset_t nodeOffset) {
-    const auto offsetInGroup = nodeOffset - startNodeOffset;
+bool NodeGroup::delete_(Transaction* transaction, offset_t offset) {
+    const auto offsetInGroup = offset - startNodeOffset;
     return versionInfo.delete_(transaction->getID(), offsetInGroup);
 }
 
@@ -138,9 +159,8 @@ void NodeGroup::flush(BMFileHandle& dataFH) {
         chunkedGroups.setChunkedGroup(0, std::move(flushedChunkGroup));
     } else {
         // Merge all chunkedGroups into a single one first. Then flush it to disk.
-        // TODO: Should take `enableCompression` as a param from `NodeGroup`.
         const auto mergedChunkedGroup = std::make_unique<ChunkedNodeGroup>(dataTypes,
-            true /*enableCompression*/, StorageConstants::NODE_GROUP_SIZE, 0);
+            enableCompression, StorageConstants::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
         for (auto& chunkedGroup : chunkedGroups.getChunkedGroups()) {
             mergedChunkedGroup->append(*chunkedGroup, 0, chunkedGroup->getNumRows());
         }

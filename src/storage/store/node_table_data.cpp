@@ -4,7 +4,6 @@
 #include "common/types/types.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/stats/nodes_store_statistics.h"
-#include "storage/storage_structure/disk_array_collection.h"
 #include "storage/store/node_table.h"
 #include "storage/store/table.h"
 #include "transaction/transaction.h"
@@ -62,10 +61,11 @@ std::unique_ptr<ChunkedNodeGroup> NodeTableData::getCommittedNodeGroup(
     for (auto& column : columns) {
         dataTypes.push_back(column->getDataType());
     }
-    auto chunkedNodeGroup = std::make_unique<ChunkedNodeGroup>(dataTypes, enableCompression, 0, 0);
+    auto chunkedNodeGroup = std::make_unique<ChunkedNodeGroup>(dataTypes, enableCompression, 0, 0,
+        ResidencyState::ON_DISK);
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         getColumn(columnID)->setMetadataToChunk(nodeGroupIdx,
-            chunkedNodeGroup->getColumnChunkUnsafe(columnID));
+            chunkedNodeGroup->getColumnChunk(columnID).getData());
     }
     const row_idx_t numRows = chunkedNodeGroup->getColumnChunk(0).getFlushedMetadata().numValues;
     for (auto columnID = 1u; columnID < columns.size(); columnID++) {

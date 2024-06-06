@@ -128,15 +128,15 @@ void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ColumnChunkDat
 }
 
 void NullColumn::commitLocalChunkInPlace(ChunkState& state,
-    const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
-    const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
+    const ChunkDataCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+    const ChunkDataCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
     const offset_set_t& deleteInfo) {
     for (auto& [offsetInChunk, rowIdx] : updateInfo) {
         auto [chunkIdx, offsetInLocalChunk] =
             LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
         auto localChunk = localUpdateChunks[chunkIdx];
         KU_ASSERT(localChunk->getDataType().getPhysicalType() == PhysicalTypeID::BOOL &&
-                  !localChunk->getNullChunk());
+                  !localChunk->getNullData());
         write(state, offsetInChunk, localChunk, offsetInLocalChunk, 1 /*numValues*/);
     }
     for (auto& [offsetInChunk, rowIdx] : insertInfo) {
@@ -144,7 +144,7 @@ void NullColumn::commitLocalChunkInPlace(ChunkState& state,
             LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
         auto localChunk = localInsertChunks[chunkIdx];
         KU_ASSERT(localChunk->getDataType().getPhysicalType() == PhysicalTypeID::BOOL &&
-                  !localChunk->getNullChunk());
+                  !localChunk->getNullData());
         write(state, offsetInChunk, localChunk, offsetInLocalChunk, 1 /*numValues*/);
     }
     // Set nulls based on deleteInfo. Note that this code path actually only gets executed when

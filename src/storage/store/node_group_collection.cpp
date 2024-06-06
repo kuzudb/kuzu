@@ -11,16 +11,19 @@ namespace kuzu {
 namespace storage {
 
 NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
-    offset_t startNodeOffset)
-    : startNodeOffset{startNodeOffset}, types{types}, dataFH{nullptr} {}
+    bool enableCompression, ResidencyState residencyState, offset_t startNodeOffset)
+    : enableCompression{enableCompression}, residencyState{residencyState},
+      startNodeOffset{startNodeOffset}, types{types}, dataFH{nullptr} {}
 
 NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
     BMFileHandle* dataFH, const TableData& tableData)
-    : startNodeOffset{0}, types{types}, dataFH{dataFH} {
+    : enableCompression{tableData.isCompressionEnabled()}, residencyState{ResidencyState::ON_DISK},
+      startNodeOffset{0}, types{types}, dataFH{dataFH} {
     const auto numNodeGroups = tableData.getNumCommittedNodeGroups();
     nodeGroups.reserve(numNodeGroups);
     for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
-        auto nodeGroup = std::make_unique<NodeGroup>(nodeGroupIdx, types);
+        auto nodeGroup =
+            std::make_unique<NodeGroup>(nodeGroupIdx, enableCompression, residencyState, types);
         auto chunkedGroup = tableData.getCommittedNodeGroup(nodeGroupIdx);
         nodeGroup->merge(&DUMMY_WRITE_TRANSACTION, std::move(chunkedGroup));
         nodeGroups.push_back(std::move(nodeGroup));
@@ -47,7 +50,8 @@ void NodeGroupCollection::append(Transaction* transaction,
         KU_ASSERT(vectors[i]->state->getSelVector().getSelSize() == numRowsToAppend);
     }
     if (nodeGroups.empty()) {
-        nodeGroups.push_back(std::make_unique<NodeGroup>(nodeGroups.size(), types));
+        nodeGroups.push_back(std::make_unique<NodeGroup>(nodeGroups.size(), enableCompression,
+            residencyState, types));
     }
     row_idx_t numRowsAppended = 0u;
     while (numRowsAppended < numRowsToAppend) {
@@ -55,7 +59,8 @@ void NodeGroupCollection::append(Transaction* transaction,
             if (dataFH) {
                 nodeGroups.back()->flush(*dataFH);
             }
-            nodeGroups.push_back(std::make_unique<NodeGroup>(nodeGroups.size(), types));
+            nodeGroups.push_back(std::make_unique<NodeGroup>(nodeGroups.size(), enableCompression,
+                residencyState, types));
         }
         const auto& lastNodeGroup = nodeGroups.back();
         const auto numToAppendInNodeGroup =
@@ -71,14 +76,16 @@ void NodeGroupCollection::append(Transaction* transaction,
     const auto numRowsToAppend = chunkedGroupCollection.getNumRows();
     row_idx_t numRowsAppended = 0u;
     if (nodeGroups.empty()) {
-        nodeGroups.push_back(std::make_unique<NodeGroup>(nodeGroups.size(), types));
+        nodeGroups.push_back(std::make_unique<NodeGroup>(nodeGroups.size(), enableCompression,
+            residencyState, types));
     }
     while (numRowsAppended < numRowsToAppend) {
         if (nodeGroups.back()->isFull()) {
             if (dataFH) {
                 nodeGroups.back()->flush(*dataFH);
             }
-            nodeGroups.push_back(std::make_unique<NodeGroup>(nodeGroups.size(), types));
+            nodeGroups.push_back(std::make_unique<NodeGroup>(nodeGroups.size(), enableCompression,
+                residencyState, types));
         }
         const auto& lastNodeGroup = nodeGroups.back();
         const auto numToAppendInNodeGroup =
@@ -110,13 +117,15 @@ void NodeGroupCollection::merge(Transaction* transaction, node_group_idx_t nodeG
         std::unique_lock xLck{mtx};
         if (nodeGroupIdx >= nodeGroups.size()) {
             nodeGroups.resize(nodeGroupIdx + 1);
-            nodeGroups[nodeGroupIdx] = std::make_unique<NodeGroup>(nodeGroupIdx, types);
+            nodeGroups[nodeGroupIdx] =
+                std::make_unique<NodeGroup>(nodeGroupIdx, enableCompression, residencyState, types);
         }
     }
     if (dataFH && chunkedGroup.isFull()) {
         // Flush chunks to disk.
         auto flushedChunkedGroup = chunkedGroup.flush(*dataFH);
-        auto flushedNodeGroup = std::make_unique<NodeGroup>(nodeGroupIdx, types);
+        auto flushedNodeGroup =
+            std::make_unique<NodeGroup>(nodeGroupIdx, enableCompression, residencyState, types);
         flushedNodeGroup->merge(transaction, std::move(flushedChunkedGroup));
         {
             std::unique_lock xLck{mtx};
@@ -137,7 +146,7 @@ void NodeGroupCollection::checkpoint() {
     KU_ASSERT(dataFH);
     std::unique_lock xLck{mtx};
     for (auto& nodeGroup : nodeGroups) {
-        if (nodeGroup->getType() == NodeGroupType::IN_MEMORY)
+        if (nodeGroup->getResidencyState() == ResidencyState::IN_MEMORY)
             nodeGroup->flush(*dataFH);
     }
 }

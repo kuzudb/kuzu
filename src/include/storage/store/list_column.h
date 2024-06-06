@@ -49,7 +49,7 @@ public:
         DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, bool enableCompression);
 
-    static std::unique_ptr<ColumnChunkData> flushChunk(const ColumnChunkData& chunk,
+    static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
         BMFileHandle& dataFH);
 
     void initChunkState(transaction::Transaction* transaction,
@@ -101,8 +101,8 @@ private:
         common::offset_t endOffsetInNodeGroup);
 
     void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
-        const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
-        const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
+        const ChunkDataCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+        const ChunkDataCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
         const offset_set_t& deleteInfo) override;
     void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
         const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,

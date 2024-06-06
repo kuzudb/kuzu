@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/data_chunk/sel_vector.h"
-#include "storage/store/column_chunk.h"
+#include "storage/store/column_chunk_data.h"
 
 namespace kuzu {
 namespace storage {
@@ -31,7 +31,7 @@ public:
     static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 1;
 
     ListChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
-        bool inMemory);
+        ResidencyState residencyState);
 
     ColumnChunkData* getDataColumnChunk() const {
         return listDataColumnChunk->dataColumnChunk.get();
@@ -51,11 +51,11 @@ public:
         sizeColumnChunk->setNumValues(numValues_);
     }
 
-    void append(common::ValueVector* vector, const common::SelectionVector& selVector) final;
+    void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;
 
+    void initializeScanState(ChunkState& state) const override;
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
-    void initializeScanState(ChunkState& state) const override;
 
     // Note: `write` assumes that no `append` will be called afterward.
     void write(common::ValueVector* vector, common::offset_t offsetInVector,

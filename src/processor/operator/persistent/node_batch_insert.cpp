@@ -94,8 +94,9 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         }
     }
 
-    nodeLocalState->nodeGroup = NodeGroupFactory::createNodeGroup(ColumnDataFormat::REGULAR,
-        nodeInfo->columnTypes, info->compressionEnabled);
+    nodeLocalState->nodeGroup =
+        NodeGroupFactory::createNodeGroup(ColumnDataFormat::REGULAR, nodeInfo->columnTypes,
+            info->compressionEnabled, StorageConstants::NODE_GROUP_SIZE, ResidencyState::TEMPORARY);
     nodeLocalState->columnState = std::move(state);
 }
 
@@ -169,7 +170,7 @@ void NodeBatchInsert::writeAndResetNewNodeGroup(transaction::Transaction* transa
     // TODO: returned nodeOffset is not necessary here.
     const auto nodeOffset = table->append(transaction, chunkedGroup, 0, chunkedGroup->getNumRows());
     if (indexBuilder) {
-        indexBuilder->insert(chunkedGroup->getColumnChunkUnsafe(pkColumnID), nodeOffset,
+        indexBuilder->insert(chunkedGroup->getColumnChunk(pkColumnID).getData(), nodeOffset,
             chunkedGroup->getNumRows());
     }
     chunkedGroup->resetToEmpty();
@@ -185,7 +186,7 @@ offset_t NodeBatchInsert::writeToExistingNodeGroup(transaction::Transaction* tra
     auto nodeOffset =
         StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx) + numExistingTuplesInChunk;
     if (indexBuilder) {
-        indexBuilder->insert(chunkedGroup->getColumnChunkUnsafe(pkColumnID), nodeOffset,
+        indexBuilder->insert(chunkedGroup->getColumnChunk(pkColumnID).getData(), nodeOffset,
             numRowsToWrite);
     }
     return numRowsToWrite;
@@ -198,7 +199,7 @@ void NodeBatchInsert::clearToIndex(std::unique_ptr<ChunkedNodeGroup>& nodeGroup,
     auto oldNodeGroup = std::move(nodeGroup);
     auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
     nodeGroup = NodeGroupFactory::createNodeGroup(ColumnDataFormat::REGULAR, nodeInfo->columnTypes,
-        info->compressionEnabled);
+        info->compressionEnabled, StorageConstants::NODE_GROUP_SIZE, ResidencyState::TEMPORARY);
     nodeGroup->append(*oldNodeGroup, startIndexInGroup);
 }
 

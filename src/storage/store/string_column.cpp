@@ -6,7 +6,7 @@
 #include "storage/compression/compression.h"
 #include "storage/store/column.h"
 #include "storage/store/null_column.h"
-#include "storage/store/string_column_chunk.h"
+#include "storage/store/string_chunk_data.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
@@ -27,18 +27,18 @@ StringColumn::StringColumn(std::string name, LogicalType dataType,
       dictionary{name, metaDAHeaderInfo, dataFH, metadataDAC, bufferManager, wal, transaction,
           enableCompression} {}
 
-std::unique_ptr<ColumnChunkData> StringColumn::flushChunk(const ColumnChunkData& chunk,
+std::unique_ptr<ColumnChunkData> StringColumn::flushChunkData(const ColumnChunkData& chunkData,
     BMFileHandle& dataFH) {
-    auto flushedChunk = flushNonNestedChunk(chunk, dataFH);
-    auto& flushedStringChunk = flushedChunk->cast<StringChunkData>();
+    auto flushedChunkData = flushNonNestedChunkData(chunkData, dataFH);
+    auto& flushedStringData = flushedChunkData->cast<StringChunkData>();
 
-    auto& stringChunk = chunk.cast<StringChunkData>();
+    auto& stringChunk = chunkData.cast<StringChunkData>();
     auto& dictChunk = stringChunk.getDictionaryChunk();
-    flushedStringChunk.getDictionaryChunk().setOffsetChunk(
-        Column::flushChunk(*dictChunk.getOffsetChunk(), dataFH));
-    flushedStringChunk.getDictionaryChunk().setStringDataChunk(
-        Column::flushChunk(*dictChunk.getStringDataChunk(), dataFH));
-    return flushedChunk;
+    flushedStringData.getDictionaryChunk().setOffsetChunk(
+        Column::flushChunkData(*dictChunk.getOffsetChunk(), dataFH));
+    flushedStringData.getDictionaryChunk().setStringDataChunk(
+        Column::flushChunkData(*dictChunk.getStringDataChunk(), dataFH));
+    return flushedChunkData;
 }
 
 void StringColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -91,7 +91,7 @@ void StringColumn::write(ChunkState& state, offset_t dstOffset, ColumnChunkData*
     std::vector<string_index_t> indices;
     indices.resize(numValues);
     for (auto i = 0u; i < numValues; i++) {
-        if (strChunk.getNullChunk()->isNull(i + srcOffset)) {
+        if (strChunk.getNullData()->isNull(i + srcOffset)) {
             indices[i] = 0;
             continue;
         }
@@ -99,7 +99,7 @@ void StringColumn::write(ChunkState& state, offset_t dstOffset, ColumnChunkData*
         indices[i] = dictionary.append(state, strVal);
     }
     NullMask nullMask(numValues);
-    nullMask.copyFromNullBits(data->getNullChunk()->getNullMask().getData(), srcOffset,
+    nullMask.copyFromNullBits(data->getNullData()->getNullMask().getData(), srcOffset,
         0 /*dstOffset=*/, numValues);
     // Write index to main column
     Column::writeValues(state, dstOffset, reinterpret_cast<const uint8_t*>(&indices[0]), &nullMask,
@@ -195,8 +195,8 @@ void StringColumn::lookupInternal(Transaction* transaction, ChunkState& readStat
 }
 
 bool StringColumn::canCommitInPlace(const ChunkState& state,
-    const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
-    const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo) {
+    const ChunkDataCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+    const ChunkDataCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo) {
     auto strLenToAdd = 0u;
     for (auto& [_, rowIdx] : updateInfo) {
         auto [chunkIdx, offsetInLocalChunk] =
@@ -227,7 +227,7 @@ bool StringColumn::canCommitInPlace(const ChunkState& state,
     auto& strChunk = chunk->cast<StringChunkData>();
     auto length = std::min((uint64_t)dstOffsets.size(), strChunk.getNumValues());
     for (auto i = 0u; i < length; i++) {
-        if (strChunk.getNullChunk()->isNull(i)) {
+        if (strChunk.getNullData()->isNull(i)) {
             continue;
         }
         strLenToAdd += strChunk.getStringLength(i + srcOffset);

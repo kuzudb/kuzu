@@ -51,7 +51,7 @@ struct RelTableUpdateState final : TableUpdateState {
 
     RelTableUpdateState(common::column_id_t columnID, const common::ValueVector& srcNodeIDVector,
         const common::ValueVector& dstNodeIDVector, const common::ValueVector& relIDVector,
-        const common::ValueVector& propertyVector)
+        common::ValueVector& propertyVector)
         : TableUpdateState{columnID, propertyVector}, srcNodeIDVector{srcNodeIDVector},
           dstNodeIDVector{dstNodeIDVector}, relIDVector{relIDVector} {}
 };

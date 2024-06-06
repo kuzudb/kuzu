@@ -3,7 +3,7 @@
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
-#include "storage/store/column_chunk.h"
+#include "storage/store/column_chunk_data.h"
 
 namespace kuzu {
 namespace storage {
@@ -11,7 +11,7 @@ namespace storage {
 class StructChunkData final : public ColumnChunkData {
 public:
     StructChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
-        bool inMemory);
+        ResidencyState residencyState);
 
     ColumnChunkData* getChild(common::idx_t childIdx) {
         KU_ASSERT(childIdx < childChunks.size());
@@ -20,12 +20,12 @@ public:
 
     void finalize() override;
 
-    common::vector_idx_t getNumChildren() const { return childChunks.size(); }
-    const ColumnChunkData& getChild(common::vector_idx_t childIdx) const {
+    common::idx_t getNumChildren() const { return childChunks.size(); }
+    const ColumnChunkData& getChild(common::idx_t childIdx) const {
         KU_ASSERT(childIdx < childChunks.size());
         return *childChunks[childIdx];
     }
-    void setChild(common::vector_idx_t childIdx, std::unique_ptr<ColumnChunkData> childChunk) {
+    void setChild(common::idx_t childIdx, std::unique_ptr<ColumnChunkData> childChunk) {
         KU_ASSERT(childIdx < childChunks.size());
         childChunks[childIdx] = std::move(childChunk);
     }

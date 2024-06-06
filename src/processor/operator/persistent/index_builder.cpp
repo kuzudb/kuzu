@@ -9,7 +9,7 @@
 #include "common/type_utils.h"
 #include "common/types/ku_string.h"
 #include "storage/index/hash_index_utils.h"
-#include "storage/store/string_column_chunk.h"
+#include "storage/store/string_chunk_data.h"
 
 namespace kuzu {
 namespace processor {
@@ -89,7 +89,7 @@ void IndexBuilderSharedState::quitProducer() {
 }
 
 void IndexBuilder::insert(const ColumnChunkData& chunk, offset_t nodeOffset, offset_t numNodes) {
-    checkNonNullConstraint(chunk.getNullChunk(), numNodes);
+    checkNonNullConstraint(chunk.getNullData(), numNodes);
     TypeUtils::visit(
         chunk.getDataType().getPhysicalType(),
         [&]<HashablePrimitive T>(T) {

@@ -30,8 +30,8 @@ struct NodeTableScanState final : TableScanState {
         columns.resize(this->columnIDs.size());
     }
     NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
-        const std::vector<ColumnPredicateSet>& columnPredicateSets)
-        : TableScanState{tableID, std::move(columnIDs), columnPredicateSets} {
+        std::vector<ColumnPredicateSet> columnPredicateSets)
+        : TableScanState{tableID, std::move(columnIDs), std::move(columnPredicateSets)} {
         chunkStates.resize(this->columnIDs.size());
     }
 };
@@ -53,7 +53,7 @@ struct NodeTableUpdateState final : TableUpdateState {
     common::ValueVector* pkVector;
 
     NodeTableUpdateState(common::column_id_t columnID, common::ValueVector& nodeIDVector,
-        const common::ValueVector& propertyVector)
+        common::ValueVector& propertyVector)
         : TableUpdateState{columnID, propertyVector}, nodeIDVector{nodeIDVector},
           pkVector{nullptr} {}
 };
@@ -128,17 +128,17 @@ public:
     void rollbackInMemory() override;
 
     common::node_group_idx_t getNumCommittedNodeGroups() const {
-        return deltaNodeGroups->getNumNodeGroups();
+        return nodeGroups->getNumNodeGroups();
     }
 
     // TODO: Fix this. This is used by NodeBatchInsert.
     common::node_group_idx_t getNumNodeGroups(transaction::Transaction*) const {
-        return deltaNodeGroups->getNumNodeGroups();
+        return nodeGroups->getNumNodeGroups();
     }
     // TODO: Fix this. This is used by NodeBatchInsert.
     common::offset_t getNumTuplesInNodeGroup(const transaction::Transaction*,
         common::node_group_idx_t nodeGroupIdx) const {
-        return deltaNodeGroups->getNodeGroup(nodeGroupIdx).getNumRows();
+        return nodeGroups->getNodeGroup(nodeGroupIdx).getNumRows();
     }
 
 private:
@@ -150,7 +150,7 @@ private:
 private:
     std::mutex mtx;
     std::unique_ptr<NodeTableData> tableData;
-    std::unique_ptr<NodeGroupCollection> deltaNodeGroups;
+    std::unique_ptr<NodeGroupCollection> nodeGroups;
     common::column_id_t pkColumnID;
     std::unique_ptr<PrimaryKeyIndex> pkIndex;
 };

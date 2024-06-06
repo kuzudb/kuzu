@@ -11,8 +11,8 @@ class TableData;
 
 class NodeGroupCollection {
 public:
-    explicit NodeGroupCollection() : startNodeOffset{0}, dataFH{nullptr} {}
     explicit NodeGroupCollection(const std::vector<common::LogicalType>& types,
+        bool enableCompression, ResidencyState residencyState,
         common::offset_t startNodeOffset = 0);
     NodeGroupCollection(const std::vector<common::LogicalType>& types, BMFileHandle* dataFH,
         const TableData& tableData);
@@ -47,6 +47,8 @@ public:
 
 private:
     std::shared_mutex mtx;
+    bool enableCompression;
+    ResidencyState residencyState;
     common::offset_t startNodeOffset;
     std::vector<common::LogicalType> types;
     std::vector<std::unique_ptr<NodeGroup>> nodeGroups;

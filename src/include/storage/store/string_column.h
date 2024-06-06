@@ -12,7 +12,7 @@ public:
         DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, bool enableCompression);
 
-    static std::unique_ptr<ColumnChunkData> flushChunk(const ColumnChunkData& chunk,
+    static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
         BMFileHandle& dataFH);
 
     void initChunkState(transaction::Transaction* transaction,
@@ -59,8 +59,8 @@ protected:
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
 private:
-    bool canCommitInPlace(const ChunkState& state, const ChunkCollection& localInsertChunk,
-        const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunk,
+    bool canCommitInPlace(const ChunkState& state, const ChunkDataCollection& localInsertChunk,
+        const offset_to_row_idx_t& insertInfo, const ChunkDataCollection& localUpdateChunk,
         const offset_to_row_idx_t& updateInfo) override;
     bool canCommitInPlace(const ChunkState& state, const std::vector<common::offset_t>& dstOffsets,
         ColumnChunkData* chunk, common::offset_t srcOffset) override;

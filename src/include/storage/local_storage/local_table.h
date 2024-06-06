@@ -16,12 +16,13 @@ using offset_set_t = std::unordered_set<common::offset_t>;
 static constexpr common::column_id_t NBR_ID_COLUMN_ID = 0;
 static constexpr common::column_id_t REL_ID_COLUMN_ID = 1;
 
-using ChunkCollection = std::vector<ColumnChunkData*>;
+using ChunkDataCollection = std::vector<ColumnChunkData*>;
 
 class LocalChunkedGroupCollection {
 public:
     explicit LocalChunkedGroupCollection(std::vector<common::LogicalType> dataTypes)
-        : dataTypes{std::move(dataTypes)}, chunkedGroups{this->dataTypes}, numRows{0} {}
+        : dataTypes{std::move(dataTypes)},
+          chunkedGroups{ResidencyState::TEMPORARY, this->dataTypes}, numRows{0} {}
     DELETE_COPY_DEFAULT_MOVE(LocalChunkedGroupCollection);
 
     static std::pair<uint32_t, uint64_t> getChunkIdxAndOffsetInChunk(common::row_idx_t rowIdx) {
@@ -83,10 +84,10 @@ public:
     // Only used for rel tables. Should be moved out later.
     void remove(common::offset_t srcNodeOffset, common::offset_t relOffset);
 
-    ChunkCollection getLocalChunk(common::column_id_t columnID) const {
-        ChunkCollection localChunkCollection;
+    ChunkDataCollection getLocalChunk(common::column_id_t columnID) const {
+        ChunkDataCollection localChunkCollection;
         for (auto& chunkedGroup : chunkedGroups.getChunkedGroups()) {
-            localChunkCollection.push_back(&chunkedGroup->getColumnChunkUnsafe(columnID));
+            localChunkCollection.push_back(&chunkedGroup->getColumnChunk(columnID).getData());
         }
         return localChunkCollection;
     }

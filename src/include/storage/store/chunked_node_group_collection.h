@@ -13,8 +13,9 @@ class ChunkedNodeGroupCollection {
 public:
     static constexpr uint64_t CHUNK_CAPACITY = 2048;
 
-    explicit ChunkedNodeGroupCollection(std::vector<common::LogicalType> types)
-        : types{std::move(types)} {}
+    explicit ChunkedNodeGroupCollection(ResidencyState residencyState,
+        std::vector<common::LogicalType> types)
+        : residencyState{residencyState}, types{std::move(types)} {}
     DELETE_COPY_DEFAULT_MOVE(ChunkedNodeGroupCollection);
 
     static std::pair<uint64_t, common::offset_t> getChunkIdxAndOffsetInChunk(
@@ -29,11 +30,12 @@ public:
         KU_ASSERT(groupIdx < chunkedGroups.size());
         return *chunkedGroups[groupIdx].get();
     }
-    ChunkedNodeGroup& findChunkedGroupFromOffset(common::offset_t offset) const;
-    ChunkedNodeGroup& getChunkedGroupUnsafe(common::node_group_idx_t groupIdx) const {
+    ChunkedNodeGroup& getChunkedGroup(common::node_group_idx_t groupIdx) {
         KU_ASSERT(groupIdx < chunkedGroups.size());
         return *chunkedGroups[groupIdx].get();
     }
+    ChunkedNodeGroup& findChunkedGroupFromOffset(common::offset_t offset) const;
+
     void setChunkedGroup(common::node_group_idx_t groupIdx,
         std::unique_ptr<ChunkedNodeGroup> group) {
         chunkedGroups.resize(groupIdx + 1);
@@ -58,6 +60,7 @@ public:
 
 private:
     // TODO(Guodong): Should handle concurrency?
+    ResidencyState residencyState;
     std::vector<common::LogicalType> types;
     std::vector<std::unique_ptr<ChunkedNodeGroup>> chunkedGroups;
 };

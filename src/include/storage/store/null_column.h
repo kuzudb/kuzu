@@ -41,13 +41,14 @@ public:
     void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunkData* data,
         common::offset_t dataOffset, common::length_t numValues) override;
 
-    void commitLocalChunkInPlace(ChunkState& state, const ChunkCollection& localInsertChunk,
-        const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunk,
+    void commitLocalChunkInPlace(ChunkState& state, const ChunkDataCollection& localInsertChunk,
+        const offset_to_row_idx_t& insertInfo, const ChunkDataCollection& localUpdateChunk,
         const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) override;
 
 private:
     std::unique_ptr<ColumnChunkData> getEmptyChunkForCommit(uint64_t capacity) override {
-        return ColumnChunkFactory::createNullChunkData(enableCompression, capacity);
+        return ColumnChunkFactory::createNullChunkData(enableCompression, capacity,
+            ResidencyState::TEMPORARY);
     }
 };
 

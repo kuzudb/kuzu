@@ -8,6 +8,7 @@ namespace catalog {
 class CatalogEntry;
 class CatalogSet;
 } // namespace catalog
+
 namespace main {
 class ClientContext;
 }
@@ -17,8 +18,7 @@ namespace storage {
 //                For now, we use malloc to get around the limitation of 256KB from MM.
 class UndoMemoryBuffer {
 public:
-    static constexpr const uint64_t UNDO_MEMORY_BUFFER_SIZE =
-        common::BufferPoolConstants::PAGE_4KB_SIZE;
+    static constexpr uint64_t UNDO_MEMORY_BUFFER_SIZE = common::BufferPoolConstants::PAGE_4KB_SIZE;
 
     explicit UndoMemoryBuffer(uint64_t size) : size{size} {
         data = std::make_unique<uint8_t[]>(size);
@@ -55,6 +55,7 @@ private:
     const UndoBuffer& undoBuffer;
 };
 
+struct VectorUpdateInfo;
 // This class is not thread safe, as it is supposed to be accessed by a single thread.
 class UndoBuffer {
     friend class UndoBufferIterator;
@@ -67,6 +68,7 @@ public:
     explicit UndoBuffer(main::ClientContext& clientContext);
 
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
+    void createVectorUpdateInfo(storage::VectorUpdateInfo& vectorUpdateInfo);
 
     void commit(common::transaction_t commitTS);
     void rollback();

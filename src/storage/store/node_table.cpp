@@ -26,7 +26,7 @@ NodeTable::NodeTable(StorageManager* storageManager, NodeTableCatalogEntry* node
         storageManager->getMetadataDAC(), nodeTableEntry, bufferManager, wal,
         nodeTableEntry->getPropertiesRef(), storageManager->getNodesStatisticsAndDeletedIDs(),
         storageManager->compressionEnabled());
-    deltaNodeGroups = std::make_unique<NodeGroupCollection>(getTableColumnTypes(*this),
+    nodeGroups = std::make_unique<NodeGroupCollection>(getTableColumnTypes(*this),
         storageManager->getDataFH(), *tableData);
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
         storageManager->isReadOnly(), vfs, context);
@@ -44,7 +44,7 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
 void NodeTable::initializeScanState(Transaction* transaction, TableScanState& scanState) const {
     switch (auto& nodeScanState = scanState.cast<NodeTableScanState>(); nodeScanState.source) {
     case TableScanSource::COMMITTED: {
-        nodeScanState.nodeGroup = &deltaNodeGroups->getNodeGroup(scanState.nodeGroupIdx);
+        nodeScanState.nodeGroup = &nodeGroups->getNodeGroup(scanState.nodeGroupIdx);
         nodeScanState.nodeGroup->initializeScanState(transaction, scanState);
     } break;
     case TableScanSource::UNCOMMITTED: {
@@ -109,13 +109,24 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
         ku_dynamic_cast<TableUpdateState&, NodeTableUpdateState&>(updateState);
     KU_ASSERT(nodeUpdateState.nodeIDVector.state->getSelVector().getSelSize() == 1 &&
               nodeUpdateState.propertyVector.state->getSelVector().getSelSize() == 1);
-    if (nodeUpdateState.columnID == pkColumnID) {
-        pkIndex->delete_(nodeUpdateState.pkVector);
-        insertPK(nodeUpdateState.nodeIDVector, nodeUpdateState.propertyVector);
+    // TODO(Guodong): Should rework this into first delete the row, then insert it.
+    // if (nodeUpdateState.columnID == pkColumnID && pkIndex) {
+    // pkIndex->delete_(nodeUpdateState.pkVector);
+    // insertPK(nodeUpdateState.nodeIDVector, nodeUpdateState.propertyVector);
+    // }
+    const auto pos = nodeUpdateState.nodeIDVector.state->getSelVector()[0];
+    const auto nodeOffset = nodeUpdateState.nodeIDVector.readNodeOffset(pos);
+    if (nodeOffset >= StorageConstants::MAX_NUM_NODES_IN_TABLE) {
+        const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+            LocalStorage::NotExistAction::RETURN_NULL);
+        KU_ASSERT(localTable);
+        localTable->update(updateState);
+    } else {
+        const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+        nodeGroups->getNodeGroup(nodeGroupIdx)
+            .update(transaction, nodeOffset, nodeUpdateState.columnID,
+                nodeUpdateState.propertyVector);
     }
-    const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
-        LocalStorage::NotExistAction::CREATE);
-    localTable->update(updateState);
 }
 
 void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
@@ -127,7 +138,7 @@ void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
         return;
     }
     const auto nodeOffset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
-    if (nodeOffset > StorageConstants::MAX_NUM_NODES_IN_TABLE) {
+    if (nodeOffset >= StorageConstants::MAX_NUM_NODES_IN_TABLE) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL);
         KU_ASSERT(localTable);
@@ -135,7 +146,7 @@ void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     } else {
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
         const auto actualDeleted =
-            deltaNodeGroups->getNodeGroup(nodeGroupIdx).delete_(transaction, nodeOffset);
+            nodeGroups->getNodeGroup(nodeGroupIdx).delete_(transaction, nodeOffset);
         if (actualDeleted) {
             // TODO: Add record to undo buffer.
         }
@@ -150,15 +161,16 @@ void NodeTable::addColumn(Transaction* transaction, const Property& property,
     tableData->addColumn(transaction, "", tableData->getColumn(pkColumnID)->getMetadataDA(),
         *nodesStats->getMetadataDAHInfo(transaction, tableID, tableData->getNumColumns()), property,
         defaultValueVector);
-    // TODO(Guodong): addColumn is not going through localStorage design for now. So it needs to add
-    // tableID into the wal's updated table set separately, as it won't trigger prepareCommit.
+    // TODO(Guodong): addColumn is not going through localStorage design for now. So it needs to
+    // add tableID into the wal's updated table set separately, as it won't trigger
+    // prepareCommit.
     wal->addToUpdatedTables(tableID);
 }
 
 offset_t NodeTable::append(Transaction* transaction, ChunkedNodeGroup* chunkedGroup,
     offset_t startOffsetToAppend, row_idx_t numRowsToAppend) {
     // TODO: handle startOffsetToAppend and numRowsToAppend.
-    deltaNodeGroups->merge(transaction, chunkedGroup->getNodeGroupIdx(), *chunkedGroup);
+    nodeGroups->merge(transaction, chunkedGroup->getNodeGroupIdx(), *chunkedGroup);
 }
 
 void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
@@ -168,7 +180,7 @@ void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) 
     const auto nodesStats =
         ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics);
     const auto numNodesCheckpointed = nodesStats->getNumTuplesForTable(transaction, tableID);
-    auto startNodeOffset = numNodesCheckpointed + deltaNodeGroups->getNumRows();
+    auto startNodeOffset = numNodesCheckpointed + nodeGroups->getNumRows();
 
     // 2. Scan local table to populate hash index.
     std::vector<column_id_t> columnsToScan{pkColumnID};
@@ -180,8 +192,9 @@ void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) 
     std::vector<ValueVector*> outputVectors{&pkVector};
     node_group_idx_t nodeGroupToScan = 0u;
     auto numNodeGroupsToScan = localNodeTable.getNumNodeGroups();
-    const auto scanState =
-        std::make_unique<NodeTableScanState>(tableID, &nodeIDVector, columnsToScan, outputVectors);
+    const auto scanState = std::make_unique<NodeTableScanState>(tableID, columnsToScan);
+    scanState->nodeIDVector = &nodeIDVector;
+    scanState->outputVectors = outputVectors;
     scanState->source = TableScanSource::UNCOMMITTED;
     while (nodeGroupToScan < numNodeGroupsToScan) {
         scanState->nodeGroup = &localNodeTable.getNodeGroup(nodeGroupToScan);
@@ -198,7 +211,7 @@ void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) 
     }
 
     // 3. Append the node groups to the table data.
-    deltaNodeGroups->append(transaction, localNodeTable.getNodeGroups());
+    nodeGroups->append(transaction, localNodeTable.getNodeGroups());
 
     // 4. TODO: Add record to undo buffer.
 
@@ -220,21 +233,21 @@ void NodeTable::prepareRollback(LocalTable* localTable) {
 
 void NodeTable::checkpoint() {
     // 1. Flush the delta node groups to disk.
-    deltaNodeGroups->checkpoint();
+    nodeGroups->checkpoint();
     // 2. Update metadata disk arrays.
-    const auto numNodeGroups = deltaNodeGroups->getNumNodeGroups();
+    const auto numNodeGroups = nodeGroups->getNumNodeGroups();
     for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
-        auto& nodeGroup = deltaNodeGroups->getNodeGroup(nodeGroupIdx);
-        KU_ASSERT(
-            nodeGroup.getNumChunkedGroups() == 1 && nodeGroup.getType() == NodeGroupType::ON_DISK);
+        auto& nodeGroup = nodeGroups->getNodeGroup(nodeGroupIdx);
+        KU_ASSERT(nodeGroup.getNumChunkedGroups() == 1 &&
+                  nodeGroup.getResidencyState() == ResidencyState::ON_DISK);
         auto& chunkedGroup = nodeGroup.getChunkedGroup(0);
         for (auto columnID = 0u; columnID < chunkedGroup.getNumColumns(); columnID++) {
             tableData->getColumn(columnID)->setMetadataFromChunk(nodeGroupIdx,
-                chunkedGroup.getColumnChunk(columnID));
+                chunkedGroup.getColumnChunk(columnID).getData());
         }
     }
     // 3. Should also update table statistics.
-    tablesStatistics->updateNumTuplesByValue(tableID, deltaNodeGroups->getNumRows());
+    tablesStatistics->updateNumTuplesByValue(tableID, nodeGroups->getNumRows());
     checkpointInMemory();
 }
 

@@ -44,15 +44,15 @@ struct PartitionerSharedState {
     std::vector<std::shared_ptr<BatchInsertSharedState>> nodeBatchInsertSharedStates;
 
     explicit PartitionerSharedState(std::vector<common::logical_type_vec_t> columnTypes)
-        : columnTypes{std::move(columnTypes)} {}
+        : columnTypes{std::move(columnTypes)}, srcNodeTable{nullptr}, dstNodeTable{nullptr} {}
 
     void initialize(std::vector<std::unique_ptr<PartitioningInfo>>& infos);
     common::partition_idx_t getNextPartition(common::idx_t partitioningIdx);
     void resetState();
     void merge(std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates);
 
-    inline const storage::ChunkedNodeGroupCollection& getPartitionBuffer(
-        common::idx_t partitioningIdx, common::partition_idx_t partitionIdx) const {
+    const storage::ChunkedNodeGroupCollection& getPartitionBuffer(common::idx_t partitioningIdx,
+        common::partition_idx_t partitionIdx) const {
         KU_ASSERT(partitioningIdx < partitioningBuffers.size());
         KU_ASSERT(partitionIdx < partitioningBuffers[partitioningIdx]->partitions.size());
         return partitioningBuffers[partitioningIdx]->partitions[partitionIdx];
@@ -78,7 +78,7 @@ struct PartitioningInfo {
         std::vector<common::LogicalType> columnTypes, partitioner_func_t partitionerFunc)
         : keyDataPos{keyDataPos}, columnDataPositions{std::move(columnDataPositions)},
           columnTypes{std::move(columnTypes)}, partitionerFunc{std::move(partitionerFunc)} {}
-    inline std::unique_ptr<PartitioningInfo> copy() {
+    std::unique_ptr<PartitioningInfo> copy() {
         return std::make_unique<PartitioningInfo>(keyDataPos, columnDataPositions,
             common::LogicalType::copy(columnTypes), partitionerFunc);
     }
@@ -98,7 +98,7 @@ public:
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
     void executeInternal(ExecutionContext* context) final;
 
-    inline std::shared_ptr<PartitionerSharedState> getSharedState() { return sharedState; }
+    std::shared_ptr<PartitionerSharedState> getSharedState() { return sharedState; }
 
     std::unique_ptr<PhysicalOperator> clone() final;
 

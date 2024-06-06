@@ -61,9 +61,9 @@ struct TableInsertState {
 
 struct TableUpdateState {
     common::column_id_t columnID;
-    const common::ValueVector& propertyVector;
+    common::ValueVector& propertyVector;
 
-    TableUpdateState(common::column_id_t columnID, const common::ValueVector& propertyVector)
+    TableUpdateState(common::column_id_t columnID, common::ValueVector& propertyVector)
         : columnID{columnID}, propertyVector{propertyVector} {}
     virtual ~TableUpdateState() = default;
 };
@@ -116,6 +116,14 @@ public:
     virtual void checkpoint() = 0;
     virtual void rollbackInMemory() = 0;
 
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<Table&, TARGET&>(*this);
+    }
+    template<class TARGET>
+    const TARGET& cast() const {
+        return common::ku_dynamic_cast<const Table&, const TARGET&>(*this);
+    }
     template<class TARGET>
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<Table*, TARGET*>(this);

@@ -12,7 +12,7 @@ public:
         DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, bool enableCompression);
 
-    static std::unique_ptr<ColumnChunkData> flushChunk(const ColumnChunkData& chunk,
+    static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
         BMFileHandle& dataFH);
 
     void initChunkState(transaction::Transaction* transaction,
@@ -40,8 +40,8 @@ public:
         common::offset_t dataOffset, common::length_t numValues) override;
 
     void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
-        const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
-        const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
+        const ChunkDataCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+        const ChunkDataCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
         const offset_set_t& deleteInfo) override;
     void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
         const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
@@ -60,8 +60,8 @@ protected:
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
 private:
-    static ChunkCollection getStructChildChunkCollection(const ChunkCollection& chunkCollection,
-        common::idx_t childIdx);
+    static ChunkDataCollection getStructChildChunkCollection(
+        const ChunkDataCollection& chunkCollection, common::idx_t childIdx);
 
 private:
     std::vector<std::unique_ptr<Column>> childColumns;

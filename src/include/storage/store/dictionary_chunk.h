@@ -1,6 +1,6 @@
 #pragma once
 
-#include "storage/store/column_chunk.h"
+#include "storage/store/column_chunk_data.h"
 
 namespace kuzu {
 namespace storage {
@@ -12,7 +12,7 @@ public:
     static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 0;
     static constexpr common::idx_t OFFSET_COLUMN_CHILD_READ_STATE_IDX = 1;
 
-    DictionaryChunk(uint64_t capacity, bool enableCompression);
+    DictionaryChunk(uint64_t capacity, bool enableCompression, ResidencyState type);
     // A pointer to the dictionary chunk is stored in the StringOps for the indexTable
     // and can't be modified easily. Moving would invalidate that pointer
     DictionaryChunk(DictionaryChunk&& other) = delete;

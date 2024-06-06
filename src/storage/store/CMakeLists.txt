@@ -4,6 +4,7 @@ add_library(kuzu_storage_store
         chunked_node_group_collection.cpp
         column.cpp
         column_chunk.cpp
+        column_chunk_data.cpp
         dictionary_chunk.cpp
         dictionary_column.cpp
         node_table.cpp
@@ -11,15 +12,16 @@ add_library(kuzu_storage_store
         null_column.cpp
         rel_table.cpp
         rel_table_data.cpp
-        string_column_chunk.cpp
+        string_chunk_data.cpp
         string_column.cpp
-        struct_column_chunk.cpp
+        struct_chunk_data.cpp
         struct_column.cpp
         table_data.cpp
+        list_chunk_data.cpp
         list_column.cpp
-        list_column_chunk.cpp
         node_group.cpp
         node_group_collection.cpp
+        update_info.cpp
         version_info.cpp)
 
 set(ALL_OBJECT_FILES

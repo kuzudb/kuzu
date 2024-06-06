@@ -127,7 +127,8 @@ void Partitioner::initializePartitioningStates(
         auto partitioningBuffer = std::make_unique<PartitioningBuffer>();
         partitioningBuffer->partitions.reserve(numPartition);
         for (auto i = 0u; i < numPartition; i++) {
-            partitioningBuffer->partitions.emplace_back(infos[partitioningIdx]->columnTypes);
+            partitioningBuffer->partitions.emplace_back(ResidencyState::TEMPORARY,
+                infos[partitioningIdx]->columnTypes);
         }
         partitioningBuffers[partitioningIdx] = std::move(partitioningBuffer);
     }

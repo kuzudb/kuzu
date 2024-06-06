@@ -11,7 +11,7 @@ class Transaction;
 namespace storage {
 
 struct NodeGroupScanState {
-    common::vector_idx_t chunkedGroupIdx = 0;
+    common::idx_t chunkedGroupIdx = 0;
     common::row_idx_t nextRowToScan = 0;
     common::row_idx_t maxNumRowsToScan = 0;
 
@@ -21,15 +21,14 @@ struct NodeGroupScanState {
     bool hasNext() const { return nextRowToScan < maxNumRowsToScan; }
 };
 
-enum class NodeGroupType : uint8_t { IN_MEMORY, ON_DISK };
-
 struct TableScanState;
 class NodeGroup {
 public:
-    explicit NodeGroup(common::node_group_idx_t nodeGroupIdx,
-        const std::vector<common::LogicalType>& dataTypes)
-        : nodeGroupIdx{nodeGroupIdx}, dataTypes{dataTypes}, type{NodeGroupType::IN_MEMORY},
-          startNodeOffset{0}, chunkedGroups{dataTypes} {}
+    explicit NodeGroup(common::node_group_idx_t nodeGroupIdx, bool enableCompression,
+        ResidencyState residencyState, const std::vector<common::LogicalType>& dataTypes)
+        : nodeGroupIdx{nodeGroupIdx}, enableCompression{enableCompression}, dataTypes{dataTypes},
+          residencyState{residencyState}, startNodeOffset{0},
+          chunkedGroups{residencyState, dataTypes} {}
 
     common::row_idx_t getNumRows() const { return chunkedGroups.getNumRows(); }
     bool isFull() const {
@@ -51,27 +50,29 @@ public:
     bool scan(transaction::Transaction* transaction, TableScanState& state) const;
     void lookup(transaction::Transaction* transaction, TableScanState& state) const;
 
-    void update();
-    bool delete_(transaction::Transaction* transaction, common::offset_t nodeOffset);
+    void update(transaction::Transaction* transaction, common::offset_t offset,
+        common::column_id_t columnID, common::ValueVector& propertyVector);
+    bool delete_(transaction::Transaction* transaction, common::offset_t offset);
 
     void flush(BMFileHandle& dataFH);
 
-    common::vector_idx_t getNumChunkedGroups() const { return chunkedGroups.getNumChunkedGroups(); }
-    const ChunkedNodeGroup& getChunkedGroup(common::vector_idx_t idx) const {
+    common::idx_t getNumChunkedGroups() const { return chunkedGroups.getNumChunkedGroups(); }
+    const ChunkedNodeGroup& getChunkedGroup(common::idx_t idx) const {
         return chunkedGroups.getChunkedGroup(idx);
     }
     const ChunkedNodeGroupCollection& getChunkedGroups() const { return chunkedGroups; }
 
-    NodeGroupType getType() const { return type; }
+    ResidencyState getResidencyState() const { return residencyState; }
     common::offset_t getStartNodeOffset() const { return startNodeOffset; }
 
 private:
-    void setToOnDisk() { type = NodeGroupType::ON_DISK; }
+    void setToOnDisk() { residencyState = ResidencyState::ON_DISK; }
 
 private:
     common::node_group_idx_t nodeGroupIdx;
+    bool enableCompression;
     std::vector<common::LogicalType> dataTypes;
-    NodeGroupType type;
+    ResidencyState residencyState;
     // Offset of the first node in the group.
     common::offset_t startNodeOffset;
     ChunkedNodeGroupCollection chunkedGroups;

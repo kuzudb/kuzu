@@ -67,7 +67,7 @@ bool VectorVersionInfo::isInserted(transaction_t startTS, transaction_t transact
     return isInsertedWithinSameTransaction || isInsertedByPrevCommittedTransaction;
 }
 
-VectorVersionInfo& NodeGroupVersionInfo::getVersionInfo(vector_idx_t vectorIdx) {
+VectorVersionInfo& NodeGroupVersionInfo::getVersionInfo(idx_t vectorIdx) {
     if (vectorsInfo.size() <= vectorIdx) {
         vectorsInfo.resize(vectorIdx + 1);
     }
@@ -77,7 +77,7 @@ VectorVersionInfo& NodeGroupVersionInfo::getVersionInfo(vector_idx_t vectorIdx) 
     return *vectorsInfo[vectorIdx];
 }
 
-const VectorVersionInfo& NodeGroupVersionInfo::getVersionInfo(vector_idx_t vectorIdx) const {
+const VectorVersionInfo& NodeGroupVersionInfo::getVersionInfo(idx_t vectorIdx) const {
     KU_ASSERT(vectorIdx < vectorsInfo.size());
     KU_ASSERT(vectorsInfo[vectorIdx]);
     return *vectorsInfo[vectorIdx];

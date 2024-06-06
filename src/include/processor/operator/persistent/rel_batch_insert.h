@@ -4,7 +4,7 @@
 #include "processor/operator/partitioner.h"
 #include "processor/operator/persistent/batch_insert.h"
 #include "storage/store/chunked_node_group.h"
-#include "storage/store/column_chunk.h"
+#include "storage/store/column_chunk_data.h"
 
 namespace kuzu {
 namespace processor {

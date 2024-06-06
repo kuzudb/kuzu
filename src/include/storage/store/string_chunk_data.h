@@ -3,7 +3,7 @@
 #include "common/assert.h"
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
-#include "storage/store/column_chunk.h"
+#include "storage/store/column_chunk_data.h"
 #include "storage/store/dictionary_chunk.h"
 
 namespace kuzu {
@@ -12,16 +12,16 @@ namespace storage {
 class StringChunkData final : public ColumnChunkData {
 public:
     StringChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
-        bool inMemory);
+        ResidencyState residencyState);
 
     void resetToEmpty() override;
     void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 
+    void initializeScanState(ChunkState& state) const override;
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
-    void initializeScanState(ChunkState& state) const override;
 
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;

@@ -5,7 +5,7 @@
 #include "common/string_format.h"
 #include "processor/result/factorized_table_util.h"
 #include "storage/local_storage/local_rel_table.h"
-#include "storage/store/column_chunk.h"
+#include "storage/store/column_chunk_data.h"
 #include "storage/store/rel_table.h"
 
 using namespace kuzu::common;
@@ -23,7 +23,7 @@ void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/,
     localState = std::make_unique<RelBatchInsertLocalState>();
     auto relInfo = ku_dynamic_cast<BatchInsertInfo*, RelBatchInsertInfo*>(info.get());
     localState->nodeGroup = NodeGroupFactory::createNodeGroup(ColumnDataFormat::CSR,
-        relInfo->columnTypes, relInfo->compressionEnabled);
+        relInfo->columnTypes, relInfo->compressionEnabled, 0, ResidencyState::TEMPORARY);
 }
 
 void RelBatchInsert::executeInternal(ExecutionContext* context) {
@@ -71,8 +71,8 @@ void RelBatchInsert::prepareCSRNodeGroup(const ChunkedNodeGroupCollection& parti
     localState.nodeGroup->resizeChunks(csrChunkCapacity);
     localState.nodeGroup->setAllNull();
     for (auto& chunkedGroup : partition.getChunkedGroups()) {
-        auto& offsetChunk = chunkedGroup->getColumnChunkUnsafe(relInfo.offsetColumnID);
-        setOffsetFromCSROffsets(offsetChunk, *csrHeader.offset);
+        auto& offsetChunk = chunkedGroup->getColumnChunk(relInfo.offsetColumnID);
+        setOffsetFromCSROffsets(offsetChunk.getData(), csrHeader.offset->getData());
     }
     populateEndCSROffsets(csrHeader, gaps);
 }
@@ -89,19 +89,19 @@ void RelBatchInsert::mergeNodeGroup(transaction::Transaction* transaction,
     auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(localState.nodeGroupIdx);
     auto numRels = 0u;
     for (auto& chunkedGroup : partition.getChunkedGroups()) {
-        auto& offsetChunk = chunkedGroup->getColumnChunkUnsafe(relInfo.offsetColumnID);
+        auto& offsetChunk = chunkedGroup->getColumnChunk(relInfo.offsetColumnID);
         numRels += chunkedGroup->getNumRows();
-        setOffsetToWithinNodeGroup(offsetChunk, startNodeOffset);
-        std::vector<std::unique_ptr<ColumnChunkData>> chunksToAppend;
+        setOffsetToWithinNodeGroup(offsetChunk.getData(), startNodeOffset);
+        std::vector<std::unique_ptr<ColumnChunk>> chunksToAppend;
         for (auto i = 0u; i < chunkedGroup->getNumColumns(); i++) {
             if (i == relInfo.offsetColumnID) {
                 // Skip the offset vector.
                 continue;
             }
-            chunksToAppend.push_back(std::move(chunkedGroup->getColumnChunksUnsafe()[i]));
+            chunksToAppend.push_back(chunkedGroup->moveColumnChunk(i));
         }
         auto chunkedGroupToAppend = std::make_unique<ChunkedNodeGroup>(std::move(chunksToAppend));
-        insertChunks.appendChunkedGroup(&offsetChunk, std::move(chunkedGroupToAppend));
+        insertChunks.appendChunkedGroup(&offsetChunk.getData(), std::move(chunkedGroupToAppend));
     }
     relTable->getDirectedTableData(relInfo.direction)
         ->prepareCommitNodeGroup(transaction, localState.nodeGroupIdx, localNG.get());
@@ -110,7 +110,7 @@ void RelBatchInsert::mergeNodeGroup(transaction::Transaction* transaction,
 
 void RelBatchInsert::populateEndCSROffsets(ChunkedCSRHeader& csrHeader,
     std::vector<offset_t>& gaps) {
-    auto csrOffsets = (offset_t*)csrHeader.offset->getData();
+    auto csrOffsets = reinterpret_cast<offset_t*>(csrHeader.offset->getData().getData());
     for (auto i = 0u; i < csrHeader.offset->getNumValues(); i++) {
         csrOffsets[i] += gaps[i];
     }
@@ -131,14 +131,14 @@ std::vector<offset_t> RelBatchInsert::populateStartCSROffsetsAndLengths(ChunkedC
               numNodes == csrHeader.offset->getNumValues());
     std::vector<offset_t> gaps;
     gaps.resize(numNodes);
-    auto csrOffsets = (offset_t*)csrHeader.offset->getData();
-    auto csrLengths = (length_t*)csrHeader.length->getData();
+    const auto csrOffsets = reinterpret_cast<uint64_t*>(csrHeader.offset->getData().getData());
+    const auto csrLengths = reinterpret_cast<length_t*>(csrHeader.length->getData().getData());
     std::fill(csrLengths, csrLengths + numNodes, 0);
     // Calculate length for each node. Store the num of tuples of node i at csrLengths[i].
     for (auto& chunkedGroup : partition.getChunkedGroups()) {
         auto& offsetChunk = chunkedGroup->getColumnChunk(offsetColumnID);
         for (auto i = 0u; i < offsetChunk.getNumValues(); i++) {
-            auto nodeOffset = offsetChunk.getValue<offset_t>(i);
+            auto nodeOffset = offsetChunk.getData().getValue<offset_t>(i);
             KU_ASSERT(nodeOffset < numNodes);
             csrLengths[nodeOffset]++;
         }
@@ -157,7 +157,7 @@ std::vector<offset_t> RelBatchInsert::populateStartCSROffsetsAndLengths(ChunkedC
 
 void RelBatchInsert::setOffsetToWithinNodeGroup(ColumnChunkData& chunk, offset_t startOffset) {
     KU_ASSERT(chunk.getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
-    auto offsets = (offset_t*)chunk.getData();
+    auto offsets = reinterpret_cast<offset_t*>(chunk.getData());
     for (auto i = 0u; i < chunk.getNumValues(); i++) {
         offsets[i] -= startOffset;
     }
@@ -182,7 +182,7 @@ void RelBatchInsert::appendNewNodeGroup(transaction::Transaction* transaction,
         partitionerSharedState.getPartitionBuffer(relInfo.partitioningIdx, localState.nodeGroupIdx);
     auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     for (auto& chunkedGroup : partitioningBuffer.getChunkedGroups()) {
-        setOffsetToWithinNodeGroup(chunkedGroup->getColumnChunkUnsafe(relInfo.offsetColumnID),
+        setOffsetToWithinNodeGroup(chunkedGroup->getColumnChunk(relInfo.offsetColumnID).getData(),
             startNodeOffset);
     }
     // Calculate num of source nodes in this node group.
@@ -202,7 +202,7 @@ void RelBatchInsert::appendNewNodeGroup(transaction::Transaction* transaction,
 }
 
 std::optional<offset_t> RelBatchInsert::checkRelMultiplicityConstraint(
-    const storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertInfo& relInfo) {
+    const ChunkedCSRHeader& csrHeader, const RelBatchInsertInfo& relInfo) {
     auto relTableEntry =
         ku_dynamic_cast<catalog::TableCatalogEntry*, catalog::RelTableCatalogEntry*>(
             relInfo.tableEntry);
@@ -210,7 +210,7 @@ std::optional<offset_t> RelBatchInsert::checkRelMultiplicityConstraint(
         return std::nullopt;
     }
     for (auto i = 0u; i < csrHeader.length->getNumValues(); i++) {
-        if (csrHeader.length->getValue<length_t>(i) > 1) {
+        if (csrHeader.length->getData().getValue<length_t>(i) > 1) {
             return i;
         }
     }

@@ -49,8 +49,8 @@ public:
         common::row_idx_t numRows) const;
 
 private:
-    VectorVersionInfo& getVersionInfo(common::vector_idx_t vectorIdx);
-    const VectorVersionInfo& getVersionInfo(common::vector_idx_t vectorIdx) const;
+    VectorVersionInfo& getVersionInfo(common::idx_t vectorIdx);
+    const VectorVersionInfo& getVersionInfo(common::idx_t vectorIdx) const;
 
 private:
     std::vector<std::unique_ptr<VectorVersionInfo>> vectorsInfo;

@@ -61,6 +61,7 @@ public:
         return columns[columnID].get();
     }
     const std::vector<std::unique_ptr<Column>>& getColumns() const { return columns; }
+    bool isCompressionEnabled() const { return enableCompression; }
 
     virtual void prepareLocalTableToCommit(transaction::Transaction*, LocalTableData*) {
         KU_UNREACHABLE;

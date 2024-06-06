@@ -16,7 +16,8 @@ struct RelDataReadState final : TableDataScanState {
     common::offset_t posInCurrentCSR;
     std::vector<common::list_entry_t> csrListEntries;
     // Temp auxiliary data structure to scan the offset of each CSR node in the offset column chunk.
-    ChunkedCSRHeader csrHeaderChunks = ChunkedCSRHeader(false /*enableCompression*/);
+    ChunkedCSRHeader csrHeaderChunks = ChunkedCSRHeader(false /*enableCompression*/,
+        common::StorageConstants::NODE_GROUP_SIZE, ResidencyState::TEMPORARY);
 
     bool readFromPersistentStorage;
     // Following fields are used for local storage.
@@ -42,13 +43,13 @@ struct CSRHeaderColumns {
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         const ChunkedCSRHeader& chunks) const {
-        offset->scan(transaction, nodeGroupIdx, chunks.offset.get());
-        length->scan(transaction, nodeGroupIdx, chunks.length.get());
+        offset->scan(transaction, nodeGroupIdx, &chunks.offset->getData());
+        length->scan(transaction, nodeGroupIdx, &chunks.length->getData());
     }
     void append(const ChunkedCSRHeader& headerChunks, ChunkState& offsetState,
         ChunkState& lengthState) const {
-        offset->append(headerChunks.offset.get(), offsetState);
-        length->append(headerChunks.length.get(), lengthState);
+        offset->append(&headerChunks.offset->getData(), offsetState);
+        length->append(&headerChunks.length->getData(), lengthState);
     }
 
     common::offset_t getNumNodes(transaction::Transaction* transaction,
@@ -102,7 +103,8 @@ public:
         common::offset_t rightCSROffset = common::INVALID_OFFSET;
 
         explicit PersistentState(common::offset_t numNodes) {
-            header = ChunkedCSRHeader(false /*enableCompression*/, numNodes);
+            header =
+                ChunkedCSRHeader(false /*enableCompression*/, numNodes, ResidencyState::TEMPORARY);
         }
     };
 
@@ -217,10 +219,11 @@ private:
         const LocalState& localState, uint64_t numValuesToInsert);
 
     static void applyUpdatesToChunk(const PersistentState& persistentState,
-        const LocalState& localState, const ChunkCollection& localChunk, ColumnChunkData* chunk,
+        const LocalState& localState, const ChunkDataCollection& localChunk, ColumnChunkData* chunk,
         common::column_id_t columnID);
     static void applyInsertionsToChunk(const PersistentState& persistentState,
-        const LocalState& localState, const ChunkCollection& localChunk, ColumnChunkData* chunk);
+        const LocalState& localState, const ChunkDataCollection& localChunk,
+        ColumnChunkData* chunk);
     static void applyDeletionsToChunk(const PersistentState& persistentState,
         const LocalState& localState, ColumnChunkData* chunk);
 

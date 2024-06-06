@@ -330,7 +330,7 @@ offset_t RelTableData::append(Transaction* transaction, ChunkedNodeGroup* nodeGr
         auto column = getColumn(columnID);
         ChunkState state;
         column->initChunkState(&DUMMY_WRITE_TRANSACTION, csrNodeGroup->getNodeGroupIdx(), state);
-        getColumn(columnID)->append(&nodeGroup->getColumnChunkUnsafe(columnID), state);
+        getColumn(columnID)->append(&nodeGroup->getColumnChunk(columnID).getData(), state);
     }
     return StorageUtils::getStartOffsetOfNodeGroup(nodeGroup->getNodeGroupIdx());
 }
@@ -423,7 +423,7 @@ RelTableData::LocalState::LocalState(LocalRelNG* localNG) : localNG{localNG} {
 }
 
 void RelTableData::applyUpdatesToChunk(const PersistentState& persistentState,
-    const LocalState& localState, const ChunkCollection& localChunk, ColumnChunkData* chunk,
+    const LocalState& localState, const ChunkDataCollection& localChunk, ColumnChunkData* chunk,
     column_id_t columnID) {
     offset_to_row_idx_t csrOffsetInRegionToRowIdx;
     auto [leftNodeBoundary, rightNodeBoundary] = localState.region.getNodeOffsetBoundaries();
@@ -442,7 +442,7 @@ void RelTableData::applyUpdatesToChunk(const PersistentState& persistentState,
 }
 
 void RelTableData::applyInsertionsToChunk(const PersistentState& persistentState,
-    const LocalState& localState, const ChunkCollection& localChunk, ColumnChunkData* newChunk) {
+    const LocalState& localState, const ChunkDataCollection& localChunk, ColumnChunkData* newChunk) {
     offset_to_row_idx_t csrOffsetToRowIdx;
     auto [leftNodeBoundary, rightNodeBoundary] = localState.region.getNodeOffsetBoundaries();
     auto& insertChunks = localState.localNG->insertChunks;
@@ -506,7 +506,7 @@ void RelTableData::distributeAndUpdateColumn(Transaction* transaction,
     // First, scan the whole region to a temp chunk.
     auto oldSize = persistentState.rightCSROffset - persistentState.leftCSROffset + 1;
     auto chunk = ColumnChunkFactory::createColumnChunkData(*column->getDataType().copy(),
-        enableCompression, oldSize);
+        enableCompression, oldSize, ResidencyState::TEMPORARY);
     column->scan(transaction, nodeGroupIdx, chunk.get(), persistentState.leftCSROffset,
         persistentState.rightCSROffset + 1);
     auto localUpdateChunk =
@@ -516,8 +516,8 @@ void RelTableData::distributeAndUpdateColumn(Transaction* transaction,
     // Second, create a new temp chunk for the region.
     auto newSize = localState.rightCSROffset - localState.leftCSROffset + 1;
     auto newChunk = ColumnChunkFactory::createColumnChunkData(*column->getDataType().copy(),
-        enableCompression, newSize);
-    newChunk->getNullChunk()->resetToAllNull();
+        enableCompression, newSize, ResidencyState::TEMPORARY);
+    newChunk->getNullData()->resetToAllNull();
     auto maxNumNodesToDistribute = std::min(rightNodeBoundary - leftNodeBoundary + 1,
         persistentState.header.offset->getNumValues());
     // Third, copy the rels to the new chunk.
@@ -583,8 +583,9 @@ void RelTableData::updateRegion(Transaction* transaction, node_group_idx_t nodeG
         // NOTE: There is an implicit trick happening. Due to the mismatch of storage type and
         // in-memory representation of INTERNAL_ID, we only store offset as INT64 on disk. Here
         // we directly read relID's offset part from disk into an INT64 column chunk.
-        persistentState.relIDChunk = ColumnChunkFactory::createColumnChunkData(
-            *LogicalType::INT64(), enableCompression, localState.regionCapacity);
+        persistentState.relIDChunk =
+            ColumnChunkFactory::createColumnChunkData(*LogicalType::INT64(), enableCompression,
+                localState.regionCapacity, ResidencyState::TEMPORARY);
         getColumn(REL_ID_COLUMN_ID)
             ->scan(transaction, nodeGroupIdx, persistentState.relIDChunk.get(),
                 persistentState.leftCSROffset, persistentState.rightCSROffset + 1);
@@ -679,7 +680,7 @@ void RelTableData::slideLeftForInsertions(offset_t nodeOffset, offset_t leftBoun
         }
         auto slideSize = leftSlides.at(i);
         auto oldOffset = localState.header.getEndCSROffset(i);
-        localState.header.offset->setValue(oldOffset - slideSize, i);
+        localState.header.offset->getData().setValue(oldOffset - slideSize, i);
     }
 }
 
@@ -707,7 +708,7 @@ void RelTableData::slideRightForInsertions(offset_t nodeOffset, offset_t rightBo
         }
         auto slideSize = rightSlides.at(i);
         auto oldOffset = localState.header.getStartCSROffset(i);
-        localState.header.offset->setValue<offset_t>(oldOffset + slideSize, i - 1);
+        localState.header.offset->getData().setValue<offset_t>(oldOffset + slideSize, i - 1);
     }
 }
 
@@ -824,11 +825,11 @@ void RelTableData::applyDeletionsToColumn(Transaction* transaction, node_group_i
         return;
     }
     auto chunk = ColumnChunkFactory::createColumnChunkData(*column->getDataType().copy(),
-        enableCompression, slides.size());
+        enableCompression, slides.size(), ResidencyState::TEMPORARY);
     std::vector<offset_t> dstOffsets;
     dstOffsets.resize(slides.size());
     auto tmpChunkForRead = ColumnChunkFactory::createColumnChunkData(*column->getDataType().copy(),
-        enableCompression, 1);
+        enableCompression, 1 /*capacity*/, ResidencyState::TEMPORARY);
     for (auto i = 0u; i < slides.size(); i++) {
         column->scan(transaction, nodeGroupIdx, tmpChunkForRead.get(), slides[i].first,
             slides[i].first + 1);
@@ -868,11 +869,11 @@ void RelTableData::applySliding(Transaction* transaction, node_group_idx_t nodeG
         return;
     }
     auto chunk = ColumnChunkFactory::createColumnChunkData(*column->getDataType().copy(),
-        enableCompression, slides.size());
+        enableCompression, slides.size(), ResidencyState::TEMPORARY);
     std::vector<offset_t> dstOffsets;
     dstOffsets.resize(slides.size());
     auto tmpChunkForRead = ColumnChunkFactory::createColumnChunkData(*column->getDataType().copy(),
-        enableCompression, 1);
+        enableCompression, 1 /*capacity*/, ResidencyState::TEMPORARY);
     for (auto i = 0u; i < slides.size(); i++) {
         column->scan(transaction, nodeGroupIdx, tmpChunkForRead.get(), slides[i].first,
             slides[i].first + 1);
@@ -906,7 +907,8 @@ void RelTableData::updateCSRHeader(Transaction* transaction, node_group_idx_t no
     localState.region.rightBoundary = std::min(rightBoundary, maxNumNodesInRegion - 1);
     persistentState.leftCSROffset = header.getStartCSROffset(localState.region.leftBoundary);
     persistentState.rightCSROffset = header.getEndCSROffset(localState.region.rightBoundary);
-    localState.header = ChunkedCSRHeader(enableCompression, maxNumNodesInRegion);
+    localState.header =
+        ChunkedCSRHeader(enableCompression, maxNumNodesInRegion, ResidencyState::TEMPORARY);
     auto& newHeader = localState.header;
     newHeader.copyFrom(header);
     newHeader.fillDefaultValues(localState.region.rightBoundary + 1);
@@ -924,8 +926,8 @@ void RelTableData::updateCSRHeader(Transaction* transaction, node_group_idx_t no
         auto oldLength = newHeader.getCSRLength(offset);
         int64_t newLength = static_cast<int64_t>(oldLength) - deletions.size();
         KU_ASSERT(newLength >= 0);
-        newHeader.length->setValue<length_t>(newLength, offset);
-        newHeader.length->getNullChunk()->setNull(offset, false);
+        newHeader.length->getData().setValue<length_t>(newLength, offset);
+        newHeader.length->getData().getNullData()->setNull(offset, false);
     }
     for (auto& [offset, _] : localState.localNG->insertChunks.getSrcNodeOffsetToRelOffsets()) {
         if (localState.region.isOutOfBoundary(offset)) {
@@ -938,8 +940,8 @@ void RelTableData::updateCSRHeader(Transaction* transaction, node_group_idx_t no
         }
         int64_t newLength = static_cast<int64_t>(oldLength) + numInsertions;
         KU_ASSERT(newLength >= 0);
-        newHeader.length->setValue<length_t>(newLength, offset);
-        newHeader.length->getNullChunk()->setNull(offset, false);
+        newHeader.length->getData().setValue<length_t>(newLength, offset);
+        newHeader.length->getData().getNullData()->setNull(offset, false);
     }
     if (localState.region.level > 0) {
         distributeOffsets(header, localState, localState.region.leftBoundary, maxNumNodesInRegion);
@@ -954,9 +956,9 @@ void RelTableData::updateCSRHeader(Transaction* transaction, node_group_idx_t no
     dstOffsets.resize(newHeader.offset->getNumValues() - localState.region.leftBoundary);
     fillSequence(dstOffsets, localState.region.leftBoundary);
     commitCSRHeaderChunk(transaction, isNewNodeGroup, nodeGroupIdx, csrHeaderColumns.offset.get(),
-        newHeader.offset.get(), localState, dstOffsets);
+        &newHeader.offset->getData(), localState, dstOffsets);
     commitCSRHeaderChunk(transaction, isNewNodeGroup, nodeGroupIdx, csrHeaderColumns.length.get(),
-        newHeader.length.get(), localState, dstOffsets);
+        &newHeader.length->getData(), localState, dstOffsets);
 }
 
 void RelTableData::commitCSRHeaderChunk(Transaction* transaction, bool isNewNodeGroup,
@@ -1001,8 +1003,8 @@ void RelTableData::distributeOffsets(const ChunkedCSRHeader& header, LocalState&
         gapSpace -= newGap;
         auto startCSROffset = newHeader.getStartCSROffset(nodeOffset);
         auto newOffset = startCSROffset + newLength + newGap;
-        newHeader.offset->setValue(newOffset, nodeOffset);
-        newHeader.offset->getNullChunk()->setNull(nodeOffset, false);
+        newHeader.offset->getData().setValue(newOffset, nodeOffset);
+        newHeader.offset->getData().getNullData()->setNull(nodeOffset, false);
     }
     localState.needSliding = true;
 }
