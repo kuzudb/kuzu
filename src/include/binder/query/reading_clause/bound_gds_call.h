@@ -1,8 +1,8 @@
 #pragma once
 
 #include "binder/query/reading_clause/bound_reading_clause.h"
-#include "graph/graph_entry.h"
 #include "function/function.h"
+#include "graph/graph_entry.h"
 
 namespace kuzu {
 namespace binder {
@@ -12,7 +12,8 @@ struct BoundGDSCallInfo {
     graph::GraphEntry graphEntry;
     expression_vector outExprs;
 
-    BoundGDSCallInfo(std::unique_ptr<function::Function> func, graph::GraphEntry graphEntry, expression_vector outExprs)
+    BoundGDSCallInfo(std::unique_ptr<function::Function> func, graph::GraphEntry graphEntry,
+        expression_vector outExprs)
         : func{std::move(func)}, graphEntry{std::move(graphEntry)}, outExprs{std::move(outExprs)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundGDSCallInfo);
 
@@ -25,7 +26,8 @@ class BoundGDSCall : public BoundReadingClause {
     static constexpr common::ClauseType clauseType_ = common::ClauseType::GDS_CALL;
 
 public:
-    explicit BoundGDSCall(BoundGDSCallInfo info) : BoundReadingClause{clauseType_}, info{std::move(info)} {}
+    explicit BoundGDSCall(BoundGDSCallInfo info)
+        : BoundReadingClause{clauseType_}, info{std::move(info)} {}
 
     const BoundGDSCallInfo& getInfo() const { return info; }
 

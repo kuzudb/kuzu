@@ -1,7 +1,7 @@
 #pragma once
 
-#include "planner/operator/logical_operator.h"
 #include "binder/query/reading_clause/bound_gds_call.h"
+#include "planner/operator/logical_operator.h"
 
 namespace kuzu {
 namespace planner {

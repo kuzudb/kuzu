@@ -2,8 +2,8 @@
 
 #include "function/gds/gds.h"
 #include "graph/graph.h"
-#include "processor/operator/sink.h"
 #include "graph/graph_entry.h"
+#include "processor/operator/sink.h"
 
 namespace kuzu {
 namespace processor {
@@ -21,13 +21,13 @@ struct GDSCallInfo {
     std::unique_ptr<function::GDSAlgorithm> gds;
     graph::GraphEntry graphEntry;
 
-    GDSCallInfo(std::unique_ptr<function::GDSAlgorithm> gds,
-        graph::GraphEntry graphEntry)
+    GDSCallInfo(std::unique_ptr<function::GDSAlgorithm> gds, graph::GraphEntry graphEntry)
         : gds{std::move(gds)}, graphEntry{std::move(graphEntry)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(GDSCallInfo);
 
 private:
-    GDSCallInfo(const GDSCallInfo& other) : gds{other.gds->copy()}, graphEntry{other.graphEntry.copy()} {}
+    GDSCallInfo(const GDSCallInfo& other)
+        : gds{other.gds->copy()}, graphEntry{other.graphEntry.copy()} {}
 };
 
 class GDSCall : public Sink {

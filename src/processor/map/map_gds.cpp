@@ -1,7 +1,7 @@
+#include "function/gds_function.h"
 #include "planner/operator/logical_gds_call.h"
 #include "processor/operator/gds_call.h"
 #include "processor/plan_mapper.h"
-#include "function/gds_function.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -14,7 +14,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     auto& call = logicalOperator->constCast<LogicalGDSCall>();
     auto& logicalInfo = call.getInfo();
     auto outSchema = call.getSchema();
-    auto info = GDSCallInfo(logicalInfo.func->ptrCast<GDSFunction>()->gds->copy(), logicalInfo.graphEntry.copy());
+    auto info = GDSCallInfo(logicalInfo.func->ptrCast<GDSFunction>()->gds->copy(),
+        logicalInfo.graphEntry.copy());
     auto tableSchema = std::make_unique<FactorizedTableSchema>();
     for (auto& expr : logicalInfo.outExprs) {
         auto dataPos = getDataPos(*expr, *outSchema);

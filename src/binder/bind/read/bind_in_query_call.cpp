@@ -7,10 +7,10 @@
 #include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
 #include "function/gds_function.h"
-#include "parser/expression/parsed_function_expression.h"
-#include "parser/query/reading_clause/in_query_call_clause.h"
-#include "parser/expression/parsed_variable_expression.h"
 #include "graph/graph_entry.h"
+#include "parser/expression/parsed_function_expression.h"
+#include "parser/expression/parsed_variable_expression.h"
+#include "parser/query/reading_clause/in_query_call_clause.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -73,7 +73,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
             throw BinderException(
                 stringFormat("First argument of {} function must be a variable", functionName));
         }
-        auto varName = functionExpr->getChild(0)->constPtrCast<ParsedVariableExpression>()->getVariableName();
+        auto varName =
+            functionExpr->getChild(0)->constPtrCast<ParsedVariableExpression>()->getVariableName();
         if (!call.hasProjectGraph() || call.getProjectGraph()->getGraphName() != varName) {
             throw BinderException(stringFormat("Cannot find graph {}.", varName));
         }
