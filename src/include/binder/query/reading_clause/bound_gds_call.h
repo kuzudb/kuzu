@@ -1,31 +1,38 @@
 #pragma once
 
 #include "binder/query/reading_clause/bound_reading_clause.h"
-#include "function/gds_function.h"
+#include "function/function.h"
+#include "graph/graph_entry.h"
 
 namespace kuzu {
 namespace binder {
+
+struct BoundGDSCallInfo {
+    std::unique_ptr<function::Function> func;
+    graph::GraphEntry graphEntry;
+    expression_vector outExprs;
+
+    BoundGDSCallInfo(std::unique_ptr<function::Function> func, graph::GraphEntry graphEntry,
+        expression_vector outExprs)
+        : func{std::move(func)}, graphEntry{std::move(graphEntry)}, outExprs{std::move(outExprs)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(BoundGDSCallInfo);
+
+private:
+    BoundGDSCallInfo(const BoundGDSCallInfo& other)
+        : func{other.func->copy()}, graphEntry{other.graphEntry.copy()}, outExprs{other.outExprs} {}
+};
 
 class BoundGDSCall : public BoundReadingClause {
     static constexpr common::ClauseType clauseType_ = common::ClauseType::GDS_CALL;
 
 public:
-    BoundGDSCall(function::GDSFunction func, std::shared_ptr<Expression> graphExpr,
-        expression_vector outExprs)
-        : BoundReadingClause{clauseType_}, func{std::move(func)}, graphExpr{std::move(graphExpr)},
-          outExprs{std::move(outExprs)} {}
+    explicit BoundGDSCall(BoundGDSCallInfo info)
+        : BoundReadingClause{clauseType_}, info{std::move(info)} {}
 
-    function::GDSFunction getFunc() const { return func; }
-    std::shared_ptr<Expression> getGraphExpr() const { return graphExpr; }
-    expression_vector getOutExprs() const { return outExprs; }
+    const BoundGDSCallInfo& getInfo() const { return info; }
 
 private:
-    // Algorithm function.
-    function::GDSFunction func;
-    // Input graph.
-    std::shared_ptr<binder::Expression> graphExpr;
-    // Algorithm output expressions.
-    expression_vector outExprs;
+    BoundGDSCallInfo info;
 };
 
 } // namespace binder

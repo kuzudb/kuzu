@@ -15,6 +15,7 @@ namespace parser {
 struct PropertyDefinitionDDL;
 struct CreateTableInfo;
 struct BaseScanSource;
+class ProjectGraph;
 } // namespace parser
 
 namespace catalog {
@@ -27,6 +28,10 @@ class Property;
 namespace extension {
 struct ExtensionOptions;
 } // namespace extension
+
+namespace graph {
+struct GraphEntry;
+}
 
 namespace main {
 class ClientContext;
@@ -140,6 +145,8 @@ private:
     std::unique_ptr<BoundRegularQuery> bindQuery(const parser::RegularQuery& regularQuery);
     NormalizedSingleQuery bindSingleQuery(const parser::SingleQuery& singleQuery);
     NormalizedQueryPart bindQueryPart(const parser::QueryPart& queryPart);
+
+    graph::GraphEntry bindProjectGraph(const parser::ProjectGraph& projectGraph);
 
     /*** bind call ***/
     std::unique_ptr<BoundStatement> bindStandaloneCall(const parser::Statement& statement);

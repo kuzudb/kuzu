@@ -28,6 +28,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "COPY_TO";
     case PhysicalOperatorType::CREATE_MACRO:
         return "CREATE_MACRO";
+    case PhysicalOperatorType::CREATE_SEQUENCE:
+        return "CREATE_SEQUENCE";
     case PhysicalOperatorType::CREATE_TABLE:
         return "CREATE_TABLE";
     case PhysicalOperatorType::CROSS_PRODUCT:

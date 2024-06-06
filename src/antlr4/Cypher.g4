@@ -92,7 +92,7 @@ USE:
     ( 'U' | 'u') ( 'S' | 's') ( 'E' | 'e');
 
 kU_StandaloneCall
-    : CALL SP oC_SymbolicName SP? '=' SP? oC_Expression ;
+    : CALL SP oC_SymbolicName SP? '=' SP? oC_Expression;
 
 CALL : ( 'C' | 'c' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
 
@@ -213,7 +213,10 @@ kU_AlterOptions
         | kU_RenameProperty;
 
 kU_AddProperty
-    : ADD SP oC_PropertyKeyName SP kU_DataType ( SP DEFAULT SP oC_Expression )? ;
+    : ADD SP oC_PropertyKeyName SP kU_DataType ( SP kU_Default )? ;
+
+kU_Default
+    : DEFAULT SP oC_Expression ;
 
 DEFAULT : ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'F' | 'f' ) ( 'A' | 'a' ) ( 'U' | 'u' ) ( 'L' | 'l' ) ( 'T' | 't' ) ;
 
@@ -230,13 +233,14 @@ RENAME: ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'A' | 'a' ) ( 'M' | 'm' ) ( 
 
 ADD: ( 'A' | 'a' ) ( 'D' | 'd' ) ( 'D' | 'd' ) ;
 
+// TODO(Xiyang): Remove/rename kU_PropertyDefinitions & kU_PropertyDefinitionsDDL
 kU_PropertyDefinitions : kU_PropertyDefinition ( SP? ',' SP? kU_PropertyDefinition )* ;
 
 kU_PropertyDefinition : oC_PropertyKeyName SP kU_DataType ;
 
 kU_PropertyDefinitionsDDL : kU_PropertyDefinitionDDL ( SP? ',' SP? kU_PropertyDefinitionDDL )* ;
 
-kU_PropertyDefinitionDDL : oC_PropertyKeyName SP kU_DataType ( SP DEFAULT SP oC_Expression )? ;
+kU_PropertyDefinitionDDL : oC_PropertyKeyName SP kU_DataType ( SP kU_Default )? ;
 
 kU_CreateNodeConstraint : PRIMARY SP KEY SP? '(' SP? oC_PropertyKeyName SP? ')' ;
 
@@ -371,10 +375,29 @@ LOAD : ( 'L' | 'l' ) ( 'O' | 'o' ) ( 'A' | 'a' ) ( 'D' | 'd' )  ;
 HEADERS : ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'A' | 'a' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ( 'S' | 's' ) ;
 
 kU_InQueryCall
-    : CALL SP oC_FunctionInvocation (SP? oC_Where)? ;
+    : ( kU_ProjectGraph SP? )? CALL SP oC_FunctionInvocation (SP? oC_Where)? ;
+
+kU_ProjectGraph
+    : PROJECT SP GRAPH SP oC_SchemaName SP? '(' SP? kU_GraphProjectionTableItems SP? ')' ;
+
+PROJECT : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'J' | 'j' ) ( 'E' | 'e' ) ( 'C' | 'c' ) ( 'T' | 't' ) ;
+
+GRAPH : ( 'G' | 'g' ) ( 'R' | 'r' ) ( 'A' | 'a' ) ( 'P' | 'p' ) ( 'H' | 'h' );
+
+kU_GraphProjectionTableItems
+    : kU_GraphProjectionTableItem ( SP? ',' SP? kU_GraphProjectionTableItem )* ;
+
+kU_GraphProjectionTableItem
+    : oC_SchemaName ( SP? '{' SP? kU_GraphProjectionColumnItems SP? '}' )? ;
+
+kU_GraphProjectionColumnItems
+    : kU_GraphProjectionColumnItem ( SP? ',' SP? kU_GraphProjectionColumnItem )* ;
+
+kU_GraphProjectionColumnItem
+    : oC_PropertyKeyName ( SP kU_Default )? ( SP oC_Where )? ;
 
 oC_Match
-    : ( OPTIONAL SP )? MATCH SP? oC_Pattern (SP? oC_Where)? ;
+    : ( OPTIONAL SP )? MATCH SP? oC_Pattern ( SP oC_Where )? ;
 
 OPTIONAL : ( 'O' | 'o' ) ( 'P' | 'p' ) ( 'T' | 't' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ;
 
@@ -541,7 +564,6 @@ oC_LowerBound
 
 oC_UpperBound
     : DecimalInteger ;
-
 
 SHORTEST : ( 'S' | 's' ) ( 'H' | 'h' ) ( 'O' | 'o' ) ( 'R' | 'r' ) ( 'T' | 't' ) ( 'E' | 'e' ) ( 'S' | 's' ) ( 'T' | 't' ) ;
 
@@ -848,6 +870,9 @@ kU_NonReservedKeywords
         | DECIMAL
         | CONTAINS
         | TYPE
+        | DEFAULT
+        | PROJECT
+        | GRAPH
         ;
 
 UnescapedSymbolicName

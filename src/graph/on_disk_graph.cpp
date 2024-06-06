@@ -22,15 +22,11 @@ NbrScanState::NbrScanState(MemoryManager* mm) {
     fwdReadState->outputVectors.push_back(dstNodeIDVector.get());
 }
 
-OnDiskGraph::OnDiskGraph(ClientContext* context, const std::string& nodeName,
-    const std::string& relName)
+OnDiskGraph::OnDiskGraph(ClientContext* context, common::table_id_t nodeTableID,
+    common::table_id_t relTableID)
     : context{context} {
-    auto catalog = context->getCatalog();
     auto storage = context->getStorageManager();
-    auto tx = context->getTx();
-    auto nodeTableID = catalog->getTableID(tx, nodeName);
     nodeTable = storage->getTable(nodeTableID)->ptrCast<NodeTable>();
-    auto relTableID = catalog->getTableID(tx, relName);
     relTable = storage->getTable(relTableID)->ptrCast<RelTable>();
     nbrScanState = std::make_unique<NbrScanState>(context->getMemoryManager());
 }

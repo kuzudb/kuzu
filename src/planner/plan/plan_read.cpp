@@ -125,7 +125,7 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
     auto& call = readingClause.constCast<BoundGDSCall>();
     expression_vector predicatesToPull;
     expression_vector predicatesToPush;
-    splitPredicates(call.getOutExprs(), call.getConjunctivePredicates(), predicatesToPull,
+    splitPredicates(call.getInfo().outExprs, call.getConjunctivePredicates(), predicatesToPull,
         predicatesToPush);
     // TODO(Xiyang): support join algorithm call with other plan.
     expression_vector joinConditions;

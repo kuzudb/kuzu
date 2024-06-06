@@ -1,6 +1,5 @@
 #include "processor/operator/gds_call.h"
 
-#include "binder/expression/graph_expression.h"
 #include "graph/on_disk_graph.h"
 
 using namespace kuzu::binder;
@@ -14,9 +13,8 @@ void GDSCall::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
 }
 
 void GDSCall::initGlobalStateInternal(ExecutionContext* context) {
-    auto graphExpr_ = info.graphExpr->constPtrCast<GraphExpression>();
     sharedState->graph = std::make_unique<OnDiskGraph>(context->clientContext,
-        graphExpr_->getNodeName(), graphExpr_->getRelName());
+        info.graphEntry.nodeTableIDs[0], info.graphEntry.relTableIDs[0]);
 }
 
 void GDSCall::executeInternal(ExecutionContext*) {

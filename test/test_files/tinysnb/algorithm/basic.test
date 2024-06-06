@@ -3,7 +3,17 @@
 --
 
 -CASE BasicAlgorithm
--STATEMENT CALL variable_length_path(graph("person", "knows"), 1, 1) RETURN *;
+
+-STATEMENT PROJECT GRAPH PK (person {age}, knows) CALL variable_length_path(PK, 1, 1) RETURN *;
+---- error
+Parser exception: Filtering or projecting properties in graph projection is not supported.
+-STATEMENT PROJECT GRAPH X (person, knows) CALL variable_length_path(PK, 1, 1) RETURN *;
+---- error
+Binder exception: Cannot find graph PK.
+-STATEMENT PROJECT GRAPH PK (person, knows, studyAt) CALL variable_length_path(PK, 1, 1) RETURN *;
+---- error
+Binder exception: A subgraph must have exactly one node table and one relationship table.
+-STATEMENT PROJECT GRAPH PK (person, knows) CALL variable_length_path(PK, 1, 1) RETURN *;
 ---- 14
 0:0|0:1|1|1
 0:0|0:2|1|1
@@ -19,7 +29,7 @@
 0:3|0:2|1|1
 0:4|0:5|1|1
 0:4|0:6|1|1
--STATEMENT CALL variable_length_path(graph("person", "knows"), 2, 2) RETURN *;
+-STATEMENT PROJECT GRAPH PK (person, knows) CALL variable_length_path(PK, 2, 2) RETURN *;
 ---- 16
 0:0|0:0|2|3
 0:0|0:1|2|2
@@ -37,7 +47,7 @@
 0:3|0:1|2|2
 0:3|0:2|2|2
 0:3|0:3|2|3
--STATEMENT CALL shortest_path(graph("person", "knows"), 2) RETURN *;
+-STATEMENT PROJECT GRAPH PK (person, knows) CALL shortest_path(PK, 2) RETURN *;
 ---- 22
 0:0|0:0|0
 0:0|0:1|1
@@ -61,7 +71,7 @@
 0:5|0:5|0
 0:6|0:6|0
 0:7|0:7|0
--STATEMENT CALL weakly_connected_component(graph("person", "knows")) RETURN *;
+-STATEMENT PROJECT GRAPH PK (person, knows) CALL weakly_connected_component(PK) RETURN *;
 ---- 8
 0:0|0
 0:1|0
@@ -71,7 +81,7 @@
 0:5|1
 0:6|1
 0:7|2
--STATEMENT CALL page_rank(graph("person", "knows")) RETURN *;
+-STATEMENT PROJECT GRAPH PK (person, knows) CALL page_rank(PK) RETURN *;
 ---- 8
 0:0|0.125000
 0:1|0.125000

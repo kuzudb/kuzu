@@ -26,7 +26,7 @@ class PatternElementChain;
 class RelPattern;
 struct ParsedCaseAlternative;
 struct BaseScanSource;
-struct AttachOption;
+class ProjectGraph;
 
 class Transformer {
 public:
@@ -81,6 +81,7 @@ private:
     std::unique_ptr<ReadingClause> transformUnwind(CypherParser::OC_UnwindContext& ctx);
     std::unique_ptr<ReadingClause> transformInQueryCall(CypherParser::KU_InQueryCallContext& ctx);
     std::unique_ptr<ReadingClause> transformLoadFrom(CypherParser::KU_LoadFromContext& ctx);
+    std::unique_ptr<ProjectGraph> transformProjectGraph(CypherParser::KU_ProjectGraphContext& ctx);
 
     // Transform projection.
     WithClause transformWith(CypherParser::OC_WithContext& ctx);

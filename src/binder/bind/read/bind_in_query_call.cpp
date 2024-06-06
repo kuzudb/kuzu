@@ -7,7 +7,9 @@
 #include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
 #include "function/gds_function.h"
+#include "graph/graph_entry.h"
 #include "parser/expression/parsed_function_expression.h"
+#include "parser/expression/parsed_variable_expression.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
 
 using namespace kuzu::common;
@@ -24,21 +26,21 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     auto expr = call.getFunctionExpression();
     auto functionExpr = expr->constPtrCast<ParsedFunctionExpression>();
     auto functionName = functionExpr->getFunctionName();
-    expression_vector children;
-    std::vector<LogicalType> childrenTypes;
-    for (auto i = 0u; i < functionExpr->getNumChildren(); i++) {
-        auto child = expressionBinder.bindExpression(*functionExpr->getChild(i));
-        children.push_back(child);
-        childrenTypes.push_back(child->getDataType());
-    }
     std::unique_ptr<BoundReadingClause> boundReadingClause;
     expression_vector outExprs;
     auto catalogSet = clientContext->getCatalog()->getFunctions(clientContext->getTx());
     auto entry = BuiltInFunctionsUtils::getFunctionCatalogEntry(clientContext->getTx(),
         functionName, catalogSet);
-    auto func = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, entry);
     switch (entry->getType()) {
     case CatalogEntryType::TABLE_FUNCTION_ENTRY: {
+        expression_vector children;
+        std::vector<LogicalType> childrenTypes;
+        for (auto i = 0u; i < functionExpr->getNumChildren(); i++) {
+            auto child = expressionBinder.bindExpression(*functionExpr->getChild(i));
+            children.push_back(child);
+            childrenTypes.push_back(child->getDataType());
+        }
+        auto func = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, entry);
         std::vector<Value> inputValues;
         for (auto& param : children) {
             ExpressionUtil::validateExpressionType(*param, ExpressionType::LITERAL);
@@ -62,6 +64,31 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
             std::move(bindData), std::move(offset), std::move(outExprs));
     } break;
     case CatalogEntryType::GDS_FUNCTION_ENTRY: {
+        // The first argument of a GDS function must be a graph variable.
+        if (functionExpr->getNumChildren() == 0) {
+            throw BinderException(
+                stringFormat("{} function requires at least one input", functionName));
+        }
+        if (functionExpr->getChild(0)->getExpressionType() != ExpressionType::VARIABLE) {
+            throw BinderException(
+                stringFormat("First argument of {} function must be a variable", functionName));
+        }
+        auto varName =
+            functionExpr->getChild(0)->constPtrCast<ParsedVariableExpression>()->getVariableName();
+        if (!call.hasProjectGraph() || call.getProjectGraph()->getGraphName() != varName) {
+            throw BinderException(stringFormat("Cannot find graph {}.", varName));
+        }
+        auto graphEntry = bindProjectGraph(*call.getProjectGraph());
+        expression_vector children;
+        std::vector<LogicalType> childrenTypes;
+        children.push_back(nullptr); // placeholder for graph variable.
+        childrenTypes.push_back(*LogicalType::ANY());
+        for (auto i = 1u; i < functionExpr->getNumChildren(); i++) {
+            auto child = expressionBinder.bindExpression(*functionExpr->getChild(i));
+            children.push_back(child);
+            childrenTypes.push_back(child->getDataType());
+        }
+        auto func = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, entry);
         auto gdsFunc = *func->constPtrCast<GDSFunction>();
         gdsFunc.gds->bind(children);
         auto columnNames = gdsFunc.gds->getResultColumnNames();
@@ -69,15 +96,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         for (auto i = 0u; i < columnNames.size(); ++i) {
             outExprs.push_back(createVariable(columnNames[i], columnTypes[i]));
         }
-        if (children.empty()) {
-            throw BinderException(
-                stringFormat("{} function requires at least one input", functionName));
-        }
-        // Validate first child is a graph expression.
-        auto graphExpr = children[0];
-        ExpressionUtil::validateExpressionType(*graphExpr, ExpressionType::GRAPH);
-        boundReadingClause =
-            std::make_unique<BoundGDSCall>(gdsFunc, std::move(graphExpr), std::move(outExprs));
+        auto info = BoundGDSCallInfo(gdsFunc.copy(), graphEntry.copy(), std::move(outExprs));
+        boundReadingClause = std::make_unique<BoundGDSCall>(std::move(info));
     } break;
     default:
         throw BinderException(

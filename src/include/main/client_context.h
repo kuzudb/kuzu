@@ -119,7 +119,6 @@ public:
     std::vector<std::shared_ptr<parser::Statement>> parseQuery(std::string_view query);
 
     void setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_);
-
     bool hasDefaultDatabase();
 
     void cleanUP();
@@ -162,10 +161,6 @@ private:
     void addScalarFunction(std::string name, function::function_set definitions);
     void removeScalarFunction(std::string name);
 
-    bool startUDFAutoTrx(transaction::TransactionContext* trx);
-
-    void commitUDFTrx(bool isAutoCommitTrx);
-
     bool canExecuteWriteQuery();
 
     // Client side configurable settings.
@@ -186,7 +181,7 @@ private:
     Database* localDatabase;
     // Remote database.
     AttachedKuzuDatabase* remoteDatabase;
-    // Progress bar for queries
+    // Progress bar.
     std::unique_ptr<common::ProgressBar> progressBar;
     std::mutex mtx;
 };

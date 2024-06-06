@@ -178,8 +178,8 @@ std::unique_ptr<Statement> Transformer::transformAddProperty(
     auto propertyName = transformPropertyKeyName(*addPropertyCtx->oC_PropertyKeyName());
     auto dataType = transformDataType(*addPropertyCtx->kU_DataType());
     std::unique_ptr<ParsedExpression> defaultValue;
-    if (addPropertyCtx->oC_Expression()) {
-        defaultValue = transformExpression(*addPropertyCtx->oC_Expression());
+    if (addPropertyCtx->kU_Default()) {
+        defaultValue = transformExpression(*addPropertyCtx->kU_Default()->oC_Expression());
     } else {
         LogicalType type;
         if (!LogicalType::tryConvertFromString(dataType, type)) {
@@ -233,8 +233,8 @@ std::vector<PropertyDefinitionDDL> Transformer::transformPropertyDefinitionsDDL(
     for (auto property : ctx.kU_PropertyDefinitionDDL()) {
         std::unique_ptr<ParsedExpression> defaultValue;
         auto dataType = transformDataType(*property->kU_DataType());
-        if (property->oC_Expression()) {
-            defaultValue = transformExpression(*property->oC_Expression());
+        if (property->kU_Default()) {
+            defaultValue = transformExpression(*property->kU_Default()->oC_Expression());
         } else {
             LogicalType type;
             if (!LogicalType::tryConvertFromString(dataType, type)) {

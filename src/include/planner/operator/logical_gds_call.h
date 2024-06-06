@@ -1,6 +1,6 @@
 #pragma once
 
-#include "function/gds_function.h"
+#include "binder/query/reading_clause/bound_gds_call.h"
 #include "planner/operator/logical_operator.h"
 
 namespace kuzu {
@@ -10,28 +10,22 @@ class LogicalGDSCall final : public LogicalOperator {
     static constexpr LogicalOperatorType operatorType_ = LogicalOperatorType::GDS_CALL;
 
 public:
-    LogicalGDSCall(function::GDSFunction func, std::shared_ptr<binder::Expression> graphExpr,
-        binder::expression_vector outExprs)
-        : LogicalOperator{operatorType_}, func{std::move(func)}, graphExpr{std::move(graphExpr)},
-          outExprs{std::move(outExprs)} {}
+    explicit LogicalGDSCall(binder::BoundGDSCallInfo info)
+        : LogicalOperator{operatorType_}, info{std::move(info)} {}
 
     void computeFlatSchema() override;
     void computeFactorizedSchema() override;
 
-    function::GDSFunction getFunction() const { return func; }
-    std::shared_ptr<binder::Expression> getGraphExpr() const { return graphExpr; }
-    binder::expression_vector getOutExprs() const { return outExprs; }
+    const binder::BoundGDSCallInfo& getInfo() const { return info; }
 
-    std::string getExpressionsForPrinting() const override { return func.name; }
+    std::string getExpressionsForPrinting() const override { return info.func->name; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalGDSCall>(func, graphExpr, outExprs);
+        return std::make_unique<LogicalGDSCall>(info.copy());
     }
 
 private:
-    function::GDSFunction func;
-    std::shared_ptr<binder::Expression> graphExpr;
-    binder::expression_vector outExprs;
+    binder::BoundGDSCallInfo info;
 };
 
 } // namespace planner

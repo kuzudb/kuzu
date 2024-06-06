@@ -405,11 +405,11 @@ std::vector<std::shared_ptr<Statement>> ClientContext::parseQuery(std::string_vi
 }
 
 void ClientContext::setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_) {
-    this->remoteDatabase = defaultDatabase_;
+    remoteDatabase = defaultDatabase_;
 }
 
 bool ClientContext::hasDefaultDatabase() {
-    return this->remoteDatabase != nullptr;
+    return remoteDatabase != nullptr;
 }
 
 void ClientContext::cleanUP() {
