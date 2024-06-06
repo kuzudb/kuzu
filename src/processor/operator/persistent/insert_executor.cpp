@@ -46,8 +46,9 @@ static void writeColumnVector(common::ValueVector* columnVector, common::ValueVe
 }
 
 void NodeInsertExecutor::insert(Transaction* tx, ExecutionContext* context) {
+    auto evaluateData = evaluator::EvaluateData(context->clientContext, 1);
     for (auto& evaluator : columnDataEvaluators) {
-        evaluator->evaluate(context->clientContext);
+        evaluator->evaluate(evaluateData);
     }
     KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1);
     if (checkConfict(tx)) {
@@ -61,8 +62,9 @@ void NodeInsertExecutor::insert(Transaction* tx, ExecutionContext* context) {
 }
 
 void NodeInsertExecutor::skipInsert(ExecutionContext* context) {
+    auto evaluateData = evaluator::EvaluateData(context->clientContext, 1);
     for (auto& evaluator : columnDataEvaluators) {
-        evaluator->evaluate(context->clientContext);
+        evaluator->evaluate(evaluateData);
     }
     nodeIDVector->setNull(nodeIDVector->state->getSelVector()[0], false);
     writeResult();
@@ -139,8 +141,9 @@ void RelInsertExecutor::insert(transaction::Transaction* tx, ExecutionContext* c
     auto offset = relsStatistics->getNextRelOffset(tx, table->getTableID());
     columnDataVectors[0]->setValue<internalID_t>(0, internalID_t{offset, table->getTableID()});
     columnDataVectors[0]->setNull(0, false);
+    auto evaluateData = evaluator::EvaluateData(context->clientContext, 1);
     for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
-        columnDataEvaluators[i]->evaluate(context->clientContext);
+        columnDataEvaluators[i]->evaluate(evaluateData);
     }
     auto insertState = std::make_unique<storage::RelTableInsertState>(*srcNodeIDVector,
         *dstNodeIDVector, columnDataVectors);
@@ -149,8 +152,9 @@ void RelInsertExecutor::insert(transaction::Transaction* tx, ExecutionContext* c
 }
 
 void RelInsertExecutor::skipInsert(ExecutionContext* context) {
+    auto evaluateData = evaluator::EvaluateData(context->clientContext, 1);
     for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
-        columnDataEvaluators[i]->evaluate(context->clientContext);
+        columnDataEvaluators[i]->evaluate(evaluateData);
     }
     writeResult();
 }

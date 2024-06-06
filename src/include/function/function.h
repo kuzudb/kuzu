@@ -14,13 +14,14 @@ struct FunctionBindData {
     std::vector<common::LogicalType> paramTypes;
     std::unique_ptr<common::LogicalType> resultType;
     main::ClientContext* clientContext;
+    int64_t count;
 
     explicit FunctionBindData(std::unique_ptr<common::LogicalType> dataType)
-        : resultType{std::move(dataType)}, clientContext{nullptr} {}
+        : resultType{std::move(dataType)}, clientContext{nullptr}, count{1} {}
     FunctionBindData(std::vector<common::LogicalType> paramTypes,
         std::unique_ptr<common::LogicalType> resultType)
         : paramTypes{std::move(paramTypes)}, resultType{std::move(resultType)},
-          clientContext{nullptr} {}
+          clientContext{nullptr}, count{1} {}
     DELETE_COPY_AND_MOVE(FunctionBindData);
 
     virtual ~FunctionBindData() = default;

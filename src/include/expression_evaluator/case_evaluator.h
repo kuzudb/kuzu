@@ -41,12 +41,9 @@ public:
     void init(const processor::ResultSet& resultSet,
         storage::MemoryManager* memoryManager) override;
 
-    void evaluate(main::ClientContext* clientContext) override;
-    
-    void evaluateMultiple(main::ClientContext* /* clientContext */, const uint64_t& /* count */) 
-        override { KU_UNREACHABLE; };
+    void evaluate(EvaluateData& evaluateData) override;
 
-    bool select(common::SelectionVector& selVector, main::ClientContext* clientContext) override;
+    bool select(common::SelectionVector& selVector, EvaluateData& evaluateData) override;
 
     std::unique_ptr<ExpressionEvaluator> clone() override;
 

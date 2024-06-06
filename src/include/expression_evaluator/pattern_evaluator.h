@@ -12,12 +12,9 @@ public:
         std::vector<std::unique_ptr<ExpressionEvaluator>> children)
         : ExpressionEvaluator{std::move(children)}, pattern{std::move(pattern)} {}
 
-    void evaluate(main::ClientContext* clientContext) override;
-    
-    void evaluateMultiple(main::ClientContext* /* clientContext */, const uint64_t& /* count */) 
-        override { KU_UNREACHABLE; };
+    void evaluate(EvaluateData& evaluateData) override;
         
-    bool select(common::SelectionVector&, main::ClientContext*) override { KU_UNREACHABLE; }
+    bool select(common::SelectionVector&, EvaluateData& /*evaluateData*/) override { KU_UNREACHABLE; }
 
     std::unique_ptr<ExpressionEvaluator> clone() override;
 
@@ -42,7 +39,7 @@ public:
         : PatternExpressionEvaluator{std::move(pattern), std::move(children)},
           directionEvaluator{std::move(directionEvaluator)} {}
 
-    void evaluate(main::ClientContext* clientContext) override;
+    void evaluate(EvaluateData& evaluateData) override;
 
     void initFurther(const processor::ResultSet& resultSet,
         storage::MemoryManager* memoryManager) override;

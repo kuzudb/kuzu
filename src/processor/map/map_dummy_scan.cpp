@@ -20,8 +20,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDummyScan(LogicalOperator* /*lo
     auto expressionEvaluator = ExpressionMapper::getEvaluator(expression, inSchema.get());
     auto memoryManager = clientContext->getMemoryManager();
     // expression can be evaluated statically and does not require an actual resultset to init
+    auto evaluateData = evaluator::EvaluateData(clientContext, 1);
     expressionEvaluator->init(ResultSet(0) /* dummy resultset */, memoryManager);
-    expressionEvaluator->evaluate(clientContext);
+    expressionEvaluator->evaluate(evaluateData);
     vectors.push_back(expressionEvaluator->resultVector);
     vectorsToAppend.push_back(expressionEvaluator->resultVector.get());
     auto table = std::make_shared<FactorizedTable>(memoryManager, std::move(tableSchema));

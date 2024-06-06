@@ -79,10 +79,10 @@ void PathExpressionEvaluator::init(const processor::ResultSet& resultSet,
     }
 }
 
-void PathExpressionEvaluator::evaluate(ClientContext* clientContext) {
+void PathExpressionEvaluator::evaluate(EvaluateData& evaluateData) {
     resultVector->resetAuxiliaryBuffer();
     for (auto& child : children) {
-        child->evaluate(clientContext);
+        child->evaluate(evaluateData);
     }
     auto& selVector = resultVector->state->getSelVector();
     for (auto i = 0u; i < selVector.getSelSize(); ++i) {

@@ -9,6 +9,11 @@ class ClientContext;
 
 namespace evaluator {
 
+struct EvaluateData {
+    main::ClientContext* clientContext;
+    uint64_t count;
+};
+
 class ExpressionEvaluator {
 public:
     ExpressionEvaluator() = default;
@@ -22,11 +27,9 @@ public:
 
     virtual void init(const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager);
 
-    virtual void evaluate(main::ClientContext* clientContext) = 0;
+    virtual void evaluate(EvaluateData& evaluateData) = 0;
 
-    virtual void evaluateMultiple(main::ClientContext* clientContext, const uint64_t& count) = 0;
-
-    virtual bool select(common::SelectionVector& selVector, main::ClientContext* clientContext) = 0;
+    virtual bool select(common::SelectionVector& selVector, EvaluateData& evaluateData) = 0;
 
     virtual std::unique_ptr<ExpressionEvaluator> clone() = 0;
 

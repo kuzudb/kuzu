@@ -49,7 +49,8 @@ void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
         }
         return;
     }
-    evaluator->evaluate(context->clientContext);
+    auto evaluateData = evaluator::EvaluateData(context->clientContext, 1);
+    evaluator->evaluate(evaluateData);
     KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1);
     auto lhsPos = nodeIDVector->state->getSelVector()[0];
     auto rhsPos = rhsVector->state->getSelVector()[0];
@@ -63,7 +64,8 @@ void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
 }
 
 void MultiLabelNodeSetExecutor::set(ExecutionContext* context) {
-    evaluator->evaluate(context->clientContext);
+    auto evaluateData = evaluator::EvaluateData(context->clientContext, 1);
+    evaluator->evaluate(evaluateData);
     KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1 &&
               rhsVector->state->getSelVector().getSelSize() == 1);
     auto lhsPos = nodeIDVector->state->getSelVector()[0];
@@ -124,7 +126,8 @@ void SingleLabelRelSetExecutor::set(ExecutionContext* context) {
         }
         return;
     }
-    evaluator->evaluate(context->clientContext);
+    auto evaluateData = evaluator::EvaluateData(context->clientContext, 1);
+    evaluator->evaluate(evaluateData);
     auto updateState = std::make_unique<storage::RelTableUpdateState>(columnID, *srcNodeIDVector,
         *dstNodeIDVector, *relIDVector, *rhsVector);
     table->update(context->clientContext->getTx(), *updateState);
@@ -134,7 +137,8 @@ void SingleLabelRelSetExecutor::set(ExecutionContext* context) {
 }
 
 void MultiLabelRelSetExecutor::set(ExecutionContext* context) {
-    evaluator->evaluate(context->clientContext);
+    auto evaluateData = evaluator::EvaluateData(context->clientContext, 1);
+    evaluator->evaluate(evaluateData);
     KU_ASSERT(relIDVector->state->isFlat());
     auto pos = relIDVector->state->getSelVector()[0];
     auto relID = relIDVector->getValue<internalID_t>(pos);

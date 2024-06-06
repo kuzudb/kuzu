@@ -12,6 +12,7 @@ void Filter::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
 }
 
 bool Filter::getNextTuplesInternal(ExecutionContext* context) {
+    auto evaluateData = evaluator::EvaluateData(context->clientContext, 1);
     bool hasAtLeastOneSelectedValue;
     do {
         restoreSelVector(*dataChunkToSelect->state);
@@ -20,7 +21,7 @@ bool Filter::getNextTuplesInternal(ExecutionContext* context) {
         }
         saveSelVector(*dataChunkToSelect->state);
         hasAtLeastOneSelectedValue = expressionEvaluator->select(
-            dataChunkToSelect->state->getSelVectorUnsafe(), context->clientContext);
+            dataChunkToSelect->state->getSelVectorUnsafe(), evaluateData);
         if (!dataChunkToSelect->state->isFlat() &&
             dataChunkToSelect->state->getSelVector().isUnfiltered()) {
             dataChunkToSelect->state->getSelVectorUnsafe().setToFiltered();

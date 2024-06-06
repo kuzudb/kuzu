@@ -21,8 +21,9 @@ bool Projection::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     saveMultiplicity();
+    auto evaluateData = evaluator::EvaluateData(context->clientContext, 1);
     for (auto& expressionEvaluator : expressionEvaluators) {
-        expressionEvaluator->evaluate(context->clientContext);
+        expressionEvaluator->evaluate(evaluateData);
     }
     if (!discardedDataChunksPos.empty()) {
         resultSet->multiplicity *=

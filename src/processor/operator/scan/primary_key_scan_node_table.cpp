@@ -33,7 +33,8 @@ bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     KU_ASSERT(tableIdx < nodeInfos.size());
     auto& nodeInfo = nodeInfos[tableIdx];
 
-    indexEvaluator->evaluate(context->clientContext);
+    auto evaluateData = evaluator::EvaluateData(context->clientContext, 1);
+    indexEvaluator->evaluate(evaluateData);
     auto indexVector = indexEvaluator->resultVector.get();
     auto& selVector = indexVector->state->getSelVector();
     KU_ASSERT(selVector.getSelSize() == 1);

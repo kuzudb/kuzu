@@ -9,16 +9,19 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace evaluator {
 
-void LiteralExpressionEvaluator::evaluateMultiple(main::ClientContext*, const uint64_t& count) {
-    for (auto i = 1ul; i < count; i++) {
+void LiteralExpressionEvaluator::evaluate(EvaluateData& evaluateData) {
+    auto cnt = evaluateData.count;
+    if (cnt == 1) {
+        return;
+    }
+    for (auto i = 1ul; i < cnt; i++) {
         resultVector->copyFromVectorData(i, resultVector.get(), 0);
     }
-    resultVector->state = std::make_shared<DataChunkState>(count);
-    resultVector->state->getSelVectorUnsafe().setSelSize(count);
+    resultVector->setState(std::make_shared<DataChunkState>(cnt));
+    resultVector->state->getSelVectorUnsafe().setSelSize(cnt);
 }
 
-
-bool LiteralExpressionEvaluator::select(SelectionVector&, ClientContext*) {
+bool LiteralExpressionEvaluator::select(SelectionVector&, EvaluateData&) {
     KU_ASSERT(resultVector->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
     auto pos = resultVector->state->getSelVector()[0];
     KU_ASSERT(pos == 0u);

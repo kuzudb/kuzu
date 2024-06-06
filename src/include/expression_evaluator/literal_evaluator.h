@@ -11,11 +11,9 @@ public:
     explicit LiteralExpressionEvaluator(common::Value value)
         : ExpressionEvaluator{true /* isResultFlat */}, value{std::move(value)} {}
 
-    void evaluate(main::ClientContext* /* clientContext */) override {}
+    void evaluate(EvaluateData& evaluateData) override;
 
-    void evaluateMultiple(main::ClientContext* /* clientContext */, const uint64_t& count) override;
-
-    bool select(common::SelectionVector& selVector, main::ClientContext* clientContext) override;
+    bool select(common::SelectionVector& selVector, EvaluateData& evaluateData) override;
 
     std::unique_ptr<ExpressionEvaluator> clone() override {
         return std::make_unique<LiteralExpressionEvaluator>(value);

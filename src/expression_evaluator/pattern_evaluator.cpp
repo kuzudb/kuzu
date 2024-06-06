@@ -19,9 +19,9 @@ static void updateNullPattern(ValueVector& patternVector, const ValueVector& idV
     }
 }
 
-void PatternExpressionEvaluator::evaluate(ClientContext* clientContext) {
+void PatternExpressionEvaluator::evaluate(EvaluateData& evaluateData) {
     for (auto& child : children) {
-        child->evaluate(clientContext);
+        child->evaluate(evaluateData);
     }
     StructPackFunctions::execFunc(parameters, *resultVector);
     updateNullPattern(*resultVector, *idVector);
@@ -52,13 +52,13 @@ std::unique_ptr<ExpressionEvaluator> PatternExpressionEvaluator::clone() {
     return make_unique<PatternExpressionEvaluator>(pattern, ExpressionEvaluator::copy(children));
 }
 
-void UndirectedRelExpressionEvaluator::evaluate(main::ClientContext* clientContext) {
+void UndirectedRelExpressionEvaluator::evaluate(EvaluateData& evaluateData) {
     for (auto& child : children) {
-        child->evaluate(clientContext);
+        child->evaluate(evaluateData);
     }
     StructPackFunctions::undirectedRelPackExecFunc(parameters, *resultVector);
     updateNullPattern(*resultVector, *idVector);
-    directionEvaluator->evaluate(clientContext);
+    directionEvaluator->evaluate(evaluateData);
     auto& selVector = resultVector->state->getSelVector();
     for (auto i = 0u; i < selVector.getSelSize(); ++i) {
         auto pos = selVector[i];

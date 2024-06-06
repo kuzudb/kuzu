@@ -22,42 +22,25 @@ void FunctionExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager
     }
 }
 
-void FunctionExpressionEvaluator::evaluate(ClientContext* clientContext) {
+void FunctionExpressionEvaluator::evaluate(EvaluateData& evaluateData) {
+    auto cnt = evaluateData.count;
+    auto ctx = evaluateData.clientContext;
     for (auto& child : children) {
-        child->evaluate(clientContext);
+        child->evaluate(evaluateData);
     }
     auto expr = expression->constPtrCast<binder::ScalarFunctionExpression>();
     if (execFunc != nullptr) {
         auto bindData = expr->getBindData();
-        bindData->clientContext = clientContext;
+        bindData->clientContext = ctx;
+        bindData->count = cnt;
         execFunc(parameters, *resultVector, bindData);
     }
-}
-
-void FunctionExpressionEvaluator::evaluateMultiple(ClientContext* clientContext, const uint64_t& count) {
-    for (auto& child : children) {
-        child->evaluateMultiple(clientContext, count);
-    }
-    auto expr = expression->constPtrCast<binder::ScalarFunctionExpression>();
-    if (expr->getFunctionName() == function::NextValFunction::name) {
-        auto catalog = clientContext->getCatalog();
-        auto seqName = children[0]->resultVector->getAsValue(0)->strVal;
-        auto seqID = catalog->getSequenceID(clientContext->getTx(), seqName);
-        auto seqEntry = catalog->getSequenceCatalogEntry(clientContext->getTx(), seqID);
-        resultVector = seqEntry->nextKVal(count);
-    } else if (execFunc != nullptr) {
-        auto bindData = expr->getBindData();
-        bindData->clientContext = clientContext;
-        execFunc(parameters, *resultVector, bindData);
-    }
-    resultVector->state = std::make_shared<DataChunkState>(count);
-    resultVector->state->getSelVectorUnsafe().setSelSize(count);
 }
 
 bool FunctionExpressionEvaluator::select(SelectionVector& selVector,
-    ClientContext* /*ClientContext*/) {
+    EvaluateData& evaluateData) {
     for (auto& child : children) {
-        child->evaluate(nullptr);
+        child->evaluate(evaluateData);
     }
     // Temporary code path for function whose return type is BOOL but select interface is not
     // implemented (e.g. list_contains). We should remove this if statement eventually.

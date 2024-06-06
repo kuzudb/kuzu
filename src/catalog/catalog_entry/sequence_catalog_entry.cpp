@@ -63,14 +63,13 @@ int64_t SequenceCatalogEntry::nextVal() {
     return result;
 }
 
-std::shared_ptr<ValueVector> SequenceCatalogEntry::nextKVal(const uint64_t& count) {
+void SequenceCatalogEntry::nextKVal(const uint64_t& count, common::ValueVector& resultVector) {
     KU_ASSERT(count > 0);
     std::lock_guard<std::mutex> lck(mtx);
-    auto result = std::make_shared<ValueVector>(*LogicalType::INT64());
-    bool overflow = false;
     int64_t tmp;
     for (auto i = 0ul; i < count; i++) {
-        auto tmp = sequenceData.nextVal;
+        bool overflow = false;
+        tmp = sequenceData.nextVal;
         try {
             function::Add::operation(sequenceData.nextVal, sequenceData.increment, sequenceData.nextVal);
         } catch (const OverflowException& e) {
@@ -95,12 +94,11 @@ std::shared_ptr<ValueVector> SequenceCatalogEntry::nextKVal(const uint64_t& coun
                                     std::to_string(sequenceData.maxValue));
             }
         }
-        result->setValue(i, tmp);
+        resultVector.setValue(i, tmp);
     }
 
     sequenceData.currVal = tmp;
     sequenceData.usageCount += count;
-    return result;
 }
 
 void SequenceCatalogEntry::replayVal(uint64_t usageCount, int64_t currVal, int64_t nextVal) {

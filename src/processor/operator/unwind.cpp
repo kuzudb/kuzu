@@ -46,7 +46,8 @@ bool Unwind::getNextTuplesInternal(ExecutionContext* context) {
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
-        expressionEvaluator->evaluate(context->clientContext);
+        auto evaluateData = evaluator::EvaluateData(context->clientContext, 1);
+        expressionEvaluator->evaluate(evaluateData);
         auto pos = expressionEvaluator->resultVector->state->getSelVector()[0];
         if (expressionEvaluator->resultVector->isNull(pos)) {
             outValueVector->state->getSelVectorUnsafe().setSelSize(0);

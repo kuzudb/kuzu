@@ -94,11 +94,12 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     auto numColumns = nodeInfo->columnEvaluators.size();
     nodeLocalState->columnVectors.resize(numColumns);
 
+    auto evaluateData = evaluator::EvaluateData(context->clientContext, 1);
     for (auto i = 0u; i < numColumns; ++i) {
         if (!nodeInfo->defaultColumns[i]) {
             auto& evaluator = nodeInfo->columnEvaluators[i];
             evaluator->init(*resultSet, context->clientContext->getMemoryManager());
-            evaluator->evaluate(context->clientContext);
+            evaluator->evaluate(evaluateData);
             state = evaluator->resultVector->state;
             nodeLocalState->columnVectors[i] = evaluator->resultVector.get();
         }
@@ -127,10 +128,11 @@ void NodeBatchInsert::populateDefaultColumns(main::ClientContext* context) {
         ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
     auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
     auto numTuples = nodeLocalState->columnState->getSelVector().getSelSize();
+    auto evaluateData = evaluator::EvaluateData(context, numTuples);
     for (auto i = 0u; i < nodeInfo->defaultColumns.size(); ++i) {
         if (nodeInfo->defaultColumns[i]) {
             auto& defaultEvaluator = nodeInfo->columnEvaluators[i];
-            defaultEvaluator->evaluateMultiple(context, numTuples);
+            defaultEvaluator->evaluate(evaluateData);
             nodeLocalState->columnVectors[i] = defaultEvaluator->resultVector.get();
         }
     }

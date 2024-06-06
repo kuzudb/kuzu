@@ -14,12 +14,9 @@ public:
     explicit ReferenceExpressionEvaluator(const processor::DataPos& vectorPos, bool isResultFlat)
         : ExpressionEvaluator{isResultFlat}, vectorPos{vectorPos} {}
 
-    inline void evaluate(main::ClientContext* /* clientContext */) override {}
-    
-    void evaluateMultiple(main::ClientContext* /* clientContext */, const uint64_t& /* count */) 
-        override { KU_UNREACHABLE; };
+    inline void evaluate(EvaluateData&  /* evaluateData */) override {}
         
-    bool select(common::SelectionVector& selVector, main::ClientContext* clientContext) override;
+    bool select(common::SelectionVector& selVector, EvaluateData& evaluateData) override;
 
     inline std::unique_ptr<ExpressionEvaluator> clone() override {
         return std::make_unique<ReferenceExpressionEvaluator>(vectorPos, isResultFlat_);

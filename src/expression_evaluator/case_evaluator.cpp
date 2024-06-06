@@ -23,16 +23,16 @@ void CaseExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* me
     ExpressionEvaluator::init(resultSet, memoryManager);
 }
 
-void CaseExpressionEvaluator::evaluate(ClientContext* clientContext) {
+void CaseExpressionEvaluator::evaluate(EvaluateData& evaluateData) {
     filledMask.reset();
     for (auto& alternativeEvaluator : alternativeEvaluators) {
         auto whenSelVector = alternativeEvaluator->whenSelVector.get();
         auto hasAtLeastOneValue =
-            alternativeEvaluator->whenEvaluator->select(*whenSelVector, clientContext);
+            alternativeEvaluator->whenEvaluator->select(*whenSelVector, evaluateData);
         if (!hasAtLeastOneValue) {
             continue;
         }
-        alternativeEvaluator->thenEvaluator->evaluate(clientContext);
+        alternativeEvaluator->thenEvaluator->evaluate(evaluateData);
         auto thenVector = alternativeEvaluator->thenEvaluator->resultVector.get();
         if (alternativeEvaluator->whenEvaluator->isResultFlat()) {
             fillAll(thenVector);
@@ -43,12 +43,12 @@ void CaseExpressionEvaluator::evaluate(ClientContext* clientContext) {
             return;
         }
     }
-    elseEvaluator->evaluate(clientContext);
+    elseEvaluator->evaluate(evaluateData);
     fillAll(elseEvaluator->resultVector.get());
 }
 
-bool CaseExpressionEvaluator::select(SelectionVector& selVector, ClientContext* clientContext) {
-    evaluate(clientContext);
+bool CaseExpressionEvaluator::select(SelectionVector& selVector, EvaluateData& evaluateData) {
+    evaluate(evaluateData);
     KU_ASSERT(resultVector->state->getSelVector().getSelSize() == selVector.getSelSize());
     auto numSelectedValues = 0u;
     auto selectedPosBuffer = selVector.getMultableBuffer();
