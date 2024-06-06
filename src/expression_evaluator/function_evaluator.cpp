@@ -14,19 +14,19 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace evaluator {
 
-void FunctionExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {
-    ExpressionEvaluator::init(resultSet, memoryManager);
+void FunctionExpressionEvaluator::init(const ResultSet& resultSet, main::ClientContext* clientContext) {
+    ExpressionEvaluator::init(resultSet, clientContext);
     execFunc = ((binder::ScalarFunctionExpression&)*expression).execFunc;
     if (expression->dataType.getLogicalTypeID() == LogicalTypeID::BOOL) {
         selectFunc = ((binder::ScalarFunctionExpression&)*expression).selectFunc;
     }
 }
 
-void FunctionExpressionEvaluator::evaluate(EvaluateData& evaluateData) {
-    auto cnt = evaluateData.count;
-    auto ctx = evaluateData.clientContext;
+void FunctionExpressionEvaluator::evaluate() {
+    auto cnt = localState.count;
+    auto ctx = localState.clientContext;
     for (auto& child : children) {
-        child->evaluate(evaluateData);
+        child->evaluate();
     }
     auto expr = expression->constPtrCast<binder::ScalarFunctionExpression>();
     if (execFunc != nullptr) {
@@ -37,10 +37,9 @@ void FunctionExpressionEvaluator::evaluate(EvaluateData& evaluateData) {
     }
 }
 
-bool FunctionExpressionEvaluator::select(SelectionVector& selVector,
-    EvaluateData& evaluateData) {
+bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
     for (auto& child : children) {
-        child->evaluate(evaluateData);
+        child->evaluate();
     }
     // Temporary code path for function whose return type is BOOL but select interface is not
     // implemented (e.g. list_contains). We should remove this if statement eventually.

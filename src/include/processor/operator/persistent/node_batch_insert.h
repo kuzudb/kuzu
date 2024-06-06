@@ -136,7 +136,7 @@ private:
         common::offset_t startIndexInGroup);
 
     void copyToNodeGroup(transaction::Transaction* transaction);
-    void populateDefaultColumns(main::ClientContext* context);
+    void populateDefaultColumns();
 };
 
 } // namespace processor

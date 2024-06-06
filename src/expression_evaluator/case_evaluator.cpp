@@ -8,31 +8,31 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace evaluator {
 
-void CaseAlternativeEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {
-    whenEvaluator->init(resultSet, memoryManager);
-    thenEvaluator->init(resultSet, memoryManager);
+void CaseAlternativeEvaluator::init(const ResultSet& resultSet, main::ClientContext* clientContext) {
+    whenEvaluator->init(resultSet, clientContext);
+    thenEvaluator->init(resultSet, clientContext);
     whenSelVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
     whenSelVector->setToFiltered();
 }
 
-void CaseExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {
+void CaseExpressionEvaluator::init(const ResultSet& resultSet, main::ClientContext* clientContext) {
     for (auto& alternativeEvaluator : alternativeEvaluators) {
-        alternativeEvaluator->init(resultSet, memoryManager);
+        alternativeEvaluator->init(resultSet, clientContext);
     }
-    elseEvaluator->init(resultSet, memoryManager);
-    ExpressionEvaluator::init(resultSet, memoryManager);
+    elseEvaluator->init(resultSet, clientContext);
+    ExpressionEvaluator::init(resultSet, clientContext);
 }
 
-void CaseExpressionEvaluator::evaluate(EvaluateData& evaluateData) {
+void CaseExpressionEvaluator::evaluate() {
     filledMask.reset();
     for (auto& alternativeEvaluator : alternativeEvaluators) {
         auto whenSelVector = alternativeEvaluator->whenSelVector.get();
         auto hasAtLeastOneValue =
-            alternativeEvaluator->whenEvaluator->select(*whenSelVector, evaluateData);
+            alternativeEvaluator->whenEvaluator->select(*whenSelVector);
         if (!hasAtLeastOneValue) {
             continue;
         }
-        alternativeEvaluator->thenEvaluator->evaluate(evaluateData);
+        alternativeEvaluator->thenEvaluator->evaluate();
         auto thenVector = alternativeEvaluator->thenEvaluator->resultVector.get();
         if (alternativeEvaluator->whenEvaluator->isResultFlat()) {
             fillAll(thenVector);
@@ -43,12 +43,12 @@ void CaseExpressionEvaluator::evaluate(EvaluateData& evaluateData) {
             return;
         }
     }
-    elseEvaluator->evaluate(evaluateData);
+    elseEvaluator->evaluate();
     fillAll(elseEvaluator->resultVector.get());
 }
 
-bool CaseExpressionEvaluator::select(SelectionVector& selVector, EvaluateData& evaluateData) {
-    evaluate(evaluateData);
+bool CaseExpressionEvaluator::select(SelectionVector& selVector) {
+    evaluate();
     KU_ASSERT(resultVector->state->getSelVector().getSelSize() == selVector.getSelSize());
     auto numSelectedValues = 0u;
     auto selectedPosBuffer = selVector.getMultableBuffer();

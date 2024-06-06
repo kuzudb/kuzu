@@ -30,6 +30,7 @@ struct NextVal {
         auto sequenceID = catalog->getSequenceID(ctx->getTx(), sequenceName);
         auto sequenceEntry = catalog->getSequenceCatalogEntry(ctx->getTx(), sequenceID);
         sequenceEntry->nextKVal(cnt, result);
+        result.state->getSelVectorUnsafe().setSelSize(cnt);
     }
 };
 

@@ -11,11 +11,10 @@ namespace evaluator {
 
 Value ExpressionEvaluatorUtils::evaluateConstantExpression(
     const std::shared_ptr<binder::Expression>& expression, main::ClientContext* clientContext) {
-    auto evaluateData = EvaluateData(clientContext, 1);
     auto evaluator = ExpressionMapper::getConstantEvaluator(expression);
     auto emptyResultSet = std::make_unique<ResultSet>(0);
-    evaluator->init(*emptyResultSet, clientContext->getMemoryManager());
-    evaluator->evaluate(evaluateData);
+    evaluator->init(*emptyResultSet, clientContext);
+    evaluator->evaluate();
     auto& selVector = evaluator->resultVector->state->getSelVector();
     KU_ASSERT(selVector.getSelSize() == 1);
     return *evaluator->resultVector->getAsValue(selVector[0]);

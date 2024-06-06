@@ -4,6 +4,7 @@
 #include "common/exception/catalog.h"
 #include "common/exception/overflow.h"
 #include "function/arithmetic/add.h"
+#include <fstream>
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -96,7 +97,6 @@ void SequenceCatalogEntry::nextKVal(const uint64_t& count, common::ValueVector& 
         }
         resultVector.setValue(i, tmp);
     }
-
     sequenceData.currVal = tmp;
     sequenceData.usageCount += count;
 }

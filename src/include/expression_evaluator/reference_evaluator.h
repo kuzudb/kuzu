@@ -14,9 +14,9 @@ public:
     explicit ReferenceExpressionEvaluator(const processor::DataPos& vectorPos, bool isResultFlat)
         : ExpressionEvaluator{isResultFlat}, vectorPos{vectorPos} {}
 
-    inline void evaluate(EvaluateData&  /* evaluateData */) override {}
+    inline void evaluate() override {}
         
-    bool select(common::SelectionVector& selVector, EvaluateData& evaluateData) override;
+    bool select(common::SelectionVector& selVector) override;
 
     inline std::unique_ptr<ExpressionEvaluator> clone() override {
         return std::make_unique<ReferenceExpressionEvaluator>(vectorPos, isResultFlat_);

@@ -21,7 +21,7 @@ void PrimaryKeyScanNodeTable::initLocalStateInternal(ResultSet* resultSet,
         nodeInfo.localScanState = std::make_unique<NodeTableScanState>(nodeInfo.columnIDs);
         initVectors(*nodeInfo.localScanState, *resultSet);
     }
-    indexEvaluator->init(*resultSet, context->clientContext->getMemoryManager());
+    indexEvaluator->init(*resultSet, context->clientContext);
 }
 
 bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
@@ -33,8 +33,7 @@ bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     KU_ASSERT(tableIdx < nodeInfos.size());
     auto& nodeInfo = nodeInfos[tableIdx];
 
-    auto evaluateData = evaluator::EvaluateData(context->clientContext, 1);
-    indexEvaluator->evaluate(evaluateData);
+    indexEvaluator->evaluate();
     auto indexVector = indexEvaluator->resultVector.get();
     auto& selVector = indexVector->state->getSelVector();
     KU_ASSERT(selVector.getSelSize() == 1);

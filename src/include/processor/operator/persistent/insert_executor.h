@@ -28,11 +28,11 @@ public:
 
     void init(ResultSet* resultSet, ExecutionContext* context);
 
-    void insert(transaction::Transaction* transaction, ExecutionContext* context);
+    void insert(transaction::Transaction* transaction, ExecutionContext*);
 
     // For MERGE, we might need to skip the insert for duplicate input. But still, we need to write
     // the output vector for later usage.
-    void skipInsert(ExecutionContext* context);
+    void skipInsert(ExecutionContext*);
 
 private:
     NodeInsertExecutor(const NodeInsertExecutor& other);
@@ -74,10 +74,10 @@ public:
 
     void init(ResultSet* resultSet, ExecutionContext* context);
 
-    void insert(transaction::Transaction* transaction, ExecutionContext* context);
+    void insert(transaction::Transaction* transaction, ExecutionContext*);
 
     // See comment in NodeInsertExecutor.
-    void skipInsert(ExecutionContext* context);
+    void skipInsert(ExecutionContext*);
 
 private:
     RelInsertExecutor(const RelInsertExecutor& other);

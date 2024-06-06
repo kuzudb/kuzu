@@ -18,8 +18,7 @@ void Alter::executeDDLInternal(ExecutionContext* context) {
         auto addedPropID = schema->getPropertyID(boundAddPropInfo.propertyName);
         auto addedProp = schema->getProperty(addedPropID);
         // TODO(Sam/Guodong): We can maybe just fix the add column issue here using this new framework?
-        auto evaluateData = evaluator::EvaluateData(context->clientContext, 1);
-        defaultValueEvaluator->evaluate(evaluateData);
+        defaultValueEvaluator->evaluate();
         auto storageManager = context->clientContext->getStorageManager();
         storageManager->getTable(info.tableID)
             ->addColumn(context->clientContext->getTx(), *addedProp,

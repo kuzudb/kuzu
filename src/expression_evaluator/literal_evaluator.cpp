@@ -9,19 +9,18 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace evaluator {
 
-void LiteralExpressionEvaluator::evaluate(EvaluateData& evaluateData) {
-    auto cnt = evaluateData.count;
-    if (cnt == 1) {
-        return;
-    }
+void LiteralExpressionEvaluator::evaluate() {
+    auto cnt = localState.count;
     for (auto i = 1ul; i < cnt; i++) {
         resultVector->copyFromVectorData(i, resultVector.get(), 0);
     }
-    resultVector->setState(std::make_shared<DataChunkState>(cnt));
-    resultVector->state->getSelVectorUnsafe().setSelSize(cnt);
+    if (cnt == 1) {
+        unflatState->getSelVectorUnsafe().setSelSize(cnt);
+        resultVector->state->getSelVectorUnsafe().setSelSize(cnt);
+    }
 }
 
-bool LiteralExpressionEvaluator::select(SelectionVector&, EvaluateData&) {
+bool LiteralExpressionEvaluator::select(SelectionVector&) {
     KU_ASSERT(resultVector->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
     auto pos = resultVector->state->getSelVector()[0];
     KU_ASSERT(pos == 0u);
@@ -32,6 +31,7 @@ void LiteralExpressionEvaluator::resolveResultVector(const processor::ResultSet&
     MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(*value.getDataType(), memoryManager);
     resultVector->setState(DataChunkState::getSingleValueDataChunkState());
+    unflatState = std::make_shared<DataChunkState>();
     if (value.isNull()) {
         resultVector->setNull(0 /* pos */, true);
     } else {

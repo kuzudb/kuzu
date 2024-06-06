@@ -1,15 +1,12 @@
 #pragma once
 
 #include "processor/result/result_set.h"
+#include "main/client_context.h"
 
 namespace kuzu {
-namespace main {
-class ClientContext;
-}
-
 namespace evaluator {
 
-struct EvaluateData {
+struct EvaluatorLocalState {
     main::ClientContext* clientContext;
     uint64_t count;
 };
@@ -25,13 +22,15 @@ public:
 
     inline bool isResultFlat() const { return isResultFlat_; }
 
-    virtual void init(const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager);
+    virtual void init(const processor::ResultSet& resultSet, main::ClientContext* clientContext);
 
-    virtual void evaluate(EvaluateData& evaluateData) = 0;
+    virtual void evaluate() = 0;
 
-    virtual bool select(common::SelectionVector& selVector, EvaluateData& evaluateData) = 0;
+    virtual bool select(common::SelectionVector& selVector) = 0;
 
     virtual std::unique_ptr<ExpressionEvaluator> clone() = 0;
+
+    EvaluatorLocalState& getLocalStateRef() { return localState; }
 
     static std::vector<std::unique_ptr<ExpressionEvaluator>> copy(
         const std::vector<std::unique_ptr<ExpressionEvaluator>>& evaluators);
@@ -48,6 +47,7 @@ public:
 protected:
     bool isResultFlat_ = true;
     std::vector<std::unique_ptr<ExpressionEvaluator>> children;
+    EvaluatorLocalState localState;
 };
 
 } // namespace evaluator

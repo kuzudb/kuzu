@@ -6,13 +6,12 @@ namespace kuzu {
 namespace processor {
 
 void Filter::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    expressionEvaluator->init(*resultSet, context->clientContext->getMemoryManager());
+    expressionEvaluator->init(*resultSet, context->clientContext);
     KU_ASSERT(dataChunkToSelectPos != INVALID_DATA_CHUNK_POS);
     dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
 }
 
 bool Filter::getNextTuplesInternal(ExecutionContext* context) {
-    auto evaluateData = evaluator::EvaluateData(context->clientContext, 1);
     bool hasAtLeastOneSelectedValue;
     do {
         restoreSelVector(*dataChunkToSelect->state);
@@ -21,7 +20,7 @@ bool Filter::getNextTuplesInternal(ExecutionContext* context) {
         }
         saveSelVector(*dataChunkToSelect->state);
         hasAtLeastOneSelectedValue = expressionEvaluator->select(
-            dataChunkToSelect->state->getSelVectorUnsafe(), evaluateData);
+            dataChunkToSelect->state->getSelVectorUnsafe());
         if (!dataChunkToSelect->state->isFlat() &&
             dataChunkToSelect->state->getSelVector().isUnfiltered()) {
             dataChunkToSelect->state->getSelVectorUnsafe().setToFiltered();
