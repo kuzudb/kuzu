@@ -55,7 +55,9 @@ private:
 
 struct SniffCSVNameAndTypeDriver {
     std::vector<std::pair<std::string, common::LogicalType>> columns;
+    main::ClientContext* context;
 
+    explicit SniffCSVNameAndTypeDriver(main::ClientContext* context) : context{context} {};
     bool done(uint64_t rowNum);
     void addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value);
     bool addRow(uint64_t rowNum, common::column_id_t columntCount);

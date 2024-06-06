@@ -1068,6 +1068,9 @@ function_set CastToUInt8Function::getFunctionSet() {
     return result;
 }
 
+// TODO(Xiyang): I think it is better to create a new grammar/syntax for casting operations.
+//  E.g. Instead of reusing the function grammar (cast(3, 'string')), i think it is better to
+//  provide the user with a new grammar: cast(3 as string) similar to duckdb.
 static std::unique_ptr<FunctionBindData> castBindFunc(const binder::expression_vector& arguments,
     Function* function) {
     KU_ASSERT(arguments.size() == 2);
@@ -1077,6 +1080,8 @@ static std::unique_ptr<FunctionBindData> castBindFunc(const binder::expression_v
     }
     auto literalExpr = arguments[1]->constPtrCast<LiteralExpression>();
     auto targetTypeStr = literalExpr->getValue().getValue<std::string>();
+    // TODO(Ziyi): we should pass the clientContext pointer here so the bind function can access
+    // the user defined types.
     auto targetType = LogicalType::fromString(targetTypeStr);
     if (targetType == arguments[0]->getDataType()) { // No need to cast.
         return nullptr;

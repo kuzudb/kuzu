@@ -78,6 +78,7 @@ protected:
     uint64_t osFileOffset;
 
     bool rowEmpty = false;
+    main::ClientContext* context;
 };
 
 } // namespace processor

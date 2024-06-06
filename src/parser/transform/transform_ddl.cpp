@@ -181,8 +181,13 @@ std::unique_ptr<Statement> Transformer::transformAddProperty(
     if (addPropertyCtx->oC_Expression()) {
         defaultValue = transformExpression(*addPropertyCtx->oC_Expression());
     } else {
-        defaultValue = std::make_unique<ParsedLiteralExpression>(
-            Value::createNullValue(LogicalType::fromString(dataType)), "NULL");
+        LogicalType type;
+        if (!LogicalType::tryConvertFromString(dataType, type)) {
+            defaultValue = nullptr;
+        } else {
+            defaultValue =
+                std::make_unique<ParsedLiteralExpression>(Value::createNullValue(type), "NULL");
+        }
     }
     auto extraInfo = std::make_unique<ExtraAddPropertyInfo>(std::move(propertyName),
         std::move(dataType), std::move(defaultValue));

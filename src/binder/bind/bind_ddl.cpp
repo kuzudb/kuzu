@@ -40,28 +40,12 @@ static void validateUniquePropertyName(const std::vector<PropertyInfo>& infos) {
     }
 }
 
-static LogicalType resolvePropertyType(main::ClientContext* clientContext,
-    const std::string& typeStr) {
-    LogicalType type;
-    auto isInternalType = LogicalType::tryConvertFromString(typeStr, type);
-    auto isUserDefinedType =
-        clientContext->getCatalog()->containsType(clientContext->getTx(), typeStr);
-    if (!isInternalType && !isUserDefinedType) {
-        throw BinderException{common::stringFormat(
-            "{} is neither an internal type nor a user defined type.", typeStr)};
-    }
-    if (!isInternalType) {
-        type = clientContext->getCatalog()->getType(clientContext->getTx(), typeStr);
-    }
-    return type;
-}
-
 std::vector<PropertyInfo> Binder::bindPropertyInfo(
     const std::vector<PropertyDefinitionDDL>& propertyDefinitions) {
     std::vector<PropertyInfo> propertyInfos;
     propertyInfos.reserve(propertyDefinitions.size());
     for (auto& propertyDef : propertyDefinitions) {
-        auto type = resolvePropertyType(clientContext, propertyDef.type);
+        auto type = clientContext->getCatalog()->getType(clientContext->getTx(), propertyDef.type);
         // This will check the type correctness of the default value expression
         expressionBinder.implicitCastIfNecessary(expressionBinder.bindExpression(*propertyDef.expr),
             type);
@@ -206,9 +190,6 @@ std::unique_ptr<BoundStatement> Binder::bindCreateType(const Statement& statemen
     auto createType = statement.constPtrCast<CreateType>();
     auto name = createType->getName();
     auto type = LogicalType::fromString(createType->getDataType());
-    if (type.getPhysicalType() != PhysicalTypeID::STRUCT) {
-        throw BinderException{"User defined type must be a struct."};
-    }
     if (clientContext->getCatalog()->containsType(clientContext->getTx(), name)) {
         throw BinderException{common::stringFormat("Duplicated type name: {}.", name)};
     }
@@ -442,7 +423,12 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     auto info = alter.getInfo();
     auto extraInfo = ku_dynamic_cast<ExtraAlterInfo*, ExtraAddPropertyInfo*>(info->extraInfo.get());
     auto tableName = info->tableName;
-    auto dataType = LogicalType::fromString(extraInfo->dataType);
+    auto dataType =
+        clientContext->getCatalog()->getType(clientContext->getTx(), extraInfo->dataType);
+    if (extraInfo->defaultValue == nullptr) {
+        extraInfo->defaultValue =
+            std::make_unique<ParsedLiteralExpression>(Value::createNullValue(dataType), "NULL");
+    }
     auto propertyName = extraInfo->propertyName;
     validateTableExist(tableName);
     auto catalog = clientContext->getCatalog();
