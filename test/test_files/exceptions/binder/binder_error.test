@@ -560,16 +560,6 @@ Binder exception: Invalid number of arguments for macro ADD4.
 ---- error
 Binder exception: COPY TO currently only supports csv and parquet files.
 
--LOG InvalidArgCast
--STATEMENT RETURN cast("[sdf, fsd, fad]", "STRING[]", "3rd arg");
----- error
-Binder exception: Cannot match a built-in function for given function CAST(STRING,STRING,STRING). Supported inputs are
-(ANY,STRING) -> ANY
--STATEMENT RETURN cast("[sdf, fsd, fad]");
----- error
-Binder exception: Cannot match a built-in function for given function CAST(STRING). Supported inputs are
-(ANY,STRING) -> ANY
-
 -LOG InvalidImplicitCast
 -STATEMENT RETURN timestamp("2019-11-21") + "ok";
 ---- error

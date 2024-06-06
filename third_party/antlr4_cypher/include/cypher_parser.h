@@ -35,13 +35,13 @@ public:
     ASCENDING = 118, ASC = 119, DESCENDING = 120, DESC = 121, WHERE = 122, 
     SHORTEST = 123, OR = 124, XOR = 125, AND = 126, NOT = 127, INVALID_NOT_EQUAL = 128, 
     MINUS = 129, FACTORIAL = 130, COLON = 131, IN = 132, STARTS = 133, ENDS = 134, 
-    CONTAINS = 135, IS = 136, NULL_ = 137, TRUE = 138, FALSE = 139, COUNT = 140, 
-    EXISTS = 141, CASE = 142, ELSE = 143, END = 144, WHEN = 145, THEN = 146, 
-    StringLiteral = 147, EscapedChar = 148, DecimalInteger = 149, HexLetter = 150, 
-    HexDigit = 151, Digit = 152, NonZeroDigit = 153, NonZeroOctDigit = 154, 
-    ZeroDigit = 155, RegularDecimalReal = 156, UnescapedSymbolicName = 157, 
-    IdentifierStart = 158, IdentifierPart = 159, EscapedSymbolicName = 160, 
-    SP = 161, WHITESPACE = 162, Comment = 163, Unknown = 164
+    CONTAINS = 135, IS = 136, NULL_ = 137, TRUE = 138, FALSE = 139, CAST = 140, 
+    COUNT = 141, EXISTS = 142, CASE = 143, ELSE = 144, END = 145, WHEN = 146, 
+    THEN = 147, StringLiteral = 148, EscapedChar = 149, DecimalInteger = 150, 
+    HexLetter = 151, HexDigit = 152, Digit = 153, NonZeroDigit = 154, NonZeroOctDigit = 155, 
+    ZeroDigit = 156, RegularDecimalReal = 157, UnescapedSymbolicName = 158, 
+    IdentifierStart = 159, IdentifierPart = 160, EscapedSymbolicName = 161, 
+    SP = 162, WHITESPACE = 163, Comment = 164, Unknown = 165
   };
 
   enum {
@@ -2435,10 +2435,13 @@ public:
     antlr4::tree::TerminalNode *STAR();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
-    OC_FunctionNameContext *oC_FunctionName();
-    antlr4::tree::TerminalNode *DISTINCT();
+    antlr4::tree::TerminalNode *CAST();
     std::vector<KU_FunctionParameterContext *> kU_FunctionParameter();
     KU_FunctionParameterContext* kU_FunctionParameter(size_t i);
+    antlr4::tree::TerminalNode *AS();
+    KU_DataTypeContext *kU_DataType();
+    OC_FunctionNameContext *oC_FunctionName();
+    antlr4::tree::TerminalNode *DISTINCT();
 
    
   };
