@@ -45,7 +45,7 @@ static void writeColumnVector(common::ValueVector* columnVector, common::ValueVe
     }
 }
 
-void NodeInsertExecutor::insert(Transaction* tx, ExecutionContext*) {
+void NodeInsertExecutor::insert(Transaction* tx) {
     for (auto& evaluator : columnDataEvaluators) {
         evaluator->evaluate();
     }
@@ -60,7 +60,7 @@ void NodeInsertExecutor::insert(Transaction* tx, ExecutionContext*) {
     writeResult();
 }
 
-void NodeInsertExecutor::skipInsert(ExecutionContext*) {
+void NodeInsertExecutor::skipInsert() {
     for (auto& evaluator : columnDataEvaluators) {
         evaluator->evaluate();
     }
@@ -121,7 +121,7 @@ void RelInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     }
 }
 
-void RelInsertExecutor::insert(transaction::Transaction* tx, ExecutionContext*) {
+void RelInsertExecutor::insert(transaction::Transaction* tx) {
     auto srcNodeIDPos = srcNodeIDVector->state->getSelVector()[0];
     auto dstNodeIDPos = dstNodeIDVector->state->getSelVector()[0];
     if (srcNodeIDVector->isNull(srcNodeIDPos) || dstNodeIDVector->isNull(dstNodeIDPos)) {
@@ -148,7 +148,7 @@ void RelInsertExecutor::insert(transaction::Transaction* tx, ExecutionContext*) 
     writeResult();
 }
 
-void RelInsertExecutor::skipInsert(ExecutionContext*) {
+void RelInsertExecutor::skipInsert() {
     for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
         columnDataEvaluators[i]->evaluate();
     }
