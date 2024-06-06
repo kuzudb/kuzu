@@ -89,9 +89,7 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     databaseManager = std::make_unique<DatabaseManager>();
 }
 
-Database::~Database() {
-    bufferManager->clearEvictionQueue();
-}
+Database::~Database() {}
 
 void Database::addTableFunction(std::string name, function::function_set functionSet) {
     catalog->addBuiltInFunction(CatalogEntryType::TABLE_FUNCTION_ENTRY, std::move(name),
