@@ -425,13 +425,9 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     auto tableName = info->tableName;
     auto dataType =
         clientContext->getCatalog()->getType(clientContext->getTx(), extraInfo->dataType);
-    // TODO(Ziyi): Should we resolve the udt for default value there?
-    // or pass the clientContext to the transformer so we can solve at transforming time.
-    if (extraInfo->defaultValue->getExpressionType() == ExpressionType::LITERAL) {
-        auto defaultVal = extraInfo->defaultValue->cast<ParsedLiteralExpression>().getValueRef();
-        if (*defaultVal.getDataType() == *LogicalType::ANY()) {
-            defaultVal.setDataType(dataType);
-        }
+    if (extraInfo->defaultValue == nullptr) {
+        extraInfo->defaultValue =
+            std::make_unique<ParsedLiteralExpression>(Value::createNullValue(dataType), "NULL");
     }
     auto propertyName = extraInfo->propertyName;
     validateTableExist(tableName);
