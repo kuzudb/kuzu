@@ -1,17 +1,3 @@
-/*
-* OpenCypher grammar at "https://s3.amazonaws.com/artifacts.opencypher.org/legacy/Cypher.g4"
-*/
-grammar Cypher;
-
-// provide ad-hoc error messages for common syntax errors
-@parser::declarations {
-    virtual void notifyQueryNotConcludeWithReturn(antlr4::Token* startToken) {};
-    virtual void notifyNodePatternWithoutParentheses(std::string nodeName, antlr4::Token* startToken) {};
-    virtual void notifyInvalidNotEqualOperator(antlr4::Token* startToken) {};
-    virtual void notifyEmptyToken(antlr4::Token* startToken) {};
-    virtual void notifyReturnNotAtEnd(antlr4::Token* startToken) {};
-    virtual void notifyNonBinaryComparison(antlr4::Token* startToken) {};
-}
 
 ku_Statements
     : oC_Cypher ( SP? ';' SP? oC_Cypher )* SP? EOF ;
@@ -76,30 +62,17 @@ kU_Option
 kU_Options
     : kU_Option ( SP? ',' SP? kU_Option )* ;
 
-ATTACH:
-    ( 'A' | 'a') ( 'T' | 't') ( 'T' | 't') ( 'A' | 'a') ( 'C' | 'c') ( 'H' | 'h');
-
-DBTYPE:
-    ( 'D' | 'd') ( 'B' | 'b') ( 'T' | 't') ( 'Y' | 'y') ( 'P' | 'p') ( 'E' | 'e');
-
 kU_DetachDatabase
     : DETACH SP oC_SchemaName;
 
 kU_UseDatabase
     : USE SP oC_SchemaName;
 
-USE:
-    ( 'U' | 'u') ( 'S' | 's') ( 'E' | 'e');
-
 kU_StandaloneCall
     : CALL SP oC_SymbolicName SP? '=' SP? oC_Expression;
 
-CALL : ( 'C' | 'c' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
-
 kU_CommentOn
-    : COMMENT_ SP ON SP TABLE SP oC_SchemaName SP IS SP StringLiteral ;
-
-COMMENT_ : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ( 'M' | 'm' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'T' | 't' ) ;
+    : COMMENT SP ON SP TABLE SP oC_SchemaName SP IS SP StringLiteral ;
 
 kU_CreateMacro
     : CREATE SP MACRO SP oC_FunctionName SP? '(' SP? kU_PositionalArgs? SP? kU_DefaultArg? ( SP? ',' SP? kU_DefaultArg )* SP? ')' SP AS SP oC_Expression ;
@@ -110,41 +83,19 @@ kU_PositionalArgs
 kU_DefaultArg
     : oC_SymbolicName SP? ':' '=' SP? oC_Literal ;
 
-MACRO : ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'C' | 'c' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ;
-
 kU_FilePaths
     : '[' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ']'
         | StringLiteral
         | GLOB SP? '(' SP? StringLiteral SP? ')' ;
 
-GLOB : ( 'G' | 'g' ) ( 'L' | 'l' ) ( 'O' | 'o' ) ( 'B' | 'b' ) ;
-
 kU_ParsingOptions
     : '(' SP? kU_Options SP? ')' ;
-
-COPY : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'P' | 'p') ( 'Y' | 'y' ) ;
-
-FROM : ( 'F' | 'f' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ;
-
-COLUMN : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'L' | 'l' ) ( 'U' | 'u' ) ( 'M' | 'm' ) ( 'N' | 'n' ) ;
-
-EXPORT: ( 'E' | 'e') ( 'X' | 'x') ( 'P' | 'p') ( 'O' | 'o') ( 'R' | 'r') ( 'T' | 't');
-
-IMPORT: ( 'I' | 'i') ( 'M' | 'm') ( 'P' | 'p') ( 'O' | 'o') ( 'R' | 'r') ( 'T' | 't');
-
-DATABASE: ( 'D' | 'd') ( 'A' | 'a') ( 'T' | 't') ( 'A' | 'a') ( 'B' | 'b') ( 'A' | 'a') ( 'S' | 's')( 'E' | 'e');
 
 kU_IfNotExists
     : IF SP NOT SP EXISTS ;
 
-IF : ( 'I' | 'i' ) ( 'F' | 'f' ) ;
-
 kU_CreateNodeTable
     : CREATE SP NODE SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_PropertyDefinitionsDDL SP? ( ',' SP? kU_CreateNodeConstraint ) SP? ')' ;
-
-NODE : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ;
-
-TABLE: ( 'T' | 't' ) ( 'A' | 'a' ) ( 'B' | 'b' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
 
 kU_CreateRelTable
     : CREATE SP REL SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection SP? ( ',' SP? kU_PropertyDefinitionsDDL SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
@@ -152,20 +103,14 @@ kU_CreateRelTable
 kU_CreateRelTableGroup
     : CREATE SP REL SP TABLE SP GROUP SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection ( SP? ',' SP? kU_RelTableConnection )+ SP? ( ',' SP? kU_PropertyDefinitionsDDL SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
 
-GROUP : ( 'G' | 'g' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'U' | 'u' ) ( 'P' | 'p' ) ;
-
 kU_RelTableConnection
     : FROM SP oC_SchemaName SP TO SP oC_SchemaName ;
 
 kU_CreateRdfGraph
     : CREATE SP RDFGRAPH SP (kU_IfNotExists SP)? oC_SchemaName ;
 
-RDFGRAPH : ('R' | 'r') ('D' | 'd') ('F' | 'f') ('G' | 'g') ('R' | 'r') ('A' | 'a') ('P' | 'p') ('H' | 'h') ;
-
 kU_CreateSequence
     : CREATE SP SEQUENCE SP oC_SchemaName (SP kU_SequenceOptions)* ;
-
-SEQUENCE : ('S' | 's') ('E' | 'e') ('Q' | 'q') ('U' | 'u') ('E' | 'e') ('N' | 'n') ('C' | 'c') ('E' | 'e') ;
 
 kU_CreateType
     : CREATE SP TYPE SP oC_SchemaName SP AS SP kU_DataType SP? ;
@@ -181,35 +126,19 @@ kU_SequenceOptions
 
 kU_IncrementBy : INCREMENT SP ( BY SP )? MINUS? oC_IntegerLiteral ;
 
-INCREMENT : ('I' | 'i') ('N' | 'n') ('C' | 'c') ('R' | 'r') ('E' | 'e') ('M' | 'm') ('E' | 'e') ('N' | 'n') ('T' | 't') ;
-
 kU_MinValue : (NO SP MINVALUE) | (MINVALUE SP MINUS? oC_IntegerLiteral) ;
 
 kU_MaxValue : (NO SP MAXVALUE) | (MAXVALUE SP MINUS? oC_IntegerLiteral) ;
 
-MINVALUE : ('M' | 'm') ('I' | 'i') ('N' | 'n') ('V' | 'v') ('A' | 'a') ('L' | 'l') ('U' | 'u') ('E' | 'e') ;
-
-MAXVALUE : ('M' | 'm') ('A' | 'a') ('X' | 'x') ('V' | 'v') ('A' | 'a') ('L' | 'l') ('U' | 'u') ('E' | 'e') ;
-
 kU_StartWith : START SP ( WITH SP )? MINUS? oC_IntegerLiteral ;
 
-START : ('S' | 's') ('T' | 't') ('A' | 'a') ('R' | 'r') ('T' | 't') ;
-
 kU_Cycle : (NO SP)? CYCLE ;
-
-NO : ('N' | 'n') ('O' | 'o') ;
-
-CYCLE : ('C' | 'c') ('Y' | 'y') ('C' | 'c') ('L' | 'l') ('E' | 'e') ;
 
 kU_Drop
     : DROP SP (TABLE | RDFGRAPH | SEQUENCE) SP oC_SchemaName ;
 
-DROP : ( 'D' | 'd' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'P' | 'p' ) ;
-
 kU_AlterTable
     : ALTER SP TABLE SP oC_SchemaName SP kU_AlterOptions ;
-
-ALTER: ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'T' | 't' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ;
 
 kU_AlterOptions
     : kU_AddProperty
@@ -223,8 +152,6 @@ kU_AddProperty
 kU_Default
     : DEFAULT SP oC_Expression ;
 
-DEFAULT : ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'F' | 'f' ) ( 'A' | 'a' ) ( 'U' | 'u' ) ( 'L' | 'l' ) ( 'T' | 't' ) ;
-
 kU_DropProperty
     : DROP SP oC_PropertyKeyName ;
 
@@ -233,10 +160,6 @@ kU_RenameTable
 
 kU_RenameProperty
     : RENAME SP oC_PropertyKeyName SP TO SP oC_PropertyKeyName ;
-
-RENAME: ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'A' | 'a' ) ( 'M' | 'm' ) ( 'E' | 'e' ) ;
-
-ADD: ( 'A' | 'a' ) ( 'D' | 'd' ) ( 'D' | 'd' ) ;
 
 // TODO(Xiyang): Remove/rename kU_PropertyDefinitions & kU_PropertyDefinitionsDDL
 kU_PropertyDefinitions : kU_PropertyDefinition ( SP? ',' SP? kU_PropertyDefinition )* ;
@@ -248,14 +171,6 @@ kU_PropertyDefinitionsDDL : kU_PropertyDefinitionDDL ( SP? ',' SP? kU_PropertyDe
 kU_PropertyDefinitionDDL : oC_PropertyKeyName SP kU_DataType ( SP kU_Default )? ;
 
 kU_CreateNodeConstraint : PRIMARY SP KEY SP? '(' SP? oC_PropertyKeyName SP? ')' ;
-
-PRIMARY: ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'I' | 'i' ) ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'R' | 'r' ) ( 'Y' | 'y' ) ;
-
-KEY : ( 'K' | 'k' ) ( 'E' | 'e' ) ( 'Y' | 'y' ) ;
-
-REL: ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'L' | 'l' ) ;
-
-TO: ( 'T' | 't' ) ( 'O' | 'o' ) ;
 
 DECIMAL: ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'C' | 'c' ) ( 'I' | 'i' ) ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ;
 
@@ -278,12 +193,8 @@ oC_AnyCypherOption
 oC_Explain
     : EXPLAIN ;
 
-EXPLAIN : ( 'E' | 'e' ) ( 'X' | 'x' ) ( 'P' | 'p' ) ( 'L' | 'l' ) ( 'A' | 'a' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ;
-
 oC_Profile
     : PROFILE ;
-
-PROFILE : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'F' | 'f' ) ( 'I' | 'i' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
 
 kU_Transaction
     : BEGIN SP TRANSACTION
@@ -297,33 +208,11 @@ kU_Extension
     : kU_LoadExtension
         | kU_InstallExtension;
 
-BEGIN : ( 'B' | 'b' ) ( 'E' | 'e' ) ( 'G' | 'g' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ;
-
-TRANSACTION : ( 'T' | 't' ) ( 'R' | 'r' ) ( 'A' | 'a' ) ( 'N' | 'n' ) ( 'S' | 's' ) ( 'A' | 'a' ) ( 'C' | 'c' ) ( 'T' | 't' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ;
-
-READ : ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'A' | 'a' ) ( 'D' | 'd' ) ;
-
-ONLY : ('O' | 'o' ) ( 'N' | 'n' ) ( 'L' | 'l' ) ( 'Y' | 'y' ) ;
-
-WRITE : ( 'W' | 'w' ) ( 'R' | 'r' ) ( 'I' | 'i' ) ( 'T' | 't' ) ( 'E' | 'e' ) ;
-
-COMMIT : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ( 'M' | 'm' ) ( 'I' | 'i' ) ( 'T' | 't' ) ;
-
-COMMIT_SKIP_CHECKPOINT : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ( 'M' | 'm' ) ( 'I' | 'i' ) ( 'T' | 't' ) '_' ( 'S' | 's' ) ( 'K' | 'k' ) ( 'I' | 'i' ) ( 'P' | 'p' ) '_' ( 'C' | 'c' ) ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'C' | 'c' ) ( 'K' | 'k' ) ( 'P' | 'p' ) ( 'O' | 'o' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'T' | 't' ) ;
-
-ROLLBACK : ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ( 'B' | 'b' ) ( 'A' | 'a' ) ( 'C' | 'c' ) ( 'K' | 'k' ) ;
-
-ROLLBACK_SKIP_CHECKPOINT: ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ( 'B' | 'b' ) ( 'A' | 'a' ) ( 'C' | 'c' ) ( 'K' | 'k' ) '_' ( 'S' | 's' ) ( 'K' | 'k' ) ( 'I' | 'i' ) ( 'P' | 'p' ) '_' ( 'C' | 'c' ) ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'C' | 'c' ) ( 'K' | 'k' ) ( 'P' | 'p' ) ( 'O' | 'o' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'T' | 't' ) ;
-
 kU_LoadExtension
     : LOAD SP EXTENSION SP ( StringLiteral | oC_Variable ) ;
 
 kU_InstallExtension
     : INSTALL SP oC_Variable ;
-
-INSTALL : ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'S' | 's' ) ( 'T' | 't' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
-
-EXTENSION : ( 'E' | 'e' ) ( 'X' | 'x' ) ( 'T' | 't' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'S' | 's' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ;
 
 oC_Query
     : oC_RegularQuery ;
@@ -336,10 +225,6 @@ oC_RegularQuery
 oC_Union
      :  ( UNION SP ALL SP? oC_SingleQuery )
          | ( UNION SP? oC_SingleQuery ) ;
-
-UNION : ( 'U' | 'u' ) ( 'N' | 'n' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ;
-
-ALL : ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
 
 oC_SingleQuery
     : oC_SinglePartQuery
@@ -375,10 +260,6 @@ oC_ReadingClause
 kU_LoadFrom
     :  LOAD ( SP WITH SP HEADERS SP? '(' SP? kU_PropertyDefinitions SP? ')' )? SP FROM SP kU_ScanSource (SP? kU_ParsingOptions)? (SP? oC_Where)? ;
 
-LOAD : ( 'L' | 'l' ) ( 'O' | 'o' ) ( 'A' | 'a' ) ( 'D' | 'd' )  ;
-
-HEADERS : ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'A' | 'a' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ( 'S' | 's' ) ;
-
 kU_InQueryCall
     : ( kU_ProjectGraph SP? )? CALL SP oC_FunctionInvocation (SP? oC_Where)? ;
 
@@ -386,8 +267,6 @@ kU_ProjectGraph
     : PROJECT SP GRAPH SP oC_SchemaName SP? '(' SP? kU_GraphProjectionTableItems SP? ')' ;
 
 PROJECT : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'J' | 'j' ) ( 'E' | 'e' ) ( 'C' | 'c' ) ( 'T' | 't' ) ;
-
-GRAPH : ( 'G' | 'g' ) ( 'R' | 'r' ) ( 'A' | 'a' ) ( 'P' | 'p' ) ( 'H' | 'h' );
 
 kU_GraphProjectionTableItems
     : kU_GraphProjectionTableItem ( SP? ',' SP? kU_GraphProjectionTableItem )* ;
@@ -404,36 +283,22 @@ kU_GraphProjectionColumnItem
 oC_Match
     : ( OPTIONAL SP )? MATCH SP? oC_Pattern ( SP oC_Where )? ;
 
-OPTIONAL : ( 'O' | 'o' ) ( 'P' | 'p' ) ( 'T' | 't' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ;
-
-MATCH : ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'C' | 'c' ) ( 'H' | 'h' ) ;
-
-UNWIND : ( 'U' | 'u' ) ( 'N' | 'n' )( 'W' | 'w' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'D' | 'd' ) ;
-
 oC_Unwind : UNWIND SP? oC_Expression SP AS SP oC_Variable ;
 
 oC_Create
     : CREATE SP? oC_Pattern ;
 
-CREATE : ( 'C' | 'c' ) ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'E' | 'e' ) ;
-
 // For unknown reason, openCypher use oC_PatternPart instead of oC_Pattern. There should be no difference in terms of planning.
 // So we choose to be consistent with oC_Create and use oC_Pattern instead.
 oC_Merge : MERGE SP? oC_Pattern ( SP oC_MergeAction )* ;
-
-MERGE : ( 'M' | 'm' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ( 'G' | 'g' ) ( 'E' | 'e' )  ;
 
 oC_MergeAction
     :  ( ON SP MATCH SP oC_Set )
         | ( ON SP CREATE SP oC_Set )
         ;
 
-ON : ( 'O' | 'o' ) ( 'N' | 'n' ) ;
-
 oC_Set
     : SET SP? oC_SetItem ( SP? ',' SP? oC_SetItem )* ;
-
-SET : ( 'S' | 's' ) ( 'E' | 'e' ) ( 'T' | 't' )  ;
 
 oC_SetItem
     : ( oC_PropertyExpression SP? '=' SP? oC_Expression ) ;
@@ -441,24 +306,14 @@ oC_SetItem
 oC_Delete
     : ( DETACH SP )? DELETE SP? oC_Expression ( SP? ',' SP? oC_Expression )*;
 
-DETACH : ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'T' | 't' ) ( 'A' | 'a' ) ( 'C' | 'c' ) ( 'H' | 'h' ) ;
-
-DELETE : ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ( 'T' | 't' ) ( 'E' | 'e' ) ;
-
 oC_With
     : WITH oC_ProjectionBody ( SP? oC_Where )? ;
-
-WITH : ( 'W' | 'w' ) ( 'I' | 'i' ) ( 'T' | 't' ) ( 'H' | 'h' ) ;
 
 oC_Return
     : RETURN oC_ProjectionBody ;
 
-RETURN : ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'T' | 't' ) ( 'U' | 'u' ) ( 'R' | 'r' ) ( 'N' | 'n' ) ;
-
 oC_ProjectionBody
     : ( SP? DISTINCT )? SP oC_ProjectionItems (SP oC_Order )? ( SP oC_Skip )? ( SP oC_Limit )? ;
-
-DISTINCT : ( 'D' | 'd' ) ( 'I' | 'i' ) ( 'S' | 's' ) ( 'T' | 't' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'C' | 'c' ) ( 'T' | 't' ) ;
 
 oC_ProjectionItems
     : ( STAR ( SP? ',' SP? oC_ProjectionItem )* )
@@ -472,14 +327,8 @@ oC_ProjectionItem
         | oC_Expression
         ;
 
-AS : ( 'A' | 'a' ) ( 'S' | 's' ) ;
-
 oC_Order
     : ORDER SP BY SP oC_SortItem ( ',' SP? oC_SortItem )* ;
-
-ORDER : ( 'O' | 'o' ) ( 'R' | 'r' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ;
-
-BY : ( 'B' | 'b' ) ( 'Y' | 'y' ) ;
 
 oC_Skip
     :  L_SKIP SP oC_Expression ;
@@ -489,23 +338,11 @@ L_SKIP : ( 'S' | 's' ) ( 'K' | 'k' ) ( 'I' | 'i' ) ( 'P' | 'p' ) ;
 oC_Limit
     : LIMIT SP oC_Expression ;
 
-LIMIT : ( 'L' | 'l' ) ( 'I' | 'i' ) ( 'M' | 'm' ) ( 'I' | 'i' ) ( 'T' | 't' ) ;
-
 oC_SortItem
     : oC_Expression ( SP? ( ASCENDING | ASC | DESCENDING | DESC ) )? ;
 
-ASCENDING : ( 'A' | 'a' ) ( 'S' | 's' ) ( 'C' | 'c' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'D' | 'd' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'G' | 'g' ) ;
-
-ASC : ( 'A' | 'a' ) ( 'S' | 's' ) ( 'C' | 'c' ) ;
-
-DESCENDING : ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'S' | 's' ) ( 'C' | 'c' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'D' | 'd' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'G' | 'g' ) ;
-
-DESC : ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'S' | 's' ) ( 'C' | 'c' ) ;
-
 oC_Where
     : WHERE SP oC_Expression ;
-
-WHERE : ( 'W' | 'w' ) ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ( 'E' | 'e' )  ;
 
 oC_Pattern
     : oC_PatternPart ( SP? ',' SP? oC_PatternPart )* ;
@@ -570,8 +407,6 @@ oC_LowerBound
 oC_UpperBound
     : DecimalInteger ;
 
-SHORTEST : ( 'S' | 's' ) ( 'H' | 'h' ) ( 'O' | 'o' ) ( 'R' | 'r' ) ( 'T' | 't' ) ( 'E' | 'e' ) ( 'S' | 's' ) ( 'T' | 't' ) ;
-
 oC_LabelName
     : oC_SchemaName ;
 
@@ -584,22 +419,14 @@ oC_Expression
 oC_OrExpression
     : oC_XorExpression ( SP OR SP oC_XorExpression )* ;
 
-OR : ( 'O' | 'o' ) ( 'R' | 'r' ) ;
-
 oC_XorExpression
     : oC_AndExpression ( SP XOR SP oC_AndExpression )* ;
-
-XOR : ( 'X' | 'x' ) ( 'O' | 'o' ) ( 'R' | 'r' ) ;
 
 oC_AndExpression
     : oC_NotExpression ( SP AND SP oC_NotExpression )* ;
 
-AND : ( 'A' | 'a' ) ( 'N' | 'n' ) ( 'D' | 'd' ) ;
-
 oC_NotExpression
     : ( NOT SP? )*  oC_ComparisonExpression ;
-
-NOT : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'T' | 't' ) ;
 
 oC_ComparisonExpression
     : kU_BitwiseOrOperatorExpression ( SP? kU_ComparisonOperator SP? kU_BitwiseOrOperatorExpression )?
@@ -653,27 +480,15 @@ oC_ListOperatorExpression
 
 COLON : ':' ;
 
-IN : ( 'I' | 'i' ) ( 'N' | 'n' ) ;
-
 oC_StringOperatorExpression
     :  ( oC_RegularExpression | ( SP STARTS SP WITH ) | ( SP ENDS SP WITH ) | ( SP CONTAINS ) ) SP? oC_PropertyOrLabelsExpression ;
 
 oC_RegularExpression
     :  SP? '=~' ;
 
-STARTS : ( 'S' | 's' ) ( 'T' | 't' ) ( 'A' | 'a' ) ( 'R' | 'r' ) ( 'T' | 't' ) ( 'S' | 's' ) ;
-
-ENDS : ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'D' | 'd' ) ( 'S' | 's' ) ;
-
-CONTAINS : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ( 'T' | 't' ) ( 'A' | 'a' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'S' | 's' ) ;
-
 oC_NullOperatorExpression
-    : ( SP IS SP NULL_ )
-        | ( SP IS SP NOT SP NULL_ ) ;
-
-IS : ( 'I' | 'i' ) ( 'S' | 's' ) ;
-
-NULL_ : ( 'N' | 'n' ) ( 'U' | 'u' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
+    : ( SP IS SP NULL )
+        | ( SP IS SP NOT SP NULL ) ;
 
 oC_PropertyOrLabelsExpression
     : oC_Atom ( SP? oC_PropertyLookup )* ;
@@ -694,7 +509,7 @@ oC_Literal
     : oC_NumberLiteral
         | StringLiteral
         | oC_BooleanLiteral
-        | NULL_
+        | NULL
         | oC_ListLiteral
         | kU_StructLiteral
         ;
@@ -703,10 +518,6 @@ oC_BooleanLiteral
     : TRUE
         | FALSE
         ;
-
-TRUE : ( 'T' | 't' ) ( 'R' | 'r' ) ( 'U' | 'u' ) ( 'E' | 'e' ) ;
-
-FALSE : ( 'F' | 'f' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'S' | 's' ) ( 'E' | 'e' ) ;
 
 oC_ListLiteral
     :  '[' SP? ( oC_Expression SP? ( kU_ListEntry SP? )* )? ']' ;
@@ -723,14 +534,10 @@ kU_StructField
 oC_ParenthesizedExpression
     : '(' SP? oC_Expression SP? ')' ;
 
-CAST : ( 'C' | 'c' ) ( 'A' | 'a' ) ( 'S' | 's' ) ( 'T' | 't' ) ;
-
 oC_FunctionInvocation
     : COUNT SP? '(' SP? '*' SP? ')'
         | CAST SP? '(' SP? kU_FunctionParameter SP? ( ( AS SP? kU_DataType ) | ( ',' SP? kU_FunctionParameter ) ) SP? ')'
         | oC_FunctionName SP? '(' SP? ( DISTINCT SP? )? ( kU_FunctionParameter SP? ( ',' SP? kU_FunctionParameter SP? )* )? ')' ;
-
-COUNT : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'U' | 'u' ) ( 'N' | 'n' ) ( 'T' | 't' ) ;
 
 oC_FunctionName
     : oC_SymbolicName ;
@@ -747,26 +554,14 @@ oC_ExistSubquery
 kU_CountSubquery
     : COUNT SP? '{' SP? MATCH SP? oC_Pattern ( SP? oC_Where )? SP? '}' ;
 
-EXISTS : ( 'E' | 'e' ) ( 'X' | 'x' ) ( 'I' | 'i' ) ( 'S' | 's' ) ( 'T' | 't' ) ( 'S' | 's' ) ;
-
 oC_PropertyLookup
     : '.' SP? ( oC_PropertyKeyName | STAR ) ;
 
 oC_CaseExpression
     :  ( ( CASE ( SP? oC_CaseAlternative )+ ) | ( CASE SP? oC_Expression ( SP? oC_CaseAlternative )+ ) ) ( SP? ELSE SP? oC_Expression )? SP? END ;
 
-CASE : ( 'C' | 'c' ) ( 'A' | 'a' ) ( 'S' | 's' ) ( 'E' | 'e' )  ;
-
-ELSE : ( 'E' | 'e' ) ( 'L' | 'l' ) ( 'S' | 's' ) ( 'E' | 'e' )  ;
-
-END : ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'D' | 'd' )  ;
-
 oC_CaseAlternative
     :  WHEN SP? oC_Expression SP? THEN SP? oC_Expression ;
-
-WHEN : ( 'W' | 'w' ) ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'N' | 'n' )  ;
-
-THEN : ( 'T' | 't' ) ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'N' | 'n' )  ;
 
 oC_Variable
     : oC_SymbolicName ;
@@ -857,7 +652,7 @@ oC_SymbolicName
 
 // example of BEGIN and END: TCKWith2.Scenario1
 kU_NonReservedKeywords
-    : COMMENT_
+    : COMMENT
         | COUNT
         | NODE
         | REL
@@ -933,10 +728,10 @@ WHITESPACE
         | '\u00a0'
         | '\u2007'
         | '\u202f'
-        | Comment
+        | CypherComment
         ;
 
-Comment
+CypherComment
     : ( '/*' ( Comment_1 | ( '*' Comment_2 ) )* '*/' )
         | ( '//' ( Comment_3 )* CR? ( LF | EOF ) )
         ;

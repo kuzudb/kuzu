@@ -3,13 +3,16 @@
 # We can't use checksums because of windows line ending normalization.
 file(READ Cypher.g4.copy COPY_CONTENT)
 file(READ ${ROOT_DIR}/src/antlr4/Cypher.g4 REAL_CONTENT)
+file(READ keywords.txt.copy COPY_KEYWORDS)
+file(READ ${ROOT_DIR}/src/antlr4/keywords.txt REAL_KEYWORDS)
 
-if("${COPY_CONTENT}" STREQUAL "${REAL_CONTENT}")
+if("${COPY_CONTENT}" STREQUAL "${REAL_CONTENT}" AND "${COPY_KEYWORDS}" STREQUAL "${REAL_KEYWORDS}")
     message(DEBUG " Not regenerating grammar files as Cypher.g4 is unchanged.")
     return() # Exit.
 endif()
 
 file(WRITE Cypher.g4.copy "${REAL_CONTENT}")
+file(WRITE keywords.txt.copy "${REAL_KEYWORDS}")
 
 message(INFO " Regenerating grammar files...")
 
@@ -23,10 +26,11 @@ endif()
 # create the directory for the generated grammar
 file(MAKE_DIRECTORY generated)
 
-# copy grammar, because antlr4 does some weird things with output locations.
-file(COPY ${ROOT_DIR}/src/antlr4/Cypher.g4 DESTINATION .)
-
 find_package(Java REQUIRED)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
+# use script to generate final Cypher.g4 file and update tools/shell/include/keywords.h
+execute_process(COMMAND ${Python3_EXECUTABLE} keywordhandler.py ${ROOT_DIR}/src/antlr4/Cypher.g4 ${ROOT_DIR}/src/antlr4/keywords.txt Cypher.g4 ${ROOT_DIR}/tools/shell/include/keywords.h)
 
 # Generate files.
 message(INFO " Generating files...")

@@ -19,30 +19,29 @@ public:
     T__26 = 27, T__27 = 28, T__28 = 29, T__29 = 30, T__30 = 31, T__31 = 32, 
     T__32 = 33, T__33 = 34, T__34 = 35, T__35 = 36, T__36 = 37, T__37 = 38, 
     T__38 = 39, T__39 = 40, T__40 = 41, T__41 = 42, T__42 = 43, T__43 = 44, 
-    T__44 = 45, ATTACH = 46, DBTYPE = 47, USE = 48, CALL = 49, COMMENT_ = 50, 
-    MACRO = 51, GLOB = 52, COPY = 53, FROM = 54, COLUMN = 55, EXPORT = 56, 
-    IMPORT = 57, DATABASE = 58, IF = 59, NODE = 60, TABLE = 61, GROUP = 62, 
-    RDFGRAPH = 63, SEQUENCE = 64, TYPE = 65, INCREMENT = 66, MINVALUE = 67, 
-    MAXVALUE = 68, START = 69, NO = 70, CYCLE = 71, DROP = 72, ALTER = 73, 
-    DEFAULT = 74, RENAME = 75, ADD = 76, PRIMARY = 77, KEY = 78, REL = 79, 
-    TO = 80, DECIMAL = 81, EXPLAIN = 82, PROFILE = 83, BEGIN = 84, TRANSACTION = 85, 
-    READ = 86, ONLY = 87, WRITE = 88, COMMIT = 89, COMMIT_SKIP_CHECKPOINT = 90, 
-    ROLLBACK = 91, ROLLBACK_SKIP_CHECKPOINT = 92, INSTALL = 93, EXTENSION = 94, 
-    UNION = 95, ALL = 96, LOAD = 97, HEADERS = 98, PROJECT = 99, GRAPH = 100, 
-    OPTIONAL = 101, MATCH = 102, UNWIND = 103, CREATE = 104, MERGE = 105, 
-    ON = 106, SET = 107, DETACH = 108, DELETE = 109, WITH = 110, RETURN = 111, 
-    DISTINCT = 112, STAR = 113, AS = 114, ORDER = 115, BY = 116, L_SKIP = 117, 
-    LIMIT = 118, ASCENDING = 119, ASC = 120, DESCENDING = 121, DESC = 122, 
-    WHERE = 123, SHORTEST = 124, OR = 125, XOR = 126, AND = 127, NOT = 128, 
-    INVALID_NOT_EQUAL = 129, MINUS = 130, FACTORIAL = 131, COLON = 132, 
-    IN = 133, STARTS = 134, ENDS = 135, CONTAINS = 136, IS = 137, NULL_ = 138, 
-    TRUE = 139, FALSE = 140, CAST = 141, COUNT = 142, EXISTS = 143, CASE = 144, 
-    ELSE = 145, END = 146, WHEN = 147, THEN = 148, StringLiteral = 149, 
-    EscapedChar = 150, DecimalInteger = 151, HexLetter = 152, HexDigit = 153, 
-    Digit = 154, NonZeroDigit = 155, NonZeroOctDigit = 156, ZeroDigit = 157, 
-    RegularDecimalReal = 158, UnescapedSymbolicName = 159, IdentifierStart = 160, 
-    IdentifierPart = 161, EscapedSymbolicName = 162, SP = 163, WHITESPACE = 164, 
-    Comment = 165, Unknown = 166
+    T__44 = 45, ADD = 46, ALL = 47, ALTER = 48, AND = 49, AS = 50, ASC = 51, 
+    ASCENDING = 52, ATTACH = 53, BEGIN = 54, BY = 55, CALL = 56, CASE = 57, 
+    CAST = 58, COLUMN = 59, COMMENT = 60, COMMIT = 61, COMMIT_SKIP_CHECKPOINT = 62, 
+    CONTAINS = 63, COPY = 64, COUNT = 65, CREATE = 66, CYCLE = 67, DATABASE = 68, 
+    DBTYPE = 69, DEFAULT = 70, DELETE = 71, DESC = 72, DESCENDING = 73, 
+    DETACH = 74, DISTINCT = 75, DROP = 76, ELSE = 77, END = 78, ENDS = 79, 
+    EXISTS = 80, EXPLAIN = 81, EXPORT = 82, EXTENSION = 83, FALSE = 84, 
+    FROM = 85, GLOB = 86, GRAPH = 87, GROUP = 88, HEADERS = 89, IMPORT = 90, 
+    IF = 91, IN = 92, INCREMENT = 93, INSTALL = 94, IS = 95, KEY = 96, LIMIT = 97, 
+    LOAD = 98, MACRO = 99, MATCH = 100, MAXVALUE = 101, MERGE = 102, MINVALUE = 103, 
+    NO = 104, NODE = 105, NOT = 106, NULL_ = 107, ON = 108, ONLY = 109, 
+    OPTIONAL = 110, OR = 111, ORDER = 112, PRIMARY = 113, PROFILE = 114, 
+    RDFGRAPH = 115, READ = 116, REL = 117, RENAME = 118, RETURN = 119, ROLLBACK = 120, 
+    ROLLBACK_SKIP_CHECKPOINT = 121, SEQUENCE = 122, SET = 123, SHORTEST = 124, 
+    START = 125, STARTS = 126, TABLE = 127, THEN = 128, TO = 129, TRANSACTION = 130, 
+    TRUE = 131, UNION = 132, UNWIND = 133, USE = 134, WHEN = 135, WHERE = 136, 
+    WITH = 137, WRITE = 138, XOR = 139, TYPE = 140, DECIMAL = 141, PROJECT = 142, 
+    STAR = 143, L_SKIP = 144, INVALID_NOT_EQUAL = 145, MINUS = 146, FACTORIAL = 147, 
+    COLON = 148, StringLiteral = 149, EscapedChar = 150, DecimalInteger = 151, 
+    HexLetter = 152, HexDigit = 153, Digit = 154, NonZeroDigit = 155, NonZeroOctDigit = 156, 
+    ZeroDigit = 157, RegularDecimalReal = 158, UnescapedSymbolicName = 159, 
+    IdentifierStart = 160, IdentifierPart = 161, EscapedSymbolicName = 162, 
+    SP = 163, WHITESPACE = 164, CypherComment = 165, Unknown = 166
   };
 
   enum {
@@ -557,7 +556,7 @@ public:
   public:
     KU_CommentOnContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *COMMENT_();
+    antlr4::tree::TerminalNode *COMMENT();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
     antlr4::tree::TerminalNode *ON();
@@ -2701,7 +2700,7 @@ public:
   public:
     KU_NonReservedKeywordsContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *COMMENT_();
+    antlr4::tree::TerminalNode *COMMENT();
     antlr4::tree::TerminalNode *COUNT();
     antlr4::tree::TerminalNode *NODE();
     antlr4::tree::TerminalNode *REL();
