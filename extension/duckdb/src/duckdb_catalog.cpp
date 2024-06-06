@@ -13,8 +13,7 @@ namespace duckdb_extension {
 
 DuckDBCatalog::DuckDBCatalog(std::string dbPath, std::string catalogName,
     main::ClientContext* context, const binder::AttachOption& attachOption)
-    : CatalogExtension::CatalogExtension{}, dbPath{std::move(dbPath)},
-      catalogName{std::move(catalogName)},
+    : CatalogExtension{}, dbPath{std::move(dbPath)}, catalogName{std::move(catalogName)},
       tableNamesVector{*common::LogicalType::STRING(), context->getMemoryManager()} {
     skipUnsupportedTable = DuckDBStorageExtension::SKIP_UNSUPPORTED_TABLE_DEFAULT_VAL;
     auto& options = attachOption.options;

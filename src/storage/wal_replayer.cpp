@@ -5,6 +5,7 @@
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
+#include "catalog/catalog_entry/type_catalog_entry.h"
 #include "common/file_system/file_info.h"
 #include "common/serializer/buffered_file.h"
 #include "storage/storage_manager.h"
@@ -89,8 +90,7 @@ void WALReplayer::replayPageUpdateOrInsertRecord(const WALRecord& walRecord,
     std::unordered_map<DBFileID, std::unique_ptr<FileInfo>>& fileCache) {
     // 1. As the first step we copy over the page on disk, regardless of if we are recovering
     // (and checkpointing) or checkpointing while during regular execution.
-    auto& pageInsertOrUpdateRecord =
-        ku_dynamic_cast<const WALRecord&, const PageUpdateOrInsertRecord&>(walRecord);
+    auto& pageInsertOrUpdateRecord = walRecord.constCast<PageUpdateOrInsertRecord>();
     auto dbFileID = pageInsertOrUpdateRecord.dbFileID;
     auto entry = fileCache.find(dbFileID);
     if (entry == fileCache.end()) {
@@ -126,8 +126,7 @@ void WALReplayer::replayCatalogRecord(const WALRecord&) {
 }
 
 void WALReplayer::replayTableStatisticsRecord(const WALRecord& walRecord) {
-    auto& tableStatisticsRecord =
-        ku_dynamic_cast<const WALRecord&, const TableStatisticsRecord&>(walRecord);
+    auto& tableStatisticsRecord = walRecord.constCast<TableStatisticsRecord>();
     auto vfs = clientContext.getVFSUnsafe();
     auto storageManager = clientContext.getStorageManager();
     if (isCheckpoint) {
@@ -186,29 +185,32 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) {
         // Nothing to do.
         return;
     }
-    auto& createEntryRecord =
-        ku_dynamic_cast<const WALRecord&, const CreateCatalogEntryRecord&>(walRecord);
+    auto& createEntryRecord = walRecord.constCast<CreateCatalogEntryRecord>();
     switch (createEntryRecord.ownedCatalogEntry->getType()) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
     case CatalogEntryType::REL_TABLE_ENTRY:
     case CatalogEntryType::REL_GROUP_ENTRY:
     case CatalogEntryType::RDF_GRAPH_ENTRY: {
-        auto tableEntry = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(
-            createEntryRecord.ownedCatalogEntry.get());
+        auto& tableEntry = createEntryRecord.ownedCatalogEntry->constCast<TableCatalogEntry>();
         clientContext.getCatalog()->createTableSchema(&DUMMY_WRITE_TRANSACTION,
-            tableEntry->getBoundCreateTableInfo(&DUMMY_WRITE_TRANSACTION));
+            tableEntry.getBoundCreateTableInfo(&DUMMY_WRITE_TRANSACTION));
     } break;
     case CatalogEntryType::SCALAR_MACRO_ENTRY: {
-        auto macroEntry = ku_dynamic_cast<CatalogEntry*, ScalarMacroCatalogEntry*>(
-            createEntryRecord.ownedCatalogEntry.get());
+        auto& macroEntry =
+            createEntryRecord.ownedCatalogEntry->constCast<ScalarMacroCatalogEntry>();
         clientContext.getCatalog()->addScalarMacroFunction(&DUMMY_WRITE_TRANSACTION,
-            macroEntry->getName(), macroEntry->getMacroFunction()->copy());
+            macroEntry.getName(), macroEntry.getMacroFunction()->copy());
     } break;
     case CatalogEntryType::SEQUENCE_ENTRY: {
-        auto sequenceEntry = ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(
-            createEntryRecord.ownedCatalogEntry.get());
+        auto& sequenceEntry =
+            createEntryRecord.ownedCatalogEntry->constCast<SequenceCatalogEntry>();
         clientContext.getCatalog()->createSequence(&DUMMY_WRITE_TRANSACTION,
-            sequenceEntry->getBoundCreateSequenceInfo());
+            sequenceEntry.getBoundCreateSequenceInfo());
+    } break;
+    case CatalogEntryType::TYPE_ENTRY: {
+        auto& typeEntry = createEntryRecord.ownedCatalogEntry->constCast<TypeCatalogEntry>();
+        clientContext.getCatalog()->createType(&DUMMY_WRITE_TRANSACTION, typeEntry.getName(),
+            typeEntry.getLogicalType());
     } break;
     default: {
         KU_UNREACHABLE;
@@ -221,8 +223,7 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) {
     if (!(isCheckpoint && isRecovering)) {
         return;
     }
-    auto dropEntryRecord =
-        ku_dynamic_cast<const WALRecord&, const DropCatalogEntryRecord&>(walRecord);
+    auto& dropEntryRecord = walRecord.constCast<DropCatalogEntryRecord>();
     auto entryID = dropEntryRecord.entryID;
     switch (dropEntryRecord.entryType) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
@@ -271,8 +272,7 @@ void WALReplayer::truncateFileIfInsertion(BMFileHandle* fileHandle,
 void WALReplayer::checkpointOrRollbackVersionedFileHandleAndBufferManager(
     const WALRecord& walRecord, const DBFileID& dbFileID) {
     BMFileHandle* fileHandle = getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(dbFileID);
-    auto& pageInsertOrUpdateRecord =
-        ku_dynamic_cast<const WALRecord&, const PageUpdateOrInsertRecord&>(walRecord);
+    auto& pageInsertOrUpdateRecord = walRecord.constCast<PageUpdateOrInsertRecord>();
     if (fileHandle) {
         fileHandle->clearWALPageIdxIfNecessary(pageInsertOrUpdateRecord.pageIdxInOriginalFile);
         if (isCheckpoint) {

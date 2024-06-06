@@ -15,9 +15,9 @@ Cannot parse struct type: STRUCT
 -CASE CreateNodeTableInvalidDataType
 -STATEMENT CREATE NODE TABLE PERSON(NAME BIGINT, PRIMARY KEY(NAME))
 ---- error
-Cannot parse dataTypeID: BIGINT
+Binder exception: BIGINT is neither an internal type nor a user defined type.
 
 -CASE CreateRelTableInvalidDataType
 -STATEMENT CREATE REL TABLE knows_post ( FROM person TO person, ID SMALLINT, MANY_MANY)
 ---- error
-Cannot parse dataTypeID: SMALLINT
+Binder exception: SMALLINT is neither an internal type nor a user defined type.

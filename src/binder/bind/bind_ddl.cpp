@@ -2,6 +2,7 @@
 #include "binder/ddl/bound_alter.h"
 #include "binder/ddl/bound_create_sequence.h"
 #include "binder/ddl/bound_create_table.h"
+#include "binder/ddl/bound_create_type.h"
 #include "binder/ddl/bound_drop_sequence.h"
 #include "binder/ddl/bound_drop_table.h"
 #include "catalog/catalog.h"
@@ -18,6 +19,7 @@
 #include "parser/ddl/create_sequence.h"
 #include "parser/ddl/create_table.h"
 #include "parser/ddl/create_table_info.h"
+#include "parser/ddl/create_type.h"
 #include "parser/ddl/drop.h"
 
 using namespace kuzu::common;
@@ -38,12 +40,28 @@ static void validateUniquePropertyName(const std::vector<PropertyInfo>& infos) {
     }
 }
 
+static LogicalType resolvePropertyType(main::ClientContext* clientContext,
+    const std::string& typeStr) {
+    LogicalType type;
+    auto isInternalType = LogicalType::tryConvertFromString(typeStr, type);
+    auto isUserDefinedType =
+        clientContext->getCatalog()->containsType(clientContext->getTx(), typeStr);
+    if (!isInternalType && !isUserDefinedType) {
+        throw BinderException{common::stringFormat(
+            "{} is neither an internal type nor a user defined type.", typeStr)};
+    }
+    if (!isInternalType) {
+        type = clientContext->getCatalog()->getType(clientContext->getTx(), typeStr);
+    }
+    return type;
+}
+
 std::vector<PropertyInfo> Binder::bindPropertyInfo(
     const std::vector<PropertyDefinitionDDL>& propertyDefinitions) {
     std::vector<PropertyInfo> propertyInfos;
     propertyInfos.reserve(propertyDefinitions.size());
     for (auto& propertyDef : propertyDefinitions) {
-        auto type = LogicalType::fromString(propertyDef.type);
+        auto type = resolvePropertyType(clientContext, propertyDef.type);
         // This will check the type correctness of the default value expression
         expressionBinder.implicitCastIfNecessary(expressionBinder.bindExpression(*propertyDef.expr),
             type);
@@ -175,13 +193,26 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& statement) {
-    auto& createTable = ku_dynamic_cast<const Statement&, const CreateTable&>(statement);
-    auto tableName = createTable.getInfo()->tableName;
+    auto createTable = statement.constPtrCast<CreateTable>();
+    auto tableName = createTable->getInfo()->tableName;
     if (clientContext->getCatalog()->containsTable(clientContext->getTx(), tableName)) {
         throw BinderException(tableName + " already exists in catalog.");
     }
-    auto boundCreateInfo = bindCreateTableInfo(createTable.getInfo());
+    auto boundCreateInfo = bindCreateTableInfo(createTable->getInfo());
     return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo));
+}
+
+std::unique_ptr<BoundStatement> Binder::bindCreateType(const Statement& statement) {
+    auto createType = statement.constPtrCast<CreateType>();
+    auto name = createType->getName();
+    auto type = LogicalType::fromString(createType->getDataType());
+    if (type.getPhysicalType() != PhysicalTypeID::STRUCT) {
+        throw BinderException{"User defined type must be a struct."};
+    }
+    if (clientContext->getCatalog()->containsType(clientContext->getTx(), name)) {
+        throw BinderException{common::stringFormat("Duplicated type name: {}.", name)};
+    }
+    return std::make_unique<BoundCreateType>(std::move(name), std::move(type));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& statement) {

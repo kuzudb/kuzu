@@ -12,6 +12,7 @@
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
+#include "catalog/catalog_entry/type_catalog_entry.h"
 #include "common/cast.h"
 #include "common/exception/catalog.h"
 #include "common/file_system/virtual_file_system.h"
@@ -37,6 +38,7 @@ Catalog::Catalog() {
     tables = std::make_unique<CatalogSet>();
     sequences = std::make_unique<CatalogSet>();
     functions = std::make_unique<CatalogSet>();
+    types = std::make_unique<CatalogSet>();
     registerBuiltInFunctions();
 }
 
@@ -48,6 +50,7 @@ Catalog::Catalog(std::string directory, VirtualFileSystem* fs) {
         tables = std::make_unique<CatalogSet>();
         sequences = std::make_unique<CatalogSet>();
         functions = std::make_unique<CatalogSet>();
+        types = std::make_unique<CatalogSet>();
         saveToFile(directory, fs, FileVersionType::ORIGINAL);
     }
     registerBuiltInFunctions();
@@ -255,8 +258,7 @@ std::vector<SequenceCatalogEntry*> Catalog::getSequenceEntries(Transaction* tran
 sequence_id_t Catalog::createSequence(transaction::Transaction* transaction,
     const BoundCreateSequenceInfo& info) {
     sequence_id_t sequenceID = sequences->assignNextOID();
-    std::unique_ptr<CatalogEntry> entry =
-        std::make_unique<SequenceCatalogEntry>(sequences.get(), sequenceID, info);
+    auto entry = std::make_unique<SequenceCatalogEntry>(sequences.get(), sequenceID, info);
     sequences->createEntry(transaction, std::move(entry));
     return sequenceID;
 }
@@ -264,6 +266,22 @@ sequence_id_t Catalog::createSequence(transaction::Transaction* transaction,
 void Catalog::dropSequence(transaction::Transaction* transaction, sequence_id_t sequenceID) {
     auto sequenceEntry = getSequenceCatalogEntry(transaction, sequenceID);
     sequences->dropEntry(transaction, sequenceEntry->getName());
+}
+
+void Catalog::createType(transaction::Transaction* transaction, std::string name,
+    common::LogicalType type) {
+    KU_ASSERT(!types->containsEntry(transaction, name));
+    auto entry = std::make_unique<TypeCatalogEntry>(std::move(name), std::move(type));
+    types->createEntry(transaction, std::move(entry));
+}
+
+common::LogicalType Catalog::getType(transaction::Transaction* transaction, std::string name) {
+    KU_ASSERT(types->containsEntry(transaction, name));
+    return types->getEntry(transaction, name)->constCast<TypeCatalogEntry>().getLogicalType();
+}
+
+bool Catalog::containsType(transaction::Transaction* transaction, const std::string& typeName) {
+    return types->containsEntry(transaction, typeName);
 }
 
 void Catalog::addFunction(transaction::Transaction* transaction, CatalogEntryType entryType,
@@ -373,6 +391,7 @@ void Catalog::saveToFile(const std::string& directory, common::VirtualFileSystem
     tables->serialize(serializer);
     sequences->serialize(serializer);
     functions->serialize(serializer);
+    types->serialize(serializer);
 }
 
 void Catalog::readFromFile(const std::string& directory, common::VirtualFileSystem* fs,
@@ -387,6 +406,7 @@ void Catalog::readFromFile(const std::string& directory, common::VirtualFileSyst
     tables = CatalogSet::deserialize(deserializer);
     sequences = CatalogSet::deserialize(deserializer);
     functions = CatalogSet::deserialize(deserializer);
+    types = CatalogSet::deserialize(deserializer);
 }
 
 void Catalog::registerBuiltInFunctions() {

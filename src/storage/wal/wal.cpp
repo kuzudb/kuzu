@@ -100,6 +100,12 @@ void WAL::logDropSequenceRecord(sequence_id_t sequenceID) {
     addNewWALRecordNoLock(walRecord);
 }
 
+void WAL::logCreateTypeRecord(catalog::CatalogEntry* catalogEntry) {
+    lock_t lck{mtx};
+    CreateCatalogEntryRecord walRecord(catalogEntry);
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::clearWAL() {
     bufferManager.removeFilePagesFromFrames(*shadowingFH);
     shadowingFH->resetToZeroPagesAndPageCapacity();

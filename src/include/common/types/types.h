@@ -216,6 +216,7 @@ public:
     KUZU_API LogicalType& operator=(LogicalType&& other) = default;
 
     KUZU_API std::string toString() const;
+    static bool tryConvertFromString(const std::string& str, LogicalType& type);
     static LogicalType fromString(const std::string& str);
 
     KUZU_API LogicalTypeID getLogicalTypeID() const { return typeID; }

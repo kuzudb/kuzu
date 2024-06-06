@@ -23,9 +23,10 @@ enum class CatalogEntryType : uint8_t {
     GDS_FUNCTION_ENTRY = 24,
     // Sequence entries
     SEQUENCE_ENTRY = 40,
+    // UDT entries
+    TYPE_ENTRY = 41,
     // Dummy entry
     DUMMY_ENTRY = 100,
-
 };
 
 struct CatalogEntryTypeUtils {

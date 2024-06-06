@@ -40,6 +40,8 @@ std::unique_ptr<Statement> Transformer::transformStatement(CypherParser::OC_Stat
         return transformCreateRdfGraphClause(*ctx.kU_CreateRdfGraph());
     } else if (ctx.kU_CreateSequence()) {
         return transformCreateSequence(*ctx.kU_CreateSequence());
+    } else if (ctx.kU_CreateType()) {
+        return transformCreateType(*ctx.kU_CreateType());
     } else if (ctx.kU_Drop()) {
         return transformDrop(*ctx.kU_Drop());
     } else if (ctx.kU_AlterTable()) {

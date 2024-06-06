@@ -30,6 +30,9 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const BoundStatement& statemen
     case StatementType::CREATE_SEQUENCE: {
         appendCreateSequence(statement, *plan);
     } break;
+    case StatementType::CREATE_TYPE: {
+        appendCreateType(statement, *plan);
+    } break;
     case StatementType::COPY_FROM: {
         plan = planCopyFrom(statement);
     } break;
