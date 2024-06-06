@@ -63,6 +63,9 @@ Binder exception: ARRAY_COSINE_SIMILARITY requires at least one argument to be A
 -STATEMENT RETURN array_cosine_similarity(cast([1.0, 2.0], 'DOUBLE[2]'), [3.0, 4.0]);
 ---- 1
 0.983870
+-STATEMENT RETURN array_cosine_similarity(cast([1.0, 2.0] as DOUBLE[2]), [3.0, 4.0]);
+---- 1
+0.983870
 
 -LOG DocListExample
 -STATEMENT RETURN ["Alice", 1] AS l;
@@ -75,6 +78,20 @@ Binder exception: Expression Alice has data type STRING but expected INT64. Impl
 ---- 1
 [[5,2,1],[2,3],[15,64,74]]
 -STATEMENT UNWIND CAST([[1,2,3],[3],[4,5]], 'INT64[][3]') AS x UNWIND x AS y RETURN y;
+---- 6
+1
+2
+3
+3
+4
+5
+-STATEMENT RETURN CAST([3,4,12,11] as INT64[4]);
+---- 1
+[3,4,12,11]
+-STATEMENT RETURN CAST([[5,2,1],[2,3],[15,64,74]] as INT64[][3]);
+---- 1
+[[5,2,1],[2,3],[15,64,74]]
+-STATEMENT UNWIND CAST([[1,2,3],[3],[4,5]] as INT64[][3]) AS x UNWIND x AS y RETURN y;
 ---- 6
 1
 2

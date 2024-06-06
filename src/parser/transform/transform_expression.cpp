@@ -474,13 +474,25 @@ std::unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
     std::string functionName;
     if (ctx.COUNT()) {
         functionName = "COUNT";
+    } else if (ctx.CAST()) {
+        functionName = "CAST";
     } else {
         functionName = transformFunctionName(*ctx.oC_FunctionName());
     }
     auto expression = std::make_unique<ParsedFunctionExpression>(functionName, ctx.getText(),
         ctx.DISTINCT() != nullptr);
-    for (auto& functionParameter : ctx.kU_FunctionParameter()) {
-        expression->addChild(transformFunctionParameterExpression(*functionParameter));
+    if (ctx.CAST()) {
+        for (auto& functionParameter : ctx.kU_FunctionParameter()) {
+            expression->addChild(transformFunctionParameterExpression(*functionParameter));
+        }
+        if (ctx.kU_DataType()) {
+            expression->addChild(std::make_unique<ParsedLiteralExpression>(
+                common::Value(transformDataType(*ctx.kU_DataType()))));
+        }
+    } else {
+        for (auto& functionParameter : ctx.kU_FunctionParameter()) {
+            expression->addChild(transformFunctionParameterExpression(*functionParameter));
+        }
     }
     return expression;
 }

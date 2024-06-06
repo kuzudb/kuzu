@@ -3,22 +3,22 @@
 --
 
 -CASE AbsUINT8
--STATEMENT RETURN Abs(CAST(24, "UINT8"))
+-STATEMENT RETURN Abs(CAST(24 as UINT8))
 ---- 1
 24
 
 -CASE AbsUINT16
--STATEMENT RETURN Abs(CAST(256, "UINT16"))
+-STATEMENT RETURN Abs(CAST(256 as UINT16))
 ---- 1
 256
 
 -CASE AbsUINT32
--STATEMENT RETURN Abs(CAST(70000, "UINT32"))
+-STATEMENT RETURN Abs(CAST(70000 as UINT32))
 ---- 1
 70000
 
 -CASE AbsUINT64
--STATEMENT RETURN Abs(CAST(202474672468, "UINT64"))
+-STATEMENT RETURN Abs(CAST(202474672468 as UINT64))
 ---- 1
 202474672468
 
@@ -29,7 +29,7 @@
 -STATEMENT RETURN Abs(CAST(-24, "INT8"))
 ---- 1
 24
--STATEMENT RETURN Abs(CAST(-128, "INT8"))
+-STATEMENT RETURN Abs(CAST(-128 as INT8))
 ---- error
 Overflow exception: Cannot take the absolute value of -128 within INT8 range.
 
@@ -51,7 +51,7 @@ Overflow exception: Cannot take the absolute value of -32768 within INT16 range.
 -STATEMENT RETURN Abs(CAST(-88888, "INT32"))
 ---- 1
 88888
--STATEMENT RETURN Abs(CAST(-2147483648, "INT32"))
+-STATEMENT RETURN Abs(CAST(-2147483648 as INT32))
 ---- error
 Overflow exception: Cannot take the absolute value of -2147483648 within INT32 range.
 
