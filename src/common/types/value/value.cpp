@@ -914,6 +914,8 @@ bool Value::allowTypeChange() const {
         return true;
     }
     switch (dataType->getLogicalTypeID()) {
+    case LogicalTypeID::ANY:
+        return true;
     case LogicalTypeID::LIST:
     case LogicalTypeID::ARRAY: {
         if (childrenSize == 0) {

@@ -76,6 +76,7 @@ protected:
     uint64_t bufferSize;
     uint64_t position;
     uint64_t osFileOffset;
+    main::ClientContext* context;
 
     bool rowEmpty = false;
 };

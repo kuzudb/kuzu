@@ -45,11 +45,50 @@
 
 -CASE InvalidUserDefinedType
 -LOG InvalidUserDefinedTypeErr
--STATEMENT CREATE TYPE DESCRIPTION AS STRING;
----- error
-Binder exception: User defined type must be a struct.
 -STATEMENT CREATE TYPE DESCRIPTION AS STRUCT(age int64, name string);
 ---- ok
 -STATEMENT CREATE TYPE DESCRIPTION AS STRUCT(age int64, name string);
 ---- error
 Binder exception: Duplicated type name: DESCRIPTION.
+
+-CASE UDTPrimitiveType
+-STATEMENT CREATE TYPE SMALLINT AS INT32;
+---- ok
+-STATEMENT CREATE TYPE BIGINT AS INT64;
+---- ok
+-STATEMENT CREATE NODE TABLE PERSON (ID SMALLINT, AGE BIGINT, primary key(ID))
+---- ok
+-STATEMENT COPY PERSON FROM '${KUZU_ROOT_DIRECTORY}/dataset/udt/vPerson.csv'
+---- ok
+-STATEMENT MATCH (p:PERSON) return p.*;
+---- 3
+30|40
+5|20
+8|100
+-STATEMENT CREATE TYPE HEIGHT AS STRING;
+---- ok
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/udt/vMovies.csv" (header = true) RETURN size(height), preference
+---- 3
+3|200
+2|55
+2|33
+-STATEMENT CREATE TYPE GENDER AS BOOL;
+---- ok
+-STATEMENT LOAD WITH HEADERS (height HEIGHT, gender GENDER) FROM "${KUZU_ROOT_DIRECTORY}/dataset/udt/no_header.csv" WHERE gender=true RETURN size(height)
+---- 2
+4
+2
+-STATEMENT alter table PERSON add propx GENDER default false;
+---- ok
+-STATEMENT MATCH (p:PERSON) return p.*;
+---- 3
+30|40|False
+5|20|False
+8|100|False
+-STATEMENT alter table PERSON add propy SMALLINT;
+---- ok
+-STATEMENT MATCH (p:PERSON) return p.*;
+---- 3
+30|40|False|
+5|20|False|
+8|100|False|

@@ -276,7 +276,14 @@ void Catalog::createType(transaction::Transaction* transaction, std::string name
 }
 
 common::LogicalType Catalog::getType(transaction::Transaction* transaction, std::string name) {
-    KU_ASSERT(types->containsEntry(transaction, name));
+    LogicalType type;
+    if (LogicalType::tryConvertFromString(name, type)) {
+        return type;
+    }
+    if (!types->containsEntry(transaction, name)) {
+        throw CatalogException{
+            common::stringFormat("{} is neither an internal type nor a user defined type.", name)};
+    }
     return types->getEntry(transaction, name)->constCast<TypeCatalogEntry>().getLogicalType();
 }
 

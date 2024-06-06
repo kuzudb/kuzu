@@ -19,7 +19,7 @@ std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV() {
     readBOM();
 
     if (option.hasHeader) {
-        SniffCSVNameAndTypeDriver driver;
+        SniffCSVNameAndTypeDriver driver{context};
         parseCSV(driver);
         return driver.columns;
     } else {

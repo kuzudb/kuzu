@@ -1,5 +1,6 @@
 #include "processor/operator/persistent/reader/csv/driver.h"
 
+#include "catalog/catalog.h"
 #include "common/exception/copy.h"
 #include "common/string_format.h"
 #include "function/cast/functions/cast_from_string_functions.h"
@@ -94,7 +95,8 @@ void SniffCSVNameAndTypeDriver::addValue(uint64_t, common::column_id_t, std::str
     auto it = value.rfind(':');
     if (it != std::string_view::npos) {
         try {
-            columnType = LogicalType::fromString(std::string(value.substr(it + 1)));
+            columnType =
+                context->getCatalog()->getType(context->getTx(), std::string(value.substr(it + 1)));
             columnName = std::string(value.substr(0, it));
         } catch (const Exception&) { // NOLINT(bugprone-empty-catch):
                                      // This is how we check for a suitable

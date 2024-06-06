@@ -17,8 +17,8 @@ namespace processor {
 
 BaseCSVReader::BaseCSVReader(const std::string& filePath, common::CSVOption option,
     uint64_t numColumns, main::ClientContext* context)
-    : option{std::move(option)}, numColumns(numColumns), buffer(nullptr), bufferSize(0),
-      position(0), osFileOffset(0), rowEmpty(false) {
+    : option{std::move(option)}, numColumns{numColumns}, buffer{nullptr}, bufferSize{0},
+      position{0}, osFileOffset{0}, rowEmpty{false}, context{context} {
     fileInfo = context->getVFSUnsafe()->openFile(filePath,
         O_RDONLY
 #ifdef _WIN32
