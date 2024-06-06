@@ -1,14 +1,14 @@
 #pragma once
 
 #include <iterator>
-#include <vector>
 #include <memory>
+#include <vector>
 
 namespace kuzu {
 namespace storage {
 class MemoryBuffer;
 class MemoryManager;
-}
+} // namespace storage
 
 namespace common {
 

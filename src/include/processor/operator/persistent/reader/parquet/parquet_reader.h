@@ -2,8 +2,8 @@
 
 #include "column_reader.h"
 #include "common/data_chunk/data_chunk.h"
-#include "common/types/types.h"
 #include "common/file_system/virtual_file_system.h"
+#include "common/types/types.h"
 #include "function/function.h"
 #include "function/table/bind_input.h"
 #include "function/table/scan_functions.h"

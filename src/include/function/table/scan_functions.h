@@ -1,8 +1,9 @@
 #pragma once
 
+#include <mutex>
+
 #include "common/copier_config/reader_config.h"
 #include "function/table_functions.h"
-#include <mutex>
 
 namespace kuzu {
 namespace common {
