@@ -51,15 +51,15 @@ public:
     common::transaction_t getCommitTS() const { return commitTS; }
     int64_t getCurrentTS() const { return currentTS; }
 
-    void commit(storage::WAL* wal);
-    void rollback();
+    void commit(storage::WAL* wal) const;
+    void rollback() const;
 
     storage::LocalStorage* getLocalStorage() { return localStorage.get(); }
 
-    void addCatalogEntry(catalog::CatalogSet* catalogSet, catalog::CatalogEntry* catalogEntry);
-    void addUpdateEntry();
-    void addInsertEntry();
-    void addDeleteEntry();
+    void pushCatalogEntry(catalog::CatalogSet& catalogSet,
+        catalog::CatalogEntry& catalogEntry) const;
+    void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::vector_idx_t vectorIdx,
+        storage::VectorUpdateInfo& vectorUpdateInfo) const;
 
     static std::unique_ptr<Transaction> getDummyWriteTrx() {
         return std::make_unique<Transaction>(TransactionType::WRITE);

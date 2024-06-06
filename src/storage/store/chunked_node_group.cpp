@@ -159,25 +159,25 @@ void ChunkedNodeGroup::write(const ChunkedNodeGroup& data, column_id_t offsetCol
 }
 
 void ChunkedNodeGroup::scan(Transaction* transaction, const std::vector<column_id_t>& columnIDs,
-    const std::vector<ValueVector*>& outputVectors, offset_t offset, length_t length) const {
+    const std::vector<ValueVector*>& outputVectors, offset_t offsetInGroup, length_t length) const {
     KU_ASSERT(columnIDs.size() == outputVectors.size());
-    KU_ASSERT(offset + length <= numRows);
+    KU_ASSERT(offsetInGroup + length <= numRows);
     for (auto i = 0u; i < columnIDs.size(); i++) {
         auto columnID = columnIDs[i];
         KU_ASSERT(columnID < chunks.size());
-        chunks[columnID]->scan(transaction, *outputVectors[i], offset, length);
+        chunks[columnID]->scan(transaction, *outputVectors[i], offsetInGroup, length);
     }
 }
 
 void ChunkedNodeGroup::lookup(Transaction* transaction, const std::vector<column_id_t>& columnIDs,
-    const std::vector<ValueVector*>& outputVectors, offset_t offset) const {
+    const std::vector<ValueVector*>& outputVectors, offset_t offsetInGroup) const {
     KU_ASSERT(columnIDs.size() == outputVectors.size());
-    KU_ASSERT(offset + 1 <= numRows);
+    KU_ASSERT(offsetInGroup + 1 <= numRows);
     for (auto i = 0u; i < columnIDs.size(); i++) {
         const auto columnID = columnIDs[i];
         KU_ASSERT(columnID < chunks.size());
         KU_ASSERT(outputVectors[i]->state->getSelVector().getSelSize() == 1);
-        chunks[columnID]->lookup(transaction, offset, *outputVectors[i],
+        chunks[columnID]->lookup(transaction, offsetInGroup, *outputVectors[i],
             outputVectors[i]->state->getSelVector().getSelectedPositions()[0]);
     }
 }

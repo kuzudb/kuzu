@@ -58,7 +58,7 @@ public:
         common::sel_t posInOutputVector) const override;
 
     // Note: `write` assumes that no `append` will be called afterward.
-    void write(common::ValueVector* vector, common::offset_t offsetInVector,
+    void write(const common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
     void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
         common::RelMultiplicity multiplicity) override;

@@ -127,7 +127,7 @@ public:
 
     // TODO(Guodong): In general, this is not a good interface. Instead of passing in
     // `offsetInVector`, we should flatten the vector to pos at `offsetInVector`.
-    virtual void write(common::ValueVector* vector, common::offset_t offsetInVector,
+    virtual void write(const common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk);
     virtual void write(ColumnChunkData* chunk, ColumnChunkData* offsetsInChunk,
         common::RelMultiplicity multiplicity);
@@ -227,7 +227,7 @@ public:
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
 
-    void write(common::ValueVector* vector, common::offset_t offsetInVector,
+    void write(const common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
     void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
         common::RelMultiplicity multiplicity) final;
@@ -270,7 +270,7 @@ public:
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 
-    void write(common::ValueVector* vector, common::offset_t offsetInVector,
+    void write(const common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
     void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;

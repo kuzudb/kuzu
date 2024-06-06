@@ -446,7 +446,8 @@ void ColumnChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
 // committing. LIST has a different logic for handling out-of-place committing as it has to
 // be slided. However, this is unsafe, as this function can also be used for other purposes later.
 // Thus, an assertion is added at the first line.
-void ColumnChunkData::write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
+void ColumnChunkData::write(const ValueVector* vector, offset_t offsetInVector,
+    offset_t offsetInChunk) {
     KU_ASSERT(dataType.getPhysicalType() != PhysicalTypeID::BOOL &&
               dataType.getPhysicalType() != PhysicalTypeID::LIST &&
               dataType.getPhysicalType() != PhysicalTypeID::ARRAY);
@@ -616,7 +617,8 @@ void BoolChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
     }
 }
 
-void BoolChunkData::write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
+void BoolChunkData::write(const ValueVector* vector, offset_t offsetInVector,
+    offset_t offsetInChunk) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::BOOL);
     KU_ASSERT(offsetInChunk < capacity);
     setValue(vector->getValue<bool>(offsetInVector), offsetInChunk);
@@ -651,7 +653,8 @@ void NullChunkData::setNull(offset_t pos, bool isNull) {
     }
 }
 
-void NullChunkData::write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
+void NullChunkData::write(const ValueVector* vector, offset_t offsetInVector,
+    offset_t offsetInChunk) {
     setNull(offsetInChunk, vector->isNull(offsetInVector));
     numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
 }
@@ -736,7 +739,8 @@ public:
         }
     }
 
-    void write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) override {
+    void write(const ValueVector* vector, offset_t offsetInVector,
+        offset_t offsetInChunk) override {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
         nullData->setNull(offsetInChunk, vector->isNull(offsetInVector));
         const auto relIDsInVector = reinterpret_cast<internalID_t*>(vector->getData());

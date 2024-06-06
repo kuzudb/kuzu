@@ -22,14 +22,23 @@ struct VectorUpdateInfo {
     explicit VectorUpdateInfo(common::transaction_t transactionID)
         : version{transactionID}, rowsInVector{}, numRowsUpdated{0}, prev{nullptr}, next{nullptr},
           data{nullptr} {}
+
+    std::unique_ptr<VectorUpdateInfo> movePrev() { return std::move(prev); }
+    void setPrev(std::unique_ptr<VectorUpdateInfo> prev) { this->prev = std::move(prev); }
+    VectorUpdateInfo* getNext() const { return next; }
 };
 
 class UpdateInfo {
 public:
     UpdateInfo() {}
 
-    void update(transaction::Transaction* transaction, common::offset_t offsetInChunk,
-        common::ValueVector& values);
+    VectorUpdateInfo* update(transaction::Transaction* transaction, common::idx_t vectorIdx,
+        common::sel_t rowIdxInVector, const common::ValueVector& values);
+
+    void setVectorInfo(common::idx_t vectorIdx, std::unique_ptr<VectorUpdateInfo> vectorInfo) {
+        vectorsInfo[vectorIdx] = std::move(vectorInfo);
+    }
+    void clearVectorInfo(common::idx_t vectorIdx) { vectorsInfo[vectorIdx] = nullptr; }
 
 private:
     VectorUpdateInfo& getVectorInfo(transaction::Transaction* transaction, common::idx_t idx,

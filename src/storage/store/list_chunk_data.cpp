@@ -219,7 +219,8 @@ void ListChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
     sanityCheck();
 }
 
-void ListChunkData::write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
+void ListChunkData::write(const ValueVector* vector, offset_t offsetInVector,
+    offset_t offsetInChunk) {
     checkOffsetSortedAsc = true;
     auto selVector = std::make_unique<SelectionVector>(1);
     selVector->setToFiltered();

@@ -74,7 +74,8 @@ void StringChunkData::initializeScanState(ChunkState& state) const {
         state.childrenStates[DictionaryChunk::DATA_COLUMN_CHILD_READ_STATE_IDX]);
 }
 
-void StringChunkData::write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
+void StringChunkData::write(const ValueVector* vector, offset_t offsetInVector,
+    offset_t offsetInChunk) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     if (!needFinalize && offsetInChunk < numValues) [[unlikely]] {
         needFinalize = true;

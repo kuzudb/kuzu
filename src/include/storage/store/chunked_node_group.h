@@ -76,11 +76,12 @@ public:
 
     void scan(transaction::Transaction* transaction,
         const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors, common::offset_t offset,
+        const std::vector<common::ValueVector*>& outputVectors, common::offset_t offsetInGroup,
         common::length_t length) const;
     void lookup(transaction::Transaction* transaction,
         const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors, common::offset_t offset) const;
+        const std::vector<common::ValueVector*>& outputVectors,
+        common::offset_t offsetInGroup) const;
 
     void update(transaction::Transaction* transaction, common::offset_t offset,
         common::column_id_t columnID, common::ValueVector& propertyVector);

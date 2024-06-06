@@ -9,13 +9,12 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-void UpdateInfo::update(Transaction* transaction, offset_t offsetInChunk,
-    ValueVector& values) {
-    const auto vectorIdx = offsetInChunk / DEFAULT_VECTOR_CAPACITY;
-    auto& vectorUpdateInfo =
-        getVectorInfo(transaction, vectorIdx, offsetInChunk - vectorIdx * DEFAULT_VECTOR_CAPACITY);
+VectorUpdateInfo* UpdateInfo::update(Transaction* transaction, idx_t vectorIdx,
+    sel_t rowIdxInVector, const ValueVector& values) {
+    auto& vectorUpdateInfo = getVectorInfo(transaction, vectorIdx, rowIdxInVector);
     vectorUpdateInfo.data->write(&values, values.state->getSelVector()[0],
         vectorUpdateInfo.numRowsUpdated++);
+    return &vectorUpdateInfo;
 }
 
 VectorUpdateInfo& UpdateInfo::getVectorInfo(Transaction* transaction, idx_t idx,

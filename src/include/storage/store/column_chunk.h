@@ -15,11 +15,11 @@ public:
 
     void initializeScanState(ChunkState& state) const;
     void scan(transaction::Transaction* transaction, common::ValueVector& output,
-        common::offset_t offset, common::length_t length) const;
+        common::offset_t offsetInChunk, common::length_t length) const;
     void lookup(transaction::Transaction* transaction, common::offset_t offsetInChunk,
         common::ValueVector& output, common::sel_t posInOutputVector) const;
     void update(transaction::Transaction* transaction, common::offset_t offsetInChunk,
-        common::ValueVector& values);
+        const common::ValueVector& values);
 
     void setMetadata(const ColumnChunkMetadata& metadata) const { data->setMetadata(metadata); }
     const ColumnChunkMetadata& getFlushedMetadata() const { return data->getFlushedMetadata(); }

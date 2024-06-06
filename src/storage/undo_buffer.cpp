@@ -12,25 +12,37 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace storage {
 
+struct UndoRecordHeader {
+    UndoBuffer::UndoRecordType recordType;
+    uint32_t recordSize;
+
+    UndoRecordHeader(const UndoBuffer::UndoRecordType recordType, const uint32_t recordSize)
+        : recordType{recordType}, recordSize{recordSize} {}
+};
+
+struct CatalogEntryRecord {
+    CatalogSet* catalogSet;
+    CatalogEntry* catalogEntry;
+};
+
+struct VectorUpdateRecord {
+    UpdateInfo* updateInfo;
+    idx_t vectorIdx;
+    VectorUpdateInfo* vectorUpdateInfo;
+};
+
 template<typename F>
 void UndoBufferIterator::iterate(F&& callback) {
-    uint8_t const* end;
-    common::idx_t bufferIdx = 0;
+    idx_t bufferIdx = 0;
     while (bufferIdx < undoBuffer.memoryBuffers.size()) {
         auto& currentBuffer = undoBuffer.memoryBuffers[bufferIdx];
         auto current = currentBuffer.getData();
-        end = current + currentBuffer.getCurrentPosition();
+        uint8_t const* end = current + currentBuffer.getCurrentPosition();
         while (current < end) {
-            UndoBuffer::UndoEntryType entryType =
-                *reinterpret_cast<UndoBuffer::UndoEntryType const*>(current);
-            // Only support catalog for now.
-            (void)entryType;
-            KU_ASSERT(entryType == UndoBuffer::UndoEntryType::CATALOG_ENTRY);
-            current += sizeof(UndoBuffer::UndoEntryType);
-            auto entrySize = *reinterpret_cast<uint32_t const*>(current);
-            current += sizeof(uint32_t); // Skip entrySize field.
-            callback(current);
-            current += entrySize; // Skip the current entry.
+            UndoRecordHeader recordHeader = *reinterpret_cast<UndoRecordHeader const*>(current);
+            current += sizeof(UndoRecordHeader);
+            callback(recordHeader.recordType, current);
+            current += recordHeader.recordSize; // Skip the current entry.
         }
         bufferIdx++;
     }
@@ -38,28 +50,21 @@ void UndoBufferIterator::iterate(F&& callback) {
 
 template<typename F>
 void UndoBufferIterator::reverseIterate(F&& callback) {
-    uint8_t const* end;
-    common::idx_t numBuffersLeft = undoBuffer.memoryBuffers.size();
+    idx_t numBuffersLeft = undoBuffer.memoryBuffers.size();
     while (numBuffersLeft > 0) {
-        auto bufferIdx = numBuffersLeft - 1;
+        const auto bufferIdx = numBuffersLeft - 1;
         auto& currentBuffer = undoBuffer.memoryBuffers[bufferIdx];
         auto current = currentBuffer.getData();
-        end = current + currentBuffer.getCurrentPosition();
-        std::vector<uint8_t const*> entries;
+        uint8_t const* end = current + currentBuffer.getCurrentPosition();
+        std::vector<std::pair<UndoBuffer::UndoRecordType, uint8_t const*>> entries;
         while (current < end) {
-            UndoBuffer::UndoEntryType entryType =
-                *reinterpret_cast<UndoBuffer::UndoEntryType const*>(current);
-            // Only support catalog for now.
-            (void)entryType;
-            KU_ASSERT(entryType == UndoBuffer::UndoEntryType::CATALOG_ENTRY);
-            current += sizeof(UndoBuffer::UndoEntryType);
-            auto entrySize = *reinterpret_cast<uint32_t const*>(current);
-            current += sizeof(uint32_t); // Skip entrySize field.
-            entries.push_back(current);
-            current += entrySize; // Skip the current entry.
+            UndoRecordHeader recordHeader = *reinterpret_cast<UndoRecordHeader const*>(current);
+            current += sizeof(UndoRecordHeader);
+            entries.push_back({recordHeader.recordType, current});
+            current += sizeof(recordHeader.recordSize); // Skip the current entry.
         }
         for (auto i = entries.size(); i >= 1; i--) {
-            callback(entries[i - 1]);
+            callback(entries[i - 1].first, entries[i - 1].second);
         }
         numBuffersLeft--;
     }
@@ -67,23 +72,26 @@ void UndoBufferIterator::reverseIterate(F&& callback) {
 
 UndoBuffer::UndoBuffer(ClientContext& clientContext) : clientContext{clientContext} {}
 
-void UndoBuffer::createCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry) {
-    // We store an pointer to catalog entry inside the undo buffer.
-    // Each catalog undo entry has the following format:
-    //      [entryType: UndoEntryType][entrySize: uint32_t][pointer: CatalogEntry*][ponter:
-    //      CatalogSet*]
-    auto buffer = createUndoEntry(
-        sizeof(UndoEntryType) + sizeof(uint32_t) + sizeof(CatalogEntry*) + sizeof(CatalogSet*));
-    *reinterpret_cast<UndoEntryType*>(buffer) = UndoEntryType::CATALOG_ENTRY;
-    buffer += sizeof(UndoEntryType);
-    *reinterpret_cast<uint32_t*>(buffer) = sizeof(CatalogEntry*) + sizeof(CatalogSet*);
-    buffer += sizeof(uint32_t);
-    *reinterpret_cast<CatalogEntry**>(buffer) = &catalogEntry;
-    buffer += sizeof(CatalogEntry*);
-    *reinterpret_cast<CatalogSet**>(buffer) = &catalogSet;
+void UndoBuffer::createCatalogEntry(CatalogSet* catalogSet, CatalogEntry* catalogEntry) {
+    auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(CatalogEntryRecord));
+    const UndoRecordHeader recorHeader{UndoRecordType::CATALOG_ENTRY, sizeof(CatalogEntryRecord)};
+    *reinterpret_cast<UndoRecordHeader*>(buffer) = recorHeader;
+    buffer += sizeof(UndoRecordHeader);
+    const CatalogEntryRecord catalogEntryRecord{catalogSet, catalogEntry};
+    *reinterpret_cast<CatalogEntryRecord*>(buffer) = catalogEntryRecord;
 }
 
-uint8_t* UndoBuffer::createUndoEntry(uint64_t size) {
+void UndoBuffer::createVectorUpdateInfo(UpdateInfo* updateInfo, const idx_t vectorIdx,
+    VectorUpdateInfo* vectorUpdateInfo) {
+    auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(VectorUpdateInfo));
+    const UndoRecordHeader recorHeader{UndoRecordType::UPDATE_INFO, sizeof(VectorUpdateInfo)};
+    *reinterpret_cast<UndoRecordHeader*>(buffer) = recorHeader;
+    buffer += sizeof(UndoRecordHeader);
+    const VectorUpdateRecord vectorUpdateRecord{updateInfo, vectorIdx, vectorUpdateInfo};
+    *reinterpret_cast<VectorUpdateRecord*>(buffer) = vectorUpdateRecord;
+}
+
+uint8_t* UndoBuffer::createUndoRecord(const uint64_t size) {
     if (memoryBuffers.empty() || !memoryBuffers.back().canFit(size)) {
         auto capacity = UndoMemoryBuffer::UNDO_MEMORY_BUFFER_SIZE;
         while (size > capacity) {
@@ -92,24 +100,45 @@ uint8_t* UndoBuffer::createUndoEntry(uint64_t size) {
         // We need to allocate a new memory buffer.
         memoryBuffers.push_back(UndoMemoryBuffer(capacity));
     }
-    auto res = memoryBuffers.back().getDataUnsafe() + memoryBuffers.back().getCurrentPosition();
+    const auto res =
+        memoryBuffers.back().getDataUnsafe() + memoryBuffers.back().getCurrentPosition();
     memoryBuffers.back().moveCurrentPosition(size);
     return res;
 }
 
-void UndoBuffer::commit(transaction_t commitTS) {
+void UndoBuffer::commit(const transaction_t commitTS) const {
     UndoBufferIterator iterator{*this};
-    iterator.iterate([&](uint8_t const* entry) { commitEntry(entry, commitTS); });
+    iterator.iterate([&](const UndoRecordType recordType, uint8_t const* entry) {
+        commitRecord(recordType, entry, commitTS);
+    });
 }
 
 void UndoBuffer::rollback() {
     UndoBufferIterator iterator{*this};
-    iterator.reverseIterate([&](uint8_t const* entry) { rollbackEntry(entry); });
+    iterator.reverseIterate([&](const UndoRecordType recordType, uint8_t const* entry) {
+        rollbackRecord(recordType, entry);
+    });
 }
 
-void UndoBuffer::commitEntry(const uint8_t* entry, transaction_t commitTS) {
-    auto& catalogEntry = *reinterpret_cast<CatalogEntry* const*>(entry);
-    auto newCatalogEntry = catalogEntry->getNext();
+void UndoBuffer::commitRecord(const UndoRecordType recordType, const uint8_t* record,
+    const transaction_t commitTS) const {
+    switch (recordType) {
+    case UndoRecordType::CATALOG_ENTRY: {
+        commitCatalogEntryRecord(record, commitTS);
+    } break;
+    case UndoRecordType::UPDATE_INFO: {
+        commitVectorUpdateInfo(record, commitTS);
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+}
+
+void UndoBuffer::commitCatalogEntryRecord(const uint8_t* record,
+    const transaction_t commitTS) const {
+    const auto& [_, catalogEntry] = *reinterpret_cast<CatalogEntryRecord const*>(record);
+    const auto newCatalogEntry = catalogEntry->getNext();
     KU_ASSERT(newCatalogEntry);
     newCatalogEntry->setTimestamp(commitTS);
     auto& wal = clientContext.getStorageManager()->getWAL();
@@ -148,14 +177,12 @@ void UndoBuffer::commitEntry(const uint8_t* entry, transaction_t commitTS) {
         case CatalogEntryType::RDF_GRAPH_ENTRY:
             // TODO: Add support for dropping macro.
         case CatalogEntryType::SCALAR_MACRO_ENTRY: {
-            auto tableCatalogEntry =
-                ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(catalogEntry);
-            wal.logDropTableRecord(tableCatalogEntry->getTableID(), tableCatalogEntry->getType());
+            const auto& tableCatalogEntry = catalogEntry->constCast<TableCatalogEntry>();
+            wal.logDropTableRecord(tableCatalogEntry.getTableID(), tableCatalogEntry.getType());
         } break;
         case CatalogEntryType::SEQUENCE_ENTRY: {
-            auto sequenceCatalogEntry =
-                ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(catalogEntry);
-            wal.logDropSequenceRecord(sequenceCatalogEntry->getSequenceID());
+            const auto& sequenceCatalogEntry = catalogEntry->constCast<SequenceCatalogEntry>();
+            wal.logDropSequenceRecord(sequenceCatalogEntry.getSequenceID());
         } break;
         case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {
             // DO NOTHING. We don't persistent function entries.
@@ -173,15 +200,33 @@ void UndoBuffer::commitEntry(const uint8_t* entry, transaction_t commitTS) {
     }
 }
 
-void UndoBuffer::rollbackEntry(const uint8_t* entry) {
-    auto& catalogEntry = *reinterpret_cast<CatalogEntry* const*>(entry);
-    auto& catalogSet = *reinterpret_cast<CatalogSet* const*>(entry + sizeof(CatalogEntry*));
-    auto entryToRollback = catalogEntry->getNext();
+void UndoBuffer::commitVectorUpdateInfo(const uint8_t* record, transaction_t commitTS) const {
+    auto& undoRecord = *reinterpret_cast<VectorUpdateRecord const*>(record);
+    undoRecord.vectorUpdateInfo->version = commitTS;
+}
+
+void UndoBuffer::rollbackRecord(const UndoRecordType recordType, const uint8_t* record) {
+    switch (recordType) {
+    case UndoRecordType::CATALOG_ENTRY: {
+        rollbackCatalogEntryRecord(record);
+    } break;
+    case UndoRecordType::UPDATE_INFO: {
+        rollbackVectorUpdateInfo(record);
+    }
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+}
+
+void UndoBuffer::rollbackCatalogEntryRecord(const uint8_t* record) {
+    const auto& [catalogSet, catalogEntry] = *reinterpret_cast<CatalogEntryRecord const*>(record);
+    const auto entryToRollback = catalogEntry->getNext();
     KU_ASSERT(entryToRollback);
     if (entryToRollback->getNext()) {
         // If entryToRollback has a newer entry (next) in the version chain. Simple remove
         // entryToRollback from the chain.
-        auto newerEntry = entryToRollback->getNext();
+        const auto newerEntry = entryToRollback->getNext();
         newerEntry->setPrev(entryToRollback->movePrev());
     } else {
         // This is the begin of the version chain.
@@ -189,6 +234,25 @@ void UndoBuffer::rollbackEntry(const uint8_t* entry) {
         catalogSet->erase(catalogEntry->getName());
         if (olderEntry) {
             catalogSet->emplace(std::move(olderEntry));
+        }
+    }
+}
+
+void UndoBuffer::rollbackVectorUpdateInfo(const uint8_t* record) {
+    auto& undoRecord = *reinterpret_cast<VectorUpdateRecord const*>(record);
+    KU_ASSERT(undoRecord.updateInfo);
+    if (undoRecord.vectorUpdateInfo->getNext()) {
+        // Has newer versions. Simply remove the current one from the version chain.
+        const auto newerVersion = undoRecord.vectorUpdateInfo->getNext();
+        auto prevVersion = undoRecord.vectorUpdateInfo->movePrev();
+        prevVersion->next = newerVersion;
+        newerVersion->setPrev(std::move(prevVersion));
+    } else {
+        // This is the begin of the version chain.
+        if (auto prevVersion = undoRecord.vectorUpdateInfo->movePrev()) {
+            undoRecord.updateInfo->setVectorInfo(undoRecord.vectorIdx, std::move(prevVersion));
+        } else {
+            undoRecord.updateInfo->clearVectorInfo(undoRecord.vectorIdx);
         }
     }
 }

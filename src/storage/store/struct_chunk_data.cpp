@@ -88,7 +88,8 @@ void StructChunkData::resetToEmpty() {
     }
 }
 
-void StructChunkData::write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
+void StructChunkData::write(const ValueVector* vector, offset_t offsetInVector,
+    offset_t offsetInChunk) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
     nullData->setNull(offsetInChunk, vector->isNull(offsetInVector));
     auto fields = StructVector::getFieldVectors(vector);

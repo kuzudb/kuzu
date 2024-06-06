@@ -55,31 +55,39 @@ private:
     const UndoBuffer& undoBuffer;
 };
 
+class UpdateInfo;
 struct VectorUpdateInfo;
 // This class is not thread safe, as it is supposed to be accessed by a single thread.
 class UndoBuffer {
     friend class UndoBufferIterator;
 
 public:
-    enum class UndoEntryType : uint16_t {
-        CATALOG_ENTRY,
+    enum class UndoRecordType : uint16_t {
+        CATALOG_ENTRY = 0,
+        UPDATE_INFO = 1,
     };
 
     explicit UndoBuffer(main::ClientContext& clientContext);
 
-    void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
-    void createVectorUpdateInfo(storage::VectorUpdateInfo& vectorUpdateInfo);
+    void createCatalogEntry(catalog::CatalogSet* catalogSet, catalog::CatalogEntry* catalogEntry);
+    void createVectorUpdateInfo(UpdateInfo* updateInfo, common::idx_t vectorIdx,
+        VectorUpdateInfo* vectorUpdateInfo);
 
-    void commit(common::transaction_t commitTS);
+    void commit(common::transaction_t commitTS) const;
     void rollback();
 
-    UndoBufferIterator getIterator() const;
-
 private:
-    uint8_t* createUndoEntry(uint64_t size);
+    uint8_t* createUndoRecord(uint64_t size);
 
-    void commitEntry(uint8_t const* entry, common::transaction_t commitTS);
-    void rollbackEntry(uint8_t const* entry);
+    void commitRecord(UndoRecordType recordType, const uint8_t* record,
+        common::transaction_t commitTS) const;
+    void rollbackRecord(UndoRecordType recordType, const uint8_t* record);
+
+    void commitVectorUpdateInfo(const uint8_t* record, common::transaction_t commitTS) const;
+    void rollbackVectorUpdateInfo(const uint8_t* record);
+
+    void commitCatalogEntryRecord(const uint8_t* record, common::transaction_t commitTS) const;
+    void rollbackCatalogEntryRecord(const uint8_t* record);
 
 private:
     main::ClientContext& clientContext;
