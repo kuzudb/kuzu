@@ -22,12 +22,17 @@ struct FunctionBindData {
         std::unique_ptr<common::LogicalType> resultType)
         : paramTypes{std::move(paramTypes)}, resultType{std::move(resultType)},
           clientContext{nullptr}, count{1} {}
-    DELETE_COPY_AND_MOVE(FunctionBindData);
+    EXPLICIT_COPY_DEFAULT_MOVE(FunctionBindData);
 
     virtual ~FunctionBindData() = default;
 
     static std::unique_ptr<FunctionBindData> getSimpleBindData(
         const binder::expression_vector& params, const common::LogicalType& resultType);
+
+private:
+    FunctionBindData(const FunctionBindData& other): paramTypes{other.paramTypes}, 
+        resultType{other.resultType->copy()}, clientContext{other.clientContext}, 
+        count{other.count} {}
 };
 
 struct Function;
