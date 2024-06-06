@@ -108,6 +108,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "UNWIND";
     case LogicalOperatorType::USE_DATABASE:
         return "USE_DATABASE";
+    case LogicalOperatorType::CREATE_TYPE:
+        return "CREATE_TYPE";
     default:
         throw RuntimeException("Unknown logical operator type.");
     }

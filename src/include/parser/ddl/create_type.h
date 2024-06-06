@@ -1,15 +1,16 @@
 #pragma once
 
-#include "create_table_info.h"
 #include "parser/statement.h"
 
 namespace kuzu {
 namespace parser {
 
 class CreateType final : public Statement {
+    static constexpr common::StatementType type_ = common::StatementType::CREATE_TYPE;
+
 public:
     CreateType(const std::string& name, const std::string& dataType)
-        : Statement{common::StatementType::CREATE_TYPE}, name{name}, dataType{dataType} {}
+        : Statement{type_}, name{name}, dataType{dataType} {}
 
     std::string getName() const { return name; }
 

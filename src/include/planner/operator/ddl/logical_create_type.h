@@ -6,12 +6,12 @@ namespace kuzu {
 namespace planner {
 
 class LogicalCreateType : public LogicalDDL {
+    static constexpr LogicalOperatorType type_ = LogicalOperatorType::CREATE_TYPE;
+
 public:
     LogicalCreateType(std::string name, common::LogicalType type,
         std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalDDL{LogicalOperatorType::CREATE_TYPE, std::move(name),
-              std::move(outputExpression)},
-          type{std::move(type)} {}
+        : LogicalDDL{type_, std::move(name), std::move(outputExpression)}, type{std::move(type)} {}
 
     common::LogicalType getType() const { return type; }
 

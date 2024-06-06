@@ -6,10 +6,11 @@ namespace kuzu {
 namespace binder {
 
 class BoundCreateType final : public BoundStatement {
+    static constexpr common::StatementType type_ = common::StatementType::CREATE_TYPE;
+
 public:
     explicit BoundCreateType(std::string name, common::LogicalType type)
-        : BoundStatement{common::StatementType::CREATE_TYPE,
-              BoundStatementResult::createSingleStringColumnResult()},
+        : BoundStatement{type_, BoundStatementResult::createSingleStringColumnResult()},
           name{std::move(name)}, type{std::move(type)} {}
 
     std::string getName() const { return name; };

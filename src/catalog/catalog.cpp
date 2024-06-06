@@ -270,11 +270,13 @@ void Catalog::dropSequence(transaction::Transaction* transaction, sequence_id_t 
 
 void Catalog::createType(transaction::Transaction* transaction, std::string name,
     common::LogicalType type) {
+    KU_ASSERT(!types->containsEntry(transaction, name));
     auto entry = std::make_unique<TypeCatalogEntry>(std::move(name), std::move(type));
     types->createEntry(transaction, std::move(entry));
 }
 
 common::LogicalType Catalog::getType(transaction::Transaction* transaction, std::string name) {
+    KU_ASSERT(types->containsEntry(transaction, name));
     return types->getEntry(transaction, name)->constCast<TypeCatalogEntry>().getLogicalType();
 }
 

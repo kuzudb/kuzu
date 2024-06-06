@@ -13,7 +13,6 @@
 #include "binder/ddl/bound_create_type.h"
 #include "binder/ddl/bound_drop_sequence.h"
 #include "binder/ddl/bound_drop_table.h"
-#include "common/cast.h"
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_sequence.h"
 #include "planner/operator/ddl/logical_create_table.h"

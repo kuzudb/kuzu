@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include "processor/operator/ddl/ddl.h"
@@ -6,11 +7,12 @@ namespace kuzu {
 namespace processor {
 
 class CreateType : public DDL {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SCAN_NODE_TABLE;
+
 public:
     CreateType(std::string name, common::LogicalType type, const DataPos& outputPos, uint32_t id,
         const std::string& paramsString)
-        : DDL{PhysicalOperatorType::CREATE_TYPE, outputPos, id, paramsString},
-          name{std::move(name)}, type{std::move(type)} {}
+        : DDL{type_, outputPos, id, paramsString}, name{std::move(name)}, type{std::move(type)} {}
 
     void executeDDLInternal(ExecutionContext* context) final;
 
