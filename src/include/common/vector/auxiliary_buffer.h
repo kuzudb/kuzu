@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/in_mem_overflow_buffer.h"
+#include "common/types/types.h"
 
 namespace arrow {
 class ChunkedArray;

@@ -2,19 +2,23 @@
 
 #include <iterator>
 #include <vector>
-
-#include "storage/buffer_manager/memory_manager.h"
+#include <memory>
 
 namespace kuzu {
+namespace storage {
+class MemoryBuffer;
+class MemoryManager;
+}
+
 namespace common {
 
 struct BufferBlock {
 public:
-    explicit BufferBlock(std::unique_ptr<storage::MemoryBuffer> block)
-        : currentOffset{0}, block{std::move(block)} {}
+    explicit BufferBlock(std::unique_ptr<storage::MemoryBuffer> block);
+    ~BufferBlock();
 
-    inline uint64_t size() const { return block->buffer.size(); }
-    inline uint8_t* data() const { return block->buffer.data(); }
+    uint64_t size() const;
+    uint8_t* data() const;
 
 public:
     uint64_t currentOffset;
