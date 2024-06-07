@@ -23,7 +23,7 @@ protected:
 class CopyFrom : public Copy {
 public:
     CopyFrom(std::unique_ptr<BaseScanSource> source, std::string tableName)
-        : Copy{common::StatementType::COPY_FROM}, byColumn_{false}, source{std::move(source)}, 
+        : Copy{common::StatementType::COPY_FROM}, byColumn_{false}, source{std::move(source)},
           tableName{std::move(tableName)} {}
 
     void setByColumn() { byColumn_ = true; }
