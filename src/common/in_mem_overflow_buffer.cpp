@@ -1,7 +1,24 @@
 #include "common/in_mem_overflow_buffer.h"
 
+#include "storage/buffer_manager/memory_manager.h"
+
+using namespace kuzu::storage;
+
 namespace kuzu {
 namespace common {
+
+BufferBlock::BufferBlock(std::unique_ptr<storage::MemoryBuffer> block)
+    : currentOffset{0}, block{std::move(block)} {}
+
+BufferBlock::~BufferBlock() = default;
+
+uint64_t BufferBlock::size() const {
+    return block->buffer.size();
+}
+
+uint8_t* BufferBlock::data() const {
+    return block->buffer.data();
+}
 
 uint8_t* InMemOverflowBuffer::allocateSpace(uint64_t size) {
     if (requireNewBlock(size)) {

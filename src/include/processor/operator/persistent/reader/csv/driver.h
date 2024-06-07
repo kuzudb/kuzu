@@ -5,6 +5,10 @@
 #include "common/data_chunk/data_chunk.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
+
 namespace processor {
 
 // TODO(Keenan): Split up this file.
