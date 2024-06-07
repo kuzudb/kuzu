@@ -22,6 +22,10 @@ struct PropertiesBindData : public FunctionBindData {
 
     PropertiesBindData(std::unique_ptr<common::LogicalType> dataType, common::vector_idx_t childIdx)
         : FunctionBindData{std::move(dataType)}, childIdx{childIdx} {}
+
+    inline std::unique_ptr<FunctionBindData> copy() const override {
+        return std::make_unique<PropertiesBindData>(resultType->copy(), childIdx);
+    }
 };
 
 struct PropertiesFunction {

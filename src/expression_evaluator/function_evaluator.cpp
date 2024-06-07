@@ -31,9 +31,9 @@ void FunctionExpressionEvaluator::evaluate() {
     auto expr = expression->constPtrCast<binder::ScalarFunctionExpression>();
     if (execFunc != nullptr) {
         auto bindData = expr->getBindData()->copy();
-        bindData.clientContext = ctx;
-        bindData.count = cnt;
-        execFunc(parameters, *resultVector, &bindData);
+        bindData->clientContext = ctx;
+        bindData->count = cnt;
+        execFunc(parameters, *resultVector, bindData.get());
     }
 }
 
