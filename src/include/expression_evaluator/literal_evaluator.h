@@ -11,9 +11,9 @@ public:
     explicit LiteralExpressionEvaluator(common::Value value)
         : ExpressionEvaluator{true /* isResultFlat */}, value{std::move(value)} {}
 
-    void evaluate(main::ClientContext* /* clientContext */) override {}
+    void evaluate() override;
 
-    bool select(common::SelectionVector& selVector, main::ClientContext* clientContext) override;
+    bool select(common::SelectionVector& selVector) override;
 
     std::unique_ptr<ExpressionEvaluator> clone() override {
         return std::make_unique<LiteralExpressionEvaluator>(value);
@@ -25,6 +25,7 @@ protected:
 
 private:
     common::Value value;
+    std::shared_ptr<common::DataChunkState> unflatState;
 };
 
 } // namespace evaluator

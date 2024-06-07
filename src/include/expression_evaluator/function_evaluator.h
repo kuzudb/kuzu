@@ -17,12 +17,11 @@ public:
         : ExpressionEvaluator{std::move(children)}, expression{std::move(expression)},
           execFunc{nullptr}, selectFunc{nullptr} {}
 
-    void init(const processor::ResultSet& resultSet,
-        storage::MemoryManager* memoryManager) override;
+    void init(const processor::ResultSet& resultSet, main::ClientContext* clientContext) override;
 
-    void evaluate(main::ClientContext* clientContext) override;
+    void evaluate() override;
 
-    bool select(common::SelectionVector& selVector, main::ClientContext* clientContext) override;
+    bool select(common::SelectionVector& selVector) override;
 
     std::unique_ptr<ExpressionEvaluator> clone() override;
 

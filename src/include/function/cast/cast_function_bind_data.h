@@ -15,6 +15,13 @@ struct CastFunctionBindData : public FunctionBindData {
 
     explicit CastFunctionBindData(std::unique_ptr<common::LogicalType> dataType)
         : FunctionBindData{std::move(dataType)} {}
+
+    inline std::unique_ptr<FunctionBindData> copy() const override {
+        auto result = std::make_unique<CastFunctionBindData>(resultType->copy());
+        result->numOfEntries = numOfEntries;
+        result->option = option.copy();
+        return result;
+    }
 };
 
 } // namespace function

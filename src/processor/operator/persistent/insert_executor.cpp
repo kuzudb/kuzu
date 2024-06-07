@@ -27,7 +27,7 @@ void NodeInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
         }
     }
     for (auto& evaluator : columnDataEvaluators) {
-        evaluator->init(*resultSet, context->clientContext->getMemoryManager());
+        evaluator->init(*resultSet, context->clientContext);
         columnDataVectors.push_back(evaluator->resultVector.get());
     }
 }
@@ -45,9 +45,9 @@ static void writeColumnVector(common::ValueVector* columnVector, common::ValueVe
     }
 }
 
-void NodeInsertExecutor::insert(Transaction* tx, ExecutionContext* context) {
+void NodeInsertExecutor::insert(Transaction* tx) {
     for (auto& evaluator : columnDataEvaluators) {
-        evaluator->evaluate(context->clientContext);
+        evaluator->evaluate();
     }
     KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1);
     if (checkConfict(tx)) {
@@ -60,9 +60,9 @@ void NodeInsertExecutor::insert(Transaction* tx, ExecutionContext* context) {
     writeResult();
 }
 
-void NodeInsertExecutor::skipInsert(ExecutionContext* context) {
+void NodeInsertExecutor::skipInsert() {
     for (auto& evaluator : columnDataEvaluators) {
-        evaluator->evaluate(context->clientContext);
+        evaluator->evaluate();
     }
     nodeIDVector->setNull(nodeIDVector->state->getSelVector()[0], false);
     writeResult();
@@ -116,12 +116,12 @@ void RelInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
         }
     }
     for (auto& evaluator : columnDataEvaluators) {
-        evaluator->init(*resultSet, context->clientContext->getMemoryManager());
+        evaluator->init(*resultSet, context->clientContext);
         columnDataVectors.push_back(evaluator->resultVector.get());
     }
 }
 
-void RelInsertExecutor::insert(transaction::Transaction* tx, ExecutionContext* context) {
+void RelInsertExecutor::insert(transaction::Transaction* tx) {
     auto srcNodeIDPos = srcNodeIDVector->state->getSelVector()[0];
     auto dstNodeIDPos = dstNodeIDVector->state->getSelVector()[0];
     if (srcNodeIDVector->isNull(srcNodeIDPos) || dstNodeIDVector->isNull(dstNodeIDPos)) {
@@ -140,7 +140,7 @@ void RelInsertExecutor::insert(transaction::Transaction* tx, ExecutionContext* c
     columnDataVectors[0]->setValue<internalID_t>(0, internalID_t{offset, table->getTableID()});
     columnDataVectors[0]->setNull(0, false);
     for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
-        columnDataEvaluators[i]->evaluate(context->clientContext);
+        columnDataEvaluators[i]->evaluate();
     }
     auto insertState = std::make_unique<storage::RelTableInsertState>(*srcNodeIDVector,
         *dstNodeIDVector, columnDataVectors);
@@ -148,9 +148,9 @@ void RelInsertExecutor::insert(transaction::Transaction* tx, ExecutionContext* c
     writeResult();
 }
 
-void RelInsertExecutor::skipInsert(ExecutionContext* context) {
+void RelInsertExecutor::skipInsert() {
     for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
-        columnDataEvaluators[i]->evaluate(context->clientContext);
+        columnDataEvaluators[i]->evaluate();
     }
     writeResult();
 }

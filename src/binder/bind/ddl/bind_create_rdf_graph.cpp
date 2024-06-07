@@ -17,11 +17,9 @@ namespace kuzu {
 namespace binder {
 
 static std::unique_ptr<parser::ParsedFunctionExpression> createSerialDefaultExpr(std::string name) {
-    std::string literalRaw = "'" + name + "'";
-    auto param = std::make_unique<parser::ParsedLiteralExpression>(Value(name), literalRaw);
-    std::string functionRaw = "nextval(" + literalRaw + ")";
+    auto param = std::make_unique<parser::ParsedLiteralExpression>(Value(name), "");
     return std::make_unique<parser::ParsedFunctionExpression>(function::NextValFunction::name,
-        std::move(param), functionRaw);
+        std::move(param), "");
 }
 
 BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info) {

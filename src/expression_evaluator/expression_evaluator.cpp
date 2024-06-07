@@ -6,11 +6,13 @@ namespace kuzu {
 namespace evaluator {
 
 void ExpressionEvaluator::init(const processor::ResultSet& resultSet,
-    storage::MemoryManager* memoryManager) {
+    main::ClientContext* clientContext) {
+    localState.clientContext = clientContext;
+    localState.count = 1;
     for (auto& child : children) {
-        child->init(resultSet, memoryManager);
+        child->init(resultSet, clientContext);
     }
-    resolveResultVector(resultSet, memoryManager);
+    resolveResultVector(resultSet, clientContext->getMemoryManager());
 }
 
 void ExpressionEvaluator::resolveResultStateFromChildren(
