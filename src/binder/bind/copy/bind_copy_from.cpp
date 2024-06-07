@@ -94,10 +94,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
         }
     }
     expression_vector columnExprs;
-    logical_type_vec_t columnTypes;
     std::vector<bool> defaultColumns;
     for (auto& property : nodeTableEntry->getPropertiesRef()) {
-        columnTypes.push_back(*property.getDataType()->copy());
         auto expr = matchColumnExpression(boundSource->getColumns(), property.getName());
         auto isDefault = !expr;
         defaultColumns.emplace_back(isDefault);
@@ -110,8 +108,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     auto offset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
         std::string(InternalKeyword::ANONYMOUS));
     auto boundCopyFromInfo = BoundCopyFromInfo(nodeTableEntry, std::move(boundSource),
-        std::move(offset), std::move(columnExprs), std::move(columnTypes),
-        std::move(defaultColumns), nullptr /* extraInfo */);
+        std::move(offset), std::move(columnExprs), std::move(defaultColumns), nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
