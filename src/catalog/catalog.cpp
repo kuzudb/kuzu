@@ -20,7 +20,6 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/string_format.h"
-#include "common/utils.h"
 #include "function/built_in_function_utils.h"
 #include "storage/storage_utils.h"
 #include "storage/storage_version_info.h"
