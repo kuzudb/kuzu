@@ -15,7 +15,6 @@
 #include "common/exception/message.h"
 #include "common/string_format.h"
 #include "common/types/types.h"
-#include "common/utils.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/sequence/sequence_functions.h"
 #include "parser/ddl/alter.h"
@@ -69,7 +68,7 @@ std::vector<PropertyInfo> Binder::bindPropertyInfo(
             expressionBinder.bindExpression(*propertyDef.expr), type);
         if (type.getLogicalTypeID() == LogicalTypeID::SERIAL) {
             validateSerialNoDefault(*boundExpr);
-            expr = createSerialDefaultExpr(common::genSerialName(tableName, propertyDef.name));
+            expr = createSerialDefaultExpr(Catalog::genSerialName(tableName, propertyDef.name));
         }
         propertyInfos.emplace_back(propertyDef.name, std::move(type), std::move(expr));
     }

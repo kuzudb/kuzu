@@ -1,8 +1,8 @@
 #include "binder/binder.h"
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
+#include "catalog/catalog.h"
 #include "common/keyword/rdf_keyword.h"
-#include "common/utils.h"
 #include "function/sequence/sequence_functions.h"
 #include "parser/ddl/create_table_info.h"
 #include "parser/expression/parsed_function_expression.h"
@@ -35,7 +35,7 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     auto literalTableName = RDFGraphCatalogEntry::getLiteralTableName(rdfGraphName);
     std::vector<PropertyInfo> literalProperties;
     literalProperties.emplace_back(std::string(rdf::ID), *LogicalType::SERIAL(),
-        createSerialDefaultExpr(common::genSerialName(literalTableName, std::string(rdf::ID))));
+        createSerialDefaultExpr(Catalog::genSerialName(literalTableName, std::string(rdf::ID))));
     literalProperties.emplace_back(std::string(rdf::VAL), *LogicalType::RDF_VARIANT());
     literalProperties.emplace_back(std::string(rdf::LANG), *LogicalType::STRING());
     auto literalExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(0 /* primaryKeyIdx */,

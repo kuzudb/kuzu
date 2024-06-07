@@ -185,7 +185,7 @@ table_id_t Catalog::createTableSchema(transaction::Transaction* transaction,
     auto tableEntry = entry->constPtrCast<TableCatalogEntry>();
     for (auto& property : tableEntry->getPropertiesRef()) {
         if (property.getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            auto seqName = common::genSerialName(tableEntry->getName(), property.getName());
+            auto seqName = genSerialName(tableEntry->getName(), property.getName());
             auto seqInfo = BoundCreateSequenceInfo(seqName, 0, 1, 0,
                 std::numeric_limits<int64_t>::max(), false);
             createSequence(transaction, seqInfo);
@@ -287,6 +287,10 @@ sequence_id_t Catalog::createSequence(transaction::Transaction* transaction,
 void Catalog::dropSequence(transaction::Transaction* transaction, sequence_id_t sequenceID) {
     auto sequenceEntry = getSequenceCatalogEntry(transaction, sequenceID);
     sequences->dropEntry(transaction, sequenceEntry->getName());
+}
+
+std::string Catalog::genSerialName(const std::string& tableName, const std::string& propertyName) {
+    return std::string(tableName).append("_").append(propertyName).append("_").append("serial");
 }
 
 void Catalog::createType(transaction::Transaction* transaction, std::string name,
