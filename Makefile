@@ -163,13 +163,12 @@ example:
 	$(call run-cmake-release, -DBUILD_EXAMPLES=TRUE)
 
 extension-test:
-	$(call run-cmake-relwithdebinfo, \
+	$(call run-cmake-release, \
 		-DBUILD_EXTENSIONS="httpfs;duckdb;postgres" \
 		-DBUILD_EXTENSION_TESTS=TRUE \
 		-DENABLE_ADDRESS_SANITIZER=TRUE \
-		-DENABLE_BACKTRACES=TRUE \
 	)
-	ctest --test-dir build/relwithdebinfo/extension --output-on-failure -j ${TEST_JOBS}
+	ctest --test-dir build/release/extension --output-on-failure -j ${TEST_JOBS}
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
 
 extension-debug:
