@@ -10,7 +10,6 @@
 #include "common/null_mask.h"
 #include "common/type_utils.h"
 #include "common/types/internal_id_t.h"
-#include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "fastpfor/bitpackinghelpers.h"
@@ -29,11 +28,9 @@ uint32_t getDataTypeSizeInChunk(const common::LogicalType& dataType) {
 
 uint32_t getDataTypeSizeInChunk(const common::PhysicalTypeID& dataType) {
     switch (dataType) {
+    case PhysicalTypeID::STRING:
     case PhysicalTypeID::STRUCT: {
         return 0;
-    }
-    case PhysicalTypeID::STRING: {
-        return sizeof(uint32_t);
     }
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST:
@@ -95,10 +92,6 @@ bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos,
                 auto value = reinterpret_cast<const T*>(data)[pos];
                 return IntegerBitpacking<T>::canUpdateInPlace(value, *this);
             },
-            [&](ku_string_t) {
-                auto value = reinterpret_cast<const uint32_t*>(data)[pos];
-                return IntegerBitpacking<uint32_t>::canUpdateInPlace(value, *this);
-            },
             [&](list_entry_t) {
                 auto value = reinterpret_cast<const uint64_t*>(data)[pos];
                 return IntegerBitpacking<uint64_t>::canUpdateInPlace(value, *this);
@@ -145,7 +138,6 @@ uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& da
         case PhysicalTypeID::LIST:
         case PhysicalTypeID::UINT64:
             return IntegerBitpacking<uint64_t>::numValues(pageSize, *this);
-        case PhysicalTypeID::STRING:
         case PhysicalTypeID::UINT32:
             return IntegerBitpacking<uint32_t>::numValues(pageSize, *this);
         case PhysicalTypeID::UINT16:
@@ -193,7 +185,6 @@ std::optional<CompressionMetadata> ConstantCompression::analyze(const ColumnChun
     }
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST:
-    case PhysicalTypeID::STRING:
     case PhysicalTypeID::INTERNAL_ID:
     case PhysicalTypeID::DOUBLE:
     case PhysicalTypeID::FLOAT:
@@ -235,9 +226,6 @@ std::string CompressionMetadata::toString(const PhysicalTypeID physicalType) con
     case CompressionType::INTEGER_BITPACKING: {
         uint8_t bitWidth = TypeUtils::visit(
             physicalType,
-            [&](ku_string_t) {
-                return IntegerBitpacking<uint32_t>::getPackingInfo(*this).bitWidth;
-            },
             [&](common::list_entry_t) {
                 return IntegerBitpacking<uint64_t>::getPackingInfo(*this).bitWidth;
             },
@@ -270,10 +258,6 @@ void ConstantCompression::decompressValues(uint8_t* dstBuffer, uint64_t dstOffse
 
     TypeUtils::visit(
         physicalType,
-        [&](ku_string_t) {
-            std::fill(reinterpret_cast<uint32_t*>(start), reinterpret_cast<uint32_t*>(end),
-                metadata.min.get<uint32_t>());
-        },
         [&](common::list_entry_t) {
             std::fill(reinterpret_cast<uint64_t*>(start), reinterpret_cast<uint64_t*>(end),
                 metadata.min.get<uint64_t>());
@@ -641,7 +625,6 @@ void ReadCompressedValuesFromPageToVector::operator()(const uint8_t* frame, Page
             return IntegerBitpacking<uint64_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 resultVector->getData(), posInVector, numValuesToRead, metadata);
         }
-        case PhysicalTypeID::STRING:
         case PhysicalTypeID::UINT32: {
             return IntegerBitpacking<uint32_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 resultVector->getData(), posInVector, numValuesToRead, metadata);
@@ -703,7 +686,6 @@ void ReadCompressedValuesFromPage::operator()(const uint8_t* frame, PageCursor& 
             return IntegerBitpacking<uint64_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 result, startPosInResult, numValuesToRead, metadata);
         }
-        case PhysicalTypeID::STRING:
         case PhysicalTypeID::UINT32: {
             return IntegerBitpacking<uint32_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 result, startPosInResult, numValuesToRead, metadata);
@@ -752,9 +734,6 @@ void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame
             } else if constexpr (std::integral<T>) {
                 return IntegerBitpacking<T>().setValuesFromUncompressed(data, dataOffset, frame,
                     posInFrame, numValues, metadata, nullMask);
-            } else if constexpr (std::same_as<T, ku_string_t>) {
-                return IntegerBitpacking<uint32_t>().setValuesFromUncompressed(data, dataOffset,
-                    frame, posInFrame, numValues, metadata, nullMask);
             } else {
                 throw NotImplementedException("INTEGER_BITPACKING is not implemented for type " +
                                               PhysicalTypeUtils::toString(physicalType));
@@ -788,13 +767,6 @@ std::optional<StorageValue> StorageValue::readFromVector(const common::ValueVect
         // TODO(bmwinger): concept for supported storagevalue types
         [&]<StorageValueType T>(
             T) { return std::make_optional(StorageValue(vector.getValue<T>(posInVector))); },
-        [&](ku_string_t) {
-            // May be updated in-place, but needs additional handling in StringColumn
-            // since the value stored is the index in the dictionary, which is not what is stored in
-            // the vector
-            KU_UNREACHABLE;
-            return std::optional<StorageValue>();
-        },
         [](auto) { return std::optional<StorageValue>(); });
 }
 

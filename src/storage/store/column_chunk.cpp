@@ -193,7 +193,6 @@ static std::shared_ptr<CompressionAlg> getCompression(const LogicalType& dataTyp
     case PhysicalTypeID::UINT64: {
         return std::make_shared<IntegerBitpacking<uint64_t>>();
     }
-    case PhysicalTypeID::STRING:
     case PhysicalTypeID::UINT32: {
         return std::make_shared<IntegerBitpacking<uint32_t>>();
     }
@@ -239,17 +238,10 @@ public:
                 minValue = *min;
                 maxValue = *max;
             },
-            [&](ku_string_t) {
-                const auto& [min, max] =
-                    std::minmax_element(reinterpret_cast<const uint32_t*>(buffer),
-                        reinterpret_cast<const uint32_t*>(buffer) + numValues);
-                minValue = *min;
-                maxValue = *max;
-            },
             // Types which don't currently support statistics
             [&]<typename T>(T)
                 requires(std::same_as<T, int128_t> || std::same_as<T, interval_t> ||
-                         std::same_as<T, struct_entry_t>)
+                         std::same_as<T, struct_entry_t> || std::same_as<T, ku_string_t>)
             {
                 minValue = std::numeric_limits<uint64_t>::min();
                 maxValue = std::numeric_limits<uint64_t>::max();
@@ -287,7 +279,6 @@ void ColumnChunkData::initializeFunction() {
         getMetadataFunction = booleanGetMetadata;
         getMinMaxFunction = booleanGetMinMax;
     } break;
-    case PhysicalTypeID::STRING:
     case PhysicalTypeID::INT64:
     case PhysicalTypeID::INT32:
     case PhysicalTypeID::INT16:
@@ -305,6 +296,7 @@ void ColumnChunkData::initializeFunction() {
         getMetadataFunction = GetCompressionMetadata(compression, dataType);
         getMinMaxFunction = GetMinMaxFunction(dataType);
     } break;
+    case PhysicalTypeID::STRING:
     default: {
         flushBufferFunction = uncompressedFlushBuffer;
         getMetadataFunction = uncompressedGetMetadata;

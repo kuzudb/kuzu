@@ -219,7 +219,7 @@ private:
         ChunkState& state, bool isNewNodeGroup, const std::vector<common::offset_t>& dstOffsets,
         ColumnChunkData* chunk, common::offset_t srcOffset);
 
-    void applyLocalChunkToColumn(ChunkState& state, const ChunkCollection& localChunks,
+    virtual void applyLocalChunkToColumn(ChunkState& state, const ChunkCollection& localChunks,
         const offset_to_row_idx_t& info);
 
     // check if val is in range [start, end)

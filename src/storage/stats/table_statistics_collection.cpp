@@ -87,6 +87,9 @@ std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(
         offsetMetadataDAHInfo->dataDAHIdx = metadataDAC.addDiskArray();
         metadataDAHInfo->childrenInfos.push_back(std::move(dataMetadataDAHInfo));
         metadataDAHInfo->childrenInfos.push_back(std::move(offsetMetadataDAHInfo));
+
+        metadataDAHInfo->childrenInfos.push_back(
+            createMetadataDAHInfo(*LogicalType::UINT32(), metadataDAC));
     } break;
     default: {
         // DO NOTHING.

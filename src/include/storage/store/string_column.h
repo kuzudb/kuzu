@@ -34,6 +34,16 @@ public:
     void checkpointInMemory() override;
     void rollbackInMemory() override;
 
+    void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
+        const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+        const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
+        const offset_set_t& deleteInfo) override;
+    void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
+        const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
+        common::offset_t startSrcOffset) override;
+    void applyLocalChunkToColumn(ChunkState& state, const ChunkCollection& localChunks,
+        const offset_to_row_idx_t& updateInfo) override;
+
     const DictionaryColumn& getDictionary() const { return dictionary; }
 
 protected:
@@ -60,9 +70,19 @@ private:
     bool canIndexCommitInPlace(const ChunkState& dataState, uint64_t numStrings,
         common::offset_t maxOffset);
 
+    static ChunkCollection getStringIndexChunkCollection(const ChunkCollection& chunkCollection);
+
 private:
     // Main column stores indices of values in the dictionary
     DictionaryColumn dictionary;
+
+    std::unique_ptr<Column> indexColumn;
+
+    static constexpr size_t CHILD_COLUMN_COUNT = 1;
+
+private:
+    static ChunkState& getIndexState(ChunkState& state);
+    static const ChunkState& getIndexState(const ChunkState& state);
 };
 
 } // namespace storage
