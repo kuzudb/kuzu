@@ -99,3 +99,54 @@ Binder exception: Expression Alice has data type STRING but expected INT64. Impl
 3
 4
 5
+
+-CASE DECIMALCAST
+-STATEMENT UNWIND [CAST(127, 'INT8')] AS A RETURN CAST(A, 'DECIMAL(3, 0)');
+---- 1
+127
+-STATEMENT UNWIND [CAST(127, 'INT8')] AS A RETURN CAST(A, 'DECIMAL(3, 1)');
+---- error
+Overflow exception: To Decimal Cast Failed: 127 is not in DECIMAL(3, 1) range
+-STATEMENT UNWIND[CAST(1000, 'INT16')] AS A RETURN CAST(A, 'DECIMAL(3, 0)');
+---- error
+Overflow exception: To Decimal Cast Failed: 1000 is not in DECIMAL(3, 0) range
+-STATEMENT UNWIND ['-99999999999999999999999999999999999999'] AS A RETURN CAST(A, 'DECIMAL(38, 0)');
+---- 1
+-99999999999999999999999999999999999999
+-STATEMENT UNWIND [123.123, 123.125, 123.126, -123.125, -123.124] AS A WITH CAST(A, 'DECIMAL') AS B RETURN CAST(B, 'DECIMAL(18, 2)');
+---- 5
+123.12
+123.13
+123.13
+-123.13
+-123.12
+-STATEMENT UNWIND [999.99] AS A WITH CAST(A, 'DECIMAL') AS B RETURN CAST(B, 'DECIMAL(5, 2)');
+---- 1
+999.99
+-STATEMENT UNWIND [999.99] AS A WITH CAST(A, 'DECIMAL') AS B WITH CAST(B, 'DECIMAL(5, 2)') AS C RETURN CAST(C, 'DECIMAL(4, 1)');
+---- error
+Overflow exception: Decimal Cast Failed: input 999.99 is not in range of DECIMAL(4, 1)
+-STATEMENT UNWIND [30, 31, 32, 33, 34, -100000.9123] AS A RETURN CAST(A, 'DECIMAL') > 32.01;
+---- 6
+False
+False
+False
+True
+True
+False
+-STATEMENT UNWIND [30, 31, 32, 33, 34, -100000.9123] AS A RETURN CAST(A, 'DECIMAL') > 32;
+---- 6
+False
+False
+False
+True
+True
+False
+-CASE DecimalToString
+-STATEMENT UNWIND [1.2, 2.3, 3.4] AS A WITH CAST(A, 'decimal(4, 1)') AS col16, CAST(A, 'decimal(9, 2)') AS col32, CAST(A, 'decimal(18, 3)') AS col64, CAST(A, 'decimal(38, 19)') AS col128 RETURN CAST(col16, 'STRING'), CAST(col32, 'string'), cast(col64, 'string'), cast(col128, 'string')
+---- 3
+1.2|1.20|1.200|1.2000000000000000000
+2.3|2.30|2.300|2.3000000000000000000
+3.4|3.40|3.400|3.4000000000000000000
+
+

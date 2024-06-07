@@ -199,5 +199,7 @@ static constexpr char ATTACHED_KUZU_DB_TYPE[] = "KUZU";
 
 static constexpr char LOCAL_DB_NAME[] = "local(kuzu)";
 
+constexpr auto DECIMAL_PRECISION_LIMIT = 38;
+
 } // namespace common
 } // namespace kuzu

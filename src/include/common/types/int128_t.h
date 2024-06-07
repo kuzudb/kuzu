@@ -22,7 +22,17 @@ struct int128_t {
     int64_t high;
 
     int128_t() = default;
-    int128_t(int64_t value); // NOLINT: Allow implicit conversion from `int64_t`
+    int128_t(int64_t value);  // NOLINT: Allow implicit conversion from numeric values
+    int128_t(int32_t value);  // NOLINT: Allow implicit conversion from numeric values
+    int128_t(int16_t value);  // NOLINT: Allow implicit conversion from numeric values
+    int128_t(int8_t value);   // NOLINT: Allow implicit conversion from numeric values
+    int128_t(uint64_t value); // NOLINT: Allow implicit conversion from numeric values
+    int128_t(uint32_t value); // NOLINT: Allow implicit conversion from numeric values
+    int128_t(uint16_t value); // NOLINT: Allow implicit conversion from numeric values
+    int128_t(uint8_t value);  // NOLINT: Allow implicit conversion from numeric values
+    int128_t(double value);   // NOLINT: Allow implicit conversion from numeric values
+    int128_t(float value);    // NOLINT: Allow implicit conversion from numeric values
+
     constexpr int128_t(uint64_t low, int64_t high) : low(low), high(high) {}
 
     constexpr int128_t(const int128_t&) = default;
@@ -30,20 +40,6 @@ struct int128_t {
     int128_t& operator=(const int128_t&) = default;
     int128_t& operator=(int128_t&&) = default;
 
-    // comparison operators
-    bool operator==(const int128_t& rhs) const;
-    bool operator!=(const int128_t& rhs) const;
-    bool operator>(const int128_t& rhs) const;
-    bool operator>=(const int128_t& rhs) const;
-    bool operator<(const int128_t& rhs) const;
-    bool operator<=(const int128_t& rhs) const;
-
-    // arithmetic operators
-    int128_t operator+(const int128_t& rhs) const;
-    int128_t operator-(const int128_t& rhs) const;
-    int128_t operator*(const int128_t& rhs) const;
-    int128_t operator/(const int128_t& rhs) const;
-    int128_t operator%(const int128_t& rhs) const;
     int128_t operator-() const;
 
     // inplace arithmetic operators
@@ -55,7 +51,28 @@ struct int128_t {
     explicit operator int32_t() const;
     explicit operator int16_t() const;
     explicit operator int8_t() const;
+    explicit operator uint64_t() const;
+    explicit operator uint32_t() const;
+    explicit operator uint16_t() const;
+    explicit operator uint8_t() const;
+    explicit operator double() const;
+    explicit operator float() const;
 };
+
+// arithmetic operators
+int128_t operator+(const int128_t& lhs, const int128_t& rhs);
+int128_t operator-(const int128_t& lhs, const int128_t& rhs);
+int128_t operator*(const int128_t& lhs, const int128_t& rhs);
+int128_t operator/(const int128_t& lhs, const int128_t& rhs);
+int128_t operator%(const int128_t& lhs, const int128_t& rhs);
+
+// comparison operators
+bool operator==(const int128_t& lhs, const int128_t& rhs);
+bool operator!=(const int128_t& lhs, const int128_t& rhs);
+bool operator>(const int128_t& lhs, const int128_t& rhs);
+bool operator>=(const int128_t& lhs, const int128_t& rhs);
+bool operator<(const int128_t& lhs, const int128_t& rhs);
+bool operator<=(const int128_t& lhs, const int128_t& rhs);
 
 class Int128_t {
 public:

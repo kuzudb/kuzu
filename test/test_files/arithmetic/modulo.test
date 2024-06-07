@@ -211,3 +211,30 @@ Runtime exception: Modulo by zero.
 -STATEMENT RETURN CAST(255, "UINT8") % CAST(0, "INT16")
 ---- error
 Runtime exception: Modulo by zero.
+
+-CASE ModuloDECIMAL
+-STATEMENT UNWIND [0.6, 1.2, -100.0] as A UNWIND [-0.2, 1.2, 100.5] AS B RETURN CAST(A, 'DECIMAL') % CAST(B, 'DECIMAL');
+---- 9
+.000
+.600
+.600
+.000
+.000
+1.200
+.000
+-.400
+-100.000
+-STATEMENT UNWIND [0.6, 1.2, -100.0] as A UNWIND [-0.2, 1.2, 100.5] AS B RETURN CAST(A, 'DECIMAL(18, 1)') % CAST(B, 'DECIMAL(5, 2)');
+---- 9
+.00
+.60
+.60
+.00
+.00
+1.20
+.00
+-.40
+-100.00
+-STATEMENT UNWIND [1] AS A UNWIND [0] AS B RETURN CAST(A, 'DECIMAL') % CAST(B, 'DECIMAL')
+---- error
+Runtime exception: Modulo by zero.

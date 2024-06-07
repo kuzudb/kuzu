@@ -2698,12 +2698,12 @@ public:
     antlr4::tree::TerminalNode *MAXVALUE();
     antlr4::tree::TerminalNode *NO();
     antlr4::tree::TerminalNode *CYCLE();
-    antlr4::tree::TerminalNode *DECIMAL();
     antlr4::tree::TerminalNode *CONTAINS();
     antlr4::tree::TerminalNode *TYPE();
     antlr4::tree::TerminalNode *DEFAULT();
     antlr4::tree::TerminalNode *PROJECT();
     antlr4::tree::TerminalNode *GRAPH();
+    antlr4::tree::TerminalNode *DECIMAL();
 
    
   };

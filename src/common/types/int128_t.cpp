@@ -4,6 +4,7 @@
 
 #include "common/exception/overflow.h"
 #include "common/exception/runtime.h"
+#include "common/type_utils.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "function/hash/hash_functions.h"
 
@@ -11,45 +12,47 @@ namespace kuzu::common {
 
 // NOLINTNEXTLINE(cert-err58-cpp): This initialization won't actually throw.
 const int128_t Int128_t::powerOf10[]{
-    int128_t(1),
-    int128_t(10),
-    int128_t(100),
-    int128_t(1000),
-    int128_t(10000),
-    int128_t(100000),
-    int128_t(1000000),
-    int128_t(10000000),
-    int128_t(100000000),
-    int128_t(1000000000),
-    int128_t(10000000000),
-    int128_t(100000000000),
-    int128_t(1000000000000),
-    int128_t(10000000000000),
-    int128_t(100000000000000),
-    int128_t(1000000000000000),
-    int128_t(10000000000000000),
-    int128_t(100000000000000000),
-    int128_t(1000000000000000000),
-    int128_t(1000000000000000000) * int128_t(10),
-    int128_t(1000000000000000000) * int128_t(100),
-    int128_t(1000000000000000000) * int128_t(1000),
-    int128_t(1000000000000000000) * int128_t(10000),
-    int128_t(1000000000000000000) * int128_t(100000),
-    int128_t(1000000000000000000) * int128_t(1000000),
-    int128_t(1000000000000000000) * int128_t(10000000),
-    int128_t(1000000000000000000) * int128_t(100000000),
-    int128_t(1000000000000000000) * int128_t(1000000000),
-    int128_t(1000000000000000000) * int128_t(10000000000),
-    int128_t(1000000000000000000) * int128_t(100000000000),
-    int128_t(1000000000000000000) * int128_t(1000000000000),
-    int128_t(1000000000000000000) * int128_t(10000000000000),
-    int128_t(1000000000000000000) * int128_t(100000000000000),
-    int128_t(1000000000000000000) * int128_t(1000000000000000),
-    int128_t(1000000000000000000) * int128_t(10000000000000000),
-    int128_t(1000000000000000000) * int128_t(100000000000000000),
-    int128_t(1000000000000000000) * int128_t(1000000000000000000),
-    int128_t(1000000000000000000) * int128_t(1000000000000000000) * int128_t(10),
-    int128_t(1000000000000000000) * int128_t(1000000000000000000) * int128_t(100),
+    int128_t((int64_t)1),
+    int128_t((int64_t)10),
+    int128_t((int32_t)100),
+    int128_t((int64_t)1000),
+    int128_t((int64_t)10000),
+    int128_t((int64_t)100000),
+    int128_t((int64_t)1000000),
+    int128_t((int64_t)10000000),
+    int128_t((int64_t)100000000),
+    int128_t((int64_t)1000000000),
+    int128_t((int64_t)10000000000),
+    int128_t((int64_t)100000000000),
+    int128_t((int64_t)1000000000000),
+    int128_t((int64_t)10000000000000),
+    int128_t((int64_t)100000000000000),
+    int128_t((int64_t)1000000000000000),
+    int128_t((int64_t)10000000000000000),
+    int128_t((int64_t)100000000000000000),
+    int128_t((int64_t)1000000000000000000),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)10),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)100),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)1000),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)10000),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)100000),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)1000000),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)10000000),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)100000000),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)1000000000),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)10000000000),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)100000000000),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)1000000000000),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)10000000000000),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)100000000000000),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)1000000000000000),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)10000000000000000),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)100000000000000000),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)1000000000000000000),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)1000000000000000000) *
+        int128_t((int64_t)10),
+    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)1000000000000000000) *
+        int128_t((int64_t)100),
 };
 
 static uint8_t PositiveInt128BitsAmount(int128_t input) {
@@ -547,7 +550,6 @@ template<>
 bool Int128_t::tryCastTo(long double value, int128_t& result) {
     return castFloatingToInt128<long double>(value, result);
 }
-
 //===============================================================================================
 
 int128_t::int128_t(int64_t value) {
@@ -556,53 +558,105 @@ int128_t::int128_t(int64_t value) {
     this->high = result.high;
 }
 
-//===============================================================================================
-bool int128_t::operator==(const int128_t& rhs) const {
-    return Int128_t::Equals(*this, rhs);
+int128_t::int128_t(int32_t value) {
+    auto result = Int128_t::castTo(value);
+    this->low = result.low;
+    this->high = result.high;
 }
 
-bool int128_t::operator!=(const int128_t& rhs) const {
-    return Int128_t::notEquals(*this, rhs);
+int128_t::int128_t(int16_t value) {
+    auto result = Int128_t::castTo(value);
+    this->low = result.low;
+    this->high = result.high;
 }
 
-bool int128_t::operator>(const int128_t& rhs) const {
-    return Int128_t::greaterThan(*this, rhs);
+int128_t::int128_t(int8_t value) {
+    auto result = Int128_t::castTo(value);
+    this->low = result.low;
+    this->high = result.high;
 }
 
-bool int128_t::operator>=(const int128_t& rhs) const {
-    return Int128_t::greaterThanOrEquals(*this, rhs);
+int128_t::int128_t(uint64_t value) {
+    auto result = Int128_t::castTo(value);
+    this->low = result.low;
+    this->high = result.high;
 }
 
-bool int128_t::operator<(const int128_t& rhs) const {
-    return Int128_t::lessThan(*this, rhs);
+int128_t::int128_t(uint32_t value) {
+    auto result = Int128_t::castTo(value);
+    this->low = result.low;
+    this->high = result.high;
 }
 
-bool int128_t::operator<=(const int128_t& rhs) const {
-    return Int128_t::lessThanOrEquals(*this, rhs);
+int128_t::int128_t(uint16_t value) {
+    auto result = Int128_t::castTo(value);
+    this->low = result.low;
+    this->high = result.high;
 }
 
-int128_t int128_t::operator+(const int128_t& rhs) const {
-    return Int128_t::Add(*this, rhs);
+int128_t::int128_t(uint8_t value) {
+    auto result = Int128_t::castTo(value);
+    this->low = result.low;
+    this->high = result.high;
 }
 
-int128_t int128_t::operator-(const int128_t& rhs) const {
-    return Int128_t::Sub(*this, rhs);
+int128_t::int128_t(double value) {
+    auto result = Int128_t::castTo(value);
+    this->low = result.low;
+    this->high = result.high;
 }
 
-int128_t int128_t::operator*(const int128_t& rhs) const {
-    return Int128_t::Mul(*this, rhs);
+int128_t::int128_t(float value) {
+    auto result = Int128_t::castTo(value);
+    this->low = result.low;
+    this->high = result.high;
 }
 
-int128_t int128_t::operator/(const int128_t& rhs) const {
-    return Int128_t::Div(*this, rhs);
+//============================================================================================
+bool operator==(const int128_t& lhs, const int128_t& rhs) {
+    return Int128_t::Equals(lhs, rhs);
 }
 
-int128_t int128_t::operator%(const int128_t& rhs) const {
-    return Int128_t::Mod(*this, rhs);
+bool operator!=(const int128_t& lhs, const int128_t& rhs) {
+    return Int128_t::notEquals(lhs, rhs);
+}
+
+bool operator>(const int128_t& lhs, const int128_t& rhs) {
+    return Int128_t::greaterThan(lhs, rhs);
+}
+
+bool operator>=(const int128_t& lhs, const int128_t& rhs) {
+    return Int128_t::greaterThanOrEquals(lhs, rhs);
+}
+
+bool operator<(const int128_t& lhs, const int128_t& rhs) {
+    return Int128_t::lessThan(lhs, rhs);
+}
+
+bool operator<=(const int128_t& lhs, const int128_t& rhs) {
+    return Int128_t::lessThanOrEquals(lhs, rhs);
 }
 
 int128_t int128_t::operator-() const {
     return Int128_t::negate(*this);
+}
+
+// support for operations like (int32_t)x + (int128_t)y
+
+int128_t operator+(const int128_t& lhs, const int128_t& rhs) {
+    return Int128_t::Add(lhs, rhs);
+}
+int128_t operator-(const int128_t& lhs, const int128_t& rhs) {
+    return Int128_t::Sub(lhs, rhs);
+}
+int128_t operator*(const int128_t& lhs, const int128_t& rhs) {
+    return Int128_t::Mul(lhs, rhs);
+}
+int128_t operator/(const int128_t& lhs, const int128_t& rhs) {
+    return Int128_t::Div(lhs, rhs);
+}
+int128_t operator%(const int128_t& lhs, const int128_t& rhs) {
+    return Int128_t::Mod(lhs, rhs);
 }
 
 // inplace arithmetic operators
@@ -637,6 +691,40 @@ int128_t::operator int16_t() const {
 
 int128_t::operator int8_t() const {
     return NarrowCast<int8_t>(*this);
+}
+
+int128_t::operator uint64_t() const {
+    return NarrowCast<uint64_t>(*this);
+}
+
+int128_t::operator uint32_t() const {
+    return NarrowCast<uint32_t>(*this);
+}
+
+int128_t::operator uint16_t() const {
+    return NarrowCast<uint16_t>(*this);
+}
+
+int128_t::operator uint8_t() const {
+    return NarrowCast<uint8_t>(*this);
+}
+
+int128_t::operator double() const {
+    double result;
+    if (!Int128_t::tryCast(*this, result)) { // LCOV_EXCL_START
+        throw common::OverflowException(common::stringFormat("Value {} is not within DOUBLE range",
+            common::TypeUtils::toString(*this)));
+    } // LCOV_EXCL_STOP
+    return result;
+}
+
+int128_t::operator float() const {
+    float result;
+    if (!Int128_t::tryCast(*this, result)) { // LCOV_EXCL_START
+        throw common::OverflowException(common::stringFormat("Value {} is not within FLOAT range",
+            common::TypeUtils::toString(*this)));
+    } // LCOV_EXCL_STOP
+    return result;
 }
 
 } // namespace kuzu::common

@@ -399,7 +399,7 @@ public:
     uint32_t getPrecision() const { return precision; }
     uint32_t getScale() const { return scale; }
 
-    bool containsAny() const override { return true; }
+    bool containsAny() const override { return false; }
 
     bool operator==(const ExtraTypeInfo& other) const override;
 
@@ -597,12 +597,15 @@ struct LogicalTypeUtils {
     static std::vector<LogicalTypeID> getAllValidComparableLogicalTypes();
     static std::vector<LogicalTypeID> getNumericalLogicalTypeIDs();
     static std::vector<LogicalTypeID> getIntegerTypeIDs();
-    static std::vector<LogicalTypeID> getAllValidLogicTypes();
-    static bool tryGetMaxLogicalTypeID(const LogicalTypeID& left, const LogicalTypeID& right,
-        LogicalTypeID& result);
+    static std::vector<LogicalTypeID> getAllValidLogicTypeIDs();
+    static std::vector<LogicalType> getAllValidLogicTypes();
     static bool tryGetMaxLogicalType(const LogicalType& left, const LogicalType& right,
         LogicalType& result);
     static bool tryGetMaxLogicalType(const std::vector<LogicalType>& types, LogicalType& result);
+
+private:
+    static bool tryGetMaxLogicalTypeID(const LogicalTypeID& left, const LogicalTypeID& right,
+        LogicalTypeID& result);
 };
 
 enum class FileVersionType : uint8_t { ORIGINAL = 0, WAL_VERSION = 1 };

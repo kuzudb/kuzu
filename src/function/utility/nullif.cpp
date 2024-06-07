@@ -27,7 +27,7 @@ static std::shared_ptr<Expression> rewriteFunc(const expression_vector& params,
 
 function_set NullIfFunction::getFunctionSet() {
     function_set functionSet;
-    for (auto typeID : LogicalTypeUtils::getAllValidLogicTypes()) {
+    for (auto typeID : LogicalTypeUtils::getAllValidLogicTypeIDs()) {
         functionSet.push_back(std::make_unique<RewriteFunction>(name,
             std::vector<LogicalTypeID>{typeID, typeID}, rewriteFunc));
     }

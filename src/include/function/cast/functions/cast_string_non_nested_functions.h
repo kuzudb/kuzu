@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/constants.h"
 #include "common/exception/conversion.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
@@ -103,17 +104,17 @@ inline bool tryIntegerCast(const char* input, uint64_t& len, T& result) {
 }
 
 struct Int128CastData {
-    int128_t result;
-    int64_t intermediate;
-    uint8_t digits;
-    bool decimal;
+    int128_t result = 0;
+    int64_t intermediate = 0;
+    uint8_t digits = 0;
+    bool decimal = false;
 
     bool flush() {
         if (digits == 0 && intermediate == 0) {
             return true;
         }
         if (result.low != 0 || result.high != 0) {
-            if (digits > 38) {
+            if (digits > DECIMAL_PRECISION_LIMIT) {
                 return false;
             }
             if (!Int128_t::tryMultiply(result, Int128_t::powerOf10[digits], result)) {
@@ -260,7 +261,13 @@ bool inline TryCastStringToTimestamp::tryCast<timestamp_tz_t>(const char* input,
 // ---------------------- cast String to Decimal -------------------- //
 
 template<typename T>
-bool tryDecimalCast(const char* input, uint64_t len, T& result, uint32_t scale) {
+bool tryDecimalCast(const char* input, uint64_t len, T& result, uint32_t precision,
+    uint32_t scale) {
+    constexpr auto pow10s = pow10Sequence<T>();
+    using CAST_OP = typename std::conditional<std::is_same<T, int128_t>::value, Int128CastOperation,
+        IntegerCastOperation>::type;
+    using CAST_DATA = typename std::conditional<std::is_same<T, int128_t>::value, Int128CastData,
+        IntegerCastData<T>>::type;
     StringUtils::removeCStringWhiteSpaces(input, len);
     if (len == 0) {
         return false;
@@ -269,48 +276,60 @@ bool tryDecimalCast(const char* input, uint64_t len, T& result, uint32_t scale) 
     bool negativeFlag = input[0] == '-';
     if (negativeFlag) {
         input++;
+        len -= 1;
     }
 
-    IntegerCastData<T> res{0};
-    uint64_t pos = 0;
-    uint64_t periodPos = len;
+    CAST_DATA res;
+    res.result = 0;
+    auto pos = 0u;
+    auto periodPos = len - 1u;
     while (pos < len) {
+        auto chr = input[pos];
         if (input[pos] == '.') {
             periodPos = pos;
+        } else if (pos > periodPos && pos - periodPos > scale) {
+            // we've parsed the digit limit
+            break;
+        } else if (!StringUtils::CharacterIsDigit(chr) ||
+                   !CAST_OP::template handleDigit<CAST_DATA, false>(res, chr - '0')) {
+            return false;
         }
+        pos++;
+    }
+    if (pos < len) {
+        // then we parsed the digit limit, so round the final digit
         if (!StringUtils::CharacterIsDigit(input[pos])) {
             return false;
         }
-        uint8_t digit = input[pos] - '0';
-        if (pos - periodPos > scale) {
-            // then determine rounding
-            if (digit >= 5) {
-                res.result += 1;
-            }
-            break;
-        }
-        if (!IntegerCastOperation::handleDigit<IntegerCastData<T>, true>(res, digit)) {
+        if (!CAST_OP::template finalize<CAST_DATA, false>(res)) {
             return false;
         }
-        pos++;
+        // then determine rounding
+        if (input[pos] >= '5') {
+            res.result += 1;
+        }
     }
-    if (negativeFlag) {
-        res.result = -res.result;
-    }
-    while (pos - periodPos < scale) {
+    while (pos - periodPos < scale + 1) {
         // trailing 0's
-        if (!IntegerCastOperation::handleDigit<IntegerCastData<T>, true>(res, 0)) {
+        if (!CAST_OP::template handleDigit<CAST_DATA, false>(res, 0)) {
             return false;
         }
         pos++;
     }
-    result = res.result;
+    if (!CAST_OP::template finalize<CAST_DATA, false>(res)) {
+        return false;
+    }
+    if (res.result >= pow10s[precision]) {
+        return false;
+    }
+    result = negativeFlag ? -res.result : res.result;
     return true;
 }
 
 template<typename T>
 void decimalCast(const char* input, uint64_t len, T& result, const LogicalType& type) {
-    if (!tryDecimalCast(input, len, result, DecimalType::getScale(type))) {
+    if (!tryDecimalCast(input, len, result, DecimalType::getPrecision(type),
+            DecimalType::getScale(type))) {
         throw ConversionException(stringFormat("Cast failed. {} is not in {} range.",
             std::string{input, len}, type.toString()));
     }

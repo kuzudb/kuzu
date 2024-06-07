@@ -208,3 +208,31 @@ Runtime exception: Divide by zero.
 -STATEMENT RETURN CAST(255, "UINT8") / CAST(0, "INT16")
 ---- error
 Runtime exception: Divide by zero.
+
+-CASE DivideDECIMAL
+-SKIP # decimal division drops to double division for now
+-STATEMENT UNWIND [0.6, 1.2, -100.0] as A UNWIND [-0.2, 1.2, 100.5] AS B RETURN CAST(A, 'DECIMAL') / CAST(B, 'DECIMAL');
+---- 9
+-3.000
+.500
+.005
+-6.000
+1.000
+.011
+500.000
+-83.333
+-.995
+-STATEMENT UNWIND [0.6, 1.2, -100.0] as A UNWIND [-0.2, 1.2, 100.5] AS B RETURN CAST(A, 'DECIMAL(18, 1)') / CAST(B, 'DECIMAL(5, 2)');
+---- 9
+-3.0000000
+.5000000
+.0059701
+-6.0000000
+1.0000000
+.0119402
+500.0000000
+-83.3333333
+-.9950248
+-STATEMENT UNWIND [1] AS A UNWIND [0] AS B RETURN CAST(A, 'DECIMAL') / CAST(B, 'DECIMAL')
+---- error
+Runtime exception: Divide by zero.

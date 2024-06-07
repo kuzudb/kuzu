@@ -1,5 +1,8 @@
 #include "function/arithmetic/vector_arithmetic_functions.h"
 
+#include "common/exception/overflow.h"
+#include "common/exception/runtime.h"
+#include "common/type_utils.h"
 #include "common/types/date_t.h"
 #include "common/types/int128_t.h"
 #include "common/types/interval_t.h"
@@ -12,15 +15,48 @@
 #include "function/arithmetic/multiply.h"
 #include "function/arithmetic/negate.h"
 #include "function/arithmetic/subtract.h"
+#include "function/cast/functions/numeric_limits.h"
 #include "function/list/functions/list_concat_function.h"
 #include "function/list/vector_list_functions.h"
 #include "function/scalar_function.h"
 #include "function/string/vector_string_functions.h"
 
 using namespace kuzu::common;
+using std::max;
+using std::min;
 
 namespace kuzu {
 namespace function {
+
+struct DecimalFunction {
+
+    static std::unique_ptr<FunctionBindData> bindAddFunc(const binder::expression_vector& arguments,
+        Function*);
+
+    static std::unique_ptr<FunctionBindData> bindSubtractFunc(
+        const binder::expression_vector& arguments, Function*);
+
+    static std::unique_ptr<FunctionBindData> bindMultiplyFunc(
+        const binder::expression_vector& arguments, Function*);
+
+    static std::unique_ptr<FunctionBindData> bindDivideFunc(
+        const binder::expression_vector& arguments, Function*);
+
+    static std::unique_ptr<FunctionBindData> bindModuloFunc(
+        const binder::expression_vector& arguments, Function*);
+
+    static std::unique_ptr<FunctionBindData> bindNegateFunc(
+        const binder::expression_vector& arguments, Function*);
+
+    static std::unique_ptr<FunctionBindData> bindAbsFunc(const binder::expression_vector& arguments,
+        Function*);
+
+    static std::unique_ptr<FunctionBindData> bindFloorFunc(
+        const binder::expression_vector& arguments, Function*);
+
+    static std::unique_ptr<FunctionBindData> bindCeilFunc(
+        const binder::expression_vector& arguments, Function*);
+};
 
 template<typename FUNC>
 static void getUnaryExecFunc(LogicalTypeID operandTypeID, scalar_func_exec_t& func) {
@@ -146,6 +182,10 @@ function_set AddFunction::getFunctionSet() {
         result.push_back(getBinaryFunction<Add>(name, typeID));
     }
 
+    // decimal + decimal -> decimal
+    result.push_back(std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL, LogicalTypeID::DECIMAL},
+        LogicalTypeID::DECIMAL, nullptr, nullptr, DecimalFunction::bindAddFunc));
     // list + list -> list
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::LIST}, LogicalTypeID::LIST,
@@ -193,6 +233,10 @@ function_set SubtractFunction::getFunctionSet() {
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getBinaryFunction<Subtract>(name, typeID));
     }
+    // decimal - decimal -> decimal
+    result.push_back(make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL, LogicalTypeID::DECIMAL},
+        LogicalTypeID::DECIMAL, nullptr, nullptr, DecimalFunction::bindSubtractFunc));
     // date - date → int64
     result.push_back(getBinaryFunction<Subtract, date_t, int64_t>(name, LogicalTypeID::DATE,
         LogicalTypeID::INT64));
@@ -224,6 +268,10 @@ function_set MultiplyFunction::getFunctionSet() {
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getBinaryFunction<Multiply>(name, typeID));
     }
+    // decimal * decimal -> decimal
+    result.push_back(make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL, LogicalTypeID::DECIMAL},
+        LogicalTypeID::DECIMAL, nullptr, nullptr, DecimalFunction::bindMultiplyFunc));
     return result;
 }
 
@@ -237,6 +285,11 @@ function_set DivideFunction::getFunctionSet() {
         std::vector<LogicalTypeID>{LogicalTypeID::INTERVAL, LogicalTypeID::INT64},
         LogicalTypeID::INTERVAL,
         ScalarFunction::BinaryExecFunction<interval_t, int64_t, interval_t, Divide>));
+    // decimal / decimal -> decimal
+    // drop to double division for now
+    // result.push_back(make_unique<ScalarFunction>(name,
+    // std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL, LogicalTypeID::DECIMAL},
+    // LogicalTypeID::DECIMAL, nullptr, nullptr, DecimalFunction::bindDivideFunc));
     return result;
 }
 
@@ -245,6 +298,10 @@ function_set ModuloFunction::getFunctionSet() {
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getBinaryFunction<Modulo>(name, typeID));
     }
+    // decimal % decimal -> decimal
+    result.push_back(make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL, LogicalTypeID::DECIMAL},
+        LogicalTypeID::DECIMAL, nullptr, nullptr, DecimalFunction::bindModuloFunc));
     return result;
 }
 
@@ -261,6 +318,10 @@ function_set NegateFunction::getFunctionSet() {
     for (auto& typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getUnaryFunction<Negate>(name, typeID));
     }
+    // floor(decimal) -> decimal
+    result.push_back(
+        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL},
+            LogicalTypeID::DECIMAL, nullptr, nullptr, DecimalFunction::bindNegateFunc));
     return result;
 }
 
@@ -269,6 +330,9 @@ function_set AbsFunction::getFunctionSet() {
     for (auto& typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getUnaryFunction<Abs>(name, typeID));
     }
+    result.push_back(
+        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL},
+            LogicalTypeID::DECIMAL, nullptr, nullptr, DecimalFunction::bindAbsFunc));
     return result;
 }
 
@@ -277,6 +341,9 @@ function_set FloorFunction::getFunctionSet() {
     for (auto& typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getUnaryFunction<Floor>(name, typeID));
     }
+    result.push_back(
+        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL},
+            LogicalTypeID::DECIMAL, nullptr, nullptr, DecimalFunction::bindFloorFunc));
     return result;
 }
 
@@ -285,6 +352,9 @@ function_set CeilFunction::getFunctionSet() {
     for (auto& typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getUnaryFunction<Ceil>(name, typeID));
     }
+    result.push_back(
+        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL},
+            LogicalTypeID::DECIMAL, nullptr, nullptr, DecimalFunction::bindCeilFunc));
     return result;
 }
 
@@ -481,6 +551,426 @@ function_set PiFunction::getFunctionSet() {
     result.push_back(make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{},
         LogicalTypeID::DOUBLE, ScalarFunction::NullaryExecFunction<double, Pi>));
     return result;
+}
+
+using param_get_func_t = std::function<std::pair<int, int>(int, int, int, int)>;
+
+// Following param func rules are from
+// https://learn.microsoft.com/en-us/sql/t-sql/data-types/precision-scale-and-length-transact-sql
+// todo: Figure out which param rules we should use
+
+struct DecimalAdd {
+    static constexpr bool matchToOutputLogicalType = true;
+    // whether or not the input and output logical types
+    // are expected to be equivalent. If so, the bind function
+    // should specify that the input be casted to the output type before execution
+    template<typename A, typename B, typename R>
+    static inline void operation(A& left, B& right, R& result,
+        common::ValueVector& resultValueVector) {
+        constexpr auto pow10s = pow10Sequence<R>();
+        auto precision = DecimalType::getPrecision(resultValueVector.dataType);
+        if ((right > 0 && pow10s[precision] - right <= left) ||
+            (right < 0 && -pow10s[precision] - right >= left)) {
+            throw OverflowException("Decimal Addition result is out of range");
+        }
+        result = left + right;
+    }
+
+    static std::pair<int, int> resultingParams(int p1, int p2, int s1, int s2) {
+        auto p = min(DECIMAL_PRECISION_LIMIT, max(s1, s2) + max(p1 - s1, p2 - s2) + 1);
+        auto s = min(p, max(s1, s2));
+        if (max(p1 - s1, p2 - s2) < min(DECIMAL_PRECISION_LIMIT, p) - s) {
+            s = min(p, DECIMAL_PRECISION_LIMIT) - max(p1 - s1, p2 - s2);
+        }
+        return {p, s};
+    }
+};
+
+struct DecimalSubtract {
+    static constexpr bool matchToOutputLogicalType = true;
+    template<typename A, typename B, typename R>
+    static inline void operation(A& left, B& right, R& result,
+        common::ValueVector& resultValueVector) {
+        constexpr auto pow10s = pow10Sequence<R>();
+        auto precision = DecimalType::getPrecision(resultValueVector.dataType);
+        if ((right > 0 && -pow10s[precision] + right >= left) ||
+            (right < 0 && pow10s[precision] + right <= left)) {
+            throw OverflowException("Decimal Subtraction result is out of range");
+        }
+        result = left - right;
+    }
+
+    static std::pair<int, int> resultingParams(int p1, int p2, int s1, int s2) {
+        auto p = min(DECIMAL_PRECISION_LIMIT, max(s1, s2) + max(p1 - s1, p2 - s2) + 1);
+        auto s = min(p, max(s1, s2));
+        if (max(p1 - s1, p2 - s2) < min(DECIMAL_PRECISION_LIMIT, p) - s) {
+            s = min(p, DECIMAL_PRECISION_LIMIT) - max(p1 - s1, p2 - s2);
+        }
+        return {p, s};
+    }
+};
+
+struct DecimalMultiply {
+    static constexpr bool matchToOutputLogicalType = false;
+    template<typename A, typename B, typename R>
+    static inline void operation(A& left, B& right, R& result,
+        common::ValueVector& resultValueVector) {
+        constexpr auto pow10s = pow10Sequence<R>();
+        auto precision = DecimalType::getPrecision(resultValueVector.dataType);
+        result = (R)left * (R)right;
+        // no need to divide by any scale given resultingParams and matchToOutput
+        if (result <= -pow10s[precision] || result >= pow10s[precision]) {
+            [[unlikely]] throw OverflowException("Decimal Multiplication Result is out of range");
+        }
+    }
+
+    static std::pair<int, int> resultingParams(int p1, int p2, int s1, int s2) {
+        if (p1 + p2 + 1 > DECIMAL_PRECISION_LIMIT) {
+            throw OverflowException(
+                "Resulting precision of decimal multiplication greater than 38");
+        }
+        auto p = p1 + p2 + 1;
+        auto s = s1 + s2;
+        return {p, s};
+    }
+};
+
+struct DecimalDivide {
+    static constexpr bool matchToOutputLogicalType = true;
+    template<typename A, typename B, typename R>
+    static inline void operation(A& left, B& right, R& result,
+        common::ValueVector& resultValueVector) {
+        constexpr auto pow10s = pow10Sequence<R>();
+        auto precision = DecimalType::getPrecision(resultValueVector.dataType);
+        auto scale = DecimalType::getScale(resultValueVector.dataType);
+        if (right == 0) {
+            throw RuntimeException("Divide by zero.");
+        }
+        if (-pow10s[precision - scale] >= left || pow10s[precision - scale] <= left) {
+            throw OverflowException("Overflow encountered when attempting to divide decimals");
+            // happens too often; let's just drop to double division for now, which is in line with
+            // what DuckDB does right now
+        }
+        result = (left * pow10s[scale]) / right;
+    }
+
+    static std::pair<int, int> resultingParams(int p1, int p2, int s1, int s2) {
+        auto p = min(DECIMAL_PRECISION_LIMIT, p1 - s1 + s2 + max(6, s1 + p2 + 1));
+        auto s = min(p, max(6, s1 + p2 + 1)); // todo: complete rules
+        return {p, s};
+    }
+};
+
+struct DecimalModulo {
+    static constexpr bool matchToOutputLogicalType = true;
+    template<typename A, typename B, typename R>
+    static inline void operation(A& left, B& right, R& result, common::ValueVector&) {
+        if (right == 0) {
+            throw RuntimeException("Modulo by zero.");
+        }
+        result = left % right;
+    }
+
+    static std::pair<int, int> resultingParams(int p1, int p2, int s1, int s2) {
+        auto p = min(DECIMAL_PRECISION_LIMIT, min(p1 - s1, p2 - s2) + max(s1, s2));
+        auto s = min(p, max(s1, s2));
+        return {p, s};
+    }
+};
+
+struct DecimalNegate {
+    static constexpr bool matchToOutputLogicalType = true;
+    template<typename A, typename R>
+    static inline void operation(A& input, R& result, common::ValueVector&, common::ValueVector&) {
+        result = -input;
+    }
+
+    static std::pair<int, int> resultingParams(int p, int s) { return {p, s}; }
+};
+
+struct DecimalAbs {
+    static constexpr bool matchToOutputLogicalType = true;
+    template<typename A, typename R>
+    static inline void operation(A& input, R& result, common::ValueVector&, common::ValueVector&) {
+        result = input;
+        if (result < 0) {
+            result = -result;
+        }
+    }
+
+    static std::pair<int, int> resultingParams(int p, int s) { return {p, s}; }
+};
+
+struct DecimalFloor {
+    static constexpr bool matchToOutputLogicalType = false;
+    template<typename A, typename R>
+    static inline void operation(A& input, R& result, common::ValueVector& inputVector,
+        common::ValueVector&) {
+        constexpr auto pow10s = pow10Sequence<R>();
+        auto scale = DecimalType::getScale(inputVector.dataType);
+        if (input < 0) {
+            // round to larger absolute value
+            result = (R)input -
+                     (input % pow10s[scale] == 0 ? 0 : pow10s[scale] + (R)(input % pow10s[scale]));
+        } else {
+            // round to smaller absolute value
+            result = (R)input - (R)(input % pow10s[scale]);
+        }
+        result = result / pow10s[scale];
+    }
+
+    static std::pair<int, int> resultingParams(int p, int) { return {p, 0}; }
+};
+
+struct DecimalCeil {
+    static constexpr bool matchToOutputLogicalType = false;
+    template<typename A, typename R>
+    static inline void operation(A& input, R& result, common::ValueVector& inputVector,
+        common::ValueVector&) {
+        constexpr auto pow10s = pow10Sequence<R>();
+        auto scale = DecimalType::getScale(inputVector.dataType);
+        if (input < 0) {
+            // round to larger absolute value
+            result = (R)input - (R)(input % pow10s[scale]);
+        } else {
+            // round to smaller absolute value
+            result = (R)input +
+                     (input % pow10s[scale] == 0 ? 0 : pow10s[scale] - (R)(input % pow10s[scale]));
+        }
+        result = result / pow10s[scale];
+    }
+
+    static std::pair<int, int> resultingParams(int p, int) { return {p, 0}; }
+};
+
+template<typename FUNC, typename A, typename B>
+static void getBinaryExecutionHelperB(const LogicalType& typeR, scalar_func_exec_t& result) {
+    // here to assist in getting scalar_func_exec_t for genericBinaryArithmeticFunc
+    switch (typeR.getPhysicalType()) {
+    case PhysicalTypeID::INT16:
+        result = ScalarFunction::BinaryStringExecFunction<A, B, int16_t, FUNC>;
+        break;
+    case PhysicalTypeID::INT32:
+        result = ScalarFunction::BinaryStringExecFunction<A, B, int32_t, FUNC>;
+        break;
+    case PhysicalTypeID::INT64:
+        result = ScalarFunction::BinaryStringExecFunction<A, B, int64_t, FUNC>;
+        break;
+    case PhysicalTypeID::INT128:
+        result = ScalarFunction::BinaryStringExecFunction<A, B, int128_t, FUNC>;
+        break;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+template<typename FUNC, typename A>
+static void getBinaryExecutionHelperA(const LogicalType& typeB, const LogicalType& typeR,
+    scalar_func_exec_t& result) {
+    // here to assist in getting scalar_func_exec_t for genericBinaryArithmeticFunc
+    switch (typeB.getPhysicalType()) {
+    case PhysicalTypeID::INT16:
+        getBinaryExecutionHelperB<FUNC, A, int16_t>(typeR, result);
+        break;
+    case PhysicalTypeID::INT32:
+        getBinaryExecutionHelperB<FUNC, A, int32_t>(typeR, result);
+        break;
+    case PhysicalTypeID::INT64:
+        getBinaryExecutionHelperB<FUNC, A, int64_t>(typeR, result);
+        break;
+    case PhysicalTypeID::INT128:
+        getBinaryExecutionHelperB<FUNC, A, int128_t>(typeR, result);
+        break;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+template<typename FUNC>
+static std::unique_ptr<FunctionBindData> genericBinaryArithmeticFunc(
+    const binder::expression_vector& arguments, Function* func) {
+    auto asScalar = ku_dynamic_cast<Function*, ScalarFunction*>(func);
+    KU_ASSERT(asScalar != nullptr);
+    auto argADataType = arguments[0]->getDataType();
+    auto argBDataType = arguments[1]->getDataType();
+    if (argADataType.getLogicalTypeID() != LogicalTypeID::DECIMAL) {
+        argADataType = argBDataType;
+    }
+    if (argBDataType.getLogicalTypeID() != LogicalTypeID::DECIMAL) {
+        argBDataType = argADataType;
+    }
+    auto precision1 = DecimalType::getPrecision(argADataType);
+    auto precision2 = DecimalType::getPrecision(argBDataType);
+    auto scale1 = DecimalType::getScale(argADataType);
+    auto scale2 = DecimalType::getScale(argBDataType);
+    auto params = FUNC::resultingParams(precision1, precision2, scale1, scale2);
+    auto resultingType = LogicalType::DECIMAL(params.first, params.second);
+    auto argumentAType = FUNC::matchToOutputLogicalType ? *resultingType : argADataType;
+    auto argumentBType = FUNC::matchToOutputLogicalType ? *resultingType : argBDataType;
+    if constexpr (FUNC::matchToOutputLogicalType) {
+        switch (resultingType->getPhysicalType()) {
+        case PhysicalTypeID::INT16:
+            asScalar->execFunc =
+                ScalarFunction::BinaryStringExecFunction<int16_t, int16_t, int16_t, FUNC>;
+            break;
+        case PhysicalTypeID::INT32:
+            asScalar->execFunc =
+                ScalarFunction::BinaryStringExecFunction<int32_t, int32_t, int32_t, FUNC>;
+            break;
+        case PhysicalTypeID::INT64:
+            asScalar->execFunc =
+                ScalarFunction::BinaryStringExecFunction<int64_t, int64_t, int64_t, FUNC>;
+            break;
+        case PhysicalTypeID::INT128:
+            asScalar->execFunc =
+                ScalarFunction::BinaryStringExecFunction<int128_t, int128_t, int128_t, FUNC>;
+            break;
+        default:
+            KU_UNREACHABLE;
+        }
+    } else {
+        switch (argumentAType.getPhysicalType()) {
+        case PhysicalTypeID::INT16:
+            getBinaryExecutionHelperA<FUNC, int16_t>(argumentBType, *resultingType,
+                asScalar->execFunc);
+            break;
+        case PhysicalTypeID::INT32:
+            getBinaryExecutionHelperA<FUNC, int32_t>(argumentBType, *resultingType,
+                asScalar->execFunc);
+            break;
+        case PhysicalTypeID::INT64:
+            getBinaryExecutionHelperA<FUNC, int64_t>(argumentBType, *resultingType,
+                asScalar->execFunc);
+            break;
+        case PhysicalTypeID::INT128:
+            getBinaryExecutionHelperA<FUNC, int128_t>(argumentBType, *resultingType,
+                asScalar->execFunc);
+            break;
+        default:
+            KU_UNREACHABLE;
+        }
+    }
+    return std::make_unique<FunctionBindData>(
+        std::vector<LogicalType>{argumentAType, argumentBType}, std::move(resultingType));
+}
+
+template<typename FUNC, typename ARG>
+static void getUnaryExecutionHelper(const LogicalType& resultType, scalar_func_exec_t& result) {
+    switch (resultType.getPhysicalType()) {
+    case PhysicalTypeID::INT16:
+        result = ScalarFunction::UnaryExecNestedTypeFunction<ARG, int16_t, FUNC>;
+        break;
+    case PhysicalTypeID::INT32:
+        result = ScalarFunction::UnaryExecNestedTypeFunction<ARG, int32_t, FUNC>;
+        break;
+    case PhysicalTypeID::INT64:
+        result = ScalarFunction::UnaryExecNestedTypeFunction<ARG, int64_t, FUNC>;
+        break;
+    case PhysicalTypeID::INT128:
+        result = ScalarFunction::UnaryExecNestedTypeFunction<ARG, int128_t, FUNC>;
+        break;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+template<typename FUNC>
+static std::unique_ptr<FunctionBindData> genericUnaryArithmeticFunc(
+    const binder::expression_vector& arguments, Function* func) {
+    auto asScalar = ku_dynamic_cast<Function*, ScalarFunction*>(func);
+    KU_ASSERT(asScalar != nullptr);
+    auto argPrecision = DecimalType::getPrecision(arguments[0]->getDataType());
+    auto argScale = DecimalType::getScale(arguments[0]->getDataType());
+    auto params = FUNC::resultingParams(argPrecision, argScale);
+    auto resultingType = LogicalType::DECIMAL(params.first, params.second);
+    auto argumentType =
+        FUNC::matchToOutputLogicalType ? *resultingType : arguments[0]->getDataType();
+    if constexpr (FUNC::matchToOutputLogicalType) {
+        switch (resultingType->getPhysicalType()) {
+        case PhysicalTypeID::INT16:
+            asScalar->execFunc =
+                ScalarFunction::UnaryExecNestedTypeFunction<int16_t, int16_t, FUNC>;
+            break;
+        case PhysicalTypeID::INT32:
+            asScalar->execFunc =
+                ScalarFunction::UnaryExecNestedTypeFunction<int32_t, int32_t, FUNC>;
+            break;
+        case PhysicalTypeID::INT64:
+            asScalar->execFunc =
+                ScalarFunction::UnaryExecNestedTypeFunction<int64_t, int64_t, FUNC>;
+            break;
+        case PhysicalTypeID::INT128:
+            asScalar->execFunc =
+                ScalarFunction::UnaryExecNestedTypeFunction<int128_t, int128_t, FUNC>;
+            break;
+        default:
+            KU_UNREACHABLE;
+        }
+    } else {
+        switch (argumentType.getPhysicalType()) {
+        case PhysicalTypeID::INT16:
+            getUnaryExecutionHelper<FUNC, int16_t>(*resultingType, asScalar->execFunc);
+            break;
+        case PhysicalTypeID::INT32:
+            getUnaryExecutionHelper<FUNC, int32_t>(*resultingType, asScalar->execFunc);
+            break;
+        case PhysicalTypeID::INT64:
+            getUnaryExecutionHelper<FUNC, int64_t>(*resultingType, asScalar->execFunc);
+            break;
+        case PhysicalTypeID::INT128:
+            getUnaryExecutionHelper<FUNC, int128_t>(*resultingType, asScalar->execFunc);
+            break;
+        default:
+            KU_UNREACHABLE;
+        }
+    }
+    return std::make_unique<FunctionBindData>(std::vector<LogicalType>{argumentType},
+        std::move(resultingType));
+}
+
+std::unique_ptr<FunctionBindData> DecimalFunction::bindAddFunc(
+    const binder::expression_vector& arguments, Function* func) {
+    return genericBinaryArithmeticFunc<DecimalAdd>(arguments, func);
+}
+
+std::unique_ptr<FunctionBindData> DecimalFunction::bindSubtractFunc(
+    const binder::expression_vector& arguments, Function* func) {
+    return genericBinaryArithmeticFunc<DecimalSubtract>(arguments, func);
+}
+
+std::unique_ptr<FunctionBindData> DecimalFunction::bindMultiplyFunc(
+    const binder::expression_vector& arguments, Function* func) {
+    return genericBinaryArithmeticFunc<DecimalMultiply>(arguments, func);
+}
+
+std::unique_ptr<FunctionBindData> DecimalFunction::bindDivideFunc(
+    const binder::expression_vector& arguments, Function* func) {
+    return genericBinaryArithmeticFunc<DecimalDivide>(arguments, func);
+}
+
+std::unique_ptr<FunctionBindData> DecimalFunction::bindModuloFunc(
+    const binder::expression_vector& arguments, Function* func) {
+    return genericBinaryArithmeticFunc<DecimalModulo>(arguments, func);
+}
+
+std::unique_ptr<FunctionBindData> DecimalFunction::bindNegateFunc(
+    const binder::expression_vector& arguments, Function* func) {
+    return genericUnaryArithmeticFunc<DecimalNegate>(arguments, func);
+}
+
+std::unique_ptr<FunctionBindData> DecimalFunction::bindAbsFunc(
+    const binder::expression_vector& arguments, Function* func) {
+    return genericUnaryArithmeticFunc<DecimalAbs>(arguments, func);
+}
+
+std::unique_ptr<FunctionBindData> DecimalFunction::bindFloorFunc(
+    const binder::expression_vector& arguments, Function* func) {
+    return genericUnaryArithmeticFunc<DecimalFloor>(arguments, func);
+}
+
+std::unique_ptr<FunctionBindData> DecimalFunction::bindCeilFunc(
+    const binder::expression_vector& arguments, Function* func) {
+    return genericUnaryArithmeticFunc<DecimalCeil>(arguments, func);
 }
 
 } // namespace function
