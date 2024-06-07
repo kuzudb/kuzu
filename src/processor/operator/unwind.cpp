@@ -6,7 +6,7 @@ namespace kuzu {
 namespace processor {
 
 void Unwind::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    expressionEvaluator->init(*resultSet, context->clientContext->getMemoryManager());
+    expressionEvaluator->init(*resultSet, context->clientContext);
     outValueVector = resultSet->getValueVector(outDataPos);
     if (idPos.isValid()) {
         idVector = resultSet->getValueVector(idPos).get();
@@ -46,7 +46,7 @@ bool Unwind::getNextTuplesInternal(ExecutionContext* context) {
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
-        expressionEvaluator->evaluate(context->clientContext);
+        expressionEvaluator->evaluate();
         auto pos = expressionEvaluator->resultVector->state->getSelVector()[0];
         if (expressionEvaluator->resultVector->isNull(pos)) {
             outValueVector->state->getSelVectorUnsafe().setSelSize(0);

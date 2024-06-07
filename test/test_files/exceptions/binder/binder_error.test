@@ -489,21 +489,6 @@ Binder exception: person table already has property gender.
 ---- error
 Binder exception: The number of elements in an array must be greater than 0. Given: 0.
 
--LOG NonPKSerialType
--STATEMENT CREATE NODE TABLE test(ID INT64, seq SERIAL, PRIMARY KEY(ID))
----- error
-Binder exception: Serial property in node table must be the primary key.
-
--LOG AddSerialProperty
--STATEMENT ALTER TABLE person ADD seq SERIAL
----- error
-Binder exception: Serial property in node table must be the primary key.
-
--LOG SerialInRelTable
--STATEMENT CREATE REL TABLE test(FROM person TO person, seq SERIAL)
----- error
-Binder exception: SERIAL properties are not supported in rel tables.
-
 -LOG MatchBuiltIn
 -STATEMENT MATCH (a:person) RETURN a.age + 'hh'
 ---- error
@@ -616,13 +601,6 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (INTERVAL,DATE) -> DATE
 (TIMESTAMP,INTERVAL) -> TIMESTAMP
 (INTERVAL,TIMESTAMP) -> TIMESTAMP
-
--LOG CreateWithSerialPK
--STATEMENT create node table Person1(id serial, primary key(id));
----- ok
--STATEMENT create (:Person1 {id: 0});
----- error
-Binder exception: The primary key of Person1 is serial, specifying primary key value is not allowed in the create statement.
 
 -LOG CreateRelWithWrongType
 -STATEMENT CREATE NODE TABLE N (id SERIAL, PRIMARY KEY(id));

@@ -19,9 +19,9 @@ static void updateNullPattern(ValueVector& patternVector, const ValueVector& idV
     }
 }
 
-void PatternExpressionEvaluator::evaluate(ClientContext* clientContext) {
+void PatternExpressionEvaluator::evaluate() {
     for (auto& child : children) {
-        child->evaluate(clientContext);
+        child->evaluate();
     }
     StructPackFunctions::execFunc(parameters, *resultVector);
     updateNullPattern(*resultVector, *idVector);
@@ -38,10 +38,10 @@ void PatternExpressionEvaluator::resolveResultVector(const ResultSet& resultSet,
         inputEvaluators.push_back(child.get());
     }
     resolveResultStateFromChildren(inputEvaluators);
-    initFurther(resultSet, memoryManager);
+    initFurther(resultSet);
 }
 
-void PatternExpressionEvaluator::initFurther(const ResultSet&, MemoryManager*) {
+void PatternExpressionEvaluator::initFurther(const ResultSet&) {
     StructPackFunctions::compileFunc(nullptr, parameters, resultVector);
     auto dataType = pattern->getDataType();
     auto fieldIdx = StructType::getFieldIdx(dataType, InternalKeyword::ID);
@@ -52,13 +52,13 @@ std::unique_ptr<ExpressionEvaluator> PatternExpressionEvaluator::clone() {
     return make_unique<PatternExpressionEvaluator>(pattern, ExpressionEvaluator::copy(children));
 }
 
-void UndirectedRelExpressionEvaluator::evaluate(main::ClientContext* clientContext) {
+void UndirectedRelExpressionEvaluator::evaluate() {
     for (auto& child : children) {
-        child->evaluate(clientContext);
+        child->evaluate();
     }
     StructPackFunctions::undirectedRelPackExecFunc(parameters, *resultVector);
     updateNullPattern(*resultVector, *idVector);
-    directionEvaluator->evaluate(clientContext);
+    directionEvaluator->evaluate();
     auto& selVector = resultVector->state->getSelVector();
     for (auto i = 0u; i < selVector.getSelSize(); ++i) {
         auto pos = selVector[i];
@@ -72,9 +72,8 @@ void UndirectedRelExpressionEvaluator::evaluate(main::ClientContext* clientConte
     }
 }
 
-void UndirectedRelExpressionEvaluator::initFurther(const ResultSet& resultSet,
-    MemoryManager* memoryManager) {
-    directionEvaluator->init(resultSet, memoryManager);
+void UndirectedRelExpressionEvaluator::initFurther(const ResultSet& resultSet) {
+    directionEvaluator->init(resultSet, localState.clientContext);
     directionVector = directionEvaluator->resultVector.get();
     StructPackFunctions::undirectedRelCompileFunc(nullptr, parameters, resultVector);
     auto dataType = pattern->getDataType();

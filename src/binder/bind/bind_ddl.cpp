@@ -5,6 +5,7 @@
 #include "binder/ddl/bound_create_type.h"
 #include "binder/ddl/bound_drop_sequence.h"
 #include "binder/ddl/bound_drop_table.h"
+#include "binder/expression/expression_util.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
@@ -15,12 +16,15 @@
 #include "common/string_format.h"
 #include "common/types/types.h"
 #include "function/cast/functions/cast_from_string_functions.h"
+#include "function/sequence/sequence_functions.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_sequence.h"
 #include "parser/ddl/create_table.h"
 #include "parser/ddl/create_table_info.h"
 #include "parser/ddl/create_type.h"
 #include "parser/ddl/drop.h"
+#include "parser/expression/parsed_function_expression.h"
+#include "parser/expression/parsed_literal_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -40,16 +44,33 @@ static void validateUniquePropertyName(const std::vector<PropertyInfo>& infos) {
     }
 }
 
+static void validateSerialNoDefault(const Expression& expr) {
+    if (!ExpressionUtil::isNullLiteral(expr)) {
+        throw BinderException("No DEFAULT value should be set for SERIAL columns");
+    }
+}
+
+static std::unique_ptr<parser::ParsedFunctionExpression> createSerialDefaultExpr(std::string name) {
+    auto param = std::make_unique<parser::ParsedLiteralExpression>(Value(name), "");
+    return std::make_unique<parser::ParsedFunctionExpression>(function::NextValFunction::name,
+        std::move(param), "");
+}
+
 std::vector<PropertyInfo> Binder::bindPropertyInfo(
-    const std::vector<PropertyDefinitionDDL>& propertyDefinitions) {
+    const std::vector<PropertyDefinitionDDL>& propertyDefinitions, const std::string& tableName) {
     std::vector<PropertyInfo> propertyInfos;
     propertyInfos.reserve(propertyDefinitions.size());
     for (auto& propertyDef : propertyDefinitions) {
         auto type = clientContext->getCatalog()->getType(clientContext->getTx(), propertyDef.type);
+        auto expr = propertyDef.expr->copy();
         // This will check the type correctness of the default value expression
-        expressionBinder.implicitCastIfNecessary(expressionBinder.bindExpression(*propertyDef.expr),
-            type);
-        propertyInfos.emplace_back(propertyDef.name, std::move(type), propertyDef.expr->copy());
+        auto boundExpr = expressionBinder.implicitCastIfNecessary(
+            expressionBinder.bindExpression(*propertyDef.expr), type);
+        if (type.getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            validateSerialNoDefault(*boundExpr);
+            expr = createSerialDefaultExpr(Catalog::genSerialName(tableName, propertyDef.name));
+        }
+        propertyInfos.emplace_back(propertyDef.name, std::move(type), std::move(expr));
     }
     validateUniquePropertyName(propertyInfos);
     for (auto& info : propertyInfos) {
@@ -114,15 +135,10 @@ BoundCreateTableInfo Binder::bindCreateTableInfo(const parser::CreateTableInfo* 
 }
 
 BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo* info) {
-    auto propertyInfos = bindPropertyInfo(info->propertyDefinitions);
+    auto propertyInfos = bindPropertyInfo(info->propertyDefinitions, info->tableName);
     auto extraInfo = ku_dynamic_cast<const ExtraCreateTableInfo*, const ExtraCreateNodeTableInfo*>(
         info->extraInfo.get());
     auto primaryKeyIdx = bindPrimaryKey(extraInfo->pKName, propertyInfos);
-    for (auto i = 0u; i < propertyInfos.size(); ++i) {
-        if (propertyInfos[i].type == *LogicalType::SERIAL() && primaryKeyIdx != i) {
-            throw BinderException("Serial property in node table must be the primary key.");
-        }
-    }
     auto boundExtraInfo =
         std::make_unique<BoundExtraCreateNodeTableInfo>(primaryKeyIdx, std::move(propertyInfos));
     return BoundCreateTableInfo(TableType::NODE, info->tableName, std::move(boundExtraInfo));
@@ -131,13 +147,8 @@ BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo* info
 BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info) {
     std::vector<PropertyInfo> propertyInfos;
     propertyInfos.emplace_back(InternalKeyword::ID, *LogicalType::INTERNAL_ID());
-    for (auto& propertyInfo : bindPropertyInfo(info->propertyDefinitions)) {
+    for (auto& propertyInfo : bindPropertyInfo(info->propertyDefinitions, info->tableName)) {
         propertyInfos.push_back(propertyInfo.copy());
-    }
-    for (auto& propertyInfo : propertyInfos) {
-        if (propertyInfo.type.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            throw BinderException("SERIAL properties are not supported in rel tables.");
-        }
     }
     auto extraInfo = (ExtraCreateRelTableInfo*)info->extraInfo.get();
     auto srcMultiplicity = RelMultiplicityUtils::getFwd(extraInfo->relMultiplicity);
@@ -436,12 +447,12 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     auto tableSchema = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
     validatePropertyDDLOnTable(tableSchema, "add");
     validatePropertyNotExist(tableSchema, propertyName);
-    if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-        throw BinderException("Serial property in node table must be the primary key.");
-    }
     auto defaultValue = std::move(extraInfo->defaultValue);
     auto boundDefault = expressionBinder.implicitCastIfNecessary(
         expressionBinder.bindExpression(*defaultValue), dataType);
+    if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
+        validateSerialNoDefault(*boundDefault);
+    }
     auto boundExtraInfo = std::make_unique<BoundExtraAddPropertyInfo>(propertyName, dataType,
         std::move(defaultValue), std::move(boundDefault));
     auto boundInfo =

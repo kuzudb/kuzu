@@ -160,18 +160,14 @@ static void appendColumnChunkStorageInfo(node_group_idx_t nodeGroupIdx,
         [&]<typename T>(T)
             requires(std::integral<T> || std::floating_point<T>)
         {
-            if (column->getDataType().getLogicalTypeID() == LogicalTypeID::SERIAL) {
-                customToString(uint64_t());
-            } else {
-                auto min = metadata.compMeta.min.get<T>();
-                auto max = metadata.compMeta.max.get<T>();
-                outputChunk.getValueVector(7)->setValue(vectorPos,
-                    TypeUtils::entryToString(column->getDataType(), (uint8_t*)&min,
-                        outputChunk.getValueVector(7).get()));
-                outputChunk.getValueVector(8)->setValue(vectorPos,
-                    TypeUtils::entryToString(column->getDataType(), (uint8_t*)&max,
-                        outputChunk.getValueVector(8).get()));
-            }
+            auto min = metadata.compMeta.min.get<T>();
+            auto max = metadata.compMeta.max.get<T>();
+            outputChunk.getValueVector(7)->setValue(vectorPos,
+                TypeUtils::entryToString(column->getDataType(), (uint8_t*)&min,
+                    outputChunk.getValueVector(7).get()));
+            outputChunk.getValueVector(8)->setValue(vectorPos,
+                TypeUtils::entryToString(column->getDataType(), (uint8_t*)&max,
+                    outputChunk.getValueVector(8).get()));
         },
         // Types which don't support statistics.
         // types not supported by TypeUtils::visit can

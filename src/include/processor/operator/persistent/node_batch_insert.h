@@ -4,7 +4,6 @@
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "expression_evaluator/expression_evaluator.h"
-#include "main/client_context.h"
 #include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/operator/persistent/batch_insert.h"
 #include "processor/operator/persistent/index_builder.h"
@@ -20,22 +19,20 @@ namespace processor {
 struct ExecutionContext;
 
 struct NodeBatchInsertInfo final : public BatchInsertInfo {
-    bool containSerial = false;
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
     std::vector<bool> defaultColumns;
 
     NodeBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
-        bool containSerial, std::vector<common::LogicalType> columnTypes,
+        std::vector<common::LogicalType> columnTypes,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
         std::vector<bool> defaultColumns)
-        : BatchInsertInfo{tableEntry, compressionEnabled}, containSerial{containSerial},
-          columnTypes{std::move(columnTypes)}, columnEvaluators{std::move(columnEvaluators)},
-          defaultColumns{std::move(defaultColumns)} {}
+        : BatchInsertInfo{tableEntry, compressionEnabled}, columnTypes{std::move(columnTypes)},
+          columnEvaluators{std::move(columnEvaluators)}, defaultColumns{std::move(defaultColumns)} {
+    }
 
     NodeBatchInsertInfo(const NodeBatchInsertInfo& other)
         : BatchInsertInfo{other.tableEntry, other.compressionEnabled},
-          containSerial{other.containSerial},
           columnTypes{common::LogicalType::copy(other.columnTypes)},
           columnEvaluators{evaluator::ExpressionEvaluator::copy(other.columnEvaluators)},
           defaultColumns{other.defaultColumns} {}
@@ -99,11 +96,6 @@ public:
         children.push_back(std::move(child));
     }
 
-    inline bool isParallel() const override {
-        auto nodeInfo = common::ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
-        return !nodeInfo->containSerial;
-    }
-
     void initGlobalStateInternal(ExecutionContext* context) override;
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
@@ -143,7 +135,7 @@ private:
         common::offset_t startIndexInGroup);
 
     void copyToNodeGroup(transaction::Transaction* transaction);
-    void populateDefaultColumns(main::ClientContext* context);
+    void populateDefaultColumns();
 };
 
 } // namespace processor

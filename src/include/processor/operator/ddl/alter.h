@@ -18,7 +18,7 @@ public:
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
         DDL::initLocalStateInternal(resultSet, context);
         if (defaultValueEvaluator) {
-            defaultValueEvaluator->init(*resultSet, context->clientContext->getMemoryManager());
+            defaultValueEvaluator->init(*resultSet, context->clientContext);
         }
     }
 

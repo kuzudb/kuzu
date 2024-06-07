@@ -161,9 +161,10 @@ Imported database successfully.
 1|Bob
 2|Carol
 3|Dan
--STATEMENT MATCH (o:oneserial) RETURN *;
----- error
-Binder exception: Table oneserial does not exist.
+-STATEMENT MATCH (o:oneserial) RETURN o.*;
+---- 2
+0
+1
 
 -CASE DocExportImportExampleCSV
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case8/demo-db" (format="csv", header=true);

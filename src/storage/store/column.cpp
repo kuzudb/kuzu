@@ -99,115 +99,6 @@ static write_values_func_t getWriteValuesFunc(const LogicalType& logicalType) {
     }
 }
 
-class SerialColumn final : public Column {
-public:
-    SerialColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-        DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
-        Transaction* transaction)
-        : Column{name, *LogicalType::SERIAL(), metaDAHeaderInfo, dataFH, metadataDAC,
-              // Serials can't be null, so they don't need PropertyStatistics
-              bufferManager, wal, transaction, false /* enableCompression */,
-              false /*requireNullColumn*/} {}
-
-    void scan(Transaction*, const ChunkState& chunkState, idx_t vectorIdx,
-        row_idx_t numValuesToScan, ValueVector*, ValueVector* resultVector) override {
-        // Serial column cannot contain null values.
-        const auto nodeGroupStartOffset =
-            StorageUtils::getStartOffsetOfNodeGroup(chunkState.nodeGroupIdx);
-        for (auto i = 0ul; i < numValuesToScan; i++) {
-            const auto offset = nodeGroupStartOffset + vectorIdx * DEFAULT_VECTOR_CAPACITY + i;
-            resultVector->setNull(i, false);
-            resultVector->setValue<offset_t>(i, offset);
-        }
-    }
-
-    void lookup(Transaction*, ChunkState&, ValueVector* nodeIDVector,
-        ValueVector* resultVector) override {
-        // Serial column cannot contain null values.
-        auto& selVector = nodeIDVector->state->getSelVector();
-        for (auto i = 0ul; i < selVector.getSelSize(); i++) {
-            auto pos = selVector[i];
-            auto offset = nodeIDVector->readNodeOffset(pos);
-            resultVector->setNull(pos, false);
-            resultVector->setValue<offset_t>(pos, offset);
-        }
-    }
-
-    bool canCommitInPlace(const ChunkState&, const ChunkCollection&, const offset_to_row_idx_t&,
-        const ChunkCollection&, const offset_to_row_idx_t& updateInfo) override {
-        (void)updateInfo; // Avoid unused parameter warnings during release build.
-        KU_ASSERT(updateInfo.empty());
-        return true;
-    }
-
-    bool canCommitInPlace(const ChunkState&, const std::vector<offset_t>&, ColumnChunk*,
-        offset_t) override {
-        // Note: only updates to rel table can trigger this code path. SERIAL is not supported in
-        // rel table yet.
-        KU_UNREACHABLE;
-    }
-
-    void commitLocalChunkInPlace(ChunkState& state, const ChunkCollection&,
-        const offset_to_row_idx_t& insertInfo, const ChunkCollection&,
-        const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) override {
-        // Avoid unused parameter warnings during release build.
-        (void)updateInfo;
-        (void)deleteInfo;
-        KU_ASSERT(updateInfo.empty() && deleteInfo.empty());
-        auto numValues = state.metadata.numValues;
-        for (auto& [offsetInChunk, _] : insertInfo) {
-            if (offsetInChunk >= numValues) {
-                numValues = offsetInChunk + 1;
-            }
-        }
-        if (numValues > state.metadata.numValues) {
-            state.metadata.numValues = numValues;
-            // TODO: Avoid updating metadataDA.
-            metadataDA->update(state.nodeGroupIdx, state.metadata);
-        }
-    }
-
-    void commitLocalChunkOutOfPlace(Transaction*, ChunkState& state, bool isNewNodeGroup,
-        const ChunkCollection&, const offset_to_row_idx_t& insertInfo, const ChunkCollection&,
-        const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) override {
-        // Avoid unused parameter warnings during release build.
-        (void)isNewNodeGroup;
-        (void)updateInfo;
-        (void)deleteInfo;
-        KU_ASSERT(isNewNodeGroup && updateInfo.empty() && deleteInfo.empty());
-        // Only when a new node group is created, we need to commit out of place.
-        auto numValues = 0u;
-        for (auto& [offsetInChunk, _] : insertInfo) {
-            numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
-        }
-        state.metadata.numValues = numValues;
-        metadataDA->resize(state.nodeGroupIdx + 1);
-        metadataDA->update(state.nodeGroupIdx, state.metadata);
-    }
-
-    void commitColumnChunkInPlace(ChunkState&, const std::vector<offset_t>&, ColumnChunk*,
-        offset_t) override {
-        // Note: only updates to rel table can trigger this code path. SERIAL is not supported in
-        // rel table yet.
-        KU_UNREACHABLE;
-    }
-
-    void commitColumnChunkOutOfPlace(Transaction*, ChunkState&, bool,
-        const std::vector<common::offset_t>&, ColumnChunk*, common::offset_t) override {
-        // Note: only updates to rel table can trigger this code path. SERIAL is not supported in
-        // rel table yet.
-        KU_UNREACHABLE;
-    }
-
-    void append(ColumnChunk* columnChunk, ChunkState& state) override {
-        KU_ASSERT(state.nodeGroupIdx != INVALID_NODE_GROUP_IDX);
-        state.metadata.numValues = columnChunk->getNumValues();
-        // Note that SERIAL columns do not store or update statistics
-        metadataDA->resize(state.nodeGroupIdx + 1);
-        metadataDA->update(state.nodeGroupIdx, state.metadata);
-    }
-};
-
 InternalIDColumn::InternalIDColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo,
     BMFileHandle* dataFH, DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
     transaction::Transaction* transaction, bool enableCompression)
@@ -984,13 +875,8 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalTyp
     case PhysicalTypeID::DOUBLE:
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::INTERVAL: {
-        if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            return std::make_unique<SerialColumn>(name, metaDAHeaderInfo, dataFH, metadataDAC,
-                bufferManager, wal, transaction);
-        } else {
-            return std::make_unique<Column>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
-                metadataDAC, bufferManager, wal, transaction, enableCompression);
-        }
+        return std::make_unique<Column>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
+            metadataDAC, bufferManager, wal, transaction, enableCompression);
     }
     case PhysicalTypeID::INTERNAL_ID: {
         return std::make_unique<InternalIDColumn>(name, metaDAHeaderInfo, dataFH, metadataDAC,

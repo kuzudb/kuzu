@@ -30,30 +30,26 @@ static void writeStringStreamToFile(VirtualFileSystem* vfs, std::string ssString
         0 /* offset */);
 }
 
-static void writeCopyStatement(stringstream& ss, std::string tableName,
+static void writeCopyStatement(stringstream& ss, TableCatalogEntry* entry,
     ReaderConfig* boundFileInfo) {
     auto fileTypeStr = FileTypeUtils::toString(boundFileInfo->fileType);
     StringUtils::toLower(fileTypeStr);
     auto csvConfig = common::CSVReaderConfig::construct(boundFileInfo->options);
-    ss << stringFormat("COPY {} FROM \"{}.{}\" {};\n", tableName, tableName, fileTypeStr,
-        csvConfig.option.toCypher());
-}
-
-static bool containOnlySerialProperty(NodeTableCatalogEntry* tableEntry) {
-    return tableEntry->getPrimaryKey()->getDataType()->getLogicalTypeID() ==
-               LogicalTypeID::SERIAL &&
-           tableEntry->getNumProperties() == 1;
+    auto tableName = entry->getName();
+    std::string columns;
+    for (auto i = 0u; i < entry->getNumProperties(); i++) {
+        auto& prop = entry->getPropertiesRef()[i];
+        columns += prop.getName();
+        columns += i == entry->getNumProperties() - 1 ? "" : ",";
+    }
+    ss << stringFormat("COPY {} ( {} ) FROM \"{}.{}\" {};\n", tableName, columns, tableName,
+        fileTypeStr, csvConfig.option.toCypher());
 }
 
 std::string getSchemaCypher(ClientContext* clientContext, Transaction* tx, std::string& extraMsg) {
     stringstream ss;
     auto catalog = clientContext->getCatalog();
     for (auto& nodeTableEntry : catalog->getNodeTableEntries(tx)) {
-        if (containOnlySerialProperty(nodeTableEntry)) {
-            extraMsg = stringFormat("\nTable: {} is skipped since it only has one serial column.",
-                nodeTableEntry->getName());
-            continue;
-        }
         ss << nodeTableEntry->toCypher(clientContext) << std::endl;
     }
     for (auto& entry : catalog->getRelTableEntries(tx)) {
@@ -86,17 +82,13 @@ std::string getCopyCypher(Catalog* catalog, Transaction* tx, ReaderConfig* bound
         if (catalog->tableInRDFGraph(tx, nodeTableEntry->getTableID())) {
             continue;
         }
-        auto tableName = nodeTableEntry->getName();
-        if (containOnlySerialProperty(nodeTableEntry)) {
-            continue;
-        }
-        writeCopyStatement(ss, tableName, boundFileInfo);
+        writeCopyStatement(ss, nodeTableEntry, boundFileInfo);
     }
     for (auto& entry : catalog->getRelTableEntries(tx)) {
         if (catalog->tableInRDFGraph(tx, entry->getTableID())) {
             continue;
         }
-        writeCopyStatement(ss, entry->getName(), boundFileInfo);
+        writeCopyStatement(ss, entry, boundFileInfo);
     }
     return ss.str();
 }

@@ -94,13 +94,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
         }
     }
     expression_vector columnExprs;
-    logical_type_vec_t columnTypes;
     std::vector<bool> defaultColumns;
     for (auto& property : nodeTableEntry->getPropertiesRef()) {
-        columnTypes.push_back(*property.getDataType()->copy());
-        if (property.getDataType()->getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
-            continue;
-        }
         auto expr = matchColumnExpression(boundSource->getColumns(), property.getName());
         auto isDefault = !expr;
         defaultColumns.emplace_back(isDefault);
@@ -112,9 +107,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     }
     auto offset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
         std::string(InternalKeyword::ANONYMOUS));
-    auto boundCopyFromInfo = BoundCopyFromInfo(nodeTableEntry, std::move(boundSource),
-        std::move(offset), std::move(columnExprs), std::move(columnTypes),
-        std::move(defaultColumns), nullptr /* extraInfo */);
+    auto boundCopyFromInfo =
+        BoundCopyFromInfo(nodeTableEntry, std::move(boundSource), std::move(offset),
+            std::move(columnExprs), std::move(defaultColumns), nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
@@ -137,11 +132,6 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
         std::string(InternalKeyword::ROW_OFFSET));
     auto srcTableID = relTableEntry->getSrcTableID();
     auto dstTableID = relTableEntry->getDstTableID();
-    auto catalog = clientContext->getCatalog();
-    auto srcEntry = catalog->getTableCatalogEntry(clientContext->getTx(), srcTableID);
-    auto dstEntry = catalog->getTableCatalogEntry(clientContext->getTx(), dstTableID);
-    auto srcNodeEntry = ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(srcEntry);
-    auto dstNodeEntry = ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(dstEntry);
     auto srcKey = columns[0];
     auto dstKey = columns[1];
     expression_vector propertyColumns;
@@ -150,10 +140,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     }
     auto srcOffset = createVariable(InternalKeyword::SRC_OFFSET, LogicalTypeID::INT64);
     auto dstOffset = createVariable(InternalKeyword::DST_OFFSET, LogicalTypeID::INT64);
-    auto srcPkType = srcNodeEntry->getPrimaryKey()->getDataType();
-    auto dstPkType = dstNodeEntry->getPrimaryKey()->getDataType();
-    auto srcLookUpInfo = IndexLookupInfo(srcTableID, srcOffset, srcKey, *srcPkType);
-    auto dstLookUpInfo = IndexLookupInfo(dstTableID, dstOffset, dstKey, *dstPkType);
+    auto srcLookUpInfo = IndexLookupInfo(srcTableID, srcOffset, srcKey);
+    auto dstLookUpInfo = IndexLookupInfo(dstTableID, dstOffset, dstKey);
     auto extraCopyRelInfo = std::make_unique<ExtraBoundCopyRelInfo>();
     extraCopyRelInfo->fromOffset = srcOffset;
     extraCopyRelInfo->toOffset = dstOffset;
@@ -166,7 +154,14 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
 }
 
 static bool skipPropertyInFile(const Property& property) {
-    if (*property.getDataType() == *LogicalType::SERIAL()) {
+    if (property.getName() == InternalKeyword::ID) {
+        return true;
+    }
+    return false;
+}
+
+static bool skipPropertyInSchema(const Property& property) {
+    if (property.getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
         return true;
     }
     if (property.getName() == InternalKeyword::ID) {
@@ -204,7 +199,7 @@ static void bindExpectedColumns(TableCatalogEntry* tableEntry,
     } else {
         // No column specified. Fall back to schema columns.
         for (auto& property : tableEntry->getPropertiesRef()) {
-            if (skipPropertyInFile(property)) {
+            if (skipPropertyInSchema(property)) {
                 continue;
             }
             columnNames.push_back(property.getName());

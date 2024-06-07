@@ -21,18 +21,17 @@ struct BoundCopyFromInfo {
     // Row offset of input data to generate internal ID.
     std::shared_ptr<Expression> offset;
     expression_vector columnExprs;
-    std::vector<common::LogicalType> columnTypes;
     std::vector<bool> defaultColumns;
     std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo;
 
     // TODO(Sam): REL and RDF copy PR should ensure column exprs and types is always passed
     BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry,
         std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
-        expression_vector columnExprs, std::vector<common::LogicalType> columnTypes,
-        std::vector<bool> defaultColumns, std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
+        expression_vector columnExprs, std::vector<bool> defaultColumns,
+        std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
         : tableEntry{tableEntry}, source{std::move(source)}, offset{offset},
-          columnExprs{columnExprs}, columnTypes{std::move(columnTypes)},
-          defaultColumns{std::move(defaultColumns)}, extraInfo{std::move(extraInfo)} {}
+          columnExprs{columnExprs}, defaultColumns{std::move(defaultColumns)},
+          extraInfo{std::move(extraInfo)} {}
     BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry,
         std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
         std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
@@ -43,8 +42,7 @@ struct BoundCopyFromInfo {
 private:
     BoundCopyFromInfo(const BoundCopyFromInfo& other)
         : tableEntry{other.tableEntry}, source{other.source->copy()}, offset{other.offset},
-          columnExprs{other.columnExprs}, columnTypes{other.columnTypes},
-          defaultColumns{other.defaultColumns} {
+          columnExprs{other.columnExprs}, defaultColumns{other.defaultColumns} {
         if (other.extraInfo) {
             extraInfo = other.extraInfo->copy();
         }

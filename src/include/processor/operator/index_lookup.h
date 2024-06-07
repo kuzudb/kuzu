@@ -10,23 +10,20 @@ namespace processor {
 
 struct BatchInsertSharedState;
 struct IndexLookupInfo {
-    std::unique_ptr<common::LogicalType> pkDataType;
-    storage::PrimaryKeyIndex* index; // NULL if the PK data type is SERIAL.
+    storage::PrimaryKeyIndex* index;
     // In copy rdf, we need to perform lookup before primary key is persist on disk. So we need to
     // use index builder.
     std::shared_ptr<BatchInsertSharedState> batchInsertSharedState;
     DataPos keyVectorPos;
     DataPos resultVectorPos;
 
-    IndexLookupInfo(std::unique_ptr<common::LogicalType> pkDataType,
-        storage::PrimaryKeyIndex* index, const DataPos& keyVectorPos,
+    IndexLookupInfo(storage::PrimaryKeyIndex* index, const DataPos& keyVectorPos,
         const DataPos& resultVectorPos)
-        : pkDataType{std::move(pkDataType)}, index{index}, batchInsertSharedState{nullptr},
-          keyVectorPos{keyVectorPos}, resultVectorPos{resultVectorPos} {}
+        : index{index}, batchInsertSharedState{nullptr}, keyVectorPos{keyVectorPos},
+          resultVectorPos{resultVectorPos} {}
     IndexLookupInfo(const IndexLookupInfo& other)
-        : pkDataType{other.pkDataType->copy()}, index{other.index},
-          batchInsertSharedState{other.batchInsertSharedState}, keyVectorPos{other.keyVectorPos},
-          resultVectorPos{other.resultVectorPos} {}
+        : index{other.index}, batchInsertSharedState{other.batchInsertSharedState},
+          keyVectorPos{other.keyVectorPos}, resultVectorPos{other.resultVectorPos} {}
 
     inline std::unique_ptr<IndexLookupInfo> copy() {
         return std::make_unique<IndexLookupInfo>(*this);

@@ -29,39 +29,42 @@ int64_t SequenceCatalogEntry::currVal() {
 }
 
 // referenced from DuckDB
-int64_t SequenceCatalogEntry::nextVal() {
+void SequenceCatalogEntry::nextKVal(const uint64_t& count, common::ValueVector& resultVector) {
+    KU_ASSERT(count > 0);
     std::lock_guard<std::mutex> lck(mtx);
-    int64_t result;
-    result = sequenceData.nextVal;
-    bool overflow = false;
-    try {
-        function::Add::operation(sequenceData.nextVal, sequenceData.increment,
-            sequenceData.nextVal);
-    } catch (const OverflowException& e) {
-        overflow = true;
+    int64_t tmp;
+    for (auto i = 0ul; i < count; i++) {
+        bool overflow = false;
+        tmp = sequenceData.nextVal;
+        try {
+            function::Add::operation(sequenceData.nextVal, sequenceData.increment,
+                sequenceData.nextVal);
+        } catch (const OverflowException& e) {
+            overflow = true;
+        }
+        if (sequenceData.cycle) {
+            if (overflow) {
+                sequenceData.nextVal =
+                    sequenceData.increment < 0 ? sequenceData.maxValue : sequenceData.minValue;
+            } else if (sequenceData.nextVal < sequenceData.minValue) {
+                sequenceData.nextVal = sequenceData.maxValue;
+            } else if (sequenceData.nextVal > sequenceData.maxValue) {
+                sequenceData.nextVal = sequenceData.minValue;
+            }
+        } else {
+            if (tmp < sequenceData.minValue || (overflow && sequenceData.increment < 0)) {
+                throw CatalogException("nextval: reached minimum value of sequence \"" + name +
+                                       "\" " + std::to_string(sequenceData.minValue));
+            }
+            if (tmp > sequenceData.maxValue || overflow) {
+                throw CatalogException("nextval: reached maximum value of sequence \"" + name +
+                                       "\" " + std::to_string(sequenceData.maxValue));
+            }
+        }
+        resultVector.setValue(i, tmp);
     }
-    if (sequenceData.cycle) {
-        if (overflow) {
-            sequenceData.nextVal =
-                sequenceData.increment < 0 ? sequenceData.maxValue : sequenceData.minValue;
-        } else if (sequenceData.nextVal < sequenceData.minValue) {
-            sequenceData.nextVal = sequenceData.maxValue;
-        } else if (sequenceData.nextVal > sequenceData.maxValue) {
-            sequenceData.nextVal = sequenceData.minValue;
-        }
-    } else {
-        if (result < sequenceData.minValue || (overflow && sequenceData.increment < 0)) {
-            throw CatalogException("nextval: reached minimum value of sequence \"" + name + "\" " +
-                                   std::to_string(sequenceData.minValue));
-        }
-        if (result > sequenceData.maxValue || overflow) {
-            throw CatalogException("nextval: reached maximum value of sequence \"" + name + "\" " +
-                                   std::to_string(sequenceData.maxValue));
-        }
-    }
-    sequenceData.currVal = result;
-    sequenceData.usageCount++;
-    return result;
+    sequenceData.currVal = tmp;
+    sequenceData.usageCount += count;
 }
 
 void SequenceCatalogEntry::replayVal(uint64_t usageCount, int64_t currVal, int64_t nextVal) {

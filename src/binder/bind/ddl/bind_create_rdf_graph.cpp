@@ -1,8 +1,11 @@
 #include "binder/binder.h"
 #include "binder/ddl/bound_create_table_info.h"
+#include "catalog/catalog.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "common/keyword/rdf_keyword.h"
+#include "function/sequence/sequence_functions.h"
 #include "parser/ddl/create_table_info.h"
+#include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
 
 using namespace kuzu::parser;
@@ -11,6 +14,12 @@ using namespace kuzu::catalog;
 
 namespace kuzu {
 namespace binder {
+
+static std::unique_ptr<parser::ParsedFunctionExpression> createSerialDefaultExpr(std::string name) {
+    auto param = std::make_unique<parser::ParsedLiteralExpression>(Value(name), "");
+    return std::make_unique<parser::ParsedFunctionExpression>(function::NextValFunction::name,
+        std::move(param), "");
+}
 
 BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info) {
     auto rdfGraphName = info->tableName;
@@ -25,10 +34,9 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     // Literal table.
     auto literalTableName = RDFGraphCatalogEntry::getLiteralTableName(rdfGraphName);
     std::vector<PropertyInfo> literalProperties;
-    literalProperties.emplace_back(std::string(rdf::ID), *LogicalType::SERIAL());
-    literalProperties.emplace_back(std::string(rdf::VAL), *LogicalType::RDF_VARIANT(),
-        std::make_unique<ParsedLiteralExpression>(
-            Value::createDefaultValue(*LogicalType::RDF_VARIANT())));
+    literalProperties.emplace_back(std::string(rdf::ID), *LogicalType::SERIAL(),
+        createSerialDefaultExpr(Catalog::genSerialName(literalTableName, std::string(rdf::ID))));
+    literalProperties.emplace_back(std::string(rdf::VAL), *LogicalType::RDF_VARIANT());
     literalProperties.emplace_back(std::string(rdf::LANG), *LogicalType::STRING());
     auto literalExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(0 /* primaryKeyIdx */,
         std::move(literalProperties));

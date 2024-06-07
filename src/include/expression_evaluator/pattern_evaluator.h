@@ -12,9 +12,9 @@ public:
         std::vector<std::unique_ptr<ExpressionEvaluator>> children)
         : ExpressionEvaluator{std::move(children)}, pattern{std::move(pattern)} {}
 
-    void evaluate(main::ClientContext* clientContext) override;
+    void evaluate() override;
 
-    bool select(common::SelectionVector&, main::ClientContext*) override { KU_UNREACHABLE; }
+    bool select(common::SelectionVector&) override { KU_UNREACHABLE; }
 
     std::unique_ptr<ExpressionEvaluator> clone() override;
 
@@ -22,8 +22,7 @@ protected:
     void resolveResultVector(const processor::ResultSet& resultSet,
         storage::MemoryManager* memoryManager) override;
 
-    virtual void initFurther(const processor::ResultSet& resultSet,
-        storage::MemoryManager* memoryManager);
+    virtual void initFurther(const processor::ResultSet& resultSet);
 
 protected:
     std::shared_ptr<binder::Expression> pattern;
@@ -39,10 +38,9 @@ public:
         : PatternExpressionEvaluator{std::move(pattern), std::move(children)},
           directionEvaluator{std::move(directionEvaluator)} {}
 
-    void evaluate(main::ClientContext* clientContext) override;
+    void evaluate() override;
 
-    void initFurther(const processor::ResultSet& resultSet,
-        storage::MemoryManager* memoryManager) override;
+    void initFurther(const processor::ResultSet& resultSet) override;
 
     std::unique_ptr<ExpressionEvaluator> clone() override;
 

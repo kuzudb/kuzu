@@ -9,3 +9,26 @@
 ---- ok
 -STATEMENT CREATE REL TABLE GROUP has (  FROM V1  TO V1  ,  FROM V1  TO V2  ,  FROM V2  TO V2  , ONE_MANY);
 ---- ok
+
+-CASE issue3576
+-STATEMENT CREATE NODE TABLE MyNode (uid SERIAL, PRIMARY KEY(uid));
+---- ok
+-STATEMENT CREATE NODE TABLE MyOtherNode (uid SERIAL, PRIMARY KEY(uid));
+---- ok
+-STATEMENT CREATE REL TABLE MyRel (FROM MyNode TO MyOtherNode);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE (n:MyNode) RETURN n.uid;
+---- 1
+0
+-STATEMENT CREATE (n:MyOtherNode) RETURN n.uid;
+---- 1
+0
+-STATEMENT MATCH (i1:MyNode {uid: 0}), (i2:MyOtherNode {uid: 0}) CREATE (i1)-[:MyRel]->(i2);
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT MATCH (n:MyNode)-[:MyRel]->(m:MyOtherNode) RETURN n.uid, m.uid;
+---- 1
+0|0

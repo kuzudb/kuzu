@@ -53,22 +53,13 @@ FileType getFileType(std::unordered_map<std::string, common::Value>& options) {
     return fileType;
 }
 
-static bool bindExportNodeTableDataQuery(ExportedTableData& tableData,
-    const TableCatalogEntry& entry, std::string& exportQuery) {
+static void bindExportNodeTableDataQuery(const TableCatalogEntry& entry, std::string& exportQuery) {
     exportQuery = stringFormat("match (a:{}) return ", entry.getName());
     for (auto i = 0u; i < entry.getNumProperties(); i++) {
         auto& prop = entry.getPropertiesRef()[i];
-        if (prop.getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            if (entry.getNumProperties() == 1) {
-                return false;
-            }
-            tableData.isParallel = false;
-            continue;
-        }
         exportQuery += stringFormat("a.{}", prop.getName());
         exportQuery += i == entry.getNumProperties() - 1 ? " " : ",";
     }
-    return true;
 }
 
 static void bindExportRelTableDataQuery(const TableCatalogEntry& entry, std::string& exportQuery,
@@ -83,13 +74,11 @@ static void bindExportRelTableDataQuery(const TableCatalogEntry& entry, std::str
         relName, dstName, srcPrimaryKeyName, dstPrimaryKeyName);
 }
 
-static bool bindExportQuery(ExportedTableData& tableData, std::string& exportQuery,
-    const TableCatalogEntry& entry, const Catalog& catalog, transaction::Transaction* tx) {
+static bool bindExportQuery(std::string& exportQuery, const TableCatalogEntry& entry,
+    const Catalog& catalog, transaction::Transaction* tx) {
     switch (entry.getTableType()) {
     case common::TableType::NODE: {
-        if (!bindExportNodeTableDataQuery(tableData, entry, exportQuery)) {
-            return false;
-        }
+        bindExportNodeTableDataQuery(entry, exportQuery);
     } break;
     case common::TableType::REL: {
         bindExportRelTableDataQuery(entry, exportQuery, catalog, tx);
@@ -108,7 +97,7 @@ bool Binder::bindExportTableData(ExportedTableData& tableData, const TableCatalo
     std::string exportQuery;
     tableData.isParallel = true;
     tableData.tableName = entry.getName();
-    if (!bindExportQuery(tableData, exportQuery, entry, catalog, tx)) {
+    if (!bindExportQuery(exportQuery, entry, catalog, tx)) {
         return false;
     }
     auto parsedStatement = Parser::parseQuery(exportQuery);

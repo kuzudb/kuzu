@@ -24,9 +24,6 @@ namespace kuzu {
 namespace storage {
 
 uint32_t getDataTypeSizeInChunk(const common::LogicalType& dataType) {
-    if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-        return 0;
-    }
     return getDataTypeSizeInChunk(dataType.getPhysicalType());
 }
 

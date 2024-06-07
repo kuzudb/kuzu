@@ -86,6 +86,8 @@ public:
         const binder::BoundCreateSequenceInfo& info);
     void dropSequence(transaction::Transaction* tx, common::sequence_id_t sequenceID);
 
+    static std::string genSerialName(const std::string& tableName, const std::string& propertyName);
+
     // ----------------------------- Types ----------------------------
     void createType(transaction::Transaction* transaction, std::string name,
         common::LogicalType type);

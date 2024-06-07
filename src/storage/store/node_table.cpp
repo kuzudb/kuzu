@@ -33,13 +33,10 @@ NodeTable::NodeTable(StorageManager* storageManager, NodeTableCatalogEntry* node
 void NodeTable::initializePKIndex(const std::string& databasePath,
     const NodeTableCatalogEntry* nodeTableEntry, bool readOnly, VirtualFileSystem* vfs,
     main::ClientContext* context) {
-    if (nodeTableEntry->getPrimaryKey()->getDataType()->getLogicalTypeID() !=
-        LogicalTypeID::SERIAL) {
-        pkIndex = std::make_unique<PrimaryKeyIndex>(
-            StorageUtils::getNodeIndexIDAndFName(vfs, databasePath, tableID), readOnly,
-            nodeTableEntry->getPrimaryKey()->getDataType()->getPhysicalType(), *bufferManager, wal,
-            vfs, context);
-    }
+    pkIndex = std::make_unique<PrimaryKeyIndex>(
+        StorageUtils::getNodeIndexIDAndFName(vfs, databasePath, tableID), readOnly,
+        nodeTableEntry->getPrimaryKey()->getDataType()->getPhysicalType(), *bufferManager, wal, vfs,
+        context);
 }
 
 void NodeTable::initializeScanState(Transaction* transaction, TableScanState& scanState) const {
@@ -126,9 +123,6 @@ bool NodeTable::scanCommitted(Transaction* transaction, NodeTableScanState& scan
 
 offset_t NodeTable::validateUniquenessConstraint(Transaction* transaction,
     const std::vector<ValueVector*>& propertyVectors) const {
-    if (pkIndex == nullptr) {
-        return INVALID_OFFSET;
-    }
     const auto pkVector = propertyVectors[pkColumnID];
     KU_ASSERT(pkVector->state->getSelVector().getSelSize() == 1);
     const auto pkVectorPos = pkVector->state->getSelVector()[0];
@@ -151,9 +145,7 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
     nodeInsertState.nodeIDVector.setNull(pos, false);
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
-    if (pkIndex) {
-        insertPK(nodeInsertState.nodeIDVector, nodeInsertState.pkVector);
-    }
+    insertPK(nodeInsertState.nodeIDVector, nodeInsertState.pkVector);
     if (isNewNode) {
         localTable->insert(insertState);
     } else {
@@ -172,7 +164,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
         ku_dynamic_cast<TableUpdateState&, NodeTableUpdateState&>(updateState);
     KU_ASSERT(nodeUpdateState.nodeIDVector.state->getSelVector().getSelSize() == 1 &&
               nodeUpdateState.propertyVector.state->getSelVector().getSelSize() == 1);
-    if (nodeUpdateState.columnID == pkColumnID && pkIndex) {
+    if (nodeUpdateState.columnID == pkColumnID) {
         pkIndex->delete_(nodeUpdateState.pkVector);
         insertPK(nodeUpdateState.nodeIDVector, nodeUpdateState.propertyVector);
     }
@@ -189,9 +181,7 @@ void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     if (nodeDeleteState.nodeIDVector.isNull(pos)) {
         return;
     }
-    if (pkIndex) {
-        pkIndex->delete_(&nodeDeleteState.pkVector);
-    }
+    pkIndex->delete_(&nodeDeleteState.pkVector);
     const auto nodeOffset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
     ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
         ->deleteNode(tableID, nodeOffset);
@@ -219,9 +209,7 @@ void NodeTable::prepareCommitNodeGroup(node_group_idx_t nodeGroupIdx, Transactio
 }
 
 void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
-    if (pkIndex) {
-        pkIndex->prepareCommit();
-    }
+    pkIndex->prepareCommit();
     const auto localNodeTable = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable);
     tableData->prepareLocalTableToCommit(transaction, localNodeTable->getTableData());
     tableData->prepareCommit();
@@ -229,31 +217,23 @@ void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) 
 }
 
 void NodeTable::prepareCommit() {
-    if (pkIndex) {
-        pkIndex->prepareCommit();
-    }
+    pkIndex->prepareCommit();
     tableData->prepareCommit();
 }
 
 void NodeTable::prepareRollback(LocalTable* localTable) {
-    if (pkIndex) {
-        pkIndex->prepareRollback();
-    }
+    pkIndex->prepareRollback();
     localTable->clear();
 }
 
 void NodeTable::checkpointInMemory() {
     tableData->checkpointInMemory();
-    if (pkIndex) {
-        pkIndex->checkpointInMemory();
-    }
+    pkIndex->checkpointInMemory();
 }
 
 void NodeTable::rollbackInMemory() {
     tableData->rollbackInMemory();
-    if (pkIndex) {
-        pkIndex->rollbackInMemory();
-    }
+    pkIndex->rollbackInMemory();
 }
 
 void NodeTable::insertPK(const ValueVector& nodeIDVector, const ValueVector& pkVector) const {

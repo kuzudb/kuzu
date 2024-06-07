@@ -51,10 +51,10 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
         }
         if (patternHasBeenCreated) {
             for (auto& executor : nodeInsertExecutors) {
-                executor.skipInsert(context);
+                executor.skipInsert();
             }
             for (auto& executor : relInsertExecutors) {
-                executor.skipInsert(context);
+                executor.skipInsert();
             }
             for (auto& executor : onMatchNodeSetExecutors) {
                 executor->set(context);
@@ -65,10 +65,10 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
         } else {
             // do insert and on create
             for (auto& executor : nodeInsertExecutors) {
-                executor.insert(context->clientContext->getTx(), context);
+                executor.insert(context->clientContext->getTx());
             }
             for (auto& executor : relInsertExecutors) {
-                executor.insert(context->clientContext->getTx(), context);
+                executor.insert(context->clientContext->getTx());
             }
             for (auto& executor : onCreateNodeSetExecutors) {
                 executor->set(context);

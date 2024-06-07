@@ -11,6 +11,7 @@ std::string TypeUtils::entryToString(const LogicalType& dataType, const uint8_t*
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
         return TypeUtils::toString(*reinterpret_cast<const bool*>(value));
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64:
         return TypeUtils::toString(*reinterpret_cast<const int64_t*>(value));
     case LogicalTypeID::INT32:

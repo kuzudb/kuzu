@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/copy/bound_copy_from.h"
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "common/constants.h"
 #include "common/copier_config/rdf_reader_config.h"
@@ -67,8 +68,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     auto rTableID = rdfGraphEntry->getResourceTableID();
     auto rEntry = catalog->getTableCatalogEntry(clientContext->getTx(), rTableID);
     auto rCopyInfo = BoundCopyFromInfo(rEntry, std::move(rSource), offset, std::move(rColumns),
-        logical_type_vec_t{*LogicalType::STRING()}, std::vector<bool>{false},
-        nullptr /* extraInfo */);
+        std::vector<bool>{false}, nullptr /* extraInfo */);
     // Bind copy literal.
     func = inMemory ? BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
                           RdfLiteralInMemScan::name, functions) :
@@ -80,10 +80,11 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     auto lSource = std::make_unique<BoundFileScanSource>(std::move(lFileScanInfo));
     auto lTableID = rdfGraphEntry->getLiteralTableID();
     auto lEntry = catalog->getTableCatalogEntry(clientContext->getTx(), lTableID);
-    auto lCopyInfo = BoundCopyFromInfo(lEntry, std::move(lSource), offset, std::move(lColumns),
-        logical_type_vec_t{*LogicalType::SERIAL(), *LogicalType::RDF_VARIANT(),
-            *LogicalType::STRING()},
-        std::vector<bool>{false, false}, nullptr /* extraInfo */);
+    auto lNodeEntry = lEntry->constPtrCast<NodeTableCatalogEntry>();
+    auto ser = expressionBinder.bindExpression(*lNodeEntry->getPrimaryKey()->getDefaultExpr());
+    auto lCopyColumns = expression_vector{ser, l, lang};
+    auto lCopyInfo = BoundCopyFromInfo(lEntry, std::move(lSource), offset, lCopyColumns,
+        std::vector<bool>{true, false, false}, nullptr /* extraInfo */);
     // Bind copy resource triples
     func = inMemory ? BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
                           RdfResourceTripleInMemScan::name, functions) :
@@ -96,9 +97,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     auto rrrTableID = rdfGraphEntry->getResourceTripleTableID();
     auto rrrEntry = catalog->getTableCatalogEntry(clientContext->getTx(), rrrTableID);
     auto rrrExtraInfo = std::make_unique<ExtraBoundCopyRelInfo>();
-    auto sLookUp = IndexLookupInfo(rTableID, sOffset, s, s->getDataType());
-    auto pLookUp = IndexLookupInfo(rTableID, pOffset, p, p->getDataType());
-    auto oLookUp = IndexLookupInfo(rTableID, oOffset, o, o->getDataType());
+    auto sLookUp = IndexLookupInfo(rTableID, sOffset, s);
+    auto pLookUp = IndexLookupInfo(rTableID, pOffset, p);
+    auto oLookUp = IndexLookupInfo(rTableID, oOffset, o);
     rrrExtraInfo->infos.push_back(sLookUp.copy());
     rrrExtraInfo->infos.push_back(pLookUp.copy());
     rrrExtraInfo->infos.push_back(oLookUp.copy());

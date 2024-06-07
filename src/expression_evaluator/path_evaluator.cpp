@@ -28,8 +28,8 @@ static std::vector<ValueVector*> getFieldVectors(const LogicalType& inputType,
 }
 
 void PathExpressionEvaluator::init(const processor::ResultSet& resultSet,
-    storage::MemoryManager* memoryManager) {
-    ExpressionEvaluator::init(resultSet, memoryManager);
+    main::ClientContext* clientContext) {
+    ExpressionEvaluator::init(resultSet, clientContext);
     auto resultNodesIdx = StructType::getFieldIdx(resultVector->dataType, InternalKeyword::NODES);
     resultNodesVector = StructVector::getFieldVector(resultVector.get(), resultNodesIdx).get();
     auto resultNodesDataVector = ListVector::getDataVector(resultNodesVector);
@@ -79,10 +79,10 @@ void PathExpressionEvaluator::init(const processor::ResultSet& resultSet,
     }
 }
 
-void PathExpressionEvaluator::evaluate(ClientContext* clientContext) {
+void PathExpressionEvaluator::evaluate() {
     resultVector->resetAuxiliaryBuffer();
     for (auto& child : children) {
-        child->evaluate(clientContext);
+        child->evaluate();
     }
     auto& selVector = resultVector->state->getSelVector();
     for (auto i = 0u; i < selVector.getSelSize(); ++i) {

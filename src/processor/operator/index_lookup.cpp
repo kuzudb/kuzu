@@ -93,21 +93,12 @@ void IndexLookup::fillOffsetArraysFromVector(transaction::Transaction* transacti
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
     auto offsets = (offset_t*)resultVector->getData();
     TypeUtils::visit(
-        info.pkDataType->getPhysicalType(),
+        keyVector->dataType.getPhysicalType(),
         [&](ku_string_t) {
             stringPKFillOffsetArraysFromVector(transaction, info, keyVector, offsets);
         },
-        [&]<HashablePrimitive T>(T) {
-            if (info.pkDataType->getLogicalTypeID() == LogicalTypeID::SERIAL) {
-                auto numKeys = keyVector->state->getSelVector().getSelSize();
-                for (auto i = 0u; i < numKeys; i++) {
-                    auto pos = keyVector->state->getSelVector()[i];
-                    offsets[i] = keyVector->getValue<int64_t>(pos);
-                }
-            } else {
-                primitivePKFillOffsetArraysFromVector<T>(transaction, info, keyVector, offsets);
-            }
-        },
+        [&]<HashablePrimitive T>(
+            T) { primitivePKFillOffsetArraysFromVector<T>(transaction, info, keyVector, offsets); },
         [&](auto) { KU_UNREACHABLE; });
 }
 

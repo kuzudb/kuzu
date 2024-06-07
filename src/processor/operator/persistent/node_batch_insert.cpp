@@ -22,7 +22,6 @@ namespace kuzu {
 namespace processor {
 
 void NodeBatchInsertSharedState::initPKIndex(ExecutionContext*) {
-    KU_ASSERT(pkType.getLogicalTypeID() != LogicalTypeID::SERIAL);
     uint64_t numRows;
     if (readerSharedState != nullptr) {
         KU_ASSERT(distinctSharedState == nullptr);
@@ -61,9 +60,7 @@ void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transa
 void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
-    if (nodeSharedState->pkType.getLogicalTypeID() != LogicalTypeID::SERIAL) {
-        nodeSharedState->initPKIndex(context);
-    }
+    nodeSharedState->initPKIndex(context);
     // Set initial node group index, which should be the last one available on disk which is not
     // full, or the next index.
     auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(nodeSharedState->table);
@@ -98,8 +95,8 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     for (auto i = 0u; i < numColumns; ++i) {
         if (!nodeInfo->defaultColumns[i]) {
             auto& evaluator = nodeInfo->columnEvaluators[i];
-            evaluator->init(*resultSet, context->clientContext->getMemoryManager());
-            evaluator->evaluate(context->clientContext);
+            evaluator->init(*resultSet, context->clientContext);
+            evaluator->evaluate();
             state = evaluator->resultVector->state;
             nodeLocalState->columnVectors[i] = evaluator->resultVector.get();
         }
@@ -108,7 +105,7 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     for (auto i = 0u; i < numColumns; ++i) {
         if (nodeInfo->defaultColumns[i]) {
             auto& evaluator = nodeInfo->columnEvaluators[i];
-            evaluator->init(*resultSet, context->clientContext->getMemoryManager());
+            evaluator->init(*resultSet, context->clientContext);
             auto& columnType = evaluator->resultVector->dataType;
             std::shared_ptr<ValueVector> defaultVector = std::make_shared<ValueVector>(columnType);
             defaultVector->setAllNull();
@@ -123,19 +120,17 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     nodeLocalState->columnState = std::move(state);
 }
 
-void NodeBatchInsert::populateDefaultColumns(main::ClientContext* context) {
+void NodeBatchInsert::populateDefaultColumns() {
     auto nodeLocalState =
         ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
     auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
     auto numTuples = nodeLocalState->columnState->getSelVector().getSelSize();
     for (auto i = 0u; i < nodeInfo->defaultColumns.size(); ++i) {
         if (nodeInfo->defaultColumns[i]) {
-            auto defaultVector = nodeLocalState->columnVectors[i];
             auto& defaultEvaluator = nodeInfo->columnEvaluators[i];
-            for (auto j = 0; j < numTuples; ++j) {
-                defaultEvaluator->evaluate(context);
-                defaultVector->copyFromVectorData(j, defaultEvaluator->resultVector.get(), 0);
-            }
+            defaultEvaluator->getLocalStateRef().count = numTuples;
+            defaultEvaluator->evaluate();
+            nodeLocalState->columnVectors[i] = defaultEvaluator->resultVector.get();
         }
     }
 }
@@ -150,7 +145,7 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
 
     while (children[0]->getNextTuple(context)) {
         auto originalSelVector = nodeLocalState->columnState->getSelVectorShared();
-        populateDefaultColumns(context->clientContext);
+        populateDefaultColumns();
         copyToNodeGroup(context->clientContext->getTx());
         nodeLocalState->columnState->setSelVector(originalSelVector);
     }

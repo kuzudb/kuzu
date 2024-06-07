@@ -1,6 +1,7 @@
 #include "expression_evaluator/function_evaluator.h"
 
 #include "binder/expression/function_expression.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;
@@ -10,30 +11,32 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace evaluator {
 
-void FunctionExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {
-    ExpressionEvaluator::init(resultSet, memoryManager);
+void FunctionExpressionEvaluator::init(const ResultSet& resultSet,
+    main::ClientContext* clientContext) {
+    ExpressionEvaluator::init(resultSet, clientContext);
     execFunc = ((binder::ScalarFunctionExpression&)*expression).execFunc;
     if (expression->dataType.getLogicalTypeID() == LogicalTypeID::BOOL) {
         selectFunc = ((binder::ScalarFunctionExpression&)*expression).selectFunc;
     }
+    bindData = expression->constPtrCast<binder::ScalarFunctionExpression>()->getBindData()->copy();
 }
 
-void FunctionExpressionEvaluator::evaluate(ClientContext* clientContext) {
+void FunctionExpressionEvaluator::evaluate() {
+    auto cnt = localState.count;
+    auto ctx = localState.clientContext;
     for (auto& child : children) {
-        child->evaluate(clientContext);
+        child->evaluate();
     }
-    auto expr = expression->constPtrCast<binder::ScalarFunctionExpression>();
     if (execFunc != nullptr) {
-        auto bindData = expr->getBindData();
-        bindData->clientContext = clientContext;
-        execFunc(parameters, *resultVector, bindData);
+        bindData->clientContext = ctx;
+        bindData->count = cnt;
+        execFunc(parameters, *resultVector, bindData.get());
     }
 }
 
-bool FunctionExpressionEvaluator::select(SelectionVector& selVector,
-    ClientContext* /*ClientContext*/) {
+bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
     for (auto& child : children) {
-        child->evaluate(nullptr);
+        child->evaluate();
     }
     // Temporary code path for function whose return type is BOOL but select interface is not
     // implemented (e.g. list_contains). We should remove this if statement eventually.

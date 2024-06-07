@@ -212,6 +212,7 @@ std::unique_ptr<ColumnReader> ColumnReader::createReader(ParquetReader& reader,
         return std::make_unique<
             TemplatedColumnReader<int32_t, TemplatedParquetValueConversion<int32_t>>>(reader,
             std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+    case common::LogicalTypeID::SERIAL:
     case common::LogicalTypeID::INT64:
         return std::make_unique<
             TemplatedColumnReader<int64_t, TemplatedParquetValueConversion<int64_t>>>(reader,

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/ddl/bound_create_sequence_info.h"
 #include "common/copy_constructors.h"
 #include "common/enums/rel_multiplicity.h"
 #include "common/enums/table_type.h"
@@ -32,6 +33,7 @@ struct BoundExtraCreateCatalogEntryInfo {
 struct BoundCreateTableInfo {
     common::TableType type;
     std::string tableName;
+    std::vector<BoundCreateSequenceInfo> serialSequences;
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo;
 
     BoundCreateTableInfo(common::TableType type, std::string tableName,

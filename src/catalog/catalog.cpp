@@ -181,6 +181,15 @@ table_id_t Catalog::createTableSchema(transaction::Transaction* transaction,
     default:
         KU_UNREACHABLE;
     }
+    auto tableEntry = entry->constPtrCast<TableCatalogEntry>();
+    for (auto& property : tableEntry->getPropertiesRef()) {
+        if (property.getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            auto seqName = genSerialName(tableEntry->getName(), property.getName());
+            auto seqInfo = BoundCreateSequenceInfo(seqName, 0, 1, 0,
+                std::numeric_limits<int64_t>::max(), false);
+            createSequence(transaction, seqInfo);
+        }
+    }
     tables->createEntry(transaction, std::move(entry));
     return tableID;
 }
@@ -204,6 +213,17 @@ void Catalog::dropTableSchema(transaction::Transaction* transaction, table_id_t 
     default: {
         // DO NOTHING.
     }
+    }
+    for (auto& property : tableEntry->getPropertiesRef()) {
+        if (property.getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            auto seqName = std::string(tableEntry->getName())
+                               .append("_")
+                               .append(property.getName())
+                               .append("_")
+                               .append("serial");
+            auto seqID = getSequenceID(transaction, seqName);
+            dropSequence(transaction, seqID);
+        }
     }
     tables->dropEntry(transaction, tableEntry->getName());
 }
@@ -266,6 +286,10 @@ sequence_id_t Catalog::createSequence(transaction::Transaction* transaction,
 void Catalog::dropSequence(transaction::Transaction* transaction, sequence_id_t sequenceID) {
     auto sequenceEntry = getSequenceCatalogEntry(transaction, sequenceID);
     sequences->dropEntry(transaction, sequenceEntry->getName());
+}
+
+std::string Catalog::genSerialName(const std::string& tableName, const std::string& propertyName) {
+    return std::string(tableName).append("_").append(propertyName).append("_").append("serial");
 }
 
 void Catalog::createType(transaction::Transaction* transaction, std::string name,
