@@ -18,6 +18,7 @@ void FunctionExpressionEvaluator::init(const ResultSet& resultSet,
     if (expression->dataType.getLogicalTypeID() == LogicalTypeID::BOOL) {
         selectFunc = ((binder::ScalarFunctionExpression&)*expression).selectFunc;
     }
+    bindData = expression->constPtrCast<binder::ScalarFunctionExpression>()->getBindData()->copy();
 }
 
 void FunctionExpressionEvaluator::evaluate() {
@@ -26,9 +27,7 @@ void FunctionExpressionEvaluator::evaluate() {
     for (auto& child : children) {
         child->evaluate();
     }
-    auto expr = expression->constPtrCast<binder::ScalarFunctionExpression>();
     if (execFunc != nullptr) {
-        auto bindData = expr->getBindData()->copy();
         bindData->clientContext = ctx;
         bindData->count = cnt;
         execFunc(parameters, *resultVector, bindData.get());

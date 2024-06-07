@@ -15,7 +15,7 @@ public:
     FunctionExpressionEvaluator(std::shared_ptr<binder::Expression> expression,
         std::vector<std::unique_ptr<ExpressionEvaluator>> children)
         : ExpressionEvaluator{std::move(children)}, expression{std::move(expression)},
-          execFunc{nullptr}, selectFunc{nullptr} {}
+          execFunc{nullptr}, selectFunc{nullptr}, bindData{nullptr} {}
 
     void init(const processor::ResultSet& resultSet, main::ClientContext* clientContext) override;
 
@@ -34,6 +34,7 @@ private:
     function::scalar_func_exec_t execFunc;
     function::scalar_func_select_t selectFunc;
     std::vector<std::shared_ptr<common::ValueVector>> parameters;
+    std::unique_ptr<function::FunctionBindData> bindData;
 };
 
 } // namespace evaluator

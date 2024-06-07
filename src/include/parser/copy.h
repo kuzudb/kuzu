@@ -23,14 +23,11 @@ protected:
 class CopyFrom : public Copy {
 public:
     CopyFrom(std::unique_ptr<BaseScanSource> source, std::string tableName)
-        : Copy{common::StatementType::COPY_FROM}, byColumn_{false}, forImport_{false},
-          source{std::move(source)}, tableName{std::move(tableName)} {}
+        : Copy{common::StatementType::COPY_FROM}, byColumn_{false}, source{std::move(source)}, 
+          tableName{std::move(tableName)} {}
 
     void setByColumn() { byColumn_ = true; }
     bool byColumn() const { return byColumn_; }
-
-    void setForImport() { forImport_ = true; }
-    bool forImport() const { return forImport_; }
 
     BaseScanSource* getSource() const { return source.get(); }
 
@@ -41,7 +38,6 @@ public:
 
 private:
     bool byColumn_;
-    bool forImport_;
     std::unique_ptr<BaseScanSource> source;
     std::string tableName;
     std::vector<std::string> columnNames;
