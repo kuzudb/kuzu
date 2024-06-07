@@ -1,9 +1,6 @@
 #include "expression_evaluator/function_evaluator.h"
 
 #include "binder/expression/function_expression.h"
-#include "catalog/catalog.h"
-#include "catalog/catalog_entry/sequence_catalog_entry.h"
-#include "function/sequence/sequence_functions.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;

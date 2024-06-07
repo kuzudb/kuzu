@@ -1,12 +1,10 @@
 #include "processor/operator/persistent/node_batch_insert.h"
 
-#include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/cast.h"
 #include "common/constants.h"
 #include "common/string_format.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
-#include "common/utils.h"
 #include "function/table/scan_functions.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/index_builder.h"

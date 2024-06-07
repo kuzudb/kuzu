@@ -1,5 +1,4 @@
 #include "binder/binder.h"
-#include "binder/ddl/bound_create_sequence_info.h"
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "common/keyword/rdf_keyword.h"

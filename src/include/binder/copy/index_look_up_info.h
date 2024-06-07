@@ -1,8 +1,6 @@
 #pragma once
 
 #include "binder/expression/expression.h"
-#include "common/types/types.h"
-
 namespace kuzu {
 namespace binder {
 

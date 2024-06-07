@@ -4,7 +4,6 @@
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "expression_evaluator/expression_evaluator.h"
-#include "main/client_context.h"
 #include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/operator/persistent/batch_insert.h"
 #include "processor/operator/persistent/index_builder.h"
