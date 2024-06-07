@@ -42,9 +42,8 @@ static void writeCopyStatement(stringstream& ss, TableCatalogEntry* entry,
         columns += prop.getName();
         columns += i == entry->getNumProperties() - 1 ? "" : ",";
     }
-    ss << stringFormat("COPY {} ( {} ) FROM \"{}.{}\" {};\n", tableName, columns, tableName, fileTypeStr,
-        csvConfig.option.toCypher());
-        
+    ss << stringFormat("COPY {} ( {} ) FROM \"{}.{}\" {};\n", tableName, columns, tableName,
+        fileTypeStr, csvConfig.option.toCypher());
 }
 
 std::string getSchemaCypher(ClientContext* clientContext, Transaction* tx, std::string& extraMsg) {

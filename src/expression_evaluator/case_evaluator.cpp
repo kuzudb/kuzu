@@ -8,7 +8,8 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace evaluator {
 
-void CaseAlternativeEvaluator::init(const ResultSet& resultSet, main::ClientContext* clientContext) {
+void CaseAlternativeEvaluator::init(const ResultSet& resultSet,
+    main::ClientContext* clientContext) {
     whenEvaluator->init(resultSet, clientContext);
     thenEvaluator->init(resultSet, clientContext);
     whenSelVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
@@ -27,8 +28,7 @@ void CaseExpressionEvaluator::evaluate() {
     filledMask.reset();
     for (auto& alternativeEvaluator : alternativeEvaluators) {
         auto whenSelVector = alternativeEvaluator->whenSelVector.get();
-        auto hasAtLeastOneValue =
-            alternativeEvaluator->whenEvaluator->select(*whenSelVector);
+        auto hasAtLeastOneValue = alternativeEvaluator->whenEvaluator->select(*whenSelVector);
         if (!hasAtLeastOneValue) {
             continue;
         }

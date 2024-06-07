@@ -37,7 +37,8 @@ function_set CurrValFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::INT64,
-        ScalarFunction::UnarySequenceExecFunction<common::ku_string_t, common::ValueVector, CurrVal>));
+        ScalarFunction::UnarySequenceExecFunction<common::ku_string_t, common::ValueVector,
+            CurrVal>));
     return functionSet;
 }
 
@@ -45,7 +46,8 @@ function_set NextValFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::INT64,
-        ScalarFunction::UnarySequenceExecFunction<common::ku_string_t, common::ValueVector, NextVal>));
+        ScalarFunction::UnarySequenceExecFunction<common::ku_string_t, common::ValueVector,
+            NextVal>));
     return functionSet;
 }
 

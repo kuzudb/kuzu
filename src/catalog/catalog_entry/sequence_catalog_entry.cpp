@@ -1,10 +1,11 @@
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 
+#include <fstream>
+
 #include "binder/ddl/bound_create_sequence_info.h"
 #include "common/exception/catalog.h"
 #include "common/exception/overflow.h"
 #include "function/arithmetic/add.h"
-#include <fstream>
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -38,7 +39,8 @@ void SequenceCatalogEntry::nextKVal(const uint64_t& count, common::ValueVector& 
         bool overflow = false;
         tmp = sequenceData.nextVal;
         try {
-            function::Add::operation(sequenceData.nextVal, sequenceData.increment, sequenceData.nextVal);
+            function::Add::operation(sequenceData.nextVal, sequenceData.increment,
+                sequenceData.nextVal);
         } catch (const OverflowException& e) {
             overflow = true;
         }
@@ -53,12 +55,12 @@ void SequenceCatalogEntry::nextKVal(const uint64_t& count, common::ValueVector& 
             }
         } else {
             if (tmp < sequenceData.minValue || (overflow && sequenceData.increment < 0)) {
-                throw CatalogException("nextval: reached minimum value of sequence \"" + name + "\" " +
-                                    std::to_string(sequenceData.minValue));
+                throw CatalogException("nextval: reached minimum value of sequence \"" + name +
+                                       "\" " + std::to_string(sequenceData.minValue));
             }
             if (tmp > sequenceData.maxValue || overflow) {
-                throw CatalogException("nextval: reached maximum value of sequence \"" + name + "\" " +
-                                    std::to_string(sequenceData.maxValue));
+                throw CatalogException("nextval: reached maximum value of sequence \"" + name +
+                                       "\" " + std::to_string(sequenceData.maxValue));
             }
         }
         resultVector.setValue(i, tmp);

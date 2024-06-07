@@ -28,8 +28,7 @@ struct UnarySequenceFunctionWrapper {
         uint64_t resultPos, void* dataPtr) {
         auto& inputVector_ = *(common::ValueVector*)inputVector;
         auto& resultVector_ = *(common::ValueVector*)resultVector;
-        FUNC::operation(inputVector_.getValue<OPERAND_TYPE>(inputPos),
-            resultVector_, dataPtr);
+        FUNC::operation(inputVector_.getValue<OPERAND_TYPE>(inputPos), resultVector_, dataPtr);
     }
 };
 
@@ -180,8 +179,8 @@ struct UnaryFunctionExecutor {
         result.resetAuxiliaryBuffer();
         auto inputPos = operand.state->getSelVector()[0];
         auto resultPos = result.state->getSelVector()[0];
-        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, UnarySequenceFunctionWrapper>(
-            operand, inputPos, result, resultPos, dataPtr);
+        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, UnarySequenceFunctionWrapper>(operand,
+            inputPos, result, resultPos, dataPtr);
     }
 };
 

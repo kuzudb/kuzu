@@ -15,7 +15,7 @@ public:
         : ExpressionEvaluator{isResultFlat}, vectorPos{vectorPos} {}
 
     inline void evaluate() override {}
-        
+
     bool select(common::SelectionVector& selVector) override;
 
     inline std::unique_ptr<ExpressionEvaluator> clone() override {

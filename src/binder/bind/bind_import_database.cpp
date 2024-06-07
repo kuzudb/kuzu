@@ -73,11 +73,12 @@ std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement
             if (fileType == FileType::CSV) {
                 auto csvConfig = CSVReaderConfig::construct(
                     bindParsingOptions(copyFromStatement->getParsingOptionsRef()));
-                query = stringFormat("COPY {} ( {} ) FROM \"{}\" {};", copyFromStatement->getTableName(),
-                    columns, copyFilePath, csvConfig.option.toCypher());
+                query = stringFormat("COPY {} ( {} ) FROM \"{}\" {};",
+                    copyFromStatement->getTableName(), columns, copyFilePath,
+                    csvConfig.option.toCypher());
             } else {
-                query = stringFormat("COPY {} ( {} ) FROM \"{}\";", copyFromStatement->getTableName(),
-                    columns, copyFilePath);
+                query = stringFormat("COPY {} ( {} ) FROM \"{}\";",
+                    copyFromStatement->getTableName(), columns, copyFilePath);
             }
             finalQueryStatements += query;
         }

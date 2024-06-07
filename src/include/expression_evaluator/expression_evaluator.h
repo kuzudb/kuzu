@@ -1,7 +1,7 @@
 #pragma once
 
-#include "processor/result/result_set.h"
 #include "main/client_context.h"
+#include "processor/result/result_set.h"
 
 namespace kuzu {
 namespace evaluator {

@@ -14,7 +14,8 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace evaluator {
 
-void FunctionExpressionEvaluator::init(const ResultSet& resultSet, main::ClientContext* clientContext) {
+void FunctionExpressionEvaluator::init(const ResultSet& resultSet,
+    main::ClientContext* clientContext) {
     ExpressionEvaluator::init(resultSet, clientContext);
     execFunc = ((binder::ScalarFunctionExpression&)*expression).execFunc;
     if (expression->dataType.getLogicalTypeID() == LogicalTypeID::BOOL) {

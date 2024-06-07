@@ -120,8 +120,8 @@ struct ScalarFunction final : public BaseScalarFunction {
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* dataPtr) {
         KU_ASSERT(params.size() == 1);
-        UnaryFunctionExecutor::executeSequence<OPERAND_TYPE, RESULT_TYPE, FUNC>(
-            *params[0], result, dataPtr);
+        UnaryFunctionExecutor::executeSequence<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result,
+            dataPtr);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
