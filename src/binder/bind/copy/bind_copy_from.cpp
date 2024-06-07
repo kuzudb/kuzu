@@ -162,6 +162,16 @@ static bool skipPropertyInFile(const Property& property) {
     return false;
 }
 
+static bool skipPropertyInSchema(const Property& property) {
+    if (property.getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
+        return true;
+    }
+    if (property.getName() == InternalKeyword::ID) {
+        return true;
+    }
+    return false;
+}
+
 static void bindExpectedColumns(TableCatalogEntry* tableEntry,
     const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
     std::vector<common::LogicalType>& columnTypes) {
@@ -191,7 +201,7 @@ static void bindExpectedColumns(TableCatalogEntry* tableEntry,
     } else {
         // No column specified. Fall back to schema columns.
         for (auto& property : tableEntry->getPropertiesRef()) {
-            if (skipPropertyInFile(property)) {
+            if (skipPropertyInSchema(property)) {
                 continue;
             }
             columnNames.push_back(property.getName());

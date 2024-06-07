@@ -30,13 +30,21 @@ static void writeStringStreamToFile(VirtualFileSystem* vfs, std::string ssString
         0 /* offset */);
 }
 
-static void writeCopyStatement(stringstream& ss, std::string tableName,
+static void writeCopyStatement(stringstream& ss, TableCatalogEntry* entry,
     ReaderConfig* boundFileInfo) {
     auto fileTypeStr = FileTypeUtils::toString(boundFileInfo->fileType);
     StringUtils::toLower(fileTypeStr);
     auto csvConfig = common::CSVReaderConfig::construct(boundFileInfo->options);
-    ss << stringFormat("COPY {} FROM \"{}.{}\" {};\n", tableName, tableName, fileTypeStr,
+    auto tableName = entry->getName();
+    std::string columns;
+    for (auto i = 0u; i < entry->getNumProperties(); i++) {
+        auto& prop = entry->getPropertiesRef()[i];
+        columns += prop.getName();
+        columns += i == entry->getNumProperties() - 1 ? "" : ",";
+    }
+    ss << stringFormat("COPY {} ( {} ) FROM \"{}.{}\" {};\n", tableName, columns, tableName, fileTypeStr,
         csvConfig.option.toCypher());
+        
 }
 
 std::string getSchemaCypher(ClientContext* clientContext, Transaction* tx, std::string& extraMsg) {
@@ -75,14 +83,13 @@ std::string getCopyCypher(Catalog* catalog, Transaction* tx, ReaderConfig* bound
         if (catalog->tableInRDFGraph(tx, nodeTableEntry->getTableID())) {
             continue;
         }
-        auto tableName = nodeTableEntry->getName();
-        writeCopyStatement(ss, tableName, boundFileInfo);
+        writeCopyStatement(ss, nodeTableEntry, boundFileInfo);
     }
     for (auto& entry : catalog->getRelTableEntries(tx)) {
         if (catalog->tableInRDFGraph(tx, entry->getTableID())) {
             continue;
         }
-        writeCopyStatement(ss, entry->getName(), boundFileInfo);
+        writeCopyStatement(ss, entry, boundFileInfo);
     }
     return ss.str();
 }
