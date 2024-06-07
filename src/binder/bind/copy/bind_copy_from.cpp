@@ -107,8 +107,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     }
     auto offset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
         std::string(InternalKeyword::ANONYMOUS));
-    auto boundCopyFromInfo = BoundCopyFromInfo(nodeTableEntry, std::move(boundSource),
-        std::move(offset), std::move(columnExprs), std::move(defaultColumns), nullptr /* extraInfo */);
+    auto boundCopyFromInfo =
+        BoundCopyFromInfo(nodeTableEntry, std::move(boundSource), std::move(offset),
+            std::move(columnExprs), std::move(defaultColumns), nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 

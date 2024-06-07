@@ -27,10 +27,10 @@ struct BoundCopyFromInfo {
     // TODO(Sam): REL and RDF copy PR should ensure column exprs and types is always passed
     BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry,
         std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
-        expression_vector columnExprs, std::vector<bool> defaultColumns, 
+        expression_vector columnExprs, std::vector<bool> defaultColumns,
         std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
         : tableEntry{tableEntry}, source{std::move(source)}, offset{offset},
-          columnExprs{columnExprs}, defaultColumns{std::move(defaultColumns)}, 
+          columnExprs{columnExprs}, defaultColumns{std::move(defaultColumns)},
           extraInfo{std::move(extraInfo)} {}
     BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry,
         std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
