@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string_view>
+#include <type_traits>
 
 #include "common/cast.h"
 #include "common/type_utils.h"
@@ -96,8 +97,6 @@ public:
 private:
     bool lookupInPersistentIndex(transaction::TransactionType trxType, Key key,
         common::offset_t& result);
-    // The following two functions are only used in prepareCommit, and are not thread-safe.
-    void insertIntoPersistentIndex(Key key, common::offset_t value);
     void deleteFromPersistentIndex(Key key);
 
     entry_pos_t findMatchedEntryInSlot(transaction::TransactionType trxType, const Slot<T>& slot,
@@ -143,21 +142,7 @@ private:
         const T& keyInEntry) const {
         return keyToLookup == keyInEntry;
     }
-    template<typename K, bool isCopyEntry>
-    void copyAndUpdateSlotHeader(Slot<T>& slot, entry_pos_t entryPos, K key, common::offset_t value,
-        uint8_t fingerprint) {
-        if constexpr (isCopyEntry) {
-            slot.entries[entryPos].copyFrom((uint8_t*)&key);
-        } else {
-            insert(key, slot.entries[entryPos], value);
-        }
-        slot.header.setEntryValid(entryPos, fingerprint);
-    }
 
-    inline void insert(Key key, SlotEntry<T>& entry, common::offset_t offset) {
-        entry.key = key;
-        entry.value = offset;
-    }
     inline common::hash_t hashStored(transaction::TransactionType /*trxType*/, const T& key) const {
         return HashIndexUtils::hash(key);
     }
@@ -185,30 +170,6 @@ private:
     }
 
     std::vector<std::pair<SlotInfo, Slot<T>>> getChainedSlots(slot_id_t pSlotId);
-
-    template<typename K, bool isCopyEntry>
-    void copyKVOrEntryToSlot(SlotIterator& iter, K key, common::offset_t value,
-        uint8_t fingerprint) {
-        if (iter.slot.header.numEntries() == getSlotCapacity<T>()) {
-            // Allocate a new oSlot, insert the entry to the new oSlot, and update slot's
-            // nextOvfSlotId.
-            Slot<T> newSlot;
-            auto entryPos = 0u; // Always insert to the first entry when there is a new slot.
-            copyAndUpdateSlotHeader<K, isCopyEntry>(newSlot, entryPos, key, value, fingerprint);
-            iter.slot.header.nextOvfSlotId = appendOverflowSlot(std::move(newSlot));
-        } else {
-            for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
-                if (!iter.slot.header.isEntryValid(entryPos)) {
-                    copyAndUpdateSlotHeader<K, isCopyEntry>(iter.slot, entryPos, key, value,
-                        fingerprint);
-                    break;
-                }
-            }
-        }
-        updateSlot(iter.slotInfo, iter.slot);
-    }
-
-    void copyEntryToSlot(slot_id_t slotId, const T& entry, uint8_t fingerprint);
 
 private:
     DBFileIDAndName dbFileIDAndName;
@@ -314,9 +275,6 @@ public:
     OverflowFile* getOverflowFile() { return overflowFile.get(); }
 
     common::PhysicalTypeID keyTypeID() { return keyDataTypeID; }
-
-    static void createEmptyHashIndexFiles(common::PhysicalTypeID typeID, const std::string& fName,
-        common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     void writeHeaders();
 

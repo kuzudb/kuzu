@@ -34,9 +34,6 @@ public:
     DiskArrayCollection(BMFileHandle& fileHandle, DBFileID dbFileID, BufferManager* bufferManager,
         WAL* wal, common::page_idx_t firstHeaderPage = 0, bool bypassWAL = false);
 
-    static void writeEmptyHeadersToFile(FileHandle& handle, common::page_idx_t firstHeaderPage,
-        size_t numHeaders);
-
     void prepareCommit();
 
     void checkpointInMemory() {

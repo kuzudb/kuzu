@@ -2,7 +2,10 @@
 
 #include <array>
 #include <cstdint>
+#include <cstring>
+#include <type_traits>
 
+#include "common/assert.h"
 #include "common/constants.h"
 #include "common/types/internal_id_t.h"
 #include <bit>
@@ -48,19 +51,23 @@ public:
     uint32_t validityMask;
     slot_id_t nextOvfSlotId;
 };
+static_assert(std::has_unique_object_representations_v<SlotHeader>);
 
 template<typename T>
 struct SlotEntry {
-    SlotEntry() : key{}, value{} {}
+    SlotEntry(T _key, common::offset_t _value) : key{_key}, value{_value} {
+        // Zero padding, if any
+        if constexpr (sizeof(T) + sizeof(common::offset_t) < sizeof(SlotEntry<T>)) {
+            auto padding = sizeof(SlotEntry<T>) - sizeof(T) - sizeof(common::offset_t);
+            memset(reinterpret_cast<uint8_t*>(&key) + sizeof(T), 0, padding);
+            // Assumes that all the padding follows the key
+            KU_ASSERT((std::byte*)&key + sizeof(key) + padding == (std::byte*)&value);
+        }
+    }
+    SlotEntry() : SlotEntry(T{}, 0) {}
+
     T key;
     common::offset_t value;
-
-    inline uint8_t* data() const { return (uint8_t*)&key; }
-
-    // otherEntry must be a pointer to the beginning of another slot's key field
-    inline void copyFrom(const uint8_t* otherEntry) {
-        memcpy(data(), otherEntry, sizeof(SlotEntry<T>));
-    }
 };
 
 template<typename T>

@@ -15,8 +15,7 @@ add_library(kuzu_storage
         storage_utils.cpp
         storage_version_info.cpp
         undo_buffer.cpp
-        wal_replayer.cpp
-        wal_replayer_utils.cpp)
+        wal_replayer.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_storage>

@@ -304,8 +304,7 @@ template<>
 void InMemHashIndex<ku_string_t>::insert(std::string_view key, Slot<ku_string_t>* slot,
     uint8_t entryPos, offset_t offset, uint8_t fingerprint) {
     auto& entry = slot->entries[entryPos];
-    entry.key = overflowFileHandle->writeString(key);
-    entry.value = offset;
+    entry = SlotEntry<ku_string_t>(overflowFileHandle->writeString(key), offset);
     slot->header.setEntryValid(entryPos, fingerprint);
 }
 

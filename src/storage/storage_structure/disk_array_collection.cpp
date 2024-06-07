@@ -4,7 +4,6 @@
 #include "common/types/types.h"
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/buffer_manager/buffer_manager.h"
-#include "storage/file_handle.h"
 #include "storage/storage_structure/db_file_utils.h"
 #include "transaction/transaction.h"
 
@@ -34,35 +33,13 @@ DiskArrayCollection::DiskArrayCollection(BMFileHandle& fileHandle, DBFileID dbFi
         } while (headerPageIdx != common::INVALID_PAGE_IDX);
         headerPagesOnDisk = headersForReadTrx.size();
     } else {
+        KU_ASSERT(fileHandle.getNumPages() == firstHeaderPage);
         // Reserve the first header page
         fileHandle.addNewPage();
-        KU_ASSERT(firstHeaderPage == 0);
         headersForReadTrx.push_back(std::make_unique<HeaderPage>());
         headersForWriteTrx.push_back(std::make_unique<HeaderPage>());
         headerPagesOnDisk = 0;
     }
-}
-
-void DiskArrayCollection::writeEmptyHeadersToFile(FileHandle& handle,
-    common::page_idx_t firstHeaderPage, size_t numHeaders) {
-    size_t headerIdx = 0;
-    std::array<uint8_t, common::BufferPoolConstants::PAGE_4KB_SIZE> pageData;
-    HeaderPage& page = *reinterpret_cast<HeaderPage*>(pageData.data()) = HeaderPage{};
-    auto numPages =
-        (numHeaders + HeaderPage::NUM_HEADERS_PER_PAGE - 1) / HeaderPage::NUM_HEADERS_PER_PAGE;
-    handle.addNewPages(numPages);
-    auto pageIdx = firstHeaderPage;
-    do {
-        page.numHeaders = std::min(numHeaders - headerIdx, HeaderPage::NUM_HEADERS_PER_PAGE);
-        if (headerIdx + page.numHeaders < numHeaders) {
-            page.nextHeaderPage = pageIdx + 1;
-        } else {
-            page.nextHeaderPage = INVALID_PAGE_IDX;
-        }
-        headerIdx += page.numHeaders;
-        handle.writePage(pageData.data(), pageIdx);
-        pageIdx++;
-    } while (headerIdx < numHeaders);
 }
 
 void DiskArrayCollection::prepareCommit() {

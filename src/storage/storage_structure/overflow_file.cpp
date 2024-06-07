@@ -165,28 +165,17 @@ OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager
     dbFileID = overflowFileIDAndName.dbFileID;
     fileHandle = bufferManager->getBMFileHandle(overflowFileIDAndName.fName,
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                   FileHandle::O_PERSISTENT_FILE_NO_CREATE,
+                   FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
         BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs, context);
-    if (vfs->fileOrPathExists(overflowFileIDAndName.fName, context)) {
+    if (fileHandle->getNumPages() > HEADER_PAGE_IDX) {
         readFromDisk(transaction::TransactionType::READ_ONLY, HEADER_PAGE_IDX,
             [&](auto* frame) { memcpy(&header, frame, sizeof(header)); });
         pageCounter = numPagesOnDisk = header.pages;
     } else {
         // Reserve a page for the header
         getNewPageIdx();
+        header = StringOverflowFileHeader();
     }
-}
-
-void OverflowFile::createEmptyFiles(const std::string& fName, common::VirtualFileSystem* vfs,
-    main::ClientContext* context) {
-    FileHandle fileHandle(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs, context);
-    uint8_t page[common::BufferPoolConstants::PAGE_4KB_SIZE];
-    StringOverflowFileHeader header;
-    memcpy(page, &header, sizeof(StringOverflowFileHeader));
-    // Zero free space at the end of the header page
-    std::fill(page + sizeof(header), page + BufferPoolConstants::PAGE_4KB_SIZE, 0);
-    fileHandle.addNewPage();
-    fileHandle.writePage(page, HEADER_PAGE_IDX);
 }
 
 void OverflowFile::readFromDisk(transaction::TransactionType trxType, common::page_idx_t pageIdx,
@@ -199,8 +188,8 @@ void OverflowFile::readFromDisk(transaction::TransactionType trxType, common::pa
 
 void OverflowFile::writePageToDisk(common::page_idx_t pageIdx, uint8_t* data) const {
     if (pageIdx < numPagesOnDisk) {
-        // TODO: updatePage does an unnecessary read + copy. We just want to overwrite
-        DBFileUtils::updatePage(*getBMFileHandle(), dbFileID, pageIdx, false, *bufferManager, *wal,
+        DBFileUtils::updatePage(*getBMFileHandle(), dbFileID, pageIdx,
+            true /* overwriting entire page*/, *bufferManager, *wal,
             [&](auto* frame) { memcpy(frame, data, BufferPoolConstants::PAGE_4KB_SIZE); });
     } else {
         fileHandle->writePage(data, pageIdx);

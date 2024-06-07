@@ -138,9 +138,7 @@ private:
 
     inline void insert(Key key, Slot<T>* slot, uint8_t entryPos, common::offset_t value,
         uint8_t fingerprint) {
-        auto& entry = slot->entries[entryPos];
-        entry.key = key;
-        entry.value = value;
+        slot->entries[entryPos] = SlotEntry<T>(key, value);
         slot->header.setEntryValid(entryPos, fingerprint);
         KU_ASSERT(HashIndexUtils::getFingerprintForHash(HashIndexUtils::hash(key)) == fingerprint);
     }
