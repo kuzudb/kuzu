@@ -32,7 +32,7 @@ bool LocalNodeGroup::hasUpdatesOrDeletions() const {
     return false;
 }
 
-void LocalChunkedGroupCollection::appendChunkedGroup(ColumnChunk* srcOffsetChunk,
+void LocalChunkedGroupCollection::appendChunkedGroup(ColumnChunkData* srcOffsetChunk,
     std::unique_ptr<ChunkedNodeGroup> chunkedGroup) {
     KU_ASSERT(chunkedGroup->getNumColumns() == dataTypes.size());
     for (auto i = 0u; i < chunkedGroup->getNumColumns(); i++) {

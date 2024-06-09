@@ -1,6 +1,5 @@
 #include "storage/store/struct_column.h"
 
-#include "common/cast.h"
 #include "storage/store/null_column.h"
 #include "storage/store/struct_column_chunk.h"
 
@@ -29,7 +28,7 @@ StructColumn::StructColumn(std::string name, LogicalType dataType,
 }
 
 void StructColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    ColumnChunk* columnChunk, offset_t startOffset, offset_t endOffset) {
+    ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
     KU_ASSERT(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     nullColumn->scan(transaction, nodeGroupIdx, columnChunk->getNullChunk(), startOffset,
         endOffset);
@@ -42,10 +41,10 @@ void StructColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
                              std::min(endOffset, chunkMetadata.numValues) - startOffset;
         columnChunk->setNumValues(numValues);
     }
-    auto structColumnChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(columnChunk);
+    auto& structColumnChunk = columnChunk->cast<StructChunkData>();
     for (auto i = 0u; i < childColumns.size(); i++) {
-        childColumns[i]->scan(transaction, nodeGroupIdx, structColumnChunk->getChild(i),
-            startOffset, endOffset);
+        childColumns[i]->scan(transaction, nodeGroupIdx, structColumnChunk.getChild(i), startOffset,
+            endOffset);
     }
 }
 
@@ -102,22 +101,22 @@ void StructColumn::write(ChunkState& state, offset_t offsetInChunk, ValueVector*
     }
 }
 
-void StructColumn::write(ChunkState& state, offset_t offsetInChunk, ColumnChunk* data,
+void StructColumn::write(ChunkState& state, offset_t offsetInChunk, ColumnChunkData* data,
     offset_t dataOffset, length_t numValues) {
     KU_ASSERT(data->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     nullColumn->write(*state.nullState, offsetInChunk, data->getNullChunk(), dataOffset, numValues);
-    auto structData = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(data);
+    auto& structData = data->cast<StructChunkData>();
     for (auto i = 0u; i < childColumns.size(); i++) {
-        auto childData = structData->getChild(i);
+        auto childData = structData.getChild(i);
         childColumns[i]->write(state.childrenStates[i], offsetInChunk, childData, dataOffset,
             numValues);
     }
 }
 
-void StructColumn::append(ColumnChunk* columnChunk, ChunkState& state) {
+void StructColumn::append(ColumnChunkData* columnChunk, ChunkState& state) {
     Column::append(columnChunk, state);
     KU_ASSERT(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
-    auto structColumnChunk = static_cast<StructColumnChunk*>(columnChunk);
+    auto structColumnChunk = static_cast<StructChunkData*>(columnChunk);
     for (auto i = 0u; i < childColumns.size(); i++) {
         childColumns[i]->append(structColumnChunk->getChild(i), state.childrenStates[i]);
     }
@@ -166,7 +165,7 @@ void StructColumn::prepareCommitForExistingChunk(Transaction* transaction, Chunk
 }
 
 void StructColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkState& state,
-    const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk, offset_t srcOffset) {
+    const std::vector<offset_t>& dstOffsets, ColumnChunkData* chunk, offset_t srcOffset) {
     KU_ASSERT(chunk->getDataType().getPhysicalType() == dataType.getPhysicalType());
     // STRUCT column doesn't have actual data stored in buffer. Only need to update the null
     // column.
@@ -178,7 +177,7 @@ void StructColumn::prepareCommitForExistingChunk(Transaction* transaction, Chunk
     }
     // Update each child column separately
     for (auto i = 0u; i < childColumns.size(); i++) {
-        auto childChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(chunk)->getChild(i);
+        const auto childChunk = chunk->cast<StructChunkData>().getChild(i);
         childColumns[i]->prepareCommitForExistingChunk(transaction, state.childrenStates[i],
             dstOffsets, childChunk, srcOffset);
     }
@@ -188,8 +187,8 @@ ChunkCollection StructColumn::getStructChildChunkCollection(const ChunkCollectio
     idx_t childIdx) {
     ChunkCollection childChunkCollection;
     for (const auto& chunk : chunkCollection) {
-        auto structChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(chunk);
-        childChunkCollection.push_back(structChunk->getChild(childIdx));
+        auto& structChunk = chunk->cast<StructChunkData>();
+        childChunkCollection.push_back(structChunk.getChild(childIdx));
     }
     return childChunkCollection;
 }

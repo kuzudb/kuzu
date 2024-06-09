@@ -63,7 +63,7 @@ void NullColumn::scan(Transaction* transaction, const ChunkState& state,
 }
 
 void NullColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    ColumnChunk* columnChunk, offset_t startOffset, offset_t endOffset) {
+    ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
     Column::scan(transaction, nodeGroupIdx, columnChunk, startOffset, endOffset);
 }
 
@@ -72,7 +72,7 @@ void NullColumn::lookup(Transaction* transaction, ChunkState& readState, ValueVe
     lookupInternal(transaction, readState, nodeIDVector, resultVector);
 }
 
-void NullColumn::append(ColumnChunk* columnChunk, ChunkState& state) {
+void NullColumn::append(ColumnChunkData* columnChunk, ChunkState& state) {
     auto preScanMetadata = columnChunk->getMetadataToFlush();
     auto startPageIdx = dataFH->addNewPages(preScanMetadata.numPages);
     state.metadata = columnChunk->flushBuffer(dataFH, startPageIdx, preScanMetadata);
@@ -106,16 +106,16 @@ void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ValueVector* v
     updateStatistics(state.metadata, offsetInChunk, value, value);
 }
 
-void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ColumnChunk* data,
+void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ColumnChunkData* data,
     offset_t dataOffset, length_t numValues) {
     writeValues(state, offsetInChunk, data->getData(), nullptr /*nullChunkData*/, dataOffset,
         numValues);
-    auto nullChunk = ku_dynamic_cast<ColumnChunk*, NullColumnChunk*>(data);
+    auto& nullChunk = data->cast<NullChunkData>();
     KU_ASSERT(numValues > 0);
-    bool min = nullChunk->isNull(dataOffset);
+    bool min = nullChunk.isNull(dataOffset);
     bool max = min;
     for (auto i = 0u; i < numValues; i++) {
-        if (nullChunk->isNull(dataOffset + i)) {
+        if (nullChunk.isNull(dataOffset + i)) {
             max = true;
         } else {
             min = false;

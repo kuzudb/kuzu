@@ -19,15 +19,15 @@ public:
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector = 0) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        ColumnChunk* columnChunk, common::offset_t startOffset = 0,
+        ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
 
-    void append(ColumnChunk* columnChunk, ChunkState& state) override;
+    void append(ColumnChunkData* columnChunk, ChunkState& state) override;
 
     void writeValue(ChunkState& state, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
 
-    void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunk* data,
+    void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunkData* data,
         common::offset_t dataOffset, common::length_t numValues) override;
 
     void prepareCommit() override;
@@ -55,7 +55,7 @@ private:
         const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunk,
         const offset_to_row_idx_t& updateInfo) override;
     bool canCommitInPlace(const ChunkState& state, const std::vector<common::offset_t>& dstOffsets,
-        ColumnChunk* chunk, common::offset_t srcOffset) override;
+        ColumnChunkData* chunk, common::offset_t srcOffset) override;
 
     bool canIndexCommitInPlace(const ChunkState& dataState, uint64_t numStrings,
         common::offset_t maxOffset);

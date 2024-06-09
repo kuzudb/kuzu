@@ -53,7 +53,7 @@ ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<common::LogicalType>& colum
     chunks.reserve(columnTypes.size());
     for (auto& type : columnTypes) {
         chunks.push_back(
-            ColumnChunkFactory::createColumnChunk(*type.copy(), enableCompression, capacity));
+            ColumnChunkFactory::createColumnChunkData(*type.copy(), enableCompression, capacity));
     }
 }
 
@@ -62,7 +62,7 @@ ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<std::unique_ptr<Column>>& c
     : nodeGroupIdx{UINT64_MAX}, numRows{0} {
     chunks.reserve(columns.size());
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
-        chunks.push_back(ColumnChunkFactory::createColumnChunk(
+        chunks.push_back(ColumnChunkFactory::createColumnChunkData(
             *columns[columnID]->getDataType().copy(), enableCompression));
     }
 }
@@ -125,7 +125,7 @@ offset_t ChunkedNodeGroup::append(ChunkedNodeGroup* other, offset_t offsetInOthe
     return numNodesToAppend;
 }
 
-void ChunkedNodeGroup::write(const std::vector<std::unique_ptr<ColumnChunk>>& data,
+void ChunkedNodeGroup::write(const std::vector<std::unique_ptr<ColumnChunkData>>& data,
     column_id_t offsetColumnID) {
     KU_ASSERT(data.size() == chunks.size() + 1);
     auto& offsetChunk = data[offsetColumnID];
@@ -155,10 +155,10 @@ void ChunkedNodeGroup::finalize(uint64_t nodeGroupIdx_) {
 }
 
 ChunkedCSRHeader::ChunkedCSRHeader(bool enableCompression, uint64_t capacity) {
-    offset =
-        ColumnChunkFactory::createColumnChunk(*LogicalType::UINT64(), enableCompression, capacity);
-    length =
-        ColumnChunkFactory::createColumnChunk(*LogicalType::UINT64(), enableCompression, capacity);
+    offset = ColumnChunkFactory::createColumnChunkData(*LogicalType::UINT64(), enableCompression,
+        capacity);
+    length = ColumnChunkFactory::createColumnChunkData(*LogicalType::UINT64(), enableCompression,
+        capacity);
 }
 
 offset_t ChunkedCSRHeader::getStartCSROffset(offset_t nodeOffset) const {

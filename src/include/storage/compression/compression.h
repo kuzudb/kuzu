@@ -16,7 +16,7 @@ class NullMask;
 } // namespace common
 
 namespace storage {
-class ColumnChunk;
+class ColumnChunkData;
 
 struct PageCursor;
 
@@ -184,7 +184,7 @@ public:
     explicit ConstantCompression(const common::LogicalType& logicalType)
         : numBytesPerValue{static_cast<uint8_t>(getDataTypeSizeInChunk(logicalType))},
           dataType{logicalType.getPhysicalType()} {}
-    static std::optional<CompressionMetadata> analyze(const ColumnChunk& chunk);
+    static std::optional<CompressionMetadata> analyze(const ColumnChunkData& chunk);
 
     // Shouldn't be used, there's a special case when compressing which ends early for constant
     // compression

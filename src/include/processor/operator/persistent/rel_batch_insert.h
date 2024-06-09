@@ -77,10 +77,10 @@ private:
         const storage::ChunkedNodeGroupCollection& partition, common::column_id_t offsetColumnID);
     static void populateEndCSROffsets(storage::ChunkedCSRHeader& csrHeader,
         std::vector<common::offset_t>& gaps);
-    static void setOffsetToWithinNodeGroup(storage::ColumnChunk& chunk,
+    static void setOffsetToWithinNodeGroup(storage::ColumnChunkData& chunk,
         common::offset_t startOffset);
-    static void setOffsetFromCSROffsets(storage::ColumnChunk& nodeOffsetChunk,
-        storage::ColumnChunk& csrOffsetChunk);
+    static void setOffsetFromCSROffsets(storage::ColumnChunkData& nodeOffsetChunk,
+        storage::ColumnChunkData& csrOffsetChunk);
 
     static std::optional<common::offset_t> checkRelMultiplicityConstraint(
         const storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertInfo& relInfo);

@@ -21,8 +21,7 @@ using string_offset_t = DictionaryChunk::string_offset_t;
 
 StringColumn::StringColumn(std::string name, LogicalType dataType,
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, DiskArrayCollection& metadataDAC,
-    BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
-    bool enableCompression)
+    BufferManager* bufferManager, WAL* wal, Transaction* transaction, bool enableCompression)
     : Column{name, std::move(dataType), metaDAHeaderInfo, dataFH, metadataDAC, bufferManager, wal,
           transaction, enableCompression, true /* requireNullColumn */},
       dictionary{name, metaDAHeaderInfo, dataFH, metadataDAC, bufferManager, wal, transaction,
@@ -44,19 +43,19 @@ void StringColumn::scan(Transaction* transaction, const ChunkState& state,
 }
 
 void StringColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    ColumnChunk* columnChunk, offset_t startOffset, offset_t endOffset) {
+    ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
     Column::scan(transaction, nodeGroupIdx, columnChunk, startOffset, endOffset);
     if (columnChunk->getNumValues() == 0) {
         return;
     }
-    auto stringColumnChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(columnChunk);
-    dictionary.scan(transaction, nodeGroupIdx, stringColumnChunk->getDictionaryChunk());
+    auto& stringColumnChunk = columnChunk->cast<StringChunkData>();
+    dictionary.scan(transaction, nodeGroupIdx, stringColumnChunk.getDictionaryChunk());
 }
 
-void StringColumn::append(ColumnChunk* columnChunk, ChunkState& state) {
+void StringColumn::append(ColumnChunkData* columnChunk, ChunkState& state) {
     Column::append(columnChunk, state);
-    auto stringColumnChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(columnChunk);
-    dictionary.append(state, stringColumnChunk->getDictionaryChunk());
+    auto& stringColumnChunk = columnChunk->cast<StringChunkData>();
+    dictionary.append(state, stringColumnChunk.getDictionaryChunk());
 }
 
 void StringColumn::writeValue(ChunkState& state, offset_t offsetInChunk,
@@ -71,18 +70,18 @@ void StringColumn::writeValue(ChunkState& state, offset_t offsetInChunk,
     updateStatistics(state.metadata, offsetInChunk, StorageValue(index), StorageValue(index));
 }
 
-void StringColumn::write(ChunkState& state, offset_t dstOffset, ColumnChunk* data,
+void StringColumn::write(ChunkState& state, offset_t dstOffset, ColumnChunkData* data,
     offset_t srcOffset, length_t numValues) {
     numValues = std::min(numValues, data->getNumValues() - srcOffset);
-    auto strChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(data);
+    auto& strChunk = data->cast<StringChunkData>();
     std::vector<string_index_t> indices;
     indices.resize(numValues);
     for (auto i = 0u; i < numValues; i++) {
-        if (strChunk->getNullChunk()->isNull(i + srcOffset)) {
+        if (strChunk.getNullChunk()->isNull(i + srcOffset)) {
             indices[i] = 0;
             continue;
         }
-        auto strVal = strChunk->getValue<std::string_view>(i + srcOffset);
+        auto strVal = strChunk.getValue<std::string_view>(i + srcOffset);
         indices[i] = dictionary.append(state, strVal);
     }
     NullMask nullMask(numValues);
@@ -188,9 +187,8 @@ bool StringColumn::canCommitInPlace(const ChunkState& state,
     for (auto& [_, rowIdx] : updateInfo) {
         auto [chunkIdx, offsetInLocalChunk] =
             LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-        auto localUpdateChunk =
-            ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(localUpdateChunks[chunkIdx]);
-        strLenToAdd += localUpdateChunk->getStringLength(offsetInLocalChunk);
+        auto& localUpdateChunk = localUpdateChunks[chunkIdx]->cast<StringChunkData>();
+        strLenToAdd += localUpdateChunk.getStringLength(offsetInLocalChunk);
     }
     offset_t maxOffset = 0u;
     for (auto& [offset, rowIdx] : insertInfo) {
@@ -199,9 +197,8 @@ bool StringColumn::canCommitInPlace(const ChunkState& state,
         }
         auto [chunkIdx, offsetInLocalChunk] =
             LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-        auto localInsertChunk =
-            ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(localInsertChunks[chunkIdx]);
-        strLenToAdd += localInsertChunk->getStringLength(offsetInLocalChunk);
+        auto& localInsertChunk = localInsertChunks[chunkIdx]->cast<StringChunkData>();
+        strLenToAdd += localInsertChunk.getStringLength(offsetInLocalChunk);
     }
     auto numStrings = insertInfo.size() + updateInfo.size();
     if (!dictionary.canCommitInPlace(state, numStrings, strLenToAdd)) {
@@ -211,15 +208,15 @@ bool StringColumn::canCommitInPlace(const ChunkState& state,
 }
 
 bool StringColumn::canCommitInPlace(const ChunkState& state,
-    const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk, offset_t srcOffset) {
+    const std::vector<offset_t>& dstOffsets, ColumnChunkData* chunk, offset_t srcOffset) {
     auto strLenToAdd = 0u;
-    auto strChunk = ku_dynamic_cast<ColumnChunk*, StringColumnChunk*>(chunk);
-    auto length = std::min((uint64_t)dstOffsets.size(), strChunk->getNumValues());
+    auto& strChunk = chunk->cast<StringChunkData>();
+    auto length = std::min((uint64_t)dstOffsets.size(), strChunk.getNumValues());
     for (auto i = 0u; i < length; i++) {
-        if (strChunk->getNullChunk()->isNull(i)) {
+        if (strChunk.getNullChunk()->isNull(i)) {
             continue;
         }
-        strLenToAdd += strChunk->getStringLength(i + srcOffset);
+        strLenToAdd += strChunk.getStringLength(i + srcOffset);
     }
     auto numStrings = dstOffsets.size();
     if (!dictionary.canCommitInPlace(state, numStrings, strLenToAdd)) {
