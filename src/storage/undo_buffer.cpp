@@ -25,6 +25,13 @@ struct CatalogEntryRecord {
     CatalogEntry* catalogEntry;
 };
 
+struct VectorVersionRecord {
+    NodeGroupVersionInfo* versionInfo;
+    idx_t vectorIdx;
+    VectorVersionInfo* vectorVersionInfo;
+    std::vector<row_idx_t> rowsInVector;
+};
+
 struct VectorUpdateRecord {
     UpdateInfo* updateInfo;
     idx_t vectorIdx;
@@ -81,6 +88,30 @@ void UndoBuffer::createCatalogEntry(CatalogSet* catalogSet, CatalogEntry* catalo
     *reinterpret_cast<CatalogEntryRecord*>(buffer) = catalogEntryRecord;
 }
 
+void UndoBuffer::createVectorInsertInfo(NodeGroupVersionInfo* versionInfo, const idx_t vectorIdx,
+    VectorVersionInfo* vectorVersionInfo, const std::vector<row_idx_t>& rowsInVector) {
+    createVectorVersionInfo(UndoRecordType::INSERT_INFO, versionInfo, vectorIdx, vectorVersionInfo,
+        rowsInVector);
+}
+
+void UndoBuffer::createVectorDeleteInfo(NodeGroupVersionInfo* versionInfo, const idx_t vectorIdx,
+    VectorVersionInfo* vectorVersionInfo, const std::vector<row_idx_t>& rowsInVector) {
+    createVectorVersionInfo(UndoRecordType::DELETE_INFO, versionInfo, vectorIdx, vectorVersionInfo,
+        rowsInVector);
+}
+
+void UndoBuffer::createVectorVersionInfo(const UndoRecordType recordType,
+    NodeGroupVersionInfo* versionInfo, const idx_t vectorIdx, VectorVersionInfo* vectorVersionInfo,
+    const std::vector<row_idx_t>& rowsInVector) {
+    auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(VectorVersionRecord));
+    const UndoRecordHeader recordHeader{recordType, sizeof(VectorVersionRecord)};
+    *reinterpret_cast<UndoRecordHeader*>(buffer) = recordHeader;
+    buffer += sizeof(UndoRecordHeader);
+    const VectorVersionRecord vectorVersionRecord{versionInfo, vectorIdx, vectorVersionInfo,
+        rowsInVector};
+    *reinterpret_cast<VectorVersionRecord*>(buffer) = vectorVersionRecord;
+}
+
 void UndoBuffer::createVectorUpdateInfo(UpdateInfo* updateInfo, const idx_t vectorIdx,
     VectorUpdateInfo* vectorUpdateInfo) {
     auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(VectorUpdateInfo));
@@ -125,6 +156,10 @@ void UndoBuffer::commitRecord(const UndoRecordType recordType, const uint8_t* re
     switch (recordType) {
     case UndoRecordType::CATALOG_ENTRY: {
         commitCatalogEntryRecord(record, commitTS);
+    } break;
+    case UndoRecordType::INSERT_INFO:
+    case UndoRecordType::DELETE_INFO: {
+        commitVectorVersionInfo(recordType, record, commitTS);
     } break;
     case UndoRecordType::UPDATE_INFO: {
         commitVectorUpdateInfo(record, commitTS);
@@ -200,6 +235,26 @@ void UndoBuffer::commitCatalogEntryRecord(const uint8_t* record,
     }
 }
 
+void UndoBuffer::commitVectorVersionInfo(UndoRecordType recordType, const uint8_t* record,
+    transaction_t commitTS) const {
+    const auto& undoRecord = *reinterpret_cast<VectorVersionRecord const*>(record);
+    switch (recordType) {
+    case UndoRecordType::INSERT_INFO: {
+        for (const auto rowIdx : undoRecord.rowsInVector) {
+            undoRecord.vectorVersionInfo->insertedVersions[rowIdx] = commitTS;
+        }
+    } break;
+    case UndoRecordType::DELETE_INFO: {
+        for (const auto rowIdx : undoRecord.rowsInVector) {
+            undoRecord.vectorVersionInfo->deletedVersions[rowIdx] = commitTS;
+        }
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+}
+
 void UndoBuffer::commitVectorUpdateInfo(const uint8_t* record, transaction_t commitTS) const {
     auto& undoRecord = *reinterpret_cast<VectorUpdateRecord const*>(record);
     undoRecord.vectorUpdateInfo->version = commitTS;
@@ -210,9 +265,13 @@ void UndoBuffer::rollbackRecord(const UndoRecordType recordType, const uint8_t* 
     case UndoRecordType::CATALOG_ENTRY: {
         rollbackCatalogEntryRecord(record);
     } break;
+    case UndoRecordType::INSERT_INFO:
+    case UndoRecordType::DELETE_INFO: {
+        rollbackVectorVersionInfo(recordType, record);
+    } break;
     case UndoRecordType::UPDATE_INFO: {
         rollbackVectorUpdateInfo(record);
-    }
+    } break;
     default: {
         KU_UNREACHABLE;
     }
@@ -235,6 +294,53 @@ void UndoBuffer::rollbackCatalogEntryRecord(const uint8_t* record) {
         if (olderEntry) {
             catalogSet->emplace(std::move(olderEntry));
         }
+    }
+}
+
+void UndoBuffer::rollbackVectorVersionInfo(UndoRecordType recordType, const uint8_t* record) {
+    auto& undoRecord = *reinterpret_cast<VectorVersionRecord const*>(record);
+    switch (recordType) {
+    case UndoRecordType::INSERT_INFO: {
+        for (const auto row : undoRecord.rowsInVector) {
+            undoRecord.vectorVersionInfo->insertedVersions[row] = INVALID_TRANSACTION;
+        }
+        bool hasAnyInsertions = false;
+        for (const auto& version : undoRecord.vectorVersionInfo->insertedVersions) {
+            if (version != INVALID_TRANSACTION) {
+                hasAnyInsertions = true;
+                break;
+            }
+        }
+        if (!hasAnyInsertions) {
+            if (!undoRecord.vectorVersionInfo->anyDeleted) {
+                undoRecord.versionInfo->clearVectorInfo(undoRecord.vectorIdx);
+            } else {
+                undoRecord.vectorVersionInfo->anyInserted = false;
+            }
+        }
+    } break;
+    case UndoRecordType::DELETE_INFO: {
+        for (const auto row : undoRecord.rowsInVector) {
+            undoRecord.vectorVersionInfo->deletedVersions[row] = INVALID_TRANSACTION;
+        }
+        bool hasAnyDeletions = false;
+        for (const auto& version : undoRecord.vectorVersionInfo->deletedVersions) {
+            if (version != INVALID_TRANSACTION) {
+                hasAnyDeletions = true;
+                break;
+            }
+        }
+        if (!hasAnyDeletions) {
+            if (!undoRecord.vectorVersionInfo->anyInserted) {
+                undoRecord.versionInfo->clearVectorInfo(undoRecord.vectorIdx);
+            } else {
+                undoRecord.vectorVersionInfo->anyDeleted = false;
+            }
+        }
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
     }
 }
 

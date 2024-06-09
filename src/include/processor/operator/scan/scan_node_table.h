@@ -75,8 +75,6 @@ public:
 
 private:
     void initGlobalStateInternal(ExecutionContext* context) override;
-    static void initColumns(storage::NodeTableScanState& scanState,
-        const storage::NodeTable& table);
 
 private:
     common::idx_t currentTableIdx;

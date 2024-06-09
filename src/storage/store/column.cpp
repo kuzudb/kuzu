@@ -164,7 +164,7 @@ std::unique_ptr<ColumnChunkData> Column::flushNonNestedChunkData(const ColumnChu
     const auto preScanMetadata = chunkData.getMetadataToFlush();
     const auto startPageIdx = dataFH.addNewPages(preScanMetadata.numPages);
     auto chunkMeta = chunkData.flushBuffer(&dataFH, startPageIdx, preScanMetadata);
-    auto flushedChunk = std::make_unique<ColumnChunkData>(*chunkData.getDataType().copy(),
+    auto flushedChunk = ColumnChunkFactory::createColumnChunkData(*chunkData.getDataType().copy(),
         chunkData.isCompressionEnabled(), chunkMeta);
     if (chunkData.hasNullData()) {
         flushNonNestedChunkData(chunkData.getNullData(), dataFH);

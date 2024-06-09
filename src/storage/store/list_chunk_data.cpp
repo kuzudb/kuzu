@@ -42,6 +42,16 @@ ListChunkData::ListChunkData(LogicalType dataType, uint64_t capacity, bool enabl
               this->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
 }
 
+ListChunkData::ListChunkData(LogicalType dataType, bool enableCompression,
+    const ColumnChunkMetadata& metadata)
+    : ColumnChunkData{std::move(dataType), enableCompression, metadata, true /*hasNullData*/},
+      sizeColumnChunk{ColumnChunkFactory::createColumnChunkData(*LogicalType::UINT32(),
+          enableCompression, 0, ResidencyState::TEMPORARY)},
+      listDataColumnChunk{std::make_unique<ListDataColumnChunk>(
+          ColumnChunkFactory::createColumnChunkData(*ListType::getChildType(this->dataType).copy(),
+              enableCompression, 0, ResidencyState::TEMPORARY))},
+      checkOffsetSortedAsc{false} {}
+
 bool ListChunkData::isOffsetsConsecutiveAndSortedAscending(uint64_t startPos,
     uint64_t endPos) const {
     offset_t prevEndOffset = getListStartOffset(startPos);

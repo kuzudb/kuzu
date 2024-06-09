@@ -13,6 +13,7 @@ class StringChunkData final : public ColumnChunkData {
 public:
     StringChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
         ResidencyState residencyState);
+    StringChunkData(bool enableCompression, const ColumnChunkMetadata& metadata);
 
     void resetToEmpty() override;
     void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;

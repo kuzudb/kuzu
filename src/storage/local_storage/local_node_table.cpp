@@ -10,9 +10,9 @@ namespace kuzu {
 namespace storage {
 
 LocalNodeTable::LocalNodeTable(Table& table)
-    : LocalTable{table}, nodeGroups{NodeTable::getTableColumnTypes(table.cast<NodeTable>()),
-                             false /*enableCompression*/, ResidencyState::TEMPORARY,
-                             StorageConstants::MAX_NUM_NODES_IN_TABLE} {
+    : LocalTable{table},
+      nodeGroups{NodeTable::getTableColumnTypes(table.cast<NodeTable>()),
+          false /*enableCompression*/, StorageConstants::MAX_NUM_NODES_IN_TABLE} {
     auto& nodeTable = ku_dynamic_cast<const Table&, const NodeTable&>(table);
     DBFileIDAndName dbFileIDAndName{DBFileID{DBFileType::NODE_INDEX}, "in-mem-overflow"};
     overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName);

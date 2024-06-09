@@ -32,7 +32,7 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
     }
     // TODO(Guodong): We should split scan of local node table to multiple morsels, too.
     if (currentUnCommittedGroupIdx < numUnCommittedNodeGroups) {
-        scanState.nodeGroupIdx = currentCommittedGroupIdx++;
+        scanState.nodeGroupIdx = currentUnCommittedGroupIdx++;
         scanState.source = TableScanSource::UNCOMMITTED;
         return;
     }
@@ -49,7 +49,6 @@ void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     for (auto& nodeInfo : nodeInfos) {
         nodeInfo.initScanState();
         initVectors(*nodeInfo.localScanState, *resultSet);
-        initColumns(*nodeInfo.localScanState, *nodeInfo.table);
     }
 }
 
@@ -57,12 +56,6 @@ void ScanNodeTable::initGlobalStateInternal(ExecutionContext* context) {
     KU_ASSERT(sharedStates.size() == nodeInfos.size());
     for (auto i = 0u; i < nodeInfos.size(); i++) {
         sharedStates[i]->initialize(context->clientContext->getTx(), nodeInfos[i].table);
-    }
-}
-
-void ScanNodeTable::initColumns(NodeTableScanState& scanState, const NodeTable& table) {
-    for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
-        scanState.columns[i] = table.getColumn(scanState.columnIDs[i]);
     }
 }
 

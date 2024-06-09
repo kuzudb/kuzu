@@ -13,14 +13,12 @@ namespace storage {
 struct NodeGroupScanState {
     common::idx_t chunkedGroupIdx = 0;
     common::row_idx_t nextRowToScan = 0;
-    common::row_idx_t maxNumRowsToScan = 0;
 
     NodeGroupScanState() {}
     DELETE_COPY_DEFAULT_MOVE(NodeGroupScanState);
-
-    bool hasNext() const { return nextRowToScan < maxNumRowsToScan; }
 };
 
+class TableData;
 struct TableScanState;
 class NodeGroup {
 public:
@@ -67,6 +65,10 @@ public:
 
 private:
     void setToOnDisk() { residencyState = ResidencyState::ON_DISK; }
+
+    static void populateNodeID(common::ValueVector& nodeIDVector,
+        common::SelectionVector& selVector, common::table_id_t tableID,
+        common::offset_t startNodeOffset, common::row_idx_t numRows);
 
 private:
     common::node_group_idx_t nodeGroupIdx;

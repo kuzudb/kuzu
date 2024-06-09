@@ -1,5 +1,6 @@
 #include "transaction/transaction.h"
 
+#include "storage/store/version_info.h"
 #include "storage/wal/wal.h"
 
 using namespace kuzu::catalog;
@@ -23,8 +24,20 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
     undoBuffer->createCatalogEntry(&catalogSet, &catalogEntry);
 }
 
+void Transaction::pushVectorInsertInfo(storage::NodeGroupVersionInfo& versionInfo,
+    const common::idx_t vectorIdx, storage::VectorVersionInfo& vectorVersionInfo,
+    const std::vector<common::row_idx_t>& rowsInVector) const {
+    undoBuffer->createVectorInsertInfo(&versionInfo, vectorIdx, &vectorVersionInfo, rowsInVector);
+}
+
+void Transaction::pushVectorDeleteInfo(storage::NodeGroupVersionInfo& versionInfo,
+    const common::idx_t vectorIdx, storage::VectorVersionInfo& vectorVersionInfo,
+    const std::vector<common::row_idx_t>& rowsInVector) const {
+    undoBuffer->createVectorDeleteInfo(&versionInfo, vectorIdx, &vectorVersionInfo, rowsInVector);
+}
+
 void Transaction::pushVectorUpdateInfo(storage::UpdateInfo& updateInfo,
-    common::vector_idx_t vectorIdx, storage::VectorUpdateInfo& vectorUpdateInfo) const {
+    const common::idx_t vectorIdx, storage::VectorUpdateInfo& vectorUpdateInfo) const {
     undoBuffer->createVectorUpdateInfo(&updateInfo, vectorIdx, &vectorUpdateInfo);
 }
 

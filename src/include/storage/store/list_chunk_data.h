@@ -32,6 +32,8 @@ public:
 
     ListChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
         ResidencyState residencyState);
+    ListChunkData(common::LogicalType dataType, bool enableCompression,
+        const ColumnChunkMetadata& metadata);
 
     ColumnChunkData* getDataColumnChunk() const {
         return listDataColumnChunk->dataColumnChunk.get();

@@ -1,7 +1,6 @@
 #include "storage/store/node_group.h"
 
 #include "storage/store/table.h"
-#include <storage/store/node_table.h>
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -10,19 +9,19 @@ namespace kuzu {
 namespace storage {
 
 void NodeGroup::append(Transaction* transaction, const ChunkedNodeGroupCollection& chunkCollection,
-    row_idx_t offset, row_idx_t numRowsToAppend) {
+    const row_idx_t offset, const row_idx_t numRowsToAppend) {
     const auto startOffset = chunkedGroups.append(chunkCollection, offset, numRowsToAppend);
-    versionInfo.append(transaction->getID(), startOffset, numRowsToAppend);
+    versionInfo.append(transaction, startOffset, numRowsToAppend);
 }
 
 void NodeGroup::append(Transaction* transaction, const ChunkedNodeGroup& chunkedGroup) {
     const auto startOffset = chunkedGroups.append(transaction, chunkedGroup);
     const auto numRows = chunkedGroup.getNumRows();
-    versionInfo.append(transaction->getID(), startOffset, numRows);
+    versionInfo.append(transaction, startOffset, numRows);
 }
 
 void NodeGroup::append(Transaction* transaction, const std::vector<ValueVector*>& vectors,
-    row_idx_t startRowIdx, row_idx_t numRowsToAppend) {
+    const row_idx_t startRowIdx, const row_idx_t numRowsToAppend) {
     // TODO: Remove the assumption of all vectors have the same selVector.
     auto& anchorSelVector = vectors[0]->state->getSelVector();
     SelectionVector selVector(DEFAULT_VECTOR_CAPACITY);
@@ -32,7 +31,7 @@ void NodeGroup::append(Transaction* transaction, const std::vector<ValueVector*>
     }
     selVector.setToFiltered(numRowsToAppend);
     const auto startOffset = chunkedGroups.append(vectors, selVector);
-    versionInfo.append(transaction->getID(), startOffset, numRowsToAppend);
+    versionInfo.append(transaction, startOffset, numRowsToAppend);
 }
 
 void NodeGroup::merge(Transaction*, std::unique_ptr<ChunkedNodeGroup> chunkedGroup) {
@@ -40,27 +39,23 @@ void NodeGroup::merge(Transaction*, std::unique_ptr<ChunkedNodeGroup> chunkedGro
 }
 
 void NodeGroup::initializeScanState(Transaction*, TableScanState& state) const {
-    auto& nodeGroupState = state.nodeGroupScanState;
     // TODO: Should handle transaction to resolve version visibility here.
-    nodeGroupState.maxNumRowsToScan = getNumRows();
     if (residencyState == ResidencyState::ON_DISK) {
-        auto& nodeScanState = state.cast<NodeTableScanState>();
+        KU_ASSERT(state.tableData);
         KU_ASSERT(chunkedGroups.getNumChunkedGroups() == 1);
         auto& chunkedGroup = chunkedGroups.getChunkedGroup(0);
         for (auto columnIdx = 0u; columnIdx < state.columnIDs.size(); columnIdx++) {
             const auto columnID = state.columnIDs[columnIdx];
             auto& chunk = chunkedGroup.getColumnChunk(columnID);
-            chunk.initializeScanState(nodeScanState.chunkStates[columnIdx]);
+            chunk.initializeScanState(state.chunkStates[columnIdx]);
+            state.chunkStates[columnIdx].column = state.tableData->getColumn(columnID);
         }
     }
 }
 
 bool NodeGroup::scan(Transaction* transaction, TableScanState& state) const {
-    // TODO: Should handle transaction to resolve version visibility here.
-    KU_ASSERT(state.source == TableScanSource::COMMITTED);
     auto& nodeGroupState = state.nodeGroupScanState;
     KU_ASSERT(nodeGroupState.chunkedGroupIdx < chunkedGroups.getNumChunkedGroups());
-    KU_ASSERT(nodeGroupState.nextRowToScan < nodeGroupState.maxNumRowsToScan);
     const auto& chunkedGroup = chunkedGroups.getChunkedGroup(nodeGroupState.chunkedGroupIdx);
     if (nodeGroupState.nextRowToScan ==
         chunkedGroup.getStartNodeOffset() + chunkedGroup.getNumRows()) {
@@ -79,36 +74,10 @@ bool NodeGroup::scan(Transaction* transaction, TableScanState& state) const {
     SelectionVector selVector(DEFAULT_VECTOR_CAPACITY);
     versionInfo.getSelVectorToScan(transaction->getStartTS(), transaction->getID(), selVector,
         offsetToScan, numRowsToScan);
-    if (selVector.getSelSize() == 0) {
-        return true;
-    }
     const auto nodeOffset = startNodeOffset + nodeGroupState.nextRowToScan;
-    for (auto i = 0u; i < numRowsToScan; i++) {
-        state.nodeIDVector->setValue<nodeID_t>(i, {nodeOffset + i, state.tableID});
-    }
-    if (selVector.getSelSize() == numRowsToScan) {
-        state.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(numRowsToScan);
-    } else {
-        std::memcpy(state.nodeIDVector->state->getSelVectorUnsafe().getMultableBuffer().data(),
-            selVector.getMultableBuffer().data(), selVector.getSelSize() * sizeof(sel_t));
-        state.nodeIDVector->state->getSelVectorUnsafe().setToFiltered(selVector.getSelSize());
-    }
-    switch (residencyState) {
-    case ResidencyState::IN_MEMORY:
-    case ResidencyState::TEMPORARY: {
-        chunkedGroupToScan.scan(transaction, state.columnIDs, state.outputVectors, offsetToScan,
-            numRowsToScan);
-    } break;
-    case ResidencyState::ON_DISK: {
-        auto& nodeScanState = state.constCast<NodeTableScanState>();
-        for (auto i = 0u; i < state.columnIDs.size(); i++) {
-            nodeScanState.columns[i]->scan(transaction, nodeScanState.chunkStates[i], offsetToScan,
-                numRowsToScan, nodeScanState.nodeIDVector, state.outputVectors[i]);
-        }
-    } break;
-    default: {
-        KU_UNREACHABLE;
-    }
+    populateNodeID(*state.nodeIDVector, selVector, state.tableID, nodeOffset, numRowsToScan);
+    if (selVector.getSelSize() > 0) {
+        chunkedGroupToScan.scan(transaction, state, offsetToScan, numRowsToScan);
     }
     nodeGroupState.nextRowToScan += numRowsToScan;
     return true;
@@ -125,10 +94,11 @@ void NodeGroup::lookup(Transaction* transaction, TableScanState& state) const {
         chunkedGroupToScan.lookup(transaction, state.columnIDs, state.outputVectors, offsetInGroup);
     } break;
     case ResidencyState::ON_DISK: {
-        auto& nodeScanState = state.cast<NodeTableScanState>();
+        KU_ASSERT(state.tableData);
         for (auto i = 0u; i < state.columnIDs.size(); i++) {
-            nodeScanState.columns[i]->lookup(transaction, nodeScanState.chunkStates[i],
-                nodeScanState.nodeIDVector, state.outputVectors[i]);
+            const auto columnID = state.columnIDs[i];
+            state.tableData->getColumn(columnID)->lookup(transaction, state.chunkStates[i],
+                state.nodeIDVector, state.outputVectors[i]);
         }
     } break;
     default: {
@@ -145,9 +115,9 @@ void NodeGroup::update(Transaction* transaction, offset_t offset, column_id_t co
     chunkedGroup.update(transaction, offsetInGroup, columnID, propertyVector);
 }
 
-bool NodeGroup::delete_(Transaction* transaction, offset_t offset) {
+bool NodeGroup::delete_(Transaction* transaction, const offset_t offset) {
     const auto offsetInGroup = offset - startNodeOffset;
-    return versionInfo.delete_(transaction->getID(), offsetInGroup);
+    return versionInfo.delete_(transaction, offsetInGroup);
 }
 
 void NodeGroup::flush(BMFileHandle& dataFH) {
@@ -168,6 +138,20 @@ void NodeGroup::flush(BMFileHandle& dataFH) {
         chunkedGroups.setChunkedGroup(0, std::move(flushedChunkGroup));
     }
     setToOnDisk();
+}
+
+void NodeGroup::populateNodeID(ValueVector& nodeIDVector, SelectionVector& selVector,
+    table_id_t tableID, const offset_t startNodeOffset, const row_idx_t numRows) {
+    for (auto i = 0u; i < numRows; i++) {
+        nodeIDVector.setValue<nodeID_t>(i, {startNodeOffset + i, tableID});
+    }
+    if (selVector.getSelSize() == numRows) {
+        nodeIDVector.state->getSelVectorUnsafe().setToUnfiltered(numRows);
+    } else {
+        std::memcpy(nodeIDVector.state->getSelVectorUnsafe().getMultableBuffer().data(),
+            selVector.getMultableBuffer().data(), selVector.getSelSize() * sizeof(sel_t));
+        nodeIDVector.state->getSelVectorUnsafe().setToFiltered(selVector.getSelSize());
+    }
 }
 
 } // namespace storage

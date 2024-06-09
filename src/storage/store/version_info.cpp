@@ -8,8 +8,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-row_idx_t VectorVersionInfo::append(transaction_t transactionID, row_idx_t startRow,
-    row_idx_t numRows) {
+row_idx_t VectorVersionInfo::append(const transaction_t transactionID, const row_idx_t startRow,
+    const row_idx_t numRows) {
     anyInserted = true;
     for (auto i = 0u; i < numRows; i++) {
         KU_ASSERT(insertedVersions[startRow + i] == INVALID_TRANSACTION);
@@ -18,7 +18,7 @@ row_idx_t VectorVersionInfo::append(transaction_t transactionID, row_idx_t start
     return true;
 }
 
-bool VectorVersionInfo::delete_(transaction_t transactionID, row_idx_t rowIdx) {
+bool VectorVersionInfo::delete_(const transaction_t transactionID, const row_idx_t rowIdx) {
     anyDeleted = true;
     if (deletedVersions[rowIdx] == transactionID) {
         return false;
@@ -31,8 +31,9 @@ bool VectorVersionInfo::delete_(transaction_t transactionID, row_idx_t rowIdx) {
     return true;
 }
 
-void VectorVersionInfo::getSelVectorForScan(transaction_t startTS, transaction_t transactionID,
-    SelectionVector& selVector, row_idx_t startRow, row_idx_t numRows) const {
+void VectorVersionInfo::getSelVectorForScan(const transaction_t startTS,
+    const transaction_t transactionID, SelectionVector& selVector, const row_idx_t startRow,
+    const row_idx_t numRows) const {
     const auto numValues = selVector.getSelSize();
     auto numSelected = selVector.getSelSize();
     if (!anyDeleted && !anyInserted) {
@@ -51,19 +52,19 @@ void VectorVersionInfo::getSelVectorForScan(transaction_t startTS, transaction_t
     selVector.setToFiltered(numSelected);
 }
 
-bool VectorVersionInfo::isDeleted(transaction_t startTS, transaction_t transactionID,
-    row_idx_t rowIdx) const {
+bool VectorVersionInfo::isDeleted(const transaction_t startTS, const transaction_t transactionID,
+    const row_idx_t rowIdx) const {
     const auto deletion = deletedVersions[rowIdx];
     const auto isDeletedWithinSameTransaction = deletion == transactionID;
-    const auto isDeletedByPrevCommittedTransaction = deletion < startTS;
+    const auto isDeletedByPrevCommittedTransaction = deletion <= startTS;
     return isDeletedWithinSameTransaction || isDeletedByPrevCommittedTransaction;
 }
 
-bool VectorVersionInfo::isInserted(transaction_t startTS, transaction_t transactionID,
-    row_idx_t rowIdx) const {
+bool VectorVersionInfo::isInserted(const transaction_t startTS, const transaction_t transactionID,
+    const row_idx_t rowIdx) const {
     const auto insertion = insertedVersions[rowIdx];
     const auto isInsertedWithinSameTransaction = insertion == transactionID;
-    const auto isInsertedByPrevCommittedTransaction = insertion < startTS;
+    const auto isInsertedByPrevCommittedTransaction = insertion <= startTS;
     return isInsertedWithinSameTransaction || isInsertedByPrevCommittedTransaction;
 }
 
@@ -83,8 +84,8 @@ const VectorVersionInfo& NodeGroupVersionInfo::getVersionInfo(idx_t vectorIdx) c
     return *vectorsInfo[vectorIdx];
 }
 
-row_idx_t NodeGroupVersionInfo::append(transaction_t transactionID, row_idx_t startRow,
-    row_idx_t numRows) {
+row_idx_t NodeGroupVersionInfo::append(const transaction::Transaction* transaction,
+    const row_idx_t startRow, const row_idx_t numRows) {
     auto [startVectorIdx, startRowIdxInVector] =
         StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
     auto [endVectorIdx, endRowIdxInVector] =
@@ -92,23 +93,36 @@ row_idx_t NodeGroupVersionInfo::append(transaction_t transactionID, row_idx_t st
     row_idx_t numAppended = 0u;
     for (auto vectorIdx = startVectorIdx; vectorIdx <= endVectorIdx; vectorIdx++) {
         auto& vectorVersionInfo = getVersionInfo(vectorIdx);
-        auto startRowIdx = vectorIdx == startVectorIdx ? startRowIdxInVector : 0;
-        auto endRowIdx = vectorIdx == endVectorIdx ? endRowIdxInVector : DEFAULT_VECTOR_CAPACITY;
-        numAppended +=
-            vectorVersionInfo.append(transactionID, startRowIdx, endRowIdx - startRowIdx);
+        const auto startRowIdx = vectorIdx == startVectorIdx ? startRowIdxInVector : 0;
+        const auto endRowIdx =
+            vectorIdx == endVectorIdx ? endRowIdxInVector : DEFAULT_VECTOR_CAPACITY;
+        const auto numRowsInVector = endRowIdx - startRowIdx;
+        numAppended += vectorVersionInfo.append(transaction->getID(), startRowIdx, numRowsInVector);
+        std::vector<row_idx_t> rows;
+        rows.resize(numRowsInVector);
+        std::iota(rows.begin(), rows.end(), startRowIdx);
+        if (transaction->getID() > 0) {
+            transaction->pushVectorInsertInfo(*this, vectorIdx, vectorVersionInfo, rows);
+        }
     }
     return numAppended;
 }
 
-bool NodeGroupVersionInfo::delete_(transaction_t transactionID, row_idx_t rowIdx) {
+bool NodeGroupVersionInfo::delete_(const transaction::Transaction* transaction,
+    const row_idx_t rowIdx) {
     auto [vectorIdx, rowIdxInVector] =
         StorageUtils::getQuotientRemainder(rowIdx, DEFAULT_VECTOR_CAPACITY);
     auto& vectorVersionInfo = getVersionInfo(vectorIdx);
-    return vectorVersionInfo.delete_(transactionID, rowIdxInVector);
+    const auto deleted = vectorVersionInfo.delete_(transaction->getID(), rowIdxInVector);
+    if (deleted && transaction->getID() > 0) {
+        transaction->pushVectorDeleteInfo(*this, vectorIdx, vectorVersionInfo, {rowIdxInVector});
+    }
+    return deleted;
 }
 
-void NodeGroupVersionInfo::getSelVectorToScan(transaction_t startTS, transaction_t transactionID,
-    SelectionVector& selVector, row_idx_t startRow, row_idx_t numRows) const {
+void NodeGroupVersionInfo::getSelVectorToScan(const transaction_t startTS,
+    const transaction_t transactionID, SelectionVector& selVector, const row_idx_t startRow,
+    const row_idx_t numRows) const {
     auto [startVectorIdx, startRowIdxInVector] =
         StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
     auto [endVectorIdx, endRowIdxInVector] =
@@ -123,6 +137,11 @@ void NodeGroupVersionInfo::getSelVectorToScan(transaction_t startTS, transaction
             endRowIdx - startRowIdx);
         vectorIdx++;
     }
+}
+
+void NodeGroupVersionInfo::clearVectorInfo(const idx_t vectorIdx) {
+    KU_ASSERT(vectorIdx < vectorsInfo.size());
+    vectorsInfo[vectorIdx] = nullptr;
 }
 
 } // namespace storage

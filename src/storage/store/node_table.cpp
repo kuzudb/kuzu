@@ -42,10 +42,11 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
 }
 
 void NodeTable::initializeScanState(Transaction* transaction, TableScanState& scanState) const {
-    switch (auto& nodeScanState = scanState.cast<NodeTableScanState>(); nodeScanState.source) {
+    auto& nodeScanState = scanState.cast<NodeTableScanState>();
+    switch (nodeScanState.source) {
     case TableScanSource::COMMITTED: {
         nodeScanState.nodeGroup = &nodeGroups->getNodeGroup(scanState.nodeGroupIdx);
-        nodeScanState.nodeGroup->initializeScanState(transaction, scanState);
+        nodeScanState.tableData = tableData.get();
     } break;
     case TableScanSource::UNCOMMITTED: {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
@@ -53,12 +54,12 @@ void NodeTable::initializeScanState(Transaction* transaction, TableScanState& sc
         KU_ASSERT(localTable);
         auto& localNodeTable = localTable->cast<LocalNodeTable>();
         nodeScanState.nodeGroup = &localNodeTable.getNodeGroup(scanState.nodeGroupIdx);
-        nodeScanState.nodeGroup->initializeScanState(transaction, scanState);
     } break;
     default: {
         // DO NOTHING.
     }
     }
+    nodeScanState.nodeGroup->initializeScanState(transaction, scanState);
 }
 
 bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState) {

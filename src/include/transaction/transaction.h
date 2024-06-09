@@ -58,7 +58,13 @@ public:
 
     void pushCatalogEntry(catalog::CatalogSet& catalogSet,
         catalog::CatalogEntry& catalogEntry) const;
-    void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::vector_idx_t vectorIdx,
+    void pushVectorInsertInfo(storage::NodeGroupVersionInfo& versionInfo, common::idx_t vectorIdx,
+        storage::VectorVersionInfo& vectorVersionInfo,
+        const std::vector<common::row_idx_t>& rowsInVector) const;
+    void pushVectorDeleteInfo(storage::NodeGroupVersionInfo& versionInfo, common::idx_t vectorIdx,
+        storage::VectorVersionInfo& vectorVersionInfo,
+        const std::vector<common::row_idx_t>& rowsInVector) const;
+    void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::idx_t vectorIdx,
         storage::VectorUpdateInfo& vectorUpdateInfo) const;
 
     static std::unique_ptr<Transaction> getDummyWriteTrx() {

@@ -13,12 +13,15 @@ enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = 3 
 
 struct TableScanState {
     common::table_id_t tableID;
+    TableData* tableData;
     common::ValueVector* nodeIDVector;
     std::vector<common::column_id_t> columnIDs;
     std::vector<common::ValueVector*> outputVectors;
+    std::vector<ChunkState> chunkStates;
 
     TableScanSource source = TableScanSource::NONE;
     NodeGroupScanState nodeGroupScanState;
+    // TODO(Guodong): Should be removed after rework of rel tables.
     std::unique_ptr<TableDataScanState> dataScanState;
     common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
 
@@ -27,8 +30,17 @@ struct TableScanState {
 
     TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
         std::vector<ColumnPredicateSet> columnPredicateSets)
-        : tableID{tableID}, nodeIDVector(nullptr), columnIDs{std::move(columnIDs)},
-          columnPredicateSets{std::move(columnPredicateSets)} {}
+        : tableID{tableID}, tableData{nullptr}, nodeIDVector(nullptr),
+          columnIDs{std::move(columnIDs)}, columnPredicateSets{std::move(columnPredicateSets)} {
+        chunkStates.resize(this->columnIDs.size());
+    }
+    explicit TableScanState(const common::table_id_t tableID,
+        std::vector<common::column_id_t> columnIDs)
+        : tableID{tableID}, tableData{nullptr}, nodeIDVector(nullptr),
+          columnIDs{std::move(columnIDs)} {
+        KU_ASSERT(this->outputVectors.size() == this->columnIDs.size());
+        chunkStates.resize(this->columnIDs.size());
+    }
     virtual ~TableScanState() = default;
     DELETE_COPY_AND_MOVE(TableScanState);
 
@@ -88,7 +100,7 @@ public:
     common::row_idx_t getNumTuples(transaction::Transaction* transaction) const {
         return tablesStatistics->getNumTuplesForTable(transaction, tableID);
     }
-    void updateNumTuplesByValue(uint64_t numTuples) const {
+    void updateNumTuplesByValue(const uint64_t numTuples) const {
         tablesStatistics->updateNumTuplesByValue(tableID, numTuples);
     }
 

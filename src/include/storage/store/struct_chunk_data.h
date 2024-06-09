@@ -12,6 +12,8 @@ class StructChunkData final : public ColumnChunkData {
 public:
     StructChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
         ResidencyState residencyState);
+    StructChunkData(common::LogicalType dataType, bool enableCompression,
+        const ColumnChunkMetadata& metadata);
 
     ColumnChunkData* getChild(common::idx_t childIdx) {
         KU_ASSERT(childIdx < childChunks.size());

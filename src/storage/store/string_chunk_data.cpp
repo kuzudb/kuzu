@@ -19,6 +19,12 @@ StringChunkData::StringChunkData(LogicalType dataType, uint64_t capacity, bool e
           residencyState)},
       needFinalize{false} {}
 
+StringChunkData::StringChunkData(bool enableCompression, const ColumnChunkMetadata& metadata)
+    : ColumnChunkData{*LogicalType::STRING(), enableCompression, metadata, true /*hasNullData*/},
+      dictionaryChunk{
+          std::make_unique<DictionaryChunk>(0, enableCompression, ResidencyState::TEMPORARY)},
+      needFinalize{false} {}
+
 void StringChunkData::resetToEmpty() {
     ColumnChunkData::resetToEmpty();
     dictionaryChunk->resetToEmpty();

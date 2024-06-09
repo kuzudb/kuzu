@@ -17,11 +17,22 @@ StructChunkData::StructChunkData(LogicalType dataType, uint64_t capacity, bool e
     ResidencyState residencyState)
     : ColumnChunkData{std::move(dataType), capacity, enableCompression, residencyState,
           true /*hasNullData*/} {
-    auto fieldTypes = StructType::getFieldTypes(this->dataType);
+    const auto fieldTypes = StructType::getFieldTypes(this->dataType);
     childChunks.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
         childChunks[i] = ColumnChunkFactory::createColumnChunkData(*fieldTypes[i].copy(),
             enableCompression, capacity, residencyState);
+    }
+}
+
+StructChunkData::StructChunkData(LogicalType dataType, bool enableCompression,
+    const ColumnChunkMetadata& metadata)
+    : ColumnChunkData{std::move(dataType), enableCompression, metadata, true /*hasNullData*/} {
+    const auto fieldTypes = StructType::getFieldTypes(this->dataType);
+    childChunks.resize(fieldTypes.size());
+    for (auto i = 0u; i < fieldTypes.size(); i++) {
+        childChunks[i] = ColumnChunkFactory::createColumnChunkData(*fieldTypes[i].copy(),
+            enableCompression, 0, ResidencyState::TEMPORARY);
     }
 }
 

@@ -9,15 +9,34 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-VectorUpdateInfo* UpdateInfo::update(Transaction* transaction, idx_t vectorIdx,
-    sel_t rowIdxInVector, const ValueVector& values) {
+VectorUpdateInfo* UpdateInfo::update(const Transaction* transaction, const idx_t vectorIdx,
+    const sel_t rowIdxInVector, const ValueVector& values) {
     auto& vectorUpdateInfo = getVectorInfo(transaction, vectorIdx, rowIdxInVector);
     vectorUpdateInfo.data->write(&values, values.state->getSelVector()[0],
         vectorUpdateInfo.numRowsUpdated++);
     return &vectorUpdateInfo;
 }
 
-VectorUpdateInfo& UpdateInfo::getVectorInfo(Transaction* transaction, idx_t idx,
+VectorUpdateInfo* UpdateInfo::getVectorInfo(const Transaction* transaction, idx_t idx) const {
+    if (idx >= vectorsInfo.size() || !vectorsInfo[idx]) {
+        return nullptr;
+    }
+    auto current = vectorsInfo[idx].get();
+    while (current) {
+        if (current->version == transaction->getID()) {
+            KU_ASSERT(current->version >= Transaction::START_TRANSACTION_ID);
+            return current;
+        }
+        if (current->version <= transaction->getStartTS()) {
+            KU_ASSERT(current->version < Transaction::START_TRANSACTION_ID);
+            return current;
+        }
+        current = current->getPrev();
+    }
+    return nullptr;
+}
+
+VectorUpdateInfo& UpdateInfo::getVectorInfo(const Transaction* transaction, idx_t idx,
     sel_t rowIdxInVector) {
     if (idx >= vectorsInfo.size()) {
         vectorsInfo.resize(idx + 1);
@@ -33,7 +52,7 @@ VectorUpdateInfo& UpdateInfo::getVectorInfo(Transaction* transaction, idx_t idx,
             // Same transaction.
             KU_ASSERT(current->version >= Transaction::START_TRANSACTION_ID);
             info = current;
-        } else if (current->version > transaction->getStartTS()) {
+        } else if (current->version >= transaction->getStartTS()) {
             // Potentially there can be conflicts. `current` can be uncommitted transaction (version
             // is transaction ID) or committed transaction started after this transaction.
             for (auto i = 0u; i < current->numRowsUpdated; i++) {

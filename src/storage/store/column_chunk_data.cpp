@@ -20,7 +20,6 @@ using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
-
 ColumnChunkMetadata uncompressedFlushBuffer(const uint8_t* buffer, uint64_t bufferSize,
     BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
     KU_ASSERT(dataFH->getNumPages() >= startPageIdx + metadata.numPages);
@@ -272,11 +271,15 @@ ColumnChunkData::ColumnChunkData(LogicalType dataType, uint64_t capacity, bool e
 }
 
 ColumnChunkData::ColumnChunkData(LogicalType dataType, bool enableCompression,
-    const ColumnChunkMetadata& metadata)
+    const ColumnChunkMetadata& metadata, bool hasNullData)
     : residencyState{ResidencyState::ON_DISK}, dataType{std::move(dataType)},
       enableCompression{enableCompression},
       numBytesPerValue{getDataTypeSizeInChunk(this->dataType)}, bufferSize{0}, capacity{0},
-      numValues{metadata.numValues}, metadata{metadata} {}
+      numValues{metadata.numValues}, metadata{metadata} {
+    if (hasNullData) {
+        nullData = std::make_unique<NullChunkData>(enableCompression, metadata);
+    }
+}
 
 void ColumnChunkData::initializeBuffer() {
     numBytesPerValue = getDataTypeSizeInChunk(dataType);
@@ -678,10 +681,13 @@ void NullChunkData::append(ColumnChunkData* other, offset_t startOffsetInOtherCh
 class InternalIDChunkData final : public ColumnChunkData {
 public:
     // Physically, we only materialize offset of INTERNAL_ID, which is same as UINT64,
-    explicit InternalIDChunkData(uint64_t capacity, bool enableCompression,
-        ResidencyState residencyState)
+    InternalIDChunkData(uint64_t capacity, bool enableCompression, ResidencyState residencyState)
         : ColumnChunkData(*LogicalType::INTERNAL_ID(), capacity, enableCompression, residencyState,
               false /*hasNullData*/),
+          commonTableID{INVALID_TABLE_ID} {}
+    InternalIDChunkData(bool enableCompression, const ColumnChunkMetadata& metadata)
+        : ColumnChunkData{*LogicalType::INTERNAL_ID(), enableCompression, metadata,
+              false /*hasNullData*/},
           commonTableID{INVALID_TABLE_ID} {}
 
     void append(ValueVector* vector, const SelectionVector& selVector) override {
@@ -800,6 +806,47 @@ std::unique_ptr<ColumnChunkData> ColumnChunkFactory::createColumnChunkData(Logic
     case PhysicalTypeID::STRUCT: {
         return std::make_unique<StructChunkData>(std::move(dataType), capacity, enableCompression,
             residencyState);
+    }
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+std::unique_ptr<ColumnChunkData> ColumnChunkFactory::createColumnChunkData(LogicalType dataType,
+    bool enableCompression, ColumnChunkMetadata& metadata) {
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::BOOL: {
+        return std::make_unique<BoolChunkData>(enableCompression, metadata, true /*hasNullData*/);
+    }
+    case PhysicalTypeID::INT64:
+    case PhysicalTypeID::INT32:
+    case PhysicalTypeID::INT16:
+    case PhysicalTypeID::INT8:
+    case PhysicalTypeID::UINT64:
+    case PhysicalTypeID::UINT32:
+    case PhysicalTypeID::UINT16:
+    case PhysicalTypeID::UINT8:
+    case PhysicalTypeID::INT128:
+    case PhysicalTypeID::DOUBLE:
+    case PhysicalTypeID::FLOAT:
+    case PhysicalTypeID::INTERVAL: {
+        return std::make_unique<ColumnChunkData>(std::move(dataType), enableCompression, metadata,
+            true /*hasNullData*/);
+    }
+        // Physically, we only materialize offset of INTERNAL_ID, which is same as INT64,
+    case PhysicalTypeID::INTERNAL_ID: {
+        // INTERNAL_ID should never have nulls.
+        return std::make_unique<InternalIDChunkData>(enableCompression, metadata);
+    }
+    case PhysicalTypeID::STRING: {
+        return std::make_unique<StringChunkData>(enableCompression, metadata);
+    }
+    case PhysicalTypeID::ARRAY:
+    case PhysicalTypeID::LIST: {
+        return std::make_unique<ListChunkData>(std::move(dataType), enableCompression, metadata);
+    }
+    case PhysicalTypeID::STRUCT: {
+        return std::make_unique<StructChunkData>(std::move(dataType), enableCompression, metadata);
     }
     default:
         KU_UNREACHABLE;

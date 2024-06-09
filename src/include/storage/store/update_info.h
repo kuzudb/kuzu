@@ -19,12 +19,14 @@ struct VectorUpdateInfo {
 
     std::unique_ptr<ColumnChunkData> data;
 
-    explicit VectorUpdateInfo(common::transaction_t transactionID)
+    explicit VectorUpdateInfo(const common::transaction_t transactionID)
         : version{transactionID}, rowsInVector{}, numRowsUpdated{0}, prev{nullptr}, next{nullptr},
           data{nullptr} {}
 
     std::unique_ptr<VectorUpdateInfo> movePrev() { return std::move(prev); }
     void setPrev(std::unique_ptr<VectorUpdateInfo> prev) { this->prev = std::move(prev); }
+    VectorUpdateInfo* getPrev() const { return prev.get(); }
+    void setNext(VectorUpdateInfo* next) { this->next = next; }
     VectorUpdateInfo* getNext() const { return next; }
 };
 
@@ -32,7 +34,7 @@ class UpdateInfo {
 public:
     UpdateInfo() {}
 
-    VectorUpdateInfo* update(transaction::Transaction* transaction, common::idx_t vectorIdx,
+    VectorUpdateInfo* update(const transaction::Transaction* transaction, common::idx_t vectorIdx,
         common::sel_t rowIdxInVector, const common::ValueVector& values);
 
     void setVectorInfo(common::idx_t vectorIdx, std::unique_ptr<VectorUpdateInfo> vectorInfo) {
@@ -40,9 +42,12 @@ public:
     }
     void clearVectorInfo(common::idx_t vectorIdx) { vectorsInfo[vectorIdx] = nullptr; }
 
+    VectorUpdateInfo* getVectorInfo(const transaction::Transaction* transaction,
+        common::idx_t idx) const;
+
 private:
-    VectorUpdateInfo& getVectorInfo(transaction::Transaction* transaction, common::idx_t idx,
-        common::sel_t rowIdxInVector);
+    VectorUpdateInfo& getVectorInfo(const transaction::Transaction* transaction,
+        common::idx_t vectorIdx, common::sel_t rowIdxInVector);
 
 private:
     std::vector<std::unique_ptr<VectorUpdateInfo>> vectorsInfo;

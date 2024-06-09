@@ -4,6 +4,7 @@
 #include "common/constants.h"
 #include "common/types/internal_id_t.h"
 #include "storage/store/column.h"
+#include "storage/store/node_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -158,14 +159,14 @@ void ChunkedNodeGroup::write(const ChunkedNodeGroup& data, column_id_t offsetCol
     write(data.chunks, offsetColumnID);
 }
 
-void ChunkedNodeGroup::scan(Transaction* transaction, const std::vector<column_id_t>& columnIDs,
-    const std::vector<ValueVector*>& outputVectors, offset_t offsetInGroup, length_t length) const {
-    KU_ASSERT(columnIDs.size() == outputVectors.size());
+void ChunkedNodeGroup::scan(Transaction* transaction, TableScanState& scanState,
+    offset_t offsetInGroup, length_t length) const {
     KU_ASSERT(offsetInGroup + length <= numRows);
-    for (auto i = 0u; i < columnIDs.size(); i++) {
-        auto columnID = columnIDs[i];
+    for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
+        const auto columnID = scanState.columnIDs[i];
         KU_ASSERT(columnID < chunks.size());
-        chunks[columnID]->scan(transaction, *outputVectors[i], offsetInGroup, length);
+        chunks[columnID]->scan(transaction, scanState.cast<NodeTableScanState>().chunkStates[i],
+            *scanState.nodeIDVector, *scanState.outputVectors[i], offsetInGroup, length);
     }
 }
 

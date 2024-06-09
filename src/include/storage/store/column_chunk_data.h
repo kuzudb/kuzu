@@ -16,6 +16,7 @@ class Transaction;
 
 namespace storage {
 
+class Column;
 class NullChunkData;
 struct ColumnChunkMetadata {
     common::page_idx_t pageIdx;
@@ -37,10 +38,11 @@ struct ColumnChunkMetadata {
 struct ChunkState {
     explicit ChunkState() = default;
     ChunkState(ColumnChunkMetadata metadata, uint64_t numValuesPerPage)
-        : metadata{std::move(metadata)}, numValuesPerPage{numValuesPerPage} {
+        : column{nullptr}, metadata{std::move(metadata)}, numValuesPerPage{numValuesPerPage} {
         nullState = std::make_unique<ChunkState>();
     }
 
+    Column* column;
     ColumnChunkMetadata metadata;
     uint64_t numValuesPerPage = UINT64_MAX;
     common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
@@ -62,7 +64,7 @@ public:
     ColumnChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
         ResidencyState type, bool hasNullData);
     ColumnChunkData(common::LogicalType dataType, bool enableCompression,
-        const ColumnChunkMetadata& metadata);
+        const ColumnChunkMetadata& metadata, bool hasNullData);
     virtual ~ColumnChunkData() = default;
 
     template<typename T>
@@ -214,11 +216,13 @@ inline bool ColumnChunkData::getValue(common::offset_t pos) const {
 // Stored as bitpacked booleans in-memory and on-disk
 class BoolChunkData : public ColumnChunkData {
 public:
-    explicit BoolChunkData(uint64_t capacity, bool enableCompression, ResidencyState type,
-        bool hasNullChunk)
+    BoolChunkData(uint64_t capacity, bool enableCompression, ResidencyState type, bool hasNullChunk)
         : ColumnChunkData(*common::LogicalType::BOOL(), capacity,
               // Booleans are always bitpacked, but this can also enable constant compression
               enableCompression, type, hasNullChunk) {}
+    BoolChunkData(bool enableCompression, const ColumnChunkMetadata& metadata, bool hasNullData)
+        : ColumnChunkData{*common::LogicalType::BOOL()->copy(), enableCompression, metadata,
+              hasNullData} {}
 
     void append(common::ValueVector* vector, const common::SelectionVector& sel) final;
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
@@ -237,9 +241,13 @@ public:
 
 class NullChunkData final : public BoolChunkData {
 public:
-    explicit NullChunkData(uint64_t capacity, bool enableCompression, ResidencyState type)
+    NullChunkData(uint64_t capacity, bool enableCompression, ResidencyState type)
         : BoolChunkData(capacity, enableCompression, type, false /*hasNullData*/),
           mayHaveNullValue{false} {}
+    NullChunkData(bool enableCompression, const ColumnChunkMetadata& metadata)
+        : BoolChunkData{enableCompression, metadata, false /*hasNullData*/},
+          mayHaveNullValue{false} {}
+
     // Maybe this should be combined with BoolChunkData if the only difference is these functions?
     bool isNull(common::offset_t pos) const { return getValue<bool>(pos); }
     void setNull(common::offset_t pos, bool isNull);
@@ -284,10 +292,10 @@ protected:
 };
 
 struct ColumnChunkFactory {
-    // inMemory starts string column chunk dictionaries at zero instead of reserving space for
-    // values to grow
     static std::unique_ptr<ColumnChunkData> createColumnChunkData(common::LogicalType dataType,
         bool enableCompression, uint64_t capacity, ResidencyState type, bool hasNullData = true);
+    static std::unique_ptr<ColumnChunkData> createColumnChunkData(common::LogicalType dataType,
+        bool enableCompression, ColumnChunkMetadata& metadata);
 
     static std::unique_ptr<ColumnChunkData> createNullChunkData(bool enableCompression,
         uint64_t capacity, ResidencyState type) {

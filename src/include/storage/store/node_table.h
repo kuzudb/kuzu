@@ -18,17 +18,12 @@ namespace storage {
 class LocalNodeTable;
 
 struct NodeTableScanState final : TableScanState {
-    std::vector<Column*> columns;
     std::vector<ColumnPredicateSet> columnPredicateSets;
     const NodeGroup* nodeGroup = nullptr;
-    std::vector<ChunkState> chunkStates;
 
-    explicit NodeTableScanState(common::table_id_t tableID,
+    explicit NodeTableScanState(const common::table_id_t tableID,
         std::vector<common::column_id_t> columnIDs)
-        : TableScanState{tableID, std::move(columnIDs), std::vector<ColumnPredicateSet>{}} {
-        chunkStates.resize(this->columnIDs.size());
-        columns.resize(this->columnIDs.size());
-    }
+        : TableScanState{tableID, std::move(columnIDs), std::vector<ColumnPredicateSet>{}} {}
     NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
         std::vector<ColumnPredicateSet> columnPredicateSets)
         : TableScanState{tableID, std::move(columnIDs), std::move(columnPredicateSets)} {

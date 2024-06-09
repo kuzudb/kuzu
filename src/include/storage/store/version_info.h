@@ -1,8 +1,17 @@
 #pragma once
 
-#include "transaction/transaction.h"
+#include <array>
+
+#include "common/constants.h"
+#include "common/copy_constructors.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
 
 namespace kuzu {
+namespace transaction {
+class Transaction;
+} // namespace transaction
+
 namespace storage {
 
 struct VectorVersionInfo {
@@ -17,6 +26,7 @@ struct VectorVersionInfo {
         insertedVersions.fill(common::INVALID_TRANSACTION);
         deletedVersions.fill(common::INVALID_TRANSACTION);
     }
+    DELETE_COPY_DEFAULT_MOVE(VectorVersionInfo);
 
     bool anyVersions() const { return anyInserted || anyDeleted; }
     common::row_idx_t append(common::transaction_t transactionID, common::row_idx_t startRow,
@@ -40,13 +50,15 @@ class NodeGroupVersionInfo {
 public:
     NodeGroupVersionInfo() {}
 
-    common::row_idx_t append(common::transaction_t transactionID, common::row_idx_t startRow,
-        common::row_idx_t numRows);
-    bool delete_(common::transaction_t transactionID, common::row_idx_t rowIdx);
+    common::row_idx_t append(const transaction::Transaction* transaction,
+        common::row_idx_t startRow, common::row_idx_t numRows);
+    bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdx);
 
     void getSelVectorToScan(common::transaction_t startTS, common::transaction_t transactionID,
         common::SelectionVector& selVector, common::row_idx_t startRow,
         common::row_idx_t numRows) const;
+
+    void clearVectorInfo(common::idx_t vectorIdx);
 
 private:
     VectorVersionInfo& getVersionInfo(common::idx_t vectorIdx);

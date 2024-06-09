@@ -25,7 +25,7 @@ public:
         currentPosition = 0;
     }
 
-    uint8_t* getDataUnsafe() { return data.get(); }
+    uint8_t* getDataUnsafe() const { return data.get(); }
     uint8_t const* getData() const { return data.get(); }
     uint64_t getSize() const { return size; }
     uint64_t getCurrentPosition() const { return currentPosition; }
@@ -56,7 +56,9 @@ private:
 };
 
 class UpdateInfo;
+class NodeGroupVersionInfo;
 struct VectorUpdateInfo;
+struct VectorVersionInfo;
 // This class is not thread safe, as it is supposed to be accessed by a single thread.
 class UndoBuffer {
     friend class UndoBufferIterator;
@@ -65,11 +67,17 @@ public:
     enum class UndoRecordType : uint16_t {
         CATALOG_ENTRY = 0,
         UPDATE_INFO = 1,
+        INSERT_INFO = 2,
+        DELETE_INFO = 3,
     };
 
     explicit UndoBuffer(main::ClientContext& clientContext);
 
     void createCatalogEntry(catalog::CatalogSet* catalogSet, catalog::CatalogEntry* catalogEntry);
+    void createVectorInsertInfo(NodeGroupVersionInfo* versionInfo, common::idx_t vectorIdx,
+        VectorVersionInfo* vectorVersionInfo, const std::vector<common::row_idx_t>& rowsInVector);
+    void createVectorDeleteInfo(NodeGroupVersionInfo* versionInfo, common::idx_t vectorIdx,
+        VectorVersionInfo* vectorVersionInfo, const std::vector<common::row_idx_t>& rowsInVector);
     void createVectorUpdateInfo(UpdateInfo* updateInfo, common::idx_t vectorIdx,
         VectorUpdateInfo* vectorUpdateInfo);
 
@@ -79,9 +87,17 @@ public:
 private:
     uint8_t* createUndoRecord(uint64_t size);
 
+    void createVectorVersionInfo(UndoRecordType recordType, NodeGroupVersionInfo* versionInfo,
+        common::idx_t vectorIdx, VectorVersionInfo* vectorVersionInfo,
+        const std::vector<common::row_idx_t>& rowsInVector);
+
     void commitRecord(UndoRecordType recordType, const uint8_t* record,
         common::transaction_t commitTS) const;
     void rollbackRecord(UndoRecordType recordType, const uint8_t* record);
+
+    void commitVectorVersionInfo(UndoRecordType recordType, const uint8_t* record,
+        common::transaction_t commitTS) const;
+    void rollbackVectorVersionInfo(UndoRecordType recordType, const uint8_t* record);
 
     void commitVectorUpdateInfo(const uint8_t* record, common::transaction_t commitTS) const;
     void rollbackVectorUpdateInfo(const uint8_t* record);

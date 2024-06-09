@@ -12,8 +12,7 @@ class TableData;
 class NodeGroupCollection {
 public:
     explicit NodeGroupCollection(const std::vector<common::LogicalType>& types,
-        bool enableCompression, ResidencyState residencyState,
-        common::offset_t startNodeOffset = 0);
+        bool enableCompression, common::offset_t startNodeOffset = 0);
     NodeGroupCollection(const std::vector<common::LogicalType>& types, BMFileHandle* dataFH,
         const TableData& tableData);
 
@@ -29,12 +28,13 @@ public:
         return nodeGroups.size();
     }
     NodeGroup& findNodeGroupFromOffset(common::offset_t offset);
-    NodeGroup& getNodeGroup(common::node_group_idx_t groupIdx) {
+    NodeGroup& getNodeGroup(const common::node_group_idx_t groupIdx) {
         std::shared_lock sLck{mtx};
         KU_ASSERT(groupIdx < nodeGroups.size());
         return *nodeGroups[groupIdx];
     }
-    void setNodeGroup(common::node_group_idx_t nodeGroupIdx, std::unique_ptr<NodeGroup> group) {
+    void setNodeGroup(const common::node_group_idx_t nodeGroupIdx,
+        std::unique_ptr<NodeGroup> group) {
         std::unique_lock xLck{mtx};
         nodeGroups.resize(nodeGroupIdx + 1);
         nodeGroups[nodeGroupIdx] = std::move(group);
@@ -48,11 +48,11 @@ public:
 private:
     std::shared_mutex mtx;
     bool enableCompression;
-    ResidencyState residencyState;
     common::offset_t startNodeOffset;
     std::vector<common::LogicalType> types;
     std::vector<std::unique_ptr<NodeGroup>> nodeGroups;
     BMFileHandle* dataFH;
+    const TableData* tableData;
 };
 
 } // namespace storage

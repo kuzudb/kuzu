@@ -13,6 +13,7 @@ class Transaction;
 namespace storage {
 
 class Column;
+struct TableScanState;
 
 class ChunkedNodeGroup {
 public:
@@ -27,12 +28,12 @@ public:
         const common::offset_t startNodeOffset)
         : chunks{std::move(chunks)}, nodeGroupIdx{common::INVALID_NODE_GROUP_IDX},
           startNodeOffset{startNodeOffset}, capacity{common::StorageConstants::NODE_GROUP_SIZE} {
-        KU_ASSERT(!chunks.empty());
+        KU_ASSERT(!this->chunks.empty());
         residencyState = this->chunks[0]->getResidencyState();
         numRows = this->chunks[0]->getNumValues();
         for (auto columnID = 1u; columnID < this->chunks.size(); columnID++) {
             KU_ASSERT(this->chunks[columnID]->getNumValues() == numRows);
-            KU_ASSERT(chunks[columnID]->getResidencyState() == residencyState);
+            KU_ASSERT(this->chunks[columnID]->getResidencyState() == residencyState);
         }
     }
     ChunkedNodeGroup(const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
@@ -57,6 +58,7 @@ public:
         return std::move(chunks[columnID]);
     }
     bool isFull() const { return numRows == common::StorageConstants::NODE_GROUP_SIZE; }
+    ResidencyState getResidencyState() const { return residencyState; }
 
     void resetToEmpty();
     void setAllNull();
@@ -74,10 +76,8 @@ public:
         common::column_id_t offsetColumnID);
     void write(const ChunkedNodeGroup& data, common::column_id_t offsetColumnID);
 
-    void scan(transaction::Transaction* transaction,
-        const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors, common::offset_t offsetInGroup,
-        common::length_t length) const;
+    void scan(transaction::Transaction* transaction, TableScanState& scanState,
+        common::offset_t offsetInGroup, common::length_t length) const;
     void lookup(transaction::Transaction* transaction,
         const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors,
