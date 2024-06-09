@@ -1,5 +1,7 @@
 #include "storage/store/list_column_chunk.h"
 
+#include <cmath>
+
 #include "common/cast.h"
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/value/value.h"
