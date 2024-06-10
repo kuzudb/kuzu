@@ -24,6 +24,14 @@ public:
     PythonCachedItem Decimal;
 };
 
+class ImportLibCachedItem : public PythonCachedItem {
+
+public:
+    ImportLibCachedItem() : PythonCachedItem("importlib"), find_loader("find_loader", this) {}
+
+    PythonCachedItem find_loader;
+};
+
 class InspectCachedItem : public PythonCachedItem {
 
 public:

@@ -1,6 +1,9 @@
 #include "cached_import/py_cached_import.h"
+#include "common/exception/runtime.h"
 
 namespace kuzu {
+
+std::shared_ptr<PythonCachedImport> importCache;
 
 PythonCachedImport::~PythonCachedImport() {
     py::gil_scoped_acquire acquire;
@@ -13,6 +16,10 @@ py::handle PythonCachedImport::addToCache(py::object obj) {
     return ptr;
 }
 
-std::shared_ptr<PythonCachedImport> importCache;
+bool doesPyModuleExist(std::string moduleName) {
+    py::gil_scoped_acquire acquire;
+    auto find_loader = importCache->importlib.find_loader();
+    return find_loader(moduleName) != Py_None;
+}
 
 } // namespace kuzu
