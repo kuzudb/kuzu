@@ -1,0 +1,7 @@
+-DATASET CSV empty
+
+--
+
+-CASE issue3607
+-STATEMENT CREATE NODE TABLE as (id UUID, PRIMARY KEY (id));
+---- ok
