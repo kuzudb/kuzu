@@ -33,9 +33,6 @@ void ColumnChunk::initializeScanState(ChunkState& state) const {
     data->initializeScanState(state);
 }
 
-// 100, 2148
-// 0-100 == 0-2048
-// 1-0 == 2-100
 void ColumnChunk::scan(Transaction* transaction, ChunkState& state, ValueVector& nodeID,
     ValueVector& output, offset_t offsetInChunk, length_t length) const {
     // Check if there is deletions or insertions. If so, update selVector based on transaction.
@@ -48,8 +45,6 @@ void ColumnChunk::scan(Transaction* transaction, ChunkState& state, ValueVector&
         state.column->scan(&DUMMY_READ_TRANSACTION, state, offsetInChunk, length, &nodeID, &output);
     }
     }
-    // TODO:
-    // Check if there are updates visible to the transaction. Merge updates if so.
     if (updateInfo) {
         auto [startVectorIdx, startOffsetInVector] =
             StorageUtils::getQuotientRemainder(offsetInChunk, DEFAULT_VECTOR_CAPACITY);
@@ -93,6 +88,18 @@ void ColumnChunk::update(Transaction* transaction, offset_t offsetInChunk,
     const auto vectorUpdateInfo =
         updateInfo->update(transaction, vectorIdx, rowIdxInVector, values);
     transaction->pushVectorUpdateInfo(*updateInfo, vectorIdx, *vectorUpdateInfo);
+}
+
+void ColumnChunk::serialize(Serializer& serializer) const {
+    serializer.write<bool>(enableCompression);
+    data->serialize(serializer);
+}
+
+std::unique_ptr<ColumnChunk> ColumnChunk::deserialize(Deserializer& deSer) {
+    bool enableCompression;
+    deSer.deserializeValue<bool>(enableCompression);
+    auto data = ColumnChunkData::deserialize(deSer);
+    return std::make_unique<ColumnChunk>(enableCompression, std::move(data));
 }
 
 } // namespace storage

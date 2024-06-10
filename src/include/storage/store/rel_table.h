@@ -141,7 +141,7 @@ public:
     void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void prepareCommit() override;
     void prepareRollback(LocalTable* localTable) override;
-    void checkpoint() override;
+    void checkpoint(common::Serializer& ser) override;
     void rollbackInMemory() override;
 
     uint64_t getEstimatedMemoryUsage() const override { return 0; }

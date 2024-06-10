@@ -1,8 +1,8 @@
 #include "storage/store/node_group_collection.h"
 
-#include <storage/buffer_manager/bm_file_handle.h>
-#include <storage/store/column.h>
-#include <storage/store/table_data.h>
+#include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/store/column.h"
+#include "storage/store/table_data.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -16,17 +16,11 @@ NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
       dataFH{nullptr}, tableData{nullptr} {}
 
 NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
-    BMFileHandle* dataFH, const TableData& tableData)
+    BMFileHandle* dataFH, const TableData& tableData, Deserializer* deSer)
     : enableCompression{tableData.isCompressionEnabled()}, startNodeOffset{0}, types{types},
       dataFH{dataFH}, tableData{&tableData} {
-    const auto numNodeGroups = tableData.getNumCommittedNodeGroups();
-    nodeGroups.reserve(numNodeGroups);
-    for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
-        auto nodeGroup = std::make_unique<NodeGroup>(nodeGroupIdx, enableCompression,
-            ResidencyState::ON_DISK, types);
-        auto chunkedGroup = tableData.getCommittedNodeGroup(nodeGroupIdx);
-        nodeGroup->merge(&DUMMY_WRITE_TRANSACTION, std::move(chunkedGroup));
-        nodeGroups.push_back(std::move(nodeGroup));
+    if (deSer) {
+        deSer->deserializeVectorOfPtrs<NodeGroup>(nodeGroups);
     }
 }
 
@@ -42,7 +36,7 @@ NodeGroup& NodeGroupCollection::findNodeGroupFromOffset(const offset_t offset) {
     KU_UNREACHABLE;
 }
 
-void NodeGroupCollection::append(Transaction* transaction,
+void NodeGroupCollection::append(const Transaction* transaction,
     const std::vector<ValueVector*>& vectors) {
     std::unique_lock xLck{mtx};
     const auto numRowsToAppend = vectors[0]->state->getSelVector().getSelSize();
@@ -70,7 +64,7 @@ void NodeGroupCollection::append(Transaction* transaction,
     }
 }
 
-void NodeGroupCollection::append(Transaction* transaction,
+void NodeGroupCollection::append(const Transaction* transaction,
     const ChunkedNodeGroupCollection& chunkedGroupCollection) {
     std::unique_lock xLck{mtx};
     const auto numRowsToAppend = chunkedGroupCollection.getNumRows();
@@ -96,7 +90,7 @@ void NodeGroupCollection::append(Transaction* transaction,
     }
 }
 
-void NodeGroupCollection::append(Transaction* transaction, const NodeGroupCollection& other) {
+void NodeGroupCollection::append(const Transaction* transaction, const NodeGroupCollection& other) {
     for (auto& nodeGroup : other.nodeGroups) {
         append(transaction, nodeGroup->getChunkedGroups());
     }
@@ -155,9 +149,12 @@ void NodeGroupCollection::checkpoint() {
     KU_ASSERT(dataFH);
     std::unique_lock xLck{mtx};
     for (const auto& nodeGroup : nodeGroups) {
-        if (nodeGroup->getResidencyState() == ResidencyState::IN_MEMORY)
-            nodeGroup->flush(*dataFH);
+        nodeGroup->checkpoint(*dataFH);
     }
+}
+
+void NodeGroupCollection::serialize(Serializer& ser) const {
+    ser.serializeVectorOfPtrs(nodeGroups);
 }
 
 } // namespace storage

@@ -38,7 +38,7 @@ public:
         }
     }
     ChunkedNodeGroup(const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
-        uint64_t capacity, common::offset_t startOffset, ResidencyState type);
+        uint64_t capacity, common::offset_t startOffset, ResidencyState residencyState);
     ChunkedNodeGroup(const std::vector<std::unique_ptr<Column>>& columns, bool enableCompression);
     DELETE_COPY_DEFAULT_MOVE(ChunkedNodeGroup);
     virtual ~ChunkedNodeGroup() = default;
@@ -62,10 +62,10 @@ public:
     ResidencyState getResidencyState() const { return residencyState; }
 
     void resetToEmpty();
-    void setAllNull();
-    void setNumRows(common::offset_t numRows);
+    void setAllNull() const;
+    void setNumRows(common::offset_t numRows_);
     common::row_idx_t getNumRows() const { return numRows; }
-    void resizeChunks(uint64_t newSize);
+    void resizeChunks(uint64_t newSize) const;
 
     uint64_t append(const std::vector<common::ValueVector*>& columnVectors,
         common::SelectionVector& selVector, uint64_t numValuesToAppend);
@@ -99,6 +99,9 @@ public:
     std::unique_ptr<ChunkedNodeGroup> flush(BMFileHandle& dataFH) const;
 
     uint64_t getEstimatedMemoryUsage() const;
+
+    void serialize(common::Serializer& serializer) const;
+    static std::unique_ptr<ChunkedNodeGroup> deserialize(common::Deserializer& deSer);
 
 protected:
     std::vector<std::unique_ptr<ColumnChunk>> chunks;

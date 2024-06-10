@@ -365,6 +365,7 @@ void ListChunkData::finalize() {
     // Move offsets, null, data from newListChunk to this column chunk. And release indices.
     resetFromOtherChunk(newListChunk);
 }
+
 void ListChunkData::resetFromOtherChunk(ListChunkData* other) {
     buffer = std::move(other->buffer);
     nullData = std::move(other->nullData);
@@ -384,6 +385,18 @@ bool ListChunkData::sanityCheck() const {
 uint64_t ListChunkData::getEstimatedMemoryUsage() const {
     return ColumnChunkData::getEstimatedMemoryUsage() + sizeColumnChunk->getEstimatedMemoryUsage() +
            listDataColumnChunk->dataColumnChunk->getEstimatedMemoryUsage();
+}
+
+void ListChunkData::serialize(Serializer& serializer) const {
+    ColumnChunkData::serialize(serializer);
+    sizeColumnChunk->serialize(serializer);
+    listDataColumnChunk->dataColumnChunk->serialize(serializer);
+}
+
+void ListChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData) {
+    chunkData.cast<ListChunkData>().sizeColumnChunk = ColumnChunkData::deserialize(deSer);
+    chunkData.cast<ListChunkData>().listDataColumnChunk->dataColumnChunk =
+        ColumnChunkData::deserialize(deSer);
 }
 
 } // namespace storage

@@ -141,6 +141,14 @@ void NodeGroup::flush(BMFileHandle& dataFH) {
     setToOnDisk();
 }
 
+void NodeGroup::checkpoint(BMFileHandle& dataFH) {
+    if (residencyState == ResidencyState::IN_MEMORY) {
+        flush(dataFH);
+    } else {
+        // TODO: Merge inserts, updates and deletions to the disk.
+    }
+}
+
 void NodeGroup::populateNodeID(ValueVector& nodeIDVector, SelectionVector& selVector,
     table_id_t tableID, const offset_t startNodeOffset, const row_idx_t numRows) {
     for (auto i = 0u; i < numRows; i++) {
@@ -156,14 +164,42 @@ void NodeGroup::populateNodeID(ValueVector& nodeIDVector, SelectionVector& selVe
 }
 
 uint64_t NodeGroup::getEstimatedMemoryUsage() const {
-    if (residencyState == ResidencyState::ON_DISK) {
-        return 0;
-    }
     uint64_t memUsage = 0;
     for (const auto& chunkedGroup : chunkedGroups.getChunkedGroups()) {
         memUsage += chunkedGroup->getEstimatedMemoryUsage();
     }
     return memUsage;
+}
+
+void NodeGroup::serialize(Serializer& serializer) const {
+    KU_ASSERT(chunkedGroups.getNumChunkedGroups() == 1);
+    KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+    // Serialize nodeGroupIdx and metadata of chunks.
+    serializer.write<node_group_idx_t>(nodeGroupIdx);
+    serializer.write<bool>(enableCompression);
+    chunkedGroups.getChunkedGroup(0).serialize(serializer);
+    // Serialize deleted version informaton if any.
+    const auto hasDeletions = versionInfo.hasDeletions();
+    serializer.write<bool>(hasDeletions);
+    if (hasDeletions) {
+        versionInfo.serialize(serializer);
+    }
+}
+
+std::unique_ptr<NodeGroup> NodeGroup::deserialize(Deserializer& deSer) {
+    node_group_idx_t nodeGroupIdx;
+    bool enableCompression;
+    deSer.deserializeValue<node_group_idx_t>(nodeGroupIdx);
+    deSer.deserializeValue<bool>(enableCompression);
+    auto chunkedNodeGroup = ChunkedNodeGroup::deserialize(deSer);
+    bool hasDeletions;
+    deSer.deserializeValue<bool>(hasDeletions);
+    std::unique_ptr<NodeGroupVersionInfo> versionInfo = nullptr;
+    if (hasDeletions) {
+        versionInfo = NodeGroupVersionInfo::deserialize(deSer);
+    }
+    return std::make_unique<NodeGroup>(nodeGroupIdx, enableCompression, std::move(chunkedNodeGroup),
+        std::move(versionInfo));
 }
 
 } // namespace storage

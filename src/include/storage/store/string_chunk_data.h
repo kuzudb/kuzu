@@ -50,6 +50,9 @@ public:
 
     uint64_t getEstimatedMemoryUsage() const override;
 
+    void serialize(common::Serializer& serializer) const override;
+    static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
+
 private:
     void appendStringColumnChunk(StringChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend);

@@ -30,7 +30,7 @@ public:
 
     void prepareCommit(transaction::Transaction* transaction, common::VirtualFileSystem* vfs);
     void prepareRollback();
-    void checkpoint();
+    void checkpoint(main::ClientContext& clientContext) const;
     void rollbackInMemory();
 
     PrimaryKeyIndex* getPKIndex(common::table_id_t tableID);
@@ -45,13 +45,13 @@ public:
     BMFileHandle* getMetadataFH() const { return metadataFH.get(); }
     DiskArrayCollection* getMetadataDAC() const { return metadataDAC.get(); }
     void initStatistics() {
-        nodesStatisticsAndDeletedIDs->initTableStatisticsForWriteTrx();
+        // nodesStatisticsAndDeletedIDs->initTableStatisticsForWriteTrx();
         relsStatistics->initTableStatisticsForWriteTrx();
     }
-    NodesStoreStatsAndDeletedIDs* getNodesStatisticsAndDeletedIDs() {
+    NodesStoreStatsAndDeletedIDs* getNodesStatisticsAndDeletedIDs() const {
         return nodesStatisticsAndDeletedIDs.get();
     }
-    RelsStoreStats* getRelsStatistics() { return relsStatistics.get(); }
+    RelsStoreStats* getRelsStatistics() const { return relsStatistics.get(); }
     std::string getDatabasePath() const { return databasePath; }
     bool isReadOnly() const { return readOnly; }
     bool compressionEnabled() const { return enableCompression; }

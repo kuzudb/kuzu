@@ -14,7 +14,7 @@ namespace storage {
 // chunk to be greater than the node group size since they remove unused entries.
 // So the chunk is initialized with a size equal to 3/4 the node group size, making sure there
 // is always extra space for updates.
-static const double OFFSET_CHUNK_CAPACITY_FACTOR = 0.75;
+static constexpr double OFFSET_CHUNK_CAPACITY_FACTOR = 0.75;
 
 DictionaryChunk::DictionaryChunk(uint64_t capacity, bool enableCompression, ResidencyState type)
     : enableCompression{enableCompression},
@@ -75,7 +75,8 @@ std::string_view DictionaryChunk::getString(string_index_t index) const {
     KU_ASSERT(index < offsetChunk->getNumValues());
     auto startOffset = offsetChunk->getValue<string_offset_t>(index);
     auto length = getStringLength(index);
-    return std::string_view((const char*)stringDataChunk->getData() + startOffset, length);
+    return std::string_view(reinterpret_cast<const char*>(stringDataChunk->getData()) + startOffset,
+        length);
 }
 
 bool DictionaryChunk::sanityCheck() const {
@@ -84,6 +85,18 @@ bool DictionaryChunk::sanityCheck() const {
 
 uint64_t DictionaryChunk::getEstimatedMemoryUsage() const {
     return stringDataChunk->getEstimatedMemoryUsage() + offsetChunk->getEstimatedMemoryUsage();
+}
+
+void DictionaryChunk::serialize(Serializer& serializer) const {
+    offsetChunk->serialize(serializer);
+    stringDataChunk->serialize(serializer);
+}
+
+std::unique_ptr<DictionaryChunk> DictionaryChunk::deserialize(Deserializer& deSer) {
+    auto chunk = std::make_unique<DictionaryChunk>(0, true, ResidencyState::ON_DISK);
+    chunk->offsetChunk = ColumnChunkData::deserialize(deSer);
+    chunk->stringDataChunk = ColumnChunkData::deserialize(deSer);
+    return chunk;
 }
 
 } // namespace storage

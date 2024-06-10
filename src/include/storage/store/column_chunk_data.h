@@ -158,6 +158,9 @@ public:
 
     virtual uint64_t getEstimatedMemoryUsage() const;
 
+    virtual void serialize(common::Serializer& serializer) const;
+    static std::unique_ptr<ColumnChunkData> deserialize(common::Deserializer& deSer);
+
     template<typename TARGET>
     TARGET& cast() {
         return common::ku_dynamic_cast<ColumnChunkData&, TARGET&>(*this);
@@ -284,6 +287,9 @@ public:
         common::offset_t offsetInChunk) override;
     void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
+
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<NullChunkData> deserialize(common::Deserializer& deSer);
 
     common::NullMask getNullMask() const {
         return common::NullMask(std::span(reinterpret_cast<uint64_t*>(getData()), capacity / 64));

@@ -174,7 +174,7 @@ void RelTable::prepareCommit() {
     bwdRelTableData->prepareCommit();
 }
 
-void RelTable::checkpoint() {
+void RelTable::checkpoint(Serializer&) {
     checkpointInMemory();
 }
 

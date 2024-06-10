@@ -36,6 +36,9 @@ public:
 
     uint64_t getEstimatedMemoryUsage() const;
 
+    void serialize(common::Serializer& serializer) const;
+    static std::unique_ptr<DictionaryChunk> deserialize(common::Deserializer& deSer);
+
 private:
     bool enableCompression;
     // String data is stored as a UINT8 chunk, using the numValues in the chunk to track the number

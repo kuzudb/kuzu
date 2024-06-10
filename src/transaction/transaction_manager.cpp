@@ -132,7 +132,7 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     clientContext.getCatalog()->checkpoint(clientContext.getDatabasePath(), &wal,
         clientContext.getVFSUnsafe());
     // We next perform an in-memory checkpointing of node/relTables.
-    clientContext.getStorageManager()->checkpoint();
+    clientContext.getStorageManager()->checkpoint(clientContext);
     wal.flushAllPages();
     // Replay the WAL to commit page updates/inserts, and table statistics.
     const auto walReplayer = std::make_unique<WALReplayer>(clientContext, wal.getShadowingFH(),

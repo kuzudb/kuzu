@@ -13,9 +13,13 @@ class ChunkedNodeGroupCollection {
 public:
     static constexpr uint64_t CHUNK_CAPACITY = 2048;
 
-    explicit ChunkedNodeGroupCollection(ResidencyState residencyState,
+    ChunkedNodeGroupCollection(ResidencyState residencyState,
         std::vector<common::LogicalType> types)
         : residencyState{residencyState}, types{std::move(types)} {}
+    explicit ChunkedNodeGroupCollection(std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup)
+        : residencyState{ResidencyState::ON_DISK} {
+        chunkedGroups.push_back(std::move(chunkedNodeGroup));
+    }
     DELETE_COPY_DEFAULT_MOVE(ChunkedNodeGroupCollection);
 
     static std::pair<uint64_t, common::offset_t> getChunkIdxAndOffsetInChunk(

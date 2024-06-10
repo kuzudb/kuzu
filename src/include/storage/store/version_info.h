@@ -37,6 +37,8 @@ struct VectorVersionInfo {
         common::SelectionVector& selVector, common::row_idx_t startRow,
         common::row_idx_t numRows) const;
 
+    void serialize(common::Serializer& serializer) const;
+
 private:
     // Given startTS and transactionID, if the row is deleted to the transaction, return true.
     bool isDeleted(common::transaction_t startTS, common::transaction_t transactionID,
@@ -59,6 +61,11 @@ public:
         common::row_idx_t numRows) const;
 
     void clearVectorInfo(common::idx_t vectorIdx);
+
+    bool hasDeletions() const;
+
+    void serialize(common::Serializer& serializer) const;
+    static std::unique_ptr<NodeGroupVersionInfo> deserialize(common::Deserializer& deSer);
 
 private:
     VectorVersionInfo& getVersionInfo(common::idx_t vectorIdx);

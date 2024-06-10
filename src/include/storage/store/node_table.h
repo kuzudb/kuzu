@@ -4,12 +4,16 @@
 #include "common/types/types.h"
 #include "storage/index/hash_index.h"
 #include "storage/stats/nodes_store_statistics.h"
-#include "storage/store/chunked_node_group.h"
 #include "storage/store/node_group_collection.h"
 #include "storage/store/node_table_data.h"
 #include "storage/store/table.h"
 
 namespace kuzu {
+namespace catalog {
+class NodeTableCatalogEntry;
+class Property;
+} // namespace catalog
+
 namespace transaction {
 class Transaction;
 } // namespace transaction
@@ -73,6 +77,11 @@ public:
     }
 
     NodeTable(StorageManager* storageManager, catalog::NodeTableCatalogEntry* nodeTableEntry,
+        MemoryManager* memoryManager, common::VirtualFileSystem* vfs, main::ClientContext* context,
+        common::Deserializer* deSer = nullptr);
+
+    static std::unique_ptr<NodeTable> loadTable(common::Deserializer& deSer,
+        const catalog::Catalog& catalog, StorageManager* storageManager,
         MemoryManager* memoryManager, common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     void initializePKIndex(const std::string& databasePath,
@@ -119,7 +128,7 @@ public:
     void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void prepareCommit() override;
     void prepareRollback(LocalTable* localTable) override;
-    void checkpoint() override;
+    void checkpoint(common::Serializer& ser) override;
     void rollbackInMemory() override;
 
     uint64_t getEstimatedMemoryUsage() const override;
@@ -143,6 +152,8 @@ private:
         const common::ValueVector& pkVector) const;
 
     void checkpointInMemory() override;
+
+    void serialize(common::Serializer& serializer) const;
 
 private:
     std::mutex mtx;

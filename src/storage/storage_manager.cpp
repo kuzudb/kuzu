@@ -1,7 +1,5 @@
 #include "storage/storage_manager.h"
 
-#include <memory>
-
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/file_system/virtual_file_system.h"
@@ -26,7 +24,6 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
       enableCompression{enableCompression} {
     dataFH = initFileHandle(StorageUtils::getDataFName(vfs, databasePath), vfs, context);
     metadataFH = initFileHandle(StorageUtils::getMetadataFName(vfs, databasePath), vfs, context);
-    // TODO: Assert no wal file exists.
     // TODO: should we disable WAL in readonly mode?
     wal = std::make_unique<WAL>(databasePath, readOnly, *memoryManager.getBufferManager(), vfs,
         context);
@@ -57,8 +54,8 @@ static void setCommonTableIDToRdfRelTable(RelTable* relTable,
             columns.push_back(relTable->getDirectedTableData(RelDataDirection::FWD)->getColumn(2));
             columns.push_back(relTable->getDirectedTableData(RelDataDirection::BWD)->getColumn(2));
             for (auto& column : columns) {
-                ku_dynamic_cast<storage::Column*, storage::InternalIDColumn*>(column)
-                    ->setCommonTableID(rdfEntry->getResourceTableID());
+                ku_dynamic_cast<Column*, InternalIDColumn*>(column)->setCommonTableID(
+                    rdfEntry->getResourceTableID());
             }
         }
     }
@@ -66,11 +63,26 @@ static void setCommonTableIDToRdfRelTable(RelTable* relTable,
 
 void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
     main::ClientContext* context) {
-    for (auto& nodeTableEntry : catalog.getNodeTableEntries(&DUMMY_READ_TRANSACTION)) {
-        KU_ASSERT(!tables.contains(nodeTableEntry->getTableID()));
-        tables[nodeTableEntry->getTableID()] =
-            std::make_unique<NodeTable>(this, nodeTableEntry, &memoryManager, vfs, context);
+    const auto metaFilePath = StorageUtils::getStorageMetadataFName(vfs, databasePath);
+    if (vfs->fileOrPathExists(metaFilePath)) {
+        auto metadataFileInfo = vfs->openFile(
+            StorageUtils::getStorageMetadataFName(vfs, databasePath), O_RDONLY, context);
+        Deserializer deSer(std::make_unique<BufferedFileReader>(std::move(metadataFileInfo)));
+        uint64_t numTables;
+        deSer.deserializeValue<uint64_t>(numTables);
+        for (auto i = 0u; i < numTables; i++) {
+            auto table = NodeTable::loadTable(deSer, catalog, this, &memoryManager, vfs, context);
+            tables[table->getTableID()] = std::move(table);
+        }
+    } else {
+        KU_ASSERT(catalog.getNodeTableEntries(&DUMMY_READ_TRANSACTION).empty());
     }
+
+    // for (auto& nodeTableEntry : catalog.getNodeTableEntries(&DUMMY_READ_TRANSACTION)) {
+    //     KU_ASSERT(!tables.contains(nodeTableEntry->getTableID()));
+    //     tables[nodeTableEntry->getTableID()] =
+    //         std::make_unique<NodeTable>(this, nodeTableEntry, &memoryManager, vfs, context);
+    // }
     auto rdfGraphSchemas = catalog.getRdfGraphEntries(&DUMMY_READ_TRANSACTION);
     for (auto relTableEntry : catalog.getRelTableEntries(&DUMMY_READ_TRANSACTION)) {
         KU_ASSERT(!tables.contains(relTableEntry->getTableID()));
@@ -225,7 +237,7 @@ uint64_t StorageManager::getEstimatedMemoryUsage() const {
     return totalMemoryUsage;
 }
 
-void StorageManager::prepareCommit(Transaction* transaction, common::VirtualFileSystem* vfs) {
+void StorageManager::prepareCommit(Transaction* transaction, VirtualFileSystem* vfs) {
     // Tables which are created but not inserted into may have pending writes
     // which need to be flushed (specifically, the metadata disk array header)
     // TODO(bmwinger): wal->getUpdatedTables isn't the ideal place to store this information
@@ -254,10 +266,16 @@ void StorageManager::prepareRollback() {
     }
 }
 
-void StorageManager::checkpoint() {
+void StorageManager::checkpoint(main::ClientContext& clientContext) const {
+    auto metadataFileInfo = clientContext.getVFSUnsafe()->openFile(
+        StorageUtils::getStorageMetadataFName(clientContext.getVFSUnsafe(), databasePath),
+        O_RDWR | O_CREAT, &clientContext);
+    const auto writer = std::make_shared<BufferedFileWriter>(std::move(metadataFileInfo));
+    Serializer ser(writer);
+    ser.write<uint64_t>(tables.size());
     for (auto tableID : wal->getUpdatedTables()) {
         KU_ASSERT(tables.contains(tableID));
-        tables.at(tableID)->checkpoint();
+        tables.at(tableID)->checkpoint(ser);
     }
     metadataDAC->checkpointInMemory();
     if (nodesStatisticsAndDeletedIDs->hasUpdates()) {

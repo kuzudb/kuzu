@@ -1,6 +1,7 @@
 #include "storage/store/string_chunk_data.h"
 
 #include "common/data_chunk/sel_vector.h"
+#include "common/serializer/deserializer.h"
 #include "common/vector/value_vector.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/dictionary_chunk.h"
@@ -195,6 +196,15 @@ void StringChunkData::finalize() {
 
 uint64_t StringChunkData::getEstimatedMemoryUsage() const {
     return ColumnChunkData::getEstimatedMemoryUsage() + dictionaryChunk->getEstimatedMemoryUsage();
+}
+
+void StringChunkData::serialize(Serializer& serializer) const {
+    ColumnChunkData::serialize(serializer);
+    dictionaryChunk->serialize(serializer);
+}
+
+void StringChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData) {
+    chunkData.cast<StringChunkData>().dictionaryChunk = DictionaryChunk::deserialize(deSer);
 }
 
 template<>

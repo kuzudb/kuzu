@@ -14,13 +14,13 @@ public:
     explicit NodeGroupCollection(const std::vector<common::LogicalType>& types,
         bool enableCompression, common::offset_t startNodeOffset = 0);
     NodeGroupCollection(const std::vector<common::LogicalType>& types, BMFileHandle* dataFH,
-        const TableData& tableData);
+        const TableData& tableData, common::Deserializer* deSer);
 
-    void append(transaction::Transaction* transaction,
+    void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors);
-    void append(transaction::Transaction* transaction,
+    void append(const transaction::Transaction* transaction,
         const ChunkedNodeGroupCollection& chunkedGroupCollection);
-    void append(transaction::Transaction* transaction, const NodeGroupCollection& other);
+    void append(const transaction::Transaction* transaction, const NodeGroupCollection& other);
 
     common::row_idx_t getNumRows();
     common::node_group_idx_t getNumNodeGroups() {
@@ -46,6 +46,8 @@ public:
     uint64_t getEstimatedMemoryUsage() const;
 
     void checkpoint();
+
+    void serialize(common::Serializer& ser) const;
 
 private:
     std::shared_mutex mtx;

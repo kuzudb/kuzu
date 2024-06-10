@@ -24,6 +24,8 @@ public:
     uint64_t getEstimatedMemoryUsage() const {
         return residencyState == ResidencyState::ON_DISK ? 0 : data->getEstimatedMemoryUsage();
     }
+    void serialize(common::Serializer& serializer) const;
+    static std::unique_ptr<ColumnChunk> deserialize(common::Deserializer& deSer);
 
     void setMetadata(const ColumnChunkMetadata& metadata) const { data->setMetadata(metadata); }
     const ColumnChunkMetadata& getFlushedMetadata() const { return data->getFlushedMetadata(); }

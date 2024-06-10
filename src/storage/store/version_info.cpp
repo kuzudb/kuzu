@@ -83,6 +83,16 @@ const VectorVersionInfo& NodeGroupVersionInfo::getVersionInfo(idx_t vectorIdx) c
     return *vectorsInfo[vectorIdx];
 }
 
+void VectorVersionInfo::serialize(Serializer& serializer) const {
+    KU_ASSERT(anyDeleted);
+    for (const auto deleted : deletedVersions) {
+        // Versions should be either INVALID_TRANSACTION or committed timestamps.
+        KU_ASSERT(deleted == INVALID_TRANSACTION ||
+                  deleted < transaction::Transaction::START_TRANSACTION_ID);
+    }
+    serializer.serializeArray<transaction_t, DEFAULT_VECTOR_CAPACITY>(deletedVersions);
+}
+
 row_idx_t NodeGroupVersionInfo::append(const transaction::Transaction* transaction,
     const row_idx_t startRow, const row_idx_t numRows) {
     auto [startVectorIdx, startRowIdxInVector] =
@@ -141,6 +151,45 @@ void NodeGroupVersionInfo::getSelVectorToScan(const transaction_t startTS,
 void NodeGroupVersionInfo::clearVectorInfo(const idx_t vectorIdx) {
     KU_ASSERT(vectorIdx < vectorsInfo.size());
     vectorsInfo[vectorIdx] = nullptr;
+}
+
+bool NodeGroupVersionInfo::hasDeletions() const {
+    for (auto& vectorInfo : vectorsInfo) {
+        if (vectorInfo && vectorInfo->anyDeleted) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void NodeGroupVersionInfo::serialize(Serializer& serializer) const {
+    serializer.write<uint64_t>(vectorsInfo.size());
+    for (auto i = 0u; i < vectorsInfo.size(); i++) {
+        auto hasDeletion = vectorsInfo[i] && vectorsInfo[i]->anyDeleted;
+        serializer.write<bool>(hasDeletion);
+        if (vectorsInfo[i]) {
+            vectorsInfo[i]->serialize(serializer);
+        }
+    }
+}
+
+std::unique_ptr<NodeGroupVersionInfo> NodeGroupVersionInfo::deserialize(Deserializer& deSer) {
+    uint64_t vectorSize;
+    deSer.deserializeValue<uint64_t>(vectorSize);
+    auto versionInfo = std::make_unique<NodeGroupVersionInfo>();
+    for (auto i = 0u; i < vectorSize; i++) {
+        bool hasDeletion;
+        deSer.deserializeValue<bool>(hasDeletion);
+        if (hasDeletion) {
+            auto vectorVersionInfo = std::make_unique<VectorVersionInfo>();
+            deSer.deserializeArray<transaction_t, DEFAULT_VECTOR_CAPACITY>(
+                vectorVersionInfo->deletedVersions);
+            versionInfo->vectorsInfo.push_back(std::move(vectorVersionInfo));
+        } else {
+            versionInfo->vectorsInfo.push_back(nullptr);
+        }
+    }
+    return versionInfo;
 }
 
 } // namespace storage

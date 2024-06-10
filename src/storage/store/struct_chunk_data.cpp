@@ -1,6 +1,8 @@
 #include "storage/store/struct_chunk_data.h"
 
 #include "common/data_chunk/sel_vector.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
@@ -48,6 +50,15 @@ uint64_t StructChunkData::getEstimatedMemoryUsage() const {
         estimatedMemoryUsage += childChunk->getEstimatedMemoryUsage();
     }
     return estimatedMemoryUsage;
+}
+
+void StructChunkData::serialize(Serializer& serializer) const {
+    ColumnChunkData::serialize(serializer);
+    serializer.serializeVectorOfPtrs<ColumnChunkData>(childChunks);
+}
+
+void StructChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData) {
+    deSer.deserializeVectorOfPtrs(chunkData.cast<StructChunkData>().childChunks);
 }
 
 void StructChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,

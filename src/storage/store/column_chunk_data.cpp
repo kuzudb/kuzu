@@ -4,6 +4,8 @@
 
 #include "common/data_chunk/sel_vector.h"
 #include "common/exception/copy.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 #include "common/type_utils.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/interval_t.h"
@@ -576,6 +578,45 @@ uint64_t ColumnChunkData::getEstimatedMemoryUsage() const {
     return bufferSize + (nullData ? nullData->getEstimatedMemoryUsage() : 0);
 }
 
+void ColumnChunkData::serialize(Serializer& serializer) const {
+    KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+    dataType.serialize(serializer);
+    serializer.write<ColumnChunkMetadata>(metadata);
+    serializer.write<bool>(nullData != nullptr);
+    if (nullData) {
+        nullData->serialize(serializer);
+    }
+}
+
+std::unique_ptr<ColumnChunkData> ColumnChunkData::deserialize(Deserializer& deSer) {
+    const auto dataType = LogicalType::deserialize(deSer);
+    ColumnChunkMetadata metadata;
+    deSer.deserializeValue<ColumnChunkMetadata>(metadata);
+    bool hasNull = false;
+    deSer.deserializeValue<bool>(hasNull);
+    KU_ASSERT(hasNull);
+    // TODO(Guodong): FIX-ME. enableCompression.
+    auto chunkData = ColumnChunkFactory::createColumnChunkData(*dataType, true, metadata);
+    chunkData->nullData = NullChunkData::deserialize(deSer);
+
+    switch (dataType->getPhysicalType()) {
+    case PhysicalTypeID::STRUCT: {
+        StructChunkData::deserialize(deSer, *chunkData);
+    } break;
+    case PhysicalTypeID::STRING: {
+        StringChunkData::deserialize(deSer, *chunkData);
+    } break;
+    case PhysicalTypeID::LIST: {
+        ListChunkData::deserialize(deSer, *chunkData);
+    } break;
+    default: {
+        // DO NOTHING.
+    }
+    }
+
+    return chunkData;
+}
+
 void BoolChunkData::append(ValueVector* vector, const SelectionVector& selVector) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::BOOL);
     for (auto i = 0u; i < selVector.getSelSize(); i++) {
@@ -680,6 +721,18 @@ void NullChunkData::append(ColumnChunkData* other, offset_t startOffsetInOtherCh
     copyFromBuffer(reinterpret_cast<uint64_t*>(other->getData()), startOffsetInOtherChunk,
         numValues, numValuesToAppend);
     numValues += numValuesToAppend;
+}
+
+void NullChunkData::serialize(Serializer& serializer) const {
+    KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+    serializer.write<ColumnChunkMetadata>(metadata);
+}
+
+std::unique_ptr<NullChunkData> NullChunkData::deserialize(Deserializer& deSer) {
+    ColumnChunkMetadata metadata;
+    deSer.deserializeValue<ColumnChunkMetadata>(metadata);
+    // TODO: FIX-ME. enableCompression.
+    return std::make_unique<NullChunkData>(true, metadata);
 }
 
 class InternalIDChunkData final : public ColumnChunkData {

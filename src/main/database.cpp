@@ -74,7 +74,7 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     // To expand a path with home directory(~), we have to pass in a dummy clientContext which
     // handles the home directory expansion.
     auto clientContext = ClientContext(this);
-    auto dbPathStr = std::string(databasePath);
+    const auto dbPathStr = std::string(databasePath);
     this->databasePath = vfs->expandPath(&clientContext, dbPathStr);
     bufferManager =
         std::make_unique<BufferManager>(this->dbConfig.bufferPoolSize, this->dbConfig.maxDBSize);

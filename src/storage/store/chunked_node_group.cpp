@@ -31,7 +31,7 @@ bool ChunkedCSRHeader::sanityCheck() const {
 }
 
 void ChunkedCSRHeader::copyFrom(const ChunkedCSRHeader& other) const {
-    auto numValues = other.offset->getNumValues();
+    const auto numValues = other.offset->getNumValues();
     memcpy(offset->getData().getData(), other.offset->getData().getData(),
         numValues * sizeof(offset_t));
     memcpy(length->getData().getData(), other.length->getData().getData(),
@@ -40,8 +40,8 @@ void ChunkedCSRHeader::copyFrom(const ChunkedCSRHeader& other) const {
     offset->setNumValues(numValues);
 }
 
-void ChunkedCSRHeader::fillDefaultValues(offset_t newNumValues) const {
-    auto lastCSROffset = getEndCSROffset(length->getNumValues() - 1);
+void ChunkedCSRHeader::fillDefaultValues(const offset_t newNumValues) const {
+    const auto lastCSROffset = getEndCSROffset(length->getNumValues() - 1);
     for (auto i = length->getNumValues(); i < newNumValues; i++) {
         offset->getData().setValue<offset_t>(lastCSROffset, i);
         length->getData().setValue<length_t>(0, i);
@@ -51,7 +51,8 @@ void ChunkedCSRHeader::fillDefaultValues(offset_t newNumValues) const {
 }
 
 ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<LogicalType>& columnTypes,
-    bool enableCompression, uint64_t capacity, offset_t startOffset, ResidencyState residencyState)
+    bool enableCompression, uint64_t capacity, const offset_t startOffset,
+    ResidencyState residencyState)
     : residencyState{residencyState}, nodeGroupIdx{INVALID_NODE_GROUP_IDX},
       startNodeOffset{startOffset}, capacity{capacity}, numRows{0} {
     chunks.reserve(columnTypes.size());
@@ -81,23 +82,23 @@ void ChunkedNodeGroup::resetToEmpty() {
     }
 }
 
-void ChunkedNodeGroup::setAllNull() {
+void ChunkedNodeGroup::setAllNull() const {
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     for (const auto& chunk : chunks) {
         chunk->setAllNull();
     }
 }
 
-void ChunkedNodeGroup::resizeChunks(uint64_t newSize) {
+void ChunkedNodeGroup::resizeChunks(const uint64_t newSize) const {
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     for (auto& chunk : chunks) {
         chunk->resize(newSize);
     }
 }
 
-void ChunkedNodeGroup::setNumRows(offset_t numRows_) {
+void ChunkedNodeGroup::setNumRows(const offset_t numRows_) {
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
-    for (auto& chunk : chunks) {
+    for (const auto& chunk : chunks) {
         chunk->setNumValues(numRows_);
     }
     numRows = numRows_;
@@ -213,6 +214,17 @@ uint64_t ChunkedNodeGroup::getEstimatedMemoryUsage() const {
         memoryUsage += chunk->getEstimatedMemoryUsage();
     }
     return memoryUsage;
+}
+
+void ChunkedNodeGroup::serialize(Serializer& serializer) const {
+    KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+    serializer.serializeVectorOfPtrs(chunks);
+}
+
+std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::deserialize(Deserializer& deSer) {
+    std::vector<std::unique_ptr<ColumnChunk>> chunks;
+    deSer.deserializeVectorOfPtrs<ColumnChunk>(chunks);
+    return std::make_unique<ChunkedNodeGroup>(std::move(chunks), 0 /*startNodeOffset*/);
 }
 
 ChunkedCSRHeader::ChunkedCSRHeader(bool enableCompression, uint64_t capacity,

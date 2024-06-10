@@ -24,6 +24,9 @@ public:
 
     uint64_t getEstimatedMemoryUsage() const override;
 
+    void serialize(common::Serializer& serializer) const override;
+    static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
+
     common::idx_t getNumChildren() const { return childChunks.size(); }
     const ColumnChunkData& getChild(common::idx_t childIdx) const {
         KU_ASSERT(childIdx < childChunks.size());

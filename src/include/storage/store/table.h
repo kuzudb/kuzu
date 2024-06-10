@@ -125,7 +125,7 @@ public:
     // For metadata-only updates
     virtual void prepareCommit() = 0;
     virtual void prepareRollback(LocalTable* localTable) = 0;
-    virtual void checkpoint() = 0;
+    virtual void checkpoint(common::Serializer& ser) = 0;
     virtual void rollbackInMemory() = 0;
 
     virtual uint64_t getEstimatedMemoryUsage() const = 0;

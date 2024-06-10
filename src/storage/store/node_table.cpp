@@ -18,7 +18,8 @@ namespace kuzu {
 namespace storage {
 
 NodeTable::NodeTable(StorageManager* storageManager, NodeTableCatalogEntry* nodeTableEntry,
-    MemoryManager* memoryManager, VirtualFileSystem* vfs, main::ClientContext* context)
+    MemoryManager* memoryManager, VirtualFileSystem* vfs, main::ClientContext* context,
+    Deserializer* deSer)
     : Table{nodeTableEntry, storageManager->getNodesStatisticsAndDeletedIDs(), memoryManager,
           &storageManager->getWAL()},
       pkColumnID{nodeTableEntry->getColumnID(nodeTableEntry->getPrimaryKeyPID())} {
@@ -27,9 +28,27 @@ NodeTable::NodeTable(StorageManager* storageManager, NodeTableCatalogEntry* node
         nodeTableEntry->getPropertiesRef(), storageManager->getNodesStatisticsAndDeletedIDs(),
         storageManager->compressionEnabled());
     nodeGroups = std::make_unique<NodeGroupCollection>(getTableColumnTypes(*this),
-        storageManager->getDataFH(), *tableData);
+        storageManager->getDataFH(), *tableData, deSer);
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
         storageManager->isReadOnly(), vfs, context);
+}
+
+std::unique_ptr<NodeTable> NodeTable::loadTable(Deserializer& deSer, const Catalog& catalog,
+    StorageManager* storageManager, MemoryManager* memoryManager, VirtualFileSystem* vfs,
+    main::ClientContext* context) {
+    TableType tableType;
+    table_id_t tableID;
+    std::string tableName;
+    deSer.deserializeValue<TableType>(tableType);
+    deSer.deserializeValue<table_id_t>(tableID);
+    deSer.deserializeValue<std::string>(tableName);
+    // TODO(Guodong): We should move this to table.h once we reowrk RelTable too.
+    KU_ASSERT(tableType == TableType::NODE);
+    auto catalogEntry = catalog.getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID)
+                            ->ptrCast<NodeTableCatalogEntry>();
+    KU_ASSERT(catalogEntry->getName() == tableName);
+    return std::make_unique<NodeTable>(storageManager, catalogEntry, memoryManager, vfs, context,
+        &deSer);
 }
 
 void NodeTable::initializePKIndex(const std::string& databasePath,
@@ -146,11 +165,7 @@ void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
         localTable->delete_(transaction, deleteState);
     } else {
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-        const auto actualDeleted =
-            nodeGroups->getNodeGroup(nodeGroupIdx).delete_(transaction, nodeOffset);
-        if (actualDeleted) {
-            // TODO: Add record to undo buffer.
-        }
+        nodeGroups->getNodeGroup(nodeGroupIdx).delete_(transaction, nodeOffset);
     }
 }
 
@@ -168,8 +183,8 @@ void NodeTable::addColumn(Transaction* transaction, const Property& property,
     wal->addToUpdatedTables(tableID);
 }
 
-offset_t NodeTable::append(Transaction* transaction, ChunkedNodeGroup* chunkedGroup,
-    offset_t startOffsetToAppend, row_idx_t numRowsToAppend) {
+offset_t NodeTable::append(Transaction* transaction, ChunkedNodeGroup* chunkedGroup, offset_t,
+    row_idx_t) {
     // TODO: handle startOffsetToAppend and numRowsToAppend.
     nodeGroups->merge(transaction, chunkedGroup->getNodeGroupIdx(), *chunkedGroup);
 }
@@ -226,24 +241,36 @@ void NodeTable::prepareRollback(LocalTable* localTable) {
     localTable->clear();
 }
 
-void NodeTable::checkpoint() {
+void NodeTable::checkpoint(Serializer& ser) {
     // 1. Flush the delta node groups to disk.
     nodeGroups->checkpoint();
+    // 2. Serialize table data.
+    serialize(ser);
+
     // 2. Update metadata disk arrays.
-    const auto numNodeGroups = nodeGroups->getNumNodeGroups();
-    for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
-        auto& nodeGroup = nodeGroups->getNodeGroup(nodeGroupIdx);
-        KU_ASSERT(nodeGroup.getNumChunkedGroups() == 1 &&
-                  nodeGroup.getResidencyState() == ResidencyState::ON_DISK);
-        auto& chunkedGroup = nodeGroup.getChunkedGroup(0);
-        for (auto columnID = 0u; columnID < chunkedGroup.getNumColumns(); columnID++) {
-            tableData->getColumn(columnID)->setMetadataFromChunk(nodeGroupIdx,
-                chunkedGroup.getColumnChunk(columnID).getData());
-        }
-    }
+    // const auto numNodeGroups = nodeGroups->getNumNodeGroups();
+    // for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
+    // auto& nodeGroup = nodeGroups->getNodeGroup(nodeGroupIdx);
+    // KU_ASSERT(nodeGroup.getNumChunkedGroups() == 1 &&
+    // nodeGroup.getResidencyState() == ResidencyState::ON_DISK);
+    // auto& chunkedGroup = nodeGroup.getChunkedGroup(0);
+    // for (auto columnID = 0u; columnID < chunkedGroup.getNumColumns(); columnID++) {
+    // tableData->getColumn(columnID)->setMetadataFromChunk(nodeGroupIdx,
+    // chunkedGroup.getColumnChunk(columnID).getData());
+    // }
+    // }
     // 3. Should also update table statistics.
-    tablesStatistics->updateNumTuplesByValue(tableID, nodeGroups->getNumRows());
+    // tablesStatistics->updateNumTuplesByValue(tableID, nodeGroups->getNumRows());
     checkpointInMemory();
+}
+
+void NodeTable::serialize(Serializer& serializer) const {
+    // Serialize tableType, tableID and name.
+    serializer.write<TableType>(tableType);
+    serializer.write<table_id_t>(tableID);
+    serializer.write<std::string>(tableName);
+    // Serialize node groups.
+    nodeGroups->serialize(serializer);
 }
 
 void NodeTable::checkpointInMemory() {

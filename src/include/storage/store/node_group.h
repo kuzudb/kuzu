@@ -22,11 +22,21 @@ class TableData;
 struct TableScanState;
 class NodeGroup {
 public:
-    explicit NodeGroup(common::node_group_idx_t nodeGroupIdx, bool enableCompression,
-        ResidencyState residencyState, const std::vector<common::LogicalType>& dataTypes)
+    NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
+        const ResidencyState residencyState, const std::vector<common::LogicalType>& dataTypes)
         : nodeGroupIdx{nodeGroupIdx}, enableCompression{enableCompression}, dataTypes{dataTypes},
           residencyState{residencyState}, startNodeOffset{0},
           chunkedGroups{residencyState, dataTypes} {}
+    NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
+        std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup,
+        std::unique_ptr<NodeGroupVersionInfo> versionInfo)
+        : nodeGroupIdx{nodeGroupIdx}, enableCompression{enableCompression},
+          residencyState{ResidencyState::ON_DISK}, startNodeOffset{0},
+          chunkedGroups{std::move(chunkedNodeGroup)} {
+        if (versionInfo) {
+            this->versionInfo = std::move(*versionInfo);
+        }
+    }
 
     common::row_idx_t getNumRows() const { return chunkedGroups.getNumRows(); }
     bool isFull() const {
@@ -54,8 +64,15 @@ public:
 
     void flush(BMFileHandle& dataFH);
 
+    void checkpoint(BMFileHandle& dataFH);
+
+    uint64_t getEstimatedMemoryUsage() const;
+
+    void serialize(common::Serializer& serializer) const;
+    static std::unique_ptr<NodeGroup> deserialize(common::Deserializer& deSer);
+
     common::idx_t getNumChunkedGroups() const { return chunkedGroups.getNumChunkedGroups(); }
-    const ChunkedNodeGroup& getChunkedGroup(common::idx_t idx) const {
+    const ChunkedNodeGroup& getChunkedGroup(const common::idx_t idx) const {
         return chunkedGroups.getChunkedGroup(idx);
     }
     const ChunkedNodeGroupCollection& getChunkedGroups() const { return chunkedGroups; }
@@ -78,6 +95,7 @@ private:
     // Offset of the first node in the group.
     common::offset_t startNodeOffset;
     ChunkedNodeGroupCollection chunkedGroups;
+    // TODO(Guodong): Consdier moving this into a unique_ptr.
     NodeGroupVersionInfo versionInfo;
 };
 
