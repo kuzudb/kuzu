@@ -141,20 +141,18 @@ void ListColumn::scan(Transaction* transaction, const ChunkState& state,
         listColumnChunk.resetOffset();
     } else {
         listColumnChunk.resizeDataColumnChunk(std::bit_ceil(resizeNumValues));
-        auto tmpDataColumnChunk =
-            std::make_unique<ListDataColumnChunk>(ColumnChunkFactory::createColumnChunkData(
-                *ListType::getChildType(this->dataType).copy(), enableCompression,
-                std::bit_ceil(resizeNumValues)));
-        auto dataListColumnChunk = listColumnChunk.getDataColumnChunk();
+        auto tmpDataColumnChunk = ColumnChunkFactory::createColumnChunkData(
+            *ListType::getChildType(this->dataType).copy(), enableCompression,
+            std::bit_ceil(resizeNumValues));
         for (auto i = 0u; i < columnChunk->getNumValues(); i++) {
             offset_t startListOffset = listColumnChunk.getListStartOffset(i);
             offset_t endListOffset = listColumnChunk.getListEndOffset(i);
             dataColumn->scan(transaction, state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
-                tmpDataColumnChunk->dataColumnChunk.get(), startListOffset, endListOffset);
+                tmpDataColumnChunk.get(), startListOffset, endListOffset);
             KU_ASSERT(endListOffset - startListOffset ==
                       tmpDataColumnChunk->dataColumnChunk->getNumValues());
-            dataListColumnChunk->append(tmpDataColumnChunk->dataColumnChunk.get(), 0,
-                tmpDataColumnChunk->dataColumnChunk->getNumValues());
+            tmpDataColumnChunk->append(tmpDataColumnChunk.get(), 0,
+                tmpDataColumnChunk->getNumValues());
         }
         listColumnChunk.resetOffset();
     }
