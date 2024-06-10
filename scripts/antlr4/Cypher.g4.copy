@@ -876,6 +876,7 @@ kU_NonReservedKeywords
         | DEFAULT
         | PROJECT
         | GRAPH
+        | AS
         ;
 
 UnescapedSymbolicName
