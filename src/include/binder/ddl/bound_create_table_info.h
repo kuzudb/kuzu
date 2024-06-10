@@ -6,6 +6,7 @@
 #include "common/enums/table_type.h"
 #include "common/types/types.h"
 #include "common/types/value/value.h"
+#include "parser/ddl/create_table_info.h"
 #include "parser/expression/parsed_literal_expression.h"
 
 namespace kuzu {
@@ -34,16 +35,20 @@ struct BoundCreateTableInfo {
     common::TableType type;
     std::string tableName;
     std::vector<BoundCreateSequenceInfo> serialSequences;
+    parser::OnConflictOperation onConflict;
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo;
 
     BoundCreateTableInfo(common::TableType type, std::string tableName,
+        parser::OnConflictOperation onConflict,
         std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo)
-        : type{type}, tableName{std::move(tableName)}, extraInfo{std::move(extraInfo)} {}
+        : type{type}, tableName{std::move(tableName)}, onConflict{onConflict},
+          extraInfo{std::move(extraInfo)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundCreateTableInfo);
 
 private:
     BoundCreateTableInfo(const BoundCreateTableInfo& other)
-        : type{other.type}, tableName{other.tableName}, extraInfo{other.extraInfo->copy()} {}
+        : type{other.type}, tableName{other.tableName}, onConflict{other.onConflict},
+          extraInfo{other.extraInfo->copy()} {}
 };
 
 struct PropertyInfo {

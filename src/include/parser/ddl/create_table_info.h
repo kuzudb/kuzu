@@ -14,6 +14,11 @@ namespace parser {
 
 struct ExtraCreateTableInfo {
     virtual ~ExtraCreateTableInfo() = default;
+
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const ExtraCreateTableInfo&, const TARGET&>(*this);
+    }
 };
 
 struct PropertyDefinition {
@@ -34,14 +39,22 @@ struct PropertyDefinitionDDL : public PropertyDefinition {
     DELETE_COPY_DEFAULT_MOVE(PropertyDefinitionDDL);
 };
 
+enum class OnConflictOperation : uint8_t {
+    ERROR = 0,
+    IGNORE = 1,
+};
+
 struct CreateTableInfo {
     common::TableType tableType;
     std::string tableName;
     std::vector<PropertyDefinitionDDL> propertyDefinitions;
     std::unique_ptr<ExtraCreateTableInfo> extraInfo;
+    OnConflictOperation onConflict;
 
-    CreateTableInfo(common::TableType tableType, std::string tableName)
-        : tableType{tableType}, tableName{std::move(tableName)}, extraInfo{nullptr} {}
+    CreateTableInfo(common::TableType tableType, std::string tableName,
+        OnConflictOperation onConflict)
+        : tableType{tableType}, tableName{std::move(tableName)}, extraInfo{nullptr},
+          onConflict{onConflict} {}
     DELETE_COPY_DEFAULT_MOVE(CreateTableInfo);
 };
 

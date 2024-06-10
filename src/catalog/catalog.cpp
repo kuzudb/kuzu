@@ -163,6 +163,12 @@ bool Catalog::tableInRelGroup(Transaction* tx, table_id_t tableID) const {
 
 table_id_t Catalog::createTableSchema(transaction::Transaction* transaction,
     const BoundCreateTableInfo& info) {
+    switch (info.onConflict) {
+    case parser::OnConflictOperation::IGNORE:
+        return UINT64_MAX;
+    default:
+        break;
+    }
     table_id_t tableID = tables->assignNextOID();
     std::unique_ptr<CatalogEntry> entry;
     switch (info.type) {

@@ -12,12 +12,22 @@ namespace processor {
 void CreateTable::executeDDLInternal(ExecutionContext* context) {
     auto catalog = context->clientContext->getCatalog();
     auto newTableID = catalog->createTableSchema(context->clientContext->getTx(), info);
+    if (newTableID == UINT64_MAX) {
+        return;
+    }
     auto storageManager = context->clientContext->getStorageManager();
     storageManager->createTable(newTableID, catalog, context->clientContext);
 }
 
 std::string CreateTable::getOutputMsg() {
-    return stringFormat("Table {} has been created.", info.tableName);
+    switch (info.onConflict) {
+    case parser::OnConflictOperation::ERROR:
+        return stringFormat("Table {} has been created.", info.tableName);
+    case parser::OnConflictOperation::IGNORE:
+        return stringFormat("Table {} already exists.", info.tableName);
+    default:
+        KU_UNREACHABLE;
+    }
 }
 
 } // namespace processor
