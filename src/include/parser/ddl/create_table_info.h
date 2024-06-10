@@ -41,7 +41,7 @@ struct PropertyDefinitionDDL : public PropertyDefinition {
 
 enum class OnConflictOperation : uint8_t {
     ERROR = 0,
-    IGNORE = 1,
+    IGNORE = 1
 };
 
 struct CreateTableInfo {
