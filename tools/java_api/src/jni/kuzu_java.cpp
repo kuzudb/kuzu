@@ -8,8 +8,11 @@
 
 // This header is generated at build time. See CMakeLists.txt.
 #include "com_kuzudb_KuzuNative.h"
+#include "common/constants.h"
 #include "common/exception/conversion.h"
 #include "common/exception/exception.h"
+#include "common/exception/not_implemented.h"
+#include "function/cast/functions/cast_string_non_nested_functions.h"
 #include "main/kuzu.h"
 #include <jni.h>
 
@@ -78,6 +81,12 @@ static jfieldID J_C_KuzuInternalID_F_offset;
 static jclass J_C_Double;
 static jmethodID J_C_Double_M_init;
 static jmethodID J_C_Double_M_doubleValue;
+// BigDecimal
+static jclass J_C_BigDecimal;
+static jmethodID J_C_BigDecimal_M_init;
+static jmethodID J_C_BigDecimal_M_toString;
+static jmethodID J_C_BigDecimal_M_precision;
+static jmethodID J_C_BigDecimal_M_scale;
 // LocalDate
 static jclass J_C_LocalDate;
 static jmethodID J_C_LocalDate_M_ofEpochDay;
@@ -705,6 +714,23 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1create_1value(JN
     } else if (env->IsInstanceOf(val, J_C_Double)) {
         jdouble value = env->CallDoubleMethod(val, J_C_Double_M_doubleValue);
         v = new Value(static_cast<double>(value));
+    } else if (env->IsInstanceOf(val, J_C_BigDecimal)) {
+        jstring value = static_cast<jstring>(env->CallObjectMethod(val, J_C_BigDecimal_M_toString));
+        const char* str = env->GetStringUTFChars(value, JNI_FALSE);
+        auto precision = static_cast<int32_t>(env->CallIntMethod(val, J_C_BigDecimal_M_precision));
+        auto scale = static_cast<int32_t>(env->CallIntMethod(val, J_C_BigDecimal_M_scale));
+        if (precision > DECIMAL_PRECISION_LIMIT) {
+            throw NotImplementedException(
+                stringFormat("Decimal precision cannot be greater than {}"
+                             "Note: positive exponents contribute to precision",
+                    DECIMAL_PRECISION_LIMIT));
+        }
+        auto type = *LogicalType::DECIMAL(precision, scale);
+        auto tmp = Value::createDefaultValue(type);
+        int128_t res;
+        kuzu::function::decimalCast(str, std::strlen(str), res, type);
+        tmp.val.int128Val = res;
+        v = new Value(tmp);
     } else if (env->IsInstanceOf(val, J_C_String)) {
         jstring value = static_cast<jstring>(val);
         const char* str = env->GetStringUTFChars(value, JNI_FALSE);
@@ -849,6 +875,11 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1value(JNI
     case LogicalTypeID::DOUBLE: {
         jdouble val = static_cast<jdouble>(v->getValue<double>());
         jobject ret = env->NewObject(J_C_Double, J_C_Double_M_init, val);
+        return ret;
+    }
+    case LogicalTypeID::DECIMAL: {
+        jstring val = env->NewStringUTF(v->toString().c_str());
+        jobject ret = env->NewObject(J_C_BigDecimal, J_C_BigDecimal_M_init, val);
         return ret;
     }
     case LogicalTypeID::FLOAT: {
@@ -1248,6 +1279,8 @@ void initGlobalClassRef(JNIEnv* env) {
 
     createGlobalClassRef(env, J_C_Double, "java/lang/Double");
 
+    createGlobalClassRef(env, J_C_BigDecimal, "java/math/BigDecimal");
+
     createGlobalClassRef(env, J_C_LocalDate, "java/time/LocalDate");
 
     createGlobalClassRef(env, J_C_Instant, "java/time/Instant");
@@ -1294,6 +1327,8 @@ void initGlobalMethodRef(JNIEnv* env) {
 
     J_C_Double_M_init = env->GetMethodID(J_C_Double, "<init>", "(D)V");
 
+    J_C_BigDecimal_M_init = env->GetMethodID(J_C_BigDecimal, "<init>", "(Ljava/lang/String;)V");
+
     J_C_LocalDate_M_ofEpochDay =
         env->GetStaticMethodID(J_C_LocalDate, "ofEpochDay", "(J)Ljava/time/LocalDate;");
     J_C_LocalDate_M_toEpochDay = env->GetMethodID(J_C_LocalDate, "toEpochDay", "()J");
@@ -1329,6 +1364,13 @@ void initGlobalMethodRef(JNIEnv* env) {
     J_C_Float_M_floatValue = env->GetMethodID(J_C_Float, "floatValue", "()F");
 
     J_C_Double_M_doubleValue = env->GetMethodID(J_C_Double, "doubleValue", "()D");
+
+    J_C_BigDecimal_M_toString =
+        env->GetMethodID(J_C_BigDecimal, "toString", "()Ljava/lang/String;");
+
+    J_C_BigDecimal_M_precision = env->GetMethodID(J_C_BigDecimal, "precision", "()I");
+
+    J_C_BigDecimal_M_scale = env->GetMethodID(J_C_BigDecimal, "scale", "()I");
 }
 
 void initGlobalFieldRef(JNIEnv* env) {
@@ -1386,6 +1428,7 @@ JNIEXPORT void JNICALL JNI_OnUnload(JavaVM* vm, void* /*reserved*/) {
     env->DeleteGlobalRef(J_C_Integer);
     env->DeleteGlobalRef(J_C_KuzuInternalID);
     env->DeleteGlobalRef(J_C_Double);
+    env->DeleteGlobalRef(J_C_BigDecimal);
     env->DeleteGlobalRef(J_C_LocalDate);
     env->DeleteGlobalRef(J_C_Instant);
     env->DeleteGlobalRef(J_C_Short);

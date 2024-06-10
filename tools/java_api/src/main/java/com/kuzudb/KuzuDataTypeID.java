@@ -28,6 +28,7 @@ public enum KuzuDataTypeID {
     TIMESTAMP_NS(38),
     TIMESTAMP_TZ(39),
     INTERVAL(40),
+    DECIMAL(41),
     INTERNAL_ID(42),
     STRING(50),
     BLOB(51),

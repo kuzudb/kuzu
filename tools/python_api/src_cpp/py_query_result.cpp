@@ -207,6 +207,10 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     case LogicalTypeID::DOUBLE: {
         return py::cast(value.getValue<double>());
     }
+    case LogicalTypeID::DECIMAL: {
+        auto Decimal = importCache->decimal.Decimal();
+        return Decimal(value.toString());
+    }
     case LogicalTypeID::STRING: {
         return py::cast(value.getValue<std::string>());
     }
