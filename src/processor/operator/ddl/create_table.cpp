@@ -21,9 +21,9 @@ void CreateTable::executeDDLInternal(ExecutionContext* context) {
 
 std::string CreateTable::getOutputMsg() {
     switch (info.onConflict) {
-    case parser::OnConflictOperation::ERROR:
+    case parser::OnConflictOperation::EXCEPTION:
         return stringFormat("Table {} has been created.", info.tableName);
-    case parser::OnConflictOperation::IGNORE:
+    case parser::OnConflictOperation::SKIP:
         return stringFormat("Table {} already exists.", info.tableName);
     default:
         KU_UNREACHABLE;
