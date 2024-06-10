@@ -39,10 +39,7 @@ struct PropertyDefinitionDDL : public PropertyDefinition {
     DELETE_COPY_DEFAULT_MOVE(PropertyDefinitionDDL);
 };
 
-enum class OnConflictOperation : uint8_t {
-    ERROR = 0,
-    IGNORE = 1
-};
+enum class OnConflictOperation : uint8_t { ERROR = 0, IGNORE = 1 };
 
 struct CreateTableInfo {
     common::TableType tableType;
