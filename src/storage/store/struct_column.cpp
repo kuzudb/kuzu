@@ -32,10 +32,8 @@ void StructColumn::scan(Transaction* transaction, const ChunkState& state,
     KU_ASSERT(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     nullColumn->scan(transaction, *state.nullState, columnChunk->getNullChunk(), startOffset,
         endOffset);
-    auto numValues = state.metadata.numValues == 0 ?
-                         0 :
-                         std::min(endOffset, state.metadata.numValues) - startOffset;
-    columnChunk->setNumValues(numValues);
+    columnChunk->setNumValues(
+        getNumValuesFromDisk(metadataDA.get(), transaction, state, startOffset, endOffset));
     auto& structColumnChunk = columnChunk->cast<StructChunkData>();
     for (auto i = 0u; i < childColumns.size(); i++) {
         childColumns[i]->scan(transaction, state.childrenStates[i], structColumnChunk.getChild(i),

@@ -39,7 +39,7 @@ public:
     }
 
     uint64_t getStringLength(common::offset_t pos) const {
-        auto index = getIndexColumnChunk()->getValue<DictionaryChunk::string_index_t>(pos);
+        auto index = indexColumnChunk->getValue<DictionaryChunk::string_index_t>(pos);
         return dictionaryChunk->getStringLength(index);
     }
 
@@ -47,8 +47,6 @@ public:
     const DictionaryChunk& getDictionaryChunk() const { return *dictionaryChunk; }
 
     void finalize() override;
-
-    enum class ChildType : size_t { INDEX = 0, COUNT = 1 };
 
     void resize(uint64_t newCapacity) override;
 

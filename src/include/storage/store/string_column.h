@@ -41,10 +41,11 @@ public:
     void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
         const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
         common::offset_t startSrcOffset) override;
-    void applyLocalChunkToColumn(ChunkState& state, const ChunkCollection& localChunks,
-        const offset_to_row_idx_t& updateInfo) override;
 
     const DictionaryColumn& getDictionary() const { return dictionary; }
+
+public:
+    static constexpr size_t INDEX_COLUMN_CHILD_INDEX = 0;
 
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
@@ -70,7 +71,7 @@ private:
     bool canIndexCommitInPlace(const ChunkState& dataState, uint64_t numStrings,
         common::offset_t maxOffset);
 
-    static ChunkCollection getStringIndexChunkCollection(const ChunkCollection& chunkCollection);
+    void updateStateMetadataNumValues(ChunkState& state, size_t numValues) override;
 
 private:
     // Main column stores indices of values in the dictionary
@@ -79,6 +80,10 @@ private:
     std::unique_ptr<Column> indexColumn;
 
     static constexpr size_t CHILD_COLUMN_COUNT = 1;
+
+    static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 0;
+    static constexpr common::idx_t OFFSET_COLUMN_CHILD_READ_STATE_IDX = 1;
+    static constexpr common::idx_t INDEX_COLUMN_CHILD_READ_STATE_IDX = 2;
 
 private:
     static ChunkState& getIndexState(ChunkState& state);

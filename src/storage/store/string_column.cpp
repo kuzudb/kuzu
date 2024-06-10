@@ -35,17 +35,13 @@ StringColumn::StringColumn(std::string name, LogicalType dataType,
 }
 
 Column::ChunkState& StringColumn::getIndexState(ChunkState& state) {
-    static constexpr size_t indexColumnChildIndex =
-        static_cast<size_t>(StringChunkData::ChildType::INDEX);
-    KU_ASSERT(state.childrenStates.size() > indexColumnChildIndex);
-    return state.childrenStates[indexColumnChildIndex];
+    KU_ASSERT(state.childrenStates.size() > StringColumn::INDEX_COLUMN_CHILD_INDEX);
+    return state.childrenStates[StringColumn::INDEX_COLUMN_CHILD_INDEX];
 }
 
 const Column::ChunkState& StringColumn::getIndexState(const ChunkState& state) {
-    static constexpr size_t indexColumnChildIndex =
-        static_cast<size_t>(StringChunkData::ChildType::INDEX);
-    KU_ASSERT(state.childrenStates.size() > indexColumnChildIndex);
-    return state.childrenStates[indexColumnChildIndex];
+    KU_ASSERT(state.childrenStates.size() > StringColumn::INDEX_COLUMN_CHILD_INDEX);
+    return state.childrenStates[StringColumn::INDEX_COLUMN_CHILD_INDEX];
 }
 
 void StringColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -64,23 +60,15 @@ void StringColumn::scan(Transaction* transaction, const ChunkState& state,
         resultVector, offsetInVector);
     scanUnfiltered(transaction, state, startOffsetInGroup, endOffsetInGroup - startOffsetInGroup,
         resultVector, offsetInVector);
-    KU_ASSERT(state.metadata.numValues == getIndexState(state).metadata.numValues);
 }
 
 void StringColumn::scan(Transaction* transaction, const ChunkState& state,
     ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
     nullColumn->scan(transaction, state, columnChunk->getNullChunk(), startOffset, endOffset);
-    if (state.nodeGroupIdx >= metadataDA->getNumElements(transaction->getType())) {
-        columnChunk->setNumValues(0);
-    } else {
-        auto chunkMetadata = metadataDA->get(state.nodeGroupIdx, transaction->getType());
-        auto numValues = chunkMetadata.numValues == 0 ?
-                             0 :
-                             std::min(endOffset, chunkMetadata.numValues) - startOffset;
-        columnChunk->setNumValues(numValues);
-    }
-
-    if (columnChunk->getNumValues() == 0) {
+    const size_t numValuesToScan =
+        getNumValuesFromDisk(metadataDA.get(), transaction, state, startOffset, endOffset);
+    columnChunk->setNumValues(numValuesToScan);
+    if (numValuesToScan == 0) {
         return;
     }
 
@@ -95,7 +83,6 @@ void StringColumn::append(ColumnChunkData* columnChunk, ChunkState& state) {
     auto& stringColumnChunk = columnChunk->cast<StringChunkData>();
     indexColumn->append(stringColumnChunk.getIndexColumnChunk(), getIndexState(state));
     dictionary.append(getIndexState(state), stringColumnChunk.getDictionaryChunk());
-    KU_ASSERT(state.metadata.numValues == getIndexState(state).metadata.numValues);
 }
 
 void StringColumn::writeValue(ChunkState& state, offset_t offsetInChunk,
@@ -111,7 +98,6 @@ void StringColumn::writeValue(ChunkState& state, offset_t offsetInChunk,
     updateStatistics(state.metadata, offsetInChunk, StorageValue(index), StorageValue(index));
     indexColumn->updateStatistics(getIndexState(state).metadata, offsetInChunk, StorageValue(index),
         StorageValue(index));
-    KU_ASSERT(state.metadata.numValues == getIndexState(state).metadata.numValues);
 }
 
 void StringColumn::write(ChunkState& state, offset_t dstOffset, ColumnChunkData* data,
@@ -140,7 +126,6 @@ void StringColumn::write(ChunkState& state, offset_t dstOffset, ColumnChunkData*
     updateStatistics(state.metadata, dstOffset + numValues - 1, minWritten, maxWritten);
     indexColumn->updateStatistics(getIndexState(state).metadata, dstOffset + numValues - 1,
         minWritten, maxWritten);
-    KU_ASSERT(state.metadata.numValues == getIndexState(state).metadata.numValues);
 }
 
 void StringColumn::scanInternal(Transaction* transaction, const ChunkState& state, idx_t vectorIdx,
@@ -152,7 +137,6 @@ void StringColumn::scanInternal(Transaction* transaction, const ChunkState& stat
     } else {
         scanFiltered(transaction, state, startOffsetInChunk, nodeIDVector, resultVector);
     }
-    KU_ASSERT(state.metadata.numValues == getIndexState(state).metadata.numValues);
 }
 
 void StringColumn::scanUnfiltered(Transaction* transaction, const ChunkState& readState,
@@ -169,8 +153,6 @@ void StringColumn::scanUnfiltered(Transaction* transaction, const ChunkState& re
             offsetsToScan.emplace_back(indices[i], startPosInVector + i);
         }
     }
-
-    KU_ASSERT(readState.metadata.numValues == getIndexState(readState).metadata.numValues);
 
     if (offsetsToScan.size() == 0) {
         // All scanned values are null
@@ -197,8 +179,6 @@ void StringColumn::scanFiltered(Transaction* transaction, const ChunkState& read
             offsetsToScan.emplace_back(index, pos);
         }
     }
-
-    KU_ASSERT(readState.metadata.numValues == getIndexState(readState).metadata.numValues);
 
     if (offsetsToScan.size() == 0) {
         // All scanned values are null
@@ -329,9 +309,10 @@ void StringColumn::prepareCommitForExistingChunk(Transaction* transaction, Chunk
         localUpdateChunk, updateInfo, deleteInfo);
 
     const auto& indexState = getIndexState(state);
-    // the changes for the child column are commited by the main column
-    // explicitly applying the commit for the child column could overwrite the column with the
-    // incorrect values for example, the indices are set by the main column and not the child
+    // The changes for the child column are commited by the main column.
+    // Explicitly applying the commit for the child column could overwrite the column with the
+    // incorrect values. For example, the indices are set by the main column and not the child.
+    // Thus, we call prepareCommitForExistingChunk() on the main column only
     indexColumn->metadataDA->update(indexState.nodeGroupIdx, indexState.metadata);
 }
 
@@ -344,31 +325,9 @@ void StringColumn::prepareCommitForExistingChunk(Transaction* transaction, Chunk
     indexColumn->metadataDA->update(indexState.nodeGroupIdx, indexState.metadata);
 }
 
-void StringColumn::applyLocalChunkToColumn(ChunkState& state, const ChunkCollection& localChunks,
-    const offset_to_row_idx_t& updateInfo) {
-    for (auto& [offsetInDstChunk, rowIdx] : updateInfo) {
-        auto [chunkIdx, offsetInLocalChunk] =
-            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-        if (!localChunks[chunkIdx]->getNullChunk()->isNull(offsetInLocalChunk)) {
-            write(state, offsetInDstChunk, localChunks[chunkIdx], offsetInLocalChunk,
-                1 /*numValues*/);
-        } else {
-            if (offsetInDstChunk >= state.metadata.numValues) {
-                state.metadata.numValues = offsetInDstChunk + 1;
-                getIndexState(state).metadata.numValues = state.metadata.numValues;
-            }
-        }
-    }
-}
-
-ChunkCollection StringColumn::getStringIndexChunkCollection(
-    const ChunkCollection& chunkCollection) {
-    ChunkCollection childChunkCollection;
-    for (const auto& chunk : chunkCollection) {
-        auto& stringChunk = chunk->cast<StringChunkData>();
-        childChunkCollection.push_back(stringChunk.getIndexColumnChunk());
-    }
-    return childChunkCollection;
+void StringColumn::updateStateMetadataNumValues(ChunkState& state, size_t numValues) {
+    state.metadata.numValues = numValues;
+    getIndexState(state).metadata.numValues = numValues;
 }
 
 } // namespace storage

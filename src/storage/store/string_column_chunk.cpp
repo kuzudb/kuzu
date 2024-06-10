@@ -37,14 +37,12 @@ void StringChunkData::updateNumValues(size_t newValue) {
 void StringChunkData::resize(uint64_t newCapacity) {
     ColumnChunkData::resize(newCapacity);
     indexColumnChunk->resize(newCapacity);
-    KU_ASSERT(indexColumnChunk->getNumValues() == numValues);
 }
 
 void StringChunkData::resetToEmpty() {
     ColumnChunkData::resetToEmpty();
     indexColumnChunk->resetToEmpty();
     dictionaryChunk->resetToEmpty();
-    KU_ASSERT(indexColumnChunk->getNumValues() == numValues);
 }
 
 void StringChunkData::append(ValueVector* vector, const SelectionVector& selVector) {
@@ -62,7 +60,6 @@ void StringChunkData::append(ValueVector* vector, const SelectionVector& selVect
         auto kuString = vector->getValue<ku_string_t>(pos);
         setValueFromString(kuString.getAsStringView(), dstPos);
     }
-    KU_ASSERT(indexColumnChunk->getNumValues() == numValues);
 }
 
 void StringChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
@@ -78,7 +75,6 @@ void StringChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
         KU_UNREACHABLE;
     }
     }
-    KU_ASSERT(indexColumnChunk->getNumValues() == numValues);
 }
 
 void StringChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
@@ -90,7 +86,6 @@ void StringChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     }
     auto str = getValue<std::string_view>(offsetInChunk);
     output.setValue<std::string_view>(posInOutputVector, str);
-    KU_ASSERT(indexColumnChunk->getNumValues() == numValues);
 }
 
 void StringChunkData::write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
@@ -106,7 +101,6 @@ void StringChunkData::write(ValueVector* vector, offset_t offsetInVector, offset
         auto kuStr = vector->getValue<ku_string_t>(offsetInVector);
         setValueFromString(kuStr.getAsStringView(), offsetInChunk);
     }
-    KU_ASSERT(indexColumnChunk->getNumValues() == numValues);
 }
 
 void StringChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
@@ -129,7 +123,6 @@ void StringChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
             setValueFromString(stringChunk.getValue<std::string_view>(i), offsetInChunk);
         }
     }
-    KU_ASSERT(indexColumnChunk->getNumValues() == numValues);
 }
 
 void StringChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
@@ -149,7 +142,6 @@ void StringChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk
         }
         setValueFromString(srcStringChunk.getValue<std::string_view>(srcPos), dstPos);
     }
-    KU_ASSERT(indexColumnChunk->getNumValues() == numValues);
 }
 
 void StringChunkData::copy(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
@@ -163,7 +155,6 @@ void StringChunkData::copy(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     }
     auto& srcStringChunk = srcChunk->cast<StringChunkData>();
     append(&srcStringChunk, srcOffsetInChunk, numValuesToCopy);
-    KU_ASSERT(indexColumnChunk->getNumValues() == numValues);
 }
 
 void StringChunkData::appendStringColumnChunk(StringChunkData* other, offset_t startPosInOtherChunk,
@@ -178,7 +169,6 @@ void StringChunkData::appendStringColumnChunk(StringChunkData* other, offset_t s
         }
         setValueFromString(other->getValue<std::string_view>(posInOtherChunk), posInChunk);
     }
-    KU_ASSERT(indexColumnChunk->getNumValues() == numValues);
 }
 
 void StringChunkData::setValueFromString(std::string_view value, uint64_t pos) {
@@ -205,7 +195,6 @@ void StringChunkData::finalize() {
         indexColumnChunk->setValue<DictionaryChunk::string_index_t>(index, i);
     }
     dictionaryChunk = std::move(newDictionaryChunk);
-    KU_ASSERT(indexColumnChunk->getNumValues() == numValues);
 }
 
 template<>
