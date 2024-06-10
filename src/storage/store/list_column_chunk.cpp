@@ -15,6 +15,8 @@ namespace storage {
 ListChunkData::ListChunkData(LogicalType dataType, uint64_t capacity, bool enableCompression,
     bool inMemory)
     : ColumnChunkData{std::move(dataType), capacity, enableCompression, true /* hasNullChunk */} {
+    offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(*common::LogicalType::UINT64(),
+        enableCompression, capacity);
     sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(*common::LogicalType::UINT32(),
         enableCompression, capacity);
     listDataColumnChunk =
@@ -51,7 +53,7 @@ offset_t ListChunkData::getListEndOffset(offset_t offset) const {
     if (numValues == 0 || nullChunk->isNull(offset))
         return 0;
     KU_ASSERT(offset < numValues);
-    return getValue<uint64_t>(offset);
+    return offsetColumnChunk->getValue<uint64_t>(offset);
 }
 
 list_size_t ListChunkData::getListSize(common::offset_t offset) const {
@@ -61,25 +63,32 @@ list_size_t ListChunkData::getListSize(common::offset_t offset) const {
     return sizeColumnChunk->getValue<list_size_t>(offset);
 }
 
+void ListChunkData::syncNumValuesWithOffsetChunk() {
+    numValues = offsetColumnChunk->getNumValues();
+}
+
 void ListChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     checkOffsetSortedAsc = true;
-    auto otherListChunk = ku_dynamic_cast<ColumnChunkData*, ListChunkData*>(other);
+    auto& otherListChunk = other->cast<ListChunkData>();
     nullChunk->append(other->getNullChunk(), startPosInOtherChunk, numValuesToAppend);
+    offsetColumnChunk->getNullChunk()->append(other->getNullChunk(), startPosInOtherChunk,
+        numValuesToAppend);
     sizeColumnChunk->getNullChunk()->append(other->getNullChunk(), startPosInOtherChunk,
         numValuesToAppend);
     offset_t offsetInDataChunkToAppend = listDataColumnChunk->getNumValues();
     for (auto i = 0u; i < numValuesToAppend; i++) {
-        auto appendSize = otherListChunk->getListSize(startPosInOtherChunk + i);
+        auto appendSize = otherListChunk.getListSize(startPosInOtherChunk + i);
         sizeColumnChunk->setValue<list_size_t>(appendSize, numValues);
         offsetInDataChunkToAppend += appendSize;
-        setValue<offset_t>(offsetInDataChunkToAppend, numValues);
+        offsetColumnChunk->setValue<offset_t>(offsetInDataChunkToAppend, numValues);
+        syncNumValuesWithOffsetChunk();
     }
     listDataColumnChunk->resize(offsetInDataChunkToAppend);
     for (auto i = 0u; i < numValuesToAppend; i++) {
-        auto startOffset = otherListChunk->getListStartOffset(startPosInOtherChunk + i);
-        auto appendSize = otherListChunk->getListSize(startPosInOtherChunk + i);
-        listDataColumnChunk->append(otherListChunk->listDataColumnChunk.get(), startOffset,
+        auto startOffset = otherListChunk.getListStartOffset(startPosInOtherChunk + i);
+        auto appendSize = otherListChunk.getListSize(startPosInOtherChunk + i);
+        listDataColumnChunk->append(otherListChunk.listDataColumnChunk.get(), startOffset,
             appendSize);
     }
     KU_ASSERT(sanityCheck());
@@ -88,6 +97,7 @@ void ListChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk
 void ListChunkData::resetToEmpty() {
     ColumnChunkData::resetToEmpty();
     sizeColumnChunk->resetToEmpty();
+    offsetColumnChunk->resetToEmpty();
     listDataColumnChunk = ColumnChunkFactory::createColumnChunkData(
         *ListType::getChildType(this->dataType).copy(), enableCompression, 0 /* capacity */);
 }
@@ -102,15 +112,19 @@ void ListChunkData::append(ValueVector* vector, const SelectionVector& selVector
         resize(newCapacity);
     }
     offset_t nextListOffsetInChunk = listDataColumnChunk->getNumValues();
-    auto offsetBufferToWrite = (offset_t*)(buffer.get());
+    const offset_t appendBaseOffset = numValues;
     for (auto i = 0u; i < selVector.getSelSize(); i++) {
         auto pos = selVector[i];
         auto listLen = vector->isNull(pos) ? 0 : vector->getValue<list_entry_t>(pos).size;
-        sizeColumnChunk->setValue<list_size_t>(listLen, numValues + i);
-        sizeColumnChunk->getNullChunk()->setNull(numValues + i, vector->isNull(pos));
-        nullChunk->setNull(numValues + i, vector->isNull(pos));
+        sizeColumnChunk->setValue<list_size_t>(listLen, appendBaseOffset + i);
+        sizeColumnChunk->getNullChunk()->setNull(appendBaseOffset + i, vector->isNull(pos));
+
+        nullChunk->setNull(appendBaseOffset + i, vector->isNull(pos));
+
         nextListOffsetInChunk += listLen;
-        offsetBufferToWrite[numValues + i] = nextListOffsetInChunk;
+        offsetColumnChunk->setValue(nextListOffsetInChunk, appendBaseOffset + i);
+        offsetColumnChunk->getNullChunk()->setNull(appendBaseOffset + i, vector->isNull(pos));
+        syncNumValuesWithOffsetChunk();
     }
     listDataColumnChunk->resize(nextListOffsetInChunk);
     auto dataVector = ListVector::getDataVector(vector);
@@ -124,18 +138,18 @@ void ListChunkData::append(ValueVector* vector, const SelectionVector& selVector
         }
         copyListValues(vector->getValue<list_entry_t>(pos), dataVector);
     }
-    numValues += numToAppend;
     KU_ASSERT(sanityCheck());
 }
 
 void ListChunkData::appendNullList() {
     offset_t nextListOffsetInChunk = listDataColumnChunk->getNumValues();
-    auto offsetBufferToWrite = (offset_t*)(buffer.get());
     sizeColumnChunk->setValue<list_size_t>(0, numValues);
     sizeColumnChunk->getNullChunk()->setNull(numValues, true);
-    offsetBufferToWrite[numValues] = nextListOffsetInChunk;
+    offsetColumnChunk->setValue(nextListOffsetInChunk, numValues);
+    offsetColumnChunk->getNullChunk()->setNull(numValues, true);
     nullChunk->setNull(numValues, true);
-    numValues++;
+    syncNumValuesWithOffsetChunk();
+    KU_ASSERT(sanityCheck());
 }
 
 void ListChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
@@ -166,11 +180,11 @@ void ListChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
               chunk->getNumValues() == dstOffsets->getNumValues());
     checkOffsetSortedAsc = true;
     offset_t currentIndex = listDataColumnChunk->getNumValues();
-    auto otherListChunk = ku_dynamic_cast<ColumnChunkData*, ListChunkData*>(chunk);
+    auto& otherListChunk = chunk->cast<ListChunkData>();
     listDataColumnChunk->resize(
-        listDataColumnChunk->getNumValues() + otherListChunk->listDataColumnChunk->getNumValues());
-    listDataColumnChunk->append(otherListChunk->listDataColumnChunk.get(), 0,
-        otherListChunk->listDataColumnChunk->getNumValues());
+        listDataColumnChunk->getNumValues() + otherListChunk.listDataColumnChunk->getNumValues());
+    listDataColumnChunk->append(otherListChunk.listDataColumnChunk.get(), 0,
+        otherListChunk.listDataColumnChunk->getNumValues());
     offset_t maxDstOffset = 0;
     for (auto i = 0u; i < dstOffsets->getNumValues(); i++) {
         auto posInChunk = dstOffsets->getValue<offset_t>(i);
@@ -183,12 +197,15 @@ void ListChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
     }
     for (auto i = 0u; i < dstOffsets->getNumValues(); i++) {
         auto posInChunk = dstOffsets->getValue<offset_t>(i);
-        auto appendSize = otherListChunk->getListSize(i);
+        auto appendSize = otherListChunk.getListSize(i);
         currentIndex += appendSize;
-        setValue<offset_t>(currentIndex, posInChunk);
-        nullChunk->setNull(posInChunk, otherListChunk->nullChunk->isNull(i));
+        nullChunk->setNull(posInChunk, otherListChunk.nullChunk->isNull(i));
+        offsetColumnChunk->setValue<offset_t>(currentIndex, posInChunk);
+        offsetColumnChunk->getNullChunk()->setNull(posInChunk, otherListChunk.nullChunk->isNull(i));
         sizeColumnChunk->setValue<list_size_t>(appendSize, posInChunk);
-        sizeColumnChunk->getNullChunk()->setNull(posInChunk, otherListChunk->nullChunk->isNull(i));
+        sizeColumnChunk->getNullChunk()->setNull(posInChunk, otherListChunk.nullChunk->isNull(i));
+
+        syncNumValuesWithOffsetChunk();
     }
     KU_ASSERT(sanityCheck());
 }
@@ -211,10 +228,12 @@ void ListChunkData::write(ValueVector* vector, offset_t offsetInVector, offset_t
     }
     auto isNull = vector->isNull(offsetInVector);
     nullChunk->setNull(offsetInChunk, isNull);
+    offsetColumnChunk->getNullChunk()->setNull(offsetInChunk, isNull);
     sizeColumnChunk->getNullChunk()->setNull(offsetInChunk, isNull);
     if (!isNull) {
         sizeColumnChunk->setValue<list_size_t>(appendSize, offsetInChunk);
-        setValue<offset_t>(listDataColumnChunk->getNumValues(), offsetInChunk);
+        offsetColumnChunk->setValue<offset_t>(listDataColumnChunk->getNumValues(), offsetInChunk);
+        syncNumValuesWithOffsetChunk();
     }
     KU_ASSERT(sanityCheck());
 }
@@ -224,23 +243,27 @@ void ListChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     KU_ASSERT(srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::LIST ||
               srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::ARRAY);
     checkOffsetSortedAsc = true;
-    auto srcListChunk = ku_dynamic_cast<ColumnChunkData*, ListChunkData*>(srcChunk);
+    auto& srcListChunk = srcChunk->cast<ListChunkData>();
     auto offsetInDataChunkToAppend = listDataColumnChunk->getNumValues();
     for (auto i = 0u; i < numValuesToCopy; i++) {
-        auto appendSize = srcListChunk->getListSize(srcOffsetInChunk + i);
+        auto appendSize = srcListChunk.getListSize(srcOffsetInChunk + i);
         offsetInDataChunkToAppend += appendSize;
         sizeColumnChunk->setValue<list_size_t>(appendSize, dstOffsetInChunk + i);
-        setValue<offset_t>(offsetInDataChunkToAppend, dstOffsetInChunk + i);
+        offsetColumnChunk->setValue<offset_t>(offsetInDataChunkToAppend, dstOffsetInChunk + i);
         nullChunk->setNull(dstOffsetInChunk + i,
-            srcListChunk->nullChunk->isNull(srcOffsetInChunk + i));
+            srcListChunk.nullChunk->isNull(srcOffsetInChunk + i));
+        offsetColumnChunk->getNullChunk()->setNull(dstOffsetInChunk + i,
+            srcListChunk.nullChunk->isNull(srcOffsetInChunk + i));
         sizeColumnChunk->getNullChunk()->setNull(dstOffsetInChunk + i,
-            srcListChunk->nullChunk->isNull(srcOffsetInChunk + i));
+            srcListChunk.nullChunk->isNull(srcOffsetInChunk + i));
+
+        syncNumValuesWithOffsetChunk();
     }
     listDataColumnChunk->resize(offsetInDataChunkToAppend);
     for (auto i = 0u; i < numValuesToCopy; i++) {
-        auto startOffsetInSrcChunk = srcListChunk->getListStartOffset(srcOffsetInChunk + i);
-        auto appendSize = srcListChunk->getListSize(srcOffsetInChunk + i);
-        listDataColumnChunk->append(srcListChunk->listDataColumnChunk.get(), startOffsetInSrcChunk,
+        auto startOffsetInSrcChunk = srcListChunk.getListStartOffset(srcOffsetInChunk + i);
+        auto appendSize = srcListChunk.getListSize(srcOffsetInChunk + i);
+        listDataColumnChunk->append(srcListChunk.listDataColumnChunk.get(), startOffsetInSrcChunk,
             appendSize);
     }
     KU_ASSERT(sanityCheck());
@@ -270,16 +293,21 @@ void ListChunkData::copyListValues(const list_entry_t& entry, ValueVector* dataV
         listDataColumnChunk->append(dataVector, dataVector->state->getSelVector());
         numListValuesCopied += numListValuesToCopyInBatch;
     }
+    KU_ASSERT(sanityCheck());
 }
 
 void ListChunkData::resetOffset() {
+    KU_ASSERT(sanityCheck());
     offset_t nextListOffsetReset = 0;
     for (auto i = 0u; i < numValues; i++) {
         auto listSize = getListSize(i);
         nextListOffsetReset += uint64_t(listSize);
-        setValue<offset_t>(nextListOffsetReset, i);
+        offsetColumnChunk->setValue<offset_t>(nextListOffsetReset, i);
         sizeColumnChunk->setValue<list_size_t>(listSize, i);
+
+        syncNumValuesWithOffsetChunk();
     }
+    KU_ASSERT(sanityCheck());
 }
 
 void ListChunkData::finalize() {
@@ -300,37 +328,40 @@ void ListChunkData::finalize() {
     if (isOffsetsConsecutiveAndSortedAscending(0, numValues)) {
         return;
     }
-    auto newListChunk = ku_dynamic_cast<ColumnChunkData*, ListChunkData*>(newColumnChunk.get());
-    newListChunk->resize(numValues);
-    newListChunk->getDataColumnChunk()->resize(totalListLen);
-    auto dataColumnChunk = newListChunk->getDataColumnChunk();
-    newListChunk->listDataColumnChunk->resize(totalListLen);
+    KU_ASSERT(sanityCheck());
+    auto& newListChunk = newColumnChunk->cast<ListChunkData>();
+    newListChunk.resize(numValues);
+    newListChunk.getDataColumnChunk()->resize(totalListLen);
+    auto dataColumnChunk = newListChunk.getDataColumnChunk();
+    newListChunk.listDataColumnChunk->resize(totalListLen);
     offset_t offsetInChunk = 0;
     offset_t currentIndex = 0;
     for (auto i = 0u; i < numValues; i++) {
         if (nullChunk->isNull(i)) {
-            newListChunk->appendNullList();
+            newListChunk.appendNullList();
         } else {
             auto startOffset = getListStartOffset(i);
             auto listSize = getListSize(i);
             dataColumnChunk->append(listDataColumnChunk.get(), startOffset, listSize);
             offsetInChunk += listSize;
-            newListChunk->getNullChunk()->setNull(currentIndex, false);
-            newListChunk->sizeColumnChunk->getNullChunk()->setNull(currentIndex, false);
-            newListChunk->sizeColumnChunk->setValue<list_size_t>(listSize, currentIndex);
-            newListChunk->setValue<offset_t>(offsetInChunk, currentIndex);
+            newListChunk.nullChunk->setNull(currentIndex, false);
+            newListChunk.sizeColumnChunk->getNullChunk()->setNull(currentIndex, false);
+            newListChunk.sizeColumnChunk->setValue<list_size_t>(listSize, currentIndex);
+            newListChunk.offsetColumnChunk->getNullChunk()->setNull(currentIndex, false);
+            newListChunk.offsetColumnChunk->setValue<offset_t>(offsetInChunk, currentIndex);
+            newListChunk.syncNumValuesWithOffsetChunk();
         }
         currentIndex++;
     }
-    KU_ASSERT(newListChunk->sanityCheck());
+    KU_ASSERT(newListChunk.sanityCheck());
     // Move offsets, null, data from newListChunk to this column chunk. And release indices.
-    resetFromOtherChunk(newListChunk);
+    resetFromOtherChunk(&newListChunk);
 }
 void ListChunkData::resetFromOtherChunk(ListChunkData* other) {
-    buffer = std::move(other->buffer);
     nullChunk = std::move(other->nullChunk);
     sizeColumnChunk = std::move(other->sizeColumnChunk);
     listDataColumnChunk = std::move(other->listDataColumnChunk);
+    offsetColumnChunk = std::move(other->offsetColumnChunk);
     numValues = other->numValues;
     checkOffsetSortedAsc = false;
 }
@@ -338,6 +369,7 @@ void ListChunkData::resetFromOtherChunk(ListChunkData* other) {
 bool ListChunkData::sanityCheck() {
     KU_ASSERT(ColumnChunkData::sanityCheck());
     KU_ASSERT(sizeColumnChunk->sanityCheck());
+    KU_ASSERT(offsetColumnChunk->sanityCheck());
     KU_ASSERT(getDataColumnChunk()->sanityCheck());
     return sizeColumnChunk->getNumValues() == numValues;
 }

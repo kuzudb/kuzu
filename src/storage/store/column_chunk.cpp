@@ -152,8 +152,6 @@ static std::shared_ptr<CompressionAlg> getCompression(const LogicalType& dataTyp
         return std::make_shared<IntegerBitpacking<int8_t>>();
     }
     case PhysicalTypeID::INTERNAL_ID:
-    case PhysicalTypeID::ARRAY:
-    case PhysicalTypeID::LIST:
     case PhysicalTypeID::UINT64: {
         return std::make_shared<IntegerBitpacking<uint64_t>>();
     }
@@ -205,8 +203,6 @@ void ColumnChunkData::initializeFunction() {
     case PhysicalTypeID::INT16:
     case PhysicalTypeID::INT8:
     case PhysicalTypeID::INTERNAL_ID:
-    case PhysicalTypeID::ARRAY:
-    case PhysicalTypeID::LIST:
     case PhysicalTypeID::UINT64:
     case PhysicalTypeID::UINT32:
     case PhysicalTypeID::UINT16:
@@ -216,6 +212,8 @@ void ColumnChunkData::initializeFunction() {
         flushBufferFunction = CompressedFlushBuffer(compression, dataType);
         getMetadataFunction = GetCompressionMetadata(compression, dataType);
     } break;
+    case PhysicalTypeID::ARRAY:
+    case PhysicalTypeID::LIST:
     case PhysicalTypeID::STRING:
     default: {
         flushBufferFunction = uncompressedFlushBuffer;

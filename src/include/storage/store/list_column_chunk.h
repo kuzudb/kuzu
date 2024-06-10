@@ -12,6 +12,8 @@ public:
     ListChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
         bool inMemory);
 
+    ColumnChunkData* getOffsetColumnChunk() const { return offsetColumnChunk.get(); }
+
     ColumnChunkData* getDataColumnChunk() const { return listDataColumnChunk.get(); }
 
     ColumnChunkData* getSizeColumnChunk() const { return sizeColumnChunk.get(); }
@@ -21,6 +23,7 @@ public:
     void setNumValues(uint64_t numValues_) override {
         ColumnChunkData::setNumValues(numValues_);
         sizeColumnChunk->setNumValues(numValues_);
+        offsetColumnChunk->setNumValues(numValues_);
     }
 
     void append(common::ValueVector* vector, const common::SelectionVector& selVector) final;
@@ -43,6 +46,7 @@ public:
     void resize(uint64_t newCapacity) override {
         ColumnChunkData::resize(newCapacity);
         sizeColumnChunk->resize(newCapacity);
+        offsetColumnChunk->resize(newCapacity);
     }
 
     common::offset_t getListStartOffset(common::offset_t offset) const;
@@ -66,7 +70,10 @@ private:
 
     void appendNullList();
 
+    void syncNumValuesWithOffsetChunk();
+
 protected:
+    std::unique_ptr<ColumnChunkData> offsetColumnChunk;
     std::unique_ptr<ColumnChunkData> sizeColumnChunk;
     std::unique_ptr<ColumnChunkData> listDataColumnChunk;
     // we use checkOffsetSortedAsc flag to indicate that we do not trigger random write
