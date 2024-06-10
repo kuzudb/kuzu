@@ -2725,6 +2725,7 @@ public:
     antlr4::tree::TerminalNode *DEFAULT();
     antlr4::tree::TerminalNode *PROJECT();
     antlr4::tree::TerminalNode *GRAPH();
+    antlr4::tree::TerminalNode *AS();
 
    
   };

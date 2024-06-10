@@ -35,11 +35,11 @@ struct BoundCreateTableInfo {
     common::TableType type;
     std::string tableName;
     std::vector<BoundCreateSequenceInfo> serialSequences;
-    parser::OnConflictOperation onConflict;
+    common::ConflictAction onConflict;
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo;
 
     BoundCreateTableInfo(common::TableType type, std::string tableName,
-        parser::OnConflictOperation onConflict,
+        common::ConflictAction onConflict,
         std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo)
         : type{type}, tableName{std::move(tableName)}, onConflict{onConflict},
           extraInfo{std::move(extraInfo)} {}

@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "common/copy_constructors.h"
+#include "common/enums/conflict_action.h"
 #include "common/enums/table_type.h"
 #include "parser/expression/parsed_expression.h"
 
@@ -39,17 +40,15 @@ struct PropertyDefinitionDDL : public PropertyDefinition {
     DELETE_COPY_DEFAULT_MOVE(PropertyDefinitionDDL);
 };
 
-enum class OnConflictOperation : uint8_t { EXCEPTION = 0, SKIP = 1 };
-
 struct CreateTableInfo {
     common::TableType tableType;
     std::string tableName;
     std::vector<PropertyDefinitionDDL> propertyDefinitions;
     std::unique_ptr<ExtraCreateTableInfo> extraInfo;
-    OnConflictOperation onConflict;
+    common::ConflictAction onConflict;
 
     CreateTableInfo(common::TableType tableType, std::string tableName,
-        OnConflictOperation onConflict)
+        common::ConflictAction onConflict)
         : tableType{tableType}, tableName{std::move(tableName)}, extraInfo{nullptr},
           onConflict{onConflict} {}
     DELETE_COPY_DEFAULT_MOVE(CreateTableInfo);

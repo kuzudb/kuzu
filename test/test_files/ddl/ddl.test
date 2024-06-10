@@ -474,3 +474,6 @@ Table interests has been created.
 -STATEMENT CREATE REL TABLE GROUP IF NOT EXISTS interests(FROM UW to student, From student to student);
 ---- 1
 Table interests already exists.
+-STATEMENT CREATE NODE TABLE IF NOT EXISTS UW1 (ID INT64, PRIMARY KEY(ID))
+---- 1
+Table UW1 already exists.

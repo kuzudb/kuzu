@@ -136,7 +136,7 @@ BoundCreateTableInfo Binder::bindCreateTableInfo(const parser::CreateTableInfo* 
 
 BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo* info) {
     auto propertyInfos = bindPropertyInfo(info->propertyDefinitions, info->tableName);
-    auto extraInfo = info->extraInfo->constCast<ExtraCreateNodeTableInfo>();
+    auto& extraInfo = info->extraInfo->constCast<ExtraCreateNodeTableInfo>();
     auto primaryKeyIdx = bindPrimaryKey(extraInfo.pKName, propertyInfos);
     auto boundExtraInfo =
         std::make_unique<BoundExtraCreateNodeTableInfo>(primaryKeyIdx, std::move(propertyInfos));
@@ -193,7 +193,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& stateme
     auto createTable = statement.constPtrCast<CreateTable>();
     auto tableName = createTable->getInfo()->tableName;
     switch (createTable->getInfo()->onConflict) {
-    case OnConflictOperation::EXCEPTION: {
+    case common::ConflictAction::ON_CONFLICT_THROW: {
         if (clientContext->getCatalog()->containsTable(clientContext->getTx(), tableName)) {
             throw BinderException(tableName + " already exists in catalog.");
         }

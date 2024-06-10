@@ -19,8 +19,9 @@ std::unique_ptr<binder::BoundCreateTableInfo> PostgresCatalog::bindCreateTableIn
     auto extraCreatePostgresTableInfo = std::make_unique<BoundExtraCreatePostgresTableInfo>(dbPath,
         "" /* dbPath */, DEFAULT_CATALOG_NAME, getDefaultSchemaName(), std::move(propertyInfos));
     return std::make_unique<binder::BoundCreateTableInfo>(common::TableType::FOREIGN, tableName,
-        parser::OnConflictOperation::EXCEPTION, std::move(extraCreatePostgresTableInfo));
+        common::ConflictAction::ON_CONFLICT_THROW, std::move(extraCreatePostgresTableInfo));
 }
+
 
 static void executeQueryAndCheckErrMsg(duckdb::Connection& con, std::string query) {
     auto result = con.Query(query);
