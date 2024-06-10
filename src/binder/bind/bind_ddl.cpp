@@ -193,7 +193,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& stateme
     auto createTable = statement.constPtrCast<CreateTable>();
     auto tableName = createTable->getInfo()->tableName;
     switch (createTable->getInfo()->onConflict) {
-    case OnConflictOperation::ERROR: {
+    case OnConflictOperation::EXCEPTION: {
         if (clientContext->getCatalog()->containsTable(clientContext->getTx(), tableName)) {
             throw BinderException(tableName + " already exists in catalog.");
         }

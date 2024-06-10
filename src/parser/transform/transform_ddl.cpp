@@ -33,7 +33,7 @@ std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
         pkName = transformPrimaryKey(*ctx.kU_CreateNodeConstraint());
     }
     auto createTableInfo = CreateTableInfo(TableType::NODE, tableName,
-        ctx.kU_IfNotExists() ? OnConflictOperation::IGNORE : OnConflictOperation::ERROR);
+        ctx.kU_IfNotExists() ? OnConflictOperation::SKIP : OnConflictOperation::EXCEPTION);
     createTableInfo.propertyDefinitions =
         transformPropertyDefinitionsDDL(*ctx.kU_PropertyDefinitionsDDL());
     createTableInfo.extraInfo = std::make_unique<ExtraCreateNodeTableInfo>(pkName);
@@ -50,7 +50,7 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
     auto srcTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(0));
     auto dstTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(1));
     auto createTableInfo = CreateTableInfo(TableType::REL, tableName,
-        ctx.kU_IfNotExists() ? OnConflictOperation::IGNORE : OnConflictOperation::ERROR);
+        ctx.kU_IfNotExists() ? OnConflictOperation::SKIP : OnConflictOperation::EXCEPTION);
     if (ctx.kU_PropertyDefinitionsDDL()) {
         createTableInfo.propertyDefinitions =
             transformPropertyDefinitionsDDL(*ctx.kU_PropertyDefinitionsDDL());
@@ -76,7 +76,7 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTableGroup(
         srcDstTablePairs.emplace_back(srcTableName, dstTableName);
     }
     auto createTableInfo = CreateTableInfo(TableType::REL_GROUP, tableName,
-        ctx.kU_IfNotExists() ? OnConflictOperation::IGNORE : OnConflictOperation::ERROR);
+        ctx.kU_IfNotExists() ? OnConflictOperation::SKIP : OnConflictOperation::EXCEPTION);
     if (ctx.kU_PropertyDefinitionsDDL()) {
         createTableInfo.propertyDefinitions =
             transformPropertyDefinitionsDDL(*ctx.kU_PropertyDefinitionsDDL());
@@ -90,7 +90,7 @@ std::unique_ptr<Statement> Transformer::transformCreateRdfGraphClause(
     CypherParser::KU_CreateRdfGraphContext& ctx) {
     auto rdfGraphName = transformSchemaName(*ctx.oC_SchemaName());
     auto createTableInfo = CreateTableInfo(TableType::RDF, rdfGraphName,
-        ctx.kU_IfNotExists() ? OnConflictOperation::IGNORE : OnConflictOperation::ERROR);
+        ctx.kU_IfNotExists() ? OnConflictOperation::SKIP : OnConflictOperation::EXCEPTION);
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 

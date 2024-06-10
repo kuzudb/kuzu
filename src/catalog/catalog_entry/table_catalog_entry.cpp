@@ -171,7 +171,7 @@ void TableCatalogEntry::copyFrom(const CatalogEntry& other) {
 binder::BoundCreateTableInfo TableCatalogEntry::getBoundCreateTableInfo(
     transaction::Transaction* transaction) const {
     auto extraInfo = getBoundExtraCreateInfo(transaction);
-    return BoundCreateTableInfo(getTableType(), name, parser::OnConflictOperation::ERROR,
+    return BoundCreateTableInfo(getTableType(), name, parser::OnConflictOperation::EXCEPTION,
         std::move(extraInfo));
 }
 
