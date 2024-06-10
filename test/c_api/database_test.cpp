@@ -84,12 +84,3 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database_destroy(&database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
-
-TEST_F(CApiDatabaseTest, rear) {
-    createDBAndConn();
-    printf("%s",
-        conn->query("create node table person (id int64, primary key(id))")->toString().c_str());
-    printf("%s", conn->query("create node table if not exists person (id int64, primary key(id))")
-                     ->toString()
-                     .c_str());
-}
