@@ -82,7 +82,7 @@ void ListChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk
         listDataColumnChunk->append(otherListChunk->listDataColumnChunk.get(), startOffset,
             appendSize);
     }
-    sanityCheck();
+    KU_ASSERT(sanityCheck());
 }
 
 void ListChunkData::resetToEmpty() {
@@ -125,7 +125,7 @@ void ListChunkData::append(ValueVector* vector, const SelectionVector& selVector
         copyListValues(vector->getValue<list_entry_t>(pos), dataVector);
     }
     numValues += numToAppend;
-    sanityCheck();
+    KU_ASSERT(sanityCheck());
 }
 
 void ListChunkData::appendNullList() {
@@ -190,7 +190,7 @@ void ListChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
         sizeColumnChunk->setValue<list_size_t>(appendSize, posInChunk);
         sizeColumnChunk->getNullChunk()->setNull(posInChunk, otherListChunk->nullChunk->isNull(i));
     }
-    sanityCheck();
+    KU_ASSERT(sanityCheck());
 }
 
 void ListChunkData::write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
@@ -216,7 +216,7 @@ void ListChunkData::write(ValueVector* vector, offset_t offsetInVector, offset_t
         sizeColumnChunk->setValue<list_size_t>(appendSize, offsetInChunk);
         setValue<offset_t>(listDataColumnChunk->getNumValues(), offsetInChunk);
     }
-    sanityCheck();
+    KU_ASSERT(sanityCheck());
 }
 
 void ListChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
@@ -243,7 +243,7 @@ void ListChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
         listDataColumnChunk->append(srcListChunk->listDataColumnChunk.get(), startOffsetInSrcChunk,
             appendSize);
     }
-    sanityCheck();
+    KU_ASSERT(sanityCheck());
 }
 
 void ListChunkData::copy(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
@@ -322,7 +322,7 @@ void ListChunkData::finalize() {
         }
         currentIndex++;
     }
-    newListChunk->sanityCheck();
+    KU_ASSERT(newListChunk->sanityCheck());
     // Move offsets, null, data from newListChunk to this column chunk. And release indices.
     resetFromOtherChunk(newListChunk);
 }
