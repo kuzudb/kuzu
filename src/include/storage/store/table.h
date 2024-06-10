@@ -128,6 +128,8 @@ public:
     virtual void checkpoint() = 0;
     virtual void rollbackInMemory() = 0;
 
+    virtual uint64_t getEstimatedMemoryUsage() const = 0;
+
     template<class TARGET>
     TARGET& cast() {
         return common::ku_dynamic_cast<Table&, TARGET&>(*this);

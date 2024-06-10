@@ -193,6 +193,10 @@ void StringChunkData::finalize() {
     dictionaryChunk = std::move(newDictionaryChunk);
 }
 
+uint64_t StringChunkData::getEstimatedMemoryUsage() const {
+    return ColumnChunkData::getEstimatedMemoryUsage() + dictionaryChunk->getEstimatedMemoryUsage();
+}
+
 template<>
 ku_string_t StringChunkData::getValue<ku_string_t>(offset_t) const {
     KU_UNREACHABLE;

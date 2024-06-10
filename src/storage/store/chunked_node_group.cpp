@@ -204,6 +204,17 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flush(BMFileHandle& dataFH) 
     return std::make_unique<ChunkedNodeGroup>(std::move(flushedChunks), 0 /*startNodeOffset*/);
 }
 
+uint64_t ChunkedNodeGroup::getEstimatedMemoryUsage() const {
+    if (residencyState == ResidencyState::ON_DISK) {
+        return 0;
+    }
+    uint64_t memoryUsage = 0;
+    for (const auto& chunk : chunks) {
+        memoryUsage += chunk->getEstimatedMemoryUsage();
+    }
+    return memoryUsage;
+}
+
 ChunkedCSRHeader::ChunkedCSRHeader(bool enableCompression, uint64_t capacity,
     ResidencyState residencyState) {
     offset = std::make_unique<ColumnChunk>(*LogicalType::UINT64(), enableCompression, capacity,

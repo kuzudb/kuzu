@@ -27,10 +27,11 @@ public:
     explicit ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks,
         const common::offset_t startNodeOffset)
         : chunks{std::move(chunks)}, nodeGroupIdx{common::INVALID_NODE_GROUP_IDX},
-          startNodeOffset{startNodeOffset}, capacity{common::StorageConstants::NODE_GROUP_SIZE} {
+          startNodeOffset{startNodeOffset} {
         KU_ASSERT(!this->chunks.empty());
         residencyState = this->chunks[0]->getResidencyState();
         numRows = this->chunks[0]->getNumValues();
+        capacity = numRows;
         for (auto columnID = 1u; columnID < this->chunks.size(); columnID++) {
             KU_ASSERT(this->chunks[columnID]->getNumValues() == numRows);
             KU_ASSERT(this->chunks[columnID]->getResidencyState() == residencyState);
@@ -57,7 +58,7 @@ public:
         KU_ASSERT(columnID < chunks.size());
         return std::move(chunks[columnID]);
     }
-    bool isFull() const { return numRows == common::StorageConstants::NODE_GROUP_SIZE; }
+    bool isFull() const { return numRows == capacity; }
     ResidencyState getResidencyState() const { return residencyState; }
 
     void resetToEmpty();
@@ -96,6 +97,8 @@ public:
     }
 
     std::unique_ptr<ChunkedNodeGroup> flush(BMFileHandle& dataFH) const;
+
+    uint64_t getEstimatedMemoryUsage() const;
 
 protected:
     std::vector<std::unique_ptr<ColumnChunk>> chunks;

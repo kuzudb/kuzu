@@ -381,5 +381,10 @@ bool ListChunkData::sanityCheck() const {
     return sizeColumnChunk->getNumValues() == numValues;
 }
 
+uint64_t ListChunkData::getEstimatedMemoryUsage() const {
+    return ColumnChunkData::getEstimatedMemoryUsage() + sizeColumnChunk->getEstimatedMemoryUsage() +
+           listDataColumnChunk->dataColumnChunk->getEstimatedMemoryUsage();
+}
+
 } // namespace storage
 } // namespace kuzu

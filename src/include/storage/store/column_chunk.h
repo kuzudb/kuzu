@@ -21,6 +21,10 @@ public:
     void update(transaction::Transaction* transaction, common::offset_t offsetInChunk,
         const common::ValueVector& values);
 
+    uint64_t getEstimatedMemoryUsage() const {
+        return residencyState == ResidencyState::ON_DISK ? 0 : data->getEstimatedMemoryUsage();
+    }
+
     void setMetadata(const ColumnChunkMetadata& metadata) const { data->setMetadata(metadata); }
     const ColumnChunkMetadata& getFlushedMetadata() const { return data->getFlushedMetadata(); }
 

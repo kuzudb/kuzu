@@ -22,6 +22,8 @@ public:
 
     void finalize() override;
 
+    uint64_t getEstimatedMemoryUsage() const override;
+
     common::idx_t getNumChildren() const { return childChunks.size(); }
     const ColumnChunkData& getChild(common::idx_t childIdx) const {
         KU_ASSERT(childIdx < childChunks.size());

@@ -217,6 +217,14 @@ void StorageManager::dropTable(table_id_t tableID, VirtualFileSystem* vfs) {
     tables.erase(tableID);
 }
 
+uint64_t StorageManager::getEstimatedMemoryUsage() const {
+    uint64_t totalMemoryUsage = 0;
+    for (const auto& [tableID, table] : tables) {
+        totalMemoryUsage += table->getEstimatedMemoryUsage();
+    }
+    return totalMemoryUsage;
+}
+
 void StorageManager::prepareCommit(Transaction* transaction, common::VirtualFileSystem* vfs) {
     // Tables which are created but not inserted into may have pending writes
     // which need to be flushed (specifically, the metadata disk array header)

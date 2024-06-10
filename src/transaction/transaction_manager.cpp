@@ -34,10 +34,11 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
     return transaction;
 }
 
-void TransactionManager::commit(main::ClientContext& clientContext, bool skipCheckPointing) {
+// TODO(Guodong): Remove second param `bool skipCheckPointing`.
+void TransactionManager::commit(main::ClientContext& clientContext, bool) {
     lock_t lck{mtxForSerializingPublicFunctionCalls};
     clientContext.cleanUP();
-    auto transaction = clientContext.getTx();
+    const auto transaction = clientContext.getTx();
     if (transaction->isReadOnly()) {
         activeReadOnlyTransactionIDs.erase(transaction->getID());
         return;
@@ -48,7 +49,7 @@ void TransactionManager::commit(main::ClientContext& clientContext, bool skipChe
     clientContext.getStorageManager()->prepareCommit(transaction, clientContext.getVFSUnsafe());
     wal.flushAllPages();
     clearActiveWriteTransactionIfWriteTransactionNoLock(transaction);
-    if (!skipCheckPointing) {
+    if (clientContext.getDBConfig()->autoCheckpoint && canAutoCheckpoint(clientContext)) {
         checkpointNoLock(clientContext);
     }
 }
@@ -69,7 +70,7 @@ void TransactionManager::rollback(main::ClientContext& clientContext, Transactio
     clearActiveWriteTransactionIfWriteTransactionNoLock(transaction);
     wal.flushAllPages();
     if (!skipCheckPointing) {
-        auto walReplayer = std::make_unique<WALReplayer>(clientContext, wal.getShadowingFH(),
+        const auto walReplayer = std::make_unique<WALReplayer>(clientContext, wal.getShadowingFH(),
             WALReplayMode::ROLLBACK);
         walReplayer->replay();
         // We next perform an in-memory rolling back of node/relTables.
@@ -109,7 +110,13 @@ void TransactionManager::allowReceivingNewTransactions() {
     mtxForStartingNewTransactions.unlock();
 }
 
-bool TransactionManager::canCheckpointNoLock() {
+bool TransactionManager::canAutoCheckpoint(const main::ClientContext& clientContext) const {
+    const auto expectedSize =
+        clientContext.getStorageManager()->getEstimatedMemoryUsage() + wal.getFileSize();
+    return expectedSize > clientContext.getDBConfig()->checkpointThreshold;
+}
+
+bool TransactionManager::canCheckpointNoLock() const {
     return activeWriteTransactionID.empty() && activeReadOnlyTransactionIDs.empty();
 }
 
@@ -122,16 +129,15 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     // query stop working on the tasks of the query and these tasks are removed from the
     // query.
     stopNewTransactionsAndWaitUntilAllTransactionsLeave();
-    KU_ASSERT(canCheckpointNoLock());
     clientContext.getCatalog()->checkpoint(clientContext.getDatabasePath(), &wal,
         clientContext.getVFSUnsafe());
-    wal.flushAllPages();
-    // Replay the WAL to commit page updates/inserts, and table statistics.
-    auto walReplayer = std::make_unique<WALReplayer>(clientContext, wal.getShadowingFH(),
-        WALReplayMode::COMMIT_CHECKPOINT);
-    walReplayer->replay();
     // We next perform an in-memory checkpointing of node/relTables.
     clientContext.getStorageManager()->checkpoint();
+    wal.flushAllPages();
+    // Replay the WAL to commit page updates/inserts, and table statistics.
+    const auto walReplayer = std::make_unique<WALReplayer>(clientContext, wal.getShadowingFH(),
+        WALReplayMode::COMMIT_CHECKPOINT);
+    walReplayer->replay();
     // Resume receiving new transactions.
     allowReceivingNewTransactions();
     // Clear the wal.
@@ -139,7 +145,7 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
 }
 
 void TransactionManager::clearActiveWriteTransactionIfWriteTransactionNoLock(
-    Transaction* transaction) {
+    const Transaction* transaction) {
     if (transaction->isWriteTransaction()) {
         for (auto& id : activeWriteTransactionID) {
             if (id == transaction->getID()) {

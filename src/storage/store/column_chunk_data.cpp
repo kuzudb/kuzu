@@ -572,6 +572,10 @@ bool ColumnChunkData::sanityCheck() const {
     return numValues <= capacity;
 }
 
+uint64_t ColumnChunkData::getEstimatedMemoryUsage() const {
+    return bufferSize + (nullData ? nullData->getEstimatedMemoryUsage() : 0);
+}
+
 void BoolChunkData::append(ValueVector* vector, const SelectionVector& selVector) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::BOOL);
     for (auto i = 0u; i < selVector.getSelSize(); i++) {

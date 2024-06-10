@@ -122,6 +122,8 @@ public:
     void checkpoint() override;
     void rollbackInMemory() override;
 
+    uint64_t getEstimatedMemoryUsage() const override;
+
     common::node_group_idx_t getNumCommittedNodeGroups() const {
         return nodeGroups->getNumNodeGroups();
     }

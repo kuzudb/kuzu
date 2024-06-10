@@ -56,6 +56,8 @@ public:
     bool isReadOnly() const { return readOnly; }
     bool compressionEnabled() const { return enableCompression; }
 
+    uint64_t getEstimatedMemoryUsage() const;
+
 private:
     std::unique_ptr<BMFileHandle> initFileHandle(const std::string& filename,
         common::VirtualFileSystem* vfs, main::ClientContext* context);

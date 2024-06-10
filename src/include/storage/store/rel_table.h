@@ -144,6 +144,8 @@ public:
     void checkpoint() override;
     void rollbackInMemory() override;
 
+    uint64_t getEstimatedMemoryUsage() const override { return 0; }
+
     RelTableData* getDirectedTableData(common::RelDataDirection direction) const {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData.get() :
                                                             bwdRelTableData.get();

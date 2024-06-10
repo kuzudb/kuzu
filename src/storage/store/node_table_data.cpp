@@ -1,6 +1,5 @@
 #include "storage/store/node_table_data.h"
 
-#include "common/cast.h"
 #include "common/types/types.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/stats/nodes_store_statistics.h"
@@ -56,7 +55,7 @@ offset_t NodeTableData::append(Transaction*, ChunkedNodeGroup*) {
 }
 
 std::unique_ptr<ChunkedNodeGroup> NodeTableData::getCommittedNodeGroup(
-    node_group_idx_t nodeGroupIdx) const {
+    const node_group_idx_t nodeGroupIdx) const {
     std::vector<LogicalType> dataTypes;
     for (auto& column : columns) {
         dataTypes.push_back(column->getDataType());

@@ -34,6 +34,8 @@ public:
 
     bool sanityCheck() const;
 
+    uint64_t getEstimatedMemoryUsage() const;
+
 private:
     bool enableCompression;
     // String data is stored as a UINT8 chunk, using the numValues in the chunk to track the number

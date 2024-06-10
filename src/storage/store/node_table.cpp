@@ -176,14 +176,10 @@ offset_t NodeTable::append(Transaction* transaction, ChunkedNodeGroup* chunkedGr
 
 void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
     std::unique_lock xLck{mtx};
-    auto& localNodeTable = localTable->cast<LocalNodeTable>();
-    // 1. Grab a set of node offsets from table statistics for local insertions.
-    const auto nodesStats =
-        ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics);
-    const auto numNodesCheckpointed = nodesStats->getNumTuplesForTable(transaction, tableID);
-    auto startNodeOffset = numNodesCheckpointed + nodeGroups->getNumRows();
+    auto startNodeOffset = nodeGroups->getNumRows();
 
-    // 2. Scan local table to populate hash index.
+    // Scan local table to populate hash index.
+    auto& localNodeTable = localTable->cast<LocalNodeTable>();
     std::vector<column_id_t> columnsToScan{pkColumnID};
     const auto dataChunkState = std::make_shared<DataChunkState>();
     ValueVector nodeIDVector(*LogicalType::INTERNAL_ID());
@@ -211,10 +207,8 @@ void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) 
         nodeGroupToScan++;
     }
 
-    // 3. Append the node groups to the table data.
+    // Append the node groups to the table data.
     nodeGroups->append(transaction, localNodeTable.getNodeGroups());
-
-    // 4. TODO: Add record to undo buffer.
 
     if (pkIndex) {
         pkIndex->prepareCommit();
@@ -260,6 +254,10 @@ void NodeTable::checkpointInMemory() {
 void NodeTable::rollbackInMemory() {
     tableData->rollbackInMemory();
     pkIndex->rollbackInMemory();
+}
+
+uint64_t NodeTable::getEstimatedMemoryUsage() const {
+    return nodeGroups->getEstimatedMemoryUsage();
 }
 
 void NodeTable::insertPK(const ValueVector& nodeIDVector, const ValueVector& pkVector) const {

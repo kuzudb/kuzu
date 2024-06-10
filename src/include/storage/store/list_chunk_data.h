@@ -88,6 +88,8 @@ public:
     bool isOffsetsConsecutiveAndSortedAscending(uint64_t startPos, uint64_t endPos) const;
     bool sanityCheck() const override;
 
+    uint64_t getEstimatedMemoryUsage() const override;
+
 protected:
     void copyListValues(const common::list_entry_t& entry, common::ValueVector* dataVector);
 

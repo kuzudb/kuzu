@@ -43,6 +43,8 @@ public:
     void merge(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         const ChunkedNodeGroup& chunkedGroup);
 
+    uint64_t getEstimatedMemoryUsage() const;
+
     void checkpoint();
 
 private:

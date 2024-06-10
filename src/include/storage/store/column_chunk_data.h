@@ -156,6 +156,8 @@ public:
 
     virtual bool sanityCheck() const;
 
+    virtual uint64_t getEstimatedMemoryUsage() const;
+
     template<typename TARGET>
     TARGET& cast() {
         return common::ku_dynamic_cast<ColumnChunkData&, TARGET&>(*this);

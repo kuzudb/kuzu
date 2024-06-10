@@ -42,6 +42,14 @@ void StructChunkData::finalize() {
     }
 }
 
+uint64_t StructChunkData::getEstimatedMemoryUsage() const {
+    auto estimatedMemoryUsage = ColumnChunkData::getEstimatedMemoryUsage();
+    for (auto& childChunk : childChunks) {
+        estimatedMemoryUsage += childChunk->getEstimatedMemoryUsage();
+    }
+    return estimatedMemoryUsage;
+}
+
 void StructChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     KU_ASSERT(other->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);

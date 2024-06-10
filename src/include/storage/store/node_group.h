@@ -33,11 +33,11 @@ public:
         return chunkedGroups.getNumRows() == common::StorageConstants::NODE_GROUP_SIZE;
     }
     const std::vector<common::LogicalType>& getDataTypes() const { return dataTypes; }
-    void append(transaction::Transaction* transaction,
+    void append(const transaction::Transaction* transaction,
         const ChunkedNodeGroupCollection& chunkCollection, common::row_idx_t offset,
         common::row_idx_t numRowsToAppend);
-    void append(transaction::Transaction* transaction, const ChunkedNodeGroup& chunkedGroup);
-    void append(transaction::Transaction* transaction,
+    void append(const transaction::Transaction* transaction, const ChunkedNodeGroup& chunkedGroup);
+    void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors, common::row_idx_t startRowIdx,
         common::row_idx_t numRowsToAppend);
 

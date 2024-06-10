@@ -143,6 +143,14 @@ void NodeGroupCollection::merge(Transaction* transaction, node_group_idx_t nodeG
     }
 }
 
+uint64_t NodeGroupCollection::getEstimatedMemoryUsage() const {
+    auto estimatedMemUsage = 0u;
+    for (const auto& nodeGroup : nodeGroups) {
+        estimatedMemUsage += nodeGroup->getEstimatedMemoryUsage();
+    }
+    return estimatedMemUsage;
+}
+
 void NodeGroupCollection::checkpoint() {
     KU_ASSERT(dataFH);
     std::unique_lock xLck{mtx};

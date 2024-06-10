@@ -8,19 +8,20 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-void NodeGroup::append(Transaction* transaction, const ChunkedNodeGroupCollection& chunkCollection,
-    const row_idx_t offset, const row_idx_t numRowsToAppend) {
+void NodeGroup::append(const Transaction* transaction,
+    const ChunkedNodeGroupCollection& chunkCollection, const row_idx_t offset,
+    const row_idx_t numRowsToAppend) {
     const auto startOffset = chunkedGroups.append(chunkCollection, offset, numRowsToAppend);
     versionInfo.append(transaction, startOffset, numRowsToAppend);
 }
 
-void NodeGroup::append(Transaction* transaction, const ChunkedNodeGroup& chunkedGroup) {
-    const auto startOffset = chunkedGroups.append(transaction, chunkedGroup);
+void NodeGroup::append(const Transaction* transaction, const ChunkedNodeGroup& chunkedGroup) {
+    const auto startOffset = chunkedGroups.append(chunkedGroup);
     const auto numRows = chunkedGroup.getNumRows();
     versionInfo.append(transaction, startOffset, numRows);
 }
 
-void NodeGroup::append(Transaction* transaction, const std::vector<ValueVector*>& vectors,
+void NodeGroup::append(const Transaction* transaction, const std::vector<ValueVector*>& vectors,
     const row_idx_t startRowIdx, const row_idx_t numRowsToAppend) {
     // TODO: Remove the assumption of all vectors have the same selVector.
     auto& anchorSelVector = vectors[0]->state->getSelVector();
@@ -56,8 +57,8 @@ void NodeGroup::initializeScanState(Transaction*, TableScanState& state) const {
 bool NodeGroup::scan(Transaction* transaction, TableScanState& state) const {
     auto& nodeGroupState = state.nodeGroupScanState;
     KU_ASSERT(nodeGroupState.chunkedGroupIdx < chunkedGroups.getNumChunkedGroups());
-    const auto& chunkedGroup = chunkedGroups.getChunkedGroup(nodeGroupState.chunkedGroupIdx);
-    if (nodeGroupState.nextRowToScan ==
+    if (const auto& chunkedGroup = chunkedGroups.getChunkedGroup(nodeGroupState.chunkedGroupIdx);
+        nodeGroupState.nextRowToScan ==
         chunkedGroup.getStartNodeOffset() + chunkedGroup.getNumRows()) {
         nodeGroupState.chunkedGroupIdx++;
     }
@@ -115,7 +116,7 @@ void NodeGroup::update(Transaction* transaction, offset_t offset, column_id_t co
     chunkedGroup.update(transaction, offsetInGroup, columnID, propertyVector);
 }
 
-bool NodeGroup::delete_(Transaction* transaction, const offset_t offset) {
+bool NodeGroup::delete_(const Transaction* transaction, const offset_t offset) {
     const auto offsetInGroup = offset - startNodeOffset;
     return versionInfo.delete_(transaction, offsetInGroup);
 }
@@ -152,6 +153,17 @@ void NodeGroup::populateNodeID(ValueVector& nodeIDVector, SelectionVector& selVe
             selVector.getMultableBuffer().data(), selVector.getSelSize() * sizeof(sel_t));
         nodeIDVector.state->getSelVectorUnsafe().setToFiltered(selVector.getSelSize());
     }
+}
+
+uint64_t NodeGroup::getEstimatedMemoryUsage() const {
+    if (residencyState == ResidencyState::ON_DISK) {
+        return 0;
+    }
+    uint64_t memUsage = 0;
+    for (const auto& chunkedGroup : chunkedGroups.getChunkedGroups()) {
+        memUsage += chunkedGroup->getEstimatedMemoryUsage();
+    }
+    return memUsage;
 }
 
 } // namespace storage

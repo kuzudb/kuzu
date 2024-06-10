@@ -82,5 +82,9 @@ bool DictionaryChunk::sanityCheck() const {
     return offsetChunk->getNumValues() <= offsetChunk->getNumValues();
 }
 
+uint64_t DictionaryChunk::getEstimatedMemoryUsage() const {
+    return stringDataChunk->getEstimatedMemoryUsage() + offsetChunk->getEstimatedMemoryUsage();
+}
+
 } // namespace storage
 } // namespace kuzu

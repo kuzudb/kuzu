@@ -42,9 +42,8 @@ void VectorVersionInfo::getSelVectorForScan(const transaction_t startTS,
         }
     } else {
         for (auto i = 0u; i < numRows; i++) {
-            const auto rowIdx = startRow + i;
-            if (isInserted(startTS, transactionID, rowIdx) &&
-                !isDeleted(startTS, transactionID, rowIdx)) {
+            if (const auto rowIdx = startRow + i; isInserted(startTS, transactionID, rowIdx) &&
+                                                  !isDeleted(startTS, transactionID, rowIdx)) {
                 selVector.getMultableBuffer()[numSelected++] = numValues + i;
             }
         }

@@ -39,7 +39,7 @@ public:
     }
 
     uint64_t getStringLength(common::offset_t pos) const {
-        auto index = ColumnChunkData::getValue<DictionaryChunk::string_index_t>(pos);
+        const auto index = ColumnChunkData::getValue<DictionaryChunk::string_index_t>(pos);
         return dictionaryChunk->getStringLength(index);
     }
 
@@ -47,6 +47,8 @@ public:
     const DictionaryChunk& getDictionaryChunk() const { return *dictionaryChunk; }
 
     void finalize() override;
+
+    uint64_t getEstimatedMemoryUsage() const override;
 
 private:
     void appendStringColumnChunk(StringChunkData* other, common::offset_t startPosInOtherChunk,
