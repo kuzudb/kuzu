@@ -12,7 +12,7 @@ namespace processor {
 void CreateTable::executeDDLInternal(ExecutionContext* context) {
     auto catalog = context->clientContext->getCatalog();
     auto newTableID = catalog->createTableSchema(context->clientContext->getTx(), info);
-    if (newTableID == UINT64_MAX) {
+    if (newTableID == INVALID_TABLE_ID) {
         return;
     }
     auto storageManager = context->clientContext->getStorageManager();

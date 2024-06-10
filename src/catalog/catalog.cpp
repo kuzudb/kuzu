@@ -165,7 +165,7 @@ table_id_t Catalog::createTableSchema(transaction::Transaction* transaction,
     const BoundCreateTableInfo& info) {
     switch (info.onConflict) {
     case parser::OnConflictOperation::IGNORE:
-        return UINT64_MAX;
+        return INVALID_TABLE_ID;
     default:
         break;
     }
