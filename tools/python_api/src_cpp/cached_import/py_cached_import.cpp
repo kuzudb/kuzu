@@ -18,8 +18,8 @@ py::handle PythonCachedImport::addToCache(py::object obj) {
 
 bool doesPyModuleExist(std::string moduleName) {
     py::gil_scoped_acquire acquire;
-    auto find_loader = importCache->importlib.find_loader();
-    return find_loader(moduleName) != Py_None;
+    auto find_spec = importCache->importlib.util.find_spec();
+    return find_spec(moduleName) != Py_None;
 }
 
 } // namespace kuzu

@@ -26,10 +26,19 @@ public:
 
 class ImportLibCachedItem : public PythonCachedItem {
 
-public:
-    ImportLibCachedItem() : PythonCachedItem("importlib"), find_loader("find_loader", this) {}
+    class UtilCachedItem : public PythonCachedItem {
+    
+    public:
+        explicit UtilCachedItem(PythonCachedItem* parent) : PythonCachedItem("util", parent),
+            find_spec("find_spec", this) {}
 
-    PythonCachedItem find_loader;
+        PythonCachedItem find_spec;
+    };
+
+public:
+    ImportLibCachedItem() : PythonCachedItem("importlib"), util(this) {}
+
+    UtilCachedItem util;
 };
 
 class InspectCachedItem : public PythonCachedItem {
