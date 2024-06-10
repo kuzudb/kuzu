@@ -22,7 +22,6 @@ std::unique_ptr<binder::BoundCreateTableInfo> PostgresCatalog::bindCreateTableIn
         common::ConflictAction::ON_CONFLICT_THROW, std::move(extraCreatePostgresTableInfo));
 }
 
-
 static void executeQueryAndCheckErrMsg(duckdb::Connection& con, std::string query) {
     auto result = con.Query(query);
     if (result->HasError()) {
