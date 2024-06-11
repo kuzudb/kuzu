@@ -116,7 +116,7 @@ void NodeGroup::update(Transaction* transaction, offset_t offset, column_id_t co
     chunkedGroup.update(transaction, offsetInGroup, columnID, propertyVector);
 }
 
-bool NodeGroup::delete_(const Transaction* transaction, const offset_t offset) {
+bool NodeGroup::delete_(Transaction* transaction, const offset_t offset) {
     const auto offsetInGroup = offset - startNodeOffset;
     return versionInfo.delete_(transaction, offsetInGroup);
 }

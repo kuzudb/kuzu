@@ -39,7 +39,7 @@ void LocalChunkedGroupCollection::appendChunkedGroup(ColumnChunkData* srcOffsetC
     for (auto i = 0u; i < chunkedGroup->getNumColumns(); i++) {
         KU_ASSERT(chunkedGroup->getColumnChunk(i).getDataType() == dataTypes[i]);
     }
-    auto rowIdx = chunkedGroups.getNumChunkedGroups() * ChunkedNodeGroupCollection::CHUNK_CAPACITY;
+    auto rowIdx = chunkedGroups.getNumChunkedGroups() * ChunkedNodeGroup::CHUNK_CAPACITY;
     const auto& relOffsetChunk = chunkedGroup->getColumnChunk(REL_ID_COLUMN_ID);
     for (auto i = 0u; i < srcOffsetChunk->getNumValues(); i++) {
         auto relOffset = relOffsetChunk.getData().getValue<offset_t>(i);
@@ -110,10 +110,10 @@ void LocalChunkedGroupCollection::remove(offset_t srcNodeOffset, offset_t relOff
 ChunkedNodeGroup& LocalChunkedGroupCollection::getLastChunkedGroupAndAddNewGroupIfNecessary() {
     if (chunkedGroups.getNumChunkedGroups() == 0 ||
         chunkedGroups.getChunkedGroup(chunkedGroups.getNumChunkedGroups() - 1).getNumRows() ==
-            ChunkedNodeGroupCollection::CHUNK_CAPACITY) {
+            ChunkedNodeGroup::CHUNK_CAPACITY) {
         chunkedGroups.merge(
             std::make_unique<ChunkedNodeGroup>(dataTypes, false /*enableCompression*/,
-                ChunkedNodeGroupCollection::CHUNK_CAPACITY, numRows, ResidencyState::TEMPORARY));
+                ChunkedNodeGroup::CHUNK_CAPACITY, numRows, ResidencyState::TEMPORARY));
     }
     return chunkedGroups.getChunkedGroup(chunkedGroups.getNumChunkedGroups() - 1);
 }

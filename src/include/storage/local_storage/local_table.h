@@ -26,8 +26,8 @@ public:
     DELETE_COPY_DEFAULT_MOVE(LocalChunkedGroupCollection);
 
     static std::pair<uint32_t, uint64_t> getChunkIdxAndOffsetInChunk(common::row_idx_t rowIdx) {
-        return std::make_pair(rowIdx / ChunkedNodeGroupCollection::CHUNK_CAPACITY,
-            rowIdx % ChunkedNodeGroupCollection::CHUNK_CAPACITY);
+        return std::make_pair(rowIdx / ChunkedNodeGroup::CHUNK_CAPACITY,
+            rowIdx % ChunkedNodeGroup::CHUNK_CAPACITY);
     }
 
     common::row_idx_t getRowIdxFromOffset(common::offset_t offset) const {

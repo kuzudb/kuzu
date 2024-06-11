@@ -67,11 +67,7 @@ bool VectorVersionInfo::isInserted(const transaction_t startTS, const transactio
     return isInsertedWithinSameTransaction || isInsertedByPrevCommittedTransaction;
 }
 
-<<<<<<< HEAD
-VectorVersionInfo& NodeGroupVersionInfo::getVersionInfo(idx_t vectorIdx) {
-=======
-VectorVersionInfo& NodeGroupVersionInfo::getOrCreateVersionInfo(const vector_idx_t vectorIdx) {
->>>>>>> 320f7ad9f (more checkpoint for inserted nodes)
+VectorVersionInfo& NodeGroupVersionInfo::getOrCreateVersionInfo(idx_t vectorIdx) {
     if (vectorsInfo.size() <= vectorIdx) {
         vectorsInfo.resize(vectorIdx + 1);
     }

@@ -23,8 +23,9 @@ row_idx_t ChunkedNodeGroupCollection::append(const std::vector<ValueVector*>& ve
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     const auto numRowsBeforeAppend = getNumRows();
     if (chunkedGroups.empty()) {
-        chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(types,
-            false /*enableCompression*/, CHUNK_CAPACITY, 0 /*startOffset*/, residencyState));
+        chunkedGroups.push_back(
+            std::make_unique<ChunkedNodeGroup>(types, false /*enableCompression*/,
+                ChunkedNodeGroup::CHUNK_CAPACITY, 0 /*startOffset*/, residencyState));
     }
     const auto numRowsToAppend = selVector.getSelSize();
     row_idx_t numRowsAppended = 0;
@@ -32,7 +33,7 @@ row_idx_t ChunkedNodeGroupCollection::append(const std::vector<ValueVector*>& ve
     while (numRowsAppended < numRowsToAppend) {
         const auto& lastChunkedGroup = chunkedGroups.back();
         const auto numRowsToAppendInGroup = std::min(numRowsToAppend - numRowsAppended,
-            CHUNK_CAPACITY - lastChunkedGroup->getNumRows());
+            ChunkedNodeGroup::CHUNK_CAPACITY - lastChunkedGroup->getNumRows());
         auto tmpSelVectorBuffer = tmpSelVector.getMultableBuffer();
         for (auto i = 0u; i < numRowsToAppendInGroup; i++) {
             tmpSelVectorBuffer[i] = selVector[numRowsAppended + i];
@@ -41,8 +42,9 @@ row_idx_t ChunkedNodeGroupCollection::append(const std::vector<ValueVector*>& ve
         lastChunkedGroup->append(vectors, tmpSelVector, numRowsToAppendInGroup);
         if (lastChunkedGroup->isFull()) {
             auto startOffset = getNumRows();
-            chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(types,
-                false /*enableCompression*/, CHUNK_CAPACITY, startOffset, residencyState));
+            chunkedGroups.push_back(
+                std::make_unique<ChunkedNodeGroup>(types, false /*enableCompression*/,
+                    ChunkedNodeGroup::CHUNK_CAPACITY, startOffset, residencyState));
         }
         numRowsAppended += numRowsToAppendInGroup;
     }
@@ -53,19 +55,22 @@ row_idx_t ChunkedNodeGroupCollection::append(const ChunkedNodeGroup& chunkedGrou
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     const auto numRowsBeforeAppend = getNumRows();
     if (chunkedGroups.empty()) {
-        chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(types,
-            false /*enableCompression*/, CHUNK_CAPACITY, 0 /*startOffset*/, residencyState));
+        chunkedGroups.push_back(
+            std::make_unique<ChunkedNodeGroup>(types, false /*enableCompression*/,
+                ChunkedNodeGroup::CHUNK_CAPACITY, 0 /*startOffset*/, residencyState));
     }
     row_idx_t numRowsAppended = 0u;
     const row_idx_t numRowsToAppend = chunkedGroup.getNumRows();
     while (numRowsAppended < numRowsToAppend) {
         if (chunkedGroups.back()->isFull()) {
-            chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(types,
-                false /*enableCompression*/, CHUNK_CAPACITY, getNumRows(), residencyState));
+            chunkedGroups.push_back(
+                std::make_unique<ChunkedNodeGroup>(types, false /*enableCompression*/,
+                    ChunkedNodeGroup::CHUNK_CAPACITY, getNumRows(), residencyState));
         }
         const auto& chunkedGroupToCopyInto = chunkedGroups.back();
-        KU_ASSERT(CHUNK_CAPACITY >= chunkedGroupToCopyInto->getNumRows());
-        auto numToCopyIntoChunk = CHUNK_CAPACITY - chunkedGroupToCopyInto->getNumRows();
+        KU_ASSERT(ChunkedNodeGroup::CHUNK_CAPACITY >= chunkedGroupToCopyInto->getNumRows());
+        auto numToCopyIntoChunk =
+            ChunkedNodeGroup::CHUNK_CAPACITY - chunkedGroupToCopyInto->getNumRows();
         const auto numToAppendInChunk = std::min(chunkedGroup.getNumRows(), numToCopyIntoChunk);
         chunkedGroupToCopyInto->append(chunkedGroup, 0, numToAppendInChunk);
         numRowsAppended += numToAppendInChunk;
@@ -78,21 +83,24 @@ row_idx_t ChunkedNodeGroupCollection::append(const ChunkedNodeGroupCollection& o
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     const auto numRowsBeforeAppend = getNumRows();
     if (chunkedGroups.empty()) {
-        chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(types,
-            false /*enableCompression*/, CHUNK_CAPACITY, 0 /*startOffset*/, residencyState));
+        chunkedGroups.push_back(
+            std::make_unique<ChunkedNodeGroup>(types, false /*enableCompression*/,
+                ChunkedNodeGroup::CHUNK_CAPACITY, 0 /*startOffset*/, residencyState));
     }
     row_idx_t numRowsAppended = 0u;
     while (numRowsAppended < numRowsToAppend) {
-        const auto chunkIdx = offsetInOtherCollection / CHUNK_CAPACITY;
-        const auto offsetInChunk = offsetInOtherCollection % CHUNK_CAPACITY;
+        const auto chunkIdx = offsetInOtherCollection / ChunkedNodeGroup::CHUNK_CAPACITY;
+        const auto offsetInChunk = offsetInOtherCollection % ChunkedNodeGroup::CHUNK_CAPACITY;
         auto& chunkedGroupToCopyFrom = other.getChunkedGroup(chunkIdx);
         auto numToCopyFromChunk = chunkedGroupToCopyFrom.getNumRows() - offsetInChunk;
         if (chunkedGroups.back()->isFull()) {
-            chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(types,
-                false /*enableCompression*/, CHUNK_CAPACITY, getNumRows(), residencyState));
+            chunkedGroups.push_back(
+                std::make_unique<ChunkedNodeGroup>(types, false /*enableCompression*/,
+                    ChunkedNodeGroup::CHUNK_CAPACITY, getNumRows(), residencyState));
         }
         const auto& chunkedGroupToCopyInto = chunkedGroups.back();
-        auto numToCopyIntoChunk = CHUNK_CAPACITY - chunkedGroupToCopyInto->getNumRows();
+        auto numToCopyIntoChunk =
+            ChunkedNodeGroup::CHUNK_CAPACITY - chunkedGroupToCopyInto->getNumRows();
         const auto numToAppendInChunk = std::min(numToCopyFromChunk, numToCopyIntoChunk);
         chunkedGroupToCopyInto->append(chunkedGroupToCopyFrom, offsetInChunk, numToAppendInChunk);
         numRowsAppended += numToAppendInChunk;

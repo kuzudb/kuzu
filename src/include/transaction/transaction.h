@@ -44,7 +44,7 @@ public:
     }
     constexpr explicit Transaction(TransactionType transactionType, common::transaction_t ID,
         common::transaction_t startTS) noexcept
-        : type{transactionType}, ID{0}, startTS{0}, commitTS{common::INVALID_TRANSACTION} {
+        : type{transactionType}, ID{ID}, startTS{startTS}, commitTS{common::INVALID_TRANSACTION} {
         currentTS = common::Timestamp::getCurrentTimestamp().value;
     }
 
