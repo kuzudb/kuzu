@@ -94,25 +94,27 @@ void Partitioner::initGlobalStateInternal(ExecutionContext* /*context*/) {
     sharedState->initialize(infos);
 }
 
-void Partitioner::initLocalStateInternal(ResultSet* /*resultSet*/, ExecutionContext* /*context*/) {
+void Partitioner::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     localState = std::make_unique<PartitionerLocalState>();
-    initializePartitioningStates(infos, localState->partitioningBuffers,
-        sharedState->numPartitions);
+    initializePartitioningStates(infos, localState->partitioningBuffers, sharedState->numPartitions);
+    for (auto& info: infos) {
+        for (auto& evaluator: info->columnEvaluators) {
+            evaluator->init(*resultSet, context->clientContext);
+        }
+    }
 }
 
-DataChunk Partitioner::constructDataChunk(const std::vector<DataPos>& columnPositions,
-    const std::vector<LogicalType>& columnTypes, const ResultSet& resultSet,
+DataChunk Partitioner::constructDataChunk(
+    const std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>>& columnEvaluators,
     const std::shared_ptr<DataChunkState>& state) {
-    DataChunk dataChunk(columnTypes.size(), state);
-    for (auto i = 0u; i < columnPositions.size(); i++) {
-        auto pos = columnPositions[i];
-        if (pos.isValid()) {
-            dataChunk.insert(i, resultSet.getValueVector(pos));
-        } else {
-            auto nullVector = std::make_shared<ValueVector>(columnTypes[i]);
-            nullVector->setAllNull();
-            dataChunk.insert(i, nullVector);
-        }
+    auto numColumns = columnEvaluators.size();
+    DataChunk dataChunk(numColumns, state);
+    auto numTuples = state->getSelVector().getSelSize();
+    for (auto i = 0u; i < numColumns; ++i) {
+        auto& evaluator = columnEvaluators[i];
+        evaluator->getLocalStateRef().count = numTuples;
+        evaluator->evaluate();
+        dataChunk.insert(i, evaluator->resultVector);
     }
     return dataChunk;
 }
@@ -137,11 +139,10 @@ void Partitioner::executeInternal(ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
         for (auto partitioningIdx = 0u; partitioningIdx < infos.size(); partitioningIdx++) {
             auto info = infos[partitioningIdx].get();
-            auto keyVector = resultSet->getValueVector(info->keyDataPos);
-            partitionIdxes->state = resultSet->getValueVector(info->keyDataPos)->state;
+            auto keyVector = info->columnEvaluators[info->keyIdx]->resultVector;
+            partitionIdxes->state = keyVector->state;
             info->partitionerFunc(keyVector.get(), partitionIdxes.get());
-            auto chunkToCopyFrom = constructDataChunk(info->columnDataPositions, info->columnTypes,
-                *resultSet, keyVector->state);
+            auto chunkToCopyFrom = constructDataChunk(info->columnEvaluators, keyVector->state);
             copyDataToPartitions(partitioningIdx, std::move(chunkToCopyFrom));
         }
     }

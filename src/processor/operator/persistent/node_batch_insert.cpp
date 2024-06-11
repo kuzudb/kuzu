@@ -5,6 +5,7 @@
 #include "common/string_format.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
+#include "expression_evaluator/expression_evaluator.h"
 #include "function/table/scan_functions.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/index_builder.h"

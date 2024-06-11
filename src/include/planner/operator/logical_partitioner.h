@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/copy/bound_copy_from.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/column_data_format.h"
 #include "planner/operator/logical_operator.h"
@@ -8,19 +9,13 @@ namespace kuzu {
 namespace planner {
 
 struct LogicalPartitionerInfo {
-    std::shared_ptr<binder::Expression> key;
-    binder::expression_vector payloads;
+    common::idx_t keyIdx;
     common::ColumnDataFormat dataFormat;
-    catalog::TableCatalogEntry* tableEntry;
 
-    LogicalPartitionerInfo(std::shared_ptr<binder::Expression> key,
-        binder::expression_vector payloads, common::ColumnDataFormat dataFormat,
-        catalog::TableCatalogEntry* tableEntry)
-        : key{std::move(key)}, payloads{std::move(payloads)}, dataFormat{dataFormat},
-          tableEntry{tableEntry} {}
+    LogicalPartitionerInfo(common::idx_t keyIdx, common::ColumnDataFormat dataFormat)
+        : keyIdx{keyIdx}, dataFormat{dataFormat} {}
     LogicalPartitionerInfo(const LogicalPartitionerInfo& other)
-        : key{other.key}, payloads{other.payloads}, dataFormat{other.dataFormat},
-          tableEntry{other.tableEntry} {}
+        : keyIdx{other.keyIdx}, dataFormat{other.dataFormat} {}
 
     inline std::unique_ptr<LogicalPartitionerInfo> copy() {
         return std::make_unique<LogicalPartitionerInfo>(*this);
@@ -33,9 +28,9 @@ struct LogicalPartitionerInfo {
 class LogicalPartitioner : public LogicalOperator {
 public:
     LogicalPartitioner(std::vector<std::unique_ptr<LogicalPartitionerInfo>> infos,
-        std::shared_ptr<LogicalOperator> child)
+        binder::BoundCopyFromInfo copyFromInfo, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::PARTITIONER, std::move(child)},
-          infos{std::move(infos)} {}
+          infos{std::move(infos)}, copyFromInfo{std::move(copyFromInfo)} {}
 
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
@@ -50,11 +45,13 @@ public:
 
     inline std::unique_ptr<LogicalOperator> copy() final {
         return make_unique<LogicalPartitioner>(LogicalPartitionerInfo::copy(infos),
-            children[0]->copy());
+            copyFromInfo.copy(), children[0]->copy());
     }
 
 private:
     std::vector<std::unique_ptr<LogicalPartitionerInfo>> infos;
+public:
+    binder::BoundCopyFromInfo copyFromInfo;
 };
 
 } // namespace planner

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "expression_evaluator/expression_evaluator.h"
 #include "processor/operator/sink.h"
 #include "storage/store/chunked_node_group_collection.h"
 
@@ -69,18 +70,21 @@ struct PartitionerLocalState {
 };
 
 struct PartitioningInfo {
-    DataPos keyDataPos;
-    std::vector<DataPos> columnDataPositions;
+    common::idx_t keyIdx;
     std::vector<common::LogicalType> columnTypes;
+    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
+    std::vector<bool> defaultColumns;
     partitioner_func_t partitionerFunc;
 
-    PartitioningInfo(DataPos keyDataPos, std::vector<DataPos> columnDataPositions,
-        std::vector<common::LogicalType> columnTypes, partitioner_func_t partitionerFunc)
-        : keyDataPos{keyDataPos}, columnDataPositions{std::move(columnDataPositions)},
-          columnTypes{std::move(columnTypes)}, partitionerFunc{std::move(partitionerFunc)} {}
+    PartitioningInfo(common::idx_t keyIdx, std::vector<common::LogicalType> columnTypes,
+        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
+        std::vector<bool> defaultColumns, partitioner_func_t partitionerFunc)
+        : keyIdx{keyIdx}, columnTypes{std::move(columnTypes)}, 
+          columnEvaluators{std::move(columnEvaluators)}, defaultColumns{std::move(defaultColumns)}, 
+          partitionerFunc{std::move(partitionerFunc)} {}
     inline std::unique_ptr<PartitioningInfo> copy() {
-        return std::make_unique<PartitioningInfo>(keyDataPos, columnDataPositions,
-            common::LogicalType::copy(columnTypes), partitionerFunc);
+        return std::make_unique<PartitioningInfo>(keyIdx, common::LogicalType::copy(columnTypes), 
+            evaluator::ExpressionEvaluator::copy(columnEvaluators), defaultColumns, partitionerFunc);
     }
 
     static std::vector<std::unique_ptr<PartitioningInfo>> copy(
@@ -107,8 +111,8 @@ public:
         std::vector<common::partition_idx_t> numPartitions);
 
 private:
-    common::DataChunk constructDataChunk(const std::vector<DataPos>& columnPositions,
-        const std::vector<common::LogicalType>& columnTypes, const ResultSet& resultSet,
+    common::DataChunk constructDataChunk(
+        const std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>>& columnEvaluators,
         const std::shared_ptr<common::DataChunkState>& state);
     // TODO: For now, RelBatchInsert will guarantee all data are inside one data chunk. Should be
     //  generalized to resultSet later if needed.

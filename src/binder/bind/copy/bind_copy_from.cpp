@@ -134,22 +134,29 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     auto dstTableID = relTableEntry->getDstTableID();
     auto srcKey = columns[0];
     auto dstKey = columns[1];
-    expression_vector propertyColumns;
-    for (auto i = 2u; i < columns.size(); ++i) {
-        propertyColumns.push_back(columns[i]);
-    }
     auto srcOffset = createVariable(InternalKeyword::SRC_OFFSET, LogicalTypeID::INT64);
     auto dstOffset = createVariable(InternalKeyword::DST_OFFSET, LogicalTypeID::INT64);
+    expression_vector columnExprs {srcOffset, dstOffset, offset};
+    std::vector<bool> defaultColumns {false, false, false};
+    auto& properties = relTableEntry->getPropertiesRef();
+    for (auto i = 1u; i < properties.size(); ++i) { // skip internal ID
+        auto& property = properties[i];
+        auto expr = matchColumnExpression(columns, property.getName());
+        auto isDefault = !expr;
+        defaultColumns.emplace_back(isDefault);
+        if (isDefault) {
+            columnExprs.push_back(expressionBinder.bindExpression(*property.getDefaultExpr()));
+        } else {
+            columnExprs.push_back(std::move(expr));
+        }
+    }
     auto srcLookUpInfo = IndexLookupInfo(srcTableID, srcOffset, srcKey);
     auto dstLookUpInfo = IndexLookupInfo(dstTableID, dstOffset, dstKey);
     auto extraCopyRelInfo = std::make_unique<ExtraBoundCopyRelInfo>();
-    extraCopyRelInfo->fromOffset = srcOffset;
-    extraCopyRelInfo->toOffset = dstOffset;
-    extraCopyRelInfo->propertyColumns = std::move(propertyColumns);
     extraCopyRelInfo->infos.push_back(std::move(srcLookUpInfo));
     extraCopyRelInfo->infos.push_back(std::move(dstLookUpInfo));
-    auto boundCopyFromInfo =
-        BoundCopyFromInfo(relTableEntry, boundSource->copy(), offset, std::move(extraCopyRelInfo));
+    auto boundCopyFromInfo = BoundCopyFromInfo(relTableEntry, boundSource->copy(), offset, 
+        std::move(columnExprs), std::move(defaultColumns), std::move(extraCopyRelInfo));
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
