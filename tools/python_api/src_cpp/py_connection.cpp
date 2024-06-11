@@ -48,7 +48,7 @@ static std::unique_ptr<function::ScanReplacementData> tryReplacePolars(py::dict&
         return nullptr;
     }
     auto entry = dict[objectName];
-    if (py::isinstance(entry, importCache->polars.DataFrame())) {
+    if (PyConnection::isPolarsDataframe(entry)) {
         auto scanReplacementData = std::make_unique<function::ScanReplacementData>();
         scanReplacementData->func = PyArrowTableScanFunction::getFunction();
         auto bindInput = function::TableFuncBindInput();
@@ -231,7 +231,17 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
 }
 
 bool PyConnection::isPandasDataframe(const py::object& object) {
+    if (!doesPyModuleExist("pandas")) {
+        return false;
+    }
     return py::isinstance(object, importCache->pandas.DataFrame());
+}
+
+bool PyConnection::isPolarsDataframe(const py::object& object) {
+    if (!doesPyModuleExist("polars")) {
+        return false;
+    }
+    return py::isinstance(object, importCache->polars.DataFrame());
 }
 
 static std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(

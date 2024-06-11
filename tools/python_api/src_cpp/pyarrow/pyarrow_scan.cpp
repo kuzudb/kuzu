@@ -18,7 +18,7 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
     py::gil_scoped_acquire acquire;
     py::object table(py::reinterpret_borrow<py::object>(
         reinterpret_cast<PyObject*>(input->inputs[0].getValue<uint8_t*>())));
-    if (py::isinstance(table, importCache->pandas.DataFrame())) {
+    if (PyConnection::isPandasDataframe(table)) {
         table = importCache->pyarrow.lib.Table.from_pandas()(table);
     } else if (py::isinstance(table, importCache->polars.DataFrame())) {
         table = table.attr("to_arrow")();
