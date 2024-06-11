@@ -1,6 +1,7 @@
 #include "storage/store/dictionary_column.h"
 
 #include "storage/storage_structure/disk_array_collection.h"
+#include "storage/store/string_column.h"
 #include <bit>
 
 using namespace kuzu::common;
@@ -28,19 +29,21 @@ DictionaryColumn::DictionaryColumn(const std::string& name, const MetadataDAHInf
 void DictionaryColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     Column::ChunkState& readState) {
     // We put states for data and offset columns into childrenStates.
-    readState.childrenStates.resize(2);
+    if (readState.childrenStates.size() < 2) {
+        readState.childrenStates.resize(2);
+    }
     dataColumn->initChunkState(transaction, nodeGroupIdx,
-        readState.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
+        StringColumn::getChildState(readState, StringColumn::ChildStateIndex::DATA));
     offsetColumn->initChunkState(transaction, nodeGroupIdx,
-        readState.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
+        StringColumn::getChildState(readState, StringColumn::ChildStateIndex::OFFSET));
 }
 
 void DictionaryColumn::append(Column::ChunkState& state, const DictionaryChunk& dictChunk) {
     KU_ASSERT(dictChunk.sanityCheck());
     dataColumn->append(dictChunk.getStringDataChunk(),
-        state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
+        StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA));
     offsetColumn->append(dictChunk.getOffsetChunk(),
-        state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
+        StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET));
 }
 
 void DictionaryColumn::scan(Transaction* transaction, const Column::ChunkState& state,
@@ -113,10 +116,11 @@ void DictionaryColumn::scan(Transaction* transaction, const Column::ChunkState& 
 }
 
 string_index_t DictionaryColumn::append(Column::ChunkState& state, std::string_view val) {
-    auto startOffset =
-        dataColumn->appendValues(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
-            reinterpret_cast<const uint8_t*>(val.data()), nullptr /*nullChunkData*/, val.size());
-    return offsetColumn->appendValues(state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX],
+    auto startOffset = dataColumn->appendValues(
+        StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA),
+        reinterpret_cast<const uint8_t*>(val.data()), nullptr /*nullChunkData*/, val.size());
+    return offsetColumn->appendValues(
+        StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET),
         reinterpret_cast<const uint8_t*>(&startOffset), nullptr /*nullChunkData*/, 1 /*numValues*/);
 }
 
@@ -164,12 +168,14 @@ void DictionaryColumn::scanValueToVector(Transaction* transaction,
 
 bool DictionaryColumn::canCommitInPlace(const Column::ChunkState& state, uint64_t numNewStrings,
     uint64_t totalStringLengthToAdd) {
-    if (!canDataCommitInPlace(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
+    if (!canDataCommitInPlace(
+            StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA),
             totalStringLengthToAdd)) {
         return false;
     }
-    if (!canOffsetCommitInPlace(state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX],
-            state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX], numNewStrings,
+    if (!canOffsetCommitInPlace(
+            StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET),
+            StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA), numNewStrings,
             totalStringLengthToAdd)) {
         return false;
     }

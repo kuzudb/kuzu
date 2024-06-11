@@ -7,6 +7,9 @@ namespace storage {
 
 class StringColumn final : public Column {
 public:
+    enum class ChildStateIndex : common::idx_t { DATA = 0, OFFSET = 1, INDEX = 2, COUNT = 3 };
+
+public:
     StringColumn(std::string name, common::LogicalType dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
         DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
@@ -44,8 +47,8 @@ public:
 
     const DictionaryColumn& getDictionary() const { return dictionary; }
 
-public:
-    static constexpr size_t INDEX_COLUMN_CHILD_INDEX = 0;
+    static ChunkState& getChildState(ChunkState& state, ChildStateIndex child);
+    static const ChunkState& getChildState(const ChunkState& state, ChildStateIndex child);
 
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
@@ -79,15 +82,7 @@ private:
 
     std::unique_ptr<Column> indexColumn;
 
-    static constexpr size_t CHILD_COLUMN_COUNT = 1;
-
-    static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 0;
-    static constexpr common::idx_t OFFSET_COLUMN_CHILD_READ_STATE_IDX = 1;
-    static constexpr common::idx_t INDEX_COLUMN_CHILD_READ_STATE_IDX = 2;
-
 private:
-    static ChunkState& getIndexState(ChunkState& state);
-    static const ChunkState& getIndexState(const ChunkState& state);
 };
 
 } // namespace storage

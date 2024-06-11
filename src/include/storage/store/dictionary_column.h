@@ -8,9 +8,6 @@ namespace storage {
 
 class DictionaryColumn {
 public:
-    static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 0;
-    static constexpr common::idx_t OFFSET_COLUMN_CHILD_READ_STATE_IDX = 1;
-
     DictionaryColumn(const std::string& name, const MetadataDAHInfo& metaDAHeaderInfo,
         BMFileHandle* dataFH, DiskArrayCollection& metadataFH, BufferManager* bufferManager,
         WAL* wal, transaction::Transaction* transaction, bool enableCompression);
