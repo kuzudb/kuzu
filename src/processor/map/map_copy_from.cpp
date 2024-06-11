@@ -104,7 +104,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* lo
     std::vector<PartitioningInfo> infos;
     infos.reserve(logicalPartitioner->getNumInfos());
     for (auto i = 0u; i < logicalPartitioner->getNumInfos(); i++) {
-        infos.emplace_back(logicalPartitioner->getInfo(i)->keyIdx, 
+        infos.emplace_back(logicalPartitioner->getInfo(i)->keyIdx,
             PartitionerFunctions::partitionRelData);
     }
     std::vector<LogicalType> columnTypes;
@@ -114,7 +114,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* lo
     columnTypes[0] = *LogicalType::INTERNAL_ID();
     columnTypes[1] = *LogicalType::INTERNAL_ID();
     columnTypes[2] = *LogicalType::INTERNAL_ID();
-    auto dataInfo = PartitionerDataInfo(LogicalType::copy(columnTypes), std::move(columnEvaluators), 
+    auto dataInfo = PartitionerDataInfo(LogicalType::copy(columnTypes), std::move(columnEvaluators),
         copyFromInfo.defaultColumns);
     auto sharedState = std::make_shared<PartitionerSharedState>();
     return std::make_unique<Partitioner>(std::make_unique<ResultSetDescriptor>(outFSchema),

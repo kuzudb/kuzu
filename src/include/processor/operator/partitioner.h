@@ -71,14 +71,14 @@ struct PartitioningInfo {
     partitioner_func_t partitionerFunc;
 
     PartitioningInfo(common::idx_t keyIdx, partitioner_func_t partitionerFunc)
-      : keyIdx{keyIdx}, partitionerFunc{std::move(partitionerFunc)} {}
+        : keyIdx{keyIdx}, partitionerFunc{std::move(partitionerFunc)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(PartitioningInfo);
 
     static std::vector<PartitioningInfo> copy(const std::vector<PartitioningInfo>& other);
 
 private:
     PartitioningInfo(const PartitioningInfo& other)
-      : keyIdx{other.keyIdx}, partitionerFunc{other.partitionerFunc} {}
+        : keyIdx{other.keyIdx}, partitionerFunc{other.partitionerFunc} {}
 };
 
 struct PartitionerDataInfo {
@@ -95,16 +95,15 @@ struct PartitionerDataInfo {
 
 private:
     PartitionerDataInfo(const PartitionerDataInfo& other)
-      : columnTypes{common::LogicalType::copy(other.columnTypes)},
-        columnEvaluators{evaluator::ExpressionEvaluator::copy(other.columnEvaluators)},
-        defaultColumns{other.defaultColumns} {}
+        : columnTypes{common::LogicalType::copy(other.columnTypes)},
+          columnEvaluators{evaluator::ExpressionEvaluator::copy(other.columnEvaluators)},
+          defaultColumns{other.defaultColumns} {}
 };
 
 class Partitioner : public Sink {
 public:
     Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        std::vector<PartitioningInfo> infos,
-        PartitionerDataInfo dataInfo,
+        std::vector<PartitioningInfo> infos, PartitionerDataInfo dataInfo,
         std::shared_ptr<PartitionerSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString);
 

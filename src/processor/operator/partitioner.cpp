@@ -22,8 +22,7 @@ void PartitionerFunctions::partitionRelData(ValueVector* key, ValueVector* parti
     }
 }
 
-std::vector<PartitioningInfo> PartitioningInfo::copy(
-    const std::vector<PartitioningInfo>& other) {
+std::vector<PartitioningInfo> PartitioningInfo::copy(const std::vector<PartitioningInfo>& other) {
     std::vector<PartitioningInfo> result;
     result.reserve(other.size());
     for (auto& otherInfo : other) {
@@ -81,8 +80,7 @@ void PartitioningBuffer::merge(std::unique_ptr<PartitioningBuffer> localPartitio
 }
 
 Partitioner::Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-    std::vector<PartitioningInfo> infos,
-    PartitionerDataInfo dataInfo,
+    std::vector<PartitioningInfo> infos, PartitionerDataInfo dataInfo,
     std::shared_ptr<PartitionerSharedState> sharedState, std::unique_ptr<PhysicalOperator> child,
     uint32_t id, const std::string& paramsString)
     : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::PARTITIONER, std::move(child), id,
@@ -176,7 +174,7 @@ void Partitioner::copyDataToPartitions(partition_idx_t partitioningIdx, DataChun
 }
 
 std::unique_ptr<PhysicalOperator> Partitioner::clone() {
-    return std::make_unique<Partitioner>(resultSetDescriptor->copy(), PartitioningInfo::copy(infos), 
+    return std::make_unique<Partitioner>(resultSetDescriptor->copy(), PartitioningInfo::copy(infos),
         dataInfo.copy(), sharedState, children[0]->clone(), id, paramsString);
 }
 
