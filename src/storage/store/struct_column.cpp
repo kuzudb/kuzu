@@ -39,23 +39,19 @@ std::unique_ptr<ColumnChunkData> StructColumn::flushChunkData(const ColumnChunkD
     return flushedChunk;
 }
 
-void StructColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+void StructColumn::scan(Transaction* transaction, const ChunkState& state,
     ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
     KU_ASSERT(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
-    nullColumn->scan(transaction, nodeGroupIdx, columnChunk->getNullData(), startOffset, endOffset);
-    if (nodeGroupIdx >= metadataDA->getNumElements(transaction->getType())) {
-        columnChunk->setNumValues(0);
-    } else {
-        auto chunkMetadata = metadataDA->get(nodeGroupIdx, transaction->getType());
-        auto numValues = chunkMetadata.numValues == 0 ?
-                             0 :
-                             std::min(endOffset, chunkMetadata.numValues) - startOffset;
-        columnChunk->setNumValues(numValues);
-    }
+    nullColumn->scan(transaction, *state.nullState, columnChunk->getNullData(), startOffset,
+        endOffset);
+    auto numValues = state.metadata.numValues == 0 ?
+                         0 :
+                         std::min(endOffset, state.metadata.numValues) - startOffset;
+    columnChunk->setNumValues(numValues);
     auto& structColumnChunk = columnChunk->cast<StructChunkData>();
     for (auto i = 0u; i < childColumns.size(); i++) {
-        childColumns[i]->scan(transaction, nodeGroupIdx, structColumnChunk.getChild(i), startOffset,
-            endOffset);
+        childColumns[i]->scan(transaction, state.childrenStates[i], structColumnChunk.getChild(i),
+            startOffset, endOffset);
     }
 }
 

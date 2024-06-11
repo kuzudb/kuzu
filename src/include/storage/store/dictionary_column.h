@@ -17,7 +17,7 @@ public:
 
     void append(ChunkState& state, const DictionaryChunk& dictChunk);
 
-    void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+    void scan(transaction::Transaction* transaction, const ChunkState& state,
         DictionaryChunk& dictChunk);
     // Offsets to scan should be a sorted list of pairs mapping the index of the entry in the string
     // dictionary (as read from the index column) to the output index in the result vector to store

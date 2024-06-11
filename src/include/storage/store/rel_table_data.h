@@ -43,8 +43,11 @@ struct CSRHeaderColumns {
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         const ChunkedCSRHeader& chunks) const {
-        offset->scan(transaction, nodeGroupIdx, &chunks.offset->getData());
-        length->scan(transaction, nodeGroupIdx, &chunks.length->getData());
+        ChunkState offsetState, lengthState;
+        offset->initChunkState(transaction, nodeGroupIdx, offsetState);
+        length->initChunkState(transaction, nodeGroupIdx, lengthState);
+        offset->scan(transaction, offsetState, &chunks.offset->getData());
+        length->scan(transaction, lengthState, &chunks.length->getData());
     }
     void append(const ChunkedCSRHeader& headerChunks, ChunkState& offsetState,
         ChunkState& lengthState) const {
