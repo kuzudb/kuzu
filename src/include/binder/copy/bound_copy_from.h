@@ -24,18 +24,12 @@ struct BoundCopyFromInfo {
     std::vector<bool> defaultColumns;
     std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo;
 
-    // TODO(Sam): REL and RDF copy PR should ensure column exprs and types is always passed
     BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry,
         std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
         expression_vector columnExprs, std::vector<bool> defaultColumns,
         std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
         : tableEntry{tableEntry}, source{std::move(source)}, offset{offset},
-          columnExprs{columnExprs}, defaultColumns{std::move(defaultColumns)},
-          extraInfo{std::move(extraInfo)} {}
-    BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry,
-        std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
-        std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
-        : tableEntry{tableEntry}, source{std::move(source)}, offset{offset},
+          columnExprs{std::move(columnExprs)}, defaultColumns{std::move(defaultColumns)},
           extraInfo{std::move(extraInfo)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundCopyFromInfo);
 
@@ -51,14 +45,9 @@ private:
 
 struct ExtraBoundCopyRelInfo final : public ExtraBoundCopyFromInfo {
     std::vector<IndexLookupInfo> infos;
-    std::shared_ptr<Expression> fromOffset;
-    std::shared_ptr<Expression> toOffset;
-    expression_vector propertyColumns;
 
     ExtraBoundCopyRelInfo() = default;
-    ExtraBoundCopyRelInfo(const ExtraBoundCopyRelInfo& other)
-        : infos{copyVector(other.infos)}, fromOffset{other.fromOffset}, toOffset{other.toOffset},
-          propertyColumns{other.propertyColumns} {}
+    ExtraBoundCopyRelInfo(const ExtraBoundCopyRelInfo& other) : infos{copyVector(other.infos)} {}
 
     inline std::unique_ptr<ExtraBoundCopyFromInfo> copy() const override {
         return std::make_unique<ExtraBoundCopyRelInfo>(*this);

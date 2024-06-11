@@ -106,12 +106,6 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         if (nodeInfo->defaultColumns[i]) {
             auto& evaluator = nodeInfo->columnEvaluators[i];
             evaluator->init(*resultSet, context->clientContext);
-            auto& columnType = evaluator->resultVector->dataType;
-            std::shared_ptr<ValueVector> defaultVector = std::make_shared<ValueVector>(columnType);
-            defaultVector->setAllNull();
-            defaultVector->setState(state);
-            nodeLocalState->columnVectors[i] = defaultVector.get();
-            nodeLocalState->defaultColumnVectors.push_back(std::move(defaultVector));
         }
     }
 
@@ -128,7 +122,7 @@ void NodeBatchInsert::populateDefaultColumns() {
     for (auto i = 0u; i < nodeInfo->defaultColumns.size(); ++i) {
         if (nodeInfo->defaultColumns[i]) {
             auto& defaultEvaluator = nodeInfo->columnEvaluators[i];
-            defaultEvaluator->getLocalStateRef().count = numTuples;
+            defaultEvaluator->getLocalStateUnsafe().count = numTuples;
             defaultEvaluator->evaluate();
             nodeLocalState->columnVectors[i] = defaultEvaluator->resultVector.get();
         }
