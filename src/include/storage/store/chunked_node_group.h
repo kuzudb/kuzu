@@ -17,6 +17,8 @@ struct TableScanState;
 
 class ChunkedNodeGroup {
 public:
+    static constexpr uint64_t CHUNK_CAPACITY = 2048;
+
     explicit ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks)
         : ChunkedNodeGroup{std::move(chunks), common::INVALID_OFFSET} {
         residencyState = chunks[0]->getResidencyState();
@@ -79,6 +81,7 @@ public:
 
     void scan(transaction::Transaction* transaction, TableScanState& scanState,
         common::offset_t offsetInGroup, common::length_t length) const;
+    std::unique_ptr<ChunkedNodeGroup> scanInMemCommitted() const;
     void lookup(transaction::Transaction* transaction,
         const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors,
@@ -99,6 +102,7 @@ public:
     std::unique_ptr<ChunkedNodeGroup> flush(BMFileHandle& dataFH) const;
 
     uint64_t getEstimatedMemoryUsage() const;
+    bool hasUpdates() const;
 
     void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<ChunkedNodeGroup> deserialize(common::Deserializer& deSer);

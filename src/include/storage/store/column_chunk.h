@@ -16,6 +16,7 @@ public:
     void initializeScanState(ChunkState& state) const;
     void scan(transaction::Transaction* transaction, ChunkState& state, common::ValueVector& nodeID,
         common::ValueVector& output, common::offset_t offsetInChunk, common::length_t length) const;
+    void scanInMemCommitted(ColumnChunkData& output) const;
     void lookup(transaction::Transaction* transaction, common::offset_t offsetInChunk,
         common::ValueVector& output, common::sel_t posInOutputVector) const;
     void update(transaction::Transaction* transaction, common::offset_t offsetInChunk,
@@ -43,6 +44,7 @@ public:
     bool isCompressionEnabled() const { return enableCompression; }
 
     ResidencyState getResidencyState() const { return data->getResidencyState(); }
+    bool hasUpdates() const { return updateInfo != nullptr; }
 
     // These functions should only work on in-memory and temporary column chunks.
     void resetToEmpty() { data->resetToEmpty(); }

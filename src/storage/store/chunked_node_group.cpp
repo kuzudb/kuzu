@@ -171,6 +171,19 @@ void ChunkedNodeGroup::scan(Transaction* transaction, TableScanState& scanState,
     }
 }
 
+std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::scanInMemCommitted() const {
+    std::vector<LogicalType> types;
+    for (const auto& chunk : chunks) {
+        types.push_back(chunk->getDataType());
+    }
+    auto scannedChunkedGroup = std::make_unique<ChunkedNodeGroup>(types, false, CHUNK_CAPACITY,
+        startNodeOffset, ResidencyState::IN_MEMORY);
+    for (auto i = 0u; i < chunks.size(); i++) {
+        chunks[i]->scanInMemCommitted(scannedChunkedGroup->getColumnChunk(i).getData());
+    }
+    return scannedChunkedGroup;
+}
+
 void ChunkedNodeGroup::lookup(Transaction* transaction, const std::vector<column_id_t>& columnIDs,
     const std::vector<ValueVector*>& outputVectors, offset_t offsetInGroup) const {
     KU_ASSERT(columnIDs.size() == outputVectors.size());
@@ -214,6 +227,15 @@ uint64_t ChunkedNodeGroup::getEstimatedMemoryUsage() const {
         memoryUsage += chunk->getEstimatedMemoryUsage();
     }
     return memoryUsage;
+}
+
+bool ChunkedNodeGroup::hasUpdates() const {
+    for (const auto& chunk : chunks) {
+        if (chunk->hasUpdates()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void ChunkedNodeGroup::serialize(Serializer& serializer) const {

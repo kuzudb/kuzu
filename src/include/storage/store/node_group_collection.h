@@ -45,7 +45,7 @@ public:
 
     uint64_t getEstimatedMemoryUsage() const;
 
-    void checkpoint();
+    void checkpoint(TableData& tableData);
 
     void serialize(common::Serializer& ser) const;
 

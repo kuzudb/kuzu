@@ -11,8 +11,6 @@ namespace storage {
 
 class ChunkedNodeGroupCollection {
 public:
-    static constexpr uint64_t CHUNK_CAPACITY = 2048;
-
     ChunkedNodeGroupCollection(ResidencyState residencyState,
         std::vector<common::LogicalType> types)
         : residencyState{residencyState}, types{std::move(types)} {}
@@ -24,7 +22,8 @@ public:
 
     static std::pair<uint64_t, common::offset_t> getChunkIdxAndOffsetInChunk(
         common::row_idx_t rowIdx) {
-        return std::make_pair(rowIdx / CHUNK_CAPACITY, rowIdx % CHUNK_CAPACITY);
+        return std::make_pair(rowIdx / ChunkedNodeGroup::CHUNK_CAPACITY,
+            rowIdx % ChunkedNodeGroup::CHUNK_CAPACITY);
     }
 
     const std::vector<std::unique_ptr<ChunkedNodeGroup>>& getChunkedGroups() const {

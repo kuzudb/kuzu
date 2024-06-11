@@ -13,8 +13,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-// TODO: need to handle this case, when the whole struct entry is null, should set all fields to
-// null too.
 StructChunkData::StructChunkData(LogicalType dataType, uint64_t capacity, bool enableCompression,
     ResidencyState residencyState)
     : ColumnChunkData{std::move(dataType), capacity, enableCompression, residencyState,

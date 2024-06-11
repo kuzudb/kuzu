@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 #include "storage/store/chunked_node_group_collection.h"
 #include "storage/store/version_info.h"
 
@@ -64,8 +66,10 @@ public:
 
     void flush(BMFileHandle& dataFH);
 
-    void checkpoint(BMFileHandle& dataFH);
+    void checkpoint(TableData& tableData, BMFileHandle& dataFH);
 
+    bool hasChanges() const;
+    bool hasInsertionsOrDeletions() const;
     uint64_t getEstimatedMemoryUsage() const;
 
     void serialize(common::Serializer& serializer) const;
@@ -83,6 +87,10 @@ public:
 private:
     void setToOnDisk() { residencyState = ResidencyState::ON_DISK; }
 
+    std::unique_ptr<ChunkedNodeGroup> scanInMemCommitted();
+    ColumnChunkData* fetchOnDiskUpdates(common::column_id_t columnID,
+        std::map<common::offset_t, common::row_idx_t>& updateInfo);
+
     static void populateNodeID(common::ValueVector& nodeIDVector,
         common::SelectionVector& selVector, common::table_id_t tableID,
         common::offset_t startNodeOffset, common::row_idx_t numRows);
@@ -95,7 +103,6 @@ private:
     // Offset of the first node in the group.
     common::offset_t startNodeOffset;
     ChunkedNodeGroupCollection chunkedGroups;
-    // TODO(Guodong): Consdier moving this into a unique_ptr.
     NodeGroupVersionInfo versionInfo;
 };
 

@@ -40,7 +40,6 @@ void NodeGroup::merge(Transaction*, std::unique_ptr<ChunkedNodeGroup> chunkedGro
 }
 
 void NodeGroup::initializeScanState(Transaction*, TableScanState& state) const {
-    // TODO: Should handle transaction to resolve version visibility here.
     if (residencyState == ResidencyState::ON_DISK) {
         KU_ASSERT(state.tableData);
         KU_ASSERT(chunkedGroups.getNumChunkedGroups() == 1);
@@ -86,6 +85,7 @@ bool NodeGroup::scan(Transaction* transaction, TableScanState& state) const {
 
 void NodeGroup::lookup(Transaction* transaction, TableScanState& state) const {
     KU_ASSERT(state.nodeIDVector->state->getSelVector().getSelSize() == 1);
+    // TODO(Guodong): Handle visbility here.
     switch (residencyState) {
     case ResidencyState::IN_MEMORY:
     case ResidencyState::TEMPORARY: {
@@ -141,11 +141,38 @@ void NodeGroup::flush(BMFileHandle& dataFH) {
     setToOnDisk();
 }
 
-void NodeGroup::checkpoint(BMFileHandle& dataFH) {
+void NodeGroup::checkpoint(TableData& tableData, BMFileHandle& dataFH) {
+    std::vector<column_id_t> columnIDsToScan;
+    for (auto columnID = 0u; columnID < tableData.getNumColumns(); columnID++) {
+        columnIDsToScan.push_back(columnID);
+    }
+    TableScanState scanState{INVALID_TABLE_ID, columnIDsToScan};
+    initializeScanState(&DUMMY_WRITE_TRANSACTION, scanState);
+    std::unique_ptr<ChunkedNodeGroup> inMemChunkedGroup = nullptr;
+    if (versionInfo.hasInsertions()) {
+        inMemChunkedGroup = scanInMemCommitted();
+    }
     if (residencyState == ResidencyState::IN_MEMORY) {
-        flush(dataFH);
-    } else {
-        // TODO: Merge inserts, updates and deletions to the disk.
+        inMemChunkedGroup->flush(dataFH);
+        return;
+    }
+    // We don't need to consider deletions here, as they are flushed separately as metadata.
+    // A special but rare case can be all rows are deleted, then we can skip flushing the data.
+    // 1. If there are no updates to on-disk data, we merge in-mem data first, then merge to disk.
+    // 2. If there are updates to on-disk data, we patch them as updates. then merge to disk.
+    for (auto columnID = 0u; columnID < tableData.getNumColumns(); columnID++) {
+        const auto column = tableData.getColumn(columnID);
+        ChunkDataCollection insertChunks, updateChunks;
+        if (inMemChunkedGroup) {
+            insertChunks.push_back(&inMemChunkedGroup->getColumnChunk(columnID).getData());
+        }
+        offset_to_row_idx_t insertInfo, updateInfo;
+        KU_ASSERT(chunkedGroups.getChunkedGroup(0).getResidencyState() == ResidencyState::ON_DISK);
+        // auto updateData = fetchOnDiskUpdates(updateInfo);
+        // updateChunks.push_back(updateData.get());
+        column->prepareCommitForExistingChunk(&DUMMY_WRITE_TRANSACTION,
+            scanState.chunkStates[columnID], insertChunks, insertInfo, updateChunks, updateInfo,
+            {} /*deleteInfo*/);
     }
 }
 
@@ -161,6 +188,25 @@ void NodeGroup::populateNodeID(ValueVector& nodeIDVector, SelectionVector& selVe
             selVector.getMultableBuffer().data(), selVector.getSelSize() * sizeof(sel_t));
         nodeIDVector.state->getSelVectorUnsafe().setToFiltered(selVector.getSelSize());
     }
+}
+
+bool NodeGroup::hasChanges() const {
+    if (residencyState == ResidencyState::IN_MEMORY) {
+        return true;
+    }
+    if (versionInfo.hasDeletions() || versionInfo.hasInsertions()) {
+        return true;
+    }
+    for (auto& chunkedGroup : chunkedGroups.getChunkedGroups()) {
+        if (chunkedGroup->hasUpdates()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool NodeGroup::hasInsertionsOrDeletions() const {
+    return versionInfo.hasDeletions() || versionInfo.hasInsertions();
 }
 
 uint64_t NodeGroup::getEstimatedMemoryUsage() const {
@@ -200,6 +246,27 @@ std::unique_ptr<NodeGroup> NodeGroup::deserialize(Deserializer& deSer) {
     }
     return std::make_unique<NodeGroup>(nodeGroupIdx, enableCompression, std::move(chunkedNodeGroup),
         std::move(versionInfo));
+}
+
+std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanInMemCommitted() {
+    auto mergedInMemGroup = std::make_unique<ChunkedNodeGroup>(dataTypes, enableCompression,
+        StorageConstants::NODE_GROUP_SIZE, startNodeOffset, ResidencyState::IN_MEMORY);
+    for (auto& chunkedGroup : chunkedGroups.getChunkedGroups()) {
+        if (chunkedGroup->getResidencyState() != ResidencyState::IN_MEMORY) {
+            continue;
+        }
+        auto scannedChunkGroup = chunkedGroup->scanInMemCommitted();
+        mergedInMemGroup->append(*scannedChunkGroup, 0, scannedChunkGroup->getNumRows());
+    }
+    return mergedInMemGroup;
+}
+
+ColumnChunkData* NodeGroup::fetchOnDiskUpdates(column_id_t columnID,
+    std::map<offset_t, row_idx_t>& updateInfo) {
+    KU_ASSERT(chunkedGroups.getChunkedGroup(0).getResidencyState() == ResidencyState::ON_DISK);
+    auto& onDiskChunkedGroup = chunkedGroups.getChunkedGroup(0);
+    auto& columnChunk = onDiskChunkedGroup.getColumnChunk(columnID);
+    // TODO: Handle updates.
 }
 
 } // namespace storage

@@ -145,11 +145,11 @@ uint64_t NodeGroupCollection::getEstimatedMemoryUsage() const {
     return estimatedMemUsage;
 }
 
-void NodeGroupCollection::checkpoint() {
+void NodeGroupCollection::checkpoint(TableData& tableData) {
     KU_ASSERT(dataFH);
     std::unique_lock xLck{mtx};
     for (const auto& nodeGroup : nodeGroups) {
-        nodeGroup->checkpoint(*dataFH);
+        nodeGroup->checkpoint(tableData, *dataFH);
     }
 }
 

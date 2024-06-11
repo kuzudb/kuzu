@@ -183,7 +183,7 @@ void NodeTable::addColumn(Transaction* transaction, const Property& property,
     wal->addToUpdatedTables(tableID);
 }
 
-offset_t NodeTable::append(Transaction* transaction, ChunkedNodeGroup* chunkedGroup, offset_t,
+offset_t NodeTable::append(Transaction* transaction, const ChunkedNodeGroup* chunkedGroup, offset_t,
     row_idx_t) {
     // TODO: handle startOffsetToAppend and numRowsToAppend.
     nodeGroups->merge(transaction, chunkedGroup->getNodeGroupIdx(), *chunkedGroup);
@@ -203,7 +203,7 @@ void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) 
     pkVector.setState(dataChunkState);
     std::vector<ValueVector*> outputVectors{&pkVector};
     node_group_idx_t nodeGroupToScan = 0u;
-    auto numNodeGroupsToScan = localNodeTable.getNumNodeGroups();
+    const auto numNodeGroupsToScan = localNodeTable.getNumNodeGroups();
     const auto scanState = std::make_unique<NodeTableScanState>(tableID, columnsToScan);
     scanState->nodeIDVector = &nodeIDVector;
     scanState->outputVectors = outputVectors;
@@ -242,25 +242,8 @@ void NodeTable::prepareRollback(LocalTable* localTable) {
 }
 
 void NodeTable::checkpoint(Serializer& ser) {
-    // 1. Flush the delta node groups to disk.
-    nodeGroups->checkpoint();
-    // 2. Serialize table data.
+    nodeGroups->checkpoint(*tableData);
     serialize(ser);
-
-    // 2. Update metadata disk arrays.
-    // const auto numNodeGroups = nodeGroups->getNumNodeGroups();
-    // for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
-    // auto& nodeGroup = nodeGroups->getNodeGroup(nodeGroupIdx);
-    // KU_ASSERT(nodeGroup.getNumChunkedGroups() == 1 &&
-    // nodeGroup.getResidencyState() == ResidencyState::ON_DISK);
-    // auto& chunkedGroup = nodeGroup.getChunkedGroup(0);
-    // for (auto columnID = 0u; columnID < chunkedGroup.getNumColumns(); columnID++) {
-    // tableData->getColumn(columnID)->setMetadataFromChunk(nodeGroupIdx,
-    // chunkedGroup.getColumnChunk(columnID).getData());
-    // }
-    // }
-    // 3. Should also update table statistics.
-    // tablesStatistics->updateNumTuplesByValue(tableID, nodeGroups->getNumRows());
     checkpointInMemory();
 }
 

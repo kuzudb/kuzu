@@ -63,12 +63,13 @@ public:
     void clearVectorInfo(common::idx_t vectorIdx);
 
     bool hasDeletions() const;
+    bool hasInsertions() const;
 
     void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<NodeGroupVersionInfo> deserialize(common::Deserializer& deSer);
 
 private:
-    VectorVersionInfo& getVersionInfo(common::idx_t vectorIdx);
+    VectorVersionInfo& getOrCreateVersionInfo(common::idx_t vectorIdx);
     const VectorVersionInfo& getVersionInfo(common::idx_t vectorIdx) const;
 
 private:

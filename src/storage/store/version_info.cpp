@@ -67,7 +67,11 @@ bool VectorVersionInfo::isInserted(const transaction_t startTS, const transactio
     return isInsertedWithinSameTransaction || isInsertedByPrevCommittedTransaction;
 }
 
+<<<<<<< HEAD
 VectorVersionInfo& NodeGroupVersionInfo::getVersionInfo(idx_t vectorIdx) {
+=======
+VectorVersionInfo& NodeGroupVersionInfo::getOrCreateVersionInfo(const vector_idx_t vectorIdx) {
+>>>>>>> 320f7ad9f (more checkpoint for inserted nodes)
     if (vectorsInfo.size() <= vectorIdx) {
         vectorsInfo.resize(vectorIdx + 1);
     }
@@ -101,7 +105,7 @@ row_idx_t NodeGroupVersionInfo::append(const transaction::Transaction* transacti
         StorageUtils::getQuotientRemainder(startRow + numRows, DEFAULT_VECTOR_CAPACITY);
     row_idx_t numAppended = 0u;
     for (auto vectorIdx = startVectorIdx; vectorIdx <= endVectorIdx; vectorIdx++) {
-        auto& vectorVersionInfo = getVersionInfo(vectorIdx);
+        auto& vectorVersionInfo = getOrCreateVersionInfo(vectorIdx);
         const auto startRowIdx = vectorIdx == startVectorIdx ? startRowIdxInVector : 0;
         const auto endRowIdx =
             vectorIdx == endVectorIdx ? endRowIdxInVector : DEFAULT_VECTOR_CAPACITY;
@@ -121,7 +125,7 @@ bool NodeGroupVersionInfo::delete_(const transaction::Transaction* transaction,
     const row_idx_t rowIdx) {
     auto [vectorIdx, rowIdxInVector] =
         StorageUtils::getQuotientRemainder(rowIdx, DEFAULT_VECTOR_CAPACITY);
-    auto& vectorVersionInfo = getVersionInfo(vectorIdx);
+    auto& vectorVersionInfo = getOrCreateVersionInfo(vectorIdx);
     const auto deleted = vectorVersionInfo.delete_(transaction->getID(), rowIdxInVector);
     if (deleted && transaction->getID() > 0) {
         transaction->pushVectorDeleteInfo(*this, vectorIdx, vectorVersionInfo, {rowIdxInVector});
@@ -138,12 +142,21 @@ void NodeGroupVersionInfo::getSelVectorToScan(const transaction_t startTS,
         StorageUtils::getQuotientRemainder(startRow + numRows, DEFAULT_VECTOR_CAPACITY);
     auto vectorIdx = startVectorIdx;
     while (vectorIdx <= endVectorIdx) {
-        auto& vectorVersionInfo = getVersionInfo(startVectorIdx);
         const auto startRowIdx = vectorIdx == startVectorIdx ? startRowIdxInVector : 0;
         const auto endRowIdx =
             vectorIdx == endVectorIdx ? endRowIdxInVector : DEFAULT_VECTOR_CAPACITY;
-        vectorVersionInfo.getSelVectorForScan(startTS, transactionID, selVector, startRowIdx,
-            endRowIdx - startRowIdx);
+        if (vectorIdx >= vectorsInfo.size() || !vectorsInfo[vectorIdx]) {
+            auto numSelected = selVector.getSelSize();
+            const auto numValues = selVector.getSelSize();
+            for (auto i = 0u; i < endRowIdx - startRowIdx; i++) {
+                selVector.getMultableBuffer()[numSelected++] = numValues + i;
+            }
+            selVector.setToFiltered(numSelected);
+        } else {
+            auto& vectorVersionInfo = getVersionInfo(startVectorIdx);
+            vectorVersionInfo.getSelVectorForScan(startTS, transactionID, selVector, startRowIdx,
+                endRowIdx - startRowIdx);
+        }
         vectorIdx++;
     }
 }
@@ -156,6 +169,15 @@ void NodeGroupVersionInfo::clearVectorInfo(const idx_t vectorIdx) {
 bool NodeGroupVersionInfo::hasDeletions() const {
     for (auto& vectorInfo : vectorsInfo) {
         if (vectorInfo && vectorInfo->anyDeleted) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool NodeGroupVersionInfo::hasInsertions() const {
+    for (auto& vectorInfo : vectorsInfo) {
+        if (vectorInfo && vectorInfo->anyInserted) {
             return true;
         }
     }

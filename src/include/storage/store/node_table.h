@@ -122,8 +122,9 @@ public:
     common::column_id_t getNumColumns() const { return tableData->getNumColumns(); }
     Column* getColumn(common::column_id_t columnID) const { return tableData->getColumn(columnID); }
 
-    common::offset_t append(transaction::Transaction* transaction, ChunkedNodeGroup* nodeGroup,
-        common::offset_t startOffsetToAppend, common::row_idx_t numRowsToAppend);
+    common::offset_t append(transaction::Transaction* transaction,
+        const ChunkedNodeGroup* chunkedGroup, common::offset_t startOffsetToAppend,
+        common::row_idx_t numRowsToAppend);
 
     void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void prepareCommit() override;

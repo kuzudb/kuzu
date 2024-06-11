@@ -754,7 +754,6 @@ std::unique_ptr<ColumnChunkData> Column::getEmptyChunkForCommit(uint64_t capacit
         ResidencyState::TEMPORARY);
 }
 
-// TODO: Pass state in to avoid access metadata.
 void Column::commitLocalChunkOutOfPlace(Transaction* transaction, ChunkState& state,
     bool isNewNodeGroup, const ChunkDataCollection& localInsertChunks,
     const offset_to_row_idx_t& insertInfo, const ChunkDataCollection& localUpdateChunks,

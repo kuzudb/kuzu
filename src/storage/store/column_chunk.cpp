@@ -70,6 +70,23 @@ void ColumnChunk::scan(Transaction* transaction, ChunkState& state, ValueVector&
     }
 }
 
+void ColumnChunk::scanInMemCommitted(ColumnChunkData& output) const {
+    KU_ASSERT(residencyState != ResidencyState::ON_DISK);
+    output.append(data.get(), 0, data->getNumValues());
+    const auto numVectors = data->getNumValues() / DEFAULT_VECTOR_CAPACITY;
+    if (updateInfo) {
+        const auto dummyTransaction =
+            Transaction{TransactionType::READ_ONLY, 0, Transaction::START_TRANSACTION_ID - 1};
+        for (auto vectorIdx = 0u; vectorIdx < numVectors; vectorIdx++) {
+            const auto vectorInfo = updateInfo->getVectorInfo(&dummyTransaction, vectorIdx);
+            for (auto i = 0u; i < vectorInfo->numRowsUpdated; i++) {
+                data->write(vectorInfo->data.get(), i,
+                    vectorIdx * DEFAULT_VECTOR_CAPACITY + vectorInfo->rowsInVector[i], 1);
+            }
+        }
+    }
+}
+
 void ColumnChunk::lookup(Transaction* transaction, offset_t offsetInChunk, ValueVector& output,
     sel_t posInOutputVector) const {
     // TODO: Implement this. Handle updates.
