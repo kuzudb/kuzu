@@ -6,7 +6,6 @@
 #include "common/enums/table_type.h"
 #include "common/types/types.h"
 #include "common/types/value/value.h"
-#include "parser/ddl/create_table_info.h"
 #include "parser/expression/parsed_literal_expression.h"
 
 namespace kuzu {
