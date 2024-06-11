@@ -106,10 +106,10 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     rrrExtraInfo->infos.push_back(sLookUp.copy());
     rrrExtraInfo->infos.push_back(pLookUp.copy());
     rrrExtraInfo->infos.push_back(oLookUp.copy());
-    expression_vector rrrCopyColumns {sOffset, oOffset, offset, pOffsetInternal};
-    std::vector<bool> rrrDefaults {false, false, false, false};
-    auto rrrCopyInfo = BoundCopyFromInfo(rrrEntry, std::move(rrrSource), offset, 
-        rrrCopyColumns, rrrDefaults, std::move(rrrExtraInfo));
+    expression_vector rrrCopyColumns{sOffset, oOffset, offset, pOffsetInternal};
+    std::vector<bool> rrrDefaults{false, false, false, false};
+    auto rrrCopyInfo = BoundCopyFromInfo(rrrEntry, std::move(rrrSource), offset, rrrCopyColumns,
+        rrrDefaults, std::move(rrrExtraInfo));
     // Bind copy literal triples
     func = inMemory ? BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
                           RdfLiteralTripleInMemScan::name, functions) :
@@ -124,10 +124,10 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     auto rrlExtraInfo = std::make_unique<ExtraBoundCopyRelInfo>();
     rrlExtraInfo->infos.push_back(sLookUp.copy());
     rrlExtraInfo->infos.push_back(pLookUp.copy());
-    expression_vector rrlCopyColumns {sOffset, oOffset, offset, pOffsetInternal};
-    std::vector<bool> rrlDefaults {false, false, false, false};
-    auto rrLCopyInfo = BoundCopyFromInfo(rrlEntry, std::move(rrlSource), offset, 
-        rrlCopyColumns, rrlDefaults, std::move(rrlExtraInfo));
+    expression_vector rrlCopyColumns{sOffset, oOffset, offset, pOffsetInternal};
+    std::vector<bool> rrlDefaults{false, false, false, false};
+    auto rrLCopyInfo = BoundCopyFromInfo(rrlEntry, std::move(rrlSource), offset, rrlCopyColumns,
+        rrlDefaults, std::move(rrlExtraInfo));
     // Bind copy rdf
     auto rdfExtraInfo = std::make_unique<ExtraBoundCopyRdfInfo>(std::move(rCopyInfo),
         std::move(lCopyInfo), std::move(rrrCopyInfo), std::move(rrLCopyInfo));
@@ -138,8 +138,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     } else {
         source = std::make_unique<BoundEmptyScanSource>();
     }
-    auto rdfCopyInfo =
-        BoundCopyFromInfo(rdfGraphEntry, std::move(source), offset, {}, {}, std::move(rdfExtraInfo));
+    auto rdfCopyInfo = BoundCopyFromInfo(rdfGraphEntry, std::move(source), offset, {}, {},
+        std::move(rdfExtraInfo));
     return std::make_unique<BoundCopyFrom>(std::move(rdfCopyInfo));
 }
 

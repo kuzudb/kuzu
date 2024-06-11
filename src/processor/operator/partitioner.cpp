@@ -96,9 +96,10 @@ void Partitioner::initGlobalStateInternal(ExecutionContext* /*context*/) {
 
 void Partitioner::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     localState = std::make_unique<PartitionerLocalState>();
-    initializePartitioningStates(infos, localState->partitioningBuffers, sharedState->numPartitions);
-    for (auto& info: infos) {
-        for (auto& evaluator: info->columnEvaluators) {
+    initializePartitioningStates(infos, localState->partitioningBuffers,
+        sharedState->numPartitions);
+    for (auto& info : infos) {
+        for (auto& evaluator : info->columnEvaluators) {
             evaluator->init(*resultSet, context->clientContext);
         }
     }

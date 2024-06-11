@@ -49,8 +49,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
     }
 }
 
-static void getColumnEvaluators(const expression_vector& columnExprs, Schema* schema, 
-    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>>& columnEvaluators, 
+static void getColumnEvaluators(const expression_vector& columnExprs, Schema* schema,
+    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>>& columnEvaluators,
     logical_type_vec_t& columnTypes) {
     for (auto& columnExpr : columnExprs) {
         columnEvaluators.push_back(ExpressionMapper::getEvaluator(columnExpr, schema));
@@ -111,8 +111,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* lo
         columnTypes[0] = *LogicalType::INTERNAL_ID();
         columnTypes[1] = *LogicalType::INTERNAL_ID();
         columnTypes[2] = *LogicalType::INTERNAL_ID();
-        infos.push_back(std::make_unique<PartitioningInfo>(logicalPartitioner->getInfo(i)->keyIdx, 
-            std::move(columnTypes), std::move(columnEvaluators), copyFromInfo.defaultColumns, 
+        infos.push_back(std::make_unique<PartitioningInfo>(logicalPartitioner->getInfo(i)->keyIdx,
+            std::move(columnTypes), std::move(columnEvaluators), copyFromInfo.defaultColumns,
             PartitionerFunctions::partitionRelData));
     }
     std::vector<common::logical_type_vec_t> columnTypes;

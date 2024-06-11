@@ -79,12 +79,13 @@ struct PartitioningInfo {
     PartitioningInfo(common::idx_t keyIdx, std::vector<common::LogicalType> columnTypes,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
         std::vector<bool> defaultColumns, partitioner_func_t partitionerFunc)
-        : keyIdx{keyIdx}, columnTypes{std::move(columnTypes)}, 
-          columnEvaluators{std::move(columnEvaluators)}, defaultColumns{std::move(defaultColumns)}, 
+        : keyIdx{keyIdx}, columnTypes{std::move(columnTypes)},
+          columnEvaluators{std::move(columnEvaluators)}, defaultColumns{std::move(defaultColumns)},
           partitionerFunc{std::move(partitionerFunc)} {}
     inline std::unique_ptr<PartitioningInfo> copy() {
-        return std::make_unique<PartitioningInfo>(keyIdx, common::LogicalType::copy(columnTypes), 
-            evaluator::ExpressionEvaluator::copy(columnEvaluators), defaultColumns, partitionerFunc);
+        return std::make_unique<PartitioningInfo>(keyIdx, common::LogicalType::copy(columnTypes),
+            evaluator::ExpressionEvaluator::copy(columnEvaluators), defaultColumns,
+            partitionerFunc);
     }
 
     static std::vector<std::unique_ptr<PartitioningInfo>> copy(

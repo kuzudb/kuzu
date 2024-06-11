@@ -50,6 +50,7 @@ public:
 
 private:
     std::vector<std::unique_ptr<LogicalPartitionerInfo>> infos;
+
 public:
     binder::BoundCopyFromInfo copyFromInfo;
 };

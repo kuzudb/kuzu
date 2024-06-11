@@ -136,8 +136,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     auto dstKey = columns[1];
     auto srcOffset = createVariable(InternalKeyword::SRC_OFFSET, LogicalTypeID::INT64);
     auto dstOffset = createVariable(InternalKeyword::DST_OFFSET, LogicalTypeID::INT64);
-    expression_vector columnExprs {srcOffset, dstOffset, offset};
-    std::vector<bool> defaultColumns {false, false, false};
+    expression_vector columnExprs{srcOffset, dstOffset, offset};
+    std::vector<bool> defaultColumns{false, false, false};
     auto& properties = relTableEntry->getPropertiesRef();
     for (auto i = 1u; i < properties.size(); ++i) { // skip internal ID
         auto& property = properties[i];
@@ -155,7 +155,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     auto extraCopyRelInfo = std::make_unique<ExtraBoundCopyRelInfo>();
     extraCopyRelInfo->infos.push_back(std::move(srcLookUpInfo));
     extraCopyRelInfo->infos.push_back(std::move(dstLookUpInfo));
-    auto boundCopyFromInfo = BoundCopyFromInfo(relTableEntry, boundSource->copy(), offset, 
+    auto boundCopyFromInfo = BoundCopyFromInfo(relTableEntry, boundSource->copy(), offset,
         std::move(columnExprs), std::move(defaultColumns), std::move(extraCopyRelInfo));
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
