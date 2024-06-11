@@ -50,7 +50,7 @@ const Column::ChunkState& StringColumn::getChildState(const ChunkState& state,
 void StringColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     ChunkState& state) {
     Column::initChunkState(transaction, nodeGroupIdx, state);
-    state.childrenStates.resize(static_cast<size_t>(ChildStateIndex::COUNT));
+    state.childrenStates.resize(CHILD_STATE_COUNT);
     indexColumn->initChunkState(transaction, nodeGroupIdx,
         getChildState(state, ChildStateIndex::INDEX));
     dictionary.initChunkState(transaction, nodeGroupIdx, state);

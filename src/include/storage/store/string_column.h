@@ -7,7 +7,8 @@ namespace storage {
 
 class StringColumn final : public Column {
 public:
-    enum class ChildStateIndex : common::idx_t { DATA = 0, OFFSET = 1, INDEX = 2, COUNT = 3 };
+    enum class ChildStateIndex : common::idx_t { DATA = 0, OFFSET = 1, INDEX = 2 };
+    static constexpr size_t CHILD_STATE_COUNT = 3;
 
 public:
     StringColumn(std::string name, common::LogicalType dataType,
@@ -81,8 +82,6 @@ private:
     DictionaryColumn dictionary;
 
     std::unique_ptr<Column> indexColumn;
-
-private:
 };
 
 } // namespace storage

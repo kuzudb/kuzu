@@ -29,9 +29,7 @@ DictionaryColumn::DictionaryColumn(const std::string& name, const MetadataDAHInf
 void DictionaryColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     Column::ChunkState& readState) {
     // We put states for data and offset columns into childrenStates.
-    if (readState.childrenStates.size() < 2) {
-        readState.childrenStates.resize(2);
-    }
+    KU_ASSERT(readState.childrenStates.size() >= 2);
     dataColumn->initChunkState(transaction, nodeGroupIdx,
         StringColumn::getChildState(readState, StringColumn::ChildStateIndex::DATA));
     offsetColumn->initChunkState(transaction, nodeGroupIdx,

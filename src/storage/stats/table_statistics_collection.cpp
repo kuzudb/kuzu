@@ -82,8 +82,7 @@ std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(
             createMetadataDAHInfo(ArrayType::getChildType(dataType), metadataDAC));
     } break;
     case PhysicalTypeID::STRING: {
-        metadataDAHInfo->childrenInfos.resize(
-            static_cast<size_t>(StringColumn::ChildStateIndex::COUNT));
+        metadataDAHInfo->childrenInfos.resize(StringColumn::CHILD_STATE_COUNT);
 
         auto dataMetadataDAHInfo = std::make_unique<MetadataDAHInfo>();
         auto offsetMetadataDAHInfo = std::make_unique<MetadataDAHInfo>();
