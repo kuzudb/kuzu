@@ -1,3 +1,4 @@
+#include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
@@ -6,9 +7,8 @@
 #include "function/gds_function.h"
 #include "graph/graph.h"
 #include "main/client_context.h"
-#include "processor/result/factorized_table.h"
-#include "binder/binder.h"
 #include "processor/operator/gds_call.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -22,7 +22,8 @@ struct VariableLengthPathBindData final : public GDSBindData {
     uint8_t lowerBound;
     uint8_t upperBound;
 
-    VariableLengthPathBindData(std::shared_ptr<Expression> nodeInput, uint8_t lowerBound, uint8_t upperBound)
+    VariableLengthPathBindData(std::shared_ptr<Expression> nodeInput, uint8_t lowerBound,
+        uint8_t upperBound)
         : GDSBindData{std::move(nodeInput)}, lowerBound{lowerBound}, upperBound{upperBound} {}
     VariableLengthPathBindData(const VariableLengthPathBindData& other)
         : GDSBindData{other}, lowerBound{other.lowerBound}, upperBound{other.upperBound} {}
@@ -101,7 +102,8 @@ public:
      * upperBound::INT64
      */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64, LogicalTypeID::INT64};
+        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64,
+            LogicalTypeID::INT64};
     }
 
     /*
@@ -112,7 +114,7 @@ public:
      * length::INT64
      * num_path::INT64
      */
-    binder::expression_vector getResultColumns(binder::Binder *binder) const override {
+    binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
         columns.push_back(bindData->nodeInput->constCast<NodeExpression>().getInternalID());
         columns.push_back(binder->createVariable("dst", *LogicalType::INTERNAL_ID()));
@@ -162,7 +164,8 @@ public:
                     }
                 }
                 if (currentLevel >= extraData->lowerBound) {
-                    variableLengthPathLocalState->materialize(sourceState, currentLevel, *sharedState->fTable);
+                    variableLengthPathLocalState->materialize(sourceState, currentLevel,
+                        *sharedState->fTable);
                 }
                 sourceState.initNextFrontier();
             };

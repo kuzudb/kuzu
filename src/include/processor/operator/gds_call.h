@@ -2,8 +2,8 @@
 
 #include "function/gds/gds.h"
 #include "graph/graph.h"
-#include "processor/operator/sink.h"
 #include "processor/operator/mask.h"
+#include "processor/operator/sink.h"
 
 namespace kuzu {
 namespace processor {
@@ -14,7 +14,7 @@ struct GDSCallSharedState {
     std::unique_ptr<graph::Graph> graph;
     std::unique_ptr<NodeOffsetSemiMask> inputNodeOffsetMask;
 
-    GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable,std::unique_ptr<graph::Graph> graph,
+    GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph,
         std::unique_ptr<NodeOffsetSemiMask> inputNodeOffsetMask)
         : fTable{std::move(fTable)}, graph{std::move(graph)},
           inputNodeOffsetMask{std::move(inputNodeOffsetMask)} {}
@@ -24,8 +24,7 @@ struct GDSCallSharedState {
 struct GDSCallInfo {
     std::unique_ptr<function::GDSAlgorithm> gds;
 
-    explicit GDSCallInfo(std::unique_ptr<function::GDSAlgorithm> gds)
-        : gds{std::move(gds)} {}
+    explicit GDSCallInfo(std::unique_ptr<function::GDSAlgorithm> gds) : gds{std::move(gds)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(GDSCallInfo);
 
 private:
@@ -42,12 +41,8 @@ public:
         : Sink{std::move(descriptor), operatorType_, id, paramsString}, info{std::move(info)},
           sharedState{std::move(sharedState)} {}
 
-    bool hasSemiMask() const {
-        return sharedState->inputNodeOffsetMask != nullptr;
-    }
-    NodeSemiMask* getSemiMask() {
-        return sharedState->inputNodeOffsetMask.get();
-    }
+    bool hasSemiMask() const { return sharedState->inputNodeOffsetMask != nullptr; }
+    NodeSemiMask* getSemiMask() { return sharedState->inputNodeOffsetMask.get(); }
 
     bool isSource() const override { return true; }
 

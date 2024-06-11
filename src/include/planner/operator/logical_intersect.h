@@ -28,14 +28,10 @@ public:
 
     std::string getExpressionsForPrinting() const override { return intersectNodeID->toString(); }
 
-    std::shared_ptr<binder::Expression> getIntersectNodeID() const {
-        return intersectNodeID;
-    }
+    std::shared_ptr<binder::Expression> getIntersectNodeID() const { return intersectNodeID; }
     uint32_t getNumBuilds() const { return keyNodeIDs.size(); }
     binder::expression_vector getKeyNodeIDs() const { return keyNodeIDs; }
-    std::shared_ptr<binder::Expression> getKeyNodeID(uint32_t idx) const {
-        return keyNodeIDs[idx];
-    }
+    std::shared_ptr<binder::Expression> getKeyNodeID(uint32_t idx) const { return keyNodeIDs[idx]; }
 
     SIPInfo& getSIPInfoUnsafe() { return sipInfo; }
     SIPInfo getSIPInfo() const { return sipInfo; }

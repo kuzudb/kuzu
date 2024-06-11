@@ -7,9 +7,9 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/copier_config/reader_config.h"
 #include "common/enums/table_type.h"
+#include "graph/graph_entry.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/query/regular_query.h"
-#include "graph/graph_entry.h"
 
 namespace kuzu {
 namespace parser {
@@ -91,7 +91,6 @@ private:
     std::shared_ptr<Expression> createVariable(std::string_view name, common::LogicalTypeID typeID);
     std::shared_ptr<Expression> createVariable(const std::string& name,
         common::LogicalTypeID typeID);
-
 
     /*** bind DDL ***/
     BoundCreateTableInfo bindCreateTableInfo(const parser::CreateTableInfo* info);

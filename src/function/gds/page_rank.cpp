@@ -1,11 +1,11 @@
+#include "binder/binder.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds_function.h"
 #include "graph/graph.h"
 #include "main/client_context.h"
-#include "processor/result/factorized_table.h"
 #include "processor/operator/gds_call.h"
-#include "binder/binder.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -74,13 +74,12 @@ public:
      * node_id::INTERNAL_ID
      * rank::DOUBLE
      */
-    binder::expression_vector getResultColumns(binder::Binder *binder) const override {
+    binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
         columns.push_back(binder->createVariable("node_id", *LogicalType::INTERNAL_ID()));
         columns.push_back(binder->createVariable("rank", *LogicalType::DOUBLE()));
         return columns;
     }
-
 
     void bind(const binder::expression_vector&) override {
         bindData = std::make_unique<PageRankBindData>();

@@ -60,6 +60,5 @@ struct SIPInfo {
     SIPDirection direction = SIPDirection::NONE;
 };
 
-
 } // namespace planner
 } // namespace kuzu

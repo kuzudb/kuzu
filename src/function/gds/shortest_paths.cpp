@@ -1,3 +1,4 @@
+#include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "function/gds/frontier.h"
@@ -6,9 +7,8 @@
 #include "function/gds_function.h"
 #include "graph/graph.h"
 #include "main/client_context.h"
-#include "processor/result/factorized_table.h"
 #include "processor/operator/gds_call.h"
-#include "binder/binder.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -122,7 +122,7 @@ public:
      * dst::INTERNAL_ID
      * length::INT64
      */
-    binder::expression_vector getResultColumns(binder::Binder *binder) const override {
+    binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
         columns.push_back(bindData->nodeInput->constCast<NodeExpression>().getInternalID());
         columns.push_back(binder->createVariable("dst", *LogicalType::INTERNAL_ID()));

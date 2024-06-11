@@ -8,7 +8,7 @@ namespace kuzu {
 namespace function {
 class GDSAlgorithm;
 struct GDSBindData;
-}
+} // namespace function
 namespace binder {
 
 struct BoundGDSCallInfo {

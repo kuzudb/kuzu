@@ -1,9 +1,9 @@
 #pragma once
 
+#include "common/types/types.h"
+#include "parser/project_graph.h"
 #include "parser/statement.h"
 #include "single_query.h"
-#include "parser/project_graph.h"
-#include "common/types/types.h"
 
 namespace kuzu {
 namespace parser {

@@ -23,7 +23,6 @@ public:
         }
     }
 
-
     template<class TARGET>
     TARGET& cast() {
         return common::ku_dynamic_cast<Statement&, TARGET&>(*this);

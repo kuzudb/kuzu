@@ -1,7 +1,7 @@
 #include "planner/operator/sip/logical_semi_masker.h"
+#include "processor/operator/gds_call.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
 #include "processor/operator/semi_masker.h"
-#include "processor/operator/gds_call.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::common;
@@ -47,7 +47,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
             auto mask = gds->getSemiMask();
             auto tableID = mask->getNodeTable()->getTableID();
             masksPerTable.at(tableID).emplace_back(mask, 0);
-        } break ;
+        } break;
         default:
             KU_UNREACHABLE;
         }

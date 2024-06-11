@@ -1,4 +1,5 @@
 #include "function/gds/gds.h"
+
 #include "binder/binder.h"
 #include "processor/operator/gds_call.h"
 
@@ -12,5 +13,5 @@ void GDSAlgorithm::init(processor::GDSCallSharedState* sharedState_, main::Clien
     initLocalState(context);
 }
 
-}
-}
+} // namespace function
+} // namespace kuzu

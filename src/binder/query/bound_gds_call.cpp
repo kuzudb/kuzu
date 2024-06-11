@@ -1,4 +1,5 @@
 #include "binder/query/reading_clause/bound_gds_call.h"
+
 #include "function/gds_function.h"
 
 using namespace kuzu::function;
@@ -14,5 +15,5 @@ const function::GDSBindData* BoundGDSCallInfo::getBindData() const {
     return getGDS()->getBindData();
 }
 
-}
-}
+} // namespace binder
+} // namespace kuzu

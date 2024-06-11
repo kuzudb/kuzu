@@ -1,10 +1,10 @@
+#include "binder/binder.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds_function.h"
 #include "graph/graph.h"
 #include "main/client_context.h"
-#include "processor/result/factorized_table.h"
 #include "processor/operator/gds_call.h"
-#include "binder/binder.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -61,7 +61,7 @@ public:
      * node_id::INTERNAL_ID
      * group_id::INT64
      */
-    binder::expression_vector getResultColumns(binder::Binder *binder) const override {
+    binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
         columns.push_back(binder->createVariable("node_id", *LogicalType::INTERNAL_ID()));
         columns.push_back(binder->createVariable("group_id", *LogicalType::INT64()));

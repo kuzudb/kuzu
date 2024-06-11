@@ -1,15 +1,15 @@
 #include "optimizer/acc_hash_join_optimizer.h"
 
 #include "common/cast.h"
+#include "function/gds/gds.h"
 #include "optimizer/logical_operator_collector.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_accumulate.h"
+#include "planner/operator/logical_gds_call.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 #include "planner/operator/sip/logical_semi_masker.h"
-#include "planner/operator/logical_gds_call.h"
-#include "function/gds/gds.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -19,8 +19,7 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace optimizer {
 
-static std::shared_ptr<LogicalOperator> appendAccumulate(
-    std::shared_ptr<LogicalOperator> child) {
+static std::shared_ptr<LogicalOperator> appendAccumulate(std::shared_ptr<LogicalOperator> child) {
     auto accumulate = std::make_shared<LogicalAccumulate>(AccumulateType::REGULAR,
         expression_vector{}, nullptr /* offset */, nullptr /* mark */, std::move(child));
     accumulate->computeFlatSchema();
@@ -45,7 +44,8 @@ static std::vector<table_id_t> getTableIDs(LogicalOperator* op) {
     }
 }
 
-static bool sameTableIDs(const std::unordered_set<table_id_t>& set, const std::vector<table_id_t>& ids) {
+static bool sameTableIDs(const std::unordered_set<table_id_t>& set,
+    const std::vector<table_id_t>& ids) {
     if (set.size() != ids.size()) {
         return false;
     }
@@ -90,28 +90,24 @@ bool sanityCheckCandidates(const std::vector<LogicalOperator*>& ops) {
     return true;
 }
 
-static std::shared_ptr<LogicalOperator> appendSemiMasker(
-    SemiMaskConstructionType type, std::shared_ptr<Expression> key, std::vector<LogicalOperator*> candidates,
+static std::shared_ptr<LogicalOperator> appendSemiMasker(SemiMaskConstructionType type,
+    std::shared_ptr<Expression> key, std::vector<LogicalOperator*> candidates,
     std::shared_ptr<LogicalOperator> child) {
     auto tableIDs = getTableIDs(candidates[0]);
-    auto semiMasker = std::make_shared<LogicalSemiMasker>(type, key,
-        tableIDs, candidates, child);
+    auto semiMasker = std::make_shared<LogicalSemiMasker>(type, key, tableIDs, candidates, child);
     semiMasker->computeFlatSchema();
     return semiMasker;
 }
 
-static std::shared_ptr<LogicalOperator> appendNodeSemiMasker(
-    std::shared_ptr<Expression> nodeID, std::vector<LogicalOperator*> candidates,
-    std::shared_ptr<LogicalOperator> child) {
+static std::shared_ptr<LogicalOperator> appendNodeSemiMasker(std::shared_ptr<Expression> nodeID,
+    std::vector<LogicalOperator*> candidates, std::shared_ptr<LogicalOperator> child) {
     return appendSemiMasker(SemiMaskConstructionType::NODE, nodeID, candidates, child);
 }
 
-static std::shared_ptr<LogicalOperator> appendPathSemiMasker(
-    std::shared_ptr<Expression> path, std::vector<LogicalOperator*> candidates,
-    std::shared_ptr<LogicalOperator> child) {
+static std::shared_ptr<LogicalOperator> appendPathSemiMasker(std::shared_ptr<Expression> path,
+    std::vector<LogicalOperator*> candidates, std::shared_ptr<LogicalOperator> child) {
     return appendSemiMasker(SemiMaskConstructionType::PATH, path, candidates, child);
 }
-
 
 void HashJoinSIPOptimizer::rewrite(LogicalPlan* plan) {
     visitOperator(plan->getLastOperator().get());
@@ -128,7 +124,7 @@ void HashJoinSIPOptimizer::visitOperator(LogicalOperator* op) {
 void HashJoinSIPOptimizer::visitHashJoin(LogicalOperator* op) {
     auto& hashJoin = op->cast<LogicalHashJoin>();
     if (LogicalOperatorUtils::isAccHashJoin(hashJoin)) {
-        return ;
+        return;
     }
     if (hashJoin.getSIPInfo().position == SemiMaskPosition::PROHIBIT) {
         return;
@@ -284,7 +280,9 @@ void HashJoinSIPOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     pathPropertyProbe.setChild(0, appendAccumulate(semiMask));
 }
 
-std::shared_ptr<LogicalOperator> HashJoinSIPOptimizer::tryApplySemiMask(std::shared_ptr<binder::Expression> nodeID, std::shared_ptr<planner::LogicalOperator> fromRoot, LogicalOperator* toRoot) {
+std::shared_ptr<LogicalOperator> HashJoinSIPOptimizer::tryApplySemiMask(
+    std::shared_ptr<binder::Expression> nodeID, std::shared_ptr<planner::LogicalOperator> fromRoot,
+    LogicalOperator* toRoot) {
     // TODO(Xiyang):
     // 1. Enable semi mask on ScanNodeTable
     // 2. Check if a semi mask can/need to be applied to ScanNodeTable, RecursiveJoin & GDS at
@@ -302,8 +300,8 @@ std::shared_ptr<LogicalOperator> HashJoinSIPOptimizer::tryApplySemiMask(std::sha
     return nullptr;
 }
 
-std::vector<LogicalOperator*> HashJoinSIPOptimizer::getScanNodeCandidates(
-    const Expression& nodeID, LogicalOperator* root) {
+std::vector<LogicalOperator*> HashJoinSIPOptimizer::getScanNodeCandidates(const Expression& nodeID,
+    LogicalOperator* root) {
     std::vector<LogicalOperator*> result;
     auto collector = LogicalScanNodeTableCollector();
     collector.collect(root);
@@ -332,20 +330,21 @@ std::vector<LogicalOperator*> HashJoinSIPOptimizer::getRecursiveJoinCandidates(
     return result;
 }
 
-std::vector<LogicalOperator*> HashJoinSIPOptimizer::getGDSCallCandidates(const Expression& nodeID, LogicalOperator* root) {
+std::vector<LogicalOperator*> HashJoinSIPOptimizer::getGDSCallCandidates(const Expression& nodeID,
+    LogicalOperator* root) {
     std::vector<LogicalOperator*> result;
     auto collector = LogicalGDSCallCollector();
     collector.collect(root);
     for (auto& op : collector.getOperators()) {
         auto& gdsCall = op->constCast<LogicalGDSCall>();
         auto bindData = gdsCall.getInfo().getBindData();
-        if (bindData->hasNodeInput() && nodeID == *bindData->nodeInput->constCast<NodeExpression>().getInternalID()) {
+        if (bindData->hasNodeInput() &&
+            nodeID == *bindData->nodeInput->constCast<NodeExpression>().getInternalID()) {
             result.push_back(op);
         }
     }
     return result;
 }
-
 
 } // namespace optimizer
 } // namespace kuzu

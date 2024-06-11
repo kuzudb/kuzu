@@ -12,7 +12,7 @@ class ClientContext;
 namespace processor {
 struct GDSCallSharedState;
 class FactorizedTable;
-}
+} // namespace processor
 namespace function {
 
 // Struct maintaining GDS specific information that needs to be obtained at compile time.
@@ -20,7 +20,8 @@ struct GDSBindData {
     std::shared_ptr<binder::Expression> nodeInput = nullptr;
 
     GDSBindData() = default;
-    explicit GDSBindData(std::shared_ptr<binder::Expression> nodeInput) : nodeInput{std::move(nodeInput)} {}
+    explicit GDSBindData(std::shared_ptr<binder::Expression> nodeInput)
+        : nodeInput{std::move(nodeInput)} {}
     GDSBindData(const GDSBindData& other) : nodeInput{other.nodeInput} {}
     virtual ~GDSBindData() = default;
 
@@ -60,7 +61,9 @@ public:
     virtual std::vector<common::LogicalTypeID> getParameterTypeIDs() const { return {}; }
     virtual binder::expression_vector getResultColumns(binder::Binder* binder) const = 0;
 
-    virtual void bind(const binder::expression_vector&) { bindData = std::make_unique<GDSBindData>(); }
+    virtual void bind(const binder::expression_vector&) {
+        bindData = std::make_unique<GDSBindData>();
+    }
     GDSBindData* getBindData() const { return bindData.get(); }
 
     void init(processor::GDSCallSharedState* sharedState, main::ClientContext* context);

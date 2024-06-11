@@ -84,7 +84,7 @@ void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
     } break;
     case LogicalOperatorType::GDS_CALL: {
         visitGDSCall(op);
-    } break ;
+    } break;
     default:
         return;
     }

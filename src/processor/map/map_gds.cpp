@@ -1,8 +1,8 @@
+#include "binder/expression/node_expression.h"
+#include "graph/on_disk_graph.h"
 #include "planner/operator/logical_gds_call.h"
 #include "processor/operator/gds_call.h"
 #include "processor/plan_mapper.h"
-#include "graph/on_disk_graph.h"
-#include "binder/expression/node_expression.h"
 #include "storage/storage_manager.h"
 
 using namespace kuzu::common;
@@ -31,7 +31,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     }
     auto table =
         std::make_shared<FactorizedTable>(clientContext->getMemoryManager(), tableSchema->copy());
-    auto graph = std::make_unique<OnDiskGraph>(clientContext, graphEntry.nodeTableIDs[0], graphEntry.relTableIDs[0]);
+    auto graph = std::make_unique<OnDiskGraph>(clientContext, graphEntry.nodeTableIDs[0],
+        graphEntry.relTableIDs[0]);
     std::unique_ptr<NodeOffsetSemiMask> mask = nullptr;
     if (call.getInfo().getBindData()->hasNodeInput()) {
         // Generate an empty semi mask which later on picked by SemiMaker.
@@ -40,7 +41,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
         auto nodeTable = clientContext->getStorageManager()->getTable(tableID);
         mask = std::make_unique<NodeOffsetSemiMask>(nodeTable->ptrCast<storage::NodeTable>());
     }
-    auto sharedState = std::make_shared<GDSCallSharedState>(table, std::move(graph), std::move(mask));
+    auto sharedState =
+        std::make_shared<GDSCallSharedState>(table, std::move(graph), std::move(mask));
     auto algorithm = std::make_unique<GDSCall>(std::make_unique<ResultSetDescriptor>(),
         std::move(info), sharedState, getOperatorID(), call.getExpressionsForPrinting());
     return createFTableScanAligned(columns, outSchema, table, DEFAULT_VECTOR_CAPACITY,

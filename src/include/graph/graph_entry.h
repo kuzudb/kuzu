@@ -1,10 +1,11 @@
 #pragma once
 
+#include <string>
+#include <unordered_map>
+
+#include "common/assert.h"
 #include "common/copy_constructors.h"
 #include "common/types/internal_id_t.h"
-#include <unordered_map>
-#include <string>
-#include "common/assert.h"
 
 namespace kuzu {
 namespace graph {
@@ -27,9 +28,7 @@ private:
 
 class GraphEntrySet {
 public:
-    bool hasGraph(const std::string& name) const {
-        return nameToEntry.contains(name);
-    }
+    bool hasGraph(const std::string& name) const { return nameToEntry.contains(name); }
     GraphEntry getEntry(const std::string& name) const {
         KU_ASSERT(hasGraph(name));
         return nameToEntry.at(name).copy();

@@ -43,9 +43,8 @@ public:
     LogicalPathPropertyProbe(std::shared_ptr<binder::RelExpression> recursiveRel,
         std::shared_ptr<LogicalOperator> probeChild, std::shared_ptr<LogicalOperator> nodeChild,
         std::shared_ptr<LogicalOperator> relChild, RecursiveJoinType joinType)
-        : LogicalOperator{type_, std::move(probeChild)},
-          recursiveRel{std::move(recursiveRel)}, nodeChild{std::move(nodeChild)},
-          relChild{std::move(relChild)}, joinType{joinType} {}
+        : LogicalOperator{type_, std::move(probeChild)}, recursiveRel{std::move(recursiveRel)},
+          nodeChild{std::move(nodeChild)}, relChild{std::move(relChild)}, joinType{joinType} {}
 
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
