@@ -28,11 +28,11 @@ static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan
     auto relTableEntry =
         ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(copyFromInfo.tableEntry);
     // Partitioner for FWD direction rel data.
-    infos.push_back(std::make_unique<LogicalPartitionerInfo>(0 /* idx of src offset */,
+    infos.push_back(std::make_unique<LogicalPartitionerInfo>(RelKeyIdx::FWD /* keyIdx */,
         relTableEntry->isSingleMultiplicity(RelDataDirection::FWD) ? ColumnDataFormat::REGULAR :
                                                                      ColumnDataFormat::CSR));
     // Partitioner for BWD direction rel data.
-    infos.push_back(std::make_unique<LogicalPartitionerInfo>(1 /* idx of dst offset */,
+    infos.push_back(std::make_unique<LogicalPartitionerInfo>(RelKeyIdx::BWD /* keyIdx */,
         relTableEntry->isSingleMultiplicity(RelDataDirection::BWD) ? ColumnDataFormat::REGULAR :
                                                                      ColumnDataFormat::CSR));
     auto partitioner = std::make_shared<LogicalPartitioner>(std::move(infos), copyFromInfo.copy(),

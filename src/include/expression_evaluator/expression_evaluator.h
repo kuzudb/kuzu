@@ -30,7 +30,7 @@ public:
 
     virtual std::unique_ptr<ExpressionEvaluator> clone() = 0;
 
-    EvaluatorLocalState& getLocalStateRef() { return localState; }
+    EvaluatorLocalState& getLocalStateUnsafe() { return localState; }
 
     static std::vector<std::unique_ptr<ExpressionEvaluator>> copy(
         const std::vector<std::unique_ptr<ExpressionEvaluator>>& evaluators);
