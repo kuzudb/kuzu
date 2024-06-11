@@ -104,25 +104,22 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* lo
     std::vector<std::unique_ptr<PartitioningInfo>> infos;
     infos.reserve(logicalPartitioner->getNumInfos());
     for (auto i = 0u; i < logicalPartitioner->getNumInfos(); i++) {
-        std::vector<LogicalType> columnTypes;
-        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
-        getColumnEvaluators(copyFromInfo.columnExprs, outFSchema, columnEvaluators, columnTypes);
-        // Manually set columnTypes for _ID columns
-        columnTypes[0] = *LogicalType::INTERNAL_ID();
-        columnTypes[1] = *LogicalType::INTERNAL_ID();
-        columnTypes[2] = *LogicalType::INTERNAL_ID();
         infos.push_back(std::make_unique<PartitioningInfo>(logicalPartitioner->getInfo(i)->keyIdx,
-            std::move(columnTypes), std::move(columnEvaluators), copyFromInfo.defaultColumns,
             PartitionerFunctions::partitionRelData));
     }
-    std::vector<common::logical_type_vec_t> columnTypes;
-    for (auto& info : infos) {
-        columnTypes.push_back(info->columnTypes);
-    }
-    auto sharedState = std::make_shared<PartitionerSharedState>(std::move(columnTypes));
+    std::vector<LogicalType> columnTypes;
+    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
+    getColumnEvaluators(copyFromInfo.columnExprs, outFSchema, columnEvaluators, columnTypes);
+    // Manually set columnTypes for _ID columns
+    columnTypes[0] = *LogicalType::INTERNAL_ID();
+    columnTypes[1] = *LogicalType::INTERNAL_ID();
+    columnTypes[2] = *LogicalType::INTERNAL_ID();
+    auto dataInfo = std::make_unique<PartitionerDataInfo>(LogicalType::copy(columnTypes), 
+        std::move(columnEvaluators), copyFromInfo.defaultColumns);
+    auto sharedState = std::make_shared<PartitionerSharedState>();
     return std::make_unique<Partitioner>(std::make_unique<ResultSetDescriptor>(outFSchema),
-        std::move(infos), std::move(sharedState), std::move(prevOperator), getOperatorID(),
-        logicalPartitioner->getExpressionsForPrinting());
+        std::move(infos), std::move(dataInfo), std::move(sharedState), std::move(prevOperator), 
+        getOperatorID(), logicalPartitioner->getExpressionsForPrinting());
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(

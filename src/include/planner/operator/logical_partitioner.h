@@ -1,7 +1,6 @@
 #pragma once
 
 #include "binder/copy/bound_copy_from.h"
-#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/column_data_format.h"
 #include "planner/operator/logical_operator.h"
 

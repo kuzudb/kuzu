@@ -30,8 +30,8 @@ struct PartitioningBuffer {
 // later when necessary. Here, each partition is essentially a node group.
 struct BatchInsertSharedState;
 struct PartitioningInfo;
+struct PartitionerDataInfo;
 struct PartitionerSharedState {
-    std::vector<common::logical_type_vec_t> columnTypes;
     std::mutex mtx;
     storage::NodeTable* srcNodeTable;
     storage::NodeTable* dstNodeTable;
@@ -44,10 +44,7 @@ struct PartitionerSharedState {
     // In copy rdf, we need to access num nodes before it is available in statistics.
     std::vector<std::shared_ptr<BatchInsertSharedState>> nodeBatchInsertSharedStates;
 
-    explicit PartitionerSharedState(std::vector<common::logical_type_vec_t> columnTypes)
-        : columnTypes{std::move(columnTypes)} {}
-
-    void initialize(std::vector<std::unique_ptr<PartitioningInfo>>& infos);
+    void initialize(std::unique_ptr<PartitionerDataInfo>& dataInfo);
     common::partition_idx_t getNextPartition(common::idx_t partitioningIdx);
     void resetState();
     void merge(std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates);
@@ -71,31 +68,39 @@ struct PartitionerLocalState {
 
 struct PartitioningInfo {
     common::idx_t keyIdx;
-    std::vector<common::LogicalType> columnTypes;
-    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
-    std::vector<bool> defaultColumns;
     partitioner_func_t partitionerFunc;
 
-    PartitioningInfo(common::idx_t keyIdx, std::vector<common::LogicalType> columnTypes,
-        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
-        std::vector<bool> defaultColumns, partitioner_func_t partitionerFunc)
-        : keyIdx{keyIdx}, columnTypes{std::move(columnTypes)},
-          columnEvaluators{std::move(columnEvaluators)}, defaultColumns{std::move(defaultColumns)},
-          partitionerFunc{std::move(partitionerFunc)} {}
+    PartitioningInfo(common::idx_t keyIdx, partitioner_func_t partitionerFunc)
+        : keyIdx{keyIdx}, partitionerFunc{std::move(partitionerFunc)} {}
     inline std::unique_ptr<PartitioningInfo> copy() {
-        return std::make_unique<PartitioningInfo>(keyIdx, common::LogicalType::copy(columnTypes),
-            evaluator::ExpressionEvaluator::copy(columnEvaluators), defaultColumns,
-            partitionerFunc);
+        return std::make_unique<PartitioningInfo>(keyIdx, partitionerFunc);
     }
 
     static std::vector<std::unique_ptr<PartitioningInfo>> copy(
         const std::vector<std::unique_ptr<PartitioningInfo>>& other);
 };
 
+struct PartitionerDataInfo {
+    std::vector<common::LogicalType> columnTypes;
+    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
+    std::vector<bool> defaultColumns;
+
+    PartitionerDataInfo(std::vector<common::LogicalType> columnTypes,
+        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
+        std::vector<bool> defaultColumns)
+        : columnTypes{std::move(columnTypes)}, columnEvaluators{std::move(columnEvaluators)}, 
+          defaultColumns{std::move(defaultColumns)} {}
+    inline std::unique_ptr<PartitionerDataInfo> copy() {
+        return std::make_unique<PartitionerDataInfo>(common::LogicalType::copy(columnTypes),
+            evaluator::ExpressionEvaluator::copy(columnEvaluators), defaultColumns);
+    }
+};
+
 class Partitioner : public Sink {
 public:
     Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::vector<std::unique_ptr<PartitioningInfo>> infos,
+        std::unique_ptr<PartitionerDataInfo> dataInfo,
         std::shared_ptr<PartitionerSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString);
 
@@ -107,14 +112,13 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() final;
 
-    static void initializePartitioningStates(std::vector<std::unique_ptr<PartitioningInfo>>& infos,
+    static void initializePartitioningStates(std::unique_ptr<PartitionerDataInfo>& dataInfo,
         std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,
         std::vector<common::partition_idx_t> numPartitions);
 
 private:
-    common::DataChunk constructDataChunk(
-        const std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>>& columnEvaluators,
-        const std::shared_ptr<common::DataChunkState>& state);
+    void evaluateData(const common::sel_t& numTuples);
+    common::DataChunk constructDataChunk(const std::shared_ptr<common::DataChunkState>& state);
     // TODO: For now, RelBatchInsert will guarantee all data are inside one data chunk. Should be
     //  generalized to resultSet later if needed.
     void copyDataToPartitions(common::partition_idx_t partitioningIdx,
@@ -122,6 +126,7 @@ private:
 
 private:
     std::vector<std::unique_ptr<PartitioningInfo>> infos;
+    std::unique_ptr<PartitionerDataInfo> dataInfo;
     std::shared_ptr<PartitionerSharedState> sharedState;
     std::unique_ptr<PartitionerLocalState> localState;
 

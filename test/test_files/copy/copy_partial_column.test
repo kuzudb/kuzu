@@ -44,6 +44,40 @@ Binder exception: Number of columns mismatch. Expected 7 but got 9.
 ---- error
 Binder exception: Table knows3 does not contain column dummy.
 
+-LOG PartialColumnsDefault
+-STATEMENT CREATE REL TABLE knows4 (FROM person TO person, date DATE, meetTime TIMESTAMP, 
+    validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[],
+    transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), 
+    someMap MAP(STRING, STRING),
+    nullDateColumn DATE DEFAULT date('2022-06-06'), nullBooleanColumn BOOLEAN DEFAULT true, 
+    nullStringColumn STRING DEFAULT 'default', nullDoubleColumn DOUBLE DEFAULT 1.0, 
+    nullInt64Column INT64 DEFAULT 10, nullListOfInt INT64[] DEFAULT [1, 2, 3], 
+    nullTimestampColumn TIMESTAMP DEFAULT timestamp("1970-01-01 00:00:00.004666-10"),
+    MANY_MANY);
+---- ok
+-STATEMENT COPY knows4 (date, meetTime, validInterval, comments, summary, notes, someMap) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv" ;
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows4]->(:person) WHERE p.ID = 2 RETURN e.*;
+---- 3
+1950-05-14|1946-08-25 19:07:22|00:23:00|[fwehu9h9832wewew,23u9h989sdfsss]|{locations: ['paris'], transfer: {day: 2011-05-01, amount: [2000,5340]}}|cool stuff found||2022-06-06|True|default|1.000000|10|[1,2,3]|1970-01-01 10:00:00.004666
+1950-05-14|2012-12-11 20:07:22|20 years 30 days 48:00:00|[fwh9y81232uisuiehuf,ewnuihxy8dyf232]|{locations: ['vancouver'], transfer: {day: 2020-01-01, amount: [120,50]}}|matthew perry||2022-06-06|True|default|1.000000|10|[1,2,3]|1970-01-01 10:00:00.004666
+2021-06-30|1946-08-25 19:07:22|10 years 5 months 13:00:00.000024|[2huh9y89fsfw23,23nsihufhw723]|{locations: ['paris'], transfer: {day: 2000-01-01, amount: [20,5000]}}|4||2022-06-06|True|default|1.000000|10|[1,2,3]|1970-01-01 10:00:00.004666
+
+-LOG PartialColumnsSequenceSerial
+-STATEMENT CREATE SEQUENCE seq;
+---- ok
+-STATEMENT CREATE REL TABLE knows5 (FROM person TO person, date DATE, meetTime TIMESTAMP, 
+    validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[],
+    transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), 
+    someMap MAP(STRING, STRING), seqColumn INT64 DEFAULT nextval('seq'), serColumn SERIAL,
+    MANY_MANY);
+---- ok
+-STATEMENT COPY knows5 (date, meetTime, validInterval, comments, summary, notes, someMap) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv" ;
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows5]->(:person) RETURN sum(e.seqColumn), sum(e.serColumn);
+---- 1
+21|15
+
 -CASE NodePartialColumnsTest
 -LOG AllPartialColumns
 -STATEMENT CREATE NODE TABLE tableOfTypes2 (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN,
