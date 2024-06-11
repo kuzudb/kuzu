@@ -88,7 +88,7 @@ struct PartitionerDataInfo {
     PartitionerDataInfo(std::vector<common::LogicalType> columnTypes,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
         std::vector<bool> defaultColumns)
-        : columnTypes{std::move(columnTypes)}, columnEvaluators{std::move(columnEvaluators)}, 
+        : columnTypes{std::move(columnTypes)}, columnEvaluators{std::move(columnEvaluators)},
           defaultColumns{std::move(defaultColumns)} {}
     inline std::unique_ptr<PartitionerDataInfo> copy() {
         return std::make_unique<PartitionerDataInfo>(common::LogicalType::copy(columnTypes),

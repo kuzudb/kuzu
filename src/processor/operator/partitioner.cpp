@@ -105,7 +105,7 @@ void Partitioner::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*
 }
 
 void Partitioner::evaluateData(const common::sel_t& numTuples) {
-    for (auto& evaluator: dataInfo->columnEvaluators) {
+    for (auto& evaluator : dataInfo->columnEvaluators) {
         evaluator->getLocalStateRef().count = numTuples;
         evaluator->evaluate();
     }
@@ -121,8 +121,7 @@ DataChunk Partitioner::constructDataChunk(const std::shared_ptr<DataChunkState>&
     return dataChunk;
 }
 
-void Partitioner::initializePartitioningStates(
-    std::unique_ptr<PartitionerDataInfo>& dataInfo,
+void Partitioner::initializePartitioningStates(std::unique_ptr<PartitionerDataInfo>& dataInfo,
     std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,
     std::vector<partition_idx_t> numPartitions) {
     partitioningBuffers.resize(numPartitions.size());
@@ -141,7 +140,8 @@ void Partitioner::executeInternal(ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
         KU_ASSERT(dataInfo->columnEvaluators.size() >= 1);
         // We get the numTuples from the state of the src column, which is always idx 0
-        auto numTuples = dataInfo->columnEvaluators[0]->resultVector->state->getSelVector().getSelSize();
+        auto numTuples =
+            dataInfo->columnEvaluators[0]->resultVector->state->getSelVector().getSelSize();
         evaluateData(numTuples);
         for (auto partitioningIdx = 0u; partitioningIdx < infos.size(); partitioningIdx++) {
             auto info = infos[partitioningIdx].get();
