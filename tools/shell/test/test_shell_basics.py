@@ -72,7 +72,7 @@ def test_multi_queries_one_line(temp_db) -> None:
     result.check_stdout("databases rule")
     result.check_stdout(
         [
-            "Error: Parser exception: mismatched input '<EOF>' expecting {ALTER, ATTACH, BEGIN, CALL, COMMENT, COMMIT, COMMIT_SKIP_CHECKPOINT, COPY, CREATE, DELETE, DETACH, DROP, EXPORT, IMPORT, INSTALL, LOAD, MATCH, MERGE, OPTIONAL, RETURN, ROLLBACK, ROLLBACK_SKIP_CHECKPOINT, SET, UNWIND, USE, WITH, PROJECT} (line: 1, offset: 6)",
+            "Error: Parser exception: mismatched input '<EOF>' expecting {ALTER, ATTACH, BEGIN, CALL, COMMENT, COMMIT, COMMIT_SKIP_CHECKPOINT, COPY, CREATE, DELETE, DETACH, DROP, EXPORT, IMPORT, INSTALL, LOAD, MATCH, MERGE, OPTIONAL, PROJECT, RETURN, ROLLBACK, ROLLBACK_SKIP_CHECKPOINT, SET, UNWIND, USE, WITH} (line: 1, offset: 6)",
             '"      "',
         ],
     )
@@ -85,7 +85,7 @@ def test_multi_queries_one_line(temp_db) -> None:
             "Error: Parser exception: Invalid input < S>: expected rule ku_Statements (line: 1, offset: 24)",
             '"RETURN "databases rule" S a"',
             "                         ^",
-            "Error: Parser exception: mismatched input '<EOF>' expecting {ALTER, ATTACH, BEGIN, CALL, COMMENT, COMMIT, COMMIT_SKIP_CHECKPOINT, COPY, CREATE, DELETE, DETACH, DROP, EXPORT, IMPORT, INSTALL, LOAD, MATCH, MERGE, OPTIONAL, RETURN, ROLLBACK, ROLLBACK_SKIP_CHECKPOINT, SET, UNWIND, USE, WITH, PROJECT} (line: 1, offset: 6)",
+            "Error: Parser exception: mismatched input '<EOF>' expecting {ALTER, ATTACH, BEGIN, CALL, COMMENT, COMMIT, COMMIT_SKIP_CHECKPOINT, COPY, CREATE, DELETE, DETACH, DROP, EXPORT, IMPORT, INSTALL, LOAD, MATCH, MERGE, OPTIONAL, PROJECT, RETURN, ROLLBACK, ROLLBACK_SKIP_CHECKPOINT, SET, UNWIND, USE, WITH} (line: 1, offset: 6)",
             '"      "',
         ],
     )
