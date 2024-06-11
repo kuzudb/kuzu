@@ -14,7 +14,7 @@ public:
 
     void initChunkState(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, ChunkState& chunkState) override;
-    void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+    void scan(transaction::Transaction* transaction, const ChunkState& state,
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
     void scan(transaction::Transaction* transaction, const ChunkState& state,

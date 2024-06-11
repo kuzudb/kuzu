@@ -42,14 +42,14 @@ void StringColumn::scan(Transaction* transaction, const ChunkState& state,
         resultVector, offsetInVector);
 }
 
-void StringColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+void StringColumn::scan(Transaction* transaction, const ChunkState& state,
     ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
-    Column::scan(transaction, nodeGroupIdx, columnChunk, startOffset, endOffset);
+    Column::scan(transaction, state, columnChunk, startOffset, endOffset);
     if (columnChunk->getNumValues() == 0) {
         return;
     }
     auto& stringColumnChunk = columnChunk->cast<StringChunkData>();
-    dictionary.scan(transaction, nodeGroupIdx, stringColumnChunk.getDictionaryChunk());
+    dictionary.scan(transaction, state, stringColumnChunk.getDictionaryChunk());
 }
 
 void StringColumn::append(ColumnChunkData* columnChunk, ChunkState& state) {

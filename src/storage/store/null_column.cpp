@@ -62,9 +62,9 @@ void NullColumn::scan(Transaction* transaction, const ChunkState& state,
         offsetInVector);
 }
 
-void NullColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+void NullColumn::scan(Transaction* transaction, const ChunkState& state,
     ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
-    Column::scan(transaction, nodeGroupIdx, columnChunk, startOffset, endOffset);
+    Column::scan(transaction, state, columnChunk, startOffset, endOffset);
 }
 
 void NullColumn::lookup(Transaction* transaction, ChunkState& readState, ValueVector* nodeIDVector,
