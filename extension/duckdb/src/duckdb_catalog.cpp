@@ -140,6 +140,7 @@ std::unique_ptr<binder::BoundCreateTableInfo> DuckDBCatalog::bindCreateTableInfo
         return nullptr;
     }
     return std::make_unique<binder::BoundCreateTableInfo>(common::TableType::FOREIGN, tableName,
+        common::ConflictAction::ON_CONFLICT_THROW,
         std::make_unique<duckdb_extension::BoundExtraCreateDuckDBTableInfo>(dbPath, catalogName,
             getDefaultSchemaName(), std::move(propertyInfos)));
 }

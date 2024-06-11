@@ -136,12 +136,12 @@ BoundCreateTableInfo Binder::bindCreateTableInfo(const parser::CreateTableInfo* 
 
 BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo* info) {
     auto propertyInfos = bindPropertyInfo(info->propertyDefinitions, info->tableName);
-    auto extraInfo = ku_dynamic_cast<const ExtraCreateTableInfo*, const ExtraCreateNodeTableInfo*>(
-        info->extraInfo.get());
-    auto primaryKeyIdx = bindPrimaryKey(extraInfo->pKName, propertyInfos);
+    auto& extraInfo = info->extraInfo->constCast<ExtraCreateNodeTableInfo>();
+    auto primaryKeyIdx = bindPrimaryKey(extraInfo.pKName, propertyInfos);
     auto boundExtraInfo =
         std::make_unique<BoundExtraCreateNodeTableInfo>(primaryKeyIdx, std::move(propertyInfos));
-    return BoundCreateTableInfo(TableType::NODE, info->tableName, std::move(boundExtraInfo));
+    return BoundCreateTableInfo(TableType::NODE, info->tableName, info->onConflict,
+        std::move(boundExtraInfo));
 }
 
 BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info) {
@@ -159,7 +159,8 @@ BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info)
     validateTableType(dstTableID, TableType::NODE);
     auto boundExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(srcMultiplicity,
         dstMultiplicity, srcTableID, dstTableID, std::move(propertyInfos));
-    return BoundCreateTableInfo(TableType::REL, info->tableName, std::move(boundExtraInfo));
+    return BoundCreateTableInfo(TableType::REL, info->tableName, info->onConflict,
+        std::move(boundExtraInfo));
 }
 
 BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* info) {
@@ -167,7 +168,7 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
     auto extraInfo = (ExtraCreateRelTableGroupInfo*)info->extraInfo.get();
     auto relMultiplicity = extraInfo->relMultiplicity;
     std::vector<BoundCreateTableInfo> boundCreateRelTableInfos;
-    auto relCreateInfo = std::make_unique<CreateTableInfo>(TableType::REL, "");
+    auto relCreateInfo = std::make_unique<CreateTableInfo>(TableType::REL, "", info->onConflict);
     for (auto& propertyDef : info->propertyDefinitions) {
         relCreateInfo->propertyDefinitions.emplace_back(propertyDef.name, propertyDef.type,
             propertyDef.expr->copy());
@@ -184,14 +185,21 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
     }
     auto boundExtraInfo =
         std::make_unique<BoundExtraCreateRelTableGroupInfo>(std::move(boundCreateRelTableInfos));
-    return BoundCreateTableInfo(TableType::REL_GROUP, info->tableName, std::move(boundExtraInfo));
+    return BoundCreateTableInfo(TableType::REL_GROUP, info->tableName, info->onConflict,
+        std::move(boundExtraInfo));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& statement) {
     auto createTable = statement.constPtrCast<CreateTable>();
     auto tableName = createTable->getInfo()->tableName;
-    if (clientContext->getCatalog()->containsTable(clientContext->getTx(), tableName)) {
-        throw BinderException(tableName + " already exists in catalog.");
+    switch (createTable->getInfo()->onConflict) {
+    case common::ConflictAction::ON_CONFLICT_THROW: {
+        if (clientContext->getCatalog()->containsTable(clientContext->getTx(), tableName)) {
+            throw BinderException(tableName + " already exists in catalog.");
+        }
+    } break;
+    default:
+        break;
     }
     auto boundCreateInfo = bindCreateTableInfo(createTable->getInfo());
     return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo));
@@ -208,7 +216,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateType(const Statement& statemen
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& statement) {
-    auto& createSequence = ku_dynamic_cast<const Statement&, const CreateSequence&>(statement);
+    auto& createSequence = statement.constCast<CreateSequence>();
     auto info = createSequence.getInfo();
     auto sequenceName = info.sequenceName;
     int64_t startWith;
@@ -265,7 +273,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
 }
 
 std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement) {
-    auto& dropTable = ku_dynamic_cast<const Statement&, const Drop&>(statement);
+    auto& dropTable = statement.constCast<Drop>();
     auto tableName = dropTable.getName();
     validateTableExist(tableName);
     auto catalog = clientContext->getCatalog();
@@ -309,14 +317,14 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
         }
     } break;
     case TableType::RDF: {
-        auto rdfGraphEntry = ku_dynamic_cast<TableCatalogEntry*, RDFGraphCatalogEntry*>(tableEntry);
+        auto& rdfGraphEntry = tableEntry->constCast<RDFGraphCatalogEntry>();
         // Check resource table is not referenced by rel table other than its triple table.
         for (auto& relTableEntry : catalog->getRelTableEntries(clientContext->getTx())) {
-            if (relTableEntry->getTableID() == rdfGraphEntry->getResourceTripleTableID() ||
-                relTableEntry->getTableID() == rdfGraphEntry->getLiteralTripleTableID()) {
+            if (relTableEntry->getTableID() == rdfGraphEntry.getResourceTripleTableID() ||
+                relTableEntry->getTableID() == rdfGraphEntry.getLiteralTripleTableID()) {
                 continue;
             }
-            if (relTableEntry->isParent(rdfGraphEntry->getResourceTableID())) {
+            if (relTableEntry->isParent(rdfGraphEntry.getResourceTableID())) {
                 throw BinderException(stringFormat("Cannot delete rdfGraph {} because its resource "
                                                    "table is referenced by relationship table {}.",
                     tableEntry->getName(), relTableEntry->getName()));
@@ -324,10 +332,10 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
         }
         // Check literal table is not referenced by rel table other than its triple table.
         for (auto& relTableEntry : catalog->getRelTableEntries(clientContext->getTx())) {
-            if (relTableEntry->getTableID() == rdfGraphEntry->getLiteralTripleTableID()) {
+            if (relTableEntry->getTableID() == rdfGraphEntry.getLiteralTripleTableID()) {
                 continue;
             }
-            if (relTableEntry->isParent(rdfGraphEntry->getLiteralTableID())) {
+            if (relTableEntry->isParent(rdfGraphEntry.getLiteralTableID())) {
                 throw BinderException(stringFormat("Cannot delete rdfGraph {} because its literal "
                                                    "table is referenced by relationship table {}.",
                     tableEntry->getName(), relTableEntry->getName()));
@@ -341,7 +349,7 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
 }
 
 std::unique_ptr<BoundStatement> Binder::bindDropSequence(const Statement& statement) {
-    auto& dropSequence = ku_dynamic_cast<const Statement&, const Drop&>(statement);
+    auto& dropSequence = statement.constCast<Drop>();
     auto sequenceName = dropSequence.getName();
     if (!clientContext->getCatalog()->containsSequence(clientContext->getTx(), sequenceName)) {
         throw BinderException("Sequence " + sequenceName + " does not exist.");
@@ -353,7 +361,7 @@ std::unique_ptr<BoundStatement> Binder::bindDropSequence(const Statement& statem
 }
 
 std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
-    auto& alter = ku_dynamic_cast<const Statement&, const Alter&>(statement);
+    auto& alter = statement.constCast<Alter>();
     auto catalog = clientContext->getCatalog();
     auto tableID = catalog->getTableID(clientContext->getTx(), alter.getInfo()->tableName);
     for (auto& schema : catalog->getRdfGraphEntries(clientContext->getTx())) {
@@ -383,7 +391,7 @@ std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
 }
 
 std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& statement) {
-    auto& alter = ku_dynamic_cast<const Statement&, const Alter&>(statement);
+    auto& alter = statement.constCast<Alter>();
     auto info = alter.getInfo();
     auto extraInfo = ku_dynamic_cast<ExtraAlterInfo*, ExtraRenameTableInfo*>(info->extraInfo.get());
     auto tableName = info->tableName;
@@ -430,7 +438,7 @@ static void validatePropertyDDLOnTable(TableCatalogEntry* tableEntry,
 }
 
 std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& statement) {
-    auto& alter = ku_dynamic_cast<const Statement&, const Alter&>(statement);
+    auto& alter = statement.constCast<Alter>();
     auto info = alter.getInfo();
     auto extraInfo = ku_dynamic_cast<ExtraAlterInfo*, ExtraAddPropertyInfo*>(info->extraInfo.get());
     auto tableName = info->tableName;
@@ -461,7 +469,7 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
 }
 
 std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statement) {
-    auto& alter = ku_dynamic_cast<const Statement&, const Alter&>(statement);
+    auto& alter = statement.constCast<Alter>();
     auto info = alter.getInfo();
     auto extraInfo =
         ku_dynamic_cast<ExtraAlterInfo*, ExtraDropPropertyInfo*>(info->extraInfo.get());
@@ -486,7 +494,7 @@ std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statem
 }
 
 std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& statement) {
-    auto& alter = ku_dynamic_cast<const Statement&, const Alter&>(statement);
+    auto& alter = statement.constCast<Alter>();
     auto info = alter.getInfo();
     auto extraInfo =
         ku_dynamic_cast<ExtraAlterInfo*, ExtraRenamePropertyInfo*>(info->extraInfo.get());
