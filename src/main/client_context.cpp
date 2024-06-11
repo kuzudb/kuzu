@@ -55,7 +55,7 @@ ClientContext::ClientContext(Database* database)
 #endif
     clientConfig.fileSearchPath = "";
     clientConfig.enableSemiMask = ClientConfigDefault::ENABLE_SEMI_MASK;
-    clientConfig.enableZoneMap = ClientConfigDefault::ENABLE_ZONEMAP;
+    clientConfig.enableZoneMap = ClientConfigDefault::ENABLE_ZONE_MAP;
     clientConfig.numThreads = database->dbConfig.maxNumThreads;
     clientConfig.timeoutInMS = ClientConfigDefault::TIMEOUT_IN_MS;
     clientConfig.varLengthMaxDepth = ClientConfigDefault::VAR_LENGTH_MAX_DEPTH;

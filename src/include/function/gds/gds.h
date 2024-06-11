@@ -17,15 +17,13 @@ namespace function {
 
 // Struct maintaining GDS specific information that needs to be obtained at compile time.
 struct GDSBindData {
-    std::shared_ptr<binder::Expression> nodeInput = nullptr;
-
-    GDSBindData() = default;
-    explicit GDSBindData(std::shared_ptr<binder::Expression> nodeInput)
-        : nodeInput{std::move(nodeInput)} {}
-    GDSBindData(const GDSBindData& other) : nodeInput{other.nodeInput} {}
     virtual ~GDSBindData() = default;
 
-    bool hasNodeInput() const { return nodeInput != nullptr; }
+    virtual bool hasNodeInput() const { return false; }
+    virtual std::shared_ptr<binder::Expression> getNodeInput() const { return nullptr; }
+
+    virtual bool hasNodeOutput() const { return false; }
+    virtual std::shared_ptr<binder::Expression> getNodeOutput() const { return nullptr; }
 
     virtual std::unique_ptr<GDSBindData> copy() const {
         return std::make_unique<GDSBindData>(*this);

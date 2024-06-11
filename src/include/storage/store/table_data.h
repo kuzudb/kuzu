@@ -27,6 +27,10 @@ struct TableDataScanState {
     std::vector<common::column_id_t> columnIDs;
     std::vector<Column::ChunkState> chunkStates;
 
+    // TODO(Guodong): If we reset the state, we should be able to use the same object to scan
+    // different table. This should simplify the multi-label scan.
+    virtual void resetState() = 0;
+
     template<class TARGET>
     TARGET& cast() {
         return common::ku_dynamic_cast<TableDataScanState&, TARGET&>(*this);
