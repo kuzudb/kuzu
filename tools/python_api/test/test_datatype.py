@@ -100,7 +100,7 @@ def test_double(conn_db_readonly: ConnDB) -> None:
 def test_decimal(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
     res = conn.execute("UNWIND [1, 2, 3] AS A UNWIND [5.7, 8.3, 2.9] AS B WITH cast(CAST(A AS DECIMAL) * CAST(B AS DECIMAL) AS DECIMAL(18, 1)) AS PROD RETURN COLLECT(PROD) AS RES")
-    assert sorted(res.get_next()) == sorted([
+    assert sorted(res.get_next()[0]) == sorted([
         Decimal('5.7'),
         Decimal('8.3'),
         Decimal('2.9'),
@@ -112,7 +112,7 @@ def test_decimal(conn_db_readonly: ConnDB) -> None:
         Decimal('8.7'),
     ])
     res = conn.execute("UNWIND [1, 2, 3] AS A UNWIND [5.7, 8.3, 2.9] AS B WITH CAST(CAST(A AS DECIMAL) * CAST(B AS DECIMAL) AS DECIMAL(4, 1)) AS PROD RETURN COLLECT(PROD) AS RES")
-    assert sorted(res.get_next()) == sorted([
+    assert sorted(res.get_next()[0]) == sorted([
         Decimal('5.7'),
         Decimal('8.3'),
         Decimal('2.9'),
