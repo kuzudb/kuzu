@@ -3,6 +3,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/function_catalog_entry.h"
 #include "common/exception/binder.h"
+#include "common/exception/runtime.h"
 #include "function/built_in_function_utils.h"
 #include "parser/copy.h"
 
@@ -23,27 +24,17 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     auto columns = query->getStatementResult()->getColumns();
 
     auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
-    std::string name = "COPY_{}";
-    switch (fileType) {
-    case FileType::CSV:
-        name = stringFormat(name, "CSV");
-        break;
-    case FileType::PARQUET:
-        name = stringFormat(name, "PARQUET");
-        break;
-    default:
-        KU_UNREACHABLE;
-    }
+    auto fileTypeStr = common::FileTypeUtils::toString(fileType);
+    auto name = common::stringFormat("COPY_{}", fileTypeStr);
     auto copyFunc =
-        *function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(), name, functions)
-             ->constPtrCast<function::CopyFunction>();
+        function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(), name, functions)
+            ->constPtrCast<function::CopyFunction>();
     for (auto& column : columns) {
         auto columnName = column->hasAlias() ? column->getAlias() : column->toString();
         columnNames.push_back(columnName);
+        // TODO(Xiyang): Query: COPY (RETURN null) TO '/tmp/1.parquet', the datatype of the first
+        // column is ANY, should we solve the type at binder?
         columnTypes.push_back(column->getDataType());
-    }
-    if (fileType != FileType::CSV && fileType != FileType::PARQUET) {
-        throw BinderException("COPY TO currently only supports csv and parquet files.");
     }
     if (fileType != FileType::CSV && copyToStatement.getParsingOptionsRef().size() != 0) {
         throw BinderException{"Only copy to csv can have options."};
@@ -51,9 +42,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     function::CopyFuncBindInput bindInput{std::move(columnNames), std::move(columnTypes),
         std::move(boundFilePath), bindParsingOptions(copyToStatement.getParsingOptionsRef()),
         true /* canParallel */};
-    auto bindData = copyFunc.copyToBind(bindInput);
-    return std::make_unique<BoundCopyTo>(std::move(bindData), std::move(copyFunc),
-        std::move(query));
+    auto bindData = copyFunc->copyToBind(bindInput);
+    return std::make_unique<BoundCopyTo>(std::move(bindData), *copyFunc, std::move(query));
 }
 
 } // namespace binder

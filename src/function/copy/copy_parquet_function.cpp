@@ -35,12 +35,13 @@ struct CopyToParquetBindData final : public CopyFuncBindData {
         auto expressions = childSchema->getExpressionsInScope();
         tableSchema = FactorizedTableUtils::createFTableSchema(expressions, *childSchema);
         countingVecPos = DataPos(childSchema->getExpressionPos(*expressions[0]));
+        this->types = std::vector<common::LogicalType>();
         for (auto& e : expressions) {
             auto group = childSchema->getGroup(e->getUniqueName());
             if (!group->isFlat()) {
                 countingVecPos = DataPos(childSchema->getExpressionPos(*e));
-                break;
             }
+            this->types.push_back(e->dataType);
         }
         this->dataPoses = std::move(vectorsToCopyPos);
         this->isFlat = std::move(isFlat);

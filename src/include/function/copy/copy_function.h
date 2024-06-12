@@ -83,12 +83,12 @@ using copy_to_finalize_t = std::function<void(CopyFuncSharedState&)>;
 using copy_to_can_parallel_t = std::function<bool(void)>;
 
 struct CopyFunction : public Function {
-    explicit CopyFunction(std::string name) : name{std::move(name)} {}
+    explicit CopyFunction(std::string name) : Function{std::move(name), {}} {}
 
     CopyFunction(std::string name, copy_to_initialize_local_t copyToInitLocal,
         copy_to_initialize_shared_t copyToInitGlobal, copy_to_sink_t copyToSink,
         copy_to_combine_t copyToCombine, copy_to_finalize_t copyToFinalize)
-        : name{std::move(name)}, copyToInitLocal{std::move(copyToInitLocal)},
+        : Function{std::move(name), {}}, copyToInitLocal{std::move(copyToInitLocal)},
           copyToInitShared{std::move(copyToInitGlobal)}, copyToSink{std::move(copyToSink)},
           copyToCombine{std::move(copyToCombine)}, copyToFinalize{std::move(copyToFinalize)} {}
 
@@ -97,7 +97,6 @@ struct CopyFunction : public Function {
             copyToCombine, copyToFinalize);
     }
 
-    std::string name;
     copy_to_bind_t copyToBind;
     copy_to_initialize_local_t copyToInitLocal;
     copy_to_initialize_shared_t copyToInitShared;
