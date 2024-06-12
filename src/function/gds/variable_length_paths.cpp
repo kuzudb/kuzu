@@ -119,7 +119,7 @@ public:
         localState = std::make_unique<VariableLengthPathLocalState>(context);
     }
 
-    void exec() override {
+    void exec(ExecutionContext *) override {
         auto extraData = bindData->ptrCast<VariableLengthPathBindData>();
         auto variableLengthPathLocalState = localState->ptrCast<VariableLengthPathLocalState>();
         for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {

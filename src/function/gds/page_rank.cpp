@@ -75,7 +75,7 @@ public:
         localState = std::make_unique<PageRankLocalState>(context);
     }
 
-    void exec() override {
+    void exec(ExecutionContext *) override {
         auto extraData = bindData->ptrCast<PageRankBindData>();
         auto pageRankLocalState = localState->ptrCast<PageRankLocalState>();
         // Initialize state.

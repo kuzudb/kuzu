@@ -23,6 +23,7 @@ class ExpressionBinder;
 
 namespace common {
 class RandomEngine;
+class TaskScheduler;
 }
 
 namespace extension {
@@ -98,6 +99,7 @@ public:
     // Database component getters.
     std::string getDatabasePath() const;
     Database* getDatabase() const { return localDatabase; }
+    common::TaskScheduler* getTaskScheduler() const;
     DatabaseManager* getDatabaseManager() const;
     storage::StorageManager* getStorageManager() const;
     storage::MemoryManager* getMemoryManager();

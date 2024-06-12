@@ -17,8 +17,8 @@ void GDSCall::initGlobalStateInternal(ExecutionContext* context) {
         info.graphEntry.nodeTableIDs[0], info.graphEntry.relTableIDs[0]);
 }
 
-void GDSCall::executeInternal(ExecutionContext*) {
-    info.gds->exec();
+void GDSCall::executeInternal(ExecutionContext* executionContext) {
+    info.gds->exec(executionContext);
 }
 
 } // namespace processor

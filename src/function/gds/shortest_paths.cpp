@@ -121,7 +121,7 @@ public:
         localState = std::make_unique<ShortestPathLocalState>(context);
     }
 
-    void exec() override {
+    void exec(ExecutionContext *) override {
         auto extraData = bindData->ptrCast<ShortestPathBindData>();
         auto shortestPathLocalState = localState->ptrCast<ShortestPathLocalState>();
         for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {

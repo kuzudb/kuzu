@@ -60,7 +60,7 @@ public:
         localState = std::make_unique<WeaklyConnectedComponentLocalState>(context);
     }
 
-    void exec() override {
+    void exec(ExecutionContext *) override {
         auto wccLocalState = localState->ptrCast<WeaklyConnectedComponentLocalState>();
         visitedArray.resize(graph->getNumNodes());
         groupArray.resize(graph->getNumNodes());
