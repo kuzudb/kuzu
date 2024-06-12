@@ -8,6 +8,7 @@
 #include "function/blob/vector_blob_functions.h"
 #include "function/cast/vector_cast_functions.h"
 #include "function/comparison/vector_comparison_functions.h"
+#include "function/copy/copy_function.h"
 #include "function/date/vector_date_functions.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/hash/vector_hash_functions.h"
@@ -38,18 +39,21 @@ namespace kuzu {
 namespace function {
 
 #define SCALAR_FUNCTION_BASE(_PARAM, _NAME)                                                        \
-    {_PARAM::getFunctionSet, _NAME, CatalogEntryType::SCALAR_FUNCTION_ENTRY}
+    { _PARAM::getFunctionSet, _NAME, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
 #define SCALAR_FUNCTION(_PARAM) SCALAR_FUNCTION_BASE(_PARAM, _PARAM::name)
 #define SCALAR_FUNCTION_ALIAS(_PARAM) SCALAR_FUNCTION_BASE(_PARAM::alias, _PARAM::name)
 #define REWRITE_FUNCTION(_PARAM)                                                                   \
-    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::REWRITE_FUNCTION_ENTRY}
+    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::REWRITE_FUNCTION_ENTRY }
 #define AGGREGATE_FUNCTION(_PARAM)                                                                 \
-    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::AGGREGATE_FUNCTION_ENTRY}
+    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::AGGREGATE_FUNCTION_ENTRY }
+#define COPY_FUNCTION(_PARAM)                                                                      \
+    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::COPY_FUNCTION_ENTRY }
 #define TABLE_FUNCTION(_PARAM)                                                                     \
-    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::TABLE_FUNCTION_ENTRY}
+    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::TABLE_FUNCTION_ENTRY }
 #define ALGORITHM_FUNCTION(_PARAM)                                                                 \
-    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::GDS_FUNCTION_ENTRY}
-#define FINAL_FUNCTION {nullptr, nullptr, CatalogEntryType::SCALAR_FUNCTION_ENTRY}
+    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::GDS_FUNCTION_ENTRY }
+#define FINAL_FUNCTION                                                                             \
+    { nullptr, nullptr, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
 
 FunctionCollection* FunctionCollection::getFunctions() {
     static FunctionCollection functions[] = {
@@ -225,6 +229,9 @@ FunctionCollection* FunctionCollection::getFunctions() {
         ALGORITHM_FUNCTION(VariableLengthPathsFunction),
         ALGORITHM_FUNCTION(WeaklyConnectedComponentsFunction),
         ALGORITHM_FUNCTION(ShortestPathsFunction), ALGORITHM_FUNCTION(PageRankFunction),
+
+        // Copy functions
+        COPY_FUNCTION(CopyCSVFunction), COPY_FUNCTION(CopyParquetFunction),
 
         // End of array
         FINAL_FUNCTION};

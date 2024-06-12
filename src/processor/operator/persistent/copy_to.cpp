@@ -4,26 +4,22 @@ namespace kuzu {
 namespace processor {
 
 void CopyTo::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    localState->init(info.get(), context->clientContext->getMemoryManager(), resultSet);
-}
-
-void CopyTo::initGlobalStateInternal(ExecutionContext* context) {
-    sharedState->init(info.get(), context->clientContext);
+    localState = copyFunc.copyToInitLocal(*context->clientContext, *bindData, *resultSet);
 }
 
 void CopyTo::finalize(ExecutionContext* /*context*/) {
-    sharedState->finalize();
+    copyFunc.copyToFinalize(*sharedState);
 }
 
 void CopyTo::executeInternal(processor::ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
-        localState->sink(sharedState.get(), info.get());
+        copyFunc.copyToSink(*sharedState, *localState, *bindData);
     }
-    localState->finalize(sharedState.get());
+    copyFunc.copyToCombine(*sharedState, *localState);
 }
 
 bool CopyTo::isParallel() const {
-    return info->canParallel;
+    return bindData->canParallel;
 }
 
 } // namespace processor

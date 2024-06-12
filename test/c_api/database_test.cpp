@@ -84,3 +84,8 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database_destroy(&database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
+
+TEST_F(CApiDatabaseTest, DSADA) {
+    createDBAndConn();
+    conn->query("copy (return 5) to '/tmp/a.parquet'");
+}

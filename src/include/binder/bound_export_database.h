@@ -33,10 +33,10 @@ public:
 
     std::string getFilePath() const { return boundFileInfo.filePaths[0]; }
     common::FileType getFileType() const { return boundFileInfo.fileType; }
-    common::CSVOption getCopyOption() const {
-        auto csvConfig = common::CSVReaderConfig::construct(boundFileInfo.options);
-        return csvConfig.option.copy();
+    std::unordered_map<std::string, common::Value> getExportOptions() const {
+        return boundFileInfo.options;
     }
+
     const common::ReaderConfig* getBoundFileInfo() const { return &boundFileInfo; }
     const std::vector<ExportedTableData>* getExportData() const { return &exportData; }
 

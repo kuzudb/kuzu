@@ -1,6 +1,8 @@
 #include "binder/bound_export_database.h"
 #include "binder/bound_import_database.h"
+#include "catalog/catalog.h"
 #include "common/string_utils.h"
+#include "function/built_in_function_utils.h"
 #include "planner/operator/persistent/logical_copy_to.h"
 #include "planner/operator/simple/logical_export_db.h"
 #include "planner/operator/simple/logical_import_db.h"
@@ -26,15 +28,22 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
     auto fileTypeStr = FileTypeUtils::toString(fileType);
     StringUtils::toLower(fileTypeStr);
     auto copyToSuffix = "." + fileTypeStr;
+    auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
+    std::string name = common::stringFormat("COPY_{}", fileTypeStr);
+    auto copyFunc =
+        *function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(), name, functions)
+             ->constPtrCast<function::CopyFunction>();
     for (auto& exportTableData : *exportData) {
         auto regularQuery = exportTableData.getRegularQuery();
         KU_ASSERT(regularQuery->getStatementType() == StatementType::QUERY);
         auto tablePlan = getBestPlan(*regularQuery);
-        auto copyTo = std::make_shared<LogicalCopyTo>(filePath + "/" + exportTableData.tableName +
-                                                          copyToSuffix,
-            fileType, exportTableData.columnNames, exportTableData.getColumnTypesRef(),
-            boundExportDatabase.getCopyOption(), tablePlan->getLastOperator(),
-            exportTableData.isParallel);
+        auto path = filePath + "/" + exportTableData.tableName + copyToSuffix;
+        function::CopyFuncBindInput bindInput{exportTableData.columnNames,
+            exportTableData.getColumnTypesRef(), std::move(path),
+            boundExportDatabase.getExportOptions(), exportTableData.isParallel};
+        auto copyFuncBindData = copyFunc.copyToBind(bindInput);
+        auto copyTo = std::make_shared<LogicalCopyTo>(std::move(copyFuncBindData),
+            std::move(copyFunc), exportTableData.columnTypes, tablePlan->getLastOperator());
         logicalOperators.push_back(std::move(copyTo));
     }
     auto exportDatabase =

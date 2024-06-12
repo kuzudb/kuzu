@@ -14,9 +14,9 @@ namespace processor {
 using namespace kuzu_parquet::format;
 using namespace kuzu::common;
 
-ParquetWriter::ParquetWriter(std::string fileName,
-    std::vector<std::unique_ptr<common::LogicalType>> types, std::vector<std::string> columnNames,
-    kuzu_parquet::format::CompressionCodec::type codec, main::ClientContext* context)
+ParquetWriter::ParquetWriter(std::string fileName, std::vector<common::LogicalType> types,
+    std::vector<std::string> columnNames, kuzu_parquet::format::CompressionCodec::type codec,
+    main::ClientContext* context)
     : fileName{std::move(fileName)}, types{std::move(types)}, columnNames{std::move(columnNames)},
       codec{codec}, fileOffset{0}, mm{context->getMemoryManager()} {
     fileInfo =
@@ -47,7 +47,7 @@ ParquetWriter::ParquetWriter(std::string fileName,
     std::vector<std::string> schemaPath;
     for (auto i = 0u; i < this->types.size(); i++) {
         columnWriters.push_back(ColumnWriter::createWriterRecursive(fileMetaData.schema, *this,
-            *this->types[i], this->columnNames[i], schemaPath, mm));
+            this->types[i], this->columnNames[i], schemaPath, mm));
     }
 }
 
@@ -197,7 +197,7 @@ void ParquetWriter::prepareRowGroup(FactorizedTable& ft, PreparedRowGroup& resul
     auto numFlatVectors = 0;
     for (auto i = 0u; i < columnWriters.size(); i++) {
         writerStates.emplace_back(columnWriters[i]->initializeWriteState(row_group));
-        auto vector = std::make_unique<ValueVector>(*types[i]->copy(), mm);
+        auto vector = std::make_unique<ValueVector>(*types[i].copy(), mm);
         vectorsToRead.push_back(vector.get());
         if (ft.getTableSchema()->getColumn(i)->isFlat()) {
             flatDataChunkToRead->insert(numFlatVectors, std::move(vector));

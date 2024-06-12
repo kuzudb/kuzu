@@ -1,78 +1,41 @@
 #pragma once
 
+#include "function/copy/copy_function.h"
 #include "processor/operator/sink.h"
 #include "processor/result/result_set.h"
 
 namespace kuzu {
 namespace processor {
 
-struct CopyToInfo {
-    std::vector<std::string> names;
-    std::vector<DataPos> dataPoses;
-    std::string fileName;
-    bool canParallel;
-
-    CopyToInfo(std::vector<std::string> names, std::vector<DataPos> dataPoses, std::string fileName,
-        bool canParallel)
-        : names{std::move(names)}, dataPoses{std::move(dataPoses)}, fileName{std::move(fileName)},
-          canParallel{canParallel} {}
-
-    template<class TARGET>
-    const TARGET* constPtrCast() const {
-        return common::ku_dynamic_cast<const CopyToInfo*, const TARGET*>(this);
-    }
-
-    virtual ~CopyToInfo() = default;
-
-    virtual std::unique_ptr<CopyToInfo> copy() = 0;
-};
-
-class CopyToSharedState;
-
-class CopyToLocalState {
-public:
-    virtual ~CopyToLocalState() = default;
-
-    virtual void init(CopyToInfo* info, storage::MemoryManager* mm, ResultSet* resultSet) = 0;
-
-    virtual void sink(CopyToSharedState* sharedState, CopyToInfo* info) = 0;
-
-    virtual void finalize(CopyToSharedState* sharedState) = 0;
-};
-
-class CopyToSharedState {
-public:
-    virtual ~CopyToSharedState() = default;
-
-    virtual void init(CopyToInfo* info, main::ClientContext* context) = 0;
-
-    virtual void finalize() = 0;
-};
-
-class CopyTo : public Sink {
+class CopyTo final : public Sink {
 public:
     CopyTo(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        std::unique_ptr<CopyToInfo> info, std::unique_ptr<CopyToLocalState> localState,
-        std::shared_ptr<CopyToSharedState> sharedState, PhysicalOperatorType opType,
+        function::CopyFunction copyFunc, std::unique_ptr<function::CopyFuncBindData> bindData,
+        std::shared_ptr<function::CopyFuncSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : Sink{std::move(resultSetDescriptor), opType, std::move(child), id, paramsString},
-          info{std::move(info)}, localState{std::move(localState)},
+        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_TO, std::move(child), id,
+              paramsString},
+          copyFunc{std::move(copyFunc)}, bindData{std::move(bindData)},
           sharedState{std::move(sharedState)} {}
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    void initGlobalStateInternal(ExecutionContext* context) final;
+    void finalize(ExecutionContext* context) override;
 
-    void finalize(ExecutionContext* context) final;
+    void executeInternal(processor::ExecutionContext* context) override;
 
-    void executeInternal(processor::ExecutionContext* context) final;
+    bool isParallel() const override;
 
-    bool isParallel() const final;
+    std::unique_ptr<PhysicalOperator> clone() override {
+        return std::make_unique<CopyTo>(resultSetDescriptor->copy(), copyFunc, bindData->copy(),
+            sharedState, children[0]->clone(), id, paramsString);
+    }
 
-protected:
-    std::unique_ptr<CopyToInfo> info;
-    std::unique_ptr<CopyToLocalState> localState;
-    std::shared_ptr<CopyToSharedState> sharedState;
+private:
+    function::CopyFunction copyFunc;
+    std::unique_ptr<function::CopyFuncBindData> bindData;
+    std::unique_ptr<function::CopyFuncLocalState> localState;
+    std::shared_ptr<function::CopyFuncSharedState> sharedState;
 };
 
 } // namespace processor

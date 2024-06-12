@@ -1,6 +1,9 @@
 #include "binder/binder.h"
 #include "binder/copy/bound_copy_to.h"
+#include "catalog/catalog.h"
+#include "catalog/catalog_entry/function_catalog_entry.h"
 #include "common/exception/binder.h"
+#include "function/built_in_function_utils.h"
 #include "parser/copy.h"
 
 using namespace kuzu::common;
@@ -18,6 +21,22 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     auto parsedQuery = copyToStatement.getStatement()->constPtrCast<RegularQuery>();
     auto query = bindQuery(*parsedQuery);
     auto columns = query->getStatementResult()->getColumns();
+
+    auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
+    std::string name = "COPY_{}";
+    switch (fileType) {
+    case FileType::CSV:
+        name = stringFormat(name, "CSV");
+        break;
+    case FileType::PARQUET:
+        name = stringFormat(name, "PARQUET");
+        break;
+    default:
+        KU_UNREACHABLE;
+    }
+    auto copyFunc =
+        *function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(), name, functions)
+             ->constPtrCast<function::CopyFunction>();
     for (auto& column : columns) {
         auto columnName = column->hasAlias() ? column->getAlias() : column->toString();
         columnNames.push_back(columnName);
@@ -29,11 +48,12 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     if (fileType != FileType::CSV && copyToStatement.getParsingOptionsRef().size() != 0) {
         throw BinderException{"Only copy to csv can have options."};
     }
-    // TODO: check this.
-    auto csvConfig =
-        CSVReaderConfig::construct(bindParsingOptions(copyToStatement.getParsingOptionsRef()));
-    return std::make_unique<BoundCopyTo>(boundFilePath, fileType, std::move(query),
-        csvConfig.option.copy());
+    function::CopyFuncBindInput bindInput{std::move(columnNames), std::move(columnTypes),
+        std::move(boundFilePath), bindParsingOptions(copyToStatement.getParsingOptionsRef()),
+        true /* canParallel */};
+    auto bindData = copyFunc.copyToBind(bindInput);
+    return std::make_unique<BoundCopyTo>(std::move(bindData), std::move(copyFunc),
+        std::move(query));
 }
 
 } // namespace binder
