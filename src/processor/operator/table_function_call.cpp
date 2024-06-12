@@ -59,12 +59,12 @@ bool TableFunctionCall::getNextTuplesInternal(ExecutionContext*) {
     }
     auto numTuplesScanned = info.function.tableFunc(localState.funcInput, localState.funcOutput);
     localState.funcOutput.dataChunk.state->getSelVectorUnsafe().setSelSize(numTuplesScanned);
-    if (localState.rowOffsetVector != nullptr) {
-        auto rowIdx = sharedState->getAndIncreaseRowIdx(numTuplesScanned);
-        for (auto i = 0u; i < numTuplesScanned; i++) {
-            localState.rowOffsetVector->setValue(i, rowIdx + i);
-        }
-    }
+    // if (localState.rowOffsetVector != nullptr) {
+    //     auto rowIdx = sharedState->getAndIncreaseRowIdx(numTuplesScanned);
+    //     for (auto i = 0u; i < numTuplesScanned; i++) {
+    //         localState.rowOffsetVector->setValue(i, rowIdx + i);
+    //     }
+    // }
     return numTuplesScanned != 0;
 }
 

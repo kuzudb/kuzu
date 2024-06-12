@@ -136,11 +136,8 @@ void RelInsertExecutor::insert(transaction::Transaction* tx) {
         }
         return;
     }
-    auto offset = relsStatistics->getNextRelOffset(tx, table->getTableID());
-    columnDataVectors[0]->setValue<internalID_t>(0, internalID_t{offset, table->getTableID()});
-    columnDataVectors[0]->setNull(0, false);
-    for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
-        columnDataEvaluators[i]->evaluate();
+    for (auto& evaluator : columnDataEvaluators) {
+        evaluator->evaluate();
     }
     auto insertState = std::make_unique<storage::RelTableInsertState>(*srcNodeIDVector,
         *dstNodeIDVector, columnDataVectors);
@@ -149,8 +146,8 @@ void RelInsertExecutor::insert(transaction::Transaction* tx) {
 }
 
 void RelInsertExecutor::skipInsert() {
-    for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
-        columnDataEvaluators[i]->evaluate();
+    for (auto& evaluator : columnDataEvaluators) {
+        evaluator->evaluate();
     }
     writeResult();
 }

@@ -146,7 +146,8 @@ BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo* info
 
 BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info) {
     std::vector<PropertyInfo> propertyInfos;
-    propertyInfos.emplace_back(InternalKeyword::ID, *LogicalType::INTERNAL_ID());
+    propertyInfos.emplace_back(InternalKeyword::ID, *LogicalType::INTERNAL_ID(),
+        createSerialDefaultExpr(Catalog::genSerialName(info->tableName, InternalKeyword::ID)));
     for (auto& propertyInfo : bindPropertyInfo(info->propertyDefinitions, info->tableName)) {
         propertyInfos.push_back(propertyInfo.copy());
     }

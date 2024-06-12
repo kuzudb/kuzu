@@ -203,6 +203,10 @@ static bool compatible(const LogicalType& type, const LogicalType& target) {
     if (type.getLogicalTypeID() == LogicalTypeID::ANY) {
         return true;
     }
+    if (type.getLogicalTypeID() == LogicalTypeID::INT64 &&
+        target.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID) {
+        return true;
+    }
     if (type.getLogicalTypeID() != target.getLogicalTypeID()) {
         return false;
     }
