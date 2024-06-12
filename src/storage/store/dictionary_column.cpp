@@ -46,23 +46,25 @@ void DictionaryColumn::append(Column::ChunkState& state, const DictionaryChunk& 
 
 void DictionaryColumn::scan(Transaction* transaction, const Column::ChunkState& state,
     DictionaryChunk& dictChunk) {
-    auto& dataMetadata = state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX].metadata;
+    auto& dataMetadata =
+        StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA).metadata;
     // Make sure that the chunk is large enough
     auto stringDataChunk = dictChunk.getStringDataChunk();
     if (dataMetadata.numValues > stringDataChunk->getCapacity()) {
         stringDataChunk->resize(std::bit_ceil(dataMetadata.numValues));
     }
-    dataColumn->scan(transaction, state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
-        stringDataChunk);
+    dataColumn->scan(transaction,
+        StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA), stringDataChunk);
 
-    auto& offsetMetadata = state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX].metadata;
+    auto& offsetMetadata =
+        StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET).metadata;
     auto offsetChunk = dictChunk.getOffsetChunk();
     // Make sure that the chunk is large enough
     if (offsetMetadata.numValues > offsetChunk->getCapacity()) {
         offsetChunk->resize(std::bit_ceil(offsetMetadata.numValues));
     }
-    offsetColumn->scan(transaction, state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX],
-        offsetChunk);
+    offsetColumn->scan(transaction,
+        StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET), offsetChunk);
 }
 
 void DictionaryColumn::scan(Transaction* transaction, const Column::ChunkState& offsetState,

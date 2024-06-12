@@ -69,7 +69,9 @@ void StringColumn::scan(Transaction* transaction, const ChunkState& state,
 
 void StringColumn::scan(Transaction* transaction, const ChunkState& state,
     ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
-    nullColumn->scan(transaction, state, columnChunk->getNullChunk(), startOffset, endOffset);
+    KU_ASSERT(state.nullState);
+    nullColumn->scan(transaction, *state.nullState, columnChunk->getNullChunk(), startOffset,
+        endOffset);
     const size_t numValuesToScan =
         getNumValuesFromDisk(metadataDA.get(), transaction, state, startOffset, endOffset);
     columnChunk->setNumValues(numValuesToScan);
@@ -78,8 +80,8 @@ void StringColumn::scan(Transaction* transaction, const ChunkState& state,
     }
 
     auto& stringColumnChunk = columnChunk->cast<StringChunkData>();
-    indexColumn->scan(transaction, state, stringColumnChunk.getIndexColumnChunk(), startOffset,
-        endOffset);
+    indexColumn->scan(transaction, getChildState(state, ChildStateIndex::INDEX),
+        stringColumnChunk.getIndexColumnChunk(), startOffset, endOffset);
     dictionary.scan(transaction, state, stringColumnChunk.getDictionaryChunk());
 }
 
