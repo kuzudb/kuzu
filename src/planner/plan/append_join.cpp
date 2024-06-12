@@ -34,9 +34,7 @@ void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType join
     // Check for sip
     auto ratio = probePlan.getCardinality() / buildPlan.getCardinality();
     if (ratio > PlannerKnobs::SIP_RATIO) {
-        hashJoin->setSIP(SidewaysInfoPassing::PROHIBIT_PROBE_TO_BUILD);
-    } else {
-        hashJoin->setSIP(SidewaysInfoPassing::PROHIBIT_BUILD_TO_PROBE);
+        hashJoin->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT;
     }
     // Update cost
     resultPlan.setCost(CostModel::computeHashJoinCost(joinNodeIDs, probePlan, buildPlan));
@@ -85,7 +83,7 @@ void Planner::appendIntersect(const std::shared_ptr<Expression>& intersectNodeID
         intersect->setChild(i + 1, buildPlans[i]->getLastOperator());
         auto ratio = probePlan.getCardinality() / buildPlans[i]->getCardinality();
         if (ratio > PlannerKnobs::SIP_RATIO) {
-            intersect->setSIP(SidewaysInfoPassing::PROHIBIT_PROBE_TO_BUILD);
+            intersect->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT;
         }
     }
     intersect->computeFactorizedSchema();

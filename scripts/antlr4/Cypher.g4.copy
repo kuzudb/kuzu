@@ -215,7 +215,25 @@ kU_InstallExtension
     : INSTALL SP oC_Variable ;
 
 oC_Query
-    : oC_RegularQuery ;
+    : (kU_ProjectGraph SP? )? oC_RegularQuery ;
+
+kU_ProjectGraph
+    : PROJECT SP GRAPH SP oC_SchemaName SP? '(' SP? kU_GraphProjectionTableItems SP? ')' ;
+
+PROJECT : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'J' | 'j' ) ( 'E' | 'e' ) ( 'C' | 'c' ) ( 'T' | 't' ) ;
+
+kU_GraphProjectionTableItems
+    : kU_GraphProjectionTableItem ( SP? ',' SP? kU_GraphProjectionTableItem )* ;
+
+kU_GraphProjectionTableItem
+    : oC_SchemaName ( SP? '{' SP? kU_GraphProjectionColumnItems SP? '}' )? ;
+
+kU_GraphProjectionColumnItems
+    : kU_GraphProjectionColumnItem ( SP? ',' SP? kU_GraphProjectionColumnItem )* ;
+
+kU_GraphProjectionColumnItem
+    : oC_PropertyKeyName ( SP kU_Default )? ( SP oC_Where )? ;
+
 
 oC_RegularQuery
     : oC_SingleQuery ( SP? oC_Union )*
@@ -261,24 +279,7 @@ kU_LoadFrom
     :  LOAD ( SP WITH SP HEADERS SP? '(' SP? kU_PropertyDefinitions SP? ')' )? SP FROM SP kU_ScanSource (SP? kU_ParsingOptions)? (SP? oC_Where)? ;
 
 kU_InQueryCall
-    : ( kU_ProjectGraph SP? )? CALL SP oC_FunctionInvocation (SP? oC_Where)? ;
-
-kU_ProjectGraph
-    : PROJECT SP GRAPH SP oC_SchemaName SP? '(' SP? kU_GraphProjectionTableItems SP? ')' ;
-
-PROJECT : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'J' | 'j' ) ( 'E' | 'e' ) ( 'C' | 'c' ) ( 'T' | 't' ) ;
-
-kU_GraphProjectionTableItems
-    : kU_GraphProjectionTableItem ( SP? ',' SP? kU_GraphProjectionTableItem )* ;
-
-kU_GraphProjectionTableItem
-    : oC_SchemaName ( SP? '{' SP? kU_GraphProjectionColumnItems SP? '}' )? ;
-
-kU_GraphProjectionColumnItems
-    : kU_GraphProjectionColumnItem ( SP? ',' SP? kU_GraphProjectionColumnItem )* ;
-
-kU_GraphProjectionColumnItem
-    : oC_PropertyKeyName ( SP kU_Default )? ( SP oC_Where )? ;
+    : CALL SP oC_FunctionInvocation (SP? oC_Where)? ;
 
 oC_Match
     : ( OPTIONAL SP )? MATCH SP? oC_Pattern ( SP oC_Where )? ;

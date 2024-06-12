@@ -75,10 +75,10 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         }
         auto varName =
             functionExpr->getChild(0)->constPtrCast<ParsedVariableExpression>()->getVariableName();
-        if (!call.hasProjectGraph() || call.getProjectGraph()->getGraphName() != varName) {
+        if (!graphEntrySet.hasGraph(varName)) {
             throw BinderException(stringFormat("Cannot find graph {}.", varName));
         }
-        auto graphEntry = bindProjectGraph(*call.getProjectGraph());
+        auto graphEntry = graphEntrySet.getEntry(varName);
         expression_vector children;
         std::vector<LogicalType> childrenTypes;
         children.push_back(nullptr); // placeholder for graph variable.
@@ -91,11 +91,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         auto func = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, entry);
         auto gdsFunc = *func->constPtrCast<GDSFunction>();
         gdsFunc.gds->bind(children);
-        auto columnNames = gdsFunc.gds->getResultColumnNames();
-        auto columnTypes = gdsFunc.gds->getResultColumnTypes();
-        for (auto i = 0u; i < columnNames.size(); ++i) {
-            outExprs.push_back(createVariable(columnNames[i], columnTypes[i]));
-        }
+        outExprs = gdsFunc.gds->getResultColumns(this);
         auto info = BoundGDSCallInfo(gdsFunc.copy(), graphEntry.copy(), std::move(outExprs));
         boundReadingClause = std::make_unique<BoundGDSCall>(std::move(info));
     } break;

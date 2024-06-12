@@ -37,13 +37,14 @@ private:
 };
 
 class LogicalPathPropertyProbe : public LogicalOperator {
+    static constexpr LogicalOperatorType type_ = LogicalOperatorType::PATH_PROPERTY_PROBE;
+
 public:
     LogicalPathPropertyProbe(std::shared_ptr<binder::RelExpression> recursiveRel,
         std::shared_ptr<LogicalOperator> probeChild, std::shared_ptr<LogicalOperator> nodeChild,
         std::shared_ptr<LogicalOperator> relChild, RecursiveJoinType joinType)
-        : LogicalOperator{LogicalOperatorType::PATH_PROPERTY_PROBE, std::move(probeChild)},
-          recursiveRel{std::move(recursiveRel)}, nodeChild{std::move(nodeChild)},
-          relChild{std::move(relChild)}, joinType{joinType}, sip{SidewaysInfoPassing::NONE} {}
+        : LogicalOperator{type_, std::move(probeChild)}, recursiveRel{std::move(recursiveRel)},
+          nodeChild{std::move(nodeChild)}, relChild{std::move(relChild)}, joinType{joinType} {}
 
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
@@ -55,24 +56,20 @@ public:
     void setJoinType(RecursiveJoinType joinType_) { joinType = joinType_; }
     RecursiveJoinType getJoinType() const { return joinType; }
 
-    void setSIP(SidewaysInfoPassing sip_) { sip = sip_; }
-    SidewaysInfoPassing getSIP() const { return sip; }
     std::shared_ptr<LogicalOperator> getNodeChild() const { return nodeChild; }
     std::shared_ptr<LogicalOperator> getRelChild() const { return relChild; }
 
-    std::unique_ptr<LogicalOperator> copy() override {
-        auto nodeChildCopy = nodeChild == nullptr ? nullptr : nodeChild->copy();
-        auto relChildCopy = relChild == nullptr ? nullptr : relChild->copy();
-        return std::make_unique<LogicalPathPropertyProbe>(recursiveRel, children[0]->copy(),
-            std::move(nodeChildCopy), std::move(relChildCopy), joinType);
-    }
+    SIPInfo& getSIPInfoUnsafe() { return sipInfo; }
+    SIPInfo getSIPInfo() const { return sipInfo; }
+
+    std::unique_ptr<LogicalOperator> copy() override;
 
 private:
     std::shared_ptr<binder::RelExpression> recursiveRel;
     std::shared_ptr<LogicalOperator> nodeChild;
     std::shared_ptr<LogicalOperator> relChild;
     RecursiveJoinType joinType;
-    SidewaysInfoPassing sip;
+    SIPInfo sipInfo;
 };
 
 } // namespace planner

@@ -1,3 +1,4 @@
+#include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
@@ -6,6 +7,7 @@
 #include "function/gds_function.h"
 #include "graph/graph.h"
 #include "main/client_context.h"
+#include "processor/operator/gds_call.h"
 #include "processor/result/factorized_table.h"
 
 using namespace kuzu::processor;
@@ -20,11 +22,14 @@ struct VariableLengthPathBindData final : public GDSBindData {
     uint8_t lowerBound;
     uint8_t upperBound;
 
-    VariableLengthPathBindData(uint8_t lowerBound, uint8_t upperBound)
-        : lowerBound{lowerBound}, upperBound{upperBound} {}
+    VariableLengthPathBindData(std::shared_ptr<Expression> nodeInput, uint8_t lowerBound,
+        uint8_t upperBound)
+        : GDSBindData{std::move(nodeInput)}, lowerBound{lowerBound}, upperBound{upperBound} {}
+    VariableLengthPathBindData(const VariableLengthPathBindData& other)
+        : GDSBindData{other}, lowerBound{other.lowerBound}, upperBound{other.upperBound} {}
 
     std::unique_ptr<GDSBindData> copy() const override {
-        return std::make_unique<VariableLengthPathBindData>(lowerBound, upperBound);
+        return std::make_unique<VariableLengthPathBindData>(*this);
     }
 };
 
@@ -88,31 +93,49 @@ public:
     VariableLengthPaths() = default;
     VariableLengthPaths(const VariableLengthPaths& other) : GDSAlgorithm{other} {}
 
+    /*
+     * Inputs are
+     *
+     * graph::ANY
+     * srcNode::NODE
+     * lowerBound::INT64
+     * upperBound::INT64
+     */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return {LogicalTypeID::ANY, LogicalTypeID::INT64, LogicalTypeID::INT64};
+        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64,
+            LogicalTypeID::INT64};
     }
 
-    std::vector<std::string> getResultColumnNames() const override {
-        return {"src", "dst", "length", "num_path"};
-    }
-
-    std::vector<common::LogicalType> getResultColumnTypes() const override {
-        return {*LogicalType::INTERNAL_ID(), *LogicalType::INTERNAL_ID(), *LogicalType::INT64(),
-            *LogicalType::INT64()};
+    /*
+     * Outputs are
+     *
+     * srcNode._id::INTERNAL_ID
+     * dst::INTERNAL_ID
+     * length::INT64
+     * num_path::INT64
+     */
+    binder::expression_vector getResultColumns(binder::Binder* binder) const override {
+        expression_vector columns;
+        columns.push_back(bindData->nodeInput->constCast<NodeExpression>().getInternalID());
+        columns.push_back(binder->createVariable("dst", *LogicalType::INTERNAL_ID()));
+        columns.push_back(binder->createVariable("length", *LogicalType::INT64()));
+        columns.push_back(binder->createVariable("num_path", *LogicalType::INT64()));
+        return columns;
     }
 
     void bind(const binder::expression_vector& params) override {
-        KU_ASSERT(params.size() == 3);
-        for (auto i = 1u; i < 3u; ++i) {
+        KU_ASSERT(params.size() == 4);
+        auto inputNode = params[1];
+        for (auto i = 2u; i < 4u; ++i) {
             ExpressionUtil::validateExpressionType(*params[i], ExpressionType::LITERAL);
             ExpressionUtil::validateDataType(*params[i], *LogicalType::INT64());
         }
-        auto lowerBound = params[1]->constCast<LiteralExpression>().getValue().getValue<int64_t>();
+        auto lowerBound = params[2]->constCast<LiteralExpression>().getValue().getValue<int64_t>();
         if (lowerBound <= 0) {
             throw BinderException("Lower bound must be greater than 0.");
         }
-        auto upperBound = params[2]->constCast<LiteralExpression>().getValue().getValue<int64_t>();
-        bindData = std::make_unique<VariableLengthPathBindData>(lowerBound, upperBound);
+        auto upperBound = params[3]->constCast<LiteralExpression>().getValue().getValue<int64_t>();
+        bindData = std::make_unique<VariableLengthPathBindData>(inputNode, lowerBound, upperBound);
     }
 
     void initLocalState(main::ClientContext* context) override {
@@ -122,7 +145,11 @@ public:
     void exec() override {
         auto extraData = bindData->ptrCast<VariableLengthPathBindData>();
         auto variableLengthPathLocalState = localState->ptrCast<VariableLengthPathLocalState>();
+        auto graph = sharedState->graph.get();
         for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
+            if (!sharedState->inputNodeOffsetMask->isNodeMasked(offset)) {
+                continue;
+            }
             auto sourceNodeID = nodeID_t{offset, graph->getNodeTableID()};
             auto sourceState = VariableLengthPathSourceState(sourceNodeID);
             // Start recursive computation for current source node ID.
@@ -137,7 +164,8 @@ public:
                     }
                 }
                 if (currentLevel >= extraData->lowerBound) {
-                    variableLengthPathLocalState->materialize(sourceState, currentLevel, *table);
+                    variableLengthPathLocalState->materialize(sourceState, currentLevel,
+                        *sharedState->fTable);
                 }
                 sourceState.initNextFrontier();
             };

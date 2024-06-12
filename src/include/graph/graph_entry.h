@@ -1,5 +1,9 @@
 #pragma once
 
+#include <string>
+#include <unordered_map>
+
+#include "common/assert.h"
 #include "common/copy_constructors.h"
 #include "common/types/internal_id_t.h"
 
@@ -20,6 +24,21 @@ struct GraphEntry {
 private:
     GraphEntry(const GraphEntry& other)
         : nodeTableIDs(other.nodeTableIDs), relTableIDs(other.relTableIDs) {}
+};
+
+class GraphEntrySet {
+public:
+    bool hasGraph(const std::string& name) const { return nameToEntry.contains(name); }
+    GraphEntry getEntry(const std::string& name) const {
+        KU_ASSERT(hasGraph(name));
+        return nameToEntry.at(name).copy();
+    }
+    void addGraph(const std::string& name, const GraphEntry& entry) {
+        nameToEntry.insert({name, entry.copy()});
+    }
+
+private:
+    std::unordered_map<std::string, GraphEntry> nameToEntry;
 };
 
 } // namespace graph

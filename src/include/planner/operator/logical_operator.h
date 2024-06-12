@@ -62,13 +62,14 @@ enum class LogicalOperatorType : uint8_t {
     USE_DATABASE,
 };
 
+class LogicalOperator;
+using logical_op_vector_t = std::vector<std::shared_ptr<LogicalOperator>>;
+
 struct LogicalOperatorUtils {
     static std::string logicalOperatorTypeToString(LogicalOperatorType type);
     static bool isUpdate(LogicalOperatorType type);
+    static bool isAccHashJoin(const LogicalOperator& op);
 };
-
-class LogicalOperator;
-using logical_op_vector_t = std::vector<std::shared_ptr<LogicalOperator>>;
 
 class LogicalOperator {
 public:

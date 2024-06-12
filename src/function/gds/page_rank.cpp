@@ -1,8 +1,10 @@
+#include "binder/binder.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds_function.h"
 #include "graph/graph.h"
 #include "main/client_context.h"
+#include "processor/operator/gds_call.h"
 #include "processor/result/factorized_table.h"
 
 using namespace kuzu::processor;
@@ -57,14 +59,26 @@ public:
     PageRank() = default;
     PageRank(const PageRank& other) : GDSAlgorithm{other} {}
 
+    /*
+     * Inputs are
+     *
+     * graph::ANY
+     */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
         return {LogicalTypeID::ANY};
     }
 
-    std::vector<std::string> getResultColumnNames() const override { return {"node_id", "rank"}; }
-
-    std::vector<common::LogicalType> getResultColumnTypes() const override {
-        return {*LogicalType::INTERNAL_ID(), *LogicalType::DOUBLE()};
+    /*
+     * Outputs are
+     *
+     * node_id::INTERNAL_ID
+     * rank::DOUBLE
+     */
+    binder::expression_vector getResultColumns(binder::Binder* binder) const override {
+        expression_vector columns;
+        columns.push_back(binder->createVariable("node_id", *LogicalType::INTERNAL_ID()));
+        columns.push_back(binder->createVariable("rank", *LogicalType::DOUBLE()));
+        return columns;
     }
 
     void bind(const binder::expression_vector&) override {
@@ -78,6 +92,7 @@ public:
     void exec() override {
         auto extraData = bindData->ptrCast<PageRankBindData>();
         auto pageRankLocalState = localState->ptrCast<PageRankLocalState>();
+        auto graph = sharedState->graph.get();
         // Initialize state.
         std::vector<double> ranks;
         ranks.resize(graph->getNumNodes());
@@ -108,7 +123,7 @@ public:
             }
         }
         // Materialize result.
-        pageRankLocalState->materialize(graph, ranks, *table);
+        pageRankLocalState->materialize(graph, ranks, *sharedState->fTable);
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {

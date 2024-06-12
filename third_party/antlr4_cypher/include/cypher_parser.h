@@ -64,21 +64,22 @@ public:
     RuleKU_DataType = 49, RuleKU_ListIdentifiers = 50, RuleKU_ListIdentifier = 51, 
     RuleOC_AnyCypherOption = 52, RuleOC_Explain = 53, RuleOC_Profile = 54, 
     RuleKU_Transaction = 55, RuleKU_Extension = 56, RuleKU_LoadExtension = 57, 
-    RuleKU_InstallExtension = 58, RuleOC_Query = 59, RuleOC_RegularQuery = 60, 
-    RuleOC_Union = 61, RuleOC_SingleQuery = 62, RuleOC_SinglePartQuery = 63, 
-    RuleOC_MultiPartQuery = 64, RuleKU_QueryPart = 65, RuleOC_UpdatingClause = 66, 
-    RuleOC_ReadingClause = 67, RuleKU_LoadFrom = 68, RuleKU_InQueryCall = 69, 
-    RuleKU_ProjectGraph = 70, RuleKU_GraphProjectionTableItems = 71, RuleKU_GraphProjectionTableItem = 72, 
-    RuleKU_GraphProjectionColumnItems = 73, RuleKU_GraphProjectionColumnItem = 74, 
-    RuleOC_Match = 75, RuleOC_Unwind = 76, RuleOC_Create = 77, RuleOC_Merge = 78, 
-    RuleOC_MergeAction = 79, RuleOC_Set = 80, RuleOC_SetItem = 81, RuleOC_Delete = 82, 
-    RuleOC_With = 83, RuleOC_Return = 84, RuleOC_ProjectionBody = 85, RuleOC_ProjectionItems = 86, 
-    RuleOC_ProjectionItem = 87, RuleOC_Order = 88, RuleOC_Skip = 89, RuleOC_Limit = 90, 
-    RuleOC_SortItem = 91, RuleOC_Where = 92, RuleOC_Pattern = 93, RuleOC_PatternPart = 94, 
-    RuleOC_AnonymousPatternPart = 95, RuleOC_PatternElement = 96, RuleOC_NodePattern = 97, 
-    RuleOC_PatternElementChain = 98, RuleOC_RelationshipPattern = 99, RuleOC_RelationshipDetail = 100, 
-    RuleKU_Properties = 101, RuleOC_RelationshipTypes = 102, RuleOC_NodeLabels = 103, 
-    RuleOC_NodeLabel = 104, RuleOC_RangeLiteral = 105, RuleKU_RecursiveRelationshipComprehension = 106, 
+    RuleKU_InstallExtension = 58, RuleOC_Query = 59, RuleKU_ProjectGraph = 60, 
+    RuleKU_GraphProjectionTableItems = 61, RuleKU_GraphProjectionTableItem = 62, 
+    RuleKU_GraphProjectionColumnItems = 63, RuleKU_GraphProjectionColumnItem = 64, 
+    RuleOC_RegularQuery = 65, RuleOC_Union = 66, RuleOC_SingleQuery = 67, 
+    RuleOC_SinglePartQuery = 68, RuleOC_MultiPartQuery = 69, RuleKU_QueryPart = 70, 
+    RuleOC_UpdatingClause = 71, RuleOC_ReadingClause = 72, RuleKU_LoadFrom = 73, 
+    RuleKU_InQueryCall = 74, RuleOC_Match = 75, RuleOC_Unwind = 76, RuleOC_Create = 77, 
+    RuleOC_Merge = 78, RuleOC_MergeAction = 79, RuleOC_Set = 80, RuleOC_SetItem = 81, 
+    RuleOC_Delete = 82, RuleOC_With = 83, RuleOC_Return = 84, RuleOC_ProjectionBody = 85, 
+    RuleOC_ProjectionItems = 86, RuleOC_ProjectionItem = 87, RuleOC_Order = 88, 
+    RuleOC_Skip = 89, RuleOC_Limit = 90, RuleOC_SortItem = 91, RuleOC_Where = 92, 
+    RuleOC_Pattern = 93, RuleOC_PatternPart = 94, RuleOC_AnonymousPatternPart = 95, 
+    RuleOC_PatternElement = 96, RuleOC_NodePattern = 97, RuleOC_PatternElementChain = 98, 
+    RuleOC_RelationshipPattern = 99, RuleOC_RelationshipDetail = 100, RuleKU_Properties = 101, 
+    RuleOC_RelationshipTypes = 102, RuleOC_NodeLabels = 103, RuleOC_NodeLabel = 104, 
+    RuleOC_RangeLiteral = 105, RuleKU_RecursiveRelationshipComprehension = 106, 
     RuleKU_IntermediateNodeProjectionItems = 107, RuleKU_IntermediateRelProjectionItems = 108, 
     RuleOC_LowerBound = 109, RuleOC_UpperBound = 110, RuleOC_LabelName = 111, 
     RuleOC_RelTypeName = 112, RuleOC_Expression = 113, RuleOC_OrExpression = 114, 
@@ -181,6 +182,11 @@ public:
   class KU_LoadExtensionContext;
   class KU_InstallExtensionContext;
   class OC_QueryContext;
+  class KU_ProjectGraphContext;
+  class KU_GraphProjectionTableItemsContext;
+  class KU_GraphProjectionTableItemContext;
+  class KU_GraphProjectionColumnItemsContext;
+  class KU_GraphProjectionColumnItemContext;
   class OC_RegularQueryContext;
   class OC_UnionContext;
   class OC_SingleQueryContext;
@@ -191,11 +197,6 @@ public:
   class OC_ReadingClauseContext;
   class KU_LoadFromContext;
   class KU_InQueryCallContext;
-  class KU_ProjectGraphContext;
-  class KU_GraphProjectionTableItemsContext;
-  class KU_GraphProjectionTableItemContext;
-  class KU_GraphProjectionColumnItemsContext;
-  class KU_GraphProjectionColumnItemContext;
   class OC_MatchContext;
   class OC_UnwindContext;
   class OC_CreateContext;
@@ -1214,11 +1215,86 @@ public:
     OC_QueryContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     OC_RegularQueryContext *oC_RegularQuery();
+    KU_ProjectGraphContext *kU_ProjectGraph();
+    antlr4::tree::TerminalNode *SP();
 
    
   };
 
   OC_QueryContext* oC_Query();
+
+  class  KU_ProjectGraphContext : public antlr4::ParserRuleContext {
+  public:
+    KU_ProjectGraphContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *PROJECT();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+    antlr4::tree::TerminalNode *GRAPH();
+    OC_SchemaNameContext *oC_SchemaName();
+    KU_GraphProjectionTableItemsContext *kU_GraphProjectionTableItems();
+
+   
+  };
+
+  KU_ProjectGraphContext* kU_ProjectGraph();
+
+  class  KU_GraphProjectionTableItemsContext : public antlr4::ParserRuleContext {
+  public:
+    KU_GraphProjectionTableItemsContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    std::vector<KU_GraphProjectionTableItemContext *> kU_GraphProjectionTableItem();
+    KU_GraphProjectionTableItemContext* kU_GraphProjectionTableItem(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+
+   
+  };
+
+  KU_GraphProjectionTableItemsContext* kU_GraphProjectionTableItems();
+
+  class  KU_GraphProjectionTableItemContext : public antlr4::ParserRuleContext {
+  public:
+    KU_GraphProjectionTableItemContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    OC_SchemaNameContext *oC_SchemaName();
+    KU_GraphProjectionColumnItemsContext *kU_GraphProjectionColumnItems();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+
+   
+  };
+
+  KU_GraphProjectionTableItemContext* kU_GraphProjectionTableItem();
+
+  class  KU_GraphProjectionColumnItemsContext : public antlr4::ParserRuleContext {
+  public:
+    KU_GraphProjectionColumnItemsContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    std::vector<KU_GraphProjectionColumnItemContext *> kU_GraphProjectionColumnItem();
+    KU_GraphProjectionColumnItemContext* kU_GraphProjectionColumnItem(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+
+   
+  };
+
+  KU_GraphProjectionColumnItemsContext* kU_GraphProjectionColumnItems();
+
+  class  KU_GraphProjectionColumnItemContext : public antlr4::ParserRuleContext {
+  public:
+    KU_GraphProjectionColumnItemContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    OC_PropertyKeyNameContext *oC_PropertyKeyName();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+    KU_DefaultContext *kU_Default();
+    OC_WhereContext *oC_Where();
+
+   
+  };
+
+  KU_GraphProjectionColumnItemContext* kU_GraphProjectionColumnItem();
 
   class  OC_RegularQueryContext : public antlr4::ParserRuleContext {
   public:
@@ -1369,86 +1445,12 @@ public:
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
     OC_FunctionInvocationContext *oC_FunctionInvocation();
-    KU_ProjectGraphContext *kU_ProjectGraph();
     OC_WhereContext *oC_Where();
 
    
   };
 
   KU_InQueryCallContext* kU_InQueryCall();
-
-  class  KU_ProjectGraphContext : public antlr4::ParserRuleContext {
-  public:
-    KU_ProjectGraphContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *PROJECT();
-    std::vector<antlr4::tree::TerminalNode *> SP();
-    antlr4::tree::TerminalNode* SP(size_t i);
-    antlr4::tree::TerminalNode *GRAPH();
-    OC_SchemaNameContext *oC_SchemaName();
-    KU_GraphProjectionTableItemsContext *kU_GraphProjectionTableItems();
-
-   
-  };
-
-  KU_ProjectGraphContext* kU_ProjectGraph();
-
-  class  KU_GraphProjectionTableItemsContext : public antlr4::ParserRuleContext {
-  public:
-    KU_GraphProjectionTableItemsContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    std::vector<KU_GraphProjectionTableItemContext *> kU_GraphProjectionTableItem();
-    KU_GraphProjectionTableItemContext* kU_GraphProjectionTableItem(size_t i);
-    std::vector<antlr4::tree::TerminalNode *> SP();
-    antlr4::tree::TerminalNode* SP(size_t i);
-
-   
-  };
-
-  KU_GraphProjectionTableItemsContext* kU_GraphProjectionTableItems();
-
-  class  KU_GraphProjectionTableItemContext : public antlr4::ParserRuleContext {
-  public:
-    KU_GraphProjectionTableItemContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    OC_SchemaNameContext *oC_SchemaName();
-    KU_GraphProjectionColumnItemsContext *kU_GraphProjectionColumnItems();
-    std::vector<antlr4::tree::TerminalNode *> SP();
-    antlr4::tree::TerminalNode* SP(size_t i);
-
-   
-  };
-
-  KU_GraphProjectionTableItemContext* kU_GraphProjectionTableItem();
-
-  class  KU_GraphProjectionColumnItemsContext : public antlr4::ParserRuleContext {
-  public:
-    KU_GraphProjectionColumnItemsContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    std::vector<KU_GraphProjectionColumnItemContext *> kU_GraphProjectionColumnItem();
-    KU_GraphProjectionColumnItemContext* kU_GraphProjectionColumnItem(size_t i);
-    std::vector<antlr4::tree::TerminalNode *> SP();
-    antlr4::tree::TerminalNode* SP(size_t i);
-
-   
-  };
-
-  KU_GraphProjectionColumnItemsContext* kU_GraphProjectionColumnItems();
-
-  class  KU_GraphProjectionColumnItemContext : public antlr4::ParserRuleContext {
-  public:
-    KU_GraphProjectionColumnItemContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    OC_PropertyKeyNameContext *oC_PropertyKeyName();
-    std::vector<antlr4::tree::TerminalNode *> SP();
-    antlr4::tree::TerminalNode* SP(size_t i);
-    KU_DefaultContext *kU_Default();
-    OC_WhereContext *oC_Where();
-
-   
-  };
-
-  KU_GraphProjectionColumnItemContext* kU_GraphProjectionColumnItem();
 
   class  OC_MatchContext : public antlr4::ParserRuleContext {
   public:

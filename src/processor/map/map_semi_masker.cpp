@@ -1,4 +1,5 @@
 #include "planner/operator/sip/logical_semi_masker.h"
+#include "processor/operator/gds_call.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
 #include "processor/operator/semi_masker.h"
 #include "processor/plan_mapper.h"
@@ -39,6 +40,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
                 masksPerTable.at(tableID).emplace_back(semiMask.get(), 0 /* initial mask idx */);
             }
         } break;
+        case PhysicalOperatorType::IN_QUERY_CALL: {
+            KU_ASSERT(physicalOp->getChild(0)->getOperatorType() == PhysicalOperatorType::GDS_CALL);
+            auto gds = physicalOp->getChild(0)->ptrCast<GDSCall>();
+            KU_ASSERT(gds->hasSemiMask());
+            auto mask = gds->getSemiMask();
+            auto tableID = mask->getNodeTable()->getTableID();
+            masksPerTable.at(tableID).emplace_back(mask, 0);
+        } break;
         default:
             KU_UNREACHABLE;
         }
@@ -46,7 +55,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
     auto keyPos = DataPos(inSchema->getExpressionPos(*semiMasker->getKey()));
     auto info = std::make_unique<SemiMaskerInfo>(keyPos, std::move(masksPerTable));
     switch (semiMasker->getType()) {
-    case planner::SemiMaskType::NODE: {
+    case planner::SemiMaskConstructionType::NODE: {
         if (tableIDs.size() > 1) {
             return std::make_unique<MultiTableSemiMasker>(std::move(info), std::move(prevOperator),
                 getOperatorID(), semiMasker->getExpressionsForPrinting());
@@ -55,7 +64,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
                 getOperatorID(), semiMasker->getExpressionsForPrinting());
         }
     }
-    case planner::SemiMaskType::PATH: {
+    case planner::SemiMaskConstructionType::PATH: {
         if (tableIDs.size() > 1) {
             return std::make_unique<PathMultipleTableSemiMasker>(std::move(info),
                 std::move(prevOperator), getOperatorID(), semiMasker->getExpressionsForPrinting());

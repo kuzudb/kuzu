@@ -6,37 +6,50 @@
 namespace kuzu {
 namespace planner {
 
-enum class SemiMaskType : uint8_t {
+/*
+ * Semi mask is always collecting offset but maybe constructed from different type of Vectors
+ *
+ * NODE
+ * offsets are collected from value vector of type NODE_ID (INTERNAL_ID)
+ *
+ * PATH
+ * offsets are collected from value vector of type PATH (LIST[INTERNAL_ID]). This is a fast-path
+ * code used when scanning properties along the path.
+ * */
+enum class SemiMaskConstructionType : uint8_t {
     NODE = 0,
     PATH = 1,
 };
 
 class LogicalSemiMasker : public LogicalOperator {
+    static constexpr LogicalOperatorType type_ = LogicalOperatorType::SEMI_MASKER;
+
 public:
-    LogicalSemiMasker(SemiMaskType type, std::shared_ptr<binder::Expression> key,
+    LogicalSemiMasker(SemiMaskConstructionType type, std::shared_ptr<binder::Expression> key,
         std::vector<common::table_id_t> nodeTableIDs, std::vector<LogicalOperator*> ops,
         std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::SEMI_MASKER, std::move(child)}, type{type},
-          key{std::move(key)}, nodeTableIDs{std::move(nodeTableIDs)}, ops{std::move(ops)} {}
+        : LogicalOperator{type_, std::move(child)}, type{type}, key{std::move(key)},
+          nodeTableIDs{std::move(nodeTableIDs)}, ops{std::move(ops)} {}
 
-    inline void computeFactorizedSchema() override { copyChildSchema(0); }
-    inline void computeFlatSchema() override { copyChildSchema(0); }
+    void computeFactorizedSchema() override { copyChildSchema(0); }
+    void computeFlatSchema() override { copyChildSchema(0); }
 
-    inline std::string getExpressionsForPrinting() const override { return key->toString(); }
+    std::string getExpressionsForPrinting() const override { return key->toString(); }
 
-    inline SemiMaskType getType() const { return type; }
-    inline std::shared_ptr<binder::Expression> getKey() const { return key; }
-    inline std::vector<common::table_id_t> getNodeTableIDs() const { return nodeTableIDs; }
-    inline std::vector<LogicalOperator*> getOperators() const { return ops; }
+    SemiMaskConstructionType getType() const { return type; }
+    std::shared_ptr<binder::Expression> getKey() const { return key; }
+    std::vector<common::table_id_t> getNodeTableIDs() const { return nodeTableIDs; }
+    std::vector<LogicalOperator*> getOperators() const { return ops; }
 
-    inline std::unique_ptr<LogicalOperator> copy() override {
+    std::unique_ptr<LogicalOperator> copy() override {
         throw common::RuntimeException("LogicalSemiMasker::copy() should not be called.");
     }
 
 private:
-    SemiMaskType type;
+    SemiMaskConstructionType type;
     std::shared_ptr<binder::Expression> key;
     std::vector<common::table_id_t> nodeTableIDs;
+    // Operators accepting semi masker
     std::vector<LogicalOperator*> ops;
 };
 
