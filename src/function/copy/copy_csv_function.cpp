@@ -21,14 +21,11 @@ struct CopyToCSVBindData : public CopyFuncBindData {
         : CopyFuncBindData{std::move(names), std::move(fileName), canParallel},
           copyToOption{std::move(copyToOption)} {}
 
-    CopyToCSVBindData(std::vector<std::string> names, std::vector<common::LogicalType> types,
-        std::string fileName, bool canParallel, CSVOption copyToOption)
-        : CopyFuncBindData{std::move(names), std::move(types), std::move(fileName), canParallel},
-          copyToOption{std::move(copyToOption)} {}
-
     std::unique_ptr<CopyFuncBindData> copy() const override {
-        return std::make_unique<CopyToCSVBindData>(names, types, fileName, canParallel,
-            copyToOption.copy());
+        auto bindData =
+            std::make_unique<CopyToCSVBindData>(names, fileName, canParallel, copyToOption.copy());
+        bindData->types = types;
+        return bindData;
     }
 };
 
@@ -69,7 +66,7 @@ static bool requireQuotes(const CopyToCSVBindData& copyToCSVBindData, const uint
     return false;
 }
 
-static void writeString(common::BufferedSerializer* serializer, const CopyFuncBindData& bindData,
+static void writeString(BufferedSerializer* serializer, const CopyFuncBindData& bindData,
     const uint8_t* strData, uint64_t strLen, bool forceQuote) {
     auto& copyToCSVBindData = bindData.constCast<CopyToCSVBindData>();
     if (!forceQuote) {
@@ -109,8 +106,8 @@ static void writeString(common::BufferedSerializer* serializer, const CopyFuncBi
 
 struct CopyToCSVSharedState : public CopyFuncSharedState {
     std::mutex mtx;
-    std::unique_ptr<common::FileInfo> fileInfo;
-    common::offset_t offset = 0;
+    std::unique_ptr<FileInfo> fileInfo;
+    offset_t offset = 0;
 
     CopyToCSVSharedState(main::ClientContext& context, const CopyFuncBindData& bindData) {
         fileInfo = context.getVFSUnsafe()->openFile(bindData.fileName, O_WRONLY | O_CREAT | O_TRUNC,

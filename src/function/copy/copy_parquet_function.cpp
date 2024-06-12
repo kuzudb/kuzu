@@ -19,12 +19,10 @@ struct CopyToParquetBindData final : public CopyFuncBindData {
     CopyToParquetBindData(std::vector<std::string> names, std::string fileName, bool canParallel)
         : CopyFuncBindData{std::move(names), std::move(fileName), canParallel} {}
 
-    CopyToParquetBindData(std::vector<std::string> names, std::vector<common::LogicalType> types,
-        std::string fileName, bool canParallel)
-        : CopyFuncBindData{std::move(names), std::move(types), std::move(fileName), canParallel} {}
-
     std::unique_ptr<CopyFuncBindData> copy() const override {
-        return std::make_unique<CopyToParquetBindData>(names, types, fileName, canParallel);
+        auto bindData = std::make_unique<CopyToParquetBindData>(names, fileName, canParallel);
+        bindData->types = types;
+        return bindData;
     }
 };
 
@@ -45,7 +43,6 @@ struct CopyToParquetLocalState final : public CopyFuncLocalState {
                     ColumnSchema(true, 1 /* dummyGroupPos */, (uint32_t)sizeof(overflow_value_t));
             tableSchema.appendColumn(std::move(columnSchema));
         }
-        auto& copyToBindData = bindData.constCast<CopyToParquetBindData>();
         ft = std::make_unique<FactorizedTable>(mm, tableSchema.copy());
         numTuplesInFT = 0;
     }

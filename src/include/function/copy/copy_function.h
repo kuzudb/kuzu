@@ -6,10 +6,6 @@
 #include "processor/data_pos.h"
 
 namespace kuzu {
-namespace processor {
-class ResultSet;
-} // namespace processor
-
 namespace function {
 
 struct CopyFuncLocalState {
@@ -44,9 +40,9 @@ struct CopyFuncBindData {
         : names{std::move(names)}, types{std::move(types)}, fileName{std::move(fileName)},
           canParallel{canParallel} {}
 
-    void bindDataType(std::vector<common::LogicalType> types_) { types = std::move(types_); }
-
     virtual ~CopyFuncBindData() = default;
+
+    void bindDataType(std::vector<common::LogicalType> types_) { types = std::move(types_); }
 
     template<class TARGET>
     const TARGET& constCast() const {

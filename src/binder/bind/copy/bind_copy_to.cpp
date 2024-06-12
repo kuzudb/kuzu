@@ -17,11 +17,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     auto boundFilePath = copyToStatement.getFilePath();
     auto fileType = bindFileType(boundFilePath);
     std::vector<std::string> columnNames;
-    std::vector<LogicalType> columnTypes;
     auto parsedQuery = copyToStatement.getStatement()->constPtrCast<RegularQuery>();
     auto query = bindQuery(*parsedQuery);
     auto columns = query->getStatementResult()->getColumns();
-
     auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
     auto fileTypeStr = common::FileTypeUtils::toString(fileType);
     auto name = common::stringFormat("COPY_{}", fileTypeStr);
@@ -31,9 +29,6 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     for (auto& column : columns) {
         auto columnName = column->hasAlias() ? column->getAlias() : column->toString();
         columnNames.push_back(columnName);
-        // TODO(Xiyang): Query: COPY (RETURN null) TO '/tmp/1.parquet', the datatype of the first
-        // column is ANY, should we solve the type at binder?
-        columnTypes.push_back(column->getDataType());
     }
     if (fileType != FileType::CSV && copyToStatement.getParsingOptionsRef().size() != 0) {
         throw BinderException{"Only copy to csv can have options."};

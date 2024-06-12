@@ -36,7 +36,6 @@ public:
     std::unordered_map<std::string, common::Value> getExportOptions() const {
         return boundFileInfo.options;
     }
-
     const common::ReaderConfig* getBoundFileInfo() const { return &boundFileInfo; }
     const std::vector<ExportedTableData>* getExportData() const { return &exportData; }
 
