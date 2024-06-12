@@ -64,7 +64,7 @@ ListColumn::ListColumn(std::string name, LogicalType dataType,
         ColumnFactory::createColumn(dataColName, *ListType::getChildType(this->dataType).copy(),
             *metaDAHeaderInfo.childrenInfos[DATA_COLUMN_CHILD_READ_STATE_IDX], dataFH, metadataDAC,
             bufferManager, wal, transaction, enableCompression);
-    offsetColumn = ColumnFactory::createColumn(sizeColName, *LogicalType::UINT64(),
+    offsetColumn = ColumnFactory::createColumn(offsetColName, *LogicalType::UINT64(),
         *metaDAHeaderInfo.childrenInfos[OFFSET_COLUMN_CHILD_READ_STATE_IDX], dataFH, metadataDAC,
         bufferManager, wal, transaction, enableCompression);
 }
@@ -73,7 +73,7 @@ void ListColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeG
     ChunkState& readState) {
     Column::initChunkState(transaction, nodeGroupIdx, readState);
     // We put states for size and data column into childrenStates.
-    readState.childrenStates.resize(3);
+    readState.childrenStates.resize(CHILD_COLUMN_COUNT);
     sizeColumn->initChunkState(transaction, nodeGroupIdx,
         readState.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX]);
     dataColumn->initChunkState(transaction, nodeGroupIdx,
@@ -330,7 +330,6 @@ ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
         enableCompression, numOffsetsToRead);
     auto sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(*LogicalType::UINT32(),
         enableCompression, numOffsetsToRead);
-    // TODO: Should use readState here too.
     offsetColumn->scan(transaction, state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX],
         offsetColumnChunk.get(), startOffsetInNodeGroup, endOffsetInNodeGroup);
     sizeColumn->scan(transaction, state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX],
@@ -354,7 +353,6 @@ void ListColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkSt
         auto localUpdateChunk = localUpdateChunks[chunkIdx];
         dstOffsets.push_back(offsetInDstChunk);
         columnChunk->append(localUpdateChunk, offsetInLocalChunk, 1);
-        KU_ASSERT(columnChunk->sanityCheck());
     }
     for (auto& [offsetInDstChunk, rowIdx] : insertInfo) {
         auto [chunkIdx, offsetInLocalChunk] =
@@ -362,7 +360,6 @@ void ListColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkSt
         auto localInsertChunk = localInsertChunks[chunkIdx];
         dstOffsets.push_back(offsetInDstChunk);
         columnChunk->append(localInsertChunk, offsetInLocalChunk, 1);
-        KU_ASSERT(columnChunk->sanityCheck());
     }
     prepareCommitForExistingChunk(transaction, state, dstOffsets, columnChunk.get(),
         0 /*startSrcOffset*/);
@@ -409,6 +406,8 @@ void ListColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkSt
             state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX], dstOffsets, &listChunk,
             startSrcOffset);
 
+        // since there is no data stored in the main column's buffer we only need to update the null
+        // column
         nullColumn->prepareCommitForExistingChunk(transaction, *state.nullState, dstOffsets,
             chunk->getNullChunk(), startSrcOffset);
         if (state.metadata.numValues != state.nullState->metadata.numValues) {
@@ -425,13 +424,8 @@ void ListColumn::prepareCommitForOffsetChunk(Transaction* transaction, ChunkStat
     auto& listChunk = chunk->cast<ListChunkData>();
     auto* offsetChunk = listChunk.getOffsetColumnChunk();
     if (offsetColumn->canCommitInPlace(offsetState, dstOffsets, offsetChunk, startSrcOffset)) {
-        offsetColumn->commitColumnChunkInPlace(offsetState, dstOffsets, offsetChunk,
-            startSrcOffset);
-        offsetColumn->metadataDA->update(offsetState.nodeGroupIdx, offsetState.metadata);
-        if (offsetColumn->nullColumn) {
-            offsetColumn->nullColumn->prepareCommitForChunk(transaction, offsetState.nodeGroupIdx,
-                false, dstOffsets, offsetChunk->getNullChunk(), startSrcOffset);
-        }
+        offsetColumn->prepareCommitForExistingChunkInPlace(transaction, offsetState, dstOffsets,
+            offsetChunk, startSrcOffset);
     } else {
         commitOffsetColumnChunkOutOfPlace(transaction, offsetState, dstOffsets, chunk,
             startSrcOffset);

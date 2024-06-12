@@ -70,7 +70,7 @@ private:
 
     void appendNullList();
 
-    void syncNumValuesWithOffsetChunk();
+    void setOffsetChunkValue(common::offset_t val, common::offset_t pos);
 
 protected:
     std::unique_ptr<ColumnChunkData> offsetColumnChunk;

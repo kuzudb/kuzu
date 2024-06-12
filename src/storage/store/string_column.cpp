@@ -36,15 +36,13 @@ StringColumn::StringColumn(std::string name, LogicalType dataType,
 
 Column::ChunkState& StringColumn::getChildState(ChunkState& state, ChildStateIndex child) {
     const auto childIdx = static_cast<common::idx_t>(child);
-    KU_ASSERT(state.childrenStates.size() > childIdx);
-    return state.childrenStates[childIdx];
+    return state.getChildState(childIdx);
 }
 
 const Column::ChunkState& StringColumn::getChildState(const ChunkState& state,
     ChildStateIndex child) {
     const auto childIdx = static_cast<common::idx_t>(child);
-    KU_ASSERT(state.childrenStates.size() > childIdx);
-    return state.childrenStates[childIdx];
+    return state.getChildState(childIdx);
 }
 
 void StringColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,

@@ -174,12 +174,9 @@ void NodeTableData::prepareLocalNodeGroupToCommit(node_group_idx_t nodeGroupIdx,
     Transaction* transaction, LocalNodeNG* localNodeGroup) const {
     auto numNodeGroups = getNumCommittedNodeGroups();
     const auto isNewNodeGroup = nodeGroupIdx >= numNodeGroups;
-    for (const auto& column : columns) {
-        KU_ASSERT(column->getNumCommittedNodeGroups() == numNodeGroups);
-    }
-    // KU_ASSERT(std::find_if(columns.begin(), columns.end(), [&](const auto& column) {
-    //     return column->getNumCommittedNodeGroups() != numNodeGroups;
-    // }) == columns.end());
+    KU_ASSERT(std::find_if(columns.begin(), columns.end(), [&](const auto& column) {
+        return column->getNumCommittedNodeGroups() != numNodeGroups;
+    }) == columns.end());
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         const auto column = columns[columnID].get();
         auto localInsertChunk = localNodeGroup->getInsertChunks().getLocalChunk(columnID);

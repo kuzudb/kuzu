@@ -114,6 +114,16 @@ void InternalIDColumn::populateCommonTableID(const ValueVector* resultVector) co
     }
 }
 
+Column::ChunkState& Column::ChunkState::getChildState(common::idx_t childIdx) {
+    KU_ASSERT(childrenStates.size() > childIdx);
+    return childrenStates[childIdx];
+}
+
+const Column::ChunkState& Column::ChunkState::getChildState(common::idx_t childIdx) const {
+    KU_ASSERT(childrenStates.size() > childIdx);
+    return childrenStates[childIdx];
+}
+
 Column::Column(std::string name, LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
     BMFileHandle* dataFH, DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
     transaction::Transaction* transaction, bool enableCompression, bool requireNullColumn)
@@ -583,16 +593,21 @@ void Column::prepareCommitForExistingChunk(Transaction* transaction, ChunkState&
 void Column::prepareCommitForExistingChunk(Transaction* transaction, ChunkState& state,
     const std::vector<offset_t>& dstOffsets, ColumnChunkData* chunk, offset_t startSrcOffset) {
     if (canCommitInPlace(state, dstOffsets, chunk, startSrcOffset)) {
-        commitColumnChunkInPlace(state, dstOffsets, chunk, startSrcOffset);
-        KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
-        metadataDA->update(state.nodeGroupIdx, state.metadata);
-        if (nullColumn) {
-            nullColumn->prepareCommitForExistingChunk(transaction, *state.nullState, dstOffsets,
-                chunk->getNullChunk(), startSrcOffset);
-        }
+        prepareCommitForExistingChunkInPlace(transaction, state, dstOffsets, chunk, startSrcOffset);
     } else {
         commitColumnChunkOutOfPlace(transaction, state, false /*isNewNodeGroup*/, dstOffsets, chunk,
             startSrcOffset);
+    }
+}
+
+void Column::prepareCommitForExistingChunkInPlace(Transaction* transaction, ChunkState& state,
+    const std::vector<offset_t>& dstOffsets, ColumnChunkData* chunk, offset_t startSrcOffset) {
+    commitColumnChunkInPlace(state, dstOffsets, chunk, startSrcOffset);
+    KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
+    metadataDA->update(state.nodeGroupIdx, state.metadata);
+    if (nullColumn) {
+        nullColumn->prepareCommitForExistingChunk(transaction, *state.nullState, dstOffsets,
+            chunk->getNullChunk(), startSrcOffset);
     }
 }
 

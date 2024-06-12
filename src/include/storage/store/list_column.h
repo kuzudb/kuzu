@@ -46,6 +46,7 @@ class ListColumn final : public Column {
     static constexpr common::idx_t SIZE_COLUMN_CHILD_READ_STATE_IDX = 0;
     static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 1;
     static constexpr common::idx_t OFFSET_COLUMN_CHILD_READ_STATE_IDX = 2;
+    static constexpr size_t CHILD_COLUMN_COUNT = 3;
 
 public:
     ListColumn(std::string name, common::LogicalType dataType,
