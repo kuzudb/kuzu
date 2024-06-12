@@ -136,6 +136,21 @@ Column::Column(std::string name, LogicalType dataType, const MetadataDAHInfo& me
 
 Column::~Column() = default;
 
+size_t Column::getNumValuesFromDisk(DiskArray<ColumnChunkMetadata>* metadataDA,
+    Transaction* transaction, const ChunkState& state, offset_t startOffset, offset_t endOffset) {
+    KU_ASSERT(nullptr != metadataDA);
+
+    if (state.nodeGroupIdx >= metadataDA->getNumElements(transaction->getType())) {
+        return 0;
+    } else {
+        auto chunkMetadata = metadataDA->get(state.nodeGroupIdx, transaction->getType());
+        auto numValues = chunkMetadata.numValues == 0 ?
+                             0 :
+                             std::min(endOffset, chunkMetadata.numValues) - startOffset;
+        return numValues;
+    }
+}
+
 Column* Column::getNullColumn() const {
     return nullColumn.get();
 }
@@ -788,6 +803,10 @@ void Column::applyLocalChunkToColumnChunk(const ChunkCollection& localChunks,
     }
 }
 
+void Column::updateStateMetadataNumValues(ChunkState& state, size_t numValues) {
+    state.metadata.numValues = numValues;
+}
+
 void Column::applyLocalChunkToColumn(ChunkState& state, const ChunkCollection& localChunks,
     const offset_to_row_idx_t& updateInfo) {
     for (auto& [offsetInDstChunk, rowIdx] : updateInfo) {
@@ -798,7 +817,7 @@ void Column::applyLocalChunkToColumn(ChunkState& state, const ChunkCollection& l
                 1 /*numValues*/);
         } else {
             if (offsetInDstChunk >= state.metadata.numValues) {
-                state.metadata.numValues = offsetInDstChunk + 1;
+                updateStateMetadataNumValues(state, offsetInDstChunk + 1);
             }
         }
     }

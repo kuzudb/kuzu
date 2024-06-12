@@ -188,6 +188,10 @@ protected:
     void updateStatistics(ColumnChunkMetadata& metadata, common::offset_t maxIndex,
         const std::optional<StorageValue>& min, const std::optional<StorageValue>& max);
 
+    static size_t getNumValuesFromDisk(DiskArray<ColumnChunkMetadata>* metadataDA,
+        transaction::Transaction* transaction, const ChunkState& state,
+        common::offset_t startOffset, common::offset_t endOffset);
+
 private:
     bool isInsertionsOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
         const offset_to_row_idx_t& insertInfo);
@@ -221,6 +225,8 @@ private:
 
     void applyLocalChunkToColumn(ChunkState& state, const ChunkCollection& localChunks,
         const offset_to_row_idx_t& info);
+
+    virtual void updateStateMetadataNumValues(ChunkState& state, size_t numValues);
 
     // check if val is in range [start, end)
     static bool isInRange(uint64_t val, uint64_t start, uint64_t end) {

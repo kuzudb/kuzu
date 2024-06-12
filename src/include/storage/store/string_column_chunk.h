@@ -18,6 +18,8 @@ public:
     void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
+    ColumnChunkData* getIndexColumnChunk();
+    const ColumnChunkData* getIndexColumnChunk() const;
 
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
@@ -37,7 +39,7 @@ public:
     }
 
     uint64_t getStringLength(common::offset_t pos) const {
-        auto index = ColumnChunkData::getValue<DictionaryChunk::string_index_t>(pos);
+        auto index = indexColumnChunk->getValue<DictionaryChunk::string_index_t>(pos);
         return dictionaryChunk->getStringLength(index);
     }
 
@@ -46,13 +48,24 @@ public:
 
     void finalize() override;
 
+    void resize(uint64_t newCapacity) override;
+
 private:
     void appendStringColumnChunk(StringChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend);
 
     void setValueFromString(std::string_view value, uint64_t pos);
 
+    void updateNumValues(size_t newValue);
+
+    void setNumValues(uint64_t numValues) override {
+        ColumnChunkData::setNumValues(numValues);
+        indexColumnChunk->setNumValues(numValues);
+    }
+
 private:
+    std::unique_ptr<ColumnChunkData> indexColumnChunk;
+
     std::unique_ptr<DictionaryChunk> dictionaryChunk;
     // If we never update a value, we don't need to prune unused strings in finalize
     bool needFinalize;

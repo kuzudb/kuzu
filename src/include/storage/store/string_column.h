@@ -7,6 +7,10 @@ namespace storage {
 
 class StringColumn final : public Column {
 public:
+    enum class ChildStateIndex : common::idx_t { DATA = 0, OFFSET = 1, INDEX = 2 };
+    static constexpr size_t CHILD_STATE_COUNT = 3;
+
+public:
     StringColumn(std::string name, common::LogicalType dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
         DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
@@ -34,7 +38,18 @@ public:
     void checkpointInMemory() override;
     void rollbackInMemory() override;
 
+    void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
+        const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+        const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
+        const offset_set_t& deleteInfo) override;
+    void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
+        const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
+        common::offset_t startSrcOffset) override;
+
     const DictionaryColumn& getDictionary() const { return dictionary; }
+
+    static ChunkState& getChildState(ChunkState& state, ChildStateIndex child);
+    static const ChunkState& getChildState(const ChunkState& state, ChildStateIndex child);
 
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
@@ -60,9 +75,13 @@ private:
     bool canIndexCommitInPlace(const ChunkState& dataState, uint64_t numStrings,
         common::offset_t maxOffset);
 
+    void updateStateMetadataNumValues(ChunkState& state, size_t numValues) override;
+
 private:
     // Main column stores indices of values in the dictionary
     DictionaryColumn dictionary;
+
+    std::unique_ptr<Column> indexColumn;
 };
 
 } // namespace storage

@@ -7,6 +7,7 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "storage/storage_structure//disk_array_collection.h"
+#include "storage/store/string_column.h"
 
 using namespace kuzu::common;
 
@@ -81,12 +82,24 @@ std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(
             createMetadataDAHInfo(ArrayType::getChildType(dataType), metadataDAC));
     } break;
     case PhysicalTypeID::STRING: {
+        metadataDAHInfo->childrenInfos.resize(StringColumn::CHILD_STATE_COUNT);
+
         auto dataMetadataDAHInfo = std::make_unique<MetadataDAHInfo>();
         auto offsetMetadataDAHInfo = std::make_unique<MetadataDAHInfo>();
         dataMetadataDAHInfo->dataDAHIdx = metadataDAC.addDiskArray();
         offsetMetadataDAHInfo->dataDAHIdx = metadataDAC.addDiskArray();
-        metadataDAHInfo->childrenInfos.push_back(std::move(dataMetadataDAHInfo));
-        metadataDAHInfo->childrenInfos.push_back(std::move(offsetMetadataDAHInfo));
+        metadataDAHInfo
+            ->childrenInfos[static_cast<common::idx_t>(StringColumn::ChildStateIndex::DATA)] =
+            std::move(dataMetadataDAHInfo);
+        metadataDAHInfo
+            ->childrenInfos[static_cast<common::idx_t>(StringColumn::ChildStateIndex::OFFSET)] =
+            std::move(offsetMetadataDAHInfo);
+
+        auto indexMetadataDAHInfo = std::make_unique<MetadataDAHInfo>();
+        indexMetadataDAHInfo->dataDAHIdx = metadataDAC.addDiskArray();
+        metadataDAHInfo
+            ->childrenInfos[static_cast<common::idx_t>(StringColumn::ChildStateIndex::INDEX)] =
+            std::move(indexMetadataDAHInfo);
     } break;
     default: {
         // DO NOTHING.
