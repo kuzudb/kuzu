@@ -16,31 +16,19 @@ using namespace common;
 struct CopyToCSVBindData : public CopyFuncBindData {
     CSVOption copyToOption;
 
+    CopyToCSVBindData(std::vector<std::string> names, std::string fileName, bool canParallel,
+        CSVOption copyToOption)
+        : CopyFuncBindData{std::move(names), std::move(fileName), canParallel},
+          copyToOption{std::move(copyToOption)} {}
+
     CopyToCSVBindData(std::vector<std::string> names, std::vector<common::LogicalType> types,
-        std::string fileName, CSVOption copyToOption, bool canParallel)
+        std::string fileName, bool canParallel, CSVOption copyToOption)
         : CopyFuncBindData{std::move(names), std::move(types), std::move(fileName), canParallel},
           copyToOption{std::move(copyToOption)} {}
 
-    CopyToCSVBindData(std::vector<std::string> names, std::vector<common::LogicalType> types,
-        std::string fileName, CSVOption copyToOption, bool canParallel,
-        std::vector<processor::DataPos> dataPoses, std::vector<bool> isFlat)
-        : CopyFuncBindData{std::move(names), std::move(types), std::move(fileName), canParallel,
-              std::move(dataPoses), std::move(isFlat)},
-          copyToOption{std::move(copyToOption)} {}
-
-    uint64_t getNumFlatVectors() const {
-        return std::count(isFlat.begin(), isFlat.end(), true /* isFlat */);
-    }
-
-    void bindDataPos(planner::Schema* /*childSchema*/,
-        std::vector<processor::DataPos> vectorsToCopyPos, std::vector<bool> isFlat) override {
-        this->dataPoses = std::move(vectorsToCopyPos);
-        this->isFlat = std::move(isFlat);
-    }
-
     std::unique_ptr<CopyFuncBindData> copy() const override {
-        return std::make_unique<CopyToCSVBindData>(names, types, fileName, copyToOption.copy(),
-            canParallel, dataPoses, isFlat);
+        return std::make_unique<CopyToCSVBindData>(names, types, fileName, canParallel,
+            copyToOption.copy());
     }
 };
 
@@ -161,30 +149,25 @@ struct CopyToCSVLocalState final : public CopyFuncLocalState {
     std::unique_ptr<DataChunk> flatCastDataChunk;
     std::vector<ValueVector*> castVectors;
     std::vector<function::scalar_func_exec_t> castFuncs;
-    std::vector<std::shared_ptr<ValueVector>> vectorsToCast;
 
     CopyToCSVLocalState(main::ClientContext& context, const CopyFuncBindData& bindData,
-        const processor::ResultSet& resultSet) {
+        std::vector<bool> isFlatVec) {
         auto& copyToCSVBindData = bindData.constCast<CopyToCSVBindData>();
         serializer = std::make_unique<BufferedSerializer>();
-        vectorsToCast.reserve(copyToCSVBindData.dataPoses.size());
-        auto numFlatVectors = copyToCSVBindData.getNumFlatVectors();
-        unflatCastDataChunk =
-            std::make_unique<DataChunk>(copyToCSVBindData.isFlat.size() - numFlatVectors);
+        auto numFlatVectors = std::count(isFlatVec.begin(), isFlatVec.end(), true /* isFlat */);
+        unflatCastDataChunk = std::make_unique<DataChunk>(isFlatVec.size() - numFlatVectors);
         flatCastDataChunk = std::make_unique<DataChunk>(numFlatVectors,
             DataChunkState::getSingleValueDataChunkState());
         uint64_t numInsertedFlatVector = 0;
-        castFuncs.resize(copyToCSVBindData.dataPoses.size());
-        for (auto i = 0u; i < copyToCSVBindData.dataPoses.size(); i++) {
-            auto vectorToCast = resultSet.getValueVector(copyToCSVBindData.dataPoses[i]);
-            castFuncs[i] = function::CastFunction::bindCastFunction("cast", vectorToCast->dataType,
-                *LogicalType::STRING())
+        castFuncs.resize(copyToCSVBindData.types.size());
+        for (auto i = 0u; i < copyToCSVBindData.types.size(); i++) {
+            castFuncs[i] = function::CastFunction::bindCastFunction("cast",
+                copyToCSVBindData.types[i], *LogicalType::STRING())
                                ->execFunc;
-            vectorsToCast.push_back(std::move(vectorToCast));
             auto castVector =
                 std::make_unique<ValueVector>(LogicalTypeID::STRING, context.getMemoryManager());
             castVectors.push_back(castVector.get());
-            if (copyToCSVBindData.isFlat[i]) {
+            if (isFlatVec[i]) {
                 flatCastDataChunk->insert(numInsertedFlatVector, std::move(castVector));
                 numInsertedFlatVector++;
             } else {
@@ -192,63 +175,17 @@ struct CopyToCSVLocalState final : public CopyFuncLocalState {
             }
         }
     }
-
-    void writeRows(const CopyToCSVBindData& copyToCSVBindData) {
-        for (auto i = 0u; i < vectorsToCast.size(); i++) {
-            std::vector<std::shared_ptr<ValueVector>> vectorToCast = {vectorsToCast[i]};
-            castFuncs[i](vectorToCast, *castVectors[i], nullptr);
-        }
-
-        uint64_t numRowsToWrite = 1;
-        for (auto& vectorToCast : vectorsToCast) {
-            if (!vectorToCast->state->isFlat()) {
-                numRowsToWrite = vectorToCast->state->getSelVector().getSelSize();
-            }
-        }
-        for (auto i = 0u; i < numRowsToWrite; i++) {
-            for (auto j = 0u; j < castVectors.size(); j++) {
-                if (j != 0) {
-                    serializer->writeBufferData(copyToCSVBindData.copyToOption.delimiter);
-                }
-                auto vector = castVectors[j];
-                auto pos = vector->state->isFlat() ? vector->state->getSelVector()[0] :
-                                                     vector->state->getSelVector()[i];
-                if (vector->isNull(pos)) {
-                    // write null value
-                    serializer->writeBufferData(CopyToCSVConstants::DEFAULT_NULL_STR);
-                    continue;
-                }
-                auto strValue = vector->getValue<ku_string_t>(pos);
-                // Note: we need blindly add quotes to LIST.
-                writeString(serializer.get(), copyToCSVBindData, strValue.getData(), strValue.len,
-                    CopyToCSVConstants::DEFAULT_FORCE_QUOTE ||
-                        vectorsToCast[j]->dataType.getLogicalTypeID() == LogicalTypeID::LIST);
-            }
-            serializer->writeBufferData(CopyToCSVConstants::DEFAULT_CSV_NEWLINE);
-        }
-    }
-
-    void sink(CopyFuncSharedState& sharedState, const CopyFuncBindData& bindData) {
-        auto& copyToCSVBindData = bindData.constCast<CopyToCSVBindData>();
-        writeRows(copyToCSVBindData);
-        if (serializer->getSize() > CopyToCSVConstants::DEFAULT_CSV_FLUSH_SIZE) {
-            auto& copyToSharedState = sharedState.cast<CopyToCSVSharedState>();
-            copyToSharedState.writeRows(serializer->getBlobData(), serializer->getSize());
-            serializer->reset();
-        }
-    }
 };
 
 static std::unique_ptr<CopyFuncBindData> bindFunc(CopyFuncBindInput& bindInput) {
-    return std::make_unique<CopyToCSVBindData>(bindInput.columnNames, bindInput.types,
-        bindInput.filePath,
-        CSVReaderConfig::construct(std::move(bindInput.parsingOptions)).option.copy(),
-        true /* canParallel */);
+    return std::make_unique<CopyToCSVBindData>(bindInput.columnNames, bindInput.filePath,
+        bindInput.canParallel,
+        CSVReaderConfig::construct(std::move(bindInput.parsingOptions)).option.copy());
 }
 
 static std::unique_ptr<CopyFuncLocalState> initLocalState(main::ClientContext& context,
-    const CopyFuncBindData& bindData, const processor::ResultSet& resultSet) {
-    return std::make_unique<CopyToCSVLocalState>(context, bindData, resultSet);
+    const CopyFuncBindData& bindData, std::vector<bool> isFlatVec) {
+    return std::make_unique<CopyToCSVLocalState>(context, bindData, isFlatVec);
 }
 
 static std::shared_ptr<CopyFuncSharedState> initSharedState(main::ClientContext& context,
@@ -256,10 +193,57 @@ static std::shared_ptr<CopyFuncSharedState> initSharedState(main::ClientContext&
     return std::make_shared<CopyToCSVSharedState>(context, bindData);
 }
 
+static void writeRows(const CopyToCSVBindData& copyToCSVBindData, CopyToCSVLocalState& localState,
+    std::vector<std::shared_ptr<ValueVector>> inputVectors) {
+    auto& copyToLocalState = localState.cast<CopyToCSVLocalState>();
+    auto& castVectors = localState.castVectors;
+    auto& serializer = localState.serializer;
+    for (auto i = 0u; i < inputVectors.size(); i++) {
+        auto vectorToCast = {inputVectors[i]};
+        copyToLocalState.castFuncs[i](vectorToCast, *castVectors[i], nullptr /* dataPtr */);
+    }
+
+    uint64_t numRowsToWrite = 1;
+    for (auto& vectorToCast : inputVectors) {
+        if (!vectorToCast->state->isFlat()) {
+            numRowsToWrite = vectorToCast->state->getSelVector().getSelSize();
+            break;
+        }
+    }
+    for (auto i = 0u; i < numRowsToWrite; i++) {
+        for (auto j = 0u; j < castVectors.size(); j++) {
+            if (j != 0) {
+                serializer->writeBufferData(copyToCSVBindData.copyToOption.delimiter);
+            }
+            auto vector = castVectors[j];
+            auto pos = vector->state->isFlat() ? vector->state->getSelVector()[0] :
+                                                 vector->state->getSelVector()[i];
+            if (vector->isNull(pos)) {
+                // write null value
+                serializer->writeBufferData(CopyToCSVConstants::DEFAULT_NULL_STR);
+                continue;
+            }
+            auto strValue = vector->getValue<ku_string_t>(pos);
+            // Note: we need blindly add quotes to LIST.
+            writeString(serializer.get(), copyToCSVBindData, strValue.getData(), strValue.len,
+                CopyToCSVConstants::DEFAULT_FORCE_QUOTE ||
+                    inputVectors[j]->dataType.getLogicalTypeID() == LogicalTypeID::LIST);
+        }
+        serializer->writeBufferData(CopyToCSVConstants::DEFAULT_CSV_NEWLINE);
+    }
+}
+
 static void sinkFunc(CopyFuncSharedState& sharedState, CopyFuncLocalState& localState,
-    const CopyFuncBindData& bindData) {
+    const CopyFuncBindData& bindData, std::vector<std::shared_ptr<ValueVector>> inputVectors) {
     auto& copyToCSVLocalState = localState.cast<CopyToCSVLocalState>();
-    copyToCSVLocalState.sink(sharedState, bindData);
+    auto& copyToCSVBindData = bindData.constCast<CopyToCSVBindData>();
+    writeRows(copyToCSVBindData, copyToCSVLocalState, std::move(inputVectors));
+    auto& serializer = copyToCSVLocalState.serializer;
+    if (serializer->getSize() > CopyToCSVConstants::DEFAULT_CSV_FLUSH_SIZE) {
+        auto& copyToSharedState = sharedState.cast<CopyToCSVSharedState>();
+        copyToSharedState.writeRows(serializer->getBlobData(), serializer->getSize());
+        serializer->reset();
+    }
 }
 
 static void combineFunc(CopyFuncSharedState& sharedState, CopyFuncLocalState& localState) {

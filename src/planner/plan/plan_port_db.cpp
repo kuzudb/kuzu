@@ -38,12 +38,11 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
         KU_ASSERT(regularQuery->getStatementType() == StatementType::QUERY);
         auto tablePlan = getBestPlan(*regularQuery);
         auto path = filePath + "/" + exportTableData.tableName + copyToSuffix;
-        function::CopyFuncBindInput bindInput{exportTableData.columnNames,
-            exportTableData.getColumnTypesRef(), std::move(path),
+        function::CopyFuncBindInput bindInput{exportTableData.columnNames, std::move(path),
             boundExportDatabase.getExportOptions(), exportTableData.isParallel};
         auto copyFuncBindData = copyFunc.copyToBind(bindInput);
         auto copyTo = std::make_shared<LogicalCopyTo>(std::move(copyFuncBindData),
-            std::move(copyFunc), exportTableData.columnTypes, tablePlan->getLastOperator());
+            std::move(copyFunc), tablePlan->getLastOperator());
         logicalOperators.push_back(std::move(copyTo));
     }
     auto exportDatabase =

@@ -35,22 +35,16 @@ struct CopyFuncBindData {
     std::vector<common::LogicalType> types;
     std::string fileName;
     bool canParallel;
-    std::vector<processor::DataPos> dataPoses;
-    std::vector<bool> isFlat;
+
+    CopyFuncBindData(std::vector<std::string> names, std::string fileName, bool canParallel)
+        : names{std::move(names)}, fileName{std::move(fileName)}, canParallel{canParallel} {}
 
     CopyFuncBindData(std::vector<std::string> names, std::vector<common::LogicalType> types,
         std::string fileName, bool canParallel)
         : names{std::move(names)}, types{std::move(types)}, fileName{std::move(fileName)},
           canParallel{canParallel} {}
 
-    CopyFuncBindData(std::vector<std::string> names, std::vector<common::LogicalType> types,
-        std::string fileName, bool canParallel, std::vector<processor::DataPos> dataPoses,
-        std::vector<bool> isFlat)
-        : names{std::move(names)}, types{std::move(types)}, fileName{std::move(fileName)},
-          canParallel{canParallel}, dataPoses{std::move(dataPoses)}, isFlat{std::move(isFlat)} {}
-
-    virtual void bindDataPos(planner::Schema* childSchema,
-        std::vector<processor::DataPos> vectorsToCopyPos, std::vector<bool> isFlat) = 0;
+    void bindDataType(std::vector<common::LogicalType> types_) { types = std::move(types_); }
 
     virtual ~CopyFuncBindData() = default;
 
@@ -64,7 +58,6 @@ struct CopyFuncBindData {
 
 struct CopyFuncBindInput {
     std::vector<std::string> columnNames;
-    std::vector<common::LogicalType> types;
     std::string filePath;
     std::unordered_map<std::string, common::Value> parsingOptions;
     bool canParallel;
@@ -73,11 +66,11 @@ struct CopyFuncBindInput {
 using copy_to_bind_t =
     std::function<std::unique_ptr<CopyFuncBindData>(function::CopyFuncBindInput& bindInput)>;
 using copy_to_initialize_local_t = std::function<std::unique_ptr<CopyFuncLocalState>(
-    main::ClientContext&, const CopyFuncBindData&, const processor::ResultSet&)>;
+    main::ClientContext&, const CopyFuncBindData&, std::vector<bool>)>;
 using copy_to_initialize_shared_t =
     std::function<std::shared_ptr<CopyFuncSharedState>(main::ClientContext&, CopyFuncBindData&)>;
-using copy_to_sink_t =
-    std::function<void(CopyFuncSharedState&, CopyFuncLocalState&, const CopyFuncBindData&)>;
+using copy_to_sink_t = std::function<void(CopyFuncSharedState&, CopyFuncLocalState&,
+    const CopyFuncBindData&, std::vector<std::shared_ptr<common::ValueVector>>)>;
 using copy_to_combine_t = std::function<void(CopyFuncSharedState&, CopyFuncLocalState&)>;
 using copy_to_finalize_t = std::function<void(CopyFuncSharedState&)>;
 using copy_to_can_parallel_t = std::function<bool(void)>;

@@ -3,7 +3,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/function_catalog_entry.h"
 #include "common/exception/binder.h"
-#include "common/exception/runtime.h"
 #include "function/built_in_function_utils.h"
 #include "parser/copy.h"
 
@@ -39,9 +38,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     if (fileType != FileType::CSV && copyToStatement.getParsingOptionsRef().size() != 0) {
         throw BinderException{"Only copy to csv can have options."};
     }
-    function::CopyFuncBindInput bindInput{std::move(columnNames), std::move(columnTypes),
-        std::move(boundFilePath), bindParsingOptions(copyToStatement.getParsingOptionsRef()),
-        true /* canParallel */};
+    function::CopyFuncBindInput bindInput{std::move(columnNames), std::move(boundFilePath),
+        bindParsingOptions(copyToStatement.getParsingOptionsRef()), true /* canParallel */};
     auto bindData = copyFunc->copyToBind(bindInput);
     return std::make_unique<BoundCopyTo>(std::move(bindData), *copyFunc, std::move(query));
 }

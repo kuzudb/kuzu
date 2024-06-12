@@ -4,7 +4,6 @@
 #include "parquet/parquet_types.h"
 #include "processor/operator/persistent/writer/parquet/parquet_writer.h"
 #include "processor/result/factorized_table.h"
-#include "processor/result/factorized_table_util.h"
 #include "processor/result/result_set.h"
 
 namespace kuzu {
@@ -16,62 +15,39 @@ using namespace processor;
 struct CopyToParquetBindData final : public CopyFuncBindData {
     kuzu_parquet::format::CompressionCodec::type codec =
         kuzu_parquet::format::CompressionCodec::SNAPPY;
-    FactorizedTableSchema tableSchema;
-    DataPos countingVecPos;
+
+    CopyToParquetBindData(std::vector<std::string> names, std::string fileName, bool canParallel)
+        : CopyFuncBindData{std::move(names), std::move(fileName), canParallel} {}
 
     CopyToParquetBindData(std::vector<std::string> names, std::vector<common::LogicalType> types,
         std::string fileName, bool canParallel)
         : CopyFuncBindData{std::move(names), std::move(types), std::move(fileName), canParallel} {}
 
-    CopyToParquetBindData(std::vector<std::string> names, std::vector<common::LogicalType> types,
-        std::string fileName, bool canParallel, std::vector<processor::DataPos> dataPoses,
-        std::vector<bool> isFlat, FactorizedTableSchema tableSchema, DataPos countingVecPos)
-        : CopyFuncBindData{std::move(names), std::move(types), std::move(fileName), canParallel,
-              std::move(dataPoses), std::move(isFlat)},
-          tableSchema{std::move(tableSchema)}, countingVecPos{std::move(countingVecPos)} {}
-
-    void bindDataPos(planner::Schema* childSchema, std::vector<DataPos> vectorsToCopyPos,
-        std::vector<bool> isFlat) override {
-        auto expressions = childSchema->getExpressionsInScope();
-        tableSchema = FactorizedTableUtils::createFTableSchema(expressions, *childSchema);
-        countingVecPos = DataPos(childSchema->getExpressionPos(*expressions[0]));
-        this->types = std::vector<common::LogicalType>();
-        for (auto& e : expressions) {
-            auto group = childSchema->getGroup(e->getUniqueName());
-            if (!group->isFlat()) {
-                countingVecPos = DataPos(childSchema->getExpressionPos(*e));
-            }
-            this->types.push_back(e->dataType);
-        }
-        this->dataPoses = std::move(vectorsToCopyPos);
-        this->isFlat = std::move(isFlat);
-    }
-
     std::unique_ptr<CopyFuncBindData> copy() const override {
-        return std::make_unique<CopyToParquetBindData>(names, types, fileName, canParallel,
-            dataPoses, isFlat, tableSchema.copy(), countingVecPos);
+        return std::make_unique<CopyToParquetBindData>(names, types, fileName, canParallel);
     }
 };
 
 struct CopyToParquetLocalState final : public CopyFuncLocalState {
     std::unique_ptr<FactorizedTable> ft;
     uint64_t numTuplesInFT;
-    std::vector<common::ValueVector*> vectorsToAppend;
     storage::MemoryManager* mm;
-    common::ValueVector* countingVec;
 
     CopyToParquetLocalState(const CopyFuncBindData& bindData, main::ClientContext& context,
-        const ResultSet& resultSet)
+        std::vector<bool> isFlatVec)
         : mm{context.getMemoryManager()} {
-        auto& copyToBindData = bindData.constCast<CopyToParquetBindData>();
-        ft = std::make_unique<FactorizedTable>(mm, copyToBindData.tableSchema.copy());
-        numTuplesInFT = 0;
-        countingVec = nullptr;
-        vectorsToAppend.reserve(copyToBindData.dataPoses.size());
-        countingVec = resultSet.getValueVector(copyToBindData.countingVecPos).get();
-        for (auto& pos : copyToBindData.dataPoses) {
-            vectorsToAppend.push_back(resultSet.getValueVector(pos).get());
+        auto tableSchema = FactorizedTableSchema();
+        for (auto i = 0u; i < isFlatVec.size(); i++) {
+            auto columnSchema =
+                isFlatVec[i] ?
+                    ColumnSchema(false, 0 /* dummyGroupPos */,
+                        LogicalTypeUtils::getRowLayoutSize(bindData.types[i])) :
+                    ColumnSchema(true, 1 /* dummyGroupPos */, (uint32_t)sizeof(overflow_value_t));
+            tableSchema.appendColumn(std::move(columnSchema));
         }
+        auto& copyToBindData = bindData.constCast<CopyToParquetBindData>();
+        ft = std::make_unique<FactorizedTable>(mm, tableSchema.copy());
+        numTuplesInFT = 0;
     }
 };
 
@@ -86,13 +62,13 @@ struct CopyToParquetSharedState : public CopyFuncSharedState {
 };
 
 static std::unique_ptr<CopyFuncBindData> bindFunc(CopyFuncBindInput& bindInput) {
-    return std::make_unique<CopyToParquetBindData>(bindInput.columnNames, bindInput.types,
-        bindInput.filePath, true /* canParallel */);
+    return std::make_unique<CopyToParquetBindData>(bindInput.columnNames, bindInput.filePath,
+        bindInput.canParallel);
 }
 
 static std::unique_ptr<CopyFuncLocalState> initLocalState(main::ClientContext& context,
-    const CopyFuncBindData& bindData, const processor::ResultSet& resultSet) {
-    return std::make_unique<CopyToParquetLocalState>(bindData, context, resultSet);
+    const CopyFuncBindData& bindData, std::vector<bool> isFlatVec) {
+    return std::make_unique<CopyToParquetLocalState>(bindData, context, isFlatVec);
 }
 
 static std::shared_ptr<CopyFuncSharedState> initSharedState(main::ClientContext& context,
@@ -100,12 +76,27 @@ static std::shared_ptr<CopyFuncSharedState> initSharedState(main::ClientContext&
     return std::make_shared<CopyToParquetSharedState>(bindData, context);
 }
 
+static std::vector<ValueVector*> extractSharedPtr(
+    std::vector<std::shared_ptr<ValueVector>> inputVectors, uint64_t& numTuplesToAppend) {
+    std::vector<ValueVector*> vecs;
+    numTuplesToAppend =
+        inputVectors.size() > 0 ? inputVectors[0]->state->getSelVector().getSelSize() : 0;
+    for (auto& inputVector : inputVectors) {
+        if (!inputVector->state->isFlat()) {
+            numTuplesToAppend = inputVector->state->getSelVector().getSelSize();
+        }
+        vecs.push_back(inputVector.get());
+    }
+    return vecs;
+}
+
 static void sinkFunc(CopyFuncSharedState& sharedState, CopyFuncLocalState& localState,
-    const CopyFuncBindData& /*bindData*/) {
+    const CopyFuncBindData& /*bindData*/, std::vector<std::shared_ptr<ValueVector>> inputVectors) {
     auto& copyToLocalState = localState.cast<CopyToParquetLocalState>();
-    copyToLocalState.ft->append(copyToLocalState.vectorsToAppend);
-    copyToLocalState.numTuplesInFT +=
-        copyToLocalState.countingVec->state->getSelVector().getSelSize();
+    uint64_t numTuplesToAppend = 0;
+    // TODO(Ziyi): We should let factorizedTable::append return the numTuples appended.
+    copyToLocalState.ft->append(extractSharedPtr(inputVectors, numTuplesToAppend));
+    copyToLocalState.numTuplesInFT += numTuplesToAppend;
     if (copyToLocalState.numTuplesInFT > StorageConstants::NODE_GROUP_SIZE) {
         auto& copyToSharedState = sharedState.cast<CopyToParquetSharedState>();
         copyToSharedState.writer->flush(*copyToLocalState.ft);
