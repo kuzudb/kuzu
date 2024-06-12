@@ -117,7 +117,11 @@ void RelInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
         evaluator->init(*resultSet, context->clientContext);
         columnDataVectors.push_back(evaluator->resultVector.get());
     }
-    columnDataVectors[0]->dataType = *LogicalType::INTERNAL_ID();
+    auto prevState = columnDataVectors[0]->state;
+    columnDataEvaluators[0]->resultVector = std::make_shared<ValueVector>(LogicalTypeID::INTERNAL_ID,
+        context->clientContext->getMemoryManager());
+    columnDataEvaluators[0]->resultVector->setState(prevState);
+    columnDataVectors[0] = columnDataEvaluators[0]->resultVector.get();
     auto& iid = columnDataVectors[0]->getValue<internalID_t>(0);
     iid.tableID = table->getTableID();
 }
