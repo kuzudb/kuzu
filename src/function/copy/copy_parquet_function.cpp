@@ -4,7 +4,6 @@
 #include "parquet/parquet_types.h"
 #include "processor/operator/persistent/writer/parquet/parquet_writer.h"
 #include "processor/result/factorized_table.h"
-#include "processor/result/result_set.h"
 
 namespace kuzu {
 namespace function {

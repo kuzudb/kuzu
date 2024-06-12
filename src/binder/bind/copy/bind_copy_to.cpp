@@ -1,7 +1,6 @@
 #include "binder/binder.h"
 #include "binder/copy/bound_copy_to.h"
 #include "catalog/catalog.h"
-#include "catalog/catalog_entry/function_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
 #include "parser/copy.h"

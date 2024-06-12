@@ -6,7 +6,6 @@
 #include "function/copy/copy_function.h"
 #include "function/scalar_function.h"
 #include "main/client_context.h"
-#include "processor/result/result_set.h"
 
 namespace kuzu {
 namespace function {
@@ -257,12 +256,12 @@ static void finalizeFunc(CopyFuncSharedState&) {}
 function_set CopyCSVFunction::getFunctionSet() {
     function_set functionSet;
     auto copyFunc = std::make_unique<CopyFunction>(name);
+    copyFunc->copyToBind = bindFunc;
     copyFunc->copyToInitLocal = initLocalState;
     copyFunc->copyToInitShared = initSharedState;
     copyFunc->copyToSink = sinkFunc;
     copyFunc->copyToCombine = combineFunc;
     copyFunc->copyToFinalize = finalizeFunc;
-    copyFunc->copyToBind = bindFunc;
     functionSet.push_back(std::move(copyFunc));
     return functionSet;
 }

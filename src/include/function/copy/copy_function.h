@@ -2,8 +2,6 @@
 
 #include "common/types/value/value.h"
 #include "function/function.h"
-#include "planner/operator/schema.h"
-#include "processor/data_pos.h"
 
 namespace kuzu {
 namespace function {
@@ -34,11 +32,6 @@ struct CopyFuncBindData {
 
     CopyFuncBindData(std::vector<std::string> names, std::string fileName, bool canParallel)
         : names{std::move(names)}, fileName{std::move(fileName)}, canParallel{canParallel} {}
-
-    CopyFuncBindData(std::vector<std::string> names, std::vector<common::LogicalType> types,
-        std::string fileName, bool canParallel)
-        : names{std::move(names)}, types{std::move(types)}, fileName{std::move(fileName)},
-          canParallel{canParallel} {}
 
     virtual ~CopyFuncBindData() = default;
 

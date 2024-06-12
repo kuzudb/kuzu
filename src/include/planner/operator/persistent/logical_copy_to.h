@@ -1,7 +1,5 @@
 #pragma once
 
-#include "common/copier_config/csv_reader_config.h"
-#include "common/copier_config/reader_config.h"
 #include "function/copy/copy_function.h"
 #include "planner/operator/logical_operator.h"
 
