@@ -5,6 +5,10 @@
 #include "graph/graph_entry.h"
 
 namespace kuzu {
+namespace function {
+class GDSAlgorithm;
+struct GDSBindData;
+} // namespace function
 namespace binder {
 
 struct BoundGDSCallInfo {
@@ -16,6 +20,9 @@ struct BoundGDSCallInfo {
         expression_vector outExprs)
         : func{std::move(func)}, graphEntry{std::move(graphEntry)}, outExprs{std::move(outExprs)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundGDSCallInfo);
+
+    const function::GDSAlgorithm* getGDS() const;
+    const function::GDSBindData* getBindData() const;
 
 private:
     BoundGDSCallInfo(const BoundGDSCallInfo& other)

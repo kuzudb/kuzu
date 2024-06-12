@@ -24,28 +24,19 @@ private:
 
     void visitPathPropertyProbe(planner::LogicalOperator* op) override;
 
-    bool isProbeSideQualified(planner::LogicalOperator* probeRoot);
-
-    std::vector<planner::LogicalOperator*> resolveOperatorsToApplySemiMask(
-        const binder::Expression& nodeID, planner::LogicalOperator* root);
+    std::shared_ptr<planner::LogicalOperator> tryApplySemiMask(
+        std::shared_ptr<binder::Expression> nodeID,
+        std::shared_ptr<planner::LogicalOperator> fromRoot, planner::LogicalOperator* toRoot);
     // Find all ScanNodeIDs under root which scans parameter nodeID. Note that there might be
     // multiple ScanNodeIDs matches because both node and rel table scans will trigger scanNodeIDs.
-    std::vector<planner::LogicalOperator*> resolveScanInternalIDsToApplySemiMask(
-        const binder::Expression& nodeID, planner::LogicalOperator* root);
+    std::vector<planner::LogicalOperator*> getScanNodeCandidates(const binder::Expression& nodeID,
+        planner::LogicalOperator* root);
     // Find all ShortestPathExtend under root which extend to parameter nodeID. There will be at
     // most one match because rel table is scanned exactly once.
-    std::vector<planner::LogicalOperator*> resolveShortestPathExtendToApplySemiMask(
+    std::vector<planner::LogicalOperator*> getRecursiveJoinCandidates(
         const binder::Expression& nodeID, planner::LogicalOperator* root);
-
-    std::shared_ptr<planner::LogicalOperator> appendNodeSemiMasker(
-        std::vector<planner::LogicalOperator*> opsToApplySemiMask,
-        std::shared_ptr<planner::LogicalOperator> child);
-    std::shared_ptr<planner::LogicalOperator> appendPathSemiMasker(
-        const std::shared_ptr<binder::Expression>& pathExpression,
-        std::vector<planner::LogicalOperator*> opsToApplySemiMask,
-        const std::shared_ptr<planner::LogicalOperator>& child);
-    std::shared_ptr<planner::LogicalOperator> appendAccumulate(
-        std::shared_ptr<planner::LogicalOperator> child);
+    std::vector<planner::LogicalOperator*> getGDSCallCandidates(const binder::Expression& nodeID,
+        planner::LogicalOperator* root);
 };
 
 } // namespace optimizer

@@ -114,7 +114,8 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductRepla
     }
     auto hashJoin = std::make_shared<LogicalHashJoin>(joinConditions, JoinType::INNER,
         nullptr /* mark */, op->getChild(0), op->getChild(1));
-    hashJoin->setSIP(SidewaysInfoPassing::PROHIBIT);
+    // For non-id based joins, we disable side way information passing.
+    hashJoin->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT;
     hashJoin->computeFlatSchema();
     // Apply remaining predicates.
     predicates.insert(predicates.end(), remainingPSet.nonEqualityPredicates.begin(),

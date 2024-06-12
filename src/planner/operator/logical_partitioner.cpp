@@ -26,7 +26,7 @@ void LogicalPartitioner::computeFlatSchema() {
 std::string LogicalPartitioner::getExpressionsForPrinting() const {
     binder::expression_vector expressions;
     for (auto& info : infos) {
-        expressions.push_back(info->key);
+        expressions.push_back(copyFromInfo.columnExprs[info->keyIdx]);
     }
     return binder::ExpressionUtil::toString(expressions);
 }

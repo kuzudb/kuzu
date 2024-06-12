@@ -2,7 +2,7 @@
 
 #include "function/gds/gds.h"
 #include "graph/graph.h"
-#include "graph/graph_entry.h"
+#include "processor/operator/mask.h"
 #include "processor/operator/sink.h"
 
 namespace kuzu {
@@ -12,22 +12,23 @@ struct GDSCallSharedState {
     std::mutex mtx;
     std::shared_ptr<FactorizedTable> fTable;
     std::unique_ptr<graph::Graph> graph;
+    std::unique_ptr<NodeOffsetSemiMask> inputNodeOffsetMask;
 
-    explicit GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable)
-        : fTable{std::move(fTable)} {}
+    GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph,
+        std::unique_ptr<NodeOffsetSemiMask> inputNodeOffsetMask)
+        : fTable{std::move(fTable)}, graph{std::move(graph)},
+          inputNodeOffsetMask{std::move(inputNodeOffsetMask)} {}
+    DELETE_COPY_AND_MOVE(GDSCallSharedState);
 };
 
 struct GDSCallInfo {
     std::unique_ptr<function::GDSAlgorithm> gds;
-    graph::GraphEntry graphEntry;
 
-    GDSCallInfo(std::unique_ptr<function::GDSAlgorithm> gds, graph::GraphEntry graphEntry)
-        : gds{std::move(gds)}, graphEntry{std::move(graphEntry)} {}
+    explicit GDSCallInfo(std::unique_ptr<function::GDSAlgorithm> gds) : gds{std::move(gds)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(GDSCallInfo);
 
 private:
-    GDSCallInfo(const GDSCallInfo& other)
-        : gds{other.gds->copy()}, graphEntry{other.graphEntry.copy()} {}
+    GDSCallInfo(const GDSCallInfo& other) : gds{other.gds->copy()} {}
 };
 
 class GDSCall : public Sink {
@@ -40,13 +41,14 @@ public:
         : Sink{std::move(descriptor), operatorType_, id, paramsString}, info{std::move(info)},
           sharedState{std::move(sharedState)} {}
 
+    bool hasSemiMask() const { return sharedState->inputNodeOffsetMask != nullptr; }
+    NodeSemiMask* getSemiMask() { return sharedState->inputNodeOffsetMask.get(); }
+
     bool isSource() const override { return true; }
 
     bool isParallel() const override { return false; }
 
     void initLocalStateInternal(ResultSet*, ExecutionContext*) override;
-
-    void initGlobalStateInternal(ExecutionContext*) override;
 
     void executeInternal(ExecutionContext* context) override;
 

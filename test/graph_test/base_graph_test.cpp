@@ -94,15 +94,15 @@ void BaseGraphTest::createDBAndConn() {
     spdlog::set_level(spdlog::level::info);
 }
 
-void BaseGraphTest::initGraph() {
+void BaseGraphTest::initGraph(std::string datasetDir) {
     if (conn) { // normal conn
-        TestHelper::executeScript(getInputDir() + TestHelper::SCHEMA_FILE_NAME, *conn);
-        TestHelper::executeScript(getInputDir() + TestHelper::COPY_FILE_NAME, *conn);
+        TestHelper::executeScript(datasetDir + TestHelper::SCHEMA_FILE_NAME, *conn);
+        TestHelper::executeScript(datasetDir + TestHelper::COPY_FILE_NAME, *conn);
     } else {
         // choose a conn from connMap
-        TestHelper::executeScript(getInputDir() + TestHelper::SCHEMA_FILE_NAME,
+        TestHelper::executeScript(datasetDir + TestHelper::SCHEMA_FILE_NAME,
             *(connMap.begin()->second));
-        TestHelper::executeScript(getInputDir() + TestHelper::COPY_FILE_NAME,
+        TestHelper::executeScript(datasetDir + TestHelper::COPY_FILE_NAME,
             *(connMap.begin()->second));
     }
 }

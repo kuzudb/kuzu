@@ -199,7 +199,7 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     // Check for sip
     auto ratio = plan.getCardinality() / relScanCardinality;
     if (ratio > PlannerKnobs::SIP_RATIO) {
-        pathPropertyProbe->setSIP(SidewaysInfoPassing::PROHIBIT_PROBE_TO_BUILD);
+        pathPropertyProbe->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT;
     }
     plan.setLastOperator(std::move(pathPropertyProbe));
     // Update cost

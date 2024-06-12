@@ -7,6 +7,10 @@ namespace storage {
 
 class StringColumn final : public Column {
 public:
+    enum class ChildStateIndex : common::idx_t { DATA = 0, OFFSET = 1, INDEX = 2 };
+    static constexpr size_t CHILD_STATE_COUNT = 3;
+
+public:
     StringColumn(std::string name, common::LogicalType dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
         DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
@@ -18,23 +22,34 @@ public:
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector = 0) override;
-    void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        ColumnChunk* columnChunk, common::offset_t startOffset = 0,
+    void scan(transaction::Transaction* transaction, const ChunkState& state,
+        ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
 
-    void append(ColumnChunk* columnChunk, ChunkState& state) override;
+    void append(ColumnChunkData* columnChunk, ChunkState& state) override;
 
     void writeValue(ChunkState& state, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
 
-    void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunk* data,
+    void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunkData* data,
         common::offset_t dataOffset, common::length_t numValues) override;
 
     void prepareCommit() override;
     void checkpointInMemory() override;
     void rollbackInMemory() override;
 
+    void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
+        const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+        const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
+        const offset_set_t& deleteInfo) override;
+    void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
+        const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
+        common::offset_t startSrcOffset) override;
+
     const DictionaryColumn& getDictionary() const { return dictionary; }
+
+    static ChunkState& getChildState(ChunkState& state, ChildStateIndex child);
+    static const ChunkState& getChildState(const ChunkState& state, ChildStateIndex child);
 
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
@@ -55,14 +70,18 @@ private:
         const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunk,
         const offset_to_row_idx_t& updateInfo) override;
     bool canCommitInPlace(const ChunkState& state, const std::vector<common::offset_t>& dstOffsets,
-        ColumnChunk* chunk, common::offset_t srcOffset) override;
+        ColumnChunkData* chunk, common::offset_t srcOffset) override;
 
     bool canIndexCommitInPlace(const ChunkState& dataState, uint64_t numStrings,
         common::offset_t maxOffset);
 
+    void updateStateMetadataNumValues(ChunkState& state, size_t numValues) override;
+
 private:
     // Main column stores indices of values in the dictionary
     DictionaryColumn dictionary;
+
+    std::unique_ptr<Column> indexColumn;
 };
 
 } // namespace storage

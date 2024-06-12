@@ -32,7 +32,9 @@ std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
     if (ctx.kU_CreateNodeConstraint()) {
         pkName = transformPrimaryKey(*ctx.kU_CreateNodeConstraint());
     }
-    auto createTableInfo = CreateTableInfo(TableType::NODE, tableName);
+    auto createTableInfo = CreateTableInfo(TableType::NODE, tableName,
+        ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
+                               common::ConflictAction::ON_CONFLICT_THROW);
     createTableInfo.propertyDefinitions =
         transformPropertyDefinitionsDDL(*ctx.kU_PropertyDefinitionsDDL());
     createTableInfo.extraInfo = std::make_unique<ExtraCreateNodeTableInfo>(pkName);
@@ -48,7 +50,9 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
     }
     auto srcTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(0));
     auto dstTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(1));
-    auto createTableInfo = CreateTableInfo(TableType::REL, tableName);
+    auto createTableInfo = CreateTableInfo(TableType::REL, tableName,
+        ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
+                               common::ConflictAction::ON_CONFLICT_THROW);
     if (ctx.kU_PropertyDefinitionsDDL()) {
         createTableInfo.propertyDefinitions =
             transformPropertyDefinitionsDDL(*ctx.kU_PropertyDefinitionsDDL());
@@ -73,7 +77,9 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTableGroup(
         auto dstTableName = transformSchemaName(*connection->oC_SchemaName(1));
         srcDstTablePairs.emplace_back(srcTableName, dstTableName);
     }
-    auto createTableInfo = CreateTableInfo(TableType::REL_GROUP, tableName);
+    auto createTableInfo = CreateTableInfo(TableType::REL_GROUP, tableName,
+        ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
+                               common::ConflictAction::ON_CONFLICT_THROW);
     if (ctx.kU_PropertyDefinitionsDDL()) {
         createTableInfo.propertyDefinitions =
             transformPropertyDefinitionsDDL(*ctx.kU_PropertyDefinitionsDDL());
@@ -86,7 +92,9 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTableGroup(
 std::unique_ptr<Statement> Transformer::transformCreateRdfGraphClause(
     CypherParser::KU_CreateRdfGraphContext& ctx) {
     auto rdfGraphName = transformSchemaName(*ctx.oC_SchemaName());
-    auto createTableInfo = CreateTableInfo(TableType::RDF, rdfGraphName);
+    auto createTableInfo = CreateTableInfo(TableType::RDF, rdfGraphName,
+        ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
+                               common::ConflictAction::ON_CONFLICT_THROW);
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 

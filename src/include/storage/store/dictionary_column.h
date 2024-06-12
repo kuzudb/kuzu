@@ -8,9 +8,6 @@ namespace storage {
 
 class DictionaryColumn {
 public:
-    static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 0;
-    static constexpr common::idx_t OFFSET_COLUMN_CHILD_READ_STATE_IDX = 1;
-
     DictionaryColumn(const std::string& name, const MetadataDAHInfo& metaDAHeaderInfo,
         BMFileHandle* dataFH, DiskArrayCollection& metadataFH, BufferManager* bufferManager,
         WAL* wal, transaction::Transaction* transaction, bool enableCompression);
@@ -20,7 +17,7 @@ public:
 
     void append(Column::ChunkState& state, const DictionaryChunk& dictChunk);
 
-    void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+    void scan(transaction::Transaction* transaction, const Column::ChunkState& state,
         DictionaryChunk& dictChunk);
     // Offsets to scan should be a sorted list of pairs mapping the index of the entry in the string
     // dictionary (as read from the index column) to the output index in the result vector to store

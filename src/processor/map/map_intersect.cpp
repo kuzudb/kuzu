@@ -52,7 +52,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIntersect(LogicalOperator* logi
         DataPos(outSchema->getExpressionPos(*logicalIntersect->getIntersectNodeID()));
     auto intersect = make_unique<Intersect>(outputDataPos, intersectDataInfos, sharedStates,
         std::move(children), getOperatorID(), logicalIntersect->getExpressionsForPrinting());
-    if (logicalIntersect->getSIP() == SidewaysInfoPassing::PROBE_TO_BUILD) {
+    if (logicalIntersect->getSIPInfo().direction == SIPDirection::PROBE_TO_BUILD) {
         mapSIPJoin(intersect.get());
     }
     return intersect;

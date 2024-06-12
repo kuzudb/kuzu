@@ -42,8 +42,11 @@ struct CSRHeaderColumns {
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         const ChunkedCSRHeader& chunks) const {
-        offset->scan(transaction, nodeGroupIdx, chunks.offset.get());
-        length->scan(transaction, nodeGroupIdx, chunks.length.get());
+        Column::ChunkState offsetState, lengthState;
+        offset->initChunkState(transaction, nodeGroupIdx, offsetState);
+        length->initChunkState(transaction, nodeGroupIdx, lengthState);
+        offset->scan(transaction, offsetState, chunks.offset.get());
+        length->scan(transaction, lengthState, chunks.length.get());
     }
     void append(const ChunkedCSRHeader& headerChunks, Column::ChunkState& offsetState,
         Column::ChunkState& lengthState) const {
@@ -97,7 +100,7 @@ class RelTableData final : public TableData {
 public:
     struct PersistentState {
         ChunkedCSRHeader header;
-        std::unique_ptr<ColumnChunk> relIDChunk;
+        std::unique_ptr<ColumnChunkData> relIDChunk;
         common::offset_t leftCSROffset = common::INVALID_OFFSET;
         common::offset_t rightCSROffset = common::INVALID_OFFSET;
 
@@ -188,7 +191,7 @@ private:
         common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup,
         PersistentState& persistentState, LocalState& localState);
     static void commitCSRHeaderChunk(transaction::Transaction* transaction, bool isNewNodeGroup,
-        common::node_group_idx_t nodeGroupIdx, Column* column, ColumnChunk* columnChunk,
+        common::node_group_idx_t nodeGroupIdx, Column* column, ColumnChunkData* columnChunk,
         const LocalState& localState, const std::vector<common::offset_t>& dstOffsets);
 
     void distributeOffsets(const ChunkedCSRHeader& header, LocalState& localState,
@@ -212,12 +215,12 @@ private:
         const LocalState& localState, uint64_t numValuesToInsert);
 
     static void applyUpdatesToChunk(const PersistentState& persistentState,
-        const LocalState& localState, const ChunkCollection& localChunk, ColumnChunk* chunk,
+        const LocalState& localState, const ChunkCollection& localChunk, ColumnChunkData* chunk,
         common::column_id_t columnID);
     static void applyInsertionsToChunk(const PersistentState& persistentState,
-        const LocalState& localState, const ChunkCollection& localChunk, ColumnChunk* chunk);
+        const LocalState& localState, const ChunkCollection& localChunk, ColumnChunkData* chunk);
     static void applyDeletionsToChunk(const PersistentState& persistentState,
-        const LocalState& localState, ColumnChunk* chunk);
+        const LocalState& localState, ColumnChunkData* chunk);
 
     static void applyUpdatesToColumn(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup, common::column_id_t columnID,

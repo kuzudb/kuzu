@@ -82,6 +82,9 @@ void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
     case LogicalOperatorType::COPY_FROM: {
         visitCopyFrom(op);
     } break;
+    case LogicalOperatorType::GDS_CALL: {
+        visitGDSCall(op);
+    } break;
     default:
         return;
     }
@@ -164,6 +167,9 @@ std::shared_ptr<LogicalOperator> LogicalOperatorVisitor::visitOperatorReplaceSwi
     }
     case LogicalOperatorType::COPY_FROM: {
         return visitCopyFromReplace(op);
+    }
+    case LogicalOperatorType::GDS_CALL: {
+        return visitGDSCallReplace(op);
     }
     default:
         return op;

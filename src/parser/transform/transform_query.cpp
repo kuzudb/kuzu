@@ -5,7 +5,11 @@ namespace kuzu {
 namespace parser {
 
 std::unique_ptr<Statement> Transformer::transformQuery(CypherParser::OC_QueryContext& ctx) {
-    return transformRegularQuery(*ctx.oC_RegularQuery());
+    auto query = transformRegularQuery(*ctx.oC_RegularQuery());
+    if (ctx.kU_ProjectGraph()) {
+        query->cast<RegularQuery>().setProjectGraph(transformProjectGraph(*ctx.kU_ProjectGraph()));
+    }
+    return query;
 }
 
 std::unique_ptr<Statement> Transformer::transformRegularQuery(

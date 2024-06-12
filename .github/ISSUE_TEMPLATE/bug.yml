@@ -15,6 +15,14 @@ body:
       placeholder: v0.4.0
     validations:
       required: false
+  - type: input
+    id: os
+    attributes:
+      label: What operating system are you using?
+      description: What operating system are you using?
+      placeholder: e.g., Ubuntu 23.10, MacOS Sonoma 14.2.0, Windows 11
+    validations:
+      required: false
   - type: textarea
     id: what-happened
     attributes:

@@ -20,10 +20,10 @@ DictionaryChunk::DictionaryChunk(uint64_t capacity, bool enableCompression)
     : enableCompression{enableCompression},
       indexTable(0, StringOps(this) /*hash*/, StringOps(this) /*equals*/) {
     // Bitpacking might save 1 bit per value with regular ascii compared to UTF-8
-    stringDataChunk = ColumnChunkFactory::createColumnChunk(*LogicalType::UINT8(),
+    stringDataChunk = ColumnChunkFactory::createColumnChunkData(*LogicalType::UINT8(),
         false /*enableCompression*/, capacity);
-    offsetChunk = ColumnChunkFactory::createColumnChunk(*LogicalType::UINT64(), enableCompression,
-        capacity * OFFSET_CHUNK_CAPACITY_FACTOR);
+    offsetChunk = ColumnChunkFactory::createColumnChunkData(*LogicalType::UINT64(),
+        enableCompression, capacity * OFFSET_CHUNK_CAPACITY_FACTOR);
 }
 
 void DictionaryChunk::resetToEmpty() {

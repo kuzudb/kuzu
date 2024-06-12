@@ -171,7 +171,8 @@ void TableCatalogEntry::copyFrom(const CatalogEntry& other) {
 binder::BoundCreateTableInfo TableCatalogEntry::getBoundCreateTableInfo(
     transaction::Transaction* transaction) const {
     auto extraInfo = getBoundExtraCreateInfo(transaction);
-    return BoundCreateTableInfo(getTableType(), name, std::move(extraInfo));
+    return BoundCreateTableInfo(getTableType(), name, common::ConflictAction::ON_CONFLICT_THROW,
+        std::move(extraInfo));
 }
 
 } // namespace catalog

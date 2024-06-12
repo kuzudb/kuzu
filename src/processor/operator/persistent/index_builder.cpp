@@ -88,7 +88,7 @@ void IndexBuilderSharedState::quitProducer() {
     }
 }
 
-void IndexBuilder::insert(const ColumnChunk& chunk, offset_t nodeOffset, offset_t numNodes) {
+void IndexBuilder::insert(const ColumnChunkData& chunk, offset_t nodeOffset, offset_t numNodes) {
     checkNonNullConstraint(chunk.getNullChunk(), numNodes);
 
     TypeUtils::visit(
@@ -101,7 +101,7 @@ void IndexBuilder::insert(const ColumnChunk& chunk, offset_t nodeOffset, offset_
         },
         [&](ku_string_t) {
             auto& stringColumnChunk =
-                ku_dynamic_cast<const ColumnChunk&, const StringColumnChunk&>(chunk);
+                ku_dynamic_cast<const ColumnChunkData&, const StringChunkData&>(chunk);
             for (auto i = 0u; i < numNodes; i++) {
                 auto value = stringColumnChunk.getValue<std::string>(i);
                 localBuffers.insert(std::move(value), nodeOffset + i);
@@ -129,7 +129,7 @@ void IndexBuilder::finalize(ExecutionContext* /*context*/) {
     sharedState->flush();
 }
 
-void IndexBuilder::checkNonNullConstraint(const NullColumnChunk& nullChunk, offset_t numNodes) {
+void IndexBuilder::checkNonNullConstraint(const NullChunkData& nullChunk, offset_t numNodes) {
     for (auto i = 0u; i < numNodes; i++) {
         if (nullChunk.isNull(i)) {
             throw CopyException(ExceptionMessage::nullPKException());

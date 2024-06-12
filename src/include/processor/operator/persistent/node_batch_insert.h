@@ -81,7 +81,6 @@ struct NodeBatchInsertLocalState final : public BatchInsertLocalState {
     std::optional<IndexBuilder> localIndexBuilder;
 
     std::shared_ptr<common::DataChunkState> columnState;
-    std::vector<std::shared_ptr<common::ValueVector>> defaultColumnVectors;
     std::vector<common::ValueVector*> columnVectors;
 };
 

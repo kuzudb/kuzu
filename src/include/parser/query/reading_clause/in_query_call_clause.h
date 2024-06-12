@@ -1,7 +1,6 @@
 #pragma once
 
 #include "parser/expression/parsed_expression.h"
-#include "parser/project_graph.h"
 #include "parser/query/reading_clause/reading_clause.h"
 
 namespace kuzu {
@@ -22,16 +21,9 @@ public:
     bool hasWherePredicate() const { return wherePredicate != nullptr; }
     const ParsedExpression* getWherePredicate() const { return wherePredicate.get(); }
 
-    void setProjectGraph(std::unique_ptr<ProjectGraph> projectGraph_) {
-        projectGraph = std::move(projectGraph_);
-    }
-    bool hasProjectGraph() const { return projectGraph != nullptr; }
-    const ProjectGraph* getProjectGraph() const { return projectGraph.get(); }
-
 private:
     std::unique_ptr<ParsedExpression> functionExpression;
     std::unique_ptr<ParsedExpression> wherePredicate;
-    std::unique_ptr<ProjectGraph> projectGraph;
 };
 
 } // namespace parser

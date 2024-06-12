@@ -7,13 +7,14 @@ namespace kuzu {
 namespace planner {
 
 class LogicalIntersect : public LogicalOperator {
+    static constexpr LogicalOperatorType type_ = LogicalOperatorType::INTERSECT;
+
 public:
     LogicalIntersect(std::shared_ptr<binder::Expression> intersectNodeID,
         binder::expression_vector keyNodeIDs, std::shared_ptr<LogicalOperator> probeChild,
         std::vector<std::shared_ptr<LogicalOperator>> buildChildren)
-        : LogicalOperator{LogicalOperatorType::INTERSECT, std::move(probeChild)},
-          intersectNodeID{std::move(intersectNodeID)}, keyNodeIDs{std::move(keyNodeIDs)},
-          sip{SidewaysInfoPassing::NONE} {
+        : LogicalOperator{type_, std::move(probeChild)},
+          intersectNodeID{std::move(intersectNodeID)}, keyNodeIDs{std::move(keyNodeIDs)} {
         for (auto& child : buildChildren) {
             children.push_back(std::move(child));
         }
@@ -27,23 +28,20 @@ public:
 
     std::string getExpressionsForPrinting() const override { return intersectNodeID->toString(); }
 
-    inline std::shared_ptr<binder::Expression> getIntersectNodeID() const {
-        return intersectNodeID;
-    }
-    inline uint32_t getNumBuilds() const { return keyNodeIDs.size(); }
-    inline binder::expression_vector getKeyNodeIDs() const { return keyNodeIDs; }
-    inline std::shared_ptr<binder::Expression> getKeyNodeID(uint32_t idx) const {
-        return keyNodeIDs[idx];
-    }
-    inline void setSIP(SidewaysInfoPassing sip_) { sip = sip_; }
-    inline SidewaysInfoPassing getSIP() const { return sip; }
+    std::shared_ptr<binder::Expression> getIntersectNodeID() const { return intersectNodeID; }
+    uint32_t getNumBuilds() const { return keyNodeIDs.size(); }
+    binder::expression_vector getKeyNodeIDs() const { return keyNodeIDs; }
+    std::shared_ptr<binder::Expression> getKeyNodeID(uint32_t idx) const { return keyNodeIDs[idx]; }
+
+    SIPInfo& getSIPInfoUnsafe() { return sipInfo; }
+    SIPInfo getSIPInfo() const { return sipInfo; }
 
     std::unique_ptr<LogicalOperator> copy() override;
 
 private:
     std::shared_ptr<binder::Expression> intersectNodeID;
     binder::expression_vector keyNodeIDs;
-    SidewaysInfoPassing sip;
+    SIPInfo sipInfo;
 };
 
 } // namespace planner

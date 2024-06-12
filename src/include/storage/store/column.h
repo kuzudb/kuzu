@@ -34,7 +34,6 @@ class StructColumn;
 class RelTableData;
 class Column {
     friend class StringColumn;
-    friend class ListLocalColumn;
     friend class StructColumn;
     friend class ListColumn;
     friend class RelTableData;
@@ -79,12 +78,12 @@ public:
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector);
     // Scan from [startOffsetInGroup, endOffsetInGroup).
-    virtual void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        ColumnChunk* columnChunk, common::offset_t startOffset = 0,
+    virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
+        ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET);
 
     // Append column chunk in a new node group.
-    virtual void append(ColumnChunk* columnChunk, ChunkState& state);
+    virtual void append(ColumnChunkData* columnChunk, ChunkState& state);
 
     common::LogicalType& getDataType() { return dataType; }
     const common::LogicalType& getDataType() const { return dataType; }
@@ -105,7 +104,7 @@ public:
         const offset_set_t& deleteInfo);
     void prepareCommitForChunk(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup,
-        const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
+        const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
         common::offset_t startSrcOffset);
 
     virtual void prepareCommitForExistingChunk(transaction::Transaction* transaction,
@@ -113,7 +112,7 @@ public:
         const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,
         const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo);
     virtual void prepareCommitForExistingChunk(transaction::Transaction* transaction,
-        ChunkState& state, const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
+        ChunkState& state, const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
         common::offset_t startSrcOffset);
 
     virtual void checkpointInMemory();
@@ -137,16 +136,16 @@ public:
     virtual void write(ChunkState& state, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
     // Batch write to a set of sequential pages.
-    virtual void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunk* data,
+    virtual void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunkData* data,
         common::offset_t dataOffset, common::length_t numValues);
 
     // Append values to the end of the node group, resizing it if necessary
     common::offset_t appendValues(ChunkState& state, const uint8_t* data,
         const common::NullMask* nullChunkData, common::offset_t numValues);
 
-    virtual std::unique_ptr<ColumnChunk> getEmptyChunkForCommit(uint64_t capacity);
+    virtual std::unique_ptr<ColumnChunkData> getEmptyChunkForCommit(uint64_t capacity);
     static void applyLocalChunkToColumnChunk(const ChunkCollection& localChunks,
-        ColumnChunk* columnChunk, const offset_to_row_idx_t& info);
+        ColumnChunkData* columnChunk, const offset_to_row_idx_t& info);
 
 protected:
     virtual void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
@@ -189,6 +188,10 @@ protected:
     void updateStatistics(ColumnChunkMetadata& metadata, common::offset_t maxIndex,
         const std::optional<StorageValue>& min, const std::optional<StorageValue>& max);
 
+    static size_t getNumValuesFromDisk(DiskArray<ColumnChunkMetadata>* metadataDA,
+        transaction::Transaction* transaction, const ChunkState& state,
+        common::offset_t startOffset, common::offset_t endOffset);
+
 private:
     bool isInsertionsOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
         const offset_to_row_idx_t& insertInfo);
@@ -201,7 +204,7 @@ private:
         const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,
         const offset_to_row_idx_t& updateInfo);
     virtual bool canCommitInPlace(const ChunkState& state,
-        const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
+        const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
         common::offset_t srcOffset);
 
     virtual void commitLocalChunkInPlace(ChunkState& state,
@@ -214,14 +217,16 @@ private:
         const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo);
 
     virtual void commitColumnChunkInPlace(ChunkState& state,
-        const std::vector<common::offset_t>& dstOffsets, ColumnChunk* chunk,
+        const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
         common::offset_t srcOffset);
     virtual void commitColumnChunkOutOfPlace(transaction::Transaction* transaction,
         ChunkState& state, bool isNewNodeGroup, const std::vector<common::offset_t>& dstOffsets,
-        ColumnChunk* chunk, common::offset_t srcOffset);
+        ColumnChunkData* chunk, common::offset_t srcOffset);
 
     void applyLocalChunkToColumn(ChunkState& state, const ChunkCollection& localChunks,
         const offset_to_row_idx_t& info);
+
+    virtual void updateStateMetadataNumValues(ChunkState& state, size_t numValues);
 
     // check if val is in range [start, end)
     static bool isInRange(uint64_t val, uint64_t start, uint64_t end) {

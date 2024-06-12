@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.math.BigInteger;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Duration;
 import java.time.Instant;
@@ -151,6 +152,18 @@ public class ValueTest extends TestBase {
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), KuzuDataTypeID.FLOAT);
         assertTrue(value.getValue().equals((float) 123.456));
+        value.destroy();
+    }
+
+    @Test
+    void ValueCreateDecimal() throws KuzuObjectRefDestroyedException {
+        // decimal
+        KuzuValue value = new KuzuValue(new BigDecimal("-3.140"));
+        assertFalse(value.isOwnedByCPP());
+        assertEquals(value.getDataType().getID(), KuzuDataTypeID.DECIMAL);
+        System.out.println(value.getValue().toString());
+        BigDecimal val = (BigDecimal)value.getValue();
+        assertTrue(val.compareTo(new BigDecimal("-3.14")) == 0);
         value.destroy();
     }
 

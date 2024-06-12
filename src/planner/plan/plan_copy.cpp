@@ -24,31 +24,19 @@ static void appendIndexScan(std::vector<IndexLookupInfo> infos, LogicalPlan& pla
 }
 
 static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan& plan) {
-    auto extraInfo = ku_dynamic_cast<ExtraBoundCopyFromInfo*, ExtraBoundCopyRelInfo*>(
-        copyFromInfo.extraInfo.get());
-    expression_vector payloads;
-    for (auto& column : extraInfo->propertyColumns) {
-        payloads.push_back(column);
-    }
-    payloads.push_back(copyFromInfo.offset);
-    for (auto& lookupInfo : extraInfo->infos) {
-        payloads.push_back(lookupInfo.offset);
-    }
     std::vector<std::unique_ptr<LogicalPartitionerInfo>> infos;
-    // Partitioner for FWD direction rel data.
     auto relTableEntry =
         ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(copyFromInfo.tableEntry);
-    infos.push_back(std::make_unique<LogicalPartitionerInfo>(extraInfo->fromOffset, payloads,
+    // Partitioner for FWD direction rel data.
+    infos.push_back(std::make_unique<LogicalPartitionerInfo>(RelKeyIdx::FWD /* keyIdx */,
         relTableEntry->isSingleMultiplicity(RelDataDirection::FWD) ? ColumnDataFormat::REGULAR :
-                                                                     ColumnDataFormat::CSR,
-        relTableEntry));
+                                                                     ColumnDataFormat::CSR));
     // Partitioner for BWD direction rel data.
-    infos.push_back(std::make_unique<LogicalPartitionerInfo>(extraInfo->toOffset, payloads,
+    infos.push_back(std::make_unique<LogicalPartitionerInfo>(RelKeyIdx::BWD /* keyIdx */,
         relTableEntry->isSingleMultiplicity(RelDataDirection::BWD) ? ColumnDataFormat::REGULAR :
-                                                                     ColumnDataFormat::CSR,
-        relTableEntry));
-    auto partitioner =
-        std::make_shared<LogicalPartitioner>(std::move(infos), plan.getLastOperator());
+                                                                     ColumnDataFormat::CSR));
+    auto partitioner = std::make_shared<LogicalPartitioner>(std::move(infos), copyFromInfo.copy(),
+        plan.getLastOperator());
     partitioner->computeFactorizedSchema();
     plan.setLastOperator(std::move(partitioner));
 }

@@ -8,13 +8,13 @@
 #include "common/null_mask.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
-#include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/compression/compression.h"
 
 namespace kuzu {
 namespace storage {
 
-class NullColumnChunk;
+class NullChunkData;
+class BMFileHandle;
 
 struct ColumnChunkMetadata {
     common::page_idx_t pageIdx;
@@ -22,7 +22,7 @@ struct ColumnChunkMetadata {
     uint64_t numValues;
     CompressionMetadata compMeta;
 
-    // TODO: Delete copy.
+    // TODO(Guodong): Delete copy constructor.
     ColumnChunkMetadata()
         : pageIdx{common::INVALID_PAGE_IDX}, numPages{0}, numValues{0},
           compMeta(StorageValue(), StorageValue(), CompressionType::CONSTANT) {}
@@ -32,28 +32,36 @@ struct ColumnChunkMetadata {
 };
 
 // Base data segment covers all fixed-sized data types.
-class ColumnChunk {
+class ColumnChunkData {
 public:
     friend struct ColumnChunkFactory;
     friend struct ListDataColumnChunk;
 
     // ColumnChunks must be initialized after construction, so this constructor should only be used
     // through the ColumnChunkFactory
-    ColumnChunk(common::LogicalType dataType, uint64_t capacity, bool enableCompression = true,
+    ColumnChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression = true,
         bool hasNullChunk = true);
 
-    virtual ~ColumnChunk() = default;
+    virtual ~ColumnChunkData() = default;
 
     template<typename T>
-    inline T getValue(common::offset_t pos) const {
+    T getValue(common::offset_t pos) const {
         KU_ASSERT(pos < numValues);
-        return ((T*)buffer.get())[pos];
+        return reinterpret_cast<T*>(buffer.get())[pos];
+    }
+    template<typename T>
+    void setValue(T val, common::offset_t pos) {
+        KU_ASSERT(pos < capacity);
+        reinterpret_cast<T*>(buffer.get())[pos] = val;
+        if (pos >= numValues) {
+            numValues = pos + 1;
+        }
     }
 
-    inline NullColumnChunk* getNullChunk() { return nullChunk.get(); }
-    inline const NullColumnChunk& getNullChunk() const { return *nullChunk; }
-    inline common::LogicalType& getDataType() { return dataType; }
-    inline const common::LogicalType& getDataType() const { return dataType; }
+    NullChunkData* getNullChunk() { return nullChunk.get(); }
+    const NullChunkData& getNullChunk() const { return *nullChunk; }
+    common::LogicalType& getDataType() { return dataType; }
+    const common::LogicalType& getDataType() const { return dataType; }
 
     virtual void resetToEmpty();
 
@@ -61,19 +69,19 @@ public:
     virtual ColumnChunkMetadata getMetadataToFlush() const;
 
     virtual void append(common::ValueVector* vector, const common::SelectionVector& selVector);
-    virtual void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
+    virtual void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend);
 
     ColumnChunkMetadata flushBuffer(BMFileHandle* dataFH, common::page_idx_t startPageIdx,
-        const ColumnChunkMetadata& metadata);
+        const ColumnChunkMetadata& metadata) const;
 
-    static inline common::page_idx_t getNumPagesForBytes(uint64_t numBytes) {
+    static common::page_idx_t getNumPagesForBytes(uint64_t numBytes) {
         return (numBytes + common::BufferPoolConstants::PAGE_4KB_SIZE - 1) /
                common::BufferPoolConstants::PAGE_4KB_SIZE;
     }
 
-    inline uint64_t getNumBytesPerValue() const { return numBytesPerValue; }
-    inline uint8_t* getData() const { return buffer.get(); }
+    uint64_t getNumBytesPerValue() const { return numBytesPerValue; }
+    uint8_t* getData() const { return buffer.get(); }
 
     virtual void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const;
@@ -82,42 +90,43 @@ public:
     // `offsetInVector`, we should flatten the vector to pos at `offsetInVector`.
     virtual void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk);
-    virtual void write(ColumnChunk* chunk, ColumnChunk* offsetsInChunk,
+    virtual void write(ColumnChunkData* chunk, ColumnChunkData* offsetsInChunk,
         common::RelMultiplicity multiplicity);
-    virtual void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
+    virtual void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
     // TODO(Guodong): Used in `applyDeletionsToChunk`. Should unify with `write`.
-    virtual void copy(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
+    virtual void copy(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
 
     // numValues must be at least the number of values the ColumnChunk was first initialized
     // with
     virtual void resize(uint64_t newCapacity);
 
-    template<typename T>
-    void setValue(T val, common::offset_t pos) {
-        KU_ASSERT(pos < capacity);
-        ((T*)buffer.get())[pos] = val;
-        if (pos >= numValues) {
-            numValues = pos + 1;
-        }
-    }
-
     void populateWithDefaultVal(common::ValueVector* defaultValueVector);
     virtual void finalize() { // DO NOTHING.
     }
 
-    inline uint64_t getCapacity() const { return capacity; }
-    inline uint64_t getNumValues() const { return numValues; }
+    uint64_t getCapacity() const { return capacity; }
+    uint64_t getNumValues() const { return numValues; }
     virtual void setNumValues(uint64_t numValues_);
     virtual bool numValuesSanityCheck() const;
     bool isCompressionEnabled() const { return enableCompression; }
 
     virtual bool sanityCheck();
 
+    template<typename TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<ColumnChunkData&, TARGET&>(*this);
+    }
+    template<typename TARGET>
+    const TARGET& cast() const {
+        return common::ku_dynamic_cast<const ColumnChunkData&, const TARGET&>(*this);
+    }
+
 protected:
-    // Initializes the data buffer. Is (and should be) only called in constructor.
-    void initializeBuffer(common::offset_t capacity);
+    // Initializes the data buffer and functions. They are (and should be) only called in
+    // constructor.
+    void initializeBuffer();
     void initializeFunction();
 
     virtual void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk,
@@ -127,44 +136,48 @@ private:
     uint64_t getBufferSize(uint64_t capacity_) const;
 
 protected:
+    using flush_buffer_func_t = std::function<ColumnChunkMetadata(const uint8_t*, uint64_t,
+        BMFileHandle*, common::page_idx_t, const ColumnChunkMetadata&)>;
+    using get_metadata_func_t = std::function<ColumnChunkMetadata(const uint8_t*, uint64_t,
+        uint64_t, uint64_t, StorageValue, StorageValue)>;
+    using get_min_max_func_t =
+        std::function<std::pair<StorageValue, StorageValue>(const uint8_t*, uint64_t)>;
+
     common::LogicalType dataType;
     uint32_t numBytesPerValue;
     uint64_t bufferSize;
     uint64_t capacity;
     std::unique_ptr<uint8_t[]> buffer;
-    std::unique_ptr<NullColumnChunk> nullChunk;
+    std::unique_ptr<NullChunkData> nullChunk;
     uint64_t numValues;
-    std::function<ColumnChunkMetadata(const uint8_t*, uint64_t, BMFileHandle*, common::page_idx_t,
-        const ColumnChunkMetadata&)>
-        flushBufferFunction;
-    std::function<ColumnChunkMetadata(const uint8_t*, uint64_t, uint64_t, uint64_t, StorageValue,
-        StorageValue)>
-        getMetadataFunction;
+    flush_buffer_func_t flushBufferFunction;
+    get_metadata_func_t getMetadataFunction;
+    get_min_max_func_t getMinMaxFunction;
     bool enableCompression;
 };
 
 template<>
-inline void ColumnChunk::setValue(bool val, common::offset_t pos) {
+inline void ColumnChunkData::setValue(bool val, common::offset_t pos) {
     // Buffer is rounded up to the nearest 8 bytes so that this cast is safe
-    common::NullMask::setNull((uint64_t*)buffer.get(), pos, val);
+    common::NullMask::setNull(reinterpret_cast<uint64_t*>(buffer.get()), pos, val);
 }
 
 template<>
-inline bool ColumnChunk::getValue(common::offset_t pos) const {
+inline bool ColumnChunkData::getValue(common::offset_t pos) const {
     // Buffer is rounded up to the nearest 8 bytes so that this cast is safe
-    return common::NullMask::isNull((uint64_t*)buffer.get(), pos);
+    return common::NullMask::isNull(reinterpret_cast<uint64_t*>(buffer.get()), pos);
 }
 
 // Stored as bitpacked booleans in-memory and on-disk
-class BoolColumnChunk : public ColumnChunk {
+class BoolChunkData : public ColumnChunkData {
 public:
-    explicit BoolColumnChunk(uint64_t capacity, bool enableCompression, bool hasNullChunk = true)
-        : ColumnChunk(*common::LogicalType::BOOL(), capacity,
+    explicit BoolChunkData(uint64_t capacity, bool enableCompression, bool hasNullChunk = true)
+        : ColumnChunkData(*common::LogicalType::BOOL(), capacity,
               // Booleans are always bitpacked, but this can also enable constant compression
               enableCompression, hasNullChunk) {}
 
     void append(common::ValueVector* vector, const common::SelectionVector& sel) final;
-    void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
+    void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
@@ -172,50 +185,50 @@ public:
 
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
-    void write(ColumnChunk* chunk, ColumnChunk* dstOffsets,
+    void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
         common::RelMultiplicity multiplicity) final;
-    void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
+    void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 };
 
-class NullColumnChunk final : public BoolColumnChunk {
+class NullChunkData final : public BoolChunkData {
 public:
-    explicit NullColumnChunk(uint64_t capacity, bool enableCompression)
-        : BoolColumnChunk(capacity, enableCompression, false /*hasNullChunk*/),
+    explicit NullChunkData(uint64_t capacity, bool enableCompression)
+        : BoolChunkData(capacity, enableCompression, false /*hasNullChunk*/),
           mayHaveNullValue{false} {}
-    // Maybe this should be combined with BoolColumnChunk if the only difference is these functions?
-    inline bool isNull(common::offset_t pos) const { return getValue<bool>(pos); }
+    // Maybe this should be combined with BoolChunkData if the only difference is these functions?
+    bool isNull(common::offset_t pos) const { return getValue<bool>(pos); }
     void setNull(common::offset_t pos, bool isNull);
 
-    inline bool mayHaveNull() const { return mayHaveNullValue; }
+    bool mayHaveNull() const { return mayHaveNullValue; }
 
-    inline void resetToEmpty() override {
+    void resetToEmpty() override {
         resetToNoNull();
         numValues = 0;
     }
-    inline void resetToNoNull() {
+    void resetToNoNull() {
         memset(buffer.get(), 0 /* non null */, bufferSize);
         mayHaveNullValue = false;
     }
-    inline void resetToAllNull() {
+    void resetToAllNull() {
         memset(buffer.get(), 0xFF /* null */, bufferSize);
         mayHaveNullValue = true;
     }
 
-    inline void copyFromBuffer(uint64_t* srcBuffer, uint64_t srcOffset, uint64_t dstOffset,
+    void copyFromBuffer(uint64_t* srcBuffer, uint64_t srcOffset, uint64_t dstOffset,
         uint64_t numBits, bool invert = false) {
-        if (common::NullMask::copyNullMask(srcBuffer, srcOffset, (uint64_t*)buffer.get(), dstOffset,
-                numBits, invert)) {
+        if (common::NullMask::copyNullMask(srcBuffer, srcOffset,
+                reinterpret_cast<uint64_t*>(buffer.get()), dstOffset, numBits, invert)) {
             mayHaveNullValue = true;
         }
     }
 
-    void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
+    void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
-    void write(ColumnChunk* srcChunk, common::offset_t srcOffsetInChunk,
+    void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
     common::NullMask getNullMask() const {
@@ -229,13 +242,13 @@ protected:
 struct ColumnChunkFactory {
     // inMemory starts string column chunk dictionaries at zero instead of reserving space for
     // values to grow
-    static std::unique_ptr<ColumnChunk> createColumnChunk(common::LogicalType dataType,
+    static std::unique_ptr<ColumnChunkData> createColumnChunkData(common::LogicalType dataType,
         bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE,
         bool inMemory = false);
 
-    static std::unique_ptr<ColumnChunk> createNullColumnChunk(bool enableCompression,
+    static std::unique_ptr<ColumnChunkData> createNullChunkData(bool enableCompression,
         uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE) {
-        return std::make_unique<NullColumnChunk>(capacity, enableCompression);
+        return std::make_unique<NullChunkData>(capacity, enableCompression);
     }
 };
 

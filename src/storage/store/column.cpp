@@ -136,6 +136,21 @@ Column::Column(std::string name, LogicalType dataType, const MetadataDAHInfo& me
 
 Column::~Column() = default;
 
+size_t Column::getNumValuesFromDisk(DiskArray<ColumnChunkMetadata>* metadataDA,
+    Transaction* transaction, const ChunkState& state, offset_t startOffset, offset_t endOffset) {
+    KU_ASSERT(nullptr != metadataDA);
+
+    if (state.nodeGroupIdx >= metadataDA->getNumElements(transaction->getType())) {
+        return 0;
+    } else {
+        auto chunkMetadata = metadataDA->get(state.nodeGroupIdx, transaction->getType());
+        auto numValues = chunkMetadata.numValues == 0 ?
+                             0 :
+                             std::min(endOffset, chunkMetadata.numValues) - startOffset;
+        return numValues;
+    }
+}
+
 Column* Column::getNullColumn() const {
     return nullColumn.get();
 }
@@ -203,47 +218,42 @@ void Column::scan(Transaction* transaction, const ChunkState& state, offset_t st
         offsetInVector);
 }
 
-void Column::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk,
+void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunkData* columnChunk,
     offset_t startOffset, offset_t endOffset) {
     if (nullColumn) {
-        nullColumn->scan(transaction, nodeGroupIdx, columnChunk->getNullChunk(), startOffset,
+        nullColumn->scan(transaction, *state.nullState, columnChunk->getNullChunk(), startOffset,
             endOffset);
     }
-    if (nodeGroupIdx >= metadataDA->getNumElements(transaction->getType())) {
+    if (state.metadata.numValues == 0) {
         columnChunk->setNumValues(0);
-    } else {
-        const auto chunkMetadata = metadataDA->get(nodeGroupIdx, transaction->getType());
-        if (chunkMetadata.numValues == 0) {
-            columnChunk->setNumValues(0);
-            return;
-        }
-        uint64_t numValuesPerPage =
-            chunkMetadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
-        auto cursor = PageUtils::getPageCursorForPos(startOffset, numValuesPerPage);
-        cursor.pageIdx += chunkMetadata.pageIdx;
-        uint64_t numValuesScanned = 0u;
-        startOffset = std::min(startOffset, chunkMetadata.numValues);
-        endOffset = std::min(endOffset, chunkMetadata.numValues);
-        KU_ASSERT(endOffset >= startOffset);
-        auto numValuesToScan = endOffset - startOffset;
-        if (numValuesToScan > columnChunk->getCapacity()) {
-            columnChunk->resize(std::bit_ceil(numValuesToScan));
-        }
-        KU_ASSERT((numValuesToScan + startOffset) <= chunkMetadata.numValues);
-        while (numValuesScanned < numValuesToScan) {
-            auto numValuesToReadInPage = std::min(numValuesPerPage - cursor.elemPosInPage,
-                numValuesToScan - numValuesScanned);
-            KU_ASSERT(isPageIdxValid(cursor.pageIdx, chunkMetadata));
-            readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
-                readToPageFunc(frame, cursor, columnChunk->getData(), numValuesScanned,
-                    numValuesToReadInPage, chunkMetadata.compMeta);
-            });
-            numValuesScanned += numValuesToReadInPage;
-            cursor.nextPage();
-        }
-        KU_ASSERT(numValuesScanned == numValuesToScan);
-        columnChunk->setNumValues(numValuesScanned);
+        return;
     }
+    uint64_t numValuesPerPage =
+        state.metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+    auto cursor = PageUtils::getPageCursorForPos(startOffset, numValuesPerPage);
+    cursor.pageIdx += state.metadata.pageIdx;
+    uint64_t numValuesScanned = 0u;
+    startOffset = std::min(startOffset, state.metadata.numValues);
+    endOffset = std::min(endOffset, state.metadata.numValues);
+    KU_ASSERT(endOffset >= startOffset);
+    auto numValuesToScan = endOffset - startOffset;
+    if (numValuesToScan > columnChunk->getCapacity()) {
+        columnChunk->resize(std::bit_ceil(numValuesToScan));
+    }
+    KU_ASSERT((numValuesToScan + startOffset) <= state.metadata.numValues);
+    while (numValuesScanned < numValuesToScan) {
+        auto numValuesToReadInPage =
+            std::min(numValuesPerPage - cursor.elemPosInPage, numValuesToScan - numValuesScanned);
+        KU_ASSERT(isPageIdxValid(cursor.pageIdx, state.metadata));
+        readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
+            readToPageFunc(frame, cursor, columnChunk->getData(), numValuesScanned,
+                numValuesToReadInPage, state.metadata.compMeta);
+        });
+        numValuesScanned += numValuesToReadInPage;
+        cursor.nextPage();
+    }
+    KU_ASSERT(numValuesScanned == numValuesToScan);
+    columnChunk->setNumValues(numValuesScanned);
 }
 
 void Column::scan(Transaction* transaction, const ChunkState& state, offset_t startOffsetInGroup,
@@ -380,7 +390,7 @@ static bool sanityCheckForWrites(const ColumnChunkMetadata& metadata, const Logi
                      static_cast<double>(numValuesPerPage)) <= metadata.numPages;
 }
 
-void Column::append(ColumnChunk* columnChunk, ChunkState& state) {
+void Column::append(ColumnChunkData* columnChunk, ChunkState& state) {
     KU_ASSERT(enableCompression == columnChunk->isCompressionEnabled() &&
               state.nodeGroupIdx != INVALID_NODE_GROUP_IDX);
     KU_ASSERT(columnChunk->sanityCheck());
@@ -486,7 +496,7 @@ inline std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMi
     return std::make_pair(min, max);
 }
 
-void Column::write(ChunkState& state, offset_t offsetInChunk, ColumnChunk* data,
+void Column::write(ChunkState& state, offset_t offsetInChunk, ColumnChunkData* data,
     offset_t dataOffset, length_t numValues) {
     NullMask nullMask{std::span<uint64_t>()};
     NullMask* nullMaskPtr = nullptr;
@@ -582,7 +592,7 @@ void Column::prepareCommitForChunk(Transaction* transaction, node_group_idx_t no
 }
 
 void Column::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    bool isNewNodeGroup, const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk,
+    bool isNewNodeGroup, const std::vector<offset_t>& dstOffsets, ColumnChunkData* chunk,
     offset_t startSrcOffset) {
     metadataDA->prepareCommit();
     ChunkState state;
@@ -621,7 +631,7 @@ void Column::prepareCommitForExistingChunk(Transaction* transaction, ChunkState&
 }
 
 void Column::prepareCommitForExistingChunk(Transaction* transaction, ChunkState& state,
-    const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk, offset_t startSrcOffset) {
+    const std::vector<offset_t>& dstOffsets, ColumnChunkData* chunk, offset_t startSrcOffset) {
     if (canCommitInPlace(state, dstOffsets, chunk, startSrcOffset)) {
         commitColumnChunkInPlace(state, dstOffsets, chunk, startSrcOffset);
         KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
@@ -695,7 +705,7 @@ bool Column::canCommitInPlace(const ChunkState& state, const ChunkCollection& lo
 }
 
 bool Column::canCommitInPlace(const ChunkState& state, const std::vector<offset_t>& dstOffsets,
-    ColumnChunk* chunk, offset_t srcOffset) {
+    ColumnChunkData* chunk, offset_t srcOffset) {
     auto maxDstOffset = getMaxOffset(dstOffsets);
     if (isMaxOffsetOutOfPagesCapacity(state.metadata, maxDstOffset)) {
         return false;
@@ -719,8 +729,8 @@ void Column::commitLocalChunkInPlace(ChunkState& state, const ChunkCollection& l
     applyLocalChunkToColumn(state, localInsertChunks, insertInfo);
 }
 
-std::unique_ptr<ColumnChunk> Column::getEmptyChunkForCommit(uint64_t capacity) {
-    return ColumnChunkFactory::createColumnChunk(*dataType.copy(), enableCompression, capacity);
+std::unique_ptr<ColumnChunkData> Column::getEmptyChunkForCommit(uint64_t capacity) {
+    return ColumnChunkFactory::createColumnChunkData(*dataType.copy(), enableCompression, capacity);
 }
 
 // TODO: Pass state in to avoid access metadata.
@@ -728,7 +738,7 @@ void Column::commitLocalChunkOutOfPlace(Transaction* transaction, ChunkState& st
     bool isNewNodeGroup, const ChunkCollection& localInsertChunks,
     const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,
     const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) {
-    std::unique_ptr<ColumnChunk> columnChunk;
+    std::unique_ptr<ColumnChunkData> columnChunk;
     if (isNewNodeGroup) {
         KU_ASSERT(updateInfo.empty() && deleteInfo.empty());
         columnChunk = getEmptyChunkForCommit(getMaxOffset(insertInfo) + 1);
@@ -740,7 +750,7 @@ void Column::commitLocalChunkOutOfPlace(Transaction* transaction, ChunkState& st
         maxNodeOffset = std::max(maxNodeOffset, chunkMeta.numValues);
         columnChunk = getEmptyChunkForCommit(maxNodeOffset + 1);
         // First, scan the whole column chunk from persistent storage.
-        scan(transaction, state.nodeGroupIdx, columnChunk.get());
+        scan(transaction, state, columnChunk.get());
         // Then, apply updates from the local chunk.
         applyLocalChunkToColumnChunk(localUpdateChunks, columnChunk.get(), updateInfo);
         // Lastly, apply inserts from the local chunk.
@@ -758,7 +768,7 @@ void Column::commitLocalChunkOutOfPlace(Transaction* transaction, ChunkState& st
 }
 
 void Column::commitColumnChunkInPlace(ChunkState& state, const std::vector<offset_t>& dstOffsets,
-    ColumnChunk* chunk, offset_t srcOffset) {
+    ColumnChunkData* chunk, offset_t srcOffset) {
     // TODO: Should always sort dstOffsets, and group writes to the same page.
     for (auto i = 0u; i < dstOffsets.size(); i++) {
         write(state, dstOffsets[i], chunk, srcOffset + i, 1 /* numValues */);
@@ -766,7 +776,7 @@ void Column::commitColumnChunkInPlace(ChunkState& state, const std::vector<offse
 }
 
 void Column::commitColumnChunkOutOfPlace(Transaction* transaction, ChunkState& state,
-    bool isNewNodeGroup, const std::vector<offset_t>& dstOffsets, ColumnChunk* chunk,
+    bool isNewNodeGroup, const std::vector<offset_t>& dstOffsets, ColumnChunkData* chunk,
     offset_t srcOffset) {
     if (isNewNodeGroup) {
         chunk->finalize();
@@ -774,7 +784,7 @@ void Column::commitColumnChunkOutOfPlace(Transaction* transaction, ChunkState& s
     } else {
         auto columnChunk = getEmptyChunkForCommit(
             std::max(std::bit_ceil(state.metadata.numValues), getMaxOffset(dstOffsets) + 1));
-        scan(transaction, state.nodeGroupIdx, columnChunk.get());
+        scan(transaction, state, columnChunk.get());
         for (auto i = 0u; i < dstOffsets.size(); i++) {
             columnChunk->write(chunk, srcOffset + i, dstOffsets[i], 1 /* numValues */);
         }
@@ -784,13 +794,17 @@ void Column::commitColumnChunkOutOfPlace(Transaction* transaction, ChunkState& s
 }
 
 void Column::applyLocalChunkToColumnChunk(const ChunkCollection& localChunks,
-    ColumnChunk* columnChunk, const offset_to_row_idx_t& updateInfo) {
+    ColumnChunkData* columnChunk, const offset_to_row_idx_t& updateInfo) {
     for (auto& [offsetInDstChunk, rowIdx] : updateInfo) {
         auto [chunkIdx, offsetInLocalChunk] =
             LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
         columnChunk->write(localChunks[chunkIdx], offsetInLocalChunk, offsetInDstChunk,
             1 /* numValues */);
     }
+}
+
+void Column::updateStateMetadataNumValues(ChunkState& state, size_t numValues) {
+    state.metadata.numValues = numValues;
 }
 
 void Column::applyLocalChunkToColumn(ChunkState& state, const ChunkCollection& localChunks,
@@ -803,7 +817,7 @@ void Column::applyLocalChunkToColumn(ChunkState& state, const ChunkCollection& l
                 1 /*numValues*/);
         } else {
             if (offsetInDstChunk >= state.metadata.numValues) {
-                state.metadata.numValues = offsetInDstChunk + 1;
+                updateStateMetadataNumValues(state, offsetInDstChunk + 1);
             }
         }
     }
@@ -827,7 +841,8 @@ void Column::populateWithDefaultVal(Transaction* transaction,
     DiskArray<ColumnChunkMetadata>* metadataDA_, ValueVector* defaultValueVector) {
     KU_ASSERT(metadataDA_ != nullptr);
     auto numNodeGroups = metadataDA_->getNumElements(transaction->getType());
-    auto columnChunk = ColumnChunkFactory::createColumnChunk(*dataType.copy(), enableCompression);
+    auto columnChunk =
+        ColumnChunkFactory::createColumnChunkData(*dataType.copy(), enableCompression);
     columnChunk->populateWithDefaultVal(defaultValueVector);
     ChunkState state;
     for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
@@ -838,7 +853,7 @@ void Column::populateWithDefaultVal(Transaction* transaction,
             capacity *= CHUNK_RESIZE_RATIO;
         }
         if (capacity > columnChunk->getCapacity()) {
-            auto newColumnChunk = ColumnChunkFactory::createColumnChunk(*dataType.copy(),
+            auto newColumnChunk = ColumnChunkFactory::createColumnChunkData(*dataType.copy(),
                 enableCompression, capacity);
             newColumnChunk->populateWithDefaultVal(defaultValueVector);
             newColumnChunk->setNumValues(chunkMeta.numValues);

@@ -49,43 +49,13 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
     }
 }
 
-static void getRelColumnNamesInCopyOrder(TableCatalogEntry* tableEntry,
-    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
-    columnNames.emplace_back(InternalKeyword::SRC_OFFSET);
-    columnNames.emplace_back(InternalKeyword::DST_OFFSET);
-    columnNames.emplace_back(InternalKeyword::ROW_OFFSET);
-    columnTypes.emplace_back(LogicalType(LogicalTypeID::INTERNAL_ID));
-    columnTypes.emplace_back(LogicalType(LogicalTypeID::INTERNAL_ID));
-    columnTypes.emplace_back(LogicalType(LogicalTypeID::INTERNAL_ID));
-    auto& properties = tableEntry->getPropertiesRef();
-    for (auto i = 1u; i < properties.size(); ++i) { // skip internal ID
-        columnNames.push_back(properties[i].getName());
-        columnTypes.push_back(*properties[i].getDataType()->copy());
+static void getColumnEvaluators(const expression_vector& columnExprs, Schema* schema,
+    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>>& columnEvaluators,
+    logical_type_vec_t& columnTypes) {
+    for (auto& columnExpr : columnExprs) {
+        columnEvaluators.push_back(ExpressionMapper::getEvaluator(columnExpr, schema));
+        columnTypes.push_back(columnExpr->getDataType());
     }
-}
-
-static std::shared_ptr<Expression> matchColumnExpression(const expression_vector& columnExpressions,
-    const std::string& columnName) {
-    for (auto& expression : columnExpressions) {
-        if (columnName == expression->toString()) {
-            return expression;
-        }
-    }
-    return nullptr;
-}
-
-static std::vector<DataPos> getColumnDataPositions(const std::vector<std::string>& columnNames,
-    const expression_vector& inputColumns, const Schema& fSchema) {
-    std::vector<DataPos> columnPositions;
-    for (auto& columnName : columnNames) {
-        auto expr = matchColumnExpression(inputColumns, columnName);
-        if (expr != nullptr) {
-            columnPositions.emplace_back(fSchema.getExpressionPos(*expr));
-        } else {
-            columnPositions.push_back(DataPos());
-        }
-    }
-    return columnPositions;
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* logicalOperator) {
@@ -116,10 +86,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     sharedState->pkType = *pk->getDataType();
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
-    for (auto& columnExpr : copyFromInfo->columnExprs) {
-        columnEvaluators.push_back(ExpressionMapper::getEvaluator(columnExpr, outFSchema));
-        columnTypes.push_back(columnExpr->getDataType());
-    }
+    getColumnEvaluators(copyFromInfo->columnExprs, outFSchema, columnEvaluators, columnTypes);
     auto info = std::make_unique<NodeBatchInsertInfo>(nodeTableEntry,
         storageManager->compressionEnabled(), std::move(columnTypes), std::move(columnEvaluators),
         std::move(copyFromInfo->defaultColumns));
@@ -133,26 +100,26 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* lo
         ku_dynamic_cast<LogicalOperator*, LogicalPartitioner*>(logicalOperator);
     auto prevOperator = mapOperator(logicalPartitioner->getChild(0).get());
     auto outFSchema = logicalPartitioner->getSchema();
-    std::vector<std::unique_ptr<PartitioningInfo>> infos;
+    auto& copyFromInfo = logicalPartitioner->copyFromInfo;
+    std::vector<PartitioningInfo> infos;
     infos.reserve(logicalPartitioner->getNumInfos());
     for (auto i = 0u; i < logicalPartitioner->getNumInfos(); i++) {
-        auto info = logicalPartitioner->getInfo(i);
-        auto keyPos = getDataPos(*info->key, *outFSchema);
-        std::vector<std::string> columnNames;
-        std::vector<LogicalType> columnTypes;
-        getRelColumnNamesInCopyOrder(info->tableEntry, columnNames, columnTypes);
-        auto columnPositions = getColumnDataPositions(columnNames, info->payloads, *outFSchema);
-        infos.push_back(std::make_unique<PartitioningInfo>(keyPos, columnPositions,
-            std::move(columnTypes), PartitionerFunctions::partitionRelData));
+        infos.emplace_back(logicalPartitioner->getInfo(i)->keyIdx,
+            PartitionerFunctions::partitionRelData);
     }
-    std::vector<common::logical_type_vec_t> columnTypes;
-    for (auto& info : infos) {
-        columnTypes.push_back(info->columnTypes);
-    }
-    auto sharedState = std::make_shared<PartitionerSharedState>(std::move(columnTypes));
+    std::vector<LogicalType> columnTypes;
+    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
+    getColumnEvaluators(copyFromInfo.columnExprs, outFSchema, columnEvaluators, columnTypes);
+    // Manually set columnTypes for _ID columns
+    columnTypes[0] = *LogicalType::INTERNAL_ID();
+    columnTypes[1] = *LogicalType::INTERNAL_ID();
+    columnTypes[2] = *LogicalType::INTERNAL_ID();
+    auto dataInfo = PartitionerDataInfo(LogicalType::copy(columnTypes), std::move(columnEvaluators),
+        copyFromInfo.defaultColumns);
+    auto sharedState = std::make_shared<PartitionerSharedState>();
     return std::make_unique<Partitioner>(std::make_unique<ResultSetDescriptor>(outFSchema),
-        std::move(infos), std::move(sharedState), std::move(prevOperator), getOperatorID(),
-        logicalPartitioner->getExpressionsForPrinting());
+        std::move(infos), std::move(dataInfo), std::move(sharedState), std::move(prevOperator),
+        getOperatorID(), logicalPartitioner->getExpressionsForPrinting());
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(

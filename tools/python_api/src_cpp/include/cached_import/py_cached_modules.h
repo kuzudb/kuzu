@@ -5,7 +5,6 @@
 namespace kuzu {
 
 class DateTimeCachedItem : public PythonCachedItem {
-
 public:
     DateTimeCachedItem()
         : PythonCachedItem("datetime"), date("date", this), datetime("datetime", this),
@@ -17,15 +16,28 @@ public:
 };
 
 class DecimalCachedItem : public PythonCachedItem {
-
 public:
     DecimalCachedItem() : PythonCachedItem("decimal"), Decimal("Decimal", this) {}
 
     PythonCachedItem Decimal;
 };
 
-class InspectCachedItem : public PythonCachedItem {
+class ImportLibCachedItem : public PythonCachedItem {
+    class UtilCachedItem : public PythonCachedItem {
+    public:
+        explicit UtilCachedItem(PythonCachedItem* parent)
+            : PythonCachedItem{"util", parent}, find_spec{"find_spec", this} {}
 
+        PythonCachedItem find_spec;
+    };
+
+public:
+    ImportLibCachedItem() : PythonCachedItem("importlib"), util(this) {}
+
+    UtilCachedItem util;
+};
+
+class InspectCachedItem : public PythonCachedItem {
 public:
     InspectCachedItem()
         : PythonCachedItem("inspect"), currentframe("currentframe", this),
@@ -37,7 +49,6 @@ public:
 };
 
 class NumpyMaCachedItem : public PythonCachedItem {
-
 public:
     NumpyMaCachedItem() : PythonCachedItem("numpy.ma"), masked_array("masked_array", this) {}
 
@@ -45,7 +56,6 @@ public:
 };
 
 class PandasCachedItem : public PythonCachedItem {
-
     class SeriesCachedItem : public PythonCachedItem {
     public:
         explicit SeriesCachedItem(PythonCachedItem* parent)
@@ -90,7 +100,6 @@ public:
 };
 
 class PyarrowCachedItem : public PythonCachedItem {
-
     class RecordBatchCachedItem : public PythonCachedItem {
     public:
         explicit RecordBatchCachedItem(PythonCachedItem* parent)
@@ -134,7 +143,6 @@ public:
 };
 
 class UUIDCachedItem : public PythonCachedItem {
-
 public:
     UUIDCachedItem() : PythonCachedItem("uuid"), UUID("UUID", this) {}
 
