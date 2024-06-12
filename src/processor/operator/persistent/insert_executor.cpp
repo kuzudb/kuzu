@@ -117,6 +117,9 @@ void RelInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
         evaluator->init(*resultSet, context->clientContext);
         columnDataVectors.push_back(evaluator->resultVector.get());
     }
+    columnDataVectors[0]->dataType = *LogicalType::INTERNAL_ID();
+    auto& iid = columnDataVectors[0]->getValue<internalID_t>(0);
+    iid.tableID = table->getTableID();
 }
 
 void RelInsertExecutor::insert(transaction::Transaction* tx) {
@@ -137,8 +140,6 @@ void RelInsertExecutor::insert(transaction::Transaction* tx) {
     for (auto& evaluator : columnDataEvaluators) {
         evaluator->evaluate();
     }
-    auto& iid = columnDataVectors[0]->getValue<internalID_t>(0);
-    iid.tableID = table->getTableID();
     auto insertState = std::make_unique<storage::RelTableInsertState>(*srcNodeIDVector,
         *dstNodeIDVector, columnDataVectors);
     table->insert(tx, *insertState);
