@@ -109,7 +109,7 @@ PackedCSRRegion::PackedCSRRegion(idx_t regionIdx, idx_t level)
 }
 
 bool PackedCSRRegion::isWithin(const PackedCSRRegion& other) const {
-    if (other.level >= level) {
+    if (other.level <= level) {
         return false;
     }
     auto [left, right] = getSegmentBoundaries();
@@ -561,7 +561,7 @@ std::vector<PackedCSRRegion> RelTableData::findRegions(const ChunkedCSRHeader& h
         PackedCSRRegion region{segmentIdx, 0 /* level */};
         while (!isWithinDensityBound(headerChunks, localState.sizeChangesPerSegment, region)) {
             region = upgradeLevel(region);
-            if (region.level > packedCSRInfo.calibratorTreeHeight) {
+            if (region.level >= packedCSRInfo.calibratorTreeHeight) {
                 // Already hit the top level. Skip any other segments and directly return here.
                 return {region};
             }
