@@ -4,12 +4,14 @@
 
 #include "cached_import/py_cached_import.h"
 #include "common/constants.h"
+#include "common/exception/not_implemented.h"
 #include "common/exception/runtime.h"
 #include "common/string_format.h"
 #include "common/types/uuid.h"
 #include "common/utils.h"
 #include "datetime.h" // from Python
 #include "function/built_in_function_utils.h"
+#include "function/cast/functions/cast_string_non_nested_functions.h"
 #include "include/py_udf.h"
 #include "main/connection.h"
 #include "pandas/pandas_scan.h"
@@ -266,6 +268,7 @@ static std::unique_ptr<LogicalType> pyLogicalType(const py::handle& val) {
     auto time_delta = importCache->datetime.timedelta();
     auto datetime_date = importCache->datetime.date();
     auto uuid = importCache->uuid.UUID();
+    auto Decimal = importCache->decimal.Decimal();
     if (val.is_none()) {
         return LogicalType::ANY();
     } else if (py::isinstance<py::bool_>(val)) {
@@ -289,6 +292,21 @@ static std::unique_ptr<LogicalType> pyLogicalType(const py::handle& val) {
         }
     } else if (py::isinstance<py::float_>(val)) {
         return LogicalType::DOUBLE();
+    } else if (py::isinstance(val, Decimal)) {
+        auto as_tuple = val.attr("as_tuple")();
+        auto precision = py::len(as_tuple.attr("digits"));
+        auto exponent = py::cast<int32_t>(as_tuple.attr("exponent"));
+        if (exponent > 0) {
+            precision += exponent;
+            exponent = 0;
+        }
+        if (precision > common::DECIMAL_PRECISION_LIMIT) {
+            throw common::NotImplementedException(
+                stringFormat("Decimal precision cannot be greater than {}"
+                             "Note: positive exponents contribute to precision",
+                    common::DECIMAL_PRECISION_LIMIT));
+        }
+        return LogicalType::DECIMAL(precision, -exponent);
     } else if (py::isinstance<py::str>(val)) {
         return LogicalType::STRING();
     } else if (py::isinstance(val, datetime_datetime)) {
@@ -373,6 +391,14 @@ Value PyConnection::transformPythonValueAs(const py::handle& val, const LogicalT
         return Value::createValue<int8_t>(py::cast<py::int_>(val).cast<int8_t>());
     case LogicalTypeID::DOUBLE:
         return Value::createValue<double>(py::cast<py::float_>(val).cast<double>());
+    case LogicalTypeID::DECIMAL: {
+        auto str = py::cast<std::string>(py::str(val));
+        int128_t result;
+        function::decimalCast(str.c_str(), str.size(), result, type);
+        auto val = Value::createDefaultValue(type);
+        val.val.int128Val = result;
+        return val;
+    }
     case LogicalTypeID::STRING:
         if (py::isinstance<py::str>(val)) {
             return Value::createValue<std::string>(val.cast<std::string>());

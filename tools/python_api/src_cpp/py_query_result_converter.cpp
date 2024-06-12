@@ -86,6 +86,7 @@ void NPArrayWrapper::appendElement(Value* value) {
         case LogicalTypeID::BLOB: {
             ((py::bytes*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
         } break;
+        case LogicalTypeID::DECIMAL:
         case LogicalTypeID::UUID:
         case LogicalTypeID::UNION:
         case LogicalTypeID::MAP:
@@ -169,6 +170,7 @@ py::dtype NPArrayWrapper::convertToArrayType(const LogicalType& type) {
     case LogicalTypeID::INTERVAL: {
         dtype = "timedelta64[ns]";
     } break;
+    case LogicalTypeID::DECIMAL:
     case LogicalTypeID::UNION:
     case LogicalTypeID::BLOB:
     case LogicalTypeID::UUID:

@@ -61,7 +61,7 @@ public class QueryResultTest extends TestBase {
 
     @Test
     void QueryResultGetColumnDataType() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height");
+        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height, cast(1 as decimal)");
         assertTrue(result.isSuccess());
         KuzuDataType type = result.getColumnDataType(0);
         assertEquals(type.getID(), KuzuDataTypeID.STRING);
@@ -72,6 +72,9 @@ public class QueryResultTest extends TestBase {
         type.destroy();
         type = result.getColumnDataType(2);
         assertEquals(type.getID(), KuzuDataTypeID.FLOAT);
+        type.destroy();
+        type = result.getColumnDataType(3);
+        assertEquals(type.getID(), KuzuDataTypeID.DECIMAL);
         type.destroy();
 
         type = result.getColumnDataType(222);
