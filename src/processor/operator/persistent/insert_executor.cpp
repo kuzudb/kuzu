@@ -1,7 +1,5 @@
 #include "processor/operator/persistent/insert_executor.h"
 
-#include "storage/stats/rels_store_statistics.h"
-
 using namespace kuzu::common;
 using namespace kuzu::transaction;
 
