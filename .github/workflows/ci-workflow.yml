@@ -3,6 +3,7 @@ name: CI
 env:
   RUNTIME_CHECKS: 1
   WERROR: 1
+  USE_EXISTING_BINARY_DATASET: 1
 
 on:
   pull_request:
@@ -23,9 +24,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  generate-binary-demo:
+    name: Generate Binary Dataset
+    needs: [clang-format, sanity-checks, python-lint-check]
+    runs-on: kuzu-self-hosted-testing
+    env:
+      NUM_THREADS: 32
+      GEN: ninja
+      CC: gcc
+      CXX: g++
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build
+        run: make release
+
+      - name: Generate Datasets
+        run: bash scripts/generate_binary_demo.sh
+
+      - name: Upload binary-demo
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-demo
+          path: dataset/binary-demo
+
   gcc-build-test:
     name: gcc build & test
-    needs: [clang-format, sanity-checks, python-lint-check]
+    needs: [clang-format, sanity-checks, python-lint-check, generate-binary-demo]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -47,9 +72,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Download binary-demo
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-demo
+          path: ${{ github.workspace }}/dataset/binary-demo
+
       - name: Ensure Python dependencies
         run: |
-          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu 
+          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu
           pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
@@ -82,12 +113,18 @@ jobs:
   code-coverage:
     name: code coverage
     runs-on: ubuntu-22.04
-    needs: [clang-format, sanity-checks, python-lint-check]
+    needs: [clang-format, sanity-checks, python-lint-check, generate-binary-demo]
     env:
       TEST_JOBS: 10
       WERROR: 0
     steps:
       - uses: actions/checkout@v3
+
+      - name: Download binary-demo
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-demo
+          path: dataset/binary-demo
 
       - name: Install lcov
         run: sudo apt-get install -y lcov
@@ -108,11 +145,17 @@ jobs:
 
   gcc-build-test-x86:
     name: gcc build & test 32-bit
-    needs: [clang-format, sanity-checks]
+    needs: [clang-format, sanity-checks, generate-binary-demo]
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Download binary-demo
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-demo
+          path: dataset/binary-demo
 
       - name: Start Docker container
         run: |
@@ -128,7 +171,7 @@ jobs:
 
       - name: Build & Test
         run: |
-          docker exec kuzu-x86 make test
+          docker exec --env USE_EXISTING_BINARY_DATASET=1 kuzu-x86 make test
 
       - name: Stop Docker container
         run: docker stop kuzu-x86
@@ -155,7 +198,7 @@ jobs:
 
   gcc-build-test-with-asan:
     name: gcc build & test with asan
-    needs: [gcc-build-test]
+    needs: [gcc-build-test, generate-binary-demo]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -167,9 +210,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Download binary-demo
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-demo
+          path: dataset/binary-demo
+
       - name: Ensure Python dependencies
         run: |
-          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu 
+          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu
           pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
@@ -183,7 +232,7 @@ jobs:
 
   clang-build-test:
     name: clang build and test
-    needs: [clang-format, sanity-checks, python-lint-check]
+    needs: [clang-format, sanity-checks, python-lint-check, generate-binary-demo]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -201,9 +250,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Download binary-demo
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-demo
+          path: dataset/binary-demo
+
       - name: Ensure Python dependencies
         run: |
-          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu 
+          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu
           pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
@@ -235,7 +290,7 @@ jobs:
 
   msvc-build-test:
     name: msvc build & test
-    needs: [clang-format, sanity-checks, python-lint-check]
+    needs: [clang-format, sanity-checks, python-lint-check, generate-binary-demo]
     runs-on: self-hosted-windows
     env:
       # Shorten build path as much as possible
@@ -255,6 +310,12 @@ jobs:
       HTTP_CACHE_FILE: TRUE
     steps:
       - uses: actions/checkout@v3
+
+      - name: Download binary-demo
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-demo
+          path: dataset/binary-demo
 
       - name: Ensure Python dependencies
         run: |
@@ -405,7 +466,7 @@ jobs:
     name: benchmark
     needs: [gcc-build-test, clang-build-test]
     uses: ./.github/workflows/benchmark-workflow.yml
-  
+
   report-benchmark-result:
     name: report benchmark result
     needs: [benchmark]
@@ -451,7 +512,7 @@ jobs:
 
   macos-build-test:
     name: apple clang build & test
-    needs: [clang-format, sanity-checks, rustfmt-check, python-lint-check]
+    needs: [clang-format, sanity-checks, rustfmt-check, python-lint-check, generate-binary-demo]
     runs-on: self-hosted-mac-x64
     env:
       NUM_THREADS: 32
@@ -469,9 +530,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Download binary-demo
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-demo
+          path: dataset/binary-demo
+
       - name: Ensure Python dependencies
         run: |
-          pip3 install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu 
+          pip3 install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu
           pip3 install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
@@ -579,8 +646,13 @@ jobs:
       - name: Install dependencies
         run: pip install --break-system-package rangehttpserver
 
+      # shell needs to be built first to generate the dataset provided by the server
+      - name: Extension test build
+        run: make extension-test-build
+
       - name: Extension test
         run: |
+          python3 scripts/generate-tinysnb.py
           cd scripts/ && python3 http-server.py &
           make extension-test && make clean
 
@@ -616,8 +688,13 @@ jobs:
       - name: Install dependencies
         run: pip3 install --break-system-package rangehttpserver
 
+      # shell needs to be built first to generate the dataset provided by the server
+      - name: Extension test build
+        run: make extension-test-build
+
       - name: Extension test
         run: |
+          python3 scripts/generate-tinysnb.py
           cd scripts/ && python3 http-server.py &
           make extension-test && make clean
 
@@ -656,10 +733,17 @@ jobs:
           node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
           cat postgres.test
 
+      - name: Extension test build
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          make extension-test-build
+
       - name: Extension test
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          python3 scripts/generate-tinysnb.py
           cd scripts/ && start /b python http-server.py && cd ..
           make extension-test
 

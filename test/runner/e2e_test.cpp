@@ -38,13 +38,18 @@ public:
         setUpDataset();
         BaseGraphTest::SetUp();
         systemConfig->bufferPoolSize = bufferPoolSize;
-        if (datasetType == TestGroup::DatasetType::KUZU && dataset != "empty") {
+        bool generateBinaryDemo =
+            !std::getenv("USE_EXISTING_BINARY_DATASET") && dataset.ends_with("binary-demo");
+        if (datasetType == TestGroup::DatasetType::KUZU && dataset != "empty" &&
+            !generateBinaryDemo) {
             copyDir(dataset, databasePath);
         }
         createDB(checkpointWaitTimeout);
         createConns(connNames);
         if (datasetType != TestGroup::DatasetType::KUZU && dataset != "empty") {
             initGraph();
+        } else if (generateBinaryDemo) {
+            initGraph(TestHelper::appendKuzuRootPath("dataset/demo-db/parquet/"));
         }
     }
 
