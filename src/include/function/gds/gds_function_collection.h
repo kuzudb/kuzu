@@ -29,5 +29,11 @@ struct PageRankFunction {
     static function_set getFunctionSet();
 };
 
+struct ParallelShortestPathsFunction {
+    static constexpr const char* name = "PARALLEL_SHORTEST_PATH";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu

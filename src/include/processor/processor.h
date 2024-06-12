@@ -14,6 +14,10 @@ public:
 
     std::shared_ptr<FactorizedTable> execute(PhysicalPlan* physicalPlan, ExecutionContext* context);
 
+    inline common::TaskScheduler* getTaskScheduler() {
+        return taskScheduler.get();
+    }
+
 private:
     void decomposePlanIntoTask(PhysicalOperator* op, common::Task* task, ExecutionContext* context);
 

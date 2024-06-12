@@ -1,3 +1,4 @@
+#include "function/gds/parallel_utils.h"
 #include "function/gds_function.h"
 #include "planner/operator/logical_gds_call.h"
 #include "processor/operator/gds_call.h"
@@ -26,6 +27,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     auto table =
         std::make_shared<FactorizedTable>(clientContext->getMemoryManager(), tableSchema->copy());
     auto sharedState = std::make_shared<GDSCallSharedState>(table);
+    auto parallelUtils = std::make_shared<ParallelUtils>(info.copy(), sharedState,
+        std::make_unique<ResultSetDescriptor>(outSchema), getOperatorID(),
+        clientContext->getTaskScheduler(), call.getExpressionsForPrinting());
+    info.gds->setParallelUtils(parallelUtils);
     auto algorithm = std::make_unique<GDSCall>(std::make_unique<ResultSetDescriptor>(),
         std::move(info), sharedState, getOperatorID(), call.getExpressionsForPrinting());
     return createFTableScanAligned(logicalInfo.outExprs, outSchema, table, DEFAULT_VECTOR_CAPACITY,

@@ -15,6 +15,10 @@ public:
     void run() override;
     void finalizeIfNecessary() override;
 
+    inline void setSharedStateInitialized() {
+        sharedStateInitialized = true;
+    }
+
 private:
     static std::unique_ptr<ResultSet> populateResultSet(Sink* op,
         storage::MemoryManager* memoryManager);
