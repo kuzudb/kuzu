@@ -137,6 +137,8 @@ void RelInsertExecutor::insert(transaction::Transaction* tx) {
     for (auto& evaluator : columnDataEvaluators) {
         evaluator->evaluate();
     }
+    auto& iid = columnDataVectors[0]->getValue<internalID_t>(0);
+    iid.tableID = table->getTableID();
     auto insertState = std::make_unique<storage::RelTableInsertState>(*srcNodeIDVector,
         *dstNodeIDVector, columnDataVectors);
     table->insert(tx, *insertState);
