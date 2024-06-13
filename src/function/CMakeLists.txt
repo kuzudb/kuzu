@@ -14,6 +14,7 @@ add_subdirectory(table)
 add_subdirectory(union)
 add_subdirectory(utility)
 add_subdirectory(string)
+add_subdirectory(export)
 
 add_library(kuzu_function
         OBJECT

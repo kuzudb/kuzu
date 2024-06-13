@@ -52,11 +52,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
 std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     planner::LogicalOperator* logicalOperator) {
     auto exportDatabase = logicalOperator->constPtrCast<LogicalExportDatabase>();
-    std::vector<std::unique_ptr<PhysicalOperator>> children;
-    for (auto childCopyTo : exportDatabase->getChildren()) {
-        auto childPhysicalOperator = mapOperator(childCopyTo.get());
-        children.push_back(std::move(childPhysicalOperator));
-    }
     // Ideally we should create directory inside operator but ExportDatabase is executed before
     // CopyTo which requires the directory to exist. So we create directory in mapper inside.
     auto fs = clientContext->getVFSUnsafe();
@@ -67,6 +62,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
         fs->createDir(filePath);
     } else {
         throw RuntimeException(stringFormat("Directory {} already exists.", filePath));
+    }
+    std::vector<std::unique_ptr<PhysicalOperator>> children;
+    for (auto childCopyTo : exportDatabase->getChildren()) {
+        auto childPhysicalOperator = mapOperator(childCopyTo.get());
+        children.push_back(std::move(childPhysicalOperator));
     }
     return std::make_unique<ExportDB>(exportDatabase->getBoundFileInfo()->copy(),
         getOutputPos(exportDatabase), getOperatorID(), exportDatabase->getExpressionsForPrinting(),

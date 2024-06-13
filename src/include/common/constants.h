@@ -182,7 +182,7 @@ struct ParquetConstants {
     static constexpr uint64_t PARQUET_INTERVAL_SIZE = 12;
 };
 
-struct CopyToCSVConstants {
+struct ExportCSVConstants {
     static constexpr const char* DEFAULT_CSV_NEWLINE = "\n";
     static constexpr const char* DEFAULT_NULL_STR = "";
     static constexpr const bool DEFAULT_FORCE_QUOTE = false;

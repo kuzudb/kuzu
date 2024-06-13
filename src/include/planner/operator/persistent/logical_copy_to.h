@@ -1,7 +1,6 @@
 #pragma once
 
-#include "common/copier_config/csv_reader_config.h"
-#include "common/copier_config/reader_config.h"
+#include "function/export/export_function.h"
 #include "planner/operator/logical_operator.h"
 
 namespace kuzu {
@@ -9,14 +8,10 @@ namespace planner {
 
 class LogicalCopyTo : public LogicalOperator {
 public:
-    LogicalCopyTo(std::string filePath, common::FileType fileType,
-        std::vector<std::string> columnNames, std::vector<common::LogicalType> columnTypes,
-        common::CSVOption copyToOption, std::shared_ptr<LogicalOperator> child,
-        bool canParallel = true)
+    LogicalCopyTo(std::unique_ptr<function::ExportFuncBindData> bindData,
+        function::ExportFunction exportFunc, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::COPY_TO, std::move(child)},
-          filePath{std::move(filePath)}, fileType{fileType}, columnNames{std::move(columnNames)},
-          columnTypes{std::move(columnTypes)}, copyToOption{std::move(copyToOption)},
-          canParallel{canParallel} {}
+          bindData{std::move(bindData)}, exportFunc{std::move(exportFunc)} {}
 
     f_group_pos_set getGroupsPosToFlatten();
 
@@ -25,25 +20,16 @@ public:
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    std::string getFilePath() const { return filePath; }
-    common::FileType getFileType() const { return fileType; }
-    std::vector<std::string> getColumnNames() const { return columnNames; }
-    const std::vector<common::LogicalType>& getColumnTypesRef() const { return columnTypes; }
-    const common::CSVOption* getCopyOption() const { return &copyToOption; }
-    bool getCanParallel() const { return canParallel; }
+    std::unique_ptr<function::ExportFuncBindData> getBindData() const { return bindData->copy(); }
+    function::ExportFunction getExportFunc() const { return exportFunc; };
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopyTo>(filePath, fileType, columnNames, columnTypes,
-            copyToOption.copy(), children[0]->copy(), canParallel);
+        return make_unique<LogicalCopyTo>(bindData->copy(), exportFunc, children[0]->copy());
     }
 
 private:
-    std::string filePath;
-    common::FileType fileType;
-    std::vector<std::string> columnNames;
-    std::vector<common::LogicalType> columnTypes;
-    common::CSVOption copyToOption;
-    bool canParallel;
+    std::unique_ptr<function::ExportFuncBindData> bindData;
+    function::ExportFunction exportFunc;
 };
 
 } // namespace planner

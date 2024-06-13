@@ -156,18 +156,16 @@ std::unique_ptr<LogicalPlan> Planner::planCopyRdfFrom(const BoundCopyFromInfo* i
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCopyTo(const BoundStatement& statement) {
-    auto& boundCopy = ku_dynamic_cast<const BoundStatement&, const BoundCopyTo&>(statement);
-    auto regularQuery = boundCopy.getRegularQuery();
+    auto& boundCopyTo = statement.constCast<BoundCopyTo>();
+    auto regularQuery = boundCopyTo.getRegularQuery();
     std::vector<std::string> columnNames;
-    std::vector<LogicalType> columnTypes;
     for (auto& column : regularQuery->getStatementResult()->getColumns()) {
         columnNames.push_back(column->toString());
-        columnTypes.push_back(column->dataType);
     }
     KU_ASSERT(regularQuery->getStatementType() == StatementType::QUERY);
     auto plan = getBestPlan(*regularQuery);
-    auto copyTo = make_shared<LogicalCopyTo>(boundCopy.getFilePath(), boundCopy.getFileType(),
-        columnNames, columnTypes, boundCopy.getCopyOption()->copy(), plan->getLastOperator());
+    auto copyTo = make_shared<LogicalCopyTo>(boundCopyTo.getBindData()->copy(),
+        boundCopyTo.getExportFunc(), plan->getLastOperator());
     plan->setLastOperator(std::move(copyTo));
     return plan;
 }
