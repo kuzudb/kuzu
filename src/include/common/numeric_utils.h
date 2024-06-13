@@ -1,0 +1,66 @@
+#pragma once
+
+#include <type_traits>
+
+#include "common/types/int128_t.h"
+#include "common/types/types.h"
+#include <bit>
+#include <concepts>
+
+namespace kuzu {
+namespace common {
+namespace NumericUtils {
+
+template<typename T>
+concept IsIntegral = std::integral<T> || std::same_as<std::remove_cvref_t<T>, int128_t>;
+
+template<typename T>
+concept IsSigned = std::same_as<T, int128_t> || std::numeric_limits<T>::is_signed;
+
+template<typename T>
+concept IsUnSigned = std::numeric_limits<T>::is_unsigned;
+
+template<typename T>
+struct MakeSigned {
+    using type = std::make_signed_t<T>;
+};
+
+template<>
+struct MakeSigned<int128_t> {
+    using type = int128_t;
+};
+
+template<typename T>
+using MakeSignedT = MakeSigned<T>::type;
+
+template<typename T>
+struct MakeUnSigned {
+    using type = std::make_unsigned_t<T>;
+};
+
+template<>
+struct MakeUnSigned<int128_t> {
+    // currently evaluates to int128_t as we don't have an uint128_t type
+    using type = int128_t;
+};
+
+template<typename T>
+using MakeUnSignedT = MakeUnSigned<T>::type;
+
+template<typename T>
+constexpr int BitWidth(T x) {
+    return std::bit_width(x);
+}
+
+template<>
+constexpr int BitWidth<int128_t>(int128_t x) {
+    if (x.high != 0) {
+        constexpr size_t BITS_PER_BYTE = 8;
+        return sizeof(x.low) * BITS_PER_BYTE +
+               std::bit_width(static_cast<MakeUnSignedT<decltype(x.high)>>(x.high));
+    }
+    return std::bit_width(x.low);
+}
+} // namespace NumericUtils
+} // namespace common
+} // namespace kuzu

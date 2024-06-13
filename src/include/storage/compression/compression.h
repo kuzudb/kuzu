@@ -7,6 +7,7 @@
 
 #include "common/assert.h"
 #include "common/null_mask.h"
+#include "common/numeric_utils.h"
 #include "common/types/types.h"
 #include <concepts>
 #include <span>
@@ -33,14 +34,13 @@ union StorageValue {
 
     StorageValue() = default;
     template<typename T>
-        requires std::integral<T> && std::numeric_limits<T>::is_signed
+    requires std::integral<T> && common::NumericUtils::IsSigned<T>
     explicit StorageValue(T value) : signedInt(value) {}
     template<typename T>
-        requires std::integral<T> && (!std::numeric_limits<T>::is_signed)
-    explicit StorageValue(T value) : unsignedInt(value) {}
+    requires std::integral<T> &&(!common::NumericUtils::IsSigned<T>)explicit StorageValue(T value)
+        : unsignedInt(value) {}
     template<typename T>
-        requires std::is_floating_point<T>::value
-    explicit StorageValue(T value) : floatVal(value) {}
+    requires std::is_floating_point<T>::value explicit StorageValue(T value) : floatVal(value) {}
 
     bool operator==(const StorageValue& other) const {
         // All types are the same size, so we can compare any of them to check equality
@@ -55,7 +55,7 @@ union StorageValue {
     template<StorageValueType T>
     T get() const {
         if constexpr (std::integral<T>) {
-            if constexpr (std::numeric_limits<T>::is_signed) {
+            if constexpr (common::NumericUtils::IsSigned<T>) {
                 return static_cast<T>(signedInt);
             } else {
                 return static_cast<T>(unsignedInt);
@@ -214,7 +214,7 @@ public:
     // Nothing to do; constant compressed data is only updated if the update is to the same value
     void setValuesFromUncompressed(const uint8_t*, common::offset_t, uint8_t*, common::offset_t,
         common::offset_t, const CompressionMetadata&,
-        const common::NullMask* /*nullMask*/) const override {};
+        const common::NullMask* /*nullMask*/) const override{};
 
     CompressionType getCompressionType() const override { return CompressionType::CONSTANT; }
 
@@ -284,7 +284,7 @@ concept IntegerBitpackingType = (std::integral<T> && !std::same_as<T, bool>);
 // Augmented with Frame of Reference encoding using an offset stored in the compression metadata
 template<IntegerBitpackingType T>
 class IntegerBitpacking : public CompressionAlg {
-    using U = std::make_unsigned_t<T>;
+    using U = common::NumericUtils::MakeUnSignedT<T>;
     // This is an implementation detail of the fastpfor bitpacking algorithm
     static constexpr uint64_t CHUNK_SIZE = 32;
 
@@ -339,7 +339,8 @@ protected:
 
     inline const uint8_t* getChunkStart(const uint8_t* buffer, uint64_t pos,
         uint8_t bitWidth) const {
-        // Order of operations is important so that pos is rounded down to a multiple of CHUNK_SIZE
+        // Order of operations is important so that pos is rounded down to a multiple of
+        // CHUNK_SIZE
         return buffer + (pos / CHUNK_SIZE) * bitWidth * CHUNK_SIZE / 8;
     }
 };
@@ -376,8 +377,8 @@ public:
 
 protected:
     explicit CompressedFunctor(const common::LogicalType& logicalType)
-        : constant{logicalType}, uncompressed{logicalType},
-          physicalType{logicalType.getPhysicalType()} {}
+        : constant{logicalType}, uncompressed{logicalType}, physicalType{
+                                                                logicalType.getPhysicalType()} {}
     const ConstantCompression constant;
     const Uncompressed uncompressed;
     const BooleanBitpacking booleanBitpacking;
