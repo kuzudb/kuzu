@@ -1,27 +1,28 @@
 #pragma once
 
 #include "binder/bound_statement.h"
-#include "function/copy/copy_function.h"
+#include "function/export/export_function.h"
 
 namespace kuzu {
 namespace binder {
 
 class BoundCopyTo : public BoundStatement {
 public:
-    BoundCopyTo(std::unique_ptr<function::CopyFuncBindData> bindData,
-        function::CopyFunction copyFunc, std::unique_ptr<BoundStatement> query)
+    BoundCopyTo(std::unique_ptr<function::ExportFuncBindData> bindData,
+        function::ExportFunction exportFunc, std::unique_ptr<BoundStatement> query)
         : BoundStatement{common::StatementType::COPY_TO, BoundStatementResult::createEmptyResult()},
-          bindData{std::move(bindData)}, copyFunc{std::move(copyFunc)}, query{std::move(query)} {}
+          bindData{std::move(bindData)}, exportFunc{std::move(exportFunc)},
+          query{std::move(query)} {}
 
-    std::unique_ptr<function::CopyFuncBindData> getBindData() const { return bindData->copy(); }
+    std::unique_ptr<function::ExportFuncBindData> getBindData() const { return bindData->copy(); }
 
-    function::CopyFunction getCopyFunc() const { return copyFunc; }
+    function::ExportFunction getExportFunc() const { return exportFunc; }
 
     const BoundStatement* getRegularQuery() const { return query.get(); }
 
 private:
-    std::unique_ptr<function::CopyFuncBindData> bindData;
-    function::CopyFunction copyFunc;
+    std::unique_ptr<function::ExportFuncBindData> bindData;
+    function::ExportFunction exportFunc;
     std::unique_ptr<BoundStatement> query;
 };
 

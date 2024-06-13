@@ -177,7 +177,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyTo(const BoundStatement& statement
     KU_ASSERT(regularQuery->getStatementType() == StatementType::QUERY);
     auto plan = getBestPlan(*regularQuery);
     auto copyTo = make_shared<LogicalCopyTo>(boundCopyTo.getBindData()->copy(),
-        boundCopyTo.getCopyFunc(), plan->getLastOperator());
+        boundCopyTo.getExportFunc(), plan->getLastOperator());
     plan->setLastOperator(std::move(copyTo));
     return plan;
 }

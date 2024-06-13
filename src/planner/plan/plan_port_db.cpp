@@ -33,16 +33,15 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
     auto func =
         function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(), name, functions);
     KU_ASSERT(func != nullptr);
-    auto copyFunc = *func->constPtrCast<function::CopyFunction>();
+    auto exportFunc = *func->constPtrCast<function::ExportFunction>();
     for (auto& exportTableData : *exportData) {
         auto regularQuery = exportTableData.getRegularQuery();
         KU_ASSERT(regularQuery->getStatementType() == StatementType::QUERY);
         auto tablePlan = getBestPlan(*regularQuery);
         auto path = filePath + "/" + exportTableData.tableName + copyToSuffix;
-        function::CopyFuncBindInput bindInput{exportTableData.columnNames, std::move(path),
-            boundExportDatabase.getExportOptions(), exportTableData.isParallel};
-        auto copyFuncBindData = copyFunc.copyToBind(bindInput);
-        auto copyTo = std::make_shared<LogicalCopyTo>(std::move(copyFuncBindData), copyFunc,
+        function::ExportFuncBindInput bindInput{exportTableData.columnNames, std::move(path),
+            boundExportDatabase.getExportOptions()};
+        auto copyTo = std::make_shared<LogicalCopyTo>(exportFunc.bind(bindInput), exportFunc,
             tablePlan->getLastOperator());
         logicalOperators.push_back(std::move(copyTo));
     }

@@ -12,7 +12,6 @@ struct ExportedTableData {
     std::unique_ptr<BoundRegularQuery> regularQuery;
     std::vector<std::string> columnNames;
     std::vector<common::LogicalType> columnTypes;
-    bool isParallel;
 
     const std::vector<common::LogicalType>& getColumnTypesRef() const { return columnTypes; }
     const BoundRegularQuery* getRegularQuery() const { return regularQuery.get(); }

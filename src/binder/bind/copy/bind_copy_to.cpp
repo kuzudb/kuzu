@@ -22,9 +22,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
     auto fileTypeStr = common::FileTypeUtils::toString(fileType);
     auto name = common::stringFormat("COPY_{}", fileTypeStr);
-    auto copyFunc =
+    auto exportFunc =
         function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(), name, functions)
-            ->constPtrCast<function::CopyFunction>();
+            ->constPtrCast<function::ExportFunction>();
     for (auto& column : columns) {
         auto columnName = column->hasAlias() ? column->getAlias() : column->toString();
         columnNames.push_back(columnName);
@@ -32,10 +32,10 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     if (fileType != FileType::CSV && copyToStatement.getParsingOptionsRef().size() != 0) {
         throw BinderException{"Only copy to csv can have options."};
     }
-    function::CopyFuncBindInput bindInput{std::move(columnNames), std::move(boundFilePath),
-        bindParsingOptions(copyToStatement.getParsingOptionsRef()), true /* canParallel */};
-    auto bindData = copyFunc->copyToBind(bindInput);
-    return std::make_unique<BoundCopyTo>(std::move(bindData), *copyFunc, std::move(query));
+    function::ExportFuncBindInput bindInput{std::move(columnNames), std::move(boundFilePath),
+        bindParsingOptions(copyToStatement.getParsingOptionsRef())};
+    auto bindData = exportFunc->bind(bindInput);
+    return std::make_unique<BoundCopyTo>(std::move(bindData), *exportFunc, std::move(query));
 }
 
 } // namespace binder

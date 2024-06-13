@@ -95,7 +95,6 @@ bool Binder::bindExportTableData(ExportedTableData& tableData, const TableCatalo
         return false;
     }
     std::string exportQuery;
-    tableData.isParallel = true;
     tableData.tableName = entry.getName();
     if (!bindExportQuery(exportQuery, entry, catalog, tx)) {
         return false;

@@ -21,14 +21,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(LogicalOperator* logical
         isFlat.push_back(childSchema->getGroup(expression)->isFlat());
         types.push_back(expression->dataType);
     }
-    auto copyFunc = logicalCopyTo.getCopyFunc();
+    auto exportFunc = logicalCopyTo.getExportFunc();
     auto bindData = logicalCopyTo.getBindData();
     // TODO(Xiyang): Query: COPY (RETURN null) TO '/tmp/1.parquet', the datatype of the first
     // column is ANY, should we solve the type at binder?
-    bindData->bindDataType(std::move(types));
-    auto sharedState = copyFunc.copyToInitShared(*clientContext, *bindData);
-    auto info = std::make_unique<CopyToInfo>(copyFunc, std::move(bindData),
-        std::move(vectorsToCopyPos), std::move(isFlat));
+    bindData->setDataType(std::move(types));
+    auto sharedState = exportFunc.initShared(*clientContext, *bindData);
+    auto info =
+        CopyToInfo{exportFunc, std::move(bindData), std::move(vectorsToCopyPos), std::move(isFlat)};
     auto copyTo = std::make_unique<CopyTo>(std::make_unique<ResultSetDescriptor>(childSchema),
         std::move(info), std::move(sharedState), std::move(prevOperator), getOperatorID(),
         logicalCopyTo.getExpressionsForPrinting());
