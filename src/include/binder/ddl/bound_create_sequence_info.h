@@ -26,7 +26,7 @@ struct BoundCreateSequenceInfo {
 private:
     BoundCreateSequenceInfo(const BoundCreateSequenceInfo& other)
         : sequenceName{other.sequenceName}, startWith{other.startWith}, increment{other.increment},
-          minValue{other.minValue}, maxValue{other.maxValue}, cycle{other.cycle}, 
+          minValue{other.minValue}, maxValue{other.maxValue}, cycle{other.cycle},
           onConflict{other.onConflict} {}
 };
 

@@ -273,8 +273,8 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
         throw BinderException("SEQUENCE START value should be between MINVALUE and MAXVALUE.");
     }
 
-    auto boundInfo = BoundCreateSequenceInfo(sequenceName, startWith, increment, minValue, 
-        maxValue, info.cycle, info.onConflict);
+    auto boundInfo = BoundCreateSequenceInfo(sequenceName, startWith, increment, minValue, maxValue,
+        info.cycle, info.onConflict);
     return std::make_unique<BoundCreateSequence>(std::move(boundInfo));
 }
 
