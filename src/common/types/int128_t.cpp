@@ -352,6 +352,41 @@ int128_t Int128_t::Mod(int128_t lhs, int128_t rhs) {
     return result;
 }
 
+int128_t Int128_t::Xor(int128_t lhs, int128_t rhs) {
+    int128_t result{lhs.low ^ rhs.low, lhs.high ^ rhs.high};
+    return result;
+}
+
+int128_t Int128_t::BinaryAnd(int128_t lhs, int128_t rhs) {
+    int128_t result{lhs.low & rhs.low, lhs.high & rhs.high};
+    return result;
+}
+
+int128_t Int128_t::BinaryOr(int128_t lhs, int128_t rhs) {
+    int128_t result{lhs.low | rhs.low, lhs.high | rhs.high};
+    return result;
+}
+
+int128_t Int128_t::LeftShift(int128_t lhs, int amount) {
+    // adapted from
+    // https://github.com/abseil/abseil-cpp/blob/master/absl/numeric/int128.h
+    return amount >= 64 ? int128_t(0, lhs.low << (amount - 64)) :
+           amount == 0  ? lhs :
+                          int128_t{lhs.low << amount,
+                             (lhs.high << amount) |
+                                 (static_cast<decltype(lhs.high)>(lhs.low) >> (64 - amount))};
+}
+
+int128_t Int128_t::RightShift(int128_t lhs, int amount) {
+    // adapted from
+    // https://github.com/abseil/abseil-cpp/blob/master/absl/numeric/int128.h
+    return amount >= 64 ?
+               int128_t(lhs.high >> (amount - 64), 0) :
+           amount == 0 ?
+               lhs :
+               int128_t((lhs.low >> amount) | (lhs.high << (64 - amount)), lhs.high >> amount);
+}
+
 //===============================================================================================
 // Cast operation
 //===============================================================================================
@@ -659,6 +694,26 @@ int128_t operator%(const int128_t& lhs, const int128_t& rhs) {
     return Int128_t::Mod(lhs, rhs);
 }
 
+int128_t operator^(const int128_t& lhs, const int128_t& rhs) {
+    return Int128_t::Xor(lhs, rhs);
+}
+
+int128_t operator&(const int128_t& lhs, const int128_t& rhs) {
+    return Int128_t::BinaryAnd(lhs, rhs);
+}
+
+int128_t operator|(const int128_t& lhs, const int128_t& rhs) {
+    return Int128_t::BinaryOr(lhs, rhs);
+}
+
+int128_t operator<<(const int128_t& lhs, int amount) {
+    return Int128_t::LeftShift(lhs, amount);
+}
+
+int128_t operator>>(const int128_t& lhs, int amount) {
+    return Int128_t::RightShift(lhs, amount);
+}
+
 // inplace arithmetic operators
 int128_t& int128_t::operator+=(const int128_t& rhs) {
     if (!Int128_t::addInPlace(*this, rhs)) {
@@ -669,6 +724,16 @@ int128_t& int128_t::operator+=(const int128_t& rhs) {
 
 int128_t& int128_t::operator*=(const int128_t& rhs) {
     *this = Int128_t::Mul(*this, rhs);
+    return *this;
+}
+
+int128_t& int128_t::operator|=(const int128_t& rhs) {
+    *this = Int128_t::BinaryOr(*this, rhs);
+    return *this;
+}
+
+int128_t& int128_t::operator&=(const int128_t& rhs) {
+    *this = Int128_t::BinaryAnd(*this, rhs);
     return *this;
 }
 

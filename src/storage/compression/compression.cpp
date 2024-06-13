@@ -326,13 +326,23 @@ void ConstantCompression::copyFromPage(const uint8_t* srcBuffer, uint64_t srcOff
 }
 
 template<typename T>
-static inline T abs(typename std::enable_if<std::is_unsigned<T>::value, T>::type value) {
+inline T abs(T value);
+
+template<typename T>
+    requires std::is_unsigned_v<T>
+inline T abs(T value) {
     return value;
 }
 
 template<typename T>
-static inline T abs(typename std::enable_if<std::is_signed<T>::value, T>::type value) {
+    requires std::is_signed_v<T>
+inline T abs(T value) {
     return std::abs(value);
+}
+
+template<>
+inline int128_t abs<int128_t>(int128_t value) {
+    return value >= 0 ? value : -value;
 }
 
 template<IntegerBitpackingType T>
@@ -345,23 +355,27 @@ BitpackInfo<T> IntegerBitpacking<T>::getPackingInfo(const CompressionMetadata& m
     // Frame of reference encoding is only used when values are either all positive or all negative,
     // and when we will save at least 1 bit per value.
     // when the chunk was first compressed
-    if (min > 0 && max > 0 && std::bit_width((U)(max - min)) < std::bit_width((U)max)) {
+    if (min > 0 && max > 0 &&
+        NumericUtils::BitWidth((U)(max - min)) < NumericUtils::BitWidth((U)max)) {
         offset = min;
-        bitWidth = static_cast<uint8_t>(std::bit_width((U)(max - min)));
+        bitWidth = static_cast<uint8_t>(NumericUtils::BitWidth((U)(max - min)));
         hasNegative = false;
-    } else if (min < 0 && max < 0 && std::bit_width((U)(min - max)) < std::bit_width((U)max)) {
+    } else if (min < 0 && max < 0 &&
+               NumericUtils::BitWidth((U)(min - max)) < NumericUtils::BitWidth((U)max)) {
         offset = (U)max;
-        bitWidth = static_cast<uint8_t>(std::bit_width((U)(min - max))) + 1;
+        bitWidth = static_cast<uint8_t>(NumericUtils::BitWidth((U)(min - max))) + 1;
         // This is somewhat suboptimal since we know that the values are all negative
         // We could use an offset equal to the minimum, but values which are all negative are
         // probably going to grow in the negative direction, leading to many re-compressions when
         // inserting
         hasNegative = true;
     } else if (min < 0) {
-        bitWidth = static_cast<uint8_t>(std::bit_width((U)std::max(abs<T>(min), abs<T>(max)))) + 1;
+        bitWidth =
+            static_cast<uint8_t>(NumericUtils::BitWidth((U)std::max(abs<T>(min), abs<T>(max)))) + 1;
         hasNegative = true;
     } else {
-        bitWidth = static_cast<uint8_t>(std::bit_width((U)std::max(abs<T>(min), abs<T>(max))));
+        bitWidth =
+            static_cast<uint8_t>(NumericUtils::BitWidth((U)std::max(abs<T>(min), abs<T>(max))));
         hasNegative = false;
     }
     return BitpackInfo<T>{bitWidth, hasNegative, offset};
@@ -393,29 +407,29 @@ bool IntegerBitpacking<T>::canUpdateInPlace(std::span<T> values,
 
 template<typename T>
 void fastunpack(const uint8_t* in, T* out, uint32_t bitWidth) {
-    if constexpr (std::is_same_v<std::make_signed_t<T>, int32_t> ||
-                  std::is_same_v<std::make_signed_t<T>, int64_t>) {
+    if constexpr (std::is_same_v<NumericUtils::MakeSignedT<T>, int32_t> ||
+                  std::is_same_v<NumericUtils::MakeSignedT<T>, int64_t>) {
         FastPForLib::fastunpack((const uint32_t*)in, out, bitWidth);
-    } else if constexpr (std::is_same_v<std::make_signed_t<T>, int16_t>) {
+    } else if constexpr (std::is_same_v<NumericUtils::MakeSignedT<T>, int16_t>) {
         FastPForLib::fastunpack((const uint16_t*)in, out, bitWidth);
-    } else {
-        static_assert(std::is_same_v<std::make_signed_t<T>, int8_t>);
+    } else if constexpr (std::is_same_v<NumericUtils::MakeSignedT<T>, int8_t>) {
         FastPForLib::fastunpack((const uint8_t*)in, out, bitWidth);
+    } else {
+        static_assert(std::is_same_v<NumericUtils::MakeSignedT<T>, int128_t>);
     }
 }
 
 template<typename T>
 void fastpack(const T* in, uint8_t* out, uint8_t bitWidth) {
-    if constexpr (std::is_same_v<std::make_signed_t<T>, int32_t> ||
-                  std::is_same_v<std::make_signed_t<T>, int64_t>) {
+    if constexpr (std::is_same_v<NumericUtils::MakeSignedT<T>, int32_t> ||
+                  std::is_same_v<NumericUtils::MakeSignedT<T>, int64_t>) {
         FastPForLib::fastpack(in, (uint32_t*)out, bitWidth);
-    } else if constexpr (std::is_same_v<std::make_signed_t<T>, int16_t>) {
+    } else if constexpr (std::is_same_v<NumericUtils::MakeSignedT<T>, int16_t>) {
         FastPForLib::fastpack(in, (uint16_t*)out, bitWidth);
-    } else if constexpr (std::is_same_v<std::make_signed_t<T>, int8_t>) {
+    } else if constexpr (std::is_same_v<NumericUtils::MakeSignedT<T>, int8_t>) {
         FastPForLib::fastpack(in, (uint8_t*)out, bitWidth);
     } else {
-        static_assert(std::is_same_v<T, uint16_t> || std::is_same_v<T, int16_t>);
-        FastPForLib::fastpack(in, (uint16_t*)out, bitWidth);
+        static_assert(std::is_same_v<NumericUtils::MakeSignedT<T>, int128_t>);
     }
 }
 
