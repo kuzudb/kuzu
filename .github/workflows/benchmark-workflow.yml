@@ -8,7 +8,7 @@ jobs:
     name: benchmark
     env:
       NUM_THREADS: 30
-      GEN: ninja
+      GEN: Ninja
     runs-on: kuzu-self-hosted-benchmarking
     steps:
       - uses: actions/checkout@v3
