@@ -1,10 +1,10 @@
 COPY person FROM "dataset/tinysnb/vPerson.csv" (HeaDER=true, deLim=',');
 COPY person FROM "dataset/tinysnb/vPerson2.csv" (deLim=',');
-COPY organisation FROM "dataset/tinysnb/vOrganisation.csv";
-COPY movies FROM "dataset/tinysnb/vMovies.csv";
+COPY organisation FROM "dataset/tinysnb/vOrganisation.csv" (escape='\\');
+COPY movies FROM "dataset/tinysnb/vMovies.csv"(escape='\\');
 COPY knows FROM "dataset/tinysnb/eKnows.csv";
 COPY knows FROM "dataset/tinysnb/eKnows_2.csv";
 COPY studyAt FROM "dataset/tinysnb/eStudyAt.csv" (HeaDER=true);
 COPY workAt FROM "dataset/tinysnb/eWorkAt.csv";
-COPY meets FROM "dataset/tinysnb/eMeets.csv";
+COPY meets FROM "dataset/tinysnb/eMeets.csv"(escape='\\');
 COPY marries FROM "dataset/tinysnb/eMarries.csv";

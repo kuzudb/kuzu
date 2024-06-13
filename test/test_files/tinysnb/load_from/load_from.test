@@ -144,3 +144,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv
 1972-07-31 13:22:30.342312|1972-07-31 13:22:30.342|1972-07-31 13:22:30|1972-07-31 13:22:30.342312+00|1972-07-31 13:22:30.342312|1972-07-31 13:22:30.342|1972-07-31 13:22:30|1972-07-31 13:22:30.342312+00
 |||||||
 1972-07-31 13:22:30|1972-07-31 13:22:30|1972-07-31 13:22:30|1972-07-31 13:22:30+00|1972-07-31 13:22:30|1972-07-31 13:22:30|1972-07-31 13:22:30|1972-07-31 13:22:30+00
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/escape-char/double_quote_escape_char.csv' (header=true) RETURN *
+---- 2
+1|Some sample text.
+2|Some more sample "text".

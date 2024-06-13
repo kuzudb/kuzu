@@ -3,7 +3,7 @@
 --
 
 -CASE Errors
--STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/escape-then-eof.csv" RETURN COUNT(*);
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/escape-then-eof.csv"(escape='\\') RETURN COUNT(*);
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/escape-then-eof.csv on line 2: escape at end of file.
 
@@ -11,7 +11,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/esc
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/quote-then-eof.csv on line 2: unterminated quotes.
 
--STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/escape-then-bad-char.csv" RETURN COUNT(*);
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/escape-then-bad-char.csv"(escape='\\') RETURN COUNT(*);
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/escape-then-bad-char.csv on line 2: neither QUOTE nor ESCAPE is proceeded by ESCAPE.
 

@@ -135,7 +135,7 @@ struct CopyConstants {
 
     // Default configuration for csv file parsing
     static constexpr const char* STRING_CSV_PARSING_OPTIONS[] = {"ESCAPE", "DELIM", "QUOTE"};
-    static constexpr char DEFAULT_CSV_ESCAPE_CHAR = '\\';
+    static constexpr char DEFAULT_CSV_ESCAPE_CHAR = '"';
     static constexpr char DEFAULT_CSV_DELIMITER = ',';
     static constexpr char DEFAULT_CSV_QUOTE_CHAR = '"';
     static constexpr char DEFAULT_CSV_LIST_BEGIN_CHAR = '[';
