@@ -8,6 +8,7 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/copier_config/csv_reader_config.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
@@ -76,6 +77,15 @@ std::string getMacroCypher(Catalog* catalog, Transaction* tx) {
     return ss.str();
 }
 
+std::string getSequenceCypher(ClientContext* clientContext, Transaction* tx) {
+    stringstream ss;
+    auto catalog = clientContext->getCatalog();
+    for (auto sequenceEntry : catalog->getSequenceEntries(tx)) {
+        ss << sequenceEntry->toCypher(clientContext) << std::endl;
+    }
+    return ss.str();
+}
+
 std::string getCopyCypher(Catalog* catalog, Transaction* tx, ReaderConfig* boundFileInfo) {
     stringstream ss;
     for (auto& nodeTableEntry : catalog->getNodeTableEntries(tx)) {
@@ -104,6 +114,9 @@ void ExportDB::executeInternal(ExecutionContext* context) {
     // write macro.cypher file
     writeStringStreamToFile(fs, getMacroCypher(catalog, tx),
         boundFileInfo.filePaths[0] + "/macro.cypher");
+    // write macro.cypher file
+    writeStringStreamToFile(fs, getSequenceCypher(clientContext, tx),
+        boundFileInfo.filePaths[0] + "/sequence.cypher");
     // write the copy.cypher file
     // for every table, we write COPY FROM statement
     writeStringStreamToFile(fs, getCopyCypher(catalog, tx, &boundFileInfo),

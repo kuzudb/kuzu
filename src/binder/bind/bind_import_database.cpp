@@ -44,6 +44,10 @@ std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement
     std::string finalQueryStatements;
     finalQueryStatements +=
         getQueryFromFile(fs, boundFilePath, ImportDBConstants::SCHEMA_NAME, clientContext);
+    // order is important here, sequences are created IF NOT EXISTS to accommodate auto-created
+    // serial sequences 
+    finalQueryStatements +=
+        getQueryFromFile(fs, boundFilePath, ImportDBConstants::SEQUENCE_NAME, clientContext);
     // replace the path in copy from statement with the bound path
     auto copyQuery =
         getQueryFromFile(fs, boundFilePath, ImportDBConstants::COPY_NAME, clientContext);

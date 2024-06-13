@@ -11,6 +11,14 @@
 -STATEMENT MATCH (p:User) WHERE p.name = "Adam" return p.random
 ---- 1
 {key1=400, key2=250}
+-STATEMENT create sequence seq start 0 increment 10 minvalue 0;
+---- ok
+-STATEMENT return nextval('seq');
+---- 1
+0
+-STATEMENT return nextval('seq');
+---- 1
+10
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case1/demo-db"
 ---- 1
 Exported database successfully.
@@ -27,6 +35,9 @@ Imported database successfully.
 -STATEMENT return addWithDefault(2);
 ---- 1
 5
+-STATEMENT return currval('seq');
+---- 1
+10
 
 -CASE ExportImportDatabaseWithCSVOption
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2" (format="csv", header=true)

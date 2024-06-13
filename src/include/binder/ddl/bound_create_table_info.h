@@ -34,7 +34,6 @@ struct BoundExtraCreateCatalogEntryInfo {
 struct BoundCreateTableInfo {
     common::TableType type;
     std::string tableName;
-    std::vector<BoundCreateSequenceInfo> serialSequences;
     common::ConflictAction onConflict;
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo;
 
