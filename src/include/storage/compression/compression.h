@@ -6,8 +6,10 @@
 #include <type_traits>
 
 #include "common/assert.h"
+#include "common/null_mask.h"
 #include "common/types/types.h"
 #include <concepts>
+#include <span>
 
 namespace kuzu {
 namespace common {
@@ -130,8 +132,9 @@ struct CompressionMetadata {
     uint64_t numValues(uint64_t dataSize, const common::LogicalType& dataType) const;
     // Returns true if and only if the provided value within the vector can be updated
     // in this chunk in-place.
-    bool canUpdateInPlace(const uint8_t* data, uint32_t pos,
-        common::PhysicalTypeID physicalType) const;
+    bool canUpdateInPlace(const uint8_t* data, uint32_t pos, uint64_t numValues,
+        common::PhysicalTypeID physicalType,
+        const std::optional<common::NullMask>& nullMask = std::nullopt) const;
     bool canAlwaysUpdateInPlace() const;
 
     std::string toString(const common::PhysicalTypeID physicalType) const;
@@ -321,7 +324,9 @@ public:
         uint64_t dstOffset, uint64_t numValues,
         const struct CompressionMetadata& metadata) const final;
 
-    static bool canUpdateInPlace(T value, const CompressionMetadata& metadata);
+    static bool canUpdateInPlace(std::span<T> value, const CompressionMetadata& metadata,
+        const std::optional<common::NullMask>& nullMask = std::nullopt,
+        uint64_t nullMaskOffset = 0);
 
     CompressionType getCompressionType() const override {
         return CompressionType::INTEGER_BITPACKING;

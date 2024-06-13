@@ -220,7 +220,7 @@ bool DictionaryColumn::canOffsetCommitInPlace(const Column::ChunkState& offsetSt
         return true;
     }
     if (!offsetState.metadata.compMeta.canUpdateInPlace(
-            (const uint8_t*)&totalStringOffsetsAfterUpdate, 0,
+            (const uint8_t*)&totalStringOffsetsAfterUpdate, 0 /*offset*/, 1 /*numValues*/,
             offsetColumn->getDataType().getPhysicalType())) {
         return false;
     }

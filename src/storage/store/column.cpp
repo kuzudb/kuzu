@@ -460,11 +460,10 @@ void Column::writeValue(ChunkState& state, offset_t offsetInChunk, ValueVector* 
 
 void Column::write(ChunkState& state, offset_t offsetInChunk, ColumnChunkData* data,
     offset_t dataOffset, length_t numValues) {
-    NullMask nullMask{std::span<uint64_t>(), false};
+    std::optional<NullMask> nullMask = data->getNullMask();
     NullMask* nullMaskPtr = nullptr;
-    if (data->getNullChunk()) {
-        nullMask = data->getNullChunk()->getNullMask();
-        nullMaskPtr = &nullMask;
+    if (nullMask) {
+        nullMaskPtr = &*nullMask;
     }
     writeValues(state, offsetInChunk, data->getData(), nullMaskPtr, dataOffset, numValues);
 
@@ -651,7 +650,7 @@ bool Column::checkUpdateInPlace(const ColumnChunkMetadata& metadata,
             continue;
         }
         if (!metadata.compMeta.canUpdateInPlace(localChunks[chunkIdx]->getData(),
-                offsetInLocalChunk, dataType.getPhysicalType())) {
+                offsetInLocalChunk, 1 /*numValues*/, dataType.getPhysicalType())) {
             return false;
         }
     }
@@ -680,11 +679,10 @@ bool Column::canCommitInPlace(const ChunkState& state, const std::vector<offset_
     if (state.metadata.compMeta.canAlwaysUpdateInPlace()) {
         return true;
     }
-    for (auto i = 0u; i < dstOffsets.size(); i++) {
-        if (!state.metadata.compMeta.canUpdateInPlace(chunk->getData(), srcOffset + i,
-                dataType.getPhysicalType())) {
-            return false;
-        }
+    if (!dstOffsets.empty() &&
+        !state.metadata.compMeta.canUpdateInPlace(chunk->getData(), srcOffset, dstOffsets.size(),
+            dataType.getPhysicalType(), chunk->getNullMask())) {
+        return false;
     }
     return true;
 }

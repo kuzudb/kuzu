@@ -1,5 +1,6 @@
 #include "storage/compression/compression.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <limits>
 #include <string>
@@ -22,6 +23,29 @@ using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
+
+template<typename T>
+auto getTypedMinMax(std::span<T> data, const NullMask* nullMask, uint64_t nullMaskOffset) {
+    std::optional<StorageValue> min, max;
+    KU_ASSERT(data.size() > 0);
+    if (!nullMask || nullMask->hasNoNullsGuarantee()) {
+        auto [minRaw, maxRaw] = std::minmax_element(data.begin(), data.end());
+        min = StorageValue(*minRaw);
+        max = StorageValue(*maxRaw);
+    } else {
+        for (uint64_t i = 0; i < data.size(); i++) {
+            if (!nullMask->isNull(nullMaskOffset + i)) {
+                if (!min || data[i] < min->get<T>()) {
+                    min = StorageValue(data[i]);
+                }
+                if (!max || data[i] > max->get<T>()) {
+                    max = StorageValue(data[i]);
+                }
+            }
+        }
+    }
+    return std::make_pair(min, max);
+}
 
 uint32_t getDataTypeSizeInChunk(const common::LogicalType& dataType) {
     return getDataTypeSizeInChunk(dataType.getPhysicalType());
@@ -63,8 +87,8 @@ bool CompressionMetadata::canAlwaysUpdateInPlace() const {
     }
 }
 
-bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos,
-    PhysicalTypeID physicalType) const {
+bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos, uint64_t numValues,
+    PhysicalTypeID physicalType, const std::optional<NullMask>& nullMask) const {
     if (canAlwaysUpdateInPlace()) {
         return true;
     }
@@ -73,12 +97,28 @@ bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos,
         // Value can be updated in place only if it is identical to the value already stored.
         switch (physicalType) {
         case PhysicalTypeID::BOOL: {
-            return NullMask::isNull(reinterpret_cast<const uint64_t*>(data), pos) ==
-                   static_cast<bool>(min.unsignedInt);
+            for (uint64_t i = pos; i < pos + numValues; i++) {
+                if (nullMask && nullMask->isNull(i)) {
+                    continue;
+                }
+                if (!NullMask::isNull(reinterpret_cast<const uint64_t*>(data), i) !=
+                    static_cast<bool>(min.unsignedInt)) {
+                    return false;
+                }
+            }
+            return true;
         }
         default: {
-            auto size = getDataTypeSizeInChunk(physicalType);
-            return memcmp(data + pos * size, &min.unsignedInt, size) == 0;
+            for (uint64_t i = pos; i < pos + numValues; i++) {
+                if (nullMask && nullMask->isNull(i)) {
+                    continue;
+                }
+                auto size = getDataTypeSizeInChunk(physicalType);
+                if (memcmp(data + i * size, &min.unsignedInt, size) != 0) {
+                    return false;
+                }
+            }
+            return true;
         }
         }
     }
@@ -87,15 +127,18 @@ bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos,
         return true;
     }
     case CompressionType::INTEGER_BITPACKING: {
+        auto cdata = const_cast<uint8_t*>(data);
         return TypeUtils::visit(
             physicalType,
             [&]<IntegerBitpackingType T>(T) {
-                auto value = reinterpret_cast<const T*>(data)[pos];
-                return IntegerBitpacking<T>::canUpdateInPlace(value, *this);
+                auto values = std::span<T>(reinterpret_cast<T*>(cdata) + pos, numValues);
+                return IntegerBitpacking<T>::canUpdateInPlace(values, *this, std::move(nullMask));
             },
             [&](internalID_t) {
-                auto value = reinterpret_cast<const uint64_t*>(data)[pos];
-                return IntegerBitpacking<uint64_t>::canUpdateInPlace(value, *this);
+                auto values =
+                    std::span<uint64_t>(reinterpret_cast<uint64_t*>(cdata) + pos, numValues);
+                return IntegerBitpacking<uint64_t>::canUpdateInPlace(values, *this,
+                    std::move(nullMask));
             },
             [&](auto) {
                 throw common::StorageException(
@@ -325,11 +368,21 @@ BitpackInfo<T> IntegerBitpacking<T>::getPackingInfo(const CompressionMetadata& m
 }
 
 template<IntegerBitpackingType T>
-bool IntegerBitpacking<T>::canUpdateInPlace(T value, const CompressionMetadata& metadata) {
+bool IntegerBitpacking<T>::canUpdateInPlace(std::span<T> values,
+    const CompressionMetadata& metadata, const std::optional<common::NullMask>& nullMask,
+    uint64_t nullMaskOffset) {
     auto info = getPackingInfo(metadata);
-    auto newmetadata = CompressionMetadata(StorageValue(std::min(metadata.min.get<T>(), value)),
-        StorageValue(std::max(metadata.max.get<T>(), value)), metadata.compression);
-    auto newInfo = getPackingInfo(newmetadata);
+    auto [min, max] = getTypedMinMax<T>(values, nullMask ? &*nullMask : nullptr, nullMaskOffset);
+    KU_ASSERT((min && max) || (!min && !max));
+    // If all values are null update can trivially be done in-place
+    if (!min) {
+        return true;
+    }
+    auto newMetadata =
+        CompressionMetadata(StorageValue(std::min(metadata.min.get<T>(), min->template get<T>())),
+            StorageValue(std::max(metadata.max.get<T>(), max->template get<T>())),
+            metadata.compression);
+    auto newInfo = getPackingInfo(newMetadata);
 
     if (info.bitWidth != newInfo.bitWidth || info.hasNegative != newInfo.hasNegative ||
         info.offset != newInfo.offset) {
@@ -392,8 +445,8 @@ void IntegerBitpacking<T>::setValuesFromUncompressed(const uint8_t* srcBuffer, o
         // Null values will usually be 0, which will not be able to be stored if there is a non-zero
         // offset However we don't care about the value stored for null values Currently they will
         // be mangled by storage+recovery (underflow in the subtraction below)
-        KU_ASSERT(
-            (nullMask && nullMask->isNull(posInSrc + i)) || canUpdateInPlace(value, metadata));
+        KU_ASSERT((nullMask && nullMask->isNull(posInSrc + i)) ||
+                  canUpdateInPlace(std::span(&value, 1), metadata));
         chunk[posInChunk] = (U)(value - (T)header.offset);
         if (posInChunk + 1 >= CHUNK_SIZE && i + 1 < numValues) {
             fastpack(chunk, chunkStart, header.bitWidth);
@@ -752,28 +805,6 @@ std::optional<StorageValue> StorageValue::readFromVector(const common::ValueVect
         [](auto) { return std::optional<StorageValue>(); });
 }
 
-template<typename T>
-auto getTypedMinMax(std::span<T> data, const NullMask* nullMask, uint64_t nullMaskOffset) {
-    std::optional<StorageValue> min, max;
-    if (!nullMask || nullMask->hasNoNullsGuarantee()) {
-        auto [minRaw, maxRaw] = std::minmax_element(data.begin(), data.end());
-        min = StorageValue(*minRaw);
-        max = StorageValue(*maxRaw);
-    } else {
-        for (uint64_t i = 0; i < data.size(); i++) {
-            if (!nullMask->isNull(nullMaskOffset + i)) {
-                if (!min || data[i] < min->get<T>()) {
-                    min = StorageValue(data[i]);
-                }
-                if (!max || data[i] > max->get<T>()) {
-                    max = StorageValue(data[i]);
-                }
-            }
-        }
-    }
-    return std::make_pair(min, max);
-}
-
 std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxStorageValue(
     const uint8_t* data, uint64_t offset, uint64_t numValues, PhysicalTypeID physicalType,
     const NullMask* nullMask, bool valueRequiredIfUnsupported) {
@@ -781,21 +812,23 @@ std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxSto
     TypeUtils::visit(
         physicalType,
         [&](bool) {
-            auto boolData = reinterpret_cast<const uint64_t*>(data);
-            if (!nullMask || nullMask->hasNoNullsGuarantee()) {
-                auto [minRaw, maxRaw] = NullMask::getMinMax(boolData, numValues);
-                returnValue = std::make_pair(std::optional(StorageValue(minRaw)),
-                    std::optional(StorageValue(maxRaw)));
-            } else {
-                std::optional<StorageValue> min, max;
-                for (size_t i = 0; i < numValues; i++) {
-                    if (!nullMask || !nullMask->isNull(i)) {
-                        auto boolValue = NullMask::isNull(boolData, i);
-                        if (!max || boolValue > max->get<bool>()) {
-                            returnValue.first = boolValue;
-                        }
-                        if (!min || boolValue < min->get<bool>()) {
-                            returnValue.second = boolValue;
+            if (numValues > 0) {
+                auto boolData = reinterpret_cast<const uint64_t*>(data);
+                if (!nullMask || nullMask->hasNoNullsGuarantee()) {
+                    auto [minRaw, maxRaw] = NullMask::getMinMax(boolData, numValues);
+                    returnValue = std::make_pair(std::optional(StorageValue(minRaw)),
+                        std::optional(StorageValue(maxRaw)));
+                } else {
+                    std::optional<StorageValue> min, max;
+                    for (size_t i = 0; i < numValues; i++) {
+                        if (!nullMask || !nullMask->isNull(i)) {
+                            auto boolValue = NullMask::isNull(boolData, i);
+                            if (!max || boolValue > max->get<bool>()) {
+                                returnValue.first = boolValue;
+                            }
+                            if (!min || boolValue < min->get<bool>()) {
+                                returnValue.second = boolValue;
+                            }
                         }
                     }
                 }
@@ -804,14 +837,19 @@ std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxSto
         [&]<typename T>(T)
             requires(std::integral<T> || std::floating_point<T>)
         {
-            auto typedData = std::span(reinterpret_cast<const T*>(data) + offset, numValues);
-            returnValue = getTypedMinMax(typedData, nullMask, offset);
+            if (numValues > 0) {
+                auto typedData = std::span(reinterpret_cast<const T*>(data) + offset, numValues);
+                returnValue = getTypedMinMax(typedData, nullMask, offset);
+            }
         },
         [&]<typename T>(T)
             requires(std::same_as<T, internalID_t>)
         {
-            auto typedData = std::span(reinterpret_cast<const uint64_t*>(data) + offset, numValues);
-            returnValue = getTypedMinMax(typedData, nullMask, offset);
+            if (numValues > 0) {
+                auto typedData =
+                    std::span(reinterpret_cast<const uint64_t*>(data) + offset, numValues);
+                returnValue = getTypedMinMax(typedData, nullMask, offset);
+            }
         },
         [&]<typename T>(T)
             requires(std::same_as<T, int128_t> || std::same_as<T, interval_t> ||
