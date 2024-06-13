@@ -233,19 +233,21 @@ void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunk
         nullColumn->scan(transaction, *state.nullState, columnChunk->getNullChunk(), startOffset,
             endOffset);
     }
-    if (state.metadata.numValues == 0) {
-        columnChunk->setNumValues(0);
+
+    startOffset = std::min(startOffset, state.metadata.numValues);
+    endOffset = std::min(endOffset, state.metadata.numValues);
+    const auto numValuesToScan = endOffset - startOffset;
+    const uint64_t numValuesPerPage =
+        state.metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+    if (numValuesPerPage == UINT64_MAX) {
+        columnChunk->setNumValues(numValuesToScan);
         return;
     }
-    uint64_t numValuesPerPage =
-        state.metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+
     auto cursor = PageUtils::getPageCursorForPos(startOffset, numValuesPerPage);
     cursor.pageIdx += state.metadata.pageIdx;
     uint64_t numValuesScanned = 0u;
-    startOffset = std::min(startOffset, state.metadata.numValues);
-    endOffset = std::min(endOffset, state.metadata.numValues);
     KU_ASSERT(endOffset >= startOffset);
-    auto numValuesToScan = endOffset - startOffset;
     if (numValuesToScan > columnChunk->getCapacity()) {
         columnChunk->resize(std::bit_ceil(numValuesToScan));
     }

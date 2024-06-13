@@ -127,12 +127,8 @@ void ListColumn::scan(Transaction* transaction, const ChunkState& state,
 
 void ListColumn::scan(Transaction* transaction, const ChunkState& state,
     ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
-    nullColumn->scan(transaction, *state.nullState, columnChunk->getNullChunk(), startOffset,
-        endOffset);
-    const size_t numValuesToScan =
-        getNumValuesFromDisk(metadataDA.get(), transaction, state, startOffset, endOffset);
-    columnChunk->setNumValues(numValuesToScan);
-    if (numValuesToScan == 0) {
+    Column::scan(transaction, state, columnChunk, startOffset, endOffset);
+    if (columnChunk->getNumValues() == 0) {
         return;
     }
 
