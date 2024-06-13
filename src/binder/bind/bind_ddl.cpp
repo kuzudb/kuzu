@@ -25,6 +25,7 @@
 #include "parser/ddl/drop.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
+#include "main/database_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -114,10 +115,13 @@ static uint32_t bindPrimaryKey(const std::string& pkColName,
     return primaryKeyIdx;
 }
 
-BoundCreateTableInfo Binder::bindCreateTableInfo(const parser::CreateTableInfo* info) {
-    switch (info->tableType) {
+BoundCreateTableInfo Binder::bindCreateTableInfo(const parser::CreateTableInfo& info) {
+    switch (info.tableType) {
     case TableType::NODE: {
         return bindCreateNodeTableInfo(info);
+    }
+    case TableType::EXTERNAL_NODE: {
+        return bindCreateExternalTableInfo(info);
     }
     case TableType::REL: {
         return bindCreateRelTableInfo(info);
@@ -134,23 +138,37 @@ BoundCreateTableInfo Binder::bindCreateTableInfo(const parser::CreateTableInfo* 
     }
 }
 
-BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo* info) {
-    auto propertyInfos = bindPropertyInfo(info->propertyDefinitions, info->tableName);
-    auto& extraInfo = info->extraInfo->constCast<ExtraCreateNodeTableInfo>();
+BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo& info) {
+    auto propertyInfos = bindPropertyInfo(info.propertyDefinitions, info.tableName);
+    auto& extraInfo = info.extraInfo->constCast<ExtraCreateNodeTableInfo>();
     auto primaryKeyIdx = bindPrimaryKey(extraInfo.pKName, propertyInfos);
     auto boundExtraInfo =
         std::make_unique<BoundExtraCreateNodeTableInfo>(primaryKeyIdx, std::move(propertyInfos));
-    return BoundCreateTableInfo(TableType::NODE, info->tableName, info->onConflict,
+    return BoundCreateTableInfo(TableType::NODE, info.tableName, info.onConflict,
         std::move(boundExtraInfo));
 }
 
-BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info) {
+BoundCreateTableInfo Binder::bindCreateExternalTableInfo(const parser::CreateTableInfo& info) {
+    auto& extraInfo = info.extraInfo->constCast<ExtraCreateExternalNodeTableInfo>();
+    auto dbName = extraInfo.externalDBName;
+    auto tableName = extraInfo.externalTableName;
+    auto entry = bindExternalTableEntry(dbName, tableName)->ptrCast<TableCatalogEntry>();
+    // assume the first column is primary key. This should change.
+    auto primaryKeyIdx = 0;
+    std::vector<PropertyInfo> propertyInfos;
+    auto& pk = entry->getProperties()[0];
+    propertyInfos.emplace_back(pk.getName(), pk.getDataType().copy(), pk.getDefaultExpr()->copy());
+    auto boundExtraInfo = std::make_unique<BoundExtraCreateExternalNodeTableInfo>(entry->getTableID(), dbName, tableName, std::move(propertyInfos));
+    return BoundCreateTableInfo(TableType::EXTERNAL_NODE, info.tableName, info.onConflict, std::move(boundExtraInfo));
+}
+
+BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo& info) {
     std::vector<PropertyInfo> propertyInfos;
     propertyInfos.emplace_back(InternalKeyword::ID, LogicalType::INTERNAL_ID());
-    for (auto& propertyInfo : bindPropertyInfo(info->propertyDefinitions, info->tableName)) {
+    for (auto& propertyInfo : bindPropertyInfo(info.propertyDefinitions, info.tableName)) {
         propertyInfos.push_back(propertyInfo.copy());
     }
-    auto extraInfo = (ExtraCreateRelTableInfo*)info->extraInfo.get();
+    auto extraInfo = (ExtraCreateRelTableInfo*)info.extraInfo.get();
     auto srcMultiplicity = RelMultiplicityUtils::getFwd(extraInfo->relMultiplicity);
     auto dstMultiplicity = RelMultiplicityUtils::getBwd(extraInfo->relMultiplicity);
     auto srcTableID = bindTableID(extraInfo->srcTableName);
@@ -159,17 +177,17 @@ BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info)
     validateTableType(dstTableID, TableType::NODE);
     auto boundExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(srcMultiplicity,
         dstMultiplicity, srcTableID, dstTableID, std::move(propertyInfos));
-    return BoundCreateTableInfo(TableType::REL, info->tableName, info->onConflict,
+    return BoundCreateTableInfo(TableType::REL, info.tableName, info.onConflict,
         std::move(boundExtraInfo));
 }
 
-BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* info) {
-    auto relGroupName = info->tableName;
-    auto extraInfo = (ExtraCreateRelTableGroupInfo*)info->extraInfo.get();
+BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo& info) {
+    auto relGroupName = info.tableName;
+    auto extraInfo = (ExtraCreateRelTableGroupInfo*)info.extraInfo.get();
     auto relMultiplicity = extraInfo->relMultiplicity;
     std::vector<BoundCreateTableInfo> boundCreateRelTableInfos;
-    auto relCreateInfo = std::make_unique<CreateTableInfo>(TableType::REL, "", info->onConflict);
-    for (auto& propertyDef : info->propertyDefinitions) {
+    auto relCreateInfo = std::make_unique<CreateTableInfo>(TableType::REL, "", info.onConflict);
+    for (auto& propertyDef : info.propertyDefinitions) {
         relCreateInfo->propertyDefinitions.emplace_back(propertyDef.name, propertyDef.type,
             propertyDef.expr->copy());
     }
@@ -181,11 +199,11 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
                                        .append(dstTableName);
         relCreateInfo->extraInfo =
             std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity, srcTableName, dstTableName);
-        boundCreateRelTableInfos.push_back(bindCreateRelTableInfo(relCreateInfo.get()));
+        boundCreateRelTableInfos.push_back(bindCreateRelTableInfo(*relCreateInfo));
     }
     auto boundExtraInfo =
         std::make_unique<BoundExtraCreateRelTableGroupInfo>(std::move(boundCreateRelTableInfos));
-    return BoundCreateTableInfo(TableType::REL_GROUP, info->tableName, info->onConflict,
+    return BoundCreateTableInfo(TableType::REL_GROUP, info.tableName, info.onConflict,
         std::move(boundExtraInfo));
 }
 
@@ -201,7 +219,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& stateme
     default:
         break;
     }
-    auto boundCreateInfo = bindCreateTableInfo(createTable->getInfo());
+    auto boundCreateInfo = bindCreateTableInfo(*createTable->getInfo());
     return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo));
 }
 

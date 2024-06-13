@@ -169,6 +169,9 @@ table_id_t Catalog::createTableSchema(transaction::Transaction* transaction,
     case TableType::NODE: {
         entry = createNodeTableEntry(transaction, tableID, info);
     } break;
+    case TableType::EXTERNAL_NODE: {
+        entry = createExternalNodeTableEntry(transaction, tableID, info);
+    } break ;
     case TableType::REL: {
         entry = createRelTableEntry(transaction, tableID, info);
     } break;
@@ -480,17 +483,26 @@ void Catalog::alterRdfChildTableEntries(transaction::Transaction* transaction,
     tables->alterEntry(transaction, *literalTripleRenameInfo);
 }
 
-std::unique_ptr<CatalogEntry> Catalog::createNodeTableEntry(transaction::Transaction*,
-    common::table_id_t tableID, const binder::BoundCreateTableInfo& info) const {
-    auto extraInfo =
-        ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateNodeTableInfo*>(
-            info.extraInfo.get());
+std::unique_ptr<CatalogEntry> Catalog::createNodeTableEntry(Transaction*,
+    table_id_t tableID, const BoundCreateTableInfo& info) const {
+    auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateNodeTableInfo>();
     auto nodeTableEntry = std::make_unique<NodeTableCatalogEntry>(tables.get(), info.tableName,
         tableID, extraInfo->primaryKeyIdx);
     for (auto& propertyInfo : extraInfo->propertyInfos) {
         nodeTableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy(),
-            std::move(propertyInfo.defaultValue));
+            propertyInfo.defaultValue->copy());
     }
+    return nodeTableEntry;
+}
+
+std::unique_ptr<CatalogEntry> Catalog::createExternalNodeTableEntry(transaction::Transaction*, common::table_id_t tableID, const binder::BoundCreateTableInfo& info) {
+    auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateExternalNodeTableInfo>();
+    KU_ASSERT(extraInfo->propertyInfos.size() == 1);
+    auto nodeTableEntry = std::make_unique<NodeTableCatalogEntry>(tables.get(), info.tableName,
+        tableID, 0 /* primary key idx */);
+    auto& pk = extraInfo->propertyInfos[0];
+    nodeTableEntry->addProperty(pk.name, pk.type.copy(), pk.defaultValue->copy());
+    nodeTableEntry->setExternalTableInfo(extraInfo->externalTableID, extraInfo->dbName, extraInfo->tableName);
     return nodeTableEntry;
 }
 

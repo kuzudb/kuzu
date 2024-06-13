@@ -7,9 +7,11 @@ namespace kuzu {
 namespace planner {
 
 class LogicalScanFile : public LogicalOperator {
+    static constexpr LogicalOperatorType type_ = LogicalOperatorType::SCAN_FILE;
+
 public:
     LogicalScanFile(binder::BoundFileScanInfo info, std::shared_ptr<binder::Expression> offset)
-        : LogicalOperator{LogicalOperatorType::SCAN_FILE}, info{std::move(info)},
+        : LogicalOperator{type_}, info{std::move(info)},
           offset{std::move(offset)} {}
 
     std::string getExpressionsForPrinting() const override { return std::string(); }

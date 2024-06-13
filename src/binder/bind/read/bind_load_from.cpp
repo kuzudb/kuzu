@@ -16,22 +16,6 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace binder {
 
-static TableFunction getObjectScanFunc(const ObjectScanSource* objectSource,
-    main::ClientContext* clientContext) {
-    // Bind external database table
-    auto dbName = objectSource->objectNames[0];
-    auto attachedDB = clientContext->getDatabaseManager()->getAttachedDatabase(dbName);
-    if (attachedDB == nullptr) {
-        throw BinderException{stringFormat("No database named {} has been attached.", dbName)};
-    }
-    auto tableName = objectSource->objectNames[1];
-    auto attachedCatalog = attachedDB->getCatalog();
-    auto tableID = attachedCatalog->getTableID(clientContext->getTx(), tableName);
-    auto entry = attachedCatalog->getTableCatalogEntry(clientContext->getTx(), tableID);
-    auto tableEntry = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry);
-    return tableEntry->getScanFunction();
-}
-
 std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& readingClause) {
     auto& loadFrom = readingClause.constCast<LoadFrom>();
     TableFunction scanFunction;
@@ -49,9 +33,10 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
                 scanFunction = replacementData->func;
                 bindData = scanFunction.bindFunc(clientContext, &replacementData->bindInput);
             } else if (clientContext->getDatabaseManager()->hasDefaultDatabase()) {
-                objectSource->objectNames.insert(objectSource->objectNames.begin(),
-                    clientContext->getDatabaseManager()->getDefaultDatabase());
-                scanFunction = getObjectScanFunc(objectSource, clientContext);
+                auto dbName = clientContext->getDatabaseManager()->getDefaultDatabase();
+                auto tableName = objectSource->objectNames[0];
+                auto entry = bindExternalTableEntry(dbName, tableName);
+                scanFunction = entry->ptrCast<TableCatalogEntry>()->getScanFunction();
                 auto bindInput = function::TableFuncBindInput();
                 bindData = scanFunction.bindFunc(clientContext, &bindInput);
             } else {
@@ -59,7 +44,10 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
             }
         } else if (objectSource->objectNames.size() == 2) {
             // Bind external database table
-            scanFunction = getObjectScanFunc(objectSource, clientContext);
+            auto dbName = objectSource->objectNames[0];
+            auto tableName = objectSource->objectNames[1];
+            auto entry = bindExternalTableEntry(dbName, tableName);
+            scanFunction = entry->ptrCast<TableCatalogEntry>()->getScanFunction();
             auto bindInput = function::TableFuncBindInput();
             bindData = scanFunction.bindFunc(clientContext, &bindInput);
         } else {

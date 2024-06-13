@@ -32,12 +32,25 @@ std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
     if (ctx.kU_CreateNodeConstraint()) {
         pkName = transformPrimaryKey(*ctx.kU_CreateNodeConstraint());
     }
-    auto createTableInfo = CreateTableInfo(TableType::NODE, tableName,
-        ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
-                               common::ConflictAction::ON_CONFLICT_THROW);
+    ConflictAction conflictAction;
+    if (ctx.kU_IfNotExists()) {
+        conflictAction = ConflictAction::ON_CONFLICT_DO_NOTHING;
+    } else {
+        conflictAction = ConflictAction::ON_CONFLICT_THROW;
+    }
+    auto createTableInfo = CreateTableInfo(TableType::NODE, tableName, conflictAction);
     createTableInfo.propertyDefinitions =
         transformPropertyDefinitionsDDL(*ctx.kU_PropertyDefinitionsDDL());
     createTableInfo.extraInfo = std::make_unique<ExtraCreateNodeTableInfo>(pkName);
+    return std::make_unique<CreateTable>(std::move(createTableInfo));
+}
+
+std::unique_ptr<Statement> Transformer::transformCreateExternalNodeTable(CypherParser::KU_CreateExternalNodeTableContext& ctx) {
+    auto tableName = transformSchemaName(*ctx.oC_SchemaName(0));
+    auto createTableInfo = CreateTableInfo(TableType::EXTERNAL_NODE, tableName);
+    auto externalDBName = transformSchemaName(*ctx.oC_SchemaName(1));
+    auto externalTableName = transformSchemaName(*ctx.kU_TableLookup()->oC_SchemaName());
+    createTableInfo.extraInfo = std::make_unique<ExtraCreateExternalNodeTableInfo>(externalDBName, externalTableName);
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 

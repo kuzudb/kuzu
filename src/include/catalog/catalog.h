@@ -65,6 +65,7 @@ public:
     bool tableInRDFGraph(transaction::Transaction* tx, common::table_id_t tableID) const;
     bool tableInRelGroup(transaction::Transaction* tx, common::table_id_t tableID) const;
 
+    // TODO: rename to create table entry
     common::table_id_t createTableSchema(transaction::Transaction* tx,
         const binder::BoundCreateTableInfo& info);
     void dropTableSchema(transaction::Transaction* tx, common::table_id_t tableID);
@@ -161,6 +162,8 @@ private:
         const binder::BoundAlterInfo& info) const;
     std::unique_ptr<CatalogEntry> createNodeTableEntry(transaction::Transaction* transaction,
         common::table_id_t tableID, const binder::BoundCreateTableInfo& info) const;
+    std::unique_ptr<CatalogEntry> createExternalNodeTableEntry(transaction::Transaction* transaction,
+        common::table_id_t tableID, const binder::BoundCreateTableInfo& info);
     std::unique_ptr<CatalogEntry> createRelTableEntry(transaction::Transaction* transaction,
         common::table_id_t tableID, const binder::BoundCreateTableInfo& info) const;
     std::unique_ptr<CatalogEntry> createRelTableGroupEntry(transaction::Transaction* transaction,

@@ -7,6 +7,7 @@
 namespace kuzu {
 namespace binder {
 
+// TODO(Xiyang): this is no longer accurate.
 struct BoundFileScanInfo {
     function::TableFunction func;
     std::unique_ptr<function::TableFuncBindData> bindData;

@@ -92,11 +92,12 @@ public:
         common::LogicalTypeID typeID);
 
     /*** bind DDL ***/
-    BoundCreateTableInfo bindCreateTableInfo(const parser::CreateTableInfo* info);
-    BoundCreateTableInfo bindCreateNodeTableInfo(const parser::CreateTableInfo* info);
-    BoundCreateTableInfo bindCreateRelTableInfo(const parser::CreateTableInfo* info);
-    BoundCreateTableInfo bindCreateRelTableGroupInfo(const parser::CreateTableInfo* info);
-    BoundCreateTableInfo bindCreateRdfGraphInfo(const parser::CreateTableInfo* info);
+    BoundCreateTableInfo bindCreateTableInfo(const parser::CreateTableInfo& info);
+    BoundCreateTableInfo bindCreateExternalTableInfo(const parser::CreateTableInfo& info);
+    BoundCreateTableInfo bindCreateNodeTableInfo(const parser::CreateTableInfo& info);
+    BoundCreateTableInfo bindCreateRelTableInfo(const parser::CreateTableInfo& info);
+    BoundCreateTableInfo bindCreateRelTableGroupInfo(const parser::CreateTableInfo& info);
+    BoundCreateTableInfo bindCreateRdfGraphInfo(const parser::CreateTableInfo& info);
     std::unique_ptr<BoundStatement> bindCreateTable(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateType(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateSequence(const parser::Statement& statement);
@@ -250,6 +251,9 @@ public:
     std::vector<common::table_id_t> getNodeTableIDs(common::table_id_t tableID);
     std::vector<common::table_id_t> getRelTableIDs(const std::vector<common::table_id_t>& tableIDs);
     std::vector<common::table_id_t> getRelTableIDs(common::table_id_t tableID);
+
+    /*** bind external table ***/
+    catalog::CatalogEntry* bindExternalTableEntry(std::string dbName, std::string tableName);
 
     /*** validations ***/
     // E.g. ... RETURN a, b AS a

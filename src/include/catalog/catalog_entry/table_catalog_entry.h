@@ -50,6 +50,7 @@ public:
     //===--------------------------------------------------------------------===//
     uint32_t getNumProperties() const { return properties.size(); }
     const std::vector<Property>& getPropertiesRef() const { return properties; }
+    const std::vector<Property>& getProperties() const { return properties; }
     bool containProperty(const std::string& propertyName) const;
     common::property_id_t getPropertyID(const std::string& propertyName) const;
     const Property* getProperty(common::property_id_t propertyID) const;

@@ -14,13 +14,8 @@ void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType join
     appendHashJoin(joinNodeIDs, joinType, nullptr /* mark */, probePlan, buildPlan, resultPlan);
 }
 
-void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType joinType,
-    std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
-    LogicalPlan& resultPlan) {
-    std::vector<join_condition_t> joinConditions;
-    for (auto& joinNodeID : joinNodeIDs) {
-        joinConditions.emplace_back(joinNodeID, joinNodeID);
-    }
+void Planner::appendHashJoin(const std::vector<binder::expression_pair>& joinConditions, JoinType joinType, std::shared_ptr<binder::Expression> mark,
+    LogicalPlan& probePlan, LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
     auto hashJoin = make_shared<LogicalHashJoin>(joinConditions, joinType, mark,
         probePlan.getLastOperator(), buildPlan.getLastOperator());
     // Apply flattening to probe side
@@ -36,12 +31,22 @@ void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType join
     if (ratio > PlannerKnobs::SIP_RATIO) {
         hashJoin->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT;
     }
+    resultPlan.setLastOperator(std::move(hashJoin));
+}
+
+void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType joinType,
+    std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
+    LogicalPlan& resultPlan) {
+    std::vector<join_condition_t> joinConditions;
+    for (auto& joinNodeID : joinNodeIDs) {
+        joinConditions.emplace_back(joinNodeID, joinNodeID);
+    }
+    appendHashJoin(joinConditions, joinType, mark, probePlan, buildPlan, resultPlan);
     // Update cost
     resultPlan.setCost(CostModel::computeHashJoinCost(joinNodeIDs, probePlan, buildPlan));
     // Update cardinality
     resultPlan.setCardinality(
         cardinalityEstimator.estimateHashJoin(joinNodeIDs, probePlan, buildPlan));
-    resultPlan.setLastOperator(std::move(hashJoin));
 }
 
 void Planner::appendMarkJoin(const expression_vector& joinNodeIDs,
