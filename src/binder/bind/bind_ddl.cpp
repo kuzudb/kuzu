@@ -458,8 +458,9 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     auto defaultValue = std::move(extraInfo->defaultValue);
     auto boundDefault = expressionBinder.implicitCastIfNecessary(
         expressionBinder.bindExpression(*defaultValue), dataType);
-    // Eventually, we want to support this, but it is non-trivial due to FWD/BWD storage of rel tables
-    if (boundDefault->expressionType != ExpressionType::LITERAL || 
+    // Eventually, we want to support this, but it is non-trivial due to FWD/BWD storage of rel
+    // tables
+    if (boundDefault->expressionType != ExpressionType::LITERAL ||
         dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
         throw BinderException("Cannot set a non-constant default value when adding columns.");
     }
