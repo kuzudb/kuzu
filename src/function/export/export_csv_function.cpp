@@ -210,7 +210,7 @@ static void writeRows(const ExportCSVBindData& exportCSVBindData, ExportCSVLocal
             }
             auto vector = castVectors[j];
             auto pos = vector->state->isFlat() ? vector->state->getSelVector()[0] :
-                                                 vector->state->getSelVector()[i];
+                                                 inputVectors[j]->state->getSelVector()[i];
             if (vector->isNull(pos)) {
                 // write null value
                 serializer->writeBufferData(ExportCSVConstants::DEFAULT_NULL_STR);
