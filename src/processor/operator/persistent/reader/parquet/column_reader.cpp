@@ -26,7 +26,7 @@ using kuzu_parquet::format::Encoding;
 using kuzu_parquet::format::PageType;
 using kuzu_parquet::format::Type;
 
-ColumnReader::ColumnReader(ParquetReader& reader, std::unique_ptr<common::LogicalType> type,
+ColumnReader::ColumnReader(ParquetReader& reader, common::LogicalType type,
     const kuzu_parquet::format::SchemaElement& schema, uint64_t fileIdx, uint64_t maxDefinition,
     uint64_t maxRepeat)
     : schema{schema}, fileIdx{fileIdx}, maxDefine{maxDefinition}, maxRepeat{maxRepeat},
@@ -194,7 +194,7 @@ uint64_t ColumnReader::read(uint64_t numValues, parquet_filter_t& filter, uint8_
 }
 
 std::unique_ptr<ColumnReader> ColumnReader::createReader(ParquetReader& reader,
-    std::unique_ptr<common::LogicalType> type, const kuzu_parquet::format::SchemaElement& schema,
+    common::LogicalType type, const kuzu_parquet::format::SchemaElement& schema,
     uint64_t fileIdx, uint64_t maxDefine, uint64_t maxRepeat) {
     switch (type->getLogicalTypeID()) {
     case common::LogicalTypeID::BOOL:
@@ -501,7 +501,7 @@ uint64_t ColumnReader::getTotalCompressedSize() {
 }
 
 std::unique_ptr<ColumnReader> ColumnReader::createTimestampReader(ParquetReader& reader,
-    std::unique_ptr<common::LogicalType> type, const kuzu_parquet::format::SchemaElement& schema,
+    common::LogicalType type, const kuzu_parquet::format::SchemaElement& schema,
     uint64_t fileIdx, uint64_t maxDefine, uint64_t maxRepeat) {
     switch (schema.type) {
     case Type::INT96: {

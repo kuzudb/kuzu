@@ -260,7 +260,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     return output.dataChunk.state->getSelVector().getSelSize();
 }
 
-static std::unique_ptr<LogicalType> bindColumnType(const NpyReader& reader) {
+static LogicalType bindColumnType(const NpyReader& reader) {
     if (reader.getShape().size() == 1) {
         return std::make_unique<LogicalType>(reader.getType());
     }

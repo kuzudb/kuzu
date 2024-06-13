@@ -15,7 +15,7 @@ using namespace kuzu_parquet::format;
 using namespace kuzu::common;
 
 ParquetWriter::ParquetWriter(std::string fileName,
-    std::vector<std::unique_ptr<common::LogicalType>> types, std::vector<std::string> columnNames,
+    std::vector<common::LogicalType> types, std::vector<std::string> columnNames,
     kuzu_parquet::format::CompressionCodec::type codec, main::ClientContext* context)
     : fileName{std::move(fileName)}, types{std::move(types)}, columnNames{std::move(columnNames)},
       codec{codec}, fileOffset{0}, mm{context->getMemoryManager()} {

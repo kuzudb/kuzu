@@ -12,11 +12,11 @@ struct CopyToParquetInfo final : public CopyToInfo {
     kuzu_parquet::format::CompressionCodec::type codec =
         kuzu_parquet::format::CompressionCodec::SNAPPY;
     FactorizedTableSchema tableSchema;
-    std::vector<std::unique_ptr<common::LogicalType>> types;
+    std::vector<common::LogicalType> types;
     DataPos countingVecPos;
 
     CopyToParquetInfo(FactorizedTableSchema tableSchema,
-        std::vector<std::unique_ptr<common::LogicalType>> types, std::vector<std::string> names,
+        std::vector<common::LogicalType> types, std::vector<std::string> names,
         std::vector<DataPos> dataPoses, std::string fileName, DataPos countingVecPos,
         bool canParallel)
         : CopyToInfo{std::move(names), std::move(dataPoses), std::move(fileName), canParallel},

@@ -36,7 +36,7 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     std::vector<PropertyInfo> literalProperties;
     literalProperties.emplace_back(std::string(rdf::ID), LogicalType::SERIAL(),
         createSerialDefaultExpr(Catalog::genSerialName(literalTableName, std::string(rdf::ID))));
-    literalProperties.emplace_back(std::string(rdf::VAL), LogicalType:RDF_VARIANT());
+    literalProperties.emplace_back(std::string(rdf::VAL), LogicalType::RDF_VARIANT());
     literalProperties.emplace_back(std::string(rdf::LANG), LogicalType::STRING());
     auto literalExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(0 /* primaryKeyIdx */,
         std::move(literalProperties));

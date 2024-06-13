@@ -99,7 +99,7 @@ NumpyType NumpyTypeUtils::convertNumpyType(const py::handle& colType) {
     return resultNPType;
 }
 
-std::unique_ptr<LogicalType> NumpyTypeUtils::numpyToLogicalType(const NumpyType& col_type) {
+LogicalType NumpyTypeUtils::numpyToLogicalType(const NumpyType& col_type) {
     // TODO(Ziyi): timestamp with timezone is currently not supported.
     switch (col_type.type) {
     case NumpyNullableType::BOOL:

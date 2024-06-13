@@ -7,6 +7,7 @@
 
 #include "common/api.h"
 #include "common/cast.h"
+#include "common/copy_constructors.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/interval_t.h"
 
@@ -202,18 +203,17 @@ class LogicalType {
     friend struct ListType;
     friend struct ArrayType;
 
+    KUZU_API LogicalType(const LogicalType& other);
+
 public:
     KUZU_API LogicalType() : typeID{LogicalTypeID::ANY}, extraTypeInfo{nullptr} {
         physicalType = getPhysicalType(this->typeID);
     };
     explicit KUZU_API LogicalType(LogicalTypeID typeID);
-    KUZU_API LogicalType(const LogicalType& other);
-    KUZU_API LogicalType(LogicalType&& other) = default;
+    EXPLICIT_COPY_DEFAULT_MOVE(LogicalType);
 
-    KUZU_API LogicalType& operator=(const LogicalType& other);
     KUZU_API bool operator==(const LogicalType& other) const;
     KUZU_API bool operator!=(const LogicalType& other) const;
-    KUZU_API LogicalType& operator=(LogicalType&& other) = default;
 
     KUZU_API std::string toString() const;
     static bool tryConvertFromString(const std::string& str, LogicalType& type);
@@ -232,13 +232,10 @@ public:
 
     void serialize(Serializer& serializer) const;
 
-    static std::unique_ptr<LogicalType> deserialize(Deserializer& deserializer);
+    static LogicalType deserialize(Deserializer& deserializer);
 
-    KUZU_API std::unique_ptr<LogicalType> copy() const;
-
-    static std::vector<std::unique_ptr<LogicalType>> copy(
-        const std::vector<std::unique_ptr<LogicalType>>& types);
-    static std::vector<LogicalType> copy(const std::vector<LogicalType>& types);
+    static std::vector<LogicalType> copy(
+        const std::vector<LogicalType>& types);
     static std::vector<LogicalType> copy(const std::vector<LogicalType*>& types);
 
     static LogicalType ANY() {
@@ -416,10 +413,10 @@ protected:
 class ListTypeInfo : public ExtraTypeInfo {
 public:
     ListTypeInfo() = default;
-    explicit ListTypeInfo(std::unique_ptr<LogicalType> childType)
+    explicit ListTypeInfo(LogicalType childType)
         : childType{std::move(childType)} {}
 
-    LogicalType getChildType() const { return *childType; }
+    const LogicalType& getChildType() const { return childType; }
 
     bool containsAny() const override;
 
@@ -433,13 +430,13 @@ protected:
     void serializeInternal(Serializer& serializer) const override;
 
 protected:
-    std::unique_ptr<LogicalType> childType;
+    LogicalType childType;
 };
 
 class ArrayTypeInfo : public ListTypeInfo {
 public:
     ArrayTypeInfo() = default;
-    explicit ArrayTypeInfo(std::unique_ptr<LogicalType> childType, uint64_t numElements)
+    explicit ArrayTypeInfo(LogicalType childType, uint64_t numElements)
         : ListTypeInfo{std::move(childType)}, numElements{numElements} {}
 
     uint64_t getNumElements() const { return numElements; }
@@ -459,13 +456,13 @@ private:
 
 class KUZU_API StructField {
 public:
-    StructField() : type{std::make_unique<LogicalType>()} {}
-    StructField(std::string name, std::unique_ptr<LogicalType> type)
+    StructField() : type{LogicalType::ANY()} {}
+    StructField(std::string name, LogicalType type)
         : name{std::move(name)}, type{std::move(type)} {};
 
     std::string getName() const { return name; }
 
-    LogicalType getType() const { return *type; }
+    const LogicalType& getType() const { return type; }
 
     bool containsAny() const;
 
@@ -480,7 +477,7 @@ public:
 
 private:
     std::string name;
-    std::unique_ptr<LogicalType> type;
+    LogicalType type;
 };
 
 class StructTypeInfo : public ExtraTypeInfo {
@@ -488,7 +485,7 @@ public:
     StructTypeInfo() = default;
     explicit StructTypeInfo(std::vector<StructField>&& fields);
     StructTypeInfo(const std::vector<std::string>& fieldNames,
-        const std::vector<std::unique_ptr<LogicalType>>& fieldTypes);
+        const std::vector<LogicalType>& fieldTypes);
 
     bool hasField(const std::string& fieldName) const;
     struct_field_idx_t getStructFieldIdx(std::string fieldName) const;

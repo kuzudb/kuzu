@@ -118,7 +118,7 @@ void BinaryHashFunctionExecutor::execute(const common::ValueVector& left,
 }
 
 static std::unique_ptr<ValueVector> computeDataVecHash(const ValueVector& operand) {
-    auto hashVector = std::make_unique<ValueVector>(LogicalType:LIST(LogicalType::HASH()));
+    auto hashVector = std::make_unique<ValueVector>(LogicalType::LIST(LogicalType::HASH()));
     auto numValuesInDataVec = ListVector::getDataVectorSize(&operand);
     ListVector::resizeDataVector(hashVector.get(), numValuesInDataVec);
     // TODO(Ziyi): Allow selection size to be greater than default vector capacity, so we don't have

@@ -3,7 +3,7 @@
 namespace kuzu {
 namespace processor {
 
-ListColumnReader::ListColumnReader(ParquetReader& reader, std::unique_ptr<common::LogicalType> type,
+ListColumnReader::ListColumnReader(ParquetReader& reader, common::LogicalType type,
     const kuzu_parquet::format::SchemaElement& schema, uint64_t schemaIdx, uint64_t maxDefine,
     uint64_t maxRepeat, std::unique_ptr<ColumnReader> childColumnReader,
     storage::MemoryManager* memoryManager)

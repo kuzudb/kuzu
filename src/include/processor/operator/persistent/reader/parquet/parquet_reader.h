@@ -69,7 +69,7 @@ private:
         KU_ASSERT(state.groupIdxList[state.currentGroup] < metadata->row_groups.size());
         return metadata->row_groups[state.groupIdxList[state.currentGroup]];
     }
-    static std::unique_ptr<common::LogicalType> deriveLogicalType(
+    static common::LogicalType deriveLogicalType(
         const kuzu_parquet::format::SchemaElement& s_ele);
     void initMetadata();
     std::unique_ptr<ColumnReader> createReader();
@@ -85,7 +85,7 @@ private:
 private:
     const std::string filePath;
     std::vector<std::string> columnNames;
-    std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
+    std::vector<common::LogicalType> columnTypes;
     std::unique_ptr<kuzu_parquet::format::FileMetaData> metadata;
     main::ClientContext* context;
 };

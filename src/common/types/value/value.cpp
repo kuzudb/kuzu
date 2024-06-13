@@ -318,12 +318,12 @@ Value::Value(uint8_t* val_) : isNull_{false}, childrenSize{0} {
     val.pointer = val_;
 }
 
-Value::Value(std::unique_ptr<LogicalType> type, std::string val_)
+Value::Value(LogicalType type, std::string val_)
     : dataType{std::move(type)}, isNull_{false}, childrenSize{0} {
     strVal = std::move(val_);
 }
 
-Value::Value(std::unique_ptr<LogicalType> dataType_, std::vector<std::unique_ptr<Value>> children)
+Value::Value(LogicalType dataType_, std::vector<std::unique_ptr<Value>> children)
     : dataType{std::move(dataType_)}, isNull_{false} {
     this->children = std::move(children);
     childrenSize = this->children.size();
@@ -655,9 +655,7 @@ Value::Value() : isNull_{true}, childrenSize{0} {
     dataType = std::make_unique<LogicalType>(LogicalTypeID::ANY);
 }
 
-Value::Value(const LogicalType& dataType_) : isNull_{true}, childrenSize{0} {
-    dataType = dataType_.copy();
-}
+Value::Value(LogicalType dataType_) : isNull_{true}, childrenSize{0}, dataType{std::move(dataType_)} {}
 
 void Value::resizeChildrenVector(uint64_t size, const LogicalType& childType) {
     if (size > children.size()) {

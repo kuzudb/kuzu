@@ -246,7 +246,7 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
         }
         KU_ASSERT(!structFields.empty());
         std::unique_ptr<ColumnReader> result;
-        std::unique_ptr<LogicalType> resultType;
+        LogicalType resultType;
 
         bool isRepeated = repetition_type == FieldRepetitionType::REPEATED;
         bool isList = sEle.__isset.converted_type && sEle.converted_type == ConvertedType::LIST;
@@ -272,7 +272,7 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
             }
             // LCOV_EXCL_STOP
             auto structType = LogicalType::STRUCT(std::move(structFields));
-            resultType = std::unique_ptr<LogicalType>(new LogicalType(LogicalTypeID::MAP,
+            resultType = LogicalType(new LogicalType(LogicalTypeID::MAP,
                 std::make_unique<ListTypeInfo>(std::move(structType))));
 
             auto structReader = std::make_unique<StructColumnReader>(*this,
@@ -378,7 +378,7 @@ uint64_t ParquetReader::getGroupSpan(ParquetReaderScanState& state) {
     return max_offset - min_offset;
 }
 
-std::unique_ptr<LogicalType> ParquetReader::deriveLogicalType(
+LogicalType ParquetReader::deriveLogicalType(
     const kuzu_parquet::format::SchemaElement& s_ele) {
     // inner node
     if (s_ele.type == Type::FIXED_LEN_BYTE_ARRAY && !s_ele.__isset.type_length) {

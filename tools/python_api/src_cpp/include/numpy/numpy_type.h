@@ -38,7 +38,7 @@ struct NumpyType {
 
 struct NumpyTypeUtils {
     static NumpyType convertNumpyType(const py::handle& colType);
-    static std::unique_ptr<common::LogicalType> numpyToLogicalType(const NumpyType& npType);
+    static common::LogicalType numpyToLogicalType(const NumpyType& npType);
 };
 
 } // namespace kuzu

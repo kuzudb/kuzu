@@ -13,7 +13,7 @@ public:
     static constexpr const common::PhysicalTypeID TYPE = common::PhysicalTypeID::BOOL;
 
 public:
-    BooleanColumnReader(ParquetReader& reader, std::unique_ptr<common::LogicalType> type,
+    BooleanColumnReader(ParquetReader& reader, common::LogicalType type,
         const kuzu_parquet::format::SchemaElement& schema, uint64_t schemaIdx, uint64_t maxDefine,
         uint64_t maxRepeat)
         : TemplatedColumnReader<bool, BooleanParquetValueConversion>(reader, std::move(type),

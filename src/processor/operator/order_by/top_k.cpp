@@ -172,7 +172,7 @@ void TopKBuffer::initCompareFuncs() {
     vector_select_comparison_func compareFunc;
     vector_select_comparison_func equalsFunc;
     for (auto i = 0u; i < orderByDataInfo->isAscOrder.size(); i++) {
-        auto physicalType = orderByDataInfo->keyTypes[i]->getPhysicalType();
+        auto physicalType = orderByDataInfo->keyTypes[i].getPhysicalType();
         if (orderByDataInfo->isAscOrder[i]) {
             getSelectComparisonFunction<function::LessThan>(physicalType, compareFunc);
         } else {

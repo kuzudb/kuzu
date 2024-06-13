@@ -58,7 +58,7 @@ std::unique_ptr<FunctionBindData> ArrayCrossProductBindFunc(
     ku_dynamic_cast<Function*, ScalarFunction*>(function)->execFunc = execFunc;
     auto resultType =
         LogicalType::ARRAY(ArrayType::getChildType(leftType), ArrayType::getNumElements(leftType));
-    return FunctionBindData::getSimpleBindData(arguments, *resultType);
+    return FunctionBindData::getSimpleBindData(arguments, resultType);
 }
 
 function_set ArrayCrossProductFunction::getFunctionSet() {
@@ -143,7 +143,7 @@ std::unique_ptr<FunctionBindData> arrayTemplateBindFunc(std::string functionName
     auto rightType = arguments[1]->dataType;
     auto paramType = validateArrayFunctionParameters(leftType, rightType, functionName);
     function->ptrCast<ScalarFunction>()->execFunc = getScalarExecFunc<OPERATION>(paramType);
-    auto bindData = std::make_unique<FunctionBindData>(ArrayType::getChildType(paramType).copy());
+    auto bindData = std::make_unique<FunctionBindData>(ArrayType::getChildType(paramType));
     std::vector<LogicalType> paramTypes;
     for (auto& _ : arguments) {
         (void)_;

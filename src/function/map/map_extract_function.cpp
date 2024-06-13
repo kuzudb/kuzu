@@ -27,7 +27,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
             ScalarFunction::BinaryExecListStructFunction<list_entry_t, T, list_entry_t, MapExtract>;
     });
     auto resultType = LogicalType::LIST(MapType::getValueType(arguments[0]->dataType).copy());
-    return FunctionBindData::getSimpleBindData(arguments, *resultType);
+    return FunctionBindData::getSimpleBindData(arguments, resultType);
 }
 
 function_set MapExtractFunctions::getFunctionSet() {

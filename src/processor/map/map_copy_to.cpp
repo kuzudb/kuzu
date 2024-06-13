@@ -13,7 +13,7 @@ namespace processor {
 
 std::unique_ptr<CopyToInfo> getCopyToInfo(Schema* childSchema, std::string filePath,
     common::FileType fileType, common::CSVOption copyToOption, std::vector<std::string> columnNames,
-    std::vector<std::unique_ptr<LogicalType>> columnsTypes, std::vector<DataPos> vectorsToCopyPos,
+    std::vector<LogicalType> columnsTypes, std::vector<DataPos> vectorsToCopyPos,
     std::vector<bool> isFlat, bool canParallel) {
     switch (fileType) {
     case FileType::PARQUET: {
@@ -54,9 +54,9 @@ static std::shared_ptr<CopyToSharedState> getCopyToSharedState(FileType fileType
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(LogicalOperator* logicalOperator) {
     auto copy = (LogicalCopyTo*)logicalOperator;
     auto columnNames = copy->getColumnNames();
-    std::vector<std::unique_ptr<LogicalType>> columnTypes;
+    std::vector<LogicalType> columnTypes;
     for (auto& type : copy->getColumnTypesRef()) {
-        columnTypes.push_back(std::make_unique<LogicalType>(type));
+        columnTypes.push_back(type);
     }
     auto childSchema = logicalOperator->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());

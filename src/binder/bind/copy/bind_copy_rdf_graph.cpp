@@ -39,7 +39,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         InternalKeyword::ROW_OFFSET);
     auto r = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::IRI);
-    auto l = expressionBinder.createVariableExpression(LogicalType:RDF_VARIANT(), rdf::VAL);
+    auto l = expressionBinder.createVariableExpression(LogicalType::RDF_VARIANT(), rdf::VAL);
     auto lang = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::LANG);
     auto s = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::SUBJECT);
     auto p = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::PREDICATE);

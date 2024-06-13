@@ -19,27 +19,27 @@ std::unique_ptr<QueryParams> new_params() {
     return std::make_unique<QueryParams>();
 }
 
-std::unique_ptr<LogicalType> create_logical_type(kuzu::common::LogicalTypeID id) {
+LogicalType create_logical_type(kuzu::common::LogicalTypeID id) {
     return std::make_unique<LogicalType>(id);
 }
-std::unique_ptr<LogicalType> create_logical_type_list(std::unique_ptr<LogicalType> childType) {
+LogicalType create_logical_type_list(LogicalType childType) {
     return LogicalType::LIST(std::move(childType));
 }
 
-std::unique_ptr<LogicalType> create_logical_type_array(std::unique_ptr<LogicalType> childType,
+LogicalType create_logical_type_array(LogicalType childType,
     uint64_t numElements) {
     return LogicalType::ARRAY(std::move(childType), numElements);
 }
 
 std::unique_ptr<kuzu::common::LogicalType> create_logical_type_map(
-    std::unique_ptr<LogicalType> keyType, std::unique_ptr<LogicalType> valueType) {
+    LogicalType keyType, LogicalType valueType) {
     return LogicalType::MAP(std::move(keyType), std::move(valueType));
 }
 
-std::unique_ptr<LogicalType> logical_type_get_list_child_type(const LogicalType& logicalType) {
+LogicalType logical_type_get_list_child_type(const LogicalType& logicalType) {
     return kuzu::common::ListType::getChildType(logicalType).copy();
 }
-std::unique_ptr<LogicalType> logical_type_get_array_child_type(const LogicalType& logicalType) {
+LogicalType logical_type_get_array_child_type(const LogicalType& logicalType) {
     return kuzu::common::ArrayType::getChildType(logicalType).copy();
 }
 uint64_t logical_type_get_array_num_elements(const LogicalType& logicalType) {

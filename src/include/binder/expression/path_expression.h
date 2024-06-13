@@ -8,7 +8,7 @@ namespace binder {
 class PathExpression : public Expression {
 public:
     PathExpression(common::LogicalType dataType, std::string uniqueName, std::string variableName,
-        std::unique_ptr<common::LogicalType> nodeType, std::unique_ptr<common::LogicalType> relType,
+        common::LogicalType nodeType, common::LogicalType relType,
         expression_vector children)
         : Expression{common::ExpressionType::PATH, std::move(dataType), std::move(children),
               std::move(uniqueName)},
@@ -23,8 +23,8 @@ public:
 
 private:
     std::string variableName;
-    std::unique_ptr<common::LogicalType> nodeType;
-    std::unique_ptr<common::LogicalType> relType;
+    common::LogicalType nodeType;
+    common::LogicalType relType;
 };
 
 } // namespace binder

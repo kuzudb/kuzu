@@ -12,13 +12,13 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
     std::vector<StructField> fields;
     // TODO(Ziy): Use UINT8 to represent tag value.
     fields.emplace_back(UnionType::TAG_FIELD_NAME,
-        std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));
+        LogicalType(UnionType::TAG_FIELD_TYPE));
     if (arguments[0]->getDataType().getLogicalTypeID() == common::LogicalTypeID::ANY) {
         arguments[0]->cast(LogicalType::STRING());
     }
-    fields.emplace_back(arguments[0]->getAlias(), arguments[0]->getDataType().copy());
+    fields.emplace_back(arguments[0]->getAlias(), arguments[0]->getDataType());
     auto resultType = LogicalType::UNION(std::move(fields));
-    return FunctionBindData::getSimpleBindData(arguments, *resultType);
+    return FunctionBindData::getSimpleBindData(arguments, resultType);
 }
 
 static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& /*parameters*/,

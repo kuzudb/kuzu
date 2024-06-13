@@ -43,14 +43,14 @@ static LogicalType getLogicalTypeNested(const py::handle& ele) {
             throw RuntimeException("List annotations must have exactly one type argument");
         }
         auto getitem = args.attr("__getitem__");
-        return LogicalType:LIST(getLogicalType(getitem(0)));
+        return LogicalType::LIST(getLogicalType(getitem(0)));
     } else if (origin.is(py::type::of(py::dict()))) {
         auto args = ele.attr("__args__");
         if (py::len(args) != 2) {
             throw RuntimeException("Map annotations must have exactly two type arguments");
         }
         auto getitem = args.attr("__getitem__");
-        return LogicalType:MAP(getLogicalType(getitem(0)), getLogicalType(getitem(1)));
+        return LogicalType::MAP(getLogicalType(getitem(0)), getLogicalType(getitem(1)));
     } else {
         throw NotImplementedException(
             "Currently Python UDFs only support LIST and MAP return types");

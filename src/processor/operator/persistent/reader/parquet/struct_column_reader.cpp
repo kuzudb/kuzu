@@ -4,7 +4,7 @@ namespace kuzu {
 namespace processor {
 
 StructColumnReader::StructColumnReader(ParquetReader& reader,
-    std::unique_ptr<common::LogicalType> type, const kuzu_parquet::format::SchemaElement& schema,
+    common::LogicalType type, const kuzu_parquet::format::SchemaElement& schema,
     uint64_t schemaIdx, uint64_t maxDefine, uint64_t maxRepeat,
     std::vector<std::unique_ptr<ColumnReader>> childReaders)
     : ColumnReader(reader, std::move(type), schema, schemaIdx, maxDefine, maxRepeat),

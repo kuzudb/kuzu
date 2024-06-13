@@ -163,7 +163,7 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
     std::vector<LogicalType> columnTypes;
     columnTypes.push_back(LogicalType::INTERNAL_ID()); // NBR_ID COLUMN.
     for (auto& property : relTableEntry->getPropertiesRef()) {
-        columnTypes.push_back(*property.getDataType()->copy());
+        columnTypes.push_back(property.getDataType().copy());
     }
     auto fTable =
         FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());

@@ -257,19 +257,19 @@ void DecimalTypeInfo::serializeInternal(Serializer& serializer) const {
 }
 
 bool ListTypeInfo::containsAny() const {
-    return childType->containsAny();
+    return childType.containsAny();
 }
 
 bool ListTypeInfo::operator==(const ExtraTypeInfo& other) const {
     auto otherListTypeInfo = ku_dynamic_cast<const ExtraTypeInfo*, const ListTypeInfo*>(&other);
     if (otherListTypeInfo) {
-        return *childType == *otherListTypeInfo->childType;
+        return childType == otherListTypeInfo->childType;
     }
     return false;
 }
 
 std::unique_ptr<ExtraTypeInfo> ListTypeInfo::copy() const {
-    return std::make_unique<ListTypeInfo>(childType->copy());
+    return std::make_unique<ListTypeInfo>(childType);
 }
 
 std::unique_ptr<ExtraTypeInfo> ListTypeInfo::deserialize(Deserializer& deserializer) {
@@ -277,13 +277,13 @@ std::unique_ptr<ExtraTypeInfo> ListTypeInfo::deserialize(Deserializer& deseriali
 }
 
 void ListTypeInfo::serializeInternal(Serializer& serializer) const {
-    childType->serialize(serializer);
+    childType.serialize(serializer);
 }
 
 bool ArrayTypeInfo::operator==(const ExtraTypeInfo& other) const {
     auto otherArrayTypeInfo = ku_dynamic_cast<const ExtraTypeInfo*, const ArrayTypeInfo*>(&other);
     if (otherArrayTypeInfo) {
-        return *childType == *otherArrayTypeInfo->childType &&
+        return childType == otherArrayTypeInfo->childType &&
                numElements == otherArrayTypeInfo->numElements;
     }
     return false;
@@ -297,7 +297,7 @@ std::unique_ptr<ExtraTypeInfo> ArrayTypeInfo::deserialize(Deserializer& deserial
 }
 
 std::unique_ptr<ExtraTypeInfo> ArrayTypeInfo::copy() const {
-    return std::make_unique<ArrayTypeInfo>(childType->copy(), numElements);
+    return std::make_unique<ArrayTypeInfo>(childType, numElements);
 }
 
 void ArrayTypeInfo::serializeInternal(Serializer& serializer) const {
@@ -306,16 +306,16 @@ void ArrayTypeInfo::serializeInternal(Serializer& serializer) const {
 }
 
 bool StructField::containsAny() const {
-    return type->containsAny();
+    return type.containsAny();
 }
 
 bool StructField::operator==(const StructField& other) const {
-    return *type == *other.type;
+    return type == other.type;
 }
 
 void StructField::serialize(Serializer& serializer) const {
     serializer.serializeValue(name);
-    type->serialize(serializer);
+    type.serialize(serializer);
 }
 
 StructField StructField::deserialize(Deserializer& deserializer) {
@@ -326,7 +326,7 @@ StructField StructField::deserialize(Deserializer& deserializer) {
 }
 
 StructField StructField::copy() const {
-    return StructField(name, type->copy());
+    return StructField(name, type);
 }
 
 StructTypeInfo::StructTypeInfo(std::vector<StructField>&& fields) : fields{std::move(fields)} {
@@ -338,13 +338,13 @@ StructTypeInfo::StructTypeInfo(std::vector<StructField>&& fields) : fields{std::
 }
 
 StructTypeInfo::StructTypeInfo(const std::vector<std::string>& fieldNames,
-    const std::vector<std::unique_ptr<LogicalType>>& fieldTypes) {
+    const std::vector<LogicalType>& fieldTypes) {
     for (auto i = 0u; i < fieldNames.size(); ++i) {
         auto fieldName = fieldNames[i];
         auto normalizedFieldName = fieldName;
         StringUtils::toUpper(normalizedFieldName);
         fieldNameToIdxMap.emplace(normalizedFieldName, i);
-        fields.emplace_back(fieldName, fieldTypes[i]->copy());
+        fields.emplace_back(fieldName, fieldTypes[i]);
     }
 }
 
@@ -592,32 +592,32 @@ std::string LogicalType::toString() const {
 
 static bool tryGetIDFromString(const std::string& trimmedStr, LogicalTypeID& id);
 static std::vector<std::string> parseStructFields(const std::string& structTypeStr);
-static std::unique_ptr<LogicalType> parseListType(const std::string& trimmedStr);
-static std::unique_ptr<LogicalType> parseArrayType(const std::string& trimmedStr);
+static LogicalType parseListType(const std::string& trimmedStr);
+static LogicalType parseArrayType(const std::string& trimmedStr);
 static std::vector<StructField> parseStructTypeInfo(const std::string& structTypeStr);
-static std::unique_ptr<LogicalType> parseStructType(const std::string& trimmedStr);
-static std::unique_ptr<LogicalType> parseMapType(const std::string& trimmedStr);
-static std::unique_ptr<LogicalType> parseUnionType(const std::string& trimmedStr);
-static std::unique_ptr<LogicalType> parseDecimalType(const std::string& trimmedStr);
+static LogicalType parseStructType(const std::string& trimmedStr);
+static LogicalType parseMapType(const std::string& trimmedStr);
+static LogicalType parseUnionType(const std::string& trimmedStr);
+static LogicalType parseDecimalType(const std::string& trimmedStr);
 
 bool LogicalType::tryConvertFromString(const std::string& str, LogicalType& type) {
     auto trimmedStr = StringUtils::ltrim(StringUtils::rtrim(str));
     auto upperDataTypeString = StringUtils::getUpper(trimmedStr);
     if (upperDataTypeString.ends_with("[]")) {
-        type = *parseListType(trimmedStr);
+        type = parseListType(trimmedStr);
     } else if (upperDataTypeString.ends_with("]")) {
-        type = *parseArrayType(trimmedStr);
+        type = parseArrayType(trimmedStr);
     } else if (upperDataTypeString.starts_with("STRUCT")) {
-        type = *parseStructType(trimmedStr);
+        type = parseStructType(trimmedStr);
     } else if (upperDataTypeString.starts_with("MAP")) {
-        type = *parseMapType(trimmedStr);
+        type = parseMapType(trimmedStr);
     } else if (upperDataTypeString.starts_with("UNION")) {
-        type = *parseUnionType(trimmedStr);
+        type = parseUnionType(trimmedStr);
     } else if (upperDataTypeString.starts_with("DECIMAL") ||
                upperDataTypeString.starts_with("NUMERIC")) {
-        type = *parseDecimalType(trimmedStr);
+        type = parseDecimalType(trimmedStr);
     } else if (upperDataTypeString == "RDF_VARIANT") {
-        type = LogicalType:RDF_VARIANT();
+        type = LogicalType::RDF_VARIANT();
     } else if (tryGetIDFromString(upperDataTypeString, type.typeID)) {
         type.physicalType = LogicalType::getPhysicalType(type.typeID, type.extraTypeInfo);
     } else {
@@ -642,7 +642,7 @@ void LogicalType::serialize(Serializer& serializer) const {
     }
 }
 
-std::unique_ptr<LogicalType> LogicalType::deserialize(Deserializer& deserializer) {
+LogicalType LogicalType::deserialize(Deserializer& deserializer) {
     LogicalTypeID typeID;
     deserializer.deserializeValue(typeID);
     PhysicalTypeID physicalType;
@@ -665,34 +665,25 @@ std::unique_ptr<LogicalType> LogicalType::deserialize(Deserializer& deserializer
             extraTypeInfo = nullptr;
         }
     }
-    auto result = std::make_unique<LogicalType>();
-    result->typeID = typeID;
-    result->physicalType = physicalType;
-    result->extraTypeInfo = std::move(extraTypeInfo);
+    LogicalType result;
+    result.typeID = typeID;
+    result.physicalType = physicalType;
+    result.extraTypeInfo = std::move(extraTypeInfo);
     return result;
 }
 
-std::unique_ptr<LogicalType> LogicalType::copy() const {
+LogicalType LogicalType::copy() const {
     if (extraTypeInfo != nullptr) {
-        return std::unique_ptr<LogicalType>(new LogicalType(typeID, extraTypeInfo->copy()));
+        return LogicalType(typeID, extraTypeInfo->copy());
     }
-    return std::make_unique<LogicalType>(typeID);
-}
-
-std::vector<std::unique_ptr<LogicalType>> LogicalType::copy(
-    const std::vector<std::unique_ptr<LogicalType>>& types) {
-    std::vector<std::unique_ptr<LogicalType>> typesCopy;
-    for (auto& type : types) {
-        typesCopy.push_back(type->copy());
-    }
-    return typesCopy;
+    return LogicalType(typeID);
 }
 
 std::vector<LogicalType> LogicalType::copy(const std::vector<LogicalType>& types) {
     std::vector<LogicalType> typesCopy;
     typesCopy.reserve(types.size());
     for (auto& type : types) {
-        typesCopy.push_back(*type.copy());
+        typesCopy.push_back(type);
     }
     return typesCopy;
 }
@@ -701,7 +692,7 @@ std::vector<LogicalType> LogicalType::copy(const std::vector<LogicalType*>& type
     std::vector<LogicalType> typesCopy;
     typesCopy.reserve(types.size());
     for (auto& type : types) {
-        typesCopy.push_back(*type->copy());
+        typesCopy.push_back(*type);
     }
     return typesCopy;
 }
@@ -1188,15 +1179,14 @@ std::vector<std::string> parseStructFields(const std::string& structTypeStr) {
     return structFieldsStr;
 }
 
-std::unique_ptr<LogicalType> parseListType(const std::string& trimmedStr) {
+LogicalType parseListType(const std::string& trimmedStr) {
     return LogicalType::LIST(LogicalType::fromString(trimmedStr.substr(0, trimmedStr.size() - 2)));
 }
 
-std::unique_ptr<LogicalType> parseArrayType(const std::string& trimmedStr) {
+LogicalType parseArrayType(const std::string& trimmedStr) {
     auto leftBracketPos = trimmedStr.find_last_of('[');
     auto rightBracketPos = trimmedStr.find_last_of(']');
-    auto childType = std::make_unique<LogicalType>(
-        LogicalType::fromString(trimmedStr.substr(0, leftBracketPos)));
+    auto childType = LogicalType::fromString(trimmedStr.substr(0, leftBracketPos));
     auto numElements = std::strtoll(
         trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1).c_str(),
         nullptr, 0 /* base */);
@@ -1225,16 +1215,16 @@ std::vector<StructField> parseStructTypeInfo(const std::string& structTypeStr) {
         auto fieldName = structFieldStr.substr(0, pos);
         auto fieldTypeString = structFieldStr.substr(pos + 1);
         structFields.emplace_back(fieldName,
-            std::make_unique<LogicalType>(LogicalType::fromString(fieldTypeString)));
+            LogicalType::fromString(fieldTypeString));
     }
     return structFields;
 }
 
-std::unique_ptr<LogicalType> parseStructType(const std::string& trimmedStr) {
+LogicalType parseStructType(const std::string& trimmedStr) {
     return LogicalType::STRUCT(parseStructTypeInfo(trimmedStr));
 }
 
-std::unique_ptr<LogicalType> parseMapType(const std::string& trimmedStr) {
+LogicalType parseMapType(const std::string& trimmedStr) {
     auto leftBracketPos = trimmedStr.find('(');
     auto rightBracketPos = trimmedStr.find_last_of(')');
     if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
@@ -1246,15 +1236,15 @@ std::unique_ptr<LogicalType> parseMapType(const std::string& trimmedStr) {
         LogicalType::fromString(keyValueTypes[1]));
 }
 
-std::unique_ptr<LogicalType> parseUnionType(const std::string& trimmedStr) {
+LogicalType parseUnionType(const std::string& trimmedStr) {
     auto unionFields = parseStructTypeInfo(trimmedStr);
     auto unionTagField = StructField(UnionType::TAG_FIELD_NAME,
-        std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));
+        LogicalType(UnionType::TAG_FIELD_TYPE));
     unionFields.insert(unionFields.begin(), std::move(unionTagField));
     return LogicalType::UNION(std::move(unionFields));
 }
 
-std::unique_ptr<LogicalType> parseDecimalType(const std::string& trimmedStr) {
+LogicalType parseDecimalType(const std::string& trimmedStr) {
     auto leftBracketPos = trimmedStr.find_last_of('(');
     auto rightBracketPos = trimmedStr.find_last_of(')');
     if (leftBracketPos == std::string::npos) {
@@ -1281,62 +1271,58 @@ std::unique_ptr<LogicalType> parseDecimalType(const std::string& trimmedStr) {
     return LogicalType::DECIMAL((uint32_t)precision, (uint32_t)scale);
 }
 
-std::unique_ptr<LogicalType> LogicalType::DECIMAL(uint32_t precision, uint32_t scale) {
-    return std::unique_ptr<LogicalType>(new LogicalType(LogicalTypeID::DECIMAL,
-        std::make_unique<DecimalTypeInfo>(precision, scale)));
+LogicalType LogicalType::DECIMAL(uint32_t precision, uint32_t scale) {
+    return LogicalType(LogicalTypeID::DECIMAL,
+        std::make_unique<DecimalTypeInfo>(precision, scale));
 }
 
-std::unique_ptr<LogicalType> LogicalType::STRUCT(std::vector<StructField>&& fields) {
-    return std::unique_ptr<LogicalType>(new LogicalType(LogicalTypeID::STRUCT,
-        std::make_unique<StructTypeInfo>(std::move(fields))));
+LogicalType LogicalType::STRUCT(std::vector<StructField>&& fields) {
+    return LogicalType(LogicalTypeID::STRUCT,
+        std::make_unique<StructTypeInfo>(std::move(fields)));
 }
 
-std::unique_ptr<LogicalType> LogicalType::RECURSIVE_REL(std::unique_ptr<StructTypeInfo> typeInfo) {
-    return std::unique_ptr<LogicalType>(
-        new LogicalType(LogicalTypeID::RECURSIVE_REL, std::move(typeInfo)));
+LogicalType LogicalType::RECURSIVE_REL(std::unique_ptr<StructTypeInfo> typeInfo) {
+    return LogicalType(LogicalTypeID::RECURSIVE_REL, std::move(typeInfo));
 }
 
-std::unique_ptr<LogicalType> LogicalType::NODE(std::unique_ptr<StructTypeInfo> typeInfo) {
-    return std::unique_ptr<LogicalType>(new LogicalType(LogicalTypeID::NODE, std::move(typeInfo)));
+LogicalType LogicalType::NODE(std::unique_ptr<StructTypeInfo> typeInfo) {
+    return LogicalType(LogicalTypeID::NODE, std::move(typeInfo));
 }
 
-std::unique_ptr<LogicalType> LogicalType::REL(std::unique_ptr<StructTypeInfo> typeInfo) {
-    return std::unique_ptr<LogicalType>(new LogicalType(LogicalTypeID::REL, std::move(typeInfo)));
+LogicalType LogicalType::REL(std::unique_ptr<StructTypeInfo> typeInfo) {
+    return LogicalType(LogicalTypeID::REL, std::move(typeInfo));
 }
 
-std::unique_ptr<LogicalType> LogicalType::RDF_VARIANT() {
+LogicalType LogicalType::RDF_VARIANT() {
     std::vector<StructField> fields;
     fields.emplace_back("_type", LogicalType::UINT8());
     fields.emplace_back("_value", LogicalType::BLOB());
     auto extraInfo = std::make_unique<StructTypeInfo>(std::move(fields));
-    return std::unique_ptr<LogicalType>(
-        new LogicalType(LogicalTypeID::RDF_VARIANT, std::move(extraInfo)));
+    return LogicalType(LogicalTypeID::RDF_VARIANT, std::move(extraInfo));
 }
 
-std::unique_ptr<LogicalType> LogicalType::UNION(std::vector<StructField>&& fields) {
-    return std::unique_ptr<LogicalType>(
-        new LogicalType(LogicalTypeID::UNION, std::make_unique<StructTypeInfo>(std::move(fields))));
+LogicalType LogicalType::UNION(std::vector<StructField>&& fields) {
+    return LogicalType(LogicalTypeID::UNION, std::make_unique<StructTypeInfo>(std::move(fields)));
 }
 
-std::unique_ptr<LogicalType> LogicalType::LIST(std::unique_ptr<LogicalType> childType) {
-    return std::unique_ptr<LogicalType>(
-        new LogicalType(LogicalTypeID::LIST, std::make_unique<ListTypeInfo>(std::move(childType))));
+LogicalType LogicalType::LIST(LogicalType childType) {
+    return LogicalType(LogicalTypeID::LIST, std::make_unique<ListTypeInfo>(std::move(childType)));
 }
 
-std::unique_ptr<LogicalType> LogicalType::MAP(std::unique_ptr<LogicalType> keyType,
-    std::unique_ptr<LogicalType> valueType) {
+LogicalType LogicalType::MAP(LogicalType keyType,
+    LogicalType valueType) {
     std::vector<StructField> structFields;
     structFields.emplace_back(InternalKeyword::MAP_KEY, std::move(keyType));
     structFields.emplace_back(InternalKeyword::MAP_VALUE, std::move(valueType));
     auto mapStructType = LogicalType::STRUCT(std::move(structFields));
-    return std::unique_ptr<LogicalType>(new LogicalType(LogicalTypeID::MAP,
-        std::make_unique<ListTypeInfo>(std::move(mapStructType))));
+    return LogicalType(LogicalTypeID::MAP,
+        std::make_unique<ListTypeInfo>(std::move(mapStructType)));
 }
 
-std::unique_ptr<LogicalType> LogicalType::ARRAY(std::unique_ptr<LogicalType> childType,
+LogicalType LogicalType::ARRAY(LogicalType childType,
     uint64_t numElements) {
-    return std::unique_ptr<LogicalType>(new LogicalType(LogicalTypeID::ARRAY,
-        std::make_unique<ArrayTypeInfo>(std::move(childType), numElements)));
+    return LogicalType(LogicalTypeID::ARRAY,
+        std::make_unique<ArrayTypeInfo>(std::move(childType), numElements));
 }
 
 // If we can combine the child types, then we can combine the list
@@ -1347,7 +1333,7 @@ static bool tryCombineListTypes(const LogicalType& left, const LogicalType& righ
             ListType::getChildType(right), childType)) {
         return false;
     }
-    result = LogicalType:LIST(childType);
+    result = LogicalType::LIST(childType);
     return true;
 }
 
@@ -1361,7 +1347,7 @@ static bool tryCombineArrayTypes(const LogicalType& left, const LogicalType& rig
             ArrayType::getChildType(right), childType)) {
         return false;
     }
-    result = LogicalType:ARRAY(childType, ArrayType::getNumElements(left));
+    result = LogicalType::ARRAY(childType, ArrayType::getNumElements(left));
     return true;
 }
 
@@ -1372,7 +1358,7 @@ static bool tryCombineListArrayTypes(const LogicalType& left, const LogicalType&
             ArrayType::getChildType(right), childType)) {
         return false;
     }
-    result = LogicalType:LIST(childType);
+    result = LogicalType::LIST(childType);
     return true;
 }
 
@@ -1393,12 +1379,12 @@ static bool tryCombineStructTypes(const LogicalType& left, const LogicalType& ri
         if (LogicalTypeUtils::tryGetMaxLogicalType(leftFields[i].getType(),
                 rightFields[i].getType(), combinedType)) {
             newFields.push_back(
-                StructField(leftFields[i].getName(), std::make_unique<LogicalType>(combinedType)));
+                StructField(leftFields[i].getName(), combinedType));
         } else {
             return false;
         }
     }
-    result = LogicalType:STRUCT(std::move(newFields));
+    result = LogicalType::STRUCT(std::move(newFields));
     return true;
 }
 
@@ -1414,8 +1400,7 @@ static bool tryCombineMapTypes(const LogicalType& left, const LogicalType& right
         !LogicalTypeUtils::tryGetMaxLogicalType(leftValueType, rightValueType, resultValueType)) {
         return false;
     }
-    result = LogicalType:MAP(std::make_unique<LogicalType>(resultKeyType),
-        std::make_unique<LogicalType>(resultValueType));
+    result = LogicalType::MAP(resultKeyType, resultValueType);
     return true;
 }
 
@@ -1443,7 +1428,7 @@ static bool tryCombineUnionTypes(const LogicalType& left, const LogicalType& rig
                 StructField(leftFields[i].getName(), std::make_unique<LogicalType>(combinedType)));
         }
     }
-    result = LogicalType:UNION(std::move(newFields));
+    result = LogicalType::UNION(std::move(newFields));
     return true;
 }
 */

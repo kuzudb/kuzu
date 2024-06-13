@@ -61,25 +61,23 @@ QueryGraph Binder::bindPatternElement(const PatternElement& patternElement) {
     return queryGraph;
 }
 
-static std::unique_ptr<LogicalType> getRecursiveRelLogicalType(const LogicalType& nodeType,
+static LogicalType getRecursiveRelLogicalType(const LogicalType& nodeType,
     const LogicalType& relType) {
-    auto nodesType = LogicalType::LIST(nodeType.copy());
-    auto relsType = LogicalType::LIST(relType.copy());
     std::vector<StructField> recursiveRelFields;
-    recursiveRelFields.emplace_back(InternalKeyword::NODES, std::move(nodesType));
-    recursiveRelFields.emplace_back(InternalKeyword::RELS, std::move(relsType));
+    recursiveRelFields.emplace_back(InternalKeyword::NODES, nodeType);
+    recursiveRelFields.emplace_back(InternalKeyword::RELS, relType);
     return LogicalType::RECURSIVE_REL(
         std::make_unique<StructTypeInfo>(std::move(recursiveRelFields)));
 }
 
 static void extraFieldFromStructType(const LogicalType& structType,
     std::unordered_set<std::string>& nameSet, std::vector<std::string>& names,
-    std::vector<std::unique_ptr<LogicalType>>& types) {
+    std::vector<LogicalType>& types) {
     for (auto& field : StructType::getFields(structType)) {
         if (!nameSet.contains(field.getName())) {
             nameSet.insert(field.getName());
             names.push_back(field.getName());
-            types.push_back(field.getType().copy());
+            types.push_back(field.getType());
         }
     }
 }
@@ -88,10 +86,10 @@ std::shared_ptr<Expression> Binder::createPath(const std::string& pathName,
     const expression_vector& children) {
     std::unordered_set<std::string> nodeFieldNameSet;
     std::vector<std::string> nodeFieldNames;
-    std::vector<std::unique_ptr<LogicalType>> nodeFieldTypes;
+    std::vector<LogicalType> nodeFieldTypes;
     std::unordered_set<std::string> relFieldNameSet;
     std::vector<std::string> relFieldNames;
-    std::vector<std::unique_ptr<LogicalType>> relFieldTypes;
+    std::vector<LogicalType> relFieldTypes;
     for (auto& child : children) {
         if (ExpressionUtil::isNodePattern(*child)) {
             auto node = ku_dynamic_cast<Expression*, NodeExpression*>(child.get());
@@ -117,7 +115,7 @@ std::shared_ptr<Expression> Binder::createPath(const std::string& pathName,
     auto relExtraInfo = std::make_unique<StructTypeInfo>(relFieldNames, relFieldTypes);
     auto relType = LogicalType::REL(std::move(relExtraInfo));
     auto uniqueName = getUniqueExpressionName(pathName);
-    return std::make_shared<PathExpression>(*getRecursiveRelLogicalType(*nodeType, *relType),
+    return std::make_shared<PathExpression>(getRecursiveRelLogicalType(nodeType, relType),
         uniqueName, pathName, std::move(nodeType), std::move(relType), children);
 }
 
@@ -557,7 +555,7 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(const std::string& parse
         getUniqueExpressionName(parsedName), parsedName, nodeTableIDs);
     queryNode->setAlias(parsedName);
     std::vector<std::string> fieldNames;
-    std::vector<std::unique_ptr<LogicalType>> fieldTypes;
+    std::vector<LogicalType> fieldTypes;
     // Bind internal expressions
     queryNode->setInternalID(PropertyExpression::construct(LogicalType::INTERNAL_ID(),
         InternalKeyword::ID, *queryNode));

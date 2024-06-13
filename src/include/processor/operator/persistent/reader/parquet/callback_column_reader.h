@@ -19,7 +19,7 @@ public:
     static constexpr const common::PhysicalTypeID TYPE = common::PhysicalTypeID::ANY;
 
 public:
-    CallbackColumnReader(ParquetReader& reader, std::unique_ptr<common::LogicalType> type_p,
+    CallbackColumnReader(ParquetReader& reader, common::LogicalType type_p,
         const kuzu_parquet::format::SchemaElement& schema_p, uint64_t file_idx_p,
         uint64_t max_define_p, uint64_t max_repeat_p)
         : TemplatedColumnReader<KU_PHYSICAL_TYPE,

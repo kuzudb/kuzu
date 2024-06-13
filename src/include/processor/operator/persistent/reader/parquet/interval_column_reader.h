@@ -25,7 +25,7 @@ class IntervalColumnReader
     : public TemplatedColumnReader<common::interval_t, IntervalValueConversion> {
 
 public:
-    IntervalColumnReader(ParquetReader& reader, std::unique_ptr<common::LogicalType> type,
+    IntervalColumnReader(ParquetReader& reader, common::LogicalType type,
         const kuzu_parquet::format::SchemaElement& schema, uint64_t fileIdx, uint64_t maxDefine,
         uint64_t maxRepeat)
         : TemplatedColumnReader<common::interval_t, IntervalValueConversion>(reader,

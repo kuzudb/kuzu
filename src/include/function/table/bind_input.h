@@ -49,8 +49,11 @@ struct ScanTableFuncBindInput final : public TableFuncBindInput {
 private:
     ScanTableFuncBindInput(const ScanTableFuncBindInput& other)
         : TableFuncBindInput{other}, config{other.config.copy()},
-          expectedColumnNames{other.expectedColumnNames},
-          expectedColumnTypes{other.expectedColumnTypes}, context{other.context} {}
+          expectedColumnNames{other.expectedColumnNames}, context{other.context} {
+        for (const auto& i: other.expectedColumnTypes) {
+            expectedColumnTypes.push_back(i.copy());
+        }
+    }
 };
 
 } // namespace function

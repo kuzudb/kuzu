@@ -90,7 +90,7 @@ bool TableCatalogEntry::containPropertyType(const common::LogicalType& logicalTy
 }
 
 void TableCatalogEntry::addProperty(std::string propertyName,
-    std::unique_ptr<common::LogicalType> dataType,
+    common::LogicalType dataType,
     std::unique_ptr<parser::ParsedExpression> defaultExpr) {
     properties.emplace_back(std::move(propertyName), std::move(dataType), std::move(defaultExpr),
         nextPID++, nextColumnID++, tableID);
