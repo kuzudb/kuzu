@@ -469,7 +469,7 @@ public class ValueTest extends TestBase {
     @Test
     void ValueGetUINT32() throws KuzuObjectRefDestroyedException {
         // UINT32
-        KuzuQueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.temprature ORDER BY a.ID");
+        KuzuQueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.temperature ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
         KuzuFlatTuple flatTuple = result.getNext();

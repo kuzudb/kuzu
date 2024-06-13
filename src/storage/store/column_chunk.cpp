@@ -6,8 +6,6 @@
 #include "common/exception/copy.h"
 #include "common/type_utils.h"
 #include "common/types/internal_id_t.h"
-#include "common/types/interval_t.h"
-#include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/compression/compression.h"
@@ -39,44 +37,6 @@ ColumnChunkMetadata booleanGetMetadata(const uint8_t* /*buffer*/, uint64_t buffe
     uint64_t /*capacity*/, uint64_t numValues, StorageValue min, StorageValue max) {
     return ColumnChunkMetadata(INVALID_PAGE_IDX, ColumnChunkData::getNumPagesForBytes(bufferSize),
         numValues, CompressionMetadata(min, max, CompressionType::BOOLEAN_BITPACKING));
-}
-
-std::pair<StorageValue, StorageValue> booleanGetMinMax(const uint8_t* buffer, uint64_t numValues) {
-    StorageValue minValue{}, maxValue{};
-    const auto firstByte = *buffer;
-    if (numValues >= 8) {
-        if (firstByte == 0b00000000) {
-            minValue = false;
-            maxValue = false;
-        } else if (firstByte == 0b11111111) {
-            minValue = true;
-            maxValue = true;
-        } else {
-            minValue = false;
-            maxValue = true;
-            return {minValue, maxValue};
-        }
-    } else {
-        // First byte will be handled in loop below
-        minValue = NullMask::isNull(reinterpret_cast<const uint64_t*>(buffer), 0);
-        maxValue = NullMask::isNull(reinterpret_cast<const uint64_t*>(buffer), 0);
-    }
-    for (size_t i = 0; i < numValues / 8; i++) {
-        if (buffer[i] != firstByte) {
-            maxValue = true;
-            minValue = false;
-            return {minValue, maxValue};
-        }
-    }
-    for (size_t i = numValues / 8 * 8; i < numValues; i++) {
-        if (minValue.unsignedInt !=
-            NullMask::isNull(reinterpret_cast<const uint64_t*>(buffer), i)) {
-            minValue = false;
-            maxValue = true;
-            return {minValue, maxValue};
-        }
-    }
-    return {minValue, maxValue};
 }
 
 class CompressedFlushBuffer {
@@ -144,6 +104,10 @@ public:
 
     ColumnChunkMetadata operator()(const uint8_t* /*buffer*/, uint64_t /*bufferSize*/,
         uint64_t capacity, uint64_t numValues, StorageValue min, StorageValue max) {
+        // For supported types, min and max may be null if all values are null
+        // Compression is supported in this case
+        // Unsupported types always return a dummy value (where min != max)
+        // so that we don't constant compress them
         if (min == max) {
             return ColumnChunkMetadata(INVALID_PAGE_IDX, 0, numValues,
                 CompressionMetadata(min, max, CompressionType::CONSTANT));
@@ -208,48 +172,6 @@ static std::shared_ptr<CompressionAlg> getCompression(const LogicalType& dataTyp
     }
 }
 
-class GetMinMaxFunction {
-    const LogicalType& dataType;
-
-public:
-    explicit GetMinMaxFunction(const LogicalType& dataType) : dataType{dataType} {}
-
-    GetMinMaxFunction(const GetMinMaxFunction& other) = default;
-
-    std::pair<StorageValue, StorageValue> operator()(const uint8_t* buffer, uint64_t numValues) {
-        KU_ASSERT(dataType.getPhysicalType() != PhysicalTypeID::BOOL);
-        StorageValue minValue{}, maxValue{};
-        TypeUtils::visit(
-            this->dataType.getPhysicalType(),
-            [&]<typename T>(T)
-                requires(std::integral<T> || std::floating_point<T>)
-            {
-                const auto& [min, max] = std::minmax_element(reinterpret_cast<const T*>(buffer),
-                    reinterpret_cast<const T*>(buffer) + numValues);
-                minValue = *min;
-                maxValue = *max;
-            },
-            [&]<typename T>(T)
-                requires(std::same_as<T, list_entry_t> || std::same_as<T, internalID_t>)
-            {
-                const auto& [min, max] =
-                    std::minmax_element(reinterpret_cast<const uint64_t*>(buffer),
-                        reinterpret_cast<const uint64_t*>(buffer) + numValues);
-                minValue = *min;
-                maxValue = *max;
-            },
-            // Types which don't currently support statistics
-            [&]<typename T>(T)
-                requires(std::same_as<T, int128_t> || std::same_as<T, interval_t> ||
-                         std::same_as<T, struct_entry_t> || std::same_as<T, ku_string_t>)
-            {
-                minValue = std::numeric_limits<uint64_t>::min();
-                maxValue = std::numeric_limits<uint64_t>::max();
-            });
-        return {minValue, maxValue};
-    }
-};
-
 ColumnChunkData::ColumnChunkData(LogicalType dataType, uint64_t capacity, bool enableCompression,
     bool hasNullChunk)
     : dataType{std::move(dataType)}, numBytesPerValue{getDataTypeSizeInChunk(this->dataType)},
@@ -277,7 +199,6 @@ void ColumnChunkData::initializeFunction() {
         // but we need to mark it as being boolean compressed.
         flushBufferFunction = uncompressedFlushBuffer;
         getMetadataFunction = booleanGetMetadata;
-        getMinMaxFunction = booleanGetMinMax;
     } break;
     case PhysicalTypeID::INT64:
     case PhysicalTypeID::INT32:
@@ -294,13 +215,11 @@ void ColumnChunkData::initializeFunction() {
         const auto compression = getCompression(dataType, enableCompression);
         flushBufferFunction = CompressedFlushBuffer(compression, dataType);
         getMetadataFunction = GetCompressionMetadata(compression, dataType);
-        getMinMaxFunction = GetMinMaxFunction(dataType);
     } break;
     case PhysicalTypeID::STRING:
     default: {
         flushBufferFunction = uncompressedFlushBuffer;
         getMetadataFunction = uncompressedGetMetadata;
-        getMinMaxFunction = GetMinMaxFunction(dataType);
     }
     }
 }
@@ -315,11 +234,18 @@ void ColumnChunkData::resetToEmpty() {
 }
 ColumnChunkMetadata ColumnChunkData::getMetadataToFlush() const {
     KU_ASSERT(numValues <= capacity);
-    StorageValue minValue = {}, maxValue = {};
+    StorageValue minValue{}, maxValue{};
     if (capacity > 0) {
-        auto [min, max] = getMinMaxFunction(buffer.get(), numValues);
-        minValue = min;
-        maxValue = max;
+        std::optional<NullMask> nullMask;
+        if (nullChunk) {
+            nullMask = nullChunk->getNullMask();
+        }
+
+        auto [min, max] =
+            getMinMaxStorageValue(buffer.get(), 0 /*offset*/, numValues, dataType.getPhysicalType(),
+                nullMask.has_value() ? &*nullMask : nullptr, true /*valueRequiredIfUnsupported*/);
+        minValue = min.value_or(StorageValue());
+        maxValue = max.value_or(StorageValue());
     }
     KU_ASSERT(bufferSize == getBufferSize(capacity));
     return getMetadataFunction(buffer.get(), bufferSize, capacity, numValues, minValue, maxValue);

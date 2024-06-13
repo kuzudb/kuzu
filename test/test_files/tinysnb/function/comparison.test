@@ -54,12 +54,12 @@ Dan
 2
 
 -LOG UINT32Equal
--STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.temprature = 32800 RETURN s.level;
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.temperature = 32800 RETURN s.level;
 ---- 1
 5
 
 -LOG UINT32NotEqual
--STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.temprature <> 32800 RETURN s.level;
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.temperature <> 32800 RETURN s.level;
 ---- 2
 120
 2

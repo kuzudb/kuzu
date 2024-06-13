@@ -796,7 +796,7 @@ TEST_F(CApiValueTest, GetUInt32) {
     auto connection = getConnection();
     state = kuzu_connection_query(connection,
         (char*)"MATCH (a:person) -[r:studyAt]-> (b:organisation) "
-               "RETURN r.temprature ORDER BY a.ID",
+               "RETURN r.temperature ORDER BY a.ID",
         &result);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));

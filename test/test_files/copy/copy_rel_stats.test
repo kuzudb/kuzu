@@ -15,3 +15,31 @@
 -STATEMENT CALL storage_info('knows') WHERE column_name = "fwd_meetTime" RETURN min, max;
 ---- 1
 1936-11-02 11:02:01|2025-01-01 11:22:33.52
+
+-STATEMENT CALL storage_info('studyAt') WHERE column_name = "fwd_year" RETURN min, max;
+---- 1
+2020|2021
+-STATEMENT CALL storage_info('studyAt') WHERE column_name = "bwd_year" RETURN min, max;
+---- 1
+2020|2021
+
+-STATEMENT CALL storage_info('studyAt') WHERE column_name = "fwd_ulevel" RETURN min, max;
+---- 1
+12|250
+-STATEMENT CALL storage_info('studyAt') WHERE column_name = "bwd_ulevel" RETURN min, max;
+---- 1
+12|250
+
+-STATEMENT CALL storage_info('studyAt') WHERE column_name = "fwd_ulength" RETURN min, max;
+---- 1
+90|33768
+-STATEMENT CALL storage_info('studyAt') WHERE column_name = "bwd_ulength" RETURN min, max;
+---- 1
+90|33768
+
+-STATEMENT CALL storage_info('studyAt') WHERE column_name = "fwd_temperature" RETURN min, max;
+---- 1
+1|32800
+-STATEMENT CALL storage_info('studyAt') WHERE column_name = "bwd_temperature" RETURN min, max;
+---- 1
+1|32800

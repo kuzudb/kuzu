@@ -94,6 +94,10 @@ union StorageValue {
 };
 static_assert(std::is_trivial_v<StorageValue>);
 
+std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxStorageValue(
+    const uint8_t* data, uint64_t offset, uint64_t numValues, common::PhysicalTypeID physicalType,
+    const common::NullMask* nullMask, bool valueRequiredIfUnsupported = false);
+
 // Returns the size of the data type in bytes
 uint32_t getDataTypeSizeInChunk(const common::LogicalType& dataType);
 uint32_t getDataTypeSizeInChunk(const common::PhysicalTypeID& dataType);

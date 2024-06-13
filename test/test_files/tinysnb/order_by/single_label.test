@@ -51,7 +51,7 @@
 9223372036854775808
 
 -LOG OrderByUInt32Test
--STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.temprature ORDER BY e.temprature
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.temperature ORDER BY e.temperature
 -CHECK_ORDER
 ---- 3
 1
@@ -264,7 +264,7 @@ Elizabeth
 Elizabeth
 
 -LOG OrderByEmptyResult
--STATEMENT MATCH (p:person) WHERE p.age > 100 RETURN p.age ORDER BY p.age 
+-STATEMENT MATCH (p:person) WHERE p.age > 100 RETURN p.age ORDER BY p.age
 ---- 0
 
 -LOG OrderByLimitEmptyResult

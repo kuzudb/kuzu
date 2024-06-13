@@ -102,14 +102,14 @@ describe("UINT16", function () {
 describe("UINT32", function () {
   it("should convert UINT32 type", async function () {
     const queryResult = await conn.query(
-      "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE a.ID = 0 RETURN s.temprature"
+      "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE a.ID = 0 RETURN s.temperature"
     );
     const result = await queryResult.getAll();
     assert.equal(result.length, 1);
     assert.equal(Object.keys(result[0]).length, 1);
-    assert.isTrue("s.temprature" in result[0]);
-    assert.equal(typeof result[0]["s.temprature"], "number");
-    assert.equal(result[0]["s.temprature"], 32800);
+    assert.isTrue("s.temperature" in result[0]);
+    assert.equal(typeof result[0]["s.temperature"], "number");
+    assert.equal(result[0]["s.temperature"], 32800);
   });
 });
 
@@ -473,7 +473,7 @@ describe("RECURSIVE_REL", function () {
           length: 5,
           level: 5,
           code: 9223372036854776000,
-          temprature: 32800,
+          temperature: 32800,
           ulength: 33768,
           ulevel: 250,
           hugedata: BigInt("1844674407370955161811111111"),

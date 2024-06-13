@@ -55,7 +55,7 @@ def test_uint16(conn_db_readonly: ConnDB) -> None:
 
 def test_uint32(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
-    result = conn.execute("MATCH (a:person) -[r:studyAt]-> (b:organisation) WHERE r.length = 5 RETURN r.temprature;")
+    result = conn.execute("MATCH (a:person) -[r:studyAt]-> (b:organisation) WHERE r.length = 5 RETURN r.temperature;")
     assert result.has_next()
     assert result.get_next() == [32800]
     assert not result.has_next()
@@ -336,7 +336,7 @@ def test_recursive_rel(conn_db_readonly: ConnDB) -> None:
         "length": 5,
         "level": 5,
         "code": 9223372036854775808,
-        "temprature": 32800,
+        "temperature": 32800,
         "ulength": 33768,
         "ulevel": 250,
         "hugedata": 1844674407370955161811111111,

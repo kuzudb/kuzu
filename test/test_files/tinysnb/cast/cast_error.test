@@ -57,10 +57,10 @@ Conversion exception: Cast failed. Could not convert "32768" to INT16.
 Conversion exception: Cast failed. Could not convert "32768" to INT16.
 
 -LOG CastUint32ToInt16OutOfRange
--STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int16(e.temprature);
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int16(e.temperature);
 ---- error
 Overflow exception: Value 32800 is not within INT16 range
--STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e.temprature, "int16");
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e.temperature, "int16");
 ---- error
 Overflow exception: Value 32800 is not within INT16 range
 
@@ -97,10 +97,10 @@ Overflow exception: Value -1000 is not within INT8 range
 Overflow exception: Value -1000 is not within INT8 range
 
 -LOG CastUint32ToInt8OutOfRange
--STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int8(e.temprature);
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int8(e.temperature);
 ---- error
 Overflow exception: Value 32800 is not within INT8 range
--STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e.temprature, "int8");
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e.temperature, "int8");
 ---- error
 Overflow exception: Value 32800 is not within INT8 range
 

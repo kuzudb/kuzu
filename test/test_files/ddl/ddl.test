@@ -162,7 +162,7 @@ Binder exception: Table knows does not exist.
 ---- ok
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
 ---- 1
-(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: 9223372036854775808, temprature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
 -DEFINE_STATEMENT_BLOCK PERSON_TABLE_NULL_CHECK [
 -STATEMENT MATCH (p:person) return p.random
@@ -274,7 +274,7 @@ long long string
 [142,short,long long long string]
 
 -CASE AddListOfListOfStringPropertyToPersonTableWithDefaultValueNormalExecution
--STATEMENT ALTER TABLE person ADD random STRING[][] 
+-STATEMENT ALTER TABLE person ADD random STRING[][]
             DEFAULT [['142','51'],['short','long','123'],
             ['long long long string','short short short short short']]
 ---- ok
@@ -400,7 +400,7 @@ VERY LONG STRING!!
 [13,15,long string!!]
 
 -CASE AddListOfListOfStringPropertyToStudyAtTableWithDefaultValueNormalExecution
--STATEMENT ALTER TABLE studyAt ADD random STRING[][] 
+-STATEMENT ALTER TABLE studyAt ADD random STRING[][]
             DEFAULT [['hello','good','long long string test'],
             ['6'],['very very long string']]
 ---- ok

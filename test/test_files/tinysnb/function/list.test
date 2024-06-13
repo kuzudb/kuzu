@@ -200,7 +200,7 @@ Binder exception: Expression LIST_CREATION(a) has data type STRING[] but expecte
 23
 
 -LOG ListExtractListOfUINT32
--STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN list_extract([e.temprature], 1)
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN list_extract([e.temperature], 1)
 ---- 3
 32800
 1
@@ -544,7 +544,7 @@ ad
 [23,23]
 
 -LOG ListAppendListOfUINT32
--STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_append([s.temprature], s.temprature)
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_append([s.temperature], s.temperature)
 ---- 3
 [32800,32800]
 [1,1]
@@ -720,7 +720,7 @@ ad
 [23,23]
 
 -LOG ListPrependListOfUINT32
--STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend([s.temprature], s.temprature)
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend([s.temperature], s.temperature)
 ---- 3
 [32800,32800]
 [1,1]
