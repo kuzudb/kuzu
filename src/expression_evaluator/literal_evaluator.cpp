@@ -14,9 +14,9 @@ void LiteralExpressionEvaluator::evaluate() {
     for (auto i = 1ul; i < cnt; i++) {
         resultVector->copyFromVectorData(i, resultVector.get(), 0);
     }
-    if (cnt == 1) {
+    if (cnt > 1) {
         unflatState->getSelVectorUnsafe().setSelSize(cnt);
-        resultVector->state->getSelVectorUnsafe().setSelSize(cnt);
+        resultVector->state = unflatState;
     }
 }
 
