@@ -89,7 +89,7 @@ public:
 
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
-    void delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
+    bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
 
     void detachDelete(transaction::Transaction* transaction, common::RelDataDirection direction,
         common::ValueVector* srcNodeIDVector, RelDetachDeleteState* deleteState);

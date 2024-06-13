@@ -42,6 +42,11 @@ void SingleLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
     if (nodeIDVector->isNull(nodeIDPos)) {
         return;
     }
+    auto deleteState =
+        std::make_unique<storage::NodeTableDeleteState>(*nodeIDVector, *extraInfo.pkVector);
+    if (!extraInfo.table->delete_(context->clientContext->getTx(), *deleteState)) {
+        return;
+    }
     for (auto& relTable : extraInfo.fwdRelTables) {
         deleteFromRelTable(context, info.deleteType, RelDataDirection::FWD, relTable, nodeIDVector,
             detachDeleteState.get());
@@ -50,9 +55,6 @@ void SingleLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
         deleteFromRelTable(context, info.deleteType, RelDataDirection::BWD, relTable, nodeIDVector,
             detachDeleteState.get());
     }
-    auto deleteState =
-        std::make_unique<storage::NodeTableDeleteState>(*nodeIDVector, *extraInfo.pkVector);
-    extraInfo.table->delete_(context->clientContext->getTx(), *deleteState);
 }
 
 void MultiLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
@@ -69,8 +71,13 @@ void MultiLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
         return;
     }
     auto nodeID = nodeIDVector->getValue<internalID_t>(pos);
-    KU_ASSERT(extraInfos.contains(nodeID.tableID));
     auto& extraInfo = extraInfos.at(nodeID.tableID);
+    auto deleteState =
+        std::make_unique<storage::NodeTableDeleteState>(*nodeIDVector, *extraInfo.pkVector);
+    if (!extraInfo.table->delete_(context->clientContext->getTx(), *deleteState)) {
+        return;
+    }
+    KU_ASSERT(extraInfos.contains(nodeID.tableID));
     for (auto& relTable : extraInfo.fwdRelTables) {
         deleteFromRelTable(context, info.deleteType, RelDataDirection::FWD, relTable, nodeIDVector,
             detachDeleteState.get());
@@ -86,9 +93,6 @@ void MultiLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
         deleteFromRelTable(context, info.deleteType, RelDataDirection::BWD, relTable, nodeIDVector,
             detachDeleteState.get());
     }
-    auto deleteState =
-        std::make_unique<storage::NodeTableDeleteState>(*nodeIDVector, *extraInfo.pkVector);
-    extraInfo.table->delete_(context->clientContext->getTx(), *deleteState);
 }
 
 void RelDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* /*context*/) {

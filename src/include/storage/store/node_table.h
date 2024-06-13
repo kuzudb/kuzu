@@ -89,7 +89,7 @@ public:
 
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
-    void delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
+    bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
 
     void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
         common::ValueVector* defaultValueVector) override;

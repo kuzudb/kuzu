@@ -119,3 +119,10 @@ new one
 -STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 3 AND b.ID =10 RETURN e.note
 ---- 1
 new one
+
+-CASE DeleteDuplicateNodes
+-STATEMENT MATCH (a:person)-[e:meets|knows|marries*0..5]->(b:person) DETACH DELETE a,b;
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) RETURN COUNT(*)
+---- 1
+0

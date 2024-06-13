@@ -110,13 +110,13 @@ bool LocalNodeNG::delete_(ValueVector* nodeIDVector, ValueVector*) {
     // Check if the node is newly inserted or in persistent storage.
     if (insertChunks.hasOffset(nodeOffset)) {
         insertChunks.remove(nodeOffset);
+        return true;
     } else {
         for (auto i = 0u; i < updateChunks.size(); i++) {
             updateChunks[i].remove(nodeOffset);
         }
-        deleteInfo.deleteOffset(nodeOffset);
+        return deleteInfo.deleteOffset(nodeOffset);
     }
-    return true;
 }
 
 LocalNodeGroup* LocalNodeTableData::getOrCreateLocalNodeGroup(ValueVector* nodeIDVector) {
