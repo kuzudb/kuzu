@@ -101,7 +101,9 @@ std::unique_ptr<Statement> Transformer::transformCreateRdfGraphClause(
 std::unique_ptr<Statement> Transformer::transformCreateSequence(
     CypherParser::KU_CreateSequenceContext& ctx) {
     auto sequenceName = transformSchemaName(*ctx.oC_SchemaName());
-    auto createSequenceInfo = CreateSequenceInfo(sequenceName);
+    auto createSequenceInfo = CreateSequenceInfo(sequenceName,
+        ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
+                               common::ConflictAction::ON_CONFLICT_THROW);
     std::unordered_set<SequenceInfoType> applied;
     for (auto seqOption : ctx.kU_SequenceOptions()) {
         SequenceInfoType type;

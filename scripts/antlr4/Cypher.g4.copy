@@ -110,7 +110,7 @@ kU_CreateRdfGraph
     : CREATE SP RDFGRAPH SP (kU_IfNotExists SP)? oC_SchemaName ;
 
 kU_CreateSequence
-    : CREATE SP SEQUENCE SP oC_SchemaName (SP kU_SequenceOptions)* ;
+    : CREATE SP SEQUENCE SP (kU_IfNotExists SP)? oC_SchemaName (SP kU_SequenceOptions)* ;
 
 kU_CreateType
     : CREATE SP TYPE SP oC_SchemaName SP AS SP kU_DataType SP? ;

@@ -192,7 +192,6 @@ struct ExportCSVConstants {
 struct ImportDBConstants {
     static constexpr char SCHEMA_NAME[] = "schema.cypher";
     static constexpr char COPY_NAME[] = "copy.cypher";
-    static constexpr char MACRO_NAME[] = "macro.cypher";
 };
 
 static constexpr char ATTACHED_KUZU_DB_TYPE[] = "KUZU";

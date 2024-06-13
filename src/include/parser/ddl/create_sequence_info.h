@@ -3,6 +3,7 @@
 #include <string>
 
 #include "common/copy_constructors.h"
+#include "common/enums/conflict_action.h"
 
 namespace kuzu {
 namespace parser {
@@ -22,14 +23,17 @@ struct CreateSequenceInfo {
     std::string minValue = "";
     std::string maxValue = "";
     bool cycle = false;
+    common::ConflictAction onConflict;
 
-    explicit CreateSequenceInfo(std::string sequenceName) : sequenceName{std::move(sequenceName)} {}
+    explicit CreateSequenceInfo(std::string sequenceName, common::ConflictAction onConflict)
+        : sequenceName{std::move(sequenceName)}, onConflict{onConflict} {}
     EXPLICIT_COPY_DEFAULT_MOVE(CreateSequenceInfo);
 
 private:
     CreateSequenceInfo(const CreateSequenceInfo& other)
         : sequenceName{other.sequenceName}, startWith{other.startWith}, increment{other.increment},
-          minValue{other.minValue}, maxValue{other.maxValue}, cycle{other.cycle} {}
+          minValue{other.minValue}, maxValue{other.maxValue}, cycle{other.cycle},
+          onConflict{other.onConflict} {}
 };
 
 } // namespace parser

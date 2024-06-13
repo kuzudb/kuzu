@@ -1,6 +1,5 @@
 #pragma once
 
-#include "binder/ddl/bound_create_sequence_info.h"
 #include "common/copy_constructors.h"
 #include "common/enums/conflict_action.h"
 #include "common/enums/rel_multiplicity.h"
@@ -34,7 +33,6 @@ struct BoundExtraCreateCatalogEntryInfo {
 struct BoundCreateTableInfo {
     common::TableType type;
     std::string tableName;
-    std::vector<BoundCreateSequenceInfo> serialSequences;
     common::ConflictAction onConflict;
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo;
 

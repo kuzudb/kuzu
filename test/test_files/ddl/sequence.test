@@ -7,6 +7,14 @@
 ---- ok
 -STATEMENT CREATE SEQUENCE test;
 ---- ok
+-STATEMENT CREATE SEQUENCE test;
+---- error
+Binder exception: test already exists in catalog.
+-STATEMENT CREATE SEQUENCE IF NOT EXISTS test start 5;
+---- ok
+-STATEMENT RETURN nextval('test');
+---- 1
+1
 -STATEMENT DROP TABLE test;
 ---- ok
 -STATEMENT DROP SEQUENCE test;

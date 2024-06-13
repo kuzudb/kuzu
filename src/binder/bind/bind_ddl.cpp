@@ -224,8 +224,14 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
     int64_t minValue;
     int64_t maxValue;
     ku_string_t literal;
-    if (clientContext->getCatalog()->containsSequence(clientContext->getTx(), sequenceName)) {
-        throw BinderException(sequenceName + " already exists in catalog.");
+    switch (info.onConflict) {
+    case common::ConflictAction::ON_CONFLICT_THROW: {
+        if (clientContext->getCatalog()->containsSequence(clientContext->getTx(), sequenceName)) {
+            throw BinderException(sequenceName + " already exists in catalog.");
+        }
+    } break;
+    default:
+        break;
     }
     literal = ku_string_t{info.increment.c_str(), info.increment.length()};
     if (!function::CastString::tryCast(literal, increment)) {
@@ -267,8 +273,8 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
         throw BinderException("SEQUENCE START value should be between MINVALUE and MAXVALUE.");
     }
 
-    auto boundInfo =
-        BoundCreateSequenceInfo(sequenceName, startWith, increment, minValue, maxValue, info.cycle);
+    auto boundInfo = BoundCreateSequenceInfo(sequenceName, startWith, increment, minValue, maxValue,
+        info.cycle, info.onConflict);
     return std::make_unique<BoundCreateSequence>(std::move(boundInfo));
 }
 

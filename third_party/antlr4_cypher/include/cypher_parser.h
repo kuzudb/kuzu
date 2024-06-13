@@ -765,6 +765,7 @@ public:
     antlr4::tree::TerminalNode* SP(size_t i);
     antlr4::tree::TerminalNode *SEQUENCE();
     OC_SchemaNameContext *oC_SchemaName();
+    KU_IfNotExistsContext *kU_IfNotExists();
     std::vector<KU_SequenceOptionsContext *> kU_SequenceOptions();
     KU_SequenceOptionsContext* kU_SequenceOptions(size_t i);
 

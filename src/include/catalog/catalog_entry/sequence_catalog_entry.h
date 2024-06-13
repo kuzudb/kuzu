@@ -50,7 +50,6 @@ public:
     // sequence functions
     //===--------------------------------------------------------------------===//
     int64_t currVal();
-    int64_t nextVal();
     void nextKVal(const uint64_t& count, common::ValueVector& resultVector);
     void replayVal(uint64_t usageCount, int64_t currVal, int64_t nextVal);
 
@@ -59,6 +58,7 @@ public:
     //===--------------------------------------------------------------------===//
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<SequenceCatalogEntry> deserialize(common::Deserializer& deserializer);
+    std::string toCypher(main::ClientContext* /*clientContext*/) const override;
 
     binder::BoundCreateSequenceInfo getBoundCreateSequenceInfo() const;
 

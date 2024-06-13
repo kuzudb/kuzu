@@ -186,7 +186,7 @@ table_id_t Catalog::createTableSchema(transaction::Transaction* transaction,
         if (property.getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
             auto seqName = genSerialName(tableEntry->getName(), property.getName());
             auto seqInfo = BoundCreateSequenceInfo(seqName, 0, 1, 0,
-                std::numeric_limits<int64_t>::max(), false);
+                std::numeric_limits<int64_t>::max(), false, ConflictAction::ON_CONFLICT_THROW);
             createSequence(transaction, seqInfo);
         }
     }
