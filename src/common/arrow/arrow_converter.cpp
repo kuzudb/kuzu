@@ -57,7 +57,7 @@ void ArrowConverter::setArrowFormatForStruct(ArrowSchemaHolder& rootHolder, Arro
     child.children = &rootHolder.nestedChildrenPtr.back()[0];
     for (auto i = 0u; i < child.n_children; i++) {
         initializeChild(*child.children[i]);
-        auto structField = StructType::getField(dataType, i);
+        const auto& structField = StructType::getField(dataType, i);
         child.children[i]->name = copyName(rootHolder, structField.getName());
         setArrowFormat(rootHolder, *child.children[i], structField.getType());
     }
@@ -77,7 +77,7 @@ void ArrowConverter::setArrowFormatForUnion(ArrowSchemaHolder& rootHolder, Arrow
     child.children = &rootHolder.nestedChildrenPtr.back()[0];
     for (auto i = 0u; i < child.n_children; i++) {
         initializeChild(*child.children[i]);
-        auto unionFieldType = UnionType::getFieldType(dataType, i);
+        const auto& unionFieldType = UnionType::getFieldType(dataType, i);
         auto unionFieldName = UnionType::getFieldName(dataType, i);
         child.children[i]->name = copyName(rootHolder, unionFieldName);
         setArrowFormat(rootHolder, *child.children[i], unionFieldType);
@@ -101,10 +101,10 @@ void ArrowConverter::setArrowFormatForInternalID(ArrowSchemaHolder& rootHolder, 
     child.children = &rootHolder.nestedChildrenPtr.back()[0];
     initializeChild(*child.children[0]);
     child.children[0]->name = copyName(rootHolder, "offset");
-    setArrowFormat(rootHolder, *child.children[0], *LogicalType::INT64());
+    setArrowFormat(rootHolder, *child.children[0], LogicalType::INT64());
     initializeChild(*child.children[1]);
     child.children[1]->name = copyName(rootHolder, "table");
-    setArrowFormat(rootHolder, *child.children[1], *LogicalType::INT64());
+    setArrowFormat(rootHolder, *child.children[1], LogicalType::INT64());
 }
 
 void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& child,
@@ -271,8 +271,8 @@ std::unique_ptr<ArrowSchema> ArrowConverter::toArrowSchema(
 void ArrowConverter::toArrowArray(main::QueryResult& queryResult, ArrowArray* outArray,
     std::int64_t chunkSize) {
     std::vector<LogicalType> types;
-    for (auto type : queryResult.getColumnDataTypes()) {
-        types.push_back(type);
+    for (const auto& type : queryResult.getColumnDataTypes()) {
+        types.push_back(type.copy());
     }
     auto rowBatch = make_unique<ArrowRowBatch>(std::move(types), chunkSize);
     *outArray = rowBatch->append(queryResult, chunkSize);

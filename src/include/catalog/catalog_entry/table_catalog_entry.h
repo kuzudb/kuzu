@@ -52,7 +52,7 @@ public:
     uint32_t getPropertyPos(common::property_id_t propertyID) const;
     virtual common::column_id_t getColumnID(common::property_id_t propertyID) const;
     bool containPropertyType(const common::LogicalType& logicalType) const;
-    void addProperty(std::string propertyName, std::unique_ptr<common::LogicalType> dataType,
+    void addProperty(std::string propertyName, common::LogicalType dataType,
         std::unique_ptr<parser::ParsedExpression> defaultExpr);
     void dropProperty(common::property_id_t propertyID);
     void renameProperty(common::property_id_t propertyID, const std::string& newName);

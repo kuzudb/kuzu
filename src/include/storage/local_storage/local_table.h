@@ -22,7 +22,8 @@ using ChunkCollection = std::vector<ColumnChunkData*>;
 class LocalChunkedGroupCollection {
 public:
     explicit LocalChunkedGroupCollection(std::vector<common::LogicalType> dataTypes)
-        : dataTypes{std::move(dataTypes)}, chunkedGroups{this->dataTypes}, numRows{0} {}
+        : dataTypes{std::move(dataTypes)},
+          chunkedGroups{common::LogicalType::copy(this->dataTypes)}, numRows{0} {}
     DELETE_COPY_DEFAULT_MOVE(LocalChunkedGroupCollection);
 
     static std::pair<uint32_t, uint64_t> getChunkIdxAndOffsetInChunk(common::row_idx_t rowIdx) {

@@ -26,7 +26,7 @@ void ListToString::operation(list_entry_t& input, ku_string_t& delim, ku_string_
 static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
     Function* function) {
     std::vector<LogicalType> paramTypes;
-    paramTypes.push_back(arguments[0]->getDataType());
+    paramTypes.push_back(arguments[0]->getDataType().copy());
     paramTypes.push_back(LogicalType(function->parameterTypeIDs[1]));
     return std::make_unique<FunctionBindData>(std::move(paramTypes), LogicalType::STRING());
 }

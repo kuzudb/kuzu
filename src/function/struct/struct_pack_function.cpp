@@ -11,12 +11,12 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
     std::vector<StructField> fields;
     for (auto& argument : arguments) {
         if (argument->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
-            argument->cast(*LogicalType::STRING());
+            argument->cast(LogicalType::STRING());
         }
         fields.emplace_back(argument->getAlias(), argument->getDataType().copy());
     }
     auto resultType = LogicalType::STRUCT(std::move(fields));
-    return FunctionBindData::getSimpleBindData(arguments, *resultType);
+    return FunctionBindData::getSimpleBindData(arguments, std::move(resultType));
 }
 
 void StructPackFunctions::compileFunc(FunctionBindData* /*bindData*/,

@@ -20,8 +20,7 @@ void kuzu_data_type_create(kuzu_data_type_id id, kuzu_logical_type* child_type,
     if (child_type == nullptr) {
         data_type = new LogicalType(logicalTypeID);
     } else {
-        auto child_type_pty =
-            std::make_unique<LogicalType>(*static_cast<LogicalType*>(child_type->_data_type));
+        auto child_type_pty = static_cast<LogicalType*>(child_type->_data_type)->copy();
         auto extraTypeInfo =
             num_elements_in_array > 0 ?
                 std::make_unique<ArrayTypeInfo>(std::move(child_type_pty), num_elements_in_array) :
@@ -32,7 +31,8 @@ void kuzu_data_type_create(kuzu_data_type_id id, kuzu_logical_type* child_type,
 }
 
 void kuzu_data_type_clone(kuzu_logical_type* data_type, kuzu_logical_type* out_data_type) {
-    out_data_type->_data_type = new LogicalType(*static_cast<LogicalType*>(data_type->_data_type));
+    out_data_type->_data_type =
+        new LogicalType(static_cast<LogicalType*>(data_type->_data_type)->copy());
 }
 
 void kuzu_data_type_destroy(kuzu_logical_type* data_type) {

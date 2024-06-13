@@ -18,7 +18,7 @@ struct SplitPart {
 
 static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
     Function* /*function*/) {
-    return FunctionBindData::getSimpleBindData(arguments, *LogicalType::STRING());
+    return FunctionBindData::getSimpleBindData(arguments, LogicalType::STRING());
 }
 
 function_set SplitPartFunction::getFunctionSet() {

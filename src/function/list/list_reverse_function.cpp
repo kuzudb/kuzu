@@ -23,10 +23,10 @@ struct ListReverse {
 static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
     Function* function) {
     auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
-    auto resultType = arguments[0]->dataType;
+    const auto& resultType = arguments[0]->dataType;
     scalarFunction->execFunc =
         ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, list_entry_t, ListReverse>;
-    return FunctionBindData::getSimpleBindData(arguments, resultType);
+    return FunctionBindData::getSimpleBindData(arguments, resultType.copy());
 }
 
 function_set ListReverseFunction::getFunctionSet() {

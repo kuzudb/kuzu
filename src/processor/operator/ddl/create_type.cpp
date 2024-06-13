@@ -10,7 +10,7 @@ namespace processor {
 
 void CreateType::executeDDLInternal(ExecutionContext* context) {
     auto catalog = context->clientContext->getCatalog();
-    catalog->createType(context->clientContext->getTx(), name, type);
+    catalog->createType(context->clientContext->getTx(), name, type.copy());
 }
 
 std::string CreateType::getOutputMsg() {

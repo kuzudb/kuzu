@@ -20,7 +20,8 @@ struct TableFuncBindData {
         std::vector<std::string> columnNames)
         : columnTypes{std::move(columnTypes)}, columnNames{std::move(columnNames)} {}
     TableFuncBindData(const TableFuncBindData& other)
-        : columnTypes{other.columnTypes}, columnNames{other.columnNames} {}
+        : columnTypes{common::LogicalType::copy(other.columnTypes)},
+          columnNames{other.columnNames} {}
 
     virtual ~TableFuncBindData() = default;
 

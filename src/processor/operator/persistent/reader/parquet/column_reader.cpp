@@ -26,7 +26,7 @@ using kuzu_parquet::format::Encoding;
 using kuzu_parquet::format::PageType;
 using kuzu_parquet::format::Type;
 
-ColumnReader::ColumnReader(ParquetReader& reader, std::unique_ptr<common::LogicalType> type,
+ColumnReader::ColumnReader(ParquetReader& reader, common::LogicalType type,
     const kuzu_parquet::format::SchemaElement& schema, uint64_t fileIdx, uint64_t maxDefinition,
     uint64_t maxRepeat)
     : schema{schema}, fileIdx{fileIdx}, maxDefine{maxDefinition}, maxRepeat{maxRepeat},
@@ -86,7 +86,7 @@ void ColumnReader::applyPendingSkips(uint64_t numValues) {
 
     // TODO this can be optimized, for example we dont actually have to bitunpack offsets
     std::unique_ptr<common::ValueVector> dummyResult =
-        std::make_unique<common::ValueVector>(*type->copy());
+        std::make_unique<common::ValueVector>(type.copy());
 
     uint64_t remaining = numValues;
     uint64_t numValuesRead = 0;
@@ -157,7 +157,7 @@ uint64_t ColumnReader::read(uint64_t numValues, parquet_filter_t& filter, uint8_
             // TODO keep this in the state
             auto readBuf = std::make_shared<ResizeableBuffer>();
 
-            switch (type->getPhysicalType()) {
+            switch (type.getPhysicalType()) {
             case common::PhysicalTypeID::INT32:
                 readBuf->resize(sizeof(int32_t) * (readNow - nullCount));
                 dbpDecoder->GetBatch<int32_t>(readBuf->ptr, readNow - nullCount);
@@ -173,7 +173,7 @@ uint64_t ColumnReader::read(uint64_t numValues, parquet_filter_t& filter, uint8_
             plain(readBuf, defineOut, readNow, filter, resultOffset, resultOut);
         } else if (rleDecoder) {
             // RLE encoding for boolean
-            KU_ASSERT(type->getLogicalTypeID() == common::LogicalTypeID::BOOL);
+            KU_ASSERT(type.getLogicalTypeID() == common::LogicalTypeID::BOOL);
             auto readBuf = std::make_shared<ResizeableBuffer>();
             readBuf->resize(sizeof(bool) * (readNow - nullCount));
             rleDecoder->GetBatch<uint8_t>(readBuf->ptr, readNow - nullCount);
@@ -194,9 +194,9 @@ uint64_t ColumnReader::read(uint64_t numValues, parquet_filter_t& filter, uint8_
 }
 
 std::unique_ptr<ColumnReader> ColumnReader::createReader(ParquetReader& reader,
-    std::unique_ptr<common::LogicalType> type, const kuzu_parquet::format::SchemaElement& schema,
-    uint64_t fileIdx, uint64_t maxDefine, uint64_t maxRepeat) {
-    switch (type->getLogicalTypeID()) {
+    common::LogicalType type, const kuzu_parquet::format::SchemaElement& schema, uint64_t fileIdx,
+    uint64_t maxDefine, uint64_t maxRepeat) {
+    switch (type.getLogicalTypeID()) {
     case common::LogicalTypeID::BOOL:
         return std::make_unique<BooleanColumnReader>(reader, std::move(type), schema, fileIdx,
             maxDefine, maxRepeat);
@@ -469,7 +469,7 @@ void ColumnReader::prepareDataPage(kuzu_parquet::format::PageHeader& pageHdr) {
         break;
     }
     case Encoding::RLE: {
-        if (type->getLogicalTypeID() != common::LogicalTypeID::BOOL) {
+        if (type.getLogicalTypeID() != common::LogicalTypeID::BOOL) {
             throw std::runtime_error("RLE encoding is only supported for boolean data");
         }
         block->inc(sizeof(uint32_t));
@@ -501,8 +501,8 @@ uint64_t ColumnReader::getTotalCompressedSize() {
 }
 
 std::unique_ptr<ColumnReader> ColumnReader::createTimestampReader(ParquetReader& reader,
-    std::unique_ptr<common::LogicalType> type, const kuzu_parquet::format::SchemaElement& schema,
-    uint64_t fileIdx, uint64_t maxDefine, uint64_t maxRepeat) {
+    common::LogicalType type, const kuzu_parquet::format::SchemaElement& schema, uint64_t fileIdx,
+    uint64_t maxDefine, uint64_t maxRepeat) {
     switch (schema.type) {
     case Type::INT96: {
         return std::make_unique<CallbackColumnReader<Int96, common::timestamp_t,

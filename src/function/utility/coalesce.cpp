@@ -16,12 +16,12 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
     LogicalType resultType(LogicalTypeID::ANY);
     binder::ExpressionUtil::tryCombineDataType(arguments, resultType);
     if (resultType.getLogicalTypeID() == LogicalTypeID::ANY) {
-        resultType = *LogicalType::STRING();
+        resultType = LogicalType::STRING();
     }
     auto bindData = std::make_unique<FunctionBindData>(resultType.copy());
     for (auto& _ : arguments) {
         (void)_;
-        bindData->paramTypes.push_back(resultType);
+        bindData->paramTypes.push_back(resultType.copy());
     }
     return bindData;
 }

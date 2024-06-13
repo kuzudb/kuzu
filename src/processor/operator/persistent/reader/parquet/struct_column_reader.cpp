@@ -3,13 +3,12 @@
 namespace kuzu {
 namespace processor {
 
-StructColumnReader::StructColumnReader(ParquetReader& reader,
-    std::unique_ptr<common::LogicalType> type, const kuzu_parquet::format::SchemaElement& schema,
-    uint64_t schemaIdx, uint64_t maxDefine, uint64_t maxRepeat,
-    std::vector<std::unique_ptr<ColumnReader>> childReaders)
+StructColumnReader::StructColumnReader(ParquetReader& reader, common::LogicalType type,
+    const kuzu_parquet::format::SchemaElement& schema, uint64_t schemaIdx, uint64_t maxDefine,
+    uint64_t maxRepeat, std::vector<std::unique_ptr<ColumnReader>> childReaders)
     : ColumnReader(reader, std::move(type), schema, schemaIdx, maxDefine, maxRepeat),
       childReaders(std::move(childReaders)) {
-    KU_ASSERT(this->type->getPhysicalType() == common::PhysicalTypeID::STRUCT);
+    KU_ASSERT(this->type.getPhysicalType() == common::PhysicalTypeID::STRUCT);
 }
 
 ColumnReader* StructColumnReader::getChildReader(uint64_t childIdx) {
@@ -42,7 +41,7 @@ void StructColumnReader::registerPrefetch(ThriftFileTransport& transport, bool a
 uint64_t StructColumnReader::read(uint64_t numValuesToRead, parquet_filter_t& filter,
     uint8_t* define_out, uint8_t* repeat_out, common::ValueVector* result) {
     auto& fieldVectors = common::StructVector::getFieldVectors(result);
-    KU_ASSERT(common::StructType::getNumFields(*type) == fieldVectors.size());
+    KU_ASSERT(common::StructType::getNumFields(type) == fieldVectors.size());
     if (pendingSkips > 0) {
         applyPendingSkips(pendingSkips);
     }
@@ -76,8 +75,8 @@ static bool TypeHasExactRowCount(const common::LogicalType& type) {
     case common::LogicalTypeID::MAP:
         return false;
     case common::LogicalTypeID::STRUCT:
-        for (auto& kv : common::StructType::getFieldTypes(type)) {
-            if (TypeHasExactRowCount(kv)) {
+        for (auto kv : common::StructType::getFieldTypes(type)) {
+            if (TypeHasExactRowCount(*kv)) {
                 return true;
             }
         }
@@ -89,7 +88,7 @@ static bool TypeHasExactRowCount(const common::LogicalType& type) {
 
 uint64_t StructColumnReader::getGroupRowsAvailable() {
     for (auto i = 0u; i < childReaders.size(); i++) {
-        if (TypeHasExactRowCount(*childReaders[i]->getDataType())) {
+        if (TypeHasExactRowCount(childReaders[i]->getDataType())) {
             return childReaders[i]->getGroupRowsAvailable();
         }
     }

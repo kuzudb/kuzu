@@ -256,7 +256,7 @@ std::vector<PropertyDefinitionDDL> Transformer::transformPropertyDefinitionsDDL(
         } else {
             LogicalType type;
             if (!LogicalType::tryConvertFromString(dataType, type)) {
-                type = *LogicalType::ANY();
+                type = LogicalType::ANY();
             }
             defaultValue = std::make_unique<ParsedLiteralExpression>(
                 Value::createNullValue(std::move(type)), "NULL");

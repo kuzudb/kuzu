@@ -19,8 +19,7 @@ struct StringSplit {
 
 static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
     Function* /*function*/) {
-    return FunctionBindData::getSimpleBindData(arguments,
-        *LogicalType::LIST(LogicalType::STRING()));
+    return FunctionBindData::getSimpleBindData(arguments, LogicalType::LIST(LogicalType::STRING()));
 }
 
 function_set StringSplitFunction::getFunctionSet() {

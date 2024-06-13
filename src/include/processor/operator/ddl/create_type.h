@@ -20,7 +20,7 @@ public:
     std::string getOutputMsg() final;
 
     std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<CreateType>(name, type, outputPos, id, printInfo->copy());
+        return std::make_unique<CreateType>(name, type.copy(), outputPos, id, printInfo->copy());
     }
 
 private:

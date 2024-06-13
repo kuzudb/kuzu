@@ -18,8 +18,8 @@ ResultSet::ResultSet(ResultSetDescriptor* resultSetDescriptor,
             dataChunk->state = DataChunkState::getSingleValueDataChunkState();
         }
         for (auto j = 0u; j < numValueVectors; ++j) {
-            auto vector =
-                std::make_shared<ValueVector>(dataChunkDescriptor->logicalTypes[j], memoryManager);
+            auto vector = std::make_shared<ValueVector>(dataChunkDescriptor->logicalTypes[j].copy(),
+                memoryManager);
             dataChunk->insert(j, std::move(vector));
         }
         insert(i, std::move(dataChunk));

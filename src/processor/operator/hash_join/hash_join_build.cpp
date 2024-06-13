@@ -15,7 +15,7 @@ void HashJoinBuild::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     std::vector<LogicalType> keyTypes;
     for (auto i = 0u; i < info->keysPos.size(); ++i) {
         auto vector = resultSet->getValueVector(info->keysPos[i]).get();
-        keyTypes.push_back(*vector->dataType.copy());
+        keyTypes.push_back(vector->dataType.copy());
         if (info->fStateTypes[i] == common::FStateType::UNFLAT) {
             setKeyState(vector->state.get());
         }

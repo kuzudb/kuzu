@@ -23,24 +23,25 @@ std::unique_ptr<LogicalType> create_logical_type(kuzu::common::LogicalTypeID id)
     return std::make_unique<LogicalType>(id);
 }
 std::unique_ptr<LogicalType> create_logical_type_list(std::unique_ptr<LogicalType> childType) {
-    return LogicalType::LIST(std::move(childType));
+    return std::make_unique<LogicalType>(LogicalType::LIST(std::move(*childType)));
 }
 
 std::unique_ptr<LogicalType> create_logical_type_array(std::unique_ptr<LogicalType> childType,
     uint64_t numElements) {
-    return LogicalType::ARRAY(std::move(childType), numElements);
+    return std::make_unique<LogicalType>(LogicalType::ARRAY(std::move(*childType), numElements));
 }
 
 std::unique_ptr<kuzu::common::LogicalType> create_logical_type_map(
     std::unique_ptr<LogicalType> keyType, std::unique_ptr<LogicalType> valueType) {
-    return LogicalType::MAP(std::move(keyType), std::move(valueType));
+    return std::make_unique<LogicalType>(
+        LogicalType::MAP(std::move(*keyType), std::move(*valueType)));
 }
 
 std::unique_ptr<LogicalType> logical_type_get_list_child_type(const LogicalType& logicalType) {
-    return kuzu::common::ListType::getChildType(logicalType).copy();
+    return std::make_unique<LogicalType>(kuzu::common::ListType::getChildType(logicalType).copy());
 }
 std::unique_ptr<LogicalType> logical_type_get_array_child_type(const LogicalType& logicalType) {
-    return kuzu::common::ArrayType::getChildType(logicalType).copy();
+    return std::make_unique<LogicalType>(kuzu::common::ArrayType::getChildType(logicalType).copy());
 }
 uint64_t logical_type_get_array_num_elements(const LogicalType& logicalType) {
     return kuzu::common::ArrayType::getNumElements(logicalType);
@@ -58,10 +59,10 @@ rust::Vec<rust::String> logical_type_get_struct_field_names(
 std::unique_ptr<std::vector<kuzu::common::LogicalType>> logical_type_get_struct_field_types(
     const kuzu::common::LogicalType& value) {
     std::vector<kuzu::common::LogicalType> result;
-    for (auto type : kuzu::common::StructType::getFieldTypes(value)) {
-        result.push_back(type);
+    for (const auto& type : kuzu::common::StructType::getFieldTypes(value)) {
+        result.push_back(type->copy());
     }
-    return std::make_unique<std::vector<LogicalType>>(result);
+    return std::make_unique<std::vector<LogicalType>>(std::move(result));
 }
 
 std::unique_ptr<Database> new_database(std::string_view databasePath, uint64_t bufferPoolSize,
@@ -228,16 +229,16 @@ const Value& value_get_child(const kuzu::common::Value& value, uint32_t index) {
 }
 
 kuzu::common::LogicalTypeID value_get_data_type_id(const kuzu::common::Value& value) {
-    return value.getDataType()->getLogicalTypeID();
+    return value.getDataType().getLogicalTypeID();
 }
 
 const LogicalType& value_get_data_type(const kuzu::common::Value& value) {
-    return *value.getDataType();
+    return value.getDataType();
 }
 
 std::unique_ptr<kuzu::common::Value> create_value_string(LogicalTypeID typ,
     const rust::Slice<const unsigned char> value) {
-    return std::make_unique<kuzu::common::Value>(std::make_unique<LogicalType>(typ),
+    return std::make_unique<kuzu::common::Value>(LogicalType(typ),
         std::string((const char*)value.data(), value.size()));
 }
 std::unique_ptr<kuzu::common::Value> create_value_timestamp(const int64_t timestamp) {
@@ -262,7 +263,7 @@ std::unique_ptr<kuzu::common::Value> create_value_interval(const int32_t months,
 std::unique_ptr<kuzu::common::Value> create_value_null(
     std::unique_ptr<kuzu::common::LogicalType> typ) {
     return std::make_unique<kuzu::common::Value>(
-        kuzu::common::Value::createNullValue(kuzu::common::LogicalType(*typ)));
+        kuzu::common::Value::createNullValue(std::move(*typ)));
 }
 std::unique_ptr<kuzu::common::Value> create_value_internal_id(uint64_t offset, uint64_t table) {
     return std::make_unique<kuzu::common::Value>(kuzu::common::internalID_t(offset, table));
@@ -273,7 +274,7 @@ std::unique_ptr<kuzu::common::Value> create_value_int128_t(int64_t high, uint64_
 
 std::unique_ptr<kuzu::common::Value> get_list_value(std::unique_ptr<kuzu::common::LogicalType> typ,
     std::unique_ptr<ValueListBuilder> value) {
-    return std::make_unique<kuzu::common::Value>(std::move(typ), std::move(value->values));
+    return std::make_unique<kuzu::common::Value>(std::move(*typ), std::move(value->values));
 }
 
 std::unique_ptr<ValueListBuilder> create_list() {

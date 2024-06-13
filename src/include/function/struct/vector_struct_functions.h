@@ -27,11 +27,11 @@ struct StructPackFunctions {
 struct StructExtractBindData : public FunctionBindData {
     common::idx_t childIdx;
 
-    StructExtractBindData(std::unique_ptr<common::LogicalType> dataType, common::idx_t childIdx)
+    StructExtractBindData(common::LogicalType dataType, common::idx_t childIdx)
         : FunctionBindData{std::move(dataType)}, childIdx{childIdx} {}
 
     inline std::unique_ptr<FunctionBindData> copy() const override {
-        return std::make_unique<StructExtractBindData>(resultType->copy(), childIdx);
+        return std::make_unique<StructExtractBindData>(resultType.copy(), childIdx);
     }
 };
 

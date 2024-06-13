@@ -240,13 +240,13 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
             auto& childEle = metadata->schema[nextSchemaIdx];
             auto childReader =
                 createReaderRecursive(depth + 1, maxDefine, maxRepeat, nextSchemaIdx, nextFileIdx);
-            structFields.emplace_back(childEle.name, childReader->getDataType()->copy());
+            structFields.emplace_back(childEle.name, childReader->getDataType().copy());
             childrenReaders.push_back(std::move(childReader));
             cIdx++;
         }
         KU_ASSERT(!structFields.empty());
         std::unique_ptr<ColumnReader> result;
-        std::unique_ptr<LogicalType> resultType;
+        LogicalType resultType;
 
         bool isRepeated = repetition_type == FieldRepetitionType::REPEATED;
         bool isList = sEle.__isset.converted_type && sEle.converted_type == ConvertedType::LIST;
@@ -272,11 +272,11 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
             }
             // LCOV_EXCL_STOP
             auto structType = LogicalType::STRUCT(std::move(structFields));
-            resultType = std::unique_ptr<LogicalType>(new LogicalType(LogicalTypeID::MAP,
-                std::make_unique<ListTypeInfo>(std::move(structType))));
+            resultType = LogicalType(LogicalTypeID::MAP,
+                std::make_unique<ListTypeInfo>(std::move(structType)));
 
             auto structReader = std::make_unique<StructColumnReader>(*this,
-                ListType::getChildType(*resultType).copy(), sEle, thisIdx, maxDefine - 1,
+                ListType::getChildType(resultType).copy(), sEle, thisIdx, maxDefine - 1,
                 maxRepeat - 1, std::move(childrenReaders));
             return std::make_unique<ListColumnReader>(*this, std::move(resultType), sEle, thisIdx,
                 maxDefine, maxRepeat, std::move(structReader), context->getMemoryManager());
@@ -284,15 +284,15 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
 
         if (structFields.size() > 1 || (!isList && !isMap && !isRepeated)) {
             resultType = LogicalType::STRUCT(std::move(structFields));
-            result = std::make_unique<StructColumnReader>(*this, std::move(resultType), sEle,
-                thisIdx, maxDefine, maxRepeat, std::move(childrenReaders));
+            result = std::make_unique<StructColumnReader>(*this, resultType.copy(), sEle, thisIdx,
+                maxDefine, maxRepeat, std::move(childrenReaders));
         } else {
             // if we have a struct with only a single type, pull up
             resultType = structFields[0].getType().copy();
             result = std::move(childrenReaders[0]);
         }
         if (isRepeated) {
-            resultType = LogicalType::LIST(std::move(resultType));
+            resultType = LogicalType::LIST(resultType.copy());
             return std::make_unique<ListColumnReader>(*this, std::move(resultType), sEle, thisIdx,
                 maxDefine, maxRepeat, std::move(result), context->getMemoryManager());
         }
@@ -306,7 +306,7 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
         // LCOV_EXCL_STOP
         if (sEle.repetition_type == FieldRepetitionType::REPEATED) {
             auto derivedType = deriveLogicalType(sEle);
-            auto listType = LogicalType::LIST(derivedType->copy());
+            auto listType = LogicalType::LIST(derivedType.copy());
             auto elementReader = ColumnReader::createReader(*this, std::move(derivedType), sEle,
                 nextFileIdx++, maxDefine, maxRepeat);
             return std::make_unique<ListColumnReader>(*this, std::move(listType), sEle, thisIdx,
@@ -332,11 +332,11 @@ std::unique_ptr<ColumnReader> ParquetReader::createReader() {
     // LCOV_EXCL_STOP
     auto rootReader = createReaderRecursive(0, 0, 0, nextSchemaIdx, nextFileIdx);
     // LCOV_EXCL_START
-    if (rootReader->getDataType()->getPhysicalType() != PhysicalTypeID::STRUCT) {
+    if (rootReader->getDataType().getPhysicalType() != PhysicalTypeID::STRUCT) {
         throw CopyException{"Root element of Parquet file must be a struct"};
     }
     // LCOV_EXCL_STOP
-    for (auto& field : StructType::getFields(*rootReader->getDataType())) {
+    for (auto& field : StructType::getFields(rootReader->getDataType())) {
         columnNames.push_back(field.getName());
         columnTypes.push_back(field.getType().copy());
     }
@@ -378,8 +378,7 @@ uint64_t ParquetReader::getGroupSpan(ParquetReaderScanState& state) {
     return max_offset - min_offset;
 }
 
-std::unique_ptr<LogicalType> ParquetReader::deriveLogicalType(
-    const kuzu_parquet::format::SchemaElement& s_ele) {
+LogicalType ParquetReader::deriveLogicalType(const kuzu_parquet::format::SchemaElement& s_ele) {
     // inner node
     if (s_ele.type == Type::FIXED_LEN_BYTE_ARRAY && !s_ele.__isset.type_length) {
         // LCOV_EXCL_START
@@ -526,7 +525,7 @@ std::unique_ptr<LogicalType> ParquetReader::deriveLogicalType(
             // TODO(Ziyi): Support parquet copy option(binary_as_string).
             return LogicalType::BLOB();
         default:
-            return std::make_unique<LogicalType>(LogicalTypeID::ANY);
+            return LogicalType(LogicalTypeID::ANY);
         }
     }
 }
@@ -641,7 +640,7 @@ static void bindColumns(const ScanTableFuncBindInput* bindInput, uint32_t fileId
     reader.initializeScan(*state, std::vector<uint64_t>{}, bindInput->context->getVFSUnsafe());
     for (auto i = 0u; i < reader.getNumColumns(); ++i) {
         columnNames.push_back(reader.getColumnName(i));
-        columnTypes.push_back(*reader.getColumnType(i));
+        columnTypes.push_back(reader.getColumnType(i).copy());
     }
 }
 

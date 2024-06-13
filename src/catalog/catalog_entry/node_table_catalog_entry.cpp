@@ -52,7 +52,7 @@ std::unique_ptr<BoundExtraCreateCatalogEntryInfo> NodeTableCatalogEntry::getBoun
     transaction::Transaction*) const {
     std::vector<PropertyInfo> propertyInfos;
     for (const auto& property : properties) {
-        propertyInfos.emplace_back(property.getName(), *property.getDataType(),
+        propertyInfos.emplace_back(property.getName(), property.getDataType().copy(),
             property.getDefaultExpr()->copy());
     }
     auto result =

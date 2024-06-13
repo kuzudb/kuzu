@@ -51,8 +51,8 @@ kuzu_state kuzu_query_result_get_column_data_type(kuzu_query_result* query_resul
     if (index >= column_data_types.size()) {
         return KuzuError;
     }
-    auto column_data_type = column_data_types[index];
-    out_column_data_type->_data_type = new LogicalType(column_data_type);
+    const auto& column_data_type = column_data_types[index];
+    out_column_data_type->_data_type = new LogicalType(column_data_type.copy());
     return KuzuSuccess;
 }
 

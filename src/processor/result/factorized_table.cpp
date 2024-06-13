@@ -606,7 +606,7 @@ void FlatTupleIterator::readUnflatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* v
         (overflow_value_t*)(valueBuffer + factorizedTable.getTableSchema()->getColOffset(colIdx));
     auto groupID = factorizedTable.getTableSchema()->getColumn(colIdx)->getGroupID();
     auto tupleSizeInOverflowBuffer =
-        LogicalTypeUtils::getRowLayoutSize(*values[colIdx]->getDataType());
+        LogicalTypeUtils::getRowLayoutSize(values[colIdx]->getDataType());
     valueBuffer = overflowValue->value +
                   tupleSizeInOverflowBuffer * flatTuplePositionsInDataChunk[groupID].first;
     auto isNull = factorizedTable.isOverflowColNull(

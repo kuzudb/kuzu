@@ -93,7 +93,7 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
 
 std::shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& parsedExpression) {
     auto whereExpression = expressionBinder.bindExpression(parsedExpression);
-    expressionBinder.implicitCastIfNecessary(whereExpression, *LogicalType::BOOL());
+    expressionBinder.implicitCastIfNecessary(whereExpression, LogicalType::BOOL());
     return whereExpression;
 }
 
@@ -120,7 +120,7 @@ std::shared_ptr<Expression> Binder::createVariable(const std::string& name,
     if (scope.contains(name)) {
         throw BinderException("Variable " + name + " already exists.");
     }
-    auto expression = expressionBinder.createVariableExpression(dataType, name);
+    auto expression = expressionBinder.createVariableExpression(dataType.copy(), name);
     expression->setAlias(name);
     addToScope(name, expression);
     return expression;
@@ -227,9 +227,8 @@ void Binder::restoreScope(BinderScope prevScope) {
 
 function::TableFunction Binder::getScanFunction(FileType fileType, const ReaderConfig& config) {
     function::Function* func;
-    auto stringType = LogicalType(LogicalTypeID::STRING);
     std::vector<LogicalType> inputTypes;
-    inputTypes.push_back(stringType);
+    inputTypes.push_back(LogicalType::STRING());
     auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
     switch (fileType) {
     case FileType::PARQUET: {

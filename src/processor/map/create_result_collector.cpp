@@ -19,7 +19,7 @@ std::unique_ptr<ResultCollector> PlanMapper::createResultCollector(AccumulateTyp
     auto tableSchema = FactorizedTableUtils::createFTableSchema(expressions, *schema);
     if (accumulateType == AccumulateType::OPTIONAL_) {
         auto columnSchema = ColumnSchema(false /* isUnFlat */, INVALID_DATA_CHUNK_POS,
-            LogicalTypeUtils::getRowLayoutSize(*LogicalType::BOOL()));
+            LogicalTypeUtils::getRowLayoutSize(LogicalType::BOOL()));
         tableSchema.appendColumn(std::move(columnSchema));
     }
     auto table =

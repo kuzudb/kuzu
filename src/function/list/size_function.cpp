@@ -13,7 +13,7 @@ static std::unique_ptr<FunctionBindData> sizeBindFunc(const binder::expression_v
     auto resultType = LogicalType(scalarFunc->returnTypeID);
     if (function->parameterTypeIDs[0] == common::LogicalTypeID::STRING) {
         std::vector<LogicalType> paramTypes;
-        paramTypes.push_back(*LogicalType::STRING());
+        paramTypes.push_back(LogicalType::STRING());
         return std::make_unique<FunctionBindData>(std::move(paramTypes), resultType.copy());
     } else {
         return FunctionBindData::getSimpleBindData(arguments, resultType);

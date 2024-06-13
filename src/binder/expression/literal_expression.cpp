@@ -16,7 +16,7 @@ void LiteralExpression::cast(const LogicalType& type) {
                 dataType.toString(), type.toString()));
         // LCOV_EXCL_STOP
     }
-    dataType = type;
+    dataType = type.copy();
     value.setDataType(type);
 }
 

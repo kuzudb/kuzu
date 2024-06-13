@@ -93,7 +93,7 @@ static uint32_t bindPrimaryKey(const std::string& pkColName,
         throw BinderException(
             "Primary key " + pkColName + " does not match any of the predefined node properties.");
     }
-    auto pkType = infos[primaryKeyIdx].type;
+    const auto& pkType = infos[primaryKeyIdx].type;
     switch (pkType.getPhysicalType()) {
     case PhysicalTypeID::UINT8:
     case PhysicalTypeID::UINT16:
@@ -146,7 +146,7 @@ BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo* info
 
 BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info) {
     std::vector<PropertyInfo> propertyInfos;
-    propertyInfos.emplace_back(InternalKeyword::ID, *LogicalType::INTERNAL_ID());
+    propertyInfos.emplace_back(InternalKeyword::ID, LogicalType::INTERNAL_ID());
     for (auto& propertyInfo : bindPropertyInfo(info->propertyDefinitions, info->tableName)) {
         propertyInfos.push_back(propertyInfo.copy());
     }
@@ -482,8 +482,8 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
         throw BinderException(
             "Cannot set a non-constant default value when adding columns on REL tables.");
     }
-    auto boundExtraInfo = std::make_unique<BoundExtraAddPropertyInfo>(propertyName, dataType,
-        std::move(defaultValue), std::move(boundDefault));
+    auto boundExtraInfo = std::make_unique<BoundExtraAddPropertyInfo>(propertyName,
+        std::move(dataType), std::move(defaultValue), std::move(boundDefault));
     auto boundInfo =
         BoundAlterInfo(AlterType::ADD_PROPERTY, tableName, tableID, std::move(boundExtraInfo));
     return std::make_unique<BoundAlter>(std::move(boundInfo));

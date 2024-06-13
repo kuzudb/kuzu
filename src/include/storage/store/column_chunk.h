@@ -173,7 +173,7 @@ inline bool ColumnChunkData::getValue(common::offset_t pos) const {
 class BoolChunkData : public ColumnChunkData {
 public:
     explicit BoolChunkData(uint64_t capacity, bool enableCompression, bool hasNullChunk = true)
-        : ColumnChunkData(*common::LogicalType::BOOL(), capacity,
+        : ColumnChunkData(common::LogicalType::BOOL(), capacity,
               // Booleans are always bitpacked, but this can also enable constant compression
               enableCompression, hasNullChunk) {}
 

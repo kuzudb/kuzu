@@ -18,7 +18,7 @@ public:
     //===--------------------------------------------------------------------===//
     // getter & setter
     //===--------------------------------------------------------------------===//
-    common::LogicalType getLogicalType() const { return type; }
+    const common::LogicalType& getLogicalType() const { return type; }
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization

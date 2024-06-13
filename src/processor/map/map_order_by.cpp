@@ -20,7 +20,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logica
     auto keyExpressions = logicalOrderBy.getExpressionsToOrderBy();
     auto payloadExpressions = inSchema->getExpressionsInScope();
     std::vector<DataPos> payloadsPos;
-    std::vector<std::unique_ptr<LogicalType>> payloadTypes;
+    std::vector<LogicalType> payloadTypes;
     binder::expression_map<ft_col_idx_t> payloadToColIdx;
     auto payloadSchema = FactorizedTableSchema();
     auto mayContainUnFlatKey = inSchema->getNumGroups() == 1;
@@ -42,7 +42,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logica
         payloadToColIdx.insert({expression, i});
     }
     std::vector<DataPos> keysPos;
-    std::vector<std::unique_ptr<LogicalType>> keyTypes;
+    std::vector<LogicalType> keyTypes;
     std::vector<uint32_t> keyInPayloadPos;
     for (auto& expression : keyExpressions) {
         keysPos.emplace_back(inSchema->getExpressionPos(*expression));

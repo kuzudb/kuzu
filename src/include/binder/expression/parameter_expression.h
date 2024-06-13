@@ -11,7 +11,7 @@ class ParameterExpression : public Expression {
 
 public:
     explicit ParameterExpression(const std::string& parameterName, common::Value value)
-        : Expression{expressionType, *value.getDataType(), createUniqueName(parameterName)},
+        : Expression{expressionType, value.getDataType().copy(), createUniqueName(parameterName)},
           parameterName(parameterName), value{std::move(value)} {}
 
     void cast(const common::LogicalType& type) override;

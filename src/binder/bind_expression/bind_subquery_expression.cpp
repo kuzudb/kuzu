@@ -30,15 +30,14 @@ std::shared_ptr<Expression> ExpressionBinder::bindSubqueryExpression(
         subqueryType == SubqueryType::COUNT ? LogicalType::INT64() : LogicalType::BOOL();
     auto rawName = subqueryExpr.getRawName();
     auto uniqueName = binder->getUniqueExpressionName(rawName);
-    auto boundSubqueryExpr = make_shared<SubqueryExpression>(subqueryType, *dataType,
+    auto boundSubqueryExpr = make_shared<SubqueryExpression>(subqueryType, std::move(dataType),
         std::move(boundGraphPattern.queryGraphCollection), uniqueName, std::move(rawName));
     boundSubqueryExpr->setWhereExpression(boundGraphPattern.where);
     // Bind projection
     auto functions = context->getCatalog()->getFunctions(context->getTx());
     auto function = BuiltInFunctionsUtils::matchAggregateFunction(CountStarFunction::name,
         std::vector<LogicalType>{}, false, functions);
-    auto bindData =
-        std::make_unique<FunctionBindData>(std::make_unique<LogicalType>(function->returnTypeID));
+    auto bindData = std::make_unique<FunctionBindData>(LogicalType(function->returnTypeID));
     auto countStarExpr = std::make_shared<AggregateFunctionExpression>(CountStarFunction::name,
         std::move(bindData), expression_vector{}, function->clone(),
         binder->getUniqueExpressionName(CountStarFunction::name));

@@ -81,12 +81,10 @@ common::column_id_t TableCatalogEntry::getColumnID(const common::property_id_t p
 
 bool TableCatalogEntry::containPropertyType(const common::LogicalType& logicalType) const {
     return std::any_of(properties.begin(), properties.end(),
-        [&logicalType](
-            const Property& property) { return *property.getDataType() == logicalType; });
+        [&logicalType](const Property& property) { return property.getDataType() == logicalType; });
 }
 
-void TableCatalogEntry::addProperty(std::string propertyName,
-    std::unique_ptr<common::LogicalType> dataType,
+void TableCatalogEntry::addProperty(std::string propertyName, common::LogicalType dataType,
     std::unique_ptr<parser::ParsedExpression> defaultExpr) {
     properties.emplace_back(std::move(propertyName), std::move(dataType), std::move(defaultExpr),
         nextPID++, nextColumnID++, tableID);

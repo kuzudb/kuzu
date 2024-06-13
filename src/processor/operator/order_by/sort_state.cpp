@@ -8,15 +8,15 @@ namespace processor {
 void SortSharedState::init(const OrderByDataInfo& orderByDataInfo) {
     auto encodedKeyBlockColOffset = 0ul;
     for (auto i = 0u; i < orderByDataInfo.keysPos.size(); ++i) {
-        auto dataType = orderByDataInfo.keyTypes[i].get();
-        if (PhysicalTypeID::STRING == dataType->getPhysicalType()) {
+        const auto& dataType = orderByDataInfo.keyTypes[i];
+        if (PhysicalTypeID::STRING == dataType.getPhysicalType()) {
             // If this is a string column, we need to find the factorizedTable offset for this
             // column.
             auto ftColIdx = orderByDataInfo.keyInPayloadPos[i];
             strKeyColsInfo.emplace_back(orderByDataInfo.payloadTableSchema.getColOffset(ftColIdx),
                 encodedKeyBlockColOffset, orderByDataInfo.isAscOrder[i]);
         }
-        encodedKeyBlockColOffset += OrderByKeyEncoder::getEncodingSize(*dataType);
+        encodedKeyBlockColOffset += OrderByKeyEncoder::getEncodingSize(dataType);
     }
     numBytesPerTuple = encodedKeyBlockColOffset + OrderByConstants::NUM_BYTES_FOR_PAYLOAD_IDX;
 }

@@ -34,7 +34,7 @@ OrderByKeyEncoder::OrderByKeyEncoder(const OrderByDataInfo& orderByDataInfo,
     encodeFunctions.reserve(orderByDataInfo.keysPos.size());
     for (auto& type : orderByDataInfo.keyTypes) {
         encode_function_t encodeFunction;
-        getEncodingFunction(type->getPhysicalType(), encodeFunction);
+        getEncodingFunction(type.getPhysicalType(), encodeFunction);
         encodeFunctions.push_back(std::move(encodeFunction));
     }
 }

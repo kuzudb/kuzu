@@ -10,10 +10,10 @@ namespace kuzu {
 namespace function {
 
 static std::unique_ptr<FunctionBindData> bindFunc(const expression_vector& arguments, Function*) {
-    auto structType = arguments[0]->getDataType();
+    const auto& structType = arguments[0]->getDataType();
     auto fieldIdx = StructType::getFieldIdx(structType, InternalKeyword::NODES);
-    auto resulType = StructType::getFieldTypes(structType)[fieldIdx];
-    auto bindData = std::make_unique<StructExtractBindData>(resulType.copy(), fieldIdx);
+    auto resultType = StructType::getField(structType, fieldIdx).getType().copy();
+    auto bindData = std::make_unique<StructExtractBindData>(std::move(resultType), fieldIdx);
     bindData->paramTypes = ExpressionUtil::getDataTypes(arguments);
     return bindData;
 }

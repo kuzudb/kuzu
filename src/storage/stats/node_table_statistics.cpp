@@ -20,7 +20,7 @@ NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(DiskArrayCollection& me
     metadataDAHInfos.reserve(entry.getNumProperties());
     for (auto& property : entry.getPropertiesRef()) {
         metadataDAHInfos.push_back(
-            TablesStatistics::createMetadataDAHInfo(*property.getDataType(), metadataDAC));
+            TablesStatistics::createMetadataDAHInfo(property.getDataType(), metadataDAC));
     }
 }
 

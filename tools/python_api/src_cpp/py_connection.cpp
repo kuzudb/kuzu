@@ -263,7 +263,7 @@ static std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonPa
     return result;
 }
 
-static std::unique_ptr<LogicalType> pyLogicalType(const py::handle& val) {
+static LogicalType pyLogicalType(const py::handle& val) {
     auto datetime_datetime = importCache->datetime.datetime();
     auto time_delta = importCache->datetime.timedelta();
     auto datetime_date = importCache->datetime.date();
@@ -323,12 +323,12 @@ static std::unique_ptr<LogicalType> pyLogicalType(const py::handle& val) {
         for (auto child : lst) {
             auto curChildType = pyLogicalType(child);
             LogicalType result;
-            if (!LogicalTypeUtils::tryGetMaxLogicalType(*childType, *curChildType, result)) {
+            if (!LogicalTypeUtils::tryGetMaxLogicalType(childType, curChildType, result)) {
                 throw RuntimeException(stringFormat(
                     "Cannot convert Python object to Kuzu value : {}  is incompatible with {}",
-                    childType->toString(), curChildType->toString()));
+                    childType.toString(), curChildType.toString()));
             }
-            childType = std::make_unique<LogicalType>(result);
+            childType = std::move(result);
         }
         return LogicalType::LIST(std::move(childType));
     } else if (py::isinstance<py::dict>(val)) {
@@ -338,20 +338,19 @@ static std::unique_ptr<LogicalType> pyLogicalType(const py::handle& val) {
             auto curChildKeyType = pyLogicalType(child.first),
                  curChildValueType = pyLogicalType(child.second);
             LogicalType resultKey, resultValue;
-            if (!LogicalTypeUtils::tryGetMaxLogicalType(*childKeyType, *curChildKeyType,
-                    resultKey)) {
+            if (!LogicalTypeUtils::tryGetMaxLogicalType(childKeyType, curChildKeyType, resultKey)) {
                 throw RuntimeException(stringFormat(
                     "Cannot convert Python object to Kuzu value : {}  is incompatible with {}",
-                    childKeyType->toString(), curChildKeyType->toString()));
+                    childKeyType.toString(), curChildKeyType.toString()));
             }
-            if (!LogicalTypeUtils::tryGetMaxLogicalType(*childValueType, *curChildValueType,
+            if (!LogicalTypeUtils::tryGetMaxLogicalType(childValueType, curChildValueType,
                     resultValue)) {
                 throw RuntimeException(stringFormat(
                     "Cannot convert Python object to Kuzu value : {}  is incompatible with {}",
-                    childValueType->toString(), curChildValueType->toString()));
+                    childValueType.toString(), curChildValueType.toString()));
             }
-            childKeyType = std::make_unique<LogicalType>(resultKey);
-            childValueType = std::make_unique<LogicalType>(resultValue);
+            childKeyType = std::move(resultKey);
+            childValueType = std::move(resultValue);
         }
         return LogicalType::MAP(std::move(childKeyType), std::move(childValueType));
     } else {
@@ -468,20 +467,19 @@ Value PyConnection::transformPythonValueAs(const py::handle& val, const LogicalT
             children.push_back(std::make_unique<Value>(
                 transformPythonValueAs(child, ListType::getChildType(type))));
         }
-        return Value(std::make_unique<LogicalType>(type), std::move(children));
+        return Value(type.copy(), std::move(children));
     }
     case LogicalTypeID::MAP: {
         py::dict dict = py::reinterpret_borrow<py::dict>(val);
         std::vector<std::unique_ptr<Value>> children;
-        auto childKeyType = MapType::getKeyType(type), childValueType = MapType::getValueType(type);
+        const auto& childKeyType = MapType::getKeyType(type);
+        const auto& childValueType = MapType::getValueType(type);
         for (auto child : dict) {
             // type construction is inefficient, we have to create duplicates because it asks for
             // a unique ptr
             std::vector<StructField> fields;
-            fields.emplace_back(InternalKeyword::MAP_KEY,
-                std::make_unique<LogicalType>(childKeyType));
-            fields.emplace_back(InternalKeyword::MAP_VALUE,
-                std::make_unique<LogicalType>(childValueType));
+            fields.emplace_back(InternalKeyword::MAP_KEY, childKeyType.copy());
+            fields.emplace_back(InternalKeyword::MAP_VALUE, childValueType.copy());
             std::vector<std::unique_ptr<Value>> structValues;
             structValues.push_back(
                 std::make_unique<Value>(transformPythonValueAs(child.first, childKeyType)));
@@ -490,7 +488,7 @@ Value PyConnection::transformPythonValueAs(const py::handle& val, const LogicalT
             children.push_back(std::make_unique<Value>(LogicalType::STRUCT(std::move(fields)),
                 std::move(structValues)));
         }
-        return Value(std::make_unique<LogicalType>(type), std::move(children));
+        return Value(type.copy(), std::move(children));
     }
     // LCOV_EXCL_START
     default:
@@ -501,7 +499,7 @@ Value PyConnection::transformPythonValueAs(const py::handle& val, const LogicalT
 
 Value PyConnection::transformPythonValue(const py::handle& val) {
     auto type = pyLogicalType(val);
-    return transformPythonValueAs(val, *type);
+    return transformPythonValueAs(val, std::move(type));
 }
 
 std::unique_ptr<PyQueryResult> PyConnection::checkAndWrapQueryResult(

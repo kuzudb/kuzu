@@ -97,7 +97,7 @@ logical_type_vec_t ExpressionUtil::getDataTypes(const expression_vector& express
     std::vector<LogicalType> result;
     result.reserve(expressions.size());
     for (auto& expression : expressions) {
-        result.push_back(*expression->getDataType().copy());
+        result.push_back(expression->getDataType().copy());
     }
     return result;
 }
@@ -197,13 +197,13 @@ void ExpressionUtil::validateDataType(const Expression& expr,
 template<>
 int64_t ExpressionUtil::getLiteralValue(const Expression& expr) {
     validateExpressionType(expr, ExpressionType::LITERAL);
-    validateDataType(expr, *LogicalType::INT64());
+    validateDataType(expr, LogicalType::INT64());
     return expr.constCast<LiteralExpression>().getValue().getValue<int64_t>();
 }
 template<>
 bool ExpressionUtil::getLiteralValue(const Expression& expr) {
     validateExpressionType(expr, ExpressionType::LITERAL);
-    validateDataType(expr, *LogicalType::BOOL());
+    validateDataType(expr, LogicalType::BOOL());
     return expr.constCast<LiteralExpression>().getValue().getValue<bool>();
 }
 
@@ -258,10 +258,10 @@ static bool compatible(const Value& value, const LogicalType& targetType) {
     if (value.isNull()) { // Value is null. We can safely change its type.
         return true;
     }
-    if (value.getDataType()->getLogicalTypeID() != targetType.getLogicalTypeID()) {
+    if (value.getDataType().getLogicalTypeID() != targetType.getLogicalTypeID()) {
         return false;
     }
-    switch (value.getDataType()->getLogicalTypeID()) {
+    switch (value.getDataType().getLogicalTypeID()) {
     case LogicalTypeID::LIST: {
         if (!value.hasNoneNullChildren()) { // Empty list free to change.
             return true;
@@ -290,8 +290,8 @@ static bool compatible(const Value& value, const LogicalType& targetType) {
         if (!value.hasNoneNullChildren()) { // Empty map free to change.
             return true;
         }
-        auto keyType = MapType::getKeyType(targetType);
-        auto valType = MapType::getValueType(targetType);
+        const auto& keyType = MapType::getKeyType(targetType);
+        const auto& valType = MapType::getValueType(targetType);
         for (auto i = 0u; i < NestedVal::getChildrenSize(&value); ++i) {
             auto childVal = NestedVal::getChildVal(&value, i);
             KU_ASSERT(NestedVal::getChildrenSize(childVal) == 2);
@@ -306,7 +306,7 @@ static bool compatible(const Value& value, const LogicalType& targetType) {
     default:
         break;
     }
-    return compatible(*value.getDataType(), targetType);
+    return compatible(value.getDataType(), targetType);
 }
 
 bool ExpressionUtil::tryCombineDataType(const expression_vector& expressions, LogicalType& result) {
@@ -314,7 +314,7 @@ bool ExpressionUtil::tryCombineDataType(const expression_vector& expressions, Lo
     std::vector<LogicalType> primaryTypes;
     for (auto& expr : expressions) {
         if (expr->expressionType != common::ExpressionType::LITERAL) {
-            primaryTypes.push_back(expr->getDataType());
+            primaryTypes.push_back(expr->getDataType().copy());
             continue;
         }
         auto literalExpr = expr->constPtrCast<LiteralExpression>();
@@ -322,7 +322,7 @@ bool ExpressionUtil::tryCombineDataType(const expression_vector& expressions, Lo
             secondaryValues.push_back(literalExpr->getValue());
             continue;
         }
-        primaryTypes.push_back(expr->getDataType());
+        primaryTypes.push_back(expr->getDataType().copy());
     }
     if (!LogicalTypeUtils::tryGetMaxLogicalType(primaryTypes, result)) {
         return false;
@@ -331,7 +331,7 @@ bool ExpressionUtil::tryCombineDataType(const expression_vector& expressions, Lo
         if (compatible(value, result)) {
             continue;
         }
-        if (!LogicalTypeUtils::tryGetMaxLogicalType(result, *value.getDataType(), result)) {
+        if (!LogicalTypeUtils::tryGetMaxLogicalType(result, value.getDataType(), result)) {
             return false;
         }
     }

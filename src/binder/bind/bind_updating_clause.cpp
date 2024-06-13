@@ -79,8 +79,8 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindMergeClause(
     // bindGraphPattern will update scope.
     auto boundGraphPattern = bindGraphPattern(mergeClause.getPatternElementsRef());
     rewriteMatchPattern(boundGraphPattern);
-    auto existenceMark = createVariable("__existence", *LogicalType::BOOL());
-    auto distinctMark = createVariable("__distinct", *LogicalType::BOOL());
+    auto existenceMark = createVariable("__existence", LogicalType::BOOL());
+    auto distinctMark = createVariable("__distinct", LogicalType::BOOL());
     auto createInfos = bindInsertInfos(boundGraphPattern.queryGraphCollection, patternsScope);
     auto boundMergeClause = std::make_unique<BoundMergeClause>(std::move(existenceMark),
         std::move(distinctMark), std::move(boundGraphPattern.queryGraphCollection),
@@ -256,7 +256,7 @@ expression_vector Binder::bindInsertColumnDataExprs(
         } else {
             rhs = expressionBinder.bindExpression(*property.getDefaultExpr());
         }
-        rhs = expressionBinder.implicitCastIfNecessary(rhs, *property.getDataType());
+        rhs = expressionBinder.implicitCastIfNecessary(rhs, property.getDataType());
         result.push_back(std::move(rhs));
     }
     return result;

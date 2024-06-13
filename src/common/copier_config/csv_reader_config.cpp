@@ -60,13 +60,13 @@ CSVReaderConfig CSVReaderConfig::construct(
         auto isValidStringParsingOption = validateStringParsingOptionName(name);
         auto isValidBoolParsingOption = validateBoolParsingOptionName(name);
         if (isValidBoolParsingOption) {
-            if (*op.second.getDataType() != *LogicalType::BOOL()) {
+            if (op.second.getDataType() != LogicalType::BOOL()) {
                 throw BinderException(
                     stringFormat("The type of csv parsing option {} must be a boolean.", name));
             }
             bindBoolParsingOption(config, name, op.second.getValue<bool>());
         } else if (isValidStringParsingOption) {
-            if (*op.second.getDataType() != *LogicalType::STRING()) {
+            if (op.second.getDataType() != LogicalType::STRING()) {
                 throw BinderException(
                     stringFormat("The type of csv parsing option {} must be a string.", name));
             }

@@ -17,10 +17,10 @@ namespace kuzu {
 namespace common {
 
 bool Value::operator==(const Value& rhs) const {
-    if (*dataType != *rhs.dataType || isNull_ != rhs.isNull_) {
+    if (dataType != rhs.dataType || isNull_ != rhs.isNull_) {
         return false;
     }
-    switch (dataType->getPhysicalType()) {
+    switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL:
         return val.booleanVal == rhs.val.booleanVal;
     case PhysicalTypeID::INT128:
@@ -76,8 +76,8 @@ void Value::setDataType(const LogicalType& dataType_) {
     dataType = dataType_.copy();
 }
 
-LogicalType* Value::getDataType() const {
-    return dataType.get();
+const LogicalType& Value::getDataType() const {
+    return dataType;
 }
 
 void Value::setNull(bool flag) {
@@ -154,7 +154,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::FLOAT:
         return Value((float)0);
     case LogicalTypeID::DECIMAL: {
-        Value ret(*dataType.copy());
+        Value ret(dataType.copy());
         ret.val.int128Val = 0;
         ret.isNull_ = false;
         ret.childrenSize = 0;
@@ -162,7 +162,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     }
     case LogicalTypeID::ARRAY: {
         std::vector<std::unique_ptr<Value>> children;
-        auto childType = ArrayType::getChildType(dataType);
+        const auto& childType = ArrayType::getChildType(dataType);
         auto arraySize = ArrayType::getNumElements(dataType);
         children.reserve(arraySize);
         for (auto i = 0u; i < arraySize; ++i) {
@@ -318,25 +318,25 @@ Value::Value(uint8_t* val_) : isNull_{false}, childrenSize{0} {
     val.pointer = val_;
 }
 
-Value::Value(std::unique_ptr<LogicalType> type, std::string val_)
+Value::Value(LogicalType type, std::string val_)
     : dataType{std::move(type)}, isNull_{false}, childrenSize{0} {
     strVal = std::move(val_);
 }
 
-Value::Value(std::unique_ptr<LogicalType> dataType_, std::vector<std::unique_ptr<Value>> children)
+Value::Value(LogicalType dataType_, std::vector<std::unique_ptr<Value>> children)
     : dataType{std::move(dataType_)}, isNull_{false} {
     this->children = std::move(children);
     childrenSize = this->children.size();
 }
 
 Value::Value(const Value& other) : isNull_{other.isNull_} {
-    dataType = other.dataType->copy();
+    dataType = other.dataType.copy();
     copyValueFrom(other);
     childrenSize = other.childrenSize;
 }
 
 void Value::copyFromRowLayout(const uint8_t* value) {
-    switch (dataType->getLogicalTypeID()) {
+    switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::TIMESTAMP_NS:
     case LogicalTypeID::TIMESTAMP_MS:
@@ -381,7 +381,7 @@ void Value::copyFromRowLayout(const uint8_t* value) {
         val.floatVal = *((float*)value);
     } break;
     case LogicalTypeID::DECIMAL: {
-        switch (dataType->getPhysicalType()) {
+        switch (dataType.getPhysicalType()) {
         case PhysicalTypeID::INT16:
             val.int16Val = (*(int16_t*)value);
             break;
@@ -416,10 +416,10 @@ void Value::copyFromRowLayout(const uint8_t* value) {
     } break;
     case LogicalTypeID::MAP:
     case LogicalTypeID::LIST: {
-        copyFromRowLayoutList(*(ku_list_t*)value, ListType::getChildType(*dataType));
+        copyFromRowLayoutList(*(ku_list_t*)value, ListType::getChildType(dataType));
     } break;
     case LogicalTypeID::ARRAY: {
-        copyFromRowLayoutList(*(ku_list_t*)value, ArrayType::getChildType(*dataType));
+        copyFromRowLayoutList(*(ku_list_t*)value, ArrayType::getChildType(dataType));
     } break;
     case LogicalTypeID::UNION: {
         copyFromUnion(value);
@@ -440,7 +440,7 @@ void Value::copyFromRowLayout(const uint8_t* value) {
 }
 
 void Value::copyFromColLayout(const uint8_t* value, ValueVector* vector) {
-    switch (dataType->getPhysicalType()) {
+    switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::INT64: {
         val.int64Val = *((int64_t*)value);
     } break;
@@ -504,8 +504,8 @@ void Value::copyValueFrom(const Value& other) {
         return;
     }
     isNull_ = false;
-    KU_ASSERT(*dataType == *other.dataType);
-    switch (dataType->getPhysicalType()) {
+    KU_ASSERT(dataType == other.dataType);
+    switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         val.booleanVal = other.val.booleanVal;
     } break;
@@ -570,7 +570,7 @@ std::string Value::toString() const {
     if (isNull_) {
         return "";
     }
-    switch (dataType->getLogicalTypeID()) {
+    switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
         return TypeUtils::toString(val.booleanVal);
     case LogicalTypeID::INT64:
@@ -652,7 +652,7 @@ std::string Value::toString() const {
 }
 
 Value::Value() : isNull_{true}, childrenSize{0} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::ANY);
+    dataType = LogicalType(LogicalTypeID::ANY);
 }
 
 Value::Value(const LogicalType& dataType_) : isNull_{true}, childrenSize{0} {
@@ -712,7 +712,7 @@ void Value::copyFromRowLayoutStruct(const uint8_t* kuStruct) {
             childValue->setNull(false);
             childValue->copyFromRowLayout(structValues);
         }
-        structValues += storage::StorageUtils::getDataTypeSize(*childValue->dataType);
+        structValues += storage::StorageUtils::getDataTypeSize(childValue->dataType);
     }
 }
 
@@ -729,18 +729,18 @@ void Value::copyFromColLayoutStruct(const struct_entry_t& structEntry, ValueVect
 }
 
 void Value::copyFromUnion(const uint8_t* kuUnion) {
-    auto childrenTypes = StructType::getFieldTypes(*dataType);
+    auto childrenTypes = StructType::getFieldTypes(dataType);
     auto unionNullValues = kuUnion;
     auto unionValues = unionNullValues + NullBuffer::getNumBytesForNullValues(childrenTypes.size());
     // For union dataType, only one member can be active at a time. So we don't need to copy all
     // union fields into value.
     auto activeFieldIdx = UnionType::getInternalFieldIdx(*(union_field_idx_t*)unionValues);
     auto childValue = children[0].get();
-    childValue->dataType = childrenTypes[activeFieldIdx].copy();
+    childValue->dataType = childrenTypes[activeFieldIdx]->copy();
     auto curMemberIdx = 0u;
     // Seek to the current active member value.
     while (curMemberIdx < activeFieldIdx) {
-        unionValues += storage::StorageUtils::getDataTypeSize(childrenTypes[curMemberIdx]);
+        unionValues += storage::StorageUtils::getDataTypeSize(*childrenTypes[curMemberIdx]);
         curMemberIdx++;
     }
     if (NullBuffer::isNull(unionNullValues, activeFieldIdx)) {
@@ -752,11 +752,11 @@ void Value::copyFromUnion(const uint8_t* kuUnion) {
 }
 
 void Value::serialize(Serializer& serializer) const {
-    dataType->serialize(serializer);
+    dataType.serialize(serializer);
     serializer.serializeValue(isNull_);
     serializer.serializeValue(childrenSize);
 
-    switch (dataType->getPhysicalType()) {
+    switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         serializer.serializeValue(val.booleanVal);
     } break;
@@ -822,7 +822,7 @@ void Value::serialize(Serializer& serializer) const {
 }
 
 std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
-    LogicalType dataType = *LogicalType::deserialize(deserializer);
+    LogicalType dataType = LogicalType::deserialize(deserializer);
     std::unique_ptr<Value> val = std::make_unique<Value>(createDefaultValue(dataType));
     deserializer.deserializeValue(val->isNull_);
     deserializer.deserializeValue(val->childrenSize);
@@ -894,11 +894,11 @@ std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
 }
 
 void Value::validateType(LogicalTypeID targetTypeID) const {
-    if (dataType->getLogicalTypeID() == targetTypeID) {
+    if (dataType.getLogicalTypeID() == targetTypeID) {
         return;
     }
     throw BinderException(stringFormat("{} has data type {} but {} was expected.", toString(),
-        dataType->toString(), LogicalTypeUtils::toString(targetTypeID)));
+        dataType.toString(), LogicalTypeUtils::toString(targetTypeID)));
 }
 
 bool Value::hasNoneNullChildren() const {
@@ -915,7 +915,7 @@ bool Value::allowTypeChange() const {
     if (isNull_) {
         return true;
     }
-    switch (dataType->getLogicalTypeID()) {
+    switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::ANY:
         return true;
     case LogicalTypeID::LIST:
@@ -953,7 +953,7 @@ uint64_t Value::computeHash() const {
         return function::NULL_HASH;
     }
     hash_t hashValue;
-    switch (dataType->getPhysicalType()) {
+    switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         function::Hash::operation(val.booleanVal, hashValue);
     } break;
@@ -1098,7 +1098,7 @@ std::string Value::listToString() const {
 
 std::string Value::structToString() const {
     std::string result = "{";
-    auto fieldNames = StructType::getFieldNames(*dataType);
+    auto fieldNames = StructType::getFieldNames(dataType);
     for (auto i = 0u; i < childrenSize; ++i) {
         result += fieldNames[i] + ": ";
         result += children[i]->toString();
@@ -1117,7 +1117,7 @@ std::string Value::nodeToString() const {
         return "";
     }
     std::string result = "{";
-    auto fieldNames = StructType::getFieldNames(*dataType);
+    auto fieldNames = StructType::getFieldNames(dataType);
     for (auto i = 0u; i < childrenSize; ++i) {
         if (children[i]->isNull_) {
             // Avoid printing null key value pair.
@@ -1139,7 +1139,7 @@ std::string Value::relToString() const {
         return "";
     }
     std::string result = "(" + children[0]->toString() + ")-{";
-    auto fieldNames = StructType::getFieldNames(*dataType);
+    auto fieldNames = StructType::getFieldNames(dataType);
     for (auto i = 2u; i < childrenSize; ++i) {
         if (children[i]->isNull_) {
             // Avoid printing null key value pair.
@@ -1155,19 +1155,19 @@ std::string Value::relToString() const {
 }
 
 std::string Value::decimalToString() const {
-    switch (dataType->getPhysicalType()) {
+    switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::INT16:
         return DecimalType::insertDecimalPoint(TypeUtils::toString(val.int16Val),
-            DecimalType::getScale(*dataType));
+            DecimalType::getScale(dataType));
     case PhysicalTypeID::INT32:
         return DecimalType::insertDecimalPoint(TypeUtils::toString(val.int32Val),
-            DecimalType::getScale(*dataType));
+            DecimalType::getScale(dataType));
     case PhysicalTypeID::INT64:
         return DecimalType::insertDecimalPoint(TypeUtils::toString(val.int64Val),
-            DecimalType::getScale(*dataType));
+            DecimalType::getScale(dataType));
     case PhysicalTypeID::INT128:
         return DecimalType::insertDecimalPoint(TypeUtils::toString(val.int128Val),
-            DecimalType::getScale(*dataType));
+            DecimalType::getScale(dataType));
     default:
         KU_UNREACHABLE;
     }

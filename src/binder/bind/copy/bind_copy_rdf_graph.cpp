@@ -36,20 +36,20 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const parser::Statement&
     config->options = bindParsingOptions(copyStatement.getParsingOptionsRef());
     auto catalog = clientContext->getCatalog();
     auto functions = catalog->getFunctions(clientContext->getTx());
-    auto offset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
+    auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         InternalKeyword::ROW_OFFSET);
-    auto r = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::IRI);
-    auto l = expressionBinder.createVariableExpression(*LogicalType::RDF_VARIANT(), rdf::VAL);
-    auto lang = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::LANG);
-    auto s = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::SUBJECT);
-    auto p = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::PREDICATE);
-    auto o = expressionBinder.createVariableExpression(*LogicalType::STRING(), rdf::OBJECT);
-    auto sOffset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
+    auto r = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::IRI);
+    auto l = expressionBinder.createVariableExpression(LogicalType::RDF_VARIANT(), rdf::VAL);
+    auto lang = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::LANG);
+    auto s = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::SUBJECT);
+    auto p = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::PREDICATE);
+    auto o = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::OBJECT);
+    auto sOffset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         InternalKeyword::SRC_OFFSET);
-    auto pOffset = expressionBinder.createVariableExpression(*LogicalType::INT64(), rdf::PID);
-    auto oOffset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
+    auto pOffset = expressionBinder.createVariableExpression(LogicalType::INT64(), rdf::PID);
+    auto oOffset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         InternalKeyword::DST_OFFSET);
-    auto pOffsetInternal = std::make_shared<VariableExpression>(*LogicalType::INTERNAL_ID(),
+    auto pOffsetInternal = std::make_shared<VariableExpression>(LogicalType::INTERNAL_ID(),
         pOffset->getUniqueName(), std::string(rdf::PID));
     auto bindInput = std::make_unique<ScanTableFuncBindInput>(config->copy());
     Function* func;

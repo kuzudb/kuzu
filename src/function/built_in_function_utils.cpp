@@ -511,7 +511,7 @@ uint32_t BuiltInFunctionsUtils::matchParameters(const std::vector<LogicalType>& 
 uint32_t BuiltInFunctionsUtils::matchVarLengthParameters(const std::vector<LogicalType>& inputTypes,
     LogicalTypeID targetTypeID) {
     auto cost = 0u;
-    for (auto inputType : inputTypes) {
+    for (const auto& inputType : inputTypes) {
         auto castCost = getCastCost(inputType.getLogicalTypeID(), targetTypeID);
         if (castCost == UNDEFINED_CAST_COST) {
             return UINT32_MAX;

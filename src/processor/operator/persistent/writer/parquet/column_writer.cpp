@@ -66,7 +66,7 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::UNION:
     case LogicalTypeID::STRUCT: {
-        auto fields = StructType::getFields(type);
+        const auto& fields = StructType::getFields(type);
         // set up the schema element for this struct
         kuzu_parquet::format::SchemaElement schema_element;
         schema_element.repetition_type = nullType;
@@ -90,7 +90,7 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
             std::move(childWriters), canHaveNullsToCreate);
     }
     case LogicalTypeID::LIST: {
-        auto childType = ListType::getChildType(type);
+        const auto& childType = ListType::getChildType(type);
         // Set up the two schema elements for the list
         // for some reason we only set the converted type in the OPTIONAL element
         // first an OPTIONAL element.
@@ -154,8 +154,9 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
         schemaPathToCreate.emplace_back("key_value");
 
         // Construct the child types recursively.
-        std::vector<common::LogicalType> kvTypes{MapType::getKeyType(type),
-            MapType::getValueType(type)};
+        std::vector<common::LogicalType> kvTypes;
+        kvTypes.push_back(MapType::getKeyType(type).copy());
+        kvTypes.push_back(MapType::getValueType(type).copy());
         std::vector<std::string> kvNames{"key", "value"};
         std::vector<std::unique_ptr<ColumnWriter>> childrenWriters;
         childrenWriters.reserve(2);

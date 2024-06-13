@@ -9,15 +9,15 @@ StructAuxiliaryBuffer::StructAuxiliaryBuffer(const LogicalType& type,
     storage::MemoryManager* memoryManager) {
     auto fieldTypes = StructType::getFieldTypes(type);
     childrenVectors.reserve(fieldTypes.size());
-    for (auto fieldType : fieldTypes) {
-        childrenVectors.push_back(std::make_shared<ValueVector>(fieldType, memoryManager));
+    for (const auto& fieldType : fieldTypes) {
+        childrenVectors.push_back(std::make_shared<ValueVector>(fieldType->copy(), memoryManager));
     }
 }
 
 ListAuxiliaryBuffer::ListAuxiliaryBuffer(const LogicalType& dataVectorType,
     storage::MemoryManager* memoryManager)
     : capacity{DEFAULT_VECTOR_CAPACITY}, size{0},
-      dataVector{std::make_shared<ValueVector>(dataVectorType, memoryManager)} {}
+      dataVector{std::make_shared<ValueVector>(dataVectorType.copy(), memoryManager)} {}
 
 list_entry_t ListAuxiliaryBuffer::addList(list_size_t listSize) {
     auto listEntry = list_entry_t{size, listSize};

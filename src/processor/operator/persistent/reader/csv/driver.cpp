@@ -104,7 +104,7 @@ void SniffCSVNameAndTypeDriver::addValue(uint64_t, common::column_id_t, std::str
             // Didn't parse, just use the whole name.
         }
     }
-    columns.emplace_back(columnName, columnType);
+    columns.emplace_back(columnName, std::move(columnType));
 }
 
 bool SniffCSVNameAndTypeDriver::addRow(uint64_t, common::column_id_t) {

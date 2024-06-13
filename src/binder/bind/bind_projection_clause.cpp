@@ -237,7 +237,7 @@ uint64_t Binder::bindSkipLimitExpression(const ParsedExpression& expression) {
     auto value = literalExpr.getValue();
     int64_t num = 0;
     // TODO: replace the following switch with value.cast()
-    switch (value.getDataType()->getLogicalTypeID()) {
+    switch (value.getDataType().getLogicalTypeID()) {
     case LogicalTypeID::INT64: {
         num = value.getValue<int64_t>();
     } break;

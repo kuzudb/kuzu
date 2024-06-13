@@ -11,7 +11,7 @@ namespace function {
 
 static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
     Function*) {
-    return FunctionBindData::getSimpleBindData(arguments, *LogicalType::BOOL());
+    return FunctionBindData::getSimpleBindData(arguments, LogicalType::BOOL());
 }
 
 static void IsTrailExecFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,

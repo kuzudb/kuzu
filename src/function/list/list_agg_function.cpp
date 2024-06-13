@@ -12,7 +12,7 @@ template<typename OPERATION>
 static std::unique_ptr<FunctionBindData> bindFuncListAggr(
     const binder::expression_vector& arguments, Function* function) {
     auto scalarFunction = function->ptrCast<ScalarFunction>();
-    auto resultType = ListType::getChildType(arguments[0]->dataType);
+    const auto& resultType = ListType::getChildType(arguments[0]->dataType);
     TypeUtils::visit(
         resultType,
         [&scalarFunction]<NumericTypes T>(T) {

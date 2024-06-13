@@ -20,7 +20,7 @@ struct ExportParquetBindData final : public ExportFuncBindData {
 
     std::unique_ptr<ExportFuncBindData> copy() const override {
         auto bindData = std::make_unique<ExportParquetBindData>(names, fileName);
-        bindData->types = types;
+        bindData->types = LogicalType::copy(types);
         return bindData;
     }
 };
@@ -53,8 +53,8 @@ struct ExportParquetSharedState : public ExportFuncSharedState {
     ExportParquetSharedState(const ExportFuncBindData& bindData, main::ClientContext& context) {
         auto& exportParquetBindData = bindData.constCast<ExportParquetBindData>();
         writer = std::make_unique<ParquetWriter>(exportParquetBindData.fileName,
-            exportParquetBindData.types, exportParquetBindData.names, exportParquetBindData.codec,
-            &context);
+            common::LogicalType::copy(exportParquetBindData.types), exportParquetBindData.names,
+            exportParquetBindData.codec, &context);
     }
 };
 

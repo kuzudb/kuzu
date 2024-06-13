@@ -10,7 +10,7 @@ ResultSetDescriptor::ResultSetDescriptor(planner::Schema* schema) {
         auto group = schema->getGroup(i);
         auto dataChunkDescriptor = std::make_unique<DataChunkDescriptor>(group->isSingleState());
         for (auto& expression : group->getExpressions()) {
-            dataChunkDescriptor->logicalTypes.push_back(expression->getDataType());
+            dataChunkDescriptor->logicalTypes.push_back(expression->getDataType().copy());
         }
         dataChunkDescriptors.push_back(std::move(dataChunkDescriptor));
     }

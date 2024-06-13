@@ -42,7 +42,7 @@ std::vector<std::string> QueryResult::getColumnNames() const {
 }
 
 std::vector<LogicalType> QueryResult::getColumnDataTypes() const {
-    return columnDataTypes;
+    return LogicalType::copy(columnDataTypes);
 }
 
 uint64_t QueryResult::getNumTuples() const {
@@ -65,12 +65,12 @@ void QueryResult::initResultTableAndIterator(
     std::vector<Value*> valuesToCollect;
     for (auto i = 0u; i < columns.size(); ++i) {
         auto column = columns[i].get();
-        auto columnType = column->getDataType();
+        const auto& columnType = column->getDataType();
         auto columnName = column->hasAlias() ? column->getAlias() : column->toString();
-        columnDataTypes.push_back(columnType);
+        columnDataTypes.push_back(columnType.copy());
         columnNames.push_back(columnName);
         std::unique_ptr<Value> value =
-            std::make_unique<Value>(Value::createDefaultValue(columnType));
+            std::make_unique<Value>(Value::createDefaultValue(columnType.copy()));
         valuesToCollect.push_back(value.get());
         tuple->addValue(std::move(value));
     }

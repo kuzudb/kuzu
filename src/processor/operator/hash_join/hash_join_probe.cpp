@@ -25,10 +25,10 @@ void HashJoinProbe::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     columnIdxsToReadFrom.resize(probeDataInfo.getNumPayloads());
     iota(columnIdxsToReadFrom.begin(), columnIdxsToReadFrom.end(),
         probeDataInfo.keysDataPos.size());
-    hashVector = std::make_unique<ValueVector>(*LogicalType::HASH(),
+    hashVector = std::make_unique<ValueVector>(LogicalType::HASH(),
         context->clientContext->getMemoryManager());
     if (keyVectors.size() > 1) {
-        tmpHashVector = std::make_unique<ValueVector>(*LogicalType::HASH(),
+        tmpHashVector = std::make_unique<ValueVector>(LogicalType::HASH(),
             context->clientContext->getMemoryManager());
     }
 }

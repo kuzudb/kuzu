@@ -10,9 +10,9 @@ using kuzu_parquet::format::Type;
 namespace kuzu {
 namespace processor {
 
-StringColumnReader::StringColumnReader(ParquetReader& reader,
-    std::unique_ptr<common::LogicalType> type, const kuzu_parquet::format::SchemaElement& schema,
-    uint64_t schemaIdx, uint64_t maxDefine, uint64_t maxRepeat)
+StringColumnReader::StringColumnReader(ParquetReader& reader, common::LogicalType type,
+    const kuzu_parquet::format::SchemaElement& schema, uint64_t schemaIdx, uint64_t maxDefine,
+    uint64_t maxRepeat)
     : TemplatedColumnReader<common::ku_string_t, StringParquetValueConversion>(reader,
           std::move(type), schema, schemaIdx, maxDefine, maxRepeat) {
     fixedWidthStringLength = 0;
@@ -43,7 +43,7 @@ uint32_t StringColumnReader::verifyString(const char* strData, uint32_t strLen,
 
 uint32_t StringColumnReader::verifyString(const char* strData, uint32_t strLen) {
     return verifyString(strData, strLen,
-        getDataType()->getLogicalTypeID() == common::LogicalTypeID::STRING);
+        getDataType().getLogicalTypeID() == common::LogicalTypeID::STRING);
 }
 
 void StringColumnReader::dictionary(const std::shared_ptr<ResizeableBuffer>& data,

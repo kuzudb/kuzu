@@ -79,7 +79,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
     auto bindData = std::make_unique<FunctionBindData>(std::move(resultType));
     for (auto& _ : arguments) {
         (void)_;
-        bindData->paramTypes.push_back(type);
+        bindData->paramTypes.push_back(type.copy());
     }
     return bindData;
 }

@@ -10,10 +10,10 @@ namespace function {
 
 static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
     Function* /*function*/) {
-    auto keyType = ListType::getChildType(arguments[0]->dataType);
-    auto valueType = ListType::getChildType(arguments[1]->dataType);
-    auto resultType = LogicalType::MAP(keyType, valueType);
-    return FunctionBindData::getSimpleBindData(arguments, *resultType);
+    const auto& keyType = ListType::getChildType(arguments[0]->dataType);
+    const auto& valueType = ListType::getChildType(arguments[1]->dataType);
+    auto resultType = LogicalType::MAP(keyType.copy(), valueType.copy());
+    return FunctionBindData::getSimpleBindData(arguments, std::move(resultType));
 }
 
 function_set MapCreationFunctions::getFunctionSet() {

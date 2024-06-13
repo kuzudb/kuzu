@@ -45,8 +45,9 @@ static std::vector<AggregateInfo> getAggregateInputInfos(const expression_vector
             }
         }
         auto aggExpr = expression->constPtrCast<AggregateFunctionExpression>();
-        auto distinctAggKeyType =
-            aggExpr->isDistinct() ? expression->getChild(0)->getDataType() : *LogicalType::ANY();
+        auto distinctAggKeyType = aggExpr->isDistinct() ?
+                                      expression->getChild(0)->getDataType().copy() :
+                                      LogicalType::ANY();
         result.emplace_back(aggregateVectorPos, std::move(multiplicityChunksPos),
             std::move(distinctAggKeyType));
     }

@@ -8,7 +8,7 @@ namespace kuzu {
 namespace common {
 
 static void validateBoolOption(const LogicalType& type, const std::string& optionName) {
-    if (type != *LogicalType::BOOL()) {
+    if (type != LogicalType::BOOL()) {
         throw BinderException(stringFormat("The type of option {} must be a boolean.", optionName));
     }
 }
@@ -20,10 +20,10 @@ RdfReaderConfig RdfReaderConfig::construct(
         auto name = op.first;
         StringUtils::toUpper(name);
         if (name == RdfConstants::IN_MEMORY_OPTION) {
-            validateBoolOption(*op.second.getDataType(), name);
+            validateBoolOption(op.second.getDataType(), name);
             config.inMemory = op.second.getValue<bool>();
         } else if (name == RdfConstants::STRICT_OPTION) {
-            validateBoolOption(*op.second.getDataType(), name);
+            validateBoolOption(op.second.getDataType(), name);
             config.strict = op.second.getValue<bool>();
         } else {
             throw BinderException(stringFormat("Unrecognized parsing option: {}.", name));

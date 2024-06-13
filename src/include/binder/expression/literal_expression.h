@@ -9,7 +9,7 @@ namespace binder {
 class LiteralExpression final : public Expression {
 public:
     LiteralExpression(common::Value value, const std::string& uniqueName)
-        : Expression{common::ExpressionType::LITERAL, *value.getDataType(), uniqueName},
+        : Expression{common::ExpressionType::LITERAL, value.getDataType().copy(), uniqueName},
           value{std::move(value)} {}
 
     bool isNull() const { return value.isNull(); }

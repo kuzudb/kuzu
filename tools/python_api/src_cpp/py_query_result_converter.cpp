@@ -8,7 +8,7 @@ using namespace kuzu::common;
 using namespace kuzu;
 
 NPArrayWrapper::NPArrayWrapper(const LogicalType& type, uint64_t numFlatTuple)
-    : type{type}, numElements{0} {
+    : type{type.copy()}, numElements{0} {
     data = py::array(convertToArrayType(type), numFlatTuple);
     dataBuffer = (uint8_t*)data.mutable_data();
     mask = py::array(py::dtype("bool"), numFlatTuple);

@@ -791,13 +791,13 @@ static std::unique_ptr<FunctionBindData> genericBinaryArithmeticFunc(
     const binder::expression_vector& arguments, Function* func) {
     auto asScalar = ku_dynamic_cast<Function*, ScalarFunction*>(func);
     KU_ASSERT(asScalar != nullptr);
-    auto argADataType = arguments[0]->getDataType();
-    auto argBDataType = arguments[1]->getDataType();
+    auto argADataType = arguments[0]->getDataType().copy();
+    auto argBDataType = arguments[1]->getDataType().copy();
     if (argADataType.getLogicalTypeID() != LogicalTypeID::DECIMAL) {
-        argADataType = argBDataType;
+        argADataType = argBDataType.copy();
     }
     if (argBDataType.getLogicalTypeID() != LogicalTypeID::DECIMAL) {
-        argBDataType = argADataType;
+        argBDataType = argADataType.copy();
     }
     auto precision1 = DecimalType::getPrecision(argADataType);
     auto precision2 = DecimalType::getPrecision(argBDataType);
@@ -805,10 +805,12 @@ static std::unique_ptr<FunctionBindData> genericBinaryArithmeticFunc(
     auto scale2 = DecimalType::getScale(argBDataType);
     auto params = FUNC::resultingParams(precision1, precision2, scale1, scale2);
     auto resultingType = LogicalType::DECIMAL(params.first, params.second);
-    auto argumentAType = FUNC::matchToOutputLogicalType ? *resultingType : argADataType;
-    auto argumentBType = FUNC::matchToOutputLogicalType ? *resultingType : argBDataType;
+    auto argumentAType =
+        FUNC::matchToOutputLogicalType ? resultingType.copy() : argADataType.copy();
+    auto argumentBType =
+        FUNC::matchToOutputLogicalType ? resultingType.copy() : argBDataType.copy();
     if constexpr (FUNC::matchToOutputLogicalType) {
-        switch (resultingType->getPhysicalType()) {
+        switch (resultingType.getPhysicalType()) {
         case PhysicalTypeID::INT16:
             asScalar->execFunc =
                 ScalarFunction::BinaryStringExecFunction<int16_t, int16_t, int16_t, FUNC>;
@@ -831,27 +833,30 @@ static std::unique_ptr<FunctionBindData> genericBinaryArithmeticFunc(
     } else {
         switch (argumentAType.getPhysicalType()) {
         case PhysicalTypeID::INT16:
-            getBinaryExecutionHelperA<FUNC, int16_t>(argumentBType, *resultingType,
+            getBinaryExecutionHelperA<FUNC, int16_t>(argumentBType, resultingType,
                 asScalar->execFunc);
             break;
         case PhysicalTypeID::INT32:
-            getBinaryExecutionHelperA<FUNC, int32_t>(argumentBType, *resultingType,
+            getBinaryExecutionHelperA<FUNC, int32_t>(argumentBType, resultingType,
                 asScalar->execFunc);
             break;
         case PhysicalTypeID::INT64:
-            getBinaryExecutionHelperA<FUNC, int64_t>(argumentBType, *resultingType,
+            getBinaryExecutionHelperA<FUNC, int64_t>(argumentBType, resultingType,
                 asScalar->execFunc);
             break;
         case PhysicalTypeID::INT128:
-            getBinaryExecutionHelperA<FUNC, int128_t>(argumentBType, *resultingType,
+            getBinaryExecutionHelperA<FUNC, int128_t>(argumentBType, resultingType,
                 asScalar->execFunc);
             break;
         default:
             KU_UNREACHABLE;
         }
     }
-    return std::make_unique<FunctionBindData>(
-        std::vector<LogicalType>{argumentAType, argumentBType}, std::move(resultingType));
+    std::vector<LogicalType> resVec;
+    resVec.push_back(std::move(argumentAType));
+    resVec.push_back(std::move(argumentBType));
+    resVec.push_back(resultingType.copy());
+    return std::make_unique<FunctionBindData>(std::move(resVec), std::move(resultingType));
 }
 
 template<typename FUNC, typename ARG>
@@ -884,9 +889,9 @@ static std::unique_ptr<FunctionBindData> genericUnaryArithmeticFunc(
     auto params = FUNC::resultingParams(argPrecision, argScale);
     auto resultingType = LogicalType::DECIMAL(params.first, params.second);
     auto argumentType =
-        FUNC::matchToOutputLogicalType ? *resultingType : arguments[0]->getDataType();
+        FUNC::matchToOutputLogicalType ? resultingType.copy() : arguments[0]->getDataType().copy();
     if constexpr (FUNC::matchToOutputLogicalType) {
-        switch (resultingType->getPhysicalType()) {
+        switch (resultingType.getPhysicalType()) {
         case PhysicalTypeID::INT16:
             asScalar->execFunc =
                 ScalarFunction::UnaryExecNestedTypeFunction<int16_t, int16_t, FUNC>;
@@ -909,23 +914,24 @@ static std::unique_ptr<FunctionBindData> genericUnaryArithmeticFunc(
     } else {
         switch (argumentType.getPhysicalType()) {
         case PhysicalTypeID::INT16:
-            getUnaryExecutionHelper<FUNC, int16_t>(*resultingType, asScalar->execFunc);
+            getUnaryExecutionHelper<FUNC, int16_t>(resultingType, asScalar->execFunc);
             break;
         case PhysicalTypeID::INT32:
-            getUnaryExecutionHelper<FUNC, int32_t>(*resultingType, asScalar->execFunc);
+            getUnaryExecutionHelper<FUNC, int32_t>(resultingType, asScalar->execFunc);
             break;
         case PhysicalTypeID::INT64:
-            getUnaryExecutionHelper<FUNC, int64_t>(*resultingType, asScalar->execFunc);
+            getUnaryExecutionHelper<FUNC, int64_t>(resultingType, asScalar->execFunc);
             break;
         case PhysicalTypeID::INT128:
-            getUnaryExecutionHelper<FUNC, int128_t>(*resultingType, asScalar->execFunc);
+            getUnaryExecutionHelper<FUNC, int128_t>(resultingType, asScalar->execFunc);
             break;
         default:
             KU_UNREACHABLE;
         }
     }
-    return std::make_unique<FunctionBindData>(std::vector<LogicalType>{argumentType},
-        std::move(resultingType));
+    std::vector<LogicalType> argTypes;
+    argTypes.push_back(std::move(argumentType));
+    return std::make_unique<FunctionBindData>(std::move(argTypes), std::move(resultingType));
 }
 
 std::unique_ptr<FunctionBindData> DecimalFunction::bindAddFunc(

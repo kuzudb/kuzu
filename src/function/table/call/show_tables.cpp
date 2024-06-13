@@ -29,7 +29,8 @@ struct ShowTablesBindData : public CallTableFuncBindData {
           tables{std::move(tables)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowTablesBindData>(tables, columnTypes, columnNames, maxOffset);
+        return std::make_unique<ShowTablesBindData>(tables, LogicalType::copy(columnTypes),
+            columnNames, maxOffset);
     }
 };
 
@@ -57,13 +58,13 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back("name");
-    columnTypes.emplace_back(*LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("type");
-    columnTypes.emplace_back(*LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("database name");
-    columnTypes.emplace_back(*LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("comment");
-    columnTypes.emplace_back(*LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::STRING());
     std::vector<TableInfo> tableInfos;
     if (!context->hasDefaultDatabase()) {
         for (auto& entry : context->getCatalog()->getTableEntries(context->getTx())) {

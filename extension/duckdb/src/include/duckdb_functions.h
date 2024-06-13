@@ -18,8 +18,8 @@ struct ClearCacheBindData : public function::CallTableFuncBindData {
           databaseManager{databaseManager} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ClearCacheBindData>(databaseManager, columnTypes, columnNames,
-            maxOffset);
+        return std::make_unique<ClearCacheBindData>(databaseManager,
+            common::LogicalType::copy(columnTypes), columnNames, maxOffset);
     }
 };
 

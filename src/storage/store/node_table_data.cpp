@@ -45,7 +45,7 @@ NodeTableData::NodeTableData(BMFileHandle* dataFH, DiskArrayCollection* metadata
         const auto columnName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT, "");
         columns[property.getColumnID()] = ColumnFactory::createColumn(columnName,
-            *property.getDataType()->copy(), *metadataDAHInfo, dataFH, *metadataDAC, bufferManager,
+            property.getDataType().copy(), *metadataDAHInfo, dataFH, *metadataDAC, bufferManager,
             wal, &DUMMY_WRITE_TRANSACTION, enableCompression);
     }
 }

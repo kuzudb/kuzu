@@ -31,7 +31,7 @@ public:
           rawVariableName{rawVariableName}, infos{std::move(infos)} {}
 
     PropertyExpression(const PropertyExpression& other)
-        : Expression{common::ExpressionType::PROPERTY, other.dataType, other.uniqueName},
+        : Expression{common::ExpressionType::PROPERTY, other.dataType.copy(), other.uniqueName},
           propertyName{other.propertyName}, uniqueVarName{other.uniqueVarName},
           rawVariableName{other.rawVariableName}, infos{copyMap(other.infos)} {}
 

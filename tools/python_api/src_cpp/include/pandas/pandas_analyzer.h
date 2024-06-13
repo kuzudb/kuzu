@@ -17,7 +17,7 @@ public:
     common::LogicalType getListType(py::object& ele, bool& canConvert);
     common::LogicalType getItemType(py::object ele, bool& canConvert);
     bool analyze(py::object column);
-    common::LogicalType getAnalyzedType() { return analyzedType; }
+    common::LogicalType& getAnalyzedType() { return analyzedType; }
 
 private:
     common::LogicalType innerAnalyze(py::object column, bool& canConvert);

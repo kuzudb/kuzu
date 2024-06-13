@@ -19,10 +19,10 @@
 namespace kuzu_rs {
 
 struct TypeListBuilder {
-    std::vector<std::unique_ptr<kuzu::common::LogicalType>> types;
+    std::vector<kuzu::common::LogicalType> types;
 
     void insert(std::unique_ptr<kuzu::common::LogicalType> type) {
-        types.push_back(std::move(type));
+        types.push_back(std::move(*type));
     }
 };
 
@@ -50,7 +50,8 @@ inline std::unique_ptr<kuzu::common::LogicalType> create_logical_type_struct(
     for (auto i = 0u; i < fieldNames.size(); i++) {
         fields.emplace_back(std::string(fieldNames[i]), std::move(fieldTypes->types[i]));
     }
-    return kuzu::common::LogicalType::STRUCT(std::move(fields));
+    return std::make_unique<kuzu::common::LogicalType>(
+        kuzu::common::LogicalType::STRUCT(std::move(fields)));
 }
 inline std::unique_ptr<kuzu::common::LogicalType> create_logical_type_union(
     const rust::Vec<rust::String>& fieldNames, std::unique_ptr<TypeListBuilder> fieldTypes) {
@@ -58,14 +59,15 @@ inline std::unique_ptr<kuzu::common::LogicalType> create_logical_type_union(
     for (auto i = 0u; i < fieldNames.size(); i++) {
         fields.emplace_back(std::string(fieldNames[i]), std::move(fieldTypes->types[i]));
     }
-    return kuzu::common::LogicalType::UNION(std::move(fields));
+    return std::make_unique<kuzu::common::LogicalType>(
+        kuzu::common::LogicalType::UNION(std::move(fields)));
 }
 std::unique_ptr<kuzu::common::LogicalType> create_logical_type_map(
     std::unique_ptr<kuzu::common::LogicalType> keyType,
     std::unique_ptr<kuzu::common::LogicalType> valueType);
 
 inline std::unique_ptr<kuzu::common::LogicalType> create_logical_type_rdf_variant() {
-    return kuzu::common::LogicalType::RDF_VARIANT();
+    return std::make_unique<kuzu::common::LogicalType>(kuzu::common::LogicalType::RDF_VARIANT());
 }
 
 std::unique_ptr<kuzu::common::LogicalType> logical_type_get_list_child_type(

@@ -70,30 +70,30 @@ void HashAggregateLocalState::init(ResultSet& resultSet, main::ClientContext* co
     for (auto& pos : info.flatKeysPos) {
         auto vector = resultSet.getValueVector(pos).get();
         flatKeyVectors.push_back(vector);
-        keyDataTypes.push_back(vector->dataType);
+        keyDataTypes.push_back(vector->dataType.copy());
     }
     for (auto& pos : info.unFlatKeysPos) {
         auto vector = resultSet.getValueVector(pos).get();
         unFlatKeyVectors.push_back(vector);
-        keyDataTypes.push_back(vector->dataType);
+        keyDataTypes.push_back(vector->dataType.copy());
     }
     std::vector<LogicalType> payloadDataTypes;
     for (auto& pos : info.dependentKeysPos) {
         auto vector = resultSet.getValueVector(pos).get();
         dependentKeyVectors.push_back(vector);
-        payloadDataTypes.push_back(vector->dataType);
+        payloadDataTypes.push_back(vector->dataType.copy());
     }
     leadingState = unFlatKeyVectors.empty() ? flatKeyVectors[0]->state.get() :
                                               unFlatKeyVectors[0]->state.get();
     switch (info.hashTableType) {
     case HashTableType::AGGREGATE_HASH_TABLE:
-        aggregateHashTable =
-            std::make_unique<AggregateHashTable>(*context->getMemoryManager(), keyDataTypes,
-                payloadDataTypes, aggregateFunctions, types, 0, std::move(info.tableSchema));
+        aggregateHashTable = std::make_unique<AggregateHashTable>(*context->getMemoryManager(),
+            std::move(keyDataTypes), std::move(payloadDataTypes), aggregateFunctions,
+            std::move(types), 0, std::move(info.tableSchema));
         break;
     case HashTableType::MARK_HASH_TABLE:
         aggregateHashTable = std::make_unique<MarkHashTable>(*context->getMemoryManager(),
-            keyDataTypes, payloadDataTypes, 0, std::move(info.tableSchema));
+            std::move(keyDataTypes), std::move(payloadDataTypes), 0, std::move(info.tableSchema));
         break;
     default:
         KU_UNREACHABLE;
@@ -110,10 +110,10 @@ void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     BaseAggregate::initLocalStateInternal(resultSet, context);
     std::vector<LogicalType> distinctAggKeyTypes;
     for (auto& info : aggInfos) {
-        distinctAggKeyTypes.push_back(info.distinctAggKeyType);
+        distinctAggKeyTypes.push_back(info.distinctAggKeyType.copy());
     }
     localState.init(*resultSet, context->clientContext, hashInfo, aggregateFunctions,
-        distinctAggKeyTypes);
+        std::move(distinctAggKeyTypes));
 }
 
 void HashAggregate::executeInternal(ExecutionContext* context) {

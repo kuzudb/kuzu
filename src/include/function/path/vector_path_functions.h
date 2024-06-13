@@ -20,11 +20,11 @@ struct RelsFunction {
 struct PropertiesBindData : public FunctionBindData {
     common::idx_t childIdx;
 
-    PropertiesBindData(std::unique_ptr<common::LogicalType> dataType, common::idx_t childIdx)
+    PropertiesBindData(common::LogicalType dataType, common::idx_t childIdx)
         : FunctionBindData{std::move(dataType)}, childIdx{childIdx} {}
 
     inline std::unique_ptr<FunctionBindData> copy() const override {
-        return std::make_unique<PropertiesBindData>(resultType->copy(), childIdx);
+        return std::make_unique<PropertiesBindData>(resultType.copy(), childIdx);
     }
 };
 

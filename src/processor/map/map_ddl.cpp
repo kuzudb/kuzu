@@ -35,7 +35,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateTable(LogicalOperator* lo
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateType(LogicalOperator* logicalOperator) {
     auto& createType = logicalOperator->constCast<LogicalCreateType>();
     auto printInfo = std::make_unique<OPPrintInfo>(createType.getExpressionsForPrinting());
-    return std::make_unique<CreateType>(createType.getTableName(), createType.getType(),
+    return std::make_unique<CreateType>(createType.getTableName(), createType.getType().copy(),
         getOutputPos(createType), getOperatorID(), std::move(printInfo));
 }
 

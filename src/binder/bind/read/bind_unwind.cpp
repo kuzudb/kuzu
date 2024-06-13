@@ -21,14 +21,15 @@ std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause
     auto aliasName = unwindClause.getAlias();
     std::shared_ptr<Expression> alias;
     if (boundExpression->getDataType().getLogicalTypeID() == LogicalTypeID::ARRAY) {
-        auto targetType = LogicalType::LIST(ArrayType::getChildType(boundExpression->dataType));
-        boundExpression = expressionBinder.implicitCast(boundExpression, *targetType);
+        auto targetType =
+            LogicalType::LIST(ArrayType::getChildType(boundExpression->dataType).copy());
+        boundExpression = expressionBinder.implicitCast(boundExpression, targetType);
     }
     if (!skipDataTypeValidation(*boundExpression)) {
         ExpressionUtil::validateDataType(*boundExpression, LogicalTypeID::LIST);
         alias = createVariable(aliasName, ListType::getChildType(boundExpression->dataType));
     } else {
-        alias = createVariable(aliasName, *LogicalType::ANY());
+        alias = createVariable(aliasName, LogicalType::ANY());
     }
     std::shared_ptr<Expression> idExpr = nullptr;
     if (scope.hasMemorizedTableIDs(boundExpression->getAlias())) {

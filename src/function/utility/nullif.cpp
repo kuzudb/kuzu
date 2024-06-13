@@ -15,12 +15,12 @@ static std::shared_ptr<Expression> rewriteFunc(const expression_vector& params,
     KU_ASSERT(params.size() == 2);
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(NullIfFunction::name, params);
-    auto resultType = params[0]->getDataType();
+    const auto& resultType = params[0]->getDataType();
     auto caseExpression =
-        std::make_shared<CaseExpression>(resultType, params[0], uniqueExpressionName);
+        std::make_shared<CaseExpression>(resultType.copy(), params[0], uniqueExpressionName);
     auto whenExpression = binder->bindComparisonExpression(ExpressionType::EQUALS, params);
     auto thenExpression = binder->createNullLiteralExpression();
-    thenExpression = binder->implicitCastIfNecessary(thenExpression, resultType);
+    thenExpression = binder->implicitCastIfNecessary(thenExpression, resultType.copy());
     caseExpression->addCaseAlternative(whenExpression, thenExpression);
     return caseExpression;
 }

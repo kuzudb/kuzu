@@ -21,7 +21,7 @@ std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV() {
     if (option.hasHeader) {
         SniffCSVNameAndTypeDriver driver{context};
         parseCSV(driver);
-        return driver.columns;
+        return std::move(driver.columns);
     } else {
         SniffCSVColumnCountDriver driver;
         parseCSV(driver);
@@ -83,7 +83,7 @@ static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_
     auto sniffedColumns = csvReader.sniffCSV();
     for (auto& [name, type] : sniffedColumns) {
         columnNames.push_back(name);
-        columnTypes.push_back(type);
+        columnTypes.push_back(type.copy());
     }
 }
 

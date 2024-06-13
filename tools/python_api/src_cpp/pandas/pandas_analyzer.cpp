@@ -6,7 +6,8 @@
 
 namespace kuzu {
 
-static bool upgradeType(common::LogicalType& left, const common::LogicalType& right) {
+// NOTE: MOVES right to left
+static bool upgradeType(common::LogicalType& left, common::LogicalType& right) {
     if (right.getLogicalTypeID() == common::LogicalTypeID::ANY) {
         return true;
     }
@@ -14,7 +15,7 @@ static bool upgradeType(common::LogicalType& left, const common::LogicalType& ri
         ((left.getLogicalTypeID() == common::LogicalTypeID::LIST) &&
             (common::ListType::getChildType(left).getLogicalTypeID() ==
                 common::LogicalTypeID::ANY))) {
-        left = right;
+        left = std::move(right);
         return true;
     }
     if (((right.getLogicalTypeID() == common::LogicalTypeID::LIST) &&
@@ -25,7 +26,7 @@ static bool upgradeType(common::LogicalType& left, const common::LogicalType& ri
     auto leftToRightCost = function::BuiltInFunctionsUtils::getCastCost(left.getLogicalTypeID(),
         right.getLogicalTypeID());
     if (leftToRightCost != common::UNDEFINED_CAST_COST) {
-        left = right;
+        left = std::move(right);
     } else {
         return false;
     }
@@ -39,7 +40,7 @@ common::LogicalType PandasAnalyzer::getListType(py::object& ele, bool& canConver
         auto object = py::reinterpret_borrow<py::object>(pyVal);
         auto itemType = getItemType(object, canConvert);
         if (i == 0) {
-            listType = itemType;
+            listType = std::move(itemType);
         } else {
             if (!upgradeType(listType, itemType)) {
                 canConvert = false;
@@ -57,23 +58,23 @@ common::LogicalType PandasAnalyzer::getItemType(py::object ele, bool& canConvert
     auto objectType = getPythonObjectType(ele);
     switch (objectType) {
     case PythonObjectType::None:
-        return *common::LogicalType::ANY();
+        return common::LogicalType::ANY();
     case PythonObjectType::Bool:
-        return *common::LogicalType::BOOL();
+        return common::LogicalType::BOOL();
     case PythonObjectType::Integer:
-        return *common::LogicalType::INT64();
+        return common::LogicalType::INT64();
     case PythonObjectType::Float:
-        return *common::LogicalType::DOUBLE();
+        return common::LogicalType::DOUBLE();
     case PythonObjectType::Datetime:
-        return *common::LogicalType::TIMESTAMP();
+        return common::LogicalType::TIMESTAMP();
     case PythonObjectType::Date:
-        return *common::LogicalType::DATE();
+        return common::LogicalType::DATE();
     case PythonObjectType::String:
-        return *common::LogicalType::STRING();
+        return common::LogicalType::STRING();
     case PythonObjectType::List:
-        return *common::LogicalType::LIST(getListType(ele, canConvert));
+        return common::LogicalType::LIST(getListType(ele, canConvert));
     case PythonObjectType::UUID:
-        return *common::LogicalType::UUID();
+        return common::LogicalType::UUID();
     default:
         KU_UNREACHABLE;
     }
@@ -117,7 +118,7 @@ bool PandasAnalyzer::analyze(py::object column) {
     bool canConvert = true;
     auto type = innerAnalyze(std::move(column), canConvert);
     if (canConvert) {
-        analyzedType = type;
+        analyzedType = std::move(type);
     }
     return canConvert;
 }

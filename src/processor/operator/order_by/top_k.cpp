@@ -104,9 +104,9 @@ void TopKBuffer::initVectors() {
     auto lastPayloadUnflatState = std::make_shared<common::DataChunkState>();
     auto lastPayloadFlatState = common::DataChunkState::getSingleValueDataChunkState();
     for (auto i = 0u; i < orderByDataInfo->payloadTypes.size(); i++) {
-        auto type = orderByDataInfo->payloadTypes[i].get();
-        auto payloadVec = std::make_unique<common::ValueVector>(*type, memoryManager);
-        auto lastPayloadVec = std::make_unique<common::ValueVector>(*type, memoryManager);
+        auto type = &orderByDataInfo->payloadTypes[i];
+        auto payloadVec = std::make_unique<common::ValueVector>(type->copy(), memoryManager);
+        auto lastPayloadVec = std::make_unique<common::ValueVector>(type->copy(), memoryManager);
         if (orderByDataInfo->payloadTableSchema.getColumn(i)->isFlat()) {
             payloadVec->setState(payloadFlatState);
             lastPayloadVec->setState(lastPayloadFlatState);
@@ -121,8 +121,8 @@ void TopKBuffer::initVectors() {
     }
     auto boundaryState = common::DataChunkState::getSingleValueDataChunkState();
     for (auto i = 0u; i < orderByDataInfo->keyTypes.size(); ++i) {
-        auto type = orderByDataInfo->keyTypes[i].get();
-        auto boundaryVec = std::make_unique<common::ValueVector>(*type, memoryManager);
+        auto type = &orderByDataInfo->keyTypes[i];
+        auto boundaryVec = std::make_unique<common::ValueVector>(type->copy(), memoryManager);
         boundaryVec->setState(boundaryState);
         boundaryVecs.push_back(std::move(boundaryVec));
         auto posInPayload = orderByDataInfo->keyInPayloadPos[i];
@@ -172,7 +172,7 @@ void TopKBuffer::initCompareFuncs() {
     vector_select_comparison_func compareFunc;
     vector_select_comparison_func equalsFunc;
     for (auto i = 0u; i < orderByDataInfo->isAscOrder.size(); i++) {
-        auto physicalType = orderByDataInfo->keyTypes[i]->getPhysicalType();
+        auto physicalType = orderByDataInfo->keyTypes[i].getPhysicalType();
         if (orderByDataInfo->isAscOrder[i]) {
             getSelectComparisonFunction<function::LessThan>(physicalType, compareFunc);
         } else {

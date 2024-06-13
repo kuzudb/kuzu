@@ -22,7 +22,7 @@ static std::pair<std::vector<struct_field_idx_t>, std::vector<ft_col_idx_t>> get
         StringUtils::toUpper(propertyName);
         propertyNameToColumnIdx.insert({propertyName, i + numKeys});
     }
-    auto structFields = StructType::getFields(structType);
+    const auto& structFields = StructType::getFields(structType);
     std::vector<struct_field_idx_t> structFieldIndices;
     std::vector<ft_col_idx_t> colIndices;
     for (auto i = 0u; i < structFields.size(); ++i) {
@@ -64,9 +64,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
             std::make_unique<ResultSetDescriptor>(nodeBuildSchema),
             PhysicalOperatorType::HASH_JOIN_BUILD, nodeBuildSharedState, std::move(nodeBuildInfo),
             std::move(nodeBuildPrevOperator), getOperatorID(), std::make_unique<OPPrintInfo>());
-        auto relDataType = rel->getDataType();
-        auto nodesField = StructType::getField(relDataType, InternalKeyword::NODES);
-        auto nodeStructType = ListType::getChildType(nodesField.getType());
+        const auto& relDataType = rel->getDataType();
+        const auto& nodesField = StructType::getField(relDataType, InternalKeyword::NODES);
+        const auto& nodeStructType = ListType::getChildType(nodesField.getType());
         auto [fieldIndices, columnIndices] =
             getColIdxToScan(nodePayloads, nodeKeys.size(), nodeStructType);
         nodeFieldIndices = std::move(fieldIndices);
@@ -92,9 +92,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
             std::make_unique<HashJoinBuild>(std::make_unique<ResultSetDescriptor>(relBuildSchema),
                 PhysicalOperatorType::HASH_JOIN_BUILD, relBuildSharedState, std::move(relBuildInfo),
                 std::move(relBuildPrvOperator), getOperatorID(), std::make_unique<OPPrintInfo>());
-        auto relDataType = rel->getDataType();
-        auto relsField = StructType::getField(relDataType, InternalKeyword::RELS);
-        auto relStructType = ListType::getChildType(relsField.getType());
+        const auto& relDataType = rel->getDataType();
+        const auto& relsField = StructType::getField(relDataType, InternalKeyword::RELS);
+        const auto& relStructType = ListType::getChildType(relsField.getType());
         auto [fieldIndices, columnIndices] =
             getColIdxToScan(relPayloads, relKeys.size(), relStructType);
         relFieldIndices = std::move(fieldIndices);

@@ -36,14 +36,14 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
             ExceptionMessage::listFunctionIncompatibleChildrenType(ListPrependFunction::name,
                 arguments[0]->getDataType().toString(), arguments[1]->getDataType().toString()));
     }
-    auto resultType = arguments[0]->getDataType();
+    const auto& resultType = arguments[0]->getDataType();
     auto scalarFunction = function->ptrCast<ScalarFunction>();
     TypeUtils::visit(arguments[1]->getDataType().getPhysicalType(),
         [&scalarFunction]<typename T>(T) {
             scalarFunction->execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, T,
                 list_entry_t, ListPrepend>;
         });
-    return FunctionBindData::getSimpleBindData(arguments, resultType);
+    return FunctionBindData::getSimpleBindData(arguments, resultType.copy());
 }
 
 function_set ListPrependFunction::getFunctionSet() {
