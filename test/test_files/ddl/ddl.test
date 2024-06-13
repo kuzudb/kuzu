@@ -453,7 +453,7 @@ Greg
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
 -CASE CreateTableIfNotExists
--STATEMENT CREATE NODE TABLE UW (ID INT64, PRIMARY KEY(ID))
+-STATEMENT CREATE NODE TABLE IF NOT EXISTS UW(ID INT64, PRIMARY KEY(ID))
 ---- 1
 Table UW has been created.
 -STATEMENT CREATE NODE TABLE IF NOT EXISTS UW (ID INT64, PRIMARY KEY(ID))
@@ -476,4 +476,4 @@ Table interests has been created.
 Table interests already exists.
 -STATEMENT CREATE NODE TABLE IF NOT EXISTS UW1 (ID INT64, PRIMARY KEY(ID))
 ---- 1
-Table UW1 already exists.
+Table UW1 has been created.

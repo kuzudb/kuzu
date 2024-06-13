@@ -7,11 +7,12 @@ namespace kuzu {
 namespace processor {
 
 class CreateTable : public DDL {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CREATE_TABLE;
+
 public:
     CreateTable(binder::BoundCreateTableInfo info, const DataPos& outputPos, uint32_t id,
         const std::string& paramsString)
-        : DDL{PhysicalOperatorType::CREATE_TABLE, outputPos, id, paramsString},
-          info{std::move(info)} {}
+        : DDL{type_, outputPos, id, paramsString}, info{std::move(info)}, tableCreated{false} {}
 
     void executeDDLInternal(ExecutionContext* context) final;
 
@@ -23,6 +24,7 @@ public:
 
 private:
     binder::BoundCreateTableInfo info;
+    bool tableCreated = false;
 };
 
 } // namespace processor
