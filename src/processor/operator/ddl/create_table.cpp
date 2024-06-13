@@ -21,19 +21,16 @@ void CreateTable::executeDDLInternal(ExecutionContext* context) {
         break;
     }
     auto newTableID = catalog->createTableSchema(context->clientContext->getTx(), info);
+    tableCreated = true;
     auto storageManager = context->clientContext->getStorageManager();
     storageManager->createTable(newTableID, catalog, context->clientContext);
 }
 
 std::string CreateTable::getOutputMsg() {
-    switch (info.onConflict) {
-    case common::ConflictAction::ON_CONFLICT_THROW:
+    if (tableCreated) {
         return stringFormat("Table {} has been created.", info.tableName);
-    case common::ConflictAction::ON_CONFLICT_DO_NOTHING:
-        return stringFormat("Table {} already exists.", info.tableName);
-    default:
-        KU_UNREACHABLE;
     }
+    return stringFormat("Table {} already exists.", info.tableName);
 }
 
 } // namespace processor
