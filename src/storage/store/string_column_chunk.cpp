@@ -17,7 +17,7 @@ StringChunkData::StringChunkData(LogicalType dataType, uint64_t capacity, bool e
       needFinalize{false} {
 
     // create index chunk
-    indexColumnChunk = ColumnChunkFactory::createColumnChunkData(*LogicalType::UINT32(),
+    indexColumnChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT32(),
         enableCompression, capacity, inMemory);
 }
 

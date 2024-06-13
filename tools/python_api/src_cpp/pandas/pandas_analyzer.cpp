@@ -57,23 +57,23 @@ common::LogicalType PandasAnalyzer::getItemType(py::object ele, bool& canConvert
     auto objectType = getPythonObjectType(ele);
     switch (objectType) {
     case PythonObjectType::None:
-        return *common::LogicalType::ANY();
+        return common::LogicalType::ANY();
     case PythonObjectType::Bool:
-        return *common::LogicalType::BOOL();
+        return common::LogicalType::BOOL();
     case PythonObjectType::Integer:
-        return *common::LogicalType::INT64();
+        return common::LogicalType::INT64();
     case PythonObjectType::Float:
-        return *common::LogicalType::DOUBLE();
+        return common::LogicalType::DOUBLE();
     case PythonObjectType::Datetime:
-        return *common::LogicalType::TIMESTAMP();
+        return common::LogicalType::TIMESTAMP();
     case PythonObjectType::Date:
-        return *common::LogicalType::DATE();
+        return common::LogicalType::DATE();
     case PythonObjectType::String:
-        return *common::LogicalType::STRING();
+        return common::LogicalType::STRING();
     case PythonObjectType::List:
-        return *common::LogicalType::LIST(getListType(ele, canConvert));
+        return common::LogicalType::LIST(getListType(ele, canConvert));
     case PythonObjectType::UUID:
-        return *common::LogicalType::UUID();
+        return common::LogicalType::UUID();
     default:
         KU_UNREACHABLE;
     }

@@ -64,7 +64,7 @@ LogicalType ArrowConverter::fromArrowSchema(const ArrowSchema* schema) {
         if (split.size() > 2 && split[2] != "128") {
             throw NotImplementedException("Decimal bitwidths other than 128 are not implemented");
         }
-        return *LogicalType::DECIMAL(stoul(split[0]), stoul(split[1]));
+        return LogicalType::DECIMAL(stoul(split[0]), stoul(split[1]));
     }
     case 'w':
         return LogicalType(LogicalTypeID::BLOB); // fixed width binary
@@ -107,10 +107,10 @@ LogicalType ArrowConverter::fromArrowSchema(const ArrowSchema* schema) {
         // complex types need a complementary ExtraTypeInfo object
         case 'l':
         case 'L':
-            return *LogicalType::LIST(
+            return LogicalType:LIST(
                 std::make_unique<LogicalType>(fromArrowSchema(schema->children[0])));
         case 'w':
-            return *LogicalType::ARRAY(
+            return LogicalType:ARRAY(
                 std::make_unique<LogicalType>(fromArrowSchema(schema->children[0])),
                 std::stoul(arrowType + 3));
         case 's':
@@ -118,9 +118,9 @@ LogicalType ArrowConverter::fromArrowSchema(const ArrowSchema* schema) {
                 structFields.emplace_back(std::string(schema->children[i]->name),
                     std::make_unique<LogicalType>(fromArrowSchema(schema->children[i])));
             }
-            return *LogicalType::STRUCT(std::move(structFields));
+            return LogicalType:STRUCT(std::move(structFields));
         case 'm':
-            return *LogicalType::MAP(
+            return LogicalType:MAP(
                 std::make_unique<LogicalType>(fromArrowSchema(schema->children[0]->children[0])),
                 std::make_unique<LogicalType>(fromArrowSchema(schema->children[0]->children[1])));
         case 'u': {
@@ -129,13 +129,13 @@ LogicalType ArrowConverter::fromArrowSchema(const ArrowSchema* schema) {
                 structFields.emplace_back(std::to_string(i),
                     std::make_unique<LogicalType>(fromArrowSchema(schema->children[i])));
             }
-            return *LogicalType::UNION(std::move(structFields));
+            return LogicalType:UNION(std::move(structFields));
         }
         case 'v':
             switch (arrowType[2]) {
             case 'l':
             case 'L':
-                return *LogicalType::LIST(
+                return LogicalType:LIST(
                     std::make_unique<LogicalType>(fromArrowSchema(schema->children[0])));
             default:
                 KU_UNREACHABLE;

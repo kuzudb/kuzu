@@ -102,7 +102,7 @@ static write_values_func_t getWriteValuesFunc(const LogicalType& logicalType) {
 InternalIDColumn::InternalIDColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo,
     BMFileHandle* dataFH, DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
     transaction::Transaction* transaction, bool enableCompression)
-    : Column{name, *LogicalType::INTERNAL_ID(), metaDAHeaderInfo, dataFH, metadataDAC,
+    : Column{name, LogicalType::INTERNAL_ID(), metaDAHeaderInfo, dataFH, metadataDAC,
           bufferManager, wal, transaction, enableCompression, false /*requireNullColumn*/},
       commonTableID{INVALID_TABLE_ID} {}
 

@@ -58,7 +58,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
             outExprs.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
         }
-        auto offset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
+        auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
             std::string(InternalKeyword::ROW_OFFSET));
         boundReadingClause = std::make_unique<BoundTableFunctionCall>(*tableFunc,
             std::move(bindData), std::move(offset), std::move(outExprs));
@@ -82,7 +82,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         expression_vector children;
         std::vector<LogicalType> childrenTypes;
         children.push_back(nullptr); // placeholder for graph variable.
-        childrenTypes.push_back(*LogicalType::ANY());
+        childrenTypes.push_back(LogicalType::ANY());
         for (auto i = 1u; i < functionExpr->getNumChildren(); i++) {
             auto child = expressionBinder.bindExpression(*functionExpr->getChild(i));
             children.push_back(child);

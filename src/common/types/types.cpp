@@ -617,7 +617,7 @@ bool LogicalType::tryConvertFromString(const std::string& str, LogicalType& type
                upperDataTypeString.starts_with("NUMERIC")) {
         type = *parseDecimalType(trimmedStr);
     } else if (upperDataTypeString == "RDF_VARIANT") {
-        type = *LogicalType::RDF_VARIANT();
+        type = LogicalType:RDF_VARIANT();
     } else if (tryGetIDFromString(upperDataTypeString, type.typeID)) {
         type.physicalType = LogicalType::getPhysicalType(type.typeID, type.extraTypeInfo);
     } else {
@@ -1143,18 +1143,18 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidLogicTypeIDs() {
 }
 
 std::vector<LogicalType> LogicalTypeUtils::getAllValidLogicTypes() {
-    return std::vector<LogicalType>{*LogicalType::INTERNAL_ID(), *LogicalType::BOOL(),
-        *LogicalType::INT64(), *LogicalType::INT32(), *LogicalType::INT16(), *LogicalType::INT8(),
-        *LogicalType::UINT64(), *LogicalType::UINT32(), *LogicalType::UINT16(),
-        *LogicalType::UINT8(), *LogicalType::INT128(), *LogicalType::DOUBLE(),
-        *LogicalType::STRING(), *LogicalType::BLOB(), *LogicalType::UUID(), *LogicalType::DATE(),
-        *LogicalType::TIMESTAMP(), *LogicalType::TIMESTAMP_NS(), *LogicalType::TIMESTAMP_MS(),
-        *LogicalType::TIMESTAMP_SEC(), *LogicalType::TIMESTAMP_TZ(), *LogicalType::INTERVAL(),
-        *LogicalType::LIST(LogicalType::ANY()), *LogicalType::ARRAY(LogicalType::ANY(), 0),
-        *LogicalType::MAP(LogicalType::ANY(), LogicalType::ANY()), *LogicalType::FLOAT(),
-        *LogicalType::SERIAL(), *LogicalType::NODE(std::make_unique<StructTypeInfo>()),
-        *LogicalType::REL(std::make_unique<StructTypeInfo>()), *LogicalType::STRUCT({}),
-        *LogicalType::UNION({}), *LogicalType::RDF_VARIANT()};
+    return std::vector<LogicalType>{LogicalType::INTERNAL_ID(), LogicalType::BOOL(),
+        LogicalType::INT64(), LogicalType::INT32(), LogicalType::INT16(), LogicalType::INT8(),
+        LogicalType::UINT64(), LogicalType::UINT32(), LogicalType::UINT16(),
+        LogicalType::UINT8(), LogicalType::INT128(), LogicalType::DOUBLE(),
+        LogicalType::STRING(), LogicalType::BLOB(), LogicalType::UUID(), LogicalType::DATE(),
+        LogicalType::TIMESTAMP(), LogicalType::TIMESTAMP_NS(), LogicalType::TIMESTAMP_MS(),
+        LogicalType::TIMESTAMP_SEC(), LogicalType::TIMESTAMP_TZ(), LogicalType::INTERVAL(),
+        LogicalType::LIST(LogicalType::ANY()), LogicalType::ARRAY(LogicalType::ANY(), 0),
+        LogicalType::MAP(LogicalType::ANY(), LogicalType::ANY()), LogicalType::FLOAT(),
+        LogicalType::SERIAL(), LogicalType::NODE(std::make_unique<StructTypeInfo>()),
+        LogicalType::REL(std::make_unique<StructTypeInfo>()), LogicalType::STRUCT({}),
+        LogicalType::UNION({}), LogicalType::RDF_VARIANT()};
 }
 
 std::vector<std::string> parseStructFields(const std::string& structTypeStr) {
@@ -1347,7 +1347,7 @@ static bool tryCombineListTypes(const LogicalType& left, const LogicalType& righ
             ListType::getChildType(right), childType)) {
         return false;
     }
-    result = *LogicalType::LIST(childType);
+    result = LogicalType:LIST(childType);
     return true;
 }
 
@@ -1361,7 +1361,7 @@ static bool tryCombineArrayTypes(const LogicalType& left, const LogicalType& rig
             ArrayType::getChildType(right), childType)) {
         return false;
     }
-    result = *LogicalType::ARRAY(childType, ArrayType::getNumElements(left));
+    result = LogicalType:ARRAY(childType, ArrayType::getNumElements(left));
     return true;
 }
 
@@ -1372,7 +1372,7 @@ static bool tryCombineListArrayTypes(const LogicalType& left, const LogicalType&
             ArrayType::getChildType(right), childType)) {
         return false;
     }
-    result = *LogicalType::LIST(childType);
+    result = LogicalType:LIST(childType);
     return true;
 }
 
@@ -1398,7 +1398,7 @@ static bool tryCombineStructTypes(const LogicalType& left, const LogicalType& ri
             return false;
         }
     }
-    result = *LogicalType::STRUCT(std::move(newFields));
+    result = LogicalType:STRUCT(std::move(newFields));
     return true;
 }
 
@@ -1414,7 +1414,7 @@ static bool tryCombineMapTypes(const LogicalType& left, const LogicalType& right
         !LogicalTypeUtils::tryGetMaxLogicalType(leftValueType, rightValueType, resultValueType)) {
         return false;
     }
-    result = *LogicalType::MAP(std::make_unique<LogicalType>(resultKeyType),
+    result = LogicalType:MAP(std::make_unique<LogicalType>(resultKeyType),
         std::make_unique<LogicalType>(resultValueType));
     return true;
 }
@@ -1443,7 +1443,7 @@ static bool tryCombineUnionTypes(const LogicalType& left, const LogicalType& rig
                 StructField(leftFields[i].getName(), std::make_unique<LogicalType>(combinedType)));
         }
     }
-    result = *LogicalType::UNION(std::move(newFields));
+    result = LogicalType:UNION(std::move(newFields));
     return true;
 }
 */
@@ -1677,7 +1677,7 @@ static inline bool tryCombineDecimalTypes(const LogicalType& left, const Logical
     if (resultingPrecision > DECIMAL_PRECISION_LIMIT) {
         return false;
     }
-    result = *LogicalType::DECIMAL(resultingPrecision, resultingScale);
+    result = LogicalType::DECIMAL(resultingPrecision, resultingScale);
     return true;
 }
 

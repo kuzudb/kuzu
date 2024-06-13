@@ -27,7 +27,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
         scalarFunction->execFunc =
             ScalarFunction::BinaryExecListStructFunction<list_entry_t, T, uint8_t, ListContains>;
     });
-    return FunctionBindData::getSimpleBindData(arguments, *LogicalType::BOOL());
+    return FunctionBindData::getSimpleBindData(arguments, LogicalType::BOOL());
 }
 
 function_set ListContainsFunction::getFunctionSet() {

@@ -54,10 +54,10 @@ class VariableLengthPathLocalState : public GDSLocalState {
 public:
     explicit VariableLengthPathLocalState(main::ClientContext* context) {
         auto mm = context->getMemoryManager();
-        srcNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
-        dstNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
-        lengthVector = std::make_unique<ValueVector>(*LogicalType::INT64(), mm);
-        numPathVector = std::make_unique<ValueVector>(*LogicalType::INT64(), mm);
+        srcNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
+        dstNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
+        lengthVector = std::make_unique<ValueVector>(LogicalType::INT64(), mm);
+        numPathVector = std::make_unique<ValueVector>(LogicalType::INT64(), mm);
         srcNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
         dstNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
         lengthVector->state = DataChunkState::getSingleValueDataChunkState();
@@ -117,9 +117,9 @@ public:
     binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
         columns.push_back(bindData->nodeInput->constCast<NodeExpression>().getInternalID());
-        columns.push_back(binder->createVariable("dst", *LogicalType::INTERNAL_ID()));
-        columns.push_back(binder->createVariable("length", *LogicalType::INT64()));
-        columns.push_back(binder->createVariable("num_path", *LogicalType::INT64()));
+        columns.push_back(binder->createVariable("dst", LogicalType::INTERNAL_ID()));
+        columns.push_back(binder->createVariable("length", LogicalType::INT64()));
+        columns.push_back(binder->createVariable("num_path", LogicalType::INT64()));
         return columns;
     }
 
@@ -128,7 +128,7 @@ public:
         auto inputNode = params[1];
         for (auto i = 2u; i < 4u; ++i) {
             ExpressionUtil::validateExpressionType(*params[i], ExpressionType::LITERAL);
-            ExpressionUtil::validateDataType(*params[i], *LogicalType::INT64());
+            ExpressionUtil::validateDataType(*params[i], LogicalType::INT64());
         }
         auto lowerBound = params[2]->constCast<LiteralExpression>().getValue().getValue<int64_t>();
         if (lowerBound <= 0) {

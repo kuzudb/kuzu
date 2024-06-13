@@ -100,14 +100,14 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto catalogEntry = getTableCatalogEntry(context, input->inputs[0].getValue<std::string>());
     auto tableEntry = catalogEntry->constPtrCast<TableCatalogEntry>();
     columnNames.emplace_back("property id");
-    columnTypes.push_back(*LogicalType::INT64());
+    columnTypes.push_back(LogicalType::INT64());
     columnNames.emplace_back("name");
-    columnTypes.push_back(*LogicalType::STRING());
+    columnTypes.push_back(LogicalType::STRING());
     columnNames.emplace_back("type");
-    columnTypes.push_back(*LogicalType::STRING());
+    columnTypes.push_back(LogicalType::STRING());
     if (tableEntry->getTableType() == TableType::NODE) {
         columnNames.emplace_back("primary key");
-        columnTypes.push_back(*LogicalType::BOOL());
+        columnTypes.push_back(LogicalType::BOOL());
     }
     return std::make_unique<TableInfoBindData>(std::move(catalogEntry), std::move(columnTypes),
         std::move(columnNames), tableEntry->getNumProperties());

@@ -15,7 +15,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
         auto boundChild = bindExpression(*parsedExpression.getChild(i));
         if (boundChild->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
             // e.g. NULL IS NULL. We assign a default type to the expression.
-            boundChild = implicitCastIfNecessary(std::move(boundChild), *LogicalType::BOOL());
+            boundChild = implicitCastIfNecessary(std::move(boundChild), LogicalType::BOOL());
         }
         children.push_back(std::move(boundChild));
     }

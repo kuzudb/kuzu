@@ -18,8 +18,8 @@ class WeaklyConnectedComponentLocalState : public GDSLocalState {
 public:
     explicit WeaklyConnectedComponentLocalState(main::ClientContext* context) {
         auto mm = context->getMemoryManager();
-        nodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
-        groupVector = std::make_unique<ValueVector>(*LogicalType::INT64(), mm);
+        nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
+        groupVector = std::make_unique<ValueVector>(LogicalType::INT64(), mm);
         nodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
         groupVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(nodeIDVector.get());
@@ -63,8 +63,8 @@ public:
      */
     binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
-        columns.push_back(binder->createVariable("node_id", *LogicalType::INTERNAL_ID()));
-        columns.push_back(binder->createVariable("group_id", *LogicalType::INT64()));
+        columns.push_back(binder->createVariable("node_id", LogicalType::INTERNAL_ID()));
+        columns.push_back(binder->createVariable("group_id", LogicalType::INT64()));
         return columns;
     }
 

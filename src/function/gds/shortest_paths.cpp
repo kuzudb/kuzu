@@ -68,9 +68,9 @@ class ShortestPathLocalState : public GDSLocalState {
 public:
     explicit ShortestPathLocalState(main::ClientContext* context) {
         auto mm = context->getMemoryManager();
-        srcNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
-        dstNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
-        lengthVector = std::make_unique<ValueVector>(*LogicalType::INT64(), mm);
+        srcNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
+        dstNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
+        lengthVector = std::make_unique<ValueVector>(LogicalType::INT64(), mm);
         srcNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
         dstNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
         lengthVector->state = DataChunkState::getSingleValueDataChunkState();
@@ -125,8 +125,8 @@ public:
     binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
         columns.push_back(bindData->nodeInput->constCast<NodeExpression>().getInternalID());
-        columns.push_back(binder->createVariable("dst", *LogicalType::INTERNAL_ID()));
-        columns.push_back(binder->createVariable("length", *LogicalType::INT64()));
+        columns.push_back(binder->createVariable("dst", LogicalType::INTERNAL_ID()));
+        columns.push_back(binder->createVariable("length", LogicalType::INT64()));
         return columns;
     }
 
@@ -134,7 +134,7 @@ public:
         KU_ASSERT(params.size() == 3);
         auto inputNode = params[1];
         ExpressionUtil::validateExpressionType(*params[2], ExpressionType::LITERAL);
-        ExpressionUtil::validateDataType(*params[2], *LogicalType::INT64());
+        ExpressionUtil::validateDataType(*params[2], LogicalType::INT64());
         auto upperBound = params[2]->constCast<LiteralExpression>().getValue().getValue<int64_t>();
         bindData = std::make_unique<ShortestPathBindData>(inputNode, upperBound);
     }

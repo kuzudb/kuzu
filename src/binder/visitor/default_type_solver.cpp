@@ -9,7 +9,7 @@ static void resolveAnyType(Expression& expr) {
     if (expr.getDataType().getLogicalTypeID() != LogicalTypeID::ANY) {
         return;
     }
-    expr.cast(*LogicalType::STRING());
+    expr.cast(LogicalType::STRING());
 }
 
 void DefaultTypeSolver::visitProjectionBody(const BoundProjectionBody& projectionBody) {

@@ -29,7 +29,7 @@ StringColumn::StringColumn(std::string name, LogicalType dataType,
 
     auto indexColumnName =
         StorageUtils::getColumnName(name, StorageUtils::ColumnType::INDEX, "index");
-    indexColumn = std::make_unique<Column>(indexColumnName, *LogicalType::UINT32(),
+    indexColumn = std::make_unique<Column>(indexColumnName, LogicalType::UINT32(),
         *metaDAHeaderInfo.childrenInfos[2], dataFH, metadataDAC, bufferManager, wal, transaction,
         enableCompression, false /*requireNullColumn*/);
 }

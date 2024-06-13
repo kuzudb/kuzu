@@ -8,7 +8,7 @@ namespace kuzu {
 namespace common {
 
 static void validateBoolOption(const LogicalType& type, const std::string& optionName) {
-    if (type != *LogicalType::BOOL()) {
+    if (type != LogicalType::BOOL()) {
         throw BinderException(stringFormat("The type of option {} must be a boolean.", optionName));
     }
 }

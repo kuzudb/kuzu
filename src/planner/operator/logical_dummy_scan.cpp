@@ -20,7 +20,7 @@ void LogicalDummyScan::computeFlatSchema() {
 
 std::shared_ptr<binder::Expression> LogicalDummyScan::getDummyExpression() {
     return std::make_shared<binder::LiteralExpression>(
-        Value::createNullValue(*LogicalType::STRING()), InternalKeyword::PLACE_HOLDER);
+        Value::createNullValue(LogicalType::STRING()), InternalKeyword::PLACE_HOLDER);
 }
 
 } // namespace planner

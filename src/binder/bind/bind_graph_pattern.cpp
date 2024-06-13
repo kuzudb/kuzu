@@ -246,7 +246,7 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
         getUniqueExpressionName(parsedName), parsedName, relTableIDs, std::move(srcNode),
         std::move(dstNode), directionType, QueryRelType::NON_RECURSIVE);
     if (directionType == RelDirectionType::BOTH) {
-        queryRel->setDirectionExpr(expressionBinder.createVariableExpression(*LogicalType::BOOL(),
+        queryRel->setDirectionExpr(expressionBinder.createVariableExpression(LogicalType::BOOL(),
             queryRel->getUniqueName() + InternalKeyword::DIRECTION));
     }
     queryRel->setAlias(parsedName);
@@ -443,7 +443,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
         getUniqueExpressionName(parsedName), parsedName, relTableIDs, std::move(srcNode),
         std::move(dstNode), directionType, relPattern.getRelType());
     auto lengthExpression =
-        PropertyExpression::construct(*LogicalType::INT64(), InternalKeyword::LENGTH, *queryRel);
+        PropertyExpression::construct(LogicalType::INT64(), InternalKeyword::LENGTH, *queryRel);
     auto [lowerBound, upperBound] = bindVariableLengthRelBound(relPattern);
     auto recursiveInfo = std::make_unique<RecursiveInfo>();
     recursiveInfo->lowerBound = lowerBound;
@@ -494,7 +494,7 @@ std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
 void Binder::bindQueryRelProperties(RelExpression& rel) {
     if (rel.isEmpty()) {
         auto internalID =
-            PropertyExpression::construct(*LogicalType::INTERNAL_ID(), InternalKeyword::ID, rel);
+            PropertyExpression::construct(LogicalType::INTERNAL_ID(), InternalKeyword::ID, rel);
         rel.addPropertyExpression(InternalKeyword::ID, std::move(internalID));
         return;
     }
@@ -559,7 +559,7 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(const std::string& parse
     std::vector<std::string> fieldNames;
     std::vector<std::unique_ptr<LogicalType>> fieldTypes;
     // Bind internal expressions
-    queryNode->setInternalID(PropertyExpression::construct(*LogicalType::INTERNAL_ID(),
+    queryNode->setInternalID(PropertyExpression::construct(LogicalType::INTERNAL_ID(),
         InternalKeyword::ID, *queryNode));
     queryNode->setLabelExpression(expressionBinder.bindLabelFunction(*queryNode));
     fieldNames.emplace_back(InternalKeyword::ID);

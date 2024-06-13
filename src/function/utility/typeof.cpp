@@ -12,7 +12,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
     std::unique_ptr<FunctionBindData> bindData;
     if (arguments[0]->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
         bindData = std::make_unique<FunctionStringBindData>("NULL");
-        bindData->paramTypes.push_back(*LogicalType::STRING());
+        bindData->paramTypes.push_back(LogicalType::STRING());
     } else {
         bindData = std::make_unique<FunctionStringBindData>(arguments[0]->getDataType().toString());
     }

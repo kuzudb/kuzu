@@ -111,9 +111,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* lo
     std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
     getColumnEvaluators(copyFromInfo.columnExprs, outFSchema, columnEvaluators, columnTypes);
     // Manually set columnTypes for _ID columns
-    columnTypes[0] = *LogicalType::INTERNAL_ID();
-    columnTypes[1] = *LogicalType::INTERNAL_ID();
-    columnTypes[2] = *LogicalType::INTERNAL_ID();
+    columnTypes[0] = LogicalType::INTERNAL_ID();
+    columnTypes[1] = LogicalType::INTERNAL_ID();
+    columnTypes[2] = LogicalType::INTERNAL_ID();
     auto dataInfo = PartitionerDataInfo(LogicalType::copy(columnTypes), std::move(columnEvaluators),
         copyFromInfo.defaultColumns);
     auto sharedState = std::make_shared<PartitionerSharedState>();
@@ -161,7 +161,7 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
         relTable->getNumTuples(&transaction::DUMMY_WRITE_TRANSACTION);
     // TODO(Xiyang): Move binding of column types to binder.
     std::vector<LogicalType> columnTypes;
-    columnTypes.push_back(*LogicalType::INTERNAL_ID()); // NBR_ID COLUMN.
+    columnTypes.push_back(LogicalType::INTERNAL_ID()); // NBR_ID COLUMN.
     for (auto& property : relTableEntry->getPropertiesRef()) {
         columnTypes.push_back(*property.getDataType()->copy());
     }

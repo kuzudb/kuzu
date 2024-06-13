@@ -155,9 +155,9 @@ void ChunkedNodeGroup::finalize(uint64_t nodeGroupIdx_) {
 }
 
 ChunkedCSRHeader::ChunkedCSRHeader(bool enableCompression, uint64_t capacity) {
-    offset = ColumnChunkFactory::createColumnChunkData(*LogicalType::UINT64(), enableCompression,
+    offset = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT64(), enableCompression,
         capacity);
-    length = ColumnChunkFactory::createColumnChunkData(*LogicalType::UINT64(), enableCompression,
+    length = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT64(), enableCompression,
         capacity);
 }
 

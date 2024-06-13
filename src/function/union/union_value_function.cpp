@@ -14,7 +14,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
     fields.emplace_back(UnionType::TAG_FIELD_NAME,
         std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));
     if (arguments[0]->getDataType().getLogicalTypeID() == common::LogicalTypeID::ANY) {
-        arguments[0]->cast(*LogicalType::STRING());
+        arguments[0]->cast(LogicalType::STRING());
     }
     fields.emplace_back(arguments[0]->getAlias(), arguments[0]->getDataType().copy());
     auto resultType = LogicalType::UNION(std::move(fields));

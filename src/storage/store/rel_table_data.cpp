@@ -138,14 +138,14 @@ RelTableData::RelTableData(BMFileHandle* dataFH, DiskArrayCollection* metadataDA
         relsStoreStats->getCSROffsetMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION, tableID, direction);
     auto csrOffsetColumnName = StorageUtils::getColumnName("", StorageUtils::ColumnType::CSR_OFFSET,
         RelDataDirectionUtils::relDirectionToString(direction));
-    csrHeaderColumns.offset = std::make_unique<Column>(csrOffsetColumnName, *LogicalType::UINT64(),
+    csrHeaderColumns.offset = std::make_unique<Column>(csrOffsetColumnName, LogicalType::UINT64(),
         *csrOffsetMetadataDAHInfo, dataFH, *metadataDAC, bufferManager, wal,
         &DUMMY_WRITE_TRANSACTION, enableCompression, false /* requireNUllColumn */);
     auto csrLengthMetadataDAHInfo =
         relsStoreStats->getCSRLengthMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION, tableID, direction);
     auto csrLengthColumnName = StorageUtils::getColumnName("", StorageUtils::ColumnType::CSR_LENGTH,
         RelDataDirectionUtils::relDirectionToString(direction));
-    csrHeaderColumns.length = std::make_unique<Column>(csrLengthColumnName, *LogicalType::UINT64(),
+    csrHeaderColumns.length = std::make_unique<Column>(csrLengthColumnName, LogicalType::UINT64(),
         *csrLengthMetadataDAHInfo, dataFH, *metadataDAC, bufferManager, wal,
         &DUMMY_WRITE_TRANSACTION, enableCompression, false /* requireNUllColumn */);
     // Columns (nbrID + properties).
@@ -585,7 +585,7 @@ void RelTableData::updateRegion(Transaction* transaction, node_group_idx_t nodeG
         // in-memory representation of INTERNAL_ID, we only store offset as INT64 on disk. Here
         // we directly read relID's offset part from disk into an INT64 column chunk.
         persistentState.relIDChunk = ColumnChunkFactory::createColumnChunkData(
-            *LogicalType::INT64(), enableCompression, localState.regionCapacity);
+            LogicalType::INT64(), enableCompression, localState.regionCapacity);
         Column::ChunkState chunkState;
         getColumn(REL_ID_COLUMN_ID)->initChunkState(transaction, nodeGroupIdx, chunkState);
         getColumn(REL_ID_COLUMN_ID)

@@ -105,7 +105,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
             columnExprs.push_back(std::move(expr));
         }
     }
-    auto offset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
+    auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         std::string(InternalKeyword::ANONYMOUS));
     auto boundCopyFromInfo =
         BoundCopyFromInfo(nodeTableEntry, std::move(boundSource), std::move(offset),
@@ -128,7 +128,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     auto boundSource = bindScanSource(copyStatement.getSource(),
         copyStatement.getParsingOptionsRef(), expectedColumnNames, expectedColumnTypes);
     auto columns = boundSource->getColumns();
-    auto offset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
+    auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         std::string(InternalKeyword::ROW_OFFSET));
     auto srcTableID = relTableEntry->getSrcTableID();
     auto dstTableID = relTableEntry->getDstTableID();
@@ -235,11 +235,11 @@ void bindExpectedRelColumns(RelTableCatalogEntry* relTableEntry,
     columnNames.push_back("to");
     auto srcPKColumnType = *srcTable->getPrimaryKey()->getDataType();
     if (srcPKColumnType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-        srcPKColumnType = *LogicalType::INT64();
+        srcPKColumnType = LogicalType::INT64();
     }
     auto dstPKColumnType = *dstTable->getPrimaryKey()->getDataType();
     if (dstPKColumnType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-        dstPKColumnType = *LogicalType::INT64();
+        dstPKColumnType = LogicalType::INT64();
     }
     columnTypes.push_back(std::move(srcPKColumnType));
     columnTypes.push_back(std::move(dstPKColumnType));

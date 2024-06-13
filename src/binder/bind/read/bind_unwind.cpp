@@ -28,7 +28,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause
         ExpressionUtil::validateDataType(*boundExpression, LogicalTypeID::LIST);
         alias = createVariable(aliasName, ListType::getChildType(boundExpression->dataType));
     } else {
-        alias = createVariable(aliasName, *LogicalType::ANY());
+        alias = createVariable(aliasName, LogicalType::ANY());
     }
     std::shared_ptr<Expression> idExpr = nullptr;
     if (scope.hasMemorizedTableIDs(boundExpression->getAlias())) {

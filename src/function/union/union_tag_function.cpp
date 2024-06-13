@@ -9,7 +9,7 @@ namespace function {
 
 static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
     Function*) {
-    return FunctionBindData::getSimpleBindData(arguments, *LogicalType::STRING());
+    return FunctionBindData::getSimpleBindData(arguments, LogicalType::STRING());
 }
 
 function_set UnionTagFunction::getFunctionSet() {

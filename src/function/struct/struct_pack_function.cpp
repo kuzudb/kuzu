@@ -11,7 +11,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
     std::vector<StructField> fields;
     for (auto& argument : arguments) {
         if (argument->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
-            argument->cast(*LogicalType::STRING());
+            argument->cast(LogicalType::STRING());
         }
         fields.emplace_back(argument->getAlias(), argument->getDataType().copy());
     }

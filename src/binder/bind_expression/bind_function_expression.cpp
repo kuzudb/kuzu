@@ -84,7 +84,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         }
         auto childAfterCast = children[0];
         if (children[0]->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
-            childAfterCast = implicitCastIfNecessary(children[0], *LogicalType::STRING());
+            childAfterCast = implicitCastIfNecessary(children[0], LogicalType::STRING());
         }
         childrenAfterCast.push_back(std::move(childAfterCast));
     } else {
@@ -103,7 +103,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
             for (auto i = 0u; i < children.size(); ++i) {
                 auto id = function->isVarLength ? function->parameterTypeIDs[0] :
                                                   function->parameterTypeIDs[i];
-                auto type = id == LogicalTypeID::RDF_VARIANT ? *LogicalType::RDF_VARIANT() :
+                auto type = id == LogicalTypeID::RDF_VARIANT ? LogicalType:RDF_VARIANT() :
                                                                LogicalType(id);
                 childrenAfterCast.push_back(implicitCastIfNecessary(children[i], type));
             }

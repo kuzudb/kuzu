@@ -241,120 +241,120 @@ public:
     static std::vector<LogicalType> copy(const std::vector<LogicalType>& types);
     static std::vector<LogicalType> copy(const std::vector<LogicalType*>& types);
 
-    static std::unique_ptr<LogicalType> ANY() {
-        return std::make_unique<LogicalType>(LogicalTypeID::ANY);
+    static LogicalType ANY() {
+        return LogicalType(LogicalTypeID::ANY);
     }
-    static std::unique_ptr<LogicalType> BOOL() {
-        return std::make_unique<LogicalType>(LogicalTypeID::BOOL);
+    static LogicalType BOOL() {
+        return LogicalType(LogicalTypeID::BOOL);
     }
-    static std::unique_ptr<LogicalType> HASH() {
-        return std::make_unique<LogicalType>(LogicalTypeID::UINT64);
+    static LogicalType HASH() {
+        return LogicalType(LogicalTypeID::UINT64);
     }
-    static std::unique_ptr<LogicalType> INT64() {
-        return std::make_unique<LogicalType>(LogicalTypeID::INT64);
+    static LogicalType INT64() {
+        return LogicalType(LogicalTypeID::INT64);
     }
-    static std::unique_ptr<LogicalType> INT32() {
-        return std::make_unique<LogicalType>(LogicalTypeID::INT32);
+    static LogicalType INT32() {
+        return LogicalType(LogicalTypeID::INT32);
     }
-    static std::unique_ptr<LogicalType> INT16() {
-        return std::make_unique<LogicalType>(LogicalTypeID::INT16);
+    static LogicalType INT16() {
+        return LogicalType(LogicalTypeID::INT16);
     }
-    static std::unique_ptr<LogicalType> INT8() {
-        return std::make_unique<LogicalType>(LogicalTypeID::INT8);
+    static LogicalType INT8() {
+        return LogicalType(LogicalTypeID::INT8);
     }
-    static std::unique_ptr<LogicalType> UINT64() {
-        return std::make_unique<LogicalType>(LogicalTypeID::UINT64);
+    static LogicalType UINT64() {
+        return LogicalType(LogicalTypeID::UINT64);
     }
-    static std::unique_ptr<LogicalType> UINT32() {
-        return std::make_unique<LogicalType>(LogicalTypeID::UINT32);
+    static LogicalType UINT32() {
+        return LogicalType(LogicalTypeID::UINT32);
     }
-    static std::unique_ptr<LogicalType> UINT16() {
-        return std::make_unique<LogicalType>(LogicalTypeID::UINT16);
+    static LogicalType UINT16() {
+        return LogicalType(LogicalTypeID::UINT16);
     }
-    static std::unique_ptr<LogicalType> UINT8() {
-        return std::make_unique<LogicalType>(LogicalTypeID::UINT8);
+    static LogicalType UINT8() {
+        return LogicalType(LogicalTypeID::UINT8);
     }
-    static std::unique_ptr<LogicalType> INT128() {
-        return std::make_unique<LogicalType>(LogicalTypeID::INT128);
+    static LogicalType INT128() {
+        return LogicalType(LogicalTypeID::INT128);
     }
-    static std::unique_ptr<LogicalType> DOUBLE() {
-        return std::make_unique<LogicalType>(LogicalTypeID::DOUBLE);
+    static LogicalType DOUBLE() {
+        return LogicalType(LogicalTypeID::DOUBLE);
     }
-    static std::unique_ptr<LogicalType> FLOAT() {
-        return std::make_unique<LogicalType>(LogicalTypeID::FLOAT);
+    static LogicalType FLOAT() {
+        return LogicalType(LogicalTypeID::FLOAT);
     }
-    static std::unique_ptr<LogicalType> DATE() {
-        return std::make_unique<LogicalType>(LogicalTypeID::DATE);
+    static LogicalType DATE() {
+        return LogicalType(LogicalTypeID::DATE);
     }
-    static std::unique_ptr<LogicalType> TIMESTAMP_NS() {
-        return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP_NS);
+    static LogicalType TIMESTAMP_NS() {
+        return LogicalType(LogicalTypeID::TIMESTAMP_NS);
     }
-    static std::unique_ptr<LogicalType> TIMESTAMP_MS() {
-        return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP_MS);
+    static LogicalType TIMESTAMP_MS() {
+        return LogicalType(LogicalTypeID::TIMESTAMP_MS);
     }
-    static std::unique_ptr<LogicalType> TIMESTAMP_SEC() {
-        return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP_SEC);
+    static LogicalType TIMESTAMP_SEC() {
+        return LogicalType(LogicalTypeID::TIMESTAMP_SEC);
     }
-    static std::unique_ptr<LogicalType> TIMESTAMP_TZ() {
-        return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP_TZ);
+    static LogicalType TIMESTAMP_TZ() {
+        return LogicalType(LogicalTypeID::TIMESTAMP_TZ);
     }
-    static std::unique_ptr<LogicalType> TIMESTAMP() {
-        return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP);
+    static LogicalType TIMESTAMP() {
+        return LogicalType(LogicalTypeID::TIMESTAMP);
     }
-    static std::unique_ptr<LogicalType> INTERVAL() {
-        return std::make_unique<LogicalType>(LogicalTypeID::INTERVAL);
+    static LogicalType INTERVAL() {
+        return LogicalType(LogicalTypeID::INTERVAL);
     }
-    static std::unique_ptr<LogicalType> DECIMAL(uint32_t precision, uint32_t scale);
-    static std::unique_ptr<LogicalType> INTERNAL_ID() {
-        return std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID);
+    static LogicalType DECIMAL(uint32_t precision, uint32_t scale);
+    static LogicalType INTERNAL_ID() {
+        return LogicalType(LogicalTypeID::INTERNAL_ID);
     }
-    static std::unique_ptr<LogicalType> SERIAL() {
-        return std::make_unique<LogicalType>(LogicalTypeID::SERIAL);
+    static LogicalType SERIAL() {
+        return LogicalType(LogicalTypeID::SERIAL);
     }
-    static std::unique_ptr<LogicalType> STRING() {
-        return std::make_unique<LogicalType>(LogicalTypeID::STRING);
+    static LogicalType STRING() {
+        return LogicalType(LogicalTypeID::STRING);
     }
-    static std::unique_ptr<LogicalType> BLOB() {
-        return std::make_unique<LogicalType>(LogicalTypeID::BLOB);
+    static LogicalType BLOB() {
+        return LogicalType(LogicalTypeID::BLOB);
     }
-    static std::unique_ptr<LogicalType> UUID() {
-        return std::make_unique<LogicalType>(LogicalTypeID::UUID);
+    static LogicalType UUID() {
+        return LogicalType(LogicalTypeID::UUID);
     }
-    static std::unique_ptr<LogicalType> POINTER() {
-        return std::make_unique<LogicalType>(LogicalTypeID::POINTER);
+    static LogicalType POINTER() {
+        return LogicalType(LogicalTypeID::POINTER);
     }
-    static KUZU_API std::unique_ptr<LogicalType> STRUCT(std::vector<StructField>&& fields);
+    static KUZU_API LogicalType STRUCT(std::vector<StructField>&& fields);
 
-    static KUZU_API std::unique_ptr<LogicalType> RECURSIVE_REL(
+    static KUZU_API LogicalType RECURSIVE_REL(
         std::unique_ptr<StructTypeInfo> typeInfo);
 
-    static KUZU_API std::unique_ptr<LogicalType> NODE(std::unique_ptr<StructTypeInfo> typeInfo);
+    static KUZU_API LogicalType NODE(std::unique_ptr<StructTypeInfo> typeInfo);
 
-    static KUZU_API std::unique_ptr<LogicalType> REL(std::unique_ptr<StructTypeInfo> typeInfo);
+    static KUZU_API LogicalType REL(std::unique_ptr<StructTypeInfo> typeInfo);
 
-    static KUZU_API std::unique_ptr<LogicalType> RDF_VARIANT();
+    static KUZU_API LogicalType RDF_VARIANT();
 
-    static KUZU_API std::unique_ptr<LogicalType> UNION(std::vector<StructField>&& fields);
+    static KUZU_API LogicalType UNION(std::vector<StructField>&& fields);
 
-    static KUZU_API std::unique_ptr<LogicalType> LIST(std::unique_ptr<LogicalType> childType);
+    static KUZU_API LogicalType LIST(LogicalType childType);
     template<class T>
-    static inline std::unique_ptr<LogicalType> LIST(T&& childType) {
-        return LogicalType::LIST(std::make_unique<LogicalType>(std::forward<T>(childType)));
+    static inline LogicalType LIST(T&& childType) {
+        return LogicalType::LIST(LogicalType(std::forward<T>(childType)));
     }
 
-    static KUZU_API std::unique_ptr<LogicalType> MAP(std::unique_ptr<LogicalType> keyType,
-        std::unique_ptr<LogicalType> valueType);
+    static KUZU_API LogicalType MAP(LogicalType keyType,
+        LogicalType valueType);
     template<class T>
-    static std::unique_ptr<LogicalType> MAP(T&& keyType, T&& valueType) {
-        return LogicalType::MAP(std::make_unique<LogicalType>(std::forward<T>(keyType)),
-            std::make_unique<LogicalType>(std::forward<T>(valueType)));
+    static LogicalType MAP(T&& keyType, T&& valueType) {
+        return LogicalType::MAP(LogicalType(std::forward<T>(keyType)),
+            LogicalType(std::forward<T>(valueType)));
     }
 
-    static KUZU_API std::unique_ptr<LogicalType> ARRAY(std::unique_ptr<LogicalType> childType,
+    static KUZU_API LogicalType ARRAY(LogicalType childType,
         uint64_t numElements);
     template<class T>
-    static std::unique_ptr<LogicalType> ARRAY(T&& childType, uint64_t numElements) {
-        return LogicalType::ARRAY(std::make_unique<LogicalType>(std::forward<T>(childType)),
+    static LogicalType ARRAY(T&& childType, uint64_t numElements) {
+        return LogicalType::ARRAY(LogicalType(std::forward<T>(childType)),
             numElements);
     }
 

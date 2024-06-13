@@ -55,7 +55,7 @@ ListColumn::ListColumn(std::string name, LogicalType dataType,
           transaction, enableCompression, true /* requireNullColumn */} {
     auto sizeColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "");
     auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
-    sizeColumn = ColumnFactory::createColumn(sizeColName, *LogicalType::UINT32(),
+    sizeColumn = ColumnFactory::createColumn(sizeColName, LogicalType::UINT32(),
         *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataDAC, bufferManager, wal, transaction,
         enableCompression);
     dataColumn = ColumnFactory::createColumn(dataColName,
@@ -299,9 +299,9 @@ list_size_t ListColumn::readSize(Transaction* transaction, const ChunkState& rea
 ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
     const ChunkState& state, offset_t startOffsetInNodeGroup, offset_t endOffsetInNodeGroup) {
     auto numOffsetsToRead = endOffsetInNodeGroup - startOffsetInNodeGroup;
-    auto offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(*LogicalType::INT64(),
+    auto offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::INT64(),
         enableCompression, numOffsetsToRead);
-    auto sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(*LogicalType::UINT32(),
+    auto sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT32(),
         enableCompression, numOffsetsToRead);
     Column::scan(transaction, state, offsetColumnChunk.get(), startOffsetInNodeGroup,
         endOffsetInNodeGroup);

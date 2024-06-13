@@ -159,7 +159,7 @@ static void resizeUnionVector(ArrowVector* vector, const LogicalType& type, int6
 
 static void resizeInternalIDVector(ArrowVector* vector, const LogicalType& type, int64_t capacity) {
     resizeGeneric(vector, type, capacity);
-    auto childType = *LogicalType::INT64();
+    auto childType = LogicalType::INT64();
     resizeChildVectors(vector, {childType, childType}, vector->capacity);
 }
 
@@ -364,8 +364,8 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::INTERNAL_ID>(ArrowVe
     auto nodeID = value->getValue<nodeID_t>();
     Value offsetVal((std::int64_t)nodeID.offset);
     Value tableIDVal((std::int64_t)nodeID.tableID);
-    appendValue(vector->childData[0].get(), *LogicalType::INT64(), &offsetVal);
-    appendValue(vector->childData[1].get(), *LogicalType::INT64(), &tableIDVal);
+    appendValue(vector->childData[0].get(), LogicalType::INT64(), &offsetVal);
+    appendValue(vector->childData[1].get(), LogicalType::INT64(), &tableIDVal);
 }
 
 template<>
@@ -770,7 +770,7 @@ ArrowArray* ArrowRowBatch::convertInternalIDVectorToArray(ArrowVector& vector,
     result->children = vector.childPointers.data();
     result->n_children = 2;
     for (auto i = 0; i < 2; i++) {
-        auto childType = *LogicalType::INT64();
+        auto childType = LogicalType::INT64();
         vector.childPointers[i] = convertVectorToArray(*vector.childData[i], childType);
     }
     vector.array = std::move(result);
