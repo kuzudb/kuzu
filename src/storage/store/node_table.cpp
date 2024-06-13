@@ -173,13 +173,13 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
     localTable->update(updateState);
 }
 
-void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
+bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
     const auto& nodeDeleteState =
         ku_dynamic_cast<TableDeleteState&, NodeTableDeleteState&>(deleteState);
     KU_ASSERT(nodeDeleteState.nodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto pos = nodeDeleteState.nodeIDVector.state->getSelVector()[0];
     if (nodeDeleteState.nodeIDVector.isNull(pos)) {
-        return;
+        return false;
     }
     pkIndex->delete_(&nodeDeleteState.pkVector);
     const auto nodeOffset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
@@ -187,7 +187,7 @@ void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
         ->deleteNode(tableID, nodeOffset);
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
-    localTable->delete_(deleteState);
+    return localTable->delete_(deleteState);
 }
 
 void NodeTable::addColumn(Transaction* transaction, const Property& property,

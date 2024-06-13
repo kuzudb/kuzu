@@ -61,14 +61,16 @@ void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
     localTable->update(updateState);
 }
 
-void RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
+bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
     if (localTable->delete_(deleteState)) {
         const auto relsStats =
             ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
         relsStats->updateNumTuplesByValue(tableID, -1);
+        return true;
     }
+    return false;
 }
 
 void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
