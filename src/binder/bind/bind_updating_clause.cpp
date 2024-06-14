@@ -256,7 +256,10 @@ expression_vector Binder::bindInsertColumnDataExprs(
         } else {
             rhs = expressionBinder.bindExpression(*property.getDefaultExpr());
         }
-        rhs = expressionBinder.implicitCastIfNecessary(rhs, *property.getDataType());
+        // TODO(Sam): tmp workaround for poc, need to handle this
+        if (property.getDataType()->getLogicalTypeID() != LogicalTypeID::INTERNAL_ID) {
+            rhs = expressionBinder.implicitCastIfNecessary(rhs, *property.getDataType());
+        }
         result.push_back(std::move(rhs));
     }
     return result;

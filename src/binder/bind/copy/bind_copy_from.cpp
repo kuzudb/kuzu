@@ -136,10 +136,10 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     auto dstKey = columns[1];
     auto srcOffset = createVariable(InternalKeyword::SRC_OFFSET, LogicalTypeID::INT64);
     auto dstOffset = createVariable(InternalKeyword::DST_OFFSET, LogicalTypeID::INT64);
-    expression_vector columnExprs{srcOffset, dstOffset, offset};
-    std::vector<bool> defaultColumns{false, false, false};
+    expression_vector columnExprs{srcOffset, dstOffset};
+    std::vector<bool> defaultColumns{false, false};
     auto& properties = relTableEntry->getPropertiesRef();
-    for (auto i = 1u; i < properties.size(); ++i) { // skip internal ID
+    for (auto i = 0u; i < properties.size(); ++i) { // skip internal ID
         auto& property = properties[i];
         auto expr = matchColumnExpression(columns, property.getName());
         auto isDefault = !expr;

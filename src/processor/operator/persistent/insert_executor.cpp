@@ -1,7 +1,5 @@
 #include "processor/operator/persistent/insert_executor.h"
 
-#include "storage/stats/rels_store_statistics.h"
-
 using namespace kuzu::common;
 using namespace kuzu::transaction;
 
@@ -119,6 +117,13 @@ void RelInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
         evaluator->init(*resultSet, context->clientContext);
         columnDataVectors.push_back(evaluator->resultVector.get());
     }
+    auto prevState = columnDataVectors[0]->state;
+    columnDataEvaluators[0]->resultVector = std::make_shared<ValueVector>(
+        LogicalTypeID::INTERNAL_ID, context->clientContext->getMemoryManager());
+    columnDataEvaluators[0]->resultVector->setState(prevState);
+    columnDataVectors[0] = columnDataEvaluators[0]->resultVector.get();
+    auto& iid = columnDataVectors[0]->getValue<internalID_t>(0);
+    iid.tableID = table->getTableID();
 }
 
 void RelInsertExecutor::insert(transaction::Transaction* tx) {
@@ -136,11 +141,8 @@ void RelInsertExecutor::insert(transaction::Transaction* tx) {
         }
         return;
     }
-    auto offset = relsStatistics->getNextRelOffset(tx, table->getTableID());
-    columnDataVectors[0]->setValue<internalID_t>(0, internalID_t{offset, table->getTableID()});
-    columnDataVectors[0]->setNull(0, false);
-    for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
-        columnDataEvaluators[i]->evaluate();
+    for (auto& evaluator : columnDataEvaluators) {
+        evaluator->evaluate();
     }
     auto insertState = std::make_unique<storage::RelTableInsertState>(*srcNodeIDVector,
         *dstNodeIDVector, columnDataVectors);
@@ -149,8 +151,8 @@ void RelInsertExecutor::insert(transaction::Transaction* tx) {
 }
 
 void RelInsertExecutor::skipInsert() {
-    for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
-        columnDataEvaluators[i]->evaluate();
+    for (auto& evaluator : columnDataEvaluators) {
+        evaluator->evaluate();
     }
     writeResult();
 }
