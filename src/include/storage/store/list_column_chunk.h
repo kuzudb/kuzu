@@ -6,34 +6,15 @@
 namespace kuzu {
 namespace storage {
 
-// TODO(Guodong): Let's simplify the data structure here by getting rid of this class.
-struct ListDataColumnChunk {
-    std::unique_ptr<ColumnChunkData> dataColumnChunk;
-    uint64_t capacity;
-
-    explicit ListDataColumnChunk(std::unique_ptr<ColumnChunkData> dataChunk)
-        : dataColumnChunk{std::move(dataChunk)}, capacity{this->dataColumnChunk->capacity} {}
-
-    void reset() const;
-
-    void resizeBuffer(uint64_t numValues);
-
-    void append(common::ValueVector* dataVector, const common::SelectionVector& selVector) const {
-        dataColumnChunk->append(dataVector, selVector);
-    }
-
-    uint64_t getNumValues() const { return dataColumnChunk->getNumValues(); }
-};
-
 class ListChunkData final : public ColumnChunkData {
 
 public:
     ListChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
         bool inMemory);
 
-    ColumnChunkData* getDataColumnChunk() const {
-        return listDataColumnChunk->dataColumnChunk.get();
-    }
+    ColumnChunkData* getOffsetColumnChunk() const { return offsetColumnChunk.get(); }
+
+    ColumnChunkData* getDataColumnChunk() const { return dataColumnChunk.get(); }
 
     ColumnChunkData* getSizeColumnChunk() const { return sizeColumnChunk.get(); }
 
@@ -42,6 +23,7 @@ public:
     void setNumValues(uint64_t numValues_) override {
         ColumnChunkData::setNumValues(numValues_);
         sizeColumnChunk->setNumValues(numValues_);
+        offsetColumnChunk->setNumValues(numValues_);
     }
 
     void append(common::ValueVector* vector, const common::SelectionVector& selVector) final;
@@ -59,11 +41,12 @@ public:
     void copy(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
-    void resizeDataColumnChunk(uint64_t numValues) { listDataColumnChunk->resizeBuffer(numValues); }
+    void resizeDataColumnChunk(uint64_t numValues) { dataColumnChunk->resize(numValues); }
 
     void resize(uint64_t newCapacity) override {
         ColumnChunkData::resize(newCapacity);
         sizeColumnChunk->resize(newCapacity);
+        offsetColumnChunk->resize(newCapacity);
     }
 
     common::offset_t getListStartOffset(common::offset_t offset) const;
@@ -87,9 +70,12 @@ private:
 
     void appendNullList();
 
+    void setOffsetChunkValue(common::offset_t val, common::offset_t pos);
+
 protected:
+    std::unique_ptr<ColumnChunkData> offsetColumnChunk;
     std::unique_ptr<ColumnChunkData> sizeColumnChunk;
-    std::unique_ptr<ListDataColumnChunk> listDataColumnChunk;
+    std::unique_ptr<ColumnChunkData> dataColumnChunk;
     // we use checkOffsetSortedAsc flag to indicate that we do not trigger random write
     bool checkOffsetSortedAsc;
 };

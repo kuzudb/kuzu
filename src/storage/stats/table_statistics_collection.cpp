@@ -74,12 +74,16 @@ std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(
             createMetadataDAHInfo(*LogicalType::UINT32(), metadataDAC));
         metadataDAHInfo->childrenInfos.push_back(
             createMetadataDAHInfo(ListType::getChildType(dataType), metadataDAC));
+        metadataDAHInfo->childrenInfos.push_back(
+            createMetadataDAHInfo(*LogicalType::UINT64(), metadataDAC));
     } break;
     case PhysicalTypeID::ARRAY: {
         metadataDAHInfo->childrenInfos.push_back(
             createMetadataDAHInfo(*LogicalType::UINT32(), metadataDAC));
         metadataDAHInfo->childrenInfos.push_back(
             createMetadataDAHInfo(ArrayType::getChildType(dataType), metadataDAC));
+        metadataDAHInfo->childrenInfos.push_back(
+            createMetadataDAHInfo(*LogicalType::UINT64(), metadataDAC));
     } break;
     case PhysicalTypeID::STRING: {
         metadataDAHInfo->childrenInfos.resize(StringColumn::CHILD_STATE_COUNT);

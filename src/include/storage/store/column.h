@@ -46,6 +46,9 @@ public:
         ChunkState(ColumnChunkMetadata metadata, uint64_t numValuesPerPage)
             : metadata{std::move(metadata)}, numValuesPerPage{numValuesPerPage} {}
 
+        ChunkState& getChildState(common::idx_t child);
+        const ChunkState& getChildState(common::idx_t child) const;
+
         ColumnChunkMetadata metadata;
         uint64_t numValuesPerPage = UINT64_MAX;
         common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
@@ -112,6 +115,9 @@ public:
         const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunks,
         const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo);
     virtual void prepareCommitForExistingChunk(transaction::Transaction* transaction,
+        ChunkState& state, const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
+        common::offset_t startSrcOffset);
+    virtual void prepareCommitForExistingChunkInPlace(transaction::Transaction* transaction,
         ChunkState& state, const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
         common::offset_t startSrcOffset);
 

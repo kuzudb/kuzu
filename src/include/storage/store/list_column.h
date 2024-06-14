@@ -45,6 +45,8 @@ struct ListOffsetSizeInfo {
 class ListColumn final : public Column {
     static constexpr common::idx_t SIZE_COLUMN_CHILD_READ_STATE_IDX = 0;
     static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 1;
+    static constexpr common::idx_t OFFSET_COLUMN_CHILD_READ_STATE_IDX = 2;
+    static constexpr size_t CHILD_COLUMN_COUNT = 3;
 
 public:
     ListColumn(std::string name, common::LogicalType dataType,
@@ -110,7 +112,10 @@ private:
         ChunkState& offsetState, const std::vector<common::offset_t>& dstOffsets,
         ColumnChunkData* chunk, common::offset_t startSrcOffset);
 
+    void updateStateMetadataNumValues(ChunkState& state, size_t numValues) override;
+
 private:
+    std::unique_ptr<Column> offsetColumn;
     std::unique_ptr<Column> sizeColumn;
     std::unique_ptr<Column> dataColumn;
 };

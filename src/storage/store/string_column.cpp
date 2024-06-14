@@ -36,15 +36,13 @@ StringColumn::StringColumn(std::string name, LogicalType dataType,
 
 Column::ChunkState& StringColumn::getChildState(ChunkState& state, ChildStateIndex child) {
     const auto childIdx = static_cast<common::idx_t>(child);
-    KU_ASSERT(state.childrenStates.size() > childIdx);
-    return state.childrenStates[childIdx];
+    return state.getChildState(childIdx);
 }
 
 const Column::ChunkState& StringColumn::getChildState(const ChunkState& state,
     ChildStateIndex child) {
     const auto childIdx = static_cast<common::idx_t>(child);
-    KU_ASSERT(state.childrenStates.size() > childIdx);
-    return state.childrenStates[childIdx];
+    return state.getChildState(childIdx);
 }
 
 void StringColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -70,12 +68,8 @@ void StringColumn::scan(Transaction* transaction, const ChunkState& state,
 void StringColumn::scan(Transaction* transaction, const ChunkState& state,
     ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
     KU_ASSERT(state.nullState);
-    nullColumn->scan(transaction, *state.nullState, columnChunk->getNullChunk(), startOffset,
-        endOffset);
-    const size_t numValuesToScan =
-        getNumValuesFromDisk(metadataDA.get(), transaction, state, startOffset, endOffset);
-    columnChunk->setNumValues(numValuesToScan);
-    if (numValuesToScan == 0) {
+    Column::scan(transaction, state, columnChunk, startOffset, endOffset);
+    if (columnChunk->getNumValues() == 0) {
         return;
     }
 
