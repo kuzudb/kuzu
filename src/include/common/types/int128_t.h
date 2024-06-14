@@ -69,6 +69,7 @@ int128_t operator/(const int128_t& lhs, const int128_t& rhs);
 int128_t operator%(const int128_t& lhs, const int128_t& rhs);
 int128_t operator^(const int128_t& lhs, const int128_t& rhs);
 int128_t operator&(const int128_t& lhs, const int128_t& rhs);
+int128_t operator~(const int128_t& val);
 int128_t operator|(const int128_t& lhs, const int128_t& rhs);
 int128_t operator<<(const int128_t& lhs, int amount);
 int128_t operator>>(const int128_t& lhs, int amount);
@@ -133,6 +134,7 @@ public:
     static int128_t RightShift(int128_t lhs, int amount);
     static int128_t BinaryAnd(int128_t lhs, int128_t rhs);
     static int128_t BinaryOr(int128_t lhs, int128_t rhs);
+    static int128_t BinaryNot(int128_t val);
 
     static int128_t divMod(int128_t lhs, int128_t rhs, int128_t& remainder);
     static int128_t divModPositive(int128_t lhs, uint64_t rhs, uint64_t& remainder);

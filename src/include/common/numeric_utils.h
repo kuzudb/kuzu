@@ -48,6 +48,16 @@ template<typename T>
 using MakeUnSignedT = MakeUnSigned<T>::type;
 
 template<typename T>
+decltype(auto) MakeValueSigned(T value) {
+    return static_cast<MakeSignedT<T>>(value);
+}
+
+template<typename T>
+decltype(auto) MakeValueUnSigned(T value) {
+    return static_cast<MakeUnSignedT<T>>(value);
+}
+
+template<typename T>
 constexpr int BitWidth(T x) {
     return std::bit_width(x);
 }
