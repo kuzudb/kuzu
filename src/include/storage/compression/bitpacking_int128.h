@@ -1,0 +1,14 @@
+#pragma once
+
+#include "common/types/int128_t.h"
+
+namespace kuzu::storage {
+
+struct Int128Packer {
+    static void pack(const common::int128_t* __restrict in, uint32_t* __restrict out,
+        uint8_t width);
+    static void unpack(const uint32_t* __restrict in, common::int128_t* __restrict out,
+        uint8_t width);
+};
+
+} // namespace kuzu::storage

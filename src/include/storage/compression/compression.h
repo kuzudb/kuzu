@@ -285,6 +285,8 @@ concept IntegerBitpackingType = (std::integral<T> && !std::same_as<T, bool>);
 template<IntegerBitpackingType T>
 class IntegerBitpacking : public CompressionAlg {
     using U = common::NumericUtils::MakeUnSignedT<T>;
+
+public:
     // This is an implementation detail of the fastpfor bitpacking algorithm
     static constexpr uint64_t CHUNK_SIZE = 32;
 
