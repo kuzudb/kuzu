@@ -262,9 +262,7 @@ void UndoBuffer::rollbackSequenceEntry(const uint8_t* entry) {
     auto& usageCount = *reinterpret_cast<uint64_t const*>(entry);
     entry += sizeof(uint64_t);
     auto& currVal = *reinterpret_cast<int64_t const*>(entry);
-    entry += sizeof(int64_t);
-    auto& nextVal = *reinterpret_cast<int64_t const*>(entry);
-    entry += sizeof(int64_t);
+    entry += sizeof(int64_t) * 2;
     auto& prevVal = *reinterpret_cast<int64_t const*>(entry);
     sequenceEntry->replayVal(usageCount - 1, prevVal, currVal);
 }

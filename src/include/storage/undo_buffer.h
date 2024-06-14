@@ -8,7 +8,7 @@ namespace catalog {
 class CatalogEntry;
 class CatalogSet;
 class SequenceCatalogEntry;
-class SequenceData;
+struct SequenceData;
 } // namespace catalog
 namespace main {
 class ClientContext;
