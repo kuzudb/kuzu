@@ -5,6 +5,9 @@
 #include "storage/store/table.h"
 
 namespace kuzu {
+namespace evaluator {
+    class ExpressionEvaluator;
+} // namespace evaluator
 namespace storage {
 
 struct RelTableScanState final : TableScanState {
@@ -97,7 +100,7 @@ public:
         common::RelDataDirection direction, common::ValueVector* srcNodeIDVector);
 
     void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
-        common::ValueVector* defaultValueVector) override;
+        evaluator::ExpressionEvaluator& defaultEvaluator) override;
     void dropColumn(common::column_id_t columnID) override {
         fwdRelTableData->dropColumn(columnID);
         bwdRelTableData->dropColumn(columnID);

@@ -458,11 +458,17 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     auto defaultValue = std::move(extraInfo->defaultValue);
     auto boundDefault = expressionBinder.implicitCastIfNecessary(
         expressionBinder.bindExpression(*defaultValue), dataType);
-    // Eventually, we want to support this, but it is non-trivial due to FWD/BWD storage of rel
-    // tables
-    if (boundDefault->expressionType != ExpressionType::LITERAL ||
-        dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-        throw BinderException("Cannot set a non-constant default value when adding columns.");
+    if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
+        validateSerialNoDefault(*boundDefault);
+        defaultValue = createSerialDefaultExpr(Catalog::genSerialName(tableName, propertyName));
+        boundDefault = expressionBinder.implicitCastIfNecessary(
+            expressionBinder.bindExpression(*defaultValue), dataType);
+    }
+    // Eventually, we want to support non-constant default on rel tables, but it is non-trivial due
+    // to FWD/BWD storage
+    if (tableSchema->getType() == CatalogEntryType::REL_TABLE_ENTRY && 
+        boundDefault->expressionType != ExpressionType::LITERAL) {
+        throw BinderException("Cannot set a non-constant default value when adding columns on REL tables.");
     }
     auto boundExtraInfo = std::make_unique<BoundExtraAddPropertyInfo>(propertyName, dataType,
         std::move(defaultValue), std::move(boundDefault));

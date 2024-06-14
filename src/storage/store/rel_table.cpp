@@ -9,6 +9,7 @@
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::transaction;
+using namespace kuzu::evaluator;
 
 namespace kuzu {
 namespace storage {
@@ -150,7 +151,7 @@ row_idx_t RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableDat
 //
 //>>>>>>> 5cbfe998f (Fix issue-3166)
 void RelTable::addColumn(Transaction* transaction, const Property& property,
-    ValueVector* defaultValueVector) {
+    ExpressionEvaluator& defaultEvaluator) {
     const auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
     relsStats->addMetadataDAHInfo(tableID, *property.getDataType());
     fwdRelTableData->addColumn(transaction,
@@ -158,13 +159,13 @@ void RelTable::addColumn(Transaction* transaction, const Property& property,
         fwdRelTableData->getNbrIDColumn()->getMetadataDA(),
         *relsStats->getColumnMetadataDAHInfo(transaction, tableID, fwdRelTableData->getNumColumns(),
             RelDataDirection::FWD),
-        property, defaultValueVector);
+        property, defaultEvaluator);
     bwdRelTableData->addColumn(transaction,
         RelDataDirectionUtils::relDirectionToString(RelDataDirection::BWD),
         bwdRelTableData->getNbrIDColumn()->getMetadataDA(),
         *relsStats->getColumnMetadataDAHInfo(transaction, tableID, bwdRelTableData->getNumColumns(),
             RelDataDirection::BWD),
-        property, defaultValueVector);
+        property, defaultEvaluator);
     // TODO(Guodong): addColumn is not going through localStorage design for now. So it needs to add
     // tableID into the wal's updated table set separately, as it won't trigger prepareCommit.
     wal->addToUpdatedTables(tableID);
