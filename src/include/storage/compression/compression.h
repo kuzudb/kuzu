@@ -24,15 +24,19 @@ class ColumnChunkData;
 struct PageCursor;
 
 template<typename T>
-concept StorageValueType = (std::integral<T> || std::floating_point<T>);
+concept StorageValueType = (common::NumericUtils::IsIntegral<T> || std::floating_point<T>);
 // Type storing values in the column chunk statistics
-// Only supports integers (up to 64bit), floats and bools
+// Only supports integers (up to 128bit), floats and bools
 union StorageValue {
     int64_t signedInt;
     uint64_t unsignedInt;
     double floatVal;
+    common::int128_t signedInt128;
 
     StorageValue() = default;
+    template<typename T>
+    requires std::same_as<std::remove_cvref_t<T>, common::int128_t>
+    explicit StorageValue(T value) : signedInt128(value) {}
     template<typename T>
     requires std::integral<T> && common::NumericUtils::IsSigned<T>
     explicit StorageValue(T value) : signedInt(value) {}
@@ -60,35 +64,14 @@ union StorageValue {
             } else {
                 return static_cast<T>(unsignedInt);
             }
+        } else if constexpr (std::same_as<std::remove_cvref_t<T>, common::int128_t>) {
+            return signedInt128;
         } else if constexpr (std::is_floating_point<T>()) {
             return floatVal;
         }
     }
 
-    bool gt(const StorageValue& other, common::PhysicalTypeID type) const {
-        switch (type) {
-        case common::PhysicalTypeID::BOOL:
-        case common::PhysicalTypeID::LIST:
-        case common::PhysicalTypeID::ARRAY:
-        case common::PhysicalTypeID::INTERNAL_ID:
-        case common::PhysicalTypeID::STRING:
-        case common::PhysicalTypeID::UINT64:
-        case common::PhysicalTypeID::UINT32:
-        case common::PhysicalTypeID::UINT16:
-        case common::PhysicalTypeID::UINT8:
-            return this->unsignedInt > other.unsignedInt;
-        case common::PhysicalTypeID::INT64:
-        case common::PhysicalTypeID::INT32:
-        case common::PhysicalTypeID::INT16:
-        case common::PhysicalTypeID::INT8:
-            return this->signedInt > other.signedInt;
-        case common::PhysicalTypeID::FLOAT:
-        case common::PhysicalTypeID::DOUBLE:
-            return this->floatVal > other.floatVal;
-        default:
-            KU_UNREACHABLE;
-        }
-    }
+    bool gt(const StorageValue& other, common::PhysicalTypeID type) const;
 
     // If the type cannot be stored in the statistics, readFromVector will return nullopt
     static std::optional<StorageValue> readFromVector(const common::ValueVector& vector,
@@ -279,7 +262,7 @@ struct BitpackInfo {
 };
 
 template<typename T>
-concept IntegerBitpackingType = (std::integral<T> && !std::same_as<T, bool>);
+concept IntegerBitpackingType = (common::NumericUtils::IsIntegral<T> && !std::same_as<T, bool>);
 
 // Augmented with Frame of Reference encoding using an offset stored in the compression metadata
 template<IntegerBitpackingType T>

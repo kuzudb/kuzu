@@ -141,6 +141,9 @@ static std::shared_ptr<CompressionAlg> getCompression(const LogicalType& dataTyp
         return std::make_shared<Uncompressed>(dataType);
     }
     switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::INT128: {
+        return std::make_shared<IntegerBitpacking<int128_t>>();
+    }
     case PhysicalTypeID::INT64: {
         return std::make_shared<IntegerBitpacking<int64_t>>();
     }

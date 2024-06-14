@@ -81,6 +81,7 @@ static void unpackLast(const uint32_t* __restrict& in, common::int128_t* __restr
 }
 
 // Unpacks for specific deltas
+// NOLINTNEXTLINE keep unused parameter 'in' for consistency in signatures with other functions
 static void unpackDelta0(const uint32_t* __restrict in, common::int128_t* __restrict out) {
     for (uint8_t i = 0; i < 32; ++i) {
         out[i] = 0;
@@ -266,17 +267,17 @@ void Int128Packer::pack(const common::int128_t* __restrict in, uint32_t* __restr
     case 96:
         packDelta96(in, out);
         break;
-    // don't compress 127 bit width to avoid underflow when calculating mask (1<<127)-1
-    case 127:
     case 128:
         packDelta128(in, out);
         break;
     default:
+        static constexpr uint8_t num_bits_in_t_u = sizeof(common::int128_t) * 8;
+        const auto and_mask =
+            (~(common::int128_t(1) << (num_bits_in_t_u - 1))) >> (num_bits_in_t_u - 1 - width);
         for (common::idx_t oindex = 0; oindex < IntegerBitpacking<uint32_t>::CHUNK_SIZE - 1;
              ++oindex) {
             packSingle(in[oindex], out, width,
-                (width * oindex) % IntegerBitpacking<uint32_t>::CHUNK_SIZE,
-                (common::int128_t(1) << width) - 1);
+                (width * oindex) % IntegerBitpacking<uint32_t>::CHUNK_SIZE, and_mask);
         }
         packLast(in, out, width);
     }
@@ -298,7 +299,6 @@ void Int128Packer::unpack(const uint32_t* __restrict in, common::int128_t* __res
     case 96:
         unpackDelta96(in, out);
         break;
-    case 127:
     case 128:
         unpackDelta128(in, out);
         break;

@@ -4,6 +4,7 @@
 
 #include "common/exception/overflow.h"
 #include "common/exception/runtime.h"
+#include "common/numeric_utils.h"
 #include "common/type_utils.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "function/hash/hash_functions.h"
@@ -367,6 +368,10 @@ int128_t Int128_t::BinaryOr(int128_t lhs, int128_t rhs) {
     return result;
 }
 
+int128_t Int128_t::BinaryNot(int128_t val) {
+    return int128_t{~val.low, ~val.high};
+}
+
 int128_t Int128_t::LeftShift(int128_t lhs, int amount) {
     // adapted from
     // https://github.com/abseil/abseil-cpp/blob/master/absl/numeric/int128.h
@@ -374,15 +379,16 @@ int128_t Int128_t::LeftShift(int128_t lhs, int amount) {
            amount == 0  ? lhs :
                           int128_t{lhs.low << amount,
                              (lhs.high << amount) |
-                                 (static_cast<decltype(lhs.high)>(lhs.low) >> (64 - amount))};
+                                 (NumericUtils::MakeValueSigned(lhs.low >> (64 - amount)))};
 }
 
 int128_t Int128_t::RightShift(int128_t lhs, int amount) {
     // adapted from
     // https://github.com/abseil/abseil-cpp/blob/master/absl/numeric/int128.h
     return amount >= 64 ?
-               int128_t(lhs.high >> (amount - 64), 0) :
-           amount == 0 ?
+               // we shift the high value regardless for sign extension
+               int128_t(lhs.high >> (amount - 64), lhs.high >> 63) :
+               amount == 0 ?
                lhs :
                int128_t((lhs.low >> amount) | (lhs.high << (64 - amount)), lhs.high >> amount);
 }
@@ -704,6 +710,10 @@ int128_t operator&(const int128_t& lhs, const int128_t& rhs) {
 
 int128_t operator|(const int128_t& lhs, const int128_t& rhs) {
     return Int128_t::BinaryOr(lhs, rhs);
+}
+
+int128_t operator~(const int128_t& val) {
+    return Int128_t::BinaryNot(val);
 }
 
 int128_t operator<<(const int128_t& lhs, int amount) {

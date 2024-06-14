@@ -15,9 +15,9 @@
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "fastpfor/bitpackinghelpers.h"
+#include "storage/compression/bitpacking_int128.h"
 #include "storage/compression/sign_extend.h"
 #include "storage/storage_utils.h"
-#include <bit>
 
 using namespace kuzu::common;
 
@@ -165,6 +165,8 @@ uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& da
     }
     case CompressionType::INTEGER_BITPACKING: {
         switch (dataType.getPhysicalType()) {
+        case PhysicalTypeID::INT128:
+            return IntegerBitpacking<int128_t>::numValues(pageSize, *this);
         case PhysicalTypeID::INT64:
             return IntegerBitpacking<int64_t>::numValues(pageSize, *this);
         case PhysicalTypeID::INT32:
@@ -231,7 +233,8 @@ std::optional<CompressionMetadata> ConstantCompression::analyze(const ColumnChun
     case PhysicalTypeID::INT8:
     case PhysicalTypeID::INT16:
     case PhysicalTypeID::INT32:
-    case PhysicalTypeID::INT64: {
+    case PhysicalTypeID::INT64:
+    case PhysicalTypeID::INT128: {
         uint8_t size = chunk.getNumBytesPerValue();
         StorageValue value;
         KU_ASSERT(size <= sizeof(value.unsignedInt));
@@ -266,7 +269,7 @@ std::string CompressionMetadata::toString(const PhysicalTypeID physicalType) con
                 return IntegerBitpacking<uint64_t>::getPackingInfo(*this).bitWidth;
             },
             [](bool) -> uint8_t { KU_UNREACHABLE; },
-            [&]<std::integral T>(
+            [&]<NumericUtils::IsIntegral T>(
                 T) { return IntegerBitpacking<T>::getPackingInfo(*this).bitWidth; },
             [](auto) -> uint8_t { KU_UNREACHABLE; });
         return stringFormat("INTEGER_BITPACKING[{}]", bitWidth);
@@ -295,9 +298,7 @@ void ConstantCompression::decompressValues(uint8_t* dstBuffer, uint64_t dstOffse
             std::fill(reinterpret_cast<uint64_t*>(start), reinterpret_cast<uint64_t*>(end),
                 metadata.min.get<uint64_t>());
         },
-        [&]<typename T>
-            requires(std::integral<T> || std::floating_point<T>)
-        (T) {
+        [&]<typename T> requires(NumericUtils::IsIntegral<T> || std::floating_point<T>)(T) {
             std::fill(reinterpret_cast<T*>(start), reinterpret_cast<T*>(end),
                 metadata.min.get<T>());
         },
@@ -329,13 +330,13 @@ template<typename T>
 inline T abs(T value);
 
 template<typename T>
-    requires std::is_unsigned_v<T>
+requires std::is_unsigned_v<T>
 inline T abs(T value) {
     return value;
 }
 
 template<typename T>
-    requires std::is_signed_v<T>
+requires std::is_signed_v<T>
 inline T abs(T value) {
     return std::abs(value);
 }
@@ -416,6 +417,7 @@ void fastunpack(const uint8_t* in, T* out, uint32_t bitWidth) {
         FastPForLib::fastunpack((const uint8_t*)in, out, bitWidth);
     } else {
         static_assert(std::is_same_v<NumericUtils::MakeSignedT<T>, int128_t>);
+        Int128Packer::unpack(reinterpret_cast<const uint32_t*>(in), out, bitWidth);
     }
 }
 
@@ -430,6 +432,7 @@ void fastpack(const T* in, uint8_t* out, uint8_t bitWidth) {
         FastPForLib::fastpack(in, (uint8_t*)out, bitWidth);
     } else {
         static_assert(std::is_same_v<NumericUtils::MakeSignedT<T>, int128_t>);
+        Int128Packer::pack(in, reinterpret_cast<uint32_t*>(out), bitWidth);
     }
 }
 
@@ -602,6 +605,7 @@ template class IntegerBitpacking<int8_t>;
 template class IntegerBitpacking<int16_t>;
 template class IntegerBitpacking<int32_t>;
 template class IntegerBitpacking<int64_t>;
+template class IntegerBitpacking<int128_t>;
 template class IntegerBitpacking<uint8_t>;
 template class IntegerBitpacking<uint16_t>;
 template class IntegerBitpacking<uint32_t>;
@@ -655,6 +659,10 @@ void ReadCompressedValuesFromPageToVector::operator()(const uint8_t* frame, Page
             resultVector->getData(), posInVector, numValuesToRead, metadata);
     case CompressionType::INTEGER_BITPACKING: {
         switch (physicalType) {
+        case PhysicalTypeID::INT128: {
+            return IntegerBitpacking<int128_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
+                resultVector->getData(), posInVector, numValuesToRead, metadata);
+        }
         case PhysicalTypeID::INT64: {
             return IntegerBitpacking<int64_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 resultVector->getData(), posInVector, numValuesToRead, metadata);
@@ -714,6 +722,10 @@ void ReadCompressedValuesFromPage::operator()(const uint8_t* frame, PageCursor& 
             startPosInResult, numValuesToRead, metadata);
     case CompressionType::INTEGER_BITPACKING: {
         switch (physicalType) {
+        case PhysicalTypeID::INT128: {
+            return IntegerBitpacking<int128_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
+                result, startPosInResult, numValuesToRead, metadata);
+        }
         case PhysicalTypeID::INT64: {
             return IntegerBitpacking<int64_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 result, startPosInResult, numValuesToRead, metadata);
@@ -780,7 +792,7 @@ void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame
             } else if constexpr (std::same_as<T, internalID_t>) {
                 IntegerBitpacking<uint64_t>().setValuesFromUncompressed(data, dataOffset, frame,
                     posInFrame, numValues, metadata, nullMask);
-            } else if constexpr (std::integral<T>) {
+            } else if constexpr (NumericUtils::IsIntegral<T>) {
                 return IntegerBitpacking<T>().setValuesFromUncompressed(data, dataOffset, frame,
                     posInFrame, numValues, metadata, nullMask);
             } else {
@@ -819,6 +831,33 @@ std::optional<StorageValue> StorageValue::readFromVector(const common::ValueVect
         [](auto) { return std::optional<StorageValue>(); });
 }
 
+bool StorageValue::gt(const StorageValue& other, common::PhysicalTypeID type) const {
+    switch (type) {
+    case common::PhysicalTypeID::BOOL:
+    case common::PhysicalTypeID::LIST:
+    case common::PhysicalTypeID::ARRAY:
+    case common::PhysicalTypeID::INTERNAL_ID:
+    case common::PhysicalTypeID::STRING:
+    case common::PhysicalTypeID::UINT64:
+    case common::PhysicalTypeID::UINT32:
+    case common::PhysicalTypeID::UINT16:
+    case common::PhysicalTypeID::UINT8:
+        return this->unsignedInt > other.unsignedInt;
+    case common::PhysicalTypeID::INT128:
+        return this->signedInt128 > other.signedInt128;
+    case common::PhysicalTypeID::INT64:
+    case common::PhysicalTypeID::INT32:
+    case common::PhysicalTypeID::INT16:
+    case common::PhysicalTypeID::INT8:
+        return this->signedInt > other.signedInt;
+    case common::PhysicalTypeID::FLOAT:
+    case common::PhysicalTypeID::DOUBLE:
+        return this->floatVal > other.floatVal;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
 std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxStorageValue(
     const uint8_t* data, uint64_t offset, uint64_t numValues, PhysicalTypeID physicalType,
     const NullMask* nullMask, bool valueRequiredIfUnsupported) {
@@ -848,28 +887,22 @@ std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxSto
                 }
             }
         },
-        [&]<typename T>(T)
-            requires(std::integral<T> || std::floating_point<T>)
-        {
+        [&]<typename T>(T) requires(NumericUtils::IsIntegral<T> || std::floating_point<T>) {
             if (numValues > 0) {
                 auto typedData = std::span(reinterpret_cast<const T*>(data) + offset, numValues);
                 returnValue = getTypedMinMax(typedData, nullMask, offset);
             }
         },
-        [&]<typename T>(T)
-            requires(std::same_as<T, internalID_t>)
-        {
+        [&]<typename T>(T) requires(std::same_as<T, internalID_t>) {
             if (numValues > 0) {
                 auto typedData =
                     std::span(reinterpret_cast<const uint64_t*>(data) + offset, numValues);
                 returnValue = getTypedMinMax(typedData, nullMask, offset);
             }
         },
-        [&]<typename T>(T)
-            requires(std::same_as<T, int128_t> || std::same_as<T, interval_t> ||
-                     std::same_as<T, struct_entry_t> || std::same_as<T, ku_string_t> ||
-                     std::same_as<T, list_entry_t>)
-        {
+        [&]<typename T>(T) requires(std::same_as<T, interval_t> ||
+                                    std::same_as<T, struct_entry_t> ||
+                                    std::same_as<T, ku_string_t> || std::same_as<T, list_entry_t>) {
             if (valueRequiredIfUnsupported) {
                 // For unsupported types on the first copy,
                 // they need a non-optional value to distinguish them
