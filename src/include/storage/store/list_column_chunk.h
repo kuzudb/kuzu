@@ -14,7 +14,7 @@ public:
 
     ColumnChunkData* getOffsetColumnChunk() const { return offsetColumnChunk.get(); }
 
-    ColumnChunkData* getDataColumnChunk() const { return listDataColumnChunk.get(); }
+    ColumnChunkData* getDataColumnChunk() const { return dataColumnChunk.get(); }
 
     ColumnChunkData* getSizeColumnChunk() const { return sizeColumnChunk.get(); }
 
@@ -41,7 +41,7 @@ public:
     void copy(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
-    void resizeDataColumnChunk(uint64_t numValues) { listDataColumnChunk->resize(numValues); }
+    void resizeDataColumnChunk(uint64_t numValues) { dataColumnChunk->resize(numValues); }
 
     void resize(uint64_t newCapacity) override {
         ColumnChunkData::resize(newCapacity);
@@ -75,7 +75,7 @@ private:
 protected:
     std::unique_ptr<ColumnChunkData> offsetColumnChunk;
     std::unique_ptr<ColumnChunkData> sizeColumnChunk;
-    std::unique_ptr<ColumnChunkData> listDataColumnChunk;
+    std::unique_ptr<ColumnChunkData> dataColumnChunk;
     // we use checkOffsetSortedAsc flag to indicate that we do not trigger random write
     bool checkOffsetSortedAsc;
 };
