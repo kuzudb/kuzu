@@ -236,10 +236,11 @@ void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunk
 
     startOffset = std::min(startOffset, state.metadata.numValues);
     endOffset = std::min(endOffset, state.metadata.numValues);
+    KU_ASSERT(endOffset >= startOffset);
     const auto numValuesToScan = endOffset - startOffset;
     const uint64_t numValuesPerPage =
         state.metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
-    if (numValuesPerPage == UINT64_MAX) {
+    if (getDataTypeSizeInChunk(dataType) == 0) {
         columnChunk->setNumValues(numValuesToScan);
         return;
     }
@@ -247,7 +248,6 @@ void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunk
     auto cursor = PageUtils::getPageCursorForPos(startOffset, numValuesPerPage);
     cursor.pageIdx += state.metadata.pageIdx;
     uint64_t numValuesScanned = 0u;
-    KU_ASSERT(endOffset >= startOffset);
     if (numValuesToScan > columnChunk->getCapacity()) {
         columnChunk->resize(std::bit_ceil(numValuesToScan));
     }
