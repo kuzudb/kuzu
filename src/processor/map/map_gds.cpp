@@ -32,9 +32,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     common::table_id_map_t<std::unique_ptr<NodeOffsetSemiMask>> masks;
     if (call.getInfo().getBindData()->hasNodeInput()) {
         // Generate an empty semi mask which later on picked by SemiMaker.
-        auto& node = call.getInfo().getBindData()->getNodeInput()->constCast<binder::NodeExpression>();
+        auto& node =
+            call.getInfo().getBindData()->getNodeInput()->constCast<binder::NodeExpression>();
         for (auto tableID : node.getTableIDs()) {
-            auto nodeTable = clientContext->getStorageManager()->getTable(tableID)->ptrCast<NodeTable>();
+            auto nodeTable =
+                clientContext->getStorageManager()->getTable(tableID)->ptrCast<NodeTable>();
             masks.insert({tableID, std::make_unique<NodeOffsetSemiMask>(nodeTable)});
         }
     }

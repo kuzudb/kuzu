@@ -1,11 +1,11 @@
 #include "binder/binder.h"
+#include "common/types/internal_id_util.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds_function.h"
 #include "graph/graph.h"
 #include "main/client_context.h"
 #include "processor/operator/gds_call.h"
 #include "processor/result/factorized_table.h"
-#include "common/types/internal_id_util.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

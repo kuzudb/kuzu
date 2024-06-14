@@ -10,7 +10,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace graph {
 
-static std::unique_ptr<RelTableScanState> getRelScanState(RelDataDirection direction, ValueVector* srcVector, ValueVector* dstVector) {
+static std::unique_ptr<RelTableScanState> getRelScanState(RelDataDirection direction,
+    ValueVector* srcVector, ValueVector* dstVector) {
     // Empty columnIDs since we do not scan any rel property.
     auto columnIDs = std::vector<column_id_t>{};
     auto scanState = std::make_unique<RelTableScanState>(columnIDs, direction);
@@ -26,17 +27,22 @@ OnDiskGraphScanState::OnDiskGraphScanState(MemoryManager* mm) {
     srcNodeIDVector->state = srcNodeIDVectorState;
     dstNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
     dstNodeIDVector->state = dstNodeIDVectorState;
-    fwdScanState = getRelScanState(RelDataDirection::FWD, srcNodeIDVector.get(), dstNodeIDVector.get());
-    bwdScanState = getRelScanState(RelDataDirection::BWD, srcNodeIDVector.get(), dstNodeIDVector.get());
+    fwdScanState =
+        getRelScanState(RelDataDirection::FWD, srcNodeIDVector.get(), dstNodeIDVector.get());
+    bwdScanState =
+        getRelScanState(RelDataDirection::BWD, srcNodeIDVector.get(), dstNodeIDVector.get());
 }
 
 OnDiskGraph::OnDiskGraph(ClientContext* context, const GraphEntry& entry)
-    : transaction{context->getTx()}, graphEntry{entry.copy()}, scanState{context->getMemoryManager()} {
+    : transaction{context->getTx()}, graphEntry{entry.copy()},
+      scanState{context->getMemoryManager()} {
     auto storage = context->getStorageManager();
     auto catalog = context->getCatalog();
     for (auto& nodeTableID : graphEntry.nodeTableIDs) {
-        nodeIDToNodeTable.insert({nodeTableID, storage->getTable(nodeTableID)->ptrCast<NodeTable>()});
-        auto& nodeTableEntry = catalog->getTableCatalogEntry(transaction, nodeTableID)->constCast<NodeTableCatalogEntry>();
+        nodeIDToNodeTable.insert(
+            {nodeTableID, storage->getTable(nodeTableID)->ptrCast<NodeTable>()});
+        auto& nodeTableEntry = catalog->getTableCatalogEntry(transaction, nodeTableID)
+                                   ->constCast<NodeTableCatalogEntry>();
         common::table_id_map_t<storage::RelTable*> fwdRelTables;
         for (auto& relTableID : nodeTableEntry.getFwdRelTableIDSet()) {
             if (!graphEntry.containsRelTableID(relTableID)) {

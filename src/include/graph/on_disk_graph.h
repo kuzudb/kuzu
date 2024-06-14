@@ -1,9 +1,9 @@
 #pragma once
 
 #include "graph.h"
+#include "graph_entry.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
-#include "graph_entry.h"
 
 namespace kuzu {
 namespace graph {
@@ -31,10 +31,12 @@ public:
     common::offset_t getNumNodes(common::table_id_t id) override;
 
     std::vector<common::nodeID_t> scanFwd(common::nodeID_t nodeID) override;
-    std::vector<common::nodeID_t> scanFwd(common::nodeID_t nodeID, common::table_id_t relTableID) override;
+    std::vector<common::nodeID_t> scanFwd(common::nodeID_t nodeID,
+        common::table_id_t relTableID) override;
 
     std::vector<common::nodeID_t> scanBwd(common::nodeID_t nodeID) override;
-    std::vector<common::nodeID_t> scanBwd(common::nodeID_t nodeID, common::table_id_t relTableID) override;
+    std::vector<common::nodeID_t> scanBwd(common::nodeID_t nodeID,
+        common::table_id_t relTableID) override;
 
 private:
     void scan(common::nodeID_t nodeID, storage::RelTable* relTable,

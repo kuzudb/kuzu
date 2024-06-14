@@ -28,7 +28,7 @@ struct VariableLengthPathBindData final : public GDSBindData {
         : nodeInput{std::move(nodeInput)}, lowerBound{lowerBound}, upperBound{upperBound} {}
 
     VariableLengthPathBindData(const VariableLengthPathBindData& other)
-        :  nodeInput{other.nodeInput}, lowerBound{other.lowerBound}, upperBound{other.upperBound} {}
+        : nodeInput{other.nodeInput}, lowerBound{other.lowerBound}, upperBound{other.upperBound} {}
 
     bool hasNodeInput() const override { return true; }
     std::shared_ptr<binder::Expression> getNodeInput() const override { return nodeInput; }

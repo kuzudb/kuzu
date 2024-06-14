@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "common/types/internal_id_util.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds_function.h"
@@ -6,7 +7,6 @@
 #include "main/client_context.h"
 #include "processor/operator/gds_call.h"
 #include "processor/result/factorized_table.h"
-#include "common/types/internal_id_util.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -51,7 +51,7 @@ public:
             }
         }
     }
-    
+
 private:
     std::unique_ptr<ValueVector> nodeIDVector;
     std::unique_ptr<ValueVector> rankVector;
@@ -112,7 +112,7 @@ public:
             auto change = 0.0;
             for (auto tableID : graph->getNodeTableIDs()) {
                 for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
-                    auto nodeID = nodeID_t {offset, tableID};
+                    auto nodeID = nodeID_t{offset, tableID};
                     auto rank = 0.0;
                     auto nbrs = graph->scanFwd(nodeID);
                     for (auto& nbr : nbrs) {

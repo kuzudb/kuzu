@@ -48,7 +48,7 @@ struct ShortestPathSourceState {
         nextFrontier = Frontier();
     }
 
-    bool allVisited() const { return numVisited ==totalNumNodes; }
+    bool allVisited() const { return numVisited == totalNumNodes; }
     bool visited(nodeID_t nodeID) const { return visitedMap.contains(nodeID); }
     void markVisited(nodeID_t nodeID, int64_t length) {
         numVisited++;

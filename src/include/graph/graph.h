@@ -20,21 +20,23 @@ public:
     // Get num rows for given node table.
     virtual common::offset_t getNumNodes(common::table_id_t id) = 0;
 
-    // Get dst nodeIDs for given src nodeID on all connected relationship tables using forward adjList.
+    // Get dst nodeIDs for given src nodeID on all connected relationship tables using forward
+    // adjList.
     virtual std::vector<common::nodeID_t> scanFwd(common::nodeID_t nodeID) = 0;
     // Get dst nodeIDs for given src nodeID on given relationship table using forward adjList.
-    virtual std::vector<common::nodeID_t> scanFwd(common::nodeID_t nodeID, common::table_id_t relTableID) = 0;
+    virtual std::vector<common::nodeID_t> scanFwd(common::nodeID_t nodeID,
+        common::table_id_t relTableID) = 0;
 
     // We don't use scanBwd currently. I'm adding them because they are the mirroring to scanFwd.
     // Also, algorithm may only need adjList index in single direction so we should make double
     // indexing optional.
 
-    // Get dst nodeIDs for given src nodeID on all connected relationship tables using backward adjList.
+    // Get dst nodeIDs for given src nodeID on all connected relationship tables using backward
+    // adjList.
     virtual std::vector<common::nodeID_t> scanBwd(common::nodeID_t nodeID) = 0;
     // Get dst nodeIDs for given src nodeID on given relationship table using backward adjList.
-    virtual std::vector<common::nodeID_t> scanBwd(common::nodeID_t nodeID, common::table_id_t relTableID) = 0;
-
-
+    virtual std::vector<common::nodeID_t> scanBwd(common::nodeID_t nodeID,
+        common::table_id_t relTableID) = 0;
 };
 
 } // namespace graph
