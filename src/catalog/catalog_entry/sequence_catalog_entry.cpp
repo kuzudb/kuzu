@@ -74,8 +74,8 @@ void SequenceCatalogEntry::replayVal(const uint64_t& usageCount, const int64_t& 
     const int64_t& nextVal) {
     std::lock_guard<std::mutex> lck(mtx);
     // for wal replay: only apply replays to newer usage than current
-    if (usageCount > sequenceData.usageCount || 
-    // for undo buffer rollback: only rollback if no one else made changes
+    if (usageCount > sequenceData.usageCount ||
+        // for undo buffer rollback: only rollback if no one else made changes
         usageCount == sequenceData.usageCount - 1) {
         sequenceData.usageCount = usageCount;
         sequenceData.currVal = currVal;
