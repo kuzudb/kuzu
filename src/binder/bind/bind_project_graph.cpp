@@ -31,10 +31,6 @@ graph::GraphEntry Binder::bindProjectGraph(const ProjectGraph& projectGraph) {
                 TableTypeUtils::toString(entry->getTableType())));
         }
     }
-    if (nodeTableIDs.size() != 1 || relTableIDs.size() != 1) {
-        throw BinderException(
-            "A subgraph must have exactly one node table and one relationship table.");
-    }
     return GraphEntry(std::move(nodeTableIDs), std::move(relTableIDs));
 }
 

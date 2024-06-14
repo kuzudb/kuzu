@@ -19,14 +19,19 @@ namespace kuzu {
 namespace function {
 
 struct VariableLengthPathBindData final : public GDSBindData {
+    std::shared_ptr<Expression> nodeInput;
     uint8_t lowerBound;
     uint8_t upperBound;
 
     VariableLengthPathBindData(std::shared_ptr<Expression> nodeInput, uint8_t lowerBound,
         uint8_t upperBound)
-        : GDSBindData{std::move(nodeInput)}, lowerBound{lowerBound}, upperBound{upperBound} {}
+        : nodeInput{std::move(nodeInput)}, lowerBound{lowerBound}, upperBound{upperBound} {}
+
     VariableLengthPathBindData(const VariableLengthPathBindData& other)
-        : GDSBindData{other}, lowerBound{other.lowerBound}, upperBound{other.upperBound} {}
+        : nodeInput{other.nodeInput}, lowerBound{other.lowerBound}, upperBound{other.upperBound} {}
+
+    bool hasNodeInput() const override { return true; }
+    std::shared_ptr<binder::Expression> getNodeInput() const override { return nodeInput; }
 
     std::unique_ptr<GDSBindData> copy() const override {
         return std::make_unique<VariableLengthPathBindData>(*this);
@@ -116,7 +121,8 @@ public:
      */
     binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
-        columns.push_back(bindData->nodeInput->constCast<NodeExpression>().getInternalID());
+        auto& inputNode = bindData->getNodeInput()->constCast<NodeExpression>();
+        columns.push_back(inputNode.getInternalID());
         columns.push_back(binder->createVariable("dst", *LogicalType::INTERNAL_ID()));
         columns.push_back(binder->createVariable("length", *LogicalType::INT64()));
         columns.push_back(binder->createVariable("num_path", *LogicalType::INT64()));
@@ -125,7 +131,6 @@ public:
 
     void bind(const binder::expression_vector& params) override {
         KU_ASSERT(params.size() == 4);
-        auto inputNode = params[1];
         for (auto i = 2u; i < 4u; ++i) {
             ExpressionUtil::validateExpressionType(*params[i], ExpressionType::LITERAL);
             ExpressionUtil::validateDataType(*params[i], *LogicalType::INT64());
@@ -135,7 +140,7 @@ public:
             throw BinderException("Lower bound must be greater than 0.");
         }
         auto upperBound = params[3]->constCast<LiteralExpression>().getValue().getValue<int64_t>();
-        bindData = std::make_unique<VariableLengthPathBindData>(inputNode, lowerBound, upperBound);
+        bindData = std::make_unique<VariableLengthPathBindData>(params[1], lowerBound, upperBound);
     }
 
     void initLocalState(main::ClientContext* context) override {
@@ -146,29 +151,38 @@ public:
         auto extraData = bindData->ptrCast<VariableLengthPathBindData>();
         auto variableLengthPathLocalState = localState->ptrCast<VariableLengthPathLocalState>();
         auto graph = sharedState->graph.get();
-        for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
-            if (!sharedState->inputNodeOffsetMask->isNodeMasked(offset)) {
+        // We check every node in projected graph against semi mask.
+        // Alternatively we could check semi mask directly but in such case, we need to validate
+        // if a node in semi mask exist in projected graph or not.
+        for (auto tableID : graph->getNodeTableIDs()) {
+            if (!sharedState->inputNodeOffsetMasks.contains(tableID)) {
                 continue;
             }
-            auto sourceNodeID = nodeID_t{offset, graph->getNodeTableID()};
-            auto sourceState = VariableLengthPathSourceState(sourceNodeID);
-            // Start recursive computation for current source node ID.
-            for (auto currentLevel = 1; currentLevel <= extraData->upperBound; ++currentLevel) {
-                // Compute next frontier.
-                for (auto currentNodeID : sourceState.currentFrontier.getNodeIDs()) {
-                    auto currentMultiplicity =
-                        sourceState.currentFrontier.getMultiplicity(currentNodeID);
-                    auto nbrs = graph->getNbrs(currentNodeID.offset);
-                    for (auto nbr : nbrs) {
-                        sourceState.nextFrontier.addNode(nbr, currentMultiplicity);
+            auto mask = sharedState->inputNodeOffsetMasks.at(tableID).get();
+            for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
+                if (!mask->isNodeMasked(offset)) {
+                    continue;
+                }
+                auto sourceNodeID = nodeID_t{offset, tableID};
+                auto sourceState = VariableLengthPathSourceState(sourceNodeID);
+                // Start recursive computation for current source node ID.
+                for (auto currentLevel = 1; currentLevel <= extraData->upperBound; ++currentLevel) {
+                    // Compute next frontier.
+                    for (auto currentNodeID : sourceState.currentFrontier.getNodeIDs()) {
+                        auto currentMultiplicity =
+                            sourceState.currentFrontier.getMultiplicity(currentNodeID);
+                        auto nbrs = graph->scanFwd(currentNodeID);
+                        for (auto nbr : nbrs) {
+                            sourceState.nextFrontier.addNode(nbr, currentMultiplicity);
+                        }
                     }
-                }
-                if (currentLevel >= extraData->lowerBound) {
-                    variableLengthPathLocalState->materialize(sourceState, currentLevel,
-                        *sharedState->fTable);
-                }
-                sourceState.initNextFrontier();
-            };
+                    if (currentLevel >= extraData->lowerBound) {
+                        variableLengthPathLocalState->materialize(sourceState, currentLevel,
+                            *sharedState->fTable);
+                    }
+                    sourceState.initNextFrontier();
+                };
+            }
         }
     }
 

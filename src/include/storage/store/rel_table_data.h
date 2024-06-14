@@ -34,6 +34,8 @@ struct RelDataReadState final : TableDataScanState {
 
     bool hasMoreToReadFromLocalStorage() const;
     bool trySwitchToLocalStorage();
+
+    void resetState() override;
 };
 
 struct CSRHeaderColumns {

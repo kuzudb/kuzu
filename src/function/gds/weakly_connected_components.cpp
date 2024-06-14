@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "common/types/internal_id_util.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds_function.h"
 #include "graph/graph.h"
@@ -26,12 +27,15 @@ public:
         vectors.push_back(groupVector.get());
     }
 
-    void materialize(graph::Graph* graph, const std::vector<int64_t>& groupArray,
+    void materialize(graph::Graph* graph, const common::node_id_map_t<int64_t>& visitedMap,
         FactorizedTable& table) const {
-        for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
-            nodeIDVector->setValue<nodeID_t>(0, {offset, graph->getNodeTableID()});
-            groupVector->setValue<int64_t>(0, groupArray[offset]);
-            table.append(vectors);
+        for (auto tableID : graph->getNodeTableIDs()) {
+            for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
+                auto nodeID = nodeID_t{offset, tableID};
+                nodeIDVector->setValue<nodeID_t>(0, nodeID);
+                groupVector->setValue<int64_t>(0, visitedMap.at(nodeID));
+                table.append(vectors);
+            }
         }
     }
 
@@ -75,20 +79,18 @@ public:
     void exec() override {
         auto wccLocalState = localState->ptrCast<WeaklyConnectedComponentLocalState>();
         auto graph = sharedState->graph.get();
-        visitedArray.resize(graph->getNumNodes());
-        groupArray.resize(graph->getNumNodes());
-        for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
-            visitedArray[offset] = false;
-            groupArray[offset] = -1;
-        }
+        visitedMap.clear();
         auto groupID = 0;
-        for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
-            if (visitedArray[offset]) {
-                continue;
+        for (auto tableID : graph->getNodeTableIDs()) {
+            for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
+                auto nodeID = nodeID_t{offset, tableID};
+                if (visitedMap.contains(nodeID)) {
+                    continue;
+                }
+                findConnectedComponent(nodeID, groupID++);
             }
-            findConnectedComponent(offset, groupID++);
         }
-        wccLocalState->materialize(graph, groupArray, *sharedState->fTable);
+        wccLocalState->materialize(graph, visitedMap, *sharedState->fTable);
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
@@ -96,21 +98,20 @@ public:
     }
 
 private:
-    void findConnectedComponent(common::offset_t offset, int64_t groupID) {
-        visitedArray[offset] = true;
-        groupArray[offset] = groupID;
-        auto nbrs = sharedState->graph->getNbrs(offset);
+    void findConnectedComponent(common::nodeID_t nodeID, int64_t groupID) {
+        KU_ASSERT(!visitedMap.contains(nodeID));
+        visitedMap.insert({nodeID, groupID});
+        auto nbrs = sharedState->graph->scanFwd(nodeID);
         for (auto nbr : nbrs) {
-            if (visitedArray[nbr.offset]) {
+            if (visitedMap.contains(nbr)) {
                 continue;
             }
-            findConnectedComponent(nbr.offset, groupID);
+            findConnectedComponent(nbr, groupID);
         }
     }
 
 private:
-    std::vector<bool> visitedArray;
-    std::vector<int64_t> groupArray;
+    common::node_id_map_t<int64_t> visitedMap;
 };
 
 function_set WeaklyConnectedComponentsFunction::getFunctionSet() {

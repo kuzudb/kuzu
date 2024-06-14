@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "common/types/internal_id_util.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds_function.h"
@@ -39,12 +40,15 @@ public:
         vectors.push_back(rankVector.get());
     }
 
-    void materialize(graph::Graph* graph, const std::vector<double>& ranks,
+    void materialize(graph::Graph* graph, const common::node_id_map_t<double>& ranks,
         FactorizedTable& table) const {
-        for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
-            nodeIDVector->setValue<nodeID_t>(0, {offset, graph->getNodeTableID()});
-            rankVector->setValue<double>(0, ranks[offset]);
-            table.append(vectors);
+        for (auto tableID : graph->getNodeTableIDs()) {
+            for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
+                auto nodeID = nodeID_t{offset, tableID};
+                nodeIDVector->setValue<nodeID_t>(0, nodeID);
+                rankVector->setValue<double>(0, ranks.at(nodeID));
+                table.append(vectors);
+            }
         }
     }
 
@@ -94,29 +98,35 @@ public:
         auto pageRankLocalState = localState->ptrCast<PageRankLocalState>();
         auto graph = sharedState->graph.get();
         // Initialize state.
-        std::vector<double> ranks;
-        ranks.resize(graph->getNumNodes());
-        for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
-            ranks[offset] = (double)1 / graph->getNumNodes();
+        common::node_id_map_t<double> ranks;
+        auto numNodes = graph->getNumNodes();
+        for (auto tableID : graph->getNodeTableIDs()) {
+            for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
+                auto nodeID = nodeID_t{offset, tableID};
+                ranks.insert({nodeID, 1.0 / numNodes});
+            }
         }
-        auto dampingValue = (1 - extraData->dampingFactor) / graph->getNumNodes();
+        auto dampingValue = (1 - extraData->dampingFactor) / numNodes;
         // Compute page rank.
         for (auto i = 0u; i < extraData->maxIteration; ++i) {
             auto change = 0.0;
-            for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
-                auto rank = 0.0;
-                auto nbrs = graph->getNbrs(offset);
-                for (auto& nbr : nbrs) {
-                    auto numNbrOfNbr = graph->getNbrs(nbr.offset).size();
-                    if (numNbrOfNbr == 0) {
-                        numNbrOfNbr = graph->getNumNodes();
+            for (auto tableID : graph->getNodeTableIDs()) {
+                for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
+                    auto nodeID = nodeID_t{offset, tableID};
+                    auto rank = 0.0;
+                    auto nbrs = graph->scanFwd(nodeID);
+                    for (auto& nbr : nbrs) {
+                        auto numNbrOfNbr = graph->scanFwd(nbr).size();
+                        if (numNbrOfNbr == 0) {
+                            numNbrOfNbr = graph->getNumNodes();
+                        }
+                        rank += extraData->dampingFactor * (ranks[nbr] / numNbrOfNbr);
                     }
-                    rank += extraData->dampingFactor * (ranks[nbr.offset] / numNbrOfNbr);
+                    rank += dampingValue;
+                    double diff = ranks[nodeID] - rank;
+                    change += diff < 0 ? -diff : diff;
+                    ranks[nodeID] = rank;
                 }
-                rank += dampingValue;
-                double diff = ranks[offset] - rank;
-                change += diff < 0 ? -diff : diff;
-                ranks[offset] = rank;
             }
             if (change < extraData->delta) {
                 break;

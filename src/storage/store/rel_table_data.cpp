@@ -18,7 +18,7 @@ RelDataReadState::RelDataReadState(const std::vector<column_id_t>& columnIDs)
     : TableDataScanState{columnIDs}, nodeGroupIdx{INVALID_NODE_GROUP_IDX}, numNodes{0},
       currentNodeOffset{0}, posInCurrentCSR{0}, readFromPersistentStorage{false},
       readFromLocalStorage{false}, localNodeGroup{nullptr} {
-    csrListEntries.resize(StorageConstants::NODE_GROUP_SIZE, {0, 0});
+    resetState();
 }
 
 bool RelDataReadState::hasMoreToReadFromLocalStorage() const {
@@ -80,6 +80,17 @@ std::pair<offset_t, offset_t> RelDataReadState::getStartAndEndOffset() {
     auto numRowsToRead = std::min(currCSRSize - posInCurrentCSR, DEFAULT_VECTOR_CAPACITY);
     posInCurrentCSR += numRowsToRead;
     return {startOffset, startOffset + numRowsToRead};
+}
+
+void RelDataReadState::resetState() {
+    nodeGroupIdx = INVALID_NODE_GROUP_IDX;
+    numNodes = 0;
+    currentNodeOffset = 0;
+    posInCurrentCSR = 0;
+    readFromPersistentStorage = false;
+    readFromLocalStorage = false;
+    localNodeGroup = nullptr;
+    csrListEntries.resize(StorageConstants::NODE_GROUP_SIZE, {0, 0});
 }
 
 offset_t CSRHeaderColumns::getNumNodes(Transaction* transaction,
