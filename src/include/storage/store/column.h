@@ -10,7 +10,7 @@
 
 namespace kuzu {
 namespace evaluator {
-    class ExpressionEvaluator;
+class ExpressionEvaluator;
 } // namespace evaluator
 namespace storage {
 
@@ -122,7 +122,8 @@ public:
     virtual void rollbackInMemory();
 
     void populateWithDefaultVal(transaction::Transaction* transaction,
-        DiskArray<ColumnChunkMetadata>* metadataDA, evaluator::ExpressionEvaluator& defaultEvaluator);
+        DiskArray<ColumnChunkMetadata>* metadataDA,
+        evaluator::ExpressionEvaluator& defaultEvaluator);
 
     ColumnChunkMetadata getMetadata(common::node_group_idx_t nodeGroupIdx,
         transaction::TransactionType transaction) const {

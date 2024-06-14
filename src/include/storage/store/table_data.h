@@ -9,7 +9,7 @@ class TableCatalogEntry;
 class Property;
 } // namespace catalog
 namespace evaluator {
-    class ExpressionEvaluator;
+class ExpressionEvaluator;
 } // namespace evaluator
 
 namespace storage {

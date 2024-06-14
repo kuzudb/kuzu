@@ -12,7 +12,7 @@
 
 namespace kuzu {
 namespace evaluator {
-    class ExpressionEvaluator;
+class ExpressionEvaluator;
 } // namespace evaluator
 namespace storage {
 
@@ -105,7 +105,8 @@ public:
     // with
     virtual void resize(uint64_t newCapacity);
 
-    void populateWithDefaultVal(evaluator::ExpressionEvaluator& defaultEvaluator, uint64_t& numValues_);
+    void populateWithDefaultVal(evaluator::ExpressionEvaluator& defaultEvaluator,
+        uint64_t& numValues_);
     virtual void finalize() { // DO NOTHING.
     }
 

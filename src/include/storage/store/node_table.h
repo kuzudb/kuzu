@@ -10,7 +10,7 @@
 
 namespace kuzu {
 namespace evaluator {
-    class ExpressionEvaluator;
+class ExpressionEvaluator;
 } // namespace evaluator
 namespace transaction {
 class Transaction;

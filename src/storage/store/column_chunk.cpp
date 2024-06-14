@@ -382,7 +382,8 @@ void ColumnChunkData::resize(uint64_t newCapacity) {
     }
 }
 
-void ColumnChunkData::populateWithDefaultVal(ExpressionEvaluator& defaultEvaluator, uint64_t& numValues_) {
+void ColumnChunkData::populateWithDefaultVal(ExpressionEvaluator& defaultEvaluator,
+    uint64_t& numValues_) {
     auto numValuesAppended = 0u;
     const auto numValuesToPopulate = numValues_;
     while (numValuesAppended < numValuesToPopulate) {

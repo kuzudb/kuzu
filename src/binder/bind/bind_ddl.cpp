@@ -466,9 +466,10 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     }
     // Eventually, we want to support non-constant default on rel tables, but it is non-trivial due
     // to FWD/BWD storage
-    if (tableSchema->getType() == CatalogEntryType::REL_TABLE_ENTRY && 
+    if (tableSchema->getType() == CatalogEntryType::REL_TABLE_ENTRY &&
         boundDefault->expressionType != ExpressionType::LITERAL) {
-        throw BinderException("Cannot set a non-constant default value when adding columns on REL tables.");
+        throw BinderException(
+            "Cannot set a non-constant default value when adding columns on REL tables.");
     }
     auto boundExtraInfo = std::make_unique<BoundExtraAddPropertyInfo>(propertyName, dataType,
         std::move(defaultValue), std::move(boundDefault));

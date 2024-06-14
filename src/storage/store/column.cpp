@@ -801,8 +801,8 @@ void Column::populateWithDefaultVal(Transaction* transaction,
         while (capacity < chunkMeta.numValues) {
             capacity *= CHUNK_RESIZE_RATIO;
         }
-        auto columnChunk = 
-            ColumnChunkFactory::createColumnChunkData(*dataType.copy(), enableCompression, capacity);
+        auto columnChunk = ColumnChunkFactory::createColumnChunkData(*dataType.copy(),
+            enableCompression, capacity);
         columnChunk->populateWithDefaultVal(defaultEvaluator, chunkMeta.numValues);
         append(columnChunk.get(), state);
     }
