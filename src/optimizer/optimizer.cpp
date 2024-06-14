@@ -34,7 +34,7 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* contex
     if (context->getClientConfig()->enableSemiMask) {
         // HashJoinSIPOptimizer should be applied after optimizers that manipulate hash join.
         auto hashJoinSIPOptimizer = HashJoinSIPOptimizer();
-        hashJoinSIPOptimizer.rewrite(plan);
+//        hashJoinSIPOptimizer.rewrite(plan);
     }
 
     auto topKOptimizer = TopKOptimizer();

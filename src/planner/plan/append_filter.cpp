@@ -20,7 +20,7 @@ void Planner::appendFilter(const std::shared_ptr<Expression>& predicate, Logical
     filter->setChild(0, plan.getLastOperator());
     filter->computeFactorizedSchema();
     // estimate cardinality
-    plan.setCardinality(cardinalityEstimator.estimateFilter(plan, *predicate));
+    plan.setCardinality(cardinalityEstimator.estimateFilter(plan.getCardinality(), *predicate));
     plan.setLastOperator(std::move(filter));
 }
 

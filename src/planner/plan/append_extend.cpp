@@ -129,7 +129,7 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
     extend->setChild(0, plan.getLastOperator());
     extend->computeFactorizedSchema();
     // Update cost & cardinality. Note that extend does not change cardinality.
-    plan.setCost(CostModel::computeExtendCost(plan));
+    plan.setCost(CostModel::computeExtendCost(plan.getCardinality()));
     auto extensionRate =
         cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
     auto group = extend->getSchema()->getGroup(nbrNode->getInternalID());
@@ -205,7 +205,7 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     // Update cost
     auto extensionRate =
         cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
-    plan.setCost(CostModel::computeRecursiveExtendCost(rel->getUpperBound(), extensionRate, plan));
+    plan.setCost(CostModel::computeRecursiveExtendCost(plan.getCardinality(), rel->getUpperBound(), extensionRate));
     // Update cardinality
     auto hasAtMostOneNbr =
         extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, *clientContext);

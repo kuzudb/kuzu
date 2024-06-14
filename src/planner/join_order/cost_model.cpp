@@ -8,17 +8,27 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-uint64_t CostModel::computeExtendCost(const LogicalPlan& childPlan) {
-    return childPlan.estCardinality;
+cost_t CostModel::computeExtendCost(cardianlity_t inCardinality) {
+    return inCardinality;
 }
 
-uint64_t CostModel::computeRecursiveExtendCost(uint8_t upperBound, double extensionRate,
-    const LogicalPlan& childPlan) {
-    return PlannerKnobs::BUILD_PENALTY * childPlan.estCardinality * (uint64_t)extensionRate *
+cost_t CostModel::computeRecursiveExtendCost(cardianlity_t inCardinality, uint8_t upperBound,
+    double extensionRate) {
+    return PlannerKnobs::BUILD_PENALTY * inCardinality * (uint64_t)extensionRate *
            upperBound;
 }
 
-uint64_t CostModel::computeHashJoinCost(const binder::expression_vector& joinNodeIDs,
+cost_t CostModel::computeHashJoinCost(cost_t probeCost, cost_t buildCost, cardianlity_t probeCard,
+    cardianlity_t buildCard) {
+    auto cost = 0u;
+    cost += probeCost;
+    cost += buildCost;
+    cost += probeCard;
+    cost += PlannerKnobs::BUILD_PENALTY * buildCard;
+    return cost;
+}
+
+cost_t CostModel::computeHashJoinCost(const binder::expression_vector& joinNodeIDs,
     const LogicalPlan& probe, const LogicalPlan& build) {
     auto cost = 0ul;
     cost += probe.getCost();
@@ -29,21 +39,18 @@ uint64_t CostModel::computeHashJoinCost(const binder::expression_vector& joinNod
     return cost;
 }
 
-uint64_t CostModel::computeMarkJoinCost(const binder::expression_vector& joinNodeIDs,
+cost_t CostModel::computeMarkJoinCost(const binder::expression_vector& joinNodeIDs,
     const LogicalPlan& probe, const LogicalPlan& build) {
     return computeHashJoinCost(joinNodeIDs, probe, build);
 }
 
-uint64_t CostModel::computeIntersectCost(const kuzu::planner::LogicalPlan& probePlan,
-    const std::vector<std::unique_ptr<LogicalPlan>>& buildPlans) {
-    auto cost = 0ul;
-    cost += probePlan.getCost();
-    // TODO(Xiyang): think of how to calculate intersect cost such that it will be picked in worst
-    // case.
-    cost += probePlan.getCardinality();
-    for (auto& buildPlan : buildPlans) {
-        cost += buildPlan->getCost();
+cost_t CostModel::computeIntersectCost(kuzu::planner::cost_t probeCost, std::vector<cost_t> buildCosts, kuzu::planner::cardianlity_t probeCard) {
+    auto cost = 0u;
+    cost += probeCost;
+    for (auto& buildCost : buildCosts) {
+        cost += buildCost;
     }
+    cost += probeCard;
     return cost;
 }
 
