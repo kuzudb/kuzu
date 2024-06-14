@@ -1,6 +1,7 @@
 #include "storage/wal/wal_record.h"
 
 #include "catalog/catalog_entry/catalog_entry.h"
+#include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 
@@ -38,6 +39,9 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer) {
     } break;
     case WALRecordType::COMMIT_RECORD: {
         walRecord = CommitRecord::deserialize(deserializer);
+    } break;
+    case WALRecordType::UPDATE_SEQUENCE_RECORD: {
+        walRecord = UpdateSequenceRecord::deserialize(deserializer);
     } break;
     case WALRecordType::INVALID_RECORD: {
         throw RuntimeException("Corrupted wal file. Read out invalid WAL record type.");
@@ -137,6 +141,24 @@ std::unique_ptr<DropCatalogEntryRecord> DropCatalogEntryRecord::deserialize(
     Deserializer& deserializer) {
     auto retVal = std::make_unique<DropCatalogEntryRecord>();
     deserializer.deserializeValue(retVal->entryID);
+    return retVal;
+}
+
+void UpdateSequenceRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.write(sequenceID);
+    serializer.write(data.usageCount);
+    serializer.write(data.currVal);
+    serializer.write(data.nextVal);
+}
+
+std::unique_ptr<UpdateSequenceRecord> UpdateSequenceRecord::deserialize(
+    Deserializer& deserializer) {
+    auto retVal = std::make_unique<UpdateSequenceRecord>();
+    deserializer.deserializeValue(retVal->sequenceID);
+    deserializer.deserializeValue(retVal->data.usageCount);
+    deserializer.deserializeValue(retVal->data.currVal);
+    deserializer.deserializeValue(retVal->data.nextVal);
     return retVal;
 }
 

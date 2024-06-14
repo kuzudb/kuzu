@@ -29,7 +29,7 @@ struct NextVal {
         auto sequenceName = input.getAsString();
         auto sequenceID = catalog->getSequenceID(ctx->getTx(), sequenceName);
         auto sequenceEntry = catalog->getSequenceCatalogEntry(ctx->getTx(), sequenceID);
-        sequenceEntry->nextKVal(cnt, result);
+        sequenceEntry->nextKVal(ctx->getTx(), cnt, result);
         result.state->getSelVectorUnsafe().setSelSize(cnt);
     }
 };

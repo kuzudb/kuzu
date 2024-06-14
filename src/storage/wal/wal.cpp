@@ -2,6 +2,7 @@
 
 #include <fcntl.h>
 
+#include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/file_system/file_info.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
@@ -97,6 +98,12 @@ void WAL::logCreateSequenceRecord(catalog::CatalogEntry* catalogEntry) {
 void WAL::logDropSequenceRecord(sequence_id_t sequenceID) {
     lock_t lck{mtx};
     DropCatalogEntryRecord walRecord(sequenceID, catalog::CatalogEntryType::SEQUENCE_ENTRY);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logUpdateSequenceRecord(sequence_id_t sequenceID, SequenceChangeData data) {
+    lock_t lck{mtx};
+    UpdateSequenceRecord walRecord(sequenceID, std::move(data));
     addNewWALRecordNoLock(walRecord);
 }
 
