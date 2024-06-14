@@ -100,8 +100,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     auto nodeTable = storageManager->getTable(nodeTableEntry->getTableID());
     auto fTable =
         FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
-    auto sharedState =
-        std::make_shared<NodeBatchInsertSharedState>(nodeTable, fTable, &storageManager->getWAL());
+    auto pk = nodeTableEntry->getPrimaryKey();
+    auto sharedState = std::make_shared<NodeBatchInsertSharedState>(nodeTable,
+        nodeTableEntry->getColumnID(pk->getPropertyID()), *pk->getDataType(), fTable,
+        &storageManager->getWAL());
     if (prevOperator->getOperatorType() == PhysicalOperatorType::IN_QUERY_CALL) {
         auto call = prevOperator->ptrCast<TableFunctionCall>();
         sharedState->readerSharedState = call->getSharedState();
@@ -111,9 +113,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
         sharedState->distinctSharedState = hashScan->getSharedState().get();
     }
     // Map copy node.
-    auto pk = nodeTableEntry->getPrimaryKey();
-    sharedState->pkColumnIdx = nodeTableEntry->getColumnID(pk->getPropertyID());
-    sharedState->pkType = *pk->getDataType();
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
     for (auto& columnExpr : copyFromInfo->columnExprs) {

@@ -1,0 +1,155 @@
+-DATASET CSV empty
+
+--
+
+#-CASE Create1
+#-STATEMENT CREATE NODE TABLE test(id INT64, name STRING, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
+#---- ok
+#-STATEMENT CREATE (a:test {id:0, name:'A', isTrue:True, birthday:Date('2019-01-01')})
+#---- ok
+#-STATEMENT MATCH (a:test) RETURN a.id, a.name, a.isTrue, a.birthday
+#---- 1
+#0|A|True|2019-01-01
+
+#-CASE Create2
+#-STATEMENT BEGIN TRANSACTION
+#---- ok
+#-STATEMENT CREATE NODE TABLE test(id INT64, name STRING, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
+#---- ok
+#-STATEMENT CREATE (a:test {id:0, name:'A', isTrue:True, birthday:Date('2019-01-01')})
+#---- ok
+#-STATEMENT MATCH (a:test) RETURN a.id, a.name, a.isTrue, a.birthday
+#---- 1
+#0|A|True|2019-01-01
+#-STATEMENT MATCH (a:test) RETURN a.id, a.name, a.isTrue, a.birthday
+#---- 1
+#0|A|True|2019-01-01
+#-STATEMENT COMMIT
+#---- ok
+#-STATEMENT MATCH (a:test) RETURN a.id, a.name, a.isTrue, a.birthday
+#---- 1
+#0|A|True|2019-01-01
+#
+#-CASE Create3
+#-STATEMENT CALL auto_checkpoint=false;
+#---- ok
+#-STATEMENT CREATE NODE TABLE test(id INT64, PRIMARY KEY(id));
+#---- ok
+#-STATEMENT CREATE (a:test {id:0})
+#---- ok
+#-STATEMENT CREATE (a:test {id:1})
+#---- ok
+#-STATEMENT CREATE (a:test {id:2})
+#---- ok
+#-STATEMENT CREATE (a:test {id:3})
+#---- ok
+#-STATEMENT CREATE (a:test {id:4})
+#---- ok
+#-STATEMENT CREATE (a:test {id:5})
+#---- ok
+#-STATEMENT CREATE (a:test {id:6})
+#---- ok
+#-STATEMENT CREATE (a:test {id:7})
+#---- ok
+#-STATEMENT CREATE (a:test {id:8})
+#---- ok
+#-STATEMENT CREATE (a:test {id:9})
+#---- ok
+#-STATEMENT CREATE (a:test {id:10})
+#---- ok
+#-STATEMENT CALL CHECKPOINT() RETURN *;
+#---- ok
+#-STATEMENT MATCH (a:test) RETURN a.id
+#---- 11
+#0
+#1
+#2
+#3
+#4
+#5
+#6
+#7
+#8
+#9
+#10
+#
+#-CASE Create4
+#-STATEMENT CALL threads=1;
+#---- ok
+#-STATEMENT CALL auto_checkpoint=false;
+#---- ok
+#-STATEMENT CREATE NODE TABLE test(id INT64, PRIMARY KEY(id));
+#---- ok
+#-STATEMENT CREATE (a:test {id:0})
+#---- ok
+#-STATEMENT CREATE (a:test {id:1})
+#---- ok
+#-STATEMENT CREATE (a:test {id:2})
+#---- ok
+#-STATEMENT CREATE (a:test {id:3})
+#---- ok
+#-STATEMENT CREATE (a:test {id:4})
+#---- ok
+#-STATEMENT CREATE (a:test {id:5})
+#---- ok
+#-STATEMENT CALL CHECKPOINT() RETURN *;
+#---- ok
+#-STATEMENT MATCH (a:test) RETURN a.id
+#---- 6
+#0
+#1
+#2
+#3
+#4
+#5
+#-STATEMENT CREATE (a:test {id:6})
+#---- ok
+#-STATEMENT CREATE (a:test {id:7})
+#---- ok
+#-STATEMENT CREATE (a:test {id:8})
+#---- ok
+#-STATEMENT CREATE (a:test {id:9})
+#---- ok
+#-STATEMENT CREATE (a:test {id:10})
+#---- ok
+#-STATEMENT CALL CHECKPOINT() RETURN *;
+#---- ok
+#-STATEMENT MATCH (a:test) RETURN a.id
+#---- 11
+#0
+#1
+#2
+#3
+#4
+#5
+#6
+#7
+#8
+#9
+#10
+
+-CASE CreateWithDelete
+-STATEMENT CREATE NODE TABLE test(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE (a:test {id:0})
+---- ok
+-STATEMENT CREATE (a:test {id:1})
+---- ok
+-STATEMENT CREATE (a:test {id:2})
+---- ok
+-STATEMENT CREATE (a:test {id:3})
+---- ok
+-STATEMENT MATCH (t:test) WHERE t.id < 2 DELETE t
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.id
+---- 2
+2
+3
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.id
+---- 2
+2
+3

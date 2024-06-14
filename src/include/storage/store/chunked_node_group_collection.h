@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/uniq_lock.h"
 #include "storage/store/chunked_node_group.h"
 
 namespace kuzu {
@@ -18,7 +19,8 @@ public:
         : residencyState{ResidencyState::ON_DISK} {
         chunkedGroups.push_back(std::move(chunkedNodeGroup));
     }
-    DELETE_COPY_DEFAULT_MOVE(ChunkedNodeGroupCollection);
+
+    // common::UniqLock lock() { return common::UniqLock{mtx}; }
 
     static std::pair<uint64_t, common::offset_t> getChunkIdxAndOffsetInChunk(
         common::row_idx_t rowIdx) {
@@ -48,7 +50,8 @@ public:
     // Return num of rows before append.
     common::row_idx_t append(const std::vector<common::ValueVector*>& vectors,
         const common::SelectionVector& selVector);
-    common::row_idx_t append(const ChunkedNodeGroup& chunkedGroup);
+    common::row_idx_t append(const ChunkedNodeGroup& chunkedGroup,
+        common::row_idx_t numRowsToAppend);
     common::row_idx_t append(const ChunkedNodeGroupCollection& other,
         common::offset_t offsetInOtherCollection, common::offset_t numRowsToAppend);
 
@@ -61,7 +64,7 @@ public:
     common::row_idx_t getNumRows() const;
 
 private:
-    // TODO(Guodong): Should handle concurrency?
+    // std::mutex mtx;
     ResidencyState residencyState;
     std::vector<common::LogicalType> types;
     std::vector<std::unique_ptr<ChunkedNodeGroup>> chunkedGroups;

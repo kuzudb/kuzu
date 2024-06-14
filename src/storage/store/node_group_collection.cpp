@@ -12,21 +12,24 @@ namespace storage {
 
 NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
     const bool enableCompression, const offset_t startNodeOffset)
-    : enableCompression{enableCompression}, startNodeOffset{startNodeOffset}, types{types},
-      dataFH{nullptr}, tableData{nullptr} {}
+    : enableCompression{enableCompression}, startNodeOffset{startNodeOffset}, numRows{0},
+      types{types}, dataFH{nullptr}, tableData{nullptr} {}
 
 NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
     BMFileHandle* dataFH, const TableData& tableData, Deserializer* deSer)
-    : enableCompression{tableData.isCompressionEnabled()}, startNodeOffset{0}, types{types},
-      dataFH{dataFH}, tableData{&tableData} {
+    : enableCompression{tableData.isCompressionEnabled()}, startNodeOffset{0}, numRows{0},
+      types{types}, dataFH{dataFH}, tableData{&tableData} {
     if (deSer) {
         deSer->deserializeVectorOfPtrs<NodeGroup>(nodeGroups);
+    }
+    for (const auto& nodeGroup : nodeGroups) {
+        numRows += nodeGroup->getNumRows();
     }
 }
 
 NodeGroup& NodeGroupCollection::findNodeGroupFromOffset(const offset_t offset) {
     std::shared_lock sLck{mtx};
-    KU_ASSERT(offset < getNumRows());
+    KU_ASSERT(offset - startNodeOffset < getNumRows());
     for (const auto& nodeGroup : nodeGroups) {
         if (nodeGroup->getStartNodeOffset() <= offset &&
             nodeGroup->getStartNodeOffset() + nodeGroup->getNumRows() > offset) {
@@ -45,16 +48,16 @@ void NodeGroupCollection::append(const Transaction* transaction,
     }
     if (nodeGroups.empty()) {
         nodeGroups.push_back(std::make_unique<NodeGroup>(nodeGroups.size(), enableCompression,
-            ResidencyState::IN_MEMORY, types));
+            ResidencyState::IN_MEMORY, types, startNodeOffset + getNumRows()));
     }
     row_idx_t numRowsAppended = 0u;
     while (numRowsAppended < numRowsToAppend) {
         if (nodeGroups.back()->isFull()) {
-            if (dataFH) {
-                nodeGroups.back()->flush(*dataFH);
-            }
+            // if (dataFH) {
+            // nodeGroups.back()->flush(*dataFH);
+            // }
             nodeGroups.push_back(std::make_unique<NodeGroup>(nodeGroups.size(), enableCompression,
-                ResidencyState::IN_MEMORY, types));
+                ResidencyState::IN_MEMORY, types, startNodeOffset + getNumRows()));
         }
         const auto& lastNodeGroup = nodeGroups.back();
         const auto numToAppendInNodeGroup =
@@ -71,7 +74,7 @@ void NodeGroupCollection::append(const Transaction* transaction,
     row_idx_t numRowsAppended = 0u;
     if (nodeGroups.empty()) {
         nodeGroups.push_back(std::make_unique<NodeGroup>(nodeGroups.size(), enableCompression,
-            ResidencyState::IN_MEMORY, types));
+            ResidencyState::IN_MEMORY, types, startNodeOffset + getNumRows()));
     }
     while (numRowsAppended < numRowsToAppend) {
         if (nodeGroups.back()->isFull()) {
@@ -79,7 +82,7 @@ void NodeGroupCollection::append(const Transaction* transaction,
                 nodeGroups.back()->flush(*dataFH);
             }
             nodeGroups.push_back(std::make_unique<NodeGroup>(nodeGroups.size(), enableCompression,
-                ResidencyState::IN_MEMORY, types));
+                ResidencyState::IN_MEMORY, types, startNodeOffset + getNumRows()));
         }
         const auto& lastNodeGroup = nodeGroups.back();
         const auto numToAppendInNodeGroup =
@@ -96,31 +99,64 @@ void NodeGroupCollection::append(const Transaction* transaction, const NodeGroup
     }
 }
 
-row_idx_t NodeGroupCollection::getNumRows() {
-    std::shared_lock sLck{mtx};
-    row_idx_t numRows = 0;
-    for (const auto& nodeGroup : nodeGroups) {
-        numRows += nodeGroup->getNumRows();
+std::pair<offset_t, offset_t> NodeGroupCollection::appendPartially(Transaction* transaction,
+    ChunkedNodeGroup& chunkedGroup) {
+    NodeGroup* nodeGroupToAppend;
+    // UniqLock nodeGroupLock;
+    offset_t startOffset = 0;
+    offset_t numAppended = 0;
+    {
+        std::unique_lock xLck{mtx};
+        if (nodeGroups.empty()) {
+            nodeGroups.push_back(std::make_unique<NodeGroup>(nodeGroups.size(), enableCompression,
+                ResidencyState::IN_MEMORY, types, startNodeOffset + getNumRows()));
+        }
+        if (nodeGroups.back()->isFull()) {
+            nodeGroups.push_back(std::make_unique<NodeGroup>(nodeGroups.size(), enableCompression,
+                ResidencyState::IN_MEMORY, types, startNodeOffset + getNumRows()));
+        }
+        nodeGroupToAppend = nodeGroups.back().get();
+        // nodeGroupLock = nodeGroupToAppend->lock();
     }
-    return numRows;
+    // (void)nodeGroupLock;
+    if (chunkedGroup.isFull() && nodeGroupToAppend->getNumRows() == 0) {
+        // should call `finalize`.
+        chunkedGroup.finalize(INVALID_NODE_GROUP_IDX);
+        auto flushedGroup = chunkedGroup.flush(*dataFH);
+        nodeGroupToAppend->merge(transaction, std::move(flushedGroup));
+        startOffset = nodeGroupToAppend->getStartNodeOffset();
+        numAppended = chunkedGroup.getNumRows();
+    } else {
+        const auto numToAppend = std::min(chunkedGroup.getNumRows(),
+            StorageConstants::NODE_GROUP_SIZE - nodeGroupToAppend->getNumRows());
+        startOffset = nodeGroupToAppend->append(transaction, chunkedGroup, numToAppend);
+        numAppended = numToAppend;
+    }
+    return {startOffset, numAppended};
+}
+
+row_idx_t NodeGroupCollection::getNumRows() const {
+    return numRows.load();
 }
 
 void NodeGroupCollection::merge(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     const ChunkedNodeGroup& chunkedGroup) {
-    KU_ASSERT(chunkedGroup.getResidencyState() == ResidencyState::IN_MEMORY);
+    KU_ASSERT(chunkedGroup.getResidencyState() == ResidencyState::TEMPORARY ||
+              chunkedGroup.getResidencyState() == ResidencyState::IN_MEMORY);
     {
         std::unique_lock xLck{mtx};
         if (nodeGroupIdx >= nodeGroups.size()) {
+            auto numRows = getNumRows();
             nodeGroups.resize(nodeGroupIdx + 1);
             nodeGroups[nodeGroupIdx] = std::make_unique<NodeGroup>(nodeGroupIdx, enableCompression,
-                ResidencyState::IN_MEMORY, types);
+                ResidencyState::IN_MEMORY, types, numRows);
         }
     }
     if (dataFH && chunkedGroup.isFull()) {
         // Flush chunks to disk.
         auto flushedChunkedGroup = chunkedGroup.flush(*dataFH);
         auto flushedNodeGroup = std::make_unique<NodeGroup>(nodeGroupIdx, enableCompression,
-            ResidencyState::IN_MEMORY, types);
+            ResidencyState::ON_DISK, types, startNodeOffset + getNumRows());
         flushedNodeGroup->merge(transaction, std::move(flushedChunkedGroup));
         {
             std::unique_lock xLck{mtx};
@@ -130,7 +166,7 @@ void NodeGroupCollection::merge(Transaction* transaction, node_group_idx_t nodeG
     } else {
         auto& nodeGroup = *nodeGroups[nodeGroupIdx];
         // TODO: Should grad a lock on the node group.
-        nodeGroup.append(transaction, chunkedGroup);
+        nodeGroup.append(transaction, chunkedGroup, chunkedGroup.getNumRows());
         if (dataFH && nodeGroup.isFull()) {
             nodeGroup.flush(*dataFH);
         }

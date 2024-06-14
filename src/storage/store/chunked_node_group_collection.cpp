@@ -51,7 +51,8 @@ row_idx_t ChunkedNodeGroupCollection::append(const std::vector<ValueVector*>& ve
     return numRowsBeforeAppend;
 }
 
-row_idx_t ChunkedNodeGroupCollection::append(const ChunkedNodeGroup& chunkedGroup) {
+row_idx_t ChunkedNodeGroupCollection::append(const ChunkedNodeGroup& chunkedGroup,
+    row_idx_t numRowsToAppend) {
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     const auto numRowsBeforeAppend = getNumRows();
     if (chunkedGroups.empty()) {
@@ -60,7 +61,6 @@ row_idx_t ChunkedNodeGroupCollection::append(const ChunkedNodeGroup& chunkedGrou
                 ChunkedNodeGroup::CHUNK_CAPACITY, 0 /*startOffset*/, residencyState));
     }
     row_idx_t numRowsAppended = 0u;
-    const row_idx_t numRowsToAppend = chunkedGroup.getNumRows();
     while (numRowsAppended < numRowsToAppend) {
         if (chunkedGroups.back()->isFull()) {
             chunkedGroups.push_back(
@@ -115,6 +115,7 @@ void ChunkedNodeGroupCollection::merge(std::unique_ptr<ChunkedNodeGroup> chunked
         KU_ASSERT(chunkedGroup->getColumnChunk(i).getDataType() == types[i]);
     }
     chunkedGroups.push_back(std::move(chunkedGroup));
+    // TODO: Update version info.
 }
 
 void ChunkedNodeGroupCollection::merge(ChunkedNodeGroupCollection& other) {

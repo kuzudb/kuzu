@@ -48,7 +48,7 @@ public:
         const std::vector<common::ValueVector*>& outputVectors) = 0;
 
     virtual common::offset_t append(transaction::Transaction* transaction,
-        ChunkedNodeGroup* nodeGroup) = 0;
+        common::node_group_idx_t nodeGroupIdx, ChunkedNodeGroup* nodeGroup) = 0;
 
     void dropColumn(common::column_id_t columnID) { columns.erase(columns.begin() + columnID); }
     void addColumn(transaction::Transaction* transaction, const std::string& colNamePrefix,

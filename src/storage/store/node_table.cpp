@@ -183,10 +183,9 @@ void NodeTable::addColumn(Transaction* transaction, const Property& property,
     wal->addToUpdatedTables(tableID);
 }
 
-offset_t NodeTable::append(Transaction* transaction, const ChunkedNodeGroup* chunkedGroup, offset_t,
-    row_idx_t) {
-    // TODO: handle startOffsetToAppend and numRowsToAppend.
-    nodeGroups->merge(transaction, chunkedGroup->getNodeGroupIdx(), *chunkedGroup);
+std::pair<offset_t, offset_t> NodeTable::appendPartially(Transaction* transaction,
+    ChunkedNodeGroup& chunkedGroup) {
+    return nodeGroups->appendPartially(transaction, chunkedGroup);
 }
 
 void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
@@ -213,17 +212,19 @@ void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) 
         scanState->nodeGroup->initializeScanState(transaction, *scanState);
         while (scanState->nodeGroup->scan(transaction, *scanState)) {
             const auto numRowsScanned = scanState->nodeIDVector->state->getSelVector().getSelSize();
-            for (auto i = 0u; i < numRowsScanned; i++) {
+            for (auto i = 0u; i < numRowsScanned; i++) { // TODO: Should set based on sel pos.
                 scanState->nodeIDVector->setValue(i, nodeID_t{startNodeOffset + i, tableID});
             }
             insertPK(nodeIDVector, pkVector);
             startNodeOffset += numRowsScanned;
+            nodeGroups->append(transaction, scanState->outputVectors);
         }
         nodeGroupToScan++;
     }
 
     // Append the node groups to the table data.
-    nodeGroups->append(transaction, localNodeTable.getNodeGroups());
+    // TODO: Cannot append the whold local node groups. There can be deletions/updates.
+    // nodeGroups->append(transaction, localNodeTable.getNodeGroups());
 
     if (pkIndex) {
         pkIndex->prepareCommit();

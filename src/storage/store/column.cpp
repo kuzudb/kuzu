@@ -139,37 +139,49 @@ Column* Column::getNullColumn() const {
     return nullColumn.get();
 }
 
-std::unique_ptr<ColumnChunkData> Column::flushChunkData(const ColumnChunkData& chunkData,
-    BMFileHandle& dataFH) {
+std::unique_ptr<ColumnChunkData> Column::flushChunkData(ChunkState& state,
+    const ColumnChunkData& chunkData, BMFileHandle& dataFH) {
     switch (chunkData.getDataType().getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
-        return StructColumn::flushChunkData(chunkData, dataFH);
+        return StructColumn::flushChunkData(state, chunkData, dataFH);
     }
     case PhysicalTypeID::STRING: {
-        return StringColumn::flushChunkData(chunkData, dataFH);
+        return StringColumn::flushChunkData(state, chunkData, dataFH);
     }
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
-        return ListColumn::flushChunkData(chunkData, dataFH);
+        return ListColumn::flushChunkData(state, chunkData, dataFH);
     }
     default: {
-        return flushNonNestedChunkData(chunkData, dataFH);
+        return flushNonNestedChunkData(state, chunkData, dataFH);
     }
     }
 }
 
-std::unique_ptr<ColumnChunkData> Column::flushNonNestedChunkData(const ColumnChunkData& chunkData,
+std::unique_ptr<ColumnChunkData> Column::flushNonNestedChunkData(ChunkState& state,
+    const ColumnChunkData& chunkData, BMFileHandle& dataFH) {
+    auto chunkMeta = flushData(state, chunkData, dataFH);
+    auto flushedChunk = ColumnChunkFactory::createColumnChunkData(*chunkData.getDataType().copy(),
+        chunkData.isCompressionEnabled(), chunkMeta, chunkData.hasNullData());
+    if (chunkData.hasNullData()) {
+        auto nullChunkMeta = flushData(*state.nullState, chunkData.getNullData(), dataFH);
+        auto nullData =
+            std::make_unique<NullChunkData>(chunkData.isCompressionEnabled(), nullChunkMeta);
+        flushedChunk->setNullData(std::move(nullData));
+    }
+    return flushedChunk;
+}
+
+ColumnChunkMetadata Column::flushData(ChunkState& state, const ColumnChunkData& chunkData,
     BMFileHandle& dataFH) {
     KU_ASSERT(chunkData.sanityCheck());
     const auto preScanMetadata = chunkData.getMetadataToFlush();
-    const auto startPageIdx = dataFH.addNewPages(preScanMetadata.numPages);
-    auto chunkMeta = chunkData.flushBuffer(&dataFH, startPageIdx, preScanMetadata);
-    auto flushedChunk = ColumnChunkFactory::createColumnChunkData(*chunkData.getDataType().copy(),
-        chunkData.isCompressionEnabled(), chunkMeta);
-    if (chunkData.hasNullData()) {
-        flushNonNestedChunkData(chunkData.getNullData(), dataFH);
+    if (state.metadata.numPages < preScanMetadata.numPages) {
+        // Add new pages if the new chunk requires more pages than the existing chunk.
+        state.metadata.pageIdx = dataFH.addNewPages(preScanMetadata.numPages);
     }
-    return flushedChunk;
+    state.metadata.numPages = preScanMetadata.numPages;
+    return chunkData.flushBuffer(&dataFH, state.metadata.pageIdx, preScanMetadata);
 }
 
 // NOTE: This function should only be called on node tables.
@@ -832,6 +844,18 @@ void Column::applyLocalChunkToColumn(ChunkState& state, const ChunkDataCollectio
             }
         }
     }
+}
+
+std::unique_ptr<ColumnChunk> Column::checkpointColumnChunk(ChunkState& state,
+    const ColumnChunk& insertChunk, const ColumnChunk& updateChunk) {
+    // TODO: We can rework this to avoid copying the data twice.
+    const auto columnChunkData =
+        ColumnChunkFactory::createColumnChunkData(dataType, enableCompression,
+            insertChunk.getNumValues() + updateChunk.getNumValues(), ResidencyState::TEMPORARY);
+    columnChunkData->append(&updateChunk.getData(), 0, updateChunk.getNumValues());
+    columnChunkData->append(&insertChunk.getData(), 0, insertChunk.getNumValues());
+    auto flushedData = flushChunkData(state, *columnChunkData, *dataFH);
+    return std::make_unique<ColumnChunk>(enableCompression, std::move(flushedData));
 }
 
 void Column::checkpointInMemory() {

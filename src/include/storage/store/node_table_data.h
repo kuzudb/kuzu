@@ -25,7 +25,7 @@ public:
 
     // Flush the nodeGroup to disk and update metadataDAs.
     common::offset_t append(transaction::Transaction* transaction,
-        ChunkedNodeGroup* nodeGroup) override;
+        common::node_group_idx_t nodeGroupIdx, ChunkedNodeGroup* nodeGroup) override;
 
     common::node_group_idx_t getNumCommittedNodeGroups() const override {
         return columns[0]->getNumCommittedNodeGroups();

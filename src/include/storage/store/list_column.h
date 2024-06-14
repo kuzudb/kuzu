@@ -49,8 +49,8 @@ public:
         DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, bool enableCompression);
 
-    static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
-        BMFileHandle& dataFH);
+    static std::unique_ptr<ColumnChunkData> flushChunkData(ChunkState& state,
+        const ColumnChunkData& chunk, BMFileHandle& dataFH);
 
     void initChunkState(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, ChunkState& chunkState) override;

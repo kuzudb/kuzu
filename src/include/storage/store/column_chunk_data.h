@@ -8,6 +8,7 @@
 #include "common/null_mask.h"
 #include "common/types/types.h"
 #include "storage/compression/compression.h"
+#include "storage/enums/residency_state.h"
 
 namespace kuzu {
 namespace transaction {
@@ -51,9 +52,6 @@ struct ChunkState {
     std::vector<ChunkState> childrenStates;
 };
 
-// TEMPORARY is used for column chunk data in memory and not going to be persisted to disk.
-enum class ResidencyState : uint8_t { IN_MEMORY = 0, ON_DISK = 1, TEMPORARY = 2 };
-
 class BMFileHandle;
 // Base data segment covers all fixed-sized data types.
 class ColumnChunkData {
@@ -66,6 +64,9 @@ public:
     ColumnChunkData(common::LogicalType dataType, bool enableCompression,
         const ColumnChunkMetadata& metadata, bool hasNullData);
     virtual ~ColumnChunkData() = default;
+
+    static std::unique_ptr<ColumnChunkData> constructChunkDataFromState(
+        common::LogicalType& dataType, ChunkState& state);
 
     template<typename T>
     T getValue(common::offset_t pos) const {
@@ -83,6 +84,7 @@ public:
         }
     }
 
+    void setNullData(std::unique_ptr<NullChunkData> nullData_) { nullData = std::move(nullData_); }
     NullChunkData* getNullData() { return nullData.get(); }
     bool hasNullData() const { return nullData != nullptr; }
     const NullChunkData& getNullData() const { return *nullData; }
@@ -303,7 +305,7 @@ struct ColumnChunkFactory {
     static std::unique_ptr<ColumnChunkData> createColumnChunkData(common::LogicalType dataType,
         bool enableCompression, uint64_t capacity, ResidencyState type, bool hasNullData = true);
     static std::unique_ptr<ColumnChunkData> createColumnChunkData(common::LogicalType dataType,
-        bool enableCompression, ColumnChunkMetadata& metadata);
+        bool enableCompression, ColumnChunkMetadata& metadata, bool hasNullData);
 
     static std::unique_ptr<ColumnChunkData> createNullChunkData(bool enableCompression,
         uint64_t capacity, ResidencyState type) {

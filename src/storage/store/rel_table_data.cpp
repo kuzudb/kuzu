@@ -318,21 +318,20 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction, offset_t nodeOff
     return length > 0;
 }
 
-offset_t RelTableData::append(Transaction* transaction, ChunkedNodeGroup* nodeGroup) {
+offset_t RelTableData::append(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    ChunkedNodeGroup* nodeGroup) {
     auto csrNodeGroup = ku_dynamic_cast<ChunkedNodeGroup*, ChunkedCSRNodeGroup*>(nodeGroup);
     ChunkState csrOffsetState, csrLengthState;
-    csrHeaderColumns.offset->initChunkState(transaction, csrNodeGroup->getNodeGroupIdx(),
-        csrOffsetState);
-    csrHeaderColumns.length->initChunkState(transaction, csrNodeGroup->getNodeGroupIdx(),
-        csrLengthState);
+    csrHeaderColumns.offset->initChunkState(transaction, nodeGroupIdx, csrOffsetState);
+    csrHeaderColumns.length->initChunkState(transaction, nodeGroupIdx, csrLengthState);
     csrHeaderColumns.append(csrNodeGroup->getCSRHeader(), csrOffsetState, csrLengthState);
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         auto column = getColumn(columnID);
         ChunkState state;
-        column->initChunkState(&DUMMY_WRITE_TRANSACTION, csrNodeGroup->getNodeGroupIdx(), state);
+        column->initChunkState(&DUMMY_WRITE_TRANSACTION, nodeGroupIdx, state);
         getColumn(columnID)->append(&nodeGroup->getColumnChunk(columnID).getData(), state);
     }
-    return StorageUtils::getStartOffsetOfNodeGroup(nodeGroup->getNodeGroupIdx());
+    return StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
 }
 
 static length_t getGapSizeForNode(const ChunkedCSRHeader& header, offset_t nodeOffset) {

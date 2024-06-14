@@ -3,9 +3,15 @@
 #include "common/column_data_format.h"
 #include "common/constants.h"
 #include "common/copy_constructors.h"
+#include "common/enums/rel_multiplicity.h"
+#include "storage/enums/residency_state.h"
 #include "storage/store/column_chunk.h"
 
 namespace kuzu {
+namespace common {
+class SelectionVector;
+} // namespace common
+
 namespace transaction {
 class Transaction;
 } // namespace transaction
@@ -14,22 +20,22 @@ namespace storage {
 
 class Column;
 struct TableScanState;
-
+class BMFileHandle;
 class ChunkedNodeGroup {
 public:
     static constexpr uint64_t CHUNK_CAPACITY = 2048;
 
     explicit ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks)
         : ChunkedNodeGroup{std::move(chunks), common::INVALID_OFFSET} {
-        residencyState = chunks[0]->getResidencyState();
-        for (auto columnID = 1u; columnID < chunks.size(); columnID++) {
-            KU_ASSERT(chunks[columnID]->getResidencyState() == residencyState);
+        KU_ASSERT(!this->chunks.empty());
+        residencyState = this->chunks[0]->getResidencyState();
+        for (auto columnID = 1u; columnID < this->chunks.size(); columnID++) {
+            KU_ASSERT(this->chunks[columnID]->getResidencyState() == residencyState);
         }
     }
     explicit ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks,
         const common::offset_t startNodeOffset)
-        : chunks{std::move(chunks)}, nodeGroupIdx{common::INVALID_NODE_GROUP_IDX},
-          startNodeOffset{startNodeOffset} {
+        : chunks{std::move(chunks)}, startNodeOffset{startNodeOffset} {
         KU_ASSERT(!this->chunks.empty());
         residencyState = this->chunks[0]->getResidencyState();
         numRows = this->chunks[0]->getNumValues();
@@ -45,7 +51,7 @@ public:
     DELETE_COPY_DEFAULT_MOVE(ChunkedNodeGroup);
     virtual ~ChunkedNodeGroup() = default;
 
-    uint64_t getNodeGroupIdx() const { return nodeGroupIdx; }
+    // uint64_t getNodeGroupIdx() const { return nodeGroupIdx; }
     common::idx_t getNumColumns() const { return chunks.size(); }
     common::offset_t getStartNodeOffset() const { return startNodeOffset; }
     const ColumnChunk& getColumnChunk(const common::column_id_t columnID) const {
@@ -82,6 +88,11 @@ public:
     void scan(transaction::Transaction* transaction, TableScanState& scanState,
         common::offset_t offsetInGroup, common::length_t length) const;
     std::unique_ptr<ChunkedNodeGroup> scanInMemCommitted() const;
+
+    template<ResidencyState SCAN_RESIDENCY_STATE>
+    void scanCommitted(transaction::Transaction* transaction, TableScanState& scanState,
+        ChunkedNodeGroup& output) const;
+
     void lookup(transaction::Transaction* transaction,
         const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors,
@@ -114,7 +125,7 @@ private:
     ResidencyState residencyState;
     // TODO: This should be removed. See comment on `getNodeGroupIdx()`. Instead, should only keep
     // `startNodeOffset`.
-    uint64_t nodeGroupIdx;
+    // uint64_t nodeGroupIdx;
     common::offset_t startNodeOffset;
     uint64_t capacity;
     common::row_idx_t numRows;

@@ -105,11 +105,12 @@ uint64_t CardinalityEstimator::estimateFilter(const LogicalPlan& childPlan,
 
 uint64_t CardinalityEstimator::getNumNodes(const std::vector<common::table_id_t>& tableIDs,
     Transaction* transaction) {
-    auto numNodes = 0u;
-    for (auto& tableID : tableIDs) {
-        numNodes +=
-            nodesStatistics->getNodeStatisticsAndDeletedIDs(transaction, tableID)->getNumTuples();
-    }
+    auto numNodes = 1u;
+    // TODO(Guodong): Rework getNumNodes.
+    // for (auto& tableID : tableIDs) {
+    // numNodes +=
+    // nodesStatistics->getNodeStatisticsAndDeletedIDs(transaction, tableID)->getNumTuples();
+    // }
     return atLeastOne(numNodes);
 }
 

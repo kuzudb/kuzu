@@ -23,7 +23,6 @@ public:
     explicit LocalChunkedGroupCollection(std::vector<common::LogicalType> dataTypes)
         : dataTypes{std::move(dataTypes)},
           chunkedGroups{ResidencyState::TEMPORARY, this->dataTypes}, numRows{0} {}
-    DELETE_COPY_DEFAULT_MOVE(LocalChunkedGroupCollection);
 
     static std::pair<uint32_t, uint64_t> getChunkIdxAndOffsetInChunk(common::row_idx_t rowIdx) {
         return std::make_pair(rowIdx / ChunkedNodeGroup::CHUNK_CAPACITY,
@@ -151,7 +150,7 @@ class LocalNodeGroup {
 public:
     LocalNodeGroup(common::offset_t nodeGroupStartOffset,
         const std::vector<common::LogicalType>& dataTypes);
-    DELETE_COPY_DEFAULT_MOVE(LocalNodeGroup);
+    // DELETE_COPY_DEFAULT_MOVE(LocalNodeGroup);
     virtual ~LocalNodeGroup() = default;
 
     virtual bool insert(std::vector<common::ValueVector*> nodeIDVectors,

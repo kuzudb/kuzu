@@ -27,17 +27,19 @@ StringColumn::StringColumn(std::string name, LogicalType dataType,
       dictionary{name, metaDAHeaderInfo, dataFH, metadataDAC, bufferManager, wal, transaction,
           enableCompression} {}
 
-std::unique_ptr<ColumnChunkData> StringColumn::flushChunkData(const ColumnChunkData& chunkData,
-    BMFileHandle& dataFH) {
-    auto flushedChunkData = flushNonNestedChunkData(chunkData, dataFH);
+std::unique_ptr<ColumnChunkData> StringColumn::flushChunkData(ChunkState& state,
+    const ColumnChunkData& chunkData, BMFileHandle& dataFH) {
+    auto flushedChunkData = flushNonNestedChunkData(state, chunkData, dataFH);
     auto& flushedStringData = flushedChunkData->cast<StringChunkData>();
 
     auto& stringChunk = chunkData.cast<StringChunkData>();
     auto& dictChunk = stringChunk.getDictionaryChunk();
-    flushedStringData.getDictionaryChunk().setOffsetChunk(
-        Column::flushChunkData(*dictChunk.getOffsetChunk(), dataFH));
-    flushedStringData.getDictionaryChunk().setStringDataChunk(
-        Column::flushChunkData(*dictChunk.getStringDataChunk(), dataFH));
+    flushedStringData.getDictionaryChunk().setOffsetChunk(Column::flushChunkData(
+        state.childrenStates[DictionaryChunk::OFFSET_COLUMN_CHILD_READ_STATE_IDX],
+        *dictChunk.getOffsetChunk(), dataFH));
+    flushedStringData.getDictionaryChunk().setStringDataChunk(Column::flushChunkData(
+        state.childrenStates[DictionaryChunk::DATA_COLUMN_CHILD_READ_STATE_IDX],
+        *dictChunk.getStringDataChunk(), dataFH));
     return flushedChunkData;
 }
 

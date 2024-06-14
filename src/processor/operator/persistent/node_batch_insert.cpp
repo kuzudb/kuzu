@@ -40,17 +40,6 @@ void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
     nodeSharedState->initPKIndex(context);
-    // Set initial node group index, which should be the last one available on disk which is not
-    // full, or the next index.
-    auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(nodeSharedState->table);
-    auto numExistingNodeGroups = nodeTable->getNumNodeGroups(context->clientContext->getTx());
-    if (numExistingNodeGroups > 0 &&
-        nodeTable->getNumTuplesInNodeGroup(context->clientContext->getTx(),
-            numExistingNodeGroups - 1) < StorageConstants::NODE_GROUP_SIZE) {
-        nodeSharedState->currentNodeGroupIdx = numExistingNodeGroups - 1;
-    } else {
-        nodeSharedState->currentNodeGroupIdx = numExistingNodeGroups;
-    }
 }
 
 void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
@@ -145,51 +134,20 @@ void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction) {
     auto nodeLocalState =
         ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
     auto numTuplesToAppend = nodeLocalState->columnState->getSelVector().getSelSize();
-    auto nodeSharedState =
-        ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
     while (numAppendedTuples < numTuplesToAppend) {
         auto numAppendedTuplesInNodeGroup = nodeLocalState->nodeGroup->append(
             nodeLocalState->columnVectors, nodeLocalState->columnState->getSelVectorUnsafe(),
             numTuplesToAppend - numAppendedTuples);
         numAppendedTuples += numAppendedTuplesInNodeGroup;
         if (nodeLocalState->nodeGroup->isFull()) {
-            writeAndResetNodeGroup(transaction, nodeSharedState->getNextNodeGroupIdx(),
-                nodeLocalState->nodeGroup, nodeLocalState->localIndexBuilder);
+            writeAndResetNodeGroup(transaction, nodeLocalState->nodeGroup,
+                nodeLocalState->localIndexBuilder);
         }
         if (numAppendedTuples < numTuplesToAppend) {
             nodeLocalState->columnState->slice((offset_t)numAppendedTuplesInNodeGroup);
         }
     }
     sharedState->incrementNumRows(numAppendedTuples);
-}
-
-void NodeBatchInsert::writeAndResetNewNodeGroup(transaction::Transaction* transaction,
-    node_group_idx_t nodeGroupIdx, std::optional<IndexBuilder>& indexBuilder,
-    column_id_t pkColumnID, NodeTable* table, ChunkedNodeGroup* chunkedGroup) {
-    chunkedGroup->finalize(nodeGroupIdx);
-    // TODO: returned nodeOffset is not necessary here.
-    const auto nodeOffset = table->append(transaction, chunkedGroup, 0, chunkedGroup->getNumRows());
-    if (indexBuilder) {
-        indexBuilder->insert(chunkedGroup->getColumnChunk(pkColumnID).getData(), nodeOffset,
-            chunkedGroup->getNumRows());
-    }
-    chunkedGroup->resetToEmpty();
-}
-
-offset_t NodeBatchInsert::writeToExistingNodeGroup(transaction::Transaction* transaction,
-    node_group_idx_t nodeGroupIdx, std::optional<IndexBuilder>& indexBuilder,
-    column_id_t pkColumnID, NodeTable* table, ChunkedNodeGroup* chunkedGroup) {
-    auto numExistingTuplesInChunk = table->getNumTuplesInNodeGroup(transaction, nodeGroupIdx);
-    auto numRowsToWrite = std::min(StorageConstants::NODE_GROUP_SIZE - numExistingTuplesInChunk,
-        chunkedGroup->getNumRows());
-    table->append(transaction, chunkedGroup, 0, numRowsToWrite);
-    auto nodeOffset =
-        StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx) + numExistingTuplesInChunk;
-    if (indexBuilder) {
-        indexBuilder->insert(chunkedGroup->getColumnChunk(pkColumnID).getData(), nodeOffset,
-            numRowsToWrite);
-    }
-    return numRowsToWrite;
 }
 
 void NodeBatchInsert::clearToIndex(std::unique_ptr<ChunkedNodeGroup>& nodeGroup,
@@ -204,20 +162,19 @@ void NodeBatchInsert::clearToIndex(std::unique_ptr<ChunkedNodeGroup>& nodeGroup,
 }
 
 void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transaction,
-    node_group_idx_t nodeGroupIdx, std::unique_ptr<ChunkedNodeGroup>& nodeGroup,
-    std::optional<IndexBuilder>& indexBuilder) {
+    std::unique_ptr<ChunkedNodeGroup>& nodeGroup, std::optional<IndexBuilder>& indexBuilder) {
     auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
     auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
-
-    if (nodeGroupIdx >= nodeTable->getNumNodeGroups(transaction)) {
-        writeAndResetNewNodeGroup(transaction, nodeGroupIdx, indexBuilder,
-            nodeSharedState->pkColumnIdx, nodeTable, nodeGroup.get());
+    auto [nodeOffset, numRowsWritten] = nodeTable->appendPartially(transaction, *nodeGroup);
+    if (indexBuilder) {
+        indexBuilder->insert(nodeGroup->getColumnChunk(nodeSharedState->pkColumnID).getData(),
+            nodeOffset, numRowsWritten);
+    }
+    if (numRowsWritten == nodeGroup->getNumRows()) {
+        nodeGroup->resetToEmpty();
     } else {
-        KU_ASSERT(nodeGroupIdx == nodeTable->getNumNodeGroups(transaction) - 1);
-        auto valuesWritten = writeToExistingNodeGroup(transaction, nodeGroupIdx, indexBuilder,
-            nodeSharedState->pkColumnIdx, nodeTable, nodeGroup.get());
-        clearToIndex(nodeGroup, valuesWritten);
+        clearToIndex(nodeGroup, numRowsWritten);
     }
 }
 
@@ -233,9 +190,7 @@ void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transa
     auto numNodesAppended =
         nodeSharedState->sharedNodeGroup->append(*localNodeGroup, 0 /* offsetInNodeGroup */);
     if (nodeSharedState->sharedNodeGroup->isFull()) {
-        node_group_idx_t nodeGroupIdx = nodeSharedState->getNextNodeGroupIdxWithoutLock();
-        writeAndResetNodeGroup(transaction, nodeGroupIdx, nodeSharedState->sharedNodeGroup,
-            indexBuilder);
+        writeAndResetNodeGroup(transaction, nodeSharedState->sharedNodeGroup, indexBuilder);
     }
     if (numNodesAppended < localNodeGroup->getNumRows()) {
         nodeSharedState->sharedNodeGroup->append(*localNodeGroup, numNodesAppended);
@@ -249,8 +204,7 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
     if (nodeSharedState->sharedNodeGroup) {
         while (nodeSharedState->sharedNodeGroup->getNumRows() > 0) {
             writeAndResetNodeGroup(context->clientContext->getTx(),
-                nodeSharedState->getNextNodeGroupIdx(), nodeSharedState->sharedNodeGroup,
-                nodeSharedState->globalIndexBuilder);
+                nodeSharedState->sharedNodeGroup, nodeSharedState->globalIndexBuilder);
         }
     }
     if (nodeSharedState->globalIndexBuilder) {

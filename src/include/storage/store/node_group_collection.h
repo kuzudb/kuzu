@@ -22,7 +22,10 @@ public:
         const ChunkedNodeGroupCollection& chunkedGroupCollection);
     void append(const transaction::Transaction* transaction, const NodeGroupCollection& other);
 
-    common::row_idx_t getNumRows();
+    std::pair<common::offset_t, common::offset_t> appendPartially(
+        transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup);
+
+    common::row_idx_t getNumRows() const;
     common::node_group_idx_t getNumNodeGroups() {
         std::shared_lock sLck{mtx};
         return nodeGroups.size();
@@ -53,6 +56,7 @@ private:
     std::shared_mutex mtx;
     bool enableCompression;
     common::offset_t startNodeOffset;
+    std::atomic<common::row_idx_t> numRows;
     std::vector<common::LogicalType> types;
     std::vector<std::unique_ptr<NodeGroup>> nodeGroups;
     BMFileHandle* dataFH;

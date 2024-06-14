@@ -53,8 +53,7 @@ void ChunkedCSRHeader::fillDefaultValues(const offset_t newNumValues) const {
 ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<LogicalType>& columnTypes,
     bool enableCompression, uint64_t capacity, const offset_t startOffset,
     ResidencyState residencyState)
-    : residencyState{residencyState}, nodeGroupIdx{INVALID_NODE_GROUP_IDX},
-      startNodeOffset{startOffset}, capacity{capacity}, numRows{0} {
+    : residencyState{residencyState}, startNodeOffset{startOffset}, capacity{capacity}, numRows{0} {
     chunks.reserve(columnTypes.size());
     for (auto& dataType : columnTypes) {
         chunks.push_back(std::make_unique<ColumnChunk>(*dataType.copy(), capacity,
@@ -64,8 +63,8 @@ ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<LogicalType>& columnTypes,
 
 ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<std::unique_ptr<Column>>& columns,
     bool enableCompression)
-    : residencyState{ResidencyState::ON_DISK}, nodeGroupIdx{INVALID_NODE_GROUP_IDX},
-      startNodeOffset{INVALID_OFFSET}, capacity{StorageConstants::NODE_GROUP_SIZE}, numRows{0} {
+    : residencyState{ResidencyState::ON_DISK}, startNodeOffset{INVALID_OFFSET},
+      capacity{StorageConstants::NODE_GROUP_SIZE}, numRows{0} {
     chunks.reserve(columns.size());
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         chunks.push_back(std::make_unique<ColumnChunk>(columns[columnID]->getDataType(), capacity,
@@ -76,7 +75,6 @@ ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<std::unique_ptr<Column>>& c
 void ChunkedNodeGroup::resetToEmpty() {
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     numRows = 0;
-    nodeGroupIdx = UINT64_MAX;
     for (const auto& chunk : chunks) {
         chunk->resetToEmpty();
     }
@@ -184,6 +182,22 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::scanInMemCommitted() const {
     return scannedChunkedGroup;
 }
 
+template<ResidencyState SCAN_RESIDENCY_STATE>
+void ChunkedNodeGroup::scanCommitted(Transaction* transaction, TableScanState& scanState,
+    ChunkedNodeGroup& output) const {
+    for (auto i = 0u; i < chunks.size(); i++) {
+        chunks[i]->scanCommitted<SCAN_RESIDENCY_STATE>(transaction, scanState.chunkStates[i],
+            output.getColumnChunk(i));
+    }
+}
+
+template void ChunkedNodeGroup::scanCommitted<ResidencyState::ON_DISK>(Transaction* transaction,
+    TableScanState& scanState, ChunkedNodeGroup& output) const;
+template void ChunkedNodeGroup::scanCommitted<ResidencyState::IN_MEMORY>(Transaction* transaction,
+    TableScanState& scanState, ChunkedNodeGroup& output) const;
+template void ChunkedNodeGroup::scanCommitted<ResidencyState::TEMPORARY>(Transaction* transaction,
+    TableScanState& scanState, ChunkedNodeGroup& output) const;
+
 void ChunkedNodeGroup::lookup(Transaction* transaction, const std::vector<column_id_t>& columnIDs,
     const std::vector<ValueVector*>& outputVectors, offset_t offsetInGroup) const {
     KU_ASSERT(columnIDs.size() == outputVectors.size());
@@ -202,8 +216,9 @@ void ChunkedNodeGroup::update(Transaction* transaction, offset_t offset, column_
     getColumnChunk(columnID).update(transaction, offset - startNodeOffset, propertyVector);
 }
 
+// TODO(Guodong): Remove `nodeGroupIdx`.
 void ChunkedNodeGroup::finalize(uint64_t nodeGroupIdx_) {
-    nodeGroupIdx = nodeGroupIdx_;
+    // nodeGroupIdx = nodeGroupIdx_;
     for (auto i = 0u; i < chunks.size(); i++) {
         chunks[i]->getData().finalize();
     }
@@ -212,8 +227,10 @@ void ChunkedNodeGroup::finalize(uint64_t nodeGroupIdx_) {
 std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flush(BMFileHandle& dataFH) const {
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
-        flushedChunks[i] = std::make_unique<ColumnChunk>(getColumnChunk(i).isCompressionEnabled(),
-            Column::flushChunkData(getColumnChunk(i).getData(), dataFH));
+        // TODO: FIX-ME.
+        // flushedChunks[i] =
+        // std::make_unique<ColumnChunk>(getColumnChunk(i).isCompressionEnabled(),
+        // Column::flushChunkData(getColumnChunk(i).getData(), dataFH));
     }
     return std::make_unique<ChunkedNodeGroup>(std::move(flushedChunks), 0 /*startNodeOffset*/);
 }

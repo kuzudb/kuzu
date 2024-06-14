@@ -22,7 +22,7 @@ ColumnChunk::ColumnChunk(const LogicalType& dataType, bool enableCompression,
     ColumnChunkMetadata metadata)
     : residencyState{ResidencyState::ON_DISK}, dataType{dataType},
       enableCompression{enableCompression} {
-    data = ColumnChunkFactory::createColumnChunkData(dataType, enableCompression, metadata);
+    data = ColumnChunkFactory::createColumnChunkData(dataType, enableCompression, metadata, true);
 }
 
 ColumnChunk::ColumnChunk(bool enableCompression, std::unique_ptr<ColumnChunkData> data)
@@ -82,6 +82,55 @@ void ColumnChunk::scanInMemCommitted(ColumnChunkData& output) const {
             for (auto i = 0u; i < vectorInfo->numRowsUpdated; i++) {
                 data->write(vectorInfo->data.get(), i,
                     vectorIdx * DEFAULT_VECTOR_CAPACITY + vectorInfo->rowsInVector[i], 1);
+            }
+        }
+    }
+}
+
+template<ResidencyState SCAN_RESIDENCY_STATE>
+void ColumnChunk::scanCommitted(Transaction* transaction, ChunkState& chunkState,
+    ColumnChunk& output) const {
+    auto numValuesBeforeScan = output.getNumValues();
+    switch (residencyState) {
+    case ResidencyState::ON_DISK: {
+        if (SCAN_RESIDENCY_STATE == residencyState) {
+            chunkState.column->scan(transaction, chunkState, &output.getData());
+            scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan);
+        }
+    } break;
+    case ResidencyState::IN_MEMORY:
+    case ResidencyState::TEMPORARY: {
+        if (SCAN_RESIDENCY_STATE == residencyState) {
+            output.getData().append(data.get(), 0, data->getNumValues());
+            scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan);
+        }
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+}
+
+template void ColumnChunk::scanCommitted<ResidencyState::ON_DISK>(Transaction* transaction,
+    ChunkState& chunkState, ColumnChunk& output) const;
+template void ColumnChunk::scanCommitted<ResidencyState::IN_MEMORY>(Transaction* transaction,
+    ChunkState& chunkState, ColumnChunk& output) const;
+template void ColumnChunk::scanCommitted<ResidencyState::TEMPORARY>(Transaction* transaction,
+    ChunkState& chunkState, ColumnChunk& output) const;
+
+void ColumnChunk::scanCommittedUpdates(Transaction* transaction, ColumnChunkData& output,
+    offset_t startOffsetInOutput) const {
+    if (!updateInfo) {
+        return;
+    }
+    const auto numVectors = getNumValues() / DEFAULT_VECTOR_CAPACITY;
+    for (auto vectorIdx = 0u; vectorIdx < numVectors; vectorIdx++) {
+        if (const auto vectorInfo = updateInfo->getVectorInfo(transaction, vectorIdx)) {
+            for (auto i = 0u; i < vectorInfo->numRowsUpdated; i++) {
+                output.write(vectorInfo->data.get(), i,
+                    startOffsetInOutput + vectorIdx * DEFAULT_VECTOR_CAPACITY +
+                        vectorInfo->rowsInVector[i],
+                    1);
             }
         }
     }

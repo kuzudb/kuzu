@@ -138,6 +138,11 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     const auto walReplayer = std::make_unique<WALReplayer>(clientContext, wal.getShadowingFH(),
         WALReplayMode::COMMIT_CHECKPOINT);
     walReplayer->replay();
+    // TODO(Guodong): This is a temp hack to test rewriting existing pages in data file.
+    // Should move this away.
+    // The hack is to get around that flushBuffer will always directly write to the file.
+    clientContext.getMemoryManager()->getBufferManager()->removeFilePagesFromFrames(
+        *clientContext.getStorageManager()->getDataFH());
     // Resume receiving new transactions.
     allowReceivingNewTransactions();
     // Clear the wal.

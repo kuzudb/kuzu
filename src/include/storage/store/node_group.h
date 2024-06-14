@@ -2,6 +2,7 @@
 
 #include <map>
 
+#include "storage/enums/residency_state.h"
 #include "storage/store/chunked_node_group_collection.h"
 #include "storage/store/version_info.h"
 
@@ -22,12 +23,14 @@ struct NodeGroupScanState {
 
 class TableData;
 struct TableScanState;
+class BMFileHandle;
 class NodeGroup {
 public:
     NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
-        const ResidencyState residencyState, const std::vector<common::LogicalType>& dataTypes)
+        const ResidencyState residencyState, const std::vector<common::LogicalType>& dataTypes,
+        common::offset_t startOffset)
         : nodeGroupIdx{nodeGroupIdx}, enableCompression{enableCompression}, dataTypes{dataTypes},
-          residencyState{residencyState}, startNodeOffset{0},
+          residencyState{residencyState}, startNodeOffset{startOffset},
           chunkedGroups{residencyState, dataTypes} {}
     NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
         std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup,
@@ -40,6 +43,8 @@ public:
         }
     }
 
+    // common::UniqLock lock() { return chunkedGroups.lock(); }
+
     common::row_idx_t getNumRows() const { return chunkedGroups.getNumRows(); }
     bool isFull() const {
         return chunkedGroups.getNumRows() == common::StorageConstants::NODE_GROUP_SIZE;
@@ -48,7 +53,8 @@ public:
     void append(const transaction::Transaction* transaction,
         const ChunkedNodeGroupCollection& chunkCollection, common::row_idx_t offset,
         common::row_idx_t numRowsToAppend);
-    void append(const transaction::Transaction* transaction, const ChunkedNodeGroup& chunkedGroup);
+    common::offset_t append(const transaction::Transaction* transaction,
+        const ChunkedNodeGroup& chunkedGroup, common::row_idx_t numRowsToAppend);
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors, common::row_idx_t startRowIdx,
         common::row_idx_t numRowsToAppend);
@@ -88,12 +94,16 @@ private:
     void setToOnDisk() { residencyState = ResidencyState::ON_DISK; }
 
     std::unique_ptr<ChunkedNodeGroup> scanInMemCommitted();
-    ColumnChunkData* fetchOnDiskUpdates(common::column_id_t columnID,
-        std::map<common::offset_t, common::row_idx_t>& updateInfo);
+
+    template<ResidencyState SCAN_RESIDENCY_STATE>
+    std::unique_ptr<ChunkedNodeGroup> scanCommitted(TableData& tableData);
 
     static void populateNodeID(common::ValueVector& nodeIDVector,
         common::SelectionVector& selVector, common::table_id_t tableID,
         common::offset_t startNodeOffset, common::row_idx_t numRows);
+
+    TableScanState createScanState(transaction::Transaction* transaction,
+        TableData& tableData) const;
 
 private:
     common::node_group_idx_t nodeGroupIdx;
@@ -103,6 +113,7 @@ private:
     // Offset of the first node in the group.
     common::offset_t startNodeOffset;
     ChunkedNodeGroupCollection chunkedGroups;
+    // on disk group.
     NodeGroupVersionInfo versionInfo;
 };
 

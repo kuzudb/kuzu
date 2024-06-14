@@ -2,9 +2,16 @@
 
 #include "common/constants.h"
 #include "common/types/types.h"
-#include "storage/store/column_chunk_data.h"
 
 namespace kuzu {
+namespace common {
+class ValueVector;
+} // namespace common
+
+namespace transaction {
+class Transaction;
+} // namespace transaction
+
 namespace storage {
 
 class ColumnChunkData;

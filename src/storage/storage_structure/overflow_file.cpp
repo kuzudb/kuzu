@@ -167,7 +167,7 @@ OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager
         KU_ASSERT(bufferManager && context && wal);
         fileHandle = bufferManager->getBMFileHandle(overflowFileIDAndName.fName,
             readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                       FileHandle::O_PERSISTENT_FILE_NO_CREATE,
+                       FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
             BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs, context);
     } else {
         fileHandle = std::make_unique<BMFileHandle>(overflowFileIDAndName.fName,

@@ -16,7 +16,7 @@ class LocalRelNG final : public LocalNodeGroup {
 
 public:
     LocalRelNG(common::offset_t nodeGroupStartOffset, std::vector<common::LogicalType> dataTypes);
-    DELETE_COPY_DEFAULT_MOVE(LocalRelNG);
+    // DELETE_COPY_DEFAULT_MOVE(LocalRelNG);
 
     common::row_idx_t scanCSR(common::offset_t srcOffset, common::offset_t posToReadForOffset,
         const std::vector<common::column_id_t>& columnIDs,

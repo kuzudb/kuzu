@@ -27,13 +27,14 @@ StructColumn::StructColumn(std::string name, LogicalType dataType,
     }
 }
 
-std::unique_ptr<ColumnChunkData> StructColumn::flushChunkData(const ColumnChunkData& chunk,
-    BMFileHandle& dataFH) {
-    auto flushedChunk = flushNonNestedChunkData(chunk, dataFH);
+std::unique_ptr<ColumnChunkData> StructColumn::flushChunkData(ChunkState& state,
+    const ColumnChunkData& chunk, BMFileHandle& dataFH) {
+    auto flushedChunk = flushNonNestedChunkData(state, chunk, dataFH);
     auto& structChunk = chunk.cast<StructChunkData>();
     auto& flushedStructChunk = flushedChunk->cast<StructChunkData>();
     for (auto i = 0u; i < structChunk.getNumChildren(); i++) {
-        auto flushedChildChunk = Column::flushChunkData(structChunk.getChild(i), dataFH);
+        auto flushedChildChunk =
+            Column::flushChunkData(state.childrenStates[i], structChunk.getChild(i), dataFH);
         flushedStructChunk.setChild(i, std::move(flushedChildChunk));
     }
     return flushedChunk;

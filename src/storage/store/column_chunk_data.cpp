@@ -283,6 +283,24 @@ ColumnChunkData::ColumnChunkData(LogicalType dataType, bool enableCompression,
     }
 }
 
+std::unique_ptr<ColumnChunkData> ColumnChunkData::constructChunkDataFromState(LogicalType& dataType,
+    ChunkState& state) {
+    // auto chunk = ColumnChunkFactory::createColumnChunkData(dataType, true, state.metadata);
+    // switch (dataType.getPhysicalType()) {
+    // case PhysicalTypeID::STRUCT: {
+    //     auto& structChunkData = chunk->cast<StructChunkData>();
+    //     for (auto i = 0u; i < structChunkData.getNumChildren(); i++) {
+    //         structChunkData.setChild(i,
+    //             constructChunkDataFromState(StructType::getFieldTypes(dataType)[i],
+    //                 state.childrenStates[i]));
+    //     }
+    // } break;
+    // case PhysicalTypeID::STRING: {
+    //     auto& stringChunkData = chunk->cast<StructChunkData>();
+    // } break;
+    // }
+}
+
 void ColumnChunkData::initializeBuffer() {
     numBytesPerValue = getDataTypeSizeInChunk(dataType);
     bufferSize = getBufferSize(capacity);
@@ -378,7 +396,7 @@ void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
 
 ColumnChunkMetadata ColumnChunkData::flushBuffer(BMFileHandle* dataFH, page_idx_t startPageIdx,
     const ColumnChunkMetadata& metadata) const {
-    if (!metadata.compMeta.isConstant()) {
+    if (!metadata.compMeta.isConstant() && bufferSize != 0) {
         KU_ASSERT(bufferSize == getBufferSize(capacity));
         return flushBufferFunction(buffer.get(), bufferSize, dataFH, startPageIdx, metadata);
     }
@@ -399,16 +417,19 @@ uint64_t ColumnChunkData::getBufferSize(uint64_t capacity_) const {
 
 void ColumnChunkData::initializeScanState(ChunkState& state) const {
     if (nullData) {
+        state.nullState = std::make_unique<ChunkState>();
         nullData->initializeScanState(*state.nullState);
     }
-    state.metadata = metadata;
-    state.numValuesPerPage =
-        state.metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+    if (residencyState == ResidencyState::ON_DISK) {
+        state.metadata = metadata;
+        state.numValuesPerPage =
+            state.metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+    }
 }
 
 void ColumnChunkData::scan(ValueVector& output, offset_t offset, length_t length) const {
     KU_ASSERT(offset + length <= numValues);
-    // TODO(Guodong): Rework properly as scan and handle visibility here.
+    // TODO(Guodong): Rework properly as scan.
     for (auto i = 0u; i < length; i++) {
         lookup(offset + i, output, i);
     }
@@ -417,7 +438,6 @@ void ColumnChunkData::scan(ValueVector& output, offset_t offset, length_t length
 void ColumnChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     sel_t posInOutputVector) const {
     KU_ASSERT(offsetInChunk < capacity);
-    // TODO(Guodong): Handle visibility here.
     output.setNull(posInOutputVector, nullData->isNull(offsetInChunk));
     if (!output.isNull(posInOutputVector)) {
         memcpy(output.getData() + posInOutputVector * numBytesPerValue,
@@ -596,7 +616,7 @@ std::unique_ptr<ColumnChunkData> ColumnChunkData::deserialize(Deserializer& deSe
     deSer.deserializeValue<bool>(hasNull);
     KU_ASSERT(hasNull);
     // TODO(Guodong): FIX-ME. enableCompression.
-    auto chunkData = ColumnChunkFactory::createColumnChunkData(*dataType, true, metadata);
+    auto chunkData = ColumnChunkFactory::createColumnChunkData(*dataType, true, metadata, hasNull);
     chunkData->nullData = NullChunkData::deserialize(deSer);
 
     switch (dataType->getPhysicalType()) {
@@ -870,10 +890,10 @@ std::unique_ptr<ColumnChunkData> ColumnChunkFactory::createColumnChunkData(Logic
 }
 
 std::unique_ptr<ColumnChunkData> ColumnChunkFactory::createColumnChunkData(LogicalType dataType,
-    bool enableCompression, ColumnChunkMetadata& metadata) {
+    bool enableCompression, ColumnChunkMetadata& metadata, bool hasNullData) {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
-        return std::make_unique<BoolChunkData>(enableCompression, metadata, true /*hasNullData*/);
+        return std::make_unique<BoolChunkData>(enableCompression, metadata, hasNullData);
     }
     case PhysicalTypeID::INT64:
     case PhysicalTypeID::INT32:
@@ -888,7 +908,7 @@ std::unique_ptr<ColumnChunkData> ColumnChunkFactory::createColumnChunkData(Logic
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::INTERVAL: {
         return std::make_unique<ColumnChunkData>(std::move(dataType), enableCompression, metadata,
-            true /*hasNullData*/);
+            hasNullData);
     }
         // Physically, we only materialize offset of INTERNAL_ID, which is same as INT64,
     case PhysicalTypeID::INTERNAL_ID: {

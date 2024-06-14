@@ -152,7 +152,7 @@ public:
     bool checkIfNodeHasRels(transaction::Transaction* transaction,
         common::offset_t nodeOffset) const;
     common::offset_t append(transaction::Transaction* transaction,
-        ChunkedNodeGroup* nodeGroup) override;
+        common::node_group_idx_t nodeGroupIdx, ChunkedNodeGroup* nodeGroup) override;
 
     Column* getNbrIDColumn() const { return columns[NBR_ID_COLUMN_ID].get(); }
     Column* getCSROffsetColumn() const { return csrHeaderColumns.offset.get(); }

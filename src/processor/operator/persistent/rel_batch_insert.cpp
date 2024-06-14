@@ -196,7 +196,8 @@ void RelBatchInsert::appendNewNodeGroup(transaction::Transaction* transaction,
     localState.nodeGroup->finalize(nodeGroupIdx);
     // Flush node group to table.
     auto relTable = ku_dynamic_cast<Table*, RelTable*>(sharedState.table);
-    relTable->append(transaction, localState.nodeGroup.get(), relInfo.direction);
+    relTable->append(transaction, localState.nodeGroupIdx, localState.nodeGroup.get(),
+        relInfo.direction);
     sharedState.incrementNumRows(localState.nodeGroup->getNumRows());
     localState.nodeGroup->resetToEmpty();
 }

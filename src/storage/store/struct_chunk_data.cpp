@@ -96,6 +96,7 @@ void StructChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
 
 void StructChunkData::initializeScanState(ChunkState& state) const {
     ColumnChunkData::initializeScanState(state);
+    state.childrenStates.resize(childChunks.size());
     for (auto i = 0u; i < childChunks.size(); i++) {
         childChunks[i]->initializeScanState(state.childrenStates[i]);
     }

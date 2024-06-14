@@ -1,7 +1,8 @@
 #include "storage/store/update_info.h"
 
+#include "common/exception/runtime.h"
+#include "storage/store/column_chunk_data.h"
 #include "transaction/transaction.h"
-#include <common/exception/runtime.h>
 
 using namespace kuzu::transaction;
 using namespace kuzu::common;

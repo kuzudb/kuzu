@@ -50,7 +50,7 @@ void NodeTableData::lookup(Transaction*, TableDataScanState&, const ValueVector&
     KU_UNREACHABLE;
 }
 
-offset_t NodeTableData::append(Transaction*, ChunkedNodeGroup*) {
+offset_t NodeTableData::append(Transaction*, node_group_idx_t, ChunkedNodeGroup*) {
     KU_UNREACHABLE;
 }
 

@@ -38,11 +38,10 @@ struct TableScanState {
         std::vector<common::column_id_t> columnIDs)
         : tableID{tableID}, tableData{nullptr}, nodeIDVector(nullptr),
           columnIDs{std::move(columnIDs)} {
-        KU_ASSERT(this->outputVectors.size() == this->columnIDs.size());
         chunkStates.resize(this->columnIDs.size());
     }
     virtual ~TableScanState() = default;
-    DELETE_COPY_AND_MOVE(TableScanState);
+    DELETE_COPY_DEFAULT_MOVE(TableScanState);
 
     template<class TARGET>
     TARGET& cast() {

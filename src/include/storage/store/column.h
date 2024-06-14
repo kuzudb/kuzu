@@ -45,9 +45,11 @@ public:
         bool requireNullColumn = true);
     virtual ~Column();
 
-    static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
-        BMFileHandle& dataFH);
-    static std::unique_ptr<ColumnChunkData> flushNonNestedChunkData(const ColumnChunkData& chunk,
+    static std::unique_ptr<ColumnChunkData> flushChunkData(ChunkState& state,
+        const ColumnChunkData& chunkData, BMFileHandle& dataFH);
+    static std::unique_ptr<ColumnChunkData> flushNonNestedChunkData(ChunkState& state,
+        const ColumnChunkData& chunk, BMFileHandle& dataFH);
+    static ColumnChunkMetadata flushData(ChunkState& state, const ColumnChunkData& chunkData,
         BMFileHandle& dataFH);
 
     // Expose for feature store
@@ -140,6 +142,9 @@ public:
     virtual std::unique_ptr<ColumnChunkData> getEmptyChunkForCommit(uint64_t capacity);
     static void applyLocalChunkToColumnChunk(const ChunkDataCollection& localChunks,
         ColumnChunkData* columnChunk, const offset_to_row_idx_t& info);
+
+    std::unique_ptr<ColumnChunk> checkpointColumnChunk(ChunkState& state,
+        const ColumnChunk& insertChunk, const ColumnChunk& updateChunk);
 
 protected:
     virtual void scanInternal(transaction::Transaction* transaction, const ChunkState& state,

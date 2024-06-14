@@ -39,8 +39,17 @@ bool LocalNodeTable::insert(Transaction*, TableInsertState& insertState) {
     return true;
 }
 
-bool LocalNodeTable::update(TableUpdateState&) {
-    // TODO(Guodong): Implement update of local node table.
+bool LocalNodeTable::update(TableUpdateState& updateState) {
+    const auto& nodeUpdateState =
+        ku_dynamic_cast<TableUpdateState&, NodeTableUpdateState&>(updateState);
+    KU_ASSERT(nodeUpdateState.nodeIDVector.state->getSelVector().getSelSize() == 1);
+    const auto pos = nodeUpdateState.nodeIDVector.state->getSelVector()[0];
+    const auto offset = nodeUpdateState.nodeIDVector.readNodeOffset(pos);
+    // TODO(Guodong): Handle update hash index.
+    auto& nodeGroup = nodeGroups.findNodeGroupFromOffset(offset);
+    nodeGroup.update(&DUMMY_WRITE_TRANSACTION, offset, nodeUpdateState.columnID,
+        nodeUpdateState.propertyVector);
+    return true;
 }
 
 bool LocalNodeTable::delete_(Transaction*, TableDeleteState& deleteState) {

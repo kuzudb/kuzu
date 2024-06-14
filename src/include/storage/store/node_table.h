@@ -30,9 +30,7 @@ struct NodeTableScanState final : TableScanState {
         : TableScanState{tableID, std::move(columnIDs), std::vector<ColumnPredicateSet>{}} {}
     NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
         std::vector<ColumnPredicateSet> columnPredicateSets)
-        : TableScanState{tableID, std::move(columnIDs), std::move(columnPredicateSets)} {
-        chunkStates.resize(this->columnIDs.size());
-    }
+        : TableScanState{tableID, std::move(columnIDs), std::move(columnPredicateSets)} {}
 };
 
 struct NodeTableInsertState final : TableInsertState {
@@ -122,9 +120,8 @@ public:
     common::column_id_t getNumColumns() const { return tableData->getNumColumns(); }
     Column* getColumn(common::column_id_t columnID) const { return tableData->getColumn(columnID); }
 
-    common::offset_t append(transaction::Transaction* transaction,
-        const ChunkedNodeGroup* chunkedGroup, common::offset_t startOffsetToAppend,
-        common::row_idx_t numRowsToAppend);
+    std::pair<common::offset_t, common::offset_t> appendPartially(
+        transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup);
 
     void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void prepareCommit() override;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "storage/store/column_chunk_data.h"
 #include "storage/store/update_info.h"
 
 namespace kuzu {
@@ -17,6 +18,9 @@ public:
     void scan(transaction::Transaction* transaction, ChunkState& state, common::ValueVector& nodeID,
         common::ValueVector& output, common::offset_t offsetInChunk, common::length_t length) const;
     void scanInMemCommitted(ColumnChunkData& output) const;
+    template<ResidencyState SCAN_RESIDENCY_STATE>
+    void scanCommitted(transaction::Transaction* transaction, ChunkState& chunkState,
+        ColumnChunk& output) const;
     void lookup(transaction::Transaction* transaction, common::offset_t offsetInChunk,
         common::ValueVector& output, common::sel_t posInOutputVector) const;
     void update(transaction::Transaction* transaction, common::offset_t offsetInChunk,
@@ -50,6 +54,10 @@ public:
     void resetToEmpty() { data->resetToEmpty(); }
     void setAllNull() { data->setAllNull(); }
     void resize(uint64_t newSize) { data->resize(newSize); }
+
+private:
+    void scanCommittedUpdates(transaction::Transaction* transaction, ColumnChunkData& output,
+        common::offset_t startOffsetInOutput) const;
 
 private:
     ResidencyState residencyState;

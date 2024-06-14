@@ -189,6 +189,7 @@ void ListChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
 
 void ListChunkData::initializeScanState(ChunkState& state) const {
     ColumnChunkData::initializeScanState(state);
+    state.childrenStates.resize(2);
     sizeColumnChunk->initializeScanState(state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX]);
     listDataColumnChunk->dataColumnChunk->initializeScanState(
         state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
