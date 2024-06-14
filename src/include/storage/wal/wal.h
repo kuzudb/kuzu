@@ -46,7 +46,8 @@ public:
 
     void logCreateSequenceRecord(catalog::CatalogEntry* catalogEntry);
     void logDropSequenceRecord(common::sequence_id_t sequenceID);
-    void logUpdateSequenceRecord(common::sequence_id_t sequenceID, catalog::SequenceChangeData data);
+    void logUpdateSequenceRecord(common::sequence_id_t sequenceID,
+        catalog::SequenceChangeData data);
 
     void logCreateTypeRecord(catalog::CatalogEntry* catalogEntry);
 

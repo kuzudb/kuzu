@@ -56,8 +56,8 @@ public:
     // sequence functions
     //===--------------------------------------------------------------------===//
     int64_t currVal();
-    void nextKVal(transaction::Transaction* transaction, 
-        const uint64_t& count, common::ValueVector& resultVector);
+    void nextKVal(transaction::Transaction* transaction, const uint64_t& count,
+        common::ValueVector& resultVector);
     void replayVal(const uint64_t& usageCount, const int64_t& currVal, const int64_t& nextVal);
 
     //===--------------------------------------------------------------------===//

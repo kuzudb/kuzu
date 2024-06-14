@@ -70,7 +70,8 @@ public:
     explicit UndoBuffer(main::ClientContext& clientContext);
 
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
-    void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry, const catalog::SequenceData& data, int64_t prevVal);
+    void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
+        const catalog::SequenceData& data, int64_t prevVal);
 
     void commit(common::transaction_t commitTS);
     void rollback();
@@ -87,7 +88,6 @@ private:
     void commitSequenceEntry(uint8_t const* entry, common::transaction_t commitTS);
     void rollbackCatalogEntry(uint8_t const* entry);
     void rollbackSequenceEntry(uint8_t const* entry);
-
 
 private:
     main::ClientContext& clientContext;

@@ -259,8 +259,9 @@ void WALReplayer::replayUpdateSequenceRecord(const WALRecord& walRecord) {
     }
     auto& dropEntryRecord = walRecord.constCast<UpdateSequenceRecord>();
     auto sequenceID = dropEntryRecord.sequenceID;
-    auto entry = clientContext.getCatalog()->getSequenceCatalogEntry(&DUMMY_WRITE_TRANSACTION, sequenceID);
-    entry->replayVal(dropEntryRecord.data.usageCount, dropEntryRecord.data.currVal, 
+    auto entry =
+        clientContext.getCatalog()->getSequenceCatalogEntry(&DUMMY_WRITE_TRANSACTION, sequenceID);
+    entry->replayVal(dropEntryRecord.data.usageCount, dropEntryRecord.data.currVal,
         dropEntryRecord.data.nextVal);
 }
 

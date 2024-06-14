@@ -59,7 +59,8 @@ public:
     storage::LocalStorage* getLocalStorage() { return localStorage.get(); }
 
     void addCatalogEntry(catalog::CatalogSet* catalogSet, catalog::CatalogEntry* catalogEntry);
-    void addSequenceChange(catalog::SequenceCatalogEntry* sequenceEntry, const catalog::SequenceData& data, int64_t prevVal);
+    void addSequenceChange(catalog::SequenceCatalogEntry* sequenceEntry,
+        const catalog::SequenceData& data, int64_t prevVal);
 
     static std::unique_ptr<Transaction> getDummyWriteTrx() {
         return std::make_unique<Transaction>(TransactionType::WRITE);
