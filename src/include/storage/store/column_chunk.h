@@ -11,6 +11,9 @@
 #include "storage/compression/compression.h"
 
 namespace kuzu {
+namespace evaluator {
+class ExpressionEvaluator;
+} // namespace evaluator
 namespace storage {
 
 class NullChunkData;
@@ -101,7 +104,8 @@ public:
     // with
     virtual void resize(uint64_t newCapacity);
 
-    void populateWithDefaultVal(common::ValueVector* defaultValueVector);
+    void populateWithDefaultVal(evaluator::ExpressionEvaluator& defaultEvaluator,
+        uint64_t& numValues_);
     virtual void finalize() { // DO NOTHING.
     }
 

@@ -203,19 +203,26 @@ Catalog exception: nextval: reached minimum value of sequence "edgeMin" -10
 Catalog exception: nextval: reached maximum value of sequence "test" 3
 
 -CASE AddPropertySequence
--SKIP
-# TODO(Guodong/Sam): This fails since we don't yet support non-default add property
 -STATEMENT CREATE SEQUENCE test;
+---- ok
+-STATEMENT CREATE SEQUENCE test2;
 ---- ok
 -STATEMENT create node table Comment (id int64, PRIMARY KEY (id));
 ---- ok
+-STATEMENT create rel table replyOf (FROM Comment TO Comment, MANY_ONE);
+---- ok
 -STATEMENT copy Comment from '${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment.csv' (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT copy replyOf from '${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment_replyOf_Comment.csv' (HEADER=true, DELIM='|');
 ---- ok
 -STATEMENT alter table Comment add propx int64 default nextval('test');
 ---- ok
 -STATEMENT MATCH (c:Comment) RETURN SUM(c.propx);
 ---- 1
-???
+23217646816
+-STATEMENT alter table replyOf add propx int64 default nextval('test2');
+---- error
+Binder exception: Cannot set a non-constant default value when adding columns on REL tables.
 
 -CASE DefaultSharedSequence
 -STATEMENT CREATE SEQUENCE shared;

@@ -7,6 +7,7 @@
 #include "common/type_utils.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
+#include "expression_evaluator/expression_evaluator.h"
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/compression/compression.h"
 #include "storage/store/list_column_chunk.h"
@@ -14,6 +15,7 @@
 #include "storage/store/struct_column_chunk.h"
 
 using namespace kuzu::common;
+using namespace kuzu::evaluator;
 
 namespace kuzu {
 namespace storage {
@@ -378,24 +380,18 @@ void ColumnChunkData::resize(uint64_t newCapacity) {
     }
 }
 
-void ColumnChunkData::populateWithDefaultVal(ValueVector* defaultValueVector) {
-    // TODO(Guodong): don't set vector state to a new one. Default vector is shared across all
-    // operators on the pipeline so setting its state will affect others.
-    // You can only set state for vectors that is local to this class.
-    defaultValueVector->setState(std::make_shared<DataChunkState>());
-    const auto valPos = defaultValueVector->state->getSelVector()[0];
-    auto positionBuffer = defaultValueVector->state->getSelVectorUnsafe().getMultableBuffer();
-    for (auto i = 0u; i < defaultValueVector->state->getSelVector().getSelSize(); i++) {
-        positionBuffer[i] = valPos;
-    }
-    defaultValueVector->state->getSelVectorUnsafe().setToFiltered(DEFAULT_VECTOR_CAPACITY);
+void ColumnChunkData::populateWithDefaultVal(ExpressionEvaluator& defaultEvaluator,
+    uint64_t& numValues_) {
     auto numValuesAppended = 0u;
-    const auto numValuesToPopulate = capacity;
+    const auto numValuesToPopulate = numValues_;
     while (numValuesAppended < numValuesToPopulate) {
         const auto numValuesToAppend =
             std::min(DEFAULT_VECTOR_CAPACITY, numValuesToPopulate - numValuesAppended);
-        defaultValueVector->state->getSelVectorUnsafe().setSelSize(numValuesToAppend);
-        append(defaultValueVector, defaultValueVector->state->getSelVector());
+        defaultEvaluator.getLocalStateUnsafe().count = numValuesToAppend;
+        defaultEvaluator.evaluate();
+        auto resultVector = defaultEvaluator.resultVector.get();
+        KU_ASSERT(resultVector->state->getSelVector().getSelSize() == numValuesToAppend);
+        append(resultVector, resultVector->state->getSelVector());
         numValuesAppended += numValuesToAppend;
     }
 }

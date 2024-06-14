@@ -9,6 +9,7 @@
 #include "common/type_utils.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
+#include "expression_evaluator/expression_evaluator.h"
 #include "storage/compression/compression.h"
 #include "storage/storage_structure/disk_array.h"
 #include "storage/storage_structure/disk_array_collection.h"
@@ -24,6 +25,7 @@
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::transaction;
+using namespace kuzu::evaluator;
 
 namespace kuzu {
 namespace storage {
@@ -805,30 +807,21 @@ void Column::rollbackInMemory() {
 }
 
 void Column::populateWithDefaultVal(Transaction* transaction,
-    DiskArray<ColumnChunkMetadata>* metadataDA_, ValueVector* defaultValueVector) {
+    DiskArray<ColumnChunkMetadata>* metadataDA_, ExpressionEvaluator& defaultEvaluator) {
     KU_ASSERT(metadataDA_ != nullptr);
     auto numNodeGroups = metadataDA_->getNumElements(transaction->getType());
-    auto columnChunk =
-        ColumnChunkFactory::createColumnChunkData(*dataType.copy(), enableCompression);
-    columnChunk->populateWithDefaultVal(defaultValueVector);
     ChunkState state;
     for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
         initChunkState(transaction, nodeGroupIdx, state);
         auto chunkMeta = metadataDA_->get(nodeGroupIdx, transaction->getType());
-        auto capacity = columnChunk->getCapacity();
+        auto capacity = StorageConstants::NODE_GROUP_SIZE;
         while (capacity < chunkMeta.numValues) {
             capacity *= CHUNK_RESIZE_RATIO;
         }
-        if (capacity > columnChunk->getCapacity()) {
-            auto newColumnChunk = ColumnChunkFactory::createColumnChunkData(*dataType.copy(),
-                enableCompression, capacity);
-            newColumnChunk->populateWithDefaultVal(defaultValueVector);
-            newColumnChunk->setNumValues(chunkMeta.numValues);
-            append(newColumnChunk.get(), state);
-        } else {
-            columnChunk->setNumValues(chunkMeta.numValues);
-            append(columnChunk.get(), state);
-        }
+        auto columnChunk = ColumnChunkFactory::createColumnChunkData(*dataType.copy(),
+            enableCompression, capacity);
+        columnChunk->populateWithDefaultVal(defaultEvaluator, chunkMeta.numValues);
+        append(columnChunk.get(), state);
     }
 }
 

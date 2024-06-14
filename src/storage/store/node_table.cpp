@@ -5,6 +5,7 @@
 #include "common/exception/runtime.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
+#include "expression_evaluator/expression_evaluator.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table_data.h"
@@ -13,6 +14,7 @@
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::transaction;
+using namespace kuzu::evaluator;
 
 namespace kuzu {
 namespace storage {
@@ -191,13 +193,13 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
 }
 
 void NodeTable::addColumn(Transaction* transaction, const Property& property,
-    ValueVector* defaultValueVector) {
+    ExpressionEvaluator& defaultEvaluator) {
     const auto nodesStats =
         ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics);
     nodesStats->addMetadataDAHInfo(tableID, *property.getDataType());
     tableData->addColumn(transaction, "", tableData->getColumn(pkColumnID)->getMetadataDA(),
         *nodesStats->getMetadataDAHInfo(transaction, tableID, tableData->getNumColumns()), property,
-        defaultValueVector);
+        defaultEvaluator);
     // TODO(Guodong): addColumn is not going through localStorage design for now. So it needs to add
     // tableID into the wal's updated table set separately, as it won't trigger prepareCommit.
     wal->addToUpdatedTables(tableID);

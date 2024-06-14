@@ -9,6 +9,9 @@
 #include "storage/store/column_chunk.h"
 
 namespace kuzu {
+namespace evaluator {
+class ExpressionEvaluator;
+} // namespace evaluator
 namespace storage {
 
 struct CompressionMetadata;
@@ -125,7 +128,8 @@ public:
     virtual void rollbackInMemory();
 
     void populateWithDefaultVal(transaction::Transaction* transaction,
-        DiskArray<ColumnChunkMetadata>* metadataDA, common::ValueVector* defaultValueVector);
+        DiskArray<ColumnChunkMetadata>* metadataDA,
+        evaluator::ExpressionEvaluator& defaultEvaluator);
 
     ColumnChunkMetadata getMetadata(common::node_group_idx_t nodeGroupIdx,
         transaction::TransactionType transaction) const {

@@ -8,6 +8,9 @@ namespace catalog {
 class TableCatalogEntry;
 class Property;
 } // namespace catalog
+namespace evaluator {
+class ExpressionEvaluator;
+} // namespace evaluator
 
 namespace storage {
 struct TableScanState;
@@ -56,7 +59,7 @@ public:
     void dropColumn(common::column_id_t columnID) { columns.erase(columns.begin() + columnID); }
     void addColumn(transaction::Transaction* transaction, const std::string& colNamePrefix,
         DiskArray<ColumnChunkMetadata>* metadataDA, const MetadataDAHInfo& metadataDahInfo,
-        const catalog::Property& property, common::ValueVector* defaultValueVector);
+        const catalog::Property& property, evaluator::ExpressionEvaluator& defaultEvaluator);
 
     common::idx_t getNumColumns() const { return columns.size(); }
     Column* getColumn(common::column_id_t columnID) const {
