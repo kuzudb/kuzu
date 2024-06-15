@@ -66,7 +66,9 @@ public:
         KU_ASSERT(columnID < chunks.size());
         return std::move(chunks[columnID]);
     }
-    bool isFull() const { return numRows == capacity; }
+    bool isFullOrOnDisk() const {
+        return numRows == capacity || residencyState == ResidencyState::ON_DISK;
+    }
     ResidencyState getResidencyState() const { return residencyState; }
 
     void resetToEmpty();
@@ -101,7 +103,7 @@ public:
     void update(transaction::Transaction* transaction, common::offset_t offset,
         common::column_id_t columnID, common::ValueVector& propertyVector);
 
-    void finalize(uint64_t nodeGroupIdx_);
+    void finalize();
 
     virtual void writeToColumnChunk(common::idx_t chunkIdx, common::idx_t vectorIdx,
         const std::vector<std::unique_ptr<ColumnChunk>>& data, ColumnChunk& offsetChunk) {

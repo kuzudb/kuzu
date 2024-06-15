@@ -30,7 +30,7 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
                           ->getPropertyID(propertyName);
     auto nodeTable =
         ku_dynamic_cast<Table*, NodeTable*>(database->storageManager->getTable(nodeTableID));
-    auto column = nodeTable->getColumn(propertyID);
+    auto& column = nodeTable->getColumn(propertyID);
     auto current_buffer = result;
     std::vector<std::thread> threads;
     auto numElementsPerThread = size / numThreads + 1;
@@ -39,9 +39,9 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
     while (sizeLeft > 0) {
         uint64_t sizeToRead = std::min(numElementsPerThread, sizeLeft);
         threads.emplace_back(&StorageDriver::scanColumn, this, dummyReadOnlyTransaction.get(),
-            column, offsets, sizeToRead, current_buffer);
+            &column, offsets, sizeToRead, current_buffer);
         offsets += sizeToRead;
-        current_buffer += sizeToRead * getDataTypeSizeInChunk(column->getDataType());
+        current_buffer += sizeToRead * getDataTypeSizeInChunk(column.getDataType());
         sizeLeft -= sizeToRead;
     }
     for (auto& thread : threads) {

@@ -50,8 +50,7 @@ void NodeGroup::initializeScanState(Transaction*, TableScanState& state) const {
         auto& chunk = chunkedGroup.getColumnChunk(columnID);
         chunk.initializeScanState(state.chunkStates[i]);
         if (residencyState == ResidencyState::ON_DISK) {
-            KU_ASSERT(state.tableData);
-            state.chunkStates[i].column = state.tableData->getColumn(columnID);
+            state.chunkStates[i].column = state.columns[i];
         }
     }
 }
@@ -98,11 +97,10 @@ void NodeGroup::lookup(Transaction* transaction, TableScanState& state) const {
         chunkedGroupToScan.lookup(transaction, state.columnIDs, state.outputVectors, offsetInGroup);
     } break;
     case ResidencyState::ON_DISK: {
-        KU_ASSERT(state.tableData);
         for (auto i = 0u; i < state.columnIDs.size(); i++) {
             const auto columnID = state.columnIDs[i];
-            state.tableData->getColumn(columnID)->lookup(transaction, state.chunkStates[i],
-                state.nodeIDVector, state.outputVectors[i]);
+            state.columns[columnID]->lookup(transaction, state.chunkStates[i], state.nodeIDVector,
+                state.outputVectors[i]);
         }
     } break;
     default: {
@@ -144,25 +142,20 @@ void NodeGroup::flush(BMFileHandle& dataFH) {
     setToOnDisk();
 }
 
-void NodeGroup::checkpoint(TableData& tableData, BMFileHandle& dataFH) {
+void NodeGroup::checkpoint(const NodeGroupCheckpointState& state) {
     // We don't need to consider deletions here, as they are flushed separately as metadata.
     // A special but rare case can be all rows are deleted, then we can skip flushing the data.
-    auto updateChunkedGroup = scanCommitted<ResidencyState::ON_DISK>(tableData);
-    auto insertChunkedGroup = scanCommitted<ResidencyState::IN_MEMORY>(tableData);
-    // if (residencyState == ResidencyState::IN_MEMORY) {
-    // KU_ASSERT(updateChunkedGroup->getNumRows() == 0);
-    // auto flushedChunkedGroup = insertChunkedGroup->flush(dataFH);
-    // chunkedGroups.setChunkedGroup(0, std::move(flushedChunkedGroup));
-    // setToOnDisk();
-    // return;
-    // }
+    auto updateChunkedGroup =
+        scanCommitted<ResidencyState::ON_DISK>(state.columnIDs, state.columns);
+    auto insertChunkedGroup =
+        scanCommitted<ResidencyState::IN_MEMORY>(state.columnIDs, state.columns);
     std::vector<std::unique_ptr<ColumnChunk>> checkpointedChunks;
-    checkpointedChunks.resize(tableData.getNumColumns());
+    checkpointedChunks.resize(state.columns.size());
     const auto dummyTransaction = std::make_unique<Transaction>(TransactionType::READ_ONLY, 0,
         Transaction::START_TRANSACTION_ID - 1);
-    auto scanState = createScanState(dummyTransaction.get(), tableData);
-    for (auto columnID = 0u; columnID < tableData.getNumColumns(); columnID++) {
-        checkpointedChunks[columnID] = tableData.getColumn(columnID)->checkpointColumnChunk(
+    auto scanState = createScanState(dummyTransaction.get(), state.columnIDs, state.columns);
+    for (auto columnID = 0u; columnID < state.columns.size(); columnID++) {
+        checkpointedChunks[columnID] = state.columns[columnID]->checkpointColumnChunk(
             scanState.chunkStates[columnID], insertChunkedGroup->getColumnChunk(columnID),
             updateChunkedGroup->getColumnChunk(columnID));
     }
@@ -244,27 +237,15 @@ std::unique_ptr<NodeGroup> NodeGroup::deserialize(Deserializer& deSer) {
         std::move(versionInfo));
 }
 
-std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanInMemCommitted() {
-    auto mergedInMemGroup = std::make_unique<ChunkedNodeGroup>(dataTypes, enableCompression,
-        StorageConstants::NODE_GROUP_SIZE, startNodeOffset, ResidencyState::IN_MEMORY);
-    for (auto& chunkedGroup : chunkedGroups.getChunkedGroups()) {
-        if (chunkedGroup->getResidencyState() != ResidencyState::IN_MEMORY) {
-            continue;
-        }
-        auto scannedChunkGroup = chunkedGroup->scanInMemCommitted();
-        mergedInMemGroup->append(*scannedChunkGroup, 0, scannedChunkGroup->getNumRows());
-    }
-    return mergedInMemGroup;
-}
-
 template<ResidencyState SCAN_RESIDENCY_STATE>
-std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanCommitted(TableData& tableData) {
+std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanCommitted(
+    const std::vector<column_id_t>& columnIDs, const std::vector<Column*>& columns) {
     // TODO(Guodong): capacity should be set based on numValues.
     auto mergedInMemGroup = std::make_unique<ChunkedNodeGroup>(dataTypes, enableCompression,
         StorageConstants::NODE_GROUP_SIZE, startNodeOffset, ResidencyState::TEMPORARY);
     const auto dummyTransaction = std::make_unique<Transaction>(TransactionType::READ_ONLY, 0,
         Transaction::START_TRANSACTION_ID - 1);
-    auto scanState = createScanState(dummyTransaction.get(), tableData);
+    auto scanState = createScanState(dummyTransaction.get(), columnIDs, columns);
     for (auto& chunkedGroup : chunkedGroups.getChunkedGroups()) {
         chunkedGroup->scanCommitted<SCAN_RESIDENCY_STATE>(dummyTransaction.get(), scanState,
             *mergedInMemGroup);
@@ -273,19 +254,15 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanCommitted(TableData& tableData)
 }
 
 template std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanCommitted<ResidencyState::ON_DISK>(
-    TableData& tableData);
+    const std::vector<column_id_t>& columnIDs, const std::vector<Column*>& columns);
 template std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanCommitted<ResidencyState::IN_MEMORY>(
-    TableData& tableData);
+    const std::vector<column_id_t>& columnIDs, const std::vector<Column*>& columns);
 template std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanCommitted<ResidencyState::TEMPORARY>(
-    TableData& tableData);
+    const std::vector<column_id_t>& columnIDs, const std::vector<Column*>& columns);
 
-TableScanState NodeGroup::createScanState(Transaction* transaction, TableData& tableData) const {
-    std::vector<column_id_t> columnIDsToScan;
-    for (auto columnID = 0u; columnID < tableData.getNumColumns(); columnID++) {
-        columnIDsToScan.push_back(columnID);
-    }
-    TableScanState scanState(INVALID_TABLE_ID, columnIDsToScan);
-    scanState.tableData = &tableData;
+TableScanState NodeGroup::createScanState(Transaction* transaction,
+    const std::vector<column_id_t>& columnIDs, const std::vector<Column*>& columns) const {
+    TableScanState scanState(INVALID_TABLE_ID, columnIDs, columns);
     initializeScanState(transaction, scanState);
     return scanState;
 }

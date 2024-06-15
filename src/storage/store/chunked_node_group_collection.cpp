@@ -20,7 +20,6 @@ ChunkedNodeGroup& ChunkedNodeGroupCollection::findChunkedGroupFromOffset(
 
 row_idx_t ChunkedNodeGroupCollection::append(const std::vector<ValueVector*>& vectors,
     const SelectionVector& selVector) {
-    KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     const auto numRowsBeforeAppend = getNumRows();
     if (chunkedGroups.empty()) {
         chunkedGroups.push_back(
@@ -31,6 +30,12 @@ row_idx_t ChunkedNodeGroupCollection::append(const std::vector<ValueVector*>& ve
     row_idx_t numRowsAppended = 0;
     SelectionVector tmpSelVector(numRowsToAppend);
     while (numRowsAppended < numRowsToAppend) {
+        if (chunkedGroups.back()->isFullOrOnDisk()) {
+            auto startOffset = getNumRows();
+            chunkedGroups.push_back(
+                std::make_unique<ChunkedNodeGroup>(types, false /*enableCompression*/,
+                    ChunkedNodeGroup::CHUNK_CAPACITY, startOffset, residencyState));
+        }
         const auto& lastChunkedGroup = chunkedGroups.back();
         const auto numRowsToAppendInGroup = std::min(numRowsToAppend - numRowsAppended,
             ChunkedNodeGroup::CHUNK_CAPACITY - lastChunkedGroup->getNumRows());
@@ -40,12 +45,6 @@ row_idx_t ChunkedNodeGroupCollection::append(const std::vector<ValueVector*>& ve
         }
         tmpSelVector.setToFiltered(numRowsToAppendInGroup);
         lastChunkedGroup->append(vectors, tmpSelVector, numRowsToAppendInGroup);
-        if (lastChunkedGroup->isFull()) {
-            auto startOffset = getNumRows();
-            chunkedGroups.push_back(
-                std::make_unique<ChunkedNodeGroup>(types, false /*enableCompression*/,
-                    ChunkedNodeGroup::CHUNK_CAPACITY, startOffset, residencyState));
-        }
         numRowsAppended += numRowsToAppendInGroup;
     }
     return numRowsBeforeAppend;
@@ -53,7 +52,6 @@ row_idx_t ChunkedNodeGroupCollection::append(const std::vector<ValueVector*>& ve
 
 row_idx_t ChunkedNodeGroupCollection::append(const ChunkedNodeGroup& chunkedGroup,
     row_idx_t numRowsToAppend) {
-    KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     const auto numRowsBeforeAppend = getNumRows();
     if (chunkedGroups.empty()) {
         chunkedGroups.push_back(
@@ -62,7 +60,7 @@ row_idx_t ChunkedNodeGroupCollection::append(const ChunkedNodeGroup& chunkedGrou
     }
     row_idx_t numRowsAppended = 0u;
     while (numRowsAppended < numRowsToAppend) {
-        if (chunkedGroups.back()->isFull()) {
+        if (chunkedGroups.back()->isFullOrOnDisk()) {
             chunkedGroups.push_back(
                 std::make_unique<ChunkedNodeGroup>(types, false /*enableCompression*/,
                     ChunkedNodeGroup::CHUNK_CAPACITY, getNumRows(), residencyState));
@@ -80,7 +78,6 @@ row_idx_t ChunkedNodeGroupCollection::append(const ChunkedNodeGroup& chunkedGrou
 
 row_idx_t ChunkedNodeGroupCollection::append(const ChunkedNodeGroupCollection& other,
     offset_t offsetInOtherCollection, const offset_t numRowsToAppend) {
-    KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     const auto numRowsBeforeAppend = getNumRows();
     if (chunkedGroups.empty()) {
         chunkedGroups.push_back(
@@ -93,7 +90,7 @@ row_idx_t ChunkedNodeGroupCollection::append(const ChunkedNodeGroupCollection& o
         const auto offsetInChunk = offsetInOtherCollection % ChunkedNodeGroup::CHUNK_CAPACITY;
         auto& chunkedGroupToCopyFrom = other.getChunkedGroup(chunkIdx);
         auto numToCopyFromChunk = chunkedGroupToCopyFrom.getNumRows() - offsetInChunk;
-        if (chunkedGroups.back()->isFull()) {
+        if (chunkedGroups.back()->isFullOrOnDisk()) {
             chunkedGroups.push_back(
                 std::make_unique<ChunkedNodeGroup>(types, false /*enableCompression*/,
                     ChunkedNodeGroup::CHUNK_CAPACITY, getNumRows(), residencyState));

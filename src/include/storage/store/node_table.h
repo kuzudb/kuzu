@@ -5,7 +5,6 @@
 #include "storage/index/hash_index.h"
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/store/node_group_collection.h"
-#include "storage/store/node_table_data.h"
 #include "storage/store/table.h"
 
 namespace kuzu {
@@ -19,18 +18,19 @@ class Transaction;
 } // namespace transaction
 
 namespace storage {
-class LocalNodeTable;
 
 struct NodeTableScanState final : TableScanState {
     std::vector<ColumnPredicateSet> columnPredicateSets;
     const NodeGroup* nodeGroup = nullptr;
 
     explicit NodeTableScanState(const common::table_id_t tableID,
-        std::vector<common::column_id_t> columnIDs)
-        : TableScanState{tableID, std::move(columnIDs), std::vector<ColumnPredicateSet>{}} {}
+        std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns)
+        : TableScanState{tableID, std::move(columnIDs), std::move(columns),
+              std::vector<ColumnPredicateSet>{}} {}
     NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
-        std::vector<ColumnPredicateSet> columnPredicateSets)
-        : TableScanState{tableID, std::move(columnIDs), std::move(columnPredicateSets)} {}
+        std::vector<Column*> columns, std::vector<ColumnPredicateSet> columnPredicateSets)
+        : TableScanState{tableID, std::move(columnIDs), std::move(columns),
+              std::move(columnPredicateSets)} {}
 };
 
 struct NodeTableInsertState final : TableInsertState {
@@ -69,12 +69,12 @@ public:
     static std::vector<common::LogicalType> getTableColumnTypes(const NodeTable& table) {
         std::vector<common::LogicalType> types;
         for (auto i = 0u; i < table.getNumColumns(); i++) {
-            types.push_back(table.getColumn(i)->getDataType());
+            types.push_back(table.getColumn(i).getDataType());
         }
         return types;
     }
 
-    NodeTable(StorageManager* storageManager, catalog::NodeTableCatalogEntry* nodeTableEntry,
+    NodeTable(StorageManager* storageManager, const catalog::NodeTableCatalogEntry* nodeTableEntry,
         MemoryManager* memoryManager, common::VirtualFileSystem* vfs, main::ClientContext* context,
         common::Deserializer* deSer = nullptr);
 
@@ -109,19 +109,25 @@ public:
 
     void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
         common::ValueVector* defaultValueVector) override;
-    void dropColumn(common::column_id_t columnID) override { tableData->dropColumn(columnID); }
+    void dropColumn(common::column_id_t columnID) override {
+        KU_ASSERT(columnID < columns.size());
+        columns.erase(columns.begin() + columnID);
+    }
 
     common::column_id_t getPKColumnID() const { return pkColumnID; }
     PrimaryKeyIndex* getPKIndex() const { return pkIndex.get(); }
-    NodesStoreStatsAndDeletedIDs* getNodeStatisticsAndDeletedIDs() const {
-        return common::ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(
-            tablesStatistics);
+    common::column_id_t getNumColumns() const { return columns.size(); }
+    Column& getColumn(common::column_id_t columnID) {
+        KU_ASSERT(columnID < columns.size());
+        return *columns[columnID];
     }
-    common::column_id_t getNumColumns() const { return tableData->getNumColumns(); }
-    Column* getColumn(common::column_id_t columnID) const { return tableData->getColumn(columnID); }
+    const Column& getColumn(common::column_id_t columnID) const {
+        KU_ASSERT(columnID < columns.size());
+        return *columns[columnID];
+    }
 
     std::pair<common::offset_t, common::offset_t> appendPartially(
-        transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup);
+        transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup) const;
 
     void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void prepareCommit() override;
@@ -135,13 +141,8 @@ public:
         return nodeGroups->getNumNodeGroups();
     }
 
-    // TODO: Fix this. This is used by NodeBatchInsert.
-    common::node_group_idx_t getNumNodeGroups(transaction::Transaction*) const {
-        return nodeGroups->getNumNodeGroups();
-    }
-    // TODO: Fix this. This is used by NodeBatchInsert.
-    common::offset_t getNumTuplesInNodeGroup(const transaction::Transaction*,
-        common::node_group_idx_t nodeGroupIdx) const {
+    common::node_group_idx_t getNumNodeGroups() const { return nodeGroups->getNumNodeGroups(); }
+    common::offset_t getNumTuplesInNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
         return nodeGroups->getNodeGroup(nodeGroupIdx).getNumRows();
     }
 
@@ -154,8 +155,10 @@ private:
     void serialize(common::Serializer& serializer) const;
 
 private:
-    std::mutex mtx;
-    std::unique_ptr<NodeTableData> tableData;
+    bool enableCompression;
+    BMFileHandle* dataFH;
+    DiskArrayCollection* metadataDAC;
+    std::vector<std::unique_ptr<Column>> columns;
     std::unique_ptr<NodeGroupCollection> nodeGroups;
     common::column_id_t pkColumnID;
     std::unique_ptr<PrimaryKeyIndex> pkIndex;

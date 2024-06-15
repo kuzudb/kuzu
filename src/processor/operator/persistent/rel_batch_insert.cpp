@@ -193,7 +193,7 @@ void RelBatchInsert::appendNewNodeGroup(transaction::Transaction* transaction,
     for (auto& chunkedGroup : partitioningBuffer.getChunkedGroups()) {
         localState.nodeGroup->write(*chunkedGroup, relInfo.offsetColumnID);
     }
-    localState.nodeGroup->finalize(nodeGroupIdx);
+    localState.nodeGroup->finalize();
     // Flush node group to table.
     auto relTable = ku_dynamic_cast<Table*, RelTable*>(sharedState.table);
     relTable->append(transaction, localState.nodeGroupIdx, localState.nodeGroup.get(),

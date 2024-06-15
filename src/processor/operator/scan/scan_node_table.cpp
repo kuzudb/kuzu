@@ -40,7 +40,12 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
 }
 
 void ScanNodeTableInfo::initScanState() {
-    localScanState = std::make_unique<NodeTableScanState>(table->getTableID(), columnIDs,
+    std::vector<Column*> columns;
+    columns.reserve(columnIDs.size());
+    for (const auto columnID : columnIDs) {
+        columns.push_back(&table->getColumn(columnID));
+    }
+    localScanState = std::make_unique<NodeTableScanState>(table->getTableID(), columnIDs, columns,
         copyVector(columnPredicates));
 }
 

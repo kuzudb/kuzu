@@ -45,7 +45,7 @@ private:
         case TableType::NODE: {
             auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(table);
             for (auto columnID = 0u; columnID < nodeTable->getNumColumns(); columnID++) {
-                auto collectedColumns = collectColumns(nodeTable->getColumn(columnID));
+                auto collectedColumns = collectColumns(&nodeTable->getColumn(columnID));
                 columns.insert(columns.end(), collectedColumns.begin(), collectedColumns.end());
             }
         } break;

@@ -216,9 +216,7 @@ void ChunkedNodeGroup::update(Transaction* transaction, offset_t offset, column_
     getColumnChunk(columnID).update(transaction, offset - startNodeOffset, propertyVector);
 }
 
-// TODO(Guodong): Remove `nodeGroupIdx`.
-void ChunkedNodeGroup::finalize(uint64_t nodeGroupIdx_) {
-    // nodeGroupIdx = nodeGroupIdx_;
+void ChunkedNodeGroup::finalize() {
     for (auto i = 0u; i < chunks.size(); i++) {
         chunks[i]->getData().finalize();
     }

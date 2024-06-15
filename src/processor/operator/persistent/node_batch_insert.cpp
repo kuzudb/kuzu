@@ -139,7 +139,7 @@ void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction) {
             nodeLocalState->columnVectors, nodeLocalState->columnState->getSelVectorUnsafe(),
             numTuplesToAppend - numAppendedTuples);
         numAppendedTuples += numAppendedTuplesInNodeGroup;
-        if (nodeLocalState->nodeGroup->isFull()) {
+        if (nodeLocalState->nodeGroup->isFullOrOnDisk()) {
             writeAndResetNodeGroup(transaction, nodeLocalState->nodeGroup,
                 nodeLocalState->localIndexBuilder);
         }
@@ -189,7 +189,7 @@ void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transa
     }
     auto numNodesAppended =
         nodeSharedState->sharedNodeGroup->append(*localNodeGroup, 0 /* offsetInNodeGroup */);
-    if (nodeSharedState->sharedNodeGroup->isFull()) {
+    if (nodeSharedState->sharedNodeGroup->isFullOrOnDisk()) {
         writeAndResetNodeGroup(transaction, nodeSharedState->sharedNodeGroup, indexBuilder);
     }
     if (numNodesAppended < localNodeGroup->getNumRows()) {

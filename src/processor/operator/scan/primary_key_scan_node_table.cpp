@@ -18,8 +18,7 @@ void PrimaryKeyScanNodeTable::initLocalStateInternal(ResultSet* resultSet,
     ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
     for (auto& nodeInfo : nodeInfos) {
-        nodeInfo.localScanState =
-            std::make_unique<NodeTableScanState>(nodeInfo.table->getTableID(), nodeInfo.columnIDs);
+        nodeInfo.initScanState();
         initVectors(*nodeInfo.localScanState, *resultSet);
     }
     indexEvaluator->init(*resultSet, context->clientContext);

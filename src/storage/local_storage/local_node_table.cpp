@@ -19,7 +19,7 @@ LocalNodeTable::LocalNodeTable(Table& table)
     PageCursor cursor{0, 0};
     overflowFileHandle = std::make_unique<OverflowFileHandle>(*overflowFile, cursor);
     hashIndex = std::make_unique<LocalHashIndex>(
-        nodeTable.getColumn(nodeTable.getPKColumnID())->getDataType().getPhysicalType(),
+        nodeTable.getColumn(nodeTable.getPKColumnID()).getDataType().getPhysicalType(),
         overflowFileHandle.get());
 }
 

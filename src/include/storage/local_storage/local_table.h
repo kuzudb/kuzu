@@ -180,9 +180,6 @@ protected:
 };
 
 class LocalTableData {
-    friend class NodeTable;
-    friend class NodeTableData;
-
 public:
     explicit LocalTableData(common::table_id_t tableID, std::vector<common::LogicalType> dataTypes)
         : tableID{tableID}, dataTypes{std::move(dataTypes)} {}

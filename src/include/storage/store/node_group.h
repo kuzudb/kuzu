@@ -21,6 +21,19 @@ struct NodeGroupScanState {
     DELETE_COPY_DEFAULT_MOVE(NodeGroupScanState);
 };
 
+struct NodeGroupCheckpointState {
+    std::vector<common::column_id_t> columnIDs;
+    std::vector<Column*> columns;
+    BMFileHandle& dataFH;
+};
+
+class NodeGroup;
+struct NodeGroupAppendState {
+    NodeGroup* currentNodeGroup;
+    common::row_idx_t startRowIdx;
+    common::row_idx_t numRowsToAppend;
+};
+
 class TableData;
 struct TableScanState;
 class BMFileHandle;
@@ -46,6 +59,8 @@ public:
     // common::UniqLock lock() { return chunkedGroups.lock(); }
 
     common::row_idx_t getNumRows() const { return chunkedGroups.getNumRows(); }
+    void setNumRows(common::row_idx_t numRows) { this->numRows = numRows; }
+    void incrementNumRows(common::row_idx_t numRows) { this->numRows += numRows; }
     bool isFull() const {
         return chunkedGroups.getNumRows() == common::StorageConstants::NODE_GROUP_SIZE;
     }
@@ -72,7 +87,7 @@ public:
 
     void flush(BMFileHandle& dataFH);
 
-    void checkpoint(TableData& tableData, BMFileHandle& dataFH);
+    void checkpoint(const NodeGroupCheckpointState& state);
 
     bool hasChanges() const;
     bool hasInsertionsOrDeletions() const;
@@ -93,21 +108,22 @@ public:
 private:
     void setToOnDisk() { residencyState = ResidencyState::ON_DISK; }
 
-    std::unique_ptr<ChunkedNodeGroup> scanInMemCommitted();
-
     template<ResidencyState SCAN_RESIDENCY_STATE>
-    std::unique_ptr<ChunkedNodeGroup> scanCommitted(TableData& tableData);
+    std::unique_ptr<ChunkedNodeGroup> scanCommitted(
+        const std::vector<common::column_id_t>& columnIDs, const std::vector<Column*>& columns);
 
     static void populateNodeID(common::ValueVector& nodeIDVector,
         common::SelectionVector& selVector, common::table_id_t tableID,
         common::offset_t startNodeOffset, common::row_idx_t numRows);
 
     TableScanState createScanState(transaction::Transaction* transaction,
-        TableData& tableData) const;
+        const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<Column*>& columns) const;
 
 private:
     common::node_group_idx_t nodeGroupIdx;
     bool enableCompression;
+    std::atomic<common::row_idx_t> numRows;
     std::vector<common::LogicalType> dataTypes;
     ResidencyState residencyState;
     // Offset of the first node in the group.
