@@ -45,6 +45,13 @@ public:
     // TODO(bmwinger): Hide access to variables and store a modified flag
     // so that we can tell if the value has changed and the metadataDA needs to be updated
     struct ChunkState {
+        ColumnChunkMetadata metadata;
+        uint64_t numValuesPerPage = UINT64_MAX;
+        common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+        std::unique_ptr<ChunkState> nullState = nullptr;
+        // Used for struct/list/string columns.
+        std::vector<ChunkState> childrenStates;
+
         explicit ChunkState() = default;
         ChunkState(ColumnChunkMetadata metadata, uint64_t numValuesPerPage)
             : metadata{std::move(metadata)}, numValuesPerPage{numValuesPerPage} {}
@@ -52,12 +59,15 @@ public:
         ChunkState& getChildState(common::idx_t child);
         const ChunkState& getChildState(common::idx_t child) const;
 
-        ColumnChunkMetadata metadata;
-        uint64_t numValuesPerPage = UINT64_MAX;
-        common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
-        std::unique_ptr<ChunkState> nullState = nullptr;
-        // Used for struct/list/string columns.
-        std::vector<ChunkState> childrenStates;
+        void resetState() {
+            // No need to reset metadata because we will always read from disk
+            numValuesPerPage = UINT64_MAX;
+            nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+            nullState = nullptr;
+            for (auto& state : childrenStates) {
+                state.resetState();
+            }
+        }
     };
 
     Column(std::string name, common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,

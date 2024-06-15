@@ -56,7 +56,7 @@ QueryGraph Binder::bindPatternElement(const PatternElement& patternElement) {
     if (patternElement.hasPathName()) {
         auto pathName = patternElement.getPathName();
         auto pathExpression = createPath(pathName, nodeAndRels);
-        scope.addExpression(pathName, pathExpression);
+        addToScope(pathName, pathExpression);
     }
     return queryGraph;
 }
@@ -232,7 +232,7 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
     }
     queryRel->setAlias(parsedName);
     if (!parsedName.empty()) {
-        scope.addExpression(parsedName, queryRel);
+        addToScope(parsedName, queryRel);
     }
     queryGraph.addQueryRel(queryRel);
     return queryRel;
@@ -352,7 +352,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     // Bind intermediate node.
     auto node = createQueryNode(recursivePatternInfo->nodeName,
         std::vector<table_id_t>{nodeTableIDs.begin(), nodeTableIDs.end()});
-    scope.addExpression(node->toString(), node);
+    addToScope(node->toString(), node);
     std::vector<StructField> nodeFields;
     nodeFields.emplace_back(InternalKeyword::ID, node->getInternalID()->getDataType().copy());
     nodeFields.emplace_back(InternalKeyword::LABEL,
@@ -375,7 +375,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     // Bind intermediate rel
     auto rel = createNonRecursiveQueryRel(recursivePatternInfo->relName, tableIDs, nullptr, nullptr,
         directionType);
-    scope.addExpression(rel->toString(), rel);
+    addToScope(rel->toString(), rel);
     expression_vector relProjectionList;
     if (!recursivePatternInfo->hasProjection) {
         for (auto& expression : rel->getPropertyExprsRef()) {
@@ -532,7 +532,7 @@ std::shared_ptr<NodeExpression> Binder::bindQueryNode(const NodePattern& nodePat
     } else {
         queryNode = createQueryNode(nodePattern);
         if (!parsedName.empty()) {
-            scope.addExpression(parsedName, queryNode);
+            addToScope(parsedName, queryNode);
         }
     }
     for (auto& [propertyName, rhs] : nodePattern.getPropertyKeyVals()) {

@@ -125,7 +125,7 @@ std::shared_ptr<Expression> Binder::createVariable(const std::string& name,
     }
     auto expression = expressionBinder.createVariableExpression(dataType, name);
     expression->setAlias(name);
-    scope.addExpression(name, expression);
+    addToScope(name, expression);
     return expression;
 }
 
@@ -184,6 +184,11 @@ bool Binder::isReservedPropertyName(const std::string& name) {
         return true;
     }
     return false;
+}
+
+void Binder::addToScope(const std::string& name, std::shared_ptr<Expression> expr) {
+    // TODO(Xiyang): assert name not in scope.
+    scope.addExpression(name, std::move(expr));
 }
 
 BinderScope Binder::saveScope() {
