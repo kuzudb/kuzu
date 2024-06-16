@@ -21,6 +21,10 @@ struct GDSCallSharedState {
         : fTable{std::move(fTable)}, graph{std::move(graph)},
           inputNodeOffsetMask{std::move(inputNodeOffsetMask)} {}
     DELETE_COPY_AND_MOVE(GDSCallSharedState);
+
+public:
+
+    void merge(FactorizedTable &localFTable);
 };
 
 struct GDSCallInfo {

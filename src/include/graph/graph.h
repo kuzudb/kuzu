@@ -37,7 +37,7 @@ public:
 
     virtual bool hasMoreFwdNbrs(NbrScanState *nbrScanState) = 0;
 
-    virtual common::ValueVector* getFwdNbrs(NbrScanState *nbrScanState) = 0;
+    virtual common::ValueVector& getFwdNbrs(NbrScanState *nbrScanState) = 0;
 };
 
 } // namespace graph

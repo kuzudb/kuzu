@@ -24,7 +24,7 @@ public:
 
     bool hasMoreFwdNbrs(NbrScanState *nbrScanState) override;
 
-    common::ValueVector* getFwdNbrs(NbrScanState *nbrScanState) override;
+    common::ValueVector& getFwdNbrs(NbrScanState *nbrScanState) override;
 
 private:
     main::ClientContext* context;

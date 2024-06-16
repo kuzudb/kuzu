@@ -29,7 +29,7 @@ struct ParallelShortestPathBindData final : public GDSBindData {
 
 class ParallelShortestPathLocalState : public GDSLocalState {
 public:
-    explicit ParallelShortestPathLocalState(main::ClientContext *clientContext) {
+    explicit ParallelShortestPathLocalState(main::ClientContext* clientContext) {
         auto mm = clientContext->getMemoryManager();
         srcNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
         dstNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
@@ -93,22 +93,23 @@ public:
         localState = std::make_unique<ParallelShortestPathLocalState>(context);
     }
 
-    static uint64_t visitNbrs(IFEMorsel* ifeMorsel, ValueVector* dstNodeIDVector) {
+    static uint64_t visitNbrs(IFEMorsel* ifeMorsel, ValueVector& dstNodeIDVector) {
         uint64_t numDstVisitedLocal = 0u;
-        for (auto j = 0u; j < dstNodeIDVector->state->getSelVector().getSelSize(); j++) {
-            auto pos = dstNodeIDVector->state->getSelVector().operator[](j);
-            auto dstNodeID = dstNodeIDVector->getValue<common::nodeID_t>(pos);
+        for (auto j = 0u; j < dstNodeIDVector.state->getSelVector().getSelSize(); j++) {
+            auto pos = dstNodeIDVector.state->getSelVector().operator[](j);
+            auto dstNodeID = dstNodeIDVector.getValue<common::nodeID_t>(pos);
             auto state = ifeMorsel->visitedNodes[dstNodeID.offset].load(std::memory_order_acq_rel);
             if (state == NOT_VISITED_DST) {
-                auto tryCAS = ifeMorsel->visitedNodes[dstNodeID.offset].compare_exchange_strong(state,
-                    VISITED_DST_NEW, std::memory_order_acq_rel);
+                auto tryCAS = ifeMorsel->visitedNodes[dstNodeID.offset].compare_exchange_strong(
+                    state, VISITED_DST_NEW, std::memory_order_acq_rel);
                 if (tryCAS) {
                     numDstVisitedLocal++;
                     ifeMorsel->pathLength[dstNodeID.offset].store(ifeMorsel->currentLevel + 1,
                         std::memory_order_relaxed);
                 }
             } else if (state == NOT_VISITED) {
-                ifeMorsel->visitedNodes[dstNodeID.offset].store(VISITED_NEW, std::memory_order_acq_rel);
+                ifeMorsel->visitedNodes[dstNodeID.offset].store(VISITED_NEW,
+                    std::memory_order_acq_rel);
             }
         }
         return numDstVisitedLocal;
@@ -117,34 +118,40 @@ public:
     /*
      * This will be main function for logic, doing frontier extension and updating state.
      */
-    static common::offset_t extendFrontierFunc(std::shared_ptr<GDSCallSharedState> &sharedState,
-        GDSLocalState *localState) {
+    static uint64_t extendFrontierFunc(std::shared_ptr<GDSCallSharedState>& sharedState,
+        GDSLocalState* localState) {
         auto& graph = sharedState->graph;
-        auto shortestPathLocalState = common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState);
+        auto shortestPathLocalState =
+            common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState);
         auto ifeMorsel = sharedState->ifeMorsel;
         auto frontierMorsel = ifeMorsel->getMorsel(64LU /* morsel size, hard-coding for now */);
+        if (!frontierMorsel.hasMoreToOutput()) {
+            return 0; // return 0 to indicate to thread it can exit from operator
+        }
         uint64_t numDstVisitedLocal = 0u;
-        ValueVector* dstNodeIDVector;
         while (!ifeMorsel->isCompleteNoLock() && frontierMorsel.hasMoreToOutput()) {
             for (auto i = frontierMorsel.startOffset; i < frontierMorsel.endOffset; i++) {
                 auto frontierOffset = ifeMorsel->bfsLevelNodeOffsets[i];
-                graph->initializeStateFwdNbrs(frontierOffset, shortestPathLocalState->nbrScanState.get());
+                graph->initializeStateFwdNbrs(frontierOffset,
+                    shortestPathLocalState->nbrScanState.get());
                 do {
-                    dstNodeIDVector = graph->getFwdNbrs(shortestPathLocalState->nbrScanState.get());
+                    auto& dstNodeIDVector =
+                        graph->getFwdNbrs(shortestPathLocalState->nbrScanState.get());
                     numDstVisitedLocal += visitNbrs(ifeMorsel, dstNodeIDVector);
                 } while (graph->hasMoreFwdNbrs(shortestPathLocalState->nbrScanState.get()));
             }
             ifeMorsel->mergeResults(numDstVisitedLocal);
             frontierMorsel = ifeMorsel->getMorsel(64LU);
         }
-        return 0;
+        return UINT64_MAX; // returning UINT64_MAX to indicate to thread it should continue executing
     }
 
-    static common::offset_t shortestPathOutputFunc(std::shared_ptr<GDSCallSharedState> &sharedState,
-        GDSLocalState *localState) {
+    static uint64_t shortestPathOutputFunc(std::shared_ptr<GDSCallSharedState>& sharedState,
+        GDSLocalState* localState) {
         auto ifeMorsel = sharedState->ifeMorsel;
         auto morsel = ifeMorsel->getDstWriteMorsel(DEFAULT_VECTOR_CAPACITY);
-        auto shortestPathLocalState = common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState);
+        auto shortestPathLocalState =
+            common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState);
         if (!morsel.hasMoreToOutput()) {
             return 0;
         }
@@ -168,14 +175,14 @@ public:
             return shortestPathOutputFunc(sharedState, localState);
         }
         dstOffsetVector->state->getSelVectorUnsafe().setSelSize(pos);
-        return pos;
+        return pos; // return the no. of output values written to the value vectors
     }
 
-    void exec(processor::ExecutionContext *executionContext) override {
+    void exec(processor::ExecutionContext* executionContext) override {
         auto extraData = bindData->ptrCast<ParallelShortestPathBindData>();
         auto numNodes = sharedState->graph->getNumNodes();
-        auto ifeMorsel = std::make_unique<IFEMorsel>(extraData->upperBound, 1 /*lower bound*/,
-            numNodes + 1);
+        auto ifeMorsel =
+            std::make_unique<IFEMorsel>(extraData->upperBound, 1 /*lower bound*/, numNodes + 1);
         sharedState->ifeMorsel = ifeMorsel.get();
         for (auto offset = 0u; offset < numNodes; offset++) {
             if (!sharedState->inputNodeOffsetMask->isNodeMasked(offset)) {
@@ -202,5 +209,5 @@ function_set ParallelShortestPathsFunction::getFunctionSet() {
     return result;
 }
 
-}
-}
+} // namespace function
+} // namespace kuzu

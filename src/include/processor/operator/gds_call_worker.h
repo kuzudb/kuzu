@@ -11,7 +11,7 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace processor {
 
-using gds_algofunc_t = std::function<common::offset_t(std::shared_ptr<GDSCallSharedState>&, GDSLocalState*)>;
+using gds_algofunc_t = std::function<uint64_t (std::shared_ptr<GDSCallSharedState>&, GDSLocalState*)>;
 
 class GDSCallWorker : public Sink {
     static constexpr PhysicalOperatorType operatorType_ = PhysicalOperatorType::GDS_CALL;

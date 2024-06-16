@@ -1,10 +1,17 @@
+#include "processor/result/factorized_table.h"
 #include "processor/operator/gds_call.h"
+
 
 using namespace kuzu::binder;
 using namespace kuzu::graph;
 
 namespace kuzu {
 namespace processor {
+
+void GDSCallSharedState::merge(kuzu::processor::FactorizedTable& localFTable) {
+    std::unique_lock lck{mtx};
+    fTable->merge(localFTable);
+}
 
 void GDSCall::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
     info.gds->init(sharedState.get(), context->clientContext);
