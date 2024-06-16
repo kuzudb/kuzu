@@ -17,6 +17,7 @@ struct UniqLock {
         std::swap(lck, other.lck);
         return *this;
     }
+    bool isLocked() const { return lck->owns_lock() }
 
 private:
     std::unique_lock<std::mutex> lck;
