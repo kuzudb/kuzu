@@ -66,6 +66,7 @@ public:
         vectors.push_back(dstNodeIDVector.get());
         vectors.push_back(lengthVector.get());
         vectors.push_back(numPathVector.get());
+        nbrScanState = std::make_unique<graph::NbrScanState>(mm);
     }
 
     void materialize(const VariableLengthPathSourceState& sourceState, uint8_t length,
@@ -158,7 +159,7 @@ public:
                 for (auto currentNodeID : sourceState.currentFrontier.getNodeIDs()) {
                     auto currentMultiplicity =
                         sourceState.currentFrontier.getMultiplicity(currentNodeID);
-                    auto nbrs = graph->getNbrs(currentNodeID.offset);
+                    auto nbrs = graph->getNbrs(currentNodeID.offset, localState->nbrScanState.get());
                     for (auto nbr : nbrs) {
                         sourceState.nextFrontier.addNode(nbr, currentMultiplicity);
                     }

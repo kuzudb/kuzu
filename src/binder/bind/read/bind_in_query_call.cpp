@@ -83,7 +83,12 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         std::vector<LogicalType> childrenTypes;
         children.push_back(nullptr); // placeholder for graph variable.
         childrenTypes.push_back(*LogicalType::ANY());
-        for (auto i = 1u; i < functionExpr->getNumChildren(); i++) {
+
+        auto srcNodeIDExpression = expressionBinder.bindExpression(*functionExpr->getChild(1));
+        children.push_back(srcNodeIDExpression);
+        childrenTypes.push_back(srcNodeIDExpression->getDataType());
+
+        for (auto i = 2u; i < functionExpr->getNumChildren(); i++) {
             auto child = expressionBinder.bindExpression(*functionExpr->getChild(i));
             children.push_back(child);
             childrenTypes.push_back(child->getDataType());
@@ -92,7 +97,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         auto gdsFunc = *func->constPtrCast<GDSFunction>();
         gdsFunc.gds->bind(children);
         outExprs = gdsFunc.gds->getResultColumns(this);
-        auto info = BoundGDSCallInfo(gdsFunc.copy(), graphEntry.copy(), std::move(outExprs));
+        auto info = BoundGDSCallInfo(gdsFunc.copy(), graphEntry.copy(),
+            std::move(srcNodeIDExpression), std::move(outExprs));
         boundReadingClause = std::make_unique<BoundGDSCall>(std::move(info));
     } break;
     default:

@@ -1,10 +1,12 @@
-#include "function/gds/ife_morsel.h"
-#include "common/types/types.h"
-#include "function/gds/gds_function_collection.h"
-#include "function/gds/parallel_utils.h"
-#include "function/gds_function.h"
+#include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
+#include "common/types/types.h"
+#include "function/gds/gds_function_collection.h"
+#include "function/gds/ife_morsel.h"
+#include "function/gds/parallel_utils.h"
+#include "function/gds_function.h"
+#include "graph/on_disk_graph.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -15,10 +17,13 @@ namespace function {
 struct ParallelShortestPathBindData final : public GDSBindData {
     uint8_t upperBound;
 
-    explicit ParallelShortestPathBindData(uint8_t upperBound) : upperBound{upperBound} {}
+    ParallelShortestPathBindData(std::shared_ptr<Expression> nodeInput, uint8_t upperBound)
+        : GDSBindData{std::move(nodeInput)}, upperBound{upperBound} {}
+    ParallelShortestPathBindData(const ParallelShortestPathBindData& other)
+        : GDSBindData{other}, upperBound{other.upperBound} {}
 
     std::unique_ptr<GDSBindData> copy() const override {
-        return std::make_unique<ParallelShortestPathBindData>(upperBound);
+        return std::make_unique<ParallelShortestPathBindData>(*this);
     }
 };
 
@@ -30,18 +35,18 @@ public:
         dstNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
         lengthVector = std::make_unique<ValueVector>(*LogicalType::INT64(), mm);
         srcNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
-        dstNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
-        lengthVector->state = DataChunkState::getSingleValueDataChunkState();
-        vectors.push_back(srcNodeIDVector.get());
-        vectors.push_back(dstNodeIDVector.get());
-        vectors.push_back(lengthVector.get());
+        dstNodeIDVector->state = std::make_shared<DataChunkState>();
+        lengthVector->state = dstNodeIDVector->state;
+        outputVectors.push_back(srcNodeIDVector.get());
+        outputVectors.push_back(dstNodeIDVector.get());
+        outputVectors.push_back(lengthVector.get());
+        nbrScanState = std::make_unique<graph::NbrScanState>(mm);
     }
 
-private:
+public:
     std::unique_ptr<ValueVector> srcNodeIDVector;
     std::unique_ptr<ValueVector> dstNodeIDVector;
     std::unique_ptr<ValueVector> lengthVector;
-    std::vector<ValueVector*> vectors;
 };
 
 class ParallelShortestPath : public GDSAlgorithm {
@@ -49,29 +54,46 @@ public:
     ParallelShortestPath() = default;
     ParallelShortestPath(const ParallelShortestPath& other) : GDSAlgorithm{other} {}
 
+    /*
+     * Inputs are
+     *
+     * graph::ANY
+     * srcNode::NODE
+     * upperBound::INT64
+     */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return {LogicalTypeID::ANY, LogicalTypeID::INT64};
+        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64};
     }
 
-    std::vector<std::string> getResultColumnNames() const override {
-        return {"src", "dst", "length"};
-    }
-
-    std::vector<common::LogicalType> getResultColumnTypes() const override {
-        return {*LogicalType::INTERNAL_ID(), *LogicalType::INTERNAL_ID(), *LogicalType::INT64()};
+    /*
+     * Outputs are
+     *
+     * srcNode._id::INTERNAL_ID
+     * dst::INTERNAL_ID
+     * length::INT64
+     */
+    binder::expression_vector getResultColumns(binder::Binder* binder) const override {
+        expression_vector columns;
+        columns.push_back(bindData->nodeInput->constCast<NodeExpression>().getInternalID());
+        columns.push_back(binder->createVariable("dst", *LogicalType::INTERNAL_ID()));
+        columns.push_back(binder->createVariable("length", *LogicalType::INT64()));
+        return columns;
     }
 
     void bind(const binder::expression_vector& params) override {
-        ExpressionUtil::validateExpressionType(*params[1], ExpressionType::LITERAL);
-        auto upperBound = params[1]->constCast<LiteralExpression>().getValue().getValue<int64_t>();
-        bindData = std::make_unique<ParallelShortestPathBindData>(upperBound);
+        KU_ASSERT(params.size() == 3);
+        auto inputNode = params[1];
+        ExpressionUtil::validateExpressionType(*params[2], ExpressionType::LITERAL);
+        ExpressionUtil::validateDataType(*params[2], *LogicalType::INT64());
+        auto upperBound = params[2]->constCast<LiteralExpression>().getValue().getValue<int64_t>();
+        bindData = std::make_unique<ParallelShortestPathBindData>(inputNode, upperBound);
     }
 
     void initLocalState(main::ClientContext* context) override {
         localState = std::make_unique<ParallelShortestPathLocalState>(context);
     }
 
-    uint64_t visitNbrs(IFEMorsel* ifeMorsel, ValueVector* dstNodeIDVector) {
+    static uint64_t visitNbrs(IFEMorsel* ifeMorsel, ValueVector* dstNodeIDVector) {
         uint64_t numDstVisitedLocal = 0u;
         for (auto j = 0u; j < dstNodeIDVector->state->getSelVector().getSelSize(); j++) {
             auto pos = dstNodeIDVector->state->getSelVector().operator[](j);
@@ -95,71 +117,77 @@ public:
     /*
      * This will be main function for logic, doing frontier extension and updating state.
      */
-    common::offset_t extendFrontierFunc(TableFuncInput& input, TableFuncOutput& /*output*/) {
-        auto sharedState =
-            ku_dynamic_cast<TableFuncSharedState*, ShortestPathAlgoSharedState*>(input.sharedState);
-        auto localState =
-            ku_dynamic_cast<TableFuncLocalState*, ShortestPathAlgoLocalState*>(input.localState);
+    static common::offset_t extendFrontierFunc(std::shared_ptr<GDSCallSharedState> &sharedState,
+        GDSLocalState *localState) {
         auto& graph = sharedState->graph;
-        auto& ifeMorsel = sharedState->ifeMorsel;
-        auto frontierMorsel = ifeMorsel->getMorsel(sharedState->morselSize);
+        auto shortestPathLocalState = common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState);
+        auto ifeMorsel = sharedState->ifeMorsel;
+        auto frontierMorsel = ifeMorsel->getMorsel(64LU /* morsel size, hard-coding for now */);
         uint64_t numDstVisitedLocal = 0u;
         ValueVector* dstNodeIDVector;
         while (!ifeMorsel->isCompleteNoLock() && frontierMorsel.hasMoreToOutput()) {
             for (auto i = frontierMorsel.startOffset; i < frontierMorsel.endOffset; i++) {
                 auto frontierOffset = ifeMorsel->bfsLevelNodeOffsets[i];
-                graph->initializeStateFwdNbrs(frontierOffset, localState->nbrScanState.get());
+                graph->initializeStateFwdNbrs(frontierOffset, shortestPathLocalState->nbrScanState.get());
                 do {
-                    dstNodeIDVector = graph->getFwdNbrs(localState->nbrScanState.get());
-                    numDstVisitedLocal += visitNbrs(ifeMorsel.get(), dstNodeIDVector);
-                } while (graph->hasMoreFwdNbrs(localState->nbrScanState.get()));
+                    dstNodeIDVector = graph->getFwdNbrs(shortestPathLocalState->nbrScanState.get());
+                    numDstVisitedLocal += visitNbrs(ifeMorsel, dstNodeIDVector);
+                } while (graph->hasMoreFwdNbrs(shortestPathLocalState->nbrScanState.get()));
             }
             ifeMorsel->mergeResults(numDstVisitedLocal);
-            frontierMorsel = ifeMorsel->getMorsel(sharedState->morselSize);
+            frontierMorsel = ifeMorsel->getMorsel(64LU);
         }
         return 0;
     }
 
-    common::offset_t shortestPathOutputFunc(TableFuncInput& input, TableFuncOutput& output) {
-        auto sharedState =
-            ku_dynamic_cast<TableFuncSharedState*, ShortestPathAlgoSharedState*>(input.sharedState);
-        auto& ifeMorsel = sharedState->ifeMorsel;
-        auto morselSize = DEFAULT_VECTOR_CAPACITY;
-        auto morsel = ifeMorsel->getDstWriteMorsel(morselSize);
+    static common::offset_t shortestPathOutputFunc(std::shared_ptr<GDSCallSharedState> &sharedState,
+        GDSLocalState *localState) {
+        auto ifeMorsel = sharedState->ifeMorsel;
+        auto morsel = ifeMorsel->getDstWriteMorsel(DEFAULT_VECTOR_CAPACITY);
+        auto shortestPathLocalState = common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState);
         if (!morsel.hasMoreToOutput()) {
             return 0;
         }
-        auto dstOffsetVector = output.dataChunk.valueVectors[0];
-        auto pathLengthVector = output.dataChunk.valueVectors[1];
+        auto tableID = sharedState->graph->getNodeTableID();
+        auto& srcNodeVector = shortestPathLocalState->srcNodeIDVector;
+        auto& dstOffsetVector = shortestPathLocalState->dstNodeIDVector;
+        auto& pathLengthVector = shortestPathLocalState->lengthVector;
+        srcNodeVector->setValue<nodeID_t>(0, {sharedState->ifeMorsel->srcOffset, tableID});
         auto pos = 0;
         for (auto offset = morsel.startOffset; offset < morsel.endOffset; offset++) {
             auto state = ifeMorsel->visitedNodes[offset].load(std::memory_order_acq_rel);
             uint64_t pathLength = ifeMorsel->pathLength[offset].load(std::memory_order_acq_rel);
             if ((state == VISITED_DST_NEW || state == VISITED_DST) &&
                 pathLength >= ifeMorsel->lowerBound) {
-                dstOffsetVector->setValue<uint64_t>(pos, offset);
+                dstOffsetVector->setValue<nodeID_t>(pos, {offset, tableID});
                 pathLengthVector->setValue<uint64_t>(pos, pathLength);
                 pos++;
             }
         }
         if (pos == 0) {
-            return shortestPathOutputFunc(input, output);
+            return shortestPathOutputFunc(sharedState, localState);
         }
         dstOffsetVector->state->getSelVectorUnsafe().setSelSize(pos);
         return pos;
     }
 
     void exec(processor::ExecutionContext *executionContext) override {
-        auto gdsCallSharedState = parallelUtils->getGDSCallSharedState();
-        auto algoSharedState = ku_dynamic_cast<GDSCallSharedState*, ShortestPathAlgoSharedState*>(
-            gdsCallSharedState);
-        auto& ifeMorsel = algoSharedState->ifeMorsel;
-        ifeMorsel->initSourceNoLock(algoSharedState->srcOffset);
-        while (!ifeMorsel->isCompleteNoLock()) {
-            parallelUtils->doParallel(executionContext, extendFrontierFunc);
-            ifeMorsel->initializeNextFrontierNoLock();
+        auto extraData = bindData->ptrCast<ParallelShortestPathBindData>();
+        auto numNodes = sharedState->graph->getNumNodes();
+        auto ifeMorsel = std::make_unique<IFEMorsel>(extraData->upperBound, 1 /*lower bound*/,
+            numNodes + 1);
+        sharedState->ifeMorsel = ifeMorsel.get();
+        for (auto offset = 0u; offset < numNodes; offset++) {
+            if (!sharedState->inputNodeOffsetMask->isNodeMasked(offset)) {
+                continue;
+            }
+            ifeMorsel->initSourceNoLock(offset);
+            while (!ifeMorsel->isCompleteNoLock()) {
+                parallelUtils->doParallel(executionContext, extendFrontierFunc);
+                ifeMorsel->initializeNextFrontierNoLock();
+            }
+            parallelUtils->doParallel(executionContext, shortestPathOutputFunc);
         }
-        parallelUtils->doParallel(executionContext, shortestPathOutputFunc);
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {

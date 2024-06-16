@@ -24,6 +24,7 @@ public:
         groupVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(nodeIDVector.get());
         vectors.push_back(groupVector.get());
+        nbrScanState = std::make_unique<graph::NbrScanState>(mm);
     }
 
     void materialize(graph::Graph* graph, const std::vector<int64_t>& groupArray,
@@ -99,7 +100,7 @@ private:
     void findConnectedComponent(common::offset_t offset, int64_t groupID) {
         visitedArray[offset] = true;
         groupArray[offset] = groupID;
-        auto nbrs = sharedState->graph->getNbrs(offset);
+        auto nbrs = sharedState->graph->getNbrs(offset, localState->nbrScanState.get());
         for (auto nbr : nbrs) {
             if (visitedArray[nbr.offset]) {
                 continue;

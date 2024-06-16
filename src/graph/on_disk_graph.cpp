@@ -28,7 +28,6 @@ OnDiskGraph::OnDiskGraph(ClientContext* context, common::table_id_t nodeTableID,
     auto storage = context->getStorageManager();
     nodeTable = storage->getTable(nodeTableID)->ptrCast<NodeTable>();
     relTable = storage->getTable(relTableID)->ptrCast<RelTable>();
-    nbrScanState = std::make_unique<NbrScanState>(context->getMemoryManager());
 }
 
 offset_t OnDiskGraph::getNumNodes() {
@@ -39,7 +38,7 @@ offset_t OnDiskGraph::getNumEdges() {
     return relTable->getNumTuples(context->getTx());
 }
 
-std::vector<nodeID_t> OnDiskGraph::getNbrs(offset_t offset) {
+std::vector<nodeID_t> OnDiskGraph::getNbrs(offset_t offset, NbrScanState *nbrScanState) {
     nbrScanState->srcNodeIDVector->setValue<nodeID_t>(0, {offset, nodeTable->getTableID()});
     auto tx = context->getTx();
     auto readState = nbrScanState->fwdReadState.get();
@@ -56,6 +55,22 @@ std::vector<nodeID_t> OnDiskGraph::getNbrs(offset_t offset) {
         }
     }
     return nbrs;
+}
+
+void OnDiskGraph::initializeStateFwdNbrs(common::offset_t offset, NbrScanState *nbrScanState) {
+    nbrScanState->srcNodeIDVector->setValue<nodeID_t>(0, {offset, nodeTable->getTableID()});
+    relTable->initializeScanState(context->getTx(),  *nbrScanState->fwdReadState.get());
+}
+
+bool OnDiskGraph::hasMoreFwdNbrs(NbrScanState *nbrScanState) {
+    return nbrScanState->fwdReadState->hasMoreToRead(context->getTx());
+}
+
+common::ValueVector* OnDiskGraph::getFwdNbrs(NbrScanState *nbrScanState) {
+    auto tx = context->getTx();
+    auto readState = nbrScanState->fwdReadState.get();
+    relTable->scan(tx, *readState);
+    return nbrScanState->dstNodeIDVector.get();
 }
 
 } // namespace graph

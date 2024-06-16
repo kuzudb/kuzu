@@ -25,7 +25,7 @@ public:
         return gdsCallWorker->getGDSCallSharedState();
     }
 
-    void doParallel(ExecutionContext* executionContext, function::table_func_t tableFunc);
+    void doParallel(ExecutionContext* executionContext, gds_algofunc_t gdsAlgoFunc);
 
 private:
     std::unique_ptr<GDSCallWorker> gdsCallWorker;

@@ -5,13 +5,14 @@
 namespace kuzu {
 namespace function {
 
-void IFEMorsel::initSourceNoLock(common::offset_t srcOffset) {
+void IFEMorsel::initSourceNoLock(common::offset_t srcOffset_) {
+    srcOffset = srcOffset_;
     visitedNodes[srcOffset].store(VISITED_DST, std::memory_order_acq_rel);
     numVisitedDstNodes.fetch_add(1);
     bfsLevelNodeOffsets.push_back(srcOffset);
 }
 
-function::CallFuncMorsel IFEMorsel::getMorsel(uint64_t& morselSize) {
+function::CallFuncMorsel IFEMorsel::getMorsel(uint64_t morselSize) {
     auto curStartIdx = nextScanStartIdx.load(std::memory_order_acq_rel);
     if (curStartIdx >= bfsLevelNodeOffsets.size()) {
         return function::CallFuncMorsel::createInvalidMorsel();
@@ -24,7 +25,7 @@ function::CallFuncMorsel IFEMorsel::getMorsel(uint64_t& morselSize) {
     return {curStartIdx, nextStartIdx};
 }
 
-function::CallFuncMorsel IFEMorsel::getDstWriteMorsel(uint64_t& morselSize) {
+function::CallFuncMorsel IFEMorsel::getDstWriteMorsel(uint64_t morselSize) {
     auto curStartIdx = nextDstScanStartIdx.load(std::memory_order_acq_rel);
     if (curStartIdx >= visitedNodes.size()) {
         return function::CallFuncMorsel::createInvalidMorsel();

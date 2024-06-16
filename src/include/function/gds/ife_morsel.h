@@ -36,9 +36,9 @@ public:
 
     void initSourceNoLock(common::offset_t srcOffset);
 
-    function::CallFuncMorsel getMorsel(uint64_t &morselSize);
+    function::CallFuncMorsel getMorsel(uint64_t morselSize);
 
-    function::CallFuncMorsel getDstWriteMorsel(uint64_t& morselSize);
+    function::CallFuncMorsel getDstWriteMorsel(uint64_t morselSize);
 
     bool isCompleteNoLock() const;
 
@@ -50,6 +50,7 @@ public:
     std::mutex mutex;
     uint8_t currentLevel;
     std::atomic<uint64_t> nextScanStartIdx;
+    common::offset_t srcOffset;
 
     // Visited state
     std::atomic<uint64_t> numVisitedDstNodes;

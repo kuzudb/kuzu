@@ -37,6 +37,7 @@ public:
         rankVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(nodeIDVector.get());
         vectors.push_back(rankVector.get());
+        nbrScanState = std::make_unique<graph::NbrScanState>(mm);
     }
 
     void materialize(graph::Graph* graph, const std::vector<double>& ranks,
@@ -105,9 +106,9 @@ public:
             auto change = 0.0;
             for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
                 auto rank = 0.0;
-                auto nbrs = graph->getNbrs(offset);
+                auto nbrs = graph->getNbrs(offset, localState->nbrScanState.get());
                 for (auto& nbr : nbrs) {
-                    auto numNbrOfNbr = graph->getNbrs(nbr.offset).size();
+                    auto numNbrOfNbr = graph->getNbrs(nbr.offset, localState->nbrScanState.get()).size();
                     if (numNbrOfNbr == 0) {
                         numNbrOfNbr = graph->getNumNodes();
                     }

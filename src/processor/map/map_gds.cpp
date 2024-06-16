@@ -23,12 +23,20 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     auto outSchema = call.getSchema();
     auto info = GDSCallInfo(call.getInfo().getGDS()->copy());
     auto tableSchema = std::make_unique<FactorizedTableSchema>();
-    auto columns = call.getInfo().outExprs;
+    auto columns = call.getInfo().outExpressions;
+    auto srcInternalIDExpr =
+        call.getInfo().srcNodeIDExpression->constPtrCast<binder::NodeExpression>()->getInternalID();
     for (auto& expr : columns) {
         auto dataPos = getDataPos(*expr, *outSchema);
-        auto columnSchema = ColumnSchema(false /* isUnFlat */, dataPos.dataChunkPos,
-            LogicalTypeUtils::getRowLayoutSize(expr->getDataType()));
-        tableSchema->appendColumn(std::move(columnSchema));
+        if (expr->getUniqueName() == srcInternalIDExpr->getUniqueName()) {
+            auto columnSchema = ColumnSchema(false /* isUnFlat */, dataPos.dataChunkPos,
+                LogicalTypeUtils::getRowLayoutSize(expr->getDataType()));
+            tableSchema->appendColumn(std::move(columnSchema));
+        } else {
+            auto columnSchema = ColumnSchema(true /* isUnFlat */, dataPos.dataChunkPos,
+                LogicalTypeUtils::getRowLayoutSize(expr->getDataType()));
+            tableSchema->appendColumn(std::move(columnSchema));
+        }
     }
     auto table =
         std::make_shared<FactorizedTable>(clientContext->getMemoryManager(), tableSchema->copy());
@@ -50,7 +58,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     info.gds->setParallelUtils(parallelUtils);
     auto algorithm = std::make_unique<GDSCall>(std::make_unique<ResultSetDescriptor>(),
         std::move(info), sharedState, getOperatorID(), call.getExpressionsForPrinting());
-    return createFTableScanAligned(columns, outSchema, table, DEFAULT_VECTOR_CAPACITY,
+    return createFTableScanAligned(columns, outSchema, table, 1u,
         std::move(algorithm));
 }
 

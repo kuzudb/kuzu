@@ -4,9 +4,14 @@
 #include "gds_call.h"
 #include "processor/operator/sink.h"
 #include "processor/result/factorized_table.h"
+#include "function/gds/ife_morsel.h"
+
+using namespace kuzu::function;
 
 namespace kuzu {
 namespace processor {
+
+using gds_algofunc_t = std::function<common::offset_t(std::shared_ptr<GDSCallSharedState>&, GDSLocalState*)>;
 
 class GDSCallWorker : public Sink {
     static constexpr PhysicalOperatorType operatorType_ = PhysicalOperatorType::GDS_CALL;
@@ -19,7 +24,7 @@ public:
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
     // used when cloning the operator
-    GDSCallWorker(GDSCallInfo info, function::table_func_t tableFunc,
+    GDSCallWorker(GDSCallInfo info, gds_algofunc_t tableFunc,
         std::shared_ptr<GDSCallSharedState> sharedState,
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, uint32_t id,
         const std::string& paramString)
@@ -40,7 +45,7 @@ public:
         return sharedState;
     }
 
-    void setFuncToExecute(function::table_func_t tableFunc) { this->funcToExecute = tableFunc; }
+    void setFuncToExecute(gds_algofunc_t algofunc) { this->funcToExecute = algofunc; }
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<GDSCallWorker>(info.copy(), funcToExecute, sharedState,
@@ -49,10 +54,9 @@ public:
 
 private:
     GDSCallInfo info;
-    function::table_func_t funcToExecute;
+    gds_algofunc_t funcToExecute;
     std::shared_ptr<GDSCallSharedState> sharedState;
     std::unique_ptr<FactorizedTableSchema> tableSchema;
-    std::vector<common::ValueVector*> outputVectors;
     std::unique_ptr<FactorizedTable> localFTable;
 };
 

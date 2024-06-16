@@ -1,6 +1,7 @@
 #pragma once
 
 #include "function/gds/gds.h"
+#include "function/gds/ife_morsel.h"
 #include "graph/graph.h"
 #include "processor/operator/mask.h"
 #include "processor/operator/sink.h"
@@ -13,6 +14,7 @@ struct GDSCallSharedState {
     std::shared_ptr<FactorizedTable> fTable;
     std::unique_ptr<graph::Graph> graph;
     std::unique_ptr<NodeOffsetSemiMask> inputNodeOffsetMask;
+    function::IFEMorsel *ifeMorsel;
 
     GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph,
         std::unique_ptr<NodeOffsetSemiMask> inputNodeOffsetMask)

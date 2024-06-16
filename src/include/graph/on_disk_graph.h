@@ -7,19 +7,6 @@
 namespace kuzu {
 namespace graph {
 
-struct NbrScanState {
-    std::shared_ptr<common::DataChunkState> srcNodeIDVectorState;
-    std::shared_ptr<common::DataChunkState> dstNodeIDVectorState;
-    std::unique_ptr<common::ValueVector> srcNodeIDVector;
-    std::unique_ptr<common::ValueVector> dstNodeIDVector;
-
-    static constexpr common::RelDataDirection direction = common::RelDataDirection::FWD;
-    std::vector<common::column_id_t> columnIDs;
-    std::unique_ptr<storage::RelTableScanState> fwdReadState;
-
-    explicit NbrScanState(storage::MemoryManager* mm);
-};
-
 class OnDiskGraph : public Graph {
 public:
     OnDiskGraph(main::ClientContext* context, common::table_id_t nodeTableID,
@@ -31,13 +18,18 @@ public:
 
     common::offset_t getNumEdges() override;
 
-    std::vector<common::nodeID_t> getNbrs(common::offset_t offset) override;
+    std::vector<common::nodeID_t> getNbrs(common::offset_t offset, NbrScanState *nbrScanState) override;
+
+    void initializeStateFwdNbrs(common::offset_t offset, NbrScanState *nbrScanState) override;
+
+    bool hasMoreFwdNbrs(NbrScanState *nbrScanState) override;
+
+    common::ValueVector* getFwdNbrs(NbrScanState *nbrScanState) override;
 
 private:
     main::ClientContext* context;
     storage::NodeTable* nodeTable;
     storage::RelTable* relTable;
-    std::unique_ptr<NbrScanState> nbrScanState;
 };
 
 } // namespace graph

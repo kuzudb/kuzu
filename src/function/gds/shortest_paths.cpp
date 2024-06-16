@@ -77,6 +77,7 @@ public:
         vectors.push_back(srcNodeIDVector.get());
         vectors.push_back(dstNodeIDVector.get());
         vectors.push_back(lengthVector.get());
+        nbrScanState = std::make_unique<graph::NbrScanState>(mm);
     }
 
     void materialize(graph::Graph* graph, const ShortestPathSourceState& sourceState,
@@ -164,7 +165,7 @@ public:
                         continue;
                     }
                     sourceState.markVisited(currentNodeID, currentLevel);
-                    auto nbrs = graph->getNbrs(currentNodeID.offset);
+                    auto nbrs = graph->getNbrs(currentNodeID.offset, localState->nbrScanState.get());
                     for (auto nbr : nbrs) {
                         sourceState.nextFrontier.addNode(nbr, 1);
                     }

@@ -124,7 +124,7 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
     auto& call = readingClause.constCast<BoundGDSCall>();
     expression_vector predicatesToPull;
     expression_vector predicatesToPush;
-    splitPredicates(call.getInfo().outExprs, call.getConjunctivePredicates(), predicatesToPull,
+    splitPredicates(call.getInfo().outExpressions, call.getConjunctivePredicates(), predicatesToPull,
         predicatesToPush);
     auto bindData = call.getInfo().func->ptrCast<function::GDSFunction>()->gds->getBindData();
     if (bindData->hasNodeInput()) {

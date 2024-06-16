@@ -18,8 +18,8 @@ ParallelUtils::ParallelUtils(GDSCallInfo info,
         std::move(resultSetDescriptor), operatorID, expressions);
 }
 
-void ParallelUtils::doParallel(ExecutionContext* executionContext, table_func_t tableFunc) {
-    gdsCallWorker->setFuncToExecute(tableFunc);
+void ParallelUtils::doParallel(ExecutionContext* executionContext, gds_algofunc_t gdsAlgoFunc) {
+    gdsCallWorker->setFuncToExecute(gdsAlgoFunc);
     auto task = std::make_shared<ProcessorTask>(gdsCallWorker.get(), executionContext);
     task->setSharedStateInitialized();
     taskScheduler->scheduleTaskAndWaitOrError(task, executionContext);
