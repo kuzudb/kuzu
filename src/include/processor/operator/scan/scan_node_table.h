@@ -17,6 +17,10 @@ public:
 
     void nextMorsel(storage::NodeTableScanState& scanState);
 
+    inline storage::NodeTable* getNodeTable() const {
+        return table;
+    }
+
 private:
     std::mutex mtx;
     storage::NodeTable* table;

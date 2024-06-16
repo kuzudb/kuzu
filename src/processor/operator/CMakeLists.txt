@@ -16,6 +16,7 @@ add_library(kuzu_processor_operator
         gds_call_worker.cpp
         comment_on.cpp
         cross_product.cpp
+        csr_index_build.cpp
         empty_result.cpp
         filter.cpp
         filtering_operator.cpp

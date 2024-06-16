@@ -20,6 +20,7 @@ enum class PhysicalOperatorType : uint8_t {
     CREATE_TABLE,
     CREATE_TYPE,
     CROSS_PRODUCT,
+    CSR_INDEX_BUILD,
     DETACH_DATABASE,
     DELETE_,
     DROP_TABLE,
