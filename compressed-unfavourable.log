@@ -1,0 +1,146 @@
+NUM_NODES=10000000
+num_entries=10000000
+Opened the database at path: ./workspace in read-write mode.
+Enter ":help" for usage hints.
+[6n----------------------------------
+| result                         |
+----------------------------------
+| Table person has been created. |
+----------------------------------
+(1 tuple)
+(1 column)
+Time: 0.10ms (compiling), 82.32ms (executing)
+Error: Copy exception: Error in file dataset/int128-db/vPerson.csv on line 2076: Conversion exception: Cast failed. 255211775190703847597530955573826156516 is not within INT128 range.
+┌─────────────────────────────┐
+│┌───────────────────────────┐│
+││       Physical Plan       ││
+│└───────────────────────────┘│
+└─────────────────────────────┘
+┌─────────────────────────────┐
+│      RESULT_COLLECTOR       │
+│   -----------------------   │
+│       explain result        │
+│   -----------------------   │
+│     NumOutputTuples: 0      │
+│   -----------------------   │
+│   ExecutionTime: 0.000000   │
+└──────────────┬──────────────┘
+┌──────────────┴──────────────┐
+│           PROFILE           │
+│   -----------------------   │
+│           Explain           │
+│   -----------------------   │
+│     NumOutputTuples: 0      │
+│   -----------------------   │
+│   ExecutionTime: 0.000000   │
+└──────────────┬──────────────┘
+┌──────────────┴──────────────┐
+│      RESULT_COLLECTOR       │
+│   -----------------------   │
+│            a.ID             │
+│   -----------------------   │
+│     NumOutputTuples: 0      │
+│   -----------------------   │
+│   ExecutionTime: 0.000000   │
+└──────────────┬──────────────┘
+┌──────────────┴──────────────┐
+│         PROJECTION          │
+│   -----------------------   │
+│            a.ID             │
+│   -----------------------   │
+│     NumOutputTuples: 0      │
+│   -----------------------   │
+│   ExecutionTime: 0.000000   │
+└──────────────┬──────────────┘
+┌──────────────┴──────────────┐
+│    SCAN_MULTI_NODE_TABLE    │
+│   -----------------------   │
+│         a._ID a.ID          │
+│   -----------------------   │
+│     NumOutputTuples: 0      │
+│   -----------------------   │
+│   ExecutionTime: 0.000000   │
+└─────────────────────────────┘
+
+total 16
+-rw-r--r-- 1 r34luo r34luo  223 Jun 17 17:52 catalog.kz
+-rw-r--r-- 1 r34luo r34luo    0 Jun 17 17:52 data.kz
+-rw-r--r-- 1 r34luo r34luo 4096 Jun 17 17:52 metadata.kz
+-rw-r--r-- 1 r34luo r34luo    0 Jun 17 17:52 n-0.hindex
+-rw-r--r-- 1 r34luo r34luo   65 Jun 17 17:52 nodes.statistics_and_deleted.ids
+-rw-r--r-- 1 r34luo r34luo    8 Jun 17 17:52 rels.statistics
+$DONE
+
+NUM_NODES=100000000
+num_entries=100000000
+Opened the database at path: ./workspace in read-write mode.
+Enter ":help" for usage hints.
+[6n----------------------------------
+| result                         |
+----------------------------------
+| Table person has been created. |
+----------------------------------
+(1 tuple)
+(1 column)
+Time: 0.04ms (compiling), 10.07ms (executing)
+Error: Copy exception: Error in file dataset/int128-db/vPerson.csv on line 416: Conversion exception: Cast failed. 255211775190703847597530955573826158176 is not within INT128 range.
+┌─────────────────────────────┐
+│┌───────────────────────────┐│
+││       Physical Plan       ││
+│└───────────────────────────┘│
+└─────────────────────────────┘
+┌─────────────────────────────┐
+│      RESULT_COLLECTOR       │
+│   -----------------------   │
+│       explain result        │
+│   -----------------------   │
+│     NumOutputTuples: 0      │
+│   -----------------------   │
+│   ExecutionTime: 0.000000   │
+└──────────────┬──────────────┘
+┌──────────────┴──────────────┐
+│           PROFILE           │
+│   -----------------------   │
+│           Explain           │
+│   -----------------------   │
+│     NumOutputTuples: 0      │
+│   -----------------------   │
+│   ExecutionTime: 0.000000   │
+└──────────────┬──────────────┘
+┌──────────────┴──────────────┐
+│      RESULT_COLLECTOR       │
+│   -----------------------   │
+│            a.ID             │
+│   -----------------------   │
+│     NumOutputTuples: 0      │
+│   -----------------------   │
+│   ExecutionTime: 0.000000   │
+└──────────────┬──────────────┘
+┌──────────────┴──────────────┐
+│         PROJECTION          │
+│   -----------------------   │
+│            a.ID             │
+│   -----------------------   │
+│     NumOutputTuples: 0      │
+│   -----------------------   │
+│   ExecutionTime: 0.000000   │
+└──────────────┬──────────────┘
+┌──────────────┴──────────────┐
+│    SCAN_MULTI_NODE_TABLE    │
+│   -----------------------   │
+│         a._ID a.ID          │
+│   -----------------------   │
+│     NumOutputTuples: 0      │
+│   -----------------------   │
+│   ExecutionTime: 0.000000   │
+└─────────────────────────────┘
+
+total 16
+-rw-r--r-- 1 r34luo r34luo  223 Jun 17 17:53 catalog.kz
+-rw-r--r-- 1 r34luo r34luo    0 Jun 17 17:53 data.kz
+-rw-r--r-- 1 r34luo r34luo 4096 Jun 17 17:53 metadata.kz
+-rw-r--r-- 1 r34luo r34luo    0 Jun 17 17:53 n-0.hindex
+-rw-r--r-- 1 r34luo r34luo   65 Jun 17 17:53 nodes.statistics_and_deleted.ids
+-rw-r--r-- 1 r34luo r34luo    8 Jun 17 17:53 rels.statistics
+$DONE
+
