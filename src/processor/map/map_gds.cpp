@@ -29,7 +29,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     auto table =
         std::make_shared<FactorizedTable>(clientContext->getMemoryManager(), tableSchema->copy());
     auto graph = std::make_unique<OnDiskGraph>(clientContext, call.getInfo().graphEntry);
-    common::table_id_map_t<std::unique_ptr<NodeOffsetSemiMask>> masks;
+    common::table_id_map_t<std::unique_ptr<NodeOffsetLevelSemiMask>> masks;
     if (call.getInfo().getBindData()->hasNodeInput()) {
         // Generate an empty semi mask which later on picked by SemiMaker.
         auto& node =
@@ -37,7 +37,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
         for (auto tableID : node.getTableIDs()) {
             auto nodeTable =
                 clientContext->getStorageManager()->getTable(tableID)->ptrCast<NodeTable>();
-            masks.insert({tableID, std::make_unique<NodeOffsetSemiMask>(nodeTable)});
+            masks.insert({tableID, std::make_unique<NodeOffsetLevelSemiMask>(tableID,
+                                       nodeTable->getMaxNodeOffset(clientContext->getTx()))});
         }
     }
     auto sharedState =

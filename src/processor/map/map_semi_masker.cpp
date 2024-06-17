@@ -1,6 +1,7 @@
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/gds_call.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
+#include "processor/operator/scan/scan_node_table.h"
 #include "processor/operator/semi_masker.h"
 #include "processor/plan_mapper.h"
 
@@ -10,68 +11,63 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* logicalOperator) {
-    const auto semiMasker = ku_dynamic_cast<LogicalOperator*, LogicalSemiMasker*>(logicalOperator);
-    const auto inSchema = semiMasker->getChild(0)->getSchema();
-    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    const auto tableIDs = semiMasker->getNodeTableIDs();
-    std::unordered_map<table_id_t, std::vector<SemiMaskerInfo::mask_with_idx>> masksPerTable;
-    for (auto tableID : tableIDs) {
-        masksPerTable.insert({tableID, std::vector<SemiMaskerInfo::mask_with_idx>{}});
+static void initMaskIdx(common::table_id_map_t<std::vector<mask_with_idx>>& masksPerTable,
+    std::vector<NodeSemiMask*> masks) {
+    for (auto& mask : masks) {
+        auto tableID = mask->getTableID();
+        masksPerTable.at(tableID).emplace_back(mask, 0 /* initial mask idx */);
     }
-    for (auto& op : semiMasker->getOperators()) {
+}
+
+std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* logicalOperator) {
+    const auto& semiMasker = logicalOperator->cast<LogicalSemiMasker>();
+    const auto inSchema = semiMasker.getChild(0)->getSchema();
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
+    const auto tableIDs = semiMasker.getNodeTableIDs();
+    common::table_id_map_t<std::vector<mask_with_idx>> masksPerTable;
+    for (auto tableID : tableIDs) {
+        masksPerTable.insert({tableID, std::vector<mask_with_idx>{}});
+    }
+    for (auto& op : semiMasker.getOperators()) {
         const auto physicalOp = logicalOpToPhysicalOpMap.at(op);
         switch (physicalOp->getOperatorType()) {
         case PhysicalOperatorType::SCAN_NODE_TABLE: {
-            // TODO(Guodong): Semi mask is temporarily disabled for SCAN_NODE_TABLE.
-            // auto scanNodeTables = ku_dynamic_cast<PhysicalOperator*,
-            // ScanNodeTable*>(physicalOp); for (auto i = 0u; i < scanNodeTables->getNumTables();
-            // ++i) {
-            //     auto& tableState = scanNodeTables->getSharedState(i);
-            //     auto tableID = tableState.getTable()->getTableID();
-            //     masksPerTable.at(tableID).emplace_back(tableState.getSemiMask(),
-            //         0 /* initial mask idx */);
-            // }
+            auto scan = physicalOp->ptrCast<ScanNodeTable>();
+            initMaskIdx(masksPerTable, scan->getSemiMasks());
         } break;
         case PhysicalOperatorType::RECURSIVE_JOIN: {
-            auto recursiveJoin = (RecursiveJoin*)physicalOp;
-            for (auto& semiMask : recursiveJoin->getSharedState()->semiMasks) {
-                auto tableID = semiMask->getNodeTable()->getTableID();
-                masksPerTable.at(tableID).emplace_back(semiMask.get(), 0 /* initial mask idx */);
-            }
+            auto& recursiveJoin = physicalOp->constCast<RecursiveJoin>();
+            initMaskIdx(masksPerTable, recursiveJoin.getSemiMask());
         } break;
         case PhysicalOperatorType::IN_QUERY_CALL: {
             KU_ASSERT(physicalOp->getChild(0)->getOperatorType() == PhysicalOperatorType::GDS_CALL);
             auto gds = physicalOp->getChild(0)->ptrCast<GDSCall>();
             KU_ASSERT(gds->hasSemiMask());
-            for (auto mask : gds->getSemiMasks()) {
-                auto tableID = mask->getNodeTable()->getTableID();
-                masksPerTable.at(tableID).emplace_back(mask, 0 /* initial mask idx */);
-            }
+            initMaskIdx(masksPerTable, gds->getSemiMasks());
         } break;
         default:
             KU_UNREACHABLE;
         }
     }
-    auto keyPos = DataPos(inSchema->getExpressionPos(*semiMasker->getKey()));
+    auto keyPos = DataPos(inSchema->getExpressionPos(*semiMasker.getKey()));
     auto info = std::make_unique<SemiMaskerInfo>(keyPos, std::move(masksPerTable));
-    switch (semiMasker->getType()) {
+    switch (semiMasker.getType()) {
     case planner::SemiMaskConstructionType::NODE: {
         if (tableIDs.size() > 1) {
             return std::make_unique<MultiTableSemiMasker>(std::move(info), std::move(prevOperator),
-                getOperatorID(), semiMasker->getExpressionsForPrinting());
+                getOperatorID(), semiMasker.getExpressionsForPrinting());
         } else {
             return std::make_unique<SingleTableSemiMasker>(std::move(info), std::move(prevOperator),
-                getOperatorID(), semiMasker->getExpressionsForPrinting());
+                getOperatorID(), semiMasker.getExpressionsForPrinting());
         }
     }
     case planner::SemiMaskConstructionType::PATH: {
         if (tableIDs.size() > 1) {
             return std::make_unique<PathMultipleTableSemiMasker>(std::move(info),
-                std::move(prevOperator), getOperatorID(), semiMasker->getExpressionsForPrinting());
+                std::move(prevOperator), getOperatorID(), semiMasker.getExpressionsForPrinting());
         } else {
             return std::make_unique<PathSingleTableSemiMasker>(std::move(info),
-                std::move(prevOperator), getOperatorID(), semiMasker->getExpressionsForPrinting());
+                std::move(prevOperator), getOperatorID(), semiMasker.getExpressionsForPrinting());
         }
     }
     default:

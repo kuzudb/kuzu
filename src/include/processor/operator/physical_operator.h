@@ -138,6 +138,10 @@ public:
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<PhysicalOperator*, TARGET*>(this);
     }
+    template<class TARGET>
+    const TARGET& constCast() {
+        return common::ku_dynamic_cast<const PhysicalOperator&, const TARGET&>(*this);
+    }
 
 protected:
     virtual void initGlobalStateInternal(ExecutionContext* /*context*/) {}

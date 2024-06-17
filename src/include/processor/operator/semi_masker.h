@@ -8,35 +8,33 @@ namespace processor {
 
 class BaseSemiMasker;
 
+// Multiple maskers can point to the same SemiMask, thus we associate each masker with an idx
+// to indicate the execution sequence of its pipeline. Also, the maskerIdx is used as a flag to
+// indicate if a value in the mask is masked or not, as each masker will increment the selected
+// value in the mask by 1. More details are described in NodeTableSemiMask.
+using mask_with_idx = std::pair<NodeSemiMask*, uint8_t>;
+
 class SemiMaskerInfo {
     friend class BaseSemiMasker;
 
 public:
-    // Multiple maskers can point to the same SemiMask, thus we associate each masker with an idx
-    // to indicate the execution sequence of its pipeline. Also, the maskerIdx is used as a flag to
-    // indicate if a value in the mask is masked or not, as each masker will increment the selected
-    // value in the mask by 1. More details are described in NodeTableSemiMask.
-    using mask_with_idx = std::pair<NodeSemiMask*, uint8_t>;
-
     SemiMaskerInfo(const DataPos& keyPos,
         std::unordered_map<common::table_id_t, std::vector<mask_with_idx>> masksPerTable)
         : keyPos{keyPos}, masksPerTable{std::move(masksPerTable)} {}
     SemiMaskerInfo(const SemiMaskerInfo& other)
         : keyPos{other.keyPos}, masksPerTable{other.masksPerTable} {}
 
-    inline const std::vector<mask_with_idx>& getSingleTableMasks() const {
+    const std::vector<mask_with_idx>& getSingleTableMasks() const {
         KU_ASSERT(masksPerTable.size() == 1);
         return masksPerTable.begin()->second;
     }
 
-    inline const std::vector<mask_with_idx>& getTableMasks(common::table_id_t tableID) const {
+    const std::vector<mask_with_idx>& getTableMasks(common::table_id_t tableID) const {
         KU_ASSERT(masksPerTable.contains(tableID));
         return masksPerTable.at(tableID);
     }
 
-    inline std::unique_ptr<SemiMaskerInfo> copy() const {
-        return std::make_unique<SemiMaskerInfo>(*this);
-    }
+    std::unique_ptr<SemiMaskerInfo> copy() const { return std::make_unique<SemiMaskerInfo>(*this); }
 
 private:
     DataPos keyPos;
@@ -44,6 +42,7 @@ private:
 };
 
 class BaseSemiMasker : public PhysicalOperator {
+
 protected:
     BaseSemiMasker(std::unique_ptr<SemiMaskerInfo> info, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, const std::string& paramsString)
@@ -67,7 +66,7 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
-    inline std::unique_ptr<PhysicalOperator> clone() final {
+    std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<SingleTableSemiMasker>(info->copy(), children[0]->clone(), id,
             paramsString);
     }
@@ -81,7 +80,7 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
-    inline std::unique_ptr<PhysicalOperator> clone() final {
+    std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<MultiTableSemiMasker>(info->copy(), children[0]->clone(), id,
             paramsString);
     }
@@ -109,7 +108,7 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
-    inline std::unique_ptr<PhysicalOperator> clone() final {
+    std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<PathSingleTableSemiMasker>(info->copy(), children[0]->clone(), id,
             paramsString);
     }
@@ -123,7 +122,7 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
-    inline std::unique_ptr<PhysicalOperator> clone() final {
+    std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<PathMultipleTableSemiMasker>(info->copy(), children[0]->clone(), id,
             paramsString);
     }

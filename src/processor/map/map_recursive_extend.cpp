@@ -2,6 +2,7 @@
 #include "processor/operator/recursive_extend/recursive_join.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
+#include "storage/store/node_table.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::planner;
@@ -10,12 +11,12 @@ namespace kuzu {
 namespace processor {
 
 static std::shared_ptr<RecursiveJoinSharedState> createSharedState(
-    const binder::NodeExpression& nbrNode, const storage::StorageManager& storageManager) {
-    std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks;
+    const binder::NodeExpression& nbrNode, const main::ClientContext& context) {
+    std::vector<std::unique_ptr<NodeOffsetLevelSemiMask>> semiMasks;
     for (auto tableID : nbrNode.getTableIDs()) {
-        auto nodeTable = common::ku_dynamic_cast<storage::Table*, storage::NodeTable*>(
-            storageManager.getTable(tableID));
-        semiMasks.push_back(std::make_unique<NodeOffsetSemiMask>(nodeTable));
+        auto table = context.getStorageManager()->getTable(tableID)->ptrCast<storage::NodeTable>();
+        semiMasks.push_back(std::make_unique<NodeOffsetLevelSemiMask>(tableID,
+            table->getMaxNodeOffset(context.getTx())));
     }
     return std::make_shared<RecursiveJoinSharedState>(std::move(semiMasks));
 }
@@ -33,7 +34,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(LogicalOperator
     // Generate RecursiveJoin
     auto outSchema = extend->getSchema();
     auto inSchema = extend->getChild(0)->getSchema();
-    auto sharedState = createSharedState(*nbrNode, *clientContext->getStorageManager());
+    auto sharedState = createSharedState(*nbrNode, *clientContext);
     // Data info
     auto dataInfo = RecursiveJoinDataInfo();
     dataInfo.srcNodePos = getDataPos(*boundNode->getInternalID(), *inSchema);

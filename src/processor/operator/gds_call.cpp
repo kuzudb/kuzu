@@ -6,8 +6,8 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace processor {
 
-std::vector<NodeOffsetSemiMask*> GDSCall::getSemiMasks() const {
-    std::vector<NodeOffsetSemiMask*> masks;
+std::vector<NodeSemiMask*> GDSCall::getSemiMasks() const {
+    std::vector<NodeSemiMask*> masks;
     for (auto& [_, mask] : sharedState->inputNodeOffsetMasks) {
         masks.push_back(mask.get());
     }
