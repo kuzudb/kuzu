@@ -81,6 +81,9 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord,
     case WALRecordType::DROP_CATALOG_ENTRY_RECORD: {
         replayDropCatalogEntryRecord(walRecord);
     } break;
+    case WALRecordType::ALTER_TABLE_ENTRY_RECORD: {
+        replayDropCatalogEntryRecord(walRecord);
+    } break;
     case WALRecordType::UPDATE_SEQUENCE_RECORD: {
         replayUpdateSequenceRecord(walRecord);
     } break;
@@ -245,6 +248,20 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) {
     default: {
         KU_UNREACHABLE;
     }
+    }
+}
+
+void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) {
+    if (!(isCheckpoint && isRecovering)) {
+        return;
+    }
+    auto& alterEntryRecord = walRecord.constCast<AlterTableEntryRecord>();
+    clientContext.getCatalog()->alterTableSchema(&DUMMY_WRITE_TRANSACTION, alterEntryRecord.alterInfo);
+    if (alterEntryRecord.alterInfo.alterType == common::AlterType::ADD_PROPERTY) {
+        // TODO(Sam): Need to handle this somehow. If using alter.cpp logic, need to:
+        // 1. bind the parsed expr (maybe this should be part of deserializer??)
+        // 2. map expr to evaluator
+        // 3. add column (but storage manager doesn't exist during recovery...)
     }
 }
 

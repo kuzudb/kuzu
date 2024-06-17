@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/enums/table_type.h"
@@ -59,6 +60,7 @@ enum class WALRecordType : uint8_t {
     PAGE_UPDATE_OR_INSERT_RECORD = 20,
     TABLE_STATISTICS_RECORD = 30,
     UPDATE_SEQUENCE_RECORD = 40,
+    ALTER_TABLE_ENTRY_RECORD = 50,
 };
 
 struct WALRecord {
@@ -161,6 +163,16 @@ struct DropCatalogEntryRecord final : public WALRecord {
     static std::unique_ptr<DropCatalogEntryRecord> deserialize(common::Deserializer& deserializer);
 };
 
+struct AlterTableEntryRecord final : public WALRecord {
+    binder::BoundAlterInfo alterInfo;
+
+    AlterTableEntryRecord() = default;
+    explicit AlterTableEntryRecord(const binder::BoundAlterInfo& alterInfo)
+        : WALRecord{WALRecordType::ALTER_TABLE_ENTRY_RECORD}, alterInfo{alterInfo.copy()} {}
+
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<AlterTableEntryRecord> deserialize(common::Deserializer& deserializer);
+};
 struct UpdateSequenceRecord final : public WALRecord {
     common::sequence_id_t sequenceID;
     catalog::SequenceChangeData data;
