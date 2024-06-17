@@ -35,16 +35,17 @@ union StorageValue {
 
     StorageValue() = default;
     template<typename T>
-    requires std::same_as<std::remove_cvref_t<T>, common::int128_t>
+        requires std::same_as<std::remove_cvref_t<T>, common::int128_t>
     explicit StorageValue(T value) : signedInt128(value) {}
     template<typename T>
-    requires std::integral<T> && common::NumericUtils::IsSigned<T>
+        requires std::integral<T> && common::NumericUtils::IsSigned<T>
     explicit StorageValue(T value) : signedInt(value) {}
     template<typename T>
-    requires std::integral<T> &&(!common::NumericUtils::IsSigned<T>)explicit StorageValue(T value)
-        : unsignedInt(value) {}
+        requires std::integral<T> && (!common::NumericUtils::IsSigned<T>)
+    explicit StorageValue(T value) : unsignedInt(value) {}
     template<typename T>
-    requires std::is_floating_point<T>::value explicit StorageValue(T value) : floatVal(value) {}
+        requires std::is_floating_point<T>::value
+    explicit StorageValue(T value) : floatVal(value) {}
 
     bool operator==(const StorageValue& other) const {
         // All types are the same size, so we can compare any of them to check equality
@@ -197,7 +198,7 @@ public:
     // Nothing to do; constant compressed data is only updated if the update is to the same value
     void setValuesFromUncompressed(const uint8_t*, common::offset_t, uint8_t*, common::offset_t,
         common::offset_t, const CompressionMetadata&,
-        const common::NullMask* /*nullMask*/) const override{};
+        const common::NullMask* /*nullMask*/) const override {};
 
     CompressionType getCompressionType() const override { return CompressionType::CONSTANT; }
 
@@ -362,8 +363,8 @@ public:
 
 protected:
     explicit CompressedFunctor(const common::LogicalType& logicalType)
-        : constant{logicalType}, uncompressed{logicalType}, physicalType{
-                                                                logicalType.getPhysicalType()} {}
+        : constant{logicalType}, uncompressed{logicalType},
+          physicalType{logicalType.getPhysicalType()} {}
     const ConstantCompression constant;
     const Uncompressed uncompressed;
     const BooleanBitpacking booleanBitpacking;
