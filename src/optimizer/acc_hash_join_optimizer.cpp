@@ -312,7 +312,7 @@ std::vector<LogicalOperator*> HashJoinSIPOptimizer::getScanNodeCandidates(const 
         auto& scan = op->constCast<LogicalScanNodeTable>();
         if (scan.getScanType() != LogicalScanNodeTableType::SCAN) {
             // Do not apply semi mask to index scan.
-            continue ;
+            continue;
         }
         if (nodeID.getUniqueName() == scan.getNodeID()->getUniqueName()) {
             result.push_back(op);

@@ -4,7 +4,6 @@
 #include "storage/predicate/column_predicate.h"
 #include "storage/store/node_table.h"
 
-
 namespace kuzu {
 namespace processor {
 

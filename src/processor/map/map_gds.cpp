@@ -35,8 +35,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
         auto& node =
             call.getInfo().getBindData()->getNodeInput()->constCast<binder::NodeExpression>();
         for (auto tableID : node.getTableIDs()) {
-            auto nodeTable = clientContext->getStorageManager()->getTable(tableID)->ptrCast<NodeTable>();
-            masks.insert({tableID, std::make_unique<NodeOffsetLevelSemiMask>(tableID, nodeTable->getMaxNodeOffset(clientContext->getTx()))});
+            auto nodeTable =
+                clientContext->getStorageManager()->getTable(tableID)->ptrCast<NodeTable>();
+            masks.insert({tableID, std::make_unique<NodeOffsetLevelSemiMask>(tableID,
+                                       nodeTable->getMaxNodeOffset(clientContext->getTx()))});
         }
     }
     auto sharedState =

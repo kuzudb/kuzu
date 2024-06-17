@@ -34,9 +34,7 @@ public:
         return masksPerTable.at(tableID);
     }
 
-    std::unique_ptr<SemiMaskerInfo> copy() const {
-        return std::make_unique<SemiMaskerInfo>(*this);
-    }
+    std::unique_ptr<SemiMaskerInfo> copy() const { return std::make_unique<SemiMaskerInfo>(*this); }
 
 private:
     DataPos keyPos;

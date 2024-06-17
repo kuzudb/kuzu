@@ -40,7 +40,8 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
 }
 
 void ScanNodeTableInfo::initScanState(NodeSemiMask* semiMask) {
-    localScanState = std::make_unique<NodeTableScanState>(columnIDs, copyVector(columnPredicates), semiMask);
+    localScanState =
+        std::make_unique<NodeTableScanState>(columnIDs, copyVector(columnPredicates), semiMask);
 }
 
 std::vector<NodeSemiMask*> ScanNodeTable::getSemiMasks() {

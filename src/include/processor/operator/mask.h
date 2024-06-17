@@ -1,9 +1,10 @@
 #pragma once
 
-#include <mutex>
 #include <memory>
-#include "common/types/internal_id_t.h"
+#include <mutex>
+
 #include "common/constants.h"
+#include "common/types/internal_id_t.h"
 
 namespace kuzu {
 namespace processor {
@@ -25,9 +26,7 @@ struct MaskData {
     }
 
     void setMask(uint64_t pos, uint8_t maskValue) const { data[pos] = maskValue; }
-    bool isMasked(uint64_t pos, uint8_t trueMaskVal) const {
-        return data[pos] == trueMaskVal;
-    }
+    bool isMasked(uint64_t pos, uint8_t trueMaskVal) const { return data[pos] == trueMaskVal; }
 
 private:
     std::unique_ptr<uint8_t[]> dataBuffer;
@@ -70,7 +69,8 @@ private:
 
 class NodeSemiMask {
 public:
-    explicit NodeSemiMask(common::table_id_t tableID, common::offset_t maxOffset) : tableID{tableID}, maxOffset{maxOffset} {}
+    explicit NodeSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
+        : tableID{tableID}, maxOffset{maxOffset} {}
     virtual ~NodeSemiMask() = default;
 
     common::table_id_t getTableID() const { return tableID; }
@@ -93,11 +93,12 @@ protected:
 
 class NodeOffsetLevelSemiMask final : public NodeSemiMask {
 public:
-    explicit NodeOffsetLevelSemiMask(common::table_id_t tableID, common::offset_t maxOffset) : NodeSemiMask{tableID, maxOffset} {}
+    explicit NodeOffsetLevelSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
+        : NodeSemiMask{tableID, maxOffset} {}
 
     void init() override {
         if (maxOffset == common::INVALID_OFFSET) {
-            return ;
+            return;
         }
         maskCollection.init(maxOffset + 1);
     }
@@ -111,14 +112,14 @@ public:
     }
 };
 
-
 class NodeVectorLevelSemiMask final : public NodeSemiMask {
 public:
-    explicit NodeVectorLevelSemiMask(common::table_id_t tableID, common::offset_t maxOffset) : NodeSemiMask{tableID, maxOffset} {}
+    explicit NodeVectorLevelSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
+        : NodeSemiMask{tableID, maxOffset} {}
 
     void init() override {
         if (maxOffset == common::INVALID_OFFSET) {
-            return ;
+            return;
         }
         maskCollection.init(MaskUtil::getVectorIdx(maxOffset) + 1);
     }

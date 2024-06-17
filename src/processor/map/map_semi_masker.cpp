@@ -1,9 +1,9 @@
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/gds_call.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
+#include "processor/operator/scan/scan_node_table.h"
 #include "processor/operator/semi_masker.h"
 #include "processor/plan_mapper.h"
-#include "processor/operator/scan/scan_node_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;
@@ -11,7 +11,8 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-static void initMaskIdx(common::table_id_map_t<std::vector<mask_with_idx>>& masksPerTable, std::vector<NodeSemiMask*> masks) {
+static void initMaskIdx(common::table_id_map_t<std::vector<mask_with_idx>>& masksPerTable,
+    std::vector<NodeSemiMask*> masks) {
     for (auto& mask : masks) {
         auto tableID = mask->getTableID();
         masksPerTable.at(tableID).emplace_back(mask, 0 /* initial mask idx */);

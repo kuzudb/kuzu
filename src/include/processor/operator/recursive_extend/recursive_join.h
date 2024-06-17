@@ -16,7 +16,8 @@ class OffsetScanNodeTable;
 struct RecursiveJoinSharedState {
     std::vector<std::unique_ptr<NodeOffsetLevelSemiMask>> semiMasks;
 
-    explicit RecursiveJoinSharedState(std::vector<std::unique_ptr<NodeOffsetLevelSemiMask>> semiMasks)
+    explicit RecursiveJoinSharedState(
+        std::vector<std::unique_ptr<NodeOffsetLevelSemiMask>> semiMasks)
         : semiMasks{std::move(semiMasks)} {}
 };
 
@@ -107,10 +108,8 @@ public:
     RecursiveJoin(RecursiveJoinInfo info, std::shared_ptr<RecursiveJoinSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString,
         std::unique_ptr<PhysicalOperator> recursiveRoot)
-        : PhysicalOperator{type_, std::move(child), id,
-              paramsString},
-          info{std::move(info)}, sharedState{std::move(sharedState)},
-          recursiveRoot{std::move(recursiveRoot)} {}
+        : PhysicalOperator{type_, std::move(child), id, paramsString}, info{std::move(info)},
+          sharedState{std::move(sharedState)}, recursiveRoot{std::move(recursiveRoot)} {}
 
     std::vector<NodeSemiMask*> getSemiMask() const;
 
