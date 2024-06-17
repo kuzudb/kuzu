@@ -1,6 +1,5 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
-#include "binder/expression/literal_expression.h"
 #include "function/gds/frontier.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds_function.h"
@@ -11,6 +10,7 @@ using namespace kuzu::processor;
 using namespace kuzu::common;
 using namespace kuzu::binder;
 using namespace kuzu::storage;
+using namespace kuzu::graph;
 
 namespace kuzu {
 namespace function {
@@ -19,10 +19,12 @@ struct ShortestPathBindData final : public GDSBindData {
     std::shared_ptr<Expression> nodeInput;
     uint8_t upperBound;
 
-    ShortestPathBindData(std::shared_ptr<Expression> nodeInput, uint8_t upperBound)
-        : nodeInput{std::move(nodeInput)}, upperBound{upperBound} {}
+    ShortestPathBindData(std::shared_ptr<Expression> nodeInput,
+        std::shared_ptr<Expression> nodeOutput, bool outputAsNode, uint8_t upperBound)
+        : GDSBindData{std::move(nodeOutput), outputAsNode}, nodeInput{std::move(nodeInput)},
+          upperBound{upperBound} {}
     ShortestPathBindData(const ShortestPathBindData& other)
-        : nodeInput{other.nodeInput}, upperBound{other.upperBound} {}
+        : GDSBindData{other}, nodeInput{other.nodeInput}, upperBound{other.upperBound} {}
 
     bool hasNodeInput() const override { return true; }
     std::shared_ptr<binder::Expression> getNodeInput() const override { return nodeInput; }
@@ -94,6 +96,8 @@ private:
 };
 
 class ShortestPath final : public GDSAlgorithm {
+    static constexpr char LENGTH_COLUMN_NAME[] = "length";
+
 public:
     ShortestPath() = default;
     ShortestPath(const ShortestPath& other) : GDSAlgorithm{other} {}
@@ -104,33 +108,37 @@ public:
      * graph::ANY
      * srcNode::NODE
      * upperBound::INT64
+     * outputProperty::BOOL
      */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64};
+        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64, LogicalTypeID::BOOL};
     }
 
     /*
      * Outputs are
      *
      * srcNode._id::INTERNAL_ID
-     * dst::INTERNAL_ID
+     * _node._id::INTERNAL_ID (destination)
      * length::INT64
      */
     binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
-        columns.push_back(bindData->getNodeInput()->constCast<NodeExpression>().getInternalID());
-        columns.push_back(binder->createVariable("dst", *LogicalType::INTERNAL_ID()));
-        columns.push_back(binder->createVariable("length", *LogicalType::INT64()));
+        auto& inputNode = bindData->getNodeInput()->constCast<NodeExpression>();
+        columns.push_back(inputNode.getInternalID());
+        auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
+        columns.push_back(outputNode.getInternalID());
+        columns.push_back(binder->createVariable(LENGTH_COLUMN_NAME, *LogicalType::INT64()));
         return columns;
     }
 
-    void bind(const binder::expression_vector& params) override {
-        KU_ASSERT(params.size() == 3);
-        auto inputNode = params[1];
-        ExpressionUtil::validateExpressionType(*params[2], ExpressionType::LITERAL);
-        ExpressionUtil::validateDataType(*params[2], *LogicalType::INT64());
-        auto upperBound = params[2]->constCast<LiteralExpression>().getValue().getValue<int64_t>();
-        bindData = std::make_unique<ShortestPathBindData>(inputNode, upperBound);
+    void bind(const expression_vector& params, Binder* binder, GraphEntry& graphEntry) override {
+        KU_ASSERT(params.size() == 4);
+        auto nodeInput = params[1];
+        auto nodeOutput = bindNodeOutput(binder, graphEntry);
+        auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[2]);
+        auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[3]);
+        bindData = std::make_unique<ShortestPathBindData>(nodeInput, nodeOutput, outputProperty,
+            upperBound);
     }
 
     void initLocalState(main::ClientContext* context) override {

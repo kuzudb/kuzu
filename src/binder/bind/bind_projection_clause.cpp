@@ -260,7 +260,7 @@ void Binder::addExpressionsToScope(const expression_vector& projectionExpression
     for (auto& expression : projectionExpressions) {
         // In RETURN clause, if expression is not aliased, its input name will serve its alias.
         auto alias = expression->hasAlias() ? expression->getAlias() : expression->toString();
-        scope.addExpression(alias, expression);
+        addToScope(alias, expression);
     }
 }
 

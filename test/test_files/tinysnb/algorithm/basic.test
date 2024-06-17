@@ -4,6 +4,7 @@
 
 -CASE BasicAlgorithm
 
+
 -STATEMENT PROJECT GRAPH PK (person {age}, knows) CALL variable_length_path(PK, 1, 1) RETURN *;
 ---- error
 Parser exception: Filtering or projecting properties in graph projection is not supported.
@@ -12,86 +13,90 @@ Parser exception: Filtering or projecting properties in graph projection is not 
 Binder exception: Cannot find graph PK.
 -STATEMENT PROJECT GRAPH PK (person, knows)
            MATCH (a:person) WHERE a.ID > 5
-           CALL variable_length_path(PK, a, 1, 1)
-           RETURN a.fName, dst, length, num_path;
+           CALL variable_length_path(PK, a, 1, 1, true)
+           RETURN a.fName, _node.fName, length, num_path;
 ---- 2
-Elizabeth|0:5|1|1
-Elizabeth|0:6|1|1
+Elizabeth|Farooq|1|1
+Elizabeth|Greg|1|1
 -STATEMENT PROJECT GRAPH PK (person, knows, studyAt, organisation)
            MATCH (a) WHERE a.ID = 0
-           CALL variable_length_path(PK, a, 1, 1)
-           RETURN a.fName, dst, length, num_path;
+           CALL variable_length_path(PK, a, 1, 1, true)
+           RETURN a.fName, _node.name, _node.fName, length, num_path;
 ---- 4
-Alice|0:1|1|1
-Alice|0:2|1|1
-Alice|0:3|1|1
-Alice|1:1|1|1
+Alice|ABFsUni||1|1
+Alice||Bob|1|1
+Alice||Carol|1|1
+Alice||Dan|1|1
 -STATEMENT PROJECT GRAPH PK (person, knows)
            MATCH (a) WHERE a.ID = 1
-           CALL variable_length_path(PK, a, 1, 1)
-           RETURN a.fName, dst, length, num_path;
+           CALL variable_length_path(PK, a, 1, 1, true)
+           RETURN a.fName, _node, length, num_path;
 ---- 0
-
+-STATEMENT PROJECT GRAPH PK (person, knows)
+           MATCH (a) WHERE a.ID = 1
+           CALL variable_length_path(PK, a, 1, 1, false)
+           RETURN a.fName, _node.name, length, num_path;
+---- error
+Binder exception: Cannot find property name for _node.
 -STATEMENT PROJECT GRAPH PK (person, knows)
            MATCH (a:person) WHERE a.ID = 0
-           CALL variable_length_path(PK, a, 2, 2)
-           RETURN a.fName, dst, length, num_path;
+           CALL variable_length_path(PK, a, 2, 2, true)
+           RETURN a.fName, _node.fName, length, num_path;
 ---- 4
-Alice|0:0|2|3
-Alice|0:1|2|2
-Alice|0:2|2|2
-Alice|0:3|2|2
+Alice|Alice|2|3
+Alice|Bob|2|2
+Alice|Carol|2|2
+Alice|Dan|2|2
 -STATEMENT PROJECT GRAPH PK (person, knows)
            MATCH (a:person) WHERE a.ID = 0
-           CALL shortest_path(PK, a, 2)
-           RETURN a.fName, dst, length;
+           CALL shortest_path(PK, a, 2, true)
+           RETURN a.fName, _node.fName, length;
 ---- 4
-Alice|0:0|0
-Alice|0:1|1
-Alice|0:2|1
-Alice|0:3|1
--STATEMENT PROJECT GRAPH PK (person, organisation, studyAt, knows)
+Alice|Alice|0
+Alice|Bob|1
+Alice|Carol|1
+Alice|Dan|1
+-STATEMENT PROJECT GRAPH PK (person, organisation, workAt, knows)
            MATCH (a:person) WHERE a.ID = 0
-           CALL shortest_path(PK, a, 2)
-           RETURN a.fName, dst, length;
+           CALL shortest_path(PK, a, 2, true)
+           RETURN a.fName, _node.fName, _node.name, length;
 ---- 6
-Alice|0:0|0
-Alice|0:1|1
-Alice|0:2|1
-Alice|0:3|1
-Alice|1:1|1
-Alice|1:3|2
--STATEMENT PROJECT GRAPH PK (person, knows) CALL weakly_connected_component(PK) RETURN *;
+Alice|Alice||0
+Alice|Bob||1
+Alice|Carol||1
+Alice|Dan||1
+Alice||CsWork|2
+Alice||DEsWork|2
+-STATEMENT PROJECT GRAPH PK (person, knows) CALL weakly_connected_component(PK, true) RETURN _node.fName, group_id;
 ---- 8
-0:0|0
-0:1|0
-0:2|0
-0:3|0
-0:4|1
-0:5|1
-0:6|1
-0:7|2
-# NOTE: I'm not confident that these internal ids will be determinstic
--STATEMENT PROJECT GRAPH PK (person, organisation, knows, workAt) CALL weakly_connected_component(PK) RETURN *;
+Alice|0
+Bob|0
+Carol|0
+Dan|0
+Elizabeth|1
+Farooq|1
+Greg|1
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2
+-STATEMENT PROJECT GRAPH PK (person, organisation, knows, workAt) CALL weakly_connected_component(PK, true) RETURN _node.fName, _node.name, group_id;
 ---- 11
-0:0|0
-0:1|0
-0:2|0
-0:3|0
-0:4|1
-0:5|1
-0:6|1
-0:7|2
-1:0|1
-1:1|3
-1:2|0
--STATEMENT PROJECT GRAPH PK (person, knows) CALL page_rank(PK) RETURN *;
+Alice||0
+Bob||0
+Carol||0
+Dan||0
+Elizabeth||1
+Farooq||1
+Greg||1
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff||2
+|ABFsUni|3
+|CsWork|0
+|DEsWork|0
+-STATEMENT PROJECT GRAPH PK (person, knows) CALL page_rank(PK, true) RETURN _node.fName, rank;
 ---- 8
-0:0|0.125000
-0:1|0.125000
-0:2|0.125000
-0:3|0.125000
-0:4|0.022734
-0:5|0.018750
-0:6|0.018750
-0:7|0.018750
+Alice|0.125000
+Bob|0.125000
+Carol|0.125000
+Dan|0.125000
+Elizabeth|0.022734
+Farooq|0.018750
+Greg|0.018750
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0.018750

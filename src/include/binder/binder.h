@@ -82,7 +82,6 @@ public:
     std::shared_ptr<Expression> createVariable(const std::string& name,
         const common::LogicalType& dataType);
 
-private:
     std::shared_ptr<Expression> bindWhereExpression(
         const parser::ParsedExpression& parsedExpression);
 
@@ -272,6 +271,7 @@ private:
     std::string getUniqueExpressionName(const std::string& name);
     static bool isReservedPropertyName(const std::string& name);
 
+    void addToScope(const std::string& name, std::shared_ptr<Expression> expr);
     BinderScope saveScope();
     void restoreScope(BinderScope prevScope);
 

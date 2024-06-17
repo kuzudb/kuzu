@@ -21,6 +21,7 @@ struct NodeDataScanState final : TableDataScanState {
     bool nextVector();
 
     void resetState() override {
+        TableDataScanState::resetState();
         numRowsToScan = 0;
         vectorIdx = common::INVALID_IDX;
         numRowsInNodeGroup = 0;

@@ -90,7 +90,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         }
         auto func = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, entry);
         auto gdsFunc = *func->constPtrCast<GDSFunction>();
-        gdsFunc.gds->bind(children);
+        gdsFunc.gds->bind(children, this, graphEntry);
         outExprs = gdsFunc.gds->getResultColumns(this);
         auto info = BoundGDSCallInfo(gdsFunc.copy(), graphEntry.copy(), std::move(outExprs));
         boundReadingClause = std::make_unique<BoundGDSCall>(std::move(info));

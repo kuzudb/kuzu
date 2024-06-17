@@ -83,14 +83,16 @@ std::pair<offset_t, offset_t> RelDataReadState::getStartAndEndOffset() {
 }
 
 void RelDataReadState::resetState() {
+    TableDataScanState::resetState();
     nodeGroupIdx = INVALID_NODE_GROUP_IDX;
     numNodes = 0;
     currentNodeOffset = 0;
     posInCurrentCSR = 0;
+    csrListEntries.resize(StorageConstants::NODE_GROUP_SIZE, {0, 0});
+    csrHeaderChunks = ChunkedCSRHeader(false);
     readFromPersistentStorage = false;
     readFromLocalStorage = false;
     localNodeGroup = nullptr;
-    csrListEntries.resize(StorageConstants::NODE_GROUP_SIZE, {0, 0});
 }
 
 offset_t CSRHeaderColumns::getNumNodes(Transaction* transaction,

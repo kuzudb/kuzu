@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "common/types/internal_id_util.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds_function.h"
@@ -11,6 +12,7 @@ using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::processor;
 using namespace kuzu::storage;
+using namespace kuzu::graph;
 
 namespace kuzu {
 namespace function {
@@ -46,6 +48,8 @@ private:
 };
 
 class WeaklyConnectedComponent final : public GDSAlgorithm {
+    static constexpr char GROUP_ID_COLUMN_NAME[] = "group_id";
+
 public:
     WeaklyConnectedComponent() = default;
     WeaklyConnectedComponent(const WeaklyConnectedComponent& other) : GDSAlgorithm{other} {}
@@ -54,22 +58,30 @@ public:
      * Inputs are
      *
      * graph::ANY
+     * outputProperty::BOOL
      */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return std::vector<LogicalTypeID>{LogicalTypeID::ANY};
+        return std::vector<LogicalTypeID>{LogicalTypeID::ANY, LogicalTypeID::BOOL};
     }
 
     /*
      * Outputs are
      *
-     * node_id::INTERNAL_ID
+     * _node._id::INTERNAL_ID
      * group_id::INT64
      */
     binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
-        columns.push_back(binder->createVariable("node_id", *LogicalType::INTERNAL_ID()));
-        columns.push_back(binder->createVariable("group_id", *LogicalType::INT64()));
+        auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
+        columns.push_back(outputNode.getInternalID());
+        columns.push_back(binder->createVariable(GROUP_ID_COLUMN_NAME, *LogicalType::INT64()));
         return columns;
+    }
+
+    void bind(const expression_vector& params, Binder* binder, GraphEntry& graphEntry) override {
+        auto nodeOutput = bindNodeOutput(binder, graphEntry);
+        auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[1]);
+        bindData = std::make_unique<GDSBindData>(nodeOutput, outputProperty);
     }
 
     void initLocalState(main::ClientContext* context) override {

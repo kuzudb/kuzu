@@ -1,6 +1,5 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
-#include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
 #include "function/gds/frontier.h"
 #include "function/gds/gds_function_collection.h"
@@ -14,6 +13,7 @@ using namespace kuzu::processor;
 using namespace kuzu::common;
 using namespace kuzu::binder;
 using namespace kuzu::storage;
+using namespace kuzu::graph;
 
 namespace kuzu {
 namespace function {
@@ -23,15 +23,18 @@ struct VariableLengthPathBindData final : public GDSBindData {
     uint8_t lowerBound;
     uint8_t upperBound;
 
-    VariableLengthPathBindData(std::shared_ptr<Expression> nodeInput, uint8_t lowerBound,
+    VariableLengthPathBindData(std::shared_ptr<Expression> nodeInput,
+        std::shared_ptr<Expression> nodeOutput, bool outputAsNode, uint8_t lowerBound,
         uint8_t upperBound)
-        : nodeInput{std::move(nodeInput)}, lowerBound{lowerBound}, upperBound{upperBound} {}
+        : GDSBindData{std::move(nodeOutput), outputAsNode}, nodeInput{std::move(nodeInput)},
+          lowerBound{lowerBound}, upperBound{upperBound} {}
 
     VariableLengthPathBindData(const VariableLengthPathBindData& other)
-        : nodeInput{other.nodeInput}, lowerBound{other.lowerBound}, upperBound{other.upperBound} {}
+        : GDSBindData{other}, nodeInput{other.nodeInput}, lowerBound{other.lowerBound},
+          upperBound{other.upperBound} {}
 
     bool hasNodeInput() const override { return true; }
-    std::shared_ptr<binder::Expression> getNodeInput() const override { return nodeInput; }
+    std::shared_ptr<Expression> getNodeInput() const override { return nodeInput; }
 
     std::unique_ptr<GDSBindData> copy() const override {
         return std::make_unique<VariableLengthPathBindData>(*this);
@@ -94,6 +97,9 @@ private:
 };
 
 class VariableLengthPaths final : public GDSAlgorithm {
+    static constexpr char LENGTH_COLUMN_NAME[] = "length";
+    static constexpr char NUM_PATH_COLUMN_NAME[] = "num_path";
+
 public:
     VariableLengthPaths() = default;
     VariableLengthPaths(const VariableLengthPaths& other) : GDSAlgorithm{other} {}
@@ -105,17 +111,18 @@ public:
      * srcNode::NODE
      * lowerBound::INT64
      * upperBound::INT64
+     * outputProperty::BOOL
      */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64,
-            LogicalTypeID::INT64};
+        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64, LogicalTypeID::INT64,
+            LogicalTypeID::BOOL};
     }
 
     /*
      * Outputs are
      *
      * srcNode._id::INTERNAL_ID
-     * dst::INTERNAL_ID
+     * _node._id::INTERNAL_ID (destination)
      * length::INT64
      * num_path::INT64
      */
@@ -123,24 +130,25 @@ public:
         expression_vector columns;
         auto& inputNode = bindData->getNodeInput()->constCast<NodeExpression>();
         columns.push_back(inputNode.getInternalID());
-        columns.push_back(binder->createVariable("dst", *LogicalType::INTERNAL_ID()));
-        columns.push_back(binder->createVariable("length", *LogicalType::INT64()));
-        columns.push_back(binder->createVariable("num_path", *LogicalType::INT64()));
+        auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
+        columns.push_back(outputNode.getInternalID());
+        columns.push_back(binder->createVariable(LENGTH_COLUMN_NAME, *LogicalType::INT64()));
+        columns.push_back(binder->createVariable(NUM_PATH_COLUMN_NAME, *LogicalType::INT64()));
         return columns;
     }
 
-    void bind(const binder::expression_vector& params) override {
-        KU_ASSERT(params.size() == 4);
-        for (auto i = 2u; i < 4u; ++i) {
-            ExpressionUtil::validateExpressionType(*params[i], ExpressionType::LITERAL);
-            ExpressionUtil::validateDataType(*params[i], *LogicalType::INT64());
-        }
-        auto lowerBound = params[2]->constCast<LiteralExpression>().getValue().getValue<int64_t>();
+    void bind(const expression_vector& params, Binder* binder, GraphEntry& graphEntry) override {
+        KU_ASSERT(params.size() == 5);
+        auto nodeInput = params[1];
+        auto nodeOutput = bindNodeOutput(binder, graphEntry);
+        auto lowerBound = ExpressionUtil::getLiteralValue<int64_t>(*params[2]);
         if (lowerBound <= 0) {
             throw BinderException("Lower bound must be greater than 0.");
         }
-        auto upperBound = params[3]->constCast<LiteralExpression>().getValue().getValue<int64_t>();
-        bindData = std::make_unique<VariableLengthPathBindData>(params[1], lowerBound, upperBound);
+        auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[3]);
+        auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[4]);
+        bindData = std::make_unique<VariableLengthPathBindData>(nodeInput, nodeOutput,
+            outputProperty, lowerBound, upperBound);
     }
 
     void initLocalState(main::ClientContext* context) override {

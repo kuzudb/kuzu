@@ -194,6 +194,19 @@ void ExpressionUtil::validateDataType(const Expression& expr,
         expr.getDataType().toString(), LogicalTypeUtils::toString(expectedTypeIDs)));
 }
 
+template<>
+int64_t ExpressionUtil::getLiteralValue(const Expression& expr) {
+    validateExpressionType(expr, ExpressionType::LITERAL);
+    validateDataType(expr, *LogicalType::INT64());
+    return expr.constCast<LiteralExpression>().getValue().getValue<int64_t>();
+}
+template<>
+bool ExpressionUtil::getLiteralValue(const Expression& expr) {
+    validateExpressionType(expr, ExpressionType::LITERAL);
+    validateDataType(expr, *LogicalType::BOOL());
+    return expr.constCast<LiteralExpression>().getValue().getValue<bool>();
+}
+
 // For primitive types, two types are compatible if they have the same id.
 // For nested types, two types are compatible if they have the same id and their children are also
 // compatible.

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "binder/expression/expression.h"
+#include "graph/graph_entry.h"
 
 namespace kuzu {
 namespace binder {
@@ -17,13 +18,22 @@ namespace function {
 
 // Struct maintaining GDS specific information that needs to be obtained at compile time.
 struct GDSBindData {
+    std::shared_ptr<binder::Expression> nodeOutput;
+    // If outputAsNode is true, we will scan all properties of the node.
+    // Otherwise, we return node ID only.
+    bool outputAsNode;
+
+    explicit GDSBindData(std::shared_ptr<binder::Expression> nodeOutput, bool outputAsNode)
+        : nodeOutput{std::move(nodeOutput)}, outputAsNode{outputAsNode} {}
+    GDSBindData(const GDSBindData& other)
+        : nodeOutput{other.nodeOutput}, outputAsNode{other.outputAsNode} {}
     virtual ~GDSBindData() = default;
 
     virtual bool hasNodeInput() const { return false; }
     virtual std::shared_ptr<binder::Expression> getNodeInput() const { return nullptr; }
 
-    virtual bool hasNodeOutput() const { return false; }
-    virtual std::shared_ptr<binder::Expression> getNodeOutput() const { return nullptr; }
+    virtual bool hasNodeOutput() const { return outputAsNode; }
+    virtual std::shared_ptr<binder::Expression> getNodeOutput() const { return nodeOutput; }
 
     virtual std::unique_ptr<GDSBindData> copy() const {
         return std::make_unique<GDSBindData>(*this);
@@ -47,6 +57,9 @@ public:
 
 // Base class for every graph data science algorithm.
 class GDSAlgorithm {
+protected:
+    static constexpr char NODE_COLUMN_NAME[] = "_node";
+
 public:
     GDSAlgorithm() = default;
     GDSAlgorithm(const GDSAlgorithm& other) {
@@ -59,9 +72,8 @@ public:
     virtual std::vector<common::LogicalTypeID> getParameterTypeIDs() const { return {}; }
     virtual binder::expression_vector getResultColumns(binder::Binder* binder) const = 0;
 
-    virtual void bind(const binder::expression_vector&) {
-        bindData = std::make_unique<GDSBindData>();
-    }
+    virtual void bind(const binder::expression_vector& params, binder::Binder* binder,
+        graph::GraphEntry& graphEntry) = 0;
     GDSBindData* getBindData() const { return bindData.get(); }
 
     void init(processor::GDSCallSharedState* sharedState, main::ClientContext* context);
@@ -75,6 +87,8 @@ public:
 
 protected:
     virtual void initLocalState(main::ClientContext* context) = 0;
+    std::shared_ptr<binder::Expression> bindNodeOutput(binder::Binder* binder,
+        graph::GraphEntry& graphEntry);
 
 protected:
     std::unique_ptr<GDSBindData> bindData;

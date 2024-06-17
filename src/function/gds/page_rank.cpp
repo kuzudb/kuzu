@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "common/types/internal_id_util.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_function_collection.h"
@@ -12,6 +13,7 @@ using namespace kuzu::processor;
 using namespace kuzu::common;
 using namespace kuzu::binder;
 using namespace kuzu::storage;
+using namespace kuzu::graph;
 
 namespace kuzu {
 namespace function {
@@ -21,10 +23,14 @@ struct PageRankBindData final : public GDSBindData {
     int64_t maxIteration = 10;
     double delta = 0.0001; // detect convergence
 
-    PageRankBindData() = default;
+    PageRankBindData(std::shared_ptr<binder::Expression> nodeOutput, bool outputAsNode)
+        : GDSBindData{std::move(nodeOutput), outputAsNode} {};
+    PageRankBindData(const PageRankBindData& other)
+        : GDSBindData{other}, dampingFactor{other.dampingFactor}, maxIteration{other.maxIteration},
+          delta{other.delta} {}
 
     std::unique_ptr<GDSBindData> copy() const override {
-        return std::make_unique<PageRankBindData>();
+        return std::make_unique<PageRankBindData>(*this);
     }
 };
 
@@ -59,6 +65,8 @@ private:
 };
 
 class PageRank final : public GDSAlgorithm {
+    static constexpr char RANK_COLUMN_NAME[] = "rank";
+
 public:
     PageRank() = default;
     PageRank(const PageRank& other) : GDSAlgorithm{other} {}
@@ -67,9 +75,10 @@ public:
      * Inputs are
      *
      * graph::ANY
+     * outputProperty::BOOL
      */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return {LogicalTypeID::ANY};
+        return {LogicalTypeID::ANY, LogicalTypeID::BOOL};
     }
 
     /*
@@ -80,13 +89,16 @@ public:
      */
     binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
-        columns.push_back(binder->createVariable("node_id", *LogicalType::INTERNAL_ID()));
-        columns.push_back(binder->createVariable("rank", *LogicalType::DOUBLE()));
+        auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
+        columns.push_back(outputNode.getInternalID());
+        columns.push_back(binder->createVariable(RANK_COLUMN_NAME, *LogicalType::DOUBLE()));
         return columns;
     }
 
-    void bind(const binder::expression_vector&) override {
-        bindData = std::make_unique<PageRankBindData>();
+    void bind(const expression_vector& params, Binder* binder, GraphEntry& graphEntry) override {
+        auto nodeOutput = bindNodeOutput(binder, graphEntry);
+        auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[1]);
+        bindData = std::make_unique<PageRankBindData>(nodeOutput, outputProperty);
     }
 
     void initLocalState(main::ClientContext* context) override {

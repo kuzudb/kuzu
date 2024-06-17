@@ -20,6 +20,9 @@ template<typename T>
 class DiskArray;
 
 struct TableDataScanState {
+    std::vector<common::column_id_t> columnIDs;
+    std::vector<Column::ChunkState> chunkStates;
+
     explicit TableDataScanState(const std::vector<common::column_id_t>& columnIDs)
         : columnIDs{columnIDs} {
         chunkStates.resize(this->columnIDs.size());
@@ -27,12 +30,13 @@ struct TableDataScanState {
     virtual ~TableDataScanState() = default;
     DELETE_COPY_DEFAULT_MOVE(TableDataScanState);
 
-    std::vector<common::column_id_t> columnIDs;
-    std::vector<Column::ChunkState> chunkStates;
-
     // TODO(Guodong): If we reset the state, we should be able to use the same object to scan
     // different table. This should simplify the multi-label scan.
-    virtual void resetState() = 0;
+    virtual void resetState() {
+        for (auto& state : chunkStates) {
+            state.resetState();
+        }
+    }
 
     template<class TARGET>
     TARGET& cast() {
