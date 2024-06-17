@@ -95,11 +95,14 @@ bool NodeTable::scanUnCommitted(NodeTableScanState& scanState) {
 
 bool NodeTable::scanCommitted(Transaction* transaction, NodeTableScanState& scanState) {
     KU_ASSERT(scanState.source == TableScanSource::COMMITTED);
-    auto& dataScanState =
-        ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState);
+    auto& dataScanState = scanState.dataScanState->cast<NodeDataScanState>();
     // Fill nodeIDVector and set selVector from deleted node offsets.
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx) +
                                  dataScanState.vectorIdx * DEFAULT_VECTOR_CAPACITY;
+    if (scanState.semiMask->isEnabled() && !scanState.semiMask->isMasked(startNodeOffset)) {
+        scanState.nodeIDVector->state->getSelVectorUnsafe().setSelSize(0);
+        return true;
+    }
     for (auto i = 0u; i < dataScanState.numRowsToScan; i++) {
         scanState.nodeIDVector->setValue<nodeID_t>(i, {startNodeOffset + i, tableID});
     }

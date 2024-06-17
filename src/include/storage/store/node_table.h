@@ -7,6 +7,7 @@
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/node_table_data.h"
 #include "storage/store/table.h"
+#include "processor/operator/mask.h"
 
 namespace kuzu {
 namespace evaluator {
@@ -22,14 +23,15 @@ class LocalNodeTable;
 struct NodeTableScanState final : TableScanState {
     // Local storage node group.
     LocalNodeNG* localNodeGroup = nullptr;
+    processor::NodeSemiMask* semiMask;
 
     explicit NodeTableScanState(std::vector<common::column_id_t> columnIDs)
         : TableScanState{std::move(columnIDs), std::vector<ColumnPredicateSet>{}} {
         dataScanState = std::make_unique<NodeDataScanState>(this->columnIDs);
     }
     NodeTableScanState(std::vector<common::column_id_t> columnIDs,
-        std::vector<ColumnPredicateSet> columnPredicateSets)
-        : TableScanState{std::move(columnIDs), std::move(columnPredicateSets)} {
+        std::vector<ColumnPredicateSet> columnPredicateSets, processor::NodeSemiMask* semiMask)
+        : TableScanState{std::move(columnIDs), std::move(columnPredicateSets)}, semiMask{semiMask} {
         dataScanState = std::make_unique<NodeDataScanState>(this->columnIDs);
     }
 };

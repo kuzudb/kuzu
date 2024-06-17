@@ -168,7 +168,7 @@ public:
             }
             auto mask = sharedState->inputNodeOffsetMasks.at(tableID).get();
             for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
-                if (!mask->isNodeMasked(offset)) {
+                if (!mask->isMasked(offset)) {
                     continue;
                 }
                 auto sourceNodeID = nodeID_t{offset, tableID};

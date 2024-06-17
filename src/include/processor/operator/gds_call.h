@@ -12,10 +12,10 @@ struct GDSCallSharedState {
     std::mutex mtx;
     std::shared_ptr<FactorizedTable> fTable;
     std::unique_ptr<graph::Graph> graph;
-    common::table_id_map_t<std::unique_ptr<NodeOffsetSemiMask>> inputNodeOffsetMasks;
+    common::table_id_map_t<std::unique_ptr<NodeOffsetLevelSemiMask>> inputNodeOffsetMasks;
 
     GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph,
-        common::table_id_map_t<std::unique_ptr<NodeOffsetSemiMask>> inputNodeOffsetMasks)
+        common::table_id_map_t<std::unique_ptr<NodeOffsetLevelSemiMask>> inputNodeOffsetMasks)
         : fTable{std::move(fTable)}, graph{std::move(graph)},
           inputNodeOffsetMasks{std::move(inputNodeOffsetMasks)} {}
     DELETE_COPY_AND_MOVE(GDSCallSharedState);
@@ -42,7 +42,7 @@ public:
           sharedState{std::move(sharedState)} {}
 
     bool hasSemiMask() const { return !sharedState->inputNodeOffsetMasks.empty(); }
-    std::vector<NodeOffsetSemiMask*> getSemiMasks() const;
+    std::vector<NodeSemiMask*> getSemiMasks() const;
 
     bool isSource() const override { return true; }
 
