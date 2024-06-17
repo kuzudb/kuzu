@@ -82,7 +82,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord,
         replayDropCatalogEntryRecord(walRecord);
     } break;
     case WALRecordType::ALTER_TABLE_ENTRY_RECORD: {
-        replayDropCatalogEntryRecord(walRecord);
+        replayAlterTableEntryRecord(walRecord);
     } break;
     case WALRecordType::UPDATE_SEQUENCE_RECORD: {
         replayUpdateSequenceRecord(walRecord);
