@@ -28,10 +28,10 @@ void CSRIndexBuild::initLocalStateInternal(
 
 uint64_t CSRIndexBuild::calculateDegree() {
     uint64_t totalSize = 0u;
-    for (auto i = 0u; i < boundNodeVector->state->getOriginalSize(); i++) {
+    /*for (auto i = 0u; i < boundNodeVector->state->getSelVector().getOriginalSize(); i++) {
         auto nodeID = boundNodeVector->getValue<common::nodeID_t>(i);
         totalSize += adjListHeaders->getListSize(nodeID.offset);
-    }
+    }*/
     return totalSize;
 }
 
@@ -71,7 +71,7 @@ void CSRIndexBuild::executeInternal(kuzu::processor::ExecutionContext* context) 
             currBlockSizeUsed = 0u;
         }
         for (auto i = 0u; i < totalNbrOffsets; i++) {
-            pos = nbrNodeVector->state->selVector->selectedPositions[i];
+            pos = nbrNodeVector->state->getSelVector().operator[](i);
             auto nbrNode = nbrNodeVector->getValue<common::nodeID_t>(pos);
             auto relID = relIDVector->getValue<common::relID_t>(pos);
             morselCSR->nbrNodeOffsets[currBlockSizeUsed] = nbrNode.offset;

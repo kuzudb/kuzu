@@ -28,10 +28,10 @@ struct MorselCSR {
     }
 };
 
-struct csrIndexSharedState {
+struct CSRIndexSharedState {
     std::vector<MorselCSR*> csr; // stores a pointer to the CSREntry struct
 
-    ~csrIndexSharedState() {
+    ~CSRIndexSharedState() {
         auto duration1 = std::chrono::system_clock::now().time_since_epoch();
         auto millis1 = std::chrono::duration_cast<std::chrono::milliseconds>(duration1).count();
         printf("starting to release back memory ...\n");
@@ -61,12 +61,12 @@ public:
     CSRIndexBuild(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         common::table_id_t commonNodeTableID, common::table_id_t commonEdgeTableID,
         DataPos& boundNodeVectorPos, DataPos& nbrNodeVectorPos, DataPos& relIDVectorPos,
-        std::shared_ptr<csrIndexSharedState>& csrIndexSharedState,
-        std::shared_ptr<storage::ListHeaders>& adjListHeaders,
+        std::shared_ptr<CSRIndexSharedState>& csrIndexSharedState,
+        /*std::shared_ptr<storage::ListHeaders>& adjListHeaders,*/
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::CSR_INDEX_BUILD,
+        : Sink{std::move(resultSetDescriptor), operatorType_,
               std::move(child), id, paramsString},
-          commonNodeTableID{commonNodeTableID}, adjListHeaders{adjListHeaders},
+          commonNodeTableID{commonNodeTableID}, /*adjListHeaders{adjListHeaders},*/
           commonEdgeTableID{commonEdgeTableID}, csrSharedState{csrIndexSharedState},
           boundNodeVectorPos{boundNodeVectorPos}, nbrNodeVectorPos{nbrNodeVectorPos},
           relIDVectorPos{relIDVectorPos} {}
@@ -79,19 +79,19 @@ public:
 
     void executeInternal(ExecutionContext* context) override;
 
-    std::shared_ptr<csrIndexSharedState> getCSRSharedState() { return csrSharedState; }
+    std::shared_ptr<CSRIndexSharedState> getCSRSharedState() { return csrSharedState; }
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<CSRIndexBuild>(resultSetDescriptor->copy(), commonNodeTableID,
             commonEdgeTableID, boundNodeVectorPos, nbrNodeVectorPos, relIDVectorPos, csrSharedState,
-            adjListHeaders, children[0]->clone(), id, paramsString);
+            /*adjListHeaders,*/ children[0]->clone(), id, paramsString);
     }
 
 private:
     common::table_id_t commonNodeTableID;
     common::table_id_t commonEdgeTableID;
-    std::shared_ptr<csrIndexSharedState> csrSharedState;
-    std::shared_ptr<storage::ListHeaders> adjListHeaders; // used for finding degree of morsel
+    std::shared_ptr<CSRIndexSharedState> csrSharedState;
+    // std::shared_ptr<storage::ListHeaders> adjListHeaders; // used for finding degree of morsel
 
     DataPos boundNodeVectorPos;           // constructor
     common::ValueVector* boundNodeVector; // initLocalStateInternal
