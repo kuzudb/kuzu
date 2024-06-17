@@ -43,9 +43,6 @@ void BoundStatementVisitor::visit(const BoundStatement& statement) {
     case StatementType::STANDALONE_CALL: {
         visitStandaloneCall(statement);
     } break;
-    case StatementType::COMMENT_ON: {
-        visitCommentOn(statement);
-    } break;
     case StatementType::EXPLAIN: {
         visitExplain(statement);
     } break;

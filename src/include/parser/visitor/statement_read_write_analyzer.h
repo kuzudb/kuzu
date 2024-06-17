@@ -21,7 +21,6 @@ private:
     inline void visitCopyFrom(const Statement& /*statement*/) override { readOnly = false; }
     inline void visitStandaloneCall(const Statement& /*statement*/) override { readOnly = true; }
     inline void visitCreateMacro(const Statement& /*statement*/) override { readOnly = false; }
-    inline void visitCommentOn(const Statement& /*statement*/) override { readOnly = false; }
 
     inline void visitUpdatingClause(const UpdatingClause* /*updatingClause*/) override {
         readOnly = false;

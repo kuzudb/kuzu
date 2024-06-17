@@ -51,9 +51,6 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const BoundStatement& statemen
     case StatementType::STANDALONE_CALL: {
         appendStandaloneCall(statement, *plan);
     } break;
-    case StatementType::COMMENT_ON: {
-        appendCommentOn(statement, *plan);
-    } break;
     case StatementType::EXPLAIN: {
         appendExplain(statement, *plan);
     } break;

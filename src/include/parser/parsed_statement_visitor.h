@@ -48,7 +48,6 @@ private:
     virtual void visitStandaloneCall(const Statement& /*statement*/) {}
     virtual void visitExplain(const Statement& /*statement*/);
     virtual void visitCreateMacro(const Statement& /*statement*/) {}
-    virtual void visitCommentOn(const Statement& /*statement*/) {}
     virtual void visitTransaction(const Statement& /*statement*/) {}
     virtual void visitExtension(const Statement& /*statement*/) {}
     virtual void visitExportDatabase(const Statement& /*statement*/) {}

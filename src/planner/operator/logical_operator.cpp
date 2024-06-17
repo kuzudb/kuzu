@@ -18,8 +18,6 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "ALTER";
     case LogicalOperatorType::ATTACH_DATABASE:
         return "ATTACH_DATABASE";
-    case LogicalOperatorType::COMMENT_ON:
-        return "COMMENT_ON";
     case LogicalOperatorType::COPY_FROM:
         return "COPY_FROM";
     case LogicalOperatorType::COPY_TO:

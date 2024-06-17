@@ -9,7 +9,6 @@ add_library(kuzu_processor_mapper
         map_gds.cpp
         map_standalone_call.cpp
         map_table_function_call.cpp
-        map_comment_on.cpp
         map_copy_to.cpp
         map_copy_from.cpp
         map_insert.cpp

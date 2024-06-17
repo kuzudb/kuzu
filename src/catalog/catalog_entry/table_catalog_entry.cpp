@@ -43,6 +43,12 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::alter(const BoundAlterInfo
                 *alterInfo.extraInfo);
         newEntry->dropProperty(dropPropInfo.propertyID);
     } break;
+    case AlterType::COMMENT: {
+        auto& commentInfo =
+            ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraCommentInfo&>(
+                *alterInfo.extraInfo);
+        newEntry->setComment(commentInfo.comment);
+    } break;
     default: {
         KU_UNREACHABLE;
     }

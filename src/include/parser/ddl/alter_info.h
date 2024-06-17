@@ -56,5 +56,12 @@ struct ExtraRenamePropertyInfo : public ExtraAlterInfo {
         : propertyName{std::move(propertyName)}, newName{std::move(newName)} {}
 };
 
+struct ExtraCommentInfo : public ExtraAlterInfo {
+    std::string comment;
+
+    ExtraCommentInfo(std::string comment)
+        : comment{std::move(comment)} {}
+};
+
 } // namespace parser
 } // namespace kuzu
