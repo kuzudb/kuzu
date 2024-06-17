@@ -539,7 +539,7 @@ std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& stat
 std::unique_ptr<BoundStatement> Binder::bindCommentOn(const parser::Statement& statement) {
     auto& alter = statement.constCast<Alter>();
     auto info = alter.getInfo();
-    auto extraInfo = ku_dynamic_cast<ExtraAlterInfo*, ExtraCommentInfo*>(info->extraInfo.get());
+    auto extraInfo = info->extraInfo->constPtrCast<ExtraCommentInfo>();
     auto tableName = info->tableName;
     auto comment = extraInfo->comment;
     validateTableExist(tableName);

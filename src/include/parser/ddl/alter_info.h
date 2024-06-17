@@ -11,6 +11,11 @@ namespace parser {
 
 struct ExtraAlterInfo {
     virtual ~ExtraAlterInfo() = default;
+
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const ExtraAlterInfo*, const TARGET*>(this);
+    }
 };
 
 struct AlterInfo {
