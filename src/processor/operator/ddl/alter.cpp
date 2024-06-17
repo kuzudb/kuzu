@@ -24,6 +24,9 @@ void Alter::executeDDLInternal(ExecutionContext* context) {
 }
 
 std::string Alter::getOutputMsg() {
+    if (info.alterType == common::AlterType::COMMENT) {
+        return common::stringFormat("Table {} comment updated.", info.tableName);
+    }
     return common::stringFormat("Table {} altered.", info.tableName);
 }
 
