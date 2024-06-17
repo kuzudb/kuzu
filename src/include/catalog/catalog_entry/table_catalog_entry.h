@@ -41,8 +41,8 @@ public:
     virtual common::TableType getTableType() const = 0;
     virtual function::TableFunction getScanFunction() { KU_UNREACHABLE; }
     const binder::BoundAlterInfo& getAlterInfo() const { return *alterInfo; }
-    void setAlterInfo(const binder::BoundAlterInfo& alterInfo_) { 
-        alterInfo = std::make_unique<binder::BoundAlterInfo>(alterInfo_.copy()); 
+    void setAlterInfo(const binder::BoundAlterInfo& alterInfo_) {
+        alterInfo = std::make_unique<binder::BoundAlterInfo>(alterInfo_.copy());
     }
 
     //===--------------------------------------------------------------------===//

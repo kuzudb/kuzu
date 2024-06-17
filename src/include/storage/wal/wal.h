@@ -8,7 +8,7 @@
 namespace kuzu {
 namespace binder {
 struct BoundAlterInfo;
-} // namespace common
+} // namespace binder
 namespace common {
 class BufferedFileWriter;
 class VirtualFileSystem;

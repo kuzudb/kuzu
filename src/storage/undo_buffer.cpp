@@ -182,7 +182,8 @@ void UndoBuffer::commitCatalogEntry(const uint8_t* entry, transaction_t commitTS
     case CatalogEntryType::SCALAR_MACRO_ENTRY:
     case CatalogEntryType::SEQUENCE_ENTRY:
     case CatalogEntryType::TYPE_ENTRY: {
-        KU_ASSERT(catalogEntry->getType() == CatalogEntryType::DUMMY_ENTRY && catalogEntry->isDeleted());
+        KU_ASSERT(
+            catalogEntry->getType() == CatalogEntryType::DUMMY_ENTRY && catalogEntry->isDeleted());
         wal.logCreateCatalogEntryRecord(newCatalogEntry);
     } break;
     case CatalogEntryType::DUMMY_ENTRY: {
@@ -198,7 +199,8 @@ void UndoBuffer::commitCatalogEntry(const uint8_t* entry, transaction_t commitTS
         } break;
         case CatalogEntryType::SEQUENCE_ENTRY: {
             auto sequenceCatalogEntry = catalogEntry->constPtrCast<SequenceCatalogEntry>();
-            wal.logDropCatalogEntryRecord(sequenceCatalogEntry->getSequenceID(), catalogEntry->getType());
+            wal.logDropCatalogEntryRecord(sequenceCatalogEntry->getSequenceID(),
+                catalogEntry->getType());
         } break;
         case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {
             // DO NOTHING. We don't persistent function entries.

@@ -194,22 +194,21 @@ std::unique_ptr<AlterTableEntryRecord> AlterTableEntryRecord::deserialize(
         dataType = *LogicalType::deserialize(deserializer);
         defaultValue = parser::ParsedExpression::deserialize(deserializer);
         // TODO(Sam): Figure out default expr
-        extraInfo = std::make_unique<BoundExtraAddPropertyInfo>(
-            std::move(propertyName), std::move(dataType), std::move(defaultValue), nullptr);
+        extraInfo = std::make_unique<BoundExtraAddPropertyInfo>(std::move(propertyName),
+            std::move(dataType), std::move(defaultValue), nullptr);
     } break;
     case AlterType::DROP_PROPERTY: {
         property_id_t propertyID;
         deserializer.deserializeValue(propertyID);
-        extraInfo = std::make_unique<BoundExtraDropPropertyInfo>(
-            std::move(propertyID));
+        extraInfo = std::make_unique<BoundExtraDropPropertyInfo>(std::move(propertyID));
     } break;
     case AlterType::RENAME_PROPERTY: {
         property_id_t propertyID;
         std::string newName;
         deserializer.deserializeValue(propertyID);
         deserializer.deserializeValue(newName);
-        extraInfo = std::make_unique<BoundExtraRenamePropertyInfo>(
-            std::move(propertyID), std::move(newName));
+        extraInfo = std::make_unique<BoundExtraRenamePropertyInfo>(std::move(propertyID),
+            std::move(newName));
     } break;
     // We handle rename table as drop and create
     default: {
