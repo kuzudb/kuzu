@@ -14,7 +14,7 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
-      GEN: ninja
+      GEN: Ninja
       CC: gcc
       CXX: g++
     steps:
