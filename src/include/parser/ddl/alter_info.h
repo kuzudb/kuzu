@@ -59,8 +59,7 @@ struct ExtraRenamePropertyInfo : public ExtraAlterInfo {
 struct ExtraCommentInfo : public ExtraAlterInfo {
     std::string comment;
 
-    ExtraCommentInfo(std::string comment)
-        : comment{std::move(comment)} {}
+    ExtraCommentInfo(std::string comment) : comment{std::move(comment)} {}
 };
 
 } // namespace parser

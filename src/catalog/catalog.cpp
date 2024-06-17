@@ -231,7 +231,7 @@ void Catalog::dropTableSchema(transaction::Transaction* transaction, table_id_t 
 void Catalog::alterTableSchema(transaction::Transaction* transaction, const BoundAlterInfo& info) {
     auto tableEntry = getTableCatalogEntry(transaction, info.tableID);
     KU_ASSERT(tableEntry);
-    if (tableEntry->getType() == CatalogEntryType::RDF_GRAPH_ENTRY && 
+    if (tableEntry->getType() == CatalogEntryType::RDF_GRAPH_ENTRY &&
         info.alterType != AlterType::COMMENT) {
         alterRdfChildTableEntries(transaction, tableEntry, info);
     }
