@@ -108,6 +108,7 @@ public:
     std::unique_ptr<BoundStatement> bindAddProperty(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindDropProperty(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindRenameProperty(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindCommentOn(const parser::Statement& statement);
 
     std::vector<PropertyInfo> bindPropertyInfo(
         const std::vector<parser::PropertyDefinitionDDL>& propertyDefinitions,
@@ -160,9 +161,6 @@ public:
 
     /*** bind extension ***/
     std::unique_ptr<BoundStatement> bindExtension(const parser::Statement& statement);
-
-    /*** bind comment on ***/
-    std::unique_ptr<BoundStatement> bindCommentOn(const parser::Statement& statement);
 
     /*** bind explain ***/
     std::unique_ptr<BoundStatement> bindExplain(const parser::Statement& statement);

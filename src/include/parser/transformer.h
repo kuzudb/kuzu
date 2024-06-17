@@ -201,6 +201,7 @@ private:
     std::unique_ptr<Statement> transformAddProperty(CypherParser::KU_AlterTableContext& ctx);
     std::unique_ptr<Statement> transformDropProperty(CypherParser::KU_AlterTableContext& ctx);
     std::unique_ptr<Statement> transformRenameProperty(CypherParser::KU_AlterTableContext& ctx);
+    std::unique_ptr<Statement> transformCommentOn(CypherParser::KU_CommentOnContext& ctx);
     std::string transformDataType(CypherParser::KU_DataTypeContext& ctx);
     std::string transformPrimaryKey(CypherParser::KU_CreateNodeConstraintContext& ctx);
     std::vector<PropertyDefinition> transformPropertyDefinitions(
@@ -220,9 +221,6 @@ private:
 
     // Transform extension.
     std::unique_ptr<Statement> transformExtension(CypherParser::KU_ExtensionContext& ctx);
-
-    // Transform comment on.
-    std::unique_ptr<Statement> transformCommentOn(CypherParser::KU_CommentOnContext& ctx);
 
     // Transform attach/detach/use database.
     std::unique_ptr<Statement> transformAttachDatabase(CypherParser::KU_AttachDatabaseContext& ctx);

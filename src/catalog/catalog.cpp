@@ -231,16 +231,11 @@ void Catalog::dropTableSchema(transaction::Transaction* transaction, table_id_t 
 void Catalog::alterTableSchema(transaction::Transaction* transaction, const BoundAlterInfo& info) {
     auto tableEntry = getTableCatalogEntry(transaction, info.tableID);
     KU_ASSERT(tableEntry);
-    if (tableEntry->getType() == CatalogEntryType::RDF_GRAPH_ENTRY) {
+    if (tableEntry->getType() == CatalogEntryType::RDF_GRAPH_ENTRY &&
+        info.alterType != AlterType::COMMENT) {
         alterRdfChildTableEntries(transaction, tableEntry, info);
     }
     tables->alterEntry(transaction, info);
-}
-
-void Catalog::setTableComment(transaction::Transaction* transaction, table_id_t tableID,
-    const std::string& comment) const {
-    auto tableEntry = getTableCatalogEntry(transaction, tableID);
-    ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(tableEntry)->setComment(comment);
 }
 
 bool Catalog::containsSequence(Transaction* transaction, const std::string& sequenceName) const {

@@ -70,9 +70,6 @@ public:
     void dropTableSchema(transaction::Transaction* tx, common::table_id_t tableID);
     void alterTableSchema(transaction::Transaction* tx, const binder::BoundAlterInfo& info);
 
-    void setTableComment(transaction::Transaction* tx, common::table_id_t tableID,
-        const std::string& comment) const;
-
     // ----------------------------- Sequences ----------------------------
     bool containsSequence(transaction::Transaction* tx, const std::string& sequenceName) const;
 

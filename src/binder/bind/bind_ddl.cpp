@@ -370,11 +370,13 @@ std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
     auto& alter = statement.constCast<Alter>();
     auto catalog = clientContext->getCatalog();
     auto tableID = catalog->getTableID(clientContext->getTx(), alter.getInfo()->tableName);
-    for (auto& schema : catalog->getRdfGraphEntries(clientContext->getTx())) {
-        if (schema->isParent(tableID)) {
-            throw BinderException(
-                stringFormat("Cannot alter table {} because it is referenced by rdfGraph {}.",
-                    alter.getInfo()->tableName, schema->getName()));
+    if (alter.getInfo()->type != AlterType::COMMENT) {
+        for (auto& schema : catalog->getRdfGraphEntries(clientContext->getTx())) {
+            if (schema->isParent(tableID)) {
+                throw BinderException(
+                    stringFormat("Cannot alter table {} because it is referenced by rdfGraph {}.",
+                        alter.getInfo()->tableName, schema->getName()));
+            }
         }
     }
     switch (alter.getInfo()->type) {
@@ -389,6 +391,9 @@ std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
     }
     case AlterType::RENAME_PROPERTY: {
         return bindRenameProperty(statement);
+    }
+    case AlterType::COMMENT: {
+        return bindCommentOn(statement);
     }
     default: {
         KU_UNREACHABLE;
@@ -528,6 +533,21 @@ std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& stat
     auto boundExtraInfo = std::make_unique<BoundExtraRenamePropertyInfo>(propertyID, newName);
     auto boundInfo =
         BoundAlterInfo(AlterType::RENAME_PROPERTY, tableName, tableID, std::move(boundExtraInfo));
+    return std::make_unique<BoundAlter>(std::move(boundInfo));
+}
+
+std::unique_ptr<BoundStatement> Binder::bindCommentOn(const parser::Statement& statement) {
+    auto& alter = statement.constCast<Alter>();
+    auto info = alter.getInfo();
+    auto extraInfo = info->extraInfo->constPtrCast<ExtraCommentInfo>();
+    auto tableName = info->tableName;
+    auto comment = extraInfo->comment;
+    validateTableExist(tableName);
+    auto catalog = clientContext->getCatalog();
+    auto tableID = catalog->getTableID(clientContext->getTx(), tableName);
+    auto boundExtraInfo = std::make_unique<BoundExtraCommentInfo>(comment);
+    auto boundInfo =
+        BoundAlterInfo(AlterType::COMMENT, tableName, tableID, std::move(boundExtraInfo));
     return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 

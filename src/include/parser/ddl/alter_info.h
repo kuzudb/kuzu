@@ -11,6 +11,11 @@ namespace parser {
 
 struct ExtraAlterInfo {
     virtual ~ExtraAlterInfo() = default;
+
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const ExtraAlterInfo*, const TARGET*>(this);
+    }
 };
 
 struct AlterInfo {
@@ -54,6 +59,12 @@ struct ExtraRenamePropertyInfo : public ExtraAlterInfo {
 
     ExtraRenamePropertyInfo(std::string propertyName, std::string newName)
         : propertyName{std::move(propertyName)}, newName{std::move(newName)} {}
+};
+
+struct ExtraCommentInfo : public ExtraAlterInfo {
+    std::string comment;
+
+    explicit ExtraCommentInfo(std::string comment) : comment{std::move(comment)} {}
 };
 
 } // namespace parser

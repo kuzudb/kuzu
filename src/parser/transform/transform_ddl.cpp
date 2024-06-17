@@ -227,6 +227,14 @@ std::unique_ptr<Statement> Transformer::transformRenameProperty(
     return std::make_unique<Alter>(std::move(info));
 }
 
+std::unique_ptr<Statement> Transformer::transformCommentOn(CypherParser::KU_CommentOnContext& ctx) {
+    auto tableName = transformSchemaName(*ctx.oC_SchemaName());
+    auto comment = transformStringLiteral(*ctx.StringLiteral());
+    auto extraInfo = std::make_unique<ExtraCommentInfo>(comment);
+    auto info = AlterInfo(AlterType::COMMENT, tableName, std::move(extraInfo));
+    return std::make_unique<Alter>(std::move(info));
+}
+
 std::vector<PropertyDefinition> Transformer::transformPropertyDefinitions(
     CypherParser::KU_PropertyDefinitionsContext& ctx) {
     std::vector<PropertyDefinition> propertyDefns;

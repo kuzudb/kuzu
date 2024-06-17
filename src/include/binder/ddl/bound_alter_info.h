@@ -93,5 +93,15 @@ struct BoundExtraRenamePropertyInfo : public BoundExtraAlterInfo {
     }
 };
 
+struct BoundExtraCommentInfo : public BoundExtraAlterInfo {
+    std::string comment;
+
+    explicit BoundExtraCommentInfo(std::string comment) : comment{std::move(comment)} {}
+    BoundExtraCommentInfo(const BoundExtraCommentInfo& other) : comment{other.comment} {}
+    inline std::unique_ptr<BoundExtraAlterInfo> copy() const final {
+        return std::make_unique<BoundExtraCommentInfo>(*this);
+    }
+};
+
 } // namespace binder
 } // namespace kuzu
