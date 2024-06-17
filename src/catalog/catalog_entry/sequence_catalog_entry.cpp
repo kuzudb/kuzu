@@ -29,7 +29,8 @@ int64_t SequenceCatalogEntry::currVal() {
 }
 
 // referenced from DuckDB
-void SequenceCatalogEntry::nextKVal(const uint64_t& count, common::ValueVector& resultVector) {
+void SequenceCatalogEntry::nextKVal(transaction::Transaction* transaction, const uint64_t& count,
+    common::ValueVector& resultVector) {
     KU_ASSERT(count > 0);
     std::lock_guard<std::mutex> lck(mtx);
     int64_t tmp;
@@ -63,13 +64,19 @@ void SequenceCatalogEntry::nextKVal(const uint64_t& count, common::ValueVector& 
         }
         resultVector.setValue(i, tmp);
     }
+    auto prevVal = sequenceData.currVal;
     sequenceData.currVal = tmp;
     sequenceData.usageCount += count;
+    transaction->addSequenceChange(this, sequenceData, prevVal);
 }
 
-void SequenceCatalogEntry::replayVal(uint64_t usageCount, int64_t currVal, int64_t nextVal) {
+void SequenceCatalogEntry::replayVal(const uint64_t& usageCount, const int64_t& currVal,
+    const int64_t& nextVal) {
     std::lock_guard<std::mutex> lck(mtx);
-    if (usageCount > sequenceData.usageCount) {
+    // for wal replay: only apply replays to newer usage than current
+    if (usageCount > sequenceData.usageCount ||
+        // for undo buffer rollback: only rollback if no one else made changes
+        usageCount == sequenceData.usageCount - 1) {
         sequenceData.usageCount = usageCount;
         sequenceData.currVal = currVal;
         sequenceData.nextVal = nextVal;

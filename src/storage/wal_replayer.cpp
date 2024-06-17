@@ -81,6 +81,9 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord,
     case WALRecordType::DROP_CATALOG_ENTRY_RECORD: {
         replayDropCatalogEntryRecord(walRecord);
     } break;
+    case WALRecordType::UPDATE_SEQUENCE_RECORD: {
+        replayUpdateSequenceRecord(walRecord);
+    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -248,6 +251,18 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) {
 void WALReplayer::replayCopyTableRecord(const WALRecord&) const {
     // DO NOTHING.
     // TODO(Guodong): Should handle metaDA and reclaim free pages when rollback.
+}
+
+void WALReplayer::replayUpdateSequenceRecord(const WALRecord& walRecord) {
+    if (!(isCheckpoint && isRecovering)) {
+        return;
+    }
+    auto& dropEntryRecord = walRecord.constCast<UpdateSequenceRecord>();
+    auto sequenceID = dropEntryRecord.sequenceID;
+    auto entry =
+        clientContext.getCatalog()->getSequenceCatalogEntry(&DUMMY_WRITE_TRANSACTION, sequenceID);
+    entry->replayVal(dropEntryRecord.data.usageCount, dropEntryRecord.data.currVal,
+        dropEntryRecord.data.nextVal);
 }
 
 void WALReplayer::truncateFileIfInsertion(BMFileHandle* fileHandle,

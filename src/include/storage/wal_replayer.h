@@ -30,6 +30,7 @@ private:
     void replayCreateCatalogEntryRecord(const WALRecord& walRecord);
     void replayDropCatalogEntryRecord(const WALRecord& walRecord);
     void replayCopyTableRecord(const WALRecord& walRecord) const;
+    void replayUpdateSequenceRecord(const WALRecord& walRecord);
 
     void checkpointOrRollbackVersionedFileHandleAndBufferManager(const WALRecord& walRecord,
         const DBFileID& dbFileID);

@@ -46,9 +46,7 @@ Can not execute a write query inside a read-only transaction.
 ---- error
 Can not execute a write query inside a read-only transaction.
 
-# TODO(FIX-ME): Need undo buffer to support non-catalogEntry undos
 -CASE SequenceTestCommit
--SKIP
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE SEQUENCE next;
@@ -62,9 +60,7 @@ Can not execute a write query inside a read-only transaction.
 ---- 1
 1
 
-# TODO(FIX-ME): Need undo buffer to support non-catalogEntry undos
 -CASE SequenceTestCommitRecovery
--SKIP
 -STATEMENT CREATE SEQUENCE before;
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
@@ -84,15 +80,13 @@ Can not execute a write query inside a read-only transaction.
 ---- 1
 1
 -STATEMENT RETURN currval('after');
----- error
-Catalog exception: currval: sequence "after" is not yet defined. To define the sequence, call nextval first.
+---- 1
+1
 
-# TODO(FIX-ME): Need undo buffer to support non-catalogEntry undos
 -CASE SequenceTestRollback
--SKIP
 -STATEMENT CREATE SEQUENCE before;
 ---- ok
--STATEMENT BEGIN TRANSACTION
+-STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE SEQUENCE after;
 ---- ok
@@ -111,12 +105,10 @@ Catalog exception: currval: sequence "before" is not yet defined. To define the 
 ---- error
 Catalog exception: after does not exist in catalog.
 
-# TODO(FIX-ME): Need undo buffer to support non-catalogEntry undos
 -CASE SequenceTestRollbackRecovery
--SKIP
 -STATEMENT CREATE SEQUENCE before;
 ---- ok
--STATEMENT BEGIN TRANSACTION
+-STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE SEQUENCE after;
 ---- ok
@@ -128,6 +120,7 @@ Catalog exception: after does not exist in catalog.
 1
 -STATEMENT Rollback_skip_checkpoint;
 ---- ok
+-RELOADDB
 -STATEMENT RETURN currval('before');
 ---- error
 Catalog exception: currval: sequence "before" is not yet defined. To define the sequence, call nextval first.

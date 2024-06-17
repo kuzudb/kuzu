@@ -1,6 +1,7 @@
 #pragma once
 
 #include "catalog/catalog_entry/catalog_entry.h"
+#include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/enums/table_type.h"
 #include "common/types/internal_id_t.h"
 #include "function/hash/hash_functions.h"
@@ -57,6 +58,7 @@ enum class WALRecordType : uint8_t {
     DROP_CATALOG_ENTRY_RECORD = 10,
     PAGE_UPDATE_OR_INSERT_RECORD = 20,
     TABLE_STATISTICS_RECORD = 30,
+    UPDATE_SEQUENCE_RECORD = 40,
 };
 
 struct WALRecord {
@@ -151,12 +153,25 @@ struct DropCatalogEntryRecord final : public WALRecord {
     catalog::CatalogEntryType entryType;
 
     DropCatalogEntryRecord() = default;
-    explicit DropCatalogEntryRecord(common::table_id_t entryID, catalog::CatalogEntryType entryType)
+    DropCatalogEntryRecord(common::table_id_t entryID, catalog::CatalogEntryType entryType)
         : WALRecord{WALRecordType::DROP_CATALOG_ENTRY_RECORD}, entryID{entryID},
           entryType{entryType} {}
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<DropCatalogEntryRecord> deserialize(common::Deserializer& deserializer);
+};
+
+struct UpdateSequenceRecord final : public WALRecord {
+    common::sequence_id_t sequenceID;
+    catalog::SequenceChangeData data;
+
+    UpdateSequenceRecord() = default;
+    UpdateSequenceRecord(common::sequence_id_t sequenceID, catalog::SequenceChangeData data)
+        : WALRecord{WALRecordType::UPDATE_SEQUENCE_RECORD}, sequenceID{sequenceID},
+          data{std::move(data)} {}
+
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<UpdateSequenceRecord> deserialize(common::Deserializer& deserializer);
 };
 
 } // namespace storage

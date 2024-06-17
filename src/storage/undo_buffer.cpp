@@ -23,13 +23,10 @@ void UndoBufferIterator::iterate(F&& callback) {
         while (current < end) {
             UndoBuffer::UndoEntryType entryType =
                 *reinterpret_cast<UndoBuffer::UndoEntryType const*>(current);
-            // Only support catalog for now.
-            (void)entryType;
-            KU_ASSERT(entryType == UndoBuffer::UndoEntryType::CATALOG_ENTRY);
             current += sizeof(UndoBuffer::UndoEntryType);
             auto entrySize = *reinterpret_cast<uint32_t const*>(current);
             current += sizeof(uint32_t); // Skip entrySize field.
-            callback(current);
+            callback(entryType, current);
             current += entrySize; // Skip the current entry.
         }
         bufferIdx++;
@@ -46,12 +43,11 @@ void UndoBufferIterator::reverseIterate(F&& callback) {
         auto current = currentBuffer.getData();
         end = current + currentBuffer.getCurrentPosition();
         std::vector<uint8_t const*> entries;
+        std::vector<UndoBuffer::UndoEntryType> entryTypes;
         while (current < end) {
             UndoBuffer::UndoEntryType entryType =
                 *reinterpret_cast<UndoBuffer::UndoEntryType const*>(current);
-            // Only support catalog for now.
-            (void)entryType;
-            KU_ASSERT(entryType == UndoBuffer::UndoEntryType::CATALOG_ENTRY);
+            entryTypes.push_back(entryType);
             current += sizeof(UndoBuffer::UndoEntryType);
             auto entrySize = *reinterpret_cast<uint32_t const*>(current);
             current += sizeof(uint32_t); // Skip entrySize field.
@@ -59,7 +55,7 @@ void UndoBufferIterator::reverseIterate(F&& callback) {
             current += entrySize; // Skip the current entry.
         }
         for (auto i = entries.size(); i >= 1; i--) {
-            callback(entries[i - 1]);
+            callback(entryTypes[i - 1], entries[i - 1]);
         }
         numBuffersLeft--;
     }
@@ -83,6 +79,31 @@ void UndoBuffer::createCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalo
     *reinterpret_cast<CatalogSet**>(buffer) = &catalogSet;
 }
 
+void UndoBuffer::createSequenceChange(SequenceCatalogEntry& sequenceEntry, const SequenceData& data,
+    int64_t prevVal) {
+    // Each sequence undo entry has the following format:
+    //      [entryType: UndoEntryType][entrySize: uint32_t]
+    //      [pointer: SequenceCatalogEntry*][usageCount: uint64_t][currVal: int64_t][nextVal:
+    //      int64_t]
+    auto buffer =
+        createUndoEntry(sizeof(UndoEntryType) + sizeof(uint32_t) + sizeof(SequenceCatalogEntry*) +
+                        sizeof(uint64_t) + sizeof(int64_t) * 3);
+    *reinterpret_cast<UndoEntryType*>(buffer) = UndoEntryType::SEQUENCE_ENTRY;
+    buffer += sizeof(UndoEntryType);
+    *reinterpret_cast<uint32_t*>(buffer) =
+        sizeof(SequenceCatalogEntry*) + sizeof(uint64_t) + sizeof(int64_t) * 3;
+    buffer += sizeof(uint32_t);
+    *reinterpret_cast<SequenceCatalogEntry**>(buffer) = &sequenceEntry;
+    buffer += sizeof(SequenceCatalogEntry*);
+    *reinterpret_cast<uint64_t*>(buffer) = data.usageCount;
+    buffer += sizeof(uint64_t);
+    *reinterpret_cast<int64_t*>(buffer) = data.currVal;
+    buffer += sizeof(int64_t);
+    *reinterpret_cast<int64_t*>(buffer) = data.nextVal;
+    buffer += sizeof(int64_t);
+    *reinterpret_cast<int64_t*>(buffer) = prevVal;
+}
+
 uint8_t* UndoBuffer::createUndoEntry(uint64_t size) {
     if (memoryBuffers.empty() || !memoryBuffers.back().canFit(size)) {
         auto capacity = UndoMemoryBuffer::UNDO_MEMORY_BUFFER_SIZE;
@@ -99,15 +120,45 @@ uint8_t* UndoBuffer::createUndoEntry(uint64_t size) {
 
 void UndoBuffer::commit(transaction_t commitTS) {
     UndoBufferIterator iterator{*this};
-    iterator.iterate([&](uint8_t const* entry) { commitEntry(entry, commitTS); });
+    iterator.iterate([&](UndoEntryType entryType, uint8_t const* entry) {
+        commitEntry(entryType, entry, commitTS);
+    });
 }
 
 void UndoBuffer::rollback() {
     UndoBufferIterator iterator{*this};
-    iterator.reverseIterate([&](uint8_t const* entry) { rollbackEntry(entry); });
+    iterator.reverseIterate(
+        [&](UndoEntryType entryType, uint8_t const* entry) { rollbackEntry(entryType, entry); });
 }
 
-void UndoBuffer::commitEntry(const uint8_t* entry, transaction_t commitTS) {
+void UndoBuffer::commitEntry(UndoEntryType entryType, const uint8_t* entry,
+    transaction_t commitTS) {
+    switch (entryType) {
+    case UndoEntryType::CATALOG_ENTRY:
+        commitCatalogEntry(entry, commitTS);
+        break;
+    case UndoEntryType::SEQUENCE_ENTRY:
+        commitSequenceEntry(entry, commitTS);
+        break;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+void UndoBuffer::rollbackEntry(UndoEntryType entryType, const uint8_t* entry) {
+    switch (entryType) {
+    case UndoEntryType::CATALOG_ENTRY:
+        rollbackCatalogEntry(entry);
+        break;
+    case UndoEntryType::SEQUENCE_ENTRY:
+        rollbackSequenceEntry(entry);
+        break;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+void UndoBuffer::commitCatalogEntry(const uint8_t* entry, transaction_t commitTS) {
     auto& catalogEntry = *reinterpret_cast<CatalogEntry* const*>(entry);
     auto newCatalogEntry = catalogEntry->getNext();
     KU_ASSERT(newCatalogEntry);
@@ -173,7 +224,7 @@ void UndoBuffer::commitEntry(const uint8_t* entry, transaction_t commitTS) {
     }
 }
 
-void UndoBuffer::rollbackEntry(const uint8_t* entry) {
+void UndoBuffer::rollbackCatalogEntry(const uint8_t* entry) {
     auto& catalogEntry = *reinterpret_cast<CatalogEntry* const*>(entry);
     auto& catalogSet = *reinterpret_cast<CatalogSet* const*>(entry + sizeof(CatalogEntry*));
     auto entryToRollback = catalogEntry->getNext();
@@ -191,6 +242,29 @@ void UndoBuffer::rollbackEntry(const uint8_t* entry) {
             catalogSet->emplace(std::move(olderEntry));
         }
     }
+}
+
+void UndoBuffer::commitSequenceEntry(const uint8_t* entry, transaction_t /* commitTS */) {
+    auto& sequenceEntry = *reinterpret_cast<SequenceCatalogEntry* const*>(entry);
+    entry += sizeof(SequenceCatalogEntry*);
+    auto& usageCount = *reinterpret_cast<uint64_t const*>(entry);
+    entry += sizeof(uint64_t);
+    auto& currVal = *reinterpret_cast<int64_t const*>(entry);
+    entry += sizeof(int64_t);
+    auto& nextVal = *reinterpret_cast<int64_t const*>(entry);
+    auto& wal = clientContext.getStorageManager()->getWAL();
+    wal.logUpdateSequenceRecord(sequenceEntry->getSequenceID(), {usageCount, currVal, nextVal});
+}
+
+void UndoBuffer::rollbackSequenceEntry(const uint8_t* entry) {
+    auto& sequenceEntry = *reinterpret_cast<SequenceCatalogEntry* const*>(entry);
+    entry += sizeof(SequenceCatalogEntry*);
+    auto& usageCount = *reinterpret_cast<uint64_t const*>(entry);
+    entry += sizeof(uint64_t);
+    auto& currVal = *reinterpret_cast<int64_t const*>(entry);
+    entry += sizeof(int64_t) * 2;
+    auto& prevVal = *reinterpret_cast<int64_t const*>(entry);
+    sequenceEntry->replayVal(usageCount - 1, prevVal, currVal);
 }
 
 } // namespace storage

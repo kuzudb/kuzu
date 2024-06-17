@@ -12,6 +12,12 @@ struct BoundAlterInfo;
 
 namespace catalog {
 
+struct SequenceChangeData {
+    uint64_t usageCount;
+    int64_t currVal;
+    int64_t nextVal;
+};
+
 struct SequenceData {
     SequenceData() = default;
     explicit SequenceData(const binder::BoundCreateSequenceInfo& info)
@@ -50,8 +56,9 @@ public:
     // sequence functions
     //===--------------------------------------------------------------------===//
     int64_t currVal();
-    void nextKVal(const uint64_t& count, common::ValueVector& resultVector);
-    void replayVal(uint64_t usageCount, int64_t currVal, int64_t nextVal);
+    void nextKVal(transaction::Transaction* transaction, const uint64_t& count,
+        common::ValueVector& resultVector);
+    void replayVal(const uint64_t& usageCount, const int64_t& currVal, const int64_t& nextVal);
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization

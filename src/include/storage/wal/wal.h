@@ -13,6 +13,7 @@ class VirtualFileSystem;
 
 namespace catalog {
 class CatalogEntry;
+struct SequenceChangeData;
 } // namespace catalog
 
 namespace storage {
@@ -45,6 +46,8 @@ public:
 
     void logCreateSequenceRecord(catalog::CatalogEntry* catalogEntry);
     void logDropSequenceRecord(common::sequence_id_t sequenceID);
+    void logUpdateSequenceRecord(common::sequence_id_t sequenceID,
+        catalog::SequenceChangeData data);
 
     void logCreateTypeRecord(catalog::CatalogEntry* catalogEntry);
 

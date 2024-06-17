@@ -7,6 +7,8 @@ namespace kuzu {
 namespace catalog {
 class CatalogEntry;
 class CatalogSet;
+class SequenceCatalogEntry;
+struct SequenceData;
 } // namespace catalog
 namespace main {
 class ClientContext;
@@ -62,11 +64,14 @@ class UndoBuffer {
 public:
     enum class UndoEntryType : uint16_t {
         CATALOG_ENTRY,
+        SEQUENCE_ENTRY,
     };
 
     explicit UndoBuffer(main::ClientContext& clientContext);
 
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
+    void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
+        const catalog::SequenceData& data, int64_t prevVal);
 
     void commit(common::transaction_t commitTS);
     void rollback();
@@ -76,8 +81,13 @@ public:
 private:
     uint8_t* createUndoEntry(uint64_t size);
 
-    void commitEntry(uint8_t const* entry, common::transaction_t commitTS);
-    void rollbackEntry(uint8_t const* entry);
+    void commitEntry(UndoEntryType entryType, uint8_t const* entry, common::transaction_t commitTS);
+    void rollbackEntry(UndoEntryType entryType, uint8_t const* entry);
+
+    void commitCatalogEntry(uint8_t const* entry, common::transaction_t commitTS);
+    void commitSequenceEntry(uint8_t const* entry, common::transaction_t commitTS);
+    void rollbackCatalogEntry(uint8_t const* entry);
+    void rollbackSequenceEntry(uint8_t const* entry);
 
 private:
     main::ClientContext& clientContext;
