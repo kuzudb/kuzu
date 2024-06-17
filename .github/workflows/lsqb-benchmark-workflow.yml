@@ -27,7 +27,7 @@ jobs:
     name: benchmark
     env:
       NUM_THREADS: 30
-      GEN: ninja
+      GEN: Ninja
       TIMEOUT: ${{ github.event.inputs.timeout }}
       SCALE_FACTOR: ${{ github.event.inputs.scale_factor }}
     runs-on: kuzu-self-hosted-benchmarking
