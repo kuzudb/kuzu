@@ -73,7 +73,7 @@ jobs:
         run: |
           docker run -d --name kuzu-x86 \
                      -v $PWD:/kuzu -w /kuzu \
-                     -e NUM_THREADS=2 -e GEN=ninja -e CC=gcc -e CXX=g++ \
+                     -e NUM_THREADS=2 -e CC=gcc -e CXX=g++ \
                      i386/debian:stable tail -f /dev/null
 
       - name: Install dependencies
