@@ -24,11 +24,14 @@ struct VariableLengthPathBindData final : public GDSBindData {
     uint8_t upperBound;
 
     VariableLengthPathBindData(std::shared_ptr<Expression> nodeInput,
-        std::shared_ptr<Expression> nodeOutput, bool outputAsNode, uint8_t lowerBound, uint8_t upperBound)
-        : GDSBindData{std::move(nodeOutput), outputAsNode}, nodeInput{std::move(nodeInput)}, lowerBound{lowerBound}, upperBound{upperBound} {}
+        std::shared_ptr<Expression> nodeOutput, bool outputAsNode, uint8_t lowerBound,
+        uint8_t upperBound)
+        : GDSBindData{std::move(nodeOutput), outputAsNode}, nodeInput{std::move(nodeInput)},
+          lowerBound{lowerBound}, upperBound{upperBound} {}
 
     VariableLengthPathBindData(const VariableLengthPathBindData& other)
-        : GDSBindData{other}, nodeInput{other.nodeInput}, lowerBound{other.lowerBound}, upperBound{other.upperBound} {}
+        : GDSBindData{other}, nodeInput{other.nodeInput}, lowerBound{other.lowerBound},
+          upperBound{other.upperBound} {}
 
     bool hasNodeInput() const override { return true; }
     std::shared_ptr<Expression> getNodeInput() const override { return nodeInput; }
@@ -111,8 +114,8 @@ public:
      * outputProperty::BOOL
      */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64,
-            LogicalTypeID::INT64, LogicalTypeID::BOOL};
+        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64, LogicalTypeID::INT64,
+            LogicalTypeID::BOOL};
     }
 
     /*
@@ -144,7 +147,8 @@ public:
         }
         auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[3]);
         auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[4]);
-        bindData = std::make_unique<VariableLengthPathBindData>(nodeInput, nodeOutput, outputProperty, lowerBound, upperBound);
+        bindData = std::make_unique<VariableLengthPathBindData>(nodeInput, nodeOutput,
+            outputProperty, lowerBound, upperBound);
     }
 
     void initLocalState(main::ClientContext* context) override {

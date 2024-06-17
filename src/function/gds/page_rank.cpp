@@ -26,7 +26,8 @@ struct PageRankBindData final : public GDSBindData {
     PageRankBindData(std::shared_ptr<binder::Expression> nodeOutput, bool outputAsNode)
         : GDSBindData{std::move(nodeOutput), outputAsNode} {};
     PageRankBindData(const PageRankBindData& other)
-        : GDSBindData{other}, dampingFactor{other.dampingFactor}, maxIteration{other.maxIteration}, delta{other.delta} {}
+        : GDSBindData{other}, dampingFactor{other.dampingFactor}, maxIteration{other.maxIteration},
+          delta{other.delta} {}
 
     std::unique_ptr<GDSBindData> copy() const override {
         return std::make_unique<PageRankBindData>(*this);

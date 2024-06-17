@@ -23,9 +23,10 @@ struct GDSBindData {
     // Otherwise, we return node ID only.
     bool outputAsNode;
 
-    explicit GDSBindData(std::shared_ptr<binder::Expression> nodeOutput, bool outputAsNode) :
-          nodeOutput{std::move(nodeOutput)}, outputAsNode{outputAsNode} {}
-    GDSBindData(const GDSBindData& other) : nodeOutput{other.nodeOutput}, outputAsNode{other.outputAsNode} {}
+    explicit GDSBindData(std::shared_ptr<binder::Expression> nodeOutput, bool outputAsNode)
+        : nodeOutput{std::move(nodeOutput)}, outputAsNode{outputAsNode} {}
+    GDSBindData(const GDSBindData& other)
+        : nodeOutput{other.nodeOutput}, outputAsNode{other.outputAsNode} {}
     virtual ~GDSBindData() = default;
 
     virtual bool hasNodeInput() const { return false; }
@@ -71,7 +72,8 @@ public:
     virtual std::vector<common::LogicalTypeID> getParameterTypeIDs() const { return {}; }
     virtual binder::expression_vector getResultColumns(binder::Binder* binder) const = 0;
 
-    virtual void bind(const binder::expression_vector& params, binder::Binder* binder, graph::GraphEntry& graphEntry) = 0;
+    virtual void bind(const binder::expression_vector& params, binder::Binder* binder,
+        graph::GraphEntry& graphEntry) = 0;
     GDSBindData* getBindData() const { return bindData.get(); }
 
     void init(processor::GDSCallSharedState* sharedState, main::ClientContext* context);
@@ -85,7 +87,8 @@ public:
 
 protected:
     virtual void initLocalState(main::ClientContext* context) = 0;
-    std::shared_ptr<binder::Expression> bindNodeOutput(binder::Binder* binder, graph::GraphEntry& graphEntry);
+    std::shared_ptr<binder::Expression> bindNodeOutput(binder::Binder* binder,
+        graph::GraphEntry& graphEntry);
 
 protected:
     std::unique_ptr<GDSBindData> bindData;

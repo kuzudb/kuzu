@@ -32,7 +32,7 @@ struct TableDataScanState {
 
     // TODO(Guodong): If we reset the state, we should be able to use the same object to scan
     // different table. This should simplify the multi-label scan.
-    virtual void resetState()  {
+    virtual void resetState() {
         for (auto& state : chunkStates) {
             state.resetState();
         }

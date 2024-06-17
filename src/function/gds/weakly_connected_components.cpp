@@ -78,7 +78,7 @@ public:
         return columns;
     }
 
-    void bind(const expression_vector &params, Binder *binder, GraphEntry &graphEntry) override {
+    void bind(const expression_vector& params, Binder* binder, GraphEntry& graphEntry) override {
         auto nodeOutput = bindNodeOutput(binder, graphEntry);
         auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[1]);
         bindData = std::make_unique<GDSBindData>(nodeOutput, outputProperty);

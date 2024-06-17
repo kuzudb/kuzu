@@ -19,8 +19,10 @@ struct ShortestPathBindData final : public GDSBindData {
     std::shared_ptr<Expression> nodeInput;
     uint8_t upperBound;
 
-    ShortestPathBindData(std::shared_ptr<Expression> nodeInput, std::shared_ptr<Expression> nodeOutput, bool outputAsNode, uint8_t upperBound)
-        : GDSBindData{std::move(nodeOutput), outputAsNode}, nodeInput{std::move(nodeInput)}, upperBound{upperBound} {}
+    ShortestPathBindData(std::shared_ptr<Expression> nodeInput,
+        std::shared_ptr<Expression> nodeOutput, bool outputAsNode, uint8_t upperBound)
+        : GDSBindData{std::move(nodeOutput), outputAsNode}, nodeInput{std::move(nodeInput)},
+          upperBound{upperBound} {}
     ShortestPathBindData(const ShortestPathBindData& other)
         : GDSBindData{other}, nodeInput{other.nodeInput}, upperBound{other.upperBound} {}
 
@@ -135,7 +137,8 @@ public:
         auto nodeOutput = bindNodeOutput(binder, graphEntry);
         auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[2]);
         auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[3]);
-        bindData = std::make_unique<ShortestPathBindData>(nodeInput, nodeOutput, outputProperty, upperBound);
+        bindData = std::make_unique<ShortestPathBindData>(nodeInput, nodeOutput, outputProperty,
+            upperBound);
     }
 
     void initLocalState(main::ClientContext* context) override {
