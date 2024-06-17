@@ -31,7 +31,7 @@ struct MakeSigned<int128_t> {
 };
 
 template<typename T>
-using MakeSignedT = MakeSigned<T>::type;
+using MakeSignedT = typename MakeSigned<T>::type;
 
 template<typename T>
 struct MakeUnSigned {
@@ -45,7 +45,7 @@ struct MakeUnSigned<int128_t> {
 };
 
 template<typename T>
-using MakeUnSignedT = MakeUnSigned<T>::type;
+using MakeUnSignedT = typename MakeUnSigned<T>::type;
 
 template<typename T>
 decltype(auto) MakeValueSigned(T value) {
