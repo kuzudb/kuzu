@@ -62,6 +62,7 @@ public:
 
     NullChunkData* getNullChunk() { return nullChunk.get(); }
     const NullChunkData& getNullChunk() const { return *nullChunk; }
+    std::optional<common::NullMask> getNullMask() const;
     common::LogicalType& getDataType() { return dataType; }
     const common::LogicalType& getDataType() const { return dataType; }
 

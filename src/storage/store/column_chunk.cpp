@@ -671,5 +671,9 @@ std::unique_ptr<ColumnChunkData> ColumnChunkFactory::createColumnChunkData(Logic
     }
 }
 
+std::optional<common::NullMask> ColumnChunkData::getNullMask() const {
+    return nullChunk ? std::optional(nullChunk->getNullMask()) : std::nullopt;
+}
+
 } // namespace storage
 } // namespace kuzu
