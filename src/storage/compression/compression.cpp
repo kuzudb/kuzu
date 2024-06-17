@@ -298,7 +298,9 @@ void ConstantCompression::decompressValues(uint8_t* dstBuffer, uint64_t dstOffse
             std::fill(reinterpret_cast<uint64_t*>(start), reinterpret_cast<uint64_t*>(end),
                 metadata.min.get<uint64_t>());
         },
-        [&]<typename T> requires(NumericUtils::IsIntegral<T> || std::floating_point<T>)(T) {
+        [&]<typename T>
+            requires(NumericUtils::IsIntegral<T> || std::floating_point<T>)
+        (T) {
             std::fill(reinterpret_cast<T*>(start), reinterpret_cast<T*>(end),
                 metadata.min.get<T>());
         },
@@ -330,13 +332,13 @@ template<typename T>
 inline T abs(T value);
 
 template<typename T>
-requires std::is_unsigned_v<T>
+    requires std::is_unsigned_v<T>
 inline T abs(T value) {
     return value;
 }
 
 template<typename T>
-requires std::is_signed_v<T>
+    requires std::is_signed_v<T>
 inline T abs(T value) {
     return std::abs(value);
 }
@@ -887,22 +889,27 @@ std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxSto
                 }
             }
         },
-        [&]<typename T>(T) requires(NumericUtils::IsIntegral<T> || std::floating_point<T>) {
+        [&]<typename T>(T)
+            requires(NumericUtils::IsIntegral<T> || std::floating_point<T>)
+        {
             if (numValues > 0) {
                 auto typedData = std::span(reinterpret_cast<const T*>(data) + offset, numValues);
                 returnValue = getTypedMinMax(typedData, nullMask, offset);
             }
         },
-        [&]<typename T>(T) requires(std::same_as<T, internalID_t>) {
+        [&]<typename T>(T)
+            requires(std::same_as<T, internalID_t>)
+        {
             if (numValues > 0) {
                 auto typedData =
                     std::span(reinterpret_cast<const uint64_t*>(data) + offset, numValues);
                 returnValue = getTypedMinMax(typedData, nullMask, offset);
             }
         },
-        [&]<typename T>(T) requires(std::same_as<T, interval_t> ||
-                                    std::same_as<T, struct_entry_t> ||
-                                    std::same_as<T, ku_string_t> || std::same_as<T, list_entry_t>) {
+        [&]<typename T>(T)
+            requires(std::same_as<T, interval_t> || std::same_as<T, struct_entry_t> ||
+                     std::same_as<T, ku_string_t> || std::same_as<T, list_entry_t>)
+        {
             if (valueRequiredIfUnsupported) {
                 // For unsupported types on the first copy,
                 // they need a non-optional value to distinguish them
