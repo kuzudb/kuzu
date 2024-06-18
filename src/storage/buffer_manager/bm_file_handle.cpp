@@ -21,7 +21,7 @@ BMFileHandle::BMFileHandle(const std::string& path, uint8_t flags, BufferManager
     common::VirtualFileSystem* vfs, main::ClientContext* context)
     : FileHandle{path, flags, vfs, context}, fileVersionedType{fileVersionedType}, bm{bm},
       pageSizeClass{pageSizeClass}, pageStates{numPages, pageCapacity},
-      frameGroupIdxes{getNumPageGroups(), getNumPageGroups()} {
+      frameGroupIdxes{getNumPageGroups(), getNumPageGroups()}, fileIndex{bm->addFileHandle(*this)} {
     for (auto i = 0u; i < frameGroupIdxes.size(); i++) {
         frameGroupIdxes[i] = bm->addNewFrameGroup(pageSizeClass);
     }

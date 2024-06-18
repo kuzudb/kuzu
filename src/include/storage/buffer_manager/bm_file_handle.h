@@ -6,6 +6,7 @@
 
 #include "common/concurrent_vector.h"
 #include "common/constants.h"
+#include "common/copy_constructors.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/vm_region.h"
 #include "storage/file_handle.h"
@@ -148,6 +149,8 @@ public:
     BMFileHandle(const std::string& path, uint8_t flags, BufferManager* bm,
         common::PageSizeClass pageSizeClass, FileVersionedType fileVersionedType,
         common::VirtualFileSystem* vfs, main::ClientContext* context);
+    // File handles are registered with the buffer manager and must not be moved or copied
+    DELETE_COPY_AND_MOVE(BMFileHandle);
 
     ~BMFileHandle() override;
 
@@ -179,6 +182,8 @@ public:
     void setWALPageIdx(common::page_idx_t originalPageIdx, common::page_idx_t pageIdxInWAL);
     // This function assumes that the caller has already acquired the wal page idx lock.
     void setWALPageIdxNoLock(common::page_idx_t originalPageIdx, common::page_idx_t pageIdxInWAL);
+
+    uint32_t getFileIndex() const { return fileIndex; }
 
 private:
     inline PageState* getPageState(common::page_idx_t pageIdx) {
@@ -217,6 +222,7 @@ private:
     // `WALPageIdxGroup` records the WAL page idx for each page in the page group.
     // Accesses to this map is synchronized by `fhSharedMutex`.
     std::unordered_map<common::page_group_idx_t, std::unique_ptr<WALPageIdxGroup>> walPageIdxGroups;
+    uint32_t fileIndex;
 };
 } // namespace storage
 } // namespace kuzu

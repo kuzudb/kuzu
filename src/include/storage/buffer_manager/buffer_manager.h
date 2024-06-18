@@ -1,10 +1,13 @@
 #pragma once
 
+#include <atomic>
+#include <cstdint>
 #include <functional>
+#include <memory>
 #include <vector>
 
+#include "common/types/types.h"
 #include "storage/buffer_manager/bm_file_handle.h"
-#include "storage/buffer_manager/locked_queue.h"
 #include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
@@ -15,55 +18,61 @@ namespace storage {
 // candidate was recently accessed, it is no longer immediately evictable. See the state transition
 // diagram above `BufferManager` class declaration for more details.
 struct EvictionCandidate {
-    // If the candidate is Marked and its version is the same as the one kept inside the candidate,
-    // it is evictable.
+    friend class EvictionQueue;
+
+public:
+    // If the candidate is Marked it is evictable.
     inline bool isEvictable(uint64_t currPageStateAndVersion) const {
-        return PageState::getState(currPageStateAndVersion) == PageState::MARKED &&
-               PageState::getVersion(currPageStateAndVersion) == pageVersion;
+        return PageState::getState(currPageStateAndVersion) == PageState::MARKED;
     }
     // If the candidate was recently read optimistically, it is second chance evictable.
     inline bool isSecondChanceEvictable(uint64_t currPageStateAndVersion) const {
-        return PageState::getState(currPageStateAndVersion) == PageState::UNLOCKED &&
-               PageState::getVersion(currPageStateAndVersion) == pageVersion;
+        return PageState::getState(currPageStateAndVersion) == PageState::UNLOCKED;
     }
-
-    BMFileHandle* fileHandle = nullptr;
-    common::page_idx_t pageIdx = common::INVALID_PAGE_IDX;
-    PageState* pageState = nullptr;
-    // The version of the corresponding page at the time the candidate is enqueued.
-    uint64_t pageVersion = -1u;
 
     inline bool operator==(const EvictionCandidate& other) const {
-        return fileHandle == other.fileHandle && pageIdx == other.pageIdx &&
-               pageState == other.pageState && pageVersion == other.pageVersion;
+        return fileIdx == other.fileIdx && pageIdx == other.pageIdx && pageState == other.pageState;
     }
+
+    // Returns false if the candidate was not empty, or if another thread set the value first
+    bool set(const EvictionCandidate& newCandidate);
+
+    uint32_t fileIdx = UINT32_MAX;
+    common::page_idx_t pageIdx = common::INVALID_PAGE_IDX;
+    PageState* pageState = nullptr;
 };
 
+// A circular buffer queue storing eviction candidates
+// One candidate should be stored for each page currently in memory
 class EvictionQueue {
+    static constexpr EvictionCandidate EMPTY =
+        EvictionCandidate{UINT32_MAX, common::INVALID_PAGE_IDX, nullptr};
+
 public:
-    EvictionQueue() { queue = std::make_unique<LockedQueue<EvictionCandidate>>(); }
+    explicit EvictionQueue(uint64_t capacity)
+        : insertCursor{0}, evictionCursor{0}, size{0}, capacity{capacity},
+          data{std::make_unique<std::atomic<EvictionCandidate>[]>(capacity)} {}
 
-    inline void enqueue(EvictionCandidate& candidate) {
-        std::shared_lock sLck{mtx};
-        queue->enqueue(candidate);
-    }
-    inline void enqueue(BMFileHandle* fileHandle, common::page_idx_t pageIdx, PageState* pageState,
-        uint64_t pageVersion) {
-        std::shared_lock sLck{mtx};
-        queue->enqueue(EvictionCandidate{fileHandle, pageIdx, pageState, pageVersion});
-    }
-    inline bool dequeue(EvictionCandidate& candidate) {
-        std::shared_lock sLck{mtx};
-        return queue->try_dequeue(candidate);
-    }
+    bool insert(uint32_t fileIndex, common::page_idx_t pageIndex, PageState* pageStatel);
 
-    void removeNonEvictableCandidates();
+    // Produces the next non-empty candidate to be tried for eviction
+    // Note that it is still possible (though unlikely) for another thread
+    // to evict this candidate, so it is not guaranteed to be empty
+    // The PageState should be locked, and then the atomic checked against the version used
+    // when locking the pagestate to make sure there wasn't a data race
+    std::atomic<EvictionCandidate>* next();
+    void removeCandidatesForFile(uint32_t fileIndex);
+    void clear(std::atomic<EvictionCandidate>& candidate);
 
-    void removeCandidatesForFile(BMFileHandle& fileHandle);
+    uint64_t getSize() const { return size; }
+    uint64_t getCapacity() const { return capacity; }
 
 private:
-    std::shared_mutex mtx;
-    std::unique_ptr<LockedQueue<EvictionCandidate>> queue;
+    std::atomic<uint64_t> insertCursor;
+    std::atomic<uint64_t> evictionCursor;
+    std::atomic<uint64_t> size;
+    const uint64_t capacity;
+    std::unique_ptr<std::atomic<EvictionCandidate>[]> data;
 };
 
 /**
@@ -194,9 +203,14 @@ public:
     inline common::frame_group_idx_t addNewFrameGroup(common::PageSizeClass pageSizeClass) {
         return vmRegions[pageSizeClass]->addNewFrameGroup();
     }
-    inline void clearEvictionQueue() { evictionQueue = std::make_unique<EvictionQueue>(); }
 
     inline uint64_t getUsedMemory() const { return usedMemory; }
+
+    // Not thread-safe
+    uint32_t addFileHandle(BMFileHandle& fileHandle) {
+        fileHandles.push_back(&fileHandle);
+        return fileHandles.size() - 1;
+    }
 
 private:
     static void verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize);
@@ -207,16 +221,13 @@ private:
     bool claimAFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
         PageReadPolicy pageReadPolicy);
     // Return number of bytes freed.
-    uint64_t tryEvictPage(EvictionCandidate& candidate);
+    uint64_t tryEvictPage(std::atomic<EvictionCandidate>& candidate);
 
     void cachePageIntoFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
         PageReadPolicy pageReadPolicy);
     void flushIfDirtyWithoutLock(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
     void removePageFromFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
         bool shouldFlush);
-
-    void addToEvictionQueue(BMFileHandle* fileHandle, common::page_idx_t pageIdx,
-        PageState* pageState);
 
     inline uint64_t reserveUsedMemory(uint64_t size) { return usedMemory.fetch_add(size); }
     inline uint64_t freeUsedMemory(uint64_t size) {
@@ -231,14 +242,16 @@ private:
         vmRegions[fileHandle.getPageSizeClass()]->releaseFrame(fileHandle.getFrameIdx(pageIdx));
     }
 
+    uint64_t evictPages();
+
 private:
-    std::atomic<uint64_t> usedMemory;
     std::atomic<uint64_t> bufferPoolSize;
-    std::atomic<uint64_t> numEvictionQueueInsertions;
+    EvictionQueue evictionQueue;
+    std::atomic<uint64_t> usedMemory;
     // Each VMRegion corresponds to a virtual memory region of a specific page size. Currently, we
     // hold two sizes of PAGE_4KB and PAGE_256KB.
     std::vector<std::unique_ptr<VMRegion>> vmRegions;
-    std::unique_ptr<EvictionQueue> evictionQueue;
+    std::vector<BMFileHandle*> fileHandles;
 };
 
 } // namespace storage
