@@ -71,7 +71,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logic
         probeSidePrevOperator = mapOperator(hashJoin->getChild(0).get());
         buildSidePrevOperator = mapOperator(hashJoin->getChild(1).get());
     }
-    auto paramsString = hashJoin->getExpressionsForPrinting();
     expression_vector probeKeys;
     expression_vector buildKeys;
     for (auto& [probeKey, buildKey] : hashJoin->getJoinConditions()) {
