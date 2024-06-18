@@ -44,7 +44,7 @@ expression_vector ExpressionBinder::bindNodeOrRelPropertyStarExpression(const Ex
     auto& nodeOrRel = (NodeOrRelExpression&)child;
     for (auto& expression : nodeOrRel.getPropertyExprsRef()) {
         auto propertyExpression = (PropertyExpression*)expression.get();
-        if (Binder::isReservedPropertyName(propertyExpression->getPropertyName())) {
+        if (Binder::reservedInPropertyLookup(propertyExpression->getPropertyName())) {
             continue;
         }
         result.push_back(expression->copy());
@@ -74,7 +74,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     ExpressionUtil::validateDataType(*child,
         std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT});
     if (isNodeOrRelPattern(*child)) {
-        if (Binder::isReservedPropertyName(propertyName)) {
+        if (Binder::reservedInPropertyLookup(propertyName)) {
             // Note we don't expose direct access to internal properties in case user tries to
             // modify them. However, we can expose indirect read-only access through function e.g.
             // ID().
