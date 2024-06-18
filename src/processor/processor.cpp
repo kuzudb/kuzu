@@ -25,16 +25,16 @@ std::shared_ptr<FactorizedTable> QueryProcessor::execute(PhysicalPlan* physicalP
     auto task = std::make_shared<ProcessorTask>(resultCollector, context);
     decomposePlanIntoTask(lastOperator->getChild(0), task.get(), context);
     initTask(task.get());
-    context->clientContext->getProgressBar()->startProgress();
+    context->clientContext->getProgressBar()->startProgress(context->queryId);
     taskScheduler->scheduleTaskAndWaitOrError(task, context);
-    context->clientContext->getProgressBar()->endProgress();
+    context->clientContext->getProgressBar()->endProgress(context->queryId);
     return resultCollector->getResultFactorizedTable();
 }
 
 void QueryProcessor::decomposePlanIntoTask(PhysicalOperator* op, Task* task,
     ExecutionContext* context) {
     if (op->isSource()) {
-        context->clientContext->getProgressBar()->addPipeline();
+        context->clientContext->getProgressBar()->addPipeline(context->queryId);
     }
     if (op->isSink()) {
         auto childTask =

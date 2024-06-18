@@ -7,6 +7,7 @@
 #include "node_prepared_statement.h"
 #include "node_progress_bar_display.h"
 #include "node_query_result.h"
+#include "common/types/uuid.h"
 #include <napi.h>
 
 using namespace kuzu::main;
@@ -78,16 +79,19 @@ public:
     ~ConnectionExecuteAsyncWorker() override = default;
 
     void Execute() override {
+        std::string id = common::UUID::toString(
+            common::UUID::generateRandomUUID(connection->getClientContext()->getRandomEngine()));
         auto progressBar = connection->getClientContext()->getProgressBar();
-        bool trackProgress = progressBar->getProgressBarPrinting();
+        auto trackProgress = progressBar->getProgressBarPrinting();
+        auto display = progressBar->getDisplay().get();
+        NodeProgressBarDisplay* nodeDisplay =
+            ku_dynamic_cast<ProgressBarDisplay*, NodeProgressBarDisplay*>(display);
         if (progressCallback) {
+            nodeDisplay->setCallbackFunction(id, *progressCallback, Env());
             progressBar->toggleProgressBarPrinting(true);
-            progressBar->setDisplay(
-                std::make_shared<NodeProgressBarDisplay>(*progressCallback, Env()));
         }
         try {
-            auto result =
-                connection->executeWithParams(preparedStatement.get(), std::move(params)).release();
+            auto result = connection->executeWithParamsWithId(preparedStatement.get(), std::move(params), id).release();
             nodeQueryResult->SetQueryResult(result, true);
             if (!result->isSuccess()) {
                 SetError(result->getErrorMessage());
@@ -96,9 +100,10 @@ public:
             SetError(std::string(exc.what()));
         }
         if (progressCallback) {
-            progressBar->toggleProgressBarPrinting(trackProgress);
-            progressBar->setDisplay(ProgressBar::DefaultProgressBarDisplay());
             progressCallback->Release();
+            if (nodeDisplay->getNumCallbacks() == 0) {
+				progressBar->toggleProgressBarPrinting(trackProgress);
+			}
         }
     }
 
@@ -129,15 +134,19 @@ public:
     ~ConnectionQueryAsyncWorker() override = default;
 
     void Execute() override {
+        std::string id = common::UUID::toString(
+            common::UUID::generateRandomUUID(connection->getClientContext()->getRandomEngine()));
         auto progressBar = connection->getClientContext()->getProgressBar();
-        bool trackProgress = progressBar->getProgressBarPrinting();
+        auto trackProgress = progressBar->getProgressBarPrinting();
+        auto display = progressBar->getDisplay().get();
+        NodeProgressBarDisplay* nodeDisplay =
+            ku_dynamic_cast<ProgressBarDisplay*, NodeProgressBarDisplay*>(display);
         if (progressCallback) {
+            nodeDisplay->setCallbackFunction(id, *progressCallback, Env());
             progressBar->toggleProgressBarPrinting(true);
-            progressBar->setDisplay(
-                std::make_shared<NodeProgressBarDisplay>(*progressCallback, Env()));
         }
         try {
-            auto result = connection->query(statement).release();
+            auto result = connection->queryWithId(statement, id).release();
             nodeQueryResult->SetQueryResult(result, true);
             if (!result->isSuccess()) {
                 SetError(result->getErrorMessage());
@@ -146,9 +155,10 @@ public:
             SetError(std::string(exc.what()));
         }
         if (progressCallback) {
-            progressBar->toggleProgressBarPrinting(trackProgress);
-            progressBar->setDisplay(ProgressBar::DefaultProgressBarDisplay());
             progressCallback->Release();
+            if (nodeDisplay->getNumCallbacks() == 0) {
+                progressBar->toggleProgressBarPrinting(trackProgress);
+            }
         }
     }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <string>
 
 namespace kuzu {
 namespace common {
@@ -10,17 +11,13 @@ namespace common {
  */
 class ProgressBarDisplay {
 public:
-    ProgressBarDisplay() : pipelineProgress{0}, numPipelines{0}, numPipelinesFinished{0} {};
-
-    virtual ~ProgressBarDisplay() = default;
-
     // Update the progress of the pipeline and the number of finished pipelines
-    virtual void updateProgress(double newPipelineProgress, uint32_t newNumPipelinesFinished) = 0;
+    virtual void updateProgress(std::string id, double newPipelineProgress, uint32_t newNumPipelinesFinished) = 0;
 
     // Finish the progress display
-    virtual void finishProgress() = 0;
+    virtual void finishProgress(std::string id) = 0;
 
-    void setNumPipelines(uint32_t newNumPipelines) { numPipelines = newNumPipelines; };
+    void setNumPipelines(std::string id, uint32_t newNumPipelines) { numPipelines = newNumPipelines; };
 
 protected:
     double pipelineProgress;

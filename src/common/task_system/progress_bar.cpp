@@ -22,52 +22,51 @@ void ProgressBar::setDisplay(std::shared_ptr<ProgressBarDisplay> progressBarDips
     display = progressBarDipslay;
 }
 
-void ProgressBar::startProgress() {
+void ProgressBar::startProgress(std::string id) {
     if (!trackProgress) {
         return;
     }
     std::lock_guard<std::mutex> lock(progressBarLock);
     queryTimer->start();
-    updateDisplay(0.0);
+    updateDisplay(id, 0.0);
 }
 
-void ProgressBar::endProgress() {
+void ProgressBar::endProgress(std::string id) {
     std::lock_guard<std::mutex> lock(progressBarLock);
-    resetProgressBar();
-    queryTimer = std::make_unique<TimeMetric>(true);
+    resetProgressBar(id);
 }
 
-void ProgressBar::addPipeline() {
+void ProgressBar::addPipeline(std::string id) {
     if (!trackProgress) {
         return;
     }
     numPipelines++;
-    display->setNumPipelines(numPipelines);
+    display->setNumPipelines(id, numPipelines);
 }
 
-void ProgressBar::finishPipeline() {
+void ProgressBar::finishPipeline(std::string id) {
     if (!trackProgress) {
         return;
     }
     numPipelinesFinished++;
-    updateProgress(0.0);
+    updateProgress(id, 0.0);
 }
 
-void ProgressBar::updateProgress(double curPipelineProgress) {
+void ProgressBar::updateProgress(std::string id, double curPipelineProgress) {
     if (!trackProgress) {
         return;
     }
     std::lock_guard<std::mutex> lock(progressBarLock);
-    updateDisplay(curPipelineProgress);
+    updateDisplay(id, curPipelineProgress);
 }
 
-void ProgressBar::resetProgressBar() {
+void ProgressBar::resetProgressBar(std::string id) {
     numPipelines = 0;
     numPipelinesFinished = 0;
     if (queryTimer->isStarted) {
         queryTimer->stop();
     }
-    display->finishProgress();
+    display->finishProgress(id);
 }
 
 bool ProgressBar::shouldUpdateProgress() const {
@@ -79,9 +78,9 @@ bool ProgressBar::shouldUpdateProgress() const {
     return shouldUpdate;
 }
 
-void ProgressBar::updateDisplay(double curPipelineProgress) {
+void ProgressBar::updateDisplay(std::string id, double curPipelineProgress) {
     if (shouldUpdateProgress()) {
-        display->updateProgress(curPipelineProgress, numPipelinesFinished);
+        display->updateProgress(id, curPipelineProgress, numPipelinesFinished);
     }
 }
 

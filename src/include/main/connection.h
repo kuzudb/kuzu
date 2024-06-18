@@ -46,6 +46,8 @@ public:
      * @return the result of the query.
      */
     KUZU_API std::unique_ptr<QueryResult> query(std::string_view query);
+
+    std::unique_ptr<QueryResult> queryWithId(std::string_view query, std::string id);
     /**
      * @brief Prepares the given query and returns the prepared statement.
      * @param query The query to prepare.
@@ -74,6 +76,9 @@ public:
      */
     KUZU_API std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
         std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams);
+
+    std::unique_ptr<QueryResult> executeWithParamsWithId(PreparedStatement* preparedStatement,
+        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams, std::string id);
     /**
      * @brief interrupts all queries currently executing within this connection.
      */

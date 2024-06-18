@@ -21,32 +21,30 @@ public:
 
     static std::shared_ptr<ProgressBarDisplay> DefaultProgressBarDisplay();
 
-    void addPipeline();
+    void addPipeline(std::string id);
 
-    void finishPipeline();
+    void finishPipeline(std::string id);
 
-    void endProgress();
+    void endProgress(std::string id);
 
-    void addJobsToPipeline(int jobs);
-
-    void finishJobsInPipeline(int jobs);
-
-    void startProgress();
+    void startProgress(std::string id);
 
     void toggleProgressBarPrinting(bool enable);
 
     void setShowProgressAfter(uint64_t showProgressAfter);
 
-    void updateProgress(double curPipelineProgress);
+    void updateProgress(std::string id, double curPipelineProgress);
 
     void setDisplay(std::shared_ptr<ProgressBarDisplay> progressBarDipslay);
+
+    std::shared_ptr<ProgressBarDisplay> getDisplay() { return display; }
 
     bool getProgressBarPrinting() const { return trackProgress; }
 
 private:
-    void resetProgressBar();
+    void resetProgressBar(std::string id);
 
-    void updateDisplay(double curPipelineProgress);
+    void updateDisplay(std::string id, double curPipelineProgress);
 
     bool shouldUpdateProgress() const;
 
