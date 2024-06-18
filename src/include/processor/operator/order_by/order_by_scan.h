@@ -30,7 +30,8 @@ class OrderByScan : public PhysicalOperator {
 
 public:
     OrderByScan(std::vector<DataPos> outVectorPos, std::shared_ptr<SortSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           outVectorPos{std::move(outVectorPos)},
           localState{std::make_unique<OrderByScanLocalState>()},
@@ -39,8 +40,7 @@ public:
     // This constructor is used for cloning only.
     OrderByScan(std::vector<DataPos> outVectorPos, std::shared_ptr<SortSharedState> sharedState,
         uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, id, std::move(printInfo)},
-          outVectorPos{std::move(outVectorPos)},
+        : PhysicalOperator{type_, id, std::move(printInfo)}, outVectorPos{std::move(outVectorPos)},
           localState{std::make_unique<OrderByScanLocalState>()},
           sharedState{std::move(sharedState)} {}
 

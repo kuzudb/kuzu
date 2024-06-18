@@ -11,7 +11,8 @@ class ExportDB final : public Simple {
 
 public:
     ExportDB(common::ReaderConfig boundFileInfo, const DataPos& outputPos, uint32_t id,
-        std::vector<std::unique_ptr<PhysicalOperator>> children, std::unique_ptr<OPPrintInfo> printInfo)
+        std::vector<std::unique_ptr<PhysicalOperator>> children,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : Simple{type_, std::move(children), outputPos, id, std::move(printInfo)},
           boundFileInfo{std::move(boundFileInfo)} {}
 

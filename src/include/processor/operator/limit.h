@@ -11,7 +11,8 @@ class Limit : public PhysicalOperator {
 public:
     Limit(uint64_t limitNumber, std::shared_ptr<std::atomic_uint64_t> counter,
         uint32_t dataChunkToSelectPos, std::unordered_set<uint32_t> dataChunksPosInScope,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           limitNumber{limitNumber}, counter{std::move(counter)},
           dataChunkToSelectPos{dataChunkToSelectPos},

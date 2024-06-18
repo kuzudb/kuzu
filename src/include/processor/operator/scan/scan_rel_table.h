@@ -35,7 +35,8 @@ class ScanRelTable : public ScanTable {
 
 public:
     ScanRelTable(ScanTableInfo info, ScanRelTableInfo relInfo,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : ScanTable{type_, std::move(info), std::move(child), id, std::move(printInfo)},
           relInfo{std::move(relInfo)} {}
 

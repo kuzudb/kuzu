@@ -107,7 +107,8 @@ public:
     Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::vector<PartitioningInfo> infos, PartitionerDataInfo dataInfo,
         std::shared_ptr<PartitionerSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo);
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo);
 
     void initGlobalStateInternal(ExecutionContext* context) final;
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;

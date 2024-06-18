@@ -11,8 +11,7 @@ class LoadExtension final : public Simple {
 public:
     LoadExtension(std::string path, const DataPos& outputPos, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Simple{type_, outputPos, id, std::move(printInfo)},
-          path{std::move(path)} {}
+        : Simple{type_, outputPos, id, std::move(printInfo)}, path{std::move(path)} {}
 
     void executeInternal(ExecutionContext* context) override;
     std::string getOutputMsg() override;

@@ -43,6 +43,7 @@ private:
 
 class BaseSemiMasker : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SEMI_MASKER;
+
 protected:
     BaseSemiMasker(std::unique_ptr<SemiMaskerInfo> info, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
@@ -61,7 +62,8 @@ protected:
 class SingleTableSemiMasker : public BaseSemiMasker {
 public:
     SingleTableSemiMasker(std::unique_ptr<SemiMaskerInfo> info,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : BaseSemiMasker{std::move(info), std::move(child), id, std::move(printInfo)} {}
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
@@ -75,7 +77,8 @@ public:
 class MultiTableSemiMasker : public BaseSemiMasker {
 public:
     MultiTableSemiMasker(std::unique_ptr<SemiMaskerInfo> info,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : BaseSemiMasker{std::move(info), std::move(child), id, std::move(printInfo)} {}
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
@@ -103,7 +106,8 @@ protected:
 class PathSingleTableSemiMasker : public PathSemiMasker {
 public:
     PathSingleTableSemiMasker(std::unique_ptr<SemiMaskerInfo> info,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : PathSemiMasker{std::move(info), std::move(child), id, std::move(printInfo)} {}
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
@@ -117,7 +121,8 @@ public:
 class PathMultipleTableSemiMasker : public PathSemiMasker {
 public:
     PathMultipleTableSemiMasker(std::unique_ptr<SemiMaskerInfo> info,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : PathSemiMasker{std::move(info), std::move(child), id, std::move(printInfo)} {}
 
     bool getNextTuplesInternal(ExecutionContext* context) final;

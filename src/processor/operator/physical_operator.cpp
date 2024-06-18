@@ -139,7 +139,8 @@ PhysicalOperator::PhysicalOperator(PhysicalOperatorType operatorType,
 }
 
 PhysicalOperator::PhysicalOperator(PhysicalOperatorType operatorType,
-    std::unique_ptr<PhysicalOperator> left, std::unique_ptr<PhysicalOperator> right, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+    std::unique_ptr<PhysicalOperator> left, std::unique_ptr<PhysicalOperator> right, uint32_t id,
+    std::unique_ptr<OPPrintInfo> printInfo)
     : PhysicalOperator{operatorType, id, std::move(printInfo)} {
     children.push_back(std::move(left));
     children.push_back(std::move(right));

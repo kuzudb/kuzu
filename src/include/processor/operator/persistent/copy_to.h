@@ -35,9 +35,9 @@ class CopyTo final : public Sink {
 public:
     CopyTo(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, CopyToInfo info,
         std::shared_ptr<function::ExportFuncSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{std::move(resultSetDescriptor), type_, std::move(child), id,
-              std::move(printInfo)},
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : Sink{std::move(resultSetDescriptor), type_, std::move(child), id, std::move(printInfo)},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;

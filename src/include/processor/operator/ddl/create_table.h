@@ -12,7 +12,8 @@ class CreateTable : public DDL {
 public:
     CreateTable(binder::BoundCreateTableInfo info, const DataPos& outputPos, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : DDL{type_, outputPos, id, std::move(printInfo)}, info{std::move(info)}, tableCreated{false} {}
+        : DDL{type_, outputPos, id, std::move(printInfo)}, info{std::move(info)},
+          tableCreated{false} {}
 
     void executeDDLInternal(ExecutionContext* context) final;
 

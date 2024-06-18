@@ -12,8 +12,8 @@ class Transaction : public PhysicalOperator {
 public:
     Transaction(transaction::TransactionAction transactionAction, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, id, std::move(printInfo)},
-          transactionAction{transactionAction}, hasExecuted{false} {}
+        : PhysicalOperator{type_, id, std::move(printInfo)}, transactionAction{transactionAction},
+          hasExecuted{false} {}
 
     bool isSource() const final { return true; }
     bool isParallel() const final { return false; }

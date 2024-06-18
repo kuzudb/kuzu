@@ -81,7 +81,6 @@ struct OperatorMetrics {
 
     OperatorMetrics(common::TimeMetric& executionTime, common::NumericMetric& numOutputTuple)
         : executionTime{executionTime}, numOutputTuple{numOutputTuple} {}
-
 };
 
 struct OPPrintInfo {
@@ -92,9 +91,7 @@ struct OPPrintInfo {
     explicit OPPrintInfo(std::string info) : info{std::move(info)} {}
     virtual ~OPPrintInfo() = default;
 
-    virtual std::string toString() const {
-        return info;
-    }
+    virtual std::string toString() const { return info; }
 
     virtual std::unique_ptr<OPPrintInfo> copy() const {
         return std::make_unique<OPPrintInfo>(info);
@@ -107,14 +104,16 @@ using physical_op_vector_t = std::vector<std::unique_ptr<PhysicalOperator>>;
 class PhysicalOperator {
 public:
     // Leaf operator
-    PhysicalOperator(PhysicalOperatorType operatorType, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+    PhysicalOperator(PhysicalOperatorType operatorType, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : id{id}, operatorType{operatorType}, printInfo{std::move(printInfo)} {}
     // Unary operator
     PhysicalOperator(PhysicalOperatorType operatorType, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, std::unique_ptr<OPPrintInfo> printInfo);
     // Binary operator
     PhysicalOperator(PhysicalOperatorType operatorType, std::unique_ptr<PhysicalOperator> left,
-        std::unique_ptr<PhysicalOperator> right, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo);
+        std::unique_ptr<PhysicalOperator> right, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo);
     PhysicalOperator(PhysicalOperatorType operatorType, physical_op_vector_t children, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo);
 

@@ -147,8 +147,7 @@ public:
         std::unique_ptr<OrderByDataInfo> info, std::shared_ptr<TopKSharedState> sharedState,
         uint64_t skipNumber, uint64_t limitNumber, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{std::move(resultSetDescriptor), type_, std::move(child), id,
-              std::move(printInfo)},
+        : Sink{std::move(resultSetDescriptor), type_, std::move(child), id, std::move(printInfo)},
           info(std::move(info)), sharedState{std::move(sharedState)}, skipNumber{skipNumber},
           limitNumber{limitNumber} {}
 

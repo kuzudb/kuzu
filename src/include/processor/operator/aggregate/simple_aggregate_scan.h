@@ -9,7 +9,8 @@ namespace processor {
 class SimpleAggregateScan : public BaseAggregateScan {
 public:
     SimpleAggregateScan(std::shared_ptr<SimpleAggregateSharedState> sharedState,
-        std::vector<DataPos> aggregatesPos, std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        std::vector<DataPos> aggregatesPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : BaseAggregateScan{std::move(aggregatesPos), std::move(child), id, std::move(printInfo)},
           sharedState{std::move(sharedState)}, outDataChunk{nullptr} {}
 

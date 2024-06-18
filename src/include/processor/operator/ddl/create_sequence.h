@@ -12,8 +12,7 @@ class CreateSequence : public DDL {
 public:
     CreateSequence(binder::BoundCreateSequenceInfo info, const DataPos& outputPos, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : DDL{type_, outputPos, id, std::move(printInfo)},
-          info{std::move(info)} {}
+        : DDL{type_, outputPos, id, std::move(printInfo)}, info{std::move(info)} {}
 
     void executeDDLInternal(ExecutionContext* context) final;
 

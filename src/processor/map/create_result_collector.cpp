@@ -10,7 +10,8 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<ResultCollector> PlanMapper::createResultCollector(AccumulateType accumulateType,
-    const expression_vector& expressions, Schema* schema, std::unique_ptr<PhysicalOperator> prevOperator) {
+    const expression_vector& expressions, Schema* schema,
+    std::unique_ptr<PhysicalOperator> prevOperator) {
     std::vector<DataPos> payloadsPos;
     for (auto& expr : expressions) {
         payloadsPos.push_back(getDataPos(*expr, *schema));
@@ -27,7 +28,8 @@ std::unique_ptr<ResultCollector> PlanMapper::createResultCollector(AccumulateTyp
     auto opInfo = ResultCollectorInfo(accumulateType, std::move(tableSchema), payloadsPos);
     auto printInfo = std::make_unique<ResultCollectorPrintInfo>(expressions, accumulateType);
     return make_unique<ResultCollector>(std::make_unique<ResultSetDescriptor>(schema),
-        std::move(opInfo), std::move(sharedState), std::move(prevOperator), getOperatorID(), std::move(printInfo));
+        std::move(opInfo), std::move(sharedState), std::move(prevOperator), getOperatorID(),
+        std::move(printInfo));
 }
 
 } // namespace processor

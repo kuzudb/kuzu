@@ -16,7 +16,7 @@ public:
     CopyRdf(std::shared_ptr<CopyRdfSharedState> sharedState,
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{std::move(resultSetDescriptor),type_, id, std::move(printInfo)},
+        : Sink{std::move(resultSetDescriptor), type_, id, std::move(printInfo)},
           sharedState{std::move(sharedState)} {}
 
     bool isSource() const override { return true; }

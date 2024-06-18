@@ -28,7 +28,8 @@ class BaseAggregate : public Sink {
 protected:
     BaseAggregate(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
-        std::vector<AggregateInfo> aggInfos, std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        std::vector<AggregateInfo> aggInfos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : Sink{std::move(resultSetDescriptor), type_, std::move(child), id, std::move(printInfo)},
           aggregateFunctions{std::move(aggregateFunctions)}, aggInfos{std::move(aggInfos)} {}
 

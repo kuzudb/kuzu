@@ -11,9 +11,10 @@ class IntersectBuild : public HashJoinBuild {
 public:
     IntersectBuild(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::shared_ptr<HashJoinSharedState> sharedState, std::unique_ptr<HashJoinBuildInfo> info,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-        : HashJoinBuild{std::move(resultSetDescriptor), type_,
-              std::move(sharedState), std::move(info), std::move(child), id, std::move(printInfo)} {}
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : HashJoinBuild{std::move(resultSetDescriptor), type_, std::move(sharedState),
+              std::move(info), std::move(child), id, std::move(printInfo)} {}
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<IntersectBuild>(resultSetDescriptor->copy(), sharedState, info->copy(),

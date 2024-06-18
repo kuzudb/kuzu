@@ -35,7 +35,8 @@ class IndexLookup : public PhysicalOperator {
 
 public:
     IndexLookup(std::vector<std::unique_ptr<IndexLookupInfo>> infos,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           infos{std::move(infos)} {}
 

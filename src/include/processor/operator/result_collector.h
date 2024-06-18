@@ -45,10 +45,12 @@ struct ResultCollectorPrintInfo final : OPPrintInfo {
     binder::expression_vector expressions;
     common::AccumulateType accumulateType;
 
-    ResultCollectorPrintInfo(binder::expression_vector expressions, common::AccumulateType accumulateType)
+    ResultCollectorPrintInfo(binder::expression_vector expressions,
+        common::AccumulateType accumulateType)
         : expressions{std::move(expressions)}, accumulateType{accumulateType} {}
     ResultCollectorPrintInfo(const ResultCollectorPrintInfo& other)
-        : OPPrintInfo{other}, expressions{other.expressions}, accumulateType{other.accumulateType} {}
+        : OPPrintInfo{other}, expressions{other.expressions}, accumulateType{other.accumulateType} {
+    }
 
     std::string toString() const override;
 
@@ -63,7 +65,8 @@ class ResultCollector : public Sink {
 public:
     ResultCollector(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         ResultCollectorInfo info, std::shared_ptr<ResultCollectorSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : Sink{std::move(resultSetDescriptor), type_, std::move(child), id, std::move(printInfo)},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
@@ -71,9 +74,7 @@ public:
 
     void finalize(ExecutionContext* context) final;
 
-    std::shared_ptr<FactorizedTable> getResultFactorizedTable() {
-        return sharedState->getTable();
-    }
+    std::shared_ptr<FactorizedTable> getResultFactorizedTable() { return sharedState->getTable(); }
 
     std::unique_ptr<PhysicalOperator> clone() final {
         return make_unique<ResultCollector>(resultSetDescriptor->copy(), info.copy(), sharedState,

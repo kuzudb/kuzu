@@ -12,8 +12,7 @@ class AttachDatabase final : public Simple {
 public:
     AttachDatabase(binder::AttachInfo attachInfo, const DataPos& outputPos, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Simple{type_, outputPos, id, std::move(printInfo)},
-          attachInfo{std::move(attachInfo)} {}
+        : Simple{type_, outputPos, id, std::move(printInfo)}, attachInfo{std::move(attachInfo)} {}
 
     void executeInternal(ExecutionContext* context) override;
     std::string getOutputMsg() override;

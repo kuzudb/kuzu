@@ -27,8 +27,8 @@ class CreateMacro : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CREATE_MACRO;
 
 public:
-    CreateMacro(std::unique_ptr<CreateMacroInfo> createMacroInfo,
-        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+    CreateMacro(std::unique_ptr<CreateMacroInfo> createMacroInfo, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, id, std::move(printInfo)},
           createMacroInfo{std::move(createMacroInfo)} {}
 

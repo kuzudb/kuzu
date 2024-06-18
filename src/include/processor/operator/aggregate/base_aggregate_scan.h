@@ -12,9 +12,11 @@ class BaseAggregateScan : public PhysicalOperator {
 public:
     BaseAggregateScan(std::vector<DataPos> aggregatesPos, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)}, aggregatesPos{std::move(aggregatesPos)} {}
+        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
+          aggregatesPos{std::move(aggregatesPos)} {}
 
-    BaseAggregateScan(std::vector<DataPos> aggregatesPos, physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo)
+    BaseAggregateScan(std::vector<DataPos> aggregatesPos, physical_op_id id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, id, std::move(printInfo)},
           aggregatesPos{std::move(aggregatesPos)} {}
 

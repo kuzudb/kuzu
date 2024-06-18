@@ -17,8 +17,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIndexLookup(LogicalOperator* lo
     std::vector<std::unique_ptr<IndexLookupInfo>> indexLookupInfos;
     for (auto i = 0u; i < logicalIndexScan.getNumInfos(); ++i) {
         auto& info = logicalIndexScan.getInfo(i);
-        auto storageIndex = storageManager->getTable(info.nodeTableID)->ptrCast<storage::NodeTable>()
-                                ->getPKIndex();
+        auto storageIndex =
+            storageManager->getTable(info.nodeTableID)->ptrCast<storage::NodeTable>()->getPKIndex();
         auto offsetPos = DataPos(outSchema->getExpressionPos(*info.offset));
         auto keyPos = DataPos(outSchema->getExpressionPos(*info.key));
         indexLookupInfos.push_back(
@@ -27,7 +27,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIndexLookup(LogicalOperator* lo
     auto printInfo = std::make_unique<OPPrintInfo>(logicalIndexScan.getExpressionsForPrinting());
     return std::make_unique<IndexLookup>(std::move(indexLookupInfos), std::move(prevOperator),
         getOperatorID(), std::move(printInfo));
-
 }
 
 } // namespace processor

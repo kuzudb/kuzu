@@ -67,7 +67,8 @@ public:
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
     PathPropertyProbe(std::unique_ptr<PathPropertyProbeDataInfo> info,
         std::shared_ptr<PathPropertyProbeSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> probeChild, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        std::unique_ptr<PhysicalOperator> probeChild, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(probeChild), id, std::move(printInfo)},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
 

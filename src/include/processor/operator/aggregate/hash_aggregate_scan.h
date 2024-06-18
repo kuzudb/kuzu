@@ -10,13 +10,15 @@ class HashAggregateScan : public BaseAggregateScan {
 public:
     HashAggregateScan(std::shared_ptr<HashAggregateSharedState> sharedState,
         std::vector<DataPos> groupByKeyVectorsPos, std::vector<DataPos> aggregatesPos,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : BaseAggregateScan{std::move(aggregatesPos), std::move(child), id, std::move(printInfo)},
           groupByKeyVectorsPos{std::move(groupByKeyVectorsPos)},
           sharedState{std::move(sharedState)} {}
 
     HashAggregateScan(std::shared_ptr<HashAggregateSharedState> sharedState,
-        std::vector<DataPos> groupByKeyVectorsPos, std::vector<DataPos> aggregatesPos, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        std::vector<DataPos> groupByKeyVectorsPos, std::vector<DataPos> aggregatesPos, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : BaseAggregateScan{std::move(aggregatesPos), id, std::move(printInfo)},
           groupByKeyVectorsPos{std::move(groupByKeyVectorsPos)},
           sharedState{std::move(sharedState)} {}

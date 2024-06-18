@@ -11,8 +11,8 @@ class MultiplicityReducer : public PhysicalOperator {
 public:
     MultiplicityReducer(std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
-          prevMultiplicity{1}, numRepeat{0} {}
+        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)}, prevMultiplicity{1},
+          numRepeat{0} {}
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 

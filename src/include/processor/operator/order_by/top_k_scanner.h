@@ -21,7 +21,8 @@ class TopKScan : public PhysicalOperator {
 
 public:
     TopKScan(std::vector<DataPos> outVectorPos, std::shared_ptr<TopKSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           outVectorPos{std::move(outVectorPos)}, localState{std::make_unique<TopKLocalScanState>()},
           sharedState{std::move(sharedState)} {}

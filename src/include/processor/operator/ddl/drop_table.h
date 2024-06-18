@@ -11,8 +11,8 @@ class DropTable : public DDL {
 public:
     DropTable(std::string tableName, common::table_id_t tableID, const DataPos& outputPos,
         uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-        : DDL{type_, outputPos, id, std::move(printInfo)},
-          tableName{std::move(tableName)}, tableID{tableID} {}
+        : DDL{type_, outputPos, id, std::move(printInfo)}, tableName{std::move(tableName)},
+          tableID{tableID} {}
 
     void executeDDLInternal(ExecutionContext* context) override;
 

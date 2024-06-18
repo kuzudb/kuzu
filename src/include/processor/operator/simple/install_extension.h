@@ -11,8 +11,7 @@ class InstallExtension final : public Simple {
 public:
     InstallExtension(std::string name, const DataPos& outputPos, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Simple{type_, outputPos, id, std::move(printInfo)},
-          name{std::move(name)} {}
+        : Simple{type_, outputPos, id, std::move(printInfo)}, name{std::move(name)} {}
 
     void executeInternal(ExecutionContext* context) override;
     std::string getOutputMsg() override;

@@ -64,8 +64,8 @@ public:
     UnionAllScan(std::unique_ptr<UnionAllScanInfo> info,
         std::shared_ptr<UnionAllScanSharedState> sharedState, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, id, std::move(printInfo)},
-          info{std::move(info)}, sharedState{std::move(sharedState)} {}
+        : PhysicalOperator{type_, id, std::move(printInfo)}, info{std::move(info)},
+          sharedState{std::move(sharedState)} {}
 
     bool isSource() const final { return true; }
 

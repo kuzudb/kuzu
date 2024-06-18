@@ -111,8 +111,9 @@ private:
 
     std::unique_ptr<PhysicalOperator> createCopyRel(
         std::shared_ptr<PartitionerSharedState> partitionerSharedState,
-        std::shared_ptr<BatchInsertSharedState> sharedState, const planner::LogicalCopyFrom& copyFrom,
-        common::RelDataDirection direction, std::vector<common::LogicalType> columnTypes);
+        std::shared_ptr<BatchInsertSharedState> sharedState,
+        const planner::LogicalCopyFrom& copyFrom, common::RelDataDirection direction,
+        std::vector<common::LogicalType> columnTypes);
 
     std::unique_ptr<ResultCollector> createResultCollector(common::AccumulateType accumulateType,
         const binder::expression_vector& expressions, planner::Schema* schema,

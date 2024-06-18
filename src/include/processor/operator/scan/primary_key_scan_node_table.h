@@ -25,8 +25,9 @@ public:
         std::unique_ptr<evaluator::ExpressionEvaluator> indexEvaluator,
         std::shared_ptr<PrimaryKeyScanSharedState> sharedState, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : ScanTable{type_, std::move(info), id, std::move(printInfo)}, nodeInfos{std::move(nodeInfos)},
-          indexEvaluator{std::move(indexEvaluator)}, sharedState{std::move(sharedState)} {}
+        : ScanTable{type_, std::move(info), id, std::move(printInfo)},
+          nodeInfos{std::move(nodeInfos)}, indexEvaluator{std::move(indexEvaluator)},
+          sharedState{std::move(sharedState)} {}
 
     bool isSource() const override { return true; }
 

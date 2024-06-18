@@ -87,8 +87,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logic
     auto sharedState = std::make_shared<HashJoinSharedState>(std::move(globalHashTable));
     auto printInfo = std::make_unique<OPPrintInfo>(hashJoin->getExpressionsForPrinting());
     auto hashJoinBuild =
-        make_unique<HashJoinBuild>(std::make_unique<ResultSetDescriptor>(buildSchema), PhysicalOperatorType::HASH_JOIN_BUILD ,sharedState,
-            std::move(buildInfo), std::move(buildSidePrevOperator), getOperatorID(), printInfo->copy());
+        make_unique<HashJoinBuild>(std::make_unique<ResultSetDescriptor>(buildSchema),
+            PhysicalOperatorType::HASH_JOIN_BUILD, sharedState, std::move(buildInfo),
+            std::move(buildSidePrevOperator), getOperatorID(), printInfo->copy());
     // Create probe
     std::vector<DataPos> probeKeysDataPos;
     for (auto& probeKey : probeKeys) {

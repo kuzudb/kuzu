@@ -108,8 +108,9 @@ public:
     RecursiveJoin(RecursiveJoinInfo info, std::shared_ptr<RecursiveJoinSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<PhysicalOperator> recursiveRoot, std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)}, info{std::move(info)},
-          sharedState{std::move(sharedState)}, recursiveRoot{std::move(recursiveRoot)} {}
+        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
+          info{std::move(info)}, sharedState{std::move(sharedState)},
+          recursiveRoot{std::move(recursiveRoot)} {}
 
     std::vector<NodeSemiMask*> getSemiMask() const;
 

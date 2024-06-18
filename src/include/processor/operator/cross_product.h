@@ -52,8 +52,8 @@ public:
         std::unique_ptr<CrossProductLocalState> localState,
         std::unique_ptr<PhysicalOperator> probeChild, std::unique_ptr<PhysicalOperator> buildChild,
         uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, std::move(probeChild),
-              std::move(buildChild), id, std::move(printInfo)},
+        : PhysicalOperator{type_, std::move(probeChild), std::move(buildChild), id,
+              std::move(printInfo)},
           info{std::move(info)}, localState{std::move(localState)} {}
 
     // Clone only.

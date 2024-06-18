@@ -167,9 +167,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(const expressi
         getDataPos(unFlatKeys, *inSchema), getDataPos(payloads, *inSchema), std::move(tableSchema),
         hashTableType};
     auto printInfo = std::make_unique<OPPrintInfo>(paramsString);
-    auto aggregate = make_unique<HashAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
-        sharedState, std::move(aggregateInfo), std::move(aggFunctions),
-        std::move(aggregateInputInfos), std::move(prevOperator), getOperatorID(), printInfo->copy());
+    auto aggregate =
+        make_unique<HashAggregate>(std::make_unique<ResultSetDescriptor>(inSchema), sharedState,
+            std::move(aggregateInfo), std::move(aggFunctions), std::move(aggregateInputInfos),
+            std::move(prevOperator), getOperatorID(), printInfo->copy());
     // Create AggScan.
     expression_vector outputExpressions;
     outputExpressions.insert(outputExpressions.end(), flatKeys.begin(), flatKeys.end());

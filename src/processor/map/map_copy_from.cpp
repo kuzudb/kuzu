@@ -137,8 +137,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     auto printInfo = std::make_unique<OPPrintInfo>(copyFrom.getExpressionsForPrinting());
     return std::make_unique<RelBatchInsert>(std::move(relBatchInsertInfo),
         std::move(partitionerSharedState), std::move(sharedState),
-        std::make_unique<ResultSetDescriptor>(outFSchema), getOperatorID(),
-        std::move(printInfo));
+        std::make_unique<ResultSetDescriptor>(outFSchema), getOperatorID(), std::move(printInfo));
 }
 
 physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator) {
@@ -225,7 +224,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRdfFrom(LogicalOperator* lo
     sharedState->fTable = fTable;
     auto printInfo = std::make_unique<OPPrintInfo>();
     auto copyRdf = std::make_unique<CopyRdf>(std::move(sharedState),
-        std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), getOperatorID(), std::move(printInfo));
+        std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), getOperatorID(),
+        std::move(printInfo));
     for (auto& child : rrlChildren) {
         copyRdf->addChild(std::move(child));
     }

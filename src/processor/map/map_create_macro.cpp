@@ -16,8 +16,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateMacro(
     auto createMacroInfo = std::make_unique<CreateMacroInfo>(logicalCreateMacro.getMacroName(),
         logicalCreateMacro.getMacro(), outputPos, clientContext->getCatalog());
     auto printInfo = std::make_unique<OPPrintInfo>(logicalCreateMacro.getExpressionsForPrinting());
-    return std::make_unique<CreateMacro>(
-        std::move(createMacroInfo), getOperatorID(), std::move(printInfo));
+    return std::make_unique<CreateMacro>(std::move(createMacroInfo), getOperatorID(),
+        std::move(printInfo));
 }
 
 } // namespace processor

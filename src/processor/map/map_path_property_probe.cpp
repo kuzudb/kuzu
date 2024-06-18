@@ -61,8 +61,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
             std::move(nodeKeyTypes), nodeBuildInfo->getTableSchema()->copy());
         nodeBuildSharedState = std::make_shared<HashJoinSharedState>(std::move(nodeHashTable));
         nodeBuild = make_unique<HashJoinBuild>(
-            std::make_unique<ResultSetDescriptor>(nodeBuildSchema), PhysicalOperatorType::HASH_JOIN_BUILD, nodeBuildSharedState,
-            std::move(nodeBuildInfo), std::move(nodeBuildPrevOperator), getOperatorID(), std::make_unique<OPPrintInfo>());
+            std::make_unique<ResultSetDescriptor>(nodeBuildSchema),
+            PhysicalOperatorType::HASH_JOIN_BUILD, nodeBuildSharedState, std::move(nodeBuildInfo),
+            std::move(nodeBuildPrevOperator), getOperatorID(), std::make_unique<OPPrintInfo>());
         auto relDataType = rel->getDataType();
         auto nodesField = StructType::getField(relDataType, InternalKeyword::NODES);
         auto nodeStructType = ListType::getChildType(nodesField.getType());
@@ -87,9 +88,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
         auto relHashTable = std::make_unique<JoinHashTable>(*clientContext->getMemoryManager(),
             std::move(relKeyTypes), relBuildInfo->getTableSchema()->copy());
         relBuildSharedState = std::make_shared<HashJoinSharedState>(std::move(relHashTable));
-        relBuild = std::make_unique<HashJoinBuild>(
-            std::make_unique<ResultSetDescriptor>(relBuildSchema), PhysicalOperatorType::HASH_JOIN_BUILD, relBuildSharedState,
-            std::move(relBuildInfo), std::move(relBuildPrvOperator), getOperatorID(), std::make_unique<OPPrintInfo>());
+        relBuild =
+            std::make_unique<HashJoinBuild>(std::make_unique<ResultSetDescriptor>(relBuildSchema),
+                PhysicalOperatorType::HASH_JOIN_BUILD, relBuildSharedState, std::move(relBuildInfo),
+                std::move(relBuildPrvOperator), getOperatorID(), std::make_unique<OPPrintInfo>());
         auto relDataType = rel->getDataType();
         auto relsField = StructType::getField(relDataType, InternalKeyword::RELS);
         auto relStructType = ListType::getChildType(relsField.getType());
