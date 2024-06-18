@@ -48,28 +48,37 @@ template<typename T>
 using MakeUnSignedT = typename MakeUnSigned<T>::type;
 
 template<typename T>
-decltype(auto) MakeValueSigned(T value) {
+decltype(auto) makeValueSigned(T value) {
     return static_cast<MakeSignedT<T>>(value);
 }
 
 template<typename T>
-decltype(auto) MakeValueUnSigned(T value) {
+decltype(auto) makeValueUnSigned(T value) {
     return static_cast<MakeUnSignedT<T>>(value);
 }
 
 template<typename T>
-constexpr int BitWidth(T x) {
+constexpr int bitWidth(T x) {
     return std::bit_width(x);
 }
 
 template<>
-constexpr int BitWidth<int128_t>(int128_t x) {
+constexpr int bitWidth<int128_t>(int128_t x) {
     if (x.high != 0) {
         constexpr size_t BITS_PER_BYTE = 8;
-        return sizeof(x.low) * BITS_PER_BYTE +
-               std::bit_width(static_cast<MakeUnSignedT<decltype(x.high)>>(x.high));
+        return sizeof(x.low) * BITS_PER_BYTE + std::bit_width(makeValueUnSigned(x.high));
     }
     return std::bit_width(x.low);
+}
+
+// produces bitmasks in the form ...111111
+// can produce masks with # of bits up to sizeof(T) * 8 - 1
+template<IsIntegral T>
+inline T getSaturatedBitmask(size_t width) {
+    static constexpr uint8_t numBitsInT = sizeof(T) * 8;
+    const T fullMask = ~(T(1) << (numBitsInT - 1));
+    const size_t numBitsToDiscard = (numBitsInT - 1 - width);
+    return (fullMask >> numBitsToDiscard);
 }
 } // namespace NumericUtils
 } // namespace common

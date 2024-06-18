@@ -31,6 +31,11 @@ void test_compression(CompressionAlg& alg, std::vector<T> src, bool force_offset
     EXPECT_EQ(src, decompressed);
     // works with all bit widths (but not all offsets)
     T value = 0;
+    if (!force_offset_zero) {
+        // make sure we can update in place to not fail runtime assertions
+        value = *std::min_element(src.begin(), src.end());
+    }
+
     alg.setValuesFromUncompressed((uint8_t*)&value, 0 /*srcOffset*/, (uint8_t*)dest.data(),
         1 /*dstOffset*/, 1 /*numValues*/, metadata, nullptr /*nullMask*/);
     alg.decompressFromPage(dest.data(), 0 /*srcOffset*/, (uint8_t*)decompressed.data(),
@@ -140,6 +145,14 @@ TEST(CompressionTests, IntegerPackingTest128Negative) {
 
 TEST(CompressionTests, IntegerPackingTest128NegativeSimple) {
     std::vector<kuzu::common::int128_t> src{-1024, -1027, -1023};
+
+    auto alg = IntegerBitpacking<kuzu::common::int128_t>();
+    test_compression(alg, src, false);
+}
+
+TEST(CompressionTests, IntegerPackingTest128CompressFullChunkLargeWidth) {
+    std::vector<kuzu::common::int128_t> src{IntegerBitpacking<int128_t>::CHUNK_SIZE,
+        (int128_t{1} << 126) | 0b111};
 
     auto alg = IntegerBitpacking<kuzu::common::int128_t>();
     test_compression(alg, src, false);

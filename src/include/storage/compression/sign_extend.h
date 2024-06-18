@@ -44,9 +44,8 @@ static void SignExtend(uint8_t* dst, uint8_t width) {
     T const mask = T_U(1) << (width - 1);
     for (uint64_t i = 0; i < CHUNK_SIZE; ++i) {
         T value = Load<T>(dst + i * sizeof(T));
-        static constexpr uint8_t num_bits_in_t_u = sizeof(T_U) * 8;
-        const T_U and_mask = (~(T_U(1) << (num_bits_in_t_u - 1))) >> (num_bits_in_t_u - 1 - width);
-        value = value & and_mask;
+        const T_U andMask = common::NumericUtils::getSaturatedBitmask<T_U>(width);
+        value = value & andMask;
         T result = (value ^ mask) - mask;
         Store(result, dst + i * sizeof(T));
     }

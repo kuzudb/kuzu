@@ -359,14 +359,14 @@ BitpackInfo<T> IntegerBitpacking<T>::getPackingInfo(const CompressionMetadata& m
     // and when we will save at least 1 bit per value.
     // when the chunk was first compressed
     if (min > 0 && max > 0 &&
-        NumericUtils::BitWidth((U)(max - min)) < NumericUtils::BitWidth((U)max)) {
+        NumericUtils::bitWidth((U)(max - min)) < NumericUtils::bitWidth((U)max)) {
         offset = min;
-        bitWidth = static_cast<uint8_t>(NumericUtils::BitWidth((U)(max - min)));
+        bitWidth = static_cast<uint8_t>(NumericUtils::bitWidth((U)(max - min)));
         hasNegative = false;
     } else if (min < 0 && max < 0 &&
-               NumericUtils::BitWidth((U)(min - max)) < NumericUtils::BitWidth((U)max)) {
+               NumericUtils::bitWidth((U)(min - max)) < NumericUtils::bitWidth((U)max)) {
         offset = (U)max;
-        bitWidth = static_cast<uint8_t>(NumericUtils::BitWidth((U)(min - max))) + 1;
+        bitWidth = static_cast<uint8_t>(NumericUtils::bitWidth((U)(min - max))) + 1;
         // This is somewhat suboptimal since we know that the values are all negative
         // We could use an offset equal to the minimum, but values which are all negative are
         // probably going to grow in the negative direction, leading to many re-compressions when
@@ -374,11 +374,11 @@ BitpackInfo<T> IntegerBitpacking<T>::getPackingInfo(const CompressionMetadata& m
         hasNegative = true;
     } else if (min < 0) {
         bitWidth =
-            static_cast<uint8_t>(NumericUtils::BitWidth((U)std::max(abs<T>(min), abs<T>(max)))) + 1;
+            static_cast<uint8_t>(NumericUtils::bitWidth((U)std::max(abs<T>(min), abs<T>(max)))) + 1;
         hasNegative = true;
     } else {
         bitWidth =
-            static_cast<uint8_t>(NumericUtils::BitWidth((U)std::max(abs<T>(min), abs<T>(max))));
+            static_cast<uint8_t>(NumericUtils::bitWidth((U)std::max(abs<T>(min), abs<T>(max))));
         hasNegative = false;
     }
     return BitpackInfo<T>{bitWidth, hasNegative, offset};

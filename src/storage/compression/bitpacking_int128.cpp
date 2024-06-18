@@ -12,54 +12,55 @@ namespace kuzu::storage {
 //===--------------------------------------------------------------------===//
 
 static void unpackSingle(const uint32_t* __restrict& in, common::int128_t* __restrict out,
-    uint16_t delta, uint16_t shr) {
-    if (delta + shr < 32) {
-        *out = ((static_cast<common::int128_t>(in[0])) >> shr) % (common::int128_t(1) << delta);
+    uint16_t delta, uint16_t shiftRight) {
+    if (delta + shiftRight < 32) {
+        *out =
+            ((static_cast<common::int128_t>(in[0])) >> shiftRight) % (common::int128_t(1) << delta);
     }
 
-    else if (delta + shr >= 32 && delta + shr < 64) {
-        *out = static_cast<common::int128_t>(in[0]) >> shr;
+    else if (delta + shiftRight >= 32 && delta + shiftRight < 64) {
+        *out = static_cast<common::int128_t>(in[0]) >> shiftRight;
         ++in;
 
-        if (delta + shr > 32) {
-            const uint16_t NEXT_SHR = shr + delta - 32;
-            *out |= static_cast<common::int128_t>((*in) % (1U << NEXT_SHR)) << (32 - shr);
+        if (delta + shiftRight > 32) {
+            const uint16_t NEXT_SHR = shiftRight + delta - 32;
+            *out |= static_cast<common::int128_t>((*in) % (1U << NEXT_SHR)) << (32 - shiftRight);
         }
     }
 
-    else if (delta + shr >= 64 && delta + shr < 96) {
-        *out = static_cast<common::int128_t>(in[0]) >> shr;
-        *out |= static_cast<common::int128_t>(in[1]) << (32 - shr);
+    else if (delta + shiftRight >= 64 && delta + shiftRight < 96) {
+        *out = static_cast<common::int128_t>(in[0]) >> shiftRight;
+        *out |= static_cast<common::int128_t>(in[1]) << (32 - shiftRight);
         in += 2;
 
-        if (delta + shr > 64) {
-            const uint16_t NEXT_SHR = delta + shr - 64;
-            *out |= static_cast<common::int128_t>((*in) % (1U << NEXT_SHR)) << (64 - shr);
+        if (delta + shiftRight > 64) {
+            const uint16_t NEXT_SHR = delta + shiftRight - 64;
+            *out |= static_cast<common::int128_t>((*in) % (1U << NEXT_SHR)) << (64 - shiftRight);
         }
     }
 
-    else if (delta + shr >= 96 && delta + shr < 128) {
-        *out = static_cast<common::int128_t>(in[0]) >> shr;
-        *out |= static_cast<common::int128_t>(in[1]) << (32 - shr);
-        *out |= static_cast<common::int128_t>(in[2]) << (64 - shr);
+    else if (delta + shiftRight >= 96 && delta + shiftRight < 128) {
+        *out = static_cast<common::int128_t>(in[0]) >> shiftRight;
+        *out |= static_cast<common::int128_t>(in[1]) << (32 - shiftRight);
+        *out |= static_cast<common::int128_t>(in[2]) << (64 - shiftRight);
         in += 3;
 
-        if (delta + shr > 96) {
-            const uint16_t NEXT_SHR = delta + shr - 96;
-            *out |= static_cast<common::int128_t>((*in) % (1U << NEXT_SHR)) << (96 - shr);
+        if (delta + shiftRight > 96) {
+            const uint16_t NEXT_SHR = delta + shiftRight - 96;
+            *out |= static_cast<common::int128_t>((*in) % (1U << NEXT_SHR)) << (96 - shiftRight);
         }
     }
 
-    else if (delta + shr >= 128) {
-        *out = static_cast<common::int128_t>(in[0]) >> shr;
-        *out |= static_cast<common::int128_t>(in[1]) << (32 - shr);
-        *out |= static_cast<common::int128_t>(in[2]) << (64 - shr);
-        *out |= static_cast<common::int128_t>(in[3]) << (96 - shr);
+    else if (delta + shiftRight >= 128) {
+        *out = static_cast<common::int128_t>(in[0]) >> shiftRight;
+        *out |= static_cast<common::int128_t>(in[1]) << (32 - shiftRight);
+        *out |= static_cast<common::int128_t>(in[2]) << (64 - shiftRight);
+        *out |= static_cast<common::int128_t>(in[3]) << (96 - shiftRight);
         in += 4;
 
-        if (delta + shr > 128) {
-            const uint16_t NEXT_SHR = delta + shr - 128;
-            *out |= static_cast<common::int128_t>((*in) % (1U << NEXT_SHR)) << (128 - shr);
+        if (delta + shiftRight > 128) {
+            const uint16_t NEXT_SHR = delta + shiftRight - 128;
+            *out |= static_cast<common::int128_t>((*in) % (1U << NEXT_SHR)) << (128 - shiftRight);
         }
     }
 }
@@ -126,71 +127,71 @@ static void unpackDelta128(const uint32_t* __restrict in, common::int128_t* __re
 //===--------------------------------------------------------------------===//
 
 static void packSingle(const common::int128_t in, uint32_t* __restrict& out, uint16_t delta,
-    uint16_t shl, common::int128_t mask) {
-    if (delta + shl < 32) {
+    uint16_t shiftLeft, common::int128_t mask) {
+    if (delta + shiftLeft < 32) {
 
-        if (shl == 0) {
+        if (shiftLeft == 0) {
             out[0] = static_cast<uint32_t>(in & mask);
         } else {
-            out[0] |= static_cast<uint32_t>((in & mask) << shl);
+            out[0] |= static_cast<uint32_t>((in & mask) << shiftLeft);
         }
 
-    } else if (delta + shl >= 32 && delta + shl < 64) {
+    } else if (delta + shiftLeft >= 32 && delta + shiftLeft < 64) {
 
-        if (shl == 0) {
+        if (shiftLeft == 0) {
             out[0] = static_cast<uint32_t>(in & mask);
         } else {
-            out[0] |= static_cast<uint32_t>((in & mask) << shl);
+            out[0] |= static_cast<uint32_t>((in & mask) << shiftLeft);
         }
         ++out;
 
-        if (delta + shl > 32) {
-            *out = static_cast<uint32_t>((in & mask) >> (32 - shl));
+        if (delta + shiftLeft > 32) {
+            *out = static_cast<uint32_t>((in & mask) >> (32 - shiftLeft));
         }
     }
 
-    else if (delta + shl >= 64 && delta + shl < 96) {
+    else if (delta + shiftLeft >= 64 && delta + shiftLeft < 96) {
 
-        if (shl == 0) {
+        if (shiftLeft == 0) {
             out[0] = static_cast<uint32_t>(in & mask);
         } else {
-            out[0] |= static_cast<uint32_t>(in << shl);
+            out[0] |= static_cast<uint32_t>(in << shiftLeft);
         }
 
-        out[1] = static_cast<uint32_t>((in & mask) >> (32 - shl));
+        out[1] = static_cast<uint32_t>((in & mask) >> (32 - shiftLeft));
         out += 2;
 
-        if (delta + shl > 64) {
-            *out = static_cast<uint32_t>((in & mask) >> (64 - shl));
+        if (delta + shiftLeft > 64) {
+            *out = static_cast<uint32_t>((in & mask) >> (64 - shiftLeft));
         }
     }
 
-    else if (delta + shl >= 96 && delta + shl < 128) {
-        if (shl == 0) {
+    else if (delta + shiftLeft >= 96 && delta + shiftLeft < 128) {
+        if (shiftLeft == 0) {
             out[0] = static_cast<uint32_t>(in & mask);
         } else {
-            out[0] |= static_cast<uint32_t>(in << shl);
+            out[0] |= static_cast<uint32_t>(in << shiftLeft);
         }
 
-        out[1] = static_cast<uint32_t>((in & mask) >> (32 - shl));
-        out[2] = static_cast<uint32_t>((in & mask) >> (64 - shl));
+        out[1] = static_cast<uint32_t>((in & mask) >> (32 - shiftLeft));
+        out[2] = static_cast<uint32_t>((in & mask) >> (64 - shiftLeft));
         out += 3;
 
-        if (delta + shl > 96) {
-            *out = static_cast<uint32_t>((in & mask) >> (96 - shl));
+        if (delta + shiftLeft > 96) {
+            *out = static_cast<uint32_t>((in & mask) >> (96 - shiftLeft));
         }
     }
 
-    else if (delta + shl >= 128) {
+    else if (delta + shiftLeft >= 128) {
         // shl == 0 won't ever happen here considering a delta of 128 calls PackDelta128
-        out[0] |= static_cast<uint32_t>(in << shl);
-        out[1] = static_cast<uint32_t>((in & mask) >> (32 - shl));
-        out[2] = static_cast<uint32_t>((in & mask) >> (64 - shl));
-        out[3] = static_cast<uint32_t>((in & mask) >> (96 - shl));
+        out[0] |= static_cast<uint32_t>(in << shiftLeft);
+        out[1] = static_cast<uint32_t>((in & mask) >> (32 - shiftLeft));
+        out[2] = static_cast<uint32_t>((in & mask) >> (64 - shiftLeft));
+        out[3] = static_cast<uint32_t>((in & mask) >> (96 - shiftLeft));
         out += 4;
 
-        if (delta + shl > 128) {
-            *out = static_cast<uint32_t>((in & mask) >> (128 - shl));
+        if (delta + shiftLeft > 128) {
+            *out = static_cast<uint32_t>((in & mask) >> (128 - shiftLeft));
         }
     }
 }
@@ -271,13 +272,11 @@ void Int128Packer::pack(const common::int128_t* __restrict in, uint32_t* __restr
         packDelta128(in, out);
         break;
     default:
-        static constexpr uint8_t num_bits_in_t_u = sizeof(common::int128_t) * 8;
-        const auto and_mask =
-            (~(common::int128_t(1) << (num_bits_in_t_u - 1))) >> (num_bits_in_t_u - 1 - width);
-        for (common::idx_t oindex = 0; oindex < IntegerBitpacking<uint32_t>::CHUNK_SIZE - 1;
+        for (common::idx_t oindex = 0; oindex < IntegerBitpacking<common::int128_t>::CHUNK_SIZE - 1;
              ++oindex) {
             packSingle(in[oindex], out, width,
-                (width * oindex) % IntegerBitpacking<uint32_t>::CHUNK_SIZE, and_mask);
+                (width * oindex) % IntegerBitpacking<common::int128_t>::CHUNK_SIZE,
+                common::NumericUtils::getSaturatedBitmask<common::int128_t>(width));
         }
         packLast(in, out, width);
     }
@@ -303,10 +302,10 @@ void Int128Packer::unpack(const uint32_t* __restrict in, common::int128_t* __res
         unpackDelta128(in, out);
         break;
     default:
-        for (common::idx_t oindex = 0; oindex < IntegerBitpacking<uint32_t>::CHUNK_SIZE - 1;
+        for (common::idx_t oindex = 0; oindex < IntegerBitpacking<common::int128_t>::CHUNK_SIZE - 1;
              ++oindex) {
             unpackSingle(in, out + oindex, width,
-                (width * oindex) % IntegerBitpacking<uint32_t>::CHUNK_SIZE);
+                (width * oindex) % IntegerBitpacking<common::int128_t>::CHUNK_SIZE);
         }
         unpackLast(in, out, width);
     }

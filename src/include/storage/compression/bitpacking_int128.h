@@ -1,3 +1,6 @@
+// Adapted from
+// https://github.com/duckdb/duckdb/blob/main/src/include/duckdb/common/bitpacking.hpp
+
 #pragma once
 
 #include "common/types/int128_t.h"

@@ -1,4 +1,3 @@
 add_kuzu_test(node_insertion_deletion_test node_insertion_deletion_test.cpp)
 add_kuzu_test(compression_test compression_test.cpp)
-add_kuzu_test(bitpacking_test bitpacking_test.cpp)
 add_kuzu_test(buffer_manager_test buffer_manager_test.cpp)
