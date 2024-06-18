@@ -197,7 +197,6 @@ std::unique_ptr<AlterTableEntryRecord> AlterTableEntryRecord::deserialize(
         deserializer.deserializeValue(propertyName);
         dataType = *LogicalType::deserialize(deserializer);
         defaultValue = parser::ParsedExpression::deserialize(deserializer);
-        // TODO(Sam): Figure out default expr
         extraInfo = std::make_unique<BoundExtraAddPropertyInfo>(std::move(propertyName),
             std::move(dataType), std::move(defaultValue), nullptr);
     } break;

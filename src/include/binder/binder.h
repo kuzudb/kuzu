@@ -278,6 +278,8 @@ public:
     function::TableFunction getScanFunction(common::FileType fileType,
         const common::ReaderConfig& config);
 
+    ExpressionBinder* getExpressionBinder() { return &expressionBinder; }
+
 private:
     uint32_t lastExpressionId;
     BinderScope scope;
