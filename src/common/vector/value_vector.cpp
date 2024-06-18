@@ -65,7 +65,7 @@ bool ValueVector::setNullFromBits(const uint64_t* srcNullEntries, uint64_t srcOf
 }
 
 template<typename T>
-void ValueVector::setValue(uint32_t pos, T val) {
+void KUZU_API ValueVector::setValue(uint32_t pos, T val) {
     ((T*)valueBuffer.get())[pos] = val;
 }
 

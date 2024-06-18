@@ -18,6 +18,10 @@ if ("postgres" IN_LIST BUILD_EXTENSIONS)
     endif()
 endif()
 
+if ("sample" IN_LIST BUILD_EXTENSIONS)
+        add_subdirectory(sample)
+endif()
+
 if (${BUILD_EXTENSION_TESTS})
     include_directories(${CMAKE_SOURCE_DIR}/third_party/spdlog)
     add_definitions(-DTEST_FILES_DIR="extension")

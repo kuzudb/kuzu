@@ -66,6 +66,8 @@ public:
         : lastExpressionId{0}, scope{}, graphEntrySet{}, expressionBinder{this, clientContext},
           clientContext{clientContext} {}
 
+    main::ClientContext* getClientContext() const { return clientContext; }
+
     std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
 
     void setInputParameters(
@@ -131,6 +133,7 @@ public:
     std::unique_ptr<BoundStatement> bindAttachDatabase(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindDetachDatabase(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindUseDatabase(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindExtensionClause(const parser::Statement& statement) const;
 
     /*** bind scan source ***/
     std::unique_ptr<BoundBaseScanSource> bindScanSource(parser::BaseScanSource* scanSource,

@@ -12,6 +12,7 @@
 #include "binder/ddl/bound_create_type.h"
 #include "binder/ddl/bound_drop_sequence.h"
 #include "binder/ddl/bound_drop_table.h"
+#include "extension/extension_clause.h"
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_sequence.h"
 #include "planner/operator/ddl/logical_create_table.h"
@@ -135,6 +136,12 @@ void Planner::appendUseDatabase(const BoundStatement& statement, LogicalPlan& pl
     auto useDatabase = std::make_shared<LogicalUseDatabase>(boundUseDatabase.getDBName(),
         statement.getStatementResult()->getSingleColumnExpr());
     plan.setLastOperator(std::move(useDatabase));
+}
+
+void Planner::appendExtensionClause(const BoundStatement& statement, LogicalPlan& plan) {
+    auto& boundExtensionClause =
+        reinterpret_cast<const extension::BoundExtensionClause&>(statement);
+    boundExtensionClause.getExtensionClauseHandler().planFunc(plan, boundExtensionClause);
 }
 
 } // namespace planner

@@ -108,6 +108,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapUnionAll(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapUnwind(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapUseDatabase(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapExtensionClause(planner::LogicalOperator* logicalOperator);
 
     std::unique_ptr<PhysicalOperator> createCopyRel(
         std::shared_ptr<PartitionerSharedState> partitionerSharedState,

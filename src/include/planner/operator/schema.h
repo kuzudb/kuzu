@@ -56,7 +56,7 @@ private:
     std::unordered_map<std::string, uint32_t> expressionNameToPos;
 };
 
-class Schema {
+class KUZU_API Schema {
 public:
     size_t getNumGroups() const { return groups.size(); }
     size_t getNumFlatGroups() const { return getNumGroups(true /* isFlat */); }

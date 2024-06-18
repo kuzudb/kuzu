@@ -175,13 +175,13 @@ extension-test: extension-test-build
 
 extension-debug:
 	$(call run-cmake-debug, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;postgres" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;postgres;sample" \
 		-DBUILD_KUZU=FALSE \
 	)
 
 extension-release:
 	$(call run-cmake-release, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;postgres" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;postgres;sample" \
 		-DBUILD_KUZU=FALSE \
 	)
 

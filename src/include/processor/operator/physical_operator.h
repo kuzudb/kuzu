@@ -68,6 +68,7 @@ enum class PhysicalOperatorType : uint8_t {
     UNION_ALL_SCAN,
     UNWIND,
     USE_DATABASE,
+    EXTENSION_CLAUSE,
 };
 
 class PhysicalOperatorUtils {
@@ -75,7 +76,7 @@ public:
     static std::string operatorTypeToString(PhysicalOperatorType operatorType);
 };
 
-struct OperatorMetrics {
+struct KUZU_API OperatorMetrics {
     common::TimeMetric& executionTime;
     common::NumericMetric& numOutputTuple;
 
@@ -101,7 +102,7 @@ struct OPPrintInfo {
 class PhysicalOperator;
 using physical_op_vector_t = std::vector<std::unique_ptr<PhysicalOperator>>;
 
-class PhysicalOperator {
+class KUZU_API PhysicalOperator {
 public:
     // Leaf operator
     PhysicalOperator(PhysicalOperatorType operatorType, uint32_t id,

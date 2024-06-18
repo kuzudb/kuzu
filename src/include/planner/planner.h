@@ -51,6 +51,7 @@ private:
     void appendAttachDatabase(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendDetachDatabase(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendUseDatabase(const binder::BoundStatement& statement, LogicalPlan& plan);
+    void appendExtensionClause(const binder::BoundStatement& statement, LogicalPlan& plan);
 
     // Plan copy.
     std::unique_ptr<LogicalPlan> planCopyTo(const binder::BoundStatement& statement);

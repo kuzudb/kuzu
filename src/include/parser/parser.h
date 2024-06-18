@@ -7,12 +7,21 @@
 #include "statement.h"
 
 namespace kuzu {
+namespace main {
+class Database;
+}
+
 namespace parser {
 
 class Parser {
 
 public:
-    static std::vector<std::shared_ptr<Statement>> parseQuery(std::string_view query);
+    explicit Parser(main::Database* database) : database{database} {}
+
+    std::vector<std::shared_ptr<Statement>> parseQuery(std::string_view query);
+
+private:
+    main::Database* database;
 };
 
 } // namespace parser

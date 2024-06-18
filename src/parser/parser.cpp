@@ -5,8 +5,9 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "cypher_lexer.h"
 #pragma GCC diagnostic pop
-
 #include "common/exception/parser.h"
+#include "extension/extension_clause.h"
+#include "main/database.h"
 #include "parser/antlr_parser/kuzu_cypher_parser.h"
 #include "parser/antlr_parser/parser_error_listener.h"
 #include "parser/antlr_parser/parser_error_strategy.h"
@@ -25,23 +26,42 @@ std::vector<std::shared_ptr<Statement>> Parser::parseQuery(std::string_view quer
         throw common::ParserException(
             "Cannot parse empty query. This should be handled in connection.");
     }
-    // LCOV_EXCL_STOP
-    auto inputStream = ANTLRInputStream(query);
-    auto parserErrorListener = ParserErrorListener();
+    try {
+        // LCOV_EXCL_STOP
+        auto inputStream = ANTLRInputStream(query);
+        auto parserErrorListener = ParserErrorListener();
 
-    auto cypherLexer = CypherLexer(&inputStream);
-    cypherLexer.removeErrorListeners();
-    cypherLexer.addErrorListener(&parserErrorListener);
-    auto tokens = CommonTokenStream(&cypherLexer);
-    tokens.fill();
+        auto cypherLexer = CypherLexer(&inputStream);
+        cypherLexer.removeErrorListeners();
+        cypherLexer.addErrorListener(&parserErrorListener);
+        auto tokens = CommonTokenStream(&cypherLexer);
+        tokens.fill();
 
-    auto kuzuCypherParser = KuzuCypherParser(&tokens);
-    kuzuCypherParser.removeErrorListeners();
-    kuzuCypherParser.addErrorListener(&parserErrorListener);
-    kuzuCypherParser.setErrorHandler(std::make_shared<ParserErrorStrategy>());
+        auto kuzuCypherParser = KuzuCypherParser(&tokens);
+        kuzuCypherParser.removeErrorListeners();
+        kuzuCypherParser.addErrorListener(&parserErrorListener);
+        kuzuCypherParser.setErrorHandler(std::make_shared<ParserErrorStrategy>());
 
-    Transformer transformer(*kuzuCypherParser.ku_Statements());
-    return transformer.transform();
+        Transformer transformer(*kuzuCypherParser.ku_Statements());
+        return transformer.transform();
+    } catch (std::exception& e) {
+        auto& extensionClauseHandler = database->getExtensionClauseHandler();
+        if (extensionClauseHandler.empty()) {
+            throw e;
+        }
+        auto errMsg = e.what();
+        for (auto& [name, extension] : extensionClauseHandler) {
+            try {
+                return extension->parseFunc(query);
+            } catch (std::exception& e) {
+                continue;
+            }
+        }
+        throw common::ParserException{
+            common::stringFormat("Kuzu default parser throws an exception: \"{}\", and none of the "
+                                 "extensions can compile the query.",
+                errMsg)};
+    }
 }
 
 } // namespace parser

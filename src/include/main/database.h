@@ -26,6 +26,7 @@ struct Function;
 namespace extension {
 struct ExtensionUtils;
 struct ExtensionOptions;
+struct ExtensionClauseHandler;
 } // namespace extension
 
 namespace storage {
@@ -111,6 +112,9 @@ public:
     KUZU_API void registerStorageExtension(std::string name,
         std::unique_ptr<storage::StorageExtension> storageExtension);
 
+    KUZU_API void registerExtensionClauseHandler(std::string name,
+        std::unique_ptr<extension::ExtensionClauseHandler> parserExtension);
+
     KUZU_API void addExtensionOption(std::string name, common::LogicalTypeID type,
         common::Value defaultValue);
 
@@ -120,6 +124,9 @@ public:
 
     common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>>&
     getStorageExtensions();
+
+    common::case_insensitive_map_t<std::unique_ptr<extension::ExtensionClauseHandler>>&
+    getExtensionClauseHandler();
 
 private:
     void openLockFile();
@@ -139,6 +146,8 @@ private:
     std::unique_ptr<extension::ExtensionOptions> extensionOptions;
     std::unique_ptr<DatabaseManager> databaseManager;
     common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>> storageExtensions;
+    common::case_insensitive_map_t<std::unique_ptr<extension::ExtensionClauseHandler>>
+        extensionClauseHandler;
 };
 
 } // namespace main
