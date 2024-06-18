@@ -41,7 +41,7 @@ void ProgressBar::addPipeline(std::string id) {
         return;
     }
     numPipelines++;
-    display->setNumPipelines(id, numPipelines);
+    display->setNumPipelines(numPipelines);
 }
 
 void ProgressBar::finishPipeline(std::string id) {

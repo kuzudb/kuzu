@@ -12,6 +12,10 @@ namespace common {
  */
 class ProgressBarDisplay {
 public:
+    ProgressBarDisplay() : pipelineProgress{0}, numPipelines{0}, numPipelinesFinished{0} {};
+
+    virtual ~ProgressBarDisplay() = default;
+
     // Update the progress of the pipeline and the number of finished pipelines
     virtual void updateProgress(std::string id, double newPipelineProgress,
         uint32_t newNumPipelinesFinished) = 0;
@@ -19,7 +23,7 @@ public:
     // Finish the progress display
     virtual void finishProgress(std::string id) = 0;
 
-    void setNumPipelines(std::string id, uint32_t newNumPipelines) {
+    void setNumPipelines(uint32_t newNumPipelines) {
         numPipelines = newNumPipelines;
     };
 
