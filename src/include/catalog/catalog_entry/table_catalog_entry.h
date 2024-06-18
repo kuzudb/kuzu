@@ -40,7 +40,7 @@ public:
     // TODO(Guodong/Ziyi): This function should be removed. Instead we should use CatalogEntryType.
     virtual common::TableType getTableType() const = 0;
     virtual function::TableFunction getScanFunction() { KU_UNREACHABLE; }
-    const binder::BoundAlterInfo& getAlterInfo() const { return *alterInfo; }
+    binder::BoundAlterInfo* getAlterInfo() const { return alterInfo.get(); }
     void setAlterInfo(const binder::BoundAlterInfo& alterInfo_) {
         alterInfo = std::make_unique<binder::BoundAlterInfo>(alterInfo_.copy());
     }

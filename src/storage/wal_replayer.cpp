@@ -257,8 +257,8 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) {
     }
     auto& alterEntryRecord = walRecord.constCast<AlterTableEntryRecord>();
     clientContext.getCatalog()->alterTableSchema(&DUMMY_WRITE_TRANSACTION,
-        alterEntryRecord.alterInfo);
-    if (alterEntryRecord.alterInfo.alterType == common::AlterType::ADD_PROPERTY) {
+        *alterEntryRecord.ownedAlterInfo);
+    if (alterEntryRecord.ownedAlterInfo->alterType == common::AlterType::ADD_PROPERTY) {
         // TODO(Sam): Need to handle this somehow. If using alter.cpp logic, need to:
         // 1. bind the parsed expr (maybe this should be part of deserializer??)
         // 2. map expr to evaluator

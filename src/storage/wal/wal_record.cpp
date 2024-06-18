@@ -150,11 +150,11 @@ std::unique_ptr<DropCatalogEntryRecord> DropCatalogEntryRecord::deserialize(
 
 void AlterTableEntryRecord::serialize(Serializer& serializer) const {
     WALRecord::serialize(serializer);
-    serializer.write(alterInfo.alterType);
-    serializer.write(alterInfo.tableName);
-    serializer.write(alterInfo.tableID);
-    auto extraInfo = alterInfo.extraInfo.get();
-    switch (alterInfo.alterType) {
+    serializer.write(alterInfo->alterType);
+    serializer.write(alterInfo->tableName);
+    serializer.write(alterInfo->tableID);
+    auto extraInfo = alterInfo->extraInfo.get();
+    switch (alterInfo->alterType) {
     case AlterType::ADD_PROPERTY: {
         auto addInfo = extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
         serializer.write(addInfo->propertyName);
@@ -224,8 +224,9 @@ std::unique_ptr<AlterTableEntryRecord> AlterTableEntryRecord::deserialize(
         KU_UNREACHABLE;
     }
     }
-    return std::make_unique<AlterTableEntryRecord>(
-        BoundAlterInfo(alterType, tableName, tableID, std::move(extraInfo)));
+    auto retval = std::make_unique<AlterTableEntryRecord>();
+    retval->ownedAlterInfo = std::make_unique<BoundAlterInfo>(alterType, tableName, tableID, std::move(extraInfo));
+    return retval;
 }
 
 void UpdateSequenceRecord::serialize(Serializer& serializer) const {

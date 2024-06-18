@@ -44,7 +44,7 @@ public:
 
     void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry);
     void logDropCatalogEntryRecord(uint64_t entryID, catalog::CatalogEntryType type);
-    void logAlterTableEntryRecord(const binder::BoundAlterInfo& alterInfo);
+    void logAlterTableEntryRecord(binder::BoundAlterInfo* alterInfo);
 
     void logCopyTableRecord(common::table_id_t tableID);
 
