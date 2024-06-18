@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "common/assert.h"
+#include "common/numeric_utils.h"
 #include "common/types/int128_t.h"
 
 namespace kuzu {
@@ -48,6 +49,11 @@ std::vector<T> copyVector(const std::vector<T>& objects) {
         result.push_back(object->copy());
     }
     return result;
+}
+
+template<numeric_utils::IsIntegral T>
+inline T ceilDiv(T a, T b) {
+    return a / b + (a % b != 0);
 }
 
 } // namespace common

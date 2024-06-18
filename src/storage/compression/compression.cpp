@@ -13,6 +13,7 @@
 #include "common/types/internal_id_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
+#include "common/utils.h"
 #include "common/vector/value_vector.h"
 #include "fastpfor/bitpackinghelpers.h"
 #include "storage/compression/bitpacking_int128.h"
@@ -484,19 +485,50 @@ template<IntegerBitpackingType T>
 void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uint8_t* dst,
     uint8_t numValuesToRead, const BitpackInfo<T>& header) const {
     // TODO(bmwinger): optimize as in setValueFromUncompressed
-    KU_ASSERT(pos + numValuesToRead <= CHUNK_SIZE);
+    const size_t maxReadIndex = pos + numValuesToRead;
+    KU_ASSERT(maxReadIndex <= CHUNK_SIZE);
+
+    const size_t firstByteIndexInCompressed = pos * header.bitWidth / 8;
+    const size_t lastByteIndexInCompressed = ceilDiv<size_t>(maxReadIndex * header.bitWidth, 8);
+
+    // we don't need to zero out the array as we memcpy into the only regions we care about
+    uint8_t inChunk[CHUNK_SIZE * sizeof(U)];
+    memcpy(inChunk + firstByteIndexInCompressed, chunkStart + firstByteIndexInCompressed,
+        lastByteIndexInCompressed - firstByteIndexInCompressed);
 
     U chunk[CHUNK_SIZE];
-    fastunpack(chunkStart, chunk, header.bitWidth);
+    fastunpack((uint8_t*)inChunk, chunk, header.bitWidth);
     if (header.hasNegative && header.bitWidth > 0) {
         SignExtend<T, U, CHUNK_SIZE>((uint8_t*)chunk, header.bitWidth);
     }
     if (header.offset != 0) {
-        for (int i = pos; i < pos + numValuesToRead; i++) {
+        for (size_t i = pos; i < maxReadIndex; i++) {
             chunk[i] = (U)((T)chunk[i] + (T)header.offset);
         }
     }
     memcpy(dst, &chunk[pos], sizeof(T) * numValuesToRead);
+}
+
+template<IntegerBitpackingType T>
+template<bool offsetNonZero>
+void IntegerBitpacking<T>::packPartialChunk(U* srcBuffer, uint8_t* dstBuffer, BitpackInfo<T> info,
+    size_t remainingValues) const {
+    if constexpr (offsetNonZero) {
+        for (auto i = 0u; i < remainingValues; i++) {
+            srcBuffer[i] = (U)((T)srcBuffer[i] - info.offset);
+        }
+        memset(srcBuffer + remainingValues, 0, CHUNK_SIZE - remainingValues);
+    }
+
+    const auto bitWidth = info.bitWidth;
+    const size_t outSize = ceilDiv<size_t>(remainingValues * bitWidth, 8);
+    uint8_t outChunk[CHUNK_SIZE * sizeof(U) / sizeof(uint8_t)];
+    KU_ASSERT(outSize >= 1 && outSize <= CHUNK_SIZE * sizeof(U));
+    outChunk[outSize - 1] = 0;
+
+    fastpack(srcBuffer, outChunk, bitWidth);
+
+    memcpy(dstBuffer, outChunk, outSize);
 }
 
 template<IntegerBitpackingType T>
@@ -533,9 +565,11 @@ uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
         if (numValuesToCompress % CHUNK_SIZE > 0) {
             // TODO(bmwinger): optimize to remove temporary array
             U chunk[CHUNK_SIZE] = {0};
-            memcpy(chunk, (const U*)srcBuffer + lastFullChunkEnd,
-                numValuesToCompress % CHUNK_SIZE * sizeof(U));
-            fastpack(chunk, dstBuffer + lastFullChunkEnd * bitWidth / 8, bitWidth);
+            const size_t remainingNumValues = numValuesToCompress % CHUNK_SIZE;
+            memcpy(chunk, (const U*)srcBuffer + lastFullChunkEnd, remainingNumValues * sizeof(U));
+
+            packPartialChunk<false>(chunk, dstBuffer + lastFullChunkEnd * bitWidth / 8, info,
+                remainingNumValues);
         }
     } else {
         U tmp[CHUNK_SIZE];
@@ -550,11 +584,9 @@ uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
         auto remainingValues = numValuesToCompress % CHUNK_SIZE;
         if (remainingValues > 0) {
             memcpy(tmp, (const U*)srcBuffer + lastFullChunkEnd, remainingValues * sizeof(U));
-            for (auto i = 0u; i < remainingValues; i++) {
-                tmp[i] = (U)((T)tmp[i] - info.offset);
-            }
-            memset(tmp + remainingValues, 0, CHUNK_SIZE - remainingValues);
-            fastpack(tmp, dstBuffer + lastFullChunkEnd * bitWidth / 8, bitWidth);
+
+            packPartialChunk<true>(tmp, dstBuffer + lastFullChunkEnd * bitWidth / 8, info,
+                remainingValues);
         }
     }
     srcBuffer += numValuesToCompress * sizeof(U);
