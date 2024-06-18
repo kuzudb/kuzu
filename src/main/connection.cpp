@@ -39,7 +39,8 @@ std::unique_ptr<QueryResult> Connection::query(std::string_view queryStatement) 
     return clientContext->query(queryStatement);
 }
 
-std::unique_ptr<QueryResult> Connection::queryWithId(std::string_view queryStatement, std::string id) {
+std::unique_ptr<QueryResult> Connection::queryWithId(std::string_view queryStatement,
+    std::string id) {
     return clientContext->query(queryStatement, id);
 }
 
@@ -75,7 +76,8 @@ std::unique_ptr<QueryResult> Connection::executeWithParams(PreparedStatement* pr
     return clientContext->executeWithParams(preparedStatement, std::move(inputParams));
 }
 
-std::unique_ptr<QueryResult> Connection::executeWithParamsWithId(PreparedStatement* preparedStatement,
+std::unique_ptr<QueryResult> Connection::executeWithParamsWithId(
+    PreparedStatement* preparedStatement,
     std::unordered_map<std::string, std::unique_ptr<Value>> inputParams, std::string id) {
     return clientContext->executeWithParams(preparedStatement, std::move(inputParams), id);
 }

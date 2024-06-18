@@ -2,12 +2,12 @@
 
 #include <utility>
 
+#include "common/types/uuid.h"
 #include "main/kuzu.h"
 #include "node_database.h"
 #include "node_prepared_statement.h"
 #include "node_progress_bar_display.h"
 #include "node_query_result.h"
-#include "common/types/uuid.h"
 #include <napi.h>
 
 using namespace kuzu::main;
@@ -91,7 +91,9 @@ public:
             progressBar->toggleProgressBarPrinting(true);
         }
         try {
-            auto result = connection->executeWithParamsWithId(preparedStatement.get(), std::move(params), id).release();
+            auto result =
+                connection->executeWithParamsWithId(preparedStatement.get(), std::move(params), id)
+                    .release();
             nodeQueryResult->SetQueryResult(result, true);
             if (!result->isSuccess()) {
                 SetError(result->getErrorMessage());
@@ -102,8 +104,8 @@ public:
         if (progressCallback) {
             progressCallback->Release();
             if (nodeDisplay->getNumCallbacks() == 0) {
-				progressBar->toggleProgressBarPrinting(trackProgress);
-			}
+                progressBar->toggleProgressBarPrinting(trackProgress);
+            }
         }
     }
 

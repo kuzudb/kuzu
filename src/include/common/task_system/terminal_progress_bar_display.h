@@ -12,7 +12,8 @@ namespace common {
  */
 class TerminalProgressBarDisplay final : public ProgressBarDisplay {
 public:
-    void updateProgress(std::string id, double newPipelineProgress, uint32_t newNumPipelinesFinished) override;
+    void updateProgress(std::string id, double newPipelineProgress,
+        uint32_t newNumPipelinesFinished) override;
 
     void finishProgress(std::string id) override;
 

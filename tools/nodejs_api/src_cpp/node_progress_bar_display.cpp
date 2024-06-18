@@ -10,16 +10,18 @@ void NodeProgressBarDisplay::updateProgress(std::string id, double newPipelinePr
     }
     uint32_t curPipelineProgress = (uint32_t)(newPipelineProgress * 100.0);
     uint32_t oldPipelineProgress = (uint32_t)(pipelineProgress * 100.0);
-    if (curPipelineProgress > oldPipelineProgress || newNumPipelinesFinished > numPipelinesFinished) {
+    if (curPipelineProgress > oldPipelineProgress ||
+        newNumPipelinesFinished > numPipelinesFinished) {
         pipelineProgress = newPipelineProgress;
         numPipelinesFinished = newNumPipelinesFinished;
         auto callback = queryCallbacks.find(id);
         if (callback != queryCallbacks.end()) {
-            callback->second.callback.BlockingCall([this, callback](Napi::Env env, Napi::Function jsCallback) {
-                jsCallback.Call({Napi::Number::New(callback->second.env, pipelineProgress),
-                    Napi::Number::New(callback->second.env, numPipelinesFinished),
-                    Napi::Number::New(callback->second.env, numPipelines)});
-            });
+            callback->second.callback.BlockingCall(
+                [this, callback](Napi::Env env, Napi::Function jsCallback) {
+                    jsCallback.Call({Napi::Number::New(callback->second.env, pipelineProgress),
+                        Napi::Number::New(callback->second.env, numPipelinesFinished),
+                        Napi::Number::New(callback->second.env, numPipelines)});
+                });
         } else {
             printProgressBar();
         }
@@ -38,7 +40,8 @@ void NodeProgressBarDisplay::finishProgress(std::string id) {
     queryCallbacks.erase(id);
 }
 
-void NodeProgressBarDisplay::setCallbackFunction(std::string id, Napi::ThreadSafeFunction callback, Napi::Env env) {
+void NodeProgressBarDisplay::setCallbackFunction(std::string id, Napi::ThreadSafeFunction callback,
+    Napi::Env env) {
     queryCallbacks.emplace(id, callbackFunction{callback, env});
 }
 

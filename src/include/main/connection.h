@@ -78,7 +78,8 @@ public:
         std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams);
 
     std::unique_ptr<QueryResult> executeWithParamsWithId(PreparedStatement* preparedStatement,
-        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams, std::string id);
+        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams,
+        std::string id);
     /**
      * @brief interrupts all queries currently executing within this connection.
      */

@@ -266,7 +266,8 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareTest(std::string_view q
 }
 
 std::unique_ptr<QueryResult> ClientContext::query(std::string_view queryStatement, std::string id) {
-    return query(queryStatement, std::string_view() /*encodedJoin*/, false /*enumerateAllPlans */, id);
+    return query(queryStatement, std::string_view() /*encodedJoin*/, false /*enumerateAllPlans */,
+        id);
 }
 
 std::unique_ptr<QueryResult> ClientContext::query(std::string_view query,
@@ -417,9 +418,9 @@ void ClientContext::cleanUP() {
 }
 
 std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement* preparedStatement,
-    std::unordered_map<std::string, std::unique_ptr<Value>>
-        inputParams, std::string id) { // NOLINT(performance-unnecessary-value-param): It doesn't make sense to pass
-                       // the map as a const reference.
+    std::unordered_map<std::string, std::unique_ptr<Value>> inputParams,
+    std::string id) { // NOLINT(performance-unnecessary-value-param): It doesn't make sense to pass
+                      // the map as a const reference.
     lock_t lck{mtx};
     if (!preparedStatement->isSuccess()) {
         return queryResultWithError(preparedStatement->errMsg);

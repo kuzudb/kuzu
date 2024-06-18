@@ -185,7 +185,8 @@ bool PhysicalOperator::getNextTuple(ExecutionContext* context) {
     }
     metrics->executionTime.start();
     auto result = getNextTuplesInternal(context);
-    context->clientContext->getProgressBar()->updateProgress(context->queryId, getProgress(context));
+    context->clientContext->getProgressBar()->updateProgress(context->queryId,
+        getProgress(context));
     metrics->executionTime.stop();
     return result;
 }

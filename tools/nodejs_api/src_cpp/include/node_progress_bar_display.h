@@ -1,10 +1,11 @@
 #pragma once
 
+#include <optional>
+#include <unordered_set>
+
 #include "common/task_system/progress_bar_display.h"
 #include "common/task_system/terminal_progress_bar_display.h"
 #include <napi.h>
-#include <optional>
-#include <unordered_set>
 
 using namespace kuzu;
 using namespace common;
@@ -14,7 +15,8 @@ using namespace common;
  */
 class NodeProgressBarDisplay : public ProgressBarDisplay {
 public:
-    void updateProgress(std::string id, double newPipelineProgress, uint32_t newNumPipelinesFinished) override;
+    void updateProgress(std::string id, double newPipelineProgress,
+        uint32_t newNumPipelinesFinished) override;
 
     void finishProgress(std::string id) override;
 
@@ -27,9 +29,9 @@ private:
 
 private:
     struct callbackFunction {
-		Napi::ThreadSafeFunction callback;
-		Napi::Env env;
-	};
+        Napi::ThreadSafeFunction callback;
+        Napi::Env env;
+    };
 
     bool printing = false;
     std::unordered_map<std::string, callbackFunction> queryCallbacks;
