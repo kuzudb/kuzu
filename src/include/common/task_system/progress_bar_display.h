@@ -23,9 +23,7 @@ public:
     // Finish the progress display
     virtual void finishProgress(std::string id) = 0;
 
-    void setNumPipelines(uint32_t newNumPipelines) {
-        numPipelines = newNumPipelines;
-    };
+    void setNumPipelines(uint32_t newNumPipelines) { numPipelines = newNumPipelines; };
 
 protected:
     double pipelineProgress;
