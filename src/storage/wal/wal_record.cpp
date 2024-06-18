@@ -225,7 +225,8 @@ std::unique_ptr<AlterTableEntryRecord> AlterTableEntryRecord::deserialize(
     }
     }
     auto retval = std::make_unique<AlterTableEntryRecord>();
-    retval->ownedAlterInfo = std::make_unique<BoundAlterInfo>(alterType, tableName, tableID, std::move(extraInfo));
+    retval->ownedAlterInfo =
+        std::make_unique<BoundAlterInfo>(alterType, tableName, tableID, std::move(extraInfo));
     return retval;
 }
 
