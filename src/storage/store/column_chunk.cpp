@@ -357,6 +357,7 @@ void ColumnChunkData::copy(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
     KU_ASSERT(srcChunk->dataType.getPhysicalType() == dataType.getPhysicalType());
     KU_ASSERT(dstOffsetInChunk >= numValues);
+    KU_ASSERT(dstOffsetInChunk < capacity);
     while (numValues < dstOffsetInChunk) {
         nullChunk->setNull(numValues, true);
         numValues++;

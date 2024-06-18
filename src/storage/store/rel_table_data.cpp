@@ -122,7 +122,7 @@ PackedCSRRegion::PackedCSRRegion(idx_t regionIdx, idx_t level)
 }
 
 bool PackedCSRRegion::isWithin(const PackedCSRRegion& other) const {
-    if (other.level >= level) {
+    if (other.level <= level) {
         return false;
     }
     auto [left, right] = getSegmentBoundaries();
@@ -574,7 +574,7 @@ std::vector<PackedCSRRegion> RelTableData::findRegions(const ChunkedCSRHeader& h
         PackedCSRRegion region{segmentIdx, 0 /* level */};
         while (!isWithinDensityBound(headerChunks, localState.sizeChangesPerSegment, region)) {
             region = upgradeLevel(region);
-            if (region.level > packedCSRInfo.calibratorTreeHeight) {
+            if (region.level >= packedCSRInfo.calibratorTreeHeight) {
                 // Already hit the top level. Skip any other segments and directly return here.
                 return {region};
             }
@@ -999,7 +999,7 @@ void RelTableData::commitCSRHeaderChunk(Transaction* transaction, bool isNewNode
 
 void RelTableData::distributeOffsets(const ChunkedCSRHeader& header, LocalState& localState,
     offset_t leftBoundary, offset_t rightBoundary) const {
-    if (localState.region.level > packedCSRInfo.calibratorTreeHeight) {
+    if (localState.region.level >= packedCSRInfo.calibratorTreeHeight) {
         // Need to resize the capacity and reset regionToDistribute to the top level one.
         localState.region =
             PackedCSRRegion{0, static_cast<idx_t>(packedCSRInfo.calibratorTreeHeight)};
@@ -1012,6 +1012,7 @@ void RelTableData::distributeOffsets(const ChunkedCSRHeader& header, LocalState&
             getNewRegionSize(header, localState.sizeChangesPerSegment, localState.region);
         localState.regionCapacity = getRegionCapacity(header, localState.region);
     }
+    KU_ASSERT(localState.regionSize <= localState.regionCapacity);
     auto gapSpace = localState.regionCapacity - localState.regionSize;
     double gapRatio = divideNoRoundUp(gapSpace, localState.regionCapacity);
     auto& newHeader = localState.header;
