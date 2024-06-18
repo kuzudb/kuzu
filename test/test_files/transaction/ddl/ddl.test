@@ -185,7 +185,7 @@ Study at information
 ---- 1
 
 
-# TODO(FIX-ME): Function write status check
+# TODO(issue #3502): Function write status check
 -CASE SequenceReadTrxError
 -SKIP
 -STATEMENT CREATE SEQUENCE before;
