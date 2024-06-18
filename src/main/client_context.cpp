@@ -169,6 +169,10 @@ std::string ClientContext::getDatabasePath() const {
     return localDatabase->databasePath;
 }
 
+TaskScheduler* ClientContext::getTaskScheduler() const {
+    return localDatabase->queryProcessor->getTaskScheduler();
+}
+
 DatabaseManager* ClientContext::getDatabaseManager() const {
     return localDatabase->databaseManager.get();
 }

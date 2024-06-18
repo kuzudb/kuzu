@@ -155,7 +155,7 @@ public:
         localState = std::make_unique<VariableLengthPathLocalState>(context);
     }
 
-    void exec() override {
+    void exec(processor::ExecutionContext* executionContext) override {
         auto extraData = bindData->ptrCast<VariableLengthPathBindData>();
         auto variableLengthPathLocalState = localState->ptrCast<VariableLengthPathLocalState>();
         auto graph = sharedState->graph.get();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "function/gds/gds.h"
+#include "function/gds/parallel_utils.h"
 #include "graph/graph.h"
 #include "processor/operator/mask.h"
 #include "processor/operator/sink.h"
@@ -24,7 +25,8 @@ struct GDSCallSharedState {
 struct GDSCallInfo {
     std::unique_ptr<function::GDSAlgorithm> gds;
 
-    explicit GDSCallInfo(std::unique_ptr<function::GDSAlgorithm> gds) : gds{std::move(gds)} {}
+    explicit GDSCallInfo(std::unique_ptr<function::GDSAlgorithm> gds)
+        : gds{std::move(gds)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(GDSCallInfo);
 
 private:
@@ -50,7 +52,7 @@ public:
 
     void initLocalStateInternal(ResultSet*, ExecutionContext*) override;
 
-    void executeInternal(ExecutionContext* context) override;
+    void executeInternal(ExecutionContext* executionContext) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<GDSCall>(resultSetDescriptor->copy(), info.copy(), sharedState, id,

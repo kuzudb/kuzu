@@ -23,6 +23,12 @@ struct ShortestPathsFunction {
     static function_set getFunctionSet();
 };
 
+struct ParShortestPathsFunction {
+    static constexpr const char* name = "PAR_SHORTEST_PATH";
+
+    static function_set getFunctionSet();
+};
+
 struct PageRankFunction {
     static constexpr const char* name = "PAGE_RANK";
 

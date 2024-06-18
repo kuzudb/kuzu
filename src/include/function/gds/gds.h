@@ -7,14 +7,21 @@ namespace kuzu {
 namespace binder {
 class Binder;
 }
+namespace common {
+class TaskScheduler;
+}
 namespace main {
 class ClientContext;
 }
 namespace processor {
 struct GDSCallSharedState;
 class FactorizedTable;
+class ExecutionContext;
 } // namespace processor
+
 namespace function {
+
+class ParallelUtils;
 
 // Struct maintaining GDS specific information that needs to be obtained at compile time.
 struct GDSBindData {
@@ -78,7 +85,14 @@ public:
 
     void init(processor::GDSCallSharedState* sharedState, main::ClientContext* context);
 
-    virtual void exec() = 0;
+    // GDSAlgorithm implementations, when executing their algorithms, can generate additional
+    // operators and use the TaskScheduler to create and execute new pipelines. These pipelines
+    // consist of a single operator for now. We need to pass the TaskScheduler and a second
+    // operatorID to use in those additional operators.
+    void setTaskSchedulerAndOperatorIDForParallelization(common::TaskScheduler* taskScheduler,
+        uint32_t operatorID);
+
+    virtual void exec(processor::ExecutionContext* executionContext) = 0;
 
     // TODO: We should get rid of this copy interface (e.g. using stateless design) or at least make
     // sure the fields that cannot be copied, such as graph or factorized table and localState, are
@@ -92,6 +106,7 @@ protected:
 
 protected:
     std::unique_ptr<GDSBindData> bindData;
+    std::shared_ptr<ParallelUtils> parallelUtils;
     processor::GDSCallSharedState* sharedState;
     std::unique_ptr<GDSLocalState> localState;
 };

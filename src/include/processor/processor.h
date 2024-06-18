@@ -12,6 +12,10 @@ class QueryProcessor {
 public:
     explicit QueryProcessor(uint64_t numThreads);
 
+    inline common::TaskScheduler* getTaskScheduler() {
+        return taskScheduler.get();
+    }
+
     std::shared_ptr<FactorizedTable> execute(PhysicalPlan* physicalPlan, ExecutionContext* context);
 
 private:

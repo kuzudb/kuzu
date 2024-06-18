@@ -2,6 +2,8 @@ add_library(kuzu_function_algorithm
         OBJECT
         gds.cpp
         page_rank.cpp
+        par_shortest_paths.cpp
+        parallel_utils.cpp
         shortest_paths.cpp
         variable_length_paths.cpp
         weakly_connected_components.cpp)

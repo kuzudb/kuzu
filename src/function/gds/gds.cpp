@@ -1,6 +1,7 @@
 #include "function/gds/gds.h"
 
 #include "binder/binder.h"
+#include "function/gds/parallel_utils.h"
 #include "processor/operator/gds_call.h"
 
 using namespace kuzu::binder;
@@ -20,6 +21,11 @@ std::shared_ptr<Expression> GDSAlgorithm::bindNodeOutput(Binder* binder, GraphEn
     auto node = binder->createQueryNode(NODE_COLUMN_NAME, graphEntry.nodeTableIDs);
     binder->addToScope(NODE_COLUMN_NAME, node);
     return node;
+}
+
+void GDSAlgorithm::setTaskSchedulerAndOperatorIDForParallelization(common::TaskScheduler* taskScheduler,
+    uint32_t operatorID) {
+    parallelUtils = std::make_shared<ParallelUtils>(taskScheduler, operatorID);
 }
 
 } // namespace function

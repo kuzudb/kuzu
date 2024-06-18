@@ -1,10 +1,13 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "function/gds_function.h"
 #include "function/gds/frontier.h"
 #include "function/gds/gds_function_collection.h"
-#include "function/gds_function.h"
+#include "function/gds/parallel_utils.h"
 #include "processor/operator/gds_call.h"
 #include "processor/result/factorized_table.h"
+// TODO(Semih): Remove
+#include <iostream>
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -15,26 +18,26 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-struct ShortestPathBindData final : public GDSBindData {
+struct ParShortestPathBindData final : public GDSBindData {
     std::shared_ptr<Expression> nodeInput;
     uint8_t upperBound;
 
-    ShortestPathBindData(std::shared_ptr<Expression> nodeInput,
+    ParShortestPathBindData(std::shared_ptr<Expression> nodeInput,
         std::shared_ptr<Expression> nodeOutput, bool outputAsNode, uint8_t upperBound)
         : GDSBindData{std::move(nodeOutput), outputAsNode}, nodeInput{std::move(nodeInput)},
           upperBound{upperBound} {}
-    ShortestPathBindData(const ShortestPathBindData& other)
+    ParShortestPathBindData(const ParShortestPathBindData& other)
         : GDSBindData{other}, nodeInput{other.nodeInput}, upperBound{other.upperBound} {}
 
     bool hasNodeInput() const override { return true; }
     std::shared_ptr<binder::Expression> getNodeInput() const override { return nodeInput; }
 
     std::unique_ptr<GDSBindData> copy() const override {
-        return std::make_unique<ShortestPathBindData>(*this);
+        return std::make_unique<ParShortestPathBindData>(*this);
     }
 };
 
-struct ShortestPathSourceState {
+struct ParShortestPathSourceState {
     nodeID_t sourceNodeID;
     Frontier currentFrontier;
     Frontier nextFrontier;
@@ -43,7 +46,7 @@ struct ShortestPathSourceState {
     common::offset_t numVisited = 0;
     common::node_id_map_t<int64_t> visitedMap;
 
-    explicit ShortestPathSourceState(nodeID_t sourceNodeID, common::offset_t totalNumNodes)
+    explicit ParShortestPathSourceState(nodeID_t sourceNodeID, common::offset_t totalNumNodes)
         : sourceNodeID{sourceNodeID}, totalNumNodes{totalNumNodes} {
         currentFrontier = Frontier();
         currentFrontier.addNode(sourceNodeID, 1 /* multiplicity */);
@@ -63,13 +66,13 @@ struct ShortestPathSourceState {
     }
 };
 
-class ShortestPathLocalState : public GDSLocalState {
+class ParShortestPathLocalState : public GDSLocalState {
 public:
-    explicit ShortestPathLocalState(main::ClientContext* context) {
+    explicit ParShortestPathLocalState(main::ClientContext* context) {
         auto mm = context->getMemoryManager();
-        srcNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
-        dstNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
-        lengthVector = std::make_unique<ValueVector>(LogicalType::INT64(), mm);
+        srcNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
+        dstNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
+        lengthVector = std::make_unique<ValueVector>(*LogicalType::INT64(), mm);
         srcNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
         dstNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
         lengthVector->state = DataChunkState::getSingleValueDataChunkState();
@@ -78,7 +81,7 @@ public:
         vectors.push_back(lengthVector.get());
     }
 
-    void materialize(const ShortestPathSourceState& sourceState,
+    void materialize(const ParShortestPathSourceState& sourceState,
         processor::FactorizedTable& table) const {
         srcNodeIDVector->setValue<nodeID_t>(0, sourceState.sourceNodeID);
         for (auto [dstNodeID, length] : sourceState.visitedMap) {
@@ -95,12 +98,12 @@ private:
     std::vector<ValueVector*> vectors;
 };
 
-class ShortestPath final : public GDSAlgorithm {
+class ParShortestPath final : public GDSAlgorithm {
     static constexpr char LENGTH_COLUMN_NAME[] = "length";
 
 public:
-    ShortestPath() = default;
-    ShortestPath(const ShortestPath& other) : GDSAlgorithm{other} {}
+    ParShortestPath() = default;
+    ParShortestPath(const ParShortestPath& other) : GDSAlgorithm{other} {}
 
     /*
      * Inputs are
@@ -127,7 +130,7 @@ public:
         columns.push_back(inputNode.getInternalID());
         auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
         columns.push_back(outputNode.getInternalID());
-        columns.push_back(binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::INT64()));
+        columns.push_back(binder->createVariable(LENGTH_COLUMN_NAME, *LogicalType::INT64()));
         return columns;
     }
 
@@ -137,17 +140,19 @@ public:
         auto nodeOutput = bindNodeOutput(binder, graphEntry);
         auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[2]);
         auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[3]);
-        bindData = std::make_unique<ShortestPathBindData>(nodeInput, nodeOutput, outputProperty,
+        bindData = std::make_unique<ParShortestPathBindData>(nodeInput, nodeOutput, outputProperty,
             upperBound);
     }
 
     void initLocalState(main::ClientContext* context) override {
-        localState = std::make_unique<ShortestPathLocalState>(context);
+        localState = std::make_unique<ParShortestPathLocalState>(context);
     }
 
     void exec(processor::ExecutionContext* executionContext) override {
-        auto extraData = bindData->ptrCast<ShortestPathBindData>();
-        auto shortestPathLocalState = localState->ptrCast<ShortestPathLocalState>();
+        std::cout << "ParShortestPath::exec() called!" << std::endl;
+        uint64_t count = 20000000;
+        parallelUtils->countParallel(executionContext, count);
+        std::cout << "Finished Counting In parallel to " << count << std::endl;
         auto graph = sharedState->graph.get();
         for (auto& tableID : graph->getNodeTableIDs()) {
             if (!sharedState->inputNodeOffsetMasks.contains(tableID)) {
@@ -155,13 +160,13 @@ public:
             }
             auto mask = sharedState->inputNodeOffsetMasks.at(tableID).get();
             for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
-                if (!mask->isMasked(offset)) {
+                if (!mask->isNodeMasked(offset)) {
                     continue;
                 }
                 auto sourceNodeID = nodeID_t{offset, tableID};
-                auto sourceState = ShortestPathSourceState(sourceNodeID, graph->getNumNodes());
+                auto sourceState = ParShortestPathSourceState(sourceNodeID, graph->getNumNodes());
                 // Start recursive computation for current source node ID.
-                for (auto currentLevel = 0; currentLevel <= extraData->upperBound; ++currentLevel) {
+                for (auto currentLevel = 0; currentLevel <= bindData->ptrCast<ParShortestPathBindData>()->upperBound; ++currentLevel) {
                     if (sourceState.allVisited()) {
                         continue;
                     }
@@ -178,19 +183,19 @@ public:
                     }
                     sourceState.initNextFrontier();
                 };
-                shortestPathLocalState->materialize(sourceState, *sharedState->fTable);
+                localState->ptrCast<ParShortestPathLocalState>()->materialize(sourceState, *sharedState->fTable);
             }
         }
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
-        return std::make_unique<ShortestPath>(*this);
+        return std::make_unique<ParShortestPath>(*this);
     }
 };
 
-function_set ShortestPathsFunction::getFunctionSet() {
+function_set ParShortestPathsFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(name, std::make_unique<ShortestPath>());
+    auto function = std::make_unique<GDSFunction>(name, std::make_unique<ParShortestPath>());
     result.push_back(std::move(function));
     return result;
 }
