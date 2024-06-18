@@ -265,12 +265,13 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) {
         *alterEntryRecord.ownedAlterInfo);
     if (alterEntryRecord.ownedAlterInfo->alterType == common::AlterType::ADD_PROPERTY) {
         auto exprBinder = binder.getExpressionBinder();
-        auto addInfo = alterEntryRecord.ownedAlterInfo->extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
+        auto addInfo =
+            alterEntryRecord.ownedAlterInfo->extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
         // We don't implicit cast here since it must already be done the first time
         auto boundDefault = exprBinder->bindExpression(*addInfo->defaultValue);
         auto defaultValueEvaluator = ExpressionMapper::getEvaluator(boundDefault, nullptr);
-        auto schema = clientContext.getCatalog()->getTableCatalogEntry(
-            &DUMMY_WRITE_TRANSACTION, alterEntryRecord.ownedAlterInfo->tableID);
+        auto schema = clientContext.getCatalog()->getTableCatalogEntry(&DUMMY_WRITE_TRANSACTION,
+            alterEntryRecord.ownedAlterInfo->tableID);
         auto addedPropID = schema->getPropertyID(addInfo->propertyName);
         auto addedProp = schema->getProperty(addedPropID);
         if (clientContext.getStorageManager()) {
