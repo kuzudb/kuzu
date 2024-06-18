@@ -17,7 +17,7 @@ void NodeProgressBarDisplay::updateProgress(std::string id, double newPipelinePr
         auto callback = queryCallbacks.find(id);
         if (callback != queryCallbacks.end()) {
             callback->second.callback.BlockingCall(
-                [this, callback](Napi::Env env, Napi::Function jsCallback) {
+                [this, callback](Napi::Env /*env*/, Napi::Function jsCallback) {
                     jsCallback.Call({Napi::Number::New(callback->second.env, pipelineProgress),
                         Napi::Number::New(callback->second.env, numPipelinesFinished),
                         Napi::Number::New(callback->second.env, numPipelines)});
