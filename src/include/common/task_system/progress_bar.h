@@ -21,7 +21,7 @@ public:
 
     static std::shared_ptr<ProgressBarDisplay> DefaultProgressBarDisplay();
 
-    void addPipeline(std::string id);
+    void addPipeline();
 
     void finishPipeline(std::string id);
 

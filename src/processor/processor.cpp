@@ -34,7 +34,7 @@ std::shared_ptr<FactorizedTable> QueryProcessor::execute(PhysicalPlan* physicalP
 void QueryProcessor::decomposePlanIntoTask(PhysicalOperator* op, Task* task,
     ExecutionContext* context) {
     if (op->isSource()) {
-        context->clientContext->getProgressBar()->addPipeline(context->queryId);
+        context->clientContext->getProgressBar()->addPipeline();
     }
     if (op->isSink()) {
         auto childTask =

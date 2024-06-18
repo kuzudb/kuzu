@@ -36,7 +36,7 @@ void ProgressBar::endProgress(std::string id) {
     resetProgressBar(id);
 }
 
-void ProgressBar::addPipeline(std::string id) {
+void ProgressBar::addPipeline() {
     if (!trackProgress) {
         return;
     }
