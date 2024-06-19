@@ -118,8 +118,7 @@ public:
     /*
      * This will be main function for logic, doing frontier extension and updating state.
      */
-    static uint64_t extendFrontierFunc(std::shared_ptr<GDSCallSharedState>& sharedState,
-        GDSLocalState* localState) {
+    static uint64_t extendFrontierFunc(GDSCallSharedState* sharedState, GDSLocalState* localState) {
         auto& graph = sharedState->graph;
         auto shortestPathLocalState =
             common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState);
@@ -146,7 +145,7 @@ public:
         return UINT64_MAX; // returning UINT64_MAX to indicate to thread it should continue executing
     }
 
-    static uint64_t shortestPathOutputFunc(std::shared_ptr<GDSCallSharedState>& sharedState,
+    static uint64_t shortestPathOutputFunc(GDSCallSharedState* sharedState,
         GDSLocalState* localState) {
         auto ifeMorsel = sharedState->ifeMorsel;
         auto morsel = ifeMorsel->getDstWriteMorsel(DEFAULT_VECTOR_CAPACITY);
@@ -190,10 +189,10 @@ public:
             }
             ifeMorsel->initSourceNoLock(offset);
             while (!ifeMorsel->isCompleteNoLock()) {
-                parallelUtils->doParallel(executionContext, extendFrontierFunc);
+                parallelUtils->doParallel(executionContext, this, sharedState, extendFrontierFunc);
                 ifeMorsel->initializeNextFrontierNoLock();
             }
-            parallelUtils->doParallel(executionContext, shortestPathOutputFunc);
+            parallelUtils->doParallel(executionContext, this, sharedState, shortestPathOutputFunc);
         }
     }
 

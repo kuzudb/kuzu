@@ -13,7 +13,7 @@ add_subdirectory(macro)
 add_library(kuzu_processor_operator
         OBJECT
         gds_call.cpp
-        gds_call_worker.cpp
+        parallel_utils_operator.cpp
         comment_on.cpp
         cross_product.cpp
         csr_index_build.cpp

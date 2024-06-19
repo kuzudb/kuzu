@@ -31,6 +31,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::GDS_CALL: {
         physicalOperator = mapGDSCall(logicalOperator);
     } break;
+    case LogicalOperatorType::CSR_INDEX_BUILD: {
+        physicalOperator = mapCSRIndexBuild(logicalOperator);
+    } break;
     case LogicalOperatorType::SCAN_FILE: {
         physicalOperator = mapScanFile(logicalOperator);
     } break;

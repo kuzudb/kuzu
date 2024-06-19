@@ -2,6 +2,7 @@
 
 #include "processor/operator/physical_operator.h"
 #include "processor/operator/sink.h"
+#include "storage/store/rel_table.h"
 
 namespace kuzu {
 namespace processor {
@@ -92,6 +93,12 @@ private:
     common::table_id_t commonEdgeTableID;
     std::shared_ptr<CSRIndexSharedState> csrSharedState;
     // std::shared_ptr<storage::ListHeaders> adjListHeaders; // used for finding degree of morsel
+
+    storage::RelTable* relTable;
+    static constexpr common::RelDataDirection direction = common::RelDataDirection::FWD;
+    std::vector<common::column_id_t> columnIDs;
+    uint64_t prevNodeGroupIdx;
+    std::unique_ptr<storage::RelTableScanState> fwdReadState;
 
     DataPos boundNodeVectorPos;           // constructor
     common::ValueVector* boundNodeVector; // initLocalStateInternal

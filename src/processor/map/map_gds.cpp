@@ -1,5 +1,5 @@
-#include "function/gds/parallel_utils.h"
 #include "binder/expression/node_expression.h"
+#include "function/gds/parallel_utils.h"
 #include "graph/on_disk_graph.h"
 #include "planner/operator/logical_gds_call.h"
 #include "processor/operator/gds_call.h"
@@ -52,14 +52,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     }
     auto sharedState =
         std::make_shared<GDSCallSharedState>(table, std::move(graph), std::move(mask));
-    auto parallelUtils = std::make_shared<ParallelUtils>(info.copy(), sharedState,
-        std::make_unique<ResultSetDescriptor>(outSchema), getOperatorID(),
-        clientContext->getTaskScheduler(), call.getExpressionsForPrinting());
+    auto parallelUtils =
+        std::make_shared<ParallelUtils>(getOperatorID(), clientContext->getTaskScheduler());
     info.gds->setParallelUtils(parallelUtils);
     auto algorithm = std::make_unique<GDSCall>(std::make_unique<ResultSetDescriptor>(),
         std::move(info), sharedState, getOperatorID(), call.getExpressionsForPrinting());
-    return createFTableScanAligned(columns, outSchema, table, 1u,
-        std::move(algorithm));
+    return createFTableScanAligned(columns, outSchema, table, 1u, std::move(algorithm));
 }
 
 } // namespace processor

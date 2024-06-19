@@ -9,21 +9,19 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace function {
 
-ParallelUtils::ParallelUtils(GDSCallInfo info,
-    std::shared_ptr<GDSCallSharedState> sharedState,
-    std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, uint32_t operatorID,
-    common::TaskScheduler* scheduler, std::string expressions) {
+ParallelUtils::ParallelUtils(uint32_t operatorID_, common::TaskScheduler* scheduler) {
     taskScheduler = scheduler;
-    gdsCallWorker = std::make_unique<GDSCallWorker>(std::move(info), sharedState,
-        std::move(resultSetDescriptor), operatorID, expressions);
+    operatorID = operatorID_;
 }
 
-void ParallelUtils::doParallel(ExecutionContext* executionContext, gds_algofunc_t gdsAlgoFunc) {
-    gdsCallWorker->setFuncToExecute(gdsAlgoFunc);
-    auto task = std::make_shared<ProcessorTask>(gdsCallWorker.get(), executionContext);
+void ParallelUtils::doParallel(ExecutionContext* executionContext, GDSAlgorithm* gdsAlgorithm,
+    GDSCallSharedState *gdsCallSharedState, gds_algofunc_t gdsAlgoFunc) {
+    auto parallelUtilsOp = std::make_unique<ParallelUtilsOperator>(gdsAlgorithm->copy(),
+        gdsAlgoFunc, gdsCallSharedState, operatorID, "");
+    auto task = std::make_shared<ProcessorTask>(parallelUtilsOp.get(), executionContext);
     task->setSharedStateInitialized();
     taskScheduler->scheduleTaskAndWaitOrError(task, executionContext);
 }
 
-} // namespace graph
+} // namespace function
 } // namespace kuzu

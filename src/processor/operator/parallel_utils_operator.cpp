@@ -1,24 +1,23 @@
-#include "processor/operator/gds_call_worker.h"
-
+#include "processor/operator/parallel_utils_operator.h"
 #include "processor/operator/sink.h"
 
 namespace kuzu {
 namespace processor {
 
-void GDSCallWorker::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
-    info.gds->init(sharedState.get(), context->clientContext);
+void ParallelUtilsOperator::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
+    gdsAlgorithm->init(sharedState, context->clientContext);
     auto memoryManager = context->clientContext->getMemoryManager();
     auto& ftableSchema = *sharedState->fTable->getTableSchema();
     localFTable = std::make_unique<FactorizedTable>(memoryManager, ftableSchema.copy());
 }
 
-void GDSCallWorker::executeInternal(ExecutionContext* /*context*/) {
-    auto localState = info.gds->getGDSLocalState();
+void ParallelUtilsOperator::executeInternal(ExecutionContext* /*context*/) {
+    auto localState = gdsAlgorithm->getGDSLocalState();
     auto fTable = sharedState->fTable;
     auto& outputVectors = localState->getOutputVectors();
     while (true) {
-        auto numTuplesScanned = funcToExecute(sharedState, localState);
-        switch (numTuplesScanned) {
+        auto numTuplesOutput = funcToExecute(sharedState, localState);
+        switch (numTuplesOutput) {
         case 0:
             sharedState->merge(*localFTable.get());
             return;

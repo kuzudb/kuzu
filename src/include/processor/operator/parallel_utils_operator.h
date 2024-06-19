@@ -1,0 +1,47 @@
+#pragma once
+
+#include "function/gds/ife_morsel.h"
+#include "function/table_functions.h"
+#include "gds_call.h"
+#include "processor/operator/sink.h"
+#include "processor/result/factorized_table.h"
+
+using namespace kuzu::function;
+
+namespace kuzu {
+namespace processor {
+
+using gds_algofunc_t = std::function<uint64_t(GDSCallSharedState*, GDSLocalState*)>;
+
+class ParallelUtilsOperator : public Sink {
+    static constexpr PhysicalOperatorType operatorType_ = PhysicalOperatorType::GDS_CALL;
+
+public:
+    ParallelUtilsOperator(std::unique_ptr<GDSAlgorithm> gdsAlgorithm, gds_algofunc_t tableFunc,
+        GDSCallSharedState *sharedState, uint32_t id, std::string paramString)
+        : Sink{nullptr /* no result descriptor needed */, operatorType_, id, paramString},
+          gdsAlgorithm{std::move(gdsAlgorithm)}, funcToExecute{tableFunc}, sharedState{sharedState} {}
+
+    bool isSource() const override { return true; }
+
+    bool isParallel() const override { return true; }
+
+    void initLocalStateInternal(ResultSet*, ExecutionContext* context) final;
+
+    void executeInternal(ExecutionContext* context) final;
+
+    std::unique_ptr<PhysicalOperator> clone() override {
+        return std::make_unique<ParallelUtilsOperator>(gdsAlgorithm->copy(), funcToExecute,
+            sharedState, id, paramsString);
+    }
+
+private:
+    std::unique_ptr<GDSAlgorithm> gdsAlgorithm;
+    gds_algofunc_t funcToExecute;
+    GDSCallSharedState *sharedState;
+    std::unique_ptr<FactorizedTableSchema> tableSchema;
+    std::unique_ptr<FactorizedTable> localFTable;
+};
+
+} // namespace processor
+} // namespace kuzu

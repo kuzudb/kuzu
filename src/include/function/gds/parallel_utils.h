@@ -7,7 +7,7 @@
 #include "common/task_system/task_scheduler.h"
 #include "function/table_functions.h"
 #include "ife_morsel.h"
-#include "processor/operator/gds_call_worker.h"
+#include "processor/operator/parallel_utils_operator.h"
 
 using namespace kuzu::processor;
 
@@ -16,20 +16,14 @@ namespace function {
 
 class ParallelUtils {
 public:
-    explicit ParallelUtils(GDSCallInfo info,
-        std::shared_ptr<GDSCallSharedState> sharedState,
-        std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, uint32_t operatorID,
-        common::TaskScheduler* taskScheduler, std::string expressions);
+    explicit ParallelUtils(uint32_t operatorID, common::TaskScheduler* taskScheduler);
 
-    inline std::shared_ptr<GDSCallSharedState>& getGDSCallSharedState() {
-        return gdsCallWorker->getGDSCallSharedState();
-    }
-
-    void doParallel(ExecutionContext* executionContext, gds_algofunc_t gdsAlgoFunc);
+    void doParallel(ExecutionContext* executionContext, GDSAlgorithm *gdsAlgorithm,
+        GDSCallSharedState *gdsCallSharedState, gds_algofunc_t gdsAlgoFunc);
 
 private:
-    std::unique_ptr<GDSCallWorker> gdsCallWorker;
     common::TaskScheduler *taskScheduler;
+    uint32_t operatorID;
 };
 
 } // namespace graph

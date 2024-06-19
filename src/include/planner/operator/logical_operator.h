@@ -20,6 +20,7 @@ enum class LogicalOperatorType : uint8_t {
     CREATE_TABLE,
     CREATE_TYPE,
     CROSS_PRODUCT,
+    CSR_INDEX_BUILD,
     DELETE,
     DETACH_DATABASE,
     DISTINCT,
