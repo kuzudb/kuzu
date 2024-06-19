@@ -510,25 +510,28 @@ void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uin
 }
 
 template<IntegerBitpackingType T>
-template<bool offsetNonZero>
-void IntegerBitpacking<T>::packPartialChunk(U* srcBuffer, uint8_t* dstBuffer, BitpackInfo<T> info,
-    size_t numValuesToPack) const {
-    if constexpr (offsetNonZero) {
-        for (auto i = 0u; i < numValuesToPack; i++) {
-            srcBuffer[i] = (U)((T)srcBuffer[i] - info.offset);
+void IntegerBitpacking<T>::packPartialChunk(const U* srcBuffer, uint8_t* dstBuffer,
+    BitpackInfo<T> info, size_t numValuesToPack) const {
+    auto* outCursor = (uint32_t*)dstBuffer;
+    for (size_t i = 0; i < numValuesToPack; ++i) {
+        if constexpr (sizeof(U) * 8 >= 32) {
+            const uint16_t shiftLeft = (i * info.bitWidth) % 32;
+            bitpacking_utils::packSingle(srcBuffer[i], outCursor, info.bitWidth, shiftLeft,
+                BitmaskUtils::all1sMaskForLeastSignificantBits<U>(info.bitWidth));
+        } else {
+            const uint16_t shiftLeft = (i * info.bitWidth) % 8;
+            bitpacking_utils::packSingle(srcBuffer[i], dstBuffer, info.bitWidth, shiftLeft,
+                BitmaskUtils::all1sMaskForLeastSignificantBits<U>(info.bitWidth));
         }
-        memset(srcBuffer + numValuesToPack, 0, CHUNK_SIZE - numValuesToPack);
     }
+}
 
-    const auto bitWidth = info.bitWidth;
-    const size_t outSize = ceilDiv<size_t>(numValuesToPack * bitWidth, 8);
-    uint8_t outChunk[CHUNK_SIZE * sizeof(U) / sizeof(uint8_t)];
-    KU_ASSERT(outSize >= 1 && outSize <= CHUNK_SIZE * sizeof(U));
-    outChunk[outSize - 1] = 0;
-
-    fastpack(srcBuffer, outChunk, bitWidth);
-
-    memcpy(dstBuffer, outChunk, outSize);
+template<IntegerBitpackingType T>
+void IntegerBitpacking<T>::copyValuesToTempChunkWithOffset(const U* srcBuffer, U* tmpBuffer,
+    BitpackInfo<T> info, size_t numValuesToCopy) const {
+    for (auto j = 0u; j < numValuesToCopy; j++) {
+        tmpBuffer[j] = (U)(((T*)srcBuffer)[j] - info.offset);
+    }
 }
 
 template<IntegerBitpackingType T>
@@ -562,30 +565,24 @@ uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
             fastpack((const U*)srcBuffer + i, dstBuffer + i * bitWidth / 8, bitWidth);
         }
         // Pack last partial chunk, avoiding overflows
+        const size_t remainingNumValues = numValuesToCompress % CHUNK_SIZE;
         if (numValuesToCompress % CHUNK_SIZE > 0) {
-            // TODO(bmwinger): optimize to remove temporary array
-            U chunk[CHUNK_SIZE] = {0};
-            const size_t remainingNumValues = numValuesToCompress % CHUNK_SIZE;
-            memcpy(chunk, (const U*)srcBuffer + lastFullChunkEnd, remainingNumValues * sizeof(U));
-
-            packPartialChunk<false>(chunk, dstBuffer + lastFullChunkEnd * bitWidth / 8, info,
-                remainingNumValues);
+            packPartialChunk((const U*)srcBuffer + lastFullChunkEnd,
+                dstBuffer + lastFullChunkEnd * bitWidth / 8, info, remainingNumValues);
         }
     } else {
         U tmp[CHUNK_SIZE];
         auto lastFullChunkEnd = numValuesToCompress - numValuesToCompress % CHUNK_SIZE;
         for (auto i = 0ull; i < lastFullChunkEnd; i += CHUNK_SIZE) {
-            for (auto j = 0u; j < CHUNK_SIZE; j++) {
-                tmp[j] = (U)(((T*)srcBuffer)[i + j] - info.offset);
-            }
+            copyValuesToTempChunkWithOffset((const U*)srcBuffer + i, tmp, info, CHUNK_SIZE);
             fastpack(tmp, dstBuffer + i * bitWidth / 8, bitWidth);
         }
         // Pack last partial chunk, avoiding overflows
         auto remainingValues = numValuesToCompress % CHUNK_SIZE;
         if (remainingValues > 0) {
-            memcpy(tmp, (const U*)srcBuffer + lastFullChunkEnd, remainingValues * sizeof(U));
-
-            packPartialChunk<true>(tmp, dstBuffer + lastFullChunkEnd * bitWidth / 8, info,
+            copyValuesToTempChunkWithOffset((const U*)srcBuffer + lastFullChunkEnd, tmp, info,
+                remainingValues);
+            packPartialChunk(tmp, dstBuffer + lastFullChunkEnd * bitWidth / 8, info,
                 remainingValues);
         }
     }

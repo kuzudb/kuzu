@@ -335,9 +335,11 @@ protected:
         return buffer + (pos / CHUNK_SIZE) * bitWidth * CHUNK_SIZE / 8;
     }
 
-    template<bool offsetNonZero>
-    void packPartialChunk(U* srcBuffer, uint8_t* dstBuffer, BitpackInfo<T> info,
+    void packPartialChunk(const U* srcBuffer, uint8_t* dstBuffer, BitpackInfo<T> info,
         size_t remainingValues) const;
+
+    void copyValuesToTempChunkWithOffset(const U* srcBuffer, U* tmpBuffer, BitpackInfo<T> info,
+        size_t numValuesToCopy) const;
 };
 
 class BooleanBitpacking : public CompressionAlg {

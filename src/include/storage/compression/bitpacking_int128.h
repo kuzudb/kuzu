@@ -15,14 +15,14 @@ struct Int128Packer {
         uint8_t width);
 };
 
-struct BitpackingUtils {
-    template<std::integral CompressedType, IntegerBitpackingType UncompressedType>
-    static void unpackSingle(const CompressedType* __restrict& in, UncompressedType* __restrict out,
-        uint16_t delta, uint16_t shiftRight);
+namespace bitpacking_utils {
+template<std::integral CompressedType, IntegerBitpackingType UncompressedType>
+void unpackSingle(const CompressedType* __restrict& in, UncompressedType* __restrict out,
+    uint16_t delta, uint16_t shiftRight);
 
-    template<std::integral CompressedType, IntegerBitpackingType UncompressedType>
-    static void packSingle(const UncompressedType in, CompressedType* __restrict& out,
-        uint16_t delta, uint16_t shiftLeft, UncompressedType mask);
-};
+template<std::integral CompressedType, IntegerBitpackingType UncompressedType>
+void packSingle(const UncompressedType in, CompressedType* __restrict& out, uint16_t delta,
+    uint16_t shiftLeft, UncompressedType mask);
+}; // namespace bitpacking_utils
 
 } // namespace kuzu::storage
