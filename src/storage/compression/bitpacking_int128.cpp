@@ -12,56 +12,71 @@ namespace kuzu::storage {
 // Unpacking
 //===--------------------------------------------------------------------===//
 
-static void unpackSingle(const uint32_t* __restrict& in, common::int128_t* __restrict out,
-    uint16_t delta, uint16_t shiftRight) {
-    if (delta + shiftRight < 32) {
+template<std::integral CompressedType, IntegerBitpackingType UncompressedType>
+void BitpackingUtils::unpackSingle(const CompressedType* __restrict& in,
+    UncompressedType* __restrict out, uint16_t delta, uint16_t shiftRight) {
+    static_assert(sizeof(UncompressedType) >= 4 * sizeof(CompressedType));
+
+    static constexpr size_t compressedFieldSizeBits = sizeof(CompressedType) * 8;
+
+    if (delta + shiftRight < compressedFieldSizeBits) {
         *out =
-            ((static_cast<common::int128_t>(in[0])) >> shiftRight) % (common::int128_t(1) << delta);
+            ((static_cast<UncompressedType>(in[0])) >> shiftRight) % (UncompressedType(1) << delta);
     }
 
-    else if (delta + shiftRight >= 32 && delta + shiftRight < 64) {
-        *out = static_cast<common::int128_t>(in[0]) >> shiftRight;
+    else if (delta + shiftRight >= compressedFieldSizeBits &&
+             delta + shiftRight < 2 * compressedFieldSizeBits) {
+        *out = static_cast<UncompressedType>(in[0]) >> shiftRight;
         ++in;
 
-        if (delta + shiftRight > 32) {
-            const uint16_t NEXT_SHR = shiftRight + delta - 32;
-            *out |= static_cast<common::int128_t>((*in) % (1U << NEXT_SHR)) << (32 - shiftRight);
+        if (delta + shiftRight > compressedFieldSizeBits) {
+            const uint16_t NEXT_SHR = shiftRight + delta - compressedFieldSizeBits;
+            *out |= static_cast<UncompressedType>((*in) % (1U << NEXT_SHR))
+                    << (compressedFieldSizeBits - shiftRight);
         }
     }
 
-    else if (delta + shiftRight >= 64 && delta + shiftRight < 96) {
-        *out = static_cast<common::int128_t>(in[0]) >> shiftRight;
-        *out |= static_cast<common::int128_t>(in[1]) << (32 - shiftRight);
+    else if (delta + shiftRight >= 2 * compressedFieldSizeBits &&
+             delta + shiftRight < 3 * compressedFieldSizeBits) {
+        *out = static_cast<UncompressedType>(in[0]) >> shiftRight;
+        *out |= static_cast<UncompressedType>(in[1]) << (compressedFieldSizeBits - shiftRight);
         in += 2;
 
-        if (delta + shiftRight > 64) {
-            const uint16_t NEXT_SHR = delta + shiftRight - 64;
-            *out |= static_cast<common::int128_t>((*in) % (1U << NEXT_SHR)) << (64 - shiftRight);
+        if (delta + shiftRight > 2 * compressedFieldSizeBits) {
+            const uint16_t NEXT_SHR = delta + shiftRight - 2 * compressedFieldSizeBits;
+            *out |= static_cast<UncompressedType>((*in) % (1U << NEXT_SHR))
+                    << (2 * compressedFieldSizeBits - shiftRight);
         }
     }
 
-    else if (delta + shiftRight >= 96 && delta + shiftRight < 128) {
-        *out = static_cast<common::int128_t>(in[0]) >> shiftRight;
-        *out |= static_cast<common::int128_t>(in[1]) << (32 - shiftRight);
-        *out |= static_cast<common::int128_t>(in[2]) << (64 - shiftRight);
+    else if (delta + shiftRight >= 3 * compressedFieldSizeBits &&
+             delta + shiftRight < 4 * compressedFieldSizeBits) {
+        *out = static_cast<UncompressedType>(in[0]) >> shiftRight;
+        *out |= static_cast<UncompressedType>(in[1]) << (compressedFieldSizeBits - shiftRight);
+        *out |= static_cast<UncompressedType>(in[2]) << (2 * compressedFieldSizeBits - shiftRight);
         in += 3;
 
-        if (delta + shiftRight > 96) {
-            const uint16_t NEXT_SHR = delta + shiftRight - 96;
-            *out |= static_cast<common::int128_t>((*in) % (1U << NEXT_SHR)) << (96 - shiftRight);
+        if (delta + shiftRight > 3 * compressedFieldSizeBits) {
+            const uint16_t NEXT_SHR = delta + shiftRight - 3 * compressedFieldSizeBits;
+            *out |= static_cast<UncompressedType>((*in) % (1U << NEXT_SHR))
+                    << (3 * compressedFieldSizeBits - shiftRight);
         }
     }
 
-    else if (delta + shiftRight >= 128) {
-        *out = static_cast<common::int128_t>(in[0]) >> shiftRight;
-        *out |= static_cast<common::int128_t>(in[1]) << (32 - shiftRight);
-        *out |= static_cast<common::int128_t>(in[2]) << (64 - shiftRight);
-        *out |= static_cast<common::int128_t>(in[3]) << (96 - shiftRight);
+    else if (delta + shiftRight >= 4 * compressedFieldSizeBits) {
+        static_assert(std::is_same_v<common::int128_t, UncompressedType> &&
+                      std::is_same_v<uint32_t, CompressedType>);
+
+        *out = static_cast<UncompressedType>(in[0]) >> shiftRight;
+        *out |= static_cast<UncompressedType>(in[1]) << (compressedFieldSizeBits - shiftRight);
+        *out |= static_cast<UncompressedType>(in[2]) << (2 * compressedFieldSizeBits - shiftRight);
+        *out |= static_cast<UncompressedType>(in[3]) << (3 * compressedFieldSizeBits - shiftRight);
         in += 4;
 
-        if (delta + shiftRight > 128) {
-            const uint16_t NEXT_SHR = delta + shiftRight - 128;
-            *out |= static_cast<common::int128_t>((*in) % (1U << NEXT_SHR)) << (128 - shiftRight);
+        if (delta + shiftRight > 4 * compressedFieldSizeBits) {
+            const uint16_t NEXT_SHR = delta + shiftRight - 4 * compressedFieldSizeBits;
+            *out |= static_cast<UncompressedType>((*in) % (1U << NEXT_SHR))
+                    << (4 * compressedFieldSizeBits - shiftRight);
         }
     }
 }
@@ -126,72 +141,91 @@ static void unpackDelta128(const uint32_t* __restrict in, common::int128_t* __re
 // Packing
 //===--------------------------------------------------------------------===//
 
-static void packSingle(const common::int128_t in, uint32_t* __restrict& out, uint16_t delta,
-    uint16_t shiftLeft, common::int128_t mask) {
-    if (delta + shiftLeft < 32) {
+template<std::integral CompressedType, IntegerBitpackingType UncompressedType>
+void BitpackingUtils::packSingle(const UncompressedType in, CompressedType* __restrict& out,
+    uint16_t delta, uint16_t shiftLeft, UncompressedType mask) {
+    static_assert(sizeof(UncompressedType) >= 4 * sizeof(CompressedType));
+
+    static constexpr size_t compressedFieldSizeBits = sizeof(CompressedType) * 8;
+
+    if (delta + shiftLeft < compressedFieldSizeBits) {
 
         if (shiftLeft == 0) {
-            out[0] = static_cast<uint32_t>(in & mask);
+            out[0] = static_cast<CompressedType>(in & mask);
         } else {
-            out[0] |= static_cast<uint32_t>((in & mask) << shiftLeft);
+            out[0] |= static_cast<CompressedType>((in & mask) << shiftLeft);
         }
 
-    } else if (delta + shiftLeft >= 32 && delta + shiftLeft < 64) {
+    } else if (delta + shiftLeft >= compressedFieldSizeBits &&
+               delta + shiftLeft < 2 * compressedFieldSizeBits) {
 
         if (shiftLeft == 0) {
-            out[0] = static_cast<uint32_t>(in & mask);
+            out[0] = static_cast<CompressedType>(in & mask);
         } else {
-            out[0] |= static_cast<uint32_t>((in & mask) << shiftLeft);
+            out[0] |= static_cast<CompressedType>((in & mask) << shiftLeft);
         }
         ++out;
 
-        if (delta + shiftLeft > 32) {
-            *out = static_cast<uint32_t>((in & mask) >> (32 - shiftLeft));
+        if (delta + shiftLeft > compressedFieldSizeBits) {
+            *out =
+                static_cast<CompressedType>((in & mask) >> (compressedFieldSizeBits - shiftLeft));
         }
     }
 
-    else if (delta + shiftLeft >= 64 && delta + shiftLeft < 96) {
+    else if (delta + shiftLeft >= 2 * compressedFieldSizeBits &&
+             delta + shiftLeft < 3 * compressedFieldSizeBits) {
 
         if (shiftLeft == 0) {
-            out[0] = static_cast<uint32_t>(in & mask);
+            out[0] = static_cast<CompressedType>(in & mask);
         } else {
-            out[0] |= static_cast<uint32_t>(in << shiftLeft);
+            out[0] |= static_cast<CompressedType>(in << shiftLeft);
         }
 
-        out[1] = static_cast<uint32_t>((in & mask) >> (32 - shiftLeft));
+        out[1] = static_cast<CompressedType>((in & mask) >> (compressedFieldSizeBits - shiftLeft));
         out += 2;
 
-        if (delta + shiftLeft > 64) {
-            *out = static_cast<uint32_t>((in & mask) >> (64 - shiftLeft));
+        if (delta + shiftLeft > 2 * compressedFieldSizeBits) {
+            *out = static_cast<CompressedType>(
+                (in & mask) >> (2 * compressedFieldSizeBits - shiftLeft));
         }
     }
 
-    else if (delta + shiftLeft >= 96 && delta + shiftLeft < 128) {
+    else if (delta + shiftLeft >= 3 * compressedFieldSizeBits &&
+             delta + shiftLeft < 4 * compressedFieldSizeBits) {
         if (shiftLeft == 0) {
-            out[0] = static_cast<uint32_t>(in & mask);
+            out[0] = static_cast<CompressedType>(in & mask);
         } else {
-            out[0] |= static_cast<uint32_t>(in << shiftLeft);
+            out[0] |= static_cast<CompressedType>(in << shiftLeft);
         }
 
-        out[1] = static_cast<uint32_t>((in & mask) >> (32 - shiftLeft));
-        out[2] = static_cast<uint32_t>((in & mask) >> (64 - shiftLeft));
+        out[1] = static_cast<CompressedType>((in & mask) >> (compressedFieldSizeBits - shiftLeft));
+        out[2] =
+            static_cast<CompressedType>((in & mask) >> (2 * compressedFieldSizeBits - shiftLeft));
         out += 3;
 
-        if (delta + shiftLeft > 96) {
-            *out = static_cast<uint32_t>((in & mask) >> (96 - shiftLeft));
+        if (delta + shiftLeft > 3 * compressedFieldSizeBits) {
+            *out = static_cast<CompressedType>(
+                (in & mask) >> (3 * compressedFieldSizeBits - shiftLeft));
         }
     }
 
-    else if (delta + shiftLeft >= 128) {
-        // shl == 0 won't ever happen here considering a delta of 128 calls PackDelta128
-        out[0] |= static_cast<uint32_t>(in << shiftLeft);
-        out[1] = static_cast<uint32_t>((in & mask) >> (32 - shiftLeft));
-        out[2] = static_cast<uint32_t>((in & mask) >> (64 - shiftLeft));
-        out[3] = static_cast<uint32_t>((in & mask) >> (96 - shiftLeft));
+    else if (delta + shiftLeft >= 4 * compressedFieldSizeBits) {
+        static_assert(std::is_same_v<common::int128_t, UncompressedType> &&
+                      std::is_same_v<uint32_t, CompressedType>);
+
+        // shl == 0 won't ever happen here considering a delta of 128 calls
+        // PackDelta128
+        out[0] |= static_cast<CompressedType>(in << shiftLeft);
+        out[1] = static_cast<CompressedType>((in & mask) >> (compressedFieldSizeBits - shiftLeft));
+        out[2] =
+            static_cast<CompressedType>((in & mask) >> (2 * compressedFieldSizeBits - shiftLeft));
+        out[3] =
+            static_cast<CompressedType>((in & mask) >> (3 * compressedFieldSizeBits - shiftLeft));
         out += 4;
 
-        if (delta + shiftLeft > 128) {
-            *out = static_cast<uint32_t>((in & mask) >> (128 - shiftLeft));
+        if (delta + shiftLeft > 4 * compressedFieldSizeBits) {
+            *out = static_cast<CompressedType>(
+                (in & mask) >> (4 * compressedFieldSizeBits - shiftLeft));
         }
     }
 }
@@ -274,7 +308,7 @@ void Int128Packer::pack(const common::int128_t* __restrict in, uint32_t* __restr
     default:
         for (common::idx_t oindex = 0; oindex < IntegerBitpacking<common::int128_t>::CHUNK_SIZE - 1;
              ++oindex) {
-            packSingle(in[oindex], out, width,
+            BitpackingUtils::packSingle(in[oindex], out, width,
                 (width * oindex) % IntegerBitpacking<common::int128_t>::CHUNK_SIZE,
                 common::BitmaskUtils::all1sMaskForLeastSignificantBits<common::int128_t>(width));
         }
@@ -304,7 +338,7 @@ void Int128Packer::unpack(const uint32_t* __restrict in, common::int128_t* __res
     default:
         for (common::idx_t oindex = 0; oindex < IntegerBitpacking<common::int128_t>::CHUNK_SIZE - 1;
              ++oindex) {
-            unpackSingle(in, out + oindex, width,
+            BitpackingUtils::unpackSingle(in, out + oindex, width,
                 (width * oindex) % IntegerBitpacking<common::int128_t>::CHUNK_SIZE);
         }
         unpackLast(in, out, width);

@@ -512,16 +512,16 @@ void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uin
 template<IntegerBitpackingType T>
 template<bool offsetNonZero>
 void IntegerBitpacking<T>::packPartialChunk(U* srcBuffer, uint8_t* dstBuffer, BitpackInfo<T> info,
-    size_t remainingValues) const {
+    size_t numValuesToPack) const {
     if constexpr (offsetNonZero) {
-        for (auto i = 0u; i < remainingValues; i++) {
+        for (auto i = 0u; i < numValuesToPack; i++) {
             srcBuffer[i] = (U)((T)srcBuffer[i] - info.offset);
         }
-        memset(srcBuffer + remainingValues, 0, CHUNK_SIZE - remainingValues);
+        memset(srcBuffer + numValuesToPack, 0, CHUNK_SIZE - numValuesToPack);
     }
 
     const auto bitWidth = info.bitWidth;
-    const size_t outSize = ceilDiv<size_t>(remainingValues * bitWidth, 8);
+    const size_t outSize = ceilDiv<size_t>(numValuesToPack * bitWidth, 8);
     uint8_t outChunk[CHUNK_SIZE * sizeof(U) / sizeof(uint8_t)];
     KU_ASSERT(outSize >= 1 && outSize <= CHUNK_SIZE * sizeof(U));
     outChunk[outSize - 1] = 0;
