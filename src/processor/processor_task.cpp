@@ -17,7 +17,6 @@ ProcessorTask::ProcessorTask(Sink* sink, ExecutionContext* executionContext)
       sharedStateInitialized{false}, sink{sink}, executionContext{executionContext} {}
 
 void ProcessorTask::run() {
-    std::cout << std::this_thread::get_id() << "  ProcessorTask::run()" << std::endl;
     // We need the lock when cloning because multiple threads can be accessing to clone,
     // which is not thread safe
     lock_t lck{mtx};

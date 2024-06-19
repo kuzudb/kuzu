@@ -16,16 +16,15 @@ namespace function {
 
 class ParallelUtils {
 public:
-    explicit ParallelUtils(common::TaskScheduler* taskScheduler, uint32_t operatorID);
-    ParallelUtils(const ParallelUtils& other) {
-        taskScheduler = other.taskScheduler;
-        operatorID = other.operatorID;
-    }
+    explicit ParallelUtils();
+//    ParallelUtils(const ParallelUtils& other) {
+//
+//    }
 //    inline std::shared_ptr<GDSCallSharedState>& getGDSCallSharedState() {
 //        return gdsCallWorker->getGDSCallSharedState();
 //    }
 
-    void countParallel(ExecutionContext* executionContext, int64_t count);
+    static void countParallel(ExecutionContext* executionContext, int64_t count);
 
 private:
 //    std::unique_ptr<GDSCallWorker> gdsCallWorker;

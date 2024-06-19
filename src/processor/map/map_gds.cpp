@@ -18,8 +18,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     auto& call = logicalOperator->constCast<LogicalGDSCall>();
     auto outSchema = call.getSchema();
     auto info = GDSCallInfo(call.getInfo().getGDS()->copy());
-    info.gds->setTaskSchedulerAndOperatorIDForParallelization(
-        clientContext->getTaskScheduler(), getOperatorID());
     auto tableSchema = std::make_unique<FactorizedTableSchema>();
     auto columns = call.getInfo().outExprs;
     for (auto& expr : columns) {

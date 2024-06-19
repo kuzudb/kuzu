@@ -25,12 +25,13 @@ std::shared_ptr<Expression> GDSAlgorithm::bindNodeOutput(Binder* binder, GraphEn
     return node;
 }
 
-void GDSAlgorithm::setTaskSchedulerAndOperatorIDForParallelization(common::TaskScheduler* taskScheduler,
-    uint32_t operatorID) {
-    // TODO(Semih): Figure out why this is not set up correctly.
-    parallelUtils = std::make_shared<ParallelUtils>(taskScheduler, operatorID);
-    std::cout << "After setTaskSchedulerAndOperatorIDForParallelization. ParallelUtils is " << ((parallelUtils == nullptr) ? "null" : "NOT null") << std::endl;
-}
+// TODO(Semih): Remove
+//void GDSAlgorithm::setTaskSchedulerAndOperatorIDForParallelization(common::TaskScheduler* taskScheduler,
+//    uint32_t operatorID) {
+//    // TODO(Semih): Figure out why this is not set up correctly.
+//    parallelUtils = std::make_shared<ParallelUtils>(taskScheduler, operatorID);
+//    std::cout << "After setTaskSchedulerAndOperatorIDForParallelization. ParallelUtils is " << ((parallelUtils == nullptr) ? "null" : "NOT null") << std::endl;
+//}
 
 } // namespace function
 } // namespace kuzu

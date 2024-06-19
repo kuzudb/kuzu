@@ -1,6 +1,7 @@
 #include "function/gds/gds_task.h"
 // TODO(Semih): Remove
 #include <iostream>
+#include <thread>
 
 namespace kuzu {
 namespace function {
@@ -11,7 +12,6 @@ void GDSTask::run() {
     while (true) {
         // Get the next morsel to process
         auto morsel = sharedState->nextMorsel.fetch_add(GDSTaskSharedState::MORSEL_SIZE);
-        std::cout << std::this_thread::get_id() << " morsel: " << morsel << std::endl;
         if (morsel >= sharedState->count) {
             break;
         } else {
@@ -24,10 +24,6 @@ void GDSTask::run() {
     std::cout << std::this_thread::get_id() << " printing: localSum: " << localSum
               << ": totalSum: " << sharedState->sum.load() << std::endl;
 }
-
-// TODO(Semih): Remove
-void GDSTask::finalizeIfNecessary() {}
-
 
 } // namespace function
 } // namespace kuzu

@@ -31,8 +31,6 @@ public:
     }
 
     void run() override;
-    // TODO(Semih): Remove
-    void finalizeIfNecessary() override;
 
 private:
     std::shared_ptr<GDSTaskSharedState> sharedState;
