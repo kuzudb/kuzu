@@ -1,4 +1,6 @@
 #include "common/task_system/task_scheduler.h"
+// TODO(Semih): Remove
+#include <iostream>
 
 using namespace kuzu::common;
 
@@ -112,6 +114,7 @@ void TaskScheduler::runWorkerThread() {
     while (true) {
         std::shared_ptr<ScheduledTask> scheduledTask = nullptr;
         lck.lock();
+        std::cout << std::this_thread::get_id() << " trying to register for a task" << std::endl;
         cv.wait(lck, [&] {
             scheduledTask = getTaskAndRegister();
             return scheduledTask != nullptr || stopThreads;

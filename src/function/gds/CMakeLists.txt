@@ -1,6 +1,7 @@
 add_library(kuzu_function_algorithm
         OBJECT
         gds.cpp
+        gds_task.cpp
         page_rank.cpp
         par_shortest_paths.cpp
         parallel_utils.cpp

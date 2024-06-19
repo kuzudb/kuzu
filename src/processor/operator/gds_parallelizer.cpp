@@ -15,14 +15,16 @@ void GDSParallelizer::initLocalStateInternal(ResultSet*, ExecutionContext* conte
 }
 
 void GDSParallelizer::executeInternal(ExecutionContext* /*context*/) {
+    std::cout << std::this_thread::get_id() << " GDSParallelizer::executeInternal()" << std::endl;
     uint64_t localSum = 0;
     while (true) {
         // Get the next morsel to process
         auto morsel = sharedState->nextMorsel.fetch_add(GDSParallelizerSharedState::MORSEL_SIZE);
+        std::cout << std::this_thread::get_id() << " morsel: " << morsel << std::endl;
         if (morsel >= sharedState->count) {
             break;
         } else {
-            for (auto i = morsel - GDSParallelizerSharedState::MORSEL_SIZE; i < morsel; i++) {
+            for (auto i = morsel; i < morsel + GDSParallelizerSharedState::MORSEL_SIZE; i++) {
                 localSum += i;
             }
         }

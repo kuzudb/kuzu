@@ -1,8 +1,13 @@
 #include "function/gds/parallel_utils.h"
 
+#include "function/gds/gds_task.h"
+#include "main/settings.h"
+// TODO(Semih): Remove
+#include <iostream>
+/*
 #include "processor/operator/gds_parallelizer.h"
-#include "processor/processor_task.h"
 #include "processor/result/factorized_table.h"
+*/
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -16,12 +21,18 @@ ParallelUtils::ParallelUtils(common::TaskScheduler* taskScheduler, uint32_t oper
 //        std::move(resultSetDescriptor), operatorID, expressions);
 // }
 
-void ParallelUtils::countParallel(ExecutionContext* executionContext, int64_t count){
-    auto sharedState = std::make_shared<GDSParallelizerSharedState>(count);
-    auto gdsParallelizer = std::make_unique<GDSParallelizer>(sharedState, operatorID);
-    auto task = std::make_shared<ProcessorTask>(gdsParallelizer.get(), executionContext);
+void ParallelUtils::countParallel(ExecutionContext* executionContext, int64_t count) {
+    auto sharedState = std::make_shared<GDSTaskSharedState>(count);
+    //    auto gdsParallelizer = std::make_unique<GDSParallelizer>(sharedState, operatorID);
+    auto task = std::make_shared<GDSTask>(
+        executionContext->clientContext->getCurrentSetting(main::ThreadsSetting::name)
+            .getValue<uint64_t>(),
+        sharedState);
+    std::cout << "countParallel maxNumberOfThreads: "
+              << executionContext->clientContext->getMaxNumThreadForExec() << std::endl;
     taskScheduler->scheduleTaskAndWaitOrError(task, executionContext);
 }
+
 // void ParallelUtils::doParallel(ExecutionContext* executionContext, gds_algofunc_t gdsAlgoFunc) {
 //     gdsCallWorker->setFuncToExecute(gdsAlgoFunc);
 //     auto task = std::make_shared<ProcessorTask>(gdsCallWorker.get(), executionContext);

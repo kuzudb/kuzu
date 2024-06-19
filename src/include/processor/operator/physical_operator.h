@@ -30,6 +30,7 @@ enum class PhysicalOperatorType : uint8_t {
     FILTER,
     FLATTEN,
     GDS_CALL,
+    // TODO(Semih): Remove
     GDS_PARALLELIZER,
     HASH_JOIN_BUILD,
     HASH_JOIN_PROBE,

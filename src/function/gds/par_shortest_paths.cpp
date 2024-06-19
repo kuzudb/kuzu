@@ -103,7 +103,9 @@ class ParShortestPath final : public GDSAlgorithm {
 
 public:
     ParShortestPath() = default;
-    ParShortestPath(const ParShortestPath& other) : GDSAlgorithm{other} {}
+    ParShortestPath(const ParShortestPath& other) : GDSAlgorithm{other} {
+        std::cout << "After ParShortestPath copy constructor. ParallelUtils is " << ((parallelUtils == nullptr) ? "null" : "NOT null") << std::endl;
+    }
 
     /*
      * Inputs are
@@ -150,45 +152,50 @@ public:
 
     void exec(processor::ExecutionContext* executionContext) override {
         std::cout << "ParShortestPath::exec() called!" << std::endl;
-        uint64_t count = 20000000;
+        std::cout << "After exec. ParallelUtils is " << ((parallelUtils == nullptr) ? "null" : "NOT null") << std::endl;
+        uint64_t count = 2000000;
         parallelUtils->countParallel(executionContext, count);
-        std::cout << "Finished Counting In parallel to " << count << std::endl;
-        auto graph = sharedState->graph.get();
-        for (auto& tableID : graph->getNodeTableIDs()) {
-            if (!sharedState->inputNodeOffsetMasks.contains(tableID)) {
-                continue;
-            }
-            auto mask = sharedState->inputNodeOffsetMasks.at(tableID).get();
-            for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
-                if (!mask->isNodeMasked(offset)) {
-                    continue;
-                }
-                auto sourceNodeID = nodeID_t{offset, tableID};
-                auto sourceState = ParShortestPathSourceState(sourceNodeID, graph->getNumNodes());
-                // Start recursive computation for current source node ID.
-                for (auto currentLevel = 0; currentLevel <= bindData->ptrCast<ParShortestPathBindData>()->upperBound; ++currentLevel) {
-                    if (sourceState.allVisited()) {
-                        continue;
-                    }
-                    // Compute next frontier.
-                    for (auto currentNodeID : sourceState.currentFrontier.getNodeIDs()) {
-                        if (sourceState.visited(currentNodeID)) {
-                            continue;
-                        }
-                        sourceState.markVisited(currentNodeID, currentLevel);
-                        auto nbrs = graph->scanFwd(currentNodeID);
-                        for (auto nbr : nbrs) {
-                            sourceState.nextFrontier.addNode(nbr, 1);
-                        }
-                    }
-                    sourceState.initNextFrontier();
-                };
-                localState->ptrCast<ParShortestPathLocalState>()->materialize(sourceState, *sharedState->fTable);
-            }
-        }
+
+            // some code to check which tasks are finished & when enough have finished
+
+//        std::cout << "Finished Counting In parallel to " << count << std::endl;
+//        auto graph = sharedState->graph.get();
+//        for (auto& tableID : graph->getNodeTableIDs()) {
+//            if (!sharedState->inputNodeOffsetMasks.contains(tableID)) {
+//                continue;
+//            }
+//            auto mask = sharedState->inputNodeOffsetMasks.at(tableID).get();
+//            for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
+//                if (!mask->isNodeMasked(offset)) {
+//                    continue;
+//                }
+//                auto sourceNodeID = nodeID_t{offset, tableID};
+//                auto sourceState = ParShortestPathSourceState(sourceNodeID, graph->getNumNodes());
+//                // Start recursive computation for current source node ID.
+//                for (auto currentLevel = 0; currentLevel <= bindData->ptrCast<ParShortestPathBindData>()->upperBound; ++currentLevel) {
+//                    if (sourceState.allVisited()) {
+//                        continue;
+//                    }
+//                    // Compute next frontier.
+//                    for (auto currentNodeID : sourceState.currentFrontier.getNodeIDs()) {
+//                        if (sourceState.visited(currentNodeID)) {
+//                            continue;
+//                        }
+//                        sourceState.markVisited(currentNodeID, currentLevel);
+//                        auto nbrs = graph->scanFwd(currentNodeID);
+//                        for (auto nbr : nbrs) {
+//                            sourceState.nextFrontier.addNode(nbr, 1);
+//                        }
+//                    }
+//                    sourceState.initNextFrontier();
+//                };
+//                localState->ptrCast<ParShortestPathLocalState>()->materialize(sourceState, *sharedState->fTable);
+//            }
+//        }
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
+        std::cout << "ParShortestPath::copy() called!" << std::endl;
         return std::make_unique<ParShortestPath>(*this);
     }
 };

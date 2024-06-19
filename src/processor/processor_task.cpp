@@ -1,5 +1,9 @@
 #include "processor/processor_task.h"
 
+//TODO(Semih): Remove
+#include <iostream>
+#include <thread>
+
 #include "main/settings.h"
 
 using namespace kuzu::common;
@@ -13,6 +17,7 @@ ProcessorTask::ProcessorTask(Sink* sink, ExecutionContext* executionContext)
       sharedStateInitialized{false}, sink{sink}, executionContext{executionContext} {}
 
 void ProcessorTask::run() {
+    std::cout << std::this_thread::get_id() << "  ProcessorTask::run()" << std::endl;
     // We need the lock when cloning because multiple threads can be accessing to clone,
     // which is not thread safe
     lock_t lck{mtx};

@@ -17,7 +17,10 @@ namespace function {
 class ParallelUtils {
 public:
     explicit ParallelUtils(common::TaskScheduler* taskScheduler, uint32_t operatorID);
-
+    ParallelUtils(const ParallelUtils& other) {
+        taskScheduler = other.taskScheduler;
+        operatorID = other.operatorID;
+    }
 //    inline std::shared_ptr<GDSCallSharedState>& getGDSCallSharedState() {
 //        return gdsCallWorker->getGDSCallSharedState();
 //    }

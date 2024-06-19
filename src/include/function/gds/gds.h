@@ -2,6 +2,8 @@
 
 #include "binder/expression/expression.h"
 #include "graph/graph_entry.h"
+// TODO(Semih): Remove
+#include <iostream>
 
 namespace kuzu {
 namespace binder {
@@ -70,6 +72,7 @@ protected:
 public:
     GDSAlgorithm() = default;
     GDSAlgorithm(const GDSAlgorithm& other) {
+        parallelUtils = other.parallelUtils;
         if (other.bindData != nullptr) {
             bindData = other.bindData->copy();
         }

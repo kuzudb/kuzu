@@ -16,7 +16,10 @@ using gds_algofunc_t =
 class GDSParallelizerSharedState {
 public:
     static constexpr const int64_t MORSEL_SIZE = 1000000;
-    GDSParallelizerSharedState(int64_t count) : count{count}, nextMorsel{0}, sum{0} {};
+    GDSParallelizerSharedState(int64_t count) : count{count} {
+        nextMorsel.store(0);
+        sum.store(0);
+    };
 
 public:
     int64_t count;
@@ -30,7 +33,7 @@ class GDSParallelizer : public Sink {
 public:
     GDSParallelizer(std::shared_ptr<GDSParallelizerSharedState> sharedState, uint32_t id)
         : Sink{std::make_unique<ResultSetDescriptor>(), operatorType_, id,
-              "" /* empty paramsString */} {}
+              "" /* empty paramsString */}, sharedState{std::move(sharedState)} {}
 
     bool isSource() const override { return true; }
 

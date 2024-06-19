@@ -1,9 +1,12 @@
 #include "common/task_system/task.h"
-
+// TODO(Semih): Remove
+#include <iostream>
 namespace kuzu {
 namespace common {
 
-Task::Task(uint64_t maxNumThreads) : maxNumThreads{maxNumThreads} {}
+Task::Task(uint64_t maxNumThreads) : maxNumThreads{maxNumThreads} {
+    std::cout << "Task::Task(uint64_t maxNumThreads) : maxNumThreads= " << maxNumThreads << std::endl;
+}
 
 bool Task::registerThread() {
     lock_t lck{mtx};
