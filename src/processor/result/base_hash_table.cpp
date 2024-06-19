@@ -163,7 +163,7 @@ void BaseHashTable::initSlotConstant(uint64_t numSlotsPerBlock_) {
     numSlotsPerBlock = numSlotsPerBlock_;
     numSlotsPerBlockLog2 = std::log2(numSlotsPerBlock);
     slotIdxInBlockMask =
-        common::BitmaskUtils::all1sMaskForLeastSignificantBits(numSlotsPerBlockLog2);
+        common::BitmaskUtils::all1sMaskForLeastSignificantBits<uint64_t>(numSlotsPerBlockLog2);
 }
 
 // ! This function will only be used by distinct aggregate and hashJoin, which assumes that all
