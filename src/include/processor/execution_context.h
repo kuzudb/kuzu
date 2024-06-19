@@ -12,7 +12,8 @@ struct ExecutionContext {
     common::Profiler* profiler;
     main::ClientContext* clientContext;
 
-    ExecutionContext(common::Profiler* profiler, main::ClientContext* clientContext, uint64_t queryID)
+    ExecutionContext(common::Profiler* profiler, main::ClientContext* clientContext,
+        uint64_t queryID)
         : queryID{queryID}, profiler{profiler}, clientContext{clientContext} {}
 };
 

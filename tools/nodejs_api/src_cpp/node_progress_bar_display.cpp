@@ -40,7 +40,8 @@ void NodeProgressBarDisplay::finishProgress(uint64_t queryID) {
     queryCallbacks.erase(queryID);
 }
 
-void NodeProgressBarDisplay::setCallbackFunction(uint64_t queryID, Napi::ThreadSafeFunction callback, Napi::Env env) {
+void NodeProgressBarDisplay::setCallbackFunction(uint64_t queryID,
+    Napi::ThreadSafeFunction callback, Napi::Env env) {
     queryCallbacks.emplace(queryID, callbackFunction{callback, env});
 }
 

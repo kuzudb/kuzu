@@ -1,9 +1,9 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
-#include <mutex>
 
 #include "common/api.h"
 #include "common/case_insensitive_map.h"

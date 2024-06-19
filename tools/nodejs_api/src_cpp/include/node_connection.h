@@ -75,8 +75,7 @@ public:
     void Execute() override {
         try {
             auto result =
-                connection->executeWithParams(preparedStatement.get(), std::move(params))
-                    .release();
+                connection->executeWithParams(preparedStatement.get(), std::move(params)).release();
             nodeQueryResult->SetQueryResult(result, true);
             if (!result->isSuccess()) {
                 SetError(result->getErrorMessage());

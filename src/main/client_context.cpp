@@ -265,7 +265,8 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareTest(std::string_view q
         false /*requireNewTx*/);
 }
 
-std::unique_ptr<QueryResult> ClientContext::query(std::string_view queryStatement, std::optional<uint64_t> queryID) {
+std::unique_ptr<QueryResult> ClientContext::query(std::string_view queryStatement,
+    std::optional<uint64_t> queryID) {
     return query(queryStatement, std::string_view() /*encodedJoin*/, false /*enumerateAllPlans */,
         queryID);
 }
@@ -418,8 +419,9 @@ void ClientContext::cleanUP() {
 }
 
 std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement* preparedStatement,
-    std::unordered_map<std::string, std::unique_ptr<Value>> inputParams) { // NOLINT(performance-unnecessary-value-param): It doesn't make sense to pass
-                      // the map as a const reference.
+    std::unordered_map<std::string, std::unique_ptr<Value>>
+        inputParams) { // NOLINT(performance-unnecessary-value-param): It doesn't make sense to pass
+                       // the map as a const reference.
     lock_t lck{mtx};
     if (!preparedStatement->isSuccess()) {
         return queryResultWithError(preparedStatement->errMsg);
@@ -452,7 +454,8 @@ void ClientContext::bindParametersNoLock(PreparedStatement* preparedStatement,
 }
 
 std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLock(
-    PreparedStatement* preparedStatement, uint32_t planIdx, bool requiredNexTx, std::optional<uint64_t> queryID) {
+    PreparedStatement* preparedStatement, uint32_t planIdx, bool requiredNexTx,
+    std::optional<uint64_t> queryID) {
     if (!preparedStatement->isSuccess()) {
         return queryResultWithError(preparedStatement->errMsg);
     }

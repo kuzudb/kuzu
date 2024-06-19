@@ -7,7 +7,8 @@ void TerminalProgressBarDisplay::updateProgress(uint64_t /*queryID*/, double new
     uint32_t newNumPipelinesFinished) {
     uint32_t curPipelineProgress = (uint32_t)(newPipelineProgress * 100.0);
     uint32_t oldPipelineProgress = (uint32_t)(pipelineProgress * 100.0);
-    if (curPipelineProgress > oldPipelineProgress || newNumPipelinesFinished > numPipelinesFinished) {
+    if (curPipelineProgress > oldPipelineProgress ||
+        newNumPipelinesFinished > numPipelinesFinished) {
         pipelineProgress = newPipelineProgress;
         numPipelinesFinished = newNumPipelinesFinished;
         printProgressBar();
