@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/profiler.h"
-#include "common/types/uuid.h"
 #include "main/client_context.h"
 
 namespace kuzu {

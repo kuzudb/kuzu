@@ -2,8 +2,6 @@
 
 #include <stdint.h>
 
-#include <string>
-
 namespace kuzu {
 namespace common {
 
