@@ -2,6 +2,17 @@
 
 --
 
+-CASE 3653
+-STATEMENT CREATE NODE TABLE V (id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE E (FROM V TO V, p STRING);
+---- ok
+-STATEMENT CREATE (v1:V {id: 1}), (v2:V {id: 2}), (v3:V {id: 3}), (v4:V {id: 4}), (v1)-[:E {p: "foo"}]->(v2), (v3)-[:E]->(v4);
+---- ok
+-STATEMENT MATCH (v1:V)-[e:E]->(v2:V) WHERE e.p in ["foo","bar"] RETURN e.p;
+---- 1
+foo
+
 -CASE 3652
 -STATEMENT CREATE NODE TABLE V (id INT64, PRIMARY KEY(id));
 ---- ok
