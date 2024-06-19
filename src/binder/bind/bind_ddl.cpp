@@ -74,7 +74,7 @@ std::vector<PropertyInfo> Binder::bindPropertyInfo(
     }
     validateUniquePropertyName(propertyInfos);
     for (auto& info : propertyInfos) {
-        if (isReservedPropertyName(info.name)) {
+        if (reservedInColumnName(info.name)) {
             throw BinderException(stringFormat("{} is a reserved property name.", info.name));
         }
     }

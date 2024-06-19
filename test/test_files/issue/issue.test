@@ -2,6 +2,13 @@
 
 --
 
+-CASE 3652
+-STATEMENT CREATE NODE TABLE V (id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE E (FROM V TO V, iri STRING);
+---- error
+Binder exception: iri is a reserved property name.
+
 -CASE 2158
 -STATEMENT CREATE NODE TABLE N1(name STRING, PRIMARY KEY(name));
 ---- ok

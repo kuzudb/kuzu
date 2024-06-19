@@ -64,6 +64,12 @@ std::string StringUtils::getUpper(const std::string& input) {
     return result;
 }
 
+std::string StringUtils::getUpper(const std::string_view& input) {
+    auto result = std::string(input);
+    toUpper(result);
+    return result;
+}
+
 std::string StringUtils::getLower(const std::string& input) {
     auto result = input;
     toLower(result);
