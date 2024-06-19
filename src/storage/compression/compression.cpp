@@ -269,7 +269,7 @@ std::string CompressionMetadata::toString(const PhysicalTypeID physicalType) con
                 return IntegerBitpacking<uint64_t>::getPackingInfo(*this).bitWidth;
             },
             [](bool) -> uint8_t { KU_UNREACHABLE; },
-            [&]<NumericUtils::IsIntegral T>(
+            [&]<numeric_utils::IsIntegral T>(
                 T) { return IntegerBitpacking<T>::getPackingInfo(*this).bitWidth; },
             [](auto) -> uint8_t { KU_UNREACHABLE; });
         return stringFormat("INTEGER_BITPACKING[{}]", bitWidth);
@@ -299,7 +299,7 @@ void ConstantCompression::decompressValues(uint8_t* dstBuffer, uint64_t dstOffse
                 metadata.min.get<uint64_t>());
         },
         [&]<typename T>
-            requires(NumericUtils::IsIntegral<T> || std::floating_point<T>)
+            requires(numeric_utils::IsIntegral<T> || std::floating_point<T>)
         (T) {
             std::fill(reinterpret_cast<T*>(start), reinterpret_cast<T*>(end),
                 metadata.min.get<T>());
@@ -359,14 +359,14 @@ BitpackInfo<T> IntegerBitpacking<T>::getPackingInfo(const CompressionMetadata& m
     // and when we will save at least 1 bit per value.
     // when the chunk was first compressed
     if (min > 0 && max > 0 &&
-        NumericUtils::bitWidth((U)(max - min)) < NumericUtils::bitWidth((U)max)) {
+        numeric_utils::bitWidth((U)(max - min)) < numeric_utils::bitWidth((U)max)) {
         offset = min;
-        bitWidth = static_cast<uint8_t>(NumericUtils::bitWidth((U)(max - min)));
+        bitWidth = static_cast<uint8_t>(numeric_utils::bitWidth((U)(max - min)));
         hasNegative = false;
     } else if (min < 0 && max < 0 &&
-               NumericUtils::bitWidth((U)(min - max)) < NumericUtils::bitWidth((U)max)) {
+               numeric_utils::bitWidth((U)(min - max)) < numeric_utils::bitWidth((U)max)) {
         offset = (U)max;
-        bitWidth = static_cast<uint8_t>(NumericUtils::bitWidth((U)(min - max))) + 1;
+        bitWidth = static_cast<uint8_t>(numeric_utils::bitWidth((U)(min - max))) + 1;
         // This is somewhat suboptimal since we know that the values are all negative
         // We could use an offset equal to the minimum, but values which are all negative are
         // probably going to grow in the negative direction, leading to many re-compressions when
@@ -374,11 +374,12 @@ BitpackInfo<T> IntegerBitpacking<T>::getPackingInfo(const CompressionMetadata& m
         hasNegative = true;
     } else if (min < 0) {
         bitWidth =
-            static_cast<uint8_t>(NumericUtils::bitWidth((U)std::max(abs<T>(min), abs<T>(max)))) + 1;
+            static_cast<uint8_t>(numeric_utils::bitWidth((U)std::max(abs<T>(min), abs<T>(max)))) +
+            1;
         hasNegative = true;
     } else {
         bitWidth =
-            static_cast<uint8_t>(NumericUtils::bitWidth((U)std::max(abs<T>(min), abs<T>(max))));
+            static_cast<uint8_t>(numeric_utils::bitWidth((U)std::max(abs<T>(min), abs<T>(max))));
         hasNegative = false;
     }
     return BitpackInfo<T>{bitWidth, hasNegative, offset};
@@ -410,30 +411,30 @@ bool IntegerBitpacking<T>::canUpdateInPlace(std::span<T> values,
 
 template<typename T>
 void fastunpack(const uint8_t* in, T* out, uint32_t bitWidth) {
-    if constexpr (std::is_same_v<NumericUtils::MakeSignedT<T>, int32_t> ||
-                  std::is_same_v<NumericUtils::MakeSignedT<T>, int64_t>) {
+    if constexpr (std::is_same_v<numeric_utils::MakeSignedT<T>, int32_t> ||
+                  std::is_same_v<numeric_utils::MakeSignedT<T>, int64_t>) {
         FastPForLib::fastunpack((const uint32_t*)in, out, bitWidth);
-    } else if constexpr (std::is_same_v<NumericUtils::MakeSignedT<T>, int16_t>) {
+    } else if constexpr (std::is_same_v<numeric_utils::MakeSignedT<T>, int16_t>) {
         FastPForLib::fastunpack((const uint16_t*)in, out, bitWidth);
-    } else if constexpr (std::is_same_v<NumericUtils::MakeSignedT<T>, int8_t>) {
+    } else if constexpr (std::is_same_v<numeric_utils::MakeSignedT<T>, int8_t>) {
         FastPForLib::fastunpack((const uint8_t*)in, out, bitWidth);
     } else {
-        static_assert(std::is_same_v<NumericUtils::MakeSignedT<T>, int128_t>);
+        static_assert(std::is_same_v<numeric_utils::MakeSignedT<T>, int128_t>);
         Int128Packer::unpack(reinterpret_cast<const uint32_t*>(in), out, bitWidth);
     }
 }
 
 template<typename T>
 void fastpack(const T* in, uint8_t* out, uint8_t bitWidth) {
-    if constexpr (std::is_same_v<NumericUtils::MakeSignedT<T>, int32_t> ||
-                  std::is_same_v<NumericUtils::MakeSignedT<T>, int64_t>) {
+    if constexpr (std::is_same_v<numeric_utils::MakeSignedT<T>, int32_t> ||
+                  std::is_same_v<numeric_utils::MakeSignedT<T>, int64_t>) {
         FastPForLib::fastpack(in, (uint32_t*)out, bitWidth);
-    } else if constexpr (std::is_same_v<NumericUtils::MakeSignedT<T>, int16_t>) {
+    } else if constexpr (std::is_same_v<numeric_utils::MakeSignedT<T>, int16_t>) {
         FastPForLib::fastpack(in, (uint16_t*)out, bitWidth);
-    } else if constexpr (std::is_same_v<NumericUtils::MakeSignedT<T>, int8_t>) {
+    } else if constexpr (std::is_same_v<numeric_utils::MakeSignedT<T>, int8_t>) {
         FastPForLib::fastpack(in, (uint8_t*)out, bitWidth);
     } else {
-        static_assert(std::is_same_v<NumericUtils::MakeSignedT<T>, int128_t>);
+        static_assert(std::is_same_v<numeric_utils::MakeSignedT<T>, int128_t>);
         Int128Packer::pack(in, reinterpret_cast<uint32_t*>(out), bitWidth);
     }
 }
@@ -794,7 +795,7 @@ void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame
             } else if constexpr (std::same_as<T, internalID_t>) {
                 IntegerBitpacking<uint64_t>().setValuesFromUncompressed(data, dataOffset, frame,
                     posInFrame, numValues, metadata, nullMask);
-            } else if constexpr (NumericUtils::IsIntegral<T>) {
+            } else if constexpr (numeric_utils::IsIntegral<T>) {
                 return IntegerBitpacking<T>().setValuesFromUncompressed(data, dataOffset, frame,
                     posInFrame, numValues, metadata, nullMask);
             } else {
@@ -890,7 +891,7 @@ std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxSto
             }
         },
         [&]<typename T>(T)
-            requires(NumericUtils::IsIntegral<T> || std::floating_point<T>)
+            requires(numeric_utils::IsIntegral<T> || std::floating_point<T>)
         {
             if (numValues > 0) {
                 auto typedData = std::span(reinterpret_cast<const T*>(data) + offset, numValues);

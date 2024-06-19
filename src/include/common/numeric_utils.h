@@ -9,7 +9,7 @@
 
 namespace kuzu {
 namespace common {
-namespace NumericUtils {
+namespace numeric_utils {
 
 template<typename T>
 concept IsIntegral = std::integral<T> || std::same_as<std::remove_cvref_t<T>, int128_t>;
@@ -70,6 +70,6 @@ constexpr int bitWidth<int128_t>(int128_t x) {
     }
     return std::bit_width(x.low);
 }
-} // namespace NumericUtils
+} // namespace numeric_utils
 } // namespace common
 } // namespace kuzu

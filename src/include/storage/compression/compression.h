@@ -24,7 +24,7 @@ class ColumnChunkData;
 struct PageCursor;
 
 template<typename T>
-concept StorageValueType = (common::NumericUtils::IsIntegral<T> || std::floating_point<T>);
+concept StorageValueType = (common::numeric_utils::IsIntegral<T> || std::floating_point<T>);
 // Type storing values in the column chunk statistics
 // Only supports integers (up to 128bit), floats and bools
 union StorageValue {
@@ -273,12 +273,12 @@ struct BitpackInfo {
 };
 
 template<typename T>
-concept IntegerBitpackingType = (common::NumericUtils::IsIntegral<T> && !std::same_as<T, bool>);
+concept IntegerBitpackingType = (common::numeric_utils::IsIntegral<T> && !std::same_as<T, bool>);
 
 // Augmented with Frame of Reference encoding using an offset stored in the compression metadata
 template<IntegerBitpackingType T>
 class IntegerBitpacking : public CompressionAlg {
-    using U = common::NumericUtils::MakeUnSignedT<T>;
+    using U = common::numeric_utils::MakeUnSignedT<T>;
 
 public:
     // This is an implementation detail of the fastpfor bitpacking algorithm

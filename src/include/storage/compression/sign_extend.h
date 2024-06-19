@@ -39,7 +39,7 @@ T Load(const uint8_t* ptr) {
 }
 
 // Sign bit extension
-template<class T, class T_U = typename common::NumericUtils::MakeUnSignedT<T>, uint64_t CHUNK_SIZE>
+template<class T, class T_U = typename common::numeric_utils::MakeUnSignedT<T>, uint64_t CHUNK_SIZE>
 static void SignExtend(uint8_t* dst, uint8_t width) {
     KU_ASSERT(width < sizeof(T) * 8);
     T const mask = T_U(1) << (width - 1);
