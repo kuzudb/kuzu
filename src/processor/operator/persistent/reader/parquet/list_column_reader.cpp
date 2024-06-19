@@ -3,7 +3,7 @@
 namespace kuzu {
 namespace processor {
 
-ListColumnReader::ListColumnReader(ParquetReader& reader, std::unique_ptr<common::LogicalType> type,
+ListColumnReader::ListColumnReader(ParquetReader& reader, common::LogicalType type,
     const kuzu_parquet::format::SchemaElement& schema, uint64_t schemaIdx, uint64_t maxDefine,
     uint64_t maxRepeat, std::unique_ptr<ColumnReader> childColumnReader,
     storage::MemoryManager* memoryManager)
@@ -15,7 +15,7 @@ ListColumnReader::ListColumnReader(ParquetReader& reader, std::unique_ptr<common
     childRepeatsPtr = (uint8_t*)childRepeats.ptr;
     childFilter.set();
     vectorToRead = std::make_unique<common::ValueVector>(
-        common::ListType::getChildType(*this->type), memoryManager);
+        common::ListType::getChildType(this->type).copy(), memoryManager);
 }
 
 void ListColumnReader::applyPendingSkips(uint64_t numValues) {
@@ -25,7 +25,7 @@ void ListColumnReader::applyPendingSkips(uint64_t numValues) {
     uint64_t remaining = numValues;
     uint64_t numValuesRead = 0;
     while (remaining) {
-        auto result_out = std::make_unique<common::ValueVector>(*type);
+        auto result_out = std::make_unique<common::ValueVector>(type.copy());
         parquet_filter_t filter;
         auto to_read = std::min<uint64_t>(remaining, common::DEFAULT_VECTOR_CAPACITY);
         numValuesRead += read(to_read, filter, defineOut.get(), repeatOut.get(), result_out.get());

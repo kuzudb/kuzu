@@ -42,7 +42,7 @@ FileType getFileType(std::unordered_map<std::string, common::Value>& options) {
     auto fileType = FileType::CSV;
     if (options.find("FORMAT") != options.end()) {
         auto value = options.at("FORMAT");
-        if (value.getDataType()->getLogicalTypeID() != LogicalTypeID::STRING) {
+        if (value.getDataType().getLogicalTypeID() != LogicalTypeID::STRING) {
             throw BinderException("The type of format option must be a string.");
         }
         auto valueStr = value.getValue<std::string>();
@@ -107,7 +107,7 @@ bool Binder::bindExportTableData(ExportedTableData& tableData, const TableCatalo
     for (auto& column : columns) {
         auto columnName = column->hasAlias() ? column->getAlias() : column->toString();
         tableData.columnNames.push_back(columnName);
-        tableData.columnTypes.push_back(column->getDataType());
+        tableData.columnTypes.push_back(column->getDataType().copy());
     }
     tableData.regularQuery = std::move(query);
     return true;

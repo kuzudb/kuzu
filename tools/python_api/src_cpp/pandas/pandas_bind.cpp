@@ -58,7 +58,7 @@ static common::LogicalType bindColumn(PandasBindColumn& bindColumn,
         bindData->pandasCol =
             std::make_unique<PandasNumpyColumn>(py::array(column.attr("to_numpy")("float32")));
         bindData->npType.type = NumpyNullableType::FLOAT_32;
-        columnType = *NumpyTypeUtils::numpyToLogicalType(bindData->npType);
+        columnType = NumpyTypeUtils::numpyToLogicalType(bindData->npType);
     } else {
         auto pandasArray = column.attr("array");
         if (py::hasattr(pandasArray, "_data")) {
@@ -74,12 +74,12 @@ static common::LogicalType bindColumn(PandasBindColumn& bindColumn,
             bindData->pandasCol =
                 std::make_unique<PandasNumpyColumn>(py::array(column.attr("to_numpy")()));
         }
-        columnType = *NumpyTypeUtils::numpyToLogicalType(bindData->npType);
+        columnType = NumpyTypeUtils::numpyToLogicalType(bindData->npType);
     }
     if (bindData->npType.type == NumpyNullableType::OBJECT) {
         PandasAnalyzer analyzer;
         if (analyzer.analyze(column)) {
-            columnType = analyzer.getAnalyzedType();
+            columnType = analyzer.getAnalyzedType().copy();
         }
     }
     return columnType;

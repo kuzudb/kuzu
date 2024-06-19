@@ -86,8 +86,8 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     if (value.isNull()) {
         return env.Null();
     }
-    auto dataType = value.getDataType();
-    auto dataTypeID = dataType->getLogicalTypeID();
+    const auto& dataType = value.getDataType();
+    auto dataTypeID = dataType.getLogicalTypeID();
     switch (dataTypeID) {
     case LogicalTypeID::BOOL: {
         return Napi::Boolean::New(env, value.getValue<bool>());
@@ -196,7 +196,7 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     }
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::UNION: {
-        auto childrenNames = StructType::getFieldNames(*dataType);
+        auto childrenNames = StructType::getFieldNames(dataType);
         auto napiObj = Napi::Object::New(env);
         auto size = NestedVal::getChildrenSize(&value);
         for (auto i = 0u; i < size; ++i) {
@@ -271,7 +271,7 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
         return ConvertRdfVariantToNapiObject(value, env);
     }
     default:
-        throw Exception("Unsupported type: " + dataType->toString());
+        throw Exception("Unsupported type: " + dataType.toString());
     }
     return Napi::Value();
 }

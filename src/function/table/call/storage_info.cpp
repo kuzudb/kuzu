@@ -115,8 +115,8 @@ struct StorageInfoBindData final : public CallTableFuncBindData {
           tableEntry{tableEntry}, table{table}, context{context} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<StorageInfoBindData>(columnTypes, columnNames, tableEntry, table,
-            context);
+        return std::make_unique<StorageInfoBindData>(common::LogicalType::copy(columnTypes),
+            columnNames, tableEntry, table, context);
     }
 };
 
@@ -234,16 +234,16 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     std::vector<std::string> columnNames = {"node_group_id", "column_name", "data_type",
         "table_type", "start_page_idx", "num_pages", "num_values", "min", "max", "compression"};
     std::vector<LogicalType> columnTypes;
-    columnTypes.emplace_back(*LogicalType::INT64());
-    columnTypes.emplace_back(*LogicalType::STRING());
-    columnTypes.emplace_back(*LogicalType::STRING());
-    columnTypes.emplace_back(*LogicalType::STRING());
-    columnTypes.emplace_back(*LogicalType::INT64());
-    columnTypes.emplace_back(*LogicalType::INT64());
-    columnTypes.emplace_back(*LogicalType::INT64());
-    columnTypes.emplace_back(*LogicalType::STRING());
-    columnTypes.emplace_back(*LogicalType::STRING());
-    columnTypes.emplace_back(*LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::INT64());
+    columnTypes.emplace_back(LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::INT64());
+    columnTypes.emplace_back(LogicalType::INT64());
+    columnTypes.emplace_back(LogicalType::INT64());
+    columnTypes.emplace_back(LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::STRING());
     auto tableName = input->inputs[0].getValue<std::string>();
     auto catalog = context->getCatalog();
     if (!catalog->containsTable(context->getTx(), tableName)) {

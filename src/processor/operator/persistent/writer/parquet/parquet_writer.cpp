@@ -197,7 +197,7 @@ void ParquetWriter::prepareRowGroup(FactorizedTable& ft, PreparedRowGroup& resul
     auto numFlatVectors = 0;
     for (auto i = 0u; i < columnWriters.size(); i++) {
         writerStates.emplace_back(columnWriters[i]->initializeWriteState(row_group));
-        auto vector = std::make_unique<ValueVector>(*types[i].copy(), mm);
+        auto vector = std::make_unique<ValueVector>(types[i].copy(), mm);
         vectorsToRead.push_back(vector.get());
         if (ft.getTableSchema()->getColumn(i)->isFlat()) {
             flatDataChunkToRead->insert(numFlatVectors, std::move(vector));

@@ -24,8 +24,8 @@ struct ShowConnectionBindData : public CallTableFuncBindData {
           context{context}, tableEntry{tableEntry} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowConnectionBindData>(context, tableEntry, columnTypes,
-            columnNames, maxOffset);
+        return std::make_unique<ShowConnectionBindData>(context, tableEntry,
+            LogicalType::copy(columnTypes), columnNames, maxOffset);
     }
 };
 
@@ -102,13 +102,13 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
         throw BinderException{"Show connection can only be called on a rel table!"};
     }
     columnNames.emplace_back("source table name");
-    columnTypes.emplace_back(*LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("destination table name");
-    columnTypes.emplace_back(*LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("source table primary key");
-    columnTypes.emplace_back(*LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("destination table primary key");
-    columnTypes.emplace_back(*LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::STRING());
     common::offset_t maxOffset = 1;
     if (tableEntry->getTableType() == common::TableType::REL_GROUP) {
         auto relGroupEntry = ku_dynamic_cast<TableCatalogEntry*, RelGroupCatalogEntry*>(tableEntry);

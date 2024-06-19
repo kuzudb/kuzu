@@ -155,7 +155,7 @@ row_idx_t RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableDat
 void RelTable::addColumn(Transaction* transaction, const Property& property,
     ExpressionEvaluator& defaultEvaluator) {
     const auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
-    relsStats->addMetadataDAHInfo(tableID, *property.getDataType());
+    relsStats->addMetadataDAHInfo(tableID, property.getDataType());
     fwdRelTableData->addColumn(transaction,
         RelDataDirectionUtils::relDirectionToString(RelDataDirection::FWD),
         fwdRelTableData->getNbrIDColumn()->getMetadataDA(),

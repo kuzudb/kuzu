@@ -11,7 +11,7 @@ void TypeCatalogEntry::serialize(common::Serializer& serializer) const {
 std::unique_ptr<TypeCatalogEntry> TypeCatalogEntry::deserialize(
     common::Deserializer& deserializer) {
     auto typeCatalogEntry = std::make_unique<TypeCatalogEntry>();
-    typeCatalogEntry->type = *common::LogicalType::deserialize(deserializer);
+    typeCatalogEntry->type = common::LogicalType::deserialize(deserializer);
     return typeCatalogEntry;
 }
 

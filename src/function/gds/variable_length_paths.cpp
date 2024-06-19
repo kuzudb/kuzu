@@ -62,10 +62,10 @@ class VariableLengthPathLocalState : public GDSLocalState {
 public:
     explicit VariableLengthPathLocalState(main::ClientContext* context) {
         auto mm = context->getMemoryManager();
-        srcNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
-        dstNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
-        lengthVector = std::make_unique<ValueVector>(*LogicalType::INT64(), mm);
-        numPathVector = std::make_unique<ValueVector>(*LogicalType::INT64(), mm);
+        srcNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
+        dstNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
+        lengthVector = std::make_unique<ValueVector>(LogicalType::INT64(), mm);
+        numPathVector = std::make_unique<ValueVector>(LogicalType::INT64(), mm);
         srcNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
         dstNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
         lengthVector->state = DataChunkState::getSingleValueDataChunkState();
@@ -132,8 +132,8 @@ public:
         columns.push_back(inputNode.getInternalID());
         auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
         columns.push_back(outputNode.getInternalID());
-        columns.push_back(binder->createVariable(LENGTH_COLUMN_NAME, *LogicalType::INT64()));
-        columns.push_back(binder->createVariable(NUM_PATH_COLUMN_NAME, *LogicalType::INT64()));
+        columns.push_back(binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::INT64()));
+        columns.push_back(binder->createVariable(NUM_PATH_COLUMN_NAME, LogicalType::INT64()));
         return columns;
     }
 

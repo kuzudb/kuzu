@@ -37,7 +37,7 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
     main::ClientContext* context) {
     pkIndex = std::make_unique<PrimaryKeyIndex>(
         StorageUtils::getNodeIndexIDAndFName(vfs, databasePath, tableID), readOnly,
-        nodeTableEntry->getPrimaryKey()->getDataType()->getPhysicalType(), *bufferManager, wal, vfs,
+        nodeTableEntry->getPrimaryKey()->getDataType().getPhysicalType(), *bufferManager, wal, vfs,
         context);
 }
 
@@ -199,7 +199,7 @@ void NodeTable::addColumn(Transaction* transaction, const Property& property,
     ExpressionEvaluator& defaultEvaluator) {
     const auto nodesStats =
         ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics);
-    nodesStats->addMetadataDAHInfo(tableID, *property.getDataType());
+    nodesStats->addMetadataDAHInfo(tableID, property.getDataType());
     tableData->addColumn(transaction, "", tableData->getColumn(pkColumnID)->getMetadataDA(),
         *nodesStats->getMetadataDAHInfo(transaction, tableID, tableData->getNumColumns()), property,
         defaultEvaluator);

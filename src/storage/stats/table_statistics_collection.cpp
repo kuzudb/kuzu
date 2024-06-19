@@ -62,7 +62,7 @@ std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(
     metadataDAHInfo->nullDAHIdx = metadataDAC.addDiskArray();
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
-        auto fields = StructType::getFields(dataType);
+        const auto& fields = StructType::getFields(dataType);
         metadataDAHInfo->childrenInfos.resize(fields.size());
         for (auto i = 0u; i < fields.size(); i++) {
             metadataDAHInfo->childrenInfos[i] =
@@ -71,19 +71,19 @@ std::unique_ptr<MetadataDAHInfo> TablesStatistics::createMetadataDAHInfo(
     } break;
     case PhysicalTypeID::LIST: {
         metadataDAHInfo->childrenInfos.push_back(
-            createMetadataDAHInfo(*LogicalType::UINT32(), metadataDAC));
+            createMetadataDAHInfo(LogicalType::UINT32(), metadataDAC));
         metadataDAHInfo->childrenInfos.push_back(
             createMetadataDAHInfo(ListType::getChildType(dataType), metadataDAC));
         metadataDAHInfo->childrenInfos.push_back(
-            createMetadataDAHInfo(*LogicalType::UINT64(), metadataDAC));
+            createMetadataDAHInfo(LogicalType::UINT64(), metadataDAC));
     } break;
     case PhysicalTypeID::ARRAY: {
         metadataDAHInfo->childrenInfos.push_back(
-            createMetadataDAHInfo(*LogicalType::UINT32(), metadataDAC));
+            createMetadataDAHInfo(LogicalType::UINT32(), metadataDAC));
         metadataDAHInfo->childrenInfos.push_back(
             createMetadataDAHInfo(ArrayType::getChildType(dataType), metadataDAC));
         metadataDAHInfo->childrenInfos.push_back(
-            createMetadataDAHInfo(*LogicalType::UINT64(), metadataDAC));
+            createMetadataDAHInfo(LogicalType::UINT64(), metadataDAC));
     } break;
     case PhysicalTypeID::STRING: {
         metadataDAHInfo->childrenInfos.resize(StringColumn::CHILD_STATE_COUNT);

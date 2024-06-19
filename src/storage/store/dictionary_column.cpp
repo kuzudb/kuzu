@@ -17,11 +17,11 @@ DictionaryColumn::DictionaryColumn(const std::string& name, const MetadataDAHInf
     BMFileHandle* dataFH, DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
     Transaction* transaction, bool enableCompression) {
     auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
-    dataColumn = std::make_unique<Column>(dataColName, *LogicalType::UINT8(),
+    dataColumn = std::make_unique<Column>(dataColName, LogicalType::UINT8(),
         *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataDAC, bufferManager, wal, transaction,
         false /*enableCompression*/, false /*requireNullColumn*/);
     auto offsetColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "");
-    offsetColumn = std::make_unique<Column>(offsetColName, *LogicalType::UINT64(),
+    offsetColumn = std::make_unique<Column>(offsetColName, LogicalType::UINT64(),
         *metaDAHeaderInfo.childrenInfos[1], dataFH, metadataDAC, bufferManager, wal, transaction,
         enableCompression, false /*requireNullColumn*/);
 }

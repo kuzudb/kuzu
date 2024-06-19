@@ -38,8 +38,8 @@ class PageRankLocalState : public GDSLocalState {
 public:
     explicit PageRankLocalState(main::ClientContext* context) {
         auto mm = context->getMemoryManager();
-        nodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
-        rankVector = std::make_unique<ValueVector>(*LogicalType::DOUBLE(), mm);
+        nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
+        rankVector = std::make_unique<ValueVector>(LogicalType::DOUBLE(), mm);
         nodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
         rankVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(nodeIDVector.get());
@@ -91,7 +91,7 @@ public:
         expression_vector columns;
         auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
         columns.push_back(outputNode.getInternalID());
-        columns.push_back(binder->createVariable(RANK_COLUMN_NAME, *LogicalType::DOUBLE()));
+        columns.push_back(binder->createVariable(RANK_COLUMN_NAME, LogicalType::DOUBLE()));
         return columns;
     }
 

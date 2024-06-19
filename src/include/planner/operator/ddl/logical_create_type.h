@@ -13,10 +13,10 @@ public:
         std::shared_ptr<binder::Expression> outputExpression)
         : LogicalDDL{type_, std::move(name), std::move(outputExpression)}, type{std::move(type)} {}
 
-    common::LogicalType getType() const { return type; }
+    const common::LogicalType& getType() const { return type; }
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalCreateType>(tableName, type, outputExpression);
+        return std::make_unique<LogicalCreateType>(tableName, type.copy(), outputExpression);
     }
 
 private:

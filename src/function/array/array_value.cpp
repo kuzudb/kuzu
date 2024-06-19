@@ -13,13 +13,13 @@ std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& argu
     LogicalType combinedType(LogicalTypeID::ANY);
     binder::ExpressionUtil::tryCombineDataType(arguments, combinedType);
     if (combinedType.getLogicalTypeID() == LogicalTypeID::ANY) {
-        combinedType = *LogicalType::STRING();
+        combinedType = LogicalType::STRING();
     }
     auto resultType = LogicalType::ARRAY(combinedType.copy(), arguments.size());
     auto bindData = std::make_unique<FunctionBindData>(std::move(resultType));
     for (auto& _ : arguments) {
         (void)_;
-        bindData->paramTypes.push_back(combinedType);
+        bindData->paramTypes.push_back(combinedType.copy());
     }
     return bindData;
 }

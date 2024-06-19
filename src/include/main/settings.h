@@ -151,7 +151,7 @@ struct EnableMVCCSetting {
     static constexpr const char* name = "enable_multi_writes";
     static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::BOOL;
     static void setContext(ClientContext* context, const common::Value& parameter) {
-        KU_ASSERT(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::BOOL);
+        KU_ASSERT(parameter.getDataType().getLogicalTypeID() == common::LogicalTypeID::BOOL);
         // TODO: This is a temporary solution to make tests of multiple write transactions easier.
         context->getDBConfigUnsafe()->enableMultiWrites = parameter.getValue<bool>();
     }

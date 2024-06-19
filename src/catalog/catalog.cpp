@@ -183,7 +183,7 @@ table_id_t Catalog::createTableSchema(transaction::Transaction* transaction,
     }
     auto tableEntry = entry->constPtrCast<TableCatalogEntry>();
     for (auto& property : tableEntry->getPropertiesRef()) {
-        if (property.getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
+        if (property.getDataType().getLogicalTypeID() == LogicalTypeID::SERIAL) {
             auto seqName = genSerialName(tableEntry->getName(), property.getName());
             auto seqInfo = BoundCreateSequenceInfo(seqName, 0, 1, 0,
                 std::numeric_limits<int64_t>::max(), false, ConflictAction::ON_CONFLICT_THROW);
@@ -215,7 +215,7 @@ void Catalog::dropTableSchema(transaction::Transaction* transaction, table_id_t 
     }
     }
     for (auto& property : tableEntry->getPropertiesRef()) {
-        if (property.getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
+        if (property.getDataType().getLogicalTypeID() == LogicalTypeID::SERIAL) {
             auto seqName = std::string(tableEntry->getName())
                                .append("_")
                                .append(property.getName())
@@ -303,7 +303,10 @@ common::LogicalType Catalog::getType(transaction::Transaction* transaction, std:
         throw CatalogException{
             common::stringFormat("{} is neither an internal type nor a user defined type.", name)};
     }
-    return types->getEntry(transaction, name)->constCast<TypeCatalogEntry>().getLogicalType();
+    return types->getEntry(transaction, name)
+        ->constCast<TypeCatalogEntry>()
+        .getLogicalType()
+        .copy();
 }
 
 bool Catalog::containsType(transaction::Transaction* transaction, const std::string& typeName) {

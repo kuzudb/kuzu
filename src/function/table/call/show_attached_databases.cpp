@@ -17,8 +17,8 @@ struct ShowAttachedDatabasesBindData : public CallTableFuncBindData {
           attachedDatabases{std::move(attachedDatabases)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowAttachedDatabasesBindData>(attachedDatabases, columnTypes,
-            columnNames, maxOffset);
+        return std::make_unique<ShowAttachedDatabasesBindData>(attachedDatabases,
+            LogicalType::copy(columnTypes), columnNames, maxOffset);
     }
 };
 
@@ -45,9 +45,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back("name");
-    columnTypes.emplace_back(*LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("database type");
-    columnTypes.emplace_back(*LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::STRING());
     auto attachedDatabases = context->getDatabaseManager()->getAttachedDatabases();
     return std::make_unique<ShowAttachedDatabasesBindData>(attachedDatabases,
         std::move(columnTypes), std::move(columnNames), attachedDatabases.size());

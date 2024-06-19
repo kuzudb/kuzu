@@ -16,8 +16,8 @@ struct CurrentSettingBindData final : public CallTableFuncBindData {
           result{std::move(result)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<CurrentSettingBindData>(result, columnTypes, columnNames,
-            maxOffset);
+        return std::make_unique<CurrentSettingBindData>(result, LogicalType::copy(columnTypes),
+            columnNames, maxOffset);
     }
 };
 
@@ -40,7 +40,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back(optionName);
-    columnTypes.push_back(*LogicalType::STRING());
+    columnTypes.push_back(LogicalType::STRING());
     return std::make_unique<CurrentSettingBindData>(
         context->getCurrentSetting(optionName).toString(), std::move(columnTypes),
         std::move(columnNames), 1 /* one row result */);

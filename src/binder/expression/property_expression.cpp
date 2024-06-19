@@ -18,8 +18,8 @@ std::unique_ptr<PropertyExpression> PropertyExpression::construct(LogicalType ty
     for (auto& tableID : patternExpr.getTableIDs()) {
         infos.insert({tableID, SingleLabelPropertyInfo(false, INVALID_PROPERTY_ID)});
     }
-    return std::make_unique<PropertyExpression>(type, propertyName, uniqueName, variableName,
-        std::move(infos));
+    return std::make_unique<PropertyExpression>(std::move(type), propertyName, uniqueName,
+        variableName, std::move(infos));
 }
 
 bool PropertyExpression::isPrimaryKey() const {

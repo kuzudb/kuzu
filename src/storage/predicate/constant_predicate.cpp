@@ -62,7 +62,7 @@ ZoneMapCheckResult checkZoneMapSwitch(const CompressionMetadata& metadata,
 
 ZoneMapCheckResult ColumnConstantPredicate::checkZoneMap(
     const CompressionMetadata& metadata) const {
-    auto physicalType = value.getDataType()->getPhysicalType();
+    auto physicalType = value.getDataType().getPhysicalType();
     return TypeUtils::visit(
         physicalType,
         [&]<StorageValueType T>(

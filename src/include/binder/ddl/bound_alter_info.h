@@ -63,7 +63,7 @@ struct BoundExtraAddPropertyInfo : public BoundExtraAlterInfo {
         : propertyName{std::move(propertyName)}, dataType{std::move(dataType)},
           defaultValue{std::move(defaultValue)}, boundDefault{std::move(boundDefault)} {}
     BoundExtraAddPropertyInfo(const BoundExtraAddPropertyInfo& other)
-        : propertyName{other.propertyName}, dataType{other.dataType},
+        : propertyName{other.propertyName}, dataType{other.dataType.copy()},
           defaultValue{other.defaultValue->copy()}, boundDefault{other.boundDefault} {}
 
     inline std::unique_ptr<BoundExtraAlterInfo> copy() const final {

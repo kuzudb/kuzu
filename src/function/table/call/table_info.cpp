@@ -23,8 +23,8 @@ struct TableInfoBindData : public CallTableFuncBindData {
           catalogEntry{std::move(catalogEntry)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<TableInfoBindData>(catalogEntry->copy(), columnTypes, columnNames,
-            maxOffset);
+        return std::make_unique<TableInfoBindData>(catalogEntry->copy(),
+            LogicalType::copy(columnTypes), columnNames, maxOffset);
     }
 };
 
@@ -51,14 +51,14 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
                 dataChunk.getValueVector(0)->setValue<int64_t>(vectorPos, -1);
                 dataChunk.getValueVector(1)->setValue(vectorPos,
                     std::string(rdf::IRI) + " (Virtual)");
-                dataChunk.getValueVector(2)->setValue(vectorPos, LogicalType::STRING()->toString());
+                dataChunk.getValueVector(2)->setValue(vectorPos, LogicalType::STRING().toString());
                 vectorPos++;
                 continue;
             }
         }
         dataChunk.getValueVector(0)->setValue(vectorPos, (int64_t)property->getPropertyID());
         dataChunk.getValueVector(1)->setValue(vectorPos, property->getName());
-        dataChunk.getValueVector(2)->setValue(vectorPos, property->getDataType()->toString());
+        dataChunk.getValueVector(2)->setValue(vectorPos, property->getDataType().toString());
 
         if (tableEntry->getTableType() == TableType::NODE) {
             auto nodeTableEntry = tableEntry->constPtrCast<NodeTableCatalogEntry>();
@@ -100,14 +100,14 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto catalogEntry = getTableCatalogEntry(context, input->inputs[0].getValue<std::string>());
     auto tableEntry = catalogEntry->constPtrCast<TableCatalogEntry>();
     columnNames.emplace_back("property id");
-    columnTypes.push_back(*LogicalType::INT64());
+    columnTypes.push_back(LogicalType::INT64());
     columnNames.emplace_back("name");
-    columnTypes.push_back(*LogicalType::STRING());
+    columnTypes.push_back(LogicalType::STRING());
     columnNames.emplace_back("type");
-    columnTypes.push_back(*LogicalType::STRING());
+    columnTypes.push_back(LogicalType::STRING());
     if (tableEntry->getTableType() == TableType::NODE) {
         columnNames.emplace_back("primary key");
-        columnTypes.push_back(*LogicalType::BOOL());
+        columnTypes.push_back(LogicalType::BOOL());
     }
     return std::make_unique<TableInfoBindData>(std::move(catalogEntry), std::move(columnTypes),
         std::move(columnNames), tableEntry->getNumProperties());

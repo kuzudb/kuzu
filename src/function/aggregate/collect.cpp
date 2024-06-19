@@ -82,7 +82,7 @@ std::unique_ptr<FunctionBindData> CollectFunction::bindFunc(const expression_vec
     KU_ASSERT(arguments.size() == 1);
     auto aggFuncDefinition = reinterpret_cast<AggregateFunction*>(definition);
     aggFuncDefinition->parameterTypeIDs[0] = arguments[0]->dataType.getLogicalTypeID();
-    auto returnType = LogicalType::LIST(std::make_unique<LogicalType>(arguments[0]->dataType));
+    auto returnType = LogicalType::LIST(arguments[0]->dataType.copy());
     return std::make_unique<FunctionBindData>(std::move(returnType));
 }
 

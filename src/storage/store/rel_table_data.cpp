@@ -151,14 +151,14 @@ RelTableData::RelTableData(BMFileHandle* dataFH, DiskArrayCollection* metadataDA
         relsStoreStats->getCSROffsetMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION, tableID, direction);
     auto csrOffsetColumnName = StorageUtils::getColumnName("", StorageUtils::ColumnType::CSR_OFFSET,
         RelDataDirectionUtils::relDirectionToString(direction));
-    csrHeaderColumns.offset = std::make_unique<Column>(csrOffsetColumnName, *LogicalType::UINT64(),
+    csrHeaderColumns.offset = std::make_unique<Column>(csrOffsetColumnName, LogicalType::UINT64(),
         *csrOffsetMetadataDAHInfo, dataFH, *metadataDAC, bufferManager, wal,
         &DUMMY_WRITE_TRANSACTION, enableCompression, false /* requireNUllColumn */);
     auto csrLengthMetadataDAHInfo =
         relsStoreStats->getCSRLengthMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION, tableID, direction);
     auto csrLengthColumnName = StorageUtils::getColumnName("", StorageUtils::ColumnType::CSR_LENGTH,
         RelDataDirectionUtils::relDirectionToString(direction));
-    csrHeaderColumns.length = std::make_unique<Column>(csrLengthColumnName, *LogicalType::UINT64(),
+    csrHeaderColumns.length = std::make_unique<Column>(csrLengthColumnName, LogicalType::UINT64(),
         *csrLengthMetadataDAHInfo, dataFH, *metadataDAC, bufferManager, wal,
         &DUMMY_WRITE_TRANSACTION, enableCompression, false /* requireNUllColumn */);
     // Columns (nbrID + properties).
@@ -184,7 +184,7 @@ RelTableData::RelTableData(BMFileHandle* dataFH, DiskArrayCollection* metadataDA
         auto colName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT,
                 RelDataDirectionUtils::relDirectionToString(direction));
-        columns[columnID] = ColumnFactory::createColumn(colName, *property.getDataType()->copy(),
+        columns[columnID] = ColumnFactory::createColumn(colName, property.getDataType().copy(),
             *metadataDAHInfo, dataFH, *metadataDAC, bufferManager, wal, &DUMMY_WRITE_TRANSACTION,
             enableCompression);
     }
@@ -517,7 +517,7 @@ void RelTableData::distributeAndUpdateColumn(Transaction* transaction,
     KU_ASSERT(localState.regionCapacity >= (localState.rightCSROffset - localState.leftCSROffset));
     // First, scan the whole region to a temp chunk.
     auto oldSize = persistentState.rightCSROffset - persistentState.leftCSROffset + 1;
-    auto chunk = ColumnChunkFactory::createColumnChunkData(*column->getDataType().copy(),
+    auto chunk = ColumnChunkFactory::createColumnChunkData(column->getDataType().copy(),
         enableCompression, oldSize);
     Column::ChunkState chunkState;
     column->initChunkState(transaction, nodeGroupIdx, chunkState);
@@ -529,7 +529,7 @@ void RelTableData::distributeAndUpdateColumn(Transaction* transaction,
     applyDeletionsToChunk(persistentState, localState, chunk.get());
     // Second, create a new temp chunk for the region.
     auto newSize = localState.rightCSROffset - localState.leftCSROffset + 1;
-    auto newChunk = ColumnChunkFactory::createColumnChunkData(*column->getDataType().copy(),
+    auto newChunk = ColumnChunkFactory::createColumnChunkData(column->getDataType().copy(),
         enableCompression, newSize);
     newChunk->getNullChunk()->resetToAllNull();
     auto maxNumNodesToDistribute = std::min(rightNodeBoundary - leftNodeBoundary + 1,
@@ -597,8 +597,8 @@ void RelTableData::updateRegion(Transaction* transaction, node_group_idx_t nodeG
         // NOTE: There is an implicit trick happening. Due to the mismatch of storage type and
         // in-memory representation of INTERNAL_ID, we only store offset as INT64 on disk. Here
         // we directly read relID's offset part from disk into an INT64 column chunk.
-        persistentState.relIDChunk = ColumnChunkFactory::createColumnChunkData(
-            *LogicalType::INT64(), enableCompression, localState.regionCapacity);
+        persistentState.relIDChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::INT64(),
+            enableCompression, localState.regionCapacity);
         Column::ChunkState chunkState;
         getColumn(REL_ID_COLUMN_ID)->initChunkState(transaction, nodeGroupIdx, chunkState);
         getColumn(REL_ID_COLUMN_ID)
@@ -839,11 +839,11 @@ void RelTableData::applyDeletionsToColumn(Transaction* transaction, node_group_i
     if (slides.empty()) {
         return;
     }
-    auto chunk = ColumnChunkFactory::createColumnChunkData(*column->getDataType().copy(),
+    auto chunk = ColumnChunkFactory::createColumnChunkData(column->getDataType().copy(),
         enableCompression, slides.size());
     std::vector<offset_t> dstOffsets;
     dstOffsets.resize(slides.size());
-    auto tmpChunkForRead = ColumnChunkFactory::createColumnChunkData(*column->getDataType().copy(),
+    auto tmpChunkForRead = ColumnChunkFactory::createColumnChunkData(column->getDataType().copy(),
         enableCompression, 1);
     Column::ChunkState chunkState;
     column->initChunkState(transaction, nodeGroupIdx, chunkState);
@@ -885,11 +885,11 @@ void RelTableData::applySliding(Transaction* transaction, node_group_idx_t nodeG
     if (slides.empty()) {
         return;
     }
-    auto chunk = ColumnChunkFactory::createColumnChunkData(*column->getDataType().copy(),
+    auto chunk = ColumnChunkFactory::createColumnChunkData(column->getDataType().copy(),
         enableCompression, slides.size());
     std::vector<offset_t> dstOffsets;
     dstOffsets.resize(slides.size());
-    auto tmpChunkForRead = ColumnChunkFactory::createColumnChunkData(*column->getDataType().copy(),
+    auto tmpChunkForRead = ColumnChunkFactory::createColumnChunkData(column->getDataType().copy(),
         enableCompression, 1);
     Column::ChunkState chunkState;
     column->initChunkState(transaction, nodeGroupIdx, chunkState);

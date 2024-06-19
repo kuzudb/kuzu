@@ -15,7 +15,7 @@ TEST(CApiValueTestEmptyDB, CreateNull) {
     kuzu_value* value = kuzu_value_create_null();
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::ANY);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::ANY);
     ASSERT_EQ(cppValue->isNull(), true);
     kuzu_value_destroy(value);
 }
@@ -27,7 +27,7 @@ TEST(CApiValueTestEmptyDB, CreateNullWithDatatype) {
     ASSERT_FALSE(value->_is_owned_by_cpp);
     kuzu_data_type_destroy(&type);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::INT64);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::INT64);
     ASSERT_EQ(cppValue->isNull(), true);
     kuzu_value_destroy(value);
 }
@@ -61,7 +61,7 @@ TEST(CApiValueTestEmptyDB, CreateDefault) {
     kuzu_data_type_destroy(&type);
     auto cppValue = static_cast<Value*>(value->_value);
     ASSERT_FALSE(kuzu_value_is_null(value));
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::INT64);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::INT64);
     ASSERT_EQ(cppValue->getValue<int64_t>(), 0);
     kuzu_value_destroy(value);
 
@@ -71,7 +71,7 @@ TEST(CApiValueTestEmptyDB, CreateDefault) {
     kuzu_data_type_destroy(&type);
     cppValue = static_cast<Value*>(value->_value);
     ASSERT_FALSE(kuzu_value_is_null(value));
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::STRING);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::STRING);
     ASSERT_EQ(cppValue->getValue<std::string>(), "");
     kuzu_value_destroy(value);
 }
@@ -80,14 +80,14 @@ TEST(CApiValueTestEmptyDB, CreateBool) {
     kuzu_value* value = kuzu_value_create_bool(true);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::BOOL);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::BOOL);
     ASSERT_EQ(cppValue->getValue<bool>(), true);
     kuzu_value_destroy(value);
 
     value = kuzu_value_create_bool(false);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::BOOL);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::BOOL);
     ASSERT_EQ(cppValue->getValue<bool>(), false);
     kuzu_value_destroy(value);
 }
@@ -96,7 +96,7 @@ TEST(CApiValueTestEmptyDB, CreateInt8) {
     kuzu_value* value = kuzu_value_create_int8(12);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::INT8);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::INT8);
     ASSERT_EQ(cppValue->getValue<int8_t>(), 12);
     kuzu_value_destroy(value);
 }
@@ -105,7 +105,7 @@ TEST(CApiValueTestEmptyDB, CreateInt16) {
     kuzu_value* value = kuzu_value_create_int16(123);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::INT16);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::INT16);
     ASSERT_EQ(cppValue->getValue<int16_t>(), 123);
     kuzu_value_destroy(value);
 }
@@ -114,7 +114,7 @@ TEST(CApiValueTestEmptyDB, CreateInt32) {
     kuzu_value* value = kuzu_value_create_int32(123);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::INT32);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::INT32);
     ASSERT_EQ(cppValue->getValue<int32_t>(), 123);
     kuzu_value_destroy(value);
 }
@@ -123,7 +123,7 @@ TEST(CApiValueTestEmptyDB, CreateInt64) {
     kuzu_value* value = kuzu_value_create_int64(123);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::INT64);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::INT64);
     ASSERT_EQ(cppValue->getValue<int64_t>(), 123);
     kuzu_value_destroy(value);
 }
@@ -132,7 +132,7 @@ TEST(CApiValueTestEmptyDB, CreateUInt8) {
     kuzu_value* value = kuzu_value_create_uint8(12);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::UINT8);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::UINT8);
     ASSERT_EQ(cppValue->getValue<uint8_t>(), 12);
     kuzu_value_destroy(value);
 }
@@ -141,7 +141,7 @@ TEST(CApiValueTestEmptyDB, CreateUInt16) {
     kuzu_value* value = kuzu_value_create_uint16(123);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::UINT16);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::UINT16);
     ASSERT_EQ(cppValue->getValue<uint16_t>(), 123);
     kuzu_value_destroy(value);
 }
@@ -150,7 +150,7 @@ TEST(CApiValueTestEmptyDB, CreateUInt32) {
     kuzu_value* value = kuzu_value_create_uint32(123);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::UINT32);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::UINT32);
     ASSERT_EQ(cppValue->getValue<uint32_t>(), 123);
     kuzu_value_destroy(value);
 }
@@ -159,7 +159,7 @@ TEST(CApiValueTestEmptyDB, CreateUInt64) {
     kuzu_value* value = kuzu_value_create_uint64(123);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::UINT64);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::UINT64);
     ASSERT_EQ(cppValue->getValue<uint64_t>(), 123);
     kuzu_value_destroy(value);
 }
@@ -168,7 +168,7 @@ TEST(CApiValueTestEmptyDB, CreateINT128) {
     kuzu_value* value = kuzu_value_create_int128(kuzu_int128_t{211111111, 100000000});
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::INT128);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::INT128);
     auto cppTimeStamp = cppValue->getValue<int128_t>();
     ASSERT_EQ(cppTimeStamp.high, 100000000);
     ASSERT_EQ(cppTimeStamp.low, 211111111);
@@ -179,7 +179,7 @@ TEST(CApiValueTestEmptyDB, CreateFloat) {
     kuzu_value* value = kuzu_value_create_float(123.456);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::FLOAT);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::FLOAT);
     ASSERT_FLOAT_EQ(cppValue->getValue<float>(), 123.456);
     kuzu_value_destroy(value);
 }
@@ -188,7 +188,7 @@ TEST(CApiValueTestEmptyDB, CreateDouble) {
     kuzu_value* value = kuzu_value_create_double(123.456);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::DOUBLE);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::DOUBLE);
     ASSERT_DOUBLE_EQ(cppValue->getValue<double>(), 123.456);
     kuzu_value_destroy(value);
 }
@@ -198,7 +198,7 @@ TEST(CApiValueTestEmptyDB, CreateInternalID) {
     kuzu_value* value = kuzu_value_create_internal_id(internalID);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::INTERNAL_ID);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::INTERNAL_ID);
     auto internalIDCpp = cppValue->getValue<internalID_t>();
     ASSERT_EQ(internalIDCpp.tableID, 1);
     ASSERT_EQ(internalIDCpp.offset, 123);
@@ -209,7 +209,7 @@ TEST(CApiValueTestEmptyDB, CreateDate) {
     kuzu_value* value = kuzu_value_create_date(kuzu_date_t{123});
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::DATE);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::DATE);
     auto cppDate = cppValue->getValue<date_t>();
     ASSERT_EQ(cppDate.days, 123);
     kuzu_value_destroy(value);
@@ -219,7 +219,7 @@ TEST(CApiValueTestEmptyDB, CreateTimeStamp) {
     kuzu_value* value = kuzu_value_create_timestamp(kuzu_timestamp_t{123});
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::TIMESTAMP);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::TIMESTAMP);
     auto cppTimeStamp = cppValue->getValue<timestamp_t>();
     ASSERT_EQ(cppTimeStamp.value, 123);
     kuzu_value_destroy(value);
@@ -239,10 +239,10 @@ TEST(CApiValueTestEmptyDB, CreateTimeStampNonStandard) {
     auto cppValue_ms = static_cast<Value*>(value_ms->_value);
     auto cppValue_sec = static_cast<Value*>(value_sec->_value);
     auto cppValue_tz = static_cast<Value*>(value_tz->_value);
-    ASSERT_EQ(cppValue_ns->getDataType()->getLogicalTypeID(), LogicalTypeID::TIMESTAMP_NS);
-    ASSERT_EQ(cppValue_ms->getDataType()->getLogicalTypeID(), LogicalTypeID::TIMESTAMP_MS);
-    ASSERT_EQ(cppValue_sec->getDataType()->getLogicalTypeID(), LogicalTypeID::TIMESTAMP_SEC);
-    ASSERT_EQ(cppValue_tz->getDataType()->getLogicalTypeID(), LogicalTypeID::TIMESTAMP_TZ);
+    ASSERT_EQ(cppValue_ns->getDataType().getLogicalTypeID(), LogicalTypeID::TIMESTAMP_NS);
+    ASSERT_EQ(cppValue_ms->getDataType().getLogicalTypeID(), LogicalTypeID::TIMESTAMP_MS);
+    ASSERT_EQ(cppValue_sec->getDataType().getLogicalTypeID(), LogicalTypeID::TIMESTAMP_SEC);
+    ASSERT_EQ(cppValue_tz->getDataType().getLogicalTypeID(), LogicalTypeID::TIMESTAMP_TZ);
 
     auto cppTimeStamp_ns = cppValue_ns->getValue<timestamp_ns_t>();
     auto cppTimeStamp_ms = cppValue_ms->getValue<timestamp_ms_t>();
@@ -262,7 +262,7 @@ TEST(CApiValueTestEmptyDB, CreateInterval) {
     kuzu_value* value = kuzu_value_create_interval(kuzu_interval_t{12, 3, 300});
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::INTERVAL);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::INTERVAL);
     auto cppTimeStamp = cppValue->getValue<interval_t>();
     ASSERT_EQ(cppTimeStamp.months, 12);
     ASSERT_EQ(cppTimeStamp.days, 3);
@@ -274,7 +274,7 @@ TEST(CApiValueTestEmptyDB, CreateString) {
     kuzu_value* value = kuzu_value_create_string((char*)"abcdefg");
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::STRING);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::STRING);
     ASSERT_EQ(cppValue->getValue<std::string>(), "abcdefg");
     kuzu_value_destroy(value);
 }
@@ -283,7 +283,7 @@ TEST(CApiValueTestEmptyDB, Clone) {
     kuzu_value* value = kuzu_value_create_string((char*)"abcdefg");
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::STRING);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::STRING);
     ASSERT_EQ(cppValue->getValue<std::string>(), "abcdefg");
 
     kuzu_value* clone = kuzu_value_clone(value);
@@ -291,7 +291,7 @@ TEST(CApiValueTestEmptyDB, Clone) {
 
     ASSERT_FALSE(clone->_is_owned_by_cpp);
     auto cppClone = static_cast<Value*>(clone->_value);
-    ASSERT_EQ(cppClone->getDataType()->getLogicalTypeID(), LogicalTypeID::STRING);
+    ASSERT_EQ(cppClone->getDataType().getLogicalTypeID(), LogicalTypeID::STRING);
     ASSERT_EQ(cppClone->getValue<std::string>(), "abcdefg");
     kuzu_value_destroy(clone);
 }
@@ -305,7 +305,7 @@ TEST(CApiValueTestEmptyDB, Copy) {
 
     ASSERT_FALSE(kuzu_value_is_null(value));
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::STRING);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::STRING);
     ASSERT_EQ(cppValue->getValue<std::string>(), "abcdefg");
     kuzu_value_destroy(value);
 }

@@ -200,7 +200,8 @@ LocalNodeGroup* LocalRelTableData::getOrCreateLocalNodeGroup(ValueVector* nodeID
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     if (!nodeGroups.contains(nodeGroupIdx)) {
         auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-        nodeGroups[nodeGroupIdx] = std::make_unique<LocalRelNG>(nodeGroupStartOffset, dataTypes);
+        nodeGroups[nodeGroupIdx] = std::make_unique<LocalRelNG>(nodeGroupStartOffset,
+            common::LogicalType::copy(dataTypes));
     }
     return nodeGroups.at(nodeGroupIdx).get();
 }
@@ -210,12 +211,14 @@ LocalRelTable::LocalRelTable(Table& table) : LocalTable{table} {
     std::vector<LogicalType> types;
     types.reserve(relTable.getNumColumns());
     for (auto i = 0u; i < relTable.getNumColumns(); i++) {
-        types.push_back(relTable.getColumn(i, RelDataDirection::FWD)->getDataType());
+        types.push_back(relTable.getColumn(i, RelDataDirection::FWD)->getDataType().copy());
     }
     // FWD and BWD local rel table data.
     auto tableID = relTable.getTableID();
-    localTableDataCollection.push_back(std::make_unique<LocalRelTableData>(tableID, types));
-    localTableDataCollection.push_back(std::make_unique<LocalRelTableData>(tableID, types));
+    localTableDataCollection.push_back(
+        std::make_unique<LocalRelTableData>(tableID, LogicalType::copy(types)));
+    localTableDataCollection.push_back(
+        std::make_unique<LocalRelTableData>(tableID, std::move(types)));
 }
 
 bool LocalRelTable::insert(TableInsertState& state) {

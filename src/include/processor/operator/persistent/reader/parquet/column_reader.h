@@ -19,11 +19,11 @@ typedef std::bitset<common::DEFAULT_VECTOR_CAPACITY> parquet_filter_t;
 
 class ColumnReader {
 public:
-    ColumnReader(ParquetReader& reader, std::unique_ptr<common::LogicalType> type,
+    ColumnReader(ParquetReader& reader, common::LogicalType type,
         const kuzu_parquet::format::SchemaElement& schema, uint64_t fileIdx, uint64_t maxDefinition,
         uint64_t maxRepeat);
     virtual ~ColumnReader() = default;
-    inline common::LogicalType* getDataType() const { return type.get(); }
+    inline const common::LogicalType& getDataType() const { return type; }
     inline bool hasDefines() const { return maxDefine > 0; }
     inline bool hasRepeats() const { return maxRepeat > 0; }
     virtual inline void skip(uint64_t numValues) { pendingSkips += numValues; }
@@ -52,9 +52,8 @@ public:
     virtual uint64_t read(uint64_t numValues, parquet_filter_t& filter, uint8_t* defineOut,
         uint8_t* repeatOut, common::ValueVector* resultOut);
     static std::unique_ptr<ColumnReader> createReader(ParquetReader& reader,
-        std::unique_ptr<common::LogicalType> type,
-        const kuzu_parquet::format::SchemaElement& schema, uint64_t fileIdx, uint64_t maxDefine,
-        uint64_t maxRepeat);
+        common::LogicalType type, const kuzu_parquet::format::SchemaElement& schema,
+        uint64_t fileIdx, uint64_t maxDefine, uint64_t maxRepeat);
     void prepareRead(parquet_filter_t& filter);
     void allocateBlock(uint64_t size);
     void allocateCompressed(uint64_t size);
@@ -84,9 +83,8 @@ public:
 
 private:
     static std::unique_ptr<ColumnReader> createTimestampReader(ParquetReader& reader,
-        std::unique_ptr<common::LogicalType> type,
-        const kuzu_parquet::format::SchemaElement& schema, uint64_t fileIdx, uint64_t maxDefine,
-        uint64_t maxRepeat);
+        common::LogicalType type, const kuzu_parquet::format::SchemaElement& schema,
+        uint64_t fileIdx, uint64_t maxDefine, uint64_t maxRepeat);
 
 protected:
     const kuzu_parquet::format::SchemaElement& schema;
@@ -96,7 +94,7 @@ protected:
     uint64_t maxRepeat;
 
     ParquetReader& reader;
-    std::unique_ptr<common::LogicalType> type;
+    common::LogicalType type;
 
     uint64_t pendingSkips = 0;
 

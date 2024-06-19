@@ -29,7 +29,7 @@ bool LiteralExpressionEvaluator::select(SelectionVector&) {
 
 void LiteralExpressionEvaluator::resolveResultVector(const processor::ResultSet& /*resultSet*/,
     MemoryManager* memoryManager) {
-    resultVector = std::make_shared<ValueVector>(*value.getDataType(), memoryManager);
+    resultVector = std::make_shared<ValueVector>(value.getDataType().copy(), memoryManager);
     resultVector->setState(DataChunkState::getSingleValueDataChunkState());
     unflatState = std::make_shared<DataChunkState>();
     if (value.isNull()) {

@@ -213,7 +213,7 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) {
     case CatalogEntryType::TYPE_ENTRY: {
         auto& typeEntry = createEntryRecord.ownedCatalogEntry->constCast<TypeCatalogEntry>();
         clientContext.getCatalog()->createType(&DUMMY_WRITE_TRANSACTION, typeEntry.getName(),
-            typeEntry.getLogicalType());
+            typeEntry.getLogicalType().copy());
     } break;
     default: {
         KU_UNREACHABLE;

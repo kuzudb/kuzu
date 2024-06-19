@@ -13,7 +13,7 @@ namespace catalog {
 
 void Property::serialize(Serializer& serializer) const {
     serializer.serializeValue(name);
-    dataType->serialize(serializer);
+    dataType.serialize(serializer);
     defaultExpr->serialize(serializer);
     serializer.serializeValue(propertyID);
     serializer.serializeValue(columnID);
@@ -38,10 +38,10 @@ Property Property::deserialize(Deserializer& deserializer) {
 std::string Property::toCypher(const std::vector<kuzu::catalog::Property>& properties) {
     std::stringstream ss;
     for (auto& prop : properties) {
-        if (prop.getDataType()->getPhysicalType() == PhysicalTypeID::INTERNAL_ID) {
+        if (prop.getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID) {
             continue;
         }
-        auto propStr = prop.getDataType()->toString();
+        auto propStr = prop.getDataType().toString();
         StringUtils::replaceAll(propStr, ":", " ");
         if (propStr.find("MAP") != std::string::npos) {
             StringUtils::replaceAll(propStr, "  ", ",");

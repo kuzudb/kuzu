@@ -11,14 +11,13 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
     KU_ASSERT(arguments.size() == 1);
     std::vector<StructField> fields;
     // TODO(Ziy): Use UINT8 to represent tag value.
-    fields.emplace_back(UnionType::TAG_FIELD_NAME,
-        std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));
+    fields.emplace_back(UnionType::TAG_FIELD_NAME, LogicalType(UnionType::TAG_FIELD_TYPE));
     if (arguments[0]->getDataType().getLogicalTypeID() == common::LogicalTypeID::ANY) {
-        arguments[0]->cast(*LogicalType::STRING());
+        arguments[0]->cast(LogicalType::STRING());
     }
     fields.emplace_back(arguments[0]->getAlias(), arguments[0]->getDataType().copy());
     auto resultType = LogicalType::UNION(std::move(fields));
-    return FunctionBindData::getSimpleBindData(arguments, *resultType);
+    return FunctionBindData::getSimpleBindData(arguments, std::move(resultType));
 }
 
 static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& /*parameters*/,

@@ -29,7 +29,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindVariableExpression(const std::
 
 std::shared_ptr<Expression> ExpressionBinder::createVariableExpression(
     common::LogicalType logicalType, std::string_view name) {
-    return createVariableExpression(logicalType, std::string(name));
+    return createVariableExpression(std::move(logicalType), std::string(name));
 }
 
 std::shared_ptr<Expression> ExpressionBinder::createVariableExpression(LogicalType logicalType,

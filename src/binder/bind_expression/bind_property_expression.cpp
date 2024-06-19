@@ -55,7 +55,7 @@ expression_vector ExpressionBinder::bindNodeOrRelPropertyStarExpression(const Ex
 expression_vector ExpressionBinder::bindStructPropertyStarExpression(
     const std::shared_ptr<Expression>& child) {
     expression_vector result;
-    auto childType = child->getDataType();
+    const auto& childType = child->getDataType();
     for (auto& field : StructType::getFields(childType)) {
         result.push_back(bindStructPropertyExpression(child, field.getName()));
     }

@@ -549,7 +549,7 @@ class InternalIDChunkData final : public ColumnChunkData {
 public:
     // Physically, we only materialize offset of INTERNAL_ID, which is same as UINT64,
     explicit InternalIDChunkData(uint64_t capacity, bool enableCompression)
-        : ColumnChunkData(*LogicalType::INTERNAL_ID(), capacity, enableCompression),
+        : ColumnChunkData(LogicalType::INTERNAL_ID(), capacity, enableCompression),
           commonTableID{INVALID_TABLE_ID} {}
 
     void append(ValueVector* vector, const SelectionVector& selVector) override {

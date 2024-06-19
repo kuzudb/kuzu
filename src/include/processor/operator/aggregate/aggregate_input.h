@@ -20,7 +20,7 @@ struct AggregateInfo {
 private:
     AggregateInfo(const AggregateInfo& other)
         : aggVectorPos{other.aggVectorPos}, multiplicityChunksPos{other.multiplicityChunksPos},
-          distinctAggKeyType{other.distinctAggKeyType} {}
+          distinctAggKeyType{other.distinctAggKeyType.copy()} {}
 };
 
 struct AggregateInput {

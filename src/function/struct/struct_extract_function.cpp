@@ -12,7 +12,7 @@ namespace function {
 
 std::unique_ptr<FunctionBindData> StructExtractFunctions::bindFunc(
     const expression_vector& arguments, Function* function) {
-    auto structType = arguments[0]->getDataType();
+    const auto& structType = arguments[0]->getDataType();
     if (arguments[1]->expressionType != ExpressionType::LITERAL) {
         throw BinderException("Key name for struct/union extract must be STRING literal.");
     }
@@ -22,9 +22,9 @@ std::unique_ptr<FunctionBindData> StructExtractFunctions::bindFunc(
         throw BinderException(stringFormat("Invalid struct field name: {}.", key));
     }
     auto paramTypes = ExpressionUtil::getDataTypes(arguments);
-    auto resultType = StructType::getFieldTypes(structType)[fieldIdx];
-    auto bindData = std::make_unique<StructExtractBindData>(resultType.copy(), fieldIdx);
-    bindData->paramTypes.push_back(arguments[0]->getDataType());
+    auto resultType = StructType::getField(structType, fieldIdx).getType().copy();
+    auto bindData = std::make_unique<StructExtractBindData>(std::move(resultType), fieldIdx);
+    bindData->paramTypes.push_back(arguments[0]->getDataType().copy());
     bindData->paramTypes.push_back(LogicalType(function->parameterTypeIDs[1]));
     return bindData;
 }

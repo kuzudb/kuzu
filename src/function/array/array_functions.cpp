@@ -13,8 +13,8 @@ namespace function {
 
 std::unique_ptr<FunctionBindData> ArrayCrossProductBindFunc(
     const binder::expression_vector& arguments, Function* function) {
-    auto leftType = arguments[0]->dataType;
-    auto rightType = arguments[1]->dataType;
+    const auto& leftType = arguments[0]->dataType;
+    const auto& rightType = arguments[1]->dataType;
     if (leftType != rightType) {
         throw BinderException(
             stringFormat("{} requires both arrays to have the same element type and size of 3",
@@ -56,9 +56,9 @@ std::unique_ptr<FunctionBindData> ArrayCrossProductBindFunc(
                 ArrayCrossProductFunction::name)};
     }
     ku_dynamic_cast<Function*, ScalarFunction*>(function)->execFunc = execFunc;
-    auto resultType =
-        LogicalType::ARRAY(ArrayType::getChildType(leftType), ArrayType::getNumElements(leftType));
-    return FunctionBindData::getSimpleBindData(arguments, *resultType);
+    auto resultType = LogicalType::ARRAY(ArrayType::getChildType(leftType).copy(),
+        ArrayType::getNumElements(leftType));
+    return FunctionBindData::getSimpleBindData(arguments, std::move(resultType));
 }
 
 function_set ArrayCrossProductFunction::getFunctionSet() {
@@ -75,9 +75,9 @@ function_set ArrayCrossProductFunction::getFunctionSet() {
 static LogicalType getChildType(const LogicalType& type) {
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::ARRAY:
-        return ArrayType::getChildType(type);
+        return ArrayType::getChildType(type).copy();
     case LogicalTypeID::LIST:
-        return ListType::getChildType(type);
+        return ListType::getChildType(type).copy();
         // LCOV_EXCL_START
     default:
         throw BinderException(stringFormat(
@@ -104,9 +104,9 @@ static LogicalType validateArrayFunctionParameters(const LogicalType& leftType,
     validateChildType(leftChildType, functionName);
     validateChildType(rightChildType, functionName);
     if (leftType.getLogicalTypeID() == common::LogicalTypeID::ARRAY) {
-        return leftType;
+        return leftType.copy();
     } else if (rightType.getLogicalTypeID() == common::LogicalTypeID::ARRAY) {
-        return rightType;
+        return rightType.copy();
     }
     throw BinderException(
         stringFormat("{} requires at least one argument to be ARRAY but all parameters are LIST.",
@@ -139,15 +139,16 @@ scalar_func_exec_t getScalarExecFunc(LogicalType type) {
 template<typename OPERATION>
 std::unique_ptr<FunctionBindData> arrayTemplateBindFunc(std::string functionName,
     const binder::expression_vector& arguments, Function* function) {
-    auto leftType = arguments[0]->dataType;
-    auto rightType = arguments[1]->dataType;
+    const auto& leftType = arguments[0]->dataType;
+    const auto& rightType = arguments[1]->dataType;
     auto paramType = validateArrayFunctionParameters(leftType, rightType, functionName);
-    function->ptrCast<ScalarFunction>()->execFunc = getScalarExecFunc<OPERATION>(paramType);
+    function->ptrCast<ScalarFunction>()->execFunc =
+        std::move(getScalarExecFunc<OPERATION>(paramType.copy()));
     auto bindData = std::make_unique<FunctionBindData>(ArrayType::getChildType(paramType).copy());
     std::vector<LogicalType> paramTypes;
     for (auto& _ : arguments) {
         (void)_;
-        bindData->paramTypes.push_back(paramType);
+        bindData->paramTypes.push_back(paramType.copy());
     }
     return bindData;
 }

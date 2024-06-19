@@ -21,7 +21,7 @@ StructColumn::StructColumn(std::string name, LogicalType dataType,
     for (auto i = 0u; i < fieldTypes.size(); i++) {
         auto childColName = StorageUtils::getColumnName(name,
             StorageUtils::ColumnType::STRUCT_CHILD, std::to_string(i));
-        childColumns[i] = ColumnFactory::createColumn(childColName, *fieldTypes[i].copy(),
+        childColumns[i] = ColumnFactory::createColumn(childColName, fieldTypes[i]->copy(),
             *metaDAHeaderInfo.childrenInfos[i], dataFH, metadataDAC, bufferManager, wal,
             transaction, enableCompression);
     }

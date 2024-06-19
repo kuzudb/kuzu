@@ -21,7 +21,7 @@ struct ExportCSVBindData : public ExportFuncBindData {
 
     std::unique_ptr<ExportFuncBindData> copy() const override {
         auto bindData = std::make_unique<ExportCSVBindData>(names, fileName, exportOption.copy());
-        bindData->types = types;
+        bindData->types = LogicalType::copy(types);
         return bindData;
     }
 };
@@ -156,7 +156,7 @@ struct ExportCSVLocalState final : public ExportFuncLocalState {
         castFuncs.resize(exportCSVBindData.types.size());
         for (auto i = 0u; i < exportCSVBindData.types.size(); i++) {
             castFuncs[i] = function::CastFunction::bindCastFunction("cast",
-                exportCSVBindData.types[i], *LogicalType::STRING())
+                exportCSVBindData.types[i], LogicalType::STRING())
                                ->execFunc;
             auto castVector =
                 std::make_unique<ValueVector>(LogicalTypeID::STRING, context.getMemoryManager());

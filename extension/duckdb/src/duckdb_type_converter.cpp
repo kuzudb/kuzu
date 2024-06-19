@@ -60,21 +60,21 @@ common::LogicalType DuckDBTypeConverter::convertDuckDBType(std::string typeStr) 
         return LogicalType{LogicalTypeID::STRING};
     } else if (typeStr.ends_with("[]")) {
         auto innerType = convertDuckDBType(typeStr.substr(0, typeStr.size() - 2));
-        return *LogicalType::LIST(innerType.copy());
+        return LogicalType::LIST(innerType.copy());
     } else if (typeStr.starts_with("STRUCT")) {
-        return *LogicalType::STRUCT(parseStructTypeInfo(typeStr));
+        return LogicalType::STRUCT(parseStructTypeInfo(typeStr));
     } else if (typeStr.starts_with("UNION")) {
         auto unionFields = parseStructTypeInfo(typeStr);
-        auto unionTagField = StructField(UnionType::TAG_FIELD_NAME,
-            std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));
+        auto unionTagField =
+            StructField(UnionType::TAG_FIELD_NAME, LogicalType(UnionType::TAG_FIELD_TYPE));
         unionFields.insert(unionFields.begin(), std::move(unionTagField));
-        return *LogicalType::UNION(std::move(unionFields));
+        return LogicalType::UNION(std::move(unionFields));
     } else if (typeStr.starts_with("MAP")) {
         auto leftBracketPos = typeStr.find('(');
         auto rightBracketPos = typeStr.find_last_of(')');
         auto mapTypeStr = typeStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
         auto keyValueTypes = StringUtils::splitComma(mapTypeStr);
-        return *LogicalType::MAP(convertDuckDBType(keyValueTypes[0]),
+        return LogicalType::MAP(convertDuckDBType(keyValueTypes[0]),
             convertDuckDBType(keyValueTypes[1]));
     } else if (typeStr.ends_with(']')) {
         auto leftBracketPos = typeStr.find('[');
@@ -83,7 +83,7 @@ common::LogicalType DuckDBTypeConverter::convertDuckDBType(std::string typeStr) 
             typeStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1).c_str(),
             nullptr, 0);
         auto innerType = convertDuckDBType(typeStr.substr(0, leftBracketPos));
-        return *LogicalType::ARRAY(innerType.copy(), numValuesInList);
+        return LogicalType::ARRAY(innerType.copy(), numValuesInList);
     }
     throw BinderException{stringFormat("Unsupported duckdb type: {}.", typeStr)};
 }
@@ -133,7 +133,7 @@ std::vector<StructField> DuckDBTypeConverter::parseStructTypeInfo(
         auto fieldName = structFieldStr.substr(0, pos);
         auto fieldTypeString = structFieldStr.substr(pos + 1);
         structFields.emplace_back(fieldName,
-            std::make_unique<LogicalType>(DuckDBTypeConverter::convertDuckDBType(fieldTypeString)));
+            LogicalType(DuckDBTypeConverter::convertDuckDBType(fieldTypeString)));
     }
     return structFields;
 }

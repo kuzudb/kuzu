@@ -29,8 +29,8 @@ void PatternExpressionEvaluator::evaluate() {
 
 void PatternExpressionEvaluator::resolveResultVector(const ResultSet& resultSet,
     MemoryManager* memoryManager) {
-    auto dataType = pattern->getDataType();
-    resultVector = std::make_shared<ValueVector>(dataType, memoryManager);
+    const auto& dataType = pattern->getDataType();
+    resultVector = std::make_shared<ValueVector>(dataType.copy(), memoryManager);
     std::vector<ExpressionEvaluator*> inputEvaluators;
     inputEvaluators.reserve(children.size());
     for (auto& child : children) {
@@ -43,8 +43,8 @@ void PatternExpressionEvaluator::resolveResultVector(const ResultSet& resultSet,
 
 void PatternExpressionEvaluator::initFurther(const ResultSet&) {
     StructPackFunctions::compileFunc(nullptr, parameters, resultVector);
-    auto dataType = pattern->getDataType();
-    auto fieldIdx = StructType::getFieldIdx(dataType, InternalKeyword::ID);
+    const auto& dataType = pattern->getDataType();
+    auto fieldIdx = StructType::getFieldIdx(dataType.copy(), InternalKeyword::ID);
     idVector = StructVector::getFieldVector(resultVector.get(), fieldIdx).get();
 }
 
@@ -76,7 +76,7 @@ void UndirectedRelExpressionEvaluator::initFurther(const ResultSet& resultSet) {
     directionEvaluator->init(resultSet, localState.clientContext);
     directionVector = directionEvaluator->resultVector.get();
     StructPackFunctions::undirectedRelCompileFunc(nullptr, parameters, resultVector);
-    auto dataType = pattern->getDataType();
+    const auto& dataType = pattern->getDataType();
     auto idFieldIdx = StructType::getFieldIdx(dataType, InternalKeyword::ID);
     auto srcFieldIdx = StructType::getFieldIdx(dataType, InternalKeyword::SRC);
     auto dstFieldIdx = StructType::getFieldIdx(dataType, InternalKeyword::DST);

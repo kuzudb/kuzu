@@ -540,7 +540,7 @@ static bool tryCastStringToStruct(const char* input, uint64_t len, ValueVector* 
 
     // check if start with {
     auto end = input + len;
-    auto type = vector->dataType;
+    const auto& type = vector->dataType;
     skipWhitespace(input, end);
     if (input == end || *input != '{') {
         return false;

@@ -14,12 +14,12 @@ namespace storage {
 ListChunkData::ListChunkData(LogicalType dataType, uint64_t capacity, bool enableCompression,
     bool inMemory)
     : ColumnChunkData{std::move(dataType), capacity, enableCompression, true /* hasNullChunk */} {
-    offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(*common::LogicalType::UINT64(),
+    offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(common::LogicalType::UINT64(),
         enableCompression, capacity);
-    sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(*common::LogicalType::UINT32(),
+    sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(common::LogicalType::UINT32(),
         enableCompression, capacity);
     dataColumnChunk =
-        ColumnChunkFactory::createColumnChunkData(*ListType::getChildType(this->dataType).copy(),
+        ColumnChunkFactory::createColumnChunkData(ListType::getChildType(this->dataType).copy(),
             enableCompression, 0 /* capacity */, inMemory);
     checkOffsetSortedAsc = false;
     KU_ASSERT(this->dataType.getPhysicalType() == PhysicalTypeID::LIST ||
@@ -99,7 +99,7 @@ void ListChunkData::resetToEmpty() {
     sizeColumnChunk->resetToEmpty();
     offsetColumnChunk->resetToEmpty();
     dataColumnChunk = ColumnChunkFactory::createColumnChunkData(
-        *ListType::getChildType(this->dataType).copy(), enableCompression, 0 /* capacity */);
+        ListType::getChildType(this->dataType).copy(), enableCompression, 0 /* capacity */);
 }
 
 void ListChunkData::append(ValueVector* vector, const SelectionVector& selVector) {
@@ -300,8 +300,8 @@ void ListChunkData::resetOffset() {
 
 void ListChunkData::finalize() {
     // rewrite the column chunk for better scanning performance
-    auto newColumnChunk = ColumnChunkFactory::createColumnChunkData(std::move(*dataType.copy()),
-        enableCompression, capacity);
+    auto newColumnChunk =
+        ColumnChunkFactory::createColumnChunkData(dataType.copy(), enableCompression, capacity);
     uint64_t totalListLen = dataColumnChunk->getNumValues();
     uint64_t resizeThreshold = dataColumnChunk->getCapacity() / 2;
     // if the list is not very long, we do not need to rewrite

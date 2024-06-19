@@ -19,7 +19,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(LogicalOperator* logical
     for (auto& expression : childSchema->getExpressionsInScope()) {
         vectorsToCopyPos.emplace_back(childSchema->getExpressionPos(*expression));
         isFlat.push_back(childSchema->getGroup(expression)->isFlat());
-        types.push_back(expression->dataType);
+        types.push_back(expression->dataType.copy());
     }
     auto exportFunc = logicalCopyTo.getExportFunc();
     auto bindData = logicalCopyTo.getBindData();

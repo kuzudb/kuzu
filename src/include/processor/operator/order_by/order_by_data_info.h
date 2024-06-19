@@ -9,15 +9,14 @@ namespace processor {
 struct OrderByDataInfo {
     std::vector<DataPos> keysPos;
     std::vector<DataPos> payloadsPos;
-    std::vector<std::unique_ptr<common::LogicalType>> keyTypes;
-    std::vector<std::unique_ptr<common::LogicalType>> payloadTypes;
+    std::vector<common::LogicalType> keyTypes;
+    std::vector<common::LogicalType> payloadTypes;
     std::vector<bool> isAscOrder;
     FactorizedTableSchema payloadTableSchema;
     std::vector<uint32_t> keyInPayloadPos;
 
     OrderByDataInfo(std::vector<DataPos> keysPos, std::vector<DataPos> payloadsPos,
-        std::vector<std::unique_ptr<common::LogicalType>> keyTypes,
-        std::vector<std::unique_ptr<common::LogicalType>> payloadTypes,
+        std::vector<common::LogicalType> keyTypes, std::vector<common::LogicalType> payloadTypes,
         std::vector<bool> isAscOrder, FactorizedTableSchema payloadTableSchema,
         std::vector<uint32_t> keyInPayloadPos)
         : keysPos{std::move(keysPos)}, payloadsPos{std::move(payloadsPos)},

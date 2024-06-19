@@ -55,7 +55,7 @@ struct PropertyInfo {
     std::unique_ptr<parser::ParsedExpression> defaultValue;
 
     PropertyInfo(std::string name, common::LogicalType type)
-        : PropertyInfo{name, type,
+        : PropertyInfo{name, std::move(type),
               std::make_unique<parser::ParsedLiteralExpression>(common::Value::createNullValue(),
                   "NULL")} {}
 
@@ -66,7 +66,7 @@ struct PropertyInfo {
 
 private:
     PropertyInfo(const PropertyInfo& other)
-        : name{other.name}, type{other.type}, defaultValue{other.defaultValue->copy()} {}
+        : name{other.name}, type{other.type.copy()}, defaultValue{other.defaultValue->copy()} {}
 };
 
 struct BoundExtraCreateTableInfo : public BoundExtraCreateCatalogEntryInfo {

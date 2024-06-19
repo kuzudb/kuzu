@@ -12,7 +12,7 @@ namespace function {
 
 static void validateKeyType(const std::shared_ptr<binder::Expression>& mapExpression,
     const std::shared_ptr<binder::Expression>& extractKeyExpression) {
-    auto mapKeyType = MapType::getKeyType(mapExpression->dataType);
+    const auto& mapKeyType = MapType::getKeyType(mapExpression->dataType);
     if (mapKeyType != extractKeyExpression->dataType) {
         throw RuntimeException("Unmatched map key type and extract key type");
     }
@@ -27,7 +27,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
             ScalarFunction::BinaryExecListStructFunction<list_entry_t, T, list_entry_t, MapExtract>;
     });
     auto resultType = LogicalType::LIST(MapType::getValueType(arguments[0]->dataType).copy());
-    return FunctionBindData::getSimpleBindData(arguments, *resultType);
+    return FunctionBindData::getSimpleBindData(arguments, std::move(resultType));
 }
 
 function_set MapExtractFunctions::getFunctionSet() {
