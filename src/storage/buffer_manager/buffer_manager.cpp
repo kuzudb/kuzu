@@ -209,13 +209,9 @@ void BufferManager::optimisticRead(BMFileHandle& fileHandle, page_idx_t pageIdx,
             }
         } break;
         case PageState::MARKED: {
-            // If the page is marked, we try to switch to unlocked. If we succeed, we read the page.
-            if (pageState->tryClearMark(currStateAndVersion)) {
-                if (try_func(func, getFrame(fileHandle, pageIdx), vmRegions,
-                        fileHandle.getPageSizeClass())) {
-                    return;
-                }
-            }
+            // If the page is marked, we try to switch to unlocked.
+            pageState->tryClearMark(currStateAndVersion);
+            continue;
         } break;
         case PageState::EVICTED: {
             pin(fileHandle, pageIdx, PageReadPolicy::READ_PAGE);
