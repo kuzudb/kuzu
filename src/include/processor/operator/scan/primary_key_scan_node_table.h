@@ -24,9 +24,10 @@ public:
     PrimaryKeyScanNodeTable(ScanTableInfo info, std::vector<ScanNodeTableInfo> nodeInfos,
         std::unique_ptr<evaluator::ExpressionEvaluator> indexEvaluator,
         std::shared_ptr<PrimaryKeyScanSharedState> sharedState, uint32_t id,
-        const std::string& paramString)
-        : ScanTable{type_, std::move(info), id, paramString}, nodeInfos{std::move(nodeInfos)},
-          indexEvaluator{std::move(indexEvaluator)}, sharedState{std::move(sharedState)} {}
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : ScanTable{type_, std::move(info), id, std::move(printInfo)},
+          nodeInfos{std::move(nodeInfos)}, indexEvaluator{std::move(indexEvaluator)},
+          sharedState{std::move(sharedState)} {}
 
     bool isSource() const override { return true; }
 
@@ -36,7 +37,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<PrimaryKeyScanNodeTable>(info.copy(), copyVector(nodeInfos),
-            indexEvaluator->clone(), sharedState, id, paramsString);
+            indexEvaluator->clone(), sharedState, id, printInfo->copy());
     }
 
 private:

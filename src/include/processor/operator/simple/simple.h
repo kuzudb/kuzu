@@ -8,13 +8,13 @@ namespace processor {
 class Simple : public PhysicalOperator {
 public:
     Simple(PhysicalOperatorType operatorType, const DataPos& outputPos, uint32_t id,
-        const std::string& paramsString)
-        : PhysicalOperator{operatorType, id, paramsString}, outputPos{outputPos},
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{operatorType, id, std::move(printInfo)}, outputPos{outputPos},
           outputVector{nullptr}, hasExecuted{false} {}
     Simple(PhysicalOperatorType operatorType,
         std::vector<std::unique_ptr<PhysicalOperator>> children, const DataPos& outputPos,
-        uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{operatorType, std::move(children), id, paramsString},
+        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{operatorType, std::move(children), id, std::move(printInfo)},
           outputPos{outputPos}, outputVector{nullptr}, hasExecuted{false} {}
 
     bool isSource() const final { return true; }

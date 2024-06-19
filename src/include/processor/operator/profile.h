@@ -14,14 +14,16 @@ struct ProfileLocalState {
 };
 
 class Profile : public PhysicalOperator {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::PROFILE;
+
 public:
     Profile(DataPos outputPos, ProfileInfo info, ProfileLocalState localState, uint32_t id,
-        const std::string& paramsString, std::unique_ptr<PhysicalOperator> child)
-        : PhysicalOperator{PhysicalOperatorType::PROFILE, std::move(child), id, paramsString},
-          outputPos{outputPos}, info{info}, localState{localState} {}
+        std::unique_ptr<PhysicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)}, outputPos{outputPos},
+          info{info}, localState{localState} {}
 
-    inline bool isSource() const override { return true; }
-    inline bool isParallel() const final { return false; }
+    bool isSource() const override { return true; }
+    bool isParallel() const final { return false; }
 
     inline void setPhysicalPlan(PhysicalPlan* physicalPlan) { info.physicalPlan = physicalPlan; }
 
@@ -30,8 +32,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<Profile>(outputPos, info, localState, id, paramsString,
-            children[0]->clone());
+        return std::make_unique<Profile>(outputPos, info, localState, id, children[0]->clone(),
+            printInfo->copy());
     }
 
 private:

@@ -55,13 +55,14 @@ struct BatchInsertLocalState {
 };
 
 class BatchInsert : public Sink {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::BATCH_INSERT;
+
 public:
     BatchInsert(std::unique_ptr<BatchInsertInfo> info,
         std::shared_ptr<BatchInsertSharedState> sharedState,
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, uint32_t id,
-        const std::string& paramsString)
-        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::BATCH_INSERT, id,
-              paramsString},
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : Sink{std::move(resultSetDescriptor), type_, id, std::move(printInfo)},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
     ~BatchInsert() override = default;

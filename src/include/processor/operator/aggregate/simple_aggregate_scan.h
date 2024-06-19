@@ -10,14 +10,13 @@ class SimpleAggregateScan : public BaseAggregateScan {
 public:
     SimpleAggregateScan(std::shared_ptr<SimpleAggregateSharedState> sharedState,
         std::vector<DataPos> aggregatesPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        const std::string& paramsString)
-        : BaseAggregateScan{std::move(aggregatesPos), std::move(child), id, paramsString},
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : BaseAggregateScan{std::move(aggregatesPos), std::move(child), id, std::move(printInfo)},
           sharedState{std::move(sharedState)}, outDataChunk{nullptr} {}
 
-    // This constructor is used for cloning only.
     SimpleAggregateScan(std::shared_ptr<SimpleAggregateSharedState> sharedState,
-        std::vector<DataPos> aggregatesPos, uint32_t id, const std::string& paramsString)
-        : BaseAggregateScan{std::move(aggregatesPos), id, paramsString},
+        std::vector<DataPos> aggregatesPos, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        : BaseAggregateScan{std::move(aggregatesPos), id, std::move(printInfo)},
           sharedState{std::move(sharedState)}, outDataChunk{nullptr} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
@@ -26,7 +25,7 @@ public:
 
     // SimpleAggregateScan is the source operator of a pipeline, so it should not clone its child.
     std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<SimpleAggregateScan>(sharedState, aggregatesPos, id, paramsString);
+        return make_unique<SimpleAggregateScan>(sharedState, aggregatesPos, id, printInfo->copy());
     }
 
 private:

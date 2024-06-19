@@ -26,32 +26,34 @@ struct OrderByScanLocalState {
 // To preserve the ordering of tuples, the orderByScan operator will only
 // be executed in single-thread mode.
 class OrderByScan : public PhysicalOperator {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::ORDER_BY_SCAN;
+
 public:
     OrderByScan(std::vector<DataPos> outVectorPos, std::shared_ptr<SortSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::ORDER_BY_SCAN, std::move(child), id, paramsString},
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           outVectorPos{std::move(outVectorPos)},
           localState{std::make_unique<OrderByScanLocalState>()},
           sharedState{std::move(sharedState)} {}
 
     // This constructor is used for cloning only.
     OrderByScan(std::vector<DataPos> outVectorPos, std::shared_ptr<SortSharedState> sharedState,
-        uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::ORDER_BY_SCAN, id, paramsString},
-          outVectorPos{std::move(outVectorPos)},
+        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, id, std::move(printInfo)}, outVectorPos{std::move(outVectorPos)},
           localState{std::make_unique<OrderByScanLocalState>()},
           sharedState{std::move(sharedState)} {}
 
-    inline bool isSource() const final { return true; }
+    bool isSource() const final { return true; }
     // Ordered table should be scanned in single-thread mode.
-    inline bool isParallel() const final { return false; }
+    bool isParallel() const final { return false; }
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 
     std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<OrderByScan>(outVectorPos, sharedState, id, paramsString);
+        return std::make_unique<OrderByScan>(outVectorPos, sharedState, id, printInfo->copy());
     }
 
     double getProgress(ExecutionContext* context) const override;

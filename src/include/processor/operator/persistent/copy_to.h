@@ -30,12 +30,14 @@ struct CopyToLocalState {
 };
 
 class CopyTo final : public Sink {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::COPY_TO;
+
 public:
     CopyTo(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, CopyToInfo info,
         std::shared_ptr<function::ExportFuncSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_TO, std::move(child), id,
-              paramsString},
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : Sink{std::move(resultSetDescriptor), type_, std::move(child), id, std::move(printInfo)},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
@@ -46,7 +48,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<CopyTo>(resultSetDescriptor->copy(), info.copy(), sharedState,
-            children[0]->clone(), id, paramsString);
+            children[0]->clone(), id, printInfo->copy());
     }
 
 private:

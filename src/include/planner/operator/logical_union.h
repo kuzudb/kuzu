@@ -17,11 +17,11 @@ public:
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    inline std::string getExpressionsForPrinting() const override { return std::string{}; }
+    std::string getExpressionsForPrinting() const override { return std::string{}; }
 
-    inline binder::expression_vector getExpressionsToUnion() { return expressionsToUnion; }
+    binder::expression_vector getExpressionsToUnion() const { return expressionsToUnion; }
 
-    inline Schema* getSchemaBeforeUnion(uint32_t idx) { return children[idx]->getSchema(); }
+    Schema* getSchemaBeforeUnion(uint32_t idx) const { return children[idx]->getSchema(); }
 
     std::unique_ptr<LogicalOperator> copy() override;
 

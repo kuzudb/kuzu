@@ -6,24 +6,24 @@ namespace kuzu {
 namespace processor {
 
 class MultiplicityReducer : public PhysicalOperator {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::MULTIPLICITY_REDUCER;
 
 public:
     MultiplicityReducer(std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::MULTIPLICITY_REDUCER, std::move(child), id,
-              paramsString},
-          prevMultiplicity{1}, numRepeat{0} {}
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)}, prevMultiplicity{1},
+          numRepeat{0} {}
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<MultiplicityReducer>(children[0]->clone(), id, paramsString);
+        return make_unique<MultiplicityReducer>(children[0]->clone(), id, printInfo->copy());
     }
 
 private:
-    inline void restoreMultiplicity() { resultSet->multiplicity = prevMultiplicity; }
+    void restoreMultiplicity() { resultSet->multiplicity = prevMultiplicity; }
 
-    inline void saveMultiplicity() { prevMultiplicity = resultSet->multiplicity; }
+    void saveMultiplicity() { prevMultiplicity = resultSet->multiplicity; }
 
 private:
     uint64_t prevMultiplicity;

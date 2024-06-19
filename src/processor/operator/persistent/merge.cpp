@@ -86,7 +86,7 @@ std::unique_ptr<PhysicalOperator> Merge::clone() {
         copyVector(relInsertExecutors), NodeSetExecutor::copy(onCreateNodeSetExecutors),
         RelSetExecutor::copy(onCreateRelSetExecutors),
         NodeSetExecutor::copy(onMatchNodeSetExecutors),
-        RelSetExecutor::copy(onMatchRelSetExecutors), children[0]->clone(), id, paramsString);
+        RelSetExecutor::copy(onMatchRelSetExecutors), children[0]->clone(), id, printInfo->copy());
 }
 
 } // namespace processor

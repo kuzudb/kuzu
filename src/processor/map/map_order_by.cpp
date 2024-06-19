@@ -13,12 +13,11 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logicalOperator) {
-    auto logicalOrderBy = (LogicalOrderBy*)logicalOperator;
-    auto outSchema = logicalOrderBy->getSchema();
-    auto inSchema = logicalOrderBy->getChild(0)->getSchema();
-    auto prevOperator = mapOperator(logicalOrderBy->getChild(0).get());
-    auto paramsString = logicalOrderBy->getExpressionsForPrinting();
-    auto keyExpressions = logicalOrderBy->getExpressionsToOrderBy();
+    auto& logicalOrderBy = logicalOperator->constCast<LogicalOrderBy>();
+    auto outSchema = logicalOrderBy.getSchema();
+    auto inSchema = logicalOrderBy.getChild(0)->getSchema();
+    auto prevOperator = mapOperator(logicalOrderBy.getChild(0).get());
+    auto keyExpressions = logicalOrderBy.getExpressionsToOrderBy();
     auto payloadExpressions = inSchema->getExpressionsInScope();
     std::vector<DataPos> payloadsPos;
     std::vector<std::unique_ptr<LogicalType>> payloadTypes;
@@ -57,24 +56,26 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logica
     }
     auto orderByDataInfo = std::make_unique<OrderByDataInfo>(keysPos, payloadsPos,
         LogicalType::copy(keyTypes), LogicalType::copy(payloadTypes),
-        logicalOrderBy->getIsAscOrders(), std::move(payloadSchema), std::move(keyInPayloadPos));
-    if (logicalOrderBy->isTopK()) {
+        logicalOrderBy.getIsAscOrders(), std::move(payloadSchema), std::move(keyInPayloadPos));
+    auto printInfo = std::make_unique<OPPrintInfo>(logicalOrderBy.getExpressionsForPrinting());
+    if (logicalOrderBy.isTopK()) {
         auto topKSharedState = std::make_shared<TopKSharedState>();
         auto topK = make_unique<TopK>(std::make_unique<ResultSetDescriptor>(inSchema),
-            std::move(orderByDataInfo), topKSharedState, logicalOrderBy->getSkipNum(),
-            logicalOrderBy->getLimitNum(), std::move(prevOperator), getOperatorID(), paramsString);
+            std::move(orderByDataInfo), topKSharedState, logicalOrderBy.getSkipNum(),
+            logicalOrderBy.getLimitNum(), std::move(prevOperator), getOperatorID(),
+            printInfo->copy());
         return make_unique<TopKScan>(outPos, topKSharedState, std::move(topK), getOperatorID(),
-            paramsString);
+            printInfo->copy());
     } else {
         auto orderBySharedState = std::make_shared<SortSharedState>();
         auto orderBy = make_unique<OrderBy>(std::make_unique<ResultSetDescriptor>(inSchema),
             std::move(orderByDataInfo), orderBySharedState, std::move(prevOperator),
-            getOperatorID(), paramsString);
+            getOperatorID(), printInfo->copy());
         auto dispatcher = std::make_shared<KeyBlockMergeTaskDispatcher>();
         auto orderByMerge = make_unique<OrderByMerge>(orderBySharedState, std::move(dispatcher),
-            std::move(orderBy), getOperatorID(), paramsString);
+            std::move(orderBy), getOperatorID(), printInfo->copy());
         return make_unique<OrderByScan>(outPos, orderBySharedState, std::move(orderByMerge),
-            getOperatorID(), paramsString);
+            getOperatorID(), printInfo->copy());
     }
 }
 

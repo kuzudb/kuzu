@@ -38,6 +38,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "DELETE";
     case PhysicalOperatorType::DROP_TABLE:
         return "DROP_TABLE";
+    case PhysicalOperatorType::DROP_SEQUENCE:
+        return "DROP_SEQUENCE";
     case PhysicalOperatorType::EMPTY_RESULT:
         return "EMPTY_RESULT";
     case PhysicalOperatorType::EXPORT_DATABASE:
@@ -54,12 +56,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "HASH_JOIN_PROBE";
     case PhysicalOperatorType::IMPORT_DATABASE:
         return "IMPORT_DATABASE";
-    case PhysicalOperatorType::IN_QUERY_CALL:
-        return "IN_QUERY_CALL";
     case PhysicalOperatorType::INDEX_LOOKUP:
         return "INDEX_LOOKUP";
-    case PhysicalOperatorType::INDEX_SCAN:
-        return "INDEX_SCAN";
     case PhysicalOperatorType::INSERT:
         return "INSERT";
     case PhysicalOperatorType::INTERSECT_BUILD:
@@ -108,6 +106,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "SKIP";
     case PhysicalOperatorType::STANDALONE_CALL:
         return "STANDALONE_CALL";
+    case PhysicalOperatorType::TABLE_FUNCTION_CALL:
+        return "TABLE_FUNCTION_CALL";
     case PhysicalOperatorType::TOP_K:
         return "TOP_K";
     case PhysicalOperatorType::TOP_K_SCAN:
@@ -133,22 +133,22 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
 // LCOV_EXCL_STOP
 
 PhysicalOperator::PhysicalOperator(PhysicalOperatorType operatorType,
-    std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-    : PhysicalOperator{operatorType, id, paramsString} {
+    std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+    : PhysicalOperator{operatorType, id, std::move(printInfo)} {
     children.push_back(std::move(child));
 }
 
 PhysicalOperator::PhysicalOperator(PhysicalOperatorType operatorType,
     std::unique_ptr<PhysicalOperator> left, std::unique_ptr<PhysicalOperator> right, uint32_t id,
-    const std::string& paramsString)
-    : PhysicalOperator{operatorType, id, paramsString} {
+    std::unique_ptr<OPPrintInfo> printInfo)
+    : PhysicalOperator{operatorType, id, std::move(printInfo)} {
     children.push_back(std::move(left));
     children.push_back(std::move(right));
 }
 
 PhysicalOperator::PhysicalOperator(PhysicalOperatorType operatorType, physical_op_vector_t children,
-    uint32_t id, const std::string& paramsString)
-    : PhysicalOperator{operatorType, id, paramsString} {
+    uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+    : PhysicalOperator{operatorType, id, std::move(printInfo)} {
     for (auto& child : children) {
         this->children.push_back(std::move(child));
     }

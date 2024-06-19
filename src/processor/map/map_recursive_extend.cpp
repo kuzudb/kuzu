@@ -68,8 +68,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(LogicalOperator
     info.joinType = extend->getJoinType();
     info.direction = extend->getDirection();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
+    auto printInfo = std::make_unique<OPPrintInfo>(extend->getExpressionsForPrinting());
     return std::make_unique<RecursiveJoin>(std::move(info), sharedState, std::move(prevOperator),
-        getOperatorID(), extend->getExpressionsForPrinting(), std::move(recursiveRoot));
+        getOperatorID(), std::move(recursiveRoot), std::move(printInfo));
 }
 
 } // namespace processor

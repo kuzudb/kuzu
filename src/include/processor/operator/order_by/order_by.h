@@ -8,12 +8,14 @@ namespace kuzu {
 namespace processor {
 
 class OrderBy : public Sink {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::ORDER_BY;
+
 public:
     OrderBy(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::unique_ptr<OrderByDataInfo> info, std::shared_ptr<SortSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::ORDER_BY, std::move(child), id,
-              paramsString},
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : Sink{std::move(resultSetDescriptor), type_, std::move(child), id, std::move(printInfo)},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
@@ -30,7 +32,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<OrderBy>(resultSetDescriptor->copy(), info->copy(), sharedState,
-            children[0]->clone(), id, paramsString);
+            children[0]->clone(), id, printInfo->copy());
     }
 
 private:

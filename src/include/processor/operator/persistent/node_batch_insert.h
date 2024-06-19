@@ -89,9 +89,10 @@ public:
     NodeBatchInsert(std::unique_ptr<BatchInsertInfo> info,
         std::shared_ptr<BatchInsertSharedState> sharedState,
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : BatchInsert{std::move(info), std::move(sharedState), std::move(resultSetDescriptor), id,
-              paramsString} {
+              std::move(printInfo)} {
         children.push_back(std::move(child));
     }
 
@@ -105,7 +106,7 @@ public:
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<NodeBatchInsert>(info->copy(), sharedState,
-            resultSetDescriptor->copy(), children[0]->clone(), id, paramsString);
+            resultSetDescriptor->copy(), children[0]->clone(), id, printInfo->copy());
     }
 
     static void writeAndResetNewNodeGroup(transaction::Transaction* transaction,

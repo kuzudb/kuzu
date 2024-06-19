@@ -9,22 +9,24 @@ namespace kuzu {
 namespace processor {
 
 class OrderByMerge : public Sink {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::ORDER_BY_MERGE;
+
 public:
     // This constructor will only be called by the mapper when constructing the orderByMerge
     // operator, because the mapper doesn't know the existence of keyBlockMergeTaskDispatcher
     OrderByMerge(std::shared_ptr<SortSharedState> sharedState,
         std::shared_ptr<KeyBlockMergeTaskDispatcher> sharedDispatcher,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : Sink{nullptr /* resultSetDescriptor */, PhysicalOperatorType::ORDER_BY_MERGE,
-              std::move(child), id, paramsString},
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : Sink{nullptr /* resultSetDescriptor */, type_, std::move(child), id,
+              std::move(printInfo)},
           sharedState{std::move(sharedState)}, sharedDispatcher{std::move(sharedDispatcher)} {}
 
     // This constructor is used for cloning only.
     OrderByMerge(std::shared_ptr<SortSharedState> sharedState,
         std::shared_ptr<KeyBlockMergeTaskDispatcher> sharedDispatcher, uint32_t id,
-        const std::string& paramsString)
-        : Sink{nullptr /* resultSetDescriptor */, PhysicalOperatorType::ORDER_BY_MERGE, id,
-              paramsString},
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : Sink{nullptr /* resultSetDescriptor */, type_, id, printInfo->copy()},
           sharedState{std::move(sharedState)}, sharedDispatcher{std::move(sharedDispatcher)} {}
 
     inline bool isSource() const override { return true; }
@@ -34,7 +36,7 @@ public:
     void executeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<OrderByMerge>(sharedState, sharedDispatcher, id, paramsString);
+        return make_unique<OrderByMerge>(sharedState, sharedDispatcher, id, printInfo->copy());
     }
 
 private:

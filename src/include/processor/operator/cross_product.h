@@ -45,20 +45,22 @@ private:
 };
 
 class CrossProduct : public PhysicalOperator {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CROSS_PRODUCT;
+
 public:
     CrossProduct(std::unique_ptr<CrossProductInfo> info,
         std::unique_ptr<CrossProductLocalState> localState,
         std::unique_ptr<PhysicalOperator> probeChild, std::unique_ptr<PhysicalOperator> buildChild,
-        uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::CROSS_PRODUCT, std::move(probeChild),
-              std::move(buildChild), id, paramsString},
+        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(probeChild), std::move(buildChild), id,
+              std::move(printInfo)},
           info{std::move(info)}, localState{std::move(localState)} {}
 
     // Clone only.
     CrossProduct(std::unique_ptr<CrossProductInfo> info,
         std::unique_ptr<CrossProductLocalState> localState, std::unique_ptr<PhysicalOperator> child,
-        uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::CROSS_PRODUCT, std::move(child), id, paramsString},
+        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           info{std::move(info)}, localState{std::move(localState)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
@@ -67,7 +69,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<CrossProduct>(info->copy(), localState->copy(),
-            children[0]->clone(), id, paramsString);
+            children[0]->clone(), id, printInfo->copy());
     }
 
 private:

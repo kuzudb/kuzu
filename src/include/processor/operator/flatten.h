@@ -12,10 +12,12 @@ struct FlattenLocalState {
 };
 
 class Flatten : public PhysicalOperator, SelVectorOverWriter {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::FLATTEN;
+
 public:
     Flatten(data_chunk_pos_t dataChunkToFlattenPos, std::unique_ptr<PhysicalOperator> child,
-        uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::FLATTEN, std::move(child), id, paramsString},
+        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           dataChunkToFlattenPos{dataChunkToFlattenPos} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
@@ -23,7 +25,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<Flatten>(dataChunkToFlattenPos, children[0]->clone(), id, paramsString);
+        return make_unique<Flatten>(dataChunkToFlattenPos, children[0]->clone(), id,
+            printInfo->copy());
     }
 
 private:

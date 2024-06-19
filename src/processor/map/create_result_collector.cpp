@@ -1,4 +1,3 @@
-#include "binder/expression/expression_util.h"
 #include "processor/operator/result_collector.h"
 #include "processor/plan_mapper.h"
 #include "processor/result/factorized_table_util.h"
@@ -11,11 +10,11 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<ResultCollector> PlanMapper::createResultCollector(AccumulateType accumulateType,
-    const binder::expression_vector& expressions, Schema* schema,
+    const expression_vector& expressions, Schema* schema,
     std::unique_ptr<PhysicalOperator> prevOperator) {
     std::vector<DataPos> payloadsPos;
-    for (auto& e : expressions) {
-        payloadsPos.push_back(getDataPos(*e, *schema));
+    for (auto& expr : expressions) {
+        payloadsPos.push_back(getDataPos(*expr, *schema));
     }
     auto tableSchema = FactorizedTableUtils::createFTableSchema(expressions, *schema);
     if (accumulateType == AccumulateType::OPTIONAL_) {
@@ -26,11 +25,11 @@ std::unique_ptr<ResultCollector> PlanMapper::createResultCollector(AccumulateTyp
     auto table =
         std::make_shared<FactorizedTable>(clientContext->getMemoryManager(), tableSchema.copy());
     auto sharedState = std::make_shared<ResultCollectorSharedState>(std::move(table));
-    auto info =
-        std::make_unique<ResultCollectorInfo>(accumulateType, std::move(tableSchema), payloadsPos);
+    auto opInfo = ResultCollectorInfo(accumulateType, std::move(tableSchema), payloadsPos);
+    auto printInfo = std::make_unique<ResultCollectorPrintInfo>(expressions, accumulateType);
     return make_unique<ResultCollector>(std::make_unique<ResultSetDescriptor>(schema),
-        std::move(info), std::move(sharedState), std::move(prevOperator), getOperatorID(),
-        binder::ExpressionUtil::toString(expressions));
+        std::move(opInfo), std::move(sharedState), std::move(prevOperator), getOperatorID(),
+        std::move(printInfo));
 }
 
 } // namespace processor

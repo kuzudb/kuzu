@@ -71,7 +71,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logic
         probeSidePrevOperator = mapOperator(hashJoin->getChild(0).get());
         buildSidePrevOperator = mapOperator(hashJoin->getChild(1).get());
     }
-    auto paramsString = hashJoin->getExpressionsForPrinting();
     expression_vector probeKeys;
     expression_vector buildKeys;
     for (auto& [probeKey, buildKey] : hashJoin->getJoinConditions()) {
@@ -86,9 +85,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logic
     auto globalHashTable = std::make_unique<JoinHashTable>(*clientContext->getMemoryManager(),
         LogicalType::copy(buildKeyTypes), buildInfo->getTableSchema()->copy());
     auto sharedState = std::make_shared<HashJoinSharedState>(std::move(globalHashTable));
+    auto printInfo = std::make_unique<OPPrintInfo>(hashJoin->getExpressionsForPrinting());
     auto hashJoinBuild =
-        make_unique<HashJoinBuild>(std::make_unique<ResultSetDescriptor>(buildSchema), sharedState,
-            std::move(buildInfo), std::move(buildSidePrevOperator), getOperatorID(), paramsString);
+        make_unique<HashJoinBuild>(std::make_unique<ResultSetDescriptor>(buildSchema),
+            PhysicalOperatorType::HASH_JOIN_BUILD, sharedState, std::move(buildInfo),
+            std::move(buildSidePrevOperator), getOperatorID(), printInfo->copy());
     // Create probe
     std::vector<DataPos> probeKeysDataPos;
     for (auto& probeKey : probeKeys) {
@@ -106,10 +107,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logic
     } else {
         probeDataInfo.markDataPos = DataPos::getInvalidPos();
     }
-
     auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState, hashJoin->getJoinType(),
         hashJoin->requireFlatProbeKeys(), probeDataInfo, std::move(probeSidePrevOperator),
-        std::move(hashJoinBuild), getOperatorID(), paramsString);
+        std::move(hashJoinBuild), getOperatorID(), printInfo->copy());
     if (hashJoin->getSIPInfo().direction == SIPDirection::PROBE_TO_BUILD) {
         mapSIPJoin(hashJoinProbe.get());
     }

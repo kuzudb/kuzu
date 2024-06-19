@@ -15,9 +15,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapStandaloneCall(
         logicalStandaloneCall->getOptionValue()->constPtrCast<binder::LiteralExpression>();
     auto standaloneCallInfo = std::make_unique<StandaloneCallInfo>(
         logicalStandaloneCall->getOption(), optionValue->getValue());
-    return std::make_unique<StandaloneCall>(std::move(standaloneCallInfo),
-        PhysicalOperatorType::STANDALONE_CALL, getOperatorID(),
-        logicalStandaloneCall->getExpressionsForPrinting());
+    auto printInfo = std::make_unique<OPPrintInfo>(logicalOperator->getExpressionsForPrinting());
+    return std::make_unique<StandaloneCall>(std::move(standaloneCallInfo), getOperatorID(),
+        std::move(printInfo));
 }
 
 } // namespace processor

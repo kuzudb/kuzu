@@ -10,15 +10,16 @@ class HashAggregateScan : public BaseAggregateScan {
 public:
     HashAggregateScan(std::shared_ptr<HashAggregateSharedState> sharedState,
         std::vector<DataPos> groupByKeyVectorsPos, std::vector<DataPos> aggregatesPos,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : BaseAggregateScan{std::move(aggregatesPos), std::move(child), id, paramsString},
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : BaseAggregateScan{std::move(aggregatesPos), std::move(child), id, std::move(printInfo)},
           groupByKeyVectorsPos{std::move(groupByKeyVectorsPos)},
           sharedState{std::move(sharedState)} {}
 
     HashAggregateScan(std::shared_ptr<HashAggregateSharedState> sharedState,
         std::vector<DataPos> groupByKeyVectorsPos, std::vector<DataPos> aggregatesPos, uint32_t id,
-        const std::string& paramsString)
-        : BaseAggregateScan{std::move(aggregatesPos), id, paramsString},
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : BaseAggregateScan{std::move(aggregatesPos), id, std::move(printInfo)},
           groupByKeyVectorsPos{std::move(groupByKeyVectorsPos)},
           sharedState{std::move(sharedState)} {}
 
@@ -30,7 +31,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<HashAggregateScan>(sharedState, groupByKeyVectorsPos, aggregatesPos,
-            id, paramsString);
+            id, printInfo->copy());
     }
 
     double getProgress(ExecutionContext* context) const override;

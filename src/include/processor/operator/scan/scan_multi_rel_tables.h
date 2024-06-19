@@ -54,8 +54,9 @@ class ScanMultiRelTable : public ScanTable {
 public:
     ScanMultiRelTable(ScanTableInfo info, DirectionInfo directionInfo,
         common::table_id_map_t<RelTableCollectionScanner> scanners,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : ScanTable{type_, std::move(info), std::move(child), id, paramsString},
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : ScanTable{type_, std::move(info), std::move(child), id, std::move(printInfo)},
           directionInfo{std::move(directionInfo)}, scanners{std::move(scanners)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;

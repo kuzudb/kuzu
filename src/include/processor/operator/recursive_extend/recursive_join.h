@@ -106,10 +106,11 @@ class RecursiveJoin : public PhysicalOperator {
 
 public:
     RecursiveJoin(RecursiveJoinInfo info, std::shared_ptr<RecursiveJoinSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString,
-        std::unique_ptr<PhysicalOperator> recursiveRoot)
-        : PhysicalOperator{type_, std::move(child), id, paramsString}, info{std::move(info)},
-          sharedState{std::move(sharedState)}, recursiveRoot{std::move(recursiveRoot)} {}
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<PhysicalOperator> recursiveRoot, std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
+          info{std::move(info)}, sharedState{std::move(sharedState)},
+          recursiveRoot{std::move(recursiveRoot)} {}
 
     std::vector<NodeSemiMask*> getSemiMask() const;
 
@@ -119,7 +120,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<RecursiveJoin>(info.copy(), sharedState, children[0]->clone(), id,
-            paramsString, recursiveRoot->clone());
+            recursiveRoot->clone(), printInfo->copy());
     }
 
 private:

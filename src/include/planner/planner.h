@@ -2,6 +2,7 @@
 
 #include "binder/bound_statement.h"
 #include "binder/query/query_graph.h"
+#include "common/enums/accumulate_type.h"
 #include "common/enums/extend_direction.h"
 #include "common/enums/join_type.h"
 #include "planner/join_order/cardinality_estimator.h"

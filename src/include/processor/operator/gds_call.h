@@ -37,9 +37,9 @@ class GDSCall : public Sink {
 public:
     GDSCall(std::unique_ptr<ResultSetDescriptor> descriptor, GDSCallInfo info,
         std::shared_ptr<GDSCallSharedState> sharedState, uint32_t id,
-        const std::string& paramsString)
-        : Sink{std::move(descriptor), operatorType_, id, paramsString}, info{std::move(info)},
-          sharedState{std::move(sharedState)} {}
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : Sink{std::move(descriptor), operatorType_, id, std::move(printInfo)},
+          info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
     bool hasSemiMask() const { return !sharedState->inputNodeOffsetMasks.empty(); }
     std::vector<NodeSemiMask*> getSemiMasks() const;
@@ -54,7 +54,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<GDSCall>(resultSetDescriptor->copy(), info.copy(), sharedState, id,
-            paramsString);
+            printInfo->copy());
     }
 
 private:

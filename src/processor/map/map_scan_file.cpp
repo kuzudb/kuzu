@@ -11,8 +11,8 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapScanFile(LogicalOperator* logicalOperator) {
     auto outSchema = logicalOperator->getSchema();
-    auto scanFile = ku_dynamic_cast<LogicalOperator*, LogicalScanFile*>(logicalOperator);
-    auto scanFileInfo = scanFile->getInfo();
+    auto& scanFile = logicalOperator->constCast<LogicalScanFile>();
+    auto scanFileInfo = scanFile.getInfo();
     std::vector<DataPos> outPosV;
     outPosV.reserve(scanFileInfo->columns.size());
     for (auto& expr : scanFileInfo->columns) {
@@ -22,16 +22,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanFile(LogicalOperator* logic
     info.function = scanFileInfo->func;
     info.bindData = scanFileInfo->bindData->copy();
     info.outPosV = outPosV;
-    if (scanFile->hasOffset()) {
-        info.rowOffsetPos = getDataPos(*scanFile->getOffset(), *outSchema);
+    if (scanFile.hasOffset()) {
+        info.rowOffsetPos = getDataPos(*scanFile.getOffset(), *outSchema);
     } else {
         info.rowOffsetPos = DataPos::getInvalidPos();
     }
     info.outputType =
         outPosV.empty() ? TableScanOutputType::EMPTY : TableScanOutputType::SINGLE_DATA_CHUNK;
     auto sharedState = std::make_shared<TableFunctionCallSharedState>();
+    auto printInfo = std::make_unique<OPPrintInfo>(scanFile.getExpressionsForPrinting());
     return std::make_unique<TableFunctionCall>(std::move(info), sharedState, getOperatorID(),
-        scanFile->getExpressionsForPrinting());
+        std::move(printInfo));
 }
 
 } // namespace processor

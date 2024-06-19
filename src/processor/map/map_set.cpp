@@ -84,8 +84,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetNodeProperty(LogicalOperator
     for (auto& info : set->getInfos()) {
         executors.push_back(getNodeSetExecutor(info, *inSchema));
     }
+    auto printInfo = std::make_unique<OPPrintInfo>(set->getExpressionsForPrinting());
     return std::make_unique<SetNodeProperty>(std::move(executors), std::move(prevOperator),
-        getOperatorID(), set->getExpressionsForPrinting());
+        getOperatorID(), std::move(printInfo));
 }
 
 std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(const BoundSetPropertyInfo& info,
@@ -137,8 +138,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetRelProperty(LogicalOperator*
     for (auto& info : set->getInfos()) {
         executors.push_back(getRelSetExecutor(info, *inSchema));
     }
+    auto printInfo = std::make_unique<OPPrintInfo>(set->getExpressionsForPrinting());
     return std::make_unique<SetRelProperty>(std::move(executors), std::move(prevOperator),
-        getOperatorID(), set->getExpressionsForPrinting());
+        getOperatorID(), std::move(printInfo));
 }
 
 } // namespace processor

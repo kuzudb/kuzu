@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/enums/join_type.h"
+#include "common/enums/accumulate_type.h"
 #include "planner/operator/logical_operator.h"
 
 namespace kuzu {

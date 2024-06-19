@@ -9,17 +9,17 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCrossProduct(LogicalOperator* logicalOperator) {
-    auto logicalCrossProduct = (LogicalCrossProduct*)logicalOperator;
-    auto outSchema = logicalCrossProduct->getSchema();
-    auto buildChild = logicalCrossProduct->getChild(1);
+    auto& logicalCrossProduct = logicalOperator->constCast<LogicalCrossProduct>();
+    auto outSchema = logicalCrossProduct.getSchema();
+    auto buildChild = logicalCrossProduct.getChild(1);
     // map build side
     auto buildSchema = buildChild->getSchema();
     auto buildSidePrevOperator = mapOperator(buildChild.get());
     auto expressions = buildSchema->getExpressionsInScope();
-    auto resultCollector = createResultCollector(logicalCrossProduct->getAccumulateType(),
+    auto resultCollector = createResultCollector(logicalCrossProduct.getAccumulateType(),
         expressions, buildSchema, std::move(buildSidePrevOperator));
     // map probe side
-    auto probeSidePrevOperator = mapOperator(logicalCrossProduct->getChild(0).get());
+    auto probeSidePrevOperator = mapOperator(logicalCrossProduct.getChild(0).get());
     std::vector<DataPos> outVecPos;
     std::vector<uint32_t> colIndicesToScan;
     for (auto i = 0u; i < expressions.size(); ++i) {
@@ -32,9 +32,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCrossProduct(LogicalOperator* l
     auto table = resultCollector->getResultFactorizedTable();
     auto maxMorselSize = table->hasUnflatCol() ? 1 : DEFAULT_VECTOR_CAPACITY;
     auto localState = std::make_unique<CrossProductLocalState>(table, maxMorselSize);
+    auto printInfo = std::make_unique<OPPrintInfo>(logicalCrossProduct.getExpressionsForPrinting());
     return make_unique<CrossProduct>(std::move(info), std::move(localState),
         std::move(probeSidePrevOperator), std::move(resultCollector), getOperatorID(),
-        logicalCrossProduct->getExpressionsForPrinting());
+        std::move(printInfo));
 }
 
 } // namespace processor

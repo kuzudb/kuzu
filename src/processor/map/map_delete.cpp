@@ -73,8 +73,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteNode(LogicalOperator* log
     for (auto& info : delete_->getInfos()) {
         executors.push_back(getNodeDeleteExecutor(info, *inSchema));
     }
+    auto printInfo = std::make_unique<OPPrintInfo>(delete_->getExpressionsForPrinting());
     return std::make_unique<DeleteNode>(std::move(executors), std::move(prevOperator),
-        getOperatorID(), delete_->getExpressionsForPrinting());
+        getOperatorID(), std::move(printInfo));
 }
 
 std::unique_ptr<RelDeleteExecutor> PlanMapper::getRelDeleteExecutor(const BoundDeleteInfo& info,
@@ -105,8 +106,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteRel(LogicalOperator* logi
     for (auto& info : delete_->getInfos()) {
         executors.push_back(getRelDeleteExecutor(info, *inSchema));
     }
+    auto printInfo = std::make_unique<OPPrintInfo>(delete_->getExpressionsForPrinting());
     return std::make_unique<DeleteRel>(std::move(executors), std::move(prevOperator),
-        getOperatorID(), logicalOperator->getExpressionsForPrinting());
+        getOperatorID(), std::move(printInfo));
 }
 
 } // namespace processor

@@ -56,28 +56,29 @@ struct PathPropertyProbeDataInfo {
 };
 
 class PathPropertyProbe : public PhysicalOperator {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::PATH_PROPERTY_PROBE;
+
 public:
     PathPropertyProbe(std::unique_ptr<PathPropertyProbeDataInfo> info,
         std::shared_ptr<PathPropertyProbeSharedState> sharedState,
         std::vector<std::unique_ptr<PhysicalOperator>> children, uint32_t id,
-        const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::PATH_PROPERTY_PROBE, std::move(children), id,
-              paramsString},
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(children), id, std::move(printInfo)},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
     PathPropertyProbe(std::unique_ptr<PathPropertyProbeDataInfo> info,
         std::shared_ptr<PathPropertyProbeSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> probeChild, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::PATH_PROPERTY_PROBE, std::move(probeChild), id,
-              paramsString},
+        std::unique_ptr<PhysicalOperator> probeChild, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(probeChild), id, std::move(printInfo)},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) final;
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
-    inline std::unique_ptr<PhysicalOperator> clone() final {
+    std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<PathPropertyProbe>(info->copy(), sharedState, children[0]->clone(),
-            id, paramsString);
+            id, printInfo->copy());
     }
 
 private:

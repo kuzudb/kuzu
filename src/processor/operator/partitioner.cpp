@@ -82,9 +82,8 @@ void PartitioningBuffer::merge(std::unique_ptr<PartitioningBuffer> localPartitio
 Partitioner::Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
     std::vector<PartitioningInfo> infos, PartitionerDataInfo dataInfo,
     std::shared_ptr<PartitionerSharedState> sharedState, std::unique_ptr<PhysicalOperator> child,
-    uint32_t id, const std::string& paramsString)
-    : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::PARTITIONER, std::move(child), id,
-          paramsString},
+    uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+    : Sink{std::move(resultSetDescriptor), type_, std::move(child), id, std::move(printInfo)},
       infos{std::move(infos)}, dataInfo{std::move(dataInfo)}, sharedState{std::move(sharedState)} {
     partitionIdxes = std::make_unique<ValueVector>(LogicalTypeID::INT64);
 }
@@ -175,7 +174,7 @@ void Partitioner::copyDataToPartitions(partition_idx_t partitioningIdx, DataChun
 
 std::unique_ptr<PhysicalOperator> Partitioner::clone() {
     return std::make_unique<Partitioner>(resultSetDescriptor->copy(), PartitioningInfo::copy(infos),
-        dataInfo.copy(), sharedState, children[0]->clone(), id, paramsString);
+        dataInfo.copy(), sharedState, children[0]->clone(), id, printInfo->copy());
 }
 
 } // namespace processor

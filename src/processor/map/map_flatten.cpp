@@ -8,10 +8,11 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapFlatten(LogicalOperator* logicalOperator) {
-    auto flatten = (LogicalFlatten*)logicalOperator;
+    auto& flatten = logicalOperator->constCast<LogicalFlatten>();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    return make_unique<Flatten>(flatten->getGroupPos(), std::move(prevOperator), getOperatorID(),
-        flatten->getExpressionsForPrinting());
+    auto printInfo = std::make_unique<OPPrintInfo>(flatten.getExpressionsForPrinting());
+    return make_unique<Flatten>(flatten.getGroupPos(), std::move(prevOperator), getOperatorID(),
+        std::move(printInfo));
 }
 
 } // namespace processor

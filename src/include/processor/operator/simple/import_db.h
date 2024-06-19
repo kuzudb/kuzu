@@ -6,17 +6,18 @@ namespace kuzu {
 namespace processor {
 
 class ImportDB final : public Simple {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::IMPORT_DATABASE;
+
 public:
     ImportDB(std::string query, const DataPos& outputPos, uint32_t id,
-        const std::string& paramsString)
-        : Simple{PhysicalOperatorType::IMPORT_DATABASE, outputPos, id, paramsString}, query{query} {
-    }
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : Simple{type_, outputPos, id, std::move(printInfo)}, query{query} {}
 
     void executeInternal(ExecutionContext* context) override;
     std::string getOutputMsg() override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<ImportDB>(query, outputPos, id, paramsString);
+        return std::make_unique<ImportDB>(query, outputPos, id, printInfo->copy());
     }
 
 private:

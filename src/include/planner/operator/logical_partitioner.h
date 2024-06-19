@@ -36,8 +36,8 @@ public:
 
     std::string getExpressionsForPrinting() const final;
 
-    inline common::idx_t getNumInfos() { return infos.size(); }
-    inline LogicalPartitionerInfo* getInfo(common::idx_t idx) {
+    inline common::idx_t getNumInfos() const { return infos.size(); }
+    inline LogicalPartitionerInfo* getInfo(common::idx_t idx) const {
         KU_ASSERT(idx < infos.size());
         return infos[idx].get();
     }

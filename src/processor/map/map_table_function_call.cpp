@@ -24,8 +24,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapTableFunctionCall(
     info.outputType =
         outPosV.empty() ? TableScanOutputType::EMPTY : TableScanOutputType::SINGLE_DATA_CHUNK;
     auto sharedState = std::make_shared<TableFunctionCallSharedState>();
+    auto printInfo = std::make_unique<OPPrintInfo>(call.getExpressionsForPrinting());
     return std::make_unique<TableFunctionCall>(std::move(info), sharedState, getOperatorID(),
-        call.getExpressionsForPrinting());
+        std::move(printInfo));
 }
 
 } // namespace processor

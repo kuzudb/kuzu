@@ -24,13 +24,14 @@ private:
 class ScanTable : public PhysicalOperator {
 public:
     ScanTable(PhysicalOperatorType operatorType, ScanTableInfo info,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramString)
-        : PhysicalOperator{operatorType, std::move(child), id, paramString}, info{std::move(info)},
-          nodeIDVector{nullptr}, outState{nullptr} {}
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{operatorType, std::move(child), id, std::move(printInfo)},
+          info{std::move(info)}, nodeIDVector{nullptr}, outState{nullptr} {}
 
     ScanTable(PhysicalOperatorType operatorType, ScanTableInfo info, uint32_t id,
-        const std::string& paramString)
-        : PhysicalOperator{operatorType, id, paramString}, info{std::move(info)},
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{operatorType, id, std::move(printInfo)}, info{std::move(info)},
           nodeIDVector{nullptr}, outState{nullptr} {}
 
 protected:

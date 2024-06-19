@@ -101,17 +101,20 @@ private:
 };
 
 class Partitioner : public Sink {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::PARTITIONER;
+
 public:
     Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::vector<PartitioningInfo> infos, PartitionerDataInfo dataInfo,
         std::shared_ptr<PartitionerSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString);
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo);
 
     void initGlobalStateInternal(ExecutionContext* context) final;
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
     void executeInternal(ExecutionContext* context) final;
 
-    inline std::shared_ptr<PartitionerSharedState> getSharedState() { return sharedState; }
+    std::shared_ptr<PartitionerSharedState> getSharedState() { return sharedState; }
 
     std::unique_ptr<PhysicalOperator> clone() final;
 

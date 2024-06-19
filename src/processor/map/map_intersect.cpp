@@ -32,9 +32,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIntersect(LogicalOperator* logi
             ExpressionUtil::getDataTypes(keys), buildInfo->getTableSchema()->copy());
         auto sharedState = std::make_shared<HashJoinSharedState>(std::move(globalHashTable));
         sharedStates.push_back(sharedState);
+        auto printInfo = std::make_unique<OPPrintInfo>(keyNodeID->toString());
         children[i] = make_unique<IntersectBuild>(
             std::make_unique<ResultSetDescriptor>(buildSchema), sharedState, std::move(buildInfo),
-            std::move(buildPrevOperator), getOperatorID(), keyNodeID->toString());
+            std::move(buildPrevOperator), getOperatorID(), std::move(printInfo));
         // Collect intersect info
         std::vector<DataPos> vectorsToScanPos;
         auto expressionsToScan = binder::ExpressionUtil::excludeExpressions(
@@ -50,8 +51,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIntersect(LogicalOperator* logi
     // Map intersect.
     auto outputDataPos =
         DataPos(outSchema->getExpressionPos(*logicalIntersect->getIntersectNodeID()));
+    auto printInfo = std::make_unique<OPPrintInfo>(logicalIntersect->getExpressionsForPrinting());
     auto intersect = make_unique<Intersect>(outputDataPos, intersectDataInfos, sharedStates,
-        std::move(children), getOperatorID(), logicalIntersect->getExpressionsForPrinting());
+        std::move(children), getOperatorID(), std::move(printInfo));
     if (logicalIntersect->getSIPInfo().direction == SIPDirection::PROBE_TO_BUILD) {
         mapSIPJoin(intersect.get());
     }

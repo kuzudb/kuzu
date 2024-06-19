@@ -6,6 +6,8 @@
 namespace kuzu {
 namespace processor {
 
+using physical_op_id = uint32_t;
+
 enum class PhysicalOperatorType : uint8_t {
     ALTER,
     AGGREGATE,
@@ -22,6 +24,7 @@ enum class PhysicalOperatorType : uint8_t {
     DETACH_DATABASE,
     DELETE_,
     DROP_TABLE,
+    DROP_SEQUENCE,
     EMPTY_RESULT,
     EXPORT_DATABASE,
     FILTER,
@@ -30,9 +33,7 @@ enum class PhysicalOperatorType : uint8_t {
     HASH_JOIN_BUILD,
     HASH_JOIN_PROBE,
     IMPORT_DATABASE,
-    IN_QUERY_CALL,
     INDEX_LOOKUP,
-    INDEX_SCAN,
     INSERT,
     INTERSECT_BUILD,
     INTERSECT,
@@ -57,6 +58,7 @@ enum class PhysicalOperatorType : uint8_t {
     SET_PROPERTY,
     SKIP,
     STANDALONE_CALL,
+    TABLE_FUNCTION_CALL,
     TOP_K,
     TOP_K_SCAN,
     TRANSACTION,
@@ -74,14 +76,26 @@ public:
 };
 
 struct OperatorMetrics {
-
-public:
-    OperatorMetrics(common::TimeMetric& executionTime, common::NumericMetric& numOutputTuple)
-        : executionTime{executionTime}, numOutputTuple{numOutputTuple} {}
-
-public:
     common::TimeMetric& executionTime;
     common::NumericMetric& numOutputTuple;
+
+    OperatorMetrics(common::TimeMetric& executionTime, common::NumericMetric& numOutputTuple)
+        : executionTime{executionTime}, numOutputTuple{numOutputTuple} {}
+};
+
+struct OPPrintInfo {
+    // TODO(Xiyang): get rid of string based info gradually and let operator print on its own.
+    std::string info;
+
+    OPPrintInfo() = default;
+    explicit OPPrintInfo(std::string info) : info{std::move(info)} {}
+    virtual ~OPPrintInfo() = default;
+
+    virtual std::string toString() const { return info; }
+
+    virtual std::unique_ptr<OPPrintInfo> copy() const {
+        return std::make_unique<OPPrintInfo>(info);
+    }
 };
 
 class PhysicalOperator;
@@ -90,21 +104,22 @@ using physical_op_vector_t = std::vector<std::unique_ptr<PhysicalOperator>>;
 class PhysicalOperator {
 public:
     // Leaf operator
-    PhysicalOperator(PhysicalOperatorType operatorType, uint32_t id, std::string paramsString)
-        : id{id}, operatorType{operatorType}, paramsString{std::move(paramsString)} {}
+    PhysicalOperator(PhysicalOperatorType operatorType, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : id{id}, operatorType{operatorType}, printInfo{std::move(printInfo)} {}
     // Unary operator
     PhysicalOperator(PhysicalOperatorType operatorType, std::unique_ptr<PhysicalOperator> child,
-        uint32_t id, const std::string& paramsString);
+        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo);
     // Binary operator
     PhysicalOperator(PhysicalOperatorType operatorType, std::unique_ptr<PhysicalOperator> left,
-        std::unique_ptr<PhysicalOperator> right, uint32_t id, const std::string& paramsString);
-    // This constructor is used by UnionAllScan only since it may have multiple children.
+        std::unique_ptr<PhysicalOperator> right, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo);
     PhysicalOperator(PhysicalOperatorType operatorType, physical_op_vector_t children, uint32_t id,
-        const std::string& paramsString);
+        std::unique_ptr<OPPrintInfo> printInfo);
 
     virtual ~PhysicalOperator() = default;
 
-    uint32_t getOperatorID() const { return id; }
+    physical_op_id getOperatorID() const { return id; }
 
     PhysicalOperatorType getOperatorType() const { return operatorType; }
 
@@ -117,8 +132,6 @@ public:
     uint64_t getNumChildren() const { return children.size(); }
     std::unique_ptr<PhysicalOperator> moveUnaryChild();
 
-    std::string getParamsString() const { return paramsString; }
-
     // Global state is initialized once.
     void initGlobalState(ExecutionContext* context);
     // Local state is initialized for each thread.
@@ -129,6 +142,8 @@ public:
     std::unordered_map<std::string, std::string> getProfilerKeyValAttributes(
         common::Profiler& profiler) const;
     std::vector<std::string> getProfilerAttributes(common::Profiler& profiler) const;
+
+    const OPPrintInfo* getPrintInfo() const { return printInfo.get(); }
 
     virtual std::unique_ptr<PhysicalOperator> clone() = 0;
 
@@ -158,14 +173,13 @@ protected:
     uint64_t getNumOutputTuples(common::Profiler& profiler) const;
 
 protected:
-    uint32_t id;
+    physical_op_id id;
     std::unique_ptr<OperatorMetrics> metrics;
     PhysicalOperatorType operatorType;
 
     physical_op_vector_t children;
     ResultSet* resultSet;
-
-    std::string paramsString;
+    std::unique_ptr<OPPrintInfo> printInfo;
 };
 
 } // namespace processor

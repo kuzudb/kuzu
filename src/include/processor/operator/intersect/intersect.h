@@ -13,12 +13,14 @@ struct IntersectDataInfo {
 };
 
 class Intersect : public PhysicalOperator {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::INTERSECT;
+
 public:
     Intersect(const DataPos& outputDataPos, std::vector<IntersectDataInfo> intersectDataInfos,
         std::vector<std::shared_ptr<HashJoinSharedState>> sharedHTs,
         std::vector<std::unique_ptr<PhysicalOperator>> children, uint32_t id,
-        const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::INTERSECT, std::move(children), id, paramsString},
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(children), id, std::move(printInfo)},
           outputDataPos{outputDataPos}, intersectDataInfos{std::move(intersectDataInfos)},
           sharedHTs{std::move(sharedHTs)} {
         tupleIdxPerBuildSide.resize(this->sharedHTs.size(), 0);
@@ -30,11 +32,11 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> clone() override {
         std::vector<std::unique_ptr<PhysicalOperator>> clonedChildren;
         clonedChildren.push_back(children[0]->clone());
         return std::make_unique<Intersect>(outputDataPos, intersectDataInfos, sharedHTs,
-            std::move(clonedChildren), id, paramsString);
+            std::move(clonedChildren), id, printInfo->copy());
     }
 
 private:

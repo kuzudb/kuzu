@@ -8,12 +8,13 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapFilter(LogicalOperator* logicalOperator) {
-    auto& logicalFilter = (const LogicalFilter&)*logicalOperator;
+    auto& logicalFilter = logicalOperator->constCast<LogicalFilter>();
     auto inSchema = logicalFilter.getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto physicalRootExpr = ExpressionMapper::getEvaluator(logicalFilter.getPredicate(), inSchema);
+    auto printInfo = std::make_unique<OPPrintInfo>(logicalFilter.getExpressionsForPrinting());
     return make_unique<Filter>(std::move(physicalRootExpr), logicalFilter.getGroupPosToSelect(),
-        std::move(prevOperator), getOperatorID(), logicalFilter.getExpressionsForPrinting());
+        std::move(prevOperator), getOperatorID(), std::move(printInfo));
 }
 
 } // namespace processor
