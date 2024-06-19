@@ -126,7 +126,7 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
     // LCOV_EXCL_START
     validateExist(transaction, alterInfo.tableName);
     // LCOV_EXCL_STOP
-    auto entry = getEntry(transaction, alterInfo.tableName)->ptrCast<TableCatalogEntry>();
+    auto entry = getEntry(transaction, alterInfo.tableName);
     KU_ASSERT(entry->getType() == CatalogEntryType::NODE_TABLE_ENTRY ||
               entry->getType() == CatalogEntryType::REL_TABLE_ENTRY ||
               entry->getType() == CatalogEntryType::REL_GROUP_ENTRY ||
@@ -140,7 +140,7 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
         createEntry(transaction, std::move(newEntry));
         return;
     }
-    entry->setAlterInfo(alterInfo);
+    tableEntry->setAlterInfo(alterInfo);
     emplace(std::move(newEntry));
     if (transaction->getStartTS() > 0) {
         KU_ASSERT(transaction->getID() != 0);
