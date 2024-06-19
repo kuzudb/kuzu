@@ -3,6 +3,7 @@
 
 #include "storage/compression/bitpacking_int128.h"
 
+#include "common/utils.h"
 #include "storage/compression/compression.h"
 
 namespace kuzu::storage {
@@ -82,8 +83,7 @@ static void unpackLast(const uint32_t* __restrict& in, common::int128_t* __restr
 }
 
 // Unpacks for specific deltas
-// NOLINTNEXTLINE keep unused parameter 'in' for consistency in signatures with other functions
-static void unpackDelta0(const uint32_t* __restrict in, common::int128_t* __restrict out) {
+static void unpackDelta0(common::int128_t* __restrict out) {
     for (uint8_t i = 0; i < 32; ++i) {
         out[i] = 0;
     }
@@ -276,7 +276,7 @@ void Int128Packer::pack(const common::int128_t* __restrict in, uint32_t* __restr
              ++oindex) {
             packSingle(in[oindex], out, width,
                 (width * oindex) % IntegerBitpacking<common::int128_t>::CHUNK_SIZE,
-                common::NumericUtils::getSaturatedBitmask<common::int128_t>(width));
+                common::BitmaskUtils::all1sMaskForLeastSignificantBits<common::int128_t>(width));
         }
         packLast(in, out, width);
     }
@@ -287,7 +287,7 @@ void Int128Packer::unpack(const uint32_t* __restrict in, common::int128_t* __res
     KU_ASSERT(width <= 128);
     switch (width) {
     case 0:
-        unpackDelta0(in, out);
+        unpackDelta0(out);
         break;
     case 32:
         unpackDelta32(in, out);

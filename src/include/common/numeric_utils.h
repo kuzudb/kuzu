@@ -70,16 +70,6 @@ constexpr int bitWidth<int128_t>(int128_t x) {
     }
     return std::bit_width(x.low);
 }
-
-// produces bitmasks in the form ...111111
-// can produce masks with # of bits up to sizeof(T) * 8 - 1
-template<IsIntegral T>
-inline T getSaturatedBitmask(size_t width) {
-    static constexpr uint8_t numBitsInT = sizeof(T) * 8;
-    const T fullMask = ~(T(1) << (numBitsInT - 1));
-    const size_t numBitsToDiscard = (numBitsInT - 1 - width);
-    return (fullMask >> numBitsToDiscard);
-}
 } // namespace NumericUtils
 } // namespace common
 } // namespace kuzu

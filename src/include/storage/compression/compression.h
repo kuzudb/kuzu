@@ -37,15 +37,25 @@ union StorageValue {
     template<typename T>
         requires std::same_as<std::remove_cvref_t<T>, common::int128_t>
     explicit StorageValue(T value) : signedInt128(value) {}
+
     template<typename T>
-        requires std::integral<T> && common::NumericUtils::IsSigned<T>
-    explicit StorageValue(T value) : signedInt(value) {}
+        requires std::integral<T> && std::numeric_limits<T>::is_signed
+    // zero-initilize union padding
+    explicit StorageValue(T value) : StorageValue(common::int128_t(0)) {
+        signedInt = value;
+    }
+
     template<typename T>
-        requires std::integral<T> && (!common::NumericUtils::IsSigned<T>)
-    explicit StorageValue(T value) : unsignedInt(value) {}
+        requires std::integral<T> && (!std::numeric_limits<T>::is_signed)
+    explicit StorageValue(T value) : StorageValue(common::int128_t(0)) {
+        unsignedInt = value;
+    }
+
     template<typename T>
         requires std::is_floating_point<T>::value
-    explicit StorageValue(T value) : floatVal(value) {}
+    explicit StorageValue(T value) : StorageValue(common::int128_t(0)) {
+        floatVal = value;
+    }
 
     bool operator==(const StorageValue& other) const {
         // All types are the same size, so we can compare any of them to check equality
@@ -59,14 +69,14 @@ union StorageValue {
 
     template<StorageValueType T>
     T get() const {
-        if constexpr (std::integral<T>) {
-            if constexpr (common::NumericUtils::IsSigned<T>) {
+        if constexpr (std::same_as<std::remove_cvref_t<T>, common::int128_t>) {
+            return signedInt128;
+        } else if constexpr (std::integral<T>) {
+            if constexpr (std::numeric_limits<T>::is_signed) {
                 return static_cast<T>(signedInt);
             } else {
                 return static_cast<T>(unsignedInt);
             }
-        } else if constexpr (std::same_as<std::remove_cvref_t<T>, common::int128_t>) {
-            return signedInt128;
         } else if constexpr (std::is_floating_point<T>()) {
             return floatVal;
         }
