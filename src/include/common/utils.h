@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "common/assert.h"
-#include "common/numeric_utils.h"
 #include "common/types/int128_t.h"
 
 namespace kuzu {
