@@ -79,6 +79,11 @@ void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry) {
 }
 
 void WAL::logDropCatalogEntryRecord(uint64_t tableID, catalog::CatalogEntryType type) {
+    KU_ASSERT(type == CatalogEntryType::NODE_TABLE_ENTRY ||
+              type == CatalogEntryType::REL_TABLE_ENTRY ||
+              type == CatalogEntryType::REL_GROUP_ENTRY ||
+              type == CatalogEntryType::RDF_GRAPH_ENTRY ||
+              type == CatalogEntryType::SEQUENCE_ENTRY);
     lock_t lck{mtx};
     DropCatalogEntryRecord walRecord(tableID, type);
     addNewWALRecordNoLock(walRecord);
