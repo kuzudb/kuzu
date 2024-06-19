@@ -12,10 +12,10 @@ namespace common {
  */
 class TerminalProgressBarDisplay final : public ProgressBarDisplay {
 public:
-    void updateProgress(std::string id, double newPipelineProgress,
+    void updateProgress(uint64_t queryID, double newPipelineProgress,
         uint32_t newNumPipelinesFinished) override;
 
-    void finishProgress(std::string id) override;
+    void finishProgress(uint64_t queryID) override;
 
 private:
     void setGreenFont() const { std::cerr << "\033[1;32m"; }

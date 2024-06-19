@@ -3,7 +3,7 @@
 using namespace kuzu;
 using namespace common;
 
-void NodeProgressBarDisplay::updateProgress(std::string id, double newPipelineProgress,
+void NodeProgressBarDisplay::updateProgress(uint64_t queryID, double newPipelineProgress,
     uint32_t newNumPipelinesFinished) {
     if (numPipelines == 0) {
         return;
@@ -14,7 +14,7 @@ void NodeProgressBarDisplay::updateProgress(std::string id, double newPipelinePr
         newNumPipelinesFinished > numPipelinesFinished) {
         pipelineProgress = newPipelineProgress;
         numPipelinesFinished = newNumPipelinesFinished;
-        auto callback = queryCallbacks.find(id);
+        auto callback = queryCallbacks.find(queryID);
         if (callback != queryCallbacks.end()) {
             callback->second.callback.BlockingCall(
                 [this, callback](Napi::Env /*env*/, Napi::Function jsCallback) {
@@ -28,7 +28,7 @@ void NodeProgressBarDisplay::updateProgress(std::string id, double newPipelinePr
     }
 }
 
-void NodeProgressBarDisplay::finishProgress(std::string id) {
+void NodeProgressBarDisplay::finishProgress(uint64_t queryID) {
     if (printing) {
         std::cout << "\033[2A\033[2K\033[1B\033[2K\033[1A";
         std::cout.flush();
@@ -37,12 +37,11 @@ void NodeProgressBarDisplay::finishProgress(std::string id) {
     numPipelines = 0;
     numPipelinesFinished = 0;
     pipelineProgress = 0;
-    queryCallbacks.erase(id);
+    queryCallbacks.erase(queryID);
 }
 
-void NodeProgressBarDisplay::setCallbackFunction(std::string id, Napi::ThreadSafeFunction callback,
-    Napi::Env env) {
-    queryCallbacks.emplace(id, callbackFunction{callback, env});
+void NodeProgressBarDisplay::setCallbackFunction(uint64_t queryID, Napi::ThreadSafeFunction callback, Napi::Env env) {
+    queryCallbacks.emplace(queryID, callbackFunction{callback, env});
 }
 
 void NodeProgressBarDisplay::printProgressBar() {

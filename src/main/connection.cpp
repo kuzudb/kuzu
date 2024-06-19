@@ -40,8 +40,8 @@ std::unique_ptr<QueryResult> Connection::query(std::string_view queryStatement) 
 }
 
 std::unique_ptr<QueryResult> Connection::queryWithId(std::string_view queryStatement,
-    std::string id) {
-    return clientContext->query(queryStatement, id);
+    uint64_t queryID) {
+    return clientContext->query(queryStatement, queryID);
 }
 
 std::unique_ptr<QueryResult> Connection::query(std::string_view query, std::string_view encodedJoin,
@@ -74,12 +74,6 @@ void Connection::setQueryTimeOut(uint64_t timeoutInMS) {
 std::unique_ptr<QueryResult> Connection::executeWithParams(PreparedStatement* preparedStatement,
     std::unordered_map<std::string, std::unique_ptr<Value>> inputParams) {
     return clientContext->executeWithParams(preparedStatement, std::move(inputParams));
-}
-
-std::unique_ptr<QueryResult> Connection::executeWithParamsWithId(
-    PreparedStatement* preparedStatement,
-    std::unordered_map<std::string, std::unique_ptr<Value>> inputParams, std::string id) {
-    return clientContext->executeWithParams(preparedStatement, std::move(inputParams), id);
 }
 
 void Connection::bindParametersNoLock(PreparedStatement* preparedStatement,

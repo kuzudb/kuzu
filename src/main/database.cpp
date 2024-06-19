@@ -144,5 +144,10 @@ void Database::initAndLockDBDir() {
     openLockFile();
 }
 
+uint64_t Database::getNextQueryID() {
+    std::lock_guard<std::mutex> lock(queryIDLock);
+    return queryID++;
+}
+
 } // namespace main
 } // namespace kuzu

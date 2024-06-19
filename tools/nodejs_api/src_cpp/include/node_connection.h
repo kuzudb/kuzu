@@ -65,47 +65,25 @@ class ConnectionExecuteAsyncWorker : public Napi::AsyncWorker {
 public:
     ConnectionExecuteAsyncWorker(Napi::Function& callback, std::shared_ptr<Connection>& connection,
         std::shared_ptr<PreparedStatement> preparedStatement, NodeQueryResult* nodeQueryResult,
-        std::unordered_map<std::string, std::unique_ptr<Value>> params,
-        Napi::Value progressCallback)
+        std::unordered_map<std::string, std::unique_ptr<Value>> params)
         : Napi::AsyncWorker(callback), connection(connection),
           preparedStatement(std::move(preparedStatement)), nodeQueryResult(nodeQueryResult),
-          params(std::move(params)) {
-        if (progressCallback.IsFunction()) {
-            this->progressCallback = Napi::ThreadSafeFunction::New(Env(),
-                progressCallback.As<Napi::Function>(), "ProgressCallback", 0, 1);
-        }
-    }
+          params(std::move(params)) {}
 
     ~ConnectionExecuteAsyncWorker() override = default;
 
     void Execute() override {
-        std::string id = common::UUID::toString(
-            common::UUID::generateRandomUUID(connection->getClientContext()->getRandomEngine()));
-        auto progressBar = connection->getClientContext()->getProgressBar();
-        auto trackProgress = progressBar->getProgressBarPrinting();
-        auto display = progressBar->getDisplay().get();
-        NodeProgressBarDisplay* nodeDisplay =
-            ku_dynamic_cast<ProgressBarDisplay*, NodeProgressBarDisplay*>(display);
-        if (progressCallback) {
-            nodeDisplay->setCallbackFunction(id, *progressCallback, Env());
-            progressBar->toggleProgressBarPrinting(true);
-        }
         try {
             auto result =
-                connection->executeWithParamsWithId(preparedStatement.get(), std::move(params), id)
+                connection->executeWithParams(preparedStatement.get(), std::move(params))
                     .release();
             nodeQueryResult->SetQueryResult(result, true);
             if (!result->isSuccess()) {
                 SetError(result->getErrorMessage());
+                return;
             }
         } catch (const std::exception& exc) {
             SetError(std::string(exc.what()));
-        }
-        if (progressCallback) {
-            progressCallback->Release();
-            if (nodeDisplay->getNumCallbacks() == 0) {
-                progressBar->toggleProgressBarPrinting(trackProgress);
-            }
         }
     }
 
@@ -118,7 +96,6 @@ private:
     std::shared_ptr<PreparedStatement> preparedStatement;
     NodeQueryResult* nodeQueryResult;
     std::unordered_map<std::string, std::unique_ptr<Value>> params;
-    std::optional<Napi::ThreadSafeFunction> progressCallback;
 };
 
 class ConnectionQueryAsyncWorker : public Napi::AsyncWorker {
@@ -136,19 +113,18 @@ public:
     ~ConnectionQueryAsyncWorker() override = default;
 
     void Execute() override {
-        std::string id = common::UUID::toString(
-            common::UUID::generateRandomUUID(connection->getClientContext()->getRandomEngine()));
+        uint64_t queryID = connection->getClientContext()->getDatabase()->getNextQueryID();
         auto progressBar = connection->getClientContext()->getProgressBar();
         auto trackProgress = progressBar->getProgressBarPrinting();
         auto display = progressBar->getDisplay().get();
         NodeProgressBarDisplay* nodeDisplay =
             ku_dynamic_cast<ProgressBarDisplay*, NodeProgressBarDisplay*>(display);
         if (progressCallback) {
-            nodeDisplay->setCallbackFunction(id, *progressCallback, Env());
+            nodeDisplay->setCallbackFunction(queryID, *progressCallback, Env());
             progressBar->toggleProgressBarPrinting(true);
         }
         try {
-            auto result = connection->queryWithId(statement, id).release();
+            auto result = connection->queryWithId(statement, queryID).release();
             nodeQueryResult->SetQueryResult(result, true);
             if (!result->isSuccess()) {
                 SetError(result->getErrorMessage());

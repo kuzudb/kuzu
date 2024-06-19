@@ -22,18 +22,18 @@ void ProgressBar::setDisplay(std::shared_ptr<ProgressBarDisplay> progressBarDips
     display = progressBarDipslay;
 }
 
-void ProgressBar::startProgress(std::string id) {
+void ProgressBar::startProgress(uint64_t queryID) {
     if (!trackProgress) {
         return;
     }
     std::lock_guard<std::mutex> lock(progressBarLock);
     queryTimer->start();
-    updateDisplay(id, 0.0);
+    updateDisplay(queryID, 0.0);
 }
 
-void ProgressBar::endProgress(std::string id) {
+void ProgressBar::endProgress(uint64_t queryID) {
     std::lock_guard<std::mutex> lock(progressBarLock);
-    resetProgressBar(id);
+    resetProgressBar(queryID);
 }
 
 void ProgressBar::addPipeline() {
@@ -44,29 +44,29 @@ void ProgressBar::addPipeline() {
     display->setNumPipelines(numPipelines);
 }
 
-void ProgressBar::finishPipeline(std::string id) {
+void ProgressBar::finishPipeline(uint64_t queryID) {
     if (!trackProgress) {
         return;
     }
     numPipelinesFinished++;
-    updateProgress(id, 0.0);
+    updateProgress(queryID, 0.0);
 }
 
-void ProgressBar::updateProgress(std::string id, double curPipelineProgress) {
+void ProgressBar::updateProgress(uint64_t queryID, double curPipelineProgress) {
     if (!trackProgress) {
         return;
     }
     std::lock_guard<std::mutex> lock(progressBarLock);
-    updateDisplay(id, curPipelineProgress);
+    updateDisplay(queryID, curPipelineProgress);
 }
 
-void ProgressBar::resetProgressBar(std::string id) {
+void ProgressBar::resetProgressBar(uint64_t queryID) {
     numPipelines = 0;
     numPipelinesFinished = 0;
     if (queryTimer->isStarted) {
         queryTimer->stop();
     }
-    display->finishProgress(id);
+    display->finishProgress(queryID);
 }
 
 bool ProgressBar::shouldUpdateProgress() const {
@@ -78,9 +78,9 @@ bool ProgressBar::shouldUpdateProgress() const {
     return shouldUpdate;
 }
 
-void ProgressBar::updateDisplay(std::string id, double curPipelineProgress) {
+void ProgressBar::updateDisplay(uint64_t queryID, double curPipelineProgress) {
     if (shouldUpdateProgress()) {
-        display->updateProgress(id, curPipelineProgress, numPipelinesFinished);
+        display->updateProgress(queryID, curPipelineProgress, numPipelinesFinished);
     }
 }
 

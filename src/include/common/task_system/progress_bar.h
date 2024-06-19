@@ -23,17 +23,17 @@ public:
 
     void addPipeline();
 
-    void finishPipeline(std::string id);
+    void finishPipeline(uint64_t queryID);
 
-    void endProgress(std::string id);
+    void endProgress(uint64_t queryID);
 
-    void startProgress(std::string id);
+    void startProgress(uint64_t queryID);
 
     void toggleProgressBarPrinting(bool enable);
 
     void setShowProgressAfter(uint64_t showProgressAfter);
 
-    void updateProgress(std::string id, double curPipelineProgress);
+    void updateProgress(uint64_t queryID, double curPipelineProgress);
 
     void setDisplay(std::shared_ptr<ProgressBarDisplay> progressBarDipslay);
 
@@ -42,9 +42,9 @@ public:
     bool getProgressBarPrinting() const { return trackProgress; }
 
 private:
-    void resetProgressBar(std::string id);
+    void resetProgressBar(uint64_t queryID);
 
-    void updateDisplay(std::string id, double curPipelineProgress);
+    void updateDisplay(uint64_t queryID, double curPipelineProgress);
 
     bool shouldUpdateProgress() const;
 

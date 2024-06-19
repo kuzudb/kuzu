@@ -15,12 +15,12 @@ using namespace common;
  */
 class NodeProgressBarDisplay : public ProgressBarDisplay {
 public:
-    void updateProgress(std::string id, double newPipelineProgress,
+    void updateProgress(uint64_t queryID, double newPipelineProgress,
         uint32_t newNumPipelinesFinished) override;
 
-    void finishProgress(std::string id) override;
+    void finishProgress(uint64_t queryID) override;
 
-    void setCallbackFunction(std::string id, Napi::ThreadSafeFunction callback, Napi::Env env);
+    void setCallbackFunction(uint64_t queryID, Napi::ThreadSafeFunction callback, Napi::Env env);
 
     uint32_t getNumCallbacks() { return queryCallbacks.size(); }
 
@@ -34,5 +34,5 @@ private:
     };
 
     bool printing = false;
-    std::unordered_map<std::string, callbackFunction> queryCallbacks;
+    std::unordered_map<uint64_t, callbackFunction> queryCallbacks;
 };

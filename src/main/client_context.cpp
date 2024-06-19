@@ -265,13 +265,13 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareTest(std::string_view q
         false /*requireNewTx*/);
 }
 
-std::unique_ptr<QueryResult> ClientContext::query(std::string_view queryStatement, std::string id) {
+std::unique_ptr<QueryResult> ClientContext::query(std::string_view queryStatement, std::optional<uint64_t> queryID) {
     return query(queryStatement, std::string_view() /*encodedJoin*/, false /*enumerateAllPlans */,
-        id);
+        queryID);
 }
 
 std::unique_ptr<QueryResult> ClientContext::query(std::string_view query,
-    std::string_view encodedJoin, bool enumerateAllPlans, std::string id) {
+    std::string_view encodedJoin, bool enumerateAllPlans, std::optional<uint64_t> queryID) {
     lock_t lck{mtx};
     if (query.empty()) {
         return queryResultWithError("Connection Exception: Query is empty.");
@@ -288,7 +288,7 @@ std::unique_ptr<QueryResult> ClientContext::query(std::string_view query,
         auto preparedStatement = prepareNoLock(statement,
             enumerateAllPlans /* enumerate all plans */, encodedJoin, false /*requireNewTx*/);
         auto currentQueryResult = executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), 0u,
-            false /*requiredNexTx*/, id);
+            false /*requiredNexTx*/, queryID);
         if (!lastResult) {
             // first result of the query
             queryResult = std::move(currentQueryResult);
@@ -418,8 +418,7 @@ void ClientContext::cleanUP() {
 }
 
 std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement* preparedStatement,
-    std::unordered_map<std::string, std::unique_ptr<Value>> inputParams,
-    std::string id) { // NOLINT(performance-unnecessary-value-param): It doesn't make sense to pass
+    std::unordered_map<std::string, std::unique_ptr<Value>> inputParams) { // NOLINT(performance-unnecessary-value-param): It doesn't make sense to pass
                       // the map as a const reference.
     lock_t lck{mtx};
     if (!preparedStatement->isSuccess()) {
@@ -434,7 +433,7 @@ std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement*
     KU_ASSERT(preparedStatement->parsedStatement != nullptr);
     auto rebindPreparedStatement = prepareNoLock(preparedStatement->parsedStatement, false, "",
         false, preparedStatement->parameterMap);
-    return executeAndAutoCommitIfNecessaryNoLock(rebindPreparedStatement.get(), 0u, false, id);
+    return executeAndAutoCommitIfNecessaryNoLock(rebindPreparedStatement.get(), 0u, false);
 }
 
 void ClientContext::bindParametersNoLock(PreparedStatement* preparedStatement,
@@ -453,7 +452,7 @@ void ClientContext::bindParametersNoLock(PreparedStatement* preparedStatement,
 }
 
 std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLock(
-    PreparedStatement* preparedStatement, uint32_t planIdx, bool requiredNexTx, std::string id) {
+    PreparedStatement* preparedStatement, uint32_t planIdx, bool requiredNexTx, std::optional<uint64_t> queryID) {
     if (!preparedStatement->isSuccess()) {
         return queryResultWithError(preparedStatement->errMsg);
     }
@@ -483,7 +482,10 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
     }
     auto queryResult = std::make_unique<QueryResult>(preparedStatement->preparedSummary);
     auto profiler = std::make_unique<Profiler>();
-    auto executionContext = std::make_unique<ExecutionContext>(profiler.get(), this, id);
+    if (!queryID) {
+        queryID = localDatabase->getNextQueryID();
+    }
+    auto executionContext = std::make_unique<ExecutionContext>(profiler.get(), this, *queryID);
     profiler->enabled = preparedStatement->isProfile();
     auto executingTimer = TimeMetric(true /* enable */);
     executingTimer.start();
@@ -504,7 +506,7 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
         }
     } catch (std::exception& e) {
         transactionContext->rollback();
-        progressBar->endProgress(executionContext->queryId);
+        progressBar->endProgress(executionContext->queryID);
         return queryResultWithError(e.what());
     }
     executingTimer.stop();

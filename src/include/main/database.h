@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <mutex>
 
 #include "common/api.h"
 #include "common/case_insensitive_map.h"
@@ -121,6 +122,8 @@ public:
     common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>>&
     getStorageExtensions();
 
+    uint64_t getNextQueryID();
+
 private:
     void openLockFile();
     void initAndLockDBDir();
@@ -139,6 +142,8 @@ private:
     std::unique_ptr<extension::ExtensionOptions> extensionOptions;
     std::unique_ptr<DatabaseManager> databaseManager;
     common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>> storageExtensions;
+    uint64_t queryID;
+    std::mutex queryIDLock;
 };
 
 } // namespace main

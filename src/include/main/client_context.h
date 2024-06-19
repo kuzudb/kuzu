@@ -109,9 +109,8 @@ public:
     // Query.
     std::unique_ptr<PreparedStatement> prepare(std::string_view query);
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
-        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams,
-        std::string id = "");
-    std::unique_ptr<QueryResult> query(std::string_view queryStatement, std::string id = "");
+        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams);
+    std::unique_ptr<QueryResult> query(std::string_view queryStatement, std::optional<uint64_t> queryID = std::nullopt);
     void runQuery(std::string query);
 
     // TODO(Jiamin): should remove after supporting ddl in manual tx
@@ -126,7 +125,7 @@ public:
 
 private:
     std::unique_ptr<QueryResult> query(std::string_view query, std::string_view encodedJoin,
-        bool enumerateAllPlans = true, std::string id = "");
+        bool enumerateAllPlans = true, std::optional<uint64_t> queryID = std::nullopt);
 
     std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
 
@@ -157,7 +156,7 @@ private:
 
     std::unique_ptr<QueryResult> executeAndAutoCommitIfNecessaryNoLock(
         PreparedStatement* preparedStatement, uint32_t planIdx = 0u, bool requiredNexTx = true,
-        std::string = "");
+        std::optional<uint64_t> queryID = std::nullopt);
 
     void runFuncInTransaction(const std::function<void(void)>& fun);
     void addScalarFunction(std::string name, function::function_set definitions);
