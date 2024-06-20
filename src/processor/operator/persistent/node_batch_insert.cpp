@@ -75,7 +75,6 @@ void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
 }
 
 void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    std::shared_ptr<DataChunkState> state;
     auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
 
     auto nodeSharedState =
@@ -97,11 +96,9 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
             auto& evaluator = nodeInfo->columnEvaluators[i];
             evaluator->init(*resultSet, context->clientContext);
             evaluator->evaluate();
-            state = evaluator->resultVector->state;
             nodeLocalState->columnVectors[i] = evaluator->resultVector.get();
         }
     }
-    KU_ASSERT(state != nullptr);
     for (auto i = 0u; i < numColumns; ++i) {
         if (nodeInfo->defaultColumns[i]) {
             auto& evaluator = nodeInfo->columnEvaluators[i];
@@ -111,7 +108,8 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
 
     nodeLocalState->nodeGroup = NodeGroupFactory::createNodeGroup(ColumnDataFormat::REGULAR,
         nodeInfo->columnTypes, info->compressionEnabled);
-    nodeLocalState->columnState = std::move(state);
+    KU_ASSERT(resultSet->dataChunks[0]);
+    nodeLocalState->columnState = resultSet->dataChunks[0]->state;
 }
 
 void NodeBatchInsert::populateDefaultColumns() {
