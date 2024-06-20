@@ -26,8 +26,10 @@ test/unittest_temp_*
 dataset/parquet_temp_*
 tools/python_api/test/test_PYTHON_CSV.csv
 
-# antlr4 jar
+# antlr4 jar and copied files
 scripts/antlr4/antlr4.jar
+scripts/antlr4/Cypher.g4.copy
+scripts/antlr4/keywords.txt.copy
 # .antlr
 src/antlr4/.antlr/
 
