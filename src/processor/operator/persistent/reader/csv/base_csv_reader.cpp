@@ -1,7 +1,5 @@
 #include "processor/operator/persistent/reader/csv/base_csv_reader.h"
 
-#include <fcntl.h>
-
 #include <vector>
 
 #include "common/exception/copy.h"

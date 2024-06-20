@@ -1,7 +1,5 @@
 #include "storage/storage_utils.h"
 
-#include <fcntl.h>
-
 #include "common/assert.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"

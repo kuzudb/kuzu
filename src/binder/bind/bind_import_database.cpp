@@ -1,5 +1,3 @@
-#include <fcntl.h>
-
 #include "binder/binder.h"
 #include "binder/bound_import_database.h"
 #include "common/cast.h"

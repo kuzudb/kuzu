@@ -1,7 +1,5 @@
 #include "catalog/catalog.h"
 
-#include <fcntl.h>
-
 #include "binder/ddl/bound_alter_info.h"
 #include "binder/ddl/bound_create_sequence_info.h"
 #include "binder/ddl/bound_create_table_info.h"

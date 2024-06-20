@@ -32,7 +32,7 @@ namespace kuzu {
 namespace processor {
 
 NpyReader::NpyReader(const std::string& filePath) : filePath{filePath} {
-    fd = open(filePath.c_str(), FileFlags::READ_ONLY);
+    fd = open(filePath.c_str(), O_RDONLY);
     if (fd == -1) {
         throw CopyException("Failed to open NPY file.");
     }

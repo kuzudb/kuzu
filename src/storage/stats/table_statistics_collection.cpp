@@ -1,7 +1,5 @@
 #include "storage/stats/table_statistics_collection.h"
 
-#include <fcntl.h>
-
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/deserializer.h"
