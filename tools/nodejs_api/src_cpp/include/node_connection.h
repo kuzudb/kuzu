@@ -106,7 +106,6 @@ public:
             SetError(std::string(exc.what()));
         }
         if (progressCallback) {
-            progressCallback->Release();
             if (nodeDisplay->getNumCallbacks() == 0) {
                 progressBar->toggleProgressBarPrinting(trackProgress);
             }
@@ -160,7 +159,6 @@ public:
             SetError(std::string(exc.what()));
         }
         if (progressCallback) {
-            progressCallback->Release();
             if (nodeDisplay->getNumCallbacks() == 0) {
                 progressBar->toggleProgressBarPrinting(trackProgress);
             }
