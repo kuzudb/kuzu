@@ -32,7 +32,7 @@ private:
     Napi::Value ExecuteAsync(const Napi::CallbackInfo& info);
     Napi::Value QueryAsync(const Napi::CallbackInfo& info);
     void Close(const Napi::CallbackInfo& info);
-
+    
 private:
     std::shared_ptr<Database> database;
     std::shared_ptr<Connection> connection;
@@ -61,21 +61,39 @@ private:
     NodeConnection* nodeConnection;
 };
 
-class ConnectionExecuteAsyncWorker : public Napi::AsyncWorker {
+class kuzu::main::ConnectionExecuteAsyncWorker : public Napi::AsyncWorker {
 public:
     ConnectionExecuteAsyncWorker(Napi::Function& callback, std::shared_ptr<Connection>& connection,
         std::shared_ptr<PreparedStatement> preparedStatement, NodeQueryResult* nodeQueryResult,
-        std::unordered_map<std::string, std::unique_ptr<Value>> params)
+        std::unordered_map<std::string, std::unique_ptr<Value>> params,
+        Napi::Value progressCallback)
         : Napi::AsyncWorker(callback), connection(connection),
           preparedStatement(std::move(preparedStatement)), nodeQueryResult(nodeQueryResult),
-          params(std::move(params)) {}
+          params(std::move(params)) {
+        if (progressCallback.IsFunction()) {
+            this->progressCallback = Napi::ThreadSafeFunction::New(Env(),
+                progressCallback.As<Napi::Function>(), "ProgressCallback", 0, 1);
+        }
+    }
 
     ~ConnectionExecuteAsyncWorker() override = default;
 
     void Execute() override {
+        uint64_t queryID = connection->getClientContext()->getDatabase()->getNextQueryID();
+        auto progressBar = connection->getClientContext()->getProgressBar();
+        auto trackProgress = progressBar->getProgressBarPrinting();
+        auto display = progressBar->getDisplay().get();
+        NodeProgressBarDisplay* nodeDisplay =
+            ku_dynamic_cast<ProgressBarDisplay*, NodeProgressBarDisplay*>(display);
+        if (progressCallback) {
+            nodeDisplay->setCallbackFunction(queryID, *progressCallback, Env());
+            progressBar->toggleProgressBarPrinting(true);
+        }
         try {
             auto result =
-                connection->executeWithParams(preparedStatement.get(), std::move(params)).release();
+                connection
+                    ->executeWithParamsWithID(preparedStatement.get(), std::move(params), queryID)
+                    .release();
             nodeQueryResult->SetQueryResult(result, true);
             if (!result->isSuccess()) {
                 SetError(result->getErrorMessage());
@@ -83,6 +101,12 @@ public:
             }
         } catch (const std::exception& exc) {
             SetError(std::string(exc.what()));
+        }
+        if (progressCallback) {
+            progressCallback->Release();
+            if (nodeDisplay->getNumCallbacks() == 0) {
+                progressBar->toggleProgressBarPrinting(trackProgress);
+            }
         }
     }
 
@@ -95,9 +119,10 @@ private:
     std::shared_ptr<PreparedStatement> preparedStatement;
     NodeQueryResult* nodeQueryResult;
     std::unordered_map<std::string, std::unique_ptr<Value>> params;
+    std::optional<Napi::ThreadSafeFunction> progressCallback;
 };
 
-class ConnectionQueryAsyncWorker : public Napi::AsyncWorker {
+class kuzu::main::ConnectionQueryAsyncWorker : public Napi::AsyncWorker {
 public:
     ConnectionQueryAsyncWorker(Napi::Function& callback, std::shared_ptr<Connection>& connection,
         std::string statement, NodeQueryResult* nodeQueryResult, Napi::Value progressCallback)
@@ -123,7 +148,7 @@ public:
             progressBar->toggleProgressBarPrinting(true);
         }
         try {
-            auto result = connection->queryWithId(statement, queryID).release();
+            auto result = connection->queryWithID(statement, queryID).release();
             nodeQueryResult->SetQueryResult(result, true);
             if (!result->isSuccess()) {
                 SetError(result->getErrorMessage());

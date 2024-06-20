@@ -142,8 +142,10 @@ private:
     std::unique_ptr<extension::ExtensionOptions> extensionOptions;
     std::unique_ptr<DatabaseManager> databaseManager;
     common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>> storageExtensions;
-    uint64_t queryID;
-    std::mutex queryIDLock;
+    struct QueryIDGenerator {
+        uint64_t queryID = 0;
+        std::mutex queryIDLock;
+    } queryIDGenerator;
 };
 
 } // namespace main

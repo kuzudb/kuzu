@@ -84,9 +84,10 @@ class Connection {
    * Execute a prepared statement with the given parameters.
    * @param {kuzu.PreparedStatement} preparedStatement the prepared statement to execute.
    * @param {Object} params a plain object mapping parameter names to values.
+   * @param {Function} [progressCallback] - Optional callback function that is invoked with the progress of the query execution. The callback receives three arguments: pipelineProgress, numPipelinesFinished, and numPipelines.
    * @returns {Promise<kuzu.QueryResult>} a promise that resolves to the query result. The promise is rejected if there is an error.
    */
-  execute(preparedStatement, params = {}) {
+  execute(preparedStatement, params = {}, progressCallback) {
     return new Promise((resolve, reject) => {
       if (
         !typeof preparedStatement === "object" ||
@@ -130,6 +131,9 @@ class Connection {
           );
         }
         }
+      if (progressCallback && typeof progressCallback !== "function") {
+        return reject(new Error("progressCallback must be a function."));
+      }
       this._getConnection()
         .then((connection) => {
           const nodeQueryResult = new KuzuNative.NodeQueryResult();
@@ -149,7 +153,8 @@ class Connection {
                   .catch((err) => {
                     return reject(err);
                   });
-                }
+                },
+              progressCallback
             );
           } catch (e) {
             return reject(e);

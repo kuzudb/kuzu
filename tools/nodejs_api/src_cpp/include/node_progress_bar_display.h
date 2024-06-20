@@ -4,7 +4,6 @@
 #include <unordered_set>
 
 #include "common/task_system/progress_bar_display.h"
-#include "common/task_system/terminal_progress_bar_display.h"
 #include <napi.h>
 
 using namespace kuzu;
@@ -25,14 +24,9 @@ public:
     uint32_t getNumCallbacks() { return queryCallbacks.size(); }
 
 private:
-    void printProgressBar();
-
-private:
     struct callbackFunction {
         Napi::ThreadSafeFunction callback;
         Napi::Env env;
     };
-
-    bool printing = false;
     std::unordered_map<uint64_t, callbackFunction> queryCallbacks;
 };
