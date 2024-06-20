@@ -488,11 +488,11 @@ void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uin
     KU_ASSERT(maxReadIndex <= CHUNK_SIZE);
 
     const auto* readCursor =
-        bitpacking_utils::getInitialSrcCursor<U>(chunkStart, header.bitWidth, pos);
+        BitpackingUtils<U>::getInitialSrcCursor(chunkStart, header.bitWidth, pos);
     for (size_t i = pos; i < maxReadIndex; i++) {
         // Always use unsigned version of unpacker to prevent sign-bit filling when right shifting
         U& out = reinterpret_cast<U*>(dst)[i - pos];
-        SingleValuePacker<U>::unpackSingle(readCursor, &out, header.bitWidth, i);
+        BitpackingUtils<U>::unpackSingle(readCursor, &out, header.bitWidth, i);
 
         if (header.hasNegative && header.bitWidth > 0) {
             SignExtend<T, U, 1>((uint8_t*)&out, header.bitWidth);
@@ -507,9 +507,9 @@ void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uin
 template<IntegerBitpackingType T>
 void IntegerBitpacking<T>::packPartialChunk(const U* srcBuffer, uint8_t* dstBuffer,
     BitpackInfo<T> info, size_t numValuesToPack) const {
-    auto* outCursor = bitpacking_utils::castCompressedCursor<U>(dstBuffer);
+    uint8_t* dstCursor = dstBuffer;
     for (size_t i = 0; i < numValuesToPack; ++i) {
-        SingleValuePacker<U>::packSingle(srcBuffer[i], outCursor, info.bitWidth, i);
+        BitpackingUtils<U>::packSingle(srcBuffer[i], dstCursor, info.bitWidth, i);
     }
 }
 

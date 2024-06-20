@@ -8,44 +8,19 @@
 namespace kuzu::storage {
 
 template<IntegerBitpackingType UncompressedType>
-struct SingleValuePacker {};
+struct BitpackingUtils {
+    using CompressedType =
+        std::conditional_t<sizeof(UncompressedType) >= sizeof(uint32_t), uint32_t, uint8_t>;
+    static constexpr size_t sizeOfCompressedTypeBits = sizeof(CompressedType) * 8;
 
-template<IntegerBitpackingType UncompressedType>
-    requires(sizeof(UncompressedType) >= sizeof(uint32_t))
-struct SingleValuePacker<UncompressedType> {
-    static void unpackSingle(const uint32_t* __restrict& src, UncompressedType* __restrict dst,
-        uint16_t bitWidth, size_t srcOffset);
-
-    static void packSingle(const UncompressedType src, uint32_t* __restrict& dstCursor,
-        uint16_t bitWidth, size_t dstOffset);
-};
-
-template<IntegerBitpackingType UncompressedType>
-    requires(sizeof(UncompressedType) < sizeof(uint32_t))
-struct SingleValuePacker<UncompressedType> {
     static void unpackSingle(const uint8_t* __restrict& src, UncompressedType* __restrict dst,
         uint16_t bitWidth, size_t srcOffset);
 
     static void packSingle(const UncompressedType src, uint8_t* __restrict& dstCursor,
         uint16_t bitWidth, size_t dstOffset);
+
+    static const uint8_t* getInitialSrcCursor(const uint8_t* src, uint16_t bitWidth,
+        size_t srcOffset);
 };
-
-namespace bitpacking_utils {
-
-template<IntegerBitpackingType UncompressedType>
-decltype(auto) getInitialSrcCursor(const uint8_t* src, uint16_t bitWidth, size_t srcOffset) {
-    using CompressedType =
-        std::conditional_t<sizeof(UncompressedType) >= sizeof(uint32_t), uint32_t, uint8_t>;
-    static constexpr size_t sizeOfCompressedTypeBits = sizeof(CompressedType) * 8;
-    return (CompressedType*)src + srcOffset * bitWidth / sizeOfCompressedTypeBits;
-}
-
-template<IntegerBitpackingType UncompressedType>
-decltype(auto) castCompressedCursor(uint8_t* src) {
-    using CompressedType =
-        std::conditional_t<sizeof(UncompressedType) >= sizeof(uint32_t), uint32_t, uint8_t>;
-    return reinterpret_cast<CompressedType*>(src);
-}
-}; // namespace bitpacking_utils
 
 } // namespace kuzu::storage

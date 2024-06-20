@@ -162,42 +162,37 @@ void packSingleImpl(const UncompressedType in, CompressedType* __restrict& out, 
 }
 
 template<IntegerBitpackingType UncompressedType>
-    requires(sizeof(UncompressedType) >= sizeof(uint32_t))
-void SingleValuePacker<UncompressedType>::unpackSingle(const uint32_t* __restrict& srcCursor,
+void BitpackingUtils<UncompressedType>::unpackSingle(const uint8_t* __restrict& srcCursor,
     UncompressedType* __restrict dst, uint16_t bitWidth, size_t srcOffset) {
-    const size_t shiftRight = srcOffset * bitWidth % (sizeof(uint32_t) * 8);
-    unpackSingleImpl(srcCursor, dst, bitWidth, shiftRight);
+    const size_t shiftRight = srcOffset * bitWidth % sizeOfCompressedTypeBits;
+
+    const auto* castedSrcCursor = reinterpret_cast<const CompressedType*>(srcCursor);
+    unpackSingleImpl(castedSrcCursor, dst, bitWidth, shiftRight);
+    srcCursor = reinterpret_cast<const uint8_t*>(castedSrcCursor);
 }
 
 template<IntegerBitpackingType UncompressedType>
-    requires(sizeof(UncompressedType) < sizeof(uint32_t))
-void SingleValuePacker<UncompressedType>::unpackSingle(const uint8_t* __restrict& srcCursor,
-    UncompressedType* __restrict dst, uint16_t bitWidth, size_t srcOffset) {
-    const size_t shiftRight = srcOffset * bitWidth % (sizeof(uint8_t) * 8);
-    unpackSingleImpl(srcCursor, dst, bitWidth, shiftRight);
-}
-
-template<IntegerBitpackingType UncompressedType>
-    requires(sizeof(UncompressedType) >= sizeof(uint32_t))
-void SingleValuePacker<UncompressedType>::packSingle(const UncompressedType src,
-    uint32_t* __restrict& dstCursor, uint16_t bitWidth, size_t dstOffset) {
-    const size_t shiftLeft = dstOffset * bitWidth % (sizeof(uint32_t) * 8);
-    packSingleImpl(src, dstCursor, bitWidth, shiftLeft,
-        common::BitmaskUtils::all1sMaskForLeastSignificantBits<UncompressedType>(bitWidth));
-}
-
-template<IntegerBitpackingType UncompressedType>
-    requires(sizeof(UncompressedType) < sizeof(uint32_t))
-void SingleValuePacker<UncompressedType>::packSingle(const UncompressedType src,
+void BitpackingUtils<UncompressedType>::packSingle(const UncompressedType src,
     uint8_t* __restrict& dstCursor, uint16_t bitWidth, size_t dstOffset) {
-    const size_t shiftLeft = dstOffset * bitWidth % (sizeof(uint8_t) * 8);
-    packSingleImpl(src, dstCursor, bitWidth, shiftLeft,
+    const size_t shiftLeft = dstOffset * bitWidth % sizeOfCompressedTypeBits;
+
+    auto* castedDstCursor = reinterpret_cast<CompressedType*>(dstCursor);
+    packSingleImpl(src, castedDstCursor, bitWidth, shiftLeft,
         common::BitmaskUtils::all1sMaskForLeastSignificantBits<UncompressedType>(bitWidth));
+    dstCursor = reinterpret_cast<uint8_t*>(castedDstCursor);
 }
 
-template struct SingleValuePacker<common::int128_t>;
-template struct SingleValuePacker<uint64_t>;
-template struct SingleValuePacker<uint32_t>;
-template struct SingleValuePacker<uint16_t>;
-template struct SingleValuePacker<uint8_t>;
+template<IntegerBitpackingType UncompressedType>
+const uint8_t* BitpackingUtils<UncompressedType>::getInitialSrcCursor(const uint8_t* src,
+    uint16_t bitWidth, size_t srcOffset) {
+    const auto* compressedTypeAlignedCursor = reinterpret_cast<const CompressedType*>(src) +
+                                              srcOffset * bitWidth / sizeOfCompressedTypeBits;
+    return reinterpret_cast<const uint8_t*>(compressedTypeAlignedCursor);
+}
+
+template struct BitpackingUtils<common::int128_t>;
+template struct BitpackingUtils<uint64_t>;
+template struct BitpackingUtils<uint32_t>;
+template struct BitpackingUtils<uint16_t>;
+template struct BitpackingUtils<uint8_t>;
 } // namespace kuzu::storage
