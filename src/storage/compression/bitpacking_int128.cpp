@@ -3,7 +3,7 @@
 
 #include "storage/compression/bitpacking_int128.h"
 
-#include "common/utils.h"
+#include "storage/compression/bitpacking_utils.h"
 #include "storage/compression/compression.h"
 
 namespace kuzu::storage {
@@ -11,72 +11,6 @@ namespace kuzu::storage {
 //===--------------------------------------------------------------------===//
 // Unpacking
 //===--------------------------------------------------------------------===//
-
-template<std::integral CompressedType, IntegerBitpackingType UncompressedType>
-void bitpacking_utils::unpackSingle(const CompressedType* __restrict& in,
-    UncompressedType* __restrict out, uint16_t delta, uint16_t shiftRight) {
-    static_assert(sizeof(UncompressedType) <= 4 * sizeof(CompressedType));
-
-    static constexpr size_t compressedFieldSizeBits = sizeof(CompressedType) * 8;
-
-    if (delta + shiftRight < compressedFieldSizeBits) {
-        *out =
-            ((static_cast<UncompressedType>(in[0])) >> shiftRight) % (UncompressedType(1) << delta);
-    }
-
-    else if (delta + shiftRight >= compressedFieldSizeBits &&
-             delta + shiftRight < 2 * compressedFieldSizeBits) {
-        *out = static_cast<UncompressedType>(in[0]) >> shiftRight;
-        ++in;
-
-        if (delta + shiftRight > compressedFieldSizeBits) {
-            const uint16_t NEXT_SHR = shiftRight + delta - compressedFieldSizeBits;
-            *out |= static_cast<UncompressedType>((*in) % (1U << NEXT_SHR))
-                    << (compressedFieldSizeBits - shiftRight);
-        }
-    }
-
-    else if (delta + shiftRight >= 2 * compressedFieldSizeBits &&
-             delta + shiftRight < 3 * compressedFieldSizeBits) {
-        *out = static_cast<UncompressedType>(in[0]) >> shiftRight;
-        *out |= static_cast<UncompressedType>(in[1]) << (compressedFieldSizeBits - shiftRight);
-        in += 2;
-
-        if (delta + shiftRight > 2 * compressedFieldSizeBits) {
-            const uint16_t NEXT_SHR = delta + shiftRight - 2 * compressedFieldSizeBits;
-            *out |= static_cast<UncompressedType>((*in) % (1U << NEXT_SHR))
-                    << (2 * compressedFieldSizeBits - shiftRight);
-        }
-    }
-
-    else if (delta + shiftRight >= 3 * compressedFieldSizeBits &&
-             delta + shiftRight < 4 * compressedFieldSizeBits) {
-        *out = static_cast<UncompressedType>(in[0]) >> shiftRight;
-        *out |= static_cast<UncompressedType>(in[1]) << (compressedFieldSizeBits - shiftRight);
-        *out |= static_cast<UncompressedType>(in[2]) << (2 * compressedFieldSizeBits - shiftRight);
-        in += 3;
-
-        if (delta + shiftRight > 3 * compressedFieldSizeBits) {
-            const uint16_t NEXT_SHR = delta + shiftRight - 3 * compressedFieldSizeBits;
-            *out |= static_cast<UncompressedType>((*in) % (1U << NEXT_SHR))
-                    << (3 * compressedFieldSizeBits - shiftRight);
-        }
-    }
-
-    else if (delta + shiftRight >= 4 * compressedFieldSizeBits) {
-        *out = static_cast<UncompressedType>(in[0]) >> shiftRight;
-        *out |= static_cast<UncompressedType>(in[1]) << (compressedFieldSizeBits - shiftRight);
-        *out |= static_cast<UncompressedType>(in[2]) << (2 * compressedFieldSizeBits - shiftRight);
-        *out |= static_cast<UncompressedType>(in[3]) << (3 * compressedFieldSizeBits - shiftRight);
-        in += 4;
-
-        if (delta + shiftRight > 4 * compressedFieldSizeBits) {
-            const uint16_t NEXT_SHR = delta + shiftRight - 4 * compressedFieldSizeBits;
-            *out |= static_cast<UncompressedType>((*in) % (1U << NEXT_SHR))
-                    << (4 * compressedFieldSizeBits - shiftRight);
-        }
-    }
-}
 
 static void unpackLast(const uint32_t* __restrict& in, common::int128_t* __restrict out,
     uint16_t delta) {
@@ -137,94 +71,6 @@ static void unpackDelta128(const uint32_t* __restrict in, common::int128_t* __re
 //===--------------------------------------------------------------------===//
 // Packing
 //===--------------------------------------------------------------------===//
-
-template<std::integral CompressedType, IntegerBitpackingType UncompressedType>
-void bitpacking_utils::packSingle(const UncompressedType in, CompressedType* __restrict& out,
-    uint16_t delta, uint16_t shiftLeft, UncompressedType mask) {
-    static_assert(sizeof(UncompressedType) <= 4 * sizeof(CompressedType));
-
-    static constexpr size_t compressedFieldSizeBits = sizeof(CompressedType) * 8;
-
-    if (delta + shiftLeft < compressedFieldSizeBits) {
-
-        if (shiftLeft == 0) {
-            out[0] = static_cast<CompressedType>(in & mask);
-        } else {
-            out[0] |= static_cast<CompressedType>((in & mask) << shiftLeft);
-        }
-
-    } else if (delta + shiftLeft >= compressedFieldSizeBits &&
-               delta + shiftLeft < 2 * compressedFieldSizeBits) {
-
-        if (shiftLeft == 0) {
-            out[0] = static_cast<CompressedType>(in & mask);
-        } else {
-            out[0] |= static_cast<CompressedType>((in & mask) << shiftLeft);
-        }
-        ++out;
-
-        if (delta + shiftLeft > compressedFieldSizeBits) {
-            *out =
-                static_cast<CompressedType>((in & mask) >> (compressedFieldSizeBits - shiftLeft));
-        }
-    }
-
-    else if (delta + shiftLeft >= 2 * compressedFieldSizeBits &&
-             delta + shiftLeft < 3 * compressedFieldSizeBits) {
-
-        if (shiftLeft == 0) {
-            out[0] = static_cast<CompressedType>(in & mask);
-        } else {
-            out[0] |= static_cast<CompressedType>(in << shiftLeft);
-        }
-
-        out[1] = static_cast<CompressedType>((in & mask) >> (compressedFieldSizeBits - shiftLeft));
-        out += 2;
-
-        if (delta + shiftLeft > 2 * compressedFieldSizeBits) {
-            *out = static_cast<CompressedType>(
-                (in & mask) >> (2 * compressedFieldSizeBits - shiftLeft));
-        }
-    }
-
-    else if (delta + shiftLeft >= 3 * compressedFieldSizeBits &&
-             delta + shiftLeft < 4 * compressedFieldSizeBits) {
-        if (shiftLeft == 0) {
-            out[0] = static_cast<CompressedType>(in & mask);
-        } else {
-            out[0] |= static_cast<CompressedType>(in << shiftLeft);
-        }
-
-        out[1] = static_cast<CompressedType>((in & mask) >> (compressedFieldSizeBits - shiftLeft));
-        out[2] =
-            static_cast<CompressedType>((in & mask) >> (2 * compressedFieldSizeBits - shiftLeft));
-        out += 3;
-
-        if (delta + shiftLeft > 3 * compressedFieldSizeBits) {
-            *out = static_cast<CompressedType>(
-                (in & mask) >> (3 * compressedFieldSizeBits - shiftLeft));
-        }
-    }
-
-    else if (delta + shiftLeft >= 4 * compressedFieldSizeBits) {
-        if (shiftLeft == 0) {
-            out[0] = static_cast<CompressedType>(in & mask);
-        } else {
-            out[0] |= static_cast<CompressedType>(in << shiftLeft);
-        }
-        out[1] = static_cast<CompressedType>((in & mask) >> (compressedFieldSizeBits - shiftLeft));
-        out[2] =
-            static_cast<CompressedType>((in & mask) >> (2 * compressedFieldSizeBits - shiftLeft));
-        out[3] =
-            static_cast<CompressedType>((in & mask) >> (3 * compressedFieldSizeBits - shiftLeft));
-        out += 4;
-
-        if (delta + shiftLeft > 4 * compressedFieldSizeBits) {
-            *out = static_cast<CompressedType>(
-                (in & mask) >> (4 * compressedFieldSizeBits - shiftLeft));
-        }
-    }
-}
 
 static void packLast(const common::int128_t* __restrict in, uint32_t* __restrict out,
     uint16_t delta) {
@@ -304,9 +150,7 @@ void Int128Packer::pack(const common::int128_t* __restrict in, uint32_t* __restr
     default:
         for (common::idx_t oindex = 0; oindex < IntegerBitpacking<common::int128_t>::CHUNK_SIZE - 1;
              ++oindex) {
-            bitpacking_utils::packSingle(in[oindex], out, width,
-                (width * oindex) % IntegerBitpacking<common::int128_t>::CHUNK_SIZE,
-                common::BitmaskUtils::all1sMaskForLeastSignificantBits<common::int128_t>(width));
+            SingleValuePacker<common::int128_t>::packSingle(in[oindex], out, width, oindex);
         }
         packLast(in, out, width);
     }
@@ -334,49 +178,10 @@ void Int128Packer::unpack(const uint32_t* __restrict in, common::int128_t* __res
     default:
         for (common::idx_t oindex = 0; oindex < IntegerBitpacking<common::int128_t>::CHUNK_SIZE - 1;
              ++oindex) {
-            bitpacking_utils::unpackSingle(in, out + oindex, width,
-                (width * oindex) % IntegerBitpacking<common::int128_t>::CHUNK_SIZE);
+            SingleValuePacker<common::int128_t>::unpackSingle(in, out + oindex, width, oindex);
         }
         unpackLast(in, out, width);
     }
 }
-
-template void bitpacking_utils::unpackSingle(const uint32_t* __restrict& in,
-    common::int128_t* __restrict out, uint16_t delta, uint16_t shiftRight);
-template void bitpacking_utils::unpackSingle(const uint32_t* __restrict& in,
-    uint64_t* __restrict out, uint16_t delta, uint16_t shiftRight);
-template void bitpacking_utils::unpackSingle(const uint32_t* __restrict& in,
-    int64_t* __restrict out, uint16_t delta, uint16_t shiftRight);
-template void bitpacking_utils::unpackSingle(const uint32_t* __restrict& in,
-    uint32_t* __restrict out, uint16_t delta, uint16_t shiftRight);
-template void bitpacking_utils::unpackSingle(const uint32_t* __restrict& in,
-    int32_t* __restrict out, uint16_t delta, uint16_t shiftRight);
-template void bitpacking_utils::unpackSingle(const uint8_t* __restrict& in,
-    uint16_t* __restrict out, uint16_t delta, uint16_t shiftRight);
-template void bitpacking_utils::unpackSingle(const uint8_t* __restrict& in, int16_t* __restrict out,
-    uint16_t delta, uint16_t shiftRight);
-template void bitpacking_utils::unpackSingle(const uint8_t* __restrict& in, uint8_t* __restrict out,
-    uint16_t delta, uint16_t shiftRight);
-template void bitpacking_utils::unpackSingle(const uint8_t* __restrict& in, int8_t* __restrict out,
-    uint16_t delta, uint16_t shiftRight);
-
-template void bitpacking_utils::packSingle(const common::int128_t in, uint32_t* __restrict& out,
-    uint16_t delta, uint16_t shiftLeft, common::int128_t mask);
-template void bitpacking_utils::packSingle(const uint64_t in, uint32_t* __restrict& out,
-    uint16_t delta, uint16_t shiftLeft, uint64_t mask);
-template void bitpacking_utils::packSingle(const int64_t in, uint32_t* __restrict& out,
-    uint16_t delta, uint16_t shiftLeft, int64_t mask);
-template void bitpacking_utils::packSingle(const uint32_t in, uint32_t* __restrict& out,
-    uint16_t delta, uint16_t shiftLeft, uint32_t mask);
-template void bitpacking_utils::packSingle(const int32_t in, uint32_t* __restrict& out,
-    uint16_t delta, uint16_t shiftLeft, int32_t mask);
-template void bitpacking_utils::packSingle(const uint16_t in, uint8_t* __restrict& out,
-    uint16_t delta, uint16_t shiftLeft, uint16_t mask);
-template void bitpacking_utils::packSingle(const int16_t in, uint8_t* __restrict& out,
-    uint16_t delta, uint16_t shiftLeft, int16_t mask);
-template void bitpacking_utils::packSingle(const uint8_t in, uint8_t* __restrict& out,
-    uint16_t delta, uint16_t shiftLeft, uint8_t mask);
-template void bitpacking_utils::packSingle(const int8_t in, uint8_t* __restrict& out,
-    uint16_t delta, uint16_t shiftLeft, int8_t mask);
 
 } // namespace kuzu::storage

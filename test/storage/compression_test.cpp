@@ -126,6 +126,13 @@ TEST(CompressionTests, IntegerPackingTest128AllPositive) {
     test_compression(alg, src, false);
 }
 
+TEST(CompressionTests, IntegerPackingTest128SignBitFillingDoesNotBreakUnpacking) {
+    std::vector<kuzu::common::int128_t> src(128, 0b1111);
+
+    auto alg = IntegerBitpacking<kuzu::common::int128_t>();
+    test_compression(alg, src, false);
+}
+
 TEST(CompressionTests, IntegerPackingTest128Negative) {
     std::vector<kuzu::common::int128_t> src(101);
 

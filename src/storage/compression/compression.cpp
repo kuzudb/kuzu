@@ -13,10 +13,10 @@
 #include "common/types/internal_id_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
-#include "common/utils.h"
 #include "common/vector/value_vector.h"
 #include "fastpfor/bitpackinghelpers.h"
 #include "storage/compression/bitpacking_int128.h"
+#include "storage/compression/bitpacking_utils.h"
 #include "storage/compression/sign_extend.h"
 #include "storage/storage_utils.h"
 
@@ -487,24 +487,19 @@ void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uin
     const size_t maxReadIndex = pos + numValuesToRead;
     KU_ASSERT(maxReadIndex <= CHUNK_SIZE);
 
+    const auto* readCursor =
+        bitpacking_utils::getInitialSrcCursor<U>(chunkStart, header.bitWidth, pos);
     for (size_t i = pos; i < maxReadIndex; i++) {
-        U& out = ((U*)dst)[i - pos];
-        if constexpr (sizeof(U) * 8 >= 32) {
-            const uint32_t* readCursor = (uint32_t*)chunkStart + i * header.bitWidth / 32;
-            const uint16_t shiftRight = (i * header.bitWidth) % 32;
-            bitpacking_utils::unpackSingle(readCursor, &out, header.bitWidth, shiftRight);
-        } else {
-            const uint8_t* readCursor = chunkStart + i * header.bitWidth / 8;
-            const uint16_t shiftRight = (i * header.bitWidth) % 8;
-            bitpacking_utils::unpackSingle(readCursor, &out, header.bitWidth, shiftRight);
-        }
+        // Always use unsigned version of unpacker to prevent sign-bit filling when right shifting
+        U& out = reinterpret_cast<U*>(dst)[i - pos];
+        SingleValuePacker<U>::unpackSingle(readCursor, &out, header.bitWidth, i);
 
         if (header.hasNegative && header.bitWidth > 0) {
             SignExtend<T, U, 1>((uint8_t*)&out, header.bitWidth);
         }
 
         if (header.offset != 0) {
-            (T&)out = (T)(out + header.offset);
+            reinterpret_cast<T&>(out) += header.offset;
         }
     }
 }
@@ -512,17 +507,9 @@ void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uin
 template<IntegerBitpackingType T>
 void IntegerBitpacking<T>::packPartialChunk(const U* srcBuffer, uint8_t* dstBuffer,
     BitpackInfo<T> info, size_t numValuesToPack) const {
-    auto* outCursor = (uint32_t*)dstBuffer;
+    auto* outCursor = bitpacking_utils::castCompressedCursor<U>(dstBuffer);
     for (size_t i = 0; i < numValuesToPack; ++i) {
-        if constexpr (sizeof(U) * 8 >= 32) {
-            const uint16_t shiftLeft = (i * info.bitWidth) % 32;
-            bitpacking_utils::packSingle(srcBuffer[i], outCursor, info.bitWidth, shiftLeft,
-                BitmaskUtils::all1sMaskForLeastSignificantBits<U>(info.bitWidth));
-        } else {
-            const uint16_t shiftLeft = (i * info.bitWidth) % 8;
-            bitpacking_utils::packSingle(srcBuffer[i], dstBuffer, info.bitWidth, shiftLeft,
-                BitmaskUtils::all1sMaskForLeastSignificantBits<U>(info.bitWidth));
-        }
+        SingleValuePacker<U>::packSingle(srcBuffer[i], outCursor, info.bitWidth, i);
     }
 }
 
@@ -530,7 +517,7 @@ template<IntegerBitpackingType T>
 void IntegerBitpacking<T>::copyValuesToTempChunkWithOffset(const U* srcBuffer, U* tmpBuffer,
     BitpackInfo<T> info, size_t numValuesToCopy) const {
     for (auto j = 0u; j < numValuesToCopy; j++) {
-        tmpBuffer[j] = (U)(((T*)srcBuffer)[j] - info.offset);
+        tmpBuffer[j] = static_cast<U>(std::bit_cast<T>(srcBuffer[j]) - info.offset);
     }
 }
 
@@ -562,26 +549,29 @@ uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
     if (info.offset == 0) {
         auto lastFullChunkEnd = numValuesToCompress - numValuesToCompress % CHUNK_SIZE;
         for (auto i = 0ull; i < lastFullChunkEnd; i += CHUNK_SIZE) {
-            fastpack((const U*)srcBuffer + i, dstBuffer + i * bitWidth / 8, bitWidth);
+            fastpack(reinterpret_cast<const U*>(srcBuffer) + i, dstBuffer + i * bitWidth / 8,
+                bitWidth);
         }
         // Pack last partial chunk, avoiding overflows
         const size_t remainingNumValues = numValuesToCompress % CHUNK_SIZE;
         if (remainingNumValues > 0) {
-            packPartialChunk((const U*)srcBuffer + lastFullChunkEnd,
+            packPartialChunk(reinterpret_cast<const U*>(srcBuffer) + lastFullChunkEnd,
                 dstBuffer + lastFullChunkEnd * bitWidth / 8, info, remainingNumValues);
         }
     } else {
         U tmp[CHUNK_SIZE];
         auto lastFullChunkEnd = numValuesToCompress - numValuesToCompress % CHUNK_SIZE;
         for (auto i = 0ull; i < lastFullChunkEnd; i += CHUNK_SIZE) {
-            copyValuesToTempChunkWithOffset((const U*)srcBuffer + i, tmp, info, CHUNK_SIZE);
+            copyValuesToTempChunkWithOffset(reinterpret_cast<const U*>(srcBuffer) + i, tmp, info,
+                CHUNK_SIZE);
             fastpack(tmp, dstBuffer + i * bitWidth / 8, bitWidth);
         }
         // Pack last partial chunk, avoiding overflows
         auto remainingValues = numValuesToCompress % CHUNK_SIZE;
         if (remainingValues > 0) {
-            copyValuesToTempChunkWithOffset((const U*)srcBuffer + lastFullChunkEnd, tmp, info,
-                remainingValues);
+            copyValuesToTempChunkWithOffset(reinterpret_cast<const U*>(srcBuffer) +
+                                                lastFullChunkEnd,
+                tmp, info, remainingValues);
             packPartialChunk(tmp, dstBuffer + lastFullChunkEnd * bitWidth / 8, info,
                 remainingValues);
         }
