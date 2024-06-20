@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <numeric>
+#include <limits>
 #include <vector>
 
 #include "common/assert.h"
@@ -52,11 +52,6 @@ std::vector<T> copyVector(const std::vector<T>& objects) {
         result.push_back(object->copy());
     }
     return result;
-}
-
-template<numeric_utils::IsIntegral T>
-inline T ceilDiv(T a, T b) {
-    return a / b + (a % b != 0);
 }
 
 } // namespace common
