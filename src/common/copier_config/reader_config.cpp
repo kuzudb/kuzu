@@ -17,6 +17,9 @@ FileType FileTypeUtils::getFileTypeFromExtension(std::string_view extension) {
     if (extension == ".npy") {
         return FileType::NPY;
     }
+    if (extension == ".fvecs") {
+        return FileType::FVEC;
+    }
     if (extension == ".ttl") {
         return FileType::TURTLE;
     }
@@ -43,6 +46,9 @@ std::string FileTypeUtils::toString(FileType fileType) {
     case FileType::NPY: {
         return "NPY";
     }
+    case FileType::FVEC: {
+        return "FVEC";
+    }
     case FileType::TURTLE: {
         return "TURTLE";
     }
@@ -65,6 +71,8 @@ FileType FileTypeUtils::fromString(std::string fileType) {
         return FileType::PARQUET;
     } else if (fileType == "NPY") {
         return FileType::NPY;
+    } else if (fileType == "FVEC") {
+        return FileType::FVEC;
     } else {
         throw BinderException(stringFormat("Unsupported file type: {}.", fileType));
     }

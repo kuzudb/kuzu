@@ -30,6 +30,7 @@
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/npy/npy_reader.h"
 #include "processor/operator/persistent/reader/parquet/parquet_reader.h"
+#include "processor/operator/persistent/reader/fvec/fvec_reader.h"
 #include "processor/operator/persistent/reader/rdf/rdf_scan.h"
 #include "processor/operator/table_scan/ftable_scan_function.h"
 
@@ -217,6 +218,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Scan functions
         TABLE_FUNCTION(ParquetScanFunction), TABLE_FUNCTION(NpyScanFunction),
+        TABLE_FUNCTION(FvecScanFunction),
         TABLE_FUNCTION(SerialCSVScan), TABLE_FUNCTION(ParallelCSVScan),
         TABLE_FUNCTION(RdfResourceScan), TABLE_FUNCTION(RdfLiteralScan),
         TABLE_FUNCTION(RdfResourceTripleScan), TABLE_FUNCTION(RdfLiteralTripleScan),

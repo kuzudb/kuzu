@@ -2,6 +2,7 @@ add_subdirectory(csv)
 add_subdirectory(npy)
 add_subdirectory(parquet)
 add_subdirectory(rdf)
+add_subdirectory(fvec)
 
 add_library(kuzu_processor_operator_persistent_reader
         OBJECT

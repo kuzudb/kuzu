@@ -13,6 +13,7 @@ oC_Statement
         | kU_CreateRdfGraph
         | kU_CreateSequence
         | kU_CreateType
+        | kU_CreateVectorIndex
         | kU_Drop
         | kU_AlterTable
         | kU_CopyFrom
@@ -114,6 +115,9 @@ kU_CreateSequence
 
 kU_CreateType
     : CREATE SP TYPE SP oC_SchemaName SP AS SP kU_DataType SP? ;
+
+kU_CreateVectorIndex
+    : CREATE SP VECTOR SP INDEX SP ON SP oC_SchemaName '.' oC_PropertyKeyName ( SP? kU_ParsingOptions )? ;
 
 kU_SequenceOptions
     : kU_IncrementBy
