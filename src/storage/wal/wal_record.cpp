@@ -195,7 +195,7 @@ std::unique_ptr<AlterTableEntryRecord> AlterTableEntryRecord::deserialize(
         LogicalType dataType;
         std::unique_ptr<kuzu::parser::ParsedExpression> defaultValue;
         deserializer.deserializeValue(propertyName);
-        dataType = *LogicalType::deserialize(deserializer);
+        dataType = LogicalType::deserialize(deserializer);
         defaultValue = parser::ParsedExpression::deserialize(deserializer);
         extraInfo = std::make_unique<BoundExtraAddPropertyInfo>(std::move(propertyName),
             std::move(dataType), std::move(defaultValue), nullptr);
