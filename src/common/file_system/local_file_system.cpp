@@ -53,11 +53,6 @@ static void validateFileFlags(uint8_t flags) {
 std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int flags,
     main::ClientContext* context, FileLockType lock_type) {
     auto fullPath = expandPath(context, path);
-    if (path.starts_with('~')) {
-        fullPath =
-            context->getCurrentSetting(main::HomeDirectorySetting::name).getValue<std::string>() +
-            fullPath.substr(1);
-    }
     validateFileFlags(flags);
 
     int openFlags = 0;
