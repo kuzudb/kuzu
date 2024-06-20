@@ -154,7 +154,8 @@ private:
     std::unique_ptr<QueryResult> queryWithID(std::string_view query, uint64_t queryID);
 
     std::unique_ptr<QueryResult> executeWithParamsWithID(PreparedStatement* preparedStatement,
-        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams, uint64_t queryID);
+        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams,
+        uint64_t queryID);
 
 private:
     Database* database;

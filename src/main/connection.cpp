@@ -76,7 +76,8 @@ std::unique_ptr<QueryResult> Connection::executeWithParams(PreparedStatement* pr
     return clientContext->executeWithParams(preparedStatement, std::move(inputParams));
 }
 
-std::unique_ptr<QueryResult> Connection::executeWithParamsWithID(PreparedStatement* preparedStatement,
+std::unique_ptr<QueryResult> Connection::executeWithParamsWithID(
+    PreparedStatement* preparedStatement,
     std::unordered_map<std::string, std::unique_ptr<Value>> inputParams, uint64_t queryID) {
     return clientContext->executeWithParams(preparedStatement, std::move(inputParams), queryID);
 }

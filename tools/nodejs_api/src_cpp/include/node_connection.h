@@ -32,7 +32,7 @@ private:
     Napi::Value ExecuteAsync(const Napi::CallbackInfo& info);
     Napi::Value QueryAsync(const Napi::CallbackInfo& info);
     void Close(const Napi::CallbackInfo& info);
-    
+
 private:
     std::shared_ptr<Database> database;
     std::shared_ptr<Connection> connection;

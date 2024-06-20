@@ -146,7 +146,7 @@ void Database::initAndLockDBDir() {
 
 uint64_t Database::getNextQueryID() {
     std::lock_guard<std::mutex> lock(queryIDGenerator.queryIDLock);
-	return queryIDGenerator.queryID++;
+    return queryIDGenerator.queryID++;
 }
 
 } // namespace main
