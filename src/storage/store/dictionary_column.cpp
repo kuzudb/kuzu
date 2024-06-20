@@ -12,28 +12,25 @@ namespace storage {
 using string_index_t = DictionaryChunk::string_index_t;
 using string_offset_t = DictionaryChunk::string_offset_t;
 
-DictionaryColumn::DictionaryColumn(const std::string& name, const MetadataDAHInfo& metaDAHeaderInfo,
-    BMFileHandle* dataFH, DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
-    Transaction* transaction, bool enableCompression) {
+DictionaryColumn::DictionaryColumn(const std::string& name, BMFileHandle* dataFH,
+    BufferManager* bufferManager, WAL* wal, bool enableCompression) {
     auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
-    dataColumn = std::make_unique<Column>(dataColName, *LogicalType::UINT8(),
-        *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataDAC, bufferManager, wal, transaction,
-        false /*enableCompression*/, false /*requireNullColumn*/);
+    dataColumn = std::make_unique<Column>(dataColName, *LogicalType::UINT8(), dataFH, bufferManager,
+        wal, false /*enableCompression*/, false /*requireNullColumn*/);
     auto offsetColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "");
-    offsetColumn = std::make_unique<Column>(offsetColName, *LogicalType::UINT64(),
-        *metaDAHeaderInfo.childrenInfos[1], dataFH, metadataDAC, bufferManager, wal, transaction,
-        enableCompression, false /*requireNullColumn*/);
+    offsetColumn = std::make_unique<Column>(offsetColName, *LogicalType::UINT64(), dataFH,
+        bufferManager, wal, enableCompression, false /*requireNullColumn*/);
 }
 
-void DictionaryColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    ChunkState& readState) {
-    // We put states for data and offset columns into childrenStates.
-    readState.childrenStates.resize(2);
-    dataColumn->initChunkState(transaction, nodeGroupIdx,
-        readState.childrenStates[DictionaryChunk::DATA_COLUMN_CHILD_READ_STATE_IDX]);
-    offsetColumn->initChunkState(transaction, nodeGroupIdx,
-        readState.childrenStates[DictionaryChunk::OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
-}
+// void DictionaryColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+//     ChunkState& readState) {
+//     // We put states for data and offset columns into childrenStates.
+//     readState.childrenStates.resize(2);
+//     dataColumn->initChunkState(transaction, nodeGroupIdx,
+//         readState.childrenStates[DictionaryChunk::DATA_COLUMN_CHILD_READ_STATE_IDX]);
+//     offsetColumn->initChunkState(transaction, nodeGroupIdx,
+//         readState.childrenStates[DictionaryChunk::OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
+// }
 
 void DictionaryColumn::append(ChunkState& state, const DictionaryChunk& dictChunk) {
     KU_ASSERT(dictChunk.sanityCheck());
@@ -120,21 +117,6 @@ string_index_t DictionaryColumn::append(ChunkState& state, std::string_view val)
     return offsetColumn->appendValues(
         state.childrenStates[DictionaryChunk::OFFSET_COLUMN_CHILD_READ_STATE_IDX],
         reinterpret_cast<const uint8_t*>(&startOffset), nullptr /*nullChunkData*/, 1 /*numValues*/);
-}
-
-void DictionaryColumn::prepareCommit() {
-    dataColumn->prepareCommit();
-    offsetColumn->prepareCommit();
-}
-
-void DictionaryColumn::checkpointInMemory() {
-    dataColumn->checkpointInMemory();
-    offsetColumn->checkpointInMemory();
-}
-
-void DictionaryColumn::rollbackInMemory() {
-    dataColumn->rollbackInMemory();
-    offsetColumn->rollbackInMemory();
 }
 
 void DictionaryColumn::scanOffsets(Transaction* transaction, const ChunkState& state,

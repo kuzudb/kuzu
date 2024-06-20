@@ -3,6 +3,8 @@
 #include "binder/ddl/bound_create_sequence_info.h"
 #include "common/exception/catalog.h"
 #include "common/exception/overflow.h"
+#include "common/serializer/deserializer.h"
+#include "common/vector/value_vector.h"
 #include "function/arithmetic/add.h"
 
 using namespace kuzu::binder;

@@ -4,6 +4,7 @@
 #include "common/data_chunk/sel_vector.h"
 #include "processor/execution_context.h"
 #include "storage/store/node_table.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -38,10 +39,11 @@ static partition_idx_t getNumPartitions(offset_t maxOffset) {
 
 void PartitionerSharedState::initialize(std::vector<std::unique_ptr<PartitioningInfo>>& infos) {
     maxNodeOffsets.resize(2);
+    // TODO(Guodong): FIX-ME. Should pass in current transaction instead of dummy one.
     maxNodeOffsets[0] =
-        srcNodeTable->getMaxNodeOffset(transaction::Transaction::getDummyWriteTrx().get());
+        srcNodeTable->getNumRows(transaction::Transaction::getDummyWriteTrx().get());
     maxNodeOffsets[1] =
-        dstNodeTable->getMaxNodeOffset(transaction::Transaction::getDummyWriteTrx().get());
+        dstNodeTable->getNumRows(transaction::Transaction::getDummyWriteTrx().get());
     numPartitions.resize(2);
     numPartitions[0] = getNumPartitions(maxNodeOffsets[0]);
     numPartitions[1] = getNumPartitions(maxNodeOffsets[1]);
@@ -76,7 +78,7 @@ void PartitioningBuffer::merge(std::unique_ptr<PartitioningBuffer> localPartitio
     for (auto partitionIdx = 0u; partitionIdx < partitions.size(); partitionIdx++) {
         auto& sharedPartition = partitions[partitionIdx];
         auto& localPartition = localPartitioningState->partitions[partitionIdx];
-        sharedPartition.merge(localPartition);
+        sharedPartition->merge(std::move(localPartition));
     }
 }
 
@@ -127,8 +129,8 @@ void Partitioner::initializePartitioningStates(
         auto partitioningBuffer = std::make_unique<PartitioningBuffer>();
         partitioningBuffer->partitions.reserve(numPartition);
         for (auto i = 0u; i < numPartition; i++) {
-            partitioningBuffer->partitions.emplace_back(ResidencyState::TEMPORARY,
-                infos[partitioningIdx]->columnTypes);
+            partitioningBuffer->partitions.push_back(std::make_unique<ChunkedNodeGroupCollection>(
+                ResidencyState::IN_MEMORY, infos[partitioningIdx]->columnTypes));
         }
         partitioningBuffers[partitioningIdx] = std::move(partitioningBuffer);
     }
@@ -165,7 +167,7 @@ void Partitioner::copyDataToPartitions(partition_idx_t partitioningIdx, DataChun
         auto& partition =
             localState->getPartitioningBuffer(partitioningIdx)->partitions[partitionIdx];
         selVector[0] = posToCopyFrom;
-        partition.append(vectorsToAppend, selVector);
+        partition->append(&transaction::DUMMY_WRITE_TRANSACTION, vectorsToAppend, selVector);
     }
 }
 

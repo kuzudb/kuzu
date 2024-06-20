@@ -83,9 +83,8 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         }
     }
 
-    nodeLocalState->nodeGroup =
-        NodeGroupFactory::createNodeGroup(ColumnDataFormat::REGULAR, nodeInfo->columnTypes,
-            info->compressionEnabled, StorageConstants::NODE_GROUP_SIZE, ResidencyState::TEMPORARY);
+    nodeLocalState->nodeGroup = std::make_unique<ChunkedNodeGroup>(nodeInfo->columnTypes,
+        info->compressionEnabled, StorageConstants::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
     nodeLocalState->columnState = std::move(state);
 }
 
@@ -135,7 +134,7 @@ void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction) {
         ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
     auto numTuplesToAppend = nodeLocalState->columnState->getSelVector().getSelSize();
     while (numAppendedTuples < numTuplesToAppend) {
-        auto numAppendedTuplesInNodeGroup = nodeLocalState->nodeGroup->append(
+        auto numAppendedTuplesInNodeGroup = nodeLocalState->nodeGroup->append(transaction,
             nodeLocalState->columnVectors, nodeLocalState->columnState->getSelVectorUnsafe(),
             numTuplesToAppend - numAppendedTuples);
         numAppendedTuples += numAppendedTuplesInNodeGroup;
@@ -144,7 +143,7 @@ void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction) {
                 nodeLocalState->localIndexBuilder);
         }
         if (numAppendedTuples < numTuplesToAppend) {
-            nodeLocalState->columnState->slice((offset_t)numAppendedTuplesInNodeGroup);
+            nodeLocalState->columnState->slice(numAppendedTuplesInNodeGroup);
         }
     }
     sharedState->incrementNumRows(numAppendedTuples);
@@ -156,9 +155,9 @@ void NodeBatchInsert::clearToIndex(std::unique_ptr<ChunkedNodeGroup>& nodeGroup,
     // TODO(bmwinger): Can probably re-use the chunk and shift the values
     auto oldNodeGroup = std::move(nodeGroup);
     auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
-    nodeGroup = NodeGroupFactory::createNodeGroup(ColumnDataFormat::REGULAR, nodeInfo->columnTypes,
-        info->compressionEnabled, StorageConstants::NODE_GROUP_SIZE, ResidencyState::TEMPORARY);
-    nodeGroup->append(*oldNodeGroup, startIndexInGroup);
+    nodeGroup = std::make_unique<ChunkedNodeGroup>(nodeInfo->columnTypes, info->compressionEnabled,
+        StorageConstants::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
+    nodeGroup->append(&transaction::DUMMY_WRITE_TRANSACTION, *oldNodeGroup, startIndexInGroup);
 }
 
 void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transaction,
@@ -187,20 +186,20 @@ void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transa
         nodeSharedState->sharedNodeGroup = std::move(localNodeGroup);
         return;
     }
-    auto numNodesAppended =
-        nodeSharedState->sharedNodeGroup->append(*localNodeGroup, 0 /* offsetInNodeGroup */);
+    auto numNodesAppended = nodeSharedState->sharedNodeGroup->append(
+        &transaction::DUMMY_WRITE_TRANSACTION, *localNodeGroup, 0 /* offsetInNodeGroup */);
     if (nodeSharedState->sharedNodeGroup->isFullOrOnDisk()) {
         writeAndResetNodeGroup(transaction, nodeSharedState->sharedNodeGroup, indexBuilder);
     }
     if (numNodesAppended < localNodeGroup->getNumRows()) {
-        nodeSharedState->sharedNodeGroup->append(*localNodeGroup, numNodesAppended);
+        nodeSharedState->sharedNodeGroup->append(&transaction::DUMMY_WRITE_TRANSACTION,
+            *localNodeGroup, numNodesAppended);
     }
 }
 
 void NodeBatchInsert::finalize(ExecutionContext* context) {
     auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
-    nodeSharedState->updateNumTuplesForTable();
     if (nodeSharedState->sharedNodeGroup) {
         while (nodeSharedState->sharedNodeGroup->getNumRows() > 0) {
             writeAndResetNodeGroup(context->clientContext->getTx(),

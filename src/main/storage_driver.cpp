@@ -4,6 +4,7 @@
 
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
+#include "main/client_context.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/node_table.h"
@@ -53,26 +54,24 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
 uint64_t StorageDriver::getNumNodes(const std::string& nodeName) {
     clientContext->query("BEGIN TRANSACTION READ ONLY;");
     auto nodeTableID = database->catalog->getTableID(clientContext->getTx(), nodeName);
-    auto nodeStatistics =
-        database->storageManager->getNodesStatisticsAndDeletedIDs()->getNodeStatisticsAndDeletedIDs(
-            clientContext->getTx(), nodeTableID);
-    auto numNodes = nodeStatistics->getNumTuples();
+    auto numRows =
+        database->storageManager->getTable(nodeTableID)->getNumRows(clientContext->getTx());
     clientContext->query("COMMIT");
-    return numNodes;
+    return numRows;
 }
 
 uint64_t StorageDriver::getNumRels(const std::string& relName) {
     clientContext->query("BEGIN TRANSACTION READ ONLY;");
     auto relTableID = database->catalog->getTableID(clientContext->getTx(), relName);
-    auto relStatistics = database->storageManager->getRelsStatistics()->getRelStatistics(relTableID,
-        clientContext->getTx());
-    auto numRels = relStatistics->getNumTuples();
+    auto numRows =
+        database->storageManager->getTable(relTableID)->getNumRows(clientContext->getTx());
     clientContext->query("COMMIT");
-    return numRels;
+    return numRows;
 }
 
 void StorageDriver::scanColumn(Transaction* transaction, Column* column, offset_t* offsets,
     size_t size, uint8_t* result) {
+    // TODO(Guodong): FIX-ME. Rework this.
     auto dataType = column->getDataType();
     if (dataType.getPhysicalType() == PhysicalTypeID::LIST ||
         dataType.getPhysicalType() == PhysicalTypeID::ARRAY) {
@@ -81,10 +80,10 @@ void StorageDriver::scanColumn(Transaction* transaction, Column* column, offset_
             auto nodeOffset = offsets[i];
             auto [nodeGroupIdx, offsetInChunk] =
                 StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
-            ChunkState readState;
-            column->initChunkState(transaction, nodeGroupIdx, readState);
-            column->scan(transaction, readState, offsetInChunk, offsetInChunk + 1, &resultVector,
-                i);
+            // ChunkState readState;
+            // column->initChunkState(transaction, nodeGroupIdx, readState);
+            // column->scan(transaction, readState, offsetInChunk, offsetInChunk + 1, &resultVector,
+            // i);
         }
         auto dataVector = ListVector::getDataVector(&resultVector);
         auto dataVectorSize = ListVector::getDataVectorSize(&resultVector);

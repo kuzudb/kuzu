@@ -26,6 +26,8 @@ class Transaction {
     friend class TransactionManager;
 
 public:
+    static constexpr common::transaction_t DUMMY_TRANSACTION_ID = 0;
+    static constexpr common::transaction_t DUMMY_START_TIMESTAMP = 0;
     static constexpr common::transaction_t START_TRANSACTION_ID =
         static_cast<common::transaction_t>(1) << 63;
 
@@ -39,7 +41,8 @@ public:
     }
 
     constexpr explicit Transaction(TransactionType transactionType) noexcept
-        : type{transactionType}, ID{0}, startTS{0}, commitTS{common::INVALID_TRANSACTION} {
+        : type{transactionType}, ID{DUMMY_TRANSACTION_ID}, startTS{DUMMY_START_TIMESTAMP},
+          commitTS{common::INVALID_TRANSACTION} {
         currentTS = common::Timestamp::getCurrentTimestamp().value;
     }
     constexpr explicit Transaction(TransactionType transactionType, common::transaction_t ID,
@@ -63,10 +66,10 @@ public:
 
     void pushCatalogEntry(catalog::CatalogSet& catalogSet,
         catalog::CatalogEntry& catalogEntry) const;
-    void pushVectorInsertInfo(storage::NodeGroupVersionInfo& versionInfo, common::idx_t vectorIdx,
+    void pushVectorInsertInfo(storage::VersionInfo& versionInfo, common::idx_t vectorIdx,
         storage::VectorVersionInfo& vectorVersionInfo,
         const std::vector<common::row_idx_t>& rowsInVector) const;
-    void pushVectorDeleteInfo(storage::NodeGroupVersionInfo& versionInfo, common::idx_t vectorIdx,
+    void pushVectorDeleteInfo(storage::VersionInfo& versionInfo, common::idx_t vectorIdx,
         storage::VectorVersionInfo& vectorVersionInfo,
         const std::vector<common::row_idx_t>& rowsInVector) const;
     void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::idx_t vectorIdx,

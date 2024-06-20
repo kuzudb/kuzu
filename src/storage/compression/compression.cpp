@@ -16,6 +16,7 @@
 #include "fastpfor/bitpackinghelpers.h"
 #include "storage/compression/sign_extend.h"
 #include "storage/storage_utils.h"
+#include "storage/store/column_chunk_data.h"
 #include <bit>
 
 using namespace kuzu::common;

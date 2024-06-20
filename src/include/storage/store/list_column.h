@@ -44,16 +44,11 @@ struct ListOffsetSizeInfo {
 
 class ListColumn final : public Column {
 public:
-    ListColumn(std::string name, common::LogicalType dataType,
-        const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-        DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, bool enableCompression);
+    ListColumn(std::string name, common::LogicalType dataType, BMFileHandle* dataFH,
+        BufferManager* bufferManager, WAL* wal, bool enableCompression);
 
-    static std::unique_ptr<ColumnChunkData> flushChunkData(ChunkState& state,
-        const ColumnChunkData& chunk, BMFileHandle& dataFH);
-
-    void initChunkState(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, ChunkState& chunkState) override;
+    static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
+        BMFileHandle& dataFH);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
@@ -61,11 +56,6 @@ public:
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
-
-    void setMetadataFromChunk(common::node_group_idx_t nodeGroupIdx,
-        const ColumnChunkData& chunk) override;
-    void setMetadataToChunk(common::node_group_idx_t nodeGroupIdx,
-        ColumnChunkData& chunk) const override;
 
     Column* getDataColumn() const { return dataColumn.get(); }
 
@@ -86,10 +76,6 @@ private:
         const ListOffsetSizeInfo& listOffsetInfoInStorage) const;
     void scanFiltered(transaction::Transaction* transaction, const ChunkState& state,
         common::ValueVector* offsetVector, const ListOffsetSizeInfo& listOffsetInfoInStorage) const;
-
-    void prepareCommit() override;
-    void checkpointInMemory() override;
-    void rollbackInMemory() override;
 
     common::offset_t readOffset(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t offsetInNodeGroup);

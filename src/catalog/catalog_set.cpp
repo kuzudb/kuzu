@@ -6,6 +6,7 @@
 #include "common/assert.h"
 #include "common/exception/catalog.h"
 #include "common/string_format.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

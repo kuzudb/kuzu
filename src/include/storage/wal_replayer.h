@@ -11,6 +11,7 @@ namespace storage {
 
 class StorageManager;
 class BufferManager;
+class BMFileHandle;
 enum class WALReplayMode : uint8_t { COMMIT_CHECKPOINT, ROLLBACK, RECOVERY_CHECKPOINT };
 
 class WALReplayer {

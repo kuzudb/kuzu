@@ -19,35 +19,31 @@ namespace storage {
 using string_index_t = DictionaryChunk::string_index_t;
 using string_offset_t = DictionaryChunk::string_offset_t;
 
-StringColumn::StringColumn(std::string name, LogicalType dataType,
-    const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, DiskArrayCollection& metadataDAC,
-    BufferManager* bufferManager, WAL* wal, Transaction* transaction, bool enableCompression)
-    : Column{name, std::move(dataType), metaDAHeaderInfo, dataFH, metadataDAC, bufferManager, wal,
-          transaction, enableCompression, true /* requireNullColumn */},
-      dictionary{name, metaDAHeaderInfo, dataFH, metadataDAC, bufferManager, wal, transaction,
-          enableCompression} {}
+StringColumn::StringColumn(std::string name, LogicalType dataType, BMFileHandle* dataFH,
+    BufferManager* bufferManager, WAL* wal, bool enableCompression)
+    : Column{name, std::move(dataType), dataFH, bufferManager, wal, enableCompression,
+          true /* requireNullColumn */},
+      dictionary{name, dataFH, bufferManager, wal, enableCompression} {}
 
-std::unique_ptr<ColumnChunkData> StringColumn::flushChunkData(ChunkState& state,
-    const ColumnChunkData& chunkData, BMFileHandle& dataFH) {
-    auto flushedChunkData = flushNonNestedChunkData(state, chunkData, dataFH);
+std::unique_ptr<ColumnChunkData> StringColumn::flushChunkData(const ColumnChunkData& chunkData,
+    BMFileHandle& dataFH) {
+    auto flushedChunkData = flushNonNestedChunkData(chunkData, dataFH);
     auto& flushedStringData = flushedChunkData->cast<StringChunkData>();
 
     auto& stringChunk = chunkData.cast<StringChunkData>();
     auto& dictChunk = stringChunk.getDictionaryChunk();
-    flushedStringData.getDictionaryChunk().setOffsetChunk(Column::flushChunkData(
-        state.childrenStates[DictionaryChunk::OFFSET_COLUMN_CHILD_READ_STATE_IDX],
-        *dictChunk.getOffsetChunk(), dataFH));
-    flushedStringData.getDictionaryChunk().setStringDataChunk(Column::flushChunkData(
-        state.childrenStates[DictionaryChunk::DATA_COLUMN_CHILD_READ_STATE_IDX],
-        *dictChunk.getStringDataChunk(), dataFH));
+    flushedStringData.getDictionaryChunk().setOffsetChunk(
+        Column::flushChunkData(*dictChunk.getOffsetChunk(), dataFH));
+    flushedStringData.getDictionaryChunk().setStringDataChunk(
+        Column::flushChunkData(*dictChunk.getStringDataChunk(), dataFH));
     return flushedChunkData;
 }
 
-void StringColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    ChunkState& state) {
-    Column::initChunkState(transaction, nodeGroupIdx, state);
-    dictionary.initChunkState(transaction, nodeGroupIdx, state);
-}
+// void StringColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+// ChunkState& state) {
+// Column::initChunkState(transaction, nodeGroupIdx, state);
+// dictionary.initChunkState(transaction, nodeGroupIdx, state);
+// }
 
 void StringColumn::scan(Transaction* transaction, const ChunkState& state,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
@@ -200,21 +196,21 @@ bool StringColumn::canCommitInPlace(const ChunkState& state,
     const ChunkDataCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
     const ChunkDataCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo) {
     auto strLenToAdd = 0u;
-    for (auto& [_, rowIdx] : updateInfo) {
-        auto [chunkIdx, offsetInLocalChunk] =
-            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-        auto& localUpdateChunk = localUpdateChunks[chunkIdx]->cast<StringChunkData>();
-        strLenToAdd += localUpdateChunk.getStringLength(offsetInLocalChunk);
-    }
+    // for (auto& [_, rowIdx] : updateInfo) {
+    //     auto [chunkIdx, offsetInLocalChunk] =
+    //         LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+    //     auto& localUpdateChunk = localUpdateChunks[chunkIdx]->cast<StringChunkData>();
+    //     strLenToAdd += localUpdateChunk.getStringLength(offsetInLocalChunk);
+    // }
     offset_t maxOffset = 0u;
     for (auto& [offset, rowIdx] : insertInfo) {
         if (offset > maxOffset) {
             maxOffset = offset;
         }
-        auto [chunkIdx, offsetInLocalChunk] =
-            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-        auto& localInsertChunk = localInsertChunks[chunkIdx]->cast<StringChunkData>();
-        strLenToAdd += localInsertChunk.getStringLength(offsetInLocalChunk);
+        // auto [chunkIdx, offsetInLocalChunk] =
+            // LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+        // auto& localInsertChunk = localInsertChunks[chunkIdx]->cast<StringChunkData>();
+        // strLenToAdd += localInsertChunk.getStringLength(offsetInLocalChunk);
     }
     auto numStrings = insertInfo.size() + updateInfo.size();
     if (!dictionary.canCommitInPlace(state, numStrings, strLenToAdd)) {
@@ -260,40 +256,6 @@ bool StringColumn::canIndexCommitInPlace(const ChunkState& state, uint64_t numSt
         return false;
     }
     return true;
-}
-
-void StringColumn::setMetadataFromChunk(node_group_idx_t nodeGroupIdx,
-    const ColumnChunkData& chunk) {
-    Column::setMetadataFromChunk(nodeGroupIdx, chunk);
-    auto& stringChunk = chunk.cast<StringChunkData>();
-    dictionary.getOffsetColumn()->setMetadataFromChunk(nodeGroupIdx,
-        *stringChunk.getDictionaryChunk().getOffsetChunk());
-    dictionary.getDataColumn()->setMetadataFromChunk(nodeGroupIdx,
-        *stringChunk.getDictionaryChunk().getStringDataChunk());
-}
-
-void StringColumn::setMetadataToChunk(node_group_idx_t nodeGroupIdx, ColumnChunkData& chunk) const {
-    Column::setMetadataToChunk(nodeGroupIdx, chunk);
-    auto& stringChunk = chunk.cast<StringChunkData>();
-    dictionary.getOffsetColumn()->setMetadataToChunk(nodeGroupIdx,
-        *stringChunk.getDictionaryChunk().getOffsetChunk());
-    dictionary.getDataColumn()->setMetadataToChunk(nodeGroupIdx,
-        *stringChunk.getDictionaryChunk().getStringDataChunk());
-}
-
-void StringColumn::prepareCommit() {
-    Column::prepareCommit();
-    dictionary.prepareCommit();
-}
-
-void StringColumn::checkpointInMemory() {
-    Column::checkpointInMemory();
-    dictionary.checkpointInMemory();
-}
-
-void StringColumn::rollbackInMemory() {
-    Column::rollbackInMemory();
-    dictionary.rollbackInMemory();
 }
 
 } // namespace storage

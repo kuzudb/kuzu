@@ -7,8 +7,13 @@ namespace kuzu {
 namespace processor {
 
 void ScanRelTableInfo::initScanState() {
-    localScanState = std::make_unique<RelTableScanState>(table->getTableID(), columnIDs, direction,
-        copyVector(columnPredicates));
+    std::vector<Column*> columns;
+    columns.reserve(columnIDs.size());
+    for (const auto columnID : columnIDs) {
+        columns.push_back(table->getColumn(columnID, direction));
+    }
+    localScanState = std::make_unique<RelTableScanState>(table->getTableID(), columnIDs, columns,
+        direction, copyVector(columnPredicates));
 }
 
 void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {

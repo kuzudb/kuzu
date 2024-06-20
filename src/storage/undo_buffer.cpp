@@ -26,7 +26,7 @@ struct CatalogEntryRecord {
 };
 
 struct VectorVersionRecord {
-    NodeGroupVersionInfo* versionInfo;
+    VersionInfo* versionInfo;
     idx_t vectorIdx;
     VectorVersionInfo* vectorVersionInfo;
     std::vector<row_idx_t> rowsInVector;
@@ -88,20 +88,20 @@ void UndoBuffer::createCatalogEntry(CatalogSet* catalogSet, CatalogEntry* catalo
     *reinterpret_cast<CatalogEntryRecord*>(buffer) = catalogEntryRecord;
 }
 
-void UndoBuffer::createVectorInsertInfo(NodeGroupVersionInfo* versionInfo, const idx_t vectorIdx,
+void UndoBuffer::createVectorInsertInfo(VersionInfo* versionInfo, const idx_t vectorIdx,
     VectorVersionInfo* vectorVersionInfo, const std::vector<row_idx_t>& rowsInVector) {
     createVectorVersionInfo(UndoRecordType::INSERT_INFO, versionInfo, vectorIdx, vectorVersionInfo,
         rowsInVector);
 }
 
-void UndoBuffer::createVectorDeleteInfo(NodeGroupVersionInfo* versionInfo, const idx_t vectorIdx,
+void UndoBuffer::createVectorDeleteInfo(VersionInfo* versionInfo, const idx_t vectorIdx,
     VectorVersionInfo* vectorVersionInfo, const std::vector<row_idx_t>& rowsInVector) {
     createVectorVersionInfo(UndoRecordType::DELETE_INFO, versionInfo, vectorIdx, vectorVersionInfo,
         rowsInVector);
 }
 
 void UndoBuffer::createVectorVersionInfo(const UndoRecordType recordType,
-    NodeGroupVersionInfo* versionInfo, const idx_t vectorIdx, VectorVersionInfo* vectorVersionInfo,
+    VersionInfo* versionInfo, const idx_t vectorIdx, VectorVersionInfo* vectorVersionInfo,
     const std::vector<row_idx_t>& rowsInVector) {
     auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(VectorVersionRecord));
     const UndoRecordHeader recordHeader{recordType, sizeof(VectorVersionRecord)};

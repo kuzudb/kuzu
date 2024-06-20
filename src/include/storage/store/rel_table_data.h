@@ -1,62 +1,45 @@
 #pragma once
 
 #include "common/enums/rel_direction.h"
+#include "csr_node_group_collection.h"
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/table_data.h"
 
 namespace kuzu {
 namespace storage {
 
-class LocalRelNG;
-// TODO: Rename to RelDataScanState.
-struct RelDataReadState final : TableDataScanState {
-    common::node_group_idx_t nodeGroupIdx;
-    common::offset_t numNodes;
-    common::offset_t currentNodeOffset;
-    common::offset_t posInCurrentCSR;
-    std::vector<common::list_entry_t> csrListEntries;
-    // Temp auxiliary data structure to scan the offset of each CSR node in the offset column chunk.
-    ChunkedCSRHeader csrHeaderChunks = ChunkedCSRHeader(false /*enableCompression*/,
-        common::StorageConstants::NODE_GROUP_SIZE, ResidencyState::TEMPORARY);
-
-    bool readFromPersistentStorage;
-    // Following fields are used for local storage.
-    bool readFromLocalStorage;
-    LocalRelNG* localNodeGroup;
-
-    explicit RelDataReadState(const std::vector<common::column_id_t>& columnIDs);
-    DELETE_COPY_DEFAULT_MOVE(RelDataReadState);
-
-    bool hasMoreToRead(const transaction::Transaction* transaction);
-    void populateCSRListEntries();
-    std::pair<common::offset_t, common::offset_t> getStartAndEndOffset();
-
-    bool hasMoreToReadInPersistentStorage() const;
-
-    bool hasMoreToReadFromLocalStorage() const;
-    bool trySwitchToLocalStorage();
-};
+// TODO: Remove this state and also TableDataScanState.
+// struct RelDataReadState final : TableDataScanState {
+//     common::node_group_idx_t nodeGroupIdx;
+//     common::offset_t numNodes;
+//     common::offset_t currentNodeOffset;
+//     common::offset_t posInCurrentCSR;
+//     std::vector<common::list_entry_t> csrListEntries;
+//     // Temp auxiliary data structure to scan the offset of each CSR node in the offset column
+//     chunk. ChunkedCSRHeader csrHeaderChunks = ChunkedCSRHeader(false /*enableCompression*/,
+//         common::StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
+//
+//     bool readFromPersistentStorage;
+//     // Following fields are used for local storage.
+//     bool readFromLocalStorage;
+//     LocalRelNG* localNodeGroup;
+//
+//     explicit RelDataReadState(const std::vector<common::column_id_t>& columnIDs);
+//     DELETE_COPY_DEFAULT_MOVE(RelDataReadState);
+//
+//     bool hasMoreToRead(const transaction::Transaction* transaction);
+//     void populateCSRListEntries();
+//     std::pair<common::offset_t, common::offset_t> getStartAndEndOffset();
+//
+//     bool hasMoreToReadInPersistentStorage() const;
+//
+//     bool hasMoreToReadFromLocalStorage() const;
+//     bool trySwitchToLocalStorage();
+// };
 
 struct CSRHeaderColumns {
     std::unique_ptr<Column> offset;
     std::unique_ptr<Column> length;
-
-    void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        const ChunkedCSRHeader& chunks) const {
-        ChunkState offsetState, lengthState;
-        offset->initChunkState(transaction, nodeGroupIdx, offsetState);
-        length->initChunkState(transaction, nodeGroupIdx, lengthState);
-        offset->scan(transaction, offsetState, &chunks.offset->getData());
-        length->scan(transaction, lengthState, &chunks.length->getData());
-    }
-    void append(const ChunkedCSRHeader& headerChunks, ChunkState& offsetState,
-        ChunkState& lengthState) const {
-        offset->append(&headerChunks.offset->getData(), offsetState);
-        length->append(&headerChunks.length->getData(), lengthState);
-    }
-
-    common::offset_t getNumNodes(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx) const;
 };
 
 // TODO(Guodong): Serialize the info to disk. This should be a config per node group.
@@ -97,7 +80,7 @@ struct PackedCSRRegion {
 };
 
 class RelsStoreStats;
-class RelTableData final : public TableData {
+class RelTableData {
 public:
     struct PersistentState {
         ChunkedCSRHeader header;
@@ -107,12 +90,12 @@ public:
 
         explicit PersistentState(common::offset_t numNodes) {
             header =
-                ChunkedCSRHeader(false /*enableCompression*/, numNodes, ResidencyState::TEMPORARY);
+                ChunkedCSRHeader(false /*enableCompression*/, numNodes, ResidencyState::IN_MEMORY);
         }
     };
 
     struct LocalState {
-        LocalRelNG* localNG;
+        ChunkedNodeGroup* localNG;
         ChunkedCSRHeader header;
         PackedCSRRegion region;
         std::vector<int64_t> sizeChangesPerSegment;
@@ -125,23 +108,27 @@ public:
         common::offset_t rightCSROffset = common::INVALID_OFFSET;
         bool needSliding = false;
 
-        explicit LocalState(LocalRelNG* localNG);
+        explicit LocalState(ChunkedNodeGroup* localNG);
 
         void setRegion(const PackedCSRRegion& region_) { region = region_; }
     };
 
-    RelTableData(BMFileHandle* dataFH, DiskArrayCollection* metadataDAC,
-        BufferManager* bufferManager, WAL* wal, catalog::TableCatalogEntry* tableEntry,
-        RelsStoreStats* relsStoreStats, common::RelDataDirection direction, bool enableCompression);
+    RelTableData(BMFileHandle* dataFH, BufferManager* bufferManager, WAL* wal,
+        const catalog::TableCatalogEntry* tableEntry, common::RelDataDirection direction,
+        bool enableCompression, common::Deserializer* deSer);
 
-    void initializeScanState(transaction::Transaction* transaction,
-        TableScanState& scanState) const override;
-    void scan(transaction::Transaction* transaction, TableDataScanState& readState,
-        common::ValueVector& inNodeIDVector,
-        const std::vector<common::ValueVector*>& outputVectors) override;
-    void lookup(transaction::Transaction* transaction, TableDataScanState& readState,
-        const common::ValueVector& inNodeIDVector,
-        const std::vector<common::ValueVector*>& outputVectors) override;
+    // void initializeScanState(transaction::Transaction* transaction,
+    // TableScanState& scanState) const;
+    // void scan(transaction::Transaction* transaction, TableDataScanState& readState,
+    // common::ValueVector& inNodeIDVector,
+    // const std::vector<common::ValueVector*>& outputVectors);
+    // void lookup(transaction::Transaction* transaction, TableDataScanState& readState,
+    // const common::ValueVector& inNodeIDVector,
+    // const std::vector<common::ValueVector*>& outputVectors);
+
+    // dataVectors consist of boundNodeID, internalID, properties, ...
+    void append(transaction::Transaction* transaction, common::ValueVector* srcVector,
+        std::vector<common::ValueVector*>& dataVectors);
 
     // TODO: Should be removed. This is used by detachDelete for now.
     bool delete_(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
@@ -152,39 +139,45 @@ public:
     bool checkIfNodeHasRels(transaction::Transaction* transaction,
         common::offset_t nodeOffset) const;
     common::offset_t append(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, ChunkedNodeGroup* nodeGroup) override;
+        common::node_group_idx_t nodeGroupIdx, ChunkedNodeGroup* nodeGroup);
 
     Column* getNbrIDColumn() const { return columns[NBR_ID_COLUMN_ID].get(); }
     Column* getCSROffsetColumn() const { return csrHeaderColumns.offset.get(); }
     Column* getCSRLengthColumn() const { return csrHeaderColumns.length.get(); }
+    std::vector<Column*> getColumns() const {
+        std::vector<Column*> columns;
+        columns.reserve(this->columns.size());
+        for (const auto& column : this->columns) {
+            columns.push_back(column.get());
+        }
+        return columns;
+    }
+    CSRNodeGroup& getCSRNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
+        return nodeGroups->getNodeGroup(nodeGroupIdx);
+    }
+
+    common::row_idx_t getNumRows() const { return nodeGroups->getNumRows(); }
 
     bool isNewNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx) const;
 
-    void prepareLocalTableToCommit(transaction::Transaction* transaction,
-        LocalTableData* localTable) override;
+    // void prepareLocalTableToCommit(transaction::Transaction* transaction,
+    // LocalTableData* localTable);
 
     void prepareCommitNodeGroup(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, LocalRelNG* localRelNG);
+        common::node_group_idx_t nodeGroupIdx, ChunkedNodeGroup* localRelNG);
 
-    void prepareCommit() override;
-    void checkpointInMemory() override;
-    void rollbackInMemory() override;
-
-    common::node_group_idx_t getNumCommittedNodeGroups() const override {
-        return columns[NBR_ID_COLUMN_ID]->getNumCommittedNodeGroups();
-    }
-    std::unique_ptr<ChunkedNodeGroup> getCommittedNodeGroup(
-        common::node_group_idx_t) const override {
-        KU_UNREACHABLE;
-    }
+    void serialize(common::Serializer& serializer);
 
 private:
-    static common::offset_t getMaxNumNodesInRegion(const ChunkedCSRHeader& header,
-        const PackedCSRRegion& region, const LocalRelNG* localNG);
+    void initCSRHeaderColumns();
+    void initPropertyColumns(const catalog::TableCatalogEntry* tableEntry);
 
-    void initializeColumnScanStates(transaction::Transaction* transaction,
-        TableScanState& scanState, common::node_group_idx_t nodeGroupIdx) const;
+    static common::offset_t getMaxNumNodesInRegion(const ChunkedCSRHeader& header,
+        const PackedCSRRegion& region, const ChunkedNodeGroup* localNG);
+
+    // void initializeColumnScanStates(transaction::Transaction* transaction,
+    // TableScanState& scanState, common::node_group_idx_t nodeGroupIdx) const;
 
     std::vector<PackedCSRRegion> findRegions(const ChunkedCSRHeader& headerChunks,
         LocalState& localState) const;
@@ -246,8 +239,8 @@ private:
     static std::vector<std::pair<common::offset_t, common::offset_t>> getSlidesForDeletions(
         const PersistentState& persistentState, const LocalState& localState);
 
-    LocalRelNG* getLocalNodeGroup(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx) const;
+    // ChunkedNodeGroup* getLocalNodeGroup(transaction::Transaction* transaction,
+    // common::node_group_idx_t nodeGroupIdx) const;
 
     template<typename T1, typename T2>
     static double divideNoRoundUp(T1 v1, T2 v2) {
@@ -270,10 +263,28 @@ private:
         common::offset_t nodeOffset, common::offset_t relOffset);
 
 private:
+    std::vector<common::LogicalType> getColumnTypes() const {
+        std::vector<common::LogicalType> types;
+        types.reserve(columns.size());
+        for (const auto& column : columns) {
+            types.push_back(column->getDataType());
+        }
+        return types;
+    }
+
+private:
+    BMFileHandle* dataFH;
+    common::table_id_t tableID;
+    std::string tableName;
+    BufferManager* bufferManager;
+    WAL* wal;
+    bool enableCompression;
     PackedCSRInfo packedCSRInfo;
-    CSRHeaderColumns csrHeaderColumns;
     common::RelDataDirection direction;
     common::RelMultiplicity multiplicity;
+    CSRHeaderColumns csrHeaderColumns;
+    std::unique_ptr<CSRNodeGroupCollection> nodeGroups;
+    std::vector<std::unique_ptr<Column>> columns;
 };
 
 } // namespace storage

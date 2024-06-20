@@ -1,5 +1,6 @@
 #include "binder/expression_visitor.h"
 #include "common/enums/join_type.h"
+#include "main/client_context.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 #include "planner/planner.h"

@@ -7,16 +7,14 @@ namespace storage {
 
 class StringColumn final : public Column {
 public:
-    StringColumn(std::string name, common::LogicalType dataType,
-        const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-        DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, bool enableCompression);
+    StringColumn(std::string name, common::LogicalType dataType, BMFileHandle* dataFH,
+        BufferManager* bufferManager, WAL* wal, bool enableCompression);
 
-    static std::unique_ptr<ColumnChunkData> flushChunkData(ChunkState& state,
-        const ColumnChunkData& chunk, BMFileHandle& dataFH);
+    static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
+        BMFileHandle& dataFH);
 
-    void initChunkState(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, ChunkState& chunkState) override;
+    // void initChunkState(transaction::Transaction* transaction,
+    // common::node_group_idx_t nodeGroupIdx, ChunkState& chunkState) override;
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
@@ -32,15 +30,6 @@ public:
 
     void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunkData* data,
         common::offset_t dataOffset, common::length_t numValues) override;
-
-    void setMetadataFromChunk(common::node_group_idx_t nodeGroupIdx,
-        const ColumnChunkData& chunk) override;
-    void setMetadataToChunk(common::node_group_idx_t nodeGroupIdx,
-        ColumnChunkData& chunk) const override;
-
-    void prepareCommit() override;
-    void checkpointInMemory() override;
-    void rollbackInMemory() override;
 
     const DictionaryColumn& getDictionary() const { return dictionary; }
 

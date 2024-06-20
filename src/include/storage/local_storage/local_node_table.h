@@ -21,13 +21,18 @@ public:
     bool update(TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
 
-    common::row_idx_t getNumRows() { return nodeGroups.getNumRows(); }
+    void clear() override { nodeGroups.clear(); }
+
+    common::row_idx_t getNumRows() const { return nodeGroups.getNumRows(); }
     common::node_group_idx_t getNumNodeGroups() { return nodeGroups.getNumNodeGroups(); }
 
-    const NodeGroup& getNodeGroup(common::node_group_idx_t nodeGroupIdx) {
+    NodeGroup& getNodeGroup(common::node_group_idx_t nodeGroupIdx) {
         return nodeGroups.getNodeGroup(nodeGroupIdx);
     }
     const NodeGroupCollection& getNodeGroups() const { return nodeGroups; }
+
+private:
+    void initLocalHashIndex();
 
 private:
     std::unique_ptr<OverflowFile> overflowFile;

@@ -2,6 +2,7 @@
 
 #include "common/exception/runtime.h"
 #include "storage/storage_utils.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 
@@ -67,7 +68,7 @@ bool VectorVersionInfo::isInserted(const transaction_t startTS, const transactio
     return isInsertedWithinSameTransaction || isInsertedByPrevCommittedTransaction;
 }
 
-VectorVersionInfo& NodeGroupVersionInfo::getOrCreateVersionInfo(idx_t vectorIdx) {
+VectorVersionInfo& VersionInfo::getOrCreateVersionInfo(idx_t vectorIdx) {
     if (vectorsInfo.size() <= vectorIdx) {
         vectorsInfo.resize(vectorIdx + 1);
     }
@@ -77,7 +78,7 @@ VectorVersionInfo& NodeGroupVersionInfo::getOrCreateVersionInfo(idx_t vectorIdx)
     return *vectorsInfo[vectorIdx];
 }
 
-const VectorVersionInfo& NodeGroupVersionInfo::getVersionInfo(idx_t vectorIdx) const {
+const VectorVersionInfo& VersionInfo::getVersionInfo(idx_t vectorIdx) const {
     KU_ASSERT(vectorIdx < vectorsInfo.size());
     KU_ASSERT(vectorsInfo[vectorIdx]);
     return *vectorsInfo[vectorIdx];
@@ -93,8 +94,8 @@ void VectorVersionInfo::serialize(Serializer& serializer) const {
     serializer.serializeArray<transaction_t, DEFAULT_VECTOR_CAPACITY>(deletedVersions);
 }
 
-row_idx_t NodeGroupVersionInfo::append(const transaction::Transaction* transaction,
-    const row_idx_t startRow, const row_idx_t numRows) {
+row_idx_t VersionInfo::append(const transaction::Transaction* transaction, const row_idx_t startRow,
+    const row_idx_t numRows) {
     auto [startVectorIdx, startRowIdxInVector] =
         StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
     auto [endVectorIdx, endRowIdxInVector] =
@@ -117,8 +118,7 @@ row_idx_t NodeGroupVersionInfo::append(const transaction::Transaction* transacti
     return numAppended;
 }
 
-bool NodeGroupVersionInfo::delete_(const transaction::Transaction* transaction,
-    const row_idx_t rowIdx) {
+bool VersionInfo::delete_(const transaction::Transaction* transaction, const row_idx_t rowIdx) {
     auto [vectorIdx, rowIdxInVector] =
         StorageUtils::getQuotientRemainder(rowIdx, DEFAULT_VECTOR_CAPACITY);
     auto& vectorVersionInfo = getOrCreateVersionInfo(vectorIdx);
@@ -129,9 +129,8 @@ bool NodeGroupVersionInfo::delete_(const transaction::Transaction* transaction,
     return deleted;
 }
 
-void NodeGroupVersionInfo::getSelVectorToScan(const transaction_t startTS,
-    const transaction_t transactionID, SelectionVector& selVector, const row_idx_t startRow,
-    const row_idx_t numRows) const {
+void VersionInfo::getSelVectorToScan(const transaction_t startTS, const transaction_t transactionID,
+    SelectionVector& selVector, const row_idx_t startRow, const row_idx_t numRows) const {
     auto [startVectorIdx, startRowIdxInVector] =
         StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
     auto [endVectorIdx, endRowIdxInVector] =
@@ -157,12 +156,12 @@ void NodeGroupVersionInfo::getSelVectorToScan(const transaction_t startTS,
     }
 }
 
-void NodeGroupVersionInfo::clearVectorInfo(const idx_t vectorIdx) {
+void VersionInfo::clearVectorInfo(const idx_t vectorIdx) {
     KU_ASSERT(vectorIdx < vectorsInfo.size());
     vectorsInfo[vectorIdx] = nullptr;
 }
 
-bool NodeGroupVersionInfo::hasDeletions() const {
+bool VersionInfo::hasDeletions() const {
     for (auto& vectorInfo : vectorsInfo) {
         if (vectorInfo && vectorInfo->anyDeleted) {
             return true;
@@ -171,7 +170,7 @@ bool NodeGroupVersionInfo::hasDeletions() const {
     return false;
 }
 
-bool NodeGroupVersionInfo::hasInsertions() const {
+bool VersionInfo::hasInsertions() const {
     for (auto& vectorInfo : vectorsInfo) {
         if (vectorInfo && vectorInfo->anyInserted) {
             return true;
@@ -180,7 +179,7 @@ bool NodeGroupVersionInfo::hasInsertions() const {
     return false;
 }
 
-void NodeGroupVersionInfo::serialize(Serializer& serializer) const {
+void VersionInfo::serialize(Serializer& serializer) const {
     serializer.write<uint64_t>(vectorsInfo.size());
     for (auto i = 0u; i < vectorsInfo.size(); i++) {
         auto hasDeletion = vectorsInfo[i] && vectorsInfo[i]->anyDeleted;
@@ -191,10 +190,10 @@ void NodeGroupVersionInfo::serialize(Serializer& serializer) const {
     }
 }
 
-std::unique_ptr<NodeGroupVersionInfo> NodeGroupVersionInfo::deserialize(Deserializer& deSer) {
+std::unique_ptr<VersionInfo> VersionInfo::deserialize(Deserializer& deSer) {
     uint64_t vectorSize;
     deSer.deserializeValue<uint64_t>(vectorSize);
-    auto versionInfo = std::make_unique<NodeGroupVersionInfo>();
+    auto versionInfo = std::make_unique<VersionInfo>();
     for (auto i = 0u; i < vectorSize; i++) {
         bool hasDeletion;
         deSer.deserializeValue<bool>(hasDeletion);

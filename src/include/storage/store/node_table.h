@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/cast.h"
 #include "common/types/types.h"
 #include "storage/index/hash_index.h"
 #include "storage/stats/nodes_store_statistics.h"
@@ -20,17 +19,28 @@ class Transaction;
 namespace storage {
 
 struct NodeTableScanState final : TableScanState {
-    std::vector<ColumnPredicateSet> columnPredicateSets;
-    const NodeGroup* nodeGroup = nullptr;
+    NodeGroup* nodeGroup = nullptr;
+    NodeGroupScanState nodeGroupScanState;
 
-    explicit NodeTableScanState(const common::table_id_t tableID,
-        std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns)
+    // Scan state for un-committed data.
+    // Ideally we shouldn't need columns to scan un-checkpointed but committed data.
+    NodeTableScanState(const common::table_id_t tableID, std::vector<common::column_id_t> columnIDs)
+        : TableScanState{tableID, std::move(columnIDs), {}} {}
+
+    NodeTableScanState(const common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
+        std::vector<Column*> columns)
         : TableScanState{tableID, std::move(columnIDs), std::move(columns),
               std::vector<ColumnPredicateSet>{}} {}
     NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
         std::vector<Column*> columns, std::vector<ColumnPredicateSet> columnPredicateSets)
         : TableScanState{tableID, std::move(columnIDs), std::move(columns),
               std::move(columnPredicateSets)} {}
+
+    void resetState() override {
+        TableScanState::resetState();
+        nodeGroup = nullptr;
+        nodeGroupScanState.resetState();
+    }
 };
 
 struct NodeTableInsertState final : TableInsertState {
@@ -66,7 +76,7 @@ struct NodeTableDeleteState final : TableDeleteState {
 class StorageManager;
 class NodeTable final : public Table {
 public:
-    static std::vector<common::LogicalType> getTableColumnTypes(const NodeTable& table) {
+    static std::vector<common::LogicalType> getNodeTableColumnTypes(const NodeTable& table) {
         std::vector<common::LogicalType> types;
         for (auto i = 0u; i < table.getNumColumns(); i++) {
             types.push_back(table.getColumn(i).getDataType());
@@ -86,15 +96,12 @@ public:
         const catalog::NodeTableCatalogEntry* nodeTableEntry, bool readOnly,
         common::VirtualFileSystem* vfs, main::ClientContext* context);
 
-    common::offset_t getMaxNodeOffset(transaction::Transaction* transaction) const {
-        const auto nodesStats =
-            common::ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(
-                tablesStatistics);
-        return nodesStats->getMaxNodeOffset(transaction, tableID);
+    common::row_idx_t getNumRows(transaction::Transaction* transaction) override {
+        // TODO(Guodong): FIX-ME. Implement this.
     }
 
     void initializeScanState(transaction::Transaction* transaction,
-        TableScanState& scanState) const override;
+        TableScanState& scanState) override;
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
     void lookup(transaction::Transaction* transaction, TableScanState& scanState) const;
@@ -152,12 +159,9 @@ private:
 
     void checkpointInMemory() override;
 
-    void serialize(common::Serializer& serializer) const;
+    void serialize(common::Serializer& serializer) const override;
 
 private:
-    bool enableCompression;
-    BMFileHandle* dataFH;
-    DiskArrayCollection* metadataDAC;
     std::vector<std::unique_ptr<Column>> columns;
     std::unique_ptr<NodeGroupCollection> nodeGroups;
     common::column_id_t pkColumnID;

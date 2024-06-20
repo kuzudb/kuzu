@@ -1,5 +1,6 @@
 #include "postgres_extension.h"
 
+#include "main/client_context.h"
 #include "main/database.h"
 #include "postgres_storage.h"
 

@@ -20,10 +20,7 @@ namespace storage {
 NodeTable::NodeTable(StorageManager* storageManager, const NodeTableCatalogEntry* nodeTableEntry,
     MemoryManager* memoryManager, VirtualFileSystem* vfs, main::ClientContext* context,
     Deserializer* deSer)
-    : Table{nodeTableEntry, storageManager->getNodesStatisticsAndDeletedIDs(), memoryManager,
-          &storageManager->getWAL()},
-      enableCompression{storageManager->compressionEnabled()}, dataFH{storageManager->getDataFH()},
-      metadataDAC{storageManager->getMetadataDAC()},
+    : Table{nodeTableEntry, storageManager, memoryManager},
       pkColumnID{nodeTableEntry->getColumnID(nodeTableEntry->getPrimaryKeyPID())} {
     auto& properties = nodeTableEntry->getPropertiesRef();
     const auto maxColumnID =
@@ -33,16 +30,13 @@ NodeTable::NodeTable(StorageManager* storageManager, const NodeTableCatalogEntry
     columns.resize(maxColumnID + 1);
     for (auto i = 0u; i < properties.size(); i++) {
         auto& property = properties[i];
-        const auto metadataDAHInfo = dynamic_cast<NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
-                                         ->getMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION, tableID, i);
         const auto columnName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT, "");
         columns[property.getColumnID()] = ColumnFactory::createColumn(columnName,
-            *property.getDataType()->copy(), *metadataDAHInfo, dataFH, *metadataDAC, bufferManager,
-            wal, &DUMMY_WRITE_TRANSACTION, enableCompression);
+            *property.getDataType()->copy(), dataFH, bufferManager, wal, enableCompression);
     }
-    nodeGroups = std::make_unique<NodeGroupCollection>(getTableColumnTypes(*this),
-        enableCompression, storageManager->getDataFH(), deSer);
+    nodeGroups = std::make_unique<NodeGroupCollection>(getNodeTableColumnTypes(*this),
+        enableCompression, 0 /*startNodeOffset*/, storageManager->getDataFH(), deSer);
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
         storageManager->isReadOnly(), vfs, context);
 }
@@ -50,14 +44,10 @@ NodeTable::NodeTable(StorageManager* storageManager, const NodeTableCatalogEntry
 std::unique_ptr<NodeTable> NodeTable::loadTable(Deserializer& deSer, const Catalog& catalog,
     StorageManager* storageManager, MemoryManager* memoryManager, VirtualFileSystem* vfs,
     main::ClientContext* context) {
-    TableType tableType;
     table_id_t tableID;
     std::string tableName;
-    deSer.deserializeValue<TableType>(tableType);
     deSer.deserializeValue<table_id_t>(tableID);
     deSer.deserializeValue<std::string>(tableName);
-    // TODO(Guodong): We should move this to table.h once we reowrk RelTable too.
-    KU_ASSERT(tableType == TableType::NODE);
     auto catalogEntry = catalog.getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID)
                             ->ptrCast<NodeTableCatalogEntry>();
     KU_ASSERT(catalogEntry->getName() == tableName);
@@ -74,24 +64,25 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
         context);
 }
 
-void NodeTable::initializeScanState(Transaction* transaction, TableScanState& scanState) const {
+void NodeTable::initializeScanState(Transaction* transaction, TableScanState& scanState) {
     auto& nodeScanState = scanState.cast<NodeTableScanState>();
     switch (nodeScanState.source) {
     case TableScanSource::COMMITTED: {
-        nodeScanState.nodeGroup = &nodeGroups->getNodeGroup(scanState.nodeGroupIdx);
+        nodeScanState.nodeGroup = &nodeGroups->getNodeGroup(nodeScanState.nodeGroupIdx);
     } break;
     case TableScanSource::UNCOMMITTED: {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL);
         KU_ASSERT(localTable);
         auto& localNodeTable = localTable->cast<LocalNodeTable>();
-        nodeScanState.nodeGroup = &localNodeTable.getNodeGroup(scanState.nodeGroupIdx);
+        nodeScanState.nodeGroup = &localNodeTable.getNodeGroup(nodeScanState.nodeGroupIdx);
     } break;
     default: {
         // DO NOTHING.
     }
     }
-    nodeScanState.nodeGroup->initializeScanState(transaction, scanState);
+    nodeScanState.nodeGroup->initializeScanState(transaction, nodeScanState,
+        nodeScanState.nodeGroupScanState);
 }
 
 bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState) {
@@ -99,14 +90,16 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
               scanState.columns.size() == scanState.outputVectors.size());
     for (const auto& outputVector : scanState.outputVectors) {
         (void)outputVector;
-        KU_ASSERT(outputVector->state == scanState.nodeIDVector->state);
+        KU_ASSERT(outputVector->state == scanState.IDVector->state);
     }
-    return scanState.cast<NodeTableScanState>().nodeGroup->scan(transaction, scanState);
+    return scanState.cast<NodeTableScanState>().nodeGroup->scan(transaction, scanState,
+        scanState.cast<NodeTableScanState>().nodeGroupScanState);
 }
 
 void NodeTable::lookup(Transaction* transaction, TableScanState& scanState) const {
-    KU_ASSERT(scanState.nodeIDVector->state->getSelVector().getSelSize() == 1);
-    scanState.constCast<NodeTableScanState>().nodeGroup->lookup(transaction, scanState);
+    KU_ASSERT(scanState.IDVector->state->getSelVector().getSelSize() == 1);
+    scanState.constCast<NodeTableScanState>().nodeGroup->lookup(transaction, scanState,
+        scanState.cast<NodeTableScanState>().nodeGroupScanState);
 }
 
 offset_t NodeTable::validateUniquenessConstraint(Transaction* transaction,
@@ -122,8 +115,7 @@ offset_t NodeTable::validateUniquenessConstraint(Transaction* transaction,
 }
 
 void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) {
-    const auto& nodeInsertState =
-        ku_dynamic_cast<TableInsertState&, NodeTableInsertState&>(insertState);
+    const auto& nodeInsertState = insertState.cast<NodeTableInsertState>();
     KU_ASSERT(nodeInsertState.propertyVectors[0]->state->getSelVector().getSelSize() == 1);
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
@@ -177,19 +169,15 @@ void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     }
 }
 
+// TODO(FIX-ME): Rework this.
 void NodeTable::addColumn(Transaction* transaction, const Property& property,
     ValueVector* defaultValueVector) {
-    const auto nodesStats =
-        ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics);
-    nodesStats->addMetadataDAHInfo(tableID, *property.getDataType());
     const auto colName =
         StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT, "");
-    const auto metadataDAHInfo =
-        nodesStats->getMetadataDAHInfo(transaction, tableID, columns.size());
-    auto column = ColumnFactory::createColumn(colName, *property.getDataType()->copy(),
-        *metadataDAHInfo, dataFH, *metadataDAC, bufferManager, wal, transaction, enableCompression);
-    column->populateWithDefaultVal(transaction, getColumn(pkColumnID).getMetadataDA(),
-        defaultValueVector);
+    auto column = ColumnFactory::createColumn(colName, *property.getDataType()->copy(), dataFH,
+        bufferManager, wal, enableCompression);
+    // column->populateWithDefaultVal(transaction, getColumn(pkColumnID).getMetadataDA(),
+    // defaultValueVector);
     columns.push_back(std::move(column));
     // TODO(Guodong): addColumn is not going through localStorage design for now. So it needs to
     // add tableID into the wal's updated table set separately, as it won't trigger
@@ -199,7 +187,7 @@ void NodeTable::addColumn(Transaction* transaction, const Property& property,
 
 std::pair<offset_t, offset_t> NodeTable::appendPartially(Transaction* transaction,
     ChunkedNodeGroup& chunkedGroup) const {
-    return nodeGroups->appendPartially(transaction, chunkedGroup);
+    return nodeGroups->appendToLastNodeGroup(transaction, chunkedGroup);
 }
 
 void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
@@ -209,38 +197,30 @@ void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) 
     for (auto i = 0u; i < columns.size(); i++) {
         columnIDs.push_back(i);
     }
-    std::vector<Column*> columnsToScan;
-    for (const auto columnID : columnIDs) {
-        columnsToScan.push_back(&getColumn(columnID));
-    }
-    const auto dataChunkState = std::make_shared<DataChunkState>();
+    auto types = getNodeTableColumnTypes(*this);
+    const auto dataChunk = constructDataChunk(types);
     ValueVector nodeIDVector(*LogicalType::INTERNAL_ID());
-    nodeIDVector.setState(dataChunkState);
-    std::vector<std::unique_ptr<ValueVector>> vectors;
-    for (auto i = 0u; i < columns.size(); i++) {
-        vectors.push_back(std::make_unique<ValueVector>(getColumn(i).getDataType(), memoryManager));
-    }
-    for (auto i = 0u; i < columns.size(); i++) {
-        vectors[i]->setState(dataChunkState);
-    }
-    std::vector<ValueVector*> outputVectors;
-    for (auto& vector : vectors) {
-        outputVectors.push_back(vector.get());
-    }
+    nodeIDVector.setState(dataChunk->state);
     node_group_idx_t nodeGroupToScan = 0u;
     const auto numNodeGroupsToScan = localNodeTable.getNumNodeGroups();
-    const auto scanState = std::make_unique<NodeTableScanState>(tableID, columnIDs, columnsToScan);
-    scanState->nodeIDVector = &nodeIDVector;
-    scanState->outputVectors = outputVectors;
+    const auto scanState = std::make_unique<NodeTableScanState>(tableID, columnIDs);
+    scanState->IDVector = &nodeIDVector;
+    for (auto& vector : dataChunk->valueVectors) {
+        scanState->outputVectors.push_back(vector.get());
+    }
     scanState->source = TableScanSource::UNCOMMITTED;
     while (nodeGroupToScan < numNodeGroupsToScan) {
+        // We need to scan from local storage here because some tuples in local node groups might
+        // have been deleted.
         scanState->nodeGroup = &localNodeTable.getNodeGroup(nodeGroupToScan);
-        scanState->nodeGroup->initializeScanState(transaction, *scanState);
-        while (scanState->nodeGroup->scan(transaction, *scanState)) {
-            const auto numRowsScanned = scanState->nodeIDVector->state->getSelVector().getSelSize();
+        scanState->nodeGroup->initializeScanState(transaction, *scanState,
+            scanState->nodeGroupScanState);
+        while (scanState->nodeGroup->scan(transaction, *scanState, scanState->nodeGroupScanState)) {
+            const auto numRowsScanned = scanState->IDVector->state->getSelVector().getSelSize();
             for (auto i = 0u; i < numRowsScanned; i++) {
-                const auto pos = nodeIDVector.state->getSelVector().getSelectedPositions()[i];
-                scanState->nodeIDVector->setValue(pos, nodeID_t{startNodeOffset + i, tableID});
+                const auto pos =
+                    scanState->IDVector->state->getSelVector().getSelectedPositions()[i];
+                scanState->IDVector->setValue(pos, nodeID_t{startNodeOffset + i, tableID});
             }
             const auto pkVector = scanState->outputVectors[pkColumnID];
             insertPK(nodeIDVector, *pkVector);
@@ -258,11 +238,9 @@ void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) 
 
 void NodeTable::prepareCommit() {
     pkIndex->prepareCommit();
-    for (const auto& column : columns) {
-        column->prepareCommit();
-    }
 }
 
+// TODO: Remove this.
 void NodeTable::prepareRollback(LocalTable* localTable) {
     pkIndex->prepareRollback();
     localTable->clear();
@@ -282,25 +260,15 @@ void NodeTable::checkpoint(Serializer& ser) {
 }
 
 void NodeTable::serialize(Serializer& serializer) const {
-    // Serialize tableType, tableID and name.
-    serializer.write<TableType>(tableType);
-    serializer.write<table_id_t>(tableID);
-    serializer.write<std::string>(tableName);
-    // Serialize node groups.
+    Table::serialize(serializer);
     nodeGroups->serialize(serializer);
 }
 
 void NodeTable::checkpointInMemory() {
-    for (const auto& column : columns) {
-        column->checkpointInMemory();
-    }
     pkIndex->checkpointInMemory();
 }
 
 void NodeTable::rollbackInMemory() {
-    for (const auto& column : columns) {
-        column->rollbackInMemory();
-    }
     pkIndex->rollbackInMemory();
 }
 

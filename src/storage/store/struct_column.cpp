@@ -10,31 +10,28 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-StructColumn::StructColumn(std::string name, LogicalType dataType,
-    const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, DiskArrayCollection& metadataDAC,
-    BufferManager* bufferManager, WAL* wal, Transaction* transaction, bool enableCompression)
-    : Column{name, std::move(dataType), metaDAHeaderInfo, dataFH, metadataDAC, bufferManager, wal,
-          transaction, enableCompression, true /* requireNullColumn */} {
+StructColumn::StructColumn(std::string name, LogicalType dataType, BMFileHandle* dataFH,
+    BufferManager* bufferManager, WAL* wal, bool enableCompression)
+    : Column{name, std::move(dataType), dataFH, bufferManager, wal, enableCompression,
+          true /* requireNullColumn */} {
     auto fieldTypes = StructType::getFieldTypes(this->dataType);
-    KU_ASSERT(metaDAHeaderInfo.childrenInfos.size() == fieldTypes.size());
+    // KU_ASSERT(metaDAHeaderInfo.childrenInfos.size() == fieldTypes.size());
     childColumns.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
         auto childColName = StorageUtils::getColumnName(name,
             StorageUtils::ColumnType::STRUCT_CHILD, std::to_string(i));
-        childColumns[i] = ColumnFactory::createColumn(childColName, *fieldTypes[i].copy(),
-            *metaDAHeaderInfo.childrenInfos[i], dataFH, metadataDAC, bufferManager, wal,
-            transaction, enableCompression);
+        childColumns[i] = ColumnFactory::createColumn(childColName, *fieldTypes[i].copy(), dataFH,
+            bufferManager, wal, enableCompression);
     }
 }
 
-std::unique_ptr<ColumnChunkData> StructColumn::flushChunkData(ChunkState& state,
-    const ColumnChunkData& chunk, BMFileHandle& dataFH) {
-    auto flushedChunk = flushNonNestedChunkData(state, chunk, dataFH);
+std::unique_ptr<ColumnChunkData> StructColumn::flushChunkData(const ColumnChunkData& chunk,
+    BMFileHandle& dataFH) {
+    auto flushedChunk = flushNonNestedChunkData(chunk, dataFH);
     auto& structChunk = chunk.cast<StructChunkData>();
     auto& flushedStructChunk = flushedChunk->cast<StructChunkData>();
     for (auto i = 0u; i < structChunk.getNumChildren(); i++) {
-        auto flushedChildChunk =
-            Column::flushChunkData(state.childrenStates[i], structChunk.getChild(i), dataFH);
+        auto flushedChildChunk = Column::flushChunkData(structChunk.getChild(i), dataFH);
         flushedStructChunk.setChild(i, std::move(flushedChildChunk));
     }
     return flushedChunk;
@@ -56,14 +53,14 @@ void StructColumn::scan(Transaction* transaction, const ChunkState& state,
     }
 }
 
-void StructColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    ChunkState& readState) {
-    Column::initChunkState(transaction, nodeGroupIdx, readState);
-    readState.childrenStates.resize(childColumns.size());
-    for (auto i = 0u; i < childColumns.size(); i++) {
-        childColumns[i]->initChunkState(transaction, nodeGroupIdx, readState.childrenStates[i]);
-    }
-}
+// void StructColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+// ChunkState& readState) {
+// Column::initChunkState(transaction, nodeGroupIdx, readState);
+// readState.childrenStates.resize(childColumns.size());
+// for (auto i = 0u; i < childColumns.size(); i++) {
+// childColumns[i]->initChunkState(transaction, nodeGroupIdx, readState.childrenStates[i]);
+// }
+// }
 
 void StructColumn::scan(Transaction* transaction, const ChunkState& state,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
@@ -131,44 +128,6 @@ void StructColumn::append(ColumnChunkData* columnChunk, ChunkState& state) {
     }
 }
 
-void StructColumn::setMetadataFromChunk(node_group_idx_t nodeGroupIdx,
-    const ColumnChunkData& chunk) {
-    Column::setMetadataFromChunk(nodeGroupIdx, chunk);
-    auto& structChunk = chunk.cast<StructChunkData>();
-    for (auto i = 0u; i < childColumns.size(); i++) {
-        childColumns[i]->setMetadataFromChunk(nodeGroupIdx, structChunk.getChild(i));
-    }
-}
-
-void StructColumn::setMetadataToChunk(node_group_idx_t nodeGroupIdx, ColumnChunkData& chunk) const {
-    Column::setMetadataToChunk(nodeGroupIdx, chunk);
-    auto& structChunk = chunk.cast<StructChunkData>();
-    for (auto i = 0u; i < childColumns.size(); i++) {
-        childColumns[i]->setMetadataToChunk(nodeGroupIdx, *structChunk.getChild(i));
-    }
-}
-
-void StructColumn::checkpointInMemory() {
-    Column::checkpointInMemory();
-    for (const auto& childColumn : childColumns) {
-        childColumn->checkpointInMemory();
-    }
-}
-
-void StructColumn::rollbackInMemory() {
-    Column::rollbackInMemory();
-    for (const auto& childColumn : childColumns) {
-        childColumn->rollbackInMemory();
-    }
-}
-
-void StructColumn::prepareCommit() {
-    Column::prepareCommit();
-    for (const auto& childColumn : childColumns) {
-        childColumn->prepareCommit();
-    }
-}
-
 void StructColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkState& state,
     const ChunkDataCollection& localInsertChunk, const offset_to_row_idx_t& insertInfo,
     const ChunkDataCollection& localUpdateChunk, const offset_to_row_idx_t& updateInfo,
@@ -178,10 +137,10 @@ void StructColumn::prepareCommitForExistingChunk(Transaction* transaction, Chunk
     nullColumn->prepareCommitForExistingChunk(transaction, *state.nullState,
         getNullChunkCollection(localInsertChunk), insertInfo,
         getNullChunkCollection(localUpdateChunk), updateInfo, deleteInfo);
-    if (state.metadata.numValues != state.nullState->metadata.numValues) {
-        state.metadata.numValues = state.nullState->metadata.numValues;
-        metadataDA->update(state.nodeGroupIdx, state.metadata);
-    }
+    // if (state.metadata.numValues != state.nullState->metadata.numValues) {
+    // state.metadata.numValues = state.nullState->metadata.numValues;
+    // metadataDA->update(state.nodeGroupIdx, state.metadata);
+    // }
     // Update each child column separately
     for (auto i = 0u; i < childColumns.size(); i++) {
         childColumns[i]->prepareCommitForExistingChunk(transaction, state.childrenStates[i],
@@ -197,10 +156,10 @@ void StructColumn::prepareCommitForExistingChunk(Transaction* transaction, Chunk
     // column.
     nullColumn->prepareCommitForExistingChunk(transaction, *state.nullState, dstOffsets,
         chunk->getNullData(), srcOffset);
-    if (state.metadata.numValues != state.nullState->metadata.numValues) {
-        state.metadata.numValues = state.nullState->metadata.numValues;
-        metadataDA->update(state.nodeGroupIdx, state.metadata);
-    }
+    // if (state.metadata.numValues != state.nullState->metadata.numValues) {
+    // state.metadata.numValues = state.nullState->metadata.numValues;
+    // metadataDA->update(state.nodeGroupIdx, state.metadata);
+    // }
     // Update each child column separately
     for (auto i = 0u; i < childColumns.size(); i++) {
         const auto childChunk = chunk->cast<StructChunkData>().getChild(i);

@@ -1,6 +1,7 @@
 #include "planner/planner.h"
 
 #include "binder/bound_explain.h"
+#include "main/client_context.h"
 #include "storage/storage_manager.h"
 
 using namespace kuzu::binder;
@@ -12,9 +13,7 @@ namespace kuzu {
 namespace planner {
 
 Planner::Planner(main::ClientContext* clientContext) : clientContext{clientContext} {
-    auto nStats = clientContext->getStorageManager()->getNodesStatisticsAndDeletedIDs();
-    auto rStats = clientContext->getStorageManager()->getRelsStatistics();
-    cardinalityEstimator = CardinalityEstimator(clientContext, nStats, rStats);
+    cardinalityEstimator = CardinalityEstimator(clientContext);
     context = JoinOrderEnumeratorContext();
 }
 

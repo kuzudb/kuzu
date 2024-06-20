@@ -89,11 +89,11 @@ public:
     }
 
     inline void init(transaction::Transaction* trx) override {
-        auto maxNodeOffset = nodeTable->getMaxNodeOffset(trx);
+        auto maxNodeOffset = nodeTable->getNumRows(trx);
         if (maxNodeOffset == common::INVALID_OFFSET) {
             return;
         }
-        offsetMask->init(nodeTable->getMaxNodeOffset(trx) + 1);
+        offsetMask->init(nodeTable->getNumRows(trx) + 1);
     }
 
     inline void incrementMaskValue(common::offset_t nodeOffset, uint8_t currentMaskValue) override {
@@ -119,7 +119,7 @@ public:
     }
 
     inline void init(transaction::Transaction* trx) override {
-        auto maxNodeOffset = nodeTable->getMaxNodeOffset(trx);
+        auto maxNodeOffset = nodeTable->getNumRows(trx);
         if (maxNodeOffset == common::INVALID_OFFSET) {
             return;
         }

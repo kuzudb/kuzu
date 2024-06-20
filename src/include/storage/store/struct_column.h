@@ -7,16 +7,14 @@ namespace storage {
 
 class StructColumn final : public Column {
 public:
-    StructColumn(std::string name, common::LogicalType dataType,
-        const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-        DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, bool enableCompression);
+    StructColumn(std::string name, common::LogicalType dataType, BMFileHandle* dataFH,
+        BufferManager* bufferManager, WAL* wal, bool enableCompression);
 
-    static std::unique_ptr<ColumnChunkData> flushChunkData(ChunkState& state,
-        const ColumnChunkData& chunk, BMFileHandle& dataFH);
+    static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
+        BMFileHandle& dataFH);
 
-    void initChunkState(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, ChunkState& chunkState) override;
+    // void initChunkState(transaction::Transaction* transaction,
+    // common::node_group_idx_t nodeGroupIdx, ChunkState& chunkState) override;
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
@@ -25,10 +23,6 @@ public:
         common::ValueVector* resultVector, uint64_t offsetInVector) override;
 
     void append(ColumnChunkData* columnChunk, ChunkState& state) override;
-
-    void checkpointInMemory() override;
-    void rollbackInMemory() override;
-    void prepareCommit() override;
 
     Column* getChild(common::idx_t childIdx) const {
         KU_ASSERT(childIdx < childColumns.size());
@@ -46,11 +40,6 @@ public:
     void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
         const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
         common::offset_t startSrcOffset) override;
-
-    void setMetadataFromChunk(common::node_group_idx_t nodeGroupIdx,
-        const ColumnChunkData& chunk) override;
-    void setMetadataToChunk(common::node_group_idx_t nodeGroupIdx,
-        ColumnChunkData& chunk) const override;
 
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,

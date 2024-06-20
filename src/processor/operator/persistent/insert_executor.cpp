@@ -83,7 +83,7 @@ bool NodeInsertExecutor::checkConfict(Transaction* transaction) const {
 }
 
 // TODO(Guodong/Xiyang): We should rework in the front-end to reference the column vector directly.
-void NodeInsertExecutor::writeResult() {
+void NodeInsertExecutor::writeResult() const {
     for (auto i = 0u; i < columnVectors.size(); ++i) {
         auto columnVector = columnVectors[i];
         auto dataVector = columnDataVectors[i];
@@ -98,9 +98,8 @@ void NodeInsertExecutor::writeResult() {
 }
 
 RelInsertExecutor::RelInsertExecutor(const RelInsertExecutor& other)
-    : relsStatistics{other.relsStatistics}, table{other.table}, srcNodePos{other.srcNodePos},
-      dstNodePos{other.dstNodePos}, columnVectorsPos{other.columnVectorsPos},
-      srcNodeIDVector{nullptr}, dstNodeIDVector{nullptr} {
+    : table{other.table}, srcNodePos{other.srcNodePos}, dstNodePos{other.dstNodePos},
+      columnVectorsPos{other.columnVectorsPos}, srcNodeIDVector{nullptr}, dstNodeIDVector{nullptr} {
     for (auto& evaluator : other.columnDataEvaluators) {
         columnDataEvaluators.push_back(evaluator->clone());
     }
@@ -122,7 +121,7 @@ void RelInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     }
 }
 
-void RelInsertExecutor::insert(transaction::Transaction* tx) {
+void RelInsertExecutor::insert(Transaction* tx) {
     auto srcNodeIDPos = srcNodeIDVector->state->getSelVector()[0];
     auto dstNodeIDPos = dstNodeIDVector->state->getSelVector()[0];
     if (srcNodeIDVector->isNull(srcNodeIDPos) || dstNodeIDVector->isNull(dstNodeIDPos)) {
@@ -137,9 +136,7 @@ void RelInsertExecutor::insert(transaction::Transaction* tx) {
         }
         return;
     }
-    auto offset = relsStatistics->getNextRelOffset(tx, table->getTableID());
-    columnDataVectors[0]->setValue<internalID_t>(0, internalID_t{offset, table->getTableID()});
-    columnDataVectors[0]->setNull(0, false);
+
     for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
         columnDataEvaluators[i]->evaluate();
     }
@@ -149,14 +146,14 @@ void RelInsertExecutor::insert(transaction::Transaction* tx) {
     writeResult();
 }
 
-void RelInsertExecutor::skipInsert() {
+void RelInsertExecutor::skipInsert() const {
     for (auto i = 1u; i < columnDataEvaluators.size(); ++i) {
         columnDataEvaluators[i]->evaluate();
     }
     writeResult();
 }
 
-void RelInsertExecutor::writeResult() {
+void RelInsertExecutor::writeResult() const {
     for (auto i = 0u; i < columnVectors.size(); ++i) {
         auto columnVector = columnVectors[i];
         auto dataVector = columnDataVectors[i];

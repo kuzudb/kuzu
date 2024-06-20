@@ -4,7 +4,6 @@
 #include "common/null_mask.h"
 #include "common/types/types.h"
 #include "storage/compression/compression.h"
-#include "storage/stats/metadata_dah_info.h"
 #include "storage/storage_structure/disk_array.h"
 #include "storage/store/column_chunk_data.h"
 
@@ -12,7 +11,6 @@ namespace kuzu {
 namespace storage {
 
 struct CompressionMetadata;
-class DiskArrayCollection;
 
 using read_values_to_vector_func_t =
     std::function<void(uint8_t* frame, PageCursor& pageCursor, common::ValueVector* resultVector,
@@ -39,31 +37,31 @@ class Column {
     friend class RelTableData;
 
 public:
-    Column(std::string name, common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
-        BMFileHandle* dataFH, DiskArrayCollection& metadataDAC, BufferManager* bufferManager,
-        WAL* wal, transaction::Transaction* transaction, bool enableCompression,
+    Column(std::string name, common::LogicalType dataType, BMFileHandle* dataFH,
+        BufferManager* bufferManager, WAL* wal, bool enableCompression,
         bool requireNullColumn = true);
     virtual ~Column();
 
-    static std::unique_ptr<ColumnChunkData> flushChunkData(ChunkState& state,
-        const ColumnChunkData& chunkData, BMFileHandle& dataFH);
-    static std::unique_ptr<ColumnChunkData> flushNonNestedChunkData(ChunkState& state,
-        const ColumnChunkData& chunk, BMFileHandle& dataFH);
-    static ColumnChunkMetadata flushData(ChunkState& state, const ColumnChunkData& chunkData,
+    static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
         BMFileHandle& dataFH);
+    static std::unique_ptr<ColumnChunkData> flushNonNestedChunkData(const ColumnChunkData& chunk,
+        BMFileHandle& dataFH);
+    static ColumnChunkMetadata flushData(const ColumnChunkData& chunkData, BMFileHandle& dataFH);
 
     // Expose for feature store
     virtual void batchLookup(transaction::Transaction* transaction,
         const common::offset_t* nodeOffsets, size_t size, uint8_t* result);
 
-    virtual void initChunkState(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, ChunkState& state);
+    // virtual void initChunkState(transaction::Transaction* transaction,
+    // common::node_group_idx_t nodeGroupIdx, ChunkState& state);
 
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     virtual void lookup(transaction::Transaction* transaction, ChunkState& state,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
+    virtual void lookupValue(transaction::Transaction* transaction, ChunkState& state,
+        common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector);
 
     // Scan from [startOffsetInGroup, endOffsetInGroup).
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
@@ -79,16 +77,9 @@ public:
 
     common::LogicalType& getDataType() { return dataType; }
     const common::LogicalType& getDataType() const { return dataType; }
-    uint64_t getNumNodeGroups(const transaction::Transaction* transaction) const {
-        return metadataDA->getNumElements(transaction->getType());
-    }
-    uint64_t getNumCommittedNodeGroups() const {
-        return metadataDA->getNumElements(transaction::TransactionType::READ_ONLY);
-    }
 
     Column* getNullColumn() const;
 
-    virtual void prepareCommit();
     void prepareCommitForChunk(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup,
         const ChunkDataCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
@@ -107,21 +98,8 @@ public:
         ChunkState& state, const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
         common::offset_t startSrcOffset);
 
-    virtual void checkpointInMemory();
-    virtual void rollbackInMemory();
-
     void populateWithDefaultVal(transaction::Transaction* transaction,
         DiskArray<ColumnChunkMetadata>* metadataDA, common::ValueVector* defaultValueVector);
-
-    ColumnChunkMetadata getMetadata(common::node_group_idx_t nodeGroupIdx,
-        transaction::TransactionType transaction) const {
-        return metadataDA->get(nodeGroupIdx, transaction);
-    }
-    DiskArray<ColumnChunkMetadata>* getMetadataDA() const { return metadataDA.get(); }
-    virtual void setMetadataFromChunk(common::node_group_idx_t nodeGroupIdx,
-        const ColumnChunkData& chunk);
-    virtual void setMetadataToChunk(common::node_group_idx_t nodeGroupIdx,
-        ColumnChunkData& chunk) const;
 
     std::string getName() const { return name; }
 
@@ -143,8 +121,17 @@ public:
     static void applyLocalChunkToColumnChunk(const ChunkDataCollection& localChunks,
         ColumnChunkData* columnChunk, const offset_to_row_idx_t& info);
 
-    std::unique_ptr<ColumnChunk> checkpointColumnChunk(ChunkState& state,
-        const ColumnChunk& insertChunk, const ColumnChunk& updateChunk);
+    std::unique_ptr<ColumnChunk> checkpointColumnChunk(const ColumnChunk& insertChunk,
+        const ColumnChunk& updateChunk);
+
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<Column&, TARGET&>(*this);
+    }
+    template<class TARGET>
+    const TARGET& cast() const {
+        return common::ku_dynamic_cast<Column&, TARGET&>(*this);
+    }
 
 protected:
     virtual void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
@@ -158,8 +145,6 @@ protected:
         common::ValueVector* resultVector, const ColumnChunkMetadata& chunkMeta);
     virtual void lookupInternal(transaction::Transaction* transaction, ChunkState& state,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
-    virtual void lookupValue(transaction::Transaction* transaction, ChunkState& state,
-        common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector);
 
     void readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& func);
@@ -233,7 +218,6 @@ protected:
     BMFileHandle* dataFH;
     BufferManager* bufferManager;
     WAL* wal;
-    std::unique_ptr<DiskArray<ColumnChunkMetadata>> metadataDA;
     std::unique_ptr<NullColumn> nullColumn;
     read_values_to_vector_func_t readToVectorFunc;
     write_values_from_vector_func_t writeFromVectorFunc;
@@ -245,9 +229,8 @@ protected:
 
 class InternalIDColumn final : public Column {
 public:
-    InternalIDColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo,
-        BMFileHandle* dataFH, DiskArrayCollection& metadataDAC, BufferManager* bufferManager,
-        WAL* wal, transaction::Transaction* transaction, bool enableCompression);
+    InternalIDColumn(std::string name, BMFileHandle* dataFH, BufferManager* bufferManager, WAL* wal,
+        bool enableCompression);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
@@ -283,9 +266,7 @@ private:
 
 struct ColumnFactory {
     static std::unique_ptr<Column> createColumn(std::string name, common::LogicalType dataType,
-        const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-        DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, bool enableCompression);
+        BMFileHandle* dataFH, BufferManager* bufferManager, WAL* wal, bool enableCompression);
 };
 
 } // namespace storage

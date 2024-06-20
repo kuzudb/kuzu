@@ -13,9 +13,8 @@ public:
     // without the possibility of memory errors from reading/writing off the end of a page.
     static_assert(PageUtils::getNumElementsInAPage(1, false /*requireNullColumn*/) % 8 == 0);
 
-    NullColumn(std::string name, common::page_idx_t metaDAHIdx, BMFileHandle* dataFH,
-        DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, bool enableCompression);
+    NullColumn(std::string name, BMFileHandle* dataFH, BufferManager* bufferManager, WAL* wal,
+        bool enableCompression);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
@@ -48,7 +47,7 @@ public:
 private:
     std::unique_ptr<ColumnChunkData> getEmptyChunkForCommit(uint64_t capacity) override {
         return ColumnChunkFactory::createNullChunkData(enableCompression, capacity,
-            ResidencyState::TEMPORARY);
+            ResidencyState::IN_MEMORY);
     }
 };
 

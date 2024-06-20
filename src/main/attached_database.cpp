@@ -1,6 +1,7 @@
 #include "main/attached_database.h"
 
 #include "common/types/types.h"
+#include "main/client_context.h"
 #include "main/db_config.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"

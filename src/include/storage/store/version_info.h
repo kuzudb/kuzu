@@ -48,9 +48,9 @@ private:
         common::row_idx_t rowIdx) const;
 };
 
-class NodeGroupVersionInfo {
+class VersionInfo {
 public:
-    NodeGroupVersionInfo() {}
+    VersionInfo() {}
 
     common::row_idx_t append(const transaction::Transaction* transaction,
         common::row_idx_t startRow, common::row_idx_t numRows);
@@ -66,7 +66,7 @@ public:
     bool hasInsertions() const;
 
     void serialize(common::Serializer& serializer) const;
-    static std::unique_ptr<NodeGroupVersionInfo> deserialize(common::Deserializer& deSer);
+    static std::unique_ptr<VersionInfo> deserialize(common::Deserializer& deSer);
 
 private:
     VectorVersionInfo& getOrCreateVersionInfo(common::idx_t vectorIdx);

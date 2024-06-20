@@ -32,7 +32,7 @@ StructChunkData::StructChunkData(LogicalType dataType, bool enableCompression,
     childChunks.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
         childChunks[i] = ColumnChunkFactory::createColumnChunkData(*fieldTypes[i].copy(),
-            enableCompression, 0, ResidencyState::TEMPORARY);
+            enableCompression, 0, ResidencyState::IN_MEMORY);
     }
 }
 

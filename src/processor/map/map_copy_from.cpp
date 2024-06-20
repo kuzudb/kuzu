@@ -190,7 +190,7 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
     auto scanFile = partitioner->getChild(0)->getChild(0)->ptrCast<TableFunctionCall>();
     auto relTable = storageManager->getTable(relTableEntry->getTableID());
     scanFile->getSharedState()->nextRowIdx =
-        relTable->getNumTuples(&transaction::DUMMY_WRITE_TRANSACTION);
+        relTable->getNumRows(&transaction::DUMMY_WRITE_TRANSACTION);
     // TODO(Xiyang): Move binding of column types to binder.
     std::vector<LogicalType> columnTypes;
     columnTypes.push_back(*LogicalType::INTERNAL_ID()); // NBR_ID COLUMN.

@@ -16,14 +16,14 @@ StringChunkData::StringChunkData(LogicalType dataType, uint64_t capacity, bool e
     : ColumnChunkData{std::move(dataType), capacity, enableCompression, residencyState,
           true /*hasNullData*/},
       dictionaryChunk{std::make_unique<DictionaryChunk>(
-          residencyState == ResidencyState::TEMPORARY ? 0 : capacity, enableCompression,
+          residencyState == ResidencyState::IN_MEMORY ? 0 : capacity, enableCompression,
           residencyState)},
       needFinalize{false} {}
 
 StringChunkData::StringChunkData(bool enableCompression, const ColumnChunkMetadata& metadata)
     : ColumnChunkData{*LogicalType::STRING(), enableCompression, metadata, true /*hasNullData*/},
       dictionaryChunk{
-          std::make_unique<DictionaryChunk>(0, enableCompression, ResidencyState::TEMPORARY)},
+          std::make_unique<DictionaryChunk>(0, enableCompression, ResidencyState::IN_MEMORY)},
       needFinalize{false} {}
 
 void StringChunkData::resetToEmpty() {

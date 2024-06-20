@@ -37,12 +37,6 @@ struct ColumnChunkMetadata {
 // TODO(bmwinger): Hide access to variables and store a modified flag
 // so that we can tell if the value has changed and the metadataDA needs to be updated
 struct ChunkState {
-    explicit ChunkState() = default;
-    ChunkState(ColumnChunkMetadata metadata, uint64_t numValuesPerPage)
-        : column{nullptr}, metadata{std::move(metadata)}, numValuesPerPage{numValuesPerPage} {
-        nullState = std::make_unique<ChunkState>();
-    }
-
     Column* column;
     ColumnChunkMetadata metadata;
     uint64_t numValuesPerPage = UINT64_MAX;
@@ -50,6 +44,23 @@ struct ChunkState {
     std::unique_ptr<ChunkState> nullState;
     // Used for struct/list/string columns.
     std::vector<ChunkState> childrenStates;
+
+    explicit ChunkState() = default;
+    ChunkState(ColumnChunkMetadata metadata, uint64_t numValuesPerPage)
+        : column{nullptr}, metadata{std::move(metadata)}, numValuesPerPage{numValuesPerPage} {
+        nullState = std::make_unique<ChunkState>();
+    }
+
+    void resetState() {
+        numValuesPerPage = UINT64_MAX;
+        nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+        if (nullState) {
+            nullState->resetState();
+        }
+        for (auto& childState : childrenStates) {
+            childState.resetState();
+        }
+    }
 };
 
 class BMFileHandle;

@@ -23,6 +23,7 @@ class NodeTableCatalogEntry;
 class RelTableCatalogEntry;
 class RDFGraphCatalogEntry;
 class Property;
+class Catalog;
 } // namespace catalog
 
 namespace extension {
@@ -41,6 +42,10 @@ class Database;
 namespace function {
 struct TableFunction;
 } // namespace function
+
+namespace transaction {
+class Transaction;
+} // namespace transaction
 
 namespace binder {
 struct PropertyInfo;

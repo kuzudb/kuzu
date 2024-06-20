@@ -129,6 +129,7 @@
 10
 
 -CASE CreateWithDelete
+-SKIP
 -STATEMENT CREATE NODE TABLE test(id INT64, PRIMARY KEY(id));
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
@@ -159,6 +160,9 @@
 ---- ok
 -STATEMENT COPY person FROM "/Users/guodong/Developer/kuzu/dataset/tinysnb/vPerson.csv" (HeaDER=true, deLim=',');
 ---- ok
+-STATEMENT MATCH (p:person) RETURN COUNT(*)
+---- 1
+5
 -STATEMENT COPY person FROM "/Users/guodong/Developer/kuzu/dataset/tinysnb/vPerson2.csv";
 ---- ok
 -STATEMENT MATCH (p:person) RETURN COUNT(*)

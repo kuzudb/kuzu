@@ -1,6 +1,7 @@
 #include "duckdb_extension.h"
 
 #include "duckdb_storage.h"
+#include "main/client_context.h"
 #include "main/database.h"
 
 namespace kuzu {

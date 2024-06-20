@@ -6,6 +6,7 @@
 namespace kuzu {
 namespace storage {
 
+class MemoryManager;
 class ColumnChunk {
 public:
     ColumnChunk(const common::LogicalType& dataType, uint64_t capacity, bool enableCompression,
@@ -17,12 +18,12 @@ public:
     void initializeScanState(ChunkState& state) const;
     void scan(transaction::Transaction* transaction, ChunkState& state, common::ValueVector& nodeID,
         common::ValueVector& output, common::offset_t offsetInChunk, common::length_t length) const;
-    void scanInMemCommitted(ColumnChunkData& output) const;
     template<ResidencyState SCAN_RESIDENCY_STATE>
     void scanCommitted(transaction::Transaction* transaction, ChunkState& chunkState,
         ColumnChunk& output) const;
-    void lookup(transaction::Transaction* transaction, common::offset_t offsetInChunk,
-        common::ValueVector& output, common::sel_t posInOutputVector) const;
+    void lookup(transaction::Transaction* transaction, ChunkState& state,
+        common::offset_t offsetInChunk, common::ValueVector& output,
+        common::sel_t posInOutputVector) const;
     void update(transaction::Transaction* transaction, common::offset_t offsetInChunk,
         const common::ValueVector& values);
 
@@ -63,6 +64,8 @@ private:
     ResidencyState residencyState;
     common::LogicalType dataType;
     bool enableCompression;
+    // TODO(Guodong): Pass in MemoryManager into ColumnChunk.
+    MemoryManager* memoryManager;
     std::unique_ptr<ColumnChunkData> data;
     // Update versions.
     std::unique_ptr<UpdateInfo> updateInfo;

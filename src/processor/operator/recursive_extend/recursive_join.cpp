@@ -265,7 +265,7 @@ void RecursiveJoin::populateTargetDstNodes(ExecutionContext* context) {
     uint64_t numTargetNodes = 0;
     for (auto& semiMask : sharedState->semiMasks) {
         auto nodeTable = semiMask->getNodeTable();
-        auto numNodes = nodeTable->getMaxNodeOffset(context->clientContext->getTx()) + 1;
+        auto numNodes = nodeTable->getNumRows(context->clientContext->getTx()) + 1;
         if (semiMask->isEnabled()) {
             for (auto offset = 0u; offset < numNodes; ++offset) {
                 if (semiMask->isNodeMasked(offset)) {

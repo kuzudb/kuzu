@@ -1,8 +1,10 @@
 #include "planner/join_order/cardinality_estimator.h"
 
 #include "binder/expression/property_expression.h"
+#include "main/client_context.h"
 #include "planner/join_order/join_order_util.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -103,22 +105,20 @@ uint64_t CardinalityEstimator::estimateFilter(const LogicalPlan& childPlan,
     }
 }
 
-uint64_t CardinalityEstimator::getNumNodes(const std::vector<common::table_id_t>& tableIDs,
+uint64_t CardinalityEstimator::getNumNodes(const std::vector<table_id_t>& tableIDs,
     Transaction* transaction) {
     auto numNodes = 1u;
-    // TODO(Guodong): Rework getNumNodes.
-    // for (auto& tableID : tableIDs) {
-    // numNodes +=
-    // nodesStatistics->getNodeStatisticsAndDeletedIDs(transaction, tableID)->getNumTuples();
-    // }
+    for (auto& tableID : tableIDs) {
+        numNodes += context->getStorageManager()->getTable(tableID)->getNumRows(transaction);
+    }
     return atLeastOne(numNodes);
 }
 
-uint64_t CardinalityEstimator::getNumRels(const std::vector<common::table_id_t>& tableIDs,
+uint64_t CardinalityEstimator::getNumRels(const std::vector<table_id_t>& tableIDs,
     Transaction* transaction) {
-    auto numRels = 0u;
+    auto numRels = 1u;
     for (auto tableID : tableIDs) {
-        numRels += relsStatistics->getRelStatistics(tableID, transaction)->getNumTuples();
+        numRels += context->getStorageManager()->getTable(tableID)->getNumRows(transaction);
     }
     return atLeastOne(numRels);
 }

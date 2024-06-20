@@ -1,6 +1,8 @@
 #include "graph/on_disk_graph.h"
 
+#include "main/client_context.h"
 #include "storage/storage_manager.h"
+#include "storage/store/rel_table.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::storage;
@@ -17,8 +19,10 @@ NbrScanState::NbrScanState(table_id_t relTableID, MemoryManager* mm) {
     srcNodeIDVector->state = srcNodeIDVectorState;
     dstNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
     dstNodeIDVector->state = dstNodeIDVectorState;
-    fwdReadState = std::make_unique<RelTableScanState>(relTableID, columnIDs, direction);
-    fwdReadState->nodeIDVector = srcNodeIDVector.get();
+    // TODO(Guodong): FIX-ME. populate columns.
+    std::vector<Column*> columns;
+    fwdReadState = std::make_unique<RelTableScanState>(relTableID, columnIDs, columns, direction);
+    fwdReadState->IDVector = srcNodeIDVector.get();
     fwdReadState->outputVectors.push_back(dstNodeIDVector.get());
 }
 
@@ -32,11 +36,13 @@ OnDiskGraph::OnDiskGraph(ClientContext* context, common::table_id_t nodeTableID,
 }
 
 offset_t OnDiskGraph::getNumNodes() {
-    return nodeTable->getNumTuples(context->getTx());
+    // TODO(Guodong): FIX-ME.
+    // return nodeTable->getNumTuples(context->getTx());
 }
 
 offset_t OnDiskGraph::getNumEdges() {
-    return relTable->getNumTuples(context->getTx());
+    // TODO(Guodong): FIX-ME.
+    // return relTable->getNumTuples(context->getTx());
 }
 
 std::vector<nodeID_t> OnDiskGraph::getNbrs(offset_t offset) {

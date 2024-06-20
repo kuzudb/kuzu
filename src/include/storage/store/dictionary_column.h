@@ -8,12 +8,11 @@ namespace storage {
 
 class DictionaryColumn {
 public:
-    DictionaryColumn(const std::string& name, const MetadataDAHInfo& metaDAHeaderInfo,
-        BMFileHandle* dataFH, DiskArrayCollection& metadataFH, BufferManager* bufferManager,
-        WAL* wal, transaction::Transaction* transaction, bool enableCompression);
+    DictionaryColumn(const std::string& name, BMFileHandle* dataFH, BufferManager* bufferManager,
+        WAL* wal, bool enableCompression);
 
-    void initChunkState(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, ChunkState& columnReadState);
+    // void initChunkState(transaction::Transaction* transaction,
+    // common::node_group_idx_t nodeGroupIdx, ChunkState& columnReadState);
 
     void append(ChunkState& state, const DictionaryChunk& dictChunk);
 
@@ -31,10 +30,6 @@ public:
 
     bool canCommitInPlace(const ChunkState& state, uint64_t numNewStrings,
         uint64_t totalStringLengthToAdd);
-
-    void prepareCommit();
-    void checkpointInMemory();
-    void rollbackInMemory();
 
     Column* getDataColumn() const { return dataColumn.get(); }
     Column* getOffsetColumn() const { return offsetColumn.get(); }

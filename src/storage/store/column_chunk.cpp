@@ -37,7 +37,6 @@ void ColumnChunk::scan(Transaction* transaction, ChunkState& state, ValueVector&
     ValueVector& output, offset_t offsetInChunk, length_t length) const {
     // Check if there is deletions or insertions. If so, update selVector based on transaction.
     switch (residencyState) {
-    case ResidencyState::TEMPORARY:
     case ResidencyState::IN_MEMORY: {
         data->scan(output, offsetInChunk, length);
     } break;
@@ -70,23 +69,6 @@ void ColumnChunk::scan(Transaction* transaction, ChunkState& state, ValueVector&
     }
 }
 
-void ColumnChunk::scanInMemCommitted(ColumnChunkData& output) const {
-    KU_ASSERT(residencyState != ResidencyState::ON_DISK);
-    output.append(data.get(), 0, data->getNumValues());
-    const auto numVectors = data->getNumValues() / DEFAULT_VECTOR_CAPACITY;
-    if (updateInfo) {
-        const auto dummyTransaction =
-            Transaction{TransactionType::READ_ONLY, 0, Transaction::START_TRANSACTION_ID - 1};
-        for (auto vectorIdx = 0u; vectorIdx < numVectors; vectorIdx++) {
-            const auto vectorInfo = updateInfo->getVectorInfo(&dummyTransaction, vectorIdx);
-            for (auto i = 0u; i < vectorInfo->numRowsUpdated; i++) {
-                data->write(vectorInfo->data.get(), i,
-                    vectorIdx * DEFAULT_VECTOR_CAPACITY + vectorInfo->rowsInVector[i], 1);
-            }
-        }
-    }
-}
-
 template<ResidencyState SCAN_RESIDENCY_STATE>
 void ColumnChunk::scanCommitted(Transaction* transaction, ChunkState& chunkState,
     ColumnChunk& output) const {
@@ -98,8 +80,7 @@ void ColumnChunk::scanCommitted(Transaction* transaction, ChunkState& chunkState
             scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan);
         }
     } break;
-    case ResidencyState::IN_MEMORY:
-    case ResidencyState::TEMPORARY: {
+    case ResidencyState::IN_MEMORY: {
         if (SCAN_RESIDENCY_STATE == residencyState) {
             output.getData().append(data.get(), 0, data->getNumValues());
             scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan);
@@ -114,8 +95,6 @@ void ColumnChunk::scanCommitted(Transaction* transaction, ChunkState& chunkState
 template void ColumnChunk::scanCommitted<ResidencyState::ON_DISK>(Transaction* transaction,
     ChunkState& chunkState, ColumnChunk& output) const;
 template void ColumnChunk::scanCommitted<ResidencyState::IN_MEMORY>(Transaction* transaction,
-    ChunkState& chunkState, ColumnChunk& output) const;
-template void ColumnChunk::scanCommitted<ResidencyState::TEMPORARY>(Transaction* transaction,
     ChunkState& chunkState, ColumnChunk& output) const;
 
 void ColumnChunk::scanCommittedUpdates(Transaction* transaction, ColumnChunkData& output,
@@ -136,15 +115,26 @@ void ColumnChunk::scanCommittedUpdates(Transaction* transaction, ColumnChunkData
     }
 }
 
-void ColumnChunk::lookup(Transaction* transaction, offset_t offsetInChunk, ValueVector& output,
-    sel_t posInOutputVector) const {
-    // TODO: Implement this. Handle updates.
+void ColumnChunk::lookup(Transaction* transaction, ChunkState& state, offset_t offsetInChunk,
+    ValueVector& output, sel_t posInOutputVector) const {
+    switch (residencyState) {
+    case ResidencyState::IN_MEMORY: {
+        data->lookup(offsetInChunk, output, posInOutputVector);
+    } break;
+    case ResidencyState::ON_DISK: {
+        state.column->lookupValue(transaction, state, offsetInChunk, &output, posInOutputVector);
+    }
+    }
 }
 
 void ColumnChunk::update(Transaction* transaction, offset_t offsetInChunk,
     const ValueVector& values) {
-    // TODO(Guodong): Pass in MemoryManager into ColumnChunk.
-    ValueVector originalVector(dataType, nullptr);
+    if (transaction->getID() == Transaction::DUMMY_TRANSACTION_ID) {
+        data->write(&values, values.state->getSelVector().getSelectedPositions()[0], offsetInChunk);
+        return;
+    }
+    // TODO(Guodong): FIX-ME. memoryManager is not set during construction.
+    ValueVector originalVector(dataType, memoryManager);
     data->lookup(offsetInChunk, originalVector, 0);
     if (!updateInfo) {
         updateInfo = std::make_unique<UpdateInfo>();

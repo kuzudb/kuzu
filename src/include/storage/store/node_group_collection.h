@@ -2,7 +2,7 @@
 
 #include <mutex>
 
-#include "storage/store/data_collection.h"
+#include "storage/store/group_collection.h"
 #include "storage/store/node_group.h"
 
 namespace kuzu {
@@ -10,50 +10,45 @@ namespace storage {
 
 class NodeGroupCollection {
 public:
-    //    struct AppendState {
-    //        std::vector<NodeGroupAppendState> nodeGroupAppendState;
-    //        common::row_idx_t startRowIdx = common::INVALID_ROW_IDX;
-    //        common::row_idx_t currentRowToAppend = 0;
-    //        common::row_idx_t numRowsToAppend = common::INVALID_ROW_IDX;
-    //
-    //        explicit AppendState(common::row_idx_t numRowsToAppend)
-    //            : numRowsToAppend{numRowsToAppend} {}
-    //    };
-
     explicit NodeGroupCollection(const std::vector<common::LogicalType>& types,
-        bool enableCompression, common::offset_t startNodeOffset = 0);
-    NodeGroupCollection(const std::vector<common::LogicalType>& types, bool enableCompression,
-        BMFileHandle* dataFH, common::Deserializer* deSer);
+        bool enableCompression, common::row_idx_t startRowIdx = 0, BMFileHandle* dataFH = nullptr,
+        common::Deserializer* deSer = nullptr);
 
-    // void initializeAppend(AppendState& appendState);
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors);
-    void append(const transaction::Transaction* transaction,
-        const ChunkedNodeGroupCollection& chunkedGroupCollection);
 
-    // Rename this to mergeCollection.
-    // void append(const transaction::Transaction* transaction, const NodeGroupCollection& other);
-
-    std::pair<common::offset_t, common::offset_t> appendPartially(
-        transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup);
+    // This function only tries to append data into the last node group, and if the last node group
+    // is not enough to hold all the data, it will append partially and return the number of rows
+    // appended.
+    // The returned values are the startOffset and numValuesAppended.
+    // NOTE: This is specially coded to only be used by NodeBatchInsert for now.
+    std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(
+        transaction::Transaction* transaction, const ChunkedNodeGroup& chunkedGroup);
 
     common::row_idx_t getNumRows() const;
     common::node_group_idx_t getNumNodeGroups() {
-        //        return nodeGroups.size();
+        const auto lock = nodeGroups.lock();
+        return nodeGroups.getNumGroups(lock);
     }
     NodeGroup& findNodeGroupFromOffset(common::offset_t offset);
     NodeGroup& getNodeGroup(const common::node_group_idx_t groupIdx) {
-        //        KU_ASSERT(groupIdx < nodeGroups.size());
-        //        return *nodeGroups[groupIdx];
+        const auto lock = nodeGroups.lock();
+        const auto group = nodeGroups.getGroup(lock, groupIdx);
+        KU_ASSERT(group);
+        return *group;
     }
     void setNodeGroup(const common::node_group_idx_t nodeGroupIdx,
         std::unique_ptr<NodeGroup> group) {
-        //        nodeGroups.resize(nodeGroupIdx + 1);
-        //        nodeGroups[nodeGroupIdx] = std::move(group);
+        const auto lock = nodeGroups.lock();
+        nodeGroups.replaceGroup(lock, nodeGroupIdx, std::move(group));
     }
 
-    // void merge(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-    // const ChunkedNodeGroup& chunkedGroup);
+    void clear() {
+        const auto lock = nodeGroups.lock();
+        nodeGroups.clear(lock);
+    }
+
+    common::column_id_t getNumColumns() const { return types.size(); }
 
     uint64_t getEstimatedMemoryUsage();
 
@@ -63,11 +58,10 @@ public:
 
 private:
     bool enableCompression;
-    common::offset_t startNodeOffset;
+    common::row_idx_t startRowIdx;
     std::atomic<common::row_idx_t> numRows;
     std::vector<common::LogicalType> types;
     GroupCollection<NodeGroup> nodeGroups;
-    //    std::vector<std::unique_ptr<NodeGroup>> nodeGroups;
     BMFileHandle* dataFH;
 };
 

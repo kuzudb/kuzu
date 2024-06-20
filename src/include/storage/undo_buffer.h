@@ -56,7 +56,7 @@ private:
 };
 
 class UpdateInfo;
-class NodeGroupVersionInfo;
+class VersionInfo;
 struct VectorUpdateInfo;
 struct VectorVersionInfo;
 // This class is not thread safe, as it is supposed to be accessed by a single thread.
@@ -74,9 +74,9 @@ public:
     explicit UndoBuffer(main::ClientContext& clientContext);
 
     void createCatalogEntry(catalog::CatalogSet* catalogSet, catalog::CatalogEntry* catalogEntry);
-    void createVectorInsertInfo(NodeGroupVersionInfo* versionInfo, common::idx_t vectorIdx,
+    void createVectorInsertInfo(VersionInfo* versionInfo, common::idx_t vectorIdx,
         VectorVersionInfo* vectorVersionInfo, const std::vector<common::row_idx_t>& rowsInVector);
-    void createVectorDeleteInfo(NodeGroupVersionInfo* versionInfo, common::idx_t vectorIdx,
+    void createVectorDeleteInfo(VersionInfo* versionInfo, common::idx_t vectorIdx,
         VectorVersionInfo* vectorVersionInfo, const std::vector<common::row_idx_t>& rowsInVector);
     void createVectorUpdateInfo(UpdateInfo* updateInfo, common::idx_t vectorIdx,
         VectorUpdateInfo* vectorUpdateInfo);
@@ -87,7 +87,7 @@ public:
 private:
     uint8_t* createUndoRecord(uint64_t size);
 
-    void createVectorVersionInfo(UndoRecordType recordType, NodeGroupVersionInfo* versionInfo,
+    void createVectorVersionInfo(UndoRecordType recordType, VersionInfo* versionInfo,
         common::idx_t vectorIdx, VectorVersionInfo* vectorVersionInfo,
         const std::vector<common::row_idx_t>& rowsInVector);
 

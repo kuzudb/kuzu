@@ -39,11 +39,10 @@ struct NullColumnFunc {
     }
 };
 
-NullColumn::NullColumn(std::string name, page_idx_t metaDAHIdx, BMFileHandle* dataFH,
-    DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
-    Transaction* transaction, bool enableCompression)
-    : Column{name, *LogicalType::BOOL(), MetadataDAHInfo{metaDAHIdx}, dataFH, metadataDAC,
-          bufferManager, wal, transaction, enableCompression, false /*requireNullColumn*/} {
+NullColumn::NullColumn(std::string name, BMFileHandle* dataFH, BufferManager* bufferManager,
+    WAL* wal, bool enableCompression)
+    : Column{name, *LogicalType::BOOL(), dataFH, bufferManager, wal, enableCompression,
+          false /*requireNullColumn*/} {
     readToVectorFunc = NullColumnFunc::readValuesFromPageToVector;
     writeFromVectorFunc = NullColumnFunc::writeValueToPageFromVector;
     // Should never be used
@@ -78,8 +77,8 @@ void NullColumn::append(ColumnChunkData* columnChunk, ChunkState& state) {
     auto preScanMetadata = columnChunk->getMetadataToFlush();
     auto startPageIdx = dataFH->addNewPages(preScanMetadata.numPages);
     state.metadata = columnChunk->flushBuffer(dataFH, startPageIdx, preScanMetadata);
-    metadataDA->resize(state.nodeGroupIdx + 1);
-    metadataDA->update(state.nodeGroupIdx, state.metadata);
+    // metadataDA->resize(state.nodeGroupIdx + 1);
+    // metadataDA->update(state.nodeGroupIdx, state.metadata);
 }
 
 bool NullColumn::isNull(Transaction* transaction, const ChunkState& state, offset_t offsetInChunk) {
@@ -131,22 +130,22 @@ void NullColumn::commitLocalChunkInPlace(ChunkState& state,
     const ChunkDataCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
     const ChunkDataCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
     const offset_set_t& deleteInfo) {
-    for (auto& [offsetInChunk, rowIdx] : updateInfo) {
-        auto [chunkIdx, offsetInLocalChunk] =
-            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-        auto localChunk = localUpdateChunks[chunkIdx];
-        KU_ASSERT(localChunk->getDataType().getPhysicalType() == PhysicalTypeID::BOOL &&
-                  !localChunk->getNullData());
-        write(state, offsetInChunk, localChunk, offsetInLocalChunk, 1 /*numValues*/);
-    }
-    for (auto& [offsetInChunk, rowIdx] : insertInfo) {
-        auto [chunkIdx, offsetInLocalChunk] =
-            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-        auto localChunk = localInsertChunks[chunkIdx];
-        KU_ASSERT(localChunk->getDataType().getPhysicalType() == PhysicalTypeID::BOOL &&
-                  !localChunk->getNullData());
-        write(state, offsetInChunk, localChunk, offsetInLocalChunk, 1 /*numValues*/);
-    }
+    // for (auto& [offsetInChunk, rowIdx] : updateInfo) {
+    //     auto [chunkIdx, offsetInLocalChunk] =
+    //         LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+    //     auto localChunk = localUpdateChunks[chunkIdx];
+    //     KU_ASSERT(localChunk->getDataType().getPhysicalType() == PhysicalTypeID::BOOL &&
+    //               !localChunk->getNullData());
+    //     write(state, offsetInChunk, localChunk, offsetInLocalChunk, 1 /*numValues*/);
+    // }
+    // for (auto& [offsetInChunk, rowIdx] : insertInfo) {
+    //     auto [chunkIdx, offsetInLocalChunk] =
+    //         LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+    //     auto localChunk = localInsertChunks[chunkIdx];
+    //     KU_ASSERT(localChunk->getDataType().getPhysicalType() == PhysicalTypeID::BOOL &&
+    //               !localChunk->getNullData());
+    //     write(state, offsetInChunk, localChunk, offsetInLocalChunk, 1 /*numValues*/);
+    // }
     // Set nulls based on deleteInfo. Note that this code path actually only gets executed when
     // the column is a regular format one. This is not a good design, should be unified with csr
     // one in the future.

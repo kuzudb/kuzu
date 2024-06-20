@@ -20,7 +20,7 @@ struct PartitionerFunctions {
 // partitioning methods. For example, copy of rel tables require partitioning on both FWD and BWD
 // direction. Each partitioning method corresponds to a PartitioningState.
 struct PartitioningBuffer {
-    std::vector<storage::ChunkedNodeGroupCollection> partitions;
+    std::vector<std::unique_ptr<storage::ChunkedNodeGroupCollection>> partitions;
 
     void merge(std::unique_ptr<PartitioningBuffer> localPartitioningStates);
 };
@@ -51,11 +51,11 @@ struct PartitionerSharedState {
     void resetState();
     void merge(std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates);
 
-    const storage::ChunkedNodeGroupCollection& getPartitionBuffer(common::idx_t partitioningIdx,
-        common::partition_idx_t partitionIdx) const {
+    storage::ChunkedNodeGroupCollection& getPartitionBuffer(common::idx_t partitioningIdx,
+        common::partition_idx_t partitionIdx) {
         KU_ASSERT(partitioningIdx < partitioningBuffers.size());
         KU_ASSERT(partitionIdx < partitioningBuffers[partitioningIdx]->partitions.size());
-        return partitioningBuffers[partitioningIdx]->partitions[partitionIdx];
+        return *partitioningBuffers[partitioningIdx]->partitions[partitionIdx];
     }
 };
 

@@ -510,8 +510,7 @@ void ColumnChunkData::copy(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
 }
 
 void ColumnChunkData::resize(uint64_t newCapacity) {
-    KU_ASSERT(
-        residencyState == ResidencyState::IN_MEMORY || residencyState == ResidencyState::TEMPORARY);
+    KU_ASSERT(residencyState == ResidencyState::IN_MEMORY);
     if (newCapacity > capacity) {
         capacity = newCapacity;
     }

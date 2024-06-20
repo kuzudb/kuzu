@@ -10,7 +10,6 @@ namespace processor {
 
 void ScanNodeTableSharedState::initialize(transaction::Transaction* transaction, NodeTable* table) {
     this->table = table;
-    // TODO: Should directly keep pointers to all node groups.
     this->currentCommittedGroupIdx = 0;
     this->currentUnCommittedGroupIdx = 0;
     this->numCommittedNodeGroups = table->getNumCommittedNodeGroups();
@@ -30,7 +29,6 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
         scanState.source = TableScanSource::COMMITTED;
         return;
     }
-    // TODO(Guodong): We should split scan of local node table to multiple morsels, too.
     if (currentUnCommittedGroupIdx < numUnCommittedNodeGroups) {
         scanState.nodeGroupIdx = currentUnCommittedGroupIdx++;
         scanState.source = TableScanSource::UNCOMMITTED;
@@ -74,7 +72,7 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
         if (!skipScan) {
             while (scanState.source != TableScanSource::NONE &&
                    info.table->scan(transaction, scanState)) {
-                if (scanState.nodeIDVector->state->getSelVector().getSelSize() > 0) {
+                if (scanState.IDVector->state->getSelVector().getSelSize() > 0) {
                     return true;
                 }
             }

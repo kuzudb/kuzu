@@ -11,13 +11,17 @@ namespace storage {
 
 LocalNodeTable::LocalNodeTable(Table& table)
     : LocalTable{table},
-      nodeGroups{NodeTable::getTableColumnTypes(table.cast<NodeTable>()),
+      nodeGroups{NodeTable::getNodeTableColumnTypes(table.cast<NodeTable>()),
           false /*enableCompression*/, StorageConstants::MAX_NUM_NODES_IN_TABLE} {
+    initLocalHashIndex();
+}
+
+void LocalNodeTable::initLocalHashIndex() {
     auto& nodeTable = ku_dynamic_cast<const Table&, const NodeTable&>(table);
     DBFileIDAndName dbFileIDAndName{DBFileID{DBFileType::NODE_INDEX}, "in-mem-overflow"};
     overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName);
-    PageCursor cursor{0, 0};
-    overflowFileHandle = std::make_unique<OverflowFileHandle>(*overflowFile, cursor);
+    PageCursor dummyCursor{0, 0};
+    overflowFileHandle = std::make_unique<OverflowFileHandle>(*overflowFile, dummyCursor);
     hashIndex = std::make_unique<LocalHashIndex>(
         nodeTable.getColumn(nodeTable.getPKColumnID()).getDataType().getPhysicalType(),
         overflowFileHandle.get());
@@ -45,7 +49,11 @@ bool LocalNodeTable::update(TableUpdateState& updateState) {
     KU_ASSERT(nodeUpdateState.nodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto pos = nodeUpdateState.nodeIDVector.state->getSelVector()[0];
     const auto offset = nodeUpdateState.nodeIDVector.readNodeOffset(pos);
-    // TODO(Guodong): Handle update hash index.
+    if (nodeUpdateState.columnID == table.cast<NodeTable>().getPKColumnID()) {
+        KU_ASSERT(nodeUpdateState.pkVector);
+        hashIndex->delete_(*nodeUpdateState.pkVector);
+        hashIndex->insert(*nodeUpdateState.pkVector, offset);
+    }
     auto& nodeGroup = nodeGroups.findNodeGroupFromOffset(offset);
     nodeGroup.update(&DUMMY_WRITE_TRANSACTION, offset, nodeUpdateState.columnID,
         nodeUpdateState.propertyVector);

@@ -11,10 +11,7 @@ namespace planner {
 class CardinalityEstimator {
 public:
     CardinalityEstimator() = default;
-    CardinalityEstimator(main::ClientContext* context,
-        const storage::NodesStoreStatsAndDeletedIDs* nodesStatistics,
-        const storage::RelsStoreStats* relsStatistics)
-        : context{context}, nodesStatistics{nodesStatistics}, relsStatistics{relsStatistics} {}
+    CardinalityEstimator(main::ClientContext* context) : context{context} {}
     DELETE_COPY_DEFAULT_MOVE(CardinalityEstimator);
 
     // TODO(Xiyang): revisit this init at some point. Maybe we should init while enumerating.
@@ -35,9 +32,9 @@ public:
         const binder::NodeExpression& boundNode, transaction::Transaction* transaction);
 
 private:
-    inline uint64_t atLeastOne(uint64_t x) { return x == 0 ? 1 : x; }
+    uint64_t atLeastOne(uint64_t x) { return x == 0 ? 1 : x; }
 
-    inline uint64_t getNodeIDDom(const std::string& nodeIDName) {
+    uint64_t getNodeIDDom(const std::string& nodeIDName) {
         KU_ASSERT(nodeIDName2dom.contains(nodeIDName));
         return nodeIDName2dom.at(nodeIDName);
     }
@@ -49,8 +46,6 @@ private:
 
 private:
     main::ClientContext* context;
-    const storage::NodesStoreStatsAndDeletedIDs* nodesStatistics;
-    const storage::RelsStoreStats* relsStatistics;
     // The domain of nodeID is defined as the number of unique value of nodeID, i.e. num nodes.
     std::unordered_map<std::string, uint64_t> nodeIDName2dom;
 };

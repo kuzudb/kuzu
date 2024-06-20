@@ -45,7 +45,10 @@ struct BatchInsertSharedState {
     common::row_idx_t getNumRows() const { return numRows.load(); }
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
     void logBatchInsertWALRecord() const { wal->logCopyTableRecord(table->getTableID()); }
-    void updateNumTuplesForTable() const { table->updateNumTuplesByValue(getNumRows()); }
+    // void updateNumTuplesForTable() const {
+    // TODO(Guodong): FIX-ME.
+    // table->updateNumTuplesByValue(getNumRows());
+    // }
 };
 
 struct BatchInsertLocalState {

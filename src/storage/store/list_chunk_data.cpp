@@ -46,10 +46,10 @@ ListChunkData::ListChunkData(LogicalType dataType, bool enableCompression,
     const ColumnChunkMetadata& metadata)
     : ColumnChunkData{std::move(dataType), enableCompression, metadata, true /*hasNullData*/},
       sizeColumnChunk{ColumnChunkFactory::createColumnChunkData(*LogicalType::UINT32(),
-          enableCompression, 0, ResidencyState::TEMPORARY)},
+          enableCompression, 0, ResidencyState::IN_MEMORY)},
       listDataColumnChunk{std::make_unique<ListDataColumnChunk>(
           ColumnChunkFactory::createColumnChunkData(*ListType::getChildType(this->dataType).copy(),
-              enableCompression, 0, ResidencyState::TEMPORARY))},
+              enableCompression, 0, ResidencyState::IN_MEMORY))},
       checkOffsetSortedAsc{false} {}
 
 bool ListChunkData::isOffsetsConsecutiveAndSortedAscending(uint64_t startPos,

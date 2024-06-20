@@ -24,13 +24,13 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
     undoBuffer->createCatalogEntry(&catalogSet, &catalogEntry);
 }
 
-void Transaction::pushVectorInsertInfo(storage::NodeGroupVersionInfo& versionInfo,
+void Transaction::pushVectorInsertInfo(storage::VersionInfo& versionInfo,
     const common::idx_t vectorIdx, storage::VectorVersionInfo& vectorVersionInfo,
     const std::vector<common::row_idx_t>& rowsInVector) const {
     undoBuffer->createVectorInsertInfo(&versionInfo, vectorIdx, &vectorVersionInfo, rowsInVector);
 }
 
-void Transaction::pushVectorDeleteInfo(storage::NodeGroupVersionInfo& versionInfo,
+void Transaction::pushVectorDeleteInfo(storage::VersionInfo& versionInfo,
     const common::idx_t vectorIdx, storage::VectorVersionInfo& vectorVersionInfo,
     const std::vector<common::row_idx_t>& rowsInVector) const {
     undoBuffer->createVectorDeleteInfo(&versionInfo, vectorIdx, &vectorVersionInfo, rowsInVector);

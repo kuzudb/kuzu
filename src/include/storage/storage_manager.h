@@ -43,15 +43,6 @@ public:
     WAL& getWAL();
     BMFileHandle* getDataFH() const { return dataFH.get(); }
     BMFileHandle* getMetadataFH() const { return metadataFH.get(); }
-    DiskArrayCollection* getMetadataDAC() const { return metadataDAC.get(); }
-    void initStatistics() {
-        // nodesStatisticsAndDeletedIDs->initTableStatisticsForWriteTrx();
-        relsStatistics->initTableStatisticsForWriteTrx();
-    }
-    NodesStoreStatsAndDeletedIDs* getNodesStatisticsAndDeletedIDs() const {
-        return nodesStatisticsAndDeletedIDs.get();
-    }
-    RelsStoreStats* getRelsStatistics() const { return relsStatistics.get(); }
     std::string getDatabasePath() const { return databasePath; }
     bool isReadOnly() const { return readOnly; }
     bool compressionEnabled() const { return enableCompression; }
@@ -78,9 +69,6 @@ private:
     bool readOnly;
     std::unique_ptr<BMFileHandle> dataFH;
     std::unique_ptr<BMFileHandle> metadataFH;
-    std::unique_ptr<DiskArrayCollection> metadataDAC;
-    std::unique_ptr<NodesStoreStatsAndDeletedIDs> nodesStatisticsAndDeletedIDs;
-    std::unique_ptr<RelsStoreStats> relsStatistics;
     std::unordered_map<common::table_id_t, std::unique_ptr<Table>> tables;
     MemoryManager& memoryManager;
     std::unique_ptr<WAL> wal;
