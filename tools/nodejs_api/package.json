@@ -17,9 +17,9 @@
   "author": "Kùzu Team",
   "license": "MIT",
   "devDependencies": {
-    "chai": "^4.3.7",
-    "mocha": "^10.2.0",
-    "tmp": "^0.2.1"
+    "chai": "^4.4.1",
+    "mocha": "^10.4.0",
+    "tmp": "^0.2.3"
   },
   "dependencies": {
     "cmake-js": "^7.1.1",

@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   generate-binary-demo:
-    name: Generate Binary Dataset
+    name: generate binary dataset
     needs: [clang-format, sanity-checks, python-lint-check]
     runs-on: kuzu-self-hosted-testing
     env:
@@ -39,7 +39,7 @@ jobs:
       - name: Build
         run: make release
 
-      - name: Generate Datasets
+      - name: Generate datasets
         run: bash scripts/generate_binary_demo.sh
 
       - name: Upload binary-demo
