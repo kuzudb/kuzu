@@ -3,9 +3,11 @@
 #include "parser/ddl/create_sequence.h"
 #include "parser/ddl/create_table.h"
 #include "parser/ddl/create_type.h"
+#include "parser/ddl/create_vector_index.h"
 #include "parser/ddl/drop.h"
 #include "parser/expression/parsed_literal_expression.h"
 #include "parser/transformer.h"
+
 
 using namespace kuzu::common;
 
@@ -170,6 +172,17 @@ std::unique_ptr<Statement> Transformer::transformDrop(CypherParser::KU_DropConte
         return std::make_unique<Drop>(common::StatementType::DROP_SEQUENCE, name);
     }
     return std::make_unique<Drop>(common::StatementType::DROP_TABLE, name);
+}
+
+std::unique_ptr<Statement> Transformer::transformCreateVectorIndex(
+    CypherParser::KU_CreateVectorIndexContext& ctx) {
+    auto tableName = transformSchemaName(*ctx.oC_SchemaName());
+    auto propertyName = transformPropertyKeyName(*ctx.oC_PropertyKeyName());
+    options_t parsingOptions;
+    if (ctx.kU_ParsingOptions()) {
+        parsingOptions = transformOptions(*ctx.kU_ParsingOptions()->kU_Options());
+    }
+    return std::make_unique<CreateVectorIndex>(tableName, propertyName, std::move(parsingOptions));
 }
 
 std::unique_ptr<Statement> Transformer::transformRenameTable(

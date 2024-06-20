@@ -26,6 +26,9 @@
 #include "parser/ddl/drop.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
+#include "parser/ddl/create_vector_index.h"
+#include "common/copier_config/hnsw_reader_config.h"
+#include "binder/ddl/bound_create_vector_index.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -277,6 +280,20 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
     auto boundInfo = BoundCreateSequenceInfo(sequenceName, startWith, increment, minValue, maxValue,
         info.cycle, info.onConflict);
     return std::make_unique<BoundCreateSequence>(std::move(boundInfo));
+}
+
+std::unique_ptr<BoundStatement> Binder::bindCreateVectorIndex(const Statement& statement) {
+    auto& createIndex = ku_dynamic_cast<const Statement&, const CreateVectorIndex&>(statement);
+    auto catalog = clientContext->getCatalog();
+    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTx(),
+        bindTableID(createIndex.getTableName()));
+    if (tableEntry->getTableType() != TableType::NODE) {
+        throw BinderException("Vector index can only be created on node tables.");
+    }
+    auto propertyId = tableEntry->getPropertyID(createIndex.getPropertyName());
+    auto indexConfig =
+        HnswReaderConfig::construct(bindParsingOptions(createIndex.getParsingOptionsRef()));
+    return std::make_unique<BoundCreateVectorIndex>(tableEntry, propertyId, std::move(indexConfig));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement) {

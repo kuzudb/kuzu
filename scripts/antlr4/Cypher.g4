@@ -212,6 +212,10 @@ WRITE : ( 'W' | 'w' ) ( 'R' | 'r' ) ( 'I' | 'i' ) ( 'T' | 't' ) ( 'E' | 'e' ) ;
 
 XOR : ( 'X' | 'x' ) ( 'O' | 'o' ) ( 'R' | 'r' ) ;
 
+VECTOR : ( 'V' | 'v' ) ( 'E' | 'e' ) ( 'C' | 'c' ) ( 'T' | 't' ) ( 'O' | 'o' ) ( 'R' | 'r' ) ;
+
+INDEX : ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'X' | 'x' ) ;
+
 
 
 ku_Statements
@@ -228,6 +232,7 @@ oC_Statement
         | kU_CreateRdfGraph
         | kU_CreateSequence
         | kU_CreateType
+        | kU_CreateVectorIndex
         | kU_Drop
         | kU_AlterTable
         | kU_CopyFrom
@@ -329,6 +334,9 @@ kU_CreateSequence
 
 kU_CreateType
     : CREATE SP TYPE SP oC_SchemaName SP AS SP kU_DataType SP? ;
+
+kU_CreateVectorIndex
+    : CREATE SP VECTOR SP INDEX SP ON SP oC_SchemaName '.' oC_PropertyKeyName ( SP? kU_ParsingOptions )? ;
 
 kU_SequenceOptions
     : kU_IncrementBy

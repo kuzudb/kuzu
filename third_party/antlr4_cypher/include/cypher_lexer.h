@@ -36,13 +36,14 @@ public:
     ROLLBACK_SKIP_CHECKPOINT = 125, SEQUENCE = 126, SET = 127, SHORTEST = 128, 
     START = 129, STARTS = 130, TABLE = 131, THEN = 132, TO = 133, TRANSACTION = 134, 
     TRUE = 135, TYPE = 136, UNION = 137, UNWIND = 138, USE = 139, WHEN = 140, 
-    WHERE = 141, WITH = 142, WRITE = 143, XOR = 144, DECIMAL = 145, STAR = 146, 
-    L_SKIP = 147, INVALID_NOT_EQUAL = 148, MINUS = 149, FACTORIAL = 150, 
-    COLON = 151, StringLiteral = 152, EscapedChar = 153, DecimalInteger = 154, 
-    HexLetter = 155, HexDigit = 156, Digit = 157, NonZeroDigit = 158, NonZeroOctDigit = 159, 
-    ZeroDigit = 160, RegularDecimalReal = 161, UnescapedSymbolicName = 162, 
-    IdentifierStart = 163, IdentifierPart = 164, EscapedSymbolicName = 165, 
-    SP = 166, WHITESPACE = 167, CypherComment = 168, Unknown = 169
+    WHERE = 141, WITH = 142, WRITE = 143, XOR = 144, VECTOR = 145, INDEX = 146, 
+    DECIMAL = 147, STAR = 148, L_SKIP = 149, INVALID_NOT_EQUAL = 150, MINUS = 151, 
+    FACTORIAL = 152, COLON = 153, StringLiteral = 154, EscapedChar = 155, 
+    DecimalInteger = 156, HexLetter = 157, HexDigit = 158, Digit = 159, 
+    NonZeroDigit = 160, NonZeroOctDigit = 161, ZeroDigit = 162, RegularDecimalReal = 163, 
+    UnescapedSymbolicName = 164, IdentifierStart = 165, IdentifierPart = 166, 
+    EscapedSymbolicName = 167, SP = 168, WHITESPACE = 169, CypherComment = 170, 
+    Unknown = 171
   };
 
   explicit CypherLexer(antlr4::CharStream *input);

@@ -107,6 +107,7 @@ public:
     std::unique_ptr<BoundStatement> bindCreateTable(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateType(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateSequence(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindCreateVectorIndex(const parser::Statement& statement);
 
     std::unique_ptr<BoundStatement> bindDropTable(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindDropSequence(const parser::Statement& statement);
