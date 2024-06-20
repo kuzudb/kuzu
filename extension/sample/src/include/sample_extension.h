@@ -19,5 +19,5 @@ public:
     SampleClauseHandler();
 };
 
-} // namespace parser_demo
+} // namespace sample
 } // namespace kuzu
