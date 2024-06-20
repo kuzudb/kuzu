@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "binder/ddl/bound_alter_info.h"
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/property.h"
 #include "catalog_entry.h"
@@ -11,7 +12,6 @@
 namespace kuzu {
 namespace binder {
 struct BoundExtraCreateCatalogEntryInfo;
-struct BoundAlterInfo;
 } // namespace binder
 
 namespace catalog {
@@ -40,6 +40,10 @@ public:
     // TODO(Guodong/Ziyi): This function should be removed. Instead we should use CatalogEntryType.
     virtual common::TableType getTableType() const = 0;
     virtual function::TableFunction getScanFunction() { KU_UNREACHABLE; }
+    binder::BoundAlterInfo* getAlterInfo() const { return alterInfo.get(); }
+    void setAlterInfo(const binder::BoundAlterInfo& alterInfo_) {
+        alterInfo = std::make_unique<binder::BoundAlterInfo>(alterInfo_.copy());
+    }
 
     //===--------------------------------------------------------------------===//
     // properties functions
@@ -80,6 +84,7 @@ protected:
     common::property_id_t nextPID;
     common::column_id_t nextColumnID;
     std::vector<Property> properties;
+    std::unique_ptr<binder::BoundAlterInfo> alterInfo;
 };
 
 } // namespace catalog

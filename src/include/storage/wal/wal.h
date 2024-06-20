@@ -6,6 +6,9 @@
 #include "storage/wal/wal_record.h"
 
 namespace kuzu {
+namespace binder {
+struct BoundAlterInfo;
+} // namespace binder
 namespace common {
 class BufferedFileWriter;
 class VirtualFileSystem;
@@ -40,16 +43,13 @@ public:
         common::page_idx_t pageIdxInOriginalFile);
 
     void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry);
-    void logDropTableRecord(common::table_id_t tableID, catalog::CatalogEntryType type);
+    void logDropCatalogEntryRecord(uint64_t entryID, catalog::CatalogEntryType type);
+    void logAlterTableEntryRecord(binder::BoundAlterInfo* alterInfo);
 
     void logCopyTableRecord(common::table_id_t tableID);
 
-    void logCreateSequenceRecord(catalog::CatalogEntry* catalogEntry);
-    void logDropSequenceRecord(common::sequence_id_t sequenceID);
     void logUpdateSequenceRecord(common::sequence_id_t sequenceID,
         catalog::SequenceChangeData data);
-
-    void logCreateTypeRecord(catalog::CatalogEntry* catalogEntry);
 
     void logCatalogRecord();
     void logTableStatisticsRecord(common::TableType tableType);

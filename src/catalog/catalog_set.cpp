@@ -140,6 +140,7 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
         createEntry(transaction, std::move(newEntry));
         return;
     }
+    tableEntry->setAlterInfo(alterInfo);
     emplace(std::move(newEntry));
     if (transaction->getStartTS() > 0) {
         KU_ASSERT(transaction->getID() != 0);

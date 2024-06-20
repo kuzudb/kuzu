@@ -29,6 +29,7 @@ private:
     void replayTableStatisticsRecord(const WALRecord& walRecord);
     void replayCreateCatalogEntryRecord(const WALRecord& walRecord);
     void replayDropCatalogEntryRecord(const WALRecord& walRecord);
+    void replayAlterTableEntryRecord(const WALRecord& walRecord);
     void replayCopyTableRecord(const WALRecord& walRecord) const;
     void replayUpdateSequenceRecord(const WALRecord& walRecord);
 

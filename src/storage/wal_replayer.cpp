@@ -2,19 +2,23 @@
 
 #include <unordered_map>
 
+#include "binder/binder.h"
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_entry/type_catalog_entry.h"
 #include "common/file_system/file_info.h"
 #include "common/serializer/buffered_file.h"
+#include "processor/expression_mapper.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/wal/wal_record.h"
 #include "transaction/transaction.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::catalog;
 using namespace kuzu::common;
+using namespace kuzu::processor;
 using namespace kuzu::storage;
 using namespace kuzu::transaction;
 
@@ -80,6 +84,9 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord,
     } break;
     case WALRecordType::DROP_CATALOG_ENTRY_RECORD: {
         replayDropCatalogEntryRecord(walRecord);
+    } break;
+    case WALRecordType::ALTER_TABLE_ENTRY_RECORD: {
+        replayAlterTableEntryRecord(walRecord);
     } break;
     case WALRecordType::UPDATE_SEQUENCE_RECORD: {
         replayUpdateSequenceRecord(walRecord);
@@ -245,6 +252,33 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) {
     default: {
         KU_UNREACHABLE;
     }
+    }
+}
+
+void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) {
+    if (!(isCheckpoint && isRecovering)) {
+        return;
+    }
+    auto binder = Binder(&clientContext);
+    auto& alterEntryRecord = walRecord.constCast<AlterTableEntryRecord>();
+    clientContext.getCatalog()->alterTableSchema(&DUMMY_WRITE_TRANSACTION,
+        *alterEntryRecord.ownedAlterInfo);
+    if (alterEntryRecord.ownedAlterInfo->alterType == common::AlterType::ADD_PROPERTY) {
+        auto exprBinder = binder.getExpressionBinder();
+        auto addInfo =
+            alterEntryRecord.ownedAlterInfo->extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
+        // We don't implicit cast here since it must already be done the first time
+        auto boundDefault = exprBinder->bindExpression(*addInfo->defaultValue);
+        auto defaultValueEvaluator = ExpressionMapper::getEvaluator(boundDefault, nullptr);
+        auto schema = clientContext.getCatalog()->getTableCatalogEntry(&DUMMY_WRITE_TRANSACTION,
+            alterEntryRecord.ownedAlterInfo->tableID);
+        auto addedPropID = schema->getPropertyID(addInfo->propertyName);
+        auto addedProp = schema->getProperty(addedPropID);
+        if (clientContext.getStorageManager()) {
+            auto storageManager = clientContext.getStorageManager();
+            storageManager->getTable(alterEntryRecord.ownedAlterInfo->tableID)
+                ->addColumn(&DUMMY_WRITE_TRANSACTION, *addedProp, *defaultValueEvaluator);
+        }
     }
 }
 

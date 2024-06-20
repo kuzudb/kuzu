@@ -168,54 +168,54 @@ void UndoBuffer::commitCatalogEntry(const uint8_t* entry, transaction_t commitTS
     case CatalogEntryType::NODE_TABLE_ENTRY:
     case CatalogEntryType::REL_TABLE_ENTRY:
     case CatalogEntryType::REL_GROUP_ENTRY:
-    case CatalogEntryType::RDF_GRAPH_ENTRY:
-    case CatalogEntryType::SCALAR_MACRO_ENTRY: {
+    case CatalogEntryType::RDF_GRAPH_ENTRY: {
         if (catalogEntry->getType() == CatalogEntryType::DUMMY_ENTRY) {
             KU_ASSERT(catalogEntry->isDeleted());
             wal.logCreateCatalogEntryRecord(newCatalogEntry);
+        } else {
+            // Must be alter
+            KU_ASSERT(catalogEntry->getType() == newCatalogEntry->getType());
+            auto tableEntry = catalogEntry->constPtrCast<TableCatalogEntry>();
+            wal.logAlterTableEntryRecord(tableEntry->getAlterInfo());
         }
     } break;
-    case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {
-        // DO NOTHING. We don't persistent function entries.
-    } break;
-    case CatalogEntryType::SEQUENCE_ENTRY: {
-        if (catalogEntry->getType() == CatalogEntryType::DUMMY_ENTRY) {
-            KU_ASSERT(catalogEntry->isDeleted());
-            wal.logCreateSequenceRecord(newCatalogEntry);
-        }
-    } break;
+    case CatalogEntryType::SCALAR_MACRO_ENTRY:
+    case CatalogEntryType::SEQUENCE_ENTRY:
     case CatalogEntryType::TYPE_ENTRY: {
-        if (catalogEntry->getType() == CatalogEntryType::DUMMY_ENTRY) {
-            KU_ASSERT(catalogEntry->isDeleted());
-            wal.logCreateTypeRecord(newCatalogEntry);
-        }
+        KU_ASSERT(
+            catalogEntry->getType() == CatalogEntryType::DUMMY_ENTRY && catalogEntry->isDeleted());
+        wal.logCreateCatalogEntryRecord(newCatalogEntry);
     } break;
     case CatalogEntryType::DUMMY_ENTRY: {
         KU_ASSERT(newCatalogEntry->isDeleted());
         switch (catalogEntry->getType()) {
+        // Eventually we probably want to merge these
         case CatalogEntryType::NODE_TABLE_ENTRY:
         case CatalogEntryType::REL_TABLE_ENTRY:
         case CatalogEntryType::REL_GROUP_ENTRY:
-        case CatalogEntryType::RDF_GRAPH_ENTRY:
-            // TODO: Add support for dropping macro.
-        case CatalogEntryType::SCALAR_MACRO_ENTRY: {
-            auto tableCatalogEntry =
-                ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(catalogEntry);
-            wal.logDropTableRecord(tableCatalogEntry->getTableID(), tableCatalogEntry->getType());
+        case CatalogEntryType::RDF_GRAPH_ENTRY: {
+            auto tableCatalogEntry = catalogEntry->constPtrCast<TableCatalogEntry>();
+            wal.logDropCatalogEntryRecord(tableCatalogEntry->getTableID(), catalogEntry->getType());
         } break;
         case CatalogEntryType::SEQUENCE_ENTRY: {
-            auto sequenceCatalogEntry =
-                ku_dynamic_cast<CatalogEntry*, SequenceCatalogEntry*>(catalogEntry);
-            wal.logDropSequenceRecord(sequenceCatalogEntry->getSequenceID());
+            auto sequenceCatalogEntry = catalogEntry->constPtrCast<SequenceCatalogEntry>();
+            wal.logDropCatalogEntryRecord(sequenceCatalogEntry->getSequenceID(),
+                catalogEntry->getType());
         } break;
         case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {
             // DO NOTHING. We don't persistent function entries.
         } break;
+        // TODO: Add support for dropping macros and types.
+        case CatalogEntryType::SCALAR_MACRO_ENTRY:
+        case CatalogEntryType::TYPE_ENTRY:
         default: {
             throw RuntimeException(stringFormat("Not supported catalog entry type {} yet.",
                 CatalogEntryTypeUtils::toString(catalogEntry->getType())));
         }
         }
+    } break;
+    case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {
+        // DO NOTHING. We don't persistent function entries.
     } break;
     default: {
         throw RuntimeException(stringFormat("Not supported catalog entry type {} yet.",

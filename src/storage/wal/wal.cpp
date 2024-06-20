@@ -2,6 +2,7 @@
 
 #include <fcntl.h>
 
+#include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/file_system/file_info.h"
 #include "common/file_system/virtual_file_system.h"
@@ -11,6 +12,7 @@
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
+using namespace kuzu::binder;
 
 namespace kuzu {
 namespace storage {
@@ -76,9 +78,19 @@ void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry) {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logDropTableRecord(table_id_t tableID, catalog::CatalogEntryType type) {
+void WAL::logDropCatalogEntryRecord(uint64_t tableID, catalog::CatalogEntryType type) {
+    KU_ASSERT(
+        type == CatalogEntryType::NODE_TABLE_ENTRY || type == CatalogEntryType::REL_TABLE_ENTRY ||
+        type == CatalogEntryType::REL_GROUP_ENTRY || type == CatalogEntryType::RDF_GRAPH_ENTRY ||
+        type == CatalogEntryType::SEQUENCE_ENTRY);
     lock_t lck{mtx};
     DropCatalogEntryRecord walRecord(tableID, type);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logAlterTableEntryRecord(BoundAlterInfo* alterInfo) {
+    lock_t lck{mtx};
+    AlterTableEntryRecord walRecord(alterInfo);
     addNewWALRecordNoLock(walRecord);
 }
 
@@ -89,27 +101,9 @@ void WAL::logCopyTableRecord(table_id_t tableID) {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logCreateSequenceRecord(catalog::CatalogEntry* catalogEntry) {
-    lock_t lck{mtx};
-    CreateCatalogEntryRecord walRecord(catalogEntry);
-    addNewWALRecordNoLock(walRecord);
-}
-
-void WAL::logDropSequenceRecord(sequence_id_t sequenceID) {
-    lock_t lck{mtx};
-    DropCatalogEntryRecord walRecord(sequenceID, catalog::CatalogEntryType::SEQUENCE_ENTRY);
-    addNewWALRecordNoLock(walRecord);
-}
-
 void WAL::logUpdateSequenceRecord(sequence_id_t sequenceID, SequenceChangeData data) {
     lock_t lck{mtx};
     UpdateSequenceRecord walRecord(sequenceID, std::move(data));
-    addNewWALRecordNoLock(walRecord);
-}
-
-void WAL::logCreateTypeRecord(catalog::CatalogEntry* catalogEntry) {
-    lock_t lck{mtx};
-    CreateCatalogEntryRecord walRecord(catalogEntry);
     addNewWALRecordNoLock(walRecord);
 }
 
