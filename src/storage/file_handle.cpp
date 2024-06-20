@@ -1,7 +1,5 @@
 #include "storage/file_handle.h"
 
-#include <fcntl.h>
-
 #include <cmath>
 #include <mutex>
 
@@ -15,36 +13,33 @@ namespace storage {
 FileHandle::FileHandle(const std::string& path, uint8_t flags, VirtualFileSystem* vfs,
     main::ClientContext* context)
     : flags{flags} {
-    if (!isNewTmpFile()) {
-        constructExistingFileHandle(path, vfs, context);
-    } else {
-        constructNewFileHandle(path, vfs, context);
-    }
+    constructFileHandle(path, vfs, context);
 }
 
-void FileHandle::constructExistingFileHandle(const std::string& path, VirtualFileSystem* vfs,
+void FileHandle::constructFileHandle(const std::string& path, VirtualFileSystem* vfs,
     main::ClientContext* context) {
+    if (isNewTmpFile()) {
+        numPages = 0;
+        pageCapacity = 0;
+        fileInfo = std::make_unique<FileInfo>(path, nullptr /* fileSystem */);
+        return;
+    }
     int openFlags;
     if (isReadOnlyFile()) {
         openFlags = FileFlags::READ_ONLY;
     } else {
-        openFlags = FileFlags::WRITE | FileFlags::READ_ONLY |
-                    ((createFileIfNotExists()) ? FileFlags::CREATE_IF_NOT_EXISTS : 0x00000000);
+        openFlags = FileFlags::WRITE | FileFlags::READ_ONLY;
+        if (createFileIfNotExists()) {
+            openFlags |= FileFlags::CREATE_IF_NOT_EXISTS;
+        }
     }
     fileInfo = vfs->openFile(path, openFlags, context);
     auto fileLength = fileInfo->getFileSize();
-    numPages = ceil((double)fileLength / (double)getPageSize());
+    numPages = ceil(static_cast<double>(fileLength) / static_cast<double>(getPageSize()));
     pageCapacity = 0;
     while (pageCapacity < numPages) {
         pageCapacity += StorageConstants::PAGE_GROUP_SIZE;
     }
-}
-
-void FileHandle::constructNewFileHandle(const std::string& path, VirtualFileSystem* vfs,
-    main::ClientContext* context) {
-    fileInfo = vfs->openFile(path, O_CREAT | O_RDWR, context);
-    numPages = 0;
-    pageCapacity = 0;
 }
 
 page_idx_t FileHandle::addNewPage() {
