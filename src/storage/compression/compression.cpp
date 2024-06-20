@@ -484,29 +484,29 @@ void IntegerBitpacking<T>::setValuesFromUncompressed(const uint8_t* srcBuffer, o
 template<IntegerBitpackingType T>
 void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uint8_t* dst,
     uint8_t numValuesToRead, const BitpackInfo<T>& header) const {
-    // TODO(bmwinger): optimize as in setValueFromUncompressed
     const size_t maxReadIndex = pos + numValuesToRead;
     KU_ASSERT(maxReadIndex <= CHUNK_SIZE);
 
-    const size_t firstByteIndexInCompressed = pos * header.bitWidth / 8;
-    const size_t lastByteIndexInCompressed = ceilDiv<size_t>(maxReadIndex * header.bitWidth, 8);
+    for (size_t i = pos; i < maxReadIndex; i++) {
+        U& out = ((U*)dst)[i - pos];
+        if constexpr (sizeof(U) * 8 >= 32) {
+            const uint32_t* readCursor = (uint32_t*)chunkStart + i * header.bitWidth / 32;
+            const uint16_t shiftRight = (i * header.bitWidth) % 32;
+            bitpacking_utils::unpackSingle(readCursor, &out, header.bitWidth, shiftRight);
+        } else {
+            const uint8_t* readCursor = chunkStart + i * header.bitWidth / 8;
+            const uint16_t shiftRight = (i * header.bitWidth) % 8;
+            bitpacking_utils::unpackSingle(readCursor, &out, header.bitWidth, shiftRight);
+        }
 
-    // we don't need to zero out the array as we memcpy into the only regions we care about
-    uint8_t inChunk[CHUNK_SIZE * sizeof(U)];
-    memcpy(inChunk + firstByteIndexInCompressed, chunkStart + firstByteIndexInCompressed,
-        lastByteIndexInCompressed - firstByteIndexInCompressed);
+        if (header.hasNegative && header.bitWidth > 0) {
+            SignExtend<T, U, 1>((uint8_t*)&out, header.bitWidth);
+        }
 
-    U chunk[CHUNK_SIZE];
-    fastunpack((uint8_t*)inChunk, chunk, header.bitWidth);
-    if (header.hasNegative && header.bitWidth > 0) {
-        SignExtend<T, U, CHUNK_SIZE>((uint8_t*)chunk, header.bitWidth);
-    }
-    if (header.offset != 0) {
-        for (size_t i = pos; i < maxReadIndex; i++) {
-            chunk[i] = (U)((T)chunk[i] + (T)header.offset);
+        if (header.offset != 0) {
+            (T&)out = (T)(out + header.offset);
         }
     }
-    memcpy(dst, &chunk[pos], sizeof(T) * numValuesToRead);
 }
 
 template<IntegerBitpackingType T>
@@ -566,7 +566,7 @@ uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
         }
         // Pack last partial chunk, avoiding overflows
         const size_t remainingNumValues = numValuesToCompress % CHUNK_SIZE;
-        if (numValuesToCompress % CHUNK_SIZE > 0) {
+        if (remainingNumValues > 0) {
             packPartialChunk((const U*)srcBuffer + lastFullChunkEnd,
                 dstBuffer + lastFullChunkEnd * bitWidth / 8, info, remainingNumValues);
         }
