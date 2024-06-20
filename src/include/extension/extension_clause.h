@@ -54,7 +54,7 @@ class PhysicalExtensionClause : public processor::PhysicalOperator {
 public:
     PhysicalExtensionClause(uint32_t id, const std::string& paramsString)
         : processor::PhysicalOperator{processor::PhysicalOperatorType::EXTENSION_CLAUSE, id,
-              paramsString} {}
+              std::make_unique<processor::OPPrintInfo>(paramsString)} {}
 };
 
 } // namespace extension

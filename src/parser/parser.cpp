@@ -47,7 +47,7 @@ std::vector<std::shared_ptr<Statement>> Parser::parseQuery(std::string_view quer
     } catch (std::exception& e) {
         auto& extensionClauseHandler = database->getExtensionClauseHandler();
         if (extensionClauseHandler.empty()) {
-            throw e;
+            throw;
         }
         auto errMsg = e.what();
         for (auto& [name, extension] : extensionClauseHandler) {

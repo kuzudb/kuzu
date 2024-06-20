@@ -115,7 +115,7 @@ TEST(CompressionTests, IntegerPackingTest128AllPositive) {
     {
         kuzu::common::int128_t cur = 1;
         kuzu::common::int128_t diff = 1;
-        std::ranges::generate(src.begin(), src.end(), [&diff, &cur] {
+        std::generate(src.begin(), src.end(), [&diff, &cur] {
             diff *= 2;
             cur += diff;
             return cur;
@@ -132,7 +132,7 @@ TEST(CompressionTests, IntegerPackingTest128Negative) {
     {
         auto cur = -(kuzu::common::int128_t(1) << 120);
         kuzu::common::int128_t diff = 1;
-        std::ranges::generate(src.begin(), src.end(), [&diff, &cur] {
+        std::generate(src.begin(), src.end(), [&diff, &cur] {
             diff *= 2;
             cur += diff;
             return cur;

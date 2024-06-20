@@ -84,3 +84,8 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database_destroy(&database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
+
+TEST_F(CApiDatabaseTest, dasd) {
+    createDBAndConn();
+    conn->query("create node table test1(ID INT64, marks INT64[0], PRIMARY KEY(ID))");
+}

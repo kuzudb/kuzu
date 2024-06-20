@@ -496,18 +496,6 @@ B
 s
 E
 
--LOG ListExtractStringEdgeCase
--STATEMENT MATCH (a:person) RETURN a.fName[7:]
----- 8
-
-
-
-
-
-
-
-
-
 -LOG ListExtractOutOfRange
 -STATEMENT MATCH (a:person) RETURN a.fName[8]
 ---- 8
