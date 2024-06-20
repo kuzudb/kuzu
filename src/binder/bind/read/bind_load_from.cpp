@@ -83,6 +83,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
         case common::FileType::CSV:
         case common::FileType::PARQUET:
         case common::FileType::NPY:
+        case common::FileType::JSON:
             break;
         default:
             throw BinderException(

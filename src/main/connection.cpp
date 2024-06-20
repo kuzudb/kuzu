@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "common/random_engine.h"
+#include "catalog/catalog.h"
 
 using namespace kuzu::parser;
 using namespace kuzu::binder;
@@ -19,6 +20,13 @@ Connection::Connection(Database* database) {
     KU_ASSERT(database != nullptr);
     this->database = database;
     clientContext = std::make_unique<ClientContext>(database);
+    if (!database->getConfig().readOnly) {
+        clientContext->runFuncInTransaction([&]() {
+            if (!database->catalog->containsType(clientContext->getTx(), "json")) {
+                database->catalog->createType(clientContext->getTx(), "json", LogicalType::STRING());
+            }
+        });
+    }
 }
 
 Connection::~Connection() {}

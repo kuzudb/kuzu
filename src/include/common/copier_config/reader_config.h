@@ -17,6 +17,7 @@ enum class FileType : uint8_t {
     TURTLE = 4,   // Terse triples http://www.w3.org/TR/turtle
     NQUADS = 5,   // Line-based quads http://www.w3.org/TR/n-quads/
     NTRIPLES = 6, // Line-based triples http://www.w3.org/TR/n-triples/
+    JSON = 7,
 };
 
 struct FileTypeUtils {

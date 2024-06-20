@@ -5,6 +5,7 @@
 
 #include "common/api.h"
 #include "main/db_config.h"
+#include "function/function.h"
 
 namespace kuzu {
 namespace function {
@@ -43,6 +44,9 @@ struct ExtensionUtils {
 
     KUZU_API static void registerTableFunction(main::Database& database,
         std::unique_ptr<function::TableFunction> function);
+
+    KUZU_API static void registerFunctionSet(main::Database& database,
+        std::string name, function::function_set functionSet);
 
     static bool isOfficialExtension(const std::string& extension);
 };

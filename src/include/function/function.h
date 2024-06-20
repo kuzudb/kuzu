@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/api.h"
 #include "binder/expression/expression.h"
 
 namespace kuzu {
@@ -10,7 +11,7 @@ class ClientContext;
 
 namespace function {
 
-struct FunctionBindData {
+struct KUZU_API FunctionBindData {
     std::vector<common::LogicalType> paramTypes;
     common::LogicalType resultType;
     main::ClientContext* clientContext;
