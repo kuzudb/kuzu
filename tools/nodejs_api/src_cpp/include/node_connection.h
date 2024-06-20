@@ -2,7 +2,6 @@
 
 #include <utility>
 
-#include "common/types/uuid.h"
 #include "main/kuzu.h"
 #include "node_database.h"
 #include "node_prepared_statement.h"
