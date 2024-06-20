@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/api.h"
 #include "common/in_mem_overflow_buffer.h"
 #include "common/types/types.h"
 
@@ -63,7 +64,7 @@ private:
 // 2. A data vector(called dataVector) to store the actual list elements: This vector holds the
 // actual elements of the lists in a flat, continuous storage. Each list would be represented as a
 // contiguous subsequence of elements in this vector.
-class ListAuxiliaryBuffer : public AuxiliaryBuffer {
+class KUZU_API ListAuxiliaryBuffer : public AuxiliaryBuffer {
     friend class ListVector;
 
 public:
@@ -79,7 +80,7 @@ public:
 
     void resetSize() { size = 0; }
 
-    KUZU_API void resize(uint64_t numValues);
+    void resize(uint64_t numValues);
 
 private:
     void resizeDataVector(ValueVector* dataVector);

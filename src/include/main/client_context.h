@@ -125,6 +125,10 @@ public:
     void setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_);
     bool hasDefaultDatabase();
 
+    void runFuncInTransaction(const std::function<void(void)>& fun);
+    void addScalarFunction(std::string name, function::function_set definitions);
+    void removeScalarFunction(std::string name);
+
     void cleanUP();
 
 private:
@@ -161,10 +165,6 @@ private:
     std::unique_ptr<QueryResult> executeAndAutoCommitIfNecessaryNoLock(
         PreparedStatement* preparedStatement, uint32_t planIdx = 0u, bool requiredNexTx = true,
         std::optional<uint64_t> queryID = std::nullopt);
-
-    void runFuncInTransaction(const std::function<void(void)>& fun);
-    void addScalarFunction(std::string name, function::function_set definitions);
-    void removeScalarFunction(std::string name);
 
     bool canExecuteWriteQuery();
 
