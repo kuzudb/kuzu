@@ -5,13 +5,13 @@
 namespace kuzu {
 namespace common {
 
-// pyarrow format string specifications can be found here
+// Pyarrow format string specifications can be found here
 // https://arrow.apache.org/docs/format/CDataInterface.html#data-type-description-format-strings
 
 LogicalType ArrowConverter::fromArrowSchema(const ArrowSchema* schema) {
     const char* arrowType = schema->format;
     std::vector<StructField> structFields;
-    // if we have a dictionary, then the logical type of the column is dependent upon the
+    // If we have a dictionary, then the logical type of the column is dependent upon the
     // logical type of the dict
     if (schema->dictionary != nullptr) {
         return fromArrowSchema(schema->dictionary);
