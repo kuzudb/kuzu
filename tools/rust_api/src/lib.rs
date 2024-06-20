@@ -20,13 +20,6 @@
 //! # Ok(())
 //! # }
 //! ```
-//!
-//! ## Safety
-//!
-//! Generally, use of this API is safe - however creating multiple databases in the same
-//! scope is not considered safe.
-//! If you need to access multiple databases you will need to do so in separate processes.
-//!
 //! ## Building
 //!
 //! By default, the kuzu C++ library will be compiled from source and statically linked.
