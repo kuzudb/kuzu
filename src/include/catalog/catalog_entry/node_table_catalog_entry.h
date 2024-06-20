@@ -36,18 +36,10 @@ public:
         externalDBName = dbName;
         externalTableName = tableName;
     }
-    bool hasExternalTableID() const {
-        return externalTableID != common::INVALID_TABLE_ID;
-    }
-    common::table_id_t getExternalTableID () const {
-        return externalTableID;
-    }
-    std::string getExternalDBName() const {
-        return externalDBName;
-    }
-    std::string getExternalTableName() const {
-        return externalTableName;
-    }
+    bool hasExternalTableID() const { return externalTableID != common::INVALID_TABLE_ID; }
+    common::table_id_t getExternalTableID() const { return externalTableID; }
+    std::string getExternalDBName() const { return externalDBName; }
+    std::string getExternalTableName() const { return externalTableName; }
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization

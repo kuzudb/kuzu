@@ -171,7 +171,7 @@ table_id_t Catalog::createTableSchema(transaction::Transaction* transaction,
     } break;
     case TableType::EXTERNAL_NODE: {
         entry = createExternalNodeTableEntry(transaction, tableID, info);
-    } break ;
+    } break;
     case TableType::REL: {
         entry = createRelTableEntry(transaction, tableID, info);
     } break;
@@ -483,8 +483,8 @@ void Catalog::alterRdfChildTableEntries(transaction::Transaction* transaction,
     tables->alterEntry(transaction, *literalTripleRenameInfo);
 }
 
-std::unique_ptr<CatalogEntry> Catalog::createNodeTableEntry(Transaction*,
-    table_id_t tableID, const BoundCreateTableInfo& info) const {
+std::unique_ptr<CatalogEntry> Catalog::createNodeTableEntry(Transaction*, table_id_t tableID,
+    const BoundCreateTableInfo& info) const {
     auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateNodeTableInfo>();
     auto nodeTableEntry = std::make_unique<NodeTableCatalogEntry>(tables.get(), info.tableName,
         tableID, extraInfo->primaryKeyIdx);
@@ -495,14 +495,16 @@ std::unique_ptr<CatalogEntry> Catalog::createNodeTableEntry(Transaction*,
     return nodeTableEntry;
 }
 
-std::unique_ptr<CatalogEntry> Catalog::createExternalNodeTableEntry(transaction::Transaction*, common::table_id_t tableID, const binder::BoundCreateTableInfo& info) {
+std::unique_ptr<CatalogEntry> Catalog::createExternalNodeTableEntry(transaction::Transaction*,
+    common::table_id_t tableID, const binder::BoundCreateTableInfo& info) {
     auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateExternalNodeTableInfo>();
     KU_ASSERT(extraInfo->propertyInfos.size() == 1);
     auto nodeTableEntry = std::make_unique<NodeTableCatalogEntry>(tables.get(), info.tableName,
         tableID, 0 /* primary key idx */);
     auto& pk = extraInfo->propertyInfos[0];
     nodeTableEntry->addProperty(pk.name, pk.type.copy(), pk.defaultValue->copy());
-    nodeTableEntry->setExternalTableInfo(extraInfo->externalTableID, extraInfo->dbName, extraInfo->tableName);
+    nodeTableEntry->setExternalTableInfo(extraInfo->externalTableID, extraInfo->dbName,
+        extraInfo->tableName);
     return nodeTableEntry;
 }
 

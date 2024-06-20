@@ -1,6 +1,6 @@
 #include "binder/binder.h"
-#include "main/database_manager.h"
 #include "common/exception/binder.h"
+#include "main/database_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -18,5 +18,5 @@ catalog::CatalogEntry* Binder::bindExternalTableEntry(std::string dbName, std::s
     return attachedCatalog->getTableCatalogEntry(clientContext->getTx(), tableID);
 }
 
-}
-}
+} // namespace binder
+} // namespace kuzu

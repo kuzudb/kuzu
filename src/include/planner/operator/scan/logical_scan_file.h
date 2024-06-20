@@ -11,8 +11,7 @@ class LogicalScanFile : public LogicalOperator {
 
 public:
     LogicalScanFile(binder::BoundFileScanInfo info, std::shared_ptr<binder::Expression> offset)
-        : LogicalOperator{type_}, info{std::move(info)},
-          offset{std::move(offset)} {}
+        : LogicalOperator{type_}, info{std::move(info)}, offset{std::move(offset)} {}
 
     std::string getExpressionsForPrinting() const override { return std::string(); }
 

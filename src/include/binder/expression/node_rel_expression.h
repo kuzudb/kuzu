@@ -2,8 +2,8 @@
 
 #include <unordered_map>
 
-#include "expression.h"
 #include "binder/copy/bound_file_scan_info.h"
+#include "expression.h"
 
 namespace kuzu {
 namespace catalog {
@@ -21,8 +21,10 @@ struct ExternalTableInfo {
     std::shared_ptr<Expression> internalColumn;
     std::shared_ptr<Expression> externalColumn;
 
-    ExternalTableInfo(BoundFileScanInfo fileScanInfo, std::shared_ptr<Expression> internalColumn, std::shared_ptr<Expression> externalColumn)
-        : fileScanInfo{std::move(fileScanInfo)}, internalColumn{std::move(internalColumn)}, externalColumn{std::move(externalColumn)} {}
+    ExternalTableInfo(BoundFileScanInfo fileScanInfo, std::shared_ptr<Expression> internalColumn,
+        std::shared_ptr<Expression> externalColumn)
+        : fileScanInfo{std::move(fileScanInfo)}, internalColumn{std::move(internalColumn)},
+          externalColumn{std::move(externalColumn)} {}
 };
 
 class NodeOrRelExpression : public Expression {
@@ -87,13 +89,12 @@ public:
 
     std::string toStringInternal() const final { return variableName; }
 
-    bool refersToExternalTable(const catalog::Catalog& catalog, transaction::Transaction* transaction) const;
+    bool refersToExternalTable(const catalog::Catalog& catalog,
+        transaction::Transaction* transaction) const;
     void setExternalTableInfo(std::unique_ptr<ExternalTableInfo> info) {
         externalTableInfo = std::move(info);
     }
-    bool hasExternalTableInfo() const {
-        return externalTableInfo != nullptr;
-    }
+    bool hasExternalTableInfo() const { return externalTableInfo != nullptr; }
     ExternalTableInfo* getExternalTableInfo() const { return externalTableInfo.get(); }
 
 protected:

@@ -1,8 +1,8 @@
 #include "binder/expression/property_expression.h"
-#include "planner/operator/scan/logical_scan_node_table.h"
-#include "planner/operator/logical_hash_join.h"
-#include "planner/planner.h"
 #include "catalog/catalog.h"
+#include "planner/operator/logical_hash_join.h"
+#include "planner/operator/scan/logical_scan_node_table.h"
+#include "planner/planner.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -22,18 +22,21 @@ static expression_vector removeInternalIDProperty(const expression_vector& expre
     return result;
 }
 
-void Planner::appendScanNodeTable(const Expression& expr, const expression_vector& properties, LogicalPlan& plan) {
+void Planner::appendScanNodeTable(const Expression& expr, const expression_vector& properties,
+    LogicalPlan& plan) {
     auto& node = expr.constCast<NodeExpression>();
     if (node.hasExternalTableInfo()) {
         auto externalTableInfo = node.getExternalTableInfo();
         appendScanFile(&externalTableInfo->fileScanInfo, plan);
         auto buildPlan = LogicalPlan();
-        appendScanNodeTable(node.getInternalID(), node.getTableIDs(), {externalTableInfo->internalColumn}, buildPlan);
-        auto joinCondition = std::make_pair(externalTableInfo->externalColumn, externalTableInfo->internalColumn);
+        appendScanNodeTable(node.getInternalID(), node.getTableIDs(),
+            {externalTableInfo->internalColumn}, buildPlan);
+        auto joinCondition =
+            std::make_pair(externalTableInfo->externalColumn, externalTableInfo->internalColumn);
         std::vector<join_condition_t> joinConditions;
         joinConditions.push_back(joinCondition);
         appendHashJoin(joinConditions, JoinType::INNER, nullptr, plan, buildPlan, plan);
-        return ;
+        return;
     }
     appendScanNodeTable(node.getInternalID(), node.getTableIDs(), properties, plan);
 }

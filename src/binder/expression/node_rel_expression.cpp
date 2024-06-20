@@ -45,13 +45,15 @@ expression_vector NodeOrRelExpression::getPropertyExprs() const {
     return result;
 }
 
-bool NodeOrRelExpression::refersToExternalTable(const Catalog& catalog, Transaction* transaction) const {
+bool NodeOrRelExpression::refersToExternalTable(const Catalog& catalog,
+    Transaction* transaction) const {
     if (tableIDs.size() > 1) {
         return false;
     }
-    return catalog.getTableCatalogEntry(transaction, tableIDs[0])->constCast<NodeTableCatalogEntry>().hasExternalTableID();
+    return catalog.getTableCatalogEntry(transaction, tableIDs[0])
+        ->constCast<NodeTableCatalogEntry>()
+        .hasExternalTableID();
 }
-
 
 } // namespace binder
 } // namespace kuzu

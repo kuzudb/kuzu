@@ -71,7 +71,7 @@ struct ExtraCreateExternalNodeTableInfo : public ExtraCreateTableInfo {
     ExternalTableInfo tableInfo;
 
     explicit ExtraCreateExternalNodeTableInfo(ExternalTableInfo tableInfo)
-        : tableInfo{std::move(tableInfo)}{}
+        : tableInfo{std::move(tableInfo)} {}
 };
 
 struct ExtraCreateExternalRelTableInfo : public ExtraCreateTableInfo {
@@ -79,7 +79,7 @@ struct ExtraCreateExternalRelTableInfo : public ExtraCreateTableInfo {
     ExternalTableInfo dstTableInfo;
 
     ExtraCreateExternalRelTableInfo(ExternalTableInfo srcTableInfo, ExternalTableInfo dstTableInfo)
-        : srcTableInfo{std::move(srcTableInfo)}, dstTableInfo{std::move(dstTableInfo)}  {}
+        : srcTableInfo{std::move(srcTableInfo)}, dstTableInfo{std::move(dstTableInfo)} {}
 };
 
 struct ExtraCreateRelTableInfo : public ExtraCreateTableInfo {

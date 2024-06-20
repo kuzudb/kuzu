@@ -45,17 +45,20 @@ std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 
-std::unique_ptr<Statement> Transformer::transformCreateExternalNodeTable(CypherParser::KU_CreateExternalNodeTableContext& ctx) {
+std::unique_ptr<Statement> Transformer::transformCreateExternalNodeTable(
+    CypherParser::KU_CreateExternalNodeTableContext& ctx) {
     auto tableName = transformSchemaName(*ctx.oC_SchemaName(0));
     auto createTableInfo = CreateTableInfo(TableType::EXTERNAL_NODE, tableName);
     auto tableInfo = ExternalTableInfo();
     tableInfo.dbName = transformSchemaName(*ctx.oC_SchemaName(1));
     tableInfo.tableName = transformSchemaName(*ctx.kU_TableLookup()->oC_SchemaName());
-    createTableInfo.extraInfo = std::make_unique<ExtraCreateExternalNodeTableInfo>(std::move(tableInfo));
+    createTableInfo.extraInfo =
+        std::make_unique<ExtraCreateExternalNodeTableInfo>(std::move(tableInfo));
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 
-std::unique_ptr<Statement> Transformer::transformCreateExternalRelTable(CypherParser::KU_CreateExternalRelTableContext& ctx) {
+std::unique_ptr<Statement> Transformer::transformCreateExternalRelTable(
+    CypherParser::KU_CreateExternalRelTableContext& ctx) {
     auto tableName = transformSchemaName(*ctx.oC_SchemaName(0));
     auto createTableInfo = CreateTableInfo(TableType::EXTERNAL_REL, tableName);
     auto srcTableInfo = ExternalTableInfo();
@@ -64,7 +67,8 @@ std::unique_ptr<Statement> Transformer::transformCreateExternalRelTable(CypherPa
     auto dstTableInfo = ExternalTableInfo();
     dstTableInfo.dbName = transformSchemaName(*ctx.oC_SchemaName(2));
     dstTableInfo.tableName = transformSchemaName(*ctx.kU_TableLookup(1)->oC_SchemaName());
-    createTableInfo.extraInfo = std::make_unique<ExtraCreateExternalRelTableInfo>(std::move(srcTableInfo), std::move(dstTableInfo));
+    createTableInfo.extraInfo = std::make_unique<ExtraCreateExternalRelTableInfo>(
+        std::move(srcTableInfo), std::move(dstTableInfo));
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 

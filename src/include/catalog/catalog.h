@@ -162,8 +162,9 @@ private:
         const binder::BoundAlterInfo& info) const;
     std::unique_ptr<CatalogEntry> createNodeTableEntry(transaction::Transaction* transaction,
         common::table_id_t tableID, const binder::BoundCreateTableInfo& info) const;
-    std::unique_ptr<CatalogEntry> createExternalNodeTableEntry(transaction::Transaction* transaction,
-        common::table_id_t tableID, const binder::BoundCreateTableInfo& info);
+    std::unique_ptr<CatalogEntry> createExternalNodeTableEntry(
+        transaction::Transaction* transaction, common::table_id_t tableID,
+        const binder::BoundCreateTableInfo& info);
     std::unique_ptr<CatalogEntry> createRelTableEntry(transaction::Transaction* transaction,
         common::table_id_t tableID, const binder::BoundCreateTableInfo& info) const;
     std::unique_ptr<CatalogEntry> createRelTableGroupEntry(transaction::Transaction* transaction,

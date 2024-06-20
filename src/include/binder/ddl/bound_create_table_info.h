@@ -103,12 +103,14 @@ struct BoundExtraCreateExternalNodeTableInfo : public BoundExtraCreateTableInfo 
     std::string dbName;
     std::string tableName;
 
-    BoundExtraCreateExternalNodeTableInfo(common::table_id_t externalTableID, std::string dbName, std::string tableName,
-        std::vector<PropertyInfo> propertyInfos)
-        : BoundExtraCreateTableInfo{std::move(propertyInfos)}, externalTableID{externalTableID}, dbName{std::move(dbName)}, tableName{std::move(tableName)} {}
+    BoundExtraCreateExternalNodeTableInfo(common::table_id_t externalTableID, std::string dbName,
+        std::string tableName, std::vector<PropertyInfo> propertyInfos)
+        : BoundExtraCreateTableInfo{std::move(propertyInfos)}, externalTableID{externalTableID},
+          dbName{std::move(dbName)}, tableName{std::move(tableName)} {}
     BoundExtraCreateExternalNodeTableInfo(const BoundExtraCreateExternalNodeTableInfo& other)
         : BoundExtraCreateTableInfo{copyVector(other.propertyInfos)},
-          externalTableID{other.externalTableID}, dbName{other.dbName}, tableName{other.tableName} {}
+          externalTableID{other.externalTableID}, dbName{other.dbName}, tableName{other.tableName} {
+    }
 
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
         return std::make_unique<BoundExtraCreateExternalNodeTableInfo>(*this);

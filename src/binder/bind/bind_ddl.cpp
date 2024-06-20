@@ -17,6 +17,7 @@
 #include "common/types/types.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/sequence/sequence_functions.h"
+#include "main/database_manager.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_sequence.h"
 #include "parser/ddl/create_table.h"
@@ -25,7 +26,6 @@
 #include "parser/ddl/drop.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
-#include "main/database_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -151,7 +151,6 @@ BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo& info
         std::move(boundExtraInfo));
 }
 
-
 BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo& info) {
     std::vector<PropertyInfo> propertyInfos;
     propertyInfos.emplace_back(InternalKeyword::ID, LogicalType::INTERNAL_ID());
@@ -181,8 +180,10 @@ BoundCreateTableInfo Binder::bindCreateExternalNodeTableInfo(const parser::Creat
     std::vector<PropertyInfo> propertyInfos;
     auto& pk = entry->getProperties()[0];
     propertyInfos.emplace_back(pk.getName(), pk.getDataType().copy(), pk.getDefaultExpr()->copy());
-    auto boundExtraInfo = std::make_unique<BoundExtraCreateExternalNodeTableInfo>(entry->getTableID(), dbName, tableName, std::move(propertyInfos));
-    return BoundCreateTableInfo(TableType::EXTERNAL_NODE, info.tableName, info.onConflict, std::move(boundExtraInfo));
+    auto boundExtraInfo = std::make_unique<BoundExtraCreateExternalNodeTableInfo>(
+        entry->getTableID(), dbName, tableName, std::move(propertyInfos));
+    return BoundCreateTableInfo(TableType::EXTERNAL_NODE, info.tableName, info.onConflict,
+        std::move(boundExtraInfo));
 }
 
 BoundCreateTableInfo Binder::bindCreateExternalRelTableInfo(const parser::CreateTableInfo& info) {
@@ -209,8 +210,10 @@ BoundCreateTableInfo Binder::bindCreateExternalRelTableInfo(const parser::Create
     KU_ASSERT(internalSrcTableID != INVALID_TABLE_ID && internalDstTableID != INVALID_TABLE_ID);
     std::vector<PropertyInfo> propertyInfos;
     propertyInfos.emplace_back(InternalKeyword::ID, LogicalType::INTERNAL_ID());
-    auto boundExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(RelMultiplicity::MANY, RelMultiplicity::MANY, internalSrcTableID, internalDstTableID, std::move(propertyInfos));
-    return BoundCreateTableInfo(TableType::REL, info.tableName, info.onConflict, std::move(boundExtraInfo));
+    auto boundExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(RelMultiplicity::MANY,
+        RelMultiplicity::MANY, internalSrcTableID, internalDstTableID, std::move(propertyInfos));
+    return BoundCreateTableInfo(TableType::REL, info.tableName, info.onConflict,
+        std::move(boundExtraInfo));
 }
 
 BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo& info) {

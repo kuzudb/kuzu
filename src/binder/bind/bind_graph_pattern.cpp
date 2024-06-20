@@ -123,9 +123,10 @@ std::shared_ptr<Expression> Binder::createPath(const std::string& pathName,
 }
 
 // We need to preserve property order as they are in the catalog.
-static void tryAddPropertyName(std::vector<std::string>& names, std::unordered_set<std::string>& nameSet, const std::string& name) {
+static void tryAddPropertyName(std::vector<std::string>& names,
+    std::unordered_set<std::string>& nameSet, const std::string& name) {
     if (nameSet.contains(name)) {
-        return ;
+        return;
     }
     names.push_back(name);
     nameSet.insert(name);
@@ -588,11 +589,15 @@ void Binder::bindQueryNodeProperties(NodeExpression& node) {
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTx();
     if (node.refersToExternalTable(*catalog, transaction)) {
-        auto entry = catalog->getTableCatalogEntry(transaction, node.getSingleTableID())->ptrCast<NodeTableCatalogEntry>();
-        auto externalEntry = bindExternalTableEntry(entry->getExternalDBName(), entry->getExternalTableName())->ptrCast<TableCatalogEntry>();
+        auto entry = catalog->getTableCatalogEntry(transaction, node.getSingleTableID())
+                         ->ptrCast<NodeTableCatalogEntry>();
+        auto externalEntry =
+            bindExternalTableEntry(entry->getExternalDBName(), entry->getExternalTableName())
+                ->ptrCast<TableCatalogEntry>();
         auto& internalProperties = entry->getProperties();
         KU_ASSERT(internalProperties.size() == 1);
-        node.addPropertyExpression(internalProperties[0].getName(), createPropertyExpression(internalProperties[0].getName(), node, {entry}));
+        node.addPropertyExpression(internalProperties[0].getName(),
+            createPropertyExpression(internalProperties[0].getName(), node, {entry}));
         auto& externalProperties = externalEntry->getProperties();
         for (auto i = 1u; i < externalProperties.size(); ++i) {
             auto& property = externalProperties[i];
@@ -607,9 +612,10 @@ void Binder::bindQueryNodeProperties(NodeExpression& node) {
         auto left = properties[0];
         auto right = columns[0];
         auto scanInfo = BoundFileScanInfo(scanFunction, std::move(bindData), std::move(columns));
-        auto externalTableInfo = std::make_unique<ExternalTableInfo>(std::move(scanInfo), left, right);
+        auto externalTableInfo =
+            std::make_unique<ExternalTableInfo>(std::move(scanInfo), left, right);
         node.setExternalTableInfo(std::move(externalTableInfo));
-        return ;
+        return;
     }
     auto entries = catalog->getTableEntries(clientContext->getTx(), node.getTableIDs());
     auto propertyNames = getPropertyNames(entries);
