@@ -9,6 +9,7 @@ oC_Statement
     : oC_Query
         | kU_CreateNodeTable
         | kU_CreateExternalNodeTable
+        | kU_CreateExternalRelTable
         | kU_CreateRelTable
         | kU_CreateRelTableGroup
         | kU_CreateRdfGraph
@@ -103,6 +104,9 @@ kU_CreateExternalNodeTable
 
 kU_CreateRelTable
     : CREATE SP REL SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection SP? ( ',' SP? kU_PropertyDefinitionsDDL SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
+
+kU_CreateExternalRelTable
+    : CREATE SP EXTERNAL SP REL SP TABLE SP oC_SchemaName SP '(' SP? FROM SP oC_SchemaName kU_TableLookup SP TO SP oC_SchemaName kU_TableLookup SP? ')' ;
 
 kU_CreateRelTableGroup
     : CREATE SP REL SP TABLE SP GROUP SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection ( SP? ',' SP? kU_RelTableConnection )+ SP? ( ',' SP? kU_PropertyDefinitionsDDL SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;

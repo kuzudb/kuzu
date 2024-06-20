@@ -28,6 +28,9 @@ std::string TableTypeUtils::toString(TableType tableType) {
     case TableType::EXTERNAL_NODE: {
         return "EXTERNAL_NODE";
     }
+    case TableType::EXTERNAL_REL: {
+        return "EXTERNAL_REL";
+    }
     default:
         KU_UNREACHABLE;
     }

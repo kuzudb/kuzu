@@ -15,6 +15,7 @@ enum class TableType : uint8_t {
     REL_GROUP = 4,
     EXTERNAL = 5,
     EXTERNAL_NODE = 6,
+    EXTERNAL_REL = 7,
 };
 
 struct TableTypeUtils {

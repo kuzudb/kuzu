@@ -18,16 +18,26 @@ Attached database successfully.
 Table duck_person has been created.
 -STATEMENT COPY duck_person FROM (LOAD FROM tinysnb.person RETURN ID);
 ---- ok
--STATEMENT MATCH (a:duck_person) RETURN a.*;
+-STATEMENT MATCH (a:duck_person) RETURN a.ID, a.fName;
 ---- 8
-0
-2
-3
-5
-7
-8
-9
-10
+0|Alice
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+2|Bob
+3|Carol
+5|Dan
+7|Elizabeth
+8|Farooq
+9|Greg
+-STATEMENT CREATE EXTERNAL REL TABLE duck_knows (FROM tinysnb.person TO tinysnb.person)
+---- 1
+Table duck_knows has been created.
+-STATEMENT MATCH (a:duck_person {fName: 'Alice'}),(b:duck_person {fName: 'Bob'})
+           CREATE (a)-[:duck_knows]->(b)
+---- ok
+-STATEMENT MATCH (a:duck_person)-[:duck_knows]->(b:duck_person) RETURN a.fName, b.fName;
+---- 1
+1
+
 
 #-STATEMENT LOAD FROM tinysnb.person RETURN *;
 #---- 8

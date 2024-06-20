@@ -62,12 +62,24 @@ struct ExtraCreateNodeTableInfo : public ExtraCreateTableInfo {
     explicit ExtraCreateNodeTableInfo(std::string pKName) : pKName{std::move(pKName)} {}
 };
 
-struct ExtraCreateExternalNodeTableInfo : public ExtraCreateTableInfo {
-    std::string externalDBName;
-    std::string externalTableName;
+struct ExternalTableInfo {
+    std::string dbName;
+    std::string tableName;
+};
 
-    explicit ExtraCreateExternalNodeTableInfo(std::string dbName, std::string tableName)
-        : externalDBName{std::move(dbName)}, externalTableName(std::move(tableName)) {}
+struct ExtraCreateExternalNodeTableInfo : public ExtraCreateTableInfo {
+    ExternalTableInfo tableInfo;
+
+    explicit ExtraCreateExternalNodeTableInfo(ExternalTableInfo tableInfo)
+        : tableInfo{std::move(tableInfo)}{}
+};
+
+struct ExtraCreateExternalRelTableInfo : public ExtraCreateTableInfo {
+    ExternalTableInfo srcTableInfo;
+    ExternalTableInfo dstTableInfo;
+
+    ExtraCreateExternalRelTableInfo(ExternalTableInfo srcTableInfo, ExternalTableInfo dstTableInfo)
+        : srcTableInfo{std::move(srcTableInfo)}, dstTableInfo{std::move(dstTableInfo)}  {}
 };
 
 struct ExtraCreateRelTableInfo : public ExtraCreateTableInfo {

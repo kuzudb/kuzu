@@ -48,9 +48,23 @@ std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
 std::unique_ptr<Statement> Transformer::transformCreateExternalNodeTable(CypherParser::KU_CreateExternalNodeTableContext& ctx) {
     auto tableName = transformSchemaName(*ctx.oC_SchemaName(0));
     auto createTableInfo = CreateTableInfo(TableType::EXTERNAL_NODE, tableName);
-    auto externalDBName = transformSchemaName(*ctx.oC_SchemaName(1));
-    auto externalTableName = transformSchemaName(*ctx.kU_TableLookup()->oC_SchemaName());
-    createTableInfo.extraInfo = std::make_unique<ExtraCreateExternalNodeTableInfo>(externalDBName, externalTableName);
+    auto tableInfo = ExternalTableInfo();
+    tableInfo.dbName = transformSchemaName(*ctx.oC_SchemaName(1));
+    tableInfo.tableName = transformSchemaName(*ctx.kU_TableLookup()->oC_SchemaName());
+    createTableInfo.extraInfo = std::make_unique<ExtraCreateExternalNodeTableInfo>(std::move(tableInfo));
+    return std::make_unique<CreateTable>(std::move(createTableInfo));
+}
+
+std::unique_ptr<Statement> Transformer::transformCreateExternalRelTable(CypherParser::KU_CreateExternalRelTableContext& ctx) {
+    auto tableName = transformSchemaName(*ctx.oC_SchemaName(0));
+    auto createTableInfo = CreateTableInfo(TableType::EXTERNAL_REL, tableName);
+    auto srcTableInfo = ExternalTableInfo();
+    srcTableInfo.dbName = transformSchemaName(*ctx.oC_SchemaName(1));
+    srcTableInfo.tableName = transformSchemaName(*ctx.kU_TableLookup(0)->oC_SchemaName());
+    auto dstTableInfo = ExternalTableInfo();
+    dstTableInfo.dbName = transformSchemaName(*ctx.oC_SchemaName(2));
+    dstTableInfo.tableName = transformSchemaName(*ctx.kU_TableLookup(1)->oC_SchemaName());
+    createTableInfo.extraInfo = std::make_unique<ExtraCreateExternalRelTableInfo>(std::move(srcTableInfo), std::move(dstTableInfo));
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 
