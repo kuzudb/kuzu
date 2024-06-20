@@ -6,3 +6,12 @@
 -STATEMENT MATCH (:person)-[e:knows]->(:person) RETURN COUNT(*)
 ---- 1
 14
+
+-CASE CopyZeroColumnsSerial
+-STATEMENT CREATE NODE TABLE test (id SERIAL, primary key(id));
+---- ok
+-STATEMENT copy test from "${KUZU_ROOT_DIRECTORY}/dataset/large-serial/serialtable0.csv"
+---- ok
+-STATEMENT MATCH (t:test) return sum(t.id);
+---- 1
+431985
