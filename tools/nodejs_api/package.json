@@ -17,7 +17,7 @@
   "author": "Kùzu Team",
   "license": "MIT",
   "devDependencies": {
-    "chai": "^5.1.1",
+    "chai": "^4.4.1",
     "mocha": "^10.4.0",
     "tmp": "^0.2.3"
   },
