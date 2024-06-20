@@ -420,9 +420,8 @@ void ClientContext::cleanUP() {
 
 std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement* preparedStatement,
     std::unordered_map<std::string, std::unique_ptr<Value>> inputParams,
-    std::optional<uint64_t>
-        queryID) { // NOLINT(performance-unnecessary-value-param): It doesn't make sense to pass
-                   // the map as a const reference.
+    std::optional<uint64_t> queryID) { // NOLINT(performance-unnecessary-value-param): It doesn't
+                                       // make sense to pass the map as a const reference.
     lock_t lck{mtx};
     if (!preparedStatement->isSuccess()) {
         return queryResultWithError(preparedStatement->errMsg);
