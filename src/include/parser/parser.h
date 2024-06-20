@@ -18,7 +18,7 @@ class Parser {
 public:
     explicit Parser(main::Database* database) : database{database} {}
 
-    std::vector<std::shared_ptr<Statement>> parseQuery(std::string_view query);
+    std::vector<std::shared_ptr<Statement>> parseQuery(std::string_view query) const;
 
 private:
     main::Database* database;

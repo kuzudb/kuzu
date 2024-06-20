@@ -6,7 +6,7 @@
 #include "cypher_lexer.h"
 #pragma GCC diagnostic pop
 #include "common/exception/parser.h"
-#include "extension/extension_clause.h"
+#include "extension/extension_clause_handler.h"
 #include "main/database.h"
 #include "parser/antlr_parser/kuzu_cypher_parser.h"
 #include "parser/antlr_parser/parser_error_listener.h"
@@ -18,7 +18,7 @@ using namespace antlr4;
 namespace kuzu {
 namespace parser {
 
-std::vector<std::shared_ptr<Statement>> Parser::parseQuery(std::string_view query) {
+std::vector<std::shared_ptr<Statement>> Parser::parseQuery(std::string_view query) const {
     // LCOV_EXCL_START
     // We should have enforced this in connection, but I also realize empty query will cause
     // antlr to hang. So enforce a duplicate check here.
