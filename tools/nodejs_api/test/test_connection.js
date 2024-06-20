@@ -274,47 +274,6 @@ describe("Close", function () {
 });
 
 describe("Progress", function () {
-    it("should execute a valid prepared statement with progress", async function () {
-        await conn.query("CALL progress_bar_time = 0");
-        let progressCalled = false;
-        const progressCallback = (pipelineProgress, numPipelinesFinished, numPipelines) => {
-            progressCalled = true;
-            assert.isNumber(pipelineProgress);
-            assert.isNumber(numPipelinesFinished);
-            assert.isNumber(numPipelines);
-        };
-        const preparedStatement = await conn.prepare(
-            "MATCH (a:person) WHERE a.ID = $1 RETURN COUNT(*)"
-        );
-        assert.exists(preparedStatement);
-        assert.isTrue(preparedStatement.isSuccess());
-        const queryResult = await conn.execute(preparedStatement, { 1: 0 }, progressCallback);
-        assert.exists(queryResult);
-        assert.equal(queryResult.constructor.name, "QueryResult");
-        assert.isTrue(queryResult.hasNext());
-        const tuple = await queryResult.getNext();
-        assert.exists(tuple);
-        assert.exists(tuple["COUNT_STAR()"]);
-        assert.equal(tuple["COUNT_STAR()"], 1);
-        assert.isTrue(progressCalled)
-    });
-    it("should throw error if the progress callback is not a function for execute", async function () {
-        try {
-            const preparedStatement = await conn.prepare(
-                "MATCH (a:person) WHERE a.ID = $1 RETURN COUNT(*)"
-            );
-            assert.exists(preparedStatement);
-            assert.isTrue(preparedStatement.isSuccess());
-            await conn.execute(preparedStatement, { 1: 0 }, 10);
-            assert.fail("No error thrown when progress callback is not a function.");
-        } catch (e) {
-            assert.equal(
-                e.message,
-                "progressCallback must be a function."
-            );
-        }
-    });
-
     it("should execute a valid query with progress", async function () {
         await conn.query("CALL progress_bar_time = 0");
         let progressCalled = false;

@@ -18,6 +18,8 @@ class Connection {
     friend class kuzu::testing::TestRunner;
     friend class kuzu::benchmark::Benchmark;
     friend class kuzu::testing::TinySnbDDLTest;
+    friend class ConnectionExecuteAsyncWorker;
+    friend class ConnectionQueryAsyncWorker;
 
 public:
     /**
@@ -46,6 +48,7 @@ public:
      * @return the result of the query.
      */
     KUZU_API std::unique_ptr<QueryResult> query(std::string_view query);
+
     /**
      * @brief Prepares the given query and returns the prepared statement.
      * @param query The query to prepare.
@@ -147,6 +150,12 @@ private:
 
     KUZU_API void addScalarFunction(std::string name, function::function_set definitions);
     KUZU_API void removeScalarFunction(std::string name);
+
+    std::unique_ptr<QueryResult> queryWithID(std::string_view query, uint64_t queryID);
+
+    std::unique_ptr<QueryResult> executeWithParamsWithID(PreparedStatement* preparedStatement,
+        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams,
+        uint64_t queryID);
 
 private:
     Database* database;

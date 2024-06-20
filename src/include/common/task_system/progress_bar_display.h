@@ -14,11 +14,14 @@ public:
 
     virtual ~ProgressBarDisplay() = default;
 
-    // Update the progress of the pipeline and the number of finished pipelines
-    virtual void updateProgress(double newPipelineProgress, uint32_t newNumPipelinesFinished) = 0;
+    // Update the progress of the pipeline and the number of finished pipelines. queryID is used to
+    // identify the query when we track progress of multiple queries asynchronously
+    virtual void updateProgress(uint64_t queryID, double newPipelineProgress,
+        uint32_t newNumPipelinesFinished) = 0;
 
-    // Finish the progress display
-    virtual void finishProgress() = 0;
+    // Finish the progress display. queryID is used to identify the query when we track progress of
+    // multiple queries asynchronously
+    virtual void finishProgress(uint64_t queryID) = 0;
 
     void setNumPipelines(uint32_t newNumPipelines) { numPipelines = newNumPipelines; };
 

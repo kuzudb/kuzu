@@ -1,25 +1,50 @@
 #include "include/node_progress_bar_display.h"
 
+#include <tuple>
+
 using namespace kuzu;
 using namespace common;
 
-void NodeProgressBarDisplay::updateProgress(double newPipelineProgress,
+void NodeProgressBarDisplay::updateProgress(uint64_t queryID, double newPipelineProgress,
     uint32_t newNumPipelinesFinished) {
-    uint32_t progress = (uint32_t)(newPipelineProgress * 100.0);
-    uint32_t oldProgress = (uint32_t)(pipelineProgress * 100.0);
-    if (progress > oldProgress || newNumPipelinesFinished > numPipelinesFinished) {
+    if (numPipelines == 0) {
+        return;
+    }
+    uint32_t curPipelineProgress = (uint32_t)(newPipelineProgress * 100.0);
+    uint32_t oldPipelineProgress = (uint32_t)(pipelineProgress * 100.0);
+    if (curPipelineProgress > oldPipelineProgress ||
+        newNumPipelinesFinished > numPipelinesFinished) {
         pipelineProgress = newPipelineProgress;
         numPipelinesFinished = newNumPipelinesFinished;
-        callback.BlockingCall([this](Napi::Env env, Napi::Function jsCallback) {
-            jsCallback.Call({Napi::Number::New(env, pipelineProgress),
-                Napi::Number::New(env, numPipelinesFinished),
-                Napi::Number::New(env, numPipelines)});
-        });
+        auto callback = queryCallbacks.find(queryID);
+        if (callback != queryCallbacks.end()) {
+            double capturedPipelineProgress = pipelineProgress;
+            uint32_t capturedNumPipelinesFinished = numPipelinesFinished;
+            uint32_t capturedNumPipelines = numPipelines;
+            callback->second.BlockingCall(
+                [capturedPipelineProgress, capturedNumPipelinesFinished,
+                    capturedNumPipelines](Napi::Env env, Napi::Function jsCallback) {
+                    // Use the captured values directly inside the lambda
+                    jsCallback.Call({Napi::Number::New(env, capturedPipelineProgress),
+                        Napi::Number::New(env, capturedNumPipelinesFinished),
+                        Napi::Number::New(env, capturedNumPipelines)});
+                });
+        }
     }
 }
 
-void NodeProgressBarDisplay::finishProgress() {
-    pipelineProgress = 0;
+void NodeProgressBarDisplay::finishProgress(uint64_t queryID) {
     numPipelines = 0;
     numPipelinesFinished = 0;
+    pipelineProgress = 0;
+    auto callback = queryCallbacks.find(queryID);
+    if (callback != queryCallbacks.end()) {
+        callback->second.Release();
+    }
+    queryCallbacks.erase(queryID);
+}
+
+void NodeProgressBarDisplay::setCallbackFunction(uint64_t queryID,
+    Napi::ThreadSafeFunction callback) {
+    queryCallbacks.emplace(queryID, callback);
 }

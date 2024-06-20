@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -121,6 +122,8 @@ public:
     common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>>&
     getStorageExtensions();
 
+    uint64_t getNextQueryID();
+
 private:
     void openLockFile();
     void initAndLockDBDir();
@@ -139,6 +142,10 @@ private:
     std::unique_ptr<extension::ExtensionOptions> extensionOptions;
     std::unique_ptr<DatabaseManager> databaseManager;
     common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>> storageExtensions;
+    struct QueryIDGenerator {
+        uint64_t queryID = 0;
+        std::mutex queryIDLock;
+    } queryIDGenerator;
 };
 
 } // namespace main

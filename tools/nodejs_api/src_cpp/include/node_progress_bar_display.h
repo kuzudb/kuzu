@@ -1,5 +1,8 @@
 #pragma once
 
+#include <optional>
+#include <unordered_set>
+
 #include "common/task_system/progress_bar_display.h"
 #include <napi.h>
 
@@ -11,14 +14,15 @@ using namespace common;
  */
 class NodeProgressBarDisplay : public ProgressBarDisplay {
 public:
-    NodeProgressBarDisplay(Napi::ThreadSafeFunction callback, Napi::Env env)
-        : callback(callback), env(env) {}
+    void updateProgress(uint64_t queryID, double newPipelineProgress,
+        uint32_t newNumPipelinesFinished) override;
 
-    void updateProgress(double newPipelineProgress, uint32_t newNumPipelinesFinished) override;
+    void finishProgress(uint64_t queryID) override;
 
-    void finishProgress() override;
+    void setCallbackFunction(uint64_t queryID, Napi::ThreadSafeFunction callback);
+
+    uint32_t getNumCallbacks() { return queryCallbacks.size(); }
 
 private:
-    Napi::ThreadSafeFunction callback;
-    Napi::Env env;
+    std::unordered_map<uint64_t, Napi::ThreadSafeFunction> queryCallbacks;
 };
