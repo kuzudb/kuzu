@@ -132,12 +132,13 @@ def init_rdf(conn: kuzu.Connection) -> None:
                 if line := line.strip():
                     conn.execute(line)
 
+_POOL_SIZE_: int = 256 * 1024 * 1024
 
 def init_db(path: Path) -> Path:
     if Path(path).exists():
         shutil.rmtree(path)
 
-    db = kuzu.Database(path)
+    db = kuzu.Database(path, buffer_pool_size=_POOL_SIZE_)
     conn = kuzu.Connection(db)
     init_tinysnb(conn)
     init_npy(conn)
@@ -149,7 +150,6 @@ def init_db(path: Path) -> Path:
 
 
 _READONLY_CONN_DB_: ConnDB | None = None
-_POOL_SIZE_: int = 256 * 1024 * 1024
 
 
 def _create_conn_db(path: Path, *, read_only: bool) -> ConnDB:
