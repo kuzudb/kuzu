@@ -1,4 +1,5 @@
 #include "include/node_progress_bar_display.h"
+
 #include <tuple>
 
 using namespace kuzu;
@@ -43,6 +44,7 @@ void NodeProgressBarDisplay::finishProgress(uint64_t queryID) {
     queryCallbacks.erase(queryID);
 }
 
-void NodeProgressBarDisplay::setCallbackFunction(uint64_t queryID, Napi::ThreadSafeFunction callback) {
+void NodeProgressBarDisplay::setCallbackFunction(uint64_t queryID,
+    Napi::ThreadSafeFunction callback) {
     queryCallbacks.emplace(queryID, callback);
 }
