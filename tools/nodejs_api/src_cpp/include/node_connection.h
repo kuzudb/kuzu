@@ -64,7 +64,7 @@ private:
 namespace kuzu {
 namespace main {
 
-class kuzu::main::ConnectionExecuteAsyncWorker : public Napi::AsyncWorker {
+class ConnectionExecuteAsyncWorker : public Napi::AsyncWorker {
 public:
     ConnectionExecuteAsyncWorker(Napi::Function& callback, std::shared_ptr<Connection>& connection,
         std::shared_ptr<PreparedStatement> preparedStatement, NodeQueryResult* nodeQueryResult,
@@ -125,7 +125,7 @@ private:
     std::optional<Napi::ThreadSafeFunction> progressCallback;
 };
 
-class kuzu::main::ConnectionQueryAsyncWorker : public Napi::AsyncWorker {
+class ConnectionQueryAsyncWorker : public Napi::AsyncWorker {
 public:
     ConnectionQueryAsyncWorker(Napi::Function& callback, std::shared_ptr<Connection>& connection,
         std::string statement, NodeQueryResult* nodeQueryResult, Napi::Value progressCallback)
