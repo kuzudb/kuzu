@@ -33,8 +33,7 @@ struct ListSlice {
         auto startIdx = begin;
         auto endIdx = end;
         normalizeIndices(startIdx, endIdx, str.len);
-        SubStr::operation(str, startIdx, std::min(endIdx - startIdx + 1, str.len - startIdx + 1),
-            result, resultValueVector);
+        SubStr::operation(str, startIdx, endIdx - startIdx + 1, result, resultValueVector);
     }
 
 private:

@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundStatementResult {
+class KUZU_API BoundStatementResult {
 public:
     BoundStatementResult() = default;
     explicit BoundStatementResult(expression_vector columns) : columns{std::move(columns)} {}

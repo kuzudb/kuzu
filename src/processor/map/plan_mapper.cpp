@@ -181,6 +181,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::USE_DATABASE: {
         physicalOperator = mapUseDatabase(logicalOperator);
     } break;
+    case LogicalOperatorType::EXTENSION_CLAUSE: {
+        physicalOperator = mapExtensionClause(logicalOperator);
+    } break;
     default:
         KU_UNREACHABLE;
     }

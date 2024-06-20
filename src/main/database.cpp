@@ -1,5 +1,6 @@
 #include "main/database.h"
 
+#include "extension/extension_clause_handler.h"
 #include "main/database_manager.h"
 
 #if defined(_WIN32)
@@ -105,6 +106,11 @@ void Database::registerStorageExtension(std::string name,
     storageExtensions.emplace(std::move(name), std::move(storageExtension));
 }
 
+void Database::registerExtensionClauseHandler(std::string name,
+    std::unique_ptr<extension::ExtensionClauseHandler> handler) {
+    extensionClauseHandler.emplace(std::move(name), std::move(handler));
+}
+
 void Database::addExtensionOption(std::string name, LogicalTypeID type, Value defaultValue) {
     if (extensionOptions->getExtensionOption(name) != nullptr) {
         throw ExtensionException{stringFormat("Extension option {} already exists.", name)};
@@ -118,6 +124,11 @@ ExtensionOption* Database::getExtensionOption(std::string name) {
 
 case_insensitive_map_t<std::unique_ptr<StorageExtension>>& Database::getStorageExtensions() {
     return storageExtensions;
+}
+
+case_insensitive_map_t<std::unique_ptr<extension::ExtensionClauseHandler>>&
+Database::getExtensionClauseHandler() {
+    return extensionClauseHandler;
 }
 
 void Database::openLockFile() {

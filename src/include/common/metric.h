@@ -35,7 +35,7 @@ public:
     Timer timer;
 };
 
-class NumericMetric : public Metric {
+class KUZU_API NumericMetric : public Metric {
 
 public:
     explicit NumericMetric(bool enable);

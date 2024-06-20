@@ -1,0 +1,18 @@
+-DATASET CSV empty
+
+--
+
+-CASE SampleTest
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/sample/build/libsample.kuzu_extension"
+---- ok
+-STATEMENT NEW NODE TABLE UW
+---- 1
+New table has been created by extension.
+-STATEMENT MATCH (u:UW) return count(u)
+---- 1
+0
+-STATEMENT NEW REL TABLE UW
+---- error
+Parser exception: Kuzu default parser throws an exception: "Parser exception: extraneous input 'NEW' expecting {ALTER, ATTACH, BEGIN, CALL, COMMENT, COMMIT, COMMIT_SKIP_CHECKPOINT, COPY, CREATE, DELETE, DETACH, DROP, EXPLAIN, EXPORT, IMPORT, INSTALL, LOAD, MATCH, MERGE, OPTIONAL, PROFILE, PROJECT, RETURN, ROLLBACK, ROLLBACK_SKIP_CHECKPOINT, SET, UNWIND, USE, WITH, SP} (line: 1, offset: 0)
+"NEW REL TABLE UW"
+ ^^^", and none of the extensions can compile the query.

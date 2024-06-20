@@ -78,6 +78,9 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const BoundStatement& statemen
     case StatementType::USE_DATABASE: {
         appendUseDatabase(statement, *plan);
     } break;
+    case StatementType::EXTENSION_CLAUSE: {
+        appendExtensionClause(statement, *plan);
+    } break;
     default:
         KU_UNREACHABLE;
     }

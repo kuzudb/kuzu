@@ -16,7 +16,7 @@ namespace storage {
 
 class DiskArrayCollection;
 
-class StorageManager {
+class KUZU_API StorageManager {
 public:
     StorageManager(const std::string& databasePath, bool readOnly, const catalog::Catalog& catalog,
         MemoryManager& memoryManager, bool enableCompression, common::VirtualFileSystem* vfs,

@@ -59,6 +59,7 @@ enum class LogicalOperatorType : uint8_t {
     UNION_ALL,
     UNWIND,
     USE_DATABASE,
+    EXTENSION_CLAUSE,
 };
 
 class LogicalOperator;
@@ -70,7 +71,7 @@ struct LogicalOperatorUtils {
     static bool isAccHashJoin(const LogicalOperator& op);
 };
 
-class LogicalOperator {
+class KUZU_API LogicalOperator {
 public:
     explicit LogicalOperator(LogicalOperatorType operatorType) : operatorType{operatorType} {}
     explicit LogicalOperator(LogicalOperatorType operatorType,

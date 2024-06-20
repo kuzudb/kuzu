@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundStatement {
+class KUZU_API BoundStatement {
 public:
     BoundStatement(common::StatementType statementType, BoundStatementResult statementResult)
         : statementType{statementType}, statementResult{std::move(statementResult)} {}
