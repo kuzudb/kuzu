@@ -89,7 +89,7 @@ public:
         NodeProgressBarDisplay* nodeDisplay =
             ku_dynamic_cast<ProgressBarDisplay*, NodeProgressBarDisplay*>(display);
         if (progressCallback) {
-            nodeDisplay->setCallbackFunction(queryID, *progressCallback, Env());
+            nodeDisplay->setCallbackFunction(queryID, *progressCallback );
             progressBar->toggleProgressBarPrinting(true);
         }
         try {
@@ -146,7 +146,7 @@ public:
         NodeProgressBarDisplay* nodeDisplay =
             ku_dynamic_cast<ProgressBarDisplay*, NodeProgressBarDisplay*>(display);
         if (progressCallback) {
-            nodeDisplay->setCallbackFunction(queryID, *progressCallback, Env());
+            nodeDisplay->setCallbackFunction(queryID, *progressCallback);
             progressBar->toggleProgressBarPrinting(true);
         }
         try {

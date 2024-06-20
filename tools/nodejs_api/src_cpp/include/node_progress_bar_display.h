@@ -19,14 +19,10 @@ public:
 
     void finishProgress(uint64_t queryID) override;
 
-    void setCallbackFunction(uint64_t queryID, Napi::ThreadSafeFunction callback, Napi::Env env);
+    void setCallbackFunction(uint64_t queryID, Napi::ThreadSafeFunction callback);
 
     uint32_t getNumCallbacks() { return queryCallbacks.size(); }
 
 private:
-    struct callbackFunction {
-        Napi::ThreadSafeFunction callback;
-        Napi::Env env;
-    };
-    std::unordered_map<uint64_t, callbackFunction> queryCallbacks;
+    std::unordered_map<uint64_t, Napi::ThreadSafeFunction> queryCallbacks;
 };
