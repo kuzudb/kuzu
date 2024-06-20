@@ -1,0 +1,41 @@
+-DATASET CSV empty
+
+--
+
+-CASE TinySNBSubset
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT create node table personjson (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT load from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb_json/vPerson.json' create (:personjson {ID: ID, fName: fName, gender: gender, isStudent: isStudent, isWorker: isWorker, age: age, eyeSight: eyeSight, birthdate:cast(birthdate as date), registerTime:cast(registerTime as timestamp), lastJobDuration:cast(lastJobDuration as interval), workedHours: workedHours, usedNames: usedNames, courseScoresPerTerm: courseScoresPerTerm, grades: grades, height: height, u: cast(u as uuid)});
+---- ok
+-STATEMENT load from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb_json/vPerson2.json' create (:personjson {ID: ID, fName: fName, gender: gender, isStudent: isStudent, isWorker: isWorker, age: age, eyeSight: eyeSight, birthdate:cast(birthdate as date), registerTime:cast(registerTime as timestamp), lastJobDuration:cast(lastJobDuration as interval), workedHours: workedHours, usedNames: usedNames, courseScoresPerTerm: courseScoresPerTerm, grades: grades, height: height, u: cast(u as uuid)});
+---- ok
+-STATEMENT create node table organisationjson (ID INT64, name STRING, orgCode INT64, mark DOUBLE, score INT64, history STRING, licenseValidInterval INTERVAL, rating DOUBLE, state STRUCT(revenue INT16, location STRING[], stock STRUCT(price INT64[], volume INT64)), info UNION(price FLOAT, movein DATE, note STRING),PRIMARY KEY (ID));
+---- ok
+-STATEMENT load from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb_json/vOrganisation.json' create (:organisationjson {ID:ID, name:name, orgCode:orgCode, mark:mark, score:score, history:history, licenseValidInterval: cast(licenseValidInterval as interval), rating:rating, state:state});
+---- ok
+-STATEMENT create node table moviesjson(name STRING, length INT32, note STRING, description STRUCT(rating DOUBLE, stars INT8, views INT64, release TIMESTAMP, release_ns TIMESTAMP_NS, release_ms TIMESTAMP_MS, release_sec TIMESTAMP_SEC, release_tz TIMESTAMP_TZ, film DATE, u8 UINT8, u16 UINT16, u32 UINT32, u64 UINT64, hugedata INT128), content BYTEA, audience MAP(STRING, INT64), grade union(credit boolean, grade1 double, grade2 int64), PRIMARY KEY (name));
+---- ok
+-STATEMENT load from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb_json/vMovies.json' create (:moviesjson{name:name, length:length, note:note, description:cast(description as STRUCT(rating DOUBLE, stars INT8, views INT64, release TIMESTAMP, release_ns TIMESTAMP_NS, release_ms TIMESTAMP_MS, release_sec TIMESTAMP_SEC, release_tz TIMESTAMP_TZ, film DATE, u8 UINT8, u16 UINT16, u32 UINT32, u64 UINT64, hugedata INT128)), audience:cast(audience as map(string, int64))});
+---- ok
+-STATEMENT match (B:personjson) return B.*;
+---- 8
+0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+2|Bob|2|True|False|30|5.100000|1900-01-01|2008-11-03 15:25:30.000526|10 years 5 months 13:00:00.000024|[12,8]|[Bobby]|[[8,9],[9,10]]|[98,42,93,88]|0.990000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
+3|Carol|1|False|True|45|5.000000|1940-06-22|1911-08-20 02:32:21|48:24:11|[4,5]|[Carmen,Fred]|[[8,10]]|[91,75,21,95]|1.000000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13
+5|Dan|2|False|True|20|4.800000|1950-07-23|2031-11-30 12:25:30|10 years 5 months 13:00:00.000024|[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]|[76,88,99,89]|1.300000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14
+7|Elizabeth|1|False|True|20|4.700000|1980-10-26|1976-12-23 11:21:42|48:24:11|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15
+8|Farooq|2|True|False|25|4.500000|1980-10-26|1972-07-31 13:22:30.678559|00:18:00.024|[3,4,5,6,7]|[Fesdwe]|[[8]]|[80,78,34,83]|1.510000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16
+9|Greg|2|False|False|40|4.900000|1980-10-26|1976-12-23 04:41:42|10 years 5 months 13:00:00.000024|[1]|[Grad]|[[10]]|[43,83,67,43]|1.600000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|True|83|4.900000|1990-11-27|2023-02-21 13:25:30|3 years 2 days 13:02:00|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]|[77,64,100,54]|1.323000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18
+-STATEMENT match (B:organisationjson) return B.*;
+---- 3
+1|ABFsUni|325|3.700000|-2|10 years 5 months 13 hours 24 us|3 years 5 days|1.000000|{revenue: 138, location: [toronto,montr,eal], stock: {price: [96,56], volume: 1000}}|
+4|CsWork|934|4.100000|-100|2 years 4 days 10 hours|26 years 52 days 48:00:00|0.780000|{revenue: 152, location: [vanco,uver north area], stock: {price: [15,78,671], volume: 432}}|
+6|DEsWork|824|4.100000|7|2 years 4 hours 22 us 34 minutes|82:00:00.1|0.520000|{revenue: 558, location: [very long city name,new york], stock: {price: [22], volume: 99}}|
+-STATEMENT match (B:moviesjson) return B.*;
+---- 3
+Roma|298|the movie is very interesting and funny|{rating: 1223.000000, stars: 100, views: 10003, release: 2011-02-11 16:44:22, release_ns: 2011-02-11 16:44:22.123456, release_ms: 2011-02-11 16:44:22.123, release_sec: 2011-02-11 16:44:22, release_tz: 2011-02-11 16:44:22.123456+00, film: 2013-02-22, u8: 1, u16: 15, u32: 200, u64: 4, hugedata: -1844674407370955161600}||{audience1=33, audience53=42}|
+Sóló cón tu párejâ|126|this is a very very good movie|{rating: 5.300000, stars: 2, views: 152, release: 2011-08-20 11:25:30, release_ns: 2011-08-20 11:25:30.123456, release_ms: 2011-08-20 11:25:30.123, release_sec: 2011-08-20 11:25:30, release_tz: 2011-08-20 11:25:30.123456+00, film: 2012-05-11, u8: 220, u16: 20, u32: 1, u64: 180, hugedata: -1844674407370955161600}||{audience1=52, audience53=42}|
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|2544|the movie is very very good|{rating: 7.000000, stars: 10, views: 982, release: 2018-11-13 13:33:11, release_ns: 2018-11-13 13:33:11.123456, release_ms: 2018-11-13 13:33:11.123, release_sec: 2018-11-13 13:33:11, release_tz: 2018-11-13 13:33:11.123456+00, film: 2014-09-12, u8: 12, u16: 120, u32: 55, u64: 1, hugedata: -1844674407370955161600}||{audience1=33, audience53=42}|

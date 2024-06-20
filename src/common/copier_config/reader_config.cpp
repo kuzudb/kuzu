@@ -26,6 +26,9 @@ FileType FileTypeUtils::getFileTypeFromExtension(std::string_view extension) {
     if (extension == ".nt") {
         return FileType::NTRIPLES;
     }
+    if (extension == ".json") {
+        return FileType::JSON;
+    }
     throw CopyException(std::string("Unsupported file type ").append(extension));
 }
 

@@ -1,0 +1,138 @@
+-DATASET CSV empty
+
+--
+
+-CASE ToJsonTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND ['1', '2', '3'] AS STR RETURN to_json(STR)
+---- 3
+"1"
+"2"
+"3"
+
+-STATEMENT UNWIND [{a: 1, b: {x: "a"}}, {a: 2, b: {x: "b"}}, {a: 3, b: {x: "c"}}] AS NSTD RETURN to_json(NSTD)
+---- 3
+{"a":1,"b":{"x":"a"}}
+{"a":2,"b":{"x":"b"}}
+{"a":3,"b":{"x":"c"}}
+
+-STATEMENT UNWIND [map([1, 2, 3], ["a", "b", "c"]), map([3, 2, 0], ["asdfasdfadsf", "sdfgsdfgsdfg", "dfghdfghdgh"]), map([0], [""])] AS MP RETURN to_json(MP)
+---- 3
+{"1":"a","2":"b","3":"c"}
+{"3":"asdfasdfadsf","2":"sdfgsdfgsdfg","0":"dfghdfghdgh"}
+{"0":""}
+
+-STATEMENT UNWIND [True, False, Null] AS BLS RETURN to_json(BLS)
+---- 3
+true
+false
+
+
+-CASE JsonMergeTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND [map([1, 2, 3], ["a", "b", "c"]), map([3, 2, 0], ["asdfasdfadsf", "sdfgsdfgsdfg", "dfghdfghdgh"]), map([0], [""])] AS MP UNWIND [{a: 1, b: {x: "a"}}, {a: 2, b: {x: "b"}}, {a: 3, b: {x: "c"}}] AS NSTD RETURN json_merge_patch(to_json(MP), to_json(NSTD))
+---- 9
+{"1":"a","2":"b","3":"c","a":1,"b":{"x":"a"}}
+{"1":"a","2":"b","3":"c","a":2,"b":{"x":"b"}}
+{"1":"a","2":"b","3":"c","a":3,"b":{"x":"c"}}
+{"3":"asdfasdfadsf","2":"sdfgsdfgsdfg","0":"dfghdfghdgh","a":1,"b":{"x":"a"}}
+{"3":"asdfasdfadsf","2":"sdfgsdfgsdfg","0":"dfghdfghdgh","a":2,"b":{"x":"b"}}
+{"3":"asdfasdfadsf","2":"sdfgsdfgsdfg","0":"dfghdfghdgh","a":3,"b":{"x":"c"}}
+{"0":"","a":1,"b":{"x":"a"}}
+{"0":"","a":2,"b":{"x":"b"}}
+{"0":"","a":3,"b":{"x":"c"}}
+
+-CASE JsonExtractTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT CREATE NODE TABLE jsontab(id JSON, primary key(id))
+---- ok
+-STATEMENT UNWIND [map([1, 2, 3], ["a", "b", "c"]), map([3, 2, 0], ["asdfasdfadsf", "sdfgsdfgsdfg", "dfghdfghdgh"]), map([0], [""])] AS MP UNWIND [{a: 1, b: {x: "a"}}, {a: 2, b: {x: "b"}}, {a: 3, b: {x: "c"}}] AS NSTD CREATE (:jsontab {id:json_merge_patch(to_json(MP), to_json(NSTD))})
+---- ok
+-STATEMENT MATCH (t:jsontab) RETURN json_extract(t.id, ["b/x","a","1"])
+---- 9
+["a",1,"a"]
+["a",1,]
+["a",1,]
+["b",2,"a"]
+["b",2,]
+["b",2,]
+["c",3,"a"]
+["c",3,]
+["c",3,]
+-STATEMENT UNWIND ['2', '2/x/1', '2/x/1/0'] AS ARGS RETURN json_extract('[1, 2, {"x": [5, ["a"], "y"]}, 3]', ARGS)
+---- 3
+{"x":[5,["a"],"y"]}
+["a"]
+"a"
+
+-CASE JsonArrayLengthTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND ['[1, 2, {"x": [5, ["a"], "y"]}, 3]', '[]'] AS ARR RETURN json_array_length(ARR)
+---- 2
+4
+0
+
+-CASE JsonContainsTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND ['{"a": 1, "b": [1, 2, 3], "c": {"a": "2"}}', '[-1, 0, 1, 2, [-10]]'] AS HAYSTACK UNWIND ['1', '[1, 2]', '"1"', '"a"', '[-10]', '{"a": 1}', '{"a": "2"}'] AS NEEDLE RETURN JSON_CONTAINS(HAYSTACK, NEEDLE)
+---- 14
+True
+True
+False
+False
+False
+True
+True
+True
+True
+False
+False
+True
+False
+False
+
+-CASE JsonKeysTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND ['[]', '{}', '{"a":null,"1":null}', '{"ffffffffffff": [], "json_array_length": [1, 2, 3]}'] AS ARR RETURN json_keys(ARR)
+---- 4
+[]
+[]
+[a,1]
+[ffffffffffff,json_array_length]
+
+-CASE JsonStructureTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND ['{"a": 1, "b": [1, 2, 3], "c": {"a": "2"}}', '[-1, 0, 1, 2, -10]', '[{"1": [1, 2, 3]}, {"2": [1, 2, 3]}, {"1": ["-1"]}]'] AS ARR RETURN JSON_STRUCTURE(ARR);
+---- 3
+STRUCT(a UINT64, b UINT64[], c STRUCT(a STRING))
+INT128[]
+STRUCT(1 UINT64[], 2 UINT64[])[]
+
+-CASE JsonValidTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND ['', '{}', '[]', '11', '[11]', '{"a"}', '{"a": 1}'] AS ARR RETURN JSON_VALID(ARR);
+---- 7
+False
+True
+True
+True
+False
+True
+True
+
+-CASE MinifyJsonTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND ['[        {"a":  [1],     "b": 2,"c": 1}, 1,    5, 9]', '[1, 2, 3]', '"ab"'] AS ARR RETURN json(ARR);
+---- 3
+[{"a":[1],"b":2,"c":1},1,5,9]
+[1,2,3]
+"ab"

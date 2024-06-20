@@ -40,12 +40,12 @@ class RDFGraphCatalogEntry;
 
 class SequenceCatalogEntry;
 
-class Catalog {
+class KUZU_API Catalog {
     friend class main::AttachedKuzuDatabase;
 
 public:
     // This is extended by DuckCatalog and PostgresCatalog.
-    KUZU_API Catalog();
+    Catalog();
     Catalog(std::string directory, common::VirtualFileSystem* vfs);
     virtual ~Catalog() = default;
 

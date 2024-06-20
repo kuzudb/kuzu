@@ -1,0 +1,72 @@
+[
+  {
+    "FROM": 0,
+    "TO": 2,
+    "location": [
+      7.82,
+      3.54
+    ],
+    "times": 5,
+    "data": "\\xAA\\xBB\\xCC\\xDD"
+  },
+  {
+    "FROM": 2,
+    "TO": 5,
+    "location": [
+      2.87,
+      4.23
+    ],
+    "times": 2,
+    "data": "NO hex code"
+  },
+  {
+    "FROM": 3,
+    "TO": 7,
+    "location": [
+      3.65,
+      8.44
+    ],
+    "times": 3,
+    "data": "MIXED \\xAC with ASCII \\x0A"
+  },
+  {
+    "FROM": 7,
+    "TO": 3,
+    "location": [
+      2.11,
+      3.1
+    ],
+    "times": 7,
+    "data": "\\xA1\\x2A"
+  },
+  {
+    "FROM": 8,
+    "TO": 3,
+    "location": [
+      2.2,
+      9
+    ],
+    "times": 9,
+    "data": "\\x3A\\xA3"
+  },
+  {
+    "FROM": 9,
+    "TO": 3,
+    "location": [
+      3,
+      5.2
+    ],
+    "times": 11,
+    "data": "NO hex code"
+  },
+  {
+    "FROM": 10,
+    "TO": 2,
+    "location": [
+      3.5,
+      1.1
+    ],
+    "times": 13,
+    "data": "NO hex code"
+  }
+]

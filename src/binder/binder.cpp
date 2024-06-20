@@ -245,6 +245,10 @@ function::TableFunction Binder::getScanFunction(FileType fileType, const ReaderC
             csvConfig.parallel ? ParallelCSVScan::name : SerialCSVScan::name, inputTypes,
             functions);
     } break;
+    case FileType::JSON: {
+        func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
+            SCAN_JSON_FUNC_NAME, inputTypes, functions);
+    } break;
     default:
         KU_UNREACHABLE;
     }

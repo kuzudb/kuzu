@@ -222,8 +222,8 @@ public:
     KUZU_API LogicalTypeID getLogicalTypeID() const { return typeID; }
     bool containsAny() const;
 
-    PhysicalTypeID getPhysicalType() const { return physicalType; }
-    static PhysicalTypeID getPhysicalType(LogicalTypeID logicalType,
+    KUZU_API PhysicalTypeID getPhysicalType() const { return physicalType; }
+    KUZU_API static PhysicalTypeID getPhysicalType(LogicalTypeID logicalType,
         const std::unique_ptr<ExtraTypeInfo>& extraTypeInfo = nullptr);
 
     void setExtraTypeInfo(std::unique_ptr<ExtraTypeInfo> typeInfo) {
@@ -520,10 +520,10 @@ struct PhysicalTypeUtils {
     static uint32_t getFixedTypeSize(PhysicalTypeID physicalType);
 };
 
-struct LogicalTypeUtils {
-    KUZU_API static std::string toString(LogicalTypeID dataTypeID);
-    KUZU_API static std::string toString(const std::vector<LogicalType>& dataTypes);
-    KUZU_API static std::string toString(const std::vector<LogicalTypeID>& dataTypeIDs);
+struct KUZU_API LogicalTypeUtils {
+    static std::string toString(LogicalTypeID dataTypeID);
+    static std::string toString(const std::vector<LogicalType>& dataTypes);
+    static std::string toString(const std::vector<LogicalTypeID>& dataTypeIDs);
     static uint32_t getRowLayoutSize(const LogicalType& logicalType);
     static bool isDate(const LogicalType& dataType);
     static bool isDate(const LogicalTypeID& dataType);

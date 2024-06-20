@@ -95,7 +95,7 @@ std::vector<std::string> StructType::getFieldNames(const LogicalType& type) {
 
 uint64_t StructType::getNumFields(const LogicalType& type) {
     KU_ASSERT(type.getPhysicalType() == PhysicalTypeID::STRUCT);
-    return getFieldTypes(type).size();
+    return getFields(type).size();
 }
 
 const std::vector<StructField>& StructType::getFields(const LogicalType& type) {
@@ -357,7 +357,9 @@ StructTypeInfo::StructTypeInfo(const std::vector<std::string>& fieldNames,
 }
 
 bool StructTypeInfo::hasField(const std::string& fieldName) const {
-    return fieldNameToIdxMap.contains(fieldName);
+    auto copy = fieldName;
+    StringUtils::toUpper(copy);
+    return fieldNameToIdxMap.contains(copy);
 }
 
 struct_field_idx_t StructTypeInfo::getStructFieldIdx(std::string fieldName) const {

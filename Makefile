@@ -67,7 +67,7 @@ allconfig:
 	$(call config-cmake-release, \
 		-DBUILD_BENCHMARK=TRUE \
 		-DBUILD_EXAMPLES=TRUE \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;postgres;sqlite" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite" \
 		-DBUILD_JAVA=TRUE \
 		-DBUILD_NODEJS=TRUE \
 		-DBUILD_PYTHON=TRUE \
@@ -82,7 +82,7 @@ alldebug:
 	$(call run-cmake-debug, \
 		-DBUILD_BENCHMARK=TRUE \
 		-DBUILD_EXAMPLES=TRUE \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;postgres;sqlite" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite" \
 		-DBUILD_JAVA=TRUE \
 		-DBUILD_NODEJS=TRUE \
 		-DBUILD_PYTHON=TRUE \
@@ -163,25 +163,25 @@ example:
 	$(call run-cmake-release, -DBUILD_EXAMPLES=TRUE)
 
 extension-test-build:
-	$(call run-cmake-release, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;postgres;sqlite" \
+	$(call run-cmake-relwithdebinfo, \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite" \
 		-DBUILD_EXTENSION_TESTS=TRUE \
 		-DENABLE_ADDRESS_SANITIZER=TRUE \
 	)
 
 extension-test: extension-test-build
-	ctest --test-dir build/release/extension --output-on-failure -j ${TEST_JOBS}
+	ctest --test-dir build/relwithdebinfo/extension --output-on-failure -j ${TEST_JOBS}
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
 
 extension-debug:
 	$(call run-cmake-debug, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;postgres;sqlite" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite" \
 		-DBUILD_KUZU=FALSE \
 	)
 
 extension-release:
 	$(call run-cmake-release, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;postgres" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres" \
 		-DBUILD_KUZU=FALSE \
 	)
 

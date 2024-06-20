@@ -74,6 +74,17 @@ void ExtensionUtils::registerTableFunction(main::Database& database,
         catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY, std::move(name), std::move(functionSet));
 }
 
+void ExtensionUtils::registerFunctionSet(main::Database& database, std::string name,
+    function::function_set functionSet) {
+    auto catalog = database.getCatalog();
+    if (catalog->getFunctions(&transaction::DUMMY_READ_TRANSACTION)
+            ->containsEntry(&transaction::DUMMY_READ_TRANSACTION, name)) {
+        return;
+    }
+    catalog->addFunction(&transaction::DUMMY_WRITE_TRANSACTION,
+        catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY, std::move(name), std::move(functionSet));
+}
+
 bool ExtensionUtils::isOfficialExtension(const std::string& extension) {
     auto extensionUpperCase = common::StringUtils::getUpper(extension);
     for (auto& officialExtension : OFFICIAL_EXTENSION) {
