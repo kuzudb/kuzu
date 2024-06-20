@@ -32,8 +32,8 @@ void NodeProgressBarDisplay::finishProgress(uint64_t queryID) {
     pipelineProgress = 0;
     auto callback = queryCallbacks.find(queryID);
     if (callback != queryCallbacks.end()) {
-		callback->second.callback.Release();
-	}
+        callback->second.callback.Release();
+    }
     queryCallbacks.erase(queryID);
 }
 
