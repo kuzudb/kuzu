@@ -77,8 +77,9 @@ struct SampleInfo {
 
 class PhysicalSample : public extension::PhysicalExtensionClause {
 public:
-    PhysicalSample(SampleInfo sampleInfo, uint32_t id, const std::string& paramsString)
-        : PhysicalExtensionClause{id, paramsString}, sampleInfo{std::move(sampleInfo)} {}
+    PhysicalSample(SampleInfo sampleInfo, uint32_t id,
+        std::unique_ptr<processor::OPPrintInfo> printInfo)
+        : PhysicalExtensionClause{id, std::move(printInfo)}, sampleInfo{std::move(sampleInfo)} {}
 
     bool isSource() const override { return true; }
     bool isParallel() const final { return false; }
@@ -94,7 +95,7 @@ public:
         }
         hasExecuted = true;
         std::vector<binder::PropertyInfo> propertyInfos;
-        propertyInfos.push_back(binder::PropertyInfo{"name", *common::LogicalType::STRING()});
+        propertyInfos.push_back(binder::PropertyInfo{"name", common::LogicalType::STRING()});
         binder::BoundCreateTableInfo info{common::TableType::NODE, sampleInfo.tableName,
             common::ConflictAction::ON_CONFLICT_THROW,
             std::make_unique<binder::BoundExtraCreateNodeTableInfo>(0, std::move(propertyInfos))};
@@ -109,7 +110,7 @@ public:
     }
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<PhysicalSample>(sampleInfo, id, paramsString);
+        return std::make_unique<PhysicalSample>(sampleInfo, id, printInfo->copy());
     }
 
 private:
@@ -158,7 +159,7 @@ static std::unique_ptr<processor::PhysicalOperator> mapFunction(
     auto dataPos = processor::DataPos(outSchema->getExpressionPos(*outputExpression));
     SampleInfo sampleInfo{logicalSample.getTableName(), dataPos};
     return std::make_unique<PhysicalSample>(sampleInfo, operatorID,
-        logicalSample.getExpressionsForPrinting());
+        std::make_unique<processor::OPPrintInfo>(logicalSample.getExpressionsForPrinting()));
 }
 
 static bool defaultReadWriteAnalyzer(const extension::ExtensionClause& /*statement*/) {

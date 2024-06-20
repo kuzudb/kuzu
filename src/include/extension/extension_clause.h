@@ -52,9 +52,9 @@ private:
 
 class PhysicalExtensionClause : public processor::PhysicalOperator {
 public:
-    PhysicalExtensionClause(uint32_t id, const std::string& paramsString)
+    PhysicalExtensionClause(uint32_t id, std::unique_ptr<processor::OPPrintInfo> printInfo)
         : processor::PhysicalOperator{processor::PhysicalOperatorType::EXTENSION_CLAUSE, id,
-              std::make_unique<processor::OPPrintInfo>(paramsString)} {}
+              std::move(printInfo)} {}
 };
 
 } // namespace extension

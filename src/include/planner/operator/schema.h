@@ -56,7 +56,7 @@ private:
     std::unordered_map<std::string, uint32_t> expressionNameToPos;
 };
 
-class KUZU_API Schema {
+class Schema {
 public:
     size_t getNumGroups() const { return groups.size(); }
     size_t getNumFlatGroups() const { return getNumGroups(true /* isFlat */); }
@@ -72,10 +72,10 @@ public:
 
     FactorizationGroup* getGroup(uint32_t pos) const { return groups[pos].get(); }
 
-    f_group_pos createGroup();
+    f_group_pos KUZU_API createGroup();
 
     void insertToScope(const std::shared_ptr<binder::Expression>& expression, uint32_t groupPos);
-    void insertToGroupAndScope(const std::shared_ptr<binder::Expression>& expression,
+    void KUZU_API insertToGroupAndScope(const std::shared_ptr<binder::Expression>& expression,
         uint32_t groupPos);
     // Use these unsafe insert functions only if the operator may work with duplicate expressions.
     // E.g. group by a.age, a.age
@@ -86,13 +86,14 @@ public:
 
     void insertToGroupAndScope(const binder::expression_vector& expressions, uint32_t groupPos);
 
-    f_group_pos getGroupPos(const binder::Expression& expression) const {
+    f_group_pos KUZU_API getGroupPos(const binder::Expression& expression) const {
         return getGroupPos(expression.getUniqueName());
     }
 
-    f_group_pos getGroupPos(const std::string& expressionName) const;
+    f_group_pos KUZU_API getGroupPos(const std::string& expressionName) const;
 
-    std::pair<f_group_pos, uint32_t> getExpressionPos(const binder::Expression& expression) const {
+    std::pair<f_group_pos, uint32_t> KUZU_API getExpressionPos(
+        const binder::Expression& expression) const {
         auto groupPos = getGroupPos(expression);
         return std::make_pair(groupPos, groups[groupPos]->getExpressionPos(expression));
     }

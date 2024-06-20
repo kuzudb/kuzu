@@ -116,7 +116,7 @@ public:
     // TODO(Jiamin): should remove after supporting ddl in manual tx
     std::unique_ptr<PreparedStatement> prepareTest(std::string_view query);
     // only use for test framework
-    std::vector<std::shared_ptr<parser::Statement>> parseQuery(std::string_view query);
+    std::vector<std::shared_ptr<parser::Statement>> parseQuery(std::string_view query) const;
 
     void setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_);
     bool hasDefaultDatabase();

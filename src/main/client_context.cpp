@@ -398,7 +398,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
     return preparedStatement;
 }
 
-std::vector<std::shared_ptr<Statement>> ClientContext::parseQuery(std::string_view query) {
+std::vector<std::shared_ptr<Statement>> ClientContext::parseQuery(std::string_view query) const {
     std::vector<std::shared_ptr<Statement>> statements;
     if (query.empty()) {
         return statements;

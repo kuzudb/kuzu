@@ -164,7 +164,7 @@ example:
 
 extension-test-build:
 	$(call run-cmake-release, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;postgres" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;postgres;sample" \
 		-DBUILD_EXTENSION_TESTS=TRUE \
 		-DENABLE_ADDRESS_SANITIZER=TRUE \
 	)
