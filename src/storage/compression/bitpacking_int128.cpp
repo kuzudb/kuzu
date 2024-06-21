@@ -148,13 +148,15 @@ void Int128Packer::pack(const common::int128_t* __restrict in, uint32_t* __restr
         packDelta128(in, out);
         break;
     default:
-        uint8_t* outCursor = reinterpret_cast<uint8_t*>(out);
         for (common::idx_t oindex = 0; oindex < IntegerBitpacking<common::int128_t>::CHUNK_SIZE - 1;
              ++oindex) {
-            outCursor =
-                BitpackingUtils<common::int128_t>::packSingle(in[oindex], outCursor, width, oindex);
+            BitpackingUtils<common::int128_t>::packSingle(in[oindex],
+                reinterpret_cast<uint8_t*>(out), width, oindex);
         }
-        packLast(in, reinterpret_cast<uint32_t*>(outCursor), width);
+        packLast(in,
+            out + (IntegerBitpacking<common::int128_t>::CHUNK_SIZE - 1) * width /
+                      (sizeof(uint32_t) * 8),
+            width);
     }
 }
 
@@ -178,13 +180,14 @@ void Int128Packer::unpack(const uint32_t* __restrict in, common::int128_t* __res
         unpackDelta128(in, out);
         break;
     default:
-        const auto* inCursor = reinterpret_cast<const uint8_t*>(in);
         for (common::idx_t oindex = 0; oindex < IntegerBitpacking<common::int128_t>::CHUNK_SIZE - 1;
              ++oindex) {
-            inCursor = BitpackingUtils<common::int128_t>::unpackSingle(inCursor, out + oindex,
-                width, oindex);
+            BitpackingUtils<common::int128_t>::unpackSingle(reinterpret_cast<const uint8_t*>(in),
+                out + oindex, width, oindex);
         }
-        unpackLast(reinterpret_cast<const uint32_t*>(inCursor), out, width);
+        unpackLast(in + +(IntegerBitpacking<common::int128_t>::CHUNK_SIZE - 1) * width /
+                            (sizeof(uint32_t) * 8),
+            out, width);
     }
 }
 

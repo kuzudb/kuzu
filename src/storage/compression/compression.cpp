@@ -299,9 +299,7 @@ void ConstantCompression::decompressValues(uint8_t* dstBuffer, uint64_t dstOffse
             std::fill(reinterpret_cast<uint64_t*>(start), reinterpret_cast<uint64_t*>(end),
                 metadata.min.get<uint64_t>());
         },
-        [&]<typename T>
-            requires(numeric_utils::IsIntegral<T> || std::floating_point<T>)
-        (T) {
+        [&]<typename T> requires(numeric_utils::IsIntegral<T> || std::floating_point<T>)(T) {
             std::fill(reinterpret_cast<T*>(start), reinterpret_cast<T*>(end),
                 metadata.min.get<T>());
         },
@@ -501,12 +499,10 @@ void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uin
     const size_t maxReadIndex = pos + numValuesToRead;
     KU_ASSERT(maxReadIndex <= CHUNK_SIZE);
 
-    const auto* readCursor =
-        BitpackingUtils<U>::getInitialSrcCursor(chunkStart, header.bitWidth, pos);
     for (size_t i = pos; i < maxReadIndex; i++) {
         // Always use unsigned version of unpacker to prevent sign-bit filling when right shifting
         U& out = reinterpret_cast<U*>(dst)[i - pos];
-        readCursor = BitpackingUtils<U>::unpackSingle(readCursor, &out, header.bitWidth, i);
+        BitpackingUtils<U>::unpackSingle(chunkStart, &out, header.bitWidth, i);
 
         if (header.hasNegative && header.bitWidth > 0) {
             SignExtend<T, U, 1>((uint8_t*)&out, header.bitWidth);
@@ -521,11 +517,8 @@ void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uin
 template<IntegerBitpackingType T>
 void IntegerBitpacking<T>::packPartialChunk(const U* srcBuffer, uint8_t* dstBuffer, size_t posInDst,
     BitpackInfo<T> info, size_t numValuesToPack) const {
-    uint8_t* dstCursor =
-        BitpackingUtils<U>::getInitialSrcCursor(dstBuffer, info.bitWidth, posInDst);
     for (size_t i = 0; i < numValuesToPack; ++i) {
-        dstCursor =
-            BitpackingUtils<U>::packSingle(srcBuffer[i], dstCursor, info.bitWidth, i + posInDst);
+        BitpackingUtils<U>::packSingle(srcBuffer[i], dstBuffer, info.bitWidth, i + posInDst);
     }
 }
 
