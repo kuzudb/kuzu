@@ -6,6 +6,23 @@
 #include "common/utils.h"
 
 namespace kuzu::storage {
+namespace {
+template<size_t compressed_field, std::integral CompressedType,
+    IntegerBitpackingType UncompressedType>
+void unpackSingleUnrolled(const CompressedType* __restrict& in, UncompressedType* __restrict out,
+    uint16_t delta, uint16_t shiftRight) {
+    static constexpr size_t compressedFieldSizeBits = sizeof(CompressedType) * 8;
+
+    if constexpr (compressed_field == 0) {
+        *out = static_cast<UncompressedType>(in[0]) >> shiftRight;
+    } else {
+        unpackSingleUnrolled<compressed_field - 1>(in, out, delta, shiftRight);
+        KU_ASSERT(
+            sizeof(UncompressedType) * 8 > compressed_field * compressedFieldSizeBits - shiftRight);
+        *out |= static_cast<UncompressedType>(in[compressed_field])
+                << (compressed_field * compressedFieldSizeBits - shiftRight);
+    }
+}
 
 template<std::integral CompressedType, IntegerBitpackingType UncompressedType>
 void unpackSingleImpl(const CompressedType* __restrict& in, UncompressedType* __restrict out,
@@ -14,62 +31,45 @@ void unpackSingleImpl(const CompressedType* __restrict& in, UncompressedType* __
 
     static constexpr size_t compressedFieldSizeBits = sizeof(CompressedType) * 8;
 
-    if (delta + shiftRight < compressedFieldSizeBits) {
-        *out =
-            ((static_cast<UncompressedType>(in[0])) >> shiftRight) % (UncompressedType(1) << delta);
+    if (delta + shiftRight <= compressedFieldSizeBits) {
+        unpackSingleUnrolled<0>(in, out, delta, shiftRight);
+    } else if (delta + shiftRight > compressedFieldSizeBits &&
+               delta + shiftRight <= 2 * compressedFieldSizeBits) {
+        unpackSingleUnrolled<1>(in, out, delta, shiftRight);
+    } else if (delta + shiftRight > 2 * compressedFieldSizeBits &&
+               delta + shiftRight <= 3 * compressedFieldSizeBits) {
+        unpackSingleUnrolled<2>(in, out, delta, shiftRight);
+    } else if (delta + shiftRight > 3 * compressedFieldSizeBits &&
+               delta + shiftRight <= 4 * compressedFieldSizeBits) {
+        unpackSingleUnrolled<3>(in, out, delta, shiftRight);
+    } else if (delta + shiftRight > 4 * compressedFieldSizeBits) {
+        unpackSingleUnrolled<4>(in, out, delta, shiftRight);
     }
 
-    else if (delta + shiftRight >= compressedFieldSizeBits &&
-             delta + shiftRight < 2 * compressedFieldSizeBits) {
-        *out = static_cast<UncompressedType>(in[0]) >> shiftRight;
-        ++in;
+    // we previously copy over the entire most significant field
+    // zero out the bits that are not actually part of the compressed value
+    in += (delta + shiftRight) / compressedFieldSizeBits;
+    *out &= common::BitmaskUtils::all1sMaskForLeastSignificantBits<UncompressedType>(delta);
+}
 
-        if (delta + shiftRight > compressedFieldSizeBits) {
-            const uint16_t NEXT_SHR = shiftRight + delta - compressedFieldSizeBits;
-            *out |= static_cast<UncompressedType>((*in) % (1U << NEXT_SHR))
-                    << (compressedFieldSizeBits - shiftRight);
+template<size_t compressed_field, std::integral CompressedType,
+    IntegerBitpackingType UncompressedType>
+void packSingleUnrolled(const UncompressedType in, CompressedType* __restrict& out, uint16_t delta,
+    uint16_t shiftLeft, UncompressedType mask) {
+    static constexpr size_t compressedFieldSizeBits = sizeof(CompressedType) * 8;
+
+    if constexpr (compressed_field == 0) {
+        if (shiftLeft == 0) {
+            out[0] = static_cast<CompressedType>(in & mask);
+        } else {
+            out[0] |= static_cast<CompressedType>((in & mask) << shiftLeft);
         }
-    }
-
-    else if (delta + shiftRight >= 2 * compressedFieldSizeBits &&
-             delta + shiftRight < 3 * compressedFieldSizeBits) {
-        *out = static_cast<UncompressedType>(in[0]) >> shiftRight;
-        *out |= static_cast<UncompressedType>(in[1]) << (compressedFieldSizeBits - shiftRight);
-        in += 2;
-
-        if (delta + shiftRight > 2 * compressedFieldSizeBits) {
-            const uint16_t NEXT_SHR = delta + shiftRight - 2 * compressedFieldSizeBits;
-            *out |= static_cast<UncompressedType>((*in) % (1U << NEXT_SHR))
-                    << (2 * compressedFieldSizeBits - shiftRight);
-        }
-    }
-
-    else if (delta + shiftRight >= 3 * compressedFieldSizeBits &&
-             delta + shiftRight < 4 * compressedFieldSizeBits) {
-        *out = static_cast<UncompressedType>(in[0]) >> shiftRight;
-        *out |= static_cast<UncompressedType>(in[1]) << (compressedFieldSizeBits - shiftRight);
-        *out |= static_cast<UncompressedType>(in[2]) << (2 * compressedFieldSizeBits - shiftRight);
-        in += 3;
-
-        if (delta + shiftRight > 3 * compressedFieldSizeBits) {
-            const uint16_t NEXT_SHR = delta + shiftRight - 3 * compressedFieldSizeBits;
-            *out |= static_cast<UncompressedType>((*in) % (1U << NEXT_SHR))
-                    << (3 * compressedFieldSizeBits - shiftRight);
-        }
-    }
-
-    else if (delta + shiftRight >= 4 * compressedFieldSizeBits) {
-        *out = static_cast<UncompressedType>(in[0]) >> shiftRight;
-        *out |= static_cast<UncompressedType>(in[1]) << (compressedFieldSizeBits - shiftRight);
-        *out |= static_cast<UncompressedType>(in[2]) << (2 * compressedFieldSizeBits - shiftRight);
-        *out |= static_cast<UncompressedType>(in[3]) << (3 * compressedFieldSizeBits - shiftRight);
-        in += 4;
-
-        if (delta + shiftRight > 4 * compressedFieldSizeBits) {
-            const uint16_t NEXT_SHR = delta + shiftRight - 4 * compressedFieldSizeBits;
-            *out |= static_cast<UncompressedType>((*in) % (1U << NEXT_SHR))
-                    << (4 * compressedFieldSizeBits - shiftRight);
-        }
+    } else {
+        packSingleUnrolled<compressed_field - 1>(in, out, delta, shiftLeft, mask);
+        KU_ASSERT(
+            sizeof(UncompressedType) * 8 > compressed_field * compressedFieldSizeBits - shiftLeft);
+        out[compressed_field] = static_cast<CompressedType>(
+            (in & mask) >> (compressed_field * compressedFieldSizeBits - shiftLeft));
     }
 }
 
@@ -80,86 +80,24 @@ void packSingleImpl(const UncompressedType in, CompressedType* __restrict& out, 
 
     static constexpr size_t compressedFieldSizeBits = sizeof(CompressedType) * 8;
 
-    if (delta + shiftLeft < compressedFieldSizeBits) {
-
-        if (shiftLeft == 0) {
-            out[0] = static_cast<CompressedType>(in & mask);
-        } else {
-            out[0] |= static_cast<CompressedType>((in & mask) << shiftLeft);
-        }
-
-    } else if (delta + shiftLeft >= compressedFieldSizeBits &&
-               delta + shiftLeft < 2 * compressedFieldSizeBits) {
-
-        if (shiftLeft == 0) {
-            out[0] = static_cast<CompressedType>(in & mask);
-        } else {
-            out[0] |= static_cast<CompressedType>((in & mask) << shiftLeft);
-        }
-        ++out;
-
-        if (delta + shiftLeft > compressedFieldSizeBits) {
-            *out =
-                static_cast<CompressedType>((in & mask) >> (compressedFieldSizeBits - shiftLeft));
-        }
+    if (delta + shiftLeft <= compressedFieldSizeBits) {
+        packSingleUnrolled<0>(in, out, delta, shiftLeft, mask);
+    } else if (delta + shiftLeft > compressedFieldSizeBits &&
+               delta + shiftLeft <= 2 * compressedFieldSizeBits) {
+        packSingleUnrolled<1>(in, out, delta, shiftLeft, mask);
+    } else if (delta + shiftLeft > 2 * compressedFieldSizeBits &&
+               delta + shiftLeft <= 3 * compressedFieldSizeBits) {
+        packSingleUnrolled<2>(in, out, delta, shiftLeft, mask);
+    } else if (delta + shiftLeft > 3 * compressedFieldSizeBits &&
+               delta + shiftLeft <= 4 * compressedFieldSizeBits) {
+        packSingleUnrolled<3>(in, out, delta, shiftLeft, mask);
+    } else if (delta + shiftLeft > 4 * compressedFieldSizeBits) {
+        packSingleUnrolled<4>(in, out, delta, shiftLeft, mask);
     }
 
-    else if (delta + shiftLeft >= 2 * compressedFieldSizeBits &&
-             delta + shiftLeft < 3 * compressedFieldSizeBits) {
-
-        if (shiftLeft == 0) {
-            out[0] = static_cast<CompressedType>(in & mask);
-        } else {
-            out[0] |= static_cast<CompressedType>(in << shiftLeft);
-        }
-
-        out[1] = static_cast<CompressedType>((in & mask) >> (compressedFieldSizeBits - shiftLeft));
-        out += 2;
-
-        if (delta + shiftLeft > 2 * compressedFieldSizeBits) {
-            *out = static_cast<CompressedType>(
-                (in & mask) >> (2 * compressedFieldSizeBits - shiftLeft));
-        }
-    }
-
-    else if (delta + shiftLeft >= 3 * compressedFieldSizeBits &&
-             delta + shiftLeft < 4 * compressedFieldSizeBits) {
-        if (shiftLeft == 0) {
-            out[0] = static_cast<CompressedType>(in & mask);
-        } else {
-            out[0] |= static_cast<CompressedType>(in << shiftLeft);
-        }
-
-        out[1] = static_cast<CompressedType>((in & mask) >> (compressedFieldSizeBits - shiftLeft));
-        out[2] =
-            static_cast<CompressedType>((in & mask) >> (2 * compressedFieldSizeBits - shiftLeft));
-        out += 3;
-
-        if (delta + shiftLeft > 3 * compressedFieldSizeBits) {
-            *out = static_cast<CompressedType>(
-                (in & mask) >> (3 * compressedFieldSizeBits - shiftLeft));
-        }
-    }
-
-    else if (delta + shiftLeft >= 4 * compressedFieldSizeBits) {
-        if (shiftLeft == 0) {
-            out[0] = static_cast<CompressedType>(in & mask);
-        } else {
-            out[0] |= static_cast<CompressedType>(in << shiftLeft);
-        }
-        out[1] = static_cast<CompressedType>((in & mask) >> (compressedFieldSizeBits - shiftLeft));
-        out[2] =
-            static_cast<CompressedType>((in & mask) >> (2 * compressedFieldSizeBits - shiftLeft));
-        out[3] =
-            static_cast<CompressedType>((in & mask) >> (3 * compressedFieldSizeBits - shiftLeft));
-        out += 4;
-
-        if (delta + shiftLeft > 4 * compressedFieldSizeBits) {
-            *out = static_cast<CompressedType>(
-                (in & mask) >> (4 * compressedFieldSizeBits - shiftLeft));
-        }
-    }
+    out += (delta + shiftLeft) / compressedFieldSizeBits;
 }
+} // namespace
 
 template<IntegerBitpackingType UncompressedType>
 void BitpackingUtils<UncompressedType>::unpackSingle(const uint8_t* __restrict& srcCursor,
