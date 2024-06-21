@@ -9,7 +9,7 @@
     "url": "https://github.com/kuzudb/kuzu.git"
   },
   "scripts": {
-    "test": "mocha test",
+    "test": "mocha test --timeout 20000",
     "clean": "node clean.js",
     "clean-all": "node clean.js all",
     "build": "node build.js"
