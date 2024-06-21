@@ -26,7 +26,7 @@ struct ScanRelTableInfo {
     EXPLICIT_COPY_DEFAULT_MOVE(ScanRelTableInfo);
 
     void initScanState();
-    void scanIfNecessary(transaction::Transaction* transaction);
+    void scanIfNecessary(transaction::Transaction* transaction) const;
 
 private:
     ScanRelTableInfo(const ScanRelTableInfo& other)

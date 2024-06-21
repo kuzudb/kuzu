@@ -27,7 +27,7 @@ struct RelDataReadState final : TableDataScanState {
     bool readFromLocalStorage;
     LocalRelNG* localNodeGroup;
 
-    RelDataReadState(const std::vector<common::column_id_t>& columnIDs);
+    explicit RelDataReadState(const std::vector<common::column_id_t>& columnIDs);
     DELETE_COPY_DEFAULT_MOVE(RelDataReadState);
 
     bool hasMoreToRead(const transaction::Transaction* transaction);

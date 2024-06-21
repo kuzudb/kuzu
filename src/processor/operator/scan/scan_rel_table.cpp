@@ -12,7 +12,7 @@ void ScanRelTableInfo::initScanState() {
         std::make_unique<RelTableScanState>(columnIDs, direction, copyVector(columnPredicates));
 }
 
-void ScanRelTableInfo::scanIfNecessary(Transaction* transaction) {
+void ScanRelTableInfo::scanIfNecessary(Transaction* transaction) const {
     auto& relScanState = localScanState->dataScanState->cast<RelDataReadState>();
     // We need to reinitialize per node group
     if (relScanState.currNodeIdx == relScanState.endNodeIdx) {
