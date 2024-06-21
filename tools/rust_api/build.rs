@@ -32,7 +32,6 @@ fn link_libraries() {
             println!("cargo:rustc-link-lib=dylib=c++");
         } else {
             println!("cargo:rustc-link-lib=dylib=stdc++");
-            println!("cargo:rustc-link-lib=dylib=atomic");
         }
 
         println!("cargo:rustc-link-lib=static=utf8proc");

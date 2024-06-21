@@ -31,7 +31,7 @@ public:
     }
 
     inline bool operator==(const EvictionCandidate& other) const {
-        return fileIdx == other.fileIdx && pageIdx == other.pageIdx && pageState == other.pageState;
+        return fileIdx == other.fileIdx && pageIdx == other.pageIdx;
     }
 
     // Returns false if the candidate was not empty, or if another thread set the value first
@@ -39,21 +39,20 @@ public:
 
     uint32_t fileIdx = UINT32_MAX;
     common::page_idx_t pageIdx = common::INVALID_PAGE_IDX;
-    PageState* pageState = nullptr;
 };
 
 // A circular buffer queue storing eviction candidates
 // One candidate should be stored for each page currently in memory
 class EvictionQueue {
     static constexpr EvictionCandidate EMPTY =
-        EvictionCandidate{UINT32_MAX, common::INVALID_PAGE_IDX, nullptr};
+        EvictionCandidate{UINT32_MAX, common::INVALID_PAGE_IDX};
 
 public:
     explicit EvictionQueue(uint64_t capacity)
         : insertCursor{0}, evictionCursor{0}, size{0}, capacity{capacity},
           data{std::make_unique<std::atomic<EvictionCandidate>[]>(capacity)} {}
 
-    bool insert(uint32_t fileIndex, common::page_idx_t pageIndex, PageState* pageStatel);
+    bool insert(uint32_t fileIndex, common::page_idx_t pageIndex);
 
     // Produces the next non-empty candidate to be tried for eviction
     // Note that it is still possible (though unlikely) for another thread
