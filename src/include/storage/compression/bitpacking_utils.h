@@ -21,6 +21,7 @@ struct BitpackingUtils {
 
     static const uint8_t* getInitialSrcCursor(const uint8_t* src, uint16_t bitWidth,
         size_t srcOffset);
+    static uint8_t* getInitialSrcCursor(uint8_t* src, uint16_t bitWidth, size_t srcOffset);
 };
 
 } // namespace kuzu::storage

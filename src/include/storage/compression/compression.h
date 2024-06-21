@@ -335,8 +335,8 @@ protected:
         return buffer + (pos / CHUNK_SIZE) * bitWidth * CHUNK_SIZE / 8;
     }
 
-    void packPartialChunk(const U* srcBuffer, uint8_t* dstBuffer, BitpackInfo<T> info,
-        size_t remainingValues) const;
+    void packPartialChunk(const U* srcBuffer, uint8_t* dstBuffer, size_t posInDst,
+        BitpackInfo<T> info, size_t remainingValues) const;
 
     void copyValuesToTempChunkWithOffset(const U* srcBuffer, U* tmpBuffer, BitpackInfo<T> info,
         size_t numValuesToCopy) const;

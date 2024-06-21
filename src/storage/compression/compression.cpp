@@ -456,29 +456,43 @@ void IntegerBitpacking<T>::setValuesFromUncompressed(const uint8_t* srcBuffer, o
     // with a size of 32 * bitWidth bits,
     // or bitWidth 32-bit values (we cast the buffer to a uint32_t* later).
     auto chunkStart = (uint8_t*)getChunkStart(dstBuffer, posInDst, header.bitWidth);
-    auto posInChunk = posInDst % CHUNK_SIZE;
-    U chunk[CHUNK_SIZE];
-    // TODO(bmwinger): Now I'm a bit confused here. Why do we always need to unpack the chunk first?
-    //      Can't we just unpack the chunk if we need to modify only partial of it?
-    fastunpack(chunkStart, chunk, header.bitWidth);
-    for (offset_t i = 0; i < numValues; i++) {
-        auto value = ((T*)srcBuffer)[posInSrc + i];
-        // Null values will usually be 0, which will not be able to be stored if there is a non-zero
-        // offset However we don't care about the value stored for null values Currently they will
-        // be mangled by storage+recovery (underflow in the subtraction below)
-        KU_ASSERT((nullMask && nullMask->isNull(posInSrc + i)) ||
-                  canUpdateInPlace(std::span(&value, 1), metadata));
-        chunk[posInChunk] = (U)(value - (T)header.offset);
-        if (posInChunk + 1 >= CHUNK_SIZE && i + 1 < numValues) {
-            fastpack(chunk, chunkStart, header.bitWidth);
-            chunkStart = (uint8_t*)getChunkStart(dstBuffer, posInDst + i + 1, header.bitWidth);
-            fastunpack(chunkStart, chunk, header.bitWidth);
-            posInChunk = 0;
-        } else {
-            posInChunk++;
+    const size_t lastAlignedChunkStartIdx =
+        std::max(posInDst, (posInDst + numValues) - (posInDst + numValues) % CHUNK_SIZE);
+    if (lastAlignedChunkStartIdx > posInDst) {
+        auto posInChunk = posInDst % CHUNK_SIZE;
+        U chunk[CHUNK_SIZE];
+        // TODO(bmwinger): Now I'm a bit confused here. Why do we always need to unpack the chunk
+        // first?
+        //      Can't we just unpack the chunk if we need to modify only partial of it?
+        fastunpack(chunkStart, chunk, header.bitWidth);
+        for (offset_t i = 0; i < numValues && posInDst + i < lastAlignedChunkStartIdx; i++) {
+            auto value = ((T*)srcBuffer)[posInSrc + i];
+            // Null values will usually be 0, which will not be able to be stored if there is a
+            // non-zero offset However we don't care about the value stored for null values
+            // Currently they will be mangled by storage+recovery (underflow in the subtraction
+            // below)
+            KU_ASSERT((nullMask && nullMask->isNull(posInSrc + i)) ||
+                      canUpdateInPlace(std::span(&value, 1), metadata));
+            chunk[posInChunk] = (U)(value - (T)header.offset);
+            if (posInChunk + 1 >= CHUNK_SIZE && i + 1 < numValues &&
+                posInDst + i + 1 < lastAlignedChunkStartIdx) {
+                fastpack(chunk, chunkStart, header.bitWidth);
+                chunkStart = (uint8_t*)getChunkStart(dstBuffer, posInDst + i + 1, header.bitWidth);
+                fastunpack(chunkStart, chunk, header.bitWidth);
+                posInChunk = 0;
+            } else {
+                posInChunk++;
+            }
         }
+        fastpack(chunk, chunkStart, header.bitWidth);
     }
-    fastpack(chunk, chunkStart, header.bitWidth);
+
+    U tmpChunk[CHUNK_SIZE];
+    const size_t unalignedValuesToPack = (posInDst + numValues) - lastAlignedChunkStartIdx;
+    copyValuesToTempChunkWithOffset(reinterpret_cast<const U*>(srcBuffer) + posInSrc +
+                                        lastAlignedChunkStartIdx - posInDst,
+        tmpChunk, header, unalignedValuesToPack);
+    packPartialChunk(tmpChunk, dstBuffer, lastAlignedChunkStartIdx, header, unalignedValuesToPack);
 }
 
 template<IntegerBitpackingType T>
@@ -505,11 +519,13 @@ void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uin
 }
 
 template<IntegerBitpackingType T>
-void IntegerBitpacking<T>::packPartialChunk(const U* srcBuffer, uint8_t* dstBuffer,
+void IntegerBitpacking<T>::packPartialChunk(const U* srcBuffer, uint8_t* dstBuffer, size_t posInDst,
     BitpackInfo<T> info, size_t numValuesToPack) const {
-    uint8_t* dstCursor = dstBuffer;
+    uint8_t* dstCursor =
+        BitpackingUtils<U>::getInitialSrcCursor(dstBuffer, info.bitWidth, posInDst);
     for (size_t i = 0; i < numValuesToPack; ++i) {
-        dstCursor = BitpackingUtils<U>::packSingle(srcBuffer[i], dstCursor, info.bitWidth, i);
+        dstCursor =
+            BitpackingUtils<U>::packSingle(srcBuffer[i], dstCursor, info.bitWidth, i + posInDst);
     }
 }
 
@@ -556,7 +572,7 @@ uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
         const size_t remainingNumValues = numValuesToCompress % CHUNK_SIZE;
         if (remainingNumValues > 0) {
             packPartialChunk(reinterpret_cast<const U*>(srcBuffer) + lastFullChunkEnd,
-                dstBuffer + lastFullChunkEnd * bitWidth / 8, info, remainingNumValues);
+                dstBuffer + lastFullChunkEnd * bitWidth / 8, 0, info, remainingNumValues);
         }
     } else {
         U tmp[CHUNK_SIZE];
@@ -572,7 +588,7 @@ uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
             copyValuesToTempChunkWithOffset(reinterpret_cast<const U*>(srcBuffer) +
                                                 lastFullChunkEnd,
                 tmp, info, remainingValues);
-            packPartialChunk(tmp, dstBuffer + lastFullChunkEnd * bitWidth / 8, info,
+            packPartialChunk(tmp, dstBuffer + lastFullChunkEnd * bitWidth / 8, 0, info,
                 remainingValues);
         }
     }

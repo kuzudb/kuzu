@@ -52,6 +52,13 @@ const CompressedType* unpackSingleImpl(const CompressedType* __restrict in,
     return in + (delta + shiftRight) / compressedFieldSizeBits;
 }
 
+template<std::integral T>
+void setValueForBitsMatchingMask(T& out, T valueToSet, T mask) {
+    const T bitsToSet = valueToSet & mask;
+    const T bitsToClear = ~mask | valueToSet;
+    out = (out | bitsToSet) & bitsToClear;
+}
+
 template<size_t compressed_field, std::integral CompressedType,
     IntegerBitpackingType UncompressedType>
 void packSingleUnrolled(const UncompressedType in, CompressedType* __restrict out, uint16_t delta,
@@ -60,16 +67,26 @@ void packSingleUnrolled(const UncompressedType in, CompressedType* __restrict ou
 
     if constexpr (compressed_field == 0) {
         if (shiftLeft == 0) {
-            out[0] = static_cast<CompressedType>(in & mask);
+            // out[0] = static_cast<CompressedType>(in & mask);
+            setValueForBitsMatchingMask(out[0], static_cast<CompressedType>(in & mask),
+                static_cast<CompressedType>(mask));
         } else {
-            out[0] |= static_cast<CompressedType>((in & mask) << shiftLeft);
+            // out[0] |= static_cast<CompressedType>((in & mask) << shiftLeft);
+            setValueForBitsMatchingMask(out[0],
+                static_cast<CompressedType>((in & mask) << shiftLeft),
+                static_cast<CompressedType>(mask << shiftLeft));
         }
     } else {
         packSingleUnrolled<compressed_field - 1>(in, out, delta, shiftLeft, mask);
         KU_ASSERT(
             sizeof(UncompressedType) * 8 > compressed_field * compressedFieldSizeBits - shiftLeft);
-        out[compressed_field] = static_cast<CompressedType>(
-            (in & mask) >> (compressed_field * compressedFieldSizeBits - shiftLeft));
+        // out[compressed_field] = static_cast<CompressedType>(
+        //     (in & mask) >> (compressed_field * compressedFieldSizeBits - shiftLeft));
+        setValueForBitsMatchingMask(out[compressed_field],
+            static_cast<CompressedType>(
+                (in & mask) >> (compressed_field * compressedFieldSizeBits - shiftLeft)),
+            static_cast<CompressedType>(
+                mask >> (compressed_field * compressedFieldSizeBits - shiftLeft)));
     }
 }
 
@@ -125,6 +142,14 @@ const uint8_t* BitpackingUtils<UncompressedType>::getInitialSrcCursor(const uint
     const auto* compressedTypeAlignedCursor = reinterpret_cast<const CompressedType*>(src) +
                                               srcOffset * bitWidth / sizeOfCompressedTypeBits;
     return reinterpret_cast<const uint8_t*>(compressedTypeAlignedCursor);
+}
+
+template<IntegerBitpackingType UncompressedType>
+uint8_t* BitpackingUtils<UncompressedType>::getInitialSrcCursor(uint8_t* src, uint16_t bitWidth,
+    size_t srcOffset) {
+    auto* compressedTypeAlignedCursor =
+        reinterpret_cast<CompressedType*>(src) + srcOffset * bitWidth / sizeOfCompressedTypeBits;
+    return reinterpret_cast<uint8_t*>(compressedTypeAlignedCursor);
 }
 
 template struct BitpackingUtils<common::int128_t>;
