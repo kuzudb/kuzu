@@ -292,6 +292,7 @@ describe("Progress", function () {
         assert.exists(tuple["COUNT_STAR()"]);
         assert.equal(tuple["COUNT_STAR()"], 8);
         assert.isTrue(progressCalled);
+        await conn.query("CALL progress_bar_time = 0");
     });
 
     it("should throw error if the progress callback is not a function for query", async function () {
