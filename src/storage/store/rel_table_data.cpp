@@ -15,9 +15,9 @@ namespace kuzu {
 namespace storage {
 
 RelDataReadState::RelDataReadState(const std::vector<column_id_t>& columnIDs)
-    : TableDataScanState{columnIDs}, nodeGroupIdx{INVALID_NODE_GROUP_IDX}, numNodes{0}, 
+    : TableDataScanState{columnIDs}, nodeGroupIdx{INVALID_NODE_GROUP_IDX}, numNodes{0},
       currentNodeOffset{0}, currentCSROffset{0}, posInLastCSR{0}, currNodeIdx{0}, endNodeIdx{0},
-      totalNodeIdxs{0}, readFromPersistentStorage{false}, readFromLocalStorage{false}, 
+      totalNodeIdxs{0}, readFromPersistentStorage{false}, readFromLocalStorage{false},
       localNodeGroup{nullptr} {}
 
 bool RelDataReadState::hasMoreToReadFromLocalStorage() const {
@@ -204,13 +204,13 @@ void RelTableData::initializeScanState(Transaction* transaction, TableScanState&
     auto& selVector = scanState.nodeIDVector->state->getSelVector();
     relScanState.readFromLocalStorage = false;
     relScanState.endNodeIdx = relScanState.currNodeIdx;
-    relScanState.currentNodeOffset = scanState.nodeIDVector->readNodeOffset(
-        selVector[relScanState.currNodeIdx]);
+    relScanState.currentNodeOffset =
+        scanState.nodeIDVector->readNodeOffset(selVector[relScanState.currNodeIdx]);
     relScanState.totalNodeIdxs = selVector.getSelSize();
     relScanState.nodeGroupIdx = StorageUtils::getNodeGroupIdx(relScanState.currentNodeOffset);
     while (relScanState.endNodeIdx < relScanState.totalNodeIdxs) {
-        auto nodeOffset = scanState.nodeIDVector->readNodeOffset(
-            selVector[relScanState.endNodeIdx]);
+        auto nodeOffset =
+            scanState.nodeIDVector->readNodeOffset(selVector[relScanState.endNodeIdx]);
         auto curNodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
         if (curNodeGroupIdx != relScanState.nodeGroupIdx) {
             break;

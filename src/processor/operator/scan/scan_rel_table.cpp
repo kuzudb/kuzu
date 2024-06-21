@@ -24,7 +24,7 @@ void ScanRelTableInfo::scanIfNecessary(Transaction* transaction) {
     }
     auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(relScanState.nodeGroupIdx);
     auto& outSelVector = localScanState->outputVectors[0]->state->getSelVectorUnsafe();
-    auto currCSRSize = 
+    auto currCSRSize =
         relScanState.csrHeaderChunks.getCSRLength(relScanState.currentNodeOffset - startNodeOffset);
     if (currCSRSize > DEFAULT_VECTOR_CAPACITY - relScanState.currentCSROffset) {
         currCSRSize = DEFAULT_VECTOR_CAPACITY - relScanState.currentCSROffset;

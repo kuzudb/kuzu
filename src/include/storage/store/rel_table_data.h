@@ -18,7 +18,7 @@ struct RelDataReadState final : TableDataScanState {
     common::sel_t currNodeIdx;
     common::sel_t endNodeIdx;
     common::sel_t totalNodeIdxs;
-    
+
     // Temp auxiliary data structure to scan the offset of each CSR node in the offset column chunk.
     ChunkedCSRHeader csrHeaderChunks = ChunkedCSRHeader(false /*enableCompression*/);
 
@@ -32,8 +32,8 @@ struct RelDataReadState final : TableDataScanState {
 
     bool hasMoreToRead(const transaction::Transaction* transaction);
 
-    std::pair<common::offset_t, common::offset_t>
-    getStartAndEndOffset(common::ValueVector& inNodeIDVector);
+    std::pair<common::offset_t, common::offset_t> getStartAndEndOffset(
+        common::ValueVector& inNodeIDVector);
 
     bool hasMoreToReadInPersistentStorage() const;
 
