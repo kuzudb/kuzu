@@ -12,7 +12,7 @@ namespace kuzu::storage {
 // Unpacking
 //===--------------------------------------------------------------------===//
 
-static void unpackLast(const uint32_t* __restrict& in, common::int128_t* __restrict out,
+static void unpackLast(const uint32_t* __restrict in, common::int128_t* __restrict out,
     uint16_t delta) {
     const uint8_t LAST_IDX = 31;
     const uint16_t SHIFT = (delta * 31) % 32;
@@ -151,7 +151,8 @@ void Int128Packer::pack(const common::int128_t* __restrict in, uint32_t* __restr
         uint8_t* outCursor = reinterpret_cast<uint8_t*>(out);
         for (common::idx_t oindex = 0; oindex < IntegerBitpacking<common::int128_t>::CHUNK_SIZE - 1;
              ++oindex) {
-            BitpackingUtils<common::int128_t>::packSingle(in[oindex], outCursor, width, oindex);
+            outCursor =
+                BitpackingUtils<common::int128_t>::packSingle(in[oindex], outCursor, width, oindex);
         }
         packLast(in, reinterpret_cast<uint32_t*>(outCursor), width);
     }
@@ -180,10 +181,10 @@ void Int128Packer::unpack(const uint32_t* __restrict in, common::int128_t* __res
         const auto* inCursor = reinterpret_cast<const uint8_t*>(in);
         for (common::idx_t oindex = 0; oindex < IntegerBitpacking<common::int128_t>::CHUNK_SIZE - 1;
              ++oindex) {
-            BitpackingUtils<common::int128_t>::unpackSingle(inCursor, out + oindex, width, oindex);
+            inCursor = BitpackingUtils<common::int128_t>::unpackSingle(inCursor, out + oindex,
+                width, oindex);
         }
-        const auto* inCursor1 = reinterpret_cast<const uint32_t*>(inCursor);
-        unpackLast(inCursor1, out, width);
+        unpackLast(reinterpret_cast<const uint32_t*>(inCursor), out, width);
     }
 }
 

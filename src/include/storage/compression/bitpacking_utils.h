@@ -13,10 +13,10 @@ struct BitpackingUtils {
         std::conditional_t<sizeof(UncompressedType) >= sizeof(uint32_t), uint32_t, uint8_t>;
     static constexpr size_t sizeOfCompressedTypeBits = sizeof(CompressedType) * 8;
 
-    static void unpackSingle(const uint8_t* __restrict& src, UncompressedType* __restrict dst,
-        uint16_t bitWidth, size_t srcOffset);
+    static const uint8_t* unpackSingle(const uint8_t* __restrict src,
+        UncompressedType* __restrict dst, uint16_t bitWidth, size_t srcOffset);
 
-    static void packSingle(const UncompressedType src, uint8_t* __restrict& dstCursor,
+    static uint8_t* packSingle(const UncompressedType src, uint8_t* __restrict dstCursor,
         uint16_t bitWidth, size_t dstOffset);
 
     static const uint8_t* getInitialSrcCursor(const uint8_t* src, uint16_t bitWidth,

@@ -9,7 +9,7 @@ namespace kuzu::storage {
 namespace {
 template<size_t compressed_field, std::integral CompressedType,
     IntegerBitpackingType UncompressedType>
-void unpackSingleUnrolled(const CompressedType* __restrict& in, UncompressedType* __restrict out,
+void unpackSingleUnrolled(const CompressedType* __restrict in, UncompressedType* __restrict out,
     uint16_t delta, uint16_t shiftRight) {
     static constexpr size_t compressedFieldSizeBits = sizeof(CompressedType) * 8;
 
@@ -25,8 +25,8 @@ void unpackSingleUnrolled(const CompressedType* __restrict& in, UncompressedType
 }
 
 template<std::integral CompressedType, IntegerBitpackingType UncompressedType>
-void unpackSingleImpl(const CompressedType* __restrict& in, UncompressedType* __restrict out,
-    uint16_t delta, uint16_t shiftRight) {
+const CompressedType* unpackSingleImpl(const CompressedType* __restrict in,
+    UncompressedType* __restrict out, uint16_t delta, uint16_t shiftRight) {
     static_assert(sizeof(UncompressedType) <= 4 * sizeof(CompressedType));
 
     static constexpr size_t compressedFieldSizeBits = sizeof(CompressedType) * 8;
@@ -48,13 +48,13 @@ void unpackSingleImpl(const CompressedType* __restrict& in, UncompressedType* __
 
     // we previously copy over the entire most significant field
     // zero out the bits that are not actually part of the compressed value
-    in += (delta + shiftRight) / compressedFieldSizeBits;
     *out &= common::BitmaskUtils::all1sMaskForLeastSignificantBits<UncompressedType>(delta);
+    return in + (delta + shiftRight) / compressedFieldSizeBits;
 }
 
 template<size_t compressed_field, std::integral CompressedType,
     IntegerBitpackingType UncompressedType>
-void packSingleUnrolled(const UncompressedType in, CompressedType* __restrict& out, uint16_t delta,
+void packSingleUnrolled(const UncompressedType in, CompressedType* __restrict out, uint16_t delta,
     uint16_t shiftLeft, UncompressedType mask) {
     static constexpr size_t compressedFieldSizeBits = sizeof(CompressedType) * 8;
 
@@ -74,8 +74,8 @@ void packSingleUnrolled(const UncompressedType in, CompressedType* __restrict& o
 }
 
 template<std::integral CompressedType, IntegerBitpackingType UncompressedType>
-void packSingleImpl(const UncompressedType in, CompressedType* __restrict& out, uint16_t delta,
-    uint16_t shiftLeft, UncompressedType mask) {
+CompressedType* packSingleImpl(const UncompressedType in, CompressedType* __restrict out,
+    uint16_t delta, uint16_t shiftLeft, UncompressedType mask) {
     static_assert(sizeof(UncompressedType) <= 4 * sizeof(CompressedType));
 
     static constexpr size_t compressedFieldSizeBits = sizeof(CompressedType) * 8;
@@ -95,29 +95,28 @@ void packSingleImpl(const UncompressedType in, CompressedType* __restrict& out, 
         packSingleUnrolled<4>(in, out, delta, shiftLeft, mask);
     }
 
-    out += (delta + shiftLeft) / compressedFieldSizeBits;
+    return out + (delta + shiftLeft) / compressedFieldSizeBits;
 }
 } // namespace
 
 template<IntegerBitpackingType UncompressedType>
-void BitpackingUtils<UncompressedType>::unpackSingle(const uint8_t* __restrict& srcCursor,
+const uint8_t* BitpackingUtils<UncompressedType>::unpackSingle(const uint8_t* __restrict srcCursor,
     UncompressedType* __restrict dst, uint16_t bitWidth, size_t srcOffset) {
     const size_t shiftRight = srcOffset * bitWidth % sizeOfCompressedTypeBits;
 
     const auto* castedSrcCursor = reinterpret_cast<const CompressedType*>(srcCursor);
-    unpackSingleImpl(castedSrcCursor, dst, bitWidth, shiftRight);
-    srcCursor = reinterpret_cast<const uint8_t*>(castedSrcCursor);
+    return reinterpret_cast<const uint8_t*>(
+        unpackSingleImpl(castedSrcCursor, dst, bitWidth, shiftRight));
 }
 
 template<IntegerBitpackingType UncompressedType>
-void BitpackingUtils<UncompressedType>::packSingle(const UncompressedType src,
-    uint8_t* __restrict& dstCursor, uint16_t bitWidth, size_t dstOffset) {
+uint8_t* BitpackingUtils<UncompressedType>::packSingle(const UncompressedType src,
+    uint8_t* __restrict dstCursor, uint16_t bitWidth, size_t dstOffset) {
     const size_t shiftLeft = dstOffset * bitWidth % sizeOfCompressedTypeBits;
 
     auto* castedDstCursor = reinterpret_cast<CompressedType*>(dstCursor);
-    packSingleImpl(src, castedDstCursor, bitWidth, shiftLeft,
-        common::BitmaskUtils::all1sMaskForLeastSignificantBits<UncompressedType>(bitWidth));
-    dstCursor = reinterpret_cast<uint8_t*>(castedDstCursor);
+    return reinterpret_cast<uint8_t*>(packSingleImpl(src, castedDstCursor, bitWidth, shiftLeft,
+        common::BitmaskUtils::all1sMaskForLeastSignificantBits<UncompressedType>(bitWidth)));
 }
 
 template<IntegerBitpackingType UncompressedType>

@@ -492,7 +492,7 @@ void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uin
     for (size_t i = pos; i < maxReadIndex; i++) {
         // Always use unsigned version of unpacker to prevent sign-bit filling when right shifting
         U& out = reinterpret_cast<U*>(dst)[i - pos];
-        BitpackingUtils<U>::unpackSingle(readCursor, &out, header.bitWidth, i);
+        readCursor = BitpackingUtils<U>::unpackSingle(readCursor, &out, header.bitWidth, i);
 
         if (header.hasNegative && header.bitWidth > 0) {
             SignExtend<T, U, 1>((uint8_t*)&out, header.bitWidth);
@@ -509,7 +509,7 @@ void IntegerBitpacking<T>::packPartialChunk(const U* srcBuffer, uint8_t* dstBuff
     BitpackInfo<T> info, size_t numValuesToPack) const {
     uint8_t* dstCursor = dstBuffer;
     for (size_t i = 0; i < numValuesToPack; ++i) {
-        BitpackingUtils<U>::packSingle(srcBuffer[i], dstCursor, info.bitWidth, i);
+        dstCursor = BitpackingUtils<U>::packSingle(srcBuffer[i], dstCursor, info.bitWidth, i);
     }
 }
 
