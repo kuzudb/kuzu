@@ -121,7 +121,6 @@ LogicalType ArrowConverter::fromArrowSchema(const ArrowSchema* schema) {
             return LogicalType::MAP(LogicalType(fromArrowSchema(schema->children[0]->children[0])),
                 LogicalType(fromArrowSchema(schema->children[0]->children[1])));
         case 'u': {
-            structFields.emplace_back(UnionType::TAG_FIELD_NAME, LogicalType::INT8());
             for (int64_t i = 0; i < schema->n_children; i++) {
                 structFields.emplace_back(std::to_string(i),
                     LogicalType(fromArrowSchema(schema->children[i])));

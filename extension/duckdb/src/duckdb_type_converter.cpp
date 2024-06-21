@@ -65,9 +65,6 @@ common::LogicalType DuckDBTypeConverter::convertDuckDBType(std::string typeStr) 
         return LogicalType::STRUCT(parseStructTypeInfo(typeStr));
     } else if (typeStr.starts_with("UNION")) {
         auto unionFields = parseStructTypeInfo(typeStr);
-        auto unionTagField =
-            StructField(UnionType::TAG_FIELD_NAME, LogicalType(UnionType::TAG_FIELD_TYPE));
-        unionFields.insert(unionFields.begin(), std::move(unionTagField));
         return LogicalType::UNION(std::move(unionFields));
     } else if (typeStr.starts_with("MAP")) {
         auto leftBracketPos = typeStr.find('(');

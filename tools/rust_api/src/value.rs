@@ -647,6 +647,7 @@ impl TryFrom<&ffi::Value> for Value {
                     } else {
                         unreachable!()
                     };
+                debug_assert!(ffi::value_get_children_size(value) == 1);
                 let value: Value = ffi::value_get_child(value, 0).try_into()?;
                 Ok(Value::Union {
                     types,
@@ -867,11 +868,7 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
                 let typ: LogicalType = LogicalType::Struct {
                     fields: value
                         .iter()
-                        .map(|(name, value)| {
-                            // Unwrap is safe since we already converted when inserting into the
-                            // builder
-                            (name.clone(), Into::<LogicalType>::into(value))
-                        })
+                        .map(|(name, value)| (name.clone(), Into::<LogicalType>::into(value)))
                         .collect(),
                 };
 
@@ -1237,14 +1234,14 @@ mod tests {
 
     database_tests! {
         // Passing these values as arguments is not yet implemented in kuzu:
-        // db_list_string: Value::List(LogicalType::String, vec!["Alice".into(), "Bob".into()]), "STRING[]",
-        // db_list_int: Value::List(LogicalType::Int64, vec![0i64.into(), 1i64.into(), 2i64.into()]), "INT64[]",
-        // db_map: Value::Map((LogicalType::String, LogicalType::Int64), vec![(Value::String("key".to_string()), Value::Int64(24))]), "MAP(STRING,INT64)",
-        // db_array: Value::Array(LogicalType::Int64, vec![1i64.into(), 2i64.into(), 3i64.into()]), "INT64[3]",
         // db_union: Value::Union {
         //    types: vec![("Num".to_string(), LogicalType::Int8), ("duration".to_string(), LogicalType::Interval)],
         //    value: Box::new(Value::Int8(-127))
         // }, "UNION(Num INT8, duration INTERVAL)",
+        db_list_string: Value::List(LogicalType::String, vec!["Alice".into(), "Bob".into()]), "STRING[]",
+        db_list_int: Value::List(LogicalType::Int64, vec![0i64.into(), 1i64.into(), 2i64.into()]), "INT64[]",
+        db_map: Value::Map((LogicalType::String, LogicalType::Int64), vec![(Value::String("key".to_string()), Value::Int64(24))]), "MAP(STRING,INT64)",
+        db_array: Value::Array(LogicalType::Int64, vec![1i64.into(), 2i64.into(), 3i64.into()]), "INT64[3]",
         db_struct:
            Value::Struct(vec![("item".to_string(), "Knife".into()), ("count".to_string(), 1.into())]),
            "STRUCT(item STRING, count INT32)",
@@ -1369,9 +1366,7 @@ mod tests {
         Ok(())
     }
 
-    // TODO: This should be added back after we fix create rel.
     #[test]
-    #[ignore]
     fn test_recursive_rel() -> Result<()> {
         let temp_dir = tempfile::TempDir::new()?;
         let db = Database::new(temp_dir.path(), SystemConfig::default())?;

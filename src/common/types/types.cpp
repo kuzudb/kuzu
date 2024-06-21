@@ -1248,11 +1248,7 @@ LogicalType parseMapType(const std::string& trimmedStr) {
 }
 
 LogicalType parseUnionType(const std::string& trimmedStr) {
-    auto unionFields = parseStructTypeInfo(trimmedStr);
-    auto unionTagField =
-        StructField(UnionType::TAG_FIELD_NAME, LogicalType(UnionType::TAG_FIELD_TYPE));
-    unionFields.insert(unionFields.begin(), std::move(unionTagField));
-    return LogicalType::UNION(std::move(unionFields));
+    return LogicalType::UNION(parseStructTypeInfo(trimmedStr));
 }
 
 LogicalType parseDecimalType(const std::string& trimmedStr) {
@@ -1311,6 +1307,9 @@ LogicalType LogicalType::RDF_VARIANT() {
 }
 
 LogicalType LogicalType::UNION(std::vector<StructField>&& fields) {
+    // TODO(Ziy): Use UINT8 to represent tag value.
+    fields.insert(fields.begin(),
+        StructField(UnionType::TAG_FIELD_NAME, LogicalType(UnionType::TAG_FIELD_TYPE)));
     return LogicalType(LogicalTypeID::UNION, std::make_unique<StructTypeInfo>(std::move(fields)));
 }
 
