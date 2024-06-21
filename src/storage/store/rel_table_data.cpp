@@ -17,9 +17,7 @@ namespace storage {
 RelDataReadState::RelDataReadState(const std::vector<column_id_t>& columnIDs)
     : TableDataScanState{columnIDs}, nodeGroupIdx{INVALID_NODE_GROUP_IDX}, numNodes{0},
       currentNodeOffset{0}, posInCurrentCSR{0}, readFromPersistentStorage{false},
-      readFromLocalStorage{false}, localNodeGroup{nullptr} {
-    resetState();
-}
+      readFromLocalStorage{false}, localNodeGroup{nullptr} {}
 
 bool RelDataReadState::hasMoreToReadFromLocalStorage() const {
     KU_ASSERT(localNodeGroup);
@@ -60,23 +58,14 @@ bool RelDataReadState::hasMoreToReadInPersistentStorage() const {
     }
     auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     return (currentNodeOffset - nodeGroupStartOffset) < numNodes &&
-           posInCurrentCSR < csrListEntries[(currentNodeOffset - nodeGroupStartOffset)].size;
-}
-
-void RelDataReadState::populateCSRListEntries() {
-    for (auto i = 0u; i < numNodes; i++) {
-        csrListEntries[i].size = csrHeaderChunks.getCSRLength(i);
-        KU_ASSERT(csrListEntries[i].size <=
-                  csrHeaderChunks.getEndCSROffset(i) - csrHeaderChunks.getStartCSROffset(i));
-        csrListEntries[i].offset = csrHeaderChunks.getStartCSROffset(i);
-    }
+           posInCurrentCSR < csrHeaderChunks.getCSRLength(currentNodeOffset - nodeGroupStartOffset);
 }
 
 std::pair<offset_t, offset_t> RelDataReadState::getStartAndEndOffset() {
     auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    auto currCSRListEntry = csrListEntries[currentNodeOffset - startNodeOffset];
-    auto currCSRSize = currCSRListEntry.size;
-    auto startOffset = currCSRListEntry.offset + posInCurrentCSR;
+    auto currCSRSize = csrHeaderChunks.getCSRLength(currentNodeOffset - startNodeOffset);
+    auto startOffset =
+        csrHeaderChunks.getStartCSROffset(currentNodeOffset - startNodeOffset) + posInCurrentCSR;
     auto numRowsToRead = std::min(currCSRSize - posInCurrentCSR, DEFAULT_VECTOR_CAPACITY);
     posInCurrentCSR += numRowsToRead;
     return {startOffset, startOffset + numRowsToRead};
@@ -88,8 +77,7 @@ void RelDataReadState::resetState() {
     numNodes = 0;
     currentNodeOffset = 0;
     posInCurrentCSR = 0;
-    csrListEntries.resize(StorageConstants::NODE_GROUP_SIZE, {0, 0});
-    csrHeaderChunks = ChunkedCSRHeader(false);
+    csrHeaderChunks.resetToEmpty();
     readFromPersistentStorage = false;
     readFromLocalStorage = false;
     localNodeGroup = nullptr;
@@ -218,7 +206,6 @@ void RelTableData::initializeScanState(Transaction* transaction, TableScanState&
             nodeGroupIdx < columns[REL_ID_COLUMN_ID]->getNumCommittedNodeGroups() &&
             (nodeOffset - startNodeOffset) < relScanState.numNodes;
         if (relScanState.readFromPersistentStorage) {
-            relScanState.populateCSRListEntries();
             initializeColumnScanStates(transaction, scanState, nodeGroupIdx);
         }
         if (transaction->isWriteTransaction()) {

@@ -84,6 +84,11 @@ struct ChunkedCSRHeader {
         offset->setNumValues(numValues);
         length->setNumValues(numValues);
     }
+
+    void resetToEmpty() const {
+        offset->resetToEmpty();
+        length->resetToEmpty();
+    }
 };
 
 class ChunkedCSRNodeGroup : public ChunkedNodeGroup {
