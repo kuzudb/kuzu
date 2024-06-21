@@ -44,12 +44,6 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     op->computeFactorizedSchema();
 }
 
-void FactorizationRewriter::visitExtend(planner::LogicalOperator* op) {
-    auto extend = (LogicalExtend*)op;
-    auto groupsPosToFlatten = extend->getGroupsPosToFlatten();
-    extend->setChild(0, appendFlattens(extend->getChild(0), groupsPosToFlatten));
-}
-
 void FactorizationRewriter::visitRecursiveExtend(planner::LogicalOperator* op) {
     auto extend = (LogicalRecursiveExtend*)op;
     auto groupsPosToFlatten = extend->getGroupsPosToFlatten();
