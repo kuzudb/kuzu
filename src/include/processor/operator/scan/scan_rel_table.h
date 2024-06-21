@@ -5,6 +5,9 @@
 #include "storage/store/rel_table.h"
 
 namespace kuzu {
+namespace transaction {
+class Transaction;
+} // namespace transaction
 namespace processor {
 
 struct ScanRelTableInfo {
@@ -23,6 +26,7 @@ struct ScanRelTableInfo {
     EXPLICIT_COPY_DEFAULT_MOVE(ScanRelTableInfo);
 
     void initScanState();
+    void scanIfNecessary(transaction::Transaction* transaction);
 
 private:
     ScanRelTableInfo(const ScanRelTableInfo& other)

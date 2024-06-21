@@ -126,8 +126,6 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
     // Append extend
     auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel, direction, properties_,
         hasAtMostOneNbr, plan.getLastOperator());
-    appendFlattens(extend->getGroupsPosToFlatten(), plan);
-    extend->setChild(0, plan.getLastOperator());
     extend->computeFactorizedSchema();
     // Update cost & cardinality. Note that extend does not change cardinality.
     plan.setCost(CostModel::computeExtendCost(plan));
