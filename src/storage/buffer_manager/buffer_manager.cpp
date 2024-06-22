@@ -6,6 +6,7 @@
 #include "common/assert.h"
 #include "common/constants.h"
 #include "common/exception/buffer_manager.h"
+#include "common/types/types.h"
 #include "storage/buffer_manager/bm_file_handle.h"
 
 #if defined(_WIN32)
@@ -21,8 +22,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-bool EvictionQueue::insert(uint32_t fileIndex, common::page_idx_t pageIndex, PageState* pageState) {
-    EvictionCandidate candidate{fileIndex, pageIndex, pageState};
+bool EvictionQueue::insert(uint32_t fileIndex, common::page_idx_t pageIndex) {
+    EvictionCandidate candidate{fileIndex, pageIndex};
     while (size < capacity) {
         // Weak is fine since spurious failure is acceptable.
         // The slot can always be filled later.
@@ -47,10 +48,15 @@ std::atomic<EvictionCandidate>* EvictionQueue::next() {
 }
 
 void EvictionQueue::removeCandidatesForFile(uint32_t fileIndex) {
+    if (size == 0) {
+        return;
+    }
     for (uint64_t i = 0; i < capacity; i++) {
         auto candidate = data[i].load();
         if (candidate.fileIdx == fileIndex && data[i].compare_exchange_strong(candidate, EMPTY)) {
-            size--;
+            if (size-- == 1) {
+                return;
+            }
         }
     }
 }
@@ -110,7 +116,7 @@ uint8_t* BufferManager::pin(BMFileHandle& fileHandle, page_idx_t pageIdx,
                     pageState->unlock();
                     throw BufferManagerException("Failed to claim a frame.");
                 }
-                if (!evictionQueue.insert(fileHandle.getFileIndex(), pageIdx, pageState)) {
+                if (!evictionQueue.insert(fileHandle.getFileIndex(), pageIdx)) {
                     throw BufferManagerException(
                         "Eviction queue is full! This should be impossible.");
                 }
@@ -247,10 +253,12 @@ uint64_t BufferManager::evictPages() {
         evictionCandidates[pagesEvicted] = evictionQueue.next();
         pagesTried++;
         auto evictionCandidate = evictionCandidates[pagesEvicted]->load();
-        auto pageStateAndVersion = evictionCandidate.pageState->getStateAndVersion();
+        auto* pageState =
+            fileHandles[evictionCandidate.fileIdx]->getPageState(evictionCandidate.pageIdx);
+        auto pageStateAndVersion = pageState->getStateAndVersion();
         if (!evictionCandidate.isEvictable(pageStateAndVersion)) {
             if (evictionCandidate.isSecondChanceEvictable(pageStateAndVersion)) {
-                evictionCandidate.pageState->tryMark(pageStateAndVersion);
+                pageState->tryMark(pageStateAndVersion);
             }
             continue;
         }
@@ -309,10 +317,10 @@ bool BufferManager::reserve(uint64_t sizeToReserve) {
 uint64_t BufferManager::tryEvictPage(std::atomic<EvictionCandidate>& _candidate) {
     auto candidate = _candidate.load();
     // Page must have been evicted by another thread already
-    if (candidate.pageState == nullptr) {
+    if (candidate.pageIdx == INVALID_PAGE_IDX) {
         return 0;
     }
-    auto& pageState = *candidate.pageState;
+    auto& pageState = *fileHandles[candidate.fileIdx]->getPageState(candidate.pageIdx);
     auto currStateAndVersion = pageState.getStateAndVersion();
     // We check if the page is evictable again. Note that if the page's state or version has
     // changed after the check, `tryLock` will fail, and we will abort the eviction of this page.

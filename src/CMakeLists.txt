@@ -27,7 +27,9 @@ set(KUZU_LIBRARIES antlr4_cypher antlr4_runtime brotlidec brotlicommon fast_floa
 if(NOT WIN32)
         set(KUZU_LIBRARIES dl ${KUZU_LIBRARIES})
 endif()
-if(NOT MSVC AND NOT APPLE)
+# Seems to be needed for clang on linux only
+# for compiling std::atomic<T>::compare_exchange_weak
+if (NOT APPLE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         set(KUZU_LIBRARIES atomic ${KUZU_LIBRARIES})
 endif()
 if (ENABLE_BACKTRACES)
