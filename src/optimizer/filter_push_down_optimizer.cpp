@@ -206,18 +206,6 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::finishPushDown(
     return root;
 }
 
-std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::appendScanNodeTable(
-    std::shared_ptr<binder::Expression> nodeID, std::vector<common::table_id_t> nodeTableIDs,
-    binder::expression_vector properties, std::shared_ptr<planner::LogicalOperator> child) {
-    if (properties.empty()) {
-        return child;
-    }
-    auto scanNodeTable = std::make_shared<LogicalScanNodeTable>(std::move(nodeID),
-        std::move(nodeTableIDs), std::move(properties));
-    scanNodeTable->computeFlatSchema();
-    return scanNodeTable;
-}
-
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::appendFilters(
     const expression_vector& predicates, std::shared_ptr<LogicalOperator> child) {
     if (predicates.empty()) {

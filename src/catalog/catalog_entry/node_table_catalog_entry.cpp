@@ -17,6 +17,9 @@ void NodeTableCatalogEntry::serialize(common::Serializer& serializer) const {
     serializer.write(primaryKeyPID);
     serializer.serializeUnorderedSet(fwdRelTableIDSet);
     serializer.serializeUnorderedSet(bwdRelTableIDSet);
+    serializer.write(externalTableID);
+    serializer.write(externalDBName);
+    serializer.write(externalTableName);
 }
 
 std::unique_ptr<NodeTableCatalogEntry> NodeTableCatalogEntry::deserialize(
@@ -24,13 +27,21 @@ std::unique_ptr<NodeTableCatalogEntry> NodeTableCatalogEntry::deserialize(
     common::property_id_t primaryKeyPID;
     common::table_id_set_t fwdRelTableIDSet;
     common::table_id_set_t bwdRelTableIDSet;
+    common::table_id_t externalTableID;
+    std::string externalDBName;
+    std::string externalTableName;
     deserializer.deserializeValue(primaryKeyPID);
     deserializer.deserializeUnorderedSet(fwdRelTableIDSet);
     deserializer.deserializeUnorderedSet(bwdRelTableIDSet);
+    deserializer.deserializeValue(externalTableID);
+    deserializer.deserializeValue(externalDBName);
+    deserializer.deserializeValue(externalTableName);
     auto nodeTableEntry = std::make_unique<NodeTableCatalogEntry>();
     nodeTableEntry->primaryKeyPID = primaryKeyPID;
     nodeTableEntry->fwdRelTableIDSet = std::move(fwdRelTableIDSet);
     nodeTableEntry->bwdRelTableIDSet = std::move(bwdRelTableIDSet);
+    nodeTableEntry->externalDBName = externalDBName;
+    nodeTableEntry->externalTableName = externalTableName;
     return nodeTableEntry;
 }
 

@@ -17,13 +17,19 @@ std::string TableTypeUtils::toString(TableType tableType) {
         return "REL";
     }
     case TableType::RDF: {
-        return "RDFGraph";
+        return "RDFGRAPH";
     }
     case TableType::REL_GROUP: {
         return "REL_GROUP";
     }
-    case TableType::FOREIGN: {
-        return "ATTACHED";
+    case TableType::EXTERNAL: {
+        return "EXTERNAL";
+    }
+    case TableType::EXTERNAL_NODE: {
+        return "EXTERNAL_NODE";
+    }
+    case TableType::EXTERNAL_REL: {
+        return "EXTERNAL_REL";
     }
     default:
         KU_UNREACHABLE;

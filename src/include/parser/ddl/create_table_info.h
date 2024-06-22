@@ -47,6 +47,8 @@ struct CreateTableInfo {
     std::unique_ptr<ExtraCreateTableInfo> extraInfo;
     common::ConflictAction onConflict;
 
+    CreateTableInfo(common::TableType tableType, std::string tableName)
+        : CreateTableInfo{tableType, tableName, common::ConflictAction::ON_CONFLICT_DO_NOTHING} {}
     CreateTableInfo(common::TableType tableType, std::string tableName,
         common::ConflictAction onConflict)
         : tableType{tableType}, tableName{std::move(tableName)}, extraInfo{nullptr},
@@ -58,6 +60,26 @@ struct ExtraCreateNodeTableInfo : public ExtraCreateTableInfo {
     std::string pKName;
 
     explicit ExtraCreateNodeTableInfo(std::string pKName) : pKName{std::move(pKName)} {}
+};
+
+struct ExternalTableInfo {
+    std::string dbName;
+    std::string tableName;
+};
+
+struct ExtraCreateExternalNodeTableInfo : public ExtraCreateTableInfo {
+    ExternalTableInfo tableInfo;
+
+    explicit ExtraCreateExternalNodeTableInfo(ExternalTableInfo tableInfo)
+        : tableInfo{std::move(tableInfo)} {}
+};
+
+struct ExtraCreateExternalRelTableInfo : public ExtraCreateTableInfo {
+    ExternalTableInfo srcTableInfo;
+    ExternalTableInfo dstTableInfo;
+
+    ExtraCreateExternalRelTableInfo(ExternalTableInfo srcTableInfo, ExternalTableInfo dstTableInfo)
+        : srcTableInfo{std::move(srcTableInfo)}, dstTableInfo{std::move(dstTableInfo)} {}
 };
 
 struct ExtraCreateRelTableInfo : public ExtraCreateTableInfo {

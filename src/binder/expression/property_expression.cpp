@@ -47,6 +47,15 @@ bool PropertyExpression::hasPropertyID(common::table_id_t tableID) const {
     return infos.at(tableID).id != INVALID_PROPERTY_ID;
 }
 
+bool PropertyExpression::isExternal() const {
+    for (auto& [tableID, info] : infos) {
+        if (info.id != INVALID_PROPERTY_ID) {
+            return false;
+        }
+    }
+    return true;
+}
+
 common::property_id_t PropertyExpression::getPropertyID(common::table_id_t tableID) const {
     KU_ASSERT(infos.contains(tableID));
     return infos.at(tableID).id;

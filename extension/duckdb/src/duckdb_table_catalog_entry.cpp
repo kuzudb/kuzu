@@ -11,7 +11,7 @@ DuckDBTableCatalogEntry::DuckDBTableCatalogEntry(CatalogSet* set, std::string na
       scanFunction{std::move(scanFunction)} {}
 
 common::TableType DuckDBTableCatalogEntry::getTableType() const {
-    return common::TableType::FOREIGN;
+    return common::TableType::EXTERNAL;
 }
 
 std::unique_ptr<TableCatalogEntry> DuckDBTableCatalogEntry::copy() const {

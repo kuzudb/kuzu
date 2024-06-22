@@ -18,7 +18,7 @@ std::unique_ptr<binder::BoundCreateTableInfo> PostgresCatalog::bindCreateTableIn
     }
     auto extraCreatePostgresTableInfo = std::make_unique<BoundExtraCreatePostgresTableInfo>(dbPath,
         "" /* dbPath */, DEFAULT_CATALOG_NAME, getDefaultSchemaName(), std::move(propertyInfos));
-    return std::make_unique<binder::BoundCreateTableInfo>(common::TableType::FOREIGN, tableName,
+    return std::make_unique<binder::BoundCreateTableInfo>(common::TableType::EXTERNAL, tableName,
         common::ConflictAction::ON_CONFLICT_THROW, std::move(extraCreatePostgresTableInfo));
 }
 

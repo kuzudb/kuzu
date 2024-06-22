@@ -8,6 +8,8 @@ oC_Cypher
 oC_Statement
     : oC_Query
         | kU_CreateNodeTable
+        | kU_CreateExternalNodeTable
+        | kU_CreateExternalRelTable
         | kU_CreateRelTable
         | kU_CreateRelTableGroup
         | kU_CreateRdfGraph
@@ -97,8 +99,14 @@ kU_IfNotExists
 kU_CreateNodeTable
     : CREATE SP NODE SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_PropertyDefinitionsDDL SP? ( ',' SP? kU_CreateNodeConstraint ) SP? ')' ;
 
+kU_CreateExternalNodeTable
+    : CREATE SP EXTERNAL SP NODE SP TABLE SP oC_SchemaName SP AS SP oC_SchemaName kU_TableLookup  ;
+
 kU_CreateRelTable
     : CREATE SP REL SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection SP? ( ',' SP? kU_PropertyDefinitionsDDL SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
+
+kU_CreateExternalRelTable
+    : CREATE SP EXTERNAL SP REL SP TABLE SP oC_SchemaName SP '(' SP? FROM SP oC_SchemaName kU_TableLookup SP TO SP oC_SchemaName kU_TableLookup SP? ')' ;
 
 kU_CreateRelTableGroup
     : CREATE SP REL SP TABLE SP GROUP SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection ( SP? ',' SP? kU_RelTableConnection )+ SP? ( ',' SP? kU_PropertyDefinitionsDDL SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
@@ -552,6 +560,9 @@ kU_CountSubquery
 
 oC_PropertyLookup
     : '.' SP? ( oC_PropertyKeyName | STAR ) ;
+
+kU_TableLookup
+    : '.' SP? oC_SchemaName ;
 
 oC_CaseExpression
     :  ( ( CASE ( SP? oC_CaseAlternative )+ ) | ( CASE SP? oC_Expression ( SP? oC_CaseAlternative )+ ) ) ( SP? ELSE SP? oC_Expression )? SP? END ;
