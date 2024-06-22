@@ -21,20 +21,19 @@ enum VisitedState : uint8_t {
 
 struct IFEMorsel {
 public:
-    IFEMorsel(uint64_t upperBound_, uint64_t lowerBound_, uint64_t maxNodeOffset_)
-        : mutex{std::mutex()}, currentLevel{0u}, nextScanStartIdx{0u}, numVisitedDstNodes{0u},
-          numDstNodesToVisit{maxNodeOffset_ + 1},
-          visitedNodes{std::vector<std::atomic<uint8_t>>(maxNodeOffset_ + 1)},
-          pathLength{std::vector<std::atomic<uint16_t>>(maxNodeOffset_ + 1)},
+    IFEMorsel(uint64_t upperBound_, uint64_t lowerBound_, uint64_t maxNodeOffset_,
+        common::offset_t srcOffset)
+        : mutex{std::mutex()}, initializedIFEMorsel{false}, currentLevel{0u},
+          nextScanStartIdx{0u}, srcOffset{srcOffset}, numVisitedDstNodes{0u},
+          numDstNodesToVisit{maxNodeOffset_ + 1}, visitedNodes{nullptr}, pathLength{nullptr},
           bfsLevelNodeOffsets{std::vector<common::offset_t>()}, maxOffset{maxNodeOffset_},
-          upperBound{upperBound_}, lowerBound{lowerBound_}, nextDstScanStartIdx{0u} {
-        for (auto i = 0u; i < maxNodeOffset_ + 1; i++) {
-            visitedNodes[i].store(NOT_VISITED_DST, std::memory_order::relaxed);
-            pathLength[i].store(0u, std::memory_order_relaxed);
-        }
-    }
+          upperBound{upperBound_}, lowerBound{lowerBound_}, nextDstScanStartIdx{0u} {}
 
-    void initSourceNoLock(common::offset_t srcOffset);
+    ~IFEMorsel();
+
+    void init();
+
+    void resetNoLock(common::offset_t srcOffset);
 
     function::CallFuncMorsel getMorsel(uint64_t morselSize);
 
@@ -48,6 +47,7 @@ public:
 
 public:
     std::mutex mutex;
+    bool initializedIFEMorsel;
     uint8_t currentLevel;
     std::atomic<uint64_t> nextScanStartIdx;
     common::offset_t srcOffset;
@@ -55,8 +55,8 @@ public:
     // Visited state
     std::atomic<uint64_t> numVisitedDstNodes;
     uint64_t numDstNodesToVisit;
-    std::vector<std::atomic_uint8_t> visitedNodes;
-    std::vector<std::atomic_uint16_t> pathLength;
+    std::atomic<uint8_t>* visitedNodes;
+    std::atomic<uint16_t>* pathLength;
     std::vector<common::offset_t> bfsLevelNodeOffsets;
     // Maximum offset of dst nodes.
     common::offset_t maxOffset;
@@ -65,5 +65,5 @@ public:
     std::atomic<uint64_t> nextDstScanStartIdx;
 };
 
-}
-}
+} // namespace function
+} // namespace kuzu

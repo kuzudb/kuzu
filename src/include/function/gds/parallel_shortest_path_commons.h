@@ -1,11 +1,15 @@
 #pragma once
 
+#include "common/task_system/task_scheduler.h"
 #include "gds.h"
 using namespace kuzu::binder;
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace function {
+
+typedef std::vector<std::pair<std::shared_ptr<IFEMorsel>&, std::shared_ptr<ScheduledTask>&>>
+    scheduledTaskMap;
 
 struct ParallelShortestPathBindData final : public GDSBindData {
     uint8_t upperBound;
@@ -40,6 +44,7 @@ public:
     std::unique_ptr<ValueVector> srcNodeIDVector;
     std::unique_ptr<ValueVector> dstNodeIDVector;
     std::unique_ptr<ValueVector> lengthVector;
+    IFEMorsel *ifeMorsel;
 };
 
 }

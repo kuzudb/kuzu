@@ -14,7 +14,6 @@ struct GDSCallSharedState {
     std::shared_ptr<FactorizedTable> fTable;
     std::unique_ptr<graph::Graph> graph;
     std::unique_ptr<NodeOffsetSemiMask> inputNodeOffsetMask;
-    function::IFEMorsel *ifeMorsel;
 
     GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph,
         std::unique_ptr<NodeOffsetSemiMask> inputNodeOffsetMask)

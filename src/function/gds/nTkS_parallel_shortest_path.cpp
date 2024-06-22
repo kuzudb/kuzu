@@ -143,7 +143,38 @@ public:
     }
 
     void exec(processor::ExecutionContext* executionContext) override {
+        auto extraData = bindData->ptrCast<ParallelShortestPathBindData>();
+        // threads available will be 1 less than total (main thread makes gds call)
+        auto threadsAvailable = executionContext->clientContext->getClientConfig()->numThreads - 1;
+        auto concurrentBFS = executionContext->clientContext->getClientConfig()->maxConcurrentBFS;
+        // set max bfs always to min value between threads available and maxConcurrentBFS value
+        auto maxConcurrentBFS = std::min(threadsAvailable, concurrentBFS);
+        auto maxNodeOffset = sharedState->graph->getNumNodes() - 1;
+        auto lowerBound = 1u;
+        auto& inputMask = sharedState->inputNodeOffsetMask;
+        scheduledTaskMap ifeMorselTasks;
+        ifeMorselTasks.reserve(maxConcurrentBFS);
+        auto srcOffset = 0LU, numCompletedTasks = 0lu, totalBFSSources = 0lu;
+        while (true) {
+            for (auto i = 0u; i < maxConcurrentBFS; i++) {
+                if (!ifeMorselTasks[i].first) {
+                    // set up new ife_morsel with srcOffset (if node masked)
+                    // set up task with pointer to the function to execute
 
+                } else if (parallelUtils->taskCompletedNoError(ifeMorselTasks[i].second)) {
+
+                } else if (parallelUtils->taskHasExceptionOrTimedOut(ifeMorselTasks[i].second,
+                               executionContext)) {
+                    // Can we exit from here ? Or should we remove all the other remaining tasks ?
+                    break;
+                } else {
+                    // Else the task is still running, check status of the other tasks.
+                    continue;
+                }
+            }
+            std::this_thread::sleep_for(
+                std::chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
+        }
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {

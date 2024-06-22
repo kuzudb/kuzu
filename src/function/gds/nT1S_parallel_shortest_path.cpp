@@ -4,9 +4,9 @@
 #include "common/types/types.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/ife_morsel.h"
+#include "function/gds/parallel_shortest_path_commons.h"
 #include "function/gds/parallel_utils.h"
 #include "function/gds_function.h"
-#include "function/gds/parallel_shortest_path_commons.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -87,7 +87,7 @@ public:
         auto& graph = sharedState->graph;
         auto shortestPathLocalState =
             common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState);
-        auto ifeMorsel = sharedState->ifeMorsel;
+        auto ifeMorsel = shortestPathLocalState->ifeMorsel;
         auto frontierMorsel = ifeMorsel->getMorsel(64LU /* morsel size, hard-coding for now */);
         if (!frontierMorsel.hasMoreToOutput()) {
             return 0; // return 0 to indicate to thread it can exit from operator
@@ -107,15 +107,16 @@ public:
             ifeMorsel->mergeResults(numDstVisitedLocal);
             frontierMorsel = ifeMorsel->getMorsel(64LU);
         }
-        return UINT64_MAX; // returning UINT64_MAX to indicate to thread it should continue executing
+        return UINT64_MAX; // returning UINT64_MAX to indicate to thread it should continue
+                           // executing
     }
 
     static uint64_t shortestPathOutputFunc(GDSCallSharedState* sharedState,
         GDSLocalState* localState) {
-        auto ifeMorsel = sharedState->ifeMorsel;
-        auto morsel = ifeMorsel->getDstWriteMorsel(DEFAULT_VECTOR_CAPACITY);
         auto shortestPathLocalState =
             common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState);
+        auto ifeMorsel = shortestPathLocalState->ifeMorsel;
+        auto morsel = ifeMorsel->getDstWriteMorsel(DEFAULT_VECTOR_CAPACITY);
         if (!morsel.hasMoreToOutput()) {
             return 0;
         }
@@ -123,7 +124,7 @@ public:
         auto& srcNodeVector = shortestPathLocalState->srcNodeIDVector;
         auto& dstOffsetVector = shortestPathLocalState->dstNodeIDVector;
         auto& pathLengthVector = shortestPathLocalState->lengthVector;
-        srcNodeVector->setValue<nodeID_t>(0, {sharedState->ifeMorsel->srcOffset, tableID});
+        srcNodeVector->setValue<nodeID_t>(0, {ifeMorsel->srcOffset, tableID});
         auto pos = 0;
         for (auto offset = morsel.startOffset; offset < morsel.endOffset; offset++) {
             auto state = ifeMorsel->visitedNodes[offset].load(std::memory_order_acq_rel);
@@ -145,21 +146,24 @@ public:
     void exec(processor::ExecutionContext* executionContext) override {
         auto extraData = bindData->ptrCast<ParallelShortestPathBindData>();
         auto numNodes = sharedState->graph->getNumNodes();
-        auto ifeMorsel =
-            std::make_unique<IFEMorsel>(extraData->upperBound, 1 /*lower bound*/, numNodes + 1);
-        sharedState->ifeMorsel = ifeMorsel.get();
+        IFEMorsel* ifeMorsel = nullptr;
+        auto shortestPathLocalState = common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState.get());
         for (auto offset = 0u; offset < numNodes; offset++) {
             if (!sharedState->inputNodeOffsetMask->isNodeMasked(offset)) {
                 continue;
             }
-            ifeMorsel->initSourceNoLock(offset);
+            if (!ifeMorsel) {
+                ifeMorsel = std::make_unique<IFEMorsel>(extraData->upperBound, 1, numNodes - 1, offset).get();
+                shortestPathLocalState->ifeMorsel = ifeMorsel;
+            } else {
+                ifeMorsel->resetNoLock(offset);
+            }
+            ifeMorsel->init();
             while (!ifeMorsel->isCompleteNoLock()) {
-                parallelUtils->doParallelBlocking(executionContext, this, sharedState,
-                    extendFrontierFunc);
+                parallelUtils->doParallelBlocking(executionContext, this, sharedState, extendFrontierFunc);
                 ifeMorsel->initializeNextFrontierNoLock();
             }
-            parallelUtils->doParallelBlocking(executionContext, this, sharedState,
-                shortestPathOutputFunc);
+            parallelUtils->doParallelBlocking(executionContext, this, sharedState, shortestPathOutputFunc);
         }
     }
 
@@ -170,7 +174,8 @@ public:
 
 function_set nT1SParallelShortestPathsFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(name, std::make_unique<nT1SParallelShortestPath>());
+    auto function =
+        std::make_unique<GDSFunction>(name, std::make_unique<nT1SParallelShortestPath>());
     result.push_back(std::move(function));
     return result;
 }
