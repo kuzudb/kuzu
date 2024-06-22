@@ -127,10 +127,8 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BufferManager* bufferManager, W
     multiplicity = tableEntry->constCast<RelTableCatalogEntry>().getMultiplicity(direction);
     initCSRHeaderColumns();
     initPropertyColumns(tableEntry);
-    if (deSer) {
-        nodeGroups = std::make_unique<CSRNodeGroupCollection>(getColumnTypes(), enableCompression,
-            0, dataFH, deSer);
-    }
+    nodeGroups = std::make_unique<NodeGroupCollection>(getColumnTypes(), enableCompression, 0,
+        dataFH, deSer);
 }
 
 void RelTableData::initCSRHeaderColumns() {
@@ -278,7 +276,10 @@ void RelTableData::initPropertyColumns(const TableCatalogEntry* tableEntry) {
 
 void RelTableData::append(Transaction* transaction, ValueVector* srcVector,
     std::vector<ValueVector*>& dataVectors) {
-    nodeGroups->append(transaction, srcVector, dataVectors);
+    std::vector<ValueVector*> appendDataVectors;
+    appendDataVectors.push_back(srcVector);
+    appendDataVectors.insert(appendDataVectors.end(), dataVectors.begin(), dataVectors.end());
+    nodeGroups->append(transaction, appendDataVectors);
 }
 
 bool RelTableData::delete_(Transaction* transaction, ValueVector* srcNodeIDVector,
@@ -319,19 +320,11 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction, offset_t nodeOff
 }
 
 offset_t RelTableData::append(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    ChunkedNodeGroup* nodeGroup) {
-    auto csrNodeGroup = ku_dynamic_cast<ChunkedNodeGroup*, ChunkedCSRNodeGroup*>(nodeGroup);
-    ChunkState csrOffsetState, csrLengthState;
-    // csrHeaderColumns.offset->initChunkState(transaction, nodeGroupIdx, csrOffsetState);
-    // csrHeaderColumns.length->initChunkState(transaction, nodeGroupIdx, csrLengthState);
-    // csrHeaderColumns.append(csrNodeGroup->getCSRHeader(), csrOffsetState, csrLengthState);
-    // for (auto columnID = 0u; columnID < columns.size(); columnID++) {
-    //     auto column = getColumn(columnID);
-    //     ChunkState state;
-    //     column->initChunkState(&DUMMY_WRITE_TRANSACTION, nodeGroupIdx, state);
-    //     getColumn(columnID)->append(&nodeGroup->getColumnChunk(columnID).getData(), state);
-    // }
-    return StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    ChunkedNodeGroup* chunkedGroup) {
+    auto flushedChunkedNodeGroup = chunkedGroup->flush(*dataFH);
+    auto flushedNodeGroup = std::make_unique<CSRNodeGroup>(nodeGroupIdx, enableCompression,
+        std::move(flushedChunkedNodeGroup));
+    nodeGroups->setNodeGroup(nodeGroupIdx, std::move(flushedNodeGroup));
 }
 
 static length_t getGapSizeForNode(const ChunkedCSRHeader& header, offset_t nodeOffset) {

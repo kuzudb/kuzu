@@ -9,7 +9,6 @@ struct ChunkedCSRHeader {
     std::unique_ptr<ColumnChunk> offset;
     std::unique_ptr<ColumnChunk> length;
 
-    ChunkedCSRHeader() {}
     ChunkedCSRHeader(bool enableCompression, uint64_t capacity, ResidencyState residencyState);
     ChunkedCSRHeader(std::unique_ptr<ColumnChunk> offset, std::unique_ptr<ColumnChunk> length)
         : offset{std::move(offset)}, length{std::move(length)} {}
@@ -25,17 +24,25 @@ struct ChunkedCSRHeader {
         offset->setNumValues(numValues);
         length->setNumValues(numValues);
     }
+
+    void resetToEmpty() const {
+        offset->resetToEmpty();
+        length->resetToEmpty();
+    }
 };
 
 class ChunkedCSRNodeGroup final : public ChunkedNodeGroup {
 public:
     ChunkedCSRNodeGroup(const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
         uint64_t capacity, common::offset_t startOffset, ResidencyState residencyState)
-        : ChunkedNodeGroup{columnTypes, enableCompression, capacity, startOffset, residencyState} {}
+        : ChunkedNodeGroup{columnTypes, enableCompression, capacity, startOffset, residencyState,
+              NodeGroupDataFormat::CSR},
+          csrHeader{enableCompression, common::StorageConstants::NODE_GROUP_SIZE, residencyState} {}
     ChunkedCSRNodeGroup(ChunkedCSRHeader csrHeader,
         std::vector<std::unique_ptr<ColumnChunk>> chunks, common::offset_t startNodeOffset,
         common::row_idx_t startRowIdx)
-        : ChunkedNodeGroup{std::move(chunks), startNodeOffset, startRowIdx},
+        : ChunkedNodeGroup{std::move(chunks), startNodeOffset, startRowIdx,
+              NodeGroupDataFormat::CSR},
           csrHeader{std::move(csrHeader)} {}
 
     ChunkedCSRHeader& getCSRHeader() { return csrHeader; }
@@ -49,6 +56,8 @@ public:
         chunks[chunkIdx]->getData().write(&data[vectorIdx]->getData(), &offsetChunk.getData(),
             common::RelMultiplicity::MANY);
     }
+
+    std::unique_ptr<ChunkedNodeGroup> flush(BMFileHandle& dataFH) const override;
 
 private:
     ChunkedCSRHeader csrHeader;

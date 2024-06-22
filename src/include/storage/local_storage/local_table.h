@@ -13,9 +13,6 @@ using offset_to_row_idx_t = std::map<common::offset_t, common::row_idx_t>;
 using offset_to_row_idx_vec_t = std::map<common::offset_t, std::vector<common::row_idx_t>>;
 using offset_set_t = std::unordered_set<common::offset_t>;
 
-static constexpr common::column_id_t NBR_ID_COLUMN_ID = 0;
-static constexpr common::column_id_t REL_ID_COLUMN_ID = 1;
-
 using ChunkDataCollection = std::vector<ColumnChunkData*>;
 
 // class LocalChunkedGroupCollection {

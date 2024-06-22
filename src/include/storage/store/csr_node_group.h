@@ -1,10 +1,11 @@
 #pragma once
 
-#include <map>
+#include <array>
 
 #include "storage/storage_utils.h"
 #include "storage/store/chunked_node_group_collection.h"
 #include "storage/store/csr_chunked_node_group.h"
+#include "storage/store/node_group.h"
 
 namespace kuzu {
 namespace storage {
@@ -17,77 +18,109 @@ struct csr_list_t {
 };
 
 enum class CSRNodeGroupScanSource : uint8_t {
-    COMMITTED_AND_CHECKPOINTED = 0,
-    COMMITTED_NOT_CHECKPOINTED = 1
+    COMMITTED_PERSISTENT = 0,
+    COMMITTED_IN_MEMORY = 1,
+    NONE = 2
 };
 
-class CSRNodeGroup;
-struct CSRNodeGroupScanState {
-    // States at the node group level. Cached during scan over all csr lists within the same node
-    // group. State for reading from checkpointed node group.
-    std::unique_ptr<ChunkedCSRHeader> checkpointedHeader;
-    // State of each chunk in the checkpointed chunked group.
-    std::vector<ChunkState> chunkStates;
+// Store rows of a CSR list.
+// If rows of the CSR list are stored in a sequential order, then `isSequential` is set to true.
+// rowIndices consists of startRowIdx and length.
+// Otherwise, rowIndices records the row indices of each row in the CSR list.
+struct NodeCSRIndex {
+    bool isSequential = false;
+    row_idx_vec_t rowIndices;
 
-    // States at the csr list level. Cached during scan over a single csr list.
-    CSRNodeGroupScanSource source = CSRNodeGroupScanSource::COMMITTED_AND_CHECKPOINTED;
-    common::row_idx_t nextRowToScan = 0;
-    csr_list_t checkpointedCSRList;
-    row_idx_vec_t committedNotCheckpointedRows;
-
-    void resetState() {
-        checkpointedHeader.reset();
-        source = CSRNodeGroupScanSource::COMMITTED_AND_CHECKPOINTED;
-        nextRowToScan = 0;
-        checkpointedCSRList = csr_list_t();
-        committedNotCheckpointedRows.clear();
-        for (auto& chunkState : chunkStates) {
-            chunkState.resetState();
+    common::row_idx_t getNumRows() const {
+        if (isSequential) {
+            return rowIndices[1];
         }
+        return rowIndices.size();
+    }
+
+    void clear() {
+        isSequential = false;
+        rowIndices.clear();
     }
 };
 
 struct CSRIndex {
-    std::map<common::offset_t, row_idx_vec_t> offsetToRowIdxs;
+    std::array<NodeCSRIndex, common::StorageConstants::NODE_GROUP_SIZE> indices;
+
+    common::row_idx_t getNumRows(common::offset_t offset) const {
+        return indices[offset].getNumRows();
+    }
 };
 
-class CSRNodeGroup {
+class CSRNodeGroup;
+struct CSRNodeGroupScanState final : NodeGroupScanState {
+    // States at the node group level. Cached during scan over all csr lists within the same node
+    // group. State for reading from checkpointed node group.
+    std::unique_ptr<ChunkedCSRHeader> csrHeader;
+    csr_list_t persistentCSRList;
+    NodeCSRIndex inMemCSRList;
+
+    // States at the csr list level. Cached during scan over a single csr list.
+    CSRNodeGroupScanSource source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
+
+    explicit CSRNodeGroupScanState(common::idx_t numChunks)
+        : NodeGroupScanState{numChunks},
+          csrHeader{std::make_unique<ChunkedCSRHeader>(false,
+              common::StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY)} {}
+
+    void resetState() override {
+        NodeGroupScanState::resetState();
+        csrHeader->resetToEmpty();
+        source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
+        persistentCSRList = csr_list_t();
+    }
+};
+
+// Data in a CSRNodeGroup is organized as follows:
+// - persistent data: checkpointed data or flushed data from batch insert. `persistentChunkGroup`.
+// - transient data: data that is being committed but kept in memory. `chunkedGroups`.
+// Persistent data are organized in CSR format.
+// Transient data are organized similar to normal node groups. Tuples are always appended to the end
+// of `chunkedGroups`. We keep an extra csrIndex to track the vector of row indices for each bound
+// node.
+struct RelTableScanState;
+class CSRNodeGroup final : public NodeGroup {
 public:
     CSRNodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
         const std::vector<common::LogicalType>& dataTypes)
-        : nodeGroupIdx{nodeGroupIdx}, enableCompression{enableCompression}, dataTypes{dataTypes},
-          startNodeOffset{StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx)} {}
+        : NodeGroup{nodeGroupIdx, enableCompression, dataTypes, common::INVALID_OFFSET,
+              NodeGroupDataFormat::CSR} {}
     CSRNodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
-        std::unique_ptr<ChunkedCSRNodeGroup> chunkedNodeGroup)
-        : nodeGroupIdx{nodeGroupIdx}, enableCompression{enableCompression},
-          startNodeOffset{StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx)},
-          checkpointedGroup{std::move(chunkedNodeGroup)} {
-        for (auto i = 0u; i < checkpointedGroup->getNumColumns(); i++) {
-            dataTypes.push_back(checkpointedGroup->getColumnChunk(i).getDataType());
-        }
+        std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup)
+        : NodeGroup{nodeGroupIdx, enableCompression, std::move(chunkedNodeGroup),
+              common::INVALID_OFFSET, NodeGroupDataFormat::CSR} {}
+
+    void appendChunkedCSRGroup(const transaction::Transaction* transaction,
+        ChunkedCSRNodeGroup& chunkedGroup);
+    void initializeScanState(transaction::Transaction* transaction, TableScanState& state) override;
+    bool scan(transaction::Transaction* transaction, TableScanState& state) override;
+
+    // template<ResidencyState SCAN_RESIDENCY_STATE>
+    // std::unique_ptr<CSRNodeGroup> scanCommitted(const std::vector<common::column_id_t>&
+    // columnIDs, const std::vector<Column*>& columns);
+    bool isEmpty() const override { return !persistentChunkGroup && NodeGroup::isEmpty(); }
+
+    void setPersistentChunkedGroup(std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup) {
+        KU_ASSERT(chunkedNodeGroup->getFormat() == NodeGroupDataFormat::CSR);
+        persistentChunkGroup = std::move(chunkedNodeGroup);
     }
 
-    common::row_idx_t getNumRows() const { return numRows.load(); }
-
-    void initializeScanState(transaction::Transaction* transaction, TableScanState& state);
-    bool scan(transaction::Transaction* transaction, TableScanState& state);
-
-    void serialize(common::Serializer& serializer) const;
-    static std::unique_ptr<CSRNodeGroup> deserialize(common::Deserializer& deSer);
-
-    common::offset_t getStartNodeOffset() const { return startNodeOffset; }
+private:
+    static bool scanCommittedPersistent(transaction::Transaction* transaction,
+        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
+    bool scanCommittedInMemSequential(transaction::Transaction* transaction,
+        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
+    bool scanCommittedInMemRandom(transaction::Transaction* transaction,
+        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
 
 private:
-    common::node_group_idx_t nodeGroupIdx;
-    bool enableCompression;
-    std::atomic<common::row_idx_t> numRows;
-    std::vector<common::LogicalType> dataTypes;
-    // Offset of the first node in the group.
-    common::offset_t startNodeOffset;
-
-    std::unique_ptr<ChunkedCSRNodeGroup> checkpointedGroup;
-    CSRIndex csrIndex;
-    GroupCollection<ChunkedNodeGroup> chunkedGroups;
+    std::unique_ptr<ChunkedNodeGroup> persistentChunkGroup;
+    std::unique_ptr<CSRIndex> csrIndex;
 };
 
 } // namespace storage

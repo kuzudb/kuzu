@@ -124,7 +124,7 @@ void ChunkedNodeGroupCollection::merge(std::unique_ptr<ChunkedNodeGroupCollectio
     for (auto i = 0u; i < otherNumGroups; i++) {
         merge(other->chunkedGroups.moveGroup(lock, i));
     }
-    other->clear();
+    other->chunkedGroups.clear(lock);
 }
 
 row_idx_t ChunkedNodeGroupCollection::getNumRows() {

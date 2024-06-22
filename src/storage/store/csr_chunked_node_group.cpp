@@ -1,6 +1,7 @@
 #include "storage/store/csr_chunked_node_group.h"
 
 #include "common/serializer/deserializer.h"
+#include "storage/store/column.h"
 
 using namespace kuzu::common;
 
@@ -16,17 +17,36 @@ ChunkedCSRHeader::ChunkedCSRHeader(bool enableCompression, uint64_t capacity,
 }
 
 offset_t ChunkedCSRHeader::getStartCSROffset(offset_t nodeOffset) const {
+    // TODO(Guodong): I think we can simplify the check here by getting rid of some of the
+    // conditions.
+    if (nodeOffset == 0 || offset->getNumValues() == 0) {
+        return 0;
+    }
+    if (nodeOffset >= offset->getNumValues()) {
+        return offset->getNumValues() - 1;
+    }
     KU_ASSERT(nodeOffset < offset->getNumValues());
-    return offset->getData().getValue<offset_t>(nodeOffset);
+    return offset->getData().getValue<offset_t>(nodeOffset - 1);
 }
 
 offset_t ChunkedCSRHeader::getEndCSROffset(offset_t nodeOffset) const {
+    // TODO(Guodong): I think we can simplify the check here by getting rid of some of the
+    // conditions.
+    if (offset->getNumValues() == 0) {
+        return 0;
+    }
+    if (nodeOffset >= offset->getNumValues()) {
+        return offset->getNumValues() - 1;
+    }
     KU_ASSERT(nodeOffset < offset->getNumValues());
     KU_ASSERT(nodeOffset < length->getNumValues());
-    return getStartCSROffset(nodeOffset) + getCSRLength(nodeOffset);
+    return offset->getData().getValue<offset_t>(nodeOffset);
 }
 
 length_t ChunkedCSRHeader::getCSRLength(offset_t nodeOffset) const {
+    if (nodeOffset >= offset->getNumValues()) {
+        return 0;
+    }
     KU_ASSERT(nodeOffset < length->getNumValues());
     return length->getData().getValue<length_t>(nodeOffset);
 }
@@ -68,6 +88,21 @@ void ChunkedCSRHeader::fillDefaultValues(const offset_t newNumValues) const {
     }
     KU_ASSERT(
         offset->getNumValues() >= newNumValues && length->getNumValues() == offset->getNumValues());
+}
+
+std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flush(BMFileHandle& dataFH) const {
+    auto csrOffset = std::make_unique<ColumnChunk>(csrHeader.offset->isCompressionEnabled(),
+        Column::flushChunkData(csrHeader.offset->getData(), dataFH));
+    auto csrLength = std::make_unique<ColumnChunk>(csrHeader.length->isCompressionEnabled(),
+        Column::flushChunkData(csrHeader.length->getData(), dataFH));
+    std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
+    for (auto i = 0u; i < getNumColumns(); i++) {
+        flushedChunks[i] = std::make_unique<ColumnChunk>(getColumnChunk(i).isCompressionEnabled(),
+            Column::flushChunkData(getColumnChunk(i).getData(), dataFH));
+    }
+    ChunkedCSRHeader csrHeader{std::move(csrOffset), std::move(csrLength)};
+    return std::make_unique<ChunkedCSRNodeGroup>(std::move(csrHeader), std::move(flushedChunks),
+        0 /*startNodeOffset*/, 0 /*startRowIdx*/);
 }
 
 void ChunkedCSRNodeGroup::serialize(Serializer& serializer) const {

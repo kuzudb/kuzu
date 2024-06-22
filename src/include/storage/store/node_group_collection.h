@@ -2,6 +2,7 @@
 
 #include <mutex>
 
+#include "csr_node_group.h"
 #include "storage/store/group_collection.h"
 #include "storage/store/node_group.h"
 
@@ -23,7 +24,7 @@ public:
     // The returned values are the startOffset and numValuesAppended.
     // NOTE: This is specially coded to only be used by NodeBatchInsert for now.
     std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(
-        transaction::Transaction* transaction, const ChunkedNodeGroup& chunkedGroup);
+        transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup);
 
     common::row_idx_t getNumRows() const;
     common::node_group_idx_t getNumNodeGroups() {
@@ -31,11 +32,22 @@ public:
         return nodeGroups.getNumGroups(lock);
     }
     NodeGroup& findNodeGroupFromOffset(common::offset_t offset);
-    NodeGroup& getNodeGroup(const common::node_group_idx_t groupIdx) {
+    NodeGroup* getNodeGroup(const common::node_group_idx_t groupIdx) {
         const auto lock = nodeGroups.lock();
-        const auto group = nodeGroups.getGroup(lock, groupIdx);
-        KU_ASSERT(group);
-        return *group;
+        return nodeGroups.getGroup(lock, groupIdx);
+    }
+    NodeGroup* getOrCreateNodeGroup(const common::node_group_idx_t groupIdx,
+        NodeGroupDataFormat format) {
+        const auto lock = nodeGroups.lock();
+        const auto nodeGroup = nodeGroups.getGroup(lock, groupIdx);
+        if (!nodeGroup) {
+            nodeGroups.replaceGroup(lock, groupIdx,
+                format == NodeGroupDataFormat::REGULAR ?
+                    std::make_unique<NodeGroup>(groupIdx, enableCompression, types) :
+                    std::make_unique<CSRNodeGroup>(groupIdx, enableCompression, types));
+            return nodeGroups.getGroup(lock, groupIdx);
+        }
+        return nodeGroup;
     }
     void setNodeGroup(const common::node_group_idx_t nodeGroupIdx,
         std::unique_ptr<NodeGroup> group) {

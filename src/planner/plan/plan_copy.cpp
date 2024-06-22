@@ -34,21 +34,13 @@ static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan
     for (auto& lookupInfo : extraInfo->infos) {
         payloads.push_back(lookupInfo.offset);
     }
-    std::vector<std::unique_ptr<LogicalPartitionerInfo>> infos;
     // Partitioner for FWD direction rel data.
-    auto relTableEntry =
-        ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(copyFromInfo.tableEntry);
-    infos.push_back(std::make_unique<LogicalPartitionerInfo>(extraInfo->fromOffset, payloads,
-        relTableEntry->isSingleMultiplicity(RelDataDirection::FWD) ? ColumnDataFormat::REGULAR :
-                                                                     ColumnDataFormat::CSR,
-        relTableEntry));
+    LogicalPartitionerInfo info(copyFromInfo.tableEntry, copyFromInfo.offset);
+    info.partitioningInfos.push_back(LogicalPartitioningInfo(extraInfo->fromOffset, payloads));
     // Partitioner for BWD direction rel data.
-    infos.push_back(std::make_unique<LogicalPartitionerInfo>(extraInfo->toOffset, payloads,
-        relTableEntry->isSingleMultiplicity(RelDataDirection::BWD) ? ColumnDataFormat::REGULAR :
-                                                                     ColumnDataFormat::CSR,
-        relTableEntry));
+    info.partitioningInfos.push_back(LogicalPartitioningInfo(extraInfo->toOffset, payloads));
     auto partitioner =
-        std::make_shared<LogicalPartitioner>(std::move(infos), plan.getLastOperator());
+        std::make_shared<LogicalPartitioner>(std::move(info), plan.getLastOperator());
     partitioner->computeFactorizedSchema();
     plan.setLastOperator(std::move(partitioner));
 }

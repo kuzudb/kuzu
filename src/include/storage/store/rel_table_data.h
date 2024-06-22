@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/enums/rel_direction.h"
-#include "csr_node_group_collection.h"
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/table_data.h"
 
@@ -82,16 +81,17 @@ struct PackedCSRRegion {
 class RelsStoreStats;
 class RelTableData {
 public:
+    static constexpr common::column_id_t NBR_ID_COLUMN_ID = 0;
+    static constexpr common::column_id_t REL_ID_COLUMN_ID = 1;
+
     struct PersistentState {
         ChunkedCSRHeader header;
         std::unique_ptr<ColumnChunkData> relIDChunk;
         common::offset_t leftCSROffset = common::INVALID_OFFSET;
         common::offset_t rightCSROffset = common::INVALID_OFFSET;
 
-        explicit PersistentState(common::offset_t numNodes) {
-            header =
-                ChunkedCSRHeader(false /*enableCompression*/, numNodes, ResidencyState::IN_MEMORY);
-        }
+        explicit PersistentState(common::offset_t numNodes)
+            : header{false /*enableCompression*/, numNodes, ResidencyState::IN_MEMORY} {}
     };
 
     struct LocalState {
@@ -139,11 +139,13 @@ public:
     bool checkIfNodeHasRels(transaction::Transaction* transaction,
         common::offset_t nodeOffset) const;
     common::offset_t append(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, ChunkedNodeGroup* nodeGroup);
+        common::node_group_idx_t nodeGroupIdx, ChunkedNodeGroup* chunkedGroup);
 
     Column* getNbrIDColumn() const { return columns[NBR_ID_COLUMN_ID].get(); }
     Column* getCSROffsetColumn() const { return csrHeaderColumns.offset.get(); }
     Column* getCSRLengthColumn() const { return csrHeaderColumns.length.get(); }
+    common::column_id_t getNumColumns() const { return columns.size(); }
+    Column* getColumn(common::column_id_t columnID) const { return columns[columnID].get(); }
     std::vector<Column*> getColumns() const {
         std::vector<Column*> columns;
         columns.reserve(this->columns.size());
@@ -152,11 +154,16 @@ public:
         }
         return columns;
     }
-    CSRNodeGroup& getCSRNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
+    NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
         return nodeGroups->getNodeGroup(nodeGroupIdx);
     }
+    NodeGroup* getOrCreateNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
+        return nodeGroups->getOrCreateNodeGroup(nodeGroupIdx, NodeGroupDataFormat::CSR);
+    }
 
-    common::row_idx_t getNumRows() const { return nodeGroups->getNumRows(); }
+    common::row_idx_t getNumRows(transaction::Transaction*) const {
+        return nodeGroups->getNumRows();
+    }
 
     bool isNewNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx) const;
@@ -282,8 +289,10 @@ private:
     PackedCSRInfo packedCSRInfo;
     common::RelDataDirection direction;
     common::RelMultiplicity multiplicity;
+
+    std::unique_ptr<NodeGroupCollection> nodeGroups;
+
     CSRHeaderColumns csrHeaderColumns;
-    std::unique_ptr<CSRNodeGroupCollection> nodeGroups;
     std::vector<std::unique_ptr<Column>> columns;
 };
 

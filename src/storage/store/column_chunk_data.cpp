@@ -417,7 +417,7 @@ uint64_t ColumnChunkData::getBufferSize(uint64_t capacity_) const {
 
 void ColumnChunkData::initializeScanState(ChunkState& state) const {
     if (nullData) {
-        state.nullState = std::make_unique<ChunkState>();
+        KU_ASSERT(state.nullState);
         nullData->initializeScanState(*state.nullState);
     }
     if (residencyState == ResidencyState::ON_DISK) {
@@ -754,94 +754,90 @@ std::unique_ptr<NullChunkData> NullChunkData::deserialize(Deserializer& deSer) {
     return std::make_unique<NullChunkData>(true, metadata);
 }
 
-class InternalIDChunkData final : public ColumnChunkData {
-public:
-    // Physically, we only materialize offset of INTERNAL_ID, which is same as UINT64,
-    InternalIDChunkData(uint64_t capacity, bool enableCompression, ResidencyState residencyState)
-        : ColumnChunkData(*LogicalType::INTERNAL_ID(), capacity, enableCompression, residencyState,
-              false /*hasNullData*/),
-          commonTableID{INVALID_TABLE_ID} {}
-    InternalIDChunkData(bool enableCompression, const ColumnChunkMetadata& metadata)
-        : ColumnChunkData{*LogicalType::INTERNAL_ID(), enableCompression, metadata,
-              false /*hasNullData*/},
-          commonTableID{INVALID_TABLE_ID} {}
-
-    void append(ValueVector* vector, const SelectionVector& selVector) override {
-        switch (vector->dataType.getPhysicalType()) {
-        case PhysicalTypeID::INTERNAL_ID: {
-            copyVectorToBuffer(vector, numValues, selVector);
-        } break;
-        case PhysicalTypeID::INT64: {
-            copyInt64VectorToBuffer(vector, numValues, selVector);
-        } break;
-        default: {
-            KU_UNREACHABLE;
-        }
-        }
-        numValues += selVector.getSelSize();
+void InternalIDChunkData::append(ValueVector* vector, const SelectionVector& selVector) {
+    switch (vector->dataType.getPhysicalType()) {
+    case PhysicalTypeID::INTERNAL_ID: {
+        copyVectorToBuffer(vector, numValues, selVector);
+    } break;
+    case PhysicalTypeID::INT64: {
+        copyInt64VectorToBuffer(vector, numValues, selVector);
+    } break;
+    default: {
+        KU_UNREACHABLE;
     }
-
-    void copyVectorToBuffer(ValueVector* vector, offset_t startPosInChunk,
-        const SelectionVector& selVector) override {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
-        const auto relIDsInVector = reinterpret_cast<internalID_t*>(vector->getData());
-        if (commonTableID == INVALID_TABLE_ID) {
-            commonTableID = relIDsInVector[selVector[0]].tableID;
-        }
-        for (auto i = 0u; i < selVector.getSelSize(); i++) {
-            const auto pos = selVector[i];
-            KU_ASSERT(relIDsInVector[pos].tableID == commonTableID);
-            nullData->setNull(startPosInChunk + i, vector->isNull(pos));
-            memcpy(buffer.get() + (startPosInChunk + i) * numBytesPerValue,
-                &relIDsInVector[pos].offset, numBytesPerValue);
-        }
     }
+    numValues += selVector.getSelSize();
+}
 
-    void copyInt64VectorToBuffer(ValueVector* vector, offset_t startPosInChunk,
-        const SelectionVector& selVector) const {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
-        for (auto i = 0u; i < selVector.getSelSize(); i++) {
-            const auto pos = selVector[i];
-            nullData->setNull(startPosInChunk + i, vector->isNull(pos));
-            memcpy(buffer.get() + (startPosInChunk + i) * numBytesPerValue,
-                &vector->getValue<offset_t>(pos), numBytesPerValue);
-        }
+void InternalIDChunkData::copyVectorToBuffer(ValueVector* vector, offset_t startPosInChunk,
+    const SelectionVector& selVector) {
+    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
+    const auto relIDsInVector = reinterpret_cast<internalID_t*>(vector->getData());
+    if (commonTableID == INVALID_TABLE_ID) {
+        commonTableID = relIDsInVector[selVector[0]].tableID;
     }
-
-    void lookup(offset_t offsetInChunk, ValueVector& output,
-        sel_t posInOutputVector) const override {
-        KU_ASSERT(offsetInChunk < capacity);
-        output.setNull(posInOutputVector, nullData->isNull(offsetInChunk));
-        if (!output.isNull(posInOutputVector)) {
-            auto relID = output.getValue<internalID_t>(posInOutputVector);
-            relID.offset = getValue<offset_t>(offsetInChunk);
-            KU_ASSERT(commonTableID != INVALID_TABLE_ID);
-            relID.tableID = commonTableID;
-            output.setValue<internalID_t>(posInOutputVector, relID);
-        }
+    for (auto i = 0u; i < selVector.getSelSize(); i++) {
+        const auto pos = selVector[i];
+        KU_ASSERT(relIDsInVector[pos].tableID == commonTableID);
+        nullData->setNull(startPosInChunk + i, vector->isNull(pos));
+        memcpy(buffer.get() + (startPosInChunk + i) * numBytesPerValue, &relIDsInVector[pos].offset,
+            numBytesPerValue);
     }
+}
 
-    void write(const ValueVector* vector, offset_t offsetInVector,
-        offset_t offsetInChunk) override {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
-        nullData->setNull(offsetInChunk, vector->isNull(offsetInVector));
-        const auto relIDsInVector = reinterpret_cast<internalID_t*>(vector->getData());
-        if (commonTableID == INVALID_TABLE_ID) {
-            commonTableID = relIDsInVector[offsetInVector].tableID;
-        }
-        KU_ASSERT(commonTableID == relIDsInVector[offsetInVector].tableID);
-        if (!vector->isNull(offsetInVector)) {
-            memcpy(buffer.get() + offsetInChunk * numBytesPerValue,
-                &relIDsInVector[offsetInVector].offset, numBytesPerValue);
-        }
-        if (offsetInChunk >= numValues) {
-            numValues = offsetInChunk + 1;
-        }
+void InternalIDChunkData::copyInt64VectorToBuffer(ValueVector* vector, offset_t startPosInChunk,
+    const SelectionVector& selVector) const {
+    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
+    for (auto i = 0u; i < selVector.getSelSize(); i++) {
+        const auto pos = selVector[i];
+        nullData->setNull(startPosInChunk + i, vector->isNull(pos));
+        memcpy(buffer.get() + (startPosInChunk + i) * numBytesPerValue,
+            &vector->getValue<offset_t>(pos), numBytesPerValue);
     }
+}
 
-private:
-    table_id_t commonTableID;
-};
+void InternalIDChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
+    sel_t posInOutputVector) const {
+    KU_ASSERT(offsetInChunk < capacity);
+    output.setNull(posInOutputVector, nullData->isNull(offsetInChunk));
+    if (!output.isNull(posInOutputVector)) {
+        auto relID = output.getValue<internalID_t>(posInOutputVector);
+        relID.offset = getValue<offset_t>(offsetInChunk);
+        KU_ASSERT(commonTableID != INVALID_TABLE_ID);
+        relID.tableID = commonTableID;
+        output.setValue<internalID_t>(posInOutputVector, relID);
+    }
+}
+
+void InternalIDChunkData::write(const ValueVector* vector, offset_t offsetInVector,
+    offset_t offsetInChunk) {
+    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
+    nullData->setNull(offsetInChunk, vector->isNull(offsetInVector));
+    const auto relIDsInVector = reinterpret_cast<internalID_t*>(vector->getData());
+    if (commonTableID == INVALID_TABLE_ID) {
+        commonTableID = relIDsInVector[offsetInVector].tableID;
+    }
+    KU_ASSERT(commonTableID == relIDsInVector[offsetInVector].tableID);
+    if (!vector->isNull(offsetInVector)) {
+        memcpy(buffer.get() + offsetInChunk * numBytesPerValue,
+            &relIDsInVector[offsetInVector].offset, numBytesPerValue);
+    }
+    if (offsetInChunk >= numValues) {
+        numValues = offsetInChunk + 1;
+    }
+}
+
+// void InternalIDChunkData::write(ColumnChunkData* chunk, ColumnChunkData* offsetsInChunk,
+// RelMultiplicity multiplicity) {
+// ColumnChunkData::write(chunk, offsetsInChunk, multiplicity);
+// commonTableID = chunk->cast<InternalIDChunkData>().commonTableID;
+// }
+
+void InternalIDChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
+    uint32_t numValuesToAppend) {
+    ColumnChunkData::append(other, startPosInOtherChunk, numValuesToAppend);
+    commonTableID = other->cast<InternalIDChunkData>().commonTableID;
+}
 
 std::unique_ptr<ColumnChunkData> ColumnChunkFactory::createColumnChunkData(LogicalType dataType,
     bool enableCompression, uint64_t capacity, ResidencyState residencyState, bool hasNullData) {

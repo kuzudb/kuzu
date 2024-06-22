@@ -22,26 +22,27 @@ bool RelTableCollectionScanner::scan(const SelectionVector& selVector, Transacti
         auto& scanState = *relInfos[currentTableIdx].localScanState;
         auto skipScan =
             transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;
-        if (!skipScan && scanState.hasMoreToRead(transaction)) {
-            relInfos[currentTableIdx].table->scan(transaction, scanState);
-            if (directionVector != nullptr) {
-                KU_ASSERT(selVector.isUnfiltered());
-                for (auto i = 0u; i < selVector.getSelSize(); ++i) {
-                    directionVector->setValue<bool>(i, directionValues[currentTableIdx]);
-                }
-            }
-            if (selVector.getSelSize() > 0) {
-                return true;
-            }
-        } else {
-            currentTableIdx = nextTableIdx;
-            if (currentTableIdx == relInfos.size()) {
-                return false;
-            }
-            relInfos[currentTableIdx].table->initializeScanState(transaction,
-                *relInfos[currentTableIdx].localScanState);
-            nextTableIdx++;
-        }
+        // TODO(Guodong): FIX-ME. Rework this.
+        // if (!skipScan && scanState.hasMoreToRead(transaction)) {
+        //     relInfos[currentTableIdx].table->scan(transaction, scanState);
+        //     if (directionVector != nullptr) {
+        //         KU_ASSERT(selVector.isUnfiltered());
+        //         for (auto i = 0u; i < selVector.getSelSize(); ++i) {
+        //             directionVector->setValue<bool>(i, directionValues[currentTableIdx]);
+        //         }
+        //     }
+        //     if (selVector.getSelSize() > 0) {
+        //         return true;
+        //     }
+        // } else {
+        //     currentTableIdx = nextTableIdx;
+        //     if (currentTableIdx == relInfos.size()) {
+        //         return false;
+        //     }
+        //     relInfos[currentTableIdx].table->initializeScanState(transaction,
+        //         *relInfos[currentTableIdx].localScanState);
+        //     nextTableIdx++;
+        // }
     }
 }
 

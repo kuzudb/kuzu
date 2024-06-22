@@ -12,7 +12,7 @@ enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = 3 
 
 struct TableScanState {
     common::table_id_t tableID;
-    common::ValueVector* IDVector;
+    common::ValueVector* nodeIDVector;
     std::vector<common::ValueVector*> outputVectors;
     std::vector<common::column_id_t> columnIDs;
 
@@ -21,17 +21,19 @@ struct TableScanState {
 
     TableScanSource source = TableScanSource::NONE;
     common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+    NodeGroup* nodeGroup = nullptr;
+    std::unique_ptr<NodeGroupScanState> nodeGroupScanState;
 
     std::vector<ColumnPredicateSet> columnPredicateSets;
     common::ZoneMapCheckResult zoneMapResult = common::ZoneMapCheckResult::ALWAYS_SCAN;
 
     TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
         std::vector<Column*> columns, std::vector<ColumnPredicateSet> columnPredicateSets)
-        : tableID{tableID}, IDVector(nullptr), columnIDs{std::move(columnIDs)},
+        : tableID{tableID}, nodeIDVector(nullptr), columnIDs{std::move(columnIDs)},
           columns{std::move(columns)}, columnPredicateSets{std::move(columnPredicateSets)} {}
     explicit TableScanState(const common::table_id_t tableID,
         std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns)
-        : tableID{tableID}, IDVector(nullptr), columnIDs{std::move(columnIDs)},
+        : tableID{tableID}, nodeIDVector(nullptr), columnIDs{std::move(columnIDs)},
           columns{std::move(columns)} {}
     virtual ~TableScanState() = default;
     DELETE_COPY_DEFAULT_MOVE(TableScanState);
@@ -39,6 +41,8 @@ struct TableScanState {
     virtual void resetState() {
         source = TableScanSource::NONE;
         nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+        nodeGroup = nullptr;
+        nodeGroupScanState->resetState();
         zoneMapResult = common::ZoneMapCheckResult::ALWAYS_SCAN;
     }
 
@@ -47,7 +51,7 @@ struct TableScanState {
         return common::ku_dynamic_cast<TableScanState&, TARGET&>(*this);
     }
     template<class TARGETT>
-    const TARGETT& constCast() {
+    const TARGETT& cast() const {
         return common::ku_dynamic_cast<const TableScanState&, const TARGETT&>(*this);
     }
 };
@@ -60,7 +64,7 @@ struct TableInsertState {
     virtual ~TableInsertState() = default;
 
     template<typename T>
-    const T& constCast() {
+    const T& constCast() const {
         return common::ku_dynamic_cast<const TableInsertState&, const T&>(*this);
     }
     template<typename T>
@@ -96,6 +100,7 @@ public:
 
     common::TableType getTableType() const { return tableType; }
     common::table_id_t getTableID() const { return tableID; }
+    BMFileHandle* getDataFH() const { return dataFH; }
 
     virtual void initializeScanState(transaction::Transaction* transaction,
         TableScanState& readState) = 0;

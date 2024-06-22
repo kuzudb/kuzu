@@ -33,7 +33,7 @@ void ColumnChunk::initializeScanState(ChunkState& state) const {
     data->initializeScanState(state);
 }
 
-void ColumnChunk::scan(Transaction* transaction, ChunkState& state, ValueVector& nodeID,
+void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, ValueVector& nodeID,
     ValueVector& output, offset_t offsetInChunk, length_t length) const {
     // Check if there is deletions or insertions. If so, update selVector based on transaction.
     switch (residencyState) {

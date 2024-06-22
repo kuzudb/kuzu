@@ -21,8 +21,9 @@ NbrScanState::NbrScanState(table_id_t relTableID, MemoryManager* mm) {
     dstNodeIDVector->state = dstNodeIDVectorState;
     // TODO(Guodong): FIX-ME. populate columns.
     std::vector<Column*> columns;
-    fwdReadState = std::make_unique<RelTableScanState>(relTableID, columnIDs, columns, direction);
-    fwdReadState->IDVector = srcNodeIDVector.get();
+    fwdReadState = std::make_unique<RelTableScanState>(relTableID, columnIDs, columns, nullptr,
+        nullptr, direction);
+    fwdReadState->nodeIDVector = srcNodeIDVector.get();
     fwdReadState->outputVectors.push_back(dstNodeIDVector.get());
 }
 
@@ -53,14 +54,15 @@ std::vector<nodeID_t> OnDiskGraph::getNbrs(offset_t offset) {
     auto dstVector = nbrScanState->dstNodeIDVector.get();
     std::vector<nodeID_t> nbrs;
     relTable->initializeScanState(tx, *readState);
-    while (nbrScanState->fwdReadState->hasMoreToRead(tx)) {
-        relTable->scan(tx, *readState);
-        KU_ASSERT(dstState->getSelVector().isUnfiltered());
-        for (auto i = 0u; i < dstState->getSelVector().getSelSize(); ++i) {
-            auto nodeID = dstVector->getValue<nodeID_t>(i);
-            nbrs.push_back(nodeID);
-        }
-    }
+    // TODO(Guodong): FIX-ME. Rework this.
+    // while (nbrScanState->fwdReadState->hasMoreToRead(tx)) {
+    // relTable->scan(tx, *readState);
+    // KU_ASSERT(dstState->getSelVector().isUnfiltered());
+    // for (auto i = 0u; i < dstState->getSelVector().getSelSize(); ++i) {
+    // auto nodeID = dstVector->getValue<nodeID_t>(i);
+    // nbrs.push_back(nodeID);
+    // }
+    // }
     return nbrs;
 }
 

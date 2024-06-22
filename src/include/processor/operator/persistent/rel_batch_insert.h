@@ -11,18 +11,19 @@ namespace processor {
 struct RelBatchInsertInfo final : BatchInsertInfo {
     common::RelDataDirection direction;
     uint64_t partitioningIdx;
-    common::column_id_t offsetColumnID;
+    common::column_id_t boundNodeOffsetColumnID;
     std::vector<common::LogicalType> columnTypes;
 
     RelBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
         common::RelDataDirection direction, uint64_t partitioningIdx,
         common::column_id_t offsetColumnID, std::vector<common::LogicalType> columnTypes)
         : BatchInsertInfo{tableEntry, compressionEnabled}, direction{direction},
-          partitioningIdx{partitioningIdx}, offsetColumnID{offsetColumnID},
+          partitioningIdx{partitioningIdx}, boundNodeOffsetColumnID{offsetColumnID},
           columnTypes{std::move(columnTypes)} {}
     RelBatchInsertInfo(const RelBatchInsertInfo& other)
         : BatchInsertInfo{other.tableEntry, other.compressionEnabled}, direction{other.direction},
-          partitioningIdx{other.partitioningIdx}, offsetColumnID{other.offsetColumnID},
+          partitioningIdx{other.partitioningIdx},
+          boundNodeOffsetColumnID{other.boundNodeOffsetColumnID},
           columnTypes{common::LogicalType::copy(other.columnTypes)} {}
 
     std::unique_ptr<BatchInsertInfo> copy() const override {
@@ -59,21 +60,20 @@ public:
     }
 
 private:
-    static void appendNewNodeGroup(transaction::Transaction* transaction,
-        const RelBatchInsertInfo& relInfo, RelBatchInsertLocalState& localState,
-        BatchInsertSharedState& sharedState, PartitionerSharedState& partitionerSharedState);
-    static void mergeNodeGroup(transaction::Transaction* transaction,
-        const RelBatchInsertInfo& relInfo, RelBatchInsertLocalState& localState,
-        BatchInsertSharedState& sharedState, PartitionerSharedState& partitionerSharedState);
+    static void appendNodeGroup(transaction::Transaction* transaction,
+        storage::CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo,
+        RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
+        const PartitionerSharedState& partitionerSharedState);
 
-    static void prepareCSRNodeGroup(storage::ChunkedNodeGroupCollection& partition,
+    static void convertToCSRNodeGroup(storage::ChunkedNodeGroupCollection& partition,
         common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo,
-        RelBatchInsertLocalState& localState, common::offset_t numNodes);
+        const RelBatchInsertLocalState& localState, common::offset_t numNodes, bool leaveGaps);
 
     static common::length_t getGapSize(common::length_t length);
     static std::vector<common::offset_t> populateStartCSROffsetsAndLengths(
         storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
-        storage::ChunkedNodeGroupCollection& partition, common::column_id_t offsetColumnID);
+        storage::ChunkedNodeGroupCollection& partition, common::column_id_t boundNodeOffsetColumn,
+        bool leaveGaps);
     static void populateEndCSROffsets(storage::ChunkedCSRHeader& csrHeader,
         std::vector<common::offset_t>& gaps);
     static void setOffsetToWithinNodeGroup(storage::ColumnChunkData& chunk,

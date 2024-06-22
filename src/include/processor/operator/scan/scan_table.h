@@ -36,7 +36,7 @@ public:
 protected:
     void initLocalStateInternal(ResultSet*, ExecutionContext*) override;
 
-    void initVectors(storage::TableScanState& state, const ResultSet& resultSet) const;
+    virtual void initVectors(storage::TableScanState& state, const ResultSet& resultSet) const;
 
 protected:
     ScanTableInfo info;

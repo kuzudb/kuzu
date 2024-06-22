@@ -49,7 +49,7 @@ bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     auto nodeID = nodeID_t{nodeOffset, nodeInfo.table->getTableID()};
-    nodeInfo.localScanState->IDVector->setValue<nodeID_t>(pos, nodeID);
+    nodeInfo.localScanState->nodeIDVector->setValue<nodeID_t>(pos, nodeID);
     nodeInfo.localScanState->source = TableScanSource::COMMITTED;
     nodeInfo.localScanState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     nodeInfo.table->initializeScanState(transaction, *nodeInfo.localScanState);

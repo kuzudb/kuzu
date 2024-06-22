@@ -10,15 +10,16 @@ namespace processor {
 struct ScanRelTableInfo {
     storage::RelTable* table;
     common::RelDataDirection direction;
+    DataPos relIDPos;
     std::vector<common::column_id_t> columnIDs;
     std::vector<storage::ColumnPredicateSet> columnPredicates;
 
     std::unique_ptr<storage::RelTableScanState> localScanState;
 
-    ScanRelTableInfo(storage::RelTable* table, common::RelDataDirection direction,
+    ScanRelTableInfo(storage::RelTable* table, common::RelDataDirection direction, DataPos relIDPos,
         std::vector<common::column_id_t> columnIDs,
         std::vector<storage::ColumnPredicateSet> columnPredicates)
-        : table{table}, direction{direction}, columnIDs{std::move(columnIDs)},
+        : table{table}, direction{direction}, relIDPos{relIDPos}, columnIDs{std::move(columnIDs)},
           columnPredicates{std::move(columnPredicates)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ScanRelTableInfo);
 
@@ -26,11 +27,11 @@ struct ScanRelTableInfo {
 
 private:
     ScanRelTableInfo(const ScanRelTableInfo& other)
-        : table{other.table}, direction{other.direction}, columnIDs{other.columnIDs},
-          columnPredicates{copyVector(other.columnPredicates)} {}
+        : table{other.table}, direction{other.direction}, relIDPos{other.relIDPos},
+          columnIDs{other.columnIDs}, columnPredicates{copyVector(other.columnPredicates)} {}
 };
 
-class ScanRelTable : public ScanTable {
+class ScanRelTable final : public ScanTable {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SCAN_REL_TABLE;
 
 public:
@@ -47,6 +48,9 @@ public:
         return std::make_unique<ScanRelTable>(info.copy(), relInfo.copy(), children[0]->clone(), id,
             paramsString);
     }
+
+private:
+    void initVectors(storage::TableScanState& state, const ResultSet& resultSet) const override;
 
 protected:
     ScanRelTableInfo relInfo;

@@ -13,7 +13,7 @@ void ScanTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*) 
 }
 
 void ScanTable::initVectors(storage::TableScanState& state, const ResultSet& resultSet) const {
-    state.IDVector = resultSet.getValueVector(info.nodeIDPos).get();
+    state.nodeIDVector = resultSet.getValueVector(info.nodeIDPos).get();
     for (auto& pos : info.outVectorsPos) {
         state.outputVectors.push_back(resultSet.getValueVector(pos).get());
     }

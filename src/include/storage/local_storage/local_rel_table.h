@@ -74,7 +74,7 @@ public:
 
     common::column_id_t getNumColumns() const { return nodeGroups.getNumColumns(); }
     common::node_group_idx_t getNumNodeGroups() { return nodeGroups.getNumNodeGroups(); }
-    NodeGroup& getNodeGroup(common::node_group_idx_t nodeGroupIdx) {
+    NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx) {
         return nodeGroups.getNodeGroup(nodeGroupIdx);
     }
 

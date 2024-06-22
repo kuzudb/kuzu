@@ -16,8 +16,9 @@ public:
     ColumnChunk(bool enableCompression, std::unique_ptr<ColumnChunkData> data);
 
     void initializeScanState(ChunkState& state) const;
-    void scan(transaction::Transaction* transaction, ChunkState& state, common::ValueVector& nodeID,
-        common::ValueVector& output, common::offset_t offsetInChunk, common::length_t length) const;
+    void scan(const transaction::Transaction* transaction, const ChunkState& state,
+        common::ValueVector& nodeID, common::ValueVector& output, common::offset_t offsetInChunk,
+        common::length_t length) const;
     template<ResidencyState SCAN_RESIDENCY_STATE>
     void scanCommitted(transaction::Transaction* transaction, ChunkState& chunkState,
         ColumnChunk& output) const;

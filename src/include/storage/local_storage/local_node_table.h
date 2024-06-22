@@ -26,7 +26,7 @@ public:
     common::row_idx_t getNumRows() const { return nodeGroups.getNumRows(); }
     common::node_group_idx_t getNumNodeGroups() { return nodeGroups.getNumNodeGroups(); }
 
-    NodeGroup& getNodeGroup(common::node_group_idx_t nodeGroupIdx) {
+    NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx) {
         return nodeGroups.getNodeGroup(nodeGroupIdx);
     }
     const NodeGroupCollection& getNodeGroups() const { return nodeGroups; }

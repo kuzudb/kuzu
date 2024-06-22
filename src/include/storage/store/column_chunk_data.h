@@ -45,10 +45,14 @@ struct ChunkState {
     // Used for struct/list/string columns.
     std::vector<ChunkState> childrenStates;
 
-    explicit ChunkState() = default;
+    explicit ChunkState(bool hasNull = true) : column{nullptr} {
+        if (hasNull) {
+            nullState = std::make_unique<ChunkState>(false /*hasNull*/);
+        }
+    }
     ChunkState(ColumnChunkMetadata metadata, uint64_t numValuesPerPage)
         : column{nullptr}, metadata{std::move(metadata)}, numValuesPerPage{numValuesPerPage} {
-        nullState = std::make_unique<ChunkState>();
+        nullState = std::make_unique<ChunkState>(false /*hasNull*/);
     }
 
     void resetState() {
@@ -310,6 +314,44 @@ public:
 
 protected:
     bool mayHaveNullValue;
+};
+
+class InternalIDChunkData final : public ColumnChunkData {
+public:
+    // TODO(Guodong): Should make InternalIDChunkData has no NULL.
+    // Physically, we only materialize offset of INTERNAL_ID, which is same as UINT64,
+    InternalIDChunkData(uint64_t capacity, bool enableCompression, ResidencyState residencyState)
+        : ColumnChunkData(*common::LogicalType::INTERNAL_ID(), capacity, enableCompression,
+              residencyState, true /*hasNullData*/),
+          commonTableID{common::INVALID_TABLE_ID} {}
+    InternalIDChunkData(bool enableCompression, const ColumnChunkMetadata& metadata)
+        : ColumnChunkData{*common::LogicalType::INTERNAL_ID(), enableCompression, metadata,
+              true /*hasNullData*/},
+          commonTableID{common::INVALID_TABLE_ID} {}
+
+    void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;
+
+    void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk,
+        const common::SelectionVector& selVector) override;
+
+    void copyInt64VectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk,
+        const common::SelectionVector& selVector) const;
+
+    void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
+        common::sel_t posInOutputVector) const override;
+
+    void write(const common::ValueVector* vector, common::offset_t offsetInVector,
+        common::offset_t offsetInChunk) override;
+    // void write(ColumnChunkData* chunk, ColumnChunkData* offsetsInChunk,
+    // common::RelMultiplicity multiplicity) override;
+
+    void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
+        uint32_t numValuesToAppend) override;
+
+    void setCommonTableID(common::table_id_t tableID) { commonTableID = tableID; }
+
+private:
+    common::table_id_t commonTableID;
 };
 
 struct ColumnChunkFactory {

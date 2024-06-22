@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#include "common/constants.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/types/types.h"
@@ -34,14 +33,18 @@ public:
     }
     T* getGroup(const common::UniqLock& lock, common::idx_t groupIdx) {
         KU_ASSERT(lock.isLocked());
-        KU_ASSERT(groupIdx < groups.size());
+        if (groupIdx >= groups.size()) {
+            return nullptr;
+        }
         return groups[groupIdx].get();
     }
     void replaceGroup(const common::UniqLock& lock, common::idx_t groupIdx,
         std::unique_ptr<T> group) {
         KU_ASSERT(group);
         KU_ASSERT(lock.isLocked());
-        KU_ASSERT(groupIdx < groups.size());
+        if (groupIdx >= groups.size()) {
+            groups.resize(groupIdx + 1);
+        }
         groups[groupIdx] = std::move(group);
     }
 

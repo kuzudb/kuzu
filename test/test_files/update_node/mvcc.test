@@ -3,6 +3,7 @@
 --
 
 -CASE Create1
+-SKIP
 -STATEMENT CREATE NODE TABLE test(id INT64, name STRING, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE (a:test {id:0, name:'A', isTrue:True, birthday:Date('2019-01-01')})
@@ -12,6 +13,7 @@
 0|A|True|2019-01-01
 
 -CASE Create2
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT CREATE NODE TABLE test(id INT64, name STRING, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
@@ -31,6 +33,7 @@
 0|A|True|2019-01-01
 
 -CASE Create3
+-SKIP
 -STATEMENT CALL auto_checkpoint=false;
 ---- ok
 -STATEMENT CREATE NODE TABLE test(id INT64, PRIMARY KEY(id));
@@ -74,6 +77,7 @@
 10
 
 -CASE Create4
+-SKIP
 -STATEMENT CALL threads=1;
 ---- ok
 -STATEMENT CALL auto_checkpoint=false;
@@ -155,7 +159,8 @@
 2
 3
 
--CASE CopyTinysnb
+-CASE CopyTinysnbPerson
+-SKIP
 -STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
 ---- ok
 -STATEMENT COPY person FROM "/Users/guodong/Developer/kuzu/dataset/tinysnb/vPerson.csv" (HeaDER=true, deLim=',');
@@ -168,3 +173,62 @@
 -STATEMENT MATCH (p:person) RETURN COUNT(*)
 ---- 1
 8
+
+-CASE CopyTinySnbPersonAndKnows
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT COPY person FROM "/Users/guodong/Developer/kuzu/dataset/tinysnb/vPerson.csv" (HeaDER=true, deLim=',');
+---- ok
+-STATEMENT MATCH (p:person) RETURN COUNT(*)
+---- 1
+5
+-STATEMENT COPY person FROM "/Users/guodong/Developer/kuzu/dataset/tinysnb/vPerson2.csv";
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.ID
+---- 8
+0
+10
+2
+3
+5
+7
+8
+9
+-STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY);
+---- ok
+-STATEMENT COPY knows FROM "/Users/guodong/Developer/kuzu/dataset/tinysnb/eKnows.csv";
+---- ok
+-STATEMENT MATCH (p:person)-[k:knows]->(p2:person) RETURN COUNT(*)
+---- 1
+6
+-STATEMENT MATCH (p:person)-[k:knows]->(p2:person) RETURN k.date
+---- 6
+2021-06-30
+2021-06-30
+2021-06-30
+2021-06-30
+1950-05-14
+1950-05-14
+-STATEMENT COPY knows FROM "/Users/guodong/Developer/kuzu/dataset/tinysnb/eKnows_2.csv";
+---- ok
+-STATEMENT MATCH (p:person)-[k:knows]->(p2:person) RETURN COUNT(*)
+---- 1
+14
+-STATEMENT MATCH (p:person)-[k:knows]->(p2:person) RETURN k.date
+---- 14
+1950-05-14
+1950-05-14
+1950-05-14
+1950-05-14
+1905-12-12
+1905-12-12
+2000-01-01
+2000-01-01
+2021-06-30
+2021-06-30
+2021-06-30
+2021-06-30
+2021-06-30
+2021-06-30

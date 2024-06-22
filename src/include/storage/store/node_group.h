@@ -22,15 +22,25 @@ struct NodeGroupScanState {
     // State of each chunk in the checkpointed chunked group.
     std::vector<ChunkState> chunkStates;
 
-    NodeGroupScanState() {}
+    explicit NodeGroupScanState(common::idx_t numChunks) { chunkStates.resize(numChunks); }
+    virtual ~NodeGroupScanState() = default;
     DELETE_COPY_DEFAULT_MOVE(NodeGroupScanState);
 
-    void resetState() {
+    virtual void resetState() {
         chunkedGroupIdx = 0;
         nextRowToScan = 0;
         for (auto& chunkState : chunkStates) {
             chunkState.resetState();
         }
+    }
+
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<NodeGroupScanState&, TARGET&>(*this);
+    }
+    template<class TARGETT>
+    const TARGETT& constCast() {
+        return common::ku_dynamic_cast<const NodeGroupScanState&, const TARGETT&>(*this);
     }
 };
 
@@ -45,15 +55,17 @@ class NodeGroup {
 public:
     NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
         const std::vector<common::LogicalType>& dataTypes,
-        common::row_idx_t capacity = common::StorageConstants::NODE_GROUP_SIZE)
-        : nodeGroupIdx{nodeGroupIdx}, enableCompression{enableCompression}, numRows{0},
-          nextRowToAppend{0}, capacity{capacity}, dataTypes{dataTypes},
+        common::row_idx_t capacity = common::StorageConstants::NODE_GROUP_SIZE,
+        NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR)
+        : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
+          numRows{0}, nextRowToAppend{0}, capacity{capacity}, dataTypes{dataTypes},
           startNodeOffset{StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx)} {}
     NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
         std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup,
-        common::row_idx_t capacity = common::StorageConstants::NODE_GROUP_SIZE)
-        : nodeGroupIdx{nodeGroupIdx}, enableCompression{enableCompression}, numRows{0},
-          nextRowToAppend{0}, capacity{capacity},
+        common::row_idx_t capacity = common::StorageConstants::NODE_GROUP_SIZE,
+        NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR)
+        : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
+          numRows{0}, nextRowToAppend{0}, capacity{capacity},
           startNodeOffset{StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx)} {
         for (auto i = 0u; i < chunkedNodeGroup->getNumColumns(); i++) {
             dataTypes.push_back(chunkedNodeGroup->getColumnChunk(i).getDataType());
@@ -61,7 +73,9 @@ public:
         const auto lock = chunkedGroups.lock();
         chunkedGroups.appendGroup(lock, std::move(chunkedNodeGroup));
     }
+    virtual ~NodeGroup() = default;
 
+    virtual bool isEmpty() const { return numRows.load() == 0; }
     common::row_idx_t getNumRows() const { return numRows.load(); }
     void moveNextRowToAppend(common::row_idx_t numRowsToAppend) {
         nextRowToAppend += numRowsToAppend;
@@ -70,7 +84,9 @@ public:
     bool isFull() const { return numRows.load() == capacity; }
     const std::vector<common::LogicalType>& getDataTypes() const { return dataTypes; }
     common::row_idx_t append(const transaction::Transaction* transaction,
-        const ChunkedNodeGroup& chunkedGroup, common::row_idx_t numRowsToAppend);
+        ChunkedNodeGroup& chunkedGroup, common::row_idx_t numRowsToAppend);
+    common::row_idx_t append(const transaction::Transaction* transaction,
+        const std::vector<ColumnChunk*>& chunkedGroup, common::row_idx_t numRowsToAppend);
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors, common::row_idx_t startRowIdx,
         common::row_idx_t numRowsToAppend);
@@ -78,16 +94,13 @@ public:
     void merge(transaction::Transaction* transaction,
         std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
 
-    void initializeScanState(transaction::Transaction* transaction, const TableScanState& state,
-        NodeGroupScanState& nodeGroupScanState);
-    bool scan(transaction::Transaction* transaction, TableScanState& state,
-        NodeGroupScanState& nodeGroupScanState);
-    void lookup(transaction::Transaction* transaction, TableScanState& state,
-        NodeGroupScanState& nodeGroupScanState);
+    virtual void initializeScanState(transaction::Transaction* transaction, TableScanState& state);
+    virtual bool scan(transaction::Transaction* transaction, TableScanState& state);
+    virtual void lookup(transaction::Transaction* transaction, TableScanState& state);
 
     void update(transaction::Transaction* transaction, common::offset_t offset,
-        common::column_id_t columnID, common::ValueVector& propertyVector);
-    bool delete_(transaction::Transaction* transaction, common::offset_t offset);
+        common::column_id_t columnID, const common::ValueVector& propertyVector);
+    bool delete_(const transaction::Transaction* transaction, common::offset_t offset);
 
     void flush(BMFileHandle& dataFH);
 
@@ -106,6 +119,15 @@ public:
         return chunkedGroups.getNumGroups(lock);
     }
 
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<NodeGroup&, TARGET&>(*this);
+    }
+    template<class TARGETT>
+    const TARGETT& cast() const {
+        return common::ku_dynamic_cast<const NodeGroup&, const TARGETT&>(*this);
+    }
+
 private:
     template<ResidencyState SCAN_RESIDENCY_STATE>
     std::unique_ptr<ChunkedNodeGroup> scanCommitted(
@@ -114,8 +136,9 @@ private:
     static void populateNodeID(common::ValueVector& nodeIDVector, common::table_id_t tableID,
         common::offset_t startNodeOffset, common::row_idx_t numRows);
 
-private:
+protected:
     common::node_group_idx_t nodeGroupIdx;
+    NodeGroupDataFormat format;
     bool enableCompression;
     std::atomic<common::row_idx_t> numRows;
     // `nextRowToAppend` is a cursor to allow us to pre-reserve a set of rows to append before
@@ -126,7 +149,6 @@ private:
     std::vector<common::LogicalType> dataTypes;
     // Offset of the first node in the group.
     common::offset_t startNodeOffset;
-    // std::unique_ptr<ChunkedNodeGroup> checkpointedGroup;
     GroupCollection<ChunkedNodeGroup> chunkedGroups;
 };
 

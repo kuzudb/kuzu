@@ -19,27 +19,24 @@ class Transaction;
 namespace storage {
 
 struct NodeTableScanState final : TableScanState {
-    NodeGroup* nodeGroup = nullptr;
-    NodeGroupScanState nodeGroupScanState;
-
     // Scan state for un-committed data.
     // Ideally we shouldn't need columns to scan un-checkpointed but committed data.
     NodeTableScanState(const common::table_id_t tableID, std::vector<common::column_id_t> columnIDs)
-        : TableScanState{tableID, std::move(columnIDs), {}} {}
+        : TableScanState{tableID, std::move(columnIDs), {}} {
+        nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
+    }
 
     NodeTableScanState(const common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
         std::vector<Column*> columns)
         : TableScanState{tableID, std::move(columnIDs), std::move(columns),
-              std::vector<ColumnPredicateSet>{}} {}
+              std::vector<ColumnPredicateSet>{}} {
+        nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
+    }
     NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
         std::vector<Column*> columns, std::vector<ColumnPredicateSet> columnPredicateSets)
         : TableScanState{tableID, std::move(columnIDs), std::move(columns),
-              std::move(columnPredicateSets)} {}
-
-    void resetState() override {
-        TableScanState::resetState();
-        nodeGroup = nullptr;
-        nodeGroupScanState.resetState();
+              std::move(columnPredicateSets)} {
+        nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
     }
 };
 
@@ -98,6 +95,7 @@ public:
 
     common::row_idx_t getNumRows(transaction::Transaction* transaction) override {
         // TODO(Guodong): FIX-ME. Implement this.
+        return nodeGroups->getNumRows();
     }
 
     void initializeScanState(transaction::Transaction* transaction,
@@ -150,7 +148,7 @@ public:
 
     common::node_group_idx_t getNumNodeGroups() const { return nodeGroups->getNumNodeGroups(); }
     common::offset_t getNumTuplesInNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
-        return nodeGroups->getNodeGroup(nodeGroupIdx).getNumRows();
+        return nodeGroups->getNodeGroup(nodeGroupIdx)->getNumRows();
     }
 
 private:

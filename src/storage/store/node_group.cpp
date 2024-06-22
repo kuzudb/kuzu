@@ -1,6 +1,5 @@
 #include "storage/store/node_group.h"
 
-#include "storage/store/node_table.h"
 #include "storage/store/table.h"
 
 using namespace kuzu::common;
@@ -9,9 +8,18 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-row_idx_t NodeGroup::append(const Transaction* transaction, const ChunkedNodeGroup& chunkedGroup,
+row_idx_t NodeGroup::append(const Transaction* transaction, ChunkedNodeGroup& chunkedGroup,
     row_idx_t numRowsToAppend) {
     KU_ASSERT(numRowsToAppend <= chunkedGroup.getNumRows());
+    std::vector<ColumnChunk*> chunksToAppend(chunkedGroup.getNumColumns());
+    for (auto i = 0u; i < chunkedGroup.getNumColumns(); i++) {
+        chunksToAppend[i] = &chunkedGroup.getColumnChunk(i);
+    }
+    return append(transaction, chunksToAppend, numRowsToAppend);
+}
+
+row_idx_t NodeGroup::append(const Transaction* transaction,
+    const std::vector<ColumnChunk*>& chunkedGroup, row_idx_t numRowsToAppend) {
     const auto lock = chunkedGroups.lock();
     const auto numRowsBeforeAppend = getNumRows();
     if (chunkedGroups.isEmpty(lock)) {
@@ -31,7 +39,8 @@ row_idx_t NodeGroup::append(const Transaction* transaction, const ChunkedNodeGro
         KU_ASSERT(ChunkedNodeGroup::CHUNK_CAPACITY >= chunkedGroupToCopyInto->getNumRows());
         auto numToCopyIntoChunk =
             ChunkedNodeGroup::CHUNK_CAPACITY - chunkedGroupToCopyInto->getNumRows();
-        const auto numToAppendInChunk = std::min(chunkedGroup.getNumRows(), numToCopyIntoChunk);
+        const auto numToAppendInChunk =
+            std::min(numRowsToAppend - numRowsAppended, numToCopyIntoChunk);
         chunkedGroupToCopyInto->append(transaction, chunkedGroup, 0, numToAppendInChunk);
         numRowsAppended += numToAppendInChunk;
     }
@@ -88,19 +97,20 @@ void NodeGroup::merge(Transaction*, std::unique_ptr<ChunkedNodeGroup> chunkedGro
     chunkedGroups.appendGroup(lock, std::move(chunkedGroup));
 }
 
-void NodeGroup::initializeScanState(Transaction*, const TableScanState& state,
-    NodeGroupScanState& nodeGroupScanState) {
-    nodeGroupScanState.chunkStates.resize(state.columnIDs.size());
-    ChunkedNodeGroup* checkpointedChunkedGroup;
+void NodeGroup::initializeScanState(Transaction*, TableScanState& state) {
+    auto& nodeGroupScanState = *state.nodeGroupScanState;
+    ChunkedNodeGroup* firstChunkedGroup;
     {
         const auto lock = chunkedGroups.lock();
-        checkpointedChunkedGroup = chunkedGroups.getFirstGroup(lock);
+        firstChunkedGroup = chunkedGroups.getFirstGroup(lock);
     }
-    if (checkpointedChunkedGroup != nullptr &&
-        checkpointedChunkedGroup->getResidencyState() == ResidencyState::ON_DISK) {
+    if (firstChunkedGroup != nullptr &&
+        firstChunkedGroup->getResidencyState() == ResidencyState::ON_DISK) {
         for (auto i = 0u; i < state.columnIDs.size(); i++) {
+            KU_ASSERT(i < state.columnIDs.size());
+            KU_ASSERT(i < nodeGroupScanState.chunkStates.size());
             const auto columnID = state.columnIDs[i];
-            auto& chunk = checkpointedChunkedGroup->getColumnChunk(columnID);
+            auto& chunk = firstChunkedGroup->getColumnChunk(columnID);
             chunk.initializeScanState(nodeGroupScanState.chunkStates[i]);
             // TODO: Not a good way to initialize column for chunkState here.
             nodeGroupScanState.chunkStates[i].column = state.columns[i];
@@ -108,16 +118,18 @@ void NodeGroup::initializeScanState(Transaction*, const TableScanState& state,
     }
 }
 
-bool NodeGroup::scan(Transaction* transaction, TableScanState& state,
-    NodeGroupScanState& nodeGroupScanState) {
+bool NodeGroup::scan(Transaction* transaction, TableScanState& state) {
+    // TODO(Guodong): We shouldn't grab lock during scan, instead should do it during
+    // initializeScan.
     const auto lock = chunkedGroups.lock();
+    auto& nodeGroupScanState = *state.nodeGroupScanState;
     KU_ASSERT(nodeGroupScanState.chunkedGroupIdx < chunkedGroups.getNumGroups(lock));
     if (const auto chunkedGroup = chunkedGroups.getGroup(lock, nodeGroupScanState.chunkedGroupIdx);
         nodeGroupScanState.nextRowToScan == chunkedGroup->getNumRows()) {
         nodeGroupScanState.chunkedGroupIdx++;
     }
     if (nodeGroupScanState.chunkedGroupIdx >= chunkedGroups.getNumGroups(lock)) {
-        state.IDVector->state->getSelVectorUnsafe().setToUnfiltered(0);
+        state.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(0);
         return false;
     }
     const auto& chunkedGroupToScan =
@@ -128,21 +140,21 @@ bool NodeGroup::scan(Transaction* transaction, TableScanState& state,
     const auto numRowsToScan =
         std::min(chunkedGroupToScan.getNumRows() - offsetToScan, DEFAULT_VECTOR_CAPACITY);
     const auto nodeOffset = startNodeOffset + nodeGroupScanState.nextRowToScan;
-    populateNodeID(*state.IDVector, state.tableID, nodeOffset, numRowsToScan);
-    state.IDVector->state->getSelVectorUnsafe().setToUnfiltered(numRowsToScan);
+    populateNodeID(*state.nodeIDVector, state.tableID, nodeOffset, numRowsToScan);
+    state.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(numRowsToScan);
     chunkedGroupToScan.scan(transaction, state, nodeGroupScanState, offsetToScan, numRowsToScan);
     nodeGroupScanState.nextRowToScan += numRowsToScan;
     return true;
 }
 
-void NodeGroup::lookup(Transaction* transaction, TableScanState& state,
-    NodeGroupScanState& nodeGroupScanState) {
-    KU_ASSERT(state.IDVector->state->getSelVector().getSelSize() == 1);
-    const auto pos = state.IDVector->state->getSelVector().getSelectedPositions()[0];
-    if (state.IDVector->isNull(pos)) {
+void NodeGroup::lookup(Transaction* transaction, TableScanState& state) {
+    KU_ASSERT(state.nodeIDVector->state->getSelVector().getSelSize() == 1);
+    auto& nodeGroupScanState = *state.nodeGroupScanState;
+    const auto pos = state.nodeIDVector->state->getSelVector().getSelectedPositions()[0];
+    if (state.nodeIDVector->isNull(pos)) {
         return;
     }
-    const auto nodeOffset = state.IDVector->getValue<nodeID_t>(pos).offset;
+    const auto nodeOffset = state.nodeIDVector->getValue<nodeID_t>(pos).offset;
     const auto offsetInGroup = nodeOffset - startNodeOffset;
     const ChunkedNodeGroup* chunkedGroupToScan;
     {
@@ -151,11 +163,11 @@ void NodeGroup::lookup(Transaction* transaction, TableScanState& state,
             chunkedGroups.getGroup(lock, offsetInGroup / ChunkedNodeGroup::CHUNK_CAPACITY);
     }
     chunkedGroupToScan->lookup(transaction, state, nodeGroupScanState,
-        offsetInGroup % ChunkedNodeGroup::CHUNK_CAPACITY);
+        offsetInGroup % ChunkedNodeGroup::CHUNK_CAPACITY, 0);
 }
 
 void NodeGroup::update(Transaction* transaction, offset_t offset, column_id_t columnID,
-    ValueVector& propertyVector) {
+    const ValueVector& propertyVector) {
     KU_ASSERT(propertyVector.state->getSelVector().getSelSize() == 1);
     const auto offsetInGroup = offset - startNodeOffset;
     ChunkedNodeGroup* chunkedGroupToUpdate;
@@ -167,7 +179,7 @@ void NodeGroup::update(Transaction* transaction, offset_t offset, column_id_t co
     chunkedGroupToUpdate->update(transaction, offsetInGroup, columnID, propertyVector);
 }
 
-bool NodeGroup::delete_(Transaction* transaction, const offset_t offset) {
+bool NodeGroup::delete_(const Transaction* transaction, const offset_t offset) {
     const auto offsetInGroup = offset - startNodeOffset;
     const auto chunkIdx = offsetInGroup / ChunkedNodeGroup::CHUNK_CAPACITY;
     const auto offsetInChunk = offsetInGroup % ChunkedNodeGroup::CHUNK_CAPACITY;
@@ -284,12 +296,12 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanCommitted(
     const auto dummyTransaction = std::make_unique<Transaction>(TransactionType::READ_ONLY, 0,
         Transaction::START_TRANSACTION_ID - 1);
     TableScanState scanState(INVALID_TABLE_ID, columnIDs, columns);
-    NodeGroupScanState nodeGroupScanState;
-    initializeScanState(dummyTransaction.get(), scanState, nodeGroupScanState);
+    scanState.nodeGroupScanState = std::make_unique<NodeGroupScanState>(columnIDs.size());
+    initializeScanState(dummyTransaction.get(), scanState);
     const auto lock = chunkedGroups.lock();
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
         chunkedGroup->scanCommitted<SCAN_RESIDENCY_STATE>(dummyTransaction.get(), scanState,
-            nodeGroupScanState, *mergedInMemGroup);
+            *scanState.nodeGroupScanState, *mergedInMemGroup);
     }
     // TODO: mergedInMemGroup is not set numRows.
     return mergedInMemGroup;

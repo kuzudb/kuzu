@@ -83,7 +83,7 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         }
     }
 
-    nodeLocalState->nodeGroup = std::make_unique<ChunkedNodeGroup>(nodeInfo->columnTypes,
+    nodeLocalState->chunkedGroup = std::make_unique<ChunkedNodeGroup>(nodeInfo->columnTypes,
         info->compressionEnabled, StorageConstants::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
     nodeLocalState->columnState = std::move(state);
 }
@@ -117,9 +117,9 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
         copyToNodeGroup(context->clientContext->getTx());
         nodeLocalState->columnState->setSelVector(originalSelVector);
     }
-    if (nodeLocalState->nodeGroup->getNumRows() > 0) {
+    if (nodeLocalState->chunkedGroup->getNumRows() > 0) {
         appendIncompleteNodeGroup(context->clientContext->getTx(),
-            std::move(nodeLocalState->nodeGroup), nodeLocalState->localIndexBuilder);
+            std::move(nodeLocalState->chunkedGroup), nodeLocalState->localIndexBuilder);
     }
     if (nodeLocalState->localIndexBuilder) {
         KU_ASSERT(token);
@@ -134,12 +134,12 @@ void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction) {
         ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
     auto numTuplesToAppend = nodeLocalState->columnState->getSelVector().getSelSize();
     while (numAppendedTuples < numTuplesToAppend) {
-        auto numAppendedTuplesInNodeGroup = nodeLocalState->nodeGroup->append(transaction,
+        auto numAppendedTuplesInNodeGroup = nodeLocalState->chunkedGroup->append(transaction,
             nodeLocalState->columnVectors, nodeLocalState->columnState->getSelVectorUnsafe(),
             numTuplesToAppend - numAppendedTuples);
         numAppendedTuples += numAppendedTuplesInNodeGroup;
-        if (nodeLocalState->nodeGroup->isFullOrOnDisk()) {
-            writeAndResetNodeGroup(transaction, nodeLocalState->nodeGroup,
+        if (nodeLocalState->chunkedGroup->isFullOrOnDisk()) {
+            writeAndResetNodeGroup(transaction, nodeLocalState->chunkedGroup,
                 nodeLocalState->localIndexBuilder);
         }
         if (numAppendedTuples < numTuplesToAppend) {

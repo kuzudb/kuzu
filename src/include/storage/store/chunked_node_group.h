@@ -20,35 +20,19 @@ namespace storage {
 class Column;
 struct TableScanState;
 struct NodeGroupScanState;
+
+enum class NodeGroupDataFormat : uint8_t { REGULAR = 0, CSR = 1 };
+
 class ChunkedNodeGroup {
 public:
     static constexpr uint64_t CHUNK_CAPACITY = 2048;
 
-    // TODO(Guodong): Seems like this should be removed.
-    explicit ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks)
-        : ChunkedNodeGroup{std::move(chunks), common::INVALID_OFFSET, common::INVALID_ROW_IDX} {
-        KU_ASSERT(!this->chunks.empty());
-        residencyState = this->chunks[0]->getResidencyState();
-        for (auto columnID = 1u; columnID < this->chunks.size(); columnID++) {
-            KU_ASSERT(this->chunks[columnID]->getResidencyState() == residencyState);
-        }
-    }
     ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks,
-        common::offset_t startNodeOffset, common::row_idx_t startRowIdx)
-        : chunks{std::move(chunks)}, startNodeOffset{startNodeOffset}, startRowIdx{startRowIdx} {
-        KU_ASSERT(!this->chunks.empty());
-        residencyState = this->chunks[0]->getResidencyState();
-        numRows = this->chunks[0]->getNumValues();
-        capacity = numRows;
-        for (auto columnID = 1u; columnID < this->chunks.size(); columnID++) {
-            KU_ASSERT(this->chunks[columnID]->getNumValues() == numRows);
-            KU_ASSERT(this->chunks[columnID]->getResidencyState() == residencyState);
-        }
-    }
+        common::offset_t startNodeOffset, common::row_idx_t startRowIdx,
+        NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);
     ChunkedNodeGroup(const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
-        uint64_t capacity, common::offset_t startOffset, ResidencyState residencyState);
-    // TODO(Guodong): Seems like this should be removed.
-    ChunkedNodeGroup(const std::vector<std::unique_ptr<Column>>& columns, bool enableCompression);
+        uint64_t capacity, common::offset_t startOffset, ResidencyState residencyState,
+        NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);
     virtual ~ChunkedNodeGroup() = default;
 
     common::idx_t getNumColumns() const { return chunks.size(); }
@@ -71,6 +55,7 @@ public:
         return numRows == capacity || residencyState == ResidencyState::ON_DISK;
     }
     ResidencyState getResidencyState() const { return residencyState; }
+    NodeGroupDataFormat getFormat() const { return format; }
 
     void resetToEmpty();
     void setAllNull() const;
@@ -84,12 +69,15 @@ public:
     // number of values appended.
     common::offset_t append(const transaction::Transaction* transaction,
         const ChunkedNodeGroup& other, common::offset_t offsetInOtherNodeGroup,
-        common::offset_t numValuesToAppend = common::StorageConstants::NODE_GROUP_SIZE);
-    void write(const std::vector<std::unique_ptr<ColumnChunk>>& chunks,
+        common::offset_t numValues = common::StorageConstants::NODE_GROUP_SIZE);
+    common::offset_t append(const transaction::Transaction* transaction,
+        const std::vector<ColumnChunk*>& other, common::offset_t offsetInOtherNodeGroup,
+        common::offset_t numValues = common::StorageConstants::NODE_GROUP_SIZE);
+    void write(const std::vector<std::unique_ptr<ColumnChunk>>& data,
         common::column_id_t offsetColumnID);
     void write(const ChunkedNodeGroup& data, common::column_id_t offsetColumnID);
 
-    void scan(transaction::Transaction* transaction, TableScanState& scanState,
+    void scan(transaction::Transaction* transaction, const TableScanState& scanState,
         NodeGroupScanState& nodeGroupScanState, common::offset_t offsetInGroup,
         common::length_t length) const;
 
@@ -97,13 +85,14 @@ public:
     void scanCommitted(transaction::Transaction* transaction, TableScanState& scanState,
         NodeGroupScanState& nodeGroupScanState, ChunkedNodeGroup& output) const;
 
-    void lookup(transaction::Transaction* transaction, TableScanState& state,
-        NodeGroupScanState& nodeGroupScanState, common::offset_t offsetInGroup) const;
+    void lookup(transaction::Transaction* transaction, const TableScanState& state,
+        NodeGroupScanState& nodeGroupScanState, common::offset_t rowIdxInGroup,
+        common::sel_t posInOutput) const;
 
     void update(transaction::Transaction* transaction, common::offset_t offset,
-        common::column_id_t columnID, common::ValueVector& propertyVector);
+        common::column_id_t columnID, const common::ValueVector& propertyVector);
 
-    bool delete_(transaction::Transaction* transaction, common::offset_t offset);
+    bool delete_(const transaction::Transaction* transaction, common::offset_t offset);
 
     void finalize() const;
 
@@ -114,7 +103,7 @@ public:
             common::RelMultiplicity::ONE);
     }
 
-    std::unique_ptr<ChunkedNodeGroup> flush(BMFileHandle& dataFH) const;
+    virtual std::unique_ptr<ChunkedNodeGroup> flush(BMFileHandle& dataFH) const;
 
     uint64_t getEstimatedMemoryUsage() const;
     bool hasUpdates() const;
@@ -122,30 +111,25 @@ public:
     virtual void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<ChunkedNodeGroup> deserialize(common::Deserializer& deSer);
 
-protected:
-    std::vector<std::unique_ptr<ColumnChunk>> chunks;
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<ChunkedNodeGroup&, TARGET&>(*this);
+    }
+    template<class TARGETT>
+    const TARGETT& cast() const {
+        return common::ku_dynamic_cast<const ChunkedNodeGroup&, const TARGETT&>(*this);
+    }
 
 protected:
+    NodeGroupDataFormat format;
     ResidencyState residencyState;
     common::offset_t startNodeOffset;
     common::row_idx_t startRowIdx;
     uint64_t capacity;
     std::atomic<common::row_idx_t> numRows;
+    std::vector<std::unique_ptr<ColumnChunk>> chunks;
     std::unique_ptr<VersionInfo> versionInfo;
 };
-
-// struct NodeGroupFactory {
-//     static std::unique_ptr<ChunkedNodeGroup> createNodeGroup(common::ColumnDataFormat dataFormat,
-//         const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
-//         uint64_t capacity, ResidencyState residencyState) {
-//         return dataFormat == common::ColumnDataFormat::REGULAR ?
-//                    std::make_unique<ChunkedNodeGroup>(columnTypes, enableCompression, capacity,
-//                        common::INVALID_OFFSET, residencyState) :
-//                    std::make_unique<ChunkedCSRNodeGroup>(columnTypes, enableCompression,
-//                    capacity,
-//                        residencyState);
-//     }
-// };
 
 } // namespace storage
 } // namespace kuzu
