@@ -72,12 +72,12 @@ public:
         return exceptionsPtr;
     }
 
+    inline bool hasExceptionNoLock() const { return exceptionsPtr != nullptr; }
+
 private:
     bool canRegisterNoLock() const {
         return 0 == numThreadsFinished && maxNumThreads > numThreadsRegistered;
     }
-
-    inline bool hasExceptionNoLock() const { return exceptionsPtr != nullptr; }
 
     inline void setExceptionNoLock(std::exception_ptr exceptionPtr) {
         if (exceptionsPtr == nullptr) {
@@ -86,12 +86,13 @@ private:
     }
 
 public:
+    //TODO: temporary, make parallelUtils a friend class to get access to this task lock
+    std::mutex mtx;
     Task* parent = nullptr;
     std::vector<std::shared_ptr<Task>>
         children; // Dependency tasks that needs to be executed first.
 
 protected:
-    std::mutex mtx;
     std::condition_variable cv;
     uint64_t maxNumThreads, numThreadsFinished{0}, numThreadsRegistered{0};
     std::exception_ptr exceptionsPtr = nullptr;

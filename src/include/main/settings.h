@@ -19,6 +19,18 @@ struct ThreadsSetting {
     }
 };
 
+struct ConcurrentBFSSetting {
+    static constexpr const char* name = "concurrent_bfs";
+    static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::INT64;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        parameter.validateType(inputType);
+        context->getClientConfigUnsafe()->maxConcurrentBFS = parameter.getValue<int64_t>();
+    }
+    static common::Value getSetting(ClientContext* context) {
+        return common::Value(context->getClientConfig()->maxConcurrentBFS);
+    }
+};
+
 struct TimeoutSetting {
     static constexpr const char* name = "timeout";
     static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::INT64;

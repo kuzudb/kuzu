@@ -49,10 +49,12 @@ public:
     void scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task,
         processor::ExecutionContext* context);
 
-private:
-    std::shared_ptr<ScheduledTask> pushTaskIntoQueue(const std::shared_ptr<Task>& task);
+    std::shared_ptr<ScheduledTask> scheduleTaskAndReturn(const std::shared_ptr<Task>& task);
 
     void removeErroringTask(uint64_t scheduledTaskID);
+
+private:
+    std::shared_ptr<ScheduledTask> pushTaskIntoQueue(const std::shared_ptr<Task>& task);
 
     // Functions to launch worker threads and for the worker threads to use to grab task from queue.
     void runWorkerThread();

@@ -6,7 +6,7 @@
 #include "function/gds/ife_morsel.h"
 #include "function/gds/parallel_utils.h"
 #include "function/gds_function.h"
-#include "graph/on_disk_graph.h"
+#include "function/gds/parallel_shortest_path_commons.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -14,45 +14,10 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace function {
 
-struct ParallelShortestPathBindData final : public GDSBindData {
-    uint8_t upperBound;
-
-    ParallelShortestPathBindData(std::shared_ptr<Expression> nodeInput, uint8_t upperBound)
-        : GDSBindData{std::move(nodeInput)}, upperBound{upperBound} {}
-    ParallelShortestPathBindData(const ParallelShortestPathBindData& other)
-        : GDSBindData{other}, upperBound{other.upperBound} {}
-
-    std::unique_ptr<GDSBindData> copy() const override {
-        return std::make_unique<ParallelShortestPathBindData>(*this);
-    }
-};
-
-class ParallelShortestPathLocalState : public GDSLocalState {
+class nT1SParallelShortestPath : public GDSAlgorithm {
 public:
-    explicit ParallelShortestPathLocalState(main::ClientContext* clientContext) {
-        auto mm = clientContext->getMemoryManager();
-        srcNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
-        dstNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
-        lengthVector = std::make_unique<ValueVector>(*LogicalType::INT64(), mm);
-        srcNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
-        dstNodeIDVector->state = std::make_shared<DataChunkState>();
-        lengthVector->state = dstNodeIDVector->state;
-        outputVectors.push_back(srcNodeIDVector.get());
-        outputVectors.push_back(dstNodeIDVector.get());
-        outputVectors.push_back(lengthVector.get());
-        nbrScanState = std::make_unique<graph::NbrScanState>(mm);
-    }
-
-public:
-    std::unique_ptr<ValueVector> srcNodeIDVector;
-    std::unique_ptr<ValueVector> dstNodeIDVector;
-    std::unique_ptr<ValueVector> lengthVector;
-};
-
-class ParallelShortestPath : public GDSAlgorithm {
-public:
-    ParallelShortestPath() = default;
-    ParallelShortestPath(const ParallelShortestPath& other) : GDSAlgorithm{other} {}
+    nT1SParallelShortestPath() = default;
+    nT1SParallelShortestPath(const nT1SParallelShortestPath& other) : GDSAlgorithm{other} {}
 
     /*
      * Inputs are
@@ -189,21 +154,23 @@ public:
             }
             ifeMorsel->initSourceNoLock(offset);
             while (!ifeMorsel->isCompleteNoLock()) {
-                parallelUtils->doParallel(executionContext, this, sharedState, extendFrontierFunc);
+                parallelUtils->doParallelBlocking(executionContext, this, sharedState,
+                    extendFrontierFunc);
                 ifeMorsel->initializeNextFrontierNoLock();
             }
-            parallelUtils->doParallel(executionContext, this, sharedState, shortestPathOutputFunc);
+            parallelUtils->doParallelBlocking(executionContext, this, sharedState,
+                shortestPathOutputFunc);
         }
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
-        return std::make_unique<ParallelShortestPath>(*this);
+        return std::make_unique<nT1SParallelShortestPath>(*this);
     }
 };
 
-function_set ParallelShortestPathsFunction::getFunctionSet() {
+function_set nT1SParallelShortestPathsFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(name, std::make_unique<ParallelShortestPath>());
+    auto function = std::make_unique<GDSFunction>(name, std::make_unique<nT1SParallelShortestPath>());
     result.push_back(std::move(function));
     return result;
 }

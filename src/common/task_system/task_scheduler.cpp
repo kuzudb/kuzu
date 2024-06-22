@@ -64,6 +64,14 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
     }
 }
 
+// For now assume that there are NO DEPENDENCIES for the task being submitted
+std::shared_ptr<ScheduledTask> TaskScheduler::scheduleTaskAndReturn(
+    const std::shared_ptr<Task>& task) {
+    auto scheduledTask = pushTaskIntoQueue(task);
+    cv.notify_all();
+    return scheduledTask;
+}
+
 std::shared_ptr<ScheduledTask> TaskScheduler::pushTaskIntoQueue(const std::shared_ptr<Task>& task) {
     lock_t lck{mtx};
     auto scheduledTask = std::make_shared<ScheduledTask>(task, nextScheduledTaskID++);

@@ -3,7 +3,9 @@ add_library(kuzu_function_algorithm
         ife_morsel.cpp
         gds.cpp
         page_rank.cpp
-        parallel_shortest_path.cpp
+        1T1S_parallel_shortest_path.cpp
+        nT1S_parallel_shortest_path.cpp
+        nTkS_parallel_shortest_path.cpp
         parallel_utils.cpp
         shortest_paths.cpp
         variable_length_paths.cpp

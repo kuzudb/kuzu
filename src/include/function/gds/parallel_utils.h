@@ -18,8 +18,16 @@ class ParallelUtils {
 public:
     explicit ParallelUtils(uint32_t operatorID, common::TaskScheduler* taskScheduler);
 
-    void doParallel(ExecutionContext* executionContext, GDSAlgorithm *gdsAlgorithm,
+    void doParallelBlocking(ExecutionContext* executionContext, GDSAlgorithm *gdsAlgorithm,
         GDSCallSharedState *gdsCallSharedState, gds_algofunc_t gdsAlgoFunc);
+
+    std::shared_ptr<common::ScheduledTask> doSequentialNonBlocking(ExecutionContext* executionContext,
+        GDSAlgorithm *gdsAlgorithm, GDSCallSharedState *gdsCallSharedState,
+        gds_algofunc_t gdsAlgoFunc);
+
+    bool taskCompletedNoError(std::shared_ptr<common::ScheduledTask> & scheduledTask);
+
+    bool taskHasExceptionOrTimedOut(std::shared_ptr<common::ScheduledTask> &scheduledTask, ExecutionContext *executionContext);
 
 private:
     common::TaskScheduler *taskScheduler;

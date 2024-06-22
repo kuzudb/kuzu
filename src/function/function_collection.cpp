@@ -225,7 +225,9 @@ FunctionCollection* FunctionCollection::getFunctions() {
         ALGORITHM_FUNCTION(VariableLengthPathsFunction),
         ALGORITHM_FUNCTION(WeaklyConnectedComponentsFunction),
         ALGORITHM_FUNCTION(ShortestPathsFunction), ALGORITHM_FUNCTION(PageRankFunction),
-        ALGORITHM_FUNCTION(ParallelShortestPathsFunction),
+        ALGORITHM_FUNCTION(_1T1SParallelShortestPathFunction),
+        ALGORITHM_FUNCTION(nT1SParallelShortestPathsFunction),
+        ALGORITHM_FUNCTION(nTkSParallelShortestPathsFunction),
 
         // End of array
         FINAL_FUNCTION};
