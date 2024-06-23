@@ -30,7 +30,7 @@ ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<LogicalType>& columnTypes,
     bool enableCompression, uint64_t capacity, const offset_t startOffset,
     ResidencyState residencyState, NodeGroupDataFormat format)
     : format{format}, residencyState{residencyState}, startNodeOffset{startOffset},
-      startRowIdx{INVALID_ROW_IDX}, capacity{capacity}, numRows{0} {
+      startRowIdx{startOffset}, capacity{capacity}, numRows{0} {
     chunks.reserve(columnTypes.size());
     for (auto& dataType : columnTypes) {
         chunks.push_back(std::make_unique<ColumnChunk>(*dataType.copy(), capacity,
@@ -44,6 +44,7 @@ void ChunkedNodeGroup::resetToEmpty() {
     for (const auto& chunk : chunks) {
         chunk->resetToEmpty();
     }
+    versionInfo.reset();
 }
 
 void ChunkedNodeGroup::setAllNull() const {
@@ -69,24 +70,28 @@ void ChunkedNodeGroup::setNumRows(const offset_t numRows_) {
 }
 
 uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
-    const std::vector<ValueVector*>& columnVectors, SelectionVector& selVector,
+    const std::vector<ValueVector*>& columnVectors, row_idx_t startRowInVectors,
     uint64_t numValuesToAppend) {
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     const auto numRowsToAppendInChunk =
         std::min(numValuesToAppend, StorageConstants::NODE_GROUP_SIZE - numRows);
-    const auto originalSize = selVector.getSelSize();
-    selVector.setSelSize(numRowsToAppendInChunk);
     for (auto i = 0u; i < chunks.size(); i++) {
         const auto chunk = chunks[i].get();
         KU_ASSERT(i < columnVectors.size());
         const auto columnVector = columnVectors[i];
+        // TODO(Guodong): Should add `slice` interface to SelVector.
+        SelectionVector selVector;
+        for (auto row = 0u; row < numRowsToAppendInChunk; row++) {
+            selVector.getMultableBuffer()[row] =
+                columnVector->state->getSelVector()[startRowInVectors + row];
+        }
+        selVector.setToFiltered(numRowsToAppendInChunk);
         chunk->getData().append(columnVector, selVector);
     }
-    selVector.setSelSize(originalSize);
     if (!versionInfo) {
         versionInfo = std::make_unique<VersionInfo>();
     }
-    versionInfo->append(transaction, numRows - startRowIdx, numRowsToAppendInChunk);
+    versionInfo->append(transaction, numRows, numRowsToAppendInChunk);
     numRows += numRowsToAppendInChunk;
     return numRowsToAppendInChunk;
 }
@@ -140,15 +145,36 @@ void ChunkedNodeGroup::write(const ChunkedNodeGroup& data, column_id_t offsetCol
     write(data.chunks, offsetColumnID);
 }
 
-void ChunkedNodeGroup::scan(Transaction* transaction, const TableScanState& scanState,
-    NodeGroupScanState& nodeGroupScanState, offset_t offsetInGroup, length_t length) const {
+void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState& scanState,
+    const NodeGroupScanState& nodeGroupScanState, offset_t offsetInGroup, length_t length) const {
     KU_ASSERT(offsetInGroup + length <= numRows);
-    // TODO: Combine version info.
-    for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
-        const auto columnID = scanState.columnIDs[i];
-        KU_ASSERT(columnID < chunks.size());
-        chunks[columnID]->scan(transaction, nodeGroupScanState.chunkStates[i],
-            *scanState.nodeIDVector, *scanState.outputVectors[i], offsetInGroup, length);
+    bool hasValuesToScan = true;
+    std::unique_ptr<SelectionVector> selVector = nullptr;
+    if (versionInfo) {
+        selVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
+        versionInfo->getSelVectorToScan(transaction->getStartTS(), transaction->getID(), *selVector,
+            offsetInGroup, length);
+        hasValuesToScan = selVector->getSelSize() > 0;
+    }
+    if (hasValuesToScan) {
+        for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
+            const auto columnID = scanState.columnIDs[i];
+            if (columnID == INVALID_COLUMN_ID) {
+                scanState.outputVectors[i]->setAllNull();
+                continue;
+            }
+            KU_ASSERT(columnID < chunks.size());
+            chunks[columnID]->scan(transaction, nodeGroupScanState.chunkStates[i],
+                *scanState.IDVector, *scanState.outputVectors[i], offsetInGroup, length);
+        }
+    }
+    auto& anchorSelVector = scanState.IDVector->state->getSelVectorUnsafe();
+    if (selVector && selVector->getSelSize() != length) {
+        std::memcpy(anchorSelVector.getMultableBuffer().data(),
+            selVector->getMultableBuffer().data(), selVector->getSelSize() * sizeof(sel_t));
+        anchorSelVector.setToFiltered(selVector->getSelSize());
+    } else {
+        anchorSelVector.setToUnfiltered(length);
     }
 }
 
@@ -168,17 +194,28 @@ template void ChunkedNodeGroup::scanCommitted<ResidencyState::IN_MEMORY>(Transac
     TableScanState& scanState, NodeGroupScanState& nodeGroupScanState,
     ChunkedNodeGroup& output) const;
 
-void ChunkedNodeGroup::lookup(Transaction* transaction, const TableScanState& state,
+bool ChunkedNodeGroup::lookup(Transaction* transaction, const TableScanState& state,
     NodeGroupScanState& nodeGroupScanState, offset_t rowIdxInGroup, sel_t posInOutput) const {
     KU_ASSERT(rowIdxInGroup + 1 <= numRows);
-    for (auto i = 0u; i < state.columnIDs.size(); i++) {
-        const auto columnID = state.columnIDs[i];
-        KU_ASSERT(columnID < chunks.size());
-        KU_ASSERT(state.outputVectors[i]->state->getSelVector().getSelSize() == 1);
-        chunks[columnID]->lookup(transaction, nodeGroupScanState.chunkStates[i], rowIdxInGroup,
-            *state.outputVectors[i],
-            state.outputVectors[i]->state->getSelVector().getSelectedPositions()[posInOutput]);
+    std::unique_ptr<SelectionVector> selVector = nullptr;
+    bool hasValuesToScan = true;
+    if (versionInfo) {
+        selVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
+        versionInfo->getSelVectorToScan(transaction->getStartTS(), transaction->getID(), *selVector,
+            rowIdxInGroup, 1);
+        hasValuesToScan = selVector->getSelSize() > 0;
     }
+    if (hasValuesToScan) {
+        for (auto i = 0u; i < state.columnIDs.size(); i++) {
+            const auto columnID = state.columnIDs[i];
+            KU_ASSERT(columnID < chunks.size());
+            KU_ASSERT(state.outputVectors[i]->state->getSelVector().getSelSize() == 1);
+            chunks[columnID]->lookup(transaction, nodeGroupScanState.chunkStates[i], rowIdxInGroup,
+                *state.outputVectors[i],
+                state.outputVectors[i]->state->getSelVector().getSelectedPositions()[posInOutput]);
+        }
+    }
+    return hasValuesToScan;
 }
 
 void ChunkedNodeGroup::update(Transaction* transaction, offset_t offset, column_id_t columnID,

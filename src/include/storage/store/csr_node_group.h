@@ -98,7 +98,7 @@ public:
     void appendChunkedCSRGroup(const transaction::Transaction* transaction,
         ChunkedCSRNodeGroup& chunkedGroup);
     void initializeScanState(transaction::Transaction* transaction, TableScanState& state) override;
-    bool scan(transaction::Transaction* transaction, TableScanState& state) override;
+    NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state) override;
 
     // template<ResidencyState SCAN_RESIDENCY_STATE>
     // std::unique_ptr<CSRNodeGroup> scanCommitted(const std::vector<common::column_id_t>&
@@ -111,11 +111,11 @@ public:
     }
 
 private:
-    static bool scanCommittedPersistent(transaction::Transaction* transaction,
+    static NodeGroupScanResult scanCommittedPersistent(transaction::Transaction* transaction,
         const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
-    bool scanCommittedInMemSequential(transaction::Transaction* transaction,
+    NodeGroupScanResult scanCommittedInMemSequential(const transaction::Transaction* transaction,
         const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
-    bool scanCommittedInMemRandom(transaction::Transaction* transaction,
+    NodeGroupScanResult scanCommittedInMemRandom(transaction::Transaction* transaction,
         const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
 
 private:

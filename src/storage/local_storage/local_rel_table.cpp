@@ -232,7 +232,6 @@ bool LocalRelTable::insert(transaction::Transaction*, TableInsertState& state) {
     const auto relIDPos = relIDVector->state->getSelVector()[0];
     relIDVector->setValue<internalID_t>(relIDPos, internalID_t{relOffset, table.getTableID()});
     relIDVector->setNull(0, false);
-
     std::vector<ValueVector*> insertVectors;
     insertVectors.push_back(&insertState.srcNodeIDVector);
     insertVectors.push_back(&insertState.dstNodeIDVector);

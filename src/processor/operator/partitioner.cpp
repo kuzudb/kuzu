@@ -156,8 +156,6 @@ void Partitioner::copyDataToPartitions(partition_idx_t partitioningIdx,
     for (auto j = 0u; j < chunkToCopyFrom.getNumValueVectors(); j++) {
         vectorsToAppend.push_back(chunkToCopyFrom.getValueVector(j).get());
     }
-    SelectionVector selVector(1);
-    selVector.setToFiltered(1);
     for (auto i = 0u; i < chunkToCopyFrom.state->getSelVector().getSelSize(); i++) {
         const auto posToCopyFrom = chunkToCopyFrom.state->getSelVector()[i];
         const auto partitionIdx = partitionIdxes->getValue<partition_idx_t>(posToCopyFrom);
@@ -165,8 +163,7 @@ void Partitioner::copyDataToPartitions(partition_idx_t partitioningIdx,
             partitionIdx < localState->getPartitioningBuffer(partitioningIdx)->partitions.size());
         const auto& partition =
             localState->getPartitioningBuffer(partitioningIdx)->partitions[partitionIdx];
-        selVector[0] = posToCopyFrom;
-        partition->append(&transaction::DUMMY_WRITE_TRANSACTION, vectorsToAppend, selVector);
+        partition->append(&transaction::DUMMY_WRITE_TRANSACTION, vectorsToAppend, posToCopyFrom, 1);
     }
 }
 

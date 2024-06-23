@@ -19,7 +19,8 @@ ChunkedNodeGroup& ChunkedNodeGroupCollection::findChunkedGroupFromOffset(const o
 }
 
 row_idx_t ChunkedNodeGroupCollection::append(Transaction* transaction,
-    const std::vector<ValueVector*>& vectors, const SelectionVector& selVector) {
+    const std::vector<ValueVector*>& vectors, row_idx_t startRowInVectors,
+    row_idx_t numRowsToAppend) {
     const auto numRowsBeforeAppend = getNumRows();
     const auto lock = chunkedGroups.lock();
     if (chunkedGroups.isEmpty(lock)) {
@@ -27,9 +28,7 @@ row_idx_t ChunkedNodeGroupCollection::append(Transaction* transaction,
             std::make_unique<ChunkedNodeGroup>(types, false /*enableCompression*/,
                 ChunkedNodeGroup::CHUNK_CAPACITY, 0 /*startOffset*/, residencyState));
     }
-    const auto numRowsToAppend = selVector.getSelSize();
     row_idx_t numRowsAppended = 0;
-    SelectionVector tmpSelVector(numRowsToAppend);
     while (numRowsAppended < numRowsToAppend) {
         if (chunkedGroups.getLastGroup(lock)->isFullOrOnDisk()) {
             auto startOffset = getNumRows();
@@ -40,12 +39,8 @@ row_idx_t ChunkedNodeGroupCollection::append(Transaction* transaction,
         const auto& lastChunkedGroup = chunkedGroups.getLastGroup(lock);
         const auto numRowsToAppendInGroup = std::min(numRowsToAppend - numRowsAppended,
             ChunkedNodeGroup::CHUNK_CAPACITY - lastChunkedGroup->getNumRows());
-        auto tmpSelVectorBuffer = tmpSelVector.getMultableBuffer();
-        for (auto i = 0u; i < numRowsToAppendInGroup; i++) {
-            tmpSelVectorBuffer[i] = selVector[numRowsAppended + i];
-        }
-        tmpSelVector.setToFiltered(numRowsToAppendInGroup);
-        lastChunkedGroup->append(transaction, vectors, tmpSelVector, numRowsToAppendInGroup);
+        lastChunkedGroup->append(transaction, vectors, startRowInVectors + numRowsAppended,
+            numRowsToAppendInGroup);
         numRowsAppended += numRowsToAppendInGroup;
     }
     return numRowsBeforeAppend;

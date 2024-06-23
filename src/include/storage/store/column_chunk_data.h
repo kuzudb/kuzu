@@ -80,9 +80,6 @@ public:
         const ColumnChunkMetadata& metadata, bool hasNullData);
     virtual ~ColumnChunkData() = default;
 
-    static std::unique_ptr<ColumnChunkData> constructChunkDataFromState(
-        common::LogicalType& dataType, ChunkState& state);
-
     template<typename T>
     T getValue(common::offset_t pos) const {
         KU_ASSERT(pos < numValues);

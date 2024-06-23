@@ -57,7 +57,7 @@ void IndexBuilderGlobalQueues::maybeConsumeIndex(size_t index) {
 }
 
 void IndexBuilderGlobalQueues::flushToDisk() const {
-    pkIndex->prepareCommit();
+    // pkIndex->prepareCommit();
 }
 
 IndexBuilderLocalBuffers::IndexBuilderLocalBuffers(IndexBuilderGlobalQueues& globalQueues)

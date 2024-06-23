@@ -20,6 +20,10 @@ void Transaction::rollback() const {
     undoBuffer->rollback();
 }
 
+void Transaction::pushNodeBatchInsert(common::table_id_t tableID) const {
+    undoBuffer->createNodeBatchInsert(tableID);
+}
+
 void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry) const {
     undoBuffer->createCatalogEntry(&catalogSet, &catalogEntry);
 }

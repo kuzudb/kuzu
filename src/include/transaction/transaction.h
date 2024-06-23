@@ -66,6 +66,7 @@ public:
 
     void pushCatalogEntry(catalog::CatalogSet& catalogSet,
         catalog::CatalogEntry& catalogEntry) const;
+    void pushNodeBatchInsert(common::table_id_t tableID) const;
     void pushVectorInsertInfo(storage::VersionInfo& versionInfo, common::idx_t vectorIdx,
         storage::VectorVersionInfo& vectorVersionInfo,
         const std::vector<common::row_idx_t>& rowsInVector) const;

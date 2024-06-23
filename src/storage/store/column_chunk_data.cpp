@@ -283,24 +283,6 @@ ColumnChunkData::ColumnChunkData(LogicalType dataType, bool enableCompression,
     }
 }
 
-std::unique_ptr<ColumnChunkData> ColumnChunkData::constructChunkDataFromState(LogicalType& dataType,
-    ChunkState& state) {
-    // auto chunk = ColumnChunkFactory::createColumnChunkData(dataType, true, state.metadata);
-    // switch (dataType.getPhysicalType()) {
-    // case PhysicalTypeID::STRUCT: {
-    //     auto& structChunkData = chunk->cast<StructChunkData>();
-    //     for (auto i = 0u; i < structChunkData.getNumChildren(); i++) {
-    //         structChunkData.setChild(i,
-    //             constructChunkDataFromState(StructType::getFieldTypes(dataType)[i],
-    //                 state.childrenStates[i]));
-    //     }
-    // } break;
-    // case PhysicalTypeID::STRING: {
-    //     auto& stringChunkData = chunk->cast<StructChunkData>();
-    // } break;
-    // }
-}
-
 void ColumnChunkData::initializeBuffer() {
     numBytesPerValue = getDataTypeSizeInChunk(dataType);
     bufferSize = getBufferSize(capacity);
@@ -601,6 +583,7 @@ void ColumnChunkData::serialize(Serializer& serializer) const {
     KU_ASSERT(residencyState == ResidencyState::ON_DISK);
     dataType.serialize(serializer);
     serializer.write<ColumnChunkMetadata>(metadata);
+    serializer.write<bool>(enableCompression);
     serializer.write<bool>(nullData != nullptr);
     if (nullData) {
         nullData->serialize(serializer);
@@ -611,11 +594,13 @@ std::unique_ptr<ColumnChunkData> ColumnChunkData::deserialize(Deserializer& deSe
     const auto dataType = LogicalType::deserialize(deSer);
     ColumnChunkMetadata metadata;
     deSer.deserializeValue<ColumnChunkMetadata>(metadata);
+    bool enableCompression = false;
+    deSer.deserializeValue<bool>(enableCompression);
     bool hasNull = false;
     deSer.deserializeValue<bool>(hasNull);
     KU_ASSERT(hasNull);
-    // TODO(Guodong): FIX-ME. enableCompression.
-    auto chunkData = ColumnChunkFactory::createColumnChunkData(*dataType, true, metadata, hasNull);
+    auto chunkData =
+        ColumnChunkFactory::createColumnChunkData(*dataType, enableCompression, metadata, hasNull);
     chunkData->nullData = NullChunkData::deserialize(deSer);
 
     switch (dataType->getPhysicalType()) {

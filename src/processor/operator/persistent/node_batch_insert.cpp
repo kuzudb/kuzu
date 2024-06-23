@@ -99,6 +99,7 @@ void NodeBatchInsert::populateDefaultColumns() {
             defaultEvaluator->getLocalStateRef().count = numTuples;
             defaultEvaluator->evaluate();
             nodeLocalState->columnVectors[i] = defaultEvaluator->resultVector.get();
+            nodeLocalState->columnVectors[i]->state = nodeLocalState->columnState;
         }
     }
 }
@@ -134,9 +135,9 @@ void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction) {
         ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
     auto numTuplesToAppend = nodeLocalState->columnState->getSelVector().getSelSize();
     while (numAppendedTuples < numTuplesToAppend) {
-        auto numAppendedTuplesInNodeGroup = nodeLocalState->chunkedGroup->append(transaction,
-            nodeLocalState->columnVectors, nodeLocalState->columnState->getSelVectorUnsafe(),
-            numTuplesToAppend - numAppendedTuples);
+        auto numAppendedTuplesInNodeGroup =
+            nodeLocalState->chunkedGroup->append(&transaction::DUMMY_WRITE_TRANSACTION,
+                nodeLocalState->columnVectors, 0, numTuplesToAppend - numAppendedTuples);
         numAppendedTuples += numAppendedTuplesInNodeGroup;
         if (nodeLocalState->chunkedGroup->isFullOrOnDisk()) {
             writeAndResetNodeGroup(transaction, nodeLocalState->chunkedGroup,
@@ -209,6 +210,7 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
     if (nodeSharedState->globalIndexBuilder) {
         nodeSharedState->globalIndexBuilder->finalize(context);
     }
+    context->clientContext->getTx()->pushNodeBatchInsert(sharedState->table->getTableID());
     sharedState->logBatchInsertWALRecord();
     auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
         sharedState->getNumRows(), info->tableEntry->getName());

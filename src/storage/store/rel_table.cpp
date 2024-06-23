@@ -53,8 +53,8 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
     auto& relScanState = scanState.cast<RelTableScanState>();
     relScanState.source = TableScanSource::COMMITTED;
 
-    relScanState.boundNodeOffset =
-        scanState.nodeIDVector->readNodeOffset(scanState.nodeIDVector->state->getSelVector()[0]);
+    relScanState.boundNodeOffset = relScanState.boundNodeIDVector->readNodeOffset(
+        relScanState.boundNodeIDVector->state->getSelVector()[0]);
     // Check if the node group idx is same as previous scan.
     const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(relScanState.boundNodeOffset);
     if (relScanState.nodeGroupIdx != nodeGroupIdx) {
@@ -71,7 +71,8 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
     const auto& relScanState = scanState.cast<RelTableScanState>();
     switch (relScanState.source) {
     case TableScanSource::COMMITTED: {
-        return relScanState.nodeGroup->scan(transaction, scanState);
+        return relScanState.nodeGroup->scan(transaction, scanState) !=
+               NODE_GROUP_SCAN_EMMPTY_RESULT;
     }
     case TableScanSource::UNCOMMITTED: {
         // TODO:
@@ -115,11 +116,11 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     const auto relReadState =
         std::make_unique<RelTableScanState>(tableID, relIDColumns, tableData->getColumns(),
             tableData->getCSROffsetColumn(), tableData->getCSRLengthColumn(), direction);
-    relReadState->nodeIDVector = srcNodeIDVector;
+    relReadState->boundNodeIDVector = srcNodeIDVector;
     relReadState->outputVectors = relIDVectors;
     relReadState->direction = direction;
-    const auto nodeOffset = relReadState->nodeIDVector->readNodeOffset(
-        relReadState->nodeIDVector->state->getSelVector()[0]);
+    const auto nodeOffset =
+        relReadState->IDVector->readNodeOffset(relReadState->IDVector->state->getSelVector()[0]);
     relReadState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     initializeScanState(transaction, *relReadState);
     detachDeleteForCSRRels(transaction, tableData, reverseTableData, srcNodeIDVector,
@@ -206,20 +207,24 @@ void RelTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
     }
     // RelID vector.
     // TODO(Guodong): Get rid of the hard-coded 2 here.
-    scanState->nodeIDVector = scanState->outputVectors[2];
+    scanState->IDVector = scanState->outputVectors[2];
     scanState->source = TableScanSource::UNCOMMITTED;
     while (nodeGroupToScan < numNodeGroupsToScan) {
         scanState->nodeGroupIdx = nodeGroupToScan;
         scanState->nodeGroup = localRelTable.getNodeGroup(scanState->nodeGroupIdx);
         KU_ASSERT(scanState->nodeGroup);
         scanState->nodeGroup->initializeScanState(transaction, *scanState);
-        while (scanState->nodeGroup->scan(transaction, *scanState)) {
-            const auto numRowsScanned = scanState->nodeIDVector->state->getSelVector().getSelSize();
-            for (auto i = 0u; i < numRowsScanned; i++) {
-                const auto pos =
-                    scanState->nodeIDVector->state->getSelVector().getSelectedPositions()[i];
-                scanState->nodeIDVector->setValue(pos, nodeID_t{startRelOffset + i, tableID});
+        while (true) {
+            auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
+            if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+                break;
             }
+            for (auto i = 0u; i < scanResult.numRows; i++) {
+                const auto pos =
+                    scanState->IDVector->state->getSelVector().getSelectedPositions()[i];
+                scanState->IDVector->setValue(pos, nodeID_t{startRelOffset + i, tableID});
+            }
+            scanState->IDVector->state->getSelVectorUnsafe().setSelSize(scanResult.numRows);
             // TODO(Guodong): Should handle src/dst node offsets that were within local storage.
             std::vector<ValueVector*> fwdDataVectors;
             std::vector<ValueVector*> bwdDataVectors;

@@ -49,7 +49,8 @@ public:
 
     // Return num of rows before append.
     common::row_idx_t append(transaction::Transaction* transaction,
-        const std::vector<common::ValueVector*>& vectors, const common::SelectionVector& selVector);
+        const std::vector<common::ValueVector*>& vectors, common::row_idx_t startRowInVectors,
+        common::row_idx_t numRowsToAppend);
     common::row_idx_t append(transaction::Transaction* transaction,
         const ChunkedNodeGroup& chunkedGroup, common::row_idx_t numRowsToAppend);
     // common::row_idx_t append(ChunkedNodeGroupCollection& other,

@@ -81,31 +81,32 @@ void CSRNodeGroup::initializeScanState(Transaction* transaction, TableScanState&
     }
 }
 
-bool CSRNodeGroup::scan(Transaction* transaction, TableScanState& state) {
+NodeGroupScanResult CSRNodeGroup::scan(Transaction* transaction, TableScanState& state) {
     const auto& relScanState = state.cast<RelTableScanState>();
     auto& nodeGroupScanState = relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
     while (true) {
         switch (nodeGroupScanState.source) {
         case CSRNodeGroupScanSource::COMMITTED_PERSISTENT: {
-            if (!scanCommittedPersistent(transaction, relScanState, nodeGroupScanState)) {
+            auto result = scanCommittedPersistent(transaction, relScanState, nodeGroupScanState);
+            if (result == NODE_GROUP_SCAN_EMMPTY_RESULT) {
                 continue;
             }
-            return true;
+            return result;
         }
         case CSRNodeGroupScanSource::COMMITTED_IN_MEMORY: {
-            const bool hasMoreRows =
+            auto result =
                 nodeGroupScanState.inMemCSRList.isSequential ?
                     scanCommittedInMemSequential(transaction, relScanState, nodeGroupScanState) :
                     scanCommittedInMemRandom(transaction, relScanState, nodeGroupScanState);
-            if (!hasMoreRows) {
+            if (result == NODE_GROUP_SCAN_EMMPTY_RESULT) {
                 nodeGroupScanState.source = CSRNodeGroupScanSource::NONE;
                 continue;
             }
-            return true;
+            return result;
         }
         case CSRNodeGroupScanSource::NONE: {
-            relScanState.relIDVector->state->getSelVectorUnsafe().setSelSize(0);
-            return false;
+            relScanState.IDVector->state->getSelVectorUnsafe().setSelSize(0);
+            return NODE_GROUP_SCAN_EMMPTY_RESULT;
         }
         default: {
             KU_UNREACHABLE;
@@ -114,35 +115,35 @@ bool CSRNodeGroup::scan(Transaction* transaction, TableScanState& state) {
     }
 }
 
-bool CSRNodeGroup::scanCommittedPersistent(Transaction* transaction,
+NodeGroupScanResult CSRNodeGroup::scanCommittedPersistent(Transaction* transaction,
     const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) {
     if (nodeGroupScanState.nextRowToScan == nodeGroupScanState.persistentCSRList.length) {
         nodeGroupScanState.source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
         nodeGroupScanState.nextRowToScan = 0;
-        return false;
+        return NODE_GROUP_SCAN_EMMPTY_RESULT;
     }
-    const auto startOffset =
+    const auto startRow =
         nodeGroupScanState.persistentCSRList.startRow + nodeGroupScanState.nextRowToScan;
     const auto numToScan =
         std::min(nodeGroupScanState.persistentCSRList.length - nodeGroupScanState.nextRowToScan,
             DEFAULT_VECTOR_CAPACITY);
-    const auto endOffset = startOffset + numToScan;
+    const auto endRow = startRow + numToScan;
     for (auto i = 0u; i < tableState.columnIDs.size(); i++) {
         const auto columnID = tableState.columnIDs[i];
         if (columnID == INVALID_COLUMN_ID) {
             tableState.outputVectors[i]->setAllNull();
-            tableState.outputVectors[i]->state->getSelVectorUnsafe().setSelSize(numToScan);
+            // tableState.outputVectors[i]->state->getSelVectorUnsafe().setSelSize(numToScan);
             continue;
         }
-        tableState.columns[i]->scan(transaction, nodeGroupScanState.chunkStates[i], startOffset,
-            endOffset, tableState.outputVectors[i], static_cast<uint64_t>(0));
         tableState.outputVectors[i]->state->getSelVectorUnsafe().setSelSize(numToScan);
+        tableState.columns[i]->scan(transaction, nodeGroupScanState.chunkStates[i], startRow,
+            endRow, tableState.outputVectors[i], static_cast<uint64_t>(0));
     }
     nodeGroupScanState.nextRowToScan += numToScan;
-    return true;
+    return NodeGroupScanResult{startRow, numToScan};
 }
 
-bool CSRNodeGroup::scanCommittedInMemSequential(Transaction* transaction,
+NodeGroupScanResult CSRNodeGroup::scanCommittedInMemSequential(const Transaction* transaction,
     const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) {
     const auto startRow =
         nodeGroupScanState.inMemCSRList.rowIndices[0] + nodeGroupScanState.nextRowToScan;
@@ -150,7 +151,7 @@ bool CSRNodeGroup::scanCommittedInMemSequential(Transaction* transaction,
         std::min(nodeGroupScanState.inMemCSRList.rowIndices[1] - nodeGroupScanState.nextRowToScan,
             DEFAULT_VECTOR_CAPACITY);
     if (numRows == 0) {
-        return false;
+        return NODE_GROUP_SCAN_EMMPTY_RESULT;
     }
     const auto endRow = startRow + numRows;
     auto [startChunkIdx, startRowInChunk] =
@@ -174,17 +175,17 @@ bool CSRNodeGroup::scanCommittedInMemSequential(Transaction* transaction,
         chunkIdx++;
     }
     nodeGroupScanState.nextRowToScan += numRows;
-    tableState.relIDVector->state->getSelVectorUnsafe().setSelSize(numRows);
-    return true;
+    // tableState.IDVector->state->getSelVectorUnsafe().setSelSize(numRows);
+    return NodeGroupScanResult{startRow, numRows};
 }
 
-bool CSRNodeGroup::scanCommittedInMemRandom(Transaction* transaction,
+NodeGroupScanResult CSRNodeGroup::scanCommittedInMemRandom(Transaction* transaction,
     const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) {
     const auto numRows = std::min(nodeGroupScanState.inMemCSRList.rowIndices.size() -
                                       nodeGroupScanState.nextRowToScan,
         DEFAULT_VECTOR_CAPACITY);
     if (numRows == 0) {
-        return false;
+        return NODE_GROUP_SCAN_EMMPTY_RESULT;
     }
     row_idx_t nextRow = 0;
     ChunkedNodeGroup* chunkedGroup = nullptr;
@@ -204,7 +205,8 @@ bool CSRNodeGroup::scanCommittedInMemRandom(Transaction* transaction,
         nextRow++;
     }
     nodeGroupScanState.nextRowToScan += numRows;
-    return true;
+    tableState.IDVector->state->getSelVectorUnsafe().setSelSize(numRows);
+    return NodeGroupScanResult{0, numRows};
 }
 
 // template<ResidencyState SCAN_RESIDENCY_STATE>

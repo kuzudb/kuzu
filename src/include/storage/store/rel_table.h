@@ -10,7 +10,7 @@ namespace storage {
 
 struct RelTableScanState final : TableScanState {
     common::RelDataDirection direction;
-    common::ValueVector* relIDVector;
+    common::ValueVector* boundNodeIDVector;
     common::offset_t boundNodeOffset;
     Column* csrOffsetColumn;
     Column* csrLengthColumn;
@@ -38,12 +38,9 @@ struct RelTableScanState final : TableScanState {
         const std::vector<Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
         common::RelDataDirection direction, std::vector<ColumnPredicateSet> columnPredicateSets)
         : TableScanState{tableID, columnIDs, columns, std::move(columnPredicateSets)},
-          direction{direction}, relIDVector{nullptr}, boundNodeOffset{common::INVALID_OFFSET},
+          direction{direction}, boundNodeIDVector{nullptr}, boundNodeOffset{common::INVALID_OFFSET},
           csrOffsetColumn{csrOffsetCol}, csrLengthColumn{csrLengthCol} {
         nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
-        // TODO(Guodong): Move the NBR_ID_COLUMN_ID to binder phase.
-        // std::vector<common::column_id_t> dataScanColumnIDs{NBR_ID_COLUMN_ID};
-        // dataScanColumnIDs.insert(dataScanColumnIDs.end(), columnIDs.begin(), columnIDs.end());
         if (!this->columnPredicateSets.empty()) {
             // Since we insert a nbr column. We need to pad an empty nbr column predicate set.
             this->columnPredicateSets.insert(this->columnPredicateSets.begin(),

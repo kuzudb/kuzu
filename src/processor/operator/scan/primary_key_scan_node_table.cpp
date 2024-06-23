@@ -43,18 +43,17 @@ bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     }
 
     offset_t nodeOffset;
-    bool lookupSucceed =
-        nodeInfo.table->getPKIndex()->lookup(transaction, indexVector, pos, nodeOffset);
+    bool lookupSucceed = nodeInfo.table->getPKIndex()->lookup(&transaction::DUMMY_WRITE_TRANSACTION,
+        indexVector, pos, nodeOffset);
     if (!lookupSucceed) {
         return false;
     }
     auto nodeID = nodeID_t{nodeOffset, nodeInfo.table->getTableID()};
-    nodeInfo.localScanState->nodeIDVector->setValue<nodeID_t>(pos, nodeID);
+    nodeInfo.localScanState->IDVector->setValue<nodeID_t>(pos, nodeID);
     nodeInfo.localScanState->source = TableScanSource::COMMITTED;
     nodeInfo.localScanState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     nodeInfo.table->initializeScanState(transaction, *nodeInfo.localScanState);
-    nodeInfo.table->lookup(transaction, *nodeInfo.localScanState);
-    return true;
+    return nodeInfo.table->lookup(transaction, *nodeInfo.localScanState);
 }
 
 } // namespace processor

@@ -51,14 +51,14 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
             StorageUtils::getQuotientRemainder(offsetInChunk + length, DEFAULT_VECTOR_CAPACITY);
         idx_t idx = startVectorIdx;
         sel_t posInVector = 0u;
-        while (idx < endVectorIdx) {
+        while (idx <= endVectorIdx) {
             if (auto vectorInfo = updateInfo->getVectorInfo(transaction, idx)) {
                 const auto startOffset = idx == startVectorIdx ? startOffsetInVector : 0;
                 const auto endOffset =
                     idx == endVectorIdx ? endOffsetInVector : DEFAULT_VECTOR_CAPACITY;
                 for (auto i = 0u; i < vectorInfo->numRowsUpdated; i++) {
-                    if (vectorInfo->rowsInVector[i] > startOffset) {
-                        data->lookup(i, output,
+                    if (vectorInfo->rowsInVector[i] >= startOffset) {
+                        vectorInfo->data->lookup(i, output,
                             posInVector + vectorInfo->rowsInVector[i] - startOffset);
                     }
                 }
@@ -115,15 +115,27 @@ void ColumnChunk::scanCommittedUpdates(Transaction* transaction, ColumnChunkData
     }
 }
 
-void ColumnChunk::lookup(Transaction* transaction, ChunkState& state, offset_t offsetInChunk,
+void ColumnChunk::lookup(Transaction* transaction, ChunkState& state, offset_t rowInChunk,
     ValueVector& output, sel_t posInOutputVector) const {
     switch (residencyState) {
     case ResidencyState::IN_MEMORY: {
-        data->lookup(offsetInChunk, output, posInOutputVector);
+        data->lookup(rowInChunk, output, posInOutputVector);
     } break;
     case ResidencyState::ON_DISK: {
-        state.column->lookupValue(transaction, state, offsetInChunk, &output, posInOutputVector);
+        state.column->lookupValue(transaction, state, rowInChunk, &output, posInOutputVector);
     }
+    }
+    if (updateInfo) {
+        auto [vectorIdx, rowInVector] =
+            StorageUtils::getQuotientRemainder(rowInChunk, DEFAULT_VECTOR_CAPACITY);
+        if (auto vectorInfo = updateInfo->getVectorInfo(transaction, vectorIdx)) {
+            for (auto i = 0u; i < vectorInfo->numRowsUpdated; i++) {
+                if (vectorInfo->rowsInVector[i] == rowInVector) {
+                    vectorInfo->data->lookup(i, output, posInOutputVector);
+                    return;
+                }
+            }
+        }
     }
 }
 
@@ -133,9 +145,6 @@ void ColumnChunk::update(Transaction* transaction, offset_t offsetInChunk,
         data->write(&values, values.state->getSelVector().getSelectedPositions()[0], offsetInChunk);
         return;
     }
-    // TODO(Guodong): FIX-ME. memoryManager is not set during construction.
-    ValueVector originalVector(dataType, memoryManager);
-    data->lookup(offsetInChunk, originalVector, 0);
     if (!updateInfo) {
         updateInfo = std::make_unique<UpdateInfo>();
     }

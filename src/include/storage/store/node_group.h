@@ -50,6 +50,22 @@ struct NodeGroupCheckpointState {
     BMFileHandle& dataFH;
 };
 
+struct NodeGroupScanResult {
+
+    common::row_idx_t startRow = common::INVALID_ROW_IDX;
+    common::row_idx_t numRows = 0;
+
+    constexpr NodeGroupScanResult() noexcept = default;
+    constexpr NodeGroupScanResult(common::row_idx_t startRow, common::row_idx_t numRows) noexcept
+        : startRow{startRow}, numRows{numRows} {}
+
+    bool operator==(const NodeGroupScanResult& other) const {
+        return startRow == other.startRow && numRows == other.numRows;
+    }
+};
+
+static NodeGroupScanResult NODE_GROUP_SCAN_EMMPTY_RESULT = NodeGroupScanResult{};
+
 struct TableScanState;
 class NodeGroup {
 public:
@@ -95,8 +111,8 @@ public:
         std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
 
     virtual void initializeScanState(transaction::Transaction* transaction, TableScanState& state);
-    virtual bool scan(transaction::Transaction* transaction, TableScanState& state);
-    virtual void lookup(transaction::Transaction* transaction, TableScanState& state);
+    virtual NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state);
+    bool lookup(transaction::Transaction* transaction, TableScanState& state);
 
     void update(transaction::Transaction* transaction, common::offset_t offset,
         common::column_id_t columnID, const common::ValueVector& propertyVector);

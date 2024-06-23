@@ -12,7 +12,8 @@ enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = 3 
 
 struct TableScanState {
     common::table_id_t tableID;
-    common::ValueVector* nodeIDVector;
+    // Node/Rel ID vector. We assume all output vectors are within the same DataChunk as this one.
+    common::ValueVector* IDVector;
     std::vector<common::ValueVector*> outputVectors;
     std::vector<common::column_id_t> columnIDs;
 
@@ -29,11 +30,11 @@ struct TableScanState {
 
     TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
         std::vector<Column*> columns, std::vector<ColumnPredicateSet> columnPredicateSets)
-        : tableID{tableID}, nodeIDVector(nullptr), columnIDs{std::move(columnIDs)},
+        : tableID{tableID}, IDVector(nullptr), columnIDs{std::move(columnIDs)},
           columns{std::move(columns)}, columnPredicateSets{std::move(columnPredicateSets)} {}
     explicit TableScanState(const common::table_id_t tableID,
         std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns)
-        : tableID{tableID}, nodeIDVector(nullptr), columnIDs{std::move(columnIDs)},
+        : tableID{tableID}, IDVector(nullptr), columnIDs{std::move(columnIDs)},
           columns{std::move(columns)} {}
     virtual ~TableScanState() = default;
     DELETE_COPY_DEFAULT_MOVE(TableScanState);

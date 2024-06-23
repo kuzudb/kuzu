@@ -63,7 +63,7 @@ public:
     void resizeChunks(uint64_t newSize) const;
 
     uint64_t append(const transaction::Transaction* transaction,
-        const std::vector<common::ValueVector*>& columnVectors, common::SelectionVector& selVector,
+        const std::vector<common::ValueVector*>& columnVectors, common::row_idx_t startRowInVectors,
         uint64_t numValuesToAppend);
     // Appends up to numValuesToAppend from the other chunked node group, returning the actual
     // number of values appended.
@@ -77,15 +77,15 @@ public:
         common::column_id_t offsetColumnID);
     void write(const ChunkedNodeGroup& data, common::column_id_t offsetColumnID);
 
-    void scan(transaction::Transaction* transaction, const TableScanState& scanState,
-        NodeGroupScanState& nodeGroupScanState, common::offset_t offsetInGroup,
+    void scan(const transaction::Transaction* transaction, const TableScanState& scanState,
+        const NodeGroupScanState& nodeGroupScanState, common::offset_t offsetInGroup,
         common::length_t length) const;
 
     template<ResidencyState SCAN_RESIDENCY_STATE>
     void scanCommitted(transaction::Transaction* transaction, TableScanState& scanState,
         NodeGroupScanState& nodeGroupScanState, ChunkedNodeGroup& output) const;
 
-    void lookup(transaction::Transaction* transaction, const TableScanState& state,
+    bool lookup(transaction::Transaction* transaction, const TableScanState& state,
         NodeGroupScanState& nodeGroupScanState, common::offset_t rowIdxInGroup,
         common::sel_t posInOutput) const;
 

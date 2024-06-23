@@ -41,7 +41,11 @@ void ScanNodeTableInfo::initScanState() {
     std::vector<Column*> columns;
     columns.reserve(columnIDs.size());
     for (const auto columnID : columnIDs) {
-        columns.push_back(&table->getColumn(columnID));
+        if (columnID == INVALID_COLUMN_ID) {
+            columns.push_back(nullptr);
+        } else {
+            columns.push_back(&table->getColumn(columnID));
+        }
     }
     localScanState = std::make_unique<NodeTableScanState>(table->getTableID(), columnIDs, columns,
         copyVector(columnPredicates));
@@ -72,7 +76,7 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
         if (!skipScan) {
             while (scanState.source != TableScanSource::NONE &&
                    info.table->scan(transaction, scanState)) {
-                if (scanState.nodeIDVector->state->getSelVector().getSelSize() > 0) {
+                if (scanState.IDVector->state->getSelVector().getSelSize() > 0) {
                     return true;
                 }
             }

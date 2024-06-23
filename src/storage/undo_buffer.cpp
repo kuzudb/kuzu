@@ -25,6 +25,10 @@ struct CatalogEntryRecord {
     CatalogEntry* catalogEntry;
 };
 
+struct NodeBatchInsertRecord {
+    table_id_t tableID;
+};
+
 struct VectorVersionRecord {
     VersionInfo* versionInfo;
     idx_t vectorIdx;
@@ -79,6 +83,16 @@ void UndoBufferIterator::reverseIterate(F&& callback) {
 
 UndoBuffer::UndoBuffer(ClientContext& clientContext) : clientContext{clientContext} {}
 
+void UndoBuffer::createNodeBatchInsert(table_id_t tableID) {
+    auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(NodeBatchInsertRecord));
+    const UndoRecordHeader recordHeader{UndoRecordType::NODE_BATCH_INSERT,
+        sizeof(NodeBatchInsertRecord)};
+    *reinterpret_cast<UndoRecordHeader*>(buffer) = recordHeader;
+    buffer += sizeof(UndoRecordHeader);
+    const NodeBatchInsertRecord nodeBatchInsertRecord{tableID};
+    *reinterpret_cast<NodeBatchInsertRecord*>(buffer) = nodeBatchInsertRecord;
+}
+
 void UndoBuffer::createCatalogEntry(CatalogSet* catalogSet, CatalogEntry* catalogEntry) {
     auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(CatalogEntryRecord));
     const UndoRecordHeader recorHeader{UndoRecordType::CATALOG_ENTRY, sizeof(CatalogEntryRecord)};
@@ -100,8 +114,8 @@ void UndoBuffer::createVectorDeleteInfo(VersionInfo* versionInfo, const idx_t ve
         rowsInVector);
 }
 
-void UndoBuffer::createVectorVersionInfo(const UndoRecordType recordType,
-    VersionInfo* versionInfo, const idx_t vectorIdx, VectorVersionInfo* vectorVersionInfo,
+void UndoBuffer::createVectorVersionInfo(const UndoRecordType recordType, VersionInfo* versionInfo,
+    const idx_t vectorIdx, VectorVersionInfo* vectorVersionInfo,
     const std::vector<row_idx_t>& rowsInVector) {
     auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(VectorVersionRecord));
     const UndoRecordHeader recordHeader{recordType, sizeof(VectorVersionRecord)};
@@ -156,6 +170,9 @@ void UndoBuffer::commitRecord(const UndoRecordType recordType, const uint8_t* re
     switch (recordType) {
     case UndoRecordType::CATALOG_ENTRY: {
         commitCatalogEntryRecord(record, commitTS);
+    } break;
+    case UndoRecordType::NODE_BATCH_INSERT: {
+        commitNodeBatchInsertRecord(record, commitTS);
     } break;
     case UndoRecordType::INSERT_INFO:
     case UndoRecordType::DELETE_INFO: {
@@ -260,10 +277,20 @@ void UndoBuffer::commitVectorUpdateInfo(const uint8_t* record, transaction_t com
     undoRecord.vectorUpdateInfo->version = commitTS;
 }
 
+void UndoBuffer::commitNodeBatchInsertRecord(const uint8_t* record, transaction_t commitTS) const {
+    auto& nodeBatchInsertRecord = *reinterpret_cast<NodeBatchInsertRecord const*>(record);
+    auto table = clientContext.getStorageManager()->getTable(nodeBatchInsertRecord.tableID);
+    KU_ASSERT(table->getTableType() == TableType::NODE);
+    table->prepareCommit();
+}
+
 void UndoBuffer::rollbackRecord(const UndoRecordType recordType, const uint8_t* record) {
     switch (recordType) {
     case UndoRecordType::CATALOG_ENTRY: {
         rollbackCatalogEntryRecord(record);
+    } break;
+    case UndoRecordType::NODE_BATCH_INSERT: {
+        rollbackNodeBatchInsertRecord(record);
     } break;
     case UndoRecordType::INSERT_INFO:
     case UndoRecordType::DELETE_INFO: {
@@ -295,6 +322,10 @@ void UndoBuffer::rollbackCatalogEntryRecord(const uint8_t* record) {
             catalogSet->emplace(std::move(olderEntry));
         }
     }
+}
+
+void UndoBuffer::rollbackNodeBatchInsertRecord(const uint8_t* record) {
+    // TODO(Guodong): Implement rollbackNodeBatchInsertRecord.
 }
 
 void UndoBuffer::rollbackVectorVersionInfo(UndoRecordType recordType, const uint8_t* record) {

@@ -66,14 +66,16 @@ class UndoBuffer {
 public:
     enum class UndoRecordType : uint16_t {
         CATALOG_ENTRY = 0,
-        UPDATE_INFO = 1,
-        INSERT_INFO = 2,
-        DELETE_INFO = 3,
+        NODE_BATCH_INSERT = 1,
+        UPDATE_INFO = 2,
+        INSERT_INFO = 3,
+        DELETE_INFO = 4,
     };
 
     explicit UndoBuffer(main::ClientContext& clientContext);
 
     void createCatalogEntry(catalog::CatalogSet* catalogSet, catalog::CatalogEntry* catalogEntry);
+    void createNodeBatchInsert(common::table_id_t tableID);
     void createVectorInsertInfo(VersionInfo* versionInfo, common::idx_t vectorIdx,
         VectorVersionInfo* vectorVersionInfo, const std::vector<common::row_idx_t>& rowsInVector);
     void createVectorDeleteInfo(VersionInfo* versionInfo, common::idx_t vectorIdx,
@@ -95,15 +97,18 @@ private:
         common::transaction_t commitTS) const;
     void rollbackRecord(UndoRecordType recordType, const uint8_t* record);
 
+    void commitCatalogEntryRecord(const uint8_t* record, common::transaction_t commitTS) const;
+    void rollbackCatalogEntryRecord(const uint8_t* record);
+
+    void commitNodeBatchInsertRecord(const uint8_t* record, common::transaction_t commitTS) const;
+    void rollbackNodeBatchInsertRecord(const uint8_t* record);
+
     void commitVectorVersionInfo(UndoRecordType recordType, const uint8_t* record,
         common::transaction_t commitTS) const;
     void rollbackVectorVersionInfo(UndoRecordType recordType, const uint8_t* record);
 
     void commitVectorUpdateInfo(const uint8_t* record, common::transaction_t commitTS) const;
     void rollbackVectorUpdateInfo(const uint8_t* record);
-
-    void commitCatalogEntryRecord(const uint8_t* record, common::transaction_t commitTS) const;
-    void rollbackCatalogEntryRecord(const uint8_t* record);
 
 private:
     main::ClientContext& clientContext;

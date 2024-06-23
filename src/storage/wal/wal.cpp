@@ -75,7 +75,7 @@ void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry) {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logDropTableRecord(table_id_t tableID, catalog::CatalogEntryType type) {
+void WAL::logDropTableRecord(table_id_t tableID, CatalogEntryType type) {
     lock_t lck{mtx};
     DropCatalogEntryRecord walRecord(tableID, type);
     addNewWALRecordNoLock(walRecord);
@@ -88,7 +88,7 @@ void WAL::logCopyTableRecord(table_id_t tableID) {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logCreateSequenceRecord(catalog::CatalogEntry* catalogEntry) {
+void WAL::logCreateSequenceRecord(CatalogEntry* catalogEntry) {
     lock_t lck{mtx};
     CreateCatalogEntryRecord walRecord(catalogEntry);
     addNewWALRecordNoLock(walRecord);
@@ -96,11 +96,11 @@ void WAL::logCreateSequenceRecord(catalog::CatalogEntry* catalogEntry) {
 
 void WAL::logDropSequenceRecord(sequence_id_t sequenceID) {
     lock_t lck{mtx};
-    DropCatalogEntryRecord walRecord(sequenceID, catalog::CatalogEntryType::SEQUENCE_ENTRY);
+    DropCatalogEntryRecord walRecord(sequenceID, CatalogEntryType::SEQUENCE_ENTRY);
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logCreateTypeRecord(catalog::CatalogEntry* catalogEntry) {
+void WAL::logCreateTypeRecord(CatalogEntry* catalogEntry) {
     lock_t lck{mtx};
     CreateCatalogEntryRecord walRecord(catalogEntry);
     addNewWALRecordNoLock(walRecord);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "column_chunk_data.h"
 #include "common/constants.h"
 #include "common/types/types.h"
 
@@ -26,9 +27,12 @@ struct VectorUpdateInfo {
 
     std::unique_ptr<ColumnChunkData> data;
 
-    explicit VectorUpdateInfo(const common::transaction_t transactionID)
-        : version{transactionID}, rowsInVector{}, numRowsUpdated{0}, prev{nullptr}, next{nullptr},
-          data{nullptr} {}
+    explicit VectorUpdateInfo(const common::transaction_t transactionID,
+        common::LogicalType dataType)
+        : version{transactionID}, rowsInVector{}, numRowsUpdated{0}, prev{nullptr}, next{nullptr} {
+        data = ColumnChunkFactory::createColumnChunkData(dataType, false,
+            common::DEFAULT_VECTOR_CAPACITY, ResidencyState::IN_MEMORY);
+    }
 
     std::unique_ptr<VectorUpdateInfo> movePrev() { return std::move(prev); }
     void setPrev(std::unique_ptr<VectorUpdateInfo> prev) { this->prev = std::move(prev); }
@@ -53,8 +57,8 @@ public:
         common::idx_t idx) const;
 
 private:
-    VectorUpdateInfo& getVectorInfo(const transaction::Transaction* transaction,
-        common::idx_t vectorIdx, common::sel_t rowIdxInVector);
+    VectorUpdateInfo& getOrCreateVectorInfo(const transaction::Transaction* transaction,
+        common::idx_t vectorIdx, common::sel_t rowIdxInVector, const common::LogicalType& dataType);
 
 private:
     std::vector<std::unique_ptr<VectorUpdateInfo>> vectorsInfo;

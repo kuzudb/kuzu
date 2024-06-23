@@ -6,7 +6,6 @@
 namespace kuzu {
 namespace storage {
 
-class MemoryManager;
 class ColumnChunk {
 public:
     ColumnChunk(const common::LogicalType& dataType, uint64_t capacity, bool enableCompression,
@@ -65,8 +64,6 @@ private:
     ResidencyState residencyState;
     common::LogicalType dataType;
     bool enableCompression;
-    // TODO(Guodong): Pass in MemoryManager into ColumnChunk.
-    MemoryManager* memoryManager;
     std::unique_ptr<ColumnChunkData> data;
     // Update versions.
     std::unique_ptr<UpdateInfo> updateInfo;

@@ -23,7 +23,7 @@ NbrScanState::NbrScanState(table_id_t relTableID, MemoryManager* mm) {
     std::vector<Column*> columns;
     fwdReadState = std::make_unique<RelTableScanState>(relTableID, columnIDs, columns, nullptr,
         nullptr, direction);
-    fwdReadState->nodeIDVector = srcNodeIDVector.get();
+    fwdReadState->IDVector = srcNodeIDVector.get();
     fwdReadState->outputVectors.push_back(dstNodeIDVector.get());
 }
 
