@@ -1,20 +1,39 @@
+#include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <string>
 
 #include "kuzu.hpp"
 using namespace kuzu::main;
+#include "json.hpp" // Include the nlohmann/json header
+
+using json = nlohmann::json;
+using namespace std;
 
 int main() {
-    auto database = std::make_unique<Database>("" /* fill db path */);
+    std::filesystem::remove_all("12312312");
+    auto database = std::make_unique<Database>("12312312" /* fill db path */);
     auto connection = std::make_unique<Connection>(database.get());
+    // Read the JSON file
+    ifstream inputFile("/Users/z473chen/Desktop/code/kuzu/examples/cpp/G_47.json");
+    if (!inputFile.is_open()) {
+        cerr << "Failed to open file." << endl;
+        return 1;
+    }
 
-    // Create schema.
-    connection->query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));");
-    // Create nodes.
-    connection->query("CREATE (:Person {name: 'Alice', age: 25});");
-    connection->query("CREATE (:Person {name: 'Bob', age: 30});");
+    // Parse the JSON file
+    json jsonData;
+    inputFile >> jsonData;
+    inputFile.close();
 
-    // Execute a simple query.
-    auto result = connection->query("MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;");
-    // Print query result.
-    std::cout << result->toString();
+    // Iterate through each query in the JSON array
+    for (const auto& query : jsonData) {
+        if (query.is_string()) {
+            printf("%s", connection->query(query.get<string>())->toString().c_str());
+        } else {
+            cerr << "Invalid query format." << endl;
+        }
+    }
+
+    return 0;
 }

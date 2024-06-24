@@ -8,7 +8,7 @@ namespace duckdb_extension {
 
 void DuckDBExtension::load(main::ClientContext* context) {
     auto db = context->getDatabase();
-    db->registerStorageExtension("duckdb", std::make_unique<DuckDBStorageExtension>(db));
+    db->registerStorageExtension(EXTENSION_NAME, std::make_unique<DuckDBStorageExtension>(db));
 }
 
 } // namespace duckdb_extension
