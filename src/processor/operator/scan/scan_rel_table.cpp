@@ -26,20 +26,22 @@ void ScanRelTableInfo::scanIfNecessary(Transaction* transaction) const {
         table->scan(transaction, *localScanState);
     }
     auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(relScanState.nodeGroupIdx);
-    relScanState.currentNodeOffset = 
+    relScanState.currentNodeOffset =
         localScanState->nodeIDVector->readNodeOffset(nodeIDSelVector[relScanState.currNodeIdx]);
     // This assumes nodeIDVector is initially unfiltered, which is not safe
     // we should do this using similar logic to Flatten
     nodeIDSelVector.getMultableBuffer()[0] = nodeIDSelVector[relScanState.currNodeIdx];
     nodeIDSelVector.setToFiltered(1);
-    auto currCSROffset =
-        relScanState.csrHeaderChunks.getEndCSROffset(relScanState.currentNodeOffset - startNodeOffset) - 
-        relScanState.csrHeaderChunks.getStartCSROffset(relScanState.currentNodeOffset - startNodeOffset);
+    auto currCSROffset = relScanState.csrHeaderChunks.getEndCSROffset(
+                             relScanState.currentNodeOffset - startNodeOffset) -
+                         relScanState.csrHeaderChunks.getStartCSROffset(
+                             relScanState.currentNodeOffset - startNodeOffset);
     auto currCSRSize =
         relScanState.csrHeaderChunks.getCSRLength(relScanState.currentNodeOffset - startNodeOffset);
     if (relScanState.currentCSROffset == 0) {
         currCSROffset -= relScanState.posInLastCSR;
-        currCSRSize = relScanState.posInLastCSR > currCSRSize ? 0 : currCSRSize - relScanState.posInLastCSR;
+        currCSRSize =
+            relScanState.posInLastCSR > currCSRSize ? 0 : currCSRSize - relScanState.posInLastCSR;
     }
     auto spaceLeft = DEFAULT_VECTOR_CAPACITY - relScanState.currentCSROffset;
     if (currCSROffset > spaceLeft) {

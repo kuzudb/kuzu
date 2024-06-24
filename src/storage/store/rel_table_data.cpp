@@ -64,14 +64,14 @@ std::pair<offset_t, offset_t> RelDataReadState::getStartAndEndOffset(ValueVector
     auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     auto& selVector = inNodeIDVector.state->getSelVector();
     auto startNodeIdx = currNodeIdx;
-    auto currNodeOffset = 
+    auto currNodeOffset =
         inNodeIDVector.readNodeOffset(inNodeIDVector.state->getSelVector()[currNodeIdx]);
     auto startOffset =
         csrHeaderChunks.getStartCSROffset(currNodeOffset - startNodeOffset) + posInLastCSR;
     auto numRowsToRead = 0ul;
     while (numRowsToRead < DEFAULT_VECTOR_CAPACITY && startNodeIdx < endNodeIdx) {
         auto nodeOffset = inNodeIDVector.readNodeOffset(selVector[startNodeIdx]);
-        auto currCSRSize = csrHeaderChunks.getEndCSROffset(nodeOffset - startNodeOffset) - 
+        auto currCSRSize = csrHeaderChunks.getEndCSROffset(nodeOffset - startNodeOffset) -
                            csrHeaderChunks.getStartCSROffset(nodeOffset - startNodeOffset);
         auto spaceToRead = DEFAULT_VECTOR_CAPACITY - numRowsToRead;
         auto leftToRead = currCSRSize - posInLastCSR;
