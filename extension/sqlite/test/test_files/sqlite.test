@@ -38,6 +38,19 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|2544| the movie is very v
 -STATEMENT LOAD FROM tinysnb.person1 RETURN *;
 ---- error
 Catalog exception: person1 does not exist in catalog.
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/sqlite/test/sqlite_database/flextype' as flextype (dbtype sqlite);
+---- 1
+Attached database successfully.
+-STATEMENT LOAD FROM flextype.person RETURN *
+---- error
+Runtime exception: Failed to execute query: Mismatch Type Error: Invalid type in column "id": column was declared as integer, found "abc" of type "text" instead. in duckdb.
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 5
+movies|ATTACHED|tinysnb(SQLITE)|
+organisation|ATTACHED|tinysnb(SQLITE)|
+person|ATTACHED|flextype(SQLITE)|
+person|ATTACHED|tinysnb(SQLITE)|
+tableOfTypes|ATTACHED|tinysnb(SQLITE)|
 -STATEMENT DETACH tinysnb;
 ---- 1
 Detached database successfully.
