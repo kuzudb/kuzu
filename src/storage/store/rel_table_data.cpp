@@ -93,6 +93,11 @@ void RelDataReadState::resetState() {
     numNodes = 0;
     currentNodeOffset = 0;
     currentCSROffset = 0;
+    posInLastCSR = 0;
+    currNodeIdx = 0;
+    endNodeIdx = 0;
+    totalNodeIdxs = 0;
+    csrHeaderChunks.resetToEmpty();
     readFromPersistentStorage = false;
     readFromLocalStorage = false;
     localNodeGroup = nullptr;
@@ -211,9 +216,9 @@ void RelTableData::initializeScanState(Transaction* transaction, TableScanState&
     relScanState.currentCSROffset = DEFAULT_VECTOR_CAPACITY;
     relScanState.totalNodeIdxs = selVector.getSelSize();
     relScanState.nodeGroupIdx = StorageUtils::getNodeGroupIdx(relScanState.currentNodeOffset);
+    auto nodeOffset = scanState.nodeIDVector->readNodeOffset(selVector[relScanState.endNodeIdx]);
     while (relScanState.endNodeIdx < relScanState.totalNodeIdxs) {
-        auto nodeOffset =
-            scanState.nodeIDVector->readNodeOffset(selVector[relScanState.endNodeIdx]);
+        nodeOffset = scanState.nodeIDVector->readNodeOffset(selVector[relScanState.endNodeIdx]);
         auto curNodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
         if (curNodeGroupIdx != relScanState.nodeGroupIdx) {
             break;
@@ -227,7 +232,7 @@ void RelTableData::initializeScanState(Transaction* transaction, TableScanState&
     relScanState.numNodes = relScanState.csrHeaderChunks.offset->getNumValues();
     relScanState.readFromPersistentStorage =
         relScanState.nodeGroupIdx < columns[REL_ID_COLUMN_ID]->getNumCommittedNodeGroups() &&
-        (relScanState.endNodeIdx - startNodeOffset) <= relScanState.numNodes;
+        (nodeOffset - startNodeOffset) <= relScanState.numNodes;
     if (relScanState.readFromPersistentStorage) {
         initializeColumnScanStates(transaction, scanState, relScanState.nodeGroupIdx);
     }

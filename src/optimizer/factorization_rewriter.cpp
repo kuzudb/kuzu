@@ -2,7 +2,6 @@
 
 #include "binder/expression_visitor.h"
 #include "common/cast.h"
-#include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/operator/logical_accumulate.h"
