@@ -55,7 +55,8 @@ public:
     }
 
     void initLocalState(main::ClientContext* context) override {
-        localState = std::make_unique<ParallelShortestPathLocalState>(context);
+        localState = std::make_unique<ParallelShortestPathLocalState>();
+        localState->init(context);
     }
 
     static uint64_t visitNbrs(IFEMorsel* ifeMorsel, ValueVector& dstNodeIDVector) {
@@ -93,7 +94,7 @@ public:
             return 0; // return 0 to indicate to thread it can exit from operator
         }
         uint64_t numDstVisitedLocal = 0u;
-        while (!ifeMorsel->isCompleteNoLock() && frontierMorsel.hasMoreToOutput()) {
+        while (!ifeMorsel->isBFSCompleteNoLock() && frontierMorsel.hasMoreToOutput()) {
             for (auto i = frontierMorsel.startOffset; i < frontierMorsel.endOffset; i++) {
                 auto frontierOffset = ifeMorsel->bfsLevelNodeOffsets[i];
                 graph->initializeStateFwdNbrs(frontierOffset,
@@ -147,23 +148,27 @@ public:
         auto extraData = bindData->ptrCast<ParallelShortestPathBindData>();
         auto numNodes = sharedState->graph->getNumNodes();
         IFEMorsel* ifeMorsel = nullptr;
-        auto shortestPathLocalState = common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState.get());
+        auto shortestPathLocalState = common::ku_dynamic_cast<GDSLocalState*,
+            ParallelShortestPathLocalState*>(localState.get());
         for (auto offset = 0u; offset < numNodes; offset++) {
             if (!sharedState->inputNodeOffsetMask->isNodeMasked(offset)) {
                 continue;
             }
             if (!ifeMorsel) {
-                ifeMorsel = std::make_unique<IFEMorsel>(extraData->upperBound, 1, numNodes - 1, offset).get();
+                ifeMorsel = std::make_unique<IFEMorsel>(extraData->upperBound, 1, numNodes - 1,
+                    offset).get();
                 shortestPathLocalState->ifeMorsel = ifeMorsel;
             } else {
                 ifeMorsel->resetNoLock(offset);
             }
             ifeMorsel->init();
-            while (!ifeMorsel->isCompleteNoLock()) {
-                parallelUtils->doParallelBlocking(executionContext, this, sharedState, extendFrontierFunc);
+            while (!ifeMorsel->isBFSCompleteNoLock()) {
+                parallelUtils->submitParallelTaskAndWait(executionContext,
+                    shortestPathLocalState->copy(), sharedState, extendFrontierFunc);
                 ifeMorsel->initializeNextFrontierNoLock();
             }
-            parallelUtils->doParallelBlocking(executionContext, this, sharedState, shortestPathOutputFunc);
+            parallelUtils->submitParallelTaskAndWait(executionContext,
+                shortestPathLocalState->copy(), sharedState, shortestPathOutputFunc);
         }
     }
 

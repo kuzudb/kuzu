@@ -14,20 +14,28 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace function {
 
+struct ParallelUtilsJob {
+    ExecutionContext *executionContext;
+    std::unique_ptr<GDSLocalState> gdsLocalState;
+    GDSCallSharedState *gdsCallSharedState;
+    gds_algofunc_t gdsAlgoFunc;
+    bool isParallel;
+};
+
 class ParallelUtils {
 public:
     explicit ParallelUtils(uint32_t operatorID, common::TaskScheduler* taskScheduler);
 
-    void doParallelBlocking(ExecutionContext* executionContext, GDSAlgorithm *gdsAlgorithm,
-        GDSCallSharedState *gdsCallSharedState, gds_algofunc_t gdsAlgoFunc);
+    void submitParallelTaskAndWait(ParallelUtilsJob &parallelUtilsJob);
 
-    std::shared_ptr<common::ScheduledTask> doSequentialNonBlocking(ExecutionContext* executionContext,
-        GDSAlgorithm *gdsAlgorithm, GDSCallSharedState *gdsCallSharedState,
-        gds_algofunc_t gdsAlgoFunc);
+    std::shared_ptr<common::ScheduledTask> submitTaskAndReturn(ParallelUtilsJob &job);
+
+    std::vector<std::shared_ptr<common::ScheduledTask>> submitTasksAndReturn(std::vector<ParallelUtilsJob> &jobs);
 
     bool taskCompletedNoError(std::shared_ptr<common::ScheduledTask> & scheduledTask);
 
-    bool taskHasExceptionOrTimedOut(std::shared_ptr<common::ScheduledTask> &scheduledTask, ExecutionContext *executionContext);
+    bool taskHasExceptionOrTimedOut(std::shared_ptr<common::ScheduledTask> &scheduledTask,
+        ExecutionContext *executionContext);
 
 private:
     common::TaskScheduler *taskScheduler;

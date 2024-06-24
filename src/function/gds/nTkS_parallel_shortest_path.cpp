@@ -4,9 +4,9 @@
 #include "common/types/types.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/ife_morsel.h"
+#include "function/gds/parallel_shortest_path_commons.h"
 #include "function/gds/parallel_utils.h"
 #include "function/gds_function.h"
-#include "function/gds/parallel_shortest_path_commons.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -55,7 +55,8 @@ public:
     }
 
     void initLocalState(main::ClientContext* context) override {
-        localState = std::make_unique<ParallelShortestPathLocalState>(context);
+        localState = std::make_unique<ParallelShortestPathLocalState>();
+        localState->init(context);
     }
 
     static uint64_t visitNbrs(IFEMorsel* ifeMorsel, ValueVector& dstNodeIDVector) {
@@ -87,13 +88,13 @@ public:
         auto& graph = sharedState->graph;
         auto shortestPathLocalState =
             common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState);
-        auto ifeMorsel = sharedState->ifeMorsel;
+        auto ifeMorsel = shortestPathLocalState->ifeMorsel;
         auto frontierMorsel = ifeMorsel->getMorsel(64LU /* morsel size, hard-coding for now */);
         if (!frontierMorsel.hasMoreToOutput()) {
             return 0; // return 0 to indicate to thread it can exit from operator
         }
         uint64_t numDstVisitedLocal = 0u;
-        while (!ifeMorsel->isCompleteNoLock() && frontierMorsel.hasMoreToOutput()) {
+        while (!ifeMorsel->isBFSCompleteNoLock() && frontierMorsel.hasMoreToOutput()) {
             for (auto i = frontierMorsel.startOffset; i < frontierMorsel.endOffset; i++) {
                 auto frontierOffset = ifeMorsel->bfsLevelNodeOffsets[i];
                 graph->initializeStateFwdNbrs(frontierOffset,
@@ -107,15 +108,16 @@ public:
             ifeMorsel->mergeResults(numDstVisitedLocal);
             frontierMorsel = ifeMorsel->getMorsel(64LU);
         }
-        return UINT64_MAX; // returning UINT64_MAX to indicate to thread it should continue executing
+        return UINT64_MAX; // returning UINT64_MAX to indicate to thread it should continue
+                           // executing
     }
 
     static uint64_t shortestPathOutputFunc(GDSCallSharedState* sharedState,
         GDSLocalState* localState) {
-        auto ifeMorsel = sharedState->ifeMorsel;
-        auto morsel = ifeMorsel->getDstWriteMorsel(DEFAULT_VECTOR_CAPACITY);
         auto shortestPathLocalState =
             common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState);
+        auto ifeMorsel = shortestPathLocalState->ifeMorsel;
+        auto morsel = ifeMorsel->getDstWriteMorsel(DEFAULT_VECTOR_CAPACITY);
         if (!morsel.hasMoreToOutput()) {
             return 0;
         }
@@ -123,14 +125,14 @@ public:
         auto& srcNodeVector = shortestPathLocalState->srcNodeIDVector;
         auto& dstOffsetVector = shortestPathLocalState->dstNodeIDVector;
         auto& pathLengthVector = shortestPathLocalState->lengthVector;
-        srcNodeVector->setValue<nodeID_t>(0, {sharedState->ifeMorsel->srcOffset, tableID});
+        srcNodeVector->setValue<nodeID_t>(0, common::nodeID_t{ifeMorsel->srcOffset, tableID});
         auto pos = 0;
         for (auto offset = morsel.startOffset; offset < morsel.endOffset; offset++) {
             auto state = ifeMorsel->visitedNodes[offset].load(std::memory_order_acq_rel);
             uint64_t pathLength = ifeMorsel->pathLength[offset].load(std::memory_order_acq_rel);
             if ((state == VISITED_DST_NEW || state == VISITED_DST) &&
                 pathLength >= ifeMorsel->lowerBound) {
-                dstOffsetVector->setValue<nodeID_t>(pos, {offset, tableID});
+                dstOffsetVector->setValue<nodeID_t>(pos, common::nodeID_t{offset, tableID});
                 pathLengthVector->setValue<uint64_t>(pos, pathLength);
                 pos++;
             }
@@ -154,15 +156,63 @@ public:
         auto& inputMask = sharedState->inputNodeOffsetMask;
         scheduledTaskMap ifeMorselTasks;
         ifeMorselTasks.reserve(maxConcurrentBFS);
-        auto srcOffset = 0LU, numCompletedTasks = 0lu, totalBFSSources = 0lu;
+        std::vector<std::pair<int, ParallelUtilsJob>> jobs;
+        auto srcOffset = 0LU, numCompletedTasks = 0LU, totalBFSSources = 0LU;
         while (true) {
             for (auto i = 0u; i < maxConcurrentBFS; i++) {
                 if (!ifeMorselTasks[i].first) {
                     // set up new ife_morsel with srcOffset (if node masked)
                     // set up task with pointer to the function to execute
-
+                    while (srcOffset <= maxNodeOffset) {
+                        if (inputMask->isNodeMasked(srcOffset)) {
+                            break;
+                        }
+                        srcOffset++;
+                    }
+                    if ((srcOffset > maxNodeOffset) && (totalBFSSources == numCompletedTasks)) {
+                        break;
+                    }
+                    totalBFSSources++;
+                    ifeMorselTasks[i].first = std::make_unique<IFEMorsel>(extraData->upperBound,
+                        lowerBound, maxNodeOffset, srcOffset);
+                    auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
+                    gdsLocalState->ifeMorsel = ifeMorselTasks[i].first.get();
+                    jobs.push_back(
+                        {i, ParallelUtilsJob{executionContext, std::move(gdsLocalState),
+                                sharedState, extendFrontierFunc, true /* isParallel */}});
+                } else if (parallelUtils->taskCompletedNoError(ifeMorselTasks[i].second) &&
+                           ifeMorselTasks[i].first->isIFEMorselCompleteNoLock()) {
+                    numCompletedTasks++;
+                    while (srcOffset <= maxNodeOffset) {
+                        if (inputMask->isNodeMasked(srcOffset)) {
+                            break;
+                        }
+                        srcOffset++;
+                    }
+                    if ((srcOffset > maxNodeOffset) && (totalBFSSources == numCompletedTasks)) {
+                        break;
+                    }
+                    totalBFSSources++;
+                    ifeMorselTasks[i].first->resetNoLock(srcOffset);
+                    auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
+                    gdsLocalState->ifeMorsel = ifeMorselTasks[i].first.get();
+                    jobs.push_back(
+                        {i, ParallelUtilsJob{executionContext, std::move(gdsLocalState),
+                                sharedState, extendFrontierFunc, true /* isParallel */}});
+                } else if (parallelUtils->taskCompletedNoError(ifeMorselTasks[i].second) &&
+                    ifeMorselTasks[i].first->isBFSCompleteNoLock()) {
+                    auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
+                    gdsLocalState->ifeMorsel = ifeMorselTasks[i].first.get();
+                    jobs.push_back(
+                        {i, ParallelUtilsJob{executionContext, std::move(gdsLocalState),
+                                sharedState, shortestPathOutputFunc, true /* isParallel */}});
                 } else if (parallelUtils->taskCompletedNoError(ifeMorselTasks[i].second)) {
-
+                    ifeMorselTasks[i].first->initializeNextFrontierNoLock();
+                    auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
+                    gdsLocalState->ifeMorsel = ifeMorselTasks[i].first.get();
+                    jobs.push_back(
+                        {i, ParallelUtilsJob{executionContext, std::move(gdsLocalState),
+                                sharedState, extendFrontierFunc, true /* isParallel */}});
                 } else if (parallelUtils->taskHasExceptionOrTimedOut(ifeMorselTasks[i].second,
                                executionContext)) {
                     // Can we exit from here ? Or should we remove all the other remaining tasks ?
@@ -184,10 +234,11 @@ public:
 
 function_set nTkSParallelShortestPathsFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(name, std::make_unique<nTkSParallelShortestPath>());
+    auto function =
+        std::make_unique<GDSFunction>(name, std::make_unique<nTkSParallelShortestPath>());
     result.push_back(std::move(function));
     return result;
 }
 
-}
-}
+} // namespace function
+} // namespace kuzu

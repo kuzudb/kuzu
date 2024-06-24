@@ -16,7 +16,9 @@ namespace function {
 
 class WeaklyConnectedComponentLocalState : public GDSLocalState {
 public:
-    explicit WeaklyConnectedComponentLocalState(main::ClientContext* context) {
+    explicit WeaklyConnectedComponentLocalState() = default;
+
+    void init(main::ClientContext* context) override {
         auto mm = context->getMemoryManager();
         nodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
         groupVector = std::make_unique<ValueVector>(*LogicalType::INT64(), mm);
@@ -34,6 +36,10 @@ public:
             groupVector->setValue<int64_t>(0, groupArray[offset]);
             table.append(vectors);
         }
+    }
+
+    std::unique_ptr<GDSLocalState> copy() override {
+        return std::make_unique<WeaklyConnectedComponentLocalState>();
     }
 
 private:
@@ -70,7 +76,8 @@ public:
     }
 
     void initLocalState(main::ClientContext* context) override {
-        localState = std::make_unique<WeaklyConnectedComponentLocalState>(context);
+        localState = std::make_unique<WeaklyConnectedComponentLocalState>();
+        localState->init(context);
     }
 
     void exec(ExecutionContext *) override {

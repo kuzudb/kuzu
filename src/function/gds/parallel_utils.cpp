@@ -14,25 +14,41 @@ ParallelUtils::ParallelUtils(uint32_t operatorID_, common::TaskScheduler* schedu
     operatorID = operatorID_;
 }
 
-void ParallelUtils::doParallelBlocking(ExecutionContext* executionContext,
-    GDSAlgorithm* gdsAlgorithm, GDSCallSharedState* gdsCallSharedState,
-    gds_algofunc_t gdsAlgoFunc) {
-    auto parallelUtilsOp = std::make_unique<ParallelUtilsOperator>(gdsAlgorithm->copy(),
-        gdsAlgoFunc, gdsCallSharedState, operatorID, "");
-    auto task = std::make_shared<ProcessorTask>(parallelUtilsOp.get(), executionContext);
+void ParallelUtils::submitParallelTaskAndWait(ParallelUtilsJob& job) {
+    auto parallelUtilsOp = std::make_unique<ParallelUtilsOperator>(std::move(job.gdsLocalState),
+        job.gdsAlgoFunc, job.gdsCallSharedState, operatorID, "");
+    auto task = std::make_shared<ProcessorTask>(parallelUtilsOp.get(), job.executionContext);
     task->setSharedStateInitialized();
-    taskScheduler->scheduleTaskAndWaitOrError(task, executionContext);
+    taskScheduler->scheduleTaskAndWaitOrError(task, job.executionContext);
 }
 
-std::shared_ptr<ScheduledTask> ParallelUtils::doSequentialNonBlocking(
-    ExecutionContext* executionContext, GDSAlgorithm* gdsAlgorithm,
-    GDSCallSharedState* gdsCallSharedState, gds_algofunc_t gdsAlgoFunc) {
-    auto parallelUtilsOp = std::make_unique<ParallelUtilsOperator>(gdsAlgorithm->copy(),
-        gdsAlgoFunc, gdsCallSharedState, operatorID, "");
-    auto task = std::make_shared<ProcessorTask>(parallelUtilsOp.get(), executionContext);
-    task->setSingleThreadedTask();
+std::shared_ptr<ScheduledTask> ParallelUtils::submitTaskAndReturn(ParallelUtilsJob& job) {
+    auto parallelUtilsOp = std::make_unique<ParallelUtilsOperator>(std::move(job.gdsLocalState),
+        job.gdsAlgoFunc, job.gdsCallSharedState, operatorID, "");
+    auto task = std::make_shared<ProcessorTask>(parallelUtilsOp.get(), job.executionContext);
+    if (!job.isParallel) {
+        task->setSingleThreadedTask();
+    }
     task->setSharedStateInitialized();
     return taskScheduler->scheduleTaskAndReturn(task);
+}
+
+std::vector<std::shared_ptr<ScheduledTask>> ParallelUtils::submitTasksAndReturn(
+    std::vector<ParallelUtilsJob>& jobs) {
+    std::vector<std::shared_ptr<Task>> tasks;
+    tasks.reserve(jobs.size());
+    auto jobIdx = 0u;
+    for (auto& job : jobs) {
+        auto parallelUtilsOp = std::make_unique<ParallelUtilsOperator>(std::move(job.gdsLocalState),
+            job.gdsAlgoFunc, job.gdsCallSharedState, operatorID, "");
+        auto task = std::make_shared<ProcessorTask>(parallelUtilsOp.get(), job.executionContext);
+        if (!job.isParallel) {
+            task->setSingleThreadedTask();
+        }
+        task->setSharedStateInitialized();
+        tasks[jobIdx++] = task;
+    }
+    return taskScheduler->scheduleTasksAndReturn(tasks);
 }
 
 bool ParallelUtils::taskCompletedNoError(std::shared_ptr<common::ScheduledTask>& scheduledTask) {
@@ -45,8 +61,8 @@ bool ParallelUtils::taskCompletedNoError(std::shared_ptr<common::ScheduledTask>&
     return false;
 }
 
-bool ParallelUtils::taskHasExceptionOrTimedOut(std::shared_ptr<common::ScheduledTask>& scheduledTask,
-    ExecutionContext* executionContext) {
+bool ParallelUtils::taskHasExceptionOrTimedOut(
+    std::shared_ptr<common::ScheduledTask>& scheduledTask, ExecutionContext* executionContext) {
     scheduledTask->task->mtx.lock();
     if (scheduledTask->task->hasExceptionNoLock()) {
         scheduledTask->task->mtx.unlock();

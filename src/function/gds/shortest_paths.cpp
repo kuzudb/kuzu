@@ -66,7 +66,9 @@ struct ShortestPathSourceState {
 
 class ShortestPathLocalState : public GDSLocalState {
 public:
-    explicit ShortestPathLocalState(main::ClientContext* context) {
+    explicit ShortestPathLocalState() = default;
+
+    void init(main::ClientContext* context) override {
         auto mm = context->getMemoryManager();
         srcNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
         dstNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
@@ -91,6 +93,10 @@ public:
             lengthVector->setValue<int64_t>(0, sourceState.getLength(offset));
             table.append(vectors);
         }
+    }
+
+    std::unique_ptr<GDSLocalState> copy() override {
+        return std::make_unique<ShortestPathLocalState>();
     }
 
 private:
@@ -141,7 +147,8 @@ public:
     }
 
     void initLocalState(main::ClientContext* context) override {
-        localState = std::make_unique<ShortestPathLocalState>(context);
+        localState = std::make_unique<ShortestPathLocalState>();
+        localState->init(context);
     }
 
     void exec(ExecutionContext *) override {

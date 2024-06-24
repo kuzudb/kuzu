@@ -5,18 +5,17 @@ namespace kuzu {
 namespace processor {
 
 void ParallelUtilsOperator::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
-    gdsAlgorithm->init(sharedState, context->clientContext);
+    gdsLocalState->init(context->clientContext);
     auto memoryManager = context->clientContext->getMemoryManager();
     auto& ftableSchema = *sharedState->fTable->getTableSchema();
     localFTable = std::make_unique<FactorizedTable>(memoryManager, ftableSchema.copy());
 }
 
 void ParallelUtilsOperator::executeInternal(ExecutionContext* /*context*/) {
-    auto localState = gdsAlgorithm->getGDSLocalState();
     auto fTable = sharedState->fTable;
-    auto& outputVectors = localState->getOutputVectors();
+    auto& outputVectors = gdsLocalState->getOutputVectors();
     while (true) {
-        auto numTuplesOutput = funcToExecute(sharedState, localState);
+        auto numTuplesOutput = funcToExecute(sharedState, gdsLocalState.get());
         switch (numTuplesOutput) {
         case 0:
             sharedState->merge(*localFTable.get());

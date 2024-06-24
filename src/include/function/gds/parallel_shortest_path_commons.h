@@ -26,7 +26,9 @@ struct ParallelShortestPathBindData final : public GDSBindData {
 
 class ParallelShortestPathLocalState : public GDSLocalState {
 public:
-    explicit ParallelShortestPathLocalState(main::ClientContext* clientContext) {
+    explicit ParallelShortestPathLocalState() = default;
+
+    void init(main::ClientContext* clientContext) override {
         auto mm = clientContext->getMemoryManager();
         srcNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
         dstNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
@@ -38,6 +40,12 @@ public:
         outputVectors.push_back(dstNodeIDVector.get());
         outputVectors.push_back(lengthVector.get());
         nbrScanState = std::make_unique<graph::NbrScanState>(mm);
+    }
+
+    std::unique_ptr<GDSLocalState> copy() override {
+        auto localState = std::make_unique<ParallelShortestPathLocalState>();
+        localState->ifeMorsel = ifeMorsel;
+        return localState;
     }
 
 public:

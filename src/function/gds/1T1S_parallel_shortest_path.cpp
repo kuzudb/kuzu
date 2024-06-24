@@ -56,7 +56,8 @@ public:
     }
 
     void initLocalState(main::ClientContext* context) override {
-        localState = std::make_unique<ParallelShortestPathLocalState>(context);
+        localState = std::make_unique<ParallelShortestPathLocalState>();
+        localState->init(context);
     }
 
     static uint64_t visitNbrs(IFEMorsel* ifeMorsel, ValueVector& dstNodeIDVector) {
@@ -88,7 +89,7 @@ public:
             common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState);
         auto ifeMorsel = shortestPathLocalState->ifeMorsel;
         ifeMorsel->init();
-        while (!ifeMorsel->isCompleteNoLock()) {
+        while (!ifeMorsel->isBFSCompleteNoLock()) {
             auto numDstVisitedLocal = 0u;
             for (auto pos = 0u; pos < ifeMorsel->bfsLevelNodeOffsets.size(); pos++) {
                 auto frontierOffset = ifeMorsel->bfsLevelNodeOffsets[pos];
@@ -138,7 +139,7 @@ public:
     static uint64_t mainFunc(GDSCallSharedState* sharedState, GDSLocalState* localState) {
         auto shortestPathLocalState =
             common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState);
-        if (shortestPathLocalState->ifeMorsel->isCompleteNoLock()) {
+        if (shortestPathLocalState->ifeMorsel->isBFSCompleteNoLock()) {
             return shortestPathOutputFunc(sharedState, localState);
         }
         extendFrontierFunc(sharedState, localState);
@@ -175,8 +176,11 @@ public:
                     totalBFSSources++;
                     ifeMorselTasks[i].first = std::make_unique<IFEMorsel>(extraData->upperBound,
                         lowerBound, maxNodeOffset, srcOffset);
-                    ifeMorselTasks[i].second = parallelUtils->doSequentialNonBlocking(
-                        executionContext, this, sharedState, mainFunc);
+                    auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
+                    gdsLocalState->ifeMorsel = ifeMorselTasks[i].first.get();
+                    auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState),
+                        sharedState, mainFunc, false /* isParallel */};
+                    ifeMorselTasks[i].second = parallelUtils->submitTaskAndReturn(job);
                 } else if (parallelUtils->taskCompletedNoError(ifeMorselTasks[i].second)) {
                     numCompletedTasks++;
                     while (srcOffset <= maxNodeOffset) {
@@ -188,9 +192,13 @@ public:
                     if ((srcOffset > maxNodeOffset) && (totalBFSSources == numCompletedTasks)) {
                         break;
                     }
+                    totalBFSSources++;
                     ifeMorselTasks[i].first->resetNoLock(srcOffset);
-                    ifeMorselTasks[i].second = parallelUtils->doSequentialNonBlocking(
-                        executionContext, this, sharedState, mainFunc);
+                    auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
+                    gdsLocalState->ifeMorsel = ifeMorselTasks[i].first.get();
+                    auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState),
+                        sharedState, mainFunc, false /* isParallel */};
+                    ifeMorselTasks[i].second = parallelUtils->submitTaskAndReturn(job);
                 } else if (parallelUtils->taskHasExceptionOrTimedOut(ifeMorselTasks[i].second,
                                executionContext)) {
                     // Can we exit from here ? Or should we remove all the other remaining tasks ?

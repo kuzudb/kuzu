@@ -52,7 +52,9 @@ struct VariableLengthPathSourceState {
 
 class VariableLengthPathLocalState : public GDSLocalState {
 public:
-    explicit VariableLengthPathLocalState(main::ClientContext* context) {
+    explicit VariableLengthPathLocalState() = default;
+
+    void init(main::ClientContext* context) override {
         auto mm = context->getMemoryManager();
         srcNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
         dstNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
@@ -79,6 +81,10 @@ public:
             numPathVector->setValue<int64_t>(0, numPath);
             table.append(vectors);
         }
+    }
+
+    std::unique_ptr<GDSLocalState> copy() override {
+        return std::make_unique<VariableLengthPathLocalState>();
     }
 
 private:
@@ -140,7 +146,8 @@ public:
     }
 
     void initLocalState(main::ClientContext* context) override {
-        localState = std::make_unique<VariableLengthPathLocalState>(context);
+        localState = std::make_unique<VariableLengthPathLocalState>();
+        localState->init(context);
     }
 
     void exec(ExecutionContext *) override {

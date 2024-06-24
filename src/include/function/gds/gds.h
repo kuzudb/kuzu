@@ -59,6 +59,10 @@ public:
         return outputVectors;
     }
 
+    virtual void init(main::ClientContext* clientContext) = 0;
+
+    virtual std::unique_ptr<GDSLocalState> copy() = 0;
+
 public:
     std::vector<common::ValueVector*> outputVectors;
     std::unique_ptr<graph::NbrScanState> nbrScanState;

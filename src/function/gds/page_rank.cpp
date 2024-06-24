@@ -29,7 +29,9 @@ struct PageRankBindData final : public GDSBindData {
 
 class PageRankLocalState : public GDSLocalState {
 public:
-    explicit PageRankLocalState(main::ClientContext* context) {
+    explicit PageRankLocalState() = default;
+
+    void init(main::ClientContext* context) override {
         auto mm = context->getMemoryManager();
         nodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
         rankVector = std::make_unique<ValueVector>(*LogicalType::DOUBLE(), mm);
@@ -47,6 +49,10 @@ public:
             rankVector->setValue<double>(0, ranks[offset]);
             table.append(vectors);
         }
+    }
+
+    std::unique_ptr<GDSLocalState> copy() override {
+        return std::make_unique<PageRankLocalState>();
     }
 
 private:
@@ -87,7 +93,8 @@ public:
     }
 
     void initLocalState(main::ClientContext* context) override {
-        localState = std::make_unique<PageRankLocalState>(context);
+        localState = std::make_unique<PageRankLocalState>();
+        localState->init(context);
     }
 
     void exec(ExecutionContext *) override {

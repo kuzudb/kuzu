@@ -17,10 +17,11 @@ class ParallelUtilsOperator : public Sink {
     static constexpr PhysicalOperatorType operatorType_ = PhysicalOperatorType::GDS_CALL;
 
 public:
-    ParallelUtilsOperator(std::unique_ptr<GDSAlgorithm> gdsAlgorithm, gds_algofunc_t tableFunc,
+    ParallelUtilsOperator(std::unique_ptr<GDSLocalState> gdsLocalState, gds_algofunc_t tableFunc,
         GDSCallSharedState *sharedState, uint32_t id, std::string paramString)
         : Sink{nullptr /* no result descriptor needed */, operatorType_, id, paramString},
-          gdsAlgorithm{std::move(gdsAlgorithm)}, funcToExecute{tableFunc}, sharedState{sharedState} {}
+          gdsLocalState{std::move(gdsLocalState)}, funcToExecute{tableFunc},
+          sharedState{sharedState} {}
 
     bool isSource() const override { return true; }
 
@@ -31,12 +32,12 @@ public:
     void executeInternal(ExecutionContext* context) final;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<ParallelUtilsOperator>(gdsAlgorithm->copy(), funcToExecute,
+        return std::make_unique<ParallelUtilsOperator>(gdsLocalState->copy(), funcToExecute,
             sharedState, id, paramsString);
     }
 
 private:
-    std::unique_ptr<GDSAlgorithm> gdsAlgorithm;
+    std::unique_ptr<GDSLocalState> gdsLocalState;
     gds_algofunc_t funcToExecute;
     GDSCallSharedState *sharedState;
     std::unique_ptr<FactorizedTableSchema> tableSchema;
