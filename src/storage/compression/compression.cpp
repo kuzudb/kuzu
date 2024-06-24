@@ -299,7 +299,9 @@ void ConstantCompression::decompressValues(uint8_t* dstBuffer, uint64_t dstOffse
             std::fill(reinterpret_cast<uint64_t*>(start), reinterpret_cast<uint64_t*>(end),
                 metadata.min.get<uint64_t>());
         },
-        [&]<typename T> requires(numeric_utils::IsIntegral<T> || std::floating_point<T>)(T) {
+        [&]<typename T>
+            requires(numeric_utils::IsIntegral<T> || std::floating_point<T>)
+        (T) {
             std::fill(reinterpret_cast<T*>(start), reinterpret_cast<T*>(end),
                 metadata.min.get<T>());
         },
