@@ -8,7 +8,7 @@ jobs:
   build-precompiled-bin-universal:
     runs-on: self-hosted-mac-x64
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build universal precompiled binaries
         run: |
@@ -37,12 +37,12 @@ jobs:
           tar -czvf libkuzu-osx-universal.tar.gz kuzu.h kuzu.hpp libkuzu.dylib
           tar -czvf kuzu_cli-osx-universal.tar.gz kuzu
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: libkuzu-osx-universal
           path: libkuzu-osx-universal.tar.gz
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: kuzu_cli-osx-universal
           path: kuzu_cli-osx-universal.tar.gz

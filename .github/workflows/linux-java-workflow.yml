@@ -7,19 +7,19 @@ jobs:
   build-linux-java-x86_64:
     runs-on: kuzu-self-hosted-linux-building-x86_64_centos7
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build Java lib for Linux
         run: |
           source /opt/rh/devtoolset-11/enable
           make java NUM_THREADS=$(nproc)
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: java-lib-linux-x86_64
           path: tools/java_api/build/libkuzu_java_native*
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: kuzu-linux-jar
           path: tools/java_api/build/*.jar
@@ -27,12 +27,12 @@ jobs:
   build-linux-java-aarch64:
     runs-on: kuzu-self-hosted-linux-building-aarch64
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build Java lib for Linux
         run: make java NUM_THREADS=$(nproc)
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: java-lib-linux-aarch64
           path: tools/java_api/build/libkuzu_java_native*

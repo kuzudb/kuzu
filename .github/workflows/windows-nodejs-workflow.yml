@@ -8,7 +8,7 @@ jobs:
   build-windows-nodejs:
     runs-on: self-hosted-windows
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Node.js dependencies
         working-directory: tools/nodejs_api
@@ -25,7 +25,7 @@ jobs:
         working-directory: tools/nodejs_api/build
         run: ren kuzujs.node kuzujs-win32-x64.node
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: windows-nodejs-module
           path: tools/nodejs_api/build/kuzujs-win32-x64.node

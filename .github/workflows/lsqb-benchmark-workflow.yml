@@ -32,7 +32,7 @@ jobs:
       SCALE_FACTOR: ${{ github.event.inputs.scale_factor }}
     runs-on: kuzu-self-hosted-benchmarking
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build
         run: |
@@ -43,13 +43,13 @@ jobs:
         run: python3 benchmark/lsqb/benchmark_runner.py
 
       - name: Upload result csv
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: lsqb-benchmark-result
           path: /tmp/benchmark_result/results.csv
       
       - name: Upload log
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: lsqb-benchmark-log
           path: lsqb.log

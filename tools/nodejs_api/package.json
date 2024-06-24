@@ -22,7 +22,7 @@
     "tmp": "^0.2.3"
   },
   "dependencies": {
-    "cmake-js": "^7.1.1",
+    "cmake-js": "^7.3.0",
     "node-addon-api": "^6.0.0"
   }
 }

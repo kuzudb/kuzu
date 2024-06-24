@@ -8,7 +8,7 @@ jobs:
   build-windows-java:
     runs-on: self-hosted-windows
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build Java lib for Windows
         shell: cmd
@@ -16,7 +16,7 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           make java NUM_THREADS=48
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: java-lib-win-x86_64
           path: tools/java_api/build/libkuzu_java_native*

@@ -59,13 +59,13 @@ jobs:
         java -cp target/kuzu-0.1.0-alpha.jar:target/classes/kuzu_java.jar org.ldbcouncil.finbench.driver.driver.Driver -P sf${SCALE_FACTOR}_finbench_benchmark.properties | tee LDBC-FinBench.log
      
     - name: Upload results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: LDBC-FinBench-results
         path: ldbc_finbench_transaction_impls/kuzu/results/LDBC-FinBench-results.json
 
     - name: Upload logs
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: LDBC-FinBench-logs
         path: ldbc_finbench_transaction_impls/kuzu/LDBC-FinBench.log

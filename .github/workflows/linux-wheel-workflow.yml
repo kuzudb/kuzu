@@ -13,7 +13,7 @@ jobs:
   build-linux-wheels-x86_64:
     runs-on: kuzu-self-hosted-linux-building-x86_64_centos7
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Update nightly version
         if: ${{ inputs.isNightly == true }}
@@ -27,7 +27,7 @@ jobs:
           source /opt/rh/devtoolset-11/enable
           ./build_all_packages.sh
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: linux-wheels-x86_64
           path: ./scripts/pip-package/wheelhouse/*manylinux2014_x86_64.whl
@@ -36,7 +36,7 @@ jobs:
     # Make sure this job runs on the larger self-hosted Linux ARM64 machine
     runs-on: [kuzu-self-hosted-linux-building-aarch64, ac3]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Update nightly version
         if: ${{ inputs.isNightly == true }}
@@ -49,7 +49,7 @@ jobs:
           cp /home/runner/build_all_packages.sh .
           ./build_all_packages.sh
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: linux-wheels-aarch64
           path: ./scripts/pip-package/wheelhouse/*manylinux_2_28_aarch64.whl

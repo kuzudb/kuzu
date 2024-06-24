@@ -63,7 +63,7 @@ jobs:
       run: workflow-scripts/benchmark.sh
     
     - name: Upload results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: LDBC-SNB-Business-Intelligence-results
         path: ldbc_snb_bi/kuzu/output/

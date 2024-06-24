@@ -11,7 +11,7 @@ jobs:
       GEN: Ninja
     runs-on: kuzu-self-hosted-benchmarking
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build
         run: make benchmark
@@ -20,7 +20,7 @@ jobs:
         run: python3 benchmark/benchmark_runner.py --dataset ldbc-sf100 --thread 10
 
       - name: Upload comparison results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: comparison-results
           path: benchmark/compare_result.md

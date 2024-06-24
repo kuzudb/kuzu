@@ -7,7 +7,7 @@ jobs:
   build-mac-java-arm:
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build Java lib for Apple Silicon
         run: |
@@ -16,7 +16,7 @@ jobs:
           MACOSX_DEPLOYMENT_TARGET: 11.0
           ARCHFLAGS: "-arch arm64"
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: java-lib-osx-arm64
           path: tools/java_api/build/libkuzu_java_native*
@@ -24,7 +24,7 @@ jobs:
   build-mac-java-x86:
     runs-on: self-hosted-mac-x64
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build Java lib for Intel
         run: |
@@ -33,7 +33,7 @@ jobs:
           MACOSX_DEPLOYMENT_TARGET: 11.0
           ARCHFLAGS: "-arch x86_64"
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: java-lib-osx-x86_64
           path: tools/java_api/build/libkuzu_java_native*
