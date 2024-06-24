@@ -39,7 +39,9 @@ public:
 
     function::CallFuncMorsel getDstWriteMorsel(uint64_t morselSize);
 
-    bool isCompleteNoLock() const;
+    bool isBFSCompleteNoLock() const;
+
+    bool isIFEMorselCompleteNoLock() const;
 
     void mergeResults(uint64_t numDstVisitedLocal);
 

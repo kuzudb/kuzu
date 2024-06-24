@@ -53,7 +53,7 @@ function::CallFuncMorsel IFEMorsel::getDstWriteMorsel(uint64_t morselSize) {
     return {morselStartIdx, morselEndIdx};
 }
 
-bool IFEMorsel::isCompleteNoLock() const {
+bool IFEMorsel::isBFSCompleteNoLock() const {
     if (currentLevel == upperBound) {
         return true;
     }
@@ -66,6 +66,11 @@ bool IFEMorsel::isCompleteNoLock() const {
     return false;
 }
 
+bool IFEMorsel::isIFEMorselCompleteNoLock() const {
+    return isBFSCompleteNoLock() &&
+           (nextDstScanStartIdx.load(std::memory_order_acq_rel) >= maxOffset);
+}
+
 void IFEMorsel::mergeResults(uint64_t numDstVisitedLocal) {
     numVisitedDstNodes.fetch_add(numDstVisitedLocal, std::memory_order_acq_rel);
 }
@@ -73,7 +78,7 @@ void IFEMorsel::mergeResults(uint64_t numDstVisitedLocal) {
 void IFEMorsel::initializeNextFrontierNoLock() {
     currentLevel++;
     nextScanStartIdx = 0LU;
-    if (isCompleteNoLock()) {
+    if (isBFSCompleteNoLock()) {
         return;
     }
     bfsLevelNodeOffsets.clear();

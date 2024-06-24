@@ -72,6 +72,17 @@ std::shared_ptr<ScheduledTask> TaskScheduler::scheduleTaskAndReturn(
     return scheduledTask;
 }
 
+std::vector<std::shared_ptr<ScheduledTask>> TaskScheduler::scheduleTasksAndReturn(
+    const std::vector<std::shared_ptr<Task>>& tasks) {
+    lock_t lck{mtx};
+    std::vector<std::shared_ptr<ScheduledTask>> scheduledTasks;
+    for (auto &task : tasks) {
+        scheduledTasks.push_back(std::make_shared<ScheduledTask>(task, nextScheduledTaskID++));
+    }
+    cv.notify_all();
+    return scheduledTasks;
+}
+
 std::shared_ptr<ScheduledTask> TaskScheduler::pushTaskIntoQueue(const std::shared_ptr<Task>& task) {
     lock_t lck{mtx};
     auto scheduledTask = std::make_shared<ScheduledTask>(task, nextScheduledTaskID++);
