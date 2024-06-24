@@ -66,6 +66,7 @@ void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext
 bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
     auto transaction = context->clientContext->getTx();
     auto& scanState = *relInfo.localScanState;
+    auto& relScanState = scanState.dataScanState->cast<RelDataReadState>();
     while (true) {
         auto skipScan =
             transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;
@@ -76,6 +77,7 @@ bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
+        relScanState.resetState();
         relInfo.table->initializeScanState(transaction, scanState);
     }
 }
