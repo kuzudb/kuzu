@@ -103,7 +103,7 @@ public:
         return handles.back().get();
     }
 
-    inline BMFileHandle* getBMFileHandle() const { return fileHandle.get(); }
+    inline BMFileHandle* getBMFileHandle() const { return fileHandle; }
 
 private:
     void readFromDisk(transaction::TransactionType trxType, common::page_idx_t pageIdx,
@@ -126,7 +126,7 @@ private:
     StringOverflowFileHeader header;
     common::page_idx_t numPagesOnDisk;
     DBFileID dbFileID;
-    std::unique_ptr<BMFileHandle> fileHandle;
+    BMFileHandle* fileHandle;
     BufferManager* bufferManager;
     WAL* wal;
     std::atomic<common::page_idx_t> pageCounter;

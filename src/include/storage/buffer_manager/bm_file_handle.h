@@ -146,14 +146,6 @@ public:
         NON_VERSIONED_FILE = 1 // The file does not have any versioned pages in wal file.
     };
 
-    BMFileHandle(const std::string& path, uint8_t flags, BufferManager* bm,
-        common::PageSizeClass pageSizeClass, FileVersionedType fileVersionedType,
-        common::VirtualFileSystem* vfs, main::ClientContext* context);
-    // File handles are registered with the buffer manager and must not be moved or copied
-    DELETE_COPY_AND_MOVE(BMFileHandle);
-
-    ~BMFileHandle() override;
-
     // This function assumes the page is already LOCKED.
     inline void setLockedPageDirty(common::page_idx_t pageIdx) {
         KU_ASSERT(pageIdx < numPages);
@@ -186,6 +178,11 @@ public:
     uint32_t getFileIndex() const { return fileIndex; }
 
 private:
+    BMFileHandle(const std::string& path, uint8_t flags, BufferManager* bm, uint32_t fileIndex,
+        common::PageSizeClass pageSizeClass, FileVersionedType fileVersionedType,
+        common::VirtualFileSystem* vfs, main::ClientContext* context);
+    // File handles are registered with the buffer manager and must not be moved or copied
+    DELETE_COPY_AND_MOVE(BMFileHandle);
     inline PageState* getPageState(common::page_idx_t pageIdx) {
         KU_ASSERT(pageIdx < numPages);
         return &pageStates[pageIdx];

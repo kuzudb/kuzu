@@ -77,7 +77,7 @@ private:
     // Tables need in memory checkpointing or rolling back.
     std::unordered_set<common::table_id_t> updatedTables;
     std::shared_ptr<common::BufferedFileWriter> bufferedWriter;
-    std::unique_ptr<BMFileHandle> shadowingFH;
+    BMFileHandle* shadowingFH;
     std::string directory;
     std::mutex mtx;
     BufferManager& bufferManager;

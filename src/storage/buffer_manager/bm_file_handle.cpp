@@ -17,18 +17,14 @@ WALPageIdxGroup::WALPageIdxGroup() {
 }
 
 BMFileHandle::BMFileHandle(const std::string& path, uint8_t flags, BufferManager* bm,
-    PageSizeClass pageSizeClass, FileVersionedType fileVersionedType,
+    uint32_t fileIndex, PageSizeClass pageSizeClass, FileVersionedType fileVersionedType,
     common::VirtualFileSystem* vfs, main::ClientContext* context)
     : FileHandle{path, flags, vfs, context}, fileVersionedType{fileVersionedType}, bm{bm},
       pageSizeClass{pageSizeClass}, pageStates{numPages, pageCapacity},
-      frameGroupIdxes{getNumPageGroups(), getNumPageGroups()}, fileIndex{bm->addFileHandle(*this)} {
+      frameGroupIdxes{getNumPageGroups(), getNumPageGroups()}, fileIndex{fileIndex} {
     for (auto i = 0u; i < frameGroupIdxes.size(); i++) {
         frameGroupIdxes[i] = bm->addNewFrameGroup(pageSizeClass);
     }
-}
-
-BMFileHandle::~BMFileHandle() {
-    bm->removeFilePagesFromFrames(*this);
 }
 
 page_idx_t BMFileHandle::addNewPageWithoutLock() {

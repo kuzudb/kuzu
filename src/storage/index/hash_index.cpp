@@ -105,10 +105,10 @@ private:
 };
 
 template<typename T>
-HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName,
-    const std::shared_ptr<BMFileHandle>& fileHandle, OverflowFileHandle* overflowFileHandle,
-    DiskArrayCollection& diskArrays, uint64_t indexPos, BufferManager& bufferManager, WAL* wal,
-    const HashIndexHeader& headerForReadTrx, HashIndexHeader& headerForWriteTrx)
+HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName, BMFileHandle* fileHandle,
+    OverflowFileHandle* overflowFileHandle, DiskArrayCollection& diskArrays, uint64_t indexPos,
+    BufferManager& bufferManager, WAL* wal, const HashIndexHeader& headerForReadTrx,
+    HashIndexHeader& headerForWriteTrx)
     : dbFileIDAndName{dbFileIDAndName}, bm{bufferManager}, wal{wal}, fileHandle(fileHandle),
       overflowFileHandle(overflowFileHandle),
       localStorage{std::make_unique<HashIndexLocalStorage<T>>(overflowFileHandle)},
