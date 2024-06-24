@@ -19,9 +19,9 @@ public:
         : attachFunction{std::move(attachFunction)} {}
     virtual bool canHandleDB(std::string /*dbType*/) const { return false; }
 
-    std::unique_ptr<main::AttachedDatabase> attach(std::string dbPath, std::string dbName,
+    std::unique_ptr<main::AttachedDatabase> attach(std::string dbName, std::string dbPath,
         main::ClientContext* clientContext, const binder::AttachOption& attachOption) const {
-        return attachFunction(dbPath, dbName, clientContext, attachOption);
+        return attachFunction(dbName, dbPath, clientContext, attachOption);
     }
 
     virtual ~StorageExtension() = default;
