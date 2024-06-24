@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <numeric>
 
+#include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
 #include "storage/compression/compression.h"
 
@@ -107,6 +108,47 @@ TEST(CompressionTests, IntegerPackingTest64) {
     std::vector<int64_t> src(128, 6);
     auto alg = IntegerBitpacking<int64_t>();
     test_compression(alg, src);
+}
+
+TEST(CompressionTests, IntegerPackingTest64SetValuesFromUncompressed) {
+    std::vector<int64_t> src(128, 51);
+    src[0] = 0;
+    src[100] = 1LL << 61;
+    auto alg = IntegerBitpacking<int64_t>();
+    std::vector<int64_t> dest(src.size());
+
+    const auto& [min, max] = std::minmax_element(src.begin(), src.end());
+    auto metadata =
+        CompressionMetadata(StorageValue(*min), StorageValue(*max), alg.getCompressionType());
+
+    {
+        alg.setValuesFromUncompressed((uint8_t*)src.data(), 0, (uint8_t*)dest.data(), 0, src.size(),
+            metadata, nullptr);
+
+        std::vector<int64_t> decompressed(src.size());
+        alg.decompressFromPage((uint8_t*)dest.data(), 0, (uint8_t*)decompressed.data(), 0,
+            decompressed.size(), metadata);
+
+        EXPECT_THAT(decompressed, ::testing::ContainerEq(src));
+    }
+
+    {
+        static constexpr offset_t startUpdateIdx = 30;
+        static constexpr offset_t endUpdateIdx = 70;
+        for (offset_t i = startUpdateIdx; i < endUpdateIdx; ++i) {
+            src[i] = src[i - 1] * 2 - 1;
+        }
+        const auto updatedSrc = std::span(src.begin(), src.begin() + endUpdateIdx);
+        alg.setValuesFromUncompressed((uint8_t*)updatedSrc.data(), startUpdateIdx,
+            (uint8_t*)dest.data(), startUpdateIdx, endUpdateIdx - startUpdateIdx, metadata,
+            nullptr);
+
+        std::vector<int64_t> decompressed(src.size());
+        alg.decompressFromPage((uint8_t*)dest.data(), 0, (uint8_t*)decompressed.data(), 0,
+            decompressed.size(), metadata);
+
+        EXPECT_THAT(decompressed, ::testing::ContainerEq(src));
+    }
 }
 
 TEST(CompressionTests, IntegerPackingTest128AllPositive) {

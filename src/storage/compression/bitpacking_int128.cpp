@@ -153,10 +153,9 @@ void Int128Packer::pack(const common::int128_t* __restrict in, uint32_t* __restr
             BitpackingUtils<common::int128_t>::packSingle(in[oindex],
                 reinterpret_cast<uint8_t*>(out), width, oindex);
         }
-        packLast(in,
-            out + (IntegerBitpacking<common::int128_t>::CHUNK_SIZE - 1) * width /
-                      (sizeof(uint32_t) * 8),
-            width);
+        const auto lastOutputFieldOffset =
+            (IntegerBitpacking<common::int128_t>::CHUNK_SIZE - 1) * width / (sizeof(uint32_t) * 8);
+        packLast(in, out + lastOutputFieldOffset, width);
     }
 }
 

@@ -340,6 +340,10 @@ protected:
 
     void copyValuesToTempChunkWithOffset(const U* srcBuffer, U* tmpBuffer, BitpackInfo<T> info,
         size_t numValuesToCopy) const;
+
+    void setPartialChunkInPlace(const uint8_t* srcBuffer, common::offset_t posInSrc,
+        uint8_t* dstBuffer, common::offset_t posInDst, common::offset_t numValues,
+        const BitpackInfo<T>& header) const;
 };
 
 class BooleanBitpacking : public CompressionAlg {
