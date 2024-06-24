@@ -62,27 +62,27 @@ jobs:
     needs: [build-java-mac, build-java-linux, build-java-windows]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: java-lib-osx-x86_64
           path: java-bins
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: java-lib-osx-arm64
           path: java-bins
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: java-lib-linux-aarch64
           path: java-bins
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: kuzu-linux-jar
           path: java-bins
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: java-lib-win-x86_64
           path: java-bins
@@ -133,27 +133,27 @@ jobs:
       - name: Create prebuilt folder
         run: mkdir -p tools/nodejs_api/prebuilt
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: mac-nodejs-module-arm64
           path: tools/nodejs_api/prebuilt
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: mac-nodejs-module-x86_64
           path: tools/nodejs_api/prebuilt
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: linux-nodejs-module-x86_64
           path: tools/nodejs_api/prebuilt
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: linux-nodejs-module-aarch64
           path: tools/nodejs_api/prebuilt
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: windows-nodejs-module
           path: tools/nodejs_api/prebuilt
@@ -245,32 +245,32 @@ jobs:
       ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: macos-wheels-arm64
           path: dist
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: macos-wheels-x86_64
           path: dist
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: linux-wheels-x86_64
           path: dist
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: linux-wheels-aarch64
           path: dist
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: windows-wheels
           path: dist
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: python-sdist
           path: dist

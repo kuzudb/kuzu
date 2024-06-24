@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download Python package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: kuzu-python-package
 
@@ -140,31 +140,31 @@ jobs:
         run: rm -rf kuzudb.github.io/api-docs
 
       - name: Download Python docs
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: kuzu-python-docs
           path: kuzudb.github.io/api-docs/python
       
       - name: Download Node.js docs
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: kuzu-nodejs-docs
           path: kuzudb.github.io/api-docs/nodejs
         
       - name: Download Java docs
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: kuzu-java-docs
           path: kuzudb.github.io/api-docs/java
 
       - name: Download C++ docs
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: kuzu-cpp-docs
           path: kuzudb.github.io/api-docs/cpp
         
       - name: Download C docs
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: kuzu-c-docs
           path: kuzudb.github.io/api-docs/c
