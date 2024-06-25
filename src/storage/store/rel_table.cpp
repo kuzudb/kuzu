@@ -229,8 +229,8 @@ NodeGroup* RelTable::getOrCreateNodeGroup(node_group_idx_t nodeGroupIdx,
 
 void RelTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
     auto& localRelTable = localTable->cast<LocalRelTable>();
-    const auto startRelOffset = fwdRelTableData->getNumRows(transaction);
-    KU_ASSERT(startRelOffset == bwdRelTableData->getNumRows(transaction));
+    const auto startRelOffset = fwdRelTableData->getNumRows();
+    KU_ASSERT(startRelOffset == bwdRelTableData->getNumRows());
     const auto dataChunkState = std::make_shared<DataChunkState>();
     std::vector<column_id_t> columnIDsToScan;
     for (auto i = 0u; i < localRelTable.getNumColumns(); i++) {

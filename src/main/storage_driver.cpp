@@ -54,8 +54,7 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
 uint64_t StorageDriver::getNumNodes(const std::string& nodeName) {
     clientContext->query("BEGIN TRANSACTION READ ONLY;");
     auto nodeTableID = database->catalog->getTableID(clientContext->getTx(), nodeName);
-    auto numRows =
-        database->storageManager->getTable(nodeTableID)->getNumRows(clientContext->getTx());
+    auto numRows = database->storageManager->getTable(nodeTableID)->getNumRows();
     clientContext->query("COMMIT");
     return numRows;
 }
@@ -63,8 +62,7 @@ uint64_t StorageDriver::getNumNodes(const std::string& nodeName) {
 uint64_t StorageDriver::getNumRels(const std::string& relName) {
     clientContext->query("BEGIN TRANSACTION READ ONLY;");
     auto relTableID = database->catalog->getTableID(clientContext->getTx(), relName);
-    auto numRows =
-        database->storageManager->getTable(relTableID)->getNumRows(clientContext->getTx());
+    auto numRows = database->storageManager->getTable(relTableID)->getNumRows();
     clientContext->query("COMMIT");
     return numRows;
 }

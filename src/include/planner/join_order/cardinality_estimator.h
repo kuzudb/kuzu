@@ -2,10 +2,16 @@
 
 #include "binder/query/query_graph.h"
 #include "planner/operator/logical_plan.h"
-#include "storage/stats/nodes_store_statistics.h"
-#include "storage/stats/rels_store_statistics.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+} // namespace main
+
+namespace transaction {
+class Transaction;
+} // namespace transaction
+
 namespace planner {
 
 class CardinalityEstimator {
@@ -17,7 +23,7 @@ public:
     // TODO(Xiyang): revisit this init at some point. Maybe we should init while enumerating.
     void initNodeIDDom(const binder::QueryGraph& queryGraph, transaction::Transaction* transaction);
     void addNodeIDDom(const binder::Expression& nodeID,
-        const std::vector<common::table_id_t>& tableIDs, transaction::Transaction* transaction);
+        const std::vector<common::table_id_t>& tableIDs);
 
     uint64_t estimateScanNode(LogicalOperator* op);
     uint64_t estimateHashJoin(const binder::expression_vector& joinKeys,
@@ -29,7 +35,7 @@ public:
     uint64_t estimateFilter(const LogicalPlan& childPlan, const binder::Expression& predicate);
 
     double getExtensionRate(const binder::RelExpression& rel,
-        const binder::NodeExpression& boundNode, transaction::Transaction* transaction);
+        const binder::NodeExpression& boundNode);
 
 private:
     uint64_t atLeastOne(uint64_t x) { return x == 0 ? 1 : x; }
@@ -38,11 +44,9 @@ private:
         KU_ASSERT(nodeIDName2dom.contains(nodeIDName));
         return nodeIDName2dom.at(nodeIDName);
     }
-    uint64_t getNumNodes(const std::vector<common::table_id_t>& tableIDs,
-        transaction::Transaction* transaction);
+    uint64_t getNumNodes(const std::vector<common::table_id_t>& tableIDs);
 
-    uint64_t getNumRels(const std::vector<common::table_id_t>& tableIDs,
-        transaction::Transaction* transaction);
+    uint64_t getNumRels(const std::vector<common::table_id_t>& tableIDs);
 
 private:
     main::ClientContext* context;

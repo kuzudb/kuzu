@@ -142,22 +142,15 @@ public:
     NodeGroup* getOrCreateNodeGroup(common::node_group_idx_t nodeGroupIdx,
         common::RelDataDirection direction) const;
 
-    bool isNewNodeGroup(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::RelDataDirection direction) const {
-        return direction == common::RelDataDirection::FWD ?
-                   fwdRelTableData->isNewNodeGroup(transaction, nodeGroupIdx) :
-                   bwdRelTableData->isNewNodeGroup(transaction, nodeGroupIdx);
-    }
-
     void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void prepareRollback(LocalTable* localTable) override;
     void checkpoint(common::Serializer& ser) override;
 
     uint64_t getEstimatedMemoryUsage() const override { return 0; }
 
-    common::row_idx_t getNumRows(transaction::Transaction* transaction) override {
-        const auto numRows = fwdRelTableData->getNumRows(transaction);
-        KU_ASSERT(numRows == bwdRelTableData->getNumRows(transaction));
+    common::row_idx_t getNumRows() override {
+        const auto numRows = fwdRelTableData->getNumRows();
+        KU_ASSERT(numRows == bwdRelTableData->getNumRows());
         return numRows;
     }
 

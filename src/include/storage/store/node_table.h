@@ -2,7 +2,6 @@
 
 #include "common/types/types.h"
 #include "storage/index/hash_index.h"
-#include "storage/stats/nodes_store_statistics.h"
 #include "storage/store/node_group_collection.h"
 #include "storage/store/table.h"
 
@@ -93,10 +92,7 @@ public:
         const catalog::NodeTableCatalogEntry* nodeTableEntry, bool readOnly,
         common::VirtualFileSystem* vfs, main::ClientContext* context);
 
-    common::row_idx_t getNumRows(transaction::Transaction* transaction) override {
-        // TODO(Guodong): FIX-ME. Implement this.
-        return nodeGroups->getNumRows();
-    }
+    common::row_idx_t getNumRows() override { return nodeGroups->getNumRows(); }
 
     void initializeScanState(transaction::Transaction* transaction,
         TableScanState& scanState) override;

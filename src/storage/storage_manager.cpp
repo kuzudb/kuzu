@@ -1,11 +1,11 @@
 #include "storage/storage_manager.h"
 
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/file_system/virtual_file_system.h"
 #include "main/client_context.h"
 #include "main/database.h"
-#include "storage/stats/nodes_store_statistics.h"
 #include "storage/store/node_table.h"
 #include "storage/wal_replayer.h"
 

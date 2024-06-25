@@ -4,7 +4,6 @@
 #include "common/enums/rel_direction.h"
 #include "common/exception/message.h"
 #include "storage/local_storage/local_rel_table.h"
-#include "storage/stats/rels_store_statistics.h"
 #include "storage/store/rel_table.h"
 
 using namespace kuzu::catalog;
@@ -100,13 +99,13 @@ void RelTableData::initPropertyColumns(const TableCatalogEntry* tableEntry) {
             dataFH, bufferManager, wal, enableCompression);
     }
     // Set common tableID for nbrIDColumn and relIDColumn.
-    auto nbrTableID = tableEntry->constCast<RelTableCatalogEntry>().getNbrTableID(direction);
+    const auto nbrTableID = tableEntry->constCast<RelTableCatalogEntry>().getNbrTableID(direction);
     columns[NBR_ID_COLUMN_ID]->cast<InternalIDColumn>().setCommonTableID(nbrTableID);
     columns[REL_ID_COLUMN_ID]->cast<InternalIDColumn>().setCommonTableID(tableID);
 }
 
 bool RelTableData::update(Transaction* transaction, ValueVector& boundNodeIDVector,
-    ValueVector& relIDVector, column_id_t columnID, ValueVector& dataVector) const {
+    const ValueVector& relIDVector, column_id_t columnID, const ValueVector& dataVector) const {
     KU_ASSERT(boundNodeIDVector.state->getSelVector().getSelSize() == 1);
     KU_ASSERT(relIDVector.state->getSelVector().getSelSize() == 1);
     const auto boundNodePos = boundNodeIDVector.state->getSelVector()[0];
@@ -126,7 +125,7 @@ bool RelTableData::update(Transaction* transaction, ValueVector& boundNodeIDVect
 }
 
 bool RelTableData::delete_(Transaction* transaction, ValueVector& boundNodeIDVector,
-    ValueVector& relIDVector) const {
+    const ValueVector& relIDVector) const {
     const auto boundNodePos = boundNodeIDVector.state->getSelVector()[0];
     const auto relIDPos = relIDVector.state->getSelVector()[0];
     if (boundNodeIDVector.isNull(boundNodePos) || relIDVector.isNull(relIDPos)) {
@@ -268,14 +267,6 @@ offset_t RelTableData::findCSROffsetInRegion(const PersistentState& persistentSt
         findPosOfRelIDFromArray(persistentState.relIDChunk.get(), startPos, endPos, relOffset);
     KU_ASSERT(posInCSRList != UINT64_MAX);
     return posInCSRList + persistentState.leftCSROffset;
-}
-
-bool RelTableData::isNewNodeGroup(Transaction* transaction, node_group_idx_t nodeGroupIdx) const {
-    // if (nodeGroupIdx >= csrHeaderColumns.offset->getNumNodeGroups(transaction) ||
-    // getNbrIDColumn()->getMetadata(nodeGroupIdx, transaction->getType()).numValues == 0) {
-    // return true;
-    // }
-    return false;
 }
 
 // void RelTableData::prepareLocalTableToCommit(Transaction* transaction, LocalTableData*

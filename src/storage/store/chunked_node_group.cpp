@@ -102,7 +102,7 @@ offset_t ChunkedNodeGroup::append(const Transaction* transaction, const ChunkedN
     offset_t offsetInOtherNodeGroup, offset_t numRowsToAppend) {
     KU_ASSERT(residencyState == ResidencyState::IN_MEMORY);
     KU_ASSERT(other.chunks.size() == chunks.size());
-    std::vector<ColumnChunk*> chunksToAppend(other.chunks.size());
+    const std::vector<ColumnChunk*> chunksToAppend(other.chunks.size());
     return append(transaction, chunksToAppend, offsetInOtherNodeGroup, numRowsToAppend);
 }
 

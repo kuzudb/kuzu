@@ -2,8 +2,6 @@
 
 #include "catalog/catalog.h"
 #include "storage/index/hash_index.h"
-#include "storage/stats/nodes_store_statistics.h"
-#include "storage/stats/rels_store_statistics.h"
 #include "storage/store/rel_table.h"
 #include "storage/wal/wal.h"
 

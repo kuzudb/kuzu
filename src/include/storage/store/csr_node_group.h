@@ -106,14 +106,6 @@ public:
     void initializeScanState(transaction::Transaction* transaction, TableScanState& state) override;
     NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state) override;
 
-    // bool update(transaction::Transaction* transaction, common::row_idx_t rowIdx,
-    // common::column_id_t columnID, const common::ValueVector& propertyVector);
-    // bool delete_(transaction::Transaction* transaction, common::offset_t boundNodeOffsetInGroup,
-    // common::offset_t relOffset);
-
-    // template<ResidencyState SCAN_RESIDENCY_STATE>
-    // std::unique_ptr<CSRNodeGroup> scanCommitted(const std::vector<common::column_id_t>&
-    // columnIDs, const std::vector<Column*>& columns);
     bool isEmpty() const override { return !persistentChunkGroup && NodeGroup::isEmpty(); }
 
     void setPersistentChunkedGroup(std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup) {
@@ -122,12 +114,6 @@ public:
     }
 
 private:
-    common::row_idx_t lookupRelOffset(transaction::Transaction* transaction,
-        common::offset_t boundNodeOffsetInGroup, common::offset_t relOffset);
-
-    common::row_idx_t lookupInMem(transaction::Transaction* transaction,
-        common::offset_t boundNodeOffsetInGroup, common::offset_t relOffset);
-
     void updateCSRIndex(common::offset_t boundNodeOffsetInGroup, common::row_idx_t startRow,
         common::length_t length) const;
 

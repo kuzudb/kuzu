@@ -5,8 +5,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "common/assert.h"
 #include "common/serializer/reader.h"
-#include <common/assert.h>
 
 namespace kuzu {
 namespace common {

@@ -73,37 +73,6 @@ row_idx_t ChunkedNodeGroupCollection::append(Transaction* transaction,
     return numRowsBeforeAppend;
 }
 
-// row_idx_t ChunkedNodeGroupCollection::append(const ChunkedNodeGroupCollection& other,
-//     offset_t offsetInOtherCollection, const offset_t numRowsToAppend) {
-//     const auto numRowsBeforeAppend = getNumRows();
-//     const auto lock = chunkedGroups.lock();
-//     if (chunkedGroups.isEmpty(lock)) {
-//         chunkedGroups.appendGroup(lock,
-//             std::make_unique<ChunkedNodeGroup>(types, false /*enableCompression*/,
-//                 ChunkedNodeGroup::CHUNK_CAPACITY, 0 /*startOffset*/, residencyState));
-//     }
-//     row_idx_t numRowsAppended = 0u;
-//     while (numRowsAppended < numRowsToAppend) {
-//         const auto chunkIdx = offsetInOtherCollection / ChunkedNodeGroup::CHUNK_CAPACITY;
-//         const auto offsetInChunk = offsetInOtherCollection % ChunkedNodeGroup::CHUNK_CAPACITY;
-//         auto& chunkedGroupToCopyFrom = other.getChunkedGroup(chunkIdx);
-//         auto numToCopyFromChunk = chunkedGroupToCopyFrom.getNumRows() - offsetInChunk;
-//         if (chunkedGroups.getLastGroup(lock)->isFullOrOnDisk()) {
-//             chunkedGroups.appendGroup(lock,
-//                 std::make_unique<ChunkedNodeGroup>(types, false /*enableCompression*/,
-//                     ChunkedNodeGroup::CHUNK_CAPACITY, getNumRows(), residencyState));
-//         }
-//         const auto& chunkedGroupToCopyInto = chunkedGroups.getLastGroup(lock);
-//         auto numToCopyIntoChunk =
-//             ChunkedNodeGroup::CHUNK_CAPACITY - chunkedGroupToCopyInto->getNumRows();
-//         const auto numToAppendInChunk = std::min(numToCopyFromChunk, numToCopyIntoChunk);
-//         chunkedGroupToCopyInto->append(chunkedGroupToCopyFrom, offsetInChunk,
-//         numToAppendInChunk); numRowsAppended += numToAppendInChunk; offsetInOtherCollection +=
-//         numToAppendInChunk;
-//     }
-//     return numRowsBeforeAppend;
-// }
-
 void ChunkedNodeGroupCollection::merge(std::unique_ptr<ChunkedNodeGroup> chunkedGroup) {
     KU_ASSERT(chunkedGroup->getNumColumns() == types.size());
     for (auto i = 0u; i < chunkedGroup->getNumColumns(); i++) {

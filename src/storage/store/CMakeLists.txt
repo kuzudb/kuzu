@@ -22,7 +22,6 @@ add_library(kuzu_storage_store
         struct_chunk_data.cpp
         struct_column.cpp
         table.cpp
-        table_data.cpp
         update_info.cpp
         version_info.cpp)
 

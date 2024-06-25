@@ -22,8 +22,6 @@ class IndexBuilderGlobalQueues {
 public:
     explicit IndexBuilderGlobalQueues(storage::PrimaryKeyIndex* pkIndex);
 
-    void flushToDisk() const;
-
     template<typename T>
     void insert(size_t index, storage::IndexBuffer<T> elem) {
         auto& typedQueues = std::get<Queue<T>>(queues).array;
@@ -105,7 +103,6 @@ class IndexBuilderSharedState {
 public:
     explicit IndexBuilderSharedState(storage::PrimaryKeyIndex* pkIndex) : globalQueues{pkIndex} {}
     inline void consume() { globalQueues.consume(); }
-    inline void flush() { globalQueues.flushToDisk(); }
 
     inline void addProducer() { producers.fetch_add(1, std::memory_order_relaxed); }
     void quitProducer();

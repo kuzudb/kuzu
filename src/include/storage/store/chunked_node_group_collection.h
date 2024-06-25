@@ -53,8 +53,6 @@ public:
         common::row_idx_t numRowsToAppend);
     common::row_idx_t append(transaction::Transaction* transaction,
         const ChunkedNodeGroup& chunkedGroup, common::row_idx_t numRowsToAppend);
-    // common::row_idx_t append(ChunkedNodeGroupCollection& other,
-    // common::offset_t offsetInOtherCollection, common::offset_t numRowsToAppend);
 
     // `merge` are directly moving the chunkedGroup to the collection.
     void merge(std::unique_ptr<ChunkedNodeGroup> chunkedGroup);

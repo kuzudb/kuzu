@@ -1,8 +1,9 @@
 #pragma once
 
 #include "common/enums/rel_direction.h"
-#include "storage/store/chunked_node_group.h"
-#include "storage/store/table_data.h"
+#include "storage/store/column.h"
+#include "storage/store/csr_chunked_node_group.h"
+#include "storage/store/node_group_collection.h"
 
 namespace kuzu {
 namespace storage {
@@ -85,11 +86,11 @@ public:
         const catalog::TableCatalogEntry* tableEntry, common::RelDataDirection direction,
         bool enableCompression, common::Deserializer* deSer);
 
-    bool update(transaction::Transaction* transaction, common::ValueVector& srcNodeIDVector,
-        common::ValueVector& relIDVector, common::column_id_t columnID,
-        common::ValueVector& dataVector) const;
-    bool delete_(transaction::Transaction* transaction, common::ValueVector& srcNodeIDVector,
-        common::ValueVector& relIDVector) const;
+    bool update(transaction::Transaction* transaction, common::ValueVector& boundNodeIDVector,
+        const common::ValueVector& relIDVector, common::column_id_t columnID,
+        const common::ValueVector& dataVector) const;
+    bool delete_(transaction::Transaction* transaction, common::ValueVector& boundNodeIDVector,
+        const common::ValueVector& relIDVector) const;
 
     void checkRelMultiplicityConstraint(transaction::Transaction* transaction,
         common::ValueVector* srcNodeIDVector) const;
@@ -116,12 +117,7 @@ public:
         return nodeGroups->getOrCreateNodeGroup(nodeGroupIdx, NodeGroupDataFormat::CSR);
     }
 
-    common::row_idx_t getNumRows(transaction::Transaction*) const {
-        return nodeGroups->getNumRows();
-    }
-
-    bool isNewNodeGroup(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx) const;
+    common::row_idx_t getNumRows() const { return nodeGroups->getNumRows(); }
 
     // void prepareLocalTableToCommit(transaction::Transaction* transaction,
     // LocalTableData* localTable);
@@ -136,7 +132,7 @@ private:
     void initPropertyColumns(const catalog::TableCatalogEntry* tableEntry);
 
     common::row_idx_t findMatchingRow(transaction::Transaction* transaction,
-        common::ValueVector& srcNodeIDVector, const common::ValueVector& relIDVector) const;
+        common::ValueVector& boundNodeIDVector, const common::ValueVector& relIDVector) const;
 
     static common::offset_t getMaxNumNodesInRegion(const ChunkedCSRHeader& header,
         const PackedCSRRegion& region, const ChunkedNodeGroup* localNG);

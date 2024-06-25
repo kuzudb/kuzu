@@ -2,7 +2,6 @@
 
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/store/column.h"
-#include "storage/store/table_data.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

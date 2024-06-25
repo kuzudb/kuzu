@@ -1,4 +1,4 @@
-#include "catalog/catalog_entry/table_catalog_entry.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "processor/operator/aggregate/hash_aggregate_scan.h"

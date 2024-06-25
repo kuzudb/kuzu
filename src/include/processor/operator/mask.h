@@ -1,7 +1,5 @@
 #pragma once
 
-#include <mutex>
-
 #include "storage/store/node_table.h"
 
 namespace kuzu {
@@ -9,7 +7,7 @@ namespace processor {
 
 // Note: Classes in this file are NOT thread-safe.
 struct MaskUtil {
-    static inline common::offset_t getMorselIdx(common::offset_t offset) {
+    static common::offset_t getMorselIdx(common::offset_t offset) {
         return offset >> common::DEFAULT_VECTOR_CAPACITY_LOG_2;
     }
 };
@@ -23,10 +21,8 @@ struct MaskData {
         std::fill(data, data + size, 0);
     }
 
-    inline void setMask(uint64_t pos, uint8_t maskValue) const { data[pos] = maskValue; }
-    inline bool isMasked(uint64_t pos, uint8_t trueMaskVal) const {
-        return data[pos] == trueMaskVal;
-    }
+    void setMask(uint64_t pos, uint8_t maskValue) const { data[pos] = maskValue; }
+    bool isMasked(uint64_t pos, uint8_t trueMaskVal) const { return data[pos] == trueMaskVal; }
 
 private:
     std::unique_ptr<uint8_t[]> dataBuffer;
@@ -37,7 +33,7 @@ class MaskCollection {
 public:
     MaskCollection() : numMasks{0} {}
 
-    inline void init(common::offset_t maxOffset) {
+    void init(common::offset_t maxOffset) {
         std::unique_lock lck{mtx};
         if (maskData != nullptr) { // MaskCollection might be initialized repeatedly.
             return;
@@ -45,17 +41,17 @@ public:
         maskData = std::make_unique<MaskData>(maxOffset + 1);
     }
 
-    inline bool isMasked(common::offset_t offset) { return maskData->isMasked(offset, numMasks); }
+    bool isMasked(common::offset_t offset) { return maskData->isMasked(offset, numMasks); }
     // Increment mask value for the given nodeOffset if its current mask value is equal to
     // the specified `currentMaskValue`.
-    inline void incrementMaskValue(common::offset_t offset, uint8_t currentMaskValue) {
+    void incrementMaskValue(common::offset_t offset, uint8_t currentMaskValue) {
         if (maskData->isMasked(offset, currentMaskValue)) {
             maskData->setMask(offset, currentMaskValue + 1);
         }
     }
 
-    inline uint8_t getNumMasks() const { return numMasks; }
-    inline void incrementNumMasks() { numMasks++; }
+    uint8_t getNumMasks() const { return numMasks; }
+    void incrementNumMasks() { numMasks++; }
 
 private:
     std::mutex mtx;
@@ -75,8 +71,8 @@ public:
     virtual uint8_t getNumMasks() const = 0;
     virtual void incrementNumMasks() = 0;
 
-    inline bool isEnabled() const { return getNumMasks() > 0; }
-    inline storage::NodeTable* getNodeTable() const { return nodeTable; }
+    bool isEnabled() const { return getNumMasks() > 0; }
+    storage::NodeTable* getNodeTable() const { return nodeTable; }
 
 protected:
     storage::NodeTable* nodeTable;
@@ -88,24 +84,22 @@ public:
         offsetMask = std::make_unique<MaskCollection>();
     }
 
-    inline void init(transaction::Transaction* trx) override {
-        auto maxNodeOffset = nodeTable->getNumRows(trx);
+    void init(transaction::Transaction* trx) override {
+        const auto maxNodeOffset = nodeTable->getNumRows();
         if (maxNodeOffset == common::INVALID_OFFSET) {
             return;
         }
-        offsetMask->init(nodeTable->getNumRows(trx) + 1);
+        offsetMask->init(nodeTable->getNumRows() + 1);
     }
 
-    inline void incrementMaskValue(common::offset_t nodeOffset, uint8_t currentMaskValue) override {
+    void incrementMaskValue(common::offset_t nodeOffset, uint8_t currentMaskValue) override {
         offsetMask->incrementMaskValue(nodeOffset, currentMaskValue);
     }
 
-    inline uint8_t getNumMasks() const override { return offsetMask->getNumMasks(); }
-    inline void incrementNumMasks() override { offsetMask->incrementNumMasks(); }
+    uint8_t getNumMasks() const override { return offsetMask->getNumMasks(); }
+    void incrementNumMasks() override { offsetMask->incrementNumMasks(); }
 
-    inline bool isNodeMasked(common::offset_t nodeOffset) {
-        return offsetMask->isMasked(nodeOffset);
-    }
+    bool isNodeMasked(common::offset_t nodeOffset) { return offsetMask->isMasked(nodeOffset); }
 
 private:
     std::unique_ptr<MaskCollection> offsetMask;
@@ -118,8 +112,8 @@ public:
         morselMask = std::make_unique<MaskCollection>();
     }
 
-    inline void init(transaction::Transaction* trx) override {
-        auto maxNodeOffset = nodeTable->getNumRows(trx);
+    void init(transaction::Transaction* trx) override {
+        const auto maxNodeOffset = nodeTable->getNumRows();
         if (maxNodeOffset == common::INVALID_OFFSET) {
             return;
         }
@@ -129,23 +123,19 @@ public:
 
     // Note: blindly update mask does not parallelize well, so we minimize write by first checking
     // if the mask is set to true (mask value is equal to the expected currentMaskValue) or not.
-    inline void incrementMaskValue(uint64_t nodeOffset, uint8_t currentMaskValue) override {
+    void incrementMaskValue(uint64_t nodeOffset, uint8_t currentMaskValue) override {
         offsetMask->incrementMaskValue(nodeOffset, currentMaskValue);
         morselMask->incrementMaskValue(MaskUtil::getMorselIdx(nodeOffset), currentMaskValue);
     }
 
-    inline uint8_t getNumMasks() const override { return offsetMask->getNumMasks(); }
-    inline void incrementNumMasks() override {
+    uint8_t getNumMasks() const override { return offsetMask->getNumMasks(); }
+    void incrementNumMasks() override {
         offsetMask->incrementNumMasks();
         morselMask->incrementNumMasks();
     }
 
-    inline bool isMorselMasked(common::offset_t morselIdx) {
-        return morselMask->isMasked(morselIdx);
-    }
-    inline bool isNodeMasked(common::offset_t nodeOffset) {
-        return offsetMask->isMasked(nodeOffset);
-    }
+    bool isMorselMasked(common::offset_t morselIdx) { return morselMask->isMasked(morselIdx); }
+    bool isNodeMasked(common::offset_t nodeOffset) { return offsetMask->isMasked(nodeOffset); }
 
 private:
     std::unique_ptr<MaskCollection> offsetMask;

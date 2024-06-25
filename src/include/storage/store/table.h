@@ -3,7 +3,7 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/enums/zone_map_check_result.h"
 #include "storage/predicate/column_predicate.h"
-#include "storage/store/table_data.h"
+#include "storage/store/column.h"
 
 namespace kuzu {
 namespace storage {
@@ -151,7 +151,7 @@ public:
 
     virtual uint64_t getEstimatedMemoryUsage() const = 0;
 
-    virtual common::row_idx_t getNumRows(transaction::Transaction* transaction) = 0;
+    virtual common::row_idx_t getNumRows() = 0;
 
     template<class TARGET>
     TARGET& cast() {

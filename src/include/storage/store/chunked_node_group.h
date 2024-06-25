@@ -69,10 +69,10 @@ public:
     // number of values appended.
     common::offset_t append(const transaction::Transaction* transaction,
         const ChunkedNodeGroup& other, common::offset_t offsetInOtherNodeGroup,
-        common::offset_t numValues = common::StorageConstants::NODE_GROUP_SIZE);
+        common::offset_t numRowsToAppend = common::StorageConstants::NODE_GROUP_SIZE);
     common::offset_t append(const transaction::Transaction* transaction,
         const std::vector<ColumnChunk*>& other, common::offset_t offsetInOtherNodeGroup,
-        common::offset_t numValues = common::StorageConstants::NODE_GROUP_SIZE);
+        common::offset_t numRowsToAppend = common::StorageConstants::NODE_GROUP_SIZE);
     void write(const std::vector<std::unique_ptr<ColumnChunk>>& data,
         common::column_id_t offsetColumnID);
     void write(const ChunkedNodeGroup& data, common::column_id_t offsetColumnID);

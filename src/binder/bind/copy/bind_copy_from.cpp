@@ -7,7 +7,6 @@
 #include "common/enums/table_type.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
-#include "function/table/bind_input.h"
 #include "main/client_context.h"
 #include "parser/copy.h"
 
