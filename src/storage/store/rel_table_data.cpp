@@ -16,9 +16,9 @@ namespace storage {
 
 RelDataReadState::RelDataReadState(const std::vector<column_id_t>& columnIDs)
     : TableDataScanState{columnIDs}, nodeGroupIdx{INVALID_NODE_GROUP_IDX}, numNodes{0},
-      currentNodeOffset{0}, currentCSROffset{0}, posInLastCSR{0}, batchSize{0}, 
-      currNodeIdx{0}, endNodeIdx{0}, totalNodeIdxs{0}, batchEndNodeIdx{0},
-      readFromPersistentStorage{false}, readFromLocalStorage{false}, localNodeGroup{nullptr} {}
+      currentNodeOffset{0}, currentCSROffset{0}, posInLastCSR{0}, batchSize{0}, currNodeIdx{0},
+      endNodeIdx{0}, totalNodeIdxs{0}, batchEndNodeIdx{0}, readFromPersistentStorage{false},
+      readFromLocalStorage{false}, localNodeGroup{nullptr} {}
 
 bool RelDataReadState::hasMoreToReadFromLocalStorage() const {
     KU_ASSERT(localNodeGroup);
@@ -60,8 +60,8 @@ bool RelDataReadState::hasMoreToReadInPersistentStorage() const {
     return !(currNodeIdx == totalNodeIdxs);
 }
 
-std::vector<std::pair<offset_t, offset_t>>
-RelDataReadState::getStartAndEndOffset(ValueVector& inNodeIDVector) {
+std::vector<std::pair<offset_t, offset_t>> RelDataReadState::getStartAndEndOffset(
+    ValueVector& inNodeIDVector) {
     std::vector<std::pair<offset_t, offset_t>> result;
     auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     auto& selVector = inNodeIDVector.state->getSelVector();
@@ -69,7 +69,8 @@ RelDataReadState::getStartAndEndOffset(ValueVector& inNodeIDVector) {
     batchSize = 0;
     while (batchSize < DEFAULT_VECTOR_CAPACITY && batchEndNodeIdx < endNodeIdx) {
         auto nodeOffset = inNodeIDVector.readNodeOffset(selVector[batchEndNodeIdx]);
-        auto startOffset = csrHeaderChunks.getStartCSROffset(nodeOffset - startNodeOffset) + posInLastCSR;
+        auto startOffset =
+            csrHeaderChunks.getStartCSROffset(nodeOffset - startNodeOffset) + posInLastCSR;
         auto numToRead = csrHeaderChunks.getCSRLength(nodeOffset - startNodeOffset) - posInLastCSR;
         auto spaceToRead = DEFAULT_VECTOR_CAPACITY - batchSize;
         if (numToRead <= spaceToRead) {
@@ -291,7 +292,7 @@ void RelTableData::scan(Transaction* transaction, TableDataScanState& readState,
         }
         auto currColumn = getColumn(columnID);
         auto offsetInVector = 0ul;
-        for (auto& [startOffset, endOffset]: offsetPairs) {
+        for (auto& [startOffset, endOffset] : offsetPairs) {
             currColumn->scan(transaction, relReadState.chunkStates[i], startOffset, endOffset,
                 outputVectors[outputVectorId], offsetInVector);
             offsetInVector += endOffset - startOffset;
