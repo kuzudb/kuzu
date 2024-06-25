@@ -31,7 +31,7 @@ struct Option {
     virtual ~Option() = default;
 };
 
-struct ConfigurationOption : public Option {
+struct ConfigurationOption final : Option {
     set_context setContext;
     get_setting getSetting;
 
@@ -41,7 +41,7 @@ struct ConfigurationOption : public Option {
           getSetting{getSetting} {}
 };
 
-struct ExtensionOption : public Option {
+struct ExtensionOption final : Option {
     common::Value defaultValue;
 
     ExtensionOption(std::string name, common::LogicalTypeID parameterType,
@@ -54,7 +54,7 @@ class DBConfig {
 public:
     static ConfigurationOption* getOptionByName(const std::string& optionName);
 
-    explicit DBConfig(SystemConfig& systemConfig);
+    explicit DBConfig(const SystemConfig& systemConfig);
 
     uint64_t bufferPoolSize;
     uint64_t maxNumThreads;
@@ -62,6 +62,8 @@ public:
     bool readOnly;
     uint64_t maxDBSize;
     bool enableMultiWrites = false;
+    bool autoCheckpoint;
+    uint64_t checkpointThreshold;
 };
 
 } // namespace main

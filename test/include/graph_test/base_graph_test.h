@@ -28,6 +28,7 @@ public:
         systemConfig = std::make_unique<main::SystemConfig>(
             common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING,
             2 /*numThreadsForExec*/);
+        systemConfig->autoCheckpoint = false;
         setDatabasePath();
         removeDir(databasePath);
 

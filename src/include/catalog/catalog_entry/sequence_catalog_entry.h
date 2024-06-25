@@ -29,6 +29,7 @@ struct SequenceData {
     bool cycle;
 };
 
+class CatalogSet;
 class KUZU_API SequenceCatalogEntry : public CatalogEntry {
 public:
     //===--------------------------------------------------------------------===//

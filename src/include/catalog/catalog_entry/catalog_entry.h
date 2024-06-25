@@ -3,11 +3,16 @@
 #include <string>
 
 #include "catalog_entry_type.h"
-#include "common/serializer/deserializer.h"
+#include "common/assert.h"
+#include "common/copy_constructors.h"
 #include "common/serializer/serializer.h"
-#include "main/client_context.h"
+#include "common/types/types.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+} // namespace main
+
 namespace catalog {
 
 class KUZU_API CatalogEntry {

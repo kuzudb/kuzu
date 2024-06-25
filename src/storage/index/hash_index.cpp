@@ -17,6 +17,7 @@
 #include "storage/index/hash_index_slot.h"
 #include "storage/index/hash_index_utils.h"
 #include "storage/index/in_mem_hash_index.h"
+#include "storage/local_storage/hash_index_local_storage.h"
 #include "storage/storage_structure/disk_array.h"
 #include "storage/storage_structure/disk_array_collection.h"
 #include "storage/storage_structure/overflow_file.h"
@@ -28,81 +29,6 @@ using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
-
-enum class HashIndexLocalLookupState : uint8_t { KEY_FOUND, KEY_DELETED, KEY_NOT_EXIST };
-
-// Local storage consists of two in memory indexes. One (localInsertionIndex) is to keep track of
-// all newly inserted entries, and the other (localDeletionIndex) is to keep track of newly deleted
-// entries (not available in localInsertionIndex). We assume that in a transaction, the insertions
-// and deletions are very small, thus they can be kept in memory.
-template<typename T>
-class HashIndexLocalStorage {
-public:
-    explicit HashIndexLocalStorage(OverflowFileHandle* handle)
-        : localDeletions{}, localInsertions{handle} {}
-    using OwnedKeyType =
-        typename std::conditional<std::same_as<T, common::ku_string_t>, std::string, T>::type;
-    using Key = typename std::conditional<std::same_as<T, ku_string_t>, std::string_view, T>::type;
-    HashIndexLocalLookupState lookup(Key key, common::offset_t& result) {
-        if (localDeletions.contains(key)) {
-            return HashIndexLocalLookupState::KEY_DELETED;
-        }
-        if (localInsertions.lookup(key, result)) {
-            return HashIndexLocalLookupState::KEY_FOUND;
-        } else {
-            return HashIndexLocalLookupState::KEY_NOT_EXIST;
-        }
-    }
-
-    void deleteKey(Key key) {
-        if (!localInsertions.deleteKey(key)) {
-            localDeletions.insert(static_cast<OwnedKeyType>(key));
-        }
-    }
-
-    bool insert(Key key, common::offset_t value) {
-        auto iter = localDeletions.find(key);
-        if (iter != localDeletions.end()) {
-            localDeletions.erase(iter);
-        }
-        return localInsertions.append(key, value);
-    }
-
-    size_t append(const IndexBuffer<OwnedKeyType>& buffer) {
-        return localInsertions.append(buffer);
-    }
-
-    inline bool hasUpdates() const { return !(localInsertions.empty() && localDeletions.empty()); }
-
-    inline int64_t getNetInserts() const {
-        return static_cast<int64_t>(localInsertions.size()) - localDeletions.size();
-    }
-
-    inline void clear() {
-        localInsertions.clear();
-        localDeletions.clear();
-    }
-
-    void applyLocalChanges(const std::function<void(Key)>& deleteOp,
-        const std::function<void(const InMemHashIndex<T>&)>& insertOp) {
-        for (auto& key : localDeletions) {
-            deleteOp(key);
-        }
-        insertOp(localInsertions);
-    }
-
-    void reserveInserts(uint64_t newEntries) { localInsertions.reserve(newEntries); }
-
-    const InMemHashIndex<T>& getInsertions() { return localInsertions; }
-
-private:
-    // When the storage type is string, allow the key type to be string_view with a custom hash
-    // function
-    using hash_function = typename std::conditional<std::is_same<OwnedKeyType, std::string>::value,
-        common::StringUtils::string_hash, std::hash<T>>::type;
-    std::unordered_set<OwnedKeyType, hash_function, std::equal_to<>> localDeletions;
-    InMemHashIndex<T> localInsertions;
-};
 
 template<typename T>
 HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName,
@@ -253,7 +179,7 @@ entry_pos_t HashIndex<T>::findMatchedEntryInSlot(TransactionType trxType, const 
 template<typename T>
 bool HashIndex<T>::prepareCommit() {
     if (localStorage->hasUpdates()) {
-        wal->addToUpdatedTables(dbFileIDAndName.dbFileID.nodeIndexID.tableID);
+        // wal->addToUpdatedTables(dbFileIDAndName.dbFileID.nodeIndexID.tableID);
         auto netInserts = localStorage->getNetInserts();
         if (netInserts > 0) {
             reserve(netInserts);
@@ -754,29 +680,29 @@ void PrimaryKeyIndex::writeHeaders() {
 }
 
 void PrimaryKeyIndex::prepareCommit() {
-    if (!hasRunPrepareCommit) {
-        bool indexChanged = false;
-        for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-            if (hashIndices[i]->prepareCommit()) {
-                indexChanged = true;
-            }
+    // if (!hasRunPrepareCommit) {
+    bool indexChanged = false;
+    for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
+        if (hashIndices[i]->prepareCommit()) {
+            indexChanged = true;
         }
-        if (indexChanged) {
-            writeHeaders();
-            hashIndexDiskArrays->prepareCommit();
-        }
-        if (overflowFile) {
-            overflowFile->prepareCommit();
-        }
-        // Make sure that changes which bypassed the WAL are written.
-        // There is no other mechanism for enforcing that they are flushed
-        // and they will be dropped when the file handle is destroyed.
-        // TODO: Should eventually be moved into the disk array when the disk array can
-        // generally handle bypassing the WAL, but should only be run once per file, not once per
-        // disk array
-        bufferManager.flushAllDirtyPagesInFrames(*fileHandle);
-        hasRunPrepareCommit = true;
     }
+    if (indexChanged) {
+        writeHeaders();
+        hashIndexDiskArrays->prepareCommit();
+    }
+    if (overflowFile) {
+        overflowFile->prepareCommit();
+    }
+    // Make sure that changes which bypassed the WAL are written.
+    // There is no other mechanism for enforcing that they are flushed
+    // and they will be dropped when the file handle is destroyed.
+    // TODO: Should eventually be moved into the disk array when the disk array can
+    // generally handle bypassing the WAL, but should only be run once per file, not once per
+    // disk array
+    bufferManager.flushAllDirtyPagesInFrames(*fileHandle);
+    // hasRunPrepareCommit = true;
+    // }
 }
 
 void PrimaryKeyIndex::prepareRollback() {

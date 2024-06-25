@@ -9,17 +9,13 @@ namespace processor {
 
 struct TableFunctionCallSharedState {
     std::unique_ptr<function::TableFuncSharedState> funcState;
-    common::row_idx_t nextRowIdx = 0;
     std::mutex mtx;
-
-    common::row_idx_t getAndIncreaseRowIdx(uint64_t numRows);
 };
 
 struct TableFunctionCallLocalState {
     std::unique_ptr<function::TableFuncLocalState> funcState;
     function::TableFuncInput funcInput;
     function::TableFuncOutput funcOutput;
-    common::ValueVector* rowOffsetVector;
 
     TableFunctionCallLocalState() = default;
     DELETE_COPY_DEFAULT_MOVE(TableFunctionCallLocalState);

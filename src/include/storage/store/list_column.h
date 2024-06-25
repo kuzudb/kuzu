@@ -43,22 +43,17 @@ struct ListOffsetSizeInfo {
 };
 
 class ListColumn final : public Column {
-    static constexpr common::idx_t SIZE_COLUMN_CHILD_READ_STATE_IDX = 0;
-    static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 1;
-
 public:
-    ListColumn(std::string name, common::LogicalType dataType,
-        const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-        DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, bool enableCompression);
+    ListColumn(std::string name, common::LogicalType dataType, BMFileHandle* dataFH,
+        BufferManager* bufferManager, WAL* wal, bool enableCompression);
 
-    void initChunkState(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, ChunkState& chunkState) override;
+    static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
+        BMFileHandle& dataFH);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector = 0) override;
-    void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+    void scan(transaction::Transaction* transaction, const ChunkState& state,
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
 
@@ -66,7 +61,7 @@ public:
 
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
-        common::idx_t vectorIdx, common::row_idx_t numValuesToScan,
+        common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
     void lookupValue(transaction::Transaction* transaction, ChunkState& state,
@@ -82,22 +77,18 @@ private:
     void scanFiltered(transaction::Transaction* transaction, const ChunkState& state,
         common::ValueVector* offsetVector, const ListOffsetSizeInfo& listOffsetInfoInStorage) const;
 
-    void prepareCommit() override;
-    void checkpointInMemory() override;
-    void rollbackInMemory() override;
-
     common::offset_t readOffset(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t offsetInNodeGroup);
     common::list_size_t readSize(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t offsetInNodeGroup);
 
     ListOffsetSizeInfo getListOffsetSizeInfo(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::offset_t startOffsetInNodeGroup,
+        const ChunkState& state, common::offset_t startOffsetInNodeGroup,
         common::offset_t endOffsetInNodeGroup);
 
     void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
-        const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
-        const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
+        const ChunkDataCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+        const ChunkDataCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
         const offset_set_t& deleteInfo) override;
     void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
         const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,

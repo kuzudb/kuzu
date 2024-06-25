@@ -7,7 +7,6 @@
 #include "common/enums/table_type.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
-#include "function/table/bind_input.h"
 #include "main/client_context.h"
 #include "parser/copy.h"
 
@@ -105,6 +104,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
             columnExprs.push_back(std::move(expr));
         }
     }
+    // TODO(Guodong): Should remove this expression.
     auto offset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
         std::string(InternalKeyword::ANONYMOUS));
     auto boundCopyFromInfo =
@@ -128,6 +128,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     auto boundSource = bindScanSource(copyStatement.getSource(),
         copyStatement.getParsingOptionsRef(), expectedColumnNames, expectedColumnTypes);
     auto columns = boundSource->getColumns();
+    // TODO(Guodong): Should change data type to INTERNAL_ID.
     auto offset = expressionBinder.createVariableExpression(*LogicalType::INT64(),
         std::string(InternalKeyword::ROW_OFFSET));
     auto srcTableID = relTableEntry->getSrcTableID();

@@ -12,7 +12,6 @@
 #include "processor/execution_context.h"
 #include "storage/index/hash_index.h"
 #include "storage/index/hash_index_utils.h"
-#include "storage/store/column_chunk.h"
 
 namespace kuzu {
 namespace processor {
@@ -22,8 +21,6 @@ const size_t SHOULD_FLUSH_QUEUE_SIZE = 32;
 class IndexBuilderGlobalQueues {
 public:
     explicit IndexBuilderGlobalQueues(storage::PrimaryKeyIndex* pkIndex);
-
-    void flushToDisk() const;
 
     template<typename T>
     void insert(size_t index, storage::IndexBuffer<T> elem) {
@@ -106,7 +103,6 @@ class IndexBuilderSharedState {
 public:
     explicit IndexBuilderSharedState(storage::PrimaryKeyIndex* pkIndex) : globalQueues{pkIndex} {}
     inline void consume() { globalQueues.consume(); }
-    inline void flush() { globalQueues.flushToDisk(); }
 
     inline void addProducer() { producers.fetch_add(1, std::memory_order_relaxed); }
     void quitProducer();

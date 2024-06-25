@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/data_chunk/sel_vector.h"
-#include "storage/store/column_chunk.h"
+#include "storage/store/column_chunk_data.h"
 
 namespace kuzu {
 namespace storage {
@@ -26,16 +26,25 @@ struct ListDataColumnChunk {
 };
 
 class ListChunkData final : public ColumnChunkData {
-
 public:
+    static constexpr common::idx_t SIZE_COLUMN_CHILD_READ_STATE_IDX = 0;
+    static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 1;
+
     ListChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
-        bool inMemory);
+        ResidencyState residencyState);
+    ListChunkData(common::LogicalType dataType, bool enableCompression,
+        const ColumnChunkMetadata& metadata);
 
     ColumnChunkData* getDataColumnChunk() const {
         return listDataColumnChunk->dataColumnChunk.get();
     }
-
     ColumnChunkData* getSizeColumnChunk() const { return sizeColumnChunk.get(); }
+    void setDataColumnChunk(std::unique_ptr<ColumnChunkData> dataColumnChunk) {
+        listDataColumnChunk->dataColumnChunk = std::move(dataColumnChunk);
+    }
+    void setSizeColumnChunk(std::unique_ptr<ColumnChunkData> sizeColumnChunk_) {
+        sizeColumnChunk = std::move(sizeColumnChunk_);
+    }
 
     void resetToEmpty() override;
 
@@ -44,13 +53,14 @@ public:
         sizeColumnChunk->setNumValues(numValues_);
     }
 
-    void append(common::ValueVector* vector, const common::SelectionVector& selVector) final;
+    void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;
 
+    void initializeScanState(ChunkState& state) const override;
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
 
     // Note: `write` assumes that no `append` will be called afterward.
-    void write(common::ValueVector* vector, common::offset_t offsetInVector,
+    void write(const common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
     void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
         common::RelMultiplicity multiplicity) override;
@@ -76,7 +86,12 @@ public:
     void resetFromOtherChunk(ListChunkData* other);
     void finalize() override;
     bool isOffsetsConsecutiveAndSortedAscending(uint64_t startPos, uint64_t endPos) const;
-    bool sanityCheck() override;
+    bool sanityCheck() const override;
+
+    uint64_t getEstimatedMemoryUsage() const override;
+
+    void serialize(common::Serializer& serializer) const override;
+    static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
 
 protected:
     void copyListValues(const common::list_entry_t& entry, common::ValueVector* dataVector);

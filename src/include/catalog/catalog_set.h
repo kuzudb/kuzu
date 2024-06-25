@@ -12,6 +12,10 @@ namespace storage {
 class UndoBuffer;
 } // namespace storage
 
+namespace transaction {
+class Transaction;
+} // namespace transaction
+
 using CatalogEntrySet = common::case_insensitive_map_t<catalog::CatalogEntry*>;
 
 namespace catalog {

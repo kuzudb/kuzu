@@ -376,8 +376,8 @@ std::vector<std::string> Catalog::getMacroNames(Transaction* transaction) const 
     return macroNames;
 }
 
-void Catalog::prepareCheckpoint(const std::string& databasePath, WAL* wal, VirtualFileSystem* fs) {
-    saveToFile(databasePath, fs, common::FileVersionType::WAL_VERSION);
+void Catalog::checkpoint(const std::string& databasePath, WAL* wal, VirtualFileSystem* fs) {
+    saveToFile(databasePath, fs, FileVersionType::WAL_VERSION);
     wal->logCatalogRecord();
 }
 
@@ -444,8 +444,12 @@ void Catalog::registerBuiltInFunctions() {
     function::BuiltInFunctionsUtils::createFunctions(&DUMMY_WRITE_TRANSACTION, functions.get());
 }
 
-void Catalog::alterRdfChildTableEntries(transaction::Transaction* transaction,
-    kuzu::catalog::CatalogEntry* tableEntry, const binder::BoundAlterInfo& info) const {
+bool Catalog::containMacro(const std::string& macroName) const {
+    return functions->containsEntry(&DUMMY_READ_TRANSACTION, macroName);
+}
+
+void Catalog::alterRdfChildTableEntries(Transaction* transaction, CatalogEntry* tableEntry,
+    const BoundAlterInfo& info) const {
     auto rdfGraphEntry = ku_dynamic_cast<CatalogEntry*, RDFGraphCatalogEntry*>(tableEntry);
     auto& renameTableInfo =
         ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraRenameTableInfo&>(

@@ -8,6 +8,7 @@ namespace catalog {
 class CatalogEntry;
 class CatalogSet;
 } // namespace catalog
+
 namespace main {
 class ClientContext;
 }
@@ -17,15 +18,14 @@ namespace storage {
 //                For now, we use malloc to get around the limitation of 256KB from MM.
 class UndoMemoryBuffer {
 public:
-    static constexpr const uint64_t UNDO_MEMORY_BUFFER_SIZE =
-        common::BufferPoolConstants::PAGE_4KB_SIZE;
+    static constexpr uint64_t UNDO_MEMORY_BUFFER_SIZE = common::BufferPoolConstants::PAGE_4KB_SIZE;
 
     explicit UndoMemoryBuffer(uint64_t size) : size{size} {
         data = std::make_unique<uint8_t[]>(size);
         currentPosition = 0;
     }
 
-    uint8_t* getDataUnsafe() { return data.get(); }
+    uint8_t* getDataUnsafe() const { return data.get(); }
     uint8_t const* getData() const { return data.get(); }
     uint64_t getSize() const { return size; }
     uint64_t getCurrentPosition() const { return currentPosition; }
@@ -55,29 +55,60 @@ private:
     const UndoBuffer& undoBuffer;
 };
 
+class UpdateInfo;
+class VersionInfo;
+struct VectorUpdateInfo;
+struct VectorVersionInfo;
 // This class is not thread safe, as it is supposed to be accessed by a single thread.
 class UndoBuffer {
     friend class UndoBufferIterator;
 
 public:
-    enum class UndoEntryType : uint16_t {
-        CATALOG_ENTRY,
+    enum class UndoRecordType : uint16_t {
+        CATALOG_ENTRY = 0,
+        NODE_BATCH_INSERT = 1,
+        UPDATE_INFO = 2,
+        INSERT_INFO = 3,
+        DELETE_INFO = 4,
     };
 
     explicit UndoBuffer(main::ClientContext& clientContext);
 
-    void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
+    void createCatalogEntry(catalog::CatalogSet* catalogSet, catalog::CatalogEntry* catalogEntry);
+    void createNodeBatchInsert(common::table_id_t tableID);
+    void createVectorInsertInfo(VersionInfo* versionInfo, common::idx_t vectorIdx,
+        VectorVersionInfo* vectorVersionInfo, const std::vector<common::row_idx_t>& rowsInVector);
+    void createVectorDeleteInfo(VersionInfo* versionInfo, common::idx_t vectorIdx,
+        VectorVersionInfo* vectorVersionInfo, const std::vector<common::row_idx_t>& rowsInVector);
+    void createVectorUpdateInfo(UpdateInfo* updateInfo, common::idx_t vectorIdx,
+        VectorUpdateInfo* vectorUpdateInfo);
 
-    void commit(common::transaction_t commitTS);
+    void commit(common::transaction_t commitTS) const;
     void rollback();
 
-    UndoBufferIterator getIterator() const;
-
 private:
-    uint8_t* createUndoEntry(uint64_t size);
+    uint8_t* createUndoRecord(uint64_t size);
 
-    void commitEntry(uint8_t const* entry, common::transaction_t commitTS);
-    void rollbackEntry(uint8_t const* entry);
+    void createVectorVersionInfo(UndoRecordType recordType, VersionInfo* versionInfo,
+        common::idx_t vectorIdx, VectorVersionInfo* vectorVersionInfo,
+        const std::vector<common::row_idx_t>& rowsInVector);
+
+    void commitRecord(UndoRecordType recordType, const uint8_t* record,
+        common::transaction_t commitTS) const;
+    void rollbackRecord(UndoRecordType recordType, const uint8_t* record);
+
+    void commitCatalogEntryRecord(const uint8_t* record, common::transaction_t commitTS) const;
+    void rollbackCatalogEntryRecord(const uint8_t* record);
+
+    void commitNodeBatchInsertRecord(const uint8_t* record, common::transaction_t commitTS) const;
+    void rollbackNodeBatchInsertRecord(const uint8_t* record);
+
+    void commitVectorVersionInfo(UndoRecordType recordType, const uint8_t* record,
+        common::transaction_t commitTS) const;
+    void rollbackVectorVersionInfo(UndoRecordType recordType, const uint8_t* record);
+
+    void commitVectorUpdateInfo(const uint8_t* record, common::transaction_t commitTS) const;
+    void rollbackVectorUpdateInfo(const uint8_t* record);
 
 private:
     main::ClientContext& clientContext;

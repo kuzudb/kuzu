@@ -6,6 +6,7 @@
 #include "common/types/value/value.h"
 #include "function/aggregate/count_star.h"
 #include "function/built_in_function_utils.h"
+#include "main/client_context.h"
 #include "parser/expression/parsed_subquery_expression.h"
 
 using namespace kuzu::parser;

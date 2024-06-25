@@ -1,5 +1,6 @@
 #include "storage/local_storage/local_storage.h"
 
+#include "main/client_context.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_table.h"
@@ -40,14 +41,14 @@ LocalTable* LocalStorage::getLocalTable(table_id_t tableID, NotExistAction actio
 
 void LocalStorage::prepareCommit() {
     for (auto& [tableID, localTable] : tables) {
-        auto table = clientContext.getStorageManager()->getTable(tableID);
+        const auto table = clientContext.getStorageManager()->getTable(tableID);
         table->prepareCommit(clientContext.getTx(), localTable.get());
     }
 }
 
 void LocalStorage::prepareRollback() {
     for (auto& [tableID, localTable] : tables) {
-        auto table = clientContext.getStorageManager()->getTable(tableID);
+        const auto table = clientContext.getStorageManager()->getTable(tableID);
         table->prepareRollback(localTable.get());
     }
 }

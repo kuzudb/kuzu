@@ -3,7 +3,9 @@
 #include "catalog/catalog.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
+#include "function/table_functions.h"
 #include "main/database.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace extension {

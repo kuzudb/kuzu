@@ -2,7 +2,7 @@
 
 #include "storage/storage_structure/disk_array_collection.h"
 #include "storage/store/column.h"
-#include "storage/store/list_column_chunk.h"
+#include "storage/store/list_chunk_data.h"
 #include "storage/store/null_column.h"
 #include <bit>
 
@@ -48,39 +48,49 @@ bool ListOffsetSizeInfo::isOffsetSortedAscending(uint64_t startPos, uint64_t end
     return true;
 }
 
-ListColumn::ListColumn(std::string name, LogicalType dataType,
-    const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, DiskArrayCollection& metadataDAC,
-    BufferManager* bufferManager, WAL* wal, Transaction* transaction, bool enableCompression)
-    : Column{name, std::move(dataType), metaDAHeaderInfo, dataFH, metadataDAC, bufferManager, wal,
-          transaction, enableCompression, true /* requireNullColumn */} {
+ListColumn::ListColumn(std::string name, LogicalType dataType, BMFileHandle* dataFH,
+    BufferManager* bufferManager, WAL* wal, bool enableCompression)
+    : Column{name, std::move(dataType), dataFH, bufferManager, wal, enableCompression,
+          true /* requireNullColumn */} {
     auto sizeColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "");
     auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
-    sizeColumn = ColumnFactory::createColumn(sizeColName, *LogicalType::UINT32(),
-        *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataDAC, bufferManager, wal, transaction,
-        enableCompression);
-    dataColumn = ColumnFactory::createColumn(dataColName,
-        *ListType::getChildType(this->dataType).copy(), *metaDAHeaderInfo.childrenInfos[1], dataFH,
-        metadataDAC, bufferManager, wal, transaction, enableCompression);
+    sizeColumn = ColumnFactory::createColumn(sizeColName, *LogicalType::UINT32(), dataFH,
+        bufferManager, wal, enableCompression);
+    dataColumn =
+        ColumnFactory::createColumn(dataColName, *ListType::getChildType(this->dataType).copy(),
+            dataFH, bufferManager, wal, enableCompression);
 }
 
-void ListColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    ChunkState& readState) {
-    Column::initChunkState(transaction, nodeGroupIdx, readState);
-    // We put states for size and data column into childrenStates.
-    readState.childrenStates.resize(2);
-    sizeColumn->initChunkState(transaction, nodeGroupIdx,
-        readState.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX]);
-    dataColumn->initChunkState(transaction, nodeGroupIdx,
-        readState.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
+std::unique_ptr<ColumnChunkData> ListColumn::flushChunkData(const ColumnChunkData& chunk,
+    BMFileHandle& dataFH) {
+    auto flushedChunk = flushNonNestedChunkData(chunk, dataFH);
+    auto& listChunk = chunk.cast<ListChunkData>();
+    auto& flushedListChunk = flushedChunk->cast<ListChunkData>();
+    flushedListChunk.setSizeColumnChunk(
+        Column::flushChunkData(*listChunk.getSizeColumnChunk(), dataFH));
+    flushedListChunk.setDataColumnChunk(
+        Column::flushChunkData(*listChunk.getDataColumnChunk(), dataFH));
+    return flushedChunk;
 }
+
+// void ListColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+//     ChunkState& readState) {
+//     Column::initChunkState(transaction, nodeGroupIdx, readState);
+//     // We put states for size and data column into childrenStates.
+//     readState.childrenStates.resize(2);
+//     sizeColumn->initChunkState(transaction, nodeGroupIdx,
+//         readState.childrenStates[ListChunkData::SIZE_COLUMN_CHILD_READ_STATE_IDX]);
+//     dataColumn->initChunkState(transaction, nodeGroupIdx,
+//         readState.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX]);
+// }
 
 void ListColumn::scan(Transaction* transaction, const ChunkState& state,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
     uint64_t offsetInVector) {
     nullColumn->scan(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
         resultVector, offsetInVector);
-    auto listOffsetInfoInStorage = getListOffsetSizeInfo(transaction, state.nodeGroupIdx,
-        startOffsetInGroup, endOffsetInGroup);
+    auto listOffsetInfoInStorage =
+        getListOffsetSizeInfo(transaction, state, startOffsetInGroup, endOffsetInGroup);
     offset_t listOffsetInVector =
         offsetInVector == 0 ? 0 :
                               resultVector->getValue<list_entry_t>(offsetInVector - 1).offset +
@@ -98,7 +108,8 @@ void ListColumn::scan(Transaction* transaction, const ChunkState& state,
     auto dataVector = ListVector::getDataVector(resultVector);
     bool isOffsetSortedAscending = listOffsetInfoInStorage.isOffsetSortedAscending(0, numValues);
     if (isOffsetSortedAscending) {
-        dataColumn->scan(transaction, state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
+        dataColumn->scan(transaction,
+            state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
             listOffsetInfoInStorage.getListStartOffset(0),
             listOffsetInfoInStorage.getListStartOffset(numValues), dataVector,
             offsetToWriteListData);
@@ -106,73 +117,71 @@ void ListColumn::scan(Transaction* transaction, const ChunkState& state,
         for (auto i = 0u; i < numValues; i++) {
             offset_t startOffset = listOffsetInfoInStorage.getListStartOffset(i);
             offset_t appendSize = listOffsetInfoInStorage.getListSize(i);
-            dataColumn->scan(transaction, state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
-                startOffset, startOffset + appendSize, dataVector, offsetToWriteListData);
+            dataColumn->scan(transaction,
+                state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX], startOffset,
+                startOffset + appendSize, dataVector, offsetToWriteListData);
             offsetToWriteListData += appendSize;
         }
     }
 }
 
-void ListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+void ListColumn::scan(Transaction* transaction, const ChunkState& state,
     ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
-    if (nodeGroupIdx >= metadataDA->getNumElements(transaction->getType())) {
-        columnChunk->setNumValues(0);
-    } else {
-        Column::scan(transaction, nodeGroupIdx, columnChunk, startOffset, endOffset);
-        auto& listColumnChunk = columnChunk->cast<ListChunkData>();
-        auto sizeColumnChunk = listColumnChunk.getSizeColumnChunk();
-        // TODO: Should use readState here too.
-        sizeColumn->scan(transaction, nodeGroupIdx, sizeColumnChunk, startOffset, endOffset);
-        auto resizeNumValues = listColumnChunk.getDataColumnChunk()->getNumValues();
-        bool isOffsetSortedAscending = true;
-        offset_t prevOffset = listColumnChunk.getListStartOffset(0);
-        for (auto i = 0u; i < columnChunk->getNumValues(); i++) {
-            auto currentEndOffset = listColumnChunk.getListEndOffset(i);
-            auto appendSize = listColumnChunk.getListSize(i);
-            prevOffset += appendSize;
-            if (currentEndOffset != prevOffset) {
-                isOffsetSortedAscending = false;
-            }
-            resizeNumValues += appendSize;
+    Column::scan(transaction, state, columnChunk, startOffset, endOffset);
+    auto& listColumnChunk = columnChunk->cast<ListChunkData>();
+    auto sizeColumnChunk = listColumnChunk.getSizeColumnChunk();
+    sizeColumn->scan(transaction,
+        state.childrenStates[ListChunkData::SIZE_COLUMN_CHILD_READ_STATE_IDX], sizeColumnChunk,
+        startOffset, endOffset);
+    auto resizeNumValues = listColumnChunk.getDataColumnChunk()->getNumValues();
+    bool isOffsetSortedAscending = true;
+    offset_t prevOffset = listColumnChunk.getListStartOffset(0);
+    for (auto i = 0u; i < columnChunk->getNumValues(); i++) {
+        auto currentEndOffset = listColumnChunk.getListEndOffset(i);
+        auto appendSize = listColumnChunk.getListSize(i);
+        prevOffset += appendSize;
+        if (currentEndOffset != prevOffset) {
+            isOffsetSortedAscending = false;
         }
-        if (isOffsetSortedAscending) {
-            listColumnChunk.resizeDataColumnChunk(std::bit_ceil(resizeNumValues));
-            offset_t startListOffset = listColumnChunk.getListStartOffset(0);
-            offset_t endListOffset =
-                listColumnChunk.getListStartOffset(columnChunk->getNumValues());
-            // TODO: Should use readState here too.
-            dataColumn->scan(transaction, nodeGroupIdx, listColumnChunk.getDataColumnChunk(),
-                startListOffset, endListOffset);
-            listColumnChunk.resetOffset();
-        } else {
-            listColumnChunk.resizeDataColumnChunk(std::bit_ceil(resizeNumValues));
-            auto tmpDataColumnChunk =
-                std::make_unique<ListDataColumnChunk>(ColumnChunkFactory::createColumnChunkData(
-                    *ListType::getChildType(this->dataType).copy(), enableCompression,
-                    std::bit_ceil(resizeNumValues)));
-            auto dataListColumnChunk = listColumnChunk.getDataColumnChunk();
-            for (auto i = 0u; i < columnChunk->getNumValues(); i++) {
-                offset_t startListOffset = listColumnChunk.getListStartOffset(i);
-                offset_t endListOffset = listColumnChunk.getListEndOffset(i);
-                // TODO: Should use readState here too.
-                dataColumn->scan(transaction, nodeGroupIdx,
-                    tmpDataColumnChunk->dataColumnChunk.get(), startListOffset, endListOffset);
-                KU_ASSERT(endListOffset - startListOffset ==
-                          tmpDataColumnChunk->dataColumnChunk->getNumValues());
-                dataListColumnChunk->append(tmpDataColumnChunk->dataColumnChunk.get(), 0,
-                    tmpDataColumnChunk->dataColumnChunk->getNumValues());
-            }
-            listColumnChunk.resetOffset();
-        }
+        resizeNumValues += appendSize;
     }
+    if (isOffsetSortedAscending) {
+        listColumnChunk.resizeDataColumnChunk(std::bit_ceil(resizeNumValues));
+        offset_t startListOffset = listColumnChunk.getListStartOffset(0);
+        offset_t endListOffset = listColumnChunk.getListStartOffset(columnChunk->getNumValues());
+        dataColumn->scan(transaction,
+            state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
+            listColumnChunk.getDataColumnChunk(), startListOffset, endListOffset);
+        listColumnChunk.resetOffset();
+    } else {
+        listColumnChunk.resizeDataColumnChunk(std::bit_ceil(resizeNumValues));
+        auto tmpDataColumnChunk =
+            std::make_unique<ListDataColumnChunk>(ColumnChunkFactory::createColumnChunkData(
+                *ListType::getChildType(this->dataType).copy(), enableCompression,
+                std::bit_ceil(resizeNumValues), ResidencyState::IN_MEMORY));
+        auto dataListColumnChunk = listColumnChunk.getDataColumnChunk();
+        for (auto i = 0u; i < columnChunk->getNumValues(); i++) {
+            offset_t startListOffset = listColumnChunk.getListStartOffset(i);
+            offset_t endListOffset = listColumnChunk.getListEndOffset(i);
+            dataColumn->scan(transaction,
+                state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
+                tmpDataColumnChunk->dataColumnChunk.get(), startListOffset, endListOffset);
+            KU_ASSERT(endListOffset - startListOffset ==
+                      tmpDataColumnChunk->dataColumnChunk->getNumValues());
+            dataListColumnChunk->append(tmpDataColumnChunk->dataColumnChunk.get(), 0,
+                tmpDataColumnChunk->dataColumnChunk->getNumValues());
+        }
+        listColumnChunk.resetOffset();
+    }
+    listColumnChunk.resetOffset();
 }
 
-void ListColumn::scanInternal(Transaction* transaction, const ChunkState& state, idx_t vectorIdx,
-    row_idx_t numValuesToScan, ValueVector* nodeIDVector, ValueVector* resultVector) {
+void ListColumn::scanInternal(Transaction* transaction, const ChunkState& state,
+    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
+    ValueVector* resultVector) {
     KU_ASSERT(resultVector->state);
-    auto startOffsetInChunk = vectorIdx * DEFAULT_VECTOR_CAPACITY;
-    auto listOffsetSizeInfo = getListOffsetSizeInfo(transaction, state.nodeGroupIdx,
-        startOffsetInChunk, startOffsetInChunk + numValuesToScan);
+    auto listOffsetSizeInfo = getListOffsetSizeInfo(transaction, state, startOffsetInChunk,
+        startOffsetInChunk + numValuesToScan);
     if (nodeIDVector->state->getSelVector().isUnfiltered()) {
         scanUnfiltered(transaction, state, resultVector, numValuesToScan, listOffsetSizeInfo);
     } else {
@@ -186,15 +195,17 @@ void ListColumn::lookupValue(Transaction* transaction, ChunkState& readState, of
     KU_ASSERT(readState.nodeGroupIdx == nodeGroupIdx);
     auto nodeOffsetInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     auto listEndOffset = readOffset(transaction, readState, nodeOffsetInGroup);
-    auto size = readSize(transaction, readState.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX],
+    auto size = readSize(transaction,
+        readState.childrenStates[ListChunkData::SIZE_COLUMN_CHILD_READ_STATE_IDX],
         nodeOffsetInGroup);
     auto listStartOffset = listEndOffset - size;
     auto offsetInVector = posInVector == 0 ? 0 : resultVector->getValue<offset_t>(posInVector - 1);
     resultVector->setValue(posInVector, list_entry_t{offsetInVector, size});
     ListVector::resizeDataVector(resultVector, offsetInVector + size);
     auto dataVector = ListVector::getDataVector(resultVector);
-    dataColumn->scan(transaction, readState.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
-        listStartOffset, listEndOffset, dataVector, offsetInVector);
+    dataColumn->scan(transaction,
+        readState.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX], listStartOffset,
+        listEndOffset, dataVector, offsetInVector);
 }
 
 void ListColumn::append(ColumnChunkData* columnChunk, ChunkState& state) {
@@ -202,9 +213,11 @@ void ListColumn::append(ColumnChunkData* columnChunk, ChunkState& state) {
     auto& listColumnChunk = columnChunk->cast<ListChunkData>();
     Column::append(&listColumnChunk, state);
     auto sizeColumnChunk = listColumnChunk.getSizeColumnChunk();
-    sizeColumn->append(sizeColumnChunk, state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX]);
+    sizeColumn->append(sizeColumnChunk,
+        state.childrenStates[ListChunkData::SIZE_COLUMN_CHILD_READ_STATE_IDX]);
     auto dataColumnChunk = listColumnChunk.getDataColumnChunk();
-    dataColumn->append(dataColumnChunk, state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
+    dataColumn->append(dataColumnChunk,
+        state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX]);
 }
 
 void ListColumn::scanUnfiltered(Transaction* transaction, const ChunkState& state,
@@ -226,13 +239,16 @@ void ListColumn::scanUnfiltered(Transaction* transaction, const ChunkState& stat
         auto startListOffsetInStorage = listOffsetInfoInStorage.getListStartOffset(0);
         numValuesToScan = numValuesToScan == 0 ? 0 : numValuesToScan - 1;
         auto endListOffsetInStorage = listOffsetInfoInStorage.getListEndOffset(numValuesToScan);
-        dataColumn->scan(transaction, state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
-            startListOffsetInStorage, endListOffsetInStorage, dataVector, 0 /* offsetInVector */);
+        dataColumn->scan(transaction,
+            state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
+            startListOffsetInStorage, endListOffsetInStorage, dataVector,
+            static_cast<uint64_t>(0 /* offsetInVector */));
     } else {
         for (auto i = 0u; i < numValuesToScan; i++) {
             auto startListOffsetInStorage = listOffsetInfoInStorage.getListStartOffset(i);
             auto appendSize = listOffsetInfoInStorage.getListSize(i);
-            dataColumn->scan(transaction, state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
+            dataColumn->scan(transaction,
+                state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
                 startListOffsetInStorage, startListOffsetInStorage + appendSize, dataVector,
                 offsetInVector);
             offsetInVector += appendSize;
@@ -256,29 +272,12 @@ void ListColumn::scanFiltered(Transaction* transaction, const ChunkState& state,
         auto startOffsetInStorageToScan = listOffsetSizeInfo.getListStartOffset(pos);
         auto appendSize = listOffsetSizeInfo.getListSize(pos);
         auto dataVector = ListVector::getDataVector(resultVector);
-        dataColumn->scan(transaction, state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
+        dataColumn->scan(transaction,
+            state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
             startOffsetInStorageToScan, startOffsetInStorageToScan + appendSize, dataVector,
             listOffset);
         listOffset += resultVector->getValue<list_entry_t>(pos).size;
     }
-}
-
-void ListColumn::prepareCommit() {
-    Column::prepareCommit();
-    sizeColumn->prepareCommit();
-    dataColumn->prepareCommit();
-}
-
-void ListColumn::checkpointInMemory() {
-    Column::checkpointInMemory();
-    sizeColumn->checkpointInMemory();
-    dataColumn->checkpointInMemory();
-}
-
-void ListColumn::rollbackInMemory() {
-    Column::rollbackInMemory();
-    sizeColumn->rollbackInMemory();
-    dataColumn->rollbackInMemory();
 }
 
 offset_t ListColumn::readOffset(Transaction* transaction, const ChunkState& readState,
@@ -304,42 +303,42 @@ list_size_t ListColumn::readSize(Transaction* transaction, const ChunkState& rea
 }
 
 ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
-    node_group_idx_t nodeGroupIdx, offset_t startOffsetInNodeGroup, offset_t endOffsetInNodeGroup) {
+    const ChunkState& state, offset_t startOffsetInNodeGroup, offset_t endOffsetInNodeGroup) {
     auto numOffsetsToRead = endOffsetInNodeGroup - startOffsetInNodeGroup;
     auto offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(*LogicalType::INT64(),
-        enableCompression, numOffsetsToRead);
+        enableCompression, numOffsetsToRead, ResidencyState::IN_MEMORY);
     auto sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(*LogicalType::UINT32(),
-        enableCompression, numOffsetsToRead);
-    // TODO: Should use readState here too.
-    Column::scan(transaction, nodeGroupIdx, offsetColumnChunk.get(), startOffsetInNodeGroup,
+        enableCompression, numOffsetsToRead, ResidencyState::IN_MEMORY);
+    Column::scan(transaction, state, offsetColumnChunk.get(), startOffsetInNodeGroup,
         endOffsetInNodeGroup);
-    sizeColumn->scan(transaction, nodeGroupIdx, sizeColumnChunk.get(), startOffsetInNodeGroup,
-        endOffsetInNodeGroup);
+    sizeColumn->scan(transaction,
+        state.childrenStates[ListChunkData::SIZE_COLUMN_CHILD_READ_STATE_IDX],
+        sizeColumnChunk.get(), startOffsetInNodeGroup, endOffsetInNodeGroup);
     auto numValuesScan = offsetColumnChunk->getNumValues();
     return {numValuesScan, std::move(offsetColumnChunk), std::move(sizeColumnChunk)};
 }
 
 void ListColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkState& state,
-    const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
-    const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
+    const ChunkDataCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+    const ChunkDataCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
     const offset_set_t&) {
     // TODO: Should handle deletions.
     auto columnChunk = getEmptyChunkForCommit(updateInfo.size() + insertInfo.size());
     std::vector<offset_t> dstOffsets;
-    for (auto& [offsetInDstChunk, rowIdx] : updateInfo) {
-        auto [chunkIdx, offsetInLocalChunk] =
-            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-        auto localUpdateChunk = localUpdateChunks[chunkIdx];
-        dstOffsets.push_back(offsetInDstChunk);
-        columnChunk->append(localUpdateChunk, offsetInLocalChunk, 1);
-    }
-    for (auto& [offsetInDstChunk, rowIdx] : insertInfo) {
-        auto [chunkIdx, offsetInLocalChunk] =
-            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-        auto localInsertChunk = localInsertChunks[chunkIdx];
-        dstOffsets.push_back(offsetInDstChunk);
-        columnChunk->append(localInsertChunk, offsetInLocalChunk, 1);
-    }
+    // for (auto& [offsetInDstChunk, rowIdx] : updateInfo) {
+    //     auto [chunkIdx, offsetInLocalChunk] =
+    //         LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+    //     auto localUpdateChunk = localUpdateChunks[chunkIdx];
+    //     dstOffsets.push_back(offsetInDstChunk);
+    //     columnChunk->append(localUpdateChunk, offsetInLocalChunk, 1);
+    // }
+    // for (auto& [offsetInDstChunk, rowIdx] : insertInfo) {
+    //     auto [chunkIdx, offsetInLocalChunk] =
+    //         LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
+    //     auto localInsertChunk = localInsertChunks[chunkIdx];
+    //     dstOffsets.push_back(offsetInDstChunk);
+    //     columnChunk->append(localInsertChunk, offsetInLocalChunk, 1);
+    // }
     prepareCommitForExistingChunk(transaction, state, dstOffsets, columnChunk.get(),
         0 /*startSrcOffset*/);
 }
@@ -351,7 +350,8 @@ void ListColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkSt
     // column chunk otherwise, we commit data column chunk in place and separately commit
     // offset/size column chunk
     auto& listChunk = chunk->cast<ListChunkData>();
-    auto dataColumnSize = state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX].metadata.numValues;
+    auto dataColumnSize =
+        state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX].metadata.numValues;
     auto dataColumnChunk = listChunk.getDataColumnChunk();
     auto numListsToAppend = std::min(chunk->getNumValues(), (uint64_t)dstOffsets.size());
     auto dataSize = 0u;
@@ -362,19 +362,19 @@ void ListColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkSt
             dstOffsetsInDataColumn.push_back(dataColumnSize + dataSize++);
         }
     }
-    bool dataColumnCanCommitInPlace =
-        dataColumn->canCommitInPlace(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
-            dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
+    bool dataColumnCanCommitInPlace = dataColumn->canCommitInPlace(
+        state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
+        dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
     if (!dataColumnCanCommitInPlace) {
         commitColumnChunkOutOfPlace(transaction, state, false /*isNewNodeGroup*/, dstOffsets, chunk,
             startSrcOffset);
     } else {
         // TODO: Shouldn't here be in place commit?
         dataColumn->commitColumnChunkOutOfPlace(transaction,
-            state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX], false /*isNewNodeGroup*/,
-            dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
+            state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
+            false /*isNewNodeGroup*/, dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
         sizeColumn->prepareCommitForExistingChunk(transaction,
-            state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX], dstOffsets,
+            state.childrenStates[ListChunkData::SIZE_COLUMN_CHILD_READ_STATE_IDX], dstOffsets,
             listChunk.getSizeColumnChunk(), startSrcOffset);
         for (auto i = 0u; i < numListsToAppend; i++) {
             auto listEndOffset = listChunk.getListEndOffset(startSrcOffset + i);
@@ -386,13 +386,13 @@ void ListColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkSt
 
 void ListColumn::prepareCommitForOffsetChunk(Transaction* transaction, ChunkState& offsetState,
     const std::vector<offset_t>& dstOffsets, ColumnChunkData* chunk, offset_t startSrcOffset) {
-    metadataDA->prepareCommit();
+    // metadataDA->prepareCommit();
     if (canCommitInPlace(offsetState, dstOffsets, chunk, startSrcOffset)) {
         Column::commitColumnChunkInPlace(offsetState, dstOffsets, chunk, startSrcOffset);
-        metadataDA->update(offsetState.nodeGroupIdx, offsetState.metadata);
+        // metadataDA->update(offsetState.nodeGroupIdx, offsetState.metadata);
         if (nullColumn) {
             nullColumn->prepareCommitForChunk(transaction, offsetState.nodeGroupIdx, false,
-                dstOffsets, chunk->getNullChunk(), startSrcOffset);
+                dstOffsets, chunk->getNullData(), startSrcOffset);
         }
     } else {
         commitOffsetColumnChunkOutOfPlace(transaction, offsetState, dstOffsets, chunk,
@@ -405,14 +405,15 @@ void ListColumn::commitOffsetColumnChunkOutOfPlace(Transaction* transaction,
     offset_t startSrcOffset) {
     auto& listChunk = chunk->cast<ListChunkData>();
     auto offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(*dataType.copy(),
-        enableCompression, 1.5 * std::bit_ceil(offsetState.metadata.numValues + dstOffsets.size()));
-    Column::scan(transaction, offsetState.nodeGroupIdx, offsetColumnChunk.get());
+        enableCompression, 1.5 * std::bit_ceil(offsetState.metadata.numValues + dstOffsets.size()),
+        ResidencyState::IN_MEMORY);
+    Column::scan(transaction, offsetState, offsetColumnChunk.get());
     auto numListsToAppend = std::min(chunk->getNumValues(), (uint64_t)dstOffsets.size());
     for (auto i = 0u; i < numListsToAppend; i++) {
         auto listEndOffset = listChunk.getListEndOffset(startSrcOffset + i);
-        auto isNull = listChunk.getNullChunk()->isNull(startSrcOffset + i);
+        auto isNull = listChunk.getNullData()->isNull(startSrcOffset + i);
         offsetColumnChunk->setValue<offset_t>(listEndOffset, dstOffsets[i]);
-        offsetColumnChunk->getNullChunk()->setNull(dstOffsets[i], isNull);
+        offsetColumnChunk->getNullData()->setNull(dstOffsets[i], isNull);
     }
     auto& offsetListChunk = offsetColumnChunk->cast<ListChunkData>();
     offsetListChunk.getSizeColumnChunk()->setNumValues(offsetColumnChunk->getNumValues());
