@@ -16,8 +16,8 @@ namespace storage {
 
 RelDataReadState::RelDataReadState(const std::vector<column_id_t>& columnIDs)
     : TableDataScanState{columnIDs}, nodeGroupIdx{INVALID_NODE_GROUP_IDX}, numNodes{0},
-      currentNodeOffset{0}, currentCSROffset{0}, posInLastCSR{0}, batchSize{0}, 
-      currNodeIdx{0}, endNodeIdx{0}, totalNodeIdxs{0}, readFromPersistentStorage{false}, 
+      currentNodeOffset{0}, currentCSROffset{0}, posInLastCSR{0}, batchSize{0}, currNodeIdx{0},
+      endNodeIdx{0}, totalNodeIdxs{0}, readFromPersistentStorage{false},
       readFromLocalStorage{false}, localNodeGroup{nullptr} {}
 
 bool RelDataReadState::hasMoreToReadFromLocalStorage() const {
