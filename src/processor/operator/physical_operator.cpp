@@ -95,7 +95,7 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::RESULT_COLLECTOR:
         return "RESULT_COLLECTOR";
     case PhysicalOperatorType::SCAN_NODE_TABLE:
-        return "SCAN_MULTI_NODE_TABLE";
+        return "SCAN_NODE_TABLE";
     case PhysicalOperatorType::SCAN_REL_TABLE:
         return "SCAN_REL_TABLE";
     case PhysicalOperatorType::SEMI_MASKER:
