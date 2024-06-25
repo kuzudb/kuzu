@@ -6,7 +6,7 @@ jobs:
   build-linux-extensions-x86_64:
     runs-on: kuzu-self-hosted-linux-building-x86_64_centos8
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build precompiled extensions
         run: make extension-release NUM_THREADS=$(nproc)
@@ -17,7 +17,7 @@ jobs:
           find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
 
       - name: Upload built artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_linux-x86_64
           path: extension-artifacts/*.kuzu_extension
@@ -25,7 +25,7 @@ jobs:
   build-linux-extensions-x86_64-old:
     runs-on: kuzu-self-hosted-linux-building-x86_64_centos7
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build precompiled extensions
         run: |
@@ -38,7 +38,7 @@ jobs:
           find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
 
       - name: Upload built artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_linux_old-x86_64
           path: extension-artifacts/*.kuzu_extension
@@ -47,7 +47,7 @@ jobs:
     runs-on: kuzu-self-hosted-linux-building-aarch64
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build precompiled extensions
         run: make extension-release NUM_THREADS=$(nproc)
@@ -58,7 +58,7 @@ jobs:
           find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
 
       - name: Upload built artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_linux-aarch64
           path: extension-artifacts/*.kuzu_extension
@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Start Docker container
         run: |
@@ -93,7 +93,7 @@ jobs:
           sudo chmod -R 755 extension-artifacts
 
       - name: Upload built artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_linux-x86
           path: extension-artifacts/*.kuzu_extension
@@ -104,7 +104,7 @@ jobs:
   build-mac-extensions-arm64:
     runs-on: self-hosted-mac-arm
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build precompiled extensions
         run: env OPENSSL_ROOT_DIR=/opt/homebrew/Cellar/openssl@3/3.3.0 make extension-release NUM_THREADS=$(sysctl -n hw.logicalcpu)
@@ -118,7 +118,7 @@ jobs:
           find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
 
       - name: Upload built artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_osx-arm64
           path: extension-artifacts/*.kuzu_extension
@@ -126,7 +126,7 @@ jobs:
   build-mac-extensions-x86_64:
     runs-on: self-hosted-mac-x64
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build precompiled extensions
         run: make extension-release NUM_THREADS=$(sysctl -n hw.logicalcpu)
@@ -140,7 +140,7 @@ jobs:
           find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
 
       - name: Upload built artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_osx-x86_64
           path: extension-artifacts/*.kuzu_extension
@@ -150,7 +150,7 @@ jobs:
     env:
       NUM_THREADS: 18
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build precompiled extensions
         shell: cmd
@@ -164,7 +164,7 @@ jobs:
           Get-ChildItem -Path .\extension -Recurse -Filter "*.kuzu_extension" | ForEach-Object {Copy-Item $_.FullName -Destination extension-artifacts -Force}
 
       - name: Upload built artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_win-x86_64
           path: extension-artifacts/*.kuzu_extension
@@ -180,7 +180,7 @@ jobs:
       - build-mac-extensions-x86_64
       - build-windows-extensions-x86_64
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Detect release version
         run: |
@@ -189,7 +189,7 @@ jobs:
       - name: Delete checked out repository
         run: cd .. && rm -rf kuzudb
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: kuzudb/extension
           token: ${{ secrets.DOC_PUSH_TOKEN }}
@@ -226,43 +226,43 @@ jobs:
           mkdir -p extension-artifacts/win_amd64
 
       - name: Download built artifacts for linux-x86_64
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: kuzu-extensions_linux-x86_64
           path: extension-artifacts/linux_amd64
 
       - name: Download built artifacts for linux-old-x86_64
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: kuzu-extensions_linux_old-x86_64
           path: extension-artifacts/linux_old_amd64
 
       - name: Download built artifacts for linux-aarch64
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: kuzu-extensions_linux-aarch64
           path: extension-artifacts/linux_arm64
 
       - name: Download built artifacts for linux-x86
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: kuzu-extensions_linux-x86
           path: extension-artifacts/linux_x86
 
       - name: Download built artifacts for osx-x86_64
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: kuzu-extensions_osx-x86_64
           path: extension-artifacts/osx_amd64
 
       - name: Download built artifacts for osx-aarch64
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: kuzu-extensions_osx-arm64
           path: extension-artifacts/osx_arm64
 
       - name: Download built artifacts for windows-x86_64
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: kuzu-extensions_win-x86_64
           path: extension-artifacts/win_amd64

@@ -34,7 +34,7 @@ jobs:
       CC: gcc
       CXX: g++
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build
         run: make release
@@ -70,7 +70,7 @@ jobs:
       HTTP_CACHE_FILE: TRUE
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Download binary-demo
         uses: actions/download-artifact@v4
@@ -118,7 +118,7 @@ jobs:
       TEST_JOBS: 10
       WERROR: 0
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Download binary-demo
         uses: actions/download-artifact@v4
@@ -138,10 +138,9 @@ jobs:
           lcov --remove cover.info $(< .github/workflows/lcov_exclude) -o cover.info
 
       - name: Upload coverage report
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4.5.0
         with:
           file: cover.info
-          functionalities: "search"
 
   gcc-build-test-x86:
     name: gcc build & test 32-bit
@@ -149,7 +148,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Download binary-demo
         uses: actions/download-artifact@v4
@@ -185,7 +184,7 @@ jobs:
       CC: gcc
       CXX: g++
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Rust test
         working-directory: tools/rust_api
@@ -208,7 +207,7 @@ jobs:
       CXX: g++
       WERROR: 0
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Download binary-demo
         uses: actions/download-artifact@v4
@@ -248,7 +247,7 @@ jobs:
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Download binary-demo
         uses: actions/download-artifact@v4
@@ -309,7 +308,7 @@ jobs:
       RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
       HTTP_CACHE_FILE: TRUE
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Download binary-demo
         uses: actions/download-artifact@v4
@@ -389,7 +388,7 @@ jobs:
     name: sanity checks
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Check headers for include guards
         run: ./scripts/check-include-guards.sh src/include
@@ -411,7 +410,7 @@ jobs:
           chmod +x llvm.sh
           yes | sudo ./llvm.sh 18 all
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}
@@ -443,10 +442,10 @@ jobs:
     name: python lint check
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
@@ -463,7 +462,7 @@ jobs:
       - name: Update Rust
         run: rustup update
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Check Rust API format
         working-directory: tools/rust_api
@@ -481,7 +480,7 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: Download comparison results
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: comparison-results
 
@@ -501,7 +500,7 @@ jobs:
       CXX: clang++
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       # For `napi.h` header.
       - name: Ensure Node.js dependencies
@@ -535,7 +534,7 @@ jobs:
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Download binary-demo
         uses: actions/download-artifact@v4
@@ -604,7 +603,7 @@ jobs:
     env:
       WERROR: 0
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build
         run: make release NUM_THREADS=$(nproc)
@@ -639,7 +638,7 @@ jobs:
       WERROR: 0
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Update PostgreSQL host
         working-directory: extension/postgres/test/test_files
@@ -681,7 +680,7 @@ jobs:
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Update PostgreSQL host
         working-directory: extension/postgres/test/test_files
@@ -726,7 +725,7 @@ jobs:
       RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
       HTTP_CACHE_FILE: TRUE
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: pip install rangehttpserver

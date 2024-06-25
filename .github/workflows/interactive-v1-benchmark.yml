@@ -74,13 +74,13 @@ jobs:
         driver/benchmark.sh | tee LDBC-SNB.log
 
     - name: Upload results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: LDBC-SNB-interactive-v1-results
         path: ldbc_snb_interactive_v1_impl/kuzu/results/LDBC-SNB-results.json
 
     - name: Upload log
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: LDBC-SNB-interactive-v1-log
         path: ldbc_snb_interactive_v1_impl/kuzu/LDBC-SNB.log

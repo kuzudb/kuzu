@@ -13,7 +13,7 @@ jobs:
   build-wheels:
     runs-on: self-hosted-windows
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Update nightly version
         if: ${{ inputs.isNightly == true }}
@@ -32,10 +32,10 @@ jobs:
       # action since there seems to be an issue with quoting
       # --only when inputs.only is empty.
       # See https://github.com/pypa/cibuildwheel/blob/main/action.yml
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         id: python
         with:
-          python-version: "3.7 - 3.11"
+          python-version: "3.7 - 3.12"
           update-environment: false
 
       - name: Build Wheels
@@ -52,7 +52,7 @@ jobs:
           "kuzu.tar.gz"
           --output-dir "wheelhouse"
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: windows-wheels
           path: ./scripts/pip-package/wheelhouse/*.whl
