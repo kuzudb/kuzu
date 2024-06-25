@@ -4,6 +4,7 @@
 #include "graph/graph_entry.h"
 #include "main/client_context.h"
 #include "parser/project_graph.h"
+#include "main/client_context.h"
 
 using namespace kuzu::parser;
 using namespace kuzu::common;
