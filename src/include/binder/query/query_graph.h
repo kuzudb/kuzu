@@ -110,8 +110,11 @@ public:
     std::shared_ptr<RelExpression> getQueryRel(const std::string& queryRelName) const {
         return queryRels.at(queryRelNameToPosMap.at(queryRelName));
     }
-    std::shared_ptr<RelExpression> getQueryRel(common::idx_t relPos) const { return queryRels[relPos]; }
-    std::vector<std::shared_ptr<RelExpression>> getQueryRels(const std::vector<common::idx_t>& indices) const;
+    std::shared_ptr<RelExpression> getQueryRel(common::idx_t relPos) const {
+        return queryRels[relPos];
+    }
+    std::vector<std::shared_ptr<RelExpression>> getQueryRels(
+        const std::vector<common::idx_t>& indices) const;
     common::idx_t getQueryRelPos(const std::string& queryRelName) const {
         return queryRelNameToPosMap.at(queryRelName);
     }

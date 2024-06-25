@@ -1,7 +1,7 @@
 #pragma once
 
-#include "join_tree.h"
 #include "binder/query/query_graph.h"
+#include "join_tree.h"
 
 namespace kuzu {
 namespace planner {
@@ -38,5 +38,5 @@ private:
     std::vector<DPLevel> levels;
 };
 
-}
-}
+} // namespace planner
+} // namespace kuzu

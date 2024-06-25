@@ -31,7 +31,8 @@ public:
     cardianlity_t estimateIntersect(const binder::expression_vector& joinNodeIDs,
         cardianlity_t probeCard, const std::vector<cardianlity_t>& buildCard);
     cardianlity_t estimateFlatten(const LogicalPlan& childPlan, f_group_pos groupPosToFlatten);
-    cardianlity_t estimateFilters(cardianlity_t inCardinality, const binder::expression_vector& predicates);
+    cardianlity_t estimateFilters(cardianlity_t inCardinality,
+        const binder::expression_vector& predicates);
     cardianlity_t estimateFilter(cardianlity_t inCardinality, const binder::Expression& predicate);
 
     double getExtensionRate(const binder::RelExpression& rel,

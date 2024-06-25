@@ -1,7 +1,7 @@
 #pragma once
 
-#include "planner/planner.h"
 #include "join_tree.h"
+#include "planner/planner.h"
 
 namespace kuzu {
 namespace planner {
@@ -28,5 +28,5 @@ private:
     Planner* planner;
 };
 
-}
-}
+} // namespace planner
+} // namespace kuzu

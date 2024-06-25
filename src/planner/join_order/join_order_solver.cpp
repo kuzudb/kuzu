@@ -1,6 +1,7 @@
 #include "planner/join_order/join_order_solver.h"
-#include "planner/planner.h"
+
 #include "planner/join_order/cost_model.h"
+#include "planner/planner.h"
 #include "storage/storage_manager.h"
 
 using namespace kuzu::binder;
@@ -45,7 +46,7 @@ void JoinOrderSolver::planBaseScans() {
             auto node = queryGraph.getQueryNode(i);
             if (correlatedExpressionSet.contains(node->getInternalID())) {
                 newSubgraph.addQueryNode(i);
-                continue ;
+                continue;
             }
             planBaseNodeScan(i);
         }
@@ -62,10 +63,12 @@ void JoinOrderSolver::planBaseScans() {
 
 void JoinOrderSolver::planCorrelatedExpressionsScan(const binder::SubqueryGraph& newSubgraph) {
     auto emptySubgraph = SubqueryGraph(queryGraph);
-    auto predicates = Planner::getNewlyMatchedExpressions(emptySubgraph, newSubgraph, queryGraphPredicates);
+    auto predicates =
+        Planner::getNewlyMatchedExpressions(emptySubgraph, newSubgraph, queryGraphPredicates);
     auto extraInfo = std::make_unique<ExtraExprScanTreeNodeInfo>(corrExprs);
     extraInfo->predicates = predicates;
-    auto joinNode = std::make_shared<JoinTreeNode>(JoinNodeType::EXPRESSION_SCAN, std::move(extraInfo));
+    auto joinNode =
+        std::make_shared<JoinTreeNode>(JoinNodeType::EXPRESSION_SCAN, std::move(extraInfo));
     auto joinTree = JoinTree(joinNode);
     // Estimate cost & cardinality.
     auto estCardinality = corrExprsCardinality;
@@ -82,7 +85,8 @@ void JoinOrderSolver::planBaseNodeScan(common::idx_t nodeIdx) {
     newSubgraph.addQueryNode(nodeIdx);
     auto node = queryGraph.getQueryNode(nodeIdx);
     auto properties = propertyCollection.getProperties(node);
-    auto predicates = Planner::getNewlyMatchedExpressions(emptySubgraph, newSubgraph, queryGraphPredicates);
+    auto predicates =
+        Planner::getNewlyMatchedExpressions(emptySubgraph, newSubgraph, queryGraphPredicates);
     auto scanInfo = std::make_unique<NodeTableScanInfo>(node, properties);
     scanInfo->predicates = predicates;
     auto extraInfo = std::make_unique<ExtraScanTreeNodeInfo>();
@@ -105,7 +109,8 @@ void JoinOrderSolver::planBaseRelScan(common::idx_t relIdx) {
     auto rel = queryGraph.getQueryRel(relIdx);
     auto properties = propertyCollection.getProperties(rel);
     auto scanInfo = RelTableScanInfo(rel, properties);
-    auto predicates = Planner::getNewlyMatchedExpressions(emptySubgraph, subgraph, queryGraphPredicates);
+    auto predicates =
+        Planner::getNewlyMatchedExpressions(emptySubgraph, subgraph, queryGraphPredicates);
     scanInfo.predicates = predicates;
     auto extraInfo = std::make_unique<ExtraScanTreeNodeInfo>();
     extraInfo->relInfos.push_back(std::move(scanInfo));
@@ -164,7 +169,7 @@ void JoinOrderSolver::planBinaryJoin(common::idx_t leftSize, common::idx_t right
 
 void JoinOrderSolver::planWorstCaseOptimalJoin(common::idx_t size, common::idx_t otherSize) {
     if (size == 1) {
-        return ;
+        return;
     }
     KU_ASSERT(size <= otherSize);
     auto otherLevel = dpTable.getLevel(otherSize);
@@ -175,7 +180,6 @@ void JoinOrderSolver::planWorstCaseOptimalJoin(common::idx_t size, common::idx_t
                 continue;
             }
             auto joinNode = queryGraph.getQueryNode(nodeIdx);
-
 
             std::vector<JoinTree> relJoinTrees;
             std::vector<SubqueryGraph> prevSubqueryGraphs;
@@ -190,8 +194,10 @@ void JoinOrderSolver::planWorstCaseOptimalJoin(common::idx_t size, common::idx_t
                 relJoinTrees.push_back(relJoinTree);
             }
 
-            auto predicates = Planner::getNewlyMatchedExpressions(prevSubqueryGraphs, newSubqueryGraph, queryGraphPredicates);
-            planWorstCaseOptimalJoin(otherJoinTree, relJoinTrees, joinNode, newSubqueryGraph, predicates);
+            auto predicates = Planner::getNewlyMatchedExpressions(prevSubqueryGraphs,
+                newSubqueryGraph, queryGraphPredicates);
+            planWorstCaseOptimalJoin(otherJoinTree, relJoinTrees, joinNode, newSubqueryGraph,
+                predicates);
         }
     }
 }
@@ -201,18 +207,20 @@ void JoinOrderSolver::planBinaryJoin(const SubqueryGraph& subqueryGraph, const J
     std::vector<std::shared_ptr<NodeExpression>> joinNodes) {
     auto newSubgraph = subqueryGraph;
     newSubgraph.addSubqueryGraph(otherSubqueryGraph);
-    auto predicates = Planner::getNewlyMatchedExpressions(subqueryGraph, otherSubqueryGraph, newSubgraph, queryGraphPredicates);
+    auto predicates = Planner::getNewlyMatchedExpressions(subqueryGraph, otherSubqueryGraph,
+        newSubgraph, queryGraphPredicates);
     // First try to solve index nested loop join. These joins, if doable, are preferred over hash
     // join because we have a built-in CSR index.
-    if (joinNodes.size() == 1 && tryPlanIndexNestedLoopJoin(joinTree, otherJoinTree, joinNodes[0], newSubgraph, predicates)) {
+    if (joinNodes.size() == 1 && tryPlanIndexNestedLoopJoin(joinTree, otherJoinTree, joinNodes[0],
+                                     newSubgraph, predicates)) {
         return;
     }
     planHashJoin(joinTree, otherJoinTree, joinNodes, newSubgraph, predicates);
 }
 
 void JoinOrderSolver::planHashJoin(const JoinTree& joinTree, const JoinTree& otherJoinTree,
-    std::vector<std::shared_ptr<binder::NodeExpression>> joinNodes, const SubqueryGraph& newSubqueryGraph,
-    const expression_vector& predicates) {
+    std::vector<std::shared_ptr<binder::NodeExpression>> joinNodes,
+    const SubqueryGraph& newSubqueryGraph, const expression_vector& predicates) {
     if (joinTree.cardinality < otherJoinTree.cardinality) {
         planHashJoin(otherJoinTree, joinTree, joinNodes, newSubqueryGraph, predicates);
     }
@@ -229,20 +237,23 @@ void JoinOrderSolver::planHashJoin(const JoinTree& joinTree, const JoinTree& oth
     for (auto& joinNode : joinNodes) {
         joinNodeIDs.push_back(joinNode->getInternalID());
     }
-    auto estCardinality = cardinalityEstimator.estimateHashJoin(joinNodeIDs, joinTree.cardinality, otherJoinTree.cardinality);
+    auto estCardinality = cardinalityEstimator.estimateHashJoin(joinNodeIDs, joinTree.cardinality,
+        otherJoinTree.cardinality);
     estCardinality = cardinalityEstimator.estimateFilters(estCardinality, predicates);
     newJoinTree.cardinality = estCardinality;
     // Insert to dp table.
     dpTable.add(newSubqueryGraph, newJoinTree);
 }
 
-void JoinOrderSolver::planWorstCaseOptimalJoin(const JoinTree& joinTree, const std::vector<JoinTree>& relJoinTrees,
-    std::shared_ptr<NodeExpression> joinNode, const SubqueryGraph& newSubqueryGraph, const binder::expression_vector& predicates) {
+void JoinOrderSolver::planWorstCaseOptimalJoin(const JoinTree& joinTree,
+    const std::vector<JoinTree>& relJoinTrees, std::shared_ptr<NodeExpression> joinNode,
+    const SubqueryGraph& newSubqueryGraph, const binder::expression_vector& predicates) {
     std::vector<std::shared_ptr<binder::NodeExpression>> joinNodes;
     joinNodes.push_back(joinNode);
     auto extraInfo = std::make_unique<ExtraJoinTreeNodeInfo>(joinNodes);
     extraInfo->predicates = predicates;
-    auto treeNode = std::make_shared<JoinTreeNode>(JoinNodeType::MULTIWAY_JOIN, std::move(extraInfo));
+    auto treeNode =
+        std::make_shared<JoinTreeNode>(JoinNodeType::MULTIWAY_JOIN, std::move(extraInfo));
     treeNode->addChild(joinTree.root);
     for (auto& relJoinTree : relJoinTrees) {
         treeNode->addChild(relJoinTree.root);
@@ -255,10 +266,12 @@ void JoinOrderSolver::planWorstCaseOptimalJoin(const JoinTree& joinTree, const s
         buildCosts.push_back(relJoinTree.cost);
         buildCards.push_back(relJoinTree.cardinality);
     }
-    newJoinTree.cost = CostModel::computeIntersectCost(joinTree.cost, buildCosts, joinTree.cardinality);
+    newJoinTree.cost =
+        CostModel::computeIntersectCost(joinTree.cost, buildCosts, joinTree.cardinality);
     binder::expression_vector joinNodeIDs;
     joinNodeIDs.push_back(joinNode->getInternalID());
-    auto estCardinality = cardinalityEstimator.estimateIntersect(joinNodeIDs, joinTree.cardinality, buildCards);
+    auto estCardinality =
+        cardinalityEstimator.estimateIntersect(joinNodeIDs, joinTree.cardinality, buildCards);
     estCardinality = cardinalityEstimator.estimateFilters(estCardinality, predicates);
     newJoinTree.cardinality = estCardinality;
     // Insert to dp table.
@@ -272,7 +285,8 @@ bool JoinOrderSolver::tryPlanIndexNestedLoopJoin(const JoinTree& joinTree,
         return false;
     }
     if (joinTree.isSingleRel()) {
-        return tryPlanIndexNestedLoopJoin(otherJoinTree, joinTree, joinNode, newSubqueryGraph, predicates);
+        return tryPlanIndexNestedLoopJoin(otherJoinTree, joinTree, joinNode, newSubqueryGraph,
+            predicates);
     }
     if (joinTree.root->type != JoinNodeType::NODE_SCAN) {
         return false;
@@ -288,10 +302,12 @@ bool JoinOrderSolver::tryPlanIndexNestedLoopJoin(const JoinTree& joinTree,
         for (auto& predicate : predicates) {
             newExtraNodeScanInfo.predicates.push_back(predicate);
         }
-        auto treeNode = std::make_shared<JoinTreeNode>(JoinNodeType::NODE_SCAN, std::move(newExtraScanInfo));
+        auto treeNode =
+            std::make_shared<JoinTreeNode>(JoinNodeType::NODE_SCAN, std::move(newExtraScanInfo));
         auto newJoinTree = JoinTree(treeNode);
         // Estimate cost & cardinality.
-        auto extensionRate = cardinalityEstimator.getExtensionRate(*rel, *joinNode, context->getTx());
+        auto extensionRate =
+            cardinalityEstimator.getExtensionRate(*rel, *joinNode, context->getTx());
         if (rel->isRecursive()) {
             newJoinTree.cost = CostModel::computeRecursiveExtendCost(joinTree.cardinality,
                 rel->getUpperBound(), extensionRate);
@@ -308,5 +324,5 @@ bool JoinOrderSolver::tryPlanIndexNestedLoopJoin(const JoinTree& joinTree,
     return false;
 }
 
-}
-}
+} // namespace planner
+} // namespace kuzu

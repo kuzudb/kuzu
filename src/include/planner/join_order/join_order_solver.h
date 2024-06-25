@@ -1,9 +1,9 @@
 #pragma once
 
 #include "binder/query/query_graph.h"
-#include "join_tree.h"
-#include "dp_table.h"
 #include "cardinality_estimator.h"
+#include "dp_table.h"
+#include "join_tree.h"
 #include "planner/join_order_enumerator_context.h"
 
 namespace kuzu {
@@ -18,7 +18,8 @@ public:
         return patternToProperties.at(pattern);
     }
 
-    void addProperties(std::shared_ptr<binder::Expression> pattern, const binder::expression_vector& properties) {
+    void addProperties(std::shared_ptr<binder::Expression> pattern,
+        const binder::expression_vector& properties) {
         KU_ASSERT(!patternToProperties.contains(pattern));
         patternToProperties.insert({pattern, properties});
     }
@@ -33,11 +34,13 @@ private:
 class JoinOrderSolver {
 public:
     explicit JoinOrderSolver(const binder::QueryGraph& queryGraph,
-        binder::expression_vector predicates, PropertyExprCollection propertyExprCollection, main::ClientContext* context)
+        binder::expression_vector predicates, PropertyExprCollection propertyExprCollection,
+        main::ClientContext* context)
         : queryGraph{queryGraph}, queryGraphPredicates{std::move(predicates)},
-          propertyCollection{std::move(propertyExprCollection)}, context{context}{}
+          propertyCollection{std::move(propertyExprCollection)}, context{context} {}
 
-    void setCorrExprs(SubqueryType subqueryType_, binder::expression_vector exprs, cardianlity_t card) {
+    void setCorrExprs(SubqueryType subqueryType_, binder::expression_vector exprs,
+        cardianlity_t card) {
         subqueryType = subqueryType_;
         corrExprs = std::move(exprs);
         corrExprsCardinality = card;
@@ -58,14 +61,13 @@ private:
         std::vector<std::shared_ptr<binder::NodeExpression>> joinNodes);
     void planHashJoin(const JoinTree& joinTree, const JoinTree& otherJoinTree,
         std::vector<std::shared_ptr<binder::NodeExpression>> joinNodes,
-        const binder::SubqueryGraph& newSubqueryGraph,
-        const binder::expression_vector& predicates);
-    void planWorstCaseOptimalJoin(const JoinTree& joinTree, const std::vector<JoinTree>& relJoinTrees,
-        std::shared_ptr<binder::NodeExpression> joinNode, const binder::SubqueryGraph& newSubqueryGraph,
-        const binder::expression_vector& predicates);
+        const binder::SubqueryGraph& newSubqueryGraph, const binder::expression_vector& predicates);
+    void planWorstCaseOptimalJoin(const JoinTree& joinTree,
+        const std::vector<JoinTree>& relJoinTrees, std::shared_ptr<binder::NodeExpression> joinNode,
+        const binder::SubqueryGraph& newSubqueryGraph, const binder::expression_vector& predicates);
     bool tryPlanIndexNestedLoopJoin(const JoinTree& joinTree, const JoinTree& otherJoinTree,
-        std::shared_ptr<binder::NodeExpression> joinNode, const binder::SubqueryGraph& newSubqueryGraph,
-        const binder::expression_vector& predicates);
+        std::shared_ptr<binder::NodeExpression> joinNode,
+        const binder::SubqueryGraph& newSubqueryGraph, const binder::expression_vector& predicates);
 
 private:
     // Query graph to plan
@@ -82,5 +84,5 @@ private:
     CardinalityEstimator cardinalityEstimator;
 };
 
-}
-}
+} // namespace planner
+} // namespace kuzu

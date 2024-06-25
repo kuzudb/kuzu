@@ -5,60 +5,61 @@
 namespace kuzu {
 namespace planner {
 
-//class JoinOrderEnumeratorContext {
-//    friend class Planner;
+// class JoinOrderEnumeratorContext {
+//     friend class Planner;
 //
-//public:
-//    JoinOrderEnumeratorContext()
-//        : currentLevel{0}, maxLevel{0}, subPlansTable{std::make_unique<SubPlansTable>()},
-//          queryGraph{nullptr}, subqueryType{SubqueryType::NONE},
-//          correlatedExpressionsCardinality{1} {}
-//    DELETE_COPY_DEFAULT_MOVE(JoinOrderEnumeratorContext);
+// public:
+//     JoinOrderEnumeratorContext()
+//         : currentLevel{0}, maxLevel{0}, subPlansTable{std::make_unique<SubPlansTable>()},
+//           queryGraph{nullptr}, subqueryType{SubqueryType::NONE},
+//           correlatedExpressionsCardinality{1} {}
+//     DELETE_COPY_DEFAULT_MOVE(JoinOrderEnumeratorContext);
 //
-//    void init(const binder::QueryGraph* queryGraph, const binder::expression_vector& predicates);
+//     void init(const binder::QueryGraph* queryGraph, const binder::expression_vector& predicates);
 //
-//    inline binder::expression_vector getWhereExpressions() { return whereExpressionsSplitOnAND; }
+//     inline binder::expression_vector getWhereExpressions() { return whereExpressionsSplitOnAND; }
 //
-//    inline bool containPlans(const binder::SubqueryGraph& subqueryGraph) const {
-//        return subPlansTable->containSubgraphPlans(subqueryGraph);
-//    }
-//    inline std::vector<std::unique_ptr<LogicalPlan>>& getPlans(
-//        const binder::SubqueryGraph& subqueryGraph) const {
-//        return subPlansTable->getSubgraphPlans(subqueryGraph);
-//    }
-//    inline void addPlan(const binder::SubqueryGraph& subqueryGraph,
-//        std::unique_ptr<LogicalPlan> plan) {
-//        subPlansTable->addPlan(subqueryGraph, std::move(plan));
-//    }
+//     inline bool containPlans(const binder::SubqueryGraph& subqueryGraph) const {
+//         return subPlansTable->containSubgraphPlans(subqueryGraph);
+//     }
+//     inline std::vector<std::unique_ptr<LogicalPlan>>& getPlans(
+//         const binder::SubqueryGraph& subqueryGraph) const {
+//         return subPlansTable->getSubgraphPlans(subqueryGraph);
+//     }
+//     inline void addPlan(const binder::SubqueryGraph& subqueryGraph,
+//         std::unique_ptr<LogicalPlan> plan) {
+//         subPlansTable->addPlan(subqueryGraph, std::move(plan));
+//     }
 //
-//    inline binder::SubqueryGraph getEmptySubqueryGraph() const {
-//        return binder::SubqueryGraph(*queryGraph);
-//    }
-//    binder::SubqueryGraph getFullyMatchedSubqueryGraph() const;
+//     inline binder::SubqueryGraph getEmptySubqueryGraph() const {
+//         return binder::SubqueryGraph(*queryGraph);
+//     }
+//     binder::SubqueryGraph getFullyMatchedSubqueryGraph() const;
 //
-//    inline const binder::QueryGraph* getQueryGraph() { return queryGraph; }
+//     inline const binder::QueryGraph* getQueryGraph() { return queryGraph; }
 //
-//    inline binder::expression_vector getCorrelatedExpressions() const {
-//        return correlatedExpressions;
-//    }
-//    inline binder::expression_set getCorrelatedExpressionsSet() const {
-//        return binder::expression_set{correlatedExpressions.begin(), correlatedExpressions.end()};
-//    }
-//    void resetState();
+//     inline binder::expression_vector getCorrelatedExpressions() const {
+//         return correlatedExpressions;
+//     }
+//     inline binder::expression_set getCorrelatedExpressionsSet() const {
+//         return binder::expression_set{correlatedExpressions.begin(),
+//         correlatedExpressions.end()};
+//     }
+//     void resetState();
 //
-//private:
-//    binder::expression_vector whereExpressionsSplitOnAND;
+// private:
+//     binder::expression_vector whereExpressionsSplitOnAND;
 //
-//    uint32_t currentLevel;
-//    uint32_t maxLevel;
+//     uint32_t currentLevel;
+//     uint32_t maxLevel;
 //
-//    std::unique_ptr<SubPlansTable> subPlansTable;
-//    const binder::QueryGraph* queryGraph;
+//     std::unique_ptr<SubPlansTable> subPlansTable;
+//     const binder::QueryGraph* queryGraph;
 //
-//    SubqueryType subqueryType;
-//    binder::expression_vector correlatedExpressions;
-//    uint64_t correlatedExpressionsCardinality;
-//};
+//     SubqueryType subqueryType;
+//     binder::expression_vector correlatedExpressions;
+//     uint64_t correlatedExpressionsCardinality;
+// };
 
 } // namespace planner
 } // namespace kuzu

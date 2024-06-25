@@ -40,10 +40,12 @@ cardianlity_t CardinalityEstimator::estimateScanNode(LogicalOperator* op) {
 
 cardianlity_t CardinalityEstimator::estimateHashJoin(const expression_vector& joinKeys,
     const LogicalPlan& probePlan, const LogicalPlan& buildPlan) {
-    return estimateHashJoin(joinKeys, probePlan.estCardinality, JoinOrderUtil::getJoinKeysFlatCardinality(joinKeys, buildPlan));
+    return estimateHashJoin(joinKeys, probePlan.estCardinality,
+        JoinOrderUtil::getJoinKeysFlatCardinality(joinKeys, buildPlan));
 }
 
-cardianlity_t CardinalityEstimator::estimateHashJoin(const expression_vector& joinKeys, cardianlity_t probeCard, cardianlity_t buildCard) {
+cardianlity_t CardinalityEstimator::estimateHashJoin(const expression_vector& joinKeys,
+    cardianlity_t probeCard, cardianlity_t buildCard) {
     auto denominator = 1u;
     for (auto& joinKey : joinKeys) {
         // TODO(Xiyang): we should be able to estimate non-ID-based joins as well.
@@ -90,7 +92,8 @@ static bool isPrimaryKey(const Expression& expression) {
     return ((PropertyExpression&)expression).isPrimaryKey();
 }
 
-cardianlity_t CardinalityEstimator::estimateFilters(cardianlity_t inCardinality, const expression_vector& predicates) {
+cardianlity_t CardinalityEstimator::estimateFilters(cardianlity_t inCardinality,
+    const expression_vector& predicates) {
     auto resultCardinality = inCardinality;
     for (auto& predicate : predicates) {
         resultCardinality = estimateFilter(resultCardinality, *predicate);

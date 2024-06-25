@@ -1,4 +1,5 @@
 #include "planner/join_order/join_plan_solver.h"
+
 #include "common/enums/extend_direction.h"
 
 using namespace kuzu::binder;
@@ -43,7 +44,8 @@ LogicalPlan JoinPlanSolver::solveExprScanTreeNode(const JoinTreeNode& treeNode) 
     return plan;
 }
 
-static ExtendDirection getExtendDirection(const RelExpression& rel, const NodeExpression& boundNode) {
+static ExtendDirection getExtendDirection(const RelExpression& rel,
+    const NodeExpression& boundNode) {
     if (rel.getDirectionType() == binder::RelDirectionType::BOTH) {
         return ExtendDirection::BOTH;
     }
@@ -54,7 +56,8 @@ static ExtendDirection getExtendDirection(const RelExpression& rel, const NodeEx
     }
 }
 
-static std::shared_ptr<binder::NodeExpression> getNbrNode(const RelExpression& rel, const NodeExpression& boundNode) {
+static std::shared_ptr<binder::NodeExpression> getNbrNode(const RelExpression& rel,
+    const NodeExpression& boundNode) {
     if (*rel.getSrcNode() == boundNode) {
         return rel.getDstNode();
     }
@@ -67,7 +70,8 @@ LogicalPlan JoinPlanSolver::solveNodeScanTreeNode(const JoinTreeNode& treeNode) 
     auto& nodeInfo = *extraInfo.nodeInfo;
     auto boundNode = nodeInfo.node;
     auto plan = LogicalPlan();
-    planner->appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), nodeInfo.properties, plan);
+    planner->appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(),
+        nodeInfo.properties, plan);
     planner->appendFilters(nodeInfo.predicates, plan);
     for (auto& relInfo : extraInfo.relInfos) {
         auto rel = relInfo.rel;
@@ -80,7 +84,8 @@ LogicalPlan JoinPlanSolver::solveNodeScanTreeNode(const JoinTreeNode& treeNode) 
     return plan;
 }
 
-LogicalPlan JoinPlanSolver::solveRelScanTreeNode(const JoinTreeNode& treeNode, const JoinTreeNode& parent) {
+LogicalPlan JoinPlanSolver::solveRelScanTreeNode(const JoinTreeNode& treeNode,
+    const JoinTreeNode& parent) {
     std::shared_ptr<NodeExpression> boundNode = nullptr;
     switch (parent.type) {
     case JoinNodeType::BINARY_JOIN:
@@ -89,7 +94,7 @@ LogicalPlan JoinPlanSolver::solveRelScanTreeNode(const JoinTreeNode& treeNode, c
         if (extraInfo.joinNodes.size() == 1) {
             boundNode = extraInfo.joinNodes[0];
         }
-    } break ;
+    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -103,7 +108,8 @@ LogicalPlan JoinPlanSolver::solveRelScanTreeNode(const JoinTreeNode& treeNode, c
     auto nbrNode = getNbrNode(*rel, *boundNode);
     auto direction = getExtendDirection(*rel, *boundNode);
     auto plan = LogicalPlan();
-    planner->appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), expression_vector{}, plan);
+    planner->appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(),
+        expression_vector{}, plan);
     planner->appendExtend(boundNode, nbrNode, rel, direction, relInfo.properties, plan);
     planner->appendFilters(relInfo.predicates, plan);
     return plan;
@@ -149,5 +155,5 @@ LogicalPlan JoinPlanSolver::solveMultiwayJoinTreeNode(const JoinTreeNode& treeNo
     return plan;
 }
 
-}
-}
+} // namespace planner
+} // namespace kuzu

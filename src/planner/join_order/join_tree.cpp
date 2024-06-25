@@ -19,5 +19,5 @@ void ExtraScanTreeNodeInfo::merge(const ExtraScanTreeNodeInfo& other) {
     relInfos.push_back(other.relInfos[0]);
 }
 
-}
-}
+} // namespace planner
+} // namespace kuzu

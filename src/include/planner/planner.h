@@ -6,9 +6,9 @@
 #include "common/enums/extend_direction.h"
 #include "common/enums/join_type.h"
 #include "planner/join_order/cardinality_estimator.h"
+#include "planner/join_order/join_tree.h"
 #include "planner/join_order_enumerator_context.h"
 #include "planner/operator/logical_plan.h"
-#include "planner/join_order/join_tree.h"
 
 namespace kuzu {
 namespace binder {
@@ -32,7 +32,6 @@ enum class SubqueryType : uint8_t {
     INTERNAL_ID_CORRELATED = 1,
     CORRELATED = 2,
 };
-
 
 struct SubqueryPlanInfo {
     SubqueryType subqueryType;
@@ -156,14 +155,12 @@ public:
         const binder::QueryGraphCollection& queryGraphCollection,
         const binder::expression_vector& predicates);
     std::vector<std::unique_ptr<LogicalPlan>> enumerateQueryGraph(
-        const SubqueryPlanInfo& subqueryPlanInfo,
-        const binder::QueryGraph& queryGraph, binder::expression_vector& predicates);
-
+        const SubqueryPlanInfo& subqueryPlanInfo, const binder::QueryGraph& queryGraph,
+        binder::expression_vector& predicates);
 
     void appendExtend(std::shared_ptr<binder::NodeExpression> boundNode,
-        std::shared_ptr<binder::NodeExpression> nbrNode,
-        std::shared_ptr<binder::RelExpression> rel, common::ExtendDirection direction,
-        const binder::expression_vector& properties,
+        std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
+        common::ExtendDirection direction, const binder::expression_vector& properties,
         LogicalPlan& plan);
 
     std::vector<std::unique_ptr<LogicalPlan>> planCrossProduct(
@@ -284,12 +281,15 @@ public:
 
     binder::expression_vector getProperties(const binder::Expression& nodeOrRel);
 
-    static binder::expression_vector getNewlyMatchedExpressions(const std::vector<binder::SubqueryGraph>& prevSubgraphs,
-        const binder::SubqueryGraph& newSubgraph, const binder::expression_vector& expressions) ;
-    static binder::expression_vector getNewlyMatchedExpressions(const binder::SubqueryGraph& leftPrev,
-        const binder::SubqueryGraph& rightPrev, const binder::SubqueryGraph& newSubgraph, const binder::expression_vector& expressions);
-    static binder::expression_vector getNewlyMatchedExpressions(const binder::SubqueryGraph& prevSubgraph,
+    static binder::expression_vector getNewlyMatchedExpressions(
+        const std::vector<binder::SubqueryGraph>& prevSubgraphs,
         const binder::SubqueryGraph& newSubgraph, const binder::expression_vector& expressions);
+    static binder::expression_vector getNewlyMatchedExpressions(
+        const binder::SubqueryGraph& leftPrev, const binder::SubqueryGraph& rightPrev,
+        const binder::SubqueryGraph& newSubgraph, const binder::expression_vector& expressions);
+    static binder::expression_vector getNewlyMatchedExpressions(
+        const binder::SubqueryGraph& prevSubgraph, const binder::SubqueryGraph& newSubgraph,
+        const binder::expression_vector& expressions);
 
 private:
     main::ClientContext* clientContext;

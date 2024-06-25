@@ -18,7 +18,6 @@ public:
         const LogicalPlan& probe, const LogicalPlan& build);
     static cost_t computeIntersectCost(cost_t probeCost, std::vector<cost_t> buildCosts,
         cardianlity_t probeCard);
-
 };
 
 } // namespace planner

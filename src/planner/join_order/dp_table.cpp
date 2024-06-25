@@ -27,5 +27,5 @@ void DPTable::add(const binder::SubqueryGraph& subqueryGraph, const JoinTree& jo
     level.add(subqueryGraph, joinTree);
 }
 
-}
-}
+} // namespace planner
+} // namespace kuzu

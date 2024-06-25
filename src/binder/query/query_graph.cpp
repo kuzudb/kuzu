@@ -14,7 +14,8 @@ std::size_t SubqueryGraphHasher::operator()(const SubqueryGraph& key) const {
     return std::hash<std::bitset<MAX_NUM_QUERY_VARIABLES>>{}(key.queryRelsSelector);
 }
 
-std::unordered_map<common::idx_t, std::vector<common::idx_t>> SubqueryGraph::getWCOJRelCandidates() const {
+std::unordered_map<common::idx_t, std::vector<common::idx_t>>
+SubqueryGraph::getWCOJRelCandidates() const {
     std::unordered_map<common::idx_t, std::vector<common::idx_t>> candidates;
     for (auto relPos : getRelNbrPositions()) {
         auto rel = queryGraph.getQueryRel(relPos);
@@ -196,7 +197,8 @@ std::vector<std::shared_ptr<NodeOrRelExpression>> QueryGraph::getAllPatterns() c
     return patterns;
 }
 
-std::vector<std::shared_ptr<NodeExpression>> QueryGraph::getQueryNodes(const std::vector<idx_t>& indices) const {
+std::vector<std::shared_ptr<NodeExpression>> QueryGraph::getQueryNodes(
+    const std::vector<idx_t>& indices) const {
     std::vector<std::shared_ptr<NodeExpression>> result;
     result.reserve(indices.size());
     for (auto idx : indices) {
@@ -205,7 +207,8 @@ std::vector<std::shared_ptr<NodeExpression>> QueryGraph::getQueryNodes(const std
     return result;
 }
 
-std::vector<std::shared_ptr<RelExpression>> QueryGraph::getQueryRels(const std::vector<idx_t>& indices) const {
+std::vector<std::shared_ptr<RelExpression>> QueryGraph::getQueryRels(
+    const std::vector<idx_t>& indices) const {
     std::vector<std::shared_ptr<RelExpression>> result;
     result.reserve(indices.size());
     for (auto idx : indices) {

@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace planner {
 
-enum class JoinNodeType : uint8_t  {
+enum class JoinNodeType : uint8_t {
     NODE_SCAN = 0,
     REL_SCAN = 1,
     EXPRESSION_SCAN = 2,
@@ -47,7 +47,8 @@ struct NodeTableScanInfo {
     binder::expression_vector properties;
     binder::expression_vector predicates;
 
-    NodeTableScanInfo(std::shared_ptr<binder::NodeExpression> node, binder::expression_vector properties)
+    NodeTableScanInfo(std::shared_ptr<binder::NodeExpression> node,
+        binder::expression_vector properties)
         : node{std::move(node)}, properties{std::move(properties)} {}
 };
 
@@ -56,7 +57,8 @@ struct RelTableScanInfo {
     binder::expression_vector properties;
     binder::expression_vector predicates;
 
-    RelTableScanInfo(std::shared_ptr<binder::RelExpression> rel, binder::expression_vector properties)
+    RelTableScanInfo(std::shared_ptr<binder::RelExpression> rel,
+        binder::expression_vector properties)
         : rel{std::move(rel)}, properties{std::move(properties)} {}
 };
 
@@ -67,7 +69,8 @@ struct ExtraScanTreeNodeInfo : ExtraTreeNodeInfo {
 
     ExtraScanTreeNodeInfo() = default;
     ExtraScanTreeNodeInfo(const ExtraScanTreeNodeInfo& other)
-        : nodeInfo{std::make_unique<NodeTableScanInfo>(*other.nodeInfo)}, relInfos{other.relInfos} {}
+        : nodeInfo{std::make_unique<NodeTableScanInfo>(*other.nodeInfo)}, relInfos{other.relInfos} {
+    }
 
     bool isSingleRel() const;
 
@@ -98,13 +101,11 @@ struct JoinTreeNode {
 
     std::vector<std::shared_ptr<JoinTreeNode>> children;
 
-    JoinTreeNode(JoinNodeType type, std::unique_ptr<ExtraTreeNodeInfo> extraInfo) : type{type},
-          extraInfo{std::move(extraInfo)} {}
+    JoinTreeNode(JoinNodeType type, std::unique_ptr<ExtraTreeNodeInfo> extraInfo)
+        : type{type}, extraInfo{std::move(extraInfo)} {}
     DELETE_COPY_DEFAULT_MOVE(JoinTreeNode);
 
-    void addChild(std::shared_ptr<JoinTreeNode> child) {
-        children.push_back(std::move(child));
-    }
+    void addChild(std::shared_ptr<JoinTreeNode> child) { children.push_back(std::move(child)); }
 };
 
 struct JoinTree {
@@ -116,10 +117,9 @@ struct JoinTree {
 
     bool isSingleRel() const;
 
-    JoinTree(const JoinTree& other) : root{other.root}, cardinality{other.cardinality},
-          cost{other.cost} {}
+    JoinTree(const JoinTree& other)
+        : root{other.root}, cardinality{other.cardinality}, cost{other.cost} {}
 };
 
-
-}
-}
+} // namespace planner
+} // namespace kuzu

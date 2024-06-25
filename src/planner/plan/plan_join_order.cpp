@@ -1,10 +1,10 @@
 #include "binder/expression_visitor.h"
 #include "common/enums/join_type.h"
 #include "planner/join_order/cost_model.h"
-#include "planner/operator/scan/logical_scan_node_table.h"
-#include "planner/planner.h"
 #include "planner/join_order/join_order_solver.h"
 #include "planner/join_order/join_plan_solver.h"
+#include "planner/operator/scan/logical_scan_node_table.h"
+#include "planner/planner.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -41,7 +41,8 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraphCollection
     const SubqueryPlanInfo& subqueryPlanInfo, const QueryGraphCollection& queryGraphCollection,
     const expression_vector& predicates) {
     KU_ASSERT(queryGraphCollection.getNumQueryGraphs() > 0);
-    auto corrExprsSet = expression_set{subqueryPlanInfo.corrExprs.begin(), subqueryPlanInfo.corrExprs.end()};
+    auto corrExprsSet =
+        expression_set{subqueryPlanInfo.corrExprs.begin(), subqueryPlanInfo.corrExprs.end()};
     int32_t queryGraphIdxToPlanExpressionsScan = -1;
     if (subqueryPlanInfo.subqueryType == SubqueryType::CORRELATED) {
         // Pick a query graph to plan ExpressionsScan. If -1 is returned, we fall back to cross
@@ -144,37 +145,39 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraph(
             auto properties = getProperties(*node);
             propertyExprCollection.addProperties(node, properties);
         }
-    } break ;
+    } break;
     case SubqueryType::INTERNAL_ID_CORRELATED:
     case SubqueryType::CORRELATED: {
         auto& corrExprs = subqueryPlanInfo.corrExprs;
         auto set = expression_set{corrExprs.begin(), corrExprs.end()};
         for (auto& node : queryGraph.getQueryNodes()) {
             if (set.contains(node->getInternalID())) {
-                continue ;
+                continue;
             }
             auto nodeProperties = getProperties(*node);
             propertyExprCollection.addProperties(node, nodeProperties);
         }
-    } break ;
+    } break;
     default:
         KU_UNREACHABLE;
     }
     for (auto& rel : queryGraph.getQueryRels()) {
         if (ExpressionUtil::isRecursiveRelPattern(*rel)) {
-            continue ;
+            continue;
         }
         auto properties = getProperties(*rel);
         propertyExprCollection.addProperties(rel, properties);
     }
-    auto joinOrderSolver = JoinOrderSolver(queryGraph, predicates, std::move(propertyExprCollection), clientContext);
+    auto joinOrderSolver =
+        JoinOrderSolver(queryGraph, predicates, std::move(propertyExprCollection), clientContext);
     // Init correlated expressions.
     switch (subqueryPlanInfo.subqueryType) {
     case SubqueryType::INTERNAL_ID_CORRELATED:
     case SubqueryType::CORRELATED: {
         // TODO: we shouldn't get correlated expr cardinality from context.
-        joinOrderSolver.setCorrExprs(subqueryType, corrExprs, context.correlatedExpressionsCardinality);
-    } break ;
+        joinOrderSolver.setCorrExprs(subqueryType, corrExprs,
+            context.correlatedExpressionsCardinality);
+    } break;
     default:
         break;
     }
@@ -191,9 +194,9 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraph(
     return plans;
 }
 
-//void Planner::planLevelApproximately(uint32_t level) {
-//    planInnerJoin(1, level - 1);
-//}
+// void Planner::planLevelApproximately(uint32_t level) {
+//     planInnerJoin(1, level - 1);
+// }
 
 static bool isExpressionNewlyMatched(const std::vector<SubqueryGraph>& prevSubgraphs,
     const SubqueryGraph& newSubgraph, const std::shared_ptr<Expression>& expression) {
@@ -207,8 +210,9 @@ static bool isExpressionNewlyMatched(const std::vector<SubqueryGraph>& prevSubgr
     return newSubgraph.containAllVariables(variables);
 }
 
-expression_vector Planner::getNewlyMatchedExpressions(const std::vector<SubqueryGraph>& prevSubgraphs,
-    const SubqueryGraph& newSubgraph, const expression_vector& expressions) {
+expression_vector Planner::getNewlyMatchedExpressions(
+    const std::vector<SubqueryGraph>& prevSubgraphs, const SubqueryGraph& newSubgraph,
+    const expression_vector& expressions) {
     expression_vector result;
     for (auto& expression : expressions) {
         if (isExpressionNewlyMatched(prevSubgraphs, newSubgraph, expression)) {

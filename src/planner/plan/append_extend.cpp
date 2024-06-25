@@ -205,7 +205,8 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     // Update cost
     auto extensionRate =
         cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
-    plan.setCost(CostModel::computeRecursiveExtendCost(plan.getCardinality(), rel->getUpperBound(), extensionRate));
+    plan.setCost(CostModel::computeRecursiveExtendCost(plan.getCardinality(), rel->getUpperBound(),
+        extensionRate));
     // Update cardinality
     auto hasAtMostOneNbr =
         extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, *clientContext);

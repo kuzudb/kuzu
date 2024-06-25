@@ -94,10 +94,11 @@ void Planner::appendIntersect(const std::shared_ptr<Expression>& intersectNodeID
         buildCards.push_back(p->getCardinality());
     }
     // update cost
-    probePlan.setCost(CostModel::computeIntersectCost(probePlan.getCost(), buildCosts, probePlan.getCardinality()));
+    probePlan.setCost(CostModel::computeIntersectCost(probePlan.getCost(), buildCosts,
+        probePlan.getCardinality()));
     // update cardinality
-    probePlan.setCardinality(
-        cardinalityEstimator.estimateIntersect(boundNodeIDs, probePlan.getCardinality(), buildCards));
+    probePlan.setCardinality(cardinalityEstimator.estimateIntersect(boundNodeIDs,
+        probePlan.getCardinality(), buildCards));
     probePlan.setLastOperator(std::move(intersect));
 }
 
