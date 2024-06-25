@@ -137,7 +137,7 @@ static void jsonArrayLength(const std::vector<std::shared_ptr<ValueVector>>& par
 function_set JsonArrayLengthFunction::getFunctionSet() {
     function_set ret;
     ret.push_back(std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING,
-        LogicalTypeID::STRING}, LogicalTypeID::UINT32, jsonExtractSinglePath));
+        LogicalTypeID::STRING}, LogicalTypeID::UINT32, jsonArrayLength));
     return ret;
 }
 

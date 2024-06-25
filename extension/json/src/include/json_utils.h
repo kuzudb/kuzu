@@ -11,7 +11,8 @@ namespace json_extension {
 
 struct JsonMutWrapper;
 
-struct JsonWrapper {
+class JsonWrapper {
+public:
     JsonWrapper() = delete;
     explicit JsonWrapper(yyjson_doc* ptr) : ptr{ptr} {}
     ~JsonWrapper() { yyjson_doc_free(ptr); }
@@ -20,7 +21,8 @@ struct JsonWrapper {
     yyjson_doc* ptr;
 };
 
-struct JsonMutWrapper {
+class JsonMutWrapper {
+public:
     JsonMutWrapper() : ptr{yyjson_mut_doc_new(nullptr)} {}
     explicit JsonMutWrapper(yyjson_mut_doc* ptr) : ptr{ptr} {}
     ~JsonMutWrapper() { yyjson_mut_doc_free(ptr); }
@@ -30,9 +32,9 @@ struct JsonMutWrapper {
 };
 
 JsonWrapper jsonify(const common::ValueVector& vec, uint64_t pos);
-// converts an internal Kuzu Value into json
+// Converts an internal Kuzu Value into json
 common::LogicalType jsonSchema(const JsonWrapper& wrapper);
-void readJsonToValueVector(const yyjson_val* val, common::ValueVector& vec, uint64_t pos);
+void readJsonToValueVector(yyjson_val* val, common::ValueVector& vec, uint64_t pos);
 
 std::string jsonToString(const JsonWrapper& wrapper);
 std::string jsonToString(const yyjson_val* val);

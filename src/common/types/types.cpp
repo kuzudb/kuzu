@@ -95,7 +95,7 @@ std::vector<std::string> StructType::getFieldNames(const LogicalType& type) {
 
 uint64_t StructType::getNumFields(const LogicalType& type) {
     KU_ASSERT(type.getPhysicalType() == PhysicalTypeID::STRUCT);
-    return getFieldTypes(type).size();
+    return getFields(type).size();
 }
 
 const std::vector<StructField>& StructType::getFields(const LogicalType& type) {

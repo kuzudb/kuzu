@@ -10,93 +10,134 @@ namespace json_extension {
 
 struct JsonBindData : public TableFuncBindData {
 
-    JsonWrapper json;
+    std::shared_ptr<JsonWrapper> json;
+    bool scanFromList;
+    bool scanFromStruct;
+    std::map<std::string, uint32_t> nameToIdxMap;
 
     JsonBindData(std::vector<common::LogicalType> columnTypes,
-        std::vector<std::string> columnNames, JsonWrapper&& wrapper)
-        : TableFuncBindData(columnTypes, columnNames), json(std::move(wrapper)) {}
+        std::vector<std::string> columnNames, std::shared_ptr<JsonWrapper> wrapper,
+        bool scanFromList, bool scanFromStruct)
+        : TableFuncBindData(std::move(columnTypes), std::move(columnNames)),
+          json(wrapper),
+          scanFromList{scanFromList}, scanFromStruct{scanFromStruct} {
+        for (auto i = 0u; i < columnNames.size(); i++) {
+            nameToIdxMap[columnNames[i]] = i;
+        }
+    }
+
+    std::unique_ptr<TableFuncBindData> copy() const {
+        return std::make_unique<JsonBindData>(LogicalType::copy(columnTypes), columnNames,
+            json, scanFromList, scanFromStruct);
+    }
 };
 
 struct JsonScanSharedState : public TableFuncSharedState {
 
-    std::vector<yyjson_arr_iter> iters;
-    uint64_t curChunk;
+    std::vector<yyjson_val*> rows;
+    uint64_t curPos = 0u;
     std::mutex lock;
 
-    JsonScanSharedState(std::vector<yyjson_arr_iter> it) : iters{std::move(it)}, curChunk{0u},
-        TableFuncSharedState{} {}
+    JsonScanSharedState(std::vector<yyjson_val*> rows) : TableFuncSharedState{},
+        rows{std::move(rows)} {}
 };
 
 struct JsonScanLocalState : public TableFuncLocalState {
 
-    yyjson_arr_iter iterator;
+    std::vector<yyjson_val*>::iterator begin, end;
     uint64_t chunkSize;
 
-    JsonScanLocalState(yyjson_arr_iter iter, uint64_t chunkSize) : iterator{iter},
+    JsonScanLocalState(std::vector<yyjson_val*>::iterator begin,
+        std::vector<yyjson_val*>::iterator end, uint64_t chunkSize) : begin{begin}, end{end},
         chunkSize{chunkSize} {}
 };
 
 
-static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* ctx, TableFuncBindInput* input) {
+static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext*, TableFuncBindInput* input) {
     auto scanInput = ku_dynamic_cast<TableFuncBindInput*, ScanTableFuncBindInput*>(input);
     auto parsedJson = fileToJson(scanInput->inputs[0].strVal);
     std::vector<LogicalType> columnTypes;
     std::vector<std::string> columnNames;
     auto schema = jsonSchema(parsedJson);
+    auto scanFromList = false;
+    auto scanFromStruct = false;
+    if (schema.getLogicalTypeID() == LogicalTypeID::LIST) {
+        schema = ListType::getChildType(schema).copy();
+        scanFromList = true;
+    }
     if (schema.getLogicalTypeID() == LogicalTypeID::STRUCT) {
         for (const auto& i : StructType::getFields(schema)) {
             columnTypes.push_back(i.getType().copy());
             columnNames.push_back(i.getName());
         }
-    } else if (schema.getLogicalTypeID() == LogicalTypeID::LIST &&
-        ListType::getChildType(schema).getLogicalTypeID() == LogicalTypeID::STRUCT) {
-        const auto& childType = ListType::getChildType(schema);
-        for (const auto& i : StructType::getFields(childType)) {
-            columnTypes.push_back(i.getType().copy());
-            columnNames.push_back(i.getName());
-        }
+        scanFromStruct = true;
     } else {
-        columnTypes.push_back(schema);
+        columnTypes.push_back(std::move(schema));
         columnNames.push_back("json");
     }
-    return std::make_unique<JsonBindData>(std::move(columnTypes), std::move(columnNames), std::move(parsedJson));
+    return std::make_unique<JsonBindData>(std::move(columnTypes), std::move(columnNames),
+        std::make_shared<JsonWrapper>(std::move(parsedJson)), scanFromList, scanFromStruct);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input) {
     auto jsonBindData = ku_dynamic_cast<TableFuncBindData*, JsonBindData*>(input.bindData);
-    std::vector<yyjson_arr_iter> iters;
-    auto cnt = 0u;
-    auto it = yyjson_arr_iter_with(yyjson_doc_get_root(jsonBindData->json.ptr));
-    while (yyjson_arr_iter_next(&it)) {
-        if (cnt == 0u) {
-            iters.push_back(it);
+    std::vector<yyjson_val*> rows;
+    if (jsonBindData->scanFromList) {
+        auto it = yyjson_arr_iter_with(yyjson_doc_get_root(jsonBindData->json->ptr));
+        yyjson_val* val;
+        while ((val = yyjson_arr_iter_next(&it))) {
+            rows.push_back(val);
         }
-        cnt = (cnt + 1u) % DEFAULT_VECTOR_CAPACITY;
+    } else {
+        rows.push_back(yyjson_doc_get_root(jsonBindData->json->ptr));
     }
-    return std::make_unique<JsonScanSharedState>(std::move(iters));
+    return std::make_unique<JsonScanSharedState>(std::move(rows));
 }
 
-static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInput& input, TableFuncSharedState* shared,
+static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInput&, TableFuncSharedState* shared,
     storage::MemoryManager* /*mm*/) {
     auto jsonShared = ku_dynamic_cast<TableFuncSharedState*, JsonScanSharedState*>(shared);
+    if (jsonShared->curPos >= jsonShared->rows.size()) {
+        return nullptr;
+    }
     std::scoped_lock(jsonShared->lock);
-    return std::make_unique<JsonScanLocalState>(jsonShared->iters[jsonShared->curChunk++]);
+    auto chunkSize = std::min(DEFAULT_VECTOR_CAPACITY, jsonShared->rows.size() - jsonShared->curPos);
+    auto begin = jsonShared->rows.begin() + jsonShared->curPos;
+    jsonShared->curPos += chunkSize;
+    auto end = jsonShared->rows.begin() + jsonShared->curPos;
+    return std::make_unique<JsonScanLocalState>(begin, end, chunkSize);
 }
 
 static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
-    auto bindData = ku_dynamic_cast<TableFuncBindData*, JsonBindData*>(input.bindData);
-    auto localState = ku_dynamic_cast<TableFuncLocalState*, JsonScanLocalState*>(input.localState);
-    
+    const auto bindData = ku_dynamic_cast<TableFuncBindData*, JsonBindData*>(input.bindData);
+    const auto localState = ku_dynamic_cast<TableFuncLocalState*, JsonScanLocalState*>(input.localState);
+    for (auto& i: output.vectors) {
+        i->setAllNull();
+    }
+    for (auto i = localState->begin; i != localState->end; i++) {
+        if (bindData->scanFromStruct) {
+            auto objIter = yyjson_obj_iter_with(*i);
+            yyjson_val *key, *ele;
+            while ((key = yyjson_obj_iter_next(&objIter))) {
+                ele = yyjson_obj_iter_get_val(key);
+                auto columnIdx = bindData->nameToIdxMap[yyjson_get_str(key)];
+                readJsonToValueVector(ele, *output.vectors[columnIdx], i - localState->begin);
+            }
+        } else {
+            readJsonToValueVector(*i, *output.vectors[0], i - localState->begin);
+        }
+    }
+    return localState->begin - localState->end;
 }
 
 static double progressFunc(TableFuncSharedState* state) {
     auto jsonShared = ku_dynamic_cast<TableFuncSharedState*, JsonScanSharedState*>(state);
-    return (double)jsonShared->curChunk / jsonShared->iters.size();
+    return (double)jsonShared->curPos / jsonShared->rows.size();
 }
 
-TableFunction JsonScan::getFunction() {
-    return TableFunction(name, tableFunc, bindFunc, initSharedState, initLocalState, progressFunc,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+std::unique_ptr<TableFunction> JsonScan::getFunction() {
+    return std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState, initLocalState,
+        progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
 }
 
 } // namespace json_extension

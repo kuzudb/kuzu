@@ -1,6 +1,7 @@
 #include "json_extension.h"
 
 #include "json_functions.h"
+#include "json_scan.h"
 #include "main/client_context.h"
 #include "main/database.h"
 
@@ -21,6 +22,7 @@ void JsonExtension::load(main::ClientContext* context) {
     ADD_FUNC(JsonStructureFunction);
     ADD_FUNC(JsonValidFunction);
     ADD_FUNC(MinifyJsonFunction);
+    extension::ExtensionUtils::registerTableFunction(db, JsonScan::getFunction());
 }
 
 } // namespace json_extension

@@ -193,6 +193,108 @@ common::LogicalType jsonSchema(const JsonWrapper& wrapper) {
     return jsonSchema(yyjson_doc_get_root(wrapper.ptr));
 }
 
+// Precondition: vec.dataType is not STRING
+static void readFromJsonArr(yyjson_val* val, common::ValueVector& vec, uint64_t pos) {
+    const auto& outputType = vec.dataType;
+    switch (outputType.getLogicalTypeID()) {
+    case LogicalTypeID::LIST: {
+        auto lst = ListVector::addList(&vec, yyjson_arr_size(val));
+        vec.setValue(pos, lst);
+        auto childVec = ListVector::getDataVector(&vec);
+        auto childPos = lst.offset;
+
+        auto it = yyjson_arr_iter_with(val);
+        yyjson_val* ele;
+        while ((ele = yyjson_arr_iter_next(&it))) {
+            readJsonToValueVector(ele, *childVec, childPos);
+            childPos++;
+        }
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+// Precondition: vec.dataType is not STRING
+static void readFromJsonObj(yyjson_val* val, common::ValueVector& vec, uint64_t pos) {
+    const auto& outputType = vec.dataType;
+    switch (outputType.getLogicalTypeID()) {
+    case LogicalTypeID::STRUCT: {
+        vec.setValue<int64_t>(pos, pos);
+        auto names = StructType::getFieldNames(outputType);
+        for (auto i = 0u; i < StructType::getNumFields(outputType); i++) {
+            auto childVec = StructVector::getFieldVector(&vec, i);
+            auto childObj = yyjson_obj_get(val, names[i].c_str());
+            if (childObj == nullptr) {
+                childVec->setNull(pos, true);
+            } else {
+                readJsonToValueVector(childObj, *childVec, pos);
+            }
+        }
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+// Precondition: vec.dataType is not STRING
+template<typename NUM_TYPE>
+static void readFromJsonNum(NUM_TYPE val, common::ValueVector& vec, uint64_t pos) {
+    const auto& outputType = vec.dataType;
+    switch (outputType.getLogicalTypeID()) {
+    case LogicalTypeID::INT64:
+        vec.setValue<int64_t>(pos, (int64_t)val);
+        break;
+    case LogicalTypeID::UINT64:
+        vec.setValue<uint64_t>(pos, (uint64_t)val);
+        break;
+    case LogicalTypeID::DOUBLE:
+        vec.setValue<double>(pos, (double)val);
+        break;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+void readJsonToValueVector(yyjson_val* val, common::ValueVector& vec, uint64_t pos) {
+    const auto& outputType = vec.dataType;
+    if (outputType.getLogicalTypeID() == LogicalTypeID::STRING) {
+        StringVector::addString(&vec, pos, jsonToString(val));
+        return;
+    }
+    switch(yyjson_get_type(val)) {
+    case YYJSON_TYPE_ARR:
+        readFromJsonArr(val, vec, pos);
+        break;
+    case YYJSON_TYPE_OBJ:
+        readFromJsonObj(val, vec, pos);
+        break;
+    case YYJSON_TYPE_NULL:
+        vec.setNull(pos, true);
+        // Technically unnecessary given this function's one use case, but
+        // removing this line may cause this function to behave unexpectedly for possible future use cases
+        break;
+    case YYJSON_TYPE_NUM:
+        switch (yyjson_get_subtype(val)) {
+        case YYJSON_SUBTYPE_UINT:
+            readFromJsonNum(yyjson_get_uint(val), vec, pos);
+            break;
+        case YYJSON_SUBTYPE_SINT:
+            readFromJsonNum(yyjson_get_sint(val), vec, pos);
+            break;
+        case YYJSON_SUBTYPE_REAL:
+            readFromJsonNum(yyjson_get_real(val), vec, pos);
+            break;
+        }
+        break;
+    case YYJSON_TYPE_STR:
+        // The only valid outputType is presumably STRING, which is already handled
+        break;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
 std::string jsonToString(const JsonWrapper& wrapper) {
     std::unique_ptr<char[]> arr(yyjson_write(wrapper.ptr, 0, nullptr));
     if (arr.get()) {
