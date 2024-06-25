@@ -16,8 +16,10 @@
 #include "common/vector/value_vector.h"
 #include "fastpfor/bitpackinghelpers.h"
 #include "storage/compression/bitpacking_int128.h"
+#include "storage/compression/bitpacking_utils.h"
 #include "storage/compression/sign_extend.h"
 #include "storage/storage_utils.h"
+#include <ranges>
 
 using namespace kuzu::common;
 
@@ -440,63 +442,105 @@ void fastpack(const T* in, uint8_t* out, uint8_t bitWidth) {
 }
 
 template<IntegerBitpackingType T>
+void IntegerBitpacking<T>::setPartialChunkInPlace(const uint8_t* srcBuffer, offset_t posInSrc,
+    uint8_t* dstBuffer, offset_t posInDst, offset_t numValues, const BitpackInfo<T>& header) const {
+    U tmpChunk[CHUNK_SIZE];
+    copyValuesToTempChunkWithOffset(reinterpret_cast<const U*>(srcBuffer) + posInSrc, tmpChunk,
+        header, numValues);
+    packPartialChunk(tmpChunk, dstBuffer, posInDst, header, numValues);
+}
+
+template<IntegerBitpackingType T>
 void IntegerBitpacking<T>::setValuesFromUncompressed(const uint8_t* srcBuffer, offset_t posInSrc,
     uint8_t* dstBuffer, offset_t posInDst, offset_t numValues, const CompressionMetadata& metadata,
     const NullMask* nullMask) const {
     KU_UNUSED(nullMask);
+
     auto header = getPackingInfo(metadata);
-    // This is a fairly naive implementation which uses fastunpack/fastpack
-    // to modify the data by decompressing/compressing a single chunk of values.
-    //
-    // TODO(bmwinger): modify the data in-place when numValues is small (frequently called with
-    // numValues=1)
-    //
+
+    // Null values will usually be 0, which will not be able to be stored if there is a
+    // non-zero offset However we don't care about the value stored for null values
+    // Currently they will be mangled by storage+recovery (underflow in the subtraction
+    // below)
+    KU_ASSERT(numValues == static_cast<offset_t>(std::ranges::count_if(
+                               std::ranges::iota_view{posInSrc, posInSrc + numValues},
+                               [srcBuffer, &metadata, nullMask](offset_t i) {
+                                   auto value = reinterpret_cast<const T*>(srcBuffer)[i];
+                                   return (nullMask && nullMask->isNull(i)) ||
+                                          canUpdateInPlace(std::span(&value, 1), metadata);
+                               })));
+
     // Data can be considered to be stored in aligned chunks of 32 values
     // with a size of 32 * bitWidth bits,
     // or bitWidth 32-bit values (we cast the buffer to a uint32_t* later).
-    auto chunkStart = (uint8_t*)getChunkStart(dstBuffer, posInDst, header.bitWidth);
-    auto posInChunk = posInDst % CHUNK_SIZE;
-    U chunk[CHUNK_SIZE];
-    // TODO(bmwinger): Now I'm a bit confused here. Why do we always need to unpack the chunk first?
-    //      Can't we just unpack the chunk if we need to modify only partial of it?
-    fastunpack(chunkStart, chunk, header.bitWidth);
-    for (offset_t i = 0; i < numValues; i++) {
-        auto value = ((T*)srcBuffer)[posInSrc + i];
-        // Null values will usually be 0, which will not be able to be stored if there is a non-zero
-        // offset However we don't care about the value stored for null values Currently they will
-        // be mangled by storage+recovery (underflow in the subtraction below)
-        KU_ASSERT((nullMask && nullMask->isNull(posInSrc + i)) ||
-                  canUpdateInPlace(std::span(&value, 1), metadata));
-        chunk[posInChunk] = (U)(value - (T)header.offset);
-        if (posInChunk + 1 >= CHUNK_SIZE && i + 1 < numValues) {
-            fastpack(chunk, chunkStart, header.bitWidth);
-            chunkStart = (uint8_t*)getChunkStart(dstBuffer, posInDst + i + 1, header.bitWidth);
-            fastunpack(chunkStart, chunk, header.bitWidth);
-            posInChunk = 0;
-        } else {
-            posInChunk++;
-        }
+
+    // update unaligned values in the first chunk
+    auto valuesInFirstChunk = std::min(CHUNK_SIZE - (posInDst % CHUNK_SIZE), numValues);
+    offset_t dstIndex = posInDst;
+    if (valuesInFirstChunk < CHUNK_SIZE) {
+        // update unaligned values in the last chunk
+        setPartialChunkInPlace(srcBuffer, posInSrc, dstBuffer, posInDst, valuesInFirstChunk,
+            header);
+        dstIndex += valuesInFirstChunk;
     }
-    fastpack(chunk, chunkStart, header.bitWidth);
+
+    // update chunk-aligned values using fastpack/unpack
+    for (; dstIndex + CHUNK_SIZE <= posInDst + numValues; dstIndex += CHUNK_SIZE) {
+        U chunk[CHUNK_SIZE];
+
+        const size_t chunkIndexOffsetInSrc = posInSrc + dstIndex - posInDst;
+        copyValuesToTempChunkWithOffset(reinterpret_cast<const U*>(srcBuffer) +
+                                            chunkIndexOffsetInSrc,
+            chunk, header, CHUNK_SIZE);
+
+        const offset_t dstOffsetBytes = dstIndex * header.bitWidth / 8;
+        fastpack(chunk, dstBuffer + dstOffsetBytes, header.bitWidth);
+    }
+
+    // update unaligned values in the last chunk
+    const auto lastChunkIndexOffset = dstIndex - posInDst;
+    const size_t unalignedValuesToPack = numValues - lastChunkIndexOffset;
+    if (unalignedValuesToPack > 0) {
+        setPartialChunkInPlace(srcBuffer, posInSrc + lastChunkIndexOffset, dstBuffer,
+            posInDst + lastChunkIndexOffset, unalignedValuesToPack, header);
+    }
 }
 
 template<IntegerBitpackingType T>
 void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uint8_t* dst,
     uint8_t numValuesToRead, const BitpackInfo<T>& header) const {
-    // TODO(bmwinger): optimize as in setValueFromUncompressed
-    KU_ASSERT(pos + numValuesToRead <= CHUNK_SIZE);
+    const size_t maxReadIndex = pos + numValuesToRead;
+    KU_ASSERT(maxReadIndex <= CHUNK_SIZE);
 
-    U chunk[CHUNK_SIZE];
-    fastunpack(chunkStart, chunk, header.bitWidth);
-    if (header.hasNegative && header.bitWidth > 0) {
-        SignExtend<T, U, CHUNK_SIZE>((uint8_t*)chunk, header.bitWidth);
-    }
-    if (header.offset != 0) {
-        for (int i = pos; i < pos + numValuesToRead; i++) {
-            chunk[i] = (U)((T)chunk[i] + (T)header.offset);
+    for (size_t i = pos; i < maxReadIndex; i++) {
+        // Always use unsigned version of unpacker to prevent sign-bit filling when right shifting
+        U& out = reinterpret_cast<U*>(dst)[i - pos];
+        BitpackingUtils<U>::unpackSingle(chunkStart, &out, header.bitWidth, i);
+
+        if (header.hasNegative && header.bitWidth > 0) {
+            SignExtend<T, U, 1>((uint8_t*)&out, header.bitWidth);
+        }
+
+        if (header.offset != 0) {
+            reinterpret_cast<T&>(out) += header.offset;
         }
     }
-    memcpy(dst, &chunk[pos], sizeof(T) * numValuesToRead);
+}
+
+template<IntegerBitpackingType T>
+void IntegerBitpacking<T>::packPartialChunk(const U* srcBuffer, uint8_t* dstBuffer, size_t posInDst,
+    BitpackInfo<T> info, size_t numValuesToPack) const {
+    for (size_t i = 0; i < numValuesToPack; ++i) {
+        BitpackingUtils<U>::packSingle(srcBuffer[i], dstBuffer, info.bitWidth, i + posInDst);
+    }
+}
+
+template<IntegerBitpackingType T>
+void IntegerBitpacking<T>::copyValuesToTempChunkWithOffset(const U* srcBuffer, U* tmpBuffer,
+    BitpackInfo<T> info, size_t numValuesToCopy) const {
+    for (auto j = 0u; j < numValuesToCopy; j++) {
+        tmpBuffer[j] = static_cast<U>(std::bit_cast<T>(srcBuffer[j]) - info.offset);
+    }
 }
 
 template<IntegerBitpackingType T>
@@ -527,34 +571,31 @@ uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
     if (info.offset == 0) {
         auto lastFullChunkEnd = numValuesToCompress - numValuesToCompress % CHUNK_SIZE;
         for (auto i = 0ull; i < lastFullChunkEnd; i += CHUNK_SIZE) {
-            fastpack((const U*)srcBuffer + i, dstBuffer + i * bitWidth / 8, bitWidth);
+            fastpack(reinterpret_cast<const U*>(srcBuffer) + i, dstBuffer + i * bitWidth / 8,
+                bitWidth);
         }
         // Pack last partial chunk, avoiding overflows
-        if (numValuesToCompress % CHUNK_SIZE > 0) {
-            // TODO(bmwinger): optimize to remove temporary array
-            U chunk[CHUNK_SIZE] = {0};
-            memcpy(chunk, (const U*)srcBuffer + lastFullChunkEnd,
-                numValuesToCompress % CHUNK_SIZE * sizeof(U));
-            fastpack(chunk, dstBuffer + lastFullChunkEnd * bitWidth / 8, bitWidth);
+        const size_t remainingNumValues = numValuesToCompress % CHUNK_SIZE;
+        if (remainingNumValues > 0) {
+            packPartialChunk(reinterpret_cast<const U*>(srcBuffer) + lastFullChunkEnd,
+                dstBuffer + lastFullChunkEnd * bitWidth / 8, 0, info, remainingNumValues);
         }
     } else {
         U tmp[CHUNK_SIZE];
         auto lastFullChunkEnd = numValuesToCompress - numValuesToCompress % CHUNK_SIZE;
         for (auto i = 0ull; i < lastFullChunkEnd; i += CHUNK_SIZE) {
-            for (auto j = 0u; j < CHUNK_SIZE; j++) {
-                tmp[j] = (U)(((T*)srcBuffer)[i + j] - info.offset);
-            }
+            copyValuesToTempChunkWithOffset(reinterpret_cast<const U*>(srcBuffer) + i, tmp, info,
+                CHUNK_SIZE);
             fastpack(tmp, dstBuffer + i * bitWidth / 8, bitWidth);
         }
         // Pack last partial chunk, avoiding overflows
         auto remainingValues = numValuesToCompress % CHUNK_SIZE;
         if (remainingValues > 0) {
-            memcpy(tmp, (const U*)srcBuffer + lastFullChunkEnd, remainingValues * sizeof(U));
-            for (auto i = 0u; i < remainingValues; i++) {
-                tmp[i] = (U)((T)tmp[i] - info.offset);
-            }
-            memset(tmp + remainingValues, 0, CHUNK_SIZE - remainingValues);
-            fastpack(tmp, dstBuffer + lastFullChunkEnd * bitWidth / 8, bitWidth);
+            copyValuesToTempChunkWithOffset(reinterpret_cast<const U*>(srcBuffer) +
+                                                lastFullChunkEnd,
+                tmp, info, remainingValues);
+            packPartialChunk(tmp, dstBuffer + lastFullChunkEnd * bitWidth / 8, 0, info,
+                remainingValues);
         }
     }
     srcBuffer += numValuesToCompress * sizeof(U);

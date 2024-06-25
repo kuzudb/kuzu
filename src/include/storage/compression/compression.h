@@ -299,11 +299,6 @@ public:
             return UINT64_MAX;
         }
         auto numValues = dataSize * 8 / info.bitWidth;
-        // Round down to nearest multiple of CHUNK_SIZE to ensure that we don't write any extra
-        // values Rounding up could overflow the buffer
-        // TODO(bmwinger): Pack extra values into the space at the end. This will probably be
-        // slower, but only needs to be done once.
-        numValues -= numValues % CHUNK_SIZE;
         return numValues;
     }
 
@@ -339,6 +334,16 @@ protected:
         // CHUNK_SIZE
         return buffer + (pos / CHUNK_SIZE) * bitWidth * CHUNK_SIZE / 8;
     }
+
+    void packPartialChunk(const U* srcBuffer, uint8_t* dstBuffer, size_t posInDst,
+        BitpackInfo<T> info, size_t remainingValues) const;
+
+    void copyValuesToTempChunkWithOffset(const U* srcBuffer, U* tmpBuffer, BitpackInfo<T> info,
+        size_t numValuesToCopy) const;
+
+    void setPartialChunkInPlace(const uint8_t* srcBuffer, common::offset_t posInSrc,
+        uint8_t* dstBuffer, common::offset_t posInDst, common::offset_t numValues,
+        const BitpackInfo<T>& header) const;
 };
 
 class BooleanBitpacking : public CompressionAlg {
