@@ -31,7 +31,7 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
                           ->getPropertyID(propertyName);
     auto nodeTable =
         ku_dynamic_cast<Table*, NodeTable*>(database->storageManager->getTable(nodeTableID));
-    auto column = nodeTable->getColumn(propertyID);
+    auto& column = nodeTable->getColumn(propertyID);
     auto current_buffer = result;
     std::vector<std::thread> threads;
     auto numElementsPerThread = size / numThreads + 1;
@@ -40,9 +40,9 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
     while (sizeLeft > 0) {
         uint64_t sizeToRead = std::min(numElementsPerThread, sizeLeft);
         threads.emplace_back(&StorageDriver::scanColumn, this, dummyReadOnlyTransaction.get(),
-            column, offsets, sizeToRead, current_buffer);
+            &column, offsets, sizeToRead, current_buffer);
         offsets += sizeToRead;
-        current_buffer += sizeToRead * storage::getDataTypeSizeInChunk(column->getDataType());
+        current_buffer += sizeToRead * getDataTypeSizeInChunk(column.getDataType());
         sizeLeft -= sizeToRead;
     }
     for (auto& thread : threads) {
@@ -54,27 +54,23 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
 uint64_t StorageDriver::getNumNodes(const std::string& nodeName) {
     clientContext->query("BEGIN TRANSACTION READ ONLY;");
     auto nodeTableID = database->catalog->getTableID(clientContext->getTx(), nodeName);
-    auto nodeStatistics =
-        database->storageManager->getNodesStatisticsAndDeletedIDs()->getNodeStatisticsAndDeletedIDs(
-            clientContext->getTx(), nodeTableID);
-    auto numNodes = nodeStatistics->getNumTuples();
+    auto numRows = database->storageManager->getTable(nodeTableID)->getNumRows();
     clientContext->query("COMMIT");
-    return numNodes;
+    return numRows;
 }
 
 uint64_t StorageDriver::getNumRels(const std::string& relName) {
     clientContext->query("BEGIN TRANSACTION READ ONLY;");
     auto relTableID = database->catalog->getTableID(clientContext->getTx(), relName);
-    auto relStatistics = database->storageManager->getRelsStatistics()->getRelStatistics(relTableID,
-        clientContext->getTx());
-    auto numRels = relStatistics->getNumTuples();
+    auto numRows = database->storageManager->getTable(relTableID)->getNumRows();
     clientContext->query("COMMIT");
-    return numRels;
+    return numRows;
 }
 
-void StorageDriver::scanColumn(Transaction* transaction, storage::Column* column, offset_t* offsets,
+void StorageDriver::scanColumn(Transaction* transaction, Column* column, offset_t* offsets,
     size_t size, uint8_t* result) {
     const auto& dataType = column->getDataType();
+    // TODO(Guodong): FIX-ME. Rework this.
     if (dataType.getPhysicalType() == PhysicalTypeID::LIST ||
         dataType.getPhysicalType() == PhysicalTypeID::ARRAY) {
         auto resultVector = ValueVector(dataType.copy());
@@ -82,10 +78,10 @@ void StorageDriver::scanColumn(Transaction* transaction, storage::Column* column
             auto nodeOffset = offsets[i];
             auto [nodeGroupIdx, offsetInChunk] =
                 StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
-            Column::ChunkState readState;
-            column->initChunkState(transaction, nodeGroupIdx, readState);
-            column->scan(transaction, readState, offsetInChunk, offsetInChunk + 1, &resultVector,
-                i);
+            // ChunkState readState;
+            // column->initChunkState(transaction, nodeGroupIdx, readState);
+            // column->scan(transaction, readState, offsetInChunk, offsetInChunk + 1, &resultVector,
+            // i);
         }
         auto dataVector = ListVector::getDataVector(&resultVector);
         auto dataVectorSize = ListVector::getDataVectorSize(&resultVector);

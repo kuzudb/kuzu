@@ -18,7 +18,8 @@ void PrimaryKeyScanNodeTable::initLocalStateInternal(ResultSet* resultSet,
     ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
     for (auto& nodeInfo : nodeInfos) {
-        nodeInfo.localScanState = std::make_unique<NodeTableScanState>(nodeInfo.columnIDs);
+        nodeInfo.localScanState =
+            std::make_unique<NodeTableScanState>(nodeInfo.table->getTableID(), nodeInfo.columnIDs);
         initVectors(*nodeInfo.localScanState, *resultSet);
     }
     indexEvaluator->init(*resultSet, context->clientContext);
@@ -43,18 +44,17 @@ bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     }
 
     offset_t nodeOffset;
-    bool lookupSucceed =
-        nodeInfo.table->getPKIndex()->lookup(transaction, indexVector, pos, nodeOffset);
+    bool lookupSucceed = nodeInfo.table->getPKIndex()->lookup(&transaction::DUMMY_WRITE_TRANSACTION,
+        indexVector, pos, nodeOffset);
     if (!lookupSucceed) {
         return false;
     }
     auto nodeID = nodeID_t{nodeOffset, nodeInfo.table->getTableID()};
-    nodeInfo.localScanState->nodeIDVector->setValue<nodeID_t>(pos, nodeID);
+    nodeInfo.localScanState->IDVector->setValue<nodeID_t>(pos, nodeID);
     nodeInfo.localScanState->source = TableScanSource::COMMITTED;
     nodeInfo.localScanState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     nodeInfo.table->initializeScanState(transaction, *nodeInfo.localScanState);
-    nodeInfo.table->lookup(transaction, *nodeInfo.localScanState);
-    return true;
+    return nodeInfo.table->lookup(transaction, *nodeInfo.localScanState);
 }
 
 } // namespace processor

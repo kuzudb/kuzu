@@ -4,8 +4,7 @@
 namespace kuzu {
 namespace function {
 
-// TODO(Guodong): Should return a BOOLEAN column indicating success or not. how about error message?
-struct CheckpointBindData final : public CallTableFuncBindData {
+struct CheckpointBindData final : CallTableFuncBindData {
     main::ClientContext* clientContext;
 
     explicit CheckpointBindData(main::ClientContext* clientContext)
@@ -18,8 +17,15 @@ struct CheckpointBindData final : public CallTableFuncBindData {
 };
 
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput&) {
+    auto sharedState = input.sharedState->ptrCast<CallFuncSharedState>();
     auto checkpointBindData =
         common::ku_dynamic_cast<TableFuncBindData*, CheckpointBindData*>(input.bindData);
+    auto morsel = sharedState->getMorsel();
+    if (!morsel.hasMoreToOutput()) {
+        return 0;
+    }
+    checkpointBindData->clientContext->getTransactionManagerUnsafe()->commit(
+        *checkpointBindData->clientContext);
     checkpointBindData->clientContext->getTransactionManagerUnsafe()->checkpoint(
         *checkpointBindData->clientContext);
     return 0;

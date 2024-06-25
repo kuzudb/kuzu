@@ -40,7 +40,7 @@ static void writeToPropertyVector(ValueVector* internalIDVector, ValueVector* pr
 }
 
 void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
-    if (extraInfo.columnID == common::INVALID_COLUMN_ID) {
+    if (extraInfo.columnID == INVALID_COLUMN_ID) {
         if (lhsVector != nullptr) {
             for (auto i = 0u; i < nodeIDVector->state->getSelVector().getSelSize(); ++i) {
                 auto lhsPos = nodeIDVector->state->getSelVector()[i];
@@ -56,6 +56,11 @@ void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
     auto updateState = std::make_unique<storage::NodeTableUpdateState>(extraInfo.columnID,
         *nodeIDVector, *rhsVector);
     updateState->pkVector = pkVector;
+    if (extraInfo.columnID == extraInfo.table->getPKColumnID()) {
+        throw RuntimeException("Updating PK column is not supported.");
+        // TODO: Updating the PK column. Scan the original tuple from table, delete it, and insert
+        // the updated one.
+    }
     extraInfo.table->update(context->clientContext->getTx(), *updateState);
     if (lhsVector != nullptr) {
         writeToPropertyVector(nodeIDVector, lhsVector, lhsPos, rhsVector, rhsPos);

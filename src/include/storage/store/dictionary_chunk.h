@@ -1,5 +1,6 @@
 #pragma once
 
+#include "storage/enums/residency_state.h"
 #include "storage/store/column_chunk_data.h"
 
 namespace kuzu {
@@ -9,8 +10,10 @@ class DictionaryChunk {
 public:
     using string_offset_t = uint64_t;
     using string_index_t = uint32_t;
+    static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 0;
+    static constexpr common::idx_t OFFSET_COLUMN_CHILD_READ_STATE_IDX = 1;
 
-    DictionaryChunk(uint64_t capacity, bool enableCompression);
+    DictionaryChunk(uint64_t capacity, bool enableCompression, ResidencyState type);
     // A pointer to the dictionary chunk is stored in the StringOps for the indexTable
     // and can't be modified easily. Moving would invalidate that pointer
     DictionaryChunk(DictionaryChunk&& other) = delete;
@@ -25,8 +28,17 @@ public:
 
     ColumnChunkData* getStringDataChunk() const { return stringDataChunk.get(); }
     ColumnChunkData* getOffsetChunk() const { return offsetChunk.get(); }
+    void setOffsetChunk(std::unique_ptr<ColumnChunkData> chunk) { offsetChunk = std::move(chunk); }
+    void setStringDataChunk(std::unique_ptr<ColumnChunkData> chunk) {
+        stringDataChunk = std::move(chunk);
+    }
 
     bool sanityCheck() const;
+
+    uint64_t getEstimatedMemoryUsage() const;
+
+    void serialize(common::Serializer& serializer) const;
+    static std::unique_ptr<DictionaryChunk> deserialize(common::Deserializer& deSer);
 
 private:
     bool enableCompression;
