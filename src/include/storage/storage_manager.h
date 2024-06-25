@@ -41,8 +41,8 @@ public:
     }
 
     WAL& getWAL();
-    BMFileHandle* getDataFH() const { return dataFH.get(); }
-    BMFileHandle* getMetadataFH() const { return metadataFH.get(); }
+    BMFileHandle* getDataFH() const { return dataFH; }
+    BMFileHandle* getMetadataFH() const { return metadataFH; }
     DiskArrayCollection* getMetadataDAC() const { return metadataDAC.get(); }
     void initStatistics() {
         nodesStatisticsAndDeletedIDs->initTableStatisticsForWriteTrx();
@@ -57,8 +57,8 @@ public:
     bool compressionEnabled() const { return enableCompression; }
 
 private:
-    std::unique_ptr<BMFileHandle> initFileHandle(const std::string& filename,
-        common::VirtualFileSystem* vfs, main::ClientContext* context);
+    BMFileHandle* initFileHandle(const std::string& filename, common::VirtualFileSystem* vfs,
+        main::ClientContext* context);
 
     void loadTables(const catalog::Catalog& catalog, common::VirtualFileSystem* vfs,
         main::ClientContext* context);
@@ -74,8 +74,8 @@ private:
 private:
     std::string databasePath;
     bool readOnly;
-    std::unique_ptr<BMFileHandle> dataFH;
-    std::unique_ptr<BMFileHandle> metadataFH;
+    BMFileHandle* dataFH;
+    BMFileHandle* metadataFH;
     std::unique_ptr<DiskArrayCollection> metadataDAC;
     std::unique_ptr<NodesStoreStatsAndDeletedIDs> nodesStatisticsAndDeletedIDs;
     std::unique_ptr<RelsStoreStats> relsStatistics;

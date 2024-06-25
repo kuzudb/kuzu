@@ -193,23 +193,19 @@ public:
     void removePageFromFrameIfNecessary(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
 
     // For files that are managed by BM, their FileHandles should be created through this function.
-    std::unique_ptr<BMFileHandle> getBMFileHandle(const std::string& filePath, uint8_t flags,
+    BMFileHandle* getBMFileHandle(const std::string& filePath, uint8_t flags,
         BMFileHandle::FileVersionedType fileVersionedType, common::VirtualFileSystem* vfs,
         main::ClientContext* context, common::PageSizeClass pageSizeClass = common::PAGE_4KB) {
-        return std::make_unique<BMFileHandle>(filePath, flags, this, pageSizeClass,
-            fileVersionedType, vfs, context);
+        fileHandles.emplace_back(std::unique_ptr<BMFileHandle>(new BMFileHandle(filePath, flags,
+            this, fileHandles.size(), pageSizeClass, fileVersionedType, vfs, context)));
+        return fileHandles.back().get();
     }
+
     inline common::frame_group_idx_t addNewFrameGroup(common::PageSizeClass pageSizeClass) {
         return vmRegions[pageSizeClass]->addNewFrameGroup();
     }
 
     inline uint64_t getUsedMemory() const { return usedMemory; }
-
-    // Not thread-safe
-    uint32_t addFileHandle(BMFileHandle& fileHandle) {
-        fileHandles.push_back(&fileHandle);
-        return fileHandles.size() - 1;
-    }
 
 private:
     static void verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize);
@@ -250,7 +246,7 @@ private:
     // Each VMRegion corresponds to a virtual memory region of a specific page size. Currently, we
     // hold two sizes of PAGE_4KB and PAGE_256KB.
     std::vector<std::unique_ptr<VMRegion>> vmRegions;
-    std::vector<BMFileHandle*> fileHandles;
+    std::vector<std::unique_ptr<BMFileHandle>> fileHandles;
 };
 
 } // namespace storage

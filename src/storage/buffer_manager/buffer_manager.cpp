@@ -336,10 +336,10 @@ uint64_t BufferManager::tryEvictPage(std::atomic<EvictionCandidate>& _candidate)
     // At this point, the page is LOCKED, and we have exclusive access to the eviction candidate.
     // Next, flush out the frame into the file page if the frame
     // is dirty. Finally remove the page from the frame and reset the page to EVICTED.
-    auto* fileHandle = fileHandles[candidate.fileIdx];
-    flushIfDirtyWithoutLock(*fileHandle, candidate.pageIdx);
-    auto numBytesFreed = fileHandle->getPageSize();
-    releaseFrameForPage(*fileHandle, candidate.pageIdx);
+    auto& fileHandle = *fileHandles[candidate.fileIdx];
+    flushIfDirtyWithoutLock(fileHandle, candidate.pageIdx);
+    auto numBytesFreed = fileHandle.getPageSize();
+    releaseFrameForPage(fileHandle, candidate.pageIdx);
     pageState.resetToEvicted();
     evictionQueue.clear(_candidate);
     return numBytesFreed;

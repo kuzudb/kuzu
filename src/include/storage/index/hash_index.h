@@ -68,10 +68,10 @@ public:
 template<typename T>
 class HashIndex final : public OnDiskHashIndex {
 public:
-    HashIndex(const DBFileIDAndName& dbFileIDAndName,
-        const std::shared_ptr<BMFileHandle>& fileHandle, OverflowFileHandle* overflowFileHandle,
-        DiskArrayCollection& diskArrays, uint64_t indexPos, BufferManager& bufferManager, WAL* wal,
-        const HashIndexHeader& indexHeaderForReadTrx, HashIndexHeader& indexHeaderForWriteTrx);
+    HashIndex(const DBFileIDAndName& dbFileIDAndName, BMFileHandle* fileHandle,
+        OverflowFileHandle* overflowFileHandle, DiskArrayCollection& diskArrays, uint64_t indexPos,
+        BufferManager& bufferManager, WAL* wal, const HashIndexHeader& indexHeaderForReadTrx,
+        HashIndexHeader& indexHeaderForWriteTrx);
 
     ~HashIndex() override;
 
@@ -92,7 +92,7 @@ public:
     void prepareRollback() override;
     bool checkpointInMemory() override;
     bool rollbackInMemory() override;
-    inline BMFileHandle* getFileHandle() const { return fileHandle.get(); }
+    inline BMFileHandle* getFileHandle() const { return fileHandle; }
 
 private:
     bool lookupInPersistentIndex(transaction::TransactionType trxType, Key key,
@@ -176,7 +176,7 @@ private:
     BufferManager& bm;
     WAL* wal;
     uint64_t headerPageIdx;
-    std::shared_ptr<BMFileHandle> fileHandle;
+    BMFileHandle* fileHandle;
     std::unique_ptr<DiskArray<Slot<T>>> pSlots;
     std::unique_ptr<DiskArray<Slot<T>>> oSlots;
     OverflowFileHandle* overflowFileHandle;
@@ -271,7 +271,7 @@ public:
     void rollbackInMemory();
     void prepareCommit();
     void prepareRollback();
-    BMFileHandle* getFileHandle() { return fileHandle.get(); }
+    BMFileHandle* getFileHandle() { return fileHandle; }
     OverflowFile* getOverflowFile() { return overflowFile.get(); }
 
     common::PhysicalTypeID keyTypeID() { return keyDataTypeID; }
@@ -281,7 +281,7 @@ public:
 private:
     bool hasRunPrepareCommit;
     common::PhysicalTypeID keyDataTypeID;
-    std::shared_ptr<BMFileHandle> fileHandle;
+    BMFileHandle* fileHandle;
     std::unique_ptr<OverflowFile> overflowFile;
     std::vector<std::unique_ptr<OnDiskHashIndex>> hashIndices;
     std::vector<HashIndexHeader> hashIndexHeadersForReadTrx;
