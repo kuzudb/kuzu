@@ -154,7 +154,7 @@ TEST(CompressionTests, IntegerPackingTest64SetValuesFromUncompressed) {
 TEST(CompressionTests, IntegerPackingTest128WorksOnNonZeroBuffer) {
     std::vector<int128_t> src(128);
     for (size_t i = 0; i < src.size(); ++i) {
-        src[i] = (int128_t(1) << 125) + int128_t(i);
+        src[i] = (int128_t(1) << 125) + int128_t{(uint32_t)i};
     }
     auto alg = IntegerBitpacking<int128_t>();
     std::vector<uint8_t> dest(sizeof(int128_t) * src.size(), 0xff);
