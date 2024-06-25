@@ -3,8 +3,13 @@
 #include "table_catalog_entry.h"
 
 namespace kuzu {
+namespace transaction {
+class Transaction;
+} // namespace transaction
+
 namespace catalog {
 
+class CatalogSet;
 class NodeTableCatalogEntry final : public TableCatalogEntry {
 public:
     //===--------------------------------------------------------------------===//

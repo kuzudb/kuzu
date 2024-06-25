@@ -3,6 +3,10 @@
 #include "storage/storage_extension.h"
 
 namespace kuzu {
+namespace main {
+class Database;
+} // namespace main
+
 namespace postgres_extension {
 
 class PostgresStorageExtension final : public storage::StorageExtension {

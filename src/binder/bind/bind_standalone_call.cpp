@@ -5,6 +5,7 @@
 #include "common/cast.h"
 #include "common/exception/binder.h"
 #include "extension/extension.h"
+#include "main/client_context.h"
 #include "main/db_config.h"
 #include "parser/standalone_call.h"
 

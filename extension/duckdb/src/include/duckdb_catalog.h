@@ -1,6 +1,7 @@
 #pragma once
 
 #include "binder/ddl/bound_create_table_info.h"
+#include "common/vector/value_vector.h"
 #include "extension/catalog_extension.h"
 
 #pragma GCC diagnostic push

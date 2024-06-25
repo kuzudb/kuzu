@@ -14,8 +14,13 @@ namespace binder {
 struct BoundExtraCreateCatalogEntryInfo;
 } // namespace binder
 
+namespace transaction {
+class Transaction;
+} // namespace transaction
+
 namespace catalog {
 
+class CatalogSet;
 class KUZU_API TableCatalogEntry : public CatalogEntry {
 public:
     //===--------------------------------------------------------------------===//

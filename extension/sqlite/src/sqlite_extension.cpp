@@ -1,5 +1,6 @@
 #include "sqlite_extension.h"
 
+#include "main/client_context.h"
 #include "main/database.h"
 #include "sqlite_storage.h"
 

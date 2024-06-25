@@ -19,6 +19,7 @@
 #include "storage/compression/bitpacking_utils.h"
 #include "storage/compression/sign_extend.h"
 #include "storage/storage_utils.h"
+#include "storage/store/column_chunk.h"
 #include <ranges>
 
 using namespace kuzu::common;

@@ -4,6 +4,7 @@
 
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
+#include "main/client_context.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/node_table.h"

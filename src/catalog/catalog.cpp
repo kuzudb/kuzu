@@ -77,7 +77,7 @@ std::vector<table_id_t> Catalog::getNodeTableIDs(Transaction* transaction) const
     return tableIDs;
 }
 
-std::vector<common::table_id_t> Catalog::getRelTableIDs(Transaction* transaction) const {
+std::vector<table_id_t> Catalog::getRelTableIDs(Transaction* transaction) const {
     std::vector<table_id_t> tableIDs;
     iterateCatalogEntries(transaction, [&](CatalogEntry* entry) {
         if (entry->getType() == CatalogEntryType::REL_TABLE_ENTRY) {
@@ -109,14 +109,13 @@ std::vector<NodeTableCatalogEntry*> Catalog::getNodeTableEntries(Transaction* tr
         CatalogEntryType::NODE_TABLE_ENTRY);
 }
 
-std::vector<RelTableCatalogEntry*> Catalog::getRelTableEntries(
-    transaction::Transaction* transaction) const {
+std::vector<RelTableCatalogEntry*> Catalog::getRelTableEntries(Transaction* transaction) const {
     return getTableCatalogEntries<RelTableCatalogEntry>(transaction,
         CatalogEntryType::REL_TABLE_ENTRY);
 }
 
 std::vector<RelGroupCatalogEntry*> Catalog::getRelTableGroupEntries(
-    transaction::Transaction* transaction) const {
+    Transaction* transaction) const {
     return getTableCatalogEntries<RelGroupCatalogEntry>(transaction,
         CatalogEntryType::REL_GROUP_ENTRY);
 }
@@ -161,8 +160,7 @@ bool Catalog::tableInRelGroup(Transaction* tx, table_id_t tableID) const {
     return false;
 }
 
-table_id_t Catalog::createTableSchema(transaction::Transaction* transaction,
-    const BoundCreateTableInfo& info) {
+table_id_t Catalog::createTableSchema(Transaction* transaction, const BoundCreateTableInfo& info) {
     table_id_t tableID = tables->assignNextOID();
     std::unique_ptr<CatalogEntry> entry;
     switch (info.type) {
@@ -194,7 +192,7 @@ table_id_t Catalog::createTableSchema(transaction::Transaction* transaction,
     return tableID;
 }
 
-void Catalog::dropTableSchema(transaction::Transaction* transaction, table_id_t tableID) {
+void Catalog::dropTableSchema(Transaction* transaction, table_id_t tableID) {
     auto tableEntry = getTableCatalogEntry(transaction, tableID);
     switch (tableEntry->getType()) {
     case CatalogEntryType::REL_GROUP_ENTRY: {
@@ -228,7 +226,7 @@ void Catalog::dropTableSchema(transaction::Transaction* transaction, table_id_t 
     tables->dropEntry(transaction, tableEntry->getName());
 }
 
-void Catalog::alterTableSchema(transaction::Transaction* transaction, const BoundAlterInfo& info) {
+void Catalog::alterTableSchema(Transaction* transaction, const BoundAlterInfo& info) {
     auto tableEntry = getTableCatalogEntry(transaction, info.tableID);
     KU_ASSERT(tableEntry);
     if (tableEntry->getType() == CatalogEntryType::RDF_GRAPH_ENTRY &&
@@ -270,7 +268,7 @@ std::vector<SequenceCatalogEntry*> Catalog::getSequenceEntries(Transaction* tran
     return result;
 }
 
-sequence_id_t Catalog::createSequence(transaction::Transaction* transaction,
+sequence_id_t Catalog::createSequence(Transaction* transaction,
     const BoundCreateSequenceInfo& info) {
     sequence_id_t sequenceID = sequences->assignNextOID();
     auto entry = std::make_unique<SequenceCatalogEntry>(sequences.get(), sequenceID, info);
@@ -278,7 +276,7 @@ sequence_id_t Catalog::createSequence(transaction::Transaction* transaction,
     return sequenceID;
 }
 
-void Catalog::dropSequence(transaction::Transaction* transaction, sequence_id_t sequenceID) {
+void Catalog::dropSequence(Transaction* transaction, sequence_id_t sequenceID) {
     auto sequenceEntry = getSequenceCatalogEntry(transaction, sequenceID);
     sequences->dropEntry(transaction, sequenceEntry->getName());
 }
@@ -287,21 +285,20 @@ std::string Catalog::genSerialName(const std::string& tableName, const std::stri
     return std::string(tableName).append("_").append(propertyName).append("_").append("serial");
 }
 
-void Catalog::createType(transaction::Transaction* transaction, std::string name,
-    common::LogicalType type) {
+void Catalog::createType(Transaction* transaction, std::string name, LogicalType type) {
     KU_ASSERT(!types->containsEntry(transaction, name));
     auto entry = std::make_unique<TypeCatalogEntry>(std::move(name), std::move(type));
     types->createEntry(transaction, std::move(entry));
 }
 
-common::LogicalType Catalog::getType(transaction::Transaction* transaction, std::string name) {
+LogicalType Catalog::getType(Transaction* transaction, std::string name) {
     LogicalType type;
     if (LogicalType::tryConvertFromString(name, type)) {
         return type;
     }
     if (!types->containsEntry(transaction, name)) {
         throw CatalogException{
-            common::stringFormat("{} is neither an internal type nor a user defined type.", name)};
+            stringFormat("{} is neither an internal type nor a user defined type.", name)};
     }
     return types->getEntry(transaction, name)
         ->constCast<TypeCatalogEntry>()
@@ -309,22 +306,22 @@ common::LogicalType Catalog::getType(transaction::Transaction* transaction, std:
         .copy();
 }
 
-bool Catalog::containsType(transaction::Transaction* transaction, const std::string& typeName) {
+bool Catalog::containsType(Transaction* transaction, const std::string& typeName) {
     return types->containsEntry(transaction, typeName);
 }
 
-void Catalog::addFunction(transaction::Transaction* transaction, CatalogEntryType entryType,
-    std::string name, function::function_set functionSet) {
+void Catalog::addFunction(Transaction* transaction, CatalogEntryType entryType, std::string name,
+    function::function_set functionSet) {
     if (functions->containsEntry(transaction, name)) {
-        throw CatalogException{common::stringFormat("function {} already exists.", name)};
+        throw CatalogException{stringFormat("function {} already exists.", name)};
     }
     functions->createEntry(transaction,
         std::make_unique<FunctionCatalogEntry>(entryType, std::move(name), std::move(functionSet)));
 }
 
-void Catalog::dropFunction(transaction::Transaction* tx, const std::string& name) {
+void Catalog::dropFunction(Transaction* tx, const std::string& name) {
     if (!functions->containsEntry(tx, name)) {
-        throw CatalogException{common::stringFormat("function {} doesn't exist.", name)};
+        throw CatalogException{stringFormat("function {} doesn't exist.", name)};
     }
     functions->dropEntry(tx, std::move(name));
 }
@@ -357,7 +354,7 @@ function::ScalarMacroFunction* Catalog::getScalarMacroFunction(Transaction* tran
         ->getMacroFunction();
 }
 
-void Catalog::addScalarMacroFunction(transaction::Transaction* transaction, std::string name,
+void Catalog::addScalarMacroFunction(Transaction* transaction, std::string name,
     std::unique_ptr<function::ScalarMacroFunction> macro) {
     auto scalarMacroCatalogEntry =
         std::make_unique<ScalarMacroCatalogEntry>(std::move(name), std::move(macro));
@@ -375,7 +372,7 @@ std::vector<std::string> Catalog::getMacroNames(Transaction* transaction) const 
 }
 
 void Catalog::prepareCheckpoint(const std::string& databasePath, WAL* wal, VirtualFileSystem* fs) {
-    saveToFile(databasePath, fs, common::FileVersionType::WAL_VERSION);
+    saveToFile(databasePath, fs, FileVersionType::WAL_VERSION);
     wal->logCatalogRecord();
 }
 
@@ -410,8 +407,8 @@ static void writeMagicBytes(Serializer& serializer) {
     }
 }
 
-void Catalog::saveToFile(const std::string& directory, common::VirtualFileSystem* fs,
-    common::FileVersionType versionType) {
+void Catalog::saveToFile(const std::string& directory, VirtualFileSystem* fs,
+    FileVersionType versionType) {
     auto catalogPath = StorageUtils::getCatalogFilePath(fs, directory, versionType);
     Serializer serializer(
         std::make_unique<BufferedFileWriter>(fs->openFile(catalogPath, O_WRONLY | O_CREAT)));
@@ -423,8 +420,8 @@ void Catalog::saveToFile(const std::string& directory, common::VirtualFileSystem
     types->serialize(serializer);
 }
 
-void Catalog::readFromFile(const std::string& directory, common::VirtualFileSystem* fs,
-    common::FileVersionType versionType, main::ClientContext* context) {
+void Catalog::readFromFile(const std::string& directory, VirtualFileSystem* fs,
+    FileVersionType versionType, main::ClientContext* context) {
     auto catalogPath = StorageUtils::getCatalogFilePath(fs, directory, versionType);
     Deserializer deserializer(
         std::make_unique<BufferedFileReader>(fs->openFile(catalogPath, O_RDONLY, context)));
@@ -442,8 +439,12 @@ void Catalog::registerBuiltInFunctions() {
     function::BuiltInFunctionsUtils::createFunctions(&DUMMY_WRITE_TRANSACTION, functions.get());
 }
 
-void Catalog::alterRdfChildTableEntries(transaction::Transaction* transaction,
-    kuzu::catalog::CatalogEntry* tableEntry, const binder::BoundAlterInfo& info) const {
+bool Catalog::containMacro(const std::string& macroName) const {
+    return functions->containsEntry(&DUMMY_READ_TRANSACTION, macroName);
+}
+
+void Catalog::alterRdfChildTableEntries(Transaction* transaction, CatalogEntry* tableEntry,
+    const binder::BoundAlterInfo& info) const {
     auto rdfGraphEntry = ku_dynamic_cast<CatalogEntry*, RDFGraphCatalogEntry*>(tableEntry);
     auto& renameTableInfo =
         ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraRenameTableInfo&>(
@@ -480,8 +481,8 @@ void Catalog::alterRdfChildTableEntries(transaction::Transaction* transaction,
     tables->alterEntry(transaction, *literalTripleRenameInfo);
 }
 
-std::unique_ptr<CatalogEntry> Catalog::createNodeTableEntry(transaction::Transaction*,
-    common::table_id_t tableID, const binder::BoundCreateTableInfo& info) const {
+std::unique_ptr<CatalogEntry> Catalog::createNodeTableEntry(Transaction*, table_id_t tableID,
+    const binder::BoundCreateTableInfo& info) const {
     auto extraInfo =
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateNodeTableInfo*>(
             info.extraInfo.get());
@@ -494,8 +495,8 @@ std::unique_ptr<CatalogEntry> Catalog::createNodeTableEntry(transaction::Transac
     return nodeTableEntry;
 }
 
-std::unique_ptr<CatalogEntry> Catalog::createRelTableEntry(transaction::Transaction* transaction,
-    common::table_id_t tableID, const binder::BoundCreateTableInfo& info) const {
+std::unique_ptr<CatalogEntry> Catalog::createRelTableEntry(Transaction* transaction,
+    table_id_t tableID, const binder::BoundCreateTableInfo& info) const {
     auto extraInfo =
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableInfo*>(
             info.extraInfo.get());
@@ -515,9 +516,8 @@ std::unique_ptr<CatalogEntry> Catalog::createRelTableEntry(transaction::Transact
     return relTableEntry;
 }
 
-std::unique_ptr<CatalogEntry> Catalog::createRelTableGroupEntry(
-    transaction::Transaction* transaction, common::table_id_t tableID,
-    const binder::BoundCreateTableInfo& info) {
+std::unique_ptr<CatalogEntry> Catalog::createRelTableGroupEntry(Transaction* transaction,
+    table_id_t tableID, const binder::BoundCreateTableInfo& info) {
     auto extraInfo =
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableGroupInfo*>(
             info.extraInfo.get());
@@ -530,8 +530,8 @@ std::unique_ptr<CatalogEntry> Catalog::createRelTableGroupEntry(
         std::move(relTableIDs));
 }
 
-std::unique_ptr<CatalogEntry> Catalog::createRdfGraphEntry(transaction::Transaction* transaction,
-    common::table_id_t tableID, const binder::BoundCreateTableInfo& info) {
+std::unique_ptr<CatalogEntry> Catalog::createRdfGraphEntry(Transaction* transaction,
+    table_id_t tableID, const binder::BoundCreateTableInfo& info) {
     auto extraInfo =
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRdfGraphInfo*>(
             info.extraInfo.get());

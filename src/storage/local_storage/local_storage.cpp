@@ -1,5 +1,6 @@
 #include "storage/local_storage/local_storage.h"
 
+#include "main/client_context.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_table.h"

@@ -10,6 +10,10 @@ struct BoundExtraCreateCatalogEntryInfo;
 struct BoundAlterInfo;
 } // namespace binder
 
+namespace transaction {
+class Transaction;
+} // namespace transaction
+
 namespace catalog {
 
 struct SequenceChangeData {
@@ -35,6 +39,7 @@ struct SequenceData {
     bool cycle;
 };
 
+class CatalogSet;
 class KUZU_API SequenceCatalogEntry : public CatalogEntry {
 public:
     //===--------------------------------------------------------------------===//

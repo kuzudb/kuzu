@@ -2,6 +2,7 @@
 
 #include "catalog/catalog_set.h"
 #include "common/cast.h"
+#include "function/function.h"
 
 namespace kuzu {
 namespace main {
@@ -13,6 +14,10 @@ struct BoundAlterInfo;
 struct BoundCreateTableInfo;
 struct BoundCreateSequenceInfo;
 } // namespace binder
+
+namespace common {
+class VirtualFileSystem;
+} // namespace common
 
 namespace function {
 struct ScalarMacroFunction;
@@ -127,9 +132,7 @@ private:
     // ----------------------------- Functions ----------------------------
     void registerBuiltInFunctions();
 
-    bool containMacro(const std::string& macroName) const {
-        return functions->containsEntry(&transaction::DUMMY_READ_TRANSACTION, macroName);
-    }
+    bool containMacro(const std::string& macroName) const;
 
     // ----------------------------- Table entries ----------------------------
     uint64_t getNumTables(transaction::Transaction* transaction) const {
