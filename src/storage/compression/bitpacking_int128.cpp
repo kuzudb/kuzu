@@ -72,25 +72,6 @@ static void unpackDelta128(const uint32_t* __restrict in, common::int128_t* __re
 // Packing
 //===--------------------------------------------------------------------===//
 
-static void packLast(const common::int128_t* __restrict in, uint32_t* __restrict out,
-    uint16_t delta) {
-    const uint8_t LAST_IDX = 31;
-    const uint16_t SHIFT = (delta * 31) % 32;
-    out[0] |= static_cast<uint32_t>(in[LAST_IDX] << SHIFT);
-    if (delta > 32) {
-        out[1] = static_cast<uint32_t>(in[LAST_IDX] >> (32 - SHIFT));
-    }
-    if (delta > 64) {
-        out[2] = static_cast<uint32_t>(in[LAST_IDX] >> (64 - SHIFT));
-    }
-    if (delta > 96) {
-        out[3] = static_cast<uint32_t>(in[LAST_IDX] >> (96 - SHIFT));
-    }
-
-    // note that SHIFT + delta <= 128 for delta <= 128
-    // thus we never need to check for overflow into out[4]
-}
-
 // Packs for specific deltas
 static void packDelta32(const common::int128_t* __restrict in, uint32_t* __restrict out) {
     for (uint8_t i = 0; i < 32; ++i) {
@@ -148,14 +129,11 @@ void Int128Packer::pack(const common::int128_t* __restrict in, uint32_t* __restr
         packDelta128(in, out);
         break;
     default:
-        for (common::idx_t oindex = 0; oindex < IntegerBitpacking<common::int128_t>::CHUNK_SIZE - 1;
+        for (common::idx_t oindex = 0; oindex < IntegerBitpacking<common::int128_t>::CHUNK_SIZE;
              ++oindex) {
             BitpackingUtils<common::int128_t>::packSingle(in[oindex],
                 reinterpret_cast<uint8_t*>(out), width, oindex);
         }
-        const auto lastOutputFieldOffset =
-            (IntegerBitpacking<common::int128_t>::CHUNK_SIZE - 1) * width / (sizeof(uint32_t) * 8);
-        packLast(in, out + lastOutputFieldOffset, width);
     }
 }
 

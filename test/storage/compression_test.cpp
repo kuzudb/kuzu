@@ -151,6 +151,28 @@ TEST(CompressionTests, IntegerPackingTest64SetValuesFromUncompressed) {
     }
 }
 
+TEST(CompressionTests, IntegerPackingTest128WorksOnNonZeroBuffer) {
+    std::vector<int128_t> src(128);
+    for (size_t i = 0; i < src.size(); ++i) {
+        src[i] = (int128_t(1) << 125) + int128_t(i);
+    }
+    auto alg = IntegerBitpacking<int128_t>();
+    std::vector<uint8_t> dest(sizeof(int128_t) * src.size(), 0xff);
+
+    const auto& [min, max] = std::minmax_element(src.begin(), src.end());
+    auto metadata =
+        CompressionMetadata(StorageValue(*min), StorageValue(*max), alg.getCompressionType());
+
+    const auto* srcCursor = (const uint8_t*)src.data();
+    alg.compressNextPage(srcCursor, src.size(), dest.data(), dest.size(), metadata);
+
+    std::vector<int128_t> decompressed(src.size());
+    alg.decompressFromPage((uint8_t*)dest.data(), 0, (uint8_t*)decompressed.data(), 0,
+        decompressed.size(), metadata);
+
+    EXPECT_THAT(decompressed, ::testing::ContainerEq(src));
+}
+
 TEST(CompressionTests, IntegerPackingTest128AllPositive) {
     std::vector<kuzu::common::int128_t> src(101);
 
