@@ -2,7 +2,6 @@
 
 #include "binder/expression_visitor.h"
 #include "common/cast.h"
-#include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/operator/logical_accumulate.h"
@@ -42,12 +41,6 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     }
     visitOperatorSwitch(op);
     op->computeFactorizedSchema();
-}
-
-void FactorizationRewriter::visitExtend(planner::LogicalOperator* op) {
-    auto extend = (LogicalExtend*)op;
-    auto groupsPosToFlatten = extend->getGroupsPosToFlatten();
-    extend->setChild(0, appendFlattens(extend->getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitRecursiveExtend(planner::LogicalOperator* op) {

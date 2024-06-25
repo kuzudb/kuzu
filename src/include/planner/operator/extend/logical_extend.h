@@ -16,8 +16,6 @@ public:
               std::move(rel), direction, std::move(child)},
           properties{std::move(properties)}, hasAtMostOneNbr{hasAtMostOneNbr} {}
 
-    f_group_pos_set getGroupsPosToFlatten() override;
-
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 

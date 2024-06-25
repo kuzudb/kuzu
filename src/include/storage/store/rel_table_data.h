@@ -13,7 +13,14 @@ struct RelDataReadState final : TableDataScanState {
     common::node_group_idx_t nodeGroupIdx;
     common::offset_t numNodes;
     common::offset_t currentNodeOffset;
-    common::offset_t posInCurrentCSR;
+    common::offset_t currentCSROffset;
+    common::offset_t posInLastCSR;
+    common::offset_t batchSize;
+    common::sel_t currNodeIdx;
+    common::sel_t endNodeIdx;
+    common::sel_t batchEndNodeIdx;
+    common::sel_t totalNodeIdxs;
+
     // Temp auxiliary data structure to scan the offset of each CSR node in the offset column chunk.
     ChunkedCSRHeader csrHeaderChunks = ChunkedCSRHeader(false /*enableCompression*/);
 
@@ -26,7 +33,9 @@ struct RelDataReadState final : TableDataScanState {
     DELETE_COPY_DEFAULT_MOVE(RelDataReadState);
 
     bool hasMoreToRead(const transaction::Transaction* transaction);
-    std::pair<common::offset_t, common::offset_t> getStartAndEndOffset();
+
+    std::vector<std::pair<common::offset_t, common::offset_t>> getStartAndEndOffset(
+        common::ValueVector& inNodeIDVector);
 
     bool hasMoreToReadInPersistentStorage() const;
 

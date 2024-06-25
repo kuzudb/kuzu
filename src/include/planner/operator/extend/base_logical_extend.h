@@ -29,8 +29,6 @@ public:
         return *boundNode == *rel->getSrcNode();
     }
 
-    virtual f_group_pos_set getGroupsPosToFlatten() = 0;
-
     std::string getExpressionsForPrinting() const override;
 
 protected:
