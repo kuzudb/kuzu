@@ -2,11 +2,9 @@
 
 #include <bitset>
 #include <cstdint>
-#include <type_traits>
 
 #include "common/assert.h"
 #include "common/constants.h"
-#include "common/string_utils.h"
 #include "common/types/int128_t.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/ku_string.h"
