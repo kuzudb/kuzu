@@ -22,7 +22,7 @@ static ScanRelTableInfo getRelTableScanInfo(const TableCatalogEntry& tableCatalo
     std::vector<column_id_t> columnIDs;
     // We alawys should scan nbrID from relTable. This is not a property in the schema label, so
     // cannot be bound to a column in the front-end.
-    columnIDs.push_back(RelTableData::NBR_ID_COLUMN_ID);
+    columnIDs.push_back(NBR_ID_COLUMN_ID);
     for (auto& expr : properties) {
         auto& property = expr->constCast<PropertyExpression>();
         if (property.hasPropertyID(relTableID)) {

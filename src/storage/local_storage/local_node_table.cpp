@@ -12,7 +12,7 @@ namespace storage {
 LocalNodeTable::LocalNodeTable(Table& table)
     : LocalTable{table},
       nodeGroups{NodeTable::getNodeTableColumnTypes(table.cast<NodeTable>()),
-          false /*enableCompression*/, StorageConstants::MAX_NUM_NODES_IN_TABLE} {
+          false /*enableCompression*/, StorageConstants::MAX_NUM_ROWS_IN_TABLE} {
     initLocalHashIndex();
 }
 
@@ -30,7 +30,7 @@ void LocalNodeTable::initLocalHashIndex() {
 bool LocalNodeTable::insert(Transaction*, TableInsertState& insertState) {
     auto& nodeInsertState = insertState.constCast<NodeTableInsertState>();
     const auto numRowsInLocalTable = nodeGroups.getNumRows();
-    const auto nodeOffset = StorageConstants::MAX_NUM_NODES_IN_TABLE + numRowsInLocalTable;
+    const auto nodeOffset = StorageConstants::MAX_NUM_ROWS_IN_TABLE + numRowsInLocalTable;
     KU_ASSERT(nodeInsertState.pkVector.state->getSelVector().getSelSize() == 1);
     if (!hashIndex->insert(nodeInsertState.pkVector, nodeOffset)) {
         throw RuntimeException(

@@ -19,7 +19,7 @@ struct VectorVersionInfo {
     std::array<common::transaction_t, common::DEFAULT_VECTOR_CAPACITY> deletedVersions;
     bool anyInserted;
     bool anyDeleted;
-    // TODO: Keep an additional boolean flag on whether all rows are under the same version.
+    // TODO: Keep an additional same insertion/deletion field.
 
     VectorVersionInfo()
         : insertedVersions{}, deletedVersions{}, anyInserted{false}, anyDeleted{false} {

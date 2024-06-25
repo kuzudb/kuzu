@@ -189,13 +189,7 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
         storageManager->getTable(relTableEntry->getDstTableID())->ptrCast<NodeTable>();
     partitionerSharedState->relTable =
         storageManager->getTable(relTableEntry->getTableID())->ptrCast<RelTable>();
-    // TODO(Guodong/Xiyang): This is a temp hack to set rel offset.
-    KU_ASSERT(partitioner->getChild(0)->getChild(0)->getOperatorType() ==
-              PhysicalOperatorType::IN_QUERY_CALL);
-    auto scanFile = partitioner->getChild(0)->getChild(0)->ptrCast<TableFunctionCall>();
     auto relTable = storageManager->getTable(relTableEntry->getTableID());
-    scanFile->getSharedState()->nextRowIdx =
-        relTable->getNumRows(&transaction::DUMMY_WRITE_TRANSACTION);
     // TODO(Xiyang): Move binding of column types to binder.
     std::vector<LogicalType> columnTypes;
     columnTypes.push_back(*LogicalType::INTERNAL_ID()); // NBR_ID COLUMN.

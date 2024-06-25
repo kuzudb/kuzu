@@ -1,7 +1,6 @@
 #pragma once
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
-#include "storage/store/csr_node_group_collection.h"
 #include "storage/store/rel_table_data.h"
 #include "storage/store/table.h"
 
@@ -14,9 +13,6 @@ struct RelTableScanState final : TableScanState {
     common::offset_t boundNodeOffset;
     Column* csrOffsetColumn;
     Column* csrLengthColumn;
-
-    // When scanning from local storage, nodeGroup is a normal node group.
-    // When scanning from committed data, nodeGroup is a CSRNodeGroup.
 
     // Scan state for un-committed data.
     // Ideally we shouldn't need columns to scan un-checkpointed but committed data.
@@ -52,12 +48,6 @@ struct RelTableScanState final : TableScanState {
         boundNodeOffset = common::INVALID_OFFSET;
         nodeGroupScanState->resetState();
     }
-
-    // bool hasMoreToRead(const transaction::Transaction* transaction) const {
-    // First, check if we have more to read in the committed node group. including checkpointed
-    // and non-checkpointed data.
-    // Then, check if we have more to read in the uncommitted node groups.
-    // }
 };
 
 struct RelTableInsertState final : TableInsertState {
@@ -71,24 +61,24 @@ struct RelTableInsertState final : TableInsertState {
 };
 
 struct RelTableUpdateState final : TableUpdateState {
-    const common::ValueVector& srcNodeIDVector;
-    const common::ValueVector& dstNodeIDVector;
-    const common::ValueVector& relIDVector;
+    common::ValueVector& srcNodeIDVector;
+    common::ValueVector& dstNodeIDVector;
+    common::ValueVector& relIDVector;
 
-    RelTableUpdateState(common::column_id_t columnID, const common::ValueVector& srcNodeIDVector,
-        const common::ValueVector& dstNodeIDVector, const common::ValueVector& relIDVector,
+    RelTableUpdateState(common::column_id_t columnID, common::ValueVector& srcNodeIDVector,
+        common::ValueVector& dstNodeIDVector, common::ValueVector& relIDVector,
         common::ValueVector& propertyVector)
         : TableUpdateState{columnID, propertyVector}, srcNodeIDVector{srcNodeIDVector},
           dstNodeIDVector{dstNodeIDVector}, relIDVector{relIDVector} {}
 };
 
 struct RelTableDeleteState final : TableDeleteState {
-    const common::ValueVector& srcNodeIDVector;
-    const common::ValueVector& dstNodeIDVector;
-    const common::ValueVector& relIDVector;
+    common::ValueVector& srcNodeIDVector;
+    common::ValueVector& dstNodeIDVector;
+    common::ValueVector& relIDVector;
 
-    RelTableDeleteState(const common::ValueVector& srcNodeIDVector,
-        const common::ValueVector& dstNodeIDVector, const common::ValueVector& relIDVector)
+    RelTableDeleteState(common::ValueVector& srcNodeIDVector, common::ValueVector& dstNodeIDVector,
+        common::ValueVector& relIDVector)
         : srcNodeIDVector{srcNodeIDVector}, dstNodeIDVector{dstNodeIDVector},
           relIDVector{relIDVector} {}
 };
@@ -128,6 +118,7 @@ public:
     void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
         common::ValueVector* defaultValueVector) override;
     void dropColumn(common::column_id_t) override {
+        // TODO(Guodong): Rework this.
         // fwdRelTableData->dropColumn(columnID);
         // bwdRelTableData->dropColumn(columnID);
     }
@@ -147,18 +138,7 @@ public:
         return direction == common::RelDataDirection::FWD ? fwdRelTableData->getColumn(columnID) :
                                                             bwdRelTableData->getColumn(columnID);
     }
-    // const std::vector<std::unique_ptr<Column>>& getColumns(
-    // common::RelDataDirection direction) const {
-    // return direction == common::RelDataDirection::FWD ? fwdRelTableData->getColumns() :
-    // bwdRelTableData->getColumns();
-    // }
 
-    void append(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        ChunkedNodeGroup* nodeGroup, common::RelDataDirection direction) {
-        direction == common::RelDataDirection::FWD ?
-            fwdRelTableData->append(transaction, nodeGroupIdx, nodeGroup) :
-            bwdRelTableData->append(transaction, nodeGroupIdx, nodeGroup);
-    }
     NodeGroup* getOrCreateNodeGroup(common::node_group_idx_t nodeGroupIdx,
         common::RelDataDirection direction) const;
 
@@ -194,6 +174,9 @@ public:
     }
 
 private:
+    static void prepareCommitForNodeGroup(transaction::Transaction* transaction,
+        NodeGroup& localNodeGroup, CSRNodeGroup& csrNodeGroup, common::offset_t boundOffsetInGroup,
+        const row_idx_vec_t& rowIndices, common::column_id_t skippedColumn);
     common::row_idx_t detachDeleteForCSRRels(transaction::Transaction* transaction,
         RelTableData* tableData, RelTableData* reverseTableData,
         common::ValueVector* srcNodeIDVector, RelTableScanState* relDataReadState,

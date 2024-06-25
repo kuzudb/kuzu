@@ -116,7 +116,7 @@ struct StorageConstants {
     static constexpr uint64_t CSR_SEGMENT_SIZE_LOG2 = 10;
     static constexpr uint64_t CSR_SEGMENT_SIZE = static_cast<uint64_t>(1) << CSR_SEGMENT_SIZE_LOG2;
 
-    static constexpr uint64_t MAX_NUM_NODES_IN_TABLE = static_cast<uint64_t>(1) << 62;
+    static constexpr uint64_t MAX_NUM_ROWS_IN_TABLE = static_cast<uint64_t>(1) << 62;
 };
 
 // Hash Index Configurations

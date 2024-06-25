@@ -65,6 +65,8 @@ private:
         catalog::Catalog* catalog, main::ClientContext* context);
 
 private:
+    // TODO(Guodong): Create/Drop tables should be thread safe and protected by a mutex.
+    std::mutex mtx;
     std::string databasePath;
     bool readOnly;
     std::unique_ptr<BMFileHandle> dataFH;

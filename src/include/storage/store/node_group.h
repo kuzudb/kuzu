@@ -112,7 +112,7 @@ public:
 
     virtual void initializeScanState(transaction::Transaction* transaction, TableScanState& state);
     virtual NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state);
-    bool lookup(transaction::Transaction* transaction, TableScanState& state);
+    bool lookup(transaction::Transaction* transaction, const TableScanState& state);
 
     void update(transaction::Transaction* transaction, common::offset_t offset,
         common::column_id_t columnID, const common::ValueVector& propertyVector);
@@ -133,6 +133,10 @@ public:
     common::node_group_idx_t getNumChunkedGroups() {
         const auto lock = chunkedGroups.lock();
         return chunkedGroups.getNumGroups(lock);
+    }
+    ChunkedNodeGroup* getChunkedNodeGroup(common::node_group_idx_t groupIdx) {
+        const auto lock = chunkedGroups.lock();
+        return chunkedGroups.getGroup(lock, groupIdx);
     }
 
     template<class TARGET>

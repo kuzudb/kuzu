@@ -88,10 +88,12 @@ uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
         selVector.setToFiltered(numRowsToAppendInChunk);
         chunk->getData().append(columnVector, selVector);
     }
-    if (!versionInfo) {
-        versionInfo = std::make_unique<VersionInfo>();
+    if (transaction->getID() != Transaction::DUMMY_TRANSACTION_ID) {
+        if (!versionInfo) {
+            versionInfo = std::make_unique<VersionInfo>();
+        }
+        versionInfo->append(transaction, numRows, numRowsToAppendInChunk);
     }
-    versionInfo->append(transaction, numRows, numRowsToAppendInChunk);
     numRows += numRowsToAppendInChunk;
     return numRowsToAppendInChunk;
 }
@@ -114,10 +116,12 @@ offset_t ChunkedNodeGroup::append(const Transaction* transaction,
         chunks[i]->getData().append(&other[i]->getData(), offsetInOtherNodeGroup,
             numToAppendInChunkedGroup);
     }
-    if (!versionInfo) {
-        versionInfo = std::make_unique<VersionInfo>();
+    if (transaction->getID() != Transaction::DUMMY_TRANSACTION_ID) {
+        if (!versionInfo) {
+            versionInfo = std::make_unique<VersionInfo>();
+        }
+        versionInfo->append(transaction, numRows, numToAppendInChunkedGroup);
     }
-    versionInfo->append(transaction, numRows, numToAppendInChunkedGroup);
     numRows += numToAppendInChunkedGroup;
     return numToAppendInChunkedGroup;
 }
@@ -161,6 +165,13 @@ void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState
             const auto columnID = scanState.columnIDs[i];
             if (columnID == INVALID_COLUMN_ID) {
                 scanState.outputVectors[i]->setAllNull();
+                continue;
+            }
+            if (columnID == ROW_IDX_COLUMN_ID) {
+                for (auto rowIdx = 0u; rowIdx < length; rowIdx++) {
+                    scanState.outputVectors[i]->setValue<row_idx_t>(rowIdx,
+                        rowIdx + offsetInGroup + startRowIdx);
+                }
                 continue;
             }
             KU_ASSERT(columnID < chunks.size());

@@ -6,9 +6,7 @@ add_library(kuzu_storage_store
         column_chunk.cpp
         column_chunk_data.cpp
         csr_chunked_node_group.cpp
-        csr_chunked_node_group_collection.cpp
         csr_node_group.cpp
-        csr_node_group_collection.cpp
         dictionary_chunk.cpp
         dictionary_column.cpp
         list_chunk_data.cpp
@@ -16,7 +14,6 @@ add_library(kuzu_storage_store
         node_group.cpp
         node_group_collection.cpp
         node_table.cpp
-        node_table_data.cpp
         null_column.cpp
         rel_table.cpp
         rel_table_data.cpp

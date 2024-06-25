@@ -132,28 +132,28 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
         std::min(chunkedGroupToScan.getNumRows() - rowIdxInChunkToScan, DEFAULT_VECTOR_CAPACITY);
     chunkedGroupToScan.scan(transaction, state, nodeGroupScanState, rowIdxInChunkToScan,
         numRowsToScan);
-    const auto startOffset = nodeGroupScanState.nextRowToScan;
+    const auto startRow = nodeGroupScanState.nextRowToScan;
     nodeGroupScanState.nextRowToScan += numRowsToScan;
-    return NodeGroupScanResult{startOffset, numRowsToScan};
+    return NodeGroupScanResult{startRow, numRowsToScan};
 }
 
-bool NodeGroup::lookup(Transaction* transaction, TableScanState& state) {
-    KU_ASSERT(state.IDVector->state->getSelVector().getSelSize() == 1);
-    auto& nodeGroupScanState = *state.nodeGroupScanState;
-    const auto pos = state.IDVector->state->getSelVector().getSelectedPositions()[0];
-    if (state.IDVector->isNull(pos)) {
-        return false;
-    }
-    const auto nodeOffset = state.IDVector->getValue<nodeID_t>(pos).offset;
-    const auto offsetInGroup = nodeOffset - startNodeOffset;
-    const ChunkedNodeGroup* chunkedGroupToScan;
-    {
-        const auto lock = chunkedGroups.lock();
-        chunkedGroupToScan =
+bool NodeGroup::lookup(Transaction* transaction, const TableScanState& state) {
+    idx_t numTuplesFound = 0;
+    const auto lock = chunkedGroups.lock();
+    for (auto i = 0u; i < state.IDVector->state->getSelVector().getSelSize(); i++) {
+        auto& nodeGroupScanState = *state.nodeGroupScanState;
+        const auto IDPos = state.IDVector->state->getSelVector().getSelectedPositions()[0];
+        if (state.IDVector->isNull(IDPos)) {
+            return false;
+        }
+        const auto nodeOffset = state.IDVector->getValue<nodeID_t>(IDPos).offset;
+        const auto offsetInGroup = nodeOffset - startNodeOffset;
+        const ChunkedNodeGroup* chunkedGroupToScan =
             chunkedGroups.getGroup(lock, offsetInGroup / ChunkedNodeGroup::CHUNK_CAPACITY);
+        numTuplesFound += chunkedGroupToScan->lookup(transaction, state, nodeGroupScanState,
+            offsetInGroup % ChunkedNodeGroup::CHUNK_CAPACITY, i);
     }
-    return chunkedGroupToScan->lookup(transaction, state, nodeGroupScanState,
-        offsetInGroup % ChunkedNodeGroup::CHUNK_CAPACITY, 0);
+    return numTuplesFound > 0;
 }
 
 void NodeGroup::update(Transaction* transaction, offset_t offset, column_id_t columnID,

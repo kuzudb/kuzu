@@ -76,6 +76,11 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     }
 };
 
+struct RelTableScanState;
+
+static constexpr common::column_id_t NBR_ID_COLUMN_ID = 0;
+static constexpr common::column_id_t REL_ID_COLUMN_ID = 1;
+
 // Data in a CSRNodeGroup is organized as follows:
 // - persistent data: checkpointed data or flushed data from batch insert. `persistentChunkGroup`.
 // - transient data: data that is being committed but kept in memory. `chunkedGroups`.
@@ -83,7 +88,6 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
 // Transient data are organized similar to normal node groups. Tuples are always appended to the end
 // of `chunkedGroups`. We keep an extra csrIndex to track the vector of row indices for each bound
 // node.
-struct RelTableScanState;
 class CSRNodeGroup final : public NodeGroup {
 public:
     CSRNodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
@@ -97,8 +101,15 @@ public:
 
     void appendChunkedCSRGroup(const transaction::Transaction* transaction,
         ChunkedCSRNodeGroup& chunkedGroup);
+    void append(const transaction::Transaction* transaction, common::offset_t boundOffsetInGroup,
+        const std::vector<ColumnChunk*>& chunks, common::row_idx_t rowInChunks);
     void initializeScanState(transaction::Transaction* transaction, TableScanState& state) override;
     NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state) override;
+
+    // bool update(transaction::Transaction* transaction, common::row_idx_t rowIdx,
+    // common::column_id_t columnID, const common::ValueVector& propertyVector);
+    // bool delete_(transaction::Transaction* transaction, common::offset_t boundNodeOffsetInGroup,
+    // common::offset_t relOffset);
 
     // template<ResidencyState SCAN_RESIDENCY_STATE>
     // std::unique_ptr<CSRNodeGroup> scanCommitted(const std::vector<common::column_id_t>&
@@ -111,6 +122,15 @@ public:
     }
 
 private:
+    common::row_idx_t lookupRelOffset(transaction::Transaction* transaction,
+        common::offset_t boundNodeOffsetInGroup, common::offset_t relOffset);
+
+    common::row_idx_t lookupInMem(transaction::Transaction* transaction,
+        common::offset_t boundNodeOffsetInGroup, common::offset_t relOffset);
+
+    void updateCSRIndex(common::offset_t boundNodeOffsetInGroup, common::row_idx_t startRow,
+        common::length_t length) const;
+
     static NodeGroupScanResult scanCommittedPersistent(transaction::Transaction* transaction,
         const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
     NodeGroupScanResult scanCommittedInMemSequential(const transaction::Transaction* transaction,

@@ -7,7 +7,6 @@
 #include "common/types/types.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/storage_manager.h"
-#include "storage/store/node_table_data.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
@@ -141,7 +140,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
     // }
     const auto pos = nodeUpdateState.nodeIDVector.state->getSelVector()[0];
     const auto nodeOffset = nodeUpdateState.nodeIDVector.readNodeOffset(pos);
-    if (nodeOffset >= StorageConstants::MAX_NUM_NODES_IN_TABLE) {
+    if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL);
         KU_ASSERT(localTable);
@@ -163,7 +162,7 @@ void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
         return;
     }
     const auto nodeOffset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
-    if (nodeOffset >= StorageConstants::MAX_NUM_NODES_IN_TABLE) {
+    if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL);
         KU_ASSERT(localTable);
@@ -184,9 +183,6 @@ void NodeTable::addColumn(Transaction* transaction, const Property& property,
     // column->populateWithDefaultVal(transaction, getColumn(pkColumnID).getMetadataDA(),
     // defaultValueVector);
     columns.push_back(std::move(column));
-    // TODO(Guodong): addColumn is not going through localStorage design for now. So it needs to
-    // add tableID into the wal's updated table set separately, as it won't trigger
-    // prepareCommit.
     wal->addToUpdatedTables(tableID);
 }
 

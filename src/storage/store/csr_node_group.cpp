@@ -21,12 +21,54 @@ void CSRNodeGroup::appendChunkedCSRGroup(const Transaction* transaction,
         csrIndex = std::make_unique<CSRIndex>();
     }
     for (auto i = 0u; i < csrHeader.offset->getNumValues(); i++) {
-        csrIndex->indices[i].isSequential = true;
-        csrIndex->indices[i].rowIndices.resize(2);
         const auto length = csrHeader.length->getData().getValue<length_t>(i);
-        csrIndex->indices[i].rowIndices[0] = startRow;
-        csrIndex->indices[i].rowIndices[1] = length;
+        updateCSRIndex(i, startRow, length);
         startRow += length;
+    }
+}
+
+void CSRNodeGroup::append(const Transaction* transaction, offset_t boundOffsetInGroup,
+    const std::vector<ColumnChunk*>& chunks, row_idx_t rowInChunks) {
+    const auto startRow = NodeGroup::append(transaction, chunks, rowInChunks);
+    if (!csrIndex) {
+        csrIndex = std::make_unique<CSRIndex>();
+    }
+    updateCSRIndex(boundOffsetInGroup, startRow, 1 /*length*/);
+}
+
+void CSRNodeGroup::updateCSRIndex(offset_t boundNodeOffsetInGroup, row_idx_t startRow,
+    length_t length) const {
+    auto& nodeCSRIndex = csrIndex->indices[boundNodeOffsetInGroup];
+    const auto isEmptyCSR = nodeCSRIndex.rowIndices.empty();
+    const auto appendToEndOfCSR =
+        !isEmptyCSR && nodeCSRIndex.isSequential &&
+        (nodeCSRIndex.rowIndices[0] + nodeCSRIndex.rowIndices[1] == startRow);
+    const bool sequential = isEmptyCSR || appendToEndOfCSR;
+    if (nodeCSRIndex.isSequential && !sequential) {
+        // Expand rowIndices for the node.
+        const auto csrListStartRow = nodeCSRIndex.rowIndices[0];
+        const auto csrListLength = nodeCSRIndex.rowIndices[1];
+        nodeCSRIndex.rowIndices.clear();
+        nodeCSRIndex.rowIndices.reserve(csrListLength + length);
+        for (auto j = 0u; j < csrListLength; j++) {
+            nodeCSRIndex.rowIndices.push_back(csrListStartRow + j);
+        }
+    }
+    if (sequential) {
+        nodeCSRIndex.isSequential = true;
+        if (!nodeCSRIndex.rowIndices.empty()) {
+            KU_ASSERT(appendToEndOfCSR);
+            nodeCSRIndex.rowIndices[1] += length;
+        } else {
+            nodeCSRIndex.rowIndices.resize(2);
+            nodeCSRIndex.rowIndices[0] = startRow;
+            nodeCSRIndex.rowIndices[1] = length;
+        }
+    } else {
+        for (auto j = 0u; j < length; j++) {
+            nodeCSRIndex.rowIndices.push_back(startRow + j);
+        }
+        std::sort(nodeCSRIndex.rowIndices.begin(), nodeCSRIndex.rowIndices.end());
     }
 }
 
@@ -74,9 +116,8 @@ void CSRNodeGroup::initializeScanState(Transaction* transaction, TableScanState&
         nodeGroupScanState.inMemCSRList =
             csrIndex->indices[relScanState.boundNodeOffset - startNodeOffset];
         if (!nodeGroupScanState.inMemCSRList.isSequential) {
-            auto& rowIndices = nodeGroupScanState.inMemCSRList.rowIndices;
-            // TODO(Guodong): Should sort when write. not during read.
-            std::sort(rowIndices.begin(), rowIndices.end());
+            KU_ASSERT(std::is_sorted(nodeGroupScanState.inMemCSRList.rowIndices.begin(),
+                nodeGroupScanState.inMemCSRList.rowIndices.end()));
         }
     }
 }
@@ -132,7 +173,6 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedPersistent(Transaction* transacti
         const auto columnID = tableState.columnIDs[i];
         if (columnID == INVALID_COLUMN_ID) {
             tableState.outputVectors[i]->setAllNull();
-            // tableState.outputVectors[i]->state->getSelVectorUnsafe().setSelSize(numToScan);
             continue;
         }
         tableState.outputVectors[i]->state->getSelVectorUnsafe().setSelSize(numToScan);
@@ -175,7 +215,6 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMemSequential(const Transaction
         chunkIdx++;
     }
     nodeGroupScanState.nextRowToScan += numRows;
-    // tableState.IDVector->state->getSelVectorUnsafe().setSelSize(numRows);
     return NodeGroupScanResult{startRow, numRows};
 }
 
@@ -207,6 +246,95 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMemRandom(Transaction* transact
     nodeGroupScanState.nextRowToScan += numRows;
     tableState.IDVector->state->getSelVectorUnsafe().setSelSize(numRows);
     return NodeGroupScanResult{0, numRows};
+}
+
+// bool CSRNodeGroup::update(Transaction* transaction, row_idx_t rowIdx, column_id_t columnID,
+//     const ValueVector& propertyVector) {
+//     KU_ASSERT(rowIdx != INVALID_ROW_IDX);
+//     auto [chunkIdx, rowInChunk] =
+//         StorageUtils::getQuotientRemainder(rowIdx, DEFAULT_VECTOR_CAPACITY);
+//     ChunkedNodeGroup* chunkedGroup;
+//     {
+//         const auto lock = chunkedGroups.lock();
+//         chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
+//     }
+//     KU_ASSERT(chunkedGroup);
+//     chunkedGroup->update(transaction, rowInChunk, columnID, propertyVector);
+//     return true;
+// }
+
+// bool CSRNodeGroup::delete_(Transaction* transaction, offset_t boundNodeOffsetInGroup,
+//     offset_t relOffset) {
+//     const auto rowIdx = lookupRelOffset(transaction, boundNodeOffsetInGroup, relOffset);
+//     KU_ASSERT(rowIdx != INVALID_ROW_IDX);
+//     auto [chunkIdx, rowInChunk] =
+//         StorageUtils::getQuotientRemainder(rowIdx, DEFAULT_VECTOR_CAPACITY);
+//     ChunkedNodeGroup* chunkedGroup;
+//     {
+//         const auto lock = chunkedGroups.lock();
+//         chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
+//     }
+//     KU_ASSERT(chunkedGroup);
+//     return chunkedGroup->delete_(transaction, rowInChunk);
+// }
+
+row_idx_t CSRNodeGroup::lookupRelOffset(Transaction* transaction, offset_t boundNodeOffsetInGroup,
+    offset_t relOffset) {
+    row_idx_t matchedRowIdx = INVALID_ROW_IDX;
+    DataChunk scanChunk(2);
+    scanChunk.insert(0, std::make_shared<ValueVector>(*LogicalType::INTERNAL_ID()));
+    scanChunk.insert(1, std::make_shared<ValueVector>(*LogicalType::INTERNAL_ID()));
+    std::vector<column_id_t> columnIDs;
+    columnIDs.push_back(REL_ID_COLUMN_ID);
+    const auto scanState = std::make_unique<RelTableScanState>(INVALID_TABLE_ID, columnIDs);
+    scanState->IDVector = scanChunk.getValueVector(0).get();
+    scanState->outputVectors.push_back(scanChunk.getValueVector(1).get());
+    while (true) {
+        scan(transaction, *scanState);
+    }
+    if (csrIndex) {
+        // First, trying looking up in memory data.
+        const auto rowIdx = lookupInMem(transaction, boundNodeOffsetInGroup, relOffset);
+        if (rowIdx != INVALID_ROW_IDX) {
+            return rowIdx;
+        }
+    }
+}
+
+row_idx_t CSRNodeGroup::lookupInMem(Transaction* transaction, offset_t boundNodeOffsetInGroup,
+    offset_t relOffset) {
+    const auto& nodeCSRIndex = csrIndex->indices[boundNodeOffsetInGroup];
+    const auto csrListSize =
+        nodeCSRIndex.isSequential ? nodeCSRIndex.rowIndices[1] : nodeCSRIndex.rowIndices.size();
+    DataChunk scanChunk(2);
+    scanChunk.insert(0, std::make_shared<ValueVector>(*LogicalType::INTERNAL_ID()));
+    scanChunk.insert(1, std::make_shared<ValueVector>(*LogicalType::INTERNAL_ID()));
+    std::vector<column_id_t> columnIDs;
+    columnIDs.push_back(REL_ID_COLUMN_ID);
+    const auto scanState = std::make_unique<RelTableScanState>(INVALID_TABLE_ID, columnIDs);
+    scanState->IDVector = scanChunk.getValueVector(0).get();
+    scanState->outputVectors.push_back(scanChunk.getValueVector(1).get());
+    row_idx_t matchedRow = INVALID_ROW_IDX;
+    auto numScanned = 0u;
+    while (numScanned < csrListSize) {
+        const auto numToScanInBatch = std::min(csrListSize - numScanned, DEFAULT_VECTOR_CAPACITY);
+        scanState->IDVector->state->getSelVectorUnsafe().setSelSize(numToScanInBatch);
+        for (auto i = 0u; i < numToScanInBatch; i++) {
+            scanState->IDVector->setValue<internalID_t>(i,
+                internalID_t{nodeCSRIndex.rowIndices[numScanned + i], INVALID_TABLE_ID});
+        }
+        NodeGroup::lookup(transaction, *scanState);
+        const auto scannedRelIDVector = scanState->outputVectors[0];
+        KU_ASSERT(scannedRelIDVector->state->getSelVector().getSelSize() == numToScanInBatch);
+        for (auto i = 0u; i < numToScanInBatch; i++) {
+            if (scannedRelIDVector->getValue<internalID_t>(i).offset == relOffset) {
+                matchedRow = nodeCSRIndex.rowIndices[numScanned + i];
+                break;
+            }
+        }
+        numScanned += numToScanInBatch;
+    }
+    return matchedRow;
 }
 
 // template<ResidencyState SCAN_RESIDENCY_STATE>
