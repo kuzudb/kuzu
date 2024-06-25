@@ -32,7 +32,32 @@ std::unique_ptr<ReadingClause> Transformer::transformMatch(CypherParser::OC_Matc
     if (ctx.oC_Where()) {
         matchClause->setWherePredicate(transformWhere(*ctx.oC_Where()));
     }
+    if (ctx.kU_Hint()) {
+        matchClause->setHint(transformJoinHint(*ctx.kU_Hint()->kU_JoinNode()));
+    }
     return matchClause;
+}
+
+std::shared_ptr<JoinHintNode> Transformer::transformJoinHint(CypherParser::KU_JoinNodeContext& ctx) {
+    if (!ctx.MULTI_JOIN().empty()) {
+        auto joinNode = std::make_shared<JoinHintNode>();
+        joinNode->addChild(transformJoinHint(*ctx.kU_JoinNode(0)));
+        for (auto& schemaNameCtx : ctx.oC_SchemaName()) {
+            joinNode->addChild(std::make_shared<JoinHintNode>(transformSchemaName(*schemaNameCtx)));
+        }
+        return joinNode;
+    }
+    if (!ctx.oC_SchemaName().empty()) {
+        return std::make_shared<JoinHintNode>(transformSchemaName(*ctx.oC_SchemaName(0)));
+    }
+    if (ctx.kU_JoinNode().size() == 1) {
+        return transformJoinHint(*ctx.kU_JoinNode(0));
+    }
+    KU_ASSERT(ctx.kU_JoinNode().size() == 2);
+    auto joinNode = std::make_shared<JoinHintNode>();
+    joinNode->addChild(transformJoinHint(*ctx.kU_JoinNode(0)));
+    joinNode->addChild(transformJoinHint(*ctx.kU_JoinNode(1)));
+    return joinNode;
 }
 
 std::unique_ptr<ReadingClause> Transformer::transformUnwind(CypherParser::OC_UnwindContext& ctx) {

@@ -15,6 +15,7 @@ struct ExpressionUtil {
 
     // Print as a1,a2,a3,...
     static std::string toString(const expression_vector& expressions);
+    static std::string toStringOrdered(const expression_vector& expressions);
     // Print as a1=a2, a3=a4,...
     static std::string toString(const std::vector<expression_pair>& expressionPairs);
     // Print as a1=a2

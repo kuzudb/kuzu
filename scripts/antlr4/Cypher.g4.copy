@@ -277,7 +277,16 @@ kU_GraphProjectionColumnItem
     : oC_PropertyKeyName ( SP kU_Default )? ( SP oC_Where )? ;
 
 oC_Match
-    : ( OPTIONAL SP )? MATCH SP? oC_Pattern ( SP oC_Where )? ;
+    : ( OPTIONAL SP )? MATCH SP? oC_Pattern ( SP oC_Where )? ( SP kU_Hint )? ;
+
+kU_Hint
+    : HINT SP kU_JoinNode;
+
+kU_JoinNode
+    :  kU_JoinNode SP JOIN SP kU_JoinNode
+        | kU_JoinNode ( SP MULTI_JOIN SP oC_SchemaName)+
+        | '(' SP? kU_JoinNode SP? ')'
+        | oC_SchemaName ;
 
 oC_Unwind : UNWIND SP? oC_Expression SP AS SP oC_Variable ;
 

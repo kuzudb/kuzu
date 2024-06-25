@@ -5,6 +5,8 @@
 namespace kuzu {
 namespace planner {
 
+using cardinality_t = uint64_t;
+
 class LogicalPlan {
     friend class CardinalityEstimator;
     friend class CostModel;
@@ -19,8 +21,8 @@ public:
     std::shared_ptr<LogicalOperator> getLastOperator() const { return lastOperator; }
     Schema* getSchema() const { return lastOperator->getSchema(); }
 
-    void setCardinality(uint64_t cardinality) { estCardinality = cardinality; }
-    uint64_t getCardinality() const { return estCardinality; }
+    void setCardinality(cardinality_t cardinality) { estCardinality = cardinality; }
+    cardinality_t getCardinality() const { return estCardinality; }
 
     void setCost(uint64_t cost_) { cost = cost_; }
     uint64_t getCost() const { return cost; }
@@ -36,7 +38,7 @@ public:
 
 private:
     std::shared_ptr<LogicalOperator> lastOperator;
-    uint64_t estCardinality;
+    cardinality_t estCardinality;
     uint64_t cost;
 };
 

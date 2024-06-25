@@ -1,6 +1,5 @@
 #pragma once
 
-#include "binder/expression/expression_util.h"
 #include "common/enums/join_type.h"
 #include "logical_operator.h"
 #include "planner/operator/sip/side_way_info_passing.h"
@@ -28,10 +27,7 @@ public:
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    std::string getExpressionsForPrinting() const override {
-        return isNodeIDOnlyJoin() ? binder::ExpressionUtil::toString(getJoinNodeIDs()) :
-                                    binder::ExpressionUtil::toString(joinConditions);
-    }
+    std::string getExpressionsForPrinting() const override;
 
     binder::expression_vector getExpressionsToMaterialize() const;
 
