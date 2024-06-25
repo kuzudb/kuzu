@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "binder/ddl/bound_create_sequence_info.h"
 #include "catalog/property.h"
 #include "catalog_entry.h"
