@@ -74,7 +74,7 @@ inline common::hash_t HashIndex<ku_string_t>::hashStored(transaction::Transactio
 template<typename T>
 bool HashIndex<T>::prepareCommit() {
     if (localStorage->hasUpdates()) {
-        wal->addToUpdatedTables(dbFileIDAndName.dbFileID.nodeIndexID.tableID);
+        // wal->addToUpdatedTables(dbFileIDAndName.dbFileID.nodeIndexID.tableID);
         auto netInserts = localStorage->getNetInserts();
         if (netInserts > 0) {
             reserve(netInserts);
@@ -565,29 +565,29 @@ void PrimaryKeyIndex::writeHeaders() {
 }
 
 void PrimaryKeyIndex::prepareCommit() {
-    if (!hasRunPrepareCommit) {
-        bool indexChanged = false;
-        for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-            if (hashIndices[i]->prepareCommit()) {
-                indexChanged = true;
-            }
+    // if (!hasRunPrepareCommit) {
+    bool indexChanged = false;
+    for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
+        if (hashIndices[i]->prepareCommit()) {
+            indexChanged = true;
         }
-        if (indexChanged) {
-            writeHeaders();
-            hashIndexDiskArrays->prepareCommit();
-        }
-        if (overflowFile) {
-            overflowFile->prepareCommit();
-        }
-        // Make sure that changes which bypassed the WAL are written.
-        // There is no other mechanism for enforcing that they are flushed
-        // and they will be dropped when the file handle is destroyed.
-        // TODO: Should eventually be moved into the disk array when the disk array can
-        // generally handle bypassing the WAL, but should only be run once per file, not once per
-        // disk array
-        bufferManager.flushAllDirtyPagesInFrames(*fileHandle);
-        hasRunPrepareCommit = true;
     }
+    if (indexChanged) {
+        writeHeaders();
+        hashIndexDiskArrays->prepareCommit();
+    }
+    if (overflowFile) {
+        overflowFile->prepareCommit();
+    }
+    // Make sure that changes which bypassed the WAL are written.
+    // There is no other mechanism for enforcing that they are flushed
+    // and they will be dropped when the file handle is destroyed.
+    // TODO: Should eventually be moved into the disk array when the disk array can
+    // generally handle bypassing the WAL, but should only be run once per file, not once per
+    // disk array
+    bufferManager.flushAllDirtyPagesInFrames(*fileHandle);
+    // hasRunPrepareCommit = true;
+    // }
 }
 
 void PrimaryKeyIndex::prepareRollback() {

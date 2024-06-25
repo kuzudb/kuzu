@@ -1,4 +1,5 @@
 #include "binder/expression/rel_expression.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/cast.h"
 #include "planner/operator/persistent/logical_insert.h"
 #include "processor/operator/persistent/insert.h"
@@ -64,8 +65,8 @@ std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(
     for (auto& expr : info->columnDataExprs) {
         evaluators.push_back(exprMapper.getEvaluator(expr));
     }
-    return std::make_unique<RelInsertExecutor>(storageManager->getRelsStatistics(), table,
-        srcNodePos, dstNodePos, std::move(returnVectorsPos), std::move(evaluators));
+    return std::make_unique<RelInsertExecutor>(table, srcNodePos, dstNodePos,
+        std::move(returnVectorsPos), std::move(evaluators));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapInsert(LogicalOperator* logicalOperator) {

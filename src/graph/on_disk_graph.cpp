@@ -1,7 +1,9 @@
 #include "graph/on_disk_graph.h"
 
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "main/client_context.h"
 #include "storage/storage_manager.h"
+#include "storage/store/rel_table.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::storage;
@@ -15,8 +17,9 @@ static std::unique_ptr<RelTableScanState> getRelScanState(RelDataDirection direc
     ValueVector* srcVector, ValueVector* dstVector) {
     // Empty columnIDs since we do not scan any rel property.
     auto columnIDs = std::vector<column_id_t>{};
-    auto scanState = std::make_unique<RelTableScanState>(columnIDs, direction);
-    scanState->nodeIDVector = srcVector;
+    // TODO(Guodong): FIX-ME.
+    auto scanState = std::make_unique<RelTableScanState>(INVALID_TABLE_ID, columnIDs);
+    scanState->boundNodeIDVector = srcVector;
     scanState->outputVectors.push_back(dstVector);
     return scanState;
 }
@@ -86,7 +89,7 @@ offset_t OnDiskGraph::getNumNodes() {
 
 offset_t OnDiskGraph::getNumNodes(table_id_t id) {
     KU_ASSERT(nodeIDToNodeTable.contains(id));
-    return nodeIDToNodeTable.at(id)->getNumTuples(context->getTx());
+    return nodeIDToNodeTable.at(id)->getNumRows();
 }
 
 std::vector<RelTableIDInfo> OnDiskGraph::getRelTableIDInfos() {
@@ -142,17 +145,17 @@ std::vector<nodeID_t> OnDiskGraph::scanBwd(nodeID_t nodeID, table_id_t relTableI
 void OnDiskGraph::scan(nodeID_t nodeID, storage::RelTable* relTable,
     RelTableScanState& relTableScanState, std::vector<nodeID_t>& nbrNodeIDs) {
     scanState.srcNodeIDVector->setValue<nodeID_t>(0, nodeID);
-    relTableScanState.dataScanState->resetState();
-    relTable->initializeScanState(context->getTx(), relTableScanState);
-    auto& dstSelVector = scanState.dstNodeIDVector->state->getSelVector();
-    while (relTableScanState.hasMoreToRead(context->getTx())) {
-        relTable->scan(context->getTx(), relTableScanState);
-        KU_ASSERT(dstSelVector.isUnfiltered());
-        for (auto i = 0u; i < dstSelVector.getSelSize(); ++i) {
-            auto nbrID = scanState.dstNodeIDVector->getValue<nodeID_t>(i);
-            nbrNodeIDs.push_back(nbrID);
-        }
-    }
+    // relTableScanState.dataScanState->resetState();
+    // relTable->initializeScanState(transaction, relTableScanState);
+    // auto& dstSelVector = scanState.dstNodeIDVector->state->getSelVector();
+    // while (relTableScanState.hasMoreToRead(transaction)) {
+    //     relTable->scan(transaction, relTableScanState);
+    //     KU_ASSERT(dstSelVector.isUnfiltered());
+    //     for (auto i = 0u; i < dstSelVector.getSelSize(); ++i) {
+    //         auto nbrID = scanState.dstNodeIDVector->getValue<nodeID_t>(i);
+    //         nbrNodeIDs.push_back(nbrID);
+    //     }
+    // }
 }
 
 } // namespace graph

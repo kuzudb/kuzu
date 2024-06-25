@@ -399,7 +399,7 @@ std::vector<std::string> Catalog::getMacroNames(Transaction* transaction) const 
     return macroNames;
 }
 
-void Catalog::prepareCheckpoint(const std::string& databasePath, WAL* wal, VirtualFileSystem* fs) {
+void Catalog::checkpoint(const std::string& databasePath, WAL* wal, VirtualFileSystem* fs) {
     saveToFile(databasePath, fs, FileVersionType::WAL_VERSION);
     wal->logCatalogRecord();
 }
@@ -472,7 +472,7 @@ bool Catalog::containMacro(const std::string& macroName) const {
 }
 
 void Catalog::alterRdfChildTableEntries(Transaction* transaction, CatalogEntry* tableEntry,
-    const binder::BoundAlterInfo& info) const {
+    const BoundAlterInfo& info) const {
     auto rdfGraphEntry = ku_dynamic_cast<CatalogEntry*, RDFGraphCatalogEntry*>(tableEntry);
     auto& renameTableInfo =
         ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraRenameTableInfo&>(

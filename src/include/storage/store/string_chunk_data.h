@@ -3,6 +3,7 @@
 #include "common/assert.h"
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
+#include "storage/store/column_chunk_data.h"
 #include "storage/store/dictionary_chunk.h"
 
 namespace kuzu {
@@ -11,7 +12,8 @@ namespace storage {
 class StringChunkData final : public ColumnChunkData {
 public:
     StringChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
-        bool inMemory);
+        ResidencyState residencyState);
+    StringChunkData(bool enableCompression, const ColumnChunkMetadata& metadata);
 
     void resetToEmpty() override;
     void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;
@@ -20,10 +22,11 @@ public:
     ColumnChunkData* getIndexColumnChunk();
     const ColumnChunkData* getIndexColumnChunk() const;
 
+    void initializeScanState(ChunkState& state) const override;
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
 
-    void write(common::ValueVector* vector, common::offset_t offsetInVector,
+    void write(const common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
     void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
         common::RelMultiplicity multiplicity) override;
@@ -38,7 +41,7 @@ public:
     }
 
     uint64_t getStringLength(common::offset_t pos) const {
-        auto index = indexColumnChunk->getValue<DictionaryChunk::string_index_t>(pos);
+        const auto index = indexColumnChunk->getValue<DictionaryChunk::string_index_t>(pos);
         return dictionaryChunk->getStringLength(index);
     }
 
@@ -48,6 +51,10 @@ public:
     void finalize() override;
 
     void resize(uint64_t newCapacity) override;
+    uint64_t getEstimatedMemoryUsage() const override;
+
+    void serialize(common::Serializer& serializer) const override;
+    static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
 
 private:
     void appendStringColumnChunk(StringChunkData* other, common::offset_t startPosInOtherChunk,

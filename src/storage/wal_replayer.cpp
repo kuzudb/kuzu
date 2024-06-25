@@ -9,6 +9,7 @@
 #include "catalog/catalog_entry/type_catalog_entry.h"
 #include "common/file_system/file_info.h"
 #include "common/serializer/buffered_file.h"
+#include "main/client_context.h"
 #include "processor/expression_mapper.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
@@ -153,7 +154,7 @@ void WALReplayer::replayTableStatisticsRecord(const WALRecord& walRecord) {
                 clientContext.getDatabasePath(), common::FileVersionType::ORIGINAL);
             vfs->overwriteFile(checkpointFile, originalFilePath);
             if (!isRecovering) {
-                storageManager->getNodesStatisticsAndDeletedIDs()->checkpointInMemoryIfNecessary();
+                // storageManager->getNodesStatisticsAndDeletedIDs()->checkpointInMemoryIfNecessary();
             }
         } break;
         case TableType::REL: {
@@ -168,7 +169,7 @@ void WALReplayer::replayTableStatisticsRecord(const WALRecord& walRecord) {
                 clientContext.getDatabasePath(), common::FileVersionType::ORIGINAL);
             vfs->overwriteFile(checkpointFile, originalFilePath);
             if (!isRecovering) {
-                storageManager->getRelsStatistics()->checkpointInMemoryIfNecessary();
+                // storageManager->getRelsStatistics()->checkpointInMemoryIfNecessary();
             }
         } break;
         default: {
@@ -178,10 +179,10 @@ void WALReplayer::replayTableStatisticsRecord(const WALRecord& walRecord) {
     } else {
         switch (tableStatisticsRecord.tableType) {
         case TableType::NODE: {
-            storageManager->getNodesStatisticsAndDeletedIDs()->rollbackInMemoryIfNecessary();
+            // storageManager->getNodesStatisticsAndDeletedIDs()->rollbackInMemoryIfNecessary();
         } break;
         case TableType::REL: {
-            storageManager->getRelsStatistics()->rollbackInMemoryIfNecessary();
+            // storageManager->getRelsStatistics()->rollbackInMemoryIfNecessary();
         } break;
         default: {
             KU_UNREACHABLE;

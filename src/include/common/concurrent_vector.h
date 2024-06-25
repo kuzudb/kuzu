@@ -2,7 +2,6 @@
 
 #include <array>
 #include <cstdint>
-#include <memory>
 #include <vector>
 
 #include "common/assert.h"
