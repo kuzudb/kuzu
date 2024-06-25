@@ -1,5 +1,7 @@
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 
+#include <optional>
+
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_set.h"
 #include "common/keyword/rdf_keyword.h"

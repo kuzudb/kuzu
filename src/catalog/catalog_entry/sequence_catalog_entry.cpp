@@ -3,7 +3,9 @@
 #include "binder/ddl/bound_create_sequence_info.h"
 #include "common/exception/catalog.h"
 #include "common/exception/overflow.h"
+#include "common/vector/value_vector.h"
 #include "function/arithmetic/add.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

@@ -1,6 +1,7 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 
 #include "binder/ddl/bound_create_table_info.h"
+#include "catalog/catalog_set.h"
 
 using namespace kuzu::binder;
 

@@ -3,6 +3,7 @@
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
+#include "main/client_context.h"
 #include "parser/copy.h"
 
 using namespace kuzu::common;

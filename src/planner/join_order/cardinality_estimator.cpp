@@ -1,6 +1,7 @@
 #include "planner/join_order/cardinality_estimator.h"
 
 #include "binder/expression/property_expression.h"
+#include "main/client_context.h"
 #include "planner/join_order/join_order_util.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 

@@ -3,6 +3,7 @@
 #include "catalog/catalog.h"
 #include "common/string_utils.h"
 #include "function/built_in_function_utils.h"
+#include "main/client_context.h"
 #include "planner/operator/persistent/logical_copy_to.h"
 #include "planner/operator/simple/logical_export_db.h"
 #include "planner/operator/simple/logical_import_db.h"

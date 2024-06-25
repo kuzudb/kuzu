@@ -7,6 +7,7 @@
 #include "function/aggregate_function.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/function_collection.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;

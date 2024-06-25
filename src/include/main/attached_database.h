@@ -6,6 +6,14 @@
 #include "extension/catalog_extension.h"
 
 namespace kuzu {
+namespace storage {
+class StorageManager;
+} // namespace storage
+
+namespace transaction {
+class TransactionManager;
+} // namespace transaction
+
 namespace main {
 
 class AttachedDatabase {

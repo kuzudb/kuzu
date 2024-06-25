@@ -1,5 +1,6 @@
 #include "graph/on_disk_graph.h"
 
+#include "main/client_context.h"
 #include "storage/storage_manager.h"
 
 using namespace kuzu::catalog;

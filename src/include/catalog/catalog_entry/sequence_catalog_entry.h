@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "binder/ddl/bound_create_sequence_info.h"
 #include "catalog/property.h"
 #include "catalog_entry.h"
@@ -9,6 +11,10 @@ namespace binder {
 struct BoundExtraCreateCatalogEntryInfo;
 struct BoundAlterInfo;
 } // namespace binder
+
+namespace transaction {
+class Transaction;
+} // namespace transaction
 
 namespace catalog {
 
@@ -35,6 +41,7 @@ struct SequenceData {
     bool cycle;
 };
 
+class CatalogSet;
 class KUZU_API SequenceCatalogEntry : public CatalogEntry {
 public:
     //===--------------------------------------------------------------------===//

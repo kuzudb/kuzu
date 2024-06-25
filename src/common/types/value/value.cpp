@@ -10,6 +10,7 @@
 #include "common/types/blob.h"
 #include "common/types/ku_string.h"
 #include "common/types/uuid.h"
+#include "common/vector/value_vector.h"
 #include "function/hash/hash_functions.h"
 #include "storage/storage_utils.h"
 
