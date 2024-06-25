@@ -53,6 +53,8 @@ public:
 
     inline void setSingleThreadedTask() { maxNumThreads = 1; }
 
+    bool tryRegisterIfUnregistered();
+
     bool registerThread();
 
     void deRegisterThreadAndFinalizeTask();
@@ -73,6 +75,8 @@ public:
     }
 
     inline bool hasExceptionNoLock() const { return exceptionsPtr != nullptr; }
+
+    virtual inline uint64_t getWork() = 0;
 
 private:
     bool canRegisterNoLock() const {

@@ -19,6 +19,11 @@ public:
         sharedStateInitialized = true;
     }
 
+    inline uint64_t getWork() override {
+        common::lock_t lck{mtx};
+        return sink->getWork() / numThreadsRegistered;
+    }
+
 private:
     static std::unique_ptr<ResultSet> populateResultSet(Sink* op,
         storage::MemoryManager* memoryManager);
