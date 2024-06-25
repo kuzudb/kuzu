@@ -21,8 +21,8 @@ void ScanRelTableInfo::scanIfNecessary(Transaction* transaction) const {
     if (relScanState.currNodeIdx == relScanState.endNodeIdx) {
         table->initializeScanState(transaction, *localScanState);
     }
-    // We rescan per 2048 tuples
-    if (relScanState.currentCSROffset >= DEFAULT_VECTOR_CAPACITY) {
+    // We rescan after last batch is all processed (usually 2048 tuples)
+    if (relScanState.currentCSROffset >= relScanState.batchSize) {
         table->scan(transaction, *localScanState);
     }
     auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(relScanState.nodeGroupIdx);
@@ -43,7 +43,7 @@ void ScanRelTableInfo::scanIfNecessary(Transaction* transaction) const {
         currCSRSize =
             relScanState.posInLastCSR > currCSRSize ? 0 : currCSRSize - relScanState.posInLastCSR;
     }
-    auto spaceLeft = DEFAULT_VECTOR_CAPACITY - relScanState.currentCSROffset;
+    auto spaceLeft = relScanState.batchSize - relScanState.currentCSROffset;
     if (currCSROffset > spaceLeft) {
         currCSROffset = spaceLeft;
         currCSRSize = std::min(currCSRSize, spaceLeft);
