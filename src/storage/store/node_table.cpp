@@ -196,7 +196,6 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     return nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
 }
 
-// TODO(FIX-ME): Rework this.
 void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
     auto& property = addColumnState.property;
     KU_ASSERT(property.getColumnID() == columns.size());

@@ -64,6 +64,7 @@ bool VectorVersionInfo::isInserted(const transaction_t startTS, const transactio
     const auto insertion = insertedVersions[rowIdx];
     const auto isInsertedWithinSameTransaction = insertion == transactionID;
     const auto isInsertedByPrevCommittedTransaction = insertion <= startTS;
+    // TODO(Guodong): revisit and remove `insertion == INVALID_TRANSACTION`.
     return insertion == INVALID_TRANSACTION || isInsertedWithinSameTransaction ||
            isInsertedByPrevCommittedTransaction;
 }
