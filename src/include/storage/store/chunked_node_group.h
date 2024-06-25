@@ -4,6 +4,7 @@
 #include "common/constants.h"
 #include "common/copy_constructors.h"
 #include "storage/store/column_chunk_data.h"
+#include "common/types/internal_id_t.h"
 
 namespace kuzu {
 namespace storage {
@@ -70,7 +71,7 @@ struct ChunkedCSRHeader {
 
     ChunkedCSRHeader() {}
     explicit ChunkedCSRHeader(bool enableCompression,
-        uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
+        uint64_t capacity = common::DEFAULT_VECTOR_CAPACITY);
     DELETE_COPY_DEFAULT_MOVE(ChunkedCSRHeader);
 
     common::offset_t getStartCSROffset(common::offset_t nodeOffset) const;
@@ -81,8 +82,16 @@ struct ChunkedCSRHeader {
     void copyFrom(const ChunkedCSRHeader& other) const;
     void fillDefaultValues(common::offset_t newNumValues) const;
     void setNumValues(common::offset_t numValues) const {
+        resizeForValues(numValues);
         offset->setNumValues(numValues);
         length->setNumValues(numValues);
+    }
+
+    void resizeForValues(common::offset_t numValues) const {
+        if (numValues > offset->getCapacity()) {
+            offset->resize(std::bit_ceil(numValues));
+            length->resize(std::bit_ceil(numValues));
+        }
     }
 
     void resetToEmpty() const {
