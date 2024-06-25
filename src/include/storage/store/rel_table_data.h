@@ -15,6 +15,7 @@ struct RelDataReadState final : TableDataScanState {
     common::offset_t currentNodeOffset;
     common::offset_t currentCSROffset;
     common::offset_t posInLastCSR;
+    common::offset_t batchSize;
     common::sel_t currNodeIdx;
     common::sel_t endNodeIdx;
     common::sel_t totalNodeIdxs;

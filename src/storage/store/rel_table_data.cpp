@@ -16,9 +16,9 @@ namespace storage {
 
 RelDataReadState::RelDataReadState(const std::vector<column_id_t>& columnIDs)
     : TableDataScanState{columnIDs}, nodeGroupIdx{INVALID_NODE_GROUP_IDX}, numNodes{0},
-      currentNodeOffset{0}, currentCSROffset{0}, posInLastCSR{0}, currNodeIdx{0}, endNodeIdx{0},
-      totalNodeIdxs{0}, readFromPersistentStorage{false}, readFromLocalStorage{false},
-      localNodeGroup{nullptr} {}
+      currentNodeOffset{0}, currentCSROffset{0}, posInLastCSR{0}, batchSize{0}, 
+      currNodeIdx{0}, endNodeIdx{0}, totalNodeIdxs{0}, readFromPersistentStorage{false}, 
+      readFromLocalStorage{false}, localNodeGroup{nullptr} {}
 
 bool RelDataReadState::hasMoreToReadFromLocalStorage() const {
     KU_ASSERT(localNodeGroup);
@@ -68,23 +68,23 @@ std::pair<offset_t, offset_t> RelDataReadState::getStartAndEndOffset(ValueVector
         inNodeIDVector.readNodeOffset(inNodeIDVector.state->getSelVector()[currNodeIdx]);
     auto startOffset =
         csrHeaderChunks.getStartCSROffset(currNodeOffset - startNodeOffset) + posInLastCSR;
-    auto numRowsToRead = 0ul;
-    while (numRowsToRead < DEFAULT_VECTOR_CAPACITY && startNodeIdx < endNodeIdx) {
+    batchSize = 0;
+    while (batchSize < DEFAULT_VECTOR_CAPACITY && startNodeIdx < endNodeIdx) {
         auto nodeOffset = inNodeIDVector.readNodeOffset(selVector[startNodeIdx]);
         auto currCSRSize = csrHeaderChunks.getEndCSROffset(nodeOffset - startNodeOffset) -
                            csrHeaderChunks.getStartCSROffset(nodeOffset - startNodeOffset);
-        auto spaceToRead = DEFAULT_VECTOR_CAPACITY - numRowsToRead;
+        auto spaceToRead = DEFAULT_VECTOR_CAPACITY - batchSize;
         auto leftToRead = currCSRSize - posInLastCSR;
         if (leftToRead <= spaceToRead) {
-            numRowsToRead += leftToRead;
+            batchSize += leftToRead;
             posInLastCSR = 0;
             startNodeIdx++;
         } else {
-            numRowsToRead += spaceToRead;
+            batchSize += spaceToRead;
             posInLastCSR += spaceToRead;
         }
     }
-    return {startOffset, startOffset + numRowsToRead};
+    return {startOffset, startOffset + batchSize};
 }
 
 void RelDataReadState::resetState() {
@@ -94,6 +94,7 @@ void RelDataReadState::resetState() {
     currentNodeOffset = 0;
     currentCSROffset = 0;
     posInLastCSR = 0;
+    batchSize = 0;
     currNodeIdx = 0;
     endNodeIdx = 0;
     totalNodeIdxs = 0;
@@ -213,7 +214,7 @@ void RelTableData::initializeScanState(Transaction* transaction, TableScanState&
     relScanState.endNodeIdx = relScanState.currNodeIdx;
     relScanState.currentNodeOffset =
         scanState.nodeIDVector->readNodeOffset(selVector[relScanState.currNodeIdx]);
-    relScanState.currentCSROffset = DEFAULT_VECTOR_CAPACITY;
+    relScanState.currentCSROffset = 0;
     relScanState.totalNodeIdxs = selVector.getSelSize();
     relScanState.nodeGroupIdx = StorageUtils::getNodeGroupIdx(relScanState.currentNodeOffset);
     auto nodeOffset = scanState.nodeIDVector->readNodeOffset(selVector[relScanState.endNodeIdx]);
@@ -277,8 +278,7 @@ void RelTableData::scan(Transaction* transaction, TableDataScanState& readState,
     }
     KU_ASSERT(relReadState.readFromPersistentStorage);
     auto [startOffset, endOffset] = relReadState.getStartAndEndOffset(inNodeIDVector);
-    auto numRowsToRead = endOffset - startOffset;
-    outputVectors[0]->state->getSelVectorUnsafe().setToUnfiltered(numRowsToRead);
+    outputVectors[0]->state->getSelVectorUnsafe().setToUnfiltered(relReadState.batchSize);
     auto relIDVectorIdx = INVALID_IDX;
     for (auto i = 0u; i < relReadState.columnIDs.size(); i++) {
         auto columnID = relReadState.columnIDs[i];
