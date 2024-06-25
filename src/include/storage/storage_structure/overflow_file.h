@@ -1,7 +1,5 @@
 #pragma once
 
-#include <fcntl.h>
-
 #include <cstdint>
 #include <memory>
 #include <string_view>
@@ -11,7 +9,6 @@
 #include "common/types/types.h"
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/buffer_manager/buffer_manager.h"
-#include "storage/file_handle.h"
 #include "storage/index/hash_index_utils.h"
 #include "storage/storage_structure/in_mem_page.h"
 #include "storage/storage_utils.h"

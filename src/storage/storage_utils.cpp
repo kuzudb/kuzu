@@ -1,7 +1,5 @@
 #include "storage/storage_utils.h"
 
-#include <fcntl.h>
-
 #include "common/assert.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
@@ -78,7 +76,7 @@ std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(const std::strin
         throw RuntimeException("Unsupported dbFileID in StorageUtils::getFileInfoForReadWrite.");
     }
     }
-    return vfs->openFile(fName, O_RDWR);
+    return vfs->openFile(fName, FileFlags::READ_ONLY | FileFlags::WRITE);
 }
 
 uint32_t StorageUtils::getDataTypeSize(PhysicalTypeID type) {

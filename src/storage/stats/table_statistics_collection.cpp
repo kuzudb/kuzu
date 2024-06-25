@@ -1,7 +1,5 @@
 #include "storage/stats/table_statistics_collection.h"
 
-#include <fcntl.h>
-
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/deserializer.h"
@@ -23,16 +21,16 @@ TablesStatistics::TablesStatistics(DiskArrayCollection& metadataDAC, BufferManag
 void TablesStatistics::readFromFile(const std::string& dbPath, FileVersionType fileVersionType,
     VirtualFileSystem* fs, main::ClientContext* context) {
     auto filePath = getTableStatisticsFilePath(dbPath, fileVersionType, fs);
-    auto deser = Deserializer(
-        std::make_unique<BufferedFileReader>(fs->openFile(filePath, O_RDONLY, context)));
+    auto deser = Deserializer(std::make_unique<BufferedFileReader>(
+        fs->openFile(filePath, FileFlags::READ_ONLY, context)));
     deser.deserializeUnorderedMap(readOnlyVersion->tableStatisticPerTable);
 }
 
 void TablesStatistics::saveToFile(const std::string& directory, FileVersionType fileVersionType,
     transaction::TransactionType transactionType, VirtualFileSystem* fs) {
     auto filePath = getTableStatisticsFilePath(directory, fileVersionType, fs);
-    auto ser = Serializer(
-        std::make_unique<BufferedFileWriter>(fs->openFile(filePath, O_WRONLY | O_CREAT)));
+    auto ser = Serializer(std::make_unique<BufferedFileWriter>(
+        fs->openFile(filePath, FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS)));
     auto& tablesStatisticsContent = (transactionType == transaction::TransactionType::READ_ONLY ||
                                         readWriteVersion == nullptr) ?
                                         readOnlyVersion :

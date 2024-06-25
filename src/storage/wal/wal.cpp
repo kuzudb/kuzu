@@ -1,7 +1,5 @@
 #include "storage/wal/wal.h"
 
-#include <fcntl.h>
-
 #include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/file_system/file_info.h"
@@ -22,7 +20,9 @@ WAL::WAL(const std::string& directory, bool readOnly, BufferManager& bufferManag
     : directory{directory}, bufferManager{bufferManager}, vfs{vfs} {
     auto fileInfo =
         vfs->openFile(vfs->joinPath(directory, std::string(StorageConstants::WAL_FILE_SUFFIX)),
-            readOnly ? O_RDONLY : O_CREAT | O_RDWR, context);
+            readOnly ? FileFlags::READ_ONLY :
+                       FileFlags::CREATE_IF_NOT_EXISTS | FileFlags::READ_ONLY | FileFlags::WRITE,
+            context);
     bufferedWriter = std::make_shared<BufferedFileWriter>(std::move(fileInfo));
     shadowingFH = bufferManager.getBMFileHandle(
         vfs->joinPath(directory, std::string(StorageConstants::SHADOWING_SUFFIX)),

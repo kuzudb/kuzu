@@ -98,7 +98,7 @@ void StorageManager::recover(main::ClientContext& clientContext) {
             WALReplayMode::RECOVERY_CHECKPOINT);
         walReplayer->replay();
         // Truncate .wal and .shadow to empty. Remove catalog and stats wal files.
-        auto walFileInfo = vfs->openFile(walFilePath, O_RDWR);
+        auto walFileInfo = vfs->openFile(walFilePath, FileFlags::READ_ONLY | FileFlags::WRITE);
         if (walFileInfo->getFileSize() > 0) {
             walFileInfo->truncate(0);
         }

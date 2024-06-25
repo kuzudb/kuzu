@@ -1,7 +1,5 @@
 #include "processor/operator/simple/export_db.h"
 
-#include <fcntl.h>
-
 #include <sstream>
 
 #include "catalog/catalog.h"
@@ -26,7 +24,7 @@ using std::stringstream;
 
 static void writeStringStreamToFile(VirtualFileSystem* vfs, std::string ssString,
     const std::string& path) {
-    auto fileInfo = vfs->openFile(path, O_WRONLY | O_CREAT);
+    auto fileInfo = vfs->openFile(path, FileFlags::WRITE | FileFlags::CREATE_IF_NOT_EXISTS);
     fileInfo->writeFile(reinterpret_cast<const uint8_t*>(ssString.c_str()), ssString.size(),
         0 /* offset */);
 }

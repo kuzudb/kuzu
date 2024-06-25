@@ -1,5 +1,3 @@
-#include <fcntl.h>
-
 #include "binder/binder.h"
 #include "binder/bound_import_database.h"
 #include "common/cast.h"
@@ -23,7 +21,8 @@ static std::string getQueryFromFile(common::VirtualFileSystem* vfs, const std::s
     if (!vfs->fileOrPathExists(filePath, context)) {
         throw BinderException(stringFormat("File {} does not exist.", filePath));
     }
-    auto fileInfo = vfs->openFile(filePath, O_RDONLY
+    auto fileInfo = vfs->openFile(filePath, FileFlags::READ_ONLY
+// TODO(Ziyi): We need to handle O_BINARY here.
 #ifdef _WIN32
                                                 | _O_BINARY
 #endif

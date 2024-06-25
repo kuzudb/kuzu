@@ -1,7 +1,5 @@
 #include "storage/index/in_mem_hash_index.h"
 
-#include <fcntl.h>
-
 #include <cstring>
 
 #include "common/constants.h"

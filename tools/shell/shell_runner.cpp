@@ -1,5 +1,3 @@
-#include <fcntl.h>
-
 #include <iostream>
 
 #include "args.hxx"
@@ -64,9 +62,10 @@ int main(int argc, char* argv[]) {
     pathToHistory += "history.txt";
     auto localFileSystem = std::make_unique<LocalFileSystem>();
     try {
-        localFileSystem->openFile(pathToHistory, O_CREAT);
+        localFileSystem->openFile(pathToHistory,
+            FileFlags::CREATE_IF_NOT_EXISTS | FileFlags::WRITE | FileFlags::READ_ONLY);
     } catch (Exception& e) {
-        std::cerr << "Invalid path to directory for history file" << '\n';
+        std::cerr << "Invalid path " + pathToHistory + " to directory for history file" << '\n';
         return 1;
     }
     std::cout << "Opened the database at path: " << databasePath << " in "

@@ -51,6 +51,7 @@ public:
         fileInfo->writeFile(buffer, getPageSize(), pageIdx * getPageSize());
     }
 
+    // TODO: These should be refactored to use functions of `FileFlags`.
     inline bool isLargePaged() const { return flags & isLargePagedMask; }
     inline bool isNewTmpFile() const { return flags & isNewInMemoryTmpFileMask; }
     inline bool isReadOnlyFile() const { return flags & isReadOnlyMask; }
@@ -65,9 +66,7 @@ public:
 
 protected:
     virtual common::page_idx_t addNewPageWithoutLock();
-    void constructExistingFileHandle(const std::string& path, common::VirtualFileSystem* vfs,
-        main::ClientContext* context);
-    void constructNewFileHandle(const std::string& path, common::VirtualFileSystem* vfs,
+    void constructFileHandle(const std::string& path, common::VirtualFileSystem* vfs,
         main::ClientContext* context);
 
 protected:
