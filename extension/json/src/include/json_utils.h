@@ -15,8 +15,14 @@ class JsonWrapper {
 public:
     JsonWrapper() = delete;
     explicit JsonWrapper(yyjson_doc* ptr) : ptr{ptr} {}
-    ~JsonWrapper() { yyjson_doc_free(ptr); }
-    DELETE_COPY_DEFAULT_MOVE(JsonWrapper);
+    ~JsonWrapper() {
+        if(ptr) {
+            yyjson_doc_free(ptr);
+            ptr = nullptr;
+        }
+    }
+    JsonWrapper(JsonWrapper& other) = delete;
+    JsonWrapper(JsonWrapper&& other) {std::swap(ptr, other.ptr);}
 
     yyjson_doc* ptr;
 };
@@ -25,8 +31,14 @@ class JsonMutWrapper {
 public:
     JsonMutWrapper() : ptr{yyjson_mut_doc_new(nullptr)} {}
     explicit JsonMutWrapper(yyjson_mut_doc* ptr) : ptr{ptr} {}
-    ~JsonMutWrapper() { yyjson_mut_doc_free(ptr); }
-    DELETE_COPY_DEFAULT_MOVE(JsonMutWrapper);
+    ~JsonMutWrapper() {
+        if(ptr) {
+            yyjson_mut_doc_free(ptr);
+            ptr = nullptr;
+        }
+    }
+    JsonMutWrapper(JsonMutWrapper& other) = delete;
+    JsonMutWrapper(JsonMutWrapper&& other) {std::swap(ptr, other.ptr);}
 
     yyjson_mut_doc* ptr;
 };

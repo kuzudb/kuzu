@@ -357,7 +357,9 @@ StructTypeInfo::StructTypeInfo(const std::vector<std::string>& fieldNames,
 }
 
 bool StructTypeInfo::hasField(const std::string& fieldName) const {
-    return fieldNameToIdxMap.contains(fieldName);
+    auto copy = fieldName;
+    StringUtils::toUpper(copy);
+    return fieldNameToIdxMap.contains(copy);
 }
 
 struct_field_idx_t StructTypeInfo::getStructFieldIdx(std::string fieldName) const {

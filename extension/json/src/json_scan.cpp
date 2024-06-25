@@ -21,8 +21,8 @@ struct JsonBindData : public TableFuncBindData {
         : TableFuncBindData(std::move(columnTypes), std::move(columnNames)),
           json(wrapper),
           scanFromList{scanFromList}, scanFromStruct{scanFromStruct} {
-        for (auto i = 0u; i < columnNames.size(); i++) {
-            nameToIdxMap[columnNames[i]] = i;
+        for (auto i = 0u; i < this->columnNames.size(); i++) {
+            nameToIdxMap[this->columnNames[i]] = i;
         }
     }
 
@@ -121,7 +121,7 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
             while ((key = yyjson_obj_iter_next(&objIter))) {
                 ele = yyjson_obj_iter_get_val(key);
                 auto columnIdx = bindData->nameToIdxMap[yyjson_get_str(key)];
-                readJsonToValueVector(ele, *output.vectors[columnIdx], i - localState->begin);
+                readJsonToValueVector(ele, *output.dataChunk.valueVectors[columnIdx], i - localState->begin);
             }
         } else {
             readJsonToValueVector(*i, *output.vectors[0], i - localState->begin);

@@ -191,12 +191,14 @@ extension-json:
 		-DBUILD_EXTENSIONS="json" \
 		-DBUILD_KUZU=FALSE
 	)
+	cp extension/json/build/libjson.kuzu_extension ~/.kuzu/extension/0.3.17/linux_amd64/
 
 extension-json-debug:
 	$(call run-cmake-debug, \
 		-DBUILD_EXTENSIONS="json" \
 		-DBUILD_KUZU=FALSE
 	)
+	cp extension/json/build/libjson.kuzu_extension ~/.kuzu/extension/0.3.17/linux_amd64/
 
 shell-test:
 	$(call run-cmake-relwithdebinfo, \
