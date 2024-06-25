@@ -139,6 +139,7 @@ private:
 // Currently, only MemoryManager and WAL files are non-versioned.
 class BMFileHandle : public FileHandle {
     friend class BufferManager;
+    friend class OverflowFile;
 
 public:
     enum class FileVersionedType : uint8_t {

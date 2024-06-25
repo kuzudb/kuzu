@@ -163,11 +163,16 @@ OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager
     : bufferManager{bufferManager}, wal{wal}, headerChanged{false} {
     auto overflowFileIDAndName = constructDBFileIDAndName(dbFileIdAndName);
     dbFileID = overflowFileIDAndName.dbFileID;
-    fileHandle = bufferManager->getBMFileHandle(overflowFileIDAndName.fName,
-        readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                   FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-        BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs, context);
-    if (fileHandle->getNumPages() > HEADER_PAGE_IDX) {
+    if (vfs) {
+        KU_ASSERT(bufferManager && context && wal);
+        fileHandle = bufferManager->getBMFileHandle(overflowFileIDAndName.fName,
+            readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                       FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+            BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs, context);
+    } else {
+        fileHandle = nullptr;
+    }
+    if (fileHandle && fileHandle->getNumPages() > HEADER_PAGE_IDX) {
         readFromDisk(transaction::TransactionType::READ_ONLY, HEADER_PAGE_IDX,
             [&](auto* frame) { memcpy(&header, frame, sizeof(header)); });
         pageCounter = numPagesOnDisk = header.pages;
