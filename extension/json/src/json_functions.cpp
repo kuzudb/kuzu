@@ -191,10 +191,24 @@ function_set JsonKeysFunction::getFunctionSet() {
     return ret;
 }
 
+static void jsonSchemaExecFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
+    ValueVector& result, void* /*dataPtr*/) {
+    result.resetAuxiliaryBuffer();
+    const auto& param = parameters[0];
+    for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
+        ++selectedPos) {
+        auto resultPos = result.state->getSelVector()[selectedPos];
+        auto paramPos = param->state->getSelVector()[param->state->isFlat() ? 0 : selectedPos];
+        auto paramStr = param->getValue<ku_string_t>(paramPos).getAsString();
+        auto schema = jsonSchema(stringToJson(paramStr));
+        StringVector::addString(&result, pos, schema.toString());
+    }
+}
+
 function_set JsonStructureFunction::getFunctionSet() {
     function_set ret;
-    // ret.push_back(std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING},
-    //     LogicalTypeID::ANY)); // how is the output type supposed to work here? todo.
+    ret.push_back(std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING},
+        LogicalTypeID::STRING, jsonSchemaExecFunc));
     return ret;
 }
 
