@@ -8,4 +8,4 @@ set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_storage_compression>
         PARENT_SCOPE)
 
-target_link_libraries(kuzu_storage_compression PRIVATE fastpfor)
+target_link_libraries(kuzu_storage_compression PRIVATE fastpfor ALP)
