@@ -201,7 +201,7 @@ static void jsonSchemaExecFunc(const std::vector<std::shared_ptr<ValueVector>>& 
         auto paramPos = param->state->getSelVector()[param->state->isFlat() ? 0 : selectedPos];
         auto paramStr = param->getValue<ku_string_t>(paramPos).getAsString();
         auto schema = jsonSchema(stringToJson(paramStr));
-        StringVector::addString(&result, pos, schema.toString());
+        StringVector::addString(&result, resultPos, schema.toString());
     }
 }
 
