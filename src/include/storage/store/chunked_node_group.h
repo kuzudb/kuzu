@@ -3,8 +3,8 @@
 #include "common/column_data_format.h"
 #include "common/constants.h"
 #include "common/copy_constructors.h"
-#include "storage/store/column_chunk_data.h"
 #include "common/types/internal_id_t.h"
+#include "storage/store/column_chunk_data.h"
 
 namespace kuzu {
 namespace storage {
