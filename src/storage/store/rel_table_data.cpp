@@ -77,7 +77,6 @@ void RelDataReadState::resetState() {
     numNodes = 0;
     currentNodeOffset = 0;
     posInCurrentCSR = 0;
-    csrHeaderChunks.resetToEmpty();
     readFromPersistentStorage = false;
     readFromLocalStorage = false;
     localNodeGroup = nullptr;
