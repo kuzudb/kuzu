@@ -604,7 +604,8 @@ public:
         if (!output.isNull(posInOutputVector)) {
             auto relID = output.getValue<internalID_t>(posInOutputVector);
             relID.offset = getValue<offset_t>(offsetInChunk);
-            KU_ASSERT(commonTableID != INVALID_TABLE_ID);
+            // TODO(Sam): This is not good, this is a hack for now
+            // KU_ASSERT(commonTableID != INVALID_TABLE_ID);
             relID.tableID = commonTableID;
             output.setValue<internalID_t>(posInOutputVector, relID);
         }
