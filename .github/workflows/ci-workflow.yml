@@ -54,6 +54,7 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
+      CMAKE_BUILD_PARALLEL_LEVEL: 32
       TEST_JOBS: 16
       CLANGD_DIAGNOSTIC_JOBS: 32
       CLANGD_DIAGNOSTIC_INSTANCES: 6
@@ -108,7 +109,7 @@ jobs:
           KUZU_SHARED: 1
           KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
           KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
-        run: cargo test --locked --features arrow -- --test-threads=1
+        run: cargo test --profile=relwithdebinfo --locked --features arrow -- --test-threads=12
 
   code-coverage:
     name: code coverage
@@ -181,6 +182,7 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     env:
       CARGO_BUILD_JOBS: 32
+      CMAKE_BUILD_PARALLEL_LEVEL: 32
       CC: gcc
       CXX: g++
     steps:
@@ -188,8 +190,7 @@ jobs:
 
       - name: Rust test
         working-directory: tools/rust_api
-        run: |
-          cargo test --locked --features arrow -- --test-threads=1
+        run: cargo test --profile=relwithdebinfo --locked --features arrow -- --test-threads=12
 
       - name: Rust example
         working-directory: examples/rust
@@ -235,6 +236,7 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
+      CMAKE_BUILD_PARALLEL_LEVEL: 32
       TEST_JOBS: 16
       CC: clang
       CXX: clang++
@@ -285,7 +287,7 @@ jobs:
           KUZU_SHARED: 1
           KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
           KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
-        run: cargo test --locked --features arrow -- --test-threads=1
+        run: cargo test --profile=relwithdebinfo --locked --features arrow -- --test-threads=12
 
   msvc-build-test:
     name: msvc build & test
@@ -296,6 +298,7 @@ jobs:
       CARGO_TARGET_DIR: ${{ github.workspace }}/rs
       CARGO_BUILD_JOBS: 18
       NUM_THREADS: 18
+      CMAKE_BUILD_PARALLEL_LEVEL: 18
       TEST_JOBS: 9
       WERROR: 0
       UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
@@ -363,7 +366,7 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           set CFLAGS=/MD
           set CXXFLAGS=/MD /std:c++20
-          cargo test --locked -- --test-threads=1
+          cargo test --profile=relwithdebinfo --locked -- --test-threads=12
 
       - name: Java test
         shell: cmd
@@ -381,7 +384,7 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           set PATH=%PATH%;${{ github.workspace }}/build/release/src
-          cargo test --locked --features arrow -- --test-threads=1
+          cargo test --profile=relwithdebinfo --locked --features arrow -- --test-threads=12
 
 
   sanity-checks:
@@ -522,6 +525,7 @@ jobs:
     runs-on: self-hosted-mac-x64
     env:
       NUM_THREADS: 32
+      CMAKE_BUILD_PARALLEL_LEVEL: 32
       TEST_JOBS: 16
       GEN: Ninja
       UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}

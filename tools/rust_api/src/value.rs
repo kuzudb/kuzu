@@ -1034,10 +1034,6 @@ mod tests {
     use time::macros::{date, datetime};
     use uuid::uuid;
 
-    // Note: Cargo runs tests in parallel by default, however kuzu does not support
-    // working with multiple databases in parallel.
-    // Tests can be run serially with `cargo test -- --test-threads=1` to work around this.
-
     macro_rules! type_tests {
         ($($name:ident: $value:expr,)*) => {
         $(
