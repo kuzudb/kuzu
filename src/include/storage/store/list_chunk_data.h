@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/data_chunk/sel_vector.h"
-#include "storage/store/column_chunk.h"
+#include "storage/store/column_chunk_data.h"
 
 namespace kuzu {
 namespace storage {

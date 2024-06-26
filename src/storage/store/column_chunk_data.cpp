@@ -1,4 +1,4 @@
-#include "storage/store/column_chunk.h"
+#include "storage/store/column_chunk_data.h"
 
 #include <algorithm>
 
@@ -10,9 +10,9 @@
 #include "expression_evaluator/expression_evaluator.h"
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/compression/compression.h"
-#include "storage/store/list_column_chunk.h"
-#include "storage/store/string_column_chunk.h"
-#include "storage/store/struct_column_chunk.h"
+#include "storage/store/list_chunk_data.h"
+#include "storage/store/string_chunk_data.h"
+#include "storage/store/struct_chunk_data.h"
 
 using namespace kuzu::common;
 using namespace kuzu::evaluator;

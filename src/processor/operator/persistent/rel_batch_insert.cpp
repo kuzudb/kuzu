@@ -5,7 +5,7 @@
 #include "common/string_format.h"
 #include "processor/result/factorized_table_util.h"
 #include "storage/local_storage/local_rel_table.h"
-#include "storage/store/column_chunk.h"
+#include "storage/store/column_chunk_data.h"
 #include "storage/store/rel_table.h"
 
 using namespace kuzu::common;

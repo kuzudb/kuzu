@@ -1,10 +1,9 @@
-#include "storage/store/list_column_chunk.h"
+#include "storage/store/list_chunk_data.h"
 
 #include <cmath>
 
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/value/value.h"
-#include "storage/store/column_chunk.h"
 
 using namespace kuzu::common;
 
