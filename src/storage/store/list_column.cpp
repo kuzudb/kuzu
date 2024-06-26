@@ -2,7 +2,7 @@
 
 #include "storage/storage_structure/disk_array_collection.h"
 #include "storage/store/column.h"
-#include "storage/store/list_column_chunk.h"
+#include "storage/store/list_chunk_data.h"
 #include "storage/store/null_column.h"
 #include <bit>
 

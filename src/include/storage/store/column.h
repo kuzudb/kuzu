@@ -6,7 +6,7 @@
 #include "storage/compression/compression.h"
 #include "storage/stats/metadata_dah_info.h"
 #include "storage/storage_structure/disk_array.h"
-#include "storage/store/column_chunk.h"
+#include "storage/store/column_chunk_data.h"
 
 namespace kuzu {
 namespace evaluator {

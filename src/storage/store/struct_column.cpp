@@ -1,7 +1,7 @@
 #include "storage/store/struct_column.h"
 
 #include "storage/store/null_column.h"
-#include "storage/store/struct_column_chunk.h"
+#include "storage/store/struct_chunk_data.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

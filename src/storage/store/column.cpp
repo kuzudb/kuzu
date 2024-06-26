@@ -14,7 +14,7 @@
 #include "storage/storage_structure/disk_array.h"
 #include "storage/storage_structure/disk_array_collection.h"
 #include "storage/storage_utils.h"
-#include "storage/store/column_chunk.h"
+#include "storage/store/column_chunk_data.h"
 #include "storage/store/list_column.h"
 #include "storage/store/null_column.h"
 #include "storage/store/string_column.h"

@@ -1,7 +1,6 @@
-#include "storage/store/string_column_chunk.h"
+#include "storage/store/string_chunk_data.h"
 
 #include "common/data_chunk/sel_vector.h"
-#include "storage/store/column_chunk.h"
 #include "storage/store/dictionary_chunk.h"
 
 using namespace kuzu::common;
