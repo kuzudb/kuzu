@@ -4,7 +4,6 @@
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
 #include "storage/store/dictionary_chunk.h"
-#include "storage/store/string_chunk_data.h"
 
 namespace kuzu {
 namespace storage {
