@@ -120,6 +120,9 @@ JsonWrapper jsonify(const common::ValueVector& vec, uint64_t pos) {
 
 static common::LogicalType combineTypeJsonContext(const common::LogicalType& lft,
     const common::LogicalType& rit) { // always succeeds
+    if (lft.getLogicalTypeID() == LogicalTypeID::STRING || rit.getLogicalTypeID() == LogicalTypeID::STRING) {
+        return LogicalType::STRING();
+    }
     if (lft.getLogicalTypeID() == rit.getLogicalTypeID() && lft.getLogicalTypeID() == LogicalTypeID::STRUCT) {
         std::vector<StructField> resultingFields;
         for (const auto& i : StructType::getFields(lft)) {
@@ -196,6 +199,7 @@ common::LogicalType jsonSchema(const JsonWrapper& wrapper) {
 // Precondition: vec.dataType is not STRING
 static void readFromJsonArr(yyjson_val* val, common::ValueVector& vec, uint64_t pos) {
     const auto& outputType = vec.dataType;
+    vec.setNull(pos, false);
     switch (outputType.getLogicalTypeID()) {
     case LogicalTypeID::LIST: {
         auto lst = ListVector::addList(&vec, yyjson_arr_size(val));
@@ -210,6 +214,10 @@ static void readFromJsonArr(yyjson_val* val, common::ValueVector& vec, uint64_t 
             childPos++;
         }
     } break;
+    case LogicalTypeID::STRING: {
+        auto str = jsonToString(val);
+        StringVector::addString(&vec, pos, str);
+    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -218,6 +226,7 @@ static void readFromJsonArr(yyjson_val* val, common::ValueVector& vec, uint64_t 
 // Precondition: vec.dataType is not STRING
 static void readFromJsonObj(yyjson_val* val, common::ValueVector& vec, uint64_t pos) {
     const auto& outputType = vec.dataType;
+    vec.setNull(pos, false);
     switch (outputType.getLogicalTypeID()) {
     case LogicalTypeID::STRUCT: {
         vec.setValue<int64_t>(pos, pos);
@@ -232,6 +241,10 @@ static void readFromJsonObj(yyjson_val* val, common::ValueVector& vec, uint64_t 
             }
         }
     } break;
+    case LogicalTypeID::STRING: {
+        auto str = jsonToString(val);
+        StringVector::addString(&vec, pos, str);
+    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -241,7 +254,11 @@ static void readFromJsonObj(yyjson_val* val, common::ValueVector& vec, uint64_t 
 template<typename NUM_TYPE>
 static void readFromJsonNum(NUM_TYPE val, common::ValueVector& vec, uint64_t pos) {
     const auto& outputType = vec.dataType;
+    vec.setNull(pos, false);
     switch (outputType.getLogicalTypeID()) {
+    case LogicalTypeID::INT128:
+        vec.setValue<int128_t>(pos, int128_t(val));
+        break;
     case LogicalTypeID::INT64:
         vec.setValue<int64_t>(pos, (int64_t)val);
         break;
@@ -251,17 +268,16 @@ static void readFromJsonNum(NUM_TYPE val, common::ValueVector& vec, uint64_t pos
     case LogicalTypeID::DOUBLE:
         vec.setValue<double>(pos, (double)val);
         break;
+    case LogicalTypeID::STRING: {
+        auto str = std::to_string(val);
+        StringVector::addString(&vec, pos, str);
+    } break;
     default:
         KU_UNREACHABLE;
     }
 }
 
 void readJsonToValueVector(yyjson_val* val, common::ValueVector& vec, uint64_t pos) {
-    const auto& outputType = vec.dataType;
-    if (outputType.getLogicalTypeID() == LogicalTypeID::STRING) {
-        StringVector::addString(&vec, pos, jsonToString(val));
-        return;
-    }
     switch(yyjson_get_type(val)) {
     case YYJSON_TYPE_ARR:
         readFromJsonArr(val, vec, pos);
@@ -273,6 +289,10 @@ void readJsonToValueVector(yyjson_val* val, common::ValueVector& vec, uint64_t p
         vec.setNull(pos, true);
         // Technically unnecessary given this function's one use case, but
         // removing this line may cause this function to behave unexpectedly for possible future use cases
+        break;
+    case YYJSON_TYPE_BOOL:
+        vec.setNull(pos, false);
+        vec.setValue<bool>(pos, yyjson_get_bool(val));
         break;
     case YYJSON_TYPE_NUM:
         switch (yyjson_get_subtype(val)) {
@@ -288,7 +308,8 @@ void readJsonToValueVector(yyjson_val* val, common::ValueVector& vec, uint64_t p
         }
         break;
     case YYJSON_TYPE_STR:
-        // The only valid outputType is presumably STRING, which is already handled
+        vec.setNull(pos, false);
+        StringVector::addString(&vec, pos, yyjson_get_str(val));
         break;
     default:
         KU_UNREACHABLE;

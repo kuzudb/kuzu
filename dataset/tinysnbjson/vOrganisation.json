@@ -1,0 +1,38 @@
+[
+    {
+      "ID": 1,
+      "name": "ABFsUni",
+      "orgCode": 325,
+      "mark": 3.7,
+      "score": -2,
+      "history": "10 years 5 months 13 hours 24 us",
+      "licenseValidInterval": "3 years 5 days",
+      "rating": 1,
+      "state": {"revenue": 138, "location": ["toronto", "montr,eal"], "stock": {"price": [96, 56], "volume": 1000}},
+      "info": 3.12
+    },
+    {
+      "ID": 4,
+      "name": "CsWork",
+      "orgCode": 934,
+      "mark": 4.1,
+      "score": -100,
+      "history": "2 years 4 days 10 hours",
+      "licenseValidInterval": "26 years 52 days 48 hours",
+      "rating": 0.78,
+      "state": {"revenue": 152, "location": ["vanco,uver north area"], "stock": {"price": [15, 78, 671], "volume": 432}},
+      "info": "abcd"
+    },
+    {
+      "ID": 6,
+      "name": "DEsWork",
+      "orgCode": 824,
+      "mark": 4.1,
+      "score": 7,
+      "history": "2 years 4 hours 22 us 34 minutes",
+      "licenseValidInterval": "82 hours 100 milliseconds",
+      "rating": 0.52,
+      "state": {"revenue": 558, "location": ["very long city name", "new york"], "stock": {"price": [22], "volume": 99}},
+      "info": "2023-12-15"
+    }
+  ]
