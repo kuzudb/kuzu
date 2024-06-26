@@ -52,4 +52,3 @@ file(RENAME generated/CypherLexer.h ${ROOT_DIR}/third_party/antlr4_cypher/includ
 
 # Cleanup
 file(REMOVE_RECURSE generated)
-file(REMOVE Cypher.g4)
