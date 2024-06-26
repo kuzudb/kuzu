@@ -300,8 +300,10 @@ public:
     // TODO(Guodong): This function should be removed through rewritting INTERNAL_ID as STRUCT.
     void setCommonTableID(common::table_id_t tableID) { commonTableID = tableID; }
 
-private:
+    // TODO(Sam): This is another hack, need to change
     void populateCommonTableID(const common::ValueVector* resultVector) const;
+
+private:
 
 private:
     common::table_id_t commonTableID;

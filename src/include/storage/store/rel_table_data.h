@@ -33,7 +33,7 @@ struct RelDataReadState final : TableDataScanState {
 
     bool hasMoreToRead(const transaction::Transaction* transaction);
 
-    std::pair<common::offset_t, common::offset_t> getStartAndEndOffset(
+    std::vector<std::pair<common::offset_t, common::offset_t>> getStartAndEndOffset(
         common::ValueVector& inNodeIDVector);
 
     bool hasMoreToReadInPersistentStorage() const;
