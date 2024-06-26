@@ -12,8 +12,8 @@ namespace json_extension {
 struct JsonMutWrapper;
 
 class JsonWrapper {
+    JsonWrapper() : ptr{nullptr} {}
 public:
-    JsonWrapper() = delete;
     explicit JsonWrapper(yyjson_doc* ptr) : ptr{ptr} {}
     ~JsonWrapper() {
         if(ptr) {

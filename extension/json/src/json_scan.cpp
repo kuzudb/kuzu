@@ -32,16 +32,6 @@ struct JsonBindData : public TableFuncBindData {
     }
 };
 
-struct JsonScanSharedState : public TableFuncSharedState {
-
-    std::vector<yyjson_val*> rows;
-    uint64_t curPos = 0u;
-    std::mutex lock;
-
-    JsonScanSharedState(std::vector<yyjson_val*> rows) : TableFuncSharedState{},
-        rows{std::move(rows)} {}
-};
-
 struct JsonScanLocalState : public TableFuncLocalState {
 
     std::vector<yyjson_val*>::iterator begin, end;
@@ -50,6 +40,32 @@ struct JsonScanLocalState : public TableFuncLocalState {
     JsonScanLocalState(std::vector<yyjson_val*>::iterator begin,
         std::vector<yyjson_val*>::iterator end, uint64_t chunkSize) : begin{begin}, end{end},
         chunkSize{chunkSize} {}
+};
+
+struct JsonScanSharedState : public TableFuncSharedState {
+
+    std::vector<yyjson_val*> rows;
+    uint64_t curPos = 0u;
+    std::mutex lock;
+
+    JsonScanSharedState(std::vector<yyjson_val*> rows) : TableFuncSharedState{},
+        rows{std::move(rows)} {}
+    
+    // returns success
+    bool tryGetNextLocalState(std::vector<yyjson_val*>::iterator& begin,
+        std::vector<yyjson_val*>::iterator& end, size_t& chunkSize) {
+        std::scoped_lock scopedLock(lock);
+        if (curPos >= rows.size()) {
+            chunkSize = 0;
+            begin = end = rows.end();
+            return false;
+        }
+        chunkSize = std::min(DEFAULT_VECTOR_CAPACITY, rows.size() - curPos);
+        begin = rows.begin() + curPos;
+        curPos += chunkSize;
+        end = rows.begin() + curPos;
+        return true;
+    }
 };
 
 
@@ -75,8 +91,10 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext*, TableFu
         columnTypes.push_back(std::move(schema));
         columnNames.push_back("json");
     }
+    auto parsedJsonPtr = parsedJson.ptr;
+    parsedJson.ptr = nullptr;
     return std::make_unique<JsonBindData>(std::move(columnTypes), std::move(columnNames),
-        std::make_shared<JsonWrapper>(std::move(parsedJson)), scanFromList, scanFromStruct);
+        std::make_shared<JsonWrapper>(std::move(parsedJsonPtr)), scanFromList, scanFromStruct);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input) {
@@ -97,20 +115,16 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitIn
 static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInput&, TableFuncSharedState* shared,
     storage::MemoryManager* /*mm*/) {
     auto jsonShared = ku_dynamic_cast<TableFuncSharedState*, JsonScanSharedState*>(shared);
-    if (jsonShared->curPos >= jsonShared->rows.size()) {
-        return nullptr;
-    }
-    std::scoped_lock(jsonShared->lock);
-    auto chunkSize = std::min(DEFAULT_VECTOR_CAPACITY, jsonShared->rows.size() - jsonShared->curPos);
-    auto begin = jsonShared->rows.begin() + jsonShared->curPos;
-    jsonShared->curPos += chunkSize;
-    auto end = jsonShared->rows.begin() + jsonShared->curPos;
+    std::vector<yyjson_val*>::iterator begin, end;
+    size_t chunkSize;
+    jsonShared->tryGetNextLocalState(begin, end, chunkSize);
     return std::make_unique<JsonScanLocalState>(begin, end, chunkSize);
 }
 
 static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     const auto bindData = ku_dynamic_cast<TableFuncBindData*, JsonBindData*>(input.bindData);
-    const auto localState = ku_dynamic_cast<TableFuncLocalState*, JsonScanLocalState*>(input.localState);
+    auto localState = ku_dynamic_cast<TableFuncLocalState*, JsonScanLocalState*>(input.localState);
+    auto sharedState = ku_dynamic_cast<TableFuncSharedState*, JsonScanSharedState*>(input.sharedState);
     for (auto& i: output.vectors) {
         i->setAllNull();
     }
@@ -127,7 +141,9 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
             readJsonToValueVector(*i, *output.vectors[0], i - localState->begin);
         }
     }
-    return localState->begin - localState->end;
+    auto chunkSize = localState->chunkSize;
+    sharedState->tryGetNextLocalState(localState->begin, localState->end, localState->chunkSize);
+    return chunkSize;
 }
 
 static double progressFunc(TableFuncSharedState* state) {
