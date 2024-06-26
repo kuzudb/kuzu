@@ -10,6 +10,7 @@
 namespace kuzu {
 namespace function {
 
+// TODO(Semih): Remove
 class Frontier {
 public:
     void addNode(common::nodeID_t nodeID, uint32_t multiplicity) {
