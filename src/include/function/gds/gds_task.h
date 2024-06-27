@@ -2,7 +2,6 @@
 
 #include "common/task_system/task.h"
 #include "function/gds/gds_frontier.h"
-#include "function/table_functions.h"
 
 namespace kuzu {
 namespace function {

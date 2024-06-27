@@ -1,6 +1,7 @@
 #include <atomic>
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "common/exception/runtime.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
@@ -34,7 +35,8 @@ class PathLengths : public GDSFrontier {
 public:
     static constexpr uint8_t UNVISITED = 255;
 
-    PathLengths(std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes) {
+    explicit PathLengths(
+        std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes) {
         for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
             masks.insert({tableID, std::make_unique<processor::MaskData>(numNodes, UNVISITED)});
         }
@@ -95,7 +97,7 @@ class PathLengthsFrontiers : public Frontiers {
     static constexpr uint64_t FRONTIER_MORSEL_SIZE = 64;
 
 public:
-    PathLengthsFrontiers(PathLengths* pathLengths)
+    explicit PathLengthsFrontiers(PathLengths* pathLengths)
         : Frontiers(1 /* initial num active nodes */), pathLengths{pathLengths} {}
 
     bool getNextFrontierMorsel(RangeFrontierMorsel& frontierMorsel) override {
@@ -221,7 +223,7 @@ private:
 
 struct ShortestPathsFrontierUpdateFn : public FrontierUpdateFn {
     PathLengthsFrontiers* pathLengthsFrontiers;
-    ShortestPathsFrontierUpdateFn(PathLengthsFrontiers* pathLengthsFrontiers)
+    explicit ShortestPathsFrontierUpdateFn(PathLengthsFrontiers* pathLengthsFrontiers)
         : pathLengthsFrontiers{pathLengthsFrontiers} {};
 
     bool edgeUpdate(nodeID_t nbrID) override {

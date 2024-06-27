@@ -29,10 +29,10 @@ struct MaskData {
     inline bool isMasked(uint64_t pos, uint8_t trueMaskVal) const {
         return data[pos] == trueMaskVal;
     }
-    inline uint8_t getMaskValue(uint64_t pos) {
+    inline uint8_t getMaskValue(uint64_t pos) const {
         return data[pos];
     }
-    inline uint64_t getSize() {
+    inline uint64_t getSize() const {
         return size;
     }
 private:

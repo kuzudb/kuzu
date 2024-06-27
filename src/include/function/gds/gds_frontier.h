@@ -1,8 +1,8 @@
 #pragma once
 
+#include <atomic>
 #include <mutex>
 #include "common/types/internal_id_t.h"
-#include "common/exception/runtime.h"
 
 using namespace kuzu::common;
 
@@ -22,7 +22,7 @@ class RangeFrontierMorsel {
 public:
     RangeFrontierMorsel() {}
 
-    bool hasNextVertex() { return nextOffset < endOffsetExclusive; }
+    bool hasNextVertex() const { return nextOffset < endOffsetExclusive; }
 
     nodeID_t getNextVertex() { return {nextOffset++, tableID}; }
 
@@ -48,6 +48,7 @@ private:
  */
 class FrontierUpdateFn {
 public:
+    virtual ~FrontierUpdateFn() {};
     // Does any work that is needed for the neighbor nbrID. Returns true if the neighbor should
     // be put in the next frontier. So if the implementing class has access to the next frontier
     // as a field, **do not** call setActive. Helper functions in GDSUtils will do that work.
@@ -81,7 +82,7 @@ public:
 class Frontiers {
 
 public:
-    Frontiers(uint64_t initialActiveNodes) {
+    explicit Frontiers(uint64_t initialActiveNodes) {
         numNextActiveNodes.store(initialActiveNodes);
         curIter.store(UINT64_MAX);
     }

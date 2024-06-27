@@ -1,7 +1,5 @@
 #include "processor/processor_task.h"
 
-#include <thread>
-
 #include "main/settings.h"
 
 using namespace kuzu::common;

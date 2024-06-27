@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 namespace kuzu {
 namespace processor {
 struct ExecutionContext;
