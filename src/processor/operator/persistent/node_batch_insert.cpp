@@ -47,14 +47,16 @@ void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transa
     }
     auto numNodesAppended =
         nodeSharedState->sharedNodeGroup->append(localNodeGroup.get(), 0 /* offsetInNodeGroup */);
-    if (nodeSharedState->sharedNodeGroup->isFull()) {
+    while (nodeSharedState->sharedNodeGroup->isFull()) {
         node_group_idx_t nodeGroupIdx = nodeSharedState->getNextNodeGroupIdxWithoutLock();
         writeAndResetNodeGroup(transaction, nodeGroupIdx, nodeSharedState->sharedNodeGroup,
             indexBuilder);
+        if (numNodesAppended < localNodeGroup->getNumRows()) {
+            numNodesAppended +=
+                nodeSharedState->sharedNodeGroup->append(localNodeGroup.get(), numNodesAppended);
+        }
     }
-    if (numNodesAppended < localNodeGroup->getNumRows()) {
-        nodeSharedState->sharedNodeGroup->append(localNodeGroup.get(), numNodesAppended);
-    }
+    KU_ASSERT(numNodesAppended == localNodeGroup->getNumRows());
 }
 
 void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {

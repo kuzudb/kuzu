@@ -101,6 +101,16 @@ TEST_F(MultiCopyTest, PartialFirstNodeGroup) {
     validate();
 }
 
+// Each thread should have ~3/4 of a node group in their
+// local node group, so the second one to write that to the shared group
+// will need to write twice before it can move its remaining nodes into the shared group
+// See https://github.com/kuzudb/kuzu/issues/3714
+TEST_F(MultiCopyTest, SharedWriteToExistingNodeGroup) {
+    copy(common::StorageConstants::NODE_GROUP_SIZE * 0.75);
+    copy(common::StorageConstants::NODE_GROUP_SIZE * systemConfig->maxNumThreads * 0.75);
+    validate();
+}
+
 // Tests that a second copy that copies a large number of node groups succeeds
 TEST_F(MultiCopyTest, MultipleNodeGroups) {
     copy(common::StorageConstants::NODE_GROUP_SIZE * 10.1);
