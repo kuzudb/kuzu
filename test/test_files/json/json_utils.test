@@ -1,0 +1,77 @@
+-DATASET CSV empty
+
+--
+
+-CASE ToJsonTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND ['1', '2', '3'] AS STR RETURN to_json(STR)
+---- 3
+"1"
+"2"
+"3"
+
+-STATEMENT UNWIND [{a: 1, b: {x: "a"}}, {a: 2, b: {x: "b"}}, {a: 3, b: {x: "c"}}] AS NSTD RETURN to_json(NSTD)
+---- 3
+{"a":1,"b":{"x":"a"}}
+{"a":2,"b":{"x":"b"}}
+{"a":3,"b":{"x":"c"}}
+
+-STATEMENT UNWIND [map([1, 2, 3], ["a", "b", "c"]), map([3, 2, 0], ["asdfasdfadsf", "sdfgsdfgsdfg", "dfghdfghdgh"]), map([0], [""])] AS MP RETURN to_json(MP)
+---- 3
+{"1":"a","2":"b","3":"c"}
+{"3":"asdfasdfasdf","2":"sdfgsdfgsdfg","0":"dfghdfghdfh"}
+{"0":""}
+
+-STATEMENT UNWIND [True, False, Null] AS BLS RETURN to_json(BLS)
+---- 3
+true
+false
+
+-CASE JsonMergeTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND [map([1, 2, 3], ["a", "b", "c"]), map([3, 2, 0], ["asdfasdfadsf", "sdfgsdfgsdfg", "dfghdfghdgh"]), map([0], [""])] AS MP UNWIND [{a: 1, b: {x: "a"}}, {a: 2, b: {x: "b"}}, {a: 3, b: {x: "c"}}] AS NSTD RETURN json_merge_patch(to_json(MP), to_json(NSTD))
+---- 9
+{"1":"a","2":"b","3":"c","a":1,"b":{"x":"a"}}
+{"1":"a","2":"b","3":"c","a":2,"b":{"x":"b"}}
+{"1":"a","2":"b","3":"c","a":3,"b":{"x":"c"}}
+{"3":"asdfasdfasdf","2":"sdfgsdfgsdfg","0":"dfghdfghdfh","a":1,"b":{"x":"a"}}
+{"3":"asdfasdfasdf","2":"sdfgsdfgsdfg","0":"dfghdfghdfh","a":2,"b":{"x":"b"}}
+{"3":"asdfasdfasdf","2":"sdfgsdfgsdfg","0":"dfghdfghdfh","a":3,"b":{"x":"c"}}
+{"0":"","a":1,"b":{"x":"a"}}
+{"0":"","a":2,"b":{"x":"b"}}
+{"0":"","a":3,"b":{"x":"c"}}
+
+-CASE JsonExtractTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT CREATE NODE TABLE jsontab(id JSON, primary key(id))
+---- ok
+-STATEMENT UNWIND [map([1, 2, 3], ["a", "b", "c"]), map([3, 2, 0], ["asdfasdfadsf", "sdfgsdfgsdfg", "dfghdfghdgh"]), map([0], [""])] AS MP UNWIND [{a: 1, b: {x: "a"}}, {a: 2, b: {x: "b"}}, {a: 3, b: {x: "c"}}] AS NSTD CREATE (:jsontab {id:json_merge_patch(to_json(MP), to_json(NSTD))})
+---- ok
+-STATEMENT MATCH (t:jsontab) RETURN json_extract(t.id, ["b/x","a","1"])
+---- 9
+["a",1,"a"]
+["a",1,]
+["a",1,]
+["b",2,"a"]
+["b",2,]
+["b",2,]
+["c",3,"a"]
+["c",3,]
+["c",3,]
+-STATEMENT UNWIND ['2', '2/x/1', '2/x/1/0'] AS ARGS RETURN json_extract('[1, 2, {"x": [5, ["a"], "y"]}, 3]', ARGS)
+---- 3
+{"x":[5,["a"],"y"]}
+["a"]
+"a"
+
+-CASE JsonArrayLengthTest`
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND ['[1, 2, {"x": [5, ["a"], "y"]}, 3]', null] AS ARR RETURN json_array_length(ARR)
+# KNOWN BUG: I FORGOT TO HANDLE NULL
+---- 2
+4
+0

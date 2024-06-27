@@ -93,9 +93,10 @@ static void jsonExtractMultiPath(const std::vector<std::shared_ptr<ValueVector>>
         auto param1Str = param1->getValue<ku_string_t>(param1Pos).getAsString();
         auto param2List = param2->getValue<list_entry_t>(param2Pos);
         auto resultList = ListVector::addList(&result, param2List.size);
-        resultDataVector->setValue<list_entry_t>(resultPos, resultList);
+        result.setValue<list_entry_t>(resultPos, resultList);
         for (auto i = 0u; i < resultList.size; ++i) {
             auto curPath = param2DataVector->getValue<ku_string_t>(param2List.offset + i).getAsString();
+            resultDataVector->setNull(resultList.offset + i, false);
             StringVector::addString(resultDataVector, resultList.offset + i,
                 jsonExtractToString(stringToJson(param1Str), curPath));
         }
@@ -105,7 +106,7 @@ static void jsonExtractMultiPath(const std::vector<std::shared_ptr<ValueVector>>
 static std::unique_ptr<FunctionBindData> bindJsonExtractMultiPath(
     const binder::expression_vector& params, Function* /*definition*/) {
     KU_ASSERT(params.size() == 2);
-    if (params[1]->getDataType().getLogicalTypeID() != LogicalTypeID::STRING) {
+    if (ListType::getChildType(params[1]->getDataType()).getLogicalTypeID() != LogicalTypeID::STRING) {
         throw BinderException("List passed to json_extract must contain type STRING");
     }
     return FunctionBindData::getSimpleBindData(params, LogicalType::LIST(LogicalType::STRING()));
@@ -136,8 +137,8 @@ static void jsonArrayLength(const std::vector<std::shared_ptr<ValueVector>>& par
 
 function_set JsonArrayLengthFunction::getFunctionSet() {
     function_set ret;
-    ret.push_back(std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING,
-        LogicalTypeID::STRING}, LogicalTypeID::UINT32, jsonArrayLength));
+    ret.push_back(std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING},
+        LogicalTypeID::UINT32, jsonArrayLength));
     return ret;
 }
 
@@ -201,6 +202,7 @@ static void jsonSchemaExecFunc(const std::vector<std::shared_ptr<ValueVector>>& 
         auto paramPos = param->state->getSelVector()[param->state->isFlat() ? 0 : selectedPos];
         auto paramStr = param->getValue<ku_string_t>(paramPos).getAsString();
         auto schema = jsonSchema(stringToJson(paramStr));
+        result.setNull(resultPos, false);
         StringVector::addString(&result, resultPos, schema.toString());
     }
 }

@@ -11,102 +11,103 @@ namespace kuzu {
 namespace json_extension {
 
 static yyjson_mut_val* jsonifyAsString(JsonMutWrapper& wrapper, const common::ValueVector& vec, uint64_t pos) {
-    auto strVal = "\"" + vec.getAsValue(pos)->toString() + "\"";
+    auto strVal = vec.getAsValue(pos)->toString();
     return yyjson_mut_strcpy(wrapper.ptr, strVal.c_str());
 }
 
 static yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVector& vec, uint64_t pos)  {
     yyjson_mut_val* result = nullptr;
-    switch (vec.dataType.getLogicalTypeID()) {
-    case LogicalTypeID::BOOL:
-        result = yyjson_mut_bool(wrapper.ptr, vec.getValue<bool>(pos));
-        break;
-    case LogicalTypeID::SERIAL:
-    case LogicalTypeID::INT64:
-        result = yyjson_mut_sint(wrapper.ptr, vec.getValue<int64_t>(pos));
-        break;
-    case LogicalTypeID::INT32:
-        result = yyjson_mut_sint(wrapper.ptr, vec.getValue<int32_t>(pos));
-        break;
-    case LogicalTypeID::INT16:
-        result = yyjson_mut_sint(wrapper.ptr, vec.getValue<int16_t>(pos));
-        break;
-    case LogicalTypeID::INT8:
-        result = yyjson_mut_sint(wrapper.ptr, vec.getValue<int8_t>(pos));
-        break;
-    case LogicalTypeID::UINT64:
-        result = yyjson_mut_uint(wrapper.ptr, vec.getValue<uint64_t>(pos));
-        break;
-    case LogicalTypeID::UINT32:
-        result = yyjson_mut_uint(wrapper.ptr, vec.getValue<uint32_t>(pos));
-        break;
-    case LogicalTypeID::UINT16:
-        result = yyjson_mut_uint(wrapper.ptr, vec.getValue<uint16_t>(pos));
-        break;
-    case LogicalTypeID::UINT8:
-        result = yyjson_mut_uint(wrapper.ptr, vec.getValue<uint8_t>(pos));
-        break;
-    case LogicalTypeID::DOUBLE:
-        result = yyjson_mut_real(wrapper.ptr, vec.getValue<double>(pos));
-        break;
-    case LogicalTypeID::FLOAT:
-        result = yyjson_mut_real(wrapper.ptr, vec.getValue<float>(pos));
-        break;
-    case LogicalTypeID::BLOB:
-    case LogicalTypeID::STRING: {
-        auto strVal = "\"" + vec.getValue<ku_string_t>(pos).getAsString() + "\"";
-        result = yyjson_mut_strcpy(wrapper.ptr, strVal.c_str());
-    } break;
-    case LogicalTypeID::LIST:
-    case LogicalTypeID::ARRAY: {
-        result = yyjson_mut_arr(wrapper.ptr);
-        const auto dataVector = ListVector::getDataVector(&vec);
-        auto listEntry = vec.getValue<list_entry_t>(pos);
-        for (auto i = 0u; i < listEntry.size; ++i) {
-            yyjson_mut_arr_append(result, jsonify(wrapper, *dataVector, listEntry.offset + i));
+    if (vec.isNull(pos)) {
+        result = yyjson_mut_null(wrapper.ptr);
+    } else {
+        switch (vec.dataType.getLogicalTypeID()) {
+        case LogicalTypeID::BOOL:
+            result = yyjson_mut_bool(wrapper.ptr, vec.getValue<bool>(pos));
+            break;
+        case LogicalTypeID::SERIAL:
+        case LogicalTypeID::INT64:
+            result = yyjson_mut_sint(wrapper.ptr, vec.getValue<int64_t>(pos));
+            break;
+        case LogicalTypeID::INT32:
+            result = yyjson_mut_sint(wrapper.ptr, vec.getValue<int32_t>(pos));
+            break;
+        case LogicalTypeID::INT16:
+            result = yyjson_mut_sint(wrapper.ptr, vec.getValue<int16_t>(pos));
+            break;
+        case LogicalTypeID::INT8:
+            result = yyjson_mut_sint(wrapper.ptr, vec.getValue<int8_t>(pos));
+            break;
+        case LogicalTypeID::UINT64:
+            result = yyjson_mut_uint(wrapper.ptr, vec.getValue<uint64_t>(pos));
+            break;
+        case LogicalTypeID::UINT32:
+            result = yyjson_mut_uint(wrapper.ptr, vec.getValue<uint32_t>(pos));
+            break;
+        case LogicalTypeID::UINT16:
+            result = yyjson_mut_uint(wrapper.ptr, vec.getValue<uint16_t>(pos));
+            break;
+        case LogicalTypeID::UINT8:
+            result = yyjson_mut_uint(wrapper.ptr, vec.getValue<uint8_t>(pos));
+            break;
+        case LogicalTypeID::DOUBLE:
+            result = yyjson_mut_real(wrapper.ptr, vec.getValue<double>(pos));
+            break;
+        case LogicalTypeID::FLOAT:
+            result = yyjson_mut_real(wrapper.ptr, vec.getValue<float>(pos));
+            break;
+        case LogicalTypeID::BLOB:
+        case LogicalTypeID::STRING: {
+            auto strVal = vec.getValue<ku_string_t>(pos).getAsString();
+            result = yyjson_mut_strcpy(wrapper.ptr, strVal.c_str());
+        } break;
+        case LogicalTypeID::LIST:
+        case LogicalTypeID::ARRAY: {
+            result = yyjson_mut_arr(wrapper.ptr);
+            const auto dataVector = ListVector::getDataVector(&vec);
+            auto listEntry = vec.getValue<list_entry_t>(pos);
+            for (auto i = 0u; i < listEntry.size; ++i) {
+                yyjson_mut_arr_append(result, jsonify(wrapper, *dataVector, listEntry.offset + i));
+            }
+        } break;
+        case LogicalTypeID::MAP: {
+            result = yyjson_mut_obj(wrapper.ptr);
+            auto listEntry = vec.getValue<list_entry_t>(pos);
+            const auto keyDataVector = MapVector::getKeyVector(&vec);
+            const auto valDataVector = MapVector::getValueVector(&vec);
+            for (auto i = 0u; i < listEntry.size; ++i) {
+                yyjson_mut_obj_add(result,
+                    jsonifyAsString(wrapper, *keyDataVector, listEntry.offset + i),
+                    jsonify(wrapper, *valDataVector, listEntry.offset + i));
+            }
+        } break;
+        case LogicalTypeID::RECURSIVE_REL:
+        case LogicalTypeID::NODE:
+        case LogicalTypeID::REL:
+        case LogicalTypeID::STRUCT: {
+            result = yyjson_mut_obj(wrapper.ptr);
+            const auto& fieldVectors = StructVector::getFieldVectors(&vec);
+            const auto& fieldNames = StructType::getFieldNames(vec.dataType);
+            for (auto i = 0u; i < fieldVectors.size(); i++) {
+                auto key = yyjson_mut_strcpy(wrapper.ptr, fieldNames[i].c_str());
+                auto val = jsonify(wrapper, *fieldVectors[i], pos);
+                yyjson_mut_obj_add(result, key, val);
+            }
+        } break;
+        case LogicalTypeID::UNION: {
+            const auto& tagVector = UnionVector::getTagVector(&vec);
+            const auto& fieldVector = UnionVector::getValVector(&vec, tagVector->getValue<union_field_idx_t>(pos));
+            result = jsonify(wrapper, *fieldVector, pos);
+        } break;
+        case LogicalTypeID::INTERNAL_ID:
+        case LogicalTypeID::UUID:
+        case LogicalTypeID::DATE: {
+            return jsonifyAsString(wrapper, vec, pos);
+        } break;
+        case LogicalTypeID::ANY:
+        default:
+            throw NotImplementedException(stringFormat("Type {} to json conversion not supported", 
+                vec.dataType.toString()));
         }
-    } break;
-    case LogicalTypeID::MAP: {
-        result = yyjson_mut_obj(wrapper.ptr);
-        const auto keyVector = MapVector::getKeyVector(&vec);
-        const auto keyDataVector = ListVector::getDataVector(keyVector);
-        auto keyListEntry = keyVector->getValue<list_entry_t>(pos);
-        const auto valVector = MapVector::getValueVector(&vec);
-        const auto valDataVector = ListVector::getDataVector(valVector);
-        auto valListEntry = valVector->getValue<list_entry_t>(pos);
-        for (auto i = 0u; i < keyListEntry.size; ++i) {
-            yyjson_mut_obj_add(result,
-                jsonifyAsString(wrapper, *keyDataVector, keyListEntry.offset + i),
-                jsonify(wrapper, *valDataVector, valListEntry.offset + i));
-        }
-    } break;
-    case LogicalTypeID::RECURSIVE_REL:
-    case LogicalTypeID::NODE:
-    case LogicalTypeID::REL:
-    case LogicalTypeID::STRUCT: {
-        result = yyjson_mut_obj(wrapper.ptr);
-        const auto& fieldVectors = StructVector::getFieldVectors(&vec);
-        const auto& fieldNames = StructType::getFieldNames(vec.dataType);
-        for (auto i = 0u; i < fieldVectors.size(); i++) {
-            auto key = yyjson_mut_strcpy(wrapper.ptr, fieldNames[i].c_str());
-            auto val = jsonify(wrapper, *fieldVectors[i], pos);
-            yyjson_mut_obj_add(result, key, val);
-        }
-    } break;
-    case LogicalTypeID::UNION: {
-        const auto& tagVector = UnionVector::getTagVector(&vec);
-        const auto& fieldVector = UnionVector::getValVector(&vec, tagVector->getValue<union_field_idx_t>(pos));
-        result = jsonify(wrapper, *fieldVector, pos);
-    } break;
-    case LogicalTypeID::INTERNAL_ID:
-    case LogicalTypeID::UUID:
-    case LogicalTypeID::DATE: {
-        return jsonifyAsString(wrapper, vec, pos);
-    } break;
-    case LogicalTypeID::ANY:
-    default:
-        throw NotImplementedException(stringFormat("Type {} to json conversion not supported", 
-            vec.dataType.toString()));
     }
     return result;
 }
@@ -367,17 +368,21 @@ std::string jsonExtractToString(const JsonWrapper& wrapper, uint64_t pos) {
 }
 
 std::string jsonExtractToString(const JsonWrapper& wrapper, std::string path) {
-    std::vector<uint32_t> delimiters;
-    delimiters.push_back(0);
-    for (auto i = 0u; i < path.size(); i++) {
-        if (path[i] == '/') {
-            delimiters.push_back(i);
+    std::vector<std::string> actualPath;
+    for (auto i = 0u, prvDelim = 0u; i <= path.size(); i++) {
+        if (i == path.size() || path[i] == '/') {
+            actualPath.push_back(path.substr(prvDelim, i - prvDelim));
+            prvDelim = i+1;
         }
     }
-    delimiters.push_back(path.size());
     yyjson_val* ptr = yyjson_doc_get_root(wrapper.ptr);
-    for (auto i = 0u; i + 1 < delimiters.size() && ptr; i++) {
-        ptr = yyjson_obj_getn(ptr, path.c_str() + delimiters[i] + 1, delimiters[i + 1] - delimiters[i] - 1);
+    for (const auto& item: actualPath) {
+        if (yyjson_get_type(ptr) == YYJSON_TYPE_OBJ) {
+            ptr = yyjson_obj_get(ptr, item.c_str());
+        } else {
+            auto idx = std::stoi(item);
+            ptr = yyjson_arr_get(ptr, idx);
+        }
     }
     return jsonToString(ptr);
 }
