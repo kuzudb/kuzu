@@ -21,7 +21,7 @@ public:
     static void parallelizeFrontierVertexUpdate(processor::ExecutionContext* executionContext,
         std::shared_ptr<FrontierTaskSharedState> sharedState);
     static void runFrontiersUntilConvergence(processor::ExecutionContext* executionContext,
-        Frontiers& frontiers, graph::Graph* graph, FrontierUpdateFn& vu, uint64_t maxIters);
+        Frontiers& frontiers, graph::Graph* graph, FrontierUpdateFn& fu, uint64_t maxIters);
 };
 
 } // namespace function

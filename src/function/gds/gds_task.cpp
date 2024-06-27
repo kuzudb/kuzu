@@ -4,7 +4,7 @@
 namespace kuzu {
 namespace function {
 
-void FrontierTask::run() {
+void GDSTask::run() {
     RangeFrontierMorsel frontierMorsel;
     auto numActiveNodes = 0u;
     std::unique_ptr<graph::Graph> graph = sharedState->graph->copy();

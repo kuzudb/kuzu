@@ -13,7 +13,7 @@ namespace function {
 
 void GDSUtils::parallelizeFrontierVertexUpdate(processor::ExecutionContext* executionContext,
     std::shared_ptr<FrontierTaskSharedState> sharedState) {
-    auto task = std::make_shared<FrontierTask>(
+    auto task = std::make_shared<GDSTask>(
         executionContext->clientContext->getCurrentSetting(main::ThreadsSetting::name)
             .getValue<uint64_t>(),
         sharedState);
@@ -22,14 +22,14 @@ void GDSUtils::parallelizeFrontierVertexUpdate(processor::ExecutionContext* exec
 }
 
 void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* executionContext,
-    Frontiers& frontiers, graph::Graph* graph, FrontierUpdateFn& vu, uint64_t maxIters) {
+    Frontiers& frontiers, graph::Graph* graph, FrontierUpdateFn& fu, uint64_t maxIters) {
     while (frontiers.getNumNextActiveNodes() > 0 &&
            frontiers.getNextIter() < maxIters) {
         frontiers.beginNewIterationOfUpdates();
         for (auto& [srcNodeTableID, relTableID, dstNodeTableID] :
             graph->getTableCombinations()) {
             frontiers.beginFrontierUpdatesBetweenTables(srcNodeTableID, dstNodeTableID);
-            auto sharedState = std::make_shared<FrontierTaskSharedState>(frontiers, graph, vu, relTableID);
+            auto sharedState = std::make_shared<FrontierTaskSharedState>(frontiers, graph, fu, relTableID);
             GDSUtils::parallelizeFrontierVertexUpdate(executionContext, sharedState);
         }
         // We put the memory fence here to make sure that updates to pathLengths in this

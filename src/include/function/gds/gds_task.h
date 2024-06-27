@@ -20,10 +20,10 @@ public:
     table_id_t relTableIDToScan;
 };
 
-class FrontierTask : public common::Task {
+class GDSTask : public common::Task {
 
 public:
-    FrontierTask(uint64_t maxNumThreads, std::shared_ptr<FrontierTaskSharedState> sharedState)
+    GDSTask(uint64_t maxNumThreads, std::shared_ptr<FrontierTaskSharedState> sharedState)
         : common::Task{maxNumThreads}, sharedState{std::move(sharedState)} {}
 
     void run() override;
