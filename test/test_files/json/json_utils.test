@@ -67,11 +67,16 @@ false
 ["a"]
 "a"
 
--CASE JsonArrayLengthTest`
+-CASE JsonArrayLengthTest
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok
--STATEMENT UNWIND ['[1, 2, {"x": [5, ["a"], "y"]}, 3]', null] AS ARR RETURN json_array_length(ARR)
-# KNOWN BUG: I FORGOT TO HANDLE NULL
+-STATEMENT UNWIND ['[1, 2, {"x": [5, ["a"], "y"]}, 3]', '[]'] AS ARR RETURN json_array_length(ARR)
 ---- 2
 4
 0
+
+-CASE JsonContainsTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND 
+

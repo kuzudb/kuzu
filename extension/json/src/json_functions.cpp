@@ -18,7 +18,10 @@ static void toJsonExecFunc(const std::vector<std::shared_ptr<ValueVector>>& para
         ++selectedPos) {
         auto inputPos = parameters[0]->state->getSelVector()[selectedPos];
         auto resultPos = result.state->getSelVector()[selectedPos];
-        StringVector::addString(&result, resultPos, jsonToString(jsonify(*parameters[0], inputPos)));
+        result.setNull(resultPos, parameters[0]->isNull(inputPos));
+        if (!parameters[0]->isNull(inputPos)) {
+            StringVector::addString(&result, resultPos, jsonToString(jsonify(*parameters[0], inputPos)));
+        }
     }
 }
 
@@ -39,10 +42,14 @@ static void jsonMergeFunc(const std::vector<std::shared_ptr<ValueVector>>& param
         auto resultPos = result.state->getSelVector()[selectedPos];
         auto param1Pos = param1->state->getSelVector()[param1->state->isFlat() ? 0 : selectedPos];
         auto param2Pos = param2->state->getSelVector()[param2->state->isFlat() ? 0 : selectedPos];
-        auto param1Str = param1->getValue<ku_string_t>(param1Pos).getAsString();
-        auto param2Str = param2->getValue<ku_string_t>(param2Pos).getAsString();
-        StringVector::addString(&result, resultPos,
-            jsonToString(mergeJson(stringToJson(param1Str), stringToJson(param2Str))));
+        auto isNull = parameters[0]->isNull(param1Pos) || parameters[1]->isNull(param2Pos);
+        result.setNull(resultPos, isNull);
+        if (!isNull) {
+            auto param1Str = param1->getValue<ku_string_t>(param1Pos).getAsString();
+            auto param2Str = param2->getValue<ku_string_t>(param2Pos).getAsString();
+            StringVector::addString(&result, resultPos,
+                jsonToString(mergeJson(stringToJson(param1Str), stringToJson(param2Str))));
+        }
     }
 }
 
@@ -63,18 +70,22 @@ static void jsonExtractSinglePath(const std::vector<std::shared_ptr<ValueVector>
         auto resultPos = result.state->getSelVector()[selectedPos];
         auto param1Pos = param1->state->getSelVector()[param1->state->isFlat() ? 0 : selectedPos];
         auto param2Pos = param2->state->getSelVector()[param2->state->isFlat() ? 0 : selectedPos];
-        auto param1Str = param1->getValue<ku_string_t>(param1Pos).getAsString();
-        std::string output;
-        if (param2->dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
-            auto param2Str = param2->getAsValue(param2Pos)->toString();
-            output = jsonExtractToString(stringToJson(param1Str), param2Str);
-        } else if (param2->dataType.getLogicalTypeID() == LogicalTypeID::INT64) {
-            auto param2Int = param2->getValue<int64_t>(param2Pos);
-            output = jsonExtractToString(stringToJson(param1Str), param2Int);
-        } else {
-            KU_UNREACHABLE;
+        auto isNull = parameters[0]->isNull(param1Pos) || parameters[1]->isNull(param2Pos);
+        result.setNull(resultPos, isNull);
+        if (!isNull) {
+            auto param1Str = param1->getValue<ku_string_t>(param1Pos).getAsString();
+            std::string output;
+            if (param2->dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
+                auto param2Str = param2->getAsValue(param2Pos)->toString();
+                output = jsonExtractToString(stringToJson(param1Str), param2Str);
+            } else if (param2->dataType.getLogicalTypeID() == LogicalTypeID::INT64) {
+                auto param2Int = param2->getValue<int64_t>(param2Pos);
+                output = jsonExtractToString(stringToJson(param1Str), param2Int);
+            } else {
+                KU_UNREACHABLE;
+            }
+            StringVector::addString(&result, resultPos, output);
         }
-        StringVector::addString(&result, resultPos, output);
     }
 }
 
@@ -90,15 +101,19 @@ static void jsonExtractMultiPath(const std::vector<std::shared_ptr<ValueVector>>
         auto resultPos = result.state->getSelVector()[selectedPos];
         auto param1Pos = param1->state->getSelVector()[param1->state->isFlat() ? 0 : selectedPos];
         auto param2Pos = param2->state->getSelVector()[param2->state->isFlat() ? 0 : selectedPos];
-        auto param1Str = param1->getValue<ku_string_t>(param1Pos).getAsString();
-        auto param2List = param2->getValue<list_entry_t>(param2Pos);
-        auto resultList = ListVector::addList(&result, param2List.size);
-        result.setValue<list_entry_t>(resultPos, resultList);
-        for (auto i = 0u; i < resultList.size; ++i) {
-            auto curPath = param2DataVector->getValue<ku_string_t>(param2List.offset + i).getAsString();
-            resultDataVector->setNull(resultList.offset + i, false);
-            StringVector::addString(resultDataVector, resultList.offset + i,
-                jsonExtractToString(stringToJson(param1Str), curPath));
+        auto isNull = parameters[0]->isNull(param1Pos) || parameters[1]->isNull(param2Pos);
+        result.setNull(resultPos, isNull);
+        if (!isNull) {
+            auto param1Str = param1->getValue<ku_string_t>(param1Pos).getAsString();
+            auto param2List = param2->getValue<list_entry_t>(param2Pos);
+            auto resultList = ListVector::addList(&result, param2List.size);
+            result.setValue<list_entry_t>(resultPos, resultList);
+            for (auto i = 0u; i < resultList.size; ++i) {
+                auto curPath = param2DataVector->getValue<ku_string_t>(param2List.offset + i).getAsString();
+                resultDataVector->setNull(resultList.offset + i, false);
+                StringVector::addString(resultDataVector, resultList.offset + i,
+                    jsonExtractToString(stringToJson(param1Str), curPath));
+            }
         }
     }
 }
@@ -130,8 +145,12 @@ static void jsonArrayLength(const std::vector<std::shared_ptr<ValueVector>>& par
         ++selectedPos) {
         auto inputPos = parameters[0]->state->getSelVector()[selectedPos];
         auto resultPos = result.state->getSelVector()[selectedPos];
-        result.setValue<uint32_t>(resultPos, jsonArraySize(
-            stringToJson(parameters[0]->getValue<ku_string_t>(inputPos).getAsString())));
+        auto isNull = parameters[0]->isNull(inputPos);
+        result.setNull(resultPos, isNull);
+        if (!isNull) {
+            result.setValue<uint32_t>(resultPos, jsonArraySize(
+                stringToJson(parameters[0]->getValue<ku_string_t>(inputPos).getAsString())));
+        }
     }
 }
 
@@ -151,9 +170,13 @@ static void jsonContainsExecFunc(const std::vector<std::shared_ptr<ValueVector>>
         auto resultPos = result.state->getSelVector()[selectedPos];
         auto param1Pos = param1->state->getSelVector()[param1->state->isFlat() ? 0 : selectedPos];
         auto param2Pos = param2->state->getSelVector()[param2->state->isFlat() ? 0 : selectedPos];
-        auto param1Str = param1->getValue<ku_string_t>(param1Pos).getAsString();
-        auto param2Str = param2->getValue<ku_string_t>(param2Pos).getAsString();
-        result.setValue<bool>(resultPos, jsonContains(stringToJson(param1Str), stringToJson(param2Str)));
+        auto isNull = parameters[0]->isNull(param1Pos) || parameters[1]->isNull(param2Pos);
+        result.setNull(resultPos, isNull);
+        if (!isNull) {
+            auto param1Str = param1->getValue<ku_string_t>(param1Pos).getAsString();
+            auto param2Str = param2->getValue<ku_string_t>(param2Pos).getAsString();
+            result.setValue<bool>(resultPos, jsonContains(stringToJson(param1Str), stringToJson(param2Str)));
+        }
     }
 }
 
@@ -174,13 +197,17 @@ static void jsonKeysExecFunc(const std::vector<std::shared_ptr<ValueVector>>& pa
         ++selectedPos) {
         auto resultPos = result.state->getSelVector()[selectedPos];
         auto paramPos = param->state->getSelVector()[param->state->isFlat() ? 0 : selectedPos];
-        auto paramStr = param->getValue<ku_string_t>(paramPos).getAsString();
-        auto keys = jsonGetKeys(stringToJson(paramStr));
-        auto resultList = ListVector::addList(&result, keys.size());
-        resultDataVector->setValue<list_entry_t>(resultPos, resultList);
-        for (auto i = 0u; i < resultList.size; ++i) {
-            StringVector::addString(resultDataVector, resultList.offset + i,
-                jsonExtractToString(stringToJson(paramStr), keys[i]));
+        auto isNull = parameters[0]->isNull(paramPos);
+        result.setNull(resultPos, isNull);
+        if (!isNull) {
+            auto paramStr = param->getValue<ku_string_t>(paramPos).getAsString();
+            auto keys = jsonGetKeys(stringToJson(paramStr));
+            auto resultList = ListVector::addList(&result, keys.size());
+            resultDataVector->setValue<list_entry_t>(resultPos, resultList);
+            for (auto i = 0u; i < resultList.size; ++i) {
+                StringVector::addString(resultDataVector, resultList.offset + i,
+                    jsonExtractToString(stringToJson(paramStr), keys[i]));
+            }
         }
     }
 }
@@ -200,10 +227,14 @@ static void jsonSchemaExecFunc(const std::vector<std::shared_ptr<ValueVector>>& 
         ++selectedPos) {
         auto resultPos = result.state->getSelVector()[selectedPos];
         auto paramPos = param->state->getSelVector()[param->state->isFlat() ? 0 : selectedPos];
-        auto paramStr = param->getValue<ku_string_t>(paramPos).getAsString();
-        auto schema = jsonSchema(stringToJson(paramStr));
-        result.setNull(resultPos, false);
-        StringVector::addString(&result, resultPos, schema.toString());
+        auto isNull = parameters[0]->isNull(paramPos);
+        result.setNull(resultPos, isNull);
+        if (!isNull) {
+            auto paramStr = param->getValue<ku_string_t>(paramPos).getAsString();
+            auto schema = jsonSchema(stringToJson(paramStr));
+            result.setNull(resultPos, false);
+            StringVector::addString(&result, resultPos, schema.toString());
+        }
     }
 }
 
@@ -220,8 +251,12 @@ static void jsonValidExecFunc(const std::vector<std::shared_ptr<ValueVector>>& p
         ++selectedPos) {
         auto inputPos = parameters[0]->state->getSelVector()[selectedPos];
         auto resultPos = result.state->getSelVector()[selectedPos];
-        result.setValue<bool>(resultPos,
-            stringToJson(parameters[0]->getValue<ku_string_t>(inputPos).getAsString()).ptr != nullptr);
+        auto isNull = parameters[0]->isNull(inputPos);
+        result.setNull(resultPos, isNull);
+        if (!isNull) {
+            result.setValue<bool>(resultPos,
+                stringToJson(parameters[0]->getValue<ku_string_t>(inputPos).getAsString()).ptr != nullptr);
+        }
     }
 }
 
@@ -239,8 +274,12 @@ static void jsonMinifyExecFunc(const std::vector<std::shared_ptr<ValueVector>>& 
         ++selectedPos) {
         auto inputPos = parameters[0]->state->getSelVector()[selectedPos];
         auto resultPos = result.state->getSelVector()[selectedPos];
-        StringVector::addString(&result, resultPos,
-            jsonToString(stringToJson(parameters[0]->getValue<ku_string_t>(inputPos).getAsString())));
+        auto isNull = parameters[0]->isNull(inputPos);
+        result.setNull(resultPos, isNull);
+        if (!isNull) {
+            StringVector::addString(&result, resultPos,
+                jsonToString(stringToJson(parameters[0]->getValue<ku_string_t>(inputPos).getAsString())));
+        }
     }
 }
 
