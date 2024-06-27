@@ -10,6 +10,26 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
+std::string HashAggregatePrintInfo::toString() const {
+    std::string result = "";
+    result += "Group By: [";
+    for (auto& expr : allKeys) {
+        result += expr->toString();
+        if (&expr != &allKeys.back()) {
+            result += ", ";
+        }
+    }
+    result += "], Aggregates: [";
+    for (auto& expr : expressions) {
+        result += expr->toString();
+        if (&expr != &expressions.back()) {
+            result += ", ";
+        }
+    }
+    result += "]";
+    return result;
+}
+
 void HashAggregateSharedState::appendAggregateHashTable(
     std::unique_ptr<AggregateHashTable> aggregateHashTable) {
     std::unique_lock lck{mtx};

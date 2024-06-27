@@ -7,6 +7,31 @@
 namespace kuzu {
 namespace processor {
 
+std::string AlterPrintInfo::toString() const {
+    std::string result = "Operation: ";
+    switch (alterType) {
+    case common::AlterType::RENAME_TABLE:
+        result += "Rename Table";
+        break;
+    case common::AlterType::ADD_PROPERTY:
+        result += "Add Property";
+        break;
+    case common::AlterType::DROP_PROPERTY:
+        result += "Drop Property";
+        break;
+    case common::AlterType::RENAME_PROPERTY:
+        result += "Rename Property";
+        break;
+    case common::AlterType::COMMENT:
+        result += "Comment";
+        break;
+    default:
+        break;
+    }
+    result += ",Table: " + tableName;
+    return result;
+}
+
 void Alter::executeDDLInternal(ExecutionContext* context) {
     context->clientContext->getCatalog()->alterTableSchema(context->clientContext->getTx(), info);
     if (info.alterType == common::AlterType::ADD_PROPERTY) {

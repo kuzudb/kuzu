@@ -6,6 +6,19 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace processor {
 
+std::string SimpleAggregatePrintInfo::toString() const {
+    std::string result = "";
+    result += "Aggregate: [";
+    for (auto& expr : expressions) {
+        result += expr->toString();
+        if (&expr != &expressions.back()) {
+            result += ", ";
+        }
+    }
+    result += "]";
+    return result;
+}
+
 SimpleAggregateSharedState::SimpleAggregateSharedState(
     const std::vector<std::unique_ptr<AggregateFunction>>& aggregateFunctions)
     : BaseAggregateSharedState{aggregateFunctions} {

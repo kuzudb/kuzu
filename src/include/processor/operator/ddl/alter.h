@@ -7,6 +7,22 @@
 namespace kuzu {
 namespace processor {
 
+struct AlterPrintInfo final : OPPrintInfo {
+    common::AlterType alterType;
+    std::string tableName;
+
+    AlterPrintInfo(common::AlterType alterType, std::string tableName)
+        : alterType{std::move(alterType)}, tableName{std::move(tableName)} {}
+    AlterPrintInfo(const AlterPrintInfo& other)
+        : OPPrintInfo{other}, alterType{other.alterType}, tableName{other.tableName} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::make_unique<AlterPrintInfo>(*this);
+    }
+};
+
 class Alter : public DDL {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::ALTER;
 

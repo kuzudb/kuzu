@@ -13,9 +13,12 @@ std::string ResultCollectorPrintInfo::toString() const {
     }
     result += "Expressions: [";
     for (auto& expr : expressions) {
-        result += expr->toString() + ", ";
+        result += expr->toString();
+        if (&expr != &expressions.back()) {
+            result += ", ";
+        }
     }
-    result += "])";
+    result += "]";
     return result;
 }
 

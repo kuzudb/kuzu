@@ -91,7 +91,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(LogicalOperator* logi
     auto aggOutputPos = getDataPos(aggregates, *outSchema);
     auto aggregateInputInfos = getAggregateInputInfos(agg.getAllKeys(), aggregates, *inSchema);
     auto sharedState = make_shared<SimpleAggregateSharedState>(aggFunctions);
-    auto printInfo = std::make_unique<OPPrintInfo>(agg.getExpressionsForPrinting());
+    auto printInfo = std::make_unique<SimpleAggregatePrintInfo>(aggregates);
     auto aggregate = make_unique<SimpleAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
         sharedState, std::move(aggFunctions), std::move(aggregateInputInfos),
         std::move(prevOperator), getOperatorID(), printInfo->copy());
@@ -167,7 +167,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(const expressi
     HashAggregateInfo aggregateInfo{getDataPos(flatKeys, *inSchema),
         getDataPos(unFlatKeys, *inSchema), getDataPos(payloads, *inSchema), std::move(tableSchema),
         hashTableType};
-    auto printInfo = std::make_unique<OPPrintInfo>(paramsString);
+    auto printInfo = std::make_unique<HashAggregatePrintInfo>(allKeys, aggregates);
     auto aggregate =
         make_unique<HashAggregate>(std::make_unique<ResultSetDescriptor>(inSchema), sharedState,
             std::move(aggregateInfo), std::move(aggFunctions), std::move(aggregateInputInfos),
