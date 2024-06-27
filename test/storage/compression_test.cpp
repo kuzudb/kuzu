@@ -110,46 +110,46 @@ TEST(CompressionTests, IntegerPackingTest64) {
     test_compression(alg, src);
 }
 
-//TEST(CompressionTests, IntegerPackingTest64SetValuesFromUncompressed) {
-//    std::vector<int64_t> src(128, 51);
-//    src[0] = 0;
-//    src[100] = 1LL << 61;
-//    auto alg = IntegerBitpacking<int64_t>();
-//    std::vector<int64_t> dest(src.size());
-//
-//    const auto& [min, max] = std::minmax_element(src.begin(), src.end());
-//    auto metadata =
-//        CompressionMetadata(StorageValue(*min), StorageValue(*max), alg.getCompressionType());
-//
-//    {
-//        alg.setValuesFromUncompressed((uint8_t*)src.data(), 0, (uint8_t*)dest.data(), 0, src.size(),
-//            metadata, nullptr);
-//
-//        std::vector<int64_t> decompressed(src.size());
-//        alg.decompressFromPage((uint8_t*)dest.data(), 0, (uint8_t*)decompressed.data(), 0,
-//            decompressed.size(), metadata);
-//
-//        EXPECT_THAT(decompressed, ::testing::ContainerEq(src));
-//    }
-//
-//    {
-//        static constexpr offset_t startUpdateIdx = 30;
-//        static constexpr offset_t endUpdateIdx = 70;
-//        for (offset_t i = startUpdateIdx; i < endUpdateIdx; ++i) {
-//            src[i] = src[i - 1] * 2 - 1;
-//        }
-//        const auto updatedSrc = std::span(src.begin(), src.begin() + endUpdateIdx);
-//        alg.setValuesFromUncompressed((uint8_t*)updatedSrc.data(), startUpdateIdx,
-//            (uint8_t*)dest.data(), startUpdateIdx, endUpdateIdx - startUpdateIdx, metadata,
-//            nullptr);
-//
-//        std::vector<int64_t> decompressed(src.size());
-//        alg.decompressFromPage((uint8_t*)dest.data(), 0, (uint8_t*)decompressed.data(), 0,
-//            decompressed.size(), metadata);
-//
-//        EXPECT_THAT(decompressed, ::testing::ContainerEq(src));
-//    }
-//}
+TEST(CompressionTests, IntegerPackingTest64SetValuesFromUncompressed) {
+    std::vector<int64_t> src(128, 51);
+    src[0] = 0;
+    src[100] = 1LL << 61;
+    auto alg = IntegerBitpacking<int64_t>();
+    std::vector<int64_t> dest(src.size());
+
+    const auto& [min, max] = std::minmax_element(src.begin(), src.end());
+    auto metadata =
+        CompressionMetadata(StorageValue(*min), StorageValue(*max), alg.getCompressionType());
+
+    {
+        alg.setValuesFromUncompressed((uint8_t*)src.data(), 0, (uint8_t*)dest.data(), 0, src.size(),
+            metadata, nullptr);
+
+        std::vector<int64_t> decompressed(src.size());
+        alg.decompressFromPage((uint8_t*)dest.data(), 0, (uint8_t*)decompressed.data(), 0,
+            decompressed.size(), metadata);
+
+        EXPECT_THAT(decompressed, ::testing::ContainerEq(src));
+    }
+
+    {
+        static constexpr offset_t startUpdateIdx = 30;
+        static constexpr offset_t endUpdateIdx = 70;
+        for (offset_t i = startUpdateIdx; i < endUpdateIdx; ++i) {
+            src[i] = src[i - 1] * 2 - 1;
+        }
+        const auto updatedSrc = std::span(src.begin(), src.begin() + endUpdateIdx);
+        alg.setValuesFromUncompressed((uint8_t*)updatedSrc.data(), startUpdateIdx,
+            (uint8_t*)dest.data(), startUpdateIdx, endUpdateIdx - startUpdateIdx, metadata,
+            nullptr);
+
+        std::vector<int64_t> decompressed(src.size());
+        alg.decompressFromPage((uint8_t*)dest.data(), 0, (uint8_t*)decompressed.data(), 0,
+            decompressed.size(), metadata);
+
+        EXPECT_THAT(decompressed, ::testing::ContainerEq(src));
+    }
+}
 
 TEST(CompressionTests, IntegerPackingTest128WorksOnNonZeroBuffer) {
     std::vector<int128_t> src(128);
@@ -173,22 +173,22 @@ TEST(CompressionTests, IntegerPackingTest128WorksOnNonZeroBuffer) {
     EXPECT_THAT(decompressed, ::testing::ContainerEq(src));
 }
 
-//TEST(CompressionTests, IntegerPackingTest128AllPositive) {
-//    std::vector<kuzu::common::int128_t> src(101);
-//
-//    {
-//        kuzu::common::int128_t cur = 1;
-//        kuzu::common::int128_t diff = 1;
-//        std::ranges::generate(src.begin(), src.end(), [&diff, &cur] {
-//            diff *= 2;
-//            cur += diff;
-//            return cur;
-//        });
-//    }
-//
-//    auto alg = IntegerBitpacking<kuzu::common::int128_t>();
-//    test_compression(alg, src, false);
-//}
+TEST(CompressionTests, IntegerPackingTest128AllPositive) {
+    std::vector<kuzu::common::int128_t> src(101);
+
+    {
+        kuzu::common::int128_t cur = 1;
+        kuzu::common::int128_t diff = 1;
+        std::ranges::generate(src.begin(), src.end(), [&diff, &cur] {
+            diff *= 2;
+            cur += diff;
+            return cur;
+        });
+    }
+
+    auto alg = IntegerBitpacking<kuzu::common::int128_t>();
+    test_compression(alg, src, false);
+}
 
 TEST(CompressionTests, IntegerPackingTest128SignBitFillingDoesNotBreakUnpacking) {
     std::vector<kuzu::common::int128_t> src(128, 0b1111);
@@ -197,22 +197,22 @@ TEST(CompressionTests, IntegerPackingTest128SignBitFillingDoesNotBreakUnpacking)
     test_compression(alg, src, false);
 }
 
-//TEST(CompressionTests, IntegerPackingTest128Negative) {
-//    std::vector<kuzu::common::int128_t> src(101);
-//
-//    {
-//        auto cur = -(kuzu::common::int128_t(1) << 120);
-//        kuzu::common::int128_t diff = 1;
-//        std::ranges::generate(src.begin(), src.end(), [&diff, &cur] {
-//            diff *= 2;
-//            cur += diff;
-//            return cur;
-//        });
-//    }
-//
-//    auto alg = IntegerBitpacking<kuzu::common::int128_t>();
-//    test_compression(alg, src, false);
-//}
+TEST(CompressionTests, IntegerPackingTest128Negative) {
+    std::vector<kuzu::common::int128_t> src(101);
+
+    {
+        auto cur = -(kuzu::common::int128_t(1) << 120);
+        kuzu::common::int128_t diff = 1;
+        std::ranges::generate(src.begin(), src.end(), [&diff, &cur] {
+            diff *= 2;
+            cur += diff;
+            return cur;
+        });
+    }
+
+    auto alg = IntegerBitpacking<kuzu::common::int128_t>();
+    test_compression(alg, src, false);
+}
 
 TEST(CompressionTests, IntegerPackingTest128NegativeSimple) {
     std::vector<kuzu::common::int128_t> src{-1024, -1027, -1023};

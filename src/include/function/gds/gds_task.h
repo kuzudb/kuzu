@@ -1,10 +1,8 @@
 #pragma once
 
 #include "common/task_system/task.h"
-#include "function/gds/new_frontier.h"
+#include "function/gds/gds_frontier.h"
 #include "function/table_functions.h"
-// TODO(Semih): Remove
-#include <iostream>
 
 namespace kuzu {
 namespace function {
@@ -26,9 +24,7 @@ class FrontierTask : public common::Task {
 
 public:
     FrontierTask(uint64_t maxNumThreads, std::shared_ptr<FrontierTaskSharedState> sharedState)
-        : common::Task{maxNumThreads}, sharedState{std::move(sharedState)} {
-        std::cout << "FrontierTask is constructed. maxNumThreads: " << maxNumThreads << std::endl;
-    }
+        : common::Task{maxNumThreads}, sharedState{std::move(sharedState)} {}
 
     void run() override;
 

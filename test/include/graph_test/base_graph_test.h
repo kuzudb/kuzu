@@ -27,7 +27,7 @@ public:
     void SetUp() override {
         systemConfig = std::make_unique<main::SystemConfig>(
             common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING,
-            4 /*numThreadsForExec*/);
+            2 /*numThreadsForExec*/);
         setDatabasePath();
         removeDir(databasePath);
 

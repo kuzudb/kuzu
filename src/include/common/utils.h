@@ -1,6 +1,5 @@
 #pragma once
 
-#include <bit>
 #include <cstdint>
 #include <limits>
 #include <vector>
@@ -21,8 +20,6 @@ public:
         using U = numeric_utils::MakeUnSignedT<T>;
         return (T)(numBits == (sizeof(U) * 8) ? std::numeric_limits<U>::max() :
                                                 static_cast<U>(((U)1 << numBits) - 1));
-//            return std::bit_cast<T>(numBits == (sizeof(U) * 8) ? std::numeric_limits<U>::max() :
-//                                                             static_cast<U>(((U)1 << numBits) - 1));
     }
 
     // constructs all 1s mask while avoiding overflow/underflow for int128

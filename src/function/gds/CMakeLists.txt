@@ -5,7 +5,6 @@ add_library(kuzu_function_algorithm
         page_rank.cpp
         shortest_paths.cpp
         gds_utils.cpp
-        variable_length_paths.cpp
         weakly_connected_components.cpp)
 
 set(ALL_OBJECT_FILES

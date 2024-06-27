@@ -1,10 +1,9 @@
 #pragma once
 
+#include <mutex>
 #include "common/types/internal_id_t.h"
 #include "common/exception/runtime.h"
 
-// TODO(Semih): Remove
-#include <iostream>
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -63,7 +62,8 @@ public:
  * TODO: This class should be renamed to simply Frontier after we remove the Frontier classes in
  * recursive_extend/frontier.h
  */
-class GDSFrontier {
+class
+    GDSFrontier {
 public:
     virtual ~GDSFrontier() {};
     virtual bool isActive(nodeID_t nodeID) = 0;
@@ -98,7 +98,6 @@ public:
         // If curIter is UINT64_MAX, which indicates that the iterations have not started, the
         // following line will set it to 0.
         curIter.fetch_add(1);
-        std::cout << "Inside beginNewIterationOfUpdates. curIter: " << curIter.load() << std::endl;
         numNextActiveNodes.store(0u);
         beginNewIterationOfUpdatesInternalNoLock();
     }

@@ -1,10 +1,6 @@
 #include "graph/on_disk_graph.h"
-
 #include "main/client_context.h"
 #include "storage/storage_manager.h"
-
-// TODO(Semih): Remove
-#include <iostream>
 
 using namespace kuzu::catalog;
 using namespace kuzu::storage;
@@ -109,15 +105,10 @@ OnDiskGraph::getTableCombinations() {
 
 std::vector<nodeID_t> OnDiskGraph::scanFwd(nodeID_t nodeID) {
     KU_ASSERT(nodeTableIDToFwdRelTables.contains(nodeID.tableID));
-    std::cout << "scanFwd called with nodeID: tableID: " << nodeID.tableID << " offset: " << nodeID.offset << std::endl;
-
     auto& relTables = nodeTableIDToFwdRelTables.at(nodeID.tableID);
     std::vector<common::nodeID_t> result;
     for (auto& [_, relTable] : relTables) {
         scan(nodeID, relTable, *scanState.fwdScanState, result);
-    }
-    for (common::nodeID_t nbrID : result) {
-        std::cout << "scanned nbrID: tableID: " << nbrID.tableID << " offset: " << nbrID.offset << std::endl;
     }
     return result;
 }

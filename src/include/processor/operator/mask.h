@@ -40,7 +40,6 @@ private:
     uint64_t size;
 };
 
-
 // MaskCollection represents multiple mask on the same domain with AND semantic.
 class MaskCollection {
 public:

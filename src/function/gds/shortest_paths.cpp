@@ -1,15 +1,11 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
-#include "function/gds/new_frontier.h"
 #include "function/gds_function.h"
 #include "processor/operator/gds_call.h"
 #include "processor/result/factorized_table.h"
-
-// TODO(Semih): Remove
-#include <iostream>
-#include <thread>
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -113,16 +109,12 @@ public:
         auto endOffset = beginOffset + FRONTIER_MORSEL_SIZE > numNodes ?
                              numNodes :
                              beginOffset + FRONTIER_MORSEL_SIZE;
-        // TODO(Semih): Remove
-//        std::cout << std::this_thread::get_id() << " got new morsel. beginOffset: " << beginOffset
-//                  << " endOffset: " << endOffset << std::endl;
         frontierMorsel.initMorsel(pathLengths->curFrontierFixedTableID, beginOffset, endOffset);
         return true;
     }
 
     void beginFrontierUpdatesBetweenTables(table_id_t curFrontierTableID,
         table_id_t nextFrontierTableID) override {
-        std::cout << "beginFrontierUpdatesBetweenTables: curFrontierTableID: " << curFrontierTableID << " nextFrontierTableID: " << nextFrontierTableID << std::endl;
         pathLengths->fixCurFrontierNodeTable(curFrontierTableID);
         pathLengths->fixNextFrontierNodeTable(nextFrontierTableID);
         nextOffset.store(0u);
