@@ -7,6 +7,7 @@
 #include "binder/expression/rel_expression.h"
 #include "binder/expression/subquery_expression.h"
 #include "common/cast.h"
+#include "function/built_in_function_utils.h"
 #include "function/list/vector_list_functions.h"
 #include "function/sequence/sequence_functions.h"
 #include "function/uuid/vector_uuid_functions.h"
@@ -102,7 +103,7 @@ bool ExpressionVisitor::isConstant(const Expression& expression) {
         auto& funcExpr = expression.constCast<FunctionExpression>();
         if (funcExpr.getFunctionName() == function::NextValFunction::name) {
             return false;
-        } else if (funcExpr.getFunctionName() == "LIST_TRANSFORM") {
+        } else if (function::BuiltInFunctionsUtils::isLambdaFunction(funcExpr.getFunctionName())) {
             return false;
         }
     }

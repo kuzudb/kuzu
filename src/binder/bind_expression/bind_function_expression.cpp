@@ -49,19 +49,19 @@ std::shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(const Parse
 
 std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     const ParsedExpression& parsedExpression, const std::string& functionName) {
-    auto childrenParsedExpr =
+    auto parsedExpressionChildren =
         parser::ParsedExpressionChildrenVisitor::collectChildren(parsedExpression);
-    auto isLambdaFunc = std::find_if(childrenParsedExpr.begin(), childrenParsedExpr.end(),
-                            [](ParsedExpression* expr) {
+    auto isLambdaFunc = std::find_if(parsedExpressionChildren.begin(),
+                            parsedExpressionChildren.end(), [](ParsedExpression* expr) {
                                 return expr->getExpressionType() == ExpressionType::LAMBDA;
-                            }) != childrenParsedExpr.end();
+                            }) != parsedExpressionChildren.end();
 
     if (isLambdaFunc) {
-        return bindLambdaFunctionExpression(childrenParsedExpr, functionName);
+        return bindLambdaFunctionExpression(parsedExpressionChildren, functionName);
     } else {
         expression_vector children;
-        for (auto i = 0u; i < childrenParsedExpr.size(); ++i) {
-            auto child = bindExpression(*childrenParsedExpr[i]);
+        for (auto i = 0u; i < parsedExpressionChildren.size(); ++i) {
+            auto child = bindExpression(*parsedExpressionChildren[i]);
             children.push_back(std::move(child));
         }
         return bindScalarFunctionExpression(children, functionName);
@@ -128,10 +128,10 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindLambdaFunctionExpression(
-    std::vector<ParsedExpression*> parsedExprChildren, const std::string& functionName) {
+    std::vector<ParsedExpression*> parsedExpressionChildren, const std::string& functionName) {
     expression_vector children;
-    auto leftChild = bindExpression(*parsedExprChildren[0]);
-    auto rightChild = bindLambdaExpression(*parsedExprChildren[1],
+    auto leftChild = bindExpression(*parsedExpressionChildren[0]);
+    auto rightChild = bindLambdaExpression(*parsedExpressionChildren[1],
         common::ListType::getChildType(leftChild->getDataType()).copy());
     children.push_back(std::move(leftChild));
     children.push_back(std::move(rightChild));

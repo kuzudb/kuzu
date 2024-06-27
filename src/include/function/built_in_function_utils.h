@@ -39,6 +39,10 @@ public:
     static uint32_t getCastCost(common::LogicalTypeID inputTypeID,
         common::LogicalTypeID targetTypeID);
 
+    static bool isLambdaFunction(const std::string& funcName) {
+        return funcName == "LIST_TRANSFORM";
+    }
+
 private:
     // TODO(Xiyang): move casting cost related functions to binder.
     static uint32_t getTargetTypeCost(common::LogicalTypeID typeID);

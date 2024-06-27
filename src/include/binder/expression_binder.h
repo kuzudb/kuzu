@@ -64,7 +64,7 @@ public:
     std::shared_ptr<Expression> bindScalarFunctionExpression(const expression_vector& children,
         const std::string& functionName);
     std::shared_ptr<Expression> bindLambdaFunctionExpression(
-        std::vector<parser::ParsedExpression*> parsedExprChildren, const std::string& functionName);
+        std::vector<parser::ParsedExpression*> parsedExpressionChildren, const std::string& functionName);
     std::shared_ptr<Expression> bindRewriteFunctionExpression(
         const parser::ParsedExpression& parsedExpression);
     std::shared_ptr<Expression> bindAggregateFunctionExpression(

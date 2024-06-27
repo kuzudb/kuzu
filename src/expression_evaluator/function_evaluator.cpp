@@ -1,6 +1,7 @@
 #include "expression_evaluator/function_evaluator.h"
 
 #include "binder/expression/function_expression.h"
+#include "function/built_in_function_utils.h"
 #include "function/lambda/lambda_function_bind_data.h"
 #include "main/client_context.h"
 
@@ -21,7 +22,7 @@ void FunctionExpressionEvaluator::init(const ResultSet& resultSet,
         selectFunc = ((binder::ScalarFunctionExpression&)*expression).selectFunc;
     }
     bindData = expression->constPtrCast<binder::ScalarFunctionExpression>()->getBindData()->copy();
-    if (functionExpr.getFunctionName() == "LIST_TRANSFORM") {
+    if (function::BuiltInFunctionsUtils::isLambdaFunction(functionExpr.getFunctionName())) {
         auto& lambdaFuncBindData = bindData->cast<function::LambdaFunctionBindData>();
         auto dataVec = common::ListVector::getSharedDataVector(children[0]->resultVector.get());
         auto dataChunk = std::make_shared<common::DataChunk>(1);
