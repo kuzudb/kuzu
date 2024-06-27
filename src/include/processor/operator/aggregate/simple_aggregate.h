@@ -34,8 +34,7 @@ struct SimpleAggregatePrintInfo final : OPPrintInfo {
     SimpleAggregatePrintInfo(binder::expression_vector expressions)
         : expressions{std::move(expressions)} {}
     SimpleAggregatePrintInfo(const SimpleAggregatePrintInfo& other)
-        : OPPrintInfo{other}, expressions{other.expressions} {
-    }
+        : OPPrintInfo{other}, expressions{other.expressions} {}
 
     std::string toString() const override;
 
