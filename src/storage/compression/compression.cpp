@@ -5,6 +5,7 @@
 #include <limits>
 #include <string>
 
+#include "alp.hpp"
 #include "common/assert.h"
 #include "common/exception/not_implemented.h"
 #include "common/exception/storage.h"
