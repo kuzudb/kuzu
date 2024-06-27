@@ -28,9 +28,23 @@ public:
 
     virtual bool select(common::SelectionVector& selVector) = 0;
 
+    virtual bool isLambdaExpr() const { return false; }
+
     virtual std::unique_ptr<ExpressionEvaluator> clone() = 0;
 
     EvaluatorLocalState& getLocalStateUnsafe() { return localState; }
+
+    std::vector<std::unique_ptr<ExpressionEvaluator>>& getChildren() { return children; }
+
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const ExpressionEvaluator&, const TARGET&>(*this);
+    }
+
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<ExpressionEvaluator&, TARGET&>(*this);
+    }
 
     static std::vector<std::unique_ptr<ExpressionEvaluator>> copy(
         const std::vector<std::unique_ptr<ExpressionEvaluator>>& evaluators);

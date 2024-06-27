@@ -22,16 +22,20 @@ struct FunctionBindData {
         : paramTypes{std::move(paramTypes)}, resultType{std::move(resultType)},
           clientContext{nullptr}, count{1} {}
     DELETE_COPY_AND_MOVE(FunctionBindData);
-
-    virtual inline std::unique_ptr<FunctionBindData> copy() const {
-        return std::make_unique<FunctionBindData>(common::LogicalType::copy(paramTypes),
-            resultType.copy());
-    }
-
     virtual ~FunctionBindData() = default;
 
     static std::unique_ptr<FunctionBindData> getSimpleBindData(
         const binder::expression_vector& params, const common::LogicalType& resultType);
+
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<FunctionBindData&, TARGET&>(*this);
+    }
+
+    virtual std::unique_ptr<FunctionBindData> copy() const {
+        return std::make_unique<FunctionBindData>(common::LogicalType::copy(paramTypes),
+            resultType.copy());
+    }
 };
 
 struct Function;

@@ -24,6 +24,8 @@ private:
     static std::unique_ptr<evaluator::ExpressionEvaluator> getReferenceEvaluator(
         const std::shared_ptr<binder::Expression>& expression, const planner::Schema* schema);
 
+    static std::unique_ptr<evaluator::ExpressionEvaluator> getLambdaParamEvaluator();
+
     static std::unique_ptr<evaluator::ExpressionEvaluator> getCaseEvaluator(
         std::shared_ptr<binder::Expression> expression, const planner::Schema* schema);
 

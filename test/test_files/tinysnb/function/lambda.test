@@ -1,0 +1,29 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE LambdaFunction
+
+-LOG ListTransform
+-STATEMENT RETURN LIST_TRANSFORM([5,28,92], x->x+ 10)
+---- 1
+[15,38,102]
+-STATEMENT MATCH (a:person) RETURN LIST_TRANSFORM(a.workedHours, x->x+ 2)
+---- 8
+[12,7]
+[14,10]
+[6,7]
+[3,11]
+[4]
+[5,6,7,8,9]
+[3]
+[12,13,14,5,6,7,8,9]
+-STATEMENT RETURN LIST_TRANSFORM([20,56], x->(x * 2 + 7) * 10)
+---- 1
+[470,1190]
+-STATEMENT RETURN LIST_TRANSFORM(['KUZU', 'DUCKDB', 'NEO4J'], x-> concat(x, 'test'))
+---- 1
+[KUZUtest,DUCKDBtest,NEO4Jtest]
+-STATEMENT RETURN LIST_TRANSFORM(['KUZU', 'DUCKDB', 'NEO4J'], x-> size(x))
+---- 1
+[4,6,5]

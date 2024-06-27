@@ -11,6 +11,7 @@
 #include "common/string_format.h"
 #include "expression_evaluator/case_evaluator.h"
 #include "expression_evaluator/function_evaluator.h"
+#include "expression_evaluator/lambda_evaluator.h"
 #include "expression_evaluator/literal_evaluator.h"
 #include "expression_evaluator/path_evaluator.h"
 #include "expression_evaluator/pattern_evaluator.h"
@@ -54,6 +55,8 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getEvaluator(
     auto expressionType = expression->expressionType;
     if (schema->isExpressionInScope(*expression)) {
         return getReferenceEvaluator(expression, schema);
+    } else if (ExpressionType::LAMBDA_PARAM == expressionType) {
+        return getLambdaParamEvaluator();
     } else if (ExpressionType::LITERAL == expressionType) {
         return getLiteralEvaluator(*expression);
     } else if (ExpressionUtil::isNodePattern(*expression)) {
@@ -114,6 +117,10 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getReferenceEvaluator(
     return std::make_unique<ReferenceExpressionEvaluator>(vectorPos, expressionGroup->isFlat());
 }
 
+std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getLambdaParamEvaluator() {
+    return std::make_unique<LambdaExpressionEvaluator>();
+}
+
 std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getCaseEvaluator(
     std::shared_ptr<Expression> expression, const Schema* schema) {
     auto caseExpression = reinterpret_cast<CaseExpression*>(expression.get());
@@ -133,6 +140,12 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getCaseEvaluator(
 std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getFunctionEvaluator(
     std::shared_ptr<Expression> expression, const Schema* schema) {
     auto childrenEvaluators = getEvaluators(expression->getChildren(), schema);
+    auto& funcExpr = expression->constCast<FunctionExpression>();
+    if (funcExpr.getFunctionName() == "LIST_TRANSFORM") {
+        auto& lambdaBindData = funcExpr.getBindData()->cast<function::LambdaFunctionBindData>();
+        lambdaBindData.evaluator =
+            ExpressionMapper::getEvaluator(lambdaBindData.lambdaExpr, schema);
+    }
     return std::make_unique<FunctionExpressionEvaluator>(std::move(expression),
         std::move(childrenEvaluators));
 }

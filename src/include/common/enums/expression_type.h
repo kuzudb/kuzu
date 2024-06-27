@@ -40,6 +40,8 @@ enum class ExpressionType : uint8_t {
 
     FUNCTION = 110,
 
+    LAMBDA = 111,
+
     AGGREGATE_FUNCTION = 130,
 
     SUBQUERY = 190,
@@ -47,6 +49,8 @@ enum class ExpressionType : uint8_t {
     CASE_ELSE = 200,
 
     GRAPH = 210,
+
+    LAMBDA_PARAM = 211,
 };
 
 struct ExpressionTypeUtil {

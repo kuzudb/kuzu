@@ -1,6 +1,7 @@
 #include "expression_evaluator/function_evaluator.h"
 
 #include "binder/expression/function_expression.h"
+#include "function/lambda/lambda_function_bind_data.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -14,11 +15,20 @@ namespace evaluator {
 void FunctionExpressionEvaluator::init(const ResultSet& resultSet,
     main::ClientContext* clientContext) {
     ExpressionEvaluator::init(resultSet, clientContext);
-    execFunc = ((binder::ScalarFunctionExpression&)*expression).execFunc;
+    auto& functionExpr = expression->constCast<binder::ScalarFunctionExpression>();
+    execFunc = functionExpr.execFunc;
     if (expression->dataType.getLogicalTypeID() == LogicalTypeID::BOOL) {
         selectFunc = ((binder::ScalarFunctionExpression&)*expression).selectFunc;
     }
     bindData = expression->constPtrCast<binder::ScalarFunctionExpression>()->getBindData()->copy();
+    if (functionExpr.getFunctionName() == "LIST_TRANSFORM") {
+        auto& lambdaFuncBindData = bindData->cast<function::LambdaFunctionBindData>();
+        auto dataVec = common::ListVector::getSharedDataVector(children[0]->resultVector.get());
+        auto dataChunk = std::make_shared<common::DataChunk>(1);
+        dataChunk->state->setToUnflat();
+        dataChunk->insert(0, dataVec);
+        lambdaFuncBindData.initEvaluator(dataVec, resultSet, clientContext);
+    }
 }
 
 void FunctionExpressionEvaluator::evaluate() {

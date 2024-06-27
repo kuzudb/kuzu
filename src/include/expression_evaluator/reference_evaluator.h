@@ -11,7 +11,7 @@ namespace evaluator {
 
 class ReferenceExpressionEvaluator : public ExpressionEvaluator {
 public:
-    explicit ReferenceExpressionEvaluator(const processor::DataPos& vectorPos, bool isResultFlat)
+    ReferenceExpressionEvaluator(const processor::DataPos& vectorPos, bool isResultFlat)
         : ExpressionEvaluator{isResultFlat}, vectorPos{vectorPos} {}
 
     inline void evaluate() override {}

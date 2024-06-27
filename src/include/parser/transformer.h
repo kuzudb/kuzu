@@ -7,6 +7,7 @@
 #pragma GCC diagnostic pop
 
 #include "parser/ddl/create_table_info.h"
+#include "parser/expression/parsed_function_expression.h"
 #include "statement.h"
 
 namespace kuzu {
@@ -159,6 +160,8 @@ private:
         CypherParser::OC_ParameterContext& ctx);
     std::unique_ptr<ParsedExpression> transformParenthesizedExpression(
         CypherParser::OC_ParenthesizedExpressionContext& ctx);
+    std::unique_ptr<ParsedExpression> transformLambdaExpression(
+        CypherParser::KU_LambdaContext& ctx);
     std::unique_ptr<ParsedExpression> transformFunctionInvocation(
         CypherParser::OC_FunctionInvocationContext& ctx);
     std::string transformFunctionName(CypherParser::OC_FunctionNameContext& ctx);

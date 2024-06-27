@@ -102,6 +102,8 @@ bool ExpressionVisitor::isConstant(const Expression& expression) {
         auto& funcExpr = expression.constCast<FunctionExpression>();
         if (funcExpr.getFunctionName() == function::NextValFunction::name) {
             return false;
+        } else if (funcExpr.getFunctionName() == "LIST_TRANSFORM") {
+            return false;
         }
     }
     if (expression.getNumChildren() == 0 &&

@@ -84,3 +84,9 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database_destroy(&database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
+
+TEST_F(CApiDatabaseTest, dasda) {
+    createDBAndConn();
+    printf("%s",
+        conn->query("return LIST_TRANSFORM([4, 5, 6], x -> (x + 10) * 2)")->toString().c_str());
+}

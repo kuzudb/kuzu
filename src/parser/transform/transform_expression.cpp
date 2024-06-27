@@ -6,6 +6,7 @@
 #include "function/struct/vector_struct_functions.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
+#include "parser/expression/parsed_lambda_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
 #include "parser/expression/parsed_parameter_expression.h"
 #include "parser/expression/parsed_property_expression.h"
@@ -466,6 +467,12 @@ std::unique_ptr<ParsedExpression> Transformer::transformParenthesizedExpression(
     return transformExpression(*ctx.oC_Expression());
 }
 
+std::unique_ptr<ParsedExpression> Transformer::transformLambdaExpression(
+    CypherParser::KU_LambdaContext& ctx) {
+    return std::make_unique<ParsedLambdaExpression>(transformExpression(*ctx.oC_Expression()[0]),
+        transformExpression(*ctx.oC_Expression()[1]), ctx.getText());
+}
+
 std::unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
     CypherParser::OC_FunctionInvocationContext& ctx) {
     if (ctx.STAR()) {
@@ -503,9 +510,14 @@ std::string Transformer::transformFunctionName(CypherParser::OC_FunctionNameCont
 
 std::unique_ptr<ParsedExpression> Transformer::transformFunctionParameterExpression(
     CypherParser::KU_FunctionParameterContext& ctx) {
-    auto expression = transformExpression(*ctx.oC_Expression());
-    if (ctx.oC_SymbolicName()) {
-        expression->setAlias(transformSymbolicName(*ctx.oC_SymbolicName()));
+    std::unique_ptr<ParsedExpression> expression;
+    if (ctx.oC_Expression()) {
+        expression = transformExpression(*ctx.oC_Expression());
+        if (ctx.oC_SymbolicName()) {
+            expression->setAlias(transformSymbolicName(*ctx.oC_SymbolicName()));
+        }
+    } else if (ctx.kU_Lambda()) {
+        expression = transformLambdaExpression(*ctx.kU_Lambda());
     }
     return expression;
 }

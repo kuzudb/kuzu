@@ -46,10 +46,6 @@ private:
         transaction::Transaction* transaction) const override;
 
 private:
-    // TODO(Semih): When we support updating the schemas, we need to update this or, we need
-    // a more robust mechanism to keep track of which property is the primary key (e.g., store this
-    // information with the property). This is an idx, not an ID, so as the columns/properties of
-    // the table change, the idx can change.
     common::property_id_t primaryKeyPID;
     common::table_id_set_t fwdRelTableIDSet; // srcNode->rel
     common::table_id_set_t bwdRelTableIDSet; // dstNode->rel

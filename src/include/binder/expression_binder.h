@@ -56,11 +56,15 @@ public:
     // Function expressions.
     std::shared_ptr<Expression> bindFunctionExpression(
         const parser::ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindLambdaExpression(
+        const parser::ParsedExpression& parsedExpression, common::LogicalType type);
 
     std::shared_ptr<Expression> bindScalarFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName);
     std::shared_ptr<Expression> bindScalarFunctionExpression(const expression_vector& children,
         const std::string& functionName);
+    std::shared_ptr<Expression> bindLambdaFunctionExpression(
+        std::vector<parser::ParsedExpression*> parsedExprChildren, const std::string& functionName);
     std::shared_ptr<Expression> bindRewriteFunctionExpression(
         const parser::ParsedExpression& parsedExpression);
     std::shared_ptr<Expression> bindAggregateFunctionExpression(

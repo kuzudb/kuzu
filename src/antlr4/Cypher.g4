@@ -535,11 +535,15 @@ oC_FunctionInvocation
         | CAST SP? '(' SP? kU_FunctionParameter SP? ( ( AS SP? kU_DataType ) | ( ',' SP? kU_FunctionParameter ) ) SP? ')'
         | oC_FunctionName SP? '(' SP? ( DISTINCT SP? )? ( kU_FunctionParameter SP? ( ',' SP? kU_FunctionParameter SP? )* )? ')' ;
 
+kU_Lambda
+    : oC_Expression SP? '-' '>' SP? oC_Expression ;
+
 oC_FunctionName
     : oC_SymbolicName ;
 
 kU_FunctionParameter
-    : ( oC_SymbolicName SP? ':' '=' SP? )? oC_Expression ;
+    : ( oC_SymbolicName SP? ':' '=' SP? )? oC_Expression
+        | kU_Lambda ;
 
 oC_PathPatterns
     : oC_NodePattern ( SP? oC_PatternElementChain )+;

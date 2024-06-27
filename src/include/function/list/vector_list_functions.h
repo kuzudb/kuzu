@@ -154,5 +154,11 @@ struct ListToStringFunction {
     static function_set getFunctionSet();
 };
 
+struct ListTransformFunction {
+    static constexpr const char* name = "LIST_TRANSFORM";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu

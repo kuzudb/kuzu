@@ -49,12 +49,23 @@ std::shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(const Parse
 
 std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     const ParsedExpression& parsedExpression, const std::string& functionName) {
-    expression_vector children;
-    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-        auto child = bindExpression(*parsedExpression.getChild(i));
-        children.push_back(std::move(child));
+    auto childrenParsedExpr =
+        parser::ParsedExpressionChildrenVisitor::collectChildren(parsedExpression);
+    auto isLambdaFunc = std::find_if(childrenParsedExpr.begin(), childrenParsedExpr.end(),
+                            [](ParsedExpression* expr) {
+                                return expr->getExpressionType() == ExpressionType::LAMBDA;
+                            }) != childrenParsedExpr.end();
+
+    if (isLambdaFunc) {
+        return bindLambdaFunctionExpression(childrenParsedExpr, functionName);
+    } else {
+        expression_vector children;
+        for (auto i = 0u; i < childrenParsedExpr.size(); ++i) {
+            auto child = bindExpression(*childrenParsedExpr[i]);
+            children.push_back(std::move(child));
+        }
+        return bindScalarFunctionExpression(children, functionName);
     }
-    return bindScalarFunctionExpression(children, functionName);
 }
 
 static std::vector<LogicalType> getTypes(const expression_vector& exprs) {
@@ -108,6 +119,34 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
                 childrenAfterCast.push_back(implicitCastIfNecessary(children[i], type));
             }
         }
+    }
+    auto uniqueExpressionName =
+        ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
+    return make_shared<ScalarFunctionExpression>(functionName, ExpressionType::FUNCTION,
+        std::move(bindData), std::move(childrenAfterCast), function->execFunc, function->selectFunc,
+        function->compileFunc, uniqueExpressionName);
+}
+
+std::shared_ptr<Expression> ExpressionBinder::bindLambdaFunctionExpression(
+    std::vector<ParsedExpression*> parsedExprChildren, const std::string& functionName) {
+    expression_vector children;
+    auto leftChild = bindExpression(*parsedExprChildren[0]);
+    auto rightChild = bindLambdaExpression(*parsedExprChildren[1],
+        common::ListType::getChildType(leftChild->getDataType()).copy());
+    children.push_back(std::move(leftChild));
+    children.push_back(std::move(rightChild));
+    auto childrenTypes = getTypes(children);
+    auto functions = context->getCatalog()->getFunctions(context->getTx());
+    KU_ASSERT(children.size() == 2);
+    auto function = ku_dynamic_cast<Function*, function::ScalarFunction*>(
+        function::BuiltInFunctionsUtils::matchFunction(context->getTx(), functionName,
+            childrenTypes, functions));
+    expression_vector childrenAfterCast;
+    KU_ASSERT(function->bindFunc != nullptr);
+    auto bindData = function->bindFunc(children, function);
+    children.pop_back();
+    for (auto i = 0u; i < children.size(); ++i) {
+        childrenAfterCast.push_back(implicitCastIfNecessary(children[i], bindData->paramTypes[i]));
     }
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
@@ -175,8 +214,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindMacroExpression(
         context->getCatalog()->getScalarMacroFunction(context->getTx(), macroName);
     auto macroExpr = scalarMacroFunction->expression->copy();
     auto parameterVals = scalarMacroFunction->getDefaultParameterVals();
-    auto& parsedFuncExpr =
-        ku_dynamic_cast<const ParsedExpression&, const ParsedFunctionExpression&>(parsedExpression);
+    auto& parsedFuncExpr = parsedExpression.constCast<ParsedFunctionExpression>();
     auto positionalArgs = scalarMacroFunction->getPositionalArgs();
     if (parsedFuncExpr.getNumChildren() > scalarMacroFunction->getNumArgs() ||
         parsedFuncExpr.getNumChildren() < positionalArgs.size()) {

@@ -75,6 +75,17 @@ static std::vector<T> copyVector(const std::vector<T>& objects) {
     return result;
 }
 
+template<typename T>
+static std::vector<std::shared_ptr<T>> copyVector(const std::vector<std::shared_ptr<T>>& objects) {
+    std::vector<std::shared_ptr<T>> result;
+    result.reserve(objects.size());
+    for (auto& object : objects) {
+        T& ob = *object;
+        result.push_back(ob.copy());
+    }
+    return result;
+}
+
 template<typename K, typename V>
 static std::unordered_map<K, V> copyMap(const std::unordered_map<K, V>& objects) {
     std::unordered_map<K, V> result;
