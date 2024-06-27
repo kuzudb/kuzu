@@ -128,7 +128,7 @@ public:
 
     virtual std::unique_ptr<ColumnChunkData> getEmptyChunkForCommit(uint64_t capacity);
     // static void applyLocalChunkToColumnChunk(const ChunkDataCollection& localChunks,
-        // ColumnChunkData* columnChunk, const offset_to_row_idx_t& info);
+    // ColumnChunkData* columnChunk, const offset_to_row_idx_t& info);
 
     std::unique_ptr<ColumnChunk> checkpointColumnChunk(const ColumnChunk& insertChunk,
         const ColumnChunk& updateChunk);
@@ -177,7 +177,8 @@ protected:
         return offsets.empty() ? 0 : offsets.rbegin()->first;
     }
 
-    // static ChunkDataCollection getNullChunkCollection(const ChunkDataCollection& chunkCollection);
+    // static ChunkDataCollection getNullChunkCollection(const ChunkDataCollection&
+    // chunkCollection);
     void updateStatistics(ColumnChunkMetadata& metadata, common::offset_t maxIndex,
         const std::optional<StorageValue>& min, const std::optional<StorageValue>& max);
 
@@ -191,23 +192,23 @@ private:
     bool isMaxOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
         common::offset_t maxOffset);
     // bool checkUpdateInPlace(const ColumnChunkMetadata& metadata,
-        // const ChunkDataCollection& localChunks, const offset_to_row_idx_t& writeInfo);
+    // const ChunkDataCollection& localChunks, const offset_to_row_idx_t& writeInfo);
 
     // virtual bool canCommitInPlace(const ChunkState& state,
-        // const ChunkDataCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
-        // const ChunkDataCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo);
+    // const ChunkDataCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+    // const ChunkDataCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo);
     virtual bool canCommitInPlace(const ChunkState& state,
         const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
         common::offset_t srcOffset);
 
     // virtual void commitLocalChunkInPlace(ChunkState& state,
-        // const ChunkDataCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
-        // const ChunkDataCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
-        // const offset_set_t& deleteInfo);
+    // const ChunkDataCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
+    // const ChunkDataCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
+    // const offset_set_t& deleteInfo);
     // virtual void commitLocalChunkOutOfPlace(transaction::Transaction* transaction,
-        // ChunkState& state, bool isNewNodeGroup, const ChunkDataCollection& localInsertChunks,
-        // const offset_to_row_idx_t& insertInfo, const ChunkDataCollection& localUpdateChunks,
-        // const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo);
+    // ChunkState& state, bool isNewNodeGroup, const ChunkDataCollection& localInsertChunks,
+    // const offset_to_row_idx_t& insertInfo, const ChunkDataCollection& localUpdateChunks,
+    // const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo);
 
     virtual void commitColumnChunkInPlace(ChunkState& state,
         const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
@@ -217,7 +218,7 @@ private:
         ColumnChunkData* chunk, common::offset_t srcOffset);
 
     // void applyLocalChunkToColumn(ChunkState& state, const ChunkDataCollection& localChunks,
-        // const offset_to_row_idx_t& info);
+    // const offset_to_row_idx_t& info);
 
     virtual void updateStateMetadataNumValues(ChunkState& state, size_t numValues);
 
