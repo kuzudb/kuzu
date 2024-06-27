@@ -25,12 +25,7 @@ public:
     OnDiskGraph(main::ClientContext* context, const GraphEntry& entry);
     // TODO(Reviewer): Do I need to do other.graphEntry.copy() in the constructor?
     // TODO(Reviewer): I believe I have to make this copy constructor public. Can you double check?
-    OnDiskGraph(const OnDiskGraph& other)
-        : context{other.context}, graphEntry{other.graphEntry.copy()},
-          nodeIDToNodeTable{other.nodeIDToNodeTable},
-          nodeTableIDToFwdRelTables{other.nodeTableIDToFwdRelTables},
-          nodeTableIDToBwdRelTables{other.nodeTableIDToBwdRelTables},
-          scanState{context->getMemoryManager()} {}
+    OnDiskGraph(const OnDiskGraph& other);
 
     std::unique_ptr<Graph> copy() override { return std::make_unique<OnDiskGraph>(*this); }
     std::vector<common::table_id_t> getNodeTableIDs() override;
