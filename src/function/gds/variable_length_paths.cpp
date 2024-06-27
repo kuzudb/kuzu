@@ -1,8 +1,8 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
-#include "function/gds/frontier.h"
 #include "function/gds/gds_function_collection.h"
+#include "function/gds/old_frontier.h"
 #include "function/gds_function.h"
 #include "graph/graph.h"
 #include "main/client_context.h"
@@ -43,18 +43,18 @@ struct VariableLengthPathBindData final : public GDSBindData {
 
 struct VariableLengthPathSourceState {
     nodeID_t sourceNodeID;
-    Frontier currentFrontier;
-    Frontier nextFrontier;
+    OldFrontier currentFrontier;
+    OldFrontier nextFrontier;
 
     explicit VariableLengthPathSourceState(nodeID_t sourceNodeID) : sourceNodeID{sourceNodeID} {
-        currentFrontier = Frontier();
+        currentFrontier = OldFrontier();
         currentFrontier.addNode(sourceNodeID, 1 /* multiplicity */);
-        nextFrontier = Frontier();
+        nextFrontier = OldFrontier();
     }
 
     void initNextFrontier() {
         currentFrontier = std::move(nextFrontier);
-        nextFrontier = Frontier();
+        nextFrontier = OldFrontier();
     }
 };
 

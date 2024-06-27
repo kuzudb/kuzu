@@ -2,8 +2,6 @@
 
 #include "binder/expression/expression.h"
 #include "graph/graph_entry.h"
-// TODO(Semih): Remove
-#include <iostream>
 
 namespace kuzu {
 namespace binder {
@@ -18,12 +16,12 @@ class ClientContext;
 namespace processor {
 struct GDSCallSharedState;
 class FactorizedTable;
-class ExecutionContext;
+struct ExecutionContext;
 } // namespace processor
 
 namespace function {
 
-class ParallelUtils;
+class GDSUtils;
 
 // Struct maintaining GDS specific information that needs to be obtained at compile time.
 struct GDSBindData {
@@ -72,8 +70,6 @@ protected:
 public:
     GDSAlgorithm() = default;
     GDSAlgorithm(const GDSAlgorithm& other) {
-        // TODO(Semih): Remove
-        //        parallelUtils = other.parallelUtils;
         if (other.bindData != nullptr) {
             bindData = other.bindData->copy();
         }
@@ -89,14 +85,6 @@ public:
 
     void init(processor::GDSCallSharedState* sharedState, main::ClientContext* context);
 
-    // TODO(Semih): Remove
-    // GDSAlgorithm implementations, when executing their algorithms, can generate additional
-    // operators and use the TaskScheduler to create and execute new pipelines. These pipelines
-    // consist of a single operator for now. We need to pass the TaskScheduler and a second
-    // operatorID to use in those additional operators.
-//    void setTaskSchedulerAndOperatorIDForParallelization(common::TaskScheduler* taskScheduler,
-//        uint32_t operatorID);
-
     virtual void exec(processor::ExecutionContext* executionContext) = 0;
 
     // TODO: We should get rid of this copy interface (e.g. using stateless design) or at least make
@@ -111,7 +99,6 @@ protected:
 
 protected:
     std::unique_ptr<GDSBindData> bindData;
-//    std::shared_ptr<ParallelUtils> parallelUtils;
     processor::GDSCallSharedState* sharedState;
     std::unique_ptr<GDSLocalState> localState;
 };

@@ -1,0 +1,31 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE SPNegativeUpperBound
+-STATEMENT PROJECT GRAPH PK (person, knows)
+           MATCH (a:person) WHERE a.ID = 0
+           CALL shortest_paths(PK, a, -1, true)
+           RETURN a.fName, _node.fName, length;
+---- error
+Runtime exception: shortest_paths function only works for positive max iterations that are up to 254. Given upper bound is: -1.
+
+-CASE SPLargeUpperBound
+-STATEMENT PROJECT GRAPH PK (person, knows)
+           MATCH (a:person) WHERE a.ID = 0
+           CALL shortest_paths(PK, a, 255, true)
+           RETURN a.fName, _node.fName, length;
+---- error
+Runtime exception: shortest_paths function only works for positive max iterations that are up to 254. Given upper bound is: 255.
+
+
+-CASE SPBasic
+-STATEMENT PROJECT GRAPH PK (person, knows)
+           MATCH (a:person) WHERE a.ID = 0
+           CALL shortest_paths(PK, a, 2, true)
+           RETURN a.fName, _node.fName, length;
+---- 4
+Alice|Alice|0
+Alice|Bob|1
+Alice|Carol|1
+Alice|Dan|1

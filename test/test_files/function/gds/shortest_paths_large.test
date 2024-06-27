@@ -1,0 +1,51 @@
+-DATASET CSV gds-shortest-paths
+
+--
+
+-CASE SPLargeSingleLabel
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1) WHERE a.ID = 1
+           CALL par_shortest_path(PK, a, 4, true)
+           RETURN length, count(*);
+---- 5
+0|1
+1|10
+2|100
+3|1000
+4|10000
+
+-CASE SPLargeMultilabel1
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
+           MATCH (a:person1) WHERE a.ID = 1
+           CALL par_shortest_path(PK, a, 4, true)
+           RETURN length, count(*);
+---- 5
+0|1
+1|10
+2|100
+3|1000
+4|10000
+
+-CASE SPLargeMultilabel2
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12)
+           MATCH (a:person1) WHERE a.ID = 1
+           CALL par_shortest_path(PK, a, 4, true)
+           RETURN length, count(*);
+---- 5
+0|1
+1|20
+2|200
+3|2000
+4|20000
+
+-CASE SPLargeMultilabel3
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21)
+           MATCH (a:person1) WHERE a.ID = 1
+           CALL par_shortest_path(PK, a, 4, true)
+           RETURN length, count(*);
+---- 5
+0|1
+1|20
+2|200
+3|2000
+4|20000

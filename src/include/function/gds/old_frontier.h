@@ -11,7 +11,7 @@ namespace kuzu {
 namespace function {
 
 // TODO(Semih): Remove
-class Frontier {
+class OldFrontier {
 public:
     void addNode(common::nodeID_t nodeID, uint32_t multiplicity) {
         if (nodeIDToMultiplicity.contains(nodeID)) {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "function/gds/gds.h"
-#include "function/gds/parallel_utils.h"
+#include "function/gds/gds_utils.h"
 #include "graph/graph.h"
 #include "processor/operator/mask.h"
 #include "processor/operator/sink.h"

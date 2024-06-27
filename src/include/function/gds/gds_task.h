@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/task_system/task.h"
+#include "function/gds/new_frontier.h"
 #include "function/table_functions.h"
 // TODO(Semih): Remove
 #include <iostream>
@@ -8,33 +9,31 @@
 namespace kuzu {
 namespace function {
 
-class GDSTaskSharedState {
+class FrontierTaskSharedState {
 public:
-    static constexpr const int64_t MORSEL_SIZE = 1000000;
-    GDSTaskSharedState(int64_t count) : count{count} {
-        nextMorsel.store(0);
-        sum.store(0);
-    };
+    static constexpr const int64_t MORSEL_SIZE = 256;
+    FrontierTaskSharedState(Frontiers& frontiers, graph::Graph* graph, FrontierUpdateFn& vu, table_id_t relTableIDToScan)
+        : frontiers{frontiers}, graph{graph}, vu{vu}, relTableIDToScan{relTableIDToScan} {};
 
 public:
-    int64_t count;
-    std::atomic<int64_t> nextMorsel;
-    std::atomic<int64_t> sum;
+    Frontiers& frontiers;
+    graph::Graph* graph;
+    FrontierUpdateFn& vu;
+    table_id_t relTableIDToScan;
 };
 
-class GDSTask : public common::Task {
+class FrontierTask : public common::Task {
 
 public:
-    GDSTask(uint64_t maxNumThreads, std::shared_ptr<GDSTaskSharedState> sharedState)
+    FrontierTask(uint64_t maxNumThreads, std::shared_ptr<FrontierTaskSharedState> sharedState)
         : common::Task{maxNumThreads}, sharedState{std::move(sharedState)} {
-        std::cout << "GDSTask is constructed. maxNumThreads: " << maxNumThreads << std::endl;
+        std::cout << "FrontierTask is constructed. maxNumThreads: " << maxNumThreads << std::endl;
     }
 
     void run() override;
 
 private:
-    std::shared_ptr<GDSTaskSharedState> sharedState;
+    std::shared_ptr<FrontierTaskSharedState> sharedState;
 };
-
 } // namespace function
 } // namespace kuzu

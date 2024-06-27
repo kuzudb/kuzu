@@ -1,10 +1,7 @@
 #include "function/gds/gds.h"
 
 #include "binder/binder.h"
-#include "function/gds/parallel_utils.h"
 #include "processor/operator/gds_call.h"
-// TODO(Semih): Remove
-#include <iostream>
 
 using namespace kuzu::binder;
 using namespace kuzu::main;
@@ -24,14 +21,6 @@ std::shared_ptr<Expression> GDSAlgorithm::bindNodeOutput(Binder* binder, GraphEn
     binder->addToScope(NODE_COLUMN_NAME, node);
     return node;
 }
-
-// TODO(Semih): Remove
-//void GDSAlgorithm::setTaskSchedulerAndOperatorIDForParallelization(common::TaskScheduler* taskScheduler,
-//    uint32_t operatorID) {
-//    // TODO(Semih): Figure out why this is not set up correctly.
-//    parallelUtils = std::make_shared<ParallelUtils>(taskScheduler, operatorID);
-//    std::cout << "After setTaskSchedulerAndOperatorIDForParallelization. ParallelUtils is " << ((parallelUtils == nullptr) ? "null" : "NOT null") << std::endl;
-//}
 
 } // namespace function
 } // namespace kuzu

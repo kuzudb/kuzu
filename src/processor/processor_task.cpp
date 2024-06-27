@@ -1,7 +1,5 @@
 #include "processor/processor_task.h"
 
-//TODO(Semih): Remove
-#include <iostream>
 #include <thread>
 
 #include "main/settings.h"

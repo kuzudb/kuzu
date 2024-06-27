@@ -18,13 +18,7 @@ struct WeaklyConnectedComponentsFunction {
 };
 
 struct ShortestPathsFunction {
-    static constexpr const char* name = "SHORTEST_PATH";
-
-    static function_set getFunctionSet();
-};
-
-struct ParShortestPathsFunction {
-    static constexpr const char* name = "PAR_SHORTEST_PATH";
+    static constexpr const char* name = "SHORTEST_PATHS";
 
     static function_set getFunctionSet();
 };

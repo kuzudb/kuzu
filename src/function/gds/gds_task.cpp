@@ -1,4 +1,5 @@
 #include "function/gds/gds_task.h"
+#include "graph/graph.h"
 // TODO(Semih): Remove
 #include <iostream>
 #include <thread>
@@ -6,24 +7,30 @@
 namespace kuzu {
 namespace function {
 
-void GDSTask::run() {
-    std::cout << std::this_thread::get_id() << " GDSParallelizer::executeInternal()" << std::endl;
-    uint64_t localSum = 0;
-    while (true) {
-        // Get the next morsel to process
-        auto morsel = sharedState->nextMorsel.fetch_add(GDSTaskSharedState::MORSEL_SIZE);
-        if (morsel >= sharedState->count) {
-            break;
-        } else {
-            for (auto i = morsel; i < morsel + GDSTaskSharedState::MORSEL_SIZE; i++) {
-                localSum += i;
+void FrontierTask::run() {
+    std::cout << std::this_thread::get_id() << " FrontierTask::run() begin" << std::endl;
+    RangeFrontierMorsel frontierMorsel;
+    auto numActiveNodes = 0u;
+    std::unique_ptr<graph::Graph> graph = sharedState->graph->copy();
+    auto curFrontier = sharedState->frontiers.getCurFrontier();
+    auto nextFrontier = sharedState->frontiers.getNextFrontier();
+    while (sharedState->frontiers.getNextFrontierMorsel(frontierMorsel)) {
+        while (frontierMorsel.hasNextVertex()) {
+            nodeID_t nodeID = frontierMorsel.getNextVertex();
+            if (curFrontier->isActive(nodeID)) {
+                auto nbrs = graph->scanFwd(nodeID, sharedState->relTableIDToScan);
+                for (auto nbr : nbrs) {
+                    if (sharedState->vu.edgeUpdate(nbr)) {
+                        nextFrontier->setActive(nbr);
+                        numActiveNodes++;
+                    }
+                }
             }
         }
     }
-    sharedState->sum.fetch_add(localSum);
-    std::cout << std::this_thread::get_id() << " printing: localSum: " << localSum
-              << ": totalSum: " << sharedState->sum.load() << std::endl;
+    sharedState->frontiers.incrementNextActiveNodes(numActiveNodes);
+    std::cout << std::this_thread::get_id()
+              << " FrontierTask::run() end. numLocalActiveNodes: " << numActiveNodes << std::endl;
 }
-
 } // namespace function
 } // namespace kuzu
