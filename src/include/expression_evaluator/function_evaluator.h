@@ -1,8 +1,6 @@
 #pragma once
 
-#include "binder/expression/function_expression.h"
 #include "expression_evaluator.h"
-#include "function/lambda/lambda_function_bind_data.h"
 #include "function/scalar_function.h"
 
 namespace kuzu {

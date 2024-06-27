@@ -7,7 +7,6 @@
 #pragma GCC diagnostic pop
 
 #include "parser/ddl/create_table_info.h"
-#include "parser/expression/parsed_function_expression.h"
 #include "statement.h"
 
 namespace kuzu {

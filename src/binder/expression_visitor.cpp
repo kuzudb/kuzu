@@ -101,9 +101,8 @@ bool ExpressionVisitor::isConstant(const Expression& expression) {
     // TODO(Xiyang): this is a bypass to allow nextval to not be folded during binding
     if (expression.expressionType == ExpressionType::FUNCTION) {
         auto& funcExpr = expression.constCast<FunctionExpression>();
-        if (funcExpr.getFunctionName() == function::NextValFunction::name) {
-            return false;
-        } else if (function::BuiltInFunctionsUtils::isLambdaFunction(funcExpr.getFunctionName())) {
+        if (funcExpr.getFunctionName() == function::NextValFunction::name ||
+            function::BuiltInFunctionsUtils::isLambdaFunction(funcExpr.getFunctionName())) {
             return false;
         }
     }

@@ -1,5 +1,4 @@
 #include "function/lambda/lambda_function_bind_data.h"
-#include "function/list/functions/list_to_string_function.h"
 #include "function/list/vector_list_functions.h"
 
 namespace kuzu {
