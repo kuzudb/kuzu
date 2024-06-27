@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include "common/types/internal_id_t.h"
 
 namespace kuzu {
