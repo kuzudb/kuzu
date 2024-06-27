@@ -463,13 +463,13 @@ void IntegerBitpacking<T>::setValuesFromUncompressed(const uint8_t* srcBuffer, o
     // non-zero offset However we don't care about the value stored for null values
     // Currently they will be mangled by storage+recovery (underflow in the subtraction
     // below)
-    //    KU_ASSERT(numValues == static_cast<offset_t>(std::ranges::count_if(
-    //                               std::ranges::iota_view{posInSrc, posInSrc + numValues},
-    //                               [srcBuffer, &metadata, nullMask](offset_t i) {
-    //                                   auto value = reinterpret_cast<const T*>(srcBuffer)[i];
-    //                                   return (nullMask && nullMask->isNull(i)) ||
-    //                                          canUpdateInPlace(std::span(&value, 1), metadata);
-    //                               })));
+    KU_ASSERT(numValues == static_cast<offset_t>(std::ranges::count_if(
+                               std::ranges::iota_view{posInSrc, posInSrc + numValues},
+                               [srcBuffer, &metadata, nullMask](offset_t i) {
+                                   auto value = reinterpret_cast<const T*>(srcBuffer)[i];
+                                   return (nullMask && nullMask->isNull(i)) ||
+                                          canUpdateInPlace(std::span(&value, 1), metadata);
+                               })));
 
     // Data can be considered to be stored in aligned chunks of 32 values
     // with a size of 32 * bitWidth bits,
@@ -540,7 +540,7 @@ template<IntegerBitpackingType T>
 void IntegerBitpacking<T>::copyValuesToTempChunkWithOffset(const U* srcBuffer, U* tmpBuffer,
     BitpackInfo<T> info, size_t numValuesToCopy) const {
     for (auto j = 0u; j < numValuesToCopy; j++) {
-        tmpBuffer[j] = static_cast<U>((T)(srcBuffer[j]) - info.offset);
+        tmpBuffer[j] = static_cast<U>(std::bit_cast<T>(srcBuffer[j]) - info.offset);
     }
 }
 

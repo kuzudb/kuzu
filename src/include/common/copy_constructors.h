@@ -1,5 +1,5 @@
 #pragma once
-
+#include <memory>
 #include <unordered_map>
 #include <vector>
 // This file defines many macros for controlling copy constructors and move constructors on classes.

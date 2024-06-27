@@ -16,6 +16,7 @@
 #include "expression_evaluator/path_evaluator.h"
 #include "expression_evaluator/pattern_evaluator.h"
 #include "expression_evaluator/reference_evaluator.h"
+#include "function/built_in_function_utils.h"
 #include "planner/operator/schema.h"
 
 using namespace kuzu::binder;
@@ -141,7 +142,7 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getFunctionEvaluator(
     std::shared_ptr<Expression> expression, const Schema* schema) {
     auto childrenEvaluators = getEvaluators(expression->getChildren(), schema);
     auto& funcExpr = expression->constCast<FunctionExpression>();
-    if (funcExpr.getFunctionName() == "LIST_TRANSFORM") {
+    if (function::BuiltInFunctionsUtils::isLambdaFunction(funcExpr.getFunctionName())) {
         auto& lambdaBindData = funcExpr.getBindData()->cast<function::LambdaFunctionBindData>();
         lambdaBindData.evaluator =
             ExpressionMapper::getEvaluator(lambdaBindData.lambdaExpr, schema);
