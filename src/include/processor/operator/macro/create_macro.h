@@ -26,8 +26,7 @@ struct CreateMacroInfo {
 struct CreateMacroPrintInfo final : OPPrintInfo {
     std::string macroName;
 
-    CreateMacroPrintInfo(std::string macroName)
-        : macroName{std::move(macroName)} {}
+    CreateMacroPrintInfo(std::string macroName) : macroName{std::move(macroName)} {}
     CreateMacroPrintInfo(const CreateMacroPrintInfo& other)
         : OPPrintInfo{other}, macroName{other.macroName} {}
 
