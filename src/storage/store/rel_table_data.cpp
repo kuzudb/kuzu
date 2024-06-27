@@ -17,7 +17,7 @@ namespace storage {
 RelDataReadState::RelDataReadState(const std::vector<column_id_t>& columnIDs)
     : TableDataScanState{columnIDs}, nodeGroupIdx{INVALID_NODE_GROUP_IDX}, numNodes{0},
       currentNodeOffset{0}, currentCSROffset{0}, posInLastCSR{0}, batchSize{0}, 
-      currNodeIdx{0}, endNodeIdx{0}, totalNodeIdxs{0},
+      currNodeIdx{0}, batchEndNodeIdx{0}, endNodeIdx{0}, totalNodeIdxs{0},
       readFromPersistentStorage{false}, readFromLocalStorage{false}, localNodeGroup{nullptr} {}
 
 bool RelDataReadState::hasMoreToReadFromLocalStorage() const {
@@ -64,23 +64,28 @@ std::vector<std::pair<offset_t, offset_t>>
 RelDataReadState::getStartAndEndOffset(ValueVector& inNodeIDVector) {
     std::vector<std::pair<offset_t, offset_t>> result;
     auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    auto& selVector = inNodeIDVector.state->getSelVector();
-    auto startNodeIdx = currNodeIdx;
+    auto& selVector = inNodeIDVector.state->getSelVectorUnsafe();
+    auto vectorFilterBuf = selVector.getMultableBuffer().data();
+    batchEndNodeIdx = currNodeIdx;
     batchSize = 0;
-    while (batchSize < DEFAULT_VECTOR_CAPACITY && startNodeIdx < endNodeIdx) {
-        auto nodeOffset = inNodeIDVector.readNodeOffset(selVector[startNodeIdx]);
+    while (batchSize < DEFAULT_VECTOR_CAPACITY && batchEndNodeIdx < endNodeIdx) {
+        auto& nodePos = selVector[batchEndNodeIdx];
+        auto nodeOffset = inNodeIDVector.readNodeOffset(nodePos);
         auto startOffset = csrHeaderChunks.getStartCSROffset(nodeOffset - startNodeOffset) + posInLastCSR;
         auto numToRead = csrHeaderChunks.getCSRLength(nodeOffset - startNodeOffset) - posInLastCSR;
         auto spaceToRead = DEFAULT_VECTOR_CAPACITY - batchSize;
         if (numToRead <= spaceToRead) {
             batchSize += numToRead;
             posInLastCSR = 0;
-            startNodeIdx++;
+            batchEndNodeIdx++;
         } else {
-            batchSize += spaceToRead;
-            posInLastCSR += spaceToRead;
+            numToRead = numToRead;
+            batchSize += numToRead;
+            posInLastCSR += numToRead;
         }
         result.emplace_back(startOffset, startOffset + numToRead);
+        std::fill_n(vectorFilterBuf, numToRead, nodePos);
+        vectorFilterBuf += numToRead;
     }
     return result;
 }
