@@ -90,7 +90,7 @@ private:
 };
 
 class PathLengthsFrontiers : public Frontiers {
-    friend struct ShortestPathsFrontierUpdate;
+    friend struct ShortestPathsFrontierUpdateFn;
     static constexpr uint64_t FRONTIER_MORSEL_SIZE = 64;
 
 public:
@@ -218,9 +218,9 @@ private:
     std::vector<ValueVector*> vectors;
 };
 
-struct ShortestPathsFrontierUpdate : public FrontierUpdateFn {
+struct ShortestPathsFrontierUpdateFn : public FrontierUpdateFn {
     PathLengthsFrontiers* pathLengthsFrontiers;
-    ShortestPathsFrontierUpdate(PathLengthsFrontiers* pathLengthsFrontiers)
+    ShortestPathsFrontierUpdateFn(PathLengthsFrontiers* pathLengthsFrontiers)
         : pathLengthsFrontiers{pathLengthsFrontiers} {};
 
     bool edgeUpdate(nodeID_t nbrID) override {
@@ -310,7 +310,7 @@ public:
         auto sourceState = ShortestPathsSourceState(sharedState->graph.get(), sourceNodeID);
         auto pathLengthFrontiers =
             std::make_shared<PathLengthsFrontiers>(sourceState.pathLengths.get());
-        ShortestPathsFrontierUpdate spFrontierUpdate(pathLengthFrontiers.get());
+        ShortestPathsFrontierUpdateFn spFrontierUpdate(pathLengthFrontiers.get());
         GDSUtils::runFrontiersUntilConvergence(executionContext, *pathLengthFrontiers,
             sharedState->graph.get(), spFrontierUpdate,
             bindData->ptrCast<ShortestPathsBindData>()->upperBound);
