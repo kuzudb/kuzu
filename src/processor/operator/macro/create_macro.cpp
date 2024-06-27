@@ -7,6 +7,10 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
+std::string CreateMacroPrintInfo::toString() const {
+    return macroName;
+}
+
 bool CreateMacro::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
     if (hasExecuted) {
         return false;
