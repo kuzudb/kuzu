@@ -1,3 +1,4 @@
+#include <atomic>
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "function/gds/gds_frontier.h"
