@@ -35,9 +35,9 @@ protected:
     }
 
 private:
-    table_id_t tableID;
-    offset_t beginOffset;
-    offset_t endOffsetExclusive;
+    table_id_t tableID = UINT64_MAX;
+    offset_t beginOffset = UINT64_MAX;
+    offset_t endOffsetExclusive = UINT64_MAX;
     uint64_t nextOffset = UINT64_MAX;
 };
 
