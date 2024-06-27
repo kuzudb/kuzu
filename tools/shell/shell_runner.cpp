@@ -45,9 +45,9 @@ int main(int argc, char* argv[]) {
     if (readOnlyMode) {
         systemConfig.readOnly = true;
     }
-    std::unique_ptr<Database> database = std::make_unique<Database>(databasePath, systemConfig);
+    std::shared_ptr<Database> database = std::make_shared<Database>(databasePath, systemConfig);
+    std::shared_ptr<Connection> conn = std::make_shared<Connection>(database.get());
     if (version) {
-        std::unique_ptr<Connection> conn = std::make_unique<Connection>(database.get());
         auto queryResult = conn->query("CALL db_version() RETURN version");
         if (queryResult->isSuccess()) {
             std::string dbVersion = queryResult->getNext()->getValue(0)->toString();
@@ -62,9 +62,8 @@ int main(int argc, char* argv[]) {
         pathToHistory += '/';
     }
     pathToHistory += "history.txt";
-    auto localFileSystem = std::make_unique<LocalFileSystem>();
     try {
-        localFileSystem->openFile(pathToHistory, O_CREAT);
+        std::make_unique<LocalFileSystem>()->openFile(pathToHistory, O_CREAT);
     } catch (Exception& e) {
         std::cerr << "Invalid path to directory for history file" << '\n';
         return 1;
@@ -73,7 +72,7 @@ int main(int argc, char* argv[]) {
               << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';
     std::cout << "Enter \":help\" for usage hints." << '\n' << std::flush;
     try {
-        auto shell = EmbeddedShell(databasePath, systemConfig, pathToHistory.c_str());
+        auto shell = EmbeddedShell(database, conn, pathToHistory.c_str());
         shell.run();
     } catch (std::exception& e) {
         std::cerr << e.what() << '\n';
