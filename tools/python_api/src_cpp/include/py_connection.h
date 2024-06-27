@@ -41,6 +41,7 @@ public:
 
     static bool isPandasDataframe(const py::object& object);
     static bool isPolarsDataframe(const py::object& object);
+    static bool isPyArrowTable(const py::object& object);
 
     void createScalarFunction(const std::string& name, const py::function& udf,
         const py::list& params, const std::string& retval, bool defaultNull, bool catchExceptions);

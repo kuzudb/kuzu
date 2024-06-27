@@ -62,6 +62,24 @@ static std::unique_ptr<function::ScanReplacementData> tryReplacePolars(py::dict&
     }
 }
 
+static std::unique_ptr<function::ScanReplacementData> tryReplacePyArrow(py::dict& dict,
+    py::str& objectName) {
+    if (!dict.contains(objectName)) {
+        return nullptr;
+    }
+    auto entry = dict[objectName];
+    if (PyConnection::isPyArrowTable(entry)) {
+        auto scanReplacementData = std::make_unique<function::ScanReplacementData>();
+        scanReplacementData->func = PyArrowTableScanFunction::getFunction();
+        auto bindInput = function::TableFuncBindInput();
+        bindInput.inputs.push_back(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())));
+        scanReplacementData->bindInput = std::move(bindInput);
+        return scanReplacementData;
+    } else {
+        return nullptr;
+    }
+}
+
 static std::unique_ptr<function::ScanReplacementData> replacePythonObject(
     const std::string& objectName) {
     py::gil_scoped_acquire acquire;
@@ -79,6 +97,9 @@ static std::unique_ptr<function::ScanReplacementData> replacePythonObject(
             if (!result) {
                 result = tryReplacePolars(localDict, pyTableName);
             }
+            if (!result) {
+                result = tryReplacePyArrow(localDict, pyTableName);
+            }
             if (result) {
                 return result;
             }
@@ -90,7 +111,10 @@ static std::unique_ptr<function::ScanReplacementData> replacePythonObject(
             }
             auto result = tryReplacePD(globalDict, pyTableName);
             if (!result) {
-                result = tryReplacePolars(localDict, pyTableName);
+                result = tryReplacePolars(globalDict, pyTableName);
+            }
+            if (!result) {
+                result = tryReplacePyArrow(globalDict, pyTableName);
             }
             if (result) {
                 return result;
@@ -100,7 +124,7 @@ static std::unique_ptr<function::ScanReplacementData> replacePythonObject(
     }
     if (nameMatchFound) {
         throw BinderException(
-            stringFormat("Variable {} found but no matches were DataFrames", objectName));
+            stringFormat("Variable {} found but no matches were scannable", objectName));
     }
     return nullptr;
 }
@@ -244,6 +268,13 @@ bool PyConnection::isPolarsDataframe(const py::object& object) {
         return false;
     }
     return py::isinstance(object, importCache->polars.DataFrame());
+}
+
+bool PyConnection::isPyArrowTable(const py::object& object) {
+    if (!doesPyModuleExist("pyarrow")) {
+        return false;
+    }
+    return py::isinstance(object, importCache->pyarrow.lib.Table());
 }
 
 static std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(
