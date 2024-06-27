@@ -37,7 +37,7 @@ std::unique_ptr<ParsedExpression> ParsedCaseExpression::copy() const {
     for (auto& caseAlternative : caseAlternatives) {
         caseAlternativesCopy.push_back(caseAlternative);
     }
-    return std::make_unique<ParsedCaseExpression>(alias, rawName, copyChildren(),
+    return std::make_unique<ParsedCaseExpression>(alias, rawName, copyVector(children),
         caseExpression ? caseExpression->copy() : nullptr, std::move(caseAlternativesCopy),
         elseExpression ? elseExpression->copy() : nullptr);
 }

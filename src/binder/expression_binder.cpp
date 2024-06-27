@@ -42,6 +42,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
         expression = bindSubqueryExpression(parsedExpression);
     } else if (ExpressionType::CASE_ELSE == expressionType) {
         expression = bindCaseExpression(parsedExpression);
+    } else if (ExpressionType::LAMBDA == expressionType) {
+        expression = bindLambdaExpression(parsedExpression);
     } else {
         throw NotImplementedException(
             "bindExpression(" + ExpressionTypeUtil::toString(expressionType) + ").");

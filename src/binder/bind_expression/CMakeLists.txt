@@ -10,7 +10,8 @@ add_library(
         bind_parameter_expression.cpp
         bind_property_expression.cpp
         bind_subquery_expression.cpp
-        bind_variable_expression.cpp)
+        bind_variable_expression.cpp
+        bind_lambda_expression.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_binder_bind_expression>

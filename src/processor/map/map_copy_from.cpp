@@ -52,8 +52,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
 static void getColumnEvaluators(const expression_vector& columnExprs, Schema* schema,
     std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>>& columnEvaluators,
     logical_type_vec_t& columnTypes) {
+    auto exprMapper = ExpressionMapper(schema);
     for (auto& columnExpr : columnExprs) {
-        columnEvaluators.push_back(ExpressionMapper::getEvaluator(columnExpr, schema));
+        columnEvaluators.push_back(exprMapper.getEvaluator(columnExpr));
         columnTypes.push_back(columnExpr->getDataType().copy());
     }
 }

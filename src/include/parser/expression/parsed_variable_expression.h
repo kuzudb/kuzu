@@ -29,7 +29,7 @@ public:
         common::Deserializer& deserializer);
 
     inline std::unique_ptr<ParsedExpression> copy() const override {
-        return std::make_unique<ParsedVariableExpression>(alias, rawName, copyChildren(),
+        return std::make_unique<ParsedVariableExpression>(alias, rawName, copyVector(children),
             variableName);
     }
 

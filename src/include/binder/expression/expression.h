@@ -92,6 +92,10 @@ public:
     }
 
     template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<Expression&, TARGET&>(*this);
+    }
+    template<class TARGET>
     const TARGET& constCast() const {
         return common::ku_dynamic_cast<const Expression&, const TARGET&>(*this);
     }

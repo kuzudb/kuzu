@@ -9,7 +9,7 @@ namespace evaluator {
 
 struct ExpressionEvaluatorUtils {
     static common::Value evaluateConstantExpression(
-        const std::shared_ptr<binder::Expression>& expression, main::ClientContext* clientContext);
+        std::shared_ptr<binder::Expression> expression, main::ClientContext* clientContext);
 };
 
 } // namespace evaluator

@@ -3,7 +3,9 @@ add_library(kuzu_expression_evaluator
         case_evaluator.cpp
         expression_evaluator.cpp
         expression_evaluator_utils.cpp
+        expression_evaluator_visitor.cpp
         function_evaluator.cpp
+        lambda_evaluator.cpp
         literal_evaluator.cpp
         pattern_evaluator.cpp
         path_evaluator.cpp

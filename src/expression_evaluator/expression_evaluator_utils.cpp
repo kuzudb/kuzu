@@ -10,8 +10,9 @@ namespace kuzu {
 namespace evaluator {
 
 Value ExpressionEvaluatorUtils::evaluateConstantExpression(
-    const std::shared_ptr<binder::Expression>& expression, main::ClientContext* clientContext) {
-    auto evaluator = ExpressionMapper::getConstantEvaluator(expression);
+    std::shared_ptr<binder::Expression> expression, main::ClientContext* clientContext) {
+    auto exprMapper = ExpressionMapper();
+    auto evaluator = exprMapper.getConstantEvaluator(expression);
     auto emptyResultSet = std::make_unique<ResultSet>(0);
     evaluator->init(*emptyResultSet, clientContext);
     evaluator->evaluate();

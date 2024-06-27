@@ -61,7 +61,7 @@ public:
     inline std::string toString() const { return rawName; }
 
     virtual inline std::unique_ptr<ParsedExpression> copy() const {
-        return std::make_unique<ParsedExpression>(type, alias, rawName, copyChildren());
+        return std::make_unique<ParsedExpression>(type, alias, rawName, copyVector(children));
     }
 
     void serialize(common::Serializer& serializer) const;
@@ -80,9 +80,6 @@ public:
     const TARGET* constPtrCast() const {
         return common::ku_dynamic_cast<const ParsedExpression*, const TARGET*>(this);
     }
-
-protected:
-    parsed_expr_vector copyChildren() const;
 
 private:
     virtual inline void serializeInternal(common::Serializer&) const {}

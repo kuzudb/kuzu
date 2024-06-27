@@ -24,19 +24,19 @@ public:
         : ParsedExpression{common::ExpressionType::PROPERTY},
           propertyName{std::move(propertyName)} {}
 
-    inline std::string getPropertyName() const { return propertyName; }
-    inline bool isStar() const { return propertyName == common::InternalKeyword::STAR; }
+    std::string getPropertyName() const { return propertyName; }
+    bool isStar() const { return propertyName == common::InternalKeyword::STAR; }
 
     static std::unique_ptr<ParsedPropertyExpression> deserialize(
         common::Deserializer& deserializer);
 
-    inline std::unique_ptr<ParsedExpression> copy() const override {
-        return std::make_unique<ParsedPropertyExpression>(alias, rawName, copyChildren(),
+    std::unique_ptr<ParsedExpression> copy() const override {
+        return std::make_unique<ParsedPropertyExpression>(alias, rawName, copyVector(children),
             propertyName);
     }
 
 private:
-    inline void serializeInternal(common::Serializer& serializer) const override {
+    void serializeInternal(common::Serializer& serializer) const override {
         serializer.serializeValue(propertyName);
     }
 

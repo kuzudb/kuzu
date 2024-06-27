@@ -28,15 +28,6 @@ ParsedExpression::ParsedExpression(ExpressionType type, std::unique_ptr<ParsedEx
     children.push_back(std::move(right));
 }
 
-parsed_expr_vector ParsedExpression::copyChildren() const {
-    parsed_expr_vector childrenCopy;
-    childrenCopy.reserve(children.size());
-    for (auto& child : children) {
-        childrenCopy.push_back(child->copy());
-    }
-    return childrenCopy;
-}
-
 void ParsedExpression::serialize(Serializer& serializer) const {
     serializer.serializeValue(type);
     serializer.serializeValue(alias);

@@ -60,6 +60,11 @@ public:
 
     std::string toStringInternal() const final;
 
+    std::unique_ptr<Expression> copy() const override {
+        return std::make_unique<ScalarFunctionExpression>(functionName, expressionType,
+            bindData->copy(), copyVector(children), execFunc, selectFunc, compileFunc, uniqueName);
+    }
+
 public:
     function::scalar_func_exec_t execFunc;
     function::scalar_func_select_t selectFunc;

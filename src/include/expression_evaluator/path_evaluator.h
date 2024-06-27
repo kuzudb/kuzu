@@ -11,10 +11,12 @@ class ClientContext;
 namespace evaluator {
 
 class PathExpressionEvaluator final : public ExpressionEvaluator {
+    static constexpr EvaluatorType type_ = EvaluatorType::PATH;
+
 public:
     PathExpressionEvaluator(std::shared_ptr<binder::Expression> expression,
-        std::vector<std::unique_ptr<ExpressionEvaluator>> children)
-        : ExpressionEvaluator{std::move(children)}, expression{std::move(expression)} {}
+        evaluator_vector_t children)
+        : ExpressionEvaluator{type_, std::move(expression), std::move(children)} {}
 
     void init(const processor::ResultSet& resultSet, main::ClientContext* clientContext) override;
 
@@ -22,13 +24,8 @@ public:
 
     bool select(common::SelectionVector& /*selVector*/) override { KU_UNREACHABLE; }
 
-    inline std::unique_ptr<ExpressionEvaluator> clone() override {
-        std::vector<std::unique_ptr<ExpressionEvaluator>> clonedChildren;
-        clonedChildren.reserve(children.size());
-        for (auto& child : children) {
-            clonedChildren.push_back(child->clone());
-        }
-        return make_unique<PathExpressionEvaluator>(expression, std::move(clonedChildren));
+    std::unique_ptr<ExpressionEvaluator> clone() override {
+        return make_unique<PathExpressionEvaluator>(expression, cloneVector(children));
     }
 
 private:
@@ -60,7 +57,6 @@ private:
         const std::vector<common::ValueVector*>& resultFieldVectors);
 
 private:
-    std::shared_ptr<binder::Expression> expression;
     std::vector<std::unique_ptr<InputVectors>> inputVectorsPerChild;
     common::ValueVector* resultNodesVector; // LIST[NODE]
     common::ValueVector* resultRelsVector;  // LIST[REL]

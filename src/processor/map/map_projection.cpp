@@ -14,8 +14,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapProjection(LogicalOperator* log
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> expressionEvaluators;
     std::vector<DataPos> expressionsOutputPos;
+    auto exprMapper = ExpressionMapper(inSchema);
     for (auto& expression : logicalProjection.getExpressionsToProject()) {
-        expressionEvaluators.push_back(ExpressionMapper::getEvaluator(expression, inSchema));
+        expressionEvaluators.push_back(exprMapper.getEvaluator(expression));
         expressionsOutputPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
     auto printInfo = std::make_unique<OPPrintInfo>(logicalProjection.getExpressionsForPrinting());

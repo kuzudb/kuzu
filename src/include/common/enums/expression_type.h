@@ -7,7 +7,6 @@ namespace kuzu {
 namespace common {
 
 enum class ExpressionType : uint8_t {
-
     // Boolean Connection Expressions
     OR = 0,
     XOR = 1,
@@ -47,6 +46,10 @@ enum class ExpressionType : uint8_t {
     CASE_ELSE = 200,
 
     GRAPH = 210,
+
+    LAMBDA = 220,
+
+    // NOTE: this enum has type uint8_t so don't assign over 255.
 };
 
 struct ExpressionTypeUtil {
