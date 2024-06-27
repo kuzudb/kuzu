@@ -536,7 +536,7 @@ oC_FunctionInvocation
         | oC_FunctionName SP? '(' SP? ( DISTINCT SP? )? ( kU_FunctionParameter SP? ( ',' SP? kU_FunctionParameter SP? )* )? ')' ;
 
 kU_Lambda
-    : oC_Expression SP? '-' '>' SP? oC_Expression ;
+    : oC_Expression SP? '-' '>' SP? oC_Expression SP? ;
 
 oC_FunctionName
     : oC_SymbolicName ;

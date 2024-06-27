@@ -15,7 +15,7 @@ public:
 
     void evaluate() override {}
 
-    bool select(common::SelectionVector& selVector) override {}
+    bool select(common::SelectionVector& /*selVector*/) override { return true; }
 
     void setResultVector(std::shared_ptr<common::ValueVector> vector) { resultVector = vector; }
 
@@ -26,7 +26,7 @@ public:
     }
 
 protected:
-    void resolveResultVector(const processor::ResultSet& resultSet,
+    void resolveResultVector(const processor::ResultSet& /*resultSet*/,
         storage::MemoryManager* /*memoryManager*/) override {}
 };
 
