@@ -2,6 +2,7 @@
 
 #include "binder/expression/case_expression.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression/function_expression.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/node_expression.h"
 #include "binder/expression/parameter_expression.h"
@@ -17,6 +18,7 @@
 #include "expression_evaluator/pattern_evaluator.h"
 #include "expression_evaluator/reference_evaluator.h"
 #include "function/built_in_function_utils.h"
+#include "function/lambda/lambda_function_bind_data.h"
 #include "planner/operator/schema.h"
 
 using namespace kuzu::binder;
