@@ -170,7 +170,7 @@ void ListChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     output.setValue<list_entry_t>(posInOutputVector, list_entry_t{currentListDataSize, listSize});
 }
 
-void ListChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets) {
+void ListChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets, RelMultiplicity) {
     KU_ASSERT(chunk->getDataType().getPhysicalType() == dataType.getPhysicalType() &&
               dstOffsets->getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID &&
               chunk->getNumValues() == dstOffsets->getNumValues());
