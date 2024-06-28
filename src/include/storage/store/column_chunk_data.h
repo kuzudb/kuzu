@@ -4,6 +4,7 @@
 
 #include "common/constants.h"
 #include "common/data_chunk/sel_vector.h"
+#include "common/enums/rel_multiplicity.h"
 #include "common/null_mask.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
@@ -94,7 +95,8 @@ public:
     // `offsetInVector`, we should flatten the vector to pos at `offsetInVector`.
     virtual void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk);
-    virtual void write(ColumnChunkData* chunk, ColumnChunkData* offsetsInChunk);
+    virtual void write(ColumnChunkData* chunk, ColumnChunkData* offsetsInChunk,
+        common::RelMultiplicity multiplicity);
     virtual void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
     // TODO(Guodong): Used in `applyDeletionsToChunk`. Should unify with `write`.
@@ -186,7 +188,8 @@ public:
 
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
-    void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets) final;
+    void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
+        common::RelMultiplicity multiplicity) final;
     void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 };
