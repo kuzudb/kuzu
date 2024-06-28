@@ -53,6 +53,7 @@ public:
 
     void logCatalogRecord();
     void logTableStatisticsRecord(common::TableType tableType);
+    void logVectorIndexHeaderRecord();
     void logCommit(uint64_t transactionID);
 
     // Removes the contents of WAL file.

@@ -6,7 +6,6 @@ add_library(kuzu_planner_persistent
         logical_delete.cpp
         logical_merge.cpp
         logical_set.cpp
-        logical_create_vector_index.cpp
 )
 
 set(ALL_OBJECT_FILES

@@ -129,6 +129,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_compile_options(-Wno-restrict) # no restrict until https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105651 is fixed
 endif()
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+
 if(${ENABLE_THREAD_SANITIZER})
     if(MSVC)
         message(FATAL_ERROR "Thread sanitizer is not supported on MSVC")
@@ -167,7 +169,7 @@ option(BUILD_JAVA "Build Java API." FALSE)
 option(BUILD_NODEJS "Build NodeJS API." FALSE)
 option(BUILD_PYTHON "Build Python API." FALSE)
 option(BUILD_SHELL "Build Interactive Shell" TRUE)
-option(BUILD_SINGLE_FILE_HEADER "Build single file header. Requires Python >= 3.9." TRUE)
+option(BUILD_SINGLE_FILE_HEADER "Build single file header. Requires Python >= 3.9." FALSE)
 option(BUILD_TESTS "Build C++ tests." FALSE)
 option(BUILD_EXTENSION_TESTS "Build C++ extension tests." FALSE)
 option(BUILD_KUZU "Build Kuzu." TRUE)

@@ -1,35 +1,47 @@
 #pragma once
 
-#include "common/copier_config/hnsw_reader_config.h"
+#include "common/vector_index/vector_index_config.h"
+#include "processor/operator/partitioner.h"
 #include "processor/operator/sink.h"
+#include "storage/index/vector_index_builder.h"
+#include "storage/index/vector_index_header.h"
 #include "storage/store/chunked_node_group_collection.h"
+#include "storage/store/node_table.h"
 
 using namespace kuzu::common;
+using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
 
 struct BulkVectorIndexingSharedState {
-    // TODO
+    offset_t maxOffsetNodeTable;
+    VectorIndexHeader* header;
+    std::shared_ptr<PartitionerSharedState> partitionerSharedState;
+
+    std::unique_ptr<VectorIndexBuilder> builder;
+    std::unique_ptr<VectorIndexGraph> graph;
+    std::unique_ptr<VectorTempStorage> tempStorage;
+
+    explicit BulkVectorIndexingSharedState(offset_t maxOffsetNodeTable,
+        VectorIndexHeader* header, std::shared_ptr<PartitionerSharedState> partitionerSharedState)
+        : maxOffsetNodeTable{maxOffsetNodeTable}, header{header},
+          partitionerSharedState{partitionerSharedState} {}
 };
 
 struct BulkVectorIndexingLocalState {
     DataPos offsetPos;
     DataPos embeddingPos;
-    table_id_t tableID;
-    property_id_t propertyID;
-    HnswReaderConfig hnswReaderConfig;
+    std::unique_ptr<DistanceComputer> dc;
+    std::unique_ptr<VisitedTable> visited;
     ValueVector* offsetVector = nullptr;
     ValueVector* embeddingVector = nullptr;
 
-    BulkVectorIndexingLocalState(DataPos offsetPos, DataPos embeddingPos, table_id_t tableID,
-        property_id_t propertyID, HnswReaderConfig hnswReaderConfig)
-        : offsetPos{offsetPos}, embeddingPos{embeddingPos}, tableID{tableID},
-          propertyID{propertyID}, hnswReaderConfig{hnswReaderConfig} {}
+    explicit BulkVectorIndexingLocalState(DataPos offsetPos, DataPos embeddingPos)
+        : offsetPos{offsetPos}, embeddingPos{embeddingPos} {}
 
     inline std::unique_ptr<BulkVectorIndexingLocalState> copy() {
-        return std::make_unique<BulkVectorIndexingLocalState>(offsetPos, embeddingPos, tableID,
-            propertyID, hnswReaderConfig);
+        return std::make_unique<BulkVectorIndexingLocalState>(offsetPos, embeddingPos);
     }
 };
 
@@ -47,7 +59,12 @@ public:
 
     void executeInternal(ExecutionContext* context) final;
 
+    void finalize(ExecutionContext* context) override;
+
     std::unique_ptr<PhysicalOperator> clone() final;
+
+private:
+    void printGraph();
 
 private:
     std::unique_ptr<BulkVectorIndexingLocalState> localState;

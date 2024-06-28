@@ -10,7 +10,10 @@ namespace processor {
 ProcessorTask::ProcessorTask(Sink* sink, ExecutionContext* executionContext)
     : Task{executionContext->clientContext->getCurrentSetting(main::ThreadsSetting::name)
                .getValue<uint64_t>()},
-      sharedStateInitialized{false}, sink{sink}, executionContext{executionContext} {}
+      sharedStateInitialized{false}, sink{sink}, executionContext{executionContext} {
+    // Print the value of maxThreads
+    printf("maxThreads: %llu\n", maxNumThreads);
+}
 
 void ProcessorTask::run() {
     // We need the lock when cloning because multiple threads can be accessing to clone,

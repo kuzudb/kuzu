@@ -30,6 +30,7 @@ add_library(kuzu_planner_operator
         logical_projection.cpp
         logical_union.cpp
         logical_unwind.cpp
+        logical_update_vector_index.cpp
         schema.cpp)
 
 set(ALL_OBJECT_FILES

@@ -14,15 +14,27 @@ namespace common {
     // LCOV_EXCL_STOP
 }
 
+[[noreturn]] inline void kuAssertFailureInternal(
+    const char *condition_name, const char *file, int linenr, const char *comment) {
+    throw InternalException(stringFormat(
+        "Assertion failed in file \"{}\" on line {}: {} with comment: {}", file, linenr, condition_name,
+        comment));
+}
+
 #if defined(KUZU_RUNTIME_CHECKS) || !defined(NDEBUG)
 #define RUNTIME_CHECK(code) code
 #define KU_ASSERT(condition)                                                                       \
     static_cast<bool>(condition) ?                                                                 \
         void(0) :                                                                                  \
         kuzu::common::kuAssertFailureInternal(#condition, __FILE__, __LINE__)
+#define KU_ASSERT_MSG(condition, comment)                                                            \
+    static_cast<bool>(condition) ?                                                                    \
+        void(0) :                                                                                     \
+        kuzu::common::kuAssertFailureInternal(#condition, __FILE__, __LINE__, static_cast<const char*>(comment))
 #else
 #define KU_ASSERT(condition) void(0)
 #define RUNTIME_CHECK(code) void(0)
+#define KU_ASSERT_MSG(condition, comment) void(0)
 #endif
 
 #define KU_UNREACHABLE                                                                             \

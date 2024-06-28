@@ -31,6 +31,9 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer) {
     case WALRecordType::TABLE_STATISTICS_RECORD: {
         walRecord = TableStatisticsRecord::deserialize(deserializer);
     } break;
+    case WALRecordType::VECTOR_INDEX_HEADER_RECORD: {
+        walRecord = VectorIndexHeaderRecord::deserialize(deserializer);
+    } break;
     case WALRecordType::COPY_TABLE_RECORD: {
         walRecord = CopyTableRecord::deserialize(deserializer);
     } break;
@@ -130,6 +133,14 @@ std::unique_ptr<TableStatisticsRecord> TableStatisticsRecord::deserialize(
     auto retVal = std::make_unique<TableStatisticsRecord>();
     deserializer.deserializeValue(retVal->tableType);
     return retVal;
+}
+
+void VectorIndexHeaderRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+}
+
+std::unique_ptr<VectorIndexHeaderRecord> VectorIndexHeaderRecord::deserialize(Deserializer&) {
+    return std::make_unique<VectorIndexHeaderRecord>();
 }
 
 void DropCatalogEntryRecord::serialize(Serializer& serializer) const {

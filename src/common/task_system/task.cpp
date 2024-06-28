@@ -9,6 +9,7 @@ bool Task::registerThread() {
     lock_t lck{mtx};
     if (!hasExceptionNoLock() && canRegisterNoLock()) {
         numThreadsRegistered++;
+        printf("Task::registerThread() numThreadsRegistered: %llu\n", numThreadsRegistered);
         return true;
     }
     return false;
@@ -17,6 +18,7 @@ bool Task::registerThread() {
 void Task::deRegisterThreadAndFinalizeTask() {
     lock_t lck{mtx};
     ++numThreadsFinished;
+    printf("Task::registerThread() numThreadsRegistered: %llu\n", numThreadsRegistered);
     if (!hasExceptionNoLock() && isCompletedNoLock()) {
         try {
             finalizeIfNecessary();

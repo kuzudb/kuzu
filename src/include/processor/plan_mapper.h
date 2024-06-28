@@ -61,6 +61,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapCreateTable(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCreateType(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCreateVectorIndex(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapUpdateVectorIndex(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCrossProduct(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDelete(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDeleteNode(planner::LogicalOperator* logicalOperator);

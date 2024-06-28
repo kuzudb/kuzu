@@ -9,6 +9,7 @@
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/storage_structure/disk_array_collection.h"
 #include "storage/store/node_table.h"
+#include "storage/index/vector_index_header.h"
 #include "storage/wal/wal_record.h"
 #include "storage/wal_replayer.h"
 
@@ -36,6 +37,7 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
         *metadataDAC, memoryManager.getBufferManager(), wal.get(), vfs, context);
     relsStatistics = std::make_unique<RelsStoreStats>(databasePath, *metadataDAC,
         memoryManager.getBufferManager(), wal.get(), vfs, context);
+    vectorIndexHeaders = std::make_unique<VectorIndexHeaders>(databasePath, vfs, context);
     loadTables(catalog, vfs, context);
 }
 
@@ -106,6 +108,7 @@ void StorageManager::recover(main::ClientContext& clientContext) {
             shadowFH->getFileInfo()->truncate(0);
         }
         StorageUtils::removeCatalogAndStatsWALFiles(clientContext.getDatabasePath(), vfs);
+        StorageUtils::removeVectorIndexHeaderFile(clientContext.getDatabasePath(), vfs);
     } catch (std::exception& e) {
         throw Exception(stringFormat("Error during recovery: {}", e.what()));
     }
@@ -186,6 +189,10 @@ void StorageManager::createTable(table_id_t tableID, Catalog* catalog,
     }
 }
 
+void StorageManager::addVectorIndex(std::unique_ptr<VectorIndexHeader> header) {
+    vectorIndexHeaders->addHeader(std::move(header));
+}
+
 PrimaryKeyIndex* StorageManager::getPKIndex(table_id_t tableID) {
     KU_ASSERT(tables.contains(tableID));
     KU_ASSERT(tables.at(tableID)->getTableType() == TableType::NODE);
@@ -235,6 +242,10 @@ void StorageManager::prepareCommit(Transaction* transaction, common::VirtualFile
         relsStatistics->writeTablesStatisticsFileForWALRecord(databasePath, vfs);
         wal->logTableStatisticsRecord(TableType::REL);
     }
+    if (vectorIndexHeaders->hasUpdates()) {
+        vectorIndexHeaders->writeFileForWALRecord(databasePath, vfs);
+        wal->logVectorIndexHeaderRecord();
+    }
 }
 
 void StorageManager::prepareRollback() {
@@ -243,6 +254,9 @@ void StorageManager::prepareRollback() {
     }
     if (relsStatistics->hasUpdates()) {
         wal->logTableStatisticsRecord(TableType::REL);
+    }
+    if (vectorIndexHeaders->hasUpdates()) {
+        wal->logVectorIndexHeaderRecord();
     }
 }
 
@@ -257,6 +271,9 @@ void StorageManager::checkpointInMemory() {
     }
     if (relsStatistics->hasUpdates()) {
         relsStatistics->checkpointInMemoryIfNecessary();
+    }
+    if (vectorIndexHeaders->hasUpdates()) {
+        vectorIndexHeaders->checkpointInMemoryIfNecessary();
     }
 }
 

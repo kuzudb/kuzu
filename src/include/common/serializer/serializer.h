@@ -48,6 +48,16 @@ public:
         }
     }
 
+    template<typename T1, typename T2, typename T3>
+    void serializeUnorderedMap(const std::unordered_map<T1, std::unique_ptr<T2>, T3>& values) {
+        uint64_t mapSize = values.size();
+        serializeValue(mapSize);
+        for (auto& value : values) {
+            value.first.serialize(*this);
+            value.second->serialize(*this);
+        }
+    }
+
     template<typename T>
     void serializeVector(const std::vector<T>& values) {
         uint64_t vectorSize = values.size();

@@ -6,7 +6,7 @@
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
-#include "storage/storage_structure//disk_array_collection.h"
+#include "storage/storage_structure/disk_array_collection.h"
 #include "storage/store/string_column.h"
 
 using namespace kuzu::common;

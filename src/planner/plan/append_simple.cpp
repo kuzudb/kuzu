@@ -11,7 +11,6 @@
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_create_type.h"
 #include "binder/ddl/bound_drop_sequence.h"
-#include "binder/ddl/bound_create_vector_index.h"
 #include "binder/ddl/bound_drop_table.h"
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_sequence.h"
@@ -27,7 +26,6 @@
 #include "planner/operator/simple/logical_detach_database.h"
 #include "planner/operator/simple/logical_extension.h"
 #include "planner/operator/simple/logical_use_database.h"
-#include "planner/operator/persistent/logical_create_vector_index.h"
 #include "planner/planner.h"
 #include "binder/expression/property_expression.h"
 
@@ -57,41 +55,6 @@ void Planner::appendCreateSequence(const BoundStatement& statement, LogicalPlan&
     auto info = createSequence.getInfo();
     auto op = make_shared<LogicalCreateSequence>(info->sequenceName, info->copy(),
         statement.getStatementResult()->getSingleColumnExpr());
-    plan.setLastOperator(std::move(op));
-}
-
-void Planner::appendCreateVectorIndex(const binder::BoundStatement& statement,
-    kuzu::planner::LogicalPlan& plan) {
-    auto outExprs = statement.getStatementResult()->getColumns();
-    auto& createVectorIndex =
-        ku_dynamic_cast<const BoundStatement&, const BoundCreateVectorIndex&>(statement);
-    auto tableEntry = createVectorIndex.getTableEntry();
-
-    // Create the internalID expression
-    common::table_id_map_t<SingleLabelPropertyInfo> internalIdInfo;
-    internalIdInfo.insert(
-        {tableEntry->getTableID(), SingleLabelPropertyInfo(false, INVALID_PROPERTY_ID)});
-    auto internalIdExpression = std::make_shared<PropertyExpression>(*LogicalType::INTERNAL_ID(),
-        InternalKeyword::ID, InternalKeyword::ID, InternalKeyword::ID, std::move(internalIdInfo));
-    cardinalityEstimator.addNodeIDDom(*internalIdExpression, {tableEntry->getTableID()}, clientContext->getTx());
-
-    // Create the embedding expression
-    auto embeddingProperty = tableEntry->getProperty(createVectorIndex.getPropertyID());
-    std::unordered_map<table_id_t, SingleLabelPropertyInfo> embeddingInfo;
-    embeddingInfo.insert(
-        {tableEntry->getTableID(), SingleLabelPropertyInfo(false, embeddingProperty->getPropertyID())});
-    auto embeddingExpressing =
-        std::make_shared<PropertyExpression>(*embeddingProperty->getDataType(), embeddingProperty->getName(),
-            embeddingProperty->getName(), embeddingProperty->getName(), std::move(embeddingInfo));
-
-    // Append the scan node properties
-    appendScanNodeTable(internalIdExpression, {tableEntry->getTableID()},
-        {embeddingExpressing}, plan);
-
-    // Append the create vector index node
-    auto op = make_shared<LogicalCreateVectorIndex>(internalIdExpression, embeddingExpressing,
-        tableEntry->getTableID(), embeddingProperty->getPropertyID(),
-        createVectorIndex.getHnswReaderConfig(), outExprs, plan.getLastOperator());
     plan.setLastOperator(std::move(op));
 }
 

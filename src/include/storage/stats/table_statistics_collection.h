@@ -57,6 +57,7 @@ public:
         readWriteVersion->tableStatisticPerTable[tableEntry->getTableID()] =
             constructTableStatistic(tableEntry);
     }
+
     void removeTableStatistic(common::table_id_t tableID) {
         setToUpdated();
         initTableStatisticsForWriteTrx();
