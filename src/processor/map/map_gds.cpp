@@ -34,7 +34,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
             tableSchema->appendColumn(std::move(columnSchema));
         } else {
             auto columnSchema = ColumnSchema(true /* isUnFlat */, dataPos.dataChunkPos,
-                LogicalTypeUtils::getRowLayoutSize(expr->getDataType()));
+                (uint32_t)sizeof(overflow_value_t));
             tableSchema->appendColumn(std::move(columnSchema));
         }
     }
