@@ -2,6 +2,8 @@
 
 #include "binder/expression_visitor.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace binder {
 
@@ -10,6 +12,33 @@ std::size_t SubqueryGraphHasher::operator()(const SubqueryGraph& key) const {
         return std::hash<std::bitset<MAX_NUM_QUERY_VARIABLES>>{}(key.queryNodesSelector);
     }
     return std::hash<std::bitset<MAX_NUM_QUERY_VARIABLES>>{}(key.queryRelsSelector);
+}
+
+std::unordered_map<common::idx_t, std::vector<common::idx_t>>
+SubqueryGraph::getWCOJRelCandidates() const {
+    std::unordered_map<common::idx_t, std::vector<common::idx_t>> candidates;
+    for (auto relPos : getRelNbrPositions()) {
+        auto rel = queryGraph.getQueryRel(relPos);
+        // TODO(Xiyang): is the following check relevant?
+        if (!queryGraph.containsQueryNode(rel->getSrcNodeName()) ||
+            !queryGraph.containsQueryNode(rel->getDstNodeName())) {
+            continue;
+        }
+        auto srcNodePos = queryGraph.getQueryNodePos(rel->getSrcNodeName());
+        auto dstNodePos = queryGraph.getQueryNodePos(rel->getDstNodeName());
+        auto isSrcConnected = queryNodesSelector[srcNodePos];
+        auto isDstConnected = queryNodesSelector[dstNodePos];
+        // Closing rel should be handled with inner join.
+        if (isSrcConnected && isDstConnected) {
+            continue;
+        }
+        auto intersectNodePos = isSrcConnected ? dstNodePos : srcNodePos;
+        if (!candidates.contains(intersectNodePos)) {
+            candidates.insert({intersectNodePos, std::vector<common::idx_t>{}});
+        }
+        candidates.at(intersectNodePos).push_back(relPos);
+    }
+    return candidates;
 }
 
 bool SubqueryGraph::containAllVariables(std::unordered_set<std::string>& variables) const {
@@ -166,6 +195,26 @@ std::vector<std::shared_ptr<NodeOrRelExpression>> QueryGraph::getAllPatterns() c
         patterns.push_back(p);
     }
     return patterns;
+}
+
+std::vector<std::shared_ptr<NodeExpression>> QueryGraph::getQueryNodes(
+    const std::vector<idx_t>& indices) const {
+    std::vector<std::shared_ptr<NodeExpression>> result;
+    result.reserve(indices.size());
+    for (auto idx : indices) {
+        result.push_back(queryNodes[idx]);
+    }
+    return result;
+}
+
+std::vector<std::shared_ptr<RelExpression>> QueryGraph::getQueryRels(
+    const std::vector<idx_t>& indices) const {
+    std::vector<std::shared_ptr<RelExpression>> result;
+    result.reserve(indices.size());
+    for (auto idx : indices) {
+        result.push_back(queryRels[idx]);
+    }
+    return result;
 }
 
 void QueryGraph::addQueryNode(std::shared_ptr<NodeExpression> queryNode) {

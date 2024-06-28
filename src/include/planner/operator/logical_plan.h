@@ -5,6 +5,9 @@
 namespace kuzu {
 namespace planner {
 
+using cardianlity_t = uint64_t;
+using cost_t = cardianlity_t;
+
 class LogicalPlan {
     friend class CardinalityEstimator;
     friend class CostModel;
@@ -36,8 +39,8 @@ public:
 
 private:
     std::shared_ptr<LogicalOperator> lastOperator;
-    uint64_t estCardinality;
-    uint64_t cost;
+    cardianlity_t estCardinality;
+    cost_t cost;
 };
 
 } // namespace planner

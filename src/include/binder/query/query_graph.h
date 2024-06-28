@@ -36,13 +36,15 @@ struct SubqueryGraph {
         queryNodesSelector |= other.queryNodesSelector;
     }
 
-    uint32_t getNumQueryRels() const { return queryRelsSelector.count(); }
-    uint32_t getTotalNumVariables() const {
+    common::idx_t getNumQueryNodes() const { return queryNodesSelector.count(); }
+    common::idx_t getNumQueryRels() const { return queryRelsSelector.count(); }
+    common::idx_t getTotalNumVariables() const {
         return queryNodesSelector.count() + queryRelsSelector.count();
     }
     bool isSingleRel() const {
         return queryRelsSelector.count() == 1 && queryNodesSelector.count() == 0;
     }
+    std::unordered_map<common::idx_t, std::vector<common::idx_t>> getWCOJRelCandidates() const;
 
     bool containAllVariables(std::unordered_set<std::string>& variables) const;
 
@@ -79,7 +81,7 @@ public:
 
     std::vector<std::shared_ptr<NodeOrRelExpression>> getAllPatterns() const;
 
-    uint32_t getNumQueryNodes() const { return queryNodes.size(); }
+    common::idx_t getNumQueryNodes() const { return queryNodes.size(); }
     bool containsQueryNode(const std::string& queryNodeName) const {
         return queryNodeNameToPosMap.contains(queryNodeName);
     }
@@ -87,19 +89,12 @@ public:
     std::shared_ptr<NodeExpression> getQueryNode(const std::string& queryNodeName) const {
         return queryNodes[getQueryNodePos(queryNodeName)];
     }
-    std::vector<std::shared_ptr<NodeExpression>> getQueryNodes(
-        const std::vector<uint32_t>& nodePoses) const {
-        std::vector<std::shared_ptr<NodeExpression>> result;
-        result.reserve(nodePoses.size());
-        for (auto nodePos : nodePoses) {
-            result.push_back(queryNodes[nodePos]);
-        }
-        return result;
-    }
-    std::shared_ptr<NodeExpression> getQueryNode(uint32_t nodePos) const {
+    std::shared_ptr<NodeExpression> getQueryNode(common::idx_t nodePos) const {
         return queryNodes[nodePos];
     }
-    uint32_t getQueryNodePos(NodeExpression& node) const {
+    std::vector<std::shared_ptr<NodeExpression>> getQueryNodes(
+        const std::vector<common::idx_t>& nodePoses) const;
+    common::idx_t getQueryNodePos(NodeExpression& node) const {
         return getQueryNodePos(node.getUniqueName());
     }
     uint32_t getQueryNodePos(const std::string& queryNodeName) const {
@@ -115,8 +110,12 @@ public:
     std::shared_ptr<RelExpression> getQueryRel(const std::string& queryRelName) const {
         return queryRels.at(queryRelNameToPosMap.at(queryRelName));
     }
-    std::shared_ptr<RelExpression> getQueryRel(uint32_t relPos) const { return queryRels[relPos]; }
-    uint32_t getQueryRelPos(const std::string& queryRelName) const {
+    std::shared_ptr<RelExpression> getQueryRel(common::idx_t relPos) const {
+        return queryRels[relPos];
+    }
+    std::vector<std::shared_ptr<RelExpression>> getQueryRels(
+        const std::vector<common::idx_t>& indices) const;
+    common::idx_t getQueryRelPos(const std::string& queryRelName) const {
         return queryRelNameToPosMap.at(queryRelName);
     }
     void addQueryRel(std::shared_ptr<RelExpression> queryRel);
@@ -146,9 +145,9 @@ public:
     void addAndMergeQueryGraphIfConnected(QueryGraph queryGraphToAdd);
     void finalize();
 
-    uint32_t getNumQueryGraphs() const { return queryGraphs.size(); }
-    QueryGraph* getQueryGraphUnsafe(uint32_t idx) { return &queryGraphs[idx]; }
-    const QueryGraph* getQueryGraph(uint32_t idx) const { return &queryGraphs[idx]; }
+    common::idx_t getNumQueryGraphs() const { return queryGraphs.size(); }
+    QueryGraph* getQueryGraphUnsafe(common::idx_t idx) { return &queryGraphs[idx]; }
+    const QueryGraph* getQueryGraph(common::idx_t idx) const { return &queryGraphs[idx]; }
 
     std::vector<std::shared_ptr<NodeExpression>> getQueryNodes() const;
     std::vector<std::shared_ptr<RelExpression>> getQueryRels() const;

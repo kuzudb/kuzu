@@ -87,11 +87,18 @@ void Planner::appendIntersect(const std::shared_ptr<Expression>& intersectNodeID
         }
     }
     intersect->computeFactorizedSchema();
+    std::vector<cost_t> buildCosts;
+    std::vector<cardianlity_t> buildCards;
+    for (auto& p : buildPlans) {
+        buildCosts.push_back(p->getCost());
+        buildCards.push_back(p->getCardinality());
+    }
     // update cost
-    probePlan.setCost(CostModel::computeIntersectCost(probePlan, buildPlans));
+    probePlan.setCost(CostModel::computeIntersectCost(probePlan.getCost(), buildCosts,
+        probePlan.getCardinality()));
     // update cardinality
-    probePlan.setCardinality(
-        cardinalityEstimator.estimateIntersect(boundNodeIDs, probePlan, buildPlans));
+    probePlan.setCardinality(cardinalityEstimator.estimateIntersect(boundNodeIDs,
+        probePlan.getCardinality(), buildCards));
     probePlan.setLastOperator(std::move(intersect));
 }
 

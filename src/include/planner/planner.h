@@ -6,6 +6,7 @@
 #include "common/enums/extend_direction.h"
 #include "common/enums/join_type.h"
 #include "planner/join_order/cardinality_estimator.h"
+#include "planner/join_order/join_tree.h"
 #include "planner/join_order_enumerator_context.h"
 #include "planner/operator/logical_plan.h"
 
@@ -26,6 +27,18 @@ namespace planner {
 
 struct LogicalInsertInfo;
 
+enum class SubqueryType : uint8_t {
+    NONE = 0,
+    INTERNAL_ID_CORRELATED = 1,
+    CORRELATED = 2,
+};
+
+struct SubqueryPlanInfo {
+    SubqueryType subqueryType;
+    binder::expression_vector corrExprs;
+    cardianlity_t corrExprsCard;
+};
+
 class Planner {
 public:
     explicit Planner(main::ClientContext* clientContext);
@@ -35,7 +48,6 @@ public:
 
     std::vector<std::unique_ptr<LogicalPlan>> getAllPlans(const binder::BoundStatement& statement);
 
-private:
     // Plan simple statement.
     void appendCreateTable(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendCreateType(const binder::BoundStatement& statement, LogicalPlan& plan);
@@ -139,43 +151,17 @@ private:
         const binder::QueryGraphCollection& queryGraphCollection,
         const binder::expression_vector& predicates);
     std::vector<std::unique_ptr<LogicalPlan>> enumerateQueryGraphCollection(
+        const SubqueryPlanInfo& subqueryPlanInfo,
         const binder::QueryGraphCollection& queryGraphCollection,
         const binder::expression_vector& predicates);
-    std::vector<std::unique_ptr<LogicalPlan>> enumerateQueryGraph(SubqueryType subqueryType,
-        const binder::expression_vector& correlatedExpressions,
-        const binder::QueryGraph& queryGraph, binder::expression_vector& predicates);
+    std::vector<std::unique_ptr<LogicalPlan>> enumerateQueryGraph(
+        const SubqueryPlanInfo& subqueryPlanInfo, const binder::QueryGraph& queryGraph,
+        binder::expression_vector& predicates);
 
-    // Plan node/rel table scan
-    void planBaseTableScans(SubqueryType subqueryType,
-        const binder::expression_vector& correlatedExpressions);
-    void planCorrelatedExpressionsScan(const binder::expression_vector& correlatedExpressions);
-    void planNodeScan(uint32_t nodePos);
-    void planNodeIDScan(uint32_t nodePos);
-    void planRelScan(uint32_t relPos);
-    void appendExtendAndFilter(const std::shared_ptr<binder::NodeExpression>& boundNode,
-        const std::shared_ptr<binder::NodeExpression>& nbrNode,
-        const std::shared_ptr<binder::RelExpression>& rel, common::ExtendDirection direction,
-        const binder::expression_vector& predicates, LogicalPlan& plan);
-
-    // Plan dp level
-    void planLevel(uint32_t level);
-    void planLevelExactly(uint32_t level);
-    void planLevelApproximately(uint32_t level);
-
-    // Plan worst case optimal join
-    void planWCOJoin(uint32_t leftLevel, uint32_t rightLevel);
-    void planWCOJoin(const binder::SubqueryGraph& subgraph,
-        const std::vector<std::shared_ptr<binder::RelExpression>>& rels,
-        const std::shared_ptr<binder::NodeExpression>& intersectNode);
-
-    // Plan index-nested-loop join / hash join
-    void planInnerJoin(uint32_t leftLevel, uint32_t rightLevel);
-    bool tryPlanINLJoin(const binder::SubqueryGraph& subgraph,
-        const binder::SubqueryGraph& otherSubgraph,
-        const std::vector<std::shared_ptr<binder::NodeExpression>>& joinNodes);
-    void planInnerHashJoin(const binder::SubqueryGraph& subgraph,
-        const binder::SubqueryGraph& otherSubgraph,
-        const std::vector<std::shared_ptr<binder::NodeExpression>>& joinNodes, bool flipPlan);
+    void appendExtend(std::shared_ptr<binder::NodeExpression> boundNode,
+        std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
+        common::ExtendDirection direction, const binder::expression_vector& properties,
+        LogicalPlan& plan);
 
     std::vector<std::unique_ptr<LogicalPlan>> planCrossProduct(
         std::vector<std::unique_ptr<LogicalPlan>> leftPlans,
@@ -295,15 +281,20 @@ private:
 
     binder::expression_vector getProperties(const binder::Expression& nodeOrRel);
 
-    JoinOrderEnumeratorContext enterContext(SubqueryType subqueryType,
-        const binder::expression_vector& correlatedExpressions, uint64_t cardinality);
-    void exitContext(JoinOrderEnumeratorContext prevContext);
+    static binder::expression_vector getNewlyMatchedExpressions(
+        const std::vector<binder::SubqueryGraph>& prevSubgraphs,
+        const binder::SubqueryGraph& newSubgraph, const binder::expression_vector& expressions);
+    static binder::expression_vector getNewlyMatchedExpressions(
+        const binder::SubqueryGraph& leftPrev, const binder::SubqueryGraph& rightPrev,
+        const binder::SubqueryGraph& newSubgraph, const binder::expression_vector& expressions);
+    static binder::expression_vector getNewlyMatchedExpressions(
+        const binder::SubqueryGraph& prevSubgraph, const binder::SubqueryGraph& newSubgraph,
+        const binder::expression_vector& expressions);
 
 private:
     main::ClientContext* clientContext;
     binder::expression_vector propertiesToScan;
     CardinalityEstimator cardinalityEstimator;
-    JoinOrderEnumeratorContext context;
 };
 
 } // namespace planner
