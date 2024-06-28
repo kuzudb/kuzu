@@ -138,7 +138,7 @@ public:
             }
         }
         if (pos == 0) {
-            return shortestPathOutputFunc(sharedState, localState);
+            return UINT64_MAX;
         }
         dstOffsetVector->state->getSelVectorUnsafe().setSelSize(pos);
         printf("total nodes for src: %lu is %d\n", ifeMorsel->srcOffset, pos);
@@ -148,31 +148,24 @@ public:
     void exec(processor::ExecutionContext* executionContext) override {
         auto extraData = bindData->ptrCast<ParallelShortestPathBindData>();
         auto numNodes = sharedState->graph->getNumNodes();
-        IFEMorsel* ifeMorsel = nullptr;
-        auto shortestPathLocalState = common::ku_dynamic_cast<GDSLocalState*,
-            ParallelShortestPathLocalState*>(localState.get());
+        auto ifeMorsel = std::make_unique<IFEMorsel>(extraData->upperBound, 1, numNodes - 1,
+            common::INVALID_OFFSET);
         for (auto offset = 0u; offset < numNodes; offset++) {
             if (!sharedState->inputNodeOffsetMask->isNodeMasked(offset)) {
                 continue;
             }
-            if (!ifeMorsel) {
-                ifeMorsel = std::make_unique<IFEMorsel>(extraData->upperBound, 1, numNodes - 1,
-                    offset).get();
-                shortestPathLocalState->ifeMorsel = ifeMorsel;
-            } else {
-                ifeMorsel->resetNoLock(offset);
-            }
+            ifeMorsel->resetNoLock(offset);
             ifeMorsel->init();
             while (!ifeMorsel->isBFSCompleteNoLock()) {
                 auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
-                gdsLocalState->ifeMorsel = ifeMorsel;
+                gdsLocalState->ifeMorsel = ifeMorsel.get();
                 auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState),
                     sharedState, extendFrontierFunc, true /* isParallel */};
                 parallelUtils->submitParallelTaskAndWait(job);
                 ifeMorsel->initializeNextFrontierNoLock();
             }
             auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
-            gdsLocalState->ifeMorsel = ifeMorsel;
+            gdsLocalState->ifeMorsel = ifeMorsel.get();
             auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState),
                 sharedState, shortestPathOutputFunc, true /* isParallel */};
             parallelUtils->submitParallelTaskAndWait(job);
