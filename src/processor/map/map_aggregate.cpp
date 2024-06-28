@@ -132,8 +132,7 @@ static FactorizedTableSchema getFactorizedTableSchema(const expression_vector& f
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createDistinctHashAggregate(
     const expression_vector& keys, const expression_vector& payloads, Schema* inSchema,
-    Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator,
-    const std::string& paramsString) {
+    Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator) {
     return createHashAggregate(keys, payloads, expression_vector{} /* aggregates */,
         nullptr /* mark */, inSchema, outSchema, std::move(prevOperator));
 }
