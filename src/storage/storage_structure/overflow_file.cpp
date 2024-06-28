@@ -161,7 +161,7 @@ static DBFileIDAndName constructDBFileIDAndName(
 OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager* bufferManager,
     WAL* wal, bool readOnly, VirtualFileSystem* vfs, main::ClientContext* context)
     : bufferManager{bufferManager}, wal{wal}, headerChanged{false} {
-    auto overflowFileIDAndName = constructDBFileIDAndName(dbFileIdAndName);
+    const auto overflowFileIDAndName = constructDBFileIDAndName(dbFileIdAndName);
     dbFileID = overflowFileIDAndName.dbFileID;
     KU_ASSERT(vfs && bufferManager && context && wal);
     fileHandle = bufferManager->getBMFileHandle(overflowFileIDAndName.fName,
@@ -179,6 +179,15 @@ OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager
     }
 }
 
+OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName)
+    : fileHandle{nullptr}, bufferManager{nullptr}, wal{nullptr}, headerChanged{false} {
+    const auto overflowFileIDAndName = constructDBFileIDAndName(dbFileIdAndName);
+    dbFileID = overflowFileIDAndName.dbFileID;
+    // Reserve a page for the header
+    getNewPageIdx();
+    header = StringOverflowFileHeader();
+}
+
 void OverflowFile::readFromDisk(TransactionType trxType, page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& func) const {
     auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
@@ -192,11 +201,13 @@ void OverflowFile::writePageToDisk(page_idx_t pageIdx, uint8_t* data) const {
             true /* overwriting entire page*/, *bufferManager, *wal,
             [&](auto* frame) { memcpy(frame, data, BufferPoolConstants::PAGE_4KB_SIZE); });
     } else {
+        KU_ASSERT(fileHandle);
         fileHandle->writePage(data, pageIdx);
     }
 }
 
 void OverflowFile::prepareCommit() {
+    KU_ASSERT(fileHandle);
     if (fileHandle->getNumPages() < pageCounter) {
         fileHandle->addNewPages(pageCounter - fileHandle->getNumPages());
     }
@@ -229,14 +240,6 @@ void OverflowFile::rollbackInMemory() {
         auto& handle = handles[i];
         handle->rollbackInMemory(header.cursors[i]);
     }
-}
-
-InMemOverflowFile::InMemOverflowFile(const DBFileIDAndName& dbFileIDAndName)
-    : OverflowFile{dbFileIDAndName, nullptr, nullptr, false, nullptr, nullptr} {
-    fileHandle = nullptr;
-    // Reserve a page for the header
-    getNewPageIdx();
-    header = StringOverflowFileHeader();
 }
 
 } // namespace storage

@@ -109,9 +109,14 @@ public:
         return handles.back().get();
     }
 
-    BMFileHandle* getBMFileHandle() const { return fileHandle; }
+    BMFileHandle* getBMFileHandle() const {
+        KU_ASSERT(fileHandle);
+        return fileHandle;
+    }
 
 protected:
+    explicit OverflowFile(const DBFileIDAndName& dbFileIdAndName);
+
     common::page_idx_t getNewPageIdx() {
         // If this isn't the first call reserving the page header, then the header flag must be set
         // prior to this
@@ -142,7 +147,8 @@ protected:
 
 class InMemOverflowFile final : public OverflowFile {
 public:
-    explicit InMemOverflowFile(const DBFileIDAndName& dbFileIDAndName);
+    explicit InMemOverflowFile(const DBFileIDAndName& dbFileIDAndName)
+        : OverflowFile{dbFileIDAndName} {}
 };
 } // namespace storage
 } // namespace kuzu
