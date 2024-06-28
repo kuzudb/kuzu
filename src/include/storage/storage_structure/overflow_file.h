@@ -39,13 +39,13 @@ public:
         const common::ku_string_t& keyInEntry) const;
 
     common::ku_string_t writeString(std::string_view rawString);
-    inline common::ku_string_t writeString(const char* rawString) {
+    common::ku_string_t writeString(const char* rawString) {
         return writeString(std::string_view(rawString));
     }
 
     void prepareCommit();
-    inline void checkpointInMemory() { pageWriteCache.clear(); }
-    inline void rollbackInMemory(PageCursor nextPosToWriteTo_) {
+    void checkpointInMemory() { pageWriteCache.clear(); }
+    void rollbackInMemory(PageCursor nextPosToWriteTo_) {
         pageWriteCache.clear();
         this->nextPosToWriteTo = nextPosToWriteTo_;
     }
@@ -55,7 +55,7 @@ private:
     void setStringOverflow(const char* inMemSrcStr, uint64_t len,
         common::ku_string_t& diskDstString);
 
-    inline void read(transaction::TransactionType trxType, common::page_idx_t pageIdx,
+    void read(transaction::TransactionType trxType, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& func) const;
 
 private:
@@ -102,14 +102,22 @@ public:
     void prepareCommit();
     void checkpointInMemory();
 
-    inline OverflowFileHandle* addHandle() {
+    OverflowFileHandle* addHandle() {
         KU_ASSERT(handles.size() < NUM_HASH_INDEXES);
         handles.emplace_back(
             std::make_unique<OverflowFileHandle>(*this, header.cursors[handles.size()]));
         return handles.back().get();
     }
 
-    inline BMFileHandle* getBMFileHandle() const { return fileHandle; }
+    BMFileHandle* getBMFileHandle() const { return fileHandle; }
+
+protected:
+    common::page_idx_t getNewPageIdx() {
+        // If this isn't the first call reserving the page header, then the header flag must be set
+        // prior to this
+        KU_ASSERT(pageCounter == HEADER_PAGE_IDX || headerChanged);
+        return pageCounter.fetch_add(1);
+    }
 
 private:
     void readFromDisk(transaction::TransactionType trxType, common::page_idx_t pageIdx,
@@ -118,14 +126,7 @@ private:
     // Writes new pages directly to the file and existing pages to the WAL
     void writePageToDisk(common::page_idx_t pageIdx, uint8_t* data) const;
 
-    inline common::page_idx_t getNewPageIdx() {
-        // If this isn't the first call reserving the page header, then the header flag must be set
-        // prior to this
-        KU_ASSERT(pageCounter == HEADER_PAGE_IDX || headerChanged);
-        return pageCounter.fetch_add(1);
-    }
-
-private:
+protected:
     static const uint64_t HEADER_PAGE_IDX = 0;
 
     std::vector<std::unique_ptr<OverflowFileHandle>> handles;
@@ -141,8 +142,7 @@ private:
 
 class InMemOverflowFile final : public OverflowFile {
 public:
-    explicit InMemOverflowFile(const DBFileIDAndName& dbFileIDAndName)
-        : OverflowFile{dbFileIDAndName, nullptr, nullptr, false, nullptr, nullptr} {}
+    explicit InMemOverflowFile(const DBFileIDAndName& dbFileIDAndName);
 };
 } // namespace storage
 } // namespace kuzu
