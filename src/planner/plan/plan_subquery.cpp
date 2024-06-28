@@ -97,8 +97,7 @@ void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
     info.predicates = predicatesToPushDown;
     if (joinNodeIDs.empty()) {
         info.subqueryType = SubqueryType::NONE;
-        auto rightPlan =
-            planQueryGraphCollectionInNewContext(queryGraphCollection, info);
+        auto rightPlan = planQueryGraphCollectionInNewContext(queryGraphCollection, info);
         if (leftPlan.hasUpdate()) {
             appendCrossProduct(AccumulateType::REGULAR, *rightPlan, leftPlan, leftPlan);
         } else {
@@ -133,7 +132,8 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
     info.predicates = predicates;
     if (correlatedExprs.empty()) {
         info.subqueryType = SubqueryType::NONE;
-        innerPlan = planQueryGraphCollectionInNewContext(*subquery->getQueryGraphCollection(), info);
+        innerPlan =
+            planQueryGraphCollectionInNewContext(*subquery->getQueryGraphCollection(), info);
         switch (subquery->getSubqueryType()) {
         case common::SubqueryType::EXISTS: {
             appendAggregate(expression_vector{}, expression_vector{subquery->getCountStarExpr()},
@@ -155,8 +155,8 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
         info.corrExprsCard = outerPlan.getCardinality();
         if (isInternalIDCorrelated) {
             info.subqueryType = SubqueryType::INTERNAL_ID_CORRELATED;
-            innerPlan = planQueryGraphCollectionInNewContext(*subquery->getQueryGraphCollection(),
-                info);
+            innerPlan =
+                planQueryGraphCollectionInNewContext(*subquery->getQueryGraphCollection(), info);
         } else {
             info.subqueryType = SubqueryType::CORRELATED;
             innerPlan =

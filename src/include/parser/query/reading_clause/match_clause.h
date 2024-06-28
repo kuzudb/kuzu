@@ -13,9 +13,7 @@ struct JoinHintNode {
 
     JoinHintNode() = default;
     explicit JoinHintNode(std::string name) : variableName{std::move(name)} {}
-    void addChild(std::shared_ptr<JoinHintNode> child) {
-        children.push_back(std::move(child));
-    }
+    void addChild(std::shared_ptr<JoinHintNode> child) { children.push_back(std::move(child)); }
     bool isLeaf() const { return children.empty(); }
 };
 
@@ -28,9 +26,7 @@ public:
         : ReadingClause{clauseType_}, patternElements{std::move(patternElements)},
           matchClauseType{matchClauseType} {}
 
-    const std::vector<PatternElement>& getPatternElementsRef() const {
-        return patternElements;
-    }
+    const std::vector<PatternElement>& getPatternElementsRef() const { return patternElements; }
 
     void setWherePredicate(std::unique_ptr<ParsedExpression> expression) {
         wherePredicate = std::move(expression);
@@ -42,9 +38,7 @@ public:
 
     void setHint(std::shared_ptr<JoinHintNode> root) { hintRoot = std::move(root); }
     bool hasHint() const { return hintRoot != nullptr; }
-    std::shared_ptr<JoinHintNode> getHint() const {
-        return hintRoot;
-    }
+    std::shared_ptr<JoinHintNode> getHint() const { return hintRoot; }
 
 private:
     std::vector<PatternElement> patternElements;

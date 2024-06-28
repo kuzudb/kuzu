@@ -1,11 +1,11 @@
 #include "planner/operator/logical_plan_util.h"
 
+#include "binder/expression/property_expression.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
-#include "binder/expression/property_expression.h"
 
 using namespace kuzu::binder;
 
@@ -22,8 +22,7 @@ std::string LogicalPlanUtil::encode(LogicalOperator* logicalOperator) {
     return result;
 }
 
-void LogicalPlanUtil::encodeRecursive(LogicalOperator* logicalOperator,
-    std::string& encodeString) {
+void LogicalPlanUtil::encodeRecursive(LogicalOperator* logicalOperator, std::string& encodeString) {
     switch (logicalOperator->getOperatorType()) {
     case LogicalOperatorType::CROSS_PRODUCT: {
         encodeCrossProduct(logicalOperator, encodeString);
@@ -63,7 +62,7 @@ void LogicalPlanUtil::encodeRecursive(LogicalOperator* logicalOperator,
     case LogicalOperatorType::FILTER: {
         encodeFilter(logicalOperator, encodeString);
         encodeRecursive(logicalOperator->getChild(0).get(), encodeString);
-    } break ;
+    } break;
     default:
         for (auto i = 0u; i < logicalOperator->getNumChildren(); ++i) {
             encodeRecursive(logicalOperator->getChild(i).get(), encodeString);
@@ -110,7 +109,8 @@ void LogicalPlanUtil::encodeScanNodeTable(LogicalOperator* logicalOperator,
     } else {
         encodeString += "S";
     }
-    encodeString += "(" + scan.getNodeID()->constCast<PropertyExpression>().getRawVariableName() + ")";
+    encodeString +=
+        "(" + scan.getNodeID()->constCast<PropertyExpression>().getRawVariableName() + ")";
 }
 
 void LogicalPlanUtil::encodeFilter(LogicalOperator*, std::string& encodedString) {

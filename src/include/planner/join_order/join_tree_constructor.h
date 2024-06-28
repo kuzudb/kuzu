@@ -1,7 +1,7 @@
 #pragma once
 
-#include "join_tree.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
+#include "join_tree.h"
 
 namespace kuzu {
 namespace planner {
@@ -27,8 +27,10 @@ private:
     IntermediateResult constructNodeScan(std::shared_ptr<binder::Expression> expr);
     IntermediateResult constructRelScan(std::shared_ptr<binder::Expression> expr);
 
-    std::shared_ptr<JoinTreeNode> tryConstructNestedLoopJoin(std::vector<std::shared_ptr<binder::NodeExpression>> joinNodes,
-        const JoinTreeNode& leftRoot, const JoinTreeNode& rightRoot, const binder::expression_vector& predicates);
+    std::shared_ptr<JoinTreeNode> tryConstructNestedLoopJoin(
+        std::vector<std::shared_ptr<binder::NodeExpression>> joinNodes,
+        const JoinTreeNode& leftRoot, const JoinTreeNode& rightRoot,
+        const binder::expression_vector& predicates);
 
 private:
     const binder::QueryGraph& queryGraph;
@@ -36,5 +38,5 @@ private:
     binder::expression_vector queryGraphPredicates;
 };
 
-}
-}
+} // namespace planner
+} // namespace kuzu

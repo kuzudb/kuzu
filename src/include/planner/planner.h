@@ -47,7 +47,8 @@ struct QueryGraphPlanningInfo {
 // Group property expressions based on node/relationship.
 class PropertyExprCollection {
 public:
-    void addProperties(const std::string& patternName, std::shared_ptr<binder::Expression> property);
+    void addProperties(const std::string& patternName,
+        std::shared_ptr<binder::Expression> property);
     binder::expression_vector getProperties(const binder::Expression& pattern) const;
     binder::expression_vector getProperties() const;
 
@@ -168,9 +169,9 @@ public:
         const binder::QueryGraphCollection& queryGraphCollection,
         const QueryGraphPlanningInfo& info);
 
-
     std::vector<std::unique_ptr<LogicalPlan>> enumerateQueryGraphCollection(
-        const binder::QueryGraphCollection& queryGraphCollection, const QueryGraphPlanningInfo& info);
+        const binder::QueryGraphCollection& queryGraphCollection,
+        const QueryGraphPlanningInfo& info);
     std::vector<std::unique_ptr<LogicalPlan>> enumerateQueryGraph(
         const binder::QueryGraph& queryGraph, const QueryGraphPlanningInfo& info);
 
@@ -182,7 +183,8 @@ public:
     void planRelScan(uint32_t relPos);
     void appendExtend(std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
-        common::ExtendDirection direction, const binder::expression_vector& properties, LogicalPlan& plan);
+        common::ExtendDirection direction, const binder::expression_vector& properties,
+        LogicalPlan& plan);
 
     // Plan dp level
     void planLevel(uint32_t level);
@@ -325,8 +327,9 @@ public:
     JoinOrderEnumeratorContext enterContext();
     void exitContext(JoinOrderEnumeratorContext prevContext);
 
-    static binder::expression_vector getNewlyMatchedExprs(const std::vector<binder::SubqueryGraph>& prevs,
-        const binder::SubqueryGraph& new_, const binder::expression_vector& exprs);
+    static binder::expression_vector getNewlyMatchedExprs(
+        const std::vector<binder::SubqueryGraph>& prevs, const binder::SubqueryGraph& new_,
+        const binder::expression_vector& exprs);
     static binder::expression_vector getNewlyMatchedExprs(const binder::SubqueryGraph& prev,
         const binder::SubqueryGraph& new_, const binder::expression_vector& exprs);
     static binder::expression_vector getNewlyMatchedExprs(const binder::SubqueryGraph& leftPrev,

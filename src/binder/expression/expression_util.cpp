@@ -1,6 +1,7 @@
 #include "binder/expression/expression_util.h"
 
 #include <algorithm>
+
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/node_rel_expression.h"
 #include "binder/expression/parameter_expression.h"
@@ -55,9 +56,11 @@ std::string ExpressionUtil::toString(const expression_vector& expressions) {
 
 std::string ExpressionUtil::toStringOrdered(const expression_vector& expressions) {
     auto expressions_ = expressions;
-    std::sort(expressions_.begin(), expressions_.end(), [](const std::shared_ptr<binder::Expression>& a, const  std::shared_ptr<binder::Expression>& b) {
-        return a->toString() < b->toString();
-    });
+    std::sort(expressions_.begin(), expressions_.end(),
+        [](const std::shared_ptr<binder::Expression>& a,
+            const std::shared_ptr<binder::Expression>& b) {
+            return a->toString() < b->toString();
+        });
     return toString(expressions_);
 }
 

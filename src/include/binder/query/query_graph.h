@@ -117,7 +117,9 @@ public:
     std::shared_ptr<RelExpression> getQueryRel(const std::string& queryRelName) const {
         return queryRels.at(queryRelNameToPosMap.at(queryRelName));
     }
-    std::shared_ptr<RelExpression> getQueryRel(common::idx_t relPos) const { return queryRels[relPos]; }
+    std::shared_ptr<RelExpression> getQueryRel(common::idx_t relPos) const {
+        return queryRels[relPos];
+    }
     common::idx_t getQueryRelIdx(const std::string& queryRelName) const {
         return queryRelNameToPosMap.at(queryRelName);
     }

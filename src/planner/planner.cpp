@@ -29,13 +29,14 @@ binder::expression_vector PropertyExprCollection::getProperties() const {
     return result;
 }
 
-void PropertyExprCollection::addProperties(const std::string& patternName, std::shared_ptr<binder::Expression> property) {
+void PropertyExprCollection::addProperties(const std::string& patternName,
+    std::shared_ptr<binder::Expression> property) {
     if (!patternNameToProperties.contains(patternName)) {
         patternNameToProperties.insert({patternName, expression_vector{}});
     }
     for (auto& p : patternNameToProperties.at(patternName)) {
         if (*p == *property) {
-            return ;
+            return;
         }
     }
     patternNameToProperties.at(patternName).push_back(property);

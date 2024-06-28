@@ -38,7 +38,8 @@ std::unique_ptr<ReadingClause> Transformer::transformMatch(CypherParser::OC_Matc
     return matchClause;
 }
 
-std::shared_ptr<JoinHintNode> Transformer::transformJoinHint(CypherParser::KU_JoinNodeContext& ctx) {
+std::shared_ptr<JoinHintNode> Transformer::transformJoinHint(
+    CypherParser::KU_JoinNodeContext& ctx) {
     if (!ctx.MULTI_JOIN().empty()) {
         auto joinNode = std::make_shared<JoinHintNode>();
         joinNode->addChild(transformJoinHint(*ctx.kU_JoinNode(0)));

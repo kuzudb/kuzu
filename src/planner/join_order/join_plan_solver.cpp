@@ -88,7 +88,7 @@ LogicalPlan JoinPlanSolver::solveRelScanTreeNode(const JoinTreeNode& treeNode,
             boundNode = rel->getSrcNode();
         }
         nbrNode = getOtherNode(*rel, *boundNode);
-    } break ;
+    } break;
     case TreeNodeType::MULTIWAY_JOIN: {
         auto& joinExtraInfo = parent.extraInfo->constCast<ExtraJoinTreeNodeInfo>();
         KU_ASSERT(joinExtraInfo.joinNodes.size() == 1);

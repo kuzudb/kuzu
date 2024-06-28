@@ -61,8 +61,7 @@ struct ExtraScanTreeNodeInfo : ExtraTreeNodeInfo {
 
     ExtraScanTreeNodeInfo() = default;
     ExtraScanTreeNodeInfo(const ExtraScanTreeNodeInfo& other)
-        : nodeInfo{std::make_unique<NodeRelScanInfo>(*other.nodeInfo)}, relInfos{other.relInfos} {
-    }
+        : nodeInfo{std::make_unique<NodeRelScanInfo>(*other.nodeInfo)}, relInfos{other.relInfos} {}
 
     void merge(const ExtraScanTreeNodeInfo& other);
 

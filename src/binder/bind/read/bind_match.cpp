@@ -1,7 +1,7 @@
 #include "binder/binder.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
-#include "parser/query/reading_clause/match_clause.h"
 #include "common/exception/binder.h"
+#include "parser/query/reading_clause/match_clause.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -12,7 +12,7 @@ namespace binder {
 static void collectHintPattern(const BoundJoinHintNode& node, binder::expression_set& set) {
     if (node.isLeaf()) {
         set.insert(node.nodeOrRel);
-        return ;
+        return;
     }
     for (auto& child : node.children) {
         collectHintPattern(*child, set);
@@ -24,7 +24,8 @@ static void validateHintCompleteness(const BoundJoinHintNode& root, const QueryG
     collectHintPattern(root, set);
     for (auto& nodeOrRel : queryGraph.getAllPatterns()) {
         if (!set.contains(nodeOrRel)) {
-            throw BinderException(stringFormat("Cannot find {} in join hint.", nodeOrRel->toString()));
+            throw BinderException(
+                stringFormat("Cannot find {} in join hint.", nodeOrRel->toString()));
         }
     }
 }
@@ -50,7 +51,6 @@ std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause&
     return boundMatch;
 }
 
-
 std::shared_ptr<BoundJoinHintNode> Binder::bindJoinHint(const parser::JoinHintNode& joinHintNode) {
     if (joinHintNode.isLeaf()) {
         std::shared_ptr<Expression> pattern = nullptr;
@@ -58,7 +58,8 @@ std::shared_ptr<BoundJoinHintNode> Binder::bindJoinHint(const parser::JoinHintNo
             pattern = scope.getExpression(joinHintNode.variableName);
         }
         if (pattern == nullptr || pattern->expressionType != ExpressionType::PATTERN) {
-            throw BinderException(stringFormat("Cannot bind {} to a node or relationship pattern", joinHintNode.variableName));
+            throw BinderException(stringFormat("Cannot bind {} to a node or relationship pattern",
+                joinHintNode.variableName));
         }
         return std::make_shared<BoundJoinHintNode>(std::move(pattern));
     }

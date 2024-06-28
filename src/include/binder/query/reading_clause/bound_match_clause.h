@@ -36,13 +36,9 @@ public:
 
     common::MatchClauseType getMatchClauseType() const { return matchClauseType; }
 
-    void setHint(std::shared_ptr<BoundJoinHintNode> root) {
-        hintRoot = std::move(root);
-    }
+    void setHint(std::shared_ptr<BoundJoinHintNode> root) { hintRoot = std::move(root); }
     bool hasHint() const { return hintRoot != nullptr; }
-    std::shared_ptr<BoundJoinHintNode> getHint() const {
-        return hintRoot;
-    }
+    std::shared_ptr<BoundJoinHintNode> getHint() const { return hintRoot; }
 
 private:
     QueryGraphCollection collection;

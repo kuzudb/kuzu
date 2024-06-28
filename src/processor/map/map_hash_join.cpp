@@ -1,8 +1,8 @@
+#include "binder/expression/expression_util.h"
 #include "planner/operator/logical_hash_join.h"
 #include "processor/operator/hash_join/hash_join_build.h"
 #include "processor/operator/hash_join/hash_join_probe.h"
 #include "processor/plan_mapper.h"
-#include "binder/expression/expression_util.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::planner;

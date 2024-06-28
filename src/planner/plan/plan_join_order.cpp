@@ -2,10 +2,10 @@
 #include "common/enums/join_type.h"
 #include "main/client_context.h"
 #include "planner/join_order/cost_model.h"
+#include "planner/join_order/join_plan_solver.h"
+#include "planner/join_order/join_tree_constructor.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 #include "planner/planner.h"
-#include "planner/join_order/join_tree_constructor.h"
-#include "planner/join_order/join_plan_solver.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -99,8 +99,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraphCollection
     }
     // Fail to plan ExpressionsScan with any query graph. Plan it independently and fall back to
     // cross product.
-    if (info.subqueryType == SubqueryType::CORRELATED &&
-        queryGraphIdxToPlanExpressionsScan == -1) {
+    if (info.subqueryType == SubqueryType::CORRELATED && queryGraphIdxToPlanExpressionsScan == -1) {
         auto plan = std::make_unique<LogicalPlan>();
         appendExpressionsScan(corrExprs, *plan);
         appendDistinct(corrExprs, *plan);
@@ -128,8 +127,8 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraphCollection
     return result;
 }
 
-std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraph(
-    const QueryGraph& queryGraph, const QueryGraphPlanningInfo& info) {
+std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraph(const QueryGraph& queryGraph,
+    const QueryGraphPlanningInfo& info) {
     context.init(&queryGraph, info.predicates);
     cardinalityEstimator.initNodeIDDom(queryGraph, clientContext->getTx());
     if (info.hint != nullptr) {
@@ -429,7 +428,8 @@ void Planner::planWCOJoin(const SubqueryGraph& subgraph,
         }
         relPlans.push_back(std::move(relPlan));
     }
-    auto predicates = getNewlyMatchedExprs(prevSubgraphs, newSubgraph, context.getWhereExpressions());
+    auto predicates =
+        getNewlyMatchedExprs(prevSubgraphs, newSubgraph, context.getWhereExpressions());
     for (auto& leftPlan : context.getPlans(subgraph)) {
         // Disable WCOJ if intersect node is in the scope of probe plan. This happens in the case
         // like, MATCH (a)-[e1]->(b), (b)-[e2]->(a), (a)-[e3]->(b).
@@ -549,7 +549,8 @@ void Planner::planInnerHashJoin(const SubqueryGraph& subgraph, const SubqueryGra
     for (auto& joinNode : joinNodes) {
         joinNodeIDs.push_back(joinNode->getInternalID());
     }
-    auto predicates = getNewlyMatchedExprs(subgraph, otherSubgraph, newSubgraph, context.getWhereExpressions());
+    auto predicates =
+        getNewlyMatchedExprs(subgraph, otherSubgraph, newSubgraph, context.getWhereExpressions());
     for (auto& leftPlan : context.getPlans(subgraph)) {
         for (auto& rightPlan : context.getPlans(otherSubgraph)) {
             if (CostModel::computeHashJoinCost(joinNodeIDs, *leftPlan, *rightPlan) < maxCost) {
@@ -622,7 +623,6 @@ expression_vector Planner::getNewlyMatchedExprs(const SubqueryGraph& leftPrev,
     const SubqueryGraph& rightPrev, const SubqueryGraph& new_, const expression_vector& exprs) {
     return getNewlyMatchedExprs(std::vector<SubqueryGraph>{leftPrev, rightPrev}, new_, exprs);
 }
-
 
 } // namespace planner
 } // namespace kuzu

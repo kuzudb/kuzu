@@ -48,7 +48,6 @@ private:
 
     std::unique_ptr<SubPlansTable> subPlansTable;
     const binder::QueryGraph* queryGraph;
-
 };
 
 } // namespace planner

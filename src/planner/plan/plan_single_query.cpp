@@ -1,6 +1,6 @@
+#include "binder/expression/property_expression.h"
 #include "binder/visitor/property_collector.h"
 #include "planner/planner.h"
-#include "binder/expression/property_expression.h"
 
 using namespace kuzu::binder;
 
