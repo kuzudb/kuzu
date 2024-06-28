@@ -77,7 +77,7 @@ void ChunkedNodeGroup::resetToEmpty() {
 
 void ChunkedNodeGroup::setAllNull() {
     for (auto& chunk : chunks) {
-        chunk->getNullChunk()->resetToAllNull();
+        chunk->resetToAllNull();
     }
 }
 
@@ -98,7 +98,6 @@ uint64_t ChunkedNodeGroup::append(const std::vector<ValueVector*>& columnVectors
     SelectionVector& selVector, uint64_t numValuesToAppend) {
     auto numValuesToAppendInChunk =
         std::min(numValuesToAppend, StorageConstants::NODE_GROUP_SIZE - numRows);
-    //    auto slicedSelVector = selVector.slice(numValuesToAppendInChunk);
     auto originalSize = selVector.getSelSize();
     selVector.setSelSize(numValuesToAppendInChunk);
     for (auto i = 0u; i < chunks.size(); i++) {
@@ -108,7 +107,6 @@ uint64_t ChunkedNodeGroup::append(const std::vector<ValueVector*>& columnVectors
         chunk->append(columnVector, selVector);
     }
     selVector.setSelSize(originalSize);
-    //    selVector.selectedSize = originalSize;
     numRows += numValuesToAppendInChunk;
     return numValuesToAppendInChunk;
 }

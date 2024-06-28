@@ -6,7 +6,6 @@
 
 #include "common/assert.h"
 #include "common/null_mask.h"
-#include "common/type_utils.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "expression_evaluator/expression_evaluator.h"
@@ -779,7 +778,7 @@ void Column::applyLocalChunkToColumn(ChunkState& state, const ChunkCollection& l
     for (auto& [offsetInDstChunk, rowIdx] : updateInfo) {
         auto [chunkIdx, offsetInLocalChunk] =
             LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-        if (!localChunks[chunkIdx]->getNullChunk()->isNull(offsetInLocalChunk)) {
+        if (!localChunks[chunkIdx]->isNull(offsetInLocalChunk)) {
             write(state, offsetInDstChunk, localChunks[chunkIdx], offsetInLocalChunk,
                 1 /*numValues*/);
         } else {

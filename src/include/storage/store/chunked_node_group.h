@@ -53,7 +53,7 @@ public:
 
     virtual void writeToColumnChunk(common::idx_t chunkIdx, common::idx_t vectorIdx,
         const std::vector<std::unique_ptr<ColumnChunkData>>& data, ColumnChunkData& offsetChunk) {
-        chunks[chunkIdx]->write(data[vectorIdx].get(), &offsetChunk, common::RelMultiplicity::ONE);
+        chunks[chunkIdx]->write(data[vectorIdx].get(), &offsetChunk);
     }
 
 protected:
@@ -103,7 +103,7 @@ public:
     void writeToColumnChunk(common::idx_t chunkIdx, common::idx_t vectorIdx,
         const std::vector<std::unique_ptr<ColumnChunkData>>& data,
         ColumnChunkData& offsetChunk) override {
-        chunks[chunkIdx]->write(data[vectorIdx].get(), &offsetChunk, common::RelMultiplicity::MANY);
+        chunks[chunkIdx]->write(data[vectorIdx].get(), &offsetChunk);
     }
 
 private:

@@ -4,7 +4,6 @@
 
 #include "common/constants.h"
 #include "common/data_chunk/sel_vector.h"
-#include "common/enums/rel_multiplicity.h"
 #include "common/null_mask.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
@@ -42,7 +41,7 @@ public:
     // ColumnChunks must be initialized after construction, so this constructor should only be used
     // through the ColumnChunkFactory
     ColumnChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression = true,
-        bool hasNullChunk = true);
+        bool hasNull = true);
 
     virtual ~ColumnChunkData() = default;
 
@@ -60,12 +59,14 @@ public:
         }
     }
 
+    bool isNull(common::offset_t pos) const;
     NullChunkData* getNullChunk() { return nullChunk.get(); }
     const NullChunkData& getNullChunk() const { return *nullChunk; }
     std::optional<common::NullMask> getNullMask() const;
     common::LogicalType& getDataType() { return dataType; }
     const common::LogicalType& getDataType() const { return dataType; }
 
+    virtual void resetToAllNull();
     virtual void resetToEmpty();
 
     // Note that the startPageIdx is not known, so it will always be common::INVALID_PAGE_IDX
@@ -93,8 +94,7 @@ public:
     // `offsetInVector`, we should flatten the vector to pos at `offsetInVector`.
     virtual void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk);
-    virtual void write(ColumnChunkData* chunk, ColumnChunkData* offsetsInChunk,
-        common::RelMultiplicity multiplicity);
+    virtual void write(ColumnChunkData* chunk, ColumnChunkData* offsetsInChunk);
     virtual void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
     // TODO(Guodong): Used in `applyDeletionsToChunk`. Should unify with `write`.
@@ -186,8 +186,7 @@ public:
 
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
-    void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
-        common::RelMultiplicity multiplicity) final;
+    void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets) final;
     void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 };
@@ -211,7 +210,7 @@ public:
         memset(buffer.get(), 0 /* non null */, bufferSize);
         mayHaveNullValue = false;
     }
-    void resetToAllNull() {
+    void resetToAllNull() override {
         memset(buffer.get(), 0xFF /* null */, bufferSize);
         mayHaveNullValue = true;
     }
@@ -246,7 +245,7 @@ struct ColumnChunkFactory {
     // values to grow
     static std::unique_ptr<ColumnChunkData> createColumnChunkData(common::LogicalType dataType,
         bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE,
-        bool inMemory = false);
+        bool inMemory = false, bool hasNull = true);
 
     static std::unique_ptr<ColumnChunkData> createNullChunkData(bool enableCompression,
         uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE) {

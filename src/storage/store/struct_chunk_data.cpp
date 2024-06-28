@@ -90,8 +90,7 @@ void StructChunkData::write(ValueVector* vector, offset_t offsetInVector, offset
     }
 }
 
-void StructChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
-    RelMultiplicity multiplicity) {
+void StructChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets) {
     KU_ASSERT(chunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT &&
               dstOffsets->getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     for (auto i = 0u; i < dstOffsets->getNumValues(); i++) {
@@ -102,7 +101,7 @@ void StructChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
     }
     auto& structChunk = chunk->cast<StructChunkData>();
     for (auto i = 0u; i < childChunks.size(); i++) {
-        childChunks[i]->write(structChunk.getChild(i), dstOffsets, multiplicity);
+        childChunks[i]->write(structChunk.getChild(i), dstOffsets);
     }
 }
 
