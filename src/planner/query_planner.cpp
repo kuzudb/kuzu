@@ -1,5 +1,3 @@
-#include "binder/expression/expression_util.h"
-#include "binder/expression/property_expression.h"
 #include "binder/query/bound_regular_query.h"
 #include "planner/operator/logical_union.h"
 #include "planner/planner.h"
@@ -96,25 +94,14 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::getInitialEmptyPlans() {
     return plans;
 }
 
-expression_vector Planner::getProperties(const Expression& nodeOrRel) {
-    KU_ASSERT(ExpressionUtil::isNodePattern(nodeOrRel) || ExpressionUtil::isRelPattern(nodeOrRel));
-    expression_vector result;
-    for (auto& expression : propertiesToScan) {
-        auto property = (PropertyExpression*)expression.get();
-        if (property->getVariableName() == nodeOrRel.getUniqueName()) {
-            result.push_back(expression);
-        }
-    }
-    return result;
+expression_vector Planner::getProperties(const Expression& pattern) {
+    KU_ASSERT(pattern.expressionType == ExpressionType::PATTERN);
+    return propertyExprCollection.getProperties(pattern);
 }
 
-JoinOrderEnumeratorContext Planner::enterContext(SubqueryType subqueryType,
-    const expression_vector& correlatedExpressions, uint64_t cardinality) {
+JoinOrderEnumeratorContext Planner::enterContext() {
     auto prevContext = std::move(context);
     context = JoinOrderEnumeratorContext();
-    context.subqueryType = subqueryType;
-    context.correlatedExpressions = correlatedExpressions;
-    context.correlatedExpressionsCardinality = cardinality;
     return prevContext;
 }
 

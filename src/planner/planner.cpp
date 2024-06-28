@@ -12,6 +12,40 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace planner {
 
+expression_vector PropertyExprCollection::getProperties(const Expression& pattern) const {
+    if (!patternNameToProperties.contains(pattern.getUniqueName())) {
+        return binder::expression_vector{};
+    }
+    return patternNameToProperties.at(pattern.getUniqueName());
+}
+
+binder::expression_vector PropertyExprCollection::getProperties() const {
+    expression_vector result;
+    for (auto& [_, exprs] : patternNameToProperties) {
+        for (auto& expr : exprs) {
+            result.push_back(expr);
+        }
+    }
+    return result;
+}
+
+void PropertyExprCollection::addProperties(const std::string& patternName,
+    std::shared_ptr<binder::Expression> property) {
+    if (!patternNameToProperties.contains(patternName)) {
+        patternNameToProperties.insert({patternName, expression_vector{}});
+    }
+    for (auto& p : patternNameToProperties.at(patternName)) {
+        if (*p == *property) {
+            return;
+        }
+    }
+    patternNameToProperties.at(patternName).push_back(property);
+}
+
+void PropertyExprCollection::clear() {
+    patternNameToProperties.clear();
+}
+
 Planner::Planner(main::ClientContext* clientContext) : clientContext{clientContext} {
     auto nStats = clientContext->getStorageManager()->getNodesStatisticsAndDeletedIDs();
     auto rStats = clientContext->getStorageManager()->getRelsStatistics();

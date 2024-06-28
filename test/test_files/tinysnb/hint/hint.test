@@ -1,0 +1,53 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE Hint
+
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person)
+            WHERE a.ID > b.ID
+            HINT (a JOIN e)
+            RETURN a.ID, b.ID
+---- error
+Binder exception: Cannot find b in join hint.
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person)
+         WHERE a.ID > b.ID
+         HINT (a JOIN b) JOIN e
+         RETURN a.ID, b.ID
+---- error
+Binder exception: Cannot resolve join condition.
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person)
+         WHERE a.ID > b.ID
+         HINT (a JOIN x) JOIN e
+         RETURN a.ID, b.ID
+---- error
+Binder exception: Cannot bind x to a node or relationship pattern
+-STATEMENT WITH 1 AS x
+         MATCH (a:person)-[e:knows]->(b:person)
+         WHERE a.ID > b.ID
+         HINT (a JOIN x) JOIN e
+         RETURN a.ID, b.ID
+---- error
+Binder exception: Cannot bind x to a node or relationship pattern
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person)
+            WHERE a.ID > b.ID
+            HINT (a JOIN e) JOIN b
+            RETURN a.ID, b.ID
+---- 6
+2|0
+3|0
+3|2
+5|0
+5|2
+5|3
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person)-[e2:knows]->(c:person), (a)-[e3:knows]->(c)
+            WHERE a.ID > b.ID + c.ID
+            HINT (((a JOIN e) JOIN b) MULTI_JOIN e2 MULTI_JOIN e3) JOIN c
+            RETURN a.ID, b.ID, c.ID
+---- 6
+3|0|2
+3|2|0
+5|0|2
+5|0|3
+5|2|0
+5|3|0

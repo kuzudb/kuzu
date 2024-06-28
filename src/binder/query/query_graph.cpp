@@ -15,11 +15,11 @@ std::size_t SubqueryGraphHasher::operator()(const SubqueryGraph& key) const {
 bool SubqueryGraph::containAllVariables(std::unordered_set<std::string>& variables) const {
     for (auto& var : variables) {
         if (queryGraph.containsQueryNode(var) &&
-            !queryNodesSelector[queryGraph.getQueryNodePos(var)]) {
+            !queryNodesSelector[queryGraph.getQueryNodeIdx(var)]) {
             return false;
         }
         if (queryGraph.containsQueryRel(var) &&
-            !queryRelsSelector[queryGraph.getQueryRelPos(var)]) {
+            !queryRelsSelector[queryGraph.getQueryRelIdx(var)]) {
             return false;
         }
     }
@@ -33,11 +33,11 @@ std::unordered_set<uint32_t> SubqueryGraph::getNodeNbrPositions() const {
             continue;
         }
         auto rel = queryGraph.getQueryRel(relPos);
-        auto srcNodePos = queryGraph.getQueryNodePos(*rel->getSrcNode());
+        auto srcNodePos = queryGraph.getQueryNodeIdx(*rel->getSrcNode());
         if (!queryNodesSelector[srcNodePos]) {
             result.insert(srcNodePos);
         }
-        auto dstNodePos = queryGraph.getQueryNodePos(*rel->getDstNode());
+        auto dstNodePos = queryGraph.getQueryNodeIdx(*rel->getDstNode());
         if (!queryNodesSelector[dstNodePos]) {
             result.insert(dstNodePos);
         }
@@ -52,8 +52,8 @@ std::unordered_set<uint32_t> SubqueryGraph::getRelNbrPositions() const {
             continue;
         }
         auto rel = queryGraph.getQueryRel(relPos);
-        auto srcNodePos = queryGraph.getQueryNodePos(*rel->getSrcNode());
-        auto dstNodePos = queryGraph.getQueryNodePos(*rel->getDstNode());
+        auto srcNodePos = queryGraph.getQueryNodeIdx(*rel->getSrcNode());
+        auto dstNodePos = queryGraph.getQueryNodeIdx(*rel->getDstNode());
         if (queryNodesSelector[srcNodePos] || queryNodesSelector[dstNodePos]) {
             result.insert(relPos);
         }
@@ -100,11 +100,30 @@ std::unordered_set<uint32_t> SubqueryGraph::getNodePositionsIgnoringNodeSelector
     for (auto relPos = 0u; relPos < queryGraph.getNumQueryRels(); ++relPos) {
         auto rel = queryGraph.getQueryRel(relPos);
         if (queryRelsSelector[relPos]) {
-            result.insert(queryGraph.getQueryNodePos(rel->getSrcNodeName()));
-            result.insert(queryGraph.getQueryNodePos(rel->getDstNodeName()));
+            result.insert(queryGraph.getQueryNodeIdx(rel->getSrcNodeName()));
+            result.insert(queryGraph.getQueryNodeIdx(rel->getDstNodeName()));
         }
     }
     return result;
+}
+
+std::vector<common::idx_t> SubqueryGraph::getNbrNodeIndices() const {
+    std::unordered_set<common::idx_t> result;
+    for (auto i = 0u; i < queryGraph.getNumQueryRels(); ++i) {
+        if (!queryRelsSelector[i]) {
+            continue;
+        }
+        auto rel = queryGraph.getQueryRel(i);
+        auto srcNodePos = queryGraph.getQueryNodeIdx(rel->getSrcNodeName());
+        auto dstNodePos = queryGraph.getQueryNodeIdx(rel->getDstNodeName());
+        if (!queryNodesSelector[srcNodePos]) {
+            result.insert(srcNodePos);
+        }
+        if (!queryNodesSelector[dstNodePos]) {
+            result.insert(dstNodePos);
+        }
+    }
+    return std::vector<common::idx_t>{result.begin(), result.end()};
 }
 
 subquery_graph_set_t SubqueryGraph::getBaseNbrSubgraph() const {

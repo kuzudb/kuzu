@@ -17,6 +17,7 @@ struct PropertyDefinitionDDL;
 struct CreateTableInfo;
 struct BaseScanSource;
 class ProjectGraph;
+struct JoinHintNode;
 } // namespace parser
 
 namespace catalog {
@@ -59,6 +60,7 @@ class BoundWithClause;
 class BoundReturnClause;
 struct BoundFileScanInfo;
 struct ExportedTableData;
+struct BoundJoinHintNode;
 
 // BinderScope keeps track of expressions in scope and their aliases. We maintain the order of
 // expressions in
@@ -174,6 +176,7 @@ public:
     std::unique_ptr<BoundReadingClause> bindReadingClause(
         const parser::ReadingClause& readingClause);
     std::unique_ptr<BoundReadingClause> bindMatchClause(const parser::ReadingClause& readingClause);
+    std::shared_ptr<BoundJoinHintNode> bindJoinHint(const parser::JoinHintNode& joinHintNode);
     void rewriteMatchPattern(BoundGraphPattern& boundGraphPattern);
     std::unique_ptr<BoundReadingClause> bindUnwindClause(
         const parser::ReadingClause& readingClause);

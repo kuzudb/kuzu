@@ -1,5 +1,7 @@
 #include "binder/expression/expression_util.h"
 
+#include <algorithm>
+
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/node_rel_expression.h"
 #include "binder/expression/parameter_expression.h"
@@ -38,7 +40,7 @@ uint32_t ExpressionUtil::find(Expression* target, expression_vector expressions)
             return i;
         }
     }
-    return UINT32_MAX;
+    return INVALID_IDX;
 }
 
 std::string ExpressionUtil::toString(const expression_vector& expressions) {
@@ -50,6 +52,16 @@ std::string ExpressionUtil::toString(const expression_vector& expressions) {
         result += "," + expressions[i]->toString();
     }
     return result;
+}
+
+std::string ExpressionUtil::toStringOrdered(const expression_vector& expressions) {
+    auto expressions_ = expressions;
+    std::sort(expressions_.begin(), expressions_.end(),
+        [](const std::shared_ptr<binder::Expression>& a,
+            const std::shared_ptr<binder::Expression>& b) {
+            return a->toString() < b->toString();
+        });
+    return toString(expressions_);
 }
 
 std::string ExpressionUtil::toString(const std::vector<expression_pair>& expressionPairs) {

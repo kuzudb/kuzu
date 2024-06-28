@@ -317,7 +317,9 @@ std::string TestRunner::convertResultColumnsToString(main::QueryResult& queryRes
 
 std::unique_ptr<planner::LogicalPlan> TestRunner::getLogicalPlan(const std::string& query,
     kuzu::main::Connection& conn) {
-    return std::move(conn.prepare(query)->logicalPlans[0]);
+    auto preparedStatement = conn.prepare(query);
+    KU_ASSERT(preparedStatement->isSuccess());
+    return std::move(preparedStatement->logicalPlans[0]);
 }
 
 } // namespace testing

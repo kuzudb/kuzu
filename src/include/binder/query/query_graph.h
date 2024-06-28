@@ -29,15 +29,15 @@ struct SubqueryGraph {
 
     explicit SubqueryGraph(const QueryGraph& queryGraph) : queryGraph{queryGraph} {}
 
-    void addQueryNode(uint32_t nodePos) { queryNodesSelector[nodePos] = true; }
-    void addQueryRel(uint32_t relPos) { queryRelsSelector[relPos] = true; }
+    void addQueryNode(common::idx_t nodePos) { queryNodesSelector[nodePos] = true; }
+    void addQueryRel(common::idx_t relPos) { queryRelsSelector[relPos] = true; }
     void addSubqueryGraph(const SubqueryGraph& other) {
         queryRelsSelector |= other.queryRelsSelector;
         queryNodesSelector |= other.queryNodesSelector;
     }
 
-    uint32_t getNumQueryRels() const { return queryRelsSelector.count(); }
-    uint32_t getTotalNumVariables() const {
+    common::idx_t getNumQueryRels() const { return queryRelsSelector.count(); }
+    common::idx_t getTotalNumVariables() const {
         return queryNodesSelector.count() + queryRelsSelector.count();
     }
     bool isSingleRel() const {
@@ -46,15 +46,17 @@ struct SubqueryGraph {
 
     bool containAllVariables(std::unordered_set<std::string>& variables) const;
 
-    std::unordered_set<uint32_t> getNodeNbrPositions() const;
-    std::unordered_set<uint32_t> getRelNbrPositions() const;
+    std::unordered_set<common::idx_t> getNodeNbrPositions() const;
+    std::unordered_set<common::idx_t> getRelNbrPositions() const;
     subquery_graph_set_t getNbrSubgraphs(uint32_t size) const;
     std::vector<uint32_t> getConnectedNodePos(const SubqueryGraph& nbr) const;
 
     // E.g. query graph (a)-[e1]->(b) and subgraph (a)-[e1], although (b) is not in subgraph, we
     // return both (a) and (b) regardless of node selector. See needPruneJoin() in
     // join_order_enumerator.cpp for its use case.
-    std::unordered_set<uint32_t> getNodePositionsIgnoringNodeSelector() const;
+    std::unordered_set<common::idx_t> getNodePositionsIgnoringNodeSelector() const;
+
+    std::vector<common::idx_t> getNbrNodeIndices() const;
 
     bool operator==(const SubqueryGraph& other) const {
         return queryRelsSelector == other.queryRelsSelector &&
@@ -79,16 +81,16 @@ public:
 
     std::vector<std::shared_ptr<NodeOrRelExpression>> getAllPatterns() const;
 
-    uint32_t getNumQueryNodes() const { return queryNodes.size(); }
+    common::idx_t getNumQueryNodes() const { return queryNodes.size(); }
     bool containsQueryNode(const std::string& queryNodeName) const {
         return queryNodeNameToPosMap.contains(queryNodeName);
     }
     std::vector<std::shared_ptr<NodeExpression>> getQueryNodes() const { return queryNodes; }
     std::shared_ptr<NodeExpression> getQueryNode(const std::string& queryNodeName) const {
-        return queryNodes[getQueryNodePos(queryNodeName)];
+        return queryNodes[getQueryNodeIdx(queryNodeName)];
     }
     std::vector<std::shared_ptr<NodeExpression>> getQueryNodes(
-        const std::vector<uint32_t>& nodePoses) const {
+        const std::vector<common::idx_t>& nodePoses) const {
         std::vector<std::shared_ptr<NodeExpression>> result;
         result.reserve(nodePoses.size());
         for (auto nodePos : nodePoses) {
@@ -96,18 +98,18 @@ public:
         }
         return result;
     }
-    std::shared_ptr<NodeExpression> getQueryNode(uint32_t nodePos) const {
+    std::shared_ptr<NodeExpression> getQueryNode(common::idx_t nodePos) const {
         return queryNodes[nodePos];
     }
-    uint32_t getQueryNodePos(NodeExpression& node) const {
-        return getQueryNodePos(node.getUniqueName());
+    common::idx_t getQueryNodeIdx(NodeExpression& node) const {
+        return getQueryNodeIdx(node.getUniqueName());
     }
-    uint32_t getQueryNodePos(const std::string& queryNodeName) const {
+    common::idx_t getQueryNodeIdx(const std::string& queryNodeName) const {
         return queryNodeNameToPosMap.at(queryNodeName);
     }
     void addQueryNode(std::shared_ptr<NodeExpression> queryNode);
 
-    uint32_t getNumQueryRels() const { return queryRels.size(); }
+    common::idx_t getNumQueryRels() const { return queryRels.size(); }
     bool containsQueryRel(const std::string& queryRelName) const {
         return queryRelNameToPosMap.contains(queryRelName);
     }
@@ -115,8 +117,10 @@ public:
     std::shared_ptr<RelExpression> getQueryRel(const std::string& queryRelName) const {
         return queryRels.at(queryRelNameToPosMap.at(queryRelName));
     }
-    std::shared_ptr<RelExpression> getQueryRel(uint32_t relPos) const { return queryRels[relPos]; }
-    uint32_t getQueryRelPos(const std::string& queryRelName) const {
+    std::shared_ptr<RelExpression> getQueryRel(common::idx_t relPos) const {
+        return queryRels[relPos];
+    }
+    common::idx_t getQueryRelIdx(const std::string& queryRelName) const {
         return queryRelNameToPosMap.at(queryRelName);
     }
     void addQueryRel(std::shared_ptr<RelExpression> queryRel);

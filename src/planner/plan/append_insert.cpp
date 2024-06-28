@@ -15,7 +15,7 @@ std::unique_ptr<LogicalInsertInfo> Planner::createLogicalInsertInfo(const BoundI
         insertInfo->columnExprs = expression_vector{info->iriReplaceExpr};
         KU_ASSERT(insertInfo->columnExprs.size() == 1);
         auto projectIri = false;
-        for (auto& property : propertiesToScan) {
+        for (auto& property : propertyExprCollection.getProperties()) {
             if (*property == *info->iriReplaceExpr) {
                 projectIri = true;
             }

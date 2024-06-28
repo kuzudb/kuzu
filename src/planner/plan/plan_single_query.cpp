@@ -1,3 +1,4 @@
+#include "binder/expression/property_expression.h"
 #include "binder/visitor/property_collector.h"
 #include "planner/planner.h"
 
@@ -13,7 +14,11 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::planSingleQuery(
     const NormalizedSingleQuery* singleQuery) {
     auto propertyCollector = binder::PropertyCollector();
     propertyCollector.visitSingleQuery(*singleQuery);
-    propertiesToScan = propertyCollector.getProperties();
+    auto properties = propertyCollector.getProperties();
+    for (auto& expr : propertyCollector.getProperties()) {
+        auto& property = expr->constCast<PropertyExpression>();
+        propertyExprCollection.addProperties(property.getVariableName(), expr);
+    }
     context.resetState();
     auto plans = getInitialEmptyPlans();
     for (auto i = 0u; i < singleQuery->getNumQueryParts(); ++i) {

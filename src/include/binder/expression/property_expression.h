@@ -45,8 +45,8 @@ public:
     bool isPrimaryKey(common::table_id_t tableID) const;
 
     std::string getPropertyName() const { return propertyName; }
-
     std::string getVariableName() const { return uniqueVarName; }
+    std::string getRawVariableName() const { return rawVariableName; }
 
     // If this property exists for given table.
     bool hasPropertyID(common::table_id_t tableID) const;

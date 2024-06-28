@@ -73,6 +73,7 @@ static void validateSelState(const common::SelectionVector& leftSelVec,
     auto leftSelSize = leftSelVec.getSelSize();
     auto rightSelSize = rightSelVec.getSelSize();
     auto resultSelSize = resultSelVec.getSelSize();
+    (void)resultSelSize;
     if (leftSelSize > 1 && rightSelSize > 1) {
         KU_ASSERT(leftSelSize == rightSelSize);
         KU_ASSERT(leftSelSize == resultSelSize);

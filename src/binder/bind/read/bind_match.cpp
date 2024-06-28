@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
+#include "common/exception/binder.h"
 #include "parser/query/reading_clause/match_clause.h"
 
 using namespace kuzu::common;
@@ -7,6 +8,27 @@ using namespace kuzu::parser;
 
 namespace kuzu {
 namespace binder {
+
+static void collectHintPattern(const BoundJoinHintNode& node, binder::expression_set& set) {
+    if (node.isLeaf()) {
+        set.insert(node.nodeOrRel);
+        return;
+    }
+    for (auto& child : node.children) {
+        collectHintPattern(*child, set);
+    }
+}
+
+static void validateHintCompleteness(const BoundJoinHintNode& root, const QueryGraph& queryGraph) {
+    binder::expression_set set;
+    collectHintPattern(root, set);
+    for (auto& nodeOrRel : queryGraph.getAllPatterns()) {
+        if (!set.contains(nodeOrRel)) {
+            throw BinderException(
+                stringFormat("Cannot find {} in join hint.", nodeOrRel->toString()));
+        }
+    }
+}
 
 std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause& readingClause) {
     auto& matchClause = readingClause.constCast<MatchClause>();
@@ -17,8 +39,35 @@ std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause&
     rewriteMatchPattern(boundGraphPattern);
     auto boundMatch = std::make_unique<BoundMatchClause>(
         std::move(boundGraphPattern.queryGraphCollection), matchClause.getMatchClauseType());
+    if (matchClause.hasHint()) {
+        if (boundMatch->getQueryGraphCollection()->getNumQueryGraphs() > 1) {
+            throw BinderException("Join hint on disconnected match pattern is not supported.");
+        }
+        auto hint = bindJoinHint((*matchClause.getHint()));
+        validateHintCompleteness(*hint, *boundMatch->getQueryGraphCollection()->getQueryGraph(0));
+        boundMatch->setHint(std::move(hint));
+    }
     boundMatch->setPredicate(boundGraphPattern.where);
     return boundMatch;
+}
+
+std::shared_ptr<BoundJoinHintNode> Binder::bindJoinHint(const parser::JoinHintNode& joinHintNode) {
+    if (joinHintNode.isLeaf()) {
+        std::shared_ptr<Expression> pattern = nullptr;
+        if (scope.contains(joinHintNode.variableName)) {
+            pattern = scope.getExpression(joinHintNode.variableName);
+        }
+        if (pattern == nullptr || pattern->expressionType != ExpressionType::PATTERN) {
+            throw BinderException(stringFormat("Cannot bind {} to a node or relationship pattern",
+                joinHintNode.variableName));
+        }
+        return std::make_shared<BoundJoinHintNode>(std::move(pattern));
+    }
+    auto node = std::make_shared<BoundJoinHintNode>();
+    for (auto& child : joinHintNode.children) {
+        node->addChild(bindJoinHint(*child));
+    }
+    return node;
 }
 
 void Binder::rewriteMatchPattern(BoundGraphPattern& boundGraphPattern) {
