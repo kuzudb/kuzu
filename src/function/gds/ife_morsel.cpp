@@ -11,6 +11,7 @@ IFEMorsel::~IFEMorsel() {
 }
 
 void IFEMorsel::init() {
+    std::unique_lock lck{mutex};
     if (initializedIFEMorsel) {
         return;
     }
@@ -38,7 +39,7 @@ void IFEMorsel::resetNoLock(common::offset_t srcOffset_) {
 }
 
 function::CallFuncMorsel IFEMorsel::getMorsel(uint64_t morselSize) {
-    auto morselStartIdx = nextScanStartIdx.fetch_add(morselSize, std::memory_order_acq_rel);
+    auto morselStartIdx = nextScanStartIdx.fetch_add(morselSize, std::memory_order_seq_cst);
     if (morselStartIdx >= bfsLevelNodeOffsets.size()) {
         return function::CallFuncMorsel::createInvalidMorsel();
     }
@@ -47,7 +48,7 @@ function::CallFuncMorsel IFEMorsel::getMorsel(uint64_t morselSize) {
 }
 
 function::CallFuncMorsel IFEMorsel::getDstWriteMorsel(uint64_t morselSize) {
-    auto morselStartIdx = nextDstScanStartIdx.fetch_add(morselSize, std::memory_order_acq_rel);
+    auto morselStartIdx = nextDstScanStartIdx.fetch_add(morselSize, std::memory_order_seq_cst);
     if (morselStartIdx >= maxOffset) {
         return function::CallFuncMorsel::createInvalidMorsel();
     }
@@ -62,7 +63,7 @@ bool IFEMorsel::isBFSCompleteNoLock() const {
     if (bfsLevelNodeOffsets.empty()) {
         return true;
     }
-    if (numVisitedDstNodes.load(std::memory_order_acq_rel) == numDstNodesToVisit) {
+    if (numVisitedDstNodes.load(std::memory_order_seq_cst) == numDstNodesToVisit) {
         return true;
     }
     return false;
@@ -70,11 +71,11 @@ bool IFEMorsel::isBFSCompleteNoLock() const {
 
 bool IFEMorsel::isIFEMorselCompleteNoLock() const {
     return isBFSCompleteNoLock() &&
-           (nextDstScanStartIdx.load(std::memory_order_acq_rel) >= maxOffset);
+           (nextDstScanStartIdx.load(std::memory_order_seq_cst) >= maxOffset);
 }
 
 void IFEMorsel::mergeResults(uint64_t numDstVisitedLocal) {
-    numVisitedDstNodes.fetch_add(numDstVisitedLocal, std::memory_order_acq_rel);
+    numVisitedDstNodes.fetch_add(numDstVisitedLocal, std::memory_order_seq_cst);
 }
 
 void IFEMorsel::initializeNextFrontierNoLock() {
@@ -85,13 +86,13 @@ void IFEMorsel::initializeNextFrontierNoLock() {
     }
     bfsLevelNodeOffsets.clear();
     for (auto offset = 0u; offset < (maxOffset + 1); offset++) {
-        auto state = visitedNodes[offset].load(std::memory_order_acq_rel);
+        auto state = visitedNodes[offset].load(std::memory_order_seq_cst);
         if (state == VISITED_DST_NEW) {
             bfsLevelNodeOffsets.push_back(offset);
-            visitedNodes[offset].store(VISITED_DST, std::memory_order_acq_rel);
+            visitedNodes[offset].store(VISITED_DST, std::memory_order_seq_cst);
         } else if (state == VISITED_NEW) {
             bfsLevelNodeOffsets.push_back(offset);
-            visitedNodes[offset].store(VISITED, std::memory_order_acq_rel);
+            visitedNodes[offset].store(VISITED, std::memory_order_seq_cst);
         }
     }
 }
