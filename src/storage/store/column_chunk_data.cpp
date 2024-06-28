@@ -302,7 +302,7 @@ uint64_t ColumnChunkData::getBufferSize(uint64_t capacity_) const {
 void ColumnChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     sel_t posInOutputVector) const {
     KU_ASSERT(offsetInChunk < capacity);
-    output.setNull(posInOutputVector, nullChunk ? nullChunk->isNull(offsetInChunk) : false);
+    output.setNull(posInOutputVector, isNull(offsetInChunk));
     if (!output.isNull(posInOutputVector)) {
         memcpy(output.getData() + posInOutputVector * numBytesPerValue,
             buffer.get() + offsetInChunk * numBytesPerValue, numBytesPerValue);
@@ -323,7 +323,7 @@ void ColumnChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets)
     if (nullChunk) {
         for (auto i = 0u; i < dstOffsets->getNumValues(); i++) {
             const auto dstOffset = dstOffsets->getValue<offset_t>(i);
-            nullChunk->setNull(dstOffset, chunk->getNullChunk()->isNull(i));
+            nullChunk->setNull(dstOffset, chunk->isNull(i));
         }
     }
 }
@@ -358,6 +358,7 @@ void ColumnChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk
         srcChunk->buffer.get() + srcOffsetInChunk * numBytesPerValue,
         numValuesToCopy * numBytesPerValue);
     if (nullChunk) {
+        KU_ASSERT(srcChunk->getNullChunk());
         nullChunk->write(srcChunk->getNullChunk(), srcOffsetInChunk, dstOffsetInChunk,
             numValuesToCopy);
     }
@@ -623,7 +624,7 @@ public:
     void lookup(offset_t offsetInChunk, ValueVector& output,
         sel_t posInOutputVector) const override {
         KU_ASSERT(offsetInChunk < capacity);
-        output.setNull(posInOutputVector, nullChunk ? nullChunk->isNull(offsetInChunk) : false);
+        output.setNull(posInOutputVector, false);
         if (!output.isNull(posInOutputVector)) {
             auto relID = output.getValue<internalID_t>(posInOutputVector);
             relID.offset = getValue<offset_t>(offsetInChunk);
