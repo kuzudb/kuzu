@@ -60,9 +60,9 @@ bool RelDataReadState::hasMoreToReadInPersistentStorage() const {
     return !(currNodeIdx == totalNodeIdxs);
 }
 
-std::vector<std::pair<offset_t, offset_t>>
+std::vector<offset_t>
 RelDataReadState::getStartAndEndOffset(ValueVector& inNodeIDVector) {
-    std::vector<std::pair<offset_t, offset_t>> result;
+    std::vector<offset_t> result;
     auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     auto& selVector = inNodeIDVector.state->getSelVector();
     auto startNodeIdx = currNodeIdx;
@@ -80,7 +80,9 @@ RelDataReadState::getStartAndEndOffset(ValueVector& inNodeIDVector) {
             batchSize += spaceToRead;
             posInLastCSR += spaceToRead;
         }
-        result.emplace_back(startOffset, startOffset + numToRead);
+        for (auto i = startOffset; i < startOffset + numToRead; i++) {
+            result.emplace_back(i);
+        }
     }
     return result;
 }
@@ -274,9 +276,9 @@ void RelTableData::scan(Transaction* transaction, TableDataScanState& readState,
         return;
     }
     KU_ASSERT(relReadState.readFromPersistentStorage);
-    auto offsetPairs = relReadState.getStartAndEndOffset(inNodeIDVector);
-    auto& startOffset = offsetPairs.front().first;
-    auto& endOffset = offsetPairs.back().second;
+    auto offsetVector = relReadState.getStartAndEndOffset(inNodeIDVector);
+    auto startOffset = offsetVector.front();
+    auto endOffset = offsetVector.back() + 1;
     auto numToRead = endOffset - startOffset;
     outputVectors[0]->state->getSelVectorUnsafe().setToUnfiltered(relReadState.batchSize);
     auto relIDVectorIdx = INVALID_IDX;
@@ -296,10 +298,8 @@ void RelTableData::scan(Transaction* transaction, TableDataScanState& readState,
         currColumn->scan(transaction, relReadState.chunkStates[i], dataChunk.get(), 
             startOffset, endOffset);
         sel_t vectorPos = 0;
-        for (auto& [start, end]: offsetPairs) {
-            for (auto off = start; off < end; off++, vectorPos++) {
-                dataChunk->lookup(off - startOffset, *outputVectors[outputVectorId], vectorPos);
-            }
+        for (auto& offset: offsetVector) {
+            dataChunk->lookup(offset - startOffset, *outputVectors[outputVectorId], vectorPos++);
         }
         if (currColumn->getDataType().getLogicalTypeID() == LogicalTypeID::INTERNAL_ID) {
             ku_dynamic_cast<Column*, InternalIDColumn*>(currColumn)->populateCommonTableID(outputVectors[outputVectorId]);
