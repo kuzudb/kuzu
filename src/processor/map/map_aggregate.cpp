@@ -82,7 +82,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(LogicalOperator* logi
     auto child = agg.getChild(0).get();
     auto inSchema = child->getSchema();
     auto prevOperator = mapOperator(child);
-    auto paramsString = agg.getExpressionsForPrinting();
     if (agg.hasKeys()) {
         return createHashAggregate(agg.getKeys(), agg.getDependentKeys(), aggregates,
             nullptr /* mark */, inSchema, outSchema, std::move(prevOperator));
