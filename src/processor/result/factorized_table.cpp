@@ -462,6 +462,9 @@ void FactorizedTable::readUnflatCol(uint8_t** tuplesToRead, ft_col_idx_t colIdx,
     ValueVector& vector) const {
     auto overflowColValue =
         *(overflow_value_t*)(tuplesToRead[0] + tableSchema.getColOffset(colIdx));
+    if (colIdx == 1 || colIdx == 2) {
+        printf("no. of values: %lu\n", overflowColValue.numElements);
+    }
     KU_ASSERT(vector.state->getSelVector().isUnfiltered());
     auto numBytesPerValue = LogicalTypeUtils::getRowLayoutSize(vector.dataType);
     if (hasNoNullGuarantee(colIdx)) {
