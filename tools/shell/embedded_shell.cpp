@@ -277,14 +277,14 @@ int EmbeddedShell::processShellCommands(std::string lineStr) {
     return 0;
 }
 
-EmbeddedShell::EmbeddedShell(const std::string& databasePath, const SystemConfig& systemConfig,
+EmbeddedShell::EmbeddedShell(std::shared_ptr<Database> database, std::shared_ptr<Connection> conn,
     const char* pathToHistory) {
     path_to_history = pathToHistory;
     linenoiseHistoryLoad(path_to_history);
     linenoiseSetCompletionCallback(completion);
     linenoiseSetHighlightCallback(highlight);
-    database = std::make_unique<Database>(databasePath, systemConfig);
-    conn = std::make_unique<Connection>(database.get());
+    this->database = database;
+    this->conn = conn;
     globalConnection = conn.get();
     maxRowSize = defaultMaxRows;
     maxPrintWidth = 0; // Will be determined when printing
