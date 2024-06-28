@@ -10,8 +10,6 @@ class DictionaryChunk {
 public:
     using string_offset_t = uint64_t;
     using string_index_t = uint32_t;
-    static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 0;
-    static constexpr common::idx_t OFFSET_COLUMN_CHILD_READ_STATE_IDX = 1;
 
     DictionaryChunk(uint64_t capacity, bool enableCompression, ResidencyState type);
     // A pointer to the dictionary chunk is stored in the StringOps for the indexTable

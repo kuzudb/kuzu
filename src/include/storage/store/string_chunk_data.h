@@ -11,6 +11,11 @@ namespace storage {
 
 class StringChunkData final : public ColumnChunkData {
 public:
+    static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 0;
+    static constexpr common::idx_t OFFSET_COLUMN_CHILD_READ_STATE_IDX = 1;
+    static constexpr common::idx_t INDEX_COLUMN_CHILD_READ_STATE_IDX = 2;
+    static constexpr common::idx_t CHILD_COLUMN_COUNT = 3;
+
     StringChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
         ResidencyState residencyState);
     StringChunkData(bool enableCompression, const ColumnChunkMetadata& metadata);

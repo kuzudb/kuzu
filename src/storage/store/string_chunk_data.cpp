@@ -15,6 +15,8 @@ StringChunkData::StringChunkData(LogicalType dataType, uint64_t capacity, bool e
     ResidencyState residencyState)
     : ColumnChunkData{std::move(dataType), capacity, enableCompression, residencyState,
           true /*hasNullData*/},
+      indexColumnChunk{ColumnChunkFactory::createColumnChunkData(LogicalType::UINT32(),
+          enableCompression, capacity, residencyState)},
       dictionaryChunk{std::make_unique<DictionaryChunk>(
           residencyState == ResidencyState::IN_MEMORY ? 0 : capacity, enableCompression,
           residencyState)},
@@ -99,11 +101,11 @@ void StringChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
 
 void StringChunkData::initializeScanState(ChunkState& state) const {
     ColumnChunkData::initializeScanState(state);
-    state.childrenStates.resize(2);
+    state.childrenStates.resize(CHILD_COLUMN_COUNT);
     dictionaryChunk->getOffsetChunk()->initializeScanState(
-        state.childrenStates[DictionaryChunk::OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
+        state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
     dictionaryChunk->getStringDataChunk()->initializeScanState(
-        state.childrenStates[DictionaryChunk::DATA_COLUMN_CHILD_READ_STATE_IDX]);
+        state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
 }
 
 void StringChunkData::write(const ValueVector* vector, offset_t offsetInVector,

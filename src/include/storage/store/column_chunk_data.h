@@ -329,7 +329,7 @@ public:
     // Physically, we only materialize offset of INTERNAL_ID, which is same as UINT64,
     InternalIDChunkData(uint64_t capacity, bool enableCompression, ResidencyState residencyState)
         : ColumnChunkData(common::LogicalType::INTERNAL_ID(), capacity, enableCompression,
-              residencyState, false /*hasNullData*/),
+              residencyState, true /*hasNullData*/),
           commonTableID{common::INVALID_TABLE_ID} {}
     InternalIDChunkData(bool enableCompression, const ColumnChunkMetadata& metadata)
         : ColumnChunkData{common::LogicalType::INTERNAL_ID(), enableCompression, metadata,
