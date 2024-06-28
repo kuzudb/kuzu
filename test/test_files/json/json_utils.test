@@ -75,8 +75,18 @@ false
 4
 0
 
+-SKIP #unfinished
 -CASE JsonContainsTest
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok
--STATEMENT UNWIND 
+# TODO
+
+-CASE JsonKeysTest
+-STATEMENT UNWIND ['[]', '{}', '{"a":null,"1":null}', '{"ffffffffffff": [], "json_array_length": [1, 2, 3]}'] AS ARR RETURN json_keys(ARR)
+---- 4
+[]
+[]
+["a", "1"]
+["ffffffffffff", "json_array_length"]
+
 
