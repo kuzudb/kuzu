@@ -72,7 +72,7 @@ public:
                 if (tryCAS) {
                     numDstVisitedLocal++;
                     ifeMorsel->pathLength[dstNodeID.offset].store(ifeMorsel->currentLevel + 1,
-                        std::memory_order_relaxed);
+                        std::memory_order_acq_rel);
                 }
             } else if (state == NOT_VISITED) {
                 ifeMorsel->visitedNodes[dstNodeID.offset].store(VISITED_NEW,
@@ -118,9 +118,9 @@ public:
         auto& dstOffsetVector = shortestPathLocalState->dstNodeIDVector;
         auto& pathLengthVector = shortestPathLocalState->lengthVector;
         srcNodeVector->setValue<nodeID_t>(0, {ifeMorsel->srcOffset, tableID});
-        auto pos = 0LU, offset = ifeMorsel->nextDstScanStartIdx.load(std::memory_order_relaxed);
+        auto pos = 0LU, offset = ifeMorsel->nextDstScanStartIdx.load(std::memory_order_acq_rel);
         while (pos < DEFAULT_VECTOR_CAPACITY && offset <= ifeMorsel->maxOffset) {
-            auto state = ifeMorsel->visitedNodes[offset].load(std::memory_order_relaxed);
+            auto state = ifeMorsel->visitedNodes[offset].load(std::memory_order_acq_rel);
             auto pathLength = ifeMorsel->pathLength[offset].load(std::memory_order_acq_rel);
             if ((state == VISITED_DST_NEW || state == VISITED_DST) &&
                 pathLength >= ifeMorsel->lowerBound) {
@@ -130,8 +130,11 @@ public:
             }
             offset++;
         }
+        ifeMorsel->nextDstScanStartIdx.store(offset, std::memory_order_acq_rel);
+        if (pos == 0) {
+            return UINT64_MAX;
+        }
         dstOffsetVector->state->getSelVectorUnsafe().setSelSize(pos);
-        ifeMorsel->nextDstScanStartIdx.store(offset, std::memory_order_relaxed);
         return pos; // return the no. of output values written to the value vectors
     }
 
@@ -153,6 +156,8 @@ public:
         auto concurrentBFS = executionContext->clientContext->getClientConfig()->maxConcurrentBFS;
         // set max bfs always to min value between threads available and maxConcurrentBFS value
         auto maxConcurrentBFS = std::min(threadsAvailable, concurrentBFS);
+        printf("thread available: %lu and max concurrent bfs setting: %lu, maxConcurrentBFS: %lu\n",
+            threadsAvailable, concurrentBFS, maxConcurrentBFS);
         auto maxNodeOffset = sharedState->graph->getNumNodes() - 1;
         auto lowerBound = 1u;
         auto& inputMask = sharedState->inputNodeOffsetMask;
@@ -184,6 +189,7 @@ public:
             auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState), sharedState,
                 mainFunc, false /* isParallel */};
             auto scheduledTask = parallelUtils->submitTaskAndReturn(job);
+            printf("submitted job for bfs source: %lu\n", ifeMorsel->srcOffset);
             ifeMorselTasks.push_back({std::move(ifeMorsel), scheduledTask});
         }
         if (ifeMorselTasks.empty()) {
@@ -191,11 +197,10 @@ public:
         }
         while (true) {
             for (auto i = 0u; i < ifeMorselTasks.size(); i++) {
-                if (!ifeMorselTasks[i].second) {
-                    continue;
-                } else if (parallelUtils->taskCompletedNoError(ifeMorselTasks[i].second)) {
+                auto& schedTask = ifeMorselTasks[i].second;
+                if (schedTask && parallelUtils->taskCompletedNoError(schedTask)) {
                     ifeMorselTasks[i].second = nullptr;
-                    // WE ARE DOUBLE COUNTING HERE, FOR THE SAME SOURCE FINISHED, LEADING TO ERROR
+                    printf("bfs source: %lu is completed\n", ifeMorselTasks[i].first->srcOffset);
                     numCompletedTasks++;
                     while (srcOffset <= maxNodeOffset) {
                         if (inputMask->isNodeMasked(srcOffset)) {
@@ -216,7 +221,7 @@ public:
                     auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState),
                         sharedState, mainFunc, false /* isParallel */};
                     ifeMorselTasks[i].second = parallelUtils->submitTaskAndReturn(job);
-                } else if (parallelUtils->taskHasExceptionOrTimedOut(ifeMorselTasks[i].second,
+                } else if (schedTask && parallelUtils->taskHasExceptionOrTimedOut(schedTask,
                                executionContext)) {
                     // Can we exit from here ? Or should we remove all the other remaining tasks ?
                     break;

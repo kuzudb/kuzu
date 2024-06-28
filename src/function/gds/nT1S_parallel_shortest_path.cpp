@@ -141,7 +141,6 @@ public:
             return UINT64_MAX;
         }
         dstOffsetVector->state->getSelVectorUnsafe().setSelSize(pos);
-        printf("total nodes for src: %lu is %d\n", ifeMorsel->srcOffset, pos);
         return pos; // return the no. of output values written to the value vectors
     }
 

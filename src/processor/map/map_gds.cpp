@@ -2,6 +2,7 @@
 #include "function/gds/parallel_utils.h"
 #include "graph/on_disk_graph.h"
 #include "planner/operator/logical_gds_call.h"
+#include "processor/operator/flatten.h"
 #include "processor/operator/gds_call.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
@@ -57,7 +58,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     info.gds->setParallelUtils(parallelUtils);
     auto algorithm = std::make_unique<GDSCall>(std::make_unique<ResultSetDescriptor>(),
         std::move(info), sharedState, getOperatorID(), call.getExpressionsForPrinting());
-    return createFTableScanAligned(columns, outSchema, table, 1u, std::move(algorithm));
+    auto ftableScan = createFTableScanAligned(columns, outSchema, table, 1u, std::move(algorithm));
+    binder::Expression &expr = *srcInternalIDExpr.get();
+    auto flattensOperator = make_unique<Flatten>(outSchema->getGroupPos(expr),
+        std::move(ftableScan), getOperatorID(), srcInternalIDExpr->getUniqueName());
+    return flattensOperator;
 }
 
 } // namespace processor
