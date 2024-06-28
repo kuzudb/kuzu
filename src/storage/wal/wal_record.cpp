@@ -207,7 +207,8 @@ std::unique_ptr<AlterTableEntryRecord> AlterTableEntryRecord::deserialize(
         std::string propertyName;
         deserializer.deserializeValue(propertyID);
         deserializer.deserializeValue(propertyName);
-        extraInfo = std::make_unique<BoundExtraDropPropertyInfo>(std::move(propertyID), std::move(propertyName));
+        extraInfo = std::make_unique<BoundExtraDropPropertyInfo>(std::move(propertyID),
+            std::move(propertyName));
     } break;
     case AlterType::RENAME_PROPERTY: {
         property_id_t propertyID;

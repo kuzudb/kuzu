@@ -90,7 +90,8 @@ struct BoundExtraRenamePropertyInfo : public BoundExtraAlterInfo {
     std::string newName;
     std::string oldName;
 
-    BoundExtraRenamePropertyInfo(common::property_id_t propertyID, std::string newName, std::string oldName)
+    BoundExtraRenamePropertyInfo(common::property_id_t propertyID, std::string newName,
+        std::string oldName)
         : propertyID{propertyID}, newName{std::move(newName)}, oldName{std::move(oldName)} {}
     BoundExtraRenamePropertyInfo(const BoundExtraRenamePropertyInfo& other)
         : propertyID{other.propertyID}, newName{other.newName}, oldName{other.oldName} {}

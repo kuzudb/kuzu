@@ -12,11 +12,12 @@ struct AlterPrintInfo final : OPPrintInfo {
     std::string tableName;
     binder::BoundExtraAlterInfo* info;
 
-    AlterPrintInfo(common::AlterType alterType, std::string tableName, binder::BoundExtraAlterInfo* info)
+    AlterPrintInfo(common::AlterType alterType, std::string tableName,
+        binder::BoundExtraAlterInfo* info)
         : alterType{std::move(alterType)}, tableName{std::move(tableName)}, info{info} {}
     AlterPrintInfo(const AlterPrintInfo& other)
-            : OPPrintInfo{other}, alterType{other.alterType}, tableName{other.tableName},
-              info{other.info} {}
+        : OPPrintInfo{other}, alterType{other.alterType}, tableName{other.tableName},
+          info{other.info} {}
 
     std::string toString() const override;
 
