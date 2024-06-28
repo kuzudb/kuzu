@@ -16,7 +16,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapMarkAccumulate(LogicalOperator*
     auto inSchema = child->getSchema();
     auto prevOperator = mapOperator(child);
     return createMarkDistinctHashAggregate(keys, payloads, acc->getMark(), inSchema, outSchema,
-        std::move(prevOperator), acc->getExpressionsForPrinting());
+        std::move(prevOperator));
 }
 
 } // namespace processor

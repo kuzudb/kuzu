@@ -170,8 +170,7 @@ private:
     std::unique_ptr<PhysicalOperator> createMarkDistinctHashAggregate(
         const binder::expression_vector& keys, const binder::expression_vector& payloads,
         std::shared_ptr<binder::Expression> mark, planner::Schema* inSchema,
-        planner::Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator,
-        const std::string& paramsString);
+        planner::Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator);
     std::unique_ptr<PhysicalOperator> createHashAggregate(const binder::expression_vector& keys,
         const binder::expression_vector& payloads, const binder::expression_vector& aggregates,
         std::shared_ptr<binder::Expression> mark, planner::Schema* inSchema,

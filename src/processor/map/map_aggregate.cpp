@@ -140,7 +140,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createDistinctHashAggregate(
 std::unique_ptr<PhysicalOperator> PlanMapper::createMarkDistinctHashAggregate(
     const expression_vector& keys, const expression_vector& payloads,
     std::shared_ptr<binder::Expression> mark, Schema* inSchema, Schema* outSchema,
-    std::unique_ptr<PhysicalOperator> prevOperator, const std::string& paramsString) {
+    std::unique_ptr<PhysicalOperator> prevOperator) {
     return createHashAggregate(keys, payloads, expression_vector{} /* aggregates */,
         std::move(mark), inSchema, outSchema, std::move(prevOperator));
 }
