@@ -14,7 +14,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDistinct(LogicalOperator* logic
     auto inSchema = child->getSchema();
     auto prevOperator = mapOperator(child);
     return createDistinctHashAggregate(distinct->getKeys(), distinct->getPayloads(), inSchema,
-        outSchema, std::move(prevOperator), distinct->getExpressionsForPrinting());
+        outSchema, std::move(prevOperator));
 }
 
 } // namespace processor

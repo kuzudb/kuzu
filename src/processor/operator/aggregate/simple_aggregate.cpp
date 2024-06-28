@@ -1,10 +1,19 @@
 #include "processor/operator/aggregate/simple_aggregate.h"
 
+#include "binder/expression/expression_util.h"
+
 using namespace kuzu::common;
 using namespace kuzu::function;
 
 namespace kuzu {
 namespace processor {
+
+std::string SimpleAggregatePrintInfo::toString() const {
+    std::string result = "";
+    result += "Aggregate: ";
+    result += binder::ExpressionUtil::toString(aggregates);
+    return result;
+}
 
 SimpleAggregateSharedState::SimpleAggregateSharedState(
     const std::vector<std::unique_ptr<AggregateFunction>>& aggregateFunctions)

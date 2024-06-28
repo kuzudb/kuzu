@@ -11,11 +11,13 @@ std::string ResultCollectorPrintInfo::toString() const {
     if (accumulateType == AccumulateType::OPTIONAL_) {
         result += "Type: " + AccumulateTypeUtil::toString(accumulateType) + ".\n";
     }
-    result += "Expressions: [";
+    result += "Expressions: ";
     for (auto& expr : expressions) {
-        result += expr->toString() + ", ";
+        result += expr->toString();
+        if (&expr != &expressions.back()) {
+            result += ", ";
+        }
     }
-    result += "])";
     return result;
 }
 

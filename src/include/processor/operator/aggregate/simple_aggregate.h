@@ -28,6 +28,21 @@ private:
     std::vector<std::unique_ptr<function::AggregateState>> globalAggregateStates;
 };
 
+struct SimpleAggregatePrintInfo final : OPPrintInfo {
+    binder::expression_vector aggregates;
+
+    explicit SimpleAggregatePrintInfo(binder::expression_vector aggregates)
+        : aggregates{std::move(aggregates)} {}
+    SimpleAggregatePrintInfo(const SimpleAggregatePrintInfo& other)
+        : OPPrintInfo{other}, aggregates{other.aggregates} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::make_unique<SimpleAggregatePrintInfo>(*this);
+    }
+};
+
 class SimpleAggregate : public BaseAggregate {
 public:
     SimpleAggregate(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,

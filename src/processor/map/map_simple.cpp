@@ -39,7 +39,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapUseDatabase(
 std::unique_ptr<PhysicalOperator> PlanMapper::mapAttachDatabase(
     planner::LogicalOperator* logicalOperator) {
     auto attachDatabase = logicalOperator->constPtrCast<LogicalAttachDatabase>();
-    auto printInfo = std::make_unique<OPPrintInfo>(attachDatabase->getExpressionsForPrinting());
+    auto printInfo = std::make_unique<AttachDatabasePrintInfo>(
+        attachDatabase->getAttachInfo().dbAlias, attachDatabase->getAttachInfo().dbPath);
     return std::make_unique<AttachDatabase>(attachDatabase->getAttachInfo(),
         getOutputPos(attachDatabase), getOperatorID(), std::move(printInfo));
 }

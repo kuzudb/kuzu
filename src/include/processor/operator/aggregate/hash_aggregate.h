@@ -59,6 +59,22 @@ struct HashAggregateLocalState {
     void append(const std::vector<AggregateInput>& aggregateInputs, uint64_t multiplicity) const;
 };
 
+struct HashAggregatePrintInfo final : OPPrintInfo {
+    binder::expression_vector keys;
+    binder::expression_vector aggregates;
+
+    HashAggregatePrintInfo(binder::expression_vector keys, binder::expression_vector aggregates)
+        : keys{std::move(keys)}, aggregates{std::move(aggregates)} {}
+    HashAggregatePrintInfo(const HashAggregatePrintInfo& other)
+        : OPPrintInfo{other}, keys{other.keys}, aggregates{other.aggregates} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::make_unique<HashAggregatePrintInfo>(*this);
+    }
+};
+
 class HashAggregate : public BaseAggregate {
 public:
     HashAggregate(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,

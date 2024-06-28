@@ -73,11 +73,12 @@ struct BoundExtraAddPropertyInfo : public BoundExtraAlterInfo {
 
 struct BoundExtraDropPropertyInfo : public BoundExtraAlterInfo {
     common::property_id_t propertyID;
+    std::string propertyName;
 
-    explicit BoundExtraDropPropertyInfo(common::property_id_t propertyID)
-        : propertyID{propertyID} {}
+    explicit BoundExtraDropPropertyInfo(common::property_id_t propertyID, std::string propertyName)
+        : propertyID{propertyID}, propertyName{propertyName} {}
     BoundExtraDropPropertyInfo(const BoundExtraDropPropertyInfo& other)
-        : propertyID{other.propertyID} {}
+        : propertyID{other.propertyID}, propertyName{other.propertyName} {}
 
     inline std::unique_ptr<BoundExtraAlterInfo> copy() const final {
         return std::make_unique<BoundExtraDropPropertyInfo>(*this);
@@ -87,11 +88,13 @@ struct BoundExtraDropPropertyInfo : public BoundExtraAlterInfo {
 struct BoundExtraRenamePropertyInfo : public BoundExtraAlterInfo {
     common::property_id_t propertyID;
     std::string newName;
+    std::string oldName;
 
-    BoundExtraRenamePropertyInfo(common::property_id_t propertyID, std::string newName)
-        : propertyID{propertyID}, newName{std::move(newName)} {}
+    BoundExtraRenamePropertyInfo(common::property_id_t propertyID, std::string newName,
+        std::string oldName)
+        : propertyID{propertyID}, newName{std::move(newName)}, oldName{std::move(oldName)} {}
     BoundExtraRenamePropertyInfo(const BoundExtraRenamePropertyInfo& other)
-        : propertyID{other.propertyID}, newName{other.newName} {}
+        : propertyID{other.propertyID}, newName{other.newName}, oldName{other.oldName} {}
     inline std::unique_ptr<BoundExtraAlterInfo> copy() const final {
         return std::make_unique<BoundExtraRenamePropertyInfo>(*this);
     }

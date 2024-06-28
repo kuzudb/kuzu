@@ -509,7 +509,7 @@ std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statem
                 ->getPrimaryKeyPID() == propertyID) {
         throw BinderException("Cannot drop primary key of a node table.");
     }
-    auto boundExtraInfo = std::make_unique<BoundExtraDropPropertyInfo>(propertyID);
+    auto boundExtraInfo = std::make_unique<BoundExtraDropPropertyInfo>(propertyID, propertyName);
     auto boundInfo =
         BoundAlterInfo(AlterType::DROP_PROPERTY, tableName, tableID, std::move(boundExtraInfo));
     return std::make_unique<BoundAlter>(std::move(boundInfo));
@@ -531,7 +531,8 @@ std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& stat
     validatePropertyExist(tableSchema, propertyName);
     auto propertyID = tableSchema->getPropertyID(propertyName);
     validatePropertyNotExist(tableSchema, newName);
-    auto boundExtraInfo = std::make_unique<BoundExtraRenamePropertyInfo>(propertyID, newName);
+    auto boundExtraInfo =
+        std::make_unique<BoundExtraRenamePropertyInfo>(propertyID, newName, propertyName);
     auto boundInfo =
         BoundAlterInfo(AlterType::RENAME_PROPERTY, tableName, tableID, std::move(boundExtraInfo));
     return std::make_unique<BoundAlter>(std::move(boundInfo));

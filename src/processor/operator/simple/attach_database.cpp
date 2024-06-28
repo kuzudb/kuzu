@@ -12,6 +12,16 @@
 namespace kuzu {
 namespace processor {
 
+std::string AttachDatabasePrintInfo::toString() const {
+    std::string result = "Database: ";
+    if (!dbName.empty()) {
+        result += dbName;
+    } else {
+        result += dbPath;
+    }
+    return result;
+}
+
 void AttachDatabase::executeInternal(ExecutionContext* context) {
     auto client = context->clientContext;
     if (common::StringUtils::getUpper(attachInfo.dbType) == common::ATTACHED_KUZU_DB_TYPE) {
