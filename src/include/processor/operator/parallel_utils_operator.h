@@ -40,7 +40,6 @@ private:
     std::unique_ptr<GDSLocalState> gdsLocalState;
     gds_algofunc_t funcToExecute;
     GDSCallSharedState *sharedState;
-    std::unique_ptr<FactorizedTableSchema> tableSchema;
     std::unique_ptr<FactorizedTable> localFTable;
 };
 

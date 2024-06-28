@@ -129,11 +129,11 @@ public:
         auto pos = 0;
         for (auto offset = morsel.startOffset; offset < morsel.endOffset; offset++) {
             auto state = ifeMorsel->visitedNodes[offset].load(std::memory_order_acq_rel);
-            uint64_t pathLength = ifeMorsel->pathLength[offset].load(std::memory_order_acq_rel);
+            auto pathLength = ifeMorsel->pathLength[offset].load(std::memory_order_acq_rel);
             if ((state == VISITED_DST_NEW || state == VISITED_DST) &&
                 pathLength >= ifeMorsel->lowerBound) {
                 dstOffsetVector->setValue<nodeID_t>(pos, {offset, tableID});
-                pathLengthVector->setValue<uint64_t>(pos, pathLength);
+                pathLengthVector->setValue<int64_t>(pos, pathLength);
                 pos++;
             }
         }
@@ -141,6 +141,7 @@ public:
             return shortestPathOutputFunc(sharedState, localState);
         }
         dstOffsetVector->state->getSelVectorUnsafe().setSelSize(pos);
+        printf("total nodes for src: %lu is %d\n", ifeMorsel->srcOffset, pos);
         return pos; // return the no. of output values written to the value vectors
     }
 

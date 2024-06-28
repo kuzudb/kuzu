@@ -8,7 +8,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-typedef std::vector<std::pair<std::shared_ptr<IFEMorsel>&, std::shared_ptr<ScheduledTask>&>>
+typedef std::vector<std::pair<std::unique_ptr<IFEMorsel>, std::shared_ptr<ScheduledTask>>>
     scheduledTaskMap;
 
 struct ParallelShortestPathBindData final : public GDSBindData {

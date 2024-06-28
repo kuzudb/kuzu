@@ -115,7 +115,8 @@ std::shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
         return nullptr;
     }
     auto it = taskQueue.begin();
-    uint64_t maxTaskWork = 0u, maxTaskQueueIdx = UINT64_MAX, taskQueueIdx = 0u;
+    auto schedTask = std::make_shared<ScheduledTask>(nullptr, 0u);
+    uint64_t maxTaskWork = 0u;
     while (it != taskQueue.end()) {
         auto task = (*it)->task;
         if (task->tryRegisterIfUnregistered()) {
@@ -123,24 +124,21 @@ std::shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
         }
         if (task->isCompletedSuccessfully()) {
             it = taskQueue.erase(it);
-            taskQueueIdx++;
             continue;
         }
         if (task->hasException()) { // don't remove if failed, done by thread which submitted task
-            taskQueueIdx++;
             it++;
             continue;
         }
         auto taskWork = task->getWork();
         if (taskWork > maxTaskWork) {
             maxTaskWork = taskWork;
-            maxTaskQueueIdx = taskQueueIdx;
+            schedTask = *it;
         }
-        taskQueueIdx++;
         it++;
     }
-    if (taskQueue[maxTaskQueueIdx]->task->registerThread()) {
-        return taskQueue[maxTaskQueueIdx];
+    if (schedTask->task && schedTask->task->registerThread()) {
+        return schedTask;
     }
     return nullptr;
 }

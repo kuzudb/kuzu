@@ -11,7 +11,6 @@ IFEMorsel::~IFEMorsel() {
 }
 
 void IFEMorsel::init() {
-    std::unique_lock lck{mutex};
     if (initializedIFEMorsel) {
         return;
     }
@@ -25,8 +24,11 @@ void IFEMorsel::init() {
         }
     }
     initializedIFEMorsel = true;
+    currentLevel = 0u;
+    nextScanStartIdx.store(0u, std::memory_order_relaxed);
+    nextDstScanStartIdx.store(0u, std::memory_order_relaxed);
     visitedNodes[srcOffset].store(VISITED_DST, std::memory_order_relaxed);
-    numVisitedDstNodes.fetch_add(1);
+    numVisitedDstNodes.store(1, std::memory_order_relaxed);
     bfsLevelNodeOffsets.push_back(srcOffset);
 }
 

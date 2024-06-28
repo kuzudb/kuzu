@@ -32,7 +32,8 @@ static ScanRelTableInfo getRelTableScanInfo(const catalog::TableCatalogEntry& ta
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCSRIndexBuild(
     planner::LogicalOperator* logicalOperator) {
-    auto logicalCSRBuild = (LogicalCSRBuild*)logicalOperator;
+    return nullptr;
+    /*auto logicalCSRBuild = (LogicalCSRBuild*)logicalOperator;
     auto rel = logicalCSRBuild->getRel();
     auto child = mapOperator(logicalOperator->getChild(0).get());
     auto schema = logicalOperator->getSchema();
@@ -55,7 +56,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCSRIndexBuild(
         rel->getPropertyExprs(), rel->getPropertyPredicates());
     return std::make_unique<CSRIndexBuild>(std::move(resultSetDescriptor), commonNodeTableID,
         commonEdgeTableID, boundNodeVectorPos, nbrNodeVectorPos, relIDVectorPos, sharedState,
-        std::move(child), getOperatorID(), logicalCSRBuild->getExpressionsForPrinting());
+        std::move(child), getOperatorID(), logicalCSRBuild->getExpressionsForPrinting());*/
 }
 
 } // namespace processor

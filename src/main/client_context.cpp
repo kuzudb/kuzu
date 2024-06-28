@@ -57,6 +57,7 @@ ClientContext::ClientContext(Database* database)
     clientConfig.enableSemiMask = ClientConfigDefault::ENABLE_SEMI_MASK;
     clientConfig.enableZoneMap = ClientConfigDefault::ENABLE_ZONEMAP;
     clientConfig.numThreads = database->dbConfig.maxNumThreads;
+    clientConfig.maxConcurrentBFS = database->dbConfig.maxConcurrentBFS;
     clientConfig.timeoutInMS = ClientConfigDefault::TIMEOUT_IN_MS;
     clientConfig.varLengthMaxDepth = ClientConfigDefault::VAR_LENGTH_MAX_DEPTH;
     clientConfig.enableProgressBar = ClientConfigDefault::ENABLE_PROGRESS_BAR;

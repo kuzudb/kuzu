@@ -23,9 +23,9 @@ void ParallelUtils::submitParallelTaskAndWait(ParallelUtilsJob& job) {
 }
 
 std::shared_ptr<ScheduledTask> ParallelUtils::submitTaskAndReturn(ParallelUtilsJob& job) {
-    auto parallelUtilsOp = std::make_unique<ParallelUtilsOperator>(std::move(job.gdsLocalState),
+    auto parallelUtilsOp = new ParallelUtilsOperator(std::move(job.gdsLocalState),
         job.gdsAlgoFunc, job.gdsCallSharedState, operatorID, "");
-    auto task = std::make_shared<ProcessorTask>(parallelUtilsOp.get(), job.executionContext);
+    auto task = std::make_shared<ProcessorTask>(parallelUtilsOp, job.executionContext);
     if (!job.isParallel) {
         task->setSingleThreadedTask();
     }
@@ -36,8 +36,6 @@ std::shared_ptr<ScheduledTask> ParallelUtils::submitTaskAndReturn(ParallelUtilsJ
 std::vector<std::shared_ptr<ScheduledTask>> ParallelUtils::submitTasksAndReturn(
     std::vector<ParallelUtilsJob>& jobs) {
     std::vector<std::shared_ptr<Task>> tasks;
-    tasks.reserve(jobs.size());
-    auto jobIdx = 0u;
     for (auto& job : jobs) {
         auto parallelUtilsOp = std::make_unique<ParallelUtilsOperator>(std::move(job.gdsLocalState),
             job.gdsAlgoFunc, job.gdsCallSharedState, operatorID, "");
@@ -46,26 +44,18 @@ std::vector<std::shared_ptr<ScheduledTask>> ParallelUtils::submitTasksAndReturn(
             task->setSingleThreadedTask();
         }
         task->setSharedStateInitialized();
-        tasks[jobIdx++] = task;
+        tasks.push_back(task);
     }
     return taskScheduler->scheduleTasksAndReturn(tasks);
 }
 
 bool ParallelUtils::taskCompletedNoError(std::shared_ptr<common::ScheduledTask>& scheduledTask) {
-    scheduledTask->task->mtx.lock();
-    if (scheduledTask->task->isCompletedSuccessfully()) {
-        scheduledTask->task->mtx.unlock();
-        return true;
-    }
-    scheduledTask->task->mtx.unlock();
-    return false;
+    return scheduledTask->task->isCompletedSuccessfully();
 }
 
 bool ParallelUtils::taskHasExceptionOrTimedOut(
     std::shared_ptr<common::ScheduledTask>& scheduledTask, ExecutionContext* executionContext) {
-    scheduledTask->task->mtx.lock();
-    if (scheduledTask->task->hasExceptionNoLock()) {
-        scheduledTask->task->mtx.unlock();
+    if (scheduledTask->task->hasException()) {
         executionContext->clientContext->interrupt();
         taskScheduler->removeErroringTask(scheduledTask->ID);
         return true;

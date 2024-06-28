@@ -29,7 +29,8 @@ namespace main {
 
 SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, bool enableCompression,
     bool readOnly, uint64_t maxDBSize)
-    : maxNumThreads{maxNumThreads}, enableCompression{enableCompression}, readOnly(readOnly) {
+    : maxNumThreads{maxNumThreads}, maxConcurrentBFS{maxNumThreads},
+      enableCompression{enableCompression}, readOnly(readOnly) {
     if (bufferPoolSize_ == -1u || bufferPoolSize_ == 0) {
 #if defined(_WIN32)
         MEMORYSTATUSEX status;

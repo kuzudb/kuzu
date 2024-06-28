@@ -68,7 +68,7 @@ public:
 
     bool isSource() const override { return true; }
 
-    bool isParallel() const override { return info.function.canParallelFunc(); }
+    bool isParallel() const override { return false; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

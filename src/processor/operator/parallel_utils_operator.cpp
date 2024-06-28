@@ -12,7 +12,6 @@ void ParallelUtilsOperator::initLocalStateInternal(ResultSet*, ExecutionContext*
 }
 
 void ParallelUtilsOperator::executeInternal(ExecutionContext* /*context*/) {
-    auto fTable = sharedState->fTable;
     auto& outputVectors = gdsLocalState->getOutputVectors();
     while (true) {
         auto numTuplesOutput = funcToExecute(sharedState, gdsLocalState.get());

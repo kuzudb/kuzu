@@ -23,6 +23,7 @@ static ConfigurationOption options[] = { // NOLINT(cert-err58-cpp):
 DBConfig::DBConfig(SystemConfig& systemConfig) {
     bufferPoolSize = systemConfig.bufferPoolSize;
     maxNumThreads = systemConfig.maxNumThreads;
+    maxConcurrentBFS = systemConfig.maxConcurrentBFS;
     enableCompression = systemConfig.enableCompression;
     readOnly = systemConfig.readOnly;
     maxDBSize = systemConfig.maxDBSize;
