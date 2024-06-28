@@ -63,6 +63,7 @@ bool RelDataReadState::hasMoreToReadInPersistentStorage() const {
 std::vector<offset_t>
 RelDataReadState::getStartAndEndOffset(ValueVector& inNodeIDVector) {
     std::vector<offset_t> result;
+    result.reserve(DEFAULT_VECTOR_CAPACITY);
     auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     auto& selVector = inNodeIDVector.state->getSelVector();
     auto startNodeIdx = currNodeIdx;
@@ -77,6 +78,7 @@ RelDataReadState::getStartAndEndOffset(ValueVector& inNodeIDVector) {
             posInLastCSR = 0;
             startNodeIdx++;
         } else {
+            numToRead = spaceToRead;
             batchSize += spaceToRead;
             posInLastCSR += spaceToRead;
         }
