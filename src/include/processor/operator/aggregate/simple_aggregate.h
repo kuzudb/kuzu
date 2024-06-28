@@ -29,12 +29,12 @@ private:
 };
 
 struct SimpleAggregatePrintInfo final : OPPrintInfo {
-    binder::expression_vector expressions;
+    binder::expression_vector aggregates;
 
-    explicit SimpleAggregatePrintInfo(binder::expression_vector expressions)
-        : expressions{std::move(expressions)} {}
+    explicit SimpleAggregatePrintInfo(binder::expression_vector aggregates)
+        : aggregates{std::move(aggregates)} {}
     SimpleAggregatePrintInfo(const SimpleAggregatePrintInfo& other)
-        : OPPrintInfo{other}, expressions{other.expressions} {}
+        : OPPrintInfo{other}, aggregates{other.aggregates} {}
 
     std::string toString() const override;
 

@@ -60,13 +60,13 @@ struct HashAggregateLocalState {
 };
 
 struct HashAggregatePrintInfo final : OPPrintInfo {
-    binder::expression_vector allKeys;
-    binder::expression_vector expressions;
+    binder::expression_vector keys;
+    binder::expression_vector aggregates;
 
-    HashAggregatePrintInfo(binder::expression_vector allKeys, binder::expression_vector expressions)
-        : allKeys{std::move(allKeys)}, expressions{std::move(expressions)} {}
+    HashAggregatePrintInfo(binder::expression_vector keys, binder::expression_vector aggregates)
+        : keys{std::move(keys)}, aggregates{std::move(aggregates)} {}
     HashAggregatePrintInfo(const HashAggregatePrintInfo& other)
-        : OPPrintInfo{other}, allKeys{other.allKeys}, expressions{other.expressions} {}
+        : OPPrintInfo{other}, keys{other.keys}, aggregates{other.aggregates} {}
 
     std::string toString() const override;
 

@@ -1,5 +1,7 @@
 #include "processor/operator/aggregate/simple_aggregate.h"
 
+#include "binder/expression/expression_util.h"
+
 using namespace kuzu::common;
 using namespace kuzu::function;
 
@@ -8,14 +10,8 @@ namespace processor {
 
 std::string SimpleAggregatePrintInfo::toString() const {
     std::string result = "";
-    result += "Aggregate: [";
-    for (auto& expr : expressions) {
-        result += expr->toString();
-        if (&expr != &expressions.back()) {
-            result += ", ";
-        }
-    }
-    result += "]";
+    result += "Aggregate: ";
+    result += binder::ExpressionUtil::toString(aggregates);
     return result;
 }
 

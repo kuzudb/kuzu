@@ -1,5 +1,6 @@
 #include "processor/operator/aggregate/hash_aggregate.h"
 
+#include "binder/expression/expression_util.h"
 #include "common/utils.h"
 #include "processor/result/mark_hash_table.h"
 
@@ -12,21 +13,10 @@ namespace processor {
 
 std::string HashAggregatePrintInfo::toString() const {
     std::string result = "";
-    result += "Group By: [";
-    for (auto& expr : allKeys) {
-        result += expr->toString();
-        if (&expr != &allKeys.back()) {
-            result += ", ";
-        }
-    }
-    result += "], Aggregates: [";
-    for (auto& expr : expressions) {
-        result += expr->toString();
-        if (&expr != &expressions.back()) {
-            result += ", ";
-        }
-    }
-    result += "]";
+    result += "Group By: ";
+    result += binder::ExpressionUtil::toString(keys);
+    result += ", Aggregates: ";
+    result += binder::ExpressionUtil::toString(aggregates);
     return result;
 }
 

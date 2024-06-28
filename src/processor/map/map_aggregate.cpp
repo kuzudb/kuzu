@@ -85,7 +85,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(LogicalOperator* logi
     auto paramsString = agg.getExpressionsForPrinting();
     if (agg.hasKeys()) {
         return createHashAggregate(agg.getKeys(), agg.getDependentKeys(), aggregates,
-            nullptr /* mark */, inSchema, outSchema, std::move(prevOperator), paramsString);
+            nullptr /* mark */, inSchema, outSchema, std::move(prevOperator));
     }
     auto aggFunctions = getAggFunctions(aggregates);
     auto aggOutputPos = getDataPos(aggregates, *outSchema);
@@ -135,7 +135,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createDistinctHashAggregate(
     Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator,
     const std::string& paramsString) {
     return createHashAggregate(keys, payloads, expression_vector{} /* aggregates */,
-        nullptr /* mark */, inSchema, outSchema, std::move(prevOperator), paramsString);
+        nullptr /* mark */, inSchema, outSchema, std::move(prevOperator));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createMarkDistinctHashAggregate(
@@ -143,7 +143,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createMarkDistinctHashAggregate(
     std::shared_ptr<binder::Expression> mark, Schema* inSchema, Schema* outSchema,
     std::unique_ptr<PhysicalOperator> prevOperator, const std::string& paramsString) {
     return createHashAggregate(keys, payloads, expression_vector{} /* aggregates */,
-        std::move(mark), inSchema, outSchema, std::move(prevOperator), paramsString);
+        std::move(mark), inSchema, outSchema, std::move(prevOperator));
 }
 
 // Payloads are also group by keys except that they are functional dependent on keys so we don't
@@ -151,7 +151,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createMarkDistinctHashAggregate(
 std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(const expression_vector& keys,
     const expression_vector& payloads, const expression_vector& aggregates,
     std::shared_ptr<binder::Expression> mark, Schema* inSchema, Schema* outSchema,
-    std::unique_ptr<PhysicalOperator> prevOperator, const std::string& paramsString) {
+    std::unique_ptr<PhysicalOperator> prevOperator) {
     // Create hash aggregate
     auto aggFunctions = getAggFunctions(aggregates);
     expression_vector allKeys;
