@@ -61,6 +61,10 @@ public:
 
     virtual void init(main::ClientContext* clientContext) = 0;
 
+    virtual inline uint64_t getWork() {
+        return UINT64_MAX;
+    }
+
     virtual std::unique_ptr<GDSLocalState> copy() = 0;
 
 public:

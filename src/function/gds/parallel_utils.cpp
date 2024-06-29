@@ -37,9 +37,9 @@ std::vector<std::shared_ptr<ScheduledTask>> ParallelUtils::submitTasksAndReturn(
     std::vector<ParallelUtilsJob>& jobs) {
     std::vector<std::shared_ptr<Task>> tasks;
     for (auto& job : jobs) {
-        auto parallelUtilsOp = std::make_unique<ParallelUtilsOperator>(std::move(job.gdsLocalState),
+        auto parallelUtilsOp = new ParallelUtilsOperator(std::move(job.gdsLocalState),
             job.gdsAlgoFunc, job.gdsCallSharedState, operatorID, "");
-        auto task = std::make_shared<ProcessorTask>(parallelUtilsOp.get(), job.executionContext);
+        auto task = std::make_shared<ProcessorTask>(parallelUtilsOp, job.executionContext);
         if (!job.isParallel) {
             task->setSingleThreadedTask();
         }

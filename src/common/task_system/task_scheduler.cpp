@@ -123,10 +123,13 @@ std::shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
             return *it;
         }
         if (task->isCompletedSuccessfully()) {
+            // printf("removing task ID: %lu\n", (*it)->ID);
             it = taskQueue.erase(it);
             continue;
         }
-        if (task->hasException()) { // don't remove if failed, done by thread which submitted task
+        // don't remove task if failed, done by thread which submitted the task
+        // if task is single threaded (and already has >1 thread executing it), ignore it
+        if (task->hasException() || task->maxNumThreads == 1) {
             it++;
             continue;
         }

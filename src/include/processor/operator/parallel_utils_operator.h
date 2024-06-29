@@ -31,6 +31,10 @@ public:
 
     void executeInternal(ExecutionContext* context) final;
 
+    inline uint64_t getWork() override {
+        return gdsLocalState->getWork();
+    }
+
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<ParallelUtilsOperator>(gdsLocalState->copy(), funcToExecute,
             sharedState, id, paramsString);

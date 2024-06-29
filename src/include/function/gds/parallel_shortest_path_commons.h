@@ -42,6 +42,30 @@ public:
         nbrScanState = std::make_unique<graph::NbrScanState>(mm);
     }
 
+    /*
+     * Return the amount of work currently being processed on for this IFEMorsel.
+     * Based on the frontier on which BFS extension is being done, or if output is being written.
+     * Hold the lock in case the IFEMorsel has not been initialized, the frontier vector needs to
+     * be accessed in a thread safe manner.
+     */
+    inline uint64_t getWork() override {
+        if (!ifeMorsel) {
+            return UINT64_MAX;
+        }
+        ifeMorsel->mutex.lock();
+        auto nextDstScanStartIdx = ifeMorsel->nextDstScanStartIdx.load(std::memory_order_relaxed);
+        if (nextDstScanStartIdx != 0u) {
+            ifeMorsel->mutex.unlock();
+            return (ifeMorsel->maxOffset - nextDstScanStartIdx);
+        } else {
+            auto remainingFrontierSize =
+                ifeMorsel->bfsLevelNodeOffsets.size() -
+                ifeMorsel->nextScanStartIdx.load(std::memory_order_relaxed);
+            ifeMorsel->mutex.unlock();
+            return remainingFrontierSize;
+        }
+    }
+
     std::unique_ptr<GDSLocalState> copy() override {
         auto localState = std::make_unique<ParallelShortestPathLocalState>();
         localState->ifeMorsel = ifeMorsel;
@@ -52,8 +76,8 @@ public:
     std::unique_ptr<ValueVector> srcNodeIDVector;
     std::unique_ptr<ValueVector> dstNodeIDVector;
     std::unique_ptr<ValueVector> lengthVector;
-    IFEMorsel *ifeMorsel;
+    IFEMorsel* ifeMorsel;
 };
 
-}
-}
+} // namespace function
+} // namespace kuzu

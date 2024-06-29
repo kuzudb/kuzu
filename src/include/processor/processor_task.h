@@ -24,6 +24,10 @@ public:
         return sink->getWork() / numThreadsRegistered;
     }
 
+    inline Sink* getSink() {
+        return sink;
+    }
+
 private:
     static std::unique_ptr<ResultSet> populateResultSet(Sink* op,
         storage::MemoryManager* memoryManager);

@@ -7,6 +7,7 @@
 #include "function/gds/parallel_shortest_path_commons.h"
 #include "function/gds/parallel_utils.h"
 #include "function/gds_function.h"
+#include "processor/processor_task.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -89,6 +90,9 @@ public:
         auto shortestPathLocalState =
             common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState);
         auto ifeMorsel = shortestPathLocalState->ifeMorsel;
+        if (!ifeMorsel->initializedIFEMorsel) {
+            ifeMorsel->init();
+        }
         auto frontierMorsel = ifeMorsel->getMorsel(64LU /* morsel size, hard-coding for now */);
         if (!frontierMorsel.hasMoreToOutput()) {
             return 0; // return 0 to indicate to thread it can exit from operator
@@ -151,39 +155,74 @@ public:
         auto concurrentBFS = executionContext->clientContext->getClientConfig()->maxConcurrentBFS;
         // set max bfs always to min value between threads available and maxConcurrentBFS value
         auto maxConcurrentBFS = std::min(threadsAvailable, concurrentBFS);
+        /*printf("thread available: %lu and max concurrent bfs setting: %lu, maxConcurrentBFS: %lu\n",
+            threadsAvailable, concurrentBFS, maxConcurrentBFS);*/
         auto maxNodeOffset = sharedState->graph->getNumNodes() - 1;
         auto lowerBound = 1u;
         auto& inputMask = sharedState->inputNodeOffsetMask;
-        scheduledTaskMap ifeMorselTasks;
-        ifeMorselTasks.reserve(maxConcurrentBFS);
+        scheduledTaskMap ifeMorselTasks = scheduledTaskMap();
         std::vector<ParallelUtilsJob> jobs; // stores the next batch of jobs to submit
-        std::vector<int> jobIdxInMap; // stores the ife morsel idx <-> job mapping
+        std::vector<int> jobIdxInMap;       // stores the scheduledTaskMap idx <-> job mapping
         auto srcOffset = 0LU, numCompletedTasks = 0LU, totalBFSSources = 0LU;
-        while (true) {
-            for (auto i = 0u; i < maxConcurrentBFS; i++) {
-                if (!ifeMorselTasks[i].first) {
-                    // set up new ife_morsel with srcOffset (if node masked)
-                    // set up task with pointer to the function to execute
-                    while (srcOffset <= maxNodeOffset) {
-                        if (inputMask->isNodeMasked(srcOffset)) {
-                            break;
-                        }
-                        srcOffset++;
-                    }
-                    if ((srcOffset > maxNodeOffset) && (totalBFSSources == numCompletedTasks)) {
-                        break;
-                    }
-                    totalBFSSources++;
-                    ifeMorselTasks[i].first = std::make_unique<IFEMorsel>(extraData->upperBound,
-                        lowerBound, maxNodeOffset, srcOffset);
-                    auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
-                    gdsLocalState->ifeMorsel = ifeMorselTasks[i].first.get();
-                    jobs.push_back(ParallelUtilsJob{executionContext, std::move(gdsLocalState),
-                                sharedState, extendFrontierFunc, true /* isParallel */});
-                    jobIdxInMap.push_back(i);
-                } else if (parallelUtils->taskCompletedNoError(ifeMorselTasks[i].second) &&
-                           ifeMorselTasks[i].first->isIFEMorselCompleteNoLock()) {
+        /*
+         * We need to seed `maxConcurrentBFS` no. of tasks into the queue first. And then we reuse
+         * the IFEMorsels initialized again and again for further tasks.
+         * (1) Prepare at most maxConcurrentBFS no. of IFEMorsels as tasks to push into queue
+         * (2) If we reach maxConcurrentBFS before reaching end of total nodes, then break.
+         * (3) If we reach total nodes before we hit maxConcurrentBFS, then break.
+         */
+        while (totalBFSSources < maxConcurrentBFS) {
+            while (srcOffset <= maxNodeOffset) {
+                if (inputMask->isNodeMasked(srcOffset)) {
+                    break;
+                }
+                srcOffset++;
+            }
+            if (srcOffset > maxNodeOffset) {
+                break;
+            }
+            totalBFSSources++;
+            // printf("starting bfs source: %lu\n", srcOffset);
+            auto ifeMorsel = std::make_unique<IFEMorsel>(extraData->upperBound, lowerBound,
+                maxNodeOffset, srcOffset);
+            srcOffset++;
+            auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
+            gdsLocalState->ifeMorsel = ifeMorsel.get();
+            jobs.push_back(ParallelUtilsJob{executionContext, std::move(gdsLocalState), sharedState,
+                extendFrontierFunc, true /* isParallel */});
+            ifeMorselTasks.push_back({std::move(ifeMorsel), nullptr});
+        }
+        auto scheduledTasks = parallelUtils->submitTasksAndReturn(jobs);
+        // place the right scheduled task corresponding to its ife morsel
+        for (auto i = 0u; i < scheduledTasks.size(); i++) {
+            ifeMorselTasks[i].second = scheduledTasks[i];
+            // printf("task ID: %lu was submitted for src: %lu\n", scheduledTasks[i]->ID, ifeMorselTasks[i].first->srcOffset);
+        }
+        jobs.clear();
+        jobIdxInMap.clear();
+        bool runLoop = true;
+        while (runLoop) {
+            for (auto i = 0u; i < ifeMorselTasks.size(); i++) {
+                auto& schedTask = ifeMorselTasks[i].second;
+                if (!schedTask) {
+                    continue;
+                }
+                if (!parallelUtils->taskCompletedNoError(schedTask)) {
+                    continue;
+                }
+                if (parallelUtils->taskHasExceptionOrTimedOut(schedTask, executionContext)) {
+                    // Can we exit from here ? Or should we remove all the other remaining tasks ?
+                    // TODO: Handling errors is not currently fixed, all tasks should be removed
+                    runLoop = false;
+                    break;
+                }
+                if (ifeMorselTasks[i].first->isIFEMorselCompleteNoLock()) {
+                    auto processorTask = common::ku_dynamic_cast<Task*, ProcessorTask*>(
+                        ifeMorselTasks[i].second->task.get());
+                    free(processorTask->getSink());
+                    ifeMorselTasks[i].second = nullptr;
                     numCompletedTasks++;
+                    // printf("bfs source: %lu is completed\n", ifeMorselTasks[i].first->srcOffset);
                     while (srcOffset <= maxNodeOffset) {
                         if (inputMask->isNodeMasked(srcOffset)) {
                             break;
@@ -191,39 +230,38 @@ public:
                         srcOffset++;
                     }
                     if ((srcOffset > maxNodeOffset) && (totalBFSSources == numCompletedTasks)) {
-                        break;
+                        return; // reached termination, all bfs sources launched have finished
+                    } else if (srcOffset > maxNodeOffset) {
+                        continue;
                     }
                     totalBFSSources++;
                     ifeMorselTasks[i].first->resetNoLock(srcOffset);
+                    srcOffset++;
                     auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
                     gdsLocalState->ifeMorsel = ifeMorselTasks[i].first.get();
                     jobs.push_back(ParallelUtilsJob{executionContext, std::move(gdsLocalState),
-                                sharedState, extendFrontierFunc, true /* isParallel */});
+                        sharedState, extendFrontierFunc, true /* isParallel */});
                     jobIdxInMap.push_back(i);
-                } else if (parallelUtils->taskCompletedNoError(ifeMorselTasks[i].second) &&
-                    ifeMorselTasks[i].first->isBFSCompleteNoLock()) {
+                    continue;
+                }
+                bool isBFSComplete = ifeMorselTasks[i].first->isBFSCompleteNoLock();
+                if (isBFSComplete) {
                     auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
                     gdsLocalState->ifeMorsel = ifeMorselTasks[i].first.get();
                     jobs.push_back(ParallelUtilsJob{executionContext, std::move(gdsLocalState),
-                                sharedState, shortestPathOutputFunc, true /* isParallel */});
+                        sharedState, shortestPathOutputFunc, true /* isParallel */});
                     jobIdxInMap.push_back(i);
-                } else if (parallelUtils->taskCompletedNoError(ifeMorselTasks[i].second)) {
+                    continue;
+                } else {
                     ifeMorselTasks[i].first->initializeNextFrontierNoLock();
                     auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
                     gdsLocalState->ifeMorsel = ifeMorselTasks[i].first.get();
                     jobs.push_back(ParallelUtilsJob{executionContext, std::move(gdsLocalState),
-                                sharedState, extendFrontierFunc, true /* isParallel */});
+                        sharedState, extendFrontierFunc, true /* isParallel */});
                     jobIdxInMap.push_back(i);
-                } else if (parallelUtils->taskHasExceptionOrTimedOut(ifeMorselTasks[i].second,
-                               executionContext)) {
-                    // Can we exit from here ? Or should we remove all the other remaining tasks ?
-                    break;
-                } else {
-                    // Else the task is still running, check status of the other tasks.
-                    continue;
                 }
             }
-            auto scheduledTasks = parallelUtils->submitTasksAndReturn(jobs);
+            scheduledTasks = parallelUtils->submitTasksAndReturn(jobs);
             // place the right scheduled task corresponding to its ife morsel
             for (auto i = 0u; i < jobIdxInMap.size(); i++) {
                 ifeMorselTasks[jobIdxInMap[i]].second = scheduledTasks[i];

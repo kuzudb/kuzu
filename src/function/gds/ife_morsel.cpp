@@ -81,17 +81,17 @@ void IFEMorsel::mergeResults(uint64_t numDstVisitedLocal) {
 
 void IFEMorsel::initializeNextFrontierNoLock() {
     currentLevel++;
-    nextScanStartIdx = 0LU;
+    nextScanStartIdx.store(0LU, std::memory_order_acq_rel);
     if (isBFSCompleteNoLock()) {
         return;
     }
     bfsLevelNodeOffsets.clear();
     for (auto offset = 0u; offset < (maxOffset + 1); offset++) {
-        auto state = visitedNodes[offset].load(std::memory_order_acq_rel);
-        if (state == VISITED_DST_NEW) {
+        auto nodeState = visitedNodes[offset].load(std::memory_order_acq_rel);
+        if (nodeState == VISITED_DST_NEW) {
             bfsLevelNodeOffsets.push_back(offset);
             visitedNodes[offset].store(VISITED_DST, std::memory_order_acq_rel);
-        } else if (state == VISITED_NEW) {
+        } else if (nodeState == VISITED_NEW) {
             bfsLevelNodeOffsets.push_back(offset);
             visitedNodes[offset].store(VISITED, std::memory_order_acq_rel);
         }
