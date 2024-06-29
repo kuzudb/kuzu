@@ -195,40 +195,44 @@ public:
         if (ifeMorselTasks.empty()) {
             return;
         }
-        while (true) {
+        bool runLoop = true;
+        while (runLoop) {
             for (auto i = 0u; i < ifeMorselTasks.size(); i++) {
                 auto& schedTask = ifeMorselTasks[i].second;
-                if (schedTask && parallelUtils->taskCompletedNoError(schedTask)) {
-                    ifeMorselTasks[i].second = nullptr;
-                    // printf("bfs source: %lu is completed\n", ifeMorselTasks[i].first->srcOffset);
-                    numCompletedTasks++;
-                    while (srcOffset <= maxNodeOffset) {
-                        if (inputMask->isNodeMasked(srcOffset)) {
-                            break;
-                        }
-                        srcOffset++;
-                    }
-                    if ((srcOffset > maxNodeOffset) && (totalBFSSources == numCompletedTasks)) {
-                        return; // reached termination, all bfs sources launched have finished
-                    } else if (srcOffset > maxNodeOffset) {
-                        continue;
-                    }
-                    totalBFSSources++;
-                    ifeMorselTasks[i].first->resetNoLock(srcOffset);
-                    srcOffset++;
-                    auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
-                    gdsLocalState->ifeMorsel = ifeMorselTasks[i].first.get();
-                    auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState),
-                        sharedState, mainFunc, false /* isParallel */};
-                    ifeMorselTasks[i].second = parallelUtils->submitTaskAndReturn(job);
-                } else if (schedTask && parallelUtils->taskHasExceptionOrTimedOut(schedTask,
-                               executionContext)) {
-                    // Can we exit from here ? Or should we remove all the other remaining tasks ?
-                    break;
-                } else {
-                    // Else the task is still running, check status of the other tasks.
+                if (!schedTask) {
                     continue;
                 }
+                if (!parallelUtils->taskCompletedNoError(schedTask)) {
+                    continue;
+                }
+                if (parallelUtils->taskHasExceptionOrTimedOut(schedTask, executionContext)) {
+                    // Can we exit from here ? Or should we remove all the other remaining tasks ?
+                    // TODO: Handling errors is not currently fixed, all tasks should be removed
+                    runLoop = false;
+                    break;
+                }
+                ifeMorselTasks[i].second = nullptr;
+                // printf("bfs source: %lu is completed\n", ifeMorselTasks[i].first->srcOffset);
+                numCompletedTasks++;
+                while (srcOffset <= maxNodeOffset) {
+                    if (inputMask->isNodeMasked(srcOffset)) {
+                        break;
+                    }
+                    srcOffset++;
+                }
+                if ((srcOffset > maxNodeOffset) && (totalBFSSources == numCompletedTasks)) {
+                    return; // reached termination, all bfs sources launched have finished
+                } else if (srcOffset > maxNodeOffset) {
+                    continue;
+                }
+                totalBFSSources++;
+                ifeMorselTasks[i].first->resetNoLock(srcOffset);
+                srcOffset++;
+                auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
+                gdsLocalState->ifeMorsel = ifeMorselTasks[i].first.get();
+                auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState),
+                    sharedState, mainFunc, false /* isParallel */};
+                ifeMorselTasks[i].second = parallelUtils->submitTaskAndReturn(job);
             }
             std::this_thread::sleep_for(
                 std::chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));

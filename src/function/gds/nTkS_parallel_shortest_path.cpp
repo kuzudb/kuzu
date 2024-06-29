@@ -155,8 +155,8 @@ public:
         auto concurrentBFS = executionContext->clientContext->getClientConfig()->maxConcurrentBFS;
         // set max bfs always to min value between threads available and maxConcurrentBFS value
         auto maxConcurrentBFS = std::min(threadsAvailable, concurrentBFS);
-        /*printf("thread available: %lu and max concurrent bfs setting: %lu, maxConcurrentBFS: %lu\n",
-            threadsAvailable, concurrentBFS, maxConcurrentBFS);*/
+        printf("thread available: %lu and max concurrent bfs setting: %lu, maxConcurrentBFS: %lu\n",
+            threadsAvailable, concurrentBFS, maxConcurrentBFS);
         auto maxNodeOffset = sharedState->graph->getNumNodes() - 1;
         auto lowerBound = 1u;
         auto& inputMask = sharedState->inputNodeOffsetMask;
