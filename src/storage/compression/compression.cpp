@@ -540,7 +540,7 @@ template<IntegerBitpackingType T>
 void IntegerBitpacking<T>::copyValuesToTempChunkWithOffset(const U* srcBuffer, U* tmpBuffer,
     BitpackInfo<T> info, size_t numValuesToCopy) const {
     for (auto j = 0u; j < numValuesToCopy; j++) {
-        tmpBuffer[j] = static_cast<U>(std::bit_cast<T>(srcBuffer[j]) - info.offset);
+        tmpBuffer[j] = static_cast<U>((T)(srcBuffer[j]) - info.offset);
     }
 }
 

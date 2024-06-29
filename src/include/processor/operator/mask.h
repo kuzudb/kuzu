@@ -19,17 +19,22 @@ struct MaskUtil {
 struct MaskData {
     uint8_t* data;
 
-    explicit MaskData(uint64_t size) {
+    explicit MaskData(uint64_t size, uint8_t defaultVal = 0) : size{size} {
         dataBuffer = std::make_unique<uint8_t[]>(size);
         data = dataBuffer.get();
-        std::fill(data, data + size, 0);
+        std::fill(data, data + size, defaultVal);
     }
 
-    void setMask(uint64_t pos, uint8_t maskValue) const { data[pos] = maskValue; }
-    bool isMasked(uint64_t pos, uint8_t trueMaskVal) const { return data[pos] == trueMaskVal; }
+    inline void setMask(uint64_t pos, uint8_t maskValue) const { data[pos] = maskValue; }
+    inline bool isMasked(uint64_t pos, uint8_t trueMaskVal) const {
+        return data[pos] == trueMaskVal;
+    }
+    inline uint8_t getMaskValue(uint64_t pos) const { return data[pos]; }
+    inline uint64_t getSize() const { return size; }
 
 private:
     std::unique_ptr<uint8_t[]> dataBuffer;
+    uint64_t size;
 };
 
 // MaskCollection represents multiple mask on the same domain with AND semantic.

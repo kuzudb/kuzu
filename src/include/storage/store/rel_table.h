@@ -85,6 +85,8 @@ public:
         MemoryManager* memoryManager, catalog::RelTableCatalogEntry* relTableEntry, WAL* wal,
         bool enableCompression);
 
+    common::table_id_t getToNodeTableID() const { return toNodeTableID; }
+
     void initializeScanState(transaction::Transaction* transaction,
         TableScanState& scanState) const override;
 
@@ -159,6 +161,8 @@ private:
         RelDetachDeleteState* deleteState);
 
 private:
+    // Note: Only toNodeTableID is needed for now. Expose fromNodeTableID if needed.
+    common::table_id_t toNodeTableID;
     std::unique_ptr<RelTableData> fwdRelTableData;
     std::unique_ptr<RelTableData> bwdRelTableData;
 };

@@ -88,7 +88,7 @@ public:
         localState = std::make_unique<WeaklyConnectedComponentLocalState>(context);
     }
 
-    void exec() override {
+    void exec(processor::ExecutionContext*) override {
         auto wccLocalState = localState->ptrCast<WeaklyConnectedComponentLocalState>();
         auto graph = sharedState->graph.get();
         visitedMap.clear();

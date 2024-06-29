@@ -18,8 +18,8 @@ void GDSCall::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
     info.gds->init(sharedState.get(), context->clientContext);
 }
 
-void GDSCall::executeInternal(ExecutionContext*) {
-    info.gds->exec();
+void GDSCall::executeInternal(ExecutionContext* executionContext) {
+    info.gds->exec(executionContext);
 }
 
 } // namespace processor

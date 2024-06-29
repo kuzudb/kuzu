@@ -35,14 +35,13 @@ OnDiskGraphScanState::OnDiskGraphScanState(MemoryManager* mm) {
 }
 
 OnDiskGraph::OnDiskGraph(ClientContext* context, const GraphEntry& entry)
-    : transaction{context->getTx()}, graphEntry{entry.copy()},
-      scanState{context->getMemoryManager()} {
+    : context{context}, graphEntry{entry.copy()}, scanState{context->getMemoryManager()} {
     auto storage = context->getStorageManager();
     auto catalog = context->getCatalog();
     for (auto& nodeTableID : graphEntry.nodeTableIDs) {
         nodeIDToNodeTable.insert(
             {nodeTableID, storage->getTable(nodeTableID)->ptrCast<NodeTable>()});
-        auto& nodeTableEntry = catalog->getTableCatalogEntry(transaction, nodeTableID)
+        auto& nodeTableEntry = catalog->getTableCatalogEntry(context->getTx(), nodeTableID)
                                    ->constCast<NodeTableCatalogEntry>();
         common::table_id_map_t<storage::RelTable*> fwdRelTables;
         for (auto& relTableID : nodeTableEntry.getFwdRelTableIDSet()) {
@@ -63,6 +62,13 @@ OnDiskGraph::OnDiskGraph(ClientContext* context, const GraphEntry& entry)
     }
 }
 
+OnDiskGraph::OnDiskGraph(const OnDiskGraph& other)
+    : context{other.context}, graphEntry{other.graphEntry.copy()},
+      nodeIDToNodeTable{other.nodeIDToNodeTable},
+      nodeTableIDToFwdRelTables{other.nodeTableIDToFwdRelTables},
+      nodeTableIDToBwdRelTables{other.nodeTableIDToBwdRelTables},
+      scanState{context->getMemoryManager()} {}
+
 std::vector<table_id_t> OnDiskGraph::getNodeTableIDs() {
     return graphEntry.nodeTableIDs;
 }
@@ -81,7 +87,18 @@ offset_t OnDiskGraph::getNumNodes() {
 
 offset_t OnDiskGraph::getNumNodes(table_id_t id) {
     KU_ASSERT(nodeIDToNodeTable.contains(id));
-    return nodeIDToNodeTable.at(id)->getNumTuples(transaction);
+    return nodeIDToNodeTable.at(id)->getNumTuples(context->getTx());
+}
+
+std::vector<RelTableIDInfo> OnDiskGraph::getRelTableIDInfos() {
+    std::vector<RelTableIDInfo> result;
+    for (auto& [fromNodeTableID, relTables] : nodeTableIDToFwdRelTables) {
+        for (auto& [relTableID, _] : relTables) {
+            result.push_back(
+                {fromNodeTableID, relTableID, relTables.at(relTableID)->getToNodeTableID()});
+        }
+    }
+    return result;
 }
 
 std::vector<nodeID_t> OnDiskGraph::scanFwd(nodeID_t nodeID) {
@@ -127,10 +144,10 @@ void OnDiskGraph::scan(nodeID_t nodeID, storage::RelTable* relTable,
     RelTableScanState& relTableScanState, std::vector<nodeID_t>& nbrNodeIDs) {
     scanState.srcNodeIDVector->setValue<nodeID_t>(0, nodeID);
     relTableScanState.dataScanState->resetState();
-    relTable->initializeScanState(transaction, relTableScanState);
+    relTable->initializeScanState(context->getTx(), relTableScanState);
     auto& dstSelVector = scanState.dstNodeIDVector->state->getSelVector();
-    while (relTableScanState.hasMoreToRead(transaction)) {
-        relTable->scan(transaction, relTableScanState);
+    while (relTableScanState.hasMoreToRead(context->getTx())) {
+        relTable->scan(context->getTx(), relTableScanState);
         KU_ASSERT(dstSelVector.isUnfiltered());
         for (auto i = 0u; i < dstSelVector.getSelSize(); ++i) {
             auto nbrID = scanState.dstNodeIDVector->getValue<nodeID_t>(i);

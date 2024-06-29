@@ -18,8 +18,8 @@ public:
     static T all1sMaskForLeastSignificantBits(uint32_t numBits) {
         KU_ASSERT(numBits <= 64);
         using U = numeric_utils::MakeUnSignedT<T>;
-        return std::bit_cast<T>(numBits == (sizeof(U) * 8) ? std::numeric_limits<U>::max() :
-                                                             static_cast<U>(((U)1 << numBits) - 1));
+        return (T)(numBits == (sizeof(U) * 8) ? std::numeric_limits<U>::max() :
+                                                static_cast<U>(((U)1 << numBits) - 1));
     }
 
     // constructs all 1s mask while avoiding overflow/underflow for int128

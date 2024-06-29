@@ -13,7 +13,9 @@ class ClientContext;
 namespace processor {
 struct GDSCallSharedState;
 class FactorizedTable;
+struct ExecutionContext;
 } // namespace processor
+
 namespace function {
 
 // Struct maintaining GDS specific information that needs to be obtained at compile time.
@@ -78,7 +80,7 @@ public:
 
     void init(processor::GDSCallSharedState* sharedState, main::ClientContext* context);
 
-    virtual void exec() = 0;
+    virtual void exec(processor::ExecutionContext* executionContext) = 0;
 
     // TODO: We should get rid of this copy interface (e.g. using stateless design) or at least make
     // sure the fields that cannot be copied, such as graph or factorized table and localState, are

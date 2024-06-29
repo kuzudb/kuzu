@@ -1,6 +1,7 @@
 #pragma once
 
 #include "function/gds/gds.h"
+#include "function/gds/gds_utils.h"
 #include "graph/graph.h"
 #include "processor/operator/mask.h"
 #include "processor/operator/sink.h"
@@ -50,7 +51,7 @@ public:
 
     void initLocalStateInternal(ResultSet*, ExecutionContext*) override;
 
-    void executeInternal(ExecutionContext* context) override;
+    void executeInternal(ExecutionContext* executionContext) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<GDSCall>(resultSetDescriptor->copy(), info.copy(), sharedState, id,

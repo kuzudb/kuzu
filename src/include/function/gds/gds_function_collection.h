@@ -5,12 +5,6 @@
 namespace kuzu {
 namespace function {
 
-struct VariableLengthPathsFunction {
-    static constexpr const char* name = "VARIABLE_LENGTH_PATH";
-
-    static function_set getFunctionSet();
-};
-
 struct WeaklyConnectedComponentsFunction {
     static constexpr const char* name = "WEAKLY_CONNECTED_COMPONENT";
 
@@ -18,7 +12,7 @@ struct WeaklyConnectedComponentsFunction {
 };
 
 struct ShortestPathsFunction {
-    static constexpr const char* name = "SHORTEST_PATH";
+    static constexpr const char* name = "SHORTEST_PATHS";
 
     static function_set getFunctionSet();
 };

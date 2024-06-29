@@ -8,48 +8,15 @@
 -STATEMENT PROJECT GRAPH PK (person {age}, knows) CALL variable_length_path(PK, 1, 1) RETURN *;
 ---- error
 Parser exception: Filtering or projecting properties in graph projection is not supported.
--STATEMENT PROJECT GRAPH X (person, knows) CALL variable_length_path(PK, 1, 1) RETURN *;
----- error
-Binder exception: Cannot find graph PK.
 -STATEMENT PROJECT GRAPH PK (person, knows)
-           MATCH (a:person) WHERE a.ID > 5
-           CALL variable_length_path(PK, a, 1, 1, true)
-           RETURN a.fName, _node.fName, length, num_path;
----- 2
-Elizabeth|Farooq|1|1
-Elizabeth|Greg|1|1
--STATEMENT PROJECT GRAPH PK (person, knows, studyAt, organisation)
-           MATCH (a) WHERE a.ID = 0
-           CALL variable_length_path(PK, a, 1, 1, true)
-           RETURN a.fName, _node.name, _node.fName, length, num_path;
----- 4
-Alice|ABFsUni||1|1
-Alice||Bob|1|1
-Alice||Carol|1|1
-Alice||Dan|1|1
--STATEMENT PROJECT GRAPH PK (person, knows)
-           MATCH (a) WHERE a.ID = 1
-           CALL variable_length_path(PK, a, 1, 1, true)
-           RETURN a.fName, _node, length, num_path;
----- 0
--STATEMENT PROJECT GRAPH PK (person, knows)
-           MATCH (a) WHERE a.ID = 1
-           CALL variable_length_path(PK, a, 1, 1, false)
-           RETURN a.fName, _node.name, length, num_path;
+           MATCH (a:person) WHERE a.ID = 0
+           CALL shortest_paths(PK, a, 2, true)
+           RETURN a.fName, _node.name, length;
 ---- error
 Binder exception: Cannot find property name for _node.
 -STATEMENT PROJECT GRAPH PK (person, knows)
            MATCH (a:person) WHERE a.ID = 0
-           CALL variable_length_path(PK, a, 2, 2, true)
-           RETURN a.fName, _node.fName, length, num_path;
----- 4
-Alice|Alice|2|3
-Alice|Bob|2|2
-Alice|Carol|2|2
-Alice|Dan|2|2
--STATEMENT PROJECT GRAPH PK (person, knows)
-           MATCH (a:person) WHERE a.ID = 0
-           CALL shortest_path(PK, a, 2, true)
+           CALL shortest_paths(PK, a, 2, true)
            RETURN a.fName, _node.fName, length;
 ---- 4
 Alice|Alice|0
@@ -58,7 +25,7 @@ Alice|Carol|1
 Alice|Dan|1
 -STATEMENT PROJECT GRAPH PK (person, organisation, workAt, knows)
            MATCH (a:person) WHERE a.ID = 0
-           CALL shortest_path(PK, a, 2, true)
+           CALL shortest_paths(PK, a, 2, true)
            RETURN a.fName, _node.fName, _node.name, length;
 ---- 6
 Alice|Alice||0

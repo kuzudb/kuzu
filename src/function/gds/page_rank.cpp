@@ -105,7 +105,7 @@ public:
         localState = std::make_unique<PageRankLocalState>(context);
     }
 
-    void exec() override {
+    void exec(processor::ExecutionContext*) override {
         auto extraData = bindData->ptrCast<PageRankBindData>();
         auto pageRankLocalState = localState->ptrCast<PageRankLocalState>();
         auto graph = sharedState->graph.get();

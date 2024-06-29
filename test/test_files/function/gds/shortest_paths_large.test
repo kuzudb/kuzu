@@ -1,0 +1,61 @@
+-DATASET CSV gds-shortest-paths-large
+
+--
+
+-CASE SPLargeSingleLabel
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1) WHERE a.ID = 1
+           CALL shortest_paths(PK, a, 4, true)
+           RETURN length, count(*);
+-PARALLELISM 8
+---- 5
+0|1
+1|10
+2|100
+3|1000
+4|10000
+
+# This query will start from person1.1 and the traversal will stay in person1 nodes, visiting 10, 100, 1000, and 10000
+# nodes in 4 iterations.
+-CASE SPLargeMultilabel1
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
+           MATCH (a:person1) WHERE a.ID = 1
+           CALL shortest_paths(PK, a, 4, true)
+           RETURN length, count(*);
+-PARALLELISM 8
+---- 5
+0|1
+1|10
+2|100
+3|1000
+4|10000
+
+# This query will start from person1.1 and zigzag a similar BFS as MultiLabel1 but the layers will zigzag as person2,
+# person1, person2, person1
+-CASE SPLargeMultilabel2
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12)
+           MATCH (a:person1) WHERE a.ID = 1
+           CALL shortest_paths(PK, a, 4, true)
+           RETURN length, count(*);
+-PARALLELISM 8
+---- 5
+0|1
+1|20
+2|200
+3|2000
+4|20000
+
+# This query will start from person1.1 and traverse person1 and person2 layers in tandem. So should give for each
+# length 2 times the result of SPLargeMultilabel2, except for length 0 (which is only person1.1)
+-CASE SPLargeMultilabel3
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21)
+           MATCH (a:person1) WHERE a.ID = 1
+           CALL shortest_paths(PK, a, 4, true)
+           RETURN length, count(*);
+-PARALLELISM 8
+---- 5
+0|1
+1|20
+2|200
+3|2000
+4|20000
