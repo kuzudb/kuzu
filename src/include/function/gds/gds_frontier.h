@@ -2,7 +2,7 @@
 
 #include <atomic>
 #include <mutex>
-#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
 
 using namespace kuzu::common;
 
@@ -12,9 +12,6 @@ class Graph;
 } // namespace evaluator
 
 namespace function {
-
-// TODO(Reviewer): Is this the right place to put this?
-using lock_t = std::unique_lock<std::mutex>;
 
 class RangeFrontierMorsel {
     friend class PathLengthsFrontiers;
@@ -43,16 +40,17 @@ private:
 
 /**
  * Base interface for algorithms that can be implemented in Pregel-like vertex-centric manner.
- * More specifically, this interface mimics Ligra's edgeUpdate function. Intended to be used
- * when using the helper functions in GDSUtils.
+ * More specifically, this interface mimics Ligra's edgeUpdate function (though we call it
+ * edgeCompute). Intended to be used when using the helper functions in GDSUtils. The name
+ * FrontierCompute comes from vertex.compute() or edge.compute() functions of these systems.
  */
-class FrontierUpdateFn {
+class FrontierCompute {
 public:
-    virtual ~FrontierUpdateFn() {};
+    virtual ~FrontierCompute() = default;
     // Does any work that is needed for the neighbor nbrID. Returns true if the neighbor should
     // be put in the next frontier. So if the implementing class has access to the next frontier
     // as a field, **do not** call setActive. Helper functions in GDSUtils will do that work.
-    virtual bool edgeUpdate(nodeID_t nbrID) = 0;
+    virtual bool edgeCompute(nodeID_t nbrID) = 0;
 };
 
 
@@ -66,7 +64,7 @@ public:
 class
     GDSFrontier {
 public:
-    virtual ~GDSFrontier() {};
+    virtual ~GDSFrontier() = default;
     virtual bool isActive(nodeID_t nodeID) = 0;
     virtual void setActive(nodeID_t nodeID) = 0;
 };
@@ -80,27 +78,25 @@ public:
  * All functions supported in this base interface are thread-safe.
  */
 class Frontiers {
-
+    friend class GDSTask;
 public:
-    explicit Frontiers(uint64_t initialActiveNodes) {
-        numNextActiveNodes.store(initialActiveNodes);
-        curIter.store(UINT64_MAX);
+    explicit Frontiers(
+        GDSFrontier* curFrontier, GDSFrontier* nextFrontier, uint64_t initialActiveNodes)
+        : curFrontier{curFrontier}, nextFrontier{nextFrontier} {
+        numApproxActiveNodesForNextIter.store(initialActiveNodes);
+        curIter.store(INVALID_IDX);
     }
-    // TODO(Reviewer): Should I do this? I'm doing it because the compiler gives me this warning
-    // "warning: destructor called on non-final 'kuzu::function::PathLengthsFrontiers' that has
-    // virtual functions but non-virtual destructor [-Wdelete-non-abstract-non-virtual-dtor]"
-    // According to a Google search, I should add a virtual destructor but I don't fully understand
-    // if the deriving class, so PathLengthsFrontiers in this case, also needs a destructor.
-    virtual ~Frontiers() {};
+    virtual ~Frontiers() = default;
     virtual bool getNextFrontierMorsel(RangeFrontierMorsel& frontierMorsel) = 0;
-    void incrementNextActiveNodes(uint64_t i) { numNextActiveNodes.fetch_add(i); }
-    void beginNewIterationOfUpdates() {
-        lock_t lck{mtx};
-        // If curIter is UINT64_MAX, which indicates that the iterations have not started, the
-        // following line will set it to 0.
-        curIter.fetch_add(1);
-        numNextActiveNodes.store(0u);
-        beginNewIterationOfUpdatesInternalNoLock();
+    void incrementApproxActiveNodesForNextIter(uint64_t i) {
+        numApproxActiveNodesForNextIter.fetch_add(i); }
+    void beginNewIteration() {
+        std::unique_lock<std::mutex> lck{mtx};
+        // If curIter is INVALID_IDX (which should be UINT32_MAX), which indicates that the
+        // iterations have not started, the following line will set it to 0.
+        curIter.fetch_add(1u);
+        numApproxActiveNodesForNextIter.store(0u);
+        beginNewIterationInternalNoLock();
     }
     // When performing computations on multi-label graphs, it may be beneficial to fix a single
     // node table of nodes in the current frontier and a single node table of nodes for the next
@@ -117,22 +113,27 @@ public:
     // in current or next frontier by specific mask values. For such implementations we would have
     // to call fixNodeTable(S) and fixNodeTable(T) on the same object, which could overwrite
     // each other. That is why this function is put in the Frontiers class.
-    virtual void beginFrontierUpdatesBetweenTables(table_id_t curFrontierTableID, table_id_t nextFrontierTableID) = 0;
-    virtual GDSFrontier* getCurFrontier() = 0;
-    virtual GDSFrontier* getNextFrontier() = 0;
-
-    uint64_t getNextIter() {
-        // Note: If curIter is UINT64_MAX, which indicates that the iterations have not started,
-        // this will return 0.
-        return curIter.load() + 1;
+    virtual void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID, table_id_t nextFrontierTableID) = 0;
+    idx_t getNextIter() {
+        // Note: If curIter is INVALID_IDX (which should be UINT32_MAX), which indicates that the
+        // iterations have not started, this will return 0.
+        return curIter.load() + 1u;
     }
-    uint64_t getNumNextActiveNodes() { return numNextActiveNodes.load(); }
+    bool hasActiveNodesForNextIter() { return numApproxActiveNodesForNextIter.load() > 0; }
     // Note: If the implementing class stores 2 frontiers, this function should swap them.
-    virtual void beginNewIterationOfUpdatesInternalNoLock() {}
+    virtual void beginNewIterationInternalNoLock() {}
 protected:
     std::mutex mtx;
-    std::atomic<uint64_t> curIter;
-    std::atomic<uint64_t> numNextActiveNodes;
+    std::atomic<idx_t> curIter;
+    // Note: This number is not guaranteed to accurate. However if it is > 0, then there is at least
+    // one active node for the next frontier. It may not be accurate because there ca be double
+    // counting. Each thread will locally increment this number based on the number of times
+    // they set a node active for the next frontier. But both within a single thread's counting and
+    // across threads, the same node can be set active. So do not make any reliance on the accuracy
+    // of this value.
+    std::atomic<uint64_t> numApproxActiveNodesForNextIter;
+    GDSFrontier* curFrontier;
+    GDSFrontier* nextFrontier;
 };
 
 } // namespace function

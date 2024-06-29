@@ -11,7 +11,7 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace function {
 
-void GDSUtils::parallelizeFrontierVertexUpdate(processor::ExecutionContext* executionContext,
+void GDSUtils::parallelizeFrontierCompute(processor::ExecutionContext* executionContext,
     std::shared_ptr<FrontierTaskSharedState> sharedState) {
     auto task = std::make_shared<GDSTask>(
         executionContext->clientContext->getCurrentSetting(main::ThreadsSetting::name)
@@ -22,15 +22,15 @@ void GDSUtils::parallelizeFrontierVertexUpdate(processor::ExecutionContext* exec
 }
 
 void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* executionContext,
-    Frontiers& frontiers, graph::Graph* graph, FrontierUpdateFn& fu, uint64_t maxIters) {
-    while (frontiers.getNumNextActiveNodes() > 0 &&
+    Frontiers& frontiers, graph::Graph* graph, FrontierCompute& fc, uint64_t maxIters) {
+    while (frontiers.hasActiveNodesForNextIter() &&
            frontiers.getNextIter() < maxIters) {
-        frontiers.beginNewIterationOfUpdates();
-        for (auto& [srcNodeTableID, relTableID, dstNodeTableID] :
-            graph->getTableCombinations()) {
-            frontiers.beginFrontierUpdatesBetweenTables(srcNodeTableID, dstNodeTableID);
-            auto sharedState = std::make_shared<FrontierTaskSharedState>(frontiers, graph, fu, relTableID);
-            GDSUtils::parallelizeFrontierVertexUpdate(executionContext, sharedState);
+        frontiers.beginNewIteration();
+        for (auto& relTableIDInfo : graph->getRelTableIDInfos()) {
+            frontiers.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID,
+                relTableIDInfo.toNodeTableID);
+            auto sharedState = std::make_shared<FrontierTaskSharedState>(frontiers, graph, fc, relTableIDInfo.relTableID);
+            GDSUtils::parallelizeFrontierCompute(executionContext, sharedState);
         }
         // We put the memory fence here to make sure that updates to pathLengths in this
         // iteration is visible in the next round to all threads.

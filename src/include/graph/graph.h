@@ -1,10 +1,17 @@
 #pragma once
 
 #include <memory>
+
 #include "common/types/internal_id_t.h"
 
 namespace kuzu {
 namespace graph {
+
+struct RelTableIDInfo {
+    common::table_id_t fromNodeTableID;
+    common::table_id_t relTableID;
+    common::table_id_t toNodeTableID;
+};
 
 /**
  * Graph interface to be use by GDS algorithms to get neighbors of nodes.
@@ -30,8 +37,8 @@ public:
     // Get num rows for given node table.
     virtual common::offset_t getNumNodes(common::table_id_t id) = 0;
 
-    // Get all possible "forward" (src node table, relationship table, dst node table) combinations.
-    virtual std::vector<std::tuple<common::table_id_t, common::table_id_t, common::table_id_t>> getTableCombinations() = 0;
+    // Get all possible "forward" (fromNodeTableID, relTableID, toNodeTableID) combinations.
+    virtual std::vector<RelTableIDInfo> getRelTableIDInfos() = 0;
 
     // Get dst nodeIDs for given src nodeID on all connected relationship tables using forward
     // adjList.

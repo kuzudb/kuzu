@@ -93,12 +93,13 @@ private:
 };
 
 class PathLengthsFrontiers : public Frontiers {
-    friend struct ShortestPathsFrontierUpdateFn;
+    friend struct ShortestPathsFrontierCompute;
     static constexpr uint64_t FRONTIER_MORSEL_SIZE = 64;
 
 public:
     explicit PathLengthsFrontiers(PathLengths* pathLengths)
-        : Frontiers(1 /* initial num active nodes */), pathLengths{pathLengths} {}
+        : Frontiers(pathLengths /* curFrontier */, pathLengths /* nextFrontier */,
+              1 /* initial num active nodes */), pathLengths{pathLengths} {}
 
     bool getNextFrontierMorsel(RangeFrontierMorsel& frontierMorsel) override {
         if (nextOffset.load() >= pathLengths->getNumNodesInCurFrontierFixedNodeTable()) {
@@ -116,20 +117,17 @@ public:
         return true;
     }
 
-    void beginFrontierUpdatesBetweenTables(table_id_t curFrontierTableID,
+    void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
         table_id_t nextFrontierTableID) override {
         pathLengths->fixCurFrontierNodeTable(curFrontierTableID);
         pathLengths->fixNextFrontierNodeTable(nextFrontierTableID);
         nextOffset.store(0u);
     }
 
-    void beginNewIterationOfUpdatesInternalNoLock() override {
+    void beginNewIterationInternalNoLock() override {
         nextOffset.store(0u);
         pathLengths->incrementCurIter();
     }
-
-    GDSFrontier* getCurFrontier() override { return pathLengths; }
-    GDSFrontier* getNextFrontier() override { return pathLengths; }
 
 private:
     PathLengths* pathLengths;
@@ -221,12 +219,12 @@ private:
     std::vector<ValueVector*> vectors;
 };
 
-struct ShortestPathsFrontierUpdateFn : public FrontierUpdateFn {
+struct ShortestPathsFrontierCompute : public FrontierCompute {
     PathLengthsFrontiers* pathLengthsFrontiers;
-    explicit ShortestPathsFrontierUpdateFn(PathLengthsFrontiers* pathLengthsFrontiers)
+    explicit ShortestPathsFrontierCompute(PathLengthsFrontiers* pathLengthsFrontiers)
         : pathLengthsFrontiers{pathLengthsFrontiers} {};
 
-    bool edgeUpdate(nodeID_t nbrID) override {
+    bool edgeCompute(nodeID_t nbrID) override {
         return pathLengthsFrontiers->pathLengths->getMaskValueFromNextFrontierFixedMask(
                    nbrID.offset) == PathLengths::UNVISITED;
     }
@@ -313,9 +311,9 @@ public:
         auto sourceState = ShortestPathsSourceState(sharedState->graph.get(), sourceNodeID);
         auto pathLengthFrontiers =
             std::make_shared<PathLengthsFrontiers>(sourceState.pathLengths.get());
-        ShortestPathsFrontierUpdateFn spFrontierUpdate(pathLengthFrontiers.get());
+        ShortestPathsFrontierCompute spFrontierCompute(pathLengthFrontiers.get());
         GDSUtils::runFrontiersUntilConvergence(executionContext, *pathLengthFrontiers,
-            sharedState->graph.get(), spFrontierUpdate,
+            sharedState->graph.get(), spFrontierCompute,
             bindData->ptrCast<ShortestPathsBindData>()->upperBound);
         localState->ptrCast<ShortestPathsLocalState>()->materialize(sharedState->graph.get(),
             sourceState, *sharedState->fTable);

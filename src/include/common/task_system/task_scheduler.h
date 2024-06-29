@@ -38,7 +38,7 @@ struct ScheduledTask {
  */
 class TaskScheduler {
 public:
-    explicit TaskScheduler(uint64_t numThreads);
+    explicit TaskScheduler(uint64_t numWorkerThreads);
     ~TaskScheduler();
 
     // Schedules the dependencies of the given task and finally the task one after another (so
@@ -60,8 +60,8 @@ private:
 
 private:
     std::deque<std::shared_ptr<ScheduledTask>> taskQueue;
-    bool stopThreads;
-    std::vector<std::thread> threads;
+    bool stopWorkerThreads;
+    std::vector<std::thread> workerThreads;
     std::mutex mtx;
     std::condition_variable cv;
     uint64_t nextScheduledTaskID;

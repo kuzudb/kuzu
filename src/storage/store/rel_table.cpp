@@ -26,8 +26,7 @@ RelTable::RelTable(BMFileHandle* dataFH, DiskArrayCollection* metadataDAC,
     RelsStoreStats* relsStoreStats, MemoryManager* memoryManager,
     RelTableCatalogEntry* relTableEntry, WAL* wal, bool enableCompression)
     : Table{relTableEntry, relsStoreStats, memoryManager, wal},
-      srcNodeTableID{relTableEntry->getSrcTableID()}, dstNodeTableID{
-                                                          relTableEntry->getDstTableID()} {
+      toNodeTableID{relTableEntry->getDstTableID()} {
     fwdRelTableData = std::make_unique<RelTableData>(dataFH, metadataDAC, bufferManager, wal,
         relTableEntry, relsStoreStats, RelDataDirection::FWD, enableCompression);
     bwdRelTableData = std::make_unique<RelTableData>(dataFH, metadataDAC, bufferManager, wal,

@@ -7,9 +7,6 @@ namespace kuzu {
 namespace binder {
 class Binder;
 }
-namespace common {
-class TaskScheduler;
-}
 namespace main {
 class ClientContext;
 }
@@ -20,8 +17,6 @@ struct ExecutionContext;
 } // namespace processor
 
 namespace function {
-
-class GDSUtils;
 
 // Struct maintaining GDS specific information that needs to be obtained at compile time.
 struct GDSBindData {

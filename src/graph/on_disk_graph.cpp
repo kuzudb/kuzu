@@ -91,13 +91,12 @@ offset_t OnDiskGraph::getNumNodes(table_id_t id) {
     return nodeIDToNodeTable.at(id)->getNumTuples(context->getTx());
 }
 
-std::vector<std::tuple<common::table_id_t, common::table_id_t, common::table_id_t>>
-OnDiskGraph::getTableCombinations() {
-    std::vector<std::tuple<common::table_id_t, common::table_id_t, common::table_id_t>> result;
-    for (auto& [srcNodeTableID, relTables] : nodeTableIDToFwdRelTables) {
+std::vector<RelTableIDInfo> OnDiskGraph::getRelTableIDInfos() {
+    std::vector<RelTableIDInfo> result;
+    for (auto& [fromNodeTableID, relTables] : nodeTableIDToFwdRelTables) {
         for (auto& [relTableID, _] : relTables) {
-            result.push_back({srcNodeTableID, relTableID,
-                relTables.at(relTableID)->getDstNodeTableID()});
+            result.push_back({fromNodeTableID, relTableID,
+                relTables.at(relTableID)->getToNodeTableID()});
         }
     }
     return result;

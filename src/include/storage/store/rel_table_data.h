@@ -62,7 +62,6 @@ struct CSRHeaderColumns {
 // TODO(Guodong): Serialize the info to disk. This should be a config per node group.
 struct PackedCSRInfo {
     uint64_t calibratorTreeHeight;
-    // TODO(Guodong): Should this be removed?
     double lowDensityStep;
     double highDensityStep;
 
@@ -147,7 +146,6 @@ public:
     bool delete_(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
         common::ValueVector* relIDVector) const;
 
-    // TODO(Guodong): This function is not used. Should be removed.
     void checkRelMultiplicityConstraint(transaction::Transaction* transaction,
         common::ValueVector* srcNodeIDVector) const;
     bool checkIfNodeHasRels(transaction::Transaction* transaction,

@@ -24,7 +24,7 @@ void DataBlock::copyTuples(DataBlock* blockToCopyFrom, ft_tuple_idx_t tupleIdxTo
     blockToCopyInto->freeSize -= (numTuplesToCopy * numBytesPerTuple);
 }
 
-void DataBlockCollection::merge(DataBlockCollection& other) {
+void DataBlockCollection::merge(DataBlockCollection& other) {   
     if (blocks.empty()) {
         append(std::move(other.blocks));
         return;

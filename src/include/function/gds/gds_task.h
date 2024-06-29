@@ -8,14 +8,13 @@ namespace function {
 
 class FrontierTaskSharedState {
 public:
-    static constexpr const int64_t MORSEL_SIZE = 256;
-    FrontierTaskSharedState(Frontiers& frontiers, graph::Graph* graph, FrontierUpdateFn& vu, table_id_t relTableIDToScan)
-        : frontiers{frontiers}, graph{graph}, vu{vu}, relTableIDToScan{relTableIDToScan} {};
+    FrontierTaskSharedState(Frontiers& frontiers, graph::Graph* graph, FrontierCompute& fc, table_id_t relTableIDToScan)
+        : frontiers{frontiers}, graph{graph}, fc{fc}, relTableIDToScan{relTableIDToScan} {};
 
 public:
     Frontiers& frontiers;
     graph::Graph* graph;
-    FrontierUpdateFn& vu;
+    FrontierCompute& fc;
     table_id_t relTableIDToScan;
 };
 

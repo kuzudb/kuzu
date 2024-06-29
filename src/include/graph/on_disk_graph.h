@@ -34,8 +34,7 @@ public:
     common::offset_t getNumNodes() override;
     common::offset_t getNumNodes(common::table_id_t id) override;
 
-    std::vector<std::tuple<common::table_id_t, common::table_id_t, common::table_id_t>>
-    getTableCombinations() override;
+    std::vector<RelTableIDInfo> getRelTableIDInfos() override;
 
     std::vector<common::nodeID_t> scanFwd(common::nodeID_t nodeID) override;
     std::vector<common::nodeID_t> scanFwd(common::nodeID_t nodeID,
