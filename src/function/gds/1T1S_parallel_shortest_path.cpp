@@ -189,7 +189,7 @@ public:
             auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState), sharedState,
                 mainFunc, false /* isParallel */};
             auto scheduledTask = parallelUtils->submitTaskAndReturn(job);
-            printf("submitted job for bfs source: %lu\n", ifeMorsel->srcOffset);
+            // printf("submitted job for bfs source: %lu\n", ifeMorsel->srcOffset);
             ifeMorselTasks.push_back({std::move(ifeMorsel), scheduledTask});
         }
         if (ifeMorselTasks.empty()) {
@@ -200,7 +200,7 @@ public:
                 auto& schedTask = ifeMorselTasks[i].second;
                 if (schedTask && parallelUtils->taskCompletedNoError(schedTask)) {
                     ifeMorselTasks[i].second = nullptr;
-                    printf("bfs source: %lu is completed\n", ifeMorselTasks[i].first->srcOffset);
+                    // printf("bfs source: %lu is completed\n", ifeMorselTasks[i].first->srcOffset);
                     numCompletedTasks++;
                     while (srcOffset <= maxNodeOffset) {
                         if (inputMask->isNodeMasked(srcOffset)) {
