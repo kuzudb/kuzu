@@ -18,6 +18,12 @@ namespace storage {
 constexpr size_t BUFFER_SIZE = 1024;
 template<typename T>
 using IndexBuffer = common::StaticVector<std::pair<T, common::offset_t>, BUFFER_SIZE>;
+
+template<typename T>
+using HashIndexType =
+    std::conditional_t<std::same_as<T, std::string_view> || std::same_as<T, std::string>,
+        common::ku_string_t, T>;
+
 /**
  * Basic index file consists of three disk arrays: indexHeader, primary slots (pSlots), and overflow
  * slots (oSlots).
@@ -70,10 +76,9 @@ public:
     // Allocates the given number of new slots, ignoo
     void allocateSlots(uint32_t numSlots);
 
-    using BufferKeyType =
-        typename std::conditional<std::same_as<T, common::ku_string_t>, std::string, T>::type;
-    using Key =
-        typename std::conditional<std::same_as<T, common::ku_string_t>, std::string_view, T>::type;
+    using BufferKeyType = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string, T>;
+    // TODO(Ben): Ideally, `Key` should reuse `HashIndexType`.
+    using Key = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string_view, T>;
     // Appends the buffer to the index. Returns the number of values successfully inserted.
     // I.e. if a key fails to insert, its index will be the return value
     size_t append(const IndexBuffer<BufferKeyType>& buffer);

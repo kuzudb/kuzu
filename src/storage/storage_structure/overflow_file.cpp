@@ -48,7 +48,7 @@ std::string OverflowFileHandle::readString(TransactionType trxType, const ku_str
 }
 
 bool OverflowFileHandle::equals(TransactionType trxType, std::string_view keyToLookup,
-    const common::ku_string_t& keyInEntry) const {
+    const ku_string_t& keyInEntry) const {
     PageCursor cursor;
     TypeUtils::decodeOverflowPtr(keyInEntry.overflowPtr, cursor.pageIdx, cursor.elemPosInPage);
     auto lengthRead = 0u;
@@ -139,7 +139,7 @@ void OverflowFileHandle::prepareCommit() {
     }
 }
 
-void OverflowFileHandle::read(transaction::TransactionType trxType, common::page_idx_t pageIdx,
+void OverflowFileHandle::read(TransactionType trxType, page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& func) const {
     if (trxType == TransactionType::WRITE) {
         auto cachedPage = pageWriteCache.find(pageIdx);
@@ -150,7 +150,7 @@ void OverflowFileHandle::read(transaction::TransactionType trxType, common::page
     overflowFile.readFromDisk(trxType, pageIdx, func);
 }
 
-static inline DBFileIDAndName constructDBFileIDAndName(
+static DBFileIDAndName constructDBFileIDAndName(
     const DBFileIDAndName& dbFileIdAndNameForMainDBFile) {
     DBFileIDAndName copy = dbFileIdAndNameForMainDBFile;
     copy.dbFileID.isOverflow = true;
@@ -159,16 +159,17 @@ static inline DBFileIDAndName constructDBFileIDAndName(
 }
 
 OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager* bufferManager,
-    WAL* wal, bool readOnly, common::VirtualFileSystem* vfs, main::ClientContext* context)
+    WAL* wal, bool readOnly, VirtualFileSystem* vfs, main::ClientContext* context)
     : bufferManager{bufferManager}, wal{wal}, headerChanged{false} {
-    auto overflowFileIDAndName = constructDBFileIDAndName(dbFileIdAndName);
+    const auto overflowFileIDAndName = constructDBFileIDAndName(dbFileIdAndName);
     dbFileID = overflowFileIDAndName.dbFileID;
+    KU_ASSERT(vfs && bufferManager && context && wal);
     fileHandle = bufferManager->getBMFileHandle(overflowFileIDAndName.fName,
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
         BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs, context);
     if (fileHandle->getNumPages() > HEADER_PAGE_IDX) {
-        readFromDisk(transaction::TransactionType::READ_ONLY, HEADER_PAGE_IDX,
+        readFromDisk(TransactionType::READ_ONLY, HEADER_PAGE_IDX,
             [&](auto* frame) { memcpy(&header, frame, sizeof(header)); });
         pageCounter = numPagesOnDisk = header.pages;
     } else {
@@ -178,25 +179,35 @@ OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager
     }
 }
 
-void OverflowFile::readFromDisk(transaction::TransactionType trxType, common::page_idx_t pageIdx,
+OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName)
+    : fileHandle{nullptr}, bufferManager{nullptr}, wal{nullptr}, headerChanged{false} {
+    const auto overflowFileIDAndName = constructDBFileIDAndName(dbFileIdAndName);
+    dbFileID = overflowFileIDAndName.dbFileID;
+    // Reserve a page for the header
+    getNewPageIdx();
+    header = StringOverflowFileHeader();
+}
+
+void OverflowFile::readFromDisk(TransactionType trxType, page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& func) const {
-    auto [fileHandleToPin, pageIdxToPin] =
-        storage::DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(*getBMFileHandle(), pageIdx,
-            *wal, trxType);
+    auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
+        *getBMFileHandle(), pageIdx, *wal, trxType);
     bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, func);
 }
 
-void OverflowFile::writePageToDisk(common::page_idx_t pageIdx, uint8_t* data) const {
+void OverflowFile::writePageToDisk(page_idx_t pageIdx, uint8_t* data) const {
     if (pageIdx < numPagesOnDisk) {
         DBFileUtils::updatePage(*getBMFileHandle(), dbFileID, pageIdx,
             true /* overwriting entire page*/, *bufferManager, *wal,
             [&](auto* frame) { memcpy(frame, data, BufferPoolConstants::PAGE_4KB_SIZE); });
     } else {
+        KU_ASSERT(fileHandle);
         fileHandle->writePage(data, pageIdx);
     }
 }
 
 void OverflowFile::prepareCommit() {
+    KU_ASSERT(fileHandle);
     if (fileHandle->getNumPages() < pageCounter) {
         fileHandle->addNewPages(pageCounter - fileHandle->getNumPages());
     }
@@ -222,7 +233,7 @@ void OverflowFile::checkpointInMemory() {
 }
 
 void OverflowFile::rollbackInMemory() {
-    readFromDisk(transaction::TransactionType::READ_ONLY, HEADER_PAGE_IDX,
+    readFromDisk(TransactionType::READ_ONLY, HEADER_PAGE_IDX,
         [&](auto* frame) { memcpy(&header, frame, sizeof(header)); });
     numPagesOnDisk = pageCounter = header.pages;
     for (auto i = 0u; i < handles.size(); i++) {
