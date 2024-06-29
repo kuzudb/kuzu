@@ -17,7 +17,7 @@ StringChunkData::StringChunkData(LogicalType dataType, uint64_t capacity, bool e
 
     // create index chunk
     indexColumnChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT32(),
-        enableCompression, capacity, inMemory);
+        enableCompression, capacity, inMemory, false /*hasNull*/);
 }
 
 ColumnChunkData* StringChunkData::getIndexColumnChunk() {
@@ -102,8 +102,7 @@ void StringChunkData::write(ValueVector* vector, offset_t offsetInVector, offset
     }
 }
 
-void StringChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
-    RelMultiplicity /*multiplicity*/) {
+void StringChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets, RelMultiplicity) {
     KU_ASSERT(chunk->getDataType().getPhysicalType() == PhysicalTypeID::STRING &&
               dstOffsets->getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID &&
               chunk->getNumValues() == dstOffsets->getNumValues());

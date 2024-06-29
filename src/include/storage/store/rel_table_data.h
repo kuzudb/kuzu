@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/enums/rel_direction.h"
+#include "common/enums/rel_multiplicity.h"
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/table_data.h"
 

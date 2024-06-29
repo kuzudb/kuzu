@@ -14,9 +14,9 @@ ListChunkData::ListChunkData(LogicalType dataType, uint64_t capacity, bool enabl
     bool inMemory)
     : ColumnChunkData{std::move(dataType), capacity, enableCompression, true /* hasNullChunk */} {
     offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(common::LogicalType::UINT64(),
-        enableCompression, capacity);
+        enableCompression, capacity, false /*hasNull*/);
     sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(common::LogicalType::UINT32(),
-        enableCompression, capacity);
+        enableCompression, capacity, false /*hasNull*/);
     dataColumnChunk =
         ColumnChunkFactory::createColumnChunkData(ListType::getChildType(this->dataType).copy(),
             enableCompression, 0 /* capacity */, inMemory);
@@ -170,8 +170,7 @@ void ListChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     output.setValue<list_entry_t>(posInOutputVector, list_entry_t{currentListDataSize, listSize});
 }
 
-void ListChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
-    RelMultiplicity /*multiplicity*/) {
+void ListChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets, RelMultiplicity) {
     KU_ASSERT(chunk->getDataType().getPhysicalType() == dataType.getPhysicalType() &&
               dstOffsets->getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID &&
               chunk->getNumValues() == dstOffsets->getNumValues());

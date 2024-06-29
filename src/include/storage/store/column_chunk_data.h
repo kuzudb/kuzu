@@ -42,7 +42,7 @@ public:
     // ColumnChunks must be initialized after construction, so this constructor should only be used
     // through the ColumnChunkFactory
     ColumnChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression = true,
-        bool hasNullChunk = true);
+        bool hasNull = true);
 
     virtual ~ColumnChunkData() = default;
 
@@ -60,12 +60,14 @@ public:
         }
     }
 
+    bool isNull(common::offset_t pos) const;
     NullChunkData* getNullChunk() { return nullChunk.get(); }
     const NullChunkData& getNullChunk() const { return *nullChunk; }
     std::optional<common::NullMask> getNullMask() const;
     common::LogicalType& getDataType() { return dataType; }
     const common::LogicalType& getDataType() const { return dataType; }
 
+    virtual void resetToAllNull();
     virtual void resetToEmpty();
 
     // Note that the startPageIdx is not known, so it will always be common::INVALID_PAGE_IDX
@@ -211,7 +213,7 @@ public:
         memset(buffer.get(), 0 /* non null */, bufferSize);
         mayHaveNullValue = false;
     }
-    void resetToAllNull() {
+    void resetToAllNull() override {
         memset(buffer.get(), 0xFF /* null */, bufferSize);
         mayHaveNullValue = true;
     }
@@ -246,7 +248,7 @@ struct ColumnChunkFactory {
     // values to grow
     static std::unique_ptr<ColumnChunkData> createColumnChunkData(common::LogicalType dataType,
         bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE,
-        bool inMemory = false);
+        bool inMemory = false, bool hasNull = true);
 
     static std::unique_ptr<ColumnChunkData> createNullChunkData(bool enableCompression,
         uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE) {
