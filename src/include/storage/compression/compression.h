@@ -116,7 +116,10 @@ struct CompressionMetadata {
     // but no value will be larger than the maximum or smaller than the minimum
     StorageValue min;
     StorageValue max;
+
+    // TODO: move this somewhere more appropriate
     alp::state floatMetadata;
+
     CompressionType compression;
     uint8_t _padding[7]{};
 
@@ -211,7 +214,7 @@ public:
     // Nothing to do; constant compressed data is only updated if the update is to the same value
     void setValuesFromUncompressed(const uint8_t*, common::offset_t, uint8_t*, common::offset_t,
         common::offset_t, const CompressionMetadata&,
-        const common::NullMask* /*nullMask*/) const override {};
+        const common::NullMask* /*nullMask*/) const override{};
 
     CompressionType getCompressionType() const override { return CompressionType::CONSTANT; }
 
