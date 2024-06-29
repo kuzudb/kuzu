@@ -5,6 +5,7 @@
 #include <limits>
 #include <string>
 
+#include "alp.hpp"
 #include "common/assert.h"
 #include "common/exception/not_implemented.h"
 #include "common/exception/storage.h"
@@ -17,6 +18,7 @@
 #include "fastpfor/bitpackinghelpers.h"
 #include "storage/compression/bitpacking_int128.h"
 #include "storage/compression/bitpacking_utils.h"
+#include "storage/compression/compression_float.h"
 #include "storage/compression/sign_extend.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
@@ -191,6 +193,22 @@ uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& da
             throw common::StorageException(
                 "Attempted to read from a column chunk which uses integer bitpacking but does not "
                 "have a supported integer physical type: " +
+                PhysicalTypeUtils::toString(dataType.getPhysicalType()));
+        }
+        }
+    }
+    case CompressionType::FLOAT: {
+        switch (dataType.getPhysicalType()) {
+        case PhysicalTypeID::DOUBLE: {
+            return FloatCompression<double>::numValues(pageSize, *this);
+        }
+        case PhysicalTypeID::FLOAT: {
+            return FloatCompression<float>::numValues(pageSize, *this);
+        }
+        default: {
+            throw common::StorageException(
+                "Attempted to read from a column chunk which uses float compression but does not "
+                "have a supported physical type: " +
                 PhysicalTypeUtils::toString(dataType.getPhysicalType()));
         }
         }
@@ -554,7 +572,7 @@ uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
         return Uncompressed(sizeof(T)).compressNextPage(srcBuffer, numValuesRemaining, dstBuffer,
             dstBufferSize, metadata);
     }
-    KU_ASSERT(metadata.compression == CompressionType::INTEGER_BITPACKING);
+    // KU_ASSERT(metadata.compression == CompressionType::INTEGER_BITPACKING);
     auto info = getPackingInfo(metadata);
     auto bitWidth = info.bitWidth;
 

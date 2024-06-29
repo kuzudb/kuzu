@@ -5,6 +5,7 @@
 #include <optional>
 #include <type_traits>
 
+#include "alp/state.hpp"
 #include "common/assert.h"
 #include "common/null_mask.h"
 #include "common/numeric_utils.h"
@@ -105,6 +106,7 @@ enum class CompressionType : uint8_t {
     INTEGER_BITPACKING = 1,
     BOOLEAN_BITPACKING = 2,
     CONSTANT = 3,
+    FLOAT = 4,
 };
 
 // Data statistics used for determining how to handle compressed data
@@ -114,6 +116,10 @@ struct CompressionMetadata {
     // but no value will be larger than the maximum or smaller than the minimum
     StorageValue min;
     StorageValue max;
+
+    // TODO: move this somewhere more appropriate
+    alp::state floatMetadata;
+
     CompressionType compression;
     uint8_t _padding[7]{};
 
@@ -135,7 +141,7 @@ struct CompressionMetadata {
 };
 // Padding should be kept to a minimum, but must be stored explicitly for consistent binary output
 // when writing the padding to disk.
-static_assert(sizeof(CompressionMetadata) == sizeof(StorageValue) * 2 + 8);
+static_assert(sizeof(CompressionMetadata) % 8 == 0);
 
 class CompressionAlg {
 public:
