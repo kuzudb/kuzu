@@ -1,0 +1,4 @@
+-NAME multi-rel-small-scan
+-QUERY match (a:Person)-[]-(b) where a.birthday >= "1990-01-01" return COUNT(b);
+---- 1
+7038217

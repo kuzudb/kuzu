@@ -31,6 +31,7 @@ bool ChunkedCSRHeader::sanityCheck() const {
 
 void ChunkedCSRHeader::copyFrom(const ChunkedCSRHeader& other) const {
     auto numValues = other.offset->getNumValues();
+    resizeForValues(numValues);
     memcpy(offset->getData(), other.offset->getData(), numValues * sizeof(offset_t));
     memcpy(length->getData(), other.length->getData(), numValues * sizeof(length_t));
     length->setNumValues(numValues);
@@ -38,6 +39,7 @@ void ChunkedCSRHeader::copyFrom(const ChunkedCSRHeader& other) const {
 }
 
 void ChunkedCSRHeader::fillDefaultValues(offset_t newNumValues) const {
+    resizeForValues(newNumValues);
     auto lastCSROffset = getEndCSROffset(length->getNumValues() - 1);
     for (auto i = length->getNumValues(); i < newNumValues; i++) {
         offset->setValue<offset_t>(lastCSROffset, i);
