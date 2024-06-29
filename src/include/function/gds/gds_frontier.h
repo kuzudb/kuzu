@@ -32,10 +32,10 @@ protected:
     }
 
 private:
-    table_id_t tableID = UINT64_MAX;
-    offset_t beginOffset = UINT64_MAX;
-    offset_t endOffsetExclusive = UINT64_MAX;
-    uint64_t nextOffset = UINT64_MAX;
+    table_id_t tableID = INVALID_TABLE_ID;
+    offset_t beginOffset = INVALID_OFFSET;
+    offset_t endOffsetExclusive = INVALID_OFFSET;
+    offset_t nextOffset = INVALID_OFFSET;
 };
 
 /**
