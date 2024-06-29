@@ -8,7 +8,8 @@ namespace function {
 
 class FrontierTaskSharedState {
 public:
-    FrontierTaskSharedState(Frontiers& frontiers, graph::Graph* graph, FrontierCompute& fc, table_id_t relTableIDToScan)
+    FrontierTaskSharedState(Frontiers& frontiers, graph::Graph* graph, FrontierCompute& fc,
+        table_id_t relTableIDToScan)
         : frontiers{frontiers}, graph{graph}, fc{fc}, relTableIDToScan{relTableIDToScan} {};
 
 public:

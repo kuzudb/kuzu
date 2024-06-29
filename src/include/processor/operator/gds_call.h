@@ -25,8 +25,7 @@ struct GDSCallSharedState {
 struct GDSCallInfo {
     std::unique_ptr<function::GDSAlgorithm> gds;
 
-    explicit GDSCallInfo(std::unique_ptr<function::GDSAlgorithm> gds)
-        : gds{std::move(gds)} {}
+    explicit GDSCallInfo(std::unique_ptr<function::GDSAlgorithm> gds) : gds{std::move(gds)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(GDSCallInfo);
 
 private:

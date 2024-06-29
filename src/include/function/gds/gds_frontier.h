@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <mutex>
+
 #include "common/types/types.h"
 
 using namespace kuzu::common;
@@ -9,7 +10,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace graph {
 class Graph;
-} // namespace evaluator
+} // namespace graph
 
 namespace function {
 
@@ -53,7 +54,6 @@ public:
     virtual bool edgeCompute(nodeID_t nbrID) = 0;
 };
 
-
 /**
  * Interface for maintaining a frontier of nodes for GDS algorithms. The frontier is a set of
  * "active nodes" for which some computation should be done at a particular iteration of a
@@ -61,8 +61,7 @@ public:
  * TODO: This class should be renamed to simply Frontier after we remove the Frontier classes in
  * recursive_extend/frontier.h
  */
-class
-    GDSFrontier {
+class GDSFrontier {
 public:
     virtual ~GDSFrontier() = default;
     virtual bool isActive(nodeID_t nodeID) = 0;
@@ -79,9 +78,10 @@ public:
  */
 class Frontiers {
     friend class GDSTask;
+
 public:
-    explicit Frontiers(
-        GDSFrontier* curFrontier, GDSFrontier* nextFrontier, uint64_t initialActiveNodes)
+    explicit Frontiers(GDSFrontier* curFrontier, GDSFrontier* nextFrontier,
+        uint64_t initialActiveNodes)
         : curFrontier{curFrontier}, nextFrontier{nextFrontier} {
         numApproxActiveNodesForNextIter.store(initialActiveNodes);
         curIter.store(INVALID_IDX);
@@ -89,7 +89,8 @@ public:
     virtual ~Frontiers() = default;
     virtual bool getNextFrontierMorsel(RangeFrontierMorsel& frontierMorsel) = 0;
     void incrementApproxActiveNodesForNextIter(uint64_t i) {
-        numApproxActiveNodesForNextIter.fetch_add(i); }
+        numApproxActiveNodesForNextIter.fetch_add(i);
+    }
     void beginNewIteration() {
         std::unique_lock<std::mutex> lck{mtx};
         // If curIter is INVALID_IDX (which should be UINT32_MAX), which indicates that the
@@ -113,7 +114,8 @@ public:
     // in current or next frontier by specific mask values. For such implementations we would have
     // to call fixNodeTable(S) and fixNodeTable(T) on the same object, which could overwrite
     // each other. That is why this function is put in the Frontiers class.
-    virtual void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID, table_id_t nextFrontierTableID) = 0;
+    virtual void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
+        table_id_t nextFrontierTableID) = 0;
     idx_t getNextIter() {
         // Note: If curIter is INVALID_IDX (which should be UINT32_MAX), which indicates that the
         // iterations have not started, this will return 0.
@@ -122,6 +124,7 @@ public:
     bool hasActiveNodesForNextIter() { return numApproxActiveNodesForNextIter.load() > 0; }
     // Note: If the implementing class stores 2 frontiers, this function should swap them.
     virtual void beginNewIterationInternalNoLock() {}
+
 protected:
     std::mutex mtx;
     std::atomic<idx_t> curIter;

@@ -1,4 +1,5 @@
 #include "graph/on_disk_graph.h"
+
 #include "main/client_context.h"
 #include "storage/storage_manager.h"
 
@@ -34,8 +35,7 @@ OnDiskGraphScanState::OnDiskGraphScanState(MemoryManager* mm) {
 }
 
 OnDiskGraph::OnDiskGraph(ClientContext* context, const GraphEntry& entry)
-    : context{context}, graphEntry{entry.copy()},
-      scanState{context->getMemoryManager()} {
+    : context{context}, graphEntry{entry.copy()}, scanState{context->getMemoryManager()} {
     auto storage = context->getStorageManager();
     auto catalog = context->getCatalog();
     for (auto& nodeTableID : graphEntry.nodeTableIDs) {
@@ -69,7 +69,6 @@ OnDiskGraph::OnDiskGraph(const OnDiskGraph& other)
       nodeTableIDToBwdRelTables{other.nodeTableIDToBwdRelTables},
       scanState{context->getMemoryManager()} {}
 
-
 std::vector<table_id_t> OnDiskGraph::getNodeTableIDs() {
     return graphEntry.nodeTableIDs;
 }
@@ -95,8 +94,8 @@ std::vector<RelTableIDInfo> OnDiskGraph::getRelTableIDInfos() {
     std::vector<RelTableIDInfo> result;
     for (auto& [fromNodeTableID, relTables] : nodeTableIDToFwdRelTables) {
         for (auto& [relTableID, _] : relTables) {
-            result.push_back({fromNodeTableID, relTableID,
-                relTables.at(relTableID)->getToNodeTableID()});
+            result.push_back(
+                {fromNodeTableID, relTableID, relTables.at(relTableID)->getToNodeTableID()});
         }
     }
     return result;

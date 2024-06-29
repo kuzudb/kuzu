@@ -163,7 +163,7 @@ private:
 private:
     // Note: Only toNodeTableID is needed for now. Expose fromNodeTableID if needed.
     common::table_id_t toNodeTableID;
-        std::unique_ptr<RelTableData> fwdRelTableData;
+    std::unique_ptr<RelTableData> fwdRelTableData;
     std::unique_ptr<RelTableData> bwdRelTableData;
 };
 

@@ -5,7 +5,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace common {
 
-TaskScheduler::TaskScheduler(uint64_t numWorkerThreads) : stopWorkerThreads{false}, nextScheduledTaskID{0} {
+TaskScheduler::TaskScheduler(uint64_t numWorkerThreads)
+    : stopWorkerThreads{false}, nextScheduledTaskID{0} {
     for (auto n = 0u; n < numWorkerThreads; ++n) {
         workerThreads.emplace_back([&] { runWorkerThread(); });
     }

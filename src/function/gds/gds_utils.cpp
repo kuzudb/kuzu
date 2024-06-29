@@ -1,7 +1,8 @@
+#include "function/gds/gds_utils.h"
+
 #include "common/task_system/task_scheduler.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_task.h"
-#include "function/gds/gds_utils.h"
 #include "graph/graph.h"
 #include "main/settings.h"
 
@@ -23,13 +24,13 @@ void GDSUtils::parallelizeFrontierCompute(processor::ExecutionContext* execution
 
 void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* executionContext,
     Frontiers& frontiers, graph::Graph* graph, FrontierCompute& fc, uint64_t maxIters) {
-    while (frontiers.hasActiveNodesForNextIter() &&
-           frontiers.getNextIter() < maxIters) {
+    while (frontiers.hasActiveNodesForNextIter() && frontiers.getNextIter() < maxIters) {
         frontiers.beginNewIteration();
         for (auto& relTableIDInfo : graph->getRelTableIDInfos()) {
             frontiers.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID,
                 relTableIDInfo.toNodeTableID);
-            auto sharedState = std::make_shared<FrontierTaskSharedState>(frontiers, graph, fc, relTableIDInfo.relTableID);
+            auto sharedState = std::make_shared<FrontierTaskSharedState>(frontiers, graph, fc,
+                relTableIDInfo.relTableID);
             GDSUtils::parallelizeFrontierCompute(executionContext, sharedState);
         }
         // We put the memory fence here to make sure that updates to pathLengths in this

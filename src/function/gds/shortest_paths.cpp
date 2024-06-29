@@ -1,4 +1,5 @@
 #include <atomic>
+
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "common/exception/runtime.h"
@@ -99,7 +100,8 @@ class PathLengthsFrontiers : public Frontiers {
 public:
     explicit PathLengthsFrontiers(PathLengths* pathLengths)
         : Frontiers(pathLengths /* curFrontier */, pathLengths /* nextFrontier */,
-              1 /* initial num active nodes */), pathLengths{pathLengths} {}
+              1 /* initial num active nodes */),
+          pathLengths{pathLengths} {}
 
     bool getNextFrontierMorsel(RangeFrontierMorsel& frontierMorsel) override {
         if (nextOffset.load() >= pathLengths->getNumNodesInCurFrontierFixedNodeTable()) {

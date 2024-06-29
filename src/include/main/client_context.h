@@ -24,7 +24,7 @@ class ExpressionBinder;
 namespace common {
 class RandomEngine;
 class TaskScheduler;
-}
+} // namespace common
 
 namespace extension {
 struct ExtensionOptions;
