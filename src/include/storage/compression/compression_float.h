@@ -23,7 +23,7 @@ public:
         uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
         const CompressionMetadata& metadata, const common::NullMask* nullMask) const final;
 
-    static inline uint64_t numValues(uint64_t dataSize, const CompressionMetadata& metadata);
+    static uint64_t numValues(uint64_t dataSize, const CompressionMetadata& metadata);
 
     uint64_t compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
         uint8_t* dstBuffer, uint64_t dstBufferSize,
@@ -37,11 +37,10 @@ public:
         const std::optional<common::NullMask>& nullMask = std::nullopt,
         uint64_t nullMaskOffset = 0);
 
-    CompressionType getCompressionType() const override {
-        return CompressionType::INTEGER_BITPACKING;
-    }
+    CompressionType getCompressionType() const override { return CompressionType::FLOAT; }
 
-protected:
+private:
+    IntegerBitpacking<int64_t> encodedFloatBitpacker;
 };
 
 } // namespace storage

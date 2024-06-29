@@ -1,6 +1,7 @@
 add_library(kuzu_storage_compression
         OBJECT
         compression.cpp
+        compression_float.cpp
         bitpacking_int128.cpp
         bitpacking_utils.cpp)
 
