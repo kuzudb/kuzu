@@ -1,5 +1,7 @@
 #include "processor/operator/persistent/vector_index/bulk_vector_indexing.h"
 
+#include <thread>
+
 #include "binder/ddl/bound_create_table.h"
 #include "catalog/catalog.h"
 #include "common/enums/rel_multiplicity.h"
@@ -38,7 +40,7 @@ void BulkVectorIndexing::initGlobalStateInternal(ExecutionContext* context) {
 
 void BulkVectorIndexing::executeInternal(ExecutionContext* context) {
     std::vector<vector_id_t> vectorIds(DEFAULT_VECTOR_CAPACITY);
-        while (children[0]->getNextTuple(context)) {
+    while (children[0]->getNextTuple(context)) {
         // print the thread id
         printf("Thread id in: %d\n", std::this_thread::get_id());
         auto numVectors = localState->offsetVector->state->getSelVector().getSelSize();
