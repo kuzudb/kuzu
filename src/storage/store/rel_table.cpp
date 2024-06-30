@@ -160,9 +160,6 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     relReadState->boundNodeIDVector = srcNodeIDVector;
     relReadState->outputVectors = relIDVectors;
     relReadState->direction = direction;
-    const auto nodeOffset =
-        relReadState->IDVector->readNodeOffset(relReadState->IDVector->state->getSelVector()[0]);
-    relReadState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     initializeScanState(transaction, *relReadState);
     detachDeleteForCSRRels(transaction, tableData, reverseTableData, srcNodeIDVector,
         relReadState.get(), deleteState);
