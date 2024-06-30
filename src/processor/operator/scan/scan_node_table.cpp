@@ -21,20 +21,55 @@ void ScanNodeTableSharedState::initialize(transaction::Transaction* transaction,
                                   ->getNodeGroups();
         }
     }
+    committedNodeGroupVectorIdx.resize(numCommittedNodeGroups, 0);
+    committedNodeGroupFinished.resize(numCommittedNodeGroups, false);
+}
+
+void ScanNodeTableSharedState::updateVectorIdx(storage::NodeTableScanState& scanState) {
+    std::unique_lock lck{mtx};
+    auto& dataScanState =
+        ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState);
+    if (scanState.source == TableScanSource::COMMITTED) {
+        dataScanState.vectorIdx = committedNodeGroupVectorIdx[scanState.nodeGroupIdx]++;
+        if (!dataScanState.updateNumRowsToScan()) {
+            committedNodeGroupFinished[scanState.nodeGroupIdx] = true;
+        }
+    } else {
+        dataScanState.vectorIdx++;
+    }
 }
 
 void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
     std::unique_lock lck{mtx};
+    // First try to give separate node groups to different threads.
     if (currentCommittedGroupIdx < numCommittedNodeGroups) {
         scanState.nodeGroupIdx = currentCommittedGroupIdx++;
         scanState.source = TableScanSource::COMMITTED;
         return;
     }
+    // Then try to give local node groups to different threads.
     if (currentUnCommittedGroupIdx < localNodeGroups.size()) {
         scanState.localNodeGroup = ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(
             localNodeGroups[currentUnCommittedGroupIdx++]);
         scanState.source = TableScanSource::UNCOMMITTED;
         return;
+    }
+    // Finally, give the node group with smallest vector index to different threads.
+    if (currentCommittedGroupIdx == numCommittedNodeGroups) {
+        // Find node group with the smallest vector index.
+        auto minVectorIdx = common::INVALID_IDX;
+        auto nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+        for (auto i = 0u; i < committedNodeGroupVectorIdx.size(); i++) {
+            if (committedNodeGroupVectorIdx[i] < minVectorIdx && !committedNodeGroupFinished[i]) {
+                minVectorIdx = committedNodeGroupVectorIdx[i];
+                nodeGroupIdx = i;
+            }
+        }
+        if (minVectorIdx != common::INVALID_IDX) {
+            scanState.source = TableScanSource::COMMITTED;
+            scanState.nodeGroupIdx = nodeGroupIdx;
+            return;
+        }
     }
     scanState.source = TableScanSource::NONE;
 }
@@ -67,6 +102,9 @@ void ScanNodeTable::initGlobalStateInternal(ExecutionContext* context) {
         sharedStates[i]->initialize(context->clientContext->getTx(), nodeInfos[i].table);
     }
 }
+// 1Million vectors -> ~8 threads
+//
+
 
 bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     auto transaction = context->clientContext->getTx();
@@ -76,13 +114,16 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
         auto skipScan =
             transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;
         if (!skipScan) {
+            sharedStates[currentTableIdx]->updateVectorIdx(scanState);
             while (scanState.source != TableScanSource::NONE &&
                    info.table->scan(transaction, scanState)) {
                 if (scanState.nodeIDVector->state->getSelVector().getSelSize() > 0) {
                     return true;
                 }
+                sharedStates[currentTableIdx]->updateVectorIdx(scanState);
             }
         }
+        // TODO: Take care of skipScan!!
         sharedStates[currentTableIdx]->nextMorsel(scanState);
         if (scanState.source == TableScanSource::NONE) {
             currentTableIdx++;

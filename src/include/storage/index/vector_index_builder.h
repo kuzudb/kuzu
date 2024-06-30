@@ -53,6 +53,7 @@ public:
     }
 
     ~VectorIndexGraph() {
+        printf("Deleting VectorIndexGraph\n");
         for (auto nbrs : partitionedNbrs) {
             free(nbrs);
         }
@@ -76,7 +77,10 @@ struct VectorTempStorage {
         allocAligned((void**)&vectors, numVectors * dim * sizeof(float), 64);
     }
 
-    ~VectorTempStorage() { free(vectors); }
+    ~VectorTempStorage() {
+        printf("Deleting VectorTempStorage\n");
+        free(vectors);
+    }
 
     void copyVectors(const float* src, const vector_id_t* vectorIds, uint64_t numVectors) {
         // Try to copy bigger chunk if the vectorIds are contiguous

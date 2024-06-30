@@ -31,9 +31,12 @@ public:
 
     explicit VectorIndexHeader(int dim, uint64_t numVectors, const VectorIndexConfig config,
         vector_id_t entrypoint, uint8_t entrypointLevel, std::vector<vector_id_t> actualIds,
-        std::vector<vector_id_t> neighbors, table_id_t nodeTableId,
+        std::vector<vector_id_t> neighbors, uint64_t numVectorsInUpperLevel, table_id_t nodeTableId,
         property_id_t embeddingPropertyId, table_id_t csrRelTableIds);
 
+    void initSampleGraph(uint64_t numVectors);
+
+    // This method is thread-safe, however it doesn't resize the actualIds and neighbors vectors.
     void update(const vector_id_t* vectorIds, int numVectors,
         std::vector<vector_id_t>& upperLevelVectorIds);
 
@@ -89,6 +92,7 @@ private:
     // In-memory CSR for the sample graph
     std::vector<vector_id_t> actualIds;
     std::vector<vector_id_t> neighbors;
+    uint64_t numVectorsInUpperLevel;
 
     // Node table info
     table_id_t nodeTableId;

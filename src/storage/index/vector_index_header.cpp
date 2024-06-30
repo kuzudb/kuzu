@@ -15,27 +15,28 @@ namespace storage {
 VectorIndexHeader::VectorIndexHeader(int dim, const VectorIndexConfig config, table_id_t tableId,
     property_id_t embeddingPropertyId, table_id_t csrRelTableId)
     : dim(dim), numVectors(0), config(std::move(config)), entrypoint(INVALID_VECTOR_ID),
-      entrypointLevel(0), nodeTableId(tableId), embeddingPropertyId(embeddingPropertyId),
-      csrRelTableIds(csrRelTableId), re(RandomEngine()) {}
+      entrypointLevel(0), numVectorsInUpperLevel(0), nodeTableId(tableId),
+      embeddingPropertyId(embeddingPropertyId), csrRelTableIds(csrRelTableId), re(RandomEngine()) {}
 
 VectorIndexHeader::VectorIndexHeader(const VectorIndexHeader& other)
     : dim(other.dim), numVectors(other.numVectors), config(other.config),
       entrypoint(other.entrypoint), entrypointLevel(other.entrypointLevel),
-      nodeTableId(other.nodeTableId), embeddingPropertyId(other.embeddingPropertyId),
-      csrRelTableIds(other.csrRelTableIds), re(RandomEngine()) {
+      numVectorsInUpperLevel(other.numVectorsInUpperLevel), nodeTableId(other.nodeTableId),
+      embeddingPropertyId(other.embeddingPropertyId), csrRelTableIds(other.csrRelTableIds),
+      re(RandomEngine()) {
     actualIds = std::vector<vector_id_t>(other.actualIds);
     neighbors = std::vector<vector_id_t>(other.neighbors);
 }
 
 VectorIndexHeader::VectorIndexHeader(int dim, uint64_t numVectors, const VectorIndexConfig config,
     vector_id_t entrypoint, uint8_t entrypointLevel, std::vector<vector_id_t> actualIds,
-    std::vector<vector_id_t> neighbors, table_id_t nodeTableId, property_id_t embeddingPropertyId,
-    table_id_t csrRelTableIds)
+    std::vector<vector_id_t> neighbors, uint64_t numVectorsInUpperLevel, table_id_t nodeTableId,
+    property_id_t embeddingPropertyId, table_id_t csrRelTableIds)
     : dim(dim), numVectors(numVectors), config(config), entrypoint(entrypoint),
       entrypointLevel(entrypointLevel), actualIds(std::move(actualIds)),
-      neighbors(std::move(neighbors)), nodeTableId(nodeTableId),
-      embeddingPropertyId(embeddingPropertyId), csrRelTableIds(csrRelTableIds), re(RandomEngine()) {
-}
+      neighbors(std::move(neighbors)), numVectorsInUpperLevel(numVectorsInUpperLevel),
+      nodeTableId(nodeTableId), embeddingPropertyId(embeddingPropertyId),
+      csrRelTableIds(csrRelTableIds), re(RandomEngine()) {}
 
 bool VectorIndexHeader::includeInUpperLevel() {
     float f = re.randomFloat();
@@ -43,6 +44,23 @@ bool VectorIndexHeader::includeInUpperLevel() {
         return true;
     }
     return false;
+}
+
+void VectorIndexHeader::initSampleGraph(uint64_t numVectors) {
+    std::lock_guard<std::mutex> lock(mtx);
+    auto currentSize = actualIds.size();
+    auto newSize = currentSize;
+    for (uint64_t i = 0; i < numVectors; i++) {
+        if (includeInUpperLevel()) {
+            newSize++;
+        }
+    }
+    // Add some buffer space for now. Will fix it!!
+    newSize += 5000;
+    if (newSize > currentSize) {
+        actualIds.resize(newSize, INVALID_VECTOR_ID);
+        neighbors.resize(newSize * config.maxNbrsAtUpperLevel, INVALID_VECTOR_ID);
+    }
 }
 
 void VectorIndexHeader::update(const vector_id_t* vectorIds, int numVectors,
@@ -54,22 +72,17 @@ void VectorIndexHeader::update(const vector_id_t* vectorIds, int numVectors,
         }
     }
     {
+        // Problem, while increasing size of actualIds, neighbors, upperLevelVectorIds, we need to
+        // lock the mutex. and also while reading the neighbors, actualIds, we need to lock the
+        // mutex.
         std::lock_guard<std::mutex> lock(mtx);
         this->numVectors += numVectors;
         if (vectorsInUpperLevel.empty() && entrypoint == INVALID_VECTOR_ID) {
             entrypoint = vectorIds[0];
         }
         if (!vectorsInUpperLevel.empty()) {
-            auto numVectorsInUpperLayer = actualIds.size();
-            actualIds.resize(numVectorsInUpperLayer + vectorsInUpperLevel.size(),
-                INVALID_VECTOR_ID);
-
-            auto numNeighbors = neighbors.size();
-            neighbors.resize(numNeighbors + vectorsInUpperLevel.size() * config.maxNbrsAtUpperLevel,
-                INVALID_VECTOR_ID);
-
             for (size_t i = 0; i < vectorsInUpperLevel.size(); i++) {
-                auto upperLayerVectorId = i + numVectorsInUpperLayer;
+                auto upperLayerVectorId = numVectorsInUpperLevel++;
                 actualIds[upperLayerVectorId] = vectorsInUpperLevel[i];
                 upperLevelVectorIds.push_back(upperLayerVectorId);
             }
@@ -90,6 +103,7 @@ void VectorIndexHeader::serialize(Serializer& serializer) const {
     serializer.serializeValue(entrypointLevel);
     serializer.serializeVector(actualIds);
     serializer.serializeVector(neighbors);
+    serializer.serializeValue(numVectorsInUpperLevel);
     serializer.serializeValue(nodeTableId);
     serializer.serializeValue(embeddingPropertyId);
     serializer.serializeValue(csrRelTableIds);
@@ -109,6 +123,8 @@ std::unique_ptr<VectorIndexHeader> VectorIndexHeader::deserialize(Deserializer& 
     deserializer.deserializeVector(actualIds);
     std::vector<vector_id_t> neighbors;
     deserializer.deserializeVector(neighbors);
+    uint64_t numVectorsInUpperLevel;
+    deserializer.deserializeValue(numVectorsInUpperLevel);
     table_id_t nodeTableId;
     deserializer.deserializeValue(nodeTableId);
     property_id_t embeddingPropertyId;
@@ -116,8 +132,8 @@ std::unique_ptr<VectorIndexHeader> VectorIndexHeader::deserialize(Deserializer& 
     table_id_t csrRelTableIds;
     deserializer.deserializeValue(csrRelTableIds);
     return std::make_unique<VectorIndexHeader>(dim, numVectors, config, entrypoint, entrypointLevel,
-        std::move(actualIds), std::move(neighbors), nodeTableId, embeddingPropertyId,
-        csrRelTableIds);
+        std::move(actualIds), std::move(neighbors), numVectorsInUpperLevel, nodeTableId,
+        embeddingPropertyId, csrRelTableIds);
 }
 
 void VectorIndexKey::serialize(common::Serializer& serializer) const {
@@ -134,7 +150,8 @@ VectorIndexKey VectorIndexKey::deserialize(common::Deserializer& deserializer) {
 }
 
 VectorIndexHeaders::VectorIndexHeaders(const std::string& databasePath,
-    common::VirtualFileSystem* fs, main::ClientContext* context) : isUpdated{false} {
+    common::VirtualFileSystem* fs, main::ClientContext* context)
+    : isUpdated{false} {
     readOnlyVersion = std::make_unique<VectorIndexHeaderCollection>();
     if (fs->fileOrPathExists(StorageUtils::getVectorIndexHeadersFilePath(fs, databasePath,
                                  FileVersionType::ORIGINAL),

@@ -65,7 +65,7 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
     auto& nodeScanState = ku_dynamic_cast<TableScanState&, NodeTableScanState&>(scanState);
     auto& dataScanState =
         ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState);
-    if (!dataScanState.nextVector()) {
+    if (!dataScanState.updateNumRowsToScan()) {
         return false;
     }
     switch (scanState.source) {

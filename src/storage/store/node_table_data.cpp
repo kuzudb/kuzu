@@ -17,8 +17,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-bool NodeDataScanState::nextVector() {
-    vectorIdx++;
+bool NodeDataScanState::updateNumRowsToScan() {
     const auto startOffsetInNodeGroup = vectorIdx * DEFAULT_VECTOR_CAPACITY;
     if (startOffsetInNodeGroup >= numRowsInNodeGroup) {
         numRowsToScan = 0;

@@ -28,6 +28,8 @@ void ProcessorTask::run() {
     auto currentSink = (Sink*)clonedPipelineRoot.get();
     auto resultSet =
         populateResultSet(currentSink, executionContext->clientContext->getMemoryManager());
+    // Print the type of clonedPipelineRoot
+    printf("execute clonedPipelineRoot type: %s\n", typeid(clonedPipelineRoot).name());
     currentSink->execute(resultSet.get(), executionContext);
 }
 

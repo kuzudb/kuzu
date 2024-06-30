@@ -26,6 +26,7 @@ void BulkVectorIndexing::initLocalStateInternal(ResultSet* resultSet, ExecutionC
 
 void BulkVectorIndexing::initGlobalStateInternal(ExecutionContext* context) {
     auto numVectors = sharedState->maxOffsetNodeTable + 1;
+    sharedState->header->initSampleGraph(numVectors);
     auto maxNbrsAtLowerLevel = sharedState->header->getConfig().maxNbrsAtLowerLevel;
     sharedState->tempStorage =
         std::make_unique<VectorTempStorage>(sharedState->header->getDim(), numVectors);
@@ -37,10 +38,9 @@ void BulkVectorIndexing::initGlobalStateInternal(ExecutionContext* context) {
 
 void BulkVectorIndexing::executeInternal(ExecutionContext* context) {
     std::vector<vector_id_t> vectorIds(DEFAULT_VECTOR_CAPACITY);
-    while (children[0]->getNextTuple(context)) {
+        while (children[0]->getNextTuple(context)) {
         // print the thread id
-        printf("Thread id: %d\n", std::this_thread::get_id());
-
+        printf("Thread id in: %d\n", std::this_thread::get_id());
         auto numVectors = localState->offsetVector->state->getSelVector().getSelSize();
         auto vectors = reinterpret_cast<float*>(
             ListVector::getDataVector(localState->embeddingVector)->getData());
