@@ -81,7 +81,7 @@ bool LocalRelTable::delete_(transaction::Transaction*, TableDeleteState& state) 
 }
 
 void LocalRelTable::initializeScan(TableScanState& state) {
-    auto& relScanState = state.cast<RelTableScanState>();
+    const auto& relScanState = state.cast<RelTableScanState>();
     state.source = TableScanSource::UNCOMMITTED;
     state.nodeGroup = localNodeGroup.get();
     auto& nodeGroupScanState = state.nodeGroupScanState->cast<CSRNodeGroupScanState>();
@@ -94,17 +94,16 @@ void LocalRelTable::initializeScan(TableScanState& state) {
         nodeGroupScanState.inMemCSRList.rowIndices.end());
 }
 
-bool LocalRelTable::scan(transaction::Transaction* transaction, TableScanState& state) const {
+bool LocalRelTable::scan(transaction::Transaction* transaction, const TableScanState& state) const {
     auto& nodeGroupScanState = state.nodeGroupScanState->cast<CSRNodeGroupScanState>();
     const auto numToScan = std::min(nodeGroupScanState.inMemCSRList.rowIndices.size() -
                                         nodeGroupScanState.nextRowToScan,
         DEFAULT_VECTOR_CAPACITY);
     for (auto i = 0u; i < numToScan; i++) {
-        state.IDVector->setValue<internalID_t>(i,
-            internalID_t{
-                nodeGroupScanState.inMemCSRList.rowIndices[nodeGroupScanState.nextRowToScan + i],
-                INVALID_TABLE_ID});
+        state.rowIdxVector->setValue<row_idx_t>(i,
+            nodeGroupScanState.inMemCSRList.rowIndices[nodeGroupScanState.nextRowToScan + i]);
     }
+    state.rowIdxVector->state->getSelVectorUnsafe().setSelSize(numToScan);
     localNodeGroup->lookup(transaction, state);
     nodeGroupScanState.nextRowToScan += numToScan;
     return nodeGroupScanState.nextRowToScan < nodeGroupScanState.inMemCSRList.rowIndices.size();
@@ -130,20 +129,19 @@ row_idx_t LocalRelTable::findMatchingRow(const ValueVector& srcNodeIDVector,
     std::set_intersection(fwdRows.begin(), fwdRows.end(), bwdRows.begin(), bwdRows.end(),
         std::back_inserter(intersectRows));
     // Loop over relID column chunks to find the relID.
-    DataChunk scanChunk(2);
+    DataChunk scanChunk(1);
     scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
-    scanChunk.insert(1, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
     std::vector<column_id_t> columnIDs;
     columnIDs.push_back(LOCAL_REL_ID_COLUMN_ID);
     const auto scanState = std::make_unique<RelTableScanState>(table.getTableID(), columnIDs);
     scanState->IDVector = scanChunk.getValueVector(0).get();
-    scanState->outputVectors.push_back(scanChunk.getValueVector(1).get());
+    scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
     scanChunk.state->getSelVectorUnsafe().setSelSize(intersectRows.size());
     // TODO(Guodong): We assume intersectRows is smaller than 2048 here. Should handle edge case.
     for (auto i = 0u; i < intersectRows.size(); i++) {
-        scanState->IDVector->setValue<internalID_t>(i,
-            internalID_t{intersectRows[i], INVALID_TABLE_ID});
+        scanState->rowIdxVector->setValue<row_idx_t>(i, intersectRows[i]);
     }
+    scanState->rowIdxVector->state->getSelVectorUnsafe().setSelSize(intersectRows.size());
     localNodeGroup->lookup(&transaction::DUMMY_WRITE_TRANSACTION, *scanState);
     const auto scannedRelIDVector = scanState->outputVectors[0];
     KU_ASSERT(scannedRelIDVector->state->getSelVector().getSelSize() == intersectRows.size());

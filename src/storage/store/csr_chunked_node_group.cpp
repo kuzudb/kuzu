@@ -102,7 +102,7 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flush(BMFileHandle& dataF
     }
     ChunkedCSRHeader csrHeader{std::move(csrOffset), std::move(csrLength)};
     return std::make_unique<ChunkedCSRNodeGroup>(std::move(csrHeader), std::move(flushedChunks),
-        0 /*startNodeOffset*/, 0 /*startRowIdx*/);
+        0 /*startRowIdx*/);
 }
 
 void ChunkedCSRNodeGroup::serialize(Serializer& serializer) const {
@@ -119,7 +119,7 @@ std::unique_ptr<ChunkedCSRNodeGroup> ChunkedCSRNodeGroup::deserialize(Deserializ
     deSer.deserializeVectorOfPtrs<ColumnChunk>(chunks);
     auto chunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(
         ChunkedCSRHeader{std::move(offset), std::move(length)}, std::move(chunks),
-        0 /*startNodeOffset*/, 0 /*startRowIdx*/);
+        0 /*startRowIdx*/);
     bool hasVersions;
     deSer.deserializeValue<bool>(hasVersions);
     if (hasVersions) {

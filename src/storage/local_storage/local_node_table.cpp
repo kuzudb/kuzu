@@ -52,8 +52,10 @@ bool LocalNodeTable::update(TableUpdateState& updateState) {
         hashIndex->delete_(*nodeUpdateState.pkVector);
         hashIndex->insert(*nodeUpdateState.pkVector, offset);
     }
-    auto& nodeGroup = nodeGroups.findNodeGroupFromOffset(offset);
-    nodeGroup.update(&DUMMY_WRITE_TRANSACTION, offset, nodeUpdateState.columnID,
+    const auto [nodeGroupIdx, rowIdxInGroup] = StorageUtils::getQuotientRemainder(
+        offset - StorageConstants::MAX_NUM_ROWS_IN_TABLE, StorageConstants::NODE_GROUP_SIZE);
+    const auto nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
+    nodeGroup->update(&DUMMY_WRITE_TRANSACTION, rowIdxInGroup, nodeUpdateState.columnID,
         nodeUpdateState.propertyVector);
     return true;
 }
@@ -64,8 +66,10 @@ bool LocalNodeTable::delete_(Transaction*, TableDeleteState& deleteState) {
     const auto pos = nodeDeleteState.nodeIDVector.state->getSelVector()[0];
     const auto offset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
     hashIndex->delete_(nodeDeleteState.pkVector);
-    auto& nodeGroup = nodeGroups.findNodeGroupFromOffset(offset);
-    return nodeGroup.delete_(&DUMMY_WRITE_TRANSACTION, offset);
+    const auto [nodeGroupIdx, rowIdxInGroup] = StorageUtils::getQuotientRemainder(
+        offset - StorageConstants::MAX_NUM_ROWS_IN_TABLE, StorageConstants::NODE_GROUP_SIZE);
+    const auto nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
+    return nodeGroup->delete_(&DUMMY_WRITE_TRANSACTION, rowIdxInGroup);
 }
 
 } // namespace storage

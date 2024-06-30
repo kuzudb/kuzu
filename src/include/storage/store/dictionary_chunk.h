@@ -11,7 +11,7 @@ public:
     using string_offset_t = uint64_t;
     using string_index_t = uint32_t;
 
-    DictionaryChunk(uint64_t capacity, bool enableCompression, ResidencyState type);
+    DictionaryChunk(uint64_t capacity, bool enableCompression, ResidencyState residencyState);
     // A pointer to the dictionary chunk is stored in the StringOps for the indexTable
     // and can't be modified easily. Moving would invalidate that pointer
     DictionaryChunk(DictionaryChunk&& other) = delete;

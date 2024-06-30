@@ -29,7 +29,7 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
 }
 
 void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, const SequenceData& data,
-    int64_t prevVal) {
+    int64_t prevVal) const {
     undoBuffer->createSequenceChange(*sequenceEntry, data, prevVal);
 }
 

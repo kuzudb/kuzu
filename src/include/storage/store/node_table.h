@@ -108,7 +108,7 @@ public:
         TableScanState& scanState) override;
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
-    bool lookup(transaction::Transaction* transaction, TableScanState& scanState) const;
+    bool lookup(transaction::Transaction* transaction, const TableScanState& scanState) const;
 
     // Return the max node offset during insertions.
     common::offset_t validateUniquenessConstraint(transaction::Transaction* transaction,
@@ -136,7 +136,7 @@ public:
         return *columns[columnID];
     }
 
-    std::pair<common::offset_t, common::offset_t> appendPartially(
+    std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(
         transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup) const;
 
     void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;

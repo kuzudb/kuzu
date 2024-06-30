@@ -37,7 +37,8 @@ void DictionaryChunk::resetToEmpty() {
 uint64_t DictionaryChunk::getStringLength(string_index_t index) const {
     if (stringDataChunk->getNumValues() == 0) {
         return 0;
-    } else if (index + 1 < offsetChunk->getNumValues()) {
+    }
+    if (index + 1 < offsetChunk->getNumValues()) {
         KU_ASSERT(offsetChunk->getValue<string_offset_t>(index + 1) >=
                   offsetChunk->getValue<string_offset_t>(index));
         return offsetChunk->getValue<string_offset_t>(index + 1) -
@@ -47,19 +48,19 @@ uint64_t DictionaryChunk::getStringLength(string_index_t index) const {
 }
 
 DictionaryChunk::string_index_t DictionaryChunk::appendString(std::string_view val) {
-    auto found = indexTable.find(val);
+    const auto found = indexTable.find(val);
     // If the string already exists in the dictionary, skip it and refer to the existing string
     if (enableCompression && found != indexTable.end()) {
         return found->index;
     }
-    auto leftSpace = stringDataChunk->getCapacity() - stringDataChunk->getNumValues();
+    const auto leftSpace = stringDataChunk->getCapacity() - stringDataChunk->getNumValues();
     if (leftSpace < val.size()) {
         stringDataChunk->resize(std::bit_ceil(stringDataChunk->getCapacity() + val.size()));
     }
-    auto startOffset = stringDataChunk->getNumValues();
+    const auto startOffset = stringDataChunk->getNumValues();
     memcpy(stringDataChunk->getData() + startOffset, val.data(), val.size());
     stringDataChunk->setNumValues(startOffset + val.size());
-    auto index = offsetChunk->getNumValues();
+    const auto index = offsetChunk->getNumValues();
     if (index >= offsetChunk->getCapacity()) {
         offsetChunk->resize(offsetChunk->getCapacity() == 0 ?
                                 2 :
@@ -75,8 +76,8 @@ DictionaryChunk::string_index_t DictionaryChunk::appendString(std::string_view v
 
 std::string_view DictionaryChunk::getString(string_index_t index) const {
     KU_ASSERT(index < offsetChunk->getNumValues());
-    auto startOffset = offsetChunk->getValue<string_offset_t>(index);
-    auto length = getStringLength(index);
+    const auto startOffset = offsetChunk->getValue<string_offset_t>(index);
+    const auto length = getStringLength(index);
     return std::string_view(reinterpret_cast<const char*>(stringDataChunk->getData()) + startOffset,
         length);
 }

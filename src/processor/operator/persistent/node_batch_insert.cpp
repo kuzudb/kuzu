@@ -25,7 +25,7 @@ void NodeBatchInsertSharedState::initPKIndex(ExecutionContext*) {
     uint64_t numRows;
     if (readerSharedState != nullptr) {
         KU_ASSERT(distinctSharedState == nullptr);
-        auto scanSharedState =
+        const auto scanSharedState =
             readerSharedState->funcState->ptrCast<function::BaseScanSharedState>();
         numRows = scanSharedState->getNumRows();
     } else {
@@ -37,18 +37,18 @@ void NodeBatchInsertSharedState::initPKIndex(ExecutionContext*) {
 }
 
 void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
-    auto nodeSharedState =
+    const auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
     nodeSharedState->initPKIndex(context);
 }
 
 void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
+    const auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
 
-    auto nodeSharedState =
+    const auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
     localState = std::make_unique<NodeBatchInsertLocalState>();
-    auto nodeLocalState =
+    const auto nodeLocalState =
         ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
     // NOLINTBEGIN(bugprone-unchecked-optional-access)
     if (nodeSharedState->globalIndexBuilder) {
@@ -56,12 +56,12 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     }
     // NOLINTEND(bugprone-unchecked-optional-access)
 
-    auto numColumns = nodeInfo->columnEvaluators.size();
+    const auto numColumns = nodeInfo->columnEvaluators.size();
     nodeLocalState->columnVectors.resize(numColumns);
 
     for (auto i = 0u; i < numColumns; ++i) {
         if (!nodeInfo->defaultColumns[i]) {
-            auto& evaluator = nodeInfo->columnEvaluators[i];
+            const auto& evaluator = nodeInfo->columnEvaluators[i];
             evaluator->init(*resultSet, context->clientContext);
             evaluator->evaluate();
             nodeLocalState->columnVectors[i] = evaluator->resultVector.get();
@@ -69,7 +69,7 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     }
     for (auto i = 0u; i < numColumns; ++i) {
         if (nodeInfo->defaultColumns[i]) {
-            auto& evaluator = nodeInfo->columnEvaluators[i];
+            const auto& evaluator = nodeInfo->columnEvaluators[i];
             evaluator->init(*resultSet, context->clientContext);
         }
     }
@@ -81,13 +81,13 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
 }
 
 void NodeBatchInsert::populateDefaultColumns() const {
-    auto nodeLocalState =
+    const auto nodeLocalState =
         ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
-    auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
-    auto numTuples = nodeLocalState->columnState->getSelVector().getSelSize();
+    const auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
+    const auto numTuples = nodeLocalState->columnState->getSelVector().getSelSize();
     for (auto i = 0u; i < nodeInfo->defaultColumns.size(); ++i) {
         if (nodeInfo->defaultColumns[i]) {
-            auto& defaultEvaluator = nodeInfo->columnEvaluators[i];
+            const auto& defaultEvaluator = nodeInfo->columnEvaluators[i];
             defaultEvaluator->getLocalStateUnsafe().count = numTuples;
             defaultEvaluator->evaluate();
             nodeLocalState->columnVectors[i] = defaultEvaluator->resultVector.get();
@@ -98,14 +98,14 @@ void NodeBatchInsert::populateDefaultColumns() const {
 
 void NodeBatchInsert::executeInternal(ExecutionContext* context) {
     std::optional<ProducerToken> token;
-    auto nodeLocalState =
+    const auto nodeLocalState =
         ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
     if (nodeLocalState->localIndexBuilder) {
         token = nodeLocalState->localIndexBuilder->getProducerToken();
     }
 
     while (children[0]->getNextTuple(context)) {
-        auto originalSelVector = nodeLocalState->columnState->getSelVectorShared();
+        const auto originalSelVector = nodeLocalState->columnState->getSelVectorShared();
         populateDefaultColumns();
         copyToNodeGroup(context->clientContext->getTx());
         nodeLocalState->columnState->setSelVector(originalSelVector);
@@ -121,13 +121,13 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
     }
 }
 
-void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction) {
+void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction) const {
     auto numAppendedTuples = 0ul;
-    auto nodeLocalState =
+    const auto nodeLocalState =
         ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
-    auto numTuplesToAppend = nodeLocalState->columnState->getSelVector().getSelSize();
+    const auto numTuplesToAppend = nodeLocalState->columnState->getSelVector().getSelSize();
     while (numAppendedTuples < numTuplesToAppend) {
-        auto numAppendedTuplesInNodeGroup =
+        const auto numAppendedTuplesInNodeGroup =
             nodeLocalState->chunkedGroup->append(&transaction::DUMMY_WRITE_TRANSACTION,
                 nodeLocalState->columnVectors, 0, numTuplesToAppend - numAppendedTuples);
         numAppendedTuples += numAppendedTuplesInNodeGroup;
@@ -143,22 +143,23 @@ void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction) {
 }
 
 void NodeBatchInsert::clearToIndex(std::unique_ptr<ChunkedNodeGroup>& nodeGroup,
-    offset_t startIndexInGroup) {
+    offset_t startIndexInGroup) const {
     // Create a new chunked node group and move the unwritten values to it
     // TODO(bmwinger): Can probably re-use the chunk and shift the values
-    auto oldNodeGroup = std::move(nodeGroup);
-    auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
+    const auto oldNodeGroup = std::move(nodeGroup);
+    const auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
     nodeGroup = std::make_unique<ChunkedNodeGroup>(nodeInfo->columnTypes, info->compressionEnabled,
         StorageConstants::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
-    nodeGroup->append(&transaction::DUMMY_WRITE_TRANSACTION, *oldNodeGroup, startIndexInGroup);
+    nodeGroup->append(&transaction::DUMMY_WRITE_TRANSACTION, *oldNodeGroup, startIndexInGroup,
+        oldNodeGroup->getNumRows() - startIndexInGroup);
 }
 
 void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transaction,
-    std::unique_ptr<ChunkedNodeGroup>& nodeGroup, std::optional<IndexBuilder>& indexBuilder) {
-    auto nodeSharedState =
+    std::unique_ptr<ChunkedNodeGroup>& nodeGroup, std::optional<IndexBuilder>& indexBuilder) const {
+    const auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
-    auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
-    auto [nodeOffset, numRowsWritten] = nodeTable->appendPartially(transaction, *nodeGroup);
+    const auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
+    auto [nodeOffset, numRowsWritten] = nodeTable->appendToLastNodeGroup(transaction, *nodeGroup);
     if (indexBuilder) {
         indexBuilder->insert(nodeGroup->getColumnChunk(nodeSharedState->pkColumnID).getData(),
             nodeOffset, numRowsWritten);
@@ -171,28 +172,31 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
 }
 
 void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transaction,
-    std::unique_ptr<ChunkedNodeGroup> localNodeGroup, std::optional<IndexBuilder>& indexBuilder) {
+    std::unique_ptr<ChunkedNodeGroup> localNodeGroup,
+    std::optional<IndexBuilder>& indexBuilder) const {
     std::unique_lock xLck{sharedState->mtx};
-    auto nodeSharedState =
+    const auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
     if (!nodeSharedState->sharedNodeGroup) {
         nodeSharedState->sharedNodeGroup = std::move(localNodeGroup);
         return;
     }
-    auto numNodesAppended = nodeSharedState->sharedNodeGroup->append(
-        &transaction::DUMMY_WRITE_TRANSACTION, *localNodeGroup, 0 /* offsetInNodeGroup */);
+    auto numNodesAppended =
+        nodeSharedState->sharedNodeGroup->append(&transaction::DUMMY_WRITE_TRANSACTION,
+            *localNodeGroup, 0 /* offsetInNodeGroup */, localNodeGroup->getNumRows());
     while (nodeSharedState->sharedNodeGroup->isFullOrOnDisk()) {
         writeAndResetNodeGroup(transaction, nodeSharedState->sharedNodeGroup, indexBuilder);
         if (numNodesAppended < localNodeGroup->getNumRows()) {
-            nodeSharedState->sharedNodeGroup->append(&transaction::DUMMY_WRITE_TRANSACTION,
-                *localNodeGroup, numNodesAppended);
+            numNodesAppended += nodeSharedState->sharedNodeGroup->append(
+                &transaction::DUMMY_WRITE_TRANSACTION, *localNodeGroup, numNodesAppended,
+                localNodeGroup->getNumRows() - numNodesAppended);
         }
     }
     KU_ASSERT(numNodesAppended == localNodeGroup->getNumRows());
 }
 
 void NodeBatchInsert::finalize(ExecutionContext* context) {
-    auto nodeSharedState =
+    const auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
     if (nodeSharedState->sharedNodeGroup) {
         while (nodeSharedState->sharedNodeGroup->getNumRows() > 0) {
@@ -204,7 +208,6 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
         nodeSharedState->globalIndexBuilder->finalize(context);
     }
     context->clientContext->getTx()->pushNodeBatchInsert(sharedState->table->getTableID());
-    sharedState->logBatchInsertWALRecord();
     auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
         sharedState->getNumRows(), info->tableEntry->getName());
     FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,

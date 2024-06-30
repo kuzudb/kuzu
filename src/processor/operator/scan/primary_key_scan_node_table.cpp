@@ -6,7 +6,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-common::idx_t PrimaryKeyScanSharedState::getTableIdx() {
+idx_t PrimaryKeyScanSharedState::getTableIdx() {
     std::unique_lock lck{mtx};
     if (cursor < numTables) {
         return cursor++;

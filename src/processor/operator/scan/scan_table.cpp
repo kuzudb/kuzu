@@ -14,6 +14,7 @@ void ScanTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*) 
 
 void ScanTable::initVectors(storage::TableScanState& state, const ResultSet& resultSet) const {
     state.IDVector = resultSet.getValueVector(info.IDPos).get();
+    state.rowIdxVector->state = IDVector->state;
     for (auto& pos : info.outVectorsPos) {
         state.outputVectors.push_back(resultSet.getValueVector(pos).get());
     }

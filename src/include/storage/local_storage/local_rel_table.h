@@ -23,7 +23,7 @@ public:
     bool delete_(transaction::Transaction* transaction, TableDeleteState& state) override;
 
     void initializeScan(TableScanState& state);
-    bool scan(transaction::Transaction* transaction, TableScanState& state) const;
+    bool scan(transaction::Transaction* transaction, const TableScanState& state) const;
 
     void clear() override {
         localNodeGroup.reset();

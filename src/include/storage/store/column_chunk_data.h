@@ -88,7 +88,7 @@ public:
     friend struct ListDataColumnChunk;
 
     ColumnChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
-        ResidencyState type, bool hasNullData);
+        ResidencyState residencyState, bool hasNullData);
     ColumnChunkData(common::LogicalType dataType, bool enableCompression,
         const ColumnChunkMetadata& metadata, bool hasNullData);
     virtual ~ColumnChunkData() = default;

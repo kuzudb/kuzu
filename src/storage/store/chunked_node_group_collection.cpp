@@ -10,8 +10,8 @@ ChunkedNodeGroup& ChunkedNodeGroupCollection::findChunkedGroupFromOffset(const o
     KU_ASSERT(offset < getNumRows());
     const auto lock = chunkedGroups.lock();
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        if (chunkedGroup->getStartNodeOffset() <= offset &&
-            chunkedGroup->getStartNodeOffset() + chunkedGroup->getNumRows() >= offset) {
+        if (chunkedGroup->getStartRowIdx() <= offset &&
+            chunkedGroup->getStartRowIdx() + chunkedGroup->getNumRows() >= offset) {
             return *chunkedGroup;
         }
     }

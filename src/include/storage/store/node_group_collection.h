@@ -31,7 +31,6 @@ public:
         const auto lock = nodeGroups.lock();
         return nodeGroups.getNumGroups(lock);
     }
-    NodeGroup& findNodeGroupFromOffset(common::offset_t offset);
     NodeGroup* getNodeGroup(const common::node_group_idx_t groupIdx) {
         const auto lock = nodeGroups.lock();
         return nodeGroups.getGroup(lock, groupIdx);

@@ -30,15 +30,13 @@ public:
     static constexpr uint64_t CHUNK_CAPACITY = 2048;
 
     ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks,
-        common::offset_t startNodeOffset, common::row_idx_t startRowIdx,
-        NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);
+        common::row_idx_t startRowIdx, NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);
     ChunkedNodeGroup(const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
-        uint64_t capacity, common::offset_t startOffset, ResidencyState residencyState,
+        uint64_t capacity, common::row_idx_t startRowIdx, ResidencyState residencyState,
         NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);
     virtual ~ChunkedNodeGroup() = default;
 
     common::idx_t getNumColumns() const { return chunks.size(); }
-    common::offset_t getStartNodeOffset() const { return startNodeOffset; }
     common::row_idx_t getStartRowIdx() const { return startRowIdx; }
     common::row_idx_t getNumRows() const { return numRows; }
     const ColumnChunk& getColumnChunk(const common::column_id_t columnID) const {
@@ -71,17 +69,17 @@ public:
     // number of values appended.
     common::offset_t append(const transaction::Transaction* transaction,
         const ChunkedNodeGroup& other, common::offset_t offsetInOtherNodeGroup,
-        common::offset_t numRowsToAppend = common::StorageConstants::NODE_GROUP_SIZE);
+        common::offset_t numRowsToAppend);
     common::offset_t append(const transaction::Transaction* transaction,
         const std::vector<ColumnChunk*>& other, common::offset_t offsetInOtherNodeGroup,
-        common::offset_t numRowsToAppend = common::StorageConstants::NODE_GROUP_SIZE);
+        common::offset_t numRowsToAppend);
     void write(const std::vector<std::unique_ptr<ColumnChunk>>& data,
         common::column_id_t offsetColumnID);
     void write(const ChunkedNodeGroup& data, common::column_id_t offsetColumnID);
 
     void scan(const transaction::Transaction* transaction, const TableScanState& scanState,
-        const NodeGroupScanState& nodeGroupScanState, common::offset_t offsetInGroup,
-        common::length_t length) const;
+        const NodeGroupScanState& nodeGroupScanState, common::offset_t rowIdxInGroup,
+        common::length_t numRowsToScan) const;
 
     template<ResidencyState SCAN_RESIDENCY_STATE>
     void scanCommitted(transaction::Transaction* transaction, TableScanState& scanState,
@@ -91,10 +89,10 @@ public:
         NodeGroupScanState& nodeGroupScanState, common::offset_t rowIdxInGroup,
         common::sel_t posInOutput) const;
 
-    void update(transaction::Transaction* transaction, common::offset_t offset,
+    void update(transaction::Transaction* transaction, common::row_idx_t rowIdxInGroup,
         common::column_id_t columnID, const common::ValueVector& propertyVector);
 
-    bool delete_(const transaction::Transaction* transaction, common::offset_t offset);
+    bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInGroup);
 
     void finalize() const;
 
@@ -125,7 +123,6 @@ public:
 protected:
     NodeGroupDataFormat format;
     ResidencyState residencyState;
-    common::offset_t startNodeOffset;
     common::row_idx_t startRowIdx;
     uint64_t capacity;
     std::atomic<common::row_idx_t> numRows;
