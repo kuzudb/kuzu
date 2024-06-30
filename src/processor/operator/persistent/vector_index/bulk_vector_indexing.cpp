@@ -63,23 +63,25 @@ void BulkVectorIndexing::finalize(ExecutionContext* /*context*/) {
     // Populate partition buffer
     sharedState->graph->populatePartitionBuffer(
         *sharedState->partitionerSharedState->partitioningBuffers[0]);
+    printGraph();
 }
 
 void BulkVectorIndexing::printGraph() {
-    // Print the graph from partitionerSharedState
-    //    auto& partitionBuffer = *sharedState->partitionerSharedState->partitioningBuffers[0];
-    //    for (auto partitionIdx = 0u; partitionIdx < partitionBuffer.partitions.size();
-    //    partitionIdx++) {
-    //        auto& partition = partitionBuffer.partitions[partitionIdx];
-    //        auto& group = partition.getChunkedGroups()[0];
-    //        auto& from = group->getColumnChunk(0);
-    //        auto& to = group->getColumnChunk(1);
-    //        auto& relId = group->getColumnChunk(2);
-    //        for (auto i = 0u; i < group->getNumRows(); i++) {
-    //            spdlog::info("From: {}, To: {}, RelId: {}", from.getValue<offset_t>(i),
-    //                to.getValue<offset_t>(i), relId.getValue<offset_t>(i));
-    //        }
-    //    }
+//     Print the graph from partitionerSharedState
+        auto& partitionBuffer = *sharedState->partitionerSharedState->partitioningBuffers[0];
+        auto totalElements = 0;
+        for (auto partitionIdx = 0u; partitionIdx < partitionBuffer.partitions.size();
+        partitionIdx++) {
+            auto& partition = partitionBuffer.partitions[partitionIdx];
+            auto& group = partition.getChunkedGroups()[0];
+            auto& from = group->getColumnChunk(0);
+            auto& to = group->getColumnChunk(1);
+            auto& relId = group->getColumnChunk(2);
+            for (auto i = 0u; i < group->getNumRows(); i++) {
+                totalElements++;
+            }
+        }
+        printf("Total elements: %d\n", totalElements);
 }
 
 std::unique_ptr<PhysicalOperator> BulkVectorIndexing::clone() {
