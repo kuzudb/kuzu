@@ -103,8 +103,15 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
     return true;
 }
 
-bool NodeTable::lookup(Transaction* transaction, TableScanState& scanState) const {
+bool NodeTable::lookup(Transaction* transaction, const TableScanState& scanState) const {
     KU_ASSERT(scanState.IDVector->state->getSelVector().getSelSize() == 1);
+    const auto nodeIDPos = scanState.IDVector->state->getSelVector()[0];
+    if (scanState.IDVector->isNull(nodeIDPos)) {
+        return false;
+    }
+    const auto nodeOffset = scanState.IDVector->readNodeOffset(nodeIDPos);
+    const auto rowIdxInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeOffset);
+    scanState.rowIdxVector->setValue<row_idx_t>(nodeIDPos, rowIdxInGroup);
     return scanState.nodeGroup->lookup(transaction, scanState);
 }
 
@@ -149,8 +156,9 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
         localTable->update(updateState);
     } else {
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+        const auto rowIdxInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeOffset);
         nodeGroups->getNodeGroup(nodeGroupIdx)
-            ->update(transaction, nodeOffset, nodeUpdateState.columnID,
+            ->update(transaction, rowIdxInGroup, nodeUpdateState.columnID,
                 nodeUpdateState.propertyVector);
     }
 }
@@ -171,7 +179,8 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
         return localTable->delete_(transaction, deleteState);
     }
     const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-    return nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, nodeOffset);
+    const auto rowIdxInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeOffset);
+    return nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
 }
 
 // TODO(FIX-ME): Rework this.
@@ -188,7 +197,7 @@ void NodeTable::addColumn(Transaction* transaction, const Property& property,
     // wal->addToUpdatedTables(tableID);
 }
 
-std::pair<offset_t, offset_t> NodeTable::appendPartially(Transaction* transaction,
+std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(Transaction* transaction,
     ChunkedNodeGroup& chunkedGroup) const {
     return nodeGroups->appendToLastNodeGroup(transaction, chunkedGroup);
 }

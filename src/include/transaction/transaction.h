@@ -69,7 +69,7 @@ public:
     void pushCatalogEntry(catalog::CatalogSet& catalogSet,
         catalog::CatalogEntry& catalogEntry) const;
     void pushSequenceChange(catalog::SequenceCatalogEntry* sequenceEntry,
-        const catalog::SequenceData& data, int64_t prevVal);
+        const catalog::SequenceData& data, int64_t prevVal) const;
     void pushNodeBatchInsert(common::table_id_t tableID) const;
     void pushVectorInsertInfo(storage::VersionInfo& versionInfo, common::idx_t vectorIdx,
         storage::VectorVersionInfo& vectorVersionInfo,

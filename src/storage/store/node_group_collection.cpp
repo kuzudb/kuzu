@@ -63,28 +63,35 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroup(Transac
     bool directFlushWhenAppend;
     {
         const auto lock = nodeGroups.lock();
-        if (nodeGroups.isEmpty(lock) || nodeGroups.getLastGroup(lock)->isFull()) {
+        startOffset = numRows.load();
+        if (nodeGroups.isEmpty(lock)) {
             nodeGroups.appendGroup(lock, std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock),
                                              enableCompression, LogicalType::copy(types)));
         }
         lastNodeGroup = nodeGroups.getLastGroup(lock);
-        const auto numRowsLeftInLastNodeGroup = lastNodeGroup->getNumRowsLeftToAppend();
+        auto numRowsLeftInLastNodeGroup = lastNodeGroup->getNumRowsLeftToAppend();
+        if (numRowsLeftInLastNodeGroup == 0) {
+            nodeGroups.appendGroup(lock, std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock),
+                                             enableCompression, LogicalType::copy(types)));
+            lastNodeGroup = nodeGroups.getLastGroup(lock);
+            numRowsLeftInLastNodeGroup = lastNodeGroup->getNumRowsLeftToAppend();
+        }
         numToAppend = std::min(chunkedGroup.getNumRows(), numRowsLeftInLastNodeGroup);
         lastNodeGroup->moveNextRowToAppend(numToAppend);
         // If the node group is empty now and the chunked group is full, we can directly flush it.
         directFlushWhenAppend =
             numToAppend == numRowsLeftInLastNodeGroup && lastNodeGroup->getNumRows() == 0;
+        if (!directFlushWhenAppend) {
+            // TODO(Guodong): Furthur optimize on this. Should directly figure out startRowIdx to
+            // start appending into the node group and pass in as param.
+            lastNodeGroup->append(transaction, chunkedGroup, numToAppend);
+        }
     }
     if (directFlushWhenAppend) {
         chunkedGroup.finalize();
         auto flushedGroup = chunkedGroup.flush(*dataFH);
         KU_ASSERT(lastNodeGroup->getNumChunkedGroups() == 0);
         lastNodeGroup->merge(transaction, std::move(flushedGroup));
-        startOffset = lastNodeGroup->getStartNodeOffset();
-    } else {
-        // TODO(Guodong): Furthur optimize on this. Should directly figure out startRowIdx to start
-        // appending into the node group and pass in as param.
-        startOffset = lastNodeGroup->append(transaction, chunkedGroup, numToAppend);
     }
     numRows += numToAppend;
     return {startOffset, numToAppend};
@@ -92,19 +99,6 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroup(Transac
 
 row_idx_t NodeGroupCollection::getNumRows() const {
     return numRows.load();
-}
-
-NodeGroup& NodeGroupCollection::findNodeGroupFromOffset(offset_t offset) {
-    const auto rowIdx = offset - startRowIdx;
-    KU_ASSERT(rowIdx < getNumRows());
-    const auto lock = nodeGroups.lock();
-    for (auto& chunkedGroup : nodeGroups.getAllGroups(lock)) {
-        if (chunkedGroup->getStartNodeOffset() <= rowIdx &&
-            chunkedGroup->getStartNodeOffset() + chunkedGroup->getNumRows() >= rowIdx) {
-            return *chunkedGroup;
-        }
-    }
-    KU_UNREACHABLE;
 }
 
 uint64_t NodeGroupCollection::getEstimatedMemoryUsage() {

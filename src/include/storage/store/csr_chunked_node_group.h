@@ -39,10 +39,8 @@ public:
               NodeGroupDataFormat::CSR},
           csrHeader{enableCompression, common::StorageConstants::NODE_GROUP_SIZE, residencyState} {}
     ChunkedCSRNodeGroup(ChunkedCSRHeader csrHeader,
-        std::vector<std::unique_ptr<ColumnChunk>> chunks, common::offset_t startNodeOffset,
-        common::row_idx_t startRowIdx)
-        : ChunkedNodeGroup{std::move(chunks), startNodeOffset, startRowIdx,
-              NodeGroupDataFormat::CSR},
+        std::vector<std::unique_ptr<ColumnChunk>> chunks, common::row_idx_t startRowIdx)
+        : ChunkedNodeGroup{std::move(chunks), startRowIdx, NodeGroupDataFormat::CSR},
           csrHeader{std::move(csrHeader)} {}
 
     ChunkedCSRHeader& getCSRHeader() { return csrHeader; }

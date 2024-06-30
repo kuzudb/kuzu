@@ -107,6 +107,7 @@ void CSRNodeGroup::initializeScanState(Transaction* transaction, TableScanState&
     }
     // Switch to a new bound node (i.e., new csr list) in the node group.
     nodeGroupScanState.nextRowToScan = 0;
+    const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     nodeGroupScanState.persistentCSRList.startRow = nodeGroupScanState.csrHeader->getStartCSROffset(
         relScanState.boundNodeOffset - startNodeOffset);
     nodeGroupScanState.persistentCSRList.length =

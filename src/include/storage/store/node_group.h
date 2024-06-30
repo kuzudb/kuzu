@@ -74,15 +74,13 @@ public:
         common::row_idx_t capacity = common::StorageConstants::NODE_GROUP_SIZE,
         NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR)
         : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
-          numRows{0}, nextRowToAppend{0}, capacity{capacity}, dataTypes{std::move(dataTypes)},
-          startNodeOffset{StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx)} {}
+          numRows{0}, nextRowToAppend{0}, capacity{capacity}, dataTypes{std::move(dataTypes)} {}
     NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
         std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup,
         common::row_idx_t capacity = common::StorageConstants::NODE_GROUP_SIZE,
         NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR)
         : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
-          numRows{0}, nextRowToAppend{0}, capacity{capacity},
-          startNodeOffset{StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx)} {
+          numRows{0}, nextRowToAppend{0}, capacity{capacity} {
         for (auto i = 0u; i < chunkedNodeGroup->getNumColumns(); i++) {
             dataTypes.push_back(chunkedNodeGroup->getColumnChunk(i).getDataType().copy());
         }
@@ -114,9 +112,9 @@ public:
     virtual NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state);
     bool lookup(transaction::Transaction* transaction, const TableScanState& state);
 
-    void update(transaction::Transaction* transaction, common::offset_t offset,
+    void update(transaction::Transaction* transaction, common::row_idx_t rowIdxInGroup,
         common::column_id_t columnID, const common::ValueVector& propertyVector);
-    bool delete_(const transaction::Transaction* transaction, common::offset_t offset);
+    bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInGroup);
 
     void flush(BMFileHandle& dataFH);
 
@@ -127,8 +125,6 @@ public:
 
     void serialize(common::Serializer& serializer);
     static std::unique_ptr<NodeGroup> deserialize(common::Deserializer& deSer);
-
-    common::offset_t getStartNodeOffset() const { return startNodeOffset; }
 
     common::node_group_idx_t getNumChunkedGroups() {
         const auto lock = chunkedGroups.lock();
@@ -167,8 +163,6 @@ protected:
     common::row_idx_t nextRowToAppend;
     common::row_idx_t capacity;
     std::vector<common::LogicalType> dataTypes;
-    // Offset of the first node in the group.
-    common::offset_t startNodeOffset;
     GroupCollection<ChunkedNodeGroup> chunkedGroups;
 };
 
