@@ -110,7 +110,8 @@ bool NodeTable::lookup(Transaction* transaction, const TableScanState& scanState
         return false;
     }
     const auto nodeOffset = scanState.IDVector->readNodeOffset(nodeIDPos);
-    const auto rowIdxInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeOffset);
+    const auto rowIdxInGroup =
+        nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx);
     scanState.rowIdxVector->setValue<row_idx_t>(nodeIDPos, rowIdxInGroup);
     return scanState.nodeGroup->lookup(transaction, scanState);
 }

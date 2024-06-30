@@ -760,8 +760,8 @@ offset_t RelTableData::getMaxNumNodesInRegion(const ChunkedCSRHeader&, const Pac
     //     return numNodes;
 }
 
-void RelTableData::updateCSRHeader(Transaction*, node_group_idx_t, bool,
-    PersistentState& persistentState, LocalState& localState) {
+void RelTableData::updateCSRHeader(Transaction*, node_group_idx_t, bool, PersistentState&,
+    LocalState&) {
     // auto [leftBoundary, rightBoundary] = localState.region.getNodeOffsetBoundaries();
     // auto& header = persistentState.header;
     // auto maxNumNodesInRegion =
