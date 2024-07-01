@@ -4,7 +4,7 @@ on: workflow_dispatch
 
 jobs:
   build-linux-extensions-x86_64:
-    runs-on: kuzu-self-hosted-linux-building-x86_64_centos8
+    runs-on: kuzu-self-hosted-linux-building-x86_64
     steps:
       - uses: actions/checkout@v4
 
@@ -20,27 +20,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_linux-x86_64
-          path: extension-artifacts/*.kuzu_extension
-
-  build-linux-extensions-x86_64-old:
-    runs-on: kuzu-self-hosted-linux-building-x86_64_centos7
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build precompiled extensions
-        run: |
-          source /opt/rh/devtoolset-11/enable
-          make extension-release NUM_THREADS=$(nproc)
-
-      - name: Collect built artifacts
-        run: |
-          mkdir -p extension-artifacts
-          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
-
-      - name: Upload built artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: kuzu-extensions_linux_old-x86_64
           path: extension-artifacts/*.kuzu_extension
 
   build-linux-extensions-aarch64:
@@ -173,7 +152,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build-linux-extensions-x86_64
-      - build-linux-extensions-x86_64-old
       - build-linux-extensions-aarch64
       - build-linux-extensions-x86
       - build-mac-extensions-arm64
@@ -197,7 +175,6 @@ jobs:
       - name: Ensure extension directories
         run: |
           mkdir -p releases/$RELEASE_VERSION/linux_amd64
-          mkdir -p releases/$RELEASE_VERSION/linux_old_amd64
           mkdir -p releases/$RELEASE_VERSION/linux_arm64
           mkdir -p releases/$RELEASE_VERSION/linux_x86
           mkdir -p releases/$RELEASE_VERSION/osx_amd64
@@ -207,7 +184,6 @@ jobs:
       - name: Clear old artifacts
         run: |
           rm -rf releases/$RELEASE_VERSION/linux_amd64/*
-          rm -rf releases/$RELEASE_VERSION/linux_old_amd64/*
           rm -rf releases/$RELEASE_VERSION/linux_arm64/*
           rm -rf releases/$RELEASE_VERSION/linux_x86/*
           rm -rf releases/$RELEASE_VERSION/osx_amd64/*
@@ -218,7 +194,6 @@ jobs:
         run: |
           mkdir -p extension-artifacts
           mkdir -p extension-artifacts/linux_amd64
-          mkdir -p extension-artifacts/linux_old_amd64
           mkdir -p extension-artifacts/linux_arm64
           mkdir -p extension-artifacts/linux_x86
           mkdir -p extension-artifacts/osx_amd64
@@ -230,12 +205,6 @@ jobs:
         with:
           name: kuzu-extensions_linux-x86_64
           path: extension-artifacts/linux_amd64
-
-      - name: Download built artifacts for linux-old-x86_64
-        uses: actions/download-artifact@v4
-        with:
-          name: kuzu-extensions_linux_old-x86_64
-          path: extension-artifacts/linux_old_amd64
 
       - name: Download built artifacts for linux-aarch64
         uses: actions/download-artifact@v4
@@ -270,7 +239,6 @@ jobs:
       - name: Copy built artifacts
         run: |
           cp extension-artifacts/linux_amd64/*.kuzu_extension releases/$RELEASE_VERSION/linux_amd64
-          cp extension-artifacts/linux_old_amd64/*.kuzu_extension releases/$RELEASE_VERSION/linux_old_amd64
           cp extension-artifacts/linux_arm64/*.kuzu_extension releases/$RELEASE_VERSION/linux_arm64
           cp extension-artifacts/linux_x86/*.kuzu_extension releases/$RELEASE_VERSION/linux_x86
           cp extension-artifacts/osx_amd64/*.kuzu_extension releases/$RELEASE_VERSION/osx_amd64
@@ -283,7 +251,6 @@ jobs:
       - name: Set artifact permissions
         run: |
           chmod 755 releases/$RELEASE_VERSION/linux_amd64/*
-          chmod 755 releases/$RELEASE_VERSION/linux_old_amd64/*
           chmod 755 releases/$RELEASE_VERSION/linux_arm64/*
           chmod 755 releases/$RELEASE_VERSION/linux_x86/*
           chmod 755 releases/$RELEASE_VERSION/osx_amd64/*
