@@ -12,12 +12,14 @@ add_subdirectory(macro)
 
 add_library(kuzu_processor_operator
         OBJECT
+        gds_call.cpp
+        parallel_utils_operator.cpp
         cross_product.cpp
+        csr_index_build.cpp
         empty_result.cpp
         filter.cpp
         filtering_operator.cpp
         flatten.cpp
-        gds_call.cpp
         index_lookup.cpp
         limit.cpp
         multiplicity_reducer.cpp

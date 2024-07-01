@@ -1,3 +1,4 @@
+/*
 #include "function/gds/gds_utils.h"
 
 #include "common/task_system/task_scheduler.h"
@@ -41,3 +42,4 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* executi
 
 } // namespace function
 } // namespace kuzu
+*/

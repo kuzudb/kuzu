@@ -1,15 +1,20 @@
 #pragma once
 
 #include "binder/expression/expression.h"
+#include "common/vector/value_vector.h"
+#include "graph/graph.h"
 #include "graph/graph_entry.h"
 
 namespace kuzu {
+
 namespace binder {
 class Binder;
 }
+
 namespace main {
 class ClientContext;
 }
+
 namespace processor {
 struct GDSCallSharedState;
 class FactorizedTable;
@@ -18,24 +23,19 @@ struct ExecutionContext;
 
 namespace function {
 
+class ParallelUtils;
+
 // Struct maintaining GDS specific information that needs to be obtained at compile time.
 struct GDSBindData {
-    std::shared_ptr<binder::Expression> nodeOutput;
-    // If outputAsNode is true, we will scan all properties of the node.
-    // Otherwise, we return node ID only.
-    bool outputAsNode;
+    std::shared_ptr<binder::Expression> nodeInput = nullptr;
 
-    explicit GDSBindData(std::shared_ptr<binder::Expression> nodeOutput, bool outputAsNode)
-        : nodeOutput{std::move(nodeOutput)}, outputAsNode{outputAsNode} {}
-    GDSBindData(const GDSBindData& other)
-        : nodeOutput{other.nodeOutput}, outputAsNode{other.outputAsNode} {}
+    GDSBindData() = default;
+    explicit GDSBindData(std::shared_ptr<binder::Expression> nodeInput)
+        : nodeInput{std::move(nodeInput)} {}
+    GDSBindData(const GDSBindData& other) : nodeInput{other.nodeInput} {}
     virtual ~GDSBindData() = default;
 
-    virtual bool hasNodeInput() const { return false; }
-    virtual std::shared_ptr<binder::Expression> getNodeInput() const { return nullptr; }
-
-    virtual bool hasNodeOutput() const { return outputAsNode; }
-    virtual std::shared_ptr<binder::Expression> getNodeOutput() const { return nodeOutput; }
+    bool hasNodeInput() const { return nodeInput != nullptr; }
 
     virtual std::unique_ptr<GDSBindData> copy() const {
         return std::make_unique<GDSBindData>(*this);
@@ -55,16 +55,26 @@ public:
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<GDSLocalState*, TARGET*>(this);
     }
+
+    virtual std::vector<common::ValueVector*>& getOutputVectors() { return outputVectors; }
+
+    virtual void init(main::ClientContext* clientContext) = 0;
+
+    virtual inline uint64_t getWork() { return UINT64_MAX; }
+
+    virtual std::unique_ptr<GDSLocalState> copy() = 0;
+
+public:
+    std::vector<common::ValueVector*> outputVectors;
+    std::unique_ptr<graph::NbrScanState> nbrScanState;
 };
 
 // Base class for every graph data science algorithm.
 class GDSAlgorithm {
-protected:
-    static constexpr char NODE_COLUMN_NAME[] = "_node";
-
 public:
     GDSAlgorithm() = default;
     GDSAlgorithm(const GDSAlgorithm& other) {
+        parallelUtils = other.parallelUtils;
         if (other.bindData != nullptr) {
             bindData = other.bindData->copy();
         }
@@ -74,13 +84,20 @@ public:
     virtual std::vector<common::LogicalTypeID> getParameterTypeIDs() const { return {}; }
     virtual binder::expression_vector getResultColumns(binder::Binder* binder) const = 0;
 
-    virtual void bind(const binder::expression_vector& params, binder::Binder* binder,
-        graph::GraphEntry& graphEntry) = 0;
+    virtual void bind(const binder::expression_vector&) {
+        bindData = std::make_unique<GDSBindData>();
+    }
     GDSBindData* getBindData() const { return bindData.get(); }
 
     void init(processor::GDSCallSharedState* sharedState, main::ClientContext* context);
 
+    inline void setParallelUtils(std::shared_ptr<ParallelUtils>& parallelUtils_) {
+        parallelUtils = parallelUtils_;
+    }
+
     virtual void exec(processor::ExecutionContext* executionContext) = 0;
+
+    inline GDSLocalState* getGDSLocalState() { return localState.get(); }
 
     // TODO: We should get rid of this copy interface (e.g. using stateless design) or at least make
     // sure the fields that cannot be copied, such as graph or factorized table and localState, are
@@ -89,11 +106,11 @@ public:
 
 protected:
     virtual void initLocalState(main::ClientContext* context) = 0;
-    std::shared_ptr<binder::Expression> bindNodeOutput(binder::Binder* binder,
-        graph::GraphEntry& graphEntry);
 
 protected:
     std::unique_ptr<GDSBindData> bindData;
+    std::shared_ptr<ParallelUtils> parallelUtils;
+    processor::FactorizedTable* table;
     processor::GDSCallSharedState* sharedState;
     std::unique_ptr<GDSLocalState> localState;
 };

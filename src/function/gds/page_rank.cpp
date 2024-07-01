@@ -1,3 +1,4 @@
+/*
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "common/types/internal_id_util.h"
@@ -36,7 +37,9 @@ struct PageRankBindData final : public GDSBindData {
 
 class PageRankLocalState : public GDSLocalState {
 public:
-    explicit PageRankLocalState(main::ClientContext* context) {
+    explicit PageRankLocalState() = default;
+
+    void init(main::ClientContext* context) override {
         auto mm = context->getMemoryManager();
         nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
         rankVector = std::make_unique<ValueVector>(LogicalType::DOUBLE(), mm);
@@ -44,6 +47,7 @@ public:
         rankVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(nodeIDVector.get());
         vectors.push_back(rankVector.get());
+        nbrScanState = std::make_unique<graph::NbrScanState>(mm);
     }
 
     void materialize(graph::Graph* graph, const common::node_id_map_t<double>& ranks,
@@ -56,6 +60,10 @@ public:
                 table.append(vectors);
             }
         }
+    }
+
+    std::unique_ptr<GDSLocalState> copy() override {
+        return std::make_unique<PageRankLocalState>();
     }
 
 private:
@@ -71,22 +79,26 @@ public:
     PageRank() = default;
     PageRank(const PageRank& other) : GDSAlgorithm{other} {}
 
-    /*
-     * Inputs are
-     *
-     * graph::ANY
-     * outputProperty::BOOL
-     */
+    */
+/*
+ * Inputs are
+ *
+ * graph::ANY
+ * outputProperty::BOOL
+ *//*
+
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
         return {LogicalTypeID::ANY, LogicalTypeID::BOOL};
     }
 
-    /*
-     * Outputs are
-     *
-     * node_id::INTERNAL_ID
-     * rank::DOUBLE
-     */
+    */
+/*
+ * Outputs are
+ *
+ * node_id::INTERNAL_ID
+ * rank::DOUBLE
+ *//*
+
     binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
         auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
@@ -102,10 +114,15 @@ public:
     }
 
     void initLocalState(main::ClientContext* context) override {
-        localState = std::make_unique<PageRankLocalState>(context);
+        localState = std::make_unique<PageRankLocalState>();
+        localState->init(context);
     }
 
+<<<<<<< HEAD
+    void exec(ExecutionContext *) override {
+=======
     void exec(processor::ExecutionContext*) override {
+>>>>>>> master
         auto extraData = bindData->ptrCast<PageRankBindData>();
         auto pageRankLocalState = localState->ptrCast<PageRankLocalState>();
         auto graph = sharedState->graph.get();
@@ -122,6 +139,15 @@ public:
         // Compute page rank.
         for (auto i = 0u; i < extraData->maxIteration; ++i) {
             auto change = 0.0;
+<<<<<<< HEAD
+            for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
+                auto rank = 0.0;
+                auto nbrs = graph->getNbrs(offset, localState->nbrScanState.get());
+                for (auto& nbr : nbrs) {
+                    auto numNbrOfNbr = graph->getNbrs(nbr.offset, localState->nbrScanState.get()).size();
+                    if (numNbrOfNbr == 0) {
+                        numNbrOfNbr = graph->getNumNodes();
+=======
             for (auto tableID : graph->getNodeTableIDs()) {
                 for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
                     auto nodeID = nodeID_t{offset, tableID};
@@ -133,6 +159,7 @@ public:
                             numNbrOfNbr = graph->getNumNodes();
                         }
                         rank += extraData->dampingFactor * (ranks[nbr] / numNbrOfNbr);
+>>>>>>> master
                     }
                     rank += dampingValue;
                     double diff = ranks[nodeID] - rank;
@@ -162,3 +189,4 @@ function_set PageRankFunction::getFunctionSet() {
 
 } // namespace function
 } // namespace kuzu
+*/

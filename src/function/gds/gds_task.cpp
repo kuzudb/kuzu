@@ -1,3 +1,4 @@
+/*
 #include "function/gds/gds_task.h"
 
 #include "graph/graph.h"
@@ -27,3 +28,4 @@ void GDSTask::run() {
 }
 } // namespace function
 } // namespace kuzu
+*/

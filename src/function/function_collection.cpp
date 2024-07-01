@@ -225,8 +225,11 @@ FunctionCollection* FunctionCollection::getFunctions() {
         TABLE_FUNCTION(RdfLiteralTripleInMemScan), TABLE_FUNCTION(FTableScan),
 
         // Algorithm functions
-        ALGORITHM_FUNCTION(WeaklyConnectedComponentsFunction),
-        ALGORITHM_FUNCTION(ShortestPathsFunction), ALGORITHM_FUNCTION(PageRankFunction),
+        /*ALGORITHM_FUNCTION(WeaklyConnectedComponentsFunction),
+        ALGORITHM_FUNCTION(ShortestPathsFunction), ALGORITHM_FUNCTION(PageRankFunction),*/
+        ALGORITHM_FUNCTION(_1T1SParallelShortestPathFunction),
+        ALGORITHM_FUNCTION(nT1SParallelShortestPathsFunction),
+        ALGORITHM_FUNCTION(nTkSParallelShortestPathsFunction),
 
         // Export functions
         EXPORT_FUNCTION(ExportCSVFunction), EXPORT_FUNCTION(ExportParquetFunction),

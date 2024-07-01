@@ -28,6 +28,69 @@ std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(const Logical
 std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logicalOperator) {
     std::unique_ptr<PhysicalOperator> physicalOperator;
     switch (logicalOperator->getOperatorType()) {
+    case LogicalOperatorType::GDS_CALL: {
+        physicalOperator = mapGDSCall(logicalOperator);
+    } break;
+    case LogicalOperatorType::CSR_INDEX_BUILD: {
+        physicalOperator = mapCSRIndexBuild(logicalOperator);
+    } break;
+    case LogicalOperatorType::SCAN_FILE: {
+        physicalOperator = mapScanFile(logicalOperator);
+    } break;
+    case LogicalOperatorType::INDEX_LOOK_UP: {
+        physicalOperator = mapIndexLookup(logicalOperator);
+    } break;
+    case LogicalOperatorType::EMPTY_RESULT: {
+        physicalOperator = mapEmptyResult(logicalOperator);
+    } break;
+    case LogicalOperatorType::UNWIND: {
+        physicalOperator = mapUnwind(logicalOperator);
+    } break;
+    case LogicalOperatorType::EXTEND: {
+        physicalOperator = mapExtend(logicalOperator);
+    } break;
+    case LogicalOperatorType::RECURSIVE_EXTEND: {
+        physicalOperator = mapRecursiveExtend(logicalOperator);
+    } break;
+    case LogicalOperatorType::PATH_PROPERTY_PROBE: {
+        physicalOperator = mapPathPropertyProbe(logicalOperator);
+    } break;
+    case LogicalOperatorType::FLATTEN: {
+        physicalOperator = mapFlatten(logicalOperator);
+    } break;
+    case LogicalOperatorType::FILTER: {
+        physicalOperator = mapFilter(logicalOperator);
+    } break;
+    case LogicalOperatorType::PROJECTION: {
+        physicalOperator = mapProjection(logicalOperator);
+    } break;
+    case LogicalOperatorType::SEMI_MASKER: {
+        physicalOperator = mapSemiMasker(logicalOperator);
+    } break;
+    case LogicalOperatorType::HASH_JOIN: {
+        physicalOperator = mapHashJoin(logicalOperator);
+    } break;
+    case LogicalOperatorType::INTERSECT: {
+        physicalOperator = mapIntersect(logicalOperator);
+    } break;
+    case LogicalOperatorType::CROSS_PRODUCT: {
+        physicalOperator = mapCrossProduct(logicalOperator);
+    } break;
+    case LogicalOperatorType::SCAN_NODE_TABLE: {
+        physicalOperator = mapScanNodeTable(logicalOperator);
+    } break;
+    case LogicalOperatorType::MULTIPLICITY_REDUCER: {
+        physicalOperator = mapMultiplicityReducer(logicalOperator);
+    } break;
+    case LogicalOperatorType::NODE_LABEL_FILTER: {
+        physicalOperator = mapNodeLabelFilter(logicalOperator);
+    } break;
+    case LogicalOperatorType::LIMIT: {
+        physicalOperator = mapLimit(logicalOperator);
+    } break;
+    case LogicalOperatorType::MERGE: {
+        physicalOperator = mapMerge(logicalOperator);
+    } break;
     case LogicalOperatorType::ACCUMULATE: {
         physicalOperator = mapAccumulate(logicalOperator);
     } break;
@@ -58,9 +121,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::CREATE_TYPE: {
         physicalOperator = mapCreateType(logicalOperator);
     } break;
-    case LogicalOperatorType::CROSS_PRODUCT: {
-        physicalOperator = mapCrossProduct(logicalOperator);
-    } break;
     case LogicalOperatorType::DELETE: {
         physicalOperator = mapDelete(logicalOperator);
     } break;
@@ -79,17 +139,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::DUMMY_SCAN: {
         physicalOperator = mapDummyScan(logicalOperator);
     } break;
-    case LogicalOperatorType::EMPTY_RESULT: {
-        physicalOperator = mapEmptyResult(logicalOperator);
-    } break;
     case LogicalOperatorType::EXPLAIN: {
         physicalOperator = mapExplain(logicalOperator);
     } break;
     case LogicalOperatorType::EXPRESSIONS_SCAN: {
         physicalOperator = mapExpressionsScan(logicalOperator);
-    } break;
-    case LogicalOperatorType::EXTEND: {
-        physicalOperator = mapExtend(logicalOperator);
     } break;
     case LogicalOperatorType::EXTENSION: {
         physicalOperator = mapExtension(logicalOperator);
@@ -97,68 +151,20 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::EXPORT_DATABASE: {
         physicalOperator = mapExportDatabase(logicalOperator);
     } break;
-    case LogicalOperatorType::FLATTEN: {
-        physicalOperator = mapFlatten(logicalOperator);
-    } break;
-    case LogicalOperatorType::FILTER: {
-        physicalOperator = mapFilter(logicalOperator);
-    } break;
-    case LogicalOperatorType::GDS_CALL: {
-        physicalOperator = mapGDSCall(logicalOperator);
-    } break;
-    case LogicalOperatorType::HASH_JOIN: {
-        physicalOperator = mapHashJoin(logicalOperator);
-    } break;
     case LogicalOperatorType::IMPORT_DATABASE: {
         physicalOperator = mapImportDatabase(logicalOperator);
-    } break;
-    case LogicalOperatorType::INDEX_LOOK_UP: {
-        physicalOperator = mapIndexLookup(logicalOperator);
-    } break;
-    case LogicalOperatorType::INTERSECT: {
-        physicalOperator = mapIntersect(logicalOperator);
     } break;
     case LogicalOperatorType::INSERT: {
         physicalOperator = mapInsert(logicalOperator);
     } break;
-    case LogicalOperatorType::LIMIT: {
-        physicalOperator = mapLimit(logicalOperator);
-    } break;
     case LogicalOperatorType::MARK_ACCUMULATE: {
         physicalOperator = mapMarkAccumulate(logicalOperator);
-    } break;
-    case LogicalOperatorType::MERGE: {
-        physicalOperator = mapMerge(logicalOperator);
-    } break;
-    case LogicalOperatorType::MULTIPLICITY_REDUCER: {
-        physicalOperator = mapMultiplicityReducer(logicalOperator);
-    } break;
-    case LogicalOperatorType::NODE_LABEL_FILTER: {
-        physicalOperator = mapNodeLabelFilter(logicalOperator);
     } break;
     case LogicalOperatorType::ORDER_BY: {
         physicalOperator = mapOrderBy(logicalOperator);
     } break;
     case LogicalOperatorType::PARTITIONER: {
         physicalOperator = mapPartitioner(logicalOperator);
-    } break;
-    case LogicalOperatorType::PATH_PROPERTY_PROBE: {
-        physicalOperator = mapPathPropertyProbe(logicalOperator);
-    } break;
-    case LogicalOperatorType::PROJECTION: {
-        physicalOperator = mapProjection(logicalOperator);
-    } break;
-    case LogicalOperatorType::RECURSIVE_EXTEND: {
-        physicalOperator = mapRecursiveExtend(logicalOperator);
-    } break;
-    case LogicalOperatorType::SCAN_FILE: {
-        physicalOperator = mapScanFile(logicalOperator);
-    } break;
-    case LogicalOperatorType::SCAN_NODE_TABLE: {
-        physicalOperator = mapScanNodeTable(logicalOperator);
-    } break;
-    case LogicalOperatorType::SEMI_MASKER: {
-        physicalOperator = mapSemiMasker(logicalOperator);
     } break;
     case LogicalOperatorType::SET_PROPERTY: {
         physicalOperator = mapSetProperty(logicalOperator);
@@ -174,9 +180,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     } break;
     case LogicalOperatorType::UNION_ALL: {
         physicalOperator = mapUnionAll(logicalOperator);
-    } break;
-    case LogicalOperatorType::UNWIND: {
-        physicalOperator = mapUnwind(logicalOperator);
     } break;
     case LogicalOperatorType::USE_DATABASE: {
         physicalOperator = mapUseDatabase(logicalOperator);

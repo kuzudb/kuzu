@@ -45,6 +45,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
             KU_ASSERT(gds->hasSemiMask());
             initMaskIdx(masksPerTable, gds->getSemiMasks());
         } break;
+        case PhysicalOperatorType::FLATTEN: {
+            KU_ASSERT(physicalOp->getChild(0)->getChild(0)->getOperatorType() ==
+                      PhysicalOperatorType::GDS_CALL);
+            auto gds = physicalOp->getChild(0)->getChild(0)->ptrCast<GDSCall>();
+            KU_ASSERT(gds->hasSemiMask());
+            auto mask = gds->getSemiMasks()[0];
+            auto tableID = mask->getTableID();
+            masksPerTable.at(tableID).emplace_back(mask, 0);
+        } break;
         default:
             KU_UNREACHABLE;
         }

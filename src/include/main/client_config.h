@@ -19,6 +19,8 @@ struct ClientConfig {
     bool enableZoneMap;
     // Number of threads for execution.
     uint64_t numThreads;
+    // Maximum concurrent BFS sources allowed at a time.
+    uint64_t maxConcurrentBFS;
     // Timeout (milliseconds).
     uint64_t timeoutInMS;
     // Variable length maximum depth.

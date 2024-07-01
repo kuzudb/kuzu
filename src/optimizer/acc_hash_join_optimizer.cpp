@@ -36,7 +36,7 @@ static std::vector<table_id_t> getTableIDs(LogicalOperator* op) {
     case LogicalOperatorType::GDS_CALL: {
         auto bindData = op->constCast<LogicalGDSCall>().getInfo().getBindData();
         KU_ASSERT(bindData->hasNodeInput());
-        return bindData->getNodeInput()->constCast<NodeExpression>().getTableIDs();
+        return bindData->nodeInput->constCast<NodeExpression>().getTableIDs();
     }
     default:
         KU_UNREACHABLE;
@@ -346,7 +346,7 @@ std::vector<LogicalOperator*> HashJoinSIPOptimizer::getGDSCallCandidates(const E
         auto& gdsCall = op->constCast<LogicalGDSCall>();
         auto bindData = gdsCall.getInfo().getBindData();
         if (bindData->hasNodeInput() &&
-            nodeID == *bindData->getNodeInput()->constCast<NodeExpression>().getInternalID()) {
+            nodeID == *bindData->nodeInput->constCast<NodeExpression>().getInternalID()) {
             result.push_back(op);
         }
     }

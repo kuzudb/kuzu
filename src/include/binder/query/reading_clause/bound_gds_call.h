@@ -14,11 +14,14 @@ namespace binder {
 struct BoundGDSCallInfo {
     std::unique_ptr<function::Function> func;
     graph::GraphEntry graphEntry;
-    expression_vector outExprs;
+    std::shared_ptr<Expression> srcNodeIDExpression;
+    expression_vector outExpressions;
 
     BoundGDSCallInfo(std::unique_ptr<function::Function> func, graph::GraphEntry graphEntry,
-        expression_vector outExprs)
-        : func{std::move(func)}, graphEntry{std::move(graphEntry)}, outExprs{std::move(outExprs)} {}
+        std::shared_ptr<Expression> srcNodeIDExpression, expression_vector outExpressions)
+        : func{std::move(func)}, graphEntry{std::move(graphEntry)},
+          srcNodeIDExpression{std::move(srcNodeIDExpression)},
+          outExpressions{std::move(outExpressions)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundGDSCallInfo);
 
     const function::GDSAlgorithm* getGDS() const;
@@ -26,7 +29,8 @@ struct BoundGDSCallInfo {
 
 private:
     BoundGDSCallInfo(const BoundGDSCallInfo& other)
-        : func{other.func->copy()}, graphEntry{other.graphEntry.copy()}, outExprs{other.outExprs} {}
+        : func{other.func->copy()}, graphEntry{other.graphEntry.copy()},
+          srcNodeIDExpression{other.srcNodeIDExpression}, outExpressions{other.outExpressions} {}
 };
 
 class BoundGDSCall : public BoundReadingClause {

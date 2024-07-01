@@ -65,6 +65,26 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
     }
 }
 
+// For now assume that there are NO DEPENDENCIES for the task being submitted
+std::shared_ptr<ScheduledTask> TaskScheduler::scheduleTaskAndReturn(
+    const std::shared_ptr<Task>& task) {
+    auto scheduledTask = pushTaskIntoQueue(task);
+    cv.notify_all();
+    return scheduledTask;
+}
+
+std::vector<std::shared_ptr<ScheduledTask>> TaskScheduler::scheduleTasksAndReturn(
+    const std::vector<std::shared_ptr<Task>>& tasks) {
+    lock_t lck{mtx};
+    std::vector<std::shared_ptr<ScheduledTask>> scheduledTasks;
+    for (auto& task : tasks) {
+        scheduledTasks.emplace_back(std::make_shared<ScheduledTask>(task, nextScheduledTaskID++));
+        taskQueue.push_back(scheduledTasks.back());
+    }
+    cv.notify_all();
+    return scheduledTasks;
+}
+
 std::shared_ptr<ScheduledTask> TaskScheduler::pushTaskIntoQueue(const std::shared_ptr<Task>& task) {
     lock_t lck{mtx};
     auto scheduledTask = std::make_shared<ScheduledTask>(task, nextScheduledTaskID++);
@@ -72,28 +92,57 @@ std::shared_ptr<ScheduledTask> TaskScheduler::pushTaskIntoQueue(const std::share
     return scheduledTask;
 }
 
+/*
+ * Changing the logic of binding threads to tasks here, below is the logic:
+ *
+ * (1) We are going to scan the task queue and calculate the "amount of work" for each task
+ *
+ * (2) The amount of work will be calculated as: pipelineSink->getWork() / numThreadsRegistered
+ *
+ * (3) If we encounter a task that does not have even 1 thread executing on it, that task gets the
+ *     highest priority, the thread will pick that task over all others. It exits the process
+ *     immediately after registering to it.
+ *
+ * (4) Else, after reaching the end of the task queue, the threads will pick the task that has the
+ *     most amount of work.
+ *
+ * There is an edge case here, where the task that got picked (with the most amount of work) can
+ * either fail or already got finished. In that case we have to return nullptr, ignoring a more
+ * graceful way to handle this for now.
+ *
+ */
 std::shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
     if (taskQueue.empty()) {
         return nullptr;
     }
     auto it = taskQueue.begin();
+    auto schedTask = std::make_shared<ScheduledTask>(nullptr, 0u);
+    uint64_t maxTaskWork = 0u;
     while (it != taskQueue.end()) {
         auto task = (*it)->task;
-        if (!task->registerThread()) {
-            // If we cannot register for a thread it is because of three possibilities:
-            // (i) maximum number of threads have registered for task and the task is completed
-            // without an exception; or (ii) same as (i) but the task has not yet successfully
-            // completed; or (iii) task has an exception; Only in (i) we remove the task from the
-            // queue. For (ii) and (iii) we keep the task in queue. Recall erroring tasks need to be
-            // manually removed.
-            if (task->isCompletedSuccessfully()) { // option (i)
-                it = taskQueue.erase(it);
-            } else { // option (ii) or (iii): keep the task in the queue.
-                ++it;
-            }
-        } else {
+        if (task->tryRegisterIfUnregistered()) {
             return *it;
         }
+        if (task->isCompletedSuccessfully()) {
+            // printf("removing task ID: %lu\n", (*it)->ID);
+            it = taskQueue.erase(it);
+            continue;
+        }
+        // don't remove task if failed, done by thread which submitted the task
+        // if task is single threaded (and already has >1 thread executing it), ignore it
+        if (task->hasException() || task->maxNumThreads == 1) {
+            it++;
+            continue;
+        }
+        auto taskWork = task->getWork();
+        if (taskWork > maxTaskWork) {
+            maxTaskWork = taskWork;
+            schedTask = *it;
+        }
+        it++;
+    }
+    if (schedTask->task && schedTask->task->registerThread()) {
+        return schedTask;
     }
     return nullptr;
 }

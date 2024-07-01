@@ -58,6 +58,7 @@ public:
 
     uint64_t bufferPoolSize;
     uint64_t maxNumThreads;
+    uint64_t maxConcurrentBFS;
     bool enableCompression;
     bool readOnly;
     uint64_t maxDBSize;

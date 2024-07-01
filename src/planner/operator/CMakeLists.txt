@@ -12,6 +12,7 @@ add_library(kuzu_planner_operator
         logical_gds_call.cpp
         logical_create_macro.cpp
         logical_cross_product.cpp
+        logical_csr_build.cpp
         logical_distinct.cpp
         logical_dummy_scan.cpp
         logical_explain.cpp

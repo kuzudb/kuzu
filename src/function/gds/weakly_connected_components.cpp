@@ -1,3 +1,4 @@
+/*
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "common/types/internal_id_util.h"
@@ -19,7 +20,9 @@ namespace function {
 
 class WeaklyConnectedComponentLocalState : public GDSLocalState {
 public:
-    explicit WeaklyConnectedComponentLocalState(main::ClientContext* context) {
+    explicit WeaklyConnectedComponentLocalState() = default;
+
+    void init(main::ClientContext* context) override {
         auto mm = context->getMemoryManager();
         nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
         groupVector = std::make_unique<ValueVector>(LogicalType::INT64(), mm);
@@ -27,6 +30,7 @@ public:
         groupVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(nodeIDVector.get());
         vectors.push_back(groupVector.get());
+        nbrScanState = std::make_unique<graph::NbrScanState>(mm);
     }
 
     void materialize(graph::Graph* graph, const common::node_id_map_t<int64_t>& visitedMap,
@@ -39,6 +43,10 @@ public:
                 table.append(vectors);
             }
         }
+    }
+
+    std::unique_ptr<GDSLocalState> copy() override {
+        return std::make_unique<WeaklyConnectedComponentLocalState>();
     }
 
 private:
@@ -54,22 +62,26 @@ public:
     WeaklyConnectedComponent() = default;
     WeaklyConnectedComponent(const WeaklyConnectedComponent& other) : GDSAlgorithm{other} {}
 
-    /*
-     * Inputs are
-     *
-     * graph::ANY
-     * outputProperty::BOOL
-     */
+    */
+/*
+ * Inputs are
+ *
+ * graph::ANY
+ * outputProperty::BOOL
+ *//*
+
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
         return std::vector<LogicalTypeID>{LogicalTypeID::ANY, LogicalTypeID::BOOL};
     }
 
-    /*
-     * Outputs are
-     *
-     * _node._id::INTERNAL_ID
-     * group_id::INT64
-     */
+    */
+/*
+ * Outputs are
+ *
+ * _node._id::INTERNAL_ID
+ * group_id::INT64
+ *//*
+
     binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
         auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
@@ -85,10 +97,15 @@ public:
     }
 
     void initLocalState(main::ClientContext* context) override {
-        localState = std::make_unique<WeaklyConnectedComponentLocalState>(context);
+        localState = std::make_unique<WeaklyConnectedComponentLocalState>();
+        localState->init(context);
     }
 
+<<<<<<< HEAD
+    void exec(ExecutionContext *) override {
+=======
     void exec(processor::ExecutionContext*) override {
+>>>>>>> master
         auto wccLocalState = localState->ptrCast<WeaklyConnectedComponentLocalState>();
         auto graph = sharedState->graph.get();
         visitedMap.clear();
@@ -110,10 +127,17 @@ public:
     }
 
 private:
+<<<<<<< HEAD
+    void findConnectedComponent(common::offset_t offset, int64_t groupID) {
+        visitedArray[offset] = true;
+        groupArray[offset] = groupID;
+        auto nbrs = sharedState->graph->getNbrs(offset, localState->nbrScanState.get());
+=======
     void findConnectedComponent(common::nodeID_t nodeID, int64_t groupID) {
         KU_ASSERT(!visitedMap.contains(nodeID));
         visitedMap.insert({nodeID, groupID});
         auto nbrs = sharedState->graph->scanFwd(nodeID);
+>>>>>>> master
         for (auto nbr : nbrs) {
             if (visitedMap.contains(nbr)) {
                 continue;
@@ -136,3 +160,4 @@ function_set WeaklyConnectedComponentsFunction::getFunctionSet() {
 
 } // namespace function
 } // namespace kuzu
+*/

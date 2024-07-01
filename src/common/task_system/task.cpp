@@ -5,6 +5,21 @@ namespace common {
 
 Task::Task(uint64_t maxNumThreads) : maxNumThreads{maxNumThreads} {}
 
+/*
+ * If registered threads is 0, try to register, return true if successful
+ */
+bool Task::tryRegisterIfUnregistered() {
+    lock_t lck{mtx};
+    if (numThreadsRegistered > 0) {
+        return false;
+    }
+    if (!hasExceptionNoLock() && canRegisterNoLock()) {
+        numThreadsRegistered++;
+        return true;
+    }
+    return false;
+}
+
 bool Task::registerThread() {
     lock_t lck{mtx};
     if (!hasExceptionNoLock() && canRegisterNoLock()) {

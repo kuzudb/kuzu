@@ -45,6 +45,7 @@ public:
     }
 
     sel_t getSelSize() const { return selectedSize; }
+    sel_t getOriginalSize() const { return capacity; }
     void setSelSize(sel_t size) {
         KU_ASSERT(size <= capacity);
         selectedSize = size;

@@ -127,11 +127,11 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
     auto& call = readingClause.constCast<BoundGDSCall>();
     expression_vector predicatesToPull;
     expression_vector predicatesToPush;
-    splitPredicates(call.getInfo().outExprs, call.getConjunctivePredicates(), predicatesToPull,
-        predicatesToPush);
+    splitPredicates(call.getInfo().outExpressions, call.getConjunctivePredicates(),
+        predicatesToPull, predicatesToPush);
     auto bindData = call.getInfo().func->ptrCast<function::GDSFunction>()->gds->getBindData();
     if (bindData->hasNodeInput()) {
-        auto& node = bindData->getNodeInput()->constCast<NodeExpression>();
+        auto& node = bindData->nodeInput->constCast<NodeExpression>();
         expression_vector joinConditions;
         joinConditions.push_back(node.getInternalID());
         for (auto& plan : plans) {
@@ -149,20 +149,6 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
             planReadOp(getGDSCall(readingClause), predicatesToPush, *plan);
         }
     }
-    if (bindData->hasNodeOutput()) {
-        auto& node = bindData->getNodeOutput()->constCast<NodeExpression>();
-        auto scanPlan = LogicalPlan();
-        cardinalityEstimator.addNodeIDDom(*node.getInternalID(), node.getTableIDs(),
-            clientContext->getTx());
-        auto properties = node.getPropertyExprs();
-        appendScanNodeTable(node.getInternalID(), node.getTableIDs(), properties, scanPlan);
-        expression_vector joinConditions;
-        joinConditions.push_back(node.getInternalID());
-        for (auto& plan : plans) {
-            appendHashJoin(joinConditions, JoinType::INNER, *plan, scanPlan, *plan);
-        }
-    }
-
     for (auto& plan : plans) {
         if (!predicatesToPull.empty()) {
             appendFilters(predicatesToPull, *plan);
