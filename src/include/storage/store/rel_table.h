@@ -94,7 +94,6 @@ struct RelDetachDeleteState {
     explicit RelDetachDeleteState();
 };
 
-class RelsStoreStats;
 class RelTable final : public Table {
 public:
     RelTable(catalog::RelTableCatalogEntry* relTableEntry, StorageManager* storageManager,

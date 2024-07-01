@@ -163,6 +163,14 @@ void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState
             rowIdxInGroup, numRowsToScan);
         hasValuesToScan = selVector->getSelSize() > 0;
     }
+    auto& anchorSelVector = scanState.IDVector->state->getSelVectorUnsafe();
+    if (selVector && selVector->getSelSize() != numRowsToScan) {
+        std::memcpy(anchorSelVector.getMultableBuffer().data(),
+            selVector->getMultableBuffer().data(), selVector->getSelSize() * sizeof(sel_t));
+        anchorSelVector.setToFiltered(selVector->getSelSize());
+    } else {
+        anchorSelVector.setToUnfiltered(numRowsToScan);
+    }
     if (hasValuesToScan) {
         for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
             const auto columnID = scanState.columnIDs[i];
@@ -181,14 +189,6 @@ void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState
             chunks[columnID]->scan(transaction, nodeGroupScanState.chunkStates[i],
                 *scanState.IDVector, *scanState.outputVectors[i], rowIdxInGroup, numRowsToScan);
         }
-    }
-    auto& anchorSelVector = scanState.IDVector->state->getSelVectorUnsafe();
-    if (selVector && selVector->getSelSize() != numRowsToScan) {
-        std::memcpy(anchorSelVector.getMultableBuffer().data(),
-            selVector->getMultableBuffer().data(), selVector->getSelSize() * sizeof(sel_t));
-        anchorSelVector.setToFiltered(selVector->getSelSize());
-    } else {
-        anchorSelVector.setToUnfiltered(numRowsToScan);
     }
 }
 

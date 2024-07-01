@@ -16,7 +16,7 @@ void CSRNodeGroup::appendChunkedCSRGroup(const Transaction* transaction,
         chunkedGroupForProperties[i] = &chunkedGroup.getColumnChunk(i);
     }
     auto startRow =
-        NodeGroup::append(transaction, chunkedGroupForProperties, chunkedGroup.getNumRows());
+        NodeGroup::append(transaction, chunkedGroupForProperties, 0, chunkedGroup.getNumRows());
     if (!csrIndex) {
         csrIndex = std::make_unique<CSRIndex>();
     }
@@ -28,8 +28,8 @@ void CSRNodeGroup::appendChunkedCSRGroup(const Transaction* transaction,
 }
 
 void CSRNodeGroup::append(const Transaction* transaction, offset_t boundOffsetInGroup,
-    const std::vector<ColumnChunk*>& chunks, row_idx_t rowInChunks) {
-    const auto startRow = NodeGroup::append(transaction, chunks, rowInChunks);
+    const std::vector<ColumnChunk*>& chunks, row_idx_t startRowInChunks, row_idx_t numRows) {
+    const auto startRow = NodeGroup::append(transaction, chunks, startRowInChunks, numRows);
     if (!csrIndex) {
         csrIndex = std::make_unique<CSRIndex>();
     }
@@ -96,7 +96,8 @@ void CSRNodeGroup::initializeScanState(Transaction* transaction, TableScanState&
         // Initialize the scan state for the persisted data in the node group.
         relScanState.zoneMapResult = ZoneMapCheckResult::ALWAYS_SCAN;
         for (auto i = 0u; i < relScanState.columnIDs.size(); i++) {
-            if (relScanState.columnIDs[i] == INVALID_COLUMN_ID) {
+            if (relScanState.columnIDs[i] == INVALID_COLUMN_ID ||
+                relScanState.columnIDs[i] == ROW_IDX_COLUMN_ID) {
                 continue;
             }
             auto& chunk = persistentChunkGroup->getColumnChunk(relScanState.columnIDs[i]);
@@ -157,8 +158,8 @@ NodeGroupScanResult CSRNodeGroup::scan(Transaction* transaction, TableScanState&
     }
 }
 
-NodeGroupScanResult CSRNodeGroup::scanCommittedPersistent(Transaction* transaction,
-    const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) {
+NodeGroupScanResult CSRNodeGroup::scanCommittedPersistent(const Transaction* transaction,
+    const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const {
     if (nodeGroupScanState.nextRowToScan == nodeGroupScanState.persistentCSRList.length) {
         nodeGroupScanState.source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
         nodeGroupScanState.nextRowToScan = 0;
@@ -169,17 +170,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedPersistent(Transaction* transacti
     const auto numToScan =
         std::min(nodeGroupScanState.persistentCSRList.length - nodeGroupScanState.nextRowToScan,
             DEFAULT_VECTOR_CAPACITY);
-    const auto endRow = startRow + numToScan;
-    for (auto i = 0u; i < tableState.columnIDs.size(); i++) {
-        const auto columnID = tableState.columnIDs[i];
-        if (columnID == INVALID_COLUMN_ID) {
-            tableState.outputVectors[i]->setAllNull();
-            continue;
-        }
-        tableState.outputVectors[i]->state->getSelVectorUnsafe().setSelSize(numToScan);
-        tableState.columns[i]->scan(transaction, nodeGroupScanState.chunkStates[i], startRow,
-            endRow, tableState.outputVectors[i], static_cast<uint64_t>(0));
-    }
+    persistentChunkGroup->scan(transaction, tableState, nodeGroupScanState, startRow, numToScan);
     nodeGroupScanState.nextRowToScan += numToScan;
     return NodeGroupScanResult{startRow, numToScan};
 }
@@ -247,6 +238,48 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMemRandom(Transaction* transact
     nodeGroupScanState.nextRowToScan += numRows;
     tableState.IDVector->state->getSelVectorUnsafe().setSelSize(numRows);
     return NodeGroupScanResult{0, numRows};
+}
+
+void CSRNodeGroup::update(Transaction* transaction, CSRNodeGroupScanSource source,
+    row_idx_t rowIdxInGroup, column_id_t columnID, const ::ValueVector& propertyVector) {
+    switch (source) {
+    case CSRNodeGroupScanSource::COMMITTED_PERSISTENT: {
+        KU_ASSERT(persistentChunkGroup);
+        return persistentChunkGroup->update(transaction, rowIdxInGroup, columnID, propertyVector);
+    }
+    case CSRNodeGroupScanSource::COMMITTED_IN_MEMORY: {
+        KU_ASSERT(csrIndex);
+        auto [chunkIdx, rowInChunk] =
+            StorageUtils::getQuotientRemainder(rowIdxInGroup, ChunkedNodeGroup::CHUNK_CAPACITY);
+        const auto lock = chunkedGroups.lock();
+        const auto chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
+        return chunkedGroup->update(transaction, rowInChunk, columnID, propertyVector);
+    }
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+}
+
+bool CSRNodeGroup::delete_(const Transaction* transaction, CSRNodeGroupScanSource source,
+    row_idx_t rowIdxInGroup) {
+    switch (source) {
+    case CSRNodeGroupScanSource::COMMITTED_PERSISTENT: {
+        KU_ASSERT(persistentChunkGroup);
+        return persistentChunkGroup->delete_(transaction, rowIdxInGroup);
+    }
+    case CSRNodeGroupScanSource::COMMITTED_IN_MEMORY: {
+        KU_ASSERT(csrIndex);
+        auto [chunkIdx, rowInChunk] =
+            StorageUtils::getQuotientRemainder(rowIdxInGroup, ChunkedNodeGroup::CHUNK_CAPACITY);
+        const auto lock = chunkedGroups.lock();
+        const auto chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
+        return chunkedGroup->delete_(transaction, rowInChunk);
+    }
+    default: {
+        return false;
+    }
+    }
 }
 
 } // namespace storage

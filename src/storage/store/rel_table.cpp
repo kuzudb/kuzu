@@ -134,14 +134,16 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL);
         KU_ASSERT(loadTable);
-        localTable->delete_(transaction, deleteState);
-    } else {
-        fwdRelTableData->delete_(transaction, relDeleteState.srcNodeIDVector,
-            relDeleteState.relIDVector);
-        bwdRelTableData->delete_(transaction, relDeleteState.dstNodeIDVector,
-            relDeleteState.relIDVector);
+        return localTable->delete_(transaction, deleteState);
     }
-    return false;
+    const auto fwdDeleted = fwdRelTableData->delete_(transaction, relDeleteState.srcNodeIDVector,
+        relDeleteState.relIDVector);
+    if (!fwdDeleted) {
+        return false;
+    }
+    const auto bwdDeleted = bwdRelTableData->delete_(transaction, relDeleteState.dstNodeIDVector,
+        relDeleteState.relIDVector);
+    return bwdDeleted;
 }
 
 void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
@@ -151,11 +153,11 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
         direction == RelDataDirection::FWD ? fwdRelTableData.get() : bwdRelTableData.get();
     const auto reverseTableData =
         direction == RelDataDirection::FWD ? bwdRelTableData.get() : fwdRelTableData.get();
-    std::vector<column_id_t> relIDColumns = {REL_ID_COLUMN_ID};
+    std::vector<column_id_t> columnsToScan = {NBR_ID_COLUMN_ID, REL_ID_COLUMN_ID};
     const auto relIDVectors = std::vector<ValueVector*>{deleteState->dstNodeIDVector.get(),
         deleteState->relIDVector.get()};
     const auto relReadState =
-        std::make_unique<RelTableScanState>(tableID, relIDColumns, tableData->getColumns(),
+        std::make_unique<RelTableScanState>(tableID, columnsToScan, tableData->getColumns(),
             tableData->getCSROffsetColumn(), tableData->getCSRLengthColumn(), direction);
     relReadState->boundNodeIDVector = srcNodeIDVector;
     relReadState->outputVectors = relIDVectors;
@@ -293,7 +295,8 @@ void RelTable::prepareCommitForNodeGroup(Transaction* transaction, NodeGroup& lo
             }
             chunks.push_back(&chunkedGroup->getColumnChunk(i));
         }
-        csrNodeGroup.append(transaction, boundOffsetInGroup, chunks, rowInChunkedGroup);
+        csrNodeGroup.append(transaction, boundOffsetInGroup, chunks, rowInChunkedGroup,
+            1 /*numRows*/);
     }
 }
 

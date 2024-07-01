@@ -50,6 +50,9 @@ public:
         return dictionaryChunk->getStringLength(index);
     }
 
+    void setIndexChunk(std::unique_ptr<ColumnChunkData> indexChunk) {
+        indexColumnChunk = std::move(indexChunk);
+    }
     DictionaryChunk& getDictionaryChunk() { return *dictionaryChunk; }
     const DictionaryChunk& getDictionaryChunk() const { return *dictionaryChunk; }
 

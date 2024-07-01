@@ -46,6 +46,8 @@ std::unique_ptr<ColumnChunkData> StringColumn::flushChunkData(const ColumnChunkD
     auto& flushedStringData = flushedChunkData->cast<StringChunkData>();
 
     auto& stringChunk = chunkData.cast<StringChunkData>();
+    flushedStringData.setIndexChunk(
+        Column::flushChunkData(*stringChunk.getIndexColumnChunk(), dataFH));
     auto& dictChunk = stringChunk.getDictionaryChunk();
     flushedStringData.getDictionaryChunk().setOffsetChunk(
         Column::flushChunkData(*dictChunk.getOffsetChunk(), dataFH));
