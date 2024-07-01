@@ -112,6 +112,13 @@ void LogicalHashJoin::computeFlatSchema() {
     }
 }
 
+std::string LogicalHashJoin::getExpressionsForPrinting() const {
+    if (isNodeIDOnlyJoin()) {
+        return binder::ExpressionUtil::toStringOrdered(getJoinNodeIDs());
+    }
+    return binder::ExpressionUtil::toString(joinConditions);
+}
+
 binder::expression_vector LogicalHashJoin::getExpressionsToMaterialize() const {
     switch (joinType) {
     case JoinType::INNER:

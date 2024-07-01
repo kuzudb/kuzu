@@ -202,7 +202,7 @@ TEST_F(CApiPreparedStatementTest, BindUInt32) {
     kuzu_state state;
     auto connection = getConnection();
     auto query =
-        "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE s.temprature> $1 RETURN COUNT(*)";
+        "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE s.temperature> $1 RETURN COUNT(*)";
     state = kuzu_connection_prepare(connection, query, &preparedStatement);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_EQ(kuzu_prepared_statement_bind_uint32(&preparedStatement, "1", 10), KuzuSuccess);

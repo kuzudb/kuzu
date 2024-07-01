@@ -6,17 +6,18 @@ namespace kuzu {
 namespace processor {
 
 class InstallExtension final : public Simple {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::INSTALL_EXTENSION;
+
 public:
     InstallExtension(std::string name, const DataPos& outputPos, uint32_t id,
-        const std::string& paramsString)
-        : Simple{PhysicalOperatorType::INSTALL_EXTENSION, outputPos, id, paramsString},
-          name{std::move(name)} {}
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : Simple{type_, outputPos, id, std::move(printInfo)}, name{std::move(name)} {}
 
     void executeInternal(ExecutionContext* context) override;
     std::string getOutputMsg() override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<InstallExtension>(name, outputPos, id, paramsString);
+        return std::make_unique<InstallExtension>(name, outputPos, id, printInfo->copy());
     }
 
 private:

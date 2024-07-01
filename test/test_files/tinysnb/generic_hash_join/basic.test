@@ -9,7 +9,6 @@
 Elizabeth|Elizabeth|[96,59,65,88]|[96,59,65,88]
 
 -STATEMENT MATCH (a:person), (b:person) WHERE a.fName = b.fName AND a.ID < 6 RETURN a.fName, b.fName, a.ID, b.ID
--ENCODED_JOIN HJ(a.fName=b.fName){S(a._ID)}{S(b._ID)}
 ---- 4
 Alice|Alice|0|0
 Bob|Bob|2|2

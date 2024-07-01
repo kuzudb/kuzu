@@ -15,7 +15,6 @@ enum class StatementType : uint8_t {
     STANDALONE_CALL = 21,
     EXPLAIN = 22,
     CREATE_MACRO = 23,
-    COMMENT_ON = 24,
     TRANSACTION = 30,
     EXTENSION = 31,
     EXPORT_DATABASE = 32,

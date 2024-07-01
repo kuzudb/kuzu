@@ -23,13 +23,14 @@ protected:
 };
 
 class BaseAggregate : public Sink {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::AGGREGATE;
+
 protected:
     BaseAggregate(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
         std::vector<AggregateInfo> aggInfos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        const std::string& paramsString)
-        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::AGGREGATE, std::move(child),
-              id, paramsString},
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : Sink{std::move(resultSetDescriptor), type_, std::move(child), id, std::move(printInfo)},
           aggregateFunctions{std::move(aggregateFunctions)}, aggInfos{std::move(aggInfos)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;

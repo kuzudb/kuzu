@@ -3,6 +3,7 @@
 #include "binder/expression/expression.h"
 #include "common/vector/value_vector.h"
 #include "graph/graph.h"
+#include "graph/graph_entry.h"
 
 namespace kuzu {
 
@@ -17,7 +18,7 @@ class ClientContext;
 namespace processor {
 struct GDSCallSharedState;
 class FactorizedTable;
-class ExecutionContext;
+struct ExecutionContext;
 } // namespace processor
 
 namespace function {

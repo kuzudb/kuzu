@@ -3,6 +3,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 # Have to pass this down to every subdirectory, which actually adds the files.
 # This doesn't affect parent directories.
 add_compile_definitions(KUZU_EXPORTS)
+add_compile_definitions(ANTLR4CPP_STATIC)
 add_subdirectory(binder)
 add_subdirectory(c_api)
 add_subdirectory(catalog)
@@ -22,9 +23,14 @@ add_subdirectory(extension)
 add_library(kuzu STATIC ${ALL_OBJECT_FILES})
 add_library(kuzu_shared SHARED ${ALL_OBJECT_FILES})
 
-set(KUZU_LIBRARIES antlr4_cypher antlr4_runtime brotlidec brotlicommon fast_float utf8proc re2 serd Threads::Threads fastpfor miniparquet zstd miniz mbedtls)
+set(KUZU_LIBRARIES antlr4_cypher antlr4_runtime brotlidec brotlicommon fast_float utf8proc re2 serd Threads::Threads fastpfor miniparquet zstd miniz mbedtls )
 if(NOT WIN32)
         set(KUZU_LIBRARIES dl ${KUZU_LIBRARIES})
+endif()
+# Seems to be needed for clang on linux only
+# for compiling std::atomic<T>::compare_exchange_weak
+if (NOT APPLE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        set(KUZU_LIBRARIES atomic ${KUZU_LIBRARIES})
 endif()
 if (ENABLE_BACKTRACES)
         set(KUZU_LIBRARIES ${KUZU_LIBRARIES} cpptrace::cpptrace)

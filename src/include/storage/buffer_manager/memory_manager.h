@@ -52,7 +52,7 @@ private:
     void freeBlock(common::page_idx_t pageIdx, std::span<uint8_t> buffer);
 
 private:
-    std::unique_ptr<BMFileHandle> fh;
+    BMFileHandle* fh;
     BufferManager* bm;
     common::page_offset_t pageSize;
     std::stack<common::page_idx_t> freePages;

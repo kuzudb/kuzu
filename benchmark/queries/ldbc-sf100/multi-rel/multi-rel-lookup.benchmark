@@ -1,0 +1,4 @@
+-NAME multi-rel-lookup
+-QUERY match (a:Person)-[]-(b) where a.ID='10027' return COUNT(b);
+---- 1
+6373

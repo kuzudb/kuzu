@@ -11,9 +11,9 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
     logical_type_vec_t paramTypes;
     for (auto& argument : arguments) {
         if (argument->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
-            paramTypes.push_back(*LogicalType::STRING());
+            paramTypes.push_back(LogicalType::STRING());
         } else {
-            paramTypes.push_back(argument->getDataType());
+            paramTypes.push_back(argument->getDataType().copy());
         }
     }
     auto bindData = std::make_unique<FunctionBindData>(paramTypes[0].copy());

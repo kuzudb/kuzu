@@ -56,9 +56,6 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::STANDALONE_CALL: {
         boundStatement = bindStandaloneCall(statement);
     } break;
-    case StatementType::COMMENT_ON: {
-        boundStatement = bindCommentOn(statement);
-    } break;
     case StatementType::EXPLAIN: {
         boundStatement = bindExplain(statement);
     } break;
@@ -96,7 +93,7 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
 
 std::shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& parsedExpression) {
     auto whereExpression = expressionBinder.bindExpression(parsedExpression);
-    expressionBinder.implicitCastIfNecessary(whereExpression, *LogicalType::BOOL());
+    expressionBinder.implicitCastIfNecessary(whereExpression, LogicalType::BOOL());
     return whereExpression;
 }
 
@@ -123,9 +120,9 @@ std::shared_ptr<Expression> Binder::createVariable(const std::string& name,
     if (scope.contains(name)) {
         throw BinderException("Variable " + name + " already exists.");
     }
-    auto expression = expressionBinder.createVariableExpression(dataType, name);
+    auto expression = expressionBinder.createVariableExpression(dataType.copy(), name);
     expression->setAlias(name);
-    scope.addExpression(name, expression);
+    addToScope(name, expression);
     return expression;
 }
 
@@ -175,15 +172,49 @@ std::string Binder::getUniqueExpressionName(const std::string& name) {
     return "_" + std::to_string(lastExpressionId++) + "_" + name;
 }
 
-bool Binder::isReservedPropertyName(const std::string& name) {
+struct ReservedNames {
+    // Column name that might conflict with internal names.
+    static std::unordered_set<std::string> getColumnNames() {
+        return {
+            InternalKeyword::ID,
+            InternalKeyword::LABEL,
+            InternalKeyword::SRC,
+            InternalKeyword::DST,
+            InternalKeyword::DIRECTION,
+            InternalKeyword::LENGTH,
+            InternalKeyword::NODES,
+            InternalKeyword::RELS,
+            InternalKeyword::PLACE_HOLDER,
+            StringUtils::getUpper(InternalKeyword::ROW_OFFSET),
+            StringUtils::getUpper(InternalKeyword::SRC_OFFSET),
+            StringUtils::getUpper(InternalKeyword::DST_OFFSET),
+            StringUtils::getUpper(rdf::PID),
+            StringUtils::getUpper(rdf::IRI),
+        };
+    }
+
+    // Properties that should be hidden from user access.
+    static std::unordered_set<std::string> getPropertyLookupName() {
+        return {
+            InternalKeyword::ID,
+            StringUtils::getUpper(rdf::PID),
+        };
+    }
+};
+
+bool Binder::reservedInColumnName(const std::string& name) {
     auto normalizedName = StringUtils::getUpper(name);
-    if (normalizedName == InternalKeyword::ID) {
-        return true;
-    }
-    if (normalizedName == StringUtils::getUpper(std::string(rdf::PID))) {
-        return true;
-    }
-    return false;
+    return ReservedNames::getColumnNames().contains(normalizedName);
+}
+
+bool Binder::reservedInPropertyLookup(const std::string& name) {
+    auto normalizedName = StringUtils::getUpper(name);
+    return ReservedNames::getPropertyLookupName().contains(normalizedName);
+}
+
+void Binder::addToScope(const std::string& name, std::shared_ptr<Expression> expr) {
+    // TODO(Xiyang): assert name not in scope.
+    scope.addExpression(name, std::move(expr));
 }
 
 BinderScope Binder::saveScope() {
@@ -196,9 +227,8 @@ void Binder::restoreScope(BinderScope prevScope) {
 
 function::TableFunction Binder::getScanFunction(FileType fileType, const ReaderConfig& config) {
     function::Function* func;
-    auto stringType = LogicalType(LogicalTypeID::STRING);
     std::vector<LogicalType> inputTypes;
-    inputTypes.push_back(stringType);
+    inputTypes.push_back(LogicalType::STRING());
     auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
     switch (fileType) {
     case FileType::PARQUET: {

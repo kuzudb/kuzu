@@ -62,27 +62,27 @@ jobs:
     needs: [build-java-mac, build-java-linux, build-java-windows]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: java-lib-osx-x86_64
           path: java-bins
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: java-lib-osx-arm64
           path: java-bins
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: java-lib-linux-aarch64
           path: java-bins
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: kuzu-linux-jar
           path: java-bins
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: java-lib-win-x86_64
           path: java-bins
@@ -96,7 +96,7 @@ jobs:
         working-directory: java-bins
 
       - name: Upload jar
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: kuzu-java-multiplatform-jar
           path: java-bins/kuzu_java.jar
@@ -123,7 +123,7 @@ jobs:
     env:
       NODE_AUTH_TOKEN: ${{ secrets.NPM_JS_TOKEN }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Update nightly version
         if: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
@@ -133,27 +133,27 @@ jobs:
       - name: Create prebuilt folder
         run: mkdir -p tools/nodejs_api/prebuilt
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: mac-nodejs-module-arm64
           path: tools/nodejs_api/prebuilt
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: mac-nodejs-module-x86_64
           path: tools/nodejs_api/prebuilt
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: linux-nodejs-module-x86_64
           path: tools/nodejs_api/prebuilt
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: linux-nodejs-module-aarch64
           path: tools/nodejs_api/prebuilt
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: windows-nodejs-module
           path: tools/nodejs_api/prebuilt
@@ -172,7 +172,7 @@ jobs:
         working-directory: tools/nodejs_api
 
       - name: Upload tarball
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: kuzu-deploy-nodejs
           path: tools/nodejs_api/kuzu-source.tar.gz
@@ -217,7 +217,7 @@ jobs:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipPython != 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Update nightly version
         if: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
@@ -229,7 +229,7 @@ jobs:
         working-directory: scripts/pip-package
 
       - name: Upload tarball
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: python-sdist
           path: scripts/pip-package/*.tar.gz
@@ -245,32 +245,32 @@ jobs:
       ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: macos-wheels-arm64
           path: dist
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: macos-wheels-x86_64
           path: dist
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: linux-wheels-x86_64
           path: dist
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: linux-wheels-aarch64
           path: dist
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: windows-wheels
           path: dist
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: python-sdist
           path: dist
@@ -280,7 +280,7 @@ jobs:
         working-directory: dist
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: kuzu-deploy-wheels
           path: dist/*
@@ -304,7 +304,7 @@ jobs:
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Update nightly version
         if: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
@@ -326,7 +326,7 @@ jobs:
         working-directory: tools/rust_api
 
       - name: Upload crate
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: kuzu-deploy-crate
           path: tools/rust_api/target/package/*.crate

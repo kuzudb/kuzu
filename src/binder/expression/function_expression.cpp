@@ -20,7 +20,7 @@ std::string ScalarFunctionExpression::toStringInternal() const {
     result += ExpressionUtil::toString(children);
     if (functionName == "CAST") {
         result += ", ";
-        result += bindData->resultType->toString();
+        result += bindData->resultType.toString();
     }
     result += ")";
     return result;

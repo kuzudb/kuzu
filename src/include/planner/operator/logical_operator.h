@@ -12,7 +12,6 @@ enum class LogicalOperatorType : uint8_t {
     AGGREGATE,
     ALTER,
     ATTACH_DATABASE,
-    COMMENT_ON,
     COPY_FROM,
     COPY_TO,
     CREATE_MACRO,

@@ -7,7 +7,8 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapEmptyResult(LogicalOperator*) {
-    return std::make_unique<EmptyResult>(getOperatorID(), "");
+    auto printInfo = std::make_unique<OPPrintInfo>();
+    return std::make_unique<EmptyResult>(getOperatorID(), std::move(printInfo));
 }
 
 } // namespace processor

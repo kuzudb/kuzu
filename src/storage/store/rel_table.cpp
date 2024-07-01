@@ -9,6 +9,7 @@
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::transaction;
+using namespace kuzu::evaluator;
 
 namespace kuzu {
 namespace storage {
@@ -24,7 +25,8 @@ RelDetachDeleteState::RelDetachDeleteState() {
 RelTable::RelTable(BMFileHandle* dataFH, DiskArrayCollection* metadataDAC,
     RelsStoreStats* relsStoreStats, MemoryManager* memoryManager,
     RelTableCatalogEntry* relTableEntry, WAL* wal, bool enableCompression)
-    : Table{relTableEntry, relsStoreStats, memoryManager, wal} {
+    : Table{relTableEntry, relsStoreStats, memoryManager, wal},
+      toNodeTableID{relTableEntry->getDstTableID()} {
     fwdRelTableData = std::make_unique<RelTableData>(dataFH, metadataDAC, bufferManager, wal,
         relTableEntry, relsStoreStats, RelDataDirection::FWD, enableCompression);
     bwdRelTableData = std::make_unique<RelTableData>(dataFH, metadataDAC, bufferManager, wal,
@@ -61,14 +63,16 @@ void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
     localTable->update(updateState);
 }
 
-void RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
+bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
     if (localTable->delete_(deleteState)) {
         const auto relsStats =
             ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
         relsStats->updateNumTuplesByValue(tableID, -1);
+        return true;
     }
+    return false;
 }
 
 void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
@@ -150,21 +154,21 @@ row_idx_t RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableDat
 //
 //>>>>>>> 5cbfe998f (Fix issue-3166)
 void RelTable::addColumn(Transaction* transaction, const Property& property,
-    ValueVector* defaultValueVector) {
+    ExpressionEvaluator& defaultEvaluator) {
     const auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
-    relsStats->addMetadataDAHInfo(tableID, *property.getDataType());
+    relsStats->addMetadataDAHInfo(tableID, property.getDataType());
     fwdRelTableData->addColumn(transaction,
         RelDataDirectionUtils::relDirectionToString(RelDataDirection::FWD),
         fwdRelTableData->getNbrIDColumn()->getMetadataDA(),
         *relsStats->getColumnMetadataDAHInfo(transaction, tableID, fwdRelTableData->getNumColumns(),
             RelDataDirection::FWD),
-        property, defaultValueVector);
+        property, defaultEvaluator);
     bwdRelTableData->addColumn(transaction,
         RelDataDirectionUtils::relDirectionToString(RelDataDirection::BWD),
         bwdRelTableData->getNbrIDColumn()->getMetadataDA(),
         *relsStats->getColumnMetadataDAHInfo(transaction, tableID, bwdRelTableData->getNumColumns(),
             RelDataDirection::BWD),
-        property, defaultValueVector);
+        property, defaultEvaluator);
     // TODO(Guodong): addColumn is not going through localStorage design for now. So it needs to add
     // tableID into the wal's updated table set separately, as it won't trigger prepareCommit.
     wal->addToUpdatedTables(tableID);

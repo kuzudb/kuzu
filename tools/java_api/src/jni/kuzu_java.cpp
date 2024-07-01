@@ -457,8 +457,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1query_1result_1get_1c
     if (idx >= column_datatypes.size()) {
         return nullptr;
     }
-    auto column_datatype = column_datatypes[idx];
-    auto* cdt_copy = new LogicalType(column_datatype);
+    auto column_datatype = column_datatypes[idx].copy();
+    auto* cdt_copy = new LogicalType(std::move(column_datatype));
 
     uint64_t dtAddress = reinterpret_cast<uint64_t>(cdt_copy);
     jlong dt_ref = static_cast<jlong>(dtAddress);
@@ -583,7 +583,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1create(JNIE
     if (child_type == nullptr) {
         data_type = new LogicalType(logicalTypeID);
     } else {
-        auto child_type_pty = std::make_unique<LogicalType>(*getDataType(env, child_type));
+        auto child_type_pty = getDataType(env, child_type)->copy();
         auto extraTypeInfo =
             num_elements_in_array > 0 ?
                 std::make_unique<ArrayTypeInfo>(std::move(child_type_pty), num_elements_in_array) :
@@ -597,7 +597,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1create(JNIE
 JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1clone(JNIEnv* env, jclass,
     jobject thisDT) {
     auto* oldDT = getDataType(env, thisDT);
-    auto* newDT = new LogicalType(*oldDT);
+    auto* newDT = new LogicalType(oldDT->copy());
 
     jobject dt = createJavaObject(env, newDT, J_C_KuzuDataType, J_C_KuzuDataType_F_dt_ref);
     return dt;
@@ -633,13 +633,13 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1chil
     auto* parent_type = getDataType(env, thisDT);
     LogicalType child_type;
     if (parent_type->getLogicalTypeID() == LogicalTypeID::ARRAY) {
-        child_type = ArrayType::getChildType(*parent_type);
+        child_type = ArrayType::getChildType(*parent_type).copy();
     } else if (parent_type->getLogicalTypeID() == LogicalTypeID::LIST) {
-        child_type = ListType::getChildType(*parent_type);
+        child_type = ListType::getChildType(*parent_type).copy();
     } else {
         return nullptr;
     }
-    auto* new_child_type = new LogicalType(child_type);
+    auto* new_child_type = new LogicalType(std::move(child_type));
     jobject ret =
         createJavaObject(env, new_child_type, J_C_KuzuDataType, J_C_KuzuDataType_F_dt_ref);
     return ret;
@@ -725,7 +725,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1create_1value(JN
                              "Note: positive exponents contribute to precision",
                     DECIMAL_PRECISION_LIMIT));
         }
-        auto type = *LogicalType::DECIMAL(precision, scale);
+        auto type = LogicalType::DECIMAL(precision, scale);
         auto tmp = Value::createDefaultValue(type);
         int128_t res;
         kuzu::function::decimalCast(str, std::strlen(str), res, type);
@@ -808,15 +808,15 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1list_1ele
 JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1data_1type(JNIEnv* env,
     jclass, jobject thisValue) {
     Value* v = getValue(env, thisValue);
-    auto* dt = new LogicalType(*v->getDataType());
+    auto* dt = new LogicalType(v->getDataType().copy());
     return createJavaObject(env, dt, J_C_KuzuDataType, J_C_KuzuDataType_F_dt_ref);
 }
 
 JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1value(JNIEnv* env, jclass,
     jobject thisValue) {
     Value* v = getValue(env, thisValue);
-    auto dt = v->getDataType();
-    auto logicalTypeId = dt->getLogicalTypeID();
+    const auto& dt = v->getDataType();
+    auto logicalTypeId = dt.getLogicalTypeID();
 
     switch (logicalTypeId) {
     case LogicalTypeID::BOOL: {
@@ -1104,8 +1104,8 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1rel_1val_1to_1string(
 JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1struct_1field_1name(
     JNIEnv* env, jclass, jobject thisSV, jlong index) {
     auto* sv = getValue(env, thisSV);
-    auto dataType = sv->getDataType();
-    auto fieldNames = StructType::getFieldNames(*dataType);
+    const auto& dataType = sv->getDataType();
+    auto fieldNames = StructType::getFieldNames(dataType);
     if ((uint64_t)index >= fieldNames.size() || index < 0) {
         return nullptr;
     }
@@ -1117,8 +1117,8 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1struct_1ind
     jclass, jobject thisSV, jstring field_name) {
     auto* sv = getValue(env, thisSV);
     const char* field_name_cstr = env->GetStringUTFChars(field_name, JNI_FALSE);
-    auto dataType = sv->getDataType();
-    auto index = StructType::getFieldIdx(*dataType, field_name_cstr);
+    const auto& dataType = sv->getDataType();
+    auto index = StructType::getFieldIdx(dataType, field_name_cstr);
     env->ReleaseStringUTFChars(field_name, field_name_cstr);
     if (index == INVALID_STRUCT_FIELD_IDX) {
         return -1;

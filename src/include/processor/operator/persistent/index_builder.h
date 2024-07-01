@@ -12,7 +12,7 @@
 #include "processor/execution_context.h"
 #include "storage/index/hash_index.h"
 #include "storage/index/hash_index_utils.h"
-#include "storage/store/column_chunk.h"
+#include "storage/store/column_chunk_data.h"
 
 namespace kuzu {
 namespace processor {

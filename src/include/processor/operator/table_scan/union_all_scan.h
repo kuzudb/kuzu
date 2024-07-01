@@ -50,21 +50,22 @@ private:
 };
 
 class UnionAllScan : public PhysicalOperator {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::UNION_ALL_SCAN;
+
 public:
     UnionAllScan(std::unique_ptr<UnionAllScanInfo> info,
         std::shared_ptr<UnionAllScanSharedState> sharedState,
         std::vector<std::unique_ptr<PhysicalOperator>> children, uint32_t id,
-        const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::UNION_ALL_SCAN, std::move(children), id,
-              paramsString},
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(children), id, std::move(printInfo)},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
     // For clone only
     UnionAllScan(std::unique_ptr<UnionAllScanInfo> info,
         std::shared_ptr<UnionAllScanSharedState> sharedState, uint32_t id,
-        const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::UNION_ALL_SCAN, id, paramsString},
-          info{std::move(info)}, sharedState{std::move(sharedState)} {}
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, id, std::move(printInfo)}, info{std::move(info)},
+          sharedState{std::move(sharedState)} {}
 
     bool isSource() const final { return true; }
 
@@ -73,7 +74,7 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<UnionAllScan>(info->copy(), sharedState, id, paramsString);
+        return make_unique<UnionAllScan>(info->copy(), sharedState, id, printInfo->copy());
     }
 
 private:

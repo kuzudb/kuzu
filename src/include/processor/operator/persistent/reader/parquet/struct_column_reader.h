@@ -10,7 +10,7 @@ public:
     static constexpr const common::PhysicalTypeID TYPE = common::PhysicalTypeID::STRUCT;
 
 public:
-    StructColumnReader(ParquetReader& reader, std::unique_ptr<common::LogicalType> type,
+    StructColumnReader(ParquetReader& reader, common::LogicalType type,
         const kuzu_parquet::format::SchemaElement& schema, uint64_t schemaIdx, uint64_t maxDefine,
         uint64_t maxRepeat, std::vector<std::unique_ptr<ColumnReader>> childReaders);
 

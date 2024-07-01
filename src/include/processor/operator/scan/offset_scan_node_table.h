@@ -13,8 +13,8 @@ class OffsetScanNodeTable : public ScanTable {
 public:
     OffsetScanNodeTable(ScanTableInfo info,
         common::table_id_map_t<ScanNodeTableInfo> tableIDToNodeInfo, uint32_t id,
-        const std::string& paramString)
-        : ScanTable{type_, std::move(info), id, paramString},
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : ScanTable{type_, std::move(info), id, std::move(printInfo)},
           tableIDToNodeInfo{std::move(tableIDToNodeInfo)}, executed{false} {}
 
     void init(common::nodeID_t nodeID);
@@ -27,7 +27,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<OffsetScanNodeTable>(info.copy(), copyMap(tableIDToNodeInfo), id,
-            paramsString);
+            printInfo->copy());
     }
 
 private:

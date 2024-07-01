@@ -7,8 +7,6 @@ add_library(kuzu_processor_operator_persistent
         copy_rdf.cpp
         rel_batch_insert.cpp
         copy_to.cpp
-        copy_to_csv.cpp
-        copy_to_parquet.cpp
         delete.cpp
         delete_executor.cpp
         index_builder.cpp

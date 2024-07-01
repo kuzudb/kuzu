@@ -17,6 +17,7 @@ struct PropertyDefinitionDDL;
 struct CreateTableInfo;
 struct BaseScanSource;
 class ProjectGraph;
+struct JoinHintNode;
 } // namespace parser
 
 namespace catalog {
@@ -24,6 +25,7 @@ class NodeTableCatalogEntry;
 class RelTableCatalogEntry;
 class RDFGraphCatalogEntry;
 class Property;
+class Catalog;
 } // namespace catalog
 
 namespace extension {
@@ -43,6 +45,10 @@ namespace function {
 struct TableFunction;
 } // namespace function
 
+namespace transaction {
+class Transaction;
+} // namespace transaction
+
 namespace binder {
 struct PropertyInfo;
 struct BoundBaseScanSource;
@@ -54,6 +60,7 @@ class BoundWithClause;
 class BoundReturnClause;
 struct BoundFileScanInfo;
 struct ExportedTableData;
+struct BoundJoinHintNode;
 
 // BinderScope keeps track of expressions in scope and their aliases. We maintain the order of
 // expressions in
@@ -82,7 +89,6 @@ public:
     std::shared_ptr<Expression> createVariable(const std::string& name,
         const common::LogicalType& dataType);
 
-private:
     std::shared_ptr<Expression> bindWhereExpression(
         const parser::ParsedExpression& parsedExpression);
 
@@ -109,6 +115,7 @@ private:
     std::unique_ptr<BoundStatement> bindAddProperty(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindDropProperty(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindRenameProperty(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindCommentOn(const parser::Statement& statement);
 
     std::vector<PropertyInfo> bindPropertyInfo(
         const std::vector<parser::PropertyDefinitionDDL>& propertyDefinitions,
@@ -162,9 +169,6 @@ private:
     /*** bind extension ***/
     std::unique_ptr<BoundStatement> bindExtension(const parser::Statement& statement);
 
-    /*** bind comment on ***/
-    std::unique_ptr<BoundStatement> bindCommentOn(const parser::Statement& statement);
-
     /*** bind explain ***/
     std::unique_ptr<BoundStatement> bindExplain(const parser::Statement& statement);
 
@@ -172,6 +176,7 @@ private:
     std::unique_ptr<BoundReadingClause> bindReadingClause(
         const parser::ReadingClause& readingClause);
     std::unique_ptr<BoundReadingClause> bindMatchClause(const parser::ReadingClause& readingClause);
+    std::shared_ptr<BoundJoinHintNode> bindJoinHint(const parser::JoinHintNode& joinHintNode);
     void rewriteMatchPattern(BoundGraphPattern& boundGraphPattern);
     std::unique_ptr<BoundReadingClause> bindUnwindClause(
         const parser::ReadingClause& readingClause);
@@ -270,13 +275,18 @@ private:
 
     /*** helpers ***/
     std::string getUniqueExpressionName(const std::string& name);
-    static bool isReservedPropertyName(const std::string& name);
 
+    static bool reservedInColumnName(const std::string& name);
+    static bool reservedInPropertyLookup(const std::string& name);
+
+    void addToScope(const std::string& name, std::shared_ptr<Expression> expr);
     BinderScope saveScope();
     void restoreScope(BinderScope prevScope);
 
     function::TableFunction getScanFunction(common::FileType fileType,
         const common::ReaderConfig& config);
+
+    ExpressionBinder* getExpressionBinder() { return &expressionBinder; }
 
 private:
     uint32_t lastExpressionId;

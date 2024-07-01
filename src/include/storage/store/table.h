@@ -6,6 +6,9 @@
 #include "storage/store/table_data.h"
 
 namespace kuzu {
+namespace evaluator {
+class ExpressionEvaluator;
+} // namespace evaluator
 namespace storage {
 
 enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = 3 };
@@ -87,10 +90,10 @@ public:
 
     virtual void insert(transaction::Transaction* transaction, TableInsertState& insertState) = 0;
     virtual void update(transaction::Transaction* transaction, TableUpdateState& updateState) = 0;
-    virtual void delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) = 0;
+    virtual bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) = 0;
 
     virtual void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
-        common::ValueVector* defaultValueVector) = 0;
+        evaluator::ExpressionEvaluator& defaultEvaluator) = 0;
     virtual void dropColumn(common::column_id_t columnID) = 0;
 
     virtual void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) = 0;

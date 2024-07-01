@@ -11,16 +11,13 @@ using namespace kuzu::common;
 using namespace kuzu::graph;
 using namespace kuzu::function;
 using namespace kuzu::planner;
+using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logicalOperator) {
     auto& call = logicalOperator->constCast<LogicalGDSCall>();
-    auto& graphEntry = call.getInfo().graphEntry;
-    if (graphEntry.nodeTableIDs.size() > 1 || graphEntry.relTableIDs.size() > 1) {
-        throw RuntimeException("Using multi label graph in algorithm function is not supported.");
-    }
     auto outSchema = call.getSchema();
     auto info = GDSCallInfo(call.getInfo().getGDS()->copy());
     auto tableSchema = std::make_unique<FactorizedTableSchema>();
@@ -41,27 +38,34 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     }
     auto table =
         std::make_shared<FactorizedTable>(clientContext->getMemoryManager(), tableSchema->copy());
+    auto& graphEntry = call.getInfo().graphEntry;
     auto graph = std::make_unique<OnDiskGraph>(clientContext, graphEntry.nodeTableIDs[0],
         graphEntry.relTableIDs[0]);
-    std::unique_ptr<NodeOffsetSemiMask> mask = nullptr;
+    common::table_id_map_t<std::unique_ptr<NodeOffsetLevelSemiMask>> masks;
     if (call.getInfo().getBindData()->hasNodeInput()) {
         // Generate an empty semi mask which later on picked by SemiMaker.
-        auto& node = call.getInfo().getBindData()->nodeInput->constCast<binder::NodeExpression>();
-        auto tableID = node.getSingleTableID();
-        auto nodeTable = clientContext->getStorageManager()->getTable(tableID);
-        mask = std::make_unique<NodeOffsetSemiMask>(nodeTable->ptrCast<storage::NodeTable>());
+        auto& node =
+            call.getInfo().getBindData()->nodeInput->constCast<binder::NodeExpression>();
+        for (auto tableID : node.getTableIDs()) {
+            auto nodeTable =
+                clientContext->getStorageManager()->getTable(tableID)->ptrCast<NodeTable>();
+            masks.insert({tableID, std::make_unique<NodeOffsetLevelSemiMask>(tableID,
+                                       nodeTable->getMaxNodeOffset(clientContext->getTx()))});
+        }
     }
     auto sharedState =
-        std::make_shared<GDSCallSharedState>(table, std::move(graph), std::move(mask));
+        std::make_shared<GDSCallSharedState>(table, std::move(graph), std::move(masks));
     auto parallelUtils =
         std::make_shared<ParallelUtils>(getOperatorID(), clientContext->getTaskScheduler());
     info.gds->setParallelUtils(parallelUtils);
+    auto printInfo = std::make_unique<OPPrintInfo>(call.getExpressionsForPrinting());
     auto algorithm = std::make_unique<GDSCall>(std::make_unique<ResultSetDescriptor>(),
-        std::move(info), sharedState, getOperatorID(), call.getExpressionsForPrinting());
+        std::move(info), sharedState, getOperatorID(), std::move(printInfo));
     auto ftableScan = createFTableScanAligned(columns, outSchema, table, 1u, std::move(algorithm));
     binder::Expression &expr = *srcInternalIDExpr.get();
+    auto flattenPrintInfo = std::make_unique<OPPrintInfo>(expr.getUniqueName());
     auto flattensOperator = make_unique<Flatten>(outSchema->getGroupPos(expr),
-        std::move(ftableScan), getOperatorID(), srcInternalIDExpr->getUniqueName());
+        std::move(ftableScan), getOperatorID(), std::move(flattenPrintInfo));
     return flattensOperator;
 }
 

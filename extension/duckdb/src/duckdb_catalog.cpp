@@ -14,12 +14,12 @@ namespace duckdb_extension {
 DuckDBCatalog::DuckDBCatalog(std::string dbPath, std::string catalogName,
     main::ClientContext* context, const binder::AttachOption& attachOption)
     : CatalogExtension{}, dbPath{std::move(dbPath)}, catalogName{std::move(catalogName)},
-      tableNamesVector{*common::LogicalType::STRING(), context->getMemoryManager()} {
+      tableNamesVector{common::LogicalType::STRING(), context->getMemoryManager()} {
     skipUnsupportedTable = DuckDBStorageExtension::SKIP_UNSUPPORTED_TABLE_DEFAULT_VAL;
     auto& options = attachOption.options;
     if (options.contains(DuckDBStorageExtension::SKIP_UNSUPPORTED_TABLE_KEY)) {
         auto val = options.at(DuckDBStorageExtension::SKIP_UNSUPPORTED_TABLE_KEY);
-        if (val.getDataType()->getLogicalTypeID() != common::LogicalTypeID::BOOL) {
+        if (val.getDataType().getLogicalTypeID() != common::LogicalTypeID::BOOL) {
             throw common::RuntimeException{common::stringFormat("Invalid option value for {}",
                 DuckDBStorageExtension::SKIP_UNSUPPORTED_TABLE_KEY)};
         }
@@ -73,7 +73,7 @@ void DuckDBCatalog::createForeignTable(duckdb::Connection& con, const std::strin
     std::vector<std::string> columnNames;
     for (auto& propertyInfo : extraInfo->propertyInfos) {
         columnNames.push_back(propertyInfo.name);
-        columnTypes.push_back(propertyInfo.type);
+        columnTypes.push_back(propertyInfo.type.copy());
     }
     DuckDBScanBindData bindData(getQuery(*info), std::move(columnTypes), std::move(columnNames),
         std::bind(&DuckDBCatalog::getConnection, this, dbPath));
@@ -125,7 +125,7 @@ bool DuckDBCatalog::bindPropertyInfos(duckdb::Connection& con, const std::string
         return false;
     }
     for (auto i = 0u; i < columnNames.size(); i++) {
-        auto propertyInfo = binder::PropertyInfo(columnNames[i], columnTypes[i]);
+        auto propertyInfo = binder::PropertyInfo(columnNames[i], columnTypes[i].copy());
         propertyInfos.push_back(std::move(propertyInfo));
     }
     return true;

@@ -13,7 +13,7 @@ jobs:
   build-wheels-arm64:
     runs-on: self-hosted-mac-x64
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Update nightly version
         if: ${{ inputs.isNightly == true }}
@@ -28,7 +28,7 @@ jobs:
           python3 package_tar.py kuzu.tar.gz
 
       - name: Build wheels for Apple Silicon
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.19.1
         env:
           CIBW_SKIP: pp*
           CIBW_ARCHS_MACOS: arm64
@@ -38,7 +38,7 @@ jobs:
           package-dir: ./scripts/pip-package/kuzu.tar.gz
           output-dir: ./scripts/pip-package/wheelhouse
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: macos-wheels-arm64
           path: ./scripts/pip-package/wheelhouse/*.whl
@@ -46,7 +46,7 @@ jobs:
   build-wheels-x86_64:
     runs-on: self-hosted-mac-x64
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Update nightly version
         if: ${{ inputs.isNightly == true }}
@@ -61,7 +61,7 @@ jobs:
           python3 package_tar.py kuzu.tar.gz
 
       - name: Build wheels for Intel
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.19.1
         env:
           CIBW_SKIP: pp* cp36*
           CIBW_ARCHS_MACOS: x86_64
@@ -71,7 +71,7 @@ jobs:
           package-dir: ./scripts/pip-package/kuzu.tar.gz
           output-dir: ./scripts/pip-package/wheelhouse
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: macos-wheels-x86_64
           path: ./scripts/pip-package/wheelhouse/*.whl

@@ -67,8 +67,7 @@ protected:
     virtual common::page_idx_t addNewPageWithoutLock();
     void constructExistingFileHandle(const std::string& path, common::VirtualFileSystem* vfs,
         main::ClientContext* context);
-    void constructNewFileHandle(const std::string& path, common::VirtualFileSystem* vfs,
-        main::ClientContext* context);
+    void constructNewFileHandle(const std::string& path);
 
 protected:
     uint8_t flags;

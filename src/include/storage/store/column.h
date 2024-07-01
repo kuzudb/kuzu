@@ -6,9 +6,12 @@
 #include "storage/compression/compression.h"
 #include "storage/stats/metadata_dah_info.h"
 #include "storage/storage_structure/disk_array.h"
-#include "storage/store/column_chunk.h"
+#include "storage/store/column_chunk_data.h"
 
 namespace kuzu {
+namespace evaluator {
+class ExpressionEvaluator;
+} // namespace evaluator
 namespace storage {
 
 struct CompressionMetadata;
@@ -42,16 +45,29 @@ public:
     // TODO(bmwinger): Hide access to variables and store a modified flag
     // so that we can tell if the value has changed and the metadataDA needs to be updated
     struct ChunkState {
-        explicit ChunkState() = default;
-        ChunkState(ColumnChunkMetadata metadata, uint64_t numValuesPerPage)
-            : metadata{std::move(metadata)}, numValuesPerPage{numValuesPerPage} {}
-
         ColumnChunkMetadata metadata;
         uint64_t numValuesPerPage = UINT64_MAX;
         common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
         std::unique_ptr<ChunkState> nullState = nullptr;
         // Used for struct/list/string columns.
         std::vector<ChunkState> childrenStates;
+
+        explicit ChunkState() = default;
+        ChunkState(ColumnChunkMetadata metadata, uint64_t numValuesPerPage)
+            : metadata{std::move(metadata)}, numValuesPerPage{numValuesPerPage} {}
+
+        ChunkState& getChildState(common::idx_t child);
+        const ChunkState& getChildState(common::idx_t child) const;
+
+        void resetState() {
+            // No need to reset metadata because we will always read from disk
+            numValuesPerPage = UINT64_MAX;
+            nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+            nullState = nullptr;
+            for (auto& state : childrenStates) {
+                state.resetState();
+            }
+        }
     };
 
     Column(std::string name, common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
@@ -114,12 +130,16 @@ public:
     virtual void prepareCommitForExistingChunk(transaction::Transaction* transaction,
         ChunkState& state, const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
         common::offset_t startSrcOffset);
+    virtual void prepareCommitForExistingChunkInPlace(transaction::Transaction* transaction,
+        ChunkState& state, const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
+        common::offset_t startSrcOffset);
 
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();
 
     void populateWithDefaultVal(transaction::Transaction* transaction,
-        DiskArray<ColumnChunkMetadata>* metadataDA, common::ValueVector* defaultValueVector);
+        DiskArray<ColumnChunkMetadata>* metadataDA,
+        evaluator::ExpressionEvaluator& defaultEvaluator);
 
     ColumnChunkMetadata getMetadata(common::node_group_idx_t nodeGroupIdx,
         transaction::TransactionType transaction) const {

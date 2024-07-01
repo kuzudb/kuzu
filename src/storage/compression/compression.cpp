@@ -1,5 +1,6 @@
 #include "storage/compression/compression.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <limits>
 #include <string>
@@ -10,17 +11,44 @@
 #include "common/null_mask.h"
 #include "common/type_utils.h"
 #include "common/types/internal_id_t.h"
+#include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "fastpfor/bitpackinghelpers.h"
+#include "storage/compression/bitpacking_int128.h"
+#include "storage/compression/bitpacking_utils.h"
 #include "storage/compression/sign_extend.h"
 #include "storage/storage_utils.h"
-#include <bit>
+#include "storage/store/column_chunk_data.h"
+#include <ranges>
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
+
+template<typename T>
+auto getTypedMinMax(std::span<T> data, const NullMask* nullMask, uint64_t nullMaskOffset) {
+    std::optional<StorageValue> min, max;
+    KU_ASSERT(data.size() > 0);
+    if (!nullMask || nullMask->hasNoNullsGuarantee()) {
+        auto [minRaw, maxRaw] = std::minmax_element(data.begin(), data.end());
+        min = StorageValue(*minRaw);
+        max = StorageValue(*maxRaw);
+    } else {
+        for (uint64_t i = 0; i < data.size(); i++) {
+            if (!nullMask->isNull(nullMaskOffset + i)) {
+                if (!min || data[i] < min->get<T>()) {
+                    min = StorageValue(data[i]);
+                }
+                if (!max || data[i] > max->get<T>()) {
+                    max = StorageValue(data[i]);
+                }
+            }
+        }
+    }
+    return std::make_pair(min, max);
+}
 
 uint32_t getDataTypeSizeInChunk(const common::LogicalType& dataType) {
     return getDataTypeSizeInChunk(dataType.getPhysicalType());
@@ -29,11 +57,11 @@ uint32_t getDataTypeSizeInChunk(const common::LogicalType& dataType) {
 uint32_t getDataTypeSizeInChunk(const common::PhysicalTypeID& dataType) {
     switch (dataType) {
     case PhysicalTypeID::STRING:
+    case PhysicalTypeID::ARRAY:
+    case PhysicalTypeID::LIST:
     case PhysicalTypeID::STRUCT: {
         return 0;
     }
-    case PhysicalTypeID::ARRAY:
-    case PhysicalTypeID::LIST:
     case PhysicalTypeID::INTERNAL_ID: {
         return sizeof(offset_t);
     }
@@ -62,8 +90,8 @@ bool CompressionMetadata::canAlwaysUpdateInPlace() const {
     }
 }
 
-bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos,
-    PhysicalTypeID physicalType) const {
+bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos, uint64_t numValues,
+    PhysicalTypeID physicalType, const std::optional<NullMask>& nullMask) const {
     if (canAlwaysUpdateInPlace()) {
         return true;
     }
@@ -72,12 +100,28 @@ bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos,
         // Value can be updated in place only if it is identical to the value already stored.
         switch (physicalType) {
         case PhysicalTypeID::BOOL: {
-            return NullMask::isNull(reinterpret_cast<const uint64_t*>(data), pos) ==
-                   static_cast<bool>(min.unsignedInt);
+            for (uint64_t i = pos; i < pos + numValues; i++) {
+                if (nullMask && nullMask->isNull(i)) {
+                    continue;
+                }
+                if (!NullMask::isNull(reinterpret_cast<const uint64_t*>(data), i) !=
+                    static_cast<bool>(min.unsignedInt)) {
+                    return false;
+                }
+            }
+            return true;
         }
         default: {
-            auto size = getDataTypeSizeInChunk(physicalType);
-            return memcmp(data + pos * size, &min.unsignedInt, size) == 0;
+            for (uint64_t i = pos; i < pos + numValues; i++) {
+                if (nullMask && nullMask->isNull(i)) {
+                    continue;
+                }
+                auto size = getDataTypeSizeInChunk(physicalType);
+                if (memcmp(data + i * size, &min.unsignedInt, size) != 0) {
+                    return false;
+                }
+            }
+            return true;
         }
         }
     }
@@ -86,19 +130,18 @@ bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos,
         return true;
     }
     case CompressionType::INTEGER_BITPACKING: {
+        auto cdata = const_cast<uint8_t*>(data);
         return TypeUtils::visit(
             physicalType,
             [&]<IntegerBitpackingType T>(T) {
-                auto value = reinterpret_cast<const T*>(data)[pos];
-                return IntegerBitpacking<T>::canUpdateInPlace(value, *this);
-            },
-            [&](list_entry_t) {
-                auto value = reinterpret_cast<const uint64_t*>(data)[pos];
-                return IntegerBitpacking<uint64_t>::canUpdateInPlace(value, *this);
+                auto values = std::span<T>(reinterpret_cast<T*>(cdata) + pos, numValues);
+                return IntegerBitpacking<T>::canUpdateInPlace(values, *this, std::move(nullMask));
             },
             [&](internalID_t) {
-                auto value = reinterpret_cast<const uint64_t*>(data)[pos];
-                return IntegerBitpacking<uint64_t>::canUpdateInPlace(value, *this);
+                auto values =
+                    std::span<uint64_t>(reinterpret_cast<uint64_t*>(cdata) + pos, numValues);
+                return IntegerBitpacking<uint64_t>::canUpdateInPlace(values, *this,
+                    std::move(nullMask));
             },
             [&](auto) {
                 throw common::StorageException(
@@ -125,6 +168,8 @@ uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& da
     }
     case CompressionType::INTEGER_BITPACKING: {
         switch (dataType.getPhysicalType()) {
+        case PhysicalTypeID::INT128:
+            return IntegerBitpacking<int128_t>::numValues(pageSize, *this);
         case PhysicalTypeID::INT64:
             return IntegerBitpacking<int64_t>::numValues(pageSize, *this);
         case PhysicalTypeID::INT32:
@@ -134,8 +179,6 @@ uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& da
         case PhysicalTypeID::INT8:
             return IntegerBitpacking<int8_t>::numValues(pageSize, *this);
         case PhysicalTypeID::INTERNAL_ID:
-        case PhysicalTypeID::ARRAY:
-        case PhysicalTypeID::LIST:
         case PhysicalTypeID::UINT64:
             return IntegerBitpacking<uint64_t>::numValues(pageSize, *this);
         case PhysicalTypeID::UINT32:
@@ -183,8 +226,6 @@ std::optional<CompressionMetadata> ConstantCompression::analyze(const ColumnChun
         auto value = StorageValue(firstValue);
         return std::optional(CompressionMetadata(value, value, CompressionType::CONSTANT));
     }
-    case PhysicalTypeID::ARRAY:
-    case PhysicalTypeID::LIST:
     case PhysicalTypeID::INTERNAL_ID:
     case PhysicalTypeID::DOUBLE:
     case PhysicalTypeID::FLOAT:
@@ -195,7 +236,8 @@ std::optional<CompressionMetadata> ConstantCompression::analyze(const ColumnChun
     case PhysicalTypeID::INT8:
     case PhysicalTypeID::INT16:
     case PhysicalTypeID::INT32:
-    case PhysicalTypeID::INT64: {
+    case PhysicalTypeID::INT64:
+    case PhysicalTypeID::INT128: {
         uint8_t size = chunk.getNumBytesPerValue();
         StorageValue value;
         KU_ASSERT(size <= sizeof(value.unsignedInt));
@@ -226,14 +268,11 @@ std::string CompressionMetadata::toString(const PhysicalTypeID physicalType) con
     case CompressionType::INTEGER_BITPACKING: {
         uint8_t bitWidth = TypeUtils::visit(
             physicalType,
-            [&](common::list_entry_t) {
-                return IntegerBitpacking<uint64_t>::getPackingInfo(*this).bitWidth;
-            },
             [&](common::internalID_t) {
                 return IntegerBitpacking<uint64_t>::getPackingInfo(*this).bitWidth;
             },
             [](bool) -> uint8_t { KU_UNREACHABLE; },
-            [&]<std::integral T>(
+            [&]<numeric_utils::IsIntegral T>(
                 T) { return IntegerBitpacking<T>::getPackingInfo(*this).bitWidth; },
             [](auto) -> uint8_t { KU_UNREACHABLE; });
         return stringFormat("INTEGER_BITPACKING[{}]", bitWidth);
@@ -258,16 +297,12 @@ void ConstantCompression::decompressValues(uint8_t* dstBuffer, uint64_t dstOffse
 
     TypeUtils::visit(
         physicalType,
-        [&](common::list_entry_t) {
-            std::fill(reinterpret_cast<uint64_t*>(start), reinterpret_cast<uint64_t*>(end),
-                metadata.min.get<uint64_t>());
-        },
         [&](common::internalID_t) {
             std::fill(reinterpret_cast<uint64_t*>(start), reinterpret_cast<uint64_t*>(end),
                 metadata.min.get<uint64_t>());
         },
         [&]<typename T>
-            requires(std::integral<T> || std::floating_point<T>)
+            requires(numeric_utils::IsIntegral<T> || std::floating_point<T>)
         (T) {
             std::fill(reinterpret_cast<T*>(start), reinterpret_cast<T*>(end),
                 metadata.min.get<T>());
@@ -297,13 +332,23 @@ void ConstantCompression::copyFromPage(const uint8_t* srcBuffer, uint64_t srcOff
 }
 
 template<typename T>
-static inline T abs(typename std::enable_if<std::is_unsigned<T>::value, T>::type value) {
+inline T abs(T value);
+
+template<typename T>
+    requires std::is_unsigned_v<T>
+inline T abs(T value) {
     return value;
 }
 
 template<typename T>
-static inline T abs(typename std::enable_if<std::is_signed<T>::value, T>::type value) {
+    requires std::is_signed_v<T>
+inline T abs(T value) {
     return std::abs(value);
+}
+
+template<>
+inline int128_t abs<int128_t>(int128_t value) {
+    return value >= 0 ? value : -value;
 }
 
 template<IntegerBitpackingType T>
@@ -316,34 +361,49 @@ BitpackInfo<T> IntegerBitpacking<T>::getPackingInfo(const CompressionMetadata& m
     // Frame of reference encoding is only used when values are either all positive or all negative,
     // and when we will save at least 1 bit per value.
     // when the chunk was first compressed
-    if (min > 0 && max > 0 && std::bit_width((U)(max - min)) < std::bit_width((U)max)) {
+    if (min > 0 && max > 0 &&
+        numeric_utils::bitWidth((U)(max - min)) < numeric_utils::bitWidth((U)max)) {
         offset = min;
-        bitWidth = static_cast<uint8_t>(std::bit_width((U)(max - min)));
+        bitWidth = static_cast<uint8_t>(numeric_utils::bitWidth((U)(max - min)));
         hasNegative = false;
-    } else if (min < 0 && max < 0 && std::bit_width((U)(min - max)) < std::bit_width((U)max)) {
+    } else if (min < 0 && max < 0 &&
+               numeric_utils::bitWidth((U)(min - max)) < numeric_utils::bitWidth((U)max)) {
         offset = (U)max;
-        bitWidth = static_cast<uint8_t>(std::bit_width((U)(min - max))) + 1;
+        bitWidth = static_cast<uint8_t>(numeric_utils::bitWidth((U)(min - max))) + 1;
         // This is somewhat suboptimal since we know that the values are all negative
         // We could use an offset equal to the minimum, but values which are all negative are
         // probably going to grow in the negative direction, leading to many re-compressions when
         // inserting
         hasNegative = true;
     } else if (min < 0) {
-        bitWidth = static_cast<uint8_t>(std::bit_width((U)std::max(abs<T>(min), abs<T>(max)))) + 1;
+        bitWidth =
+            static_cast<uint8_t>(numeric_utils::bitWidth((U)std::max(abs<T>(min), abs<T>(max)))) +
+            1;
         hasNegative = true;
     } else {
-        bitWidth = static_cast<uint8_t>(std::bit_width((U)std::max(abs<T>(min), abs<T>(max))));
+        bitWidth =
+            static_cast<uint8_t>(numeric_utils::bitWidth((U)std::max(abs<T>(min), abs<T>(max))));
         hasNegative = false;
     }
     return BitpackInfo<T>{bitWidth, hasNegative, offset};
 }
 
 template<IntegerBitpackingType T>
-bool IntegerBitpacking<T>::canUpdateInPlace(T value, const CompressionMetadata& metadata) {
+bool IntegerBitpacking<T>::canUpdateInPlace(std::span<T> values,
+    const CompressionMetadata& metadata, const std::optional<common::NullMask>& nullMask,
+    uint64_t nullMaskOffset) {
     auto info = getPackingInfo(metadata);
-    auto newmetadata = CompressionMetadata(StorageValue(std::min(metadata.min.get<T>(), value)),
-        StorageValue(std::max(metadata.max.get<T>(), value)), metadata.compression);
-    auto newInfo = getPackingInfo(newmetadata);
+    auto [min, max] = getTypedMinMax<T>(values, nullMask ? &*nullMask : nullptr, nullMaskOffset);
+    KU_ASSERT((min && max) || (!min && !max));
+    // If all values are null update can trivially be done in-place
+    if (!min) {
+        return true;
+    }
+    auto newMetadata =
+        CompressionMetadata(StorageValue(std::min(metadata.min.get<T>(), min->template get<T>())),
+            StorageValue(std::max(metadata.max.get<T>(), max->template get<T>())),
+            metadata.compression);
+    auto newInfo = getPackingInfo(newMetadata);
 
     if (info.bitWidth != newInfo.bitWidth || info.hasNegative != newInfo.hasNegative ||
         info.offset != newInfo.offset) {
@@ -354,30 +414,41 @@ bool IntegerBitpacking<T>::canUpdateInPlace(T value, const CompressionMetadata& 
 
 template<typename T>
 void fastunpack(const uint8_t* in, T* out, uint32_t bitWidth) {
-    if constexpr (std::is_same_v<std::make_signed_t<T>, int32_t> ||
-                  std::is_same_v<std::make_signed_t<T>, int64_t>) {
+    if constexpr (std::is_same_v<numeric_utils::MakeSignedT<T>, int32_t> ||
+                  std::is_same_v<numeric_utils::MakeSignedT<T>, int64_t>) {
         FastPForLib::fastunpack((const uint32_t*)in, out, bitWidth);
-    } else if constexpr (std::is_same_v<std::make_signed_t<T>, int16_t>) {
+    } else if constexpr (std::is_same_v<numeric_utils::MakeSignedT<T>, int16_t>) {
         FastPForLib::fastunpack((const uint16_t*)in, out, bitWidth);
-    } else {
-        static_assert(std::is_same_v<std::make_signed_t<T>, int8_t>);
+    } else if constexpr (std::is_same_v<numeric_utils::MakeSignedT<T>, int8_t>) {
         FastPForLib::fastunpack((const uint8_t*)in, out, bitWidth);
+    } else {
+        static_assert(std::is_same_v<numeric_utils::MakeSignedT<T>, int128_t>);
+        Int128Packer::unpack(reinterpret_cast<const uint32_t*>(in), out, bitWidth);
     }
 }
 
 template<typename T>
 void fastpack(const T* in, uint8_t* out, uint8_t bitWidth) {
-    if constexpr (std::is_same_v<std::make_signed_t<T>, int32_t> ||
-                  std::is_same_v<std::make_signed_t<T>, int64_t>) {
+    if constexpr (std::is_same_v<numeric_utils::MakeSignedT<T>, int32_t> ||
+                  std::is_same_v<numeric_utils::MakeSignedT<T>, int64_t>) {
         FastPForLib::fastpack(in, (uint32_t*)out, bitWidth);
-    } else if constexpr (std::is_same_v<std::make_signed_t<T>, int16_t>) {
+    } else if constexpr (std::is_same_v<numeric_utils::MakeSignedT<T>, int16_t>) {
         FastPForLib::fastpack(in, (uint16_t*)out, bitWidth);
-    } else if constexpr (std::is_same_v<std::make_signed_t<T>, int8_t>) {
+    } else if constexpr (std::is_same_v<numeric_utils::MakeSignedT<T>, int8_t>) {
         FastPForLib::fastpack(in, (uint8_t*)out, bitWidth);
     } else {
-        static_assert(std::is_same_v<T, uint16_t> || std::is_same_v<T, int16_t>);
-        FastPForLib::fastpack(in, (uint16_t*)out, bitWidth);
+        static_assert(std::is_same_v<numeric_utils::MakeSignedT<T>, int128_t>);
+        Int128Packer::pack(in, reinterpret_cast<uint32_t*>(out), bitWidth);
     }
+}
+
+template<IntegerBitpackingType T>
+void IntegerBitpacking<T>::setPartialChunkInPlace(const uint8_t* srcBuffer, offset_t posInSrc,
+    uint8_t* dstBuffer, offset_t posInDst, offset_t numValues, const BitpackInfo<T>& header) const {
+    U tmpChunk[CHUNK_SIZE];
+    copyValuesToTempChunkWithOffset(reinterpret_cast<const U*>(srcBuffer) + posInSrc, tmpChunk,
+        header, numValues);
+    packPartialChunk(tmpChunk, dstBuffer, posInDst, header, numValues);
 }
 
 template<IntegerBitpackingType T>
@@ -385,59 +456,92 @@ void IntegerBitpacking<T>::setValuesFromUncompressed(const uint8_t* srcBuffer, o
     uint8_t* dstBuffer, offset_t posInDst, offset_t numValues, const CompressionMetadata& metadata,
     const NullMask* nullMask) const {
     KU_UNUSED(nullMask);
+
     auto header = getPackingInfo(metadata);
-    // This is a fairly naive implementation which uses fastunpack/fastpack
-    // to modify the data by decompressing/compressing a single chunk of values.
-    //
-    // TODO(bmwinger): modify the data in-place when numValues is small (frequently called with
-    // numValues=1)
-    //
+
+    // Null values will usually be 0, which will not be able to be stored if there is a
+    // non-zero offset However we don't care about the value stored for null values
+    // Currently they will be mangled by storage+recovery (underflow in the subtraction
+    // below)
+    KU_ASSERT(numValues == static_cast<offset_t>(std::ranges::count_if(
+                               std::ranges::iota_view{posInSrc, posInSrc + numValues},
+                               [srcBuffer, &metadata, nullMask](offset_t i) {
+                                   auto value = reinterpret_cast<const T*>(srcBuffer)[i];
+                                   return (nullMask && nullMask->isNull(i)) ||
+                                          canUpdateInPlace(std::span(&value, 1), metadata);
+                               })));
+
     // Data can be considered to be stored in aligned chunks of 32 values
     // with a size of 32 * bitWidth bits,
     // or bitWidth 32-bit values (we cast the buffer to a uint32_t* later).
-    auto chunkStart = (uint8_t*)getChunkStart(dstBuffer, posInDst, header.bitWidth);
-    auto posInChunk = posInDst % CHUNK_SIZE;
-    U chunk[CHUNK_SIZE];
-    // TODO(bmwinger): Now I'm a bit confused here. Why do we always need to unpack the chunk first?
-    //      Can't we just unpack the chunk if we need to modify only partial of it?
-    fastunpack(chunkStart, chunk, header.bitWidth);
-    for (offset_t i = 0; i < numValues; i++) {
-        auto value = ((T*)srcBuffer)[posInSrc + i];
-        // Null values will usually be 0, which will not be able to be stored if there is a non-zero
-        // offset However we don't care about the value stored for null values Currently they will
-        // be mangled by storage+recovery (underflow in the subtraction below)
-        KU_ASSERT(
-            (nullMask && nullMask->isNull(posInSrc + i)) || canUpdateInPlace(value, metadata));
-        chunk[posInChunk] = (U)(value - (T)header.offset);
-        if (posInChunk + 1 >= CHUNK_SIZE && i + 1 < numValues) {
-            fastpack(chunk, chunkStart, header.bitWidth);
-            chunkStart = (uint8_t*)getChunkStart(dstBuffer, posInDst + i + 1, header.bitWidth);
-            fastunpack(chunkStart, chunk, header.bitWidth);
-            posInChunk = 0;
-        } else {
-            posInChunk++;
-        }
+
+    // update unaligned values in the first chunk
+    auto valuesInFirstChunk = std::min(CHUNK_SIZE - (posInDst % CHUNK_SIZE), numValues);
+    offset_t dstIndex = posInDst;
+    if (valuesInFirstChunk < CHUNK_SIZE) {
+        // update unaligned values in the last chunk
+        setPartialChunkInPlace(srcBuffer, posInSrc, dstBuffer, posInDst, valuesInFirstChunk,
+            header);
+        dstIndex += valuesInFirstChunk;
     }
-    fastpack(chunk, chunkStart, header.bitWidth);
+
+    // update chunk-aligned values using fastpack/unpack
+    for (; dstIndex + CHUNK_SIZE <= posInDst + numValues; dstIndex += CHUNK_SIZE) {
+        U chunk[CHUNK_SIZE];
+
+        const size_t chunkIndexOffsetInSrc = posInSrc + dstIndex - posInDst;
+        copyValuesToTempChunkWithOffset(reinterpret_cast<const U*>(srcBuffer) +
+                                            chunkIndexOffsetInSrc,
+            chunk, header, CHUNK_SIZE);
+
+        const offset_t dstOffsetBytes = dstIndex * header.bitWidth / 8;
+        fastpack(chunk, dstBuffer + dstOffsetBytes, header.bitWidth);
+    }
+
+    // update unaligned values in the last chunk
+    const auto lastChunkIndexOffset = dstIndex - posInDst;
+    const size_t unalignedValuesToPack = numValues - lastChunkIndexOffset;
+    if (unalignedValuesToPack > 0) {
+        setPartialChunkInPlace(srcBuffer, posInSrc + lastChunkIndexOffset, dstBuffer,
+            posInDst + lastChunkIndexOffset, unalignedValuesToPack, header);
+    }
 }
 
 template<IntegerBitpackingType T>
 void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uint8_t* dst,
     uint8_t numValuesToRead, const BitpackInfo<T>& header) const {
-    // TODO(bmwinger): optimize as in setValueFromUncompressed
-    KU_ASSERT(pos + numValuesToRead <= CHUNK_SIZE);
+    const size_t maxReadIndex = pos + numValuesToRead;
+    KU_ASSERT(maxReadIndex <= CHUNK_SIZE);
 
-    U chunk[CHUNK_SIZE];
-    fastunpack(chunkStart, chunk, header.bitWidth);
-    if (header.hasNegative && header.bitWidth > 0) {
-        SignExtend<T, U, CHUNK_SIZE>((uint8_t*)chunk, header.bitWidth);
-    }
-    if (header.offset != 0) {
-        for (int i = pos; i < pos + numValuesToRead; i++) {
-            chunk[i] = (U)((T)chunk[i] + (T)header.offset);
+    for (size_t i = pos; i < maxReadIndex; i++) {
+        // Always use unsigned version of unpacker to prevent sign-bit filling when right shifting
+        U& out = reinterpret_cast<U*>(dst)[i - pos];
+        BitpackingUtils<U>::unpackSingle(chunkStart, &out, header.bitWidth, i);
+
+        if (header.hasNegative && header.bitWidth > 0) {
+            SignExtend<T, U, 1>((uint8_t*)&out, header.bitWidth);
+        }
+
+        if (header.offset != 0) {
+            reinterpret_cast<T&>(out) += header.offset;
         }
     }
-    memcpy(dst, &chunk[pos], sizeof(T) * numValuesToRead);
+}
+
+template<IntegerBitpackingType T>
+void IntegerBitpacking<T>::packPartialChunk(const U* srcBuffer, uint8_t* dstBuffer, size_t posInDst,
+    BitpackInfo<T> info, size_t numValuesToPack) const {
+    for (size_t i = 0; i < numValuesToPack; ++i) {
+        BitpackingUtils<U>::packSingle(srcBuffer[i], dstBuffer, info.bitWidth, i + posInDst);
+    }
+}
+
+template<IntegerBitpackingType T>
+void IntegerBitpacking<T>::copyValuesToTempChunkWithOffset(const U* srcBuffer, U* tmpBuffer,
+    BitpackInfo<T> info, size_t numValuesToCopy) const {
+    for (auto j = 0u; j < numValuesToCopy; j++) {
+        tmpBuffer[j] = static_cast<U>((T)(srcBuffer[j]) - info.offset);
+    }
 }
 
 template<IntegerBitpackingType T>
@@ -468,34 +572,31 @@ uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
     if (info.offset == 0) {
         auto lastFullChunkEnd = numValuesToCompress - numValuesToCompress % CHUNK_SIZE;
         for (auto i = 0ull; i < lastFullChunkEnd; i += CHUNK_SIZE) {
-            fastpack((const U*)srcBuffer + i, dstBuffer + i * bitWidth / 8, bitWidth);
+            fastpack(reinterpret_cast<const U*>(srcBuffer) + i, dstBuffer + i * bitWidth / 8,
+                bitWidth);
         }
         // Pack last partial chunk, avoiding overflows
-        if (numValuesToCompress % CHUNK_SIZE > 0) {
-            // TODO(bmwinger): optimize to remove temporary array
-            U chunk[CHUNK_SIZE] = {0};
-            memcpy(chunk, (const U*)srcBuffer + lastFullChunkEnd,
-                numValuesToCompress % CHUNK_SIZE * sizeof(U));
-            fastpack(chunk, dstBuffer + lastFullChunkEnd * bitWidth / 8, bitWidth);
+        const size_t remainingNumValues = numValuesToCompress % CHUNK_SIZE;
+        if (remainingNumValues > 0) {
+            packPartialChunk(reinterpret_cast<const U*>(srcBuffer) + lastFullChunkEnd,
+                dstBuffer + lastFullChunkEnd * bitWidth / 8, 0, info, remainingNumValues);
         }
     } else {
         U tmp[CHUNK_SIZE];
         auto lastFullChunkEnd = numValuesToCompress - numValuesToCompress % CHUNK_SIZE;
         for (auto i = 0ull; i < lastFullChunkEnd; i += CHUNK_SIZE) {
-            for (auto j = 0u; j < CHUNK_SIZE; j++) {
-                tmp[j] = (U)(((T*)srcBuffer)[i + j] - info.offset);
-            }
+            copyValuesToTempChunkWithOffset(reinterpret_cast<const U*>(srcBuffer) + i, tmp, info,
+                CHUNK_SIZE);
             fastpack(tmp, dstBuffer + i * bitWidth / 8, bitWidth);
         }
         // Pack last partial chunk, avoiding overflows
         auto remainingValues = numValuesToCompress % CHUNK_SIZE;
         if (remainingValues > 0) {
-            memcpy(tmp, (const U*)srcBuffer + lastFullChunkEnd, remainingValues * sizeof(U));
-            for (auto i = 0u; i < remainingValues; i++) {
-                tmp[i] = (U)((T)tmp[i] - info.offset);
-            }
-            memset(tmp + remainingValues, 0, CHUNK_SIZE - remainingValues);
-            fastpack(tmp, dstBuffer + lastFullChunkEnd * bitWidth / 8, bitWidth);
+            copyValuesToTempChunkWithOffset(reinterpret_cast<const U*>(srcBuffer) +
+                                                lastFullChunkEnd,
+                tmp, info, remainingValues);
+            packPartialChunk(tmp, dstBuffer + lastFullChunkEnd * bitWidth / 8, 0, info,
+                remainingValues);
         }
     }
     srcBuffer += numValuesToCompress * sizeof(U);
@@ -549,6 +650,7 @@ template class IntegerBitpacking<int8_t>;
 template class IntegerBitpacking<int16_t>;
 template class IntegerBitpacking<int32_t>;
 template class IntegerBitpacking<int64_t>;
+template class IntegerBitpacking<int128_t>;
 template class IntegerBitpacking<uint8_t>;
 template class IntegerBitpacking<uint16_t>;
 template class IntegerBitpacking<uint32_t>;
@@ -602,6 +704,10 @@ void ReadCompressedValuesFromPageToVector::operator()(const uint8_t* frame, Page
             resultVector->getData(), posInVector, numValuesToRead, metadata);
     case CompressionType::INTEGER_BITPACKING: {
         switch (physicalType) {
+        case PhysicalTypeID::INT128: {
+            return IntegerBitpacking<int128_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
+                resultVector->getData(), posInVector, numValuesToRead, metadata);
+        }
         case PhysicalTypeID::INT64: {
             return IntegerBitpacking<int64_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 resultVector->getData(), posInVector, numValuesToRead, metadata);
@@ -619,8 +725,6 @@ void ReadCompressedValuesFromPageToVector::operator()(const uint8_t* frame, Page
                 resultVector->getData(), posInVector, numValuesToRead, metadata);
         }
         case PhysicalTypeID::INTERNAL_ID:
-        case PhysicalTypeID::ARRAY:
-        case PhysicalTypeID::LIST:
         case PhysicalTypeID::UINT64: {
             return IntegerBitpacking<uint64_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 resultVector->getData(), posInVector, numValuesToRead, metadata);
@@ -663,6 +767,10 @@ void ReadCompressedValuesFromPage::operator()(const uint8_t* frame, PageCursor& 
             startPosInResult, numValuesToRead, metadata);
     case CompressionType::INTEGER_BITPACKING: {
         switch (physicalType) {
+        case PhysicalTypeID::INT128: {
+            return IntegerBitpacking<int128_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
+                result, startPosInResult, numValuesToRead, metadata);
+        }
         case PhysicalTypeID::INT64: {
             return IntegerBitpacking<int64_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 result, startPosInResult, numValuesToRead, metadata);
@@ -680,8 +788,6 @@ void ReadCompressedValuesFromPage::operator()(const uint8_t* frame, PageCursor& 
                 result, startPosInResult, numValuesToRead, metadata);
         }
         case PhysicalTypeID::INTERNAL_ID:
-        case PhysicalTypeID::ARRAY:
-        case PhysicalTypeID::LIST:
         case PhysicalTypeID::UINT64: {
             return IntegerBitpacking<uint64_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 result, startPosInResult, numValuesToRead, metadata);
@@ -728,10 +834,10 @@ void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame
             if constexpr (std::same_as<T, bool>) {
                 throw NotImplementedException(
                     "INTEGER_BITPACKING is not implemented for type bool");
-            } else if constexpr (std::same_as<T, internalID_t> || std::same_as<T, list_entry_t>) {
+            } else if constexpr (std::same_as<T, internalID_t>) {
                 IntegerBitpacking<uint64_t>().setValuesFromUncompressed(data, dataOffset, frame,
                     posInFrame, numValues, metadata, nullMask);
-            } else if constexpr (std::integral<T>) {
+            } else if constexpr (numeric_utils::IsIntegral<T>) {
                 return IntegerBitpacking<T>().setValuesFromUncompressed(data, dataOffset, frame,
                     posInFrame, numValues, metadata, nullMask);
             } else {
@@ -768,6 +874,94 @@ std::optional<StorageValue> StorageValue::readFromVector(const common::ValueVect
         [&]<StorageValueType T>(
             T) { return std::make_optional(StorageValue(vector.getValue<T>(posInVector))); },
         [](auto) { return std::optional<StorageValue>(); });
+}
+
+bool StorageValue::gt(const StorageValue& other, common::PhysicalTypeID type) const {
+    switch (type) {
+    case common::PhysicalTypeID::BOOL:
+    case common::PhysicalTypeID::LIST:
+    case common::PhysicalTypeID::ARRAY:
+    case common::PhysicalTypeID::INTERNAL_ID:
+    case common::PhysicalTypeID::STRING:
+    case common::PhysicalTypeID::UINT64:
+    case common::PhysicalTypeID::UINT32:
+    case common::PhysicalTypeID::UINT16:
+    case common::PhysicalTypeID::UINT8:
+        return this->unsignedInt > other.unsignedInt;
+    case common::PhysicalTypeID::INT128:
+        return this->signedInt128 > other.signedInt128;
+    case common::PhysicalTypeID::INT64:
+    case common::PhysicalTypeID::INT32:
+    case common::PhysicalTypeID::INT16:
+    case common::PhysicalTypeID::INT8:
+        return this->signedInt > other.signedInt;
+    case common::PhysicalTypeID::FLOAT:
+    case common::PhysicalTypeID::DOUBLE:
+        return this->floatVal > other.floatVal;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxStorageValue(
+    const uint8_t* data, uint64_t offset, uint64_t numValues, PhysicalTypeID physicalType,
+    const NullMask* nullMask, bool valueRequiredIfUnsupported) {
+    std::pair<std::optional<StorageValue>, std::optional<StorageValue>> returnValue;
+    TypeUtils::visit(
+        physicalType,
+        [&](bool) {
+            if (numValues > 0) {
+                auto boolData = reinterpret_cast<const uint64_t*>(data);
+                if (!nullMask || nullMask->hasNoNullsGuarantee()) {
+                    auto [minRaw, maxRaw] = NullMask::getMinMax(boolData, numValues);
+                    returnValue = std::make_pair(std::optional(StorageValue(minRaw)),
+                        std::optional(StorageValue(maxRaw)));
+                } else {
+                    std::optional<StorageValue> min, max;
+                    for (size_t i = 0; i < numValues; i++) {
+                        if (!nullMask || !nullMask->isNull(i)) {
+                            auto boolValue = NullMask::isNull(boolData, i);
+                            if (!max || boolValue > max->get<bool>()) {
+                                returnValue.first = boolValue;
+                            }
+                            if (!min || boolValue < min->get<bool>()) {
+                                returnValue.second = boolValue;
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        [&]<typename T>(T)
+            requires(numeric_utils::IsIntegral<T> || std::floating_point<T>)
+        {
+            if (numValues > 0) {
+                auto typedData = std::span(reinterpret_cast<const T*>(data) + offset, numValues);
+                returnValue = getTypedMinMax(typedData, nullMask, offset);
+            }
+        },
+        [&]<typename T>(T)
+            requires(std::same_as<T, internalID_t>)
+        {
+            if (numValues > 0) {
+                auto typedData =
+                    std::span(reinterpret_cast<const uint64_t*>(data) + offset, numValues);
+                returnValue = getTypedMinMax(typedData, nullMask, offset);
+            }
+        },
+        [&]<typename T>(T)
+            requires(std::same_as<T, interval_t> || std::same_as<T, struct_entry_t> ||
+                     std::same_as<T, ku_string_t> || std::same_as<T, list_entry_t>)
+        {
+            if (valueRequiredIfUnsupported) {
+                // For unsupported types on the first copy,
+                // they need a non-optional value to distinguish them
+                // from supported types where every value is null
+                returnValue.first = std::numeric_limits<uint64_t>::min();
+                returnValue.second = std::numeric_limits<uint64_t>::max();
+            }
+        });
+    return returnValue;
 }
 
 } // namespace storage

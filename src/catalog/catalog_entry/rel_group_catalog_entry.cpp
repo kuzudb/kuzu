@@ -6,6 +6,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_set.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;

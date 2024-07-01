@@ -8,7 +8,7 @@ jobs:
   build-linux-nodejs-x86_64:
     runs-on: kuzu-self-hosted-linux-building-x86_64_centos7
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Create Node.js source distribution
         working-directory: tools/nodejs_api
@@ -30,7 +30,7 @@ jobs:
         working-directory: tools/nodejs_api/package
         run: mv kuzujs.node kuzujs-linux-x64.node
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: linux-nodejs-module-x86_64
           path: tools/nodejs_api/package/kuzujs-linux-x64.node
@@ -38,7 +38,7 @@ jobs:
   build-linux-nodejs-aarch64:
     runs-on: kuzu-self-hosted-linux-building-aarch64
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Create Node.js source distribution
         working-directory: tools/nodejs_api
@@ -58,7 +58,7 @@ jobs:
         working-directory: tools/nodejs_api/package
         run: mv kuzujs.node kuzujs-linux-arm64.node
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: linux-nodejs-module-aarch64
           path: tools/nodejs_api/package/kuzujs-linux-arm64.node

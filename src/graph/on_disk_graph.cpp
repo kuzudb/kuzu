@@ -1,6 +1,7 @@
 #include "graph/on_disk_graph.h"
 
 #include "storage/storage_manager.h"
+#include "main/client_context.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::storage;
@@ -13,9 +14,9 @@ namespace graph {
 NbrScanState::NbrScanState(MemoryManager* mm) {
     srcNodeIDVectorState = DataChunkState::getSingleValueDataChunkState();
     dstNodeIDVectorState = std::make_shared<DataChunkState>();
-    srcNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
+    srcNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
     srcNodeIDVector->state = srcNodeIDVectorState;
-    dstNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
+    dstNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
     dstNodeIDVector->state = dstNodeIDVectorState;
     fwdReadState = std::make_unique<RelTableScanState>(columnIDs, direction);
     fwdReadState->nodeIDVector = srcNodeIDVector.get();

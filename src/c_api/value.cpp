@@ -199,7 +199,7 @@ void kuzu_value_destroy(kuzu_value* value) {
 }
 
 kuzu_state kuzu_value_get_list_size(kuzu_value* value, uint64_t* out_result) {
-    if (static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID() !=
+    if (static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID() !=
         LogicalTypeID::LIST) {
         return KuzuError;
     }
@@ -208,7 +208,7 @@ kuzu_state kuzu_value_get_list_size(kuzu_value* value, uint64_t* out_result) {
 }
 
 kuzu_state kuzu_value_get_list_element(kuzu_value* value, uint64_t index, kuzu_value* out_value) {
-    auto physical_type_id = static_cast<Value*>(value->_value)->getDataType()->getPhysicalType();
+    auto physical_type_id = static_cast<Value*>(value->_value)->getDataType().getPhysicalType();
     if (physical_type_id != PhysicalTypeID::ARRAY && physical_type_id != PhysicalTypeID::STRUCT &&
         physical_type_id != PhysicalTypeID::LIST) {
         return KuzuError;
@@ -228,14 +228,14 @@ kuzu_state kuzu_value_get_list_element(kuzu_value* value, uint64_t index, kuzu_v
 }
 
 kuzu_state kuzu_value_get_struct_num_fields(kuzu_value* value, uint64_t* out_result) {
-    auto physical_type_id = static_cast<Value*>(value->_value)->getDataType()->getPhysicalType();
+    auto physical_type_id = static_cast<Value*>(value->_value)->getDataType().getPhysicalType();
     if (physical_type_id != PhysicalTypeID::STRUCT) {
         return KuzuError;
     }
     auto val = static_cast<Value*>(value->_value);
-    auto data_type = val->getDataType();
+    const auto& data_type = val->getDataType();
     try {
-        *out_result = StructType::getNumFields(*data_type);
+        *out_result = StructType::getNumFields(data_type);
         return KuzuSuccess;
     } catch (Exception& e) {
         return KuzuError;
@@ -243,16 +243,16 @@ kuzu_state kuzu_value_get_struct_num_fields(kuzu_value* value, uint64_t* out_res
 }
 
 kuzu_state kuzu_value_get_struct_field_name(kuzu_value* value, uint64_t index, char** out_result) {
-    auto physical_type_id = static_cast<Value*>(value->_value)->getDataType()->getPhysicalType();
+    auto physical_type_id = static_cast<Value*>(value->_value)->getDataType().getPhysicalType();
     if (physical_type_id != PhysicalTypeID::STRUCT) {
         return KuzuError;
     }
     auto val = static_cast<Value*>(value->_value);
-    auto data_type = val->getDataType();
-    if (index >= StructType::getNumFields(*data_type)) {
+    const auto& data_type = val->getDataType();
+    if (index >= StructType::getNumFields(data_type)) {
         return KuzuError;
     }
-    std::string struct_field_name = StructType::getFields(*data_type)[index].getName();
+    std::string struct_field_name = StructType::getFields(data_type)[index].getName();
     if (struct_field_name.empty()) {
         return KuzuError;
     }
@@ -266,7 +266,7 @@ kuzu_state kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index,
 }
 
 kuzu_state kuzu_value_get_recursive_rel_node_list(kuzu_value* value, kuzu_value* out_value) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RECURSIVE_REL) {
         return KuzuError;
     }
@@ -280,7 +280,7 @@ kuzu_state kuzu_value_get_recursive_rel_node_list(kuzu_value* value, kuzu_value*
 }
 
 kuzu_state kuzu_value_get_recursive_rel_rel_list(kuzu_value* value, kuzu_value* out_value) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RECURSIVE_REL) {
         return KuzuError;
     }
@@ -294,11 +294,12 @@ kuzu_state kuzu_value_get_recursive_rel_rel_list(kuzu_value* value, kuzu_value* 
 }
 
 void kuzu_value_get_data_type(kuzu_value* value, kuzu_logical_type* out_data_type) {
-    out_data_type->_data_type = new LogicalType(*static_cast<Value*>(value->_value)->getDataType());
+    out_data_type->_data_type =
+        new LogicalType(static_cast<Value*>(value->_value)->getDataType().copy());
 }
 
 kuzu_state kuzu_value_get_bool(kuzu_value* value, bool* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::BOOL) {
         return KuzuError;
     }
@@ -311,7 +312,7 @@ kuzu_state kuzu_value_get_bool(kuzu_value* value, bool* out_result) {
 }
 
 kuzu_state kuzu_value_get_int8(kuzu_value* value, int8_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::INT8) {
         return KuzuError;
     }
@@ -324,7 +325,7 @@ kuzu_state kuzu_value_get_int8(kuzu_value* value, int8_t* out_result) {
 }
 
 kuzu_state kuzu_value_get_int16(kuzu_value* value, int16_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::INT16) {
         return KuzuError;
     }
@@ -337,7 +338,7 @@ kuzu_state kuzu_value_get_int16(kuzu_value* value, int16_t* out_result) {
 }
 
 kuzu_state kuzu_value_get_int32(kuzu_value* value, int32_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::INT32) {
         return KuzuError;
     }
@@ -350,7 +351,7 @@ kuzu_state kuzu_value_get_int32(kuzu_value* value, int32_t* out_result) {
 }
 
 kuzu_state kuzu_value_get_int64(kuzu_value* value, int64_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::INT64) {
         return KuzuError;
     }
@@ -363,7 +364,7 @@ kuzu_state kuzu_value_get_int64(kuzu_value* value, int64_t* out_result) {
 }
 
 kuzu_state kuzu_value_get_uint8(kuzu_value* value, uint8_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::UINT8) {
         return KuzuError;
     }
@@ -376,7 +377,7 @@ kuzu_state kuzu_value_get_uint8(kuzu_value* value, uint8_t* out_result) {
 }
 
 kuzu_state kuzu_value_get_uint16(kuzu_value* value, uint16_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::UINT16) {
         return KuzuError;
     }
@@ -389,7 +390,7 @@ kuzu_state kuzu_value_get_uint16(kuzu_value* value, uint16_t* out_result) {
 }
 
 kuzu_state kuzu_value_get_uint32(kuzu_value* value, uint32_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::UINT32) {
         return KuzuError;
     }
@@ -402,7 +403,7 @@ kuzu_state kuzu_value_get_uint32(kuzu_value* value, uint32_t* out_result) {
 }
 
 kuzu_state kuzu_value_get_uint64(kuzu_value* value, uint64_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::UINT64) {
         return KuzuError;
     }
@@ -415,7 +416,7 @@ kuzu_state kuzu_value_get_uint64(kuzu_value* value, uint64_t* out_result) {
 }
 
 kuzu_state kuzu_value_get_int128(kuzu_value* value, kuzu_int128_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::INT128) {
         return KuzuError;
     }
@@ -455,7 +456,7 @@ kuzu_state kuzu_int128_t_to_string(kuzu_int128_t int128_val, char** out_result) 
 // TODO: bind all int128_t supported functions
 
 kuzu_state kuzu_value_get_float(kuzu_value* value, float* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::FLOAT) {
         return KuzuError;
     }
@@ -468,7 +469,7 @@ kuzu_state kuzu_value_get_float(kuzu_value* value, float* out_result) {
 }
 
 kuzu_state kuzu_value_get_double(kuzu_value* value, double* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::DOUBLE) {
         return KuzuError;
     }
@@ -481,7 +482,7 @@ kuzu_state kuzu_value_get_double(kuzu_value* value, double* out_result) {
 }
 
 kuzu_state kuzu_value_get_internal_id(kuzu_value* value, kuzu_internal_id_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::INTERNAL_ID) {
         return KuzuError;
     }
@@ -496,7 +497,7 @@ kuzu_state kuzu_value_get_internal_id(kuzu_value* value, kuzu_internal_id_t* out
 }
 
 kuzu_state kuzu_value_get_date(kuzu_value* value, kuzu_date_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::DATE) {
         return KuzuError;
     }
@@ -510,7 +511,7 @@ kuzu_state kuzu_value_get_date(kuzu_value* value, kuzu_date_t* out_result) {
 }
 
 kuzu_state kuzu_value_get_timestamp(kuzu_value* value, kuzu_timestamp_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::TIMESTAMP) {
         return KuzuError;
     }
@@ -524,7 +525,7 @@ kuzu_state kuzu_value_get_timestamp(kuzu_value* value, kuzu_timestamp_t* out_res
 }
 
 kuzu_state kuzu_value_get_timestamp_ns(kuzu_value* value, kuzu_timestamp_ns_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::TIMESTAMP_NS) {
         return KuzuError;
     }
@@ -538,7 +539,7 @@ kuzu_state kuzu_value_get_timestamp_ns(kuzu_value* value, kuzu_timestamp_ns_t* o
 }
 
 kuzu_state kuzu_value_get_timestamp_ms(kuzu_value* value, kuzu_timestamp_ms_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::TIMESTAMP_MS) {
         return KuzuError;
     }
@@ -552,7 +553,7 @@ kuzu_state kuzu_value_get_timestamp_ms(kuzu_value* value, kuzu_timestamp_ms_t* o
 }
 
 kuzu_state kuzu_value_get_timestamp_sec(kuzu_value* value, kuzu_timestamp_sec_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::TIMESTAMP_SEC) {
         return KuzuError;
     }
@@ -566,7 +567,7 @@ kuzu_state kuzu_value_get_timestamp_sec(kuzu_value* value, kuzu_timestamp_sec_t*
 }
 
 kuzu_state kuzu_value_get_timestamp_tz(kuzu_value* value, kuzu_timestamp_tz_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::TIMESTAMP_TZ) {
         return KuzuError;
     }
@@ -580,7 +581,7 @@ kuzu_state kuzu_value_get_timestamp_tz(kuzu_value* value, kuzu_timestamp_tz_t* o
 }
 
 kuzu_state kuzu_value_get_interval(kuzu_value* value, kuzu_interval_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::INTERVAL) {
         return KuzuError;
     }
@@ -596,7 +597,7 @@ kuzu_state kuzu_value_get_interval(kuzu_value* value, kuzu_interval_t* out_resul
 }
 
 kuzu_state kuzu_value_get_string(kuzu_value* value, char** out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::STRING) {
         return KuzuError;
     }
@@ -610,7 +611,7 @@ kuzu_state kuzu_value_get_string(kuzu_value* value, char** out_result) {
 }
 
 kuzu_state kuzu_value_get_blob(kuzu_value* value, uint8_t** out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::BLOB) {
         return KuzuError;
     }
@@ -624,7 +625,7 @@ kuzu_state kuzu_value_get_blob(kuzu_value* value, uint8_t** out_result) {
 }
 
 kuzu_state kuzu_value_get_uuid(kuzu_value* value, char** out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::UUID) {
         return KuzuError;
     }
@@ -642,7 +643,7 @@ char* kuzu_value_to_string(kuzu_value* value) {
 }
 
 kuzu_state kuzu_node_val_get_id_val(kuzu_value* node_val, kuzu_value* out_value) {
-    auto logical_type_id = static_cast<Value*>(node_val->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(node_val->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::NODE) {
         return KuzuError;
     }
@@ -657,7 +658,7 @@ kuzu_state kuzu_node_val_get_id_val(kuzu_value* node_val, kuzu_value* out_value)
 }
 
 kuzu_state kuzu_node_val_get_label_val(kuzu_value* node_val, kuzu_value* out_value) {
-    auto logical_type_id = static_cast<Value*>(node_val->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(node_val->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::NODE) {
         return KuzuError;
     }
@@ -672,7 +673,7 @@ kuzu_state kuzu_node_val_get_label_val(kuzu_value* node_val, kuzu_value* out_val
 }
 
 kuzu_state kuzu_node_val_get_property_size(kuzu_value* node_val, uint64_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(node_val->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(node_val->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::NODE) {
         return KuzuError;
     }
@@ -686,7 +687,7 @@ kuzu_state kuzu_node_val_get_property_size(kuzu_value* node_val, uint64_t* out_r
 
 kuzu_state kuzu_node_val_get_property_name_at(kuzu_value* node_val, uint64_t index,
     char** out_result) {
-    auto logical_type_id = static_cast<Value*>(node_val->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(node_val->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::NODE) {
         return KuzuError;
     }
@@ -705,7 +706,7 @@ kuzu_state kuzu_node_val_get_property_name_at(kuzu_value* node_val, uint64_t ind
 
 kuzu_state kuzu_node_val_get_property_value_at(kuzu_value* node_val, uint64_t index,
     kuzu_value* out_value) {
-    auto logical_type_id = static_cast<Value*>(node_val->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(node_val->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::NODE) {
         return KuzuError;
     }
@@ -720,7 +721,7 @@ kuzu_state kuzu_node_val_get_property_value_at(kuzu_value* node_val, uint64_t in
 }
 
 kuzu_state kuzu_node_val_to_string(kuzu_value* node_val, char** out_result) {
-    auto logical_type_id = static_cast<Value*>(node_val->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(node_val->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::NODE) {
         return KuzuError;
     }
@@ -734,7 +735,7 @@ kuzu_state kuzu_node_val_to_string(kuzu_value* node_val, char** out_result) {
 }
 
 kuzu_state kuzu_rel_val_get_src_id_val(kuzu_value* rel_val, kuzu_value* out_value) {
-    auto logical_type_id = static_cast<Value*>(rel_val->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(rel_val->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::REL) {
         return KuzuError;
     }
@@ -749,7 +750,7 @@ kuzu_state kuzu_rel_val_get_src_id_val(kuzu_value* rel_val, kuzu_value* out_valu
 }
 
 kuzu_state kuzu_rel_val_get_dst_id_val(kuzu_value* rel_val, kuzu_value* out_value) {
-    auto logical_type_id = static_cast<Value*>(rel_val->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(rel_val->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::REL) {
         return KuzuError;
     }
@@ -764,7 +765,7 @@ kuzu_state kuzu_rel_val_get_dst_id_val(kuzu_value* rel_val, kuzu_value* out_valu
 }
 
 kuzu_state kuzu_rel_val_get_label_val(kuzu_value* rel_val, kuzu_value* out_value) {
-    auto logical_type_id = static_cast<Value*>(rel_val->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(rel_val->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::REL) {
         return KuzuError;
     }
@@ -779,7 +780,7 @@ kuzu_state kuzu_rel_val_get_label_val(kuzu_value* rel_val, kuzu_value* out_value
 }
 
 kuzu_state kuzu_rel_val_get_property_size(kuzu_value* rel_val, uint64_t* out_result) {
-    auto logical_type_id = static_cast<Value*>(rel_val->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(rel_val->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::REL) {
         return KuzuError;
     }
@@ -792,7 +793,7 @@ kuzu_state kuzu_rel_val_get_property_size(kuzu_value* rel_val, uint64_t* out_res
 }
 kuzu_state kuzu_rel_val_get_property_name_at(kuzu_value* rel_val, uint64_t index,
     char** out_result) {
-    auto logical_type_id = static_cast<Value*>(rel_val->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(rel_val->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::REL) {
         return KuzuError;
     }
@@ -811,7 +812,7 @@ kuzu_state kuzu_rel_val_get_property_name_at(kuzu_value* rel_val, uint64_t index
 
 kuzu_state kuzu_rel_val_get_property_value_at(kuzu_value* rel_val, uint64_t index,
     kuzu_value* out_value) {
-    auto logical_type_id = static_cast<Value*>(rel_val->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(rel_val->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::REL) {
         return KuzuError;
     }
@@ -826,7 +827,7 @@ kuzu_state kuzu_rel_val_get_property_value_at(kuzu_value* rel_val, uint64_t inde
 }
 
 kuzu_state kuzu_rel_val_to_string(kuzu_value* rel_val, char** out_result) {
-    auto logical_type_id = static_cast<Value*>(rel_val->_value)->getDataType()->getLogicalTypeID();
+    auto logical_type_id = static_cast<Value*>(rel_val->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::REL) {
         return KuzuError;
     }
@@ -840,7 +841,7 @@ kuzu_state kuzu_rel_val_to_string(kuzu_value* rel_val, char** out_result) {
 
 kuzu_state kuzu_rdf_variant_get_type(kuzu_value* rdf_variant, kuzu_data_type_id* out_result) {
     auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType()->getLogicalTypeID();
+        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
         return KuzuError;
     }
@@ -856,7 +857,7 @@ kuzu_state kuzu_rdf_variant_get_type(kuzu_value* rdf_variant, kuzu_data_type_id*
 
 kuzu_state kuzu_rdf_variant_get_string(kuzu_value* rdf_variant, char** out_result) {
     auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType()->getLogicalTypeID();
+        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
         return KuzuError;
     }
@@ -871,7 +872,7 @@ kuzu_state kuzu_rdf_variant_get_string(kuzu_value* rdf_variant, char** out_resul
 
 kuzu_state kuzu_rdf_variant_get_blob(kuzu_value* rdf_variant, uint8_t** out_result) {
     auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType()->getLogicalTypeID();
+        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
         return KuzuError;
     }
@@ -887,7 +888,7 @@ kuzu_state kuzu_rdf_variant_get_blob(kuzu_value* rdf_variant, uint8_t** out_resu
 
 kuzu_state kuzu_rdf_variant_get_int64(kuzu_value* rdf_variant, int64_t* out_result) {
     auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType()->getLogicalTypeID();
+        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
         return KuzuError;
     }
@@ -901,7 +902,7 @@ kuzu_state kuzu_rdf_variant_get_int64(kuzu_value* rdf_variant, int64_t* out_resu
 
 kuzu_state kuzu_rdf_variant_get_int32(kuzu_value* rdf_variant, int32_t* out_result) {
     auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType()->getLogicalTypeID();
+        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
         return KuzuError;
     }
@@ -915,7 +916,7 @@ kuzu_state kuzu_rdf_variant_get_int32(kuzu_value* rdf_variant, int32_t* out_resu
 
 kuzu_state kuzu_rdf_variant_get_int16(kuzu_value* rdf_variant, int16_t* out_result) {
     auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType()->getLogicalTypeID();
+        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
         return KuzuError;
     }
@@ -929,7 +930,7 @@ kuzu_state kuzu_rdf_variant_get_int16(kuzu_value* rdf_variant, int16_t* out_resu
 
 kuzu_state kuzu_rdf_variant_get_int8(kuzu_value* rdf_variant, int8_t* out_result) {
     auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType()->getLogicalTypeID();
+        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
         return KuzuError;
     }
@@ -943,7 +944,7 @@ kuzu_state kuzu_rdf_variant_get_int8(kuzu_value* rdf_variant, int8_t* out_result
 
 kuzu_state kuzu_rdf_variant_get_uint64(kuzu_value* rdf_variant, uint64_t* out_result) {
     auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType()->getLogicalTypeID();
+        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
         return KuzuError;
     }
@@ -957,7 +958,7 @@ kuzu_state kuzu_rdf_variant_get_uint64(kuzu_value* rdf_variant, uint64_t* out_re
 
 kuzu_state kuzu_rdf_variant_get_uint32(kuzu_value* rdf_variant, uint32_t* out_result) {
     auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType()->getLogicalTypeID();
+        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
         return KuzuError;
     }
@@ -971,7 +972,7 @@ kuzu_state kuzu_rdf_variant_get_uint32(kuzu_value* rdf_variant, uint32_t* out_re
 
 kuzu_state kuzu_rdf_variant_get_uint16(kuzu_value* rdf_variant, uint16_t* out_result) {
     auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType()->getLogicalTypeID();
+        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
         return KuzuError;
     }
@@ -985,7 +986,7 @@ kuzu_state kuzu_rdf_variant_get_uint16(kuzu_value* rdf_variant, uint16_t* out_re
 
 kuzu_state kuzu_rdf_variant_get_uint8(kuzu_value* rdf_variant, uint8_t* out_result) {
     auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType()->getLogicalTypeID();
+        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
         return KuzuError;
     }
@@ -999,7 +1000,7 @@ kuzu_state kuzu_rdf_variant_get_uint8(kuzu_value* rdf_variant, uint8_t* out_resu
 
 kuzu_state kuzu_rdf_variant_get_float(kuzu_value* rdf_variant, float* out_result) {
     auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType()->getLogicalTypeID();
+        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
         return KuzuError;
     }
@@ -1013,7 +1014,7 @@ kuzu_state kuzu_rdf_variant_get_float(kuzu_value* rdf_variant, float* out_result
 
 kuzu_state kuzu_rdf_variant_get_double(kuzu_value* rdf_variant, double* out_result) {
     auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType()->getLogicalTypeID();
+        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
         return KuzuError;
     }
@@ -1027,7 +1028,7 @@ kuzu_state kuzu_rdf_variant_get_double(kuzu_value* rdf_variant, double* out_resu
 
 kuzu_state kuzu_rdf_variant_get_bool(kuzu_value* rdf_variant, bool* out_result) {
     auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType()->getLogicalTypeID();
+        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
         return KuzuError;
     }
@@ -1041,7 +1042,7 @@ kuzu_state kuzu_rdf_variant_get_bool(kuzu_value* rdf_variant, bool* out_result) 
 
 kuzu_state kuzu_rdf_variant_get_date(kuzu_value* rdf_variant, kuzu_date_t* out_result) {
     auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType()->getLogicalTypeID();
+        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
         return KuzuError;
     }
@@ -1056,7 +1057,7 @@ kuzu_state kuzu_rdf_variant_get_date(kuzu_value* rdf_variant, kuzu_date_t* out_r
 
 kuzu_state kuzu_rdf_variant_get_timestamp(kuzu_value* rdf_variant, kuzu_timestamp_t* out_result) {
     auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType()->getLogicalTypeID();
+        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
         return KuzuError;
     }
@@ -1072,7 +1073,7 @@ kuzu_state kuzu_rdf_variant_get_timestamp(kuzu_value* rdf_variant, kuzu_timestam
 
 kuzu_state kuzu_rdf_variant_get_interval(kuzu_value* rdf_variant, kuzu_interval_t* out_result) {
     auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType()->getLogicalTypeID();
+        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
         return KuzuError;
     }

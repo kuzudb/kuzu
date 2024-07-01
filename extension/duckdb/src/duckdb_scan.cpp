@@ -26,7 +26,8 @@ DuckDBScanBindData::DuckDBScanBindData(std::string query,
 }
 
 std::unique_ptr<TableFuncBindData> DuckDBScanBindData::copy() const {
-    return std::make_unique<DuckDBScanBindData>(query, columnTypes, columnNames, initDuckDBConn);
+    return std::make_unique<DuckDBScanBindData>(query, LogicalType::copy(columnTypes), columnNames,
+        initDuckDBConn);
 }
 
 DuckDBScanSharedState::DuckDBScanSharedState(std::unique_ptr<duckdb::QueryResult> queryResult)

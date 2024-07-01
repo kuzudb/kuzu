@@ -17,7 +17,7 @@ static std::unique_ptr<FunctionBindData> ListPositionBindFunc(
         scalarFunction->execFunc =
             ScalarFunction::BinaryExecListStructFunction<list_entry_t, T, int64_t, ListPosition>;
     });
-    return FunctionBindData::getSimpleBindData(arguments, *LogicalType::INT64());
+    return FunctionBindData::getSimpleBindData(arguments, LogicalType::INT64());
 }
 
 function_set ListPositionFunction::getFunctionSet() {

@@ -31,10 +31,13 @@ struct IndexLookupInfo {
 };
 
 class IndexLookup : public PhysicalOperator {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::INDEX_LOOKUP;
+
 public:
     IndexLookup(std::vector<std::unique_ptr<IndexLookupInfo>> infos,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::INDEX_LOOKUP, std::move(child), id, paramsString},
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           infos{std::move(infos)} {}
 
     void setBatchInsertSharedState(std::shared_ptr<BatchInsertSharedState> sharedState);

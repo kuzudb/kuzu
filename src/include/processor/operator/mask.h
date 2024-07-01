@@ -1,15 +1,17 @@
 #pragma once
 
+#include <memory>
 #include <mutex>
 
-#include "storage/store/node_table.h"
+#include "common/constants.h"
+#include "common/types/internal_id_t.h"
 
 namespace kuzu {
 namespace processor {
 
 // Note: Classes in this file are NOT thread-safe.
 struct MaskUtil {
-    static inline common::offset_t getMorselIdx(common::offset_t offset) {
+    static common::offset_t getVectorIdx(common::offset_t offset) {
         return offset >> common::DEFAULT_VECTOR_CAPACITY_LOG_2;
     }
 };
@@ -17,19 +19,22 @@ struct MaskUtil {
 struct MaskData {
     uint8_t* data;
 
-    explicit MaskData(uint64_t size) {
+    explicit MaskData(uint64_t size, uint8_t defaultVal = 0) : size{size} {
         dataBuffer = std::make_unique<uint8_t[]>(size);
         data = dataBuffer.get();
-        std::fill(data, data + size, 0);
+        std::fill(data, data + size, defaultVal);
     }
 
     inline void setMask(uint64_t pos, uint8_t maskValue) const { data[pos] = maskValue; }
     inline bool isMasked(uint64_t pos, uint8_t trueMaskVal) const {
         return data[pos] == trueMaskVal;
     }
+    inline uint8_t getMaskValue(uint64_t pos) const { return data[pos]; }
+    inline uint64_t getSize() const { return size; }
 
 private:
     std::unique_ptr<uint8_t[]> dataBuffer;
+    uint64_t size;
 };
 
 // MaskCollection represents multiple mask on the same domain with AND semantic.
@@ -37,25 +42,29 @@ class MaskCollection {
 public:
     MaskCollection() : numMasks{0} {}
 
-    inline void init(common::offset_t maxOffset) {
+    void init(common::offset_t maxOffset) {
         std::unique_lock lck{mtx};
-        if (maskData != nullptr) { // MaskCollection might be initialized repeatedly.
+        if (maskData != nullptr) {
+            // MaskCollection might be initialized repeatedly. Because multiple semiMasker can
+            // hold the same mask.
             return;
         }
         maskData = std::make_unique<MaskData>(maxOffset + 1);
     }
 
-    inline bool isMasked(common::offset_t offset) { return maskData->isMasked(offset, numMasks); }
+    bool isMasked(common::offset_t offset) { return maskData->isMasked(offset, numMasks); }
     // Increment mask value for the given nodeOffset if its current mask value is equal to
     // the specified `currentMaskValue`.
-    inline void incrementMaskValue(common::offset_t offset, uint8_t currentMaskValue) {
+    // Note: blindly update mask does not parallelize well, so we minimize write by first checking
+    // if the mask is set to true (mask value is equal to the expected currentMaskValue) or not.
+    void incrementMaskValue(common::offset_t offset, uint8_t currentMaskValue) {
         if (maskData->isMasked(offset, currentMaskValue)) {
             maskData->setMask(offset, currentMaskValue + 1);
         }
     }
 
-    inline uint8_t getNumMasks() const { return numMasks; }
-    inline void incrementNumMasks() { numMasks++; }
+    uint8_t getNumMasks() const { return numMasks; }
+    void incrementNumMasks() { numMasks++; }
 
 private:
     std::mutex mtx;
@@ -65,91 +74,68 @@ private:
 
 class NodeSemiMask {
 public:
-    explicit NodeSemiMask(storage::NodeTable* nodeTable) : nodeTable{nodeTable} {}
+    explicit NodeSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
+        : tableID{tableID}, maxOffset{maxOffset} {}
     virtual ~NodeSemiMask() = default;
 
-    virtual void init(transaction::Transaction* trx) = 0;
+    common::table_id_t getTableID() const { return tableID; }
+    common::offset_t getMaxOffset() const { return maxOffset; }
+
+    virtual void init() = 0;
 
     virtual void incrementMaskValue(common::offset_t nodeOffset, uint8_t currentMaskValue) = 0;
+    virtual bool isMasked(common::offset_t nodeOffset) = 0;
 
-    virtual uint8_t getNumMasks() const = 0;
-    virtual void incrementNumMasks() = 0;
-
-    inline bool isEnabled() const { return getNumMasks() > 0; }
-    inline storage::NodeTable* getNodeTable() const { return nodeTable; }
+    bool isEnabled() const { return getNumMasks() > 0; }
+    uint8_t getNumMasks() const { return maskCollection.getNumMasks(); }
+    void incrementNumMasks() { maskCollection.incrementNumMasks(); }
 
 protected:
-    storage::NodeTable* nodeTable;
+    common::table_id_t tableID;
+    common::offset_t maxOffset;
+    MaskCollection maskCollection;
 };
 
-class NodeOffsetSemiMask : public NodeSemiMask {
+class NodeOffsetLevelSemiMask final : public NodeSemiMask {
 public:
-    explicit NodeOffsetSemiMask(storage::NodeTable* nodeTable) : NodeSemiMask{nodeTable} {
-        offsetMask = std::make_unique<MaskCollection>();
-    }
+    explicit NodeOffsetLevelSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
+        : NodeSemiMask{tableID, maxOffset} {}
 
-    inline void init(transaction::Transaction* trx) override {
-        auto maxNodeOffset = nodeTable->getMaxNodeOffset(trx);
-        if (maxNodeOffset == common::INVALID_OFFSET) {
+    void init() override {
+        if (maxOffset == common::INVALID_OFFSET) {
             return;
         }
-        offsetMask->init(nodeTable->getMaxNodeOffset(trx) + 1);
+        maskCollection.init(maxOffset + 1);
     }
 
-    inline void incrementMaskValue(common::offset_t nodeOffset, uint8_t currentMaskValue) override {
-        offsetMask->incrementMaskValue(nodeOffset, currentMaskValue);
+    void incrementMaskValue(common::offset_t nodeOffset, uint8_t currentMaskValue) override {
+        maskCollection.incrementMaskValue(nodeOffset, currentMaskValue);
     }
 
-    inline uint8_t getNumMasks() const override { return offsetMask->getNumMasks(); }
-    inline void incrementNumMasks() override { offsetMask->incrementNumMasks(); }
-
-    inline bool isNodeMasked(common::offset_t nodeOffset) {
-        return offsetMask->isMasked(nodeOffset);
+    bool isMasked(common::offset_t nodeOffset) override {
+        return maskCollection.isMasked(nodeOffset);
     }
-
-private:
-    std::unique_ptr<MaskCollection> offsetMask;
 };
 
-class NodeOffsetAndMorselSemiMask : public NodeSemiMask {
+class NodeVectorLevelSemiMask final : public NodeSemiMask {
 public:
-    explicit NodeOffsetAndMorselSemiMask(storage::NodeTable* nodeTable) : NodeSemiMask{nodeTable} {
-        offsetMask = std::make_unique<MaskCollection>();
-        morselMask = std::make_unique<MaskCollection>();
-    }
+    explicit NodeVectorLevelSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
+        : NodeSemiMask{tableID, maxOffset} {}
 
-    inline void init(transaction::Transaction* trx) override {
-        auto maxNodeOffset = nodeTable->getMaxNodeOffset(trx);
-        if (maxNodeOffset == common::INVALID_OFFSET) {
+    void init() override {
+        if (maxOffset == common::INVALID_OFFSET) {
             return;
         }
-        offsetMask->init(maxNodeOffset + 1);
-        morselMask->init(MaskUtil::getMorselIdx(maxNodeOffset) + 1);
+        maskCollection.init(MaskUtil::getVectorIdx(maxOffset) + 1);
     }
 
-    // Note: blindly update mask does not parallelize well, so we minimize write by first checking
-    // if the mask is set to true (mask value is equal to the expected currentMaskValue) or not.
-    inline void incrementMaskValue(uint64_t nodeOffset, uint8_t currentMaskValue) override {
-        offsetMask->incrementMaskValue(nodeOffset, currentMaskValue);
-        morselMask->incrementMaskValue(MaskUtil::getMorselIdx(nodeOffset), currentMaskValue);
+    void incrementMaskValue(uint64_t nodeOffset, uint8_t currentMaskValue) override {
+        maskCollection.incrementMaskValue(MaskUtil::getVectorIdx(nodeOffset), currentMaskValue);
     }
 
-    inline uint8_t getNumMasks() const override { return offsetMask->getNumMasks(); }
-    inline void incrementNumMasks() override {
-        offsetMask->incrementNumMasks();
-        morselMask->incrementNumMasks();
+    bool isMasked(common::offset_t nodeOffset) override {
+        return maskCollection.isMasked(MaskUtil::getVectorIdx(nodeOffset));
     }
-
-    inline bool isMorselMasked(common::offset_t morselIdx) {
-        return morselMask->isMasked(morselIdx);
-    }
-    inline bool isNodeMasked(common::offset_t nodeOffset) {
-        return offsetMask->isMasked(nodeOffset);
-    }
-
-private:
-    std::unique_ptr<MaskCollection> offsetMask;
-    std::unique_ptr<MaskCollection> morselMask;
 };
 
 } // namespace processor

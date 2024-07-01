@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <utility>
 
 #include "common/assert.h"
 
@@ -184,6 +185,36 @@ void NullMask::operator|=(const NullMask& other) {
     for (size_t i = 0; i < data.size(); i++) {
         data[i] |= other.getData()[i];
     }
+}
+
+std::pair<bool, bool> NullMask::getMinMax(const uint64_t* nullEntries, uint64_t numValues) {
+    bool min, max;
+    auto firstWord = *nullEntries;
+    if (numValues >= 64) {
+        if (firstWord == 0) {
+            min = false;
+            max = false;
+        } else if (firstWord == ~static_cast<uint64_t>(0u)) {
+            min = true;
+            max = true;
+        } else {
+            return std::make_pair(false, true);
+        }
+    } else {
+        // First word will be handled in loop below
+        min = max = NullMask::isNull(nullEntries, 0);
+    }
+    for (size_t i = 0; i < numValues / 64; i++) {
+        if (nullEntries[i] != firstWord) {
+            return std::make_pair(false, true);
+        }
+    }
+    for (size_t i = numValues / 64 * 64; i < numValues; i++) {
+        if (min != NullMask::isNull(nullEntries, i)) {
+            return std::make_pair(false, true);
+        }
+    }
+    return std::make_pair(min, max);
 }
 
 } // namespace common

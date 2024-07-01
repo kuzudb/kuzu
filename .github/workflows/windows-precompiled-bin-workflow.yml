@@ -8,7 +8,7 @@ jobs:
   build-precompiled-bin:
     runs-on: self-hosted-windows
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build precompiled binaries
         shell: cmd
@@ -26,7 +26,7 @@ jobs:
           move install\lib\kuzu_shared.lib
           move install\bin\kuzu_shell.exe kuzu.exe
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: libkuzu-windows-x86_64
           path: |
@@ -35,7 +35,7 @@ jobs:
             kuzu_shared.dll
             kuzu_shared.lib
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: kuzu_cli-windows-x86_64
           path: kuzu.exe

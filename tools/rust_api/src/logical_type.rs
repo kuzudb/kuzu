@@ -240,8 +240,6 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
             LogicalType::Union { types } => {
                 let mut builder = ffi::create_type_list();
                 let mut names = vec![];
-                names.push("tag".to_string());
-                builder.pin_mut().insert((&LogicalType::Int64).into());
                 for (name, typ) in types {
                     names.push(name.clone());
                     builder.pin_mut().insert(typ.into());

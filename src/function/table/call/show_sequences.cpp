@@ -32,8 +32,8 @@ struct ShowSequencesBindData : public CallTableFuncBindData {
           sequences{std::move(sequences)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowSequencesBindData>(sequences, columnTypes, columnNames,
-            maxOffset);
+        return std::make_unique<ShowSequencesBindData>(sequences, LogicalType::copy(columnTypes),
+            columnNames, maxOffset);
     }
 };
 
@@ -64,19 +64,19 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back("name");
-    columnTypes.emplace_back(*LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("database name");
-    columnTypes.emplace_back(*LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("start value");
-    columnTypes.emplace_back(*LogicalType::INT64());
+    columnTypes.emplace_back(LogicalType::INT64());
     columnNames.emplace_back("increment");
-    columnTypes.emplace_back(*LogicalType::INT64());
+    columnTypes.emplace_back(LogicalType::INT64());
     columnNames.emplace_back("min value");
-    columnTypes.emplace_back(*LogicalType::INT64());
+    columnTypes.emplace_back(LogicalType::INT64());
     columnNames.emplace_back("max value");
-    columnTypes.emplace_back(*LogicalType::INT64());
+    columnTypes.emplace_back(LogicalType::INT64());
     columnNames.emplace_back("cycle");
-    columnTypes.emplace_back(*LogicalType::BOOL());
+    columnTypes.emplace_back(LogicalType::BOOL());
     std::vector<SequenceInfo> sequenceInfos;
     for (auto& entry : context->getCatalog()->getSequenceEntries(context->getTx())) {
         auto sequenceData = entry->getSequenceData();

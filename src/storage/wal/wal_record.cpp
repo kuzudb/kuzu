@@ -1,10 +1,12 @@
 #include "storage/wal/wal_record.h"
 
 #include "catalog/catalog_entry/catalog_entry.h"
+#include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 
 using namespace kuzu::common;
+using namespace kuzu::binder;
 
 namespace kuzu {
 namespace storage {
@@ -24,6 +26,9 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer) {
     case WALRecordType::DROP_CATALOG_ENTRY_RECORD: {
         walRecord = DropCatalogEntryRecord::deserialize(deserializer);
     } break;
+    case WALRecordType::ALTER_TABLE_ENTRY_RECORD: {
+        walRecord = AlterTableEntryRecord::deserialize(deserializer);
+    } break;
     case WALRecordType::CATALOG_RECORD: {
         walRecord = CatalogRecord::deserialize(deserializer);
     } break;
@@ -38,6 +43,9 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer) {
     } break;
     case WALRecordType::COMMIT_RECORD: {
         walRecord = CommitRecord::deserialize(deserializer);
+    } break;
+    case WALRecordType::UPDATE_SEQUENCE_RECORD: {
+        walRecord = UpdateSequenceRecord::deserialize(deserializer);
     } break;
     case WALRecordType::INVALID_RECORD: {
         throw RuntimeException("Corrupted wal file. Read out invalid WAL record type.");
@@ -137,6 +145,112 @@ std::unique_ptr<DropCatalogEntryRecord> DropCatalogEntryRecord::deserialize(
     Deserializer& deserializer) {
     auto retVal = std::make_unique<DropCatalogEntryRecord>();
     deserializer.deserializeValue(retVal->entryID);
+    return retVal;
+}
+
+void AlterTableEntryRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.write(alterInfo->alterType);
+    serializer.write(alterInfo->tableName);
+    serializer.write(alterInfo->tableID);
+    auto extraInfo = alterInfo->extraInfo.get();
+    switch (alterInfo->alterType) {
+    case AlterType::ADD_PROPERTY: {
+        auto addInfo = extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
+        serializer.write(addInfo->propertyName);
+        addInfo->dataType.serialize(serializer);
+        addInfo->defaultValue->serialize(serializer);
+    } break;
+    case AlterType::DROP_PROPERTY: {
+        auto dropInfo = extraInfo->constPtrCast<BoundExtraDropPropertyInfo>();
+        serializer.write(dropInfo->propertyID);
+        serializer.write(dropInfo->propertyName);
+    } break;
+    case AlterType::RENAME_PROPERTY: {
+        auto renameInfo = extraInfo->constPtrCast<BoundExtraRenamePropertyInfo>();
+        serializer.write(renameInfo->propertyID);
+        serializer.write(renameInfo->newName);
+        serializer.write(renameInfo->oldName);
+    } break;
+    case AlterType::COMMENT: {
+        auto commentInfo = extraInfo->constPtrCast<BoundExtraCommentInfo>();
+        serializer.write(commentInfo->comment);
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+}
+
+std::unique_ptr<AlterTableEntryRecord> AlterTableEntryRecord::deserialize(
+    Deserializer& deserializer) {
+    AlterType alterType;
+    std::string tableName;
+    table_id_t tableID;
+    deserializer.deserializeValue(alterType);
+    deserializer.deserializeValue(tableName);
+    deserializer.deserializeValue(tableID);
+    std::unique_ptr<BoundExtraAlterInfo> extraInfo;
+    switch (alterType) {
+    case AlterType::ADD_PROPERTY: {
+        std::string propertyName;
+        LogicalType dataType;
+        std::unique_ptr<kuzu::parser::ParsedExpression> defaultValue;
+        deserializer.deserializeValue(propertyName);
+        dataType = LogicalType::deserialize(deserializer);
+        defaultValue = parser::ParsedExpression::deserialize(deserializer);
+        extraInfo = std::make_unique<BoundExtraAddPropertyInfo>(std::move(propertyName),
+            std::move(dataType), std::move(defaultValue), nullptr);
+    } break;
+    case AlterType::DROP_PROPERTY: {
+        property_id_t propertyID;
+        std::string propertyName;
+        deserializer.deserializeValue(propertyID);
+        deserializer.deserializeValue(propertyName);
+        extraInfo = std::make_unique<BoundExtraDropPropertyInfo>(std::move(propertyID),
+            std::move(propertyName));
+    } break;
+    case AlterType::RENAME_PROPERTY: {
+        property_id_t propertyID;
+        std::string newName;
+        std::string oldName;
+        deserializer.deserializeValue(propertyID);
+        deserializer.deserializeValue(newName);
+        deserializer.deserializeValue(oldName);
+        extraInfo = std::make_unique<BoundExtraRenamePropertyInfo>(std::move(propertyID),
+            std::move(newName), std::move(oldName));
+    } break;
+    case AlterType::COMMENT: {
+        std::string comment;
+        deserializer.deserializeValue(comment);
+        extraInfo = std::make_unique<BoundExtraCommentInfo>(std::move(comment));
+    } break;
+    // We handle rename table as drop and create
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+    auto retval = std::make_unique<AlterTableEntryRecord>();
+    retval->ownedAlterInfo =
+        std::make_unique<BoundAlterInfo>(alterType, tableName, tableID, std::move(extraInfo));
+    return retval;
+}
+
+void UpdateSequenceRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.write(sequenceID);
+    serializer.write(data.usageCount);
+    serializer.write(data.currVal);
+    serializer.write(data.nextVal);
+}
+
+std::unique_ptr<UpdateSequenceRecord> UpdateSequenceRecord::deserialize(
+    Deserializer& deserializer) {
+    auto retVal = std::make_unique<UpdateSequenceRecord>();
+    deserializer.deserializeValue(retVal->sequenceID);
+    deserializer.deserializeValue(retVal->data.usageCount);
+    deserializer.deserializeValue(retVal->data.currVal);
+    deserializer.deserializeValue(retVal->data.nextVal);
     return retVal;
 }
 

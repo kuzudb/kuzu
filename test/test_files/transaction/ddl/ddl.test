@@ -10,11 +10,9 @@
 ---- ok
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
 ---- 1
-(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: 9223372036854775808, temprature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
-# TODO(FIX-ME): Alter table has bugs under recovery.
--CASE DropRelTablePropertyRecovery
--SKIP
+-CASE DropRelTablePropertyCommitRecovery
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE studyAt DROP places
@@ -24,9 +22,170 @@
 -RELOADDB
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
 ---- 1
-(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: 9223372036854775808, temprature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
-# TODO(FIX-ME): Function write status check
+-CASE DropRelTablePropertyRollbackCommit
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE studyAt DROP places
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
+---- 1
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+
+-CASE DropRelTablePropertyRollbackRecovery
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE studyAt DROP places
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
+---- 1
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+
+-CASE AddRelTablePropertyCommit
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE studyAt Add test INT64 DEFAULT 40
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
+---- 1
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111, test: 40}->(1:0)
+
+-CASE AddRelTablePropertyCommitRecovery
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE studyAt Add test INT64 DEFAULT 40
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
+---- 1
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111, test: 40}->(1:0)
+
+-CASE AddRelTablePropertyRollbackCommit
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE studyAt Add test INT64 DEFAULT 40
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
+---- 1
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+
+-CASE AddRelTablePropertyRollbackRecovery
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE studyAt Add test INT64 DEFAULT 40
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
+---- 1
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+
+-CASE RenameRelTablePropertyCommit
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE studyAt RENAME places TO location;
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
+---- 1
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, location: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+
+-CASE RenameRelTablePropertyCommitRecovery
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE studyAt RENAME places TO location;
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
+---- 1
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, location: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+
+-CASE RenameRelTablePropertyRollbackCommit
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE studyAt RENAME places TO location;
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
+---- 1
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+
+-CASE RenameRelTablePropertyRollbackRecovery
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE studyAt RENAME places TO location;
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
+---- 1
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+
+-CASE CommentRelTableCommit
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT COMMENT ON TABLE studyAt IS 'Study at information';
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT CALL SHOW_TABLES() WHERE name = 'studyAt' RETURN comment;
+---- 1
+Study at information
+
+-CASE CommentRelTableCommitRecovery
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT COMMENT ON TABLE studyAt IS 'Study at information';
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT CALL SHOW_TABLES() WHERE name = 'studyAt' RETURN comment;
+---- 1
+Study at information
+
+-CASE CommentRelTableRollbackCommit
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT COMMENT ON TABLE studyAt IS 'Study at information';
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT CALL SHOW_TABLES() WHERE name = 'studyAt' RETURN comment;
+---- 1
+
+
+-CASE CommentRelTableRollbackRecovery
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT COMMENT ON TABLE studyAt IS 'Study at information';
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT CALL SHOW_TABLES() WHERE name = 'studyAt' RETURN comment;
+---- 1
+
+
+# TODO(issue #3502): Function write status check
 -CASE SequenceReadTrxError
 -SKIP
 -STATEMENT CREATE SEQUENCE before;
@@ -46,9 +205,7 @@ Can not execute a write query inside a read-only transaction.
 ---- error
 Can not execute a write query inside a read-only transaction.
 
-# TODO(FIX-ME): Need undo buffer to support non-catalogEntry undos
 -CASE SequenceTestCommit
--SKIP
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE SEQUENCE next;
@@ -62,9 +219,7 @@ Can not execute a write query inside a read-only transaction.
 ---- 1
 1
 
-# TODO(FIX-ME): Need undo buffer to support non-catalogEntry undos
 -CASE SequenceTestCommitRecovery
--SKIP
 -STATEMENT CREATE SEQUENCE before;
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
@@ -84,15 +239,13 @@ Can not execute a write query inside a read-only transaction.
 ---- 1
 1
 -STATEMENT RETURN currval('after');
----- error
-Catalog exception: currval: sequence "after" is not yet defined. To define the sequence, call nextval first.
+---- 1
+1
 
-# TODO(FIX-ME): Need undo buffer to support non-catalogEntry undos
 -CASE SequenceTestRollback
--SKIP
 -STATEMENT CREATE SEQUENCE before;
 ---- ok
--STATEMENT BEGIN TRANSACTION
+-STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE SEQUENCE after;
 ---- ok
@@ -111,12 +264,10 @@ Catalog exception: currval: sequence "before" is not yet defined. To define the 
 ---- error
 Catalog exception: after does not exist in catalog.
 
-# TODO(FIX-ME): Need undo buffer to support non-catalogEntry undos
 -CASE SequenceTestRollbackRecovery
--SKIP
 -STATEMENT CREATE SEQUENCE before;
 ---- ok
--STATEMENT BEGIN TRANSACTION
+-STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE SEQUENCE after;
 ---- ok
@@ -128,6 +279,7 @@ Catalog exception: after does not exist in catalog.
 1
 -STATEMENT Rollback_skip_checkpoint;
 ---- ok
+-RELOADDB
 -STATEMENT RETURN currval('before');
 ---- error
 Catalog exception: currval: sequence "before" is not yet defined. To define the sequence, call nextval first.

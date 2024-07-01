@@ -5,6 +5,7 @@
 #include "common/exception/runtime.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
+#include "expression_evaluator/expression_evaluator.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table_data.h"
@@ -13,6 +14,7 @@
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::transaction;
+using namespace kuzu::evaluator;
 
 namespace kuzu {
 namespace storage {
@@ -35,7 +37,7 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
     main::ClientContext* context) {
     pkIndex = std::make_unique<PrimaryKeyIndex>(
         StorageUtils::getNodeIndexIDAndFName(vfs, databasePath, tableID), readOnly,
-        nodeTableEntry->getPrimaryKey()->getDataType()->getPhysicalType(), *bufferManager, wal, vfs,
+        nodeTableEntry->getPrimaryKey()->getDataType().getPhysicalType(), *bufferManager, wal, vfs,
         context);
 }
 
@@ -93,11 +95,14 @@ bool NodeTable::scanUnCommitted(NodeTableScanState& scanState) {
 
 bool NodeTable::scanCommitted(Transaction* transaction, NodeTableScanState& scanState) {
     KU_ASSERT(scanState.source == TableScanSource::COMMITTED);
-    auto& dataScanState =
-        ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState);
+    auto& dataScanState = scanState.dataScanState->cast<NodeDataScanState>();
     // Fill nodeIDVector and set selVector from deleted node offsets.
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx) +
                                  dataScanState.vectorIdx * DEFAULT_VECTOR_CAPACITY;
+    if (scanState.semiMask->isEnabled() && !scanState.semiMask->isMasked(startNodeOffset)) {
+        scanState.nodeIDVector->state->getSelVectorUnsafe().setSelSize(0);
+        return true;
+    }
     for (auto i = 0u; i < dataScanState.numRowsToScan; i++) {
         scanState.nodeIDVector->setValue<nodeID_t>(i, {startNodeOffset + i, tableID});
     }
@@ -173,13 +178,13 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
     localTable->update(updateState);
 }
 
-void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
+bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
     const auto& nodeDeleteState =
         ku_dynamic_cast<TableDeleteState&, NodeTableDeleteState&>(deleteState);
     KU_ASSERT(nodeDeleteState.nodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto pos = nodeDeleteState.nodeIDVector.state->getSelVector()[0];
     if (nodeDeleteState.nodeIDVector.isNull(pos)) {
-        return;
+        return false;
     }
     pkIndex->delete_(&nodeDeleteState.pkVector);
     const auto nodeOffset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
@@ -187,17 +192,17 @@ void NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
         ->deleteNode(tableID, nodeOffset);
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
-    localTable->delete_(deleteState);
+    return localTable->delete_(deleteState);
 }
 
 void NodeTable::addColumn(Transaction* transaction, const Property& property,
-    ValueVector* defaultValueVector) {
+    ExpressionEvaluator& defaultEvaluator) {
     const auto nodesStats =
         ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics);
-    nodesStats->addMetadataDAHInfo(tableID, *property.getDataType());
+    nodesStats->addMetadataDAHInfo(tableID, property.getDataType());
     tableData->addColumn(transaction, "", tableData->getColumn(pkColumnID)->getMetadataDA(),
         *nodesStats->getMetadataDAHInfo(transaction, tableID, tableData->getNumColumns()), property,
-        defaultValueVector);
+        defaultEvaluator);
     // TODO(Guodong): addColumn is not going through localStorage design for now. So it needs to add
     // tableID into the wal's updated table set separately, as it won't trigger prepareCommit.
     wal->addToUpdatedTables(tableID);

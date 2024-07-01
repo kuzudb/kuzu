@@ -19,29 +19,25 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::alter(const BoundAlterInfo
     auto newEntry = copy();
     switch (alterInfo.alterType) {
     case AlterType::RENAME_TABLE: {
-        auto& renameTableInfo =
-            ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraRenameTableInfo&>(
-                *alterInfo.extraInfo);
+        auto& renameTableInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraRenameTableInfo>();
         newEntry->rename(renameTableInfo.newName);
     } break;
     case AlterType::RENAME_PROPERTY: {
-        auto& renamePropInfo =
-            ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraRenamePropertyInfo&>(
-                *alterInfo.extraInfo);
+        auto& renamePropInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraRenamePropertyInfo>();
         newEntry->renameProperty(renamePropInfo.propertyID, renamePropInfo.newName);
     } break;
     case AlterType::ADD_PROPERTY: {
-        auto& addPropInfo =
-            ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraAddPropertyInfo&>(
-                *alterInfo.extraInfo);
+        auto& addPropInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
         newEntry->addProperty(addPropInfo.propertyName, addPropInfo.dataType.copy(),
             addPropInfo.defaultValue->copy());
     } break;
     case AlterType::DROP_PROPERTY: {
-        auto& dropPropInfo =
-            ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraDropPropertyInfo&>(
-                *alterInfo.extraInfo);
+        auto& dropPropInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraDropPropertyInfo>();
         newEntry->dropProperty(dropPropInfo.propertyID);
+    } break;
+    case AlterType::COMMENT: {
+        auto& commentInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraCommentInfo>();
+        newEntry->setComment(commentInfo.comment);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -85,12 +81,10 @@ common::column_id_t TableCatalogEntry::getColumnID(const common::property_id_t p
 
 bool TableCatalogEntry::containPropertyType(const common::LogicalType& logicalType) const {
     return std::any_of(properties.begin(), properties.end(),
-        [&logicalType](
-            const Property& property) { return *property.getDataType() == logicalType; });
+        [&logicalType](const Property& property) { return property.getDataType() == logicalType; });
 }
 
-void TableCatalogEntry::addProperty(std::string propertyName,
-    std::unique_ptr<common::LogicalType> dataType,
+void TableCatalogEntry::addProperty(std::string propertyName, common::LogicalType dataType,
     std::unique_ptr<parser::ParsedExpression> defaultExpr) {
     properties.emplace_back(std::move(propertyName), std::move(dataType), std::move(defaultExpr),
         nextPID++, nextColumnID++, tableID);

@@ -31,9 +31,9 @@ void BaseHashTable::computeAndCombineVecHash(const std::vector<ValueVector*>& un
     for (; startVecIdx < unFlatKeyVectors.size(); startVecIdx++) {
         auto keyVector = unFlatKeyVectors[startVecIdx];
         auto tmpHashResultVector =
-            std::make_unique<ValueVector>(*LogicalType::HASH(), &memoryManager);
+            std::make_unique<ValueVector>(LogicalType::HASH(), &memoryManager);
         auto tmpHashCombineResultVector =
-            std::make_unique<ValueVector>(*LogicalType::HASH(), &memoryManager);
+            std::make_unique<ValueVector>(LogicalType::HASH(), &memoryManager);
         tmpHashResultVector->state = keyVector->state;
         tmpHashCombineResultVector->state = keyVector->state;
         VectorHashFunction::computeHash(*keyVector, keyVector->state->getSelVector(),
@@ -163,7 +163,7 @@ void BaseHashTable::initSlotConstant(uint64_t numSlotsPerBlock_) {
     numSlotsPerBlock = numSlotsPerBlock_;
     numSlotsPerBlockLog2 = std::log2(numSlotsPerBlock);
     slotIdxInBlockMask =
-        common::BitmaskUtils::all1sMaskForLeastSignificantBits(numSlotsPerBlockLog2);
+        common::BitmaskUtils::all1sMaskForLeastSignificantBits<uint64_t>(numSlotsPerBlockLog2);
 }
 
 // ! This function will only be used by distinct aggregate and hashJoin, which assumes that all
@@ -203,7 +203,7 @@ void BaseHashTable::initCompareFuncs() {
 void BaseHashTable::initTmpHashVector() {
     hashState = std::make_shared<DataChunkState>();
     hashState->setToFlat();
-    hashVector = std::make_unique<ValueVector>(*LogicalType::HASH(), &memoryManager);
+    hashVector = std::make_unique<ValueVector>(LogicalType::HASH(), &memoryManager);
     hashVector->state = hashState;
 }
 

@@ -15,7 +15,7 @@ public:
 
     std::string getName() const { return name; };
 
-    common::LogicalType getType() const { return type; }
+    const common::LogicalType& getType() const { return type; }
 
 private:
     std::string name;

@@ -42,8 +42,8 @@ public:
     binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
         columns.push_back(bindData->nodeInput->constCast<NodeExpression>().getInternalID());
-        columns.push_back(binder->createVariable("dst", *LogicalType::INTERNAL_ID()));
-        columns.push_back(binder->createVariable("length", *LogicalType::INT64()));
+        columns.push_back(binder->createVariable("dst", LogicalType::INTERNAL_ID()));
+        columns.push_back(binder->createVariable("length", LogicalType::INT64()));
         return columns;
     }
 
@@ -51,7 +51,7 @@ public:
         KU_ASSERT(params.size() == 3);
         auto inputNode = params[1];
         ExpressionUtil::validateExpressionType(*params[2], ExpressionType::LITERAL);
-        ExpressionUtil::validateDataType(*params[2], *LogicalType::INT64());
+        ExpressionUtil::validateDataType(*params[2], LogicalType::INT64());
         auto upperBound = params[2]->constCast<LiteralExpression>().getValue().getValue<int64_t>();
         bindData = std::make_unique<ParallelShortestPathBindData>(inputNode, upperBound);
     }
@@ -161,7 +161,7 @@ public:
             threadsAvailable, concurrentBFS, maxConcurrentBFS);
         auto maxNodeOffset = sharedState->graph->getNumNodes() - 1;
         auto lowerBound = 1u;
-        auto& inputMask = sharedState->inputNodeOffsetMask;
+        auto& inputMask = sharedState->inputNodeOffsetMasks[0];
         scheduledTaskMap ifeMorselTasks = scheduledTaskMap();
         auto srcOffset = 0LU, numCompletedTasks = 0LU, totalBFSSources = 0LU;
         /*
@@ -173,7 +173,7 @@ public:
          */
         while (totalBFSSources < maxConcurrentBFS) {
             while (srcOffset <= maxNodeOffset) {
-                if (inputMask->isNodeMasked(srcOffset)) {
+                if (inputMask->isMasked(srcOffset)) {
                     break;
                 }
                 srcOffset++;
@@ -219,7 +219,7 @@ public:
                 // printf("bfs source: %lu is completed\n", ifeMorselTasks[i].first->srcOffset);
                 numCompletedTasks++;
                 while (srcOffset <= maxNodeOffset) {
-                    if (inputMask->isNodeMasked(srcOffset)) {
+                    if (inputMask->isMasked(srcOffset)) {
                         break;
                     }
                     srcOffset++;

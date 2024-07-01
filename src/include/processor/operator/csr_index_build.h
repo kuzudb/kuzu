@@ -64,9 +64,9 @@ public:
         DataPos& boundNodeVectorPos, DataPos& nbrNodeVectorPos, DataPos& relIDVectorPos,
         std::shared_ptr<CSRIndexSharedState>& csrIndexSharedState,
         /*std::shared_ptr<storage::ListHeaders>& adjListHeaders,*/
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : Sink{std::move(resultSetDescriptor), operatorType_,
-              std::move(child), id, paramsString},
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, std::unique_ptr<OPPrintInfo> info)
+        : Sink{std::move(resultSetDescriptor), operatorType_, std::move(child), id,
+              std::move(info)},
           commonNodeTableID{commonNodeTableID}, /*adjListHeaders{adjListHeaders},*/
           commonEdgeTableID{commonEdgeTableID}, csrSharedState{csrIndexSharedState},
           boundNodeVectorPos{boundNodeVectorPos}, nbrNodeVectorPos{nbrNodeVectorPos},
@@ -85,7 +85,7 @@ public:
     inline std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<CSRIndexBuild>(resultSetDescriptor->copy(), commonNodeTableID,
             commonEdgeTableID, boundNodeVectorPos, nbrNodeVectorPos, relIDVectorPos, csrSharedState,
-            /*adjListHeaders,*/ children[0]->clone(), id, paramsString);
+            /*adjListHeaders,*/ children[0]->clone(), id, printInfo->copy());
     }
 
 private:

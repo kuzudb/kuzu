@@ -43,7 +43,7 @@ struct PreparedRowGroup {
 
 class ParquetWriter {
 public:
-    ParquetWriter(std::string fileName, std::vector<std::unique_ptr<common::LogicalType>> types,
+    ParquetWriter(std::string fileName, std::vector<common::LogicalType> types,
         std::vector<std::string> names, kuzu_parquet::format::CompressionCodec::type codec,
         main::ClientContext* context);
 
@@ -76,7 +76,7 @@ private:
 
 private:
     std::string fileName;
-    std::vector<std::unique_ptr<common::LogicalType>> types;
+    std::vector<common::LogicalType> types;
     std::vector<std::string> columnNames;
     kuzu_parquet::format::CompressionCodec::type codec;
     std::unique_ptr<common::FileInfo> fileInfo;

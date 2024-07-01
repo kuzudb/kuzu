@@ -23,11 +23,27 @@ struct CreateMacroInfo {
     }
 };
 
+struct CreateMacroPrintInfo final : OPPrintInfo {
+    std::string macroName;
+
+    explicit CreateMacroPrintInfo(std::string macroName) : macroName{std::move(macroName)} {}
+    CreateMacroPrintInfo(const CreateMacroPrintInfo& other)
+        : OPPrintInfo{other}, macroName{other.macroName} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::make_unique<CreateMacroPrintInfo>(*this);
+    }
+};
+
 class CreateMacro : public PhysicalOperator {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CREATE_MACRO;
+
 public:
-    CreateMacro(PhysicalOperatorType operatorType, std::unique_ptr<CreateMacroInfo> createMacroInfo,
-        uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{operatorType, id, paramsString},
+    CreateMacro(std::unique_ptr<CreateMacroInfo> createMacroInfo, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, id, std::move(printInfo)},
           createMacroInfo{std::move(createMacroInfo)} {}
 
     inline bool isSource() const override { return true; }
@@ -41,8 +57,7 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<CreateMacro>(operatorType, createMacroInfo->copy(), id,
-            paramsString);
+        return std::make_unique<CreateMacro>(createMacroInfo->copy(), id, printInfo->copy());
     }
 
 private:

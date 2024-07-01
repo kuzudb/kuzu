@@ -84,15 +84,13 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     catalog = std::make_unique<Catalog>(this->databasePath, vfs.get());
     StorageManager::recover(clientContext);
     storageManager = std::make_unique<StorageManager>(this->databasePath, systemConfig.readOnly,
-        *catalog, *memoryManager, systemConfig.enableCompression, vfs.get(), nullptr);
+        *catalog, *memoryManager, systemConfig.enableCompression, vfs.get(), &clientContext);
     transactionManager = std::make_unique<TransactionManager>(storageManager->getWAL());
     extensionOptions = std::make_unique<extension::ExtensionOptions>();
     databaseManager = std::make_unique<DatabaseManager>();
 }
 
-Database::~Database() {
-    bufferManager->clearEvictionQueue();
-}
+Database::~Database() {}
 
 void Database::addTableFunction(std::string name, function::function_set functionSet) {
     catalog->addBuiltInFunction(CatalogEntryType::TABLE_FUNCTION_ENTRY, std::move(name),
@@ -143,6 +141,11 @@ void Database::initAndLockDBDir() {
         vfs->createDir(databasePath);
     }
     openLockFile();
+}
+
+uint64_t Database::getNextQueryID() {
+    std::lock_guard<std::mutex> lock(queryIDGenerator.queryIDLock);
+    return queryIDGenerator.queryID++;
 }
 
 } // namespace main

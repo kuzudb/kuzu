@@ -1,7 +1,7 @@
 #include "storage/store/struct_column.h"
 
 #include "storage/store/null_column.h"
-#include "storage/store/struct_column_chunk.h"
+#include "storage/store/struct_chunk_data.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -21,7 +21,7 @@ StructColumn::StructColumn(std::string name, LogicalType dataType,
     for (auto i = 0u; i < fieldTypes.size(); i++) {
         auto childColName = StorageUtils::getColumnName(name,
             StorageUtils::ColumnType::STRUCT_CHILD, std::to_string(i));
-        childColumns[i] = ColumnFactory::createColumn(childColName, *fieldTypes[i].copy(),
+        childColumns[i] = ColumnFactory::createColumn(childColName, fieldTypes[i]->copy(),
             *metaDAHeaderInfo.childrenInfos[i], dataFH, metadataDAC, bufferManager, wal,
             transaction, enableCompression);
     }
@@ -30,10 +30,7 @@ StructColumn::StructColumn(std::string name, LogicalType dataType,
 void StructColumn::scan(Transaction* transaction, const ChunkState& state,
     ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
     KU_ASSERT(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
-    nullColumn->scan(transaction, *state.nullState, columnChunk->getNullChunk(), startOffset,
-        endOffset);
-    columnChunk->setNumValues(
-        getNumValuesFromDisk(metadataDA.get(), transaction, state, startOffset, endOffset));
+    Column::scan(transaction, state, columnChunk, startOffset, endOffset);
     auto& structColumnChunk = columnChunk->cast<StructChunkData>();
     for (auto i = 0u; i < childColumns.size(); i++) {
         childColumns[i]->scan(transaction, state.childrenStates[i], structColumnChunk.getChild(i),

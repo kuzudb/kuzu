@@ -52,7 +52,7 @@ public:
 
     inline uint32_t getNumColumns() const { return columnNames.size(); }
     inline std::string getColumnName(uint32_t idx) const { return columnNames[idx]; }
-    inline common::LogicalType* getColumnType(uint32_t idx) const { return columnTypes[idx].get(); }
+    inline const common::LogicalType& getColumnType(uint32_t idx) const { return columnTypes[idx]; }
 
     inline kuzu_parquet::format::FileMetaData* getMetadata() const { return metadata.get(); }
 
@@ -69,8 +69,7 @@ private:
         KU_ASSERT(state.groupIdxList[state.currentGroup] < metadata->row_groups.size());
         return metadata->row_groups[state.groupIdxList[state.currentGroup]];
     }
-    static std::unique_ptr<common::LogicalType> deriveLogicalType(
-        const kuzu_parquet::format::SchemaElement& s_ele);
+    static common::LogicalType deriveLogicalType(const kuzu_parquet::format::SchemaElement& s_ele);
     void initMetadata();
     std::unique_ptr<ColumnReader> createReader();
     std::unique_ptr<ColumnReader> createReaderRecursive(uint64_t depth, uint64_t maxDefine,
@@ -85,7 +84,7 @@ private:
 private:
     const std::string filePath;
     std::vector<std::string> columnNames;
-    std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
+    std::vector<common::LogicalType> columnTypes;
     std::unique_ptr<kuzu_parquet::format::FileMetaData> metadata;
     main::ClientContext* context;
 };

@@ -60,7 +60,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
 static std::vector<LogicalType> getTypes(const expression_vector& exprs) {
     std::vector<LogicalType> result;
     for (auto& expr : exprs) {
-        result.push_back(expr->getDataType());
+        result.push_back(expr->getDataType().copy());
     }
     return result;
 }
@@ -84,15 +84,15 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         }
         auto childAfterCast = children[0];
         if (children[0]->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
-            childAfterCast = implicitCastIfNecessary(children[0], *LogicalType::STRING());
+            childAfterCast = implicitCastIfNecessary(children[0], LogicalType::STRING());
         }
         childrenAfterCast.push_back(std::move(childAfterCast));
     } else {
         if (function->bindFunc) {
             bindData = function->bindFunc(children, function);
         } else {
-            bindData = std::make_unique<function::FunctionBindData>(
-                std::make_unique<LogicalType>(function->returnTypeID));
+            bindData =
+                std::make_unique<function::FunctionBindData>(LogicalType(function->returnTypeID));
         }
         if (!bindData->paramTypes.empty()) {
             for (auto i = 0u; i < children.size(); ++i) {
@@ -103,8 +103,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
             for (auto i = 0u; i < children.size(); ++i) {
                 auto id = function->isVarLength ? function->parameterTypeIDs[0] :
                                                   function->parameterTypeIDs[i];
-                auto type = id == LogicalTypeID::RDF_VARIANT ? *LogicalType::RDF_VARIANT() :
-                                                               LogicalType(id);
+                auto type =
+                    id == LogicalTypeID::RDF_VARIANT ? LogicalType::RDF_VARIANT() : LogicalType(id);
                 childrenAfterCast.push_back(implicitCastIfNecessary(children[i], type));
             }
         }
@@ -138,7 +138,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     expression_vector children;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
         auto child = bindExpression(*parsedExpression.getChild(i));
-        childrenTypes.push_back(child->dataType);
+        childrenTypes.push_back(child->dataType.copy());
         children.push_back(std::move(child));
     }
     auto functions = context->getCatalog()->getFunctions(context->getTx());
@@ -162,8 +162,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     if (function->bindFunc) {
         bindData = function->bindFunc(children, function.get());
     } else {
-        bindData = std::make_unique<function::FunctionBindData>(
-            std::make_unique<LogicalType>(function->returnTypeID));
+        bindData =
+            std::make_unique<function::FunctionBindData>(LogicalType(function->returnTypeID));
     }
     return make_shared<AggregateFunctionExpression>(functionName, std::move(bindData),
         std::move(children), std::move(function), uniqueExpressionName);

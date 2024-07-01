@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "binder/ddl/bound_create_sequence_info.h"
 #include "catalog/property.h"
 #include "catalog_entry.h"
@@ -10,7 +12,17 @@ struct BoundExtraCreateCatalogEntryInfo;
 struct BoundAlterInfo;
 } // namespace binder
 
+namespace transaction {
+class Transaction;
+} // namespace transaction
+
 namespace catalog {
+
+struct SequenceChangeData {
+    uint64_t usageCount;
+    int64_t currVal;
+    int64_t nextVal;
+};
 
 struct SequenceData {
     SequenceData() = default;
@@ -29,6 +41,7 @@ struct SequenceData {
     bool cycle;
 };
 
+class CatalogSet;
 class KUZU_API SequenceCatalogEntry : public CatalogEntry {
 public:
     //===--------------------------------------------------------------------===//
@@ -50,15 +63,16 @@ public:
     // sequence functions
     //===--------------------------------------------------------------------===//
     int64_t currVal();
-    int64_t nextVal();
-    void nextKVal(const uint64_t& count, common::ValueVector& resultVector);
-    void replayVal(uint64_t usageCount, int64_t currVal, int64_t nextVal);
+    void nextKVal(transaction::Transaction* transaction, const uint64_t& count,
+        common::ValueVector& resultVector);
+    void replayVal(const uint64_t& usageCount, const int64_t& currVal, const int64_t& nextVal);
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization
     //===--------------------------------------------------------------------===//
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<SequenceCatalogEntry> deserialize(common::Deserializer& deserializer);
+    std::string toCypher(main::ClientContext* /*clientContext*/) const override;
 
     binder::BoundCreateSequenceInfo getBoundCreateSequenceInfo() const;
 

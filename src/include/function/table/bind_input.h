@@ -50,7 +50,8 @@ private:
     ScanTableFuncBindInput(const ScanTableFuncBindInput& other)
         : TableFuncBindInput{other}, config{other.config.copy()},
           expectedColumnNames{other.expectedColumnNames},
-          expectedColumnTypes{other.expectedColumnTypes}, context{other.context} {}
+          expectedColumnTypes{common::LogicalType::copy(other.expectedColumnTypes)},
+          context{other.context} {}
 };
 
 } // namespace function

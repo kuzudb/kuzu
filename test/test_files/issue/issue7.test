@@ -5,3 +5,11 @@
 -CASE issue3607
 -STATEMENT CREATE NODE TABLE as (id UUID, PRIMARY KEY (id));
 ---- ok
+
+-CASE issue3692
+-STATEMENT CREATE NODE TABLE V (id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE E(FROM V TO V);
+---- ok
+-STATEMENT MATCH (a:V)-[e* (r, n | WHERE n.id < 4 )]->(b:V {id: 4}) RETURN *;
+---- 0

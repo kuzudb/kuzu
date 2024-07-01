@@ -84,7 +84,7 @@ class Connection {
    * Execute a prepared statement with the given parameters.
    * @param {kuzu.PreparedStatement} preparedStatement the prepared statement to execute.
    * @param {Object} params a plain object mapping parameter names to values.
-   * @param {Function} [progressCallback] optional callback function that is invoked with the progress of the query execution. The callback receives three arguments: pipelineProgress, numPipelinesFinished, and numPipelines.
+   * @param {Function} [progressCallback] - Optional callback function that is invoked with the progress of the query execution. The callback receives three arguments: pipelineProgress, numPipelinesFinished, and numPipelines.
    * @returns {Promise<kuzu.QueryResult>} a promise that resolves to the query result. The promise is rejected if there is an error.
    */
   execute(preparedStatement, params = {}, progressCallback) {

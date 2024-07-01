@@ -235,7 +235,7 @@ Elizabeth|[25,40]
 2021|[9223372036854775808]
 
 -LOG HashCollectOnUInt32Test
--STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, collect(s.temprature)
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, collect(s.temperature)
 ---- 2
 2020|[1,20]
 2021|[32800]
@@ -306,7 +306,7 @@ True|1
 180|1
 
 -LOG HashAggUINT32Key
--STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.temprature, COUNT(s.year)
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.temperature, COUNT(s.year)
 ---- 3
 32800|1
 1|1

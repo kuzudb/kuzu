@@ -12,20 +12,20 @@ namespace function {
 
 struct FunctionBindData {
     std::vector<common::LogicalType> paramTypes;
-    std::unique_ptr<common::LogicalType> resultType;
+    common::LogicalType resultType;
     main::ClientContext* clientContext;
     int64_t count;
 
-    explicit FunctionBindData(std::unique_ptr<common::LogicalType> dataType)
+    explicit FunctionBindData(common::LogicalType dataType)
         : resultType{std::move(dataType)}, clientContext{nullptr}, count{1} {}
-    FunctionBindData(std::vector<common::LogicalType> paramTypes,
-        std::unique_ptr<common::LogicalType> resultType)
+    FunctionBindData(std::vector<common::LogicalType> paramTypes, common::LogicalType resultType)
         : paramTypes{std::move(paramTypes)}, resultType{std::move(resultType)},
           clientContext{nullptr}, count{1} {}
     DELETE_COPY_AND_MOVE(FunctionBindData);
 
     virtual inline std::unique_ptr<FunctionBindData> copy() const {
-        return std::make_unique<FunctionBindData>(paramTypes, resultType->copy());
+        return std::make_unique<FunctionBindData>(common::LogicalType::copy(paramTypes),
+            resultType.copy());
     }
 
     virtual ~FunctionBindData() = default;

@@ -6,6 +6,9 @@
 #include "storage/wal/wal_record.h"
 
 namespace kuzu {
+namespace binder {
+struct BoundAlterInfo;
+} // namespace binder
 namespace common {
 class BufferedFileWriter;
 class VirtualFileSystem;
@@ -13,6 +16,7 @@ class VirtualFileSystem;
 
 namespace catalog {
 class CatalogEntry;
+struct SequenceChangeData;
 } // namespace catalog
 
 namespace storage {
@@ -39,14 +43,13 @@ public:
         common::page_idx_t pageIdxInOriginalFile);
 
     void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry);
-    void logDropTableRecord(common::table_id_t tableID, catalog::CatalogEntryType type);
+    void logDropCatalogEntryRecord(uint64_t entryID, catalog::CatalogEntryType type);
+    void logAlterTableEntryRecord(binder::BoundAlterInfo* alterInfo);
 
     void logCopyTableRecord(common::table_id_t tableID);
 
-    void logCreateSequenceRecord(catalog::CatalogEntry* catalogEntry);
-    void logDropSequenceRecord(common::sequence_id_t sequenceID);
-
-    void logCreateTypeRecord(catalog::CatalogEntry* catalogEntry);
+    void logUpdateSequenceRecord(common::sequence_id_t sequenceID,
+        catalog::SequenceChangeData data);
 
     void logCatalogRecord();
     void logTableStatisticsRecord(common::TableType tableType);
@@ -74,7 +77,7 @@ private:
     // Tables need in memory checkpointing or rolling back.
     std::unordered_set<common::table_id_t> updatedTables;
     std::shared_ptr<common::BufferedFileWriter> bufferedWriter;
-    std::unique_ptr<BMFileHandle> shadowingFH;
+    BMFileHandle* shadowingFH;
     std::string directory;
     std::mutex mtx;
     BufferManager& bufferManager;

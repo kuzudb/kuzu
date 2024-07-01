@@ -9,7 +9,7 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapUnionAll(LogicalOperator* logicalOperator) {
-    auto& logicalUnionAll = (LogicalUnion&)*logicalOperator;
+    auto& logicalUnionAll = logicalOperator->constCast<LogicalUnion>();
     auto outSchema = logicalUnionAll.getSchema();
     // append result collectors to each child
     std::vector<std::unique_ptr<PhysicalOperator>> prevOperators;
@@ -36,8 +36,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapUnionAll(LogicalOperator* logic
         std::make_unique<UnionAllScanInfo>(std::move(outputPositions), std::move(columnIndices));
     auto maxMorselSize = tables[0]->hasUnflatCol() ? 1 : DEFAULT_VECTOR_CAPACITY;
     auto unionSharedState = make_shared<UnionAllScanSharedState>(std::move(tables), maxMorselSize);
+    auto printInfo = std::make_unique<OPPrintInfo>(logicalUnionAll.getExpressionsForPrinting());
     return make_unique<UnionAllScan>(std::move(info), unionSharedState, std::move(prevOperators),
-        getOperatorID(), logicalUnionAll.getExpressionsForPrinting());
+        getOperatorID(), std::move(printInfo));
 }
 
 } // namespace processor

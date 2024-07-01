@@ -39,11 +39,11 @@ void ReaderBindUtils::resolveColumns(const std::vector<std::string>& expectedCol
     std::vector<common::LogicalType>& resultColumnTypes) {
     if (expectedColumnTypes.empty()) {
         resultColumnNames = detectedColumnNames;
-        resultColumnTypes = detectedColumnTypes;
+        resultColumnTypes = LogicalType::copy(detectedColumnTypes);
     } else {
         validateNumColumns(expectedColumnTypes.size(), detectedColumnTypes.size());
         resultColumnNames = expectedColumnNames;
-        resultColumnTypes = expectedColumnTypes;
+        resultColumnTypes = LogicalType::copy(expectedColumnTypes);
     }
 }
 

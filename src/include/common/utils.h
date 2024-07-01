@@ -1,19 +1,38 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
 #include <vector>
 
 #include "common/assert.h"
+#include "common/numeric_utils.h"
+#include "common/types/int128_t.h"
 
 namespace kuzu {
 namespace common {
 
 class BitmaskUtils {
-
 public:
-    static uint64_t all1sMaskForLeastSignificantBits(uint64_t numBits) {
+    template<typename T>
+        requires std::integral<T>
+    static T all1sMaskForLeastSignificantBits(uint32_t numBits) {
         KU_ASSERT(numBits <= 64);
-        return numBits == 64 ? UINT64_MAX : ((uint64_t)1 << numBits) - 1;
+        using U = numeric_utils::MakeUnSignedT<T>;
+        return (T)(numBits == (sizeof(U) * 8) ? std::numeric_limits<U>::max() :
+                                                static_cast<U>(((U)1 << numBits) - 1));
+    }
+
+    // constructs all 1s mask while avoiding overflow/underflow for int128
+    template<typename T>
+        requires std::same_as<std::remove_cvref_t<T>, int128_t>
+    static T all1sMaskForLeastSignificantBits(uint32_t numBits) {
+        static constexpr uint8_t numBitsInT = sizeof(T) * 8;
+
+        // use ~T(1) instead of ~T(0) to avoid sign-bit filling
+        const T fullMask = ~(T(1) << (numBitsInT - 1));
+
+        const size_t numBitsToDiscard = (numBitsInT - 1 - numBits);
+        return (fullMask >> numBitsToDiscard);
     }
 };
 

@@ -18,8 +18,8 @@ class ParallelUtilsOperator : public Sink {
 
 public:
     ParallelUtilsOperator(std::unique_ptr<GDSLocalState> gdsLocalState, gds_algofunc_t tableFunc,
-        GDSCallSharedState *sharedState, uint32_t id, std::string paramString)
-        : Sink{nullptr /* no result descriptor needed */, operatorType_, id, paramString},
+        GDSCallSharedState *sharedState, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        : Sink{nullptr /* no result descriptor needed */, operatorType_, id, std::move(printInfo)},
           gdsLocalState{std::move(gdsLocalState)}, funcToExecute{tableFunc},
           sharedState{sharedState} {}
 
@@ -37,7 +37,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<ParallelUtilsOperator>(gdsLocalState->copy(), funcToExecute,
-            sharedState, id, paramsString);
+            sharedState, id, printInfo->copy());
     }
 
 private:

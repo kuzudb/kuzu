@@ -38,7 +38,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
         physicalOperator = mapScanFile(logicalOperator);
     } break;
     case LogicalOperatorType::INDEX_LOOK_UP: {
-        physicalOperator = mapIndexScan(logicalOperator);
+        physicalOperator = mapIndexLookup(logicalOperator);
     } break;
     case LogicalOperatorType::EMPTY_RESULT: {
         physicalOperator = mapEmptyResult(logicalOperator);
@@ -91,83 +91,59 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::MERGE: {
         physicalOperator = mapMerge(logicalOperator);
     } break;
-    case LogicalOperatorType::AGGREGATE: {
-        physicalOperator = mapAggregate(logicalOperator);
-    } break;
-    case LogicalOperatorType::DISTINCT: {
-        physicalOperator = mapDistinct(logicalOperator);
-    } break;
-    case LogicalOperatorType::ORDER_BY: {
-        physicalOperator = mapOrderBy(logicalOperator);
-    } break;
-    case LogicalOperatorType::UNION_ALL: {
-        physicalOperator = mapUnionAll(logicalOperator);
-    } break;
     case LogicalOperatorType::ACCUMULATE: {
         physicalOperator = mapAccumulate(logicalOperator);
     } break;
-    case LogicalOperatorType::MARK_ACCUMULATE: {
-        physicalOperator = mapMarkAccumulate(logicalOperator);
-    } break;
-    case LogicalOperatorType::DUMMY_SCAN: {
-        physicalOperator = mapDummyScan(logicalOperator);
-    } break;
-    case LogicalOperatorType::INSERT: {
-        physicalOperator = mapInsert(logicalOperator);
-    } break;
-    case LogicalOperatorType::SET_PROPERTY: {
-        physicalOperator = mapSetProperty(logicalOperator);
-    } break;
-    case LogicalOperatorType::DELETE: {
-        physicalOperator = mapDelete(logicalOperator);
-    } break;
-    case LogicalOperatorType::CREATE_TABLE: {
-        physicalOperator = mapCreateTable(logicalOperator);
-    } break;
-    case LogicalOperatorType::CREATE_SEQUENCE: {
-        physicalOperator = mapCreateSequence(logicalOperator);
-    } break;
-    case LogicalOperatorType::COPY_FROM: {
-        physicalOperator = mapCopyFrom(logicalOperator);
-    } break;
-    case LogicalOperatorType::PARTITIONER: {
-        physicalOperator = mapPartitioner(logicalOperator);
-    } break;
-    case LogicalOperatorType::COPY_TO: {
-        physicalOperator = mapCopyTo(logicalOperator);
-    } break;
-    case LogicalOperatorType::DROP_TABLE: {
-        physicalOperator = mapDropTable(logicalOperator);
-    } break;
-    case LogicalOperatorType::DROP_SEQUENCE: {
-        physicalOperator = mapDropSequence(logicalOperator);
-    } break;
-    case LogicalOperatorType::CREATE_TYPE: {
-        physicalOperator = mapCreateType(logicalOperator);
+    case LogicalOperatorType::AGGREGATE: {
+        physicalOperator = mapAggregate(logicalOperator);
     } break;
     case LogicalOperatorType::ALTER: {
         physicalOperator = mapAlter(logicalOperator);
     } break;
-    case LogicalOperatorType::STANDALONE_CALL: {
-        physicalOperator = mapStandaloneCall(logicalOperator);
+    case LogicalOperatorType::ATTACH_DATABASE: {
+        physicalOperator = mapAttachDatabase(logicalOperator);
     } break;
-    case LogicalOperatorType::COMMENT_ON: {
-        physicalOperator = mapCommentOn(logicalOperator);
+    case LogicalOperatorType::COPY_FROM: {
+        physicalOperator = mapCopyFrom(logicalOperator);
     } break;
-    case LogicalOperatorType::TABLE_FUNCTION_CALL: {
-        physicalOperator = mapTableFunctionCall(logicalOperator);
+    case LogicalOperatorType::COPY_TO: {
+        physicalOperator = mapCopyTo(logicalOperator);
+    } break;
+    case LogicalOperatorType::CREATE_MACRO: {
+        physicalOperator = mapCreateMacro(logicalOperator);
+    } break;
+    case LogicalOperatorType::CREATE_SEQUENCE: {
+        physicalOperator = mapCreateSequence(logicalOperator);
+    } break;
+    case LogicalOperatorType::CREATE_TABLE: {
+        physicalOperator = mapCreateTable(logicalOperator);
+    } break;
+    case LogicalOperatorType::CREATE_TYPE: {
+        physicalOperator = mapCreateType(logicalOperator);
+    } break;
+    case LogicalOperatorType::DELETE: {
+        physicalOperator = mapDelete(logicalOperator);
+    } break;
+    case LogicalOperatorType::DETACH_DATABASE: {
+        physicalOperator = mapDetachDatabase(logicalOperator);
+    } break;
+    case LogicalOperatorType::DISTINCT: {
+        physicalOperator = mapDistinct(logicalOperator);
+    } break;
+    case LogicalOperatorType::DROP_SEQUENCE: {
+        physicalOperator = mapDropSequence(logicalOperator);
+    } break;
+    case LogicalOperatorType::DROP_TABLE: {
+        physicalOperator = mapDropTable(logicalOperator);
+    } break;
+    case LogicalOperatorType::DUMMY_SCAN: {
+        physicalOperator = mapDummyScan(logicalOperator);
     } break;
     case LogicalOperatorType::EXPLAIN: {
         physicalOperator = mapExplain(logicalOperator);
     } break;
     case LogicalOperatorType::EXPRESSIONS_SCAN: {
         physicalOperator = mapExpressionsScan(logicalOperator);
-    } break;
-    case LogicalOperatorType::CREATE_MACRO: {
-        physicalOperator = mapCreateMacro(logicalOperator);
-    } break;
-    case LogicalOperatorType::TRANSACTION: {
-        physicalOperator = mapTransaction(logicalOperator);
     } break;
     case LogicalOperatorType::EXTENSION: {
         physicalOperator = mapExtension(logicalOperator);
@@ -178,11 +154,32 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::IMPORT_DATABASE: {
         physicalOperator = mapImportDatabase(logicalOperator);
     } break;
-    case LogicalOperatorType::ATTACH_DATABASE: {
-        physicalOperator = mapAttachDatabase(logicalOperator);
+    case LogicalOperatorType::INSERT: {
+        physicalOperator = mapInsert(logicalOperator);
     } break;
-    case LogicalOperatorType::DETACH_DATABASE: {
-        physicalOperator = mapDetachDatabase(logicalOperator);
+    case LogicalOperatorType::MARK_ACCUMULATE: {
+        physicalOperator = mapMarkAccumulate(logicalOperator);
+    } break;
+    case LogicalOperatorType::ORDER_BY: {
+        physicalOperator = mapOrderBy(logicalOperator);
+    } break;
+    case LogicalOperatorType::PARTITIONER: {
+        physicalOperator = mapPartitioner(logicalOperator);
+    } break;
+    case LogicalOperatorType::SET_PROPERTY: {
+        physicalOperator = mapSetProperty(logicalOperator);
+    } break;
+    case LogicalOperatorType::STANDALONE_CALL: {
+        physicalOperator = mapStandaloneCall(logicalOperator);
+    } break;
+    case LogicalOperatorType::TABLE_FUNCTION_CALL: {
+        physicalOperator = mapTableFunctionCall(logicalOperator);
+    } break;
+    case LogicalOperatorType::TRANSACTION: {
+        physicalOperator = mapTransaction(logicalOperator);
+    } break;
+    case LogicalOperatorType::UNION_ALL: {
+        physicalOperator = mapUnionAll(logicalOperator);
     } break;
     case LogicalOperatorType::USE_DATABASE: {
         physicalOperator = mapUseDatabase(logicalOperator);

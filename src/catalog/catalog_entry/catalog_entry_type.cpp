@@ -29,6 +29,8 @@ std::string CatalogEntryTypeUtils::toString(CatalogEntryType type) {
         return "TABLE_FUNCTION_ENTRY";
     case CatalogEntryType::GDS_FUNCTION_ENTRY:
         return "GDS_FUNCTION_ENTRY";
+    case CatalogEntryType::COPY_FUNCTION_ENTRY:
+        return "COPY_FUNCTION_ENTRY";
     case CatalogEntryType::DUMMY_ENTRY:
         return "DUMMY_ENTRY";
     case CatalogEntryType::SEQUENCE_ENTRY:

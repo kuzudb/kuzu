@@ -13,11 +13,11 @@ struct CastFunctionBindData : public FunctionBindData {
     // TODO(Mahn): the following field should be removed once we refactor fixed list.
     uint64_t numOfEntries;
 
-    explicit CastFunctionBindData(std::unique_ptr<common::LogicalType> dataType)
+    explicit CastFunctionBindData(common::LogicalType dataType)
         : FunctionBindData{std::move(dataType)} {}
 
     inline std::unique_ptr<FunctionBindData> copy() const override {
-        auto result = std::make_unique<CastFunctionBindData>(resultType->copy());
+        auto result = std::make_unique<CastFunctionBindData>(resultType.copy());
         result->numOfEntries = numOfEntries;
         result->option = option.copy();
         return result;

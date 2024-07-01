@@ -30,7 +30,6 @@ protected:
     virtual void visitExportDatabase(const BoundStatement&) {}
     virtual void visitImportDatabase(const BoundStatement&) {}
     virtual void visitStandaloneCall(const BoundStatement&) {}
-    virtual void visitCommentOn(const BoundStatement&) {}
     virtual void visitExplain(const BoundStatement&);
     virtual void visitCreateMacro(const BoundStatement&) {}
     virtual void visitTransaction(const BoundStatement&) {}

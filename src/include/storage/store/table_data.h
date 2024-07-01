@@ -8,6 +8,9 @@ namespace catalog {
 class TableCatalogEntry;
 class Property;
 } // namespace catalog
+namespace evaluator {
+class ExpressionEvaluator;
+} // namespace evaluator
 
 namespace storage {
 struct TableScanState;
@@ -17,6 +20,9 @@ template<typename T>
 class DiskArray;
 
 struct TableDataScanState {
+    std::vector<common::column_id_t> columnIDs;
+    std::vector<Column::ChunkState> chunkStates;
+
     explicit TableDataScanState(const std::vector<common::column_id_t>& columnIDs)
         : columnIDs{columnIDs} {
         chunkStates.resize(this->columnIDs.size());
@@ -24,8 +30,13 @@ struct TableDataScanState {
     virtual ~TableDataScanState() = default;
     DELETE_COPY_DEFAULT_MOVE(TableDataScanState);
 
-    std::vector<common::column_id_t> columnIDs;
-    std::vector<Column::ChunkState> chunkStates;
+    // TODO(Guodong): If we reset the state, we should be able to use the same object to scan
+    // different table. This should simplify the multi-label scan.
+    virtual void resetState() {
+        for (auto& state : chunkStates) {
+            state.resetState();
+        }
+    }
 
     template<class TARGET>
     TARGET& cast() {
@@ -52,7 +63,7 @@ public:
     void dropColumn(common::column_id_t columnID) { columns.erase(columns.begin() + columnID); }
     void addColumn(transaction::Transaction* transaction, const std::string& colNamePrefix,
         DiskArray<ColumnChunkMetadata>* metadataDA, const MetadataDAHInfo& metadataDahInfo,
-        const catalog::Property& property, common::ValueVector* defaultValueVector);
+        const catalog::Property& property, evaluator::ExpressionEvaluator& defaultEvaluator);
 
     common::idx_t getNumColumns() const { return columns.size(); }
     Column* getColumn(common::column_id_t columnID) const {

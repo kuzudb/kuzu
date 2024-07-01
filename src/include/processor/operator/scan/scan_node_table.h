@@ -9,9 +9,10 @@ namespace processor {
 
 class ScanNodeTableSharedState {
 public:
-    ScanNodeTableSharedState()
+    explicit ScanNodeTableSharedState(std::unique_ptr<NodeVectorLevelSemiMask> semiMask)
         : table{nullptr}, currentCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX},
-          currentUnCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX}, numCommittedNodeGroups{0} {};
+          currentUnCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX}, numCommittedNodeGroups{0},
+          semiMask{std::move(semiMask)} {};
 
     void initialize(transaction::Transaction* transaction, storage::NodeTable* table);
 
@@ -21,6 +22,8 @@ public:
         return table;
     }
 
+    NodeSemiMask* getSemiMask() const { return semiMask.get(); }
+
 private:
     std::mutex mtx;
     storage::NodeTable* table;
@@ -28,6 +31,7 @@ private:
     common::node_group_idx_t currentUnCommittedGroupIdx;
     common::node_group_idx_t numCommittedNodeGroups;
     std::vector<storage::LocalNodeGroup*> localNodeGroups;
+    std::unique_ptr<NodeVectorLevelSemiMask> semiMask;
 };
 
 struct ScanNodeTableInfo {
@@ -43,7 +47,7 @@ struct ScanNodeTableInfo {
           columnPredicates{std::move(columnPredicates)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ScanNodeTableInfo);
 
-    void initScanState();
+    void initScanState(NodeSemiMask* semiMask);
 
 private:
     ScanNodeTableInfo(const ScanNodeTableInfo& other)
@@ -57,11 +61,13 @@ class ScanNodeTable final : public ScanTable {
 public:
     ScanNodeTable(ScanTableInfo info, std::vector<ScanNodeTableInfo> nodeInfos,
         std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates, uint32_t id,
-        const std::string& paramsString)
-        : ScanTable{type_, std::move(info), id, paramsString}, currentTableIdx{0},
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : ScanTable{type_, std::move(info), id, std::move(printInfo)}, currentTableIdx{0},
           nodeInfos{std::move(nodeInfos)}, sharedStates{std::move(sharedStates)} {
         KU_ASSERT(this->nodeInfos.size() == this->sharedStates.size());
     }
+
+    std::vector<NodeSemiMask*> getSemiMasks();
 
     bool isSource() const override { return true; }
 

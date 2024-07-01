@@ -1,4 +1,7 @@
+/*
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
+#include "common/types/internal_id_util.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds_function.h"
 #include "graph/graph.h"
@@ -10,6 +13,7 @@ using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::processor;
 using namespace kuzu::storage;
+using namespace kuzu::graph;
 
 namespace kuzu {
 namespace function {
@@ -20,8 +24,8 @@ public:
 
     void init(main::ClientContext* context) override {
         auto mm = context->getMemoryManager();
-        nodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
-        groupVector = std::make_unique<ValueVector>(*LogicalType::INT64(), mm);
+        nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
+        groupVector = std::make_unique<ValueVector>(LogicalType::INT64(), mm);
         nodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
         groupVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(nodeIDVector.get());
@@ -29,12 +33,15 @@ public:
         nbrScanState = std::make_unique<graph::NbrScanState>(mm);
     }
 
-    void materialize(graph::Graph* graph, const std::vector<int64_t>& groupArray,
+    void materialize(graph::Graph* graph, const common::node_id_map_t<int64_t>& visitedMap,
         FactorizedTable& table) const {
-        for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
-            nodeIDVector->setValue<nodeID_t>(0, {offset, graph->getNodeTableID()});
-            groupVector->setValue<int64_t>(0, groupArray[offset]);
-            table.append(vectors);
+        for (auto tableID : graph->getNodeTableIDs()) {
+            for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
+                auto nodeID = nodeID_t{offset, tableID};
+                nodeIDVector->setValue<nodeID_t>(0, nodeID);
+                groupVector->setValue<int64_t>(0, visitedMap.at(nodeID));
+                table.append(vectors);
+            }
         }
     }
 
@@ -49,30 +56,44 @@ private:
 };
 
 class WeaklyConnectedComponent final : public GDSAlgorithm {
+    static constexpr char GROUP_ID_COLUMN_NAME[] = "group_id";
+
 public:
     WeaklyConnectedComponent() = default;
     WeaklyConnectedComponent(const WeaklyConnectedComponent& other) : GDSAlgorithm{other} {}
 
-    /*
+    */
+/*
      * Inputs are
      *
      * graph::ANY
-     */
+     * outputProperty::BOOL
+     *//*
+
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return std::vector<LogicalTypeID>{LogicalTypeID::ANY};
+        return std::vector<LogicalTypeID>{LogicalTypeID::ANY, LogicalTypeID::BOOL};
     }
 
-    /*
+    */
+/*
      * Outputs are
      *
-     * node_id::INTERNAL_ID
+     * _node._id::INTERNAL_ID
      * group_id::INT64
-     */
+     *//*
+
     binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
-        columns.push_back(binder->createVariable("node_id", *LogicalType::INTERNAL_ID()));
-        columns.push_back(binder->createVariable("group_id", *LogicalType::INT64()));
+        auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
+        columns.push_back(outputNode.getInternalID());
+        columns.push_back(binder->createVariable(GROUP_ID_COLUMN_NAME, LogicalType::INT64()));
         return columns;
+    }
+
+    void bind(const expression_vector& params, Binder* binder, GraphEntry& graphEntry) override {
+        auto nodeOutput = bindNodeOutput(binder, graphEntry);
+        auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[1]);
+        bindData = std::make_unique<GDSBindData>(nodeOutput, outputProperty);
     }
 
     void initLocalState(main::ClientContext* context) override {
@@ -80,23 +101,25 @@ public:
         localState->init(context);
     }
 
+<<<<<<< HEAD
     void exec(ExecutionContext *) override {
+=======
+    void exec(processor::ExecutionContext*) override {
+>>>>>>> master
         auto wccLocalState = localState->ptrCast<WeaklyConnectedComponentLocalState>();
         auto graph = sharedState->graph.get();
-        visitedArray.resize(graph->getNumNodes());
-        groupArray.resize(graph->getNumNodes());
-        for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
-            visitedArray[offset] = false;
-            groupArray[offset] = -1;
-        }
+        visitedMap.clear();
         auto groupID = 0;
-        for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
-            if (visitedArray[offset]) {
-                continue;
+        for (auto tableID : graph->getNodeTableIDs()) {
+            for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
+                auto nodeID = nodeID_t{offset, tableID};
+                if (visitedMap.contains(nodeID)) {
+                    continue;
+                }
+                findConnectedComponent(nodeID, groupID++);
             }
-            findConnectedComponent(offset, groupID++);
         }
-        wccLocalState->materialize(graph, groupArray, *sharedState->fTable);
+        wccLocalState->materialize(graph, visitedMap, *sharedState->fTable);
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
@@ -104,21 +127,27 @@ public:
     }
 
 private:
+<<<<<<< HEAD
     void findConnectedComponent(common::offset_t offset, int64_t groupID) {
         visitedArray[offset] = true;
         groupArray[offset] = groupID;
         auto nbrs = sharedState->graph->getNbrs(offset, localState->nbrScanState.get());
+=======
+    void findConnectedComponent(common::nodeID_t nodeID, int64_t groupID) {
+        KU_ASSERT(!visitedMap.contains(nodeID));
+        visitedMap.insert({nodeID, groupID});
+        auto nbrs = sharedState->graph->scanFwd(nodeID);
+>>>>>>> master
         for (auto nbr : nbrs) {
-            if (visitedArray[nbr.offset]) {
+            if (visitedMap.contains(nbr)) {
                 continue;
             }
-            findConnectedComponent(nbr.offset, groupID);
+            findConnectedComponent(nbr, groupID);
         }
     }
 
 private:
-    std::vector<bool> visitedArray;
-    std::vector<int64_t> groupArray;
+    common::node_id_map_t<int64_t> visitedMap;
 };
 
 function_set WeaklyConnectedComponentsFunction::getFunctionSet() {
@@ -131,3 +160,4 @@ function_set WeaklyConnectedComponentsFunction::getFunctionSet() {
 
 } // namespace function
 } // namespace kuzu
+*/

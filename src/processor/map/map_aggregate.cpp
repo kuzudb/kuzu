@@ -45,8 +45,9 @@ static std::vector<AggregateInfo> getAggregateInputInfos(const expression_vector
             }
         }
         auto aggExpr = expression->constPtrCast<AggregateFunctionExpression>();
-        auto distinctAggKeyType =
-            aggExpr->isDistinct() ? expression->getChild(0)->getDataType() : *LogicalType::ANY();
+        auto distinctAggKeyType = aggExpr->isDistinct() ?
+                                      expression->getChild(0)->getDataType().copy() :
+                                      LogicalType::ANY();
         result.emplace_back(aggregateVectorPos, std::move(multiplicityChunksPos),
             std::move(distinctAggKeyType));
     }
@@ -75,26 +76,26 @@ static std::vector<std::unique_ptr<AggregateFunction>> getAggFunctions(
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(LogicalOperator* logicalOperator) {
-    auto agg = logicalOperator->constPtrCast<LogicalAggregate>();
-    auto aggregates = agg->getAggregates();
-    auto outSchema = agg->getSchema();
-    auto child = agg->getChild(0).get();
+    auto& agg = logicalOperator->cast<LogicalAggregate>();
+    auto aggregates = agg.getAggregates();
+    auto outSchema = agg.getSchema();
+    auto child = agg.getChild(0).get();
     auto inSchema = child->getSchema();
     auto prevOperator = mapOperator(child);
-    auto paramsString = agg->getExpressionsForPrinting();
-    if (agg->hasKeys()) {
-        return createHashAggregate(agg->getKeys(), agg->getDependentKeys(), aggregates,
-            nullptr /* mark */, inSchema, outSchema, std::move(prevOperator), paramsString);
+    if (agg.hasKeys()) {
+        return createHashAggregate(agg.getKeys(), agg.getDependentKeys(), aggregates,
+            nullptr /* mark */, inSchema, outSchema, std::move(prevOperator));
     }
     auto aggFunctions = getAggFunctions(aggregates);
     auto aggOutputPos = getDataPos(aggregates, *outSchema);
-    auto aggregateInputInfos = getAggregateInputInfos(agg->getAllKeys(), aggregates, *inSchema);
+    auto aggregateInputInfos = getAggregateInputInfos(agg.getAllKeys(), aggregates, *inSchema);
     auto sharedState = make_shared<SimpleAggregateSharedState>(aggFunctions);
+    auto printInfo = std::make_unique<SimpleAggregatePrintInfo>(aggregates);
     auto aggregate = make_unique<SimpleAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
         sharedState, std::move(aggFunctions), std::move(aggregateInputInfos),
-        std::move(prevOperator), getOperatorID(), paramsString);
+        std::move(prevOperator), getOperatorID(), printInfo->copy());
     return make_unique<SimpleAggregateScan>(sharedState, aggOutputPos, std::move(aggregate),
-        getOperatorID(), paramsString);
+        getOperatorID(), printInfo->copy());
 }
 
 static FactorizedTableSchema getFactorizedTableSchema(const expression_vector& flatKeys,
@@ -130,18 +131,17 @@ static FactorizedTableSchema getFactorizedTableSchema(const expression_vector& f
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createDistinctHashAggregate(
     const expression_vector& keys, const expression_vector& payloads, Schema* inSchema,
-    Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator,
-    const std::string& paramsString) {
+    Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator) {
     return createHashAggregate(keys, payloads, expression_vector{} /* aggregates */,
-        nullptr /* mark */, inSchema, outSchema, std::move(prevOperator), paramsString);
+        nullptr /* mark */, inSchema, outSchema, std::move(prevOperator));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createMarkDistinctHashAggregate(
     const expression_vector& keys, const expression_vector& payloads,
     std::shared_ptr<binder::Expression> mark, Schema* inSchema, Schema* outSchema,
-    std::unique_ptr<PhysicalOperator> prevOperator, const std::string& paramsString) {
+    std::unique_ptr<PhysicalOperator> prevOperator) {
     return createHashAggregate(keys, payloads, expression_vector{} /* aggregates */,
-        std::move(mark), inSchema, outSchema, std::move(prevOperator), paramsString);
+        std::move(mark), inSchema, outSchema, std::move(prevOperator));
 }
 
 // Payloads are also group by keys except that they are functional dependent on keys so we don't
@@ -149,7 +149,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createMarkDistinctHashAggregate(
 std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(const expression_vector& keys,
     const expression_vector& payloads, const expression_vector& aggregates,
     std::shared_ptr<binder::Expression> mark, Schema* inSchema, Schema* outSchema,
-    std::unique_ptr<PhysicalOperator> prevOperator, const std::string& paramsString) {
+    std::unique_ptr<PhysicalOperator> prevOperator) {
     // Create hash aggregate
     auto aggFunctions = getAggFunctions(aggregates);
     expression_vector allKeys;
@@ -165,9 +165,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(const expressi
     HashAggregateInfo aggregateInfo{getDataPos(flatKeys, *inSchema),
         getDataPos(unFlatKeys, *inSchema), getDataPos(payloads, *inSchema), std::move(tableSchema),
         hashTableType};
-    auto aggregate = make_unique<HashAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
-        sharedState, std::move(aggregateInfo), std::move(aggFunctions),
-        std::move(aggregateInputInfos), std::move(prevOperator), getOperatorID(), paramsString);
+    auto printInfo = std::make_unique<HashAggregatePrintInfo>(allKeys, aggregates);
+    auto aggregate =
+        make_unique<HashAggregate>(std::make_unique<ResultSetDescriptor>(inSchema), sharedState,
+            std::move(aggregateInfo), std::move(aggFunctions), std::move(aggregateInputInfos),
+            std::move(prevOperator), getOperatorID(), printInfo->copy());
     // Create AggScan.
     expression_vector outputExpressions;
     outputExpressions.insert(outputExpressions.end(), flatKeys.begin(), flatKeys.end());
@@ -179,7 +181,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(const expressi
     auto aggOutputPos = getDataPos(aggregates, *outSchema);
     return std::make_unique<HashAggregateScan>(sharedState,
         getDataPos(outputExpressions, *outSchema), std::move(aggOutputPos), std::move(aggregate),
-        getOperatorID(), paramsString);
+        getOperatorID(), printInfo->copy());
 }
 
 } // namespace processor

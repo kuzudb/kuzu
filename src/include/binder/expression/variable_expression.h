@@ -19,7 +19,7 @@ public:
     std::string toStringInternal() const final { return variableName; }
 
     std::unique_ptr<Expression> copy() const final {
-        return std::make_unique<VariableExpression>(*dataType.copy(), uniqueName, variableName);
+        return std::make_unique<VariableExpression>(dataType.copy(), uniqueName, variableName);
     }
 
 private:

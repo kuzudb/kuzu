@@ -1,6 +1,6 @@
 # required for tests
 networkx~=3.0
-numpy
+numpy~=1.26
 pandas
 polars
 pyarrow>=15

@@ -20,14 +20,14 @@ std::shared_ptr<Expression> ExpressionBinder::bindCaseExpression(
         auto alternative = parsedCaseExpression.getCaseAlternative(i);
         auto boundThen = bindExpression(*alternative->thenExpression);
         if (boundThen->getDataType().getLogicalTypeID() != LogicalTypeID::ANY) {
-            resultType = boundThen->getDataType();
+            resultType = boundThen->getDataType().copy();
         }
     }
     // Resolve result type by else expression if above resolving fails.
     if (resultType.getLogicalTypeID() == LogicalTypeID::ANY &&
         parsedCaseExpression.hasElseExpression()) {
         auto elseExpression = bindExpression(*parsedCaseExpression.getElseExpression());
-        resultType = elseExpression->getDataType();
+        resultType = elseExpression->getDataType().copy();
     }
     auto name = binder->getUniqueExpressionName(parsedExpression.getRawName());
     // bind ELSE ...
@@ -39,7 +39,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindCaseExpression(
     }
     elseExpression = implicitCastIfNecessary(elseExpression, resultType);
     auto boundCaseExpression =
-        make_shared<CaseExpression>(resultType, std::move(elseExpression), name);
+        make_shared<CaseExpression>(resultType.copy(), std::move(elseExpression), name);
     // bind WHEN ... THEN ...
     if (parsedCaseExpression.hasCaseExpression()) {
         auto boundCase = bindExpression(*parsedCaseExpression.getCaseExpression());
@@ -58,7 +58,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindCaseExpression(
         for (auto i = 0u; i < parsedCaseExpression.getNumCaseAlternative(); ++i) {
             auto caseAlternative = parsedCaseExpression.getCaseAlternative(i);
             auto boundWhen = bindExpression(*caseAlternative->whenExpression);
-            boundWhen = implicitCastIfNecessary(boundWhen, *LogicalType::BOOL());
+            boundWhen = implicitCastIfNecessary(boundWhen, LogicalType::BOOL());
             auto boundThen = bindExpression(*caseAlternative->thenExpression);
             boundThen = implicitCastIfNecessary(boundThen, resultType);
             boundCaseExpression->addCaseAlternative(boundWhen, boundThen);

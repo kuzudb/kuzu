@@ -60,7 +60,9 @@ std::shared_ptr<FactorizedTable> FactorizedTableUtils::getFactorizedTableForOutp
 
 std::shared_ptr<FactorizedTable> FactorizedTableUtils::getSingleStringColumnFTable(
     MemoryManager* mm) {
-    auto fTableSchema = createFlatTableSchema(std::vector<LogicalType>{*LogicalType::STRING()});
+    std::vector<LogicalType> typeVec;
+    typeVec.push_back(LogicalType::STRING());
+    auto fTableSchema = createFlatTableSchema(std::move(typeVec));
     return std::make_shared<FactorizedTable>(mm, std::move(fTableSchema));
 }
 

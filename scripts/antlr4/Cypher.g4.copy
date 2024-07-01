@@ -110,7 +110,7 @@ kU_CreateRdfGraph
     : CREATE SP RDFGRAPH SP (kU_IfNotExists SP)? oC_SchemaName ;
 
 kU_CreateSequence
-    : CREATE SP SEQUENCE SP oC_SchemaName (SP kU_SequenceOptions)* ;
+    : CREATE SP SEQUENCE SP (kU_IfNotExists SP)? oC_SchemaName (SP kU_SequenceOptions)* ;
 
 kU_CreateType
     : CREATE SP TYPE SP oC_SchemaName SP AS SP kU_DataType SP? ;
@@ -277,7 +277,16 @@ kU_GraphProjectionColumnItem
     : oC_PropertyKeyName ( SP kU_Default )? ( SP oC_Where )? ;
 
 oC_Match
-    : ( OPTIONAL SP )? MATCH SP? oC_Pattern ( SP oC_Where )? ;
+    : ( OPTIONAL SP )? MATCH SP? oC_Pattern ( SP oC_Where )? ( SP kU_Hint )? ;
+
+kU_Hint
+    : HINT SP kU_JoinNode;
+
+kU_JoinNode
+    :  kU_JoinNode SP JOIN SP kU_JoinNode
+        | kU_JoinNode ( SP MULTI_JOIN SP oC_SchemaName)+
+        | '(' SP? kU_JoinNode SP? ')'
+        | oC_SchemaName ;
 
 oC_Unwind : UNWIND SP? oC_Expression SP AS SP oC_Variable ;
 
@@ -389,7 +398,7 @@ oC_RangeLiteral
     :  '*' SP? ( SHORTEST | ALL SP SHORTEST )? SP? (oC_LowerBound? SP? '..' SP? oC_UpperBound? | oC_IntegerLiteral)? (SP? kU_RecursiveRelationshipComprehension)? ;
 
 kU_RecursiveRelationshipComprehension
-    : '(' SP? oC_Variable SP? ',' SP? oC_Variable ( SP? '|' SP? oC_Where )? ( SP? '|' SP? kU_IntermediateRelProjectionItems SP? ',' SP? kU_IntermediateNodeProjectionItems SP? )? ')' ;
+    : '(' SP? oC_Variable SP? ',' SP? oC_Variable ( SP? '|' SP? oC_Where SP? )? ( SP? '|' SP? kU_IntermediateRelProjectionItems SP? ',' SP? kU_IntermediateNodeProjectionItems SP? )? ')' ;
 
 kU_IntermediateNodeProjectionItems
     : '{' SP? oC_ProjectionItems? SP? '}' ;

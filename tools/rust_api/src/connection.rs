@@ -185,9 +185,6 @@ impl<'a> Connection<'a> {
 mod tests {
     use crate::{Connection, Database, SystemConfig, Value};
     use anyhow::{Error, Result};
-    // Note: Cargo runs tests in parallel by default, however kuzu does not support
-    // working with multiple databases in parallel.
-    // Tests can be run serially with `cargo test -- --test-threads=1` to work around this.
 
     #[test]
     fn test_connection_threads() -> Result<()> {

@@ -6,7 +6,7 @@
 #include "storage/compression/compression.h"
 #include "storage/store/column.h"
 #include "storage/store/null_column.h"
-#include "storage/store/string_column_chunk.h"
+#include "storage/store/string_chunk_data.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
@@ -29,22 +29,20 @@ StringColumn::StringColumn(std::string name, LogicalType dataType,
 
     auto indexColumnName =
         StorageUtils::getColumnName(name, StorageUtils::ColumnType::INDEX, "index");
-    indexColumn = std::make_unique<Column>(indexColumnName, *LogicalType::UINT32(),
+    indexColumn = std::make_unique<Column>(indexColumnName, LogicalType::UINT32(),
         *metaDAHeaderInfo.childrenInfos[2], dataFH, metadataDAC, bufferManager, wal, transaction,
         enableCompression, false /*requireNullColumn*/);
 }
 
 Column::ChunkState& StringColumn::getChildState(ChunkState& state, ChildStateIndex child) {
     const auto childIdx = static_cast<common::idx_t>(child);
-    KU_ASSERT(state.childrenStates.size() > childIdx);
-    return state.childrenStates[childIdx];
+    return state.getChildState(childIdx);
 }
 
 const Column::ChunkState& StringColumn::getChildState(const ChunkState& state,
     ChildStateIndex child) {
     const auto childIdx = static_cast<common::idx_t>(child);
-    KU_ASSERT(state.childrenStates.size() > childIdx);
-    return state.childrenStates[childIdx];
+    return state.getChildState(childIdx);
 }
 
 void StringColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -70,12 +68,8 @@ void StringColumn::scan(Transaction* transaction, const ChunkState& state,
 void StringColumn::scan(Transaction* transaction, const ChunkState& state,
     ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
     KU_ASSERT(state.nullState);
-    nullColumn->scan(transaction, *state.nullState, columnChunk->getNullChunk(), startOffset,
-        endOffset);
-    const size_t numValuesToScan =
-        getNumValuesFromDisk(metadataDA.get(), transaction, state, startOffset, endOffset);
-    columnChunk->setNumValues(numValuesToScan);
-    if (numValuesToScan == 0) {
+    Column::scan(transaction, state, columnChunk, startOffset, endOffset);
+    if (columnChunk->getNumValues() == 0) {
         return;
     }
 
@@ -279,7 +273,7 @@ bool StringColumn::canIndexCommitInPlace(const ChunkState& state, uint64_t numSt
         getChildState(state, ChildStateIndex::OFFSET).metadata.numValues + numStrings;
     // Check if the index column can store the largest new index in-place
     if (!indexState.metadata.compMeta.canUpdateInPlace((const uint8_t*)&totalStringsAfterUpdate,
-            0 /*pos*/, PhysicalTypeID::UINT32)) {
+            0 /*pos*/, 1 /*numValues*/, PhysicalTypeID::UINT32)) {
         return false;
     }
     return true;

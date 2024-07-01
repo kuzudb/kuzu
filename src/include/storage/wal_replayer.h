@@ -11,6 +11,7 @@ namespace storage {
 
 class StorageManager;
 class BufferManager;
+class BMFileHandle;
 enum class WALReplayMode : uint8_t { COMMIT_CHECKPOINT, ROLLBACK, RECOVERY_CHECKPOINT };
 
 class WALReplayer {
@@ -29,7 +30,9 @@ private:
     void replayTableStatisticsRecord(const WALRecord& walRecord);
     void replayCreateCatalogEntryRecord(const WALRecord& walRecord);
     void replayDropCatalogEntryRecord(const WALRecord& walRecord);
+    void replayAlterTableEntryRecord(const WALRecord& walRecord);
     void replayCopyTableRecord(const WALRecord& walRecord) const;
+    void replayUpdateSequenceRecord(const WALRecord& walRecord);
 
     void checkpointOrRollbackVersionedFileHandleAndBufferManager(const WALRecord& walRecord,
         const DBFileID& dbFileID);

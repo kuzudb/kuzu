@@ -45,7 +45,10 @@ void Planner::planMatchClause(const BoundReadingClause& readingClause,
     switch (boundMatchClause.getMatchClauseType()) {
     case MatchClauseType::MATCH: {
         if (plans.size() == 1 && plans[0]->isEmpty()) {
-            plans = enumerateQueryGraphCollection(*queryGraphCollection, predicates);
+            auto info = QueryGraphPlanningInfo();
+            info.predicates = predicates;
+            info.hint = boundMatchClause.getHint();
+            plans = enumerateQueryGraphCollection(*queryGraphCollection, info);
         } else {
             for (auto& plan : plans) {
                 planRegularMatch(*queryGraphCollection, predicates, *plan);

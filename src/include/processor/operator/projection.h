@@ -7,12 +7,15 @@ namespace kuzu {
 namespace processor {
 
 class Projection : public PhysicalOperator {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::PROJECTION;
+
 public:
     Projection(std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> expressionEvaluators,
         std::vector<DataPos> expressionsOutputPos,
         std::unordered_set<uint32_t> discardedDataChunksPos,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator(PhysicalOperatorType::PROJECTION, std::move(child), id, paramsString),
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator(type_, std::move(child), id, std::move(printInfo)),
           expressionEvaluators(std::move(expressionEvaluators)),
           expressionsOutputPos{std::move(expressionsOutputPos)},
           discardedDataChunksPos{std::move(discardedDataChunksPos)}, prevMultiplicity{1} {}
@@ -24,9 +27,9 @@ public:
     std::unique_ptr<PhysicalOperator> clone() override;
 
 private:
-    inline void saveMultiplicity() { prevMultiplicity = resultSet->multiplicity; }
+    void saveMultiplicity() { prevMultiplicity = resultSet->multiplicity; }
 
-    inline void restoreMultiplicity() { resultSet->multiplicity = prevMultiplicity; }
+    void restoreMultiplicity() { resultSet->multiplicity = prevMultiplicity; }
 
 private:
     std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> expressionEvaluators;

@@ -67,14 +67,14 @@ void AggregateHashTable::merge(AggregateHashTable& other) {
     std::vector<std::unique_ptr<ValueVector>> hashKeyVectors(keyTypes.size());
     std::vector<std::unique_ptr<ValueVector>> nonHashKeyVectors(groupByNonHashVectors.size());
     for (auto i = 0u; i < keyTypes.size(); i++) {
-        auto hashKeyVec = std::make_unique<ValueVector>(keyTypes[i], &memoryManager);
+        auto hashKeyVec = std::make_unique<ValueVector>(keyTypes[i].copy(), &memoryManager);
         hashKeyVec->state = vectorsToScanState;
         vectorsToScan[i] = hashKeyVec.get();
         groupByHashVectors[i] = hashKeyVec.get();
         hashKeyVectors[i] = std::move(hashKeyVec);
     }
     for (auto i = 0u; i < payloadTypes.size(); i++) {
-        auto nonHashKeyVec = std::make_unique<ValueVector>(payloadTypes[i], &memoryManager);
+        auto nonHashKeyVec = std::make_unique<ValueVector>(payloadTypes[i].copy(), &memoryManager);
         nonHashKeyVec->state = vectorsToScanState;
         vectorsToScan[i + keyTypes.size()] = nonHashKeyVec.get();
         groupByNonHashVectors[i] = nonHashKeyVec.get();
@@ -727,13 +727,13 @@ std::unique_ptr<AggregateHashTable> AggregateHashTableUtils::createDistinctHashT
     auto i = 0u;
     // Group by key columns
     for (; i < groupByKeyTypes.size(); i++) {
-        hashKeyTypes[i] = groupByKeyTypes[i];
+        hashKeyTypes[i] = groupByKeyTypes[i].copy();
         auto size = LogicalTypeUtils::getRowLayoutSize(hashKeyTypes[i]);
         auto columnSchema = ColumnSchema(false /* isUnFlat */, 0 /* groupID */, size);
         tableSchema.appendColumn(std::move(columnSchema));
     }
     // Distinct key column
-    hashKeyTypes[i] = distinctKeyType;
+    hashKeyTypes[i] = distinctKeyType.copy();
     auto columnSchema = ColumnSchema(false /* isUnFlat */, 0 /* groupID */,
         LogicalTypeUtils::getRowLayoutSize(distinctKeyType));
     tableSchema.appendColumn(std::move(columnSchema));

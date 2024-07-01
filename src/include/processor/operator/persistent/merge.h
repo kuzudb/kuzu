@@ -8,6 +8,8 @@ namespace kuzu {
 namespace processor {
 
 class Merge : public PhysicalOperator {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::MERGE;
+
 public:
     Merge(const DataPos& existenceMark, const DataPos& distinctMark,
         std::vector<NodeInsertExecutor> nodeInsertExecutors,
@@ -16,8 +18,9 @@ public:
         std::vector<std::unique_ptr<RelSetExecutor>> onCreateRelSetExecutors,
         std::vector<std::unique_ptr<NodeSetExecutor>> onMatchNodeSetExecutors,
         std::vector<std::unique_ptr<RelSetExecutor>> onMatchRelSetExecutors,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::MERGE, std::move(child), id, paramsString},
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           existenceMark{existenceMark}, distinctMark{distinctMark},
           nodeInsertExecutors{std::move(nodeInsertExecutors)},
           relInsertExecutors{std::move(relInsertExecutors)},

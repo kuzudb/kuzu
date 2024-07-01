@@ -5,6 +5,9 @@
 #include "storage/store/table.h"
 
 namespace kuzu {
+namespace evaluator {
+class ExpressionEvaluator;
+} // namespace evaluator
 namespace storage {
 
 struct RelTableScanState final : TableScanState {
@@ -82,6 +85,8 @@ public:
         MemoryManager* memoryManager, catalog::RelTableCatalogEntry* relTableEntry, WAL* wal,
         bool enableCompression);
 
+    common::table_id_t getToNodeTableID() const { return toNodeTableID; }
+
     void initializeScanState(transaction::Transaction* transaction,
         TableScanState& scanState) const override;
 
@@ -89,7 +94,7 @@ public:
 
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
-    void delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
+    bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
 
     void detachDelete(transaction::Transaction* transaction, common::RelDataDirection direction,
         common::ValueVector* srcNodeIDVector, RelDetachDeleteState* deleteState);
@@ -97,7 +102,7 @@ public:
         common::RelDataDirection direction, common::ValueVector* srcNodeIDVector);
 
     void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
-        common::ValueVector* defaultValueVector) override;
+        evaluator::ExpressionEvaluator& defaultEvaluator) override;
     void dropColumn(common::column_id_t columnID) override {
         fwdRelTableData->dropColumn(columnID);
         bwdRelTableData->dropColumn(columnID);
@@ -156,6 +161,8 @@ private:
         RelDetachDeleteState* deleteState);
 
 private:
+    // Note: Only toNodeTableID is needed for now. Expose fromNodeTableID if needed.
+    common::table_id_t toNodeTableID;
     std::unique_ptr<RelTableData> fwdRelTableData;
     std::unique_ptr<RelTableData> bwdRelTableData;
 };

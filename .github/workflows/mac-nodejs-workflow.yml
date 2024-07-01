@@ -8,7 +8,7 @@ jobs:
   build-mac-nodejs-arm64:
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Create Node.js source distribution
         working-directory: tools/nodejs_api
@@ -31,7 +31,7 @@ jobs:
         working-directory: tools/nodejs_api/
         run: mv package/kuzujs.node kuzujs-darwin-arm64.node
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: mac-nodejs-module-arm64
           path: tools/nodejs_api/kuzujs-darwin-*.node
@@ -43,7 +43,7 @@ jobs:
   build-mac-nodejs-x86_64:
     runs-on: self-hosted-mac-x64
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Create Node.js source distribution
         working-directory: tools/nodejs_api
@@ -66,7 +66,7 @@ jobs:
         working-directory: tools/nodejs_api/
         run: mv package/kuzujs.node kuzujs-darwin-x64.node
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: mac-nodejs-module-x86_64
           path: tools/nodejs_api/kuzujs-darwin-*.node

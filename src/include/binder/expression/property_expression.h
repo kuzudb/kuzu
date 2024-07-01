@@ -31,7 +31,7 @@ public:
           rawVariableName{rawVariableName}, infos{std::move(infos)} {}
 
     PropertyExpression(const PropertyExpression& other)
-        : Expression{common::ExpressionType::PROPERTY, other.dataType, other.uniqueName},
+        : Expression{common::ExpressionType::PROPERTY, other.dataType.copy(), other.uniqueName},
           propertyName{other.propertyName}, uniqueVarName{other.uniqueVarName},
           rawVariableName{other.rawVariableName}, infos{copyMap(other.infos)} {}
 
@@ -45,8 +45,8 @@ public:
     bool isPrimaryKey(common::table_id_t tableID) const;
 
     std::string getPropertyName() const { return propertyName; }
-
     std::string getVariableName() const { return uniqueVarName; }
+    std::string getRawVariableName() const { return rawVariableName; }
 
     // If this property exists for given table.
     bool hasPropertyID(common::table_id_t tableID) const;

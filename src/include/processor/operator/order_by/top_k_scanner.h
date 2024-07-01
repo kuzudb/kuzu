@@ -17,10 +17,13 @@ struct TopKLocalScanState {
 };
 
 class TopKScan : public PhysicalOperator {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::TOP_K_SCAN;
+
 public:
     TopKScan(std::vector<DataPos> outVectorPos, std::shared_ptr<TopKSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::TOP_K_SCAN, std::move(child), id, paramsString},
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           outVectorPos{std::move(outVectorPos)}, localState{std::make_unique<TopKLocalScanState>()},
           sharedState{std::move(sharedState)} {}
 
@@ -34,7 +37,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<TopKScan>(outVectorPos, sharedState, children[0]->clone(), id,
-            paramsString);
+            printInfo->copy());
     }
 
 private:

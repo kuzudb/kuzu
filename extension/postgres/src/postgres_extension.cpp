@@ -1,5 +1,6 @@
 #include "postgres_extension.h"
 
+#include "main/client_context.h"
 #include "main/database.h"
 #include "postgres_storage.h"
 
@@ -8,7 +9,7 @@ namespace postgres_extension {
 
 void PostgresExtension::load(main::ClientContext* context) {
     auto db = context->getDatabase();
-    db->registerStorageExtension("postgres", std::make_unique<PostgresStorageExtension>(db));
+    db->registerStorageExtension(EXTENSION_NAME, std::make_unique<PostgresStorageExtension>(db));
 }
 
 } // namespace postgres_extension

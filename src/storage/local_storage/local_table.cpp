@@ -14,7 +14,7 @@ LocalNodeGroup::LocalNodeGroup(offset_t nodeGroupStartOffset,
     updateChunks.reserve(dataTypes.size());
     for (auto i = 0u; i < dataTypes.size(); i++) {
         std::vector<LogicalType> chunkCollectionTypes;
-        chunkCollectionTypes.push_back(*dataTypes[i].copy());
+        chunkCollectionTypes.push_back(dataTypes[i].copy());
         LocalChunkedGroupCollection localDataChunkCollection(std::move(chunkCollectionTypes));
         updateChunks.push_back(std::move(localDataChunkCollection));
     }

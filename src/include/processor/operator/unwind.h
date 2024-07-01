@@ -8,11 +8,14 @@ namespace kuzu {
 namespace processor {
 
 class Unwind : public PhysicalOperator {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::UNWIND;
+
 public:
     Unwind(DataPos outDataPos, DataPos idPos,
         std::unique_ptr<evaluator::ExpressionEvaluator> expressionEvaluator,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::UNWIND, std::move(child), id, paramsString},
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           outDataPos{outDataPos}, idPos(idPos), expressionEvaluator{std::move(expressionEvaluator)},
           startIndex{0u} {}
 
@@ -22,7 +25,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<Unwind>(outDataPos, idPos, expressionEvaluator->clone(),
-            children[0]->clone(), id, paramsString);
+            children[0]->clone(), id, printInfo->copy());
     }
 
 private:

@@ -40,7 +40,8 @@ struct CallTableFuncBindData : public TableFuncBindData {
           maxOffset{maxOffset} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<CallTableFuncBindData>(columnTypes, columnNames, maxOffset);
+        return std::make_unique<CallTableFuncBindData>(common::LogicalType::copy(columnTypes),
+            columnNames, maxOffset);
     }
 };
 

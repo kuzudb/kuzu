@@ -40,8 +40,8 @@ public:
     binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
         columns.push_back(bindData->nodeInput->constCast<NodeExpression>().getInternalID());
-        columns.push_back(binder->createVariable("dst", *LogicalType::INTERNAL_ID()));
-        columns.push_back(binder->createVariable("length", *LogicalType::INT64()));
+        columns.push_back(binder->createVariable("dst", LogicalType::INTERNAL_ID()));
+        columns.push_back(binder->createVariable("length", LogicalType::INT64()));
         return columns;
     }
 
@@ -49,7 +49,7 @@ public:
         KU_ASSERT(params.size() == 3);
         auto inputNode = params[1];
         ExpressionUtil::validateExpressionType(*params[2], ExpressionType::LITERAL);
-        ExpressionUtil::validateDataType(*params[2], *LogicalType::INT64());
+        ExpressionUtil::validateDataType(*params[2], LogicalType::INT64());
         auto upperBound = params[2]->constCast<LiteralExpression>().getValue().getValue<int64_t>();
         bindData = std::make_unique<ParallelShortestPathBindData>(inputNode, upperBound);
     }
@@ -149,8 +149,9 @@ public:
         auto numNodes = sharedState->graph->getNumNodes();
         auto ifeMorsel = std::make_unique<IFEMorsel>(extraData->upperBound, 1, numNodes - 1,
             common::INVALID_OFFSET);
+        auto& inputMask = sharedState->inputNodeOffsetMasks[0];
         for (auto offset = 0u; offset < numNodes; offset++) {
-            if (!sharedState->inputNodeOffsetMask->isNodeMasked(offset)) {
+            if (!inputMask->isMasked(offset)) {
                 continue;
             }
             ifeMorsel->resetNoLock(offset);

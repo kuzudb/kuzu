@@ -39,12 +39,13 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_
     }
     info.outputType = TableScanOutputType::MULTI_DATA_CHUNK;
     auto sharedState = std::make_shared<TableFunctionCallSharedState>();
+    auto printInfo = std::make_unique<OPPrintInfo>(ExpressionUtil::toString(exprs));
     if (child == nullptr) {
         return std::make_unique<TableFunctionCall>(std::move(info), sharedState, getOperatorID(),
-            ExpressionUtil::toString(exprs));
+            std::move(printInfo));
     }
     return std::make_unique<TableFunctionCall>(std::move(info), sharedState, std::move(child),
-        getOperatorID(), ExpressionUtil::toString(exprs));
+        getOperatorID(), std::move(printInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_vector& exprs,

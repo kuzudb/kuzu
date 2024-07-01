@@ -8,7 +8,7 @@ jobs:
   build-precompiled-bin-x86_64-old:
     runs-on: kuzu-self-hosted-linux-building-x86_64_centos7
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build precompiled binaries
         run: |
@@ -28,12 +28,12 @@ jobs:
           tar -czvf libkuzu-linux-old_abi-x86_64.tar.gz kuzu.h kuzu.hpp libkuzu.so
           tar -czvf kuzu_cli-linux-x86_64.tar.gz kuzu
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: libkuzu-linux-old_abi-x86_64
           path: libkuzu-linux-old_abi-x86_64.tar.gz
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: kuzu_cli-linux-x86_64
           path: kuzu_cli-linux-x86_64.tar.gz
@@ -41,7 +41,7 @@ jobs:
   build-precompiled-bin-x86_64:
     runs-on: kuzu-self-hosted-linux-building-x86_64_centos8
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build precompiled binaries
         run: |
@@ -59,7 +59,7 @@ jobs:
         run: |
           tar -czvf libkuzu-linux-x86_64.tar.gz kuzu.h kuzu.hpp libkuzu.so
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: libkuzu-linux-x86_64
           path: libkuzu-linux-x86_64.tar.gz
@@ -67,7 +67,7 @@ jobs:
   build-precompiled-bin-aarch64:
     runs-on: kuzu-self-hosted-linux-building-aarch64
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build precompiled binaries
         run: |
@@ -86,12 +86,12 @@ jobs:
           tar -czvf libkuzu-linux-aarch64.tar.gz kuzu.h kuzu.hpp libkuzu.so
           tar -czvf kuzu_cli-linux-aarch64.tar.gz kuzu
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: libkuzu-linux-aarch64
           path: libkuzu-linux-aarch64.tar.gz
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: kuzu_cli-linux-aarch64
           path: kuzu_cli-linux-aarch64.tar.gz

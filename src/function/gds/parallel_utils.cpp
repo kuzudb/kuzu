@@ -15,16 +15,18 @@ ParallelUtils::ParallelUtils(uint32_t operatorID_, common::TaskScheduler* schedu
 }
 
 void ParallelUtils::submitParallelTaskAndWait(ParallelUtilsJob& job) {
+    auto printInfo = std::make_unique<OPPrintInfo>("");
     auto parallelUtilsOp = std::make_unique<ParallelUtilsOperator>(std::move(job.gdsLocalState),
-        job.gdsAlgoFunc, job.gdsCallSharedState, operatorID, "");
+        job.gdsAlgoFunc, job.gdsCallSharedState, operatorID, std::move(printInfo));
     auto task = std::make_shared<ProcessorTask>(parallelUtilsOp.get(), job.executionContext);
     task->setSharedStateInitialized();
     taskScheduler->scheduleTaskAndWaitOrError(task, job.executionContext);
 }
 
 std::shared_ptr<ScheduledTask> ParallelUtils::submitTaskAndReturn(ParallelUtilsJob& job) {
+    auto printInfo = std::make_unique<OPPrintInfo>("");
     auto parallelUtilsOp = new ParallelUtilsOperator(std::move(job.gdsLocalState),
-        job.gdsAlgoFunc, job.gdsCallSharedState, operatorID, "");
+        job.gdsAlgoFunc, job.gdsCallSharedState, operatorID, std::move(printInfo));
     auto task = std::make_shared<ProcessorTask>(parallelUtilsOp, job.executionContext);
     if (!job.isParallel) {
         task->setSingleThreadedTask();
@@ -37,8 +39,9 @@ std::vector<std::shared_ptr<ScheduledTask>> ParallelUtils::submitTasksAndReturn(
     std::vector<ParallelUtilsJob>& jobs) {
     std::vector<std::shared_ptr<Task>> tasks;
     for (auto& job : jobs) {
+        auto printInfo = std::make_unique<OPPrintInfo>("");
         auto parallelUtilsOp = new ParallelUtilsOperator(std::move(job.gdsLocalState),
-            job.gdsAlgoFunc, job.gdsCallSharedState, operatorID, "");
+            job.gdsAlgoFunc, job.gdsCallSharedState, operatorID, std::move(printInfo));
         auto task = std::make_shared<ProcessorTask>(parallelUtilsOp, job.executionContext);
         if (!job.isParallel) {
             task->setSingleThreadedTask();

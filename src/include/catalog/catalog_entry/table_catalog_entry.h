@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "binder/ddl/bound_alter_info.h"
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/property.h"
 #include "catalog_entry.h"
@@ -11,11 +12,15 @@
 namespace kuzu {
 namespace binder {
 struct BoundExtraCreateCatalogEntryInfo;
-struct BoundAlterInfo;
 } // namespace binder
+
+namespace transaction {
+class Transaction;
+} // namespace transaction
 
 namespace catalog {
 
+class CatalogSet;
 class KUZU_API TableCatalogEntry : public CatalogEntry {
 public:
     //===--------------------------------------------------------------------===//
@@ -40,6 +45,10 @@ public:
     // TODO(Guodong/Ziyi): This function should be removed. Instead we should use CatalogEntryType.
     virtual common::TableType getTableType() const = 0;
     virtual function::TableFunction getScanFunction() { KU_UNREACHABLE; }
+    binder::BoundAlterInfo* getAlterInfo() const { return alterInfo.get(); }
+    void setAlterInfo(const binder::BoundAlterInfo& alterInfo_) {
+        alterInfo = std::make_unique<binder::BoundAlterInfo>(alterInfo_.copy());
+    }
 
     //===--------------------------------------------------------------------===//
     // properties functions
@@ -52,7 +61,7 @@ public:
     uint32_t getPropertyPos(common::property_id_t propertyID) const;
     virtual common::column_id_t getColumnID(common::property_id_t propertyID) const;
     bool containPropertyType(const common::LogicalType& logicalType) const;
-    void addProperty(std::string propertyName, std::unique_ptr<common::LogicalType> dataType,
+    void addProperty(std::string propertyName, common::LogicalType dataType,
         std::unique_ptr<parser::ParsedExpression> defaultExpr);
     void dropProperty(common::property_id_t propertyID);
     void renameProperty(common::property_id_t propertyID, const std::string& newName);
@@ -80,6 +89,7 @@ protected:
     common::property_id_t nextPID;
     common::column_id_t nextColumnID;
     std::vector<Property> properties;
+    std::unique_ptr<binder::BoundAlterInfo> alterInfo;
 };
 
 } // namespace catalog

@@ -45,3 +45,7 @@ arrow = ["dep:arrow"]
 
 [package.metadata.docs.rs]
 all-features = true
+
+[profile.relwithdebinfo]
+inherits = "release"
+debug = true

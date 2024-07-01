@@ -18,7 +18,7 @@ FileHandle::FileHandle(const std::string& path, uint8_t flags, VirtualFileSystem
     if (!isNewTmpFile()) {
         constructExistingFileHandle(path, vfs, context);
     } else {
-        constructNewFileHandle(path, vfs, context);
+        constructNewFileHandle(path);
     }
 }
 
@@ -39,9 +39,8 @@ void FileHandle::constructExistingFileHandle(const std::string& path, VirtualFil
     }
 }
 
-void FileHandle::constructNewFileHandle(const std::string& path, VirtualFileSystem* vfs,
-    main::ClientContext* context) {
-    fileInfo = vfs->openFile(path, O_CREAT | O_RDWR, context);
+void FileHandle::constructNewFileHandle(const std::string& path) {
+    fileInfo = std::make_unique<FileInfo>(path, nullptr);
     numPages = 0;
     pageCapacity = 0;
 }

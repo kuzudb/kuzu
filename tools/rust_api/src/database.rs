@@ -111,10 +111,6 @@ mod tests {
     use crate::connection::Connection;
     use crate::database::{Database, SystemConfig};
 
-    // Note: Cargo runs tests in parallel by default, however kuzu does not support
-    // working with multiple databases in parallel.
-    // Tests can be run serially with `cargo test -- --test-threads=1` to work around this.
-
     #[test]
     fn create_database() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;

@@ -6,6 +6,7 @@
 #include "common/assert.h"
 #include "common/exception/catalog.h"
 #include "common/string_format.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -140,6 +141,7 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
         createEntry(transaction, std::move(newEntry));
         return;
     }
+    tableEntry->setAlterInfo(alterInfo);
     emplace(std::move(newEntry));
     if (transaction->getStartTS() > 0) {
         KU_ASSERT(transaction->getID() != 0);
@@ -166,6 +168,7 @@ void CatalogSet::serialize(common::Serializer serializer) const {
         case CatalogEntryType::SCALAR_FUNCTION_ENTRY:
         case CatalogEntryType::REWRITE_FUNCTION_ENTRY:
         case CatalogEntryType::AGGREGATE_FUNCTION_ENTRY:
+        case CatalogEntryType::COPY_FUNCTION_ENTRY:
         case CatalogEntryType::TABLE_FUNCTION_ENTRY:
         case CatalogEntryType::GDS_FUNCTION_ENTRY:
             continue;

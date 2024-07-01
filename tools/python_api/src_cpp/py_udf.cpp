@@ -19,6 +19,9 @@ struct PyUDFSignature {
     LogicalType resultType;
 
     PyUDFSignature() : paramTypes(), resultType(LogicalTypeID::ANY) {}
+    PyUDFSignature(const PyUDFSignature& other)
+        : paramTypes(LogicalType::copy(other.paramTypes)), resultType(other.resultType.copy()) {}
+    // copy constructible so it can be captured in a function enclosure
 };
 
 static std::vector<LogicalType> pyListToParams(const py::list& lst) {
@@ -43,14 +46,14 @@ static LogicalType getLogicalTypeNested(const py::handle& ele) {
             throw RuntimeException("List annotations must have exactly one type argument");
         }
         auto getitem = args.attr("__getitem__");
-        return *LogicalType::LIST(getLogicalType(getitem(0)));
+        return LogicalType::LIST(getLogicalType(getitem(0)));
     } else if (origin.is(py::type::of(py::dict()))) {
         auto args = ele.attr("__args__");
         if (py::len(args) != 2) {
             throw RuntimeException("Map annotations must have exactly two type arguments");
         }
         auto getitem = args.attr("__getitem__");
-        return *LogicalType::MAP(getLogicalType(getitem(0)), getLogicalType(getitem(1)));
+        return LogicalType::MAP(getLogicalType(getitem(0)), getLogicalType(getitem(1)));
     } else {
         throw NotImplementedException(
             "Currently Python UDFs only support LIST and MAP return types");
@@ -64,23 +67,23 @@ static LogicalType getLogicalTypeNonNested(const py::handle& ele) {
     auto uuid_val = importCache->uuid.UUID()(py::arg("int") = 0);
     auto inspect_empty = importCache->inspect._empty();
     if (ele.is(py::type::of(py::none())) || ele.is(inspect_empty)) {
-        return *LogicalType::ANY();
+        return LogicalType::ANY();
     } else if (ele.is(py::type::of(py::bool_()))) {
-        return *LogicalType::BOOL();
+        return LogicalType::BOOL();
     } else if (ele.is(py::type::of(py::int_()))) {
-        return *LogicalType::INT64();
+        return LogicalType::INT64();
     } else if (ele.is(py::type::of(py::float_()))) {
-        return *LogicalType::DOUBLE();
+        return LogicalType::DOUBLE();
     } else if (ele.is(py::type::of(py::str()))) {
-        return *LogicalType::STRING();
+        return LogicalType::STRING();
     } else if (ele.is(py::type::of(datetime_val))) {
-        return *LogicalType::TIMESTAMP();
+        return LogicalType::TIMESTAMP();
     } else if (ele.is(py::type::of(date_val))) {
-        return *LogicalType::DATE();
+        return LogicalType::DATE();
     } else if (ele.is(py::type::of(timedelta_val))) {
-        return *LogicalType::INTERVAL();
+        return LogicalType::INTERVAL();
     } else if (ele.is(py::type::of(uuid_val))) {
-        return *LogicalType::UUID();
+        return LogicalType::UUID();
     } else if (ele.is(py::type::of(py::list()))) {
         throw RuntimeException("List annotations must specify child type");
     } else if (ele.is(py::type::of(py::dict()))) {
@@ -166,9 +169,10 @@ static scalar_func_exec_t getUDFExecFunc(const py::function& udf, bool defaultNu
 }
 
 static scalar_bind_func getUDFBindFunc(const PyUDFSignature& signature) {
-    return [=](const binder::expression_vector&, Function*) -> std::unique_ptr<FunctionBindData> {
-        return std::make_unique<FunctionBindData>(signature.paramTypes,
-            std::make_unique<LogicalType>(signature.resultType));
+    return [signature](const binder::expression_vector&,
+               Function*) -> std::unique_ptr<FunctionBindData> {
+        return std::make_unique<FunctionBindData>(LogicalType::copy(signature.paramTypes),
+            signature.resultType.copy());
     };
 }
 
@@ -182,7 +186,7 @@ function_set PyUDF::toFunctionSet(const std::string& name, const py::function& u
             throw RuntimeException(
                 "Explicit parameters and Function parameters must be the same length");
         }
-        pySignature.paramTypes = explicitParamTypes;
+        pySignature.paramTypes = std::move(explicitParamTypes);
     }
     std::vector<LogicalTypeID> paramIDTypes;
     for (const auto& paramType : pySignature.paramTypes) {

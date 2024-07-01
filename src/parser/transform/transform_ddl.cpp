@@ -101,7 +101,9 @@ std::unique_ptr<Statement> Transformer::transformCreateRdfGraphClause(
 std::unique_ptr<Statement> Transformer::transformCreateSequence(
     CypherParser::KU_CreateSequenceContext& ctx) {
     auto sequenceName = transformSchemaName(*ctx.oC_SchemaName());
-    auto createSequenceInfo = CreateSequenceInfo(sequenceName);
+    auto createSequenceInfo = CreateSequenceInfo(sequenceName,
+        ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
+                               common::ConflictAction::ON_CONFLICT_THROW);
     std::unordered_set<SequenceInfoType> applied;
     for (auto seqOption : ctx.kU_SequenceOptions()) {
         SequenceInfoType type;
@@ -225,6 +227,14 @@ std::unique_ptr<Statement> Transformer::transformRenameProperty(
     return std::make_unique<Alter>(std::move(info));
 }
 
+std::unique_ptr<Statement> Transformer::transformCommentOn(CypherParser::KU_CommentOnContext& ctx) {
+    auto tableName = transformSchemaName(*ctx.oC_SchemaName());
+    auto comment = transformStringLiteral(*ctx.StringLiteral());
+    auto extraInfo = std::make_unique<ExtraCommentInfo>(comment);
+    auto info = AlterInfo(AlterType::COMMENT, tableName, std::move(extraInfo));
+    return std::make_unique<Alter>(std::move(info));
+}
+
 std::vector<PropertyDefinition> Transformer::transformPropertyDefinitions(
     CypherParser::KU_PropertyDefinitionsContext& ctx) {
     std::vector<PropertyDefinition> propertyDefns;
@@ -246,7 +256,7 @@ std::vector<PropertyDefinitionDDL> Transformer::transformPropertyDefinitionsDDL(
         } else {
             LogicalType type;
             if (!LogicalType::tryConvertFromString(dataType, type)) {
-                type = *LogicalType::ANY();
+                type = LogicalType::ANY();
             }
             defaultValue = std::make_unique<ParsedLiteralExpression>(
                 Value::createNullValue(std::move(type)), "NULL");

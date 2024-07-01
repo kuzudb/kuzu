@@ -44,7 +44,7 @@ void DataChunkCollection::initTypes(DataChunk& chunk) {
     types.clear();
     types.reserve(chunk.getNumValueVectors());
     for (auto vectorIdx = 0u; vectorIdx < chunk.getNumValueVectors(); vectorIdx++) {
-        types.push_back(chunk.getValueVector(vectorIdx)->dataType);
+        types.push_back(chunk.getValueVector(vectorIdx)->dataType.copy());
     }
 }
 
@@ -52,12 +52,12 @@ void DataChunkCollection::allocateChunk(DataChunk& chunk) {
     if (chunks.empty()) {
         types.reserve(chunk.getNumValueVectors());
         for (auto vectorIdx = 0u; vectorIdx < chunk.getNumValueVectors(); vectorIdx++) {
-            types.push_back(chunk.getValueVector(vectorIdx)->dataType);
+            types.push_back(chunk.getValueVector(vectorIdx)->dataType.copy());
         }
     }
     DataChunk newChunk(types.size(), std::make_shared<DataChunkState>());
     for (auto i = 0u; i < types.size(); i++) {
-        newChunk.insert(i, std::make_shared<ValueVector>(types[i], mm));
+        newChunk.insert(i, std::make_shared<ValueVector>(types[i].copy(), mm));
     }
     chunks.push_back(std::move(newChunk));
 }

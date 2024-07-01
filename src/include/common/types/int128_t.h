@@ -45,6 +45,8 @@ struct int128_t {
     // inplace arithmetic operators
     int128_t& operator+=(const int128_t& rhs);
     int128_t& operator*=(const int128_t& rhs);
+    int128_t& operator|=(const int128_t& rhs);
+    int128_t& operator&=(const int128_t& rhs);
 
     // cast operators
     explicit operator int64_t() const;
@@ -65,6 +67,12 @@ int128_t operator-(const int128_t& lhs, const int128_t& rhs);
 int128_t operator*(const int128_t& lhs, const int128_t& rhs);
 int128_t operator/(const int128_t& lhs, const int128_t& rhs);
 int128_t operator%(const int128_t& lhs, const int128_t& rhs);
+int128_t operator^(const int128_t& lhs, const int128_t& rhs);
+int128_t operator&(const int128_t& lhs, const int128_t& rhs);
+int128_t operator~(const int128_t& val);
+int128_t operator|(const int128_t& lhs, const int128_t& rhs);
+int128_t operator<<(const int128_t& lhs, int amount);
+int128_t operator>>(const int128_t& lhs, int amount);
 
 // comparison operators
 bool operator==(const int128_t& lhs, const int128_t& rhs);
@@ -121,6 +129,12 @@ public:
     static int128_t Mul(int128_t lhs, int128_t rhs);
     static int128_t Div(int128_t lhs, int128_t rhs);
     static int128_t Mod(int128_t lhs, int128_t rhs);
+    static int128_t Xor(int128_t lhs, int128_t rhs);
+    static int128_t LeftShift(int128_t lhs, int amount);
+    static int128_t RightShift(int128_t lhs, int amount);
+    static int128_t BinaryAnd(int128_t lhs, int128_t rhs);
+    static int128_t BinaryOr(int128_t lhs, int128_t rhs);
+    static int128_t BinaryNot(int128_t val);
 
     static int128_t divMod(int128_t lhs, int128_t rhs, int128_t& remainder);
     static int128_t divModPositive(int128_t lhs, uint64_t rhs, uint64_t& remainder);

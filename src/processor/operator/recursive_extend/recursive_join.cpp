@@ -11,6 +11,14 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
+std::vector<NodeSemiMask*> RecursiveJoin::getSemiMask() const {
+    std::vector<NodeSemiMask*> result;
+    for (auto& mask : sharedState->semiMasks) {
+        result.push_back(mask.get());
+    }
+    return result;
+}
+
 void RecursiveJoin::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
     auto& dataInfo = info.dataInfo;
     populateTargetDstNodes(context);
@@ -260,16 +268,15 @@ void RecursiveJoin::initLocalRecursivePlan(ExecutionContext* context) {
     recursiveSource = getSource(recursiveRoot.get())->ptrCast<OffsetScanNodeTable>();
 }
 
-void RecursiveJoin::populateTargetDstNodes(ExecutionContext* context) {
+void RecursiveJoin::populateTargetDstNodes(ExecutionContext*) {
     node_id_set_t targetNodeIDs;
     uint64_t numTargetNodes = 0;
-    for (auto& semiMask : sharedState->semiMasks) {
-        auto nodeTable = semiMask->getNodeTable();
-        auto numNodes = nodeTable->getMaxNodeOffset(context->clientContext->getTx()) + 1;
-        if (semiMask->isEnabled()) {
+    for (auto& mask : sharedState->semiMasks) {
+        auto numNodes = mask->getMaxOffset() + 1;
+        if (mask->isEnabled()) {
             for (auto offset = 0u; offset < numNodes; ++offset) {
-                if (semiMask->isNodeMasked(offset)) {
-                    targetNodeIDs.insert(nodeID_t{offset, nodeTable->getTableID()});
+                if (mask->isMasked(offset)) {
+                    targetNodeIDs.insert(nodeID_t{offset, mask->getTableID()});
                     numTargetNodes++;
                 }
             }

@@ -30,9 +30,9 @@ public:
 
     void init(main::ClientContext* clientContext) override {
         auto mm = clientContext->getMemoryManager();
-        srcNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
-        dstNodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
-        lengthVector = std::make_unique<ValueVector>(*LogicalType::INT64(), mm);
+        srcNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
+        dstNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
+        lengthVector = std::make_unique<ValueVector>(LogicalType::INT64(), mm);
         srcNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
         dstNodeIDVector->state = std::make_shared<DataChunkState>();
         lengthVector->state = dstNodeIDVector->state;

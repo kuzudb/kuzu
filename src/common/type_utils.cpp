@@ -216,7 +216,7 @@ std::string TypeUtils::toString(const map_entry_t& val, void* valueVector) {
 
 template<bool SKIP_NULL_ENTRY>
 static std::string structToString(const struct_entry_t& val, ValueVector* vector) {
-    auto fields = StructType::getFields(vector->dataType);
+    const auto& fields = StructType::getFields(vector->dataType);
     if (fields.size() == 0) {
         return "{}";
     }

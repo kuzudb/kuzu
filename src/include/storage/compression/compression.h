@@ -6,8 +6,11 @@
 #include <type_traits>
 
 #include "common/assert.h"
+#include "common/null_mask.h"
+#include "common/numeric_utils.h"
 #include "common/types/types.h"
 #include <concepts>
+#include <span>
 
 namespace kuzu {
 namespace common {
@@ -21,24 +24,38 @@ class ColumnChunkData;
 struct PageCursor;
 
 template<typename T>
-concept StorageValueType = (std::integral<T> || std::floating_point<T>);
+concept StorageValueType = (common::numeric_utils::IsIntegral<T> || std::floating_point<T>);
 // Type storing values in the column chunk statistics
-// Only supports integers (up to 64bit), floats and bools
+// Only supports integers (up to 128bit), floats and bools
 union StorageValue {
     int64_t signedInt;
     uint64_t unsignedInt;
     double floatVal;
+    common::int128_t signedInt128;
 
     StorageValue() = default;
     template<typename T>
+        requires std::same_as<std::remove_cvref_t<T>, common::int128_t>
+    explicit StorageValue(T value) : signedInt128(value) {}
+
+    template<typename T>
         requires std::integral<T> && std::numeric_limits<T>::is_signed
-    explicit StorageValue(T value) : signedInt(value) {}
+    // zero-initilize union padding
+    explicit StorageValue(T value) : StorageValue(common::int128_t(0)) {
+        signedInt = value;
+    }
+
     template<typename T>
         requires std::integral<T> && (!std::numeric_limits<T>::is_signed)
-    explicit StorageValue(T value) : unsignedInt(value) {}
+    explicit StorageValue(T value) : StorageValue(common::int128_t(0)) {
+        unsignedInt = value;
+    }
+
     template<typename T>
         requires std::is_floating_point<T>::value
-    explicit StorageValue(T value) : floatVal(value) {}
+    explicit StorageValue(T value) : StorageValue(common::int128_t(0)) {
+        floatVal = value;
+    }
 
     bool operator==(const StorageValue& other) const {
         // All types are the same size, so we can compare any of them to check equality
@@ -52,7 +69,9 @@ union StorageValue {
 
     template<StorageValueType T>
     T get() const {
-        if constexpr (std::integral<T>) {
+        if constexpr (std::same_as<std::remove_cvref_t<T>, common::int128_t>) {
+            return signedInt128;
+        } else if constexpr (std::integral<T>) {
             if constexpr (std::numeric_limits<T>::is_signed) {
                 return static_cast<T>(signedInt);
             } else {
@@ -63,36 +82,17 @@ union StorageValue {
         }
     }
 
-    bool gt(const StorageValue& other, common::PhysicalTypeID type) const {
-        switch (type) {
-        case common::PhysicalTypeID::BOOL:
-        case common::PhysicalTypeID::LIST:
-        case common::PhysicalTypeID::ARRAY:
-        case common::PhysicalTypeID::INTERNAL_ID:
-        case common::PhysicalTypeID::STRING:
-        case common::PhysicalTypeID::UINT64:
-        case common::PhysicalTypeID::UINT32:
-        case common::PhysicalTypeID::UINT16:
-        case common::PhysicalTypeID::UINT8:
-            return this->unsignedInt > other.unsignedInt;
-        case common::PhysicalTypeID::INT64:
-        case common::PhysicalTypeID::INT32:
-        case common::PhysicalTypeID::INT16:
-        case common::PhysicalTypeID::INT8:
-            return this->signedInt > other.signedInt;
-        case common::PhysicalTypeID::FLOAT:
-        case common::PhysicalTypeID::DOUBLE:
-            return this->floatVal > other.floatVal;
-        default:
-            KU_UNREACHABLE;
-        }
-    }
+    bool gt(const StorageValue& other, common::PhysicalTypeID type) const;
 
     // If the type cannot be stored in the statistics, readFromVector will return nullopt
     static std::optional<StorageValue> readFromVector(const common::ValueVector& vector,
         common::offset_t posInVector);
 };
 static_assert(std::is_trivial_v<StorageValue>);
+
+std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxStorageValue(
+    const uint8_t* data, uint64_t offset, uint64_t numValues, common::PhysicalTypeID physicalType,
+    const common::NullMask* nullMask, bool valueRequiredIfUnsupported = false);
 
 // Returns the size of the data type in bytes
 uint32_t getDataTypeSizeInChunk(const common::LogicalType& dataType);
@@ -126,8 +126,9 @@ struct CompressionMetadata {
     uint64_t numValues(uint64_t dataSize, const common::LogicalType& dataType) const;
     // Returns true if and only if the provided value within the vector can be updated
     // in this chunk in-place.
-    bool canUpdateInPlace(const uint8_t* data, uint32_t pos,
-        common::PhysicalTypeID physicalType) const;
+    bool canUpdateInPlace(const uint8_t* data, uint32_t pos, uint64_t numValues,
+        common::PhysicalTypeID physicalType,
+        const std::optional<common::NullMask>& nullMask = std::nullopt) const;
     bool canAlwaysUpdateInPlace() const;
 
     std::string toString(const common::PhysicalTypeID physicalType) const;
@@ -272,12 +273,14 @@ struct BitpackInfo {
 };
 
 template<typename T>
-concept IntegerBitpackingType = (std::integral<T> && !std::same_as<T, bool>);
+concept IntegerBitpackingType = (common::numeric_utils::IsIntegral<T> && !std::same_as<T, bool>);
 
 // Augmented with Frame of Reference encoding using an offset stored in the compression metadata
 template<IntegerBitpackingType T>
 class IntegerBitpacking : public CompressionAlg {
-    using U = std::make_unsigned_t<T>;
+    using U = common::numeric_utils::MakeUnSignedT<T>;
+
+public:
     // This is an implementation detail of the fastpfor bitpacking algorithm
     static constexpr uint64_t CHUNK_SIZE = 32;
 
@@ -296,11 +299,6 @@ public:
             return UINT64_MAX;
         }
         auto numValues = dataSize * 8 / info.bitWidth;
-        // Round down to nearest multiple of CHUNK_SIZE to ensure that we don't write any extra
-        // values Rounding up could overflow the buffer
-        // TODO(bmwinger): Pack extra values into the space at the end. This will probably be
-        // slower, but only needs to be done once.
-        numValues -= numValues % CHUNK_SIZE;
         return numValues;
     }
 
@@ -317,7 +315,9 @@ public:
         uint64_t dstOffset, uint64_t numValues,
         const struct CompressionMetadata& metadata) const final;
 
-    static bool canUpdateInPlace(T value, const CompressionMetadata& metadata);
+    static bool canUpdateInPlace(std::span<T> value, const CompressionMetadata& metadata,
+        const std::optional<common::NullMask>& nullMask = std::nullopt,
+        uint64_t nullMaskOffset = 0);
 
     CompressionType getCompressionType() const override {
         return CompressionType::INTEGER_BITPACKING;
@@ -330,9 +330,20 @@ protected:
 
     inline const uint8_t* getChunkStart(const uint8_t* buffer, uint64_t pos,
         uint8_t bitWidth) const {
-        // Order of operations is important so that pos is rounded down to a multiple of CHUNK_SIZE
+        // Order of operations is important so that pos is rounded down to a multiple of
+        // CHUNK_SIZE
         return buffer + (pos / CHUNK_SIZE) * bitWidth * CHUNK_SIZE / 8;
     }
+
+    void packPartialChunk(const U* srcBuffer, uint8_t* dstBuffer, size_t posInDst,
+        BitpackInfo<T> info, size_t remainingValues) const;
+
+    void copyValuesToTempChunkWithOffset(const U* srcBuffer, U* tmpBuffer, BitpackInfo<T> info,
+        size_t numValuesToCopy) const;
+
+    void setPartialChunkInPlace(const uint8_t* srcBuffer, common::offset_t posInSrc,
+        uint8_t* dstBuffer, common::offset_t posInDst, common::offset_t numValues,
+        const BitpackInfo<T>& header) const;
 };
 
 class BooleanBitpacking : public CompressionAlg {

@@ -37,8 +37,10 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     } else if (combinedType.getLogicalTypeID() == LogicalTypeID::RDF_VARIANT) {
         combinedType = LogicalType(LogicalTypeID::STRING);
     }
-    std::vector<LogicalType> childrenTypes =
-        std::vector<LogicalType>(children.size(), combinedType);
+    std::vector<LogicalType> childrenTypes;
+    for (auto i = 0u; i < children.size(); i++) {
+        childrenTypes.push_back(combinedType.copy());
+    }
     auto function = ku_dynamic_cast<function::Function*, function::ScalarFunction*>(
         function::BuiltInFunctionsUtils::matchFunction(context->getTx(), functionName,
             childrenTypes, functions));
@@ -50,8 +52,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
             childrenAfterCast.push_back(children[i]);
         }
     }
-    auto bindData = std::make_unique<function::FunctionBindData>(
-        std::make_unique<LogicalType>(function->returnTypeID));
+    auto bindData =
+        std::make_unique<function::FunctionBindData>(LogicalType(function->returnTypeID));
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
     return make_shared<ScalarFunctionExpression>(functionName, expressionType, std::move(bindData),

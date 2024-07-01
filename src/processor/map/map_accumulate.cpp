@@ -9,19 +9,19 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapAccumulate(LogicalOperator* op) {
-    auto acc = op->constPtrCast<LogicalAccumulate>();
-    auto outSchema = acc->getSchema();
-    auto inSchema = acc->getChild(0)->getSchema();
-    auto prevOperator = mapOperator(acc->getChild(0).get());
-    auto expressions = acc->getPayloads();
-    auto resultCollector = createResultCollector(acc->getAccumulateType(), expressions, inSchema,
+    const auto& acc = op->cast<LogicalAccumulate>();
+    auto outSchema = acc.getSchema();
+    auto inSchema = acc.getChild(0)->getSchema();
+    auto prevOperator = mapOperator(acc.getChild(0).get());
+    auto expressions = acc.getPayloads();
+    auto resultCollector = createResultCollector(acc.getAccumulateType(), expressions, inSchema,
         std::move(prevOperator));
     auto table = resultCollector->getResultFactorizedTable();
     auto maxMorselSize = table->hasUnflatCol() ? 1 : DEFAULT_VECTOR_CAPACITY;
-    if (acc->hasMark()) {
-        expressions.push_back(acc->getMark());
+    if (acc.hasMark()) {
+        expressions.push_back(acc.getMark());
     }
-    return createFTableScanAligned(expressions, outSchema, acc->getOffset(), table, maxMorselSize,
+    return createFTableScanAligned(expressions, outSchema, acc.getOffset(), table, maxMorselSize,
         std::move(resultCollector));
 }
 

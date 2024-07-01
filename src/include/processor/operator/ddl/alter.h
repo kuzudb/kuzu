@@ -7,12 +7,33 @@
 namespace kuzu {
 namespace processor {
 
+struct AlterPrintInfo final : OPPrintInfo {
+    common::AlterType alterType;
+    std::string tableName;
+    binder::BoundExtraAlterInfo* info;
+
+    AlterPrintInfo(common::AlterType alterType, std::string tableName,
+        binder::BoundExtraAlterInfo* info)
+        : alterType{std::move(alterType)}, tableName{std::move(tableName)}, info{info} {}
+    AlterPrintInfo(const AlterPrintInfo& other)
+        : OPPrintInfo{other}, alterType{other.alterType}, tableName{other.tableName},
+          info{other.info} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::make_unique<AlterPrintInfo>(*this);
+    }
+};
+
 class Alter : public DDL {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::ALTER;
+
 public:
     Alter(binder::BoundAlterInfo info,
         std::unique_ptr<evaluator::ExpressionEvaluator> defaultValueEvaluator,
-        const DataPos& outputPos, uint32_t id, const std::string& paramsString)
-        : DDL{PhysicalOperatorType::ALTER, outputPos, id, paramsString}, info{std::move(info)},
+        const DataPos& outputPos, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        : DDL{type_, outputPos, id, std::move(printInfo)}, info{std::move(info)},
           defaultValueEvaluator{std::move(defaultValueEvaluator)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
@@ -29,7 +50,7 @@ public:
     std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<Alter>(info.copy(),
             defaultValueEvaluator == nullptr ? nullptr : defaultValueEvaluator->clone(), outputPos,
-            id, paramsString);
+            id, printInfo->copy());
     }
 
 private:

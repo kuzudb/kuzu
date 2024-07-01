@@ -7,6 +7,7 @@
 #include "function/aggregate_function.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/function_collection.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -511,7 +512,7 @@ uint32_t BuiltInFunctionsUtils::matchParameters(const std::vector<LogicalType>& 
 uint32_t BuiltInFunctionsUtils::matchVarLengthParameters(const std::vector<LogicalType>& inputTypes,
     LogicalTypeID targetTypeID) {
     auto cost = 0u;
-    for (auto inputType : inputTypes) {
+    for (const auto& inputType : inputTypes) {
         auto castCost = getCastCost(inputType.getLogicalTypeID(), targetTypeID);
         if (castCost == UNDEFINED_CAST_COST) {
             return UINT32_MAX;

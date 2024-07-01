@@ -50,11 +50,11 @@ void PathExpressionEvaluator::init(const processor::ResultSet& resultSet,
         switch (child->dataType.getLogicalTypeID()) {
         case LogicalTypeID::NODE: {
             vectors->nodeFieldVectors =
-                getFieldVectors(child->dataType, *pathExpression->getNodeType(), vectors->input);
+                getFieldVectors(child->dataType, pathExpression->getNodeType(), vectors->input);
         } break;
         case LogicalTypeID::REL: {
             vectors->relFieldVectors =
-                getFieldVectors(child->dataType, *pathExpression->getRelType(), vectors->input);
+                getFieldVectors(child->dataType, pathExpression->getRelType(), vectors->input);
         } break;
         case LogicalTypeID::RECURSIVE_REL: {
             auto rel = (RelExpression*)child;
@@ -64,13 +64,13 @@ void PathExpressionEvaluator::init(const processor::ResultSet& resultSet,
             vectors->nodesInput = StructVector::getFieldVector(vectors->input, nodeFieldIdx).get();
             vectors->nodesDataInput = ListVector::getDataVector(vectors->nodesInput);
             vectors->nodeFieldVectors = getFieldVectors(recursiveNode->dataType,
-                *pathExpression->getNodeType(), vectors->nodesDataInput);
+                pathExpression->getNodeType(), vectors->nodesDataInput);
             auto relFieldIdx =
                 StructType::getFieldIdx(vectors->input->dataType, InternalKeyword::RELS);
             vectors->relsInput = StructVector::getFieldVector(vectors->input, relFieldIdx).get();
             vectors->relsDataInput = ListVector::getDataVector(vectors->relsInput);
             vectors->relFieldVectors = getFieldVectors(recursiveRel->dataType,
-                *pathExpression->getRelType(), vectors->relsDataInput);
+                pathExpression->getRelType(), vectors->relsDataInput);
         } break;
         default:
             KU_UNREACHABLE;
@@ -214,7 +214,7 @@ void PathExpressionEvaluator::copyFieldVectors(offset_t inputVectorPos,
 
 void PathExpressionEvaluator::resolveResultVector(const processor::ResultSet& /*resultSet*/,
     storage::MemoryManager* memoryManager) {
-    resultVector = std::make_shared<ValueVector>(expression->getDataType(), memoryManager);
+    resultVector = std::make_shared<ValueVector>(expression->getDataType().copy(), memoryManager);
     std::vector<ExpressionEvaluator*> inputEvaluators;
     inputEvaluators.reserve(children.size());
     for (auto& child : children) {

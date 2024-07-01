@@ -2,6 +2,7 @@
 
 #include "function/gds/gds.h"
 #include "function/gds/ife_morsel.h"
+#include "function/gds/gds_utils.h"
 #include "graph/graph.h"
 #include "processor/operator/mask.h"
 #include "processor/operator/sink.h"
@@ -13,12 +14,12 @@ struct GDSCallSharedState {
     std::mutex mtx;
     std::shared_ptr<FactorizedTable> fTable;
     std::unique_ptr<graph::Graph> graph;
-    std::unique_ptr<NodeOffsetSemiMask> inputNodeOffsetMask;
+    common::table_id_map_t<std::unique_ptr<NodeOffsetLevelSemiMask>> inputNodeOffsetMasks;
 
     GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph,
-        std::unique_ptr<NodeOffsetSemiMask> inputNodeOffsetMask)
+        common::table_id_map_t<std::unique_ptr<NodeOffsetLevelSemiMask>> inputNodeOffsetMasks)
         : fTable{std::move(fTable)}, graph{std::move(graph)},
-          inputNodeOffsetMask{std::move(inputNodeOffsetMask)} {}
+          inputNodeOffsetMasks{std::move(inputNodeOffsetMasks)} {}
     DELETE_COPY_AND_MOVE(GDSCallSharedState);
 
 public:
@@ -42,12 +43,12 @@ class GDSCall : public Sink {
 public:
     GDSCall(std::unique_ptr<ResultSetDescriptor> descriptor, GDSCallInfo info,
         std::shared_ptr<GDSCallSharedState> sharedState, uint32_t id,
-        const std::string& paramsString)
-        : Sink{std::move(descriptor), operatorType_, id, paramsString}, info{std::move(info)},
-          sharedState{std::move(sharedState)} {}
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : Sink{std::move(descriptor), operatorType_, id, std::move(printInfo)},
+          info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
-    bool hasSemiMask() const { return sharedState->inputNodeOffsetMask != nullptr; }
-    NodeSemiMask* getSemiMask() { return sharedState->inputNodeOffsetMask.get(); }
+    bool hasSemiMask() const { return !sharedState->inputNodeOffsetMasks.empty(); }
+    std::vector<NodeSemiMask*> getSemiMasks() const;
 
     bool isSource() const override { return true; }
 
@@ -55,11 +56,11 @@ public:
 
     void initLocalStateInternal(ResultSet*, ExecutionContext*) override;
 
-    void executeInternal(ExecutionContext* context) override;
+    void executeInternal(ExecutionContext* executionContext) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<GDSCall>(resultSetDescriptor->copy(), info.copy(), sharedState, id,
-            paramsString);
+            printInfo->copy());
     }
 
 private:

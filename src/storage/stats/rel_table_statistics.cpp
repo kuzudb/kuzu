@@ -32,9 +32,9 @@ RelTableStats::RelTableStats(DiskArrayCollection& metadataDAC,
         LogicalType{LogicalTypeID::INTERNAL_ID}, metadataDAC));
     for (auto& property : tableEntry.getPropertiesRef()) {
         fwdMetadataDAHInfos.push_back(
-            TablesStatistics::createMetadataDAHInfo(*property.getDataType(), metadataDAC));
+            TablesStatistics::createMetadataDAHInfo(property.getDataType(), metadataDAC));
         bwdMetadataDAHInfos.push_back(
-            TablesStatistics::createMetadataDAHInfo(*property.getDataType(), metadataDAC));
+            TablesStatistics::createMetadataDAHInfo(property.getDataType(), metadataDAC));
     }
 }
 

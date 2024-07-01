@@ -31,8 +31,10 @@ void VectorBooleanFunction::bindSelectFunction(ExpressionType expressionType,
 void VectorBooleanFunction::bindBinaryExecFunction(ExpressionType expressionType,
     const binder::expression_vector& children, scalar_func_exec_t& func) {
     KU_ASSERT(children.size() == 2);
-    auto leftType = children[0]->dataType;
-    auto rightType = children[1]->dataType;
+    const auto& leftType = children[0]->dataType;
+    const auto& rightType = children[1]->dataType;
+    (void)leftType;
+    (void)rightType;
     KU_ASSERT(leftType.getLogicalTypeID() == LogicalTypeID::BOOL &&
               rightType.getLogicalTypeID() == LogicalTypeID::BOOL);
     switch (expressionType) {
@@ -58,8 +60,10 @@ void VectorBooleanFunction::bindBinaryExecFunction(ExpressionType expressionType
 void VectorBooleanFunction::bindBinarySelectFunction(ExpressionType expressionType,
     const binder::expression_vector& children, scalar_func_select_t& func) {
     KU_ASSERT(children.size() == 2);
-    auto leftType = children[0]->dataType;
-    auto rightType = children[1]->dataType;
+    const auto& leftType = children[0]->dataType;
+    const auto& rightType = children[1]->dataType;
+    (void)leftType;
+    (void)rightType;
     KU_ASSERT(leftType.getLogicalTypeID() == LogicalTypeID::BOOL &&
               rightType.getLogicalTypeID() == LogicalTypeID::BOOL);
     switch (expressionType) {

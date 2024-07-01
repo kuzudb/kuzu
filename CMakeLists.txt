@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(Kuzu VERSION 0.4.2.8 LANGUAGES CXX C)
+project(Kuzu VERSION 0.4.2.11 LANGUAGES CXX C)
 
 find_package(Threads REQUIRED)
 
@@ -116,17 +116,10 @@ if(MSVC)
     # Store all libraries and binaries in the same directory so that kuzu_shared.dll is found at runtime
     set(LIBRARY_OUTPUT_PATH "${CMAKE_BINARY_DIR}/src")
     set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/src")
-endif()
-if(CMAKE_BUILD_TYPE MATCHES Release)
-    if(MSVC)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /O2 /utf-8")
-        string(REGEX REPLACE "/W[3|4]" "/w" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-        add_compile_options(/W0)
-    else()
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-    endif()
-endif()
-if(NOT MSVC)
+
+    string(REGEX REPLACE "/W[3|4]" "/w" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    add_compile_options($<$<CONFIG:Release>:/W0>)
+else()
     add_compile_options(-Wall -Wextra)
     # Disable warnings for unknown pragmas, which is used by several third-party libraries
     add_compile_options(-Wno-unknown-pragmas)
@@ -256,7 +249,7 @@ add_subdirectory(third_party)
 if(${BUILD_KUZU})
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
-add_definitions(-DKUZU_EXTENSION_VERSION="0.3.14")
+add_definitions(-DKUZU_EXTENSION_VERSION="0.3.17")
 
 include_directories(src/include)
 

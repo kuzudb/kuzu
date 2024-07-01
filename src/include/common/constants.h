@@ -77,7 +77,7 @@ struct BufferPoolConstants {
     static constexpr uint64_t DEFAULT_VM_REGION_MAX_SIZE = (uint64_t)1 << 43; // (8TB)
 #endif
 
-    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING = 1ull << 27; // (128MB)
+    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING = 1ull << 26; // (64MB)
 };
 
 struct StorageConstants {
@@ -135,7 +135,7 @@ struct CopyConstants {
 
     // Default configuration for csv file parsing
     static constexpr const char* STRING_CSV_PARSING_OPTIONS[] = {"ESCAPE", "DELIM", "QUOTE"};
-    static constexpr char DEFAULT_CSV_ESCAPE_CHAR = '\\';
+    static constexpr char DEFAULT_CSV_ESCAPE_CHAR = '"';
     static constexpr char DEFAULT_CSV_DELIMITER = ',';
     static constexpr char DEFAULT_CSV_QUOTE_CHAR = '"';
     static constexpr char DEFAULT_CSV_LIST_BEGIN_CHAR = '[';
@@ -182,7 +182,7 @@ struct ParquetConstants {
     static constexpr uint64_t PARQUET_INTERVAL_SIZE = 12;
 };
 
-struct CopyToCSVConstants {
+struct ExportCSVConstants {
     static constexpr const char* DEFAULT_CSV_NEWLINE = "\n";
     static constexpr const char* DEFAULT_NULL_STR = "";
     static constexpr const bool DEFAULT_FORCE_QUOTE = false;
@@ -192,7 +192,6 @@ struct CopyToCSVConstants {
 struct ImportDBConstants {
     static constexpr char SCHEMA_NAME[] = "schema.cypher";
     static constexpr char COPY_NAME[] = "copy.cypher";
-    static constexpr char MACRO_NAME[] = "macro.cypher";
 };
 
 static constexpr char ATTACHED_KUZU_DB_TYPE[] = "KUZU";

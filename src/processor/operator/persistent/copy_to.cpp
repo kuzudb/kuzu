@@ -4,26 +4,24 @@ namespace kuzu {
 namespace processor {
 
 void CopyTo::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    localState->init(info.get(), context->clientContext->getMemoryManager(), resultSet);
-}
-
-void CopyTo::initGlobalStateInternal(ExecutionContext* context) {
-    sharedState->init(info.get(), context->clientContext);
+    localState.exportFuncLocalState =
+        info.exportFunc.initLocal(*context->clientContext, *info.bindData, info.isFlatVec);
+    localState.inputVectors.reserve(info.inputVectorPoses.size());
+    for (auto& inputVectorPos : info.inputVectorPoses) {
+        localState.inputVectors.push_back(resultSet->getValueVector(inputVectorPos));
+    }
 }
 
 void CopyTo::finalize(ExecutionContext* /*context*/) {
-    sharedState->finalize();
+    info.exportFunc.finalize(*sharedState);
 }
 
 void CopyTo::executeInternal(processor::ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
-        localState->sink(sharedState.get(), info.get());
+        info.exportFunc.sink(*sharedState, *localState.exportFuncLocalState, *info.bindData,
+            localState.inputVectors);
     }
-    localState->finalize(sharedState.get());
-}
-
-bool CopyTo::isParallel() const {
-    return info->canParallel;
+    info.exportFunc.combine(*sharedState, *localState.exportFuncLocalState);
 }
 
 } // namespace processor

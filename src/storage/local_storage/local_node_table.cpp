@@ -110,13 +110,13 @@ bool LocalNodeNG::delete_(ValueVector* nodeIDVector, ValueVector*) {
     // Check if the node is newly inserted or in persistent storage.
     if (insertChunks.hasOffset(nodeOffset)) {
         insertChunks.remove(nodeOffset);
+        return true;
     } else {
         for (auto i = 0u; i < updateChunks.size(); i++) {
             updateChunks[i].remove(nodeOffset);
         }
-        deleteInfo.deleteOffset(nodeOffset);
+        return deleteInfo.deleteOffset(nodeOffset);
     }
-    return true;
 }
 
 LocalNodeGroup* LocalNodeTableData::getOrCreateLocalNodeGroup(ValueVector* nodeIDVector) {
@@ -135,10 +135,10 @@ LocalNodeTable::LocalNodeTable(Table& table) : LocalTable{table} {
     const auto& nodeTable = ku_dynamic_cast<Table&, NodeTable&>(table);
     std::vector<LogicalType> types;
     for (auto i = 0u; i < nodeTable.getNumColumns(); i++) {
-        types.push_back(nodeTable.getColumn(i)->getDataType());
+        types.push_back(nodeTable.getColumn(i)->getDataType().copy());
     }
     localTableDataCollection.push_back(
-        std::make_unique<LocalNodeTableData>(nodeTable.getTableID(), types));
+        std::make_unique<LocalNodeTableData>(nodeTable.getTableID(), std::move(types)));
 }
 
 bool LocalNodeTable::insert(TableInsertState& state) {

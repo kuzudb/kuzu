@@ -39,7 +39,7 @@ std::unique_ptr<PhysicalOperator> Projection::clone() {
         rootExpressionsCloned.push_back(expressionEvaluator->clone());
     }
     return make_unique<Projection>(std::move(rootExpressionsCloned), expressionsOutputPos,
-        discardedDataChunksPos, children[0]->clone(), id, paramsString);
+        discardedDataChunksPos, children[0]->clone(), id, printInfo->copy());
 }
 
 } // namespace processor

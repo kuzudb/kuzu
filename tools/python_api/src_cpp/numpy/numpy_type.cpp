@@ -99,48 +99,48 @@ NumpyType NumpyTypeUtils::convertNumpyType(const py::handle& colType) {
     return resultNPType;
 }
 
-std::unique_ptr<LogicalType> NumpyTypeUtils::numpyToLogicalType(const NumpyType& col_type) {
+LogicalType NumpyTypeUtils::numpyToLogicalType(const NumpyType& col_type) {
     // TODO(Ziyi): timestamp with timezone is currently not supported.
     switch (col_type.type) {
     case NumpyNullableType::BOOL:
-        return std::make_unique<LogicalType>(LogicalTypeID::BOOL);
+        return LogicalType(LogicalTypeID::BOOL);
     case NumpyNullableType::INT_8:
-        return std::make_unique<LogicalType>(LogicalTypeID::INT8);
+        return LogicalType(LogicalTypeID::INT8);
     case NumpyNullableType::INT_16:
-        return std::make_unique<LogicalType>(LogicalTypeID::INT16);
+        return LogicalType(LogicalTypeID::INT16);
     case NumpyNullableType::INT_32:
-        return std::make_unique<LogicalType>(LogicalTypeID::INT32);
+        return LogicalType(LogicalTypeID::INT32);
     case NumpyNullableType::INT_64:
-        return std::make_unique<LogicalType>(LogicalTypeID::INT64);
+        return LogicalType(LogicalTypeID::INT64);
     case NumpyNullableType::UINT_8:
-        return std::make_unique<LogicalType>(LogicalTypeID::UINT8);
+        return LogicalType(LogicalTypeID::UINT8);
     case NumpyNullableType::UINT_16:
-        return std::make_unique<LogicalType>(LogicalTypeID::UINT16);
+        return LogicalType(LogicalTypeID::UINT16);
     case NumpyNullableType::UINT_32:
-        return std::make_unique<LogicalType>(LogicalTypeID::UINT32);
+        return LogicalType(LogicalTypeID::UINT32);
     case NumpyNullableType::UINT_64:
-        return std::make_unique<LogicalType>(LogicalTypeID::UINT64);
+        return LogicalType(LogicalTypeID::UINT64);
     case NumpyNullableType::FLOAT_16:
     case NumpyNullableType::FLOAT_32:
-        return std::make_unique<LogicalType>(LogicalTypeID::FLOAT);
+        return LogicalType(LogicalTypeID::FLOAT);
     case NumpyNullableType::FLOAT_64:
-        return std::make_unique<LogicalType>(LogicalTypeID::DOUBLE);
+        return LogicalType(LogicalTypeID::DOUBLE);
     case NumpyNullableType::TIMEDELTA:
-        return std::make_unique<LogicalType>(LogicalTypeID::INTERVAL);
+        return LogicalType(LogicalTypeID::INTERVAL);
     case NumpyNullableType::DATETIME_US:
         // because we currently don't support object, only US with timezone is allowed
         if (col_type.hasTimezone) {
-            return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP_TZ);
+            return LogicalType(LogicalTypeID::TIMESTAMP_TZ);
         }
-        return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP);
+        return LogicalType(LogicalTypeID::TIMESTAMP);
     case NumpyNullableType::DATETIME_NS:
-        return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP_NS);
+        return LogicalType(LogicalTypeID::TIMESTAMP_NS);
     case NumpyNullableType::DATETIME_MS:
-        return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP_MS);
+        return LogicalType(LogicalTypeID::TIMESTAMP_MS);
     case NumpyNullableType::DATETIME_S:
-        return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP_SEC);
+        return LogicalType(LogicalTypeID::TIMESTAMP_SEC);
     case NumpyNullableType::OBJECT:
-        return std::make_unique<LogicalType>(LogicalTypeID::STRING);
+        return LogicalType(LogicalTypeID::STRING);
     default:
         KU_UNREACHABLE;
     }

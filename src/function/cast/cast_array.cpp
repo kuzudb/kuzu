@@ -58,7 +58,7 @@ bool CastArrayHelper::containsListToArray(const LogicalType& srcType, const Logi
             }
 
             for (auto i = 0u; i < srcFieldTypes.size(); i++) {
-                if (containsListToArray(srcFieldTypes[i], dstFieldTypes[i])) {
+                if (containsListToArray(*srcFieldTypes[i], *dstFieldTypes[i])) {
                     return true;
                 }
             }
@@ -75,7 +75,7 @@ void CastArrayHelper::validateListEntry(ValueVector* inputVector, const LogicalT
     if (inputVector->isNull(pos)) {
         return;
     }
-    auto inputType = inputVector->dataType;
+    const auto& inputType = inputVector->dataType;
 
     switch (resultType.getPhysicalType()) {
     case PhysicalTypeID::ARRAY: {
@@ -122,7 +122,7 @@ void CastArrayHelper::validateListEntry(ValueVector* inputVector, const LogicalT
 
             auto structEntry = inputVector->getValue<struct_entry_t>(pos);
             for (auto i = 0u; i < fieldVectors.size(); i++) {
-                validateListEntry(fieldVectors[i].get(), fieldTypes[i], structEntry.pos);
+                validateListEntry(fieldVectors[i].get(), *fieldTypes[i], structEntry.pos);
             }
         }
     } break;

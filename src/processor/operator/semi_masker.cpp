@@ -1,6 +1,7 @@
 #include "processor/operator/semi_masker.h"
 
 using namespace kuzu::common;
+using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
@@ -16,11 +17,11 @@ void BaseSemiMasker::initGlobalStateInternal(ExecutionContext* /*context*/) {
     }
 }
 
-void BaseSemiMasker::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void BaseSemiMasker::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*) {
     keyVector = resultSet->getValueVector(info->keyPos).get();
-    for (auto& [table, masks] : info->masksPerTable) {
-        for (auto& maskWithIdx : masks) {
-            maskWithIdx.first->init(context->clientContext->getTx());
+    for (auto& [tableID, masks] : info->masksPerTable) {
+        for (auto& [mask, _] : masks) {
+            mask->init();
         }
     }
 }

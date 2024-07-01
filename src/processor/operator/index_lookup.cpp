@@ -32,7 +32,7 @@ std::unique_ptr<PhysicalOperator> IndexLookup::clone() {
         copiedInfos.push_back(info->copy());
     }
     return make_unique<IndexLookup>(std::move(copiedInfos), children[0]->clone(), getOperatorID(),
-        paramsString);
+        printInfo->copy());
 }
 
 void IndexLookup::setBatchInsertSharedState(std::shared_ptr<BatchInsertSharedState> sharedState) {

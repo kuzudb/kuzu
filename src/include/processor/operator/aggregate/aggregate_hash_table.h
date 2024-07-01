@@ -44,7 +44,8 @@ public:
         const std::vector<common::LogicalType>& keyTypes,
         const std::vector<common::LogicalType>& payloadTypes, uint64_t numEntriesToAllocate,
         FactorizedTableSchema tableSchema)
-        : AggregateHashTable(memoryManager, keyTypes, payloadTypes,
+        : AggregateHashTable(memoryManager, common::LogicalType::copy(keyTypes),
+              common::LogicalType::copy(payloadTypes),
               std::vector<std::unique_ptr<function::AggregateFunction>>{} /* empty aggregates */,
               std::vector<common::LogicalType>{} /* empty distinct agg key*/, numEntriesToAllocate,
               std::move(tableSchema)) {}

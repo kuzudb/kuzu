@@ -7,6 +7,8 @@ namespace kuzu {
 namespace catalog {
 class CatalogEntry;
 class CatalogSet;
+class SequenceCatalogEntry;
+struct SequenceData;
 } // namespace catalog
 namespace main {
 class ClientContext;
@@ -17,15 +19,14 @@ namespace storage {
 //                For now, we use malloc to get around the limitation of 256KB from MM.
 class UndoMemoryBuffer {
 public:
-    static constexpr const uint64_t UNDO_MEMORY_BUFFER_SIZE =
-        common::BufferPoolConstants::PAGE_4KB_SIZE;
+    static constexpr uint64_t UNDO_MEMORY_BUFFER_SIZE = common::BufferPoolConstants::PAGE_4KB_SIZE;
 
     explicit UndoMemoryBuffer(uint64_t size) : size{size} {
         data = std::make_unique<uint8_t[]>(size);
         currentPosition = 0;
     }
 
-    uint8_t* getDataUnsafe() { return data.get(); }
+    uint8_t* getDataUnsafe() const { return data.get(); }
     uint8_t const* getData() const { return data.get(); }
     uint64_t getSize() const { return size; }
     uint64_t getCurrentPosition() const { return currentPosition; }
@@ -60,24 +61,33 @@ class UndoBuffer {
     friend class UndoBufferIterator;
 
 public:
-    enum class UndoEntryType : uint16_t {
+    enum class UndoRecordType : uint16_t {
         CATALOG_ENTRY,
+        SEQUENCE_ENTRY,
     };
 
     explicit UndoBuffer(main::ClientContext& clientContext);
 
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
+    void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
+        const catalog::SequenceData& data, int64_t prevVal);
 
-    void commit(common::transaction_t commitTS);
+    void commit(common::transaction_t commitTS) const;
     void rollback();
 
     UndoBufferIterator getIterator() const;
 
 private:
-    uint8_t* createUndoEntry(uint64_t size);
+    uint8_t* createUndoRecord(uint64_t size);
 
-    void commitEntry(uint8_t const* entry, common::transaction_t commitTS);
-    void rollbackEntry(uint8_t const* entry);
+    void commitRecord(UndoRecordType recordType, uint8_t const* entry,
+        common::transaction_t commitTS) const;
+    void rollbackEntry(UndoRecordType recordType, uint8_t const* entry);
+
+    void commitCatalogEntry(uint8_t const* entry, common::transaction_t commitTS) const;
+    void commitSequenceEntry(uint8_t const* entry, common::transaction_t commitTS) const;
+    void rollbackCatalogEntry(uint8_t const* entry);
+    void rollbackSequenceEntry(uint8_t const* entry);
 
 private:
     main::ClientContext& clientContext;

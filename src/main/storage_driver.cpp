@@ -4,6 +4,7 @@
 
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
+#include "main/client_context.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/node_table.h"
@@ -73,10 +74,10 @@ uint64_t StorageDriver::getNumRels(const std::string& relName) {
 
 void StorageDriver::scanColumn(Transaction* transaction, storage::Column* column, offset_t* offsets,
     size_t size, uint8_t* result) {
-    auto dataType = column->getDataType();
+    const auto& dataType = column->getDataType();
     if (dataType.getPhysicalType() == PhysicalTypeID::LIST ||
         dataType.getPhysicalType() == PhysicalTypeID::ARRAY) {
-        auto resultVector = ValueVector(dataType);
+        auto resultVector = ValueVector(dataType.copy());
         for (auto i = 0u; i < size; ++i) {
             auto nodeOffset = offsets[i];
             auto [nodeGroupIdx, offsetInChunk] =

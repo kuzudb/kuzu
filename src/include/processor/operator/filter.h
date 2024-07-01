@@ -8,11 +8,13 @@ namespace kuzu {
 namespace processor {
 
 class Filter : public PhysicalOperator, public SelVectorOverWriter {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::FILTER;
+
 public:
     Filter(std::unique_ptr<evaluator::ExpressionEvaluator> expressionEvaluator,
         uint32_t dataChunkToSelectPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::FILTER, std::move(child), id, paramsString},
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           expressionEvaluator{std::move(expressionEvaluator)},
           dataChunkToSelectPos(dataChunkToSelectPos) {}
 
@@ -20,9 +22,9 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<Filter>(expressionEvaluator->clone(), dataChunkToSelectPos,
-            children[0]->clone(), id, paramsString);
+            children[0]->clone(), id, printInfo->copy());
     }
 
 private:
@@ -47,19 +49,22 @@ struct NodeLabelFilterInfo {
 };
 
 class NodeLabelFiler : public PhysicalOperator, public SelVectorOverWriter {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::FILTER;
+
 public:
     NodeLabelFiler(std::unique_ptr<NodeLabelFilterInfo> info,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::FILTER, std::move(child), id, paramsString},
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           info{std::move(info)} {}
 
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) override;
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    inline std::unique_ptr<PhysicalOperator> clone() final {
+    std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<NodeLabelFiler>(info->copy(), children[0]->clone(), id,
-            paramsString);
+            printInfo->copy());
     }
 
 private:

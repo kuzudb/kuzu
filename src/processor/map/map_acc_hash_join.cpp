@@ -10,7 +10,7 @@ static PhysicalOperator* getTableScanForAccHashJoin(PhysicalOperator* probe) {
     while (op->getOperatorType() == PhysicalOperatorType::FLATTEN) {
         op = op->getChild(0);
     }
-    KU_ASSERT(op->getOperatorType() == PhysicalOperatorType::IN_QUERY_CALL);
+    KU_ASSERT(op->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL);
     return op;
 }
 

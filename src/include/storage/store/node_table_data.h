@@ -19,6 +19,13 @@ struct NodeDataScanState final : TableDataScanState {
     common::row_idx_t numRowsInNodeGroup = 0;
 
     bool nextVector();
+
+    void resetState() override {
+        TableDataScanState::resetState();
+        numRowsToScan = 0;
+        vectorIdx = common::INVALID_IDX;
+        numRowsInNodeGroup = 0;
+    }
 };
 
 class LocalTableData;

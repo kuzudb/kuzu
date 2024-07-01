@@ -14,9 +14,10 @@ namespace processor {
 class OffsetScanNodeTable;
 
 struct RecursiveJoinSharedState {
-    std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks;
+    std::vector<std::unique_ptr<NodeOffsetLevelSemiMask>> semiMasks;
 
-    explicit RecursiveJoinSharedState(std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks)
+    explicit RecursiveJoinSharedState(
+        std::vector<std::unique_ptr<NodeOffsetLevelSemiMask>> semiMasks)
         : semiMasks{std::move(semiMasks)} {}
 };
 
@@ -101,16 +102,17 @@ private:
 };
 
 class RecursiveJoin : public PhysicalOperator {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::RECURSIVE_JOIN;
+
 public:
     RecursiveJoin(RecursiveJoinInfo info, std::shared_ptr<RecursiveJoinSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString,
-        std::unique_ptr<PhysicalOperator> recursiveRoot)
-        : PhysicalOperator{PhysicalOperatorType::RECURSIVE_JOIN, std::move(child), id,
-              paramsString},
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<PhysicalOperator> recursiveRoot, std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           info{std::move(info)}, sharedState{std::move(sharedState)},
           recursiveRoot{std::move(recursiveRoot)} {}
 
-    RecursiveJoinSharedState* getSharedState() const { return sharedState.get(); }
+    std::vector<NodeSemiMask*> getSemiMask() const;
 
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) final;
 
@@ -118,7 +120,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<RecursiveJoin>(info.copy(), sharedState, children[0]->clone(), id,
-            paramsString, recursiveRoot->clone());
+            recursiveRoot->clone(), printInfo->copy());
     }
 
 private:

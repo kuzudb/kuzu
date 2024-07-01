@@ -2,7 +2,6 @@
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/rel_direction.h"
-#include "common/exception/message.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/stats/rels_store_statistics.h"
 #include "storage/store/table.h"
@@ -17,9 +16,7 @@ namespace storage {
 RelDataReadState::RelDataReadState(const std::vector<column_id_t>& columnIDs)
     : TableDataScanState{columnIDs}, nodeGroupIdx{INVALID_NODE_GROUP_IDX}, numNodes{0},
       currentNodeOffset{0}, posInCurrentCSR{0}, readFromPersistentStorage{false},
-      readFromLocalStorage{false}, localNodeGroup{nullptr} {
-    csrListEntries.resize(StorageConstants::NODE_GROUP_SIZE, {0, 0});
-}
+      readFromLocalStorage{false}, localNodeGroup{nullptr} {}
 
 bool RelDataReadState::hasMoreToReadFromLocalStorage() const {
     KU_ASSERT(localNodeGroup);
@@ -60,26 +57,28 @@ bool RelDataReadState::hasMoreToReadInPersistentStorage() const {
     }
     auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     return (currentNodeOffset - nodeGroupStartOffset) < numNodes &&
-           posInCurrentCSR < csrListEntries[(currentNodeOffset - nodeGroupStartOffset)].size;
-}
-
-void RelDataReadState::populateCSRListEntries() {
-    for (auto i = 0u; i < numNodes; i++) {
-        csrListEntries[i].size = csrHeaderChunks.getCSRLength(i);
-        KU_ASSERT(csrListEntries[i].size <=
-                  csrHeaderChunks.getEndCSROffset(i) - csrHeaderChunks.getStartCSROffset(i));
-        csrListEntries[i].offset = csrHeaderChunks.getStartCSROffset(i);
-    }
+           posInCurrentCSR < csrHeaderChunks.getCSRLength(currentNodeOffset - nodeGroupStartOffset);
 }
 
 std::pair<offset_t, offset_t> RelDataReadState::getStartAndEndOffset() {
     auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    auto currCSRListEntry = csrListEntries[currentNodeOffset - startNodeOffset];
-    auto currCSRSize = currCSRListEntry.size;
-    auto startOffset = currCSRListEntry.offset + posInCurrentCSR;
+    auto currCSRSize = csrHeaderChunks.getCSRLength(currentNodeOffset - startNodeOffset);
+    auto startOffset =
+        csrHeaderChunks.getStartCSROffset(currentNodeOffset - startNodeOffset) + posInCurrentCSR;
     auto numRowsToRead = std::min(currCSRSize - posInCurrentCSR, DEFAULT_VECTOR_CAPACITY);
     posInCurrentCSR += numRowsToRead;
     return {startOffset, startOffset + numRowsToRead};
+}
+
+void RelDataReadState::resetState() {
+    TableDataScanState::resetState();
+    nodeGroupIdx = INVALID_NODE_GROUP_IDX;
+    numNodes = 0;
+    currentNodeOffset = 0;
+    posInCurrentCSR = 0;
+    readFromPersistentStorage = false;
+    readFromLocalStorage = false;
+    localNodeGroup = nullptr;
 }
 
 offset_t CSRHeaderColumns::getNumNodes(Transaction* transaction,
@@ -93,9 +92,6 @@ offset_t CSRHeaderColumns::getNumNodes(Transaction* transaction,
 PackedCSRInfo::PackedCSRInfo() {
     calibratorTreeHeight =
         StorageConstants::NODE_GROUP_SIZE_LOG2 - StorageConstants::CSR_SEGMENT_SIZE_LOG2;
-    lowDensityStep =
-        (StorageConstants::PACKED_CSR_DENSITY - StorageConstants::LEAF_LOW_CSR_DENSITY) /
-        static_cast<double>(calibratorTreeHeight);
     highDensityStep =
         (StorageConstants::LEAF_HIGH_CSR_DENSITY - StorageConstants::PACKED_CSR_DENSITY) /
         static_cast<double>(calibratorTreeHeight);
@@ -109,7 +105,7 @@ PackedCSRRegion::PackedCSRRegion(idx_t regionIdx, idx_t level)
 }
 
 bool PackedCSRRegion::isWithin(const PackedCSRRegion& other) const {
-    if (other.level >= level) {
+    if (other.level <= level) {
         return false;
     }
     auto [left, right] = getSegmentBoundaries();
@@ -138,14 +134,14 @@ RelTableData::RelTableData(BMFileHandle* dataFH, DiskArrayCollection* metadataDA
         relsStoreStats->getCSROffsetMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION, tableID, direction);
     auto csrOffsetColumnName = StorageUtils::getColumnName("", StorageUtils::ColumnType::CSR_OFFSET,
         RelDataDirectionUtils::relDirectionToString(direction));
-    csrHeaderColumns.offset = std::make_unique<Column>(csrOffsetColumnName, *LogicalType::UINT64(),
+    csrHeaderColumns.offset = std::make_unique<Column>(csrOffsetColumnName, LogicalType::UINT64(),
         *csrOffsetMetadataDAHInfo, dataFH, *metadataDAC, bufferManager, wal,
         &DUMMY_WRITE_TRANSACTION, enableCompression, false /* requireNUllColumn */);
     auto csrLengthMetadataDAHInfo =
         relsStoreStats->getCSRLengthMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION, tableID, direction);
     auto csrLengthColumnName = StorageUtils::getColumnName("", StorageUtils::ColumnType::CSR_LENGTH,
         RelDataDirectionUtils::relDirectionToString(direction));
-    csrHeaderColumns.length = std::make_unique<Column>(csrLengthColumnName, *LogicalType::UINT64(),
+    csrHeaderColumns.length = std::make_unique<Column>(csrLengthColumnName, LogicalType::UINT64(),
         *csrLengthMetadataDAHInfo, dataFH, *metadataDAC, bufferManager, wal,
         &DUMMY_WRITE_TRANSACTION, enableCompression, false /* requireNUllColumn */);
     // Columns (nbrID + properties).
@@ -171,7 +167,7 @@ RelTableData::RelTableData(BMFileHandle* dataFH, DiskArrayCollection* metadataDA
         auto colName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT,
                 RelDataDirectionUtils::relDirectionToString(direction));
-        columns[columnID] = ColumnFactory::createColumn(colName, *property.getDataType()->copy(),
+        columns[columnID] = ColumnFactory::createColumn(colName, property.getDataType().copy(),
             *metadataDAHInfo, dataFH, *metadataDAC, bufferManager, wal, &DUMMY_WRITE_TRANSACTION,
             enableCompression);
     }
@@ -205,7 +201,6 @@ void RelTableData::initializeScanState(Transaction* transaction, TableScanState&
             nodeGroupIdx < columns[REL_ID_COLUMN_ID]->getNumCommittedNodeGroups() &&
             (nodeOffset - startNodeOffset) < relScanState.numNodes;
         if (relScanState.readFromPersistentStorage) {
-            relScanState.populateCSRListEntries();
             initializeColumnScanStates(transaction, scanState, nodeGroupIdx);
         }
         if (transaction->isWriteTransaction()) {
@@ -289,17 +284,6 @@ bool RelTableData::delete_(Transaction* transaction, ValueVector* srcNodeIDVecto
     auto localRelTable = ku_dynamic_cast<LocalTable*, LocalRelTable*>(localTable);
     auto localTableData = localRelTable->getTableData(direction);
     return localTableData->delete_(srcNodeIDVector, relIDVector);
-}
-
-void RelTableData::checkRelMultiplicityConstraint(Transaction* transaction,
-    ValueVector* srcNodeIDVector) const {
-    KU_ASSERT(srcNodeIDVector->state->isFlat() && multiplicity == RelMultiplicity::ONE);
-    auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
-    auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
-    if (checkIfNodeHasRels(transaction, nodeOffset)) {
-        throw RuntimeException(ExceptionMessage::violateRelMultiplicityConstraint(tableName,
-            std::to_string(nodeOffset), RelDataDirectionUtils::relDirectionToString(direction)));
-    }
 }
 
 bool RelTableData::checkIfNodeHasRels(Transaction* transaction, offset_t nodeOffset) const {
@@ -504,7 +488,7 @@ void RelTableData::distributeAndUpdateColumn(Transaction* transaction,
     KU_ASSERT(localState.regionCapacity >= (localState.rightCSROffset - localState.leftCSROffset));
     // First, scan the whole region to a temp chunk.
     auto oldSize = persistentState.rightCSROffset - persistentState.leftCSROffset + 1;
-    auto chunk = ColumnChunkFactory::createColumnChunkData(*column->getDataType().copy(),
+    auto chunk = ColumnChunkFactory::createColumnChunkData(column->getDataType().copy(),
         enableCompression, oldSize);
     Column::ChunkState chunkState;
     column->initChunkState(transaction, nodeGroupIdx, chunkState);
@@ -516,9 +500,9 @@ void RelTableData::distributeAndUpdateColumn(Transaction* transaction,
     applyDeletionsToChunk(persistentState, localState, chunk.get());
     // Second, create a new temp chunk for the region.
     auto newSize = localState.rightCSROffset - localState.leftCSROffset + 1;
-    auto newChunk = ColumnChunkFactory::createColumnChunkData(*column->getDataType().copy(),
+    auto newChunk = ColumnChunkFactory::createColumnChunkData(column->getDataType().copy(),
         enableCompression, newSize);
-    newChunk->getNullChunk()->resetToAllNull();
+    newChunk->resetToAllNull();
     auto maxNumNodesToDistribute = std::min(rightNodeBoundary - leftNodeBoundary + 1,
         persistentState.header.offset->getNumValues());
     // Third, copy the rels to the new chunk.
@@ -561,7 +545,7 @@ std::vector<PackedCSRRegion> RelTableData::findRegions(const ChunkedCSRHeader& h
         PackedCSRRegion region{segmentIdx, 0 /* level */};
         while (!isWithinDensityBound(headerChunks, localState.sizeChangesPerSegment, region)) {
             region = upgradeLevel(region);
-            if (region.level > packedCSRInfo.calibratorTreeHeight) {
+            if (region.level >= packedCSRInfo.calibratorTreeHeight) {
                 // Already hit the top level. Skip any other segments and directly return here.
                 return {region};
             }
@@ -584,8 +568,8 @@ void RelTableData::updateRegion(Transaction* transaction, node_group_idx_t nodeG
         // NOTE: There is an implicit trick happening. Due to the mismatch of storage type and
         // in-memory representation of INTERNAL_ID, we only store offset as INT64 on disk. Here
         // we directly read relID's offset part from disk into an INT64 column chunk.
-        persistentState.relIDChunk = ColumnChunkFactory::createColumnChunkData(
-            *LogicalType::INT64(), enableCompression, localState.regionCapacity);
+        persistentState.relIDChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::INT64(),
+            enableCompression, localState.regionCapacity);
         Column::ChunkState chunkState;
         getColumn(REL_ID_COLUMN_ID)->initChunkState(transaction, nodeGroupIdx, chunkState);
         getColumn(REL_ID_COLUMN_ID)
@@ -826,11 +810,11 @@ void RelTableData::applyDeletionsToColumn(Transaction* transaction, node_group_i
     if (slides.empty()) {
         return;
     }
-    auto chunk = ColumnChunkFactory::createColumnChunkData(*column->getDataType().copy(),
+    auto chunk = ColumnChunkFactory::createColumnChunkData(column->getDataType().copy(),
         enableCompression, slides.size());
     std::vector<offset_t> dstOffsets;
     dstOffsets.resize(slides.size());
-    auto tmpChunkForRead = ColumnChunkFactory::createColumnChunkData(*column->getDataType().copy(),
+    auto tmpChunkForRead = ColumnChunkFactory::createColumnChunkData(column->getDataType().copy(),
         enableCompression, 1);
     Column::ChunkState chunkState;
     column->initChunkState(transaction, nodeGroupIdx, chunkState);
@@ -872,11 +856,11 @@ void RelTableData::applySliding(Transaction* transaction, node_group_idx_t nodeG
     if (slides.empty()) {
         return;
     }
-    auto chunk = ColumnChunkFactory::createColumnChunkData(*column->getDataType().copy(),
+    auto chunk = ColumnChunkFactory::createColumnChunkData(column->getDataType().copy(),
         enableCompression, slides.size());
     std::vector<offset_t> dstOffsets;
     dstOffsets.resize(slides.size());
-    auto tmpChunkForRead = ColumnChunkFactory::createColumnChunkData(*column->getDataType().copy(),
+    auto tmpChunkForRead = ColumnChunkFactory::createColumnChunkData(column->getDataType().copy(),
         enableCompression, 1);
     Column::ChunkState chunkState;
     column->initChunkState(transaction, nodeGroupIdx, chunkState);
@@ -986,7 +970,7 @@ void RelTableData::commitCSRHeaderChunk(Transaction* transaction, bool isNewNode
 
 void RelTableData::distributeOffsets(const ChunkedCSRHeader& header, LocalState& localState,
     offset_t leftBoundary, offset_t rightBoundary) const {
-    if (localState.region.level > packedCSRInfo.calibratorTreeHeight) {
+    if (localState.region.level >= packedCSRInfo.calibratorTreeHeight) {
         // Need to resize the capacity and reset regionToDistribute to the top level one.
         localState.region =
             PackedCSRRegion{0, static_cast<idx_t>(packedCSRInfo.calibratorTreeHeight)};
@@ -999,6 +983,7 @@ void RelTableData::distributeOffsets(const ChunkedCSRHeader& header, LocalState&
             getNewRegionSize(header, localState.sizeChangesPerSegment, localState.region);
         localState.regionCapacity = getRegionCapacity(header, localState.region);
     }
+    KU_ASSERT(localState.regionSize <= localState.regionCapacity);
     auto gapSpace = localState.regionCapacity - localState.regionSize;
     double gapRatio = divideNoRoundUp(gapSpace, localState.regionCapacity);
     auto& newHeader = localState.header;

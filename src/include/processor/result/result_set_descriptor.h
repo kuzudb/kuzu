@@ -15,7 +15,8 @@ struct DataChunkDescriptor {
 
     explicit DataChunkDescriptor(bool isSingleState) : isSingleState{isSingleState} {}
     DataChunkDescriptor(const DataChunkDescriptor& other)
-        : isSingleState{other.isSingleState}, logicalTypes(other.logicalTypes) {}
+        : isSingleState{other.isSingleState},
+          logicalTypes(common::LogicalType::copy(other.logicalTypes)) {}
 
     inline std::unique_ptr<DataChunkDescriptor> copy() const {
         return std::make_unique<DataChunkDescriptor>(*this);

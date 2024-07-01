@@ -1,4 +1,7 @@
+/*
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
+#include "common/types/internal_id_util.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds_function.h"
@@ -11,6 +14,7 @@ using namespace kuzu::processor;
 using namespace kuzu::common;
 using namespace kuzu::binder;
 using namespace kuzu::storage;
+using namespace kuzu::graph;
 
 namespace kuzu {
 namespace function {
@@ -20,10 +24,14 @@ struct PageRankBindData final : public GDSBindData {
     int64_t maxIteration = 10;
     double delta = 0.0001; // detect convergence
 
-    PageRankBindData() = default;
+    PageRankBindData(std::shared_ptr<binder::Expression> nodeOutput, bool outputAsNode)
+        : GDSBindData{std::move(nodeOutput), outputAsNode} {};
+    PageRankBindData(const PageRankBindData& other)
+        : GDSBindData{other}, dampingFactor{other.dampingFactor}, maxIteration{other.maxIteration},
+          delta{other.delta} {}
 
     std::unique_ptr<GDSBindData> copy() const override {
-        return std::make_unique<PageRankBindData>();
+        return std::make_unique<PageRankBindData>(*this);
     }
 };
 
@@ -33,8 +41,8 @@ public:
 
     void init(main::ClientContext* context) override {
         auto mm = context->getMemoryManager();
-        nodeIDVector = std::make_unique<ValueVector>(*LogicalType::INTERNAL_ID(), mm);
-        rankVector = std::make_unique<ValueVector>(*LogicalType::DOUBLE(), mm);
+        nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
+        rankVector = std::make_unique<ValueVector>(LogicalType::DOUBLE(), mm);
         nodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
         rankVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(nodeIDVector.get());
@@ -42,12 +50,15 @@ public:
         nbrScanState = std::make_unique<graph::NbrScanState>(mm);
     }
 
-    void materialize(graph::Graph* graph, const std::vector<double>& ranks,
+    void materialize(graph::Graph* graph, const common::node_id_map_t<double>& ranks,
         FactorizedTable& table) const {
-        for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
-            nodeIDVector->setValue<nodeID_t>(0, {offset, graph->getNodeTableID()});
-            rankVector->setValue<double>(0, ranks[offset]);
-            table.append(vectors);
+        for (auto tableID : graph->getNodeTableIDs()) {
+            for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
+                auto nodeID = nodeID_t{offset, tableID};
+                nodeIDVector->setValue<nodeID_t>(0, nodeID);
+                rankVector->setValue<double>(0, ranks.at(nodeID));
+                table.append(vectors);
+            }
         }
     }
 
@@ -62,34 +73,44 @@ private:
 };
 
 class PageRank final : public GDSAlgorithm {
+    static constexpr char RANK_COLUMN_NAME[] = "rank";
+
 public:
     PageRank() = default;
     PageRank(const PageRank& other) : GDSAlgorithm{other} {}
 
-    /*
+    */
+/*
      * Inputs are
      *
      * graph::ANY
-     */
+     * outputProperty::BOOL
+     *//*
+
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return {LogicalTypeID::ANY};
+        return {LogicalTypeID::ANY, LogicalTypeID::BOOL};
     }
 
-    /*
+    */
+/*
      * Outputs are
      *
      * node_id::INTERNAL_ID
      * rank::DOUBLE
-     */
+     *//*
+
     binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
-        columns.push_back(binder->createVariable("node_id", *LogicalType::INTERNAL_ID()));
-        columns.push_back(binder->createVariable("rank", *LogicalType::DOUBLE()));
+        auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
+        columns.push_back(outputNode.getInternalID());
+        columns.push_back(binder->createVariable(RANK_COLUMN_NAME, LogicalType::DOUBLE()));
         return columns;
     }
 
-    void bind(const binder::expression_vector&) override {
-        bindData = std::make_unique<PageRankBindData>();
+    void bind(const expression_vector& params, Binder* binder, GraphEntry& graphEntry) override {
+        auto nodeOutput = bindNodeOutput(binder, graphEntry);
+        auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[1]);
+        bindData = std::make_unique<PageRankBindData>(nodeOutput, outputProperty);
     }
 
     void initLocalState(main::ClientContext* context) override {
@@ -97,20 +118,28 @@ public:
         localState->init(context);
     }
 
+<<<<<<< HEAD
     void exec(ExecutionContext *) override {
+=======
+    void exec(processor::ExecutionContext*) override {
+>>>>>>> master
         auto extraData = bindData->ptrCast<PageRankBindData>();
         auto pageRankLocalState = localState->ptrCast<PageRankLocalState>();
         auto graph = sharedState->graph.get();
         // Initialize state.
-        std::vector<double> ranks;
-        ranks.resize(graph->getNumNodes());
-        for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
-            ranks[offset] = (double)1 / graph->getNumNodes();
+        common::node_id_map_t<double> ranks;
+        auto numNodes = graph->getNumNodes();
+        for (auto tableID : graph->getNodeTableIDs()) {
+            for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
+                auto nodeID = nodeID_t{offset, tableID};
+                ranks.insert({nodeID, 1.0 / numNodes});
+            }
         }
-        auto dampingValue = (1 - extraData->dampingFactor) / graph->getNumNodes();
+        auto dampingValue = (1 - extraData->dampingFactor) / numNodes;
         // Compute page rank.
         for (auto i = 0u; i < extraData->maxIteration; ++i) {
             auto change = 0.0;
+<<<<<<< HEAD
             for (auto offset = 0u; offset < graph->getNumNodes(); ++offset) {
                 auto rank = 0.0;
                 auto nbrs = graph->getNbrs(offset, localState->nbrScanState.get());
@@ -118,13 +147,25 @@ public:
                     auto numNbrOfNbr = graph->getNbrs(nbr.offset, localState->nbrScanState.get()).size();
                     if (numNbrOfNbr == 0) {
                         numNbrOfNbr = graph->getNumNodes();
+=======
+            for (auto tableID : graph->getNodeTableIDs()) {
+                for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
+                    auto nodeID = nodeID_t{offset, tableID};
+                    auto rank = 0.0;
+                    auto nbrs = graph->scanFwd(nodeID);
+                    for (auto& nbr : nbrs) {
+                        auto numNbrOfNbr = graph->scanFwd(nbr).size();
+                        if (numNbrOfNbr == 0) {
+                            numNbrOfNbr = graph->getNumNodes();
+                        }
+                        rank += extraData->dampingFactor * (ranks[nbr] / numNbrOfNbr);
+>>>>>>> master
                     }
-                    rank += extraData->dampingFactor * (ranks[nbr.offset] / numNbrOfNbr);
+                    rank += dampingValue;
+                    double diff = ranks[nodeID] - rank;
+                    change += diff < 0 ? -diff : diff;
+                    ranks[nodeID] = rank;
                 }
-                rank += dampingValue;
-                double diff = ranks[offset] - rank;
-                change += diff < 0 ? -diff : diff;
-                ranks[offset] = rank;
             }
             if (change < extraData->delta) {
                 break;
@@ -148,3 +189,4 @@ function_set PageRankFunction::getFunctionSet() {
 
 } // namespace function
 } // namespace kuzu
+*/

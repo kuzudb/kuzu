@@ -7,11 +7,14 @@ namespace kuzu {
 namespace processor {
 
 class Skip : public PhysicalOperator, public SelVectorOverWriter {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SKIP;
+
 public:
     Skip(uint64_t skipNumber, std::shared_ptr<std::atomic_uint64_t> counter,
         uint32_t dataChunkToSelectPos, std::unordered_set<uint32_t> dataChunksPosInScope,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::SKIP, std::move(child), id, paramsString},
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           skipNumber{skipNumber}, counter{std::move(counter)},
           dataChunkToSelectPos{dataChunkToSelectPos},
           dataChunksPosInScope{std::move(dataChunksPosInScope)} {}
@@ -20,9 +23,9 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<Skip>(skipNumber, counter, dataChunkToSelectPos, dataChunksPosInScope,
-            children[0]->clone(), id, paramsString);
+            children[0]->clone(), id, printInfo->copy());
     }
 
 private:

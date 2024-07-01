@@ -8,6 +8,7 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/copier_config/csv_reader_config.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
@@ -65,11 +66,9 @@ std::string getSchemaCypher(ClientContext* clientContext, Transaction* tx, std::
     if (catalog->getRdfGraphEntries(tx).size() != 0) {
         extraMsg = " But we skip exporting RDF graphs.";
     }
-    return ss.str();
-}
-
-std::string getMacroCypher(Catalog* catalog, Transaction* tx) {
-    stringstream ss;
+    for (auto sequenceEntry : catalog->getSequenceEntries(tx)) {
+        ss << sequenceEntry->toCypher(clientContext) << std::endl;
+    }
     for (auto macroName : catalog->getMacroNames(tx)) {
         ss << catalog->getScalarMacroFunction(tx, macroName)->toCypher(macroName) << std::endl;
     }
@@ -101,9 +100,6 @@ void ExportDB::executeInternal(ExecutionContext* context) {
     // write the schema.cypher file
     writeStringStreamToFile(fs, getSchemaCypher(clientContext, tx, extraMsg),
         boundFileInfo.filePaths[0] + "/schema.cypher");
-    // write macro.cypher file
-    writeStringStreamToFile(fs, getMacroCypher(catalog, tx),
-        boundFileInfo.filePaths[0] + "/macro.cypher");
     // write the copy.cypher file
     // for every table, we write COPY FROM statement
     writeStringStreamToFile(fs, getCopyCypher(catalog, tx, &boundFileInfo),

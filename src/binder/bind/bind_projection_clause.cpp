@@ -237,7 +237,7 @@ uint64_t Binder::bindSkipLimitExpression(const ParsedExpression& expression) {
     auto value = literalExpr.getValue();
     int64_t num = 0;
     // TODO: replace the following switch with value.cast()
-    switch (value.getDataType()->getLogicalTypeID()) {
+    switch (value.getDataType().getLogicalTypeID()) {
     case LogicalTypeID::INT64: {
         num = value.getValue<int64_t>();
     } break;
@@ -260,7 +260,7 @@ void Binder::addExpressionsToScope(const expression_vector& projectionExpression
     for (auto& expression : projectionExpressions) {
         // In RETURN clause, if expression is not aliased, its input name will serve its alias.
         auto alias = expression->hasAlias() ? expression->getAlias() : expression->toString();
-        scope.addExpression(alias, expression);
+        addToScope(alias, expression);
     }
 }
 

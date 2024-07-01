@@ -1,6 +1,5 @@
 #include "optimizer/acc_hash_join_optimizer.h"
 
-#include "common/cast.h"
 #include "function/gds/gds.h"
 #include "optimizer/logical_operator_collector.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
@@ -292,6 +291,10 @@ std::shared_ptr<LogicalOperator> HashJoinSIPOptimizer::tryApplySemiMask(
         KU_ASSERT(sanityCheckCandidates(gdsCandidates));
         return appendNodeSemiMasker(nodeID, gdsCandidates, fromRoot);
     }
+    auto scanNodeCandidates = getScanNodeCandidates(*nodeID, toRoot);
+    if (!scanNodeCandidates.empty()) {
+        return appendNodeSemiMasker(nodeID, scanNodeCandidates, fromRoot);
+    }
     auto recursiveExtendCadidates = getRecursiveJoinCandidates(*nodeID, toRoot);
     if (!recursiveExtendCadidates.empty()) {
         KU_ASSERT(sanityCheckCandidates(recursiveExtendCadidates));
@@ -306,8 +309,12 @@ std::vector<LogicalOperator*> HashJoinSIPOptimizer::getScanNodeCandidates(const 
     auto collector = LogicalScanNodeTableCollector();
     collector.collect(root);
     for (auto& op : collector.getOperators()) {
-        auto scan = ku_dynamic_cast<LogicalOperator*, LogicalScanNodeTable*>(op);
-        if (nodeID.getUniqueName() == scan->getNodeID()->getUniqueName()) {
+        auto& scan = op->constCast<LogicalScanNodeTable>();
+        if (scan.getScanType() != LogicalScanNodeTableType::SCAN) {
+            // Do not apply semi mask to index scan.
+            continue;
+        }
+        if (nodeID.getUniqueName() == scan.getNodeID()->getUniqueName()) {
             result.push_back(op);
         }
     }

@@ -83,8 +83,6 @@ std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement
             finalQueryStatements += query;
         }
     }
-    finalQueryStatements +=
-        getQueryFromFile(fs, boundFilePath, ImportDBConstants::MACRO_NAME, clientContext);
     return std::make_unique<BoundImportDatabase>(boundFilePath, finalQueryStatements);
 }
 

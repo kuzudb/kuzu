@@ -47,9 +47,6 @@ void StatementVisitor::visit(const Statement& statement) {
     case StatementType::CREATE_MACRO: {
         visitCreateMacro(statement);
     } break;
-    case StatementType::COMMENT_ON: {
-        visitCommentOn(statement);
-    } break;
     case StatementType::TRANSACTION: {
         visitTransaction(statement);
     } break;

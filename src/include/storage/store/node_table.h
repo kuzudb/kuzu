@@ -2,6 +2,7 @@
 
 #include "common/cast.h"
 #include "common/types/types.h"
+#include "processor/operator/mask.h"
 #include "storage/index/hash_index.h"
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/store/chunked_node_group.h"
@@ -9,6 +10,9 @@
 #include "storage/store/table.h"
 
 namespace kuzu {
+namespace evaluator {
+class ExpressionEvaluator;
+} // namespace evaluator
 namespace transaction {
 class Transaction;
 } // namespace transaction
@@ -19,14 +23,15 @@ class LocalNodeTable;
 struct NodeTableScanState final : TableScanState {
     // Local storage node group.
     LocalNodeNG* localNodeGroup = nullptr;
+    processor::NodeSemiMask* semiMask;
 
     explicit NodeTableScanState(std::vector<common::column_id_t> columnIDs)
         : TableScanState{std::move(columnIDs), std::vector<ColumnPredicateSet>{}} {
         dataScanState = std::make_unique<NodeDataScanState>(this->columnIDs);
     }
     NodeTableScanState(std::vector<common::column_id_t> columnIDs,
-        std::vector<ColumnPredicateSet> columnPredicateSets)
-        : TableScanState{std::move(columnIDs), std::move(columnPredicateSets)} {
+        std::vector<ColumnPredicateSet> columnPredicateSets, processor::NodeSemiMask* semiMask)
+        : TableScanState{std::move(columnIDs), std::move(columnPredicateSets)}, semiMask{semiMask} {
         dataScanState = std::make_unique<NodeDataScanState>(this->columnIDs);
     }
 };
@@ -89,10 +94,10 @@ public:
 
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
-    void delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
+    bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
 
     void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
-        common::ValueVector* defaultValueVector) override;
+        evaluator::ExpressionEvaluator& defaultEvaluator) override;
     void dropColumn(common::column_id_t columnID) override { tableData->dropColumn(columnID); }
 
     common::column_id_t getPKColumnID() const { return pkColumnID; }
