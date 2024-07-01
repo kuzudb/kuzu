@@ -8,6 +8,7 @@
 #include "function/gds/parallel_utils.h"
 #include "function/gds_function.h"
 #include "main/settings.h"
+#include "processor/processor_task.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -211,6 +212,9 @@ public:
                     runLoop = false;
                     break;
                 }
+                auto processorTask = common::ku_dynamic_cast<Task*, ProcessorTask*>(
+                    ifeMorselTasks[i].second->task.get());
+                free(processorTask->getSink());
                 ifeMorselTasks[i].second = nullptr;
                 // printf("bfs source: %lu is completed\n", ifeMorselTasks[i].first->srcOffset);
                 numCompletedTasks++;
