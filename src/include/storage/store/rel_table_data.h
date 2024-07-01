@@ -146,8 +146,6 @@ public:
     bool delete_(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
         common::ValueVector* relIDVector) const;
 
-    void checkRelMultiplicityConstraint(transaction::Transaction* transaction,
-        common::ValueVector* srcNodeIDVector) const;
     bool checkIfNodeHasRels(transaction::Transaction* transaction,
         common::offset_t nodeOffset) const;
     void append(transaction::Transaction* transaction, ChunkedNodeGroup* nodeGroup) override;

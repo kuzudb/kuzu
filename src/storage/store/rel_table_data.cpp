@@ -290,17 +290,6 @@ bool RelTableData::delete_(Transaction* transaction, ValueVector* srcNodeIDVecto
     return localTableData->delete_(srcNodeIDVector, relIDVector);
 }
 
-void RelTableData::checkRelMultiplicityConstraint(Transaction* transaction,
-    ValueVector* srcNodeIDVector) const {
-    KU_ASSERT(srcNodeIDVector->state->isFlat() && multiplicity == RelMultiplicity::ONE);
-    auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
-    auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
-    if (checkIfNodeHasRels(transaction, nodeOffset)) {
-        throw RuntimeException(ExceptionMessage::violateRelMultiplicityConstraint(tableName,
-            std::to_string(nodeOffset), RelDataDirectionUtils::relDirectionToString(direction)));
-    }
-}
-
 bool RelTableData::checkIfNodeHasRels(Transaction* transaction, offset_t nodeOffset) const {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     if (nodeGroupIdx >= csrHeaderColumns.length->getNumNodeGroups(transaction)) {
