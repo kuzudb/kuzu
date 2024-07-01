@@ -44,8 +44,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     common::table_id_map_t<std::unique_ptr<NodeOffsetLevelSemiMask>> masks;
     if (call.getInfo().getBindData()->hasNodeInput()) {
         // Generate an empty semi mask which later on picked by SemiMaker.
-        auto& node =
-            call.getInfo().getBindData()->nodeInput->constCast<binder::NodeExpression>();
+        auto& node = call.getInfo().getBindData()->nodeInput->constCast<binder::NodeExpression>();
         for (auto tableID : node.getTableIDs()) {
             auto nodeTable =
                 clientContext->getStorageManager()->getTable(tableID)->ptrCast<NodeTable>();
@@ -62,7 +61,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     auto algorithm = std::make_unique<GDSCall>(std::make_unique<ResultSetDescriptor>(),
         std::move(info), sharedState, getOperatorID(), std::move(printInfo));
     auto ftableScan = createFTableScanAligned(columns, outSchema, table, 1u, std::move(algorithm));
-    binder::Expression &expr = *srcInternalIDExpr.get();
+    binder::Expression& expr = *srcInternalIDExpr.get();
     auto flattenPrintInfo = std::make_unique<OPPrintInfo>(expr.getUniqueName());
     auto flattensOperator = make_unique<Flatten>(outSchema->getGroupPos(expr),
         std::move(ftableScan), getOperatorID(), std::move(flattenPrintInfo));

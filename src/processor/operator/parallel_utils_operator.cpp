@@ -1,4 +1,5 @@
 #include "processor/operator/parallel_utils_operator.h"
+
 #include "processor/operator/sink.h"
 
 namespace kuzu {

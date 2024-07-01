@@ -54,7 +54,8 @@ public:
     // add all the tasks at the same time, holding the main task queue lock
     // this ensures the threads will see all the tasks at the same time, instead of 1 at a time
     // we need to ensure task fairness when worker threads decide to bind to a task
-    std::vector<std::shared_ptr<ScheduledTask>> scheduleTasksAndReturn(const std::vector<std::shared_ptr<Task>>& tasks);
+    std::vector<std::shared_ptr<ScheduledTask>> scheduleTasksAndReturn(
+        const std::vector<std::shared_ptr<Task>>& tasks);
 
     void removeErroringTask(uint64_t scheduledTaskID);
 

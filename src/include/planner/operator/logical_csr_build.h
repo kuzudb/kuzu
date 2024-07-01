@@ -30,8 +30,8 @@ public:
     std::string getExpressionsForPrinting() const override;
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalCSRBuild>(
-            operatorType, boundNode, nbrNode, rel, direction, children[0]->copy());
+        return std::make_unique<LogicalCSRBuild>(operatorType, boundNode, nbrNode, rel, direction,
+            children[0]->copy());
     }
 
 private:

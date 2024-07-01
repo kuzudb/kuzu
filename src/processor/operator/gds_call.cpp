@@ -1,6 +1,6 @@
-#include "processor/result/factorized_table.h"
 #include "processor/operator/gds_call.h"
 
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::graph;

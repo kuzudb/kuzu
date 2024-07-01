@@ -159,15 +159,15 @@ public:
             while (!ifeMorsel->isBFSCompleteNoLock()) {
                 auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
                 gdsLocalState->ifeMorsel = ifeMorsel.get();
-                auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState),
-                    sharedState, extendFrontierFunc, true /* isParallel */};
+                auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState), sharedState,
+                    extendFrontierFunc, true /* isParallel */};
                 parallelUtils->submitParallelTaskAndWait(job);
                 ifeMorsel->initializeNextFrontierNoLock();
             }
             auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
             gdsLocalState->ifeMorsel = ifeMorsel.get();
-            auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState),
-                sharedState, shortestPathOutputFunc, true /* isParallel */};
+            auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState), sharedState,
+                shortestPathOutputFunc, true /* isParallel */};
             parallelUtils->submitParallelTaskAndWait(job);
         }
     }

@@ -90,7 +90,7 @@ private:
     }
 
 public:
-    //TODO: temporary, make parallelUtils a friend class to get access to this task lock
+    // TODO: temporary, make parallelUtils a friend class to get access to this task lock
     std::mutex mtx;
     Task* parent = nullptr;
     std::vector<std::shared_ptr<Task>>

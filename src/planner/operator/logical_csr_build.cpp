@@ -1,4 +1,5 @@
 #include "planner/operator/logical_csr_build.h"
+
 #include "common/exception/not_implemented.h"
 
 namespace kuzu {

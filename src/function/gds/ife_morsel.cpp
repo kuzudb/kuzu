@@ -6,8 +6,8 @@ namespace kuzu {
 namespace function {
 
 IFEMorsel::~IFEMorsel() {
-    delete [] visitedNodes;
-    delete [] pathLength;
+    delete[] visitedNodes;
+    delete[] pathLength;
 }
 
 void IFEMorsel::init() {
@@ -98,5 +98,5 @@ void IFEMorsel::initializeNextFrontierNoLock() {
     }
 }
 
-} // namespace graph
+} // namespace function
 } // namespace kuzu
