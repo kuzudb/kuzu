@@ -203,6 +203,11 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 [peweeeeeeeeeeeeeeeee,kowje9w0eweeeeeeeee]
 
 -CASE RelStruct
+-STATEMENT MATCH (a:person)-[r:marries]->(b:person) RETURN r.note
+---- 3
+
+long long long string
+short str
 -STATEMENT MATCH (a:person)-[r:knows]->(b:person) RETURN r.summary
 ---- 14
 {locations: , transfer: }

@@ -102,9 +102,16 @@ public:
     void appendChunkedCSRGroup(const transaction::Transaction* transaction,
         ChunkedCSRNodeGroup& chunkedGroup);
     void append(const transaction::Transaction* transaction, common::offset_t boundOffsetInGroup,
-        const std::vector<ColumnChunk*>& chunks, common::row_idx_t rowInChunks);
+        const std::vector<ColumnChunk*>& chunks, common::row_idx_t startRowInChunks,
+        common::row_idx_t numRows);
     void initializeScanState(transaction::Transaction* transaction, TableScanState& state) override;
     NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state) override;
+
+    void update(transaction::Transaction* transaction, CSRNodeGroupScanSource source,
+        common::row_idx_t rowIdxInGroup, common::column_id_t columnID,
+        const common::ValueVector& propertyVector);
+    bool delete_(const transaction::Transaction* transaction, CSRNodeGroupScanSource source,
+        common::row_idx_t rowIdxInGroup);
 
     bool isEmpty() const override { return !persistentChunkGroup && NodeGroup::isEmpty(); }
 
@@ -117,8 +124,8 @@ private:
     void updateCSRIndex(common::offset_t boundNodeOffsetInGroup, common::row_idx_t startRow,
         common::length_t length) const;
 
-    static NodeGroupScanResult scanCommittedPersistent(transaction::Transaction* transaction,
-        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
+    NodeGroupScanResult scanCommittedPersistent(const transaction::Transaction* transaction,
+        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
     NodeGroupScanResult scanCommittedInMemSequential(const transaction::Transaction* transaction,
         const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
     NodeGroupScanResult scanCommittedInMemRandom(transaction::Transaction* transaction,

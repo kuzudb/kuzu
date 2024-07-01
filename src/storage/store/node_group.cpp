@@ -15,11 +15,12 @@ row_idx_t NodeGroup::append(const Transaction* transaction, ChunkedNodeGroup& ch
     for (auto i = 0u; i < chunkedGroup.getNumColumns(); i++) {
         chunksToAppend[i] = &chunkedGroup.getColumnChunk(i);
     }
-    return append(transaction, chunksToAppend, numRowsToAppend);
+    return append(transaction, chunksToAppend, 0, numRowsToAppend);
 }
 
 row_idx_t NodeGroup::append(const Transaction* transaction,
-    const std::vector<ColumnChunk*>& chunkedGroup, row_idx_t numRowsToAppend) {
+    const std::vector<ColumnChunk*>& chunkedGroup, row_idx_t startRowIdx,
+    row_idx_t numRowsToAppend) {
     const auto lock = chunkedGroups.lock();
     const auto numRowsBeforeAppend = getNumRows();
     if (chunkedGroups.isEmpty(lock)) {
@@ -41,7 +42,7 @@ row_idx_t NodeGroup::append(const Transaction* transaction,
             ChunkedNodeGroup::CHUNK_CAPACITY - chunkedGroupToCopyInto->getNumRows();
         const auto numToAppendInChunk =
             std::min(numRowsToAppend - numRowsAppended, numToCopyIntoChunk);
-        chunkedGroupToCopyInto->append(transaction, chunkedGroup, numRowsAppended,
+        chunkedGroupToCopyInto->append(transaction, chunkedGroup, numRowsAppended + startRowIdx,
             numToAppendInChunk);
         numRowsAppended += numToAppendInChunk;
     }

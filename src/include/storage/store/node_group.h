@@ -100,7 +100,8 @@ public:
     common::row_idx_t append(const transaction::Transaction* transaction,
         ChunkedNodeGroup& chunkedGroup, common::row_idx_t numRowsToAppend);
     common::row_idx_t append(const transaction::Transaction* transaction,
-        const std::vector<ColumnChunk*>& chunkedGroup, common::row_idx_t numRowsToAppend);
+        const std::vector<ColumnChunk*>& chunkedGroup, common::row_idx_t startRowIdx,
+        common::row_idx_t numRowsToAppend);
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors, common::row_idx_t startRowIdx,
         common::row_idx_t numRowsToAppend);

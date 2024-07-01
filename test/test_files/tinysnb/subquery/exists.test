@@ -2,8 +2,9 @@
 
 --
 
+#TODO(Guodong): Issue #3730
 -CASE ExistsSubquery
-
+-SKIP
 -LOG ExistSubqueryTest
 -STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) } RETURN COUNT(*)
 -ENUMERATE

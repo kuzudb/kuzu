@@ -109,12 +109,12 @@ bool RelTableData::update(Transaction* transaction, ValueVector& boundNodeIDVect
     if (boundNodeIDVector.isNull(boundNodePos) || relIDVector.isNull(relIDPos)) {
         return false;
     }
-    const auto rowIdx = findMatchingRow(transaction, boundNodeIDVector, relIDVector);
+    const auto [source, rowIdx] = findMatchingRow(transaction, boundNodeIDVector, relIDVector);
     KU_ASSERT(rowIdx != INVALID_ROW_IDX);
-    auto [nodeGroupIdx, rowIdxInGroup] =
-        StorageUtils::getQuotientRemainder(rowIdx, StorageConstants::NODE_GROUP_SIZE);
+    const auto boundNodeOffset = boundNodeIDVector.getValue<nodeID_t>(boundNodePos).offset;
+    const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(boundNodeOffset);
     auto& csrNodeGroup = getNodeGroup(nodeGroupIdx)->cast<CSRNodeGroup>();
-    csrNodeGroup.update(transaction, rowIdxInGroup, columnID, dataVector);
+    csrNodeGroup.update(transaction, source, rowIdx, columnID, dataVector);
     return true;
 }
 
@@ -125,18 +125,18 @@ bool RelTableData::delete_(Transaction* transaction, ValueVector& boundNodeIDVec
     if (boundNodeIDVector.isNull(boundNodePos) || relIDVector.isNull(relIDPos)) {
         return false;
     }
-    const auto rowIdx = findMatchingRow(transaction, boundNodeIDVector, relIDVector);
+    const auto [source, rowIdx] = findMatchingRow(transaction, boundNodeIDVector, relIDVector);
     if (rowIdx == INVALID_ROW_IDX) {
         return false;
     }
-    auto [nodeGroupIdx, rowIdxInGroup] =
-        StorageUtils::getQuotientRemainder(rowIdx, StorageConstants::NODE_GROUP_SIZE);
+    const auto boundNodeOffset = boundNodeIDVector.getValue<nodeID_t>(boundNodePos).offset;
+    const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(boundNodeOffset);
     auto& csrNodeGroup = getNodeGroup(nodeGroupIdx)->cast<CSRNodeGroup>();
-    return csrNodeGroup.delete_(transaction, rowIdxInGroup);
+    return csrNodeGroup.delete_(transaction, source, rowIdx);
 }
 
-row_idx_t RelTableData::findMatchingRow(Transaction* transaction, ValueVector& boundNodeIDVector,
-    const ValueVector& relIDVector) const {
+std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Transaction* transaction,
+    ValueVector& boundNodeIDVector, const ValueVector& relIDVector) const {
     KU_ASSERT(boundNodeIDVector.state->getSelVector().getSelSize() == 1);
     KU_ASSERT(relIDVector.state->getSelVector().getSelSize() == 1);
     const auto boundNodePos = boundNodeIDVector.state->getSelVector()[0];
@@ -148,19 +148,20 @@ row_idx_t RelTableData::findMatchingRow(Transaction* transaction, ValueVector& b
     DataChunk scanChunk(1);
     // RelID output vector.
     scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
-    std::vector<column_id_t> columnIDs;
-    std::vector<Column*> columns{getColumn(REL_ID_COLUMN_ID)};
-    columnIDs.push_back(REL_ID_COLUMN_ID);
+    std::vector<column_id_t> columnIDs = {REL_ID_COLUMN_ID, ROW_IDX_COLUMN_ID};
+    std::vector<Column*> columns{getColumn(REL_ID_COLUMN_ID), nullptr};
     const auto scanState = std::make_unique<RelTableScanState>(tableID, columnIDs, columns,
         csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
     scanState->boundNodeIDVector = &boundNodeIDVector;
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
     scanState->IDVector = scanState->outputVectors[0];
+    scanState->rowIdxVector->state = scanState->IDVector->state;
     scanState->source = TableScanSource::COMMITTED;
     scanState->boundNodeOffset = boundNodeOffset;
     scanState->nodeGroup = getNodeGroup(nodeGroupIdx);
     scanState->nodeGroup->initializeScanState(transaction, *scanState);
     row_idx_t matchingRowIdx = INVALID_ROW_IDX;
+    CSRNodeGroupScanSource source;
     while (true) {
         const auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
         if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
@@ -171,6 +172,7 @@ row_idx_t RelTableData::findMatchingRow(Transaction* transaction, ValueVector& b
             if (scanState->IDVector->getValue<internalID_t>(pos).offset == relOffset) {
                 const auto rowIdxPos = scanState->rowIdxVector->state->getSelVector()[i];
                 matchingRowIdx = scanState->rowIdxVector->getValue<row_idx_t>(rowIdxPos);
+                source = scanState->nodeGroupScanState->cast<CSRNodeGroupScanState>().source;
                 break;
             }
         }
@@ -178,7 +180,7 @@ row_idx_t RelTableData::findMatchingRow(Transaction* transaction, ValueVector& b
             break;
         }
     }
-    return matchingRowIdx;
+    return {source, matchingRowIdx};
 }
 
 bool RelTableData::checkIfNodeHasRels(Transaction*, offset_t) const {

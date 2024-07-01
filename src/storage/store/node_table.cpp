@@ -157,7 +157,8 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
         localTable->update(updateState);
     } else {
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-        const auto rowIdxInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeOffset);
+        const auto rowIdxInGroup =
+            nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         nodeGroups->getNodeGroup(nodeGroupIdx)
             ->update(transaction, rowIdxInGroup, nodeUpdateState.columnID,
                 nodeUpdateState.propertyVector);
@@ -180,7 +181,7 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
         return localTable->delete_(transaction, deleteState);
     }
     const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-    const auto rowIdxInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeOffset);
+    const auto rowIdxInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     return nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
 }
 

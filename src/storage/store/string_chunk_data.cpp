@@ -102,6 +102,7 @@ void StringChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
 void StringChunkData::initializeScanState(ChunkState& state) const {
     ColumnChunkData::initializeScanState(state);
     state.childrenStates.resize(CHILD_COLUMN_COUNT);
+    indexColumnChunk->initializeScanState(state.childrenStates[INDEX_COLUMN_CHILD_READ_STATE_IDX]);
     dictionaryChunk->getOffsetChunk()->initializeScanState(
         state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
     dictionaryChunk->getStringDataChunk()->initializeScanState(

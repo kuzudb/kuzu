@@ -72,6 +72,8 @@ std::unique_ptr<ColumnChunkData> ListColumn::flushChunkData(const ColumnChunkDat
     auto flushedChunk = flushNonNestedChunkData(chunk, dataFH);
     auto& listChunk = chunk.cast<ListChunkData>();
     auto& flushedListChunk = flushedChunk->cast<ListChunkData>();
+    flushedListChunk.setOffsetColumnChunk(
+        Column::flushChunkData(*listChunk.getOffsetColumnChunk(), dataFH));
     flushedListChunk.setSizeColumnChunk(
         Column::flushChunkData(*listChunk.getSizeColumnChunk(), dataFH));
     flushedListChunk.setDataColumnChunk(

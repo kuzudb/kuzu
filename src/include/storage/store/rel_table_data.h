@@ -130,8 +130,9 @@ private:
     void initCSRHeaderColumns();
     void initPropertyColumns(const catalog::TableCatalogEntry* tableEntry);
 
-    common::row_idx_t findMatchingRow(transaction::Transaction* transaction,
-        common::ValueVector& boundNodeIDVector, const common::ValueVector& relIDVector) const;
+    std::pair<CSRNodeGroupScanSource, common::row_idx_t> findMatchingRow(
+        transaction::Transaction* transaction, common::ValueVector& boundNodeIDVector,
+        const common::ValueVector& relIDVector) const;
 
     static common::offset_t getMaxNumNodesInRegion(const ChunkedCSRHeader& header,
         const PackedCSRRegion& region, const ChunkedNodeGroup* localNG);
