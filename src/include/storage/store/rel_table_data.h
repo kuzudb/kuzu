@@ -62,7 +62,6 @@ struct CSRHeaderColumns {
 // TODO(Guodong): Serialize the info to disk. This should be a config per node group.
 struct PackedCSRInfo {
     uint64_t calibratorTreeHeight;
-    double lowDensityStep;
     double highDensityStep;
 
     PackedCSRInfo();

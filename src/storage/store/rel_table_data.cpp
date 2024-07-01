@@ -93,9 +93,6 @@ offset_t CSRHeaderColumns::getNumNodes(Transaction* transaction,
 PackedCSRInfo::PackedCSRInfo() {
     calibratorTreeHeight =
         StorageConstants::NODE_GROUP_SIZE_LOG2 - StorageConstants::CSR_SEGMENT_SIZE_LOG2;
-    lowDensityStep =
-        (StorageConstants::PACKED_CSR_DENSITY - StorageConstants::LEAF_LOW_CSR_DENSITY) /
-        static_cast<double>(calibratorTreeHeight);
     highDensityStep =
         (StorageConstants::LEAF_HIGH_CSR_DENSITY - StorageConstants::PACKED_CSR_DENSITY) /
         static_cast<double>(calibratorTreeHeight);
