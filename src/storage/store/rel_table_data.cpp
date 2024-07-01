@@ -2,7 +2,6 @@
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/rel_direction.h"
-#include "common/exception/message.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/stats/rels_store_statistics.h"
 #include "storage/store/table.h"
@@ -93,9 +92,6 @@ offset_t CSRHeaderColumns::getNumNodes(Transaction* transaction,
 PackedCSRInfo::PackedCSRInfo() {
     calibratorTreeHeight =
         StorageConstants::NODE_GROUP_SIZE_LOG2 - StorageConstants::CSR_SEGMENT_SIZE_LOG2;
-    lowDensityStep =
-        (StorageConstants::PACKED_CSR_DENSITY - StorageConstants::LEAF_LOW_CSR_DENSITY) /
-        static_cast<double>(calibratorTreeHeight);
     highDensityStep =
         (StorageConstants::LEAF_HIGH_CSR_DENSITY - StorageConstants::PACKED_CSR_DENSITY) /
         static_cast<double>(calibratorTreeHeight);
@@ -288,17 +284,6 @@ bool RelTableData::delete_(Transaction* transaction, ValueVector* srcNodeIDVecto
     auto localRelTable = ku_dynamic_cast<LocalTable*, LocalRelTable*>(localTable);
     auto localTableData = localRelTable->getTableData(direction);
     return localTableData->delete_(srcNodeIDVector, relIDVector);
-}
-
-void RelTableData::checkRelMultiplicityConstraint(Transaction* transaction,
-    ValueVector* srcNodeIDVector) const {
-    KU_ASSERT(srcNodeIDVector->state->isFlat() && multiplicity == RelMultiplicity::ONE);
-    auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
-    auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
-    if (checkIfNodeHasRels(transaction, nodeOffset)) {
-        throw RuntimeException(ExceptionMessage::violateRelMultiplicityConstraint(tableName,
-            std::to_string(nodeOffset), RelDataDirectionUtils::relDirectionToString(direction)));
-    }
 }
 
 bool RelTableData::checkIfNodeHasRels(Transaction* transaction, offset_t nodeOffset) const {

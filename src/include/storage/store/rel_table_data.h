@@ -62,7 +62,6 @@ struct CSRHeaderColumns {
 // TODO(Guodong): Serialize the info to disk. This should be a config per node group.
 struct PackedCSRInfo {
     uint64_t calibratorTreeHeight;
-    double lowDensityStep;
     double highDensityStep;
 
     PackedCSRInfo();
@@ -146,8 +145,6 @@ public:
     bool delete_(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
         common::ValueVector* relIDVector) const;
 
-    void checkRelMultiplicityConstraint(transaction::Transaction* transaction,
-        common::ValueVector* srcNodeIDVector) const;
     bool checkIfNodeHasRels(transaction::Transaction* transaction,
         common::offset_t nodeOffset) const;
     void append(transaction::Transaction* transaction, ChunkedNodeGroup* nodeGroup) override;
