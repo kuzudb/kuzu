@@ -2,7 +2,6 @@
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/rel_direction.h"
-#include "common/exception/message.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/stats/rels_store_statistics.h"
 #include "storage/store/table.h"
