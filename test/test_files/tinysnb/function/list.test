@@ -147,8 +147,36 @@ Binder exception: Expression LIST_CREATION(a) has data type STRING[] but expecte
 [46,90]|[5.000000]|[False]|[1940-06-22]|[1911-08-20 02:32:21]|[48:24:11]
 [84,166]|[4.900000]|[False]|[1990-11-27]|[2023-02-21 13:25:30]|[3 years 2 days 13:02:00]
 
-
-
+-LOG ListExtractNegativeIdx
+-STATEMENT RETURN list_extract([5,2,8], -1)
+---- 1
+8
+-STATEMENT RETURN list_extract([5,2,8], -2)
+---- 1
+2
+-STATEMENT RETURN list_extract([5,2,8], -3)
+---- 1
+5
+-STATEMENT RETURN list_extract([5,2,8], -4)
+---- error
+Runtime exception: list_extract(list, index): index=-4 is out of range.
+-LOG ListExtractZeroIdx
+-STATEMENT RETURN list_extract([5,2,8], 0)
+---- error
+Runtime exception: List extract takes 1-based position.
+-LOG ListExtractPositiveIdx
+-STATEMENT RETURN list_extract([5,2,8], 1)
+---- 1
+5
+-STATEMENT RETURN list_extract([5,2,8], 2)
+---- 1
+2
+-STATEMENT RETURN list_extract([5,2,8], 3)
+---- 1
+8
+-STATEMENT RETURN list_extract([5,2,8], 4)
+---- error
+Runtime exception: list_extract(list, index): index=4 is out of range.
 -LOG ListExtractListOfINT64
 -STATEMENT MATCH (a:person) RETURN list_extract(a.workedHours, 1)
 ---- 8
