@@ -20,19 +20,21 @@ public:
         if (pos == 0) {
             throw common::RuntimeException("List extract takes 1-based position.");
         }
-        uint64_t upos = pos == -1 ? listEntry.size : pos;
-        if (listEntry.size < upos) {
-            throw common::RuntimeException("list_extract(list, index): index=" +
-                                           common::TypeUtils::toString(pos) + " is out of range.");
+        if ((pos > 0 && pos > listEntry.size) || (pos < 0 && pos < -(int64_t)listEntry.size)) {
+            throw common::RuntimeException(
+                common::stringFormat("list_extract(list, index): index={} is out of range.",
+                    common::TypeUtils::toString(pos)));
         }
-        if (listEntry.size == 0) {
-            return; // TODO(Xiyang/Ziyi): we should fix when extracting last element of list.
+        if (pos > 0) {
+            pos--;
+        } else {
+            pos = listEntry.size + pos;
         }
         auto listDataVector = common::ListVector::getDataVector(&listVector);
-        resultVector.setNull(resPos, listDataVector->isNull(listEntry.offset + upos - 1));
+        resultVector.setNull(resPos, listDataVector->isNull(listEntry.offset + pos));
         if (!resultVector.isNull(resPos)) {
             auto listValues =
-                common::ListVector::getListValuesWithOffset(&listVector, listEntry, upos - 1);
+                common::ListVector::getListValuesWithOffset(&listVector, listEntry, pos);
             resultVector.copyFromVectorData(reinterpret_cast<uint8_t*>(&result), listDataVector,
                 listValues);
         }
