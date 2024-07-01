@@ -2192,3 +2192,32 @@ a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11*a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12*a0eebc
 -STATEMENT RETURN [[23, 432], [], [NULL]];
 ---- 1
 [[23,432],[],[]]
+
+-LOG Int64ListNotIn
+-STATEMENT MATCH (p:person) RETURN (p.age % 10) not in p.workedHours
+---- 8
+False
+True
+False
+True
+True
+False
+True
+False
+
+-LOG StringListNotIn
+-STATEMENT MATCH (p:person) RETURN p.fName not in p.usedNames
+---- 8
+True
+True
+True
+True
+True
+True
+True
+True
+
+-LOG NestedListNotIn
+-STATEMENT RETURN [5,9,2] not in [[4,2,1], [5,9], [5,9,2]]
+---- 1
+False

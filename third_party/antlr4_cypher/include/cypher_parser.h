@@ -92,18 +92,19 @@ public:
     RuleOC_MultiplyDivideModuloExpression = 128, RuleKU_MultiplyDivideModuloOperator = 129, 
     RuleOC_PowerOfExpression = 130, RuleOC_UnaryAddSubtractOrFactorialExpression = 131, 
     RuleOC_StringListNullOperatorExpression = 132, RuleOC_ListOperatorExpression = 133, 
-    RuleOC_StringOperatorExpression = 134, RuleOC_RegularExpression = 135, 
-    RuleOC_NullOperatorExpression = 136, RuleOC_PropertyOrLabelsExpression = 137, 
-    RuleOC_Atom = 138, RuleOC_Literal = 139, RuleOC_BooleanLiteral = 140, 
-    RuleOC_ListLiteral = 141, RuleKU_ListEntry = 142, RuleKU_StructLiteral = 143, 
-    RuleKU_StructField = 144, RuleOC_ParenthesizedExpression = 145, RuleOC_FunctionInvocation = 146, 
-    RuleOC_FunctionName = 147, RuleKU_FunctionParameter = 148, RuleOC_PathPatterns = 149, 
-    RuleOC_ExistSubquery = 150, RuleKU_CountSubquery = 151, RuleOC_PropertyLookup = 152, 
-    RuleOC_CaseExpression = 153, RuleOC_CaseAlternative = 154, RuleOC_Variable = 155, 
-    RuleOC_NumberLiteral = 156, RuleOC_Parameter = 157, RuleOC_PropertyExpression = 158, 
-    RuleOC_PropertyKeyName = 159, RuleOC_IntegerLiteral = 160, RuleOC_DoubleLiteral = 161, 
-    RuleOC_SchemaName = 162, RuleOC_SymbolicName = 163, RuleKU_NonReservedKeywords = 164, 
-    RuleOC_LeftArrowHead = 165, RuleOC_RightArrowHead = 166, RuleOC_Dash = 167
+    RuleKU_ListInOperation = 134, RuleKU_ListExtractOperation = 135, RuleKU_ListSliceOperation = 136, 
+    RuleOC_StringOperatorExpression = 137, RuleOC_RegularExpression = 138, 
+    RuleOC_NullOperatorExpression = 139, RuleOC_PropertyOrLabelsExpression = 140, 
+    RuleOC_Atom = 141, RuleOC_Literal = 142, RuleOC_BooleanLiteral = 143, 
+    RuleOC_ListLiteral = 144, RuleKU_ListEntry = 145, RuleKU_StructLiteral = 146, 
+    RuleKU_StructField = 147, RuleOC_ParenthesizedExpression = 148, RuleOC_FunctionInvocation = 149, 
+    RuleOC_FunctionName = 150, RuleKU_FunctionParameter = 151, RuleOC_PathPatterns = 152, 
+    RuleOC_ExistSubquery = 153, RuleKU_CountSubquery = 154, RuleOC_PropertyLookup = 155, 
+    RuleOC_CaseExpression = 156, RuleOC_CaseAlternative = 157, RuleOC_Variable = 158, 
+    RuleOC_NumberLiteral = 159, RuleOC_Parameter = 160, RuleOC_PropertyExpression = 161, 
+    RuleOC_PropertyKeyName = 162, RuleOC_IntegerLiteral = 163, RuleOC_DoubleLiteral = 164, 
+    RuleOC_SchemaName = 165, RuleOC_SymbolicName = 166, RuleKU_NonReservedKeywords = 167, 
+    RuleOC_LeftArrowHead = 168, RuleOC_RightArrowHead = 169, RuleOC_Dash = 170
   };
 
   explicit CypherParser(antlr4::TokenStream *input);
@@ -257,6 +258,9 @@ public:
   class OC_UnaryAddSubtractOrFactorialExpressionContext;
   class OC_StringListNullOperatorExpressionContext;
   class OC_ListOperatorExpressionContext;
+  class KU_ListInOperationContext;
+  class KU_ListExtractOperationContext;
+  class KU_ListSliceOperationContext;
   class OC_StringOperatorExpressionContext;
   class OC_RegularExpressionContext;
   class OC_NullOperatorExpressionContext;
@@ -2298,18 +2302,53 @@ public:
   public:
     OC_ListOperatorExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    std::vector<antlr4::tree::TerminalNode *> SP();
-    antlr4::tree::TerminalNode* SP(size_t i);
-    antlr4::tree::TerminalNode *IN();
-    OC_PropertyOrLabelsExpressionContext *oC_PropertyOrLabelsExpression();
-    std::vector<OC_ExpressionContext *> oC_Expression();
-    OC_ExpressionContext* oC_Expression(size_t i);
-    antlr4::tree::TerminalNode *COLON();
+    KU_ListInOperationContext *kU_ListInOperation();
+    KU_ListExtractOperationContext *kU_ListExtractOperation();
+    KU_ListSliceOperationContext *kU_ListSliceOperation();
 
    
   };
 
   OC_ListOperatorExpressionContext* oC_ListOperatorExpression();
+
+  class  KU_ListInOperationContext : public antlr4::ParserRuleContext {
+  public:
+    KU_ListInOperationContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+    antlr4::tree::TerminalNode *IN();
+    OC_PropertyOrLabelsExpressionContext *oC_PropertyOrLabelsExpression();
+    antlr4::tree::TerminalNode *NOT();
+
+   
+  };
+
+  KU_ListInOperationContext* kU_ListInOperation();
+
+  class  KU_ListExtractOperationContext : public antlr4::ParserRuleContext {
+  public:
+    KU_ListExtractOperationContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    OC_ExpressionContext *oC_Expression();
+
+   
+  };
+
+  KU_ListExtractOperationContext* kU_ListExtractOperation();
+
+  class  KU_ListSliceOperationContext : public antlr4::ParserRuleContext {
+  public:
+    KU_ListSliceOperationContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *COLON();
+    std::vector<OC_ExpressionContext *> oC_Expression();
+    OC_ExpressionContext* oC_Expression(size_t i);
+
+   
+  };
+
+  KU_ListSliceOperationContext* kU_ListSliceOperation();
 
   class  OC_StringOperatorExpressionContext : public antlr4::ParserRuleContext {
   public:

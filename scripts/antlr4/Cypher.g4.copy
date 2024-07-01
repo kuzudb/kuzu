@@ -478,10 +478,18 @@ oC_StringListNullOperatorExpression
     : oC_PropertyOrLabelsExpression ( oC_StringOperatorExpression | oC_ListOperatorExpression+ | oC_NullOperatorExpression )? ;
 
 oC_ListOperatorExpression
-    : ( SP IN SP? oC_PropertyOrLabelsExpression )
-        | ( '[' oC_Expression ']' )
-        | ( '[' oC_Expression? COLON oC_Expression? ']' )
-        ;
+    : kU_ListInOperation
+        | kU_ListExtractOperation
+        | kU_ListSliceOperation ;
+
+kU_ListInOperation
+    : ( SP (NOT SP)? IN SP? oC_PropertyOrLabelsExpression ) ;
+
+kU_ListExtractOperation
+    : ( '[' oC_Expression ']' ) ;
+
+kU_ListSliceOperation
+    : ( '[' oC_Expression? COLON oC_Expression? ']' ) ;
 
 COLON : ':' ;
 

@@ -291,49 +291,73 @@ std::unique_ptr<ParsedExpression> Transformer::transformStringOperatorExpression
     }
 }
 
-std::unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
-    CypherParser::OC_ListOperatorExpressionContext& ctx, std::unique_ptr<ParsedExpression> child) {
+std::unique_ptr<ParsedExpression> Transformer::transformListInOperatorExpression(
+    CypherParser::KU_ListInOperationContext& ctx, std::unique_ptr<ParsedExpression> child) {
+    // x IN y or x NOT IN y
     auto raw = child->getRawName() + ctx.getText();
-    if (ctx.IN()) { // x IN y
-        auto listContains =
-            std::make_unique<ParsedFunctionExpression>(ListContainsFunction::name, std::move(raw));
-        auto right = transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
-        listContains->addChild(std::move(right));
-        listContains->addChild(std::move(child));
-        return listContains;
+    auto operatorExpression =
+        std::make_unique<ParsedFunctionExpression>(ListContainsFunction::name, raw);
+    auto right = transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
+    operatorExpression->addChild(std::move(right));
+    operatorExpression->addChild(std::move(child));
+    if (ctx.NOT()) {
+        // x NOT IN y
+        return std::make_unique<ParsedExpression>(ExpressionType::NOT,
+            std::move(operatorExpression), "not" + raw);
     }
-    if (ctx.COLON()) { // x[:]
-        auto listSlice =
-            std::make_unique<ParsedFunctionExpression>(ListSliceFunction::name, std::move(raw));
-        listSlice->addChild(std::move(child));
-        std::unique_ptr<ParsedExpression> left;
-        std::unique_ptr<ParsedExpression> right;
-        if (ctx.oC_Expression().size() == 2) { // [left:right]
-            left = transformExpression(*ctx.oC_Expression(0));
-            right = transformExpression(*ctx.oC_Expression(1));
-        } else if (ctx.oC_Expression().size() == 0) { // [:]
+    return operatorExpression;
+}
+
+std::unique_ptr<ParsedExpression> Transformer::transformListSliceOperatorExpression(
+    CypherParser::KU_ListSliceOperationContext& ctx, std::unique_ptr<ParsedExpression> child) {
+    auto raw = child->getRawName() + ctx.getText();
+    auto listSlice =
+        std::make_unique<ParsedFunctionExpression>(ListSliceFunction::name, std::move(raw));
+    listSlice->addChild(std::move(child));
+    std::unique_ptr<ParsedExpression> left;
+    std::unique_ptr<ParsedExpression> right;
+    if (ctx.oC_Expression().size() == 2) { // [left:right]
+        left = transformExpression(*ctx.oC_Expression(0));
+        right = transformExpression(*ctx.oC_Expression(1));
+    } else if (ctx.oC_Expression().size() == 0) { // [:]
+        left = std::make_unique<ParsedLiteralExpression>(Value(0), "0");
+        right = std::make_unique<ParsedLiteralExpression>(Value(0), "0");
+    } else {
+        if (ctx.children[1]->getText() == ":") { // [:right]
             left = std::make_unique<ParsedLiteralExpression>(Value(0), "0");
+            right = transformExpression(*ctx.oC_Expression(0));
+        } else { // [left:]
+            left = transformExpression(*ctx.oC_Expression(0));
             right = std::make_unique<ParsedLiteralExpression>(Value(0), "0");
-        } else {
-            if (ctx.children[1]->getText() == ":") { // [:right]
-                left = std::make_unique<ParsedLiteralExpression>(Value(0), "0");
-                right = transformExpression(*ctx.oC_Expression(0));
-            } else { // [left:]
-                left = transformExpression(*ctx.oC_Expression(0));
-                right = std::make_unique<ParsedLiteralExpression>(Value(0), "0");
-            }
         }
-        listSlice->addChild(std::move(left));
-        listSlice->addChild(std::move(right));
-        return listSlice;
     }
+    listSlice->addChild(std::move(left));
+    listSlice->addChild(std::move(right));
+    return listSlice;
+}
+
+std::unique_ptr<ParsedExpression> Transformer::transformListExtractOperatorExpression(
+    CypherParser::KU_ListExtractOperationContext& ctx, std::unique_ptr<ParsedExpression> child) {
     // x[a]
+    auto raw = child->getRawName() + ctx.getText();
     auto listExtract =
         std::make_unique<ParsedFunctionExpression>(ListExtractFunction::name, std::move(raw));
     listExtract->addChild(std::move(child));
-    KU_ASSERT(ctx.oC_Expression().size() == 1);
-    listExtract->addChild(transformExpression(*ctx.oC_Expression()[0]));
+    listExtract->addChild(transformExpression(*ctx.oC_Expression()));
     return listExtract;
+}
+
+std::unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
+    CypherParser::OC_ListOperatorExpressionContext& ctx, std::unique_ptr<ParsedExpression> child) {
+    if (ctx.kU_ListInOperation()) {
+        return transformListInOperatorExpression(*ctx.kU_ListInOperation(), std::move(child));
+    } else if (ctx.kU_ListSliceOperation()) {
+        return transformListSliceOperatorExpression(*ctx.kU_ListSliceOperation(), std::move(child));
+    } else {
+        KU_ASSERT(ctx.kU_ListExtractOperation());
+        return transformListExtractOperatorExpression(*ctx.kU_ListExtractOperation(),
+            std::move(child));
+    }
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformNullOperatorExpression(
