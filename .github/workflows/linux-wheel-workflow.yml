@@ -11,7 +11,7 @@ on:
 
 jobs:
   build-linux-wheels-x86_64:
-    runs-on: kuzu-self-hosted-linux-building-x86_64_centos7
+    runs-on: kuzu-self-hosted-linux-building-x86_64
     steps:
       - uses: actions/checkout@v4
 
@@ -24,13 +24,12 @@ jobs:
         working-directory: ./scripts/pip-package/
         run: |
           cp /home/runner/build_all_packages.sh .
-          source /opt/rh/devtoolset-11/enable
           ./build_all_packages.sh
 
       - uses: actions/upload-artifact@v4
         with:
           name: linux-wheels-x86_64
-          path: ./scripts/pip-package/wheelhouse/*manylinux2014_x86_64.whl
+          path: ./scripts/pip-package/wheelhouse/*manylinux_2_28_x86_64.whl
 
   build-linux-wheels-aarch64:
     # Make sure this job runs on the larger self-hosted Linux ARM64 machine

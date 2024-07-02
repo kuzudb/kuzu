@@ -5,13 +5,12 @@ on:
 
 jobs:
   build-linux-java-x86_64:
-    runs-on: kuzu-self-hosted-linux-building-x86_64_centos7
+    runs-on: kuzu-self-hosted-linux-building-x86_64
     steps:
       - uses: actions/checkout@v4
 
       - name: Build Java lib for Linux
         run: |
-          source /opt/rh/devtoolset-11/enable
           make java NUM_THREADS=$(nproc)
 
       - uses: actions/upload-artifact@v4

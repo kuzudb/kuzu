@@ -6,7 +6,7 @@ on:
 
 jobs:
   build-linux-nodejs-x86_64:
-    runs-on: kuzu-self-hosted-linux-building-x86_64_centos7
+    runs-on: kuzu-self-hosted-linux-building-x86_64
     steps:
       - uses: actions/checkout@v4
 
@@ -23,7 +23,6 @@ jobs:
       - name: Build Node.js native module
         working-directory: tools/nodejs_api/package
         run: |
-          source /opt/rh/devtoolset-11/enable
           npm i
 
       - name: Move Node.js native module

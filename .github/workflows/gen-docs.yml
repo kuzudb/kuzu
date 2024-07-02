@@ -4,9 +4,9 @@ on: workflow_dispatch
 
 jobs:
   build-python-package:
-    runs-on: kuzu-self-hosted-linux-building-x86_64_centos7
+    runs-on: kuzu-self-hosted-linux-building-x86_64
     env:
-      PLATFORM: manylinux2014_x86_64
+      PLATFORM: manylinux_2_28_x86_64
     steps:
       - uses: actions/checkout@v4
 
@@ -14,7 +14,6 @@ jobs:
         working-directory: scripts/pip-package/
         run: |
           mkdir wheelhouse
-          source /opt/rh/devtoolset-11/enable
           /opt/python/cp310-cp310/bin/python package_tar.py kuzu.tar.gz
           /opt/python/cp310-cp310/bin/pip wheel kuzu.tar.gz --no-deps -w wheelhouse/
           auditwheel repair wheelhouse/kuzu-*.whl -w wheelhouse/
@@ -22,7 +21,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: kuzu-python-package
-          path: scripts/pip-package/wheelhouse/*.manylinux2014_x86_64.whl
+          path: scripts/pip-package/wheelhouse/*.manylinux_2_28_x86_64.whl
 
   generate-python-docs:
     runs-on: ubuntu-latest
