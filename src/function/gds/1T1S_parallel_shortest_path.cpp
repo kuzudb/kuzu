@@ -226,8 +226,10 @@ public:
                     break;
                 }
                 auto duration = std::chrono::system_clock::now().time_since_epoch();
-                auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-                printf("bfs source: %lu finished at time: %lu\n", ifeMorselTasks[i].first->srcOffset, millis);
+                auto millis =
+                    std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+                printf("bfs source: %lu finished at time: %lu\n",
+                    ifeMorselTasks[i].first->srcOffset, millis);
                 auto processorTask = common::ku_dynamic_cast<Task*, ProcessorTask*>(
                     ifeMorselTasks[i].second->task.get());
                 free(processorTask->getSink());
