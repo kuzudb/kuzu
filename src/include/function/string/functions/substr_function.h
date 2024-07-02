@@ -37,7 +37,7 @@ public:
                 [&](int64_t gstart, int64_t /*gend*/) {
                     if (characterCount == startPos) {
                         startBytePos = gstart;
-                    } else if ((uint64_t)characterCount == endPos) {
+                    } else if (characterCount == endPos) {
                         endBytePos = gstart;
                         return false;
                     }
