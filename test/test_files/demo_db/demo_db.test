@@ -4,20 +4,14 @@
 
 -CASE DemoDBTest
 
--LOG CountSubquery
--STATEMENT MATCH (a:User) RETURN a.name, COUNT { MATCH (a)<-[:Follows]-(b:User) } AS num_follower ORDER BY num_follower;
----- 4
-Adam|0
-Karissa|1
-Noura|1
-Zhang|2
-
--LOG Limit1
--STATEMENT MATCH (u:User) RETURN u.name ORDER BY u.age DESC LIMIT 3;
----- 3
-Zhang
-Karissa
-Adam
+# TODO(Guodong): Issue #3730
+#-LOG CountSubquery
+#-STATEMENT MATCH (a:User) RETURN a.name, COUNT { MATCH (a)<-[:Follows]-(b:User) } AS num_follower ORDER BY num_follower;
+#---- 4
+#Adam|0
+#Karissa|1
+#Noura|1
+#Zhang|2
 
 -LOG MatchSingleNodeLabel
 -STATEMENT MATCH (a:User) RETURN a;

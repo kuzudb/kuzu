@@ -78,11 +78,7 @@ void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry) {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logDropCatalogEntryRecord(uint64_t tableID, catalog::CatalogEntryType type) {
-    KU_ASSERT(
-        type == CatalogEntryType::NODE_TABLE_ENTRY || type == CatalogEntryType::REL_TABLE_ENTRY ||
-        type == CatalogEntryType::REL_GROUP_ENTRY || type == CatalogEntryType::RDF_GRAPH_ENTRY ||
-        type == CatalogEntryType::SEQUENCE_ENTRY);
+void WAL::logDropCatalogEntryRecord(table_id_t tableID, CatalogEntryType type) {
     lock_t lck{mtx};
     DropCatalogEntryRecord walRecord(tableID, type);
     addNewWALRecordNoLock(walRecord);
@@ -104,7 +100,6 @@ void WAL::logCopyTableRecord(table_id_t tableID) {
 void WAL::logUpdateSequenceRecord(sequence_id_t sequenceID, SequenceChangeData data) {
     lock_t lck{mtx};
     UpdateSequenceRecord walRecord(sequenceID, std::move(data));
-    addNewWALRecordNoLock(walRecord);
 }
 
 void WAL::clearWAL() {

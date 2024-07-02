@@ -71,6 +71,7 @@ private:
 
 private:
     DirectionInfo directionInfo;
+    common::ValueVector* boundNodeIDVector = nullptr;
     common::table_id_map_t<RelTableCollectionScanner> scanners;
     RelTableCollectionScanner* currentScanner = nullptr;
 };

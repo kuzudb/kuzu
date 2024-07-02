@@ -5,6 +5,7 @@
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_set.h"
 #include "common/keyword/rdf_keyword.h"
+#include "common/serializer/deserializer.h"
 
 namespace kuzu {
 namespace catalog {

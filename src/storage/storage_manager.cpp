@@ -1,16 +1,12 @@
 #include "storage/storage_manager.h"
 
-#include <memory>
-
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/file_system/virtual_file_system.h"
 #include "main/client_context.h"
 #include "main/database.h"
-#include "storage/stats/nodes_store_statistics.h"
-#include "storage/storage_structure/disk_array_collection.h"
 #include "storage/store/node_table.h"
-#include "storage/wal/wal_record.h"
 #include "storage/wal_replayer.h"
 
 using namespace kuzu::catalog;
@@ -27,16 +23,9 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
       enableCompression{enableCompression} {
     dataFH = initFileHandle(StorageUtils::getDataFName(vfs, databasePath), vfs, context);
     metadataFH = initFileHandle(StorageUtils::getMetadataFName(vfs, databasePath), vfs, context);
-    // TODO: Assert no wal file exists.
     // TODO: should we disable WAL in readonly mode?
     wal = std::make_unique<WAL>(databasePath, readOnly, *memoryManager.getBufferManager(), vfs,
         context);
-    metadataDAC = std::make_unique<DiskArrayCollection>(*metadataFH, DBFileID::newMetadataFileID(),
-        memoryManager.getBufferManager(), wal.get());
-    nodesStatisticsAndDeletedIDs = std::make_unique<NodesStoreStatsAndDeletedIDs>(databasePath,
-        *metadataDAC, memoryManager.getBufferManager(), wal.get(), vfs, context);
-    relsStatistics = std::make_unique<RelsStoreStats>(databasePath, *metadataDAC,
-        memoryManager.getBufferManager(), wal.get(), vfs, context);
     loadTables(catalog, vfs, context);
 }
 
@@ -48,38 +37,50 @@ BMFileHandle* StorageManager::initFileHandle(const std::string& filename, Virtua
         BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs, context);
 }
 
+// TODO(Guodong): Rework setting common table ID for rdf rel tables.
 static void setCommonTableIDToRdfRelTable(RelTable* relTable,
     std::vector<RDFGraphCatalogEntry*> rdfEntries) {
-    for (auto rdfEntry : rdfEntries) {
-        if (rdfEntry->isParent(relTable->getTableID())) {
-            std::vector<Column*> columns;
-            // TODO(Guodong): This is a hack. We should not use constant 2 and should move the
-            // setting logic inside RelTableData.
-            columns.push_back(relTable->getDirectedTableData(RelDataDirection::FWD)->getColumn(2));
-            columns.push_back(relTable->getDirectedTableData(RelDataDirection::BWD)->getColumn(2));
-            for (auto& column : columns) {
-                ku_dynamic_cast<storage::Column*, storage::InternalIDColumn*>(column)
-                    ->setCommonTableID(rdfEntry->getResourceTableID());
-            }
-        }
-    }
+    //     for (auto rdfEntry : rdfEntries) {
+    //         if (rdfEntry->isParent(relTable->getTableID())) {
+    //             std::vector<Column*> columns;
+    //             // TODO(Guodong): This is a hack. We should not use constant 2 and should move
+    //             the
+    //             // setting logic inside RelTableData.
+    //             columns.push_back(relTable->getDirectedTableData(RelDataDirection::FWD)->getColumn(2));
+    //             columns.push_back(relTable->getDirectedTableData(RelDataDirection::BWD)->getColumn(2));
+    //             for (auto& column : columns) {
+    //                 ku_dynamic_cast<Column*, InternalIDColumn*>(column)->setCommonTableID(
+    //                     rdfEntry->getResourceTableID());
+    //             }
+    //         }
+    //     }
 }
 
 void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
     main::ClientContext* context) {
-    for (auto& nodeTableEntry : catalog.getNodeTableEntries(&DUMMY_READ_TRANSACTION)) {
-        KU_ASSERT(!tables.contains(nodeTableEntry->getTableID()));
-        tables[nodeTableEntry->getTableID()] =
-            std::make_unique<NodeTable>(this, nodeTableEntry, &memoryManager, vfs, context);
+    const auto metaFilePath = StorageUtils::getStorageMetadataFName(vfs, databasePath);
+    if (vfs->fileOrPathExists(metaFilePath)) {
+        auto metadataFileInfo = vfs->openFile(
+            StorageUtils::getStorageMetadataFName(vfs, databasePath), O_RDONLY, context);
+        Deserializer deSer(std::make_unique<BufferedFileReader>(std::move(metadataFileInfo)));
+        uint64_t numTables;
+        deSer.deserializeValue<uint64_t>(numTables);
+        for (auto i = 0u; i < numTables; i++) {
+            auto table = Table::loadTable(deSer, catalog, this, &memoryManager, vfs, context);
+            tables[table->getTableID()] = std::move(table);
+        }
+    } else {
+        KU_ASSERT(catalog.getNodeTableEntries(&DUMMY_READ_TRANSACTION).empty());
     }
-    auto rdfGraphSchemas = catalog.getRdfGraphEntries(&DUMMY_READ_TRANSACTION);
-    for (auto relTableEntry : catalog.getRelTableEntries(&DUMMY_READ_TRANSACTION)) {
-        KU_ASSERT(!tables.contains(relTableEntry->getTableID()));
-        auto relTable = std::make_unique<RelTable>(dataFH, metadataDAC.get(), relsStatistics.get(),
-            &memoryManager, relTableEntry, wal.get(), enableCompression);
-        setCommonTableIDToRdfRelTable(relTable.get(), rdfGraphSchemas);
-        tables[relTableEntry->getTableID()] = std::move(relTable);
-    }
+
+    // TODO(Guodong): Rework setting common table ID for rdf rel tables.
+    // auto rdfGraphSchemas = catalog.getRdfGraphEntries(&DUMMY_READ_TRANSACTION);
+    // for (auto relTableEntry : catalog.getRelTableEntries(&DUMMY_READ_TRANSACTION)) {
+    // KU_ASSERT(!tables.contains(relTableEntry->getTableID()));
+    // auto relTable = std::make_unique<RelTable>(relTableEntry, this, &memoryManager);
+    // setCommonTableIDToRdfRelTable(relTable.get(), rdfGraphSchemas);
+    // tables[relTableEntry->getTableID()] = std::move(relTable);
+    // }
 }
 
 void StorageManager::recover(main::ClientContext& clientContext) {
@@ -116,16 +117,13 @@ void StorageManager::recover(main::ClientContext& clientContext) {
 void StorageManager::createNodeTable(table_id_t tableID, NodeTableCatalogEntry* nodeTableEntry,
     main::ClientContext* context) {
     KU_ASSERT(context != nullptr);
-    nodesStatisticsAndDeletedIDs->addNodeStatisticsAndDeletedIDs(nodeTableEntry);
     tables[tableID] = std::make_unique<NodeTable>(this, nodeTableEntry, &memoryManager,
         context->getVFSUnsafe(), context);
 }
 
 void StorageManager::createRelTable(table_id_t tableID, RelTableCatalogEntry* relTableEntry,
     Catalog* catalog, Transaction* transaction) {
-    relsStatistics->addTableStatistic(relTableEntry);
-    auto relTable = std::make_unique<RelTable>(dataFH, metadataDAC.get(), relsStatistics.get(),
-        &memoryManager, relTableEntry, wal.get(), enableCompression);
+    auto relTable = std::make_unique<RelTable>(relTableEntry, this, &memoryManager);
     setCommonTableIDToRdfRelTable(relTable.get(), catalog->getRdfGraphEntries(transaction));
     tables[tableID] = std::move(relTable);
 }
@@ -205,12 +203,10 @@ void StorageManager::dropTable(table_id_t tableID, VirtualFileSystem* vfs) {
     auto tableType = tables.at(tableID)->getTableType();
     switch (tableType) {
     case TableType::NODE: {
-        nodesStatisticsAndDeletedIDs->removeTableStatistic(tableID);
         vfs->removeFileIfExists(
             StorageUtils::getNodeIndexFName(vfs, databasePath, tableID, FileVersionType::ORIGINAL));
     } break;
     case TableType::REL: {
-        relsStatistics->removeTableStatistic(tableID);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -219,7 +215,15 @@ void StorageManager::dropTable(table_id_t tableID, VirtualFileSystem* vfs) {
     tables.erase(tableID);
 }
 
-void StorageManager::prepareCommit(Transaction* transaction, common::VirtualFileSystem* vfs) {
+uint64_t StorageManager::getEstimatedMemoryUsage() const {
+    uint64_t totalMemoryUsage = 0;
+    for (const auto& [tableID, table] : tables) {
+        totalMemoryUsage += table->getEstimatedMemoryUsage();
+    }
+    return totalMemoryUsage;
+}
+
+void StorageManager::prepareCommit(Transaction* transaction, VirtualFileSystem* vfs) {
     // Tables which are created but not inserted into may have pending writes
     // which need to be flushed (specifically, the metadata disk array header)
     // TODO(bmwinger): wal->getUpdatedTables isn't the ideal place to store this information
@@ -228,37 +232,20 @@ void StorageManager::prepareCommit(Transaction* transaction, common::VirtualFile
             getTable(tableID)->prepareCommit();
         }
     }
-    metadataDAC->prepareCommit();
-    if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
-        nodesStatisticsAndDeletedIDs->writeTablesStatisticsFileForWALRecord(databasePath, vfs);
-        wal->logTableStatisticsRecord(TableType::NODE);
-    }
-    if (relsStatistics->hasUpdates()) {
-        relsStatistics->writeTablesStatisticsFileForWALRecord(databasePath, vfs);
-        wal->logTableStatisticsRecord(TableType::REL);
-    }
 }
 
-void StorageManager::prepareRollback() {
-    if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
-        wal->logTableStatisticsRecord(TableType::NODE);
-    }
-    if (relsStatistics->hasUpdates()) {
-        wal->logTableStatisticsRecord(TableType::REL);
-    }
-}
+void StorageManager::prepareRollback() {}
 
-void StorageManager::checkpointInMemory() {
+void StorageManager::checkpoint(main::ClientContext& clientContext) const {
+    auto metadataFileInfo = clientContext.getVFSUnsafe()->openFile(
+        StorageUtils::getStorageMetadataFName(clientContext.getVFSUnsafe(), databasePath),
+        O_RDWR | O_CREAT, &clientContext);
+    const auto writer = std::make_shared<BufferedFileWriter>(std::move(metadataFileInfo));
+    Serializer ser(writer);
+    ser.write<uint64_t>(tables.size());
     for (auto tableID : wal->getUpdatedTables()) {
         KU_ASSERT(tables.contains(tableID));
-        tables.at(tableID)->checkpointInMemory();
-    }
-    metadataDAC->checkpointInMemory();
-    if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
-        nodesStatisticsAndDeletedIDs->checkpointInMemoryIfNecessary();
-    }
-    if (relsStatistics->hasUpdates()) {
-        relsStatistics->checkpointInMemoryIfNecessary();
+        tables.at(tableID)->checkpoint(ser);
     }
 }
 
@@ -267,7 +254,6 @@ void StorageManager::rollbackInMemory() {
         KU_ASSERT(tables.contains(tableID));
         tables.at(tableID)->rollbackInMemory();
     }
-    metadataDAC->rollbackInMemory();
 }
 
 } // namespace storage

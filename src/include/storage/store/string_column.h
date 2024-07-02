@@ -10,14 +10,11 @@ public:
     enum class ChildStateIndex : common::idx_t { DATA = 0, OFFSET = 1, INDEX = 2 };
     static constexpr size_t CHILD_STATE_COUNT = 3;
 
-public:
-    StringColumn(std::string name, common::LogicalType dataType,
-        const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-        DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, bool enableCompression);
+    StringColumn(std::string name, common::LogicalType dataType, BMFileHandle* dataFH,
+        BufferManager* bufferManager, WAL* wal, bool enableCompression);
 
-    void initChunkState(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, ChunkState& chunkState) override;
+    static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
+        BMFileHandle& dataFH);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
@@ -34,18 +31,6 @@ public:
     void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunkData* data,
         common::offset_t dataOffset, common::length_t numValues) override;
 
-    void prepareCommit() override;
-    void checkpointInMemory() override;
-    void rollbackInMemory() override;
-
-    void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
-        const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
-        const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
-        const offset_set_t& deleteInfo) override;
-    void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
-        const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
-        common::offset_t startSrcOffset) override;
-
     const DictionaryColumn& getDictionary() const { return dictionary; }
 
     static ChunkState& getChildState(ChunkState& state, ChildStateIndex child);
@@ -53,7 +38,7 @@ public:
 
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
-        common::idx_t vectorIdx, common::row_idx_t numValuesToScan,
+        common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
     void scanUnfiltered(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::offset_t numValuesToRead,
@@ -66,9 +51,9 @@ protected:
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
 private:
-    bool canCommitInPlace(const ChunkState& state, const ChunkCollection& localInsertChunk,
-        const offset_to_row_idx_t& insertInfo, const ChunkCollection& localUpdateChunk,
-        const offset_to_row_idx_t& updateInfo) override;
+    // bool canCommitInPlace(const ChunkState& state, const ChunkDataCollection& localInsertChunk,
+    // const offset_to_row_idx_t& insertInfo, const ChunkDataCollection& localUpdateChunk,
+    // const offset_to_row_idx_t& updateInfo) override;
     bool canCommitInPlace(const ChunkState& state, const std::vector<common::offset_t>& dstOffsets,
         ColumnChunkData* chunk, common::offset_t srcOffset) override;
 

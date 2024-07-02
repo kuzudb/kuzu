@@ -45,7 +45,7 @@ private:
         case TableType::NODE: {
             auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(table);
             for (auto columnID = 0u; columnID < nodeTable->getNumColumns(); columnID++) {
-                auto collectedColumns = collectColumns(nodeTable->getColumn(columnID));
+                auto collectedColumns = collectColumns(&nodeTable->getColumn(columnID));
                 columns.insert(columns.end(), collectedColumns.begin(), collectedColumns.end());
             }
         } break;
@@ -135,59 +135,59 @@ static std::unique_ptr<TableFuncSharedState> initStorageInfoSharedState(
 static void appendColumnChunkStorageInfo(node_group_idx_t nodeGroupIdx,
     const std::string& tableType, const Column* column, DataChunk& outputChunk,
     ClientContext* context) {
-    auto vectorPos = outputChunk.state->getSelVector().getSelSize();
-    auto metadata = column->getMetadata(nodeGroupIdx, context->getTx()->getType());
-    auto columnType = column->getDataType().toString();
-    outputChunk.getValueVector(0)->setValue<uint64_t>(vectorPos, nodeGroupIdx);
-    outputChunk.getValueVector(1)->setValue(vectorPos, column->getName());
-    outputChunk.getValueVector(2)->setValue(vectorPos, columnType);
-    outputChunk.getValueVector(3)->setValue(vectorPos, tableType);
-    outputChunk.getValueVector(4)->setValue<uint64_t>(vectorPos, metadata.pageIdx);
-    outputChunk.getValueVector(5)->setValue<uint64_t>(vectorPos, metadata.numPages);
-    outputChunk.getValueVector(6)->setValue<uint64_t>(vectorPos, metadata.numValues);
+    // auto vectorPos = outputChunk.state->getSelVector().getSelSize();
+    // auto metadata = column->getMetadata(nodeGroupIdx, context->getTx()->getType());
+    // auto columnType = column->getDataType().toString();
+    // outputChunk.getValueVector(0)->setValue<uint64_t>(vectorPos, nodeGroupIdx);
+    // outputChunk.getValueVector(1)->setValue(vectorPos, column->getName());
+    // outputChunk.getValueVector(2)->setValue(vectorPos, columnType);
+    // outputChunk.getValueVector(3)->setValue(vectorPos, tableType);
+    // outputChunk.getValueVector(4)->setValue<uint64_t>(vectorPos, metadata.pageIdx);
+    // outputChunk.getValueVector(5)->setValue<uint64_t>(vectorPos, metadata.numPages);
+    // outputChunk.getValueVector(6)->setValue<uint64_t>(vectorPos, metadata.numValues);
 
-    auto customToString = [&]<typename T>(T) {
-        outputChunk.getValueVector(7)->setValue(vectorPos,
-            std::to_string(metadata.compMeta.min.get<T>()));
-        outputChunk.getValueVector(8)->setValue(vectorPos,
-            std::to_string(metadata.compMeta.min.get<T>()));
-    };
-    auto physicalType = column->getDataType().getPhysicalType();
-    TypeUtils::visit(
-        physicalType, [&](ku_string_t) { customToString(uint32_t()); },
-        [&](list_entry_t) { customToString(uint64_t()); },
-        [&](internalID_t) { customToString(uint64_t()); },
-        [&]<typename T>(T)
-            requires(std::integral<T> || std::floating_point<T>)
-        {
-            auto min = metadata.compMeta.min.get<T>();
-            auto max = metadata.compMeta.max.get<T>();
-            outputChunk.getValueVector(7)->setValue(vectorPos,
-                TypeUtils::entryToString(column->getDataType(), (uint8_t*)&min,
-                    outputChunk.getValueVector(7).get()));
-            outputChunk.getValueVector(8)->setValue(vectorPos,
-                TypeUtils::entryToString(column->getDataType(), (uint8_t*)&max,
-                    outputChunk.getValueVector(8).get()));
-        },
-        // Types which don't support statistics.
-        // types not supported by TypeUtils::visit can
-        // also be ignored since we don't track statistics for them
-        [](int128_t) {}, [](struct_entry_t) {}, [](interval_t) {});
-    outputChunk.getValueVector(9)->setValue(vectorPos, metadata.compMeta.toString(physicalType));
-    outputChunk.state->getSelVectorUnsafe().incrementSelSize();
+    // auto customToString = [&]<typename T>(T) {
+    // outputChunk.getValueVector(7)->setValue(vectorPos,
+    // std::to_string(metadata.compMeta.min.get<T>()));
+    // outputChunk.getValueVector(8)->setValue(vectorPos,
+    // std::to_string(metadata.compMeta.min.get<T>()));
+    // };
+    // auto physicalType = column->getDataType().getPhysicalType();
+    // TypeUtils::visit(
+    // physicalType, [&](ku_string_t) { customToString(uint32_t()); },
+    // [&](list_entry_t) { customToString(uint64_t()); },
+    // [&](internalID_t) { customToString(uint64_t()); },
+    // [&]<typename T>(T)
+    // requires(std::integral<T> || std::floating_point<T>)
+    // {
+    // auto min = metadata.compMeta.min.get<T>();
+    // auto max = metadata.compMeta.max.get<T>();
+    // outputChunk.getValueVector(7)->setValue(vectorPos,
+    // TypeUtils::entryToString(column->getDataType(), (uint8_t*)&min,
+    // outputChunk.getValueVector(7).get()));
+    // outputChunk.getValueVector(8)->setValue(vectorPos,
+    // TypeUtils::entryToString(column->getDataType(), (uint8_t*)&max,
+    // outputChunk.getValueVector(8).get()));
+    // },
+    // Types which don't support statistics.
+    // types not supported by TypeUtils::visit can
+    // also be ignored since we don't track statistics for them
+    // [](int128_t) {}, [](struct_entry_t) {}, [](interval_t) {});
+    // outputChunk.getValueVector(9)->setValue(vectorPos, metadata.compMeta.toString(physicalType));
+    // outputChunk.state->getSelVectorUnsafe().incrementSelSize();
 }
 
 static void appendStorageInfoForColumn(StorageInfoLocalState* localState, std::string tableType,
     const Column* column, DataChunk& outputChunk, ClientContext* context) {
-    auto numNodeGroups = column->getNumNodeGroups(context->getTx());
-    for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
-        if (outputChunk.state->getSelVector().getSelSize() == DEFAULT_VECTOR_CAPACITY) {
-            localState->dataChunkCollection->append(outputChunk);
-            outputChunk.resetAuxiliaryBuffer();
-            outputChunk.state->getSelVectorUnsafe().setSelSize(0);
-        }
-        appendColumnChunkStorageInfo(nodeGroupIdx, tableType, column, outputChunk, context);
-    }
+    // auto numNodeGroups = column->getNumNodeGroups(context->getTx());
+    // for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
+    // if (outputChunk.state->getSelVector().getSelSize() == DEFAULT_VECTOR_CAPACITY) {
+    // localState->dataChunkCollection->append(outputChunk);
+    // outputChunk.resetAuxiliaryBuffer();
+    // outputChunk.state->getSelVectorUnsafe().setSelSize(0);
+    // }
+    // appendColumnChunkStorageInfo(nodeGroupIdx, tableType, column, outputChunk, context);
+    // }
 }
 
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {

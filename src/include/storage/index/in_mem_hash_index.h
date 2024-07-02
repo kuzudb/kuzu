@@ -82,7 +82,7 @@ public:
     // Appends the buffer to the index. Returns the number of values successfully inserted.
     // I.e. if a key fails to insert, its index will be the return value
     size_t append(const IndexBuffer<BufferKeyType>& buffer);
-    inline bool append(Key key, common::offset_t value) {
+    bool append(Key key, common::offset_t value) {
         reserve(indexHeader.numEntries + 1);
         return appendInternal(key, value, HashIndexUtils::hash(key));
     }
@@ -94,14 +94,14 @@ public:
     void clear();
 
     struct SlotIterator {
-        explicit SlotIterator(slot_id_t newSlotId, const InMemHashIndex<T>* builder)
+        explicit SlotIterator(slot_id_t newSlotId, const InMemHashIndex* builder)
             : slotInfo{newSlotId, SlotType::PRIMARY}, slot(builder->getSlot(slotInfo)) {}
         SlotInfo slotInfo;
         Slot<T>* slot;
     };
 
     // Leaves the slot pointer pointing at the last slot to make it easier to add a new one
-    inline bool nextChainedSlot(SlotIterator& iter) const {
+    bool nextChainedSlot(SlotIterator& iter) const {
         iter.slotInfo.slotId = iter.slot->header.nextOvfSlotId;
         iter.slotInfo.slotType = SlotType::OVF;
         if (iter.slot->header.nextOvfSlotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
@@ -111,10 +111,10 @@ public:
         return false;
     }
 
-    inline uint64_t numPrimarySlots() const { return pSlots->size(); }
-    inline uint64_t numOverflowSlots() const { return oSlots->size(); }
+    uint64_t numPrimarySlots() const { return pSlots->size(); }
+    uint64_t numOverflowSlots() const { return oSlots->size(); }
 
-    inline const HashIndexHeader& getIndexHeader() const { return indexHeader; }
+    const HashIndexHeader& getIndexHeader() const { return indexHeader; }
 
     // Deletes key, maintaining gapless structure by replacing it with the last entry in the
     // slot
@@ -137,11 +137,9 @@ private:
     // Reclaims empty overflow slots to be re-used, starting from the given slot iterator
     void reclaimOverflowSlots(SlotIterator iter);
 
-    inline bool equals(Key keyToLookup, const T& keyInEntry) const {
-        return keyToLookup == keyInEntry;
-    }
+    bool equals(Key keyToLookup, const T& keyInEntry) const { return keyToLookup == keyInEntry; }
 
-    inline void insert(Key key, Slot<T>* slot, uint8_t entryPos, common::offset_t value,
+    void insert(Key key, Slot<T>* slot, uint8_t entryPos, common::offset_t value,
         uint8_t fingerprint) {
         slot->entries[entryPos] = SlotEntry<T>(key, value);
         slot->header.setEntryValid(entryPos, fingerprint);

@@ -2,7 +2,6 @@ add_library(kuzu_storage_local_storage
         OBJECT
         local_node_table.cpp
         local_rel_table.cpp
-        local_table.cpp
         local_storage.cpp)
 
 set(ALL_OBJECT_FILES

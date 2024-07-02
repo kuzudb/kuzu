@@ -15,8 +15,8 @@ static std::shared_ptr<RecursiveJoinSharedState> createSharedState(
     std::vector<std::unique_ptr<NodeOffsetLevelSemiMask>> semiMasks;
     for (auto tableID : nbrNode.getTableIDs()) {
         auto table = context.getStorageManager()->getTable(tableID)->ptrCast<storage::NodeTable>();
-        semiMasks.push_back(std::make_unique<NodeOffsetLevelSemiMask>(tableID,
-            table->getMaxNodeOffset(context.getTx())));
+        semiMasks.push_back(
+            std::make_unique<NodeOffsetLevelSemiMask>(tableID, table->getNumRows()));
     }
     return std::make_shared<RecursiveJoinSharedState>(std::move(semiMasks));
 }

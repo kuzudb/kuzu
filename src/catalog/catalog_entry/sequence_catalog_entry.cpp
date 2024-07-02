@@ -3,6 +3,7 @@
 #include "binder/ddl/bound_create_sequence_info.h"
 #include "common/exception/catalog.h"
 #include "common/exception/overflow.h"
+#include "common/serializer/deserializer.h"
 #include "common/vector/value_vector.h"
 #include "function/arithmetic/add.h"
 #include "transaction/transaction.h"
@@ -69,7 +70,7 @@ void SequenceCatalogEntry::nextKVal(transaction::Transaction* transaction, const
     auto prevVal = sequenceData.currVal;
     sequenceData.currVal = tmp;
     sequenceData.usageCount += count;
-    transaction->addSequenceChange(this, sequenceData, prevVal);
+    transaction->pushSequenceChange(this, sequenceData, prevVal);
 }
 
 void SequenceCatalogEntry::replayVal(const uint64_t& usageCount, const int64_t& currVal,

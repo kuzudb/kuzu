@@ -3,7 +3,8 @@
 #include <string>
 
 #include "catalog_entry_type.h"
-#include "common/serializer/deserializer.h"
+#include "common/assert.h"
+#include "common/copy_constructors.h"
 #include "common/serializer/serializer.h"
 #include "common/types/types.h"
 

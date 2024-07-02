@@ -11,7 +11,9 @@ namespace storage {
 class StructChunkData final : public ColumnChunkData {
 public:
     StructChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
-        bool inMemory);
+        ResidencyState residencyState);
+    StructChunkData(common::LogicalType dataType, bool enableCompression,
+        const ColumnChunkMetadata& metadata);
 
     ColumnChunkData* getChild(common::idx_t childIdx) {
         KU_ASSERT(childIdx < childChunks.size());
@@ -20,6 +22,21 @@ public:
 
     void finalize() override;
 
+    uint64_t getEstimatedMemoryUsage() const override;
+
+    void serialize(common::Serializer& serializer) const override;
+    static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
+
+    common::idx_t getNumChildren() const { return childChunks.size(); }
+    const ColumnChunkData& getChild(common::idx_t childIdx) const {
+        KU_ASSERT(childIdx < childChunks.size());
+        return *childChunks[childIdx];
+    }
+    void setChild(common::idx_t childIdx, std::unique_ptr<ColumnChunkData> childChunk) {
+        KU_ASSERT(childIdx < childChunks.size());
+        childChunks[childIdx] = std::move(childChunk);
+    }
+
 protected:
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
@@ -27,8 +44,9 @@ protected:
 
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
+    void initializeScanState(ChunkState& state) const override;
 
-    void write(common::ValueVector* vector, common::offset_t offsetInVector,
+    void write(const common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
     void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
         common::RelMultiplicity multiplicity) override;

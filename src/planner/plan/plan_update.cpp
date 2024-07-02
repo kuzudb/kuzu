@@ -2,6 +2,7 @@
 #include "binder/query/updating_clause/bound_insert_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
+#include "common/exception/runtime.h"
 #include "planner/operator/persistent/logical_merge.h"
 #include "planner/planner.h"
 

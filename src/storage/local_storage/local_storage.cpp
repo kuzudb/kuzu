@@ -41,14 +41,14 @@ LocalTable* LocalStorage::getLocalTable(table_id_t tableID, NotExistAction actio
 
 void LocalStorage::prepareCommit() {
     for (auto& [tableID, localTable] : tables) {
-        auto table = clientContext.getStorageManager()->getTable(tableID);
+        const auto table = clientContext.getStorageManager()->getTable(tableID);
         table->prepareCommit(clientContext.getTx(), localTable.get());
     }
 }
 
 void LocalStorage::prepareRollback() {
     for (auto& [tableID, localTable] : tables) {
-        auto table = clientContext.getStorageManager()->getTable(tableID);
+        const auto table = clientContext.getStorageManager()->getTable(tableID);
         table->prepareRollback(localTable.get());
     }
 }

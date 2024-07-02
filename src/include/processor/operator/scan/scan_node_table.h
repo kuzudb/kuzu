@@ -12,7 +12,7 @@ public:
     explicit ScanNodeTableSharedState(std::unique_ptr<NodeVectorLevelSemiMask> semiMask)
         : table{nullptr}, currentCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX},
           currentUnCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX}, numCommittedNodeGroups{0},
-          semiMask{std::move(semiMask)} {};
+          numUnCommittedNodeGroups{0}, semiMask{std::move(semiMask)} {};
 
     void initialize(transaction::Transaction* transaction, storage::NodeTable* table);
 
@@ -26,7 +26,7 @@ private:
     common::node_group_idx_t currentCommittedGroupIdx;
     common::node_group_idx_t currentUnCommittedGroupIdx;
     common::node_group_idx_t numCommittedNodeGroups;
-    std::vector<storage::LocalNodeGroup*> localNodeGroups;
+    common::node_group_idx_t numUnCommittedNodeGroups;
     std::unique_ptr<NodeVectorLevelSemiMask> semiMask;
 };
 
@@ -35,7 +35,7 @@ struct ScanNodeTableInfo {
     std::vector<common::column_id_t> columnIDs;
     std::vector<storage::ColumnPredicateSet> columnPredicates;
 
-    std::unique_ptr<storage::NodeTableScanState> localScanState;
+    std::unique_ptr<storage::NodeTableScanState> localScanState = nullptr;
 
     ScanNodeTableInfo(storage::NodeTable* table, std::vector<common::column_id_t> columnIDs,
         std::vector<storage::ColumnPredicateSet> columnPredicates)

@@ -344,13 +344,6 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
             } else {
                 transactionContext->validateManualTransaction(preparedStatement->readOnly);
             }
-            if (!this->getTx()->isReadOnly()) {
-                if (this->remoteDatabase == nullptr) {
-                    localDatabase->storageManager->initStatistics();
-                } else {
-                    remoteDatabase->getStorageManager()->initStatistics();
-                }
-            }
         }
         // binding
         auto binder = Binder(this);
@@ -465,13 +458,6 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
     }
     if (preparedStatement->parsedStatement->requireTx() && requiredNexTx && getTx() == nullptr) {
         this->transactionContext->beginAutoTransaction(preparedStatement->isReadOnly());
-        if (!preparedStatement->readOnly) {
-            if (remoteDatabase == nullptr) {
-                localDatabase->storageManager->initStatistics();
-            } else {
-                remoteDatabase->getStorageManager()->initStatistics();
-            }
-        }
     }
     this->resetActiveQuery();
     this->startTimer();

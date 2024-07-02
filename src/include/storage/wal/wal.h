@@ -4,6 +4,7 @@
 
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/wal/wal_record.h"
+#include <common/serializer/buffered_file.h>
 
 namespace kuzu {
 namespace binder {
@@ -62,11 +63,16 @@ public:
 
     bool isEmptyWAL() const;
 
-    inline void addToUpdatedTables(common::table_id_t nodeTableID) {
+    void addToUpdatedTables(const common::table_id_t nodeTableID) {
         updatedTables.insert(nodeTableID);
     }
-    inline std::unordered_set<common::table_id_t>& getUpdatedTables() { return updatedTables; }
-    BMFileHandle& getShadowingFH() { return *shadowingFH; }
+    std::unordered_set<common::table_id_t>& getUpdatedTables() { return updatedTables; }
+    BMFileHandle& getShadowingFH() const { return *shadowingFH; }
+
+    uint64_t getFileSize() const {
+        return bufferedWriter->getFileSize() +
+               shadowingFH->getNumPages() * common::BufferPoolConstants::PAGE_4KB_SIZE;
+    }
 
 private:
     void addNewWALRecordNoLock(WALRecord& walRecord);
