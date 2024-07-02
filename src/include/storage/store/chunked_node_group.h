@@ -88,13 +88,13 @@ public:
         NodeGroupScanState& nodeGroupScanState, ChunkedNodeGroup& output) const;
 
     bool lookup(transaction::Transaction* transaction, const TableScanState& state,
-        NodeGroupScanState& nodeGroupScanState, common::offset_t rowIdxInGroup,
+        NodeGroupScanState& nodeGroupScanState, common::offset_t rowIdxInChunk,
         common::sel_t posInOutput) const;
 
-    void update(transaction::Transaction* transaction, common::row_idx_t rowIdxInGroup,
+    void update(transaction::Transaction* transaction, common::row_idx_t rowIdxInChunk,
         common::column_id_t columnID, const common::ValueVector& propertyVector);
 
-    bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInGroup);
+    bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInChunk);
 
     void finalize() const;
 

@@ -209,21 +209,21 @@ template void ChunkedNodeGroup::scanCommitted<ResidencyState::IN_MEMORY>(Transac
     ChunkedNodeGroup& output) const;
 
 bool ChunkedNodeGroup::lookup(Transaction* transaction, const TableScanState& state,
-    NodeGroupScanState& nodeGroupScanState, offset_t rowIdxInGroup, sel_t posInOutput) const {
-    KU_ASSERT(rowIdxInGroup + 1 <= numRows);
+    NodeGroupScanState& nodeGroupScanState, offset_t rowIdxInChunk, sel_t posInOutput) const {
+    KU_ASSERT(rowIdxInChunk + 1 <= numRows);
     std::unique_ptr<SelectionVector> selVector = nullptr;
     bool hasValuesToScan = true;
     if (versionInfo) {
         selVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
         versionInfo->getSelVectorToScan(transaction->getStartTS(), transaction->getID(), *selVector,
-            rowIdxInGroup, 1);
+            rowIdxInChunk, 1);
         hasValuesToScan = selVector->getSelSize() > 0;
     }
     if (hasValuesToScan) {
         for (auto i = 0u; i < state.columnIDs.size(); i++) {
             const auto columnID = state.columnIDs[i];
             KU_ASSERT(columnID < chunks.size());
-            chunks[columnID]->lookup(transaction, nodeGroupScanState.chunkStates[i], rowIdxInGroup,
+            chunks[columnID]->lookup(transaction, nodeGroupScanState.chunkStates[i], rowIdxInChunk,
                 *state.outputVectors[i],
                 state.outputVectors[i]->state->getSelVector().getSelectedPositions()[posInOutput]);
         }
@@ -231,16 +231,16 @@ bool ChunkedNodeGroup::lookup(Transaction* transaction, const TableScanState& st
     return hasValuesToScan;
 }
 
-void ChunkedNodeGroup::update(Transaction* transaction, row_idx_t rowIdxInGroup,
+void ChunkedNodeGroup::update(Transaction* transaction, row_idx_t rowIdxInChunk,
     column_id_t columnID, const ValueVector& propertyVector) {
-    getColumnChunk(columnID).update(transaction, rowIdxInGroup - startRowIdx, propertyVector);
+    getColumnChunk(columnID).update(transaction, rowIdxInChunk, propertyVector);
 }
 
-bool ChunkedNodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxInGroup) {
+bool ChunkedNodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxInChunk) {
     if (!versionInfo) {
         versionInfo = std::make_unique<VersionInfo>();
     }
-    return versionInfo->delete_(transaction, rowIdxInGroup - startRowIdx);
+    return versionInfo->delete_(transaction, rowIdxInChunk);
 }
 
 void ChunkedNodeGroup::finalize() const {

@@ -147,10 +147,10 @@ bool NodeGroup::lookup(Transaction* transaction, const TableScanState& state) {
         const auto pos = state.rowIdxVector->state->getSelVector().getSelectedPositions()[0];
         KU_ASSERT(!state.rowIdxVector->isNull(pos));
         const auto rowIdx = state.rowIdxVector->getValue<row_idx_t>(pos);
-        const ChunkedNodeGroup* chunkedGroupToScan =
-            chunkedGroups.getGroup(lock, rowIdx / ChunkedNodeGroup::CHUNK_CAPACITY);
+        const ChunkedNodeGroup* chunkedGroupToScan = findChunkedGroupFromRowIdx(lock, rowIdx);
+        const auto rowIdxInChunkedGroup = rowIdx - chunkedGroupToScan->getStartRowIdx();
         numTuplesFound += chunkedGroupToScan->lookup(transaction, state, nodeGroupScanState,
-            rowIdx % ChunkedNodeGroup::CHUNK_CAPACITY, i);
+            rowIdxInChunkedGroup, i);
     }
     return numTuplesFound > 0;
 }
@@ -161,21 +161,20 @@ void NodeGroup::update(Transaction* transaction, row_idx_t rowIdxInGroup, column
     ChunkedNodeGroup* chunkedGroupToUpdate;
     {
         const auto lock = chunkedGroups.lock();
-        chunkedGroupToUpdate =
-            chunkedGroups.getGroup(lock, rowIdxInGroup / ChunkedNodeGroup::CHUNK_CAPACITY);
+        chunkedGroupToUpdate = findChunkedGroupFromRowIdx(lock, rowIdxInGroup);
     }
-    chunkedGroupToUpdate->update(transaction, rowIdxInGroup, columnID, propertyVector);
+    const auto rowIdxInChunkedGroup = rowIdxInGroup - chunkedGroupToUpdate->getStartRowIdx();
+    chunkedGroupToUpdate->update(transaction, rowIdxInChunkedGroup, columnID, propertyVector);
 }
 
 bool NodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxInGroup) {
-    const auto chunkIdx = rowIdxInGroup / ChunkedNodeGroup::CHUNK_CAPACITY;
-    const auto rowIdxInChunk = rowIdxInGroup % ChunkedNodeGroup::CHUNK_CAPACITY;
     ChunkedNodeGroup* groupToDelete;
     {
         const auto lock = chunkedGroups.lock();
-        groupToDelete = chunkedGroups.getGroup(lock, chunkIdx);
+        groupToDelete = findChunkedGroupFromRowIdx(lock, rowIdxInGroup);
     }
-    return groupToDelete->delete_(transaction, rowIdxInChunk);
+    const auto rowIdxInChunkedGroup = rowIdxInGroup - groupToDelete->getStartRowIdx();
+    return groupToDelete->delete_(transaction, rowIdxInChunkedGroup);
 }
 
 void NodeGroup::flush(BMFileHandle& dataFH) {
@@ -271,6 +270,17 @@ std::unique_ptr<NodeGroup> NodeGroup::deserialize(Deserializer& deSer) {
     auto chunkedNodeGroup = ChunkedNodeGroup::deserialize(deSer);
     return std::make_unique<NodeGroup>(nodeGroupIdx, enableCompression,
         std::move(chunkedNodeGroup));
+}
+
+ChunkedNodeGroup* NodeGroup::findChunkedGroupFromRowIdx(const UniqLock& lock, row_idx_t rowIdx) {
+    KU_ASSERT(!chunkedGroups.isEmpty(lock));
+    const auto numRowsInFirstGroup = chunkedGroups.getFirstGroup(lock)->getNumRows();
+    if (rowIdx < numRowsInFirstGroup) {
+        return chunkedGroups.getFirstGroup(lock);
+    }
+    rowIdx -= numRowsInFirstGroup;
+    const auto chunkedGroupIdx = rowIdx / ChunkedNodeGroup::CHUNK_CAPACITY + 1;
+    return chunkedGroups.getGroup(lock, chunkedGroupIdx);
 }
 
 template<ResidencyState SCAN_RESIDENCY_STATE>
