@@ -17,6 +17,7 @@ void ScanRelTableInfo::scanIfNecessary(Transaction* transaction) const {
     auto& outSelVector = localScanState->outputVectors[0]->state->getSelVectorUnsafe();
     auto& nodeIDSelVector = localScanState->nodeIDVector->state->getSelVectorUnsafe();
     nodeIDSelVector.setToUnfiltered(relScanState.totalNodeIdxs);
+    auto prevPosInLastCSR = relScanState.posInLastCSR;
     // We need to reinitialize per node group
     if (relScanState.currNodeIdx == relScanState.endNodeIdx) {
         table->initializeScanState(transaction, *localScanState);
@@ -35,7 +36,7 @@ void ScanRelTableInfo::scanIfNecessary(Transaction* transaction) const {
     auto currCSRSize =
         relScanState.csrHeaderChunks.getCSRLength(relScanState.currentNodeOffset - startNodeOffset);
     if (relScanState.currentCSROffset == 0) {
-        currCSRSize -= relScanState.posInLastCSR;
+        currCSRSize -= prevPosInLastCSR;
     }
     auto spaceLeft = relScanState.batchSize - relScanState.currentCSROffset;
     if (currCSRSize > spaceLeft) {
