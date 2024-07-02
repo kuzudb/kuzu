@@ -510,7 +510,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformFunctionParameterExpress
             varNames.push_back(transformSymbolicName(*symbolicNameCtx));
         }
         auto functionExpr = transformExpression(*ctx.kU_LambdaParameter()->oC_Expression());
-        return std::make_unique<ParsedLambdaExpression>(varNames, std::move(functionExpr), ctx.getText());
+        return std::make_unique<ParsedLambdaExpression>(varNames, std::move(functionExpr),
+            ctx.getText());
     }
     auto expression = transformExpression(*ctx.oC_Expression());
     if (ctx.oC_SymbolicName()) {

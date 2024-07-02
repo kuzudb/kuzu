@@ -15,16 +15,14 @@ public:
 
     void evaluate() override {}
 
-    bool select(common::SelectionVector &) override {
-        KU_UNREACHABLE;
-    }
+    bool select(common::SelectionVector&) override { KU_UNREACHABLE; }
 
     std::unique_ptr<ExpressionEvaluator> clone() override {
         return std::make_unique<LambdaParamEvaluator>(expression);
     }
 
 protected:
-    void resolveResultVector(const processor::ResultSet &, storage::MemoryManager *) override {}
+    void resolveResultVector(const processor::ResultSet&, storage::MemoryManager*) override {}
 };
 
 // E.g. for function list_transform([0,1,2], x->x+1)
@@ -35,19 +33,18 @@ class ListLambdaEvaluator : public ExpressionEvaluator {
     static constexpr EvaluatorType type_ = EvaluatorType::LIST_LAMBDA;
 
 public:
-    ListLambdaEvaluator(std::shared_ptr<binder::Expression> expression,
-        evaluator_vector_t children)
+    ListLambdaEvaluator(std::shared_ptr<binder::Expression> expression, evaluator_vector_t children)
         : ExpressionEvaluator{type_, std::move(expression), std::move(children)} {}
 
     void setLambdaRootEvaluator(std::unique_ptr<ExpressionEvaluator> evaluator) {
         lambdaRootEvaluator = std::move(evaluator);
     }
 
-    void init(const processor::ResultSet &resultSet, main::ClientContext *clientContext) override;
+    void init(const processor::ResultSet& resultSet, main::ClientContext* clientContext) override;
 
     void evaluate() override;
 
-    bool select(common::SelectionVector &) override { KU_UNREACHABLE; }
+    bool select(common::SelectionVector&) override { KU_UNREACHABLE; }
 
     std::unique_ptr<ExpressionEvaluator> clone() override {
         auto result = std::make_unique<ListLambdaEvaluator>(expression, cloneVector(children));
@@ -56,13 +53,13 @@ public:
     }
 
 protected:
-    void resolveResultVector(const processor::ResultSet &resultSet, storage::MemoryManager *memoryManager) override;
+    void resolveResultVector(const processor::ResultSet& resultSet,
+        storage::MemoryManager* memoryManager) override;
 
 private:
     std::unique_ptr<ExpressionEvaluator> lambdaRootEvaluator;
     LambdaParamEvaluator* lambdaParamEvaluator;
 };
-
 
 } // namespace evaluator
 } // namespace kuzu

@@ -11,7 +11,8 @@ class LiteralExpressionEvaluator : public ExpressionEvaluator {
 
 public:
     LiteralExpressionEvaluator(std::shared_ptr<binder::Expression> expression, common::Value value)
-        : ExpressionEvaluator{type_, std::move(expression), true /* isResultFlat */}, value{std::move(value)} {}
+        : ExpressionEvaluator{type_, std::move(expression), true /* isResultFlat */},
+          value{std::move(value)} {}
 
     void evaluate() override;
 

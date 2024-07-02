@@ -29,9 +29,10 @@ class ExpressionEvaluator {
 public:
     explicit ExpressionEvaluator(EvaluatorType type, std::shared_ptr<binder::Expression> expression)
         : type{type}, expression{std::move(expression)} {};
-    ExpressionEvaluator(EvaluatorType type, std::shared_ptr<binder::Expression> expression, bool isResultFlat)
+    ExpressionEvaluator(EvaluatorType type, std::shared_ptr<binder::Expression> expression,
+        bool isResultFlat)
         : type{type}, expression{std::move(expression)}, isResultFlat_{isResultFlat} {}
-    ExpressionEvaluator(EvaluatorType type,std::shared_ptr<binder::Expression> expression,
+    ExpressionEvaluator(EvaluatorType type, std::shared_ptr<binder::Expression> expression,
         evaluator_vector_t children)
         : type{type}, expression{std::move(expression)}, children{std::move(children)} {}
     ExpressionEvaluator(const ExpressionEvaluator& other)

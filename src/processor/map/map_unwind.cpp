@@ -22,8 +22,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapUnwind(LogicalOperator* logical
         idPos = getDataPos(*unwind.getIDExpr(), *outSchema);
     }
     auto printInfo = std::make_unique<OPPrintInfo>(unwind.getExpressionsForPrinting());
-    return std::make_unique<Unwind>(dataPos, idPos, std::move(evaluator),
-        std::move(prevOperator), getOperatorID(), std::move(printInfo));
+    return std::make_unique<Unwind>(dataPos, idPos, std::move(evaluator), std::move(prevOperator),
+        getOperatorID(), std::move(printInfo));
 }
 
 } // namespace processor

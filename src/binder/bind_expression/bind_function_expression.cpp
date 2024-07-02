@@ -74,7 +74,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     auto childrenTypes = getTypes(children);
     auto functions = context->getCatalog()->getFunctions(context->getTx());
     auto function = BuiltInFunctionsUtils::matchFunction(context->getTx(), functionName,
-            childrenTypes, functions)->ptrCast<ScalarFunction>();
+        childrenTypes, functions)
+                        ->ptrCast<ScalarFunction>();
     expression_vector childrenAfterCast;
     std::unique_ptr<function::FunctionBindData> bindData;
     if (functionName == CastAnyFunction::name) {

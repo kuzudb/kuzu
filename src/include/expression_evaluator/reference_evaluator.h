@@ -13,8 +13,8 @@ class ReferenceExpressionEvaluator : public ExpressionEvaluator {
     static constexpr EvaluatorType type_ = EvaluatorType::REFERENCE;
 
 public:
-    ReferenceExpressionEvaluator(std::shared_ptr<binder::Expression> expression,
-         bool isResultFlat, const processor::DataPos& dataPos)
+    ReferenceExpressionEvaluator(std::shared_ptr<binder::Expression> expression, bool isResultFlat,
+        const processor::DataPos& dataPos)
         : ExpressionEvaluator{type_, std::move(expression), isResultFlat}, dataPos{dataPos} {}
 
     void evaluate() override {}

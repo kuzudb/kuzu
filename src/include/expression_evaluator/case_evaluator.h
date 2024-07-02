@@ -43,10 +43,7 @@ public:
     const std::vector<std::unique_ptr<CaseAlternativeEvaluator>>& getAlternativeEvaluators() const {
         return alternativeEvaluators;
     }
-    ExpressionEvaluator* getElseEvaluator() const {
-        return elseEvaluator.get();
-    }
-
+    ExpressionEvaluator* getElseEvaluator() const { return elseEvaluator.get(); }
 
     void init(const processor::ResultSet& resultSet, main::ClientContext* clientContext) override;
 

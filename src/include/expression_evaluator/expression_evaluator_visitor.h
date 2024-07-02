@@ -28,9 +28,7 @@ class LambdaParamEvaluatorCollector final : public ExpressionEvaluatorVisitor {
 public:
     void visit(ExpressionEvaluator* evaluator);
 
-    std::vector<ExpressionEvaluator*> getEvaluators() const {
-        return evaluators;
-    }
+    std::vector<ExpressionEvaluator*> getEvaluators() const { return evaluators; }
 
 protected:
     void visitLambdaParam(ExpressionEvaluator* evaluator) override {
@@ -41,5 +39,5 @@ private:
     std::vector<ExpressionEvaluator*> evaluators;
 };
 
-}
-}
+} // namespace evaluator
+} // namespace kuzu

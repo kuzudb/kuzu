@@ -1,4 +1,5 @@
 #include "expression_evaluator/lambda_evaluator.h"
+
 #include "expression_evaluator/expression_evaluator_visitor.h"
 
 using namespace kuzu::common;
@@ -51,5 +52,5 @@ void ListLambdaEvaluator::resolveResultVector(const ResultSet&, MemoryManager* m
     ListVector::setDataVector(resultVector.get(), lambdaRootEvaluator->resultVector);
 }
 
-}
-}
+} // namespace evaluator
+} // namespace kuzu

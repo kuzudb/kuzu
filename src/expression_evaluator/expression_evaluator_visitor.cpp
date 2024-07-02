@@ -1,4 +1,5 @@
 #include "expression_evaluator/expression_evaluator_visitor.h"
+
 #include "expression_evaluator/case_evaluator.h"
 
 namespace kuzu {
@@ -8,28 +9,28 @@ void ExpressionEvaluatorVisitor::visitSwitch(ExpressionEvaluator* evaluator) {
     switch (evaluator->getEvaluatorType()) {
     case EvaluatorType::CASE_ELSE: {
         visitCase(evaluator);
-    } break ;
+    } break;
     case EvaluatorType::FUNCTION: {
         visitFunction(evaluator);
-    } break ;
+    } break;
     case EvaluatorType::LAMBDA_PARAM: {
         visitLambdaParam(evaluator);
-    } break ;
+    } break;
     case EvaluatorType::LIST_LAMBDA: {
         visitListLambda(evaluator);
-    } break ;
+    } break;
     case EvaluatorType::LITERAL: {
         visitLiteral(evaluator);
-    } break ;
+    } break;
     case EvaluatorType::PATH: {
         visitPath(evaluator);
-    } break ;
+    } break;
     case EvaluatorType::NODE_REL: {
         visitPattern(evaluator);
-    } break ;
+    } break;
     case EvaluatorType::REFERENCE: {
         visitReference(evaluator);
-    } break ;
+    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -45,7 +46,7 @@ void LambdaParamEvaluatorCollector::visit(ExpressionEvaluator* evaluator) {
             children.push_back(alternativeEvaluator->whenEvaluator.get());
             children.push_back(alternativeEvaluator->thenEvaluator.get());
         }
-    } break ;
+    } break;
     default: {
         for (auto& child : evaluator->getChildren()) {
             children.push_back(child.get());
@@ -58,5 +59,5 @@ void LambdaParamEvaluatorCollector::visit(ExpressionEvaluator* evaluator) {
     }
 }
 
-}
-}
+} // namespace evaluator
+} // namespace kuzu

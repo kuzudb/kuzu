@@ -66,8 +66,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAlter(LogicalOperator* logicalO
     auto exprMapper = ExpressionMapper(alter.getSchema());
     if (alter.getInfo()->alterType == AlterType::ADD_PROPERTY) {
         auto& addPropInfo = alter.getInfo()->extraInfo->constCast<BoundExtraAddPropertyInfo>();
-        defaultValueEvaluator =
-            exprMapper.getEvaluator(addPropInfo.boundDefault);
+        defaultValueEvaluator = exprMapper.getEvaluator(addPropInfo.boundDefault);
     }
     auto printInfo = std::make_unique<AlterPrintInfo>(alter.getInfo()->alterType,
         alter.getInfo()->tableName, alter.getInfo()->extraInfo.get());
