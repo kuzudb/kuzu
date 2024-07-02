@@ -18,8 +18,17 @@ void PrimaryKeyScanNodeTable::initLocalStateInternal(ResultSet* resultSet,
     ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
     for (auto& nodeInfo : nodeInfos) {
-        nodeInfo.localScanState =
-            std::make_unique<NodeTableScanState>(nodeInfo.table->getTableID(), nodeInfo.columnIDs);
+        std::vector<Column*> columns;
+        columns.reserve(nodeInfo.columnIDs.size());
+        for (const auto columnID : nodeInfo.columnIDs) {
+            if (columnID == INVALID_COLUMN_ID) {
+                columns.push_back(nullptr);
+            } else {
+                columns.push_back(&nodeInfo.table->getColumn(columnID));
+            }
+        }
+        nodeInfo.localScanState = std::make_unique<NodeTableScanState>(nodeInfo.table->getTableID(),
+            nodeInfo.columnIDs, columns);
         initVectors(*nodeInfo.localScanState, *resultSet);
     }
     indexEvaluator->init(*resultSet, context->clientContext);
@@ -49,6 +58,7 @@ bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     if (!lookupSucceed) {
         return false;
     }
+    // TODO(Guodong): Should read from uncommitted as well.
     auto nodeID = nodeID_t{nodeOffset, nodeInfo.table->getTableID()};
     nodeInfo.localScanState->IDVector->setValue<nodeID_t>(pos, nodeID);
     nodeInfo.localScanState->source = TableScanSource::COMMITTED;

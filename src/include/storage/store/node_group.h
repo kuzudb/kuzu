@@ -146,6 +146,9 @@ public:
     }
 
 private:
+    ChunkedNodeGroup* findChunkedGroupFromRowIdx(const common::UniqLock& lock,
+        common::row_idx_t rowIdx);
+
     template<ResidencyState SCAN_RESIDENCY_STATE>
     std::unique_ptr<ChunkedNodeGroup> scanCommitted(
         const std::vector<common::column_id_t>& columnIDs, const std::vector<Column*>& columns);
