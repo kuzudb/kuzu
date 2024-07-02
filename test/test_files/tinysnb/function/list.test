@@ -42,7 +42,7 @@
 -LOG ListSliceOutOfRange
 -STATEMENT RETURN [1,2,3][:100], [1,2,3][-1:2], [1,2,3][2:1], [1,2,3][1:-1], [1,2,3][3:4], 'abc'[-1:4]
 ---- 1
-[1,2,3]|[1]|[]|[1,2,3]|[3]|abc
+[1,2,3]|[]|[]|[1,2]|[3]|c
 
 -LOG ListAddOperation
 -STATEMENT MATCH (p:person)-[:knows]->(p1:person) RETURN p.courseScoresPerTerm + p1.courseScoresPerTerm
@@ -1181,6 +1181,40 @@ zab
 ooq
 g
 ert
+
+-LOG ListSliceOutOfRange
+-STATEMENT MATCH (p:person) RETURN p.usedNames[7:]
+---- 8
+[]
+[]
+[]
+[]
+[]
+[]
+[]
+[]
+
+-STATEMENT MATCH (p:person) RETURN p.usedNames[:-2]
+---- 8
+[]
+[]
+[]
+[]
+[]
+[]
+[]
+[Ad,De,Hi]
+
+-STATEMENT MATCH (a:person) RETURN a.fName[7:]
+---- 8
+
+
+
+
+
+
+ Blaine Wolfeschlegelsteinhausenbergerdorff
+eth
 
 -LOG ListCreateFromLiteral1
 -STATEMENT RETURN [[100,200],[200,300],[300,400]]

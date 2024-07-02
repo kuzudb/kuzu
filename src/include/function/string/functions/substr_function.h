@@ -15,10 +15,14 @@ public:
         common::ku_string_t& result, common::ValueVector& resultValueVector) {
         std::string srcStr = src.getAsString();
         bool isAscii = true;
-        auto startPos = start - 1;
-        auto endPos = std::min(srcStr.size(), (size_t)(startPos + len));
+        int64_t startPos = start - 1;
+        int64_t endPos = std::min(srcStr.size(), (size_t)(startPos + len));
+        if (startPos >= endPos) {
+            result.len = 0;
+            return;
+        }
         // 1 character more than length has to be scanned for diatrics case: y + ˘ = ў.
-        for (auto i = 0u; i < std::min(srcStr.size(), endPos + 1); i++) {
+        for (auto i = 0u; i < std::min<int64_t>(srcStr.size(), endPos + 1); i++) {
             // UTF-8 character encountered.
             if (srcStr[i] & 0x80) {
                 isAscii = false;
@@ -33,7 +37,7 @@ public:
                 [&](int64_t gstart, int64_t /*gend*/) {
                     if (characterCount == startPos) {
                         startBytePos = gstart;
-                    } else if ((uint64_t)characterCount == endPos) {
+                    } else if (characterCount == endPos) {
                         endBytePos = gstart;
                         return false;
                     }
