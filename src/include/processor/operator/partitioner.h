@@ -48,9 +48,6 @@ struct PartitionerSharedState {
     std::vector<std::shared_ptr<BatchInsertSharedState>> nodeBatchInsertSharedStates;
 
     void initialize(PartitionerDataInfo& dataInfo);
-    // explicit PartitionerSharedState(std::vector<common::logical_type_vec_t> columnTypes)
-    // : columnTypes{std::move(columnTypes)}, srcNodeTable{nullptr}, dstNodeTable{nullptr},
-    // relTable{nullptr} {}
 
     common::partition_idx_t getNextPartition(common::idx_t partitioningIdx);
     void resetState();
