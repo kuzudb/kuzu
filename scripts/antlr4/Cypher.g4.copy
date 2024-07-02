@@ -548,7 +548,11 @@ oC_FunctionName
     : oC_SymbolicName ;
 
 kU_FunctionParameter
-    : ( oC_SymbolicName SP? ':' '=' SP? )? oC_Expression ;
+    : ( oC_SymbolicName SP? ':' '=' SP? )? oC_Expression
+        | kU_LambdaParameter ;
+
+kU_LambdaParameter
+    : oC_SymbolicName ( SP? ',' oC_SymbolicName )* SP? '-' '>' SP? oC_Expression ;
 
 oC_PathPatterns
     : oC_NodePattern ( SP? oC_PatternElementChain )+;

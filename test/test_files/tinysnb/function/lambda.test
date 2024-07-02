@@ -1,0 +1,43 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE LambdaFunction
+
+-STATEMENT MATCH (a:person) WHERE a.ID < 6 RETURN LIST_TRANSFORM([1,2,3], x->x + a.ID)
+---- error
+Binder exception: Variable a is not in scope.
+
+-LOG ListTransform
+-STATEMENT RETURN LIST_TRANSFORM([5,28,92], x->(CASE WHEN x < 10 THEN 0 ELSE 1 END))
+---- 1
+[0,1,1]
+-STATEMENT RETURN list_extract([5,28,92], x->x+ 10)
+---- error
+Binder exception: LIST_EXTRACT does not support lambda input.
+-STATEMENT RETURN LIST_TRANSFORM([5,28,92], 1)
+---- error
+Binder exception: The second argument of LIST_TRANSFORM should be a lambda expression but got LITERAL.
+
+-STATEMENT RETURN LIST_TRANSFORM([5,28,92], x->x+ 10)
+---- 1
+[15,38,102]
+-STATEMENT MATCH (a:person) RETURN LIST_TRANSFORM(a.workedHours, x->x+ 2)
+---- 8
+[12,7]
+[14,10]
+[6,7]
+[3,11]
+[4]
+[5,6,7,8,9]
+[3]
+[12,13,14,5,6,7,8,9]
+-STATEMENT RETURN LIST_TRANSFORM([20,56], x->(x * 2 + 7) * 10)
+---- 1
+[470,1190]
+-STATEMENT RETURN LIST_TRANSFORM(['KUZU', 'DUCKDB', 'NEO4J'], x-> concat(x, 'test'))
+---- 1
+[KUZUtest,DUCKDBtest,NEO4Jtest]
+-STATEMENT RETURN LIST_TRANSFORM(['KUZU', 'DUCKDB', 'NEO4J'], x-> size(x))
+---- 1
+[4,6,5]

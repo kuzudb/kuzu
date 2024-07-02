@@ -29,7 +29,7 @@ void PatternExpressionEvaluator::evaluate() {
 
 void PatternExpressionEvaluator::resolveResultVector(const ResultSet& resultSet,
     MemoryManager* memoryManager) {
-    const auto& dataType = pattern->getDataType();
+    const auto& dataType = expression->getDataType();
     resultVector = std::make_shared<ValueVector>(dataType.copy(), memoryManager);
     std::vector<ExpressionEvaluator*> inputEvaluators;
     inputEvaluators.reserve(children.size());
@@ -43,13 +43,9 @@ void PatternExpressionEvaluator::resolveResultVector(const ResultSet& resultSet,
 
 void PatternExpressionEvaluator::initFurther(const ResultSet&) {
     StructPackFunctions::compileFunc(nullptr, parameters, resultVector);
-    const auto& dataType = pattern->getDataType();
+    const auto& dataType = expression->getDataType();
     auto fieldIdx = StructType::getFieldIdx(dataType.copy(), InternalKeyword::ID);
     idVector = StructVector::getFieldVector(resultVector.get(), fieldIdx).get();
-}
-
-std::unique_ptr<ExpressionEvaluator> PatternExpressionEvaluator::clone() {
-    return make_unique<PatternExpressionEvaluator>(pattern, ExpressionEvaluator::copy(children));
 }
 
 void UndirectedRelExpressionEvaluator::evaluate() {
@@ -76,18 +72,13 @@ void UndirectedRelExpressionEvaluator::initFurther(const ResultSet& resultSet) {
     directionEvaluator->init(resultSet, localState.clientContext);
     directionVector = directionEvaluator->resultVector.get();
     StructPackFunctions::undirectedRelCompileFunc(nullptr, parameters, resultVector);
-    const auto& dataType = pattern->getDataType();
+    const auto& dataType = expression->getDataType();
     auto idFieldIdx = StructType::getFieldIdx(dataType, InternalKeyword::ID);
     auto srcFieldIdx = StructType::getFieldIdx(dataType, InternalKeyword::SRC);
     auto dstFieldIdx = StructType::getFieldIdx(dataType, InternalKeyword::DST);
     idVector = StructVector::getFieldVector(resultVector.get(), idFieldIdx).get();
     srcIDVector = StructVector::getFieldVector(resultVector.get(), srcFieldIdx).get();
     dstIDVector = StructVector::getFieldVector(resultVector.get(), dstFieldIdx).get();
-}
-
-std::unique_ptr<ExpressionEvaluator> UndirectedRelExpressionEvaluator::clone() {
-    return make_unique<UndirectedRelExpressionEvaluator>(pattern,
-        ExpressionEvaluator::copy(children), directionEvaluator->clone());
 }
 
 } // namespace evaluator

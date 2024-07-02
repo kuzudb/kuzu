@@ -7,16 +7,19 @@ namespace kuzu {
 namespace evaluator {
 
 class LiteralExpressionEvaluator : public ExpressionEvaluator {
+    static constexpr EvaluatorType type_ = EvaluatorType::LITERAL;
+
 public:
-    explicit LiteralExpressionEvaluator(common::Value value)
-        : ExpressionEvaluator{true /* isResultFlat */}, value{std::move(value)} {}
+    LiteralExpressionEvaluator(std::shared_ptr<binder::Expression> expression, common::Value value)
+        : ExpressionEvaluator{type_, std::move(expression), true /* isResultFlat */},
+          value{std::move(value)} {}
 
     void evaluate() override;
 
     bool select(common::SelectionVector& selVector) override;
 
     std::unique_ptr<ExpressionEvaluator> clone() override {
-        return std::make_unique<LiteralExpressionEvaluator>(value);
+        return std::make_unique<LiteralExpressionEvaluator>(expression, value);
     }
 
 protected:

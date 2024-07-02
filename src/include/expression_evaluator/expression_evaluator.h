@@ -11,16 +11,42 @@ struct EvaluatorLocalState {
     uint64_t count;
 };
 
+enum class EvaluatorType : uint8_t {
+    CASE_ELSE = 0,
+    FUNCTION = 1,
+    LAMBDA_PARAM = 2,
+    LIST_LAMBDA = 3,
+    LITERAL = 4,
+    PATH = 5,
+    NODE_REL = 6,
+    REFERENCE = 8,
+};
+
+class ExpressionEvaluator;
+using evaluator_vector_t = std::vector<std::unique_ptr<ExpressionEvaluator>>;
+
 class ExpressionEvaluator {
 public:
-    ExpressionEvaluator() = default;
-    // Leaf evaluators (reference or literal)
-    explicit ExpressionEvaluator(bool isResultFlat) : isResultFlat_{isResultFlat} {}
-    explicit ExpressionEvaluator(std::vector<std::unique_ptr<ExpressionEvaluator>> children)
-        : children{std::move(children)} {}
+    explicit ExpressionEvaluator(EvaluatorType type, std::shared_ptr<binder::Expression> expression)
+        : type{type}, expression{std::move(expression)} {};
+    ExpressionEvaluator(EvaluatorType type, std::shared_ptr<binder::Expression> expression,
+        bool isResultFlat)
+        : type{type}, expression{std::move(expression)}, isResultFlat_{isResultFlat} {}
+    ExpressionEvaluator(EvaluatorType type, std::shared_ptr<binder::Expression> expression,
+        evaluator_vector_t children)
+        : type{type}, expression{std::move(expression)}, children{std::move(children)} {}
+    ExpressionEvaluator(const ExpressionEvaluator& other)
+        : type{other.type}, expression{other.expression}, isResultFlat_{other.isResultFlat_},
+          children{cloneVector(other.children)} {}
     virtual ~ExpressionEvaluator() = default;
 
-    inline bool isResultFlat() const { return isResultFlat_; }
+    EvaluatorType getEvaluatorType() const { return type; }
+
+    const common::LogicalType& getResultDataType() const { return expression->getDataType(); }
+    void setResultFlat(bool val) { isResultFlat_ = val; }
+    bool isResultFlat() const { return isResultFlat_; }
+
+    const evaluator_vector_t& getChildren() const { return children; }
 
     virtual void init(const processor::ResultSet& resultSet, main::ClientContext* clientContext);
 
@@ -32,8 +58,18 @@ public:
 
     EvaluatorLocalState& getLocalStateUnsafe() { return localState; }
 
-    static std::vector<std::unique_ptr<ExpressionEvaluator>> copy(
-        const std::vector<std::unique_ptr<ExpressionEvaluator>>& evaluators);
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const ExpressionEvaluator&, const TARGET&>(*this);
+    }
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<ExpressionEvaluator&, TARGET&>(*this);
+    }
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<ExpressionEvaluator*, TARGET*>(this);
+    }
 
 protected:
     virtual void resolveResultVector(const processor::ResultSet& resultSet,
@@ -45,8 +81,10 @@ public:
     std::shared_ptr<common::ValueVector> resultVector;
 
 protected:
+    EvaluatorType type;
+    std::shared_ptr<binder::Expression> expression;
     bool isResultFlat_ = true;
-    std::vector<std::unique_ptr<ExpressionEvaluator>> children;
+    evaluator_vector_t children;
     EvaluatorLocalState localState;
 };
 

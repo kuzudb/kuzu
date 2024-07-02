@@ -96,8 +96,12 @@ std::string ExpressionTypeUtil::toString(ExpressionType type) {
         return "AGGREGATE_FUNCTION";
     case ExpressionType::SUBQUERY:
         return "SUBQUERY";
+    case ExpressionType::CASE_ELSE:
+        return "CASE_ELSE";
     case ExpressionType::GRAPH:
         return "GRAPH";
+    case ExpressionType::LAMBDA:
+        return "LAMBDA";
     default:
         KU_UNREACHABLE;
     }

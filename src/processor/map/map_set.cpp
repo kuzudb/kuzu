@@ -43,7 +43,8 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(const BoundSetPr
     if (info.pkExpr != nullptr) {
         setInfo.pkPos = getDataPos(*info.pkExpr, schema);
     }
-    auto evaluator = ExpressionMapper::getEvaluator(info.setItem.second, &schema);
+    auto exprMapper = ExpressionMapper(&schema);
+    auto evaluator = exprMapper.getEvaluator(info.setItem.second);
     if (node.isMultiLabeled()) {
         common::table_id_map_t<ExtraNodeSetInfo> extraInfos;
         for (auto tableID : node.getTableIDs()) {
@@ -102,7 +103,8 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(const BoundSetProp
     if (schema.isExpressionInScope(property)) {
         propertyPos = getDataPos(property, schema);
     }
-    auto evaluator = ExpressionMapper::getEvaluator(info.setItem.second, &schema);
+    auto exprMapper = ExpressionMapper(&schema);
+    auto evaluator = exprMapper.getEvaluator(info.setItem.second);
     if (rel.isMultiLabeled()) {
         std::unordered_map<table_id_t, std::pair<RelTable*, column_id_t>> tableIDToTableAndColumnID;
         for (auto tableID : rel.getTableIDs()) {

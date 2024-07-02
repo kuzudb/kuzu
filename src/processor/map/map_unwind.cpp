@@ -15,14 +15,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapUnwind(LogicalOperator* logical
     auto inSchema = unwind.getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto dataPos = DataPos(outSchema->getExpressionPos(*unwind.getOutExpr()));
-    auto expressionEvaluator = ExpressionMapper::getEvaluator(unwind.getInExpr(), inSchema);
+    auto exprMapper = ExpressionMapper(inSchema);
+    auto evaluator = exprMapper.getEvaluator(unwind.getInExpr());
     DataPos idPos;
     if (unwind.hasIDExpr()) {
         idPos = getDataPos(*unwind.getIDExpr(), *outSchema);
     }
     auto printInfo = std::make_unique<OPPrintInfo>(unwind.getExpressionsForPrinting());
-    return std::make_unique<Unwind>(dataPos, idPos, std::move(expressionEvaluator),
-        std::move(prevOperator), getOperatorID(), std::move(printInfo));
+    return std::make_unique<Unwind>(dataPos, idPos, std::move(evaluator), std::move(prevOperator),
+        getOperatorID(), std::move(printInfo));
 }
 
 } // namespace processor

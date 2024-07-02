@@ -62,16 +62,6 @@ bool CaseExpressionEvaluator::select(SelectionVector& selVector) {
     return numSelectedValues > 0;
 }
 
-std::unique_ptr<ExpressionEvaluator> CaseExpressionEvaluator::clone() {
-    std::vector<std::unique_ptr<CaseAlternativeEvaluator>> clonedAlternativeEvaluators;
-    clonedAlternativeEvaluators.reserve(alternativeEvaluators.size());
-    for (auto& alternative : alternativeEvaluators) {
-        clonedAlternativeEvaluators.push_back(alternative->clone());
-    }
-    return make_unique<CaseExpressionEvaluator>(expression, std::move(clonedAlternativeEvaluators),
-        elseEvaluator->clone());
-}
-
 void CaseExpressionEvaluator::resolveResultVector(const ResultSet& /*resultSet*/,
     MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(expression->dataType.copy(), memoryManager);

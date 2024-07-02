@@ -6,6 +6,7 @@
 #include "function/struct/vector_struct_functions.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
+#include "parser/expression/parsed_lambda_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
 #include "parser/expression/parsed_parameter_expression.h"
 #include "parser/expression/parsed_property_expression.h"
@@ -503,6 +504,15 @@ std::string Transformer::transformFunctionName(CypherParser::OC_FunctionNameCont
 
 std::unique_ptr<ParsedExpression> Transformer::transformFunctionParameterExpression(
     CypherParser::KU_FunctionParameterContext& ctx) {
+    if (ctx.kU_LambdaParameter()) {
+        std::vector<std::string> varNames;
+        for (auto& symbolicNameCtx : ctx.kU_LambdaParameter()->oC_SymbolicName()) {
+            varNames.push_back(transformSymbolicName(*symbolicNameCtx));
+        }
+        auto functionExpr = transformExpression(*ctx.kU_LambdaParameter()->oC_Expression());
+        return std::make_unique<ParsedLambdaExpression>(varNames, std::move(functionExpr),
+            ctx.getText());
+    }
     auto expression = transformExpression(*ctx.oC_Expression());
     if (ctx.oC_SymbolicName()) {
         expression->setAlias(transformSymbolicName(*ctx.oC_SymbolicName()));

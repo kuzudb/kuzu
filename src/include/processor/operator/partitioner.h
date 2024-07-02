@@ -96,7 +96,7 @@ struct PartitionerDataInfo {
 private:
     PartitionerDataInfo(const PartitionerDataInfo& other)
         : columnTypes{common::LogicalType::copy(other.columnTypes)},
-          columnEvaluators{evaluator::ExpressionEvaluator::copy(other.columnEvaluators)},
+          columnEvaluators{cloneVector(other.columnEvaluators)},
           defaultColumns{other.defaultColumns} {}
 };
 

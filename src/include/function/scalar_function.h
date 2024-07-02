@@ -8,7 +8,6 @@
 #include "unary_function_executor.h"
 
 namespace kuzu {
-
 namespace function {
 
 // Evaluate function at compile time, e.g. struct_extraction.

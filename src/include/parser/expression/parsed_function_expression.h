@@ -23,6 +23,7 @@ public:
               std::move(rawName)},
           isDistinct{isDistinct}, functionName{std::move(functionName)} {}
 
+    // For clone only.
     ParsedFunctionExpression(std::string alias, std::string rawName, parsed_expr_vector children,
         std::string functionName, bool isDistinct)
         : ParsedExpression{common::ExpressionType::FUNCTION, std::move(alias), std::move(rawName),
@@ -33,7 +34,7 @@ public:
         : ParsedExpression{common::ExpressionType::FUNCTION}, isDistinct{isDistinct},
           functionName{std::move(functionName)} {}
 
-    inline bool getIsDistinct() const { return isDistinct; }
+    bool getIsDistinct() const { return isDistinct; }
 
     std::string getFunctionName() const { return functionName; }
     std::string getNormalizedFunctionName() const {
@@ -41,15 +42,13 @@ public:
     }
 
     // A function might have more than 2 parameters.
-    inline void addChild(std::unique_ptr<ParsedExpression> child) {
-        children.push_back(std::move(child));
-    }
+    void addChild(std::unique_ptr<ParsedExpression> child) { children.push_back(std::move(child)); }
 
     static std::unique_ptr<ParsedFunctionExpression> deserialize(
         common::Deserializer& deserializer);
 
-    inline std::unique_ptr<ParsedExpression> copy() const override {
-        return std::make_unique<ParsedFunctionExpression>(alias, rawName, copyChildren(),
+    std::unique_ptr<ParsedExpression> copy() const override {
+        return std::make_unique<ParsedFunctionExpression>(alias, rawName, copyVector(children),
             functionName, isDistinct);
     }
 

@@ -32,7 +32,8 @@ public:
     }
 
     std::unique_ptr<ParsedExpression> copy() const override {
-        return std::make_unique<ParsedLiteralExpression>(alias, rawName, copyChildren(), value);
+        return std::make_unique<ParsedLiteralExpression>(alias, rawName, copyVector(children),
+            value);
     }
 
 private:

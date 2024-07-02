@@ -1,5 +1,5 @@
 #pragma once
-
+#include <memory>
 #include <unordered_map>
 #include <vector>
 // This file defines many macros for controlling copy constructors and move constructors on classes.
@@ -71,6 +71,40 @@ static std::vector<T> copyVector(const std::vector<T>& objects) {
     result.reserve(objects.size());
     for (auto& object : objects) {
         result.push_back(object.copy());
+    }
+    return result;
+}
+
+template<typename T>
+static std::vector<std::shared_ptr<T>> copyVector(const std::vector<std::shared_ptr<T>>& objects) {
+    std::vector<std::shared_ptr<T>> result;
+    result.reserve(objects.size());
+    for (auto& object : objects) {
+        T& ob = *object;
+        result.push_back(ob.copy());
+    }
+    return result;
+}
+
+template<typename T>
+static std::vector<std::unique_ptr<T>> copyVector(const std::vector<std::unique_ptr<T>>& objects) {
+    std::vector<std::unique_ptr<T>> result;
+    result.reserve(objects.size());
+    for (auto& object : objects) {
+        T& ob = *object;
+        result.push_back(ob.copy());
+    }
+    return result;
+}
+
+// TODO: remove
+template<typename T>
+static std::vector<std::unique_ptr<T>> cloneVector(const std::vector<std::unique_ptr<T>>& objects) {
+    std::vector<std::unique_ptr<T>> result;
+    result.reserve(objects.size());
+    for (auto& object : objects) {
+        T& ob = *object;
+        result.push_back(ob.clone());
     }
     return result;
 }

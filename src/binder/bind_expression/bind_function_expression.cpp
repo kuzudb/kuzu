@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/function_expression.h"
+#include "binder/expression/lambda_expression.h"
 #include "binder/expression_binder.h"
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
@@ -13,6 +14,7 @@
 #include "function/schema/vector_node_rel_functions.h"
 #include "main/client_context.h"
 #include "parser/expression/parsed_function_expression.h"
+#include "parser/expression/parsed_lambda_expression.h"
 #include "parser/parsed_expression_visitor.h"
 
 using namespace kuzu::common;
@@ -51,8 +53,10 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     const ParsedExpression& parsedExpression, const std::string& functionName) {
     expression_vector children;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-        auto child = bindExpression(*parsedExpression.getChild(i));
-        children.push_back(std::move(child));
+        children.push_back(bindExpression(*parsedExpression.getChild(i)));
+    }
+    if (children.size() == 2 && children[1]->expressionType == ExpressionType::LAMBDA) {
+        bindLambdaExpression(functionName, *children[0], *children[1]);
     }
     return bindScalarFunctionExpression(children, functionName);
 }
@@ -69,9 +73,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     const expression_vector& children, const std::string& functionName) {
     auto childrenTypes = getTypes(children);
     auto functions = context->getCatalog()->getFunctions(context->getTx());
-    auto function = ku_dynamic_cast<Function*, function::ScalarFunction*>(
-        function::BuiltInFunctionsUtils::matchFunction(context->getTx(), functionName,
-            childrenTypes, functions));
+    auto function = BuiltInFunctionsUtils::matchFunction(context->getTx(), functionName,
+        childrenTypes, functions)
+                        ->ptrCast<ScalarFunction>();
     expression_vector childrenAfterCast;
     std::unique_ptr<function::FunctionBindData> bindData;
     if (functionName == CastAnyFunction::name) {
@@ -175,8 +179,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindMacroExpression(
         context->getCatalog()->getScalarMacroFunction(context->getTx(), macroName);
     auto macroExpr = scalarMacroFunction->expression->copy();
     auto parameterVals = scalarMacroFunction->getDefaultParameterVals();
-    auto& parsedFuncExpr =
-        ku_dynamic_cast<const ParsedExpression&, const ParsedFunctionExpression&>(parsedExpression);
+    auto& parsedFuncExpr = parsedExpression.constCast<ParsedFunctionExpression>();
     auto positionalArgs = scalarMacroFunction->getPositionalArgs();
     if (parsedFuncExpr.getNumChildren() > scalarMacroFunction->getNumArgs() ||
         parsedFuncExpr.getNumChildren() < positionalArgs.size()) {

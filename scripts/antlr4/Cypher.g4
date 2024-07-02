@@ -102,6 +102,8 @@ GROUP : ( 'G' | 'g' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'U' | 'u' ) ( 'P' | 'p' ) ;
 
 HEADERS : ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'A' | 'a' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ( 'S' | 's' ) ;
 
+HINT : ( 'H' | 'h' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'T' | 't' ) ;
+
 IMPORT : ( 'I' | 'i' ) ( 'M' | 'm' ) ( 'P' | 'p' ) ( 'O' | 'o' ) ( 'R' | 'r' ) ( 'T' | 't' ) ;
 
 IF : ( 'I' | 'i' ) ( 'F' | 'f' ) ;
@@ -113,6 +115,8 @@ INCREMENT : ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'C' | 'c' ) ( 'R' | 'r' ) ( 'E' | 'e' 
 INSTALL : ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'S' | 's' ) ( 'T' | 't' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
 
 IS : ( 'I' | 'i' ) ( 'S' | 's' ) ;
+
+JOIN : ( 'J' | 'j' ) ( 'O' | 'o' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ;
 
 KEY : ( 'K' | 'k' ) ( 'E' | 'e' ) ( 'Y' | 'y' ) ;
 
@@ -129,6 +133,8 @@ MAXVALUE : ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'X' | 'x' ) ( 'V' | 'v' ) ( 'A' | 'a' )
 MERGE : ( 'M' | 'm' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ( 'G' | 'g' ) ( 'E' | 'e' ) ;
 
 MINVALUE : ( 'M' | 'm' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'V' | 'v' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'U' | 'u' ) ( 'E' | 'e' ) ;
+
+MULTI_JOIN : ( 'M' | 'm' ) ( 'U' | 'u' ) ( 'L' | 'l' ) ( 'T' | 't' ) ( 'I' | 'i' ) '_' ( 'J' | 'j' ) ( 'O' | 'o' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ;
 
 NO : ( 'N' | 'n' ) ( 'O' | 'o' ) ;
 
@@ -486,7 +492,16 @@ kU_GraphProjectionColumnItem
     : oC_PropertyKeyName ( SP kU_Default )? ( SP oC_Where )? ;
 
 oC_Match
-    : ( OPTIONAL SP )? MATCH SP? oC_Pattern ( SP oC_Where )? ;
+    : ( OPTIONAL SP )? MATCH SP? oC_Pattern ( SP oC_Where )? ( SP kU_Hint )? ;
+
+kU_Hint
+    : HINT SP kU_JoinNode;
+
+kU_JoinNode
+    :  kU_JoinNode SP JOIN SP kU_JoinNode
+        | kU_JoinNode ( SP MULTI_JOIN SP oC_SchemaName)+
+        | '(' SP? kU_JoinNode SP? ')'
+        | oC_SchemaName ;
 
 oC_Unwind : UNWIND SP? oC_Expression SP AS SP oC_Variable ;
 
@@ -748,7 +763,11 @@ oC_FunctionName
     : oC_SymbolicName ;
 
 kU_FunctionParameter
-    : ( oC_SymbolicName SP? ':' '=' SP? )? oC_Expression ;
+    : ( oC_SymbolicName SP? ':' '=' SP? )? oC_Expression
+        | kU_LambdaParameter ;
+
+kU_LambdaParameter
+    : oC_SymbolicName ( SP? ',' oC_SymbolicName )* SP? '-' '>' SP? oC_Expression ;
 
 oC_PathPatterns
     : oC_NodePattern ( SP? oC_PatternElementChain )+;

@@ -54,8 +54,9 @@ std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(const Logi
     auto returnVectorsPos = populateReturnVectorsPos(*info, outSchema);
     std::vector<std::unique_ptr<ExpressionEvaluator>> evaluators;
     evaluators.reserve(info->columnDataExprs.size());
+    auto exprMapper = ExpressionMapper(&inSchema);
     for (auto& expr : info->columnDataExprs) {
-        evaluators.push_back(ExpressionMapper::getEvaluator(expr, &inSchema));
+        evaluators.push_back(exprMapper.getEvaluator(expr));
     }
     return std::make_unique<NodeInsertExecutor>(table, std::move(fwdRelTablesToInit),
         std::move(bwdRelTablesToInit), nodeIDPos, std::move(returnVectorsPos),
@@ -76,8 +77,9 @@ std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(
     auto returnVectorsPos = populateReturnVectorsPos(*info, outSchema);
     std::vector<std::unique_ptr<ExpressionEvaluator>> evaluators;
     evaluators.reserve(info->columnDataExprs.size());
+    auto exprMapper = ExpressionMapper(&outSchema);
     for (auto& expr : info->columnDataExprs) {
-        evaluators.push_back(ExpressionMapper::getEvaluator(expr, &outSchema));
+        evaluators.push_back(exprMapper.getEvaluator(expr));
     }
     return std::make_unique<RelInsertExecutor>(storageManager->getRelsStatistics(), table,
         srcNodePos, dstNodePos, std::move(returnVectorsPos), std::move(evaluators));

@@ -17,7 +17,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDummyScan(LogicalOperator* /*lo
     auto columnSchema = ColumnSchema(false, 0 /* groupID */,
         LogicalTypeUtils::getRowLayoutSize(expression->dataType));
     tableSchema.appendColumn(std::move(columnSchema));
-    auto expressionEvaluator = ExpressionMapper::getEvaluator(expression, inSchema.get());
+    auto exprMapper = ExpressionMapper(inSchema.get());
+    auto expressionEvaluator = exprMapper.getEvaluator(expression);
     auto memoryManager = clientContext->getMemoryManager();
     // expression can be evaluated statically and does not require an actual resultset to init
     expressionEvaluator->init(ResultSet(0) /* dummy resultset */, clientContext);

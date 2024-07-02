@@ -1,6 +1,7 @@
 #include "expression_evaluator/function_evaluator.h"
 
 #include "binder/expression/function_expression.h"
+#include "function/built_in_function_utils.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -14,7 +15,8 @@ namespace evaluator {
 void FunctionExpressionEvaluator::init(const ResultSet& resultSet,
     main::ClientContext* clientContext) {
     ExpressionEvaluator::init(resultSet, clientContext);
-    execFunc = ((binder::ScalarFunctionExpression&)*expression).execFunc;
+    auto& functionExpr = expression->constCast<binder::ScalarFunctionExpression>();
+    execFunc = functionExpr.execFunc;
     if (expression->dataType.getLogicalTypeID() == LogicalTypeID::BOOL) {
         selectFunc = ((binder::ScalarFunctionExpression&)*expression).selectFunc;
     }
@@ -54,15 +56,6 @@ bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
         return numSelectedValues > 0;
     }
     return selectFunc(parameters, selVector);
-}
-
-std::unique_ptr<ExpressionEvaluator> FunctionExpressionEvaluator::clone() {
-    std::vector<std::unique_ptr<ExpressionEvaluator>> clonedChildren;
-    clonedChildren.reserve(children.size());
-    for (auto& child : children) {
-        clonedChildren.push_back(child->clone());
-    }
-    return make_unique<FunctionExpressionEvaluator>(expression, std::move(clonedChildren));
 }
 
 void FunctionExpressionEvaluator::resolveResultVector(const ResultSet& /*resultSet*/,

@@ -269,7 +269,8 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) {
             alterEntryRecord.ownedAlterInfo->extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
         // We don't implicit cast here since it must already be done the first time
         auto boundDefault = exprBinder->bindExpression(*addInfo->defaultValue);
-        auto defaultValueEvaluator = ExpressionMapper::getEvaluator(boundDefault, nullptr);
+        auto exprMapper = ExpressionMapper();
+        auto defaultValueEvaluator = exprMapper.getEvaluator(boundDefault);
         auto schema = clientContext.getCatalog()->getTableCatalogEntry(&DUMMY_WRITE_TRANSACTION,
             alterEntryRecord.ownedAlterInfo->tableID);
         auto addedPropID = schema->getPropertyID(addInfo->propertyName);
