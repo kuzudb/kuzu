@@ -325,6 +325,7 @@ void VectorIndexBuilder::batchInsert(const float* vectors, const vector_id_t* ve
                     [&](vector_id_t _id) { return header->getActualId(_id); });
             }
         }
+        header->updateEntrypoint(id, 1);
     }
 }
 

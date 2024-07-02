@@ -14,7 +14,7 @@ namespace storage {
 
 VectorIndexHeader::VectorIndexHeader(int dim, const VectorIndexConfig config, table_id_t tableId,
     property_id_t embeddingPropertyId, table_id_t csrRelTableId)
-    : dim(dim), numVectors(0), config(std::move(config)), entrypoint(INVALID_VECTOR_ID),
+    : dim(dim), numVectors(0), config(std::move(config)), entrypoint(0),
       entrypointLevel(0), numVectorsInUpperLevel(0), nodeTableId(tableId),
       embeddingPropertyId(embeddingPropertyId), csrRelTableIds(csrRelTableId), re(RandomEngine()) {}
 
@@ -77,20 +77,25 @@ void VectorIndexHeader::update(const vector_id_t* vectorIds, int numVectors,
         // mutex.
         std::lock_guard<std::mutex> lock(mtx);
         this->numVectors += numVectors;
-        if (vectorsInUpperLevel.empty() && entrypoint == INVALID_VECTOR_ID) {
-            entrypoint = vectorIds[0];
-        }
         if (!vectorsInUpperLevel.empty()) {
             for (size_t i = 0; i < vectorsInUpperLevel.size(); i++) {
                 auto upperLayerVectorId = numVectorsInUpperLevel++;
                 actualIds[upperLayerVectorId] = vectorsInUpperLevel[i];
                 upperLevelVectorIds.push_back(upperLayerVectorId);
             }
+        }
+    }
+}
 
-            if (entrypoint == INVALID_VECTOR_ID || entrypointLevel == 0) {
-                entrypoint = upperLevelVectorIds[0];
-                entrypointLevel = 1;
-            }
+void VectorIndexHeader::updateEntrypoint(vector_id_t entrypoint, uint8_t entrypointLevel) {
+    if (this->entrypoint != INVALID_VECTOR_ID && this->entrypointLevel >= entrypointLevel) {
+        return;
+    }
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        if (entrypoint == INVALID_VECTOR_ID || this->entrypointLevel < entrypointLevel) {
+            this->entrypoint = entrypoint;
+            this->entrypointLevel = entrypointLevel;
         }
     }
 }

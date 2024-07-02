@@ -40,6 +40,8 @@ public:
     void update(const vector_id_t* vectorIds, int numVectors,
         std::vector<vector_id_t>& upperLevelVectorIds);
 
+    void updateEntrypoint(vector_id_t entrypoint, uint8_t entrypointLevel);
+
     inline int64_t getEntrypoint() const { return entrypoint; }
 
     inline uint8_t getEntrypointLevel() const { return entrypointLevel; }
