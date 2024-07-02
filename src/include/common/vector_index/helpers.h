@@ -1,10 +1,13 @@
 #pragma once
 
-#include "common/types/types.h"
 #include <sys/stat.h>
-#include <iostream>
-#include <sys/fcntl.h>
+
+#include <cstring>
 #include <fstream>
+#include <iostream>
+
+#include "common/types/types.h"
+#include <sys/fcntl.h>
 
 namespace kuzu {
 namespace common {
@@ -19,7 +22,7 @@ public:
     inline bool get(vector_id_t id) { return visited[id] == visited_id; }
     inline void reset() {
         visited_id++;
-//        printf("Resetting visited table\n");
+        //        printf("Resetting visited table\n");
         if (visited_id == 250) {
             std::fill(visited.begin(), visited.end(), 0);
             visited_id = 1;
@@ -64,8 +67,8 @@ static void allocAligned(void** ptr, size_t size, size_t align) {
     }
 }
 
-static float *readFvecFile(const char *fName, size_t *d_out, size_t *n_out) {
-    FILE *f = fopen(fName, "r");
+static float* readFvecFile(const char* fName, size_t* d_out, size_t* n_out) {
+    FILE* f = fopen(fName, "r");
     if (!f) {
         fprintf(stderr, "could not open %s\n", fName);
         perror("");
@@ -75,21 +78,22 @@ static float *readFvecFile(const char *fName, size_t *d_out, size_t *n_out) {
     fread(&d, 1, sizeof(int), f);
     KU_ASSERT_MSG((d > 0 && d < 1000000), "unreasonable dimension");
     fseek(f, 0, SEEK_SET);
-    struct stat st{};
+    struct stat st {};
     fstat(fileno(f), &st);
     size_t sz = st.st_size;
     KU_ASSERT_MSG(sz % ((d + 1) * 4) == 0, "weird file size");
     size_t n = sz / ((d + 1) * 4);
     *d_out = d;
     *n_out = n;
-    auto *x = new float[n * (d + 1)];
+    auto* x = new float[n * (d + 1)];
     printf("x: %p\n", x);
     size_t nr = fread(x, sizeof(float), n * (d + 1), f);
     KU_ASSERT_MSG(nr == n * (d + 1), "could not read whole file");
 
-    // TODO: Round up the dimensions to the nearest multiple of 8, otherwise the below code will not work
-    float *align_x;
-    allocAligned(((void **) &align_x), n * d * sizeof(float), 8 * sizeof(float));
+    // TODO: Round up the dimensions to the nearest multiple of 8, otherwise the below code will not
+    // work
+    float* align_x;
+    allocAligned(((void**)&align_x), n * d * sizeof(float), 8 * sizeof(float));
     printf("align_x: %p\n", align_x);
 
     // copy data to aligned memory
@@ -103,13 +107,13 @@ static float *readFvecFile(const char *fName, size_t *d_out, size_t *n_out) {
     return align_x;
 }
 
-static int *readIvecFile(const char *fName, size_t *d_out, size_t *n_out) {
-    return (int *) readFvecFile(fName, d_out, n_out);
+static int* readIvecFile(const char* fName, size_t* d_out, size_t* n_out) {
+    return (int*)readFvecFile(fName, d_out, n_out);
 }
 
-static void loadFromFile(const std::string &path, uint8_t *data, size_t size) {
+static void loadFromFile(const std::string& path, uint8_t* data, size_t size) {
     std::ifstream inputFile(path, std::ios::binary);
-    inputFile.read(reinterpret_cast<char *>(data), size);
+    inputFile.read(reinterpret_cast<char*>(data), size);
     inputFile.close();
 }
 
