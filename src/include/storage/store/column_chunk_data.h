@@ -353,7 +353,15 @@ public:
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 
-    void setCommonTableID(common::table_id_t tableID) { commonTableID = tableID; }
+    void setTableID(common::table_id_t tableID) { commonTableID = tableID; }
+    common::table_id_t getTableID() const { return commonTableID; }
+
+    common::offset_t operator[](common::offset_t pos) const {
+        return getValue<common::offset_t>(pos);
+    }
+    common::offset_t& operator[](common::offset_t pos) {
+        return reinterpret_cast<common::offset_t*>(buffer.get())[pos];
+    }
 
 private:
     common::table_id_t commonTableID;

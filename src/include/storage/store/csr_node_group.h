@@ -99,13 +99,14 @@ public:
         : NodeGroup{nodeGroupIdx, enableCompression, std::move(chunkedNodeGroup),
               common::INVALID_OFFSET, NodeGroupDataFormat::CSR} {}
 
+    void initializeScanState(transaction::Transaction* transaction, TableScanState& state) override;
+    NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state) override;
+
     void appendChunkedCSRGroup(const transaction::Transaction* transaction,
         ChunkedCSRNodeGroup& chunkedGroup);
     void append(const transaction::Transaction* transaction, common::offset_t boundOffsetInGroup,
         const std::vector<ColumnChunk*>& chunks, common::row_idx_t startRowInChunks,
         common::row_idx_t numRows);
-    void initializeScanState(transaction::Transaction* transaction, TableScanState& state) override;
-    NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state) override;
 
     void update(transaction::Transaction* transaction, CSRNodeGroupScanSource source,
         common::row_idx_t rowIdxInGroup, common::column_id_t columnID,
@@ -121,6 +122,9 @@ public:
     }
 
 private:
+    void initializePersistentCSRHeader(transaction::Transaction* transaction,
+        RelTableScanState& relScanState, CSRNodeGroupScanState& nodeGroupScanState) const;
+
     void updateCSRIndex(common::offset_t boundNodeOffsetInGroup, common::row_idx_t startRow,
         common::length_t length) const;
 

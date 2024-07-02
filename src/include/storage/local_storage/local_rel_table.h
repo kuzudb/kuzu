@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/enums/rel_direction.h"
 #include "common/vector/value_vector.h"
 #include "storage/local_storage/local_table.h"
 
@@ -38,8 +39,11 @@ public:
     NodeGroup& getLocalNodeGroup() const { return *localNodeGroup; }
 
 private:
-    common::row_idx_t findMatchingRow(const common::ValueVector& srcNodeIDVector,
-        const common::ValueVector& dstNodeIDVector, const common::ValueVector& relIDVector);
+    static void rewriteLocalColumnIDs(common::RelDataDirection direction,
+        std::vector<common::column_id_t>& columnIDs);
+
+    common::row_idx_t findMatchingRow(common::offset_t srcNodeOffset,
+        common::offset_t dstNodeOffset, common::offset_t relOffset);
 
 private:
     // We don't duplicate local rel tuples. Tuples are stored same as node tuples.

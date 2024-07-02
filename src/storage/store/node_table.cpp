@@ -97,8 +97,11 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
     if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
         return false;
     }
+    const auto nodeGroupStartOffset =
+        StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx);
     for (auto i = 0u; i < scanResult.numRows; i++) {
-        scanState.IDVector->setValue(i, nodeID_t{scanResult.startRow + i, tableID});
+        scanState.IDVector->setValue(i,
+            nodeID_t{nodeGroupStartOffset + scanResult.startRow + i, tableID});
     }
     return true;
 }
