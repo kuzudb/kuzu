@@ -11,7 +11,7 @@ template<std::floating_point T>
 struct ExceptionBuffer {
     struct EncodeException {
         T value;
-        common::offset_t posInPage;
+        common::offset_t posInPage; // TODO maybe make this a smaller type to store more exceptions
     };
 
     ExceptionBuffer(uint8_t* frame, size_t frameSizeBytes);
@@ -89,7 +89,7 @@ uint64_t FloatCompression<T>::compressNextPage(const uint8_t*& srcBuffer,
     const size_t numValuesToCompress =
         std::min(numValuesRemaining, numValues(dstBufferSize, metadata));
 
-    std::vector<int64_t> integerEncodedValues(numValuesToCompress);
+    std::vector<EncodedType> integerEncodedValues(numValuesToCompress);
     for (size_t posInPage = 0; posInPage < numValuesToCompress; ++posInPage) {
         const auto floatValue = reinterpret_cast<const T*>(srcBuffer)[posInPage];
         integerEncodedValues[posInPage] = alp::AlpEncode<T>::encode_value(floatValue,
@@ -100,8 +100,9 @@ uint64_t FloatCompression<T>::compressNextPage(const uint8_t*& srcBuffer,
         if (floatValue != decodedValue) {
             exceptionBuffer.addException({.value = floatValue, .posInPage = posInPage});
 
-            // TODO populate with 1st successfully-encoded value in page
-            integerEncodedValues[posInPage] = 0;
+            // fill in the encoded value with the offset instead of 0 for better compression ratio
+            const auto encodedIntegerInfo = encodedFloatBitpacker.getPackingInfo(metadata);
+            integerEncodedValues[posInPage] = encodedIntegerInfo.offset;
         }
     }
     srcBuffer += numValuesToCompress * sizeof(T);
@@ -134,7 +135,7 @@ template<std::floating_point T>
 void FloatCompression<T>::decompressFromPage(const uint8_t* srcBuffer, uint64_t srcOffset,
     uint8_t* dstBuffer, uint64_t dstOffset, uint64_t numValues,
     const struct CompressionMetadata& metadata) const {
-    std::vector<int64_t> integerEncodedValues(numValues);
+    std::vector<EncodedType> integerEncodedValues(numValues);
     encodedFloatBitpacker.decompressFromPage(srcBuffer, srcOffset,
         reinterpret_cast<uint8_t*>(integerEncodedValues.data()), 0, numValues, metadata);
 
@@ -177,7 +178,7 @@ void FloatCompression<T>::setValuesFromUncompressed(const uint8_t* srcBuffer,
     // TODO fix
     ExceptionBuffer<T> exceptionBuffer{dstBuffer, 4 * 1024};
 
-    std::vector<int64_t> integerEncodedValues(numValues);
+    std::vector<EncodedType> integerEncodedValues(numValues);
     for (size_t i = 0; i < numValues; ++i) {
         const size_t posInPage = i + dstOffset;
         const size_t posInSrc = i + srcOffset;
@@ -202,14 +203,15 @@ void FloatCompression<T>::setValuesFromUncompressed(const uint8_t* srcBuffer,
                 exceptionBuffer.addException({.value = floatValue, .posInPage = posInPage});
             }
 
-            // TODO populate with 1st successfully-encoded value in page
-            integerEncodedValues[i] = 0;
+            const auto encodedIntegerInfo = encodedFloatBitpacker.getPackingInfo(metadata);
+            integerEncodedValues[i] = encodedIntegerInfo.offset;
         } else {
             // TODO clean this up
             for (size_t j = 0; j < exceptionBuffer.exceptionCount(); ++j) {
                 auto& curException = exceptionBuffer.exceptions[j];
                 if (curException.posInPage == posInPage) {
                     exceptionBuffer.removeException(j);
+                    break;
                 }
             }
         }

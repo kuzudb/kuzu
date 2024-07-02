@@ -17,6 +17,9 @@ struct PageCursor;
 template<std::floating_point T>
 class FloatCompression final : public CompressionAlg {
 public:
+    using EncodedType = int64_t;
+
+public:
     FloatCompression() = default;
 
     void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
