@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/copy_constructors.h"
-#include "storage/local_storage/hash_index_local_storage.h"
+#include "storage/local_storage/local_hash_index.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/store/node_group_collection.h"
 

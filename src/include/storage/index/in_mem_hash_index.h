@@ -68,8 +68,6 @@ class InMemHashIndex final {
 public:
     explicit InMemHashIndex(OverflowFileHandle* overflowFileHandle);
 
-    static void createEmptyIndexFiles(uint64_t indexPos, FileHandle& fileHandle);
-
     // Reserves space for at least the specified number of elements.
     // This reserves space for numEntries in total, regardless of existing entries in the builder
     void reserve(uint32_t numEntries);
@@ -145,7 +143,6 @@ private:
         slot->header.setEntryValid(entryPos, fingerprint);
         KU_ASSERT(HashIndexUtils::getFingerprintForHash(HashIndexUtils::hash(key)) == fingerprint);
     }
-    void copy(const SlotEntry<T>& oldEntry, slot_id_t newSlotId, uint8_t fingerprint);
     void insertToNewOvfSlot(Key key, Slot<T>* previousSlot, common::offset_t offset,
         uint8_t fingerprint);
     common::hash_t hashStored(const T& key) const;

@@ -42,12 +42,12 @@ public:
         currentTS = common::Timestamp::getCurrentTimestamp().value;
     }
 
-    constexpr explicit Transaction(TransactionType transactionType) noexcept
+    explicit Transaction(TransactionType transactionType) noexcept
         : type{transactionType}, ID{DUMMY_TRANSACTION_ID}, startTS{DUMMY_START_TIMESTAMP},
           commitTS{common::INVALID_TRANSACTION} {
         currentTS = common::Timestamp::getCurrentTimestamp().value;
     }
-    constexpr explicit Transaction(TransactionType transactionType, common::transaction_t ID,
+    explicit Transaction(TransactionType transactionType, common::transaction_t ID,
         common::transaction_t startTS) noexcept
         : type{transactionType}, ID{ID}, startTS{startTS}, commitTS{common::INVALID_TRANSACTION} {
         currentTS = common::Timestamp::getCurrentTimestamp().value;
@@ -64,7 +64,7 @@ public:
     void commit(storage::WAL* wal) const;
     void rollback() const;
 
-    storage::LocalStorage* getLocalStorage() { return localStorage.get(); }
+    storage::LocalStorage* getLocalStorage() const { return localStorage.get(); }
 
     void pushCatalogEntry(catalog::CatalogSet& catalogSet,
         catalog::CatalogEntry& catalogEntry) const;
@@ -97,8 +97,8 @@ private:
     std::unique_ptr<storage::UndoBuffer> undoBuffer;
 };
 
-static Transaction DUMMY_READ_TRANSACTION = Transaction(TransactionType::READ_ONLY);
-static Transaction DUMMY_WRITE_TRANSACTION = Transaction(TransactionType::WRITE);
+static auto DUMMY_READ_TRANSACTION = Transaction(TransactionType::READ_ONLY);
+static auto DUMMY_WRITE_TRANSACTION = Transaction(TransactionType::WRITE);
 
 } // namespace transaction
 } // namespace kuzu
