@@ -287,6 +287,7 @@ void RelTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
         prepareCommitForNodeGroup(transaction, localNodeGroup, nodeGroup, boundOffsetInGroup,
             rowIndices, LOCAL_NBR_NODE_ID_COLUMN_ID);
     }
+    localRelTable.clear();
 }
 
 void RelTable::prepareCommitForNodeGroup(Transaction* transaction, NodeGroup& localNodeGroup,

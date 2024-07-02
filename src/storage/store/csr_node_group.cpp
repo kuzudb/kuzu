@@ -94,8 +94,8 @@ NodeGroupScanResult CSRNodeGroup::scan(Transaction* transaction, TableScanState&
                     scanCommittedInMemSequential(transaction, relScanState, nodeGroupScanState) :
                     scanCommittedInMemRandom(transaction, relScanState, nodeGroupScanState);
             if (result == NODE_GROUP_SCAN_EMMPTY_RESULT) {
-                nodeGroupScanState.source = CSRNodeGroupScanSource::NONE;
-                continue;
+                relScanState.IDVector->state->getSelVectorUnsafe().setSelSize(0);
+                return NODE_GROUP_SCAN_EMMPTY_RESULT;
             }
             return result;
         }
@@ -131,33 +131,21 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMemSequential(const Transaction
     const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) {
     const auto startRow =
         nodeGroupScanState.inMemCSRList.rowIndices[0] + nodeGroupScanState.nextRowToScan;
-    const auto numRows =
+    auto numRows =
         std::min(nodeGroupScanState.inMemCSRList.rowIndices[1] - nodeGroupScanState.nextRowToScan,
             DEFAULT_VECTOR_CAPACITY);
+    auto [chunkIdx, startRowInChunk] =
+        StorageUtils::getQuotientRemainder(startRow, ChunkedNodeGroup::CHUNK_CAPACITY);
+    numRows = std::min(numRows, ChunkedNodeGroup::CHUNK_CAPACITY - startRowInChunk);
     if (numRows == 0) {
         return NODE_GROUP_SCAN_EMMPTY_RESULT;
     }
-    const auto endRow = startRow + numRows;
-    auto [startChunkIdx, startRowInChunk] =
-        StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
-    auto [endChunkIdx, endRowInChunk] =
-        StorageUtils::getQuotientRemainder(endRow, DEFAULT_VECTOR_CAPACITY);
-    auto chunkIdx = startChunkIdx;
     ChunkedNodeGroup* chunkedGroup;
-    while (chunkIdx <= endChunkIdx) {
-        {
-            const auto lock = chunkedGroups.lock();
-            chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
-        }
-        const auto startRowInChunkToScan = chunkIdx == startChunkIdx ? startRowInChunk : 0;
-        const auto endRowInChunkToScan =
-            chunkIdx == endChunkIdx ? endRowInChunk : DEFAULT_VECTOR_CAPACITY;
-        const auto numToScan = std::min(endRowInChunkToScan - startRowInChunkToScan,
-            DEFAULT_VECTOR_CAPACITY - startRowInChunkToScan);
-        chunkedGroup->scan(transaction, tableState, nodeGroupScanState, startRowInChunkToScan,
-            numToScan);
-        chunkIdx++;
+    {
+        const auto lock = chunkedGroups.lock();
+        chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
     }
+    chunkedGroup->scan(transaction, tableState, nodeGroupScanState, startRowInChunk, numRows);
     nodeGroupScanState.nextRowToScan += numRows;
     return NodeGroupScanResult{startRow, numRows};
 }
