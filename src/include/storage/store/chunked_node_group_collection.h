@@ -66,7 +66,8 @@ public:
         const auto lock = chunkedGroups.lock();
         chunkedGroups.clear(lock);
     }
-    common::row_idx_t getNumRows();
+    // TODO(Guodong): Should just keep an atomic counter instead of dynamically calculating it.
+    common::row_idx_t getNumRows(const common::UniqLock& lock);
 
 private:
     ResidencyState residencyState;
