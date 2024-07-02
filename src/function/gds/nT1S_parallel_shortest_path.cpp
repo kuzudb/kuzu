@@ -158,15 +158,18 @@ public:
             ifeMorsel->init();
             while (!ifeMorsel->isBFSCompleteNoLock()) {
                 auto duration = std::chrono::system_clock::now().time_since_epoch();
-                auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+                auto millis =
+                    std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
                 auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
                 gdsLocalState->ifeMorsel = ifeMorsel.get();
                 auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState), sharedState,
                     extendFrontierFunc, true /* isParallel */};
                 parallelUtils->submitParallelTaskAndWait(job);
                 auto duration1 = std::chrono::system_clock::now().time_since_epoch();
-                auto millis1 = std::chrono::duration_cast<std::chrono::milliseconds>(duration1).count();
-                printf("bfs level: %d completed in %ld ms \n", ifeMorsel->currentLevel, millis1 - millis);
+                auto millis1 =
+                    std::chrono::duration_cast<std::chrono::milliseconds>(duration1).count();
+                printf("bfs level: %d completed in %ld ms \n", ifeMorsel->currentLevel,
+                    millis1 - millis);
                 ifeMorsel->initializeNextFrontierNoLock();
             }
             auto duration = std::chrono::system_clock::now().time_since_epoch();
