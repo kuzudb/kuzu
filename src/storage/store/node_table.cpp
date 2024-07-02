@@ -97,8 +97,10 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
     if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
         return false;
     }
-    const auto nodeGroupStartOffset =
-        StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx);
+    auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx);
+    if (scanState.source == TableScanSource::UNCOMMITTED) {
+        nodeGroupStartOffset += StorageConstants::MAX_NUM_ROWS_IN_TABLE;
+    }
     for (auto i = 0u; i < scanResult.numRows; i++) {
         scanState.IDVector->setValue(i,
             nodeID_t{nodeGroupStartOffset + scanResult.startRow + i, tableID});
@@ -237,24 +239,18 @@ void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) 
             if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
                 break;
             }
-            for (auto i = 0u; i < scanResult.numRows; i++) {
+            for (auto i = 0u; i < scanState->IDVector->state->getSelVector().getSelSize(); i++) {
                 const auto pos =
                     scanState->IDVector->state->getSelVector().getSelectedPositions()[i];
                 scanState->IDVector->setValue(pos, nodeID_t{startNodeOffset + i, tableID});
             }
-            scanState->IDVector->state->getSelVectorUnsafe().setSelSize(scanResult.numRows);
             const auto pkVector = scanState->outputVectors[pkColumnID];
             insertPK(nodeIDVector, *pkVector);
-            startNodeOffset += scanResult.numRows;
+            startNodeOffset += scanState->IDVector->state->getSelVector().getSelSize();
             nodeGroups->append(transaction, scanState->outputVectors);
         }
         nodeGroupToScan++;
     }
-
-    if (pkIndex) {
-        pkIndex->prepareCommit();
-    }
-    wal->addToUpdatedTables(tableID);
 }
 
 void NodeTable::prepareCommit() {
