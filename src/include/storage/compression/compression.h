@@ -58,9 +58,10 @@ union StorageValue {
         floatVal = value;
     }
 
+    // TODO: add unit tests for this
     bool operator==(const StorageValue& other) const {
-        // All types are the same size, so we can compare any of them to check equality
-        return this->signedInt == other.signedInt;
+        // We zero-initialize any padding bits, so we can compare values to check equality
+        return this->signedInt128 == other.signedInt128;
     }
 
     template<StorageValueType T>
@@ -118,7 +119,12 @@ struct CompressionMetadata {
     StorageValue max;
 
     // TODO: move this somewhere more appropriate
-    alp::state floatMetadata;
+    struct FloatMetadata {
+        FloatMetadata() = default;
+        explicit FloatMetadata(const alp::state& alpState) : exp(alpState.exp), fac(alpState.fac) {}
+        uint8_t exp;
+        uint8_t fac;
+    } floatMetadata;
 
     CompressionType compression;
     uint8_t _padding[7]{};
@@ -214,7 +220,7 @@ public:
     // Nothing to do; constant compressed data is only updated if the update is to the same value
     void setValuesFromUncompressed(const uint8_t*, common::offset_t, uint8_t*, common::offset_t,
         common::offset_t, const CompressionMetadata&,
-        const common::NullMask* /*nullMask*/) const override {};
+        const common::NullMask* /*nullMask*/) const override{};
 
     CompressionType getCompressionType() const override { return CompressionType::CONSTANT; }
 
@@ -321,7 +327,7 @@ public:
         uint64_t dstOffset, uint64_t numValues,
         const struct CompressionMetadata& metadata) const final;
 
-    static bool canUpdateInPlace(std::span<T> value, const CompressionMetadata& metadata,
+    static bool canUpdateInPlace(std::span<const T> value, const CompressionMetadata& metadata,
         const std::optional<common::NullMask>& nullMask = std::nullopt,
         uint64_t nullMaskOffset = 0);
 

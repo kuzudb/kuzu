@@ -410,7 +410,6 @@ void Column::append(ColumnChunkData* columnChunk, ChunkState& state) {
     auto preScanMetadata = columnChunk->getMetadataToFlush();
     auto startPageIdx = dataFH->addNewPages(preScanMetadata.numPages);
     state.metadata = columnChunk->flushBuffer(dataFH, startPageIdx, preScanMetadata);
-    (void)sanityCheckForWrites;
     KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
     metadataDA->resize(state.nodeGroupIdx + 1);
     metadataDA->update(state.nodeGroupIdx, state.metadata);
@@ -428,10 +427,17 @@ void Column::write(ChunkState& state, offset_t offsetInChunk, ValueVector* vecto
         writeValue(state, offsetInChunk, vectorToWriteFrom, posInVectorToWriteFrom);
     }
     auto valueToWrite = StorageValue::readFromVector(*vectorToWriteFrom, posInVectorToWriteFrom);
-    updateStatistics(state.metadata, offsetInChunk, valueToWrite, valueToWrite);
+    updateStatistics(state.metadata, offsetInChunk, (uint8_t*)&valueToWrite, 0, 1);
 }
 
-void Column::updateStatistics(ColumnChunkMetadata& metadata, offset_t maxIndex,
+void Column::updateStatistics(ColumnChunkMetadata& metadata, offset_t maxIndex, const uint8_t* data,
+    offset_t dataOffset, size_t numValues, const NullMask* nullMask) {
+    auto [minWritten, maxWritten] =
+        getMinMaxStorageValue(data, dataOffset, numValues, dataType.getPhysicalType(), nullMask);
+    updateMinMaxStatistics(metadata, maxIndex, minWritten, maxWritten);
+}
+
+void Column::updateMinMaxStatistics(ColumnChunkMetadata& metadata, offset_t maxIndex,
     const std::optional<StorageValue>& min, const std::optional<StorageValue>& max) {
     if (maxIndex >= metadata.numValues) {
         metadata.numValues = maxIndex + 1;
@@ -468,9 +474,8 @@ void Column::write(ChunkState& state, offset_t offsetInChunk, ColumnChunkData* d
     }
     writeValues(state, offsetInChunk, data->getData(), nullMaskPtr, dataOffset, numValues);
 
-    auto [minWritten, maxWritten] = getMinMaxStorageValue(data->getData(), dataOffset, numValues,
-        dataType.getPhysicalType(), nullMaskPtr);
-    updateStatistics(state.metadata, offsetInChunk + numValues - 1, minWritten, maxWritten);
+    updateStatistics(state.metadata, offsetInChunk + numValues - 1, data->getData(), 0, numValues,
+        nullMaskPtr);
 }
 
 void Column::writeValues(ChunkState& state, offset_t dstOffset, const uint8_t* data,
@@ -499,9 +504,8 @@ offset_t Column::appendValues(ChunkState& state, const uint8_t* data, const Null
     auto newNumPages = dataFH->getNumPages();
     state.metadata.numPages += (newNumPages - numPages);
 
-    auto [minWritten, maxWritten] = getMinMaxStorageValue(data, 0 /*offset*/, numValues,
-        dataType.getPhysicalType(), nullChunkData);
-    updateStatistics(state.metadata, startOffset + numValues - 1, minWritten, maxWritten);
+    updateStatistics(state.metadata, startOffset + numValues - 1, data, 0, numValues,
+        nullChunkData);
     // TODO(bmwinger): it shouldn't be necessary to do this here; it should be handled in
     // prepareCommit
     metadataDA->update(state.nodeGroupIdx, state.metadata);

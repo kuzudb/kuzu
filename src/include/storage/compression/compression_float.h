@@ -13,6 +13,10 @@ class ColumnChunkData;
 
 struct PageCursor;
 
+struct FloatCompressionMetadata final : CompressionMetadata {
+    alp::state floatMetadata;
+};
+
 // Augmented with Frame of Reference encoding using an offset stored in the compression metadata
 template<std::floating_point T>
 class FloatCompression final : public CompressionAlg {
@@ -36,7 +40,7 @@ public:
         uint64_t dstOffset, uint64_t numValues,
         const struct CompressionMetadata& metadata) const final;
 
-    static bool canUpdateInPlace(std::span<T> value, const CompressionMetadata& metadata,
+    static bool canUpdateInPlace(std::span<const T> value, const CompressionMetadata& metadata,
         const std::optional<common::NullMask>& nullMask = std::nullopt,
         uint64_t nullMaskOffset = 0);
 

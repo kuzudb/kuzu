@@ -5,7 +5,6 @@
 #include <limits>
 #include <string>
 
-#include "alp.hpp"
 #include "common/assert.h"
 #include "common/exception/not_implemented.h"
 #include "common/exception/storage.h"
@@ -30,7 +29,7 @@ namespace kuzu {
 namespace storage {
 
 template<typename T>
-auto getTypedMinMax(std::span<T> data, const NullMask* nullMask, uint64_t nullMaskOffset) {
+auto getTypedMinMax(std::span<const T> data, const NullMask* nullMask, uint64_t nullMaskOffset) {
     std::optional<StorageValue> min, max;
     KU_ASSERT(data.size() > 0);
     if (!nullMask || nullMask->hasNoNullsGuarantee()) {
@@ -82,6 +81,7 @@ bool CompressionMetadata::canAlwaysUpdateInPlace() const {
         return true;
     }
     case CompressionType::CONSTANT:
+    case CompressionType::FLOAT:
     case CompressionType::INTEGER_BITPACKING: {
         return false;
     }
@@ -130,6 +130,21 @@ bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos, ui
     case CompressionType::BOOLEAN_BITPACKING:
     case CompressionType::UNCOMPRESSED: {
         return true;
+    }
+    case CompressionType::FLOAT: {
+        return TypeUtils::visit(
+            physicalType,
+            [&]<std::floating_point T>(T) {
+                auto values = std::span<const T>(reinterpret_cast<const T*>(data) + pos, numValues);
+                return FloatCompression<T>::canUpdateInPlace(values, *this, std::move(nullMask));
+            },
+            [&](auto) {
+                throw common::StorageException(
+                    "Attempted to read from a column chunk which uses float compression but does "
+                    "not have a supported physical type: " +
+                    PhysicalTypeUtils::toString(physicalType));
+                return false;
+            });
     }
     case CompressionType::INTEGER_BITPACKING: {
         auto cdata = const_cast<uint8_t*>(data);
@@ -283,6 +298,15 @@ std::string CompressionMetadata::toString(const PhysicalTypeID physicalType) con
     case CompressionType::UNCOMPRESSED: {
         return "UNCOMPRESSED";
     }
+    case CompressionType::FLOAT: {
+        // TODO maybe update
+        uint8_t bitWidth = TypeUtils::visit(
+            physicalType,
+            [&]<std::floating_point T>(
+                T) { return IntegerBitpacking<int64_t>::getPackingInfo(*this).bitWidth; },
+            [](auto) -> uint8_t { KU_UNREACHABLE; });
+        return stringFormat("FLOAT_COMPRESSION[{}]", bitWidth);
+    }
     case CompressionType::INTEGER_BITPACKING: {
         uint8_t bitWidth = TypeUtils::visit(
             physicalType,
@@ -407,7 +431,7 @@ BitpackInfo<T> IntegerBitpacking<T>::getPackingInfo(const CompressionMetadata& m
 }
 
 template<IntegerBitpackingType T>
-bool IntegerBitpacking<T>::canUpdateInPlace(std::span<T> values,
+bool IntegerBitpacking<T>::canUpdateInPlace(std::span<const T> values,
     const CompressionMetadata& metadata, const std::optional<common::NullMask>& nullMask,
     uint64_t nullMaskOffset) {
     auto info = getPackingInfo(metadata);
@@ -720,6 +744,22 @@ void ReadCompressedValuesFromPageToVector::operator()(const uint8_t* frame, Page
     case CompressionType::UNCOMPRESSED:
         return uncompressed.decompressFromPage(frame, pageCursor.elemPosInPage,
             resultVector->getData(), posInVector, numValuesToRead, metadata);
+    case CompressionType::FLOAT: {
+        switch (physicalType) {
+        case PhysicalTypeID::DOUBLE: {
+            return FloatCompression<double>().decompressFromPage(frame, pageCursor.elemPosInPage,
+                resultVector->getData(), posInVector, numValuesToRead, metadata);
+        }
+        case PhysicalTypeID::FLOAT: {
+            return FloatCompression<float>().decompressFromPage(frame, pageCursor.elemPosInPage,
+                resultVector->getData(), posInVector, numValuesToRead, metadata);
+        }
+        default: {
+            throw NotImplementedException("Float Compression is not implemented for type " +
+                                          PhysicalTypeUtils::toString(physicalType));
+        }
+        }
+    }
     case CompressionType::INTEGER_BITPACKING: {
         switch (physicalType) {
         case PhysicalTypeID::INT128: {
@@ -783,6 +823,22 @@ void ReadCompressedValuesFromPage::operator()(const uint8_t* frame, PageCursor& 
     case CompressionType::UNCOMPRESSED:
         return uncompressed.decompressFromPage(frame, pageCursor.elemPosInPage, result,
             startPosInResult, numValuesToRead, metadata);
+    case CompressionType::FLOAT: {
+        switch (physicalType) {
+        case PhysicalTypeID::DOUBLE: {
+            return FloatCompression<double>().decompressFromPage(frame, pageCursor.elemPosInPage,
+                result, startPosInResult, numValuesToRead, metadata);
+        }
+        case PhysicalTypeID::FLOAT: {
+            return FloatCompression<float>().decompressFromPage(frame, pageCursor.elemPosInPage,
+                result, startPosInResult, numValuesToRead, metadata);
+        }
+        default: {
+            throw NotImplementedException("Float Compression is not implemented for type " +
+                                          PhysicalTypeUtils::toString(physicalType));
+        }
+        }
+    }
     case CompressionType::INTEGER_BITPACKING: {
         switch (physicalType) {
         case PhysicalTypeID::INT128: {

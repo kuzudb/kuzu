@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "alp/encode.hpp"
 #include "common/data_chunk/sel_vector.h"
 #include "common/exception/copy.h"
 #include "common/type_utils.h"
@@ -10,9 +11,11 @@
 #include "expression_evaluator/expression_evaluator.h"
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/compression/compression.h"
+#include "storage/compression/compression_float.h"
 #include "storage/store/list_chunk_data.h"
 #include "storage/store/string_chunk_data.h"
 #include "storage/store/struct_chunk_data.h"
+#include <ranges>
 
 using namespace kuzu::common;
 using namespace kuzu::evaluator;
@@ -94,15 +97,15 @@ public:
     }
 };
 
-class GetCompressionMetadata {
+class GetBitpackingMetadata {
     std::shared_ptr<CompressionAlg> alg;
     const LogicalType& dataType;
 
 public:
-    GetCompressionMetadata(std::shared_ptr<CompressionAlg> alg, const LogicalType& dataType)
+    GetBitpackingMetadata(std::shared_ptr<CompressionAlg> alg, const LogicalType& dataType)
         : alg{std::move(alg)}, dataType{dataType} {}
 
-    GetCompressionMetadata(const GetCompressionMetadata& other) = default;
+    GetBitpackingMetadata(const GetBitpackingMetadata& other) = default;
 
     ColumnChunkMetadata operator()(const uint8_t* /*buffer*/, uint64_t /*bufferSize*/,
         uint64_t capacity, uint64_t numValues, StorageValue min, StorageValue max) {
@@ -129,6 +132,68 @@ public:
         }
         const auto numValuesPerPage =
             compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+        const auto numPages =
+            capacity / numValuesPerPage + (capacity % numValuesPerPage == 0 ? 0 : 1);
+        return ColumnChunkMetadata(INVALID_PAGE_IDX, numPages, numValues, compMeta);
+    }
+};
+
+template<std::floating_point T>
+class GetFloatCompressionMetadata {
+    std::shared_ptr<CompressionAlg> alg;
+    const LogicalType& dataType;
+
+public:
+    GetFloatCompressionMetadata(std::shared_ptr<CompressionAlg> alg, const LogicalType& dataType)
+        : alg{std::move(alg)}, dataType{dataType} {}
+
+    GetFloatCompressionMetadata(const GetFloatCompressionMetadata& other) = default;
+
+    ColumnChunkMetadata operator()(const uint8_t* buffer, uint64_t bufferSize, uint64_t capacity,
+        uint64_t numValues, StorageValue min, StorageValue max) {
+        alp::state floatCompressionMetadata;
+        std::vector<uint8_t> sampleBuffer(bufferSize); // TODO update size
+        alp::AlpEncode<T>::init(reinterpret_cast<const T*>(buffer), 0, numValues,
+            reinterpret_cast<T*>(sampleBuffer.data()), floatCompressionMetadata);
+        if (floatCompressionMetadata.scheme != alp::SCHEME::ALP) {
+            return uncompressedGetMetadata(buffer, bufferSize, capacity, numValues, min, max);
+        }
+        if (floatCompressionMetadata.k_combinations > 1) {
+            alp::AlpEncode<T>::find_best_exponent_factor_from_combinations(
+                floatCompressionMetadata.best_k_combinations,
+                floatCompressionMetadata.k_combinations, reinterpret_cast<const T*>(buffer),
+                floatCompressionMetadata.vector_size, floatCompressionMetadata.fac,
+                floatCompressionMetadata.exp);
+        } else {
+            KU_ASSERT(floatCompressionMetadata.best_k_combinations.size() >= 1);
+            floatCompressionMetadata.exp = floatCompressionMetadata.best_k_combinations[0].first;
+            floatCompressionMetadata.fac = floatCompressionMetadata.best_k_combinations[0].second;
+        }
+
+        std::span<const T> src{reinterpret_cast<const T*>(buffer), numValues};
+        const auto floatEncodedValues =
+            std::views::all(src) | std::views::transform([floatCompressionMetadata](T val) {
+                const auto encoded_value = alp::AlpEncode<T>::encode_value(val,
+                    floatCompressionMetadata.fac, floatCompressionMetadata.exp);
+                const auto decoded_value = alp::AlpDecode<T>::decode_value(encoded_value,
+                    floatCompressionMetadata.fac, floatCompressionMetadata.exp);
+                return val == decoded_value ? encoded_value : 0;
+            });
+        const auto& [minEncoded, maxEncoded] =
+            std::minmax_element(floatEncodedValues.begin(), floatEncodedValues.end());
+
+        if (*minEncoded == *maxEncoded) {
+            return ColumnChunkMetadata(INVALID_PAGE_IDX, 0, numValues,
+                CompressionMetadata(min, max, CompressionType::CONSTANT));
+        }
+
+        auto compMeta = CompressionMetadata(StorageValue{*minEncoded}, StorageValue{*maxEncoded},
+            alg->getCompressionType());
+        compMeta.floatMetadata = CompressionMetadata::FloatMetadata{floatCompressionMetadata};
+
+        const auto numValuesPerPage =
+            compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+        KU_ASSERT(numValuesPerPage < UINT64_MAX);
         const auto numPages =
             capacity / numValuesPerPage + (capacity % numValuesPerPage == 0 ? 0 : 1);
         return ColumnChunkMetadata(INVALID_PAGE_IDX, numPages, numValues, compMeta);
@@ -168,6 +233,12 @@ static std::shared_ptr<CompressionAlg> getCompression(const LogicalType& dataTyp
     }
     case PhysicalTypeID::UINT8: {
         return std::make_shared<IntegerBitpacking<uint8_t>>();
+    }
+    case PhysicalTypeID::FLOAT: {
+        return std::make_shared<FloatCompression<float>>();
+    }
+    case PhysicalTypeID::DOUBLE: {
+        return std::make_shared<FloatCompression<double>>();
     }
     default: {
         return std::make_shared<Uncompressed>(dataType);
@@ -213,9 +284,17 @@ void ColumnChunkData::initializeFunction() {
     case PhysicalTypeID::UINT16:
     case PhysicalTypeID::UINT8:
     case PhysicalTypeID::INT128: {
+    case PhysicalTypeID::DOUBLE:
+    case PhysicalTypeID::FLOAT:
         const auto compression = getCompression(dataType, enableCompression);
         flushBufferFunction = CompressedFlushBuffer(compression, dataType);
-        getMetadataFunction = GetCompressionMetadata(compression, dataType);
+        if (dataType.getPhysicalType() == common::PhysicalTypeID::FLOAT) {
+            getMetadataFunction = GetFloatCompressionMetadata<float>(compression, dataType);
+        } else if (dataType.getPhysicalType() == common::PhysicalTypeID::DOUBLE) {
+            getMetadataFunction = GetFloatCompressionMetadata<double>(compression, dataType);
+        } else {
+            getMetadataFunction = GetBitpackingMetadata(compression, dataType);
+        }
     } break;
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST:

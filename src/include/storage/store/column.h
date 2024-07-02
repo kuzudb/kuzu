@@ -207,7 +207,10 @@ protected:
     }
 
     static ChunkCollection getNullChunkCollection(const ChunkCollection& chunkCollection);
-    void updateStatistics(ColumnChunkMetadata& metadata, common::offset_t maxIndex,
+    virtual void updateStatistics(ColumnChunkMetadata& metadata, common::offset_t maxIndex,
+        const uint8_t* data, common::offset_t dataOffset, size_t numValues,
+        const common::NullMask* nullMask = nullptr);
+    void updateMinMaxStatistics(ColumnChunkMetadata& metadata, common::offset_t maxIndex,
         const std::optional<StorageValue>& min, const std::optional<StorageValue>& max);
 
     static size_t getNumValuesFromDisk(DiskArray<ColumnChunkMetadata>* metadataDA,

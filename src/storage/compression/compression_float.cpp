@@ -84,6 +84,13 @@ uint64_t FloatCompression<T>::compressNextPage(const uint8_t*& srcBuffer,
     uint64_t numValuesRemaining, uint8_t* dstBuffer, uint64_t dstBufferSize,
     const struct CompressionMetadata& metadata) const {
 
+    // TODO: this is hacky; we need a better system for dynamically choosing between
+    // algorithms when compressing
+    if (metadata.compression == CompressionType::UNCOMPRESSED) {
+        return Uncompressed(sizeof(T)).compressNextPage(srcBuffer, numValuesRemaining, dstBuffer,
+            dstBufferSize, metadata);
+    }
+
     ExceptionBuffer<T> exceptionBuffer{dstBuffer, dstBufferSize};
 
     const size_t numValuesToCompress =
@@ -223,8 +230,9 @@ void FloatCompression<T>::setValuesFromUncompressed(const uint8_t* srcBuffer,
 }
 
 template<std::floating_point T>
-bool FloatCompression<T>::canUpdateInPlace(std::span<T> value, const CompressionMetadata& metadata,
-    const std::optional<common::NullMask>& nullMask, uint64_t nullMaskOffset) {
+bool FloatCompression<T>::canUpdateInPlace(std::span<const T> value,
+    const CompressionMetadata& metadata, const std::optional<common::NullMask>& nullMask,
+    uint64_t nullMaskOffset) {
     // TODO implement in-place updates
     return false;
 }
