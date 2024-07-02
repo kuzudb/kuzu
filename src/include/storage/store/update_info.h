@@ -16,6 +16,7 @@ class Transaction;
 } // namespace transaction
 
 namespace storage {
+class MemoryManager;
 
 class ColumnChunkData;
 struct VectorUpdateInfo {
@@ -29,10 +30,10 @@ struct VectorUpdateInfo {
 
     std::unique_ptr<ColumnChunkData> data;
 
-    explicit VectorUpdateInfo(const common::transaction_t transactionID,
-        common::LogicalType dataType)
+    explicit VectorUpdateInfo(MemoryManager& memoryManager,
+        const common::transaction_t transactionID, common::LogicalType dataType)
         : version{transactionID}, rowsInVector{}, numRowsUpdated{0}, prev{nullptr}, next{nullptr} {
-        data = ColumnChunkFactory::createColumnChunkData(std::move(dataType), false,
+        data = ColumnChunkFactory::createColumnChunkData(memoryManager, std::move(dataType), false,
             common::DEFAULT_VECTOR_CAPACITY, ResidencyState::IN_MEMORY);
     }
 
@@ -47,7 +48,8 @@ class UpdateInfo {
 public:
     UpdateInfo() {}
 
-    VectorUpdateInfo* update(const transaction::Transaction* transaction, common::idx_t vectorIdx,
+    VectorUpdateInfo* update(MemoryManager& memoryManager,
+        const transaction::Transaction* transaction, common::idx_t vectorIdx,
         common::sel_t rowIdxInVector, const common::ValueVector& values);
 
     void setVectorInfo(common::idx_t vectorIdx, std::unique_ptr<VectorUpdateInfo> vectorInfo) {
@@ -65,8 +67,9 @@ public:
         common::length_t numRows) const;
 
 private:
-    VectorUpdateInfo& getOrCreateVectorInfo(const transaction::Transaction* transaction,
-        common::idx_t vectorIdx, common::sel_t rowIdxInVector, const common::LogicalType& dataType);
+    VectorUpdateInfo& getOrCreateVectorInfo(MemoryManager& memoryManager,
+        const transaction::Transaction* transaction, common::idx_t vectorIdx,
+        common::sel_t rowIdxInVector, const common::LogicalType& dataType);
 
 private:
     std::vector<std::unique_ptr<VectorUpdateInfo>> vectorsInfo;

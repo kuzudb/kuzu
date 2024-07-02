@@ -6,6 +6,7 @@
 
 namespace kuzu {
 namespace storage {
+class MemoryManager;
 
 struct CSRRegion {
     common::idx_t regionIdx = common::INVALID_IDX;
@@ -56,7 +57,8 @@ struct ChunkedCSRHeader {
     std::unique_ptr<ColumnChunk> offset;
     std::unique_ptr<ColumnChunk> length;
 
-    ChunkedCSRHeader(bool enableCompression, uint64_t capacity, ResidencyState residencyState);
+    ChunkedCSRHeader(MemoryManager& memoryManager, bool enableCompression, uint64_t capacity,
+        ResidencyState residencyState);
     ChunkedCSRHeader(std::unique_ptr<ColumnChunk> offset, std::unique_ptr<ColumnChunk> length)
         : offset{std::move(offset)}, length{std::move(length)} {}
 
@@ -94,11 +96,13 @@ private:
 struct CSRNodeGroupCheckpointState;
 class ChunkedCSRNodeGroup final : public ChunkedNodeGroup {
 public:
-    ChunkedCSRNodeGroup(const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
-        uint64_t capacity, common::offset_t startOffset, ResidencyState residencyState)
-        : ChunkedNodeGroup{columnTypes, enableCompression, capacity, startOffset, residencyState,
-              NodeGroupDataFormat::CSR},
-          csrHeader{enableCompression, common::StorageConstants::NODE_GROUP_SIZE, residencyState} {}
+    ChunkedCSRNodeGroup(MemoryManager& mm, const std::vector<common::LogicalType>& columnTypes,
+        bool enableCompression, uint64_t capacity, common::offset_t startOffset,
+        ResidencyState residencyState)
+        : ChunkedNodeGroup{mm, columnTypes, enableCompression, capacity, startOffset,
+              residencyState, NodeGroupDataFormat::CSR},
+          csrHeader{mm, enableCompression, common::StorageConstants::NODE_GROUP_SIZE,
+              residencyState} {}
     ChunkedCSRNodeGroup(ChunkedCSRNodeGroup& base,
         const std::vector<common::column_id_t>& selectedColumns)
         : ChunkedNodeGroup{base, selectedColumns}, csrHeader{std::move(base.csrHeader)} {}
@@ -111,7 +115,8 @@ public:
     const ChunkedCSRHeader& getCSRHeader() const { return csrHeader; }
 
     void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<ChunkedCSRNodeGroup> deserialize(common::Deserializer& deSer);
+    static std::unique_ptr<ChunkedCSRNodeGroup> deserialize(MemoryManager& memoryManager,
+        common::Deserializer& deSer);
 
     void writeToColumnChunk(common::idx_t chunkIdx, common::idx_t vectorIdx,
         const std::vector<std::unique_ptr<ColumnChunk>>& data, ColumnChunk& offsetChunk) override {
@@ -119,7 +124,7 @@ public:
             common::RelMultiplicity::MANY);
     }
 
-    void scanCSRHeader(CSRNodeGroupCheckpointState& csrState) const;
+    void scanCSRHeader(MemoryManager& memoryManager, CSRNodeGroupCheckpointState& csrState) const;
 
     std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
         transaction::Transaction* transaction, FileHandle& dataFH) const override;

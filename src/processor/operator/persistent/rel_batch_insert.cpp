@@ -4,6 +4,7 @@
 #include "common/exception/message.h"
 #include "common/string_format.h"
 #include "processor/result/factorized_table_util.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/rel_table.h"
@@ -24,8 +25,9 @@ std::string RelBatchInsertPrintInfo::toString() const {
 void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* context) {
     localState = std::make_unique<RelBatchInsertLocalState>();
     const auto relInfo = info->ptrCast<RelBatchInsertInfo>();
-    localState->chunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(relInfo->columnTypes,
-        relInfo->compressionEnabled, 0, 0, ResidencyState::IN_MEMORY);
+    localState->chunkedGroup =
+        std::make_unique<ChunkedCSRNodeGroup>(*context->clientContext->getMemoryManager(),
+            relInfo->columnTypes, relInfo->compressionEnabled, 0, 0, ResidencyState::IN_MEMORY);
     const auto nbrTableID =
         relInfo->tableEntry->constCast<RelTableCatalogEntry>().getNbrTableID(relInfo->direction);
     const auto relTableID = relInfo->tableEntry->getTableID();

@@ -8,6 +8,7 @@
 
 namespace kuzu {
 namespace storage {
+class MemoryManager;
 
 class StringChunkData final : public ColumnChunkData {
 public:
@@ -16,9 +17,9 @@ public:
     static constexpr common::idx_t INDEX_COLUMN_CHILD_READ_STATE_IDX = 2;
     static constexpr common::idx_t CHILD_COLUMN_COUNT = 3;
 
-    StringChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
-        ResidencyState residencyState);
-    StringChunkData(bool enableCompression, const ColumnChunkMetadata& metadata);
+    StringChunkData(MemoryManager& mm, common::LogicalType dataType, uint64_t capacity,
+        bool enableCompression, ResidencyState residencyState);
+    StringChunkData(MemoryManager& mm, bool enableCompression, const ColumnChunkMetadata& metadata);
 
     void resetToEmpty() override;
 

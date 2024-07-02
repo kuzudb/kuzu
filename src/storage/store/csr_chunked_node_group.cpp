@@ -1,6 +1,7 @@
 #include "storage/store/csr_chunked_node_group.h"
 
 #include "common/serializer/deserializer.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column.h"
 #include "storage/store/csr_node_group.h"
@@ -55,12 +56,12 @@ CSRRegion CSRRegion::upgradeLevel(const std::vector<CSRRegion>& leafRegions,
     return newRegion;
 }
 
-ChunkedCSRHeader::ChunkedCSRHeader(bool enableCompression, uint64_t capacity,
-    ResidencyState residencyState) {
-    offset = std::make_unique<ColumnChunk>(LogicalType::UINT64(), capacity, enableCompression,
-        residencyState);
-    length = std::make_unique<ColumnChunk>(LogicalType::UINT64(), capacity, enableCompression,
-        residencyState);
+ChunkedCSRHeader::ChunkedCSRHeader(MemoryManager& memoryManager, bool enableCompression,
+    uint64_t capacity, ResidencyState residencyState) {
+    offset = std::make_unique<ColumnChunk>(memoryManager, LogicalType::UINT64(), capacity,
+        enableCompression, residencyState);
+    length = std::make_unique<ColumnChunk>(memoryManager, LogicalType::UINT64(), capacity,
+        enableCompression, residencyState);
 }
 
 offset_t ChunkedCSRHeader::getStartCSROffset(offset_t nodeOffset) const {
@@ -254,10 +255,12 @@ void ChunkedCSRNodeGroup::flush(FileHandle& dataFH) {
     }
 }
 
-void ChunkedCSRNodeGroup::scanCSRHeader(CSRNodeGroupCheckpointState& csrState) const {
+void ChunkedCSRNodeGroup::scanCSRHeader(MemoryManager& memoryManager,
+    CSRNodeGroupCheckpointState& csrState) const {
     if (!csrState.oldHeader) {
-        csrState.oldHeader = std::make_unique<ChunkedCSRHeader>(false /*enableCompression*/,
-            StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
+        csrState.oldHeader =
+            std::make_unique<ChunkedCSRHeader>(memoryManager, false /*enableCompression*/,
+                StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
     }
     ChunkState headerChunkState;
     KU_ASSERT(csrHeader.offset->getResidencyState() == ResidencyState::ON_DISK);
@@ -280,16 +283,18 @@ void ChunkedCSRNodeGroup::serialize(Serializer& serializer) const {
     ChunkedNodeGroup::serialize(serializer);
 }
 
-std::unique_ptr<ChunkedCSRNodeGroup> ChunkedCSRNodeGroup::deserialize(Deserializer& deSer) {
+std::unique_ptr<ChunkedCSRNodeGroup> ChunkedCSRNodeGroup::deserialize(MemoryManager& memoryManager,
+    Deserializer& deSer) {
     std::string key;
     deSer.validateDebuggingInfo(key, "csr_header_offset");
-    auto offset = ColumnChunk::deserialize(deSer);
+    auto offset = ColumnChunk::deserialize(memoryManager, deSer);
     deSer.validateDebuggingInfo(key, "csr_header_length");
-    auto length = ColumnChunk::deserialize(deSer);
+    auto length = ColumnChunk::deserialize(memoryManager, deSer);
     // TODO(Guodong): Rework to reuse ChunkedNodeGroup::deserialize().
     std::vector<std::unique_ptr<ColumnChunk>> chunks;
     deSer.validateDebuggingInfo(key, "chunks");
-    deSer.deserializeVectorOfPtrs<ColumnChunk>(chunks);
+    deSer.deserializeVectorOfPtrs<ColumnChunk>(chunks,
+        [&](Deserializer& deser) { return ColumnChunk::deserialize(memoryManager, deser); });
     auto chunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(
         ChunkedCSRHeader{std::move(offset), std::move(length)}, std::move(chunks),
         0 /*startRowIdx*/);

@@ -22,15 +22,16 @@ ColumnChunkMetadata uncompressedGetMetadataInternal(uint64_t bufferSize, uint64_
 }
 } // namespace
 
-ColumnChunkMetadata uncompressedGetMetadata(const uint8_t* /*buffer*/, uint64_t bufferSize,
-    uint64_t /*capacity*/, uint64_t numValues, StorageValue min, StorageValue max) {
-    return uncompressedGetMetadataInternal(bufferSize, numValues, min, max);
+ColumnChunkMetadata uncompressedGetMetadata(std::span<const uint8_t> buffer, uint64_t /*capacity*/,
+    uint64_t numValues, StorageValue min, StorageValue max) {
+    return uncompressedGetMetadataInternal(buffer.size(), numValues, min, max);
 }
 
-ColumnChunkMetadata booleanGetMetadata(const uint8_t* /*buffer*/, uint64_t bufferSize,
-    uint64_t /*capacity*/, uint64_t numValues, StorageValue min, StorageValue max) {
-    return ColumnChunkMetadata(INVALID_PAGE_IDX, ColumnChunkData::getNumPagesForBytes(bufferSize),
-        numValues, CompressionMetadata(min, max, CompressionType::BOOLEAN_BITPACKING));
+ColumnChunkMetadata booleanGetMetadata(std::span<const uint8_t> buffer, uint64_t /*capacity*/,
+    uint64_t numValues, StorageValue min, StorageValue max) {
+    return ColumnChunkMetadata(INVALID_PAGE_IDX,
+        ColumnChunkData::getNumPagesForBytes(buffer.size()), numValues,
+        CompressionMetadata(min, max, CompressionType::BOOLEAN_BITPACKING));
 }
 
 void ColumnChunkMetadata::serialize(common::Serializer& serializer) const {
@@ -50,9 +51,8 @@ ColumnChunkMetadata ColumnChunkMetadata::deserialize(common::Deserializer& deser
     return ret;
 }
 
-ColumnChunkMetadata GetBitpackingMetadata::operator()(const uint8_t* /*buffer*/,
-    uint64_t /*bufferSize*/, uint64_t capacity, uint64_t numValues, StorageValue min,
-    StorageValue max) {
+ColumnChunkMetadata GetBitpackingMetadata::operator()(std::span<const uint8_t> /*buffer*/,
+    uint64_t capacity, uint64_t numValues, StorageValue min, StorageValue max) {
     // For supported types, min and max may be null if all values are null
     // Compression is supported in this case
     // Unsupported types always return a dummy value (where min != max)
@@ -91,17 +91,17 @@ ColumnChunkMetadata getConstantFloatMetadata(PhysicalTypeID physicalType, uint64
 }
 
 template<std::floating_point T>
-alp::state getAlpMetadata(const uint8_t* buffer, uint64_t numValues) {
+alp::state getAlpMetadata(const T* buffer, uint64_t numValues) {
     alp::state alpMetadata;
     std::vector<uint8_t> sampleBuffer(alp::config::SAMPLES_PER_ROWGROUP);
-    alp::AlpEncode<T>::init(reinterpret_cast<const T*>(buffer), 0, numValues,
-        reinterpret_cast<T*>(sampleBuffer.data()), alpMetadata);
+    alp::AlpEncode<T>::init(buffer, 0, numValues, reinterpret_cast<T*>(sampleBuffer.data()),
+        alpMetadata);
 
     if (alpMetadata.scheme == alp::SCHEME::ALP) {
         if (alpMetadata.k_combinations > 1) {
             alp::AlpEncode<T>::find_best_exponent_factor_from_combinations(
-                alpMetadata.best_k_combinations, alpMetadata.k_combinations,
-                reinterpret_cast<const T*>(buffer), numValues, alpMetadata.fac, alpMetadata.exp);
+                alpMetadata.best_k_combinations, alpMetadata.k_combinations, buffer, numValues,
+                alpMetadata.fac, alpMetadata.exp);
         } else {
             KU_ASSERT(alpMetadata.best_k_combinations.size() == 1);
             alpMetadata.exp = alpMetadata.best_k_combinations[0].first;
@@ -154,9 +154,8 @@ CompressionMetadata createFloatMetadata(CompressionType compressionType,
 } // namespace
 
 template<std::floating_point T>
-ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(const uint8_t* buffer,
-    uint64_t bufferSize, uint64_t capacity, uint64_t numValues, StorageValue min,
-    StorageValue max) {
+ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(std::span<const uint8_t> buffer,
+    uint64_t capacity, uint64_t numValues, StorageValue min, StorageValue max) {
     const PhysicalTypeID physicalType =
         std::same_as<T, double> ? PhysicalTypeID::DOUBLE : PhysicalTypeID::FLOAT;
 
@@ -165,22 +164,22 @@ ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(const uint8_t* bu
     }
 
     if (numValues == 0) {
-        return uncompressedGetMetadataInternal(bufferSize, numValues, min, max);
+        return uncompressedGetMetadataInternal(buffer.size(), numValues, min, max);
     }
 
-    alp::state alpMetadata = getAlpMetadata<T>(buffer, numValues);
+    std::span<const T> castedBuffer{reinterpret_cast<const T*>(buffer.data()), numValues};
+    alp::state alpMetadata = getAlpMetadata<T>(castedBuffer.data(), numValues);
     if (alpMetadata.scheme != alp::SCHEME::ALP) {
-        return uncompressedGetMetadataInternal(bufferSize, numValues, min, max);
+        return uncompressedGetMetadataInternal(buffer.size(), numValues, min, max);
     }
 
-    std::span<const T> castedBuffer{reinterpret_cast<const T*>(buffer), numValues};
     const auto compMeta = createFloatMetadata(alg->getCompressionType(), physicalType, castedBuffer,
         alpMetadata, min, max);
     const auto* floatMetadata = compMeta.floatMetadata();
     const auto exceptionCount = floatMetadata->exceptionCount;
 
     if (exceptionCount * FloatCompression<T>::MAX_EXCEPTION_FACTOR >= numValues) {
-        return uncompressedGetMetadataInternal(bufferSize, numValues, min, max);
+        return uncompressedGetMetadataInternal(buffer.size(), numValues, min, max);
     }
 
     const auto numValuesPerPage = compMeta.numValues(PAGE_SIZE, dataType);

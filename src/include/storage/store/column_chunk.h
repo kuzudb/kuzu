@@ -5,6 +5,7 @@
 
 namespace kuzu {
 namespace storage {
+class MemoryManager;
 
 struct ChunkCheckpointState {
     std::unique_ptr<ColumnChunkData> chunkData;
@@ -36,10 +37,10 @@ struct ColumnCheckpointState {
 
 class ColumnChunk {
 public:
-    ColumnChunk(const common::LogicalType& dataType, uint64_t capacity, bool enableCompression,
-        ResidencyState residencyState);
-    ColumnChunk(const common::LogicalType& dataType, bool enableCompression,
-        ColumnChunkMetadata metadata);
+    ColumnChunk(MemoryManager& memoryManager, const common::LogicalType& dataType,
+        uint64_t capacity, bool enableCompression, ResidencyState residencyState);
+    ColumnChunk(MemoryManager& memoryManager, const common::LogicalType& dataType,
+        bool enableCompression, ColumnChunkMetadata metadata);
     ColumnChunk(bool enableCompression, std::unique_ptr<ColumnChunkData> data);
 
     void initializeScanState(ChunkState& state, Column* column) const;
@@ -60,7 +61,8 @@ public:
         return getResidencyState() == ResidencyState::ON_DISK ? 0 : data->getEstimatedMemoryUsage();
     }
     void serialize(common::Serializer& serializer) const;
-    static std::unique_ptr<ColumnChunk> deserialize(common::Deserializer& deSer);
+    static std::unique_ptr<ColumnChunk> deserialize(MemoryManager& memoryManager,
+        common::Deserializer& deSer);
 
     uint64_t getNumValues() const { return data->getNumValues(); }
     void setNumValues(const uint64_t numValues) const { data->setNumValues(numValues); }

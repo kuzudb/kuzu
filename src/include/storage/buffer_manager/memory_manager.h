@@ -20,35 +20,54 @@ class VirtualFileSystem;
 
 namespace storage {
 
-class MemoryAllocator;
+class MemoryManager;
 class FileHandle;
 class BufferManager;
 
 class KUZU_API MemoryBuffer {
 public:
-    MemoryBuffer(MemoryAllocator* allocator, common::page_idx_t blockIdx, uint8_t* buffer,
+    MemoryBuffer(MemoryManager* mm, common::page_idx_t blockIdx, uint8_t* buffer,
         uint64_t size = common::TEMP_PAGE_SIZE);
     ~MemoryBuffer();
+    DELETE_COPY_AND_MOVE(MemoryBuffer);
 
     uint8_t* getData() const { return buffer.data(); }
 
 public:
     std::span<uint8_t> buffer;
     common::page_idx_t pageIdx;
-    MemoryAllocator* allocator;
+    MemoryManager* mm;
 };
 
-class KUZU_API MemoryAllocator {
+/*
+ * The Memory Manager (MM) is used for allocating/reclaiming intermediate memory blocks.
+ * It can allocate a memory buffer of size PAGE_256KB from the buffer manager backed by a
+ * BMFileHandle with temp in-mem file.
+ *
+ * The MemoryManager holds a BMFileHandle backed by
+ * a temp in-mem file, and is responsible for allocating/reclaiming memory buffers of its size class
+ * from the buffer manager. The MemoryManager keeps track of free pages in the BMFileHandle, so
+ * that it can reuse those freed pages without allocating new pages. The MemoryManager is
+ * thread-safe, so that multiple threads can allocate/reclaim memory blocks with the same size class
+ * at the same time.
+ *
+ * MM will return a MemoryBuffer to the caller, which is a wrapper of the allocated memory block,
+ * and it will automatically call its allocator to reclaim the memory block when it is destroyed.
+ */
+class KUZU_API MemoryManager {
     friend class MemoryBuffer;
 
 public:
-    MemoryAllocator(BufferManager* bm, common::VirtualFileSystem* vfs,
-        main::ClientContext* context);
+    MemoryManager(BufferManager* bm, common::VirtualFileSystem* vfs, main::ClientContext* context);
 
-    ~MemoryAllocator();
+    ~MemoryManager();
 
-    std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero, uint64_t size);
+    std::unique_ptr<MemoryBuffer> mallocBuffer(bool initializeToZero, uint64_t size);
+    std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero = false,
+        uint64_t size = common::TEMP_PAGE_SIZE);
     common::page_offset_t getPageSize() const { return pageSize; }
+
+    BufferManager* getBufferManager() const { return bm; }
 
 private:
     void freeBlock(common::page_idx_t pageIdx, std::span<uint8_t> buffer);
@@ -61,39 +80,5 @@ private:
     std::mutex allocatorLock;
 };
 
-/*
- * The Memory Manager (MM) is used for allocating/reclaiming intermediate memory blocks.
- * It can allocate a memory buffer of size TEMP_PAGE from the buffer manager backed by a
- * FileHandle with temp in-mem file.
- *
- * Internally, MM uses a MemoryAllocator. The MemoryAllocator is holding the FileHandle backed by
- * a temp in-mem file, and responsible for allocating/reclaiming memory buffers of its size class
- * from the buffer manager. The MemoryAllocator keeps track of free pages in the FileHandle, so
- * that it can reuse those freed pages without allocating new pages. The MemoryAllocator is
- * thread-safe, so that multiple threads can allocate/reclaim memory blocks with the same size class
- * at the same time.
- *
- * MM will return a MemoryBuffer to the caller, which is a wrapper of the allocated memory block,
- * and it will automatically call its allocator to reclaim the memory block when it is destroyed.
- */
-class KUZU_API MemoryManager {
-public:
-    explicit MemoryManager(BufferManager* bm, common::VirtualFileSystem* vfs,
-        main::ClientContext* context)
-        : bm{bm} {
-        allocator = std::make_unique<MemoryAllocator>(bm, vfs, context);
-    }
-
-    std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero = false,
-        uint64_t size = common::TEMP_PAGE_SIZE) {
-        return allocator->allocateBuffer(initializeToZero, size);
-    }
-
-    BufferManager* getBufferManager() const { return bm; }
-
-private:
-    BufferManager* bm;
-    std::unique_ptr<MemoryAllocator> allocator;
-};
 } // namespace storage
 } // namespace kuzu

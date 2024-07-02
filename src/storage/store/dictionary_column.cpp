@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_structure/disk_array_collection.h"
 #include "storage/store/string_column.h"
 #include <bit>
@@ -15,14 +16,14 @@ namespace storage {
 using string_index_t = DictionaryChunk::string_index_t;
 using string_offset_t = DictionaryChunk::string_offset_t;
 
-DictionaryColumn::DictionaryColumn(const std::string& name, FileHandle* dataFH,
-    BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression) {
+DictionaryColumn::DictionaryColumn(const std::string& name, FileHandle* dataFH, MemoryManager* mm,
+    ShadowFile* shadowFile, bool enableCompression) {
     auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
-    dataColumn = std::make_unique<Column>(dataColName, LogicalType::UINT8(), dataFH, bufferManager,
-        shadowFile, false /*enableCompression*/, false /*requireNullColumn*/);
+    dataColumn = std::make_unique<Column>(dataColName, LogicalType::UINT8(), dataFH, mm, shadowFile,
+        false /*enableCompression*/, false /*requireNullColumn*/);
     auto offsetColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "");
-    offsetColumn = std::make_unique<Column>(offsetColName, LogicalType::UINT64(), dataFH,
-        bufferManager, shadowFile, enableCompression, false /*requireNullColumn*/);
+    offsetColumn = std::make_unique<Column>(offsetColName, LogicalType::UINT64(), dataFH, mm,
+        shadowFile, enableCompression, false /*requireNullColumn*/);
 }
 
 void DictionaryColumn::scan(Transaction* transaction, const ChunkState& state,

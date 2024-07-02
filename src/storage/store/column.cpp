@@ -6,7 +6,7 @@
 #include "common/assert.h"
 #include "common/null_mask.h"
 #include "common/types/types.h"
-#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
 #include "storage/compression/float_compression.h"
 #include "storage/file_handle.h"
@@ -85,10 +85,10 @@ static write_values_func_t getWriteValuesFunc(const LogicalType& logicalType) {
     }
 }
 
-InternalIDColumn::InternalIDColumn(std::string name, FileHandle* dataFH,
-    BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression)
-    : Column{std::move(name), LogicalType::INTERNAL_ID(), dataFH, bufferManager, shadowFile,
-          enableCompression, false /*requireNullColumn*/},
+InternalIDColumn::InternalIDColumn(std::string name, FileHandle* dataFH, MemoryManager* mm,
+    ShadowFile* shadowFile, bool enableCompression)
+    : Column{std::move(name), LogicalType::INTERNAL_ID(), dataFH, mm, shadowFile, enableCompression,
+          false /*requireNullColumn*/},
       commonTableID{INVALID_TABLE_ID} {}
 
 void InternalIDColumn::populateCommonTableID(const ValueVector* resultVector) const {
@@ -100,31 +100,28 @@ void InternalIDColumn::populateCommonTableID(const ValueVector* resultVector) co
     }
 }
 
-Column::Column(std::string name, LogicalType dataType, FileHandle* dataFH,
-    BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression,
-    bool requireNullColumn)
+Column::Column(std::string name, LogicalType dataType, FileHandle* dataFH, MemoryManager* mm,
+    ShadowFile* shadowFile, bool enableCompression, bool requireNullColumn)
     : name{std::move(name)}, dbFileID{DBFileID::newDataFileID()}, dataType{std::move(dataType)},
-      dataFH{dataFH}, bufferManager{bufferManager}, shadowFile{shadowFile},
-      enableCompression{enableCompression},
+      dataFH{dataFH}, mm{mm}, shadowFile{shadowFile}, enableCompression{enableCompression},
       columnReadWriter(
           ColumnReadWriterFactory::createColumnReadWriter(this->dataType.getPhysicalType(),
-              dbFileID, this->dataFH, this->bufferManager, this->shadowFile)) {
+              dbFileID, this->dataFH, this->mm->getBufferManager(), this->shadowFile)) {
     readToVectorFunc = getReadValuesToVectorFunc(this->dataType);
     readToPageFunc = ReadCompressedValuesFromPage(this->dataType);
     writeFunc = getWriteValuesFunc(this->dataType);
     if (requireNullColumn) {
         auto columnName =
             StorageUtils::getColumnName(this->name, StorageUtils::ColumnType::NULL_MASK, "");
-        nullColumn = std::make_unique<NullColumn>(columnName, dataFH, bufferManager, shadowFile,
-            enableCompression);
+        nullColumn =
+            std::make_unique<NullColumn>(columnName, dataFH, mm, shadowFile, enableCompression);
     }
 }
 
-Column::Column(std::string name, PhysicalTypeID physicalType, FileHandle* dataFH,
-    BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression,
-    bool requireNullColumn)
-    : Column(name, LogicalType::ANY(physicalType), dataFH, bufferManager, shadowFile,
-          enableCompression, requireNullColumn) {}
+Column::Column(std::string name, PhysicalTypeID physicalType, FileHandle* dataFH, MemoryManager* mm,
+    ShadowFile* shadowFile, bool enableCompression, bool requireNullColumn)
+    : Column(name, LogicalType::ANY(physicalType), dataFH, mm, shadowFile, enableCompression,
+          requireNullColumn) {}
 
 Column::~Column() = default;
 
@@ -137,10 +134,10 @@ void Column::populateExtraChunkState(ChunkState& state) {
         Transaction& transaction = DUMMY_CHECKPOINT_TRANSACTION;
         if (dataType.getPhysicalType() == common::PhysicalTypeID::DOUBLE) {
             state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<double>>(&transaction,
-                state, dataFH, bufferManager, shadowFile);
+                state, dataFH, mm, shadowFile);
         } else if (dataType.getPhysicalType() == common::PhysicalTypeID::FLOAT) {
             state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<float>>(&transaction,
-                state, dataFH, bufferManager, shadowFile);
+                state, dataFH, mm, shadowFile);
         }
     }
 }
@@ -167,12 +164,13 @@ std::unique_ptr<ColumnChunkData> Column::flushChunkData(const ColumnChunkData& c
 std::unique_ptr<ColumnChunkData> Column::flushNonNestedChunkData(const ColumnChunkData& chunkData,
     FileHandle& dataFH) {
     auto chunkMeta = flushData(chunkData, dataFH);
-    auto flushedChunk = ColumnChunkFactory::createColumnChunkData(chunkData.getDataType().copy(),
-        chunkData.isCompressionEnabled(), chunkMeta, chunkData.hasNullData());
+    auto flushedChunk = ColumnChunkFactory::createColumnChunkData(chunkData.getMemoryManager(),
+        chunkData.getDataType().copy(), chunkData.isCompressionEnabled(), chunkMeta,
+        chunkData.hasNullData());
     if (chunkData.hasNullData()) {
         auto nullChunkMeta = flushData(chunkData.getNullData(), dataFH);
-        auto nullData =
-            std::make_unique<NullChunkData>(chunkData.isCompressionEnabled(), nullChunkMeta);
+        auto nullData = std::make_unique<NullChunkData>(chunkData.getMemoryManager(),
+            chunkData.isCompressionEnabled(), nullChunkMeta);
         flushedChunk->setNullData(std::move(nullData));
     }
     return flushedChunk;
@@ -464,15 +462,14 @@ void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
 }
 
 std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, PhysicalTypeID physicalType,
-    FileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile,
+    FileHandle* dataFH, MemoryManager* memoryManager, ShadowFile* shadowFile,
     bool enableCompression) {
-    return std::make_unique<Column>(name, LogicalType::ANY(physicalType), dataFH, bufferManager,
+    return std::make_unique<Column>(name, LogicalType::ANY(physicalType), dataFH, memoryManager,
         shadowFile, enableCompression);
 }
 
 std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalType dataType,
-    FileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile,
-    bool enableCompression) {
+    FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression) {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL:
     case PhysicalTypeID::INT64:
@@ -487,25 +484,24 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalTyp
     case PhysicalTypeID::DOUBLE:
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::INTERVAL: {
-        return std::make_unique<Column>(name, std::move(dataType), dataFH, bufferManager,
-            shadowFile, enableCompression);
-    }
-    case PhysicalTypeID::INTERNAL_ID: {
-        return std::make_unique<InternalIDColumn>(name, dataFH, bufferManager, shadowFile,
+        return std::make_unique<Column>(name, std::move(dataType), dataFH, mm, shadowFile,
             enableCompression);
     }
+    case PhysicalTypeID::INTERNAL_ID: {
+        return std::make_unique<InternalIDColumn>(name, dataFH, mm, shadowFile, enableCompression);
+    }
     case PhysicalTypeID::STRING: {
-        return std::make_unique<StringColumn>(name, std::move(dataType), dataFH, bufferManager,
-            shadowFile, enableCompression);
+        return std::make_unique<StringColumn>(name, std::move(dataType), dataFH, mm, shadowFile,
+            enableCompression);
     }
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
-        return std::make_unique<ListColumn>(name, std::move(dataType), dataFH, bufferManager,
-            shadowFile, enableCompression);
+        return std::make_unique<ListColumn>(name, std::move(dataType), dataFH, mm, shadowFile,
+            enableCompression);
     }
     case PhysicalTypeID::STRUCT: {
-        return std::make_unique<StructColumn>(name, std::move(dataType), dataFH, bufferManager,
-            shadowFile, enableCompression);
+        return std::make_unique<StructColumn>(name, std::move(dataType), dataFH, mm, shadowFile,
+            enableCompression);
     }
     default: {
         KU_UNREACHABLE;

@@ -6,6 +6,7 @@
 #include "common/vector/value_vector.h"
 #include "graph/graph.h"
 #include "main/client_context.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_manager.h"
 #include "storage/store/rel_table.h"
 
@@ -17,23 +18,25 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace graph {
 
-static std::unique_ptr<RelTableScanState> getRelScanState(RelDataDirection direction,
-    ValueVector* srcVector, ValueVector* dstVector) {
+static std::unique_ptr<RelTableScanState> getRelScanState(MemoryManager& memoryManager,
+    RelDataDirection direction, ValueVector* srcVector, ValueVector* dstVector) {
     // Empty columnIDs since we do not scan any rel property.
     auto columnIDs = std::vector<column_id_t>{};
     auto columns = std::vector<Column*>{};
     // TODO(Guodong): FIX-ME.
-    auto scanState =
-        std::make_unique<RelTableScanState>(columnIDs, columns, nullptr, nullptr, direction);
+    auto scanState = std::make_unique<RelTableScanState>(memoryManager, columnIDs, columns, nullptr,
+        nullptr, direction);
     scanState->boundNodeIDVector = srcVector;
     scanState->outputVectors.push_back(dstVector);
     return scanState;
 }
 
-OnDiskGraphScanState::OnDiskGraphScanState(ValueVector* srcNodeIDVector,
-    ValueVector* dstNodeIDVector) {
-    fwdScanState = getRelScanState(RelDataDirection::FWD, srcNodeIDVector, dstNodeIDVector);
-    bwdScanState = getRelScanState(RelDataDirection::BWD, srcNodeIDVector, dstNodeIDVector);
+OnDiskGraphScanState::OnDiskGraphScanState(MemoryManager& memoryManager,
+    ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVector) {
+    fwdScanState =
+        getRelScanState(memoryManager, RelDataDirection::FWD, srcNodeIDVector, dstNodeIDVector);
+    bwdScanState =
+        getRelScanState(memoryManager, RelDataDirection::BWD, srcNodeIDVector, dstNodeIDVector);
 }
 
 OnDiskGraphScanStates::OnDiskGraphScanStates(std::span<table_id_t> tableIDs, MemoryManager* mm) {
@@ -47,7 +50,7 @@ OnDiskGraphScanStates::OnDiskGraphScanStates(std::span<table_id_t> tableIDs, Mem
 
     for (auto tableID : tableIDs) {
         scanStates.emplace_back(std::make_pair(tableID,
-            OnDiskGraphScanState(srcNodeIDVector.get(), dstNodeIDVector.get())));
+            OnDiskGraphScanState(*mm, srcNodeIDVector.get(), dstNodeIDVector.get())));
     }
 }
 

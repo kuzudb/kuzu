@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "common/utils.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/float_compression.h"
 #include "storage/storage_utils.h"
 #include "transaction/transaction.h"
@@ -18,12 +19,12 @@ using ExceptionInBuffer = std::array<std::byte, EncodeException<T>::sizeInBytes(
 
 template<std::floating_point T>
 InMemoryExceptionChunk<T>::InMemoryExceptionChunk(Transaction* transaction, const ChunkState& state,
-    FileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile)
+    FileHandle* dataFH, MemoryManager* memoryManager, ShadowFile* shadowFile)
     : exceptionCount(state.metadata.compMeta.floatMetadata()->exceptionCount),
       finalizedExceptionCount(exceptionCount),
       exceptionCapacity(state.metadata.compMeta.floatMetadata()->exceptionCapacity),
       emptyMask(exceptionCapacity), column(ColumnFactory::createColumn("ALPExceptionChunk",
-                                        physicalType, dataFH, bufferManager, shadowFile, false)) {
+                                        physicalType, dataFH, memoryManager, shadowFile, false)) {
     const auto exceptionBaseCursor =
         getExceptionPageCursor(state.metadata, PageCursor{state.metadata.pageIdx, 0},
             state.metadata.compMeta.floatMetadata()->exceptionCapacity);
@@ -37,7 +38,8 @@ InMemoryExceptionChunk<T>::InMemoryExceptionChunk(Transaction* transaction, cons
     chunkState = std::make_unique<ChunkState>(exceptionChunkMeta,
         EncodeException<T>::exceptionBytesPerPage() / EncodeException<T>::sizeInBytes());
 
-    chunkData = std::make_unique<ColumnChunkData>(physicalType, false, exceptionChunkMeta, true);
+    chunkData = std::make_unique<ColumnChunkData>(*memoryManager, physicalType, false,
+        exceptionChunkMeta, true);
     chunkData->setToInMemory();
     column->scan(transaction, *chunkState, chunkData.get());
 }

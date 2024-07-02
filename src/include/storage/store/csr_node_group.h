@@ -7,7 +7,11 @@
 #include "storage/store/node_group.h"
 
 namespace kuzu {
+namespace transaction {
+class Transaction;
+}
 namespace storage {
+class MemoryManager;
 
 using row_idx_vec_t = std::vector<common::row_idx_t>;
 
@@ -118,9 +122,9 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     // States at the csr list level. Cached during scan over a single csr list.
     CSRNodeGroupScanSource source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
 
-    explicit CSRNodeGroupScanState(common::idx_t numChunks)
+    CSRNodeGroupScanState(MemoryManager& memoryManager, common::idx_t numChunks)
         : NodeGroupScanState{numChunks},
-          csrHeader{std::make_unique<ChunkedCSRHeader>(false,
+          csrHeader{std::make_unique<ChunkedCSRHeader>(memoryManager, false,
               common::StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY)} {}
 
     void resetState() override {
@@ -192,7 +196,7 @@ public:
     void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
         FileHandle* dataFH) override;
 
-    void checkpoint(NodeGroupCheckpointState& state) override;
+    void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) override;
 
     bool isEmpty() const override { return !persistentChunkGroup && NodeGroup::isEmpty(); }
 

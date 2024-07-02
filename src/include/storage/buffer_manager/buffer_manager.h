@@ -167,8 +167,8 @@ private:
  */
 
 class BufferManager {
-    friend class MemoryAllocator;
     friend class FileHandle;
+    friend class MemoryManager;
 
 public:
     BufferManager(uint64_t bufferPoolSize, uint64_t maxDBSize);

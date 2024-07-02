@@ -17,7 +17,7 @@ public:
 
     CompressedFlushBuffer(const CompressedFlushBuffer& other) = default;
 
-    ColumnChunkMetadata operator()(const uint8_t* buffer, uint64_t bufferSize, FileHandle* dataFH,
+    ColumnChunkMetadata operator()(std::span<const uint8_t> buffer, FileHandle* dataFH,
         common::page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) const;
 };
 
@@ -34,11 +34,11 @@ public:
 
     CompressedFloatFlushBuffer(const CompressedFloatFlushBuffer& other) = default;
 
-    ColumnChunkMetadata operator()(const uint8_t* buffer, uint64_t bufferSize, FileHandle* dataFH,
+    ColumnChunkMetadata operator()(std::span<const uint8_t> buffer, FileHandle* dataFH,
         common::page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) const;
 };
 
-ColumnChunkMetadata uncompressedFlushBuffer(const uint8_t* buffer, uint64_t bufferSize,
-    FileHandle* dataFH, common::page_idx_t startPageIdx, const ColumnChunkMetadata& metadata);
+ColumnChunkMetadata uncompressedFlushBuffer(std::span<const uint8_t> buffer, FileHandle* dataFH,
+    common::page_idx_t startPageIdx, const ColumnChunkMetadata& metadata);
 
 } // namespace kuzu::storage

@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "common/types/types.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/index/hash_index.h"
 #include "storage/store/node_group_collection.h"
 #include "storage/store/table.h"

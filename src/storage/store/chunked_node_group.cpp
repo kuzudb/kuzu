@@ -3,7 +3,10 @@
 #include "common/assert.h"
 #include "common/constants.h"
 #include "common/types/types.h"
+#include "main/client_context.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/column.h"
+#include "storage/store/column_chunk.h"
 #include "storage/store/node_table.h"
 
 using namespace kuzu::common;
@@ -36,15 +39,15 @@ ChunkedNodeGroup::ChunkedNodeGroup(ChunkedNodeGroup& base,
     }
 }
 
-ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<LogicalType>& columnTypes,
-    bool enableCompression, uint64_t capacity, row_idx_t startRowIdx, ResidencyState residencyState,
-    NodeGroupDataFormat format)
+ChunkedNodeGroup::ChunkedNodeGroup(MemoryManager& memoryManager,
+    const std::vector<LogicalType>& columnTypes, bool enableCompression, uint64_t capacity,
+    row_idx_t startRowIdx, ResidencyState residencyState, NodeGroupDataFormat format)
     : format{format}, residencyState{residencyState}, startRowIdx{startRowIdx}, capacity{capacity},
       numRows{0} {
     chunks.reserve(columnTypes.size());
     for (auto& type : columnTypes) {
-        chunks.push_back(std::make_unique<ColumnChunk>(type.copy(), capacity, enableCompression,
-            residencyState));
+        chunks.push_back(std::make_unique<ColumnChunk>(memoryManager, type.copy(), capacity,
+            enableCompression, residencyState));
     }
 }
 
@@ -301,12 +304,13 @@ bool ChunkedNodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxI
     return versionInfo->delete_(transaction, this, rowIdxInChunk);
 }
 
-void ChunkedNodeGroup::addColumn(Transaction*, const TableAddColumnState& addColumnState,
-    bool enableCompression, FileHandle* dataFH) {
+void ChunkedNodeGroup::addColumn(Transaction* transaction,
+    const TableAddColumnState& addColumnState, bool enableCompression, FileHandle* dataFH) {
     auto numRows = getNumRows();
     auto& dataType = addColumnState.propertyDefinition.getType();
-    chunks.push_back(std::make_unique<ColumnChunk>(dataType, capacity, enableCompression,
-        ResidencyState::IN_MEMORY));
+    chunks.push_back(
+        std::make_unique<ColumnChunk>(*transaction->getClientContext()->getMemoryManager(),
+            dataType, capacity, enableCompression, ResidencyState::IN_MEMORY));
     auto& chunkData = chunks.back()->getData();
     chunkData.populateWithDefaultVal(addColumnState.defaultEvaluator, numRows);
     if (residencyState == ResidencyState::ON_DISK) {
@@ -431,12 +435,14 @@ void ChunkedNodeGroup::serialize(Serializer& serializer) const {
     }
 }
 
-std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::deserialize(Deserializer& deSer) {
+std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::deserialize(MemoryManager& memoryManager,
+    Deserializer& deSer) {
     std::string key;
     std::vector<std::unique_ptr<ColumnChunk>> chunks;
     bool hasVersions;
     deSer.validateDebuggingInfo(key, "chunks");
-    deSer.deserializeVectorOfPtrs<ColumnChunk>(chunks);
+    deSer.deserializeVectorOfPtrs<ColumnChunk>(chunks,
+        [&](Deserializer& deser) { return ColumnChunk::deserialize(memoryManager, deser); });
     auto chunkedGroup = std::make_unique<ChunkedNodeGroup>(std::move(chunks), 0 /*startRowIdx*/);
     deSer.validateDebuggingInfo(key, "has_version_info");
     deSer.deserializeValue<bool>(hasVersions);
