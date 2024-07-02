@@ -15,9 +15,7 @@ public:
     void run() override;
     void finalizeIfNecessary() override;
 
-    inline void setSharedStateInitialized() {
-        sharedStateInitialized = true;
-    }
+    inline void setSharedStateInitialized() { sharedStateInitialized = true; }
 
     /*
      * This needs to be done carefully since the sink operator is backed by a unique_ptr and the
@@ -36,9 +34,7 @@ public:
         return sink->getWork() / numThreadsRegistered;
     }
 
-    inline Sink* getSink() {
-        return sink;
-    }
+    inline Sink* getSink() { return sink; }
 
 private:
     static std::unique_ptr<ResultSet> populateResultSet(Sink* op,

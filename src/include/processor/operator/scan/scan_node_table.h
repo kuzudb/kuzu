@@ -18,9 +18,7 @@ public:
 
     void nextMorsel(storage::NodeTableScanState& scanState);
 
-    inline storage::NodeTable* getNodeTable() const {
-        return table;
-    }
+    inline storage::NodeTable* getNodeTable() const { return table; }
 
     NodeSemiMask* getSemiMask() const { return semiMask.get(); }
 

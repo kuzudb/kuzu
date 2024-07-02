@@ -31,13 +31,14 @@ public:
 
     virtual common::offset_t getNumEdges() = 0;
 
-    virtual std::vector<common::nodeID_t> getNbrs(common::offset_t offset, NbrScanState *nbrScanState) = 0;
+    virtual std::vector<common::nodeID_t> getNbrs(common::offset_t offset,
+        NbrScanState* nbrScanState) = 0;
 
-    virtual void initializeStateFwdNbrs(common::offset_t offset, NbrScanState *nbrScanState) = 0;
+    virtual void initializeStateFwdNbrs(common::offset_t offset, NbrScanState* nbrScanState) = 0;
 
-    virtual bool hasMoreFwdNbrs(NbrScanState *nbrScanState) = 0;
+    virtual bool hasMoreFwdNbrs(NbrScanState* nbrScanState) = 0;
 
-    virtual common::ValueVector& getFwdNbrs(NbrScanState *nbrScanState) = 0;
+    virtual common::ValueVector& getFwdNbrs(NbrScanState* nbrScanState) = 0;
 };
 
 } // namespace graph

@@ -77,7 +77,7 @@ std::vector<std::shared_ptr<ScheduledTask>> TaskScheduler::scheduleTasksAndRetur
     const std::vector<std::shared_ptr<Task>>& tasks) {
     lock_t lck{mtx};
     std::vector<std::shared_ptr<ScheduledTask>> scheduledTasks;
-    for (auto &task : tasks) {
+    for (auto& task : tasks) {
         scheduledTasks.emplace_back(std::make_shared<ScheduledTask>(task, nextScheduledTaskID++));
         taskQueue.push_back(scheduledTasks.back());
     }

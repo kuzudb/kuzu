@@ -56,7 +56,7 @@ struct CSRIndexSharedState {
 };
 
 class CSRIndexBuild : public Sink {
-static constexpr PhysicalOperatorType operatorType_ = PhysicalOperatorType::CSR_INDEX_BUILD;
+    static constexpr PhysicalOperatorType operatorType_ = PhysicalOperatorType::CSR_INDEX_BUILD;
 
 public:
     CSRIndexBuild(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,

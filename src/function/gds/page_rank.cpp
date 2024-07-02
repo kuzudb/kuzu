@@ -81,11 +81,11 @@ public:
 
     */
 /*
-     * Inputs are
-     *
-     * graph::ANY
-     * outputProperty::BOOL
-     *//*
+ * Inputs are
+ *
+ * graph::ANY
+ * outputProperty::BOOL
+ *//*
 
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
         return {LogicalTypeID::ANY, LogicalTypeID::BOOL};
@@ -93,11 +93,11 @@ public:
 
     */
 /*
-     * Outputs are
-     *
-     * node_id::INTERNAL_ID
-     * rank::DOUBLE
-     *//*
+ * Outputs are
+ *
+ * node_id::INTERNAL_ID
+ * rank::DOUBLE
+ *//*
 
     binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;

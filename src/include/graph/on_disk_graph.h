@@ -18,13 +18,14 @@ public:
 
     common::offset_t getNumEdges() override;
 
-    std::vector<common::nodeID_t> getNbrs(common::offset_t offset, NbrScanState *nbrScanState) override;
+    std::vector<common::nodeID_t> getNbrs(common::offset_t offset,
+        NbrScanState* nbrScanState) override;
 
-    void initializeStateFwdNbrs(common::offset_t offset, NbrScanState *nbrScanState) override;
+    void initializeStateFwdNbrs(common::offset_t offset, NbrScanState* nbrScanState) override;
 
-    bool hasMoreFwdNbrs(NbrScanState *nbrScanState) override;
+    bool hasMoreFwdNbrs(NbrScanState* nbrScanState) override;
 
-    common::ValueVector& getFwdNbrs(NbrScanState *nbrScanState) override;
+    common::ValueVector& getFwdNbrs(NbrScanState* nbrScanState) override;
 
 private:
     main::ClientContext* context;

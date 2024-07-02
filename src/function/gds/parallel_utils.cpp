@@ -25,8 +25,8 @@ void ParallelUtils::submitParallelTaskAndWait(ParallelUtilsJob& job) {
 
 std::shared_ptr<ScheduledTask> ParallelUtils::submitTaskAndReturn(ParallelUtilsJob& job) {
     auto printInfo = std::make_unique<OPPrintInfo>("");
-    auto parallelUtilsOp = new ParallelUtilsOperator(std::move(job.gdsLocalState),
-        job.gdsAlgoFunc, job.gdsCallSharedState, operatorID, std::move(printInfo));
+    auto parallelUtilsOp = new ParallelUtilsOperator(std::move(job.gdsLocalState), job.gdsAlgoFunc,
+        job.gdsCallSharedState, operatorID, std::move(printInfo));
     auto task = std::make_shared<ProcessorTask>(parallelUtilsOp, job.executionContext);
     if (!job.isParallel) {
         task->setSingleThreadedTask();

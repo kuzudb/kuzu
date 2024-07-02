@@ -15,9 +15,9 @@ namespace kuzu {
 namespace function {
 
 struct ParallelUtilsJob {
-    ExecutionContext *executionContext;
+    ExecutionContext* executionContext;
     std::unique_ptr<GDSLocalState> gdsLocalState;
-    GDSCallSharedState *gdsCallSharedState;
+    GDSCallSharedState* gdsCallSharedState;
     gds_algofunc_t gdsAlgoFunc;
     bool isParallel;
 };
@@ -26,21 +26,22 @@ class ParallelUtils {
 public:
     explicit ParallelUtils(uint32_t operatorID, common::TaskScheduler* taskScheduler);
 
-    void submitParallelTaskAndWait(ParallelUtilsJob &parallelUtilsJob);
+    void submitParallelTaskAndWait(ParallelUtilsJob& parallelUtilsJob);
 
-    std::shared_ptr<common::ScheduledTask> submitTaskAndReturn(ParallelUtilsJob &job);
+    std::shared_ptr<common::ScheduledTask> submitTaskAndReturn(ParallelUtilsJob& job);
 
-    std::vector<std::shared_ptr<common::ScheduledTask>> submitTasksAndReturn(std::vector<ParallelUtilsJob> &jobs);
+    std::vector<std::shared_ptr<common::ScheduledTask>> submitTasksAndReturn(
+        std::vector<ParallelUtilsJob>& jobs);
 
-    bool taskCompletedNoError(std::shared_ptr<common::ScheduledTask> & scheduledTask);
+    bool taskCompletedNoError(std::shared_ptr<common::ScheduledTask>& scheduledTask);
 
-    bool taskHasExceptionOrTimedOut(std::shared_ptr<common::ScheduledTask> &scheduledTask,
-        ExecutionContext *executionContext);
+    bool taskHasExceptionOrTimedOut(std::shared_ptr<common::ScheduledTask>& scheduledTask,
+        ExecutionContext* executionContext);
 
 private:
-    common::TaskScheduler *taskScheduler;
+    common::TaskScheduler* taskScheduler;
     uint32_t operatorID;
 };
 
-} // namespace graph
+} // namespace function
 } // namespace kuzu

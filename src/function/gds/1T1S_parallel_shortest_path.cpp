@@ -253,8 +253,8 @@ public:
                 srcOffset++;
                 auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
                 gdsLocalState->ifeMorsel = ifeMorselTasks[i].first.get();
-                auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState),
-                    sharedState, mainFunc, false /* isParallel */};
+                auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState), sharedState,
+                    mainFunc, false /* isParallel */};
                 ifeMorselTasks[i].second = parallelUtils->submitTaskAndReturn(job);
             }
             std::this_thread::sleep_for(

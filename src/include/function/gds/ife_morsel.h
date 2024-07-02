@@ -23,9 +23,9 @@ struct IFEMorsel {
 public:
     IFEMorsel(uint64_t upperBound_, uint64_t lowerBound_, uint64_t maxNodeOffset_,
         common::offset_t srcOffset)
-        : mutex{std::mutex()}, initializedIFEMorsel{false}, currentLevel{0u},
-          nextScanStartIdx{0u}, srcOffset{srcOffset}, numVisitedDstNodes{0u},
-          numDstNodesToVisit{maxNodeOffset_ + 1}, visitedNodes{nullptr}, pathLength{nullptr},
+        : mutex{std::mutex()}, initializedIFEMorsel{false}, currentLevel{0u}, nextScanStartIdx{0u},
+          srcOffset{srcOffset}, numVisitedDstNodes{0u}, numDstNodesToVisit{maxNodeOffset_ + 1},
+          visitedNodes{nullptr}, pathLength{nullptr},
           bfsLevelNodeOffsets{std::vector<common::offset_t>()}, maxOffset{maxNodeOffset_},
           upperBound{upperBound_}, lowerBound{lowerBound_}, nextDstScanStartIdx{0u} {}
 

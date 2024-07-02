@@ -39,9 +39,7 @@ public:
     // actually track the no. of morsels that the pipeline has, for eg. from the FTable feeding it
     // OR from the table it is scanning and divide by the no. of threads active.
     // For now, all pipelines will just return the max value (except for the ParallelUtils task).
-    virtual uint64_t getWork() {
-        return UINT64_MAX;
-    }
+    virtual uint64_t getWork() { return UINT64_MAX; }
 
 protected:
     virtual void executeInternal(ExecutionContext* context) = 0;

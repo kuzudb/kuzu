@@ -1,8 +1,8 @@
 #pragma once
 
 #include "function/gds/gds.h"
-#include "function/gds/ife_morsel.h"
 #include "function/gds/gds_utils.h"
+#include "function/gds/ife_morsel.h"
 #include "graph/graph.h"
 #include "processor/operator/mask.h"
 #include "processor/operator/sink.h"
@@ -23,8 +23,7 @@ struct GDSCallSharedState {
     DELETE_COPY_AND_MOVE(GDSCallSharedState);
 
 public:
-
-    void merge(FactorizedTable &localFTable);
+    void merge(FactorizedTable& localFTable);
 };
 
 struct GDSCallInfo {

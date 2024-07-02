@@ -1,7 +1,7 @@
 #include "graph/on_disk_graph.h"
 
-#include "storage/storage_manager.h"
 #include "main/client_context.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::storage;
@@ -39,7 +39,7 @@ offset_t OnDiskGraph::getNumEdges() {
     return relTable->getNumTuples(context->getTx());
 }
 
-std::vector<nodeID_t> OnDiskGraph::getNbrs(offset_t offset, NbrScanState *nbrScanState) {
+std::vector<nodeID_t> OnDiskGraph::getNbrs(offset_t offset, NbrScanState* nbrScanState) {
     nbrScanState->srcNodeIDVector->setValue<nodeID_t>(0, {offset, nodeTable->getTableID()});
     auto tx = context->getTx();
     auto readState = nbrScanState->fwdReadState.get();
@@ -58,16 +58,16 @@ std::vector<nodeID_t> OnDiskGraph::getNbrs(offset_t offset, NbrScanState *nbrSca
     return nbrs;
 }
 
-void OnDiskGraph::initializeStateFwdNbrs(common::offset_t offset, NbrScanState *nbrScanState) {
+void OnDiskGraph::initializeStateFwdNbrs(common::offset_t offset, NbrScanState* nbrScanState) {
     nbrScanState->srcNodeIDVector->setValue<nodeID_t>(0, {offset, nodeTable->getTableID()});
-    relTable->initializeScanState(context->getTx(),  *nbrScanState->fwdReadState.get());
+    relTable->initializeScanState(context->getTx(), *nbrScanState->fwdReadState.get());
 }
 
-bool OnDiskGraph::hasMoreFwdNbrs(NbrScanState *nbrScanState) {
+bool OnDiskGraph::hasMoreFwdNbrs(NbrScanState* nbrScanState) {
     return nbrScanState->fwdReadState->hasMoreToRead(context->getTx());
 }
 
-common::ValueVector& OnDiskGraph::getFwdNbrs(NbrScanState *nbrScanState) {
+common::ValueVector& OnDiskGraph::getFwdNbrs(NbrScanState* nbrScanState) {
     auto tx = context->getTx();
     auto readState = nbrScanState->fwdReadState.get();
     relTable->scan(tx, *readState);

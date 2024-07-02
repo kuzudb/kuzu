@@ -161,8 +161,8 @@ public:
                 auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
                 auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
                 gdsLocalState->ifeMorsel = ifeMorsel.get();
-                auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState),
-                    sharedState, extendFrontierFunc, true /* isParallel */};
+                auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState), sharedState,
+                    extendFrontierFunc, true /* isParallel */};
                 parallelUtils->submitParallelTaskAndWait(job);
                 auto duration1 = std::chrono::system_clock::now().time_since_epoch();
                 auto millis1 = std::chrono::duration_cast<std::chrono::milliseconds>(duration1).count();
@@ -173,8 +173,8 @@ public:
             auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
             auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
             gdsLocalState->ifeMorsel = ifeMorsel.get();
-            auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState),
-                sharedState, shortestPathOutputFunc, true /* isParallel */};
+            auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState), sharedState,
+                shortestPathOutputFunc, true /* isParallel */};
             parallelUtils->submitParallelTaskAndWait(job);
             auto duration1 = std::chrono::system_clock::now().time_since_epoch();
             auto millis1 = std::chrono::duration_cast<std::chrono::milliseconds>(duration1).count();

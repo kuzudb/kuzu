@@ -19,8 +19,8 @@ void CSRIndexBuild::initGlobalStateInternal(kuzu::processor::ExecutionContext* c
     csrSharedState->csr = std::vector<MorselCSR*>(totalSize, nullptr);
 }
 
-void CSRIndexBuild::initLocalStateInternal(
-    kuzu::processor::ResultSet* resultSet, kuzu::processor::ExecutionContext*  /*context*/) {
+void CSRIndexBuild::initLocalStateInternal(kuzu::processor::ResultSet* resultSet,
+    kuzu::processor::ExecutionContext* /*context*/) {
     boundNodeVector = resultSet->getValueVector(boundNodeVectorPos).get();
     nbrNodeVector = resultSet->getValueVector(nbrNodeVectorPos).get();
     relIDVector = resultSet->getValueVector(relIDVectorPos).get();
