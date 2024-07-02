@@ -224,7 +224,6 @@ protected:
     uint64_t numValues;
     flush_buffer_func_t flushBufferFunction;
     get_metadata_func_t getMetadataFunction;
-    get_min_max_func_t getMinMaxFunction;
 
     // On-disk metadata for column chunk.
     ColumnChunkMetadata metadata;
