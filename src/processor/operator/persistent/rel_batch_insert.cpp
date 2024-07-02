@@ -14,10 +14,6 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void RelBatchInsert::initGlobalStateInternal(ExecutionContext* /*context*/) {
-    sharedState->logBatchInsertWALRecord();
-}
-
 void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/,
     ExecutionContext* /*context*/) {
     localState = std::make_unique<RelBatchInsertLocalState>();
