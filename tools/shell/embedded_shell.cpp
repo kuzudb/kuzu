@@ -447,7 +447,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         constexpr uint32_t SMALL_TABLE_SEPERATOR_LENGTH = 3;
         const uint32_t minTruncatedWidth = 20;
         uint64_t numTuples = queryResult.getNumTuples();
-        std::vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
+        /*std::vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
         for (auto i = 0u; i < colsWidth.size(); i++) {
             colsWidth[i] = queryResult.getColumnNames()[i].length() + 2;
         }
@@ -678,27 +678,27 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
             printf("%s\n", printString.c_str());
             printf("%s\n", lineSeparator.c_str());
             rowCount++;
-        }
+        }*/
 
         // print query result (numFlatTuples & tuples)
         if (numTuples == 1) {
             printf("(1 tuple)\n");
         } else {
             printf("(%" PRIu64 " tuples", numTuples);
-            if (rowTruncated) {
+            /*if (rowTruncated) {
                 printf(", %" PRIu64 " shown", maxRowSize);
-            }
+            }*/
             printf(")\n");
         }
-        if (colsWidth.size() == 1) {
+        /*if (colsWidth.size() == 1) {
             printf("(1 column)\n");
         } else {
             printf("(%" PRIu64 " columns", (uint64_t)colsWidth.size());
-            if (colTruncated) {
+            *//*if (colTruncated) {
                 printf(", %" PRIu64 " shown", colsPrinted);
-            }
+            }*//*
             printf(")\n");
-        }
+        }*/
         printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
             querySummary->getExecutionTime());
     }
