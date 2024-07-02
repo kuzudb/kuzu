@@ -49,7 +49,6 @@ public:
     bool isSource() const override { return true; }
 
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) override;
-    void initGlobalStateInternal(ExecutionContext* context) override;
 
     void executeInternal(ExecutionContext* context) override;
     void finalize(ExecutionContext* context) override;

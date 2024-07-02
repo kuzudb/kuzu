@@ -9,7 +9,10 @@ struct CheckpointBindData final : CallTableFuncBindData {
 
     explicit CheckpointBindData(main::ClientContext* clientContext)
         : CallTableFuncBindData({} /*columnTypes*/, {} /*returnColumnNames*/, 1 /*maxOffset*/),
-          clientContext(clientContext) {}
+          clientContext(clientContext) {
+        columnTypes.push_back(common::LogicalType::BOOL());
+        columnNames.push_back("result");
+    }
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<CheckpointBindData>(clientContext);

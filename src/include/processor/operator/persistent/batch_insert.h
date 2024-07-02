@@ -43,8 +43,6 @@ struct BatchInsertSharedState {
         numRows.fetch_add(numRowsToIncrement);
     }
     common::row_idx_t getNumRows() const { return numRows.load(); }
-    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
-    void logBatchInsertWALRecord() const { wal->logCopyTableRecord(table->getTableID()); }
 };
 
 struct BatchInsertLocalState {
