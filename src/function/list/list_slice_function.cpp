@@ -8,6 +8,31 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
+static void normalizeIndices(int64_t& startIdx, int64_t& endIdx, uint64_t size) {
+    // Handle negative indices
+    if (startIdx < 0) {
+        startIdx = size + startIdx + 1;
+    }
+    if (endIdx < 0) {
+        endIdx = size + endIdx + 1;
+    }
+
+    // Adjust startIdx to be at least 1
+    if (startIdx <= 0) {
+        startIdx = 1;
+    }
+
+    // Adjust endIdx to be within the range and inclusive
+    if (endIdx <= 0 || (uint64_t)endIdx > size) {
+        endIdx = size;
+    }
+
+    // Handle case where startIdx is greater than endIdx
+    if (startIdx > endIdx) {
+        endIdx = startIdx - 1;
+    }
+}
+
 struct ListSlice {
     // Note: this function takes in a 1-based begin/end index (The index of the first value in the
     // listEntry is 1).
@@ -17,12 +42,12 @@ struct ListSlice {
         auto startIdx = begin;
         auto endIdx = end;
         normalizeIndices(startIdx, endIdx, listEntry.size);
-        result = common::ListVector::addList(&resultVector, endIdx - startIdx);
+        result = common::ListVector::addList(&resultVector, endIdx - startIdx + 1);
         auto srcDataVector = common::ListVector::getDataVector(&listVector);
         auto srcPos = listEntry.offset + startIdx - 1;
         auto dstDataVector = common::ListVector::getDataVector(&resultVector);
         auto dstPos = result.offset;
-        for (auto i = 0u; i < endIdx - startIdx; i++) {
+        for (; startIdx <= endIdx; startIdx++) {
             dstDataVector->copyFromVectorData(dstPos++, srcDataVector, srcPos++);
         }
     }
@@ -33,21 +58,7 @@ struct ListSlice {
         auto startIdx = begin;
         auto endIdx = end;
         normalizeIndices(startIdx, endIdx, str.len);
-        SubStr::operation(str, startIdx, std::min(endIdx - startIdx + 1, str.len - startIdx + 1),
-            result, resultValueVector);
-    }
-
-private:
-    static void normalizeIndices(int64_t& startIdx, int64_t& endIdx, uint64_t size) {
-        if (startIdx <= 0) {
-            startIdx = 1;
-        }
-        if (endIdx <= 0 || (uint64_t)endIdx > size) {
-            endIdx = size + 1;
-        }
-        if (startIdx > endIdx) {
-            endIdx = startIdx;
-        }
+        SubStr::operation(str, startIdx, endIdx - startIdx + 1, result, resultValueVector);
     }
 };
 
