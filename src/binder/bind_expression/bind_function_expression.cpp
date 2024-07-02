@@ -1,7 +1,6 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/function_expression.h"
-#include "binder/expression/lambda_expression.h"
 #include "binder/expression_binder.h"
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
@@ -14,7 +13,6 @@
 #include "function/schema/vector_node_rel_functions.h"
 #include "main/client_context.h"
 #include "parser/expression/parsed_function_expression.h"
-#include "parser/expression/parsed_lambda_expression.h"
 #include "parser/parsed_expression_visitor.h"
 
 using namespace kuzu::common;

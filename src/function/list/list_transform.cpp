@@ -1,16 +1,11 @@
-#include "binder/binder.h"
-#include "binder/expression/lambda_expression.h"
 #include "common/exception/binder.h"
 #include "function/list/vector_list_functions.h"
 #include "function/scalar_function.h"
-#include "parser/expression/parsed_lambda_expression.h"
-
-using namespace kuzu::common;
-using namespace kuzu::binder;
-using namespace kuzu::parser;
 
 namespace kuzu {
 namespace function {
+
+using namespace common;
 
 static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
     Function* /*function*/) {
@@ -26,8 +21,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
         LogicalType::LIST(arguments[1]->getDataType().copy()));
 }
 
-static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>&, common::ValueVector&,
-    void*) {}
+static void execFunc(const std::vector<std::shared_ptr<ValueVector>>&, ValueVector&, void*) {}
 
 function_set ListTransformFunction::getFunctionSet() {
     function_set result;

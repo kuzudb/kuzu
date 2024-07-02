@@ -35,7 +35,7 @@ void ExpressionBinder::bindLambdaExpression(const std::string& functionName,
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindLambdaExpression(
-    const parser::ParsedExpression& parsedExpr) {
+    const parser::ParsedExpression& parsedExpr) const {
     auto uniqueName = getUniqueName(parsedExpr.getRawName());
     return std::make_shared<BoundLambdaExpression>(parsedExpr.copy(), uniqueName);
 }
