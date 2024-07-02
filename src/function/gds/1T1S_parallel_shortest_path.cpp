@@ -163,12 +163,11 @@ public:
     void exec(processor::ExecutionContext* executionContext) override {
         auto extraData = bindData->ptrCast<ParallelShortestPathBindData>();
         // threads available will be 1 less than total (main thread makes gds call)
-        auto threadsAvailable = executionContext->clientContext->getClientConfig()->numThreads - 1;
         auto concurrentBFS = executionContext->clientContext->getClientConfig()->maxConcurrentBFS;
         // set max bfs always to min value between threads available and maxConcurrentBFS value
-        auto maxConcurrentBFS = std::min(threadsAvailable, concurrentBFS);
-        printf("thread available: %lu and max concurrent bfs setting: %lu, maxConcurrentBFS: %lu\n",
-            threadsAvailable, concurrentBFS, maxConcurrentBFS);
+        auto maxConcurrentBFS = std::max(1LU, concurrentBFS);
+        printf("max concurrent bfs setting: %lu, launching maxConcurrentBFS as: %lu\n",
+            concurrentBFS, maxConcurrentBFS);
         auto maxNodeOffset = sharedState->graph->getNumNodes() - 1;
         auto lowerBound = 1u;
         auto& inputMask = sharedState->inputNodeOffsetMasks[0];
