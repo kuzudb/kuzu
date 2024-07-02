@@ -23,7 +23,6 @@ jobs:
       - name: Build Node.js native module
         working-directory: tools/nodejs_api/package
         run: |
-          source /opt/rh/devtoolset-11/enable
           npm i
 
       - name: Move Node.js native module
