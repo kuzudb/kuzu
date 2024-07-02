@@ -39,6 +39,7 @@ bool LocalRelTable::insert(transaction::Transaction*, TableInsertState& state) {
     KU_ASSERT(insertState.srcNodeIDVector.state->getSelVector().getSelSize() == 1 &&
               insertState.dstNodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto relIDVector = insertState.propertyVectors[0];
+    KU_ASSERT(relIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     const auto relIDPos = relIDVector->state->getSelVector()[0];
     relIDVector->setValue<internalID_t>(relIDPos, internalID_t{relOffset, table.getTableID()});
     relIDVector->setNull(relIDPos, false);
@@ -53,15 +54,24 @@ bool LocalRelTable::insert(transaction::Transaction*, TableInsertState& state) {
         numRowsToAppend);
     const auto srcNodeOffset = insertState.srcNodeIDVector.readNodeOffset(srcNodePos);
     const auto dstNodeOffset = insertState.dstNodeIDVector.readNodeOffset(dstNodePos);
-    fwdIndex[srcNodeOffset].push_back(relOffset);
-    bwdIndex[dstNodeOffset].push_back(relOffset);
+    fwdIndex[srcNodeOffset].push_back(numRowsInLocalTable);
+    bwdIndex[dstNodeOffset].push_back(numRowsInLocalTable);
     return true;
 }
 
 bool LocalRelTable::update(TableUpdateState& state) {
     const auto& updateState = state.cast<RelTableUpdateState>();
-    const auto matchedRow = findMatchingRow(updateState.srcNodeIDVector,
-        updateState.dstNodeIDVector, updateState.relIDVector);
+    const auto srcNodePos = updateState.srcNodeIDVector.state->getSelVector()[0];
+    const auto dstNodePos = updateState.dstNodeIDVector.state->getSelVector()[0];
+    const auto relIDPos = updateState.relIDVector.state->getSelVector()[0];
+    if (updateState.srcNodeIDVector.isNull(srcNodePos) ||
+        updateState.relIDVector.isNull(relIDPos) || updateState.relIDVector.isNull(relIDPos)) {
+        return false;
+    }
+    const auto srcNodeOffset = updateState.srcNodeIDVector.readNodeOffset(srcNodePos);
+    const auto dstNodeOffset = updateState.dstNodeIDVector.readNodeOffset(dstNodePos);
+    const auto relOffset = updateState.relIDVector.readNodeOffset(relIDPos);
+    const auto matchedRow = findMatchingRow(srcNodeOffset, dstNodeOffset, relOffset);
     if (matchedRow == INVALID_ROW_IDX) {
         return false;
     }
@@ -72,17 +82,29 @@ bool LocalRelTable::update(TableUpdateState& state) {
 
 bool LocalRelTable::delete_(transaction::Transaction*, TableDeleteState& state) {
     const auto& deleteState = state.cast<RelTableDeleteState>();
-    const auto matchedRow = findMatchingRow(deleteState.srcNodeIDVector,
-        deleteState.dstNodeIDVector, deleteState.relIDVector);
+    const auto srcNodePos = deleteState.srcNodeIDVector.state->getSelVector()[0];
+    const auto dstNodePos = deleteState.dstNodeIDVector.state->getSelVector()[0];
+    const auto relIDPos = deleteState.relIDVector.state->getSelVector()[0];
+    if (deleteState.srcNodeIDVector.isNull(srcNodePos) ||
+        deleteState.relIDVector.isNull(relIDPos) || deleteState.relIDVector.isNull(relIDPos)) {
+        return false;
+    }
+    const auto srcNodeOffset = deleteState.srcNodeIDVector.readNodeOffset(srcNodePos);
+    const auto dstNodeOffset = deleteState.dstNodeIDVector.readNodeOffset(dstNodePos);
+    const auto relOffset = deleteState.relIDVector.readNodeOffset(relIDPos);
+    const auto matchedRow = findMatchingRow(srcNodeOffset, dstNodeOffset, relOffset);
     if (matchedRow == INVALID_ROW_IDX) {
         return false;
     }
-    return localNodeGroup->delete_(&transaction::DUMMY_WRITE_TRANSACTION, matchedRow);
+    std::erase(fwdIndex[srcNodeOffset], matchedRow);
+    std::erase(bwdIndex[dstNodeOffset], matchedRow);
+    return true;
 }
 
 void LocalRelTable::initializeScan(TableScanState& state) {
-    const auto& relScanState = state.cast<RelTableScanState>();
-    state.source = TableScanSource::UNCOMMITTED;
+    auto& relScanState = state.cast<RelTableScanState>();
+    KU_ASSERT(state.source == TableScanSource::UNCOMMITTED);
+    rewriteLocalColumnIDs(relScanState.direction, relScanState.columnIDs);
     state.nodeGroup = localNodeGroup.get();
     auto& nodeGroupScanState = state.nodeGroupScanState->cast<CSRNodeGroupScanState>();
     nodeGroupScanState.nextRowToScan = 0;
@@ -94,11 +116,27 @@ void LocalRelTable::initializeScan(TableScanState& state) {
         nodeGroupScanState.inMemCSRList.rowIndices.end());
 }
 
+void LocalRelTable::rewriteLocalColumnIDs(RelDataDirection direction,
+    std::vector<column_id_t>& columnIDs) {
+    for (auto i = 0u; i < columnIDs.size(); i++) {
+        const auto columnID = columnIDs[i];
+        if (columnID == NBR_ID_COLUMN_ID) {
+            columnIDs[i] = direction == RelDataDirection::FWD ? LOCAL_NBR_NODE_ID_COLUMN_ID :
+                                                                LOCAL_BOUND_NODE_ID_COLUMN_ID;
+        } else {
+            columnIDs[i] = columnID + 1;
+        }
+    }
+}
+
 bool LocalRelTable::scan(transaction::Transaction* transaction, const TableScanState& state) const {
     auto& nodeGroupScanState = state.nodeGroupScanState->cast<CSRNodeGroupScanState>();
     const auto numToScan = std::min(nodeGroupScanState.inMemCSRList.rowIndices.size() -
                                         nodeGroupScanState.nextRowToScan,
         DEFAULT_VECTOR_CAPACITY);
+    if (numToScan == 0) {
+        return false;
+    }
     for (auto i = 0u; i < numToScan; i++) {
         state.rowIdxVector->setValue<row_idx_t>(i,
             nodeGroupScanState.inMemCSRList.rowIndices[nodeGroupScanState.nextRowToScan + i]);
@@ -106,21 +144,11 @@ bool LocalRelTable::scan(transaction::Transaction* transaction, const TableScanS
     state.rowIdxVector->state->getSelVectorUnsafe().setSelSize(numToScan);
     localNodeGroup->lookup(transaction, state);
     nodeGroupScanState.nextRowToScan += numToScan;
-    return nodeGroupScanState.nextRowToScan < nodeGroupScanState.inMemCSRList.rowIndices.size();
+    return true;
 }
 
-row_idx_t LocalRelTable::findMatchingRow(const ValueVector& srcNodeIDVector,
-    const ValueVector& dstNodeIDVector, const ValueVector& relIDVector) {
-    const auto srcNodePos = srcNodeIDVector.state->getSelVector()[0];
-    const auto dstNodePos = dstNodeIDVector.state->getSelVector()[0];
-    const auto relIDPos = relIDVector.state->getSelVector()[0];
-    if (srcNodeIDVector.isNull(srcNodePos) || relIDVector.isNull(relIDPos) ||
-        relIDVector.isNull(relIDPos)) {
-        return false;
-    }
-    const auto srcNodeOffset = srcNodeIDVector.readNodeOffset(srcNodePos);
-    const auto relOffset = relIDVector.readNodeOffset(relIDPos);
-    const auto dstNodeOffset = dstNodeIDVector.readNodeOffset(dstNodePos);
+row_idx_t LocalRelTable::findMatchingRow(offset_t srcNodeOffset, offset_t dstNodeOffset,
+    offset_t relOffset) {
     auto& fwdRows = fwdIndex[srcNodeOffset];
     std::sort(fwdRows.begin(), fwdRows.end());
     auto& bwdRows = bwdIndex[dstNodeOffset];
@@ -135,13 +163,13 @@ row_idx_t LocalRelTable::findMatchingRow(const ValueVector& srcNodeIDVector,
     columnIDs.push_back(LOCAL_REL_ID_COLUMN_ID);
     const auto scanState = std::make_unique<RelTableScanState>(table.getTableID(), columnIDs);
     scanState->IDVector = scanChunk.getValueVector(0).get();
+    scanState->rowIdxVector->state = scanChunk.state;
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
     scanChunk.state->getSelVectorUnsafe().setSelSize(intersectRows.size());
     // TODO(Guodong): We assume intersectRows is smaller than 2048 here. Should handle edge case.
     for (auto i = 0u; i < intersectRows.size(); i++) {
         scanState->rowIdxVector->setValue<row_idx_t>(i, intersectRows[i]);
     }
-    scanState->rowIdxVector->state->getSelVectorUnsafe().setSelSize(intersectRows.size());
     localNodeGroup->lookup(&transaction::DUMMY_WRITE_TRANSACTION, *scanState);
     const auto scannedRelIDVector = scanState->outputVectors[0];
     KU_ASSERT(scannedRelIDVector->state->getSelVector().getSelSize() == intersectRows.size());

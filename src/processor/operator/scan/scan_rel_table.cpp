@@ -25,6 +25,9 @@ void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext
     ScanTable::initLocalStateInternal(resultSet, context);
     relInfo.initScanState();
     initVectors(*relInfo.localScanState, *resultSet);
+    relInfo.localScanState->localRelTable =
+        context->clientContext->getTx()->getLocalStorage()->getLocalTable(
+            relInfo.table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL);
 }
 
 void ScanRelTable::initVectors(TableScanState& state, const ResultSet& resultSet) const {

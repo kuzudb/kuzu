@@ -846,7 +846,7 @@ void InternalIDChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     KU_ASSERT(offsetInChunk < capacity);
     output.setNull(posInOutputVector, nullData->isNull(offsetInChunk));
     if (!output.isNull(posInOutputVector)) {
-        auto relID = output.getValue<internalID_t>(posInOutputVector);
+        internalID_t relID;
         relID.offset = getValue<offset_t>(offsetInChunk);
         KU_ASSERT(commonTableID != INVALID_TABLE_ID);
         relID.tableID = commonTableID;

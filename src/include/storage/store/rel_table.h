@@ -17,6 +17,9 @@ struct RelTableScanState final : TableScanState {
     Column* csrOffsetColumn;
     Column* csrLengthColumn;
 
+    LocalTable* localRelTable;
+    bool initializedLocalState;
+
     // Scan state for un-committed data.
     // Ideally we shouldn't need columns to scan un-checkpointed but committed data.
     RelTableScanState(common::table_id_t tableID, const std::vector<common::column_id_t>& columnIDs)
@@ -38,7 +41,8 @@ struct RelTableScanState final : TableScanState {
         common::RelDataDirection direction, std::vector<ColumnPredicateSet> columnPredicateSets)
         : TableScanState{tableID, columnIDs, columns, std::move(columnPredicateSets)},
           direction{direction}, boundNodeIDVector{nullptr}, boundNodeOffset{common::INVALID_OFFSET},
-          csrOffsetColumn{csrOffsetCol}, csrLengthColumn{csrLengthCol} {
+          csrOffsetColumn{csrOffsetCol}, csrLengthColumn{csrLengthCol}, localRelTable{nullptr},
+          initializedLocalState{false} {
         nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
         if (!this->columnPredicateSets.empty()) {
             // Since we insert a nbr column. We need to pad an empty nbr column predicate set.

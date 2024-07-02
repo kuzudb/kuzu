@@ -31,11 +31,11 @@ void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/,
     localState->chunkedGroup->getColumnChunk(0)
         .getData()
         .cast<InternalIDChunkData>()
-        .setCommonTableID(nbrTableID);
+        .setTableID(nbrTableID);
     localState->chunkedGroup->getColumnChunk(1)
         .getData()
         .cast<InternalIDChunkData>()
-        .setCommonTableID(relTableID);
+        .setTableID(relTableID);
 }
 
 void RelBatchInsert::executeInternal(ExecutionContext* context) {

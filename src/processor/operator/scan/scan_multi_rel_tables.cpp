@@ -53,8 +53,11 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
             initVectors(*relInfo.localScanState, *resultSet);
             // TODO(Guodong/Xiyang): Temp solution here. Should be moved to `info`.
             boundNodeIDVector = resultSet->getValueVector(relInfo.boundNodeIDPos).get();
-            relInfo.localScanState->cast<RelTableScanState>().boundNodeIDVector =
-                resultSet->getValueVector(relInfo.boundNodeIDPos).get();
+            auto& scanState = relInfo.localScanState->cast<RelTableScanState>();
+            scanState.boundNodeIDVector = resultSet->getValueVector(relInfo.boundNodeIDPos).get();
+            scanState.localRelTable =
+                context->clientContext->getTx()->getLocalStorage()->getLocalTable(
+                    relInfo.table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL);
             if (directionInfo.directionPos.isValid()) {
                 scanner.directionVector =
                     resultSet->getValueVector(directionInfo.directionPos).get();
