@@ -91,8 +91,8 @@ public:
         auto ifeMorsel = shortestPathLocalState->ifeMorsel;
         while (!ifeMorsel->isBFSCompleteNoLock()) {
             auto numDstVisitedLocal = 0u;
-            auto duration = std::chrono::system_clock::now().time_since_epoch();
-            auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+            /*auto duration = std::chrono::system_clock::now().time_since_epoch();
+            auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();*/
             for (auto pos = 0u; pos < ifeMorsel->bfsLevelNodeOffsets.size(); pos++) {
                 auto frontierOffset = ifeMorsel->bfsLevelNodeOffsets[pos];
                 graph->initializeStateFwdNbrs(frontierOffset,
@@ -104,10 +104,10 @@ public:
                 } while (graph->hasMoreFwdNbrs(shortestPathLocalState->nbrScanState.get()));
                 ifeMorsel->mergeResults(numDstVisitedLocal);
             }
-            auto duration1 = std::chrono::system_clock::now().time_since_epoch();
+            /*auto duration1 = std::chrono::system_clock::now().time_since_epoch();
             auto millis1 = std::chrono::duration_cast<std::chrono::milliseconds>(duration1).count();
             printf("bfs source: %lu, level: %d extension done in %lu ms\n", ifeMorsel->srcOffset,
-                ifeMorsel->currentLevel, millis1 - millis);
+                ifeMorsel->currentLevel, millis1 - millis);*/
             ifeMorsel->initializeNextFrontierNoLock();
         }
     }
@@ -153,10 +153,10 @@ public:
             return shortestPathOutputFunc(sharedState, localState);
         }
         extendFrontierFunc(sharedState, localState);
-        auto duration = std::chrono::system_clock::now().time_since_epoch();
+        /*auto duration = std::chrono::system_clock::now().time_since_epoch();
         auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
         printf("starting output writing for src: %lu at time: %lu\n",
-            shortestPathLocalState->ifeMorsel->srcOffset, millis);
+            shortestPathLocalState->ifeMorsel->srcOffset, millis);*/
         return shortestPathOutputFunc(sharedState, localState);
     }
 
@@ -191,9 +191,9 @@ public:
                 break;
             }
             totalBFSSources++;
-            auto duration = std::chrono::system_clock::now().time_since_epoch();
+            /*auto duration = std::chrono::system_clock::now().time_since_epoch();
             auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-            printf("starting bfs source: %lu at %lu\n", srcOffset, millis);
+            printf("starting bfs source: %lu at %lu\n", srcOffset, millis);*/
             auto ifeMorsel = std::make_unique<IFEMorsel>(extraData->upperBound, lowerBound,
                 maxNodeOffset, srcOffset);
             srcOffset++;
@@ -224,11 +224,11 @@ public:
                     runLoop = false;
                     break;
                 }
-                auto duration = std::chrono::system_clock::now().time_since_epoch();
+                /*auto duration = std::chrono::system_clock::now().time_since_epoch();
                 auto millis =
                     std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
                 printf("bfs source: %lu finished at time: %lu\n",
-                    ifeMorselTasks[i].first->srcOffset, millis);
+                    ifeMorselTasks[i].first->srcOffset, millis);*/
                 auto processorTask = common::ku_dynamic_cast<Task*, ProcessorTask*>(
                     ifeMorselTasks[i].second->task.get());
                 free(processorTask->getSink());
@@ -246,9 +246,9 @@ public:
                 } else if (srcOffset > maxNodeOffset) {
                     continue;
                 }
-                duration = std::chrono::system_clock::now().time_since_epoch();
+                /*duration = std::chrono::system_clock::now().time_since_epoch();
                 millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-                printf("bfs source: %lu starting at time: %lu\n", srcOffset, millis);
+                printf("bfs source: %lu starting at time: %lu\n", srcOffset, millis);*/
                 totalBFSSources++;
                 ifeMorselTasks[i].first->resetNoLock(srcOffset);
                 srcOffset++;
