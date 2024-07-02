@@ -2,7 +2,6 @@
 
 #include "binder/expression/case_expression.h"
 #include "binder/expression/expression_util.h"
-#include "binder/expression/function_expression.h"
 #include "binder/expression/lambda_expression.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/node_expression.h"

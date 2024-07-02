@@ -1,7 +1,6 @@
 #include "expression_evaluator/function_evaluator.h"
 
 #include "binder/expression/function_expression.h"
-#include "function/built_in_function_utils.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;

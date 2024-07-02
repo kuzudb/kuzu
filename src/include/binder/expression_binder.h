@@ -59,7 +59,7 @@ public:
     void bindLambdaExpression(const std::string& functionName, const Expression& lambdaInput,
         Expression& lambdaExpr);
     std::shared_ptr<Expression> bindLambdaExpression(
-        const parser::ParsedExpression& parsedExpression);
+        const parser::ParsedExpression& parsedExpression) const;
 
     std::shared_ptr<Expression> bindScalarFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName);
