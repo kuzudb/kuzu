@@ -27,13 +27,13 @@ struct VectorIndexConfig {
     float samplingProbability = 0.05;
 
     // The number of neighbors to consider during construction
-    int efConstruction = 100;
+    int efConstruction = 200;
 
     // The number of neighbors to consider during search
     int efSearch = 100;
 
     // The alpha parameter for the RNG heuristic
-    float alpha = 1.1;
+    float alpha = 1.0;
 
     VectorIndexConfig() = default;
 

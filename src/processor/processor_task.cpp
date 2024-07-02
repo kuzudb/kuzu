@@ -12,7 +12,6 @@ ProcessorTask::ProcessorTask(Sink* sink, ExecutionContext* executionContext)
                .getValue<uint64_t>()},
       sharedStateInitialized{false}, sink{sink}, executionContext{executionContext} {
     // Print the value of maxThreads
-    printf("maxThreads: %llu\n", maxNumThreads);
 }
 
 void ProcessorTask::run() {
@@ -29,7 +28,6 @@ void ProcessorTask::run() {
     auto resultSet =
         populateResultSet(currentSink, executionContext->clientContext->getMemoryManager());
     // Print the type of clonedPipelineRoot
-    printf("execute clonedPipelineRoot type: %s\n", typeid(clonedPipelineRoot).name());
     currentSink->execute(resultSet.get(), executionContext);
 }
 

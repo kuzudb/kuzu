@@ -60,29 +60,67 @@ void BulkVectorIndexing::finalize(ExecutionContext* /*context*/) {
     // TODO: Make it parallelized
     KU_ASSERT_MSG(sharedState->partitionerSharedState->partitioningBuffers.size() == 1,
         "Only one partitioning buffer in fwd direction is supported");
+//    testGraph();
     // Populate partition buffer
     sharedState->graph->populatePartitionBuffer(
         *sharedState->partitionerSharedState->partitioningBuffers[0]);
-    printGraph();
 }
 
-void BulkVectorIndexing::printGraph() {
-//     Print the graph from partitionerSharedState
-        auto& partitionBuffer = *sharedState->partitionerSharedState->partitioningBuffers[0];
-        auto totalElements = 0;
-        for (auto partitionIdx = 0u; partitionIdx < partitionBuffer.partitions.size();
-        partitionIdx++) {
-            auto& partition = partitionBuffer.partitions[partitionIdx];
-            auto& group = partition.getChunkedGroups()[0];
-            auto& from = group->getColumnChunk(0);
-            auto& to = group->getColumnChunk(1);
-            auto& relId = group->getColumnChunk(2);
-            for (auto i = 0u; i < group->getNumRows(); i++) {
-                totalElements++;
-            }
-        }
-        printf("Total elements: %d\n", totalElements);
-}
+//void BulkVectorIndexing::printGraph() {
+////      Print the graph from partitionerSharedState
+//    auto& partitionBuffer = *sharedState->partitionerSharedState->partitioningBuffers[0];
+//    auto totalElements = 0;
+//    for (auto partitionIdx = 0u; partitionIdx < partitionBuffer.partitions.size();
+//    partitionIdx++) {
+//        auto& partition = partitionBuffer.partitions[partitionIdx];
+//        auto& group = partition.getChunkedGroups()[0];
+//        auto& from = group->getColumnChunk(0);
+//        auto& to = group->getColumnChunk(1);
+//        auto& relId = group->getColumnChunk(2);
+//        for (auto i = 0u; i < group->getNumRows(); i++) {
+//            totalElements++;
+//        }
+//    }
+//    printf("Total elements: %d\n", totalElements);
+//}
+
+//void BulkVectorIndexing::testGraph() {
+//    // Load Query Fvec file
+//    int k = 100;
+//    int ef_search = 100;
+//    auto queryVectorPath = "/Users/gauravsehgal/work/orangedb/data/gist_10k/query.fvecs";
+//    auto groundTruthPath = "/Users/gauravsehgal/work/orangedb/data/gist_10k/gt.bin";
+//    size_t queryDimension, queryNumVectors;
+//    float *queryVecs = readFvecFile(queryVectorPath, &queryDimension, &queryNumVectors);
+//    auto *gtVecs = new vector_id_t[queryNumVectors * k];
+//    loadFromFile(groundTruthPath, reinterpret_cast<uint8_t *>(gtVecs), queryNumVectors * k * sizeof(vector_id_t));
+//
+//    // Test with ANN
+//    auto visited = std::make_unique<VisitedTable>(sharedState->tempStorage->numVectors);
+//    auto distanceComputer = std::make_unique<L2DistanceComputer>(sharedState->tempStorage->vectors,
+//        sharedState->header->getDim(), sharedState->tempStorage->numVectors);
+//    auto recall = 0.0;
+//
+//    for (size_t i = 0; i < queryNumVectors; i++) {
+//        std::priority_queue<NodeDistCloser> results;
+//        std::vector<NodeDistFarther> res;
+//        sharedState->builder->search(queryVecs + (i * queryDimension), k, ef_search, visited.get(), results, distanceComputer.get());
+//        while (!results.empty()) {
+//            auto top = results.top();
+//            res.emplace_back(top.id, top.dist);
+//            results.pop();
+//        }
+////        printf("Results size: %lu\n", res.size());
+//        auto gt = gtVecs + i * k;
+//        for (auto &result: res) {
+//            if (std::find(gt, gt + k, result.id) != (gt + k)) {
+//                recall++;
+//            }
+//        }
+//    }
+//    auto recallPerQuery = recall / queryNumVectors;
+////    printf("Recall: %f\n", (recallPerQuery / k) * 100);
+//}
 
 std::unique_ptr<PhysicalOperator> BulkVectorIndexing::clone() {
     return make_unique<BulkVectorIndexing>(resultSetDescriptor->copy(), localState->copy(),

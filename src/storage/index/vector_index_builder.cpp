@@ -255,47 +255,12 @@ void VectorIndexBuilder::findEntrypointUsingUpperLayer(DistanceComputer* dc,
 void VectorIndexBuilder::batchInsert(const float* vectors, const vector_id_t* vectorIds,
     uint64_t numVectors, VisitedTable* visited, DistanceComputer* dc) {
     std::vector<vector_id_t> upperLayerVectorIds;
-    header->update(vectorIds, numVectors, upperLayerVectorIds);
-
     // first copy the vectors to the temporary storage
     vectorTempStorage->copyVectors(vectors, vectorIds, numVectors);
+    header->update(vectorIds, numVectors, upperLayerVectorIds);
 
     KU_ASSERT_MSG(upperLayerVectorIds.empty() || header->getEntrypointLevel() == 1,
         "Entrypoint level should be 1 for upper layer vectors.");
-
-    // Insert the vectors in the upper layer first
-    // We need actual upper layer id
-    for (auto id : upperLayerVectorIds) {
-        std::vector<NodeDistCloser> backNbrs;
-        {
-            auto actualId = header->getActualId(id);
-            std::lock_guard<std::mutex> lock(locks[actualId]);
-
-            dc->setQuery(vectorTempStorage->getVector(actualId));
-            auto entrypoint = header->getEntrypoint();
-            double entrypointDist;
-            dc->computeDistance(header->getActualId(entrypoint), &entrypointDist);
-            insertNode(
-                dc, id, entrypoint, entrypointDist, header->getConfig().maxNbrsAtUpperLevel,
-                header->getConfig().efConstruction, visited, backNbrs,
-                [&](vector_id_t id, size_t& begin, size_t& end) {
-                    return header->getNeighbors(id, begin, end);
-                },
-                [&](vector_id_t _id) { return header->getActualId(_id); });
-        }
-        // Now update the neighbors of the back neighbors
-        for (auto& backNbr : backNbrs) {
-            {
-                std::lock_guard<std::mutex> lock(locks[header->getActualId(backNbr.id)]);
-                makeConnection(
-                    dc, backNbr.id, id, backNbr.dist, header->getConfig().maxNbrsAtUpperLevel,
-                    [&](vector_id_t id, size_t& begin, size_t& end) {
-                        return header->getNeighbors(id, begin, end);
-                    },
-                    [&](vector_id_t _id) { return header->getActualId(_id); });
-            }
-        }
-    }
 
     // Now insert the vectors in the lower layer
     for (uint64_t i = 0; i < numVectors; i++) {
@@ -310,8 +275,8 @@ void VectorIndexBuilder::batchInsert(const float* vectors, const vector_id_t* ve
             insertNode(
                 dc, id, entrypoint, entrypointDist, header->getConfig().maxNbrsAtLowerLevel,
                 header->getConfig().efConstruction, visited, backNbrs,
-                [&](vector_id_t id, size_t& begin, size_t& end) {
-                    return graphStorage->getNeighbors(id, begin, end);
+                [&](vector_id_t _id, size_t& begin, size_t& end) {
+                    return graphStorage->getNeighbors(_id, begin, end);
                 },
                 [&](vector_id_t _id) { return _id; });
         }
@@ -321,10 +286,43 @@ void VectorIndexBuilder::batchInsert(const float* vectors, const vector_id_t* ve
                 std::lock_guard<std::mutex> lock(locks[backNbr.id]);
                 makeConnection(
                     dc, backNbr.id, id, backNbr.dist, header->getConfig().maxNbrsAtLowerLevel,
-                    [&](vector_id_t id, size_t& begin, size_t& end) {
-                        return graphStorage->getNeighbors(id, begin, end);
+                    [&](vector_id_t _id, size_t& begin, size_t& end) {
+                        return graphStorage->getNeighbors(_id, begin, end);
                     },
                     [&](vector_id_t _id) { return _id; });
+            }
+        }
+    }
+
+    // Insert the vectors in the upper layer first
+    // We need actual upper layer id
+    for (auto id : upperLayerVectorIds) {
+        std::vector<NodeDistCloser> backNbrs;
+        {
+            auto actualId = header->getActualId(id);
+            std::lock_guard<std::mutex> lock(locks[actualId]);
+            dc->setQuery(vectorTempStorage->getVector(actualId));
+            auto entrypoint = header->getEntrypoint();
+            double entrypointDist;
+            dc->computeDistance(header->getActualId(entrypoint), &entrypointDist);
+            insertNode(
+                dc, id, entrypoint, entrypointDist, header->getConfig().maxNbrsAtUpperLevel,
+                header->getConfig().efConstruction, visited, backNbrs,
+                [&](vector_id_t _id, size_t& begin, size_t& end) {
+                    return header->getNeighbors(_id, begin, end);
+                },
+                [&](vector_id_t _id) { return header->getActualId(_id); });
+        }
+        // Now update the neighbors of the back neighbors
+        for (auto& backNbr : backNbrs) {
+            {
+                std::lock_guard<std::mutex> lock(locks[header->getActualId(backNbr.id)]);
+                makeConnection(
+                    dc, backNbr.id, id, backNbr.dist, header->getConfig().maxNbrsAtUpperLevel,
+                    [&](vector_id_t _id, size_t& begin, size_t& end) {
+                        return header->getNeighbors(_id, begin, end);
+                    },
+                    [&](vector_id_t _id) { return header->getActualId(_id); });
             }
         }
     }

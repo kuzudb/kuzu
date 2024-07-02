@@ -61,10 +61,12 @@ public:
 
     void finalize(ExecutionContext* context) override;
 
+//    void testGraph();
+
     std::unique_ptr<PhysicalOperator> clone() final;
 
 private:
-    void printGraph();
+//    void printGraph();
 
 private:
     std::unique_ptr<BulkVectorIndexingLocalState> localState;
