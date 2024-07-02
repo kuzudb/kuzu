@@ -135,23 +135,24 @@ void VersionInfo::getSelVectorToScan(const transaction_t startTS, const transact
     auto [startVectorIdx, startRowIdxInVector] =
         StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
     auto [endVectorIdx, endRowIdxInVector] =
-        StorageUtils::getQuotientRemainder(startRow + numRows, DEFAULT_VECTOR_CAPACITY);
+        StorageUtils::getQuotientRemainder(startRow + numRows - 1, DEFAULT_VECTOR_CAPACITY);
     auto vectorIdx = startVectorIdx;
     while (vectorIdx <= endVectorIdx) {
         const auto startRowIdx = vectorIdx == startVectorIdx ? startRowIdxInVector : 0;
         const auto endRowIdx =
             vectorIdx == endVectorIdx ? endRowIdxInVector : DEFAULT_VECTOR_CAPACITY;
+        const auto numRowsInVector = endRowIdx - startRowIdx + 1;
         if (vectorIdx >= vectorsInfo.size() || !vectorsInfo[vectorIdx]) {
             auto numSelected = selVector.getSelSize();
             const auto numValues = selVector.getSelSize();
-            for (auto i = 0u; i < endRowIdx - startRowIdx; i++) {
+            for (auto i = 0u; i < numRowsInVector; i++) {
                 selVector.getMultableBuffer()[numSelected++] = numValues + i;
             }
             selVector.setToFiltered(numSelected);
         } else {
             auto& vectorVersionInfo = getVersionInfo(startVectorIdx);
             vectorVersionInfo.getSelVectorForScan(startTS, transactionID, selVector, startRowIdx,
-                endRowIdx - startRowIdx);
+                numRowsInVector);
         }
         vectorIdx++;
     }
