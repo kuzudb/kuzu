@@ -28,14 +28,10 @@ void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/,
         relInfo->tableEntry->constCast<RelTableCatalogEntry>().getNbrTableID(relInfo->direction);
     const auto relTableID = relInfo->tableEntry->getTableID();
     // TODO(Guodong): Get rid of the hard-coded nbr and rel column ID 0/1.
-    localState->chunkedGroup->getColumnChunk(0)
-        .getData()
-        .cast<InternalIDChunkData>()
-        .setTableID(nbrTableID);
-    localState->chunkedGroup->getColumnChunk(1)
-        .getData()
-        .cast<InternalIDChunkData>()
-        .setTableID(relTableID);
+    localState->chunkedGroup->getColumnChunk(0).getData().cast<InternalIDChunkData>().setTableID(
+        nbrTableID);
+    localState->chunkedGroup->getColumnChunk(1).getData().cast<InternalIDChunkData>().setTableID(
+        relTableID);
 }
 
 void RelBatchInsert::executeInternal(ExecutionContext* context) {
