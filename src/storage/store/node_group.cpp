@@ -136,6 +136,7 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
         numRowsToScan);
     const auto startRow = nodeGroupScanState.nextRowToScan;
     nodeGroupScanState.nextRowToScan += numRowsToScan;
+    // TODO(Guodong): numRowsToScan should be changed to selVector.size
     return NodeGroupScanResult{startRow, numRowsToScan};
 }
 
