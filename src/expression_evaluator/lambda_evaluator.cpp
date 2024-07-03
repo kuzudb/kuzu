@@ -24,6 +24,8 @@ void ListLambdaEvaluator::init(const ResultSet& resultSet, ClientContext* client
     lambdaParamEvaluator->resultVector->state = std::make_shared<DataChunkState>();
     lambdaRootEvaluator->init(resultSet, clientContext);
     resolveResultVector(resultSet, clientContext->getMemoryManager());
+    params.push_back(children[0]->resultVector);
+    params.push_back(lambdaRootEvaluator->resultVector);
 }
 
 void ListLambdaEvaluator::evaluate() {
@@ -31,13 +33,9 @@ void ListLambdaEvaluator::evaluate() {
     children[0]->evaluate();
     auto listSize = ListVector::getDataVectorSize(children[0]->resultVector.get());
     auto lambdaParamVector = lambdaParamEvaluator->resultVector.get();
-    auto& lambdaParamSelVector = lambdaParamVector->state->getSelVectorUnsafe();
-    lambdaParamSelVector.setSelSize(listSize);
-    std::vector<std::shared_ptr<common::ValueVector>> inputVectors;
-    inputVectors.push_back(children[0]->resultVector);
-    inputVectors.push_back(lambdaRootEvaluator->resultVector);
+    lambdaParamVector->state->getSelVectorUnsafe().setSelSize(listSize);
     lambdaRootEvaluator->evaluate();
-    execFunc(inputVectors, *resultVector, nullptr);
+    execFunc(params, *resultVector, nullptr /* dataPtr */);
 }
 
 void ListLambdaEvaluator::resolveResultVector(const ResultSet&, MemoryManager* memoryManager) {

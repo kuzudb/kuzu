@@ -64,6 +64,7 @@ private:
 private:
     std::unique_ptr<ExpressionEvaluator> lambdaRootEvaluator;
     LambdaParamEvaluator* lambdaParamEvaluator;
+    std::vector<std::shared_ptr<common::ValueVector>> params;
 };
 
 } // namespace evaluator

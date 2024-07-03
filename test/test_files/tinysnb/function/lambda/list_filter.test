@@ -19,13 +19,6 @@
 [6,7]
 []
 [10,11,12,6,7]
--STATEMENT MATCH (a:person) RETURN LIST_FILTER(a.courseScoresPerTerm, x-> size(x) + 10 > 12)
----- 8
-[[6,7,8]]
-[]
-[]
-[]
-[]
-[]
-[]
-[]
+-STATEMENT MATCH (a:person) RETURN LIST_FILTER(a.courseScoresPerTerm, x->size(x))
+---- error
+Binder exception: LIST_FILTER requires the result type of lambda expression be BOOL.

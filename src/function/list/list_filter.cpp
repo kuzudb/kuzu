@@ -23,7 +23,8 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
     paramTypes.push_back(arguments[0]->getDataType().copy());
     paramTypes.push_back(arguments[1]->getDataType().copy());
     if (arguments[1]->getDataType() != LogicalType::BOOL()) {
-        throw BinderException("Result type must be a bool.");
+        throw BinderException(common::stringFormat(
+            "{} requires the result type of lambda expression be BOOL.", ListFilterFunction::name));
     }
     return std::make_unique<FunctionBindData>(std::move(paramTypes),
         LogicalType::LIST(ListType::getChildType(arguments[0]->getDataType()).copy()));
