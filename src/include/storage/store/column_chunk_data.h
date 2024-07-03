@@ -133,6 +133,8 @@ public:
     virtual void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend);
 
+    virtual void flush(BMFileHandle& dataFH);
+
     ColumnChunkMetadata flushBuffer(BMFileHandle* dataFH, common::page_idx_t startPageIdx,
         const ColumnChunkMetadata& metadata) const;
 
@@ -198,6 +200,9 @@ protected:
     // constructor.
     void initializeBuffer();
     void initializeFunction(bool enableCompression);
+
+    // Note: This function is not setting child/null chunk data recursively.
+    void setToOnDisk(const ColumnChunkMetadata& metadata);
 
     virtual void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk,
         const common::SelectionVector& selVector);

@@ -325,6 +325,25 @@ void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
     numValues += numValuesToAppend;
 }
 
+void ColumnChunkData::flush(BMFileHandle& dataFH) {
+    const auto preScanMetadata = getMetadataToFlush();
+    const auto startPageIdx = dataFH.addNewPages(preScanMetadata.numPages);
+    const auto metadata = flushBuffer(&dataFH, startPageIdx, preScanMetadata);
+    setToOnDisk(metadata);
+    if (nullData) {
+        nullData->flush(dataFH);
+    }
+}
+
+// Note: This function is not setting child/null chunk data recursively.
+void ColumnChunkData::setToOnDisk(const ColumnChunkMetadata& metadata) {
+    residencyState = ResidencyState::ON_DISK;
+    buffer.reset();
+    capacity = 0;
+    this->metadata = metadata;
+    this->numValues = metadata.numValues;
+}
+
 ColumnChunkMetadata ColumnChunkData::flushBuffer(BMFileHandle* dataFH, page_idx_t startPageIdx,
     const ColumnChunkMetadata& metadata) const {
     if (!metadata.compMeta.isConstant() && bufferSize != 0) {

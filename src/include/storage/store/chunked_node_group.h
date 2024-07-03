@@ -105,7 +105,9 @@ public:
             common::RelMultiplicity::ONE);
     }
 
-    virtual std::unique_ptr<ChunkedNodeGroup> flush(BMFileHandle& dataFH) const;
+    virtual std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
+        BMFileHandle& dataFH) const;
+    virtual void flush(BMFileHandle& dataFH);
 
     uint64_t getEstimatedMemoryUsage() const;
     bool hasUpdates() const;

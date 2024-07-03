@@ -219,6 +219,12 @@ void StringChunkData::finalize() {
     dictionaryChunk = std::move(newDictionaryChunk);
 }
 
+void StringChunkData::flush(BMFileHandle& dataFH) {
+    ColumnChunkData::flush(dataFH);
+    indexColumnChunk->flush(dataFH);
+    dictionaryChunk->flush(dataFH);
+}
+
 uint64_t StringChunkData::getEstimatedMemoryUsage() const {
     return ColumnChunkData::getEstimatedMemoryUsage() + dictionaryChunk->getEstimatedMemoryUsage();
 }

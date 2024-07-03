@@ -249,13 +249,20 @@ void ChunkedNodeGroup::finalize() const {
     }
 }
 
-std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flush(BMFileHandle& dataFH) const {
+std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flushAsNewChunkedNodeGroup(
+    BMFileHandle& dataFH) const {
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
         flushedChunks[i] = std::make_unique<ColumnChunk>(getColumnChunk(i).isCompressionEnabled(),
             Column::flushChunkData(getColumnChunk(i).getData(), dataFH));
     }
     return std::make_unique<ChunkedNodeGroup>(std::move(flushedChunks), 0 /*startRowIdx*/);
+}
+
+void ChunkedNodeGroup::flush(BMFileHandle& dataFH) {
+    for (auto i = 0u; i < getNumColumns(); i++) {
+        getColumnChunk(i).getData().flush(dataFH);
+    }
 }
 
 uint64_t ChunkedNodeGroup::getEstimatedMemoryUsage() const {

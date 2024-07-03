@@ -90,7 +90,8 @@ void ChunkedCSRHeader::fillDefaultValues(const offset_t newNumValues) const {
         offset->getNumValues() >= newNumValues && length->getNumValues() == offset->getNumValues());
 }
 
-std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flush(BMFileHandle& dataFH) const {
+std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flushAsNewChunkedNodeGroup(
+    BMFileHandle& dataFH) const {
     auto csrOffset = std::make_unique<ColumnChunk>(csrHeader.offset->isCompressionEnabled(),
         Column::flushChunkData(csrHeader.offset->getData(), dataFH));
     auto csrLength = std::make_unique<ColumnChunk>(csrHeader.length->isCompressionEnabled(),
@@ -103,6 +104,14 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flush(BMFileHandle& dataF
     ChunkedCSRHeader csrHeader{std::move(csrOffset), std::move(csrLength)};
     return std::make_unique<ChunkedCSRNodeGroup>(std::move(csrHeader), std::move(flushedChunks),
         0 /*startRowIdx*/);
+}
+
+void ChunkedCSRNodeGroup::flush(BMFileHandle& dataFH) {
+    csrHeader.offset->getData().flush(dataFH);
+    csrHeader.length->getData().flush(dataFH);
+    for (auto i = 0u; i < getNumColumns(); i++) {
+        getColumnChunk(i).getData().flush(dataFH);
+    }
 }
 
 void ChunkedCSRNodeGroup::serialize(Serializer& serializer) const {

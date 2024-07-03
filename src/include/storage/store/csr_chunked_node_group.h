@@ -55,7 +55,10 @@ public:
             common::RelMultiplicity::MANY);
     }
 
-    std::unique_ptr<ChunkedNodeGroup> flush(BMFileHandle& dataFH) const override;
+    std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
+        BMFileHandle& dataFH) const override;
+
+    void flush(BMFileHandle& dataFH) override;
 
 private:
     ChunkedCSRHeader csrHeader;
