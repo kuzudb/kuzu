@@ -43,7 +43,6 @@ void ListLambdaEvaluator::evaluate() {
 void ListLambdaEvaluator::resolveResultVector(const ResultSet&, MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(expression->getDataType().copy(), memoryManager);
     resultVector->state = children[0]->resultVector->state;
-    // ListVector::setDataVector(resultVector.get(), lambdaRootEvaluator->resultVector);
 }
 
 } // namespace evaluator
