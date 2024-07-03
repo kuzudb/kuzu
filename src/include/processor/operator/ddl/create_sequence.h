@@ -26,5 +26,19 @@ private:
     binder::BoundCreateSequenceInfo info;
 };
 
+struct CreateSequencePrintInfo final : OPPrintInfo {
+    std::string sequenceName;
+
+    CreateSequencePrintInfo(std::string sequenceName)
+        : sequenceName{std::move(sequenceName)} {}
+    CreateSequencePrintInfo(const CreateSequencePrintInfo& other)
+        : OPPrintInfo{other}, sequenceName{other.sequenceName} {}
+    
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::make_unique<CreateSequencePrintInfo>(*this);
+    }};
+
 } // namespace processor
 } // namespace kuzu

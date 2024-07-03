@@ -16,6 +16,9 @@ void DropTable::executeDDLInternal(ExecutionContext* context) {
 std::string DropTable::getOutputMsg() {
     return stringFormat("Table: {} has been dropped.", tableName);
 }
-
+std::string DropTablePrintInfo::toString() const{
+    std::string result = "Table Name: ";
+    result += tableName;
+};
 } // namespace processor
 } // namespace kuzu

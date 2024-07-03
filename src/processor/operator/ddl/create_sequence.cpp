@@ -34,5 +34,11 @@ std::string CreateSequence::getOutputMsg() {
     }
 }
 
+std::string CreateSequencePrintInfo::toString() const{
+    std::string result = "Sequence Name: ";
+    result += sequenceName;
+    return result;
+}
+
 } // namespace processor
 } // namespace kuzu

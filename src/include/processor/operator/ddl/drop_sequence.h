@@ -19,13 +19,26 @@ public:
     std::string getOutputMsg() override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<DropSequence>(sequenceName, sequenceID, outputPos, id,
+        return std::make_unique<DropSequence>(sequenceName, sequenceID, outputPos, id,
             printInfo->copy());
     }
 
 protected:
     std::string sequenceName;
     common::sequence_id_t sequenceID;
+};
+
+struct DropSequencePrintInfo final : OPPrintInfo {
+    std::string sequenceName;
+
+    DropSequencePrintInfo(std::string sequenceName)
+        : sequenceName(std::move(sequenceName)) {}
+    DropSequencePrintInfo(const DropSequencePrintInfo& other)
+        : OPPrintInfo(other), sequenceName(other.sequenceName) {}
+
+    std::string toString() const override;
+
+
 };
 
 } // namespace processor

@@ -50,5 +50,21 @@ private:
     std::vector<std::unique_ptr<RelDeleteExecutor>> executors;
 };
 
+struct DeleteNodePrintInfo final : OPPrintInfo {
+    binder::expression_vector expressions;
+    std::string deleteConfig;
+
+    DeleteNodePrintInfo(binder::expression_vector expressions, std::string deleteConfig)
+        : expressions{std::move(expressions)}, deleteConfig{std::move(deleteConfig)} {}
+    DeleteNodePrintInfo(const DeleteNodePrintInfo& other)
+        : OPPrintInfo{other}, expressions{other.expressions}, deleteConfig{other.deleteConfig} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::make_unique<DeleteNodePrintInfo>(*this);
+    }
+};
+
 } // namespace processor
 } // namespace kuzu

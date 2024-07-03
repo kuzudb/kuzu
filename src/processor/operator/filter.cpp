@@ -58,5 +58,11 @@ bool NodeLabelFiler::getNextTuplesInternal(ExecutionContext* context) {
     return true;
 }
 
+std::string FilterPrintInfo::toString() const {
+    std::string result = "Expression Name: ";
+    result += expressionName;
+    return result;
+}
+
 } // namespace processor
 } // namespace kuzu

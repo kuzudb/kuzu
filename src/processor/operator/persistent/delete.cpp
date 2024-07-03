@@ -1,5 +1,8 @@
 #include "processor/operator/persistent/delete.h"
 
+#include "binder/expression/expression_util.h"
+
+
 namespace kuzu {
 namespace processor {
 
@@ -53,6 +56,14 @@ std::unique_ptr<PhysicalOperator> DeleteRel::clone() {
     }
     return std::make_unique<DeleteRel>(std::move(executorsCopy), children[0]->clone(), id,
         printInfo->copy());
+}
+
+std::string DeleteNodePrintInfo::toString() const {
+    std::string result = "Expressions: ";
+    result += binder::ExpressionUtil::toString(expressions);
+    result += ", Possible Configs: ";
+    result += deleteConfig;
+    return result;
 }
 
 } // namespace processor

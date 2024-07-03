@@ -17,5 +17,11 @@ std::string CreateType::getOutputMsg() {
     return stringFormat("Type {}({}) has been created.", name, type.toString());
 }
 
+std::string CreateTypePrintInfo::toString() const{
+    std::string result = "Type Name: ";
+    result += typeName;
+    return result;
+}
+
 } // namespace processor
 } // namespace kuzu

@@ -28,5 +28,22 @@ private:
     bool tableCreated = false;
 };
 
+struct CreateTablePrintInfo final : OPPrintInfo {
+    std::string tableName;
+    std::string tableConfig;
+
+    CreateTablePrintInfo(std::string tableName, std::string tableConfig)
+        : tableName{std::move(tableName)}, tableConfig{std::move(tableConfig)} {}
+    CreateTablePrintInfo(const CreateTablePrintInfo& other)
+        : OPPrintInfo{other}, tableName{other.tableName}, tableConfig{other.tableConfig} {}
+    
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::make_unique<CreateTablePrintInfo>(*this);
+    }
+};
+
+
 } // namespace processor
 } // namespace kuzu

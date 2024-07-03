@@ -23,7 +23,7 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<Filter>(expressionEvaluator->clone(), dataChunkToSelectPos,
+        return std::make_unique<Filter>(expressionEvaluator->clone(), dataChunkToSelectPos,
             children[0]->clone(), id, printInfo->copy());
     }
 
@@ -70,6 +70,21 @@ public:
 private:
     std::unique_ptr<NodeLabelFilterInfo> info;
     common::ValueVector* nodeIDVector;
+};
+
+struct FilterPrintInfo final : OPPrintInfo{
+    std::string expressionName;
+
+    FilterPrintInfo(std::string expressionName)
+        : expressionName(std::move(expressionName)) {}
+    FilterPrintInfo(const FilterPrintInfo& other)
+        : OPPrintInfo(other), expressionName(other.expressionName) {}
+    
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::make_unique<FilterPrintInfo>(*this);
+    }
 };
 
 } // namespace processor

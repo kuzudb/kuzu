@@ -19,13 +19,26 @@ public:
     std::string getOutputMsg() override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<DropTable>(tableName, tableID, outputPos, id, printInfo->copy());
+        return std::make_unique<DropTable>(tableName, tableID, outputPos, id, printInfo->copy());
     }
 
 protected:
     std::string tableName;
     common::table_id_t tableID;
 };
+
+struct DropTablePrintInfo final : OPPrintInfo {
+    std::string tableName;
+    DropTablePrintInfo(std::string tableName)
+        : tableName(std::move(tableName)) {}
+    DropTablePrintInfo(const DropTablePrintInfo& other)
+        : OPPrintInfo(other), tableName(other.tableName) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::make_unique<DropTablePrintInfo>(*this);
+    }};
 
 } // namespace processor
 } // namespace kuzu

@@ -24,5 +24,20 @@ private:
     std::string dbName;
 };
 
+struct DetachDatabasePrintInfo final : OPPrintInfo {
+    std::string dbName;
+
+    DetachDatabasePrintInfo(std::string dbName) 
+        : dbName{std::move(dbName)} {}
+    DetachDatabasePrintInfo(const DetachDatabasePrintInfo& other)
+        : OPPrintInfo(other), dbName{other.dbName} {}
+    
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::make_unique<DetachDatabasePrintInfo>(*this);
+    }
+};
+
 } // namespace processor
 } // namespace kuzu

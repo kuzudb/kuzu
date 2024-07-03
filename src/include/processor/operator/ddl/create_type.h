@@ -28,5 +28,20 @@ private:
     common::LogicalType type;
 };
 
+struct CreateTypePrintInfo final : OPPrintInfo {
+    std::string typeName;
+
+    CreateTypePrintInfo(std::string typeName)
+        : typeName{std::move(typeName)} {}
+    CreateTypePrintInfo(const CreateTypePrintInfo& other)
+        : OPPrintInfo{other}, typeName{other.typeName} {}
+    
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::make_unique<CreateTypePrintInfo>(*this);
+    }
+
+    };
 } // namespace processor
 } // namespace kuzu

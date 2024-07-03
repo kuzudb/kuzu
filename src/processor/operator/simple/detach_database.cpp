@@ -19,5 +19,11 @@ std::string DetachDatabase::getOutputMsg() {
     return "Detached database successfully.";
 }
 
+std::string DetachDatabasePrintInfo::toString() const{
+    std::string result = "Database Name: ";
+    result += dbName;
+    return result;
+}
+
 } // namespace processor
 } // namespace kuzu

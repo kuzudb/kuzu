@@ -17,5 +17,11 @@ std::string DropSequence::getOutputMsg() {
     return stringFormat("Sequence: {} has been dropped.", sequenceName);
 }
 
+std::string DropSequencePrintInfo::toString() const{
+    std::string result = "Sequence Name: ";
+    result += sequenceName;
+    return result;
+}
+
 } // namespace processor
 } // namespace kuzu
