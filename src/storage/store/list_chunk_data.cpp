@@ -386,5 +386,12 @@ void ListChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData)
     chunkData.cast<ListChunkData>().offsetColumnChunk = ColumnChunkData::deserialize(deSer);
 }
 
+void ListChunkData::flush(BMFileHandle& dataFH) {
+    ColumnChunkData::flush(dataFH);
+    sizeColumnChunk->flush(dataFH);
+    dataColumnChunk->flush(dataFH);
+    offsetColumnChunk->flush(dataFH);
+}
+
 } // namespace storage
 } // namespace kuzu

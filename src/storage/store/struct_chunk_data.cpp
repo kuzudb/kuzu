@@ -59,6 +59,13 @@ void StructChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkDat
     deSer.deserializeVectorOfPtrs(chunkData.cast<StructChunkData>().childChunks);
 }
 
+void StructChunkData::flush(BMFileHandle& dataFH) {
+    ColumnChunkData::flush(dataFH);
+    for (const auto& childChunk : childChunks) {
+        childChunk->flush(dataFH);
+    }
+}
+
 void StructChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     KU_ASSERT(other->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);

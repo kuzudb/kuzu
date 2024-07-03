@@ -58,6 +58,8 @@ public:
 
     void finalize() override;
 
+    void flush(BMFileHandle &dataFH) override;
+
     void resize(uint64_t newCapacity) override;
     uint64_t getEstimatedMemoryUsage() const override;
 

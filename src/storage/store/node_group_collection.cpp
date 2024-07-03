@@ -89,7 +89,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroup(Transac
     }
     if (directFlushWhenAppend) {
         chunkedGroup.finalize();
-        auto flushedGroup = chunkedGroup.flush(*dataFH);
+        auto flushedGroup = chunkedGroup.flushAsNewChunkedNodeGroup(*dataFH);
         KU_ASSERT(lastNodeGroup->getNumChunkedGroups() == 0);
         lastNodeGroup->merge(transaction, std::move(flushedGroup));
     }

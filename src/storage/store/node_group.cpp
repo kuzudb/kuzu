@@ -184,20 +184,21 @@ bool NodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxInGroup)
 void NodeGroup::flush(BMFileHandle& dataFH) {
     const auto lock = chunkedGroups.lock();
     if (chunkedGroups.getNumGroups(lock) == 1) {
-        const auto chunkedGroupToFlush = chunkedGroups.getGroup(lock, 0);
-        auto flushedChunkedGroup = chunkedGroupToFlush->flush(dataFH);
-        chunkedGroups.replaceGroup(lock, 0, std::move(flushedChunkedGroup));
+        const auto chunkedGroupToFlush = chunkedGroups.getFirstGroup(lock);
+        chunkedGroupToFlush->flush(dataFH);
     } else {
         // Merge all chunkedGroups into a single one first. Then flush it to disk.
-        const auto mergedChunkedGroup = std::make_unique<ChunkedNodeGroup>(dataTypes,
-            enableCompression, StorageConstants::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
+        auto mergedChunkedGroup = std::make_unique<ChunkedNodeGroup>(dataTypes, enableCompression,
+            StorageConstants::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
         for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
             mergedChunkedGroup->append(&DUMMY_WRITE_TRANSACTION, *chunkedGroup, 0,
                 chunkedGroup->getNumRows());
         }
-        auto flushedChunkedGroup = mergedChunkedGroup->flush(dataFH);
-        chunkedGroups.replaceGroup(lock, 0, std::move(flushedChunkedGroup));
+        mergedChunkedGroup->flush(dataFH);
+        chunkedGroups.replaceGroup(lock, 0, std::move(mergedChunkedGroup));
     }
+    // Clear all chunkedGroups except the first one, which is persistent.
+    chunkedGroups.resize(lock, 1);
 }
 
 void NodeGroup::checkpoint(const NodeGroupCheckpointState& state) {
