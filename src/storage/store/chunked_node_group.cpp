@@ -243,6 +243,16 @@ bool ChunkedNodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxI
     return versionInfo->delete_(transaction, rowIdxInChunk);
 }
 
+void ChunkedNodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
+    bool enableCompression) {
+    auto numRows = getNumRows();
+    auto chunkData = 
+        ColumnChunkFactory::createColumnChunkData(addColumnState.property.getDataType().copy(),
+            enableCompression, capacity, ResidencyState::IN_MEMORY);
+    chunkData->populateWithDefaultVal(addColumnState.defaultEvaluator, numRows);
+    chunks.push_back(std::make_unique<ColumnChunk>(enableCompression, std::move(chunkData)));
+}
+
 void ChunkedNodeGroup::finalize() const {
     for (auto i = 0u; i < chunks.size(); i++) {
         chunks[i]->getData().finalize();

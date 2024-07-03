@@ -191,17 +191,12 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
 }
 
 // TODO(FIX-ME): Rework this.
-void NodeTable::addColumn(Transaction* transaction, const Property& property,
-    ExpressionEvaluator& defaultEvaluator) {
-    // const auto nodesStats =
-    // ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics);
-    // nodesStats->addMetadataDAHInfo(tableID, property.getDataType());
-    // tableData->addColumn(transaction, "", tableData->getColumn(pkColumnID)->getMetadataDA(),
-    // *nodesStats->getMetadataDAHInfo(transaction, tableID, tableData->getNumColumns()), property,
-    // defaultEvaluator);
-    // TODO(Guodong): addColumn is not going through localStorage design for now. So it needs to add
-    // tableID into the wal's updated table set separately, as it won't trigger prepareCommit.
-    // wal->addToUpdatedTables(tableID);
+void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
+    auto& property = addColumnState.property;
+    KU_ASSERT(property.getColumnID() == columns.size());
+    columns.push_back(ColumnFactory::createColumn(property.getName(),
+        property.getDataType().copy(), dataFH, bufferManager, wal, enableCompression));
+    nodeGroups->addColumn(transaction, addColumnState);
 }
 
 std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(Transaction* transaction,

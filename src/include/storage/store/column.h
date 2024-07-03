@@ -104,10 +104,6 @@ public:
         ChunkState& state, const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
         common::offset_t startSrcOffset);
 
-    void populateWithDefaultVal(transaction::Transaction* transaction,
-        DiskArray<ColumnChunkMetadata>* metadataDA,
-        evaluator::ExpressionEvaluator& defaultEvaluator);
-
     std::string getName() const { return name; }
 
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,

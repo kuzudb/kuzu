@@ -211,8 +211,7 @@ row_idx_t RelTable::detachDeleteForCSRRels(Transaction*, RelTableData*, RelTable
 }
 
 // TODO(Guodong): Rework this.
-void RelTable::addColumn(Transaction* transaction, const Property& property,
-    ExpressionEvaluator& defaultEvaluator) {
+void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
     // const auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
     // relsStats->addMetadataDAHInfo(tableID, property.getDataType());
     // fwdRelTableData->addColumn(transaction,
