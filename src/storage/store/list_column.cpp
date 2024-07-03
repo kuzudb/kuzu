@@ -204,20 +204,6 @@ void ListColumn::lookupValue(Transaction* transaction, ChunkState& readState, of
         listEndOffset, dataVector, offsetInVector);
 }
 
-void ListColumn::append(ColumnChunkData* columnChunk, ChunkState& state) {
-    KU_ASSERT(columnChunk->getDataType().getPhysicalType() == dataType.getPhysicalType());
-    auto& listColumnChunk = columnChunk->cast<ListChunkData>();
-    Column::append(columnChunk, state);
-
-    auto* offsetColumnChunk = listColumnChunk.getOffsetColumnChunk();
-    offsetColumn->append(offsetColumnChunk,
-        state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
-    auto* sizeColumnChunk = listColumnChunk.getSizeColumnChunk();
-    sizeColumn->append(sizeColumnChunk, state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX]);
-    auto* dataColumnChunk = listColumnChunk.getDataColumnChunk();
-    dataColumn->append(dataColumnChunk, state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
-}
-
 void ListColumn::scanUnfiltered(Transaction* transaction, const ChunkState& state,
     ValueVector* resultVector, uint64_t numValuesToScan,
     const ListOffsetSizeInfo& listOffsetInfoInStorage) const {
@@ -322,123 +308,76 @@ ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
     return {numValuesScan, std::move(offsetColumnChunk), std::move(sizeColumnChunk)};
 }
 
-// void ListColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkState& state,
-// const ChunkDataCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
-// const ChunkDataCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
-// const offset_set_t&) {
-// TODO: Should handle deletions.
-// auto columnChunk = getEmptyChunkForCommit(updateInfo.size() + insertInfo.size());
-// std::vector<offset_t> dstOffsets;
-// for (auto& [offsetInDstChunk, rowIdx] : updateInfo) {
-//     auto [chunkIdx, offsetInLocalChunk] =
-//         LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-//     auto localUpdateChunk = localUpdateChunks[chunkIdx];
-//     dstOffsets.push_back(offsetInDstChunk);
-//     columnChunk->append(localUpdateChunk, offsetInLocalChunk, 1);
-// }
-// for (auto& [offsetInDstChunk, rowIdx] : insertInfo) {
-//     auto [chunkIdx, offsetInLocalChunk] =
-//         LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-//     auto localInsertChunk = localInsertChunks[chunkIdx];
-//     dstOffsets.push_back(offsetInDstChunk);
-//     columnChunk->append(localInsertChunk, offsetInLocalChunk, 1);
-// }
-// prepareCommitForExistingChunk(transaction, state, dstOffsets, columnChunk.get(),
-// 0 /*startSrcOffset*/);
-// }
-
-void ListColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkState& state,
-    const std::vector<offset_t>& dstOffsets, ColumnChunkData* chunk, offset_t startSrcOffset) {
-    // we first check if we can in place commit data column chunk
-    // if we can not in place commit data column chunk, we will out place commit offset/size/data
-    // column chunk otherwise, we commit data column chunk in place and separately commit
-    // offset/size column chunk
-    auto& listChunk = chunk->cast<ListChunkData>();
-    auto dataColumnSize =
-        state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX].metadata.numValues;
-    auto dataColumnChunk = listChunk.getDataColumnChunk();
-    auto numListsToAppend = std::min(chunk->getNumValues(), (uint64_t)dstOffsets.size());
-    auto dataSize = 0u;
-    auto startListOffset = listChunk.getListStartOffset(startSrcOffset);
-    std::vector<offset_t> dstOffsetsInDataColumn;
-    for (auto i = 0u; i < numListsToAppend; i++) {
-        for (auto j = 0u; j < listChunk.getListSize(startSrcOffset + i); j++) {
-            dstOffsetsInDataColumn.push_back(dataColumnSize + dataSize++);
+void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
+    auto& persistentListChunk = checkpointState.persistentData.cast<ListChunkData>();
+    auto persistentDataChunk = persistentListChunk.getDataColumnChunk();
+    // First, check if we can checkpoint list data chunk in place.
+    const auto persistentListDataSize = persistentDataChunk->getNumValues();
+    idx_t numListsToWrite = 0u;
+    row_idx_t newListDataSize = persistentListDataSize;
+    std::vector<ChunkCheckpointState> listDataChunkCheckpointStates;
+    for (const auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
+        listDataChunkCheckpointStates.push_back(ChunkCheckpointState{
+            chunkCheckpointState.chunkData->cast<ListChunkData>().moveDataColumnChunk(),
+            newListDataSize, chunkCheckpointState.numRows});
+        numListsToWrite += chunkCheckpointState.numRows;
+        KU_ASSERT(chunkCheckpointState.chunkData->getNumValues() == chunkCheckpointState.numRows);
+        for (auto i = 0u; i < chunkCheckpointState.numRows; i++) {
+            newListDataSize += chunkCheckpointState.chunkData->cast<ListChunkData>().getListSize(i);
         }
     }
-    bool dataColumnCanCommitInPlace = dataColumn->canCommitInPlace(
-        state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
-        dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
-    if (!dataColumnCanCommitInPlace) {
-        commitColumnChunkOutOfPlace(transaction, state, false /*isNewNodeGroup*/, dstOffsets, chunk,
-            startSrcOffset);
-    } else {
-        // TODO: Shouldn't here be in place commit?
-        dataColumn->commitColumnChunkOutOfPlace(transaction,
-            state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
-            false /*isNewNodeGroup*/, dstOffsetsInDataColumn, dataColumnChunk, startListOffset);
-        sizeColumn->prepareCommitForExistingChunk(transaction,
-            state.childrenStates[ListChunkData::SIZE_COLUMN_CHILD_READ_STATE_IDX], dstOffsets,
-            listChunk.getSizeColumnChunk(), startSrcOffset);
-        for (auto i = 0u; i < numListsToAppend; i++) {
-            auto listEndOffset = listChunk.getListEndOffset(startSrcOffset + i);
-            listChunk.getOffsetColumnChunk()->setValue<offset_t>(dataColumnSize + listEndOffset,
-                startSrcOffset + i);
+    ChunkState chunkState;
+    checkpointState.persistentData.initializeScanState(chunkState);
+    ColumnCheckpointState listDataCheckpointState(*persistentDataChunk,
+        std::move(listDataChunkCheckpointStates));
+    const auto listDataCanCheckpointInPlace = dataColumn->canCheckpointInPlace(
+        chunkState.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
+        listDataCheckpointState);
+    if (!listDataCanCheckpointInPlace) {
+        // If we cannot checkpoint list data chunk in place, we need to checkpoint the whole chunk
+        // out of place.
+        // Move list data chunks back to the original chunk in checkpointState.
+        for (auto i = 0u; i < checkpointState.chunkCheckpointStates.size(); i++) {
+            auto& chunkCheckpointState = checkpointState.chunkCheckpointStates[i];
+            chunkCheckpointState.chunkData->cast<ListChunkData>().setDataColumnChunk(
+                std::move(listDataCheckpointState.chunkCheckpointStates[i].chunkData));
         }
-        prepareCommitForOffsetChunk(transaction,
-            state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX], dstOffsets, &listChunk,
-            startSrcOffset);
-
-        // since there is no data stored in the main column's buffer we only need to update the null
-        // column
-        nullColumn->prepareCommitForExistingChunk(transaction, *state.nullState, dstOffsets,
-            chunk->getNullData(), startSrcOffset);
-        // if (state.metadata.numValues != state.nullState->metadata.numValues) {
-        // state.metadata.numValues = state.nullState->metadata.numValues;
-        // metadataDA->update(state.nodeGroupIdx, state.metadata);
-        // }
-    }
-}
-
-void ListColumn::prepareCommitForOffsetChunk(Transaction* transaction, ChunkState& offsetState,
-    const std::vector<offset_t>& dstOffsets, ColumnChunkData* chunk, offset_t startSrcOffset) {
-    // metadataDA->prepareCommit();
-
-    auto& listChunk = chunk->cast<ListChunkData>();
-    auto* offsetChunk = listChunk.getOffsetColumnChunk();
-    if (offsetColumn->canCommitInPlace(offsetState, dstOffsets, offsetChunk, startSrcOffset)) {
-        offsetColumn->prepareCommitForExistingChunkInPlace(transaction, offsetState, dstOffsets,
-            offsetChunk, startSrcOffset);
+        checkpointColumnChunkOutOfPlace(chunkState, checkpointState);
     } else {
-        commitOffsetColumnChunkOutOfPlace(transaction, offsetState, dstOffsets, chunk,
-            startSrcOffset);
+        // In place checkpoint for list data.
+        dataColumn->checkpointColumnChunkInPlace(
+            chunkState.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
+            listDataCheckpointState);
+        // Checkpoint offset data.
+        auto offsetsToWrite = std::make_unique<ColumnChunk>(LogicalType::UINT64(), numListsToWrite,
+            false, ResidencyState::IN_MEMORY);
+        auto listOffset = persistentListDataSize;
+        auto listIdxToAppend = 0u;
+        for (const auto& chunkCheckpointState : listDataCheckpointState.chunkCheckpointStates) {
+            for (auto i = 0u; i < chunkCheckpointState.numRows; i++) {
+                offsetsToWrite->getData().setValue<offset_t>(listOffset, listIdxToAppend++);
+                listOffset += chunkCheckpointState.chunkData->cast<ListChunkData>().getListSize(i);
+            }
+        }
+        KU_ASSERT(listIdxToAppend == numListsToWrite);
+        std::vector<ChunkCheckpointState> offsetChunkCheckpointStates;
+        offsetChunkCheckpointStates.push_back(
+            ChunkCheckpointState{std::move(offsetsToWrite->moveData()), 0, numListsToWrite});
+        ColumnCheckpointState offsetCheckpointState(*persistentListChunk.getOffsetColumnChunk(),
+            std::move(offsetChunkCheckpointStates));
+        offsetColumn->checkpointColumnChunk(offsetCheckpointState);
+        // Checkpoint size and null data.
+        std::vector<ChunkCheckpointState> sizeChunkCheckpointStates;
+        for (const auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
+            sizeChunkCheckpointStates.push_back(ChunkCheckpointState{
+                chunkCheckpointState.chunkData->cast<ListChunkData>().moveSizeColumnChunk(),
+                chunkCheckpointState.startRow, chunkCheckpointState.numRows});
+        }
+        ColumnCheckpointState sizeCheckpointState(*persistentListChunk.getSizeColumnChunk(),
+            std::move(sizeChunkCheckpointStates));
+        sizeColumn->checkpointColumnChunk(sizeCheckpointState);
+        Column::checkpointNullData(checkpointState);
     }
-}
-
-void ListColumn::updateStateMetadataNumValues(ChunkState& state, size_t numValues) {
-    state.metadata.numValues = numValues;
-    state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX].metadata.numValues = numValues;
-    state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX].metadata.numValues = numValues;
-}
-
-void ListColumn::commitOffsetColumnChunkOutOfPlace(Transaction* transaction,
-    ChunkState& offsetState, const std::vector<offset_t>& dstOffsets, ColumnChunkData* chunk,
-    offset_t startSrcOffset) {
-    auto offsetColumnChunk =
-        ColumnChunkFactory::createColumnChunkData(offsetColumn->dataType.copy(), enableCompression,
-            1.5 * std::bit_ceil(offsetState.metadata.numValues + dstOffsets.size()),
-            ResidencyState::IN_MEMORY);
-    offsetColumn->scan(transaction, offsetState, offsetColumnChunk.get());
-
-    auto numListsToAppend = std::min(chunk->getNumValues(), (uint64_t)dstOffsets.size());
-    auto& listChunk = chunk->cast<ListChunkData>();
-    for (auto i = 0u; i < numListsToAppend; i++) {
-        auto listEndOffset = listChunk.getListEndOffset(startSrcOffset + i);
-        auto isNull = listChunk.getNullData()->isNull(startSrcOffset + i);
-        offsetColumnChunk->setValue<offset_t>(listEndOffset, dstOffsets[i]);
-        offsetColumnChunk->getNullData()->setNull(dstOffsets[i], isNull);
-    }
-    offsetColumn->append(offsetColumnChunk.get(), offsetState);
 }
 
 } // namespace storage

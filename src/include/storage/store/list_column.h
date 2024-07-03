@@ -66,6 +66,8 @@ public:
     Column* getSizeColumn() const { return sizeColumn.get(); }
     Column* getDataColumn() const { return dataColumn.get(); }
 
+    void checkpointColumnChunk(ColumnCheckpointState& checkpointState) override;
+
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
@@ -74,8 +76,6 @@ protected:
     void lookupValue(transaction::Transaction* transaction, ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector,
         uint32_t posInVector) override;
-
-    void append(ColumnChunkData* columnChunk, ChunkState& state) override;
 
 private:
     void scanUnfiltered(transaction::Transaction* transaction, const ChunkState& state,
@@ -92,23 +92,6 @@ private:
     ListOffsetSizeInfo getListOffsetSizeInfo(transaction::Transaction* transaction,
         const ChunkState& state, common::offset_t startOffsetInNodeGroup,
         common::offset_t endOffsetInNodeGroup);
-
-    // void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
-    // const ChunkDataCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
-    // const ChunkDataCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
-    // const offset_set_t& deleteInfo) override;
-    void prepareCommitForExistingChunk(transaction::Transaction* transaction, ChunkState& state,
-        const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
-        common::offset_t startSrcOffset) override;
-
-    void prepareCommitForOffsetChunk(transaction::Transaction* transaction, ChunkState& offsetState,
-        const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
-        common::offset_t startSrcOffset);
-    void commitOffsetColumnChunkOutOfPlace(transaction::Transaction* transaction,
-        ChunkState& offsetState, const std::vector<common::offset_t>& dstOffsets,
-        ColumnChunkData* chunk, common::offset_t startSrcOffset);
-
-    void updateStateMetadataNumValues(ChunkState& state, size_t numValues) override;
 
 private:
     std::unique_ptr<Column> offsetColumn;

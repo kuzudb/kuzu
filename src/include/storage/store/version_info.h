@@ -39,13 +39,18 @@ struct VectorVersionInfo {
 
     void serialize(common::Serializer& serializer) const;
 
-private:
+    common::row_idx_t numCommittedDeletions(const transaction::Transaction* transaction) const;
+
     // Given startTS and transactionID, if the row is deleted to the transaction, return true.
     bool isDeleted(common::transaction_t startTS, common::transaction_t transactionID,
         common::row_idx_t rowIdx) const;
     // Given startTS and transactionID, if the row is readable to the transaction, return true.
     bool isInserted(common::transaction_t startTS, common::transaction_t transactionID,
         common::row_idx_t rowIdx) const;
+
+    common::row_idx_t getNumDeletions(common::transaction_t startTS,
+        common::transaction_t transactionID, common::row_idx_t startRow,
+        common::length_t numRows) const;
 };
 
 class VersionInfo {
@@ -63,7 +68,12 @@ public:
     void clearVectorInfo(common::idx_t vectorIdx);
 
     bool hasDeletions() const;
+    bool getNumDeletions(const transaction::Transaction* transaction, common::row_idx_t startRow,
+        common::length_t numRows) const;
     bool hasInsertions() const;
+    bool isDeleted(const transaction::Transaction* transaction, common::row_idx_t rowInChunk) const;
+
+    common::row_idx_t getNumDeletions(const transaction::Transaction* transaction) const;
 
     void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<VersionInfo> deserialize(common::Deserializer& deSer);

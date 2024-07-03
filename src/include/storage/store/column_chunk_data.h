@@ -38,8 +38,7 @@ struct ColumnChunkMetadata {
         : pageIdx(pageIdx), numPages(numPages), numValues(numNodesInChunk), compMeta(compMeta) {}
 };
 
-// TODO(bmwinger): Hide access to variables and store a modified flag
-// so that we can tell if the value has changed and the metadataDA needs to be updated
+// TODO(bmwinger): Hide access to variables.
 struct ChunkState {
     Column* column;
     ColumnChunkMetadata metadata;
@@ -115,11 +114,24 @@ public:
     NullChunkData* getNullData() { return nullData.get(); }
     const NullChunkData& getNullData() const { return *nullData; }
     std::optional<common::NullMask> getNullMask() const;
+    std::unique_ptr<NullChunkData> moveNullData() { return std::move(nullData); }
 
     common::LogicalType& getDataType() { return dataType; }
     const common::LogicalType& getDataType() const { return dataType; }
     ResidencyState getResidencyState() const { return residencyState; }
     bool isCompressionEnabled() const { return enableCompression; }
+    ColumnChunkMetadata& getMetadata() {
+        KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+        return metadata;
+    }
+    const ColumnChunkMetadata& getMetadata() const {
+        KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+        return metadata;
+    }
+    void setMetadata(const ColumnChunkMetadata& metadata_) {
+        KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+        metadata = metadata_;
+    }
 
     // Only have side effects on in-memory or temporary chunks.
     virtual void resetToAllNull();
@@ -383,7 +395,8 @@ private:
 
 struct ColumnChunkFactory {
     static std::unique_ptr<ColumnChunkData> createColumnChunkData(common::LogicalType dataType,
-        bool enableCompression, uint64_t capacity, ResidencyState type, bool hasNullData = true);
+        bool enableCompression, uint64_t capacity, ResidencyState residencyState,
+        bool hasNullData = true);
     static std::unique_ptr<ColumnChunkData> createColumnChunkData(common::LogicalType dataType,
         bool enableCompression, ColumnChunkMetadata& metadata, bool hasNullData);
 

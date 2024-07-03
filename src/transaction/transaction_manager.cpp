@@ -34,8 +34,7 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
     return transaction;
 }
 
-// TODO(Guodong): Remove second param `bool skipCheckPointing`.
-void TransactionManager::commit(main::ClientContext& clientContext, bool) {
+void TransactionManager::commit(main::ClientContext& clientContext) {
     lock_t lck{mtxForSerializingPublicFunctionCalls};
     clientContext.cleanUP();
     const auto transaction = clientContext.getTx();
@@ -46,7 +45,6 @@ void TransactionManager::commit(main::ClientContext& clientContext, bool) {
     lastTimestamp++;
     transaction->commitTS = lastTimestamp;
     transaction->commit(&wal);
-    clientContext.getStorageManager()->prepareCommit(transaction, clientContext.getVFSUnsafe());
     wal.flushAllPages();
     clearActiveWriteTransactionIfWriteTransactionNoLock(transaction);
     if (clientContext.getDBConfig()->autoCheckpoint && canAutoCheckpoint(clientContext)) {
@@ -57,26 +55,15 @@ void TransactionManager::commit(main::ClientContext& clientContext, bool) {
 // Note: We take in additional `transaction` here is due to that `transactionContext` might be
 // destructed when a transaction throws exception, while we need to rollback the active transaction
 // still.
-void TransactionManager::rollback(main::ClientContext& clientContext, Transaction* transaction,
-    bool skipCheckPointing) {
+void TransactionManager::rollback(main::ClientContext& clientContext, Transaction* transaction) {
     lock_t lck{mtxForSerializingPublicFunctionCalls};
     clientContext.cleanUP();
     if (transaction->isReadOnly()) {
         activeReadOnlyTransactionIDs.erase(transaction->getID());
         return;
     }
-    clientContext.getStorageManager()->prepareRollback();
     transaction->rollback();
     clearActiveWriteTransactionIfWriteTransactionNoLock(transaction);
-    wal.flushAllPages();
-    if (!skipCheckPointing) {
-        const auto walReplayer = std::make_unique<WALReplayer>(clientContext, wal.getShadowingFH(),
-            WALReplayMode::ROLLBACK);
-        walReplayer->replay();
-        // We next perform an in-memory rolling back of node/relTables.
-        clientContext.getStorageManager()->rollbackInMemory();
-        wal.clearWAL();
-    }
 }
 
 void TransactionManager::checkpoint(main::ClientContext& clientContext) {
@@ -138,11 +125,6 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     const auto walReplayer = std::make_unique<WALReplayer>(clientContext, wal.getShadowingFH(),
         WALReplayMode::COMMIT_CHECKPOINT);
     walReplayer->replay();
-    // TODO(Guodong): This is a temp hack to test rewriting existing pages in data file.
-    // Should move this away.
-    // The hack is to get around that flushBuffer will always directly write to the file.
-    clientContext.getMemoryManager()->getBufferManager()->removeFilePagesFromFrames(
-        *clientContext.getStorageManager()->getDataFH());
     // Resume receiving new transactions.
     allowReceivingNewTransactions();
     // Clear the wal.

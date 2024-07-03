@@ -17,6 +17,7 @@ ListChunkData::ListChunkData(LogicalType dataType, uint64_t capacity, bool enabl
     ResidencyState residencyState)
     : ColumnChunkData{std::move(dataType), capacity, enableCompression, residencyState,
           true /*hasNullData*/} {
+    // TODO(Guodong): offset/size should contain no nulls.
     offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT64(),
         enableCompression, capacity, ResidencyState::IN_MEMORY, false /*hasNull*/);
     sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT32(),

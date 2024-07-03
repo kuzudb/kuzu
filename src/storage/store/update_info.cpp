@@ -53,17 +53,54 @@ VectorUpdateInfo* UpdateInfo::getVectorInfo(const Transaction* transaction, idx_
     return nullptr;
 }
 
-VectorUpdateInfo& UpdateInfo::getOrCreateVectorInfo(const Transaction* transaction, idx_t idx,
+row_idx_t UpdateInfo::getNumUpdatedRows(const Transaction* transaction) const {
+    row_idx_t numUpdatedRows = 0u;
+    for (auto i = 0u; i < vectorsInfo.size(); i++) {
+        if (const auto vectorInfo = getVectorInfo(transaction, i)) {
+            numUpdatedRows += vectorInfo->numRowsUpdated;
+        }
+    }
+    return numUpdatedRows;
+}
+
+bool UpdateInfo::hasUpdates(const Transaction* transaction, row_idx_t startRow,
+    length_t numRows) const {
+    auto [startVector, rowInStartVector] =
+        StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
+    auto [endVectorIdx, rowInEndVector] =
+        StorageUtils::getQuotientRemainder(startRow + numRows, DEFAULT_VECTOR_CAPACITY);
+    idx_t vectorIdx = startVector;
+    while (vectorIdx <= endVectorIdx) {
+        const auto updateVector = getVectorInfo(transaction, vectorIdx);
+        if (!updateVector || updateVector->numRowsUpdated == 0) {
+            vectorIdx++;
+            continue;
+        }
+        const auto startRowInVector = (vectorIdx == startVector) ? rowInStartVector : 0;
+        const auto endRowInVector =
+            (vectorIdx == endVectorIdx) ? rowInEndVector : DEFAULT_VECTOR_CAPACITY;
+        for (auto row = startRowInVector; row <= endRowInVector; row++) {
+            if (std::any_of(updateVector->rowsInVector.begin(),
+                    updateVector->rowsInVector.begin() + updateVector->numRowsUpdated,
+                    [&](row_idx_t updatedRow) { return row == updatedRow; })) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+VectorUpdateInfo& UpdateInfo::getOrCreateVectorInfo(const Transaction* transaction, idx_t vectorIdx,
     sel_t rowIdxInVector, const LogicalType& dataType) {
-    if (idx >= vectorsInfo.size()) {
-        vectorsInfo.resize(idx + 1);
+    if (vectorIdx >= vectorsInfo.size()) {
+        vectorsInfo.resize(vectorIdx + 1);
     }
-    if (!vectorsInfo[idx]) {
-        vectorsInfo[idx] =
+    if (!vectorsInfo[vectorIdx]) {
+        vectorsInfo[vectorIdx] =
             std::make_unique<VectorUpdateInfo>(transaction->getID(), dataType.copy());
-        return *vectorsInfo[idx];
+        return *vectorsInfo[vectorIdx];
     }
-    auto* current = vectorsInfo[idx].get();
+    auto* current = vectorsInfo[vectorIdx].get();
     VectorUpdateInfo* info = nullptr;
     while (current) {
         if (current->version == transaction->getID()) {
@@ -84,10 +121,10 @@ VectorUpdateInfo& UpdateInfo::getOrCreateVectorInfo(const Transaction* transacti
     if (!info) {
         // Create a new version here.
         auto newInfo = std::make_unique<VectorUpdateInfo>(transaction->getID(), dataType.copy());
-        vectorsInfo[idx]->next = newInfo.get();
-        newInfo->prev = std::move(vectorsInfo[idx]);
-        vectorsInfo[idx] = std::move(newInfo);
-        info = vectorsInfo[idx].get();
+        vectorsInfo[vectorIdx]->next = newInfo.get();
+        newInfo->prev = std::move(vectorsInfo[vectorIdx]);
+        vectorsInfo[vectorIdx] = std::move(newInfo);
+        info = vectorsInfo[vectorIdx].get();
         if (info->prev) {
             // Copy the data from the previous version.
             for (auto i = 0u; i < info->prev->numRowsUpdated; i++) {

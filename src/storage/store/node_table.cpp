@@ -214,7 +214,7 @@ std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(Transaction* tran
     return nodeGroups->appendToLastNodeGroup(transaction, chunkedGroup);
 }
 
-void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
+void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
     auto startNodeOffset = nodeGroups->getNumRows();
     transaction->setMaxCommittedNodeOffset(tableID, startNodeOffset);
     auto& localNodeTable = localTable->cast<LocalNodeTable>();
@@ -260,46 +260,6 @@ void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) 
     localTable->clear();
 }
 
-void NodeTable::prepareCommit() {
-    pkIndex->prepareCommit();
-}
-
-// TODO: Remove this.
-void NodeTable::prepareRollback(LocalTable* localTable) {
-    pkIndex->prepareRollback();
-    localTable->clear();
-}
-
-void NodeTable::checkpoint(Serializer& ser) {
-    std::vector<Column*> checkpointColumns;
-    std::vector<column_id_t> columnIDs;
-    for (auto i = 0u; i < columns.size(); i++) {
-        columnIDs.push_back(i);
-        checkpointColumns.push_back(columns[i].get());
-    }
-    const NodeGroupCheckpointState state{columnIDs, checkpointColumns, *dataFH};
-    nodeGroups->checkpoint(state);
-    serialize(ser);
-    checkpointInMemory();
-}
-
-void NodeTable::serialize(Serializer& serializer) const {
-    Table::serialize(serializer);
-    nodeGroups->serialize(serializer);
-}
-
-void NodeTable::checkpointInMemory() {
-    pkIndex->checkpointInMemory();
-}
-
-void NodeTable::rollbackInMemory() {
-    pkIndex->rollbackInMemory();
-}
-
-uint64_t NodeTable::getEstimatedMemoryUsage() const {
-    return nodeGroups->getEstimatedMemoryUsage();
-}
-
 void NodeTable::insertPK(const ValueVector& nodeIDVector, const ValueVector& pkVector) const {
     for (auto i = 0u; i < nodeIDVector.state->getSelVector().getSelSize(); i++) {
         const auto nodeIDPos = nodeIDVector.state->getSelVector()[i];
@@ -318,6 +278,32 @@ void NodeTable::insertPK(const ValueVector& nodeIDVector, const ValueVector& pkV
             throw RuntimeException(ExceptionMessage::duplicatePKException(pkStr));
         }
     }
+}
+
+void NodeTable::rollback(LocalTable* localTable) {
+    localTable->clear();
+}
+
+void NodeTable::checkpoint(Serializer& ser) {
+    std::vector<Column*> checkpointColumns;
+    std::vector<column_id_t> columnIDs;
+    for (auto i = 0u; i < columns.size(); i++) {
+        columnIDs.push_back(i);
+        checkpointColumns.push_back(columns[i].get());
+    }
+    NodeGroupCheckpointState state{columnIDs, checkpointColumns, *dataFH, memoryManager};
+    nodeGroups->checkpoint(state);
+    pkIndex->checkpointInMemory();
+    serialize(ser);
+}
+
+void NodeTable::serialize(Serializer& serializer) const {
+    Table::serialize(serializer);
+    nodeGroups->serialize(serializer);
+}
+
+uint64_t NodeTable::getEstimatedMemoryUsage() const {
+    return nodeGroups->getEstimatedMemoryUsage();
 }
 
 } // namespace storage

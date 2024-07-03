@@ -90,6 +90,45 @@ void ChunkedCSRHeader::fillDefaultValues(const offset_t newNumValues) const {
         offset->getNumValues() >= newNumValues && length->getNumValues() == offset->getNumValues());
 }
 
+std::vector<offset_t> ChunkedCSRHeader::populateStartCSROffsetsAndGaps(bool leaveGaps) {
+    KU_ASSERT(length->getNumValues() == offset->getNumValues());
+    std::vector<offset_t> gaps;
+    const auto numNodes = length->getNumValues();
+    gaps.resize(numNodes, 0);
+    const auto csrOffsets = reinterpret_cast<offset_t*>(offset->getData().getData());
+    const auto csrLengths = reinterpret_cast<length_t*>(length->getData().getData());
+    // Calculate gaps for each node.
+    if (leaveGaps) {
+        for (auto i = 0u; i < numNodes; i++) {
+            gaps[i] = getGapSize(csrLengths[i]);
+        }
+    }
+    csrOffsets[0] = 0;
+    // Calculate starting offset of each node.
+    for (auto i = 1u; i < numNodes; i++) {
+        csrOffsets[i] = csrOffsets[i - 1] + csrLengths[i - 1] + gaps[i - 1];
+    }
+    return gaps;
+}
+
+void ChunkedCSRHeader::populateEndCSROffsets(const std::vector<offset_t>& gaps) {
+    auto csrOffsets = reinterpret_cast<offset_t*>(offset->getData().getData());
+    KU_ASSERT(offset->getNumValues() == length->getNumValues());
+    KU_ASSERT(offset->getNumValues() == gaps.size());
+    for (auto i = 0u; i < offset->getNumValues(); i++) {
+        csrOffsets[i] += gaps[i];
+    }
+}
+
+length_t ChunkedCSRHeader::getGapSize(length_t length) {
+    // We intentionally leave a gap for empty CSR lists to accommondate for future insertions.
+    // Also, for MANY_ONE and ONE_ONE relationships, we should always keep each CSR list as size 1.
+    return length == 0 ?
+               1 :
+               StorageUtils::divideAndRoundUpTo(length, StorageConstants::PACKED_CSR_DENSITY) -
+                   length;
+}
+
 std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flushAsNewChunkedNodeGroup(
     BMFileHandle& dataFH) const {
     auto csrOffset = std::make_unique<ColumnChunk>(csrHeader.offset->isCompressionEnabled(),
@@ -112,6 +151,23 @@ void ChunkedCSRNodeGroup::flush(BMFileHandle& dataFH) {
     for (auto i = 0u; i < getNumColumns(); i++) {
         getColumnChunk(i).getData().flush(dataFH);
     }
+}
+
+void ChunkedCSRNodeGroup::scanCSRHeader(CSRNodeGroupCheckpointState& csrState) const {
+    if (!csrState.oldHeader) {
+        csrState.oldHeader = std::make_unique<ChunkedCSRHeader>(false /*enableCompression*/,
+            StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
+    }
+    ChunkState headerChunkState;
+    KU_ASSERT(csrHeader.offset->getResidencyState() == ResidencyState::ON_DISK);
+    KU_ASSERT(csrHeader.length->getResidencyState() == ResidencyState::ON_DISK);
+    csrHeader.offset->initializeScanState(headerChunkState);
+    KU_ASSERT(csrState.csrOffsetColumn && csrState.csrLengthColumn);
+    csrState.csrOffsetColumn->scan(&transaction::DUMMY_CHECKPOINT_TRANSACTION, headerChunkState,
+        &csrState.oldHeader->offset->getData());
+    csrHeader.length->initializeScanState(headerChunkState);
+    csrState.csrLengthColumn->scan(&transaction::DUMMY_CHECKPOINT_TRANSACTION, headerChunkState,
+        &csrState.oldHeader->length->getData());
 }
 
 void ChunkedCSRNodeGroup::serialize(Serializer& serializer) const {

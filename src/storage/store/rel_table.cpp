@@ -23,9 +23,9 @@ RelTable::RelTable(RelTableCatalogEntry* relTableEntry, StorageManager* storageM
         deSer->deserializeValue<offset_t>(nextOffset);
         nextRelOffset = nextOffset;
     }
-    fwdRelTableData = std::make_unique<RelTableData>(dataFH, bufferManager, wal, relTableEntry,
+    fwdRelTableData = std::make_unique<RelTableData>(dataFH, memoryManager, wal, relTableEntry,
         RelDataDirection::FWD, enableCompression, deSer);
-    bwdRelTableData = std::make_unique<RelTableData>(dataFH, bufferManager, wal, relTableEntry,
+    bwdRelTableData = std::make_unique<RelTableData>(dataFH, memoryManager, wal, relTableEntry,
         RelDataDirection::BWD, enableCompression, deSer);
 }
 
@@ -241,7 +241,7 @@ NodeGroup* RelTable::getOrCreateNodeGroup(node_group_idx_t nodeGroupIdx,
                bwdRelTableData->getOrCreateNodeGroup(nodeGroupIdx);
 }
 
-void RelTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
+void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
     auto& localRelTable = localTable->cast<LocalRelTable>();
     const auto dataChunkState = std::make_shared<DataChunkState>();
     std::vector<column_id_t> columnIDsToScan;
@@ -353,12 +353,14 @@ void RelTable::prepareCommitForNodeGroup(Transaction* transaction, NodeGroup& lo
     }
 }
 
-void RelTable::prepareRollback(LocalTable* localTable) {
+void RelTable::rollback(LocalTable* localTable) {
     localTable->clear();
 }
 
-void RelTable::checkpoint(Serializer&) {
-    checkpointInMemory();
+void RelTable::checkpoint(Serializer& ser) {
+    fwdRelTableData->checkpoint();
+    bwdRelTableData->checkpoint();
+    serialize(ser);
 }
 
 void RelTable::serialize(Serializer& serializer) const {

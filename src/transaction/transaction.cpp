@@ -1,6 +1,8 @@
 #include "transaction/transaction.h"
 
+#include "storage/local_storage/local_storage.h"
 #include "storage/store/version_info.h"
+#include "storage/undo_buffer.h"
 #include "storage/wal/wal.h"
 
 using namespace kuzu::catalog;
@@ -9,14 +11,14 @@ namespace kuzu {
 namespace transaction {
 
 void Transaction::commit(storage::WAL* wal) const {
-    localStorage->prepareCommit();
+    localStorage->commit();
     undoBuffer->commit(commitTS);
     wal->logCommit(ID);
     wal->flushAllPages();
 }
 
 void Transaction::rollback() const {
-    localStorage->prepareRollback();
+    localStorage->rollback();
     undoBuffer->rollback();
 }
 

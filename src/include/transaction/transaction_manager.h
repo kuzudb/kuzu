@@ -26,14 +26,11 @@ public:
     explicit TransactionManager(storage::WAL& wal)
         : wal{wal}, lastTransactionID{Transaction::START_TRANSACTION_ID}, lastTimestamp{1} {};
 
-    // TODO(Guodong): Should rewrite as `beginTransaction`.
     std::unique_ptr<Transaction> beginTransaction(main::ClientContext& clientContext,
         TransactionType type);
 
-    // skipCheckpoint is used to simulate a failure before checkpointing in tests.
-    void commit(main::ClientContext& clientContext, bool skipCheckPointing = false);
-    void rollback(main::ClientContext& clientContext, Transaction* transaction,
-        bool skipCheckPointing = false);
+    void commit(main::ClientContext& clientContext);
+    void rollback(main::ClientContext& clientContext, Transaction* transaction);
     void checkpoint(main::ClientContext& clientContext);
 
     // Warning: Below public functions are for tests only

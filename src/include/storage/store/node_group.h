@@ -49,6 +49,21 @@ struct NodeGroupCheckpointState {
     std::vector<common::column_id_t> columnIDs;
     std::vector<Column*> columns;
     BMFileHandle& dataFH;
+    MemoryManager* mm;
+
+    NodeGroupCheckpointState(std::vector<common::column_id_t> columnIDs,
+        std::vector<Column*> columns, BMFileHandle& dataFH, MemoryManager* mm)
+        : columnIDs{std::move(columnIDs)}, columns{std::move(columns)}, dataFH{dataFH}, mm{mm} {}
+    virtual ~NodeGroupCheckpointState() = default;
+
+    template<typename T>
+    const T& cast() const {
+        return common::ku_dynamic_cast<const NodeGroupCheckpointState&, const T&>(*this);
+    }
+    template<typename T>
+    T& cast() {
+        return common::ku_dynamic_cast<NodeGroupCheckpointState&, T&>(*this);
+    }
 };
 
 struct NodeGroupScanResult {
@@ -65,7 +80,7 @@ struct NodeGroupScanResult {
     }
 };
 
-static NodeGroupScanResult NODE_GROUP_SCAN_EMMPTY_RESULT = NodeGroupScanResult{};
+static auto NODE_GROUP_SCAN_EMMPTY_RESULT = NodeGroupScanResult{};
 
 struct TableScanState;
 class NodeGroup {
@@ -124,7 +139,7 @@ public:
 
     void flush(BMFileHandle& dataFH);
 
-    void checkpoint(const NodeGroupCheckpointState& state);
+    virtual void checkpoint(NodeGroupCheckpointState& state);
 
     bool hasChanges();
     uint64_t getEstimatedMemoryUsage();
@@ -154,8 +169,14 @@ private:
     ChunkedNodeGroup* findChunkedGroupFromRowIdx(const common::UniqLock& lock,
         common::row_idx_t rowIdx);
 
+    common::row_idx_t getNumDeletedRows(const common::UniqLock& lock);
+
+    virtual void checkpointInMemOnly(const common::UniqLock& lock, NodeGroupCheckpointState& state);
+
     template<ResidencyState SCAN_RESIDENCY_STATE>
-    std::unique_ptr<ChunkedNodeGroup> scanCommitted(
+    common::row_idx_t getNumResidentRows(const common::UniqLock& lock);
+    template<ResidencyState SCAN_RESIDENCY_STATE>
+    std::unique_ptr<ChunkedNodeGroup> scanCommitted(const common::UniqLock& lock,
         const std::vector<common::column_id_t>& columnIDs, const std::vector<Column*>& columns);
 
     static void populateNodeID(common::ValueVector& nodeIDVector, common::table_id_t tableID,

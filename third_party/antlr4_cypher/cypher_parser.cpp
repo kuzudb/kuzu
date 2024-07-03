@@ -6828,16 +6828,8 @@ tree::TerminalNode* CypherParser::KU_TransactionContext::COMMIT() {
   return getToken(CypherParser::COMMIT, 0);
 }
 
-tree::TerminalNode* CypherParser::KU_TransactionContext::COMMIT_SKIP_CHECKPOINT() {
-  return getToken(CypherParser::COMMIT_SKIP_CHECKPOINT, 0);
-}
-
 tree::TerminalNode* CypherParser::KU_TransactionContext::ROLLBACK() {
   return getToken(CypherParser::ROLLBACK, 0);
-}
-
-tree::TerminalNode* CypherParser::KU_TransactionContext::ROLLBACK_SKIP_CHECKPOINT() {
-  return getToken(CypherParser::ROLLBACK_SKIP_CHECKPOINT, 0);
 }
 
 
@@ -6858,7 +6850,11 @@ CypherParser::KU_TransactionContext* CypherParser::kU_Transaction() {
     exitRule();
   });
   try {
+<<<<<<< HEAD
     setState(1204);
+=======
+    setState(1198);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 146, _ctx)) {
     case 1: {
@@ -6900,6 +6896,7 @@ CypherParser::KU_TransactionContext* CypherParser::kU_Transaction() {
 
     case 4: {
       enterOuterAlt(_localctx, 4);
+<<<<<<< HEAD
       setState(1201);
       match(CypherParser::COMMIT_SKIP_CHECKPOINT);
       break;
@@ -6908,10 +6905,14 @@ CypherParser::KU_TransactionContext* CypherParser::kU_Transaction() {
     case 5: {
       enterOuterAlt(_localctx, 5);
       setState(1202);
+=======
+      setState(1197);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       match(CypherParser::ROLLBACK);
       break;
     }
 
+<<<<<<< HEAD
     case 6: {
       enterOuterAlt(_localctx, 6);
       setState(1203);
@@ -6919,6 +6920,8 @@ CypherParser::KU_TransactionContext* CypherParser::kU_Transaction() {
       break;
     }
 
+=======
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     default:
       break;
     }
@@ -6965,19 +6968,31 @@ CypherParser::KU_ExtensionContext* CypherParser::kU_Extension() {
     exitRule();
   });
   try {
+<<<<<<< HEAD
     setState(1208);
+=======
+    setState(1202);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::LOAD: {
         enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
         setState(1206);
+=======
+        setState(1200);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         kU_LoadExtension();
         break;
       }
 
       case CypherParser::INSTALL: {
         enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
         setState(1207);
+=======
+        setState(1201);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         kU_InstallExtension();
         break;
       }
@@ -7045,6 +7060,7 @@ CypherParser::KU_LoadExtensionContext* CypherParser::kU_LoadExtension() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1210);
     match(CypherParser::LOAD);
     setState(1211);
@@ -7058,6 +7074,21 @@ CypherParser::KU_LoadExtensionContext* CypherParser::kU_LoadExtension() {
     switch (_input->LA(1)) {
       case CypherParser::StringLiteral: {
         setState(1214);
+=======
+    setState(1204);
+    match(CypherParser::LOAD);
+    setState(1205);
+    match(CypherParser::SP);
+    setState(1206);
+    match(CypherParser::EXTENSION);
+    setState(1207);
+    match(CypherParser::SP);
+    setState(1210);
+    _errHandler->sync(this);
+    switch (_input->LA(1)) {
+      case CypherParser::StringLiteral: {
+        setState(1208);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         match(CypherParser::StringLiteral);
         break;
       }
@@ -7112,7 +7143,11 @@ CypherParser::KU_LoadExtensionContext* CypherParser::kU_LoadExtension() {
       case CypherParser::HexLetter:
       case CypherParser::UnescapedSymbolicName:
       case CypherParser::EscapedSymbolicName: {
+<<<<<<< HEAD
         setState(1215);
+=======
+        setState(1209);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_Variable();
         break;
       }
@@ -7168,11 +7203,19 @@ CypherParser::KU_InstallExtensionContext* CypherParser::kU_InstallExtension() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1218);
     match(CypherParser::INSTALL);
     setState(1219);
     match(CypherParser::SP);
     setState(1220);
+=======
+    setState(1212);
+    match(CypherParser::INSTALL);
+    setState(1213);
+    match(CypherParser::SP);
+    setState(1214);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_Variable();
    
   }
@@ -7223,19 +7266,33 @@ CypherParser::OC_QueryContext* CypherParser::oC_Query() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1226);
+=======
+    setState(1220);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 150, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(1222);
       kU_ProjectGraph();
       setState(1224);
+=======
+      setState(1216);
+      kU_ProjectGraph();
+      setState(1218);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1223);
+=======
+        setState(1217);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         match(CypherParser::SP);
       }
       break;
@@ -7244,7 +7301,11 @@ CypherParser::OC_QueryContext* CypherParser::oC_Query() {
     default:
       break;
     }
+<<<<<<< HEAD
     setState(1228);
+=======
+    setState(1222);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_RegularQuery();
    
   }
@@ -7307,6 +7368,7 @@ CypherParser::KU_ProjectGraphContext* CypherParser::kU_ProjectGraph() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1230);
     match(CypherParser::PROJECT);
     setState(1231);
@@ -7328,13 +7390,47 @@ CypherParser::KU_ProjectGraphContext* CypherParser::kU_ProjectGraph() {
     setState(1238);
     match(CypherParser::T__1);
     setState(1240);
+=======
+    setState(1224);
+    match(CypherParser::PROJECT);
+    setState(1225);
+    match(CypherParser::SP);
+    setState(1226);
+    match(CypherParser::GRAPH);
+    setState(1227);
+    match(CypherParser::SP);
+    setState(1228);
+    oC_SchemaName();
+    setState(1230);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(1239);
+      setState(1229);
       match(CypherParser::SP);
     }
+    setState(1232);
+    match(CypherParser::T__1);
+    setState(1234);
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::SP) {
+      setState(1233);
+      match(CypherParser::SP);
+    }
+    setState(1236);
+    kU_GraphProjectionTableItems();
+    setState(1238);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::SP) {
+      setState(1237);
+      match(CypherParser::SP);
+    }
+<<<<<<< HEAD
     setState(1242);
     kU_GraphProjectionTableItems();
     setState(1244);
@@ -7346,6 +7442,9 @@ CypherParser::KU_ProjectGraphContext* CypherParser::kU_ProjectGraph() {
       match(CypherParser::SP);
     }
     setState(1246);
+=======
+    setState(1240);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     match(CypherParser::T__3);
    
   }
@@ -7401,21 +7500,42 @@ CypherParser::KU_GraphProjectionTableItemsContext* CypherParser::kU_GraphProject
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1248);
     kU_GraphProjectionTableItem();
     setState(1259);
+=======
+    setState(1242);
+    kU_GraphProjectionTableItem();
+    setState(1253);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 156, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
+<<<<<<< HEAD
         setState(1250);
+=======
+        setState(1244);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1249);
+          setState(1243);
           match(CypherParser::SP);
         }
+        setState(1246);
+        match(CypherParser::T__2);
+        setState(1248);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+          setState(1247);
+          match(CypherParser::SP);
+        }
+<<<<<<< HEAD
         setState(1252);
         match(CypherParser::T__2);
         setState(1254);
@@ -7430,6 +7550,12 @@ CypherParser::KU_GraphProjectionTableItemsContext* CypherParser::kU_GraphProject
         kU_GraphProjectionTableItem(); 
       }
       setState(1261);
+=======
+        setState(1250);
+        kU_GraphProjectionTableItem(); 
+      }
+      setState(1255);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 156, _ctx);
     }
@@ -7498,23 +7624,38 @@ CypherParser::OC_RegularQueryContext* CypherParser::oC_RegularQuery() {
   });
   try {
     size_t alt;
+<<<<<<< HEAD
     setState(1283);
+=======
+    setState(1277);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 161, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
       setState(1262);
       oC_SingleQuery();
       setState(1269);
+=======
+      setState(1256);
+      oC_SingleQuery();
+      setState(1263);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 158, _ctx);
       while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
         if (alt == 1) {
+<<<<<<< HEAD
           setState(1264);
+=======
+          setState(1258);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
           _errHandler->sync(this);
 
           _la = _input->LA(1);
           if (_la == CypherParser::SP) {
+<<<<<<< HEAD
             setState(1263);
             match(CypherParser::SP);
           }
@@ -7522,6 +7663,15 @@ CypherParser::OC_RegularQueryContext* CypherParser::oC_RegularQuery() {
           oC_Union(); 
         }
         setState(1271);
+=======
+            setState(1257);
+            match(CypherParser::SP);
+          }
+          setState(1260);
+          oC_Union(); 
+        }
+        setState(1265);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 158, _ctx);
       }
@@ -7530,20 +7680,34 @@ CypherParser::OC_RegularQueryContext* CypherParser::oC_RegularQuery() {
 
     case 2: {
       enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
       setState(1276); 
+=======
+      setState(1270); 
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = 1;
       do {
         switch (alt) {
           case 1: {
+<<<<<<< HEAD
                 setState(1272);
                 oC_Return();
                 setState(1274);
+=======
+                setState(1266);
+                oC_Return();
+                setState(1268);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
                 _errHandler->sync(this);
 
                 _la = _input->LA(1);
                 if (_la == CypherParser::SP) {
+<<<<<<< HEAD
                   setState(1273);
+=======
+                  setState(1267);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
                   match(CypherParser::SP);
                 }
                 break;
@@ -7552,11 +7716,19 @@ CypherParser::OC_RegularQueryContext* CypherParser::oC_RegularQuery() {
         default:
           throw NoViableAltException(this);
         }
+<<<<<<< HEAD
         setState(1278); 
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 160, _ctx);
       } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
       setState(1280);
+=======
+        setState(1272); 
+        _errHandler->sync(this);
+        alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 160, _ctx);
+      } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
+      setState(1274);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_SingleQuery();
        notifyReturnNotAtEnd(_localctx->start); 
       break;
@@ -7621,11 +7793,16 @@ CypherParser::OC_UnionContext* CypherParser::oC_Union() {
     exitRule();
   });
   try {
+<<<<<<< HEAD
     setState(1297);
+=======
+    setState(1291);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 164, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
       setState(1285);
       match(CypherParser::UNION);
       setState(1286);
@@ -7633,31 +7810,60 @@ CypherParser::OC_UnionContext* CypherParser::oC_Union() {
       setState(1287);
       match(CypherParser::ALL);
       setState(1289);
+=======
+      setState(1279);
+      match(CypherParser::UNION);
+      setState(1280);
+      match(CypherParser::SP);
+      setState(1281);
+      match(CypherParser::ALL);
+      setState(1283);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1288);
         match(CypherParser::SP);
       }
       setState(1291);
+=======
+        setState(1282);
+        match(CypherParser::SP);
+      }
+      setState(1285);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_SingleQuery();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
       setState(1292);
       match(CypherParser::UNION);
       setState(1294);
+=======
+      setState(1286);
+      match(CypherParser::UNION);
+      setState(1288);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1293);
         match(CypherParser::SP);
       }
       setState(1296);
+=======
+        setState(1287);
+        match(CypherParser::SP);
+      }
+      setState(1290);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_SingleQuery();
       break;
     }
@@ -7708,19 +7914,31 @@ CypherParser::OC_SingleQueryContext* CypherParser::oC_SingleQuery() {
     exitRule();
   });
   try {
+<<<<<<< HEAD
     setState(1301);
+=======
+    setState(1295);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 165, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
       setState(1299);
+=======
+      setState(1293);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_SinglePartQuery();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
       setState(1300);
+=======
+      setState(1294);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_MultiPartQuery();
       break;
     }
@@ -7793,23 +8011,38 @@ CypherParser::OC_SinglePartQueryContext* CypherParser::oC_SinglePartQuery() {
   });
   try {
     size_t alt;
+<<<<<<< HEAD
     setState(1348);
+=======
+    setState(1342);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 176, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
       setState(1309);
+=======
+      setState(1303);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       _la = _input->LA(1);
       while (_la == CypherParser::CALL || ((((_la - 100) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 100)) & 274878177285) != 0)) {
+<<<<<<< HEAD
         setState(1303);
         oC_ReadingClause();
         setState(1305);
+=======
+        setState(1297);
+        oC_ReadingClause();
+        setState(1299);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
+<<<<<<< HEAD
           setState(1304);
           match(CypherParser::SP);
         }
@@ -7818,24 +8051,45 @@ CypherParser::OC_SinglePartQueryContext* CypherParser::oC_SinglePartQuery() {
         _la = _input->LA(1);
       }
       setState(1312);
+=======
+          setState(1298);
+          match(CypherParser::SP);
+        }
+        setState(1305);
+        _errHandler->sync(this);
+        _la = _input->LA(1);
+      }
+      setState(1306);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_Return();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
       setState(1319);
+=======
+      setState(1313);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       _la = _input->LA(1);
       while (_la == CypherParser::CALL || ((((_la - 100) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 100)) & 274878177285) != 0)) {
+<<<<<<< HEAD
         setState(1313);
         oC_ReadingClause();
         setState(1315);
+=======
+        setState(1307);
+        oC_ReadingClause();
+        setState(1309);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
+<<<<<<< HEAD
           setState(1314);
           match(CypherParser::SP);
         }
@@ -7846,15 +8100,32 @@ CypherParser::OC_SinglePartQueryContext* CypherParser::oC_SinglePartQuery() {
       setState(1322);
       oC_UpdatingClause();
       setState(1329);
+=======
+          setState(1308);
+          match(CypherParser::SP);
+        }
+        setState(1315);
+        _errHandler->sync(this);
+        _la = _input->LA(1);
+      }
+      setState(1316);
+      oC_UpdatingClause();
+      setState(1323);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 171, _ctx);
       while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
         if (alt == 1) {
+<<<<<<< HEAD
           setState(1324);
+=======
+          setState(1318);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
           _errHandler->sync(this);
 
           _la = _input->LA(1);
           if (_la == CypherParser::SP) {
+<<<<<<< HEAD
             setState(1323);
             match(CypherParser::SP);
           }
@@ -7866,19 +8137,43 @@ CypherParser::OC_SinglePartQueryContext* CypherParser::oC_SinglePartQuery() {
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 171, _ctx);
       }
       setState(1336);
+=======
+            setState(1317);
+            match(CypherParser::SP);
+          }
+          setState(1320);
+          oC_UpdatingClause(); 
+        }
+        setState(1325);
+        _errHandler->sync(this);
+        alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 171, _ctx);
+      }
+      setState(1330);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 173, _ctx)) {
       case 1: {
+<<<<<<< HEAD
         setState(1333);
+=======
+        setState(1327);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
+<<<<<<< HEAD
           setState(1332);
           match(CypherParser::SP);
         }
         setState(1335);
+=======
+          setState(1326);
+          match(CypherParser::SP);
+        }
+        setState(1329);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_Return();
         break;
       }
@@ -7891,6 +8186,7 @@ CypherParser::OC_SinglePartQueryContext* CypherParser::oC_SinglePartQuery() {
 
     case 3: {
       enterOuterAlt(_localctx, 3);
+<<<<<<< HEAD
       setState(1342); 
       _errHandler->sync(this);
       _la = _input->LA(1);
@@ -7898,11 +8194,24 @@ CypherParser::OC_SinglePartQueryContext* CypherParser::oC_SinglePartQuery() {
         setState(1338);
         oC_ReadingClause();
         setState(1340);
+=======
+      setState(1336); 
+      _errHandler->sync(this);
+      _la = _input->LA(1);
+      do {
+        setState(1332);
+        oC_ReadingClause();
+        setState(1334);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
 
         switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 174, _ctx)) {
         case 1: {
+<<<<<<< HEAD
           setState(1339);
+=======
+          setState(1333);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
           match(CypherParser::SP);
           break;
         }
@@ -7910,7 +8219,11 @@ CypherParser::OC_SinglePartQueryContext* CypherParser::oC_SinglePartQuery() {
         default:
           break;
         }
+<<<<<<< HEAD
         setState(1344); 
+=======
+        setState(1338); 
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
         _la = _input->LA(1);
       } while (_la == CypherParser::CALL || ((((_la - 100) & ~ 0x3fULL) == 0) &&
@@ -7980,20 +8293,34 @@ CypherParser::OC_MultiPartQueryContext* CypherParser::oC_MultiPartQuery() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1354); 
+=======
+    setState(1348); 
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = 1;
     do {
       switch (alt) {
         case 1: {
+<<<<<<< HEAD
               setState(1350);
               kU_QueryPart();
               setState(1352);
+=======
+              setState(1344);
+              kU_QueryPart();
+              setState(1346);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
               _errHandler->sync(this);
 
               _la = _input->LA(1);
               if (_la == CypherParser::SP) {
+<<<<<<< HEAD
                 setState(1351);
+=======
+                setState(1345);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
                 match(CypherParser::SP);
               }
               break;
@@ -8002,11 +8329,19 @@ CypherParser::OC_MultiPartQueryContext* CypherParser::oC_MultiPartQuery() {
       default:
         throw NoViableAltException(this);
       }
+<<<<<<< HEAD
       setState(1356); 
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 178, _ctx);
     } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
     setState(1358);
+=======
+      setState(1350); 
+      _errHandler->sync(this);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 178, _ctx);
+    } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
+    setState(1352);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_SinglePartQuery();
    
   }
@@ -8073,18 +8408,29 @@ CypherParser::KU_QueryPartContext* CypherParser::kU_QueryPart() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1366);
+=======
+    setState(1360);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == CypherParser::CALL || ((((_la - 100) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 100)) & 274878177285) != 0)) {
+<<<<<<< HEAD
       setState(1360);
       oC_ReadingClause();
       setState(1362);
+=======
+      setState(1354);
+      oC_ReadingClause();
+      setState(1356);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1361);
         match(CypherParser::SP);
       }
@@ -8093,17 +8439,34 @@ CypherParser::KU_QueryPartContext* CypherParser::kU_QueryPart() {
       _la = _input->LA(1);
     }
     setState(1375);
+=======
+        setState(1355);
+        match(CypherParser::SP);
+      }
+      setState(1362);
+      _errHandler->sync(this);
+      _la = _input->LA(1);
+    }
+    setState(1369);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (((((_la - 66) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 66)) & 2305843284091601185) != 0)) {
+<<<<<<< HEAD
       setState(1369);
       oC_UpdatingClause();
       setState(1371);
+=======
+      setState(1363);
+      oC_UpdatingClause();
+      setState(1365);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1370);
         match(CypherParser::SP);
       }
@@ -8112,6 +8475,16 @@ CypherParser::KU_QueryPartContext* CypherParser::kU_QueryPart() {
       _la = _input->LA(1);
     }
     setState(1378);
+=======
+        setState(1364);
+        match(CypherParser::SP);
+      }
+      setState(1371);
+      _errHandler->sync(this);
+      _la = _input->LA(1);
+    }
+    setState(1372);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_With();
    
   }
@@ -8164,26 +8537,42 @@ CypherParser::OC_UpdatingClauseContext* CypherParser::oC_UpdatingClause() {
     exitRule();
   });
   try {
+<<<<<<< HEAD
     setState(1384);
+=======
+    setState(1378);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::CREATE: {
         enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
         setState(1380);
+=======
+        setState(1374);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_Create();
         break;
       }
 
       case CypherParser::MERGE: {
         enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
         setState(1381);
+=======
+        setState(1375);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_Merge();
         break;
       }
 
       case CypherParser::SET: {
         enterOuterAlt(_localctx, 3);
+<<<<<<< HEAD
         setState(1382);
+=======
+        setState(1376);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_Set();
         break;
       }
@@ -8191,7 +8580,11 @@ CypherParser::OC_UpdatingClauseContext* CypherParser::oC_UpdatingClause() {
       case CypherParser::DELETE:
       case CypherParser::DETACH: {
         enterOuterAlt(_localctx, 4);
+<<<<<<< HEAD
         setState(1383);
+=======
+        setState(1377);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_Delete();
         break;
       }
@@ -8250,20 +8643,32 @@ CypherParser::OC_ReadingClauseContext* CypherParser::oC_ReadingClause() {
     exitRule();
   });
   try {
+<<<<<<< HEAD
     setState(1390);
+=======
+    setState(1384);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::MATCH:
       case CypherParser::OPTIONAL: {
         enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
         setState(1386);
+=======
+        setState(1380);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_Match();
         break;
       }
 
       case CypherParser::UNWIND: {
         enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
         setState(1387);
+=======
+        setState(1381);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_Unwind();
         break;
       }
@@ -8271,14 +8676,22 @@ CypherParser::OC_ReadingClauseContext* CypherParser::oC_ReadingClause() {
       case CypherParser::CALL:
       case CypherParser::PROJECT: {
         enterOuterAlt(_localctx, 3);
+<<<<<<< HEAD
         setState(1388);
+=======
+        setState(1382);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         kU_InQueryCall();
         break;
       }
 
       case CypherParser::LOAD: {
         enterOuterAlt(_localctx, 4);
+<<<<<<< HEAD
         setState(1389);
+=======
+        setState(1383);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         kU_LoadFrom();
         break;
       }
@@ -8363,13 +8776,20 @@ CypherParser::KU_LoadFromContext* CypherParser::kU_LoadFrom() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1392);
     match(CypherParser::LOAD);
     setState(1410);
+=======
+    setState(1386);
+    match(CypherParser::LOAD);
+    setState(1404);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 188, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(1393);
       match(CypherParser::SP);
       setState(1394);
@@ -8389,13 +8809,45 @@ CypherParser::KU_LoadFromContext* CypherParser::kU_LoadFrom() {
       setState(1400);
       match(CypherParser::T__1);
       setState(1402);
+=======
+      setState(1387);
+      match(CypherParser::SP);
+      setState(1388);
+      match(CypherParser::WITH);
+      setState(1389);
+      match(CypherParser::SP);
+      setState(1390);
+      match(CypherParser::HEADERS);
+      setState(1392);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1401);
+        setState(1391);
         match(CypherParser::SP);
       }
+      setState(1394);
+      match(CypherParser::T__1);
+      setState(1396);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(1395);
+        match(CypherParser::SP);
+      }
+      setState(1398);
+      kU_PropertyDefinitions();
+      setState(1400);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(1399);
+        match(CypherParser::SP);
+      }
+<<<<<<< HEAD
       setState(1404);
       kU_PropertyDefinitions();
       setState(1406);
@@ -8407,6 +8859,9 @@ CypherParser::KU_LoadFromContext* CypherParser::kU_LoadFrom() {
         match(CypherParser::SP);
       }
       setState(1408);
+=======
+      setState(1402);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       match(CypherParser::T__3);
       break;
     }
@@ -8414,6 +8869,7 @@ CypherParser::KU_LoadFromContext* CypherParser::kU_LoadFrom() {
     default:
       break;
     }
+<<<<<<< HEAD
     setState(1412);
     match(CypherParser::SP);
     setState(1413);
@@ -8423,19 +8879,41 @@ CypherParser::KU_LoadFromContext* CypherParser::kU_LoadFrom() {
     setState(1415);
     kU_ScanSource();
     setState(1420);
+=======
+    setState(1406);
+    match(CypherParser::SP);
+    setState(1407);
+    match(CypherParser::FROM);
+    setState(1408);
+    match(CypherParser::SP);
+    setState(1409);
+    kU_ScanSource();
+    setState(1414);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 190, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(1417);
+=======
+      setState(1411);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1416);
         match(CypherParser::SP);
       }
       setState(1419);
+=======
+        setState(1410);
+        match(CypherParser::SP);
+      }
+      setState(1413);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       kU_ParsingOptions();
       break;
     }
@@ -8443,20 +8921,35 @@ CypherParser::KU_LoadFromContext* CypherParser::kU_LoadFrom() {
     default:
       break;
     }
+<<<<<<< HEAD
     setState(1426);
+=======
+    setState(1420);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 192, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(1423);
+=======
+      setState(1417);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1422);
         match(CypherParser::SP);
       }
       setState(1425);
+=======
+        setState(1416);
+        match(CypherParser::SP);
+      }
+      setState(1419);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_Where();
       break;
     }
@@ -8525,18 +9018,29 @@ CypherParser::KU_InQueryCallContext* CypherParser::kU_InQueryCall() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1432);
+=======
+    setState(1426);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::PROJECT) {
+<<<<<<< HEAD
       setState(1428);
       kU_ProjectGraph();
       setState(1430);
+=======
+      setState(1422);
+      kU_ProjectGraph();
+      setState(1424);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1429);
         match(CypherParser::SP);
       }
@@ -8548,19 +9052,43 @@ CypherParser::KU_InQueryCallContext* CypherParser::kU_InQueryCall() {
     setState(1436);
     oC_FunctionInvocation();
     setState(1441);
+=======
+        setState(1423);
+        match(CypherParser::SP);
+      }
+    }
+    setState(1428);
+    match(CypherParser::CALL);
+    setState(1429);
+    match(CypherParser::SP);
+    setState(1430);
+    oC_FunctionInvocation();
+    setState(1435);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 196, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(1438);
+=======
+      setState(1432);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1437);
         match(CypherParser::SP);
       }
       setState(1440);
+=======
+        setState(1431);
+        match(CypherParser::SP);
+      }
+      setState(1434);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_Where();
       break;
     }
@@ -8621,13 +9149,20 @@ CypherParser::KU_GraphProjectionTableItemContext* CypherParser::kU_GraphProjecti
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1443);
     oC_SchemaName();
     setState(1457);
+=======
+    setState(1437);
+    oC_SchemaName();
+    setState(1451);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 200, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(1445);
       _errHandler->sync(this);
 
@@ -8639,13 +9174,37 @@ CypherParser::KU_GraphProjectionTableItemContext* CypherParser::kU_GraphProjecti
       setState(1447);
       match(CypherParser::T__8);
       setState(1449);
+=======
+      setState(1439);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1448);
+        setState(1438);
         match(CypherParser::SP);
       }
+      setState(1441);
+      match(CypherParser::T__8);
+      setState(1443);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(1442);
+        match(CypherParser::SP);
+      }
+      setState(1445);
+      kU_GraphProjectionColumnItems();
+      setState(1447);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(1446);
+        match(CypherParser::SP);
+      }
+<<<<<<< HEAD
       setState(1451);
       kU_GraphProjectionColumnItems();
       setState(1453);
@@ -8657,6 +9216,9 @@ CypherParser::KU_GraphProjectionTableItemContext* CypherParser::kU_GraphProjecti
         match(CypherParser::SP);
       }
       setState(1455);
+=======
+      setState(1449);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       match(CypherParser::T__9);
       break;
     }
@@ -8718,21 +9280,42 @@ CypherParser::KU_GraphProjectionColumnItemsContext* CypherParser::kU_GraphProjec
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1459);
     kU_GraphProjectionColumnItem();
     setState(1470);
+=======
+    setState(1453);
+    kU_GraphProjectionColumnItem();
+    setState(1464);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 203, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
+<<<<<<< HEAD
         setState(1461);
+=======
+        setState(1455);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1460);
+          setState(1454);
           match(CypherParser::SP);
         }
+        setState(1457);
+        match(CypherParser::T__2);
+        setState(1459);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+          setState(1458);
+          match(CypherParser::SP);
+        }
+<<<<<<< HEAD
         setState(1463);
         match(CypherParser::T__2);
         setState(1465);
@@ -8747,6 +9330,12 @@ CypherParser::KU_GraphProjectionColumnItemsContext* CypherParser::kU_GraphProjec
         kU_GraphProjectionColumnItem(); 
       }
       setState(1472);
+=======
+        setState(1461);
+        kU_GraphProjectionColumnItem(); 
+      }
+      setState(1466);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 203, _ctx);
     }
@@ -8806,16 +9395,28 @@ CypherParser::KU_GraphProjectionColumnItemContext* CypherParser::kU_GraphProject
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1473);
     oC_PropertyKeyName();
     setState(1476);
+=======
+    setState(1467);
+    oC_PropertyKeyName();
+    setState(1470);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 204, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(1474);
       match(CypherParser::SP);
       setState(1475);
+=======
+      setState(1468);
+      match(CypherParser::SP);
+      setState(1469);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       kU_Default();
       break;
     }
@@ -8823,14 +9424,24 @@ CypherParser::KU_GraphProjectionColumnItemContext* CypherParser::kU_GraphProject
     default:
       break;
     }
+<<<<<<< HEAD
     setState(1480);
+=======
+    setState(1474);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 205, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(1478);
       match(CypherParser::SP);
       setState(1479);
+=======
+      setState(1472);
+      match(CypherParser::SP);
+      setState(1473);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_Where();
       break;
     }
@@ -8903,6 +9514,7 @@ CypherParser::OC_MatchContext* CypherParser::oC_Match() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1484);
     _errHandler->sync(this);
 
@@ -8926,13 +9538,44 @@ CypherParser::OC_MatchContext* CypherParser::oC_Match() {
     setState(1490);
     oC_Pattern();
     setState(1493);
+=======
+    setState(1478);
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::OPTIONAL) {
+      setState(1476);
+      match(CypherParser::OPTIONAL);
+      setState(1477);
+      match(CypherParser::SP);
+    }
+    setState(1480);
+    match(CypherParser::MATCH);
+    setState(1482);
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::SP) {
+      setState(1481);
+      match(CypherParser::SP);
+    }
+    setState(1484);
+    oC_Pattern();
+    setState(1487);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 208, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(1491);
       match(CypherParser::SP);
       setState(1492);
+=======
+      setState(1485);
+      match(CypherParser::SP);
+      setState(1486);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_Where();
       break;
     }
@@ -8940,14 +9583,24 @@ CypherParser::OC_MatchContext* CypherParser::oC_Match() {
     default:
       break;
     }
+<<<<<<< HEAD
     setState(1497);
+=======
+    setState(1491);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 209, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(1495);
       match(CypherParser::SP);
       setState(1496);
+=======
+      setState(1489);
+      match(CypherParser::SP);
+      setState(1490);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       kU_Hint();
       break;
     }
@@ -9003,11 +9656,19 @@ CypherParser::KU_HintContext* CypherParser::kU_Hint() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1499);
     match(CypherParser::HINT);
     setState(1500);
     match(CypherParser::SP);
     setState(1501);
+=======
+    setState(1493);
+    match(CypherParser::HINT);
+    setState(1494);
+    match(CypherParser::SP);
+    setState(1495);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     kU_JoinNode(0);
    
   }
@@ -9094,6 +9755,7 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1515);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
@@ -9101,13 +9763,33 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
         setState(1504);
         match(CypherParser::T__1);
         setState(1506);
+=======
+    setState(1509);
+    _errHandler->sync(this);
+    switch (_input->LA(1)) {
+      case CypherParser::T__1: {
+        setState(1498);
+        match(CypherParser::T__1);
+        setState(1500);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1505);
+          setState(1499);
           match(CypherParser::SP);
         }
+        setState(1502);
+        kU_JoinNode(0);
+        setState(1504);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+          setState(1503);
+          match(CypherParser::SP);
+        }
+<<<<<<< HEAD
         setState(1508);
         kU_JoinNode(0);
         setState(1510);
@@ -9119,6 +9801,9 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
           match(CypherParser::SP);
         }
         setState(1512);
+=======
+        setState(1506);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         match(CypherParser::T__3);
         break;
       }
@@ -9173,7 +9858,11 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
       case CypherParser::HexLetter:
       case CypherParser::UnescapedSymbolicName:
       case CypherParser::EscapedSymbolicName: {
+<<<<<<< HEAD
         setState(1514);
+=======
+        setState(1508);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_SchemaName();
         break;
       }
@@ -9182,7 +9871,11 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
       throw NoViableAltException(this);
     }
     _ctx->stop = _input->LT(-1);
+<<<<<<< HEAD
     setState(1533);
+=======
+    setState(1527);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 215, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
@@ -9190,12 +9883,17 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
         if (!_parseListeners.empty())
           triggerExitRuleEvent();
         previousContext = _localctx;
+<<<<<<< HEAD
         setState(1531);
+=======
+        setState(1525);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
         switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 214, _ctx)) {
         case 1: {
           _localctx = _tracker.createInstance<KU_JoinNodeContext>(parentContext, parentState);
           pushNewRecursionContext(_localctx, startState, RuleKU_JoinNode);
+<<<<<<< HEAD
           setState(1517);
 
           if (!(precpred(_ctx, 4))) throw FailedPredicateException(this, "precpred(_ctx, 4)");
@@ -9206,6 +9904,18 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
           setState(1520);
           match(CypherParser::SP);
           setState(1521);
+=======
+          setState(1511);
+
+          if (!(precpred(_ctx, 4))) throw FailedPredicateException(this, "precpred(_ctx, 4)");
+          setState(1512);
+          match(CypherParser::SP);
+          setState(1513);
+          match(CypherParser::JOIN);
+          setState(1514);
+          match(CypherParser::SP);
+          setState(1515);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
           kU_JoinNode(5);
           break;
         }
@@ -9213,15 +9923,23 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
         case 2: {
           _localctx = _tracker.createInstance<KU_JoinNodeContext>(parentContext, parentState);
           pushNewRecursionContext(_localctx, startState, RuleKU_JoinNode);
+<<<<<<< HEAD
           setState(1522);
 
           if (!(precpred(_ctx, 3))) throw FailedPredicateException(this, "precpred(_ctx, 3)");
           setState(1527); 
+=======
+          setState(1516);
+
+          if (!(precpred(_ctx, 3))) throw FailedPredicateException(this, "precpred(_ctx, 3)");
+          setState(1521); 
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
           _errHandler->sync(this);
           alt = 1;
           do {
             switch (alt) {
               case 1: {
+<<<<<<< HEAD
                     setState(1523);
                     match(CypherParser::SP);
                     setState(1524);
@@ -9229,6 +9947,15 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
                     setState(1525);
                     match(CypherParser::SP);
                     setState(1526);
+=======
+                    setState(1517);
+                    match(CypherParser::SP);
+                    setState(1518);
+                    match(CypherParser::MULTI_JOIN);
+                    setState(1519);
+                    match(CypherParser::SP);
+                    setState(1520);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
                     oC_SchemaName();
                     break;
                   }
@@ -9236,7 +9963,11 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
             default:
               throw NoViableAltException(this);
             }
+<<<<<<< HEAD
             setState(1529); 
+=======
+            setState(1523); 
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
             _errHandler->sync(this);
             alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 213, _ctx);
           } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
@@ -9247,7 +9978,11 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
           break;
         } 
       }
+<<<<<<< HEAD
       setState(1535);
+=======
+      setState(1529);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 215, _ctx);
     }
@@ -9310,13 +10045,20 @@ CypherParser::OC_UnwindContext* CypherParser::oC_Unwind() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1536);
     match(CypherParser::UNWIND);
     setState(1538);
+=======
+    setState(1530);
+    match(CypherParser::UNWIND);
+    setState(1532);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(1537);
       match(CypherParser::SP);
     }
@@ -9329,6 +10071,20 @@ CypherParser::OC_UnwindContext* CypherParser::oC_Unwind() {
     setState(1543);
     match(CypherParser::SP);
     setState(1544);
+=======
+      setState(1531);
+      match(CypherParser::SP);
+    }
+    setState(1534);
+    oC_Expression();
+    setState(1535);
+    match(CypherParser::SP);
+    setState(1536);
+    match(CypherParser::AS);
+    setState(1537);
+    match(CypherParser::SP);
+    setState(1538);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_Variable();
    
   }
@@ -9379,17 +10135,30 @@ CypherParser::OC_CreateContext* CypherParser::oC_Create() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1546);
     match(CypherParser::CREATE);
     setState(1548);
+=======
+    setState(1540);
+    match(CypherParser::CREATE);
+    setState(1542);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(1547);
       match(CypherParser::SP);
     }
     setState(1550);
+=======
+      setState(1541);
+      match(CypherParser::SP);
+    }
+    setState(1544);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_Pattern();
    
   }
@@ -9453,29 +10222,53 @@ CypherParser::OC_MergeContext* CypherParser::oC_Merge() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1552);
     match(CypherParser::MERGE);
     setState(1554);
+=======
+    setState(1546);
+    match(CypherParser::MERGE);
+    setState(1548);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(1553);
       match(CypherParser::SP);
     }
     setState(1556);
     oC_Pattern();
     setState(1561);
+=======
+      setState(1547);
+      match(CypherParser::SP);
+    }
+    setState(1550);
+    oC_Pattern();
+    setState(1555);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 219, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
+<<<<<<< HEAD
         setState(1557);
         match(CypherParser::SP);
         setState(1558);
         oC_MergeAction(); 
       }
       setState(1563);
+=======
+        setState(1551);
+        match(CypherParser::SP);
+        setState(1552);
+        oC_MergeAction(); 
+      }
+      setState(1557);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 219, _ctx);
     }
@@ -9632,31 +10425,61 @@ CypherParser::OC_SetContext* CypherParser::oC_Set() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1576);
     match(CypherParser::SET);
     setState(1578);
+=======
+    setState(1570);
+    match(CypherParser::SET);
+    setState(1572);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(1577);
       match(CypherParser::SP);
     }
     setState(1580);
     oC_SetItem();
     setState(1591);
+=======
+      setState(1571);
+      match(CypherParser::SP);
+    }
+    setState(1574);
+    oC_SetItem();
+    setState(1585);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 224, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
+<<<<<<< HEAD
         setState(1582);
+=======
+        setState(1576);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1581);
+          setState(1575);
           match(CypherParser::SP);
         }
+        setState(1578);
+        match(CypherParser::T__2);
+        setState(1580);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+          setState(1579);
+          match(CypherParser::SP);
+        }
+<<<<<<< HEAD
         setState(1584);
         match(CypherParser::T__2);
         setState(1586);
@@ -9671,6 +10494,12 @@ CypherParser::OC_SetContext* CypherParser::oC_Set() {
         oC_SetItem(); 
       }
       setState(1593);
+=======
+        setState(1582);
+        oC_SetItem(); 
+      }
+      setState(1587);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 224, _ctx);
     }
@@ -9727,16 +10556,33 @@ CypherParser::OC_SetItemContext* CypherParser::oC_SetItem() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1594);
     oC_PropertyExpression();
     setState(1596);
+=======
+    setState(1588);
+    oC_PropertyExpression();
+    setState(1590);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(1595);
+      setState(1589);
       match(CypherParser::SP);
     }
+    setState(1592);
+    match(CypherParser::T__5);
+    setState(1594);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::SP) {
+      setState(1593);
+      match(CypherParser::SP);
+    }
+<<<<<<< HEAD
     setState(1598);
     match(CypherParser::T__5);
     setState(1600);
@@ -9748,6 +10594,9 @@ CypherParser::OC_SetItemContext* CypherParser::oC_SetItem() {
       match(CypherParser::SP);
     }
     setState(1602);
+=======
+    setState(1596);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_Expression();
    
   }
@@ -9811,6 +10660,7 @@ CypherParser::OC_DeleteContext* CypherParser::oC_Delete() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1606);
     _errHandler->sync(this);
 
@@ -9834,18 +10684,58 @@ CypherParser::OC_DeleteContext* CypherParser::oC_Delete() {
     setState(1612);
     oC_Expression();
     setState(1623);
+=======
+    setState(1600);
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::DETACH) {
+      setState(1598);
+      match(CypherParser::DETACH);
+      setState(1599);
+      match(CypherParser::SP);
+    }
+    setState(1602);
+    match(CypherParser::DELETE);
+    setState(1604);
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::SP) {
+      setState(1603);
+      match(CypherParser::SP);
+    }
+    setState(1606);
+    oC_Expression();
+    setState(1617);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 231, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
+<<<<<<< HEAD
         setState(1614);
+=======
+        setState(1608);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1613);
+          setState(1607);
           match(CypherParser::SP);
         }
+        setState(1610);
+        match(CypherParser::T__2);
+        setState(1612);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+          setState(1611);
+          match(CypherParser::SP);
+        }
+<<<<<<< HEAD
         setState(1616);
         match(CypherParser::T__2);
         setState(1618);
@@ -9860,6 +10750,12 @@ CypherParser::OC_DeleteContext* CypherParser::oC_Delete() {
         oC_Expression(); 
       }
       setState(1625);
+=======
+        setState(1614);
+        oC_Expression(); 
+      }
+      setState(1619);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 231, _ctx);
     }
@@ -9916,24 +10812,43 @@ CypherParser::OC_WithContext* CypherParser::oC_With() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1626);
     match(CypherParser::WITH);
     setState(1627);
     oC_ProjectionBody();
     setState(1632);
+=======
+    setState(1620);
+    match(CypherParser::WITH);
+    setState(1621);
+    oC_ProjectionBody();
+    setState(1626);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 233, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(1629);
+=======
+      setState(1623);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1628);
         match(CypherParser::SP);
       }
       setState(1631);
+=======
+        setState(1622);
+        match(CypherParser::SP);
+      }
+      setState(1625);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_Where();
       break;
     }
@@ -9985,9 +10900,15 @@ CypherParser::OC_ReturnContext* CypherParser::oC_Return() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1634);
     match(CypherParser::RETURN);
     setState(1635);
+=======
+    setState(1628);
+    match(CypherParser::RETURN);
+    setState(1629);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_ProjectionBody();
    
   }
@@ -10054,20 +10975,35 @@ CypherParser::OC_ProjectionBodyContext* CypherParser::oC_ProjectionBody() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1641);
+=======
+    setState(1635);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 235, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(1638);
+=======
+      setState(1632);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1637);
         match(CypherParser::SP);
       }
       setState(1640);
+=======
+        setState(1631);
+        match(CypherParser::SP);
+      }
+      setState(1634);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       match(CypherParser::DISTINCT);
       break;
     }
@@ -10075,18 +11011,32 @@ CypherParser::OC_ProjectionBodyContext* CypherParser::oC_ProjectionBody() {
     default:
       break;
     }
+<<<<<<< HEAD
     setState(1643);
     match(CypherParser::SP);
     setState(1644);
     oC_ProjectionItems();
     setState(1647);
+=======
+    setState(1637);
+    match(CypherParser::SP);
+    setState(1638);
+    oC_ProjectionItems();
+    setState(1641);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 236, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(1645);
       match(CypherParser::SP);
       setState(1646);
+      oC_Order();
+=======
+      setState(1639);
+      match(CypherParser::SP);
+      setState(1640);
       oC_Order();
       break;
     }
@@ -10094,13 +11044,30 @@ CypherParser::OC_ProjectionBodyContext* CypherParser::oC_ProjectionBody() {
     default:
       break;
     }
-    setState(1651);
+    setState(1645);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 237, _ctx)) {
     case 1: {
-      setState(1649);
+      setState(1643);
       match(CypherParser::SP);
+      setState(1644);
+      oC_Skip();
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+      break;
+    }
+
+    default:
+      break;
+    }
+    setState(1649);
+    _errHandler->sync(this);
+
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 237, _ctx)) {
+    case 1: {
+      setState(1647);
+      match(CypherParser::SP);
+<<<<<<< HEAD
       setState(1650);
       oC_Skip();
       break;
@@ -10117,6 +11084,9 @@ CypherParser::OC_ProjectionBodyContext* CypherParser::oC_ProjectionBody() {
       setState(1653);
       match(CypherParser::SP);
       setState(1654);
+=======
+      setState(1648);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_Limit();
       break;
     }
@@ -10181,26 +11151,51 @@ CypherParser::OC_ProjectionItemsContext* CypherParser::oC_ProjectionItems() {
   });
   try {
     size_t alt;
+<<<<<<< HEAD
     setState(1685);
+=======
+    setState(1679);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::STAR: {
         enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
         setState(1657);
         match(CypherParser::STAR);
         setState(1668);
+=======
+        setState(1651);
+        match(CypherParser::STAR);
+        setState(1662);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 241, _ctx);
         while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
           if (alt == 1) {
+<<<<<<< HEAD
             setState(1659);
+=======
+            setState(1653);
             _errHandler->sync(this);
 
             _la = _input->LA(1);
             if (_la == CypherParser::SP) {
-              setState(1658);
+              setState(1652);
               match(CypherParser::SP);
             }
+            setState(1655);
+            match(CypherParser::T__2);
+            setState(1657);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+            _errHandler->sync(this);
+
+            _la = _input->LA(1);
+            if (_la == CypherParser::SP) {
+              setState(1656);
+              match(CypherParser::SP);
+            }
+<<<<<<< HEAD
             setState(1661);
             match(CypherParser::T__2);
             setState(1663);
@@ -10215,6 +11210,12 @@ CypherParser::OC_ProjectionItemsContext* CypherParser::oC_ProjectionItems() {
             oC_ProjectionItem(); 
           }
           setState(1670);
+=======
+            setState(1659);
+            oC_ProjectionItem(); 
+          }
+          setState(1664);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
           _errHandler->sync(this);
           alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 241, _ctx);
         }
@@ -10287,21 +11288,42 @@ CypherParser::OC_ProjectionItemsContext* CypherParser::oC_ProjectionItems() {
       case CypherParser::UnescapedSymbolicName:
       case CypherParser::EscapedSymbolicName: {
         enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
         setState(1671);
         oC_ProjectionItem();
         setState(1682);
+=======
+        setState(1665);
+        oC_ProjectionItem();
+        setState(1676);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 244, _ctx);
         while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
           if (alt == 1) {
+<<<<<<< HEAD
             setState(1673);
+=======
+            setState(1667);
             _errHandler->sync(this);
 
             _la = _input->LA(1);
             if (_la == CypherParser::SP) {
-              setState(1672);
+              setState(1666);
               match(CypherParser::SP);
             }
+            setState(1669);
+            match(CypherParser::T__2);
+            setState(1671);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+            _errHandler->sync(this);
+
+            _la = _input->LA(1);
+            if (_la == CypherParser::SP) {
+              setState(1670);
+              match(CypherParser::SP);
+            }
+<<<<<<< HEAD
             setState(1675);
             match(CypherParser::T__2);
             setState(1677);
@@ -10316,6 +11338,12 @@ CypherParser::OC_ProjectionItemsContext* CypherParser::oC_ProjectionItems() {
             oC_ProjectionItem(); 
           }
           setState(1684);
+=======
+            setState(1673);
+            oC_ProjectionItem(); 
+          }
+          setState(1678);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
           _errHandler->sync(this);
           alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 244, _ctx);
         }
@@ -10380,11 +11408,16 @@ CypherParser::OC_ProjectionItemContext* CypherParser::oC_ProjectionItem() {
     exitRule();
   });
   try {
+<<<<<<< HEAD
     setState(1694);
+=======
+    setState(1688);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 246, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
       setState(1687);
       oC_Expression();
       setState(1688);
@@ -10394,13 +11427,28 @@ CypherParser::OC_ProjectionItemContext* CypherParser::oC_ProjectionItem() {
       setState(1690);
       match(CypherParser::SP);
       setState(1691);
+=======
+      setState(1681);
+      oC_Expression();
+      setState(1682);
+      match(CypherParser::SP);
+      setState(1683);
+      match(CypherParser::AS);
+      setState(1684);
+      match(CypherParser::SP);
+      setState(1685);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_Variable();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
       setState(1693);
+=======
+      setState(1687);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_Expression();
       break;
     }
@@ -10469,6 +11517,7 @@ CypherParser::OC_OrderContext* CypherParser::oC_Order() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1696);
     match(CypherParser::ORDER);
     setState(1697);
@@ -10486,16 +11535,44 @@ CypherParser::OC_OrderContext* CypherParser::oC_Order() {
       setState(1701);
       match(CypherParser::T__2);
       setState(1703);
+=======
+    setState(1690);
+    match(CypherParser::ORDER);
+    setState(1691);
+    match(CypherParser::SP);
+    setState(1692);
+    match(CypherParser::BY);
+    setState(1693);
+    match(CypherParser::SP);
+    setState(1694);
+    oC_SortItem();
+    setState(1702);
+    _errHandler->sync(this);
+    _la = _input->LA(1);
+    while (_la == CypherParser::T__2) {
+      setState(1695);
+      match(CypherParser::T__2);
+      setState(1697);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1702);
         match(CypherParser::SP);
       }
       setState(1705);
       oC_SortItem();
       setState(1710);
+=======
+        setState(1696);
+        match(CypherParser::SP);
+      }
+      setState(1699);
+      oC_SortItem();
+      setState(1704);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -10547,11 +11624,19 @@ CypherParser::OC_SkipContext* CypherParser::oC_Skip() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1711);
     match(CypherParser::L_SKIP);
     setState(1712);
     match(CypherParser::SP);
     setState(1713);
+=======
+    setState(1705);
+    match(CypherParser::L_SKIP);
+    setState(1706);
+    match(CypherParser::SP);
+    setState(1707);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_Expression();
    
   }
@@ -10601,11 +11686,19 @@ CypherParser::OC_LimitContext* CypherParser::oC_Limit() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1715);
     match(CypherParser::LIMIT);
     setState(1716);
     match(CypherParser::SP);
     setState(1717);
+=======
+    setState(1709);
+    match(CypherParser::LIMIT);
+    setState(1710);
+    match(CypherParser::SP);
+    setState(1711);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_Expression();
    
   }
@@ -10668,22 +11761,39 @@ CypherParser::OC_SortItemContext* CypherParser::oC_SortItem() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1719);
     oC_Expression();
     setState(1724);
+=======
+    setState(1713);
+    oC_Expression();
+    setState(1718);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 250, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(1721);
+=======
+      setState(1715);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1720);
         match(CypherParser::SP);
       }
       setState(1723);
+=======
+        setState(1714);
+        match(CypherParser::SP);
+      }
+      setState(1717);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _la = _input->LA(1);
       if (!(((((_la - 51) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 51)) & 6291459) != 0))) {
@@ -10747,11 +11857,19 @@ CypherParser::OC_WhereContext* CypherParser::oC_Where() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1726);
     match(CypherParser::WHERE);
     setState(1727);
     match(CypherParser::SP);
     setState(1728);
+=======
+    setState(1720);
+    match(CypherParser::WHERE);
+    setState(1721);
+    match(CypherParser::SP);
+    setState(1722);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_Expression();
    
   }
@@ -10807,21 +11925,42 @@ CypherParser::OC_PatternContext* CypherParser::oC_Pattern() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1730);
     oC_PatternPart();
     setState(1741);
+=======
+    setState(1724);
+    oC_PatternPart();
+    setState(1735);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 253, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
+<<<<<<< HEAD
         setState(1732);
+=======
+        setState(1726);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1731);
+          setState(1725);
           match(CypherParser::SP);
         }
+        setState(1728);
+        match(CypherParser::T__2);
+        setState(1730);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+          setState(1729);
+          match(CypherParser::SP);
+        }
+<<<<<<< HEAD
         setState(1734);
         match(CypherParser::T__2);
         setState(1736);
@@ -10836,6 +11975,12 @@ CypherParser::OC_PatternContext* CypherParser::oC_Pattern() {
         oC_PatternPart(); 
       }
       setState(1743);
+=======
+        setState(1732);
+        oC_PatternPart(); 
+      }
+      setState(1737);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 253, _ctx);
     }
@@ -10891,7 +12036,11 @@ CypherParser::OC_PatternPartContext* CypherParser::oC_PatternPart() {
     exitRule();
   });
   try {
+<<<<<<< HEAD
     setState(1755);
+=======
+    setState(1749);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::ADD:
@@ -10945,16 +12094,33 @@ CypherParser::OC_PatternPartContext* CypherParser::oC_PatternPart() {
       case CypherParser::UnescapedSymbolicName:
       case CypherParser::EscapedSymbolicName: {
         enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
         setState(1744);
         oC_Variable();
         setState(1746);
+=======
+        setState(1738);
+        oC_Variable();
+        setState(1740);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1745);
+          setState(1739);
           match(CypherParser::SP);
         }
+        setState(1742);
+        match(CypherParser::T__5);
+        setState(1744);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+          setState(1743);
+          match(CypherParser::SP);
+        }
+<<<<<<< HEAD
         setState(1748);
         match(CypherParser::T__5);
         setState(1750);
@@ -10966,13 +12132,20 @@ CypherParser::OC_PatternPartContext* CypherParser::oC_PatternPart() {
           match(CypherParser::SP);
         }
         setState(1752);
+=======
+        setState(1746);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_AnonymousPatternPart();
         break;
       }
 
       case CypherParser::T__1: {
         enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
         setState(1754);
+=======
+        setState(1748);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_AnonymousPatternPart();
         break;
       }
@@ -11020,7 +12193,11 @@ CypherParser::OC_AnonymousPatternPartContext* CypherParser::oC_AnonymousPatternP
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1757);
+=======
+    setState(1751);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_PatternElement();
    
   }
@@ -11083,23 +12260,38 @@ CypherParser::OC_PatternElementContext* CypherParser::oC_PatternElement() {
   });
   try {
     size_t alt;
+<<<<<<< HEAD
     setState(1773);
+=======
+    setState(1767);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 259, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
       setState(1759);
       oC_NodePattern();
       setState(1766);
+=======
+      setState(1753);
+      oC_NodePattern();
+      setState(1760);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 258, _ctx);
       while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
         if (alt == 1) {
+<<<<<<< HEAD
           setState(1761);
+=======
+          setState(1755);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
           _errHandler->sync(this);
 
           _la = _input->LA(1);
           if (_la == CypherParser::SP) {
+<<<<<<< HEAD
             setState(1760);
             match(CypherParser::SP);
           }
@@ -11107,6 +12299,15 @@ CypherParser::OC_PatternElementContext* CypherParser::oC_PatternElement() {
           oC_PatternElementChain(); 
         }
         setState(1768);
+=======
+            setState(1754);
+            match(CypherParser::SP);
+          }
+          setState(1757);
+          oC_PatternElementChain(); 
+        }
+        setState(1762);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 258, _ctx);
       }
@@ -11115,11 +12316,19 @@ CypherParser::OC_PatternElementContext* CypherParser::oC_PatternElement() {
 
     case 2: {
       enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
       setState(1769);
       match(CypherParser::T__1);
       setState(1770);
       oC_PatternElement();
       setState(1771);
+=======
+      setState(1763);
+      match(CypherParser::T__1);
+      setState(1764);
+      oC_PatternElement();
+      setState(1765);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       match(CypherParser::T__3);
       break;
     }
@@ -11184,67 +12393,122 @@ CypherParser::OC_NodePatternContext* CypherParser::oC_NodePattern() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1775);
     match(CypherParser::T__1);
     setState(1777);
+=======
+    setState(1769);
+    match(CypherParser::T__1);
+    setState(1771);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(1776);
       match(CypherParser::SP);
     }
     setState(1783);
+=======
+      setState(1770);
+      match(CypherParser::SP);
+    }
+    setState(1777);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (((((_la - 46) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 46)) & 8022426305271089045) != 0) || ((((_la - 118) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 118)) & 158467283553149) != 0)) {
+<<<<<<< HEAD
       setState(1779);
       oC_Variable();
       setState(1781);
+=======
+      setState(1773);
+      oC_Variable();
+      setState(1775);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1780);
         match(CypherParser::SP);
       }
     }
     setState(1789);
+=======
+        setState(1774);
+        match(CypherParser::SP);
+      }
+    }
+    setState(1783);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::COLON) {
+<<<<<<< HEAD
       setState(1785);
       oC_NodeLabels();
       setState(1787);
+=======
+      setState(1779);
+      oC_NodeLabels();
+      setState(1781);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1786);
         match(CypherParser::SP);
       }
     }
     setState(1795);
+=======
+        setState(1780);
+        match(CypherParser::SP);
+      }
+    }
+    setState(1789);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::T__8) {
+<<<<<<< HEAD
       setState(1791);
       kU_Properties();
       setState(1793);
+=======
+      setState(1785);
+      kU_Properties();
+      setState(1787);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1792);
         match(CypherParser::SP);
       }
     }
     setState(1797);
+=======
+        setState(1786);
+        match(CypherParser::SP);
+      }
+    }
+    setState(1791);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     match(CypherParser::T__3);
    
   }
@@ -11295,17 +12559,30 @@ CypherParser::OC_PatternElementChainContext* CypherParser::oC_PatternElementChai
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1799);
     oC_RelationshipPattern();
     setState(1801);
+=======
+    setState(1793);
+    oC_RelationshipPattern();
+    setState(1795);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(1800);
       match(CypherParser::SP);
     }
     setState(1803);
+=======
+      setState(1794);
+      match(CypherParser::SP);
+    }
+    setState(1797);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_NodePattern();
    
   }
@@ -11371,29 +12648,52 @@ CypherParser::OC_RelationshipPatternContext* CypherParser::oC_RelationshipPatter
     exitRule();
   });
   try {
+<<<<<<< HEAD
     setState(1849);
+=======
+    setState(1843);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 279, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
       setState(1805);
       oC_LeftArrowHead();
       setState(1807);
+=======
+      setState(1799);
+      oC_LeftArrowHead();
+      setState(1801);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1806);
         match(CypherParser::SP);
       }
       setState(1809);
       oC_Dash();
       setState(1811);
+=======
+        setState(1800);
+        match(CypherParser::SP);
+      }
+      setState(1803);
+      oC_Dash();
+      setState(1805);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 269, _ctx)) {
       case 1: {
+<<<<<<< HEAD
         setState(1810);
+=======
+        setState(1804);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         match(CypherParser::SP);
         break;
       }
@@ -11401,37 +12701,65 @@ CypherParser::OC_RelationshipPatternContext* CypherParser::oC_RelationshipPatter
       default:
         break;
       }
+<<<<<<< HEAD
       setState(1814);
+=======
+      setState(1808);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::T__6) {
+<<<<<<< HEAD
         setState(1813);
         oC_RelationshipDetail();
       }
       setState(1817);
+=======
+        setState(1807);
+        oC_RelationshipDetail();
+      }
+      setState(1811);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1816);
         match(CypherParser::SP);
       }
       setState(1819);
+=======
+        setState(1810);
+        match(CypherParser::SP);
+      }
+      setState(1813);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_Dash();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
       setState(1821);
       oC_Dash();
       setState(1823);
+=======
+      setState(1815);
+      oC_Dash();
+      setState(1817);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 272, _ctx)) {
       case 1: {
+<<<<<<< HEAD
         setState(1822);
+=======
+        setState(1816);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         match(CypherParser::SP);
         break;
       }
@@ -11439,22 +12767,44 @@ CypherParser::OC_RelationshipPatternContext* CypherParser::oC_RelationshipPatter
       default:
         break;
       }
+<<<<<<< HEAD
       setState(1826);
+=======
+      setState(1820);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::T__6) {
+<<<<<<< HEAD
         setState(1825);
         oC_RelationshipDetail();
       }
       setState(1829);
+=======
+        setState(1819);
+        oC_RelationshipDetail();
+      }
+      setState(1823);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1828);
+        setState(1822);
         match(CypherParser::SP);
       }
+      setState(1825);
+      oC_Dash();
+      setState(1827);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(1826);
+        match(CypherParser::SP);
+      }
+<<<<<<< HEAD
       setState(1831);
       oC_Dash();
       setState(1833);
@@ -11466,20 +12816,33 @@ CypherParser::OC_RelationshipPatternContext* CypherParser::oC_RelationshipPatter
         match(CypherParser::SP);
       }
       setState(1835);
+=======
+      setState(1829);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_RightArrowHead();
       break;
     }
 
     case 3: {
       enterOuterAlt(_localctx, 3);
+<<<<<<< HEAD
       setState(1837);
       oC_Dash();
       setState(1839);
+=======
+      setState(1831);
+      oC_Dash();
+      setState(1833);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 276, _ctx)) {
       case 1: {
+<<<<<<< HEAD
         setState(1838);
+=======
+        setState(1832);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         match(CypherParser::SP);
         break;
       }
@@ -11487,23 +12850,41 @@ CypherParser::OC_RelationshipPatternContext* CypherParser::oC_RelationshipPatter
       default:
         break;
       }
+<<<<<<< HEAD
       setState(1842);
+=======
+      setState(1836);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::T__6) {
+<<<<<<< HEAD
         setState(1841);
         oC_RelationshipDetail();
       }
       setState(1845);
+=======
+        setState(1835);
+        oC_RelationshipDetail();
+      }
+      setState(1839);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1844);
         match(CypherParser::SP);
       }
       setState(1847);
+=======
+        setState(1838);
+        match(CypherParser::SP);
+      }
+      setState(1841);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_Dash();
       break;
     }
@@ -11572,83 +12953,152 @@ CypherParser::OC_RelationshipDetailContext* CypherParser::oC_RelationshipDetail(
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1851);
     match(CypherParser::T__6);
     setState(1853);
+=======
+    setState(1845);
+    match(CypherParser::T__6);
+    setState(1847);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(1852);
       match(CypherParser::SP);
     }
     setState(1859);
+=======
+      setState(1846);
+      match(CypherParser::SP);
+    }
+    setState(1853);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (((((_la - 46) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 46)) & 8022426305271089045) != 0) || ((((_la - 118) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 118)) & 158467283553149) != 0)) {
+<<<<<<< HEAD
       setState(1855);
       oC_Variable();
       setState(1857);
+=======
+      setState(1849);
+      oC_Variable();
+      setState(1851);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1856);
         match(CypherParser::SP);
       }
     }
     setState(1865);
+=======
+        setState(1850);
+        match(CypherParser::SP);
+      }
+    }
+    setState(1859);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::COLON) {
+<<<<<<< HEAD
       setState(1861);
       oC_RelationshipTypes();
       setState(1863);
+=======
+      setState(1855);
+      oC_RelationshipTypes();
+      setState(1857);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1862);
         match(CypherParser::SP);
       }
     }
     setState(1871);
+=======
+        setState(1856);
+        match(CypherParser::SP);
+      }
+    }
+    setState(1865);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::STAR) {
+<<<<<<< HEAD
       setState(1867);
       oC_RangeLiteral();
       setState(1869);
+=======
+      setState(1861);
+      oC_RangeLiteral();
+      setState(1863);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1868);
         match(CypherParser::SP);
       }
     }
     setState(1877);
+=======
+        setState(1862);
+        match(CypherParser::SP);
+      }
+    }
+    setState(1871);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::T__8) {
+<<<<<<< HEAD
       setState(1873);
       kU_Properties();
       setState(1875);
+=======
+      setState(1867);
+      kU_Properties();
+      setState(1869);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1874);
         match(CypherParser::SP);
       }
     }
     setState(1879);
+=======
+        setState(1868);
+        match(CypherParser::SP);
+      }
+    }
+    setState(1873);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     match(CypherParser::T__7);
    
   }
@@ -11719,23 +13169,37 @@ CypherParser::KU_PropertiesContext* CypherParser::kU_Properties() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1881);
     match(CypherParser::T__8);
     setState(1883);
+=======
+    setState(1875);
+    match(CypherParser::T__8);
+    setState(1877);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(1882);
       match(CypherParser::SP);
     }
     setState(1918);
+=======
+      setState(1876);
+      match(CypherParser::SP);
+    }
+    setState(1912);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (((((_la - 46) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 46)) & 8022426305271089045) != 0) || ((((_la - 118) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 118)) & 158467283553149) != 0)) {
+<<<<<<< HEAD
       setState(1885);
       oC_PropertyKeyName();
       setState(1887);
@@ -11749,13 +13213,39 @@ CypherParser::KU_PropertiesContext* CypherParser::kU_Properties() {
       setState(1889);
       match(CypherParser::COLON);
       setState(1891);
+=======
+      setState(1879);
+      oC_PropertyKeyName();
+      setState(1881);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1890);
+        setState(1880);
         match(CypherParser::SP);
       }
+      setState(1883);
+      match(CypherParser::COLON);
+      setState(1885);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(1884);
+        match(CypherParser::SP);
+      }
+      setState(1887);
+      oC_Expression();
+      setState(1889);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(1888);
+        match(CypherParser::SP);
+      }
+<<<<<<< HEAD
       setState(1893);
       oC_Expression();
       setState(1895);
@@ -11773,10 +13263,40 @@ CypherParser::KU_PropertiesContext* CypherParser::kU_Properties() {
         setState(1897);
         match(CypherParser::T__2);
         setState(1899);
+=======
+      setState(1909);
+      _errHandler->sync(this);
+      _la = _input->LA(1);
+      while (_la == CypherParser::T__2) {
+        setState(1891);
+        match(CypherParser::T__2);
+        setState(1893);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
+          setState(1892);
+          match(CypherParser::SP);
+        }
+        setState(1895);
+        oC_PropertyKeyName();
+        setState(1897);
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+          setState(1896);
+          match(CypherParser::SP);
+        }
+        setState(1899);
+        match(CypherParser::COLON);
+        setState(1901);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+<<<<<<< HEAD
           setState(1898);
           match(CypherParser::SP);
         }
@@ -11793,13 +13313,22 @@ CypherParser::KU_PropertiesContext* CypherParser::kU_Properties() {
         setState(1905);
         match(CypherParser::COLON);
         setState(1907);
+=======
+          setState(1900);
+          match(CypherParser::SP);
+        }
+        setState(1903);
+        oC_Expression();
+        setState(1905);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1906);
+          setState(1904);
           match(CypherParser::SP);
         }
+<<<<<<< HEAD
         setState(1909);
         oC_Expression();
         setState(1911);
@@ -11811,11 +13340,18 @@ CypherParser::KU_PropertiesContext* CypherParser::kU_Properties() {
           match(CypherParser::SP);
         }
         setState(1917);
+=======
+        setState(1911);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
         _la = _input->LA(1);
       }
     }
+<<<<<<< HEAD
     setState(1920);
+=======
+    setState(1914);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     match(CypherParser::T__9);
    
   }
@@ -11879,23 +13415,39 @@ CypherParser::OC_RelationshipTypesContext* CypherParser::oC_RelationshipTypes() 
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1922);
     match(CypherParser::COLON);
     setState(1924);
+=======
+    setState(1916);
+    match(CypherParser::COLON);
+    setState(1918);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(1923);
       match(CypherParser::SP);
     }
     setState(1926);
     oC_RelTypeName();
     setState(1940);
+=======
+      setState(1917);
+      match(CypherParser::SP);
+    }
+    setState(1920);
+    oC_RelTypeName();
+    setState(1934);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 303, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
+<<<<<<< HEAD
         setState(1928);
         _errHandler->sync(this);
 
@@ -11915,10 +13467,32 @@ CypherParser::OC_RelationshipTypesContext* CypherParser::oC_RelationshipTypes() 
           match(CypherParser::COLON);
         }
         setState(1935);
+=======
+        setState(1922);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
+          setState(1921);
+          match(CypherParser::SP);
+        }
+        setState(1924);
+        match(CypherParser::T__10);
+        setState(1926);
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::COLON) {
+          setState(1925);
+          match(CypherParser::COLON);
+        }
+        setState(1929);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+<<<<<<< HEAD
           setState(1934);
           match(CypherParser::SP);
         }
@@ -11926,6 +13500,15 @@ CypherParser::OC_RelationshipTypesContext* CypherParser::oC_RelationshipTypes() 
         oC_RelTypeName(); 
       }
       setState(1942);
+=======
+          setState(1928);
+          match(CypherParser::SP);
+        }
+        setState(1931);
+        oC_RelTypeName(); 
+      }
+      setState(1936);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 303, _ctx);
     }
@@ -11983,18 +13566,29 @@ CypherParser::OC_NodeLabelsContext* CypherParser::oC_NodeLabels() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1943);
     oC_NodeLabel();
     setState(1950);
+=======
+    setState(1937);
+    oC_NodeLabel();
+    setState(1944);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 305, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
+<<<<<<< HEAD
         setState(1945);
+=======
+        setState(1939);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
+<<<<<<< HEAD
           setState(1944);
           match(CypherParser::SP);
         }
@@ -12002,6 +13596,15 @@ CypherParser::OC_NodeLabelsContext* CypherParser::oC_NodeLabels() {
         oC_NodeLabel(); 
       }
       setState(1952);
+=======
+          setState(1938);
+          match(CypherParser::SP);
+        }
+        setState(1941);
+        oC_NodeLabel(); 
+      }
+      setState(1946);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 305, _ctx);
     }
@@ -12054,17 +13657,30 @@ CypherParser::OC_NodeLabelContext* CypherParser::oC_NodeLabel() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1953);
     match(CypherParser::COLON);
     setState(1955);
+=======
+    setState(1947);
+    match(CypherParser::COLON);
+    setState(1949);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(1954);
       match(CypherParser::SP);
     }
     setState(1957);
+=======
+      setState(1948);
+      match(CypherParser::SP);
+    }
+    setState(1951);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_LabelName();
    
   }
@@ -12139,14 +13755,24 @@ CypherParser::OC_RangeLiteralContext* CypherParser::oC_RangeLiteral() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1959);
     match(CypherParser::STAR);
     setState(1961);
+=======
+    setState(1953);
+    match(CypherParser::STAR);
+    setState(1955);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 307, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(1960);
+=======
+      setState(1954);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       match(CypherParser::SP);
       break;
     }
@@ -12154,21 +13780,37 @@ CypherParser::OC_RangeLiteralContext* CypherParser::oC_RangeLiteral() {
     default:
       break;
     }
+<<<<<<< HEAD
     setState(1967);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::SHORTEST: {
         setState(1963);
+=======
+    setState(1961);
+    _errHandler->sync(this);
+    switch (_input->LA(1)) {
+      case CypherParser::SHORTEST: {
+        setState(1957);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         match(CypherParser::SHORTEST);
         break;
       }
 
       case CypherParser::ALL: {
+<<<<<<< HEAD
         setState(1964);
         match(CypherParser::ALL);
         setState(1965);
         match(CypherParser::SP);
         setState(1966);
+=======
+        setState(1958);
+        match(CypherParser::ALL);
+        setState(1959);
+        match(CypherParser::SP);
+        setState(1960);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         match(CypherParser::SHORTEST);
         break;
       }
@@ -12185,12 +13827,20 @@ CypherParser::OC_RangeLiteralContext* CypherParser::oC_RangeLiteral() {
     default:
       break;
     }
+<<<<<<< HEAD
     setState(1970);
+=======
+    setState(1964);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 309, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(1969);
+=======
+      setState(1963);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       match(CypherParser::SP);
       break;
     }
@@ -12198,35 +13848,63 @@ CypherParser::OC_RangeLiteralContext* CypherParser::oC_RangeLiteral() {
     default:
       break;
     }
+<<<<<<< HEAD
     setState(1986);
+=======
+    setState(1980);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 314, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(1973);
+=======
+      setState(1967);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::DecimalInteger) {
+<<<<<<< HEAD
         setState(1972);
         oC_LowerBound();
       }
       setState(1976);
+=======
+        setState(1966);
+        oC_LowerBound();
+      }
+      setState(1970);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1975);
         match(CypherParser::SP);
       }
       setState(1978);
       match(CypherParser::T__11);
       setState(1980);
+=======
+        setState(1969);
+        match(CypherParser::SP);
+      }
+      setState(1972);
+      match(CypherParser::T__11);
+      setState(1974);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 312, _ctx)) {
       case 1: {
+<<<<<<< HEAD
         setState(1979);
+=======
+        setState(1973);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         match(CypherParser::SP);
         break;
       }
@@ -12234,19 +13912,31 @@ CypherParser::OC_RangeLiteralContext* CypherParser::oC_RangeLiteral() {
       default:
         break;
       }
+<<<<<<< HEAD
       setState(1983);
+=======
+      setState(1977);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::DecimalInteger) {
+<<<<<<< HEAD
         setState(1982);
+=======
+        setState(1976);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_UpperBound();
       }
       break;
     }
 
     case 2: {
+<<<<<<< HEAD
       setState(1985);
+=======
+      setState(1979);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_IntegerLiteral();
       break;
     }
@@ -12254,20 +13944,35 @@ CypherParser::OC_RangeLiteralContext* CypherParser::oC_RangeLiteral() {
     default:
       break;
     }
+<<<<<<< HEAD
     setState(1992);
+=======
+    setState(1986);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 316, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(1989);
+=======
+      setState(1983);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(1988);
         match(CypherParser::SP);
       }
       setState(1991);
+=======
+        setState(1982);
+        match(CypherParser::SP);
+      }
+      setState(1985);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       kU_RecursiveRelationshipComprehension();
       break;
     }
@@ -12340,6 +14045,7 @@ CypherParser::KU_RecursiveRelationshipComprehensionContext* CypherParser::kU_Rec
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(1994);
     match(CypherParser::T__1);
     setState(1996);
@@ -12353,13 +14059,39 @@ CypherParser::KU_RecursiveRelationshipComprehensionContext* CypherParser::kU_Rec
     setState(1998);
     oC_Variable();
     setState(2000);
+=======
+    setState(1988);
+    match(CypherParser::T__1);
+    setState(1990);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(1999);
+      setState(1989);
       match(CypherParser::SP);
     }
+    setState(1992);
+    oC_Variable();
+    setState(1994);
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::SP) {
+      setState(1993);
+      match(CypherParser::SP);
+    }
+    setState(1996);
+    match(CypherParser::T__2);
+    setState(1998);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::SP) {
+      setState(1997);
+      match(CypherParser::SP);
+    }
+<<<<<<< HEAD
     setState(2002);
     match(CypherParser::T__2);
     setState(2004);
@@ -12373,21 +14105,46 @@ CypherParser::KU_RecursiveRelationshipComprehensionContext* CypherParser::kU_Rec
     setState(2006);
     oC_Variable();
     setState(2018);
+=======
+    setState(2000);
+    oC_Variable();
+    setState(2012);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 323, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(2008);
+=======
+      setState(2002);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2007);
+        setState(2001);
         match(CypherParser::SP);
       }
+      setState(2004);
+      match(CypherParser::T__10);
+      setState(2006);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2005);
+        match(CypherParser::SP);
+      }
+<<<<<<< HEAD
       setState(2010);
       match(CypherParser::T__10);
       setState(2012);
+=======
+      setState(2008);
+      oC_Where();
+      setState(2010);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
@@ -12402,7 +14159,11 @@ CypherParser::KU_RecursiveRelationshipComprehensionContext* CypherParser::kU_Rec
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 322, _ctx)) {
       case 1: {
+<<<<<<< HEAD
         setState(2015);
+=======
+        setState(2009);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         match(CypherParser::SP);
         break;
       }
@@ -12416,16 +14177,45 @@ CypherParser::KU_RecursiveRelationshipComprehensionContext* CypherParser::kU_Rec
     default:
       break;
     }
+<<<<<<< HEAD
     setState(2039);
+=======
+    setState(2033);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::T__10 || _la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(2021);
+=======
+      setState(2015);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+        setState(2014);
+        match(CypherParser::SP);
+      }
+      setState(2017);
+      match(CypherParser::T__10);
+      setState(2019);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2018);
+        match(CypherParser::SP);
+      }
+      setState(2021);
+      kU_IntermediateRelProjectionItems();
+      setState(2023);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(2020);
         match(CypherParser::SP);
       }
@@ -12442,21 +14232,35 @@ CypherParser::KU_RecursiveRelationshipComprehensionContext* CypherParser::kU_Rec
       setState(2027);
       kU_IntermediateRelProjectionItems();
       setState(2029);
+=======
+        setState(2022);
+        match(CypherParser::SP);
+      }
+      setState(2025);
+      match(CypherParser::T__2);
+      setState(2027);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2028);
+        setState(2026);
         match(CypherParser::SP);
       }
+<<<<<<< HEAD
       setState(2031);
       match(CypherParser::T__2);
       setState(2033);
+=======
+      setState(2029);
+      kU_IntermediateNodeProjectionItems();
+      setState(2031);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2032);
+        setState(2030);
         match(CypherParser::SP);
       }
       setState(2035);
@@ -12470,7 +14274,11 @@ CypherParser::KU_RecursiveRelationshipComprehensionContext* CypherParser::kU_Rec
         match(CypherParser::SP);
       }
     }
+<<<<<<< HEAD
     setState(2041);
+=======
+    setState(2035);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     match(CypherParser::T__3);
    
   }
@@ -12521,14 +14329,24 @@ CypherParser::KU_IntermediateNodeProjectionItemsContext* CypherParser::kU_Interm
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2043);
     match(CypherParser::T__8);
     setState(2045);
+=======
+    setState(2037);
+    match(CypherParser::T__8);
+    setState(2039);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 330, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(2044);
+=======
+      setState(2038);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       match(CypherParser::SP);
       break;
     }
@@ -12536,7 +14354,11 @@ CypherParser::KU_IntermediateNodeProjectionItemsContext* CypherParser::kU_Interm
     default:
       break;
     }
+<<<<<<< HEAD
     setState(2048);
+=======
+    setState(2042);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
@@ -12544,18 +14366,32 @@ CypherParser::KU_IntermediateNodeProjectionItemsContext* CypherParser::kU_Interm
       ((1ULL << _la) & -5195676226290711932) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 64)) & -2359750048497068901) != 0) || ((((_la - 129) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 129)) & 81714693345) != 0)) {
+<<<<<<< HEAD
       setState(2047);
       oC_ProjectionItems();
     }
     setState(2051);
+=======
+      setState(2041);
+      oC_ProjectionItems();
+    }
+    setState(2045);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(2050);
       match(CypherParser::SP);
     }
     setState(2053);
+=======
+      setState(2044);
+      match(CypherParser::SP);
+    }
+    setState(2047);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     match(CypherParser::T__9);
    
   }
@@ -12606,14 +14442,24 @@ CypherParser::KU_IntermediateRelProjectionItemsContext* CypherParser::kU_Interme
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2055);
     match(CypherParser::T__8);
     setState(2057);
+=======
+    setState(2049);
+    match(CypherParser::T__8);
+    setState(2051);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 333, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(2056);
+=======
+      setState(2050);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       match(CypherParser::SP);
       break;
     }
@@ -12621,7 +14467,11 @@ CypherParser::KU_IntermediateRelProjectionItemsContext* CypherParser::kU_Interme
     default:
       break;
     }
+<<<<<<< HEAD
     setState(2060);
+=======
+    setState(2054);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
@@ -12629,18 +14479,32 @@ CypherParser::KU_IntermediateRelProjectionItemsContext* CypherParser::kU_Interme
       ((1ULL << _la) & -5195676226290711932) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 64)) & -2359750048497068901) != 0) || ((((_la - 129) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 129)) & 81714693345) != 0)) {
+<<<<<<< HEAD
       setState(2059);
       oC_ProjectionItems();
     }
     setState(2063);
+=======
+      setState(2053);
+      oC_ProjectionItems();
+    }
+    setState(2057);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(2062);
       match(CypherParser::SP);
     }
     setState(2065);
+=======
+      setState(2056);
+      match(CypherParser::SP);
+    }
+    setState(2059);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     match(CypherParser::T__9);
    
   }
@@ -12682,7 +14546,11 @@ CypherParser::OC_LowerBoundContext* CypherParser::oC_LowerBound() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2067);
+=======
+    setState(2061);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     match(CypherParser::DecimalInteger);
    
   }
@@ -12724,7 +14592,11 @@ CypherParser::OC_UpperBoundContext* CypherParser::oC_UpperBound() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2069);
+=======
+    setState(2063);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     match(CypherParser::DecimalInteger);
    
   }
@@ -12766,7 +14638,11 @@ CypherParser::OC_LabelNameContext* CypherParser::oC_LabelName() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2071);
+=======
+    setState(2065);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_SchemaName();
    
   }
@@ -12808,7 +14684,11 @@ CypherParser::OC_RelTypeNameContext* CypherParser::oC_RelTypeName() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2073);
+=======
+    setState(2067);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_SchemaName();
    
   }
@@ -12850,7 +14730,11 @@ CypherParser::OC_ExpressionContext* CypherParser::oC_Expression() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2075);
+=======
+    setState(2069);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_OrExpression();
    
   }
@@ -12913,13 +14797,20 @@ CypherParser::OC_OrExpressionContext* CypherParser::oC_OrExpression() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2077);
     oC_XorExpression();
     setState(2084);
+=======
+    setState(2071);
+    oC_XorExpression();
+    setState(2078);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 336, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
+<<<<<<< HEAD
         setState(2078);
         match(CypherParser::SP);
         setState(2079);
@@ -12930,6 +14821,18 @@ CypherParser::OC_OrExpressionContext* CypherParser::oC_OrExpression() {
         oC_XorExpression(); 
       }
       setState(2086);
+=======
+        setState(2072);
+        match(CypherParser::SP);
+        setState(2073);
+        match(CypherParser::OR);
+        setState(2074);
+        match(CypherParser::SP);
+        setState(2075);
+        oC_XorExpression(); 
+      }
+      setState(2080);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 336, _ctx);
     }
@@ -12994,13 +14897,20 @@ CypherParser::OC_XorExpressionContext* CypherParser::oC_XorExpression() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2087);
     oC_AndExpression();
     setState(2094);
+=======
+    setState(2081);
+    oC_AndExpression();
+    setState(2088);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 337, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
+<<<<<<< HEAD
         setState(2088);
         match(CypherParser::SP);
         setState(2089);
@@ -13011,6 +14921,18 @@ CypherParser::OC_XorExpressionContext* CypherParser::oC_XorExpression() {
         oC_AndExpression(); 
       }
       setState(2096);
+=======
+        setState(2082);
+        match(CypherParser::SP);
+        setState(2083);
+        match(CypherParser::XOR);
+        setState(2084);
+        match(CypherParser::SP);
+        setState(2085);
+        oC_AndExpression(); 
+      }
+      setState(2090);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 337, _ctx);
     }
@@ -13075,13 +14997,20 @@ CypherParser::OC_AndExpressionContext* CypherParser::oC_AndExpression() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2097);
     oC_NotExpression();
     setState(2104);
+=======
+    setState(2091);
+    oC_NotExpression();
+    setState(2098);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 338, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
+<<<<<<< HEAD
         setState(2098);
         match(CypherParser::SP);
         setState(2099);
@@ -13092,6 +15021,18 @@ CypherParser::OC_AndExpressionContext* CypherParser::oC_AndExpression() {
         oC_NotExpression(); 
       }
       setState(2106);
+=======
+        setState(2092);
+        match(CypherParser::SP);
+        setState(2093);
+        match(CypherParser::AND);
+        setState(2094);
+        match(CypherParser::SP);
+        setState(2095);
+        oC_NotExpression(); 
+      }
+      setState(2100);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 338, _ctx);
     }
@@ -13152,6 +15093,7 @@ CypherParser::OC_NotExpressionContext* CypherParser::oC_NotExpression() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2113);
     _errHandler->sync(this);
     _la = _input->LA(1);
@@ -13159,10 +15101,20 @@ CypherParser::OC_NotExpressionContext* CypherParser::oC_NotExpression() {
       setState(2107);
       match(CypherParser::NOT);
       setState(2109);
+=======
+    setState(2107);
+    _errHandler->sync(this);
+    _la = _input->LA(1);
+    while (_la == CypherParser::NOT) {
+      setState(2101);
+      match(CypherParser::NOT);
+      setState(2103);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(2108);
         match(CypherParser::SP);
       }
@@ -13171,6 +15123,16 @@ CypherParser::OC_NotExpressionContext* CypherParser::oC_NotExpression() {
       _la = _input->LA(1);
     }
     setState(2116);
+=======
+        setState(2102);
+        match(CypherParser::SP);
+      }
+      setState(2109);
+      _errHandler->sync(this);
+      _la = _input->LA(1);
+    }
+    setState(2110);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_ComparisonExpression();
    
   }
@@ -13237,26 +15199,51 @@ CypherParser::OC_ComparisonExpressionContext* CypherParser::oC_ComparisonExpress
   });
   try {
     size_t alt;
+<<<<<<< HEAD
     setState(2166);
+=======
+    setState(2160);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 351, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
       setState(2118);
       kU_BitwiseOrOperatorExpression();
       setState(2128);
+=======
+      setState(2112);
+      kU_BitwiseOrOperatorExpression();
+      setState(2122);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 343, _ctx)) {
       case 1: {
+<<<<<<< HEAD
         setState(2120);
+=======
+        setState(2114);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2119);
+          setState(2113);
           match(CypherParser::SP);
         }
+        setState(2116);
+        kU_ComparisonOperator();
+        setState(2118);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+          setState(2117);
+          match(CypherParser::SP);
+        }
+<<<<<<< HEAD
         setState(2122);
         kU_ComparisonOperator();
         setState(2124);
@@ -13268,6 +15255,9 @@ CypherParser::OC_ComparisonExpressionContext* CypherParser::oC_ComparisonExpress
           match(CypherParser::SP);
         }
         setState(2126);
+=======
+        setState(2120);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         kU_BitwiseOrOperatorExpression();
         break;
       }
@@ -13280,17 +15270,35 @@ CypherParser::OC_ComparisonExpressionContext* CypherParser::oC_ComparisonExpress
 
     case 2: {
       enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
       setState(2130);
       kU_BitwiseOrOperatorExpression();
 
       setState(2132);
+=======
+      setState(2124);
+      kU_BitwiseOrOperatorExpression();
+
+      setState(2126);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2131);
+        setState(2125);
         match(CypherParser::SP);
       }
+      setState(2128);
+      antlrcpp::downCast<OC_ComparisonExpressionContext *>(_localctx)->invalid_not_equalToken = match(CypherParser::INVALID_NOT_EQUAL);
+      setState(2130);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2129);
+        match(CypherParser::SP);
+      }
+<<<<<<< HEAD
       setState(2134);
       antlrcpp::downCast<OC_ComparisonExpressionContext *>(_localctx)->invalid_not_equalToken = match(CypherParser::INVALID_NOT_EQUAL);
       setState(2136);
@@ -13302,6 +15310,9 @@ CypherParser::OC_ComparisonExpressionContext* CypherParser::oC_ComparisonExpress
         match(CypherParser::SP);
       }
       setState(2138);
+=======
+      setState(2132);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       kU_BitwiseOrOperatorExpression();
        notifyInvalidNotEqualOperator(antlrcpp::downCast<OC_ComparisonExpressionContext *>(_localctx)->invalid_not_equalToken); 
       break;
@@ -13309,16 +15320,33 @@ CypherParser::OC_ComparisonExpressionContext* CypherParser::oC_ComparisonExpress
 
     case 3: {
       enterOuterAlt(_localctx, 3);
+<<<<<<< HEAD
       setState(2142);
       kU_BitwiseOrOperatorExpression();
       setState(2144);
+=======
+      setState(2136);
+      kU_BitwiseOrOperatorExpression();
+      setState(2138);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2143);
+        setState(2137);
         match(CypherParser::SP);
       }
+      setState(2140);
+      kU_ComparisonOperator();
+      setState(2142);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2141);
+        match(CypherParser::SP);
+      }
+<<<<<<< HEAD
       setState(2146);
       kU_ComparisonOperator();
       setState(2148);
@@ -13332,19 +15360,39 @@ CypherParser::OC_ComparisonExpressionContext* CypherParser::oC_ComparisonExpress
       setState(2150);
       kU_BitwiseOrOperatorExpression();
       setState(2160); 
+=======
+      setState(2144);
+      kU_BitwiseOrOperatorExpression();
+      setState(2154); 
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = 1;
       do {
         switch (alt) {
           case 1: {
+<<<<<<< HEAD
                 setState(2152);
+=======
+                setState(2146);
                 _errHandler->sync(this);
 
                 _la = _input->LA(1);
                 if (_la == CypherParser::SP) {
-                  setState(2151);
+                  setState(2145);
                   match(CypherParser::SP);
                 }
+                setState(2148);
+                kU_ComparisonOperator();
+                setState(2150);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+                _errHandler->sync(this);
+
+                _la = _input->LA(1);
+                if (_la == CypherParser::SP) {
+                  setState(2149);
+                  match(CypherParser::SP);
+                }
+<<<<<<< HEAD
                 setState(2154);
                 kU_ComparisonOperator();
                 setState(2156);
@@ -13356,6 +15404,9 @@ CypherParser::OC_ComparisonExpressionContext* CypherParser::oC_ComparisonExpress
                   match(CypherParser::SP);
                 }
                 setState(2158);
+=======
+                setState(2152);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
                 kU_BitwiseOrOperatorExpression();
                 break;
               }
@@ -13363,7 +15414,11 @@ CypherParser::OC_ComparisonExpressionContext* CypherParser::oC_ComparisonExpress
         default:
           throw NoViableAltException(this);
         }
+<<<<<<< HEAD
         setState(2162); 
+=======
+        setState(2156); 
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 350, _ctx);
       } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
@@ -13411,7 +15466,11 @@ CypherParser::KU_ComparisonOperatorContext* CypherParser::kU_ComparisonOperator(
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2168);
+=======
+    setState(2162);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 254016) != 0))) {
@@ -13475,21 +15534,42 @@ CypherParser::KU_BitwiseOrOperatorExpressionContext* CypherParser::kU_BitwiseOrO
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2170);
     kU_BitwiseAndOperatorExpression();
     setState(2181);
+=======
+    setState(2164);
+    kU_BitwiseAndOperatorExpression();
+    setState(2175);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 354, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
+<<<<<<< HEAD
         setState(2172);
+=======
+        setState(2166);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2171);
+          setState(2165);
           match(CypherParser::SP);
         }
+        setState(2168);
+        match(CypherParser::T__10);
+        setState(2170);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+          setState(2169);
+          match(CypherParser::SP);
+        }
+<<<<<<< HEAD
         setState(2174);
         match(CypherParser::T__10);
         setState(2176);
@@ -13504,6 +15584,12 @@ CypherParser::KU_BitwiseOrOperatorExpressionContext* CypherParser::kU_BitwiseOrO
         kU_BitwiseAndOperatorExpression(); 
       }
       setState(2183);
+=======
+        setState(2172);
+        kU_BitwiseAndOperatorExpression(); 
+      }
+      setState(2177);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 354, _ctx);
     }
@@ -13561,21 +15647,42 @@ CypherParser::KU_BitwiseAndOperatorExpressionContext* CypherParser::kU_BitwiseAn
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2184);
     kU_BitShiftOperatorExpression();
     setState(2195);
+=======
+    setState(2178);
+    kU_BitShiftOperatorExpression();
+    setState(2189);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 357, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
+<<<<<<< HEAD
         setState(2186);
+=======
+        setState(2180);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2185);
+          setState(2179);
           match(CypherParser::SP);
         }
+        setState(2182);
+        match(CypherParser::T__17);
+        setState(2184);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+          setState(2183);
+          match(CypherParser::SP);
+        }
+<<<<<<< HEAD
         setState(2188);
         match(CypherParser::T__17);
         setState(2190);
@@ -13590,6 +15697,12 @@ CypherParser::KU_BitwiseAndOperatorExpressionContext* CypherParser::kU_BitwiseAn
         kU_BitShiftOperatorExpression(); 
       }
       setState(2197);
+=======
+        setState(2186);
+        kU_BitShiftOperatorExpression(); 
+      }
+      setState(2191);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 357, _ctx);
     }
@@ -13655,21 +15768,42 @@ CypherParser::KU_BitShiftOperatorExpressionContext* CypherParser::kU_BitShiftOpe
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2198);
     oC_AddOrSubtractExpression();
     setState(2210);
+=======
+    setState(2192);
+    oC_AddOrSubtractExpression();
+    setState(2204);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 360, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
+<<<<<<< HEAD
         setState(2200);
+=======
+        setState(2194);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2199);
+          setState(2193);
           match(CypherParser::SP);
         }
+        setState(2196);
+        kU_BitShiftOperator();
+        setState(2198);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+          setState(2197);
+          match(CypherParser::SP);
+        }
+<<<<<<< HEAD
         setState(2202);
         kU_BitShiftOperator();
         setState(2204);
@@ -13684,6 +15818,12 @@ CypherParser::KU_BitShiftOperatorExpressionContext* CypherParser::kU_BitShiftOpe
         oC_AddOrSubtractExpression(); 
       }
       setState(2212);
+=======
+        setState(2200);
+        oC_AddOrSubtractExpression(); 
+      }
+      setState(2206);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 360, _ctx);
     }
@@ -13724,7 +15864,11 @@ CypherParser::KU_BitShiftOperatorContext* CypherParser::kU_BitShiftOperator() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2213);
+=======
+    setState(2207);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _la = _input->LA(1);
     if (!(_la == CypherParser::T__18
 
@@ -13797,21 +15941,42 @@ CypherParser::OC_AddOrSubtractExpressionContext* CypherParser::oC_AddOrSubtractE
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2215);
     oC_MultiplyDivideModuloExpression();
     setState(2227);
+=======
+    setState(2209);
+    oC_MultiplyDivideModuloExpression();
+    setState(2221);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 363, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
+<<<<<<< HEAD
         setState(2217);
+=======
+        setState(2211);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2216);
+          setState(2210);
           match(CypherParser::SP);
         }
+        setState(2213);
+        kU_AddOrSubtractOperator();
+        setState(2215);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+          setState(2214);
+          match(CypherParser::SP);
+        }
+<<<<<<< HEAD
         setState(2219);
         kU_AddOrSubtractOperator();
         setState(2221);
@@ -13826,6 +15991,12 @@ CypherParser::OC_AddOrSubtractExpressionContext* CypherParser::oC_AddOrSubtractE
         oC_MultiplyDivideModuloExpression(); 
       }
       setState(2229);
+=======
+        setState(2217);
+        oC_MultiplyDivideModuloExpression(); 
+      }
+      setState(2223);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 363, _ctx);
     }
@@ -13870,7 +16041,11 @@ CypherParser::KU_AddOrSubtractOperatorContext* CypherParser::kU_AddOrSubtractOpe
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2230);
+=======
+    setState(2224);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _la = _input->LA(1);
     if (!(_la == CypherParser::T__20 || _la == CypherParser::MINUS)) {
     _errHandler->recoverInline(this);
@@ -13941,21 +16116,42 @@ CypherParser::OC_MultiplyDivideModuloExpressionContext* CypherParser::oC_Multipl
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2232);
     oC_PowerOfExpression();
     setState(2244);
+=======
+    setState(2226);
+    oC_PowerOfExpression();
+    setState(2238);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 366, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
+<<<<<<< HEAD
         setState(2234);
+=======
+        setState(2228);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2233);
+          setState(2227);
           match(CypherParser::SP);
         }
+        setState(2230);
+        kU_MultiplyDivideModuloOperator();
+        setState(2232);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+          setState(2231);
+          match(CypherParser::SP);
+        }
+<<<<<<< HEAD
         setState(2236);
         kU_MultiplyDivideModuloOperator();
         setState(2238);
@@ -13970,6 +16166,12 @@ CypherParser::OC_MultiplyDivideModuloExpressionContext* CypherParser::oC_Multipl
         oC_PowerOfExpression(); 
       }
       setState(2246);
+=======
+        setState(2234);
+        oC_PowerOfExpression(); 
+      }
+      setState(2240);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 366, _ctx);
     }
@@ -14014,7 +16216,11 @@ CypherParser::KU_MultiplyDivideModuloOperatorContext* CypherParser::kU_MultiplyD
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2247);
+=======
+    setState(2241);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _la = _input->LA(1);
     if (!(_la == CypherParser::T__21
 
@@ -14079,21 +16285,42 @@ CypherParser::OC_PowerOfExpressionContext* CypherParser::oC_PowerOfExpression() 
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2249);
     oC_UnaryAddSubtractOrFactorialExpression();
     setState(2260);
+=======
+    setState(2243);
+    oC_UnaryAddSubtractOrFactorialExpression();
+    setState(2254);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 369, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
+<<<<<<< HEAD
         setState(2251);
+=======
+        setState(2245);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2250);
+          setState(2244);
           match(CypherParser::SP);
         }
+        setState(2247);
+        match(CypherParser::T__23);
+        setState(2249);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+          setState(2248);
+          match(CypherParser::SP);
+        }
+<<<<<<< HEAD
         setState(2253);
         match(CypherParser::T__23);
         setState(2255);
@@ -14108,6 +16335,12 @@ CypherParser::OC_PowerOfExpressionContext* CypherParser::oC_PowerOfExpression() 
         oC_UnaryAddSubtractOrFactorialExpression(); 
       }
       setState(2262);
+=======
+        setState(2251);
+        oC_UnaryAddSubtractOrFactorialExpression(); 
+      }
+      setState(2256);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 369, _ctx);
     }
@@ -14172,6 +16405,7 @@ CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext* CypherParser::oC_
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2269);
     _errHandler->sync(this);
     _la = _input->LA(1);
@@ -14179,10 +16413,20 @@ CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext* CypherParser::oC_
       setState(2263);
       match(CypherParser::MINUS);
       setState(2265);
+=======
+    setState(2263);
+    _errHandler->sync(this);
+    _la = _input->LA(1);
+    while (_la == CypherParser::MINUS) {
+      setState(2257);
+      match(CypherParser::MINUS);
+      setState(2259);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(2264);
         match(CypherParser::SP);
       }
@@ -14193,19 +16437,42 @@ CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext* CypherParser::oC_
     setState(2272);
     oC_StringListNullOperatorExpression();
     setState(2277);
+=======
+        setState(2258);
+        match(CypherParser::SP);
+      }
+      setState(2265);
+      _errHandler->sync(this);
+      _la = _input->LA(1);
+    }
+    setState(2266);
+    oC_StringListNullOperatorExpression();
+    setState(2271);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 373, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(2274);
+=======
+      setState(2268);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(2273);
         match(CypherParser::SP);
       }
       setState(2276);
+=======
+        setState(2267);
+        match(CypherParser::SP);
+      }
+      setState(2270);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       match(CypherParser::FACTORIAL);
       break;
     }
@@ -14270,26 +16537,44 @@ CypherParser::OC_StringListNullOperatorExpressionContext* CypherParser::oC_Strin
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2279);
     oC_PropertyOrLabelsExpression();
     setState(2287);
+=======
+    setState(2273);
+    oC_PropertyOrLabelsExpression();
+    setState(2281);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 375, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(2280);
+=======
+      setState(2274);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_StringOperatorExpression();
       break;
     }
 
     case 2: {
+<<<<<<< HEAD
       setState(2282); 
+=======
+      setState(2276); 
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = 1;
       do {
         switch (alt) {
           case 1: {
+<<<<<<< HEAD
                 setState(2281);
+=======
+                setState(2275);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
                 oC_ListOperatorExpression();
                 break;
               }
@@ -14297,7 +16582,11 @@ CypherParser::OC_StringListNullOperatorExpressionContext* CypherParser::oC_Strin
         default:
           throw NoViableAltException(this);
         }
+<<<<<<< HEAD
         setState(2284); 
+=======
+        setState(2278); 
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 374, _ctx);
       } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
@@ -14305,7 +16594,11 @@ CypherParser::OC_StringListNullOperatorExpressionContext* CypherParser::oC_Strin
     }
 
     case 3: {
+<<<<<<< HEAD
       setState(2286);
+=======
+      setState(2280);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_NullOperatorExpression();
       break;
     }
@@ -14377,44 +16670,76 @@ CypherParser::OC_ListOperatorExpressionContext* CypherParser::oC_ListOperatorExp
     exitRule();
   });
   try {
+<<<<<<< HEAD
     setState(2308);
+=======
+    setState(2302);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 379, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
       setState(2289);
       match(CypherParser::SP);
       setState(2290);
       match(CypherParser::IN);
       setState(2292);
+=======
+      setState(2283);
+      match(CypherParser::SP);
+      setState(2284);
+      match(CypherParser::IN);
+      setState(2286);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(2291);
         match(CypherParser::SP);
       }
       setState(2294);
+=======
+        setState(2285);
+        match(CypherParser::SP);
+      }
+      setState(2288);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_PropertyOrLabelsExpression();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
       setState(2295);
       match(CypherParser::T__6);
       setState(2296);
       oC_Expression();
       setState(2297);
+=======
+      setState(2289);
+      match(CypherParser::T__6);
+      setState(2290);
+      oC_Expression();
+      setState(2291);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       match(CypherParser::T__7);
       break;
     }
 
     case 3: {
       enterOuterAlt(_localctx, 3);
+<<<<<<< HEAD
       setState(2299);
       match(CypherParser::T__6);
       setState(2301);
+=======
+      setState(2293);
+      match(CypherParser::T__6);
+      setState(2295);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
@@ -14422,9 +16747,24 @@ CypherParser::OC_ListOperatorExpressionContext* CypherParser::oC_ListOperatorExp
         ((1ULL << _la) & -5195676226290711932) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 64)) & -2359750048497068901) != 0) || ((((_la - 129) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 129)) & 81714562273) != 0)) {
-        setState(2300);
+        setState(2294);
         oC_Expression();
       }
+      setState(2297);
+      match(CypherParser::COLON);
+      setState(2299);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if ((((_la & ~ 0x3fULL) == 0) &&
+        ((1ULL << _la) & -5195676226290711932) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
+        ((1ULL << (_la - 64)) & -2359750048497068901) != 0) || ((((_la - 129) & ~ 0x3fULL) == 0) &&
+        ((1ULL << (_la - 129)) & 81714562273) != 0)) {
+        setState(2298);
+        oC_Expression();
+      }
+<<<<<<< HEAD
       setState(2303);
       match(CypherParser::COLON);
       setState(2305);
@@ -14439,6 +16779,9 @@ CypherParser::OC_ListOperatorExpressionContext* CypherParser::oC_ListOperatorExp
         oC_Expression();
       }
       setState(2307);
+=======
+      setState(2301);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       match(CypherParser::T__7);
       break;
     }
@@ -14515,16 +16858,25 @@ CypherParser::OC_StringOperatorExpressionContext* CypherParser::oC_StringOperato
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2321);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 380, _ctx)) {
     case 1: {
       setState(2310);
+=======
+    setState(2315);
+    _errHandler->sync(this);
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 380, _ctx)) {
+    case 1: {
+      setState(2304);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_RegularExpression();
       break;
     }
 
     case 2: {
+<<<<<<< HEAD
       setState(2311);
       match(CypherParser::SP);
       setState(2312);
@@ -14532,10 +16884,32 @@ CypherParser::OC_StringOperatorExpressionContext* CypherParser::oC_StringOperato
       setState(2313);
       match(CypherParser::SP);
       setState(2314);
+=======
+      setState(2305);
+      match(CypherParser::SP);
+      setState(2306);
+      match(CypherParser::STARTS);
+      setState(2307);
+      match(CypherParser::SP);
+      setState(2308);
       match(CypherParser::WITH);
       break;
     }
 
+    case 3: {
+      setState(2309);
+      match(CypherParser::SP);
+      setState(2310);
+      match(CypherParser::ENDS);
+      setState(2311);
+      match(CypherParser::SP);
+      setState(2312);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+      match(CypherParser::WITH);
+      break;
+    }
+
+<<<<<<< HEAD
     case 3: {
       setState(2315);
       match(CypherParser::SP);
@@ -14552,6 +16926,12 @@ CypherParser::OC_StringOperatorExpressionContext* CypherParser::oC_StringOperato
       setState(2319);
       match(CypherParser::SP);
       setState(2320);
+=======
+    case 4: {
+      setState(2313);
+      match(CypherParser::SP);
+      setState(2314);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       match(CypherParser::CONTAINS);
       break;
     }
@@ -14559,15 +16939,26 @@ CypherParser::OC_StringOperatorExpressionContext* CypherParser::oC_StringOperato
     default:
       break;
     }
+<<<<<<< HEAD
     setState(2324);
+=======
+    setState(2318);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(2323);
       match(CypherParser::SP);
     }
     setState(2326);
+=======
+      setState(2317);
+      match(CypherParser::SP);
+    }
+    setState(2320);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_PropertyOrLabelsExpression();
    
   }
@@ -14610,15 +17001,26 @@ CypherParser::OC_RegularExpressionContext* CypherParser::oC_RegularExpression() 
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2329);
+=======
+    setState(2323);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(2328);
       match(CypherParser::SP);
     }
     setState(2331);
+=======
+      setState(2322);
+      match(CypherParser::SP);
+    }
+    setState(2325);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     match(CypherParser::T__24);
    
   }
@@ -14675,18 +17077,43 @@ CypherParser::OC_NullOperatorExpressionContext* CypherParser::oC_NullOperatorExp
     exitRule();
   });
   try {
+<<<<<<< HEAD
     setState(2343);
+=======
+    setState(2337);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 383, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
+=======
+      setState(2327);
+      match(CypherParser::SP);
+      setState(2328);
+      match(CypherParser::IS);
+      setState(2329);
+      match(CypherParser::SP);
+      setState(2330);
+      match(CypherParser::NULL_);
+      break;
+    }
+
+    case 2: {
+      enterOuterAlt(_localctx, 2);
+      setState(2331);
+      match(CypherParser::SP);
+      setState(2332);
+      match(CypherParser::IS);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       setState(2333);
       match(CypherParser::SP);
       setState(2334);
-      match(CypherParser::IS);
+      match(CypherParser::NOT);
       setState(2335);
       match(CypherParser::SP);
       setState(2336);
+<<<<<<< HEAD
       match(CypherParser::NULL_);
       break;
     }
@@ -14704,6 +17131,8 @@ CypherParser::OC_NullOperatorExpressionContext* CypherParser::oC_NullOperatorExp
       setState(2341);
       match(CypherParser::SP);
       setState(2342);
+=======
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       match(CypherParser::NULL_);
       break;
     }
@@ -14769,18 +17198,29 @@ CypherParser::OC_PropertyOrLabelsExpressionContext* CypherParser::oC_PropertyOrL
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2345);
     oC_Atom();
     setState(2352);
+=======
+    setState(2339);
+    oC_Atom();
+    setState(2346);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 385, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
+<<<<<<< HEAD
         setState(2347);
+=======
+        setState(2341);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
+<<<<<<< HEAD
           setState(2346);
           match(CypherParser::SP);
         }
@@ -14788,6 +17228,15 @@ CypherParser::OC_PropertyOrLabelsExpressionContext* CypherParser::oC_PropertyOrL
         oC_PropertyLookup(); 
       }
       setState(2354);
+=======
+          setState(2340);
+          match(CypherParser::SP);
+        }
+        setState(2343);
+        oC_PropertyLookup(); 
+      }
+      setState(2348);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 385, _ctx);
     }
@@ -14862,68 +17311,108 @@ CypherParser::OC_AtomContext* CypherParser::oC_Atom() {
     exitRule();
   });
   try {
+<<<<<<< HEAD
     setState(2364);
+=======
+    setState(2358);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 386, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
       setState(2355);
+=======
+      setState(2349);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_Literal();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
       setState(2356);
+=======
+      setState(2350);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_Parameter();
       break;
     }
 
     case 3: {
       enterOuterAlt(_localctx, 3);
+<<<<<<< HEAD
       setState(2357);
+=======
+      setState(2351);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_CaseExpression();
       break;
     }
 
     case 4: {
       enterOuterAlt(_localctx, 4);
+<<<<<<< HEAD
       setState(2358);
+=======
+      setState(2352);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_ParenthesizedExpression();
       break;
     }
 
     case 5: {
       enterOuterAlt(_localctx, 5);
+<<<<<<< HEAD
       setState(2359);
+=======
+      setState(2353);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_FunctionInvocation();
       break;
     }
 
     case 6: {
       enterOuterAlt(_localctx, 6);
+<<<<<<< HEAD
       setState(2360);
+=======
+      setState(2354);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_PathPatterns();
       break;
     }
 
     case 7: {
       enterOuterAlt(_localctx, 7);
+<<<<<<< HEAD
       setState(2361);
+=======
+      setState(2355);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_ExistSubquery();
       break;
     }
 
     case 8: {
       enterOuterAlt(_localctx, 8);
+<<<<<<< HEAD
       setState(2362);
+=======
+      setState(2356);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       kU_CountSubquery();
       break;
     }
 
     case 9: {
       enterOuterAlt(_localctx, 9);
+<<<<<<< HEAD
       setState(2363);
+=======
+      setState(2357);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_Variable();
       break;
     }
@@ -14990,20 +17479,32 @@ CypherParser::OC_LiteralContext* CypherParser::oC_Literal() {
     exitRule();
   });
   try {
+<<<<<<< HEAD
     setState(2372);
+=======
+    setState(2366);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::DecimalInteger:
       case CypherParser::RegularDecimalReal: {
         enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
         setState(2366);
+=======
+        setState(2360);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_NumberLiteral();
         break;
       }
 
       case CypherParser::StringLiteral: {
         enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
         setState(2367);
+=======
+        setState(2361);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         match(CypherParser::StringLiteral);
         break;
       }
@@ -15011,28 +17512,44 @@ CypherParser::OC_LiteralContext* CypherParser::oC_Literal() {
       case CypherParser::FALSE:
       case CypherParser::TRUE: {
         enterOuterAlt(_localctx, 3);
+<<<<<<< HEAD
         setState(2368);
+=======
+        setState(2362);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_BooleanLiteral();
         break;
       }
 
       case CypherParser::NULL_: {
         enterOuterAlt(_localctx, 4);
+<<<<<<< HEAD
         setState(2369);
+=======
+        setState(2363);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         match(CypherParser::NULL_);
         break;
       }
 
       case CypherParser::T__6: {
         enterOuterAlt(_localctx, 5);
+<<<<<<< HEAD
         setState(2370);
+=======
+        setState(2364);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_ListLiteral();
         break;
       }
 
       case CypherParser::T__8: {
         enterOuterAlt(_localctx, 6);
+<<<<<<< HEAD
         setState(2371);
+=======
+        setState(2365);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         kU_StructLiteral();
         break;
       }
@@ -15085,7 +17602,11 @@ CypherParser::OC_BooleanLiteralContext* CypherParser::oC_BooleanLiteral() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2374);
+=======
+    setState(2368);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _la = _input->LA(1);
     if (!(_la == CypherParser::FALSE
 
@@ -15153,17 +17674,30 @@ CypherParser::OC_ListLiteralContext* CypherParser::oC_ListLiteral() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2376);
     match(CypherParser::T__6);
     setState(2378);
+=======
+    setState(2370);
+    match(CypherParser::T__6);
+    setState(2372);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(2377);
       match(CypherParser::SP);
     }
     setState(2393);
+=======
+      setState(2371);
+      match(CypherParser::SP);
+    }
+    setState(2387);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
@@ -15171,13 +17705,20 @@ CypherParser::OC_ListLiteralContext* CypherParser::oC_ListLiteral() {
       ((1ULL << _la) & -5195676226290711932) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 64)) & -2359750048497068901) != 0) || ((((_la - 129) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 129)) & 81714562273) != 0)) {
+<<<<<<< HEAD
       setState(2380);
       oC_Expression();
       setState(2382);
+=======
+      setState(2374);
+      oC_Expression();
+      setState(2376);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(2381);
         match(CypherParser::SP);
       }
@@ -15188,19 +17729,42 @@ CypherParser::OC_ListLiteralContext* CypherParser::oC_ListLiteral() {
         setState(2384);
         kU_ListEntry();
         setState(2386);
+=======
+        setState(2375);
+        match(CypherParser::SP);
+      }
+      setState(2384);
+      _errHandler->sync(this);
+      _la = _input->LA(1);
+      while (_la == CypherParser::T__2) {
+        setState(2378);
+        kU_ListEntry();
+        setState(2380);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
+<<<<<<< HEAD
           setState(2385);
           match(CypherParser::SP);
         }
         setState(2392);
+=======
+          setState(2379);
+          match(CypherParser::SP);
+        }
+        setState(2386);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
         _la = _input->LA(1);
       }
     }
+<<<<<<< HEAD
     setState(2395);
+=======
+    setState(2389);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     match(CypherParser::T__7);
    
   }
@@ -15247,14 +17811,24 @@ CypherParser::KU_ListEntryContext* CypherParser::kU_ListEntry() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2397);
     match(CypherParser::T__2);
     setState(2399);
+=======
+    setState(2391);
+    match(CypherParser::T__2);
+    setState(2393);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 393, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(2398);
+=======
+      setState(2392);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       match(CypherParser::SP);
       break;
     }
@@ -15262,7 +17836,11 @@ CypherParser::KU_ListEntryContext* CypherParser::kU_ListEntry() {
     default:
       break;
     }
+<<<<<<< HEAD
     setState(2402);
+=======
+    setState(2396);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
@@ -15270,7 +17848,11 @@ CypherParser::KU_ListEntryContext* CypherParser::kU_ListEntry() {
       ((1ULL << _la) & -5195676226290711932) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 64)) & -2359750048497068901) != 0) || ((((_la - 129) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 129)) & 81714562273) != 0)) {
+<<<<<<< HEAD
       setState(2401);
+=======
+      setState(2395);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_Expression();
     }
    
@@ -15326,16 +17908,33 @@ CypherParser::KU_StructLiteralContext* CypherParser::kU_StructLiteral() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2404);
     match(CypherParser::T__8);
     setState(2406);
+=======
+    setState(2398);
+    match(CypherParser::T__8);
+    setState(2400);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2405);
+      setState(2399);
       match(CypherParser::SP);
     }
+    setState(2402);
+    kU_StructField();
+    setState(2404);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::SP) {
+      setState(2403);
+      match(CypherParser::SP);
+    }
+<<<<<<< HEAD
     setState(2408);
     kU_StructField();
     setState(2410);
@@ -15353,13 +17952,33 @@ CypherParser::KU_StructLiteralContext* CypherParser::kU_StructLiteral() {
       setState(2412);
       match(CypherParser::T__2);
       setState(2414);
+=======
+    setState(2416);
+    _errHandler->sync(this);
+    _la = _input->LA(1);
+    while (_la == CypherParser::T__2) {
+      setState(2406);
+      match(CypherParser::T__2);
+      setState(2408);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2413);
+        setState(2407);
         match(CypherParser::SP);
       }
+      setState(2410);
+      kU_StructField();
+      setState(2412);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2411);
+        match(CypherParser::SP);
+      }
+<<<<<<< HEAD
       setState(2416);
       kU_StructField();
       setState(2418);
@@ -15375,6 +17994,13 @@ CypherParser::KU_StructLiteralContext* CypherParser::kU_StructLiteral() {
       _la = _input->LA(1);
     }
     setState(2425);
+=======
+      setState(2418);
+      _errHandler->sync(this);
+      _la = _input->LA(1);
+    }
+    setState(2419);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     match(CypherParser::T__9);
    
   }
@@ -15437,7 +18063,11 @@ CypherParser::KU_StructFieldContext* CypherParser::kU_StructField() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2429);
+=======
+    setState(2423);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::ADD:
@@ -15490,13 +18120,21 @@ CypherParser::KU_StructFieldContext* CypherParser::kU_StructField() {
       case CypherParser::HexLetter:
       case CypherParser::UnescapedSymbolicName:
       case CypherParser::EscapedSymbolicName: {
+<<<<<<< HEAD
         setState(2427);
+=======
+        setState(2421);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_SymbolicName();
         break;
       }
 
       case CypherParser::StringLiteral: {
+<<<<<<< HEAD
         setState(2428);
+=======
+        setState(2422);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         match(CypherParser::StringLiteral);
         break;
       }
@@ -15504,14 +18142,29 @@ CypherParser::KU_StructFieldContext* CypherParser::kU_StructField() {
     default:
       throw NoViableAltException(this);
     }
+<<<<<<< HEAD
     setState(2432);
+=======
+    setState(2426);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2431);
+      setState(2425);
       match(CypherParser::SP);
     }
+    setState(2428);
+    match(CypherParser::COLON);
+    setState(2430);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::SP) {
+      setState(2429);
+      match(CypherParser::SP);
+    }
+<<<<<<< HEAD
     setState(2434);
     match(CypherParser::COLON);
     setState(2436);
@@ -15523,6 +18176,9 @@ CypherParser::KU_StructFieldContext* CypherParser::kU_StructField() {
       match(CypherParser::SP);
     }
     setState(2438);
+=======
+    setState(2432);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_Expression();
    
   }
@@ -15573,16 +18229,33 @@ CypherParser::OC_ParenthesizedExpressionContext* CypherParser::oC_ParenthesizedE
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2440);
     match(CypherParser::T__1);
     setState(2442);
+=======
+    setState(2434);
+    match(CypherParser::T__1);
+    setState(2436);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2441);
+      setState(2435);
       match(CypherParser::SP);
     }
+    setState(2438);
+    oC_Expression();
+    setState(2440);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::SP) {
+      setState(2439);
+      match(CypherParser::SP);
+    }
+<<<<<<< HEAD
     setState(2444);
     oC_Expression();
     setState(2446);
@@ -15594,6 +18267,9 @@ CypherParser::OC_ParenthesizedExpressionContext* CypherParser::oC_ParenthesizedE
       match(CypherParser::SP);
     }
     setState(2448);
+=======
+    setState(2442);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     match(CypherParser::T__3);
    
   }
@@ -15675,11 +18351,16 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
     exitRule();
   });
   try {
+<<<<<<< HEAD
     setState(2527);
+=======
+    setState(2521);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 424, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
       setState(2450);
       match(CypherParser::COUNT);
       setState(2452);
@@ -15693,13 +18374,39 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
       setState(2454);
       match(CypherParser::T__1);
       setState(2456);
+=======
+      setState(2444);
+      match(CypherParser::COUNT);
+      setState(2446);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2455);
+        setState(2445);
         match(CypherParser::SP);
       }
+      setState(2448);
+      match(CypherParser::T__1);
+      setState(2450);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2449);
+        match(CypherParser::SP);
+      }
+      setState(2452);
+      match(CypherParser::STAR);
+      setState(2454);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2453);
+        match(CypherParser::SP);
+      }
+<<<<<<< HEAD
       setState(2458);
       match(CypherParser::STAR);
       setState(2460);
@@ -15711,12 +18418,16 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
         match(CypherParser::SP);
       }
       setState(2462);
+=======
+      setState(2456);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       match(CypherParser::T__3);
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
       setState(2463);
       match(CypherParser::CAST);
       setState(2465);
@@ -15730,13 +18441,39 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
       setState(2467);
       match(CypherParser::T__1);
       setState(2469);
+=======
+      setState(2457);
+      match(CypherParser::CAST);
+      setState(2459);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2468);
+        setState(2458);
         match(CypherParser::SP);
       }
+      setState(2461);
+      match(CypherParser::T__1);
+      setState(2463);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2462);
+        match(CypherParser::SP);
+      }
+      setState(2465);
+      kU_FunctionParameter();
+      setState(2467);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2466);
+        match(CypherParser::SP);
+      }
+<<<<<<< HEAD
       setState(2471);
       kU_FunctionParameter();
       setState(2473);
@@ -15754,30 +18491,59 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
           setState(2475);
           match(CypherParser::AS);
           setState(2477);
+=======
+      setState(2479);
+      _errHandler->sync(this);
+      switch (_input->LA(1)) {
+        case CypherParser::AS: {
+          setState(2469);
+          match(CypherParser::AS);
+          setState(2471);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
           _errHandler->sync(this);
 
           _la = _input->LA(1);
           if (_la == CypherParser::SP) {
+<<<<<<< HEAD
             setState(2476);
             match(CypherParser::SP);
           }
           setState(2479);
+=======
+            setState(2470);
+            match(CypherParser::SP);
+          }
+          setState(2473);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
           kU_DataType(0);
           break;
         }
 
         case CypherParser::T__2: {
+<<<<<<< HEAD
           setState(2480);
           match(CypherParser::T__2);
           setState(2482);
+=======
+          setState(2474);
+          match(CypherParser::T__2);
+          setState(2476);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
           _errHandler->sync(this);
 
           _la = _input->LA(1);
           if (_la == CypherParser::SP) {
+<<<<<<< HEAD
             setState(2481);
             match(CypherParser::SP);
           }
           setState(2484);
+=======
+            setState(2475);
+            match(CypherParser::SP);
+          }
+          setState(2478);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
           kU_FunctionParameter();
           break;
         }
@@ -15785,6 +18551,39 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
       default:
         throw NoViableAltException(this);
       }
+<<<<<<< HEAD
+      setState(2488);
+=======
+      setState(2482);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+<<<<<<< HEAD
+        setState(2487);
+        match(CypherParser::SP);
+      }
+      setState(2490);
+=======
+        setState(2481);
+        match(CypherParser::SP);
+      }
+      setState(2484);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+      match(CypherParser::T__3);
+      break;
+    }
+
+    case 3: {
+      enterOuterAlt(_localctx, 3);
+<<<<<<< HEAD
+      setState(2492);
+      oC_FunctionName();
+      setState(2494);
+=======
+      setState(2486);
+      oC_FunctionName();
       setState(2488);
       _errHandler->sync(this);
 
@@ -15794,22 +18593,17 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
         match(CypherParser::SP);
       }
       setState(2490);
-      match(CypherParser::T__3);
-      break;
-    }
-
-    case 3: {
-      enterOuterAlt(_localctx, 3);
+      match(CypherParser::T__1);
       setState(2492);
-      oC_FunctionName();
-      setState(2494);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2493);
+        setState(2491);
         match(CypherParser::SP);
       }
+<<<<<<< HEAD
       setState(2496);
       match(CypherParser::T__1);
       setState(2498);
@@ -15821,22 +18615,39 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
         match(CypherParser::SP);
       }
       setState(2504);
+=======
+      setState(2498);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::DISTINCT) {
+<<<<<<< HEAD
         setState(2500);
         match(CypherParser::DISTINCT);
         setState(2502);
+=======
+        setState(2494);
+        match(CypherParser::DISTINCT);
+        setState(2496);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
+<<<<<<< HEAD
           setState(2501);
           match(CypherParser::SP);
         }
       }
       setState(2523);
+=======
+          setState(2495);
+          match(CypherParser::SP);
+        }
+      }
+      setState(2517);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
@@ -15844,13 +18655,20 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
         ((1ULL << _la) & -5195676226290711932) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 64)) & -2359750048497068901) != 0) || ((((_la - 129) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 129)) & 81714562273) != 0)) {
+<<<<<<< HEAD
         setState(2506);
         kU_FunctionParameter();
         setState(2508);
+=======
+        setState(2500);
+        kU_FunctionParameter();
+        setState(2502);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
+<<<<<<< HEAD
           setState(2507);
           match(CypherParser::SP);
         }
@@ -15861,13 +18679,36 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
           setState(2510);
           match(CypherParser::T__2);
           setState(2512);
+=======
+          setState(2501);
+          match(CypherParser::SP);
+        }
+        setState(2514);
+        _errHandler->sync(this);
+        _la = _input->LA(1);
+        while (_la == CypherParser::T__2) {
+          setState(2504);
+          match(CypherParser::T__2);
+          setState(2506);
           _errHandler->sync(this);
 
           _la = _input->LA(1);
           if (_la == CypherParser::SP) {
-            setState(2511);
+            setState(2505);
             match(CypherParser::SP);
           }
+          setState(2508);
+          kU_FunctionParameter();
+          setState(2510);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
+          _errHandler->sync(this);
+
+          _la = _input->LA(1);
+          if (_la == CypherParser::SP) {
+            setState(2509);
+            match(CypherParser::SP);
+          }
+<<<<<<< HEAD
           setState(2514);
           kU_FunctionParameter();
           setState(2516);
@@ -15879,11 +18720,18 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
             match(CypherParser::SP);
           }
           setState(2522);
+=======
+          setState(2516);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
           _errHandler->sync(this);
           _la = _input->LA(1);
         }
       }
+<<<<<<< HEAD
       setState(2525);
+=======
+      setState(2519);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       match(CypherParser::T__3);
       break;
     }
@@ -15931,7 +18779,11 @@ CypherParser::OC_FunctionNameContext* CypherParser::oC_FunctionName() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2529);
+=======
+    setState(2523);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_SymbolicName();
    
   }
@@ -15993,10 +18845,16 @@ CypherParser::KU_FunctionParameterContext* CypherParser::kU_FunctionParameter() 
     exitRule();
   });
   try {
+<<<<<<< HEAD
     setState(2544);
+=======
+    enterOuterAlt(_localctx, 1);
+    setState(2534);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 428, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       enterOuterAlt(_localctx, 1);
       setState(2540);
       _errHandler->sync(this);
@@ -16027,10 +18885,121 @@ CypherParser::KU_FunctionParameterContext* CypherParser::kU_FunctionParameter() 
         }
         break;
       }
+=======
+      setState(2525);
+      oC_SymbolicName();
+      setState(2527);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2526);
+        match(CypherParser::SP);
+      }
+      setState(2529);
+      match(CypherParser::COLON);
+      setState(2530);
+      match(CypherParser::T__5);
+      setState(2532);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2531);
+        match(CypherParser::SP);
+      }
+      break;
+    }
+
+    default:
+      break;
+    }
+    setState(2536);
+    oC_Expression();
+   
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+
+  return _localctx;
+}
+
+//----------------- OC_PathPatternsContext ------------------------------------------------------------------
+
+CypherParser::OC_PathPatternsContext::OC_PathPatternsContext(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+CypherParser::OC_NodePatternContext* CypherParser::OC_PathPatternsContext::oC_NodePattern() {
+  return getRuleContext<CypherParser::OC_NodePatternContext>(0);
+}
+
+std::vector<CypherParser::OC_PatternElementChainContext *> CypherParser::OC_PathPatternsContext::oC_PatternElementChain() {
+  return getRuleContexts<CypherParser::OC_PatternElementChainContext>();
+}
+
+CypherParser::OC_PatternElementChainContext* CypherParser::OC_PathPatternsContext::oC_PatternElementChain(size_t i) {
+  return getRuleContext<CypherParser::OC_PatternElementChainContext>(i);
+}
+
+std::vector<tree::TerminalNode *> CypherParser::OC_PathPatternsContext::SP() {
+  return getTokens(CypherParser::SP);
+}
+
+tree::TerminalNode* CypherParser::OC_PathPatternsContext::SP(size_t i) {
+  return getToken(CypherParser::SP, i);
+}
+
+
+size_t CypherParser::OC_PathPatternsContext::getRuleIndex() const {
+  return CypherParser::RuleOC_PathPatterns;
+}
+
+
+CypherParser::OC_PathPatternsContext* CypherParser::oC_PathPatterns() {
+  OC_PathPatternsContext *_localctx = _tracker.createInstance<OC_PathPatternsContext>(_ctx, getState());
+  enterRule(_localctx, 298, CypherParser::RuleOC_PathPatterns);
+  size_t _la = 0;
+
+#if __cplusplus > 201703L
+  auto onExit = finally([=, this] {
+#else
+  auto onExit = finally([=] {
+#endif
+    exitRule();
+  });
+  try {
+    size_t alt;
+    enterOuterAlt(_localctx, 1);
+    setState(2538);
+    oC_NodePattern();
+    setState(2543); 
+    _errHandler->sync(this);
+    alt = 1;
+    do {
+      switch (alt) {
+        case 1: {
+              setState(2540);
+              _errHandler->sync(this);
+
+              _la = _input->LA(1);
+              if (_la == CypherParser::SP) {
+                setState(2539);
+                match(CypherParser::SP);
+              }
+              setState(2542);
+              oC_PatternElementChain();
+              break;
+            }
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
 
       default:
         break;
       }
+<<<<<<< HEAD
       setState(2542);
       oC_Expression();
       break;
@@ -16046,6 +19015,12 @@ CypherParser::KU_FunctionParameterContext* CypherParser::kU_FunctionParameter() 
     default:
       break;
     }
+=======
+      setState(2545); 
+      _errHandler->sync(this);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 429, _ctx);
+    } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
    
   }
   catch (RecognitionException &e) {
@@ -16103,13 +19078,20 @@ CypherParser::KU_LambdaParameterContext* CypherParser::kU_LambdaParameter() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2546);
     kU_LambdaVars();
     setState(2548);
+=======
+    setState(2547);
+    match(CypherParser::EXISTS);
+    setState(2549);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(2547);
       match(CypherParser::SP);
     }
@@ -16117,6 +19099,13 @@ CypherParser::KU_LambdaParameterContext* CypherParser::kU_LambdaParameter() {
     match(CypherParser::MINUS);
     setState(2551);
     match(CypherParser::T__15);
+=======
+      setState(2548);
+      match(CypherParser::SP);
+    }
+    setState(2551);
+    match(CypherParser::T__8);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     setState(2553);
     _errHandler->sync(this);
 
@@ -16126,6 +19115,7 @@ CypherParser::KU_LambdaParameterContext* CypherParser::kU_LambdaParameter() {
       match(CypherParser::SP);
     }
     setState(2555);
+<<<<<<< HEAD
     oC_Expression();
     setState(2557);
     _errHandler->sync(this);
@@ -16134,12 +19124,53 @@ CypherParser::KU_LambdaParameterContext* CypherParser::kU_LambdaParameter() {
     case 1: {
       setState(2556);
       match(CypherParser::SP);
+=======
+    match(CypherParser::MATCH);
+    setState(2557);
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::SP) {
+      setState(2556);
+      match(CypherParser::SP);
+    }
+    setState(2559);
+    oC_Pattern();
+    setState(2564);
+    _errHandler->sync(this);
+
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 434, _ctx)) {
+    case 1: {
+      setState(2561);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2560);
+        match(CypherParser::SP);
+      }
+      setState(2563);
+      oC_Where();
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       break;
     }
 
     default:
       break;
     }
+<<<<<<< HEAD
+=======
+    setState(2567);
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::SP) {
+      setState(2566);
+      match(CypherParser::SP);
+    }
+    setState(2569);
+    match(CypherParser::T__9);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
    
   }
   catch (RecognitionException &e) {
@@ -16192,8 +19223,136 @@ CypherParser::KU_LambdaVarsContext* CypherParser::kU_LambdaVars() {
     exitRule();
   });
   try {
+<<<<<<< HEAD
     setState(2583);
     _errHandler->sync(this);
+=======
+    enterOuterAlt(_localctx, 1);
+    setState(2571);
+    match(CypherParser::COUNT);
+    setState(2573);
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::SP) {
+      setState(2572);
+      match(CypherParser::SP);
+    }
+    setState(2575);
+    match(CypherParser::T__8);
+    setState(2577);
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::SP) {
+      setState(2576);
+      match(CypherParser::SP);
+    }
+    setState(2579);
+    match(CypherParser::MATCH);
+    setState(2581);
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::SP) {
+      setState(2580);
+      match(CypherParser::SP);
+    }
+    setState(2583);
+    oC_Pattern();
+    setState(2588);
+    _errHandler->sync(this);
+
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 440, _ctx)) {
+    case 1: {
+      setState(2585);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2584);
+        match(CypherParser::SP);
+      }
+      setState(2587);
+      oC_Where();
+      break;
+    }
+
+    default:
+      break;
+    }
+    setState(2591);
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::SP) {
+      setState(2590);
+      match(CypherParser::SP);
+    }
+    setState(2593);
+    match(CypherParser::T__9);
+   
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+
+  return _localctx;
+}
+
+//----------------- OC_PropertyLookupContext ------------------------------------------------------------------
+
+CypherParser::OC_PropertyLookupContext::OC_PropertyLookupContext(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+CypherParser::OC_PropertyKeyNameContext* CypherParser::OC_PropertyLookupContext::oC_PropertyKeyName() {
+  return getRuleContext<CypherParser::OC_PropertyKeyNameContext>(0);
+}
+
+tree::TerminalNode* CypherParser::OC_PropertyLookupContext::STAR() {
+  return getToken(CypherParser::STAR, 0);
+}
+
+tree::TerminalNode* CypherParser::OC_PropertyLookupContext::SP() {
+  return getToken(CypherParser::SP, 0);
+}
+
+
+size_t CypherParser::OC_PropertyLookupContext::getRuleIndex() const {
+  return CypherParser::RuleOC_PropertyLookup;
+}
+
+
+CypherParser::OC_PropertyLookupContext* CypherParser::oC_PropertyLookup() {
+  OC_PropertyLookupContext *_localctx = _tracker.createInstance<OC_PropertyLookupContext>(_ctx, getState());
+  enterRule(_localctx, 304, CypherParser::RuleOC_PropertyLookup);
+  size_t _la = 0;
+
+#if __cplusplus > 201703L
+  auto onExit = finally([=, this] {
+#else
+  auto onExit = finally([=] {
+#endif
+    exitRule();
+  });
+  try {
+    enterOuterAlt(_localctx, 1);
+    setState(2595);
+    match(CypherParser::T__4);
+    setState(2597);
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == CypherParser::SP) {
+      setState(2596);
+      match(CypherParser::SP);
+    }
+    setState(2601);
+    _errHandler->sync(this);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     switch (_input->LA(1)) {
       case CypherParser::ADD:
       case CypherParser::ALTER:
@@ -16245,6 +19404,7 @@ CypherParser::KU_LambdaVarsContext* CypherParser::kU_LambdaVars() {
       case CypherParser::HexLetter:
       case CypherParser::UnescapedSymbolicName:
       case CypherParser::EscapedSymbolicName: {
+<<<<<<< HEAD
         enterOuterAlt(_localctx, 1);
         setState(2559);
         oC_SymbolicName();
@@ -16756,12 +19916,19 @@ CypherParser::OC_PropertyLookupContext* CypherParser::oC_PropertyLookup() {
       case CypherParser::UnescapedSymbolicName:
       case CypherParser::EscapedSymbolicName: {
         setState(2646);
+=======
+        setState(2599);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_PropertyKeyName();
         break;
       }
 
       case CypherParser::STAR: {
+<<<<<<< HEAD
         setState(2647);
+=======
+        setState(2600);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         match(CypherParser::STAR);
         break;
       }
@@ -16843,27 +20010,48 @@ CypherParser::OC_CaseExpressionContext* CypherParser::oC_CaseExpression() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2672);
+=======
+    setState(2625);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 459, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(2650);
       match(CypherParser::CASE);
       setState(2655); 
+=======
+      setState(2603);
+      match(CypherParser::CASE);
+      setState(2608); 
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = 1;
       do {
         switch (alt) {
           case 1: {
+<<<<<<< HEAD
                 setState(2652);
+=======
+                setState(2605);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
                 _errHandler->sync(this);
 
                 _la = _input->LA(1);
                 if (_la == CypherParser::SP) {
+<<<<<<< HEAD
                   setState(2651);
                   match(CypherParser::SP);
                 }
                 setState(2654);
+=======
+                  setState(2604);
+                  match(CypherParser::SP);
+                }
+                setState(2607);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
                 oC_CaseAlternative();
                 break;
               }
@@ -16871,7 +20059,11 @@ CypherParser::OC_CaseExpressionContext* CypherParser::oC_CaseExpression() {
         default:
           throw NoViableAltException(this);
         }
+<<<<<<< HEAD
         setState(2657); 
+=======
+        setState(2610); 
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 455, _ctx);
       } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
@@ -16879,33 +20071,59 @@ CypherParser::OC_CaseExpressionContext* CypherParser::oC_CaseExpression() {
     }
 
     case 2: {
+<<<<<<< HEAD
       setState(2659);
       match(CypherParser::CASE);
       setState(2661);
+=======
+      setState(2612);
+      match(CypherParser::CASE);
+      setState(2614);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(2660);
         match(CypherParser::SP);
       }
       setState(2663);
       oC_Expression();
       setState(2668); 
+=======
+        setState(2613);
+        match(CypherParser::SP);
+      }
+      setState(2616);
+      oC_Expression();
+      setState(2621); 
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
       alt = 1;
       do {
         switch (alt) {
           case 1: {
+<<<<<<< HEAD
                 setState(2665);
+=======
+                setState(2618);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
                 _errHandler->sync(this);
 
                 _la = _input->LA(1);
                 if (_la == CypherParser::SP) {
+<<<<<<< HEAD
                   setState(2664);
                   match(CypherParser::SP);
                 }
                 setState(2667);
+=======
+                  setState(2617);
+                  match(CypherParser::SP);
+                }
+                setState(2620);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
                 oC_CaseAlternative();
                 break;
               }
@@ -16913,7 +20131,11 @@ CypherParser::OC_CaseExpressionContext* CypherParser::oC_CaseExpression() {
         default:
           throw NoViableAltException(this);
         }
+<<<<<<< HEAD
         setState(2670); 
+=======
+        setState(2623); 
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 458, _ctx);
       } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
@@ -16923,30 +20145,54 @@ CypherParser::OC_CaseExpressionContext* CypherParser::oC_CaseExpression() {
     default:
       break;
     }
+<<<<<<< HEAD
     setState(2682);
+=======
+    setState(2635);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 462, _ctx)) {
     case 1: {
+<<<<<<< HEAD
       setState(2675);
+=======
+      setState(2628);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(2674);
         match(CypherParser::SP);
       }
       setState(2677);
       match(CypherParser::ELSE);
       setState(2679);
+=======
+        setState(2627);
+        match(CypherParser::SP);
+      }
+      setState(2630);
+      match(CypherParser::ELSE);
+      setState(2632);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
+<<<<<<< HEAD
         setState(2678);
         match(CypherParser::SP);
       }
       setState(2681);
+=======
+        setState(2631);
+        match(CypherParser::SP);
+      }
+      setState(2634);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
       oC_Expression();
       break;
     }
@@ -16954,15 +20200,26 @@ CypherParser::OC_CaseExpressionContext* CypherParser::oC_CaseExpression() {
     default:
       break;
     }
+<<<<<<< HEAD
     setState(2685);
+=======
+    setState(2638);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(2684);
       match(CypherParser::SP);
     }
     setState(2687);
+=======
+      setState(2637);
+      match(CypherParser::SP);
+    }
+    setState(2640);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     match(CypherParser::END);
    
   }
@@ -17025,37 +20282,68 @@ CypherParser::OC_CaseAlternativeContext* CypherParser::oC_CaseAlternative() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2689);
     match(CypherParser::WHEN);
     setState(2691);
+=======
+    setState(2642);
+    match(CypherParser::WHEN);
+    setState(2644);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(2690);
       match(CypherParser::SP);
     }
     setState(2693);
     oC_Expression();
     setState(2695);
+=======
+      setState(2643);
+      match(CypherParser::SP);
+    }
+    setState(2646);
+    oC_Expression();
+    setState(2648);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(2694);
       match(CypherParser::SP);
     }
     setState(2697);
     match(CypherParser::THEN);
     setState(2699);
+=======
+      setState(2647);
+      match(CypherParser::SP);
+    }
+    setState(2650);
+    match(CypherParser::THEN);
+    setState(2652);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(2698);
       match(CypherParser::SP);
     }
     setState(2701);
+=======
+      setState(2651);
+      match(CypherParser::SP);
+    }
+    setState(2654);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_Expression();
    
   }
@@ -17097,7 +20385,11 @@ CypherParser::OC_VariableContext* CypherParser::oC_Variable() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2703);
+=======
+    setState(2656);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_SymbolicName();
    
   }
@@ -17142,19 +20434,31 @@ CypherParser::OC_NumberLiteralContext* CypherParser::oC_NumberLiteral() {
     exitRule();
   });
   try {
+<<<<<<< HEAD
     setState(2707);
+=======
+    setState(2660);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::RegularDecimalReal: {
         enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
         setState(2705);
+=======
+        setState(2658);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_DoubleLiteral();
         break;
       }
 
       case CypherParser::DecimalInteger: {
         enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
         setState(2706);
+=======
+        setState(2659);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_IntegerLiteral();
         break;
       }
@@ -17206,9 +20510,15 @@ CypherParser::OC_ParameterContext* CypherParser::oC_Parameter() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2709);
     match(CypherParser::T__25);
     setState(2712);
+=======
+    setState(2662);
+    match(CypherParser::T__25);
+    setState(2665);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::ADD:
@@ -17261,13 +20571,21 @@ CypherParser::OC_ParameterContext* CypherParser::oC_Parameter() {
       case CypherParser::HexLetter:
       case CypherParser::UnescapedSymbolicName:
       case CypherParser::EscapedSymbolicName: {
+<<<<<<< HEAD
         setState(2710);
+=======
+        setState(2663);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         oC_SymbolicName();
         break;
       }
 
       case CypherParser::DecimalInteger: {
+<<<<<<< HEAD
         setState(2711);
+=======
+        setState(2664);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         match(CypherParser::DecimalInteger);
         break;
       }
@@ -17324,17 +20642,30 @@ CypherParser::OC_PropertyExpressionContext* CypherParser::oC_PropertyExpression(
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2714);
     oC_Atom();
     setState(2716);
+=======
+    setState(2667);
+    oC_Atom();
+    setState(2669);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
+<<<<<<< HEAD
       setState(2715);
       match(CypherParser::SP);
     }
     setState(2718);
+=======
+      setState(2668);
+      match(CypherParser::SP);
+    }
+    setState(2671);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_PropertyLookup();
    
   }
@@ -17376,7 +20707,11 @@ CypherParser::OC_PropertyKeyNameContext* CypherParser::oC_PropertyKeyName() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2720);
+=======
+    setState(2673);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_SchemaName();
    
   }
@@ -17418,7 +20753,11 @@ CypherParser::OC_IntegerLiteralContext* CypherParser::oC_IntegerLiteral() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2722);
+=======
+    setState(2675);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     match(CypherParser::DecimalInteger);
    
   }
@@ -17460,7 +20799,11 @@ CypherParser::OC_DoubleLiteralContext* CypherParser::oC_DoubleLiteral() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2724);
+=======
+    setState(2677);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     match(CypherParser::RegularDecimalReal);
    
   }
@@ -17502,7 +20845,11 @@ CypherParser::OC_SchemaNameContext* CypherParser::oC_SchemaName() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2726);
+=======
+    setState(2679);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     oC_SymbolicName();
    
   }
@@ -17555,19 +20902,31 @@ CypherParser::OC_SymbolicNameContext* CypherParser::oC_SymbolicName() {
     exitRule();
   });
   try {
+<<<<<<< HEAD
     setState(2733);
+=======
+    setState(2686);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::UnescapedSymbolicName: {
         enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
         setState(2728);
+=======
+        setState(2681);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         match(CypherParser::UnescapedSymbolicName);
         break;
       }
 
       case CypherParser::EscapedSymbolicName: {
         enterOuterAlt(_localctx, 2);
+<<<<<<< HEAD
         setState(2729);
+=======
+        setState(2682);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         antlrcpp::downCast<OC_SymbolicNameContext *>(_localctx)->escapedsymbolicnameToken = match(CypherParser::EscapedSymbolicName);
         if ((antlrcpp::downCast<OC_SymbolicNameContext *>(_localctx)->escapedsymbolicnameToken != nullptr ? antlrcpp::downCast<OC_SymbolicNameContext *>(_localctx)->escapedsymbolicnameToken->getText() : "") == "``") { notifyEmptyToken(antlrcpp::downCast<OC_SymbolicNameContext *>(_localctx)->escapedsymbolicnameToken); }
         break;
@@ -17575,7 +20934,11 @@ CypherParser::OC_SymbolicNameContext* CypherParser::oC_SymbolicName() {
 
       case CypherParser::HexLetter: {
         enterOuterAlt(_localctx, 3);
+<<<<<<< HEAD
         setState(2731);
+=======
+        setState(2684);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         match(CypherParser::HexLetter);
         break;
       }
@@ -17628,7 +20991,11 @@ CypherParser::OC_SymbolicNameContext* CypherParser::oC_SymbolicName() {
       case CypherParser::WRITE:
       case CypherParser::DECIMAL: {
         enterOuterAlt(_localctx, 4);
+<<<<<<< HEAD
         setState(2732);
+=======
+        setState(2685);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
         kU_NonReservedKeywords();
         break;
       }
@@ -17861,7 +21228,11 @@ CypherParser::KU_NonReservedKeywordsContext* CypherParser::kU_NonReservedKeyword
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2735);
+=======
+    setState(2688);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _la = _input->LA(1);
     if (!(((((_la - 46) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 46)) & 8022426305271089045) != 0) || ((((_la - 118) & ~ 0x3fULL) == 0) &&
@@ -17909,7 +21280,11 @@ CypherParser::OC_LeftArrowHeadContext* CypherParser::oC_LeftArrowHead() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2737);
+=======
+    setState(2690);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 2013282304) != 0))) {
@@ -17956,7 +21331,11 @@ CypherParser::OC_RightArrowHeadContext* CypherParser::oC_RightArrowHead() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2739);
+=======
+    setState(2692);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 32212320256) != 0))) {
@@ -18007,7 +21386,11 @@ CypherParser::OC_DashContext* CypherParser::oC_Dash() {
   });
   try {
     enterOuterAlt(_localctx, 1);
+<<<<<<< HEAD
     setState(2741);
+=======
+    setState(2694);
+>>>>>>> dcaecf2de (remove commitSkipCheckoint; rollbackSkipCheckpoint from syntax)
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 70334384439296) != 0) || _la == CypherParser::MINUS)) {

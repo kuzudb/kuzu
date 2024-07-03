@@ -64,6 +64,11 @@ public:
     void setAllNull() const;
     void setNumRows(common::offset_t numRows_);
     void resizeChunks(uint64_t newSize) const;
+    void resetVersionInfo() {
+        if (versionInfo) {
+            versionInfo.reset();
+        }
+    }
 
     uint64_t append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& columnVectors, common::row_idx_t startRowInVectors,
@@ -88,6 +93,14 @@ public:
     void scanCommitted(transaction::Transaction* transaction, TableScanState& scanState,
         NodeGroupScanState& nodeGroupScanState, ChunkedNodeGroup& output) const;
 
+    bool hasUpdates() const;
+    common::row_idx_t getNumDeletedRows(const transaction::Transaction* transaction) const;
+    common::row_idx_t getNumUpdatedRows(const transaction::Transaction* transaction,
+        common::column_id_t columnID);
+
+    std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> scanUpdates(
+        transaction::Transaction* transaction, common::column_id_t columnID);
+
     bool lookup(transaction::Transaction* transaction, const TableScanState& state,
         NodeGroupScanState& nodeGroupScanState, common::offset_t rowIdxInChunk,
         common::sel_t posInOutput) const;
@@ -99,6 +112,12 @@ public:
 
     void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
         bool enableCompression, BMFileHandle* dataFH);
+
+    bool isDeleted(const transaction::Transaction* transaction, common::row_idx_t rowInChunk) const;
+    bool hasAnyUpdates(transaction::Transaction* transaction, common::column_id_t columnID,
+        common::row_idx_t startRow, common::length_t numRows) const;
+    common::row_idx_t getNumDeletions(const transaction::Transaction* transaction,
+        common::row_idx_t startRow, common::length_t numRows) const;
 
     void finalize() const;
 
@@ -114,7 +133,6 @@ public:
     virtual void flush(BMFileHandle& dataFH);
 
     uint64_t getEstimatedMemoryUsage() const;
-    bool hasUpdates() const;
 
     virtual void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<ChunkedNodeGroup> deserialize(common::Deserializer& deSer);

@@ -208,6 +208,20 @@ template void ChunkedNodeGroup::scanCommitted<ResidencyState::IN_MEMORY>(Transac
     TableScanState& scanState, NodeGroupScanState& nodeGroupScanState,
     ChunkedNodeGroup& output) const;
 
+row_idx_t ChunkedNodeGroup::getNumDeletedRows(const Transaction* transaction) const {
+    return versionInfo ? versionInfo->getNumDeletions(transaction) : 0;
+}
+
+row_idx_t ChunkedNodeGroup::getNumUpdatedRows(const Transaction* transaction,
+    column_id_t columnID) {
+    return getColumnChunk(columnID).getNumUpdatedRows(transaction);
+}
+
+std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ChunkedNodeGroup::scanUpdates(
+    Transaction* transaction, column_id_t columnID) {
+    return getColumnChunk(columnID).scanUpdates(transaction);
+}
+
 bool ChunkedNodeGroup::lookup(Transaction* transaction, const TableScanState& state,
     NodeGroupScanState& nodeGroupScanState, offset_t rowIdxInChunk, sel_t posInOutput) const {
     KU_ASSERT(rowIdxInChunk + 1 <= numRows);
@@ -253,7 +267,7 @@ bool ChunkedNodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxI
     return versionInfo->delete_(transaction, rowIdxInChunk);
 }
 
-void ChunkedNodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
+void ChunkedNodeGroup::addColumn(Transaction*, TableAddColumnState& addColumnState,
     bool enableCompression, BMFileHandle* dataFH) {
     auto numRows = getNumRows();
     auto& property = addColumnState.property;
@@ -265,6 +279,23 @@ void ChunkedNodeGroup::addColumn(Transaction* transaction, TableAddColumnState& 
         KU_ASSERT(dataFH);
         chunkData.flush(*dataFH);
     }
+}
+
+bool ChunkedNodeGroup::isDeleted(const Transaction* transaction, row_idx_t rowInChunk) const {
+    if (!versionInfo) {
+        return false;
+    }
+    return versionInfo->isDeleted(transaction, rowInChunk);
+}
+
+bool ChunkedNodeGroup::hasAnyUpdates(Transaction* transaction, column_id_t columnID,
+    row_idx_t startRow, length_t numRows) const {
+    return getColumnChunk(columnID).hasUpdates(transaction, startRow, numRows);
+}
+
+row_idx_t ChunkedNodeGroup::getNumDeletions(const Transaction* transaction, row_idx_t startRow,
+    length_t numRows) const {
+    return versionInfo->getNumDeletions(transaction, startRow, numRows);
 }
 
 void ChunkedNodeGroup::finalize() const {

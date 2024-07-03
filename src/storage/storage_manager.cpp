@@ -21,16 +21,16 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
     VirtualFileSystem* vfs, main::ClientContext* context)
     : databasePath{databasePath}, readOnly{readOnly}, memoryManager{memoryManager},
       enableCompression{enableCompression} {
-    dataFH = initFileHandle(StorageUtils::getDataFName(vfs, databasePath), vfs, context);
-    metadataFH = initFileHandle(StorageUtils::getMetadataFName(vfs, databasePath), vfs, context);
+    loadTables(catalog, vfs, context);
     // TODO: should we disable WAL in readonly mode?
     wal = std::make_unique<WAL>(databasePath, readOnly, *memoryManager.getBufferManager(), vfs,
         context);
-    loadTables(catalog, vfs, context);
+    dataFH = initFileHandle(StorageUtils::getDataFName(vfs, databasePath), vfs, context);
+    metadataFH = initFileHandle(StorageUtils::getMetadataFName(vfs, databasePath), vfs, context);
 }
 
 BMFileHandle* StorageManager::initFileHandle(const std::string& filename, VirtualFileSystem* vfs,
-    main::ClientContext* context) {
+    main::ClientContext* context) const {
     return memoryManager.getBufferManager()->getBMFileHandle(filename,
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
@@ -57,10 +57,10 @@ static void setCommonTableIDToRdfRelTable(RelTable* relTable,
 
 void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
     main::ClientContext* context) {
-    const auto metaFilePath = StorageUtils::getStorageMetadataFName(vfs, databasePath);
+    const auto metaFilePath = StorageUtils::getMetadataFName(vfs, databasePath);
     if (vfs->fileOrPathExists(metaFilePath)) {
-        auto metadataFileInfo = vfs->openFile(
-            StorageUtils::getStorageMetadataFName(vfs, databasePath), O_RDONLY, context);
+        auto metadataFileInfo =
+            vfs->openFile(StorageUtils::getMetadataFName(vfs, databasePath), O_RDONLY, context);
         Deserializer deSer(std::make_unique<BufferedFileReader>(std::move(metadataFileInfo)));
         uint64_t numTables;
         deSer.deserializeValue<uint64_t>(numTables);
@@ -220,22 +220,9 @@ uint64_t StorageManager::getEstimatedMemoryUsage() const {
     return totalMemoryUsage;
 }
 
-void StorageManager::prepareCommit(Transaction* transaction, VirtualFileSystem* vfs) {
-    // Tables which are created but not inserted into may have pending writes
-    // which need to be flushed (specifically, the metadata disk array header)
-    // TODO(bmwinger): wal->getUpdatedTables isn't the ideal place to store this information
-    for (auto tableID : wal->getUpdatedTables()) {
-        if (transaction->getLocalStorage()->getLocalTable(tableID) == nullptr) {
-            getTable(tableID)->prepareCommit();
-        }
-    }
-}
-
-void StorageManager::prepareRollback() {}
-
 void StorageManager::checkpoint(main::ClientContext& clientContext) const {
     auto metadataFileInfo = clientContext.getVFSUnsafe()->openFile(
-        StorageUtils::getStorageMetadataFName(clientContext.getVFSUnsafe(), databasePath),
+        StorageUtils::getMetadataFName(clientContext.getVFSUnsafe(), databasePath),
         O_RDWR | O_CREAT, &clientContext);
     const auto writer = std::make_shared<BufferedFileWriter>(std::move(metadataFileInfo));
     Serializer ser(writer);
@@ -243,13 +230,6 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) const {
     for (auto tableID : wal->getUpdatedTables()) {
         KU_ASSERT(tables.contains(tableID));
         tables.at(tableID)->checkpoint(ser);
-    }
-}
-
-void StorageManager::rollbackInMemory() {
-    for (auto tableID : wal->getUpdatedTables()) {
-        KU_ASSERT(tables.contains(tableID));
-        tables.at(tableID)->rollbackInMemory();
     }
 }
 

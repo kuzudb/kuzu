@@ -19,6 +19,10 @@ public:
         KU_ASSERT(childIdx < childChunks.size());
         return childChunks[childIdx].get();
     }
+    std::unique_ptr<ColumnChunkData> moveChild(common::idx_t childIdx) {
+        KU_ASSERT(childIdx < childChunks.size());
+        return std::move(childChunks[childIdx]);
+    }
 
     void finalize() override;
 

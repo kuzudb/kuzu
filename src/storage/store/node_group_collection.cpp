@@ -117,7 +117,7 @@ uint64_t NodeGroupCollection::getEstimatedMemoryUsage() {
     return estimatedMemUsage;
 }
 
-void NodeGroupCollection::checkpoint(const NodeGroupCheckpointState& state) {
+void NodeGroupCollection::checkpoint(NodeGroupCheckpointState& state) {
     KU_ASSERT(dataFH);
     const auto lock = nodeGroups.lock();
     for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {

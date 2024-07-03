@@ -112,12 +112,6 @@ public:
         const std::string& directory) {
         return vfs->joinPath(directory, common::StorageConstants::METADATA_FILE_NAME);
     }
-    // TODO(Guodong): Temporary solution for metadata file name for storage of node tables. Should
-    // be merged with the above function.
-    static inline std::string getStorageMetadataFName(common::VirtualFileSystem* vfs,
-        const std::string& directory) {
-        return vfs->joinPath(directory, "meta.kz");
-    }
 
     static inline DBFileIDAndName getNodeIndexIDAndFName(common::VirtualFileSystem* vfs,
         const std::string& directory, common::table_id_t tableID) {

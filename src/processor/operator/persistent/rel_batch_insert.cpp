@@ -74,7 +74,7 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
     // We optimistically flush new node group directly to disk in gapped CSR format.
     // There is no benefit of leaving gaps for existing node groups, which is kept in memory.
     const auto leaveGaps = isNewNodeGroup;
-    convertToCSRNodeGroup(partitioningBuffer, startNodeOffset, relInfo, localState, numNodes,
+    populateCSROffsets(partitioningBuffer, startNodeOffset, relInfo, localState, numNodes,
         leaveGaps);
     for (auto& chunkedGroup : partitioningBuffer.getChunkedGroups()) {
         localState.chunkedGroup->write(*chunkedGroup, relInfo.boundNodeOffsetColumnID);
@@ -93,16 +93,16 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
     localState.chunkedGroup->resetToEmpty();
 }
 
-void RelBatchInsert::convertToCSRNodeGroup(ChunkedNodeGroupCollection& partition,
+void RelBatchInsert::populateCSROffsets(ChunkedNodeGroupCollection& partition,
     offset_t startNodeOffset, const RelBatchInsertInfo& relInfo,
     const RelBatchInsertLocalState& localState, offset_t numNodes, bool leaveGaps) {
     auto& csrNodeGroup = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>();
     auto& csrHeader = csrNodeGroup.getCSRHeader();
     csrHeader.setNumValues(numNodes);
     // Populate start csr offsets and lengths for each node.
-    auto gaps = populateStartCSROffsetsAndLengths(csrHeader, numNodes, partition,
-        relInfo.boundNodeOffsetColumnID, leaveGaps);
-    auto invalid = checkRelMultiplicityConstraint(csrHeader, relInfo);
+    populateCSRLengths(csrHeader, numNodes, partition, relInfo.boundNodeOffsetColumnID);
+    const auto gaps = csrHeader.populateStartCSROffsetsAndGaps(leaveGaps);
+    const auto invalid = checkRelMultiplicityConstraint(csrHeader, relInfo);
     if (invalid.has_value()) {
         throw CopyException(ExceptionMessage::violateRelMultiplicityConstraint(
             relInfo.tableEntry->getName(), std::to_string(invalid.value() + startNodeOffset),
@@ -117,57 +117,23 @@ void RelBatchInsert::convertToCSRNodeGroup(ChunkedNodeGroupCollection& partition
         auto& offsetChunk = chunkedGroup->getColumnChunk(relInfo.boundNodeOffsetColumnID);
         setOffsetFromCSROffsets(offsetChunk.getData(), csrHeader.offset->getData());
     }
-    populateEndCSROffsets(csrHeader, gaps);
+    csrHeader.populateEndCSROffsets(gaps);
 }
 
-void RelBatchInsert::populateEndCSROffsets(ChunkedCSRHeader& csrHeader,
-    std::vector<offset_t>& gaps) {
-    auto csrOffsets = reinterpret_cast<offset_t*>(csrHeader.offset->getData().getData());
-    for (auto i = 0u; i < csrHeader.offset->getNumValues(); i++) {
-        csrOffsets[i] += gaps[i];
-    }
-}
-
-length_t RelBatchInsert::getGapSize(length_t length) {
-    // We intentionally leave a gap for empty CSR lists to accommondate for future insertions.
-    // Also, for MANY_ONE and ONE_ONE relationships, we should always keep each CSR list as size 1.
-    return length == 0 ?
-               1 :
-               StorageUtils::divideAndRoundUpTo(length, StorageConstants::PACKED_CSR_DENSITY) -
-                   length;
-}
-
-std::vector<offset_t> RelBatchInsert::populateStartCSROffsetsAndLengths(ChunkedCSRHeader& csrHeader,
-    offset_t numNodes, ChunkedNodeGroupCollection& partition, column_id_t boundNodeOffsetColumn,
-    bool leaveGaps) {
+void RelBatchInsert::populateCSRLengths(ChunkedCSRHeader& csrHeader, offset_t numNodes,
+    ChunkedNodeGroupCollection& partition, column_id_t boundNodeOffsetColumn) {
     KU_ASSERT(numNodes == csrHeader.length->getNumValues() &&
               numNodes == csrHeader.offset->getNumValues());
-    std::vector<offset_t> gaps;
-    gaps.resize(numNodes, 0);
-    const auto csrOffsets = reinterpret_cast<uint64_t*>(csrHeader.offset->getData().getData());
-    const auto csrLengths = reinterpret_cast<length_t*>(csrHeader.length->getData().getData());
-    std::fill(csrLengths, csrLengths + numNodes, 0);
-    // Calculate length for each node. Store the num of tuples of node i at csrLengths[i].
+    const auto lengthData = reinterpret_cast<length_t*>(csrHeader.length->getData().getData());
+    std::fill(lengthData, lengthData + numNodes, 0);
     for (auto& chunkedGroup : partition.getChunkedGroups()) {
         auto& offsetChunk = chunkedGroup->getColumnChunk(boundNodeOffsetColumn);
-        for (auto i = 0u; i < offsetChunk.getNumValues(); i++) {
-            auto nodeOffset = offsetChunk.getData().getValue<offset_t>(i);
-            KU_ASSERT(nodeOffset < numNodes);
-            csrLengths[nodeOffset]++;
-        }
-    }
-    // Calculate gaps for each node.
-    if (leaveGaps) {
         for (auto i = 0u; i < numNodes; i++) {
-            gaps[i] = getGapSize(csrLengths[i]);
+            const auto nodeOffset = offsetChunk.getData().getValue<offset_t>(i);
+            KU_ASSERT(nodeOffset < numNodes);
+            lengthData[nodeOffset]++;
         }
     }
-    csrOffsets[0] = 0;
-    // Calculate starting offset of each node.
-    for (auto i = 1u; i < numNodes; i++) {
-        csrOffsets[i] = csrOffsets[i - 1] + csrLengths[i - 1] + gaps[i - 1];
-    }
-    return gaps;
 }
 
 void RelBatchInsert::setOffsetToWithinNodeGroup(ColumnChunkData& chunk, offset_t startOffset) {
@@ -191,10 +157,8 @@ void RelBatchInsert::setOffsetFromCSROffsets(ColumnChunkData& nodeOffsetChunk,
 
 std::optional<offset_t> RelBatchInsert::checkRelMultiplicityConstraint(
     const ChunkedCSRHeader& csrHeader, const RelBatchInsertInfo& relInfo) {
-    auto relTableEntry =
-        ku_dynamic_cast<catalog::TableCatalogEntry*, catalog::RelTableCatalogEntry*>(
-            relInfo.tableEntry);
-    if (!relTableEntry->isSingleMultiplicity(relInfo.direction)) {
+    auto& relTableEntry = relInfo.tableEntry->constCast<RelTableCatalogEntry>();
+    if (!relTableEntry.isSingleMultiplicity(relInfo.direction)) {
         return std::nullopt;
     }
     for (auto i = 0u; i < csrHeader.length->getNumValues(); i++) {
@@ -210,7 +174,6 @@ void RelBatchInsert::finalize(ExecutionContext* context) {
     if (relInfo->direction == RelDataDirection::BWD) {
         KU_ASSERT(
             relInfo->partitioningIdx == partitionerSharedState->partitioningBuffers.size() - 1);
-        // sharedState->updateNumTuplesForTable();
         auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
             sharedState->getNumRows(), info->tableEntry->getName());
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,

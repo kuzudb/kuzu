@@ -3,6 +3,7 @@
 #include "storage/storage_structure/disk_array_collection.h"
 #include "storage/store/string_column.h"
 #include <bit>
+#include <storage/store/string_chunk_data.h>
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -21,14 +22,6 @@ DictionaryColumn::DictionaryColumn(const std::string& name, BMFileHandle* dataFH
     auto offsetColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "");
     offsetColumn = std::make_unique<Column>(offsetColName, LogicalType::UINT64(), dataFH,
         bufferManager, wal, enableCompression, false /*requireNullColumn*/);
-}
-
-void DictionaryColumn::append(ChunkState& state, const DictionaryChunk& dictChunk) const {
-    KU_ASSERT(dictChunk.sanityCheck());
-    dataColumn->append(dictChunk.getStringDataChunk(),
-        StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA));
-    offsetColumn->append(dictChunk.getOffsetChunk(),
-        StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET));
 }
 
 void DictionaryColumn::scan(Transaction* transaction, const ChunkState& state,
@@ -101,11 +94,12 @@ void DictionaryColumn::scan(Transaction* transaction, const ChunkState& offsetSt
     }
 }
 
-string_index_t DictionaryColumn::append(ChunkState& state, std::string_view val) {
-    auto startOffset = dataColumn->appendValues(
+string_index_t DictionaryColumn::append(DictionaryChunk& dictChunk, ChunkState& state,
+    std::string_view val) {
+    const auto startOffset = dataColumn->appendValues(*dictChunk.getStringDataChunk(),
         StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA),
         reinterpret_cast<const uint8_t*>(val.data()), nullptr /*nullChunkData*/, val.size());
-    return offsetColumn->appendValues(
+    return offsetColumn->appendValues(*dictChunk.getOffsetChunk(),
         StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET),
         reinterpret_cast<const uint8_t*>(&startOffset), nullptr /*nullChunkData*/, 1 /*numValues*/);
 }

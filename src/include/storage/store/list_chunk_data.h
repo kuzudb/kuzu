@@ -22,8 +22,11 @@ public:
     ColumnChunkData* getOffsetColumnChunk() const { return offsetColumnChunk.get(); }
 
     ColumnChunkData* getDataColumnChunk() const { return dataColumnChunk.get(); }
+    std::unique_ptr<ColumnChunkData> moveDataColumnChunk() { return std::move(dataColumnChunk); }
 
     ColumnChunkData* getSizeColumnChunk() const { return sizeColumnChunk.get(); }
+    std::unique_ptr<ColumnChunkData> moveSizeColumnChunk() { return std::move(sizeColumnChunk); }
+
     void setOffsetColumnChunk(std::unique_ptr<ColumnChunkData> offsetColumnChunk_) {
         offsetColumnChunk = std::move(offsetColumnChunk_);
     }

@@ -143,11 +143,9 @@ public:
     std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(
         transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup) const;
 
-    void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
-    void prepareCommit() override;
-    void prepareRollback(LocalTable* localTable) override;
+    void commit(transaction::Transaction* transaction, LocalTable* localTable) override;
+    void rollback(LocalTable* localTable) override;
     void checkpoint(common::Serializer& ser) override;
-    void rollbackInMemory() override;
 
     uint64_t getEstimatedMemoryUsage() const override;
 
@@ -166,8 +164,6 @@ public:
 private:
     void insertPK(const common::ValueVector& nodeIDVector,
         const common::ValueVector& pkVector) const;
-
-    void checkpointInMemory() override;
 
     void serialize(common::Serializer& serializer) const override;
 

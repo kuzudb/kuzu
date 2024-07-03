@@ -42,6 +42,8 @@ class Column {
     friend class RelTableData;
 
 public:
+    // TODO(Guodong): Remove transaction from interface of Column. There is no need to be aware of
+    // transaction when reading/writing from/to disk pages.
     Column(std::string name, common::LogicalType dataType, BMFileHandle* dataFH,
         BufferManager* bufferManager, WAL* wal, bool enableCompression,
         bool requireNullColumn = true);
@@ -49,21 +51,12 @@ public:
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
         BMFileHandle& dataFH);
-    static std::unique_ptr<ColumnChunkData> flushNonNestedChunkData(const ColumnChunkData& chunk,
-        BMFileHandle& dataFH);
+    static std::unique_ptr<ColumnChunkData> flushNonNestedChunkData(
+        const ColumnChunkData& chunkData, BMFileHandle& dataFH);
     static ColumnChunkMetadata flushData(const ColumnChunkData& chunkData, BMFileHandle& dataFH);
-
-    // Expose for feature store
-    virtual void batchLookup(transaction::Transaction* transaction,
-        const common::offset_t* nodeOffsets, size_t size, uint8_t* result);
-
-    // virtual void initChunkState(transaction::Transaction* transaction,
-    // common::node_group_idx_t nodeGroupIdx, ChunkState& state);
 
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
-    virtual void lookup(transaction::Transaction* transaction, ChunkState& state,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     virtual void lookupValue(transaction::Transaction* transaction, ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector);
@@ -77,55 +70,26 @@ public:
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET);
 
-    // Append column chunk in a new node group.
-    virtual void append(ColumnChunkData* columnChunk, ChunkState& state);
-
     common::LogicalType& getDataType() { return dataType; }
     const common::LogicalType& getDataType() const { return dataType; }
 
     Column* getNullColumn() const;
-
-    // void prepareCommitForChunk(transaction::Transaction* transaction,
-    //     common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup,
-    //     const ChunkDataCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
-    //     const ChunkDataCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
-    //     const offset_set_t& deleteInfo);
-    void prepareCommitForChunk(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, bool isNewNodeGroup,
-        const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
-        common::offset_t startSrcOffset);
-
-    // virtual void prepareCommitForExistingChunk(transaction::Transaction* transaction,
-    //     ChunkState& state, const ChunkDataCollection& localInsertChunks,
-    //     const offset_to_row_idx_t& insertInfo, const ChunkDataCollection& localUpdateChunks,
-    //     const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo);
-    virtual void prepareCommitForExistingChunk(transaction::Transaction* transaction,
-        ChunkState& state, const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
-        common::offset_t startSrcOffset);
-    virtual void prepareCommitForExistingChunkInPlace(transaction::Transaction* transaction,
-        ChunkState& state, const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
-        common::offset_t startSrcOffset);
 
     std::string getName() const { return name; }
 
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup, uint8_t* result);
 
-    // Write a single value from the vectorToWriteFrom.
-    virtual void write(ChunkState& state, common::offset_t offsetInChunk,
-        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
     // Batch write to a set of sequential pages.
-    virtual void write(ChunkState& state, common::offset_t offsetInChunk, ColumnChunkData* data,
-        common::offset_t dataOffset, common::length_t numValues);
+    virtual void write(ColumnChunkData& persistentChunk, ChunkState& state,
+        common::offset_t dstOffset, ColumnChunkData* data, common::offset_t srcOffset,
+        common::length_t numValues);
 
     // Append values to the end of the node group, resizing it if necessary
-    common::offset_t appendValues(ChunkState& state, const uint8_t* data,
-        const common::NullMask* nullChunkData, common::offset_t numValues);
+    common::offset_t appendValues(ColumnChunkData& persistentChunk, ChunkState& state,
+        const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t numValues);
 
-    virtual std::unique_ptr<ColumnChunkData> getEmptyChunkForCommit(uint64_t capacity);
-
-    std::unique_ptr<ColumnChunk> checkpointColumnChunk(const ColumnChunk& insertChunk,
-        const ColumnChunk& updateChunk);
+    virtual void checkpointColumnChunk(ColumnCheckpointState& checkpointState);
 
     template<class TARGET>
     TARGET& cast() {
@@ -142,59 +106,40 @@ protected:
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     void scanUnfiltered(transaction::Transaction* transaction, PageCursor& pageCursor,
         uint64_t numValuesToScan, common::ValueVector* resultVector,
-        const ColumnChunkMetadata& chunkMeta, uint64_t startPosInVector = 0);
+        const ColumnChunkMetadata& chunkMeta, uint64_t startPosInVector = 0) const;
     void scanFiltered(transaction::Transaction* transaction, PageCursor& pageCursor,
         uint64_t numValuesToScan, const common::SelectionVector& selVector,
-        common::ValueVector* resultVector, const ColumnChunkMetadata& chunkMeta);
-    virtual void lookupInternal(transaction::Transaction* transaction, ChunkState& state,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
+        common::ValueVector* resultVector, const ColumnChunkMetadata& chunkMeta) const;
 
     void readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
-        const std::function<void(uint8_t*)>& func);
+        const std::function<void(uint8_t*)>& func) const;
 
-    virtual void writeValue(ChunkState& state, common::offset_t offsetInChunk,
-        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
-    virtual void writeValues(ChunkState& state, common::offset_t offsetInChunk, const uint8_t* data,
-        const common::NullMask* nullChunkData, common::offset_t dataOffset = 0,
-        common::offset_t numValues = 1);
+    virtual void writeValues(ColumnChunkData& persistentChunk, ChunkState& state,
+        common::offset_t dstOffset, const uint8_t* data, const common::NullMask* nullChunkData,
+        common::offset_t srcOffset = 0, common::offset_t numValues = 1);
 
     // Produces a page cursor for the offset relative to the given node group
-    PageCursor getPageCursorForOffsetInGroup(common::offset_t offsetInChunk,
+    static PageCursor getPageCursorForOffsetInGroup(common::offset_t offsetInChunk,
         const ChunkState& state);
     void updatePageWithCursor(PageCursor cursor,
-        const std::function<void(uint8_t*, common::offset_t)>& writeOp);
-
-    static common::offset_t getMaxOffset(const std::vector<common::offset_t>& offsets) {
-        return offsets.empty() ? 0 : *std::max_element(offsets.begin(), offsets.end());
-    }
-    static common::offset_t getMaxOffset(const offset_to_row_idx_t& offsets) {
-        return offsets.empty() ? 0 : offsets.rbegin()->first;
-    }
+        const std::function<void(uint8_t*, common::offset_t)>& writeOp) const;
 
     void updateStatistics(ColumnChunkMetadata& metadata, common::offset_t maxIndex,
-        const std::optional<StorageValue>& min, const std::optional<StorageValue>& max);
+        const std::optional<StorageValue>& min, const std::optional<StorageValue>& max) const;
 
-    static size_t getNumValuesFromDisk(DiskArray<ColumnChunkMetadata>* metadataDA,
-        transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t startOffset, common::offset_t endOffset);
-
-private:
-    bool isInsertionsOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
-        const offset_to_row_idx_t& insertInfo);
+protected:
     bool isMaxOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
-        common::offset_t maxOffset);
-    virtual bool canCommitInPlace(const ChunkState& state,
-        const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
-        common::offset_t srcOffset);
+        common::offset_t maxOffset) const;
 
-    virtual void commitColumnChunkInPlace(ChunkState& state,
-        const std::vector<common::offset_t>& dstOffsets, ColumnChunkData* chunk,
-        common::offset_t srcOffset);
-    virtual void commitColumnChunkOutOfPlace(transaction::Transaction* transaction,
-        ChunkState& state, bool isNewNodeGroup, const std::vector<common::offset_t>& dstOffsets,
-        ColumnChunkData* chunk, common::offset_t srcOffset);
+    virtual bool canCheckpointInPlace(const ChunkState& state,
+        const ColumnCheckpointState& checkpointState);
 
-    virtual void updateStateMetadataNumValues(ChunkState& state, size_t numValues);
+    virtual void checkpointColumnChunkInPlace(ChunkState& state,
+        const ColumnCheckpointState& checkpointState);
+    void checkpointNullData(const ColumnCheckpointState& checkpointState) const;
+
+    virtual void checkpointColumnChunkOutOfPlace(ChunkState& state,
+        const ColumnCheckpointState& checkpointState);
 
     // check if val is in range [start, end)
     static bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
@@ -235,12 +180,6 @@ public:
         common::ValueVector* resultVector, uint64_t offsetInVector) override {
         Column::scan(transaction, state, startOffsetInGroup, endOffsetInGroup, resultVector,
             offsetInVector);
-        populateCommonTableID(resultVector);
-    }
-
-    void lookup(transaction::Transaction* transaction, ChunkState& state,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override {
-        Column::lookup(transaction, state, nodeIDVector, resultVector);
         populateCommonTableID(resultVector);
     }
 

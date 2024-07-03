@@ -111,6 +111,8 @@ private:
 
 static auto DUMMY_READ_TRANSACTION = Transaction(TransactionType::READ_ONLY);
 static auto DUMMY_WRITE_TRANSACTION = Transaction(TransactionType::WRITE);
+static auto DUMMY_CHECKPOINT_TRANSACTION = Transaction(TransactionType::READ_ONLY,
+    Transaction::DUMMY_TRANSACTION_ID, Transaction::START_TRANSACTION_ID - 1);
 
 } // namespace transaction
 } // namespace kuzu

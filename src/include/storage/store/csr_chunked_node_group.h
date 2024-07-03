@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 #include "storage/store/chunked_node_group.h"
 
 namespace kuzu {
@@ -29,8 +31,15 @@ struct ChunkedCSRHeader {
         offset->resetToEmpty();
         length->resetToEmpty();
     }
+
+    std::vector<common::offset_t> populateStartCSROffsetsAndGaps(bool leaveGaps);
+    void populateEndCSROffsets(const std::vector<common::offset_t>& gaps);
+
+private:
+    static common::length_t getGapSize(common::length_t length);
 };
 
+struct CSRNodeGroupCheckpointState;
 class ChunkedCSRNodeGroup final : public ChunkedNodeGroup {
 public:
     ChunkedCSRNodeGroup(const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
@@ -54,6 +63,8 @@ public:
         chunks[chunkIdx]->getData().write(&data[vectorIdx]->getData(), &offsetChunk.getData(),
             common::RelMultiplicity::MANY);
     }
+
+    void scanCSRHeader(CSRNodeGroupCheckpointState& csrState) const;
 
     std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
         BMFileHandle& dataFH) const override;

@@ -26,10 +26,7 @@ public:
         main::ClientContext* context);
     void dropTable(common::table_id_t tableID, common::VirtualFileSystem* vfs);
 
-    void prepareCommit(transaction::Transaction* transaction, common::VirtualFileSystem* vfs);
-    void prepareRollback();
     void checkpoint(main::ClientContext& clientContext) const;
-    void rollbackInMemory();
 
     PrimaryKeyIndex* getPKIndex(common::table_id_t tableID);
 
@@ -49,7 +46,7 @@ public:
 
 private:
     BMFileHandle* initFileHandle(const std::string& filename, common::VirtualFileSystem* vfs,
-        main::ClientContext* context);
+        main::ClientContext* context) const;
 
     void loadTables(const catalog::Catalog& catalog, common::VirtualFileSystem* vfs,
         main::ClientContext* context);

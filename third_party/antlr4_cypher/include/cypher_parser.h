@@ -1167,9 +1167,7 @@ public:
     antlr4::tree::TerminalNode *READ();
     antlr4::tree::TerminalNode *ONLY();
     antlr4::tree::TerminalNode *COMMIT();
-    antlr4::tree::TerminalNode *COMMIT_SKIP_CHECKPOINT();
     antlr4::tree::TerminalNode *ROLLBACK();
-    antlr4::tree::TerminalNode *ROLLBACK_SKIP_CHECKPOINT();
 
    
   };

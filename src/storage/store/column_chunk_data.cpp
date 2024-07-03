@@ -319,8 +319,10 @@ void ColumnChunkData::flush(BMFileHandle& dataFH) {
 // Note: This function is not setting child/null chunk data recursively.
 void ColumnChunkData::setToOnDisk(const ColumnChunkMetadata& metadata) {
     residencyState = ResidencyState::ON_DISK;
-    buffer.reset();
     capacity = 0;
+    bufferSize = 0;
+    // Note: We don't need to set the buffer to nullptr, as it allows ColumnChunkDaat to be resized.
+    buffer = std::make_unique<uint8_t[]>(bufferSize);
     this->metadata = metadata;
     this->numValues = metadata.numValues;
 }
@@ -463,7 +465,6 @@ void ColumnChunkData::copy(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
 }
 
 void ColumnChunkData::resize(uint64_t newCapacity) {
-    KU_ASSERT(residencyState == ResidencyState::IN_MEMORY);
     if (newCapacity > capacity) {
         capacity = newCapacity;
     }

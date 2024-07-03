@@ -162,8 +162,8 @@ public:
     NodeGroup* getOrCreateNodeGroup(common::node_group_idx_t nodeGroupIdx,
         common::RelDataDirection direction) const;
 
-    void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
-    void prepareRollback(LocalTable* localTable) override;
+    void commit(transaction::Transaction* transaction, LocalTable* localTable) override;
+    void rollback(LocalTable* localTable) override;
     void checkpoint(common::Serializer& ser) override;
 
     uint64_t getEstimatedMemoryUsage() const override { return 0; }

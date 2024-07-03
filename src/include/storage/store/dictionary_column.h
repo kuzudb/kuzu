@@ -11,8 +11,6 @@ public:
     DictionaryColumn(const std::string& name, BMFileHandle* dataFH, BufferManager* bufferManager,
         WAL* wal, bool enableCompression);
 
-    void append(ChunkState& state, const DictionaryChunk& dictChunk) const;
-
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         DictionaryChunk& dictChunk) const;
     // Offsets to scan should be a sorted list of pairs mapping the index of the entry in the string
@@ -23,7 +21,8 @@ public:
         std::vector<std::pair<DictionaryChunk::string_index_t, uint64_t>>& offsetsToScan,
         common::ValueVector* resultVector, const ColumnChunkMetadata& indexMeta);
 
-    DictionaryChunk::string_index_t append(ChunkState& state, std::string_view val);
+    DictionaryChunk::string_index_t append(DictionaryChunk& dictChunk, ChunkState& state,
+        std::string_view val);
 
     bool canCommitInPlace(const ChunkState& state, uint64_t numNewStrings,
         uint64_t totalStringLengthToAdd);
