@@ -9,8 +9,7 @@ namespace processor {
 struct CreateSequencePrintInfo final : OPPrintInfo {
     std::string seqName;
 
-    explicit CreateSequencePrintInfo(std::string seqName)
-        :  seqName{std::move(seqName)} {}
+    explicit CreateSequencePrintInfo(std::string seqName) : seqName{std::move(seqName)} {}
     CreateSequencePrintInfo(const CreateSequencePrintInfo& other)
         : OPPrintInfo{other}, seqName{other.seqName} {}
 

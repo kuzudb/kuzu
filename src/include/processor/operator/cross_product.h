@@ -47,8 +47,7 @@ private:
 struct CrossProductPrintInfo final : OPPrintInfo {
 
     CrossProductPrintInfo() {}
-    CrossProductPrintInfo(const CrossProductPrintInfo& other)
-        : OPPrintInfo{other} {}
+    CrossProductPrintInfo(const CrossProductPrintInfo& other) : OPPrintInfo{other} {}
 
     std::string toString() const override { return ""; };
 

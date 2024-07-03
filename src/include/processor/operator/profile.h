@@ -15,8 +15,7 @@ struct ProfileLocalState {
 
 struct ProfilePrintInfo final : OPPrintInfo {
     ProfilePrintInfo() {}
-    ProfilePrintInfo(const ProfilePrintInfo& other)
-        : OPPrintInfo{other} {}
+    ProfilePrintInfo(const ProfilePrintInfo& other) : OPPrintInfo{other} {}
 
     std::string toString() const override { return "Explain"; }
 

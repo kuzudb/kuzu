@@ -8,8 +8,7 @@ namespace processor {
 struct DropTablePrintInfo final : OPPrintInfo {
     std::string tableName;
 
-    DropTablePrintInfo(std::string tableName)
-        : tableName{std::move(tableName)} {}
+    DropTablePrintInfo(std::string tableName) : tableName{std::move(tableName)} {}
     DropTablePrintInfo(const DropTablePrintInfo& other)
         : OPPrintInfo{other}, tableName{other.tableName} {}
 
