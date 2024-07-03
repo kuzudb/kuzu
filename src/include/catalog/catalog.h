@@ -69,6 +69,10 @@ public:
         const common::table_id_vector_t& tableIDs) const;
     bool tableInRDFGraph(transaction::Transaction* tx, common::table_id_t tableID) const;
     bool tableInRelGroup(transaction::Transaction* tx, common::table_id_t tableID) const;
+    common::table_id_set_t getFwdRelTableIDs(transaction::Transaction* tx,
+        common::table_id_t nodeTableID) const;
+    common::table_id_set_t getBwdRelTableIDs(transaction::Transaction* tx,
+        common::table_id_t nodeTableID) const;
 
     common::table_id_t createTableSchema(transaction::Transaction* tx,
         const binder::BoundCreateTableInfo& info);

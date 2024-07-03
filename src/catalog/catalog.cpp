@@ -96,11 +96,17 @@ TableCatalogEntry* Catalog::getTableCatalogEntry(Transaction* transaction,
     table_id_t tableID) const {
     TableCatalogEntry* result;
     iterateCatalogEntries(transaction, [&](CatalogEntry* entry) {
-        if (ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry)->getTableID() == tableID) {
-            result = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry);
+        auto tableEntry = entry->ptrCast<TableCatalogEntry>();
+        if (tableEntry->getTableID() == tableID) {
+            result = tableEntry;
         }
     });
-    KU_ASSERT(result);
+    // LCOV_EXCL_START
+    if (result == nullptr) {
+        throw RuntimeException(
+            stringFormat("Cannot find table catalog entry with id {}.", std::to_string(tableID)));
+    }
+    // LCOV_EXCL_STOP
     return result;
 }
 
@@ -158,6 +164,28 @@ bool Catalog::tableInRelGroup(Transaction* tx, table_id_t tableID) const {
         }
     }
     return false;
+}
+
+table_id_set_t Catalog::getFwdRelTableIDs(Transaction* tx, table_id_t nodeTableID) const {
+    KU_ASSERT(getTableCatalogEntry(tx, nodeTableID)->getTableType() == TableType::NODE);
+    table_id_set_t result;
+    for (auto& relEntry : getRelTableEntries(tx)) {
+        if (relEntry->getSrcTableID() == nodeTableID) {
+            result.insert(relEntry->getTableID());
+        }
+    }
+    return result;
+}
+
+table_id_set_t Catalog::getBwdRelTableIDs(Transaction* tx, table_id_t nodeTableID) const {
+    KU_ASSERT(getTableCatalogEntry(tx, nodeTableID)->getTableType() == TableType::NODE);
+    table_id_set_t result;
+    for (auto& relEntry : getRelTableEntries(tx)) {
+        if (relEntry->getDstTableID() == nodeTableID) {
+            result.insert(relEntry->getTableID());
+        }
+    }
+    return result;
 }
 
 table_id_t Catalog::createTableSchema(Transaction* transaction, const BoundCreateTableInfo& info) {
@@ -483,35 +511,25 @@ void Catalog::alterRdfChildTableEntries(Transaction* transaction, CatalogEntry* 
 
 std::unique_ptr<CatalogEntry> Catalog::createNodeTableEntry(Transaction*, table_id_t tableID,
     const binder::BoundCreateTableInfo& info) const {
-    auto extraInfo =
-        ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateNodeTableInfo*>(
-            info.extraInfo.get());
+    auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateNodeTableInfo>();
     auto nodeTableEntry = std::make_unique<NodeTableCatalogEntry>(tables.get(), info.tableName,
         tableID, extraInfo->primaryKeyIdx);
     for (auto& propertyInfo : extraInfo->propertyInfos) {
         nodeTableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy(),
-            std::move(propertyInfo.defaultValue));
+            propertyInfo.defaultValue->copy());
     }
     return nodeTableEntry;
 }
 
-std::unique_ptr<CatalogEntry> Catalog::createRelTableEntry(Transaction* transaction,
-    table_id_t tableID, const binder::BoundCreateTableInfo& info) const {
-    auto extraInfo =
-        ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableInfo*>(
-            info.extraInfo.get());
-    auto srcTableEntry = ku_dynamic_cast<CatalogEntry*, NodeTableCatalogEntry*>(
-        getTableCatalogEntry(transaction, extraInfo->srcTableID));
-    auto dstTableEntry = ku_dynamic_cast<CatalogEntry*, NodeTableCatalogEntry*>(
-        getTableCatalogEntry(transaction, extraInfo->dstTableID));
-    srcTableEntry->addFwdRelTableID(tableID);
-    dstTableEntry->addBWdRelTableID(tableID);
+std::unique_ptr<CatalogEntry> Catalog::createRelTableEntry(Transaction*, table_id_t tableID,
+    const binder::BoundCreateTableInfo& info) const {
+    auto extraInfo = info.extraInfo.get()->constPtrCast<BoundExtraCreateRelTableInfo>();
     auto relTableEntry = std::make_unique<RelTableCatalogEntry>(tables.get(), info.tableName,
         tableID, extraInfo->srcMultiplicity, extraInfo->dstMultiplicity, extraInfo->srcTableID,
         extraInfo->dstTableID);
     for (auto& propertyInfo : extraInfo->propertyInfos) {
         relTableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy(),
-            std::move(propertyInfo.defaultValue));
+            propertyInfo.defaultValue->copy());
     }
     return relTableEntry;
 }

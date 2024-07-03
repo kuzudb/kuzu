@@ -38,13 +38,12 @@ OnDiskGraph::OnDiskGraph(ClientContext* context, const GraphEntry& entry)
     : context{context}, graphEntry{entry.copy()}, scanState{context->getMemoryManager()} {
     auto storage = context->getStorageManager();
     auto catalog = context->getCatalog();
+    auto transaction = context->getTx();
     for (auto& nodeTableID : graphEntry.nodeTableIDs) {
         nodeIDToNodeTable.insert(
             {nodeTableID, storage->getTable(nodeTableID)->ptrCast<NodeTable>()});
-        auto& nodeTableEntry = catalog->getTableCatalogEntry(context->getTx(), nodeTableID)
-                                   ->constCast<NodeTableCatalogEntry>();
         common::table_id_map_t<storage::RelTable*> fwdRelTables;
-        for (auto& relTableID : nodeTableEntry.getFwdRelTableIDSet()) {
+        for (auto& relTableID : catalog->getFwdRelTableIDs(transaction, nodeTableID)) {
             if (!graphEntry.containsRelTableID(relTableID)) {
                 continue;
             }
@@ -52,7 +51,7 @@ OnDiskGraph::OnDiskGraph(ClientContext* context, const GraphEntry& entry)
         }
         nodeTableIDToFwdRelTables.insert({nodeTableID, std::move(fwdRelTables)});
         common::table_id_map_t<storage::RelTable*> bwdRelTables;
-        for (auto& relTableID : nodeTableEntry.getBwdRelTableIDSet()) {
+        for (auto& relTableID : catalog->getBwdRelTableIDs(transaction, nodeTableID)) {
             if (!graphEntry.containsRelTableID(relTableID)) {
                 continue;
             }

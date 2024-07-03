@@ -28,10 +28,6 @@ public:
     const Property* getPrimaryKey() const { return getProperty(primaryKeyPID); }
     uint32_t getPrimaryKeyPos() const { return getPropertyPos(primaryKeyPID); }
     common::property_id_t getPrimaryKeyPID() const { return primaryKeyPID; }
-    void addFwdRelTableID(common::table_id_t tableID) { fwdRelTableIDSet.insert(tableID); }
-    void addBWdRelTableID(common::table_id_t tableID) { bwdRelTableIDSet.insert(tableID); }
-    const common::table_id_set_t& getFwdRelTableIDSet() const { return fwdRelTableIDSet; }
-    const common::table_id_set_t& getBwdRelTableIDSet() const { return bwdRelTableIDSet; }
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization
@@ -47,8 +43,6 @@ private:
 
 private:
     common::property_id_t primaryKeyPID;
-    common::table_id_set_t fwdRelTableIDSet; // srcNode->rel
-    common::table_id_set_t bwdRelTableIDSet; // dstNode->rel
 };
 
 } // namespace catalog
