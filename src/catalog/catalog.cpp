@@ -103,7 +103,8 @@ TableCatalogEntry* Catalog::getTableCatalogEntry(Transaction* transaction,
     });
     // LCOV_EXCL_START
     if (result == nullptr) {
-        throw RuntimeException(stringFormat("Cannot find table catalog entry with id {}." , std::to_string(tableID)));
+        throw RuntimeException(
+            stringFormat("Cannot find table catalog entry with id {}.", std::to_string(tableID)));
     }
     // LCOV_EXCL_STOP
     return result;
@@ -520,8 +521,8 @@ std::unique_ptr<CatalogEntry> Catalog::createNodeTableEntry(Transaction*, table_
     return nodeTableEntry;
 }
 
-std::unique_ptr<CatalogEntry> Catalog::createRelTableEntry(Transaction*,
-    table_id_t tableID, const binder::BoundCreateTableInfo& info) const {
+std::unique_ptr<CatalogEntry> Catalog::createRelTableEntry(Transaction*, table_id_t tableID,
+    const binder::BoundCreateTableInfo& info) const {
     auto extraInfo = info.extraInfo.get()->constPtrCast<BoundExtraCreateRelTableInfo>();
     auto relTableEntry = std::make_unique<RelTableCatalogEntry>(tables.get(), info.tableName,
         tableID, extraInfo->srcMultiplicity, extraInfo->dstMultiplicity, extraInfo->srcTableID,
