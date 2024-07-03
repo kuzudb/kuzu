@@ -9,9 +9,8 @@ namespace kuzu {
 namespace processor {
 
 NodeInsertExecutor::NodeInsertExecutor(const NodeInsertExecutor& other)
-    : table{other.table}, fwdRelTables{other.fwdRelTables}, bwdRelTables{other.bwdRelTables},
-      nodeIDVectorPos{other.nodeIDVectorPos}, columnVectorsPos{other.columnVectorsPos},
-      conflictAction{other.conflictAction} {
+    : table{other.table}, nodeIDVectorPos{other.nodeIDVectorPos},
+      columnVectorsPos{other.columnVectorsPos}, conflictAction{other.conflictAction} {
     for (auto& evaluator : other.columnDataEvaluators) {
         columnDataEvaluators.push_back(evaluator->clone());
     }
@@ -50,7 +49,7 @@ void NodeInsertExecutor::insert(Transaction* tx) {
         evaluator->evaluate();
     }
     KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1);
-    if (checkConfict(tx)) {
+    if (checkConflict(tx)) {
         return;
     }
     // TODO: Move pkVector pos to info.
@@ -68,7 +67,7 @@ void NodeInsertExecutor::skipInsert() {
     writeResult();
 }
 
-bool NodeInsertExecutor::checkConfict(Transaction* transaction) {
+bool NodeInsertExecutor::checkConflict(Transaction* transaction) {
     if (conflictAction == ConflictAction::ON_CONFLICT_DO_NOTHING) {
         auto off = table->validateUniquenessConstraint(transaction, columnDataVectors);
         if (off != INVALID_OFFSET) {

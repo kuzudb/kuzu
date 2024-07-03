@@ -31,26 +31,10 @@ static std::vector<DataPos> populateReturnVectorsPos(const LogicalInsertInfo& in
 std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(const LogicalInsertInfo* info,
     const Schema& inSchema, const Schema& outSchema) const {
     auto storageManager = clientContext->getStorageManager();
-    auto node = ku_dynamic_cast<Expression*, NodeExpression*>(info->pattern.get());
-    auto nodeTableID = node->getSingleTableID();
-    auto table = ku_dynamic_cast<Table*, NodeTable*>(storageManager->getTable(nodeTableID));
-    std::unordered_set<RelTable*> fwdRelTablesToInit;
-    std::unordered_set<RelTable*> bwdRelTablesToInit;
-    auto tableCatalogEntry =
-        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(), nodeTableID);
-    auto nodeTableSchema =
-        ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableCatalogEntry);
-    auto fwdRelTableIDs = nodeTableSchema->getFwdRelTableIDSet();
-    auto bwdRelTableIDs = nodeTableSchema->getBwdRelTableIDSet();
-    for (auto relTableID : fwdRelTableIDs) {
-        fwdRelTablesToInit.insert(
-            ku_dynamic_cast<Table*, RelTable*>(storageManager->getTable(relTableID)));
-    }
-    for (auto relTableID : bwdRelTableIDs) {
-        bwdRelTablesToInit.insert(
-            ku_dynamic_cast<Table*, RelTable*>(storageManager->getTable(relTableID)));
-    }
-    auto nodeIDPos = DataPos(outSchema.getExpressionPos(*node->getInternalID()));
+    auto& node = info->pattern->constCast<NodeExpression>();
+    auto nodeTableID = node.getSingleTableID();
+    auto table = storageManager->getTable(nodeTableID)->ptrCast<NodeTable>();
+    auto nodeIDPos = getDataPos(*node.getInternalID(), outSchema);
     auto returnVectorsPos = populateReturnVectorsPos(*info, outSchema);
     std::vector<std::unique_ptr<ExpressionEvaluator>> evaluators;
     evaluators.reserve(info->columnDataExprs.size());
@@ -58,8 +42,7 @@ std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(const Logi
     for (auto& expr : info->columnDataExprs) {
         evaluators.push_back(exprMapper.getEvaluator(expr));
     }
-    return std::make_unique<NodeInsertExecutor>(table, std::move(fwdRelTablesToInit),
-        std::move(bwdRelTablesToInit), nodeIDPos, std::move(returnVectorsPos),
+    return std::make_unique<NodeInsertExecutor>(table, nodeIDPos, std::move(returnVectorsPos),
         std::move(evaluators), info->conflictAction);
 }
 

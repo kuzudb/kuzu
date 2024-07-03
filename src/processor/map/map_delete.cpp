@@ -15,18 +15,17 @@ namespace kuzu {
 namespace processor {
 
 ExtraNodeDeleteInfo PlanMapper::getExtraNodeDeleteInfo(table_id_t tableID, DataPos pkPos) const {
-    auto sm = clientContext->getStorageManager();
+    auto storageManager = clientContext->getStorageManager();
     auto catalog = clientContext->getCatalog();
-    auto table = sm->getTable(tableID)->ptrCast<NodeTable>();
-    auto entry = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
-    auto nodeEntry = entry->constPtrCast<NodeTableCatalogEntry>();
+    auto transaction = clientContext->getTx();
+    auto table = storageManager->getTable(tableID)->ptrCast<NodeTable>();
     std::unordered_set<RelTable*> fwdRelTables;
     std::unordered_set<RelTable*> bwdRelTables;
-    for (auto id : nodeEntry->getFwdRelTableIDSet()) {
-        fwdRelTables.insert(sm->getTable(id)->ptrCast<RelTable>());
+    for (auto id : catalog->getFwdRelTableIDs(transaction, tableID)) {
+        fwdRelTables.insert(storageManager->getTable(id)->ptrCast<RelTable>());
     }
-    for (auto id : nodeEntry->getBwdRelTableIDSet()) {
-        bwdRelTables.insert(sm->getTable(id)->ptrCast<RelTable>());
+    for (auto id : catalog->getBwdRelTableIDs(transaction, tableID)) {
+        bwdRelTables.insert(storageManager->getTable(id)->ptrCast<RelTable>());
     }
     return ExtraNodeDeleteInfo(table, std::move(fwdRelTables), std::move(bwdRelTables), pkPos);
 }

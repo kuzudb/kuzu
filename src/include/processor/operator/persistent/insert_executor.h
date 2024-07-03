@@ -9,18 +9,13 @@
 namespace kuzu {
 namespace processor {
 
-class InsertExecutor {};
-
 class NodeInsertExecutor {
 public:
-    NodeInsertExecutor(storage::NodeTable* table,
-        std::unordered_set<storage::RelTable*> fwdRelTables,
-        std::unordered_set<storage::RelTable*> bwdRelTables, const DataPos& nodeIDVectorPos,
+    NodeInsertExecutor(storage::NodeTable* table, const DataPos& nodeIDVectorPos,
         std::vector<DataPos> columnVectorsPos,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnDataEvaluators,
         common::ConflictAction conflictAction)
-        : table{table}, fwdRelTables{std::move(fwdRelTables)},
-          bwdRelTables{std::move(bwdRelTables)}, nodeIDVectorPos{nodeIDVectorPos},
+        : table{table}, nodeIDVectorPos{nodeIDVectorPos},
           columnVectorsPos{std::move(columnVectorsPos)},
           columnDataEvaluators{std::move(columnDataEvaluators)}, conflictAction{conflictAction},
           nodeIDVector{nullptr} {}
@@ -37,17 +32,13 @@ public:
 private:
     NodeInsertExecutor(const NodeInsertExecutor& other);
 
-    bool checkConfict(transaction::Transaction* transaction);
+    bool checkConflict(transaction::Transaction* transaction);
 
     void writeResult();
 
 private:
     // Node table to insert.
     storage::NodeTable* table;
-    // Forward rel table connected to node table.
-    std::unordered_set<storage::RelTable*> fwdRelTables;
-    // Backward rel table connected to node table.
-    std::unordered_set<storage::RelTable*> bwdRelTables;
 
     DataPos nodeIDVectorPos;
     // Column vector pos is invalid if it doesn't need to be projected.
