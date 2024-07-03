@@ -1,16 +1,11 @@
-#include "binder/binder.h"
-#include "binder/expression/lambda_expression.h"
 #include "common/exception/binder.h"
 #include "function/list/vector_list_functions.h"
 #include "function/scalar_function.h"
-#include "parser/expression/parsed_lambda_expression.h"
-
-using namespace kuzu::common;
-using namespace kuzu::binder;
-using namespace kuzu::parser;
 
 namespace kuzu {
 namespace function {
+
+using namespace kuzu::common;
 
 static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
     Function* /*function*/) {
@@ -23,7 +18,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
     paramTypes.push_back(arguments[0]->getDataType().copy());
     paramTypes.push_back(arguments[1]->getDataType().copy());
     if (arguments[1]->getDataType() != LogicalType::BOOL()) {
-        throw BinderException(common::stringFormat(
+        throw BinderException(stringFormat(
             "{} requires the result type of lambda expression be BOOL.", ListFilterFunction::name));
     }
     return std::make_unique<FunctionBindData>(std::move(paramTypes),
@@ -42,8 +37,8 @@ static uint64_t getSelectedListSize(const list_entry_t& srcListEntry,
     return counter;
 }
 
-static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& input,
-    common::ValueVector& result, void*) {
+static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& input, ValueVector& result,
+    void*) {
     KU_ASSERT(input.size() == 2);
     auto& listInputSelVector = input[0]->state->getSelVector();
     auto filterVector = input[1].get();
