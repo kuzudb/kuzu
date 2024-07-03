@@ -8,7 +8,7 @@ namespace processor {
 struct DetatchDatabasePrintInfo final : OPPrintInfo {
     std::string name;
 
-    DetatchDatabasePrintInfo(std::string name) : name{std::move(name)} {}
+    explicit DetatchDatabasePrintInfo(std::string name) : name{std::move(name)} {}
     DetatchDatabasePrintInfo(const DetatchDatabasePrintInfo& other)
         : OPPrintInfo{other}, name{other.name} {}
 

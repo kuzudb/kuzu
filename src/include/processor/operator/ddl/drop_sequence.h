@@ -8,7 +8,7 @@ namespace processor {
 struct DropSequencePrintInfo final : OPPrintInfo {
     std::string name;
 
-    DropSequencePrintInfo(std::string name) : name{std::move(name)} {}
+    explicit DropSequencePrintInfo(std::string name) : name{std::move(name)} {}
     DropSequencePrintInfo(const DropSequencePrintInfo& other)
         : OPPrintInfo{other}, name{other.name} {}
 
