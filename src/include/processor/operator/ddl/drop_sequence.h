@@ -5,6 +5,21 @@
 namespace kuzu {
 namespace processor {
 
+struct DropSequencePrintInfo final : OPPrintInfo {
+    std::string name;
+
+    DropSequencePrintInfo(std::string name)
+        : name{std::move(name)} {}
+    DropSequencePrintInfo(const DropSequencePrintInfo& other)
+        : OPPrintInfo{other}, name{other.name} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::make_unique<DropSequencePrintInfo>(*this);
+    }
+};
+
 class DropSequence : public DDL {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DROP_SEQUENCE;
 

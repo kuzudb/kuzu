@@ -6,6 +6,21 @@
 namespace kuzu {
 namespace processor {
 
+struct CreateSequencePrintInfo final : OPPrintInfo {
+    std::string seqName;
+
+    explicit CreateSequencePrintInfo(std::string seqName)
+        :  seqName{std::move(seqName)} {}
+    CreateSequencePrintInfo(const CreateSequencePrintInfo& other)
+        : OPPrintInfo{other}, seqName{other.seqName} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::make_unique<CreateSequencePrintInfo>(*this);
+    }
+};
+
 class CreateSequence : public DDL {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CREATE_SEQUENCE;
 

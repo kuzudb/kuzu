@@ -5,6 +5,21 @@
 namespace kuzu {
 namespace processor {
 
+struct DetatchDatabasePrintInfo final : OPPrintInfo {
+    std::string name;
+
+    DetatchDatabasePrintInfo(std::string name)
+        : name{std::move(name)} {}
+    DetatchDatabasePrintInfo(const DetatchDatabasePrintInfo& other)
+        : OPPrintInfo{other}, name{other.name} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::make_unique<DetatchDatabasePrintInfo>(*this);
+    }
+};
+
 class DetachDatabase final : public Simple {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DETACH_DATABASE;
 

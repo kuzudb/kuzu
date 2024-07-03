@@ -6,6 +6,22 @@
 namespace kuzu {
 namespace processor {
 
+struct CreateTypePrintInfo final : OPPrintInfo {
+    std::string typeName;
+    std::string type;
+
+    CreateTypePrintInfo(std::string typeName, std::string type)
+        : typeName{std::move(typeName)}, type{std::move(type)} {}
+    CreateTypePrintInfo(const CreateTypePrintInfo& other)
+        : OPPrintInfo{other}, typeName{other.typeName}, type{other.type} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::make_unique<CreateTypePrintInfo>(*this);
+    }
+};
+
 class CreateType : public DDL {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CREATE_TYPE;
 
