@@ -240,7 +240,7 @@ void BufferManager::unpin(BMFileHandle& fileHandle, page_idx_t pageIdx) {
 uint64_t BufferManager::evictPages() {
     const size_t BATCH_SIZE = 64;
     std::array<std::atomic<EvictionCandidate>*, BATCH_SIZE> evictionCandidates;
-    size_t pagesEvicted = 0;
+    size_t evictablePages = 0;
     size_t pagesTried = 0;
     uint64_t claimedMemory = 0;
 
@@ -249,10 +249,13 @@ uint64_t BufferManager::evictPages() {
     // the first pass will mark them and the second pass, if insufficient marked pages
     // are found, will evict the first batch.
     auto failureLimit = evictionQueue.getSize() * 2;
-    while (pagesEvicted < BATCH_SIZE && pagesTried < failureLimit) {
-        evictionCandidates[pagesEvicted] = evictionQueue.next();
+    while (evictablePages < BATCH_SIZE && pagesTried < failureLimit) {
+        evictionCandidates[evictablePages] = evictionQueue.next();
         pagesTried++;
-        auto evictionCandidate = evictionCandidates[pagesEvicted]->load();
+        auto evictionCandidate = evictionCandidates[evictablePages]->load();
+        if (evictionCandidate == EvictionQueue::EMPTY) {
+            continue;
+        }
         auto* pageState =
             fileHandles[evictionCandidate.fileIdx]->getPageState(evictionCandidate.pageIdx);
         auto pageStateAndVersion = pageState->getStateAndVersion();
@@ -262,10 +265,10 @@ uint64_t BufferManager::evictPages() {
             }
             continue;
         }
-        pagesEvicted++;
+        evictablePages++;
     }
 
-    for (size_t i = 0; i < pagesEvicted; i++) {
+    for (size_t i = 0; i < evictablePages; i++) {
         claimedMemory += tryEvictPage(*evictionCandidates[i]);
     }
     return claimedMemory;

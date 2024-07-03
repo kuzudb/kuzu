@@ -44,10 +44,9 @@ public:
 // A circular buffer queue storing eviction candidates
 // One candidate should be stored for each page currently in memory
 class EvictionQueue {
+public:
     static constexpr EvictionCandidate EMPTY =
         EvictionCandidate{UINT32_MAX, common::INVALID_PAGE_IDX};
-
-public:
     explicit EvictionQueue(uint64_t capacity)
         : insertCursor{0}, evictionCursor{0}, size{0}, capacity{capacity},
           data{std::make_unique<std::atomic<EvictionCandidate>[]>(capacity)} {}
