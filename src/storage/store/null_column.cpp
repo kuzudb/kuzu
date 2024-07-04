@@ -95,7 +95,7 @@ void NullColumn::setNull(ChunkState& state, offset_t offsetInChunk, uint64_t val
     // Must be aligned to an 8-byte chunk for NullMask read to not overflow
     writeValues(state, offsetInChunk, reinterpret_cast<const uint8_t*>(&value),
         nullptr /*nullChunkData=*/);
-    updateMinMaxStatistics(state.metadata, offsetInChunk, StorageValue((bool)value),
+    updateStatistics(state.metadata, offsetInChunk, StorageValue((bool)value),
         StorageValue((bool)value));
 }
 
@@ -103,7 +103,7 @@ void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ValueVector* v
     uint32_t posInVectorToWriteFrom) {
     writeValue(state, offsetInChunk, vectorToWriteFrom, posInVectorToWriteFrom);
     auto value = StorageValue(vectorToWriteFrom->isNull(posInVectorToWriteFrom));
-    updateMinMaxStatistics(state.metadata, offsetInChunk, value, value);
+    updateStatistics(state.metadata, offsetInChunk, value, value);
 }
 
 void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ColumnChunkData* data,
@@ -121,7 +121,7 @@ void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ColumnChunkDat
             min = false;
         }
     }
-    updateMinMaxStatistics(state.metadata, offsetInChunk + numValues - 1, StorageValue(min),
+    updateStatistics(state.metadata, offsetInChunk + numValues - 1, StorageValue(min),
         StorageValue(max));
 }
 

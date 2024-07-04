@@ -97,8 +97,8 @@ void StringColumn::writeValue(ChunkState& state, offset_t offsetInChunk,
     KU_ASSERT(!vectorToWriteFrom->isNull(posInVectorToWriteFrom));
     indexColumn->writeValues(getChildState(state, ChildStateIndex::INDEX), offsetInChunk,
         (uint8_t*)&index, nullptr /*nullChunkData*/);
-    updateMinMaxStatistics(state.metadata, offsetInChunk, StorageValue(index), StorageValue(index));
-    indexColumn->updateMinMaxStatistics(getChildState(state, ChildStateIndex::INDEX).metadata,
+    updateStatistics(state.metadata, offsetInChunk, StorageValue(index), StorageValue(index));
+    indexColumn->updateStatistics(getChildState(state, ChildStateIndex::INDEX).metadata,
         offsetInChunk, StorageValue(index), StorageValue(index));
 }
 
@@ -122,10 +122,12 @@ void StringColumn::write(ChunkState& state, offset_t dstOffset, ColumnChunkData*
     // Write index to main column
     indexColumn->writeValues(getChildState(state, ChildStateIndex::INDEX), dstOffset,
         reinterpret_cast<const uint8_t*>(&indices[0]), &nullMask, 0 /*srcOffset*/, numValues);
-    updateStatistics(state.metadata, dstOffset + numValues - 1,
-        reinterpret_cast<uint8_t*>(indices.data()), 0, numValues);
+    auto [min, max] = std::minmax_element(indices.begin(), indices.end());
+    StorageValue minWritten = StorageValue(*min);
+    StorageValue maxWritten = StorageValue(*max);
+    updateStatistics(state.metadata, dstOffset + numValues - 1, minWritten, maxWritten);
     indexColumn->updateStatistics(getChildState(state, ChildStateIndex::INDEX).metadata,
-        dstOffset + numValues - 1, reinterpret_cast<uint8_t*>(indices.data()), 0, numValues);
+        dstOffset + numValues - 1, minWritten, maxWritten);
 }
 
 void StringColumn::scanInternal(Transaction* transaction, const ChunkState& state, idx_t vectorIdx,
