@@ -1,4 +1,5 @@
 #include "common/exception/binder.h"
+#include "expression_evaluator/lambda_evaluator.h"
 #include "function/list/vector_list_functions.h"
 #include "function/scalar_function.h"
 
@@ -22,8 +23,14 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
 }
 
 static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& input,
-    common::ValueVector& result, void*) {
-    auto& listInputSelVector = input[0]->state->getSelVector();
+    common::ValueVector& result, void* bindData) {
+    auto listLambdaBindData = reinterpret_cast<evaluator::ListLambdaBindData*>(bindData);
+    auto inputVector = input[0].get();
+    auto listSize = ListVector::getDataVectorSize(inputVector);
+    auto lambdaParamVector = listLambdaBindData->lambdaParamEvaluators[0]->resultVector.get();
+    lambdaParamVector->state->getSelVectorUnsafe().setSelSize(listSize);
+    listLambdaBindData->rootEvaluator->evaluate();
+    auto& listInputSelVector = inputVector->state->getSelVector();
     // NOTE: the following can be done with a memcpy. But I think soon we will need to change
     // to handle cases like
     // MATCH (a:person) RETURN LIST_TRANSFORM([1,2,3], x->x + a.ID)
@@ -32,7 +39,7 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& in
     ListVector::setDataVector(&result, input[1]);
     for (auto i = 0u; i < listInputSelVector.getSelSize(); ++i) {
         auto pos = listInputSelVector[i];
-        result.setValue(pos, input[0]->getValue<list_entry_t>(pos));
+        result.setValue(pos, inputVector->getValue<list_entry_t>(pos));
     }
 }
 

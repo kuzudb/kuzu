@@ -41,3 +41,9 @@ Binder exception: The second argument of LIST_TRANSFORM should be a lambda expre
 -STATEMENT RETURN LIST_TRANSFORM(['KUZU', 'DUCKDB', 'NEO4J'], x-> size(x))
 ---- 1
 [4,6,5]
+-STATEMENT RETURN LIST_TRANSFORM([], x->x+5)
+---- 1
+[]
+-STATEMENT RETURN LIST_TRANSFORM([null, 5, 22, null, 17], x->x+5)
+---- 1
+[,10,27,,22]

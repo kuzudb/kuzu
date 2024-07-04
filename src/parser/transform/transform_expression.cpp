@@ -502,22 +502,35 @@ std::string Transformer::transformFunctionName(CypherParser::OC_FunctionNameCont
     return transformSymbolicName(*ctx.oC_SymbolicName());
 }
 
+std::vector<std::string> Transformer::transformLambdaVariables(
+    CypherParser::KU_LambdaVarsContext& ctx) {
+    std::vector<std::string> lambdaVariables;
+    lambdaVariables.reserve(ctx.oC_SymbolicName().size());
+    for (auto& var : ctx.oC_SymbolicName()) {
+        lambdaVariables.push_back(transformSymbolicName(*var));
+    }
+    return lambdaVariables;
+}
+
+std::unique_ptr<ParsedExpression> Transformer::transformLambdaParameter(
+    CypherParser::KU_LambdaParameterContext& ctx) {
+    auto vars = transformLambdaVariables(*ctx.kU_LambdaVars());
+    auto lambdaOperation = transformExpression(*ctx.oC_Expression());
+    return std::make_unique<ParsedLambdaExpression>(std::move(vars), std::move(lambdaOperation),
+        ctx.getText());
+}
+
 std::unique_ptr<ParsedExpression> Transformer::transformFunctionParameterExpression(
     CypherParser::KU_FunctionParameterContext& ctx) {
     if (ctx.kU_LambdaParameter()) {
-        std::vector<std::string> varNames;
-        for (auto& symbolicNameCtx : ctx.kU_LambdaParameter()->oC_SymbolicName()) {
-            varNames.push_back(transformSymbolicName(*symbolicNameCtx));
+        return transformLambdaParameter(*ctx.kU_LambdaParameter());
+    } else {
+        auto expression = transformExpression(*ctx.oC_Expression());
+        if (ctx.oC_SymbolicName()) {
+            expression->setAlias(transformSymbolicName(*ctx.oC_SymbolicName()));
         }
-        auto functionExpr = transformExpression(*ctx.kU_LambdaParameter()->oC_Expression());
-        return std::make_unique<ParsedLambdaExpression>(varNames, std::move(functionExpr),
-            ctx.getText());
+        return expression;
     }
-    auto expression = transformExpression(*ctx.oC_Expression());
-    if (ctx.oC_SymbolicName()) {
-        expression->setAlias(transformSymbolicName(*ctx.oC_SymbolicName()));
-    }
-    return expression;
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformPathPattern(

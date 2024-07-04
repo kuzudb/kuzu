@@ -18,6 +18,7 @@ add_library(kuzu_list_function
         list_position_function.cpp
         list_transform.cpp
         list_filter.cpp
+        list_reduce.cpp
         size_function.cpp)
 
 set(ALL_OBJECT_FILES
