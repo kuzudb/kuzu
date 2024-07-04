@@ -117,3 +117,7 @@ Bob|Dan
 2000-01-01|Dan
 2021-06-30|Carol
 2021-06-30|Dan
+-LOG DistinctRecursiveRel
+-STATEMENT MATCH (:person), (a:person)-[t:knows*2..2]->(b:person) RETURN count(DISTINCT t);
+---- 1
+36
