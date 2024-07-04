@@ -38,12 +38,12 @@ void ListLambdaEvaluator::init(const ResultSet& resultSet, ClientContext* client
     resolveResultVector(resultSet, clientContext->getMemoryManager());
     params.push_back(children[0]->resultVector);
     params.push_back(lambdaRootEvaluator->resultVector);
+    bindData = ListLambdaBindData{lambdaParamEvaluators, lambdaRootEvaluator.get()};
 }
 
 void ListLambdaEvaluator::evaluate() {
     KU_ASSERT(children.size() == 1);
     children[0]->evaluate();
-    ListLambdaBindData bindData{lambdaParamEvaluators, lambdaRootEvaluator.get()};
     execFunc(params, *resultVector, &bindData);
 }
 

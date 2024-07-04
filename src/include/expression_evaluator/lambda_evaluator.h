@@ -65,6 +65,7 @@ protected:
 
 private:
     function::scalar_func_exec_t execFunc;
+    ListLambdaBindData bindData;
 
 private:
     std::unique_ptr<ExpressionEvaluator> lambdaRootEvaluator;
