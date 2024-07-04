@@ -25,6 +25,11 @@ protected:
     void resolveResultVector(const processor::ResultSet&, storage::MemoryManager*) override {}
 };
 
+struct ListLambdaBindData {
+    std::vector<LambdaParamEvaluator*> lambdaParamEvaluators;
+    ExpressionEvaluator* rootEvaluator;
+};
+
 // E.g. for function list_transform([0,1,2], x->x+1)
 // ListLambdaEvaluator has one child that is the evaluator of [0,1,2]
 // lambdaRootEvaluator is the evaluator of x+1
@@ -63,7 +68,7 @@ private:
 
 private:
     std::unique_ptr<ExpressionEvaluator> lambdaRootEvaluator;
-    LambdaParamEvaluator* lambdaParamEvaluator;
+    std::vector<LambdaParamEvaluator*> lambdaParamEvaluators;
     std::vector<std::shared_ptr<common::ValueVector>> params;
 };
 

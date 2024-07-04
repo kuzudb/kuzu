@@ -22,3 +22,9 @@
 -STATEMENT MATCH (a:person) RETURN LIST_FILTER(a.courseScoresPerTerm, x->size(x))
 ---- error
 Binder exception: LIST_FILTER requires the result type of lambda expression be BOOL.
+-STATEMENT RETURN LIST_FILTER([], x->x>5)
+---- 1
+[]
+-STATEMENT RETURN LIST_FILTER([null, 5, 7, 3, null, 10], x->x>=5)
+---- 1
+[5,7,10]
