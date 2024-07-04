@@ -41,7 +41,6 @@ void LogicalIntersect::computeFactorizedSchema() {
 void LogicalIntersect::computeFlatSchema() {
     auto probeSchema = children[0]->getSchema();
     schema = probeSchema->copy();
-    schema->createGroup();
     schema->insertToGroupAndScope(intersectNodeID, 0);
     for (auto i = 1u; i < children.size(); ++i) {
         auto buildSchema = children[i]->getSchema();
