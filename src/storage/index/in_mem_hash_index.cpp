@@ -176,86 +176,6 @@ Slot<T>* InMemHashIndex<T>::clearNextOverflowAndAdvanceIter(SlotIterator& iter) 
 }
 
 template<typename T>
-size_t InMemHashIndex<T>::append(const IndexBuffer<BufferKeyType>& buffer) {
-    reserve(indexHeader.numEntries + buffer.size());
-    // Do both searches after splitting. Returning early if the key already exists isn't a
-    // particular concern and doing both after splitting allows the slotID to be reused
-    common::hash_t hashes[BUFFER_SIZE];
-    for (size_t i = 0; i < buffer.size(); i++) {
-        hashes[i] = HashIndexUtils::hash(buffer[i].first);
-    }
-    for (size_t i = 0; i < buffer.size(); i++) {
-        auto& [key, value] = buffer[i];
-        if (!appendInternal(key, value, hashes[i])) {
-            return i;
-        }
-    }
-    return buffer.size();
-}
-
-template<typename T>
-entry_pos_t InMemHashIndex<T>::findEntry(SlotIterator& iter, Key key, uint8_t fingerprint) {
-    do {
-        auto numEntries = iter.slot->header.numEntries();
-        KU_ASSERT(numEntries == std::countr_one(iter.slot->header.validityMask));
-        for (auto entryPos = 0u; entryPos < numEntries; entryPos++) {
-            if (iter.slot->header.fingerprints[entryPos] == fingerprint &&
-                equals(key, iter.slot->entries[entryPos].key)) [[unlikely]] {
-                // Value already exists
-                return entryPos;
-            }
-        }
-        if (numEntries < getSlotCapacity<T>()) {
-            return SlotHeader::INVALID_ENTRY_POS;
-        }
-    } while (nextChainedSlot(iter));
-    return SlotHeader::INVALID_ENTRY_POS;
-}
-
-template<typename T>
-bool InMemHashIndex<T>::appendInternal(Key key, common::offset_t value, common::hash_t hash) {
-    auto fingerprint = HashIndexUtils::getFingerprintForHash(hash);
-    auto slotID = HashIndexUtils::getPrimarySlotIdForHash(this->indexHeader, hash);
-    SlotIterator iter(slotID, this);
-    // The builder never keeps holes and doesn't support deletions
-    // Check the valid entries, then insert at the end if we don't find one which matches
-    auto entryPos = findEntry(iter, key, fingerprint);
-    auto numEntries = iter.slot->header.numEntries();
-    if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
-        // The key already exists
-        return false;
-    } else if (numEntries < getSlotCapacity<T>()) [[likely]] {
-        // The key does not exist and the last slot has free space
-        insert(key, iter.slot, numEntries, value, fingerprint);
-        this->indexHeader.numEntries++;
-        return true;
-    }
-    // The last slot is full. Insert a new one
-    insertToNewOvfSlot(key, iter.slot, value, fingerprint);
-    this->indexHeader.numEntries++;
-    return true;
-}
-
-template<typename T>
-bool InMemHashIndex<T>::lookup(Key key, offset_t& result) {
-    // This needs to be fast if the builder is empty since this function is always tried
-    // when looking up in the persistent hash index
-    if (this->indexHeader.numEntries == 0) {
-        return false;
-    }
-    auto hashValue = HashIndexUtils::hash(key);
-    auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
-    auto slotId = HashIndexUtils::getPrimarySlotIdForHash(this->indexHeader, hashValue);
-    SlotIterator iter(slotId, this);
-    auto entryPos = findEntry(iter, key, fingerprint);
-    if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
-        result = iter.slot->entries[entryPos].value;
-        return true;
-    }
-    return false;
-}
-
-template<typename T>
 uint32_t InMemHashIndex<T>::allocatePSlots(uint32_t numSlotsToAllocate) {
     auto oldNumSlots = pSlots->size();
     auto newNumSlots = oldNumSlots + numSlotsToAllocate;
@@ -291,24 +211,6 @@ Slot<T>* InMemHashIndex<T>::getSlot(const SlotInfo& slotInfo) const {
 }
 
 template<typename T>
-inline void InMemHashIndex<T>::insertToNewOvfSlot(Key key, Slot<T>* previousSlot,
-    common::offset_t offset, uint8_t fingerprint) {
-    auto newSlotId = allocateAOSlot();
-    previousSlot->header.nextOvfSlotId = newSlotId;
-    auto newSlot = getSlot(SlotInfo{newSlotId, SlotType::OVF});
-    auto entryPos = 0u; // Always insert to the first entry when there is a new slot.
-    insert(key, newSlot, entryPos, offset, fingerprint);
-}
-
-template<>
-void InMemHashIndex<ku_string_t>::insert(std::string_view key, Slot<ku_string_t>* slot,
-    uint8_t entryPos, offset_t offset, uint8_t fingerprint) {
-    auto& entry = slot->entries[entryPos];
-    entry = SlotEntry<ku_string_t>(overflowFileHandle->writeString(key), offset);
-    slot->header.setEntryValid(entryPos, fingerprint);
-}
-
-template<typename T>
 common::hash_t InMemHashIndex<T>::hashStored(const T& key) const {
     return HashIndexUtils::hash(key);
 }
@@ -318,69 +220,6 @@ common::hash_t InMemHashIndex<ku_string_t>::hashStored(const ku_string_t& key) c
     auto kuString = key;
     return HashIndexUtils::hash(
         overflowFileHandle->readString(transaction::TransactionType::WRITE, kuString));
-}
-
-template<>
-bool InMemHashIndex<ku_string_t>::equals(std::string_view keyToLookup,
-    const ku_string_t& keyInEntry) const {
-    // Checks if prefix and len matches first.
-    if (!HashIndexUtils::areStringPrefixAndLenEqual(keyToLookup, keyInEntry)) {
-        return false;
-    }
-    if (keyInEntry.len <= ku_string_t::PREFIX_LENGTH) {
-        // For strings shorter than PREFIX_LENGTH, the result must be true.
-        return true;
-    } else if (keyInEntry.len <= ku_string_t::SHORT_STR_LENGTH) {
-        // For short strings, whose lengths are larger than PREFIX_LENGTH, check if their actual
-        // values are equal.
-        return memcmp(keyToLookup.data(), keyInEntry.prefix, keyInEntry.len) == 0;
-    } else {
-        // For long strings, compare with overflow data
-        return overflowFileHandle->equals(transaction::TransactionType::WRITE, keyToLookup,
-            keyInEntry);
-    }
-}
-
-template<typename T>
-bool InMemHashIndex<T>::deleteKey(Key key) {
-    if (this->indexHeader.numEntries == 0) {
-        return false;
-    }
-    auto hashValue = HashIndexUtils::hash(key);
-    auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
-    auto slotId = HashIndexUtils::getPrimarySlotIdForHash(this->indexHeader, hashValue);
-    SlotIterator iter(slotId, this);
-    std::optional<entry_pos_t> deletedPos = 0;
-    do {
-        for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
-            if (iter.slot->header.isEntryValid(entryPos) &&
-                iter.slot->header.fingerprints[entryPos] == fingerprint &&
-                equals(key, iter.slot->entries[entryPos].key)) {
-                deletedPos = entryPos;
-                iter.slot->header.setEntryInvalid(entryPos);
-                break;
-            }
-        }
-        if (deletedPos.has_value()) {
-            break;
-        }
-    } while (nextChainedSlot(iter));
-
-    if (deletedPos.has_value()) {
-        // Find the last valid entry and move it into the deleted position
-        auto newIter = iter;
-        while (nextChainedSlot(newIter))
-            ;
-        if (newIter.slotInfo != iter.slotInfo ||
-            *deletedPos != newIter.slot->header.numEntries() - 1) {
-            auto lastEntryPos = newIter.slot->header.numEntries();
-            iter.slot->entries[*deletedPos] = newIter.slot->entries[lastEntryPos];
-            iter.slot->header.setEntryValid(*deletedPos,
-                newIter.slot->header.fingerprints[lastEntryPos]);
-            newIter.slot->header.setEntryInvalid(lastEntryPos);
-        }
-    }
-    return false;
 }
 
 template class InMemHashIndex<int64_t>;
