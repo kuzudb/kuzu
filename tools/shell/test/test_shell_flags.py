@@ -4,8 +4,10 @@ import pytest
 from conftest import ShellTest
 from test_helper import KUZU_VERSION, deleteIfExists
 
-def check_fails_without_db(flag):
+def check_fails_without_db(flag, arg=None):
     test = ShellTest().add_argument(flag)
+    if arg:
+        test.add_argument(arg)
     result = test.run()
     result.check_stderr("Option 'databasePath' is required")
 
@@ -35,11 +37,11 @@ def test_help(temp_db, flag) -> None:
     # database path not needed
     test = ShellTest().add_argument(flag)
     result = test.run()
-    result.check_stderr("KuzuDB Shell")
+    result.check_stdout("KuzuDB Shell")
     # with database path
     test = ShellTest().add_argument(temp_db).add_argument(flag)
     result = test.run()
-    result.check_stderr("KuzuDB Shell")
+    result.check_stdout("KuzuDB Shell")
 
 
 @pytest.mark.parametrize(
@@ -51,7 +53,8 @@ def test_help(temp_db, flag) -> None:
 )
 def test_default_bp_size(temp_db, flag) -> None:
     # fails without db path
-    check_fails_without_db(flag)
+    check_fails_without_db(flag, "1000")
+
     # empty flag argument
     test = ShellTest().add_argument(temp_db).add_argument(flag)
     result = test.run()
@@ -94,6 +97,7 @@ def test_read_only(temp_db, flag) -> None:
 
     # fails without db path
     check_fails_without_db(flag)
+    
     # test read only
     test = (
         ShellTest()
@@ -113,6 +117,9 @@ def test_read_only(temp_db, flag) -> None:
 
 
 def test_history_path(temp_db, history_path) -> None:
+    # fails without db path
+    check_fails_without_db("-p", history_path)
+
     # empty flag argument
     test = ShellTest().add_argument(temp_db).add_argument("-p")
     result = test.run()
@@ -122,11 +129,6 @@ def test_history_path(temp_db, history_path) -> None:
     test = ShellTest().add_argument(temp_db).add_argument("-p").add_argument("///////")
     result = test.run()
     result.check_stderr("Invalid path to directory for history file")
-    
-    # fails without db path
-    test = ShellTest().add_argument("-p").add_argument(history_path)
-    result = test.run()
-    result.check_stderr("Option 'databasePath' is required")
 
     # valid path, file doesn't exist
     test = (
