@@ -142,8 +142,13 @@ uint64_t FloatCompression<T>::getMaxExceptionCountPerPage(size_t pageSize) {
 template<std::floating_point T>
 uint64_t FloatCompression<T>::numValues(uint64_t dataSize, const CompressionMetadata& metadata) {
     const size_t exceptionBufferSize = ExceptionBuffer<T>::getDataSizeForExceptions(dataSize);
-    return decltype(encodedFloatBitpacker)::numValues(dataSize - exceptionBufferSize,
+    const auto ret = decltype(encodedFloatBitpacker)::numValues(dataSize - exceptionBufferSize,
         metadata.getChild(0));
+    if (ret == UINT64_MAX) {
+        // handle case where there is only one non-exception value
+        return ExceptionBuffer<T>::getMaxExceptionCount(dataSize);
+    }
+    return ret;
 }
 
 template<std::floating_point T>

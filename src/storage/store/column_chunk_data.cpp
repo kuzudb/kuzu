@@ -181,6 +181,12 @@ public:
     ColumnChunkMetadata operator()(const uint8_t* buffer, uint64_t bufferSize, uint64_t capacity,
         uint64_t numValues, StorageValue min, StorageValue max) {
         alp::state alpMetadata;
+        if (min == max) {
+            return ColumnChunkMetadata(INVALID_PAGE_IDX, 0, numValues,
+                CompressionMetadata(min, max, CompressionType::CONSTANT, alpMetadata,
+                    StorageValue{0}, StorageValue{0}));
+        }
+
         std::vector<uint8_t> sampleBuffer(bufferSize); // TODO update size
         alp::AlpEncode<T>::init(reinterpret_cast<const T*>(buffer), 0, numValues,
             reinterpret_cast<T*>(sampleBuffer.data()), alpMetadata);
@@ -238,12 +244,6 @@ public:
         }
         const auto& [minEncoded, maxEncoded] =
             std::minmax_element(floatEncodedValues.begin(), floatEncodedValues.end());
-
-        if (*minEncoded == *maxEncoded) {
-            return ColumnChunkMetadata(INVALID_PAGE_IDX, 0, numValues,
-                CompressionMetadata(min, max, CompressionType::CONSTANT, alpMetadata,
-                    StorageValue{*minEncoded}, StorageValue{*maxEncoded}));
-        }
 
         auto compMeta = CompressionMetadata(min, max, alg->getCompressionType(), alpMetadata,
             StorageValue{*minEncoded}, StorageValue{*maxEncoded});

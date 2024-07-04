@@ -135,11 +135,13 @@ struct CompressionMetadata {
     std::vector<CompressionMetadata> children;
 
     CompressionMetadata(StorageValue min, StorageValue max, CompressionType compression)
-        : min(min), max(max), compression(compression) {}
+        : min(min), max(max), compression(compression), alpMetadata() {}
     CompressionMetadata(StorageValue min, StorageValue max, CompressionType compression,
         const alp::state& state, StorageValue minEncoded, StorageValue maxEncoded)
         : min(min), max(max), compression(compression), alpMetadata(state) {
-        children.emplace_back(minEncoded, maxEncoded, CompressionType::INTEGER_BITPACKING);
+        children.emplace_back(minEncoded, maxEncoded,
+            minEncoded == maxEncoded ? CompressionType::CONSTANT :
+                                       CompressionType::INTEGER_BITPACKING);
     }
 
     static constexpr size_t getChildCount(common::PhysicalTypeID internalDataType) {
