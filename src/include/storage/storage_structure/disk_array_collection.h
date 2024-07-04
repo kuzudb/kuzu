@@ -50,14 +50,15 @@ public:
     }
 
     template<typename T>
-    std::unique_ptr<DiskArray<T>> getDiskArray(uint32_t idx) {
+    std::unique_ptr<DiskArray<T>> getDiskArray(uint32_t idx,
+        common::PhysicalTypeID internalDataType) {
         KU_ASSERT(idx < numHeaders);
         auto& readHeader = headersForReadTrx[idx / HeaderPage::NUM_HEADERS_PER_PAGE]
                                ->headers[idx % HeaderPage::NUM_HEADERS_PER_PAGE];
         auto& writeHeader = headersForWriteTrx[idx / HeaderPage::NUM_HEADERS_PER_PAGE]
                                 ->headers[idx % HeaderPage::NUM_HEADERS_PER_PAGE];
         return std::make_unique<DiskArray<T>>(fileHandle, dbFileID, readHeader, writeHeader,
-            &bufferManager, &wal, bypassWAL);
+            &bufferManager, &wal, internalDataType, bypassWAL);
     }
 
     size_t addDiskArray();

@@ -112,11 +112,11 @@ public:
     void get(uint64_t idx, transaction::TransactionType trxType, std::span<std::byte> val);
 
     // Note: This function is to be used only by the WRITE trx.
-    void update(uint64_t idx, std::span<std::byte> val);
+    void update(uint64_t idx, std::span<const std::byte> val);
 
     // Note: This function is to be used only by the WRITE trx.
     // The return value is the idx of val in array.
-    uint64_t pushBack(std::span<std::byte> val);
+    uint64_t pushBack(std::span<const std::byte> val);
 
     // Note: Currently, this function doesn't support shrinking the size of the array.
     uint64_t resize(uint64_t newNumElements, std::span<std::byte> defaultVal);
@@ -163,7 +163,7 @@ public:
 
         WriteIterator& seek(size_t newIdx);
         // Adds a new element to the disk array and seeks to the new element
-        void pushBack(std::span<std::byte> val);
+        void pushBack(std::span<const std::byte> val);
 
         inline WriteIterator& operator+=(size_t increment) { return seek(idx + increment); }
 
@@ -257,30 +257,46 @@ inline std::span<std::byte> getSpan(U& val) {
     return std::span(reinterpret_cast<std::byte*>(&val), sizeof(U));
 }
 
-template<typename U>
-class DiskArray {
-    static_assert(sizeof(U) <= common::BufferPoolConstants::PAGE_4KB_SIZE);
+template<typename T>
+concept Serializable = requires(T obj, std::span<const std::byte> serializedBytes,
+    common::PhysicalTypeID internalDataType) {
+    { T::serializedSizeBytes(internalDataType) } -> std::same_as<size_t>;
+    { obj.serializeToBytes(internalDataType) } -> std::convertible_to<decltype(serializedBytes)>;
+    { obj.deserializeFromBytes(serializedBytes, internalDataType) };
+};
 
+template<Serializable U>
+class DiskArray {
 public:
     // If bypassWAL is set, the buffer manager is used to pages new to this transaction to the
     // original file, but does not handle flushing them. BufferManager::flushAllDirtyPagesInFrames
     // should be called on this file handle exactly once during prepare commit.
     DiskArray(BMFileHandle& fileHandle, DBFileID dbFileID, const DiskArrayHeader& headerForReadTrx,
         DiskArrayHeader& headerForWriteTrx, BufferManager* bufferManager, WAL* wal,
-        bool bypassWAL = false)
+        common::PhysicalTypeID internalDataType, bool bypassWAL = false)
         : diskArray(fileHandle, dbFileID, headerForReadTrx, headerForWriteTrx, bufferManager, wal,
-              sizeof(U), bypassWAL) {}
+              U::serializedSizeBytes(internalDataType), bypassWAL),
+          internalDataType(internalDataType) {
+        KU_ASSERT(
+            U::serializedSizeBytes(internalDataType) <= common::BufferPoolConstants::PAGE_4KB_SIZE);
+    }
 
     // Note: This function is to be used only by the WRITE trx.
     // The return value is the idx of val in array.
-    inline uint64_t pushBack(U val) { return diskArray.pushBack(getSpan(val)); }
+    inline uint64_t pushBack(const U& val) {
+        return diskArray.pushBack(val.serializeToBytes(internalDataType));
+    }
 
     // Note: This function is to be used only by the WRITE trx.
-    inline void update(uint64_t idx, U val) { diskArray.update(idx, getSpan(val)); }
+    inline void update(uint64_t idx, const U& val) {
+        diskArray.update(idx, val.serializeToBytes(internalDataType));
+    }
 
     inline U get(uint64_t idx, transaction::TransactionType trxType) {
         U val;
-        diskArray.get(idx, trxType, getSpan(val));
+        std::vector<std::byte> serializedBytes(val.serializedSizeBytes(internalDataType));
+        diskArray.get(idx, trxType, serializedBytes);
+        val.deserializeFromBytes(serializedBytes, internalDataType);
         return val;
     }
 
@@ -335,6 +351,7 @@ public:
 
 private:
     DiskArrayInternal diskArray;
+    common::PhysicalTypeID internalDataType;
 };
 
 class BlockVectorInternal {

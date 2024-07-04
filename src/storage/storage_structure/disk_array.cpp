@@ -124,7 +124,7 @@ void DiskArrayInternal::updatePage(uint64_t pageIdx, bool isNewPage,
     }
 }
 
-void DiskArrayInternal::update(uint64_t idx, std::span<std::byte> val) {
+void DiskArrayInternal::update(uint64_t idx, std::span<const std::byte> val) {
     std::unique_lock xLck{diskArraySharedMtx};
     hasTransactionalUpdates = true;
     KU_ASSERT(checkOutOfBoundAccess(TransactionType::WRITE, idx));
@@ -144,7 +144,7 @@ void DiskArrayInternal::update(uint64_t idx, std::span<std::byte> val) {
     });
 }
 
-uint64_t DiskArrayInternal::pushBack(std::span<std::byte> val) {
+uint64_t DiskArrayInternal::pushBack(std::span<const std::byte> val) {
     std::unique_lock xLck{diskArraySharedMtx};
     auto it = iter_mut(val.size());
     auto originalNumElements = getNumElementsNoLock(TransactionType::WRITE);
@@ -319,7 +319,7 @@ DiskArrayInternal::WriteIterator& DiskArrayInternal::WriteIterator::seek(size_t 
     return *this;
 }
 
-void DiskArrayInternal::WriteIterator::pushBack(std::span<std::byte> val) {
+void DiskArrayInternal::WriteIterator::pushBack(std::span<const std::byte> val) {
     idx = diskArray.headerForWriteTrx.numElements;
     auto oldPageIdx = apCursor.pageIdx;
     apCursor = getAPIdxAndOffsetInAP(diskArray.storageInfo, idx);

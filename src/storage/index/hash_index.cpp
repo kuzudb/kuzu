@@ -37,8 +37,8 @@ HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName, BMFileHandle* fi
       overflowFileHandle(overflowFileHandle),
       localStorage{std::make_unique<HashIndexLocalStorage<T>>(overflowFileHandle)},
       indexHeaderForReadTrx{headerForReadTrx}, indexHeaderForWriteTrx{headerForWriteTrx} {
-    pSlots = diskArrays.getDiskArray<Slot<T>>(indexPos);
-    oSlots = diskArrays.getDiskArray<Slot<T>>(NUM_HASH_INDEXES + indexPos);
+    pSlots = diskArrays.getDiskArray<Slot<T>>(indexPos, PhysicalTypeID::ANY);
+    oSlots = diskArrays.getDiskArray<Slot<T>>(NUM_HASH_INDEXES + indexPos, PhysicalTypeID::ANY);
 }
 
 template<typename T>

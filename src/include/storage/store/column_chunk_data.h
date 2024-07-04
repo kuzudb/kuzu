@@ -25,6 +25,11 @@ struct ColumnChunkMetadata {
     uint64_t numValues;
     CompressionMetadata compMeta;
 
+    static size_t serializedSizeBytes(common::PhysicalTypeID internalDataType);
+    std::vector<std::byte> serializeToBytes(common::PhysicalTypeID internalDataType) const;
+    void deserializeFromBytes(std::span<const std::byte> serializedMetadata,
+        common::PhysicalTypeID internalDataType);
+
     // TODO(Guodong): Delete copy constructor.
     ColumnChunkMetadata()
         : pageIdx{common::INVALID_PAGE_IDX}, numPages{0}, numValues{0},

@@ -29,7 +29,7 @@ namespace storage {
 class BMFileHandle;
 class BufferManager;
 class OverflowFileHandle;
-template<typename T>
+template<Serializable T>
 class DiskArray;
 class DiskArrayCollection;
 

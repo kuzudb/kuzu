@@ -16,7 +16,7 @@ namespace storage {
 struct TableScanState;
 
 class DiskArrayCollection;
-template<typename T>
+template<Serializable T>
 class DiskArray;
 
 struct TableDataScanState {

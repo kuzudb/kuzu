@@ -130,7 +130,8 @@ Column::Column(std::string name, LogicalType dataType, const MetadataDAHInfo& me
     transaction::Transaction* transaction, bool enableCompression, bool requireNullColumn)
     : name{std::move(name)}, dbFileID{DBFileID::newDataFileID()}, dataType{std::move(dataType)},
       dataFH{dataFH}, bufferManager{bufferManager}, wal{wal}, enableCompression{enableCompression} {
-    metadataDA = metadataDAC.getDiskArray<ColumnChunkMetadata>(metaDAHeaderInfo.dataDAHIdx);
+    metadataDA = metadataDAC.getDiskArray<ColumnChunkMetadata>(metaDAHeaderInfo.dataDAHIdx,
+        dataType.getPhysicalType());
     readToVectorFunc = getReadValuesToVectorFunc(this->dataType);
     readToPageFunc = ReadCompressedValuesFromPage(this->dataType);
     batchLookupFunc = ReadCompressedValuesFromPage(this->dataType);

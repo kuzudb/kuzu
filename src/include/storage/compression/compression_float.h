@@ -13,10 +13,6 @@ class ColumnChunkData;
 
 struct PageCursor;
 
-struct FloatCompressionMetadata final : CompressionMetadata {
-    alp::state floatMetadata;
-};
-
 // Augmented with Frame of Reference encoding using an offset stored in the compression metadata
 template<std::floating_point T>
 class FloatCompression final : public CompressionAlg {
@@ -25,6 +21,8 @@ public:
 
 public:
     FloatCompression() = default;
+
+    static uint64_t getMaxExceptionCountPerPage(size_t pageSize);
 
     void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
         uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,

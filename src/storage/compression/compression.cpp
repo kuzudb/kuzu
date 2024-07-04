@@ -74,6 +74,75 @@ uint32_t getDataTypeSizeInChunk(const common::PhysicalTypeID& dataType) {
     }
 }
 
+CompressionMetadata& CompressionMetadata::getChild(offset_t idx) {
+    return children[idx];
+}
+
+const CompressionMetadata& CompressionMetadata::getChild(offset_t idx) const {
+    return children[idx];
+}
+
+size_t CompressionMetadata::serializedSizeBytes(common::PhysicalTypeID internalDataType) {
+    size_t sizeToWrite = sizeof(min) + sizeof(max) + sizeof(compression);
+    if (internalDataType == common::PhysicalTypeID::FLOAT ||
+        internalDataType == common::PhysicalTypeID::DOUBLE) {
+        sizeToWrite += sizeof(alpMetadata);
+    }
+    size_t paddedSizeToWrite = sizeToWrite + (8 - sizeToWrite % 8);
+    if (internalDataType == common::PhysicalTypeID::FLOAT ||
+        internalDataType == common::PhysicalTypeID::DOUBLE) {
+        paddedSizeToWrite += serializedSizeBytes(common::PhysicalTypeID::INT64);
+    }
+    return paddedSizeToWrite;
+}
+
+std::vector<std::byte> CompressionMetadata::serializeToBytes(
+    common::PhysicalTypeID internalDataType) const {
+    std::vector<std::byte> ret(serializedSizeBytes(internalDataType));
+    offset_t writeOffset = 0;
+    writeOffset += writeValueToVector(ret, writeOffset, min);
+    writeOffset += writeValueToVector(ret, writeOffset, max);
+    writeOffset += writeValueToVector(ret, writeOffset, compression);
+    if (internalDataType == common::PhysicalTypeID::FLOAT ||
+        internalDataType == common::PhysicalTypeID::DOUBLE) {
+        writeOffset += writeValueToVector(ret, writeOffset, alpMetadata);
+    }
+
+    for (const auto& child : children) {
+        // TODO fix
+        const auto serializedChild = child.serializeToBytes(common::PhysicalTypeID::INT64);
+        memcpy(ret.data() + writeOffset, serializedChild.data(), serializedChild.size());
+        writeOffset += serializedChild.size();
+    }
+
+    KU_ASSERT(writeOffset <= ret.size());
+    return ret;
+}
+
+void CompressionMetadata::deserializeFromBytes(std::span<const std::byte> serializedMetadata,
+    common::PhysicalTypeID internalDataType) {
+    offset_t readOffset = 0;
+    readOffset += readValueFromSpan(serializedMetadata, readOffset, min);
+    readOffset += readValueFromSpan(serializedMetadata, readOffset, max);
+    readOffset += readValueFromSpan(serializedMetadata, readOffset, compression);
+    if (internalDataType == common::PhysicalTypeID::FLOAT ||
+        internalDataType == common::PhysicalTypeID::DOUBLE) {
+        readOffset += readValueFromSpan(serializedMetadata, readOffset, alpMetadata);
+    }
+
+    children.resize(getChildCount(internalDataType),
+        CompressionMetadata{StorageValue(), StorageValue(), CompressionType::CONSTANT});
+    for (auto& child : children) {
+        // TODO fix
+        const auto serializedChildSize = child.serializedSizeBytes(common::PhysicalTypeID::INT64);
+        const auto serializedChild = serializedMetadata.subspan(readOffset, serializedChildSize);
+        child.deserializeFromBytes(serializedChild, common::PhysicalTypeID::INT64);
+        readOffset += serializedChildSize;
+    }
+
+    KU_ASSERT(readOffset <= serializedMetadata.size());
+}
+
 bool CompressionMetadata::canAlwaysUpdateInPlace() const {
     switch (compression) {
     case CompressionType::BOOLEAN_BITPACKING:

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <optional>
 #include <type_traits>
 
@@ -110,6 +111,14 @@ enum class CompressionType : uint8_t {
     FLOAT = 4,
 };
 
+// used only for compressing floats/doubles
+struct ALPMetadata {
+    ALPMetadata() = default;
+    explicit ALPMetadata(const alp::state& alpState) : exp(alpState.exp), fac(alpState.fac) {}
+    uint8_t exp;
+    uint8_t fac;
+};
+
 // Data statistics used for determining how to handle compressed data
 struct CompressionMetadata {
     // Minimum and maximum are upper and lower bounds for the data.
@@ -118,20 +127,35 @@ struct CompressionMetadata {
     StorageValue min;
     StorageValue max;
 
-    // TODO: move this somewhere more appropriate
-    struct FloatMetadata {
-        FloatMetadata() = default;
-        explicit FloatMetadata(const alp::state& alpState) : exp(alpState.exp), fac(alpState.fac) {}
-        uint8_t exp;
-        uint8_t fac;
-    } floatMetadata;
-
     CompressionType compression;
-    uint8_t _padding[7]{};
+
+    // only used for floats/doubles
+    ALPMetadata alpMetadata;
+
+    std::vector<CompressionMetadata> children;
 
     CompressionMetadata(StorageValue min, StorageValue max, CompressionType compression)
         : min(min), max(max), compression(compression) {}
+    CompressionMetadata(StorageValue min, StorageValue max, CompressionType compression,
+        const alp::state& state, StorageValue minEncoded, StorageValue maxEncoded)
+        : min(min), max(max), compression(compression), alpMetadata(state) {
+        children.emplace_back(minEncoded, maxEncoded, CompressionType::INTEGER_BITPACKING);
+    }
+
+    static constexpr size_t getChildCount(common::PhysicalTypeID internalDataType) {
+        return (internalDataType == common::PhysicalTypeID::DOUBLE ||
+                   internalDataType == common::PhysicalTypeID::FLOAT) ?
+                   1 :
+                   0;
+    }
     inline bool isConstant() const { return compression == CompressionType::CONSTANT; }
+    CompressionMetadata& getChild(common::offset_t idx);
+    const CompressionMetadata& getChild(common::offset_t idx) const;
+
+    static size_t serializedSizeBytes(common::PhysicalTypeID internalDataType);
+    std::vector<std::byte> serializeToBytes(common::PhysicalTypeID internalDataType) const;
+    void deserializeFromBytes(std::span<const std::byte> serializedMetadata,
+        common::PhysicalTypeID internalDataType);
 
     // Returns the number of values which will be stored in the given data size
     // This must be consistent with the compression implementation for the given size
@@ -145,9 +169,6 @@ struct CompressionMetadata {
 
     std::string toString(const common::PhysicalTypeID physicalType) const;
 };
-// Padding should be kept to a minimum, but must be stored explicitly for consistent binary output
-// when writing the padding to disk.
-static_assert(sizeof(CompressionMetadata) % 8 == 0);
 
 class CompressionAlg {
 public:

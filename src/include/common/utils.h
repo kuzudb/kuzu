@@ -7,6 +7,7 @@
 #include "common/assert.h"
 #include "common/numeric_utils.h"
 #include "common/types/int128_t.h"
+#include <span>
 
 namespace kuzu {
 namespace common {
@@ -52,6 +53,21 @@ std::vector<T> copyVector(const std::vector<T>& objects) {
         result.push_back(object->copy());
     }
     return result;
+}
+
+template<typename T>
+size_t writeValueToVector(std::vector<std::byte>& vec, offset_t byteOffset, const T& val) {
+    static_assert(std::is_trivially_copyable_v<T>);
+    static constexpr size_t bytesToWrite = sizeof(val);
+    memcpy(vec.data() + byteOffset, &val, bytesToWrite);
+    return bytesToWrite;
+}
+
+template<typename T>
+size_t readValueFromSpan(const std::span<const std::byte>& vec, offset_t byteOffset, T& val) {
+    static constexpr size_t bytesToRead = sizeof(val);
+    memcpy(&val, vec.data() + byteOffset, bytesToRead);
+    return bytesToRead;
 }
 
 } // namespace common
