@@ -138,7 +138,7 @@ JsonWrapper jsonify(const common::ValueVector& vec, uint64_t pos) {
     return JsonWrapper(yyjson_mut_doc_imut_copy(result.ptr, nullptr));
 }
 
-static common::LogicalType combineTypeJsonContext(const common::LogicalType& lft,
+common::LogicalType combineTypeJsonContext(const common::LogicalType& lft,
     const common::LogicalType& rit) { // always succeeds
     if (lft.getLogicalTypeID() == LogicalTypeID::STRING ||
         rit.getLogicalTypeID() == LogicalTypeID::STRING) {
@@ -171,14 +171,17 @@ static common::LogicalType combineTypeJsonContext(const common::LogicalType& lft
     return result;
 }
 
-common::LogicalType jsonSchema(yyjson_val* val) {
+common::LogicalType jsonSchema(yyjson_val* val, bool purgeAny) {
     switch (yyjson_get_type(val)) {
     case YYJSON_TYPE_ARR: {
         common::LogicalType childType(LogicalTypeID::ANY);
         yyjson_val* ele;
         auto iter = yyjson_arr_iter_with(val);
         while ((ele = yyjson_arr_iter_next(&iter))) {
-            childType = combineTypeJsonContext(childType, jsonSchema(ele));
+            childType = combineTypeJsonContext(childType, jsonSchema(ele, false));
+        }
+        if (purgeAny && childType.getLogicalTypeID() == LogicalTypeID::ANY) {
+            childType = LogicalType::STRING();
         }
         return LogicalType::LIST(std::move(childType));
     } break;
@@ -188,7 +191,10 @@ common::LogicalType jsonSchema(yyjson_val* val) {
         auto iter = yyjson_obj_iter_with(val);
         while ((key = yyjson_obj_iter_next(&iter))) {
             ele = yyjson_obj_iter_get_val(key);
-            fields.emplace_back(std::string(yyjson_get_str(key)), jsonSchema(ele));
+            fields.emplace_back(std::string(yyjson_get_str(key)), jsonSchema(ele, false));
+        }
+        if (purgeAny && childType.getLogicalTypeID() == LogicalTypeID::ANY) {
+            childType = LogicalType::STRING();
         }
         return LogicalType::STRUCT(std::move(fields));
     } break;
@@ -215,10 +221,9 @@ common::LogicalType jsonSchema(yyjson_val* val) {
 }
 
 common::LogicalType jsonSchema(const JsonWrapper& wrapper) {
-    return jsonSchema(yyjson_doc_get_root(wrapper.ptr));
+    return jsonSchema(yyjson_doc_get_root(wrapper.ptr), true);
 }
 
-// Precondition: vec.dataType is not STRING
 static void readFromJsonArr(yyjson_val* val, common::ValueVector& vec, uint64_t pos) {
     const auto& outputType = vec.dataType;
     vec.setNull(pos, false);
@@ -241,11 +246,11 @@ static void readFromJsonArr(yyjson_val* val, common::ValueVector& vec, uint64_t 
         StringVector::addString(&vec, pos, str);
     } break;
     default:
-        KU_UNREACHABLE;
+        throw NotImplementedException(stringFormat("Cannot read from JSON Array to {}",
+            outputType.toString()));
     }
 }
 
-// Precondition: vec.dataType is not STRING
 static void readFromJsonObj(yyjson_val* val, common::ValueVector& vec, uint64_t pos) {
     const auto& outputType = vec.dataType;
     vec.setNull(pos, false);
@@ -267,25 +272,62 @@ static void readFromJsonObj(yyjson_val* val, common::ValueVector& vec, uint64_t 
         auto str = jsonToString(val);
         StringVector::addString(&vec, pos, str);
     } break;
+    case LogicalTypeID::MAP: {
+        auto numFields = yyjson_obj_size(val);
+        auto keyBuffer = MapVector::getKeyVector(&vec);
+        auto valBuffer = MapVector::getValueVector(&vec);
+        auto listEntry = ListVector::addList(vec, numFields);
+        vec.setValue<list_entry_t>(pos, listEntry);
+        yyjson_val *key, *value;
+        auto it = yyjson_obj_iter_with(val);
+        for (auto i = 0u; i < numFields; i++) {
+            key = yyjson_obj_iter_next(&it);
+            value = yyjson_obj_get_val(key);
+            StringVector::addString(keyBuffer, listEntry.offset + i,
+                std::string(yyjson_val_get_str(key)));
+            readFromJsonObj(value, valBuffer, listEntry.offset + i);
+        }
+    } break;
     default:
-        KU_UNREACHABLE;
+        throw NotImplementedException(stringFormat("Cannot read from JSON Object to {}",
+            outputType.toString()));
     }
 }
 
-// Precondition: vec.dataType is not STRING
 template<typename NUM_TYPE>
 static void readFromJsonNum(NUM_TYPE val, common::ValueVector& vec, uint64_t pos) {
     const auto& outputType = vec.dataType;
     vec.setNull(pos, false);
     switch (outputType.getLogicalTypeID()) {
-    case LogicalTypeID::INT128:
-        vec.setValue<int128_t>(pos, int128_t(val));
+    case LogicalTypeID::INT8:
+        vec.setValue<int8_t>(pos, (int8_t)val);
+        break;
+    case LogicalTypeID::INT16:
+        vec.setValue<int16_t>(pos, (int16_t)val);
+        break;
+    case LogicalTypeID::INT32:
+        vec.setValue<int32_t>(pos, (int32_t)val);
         break;
     case LogicalTypeID::INT64:
         vec.setValue<int64_t>(pos, (int64_t)val);
         break;
+    case LogicalTypeID::INT128:
+        vec.setValue<int128_t>(pos, int128_t(val));
+        break;
+    case LogicalTypeID::UINT8:
+        vec.setValue<uint8_t>(pos, (uint8_t)val);
+        break;
+    case LogicalTypeID::UINT16:
+        vec.setValue<uint16_t>(pos, (uint16_t)val);
+        break;
+    case LogicalTypeID::UINT32:
+        vec.setValue<uint32_t>(pos, (uint32_t)val);
+        break;
     case LogicalTypeID::UINT64:
         vec.setValue<uint64_t>(pos, (uint64_t)val);
+        break;
+    case LogicalTypeID::FLOAT:
+        vec.setValue<double>(pos, (double)val);
         break;
     case LogicalTypeID::DOUBLE:
         vec.setValue<double>(pos, (double)val);
@@ -294,6 +336,50 @@ static void readFromJsonNum(NUM_TYPE val, common::ValueVector& vec, uint64_t pos
         auto str = std::to_string(val);
         StringVector::addString(&vec, pos, str);
     } break;
+    default:
+        throw NotImplementedException(stringFormat("Cannot read from JSON Number to {}",
+            outputType.toString()));
+    }
+}
+
+void readFromJsonString(yyjson_val* val, common::ValueVector& vec, uint64_t pos) {
+    switch (vec.dataType.getLogicalTypeID()) {
+    case LogicalTypeID::ANY:
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
+    case LogicalTypeID::RECURSIVE_REL:
+    case LogicalTypeID::INTERNAL_ID:
+    case LogicalTypeID::BOOL:
+    case LogicalTypeID::INT64:
+    case LogicalTypeID::INT32:
+    case LogicalTypeID::INT16:
+    case LogicalTypeID::INT8:
+    case LogicalTypeID::UINT64:
+    case LogicalTypeID::UINT32:
+    case LogicalTypeID::UINT16:
+    case LogicalTypeID::UINT8:
+    case LogicalTypeID::INT128:
+    case LogicalTypeID::DOUBLE:
+    case LogicalTypeID::FLOAT:
+    case LogicalTypeID::DATE:
+    case LogicalTypeID::TIMESTAMP_NS:
+    case LogicalTypeID::TIMESTAMP_MS:
+    case LogicalTypeID::TIMESTAMP_SEC:
+    case LogicalTypeID::TIMESTAMP_TZ:
+    case LogicalTypeID::TIMESTAMP:
+    case LogicalTypeID::INTERVAL:
+    case LogicalTypeID::DECIMAL:
+    case LogicalTypeID::BLOB:
+    case LogicalTypeID::UUID:
+    case LogicalTypeID::STRING:
+    case LogicalTypeID::LIST:
+    case LogicalTypeID::ARRAY:
+    case LogicalTypeID::STRUCT:
+    case LogicalTypeID::RDF_VARIANT:
+    case LogicalTypeID::SERIAL:
+    case LogicalTypeID::MAP:
+    case LogicalTypeID::UNION:
+    case LogicalTypeID::POINTER:
     default:
         KU_UNREACHABLE;
     }

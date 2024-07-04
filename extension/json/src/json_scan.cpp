@@ -1,5 +1,6 @@
 #include "json_scan.h"
 
+#include "function/built_in_function_utils.h"
 #include "json_utils.h"
 
 using namespace kuzu::function;
@@ -63,6 +64,26 @@ struct JsonScanSharedState : public TableFuncSharedState {
     }
 };
 
+static void combineExpectedSchemaWithActualSchema(std::vector<LogicalType>& columnTypes,
+    std::vector<std::string>& columnNames, const std::vector<LogicalType>& expectedColumnTypes, 
+    const std::vector<std::string>& expectedColumnNames) {
+    if (columnNames.size() != expectedColumnNames.size()) {
+        throw BinderException("Expected number of columns does not match actual number of column");
+    }
+    for (auto i = 0u; i < columnNames.size(); i++) {
+        for(auto j = 0u; j < expectedColumnNames.size(); j++) {
+            if (columnNames[i] == expectedColumnNames[j]) {
+                LogicalType result;
+                if (BuiltInFunctionsUtils::getCastCost(columnTypes[i], expectedColumnTypes[j]) == UNDEFINED_CAST_COST) {
+                    throw BinderException(stringFormat("Cannot match types {} and {}", columnTypes[i].toString(),
+                        expectedColumnTypes[j].toString()));
+                }
+                columnTypes[i] = result;
+            }
+        }
+    }
+}
+
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext*,
     TableFuncBindInput* input) {
     auto scanInput = input->constPtrCast<ScanTableFuncBindInput>();
@@ -86,7 +107,10 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext*,
         columnTypes.push_back(std::move(schema));
         columnNames.push_back("json");
     }
-    if (scanInput->expectedColumnNames.size() > 0) {}
+    if (scanInput->expectedColumnNames.size() > 0) {
+        combineExpectedSchemaWithActualSchema(columnTypes, columnNames, scanInput->expectedColumnTypes,
+            scanInput->expectedColumnNames);
+    }
     auto parsedJsonPtr = parsedJson.ptr;
     parsedJson.ptr = nullptr;
     return std::make_unique<JsonBindData>(std::move(columnTypes), std::move(columnNames),
