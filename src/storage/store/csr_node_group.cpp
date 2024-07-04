@@ -292,10 +292,7 @@ void CSRNodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addC
     if (persistentChunkGroup) {
         persistentChunkGroup->addColumn(transaction, addColumnState, enableCompression, dataFH);
     }
-    const auto lock = chunkedGroups.lock();
-    for (auto& chunkedGroup: chunkedGroups.getAllGroups(lock)) {
-        chunkedGroup->addColumn(transaction, addColumnState, enableCompression, dataFH);
-    }
+    NodeGroup::addColumn(transaction, addColumnState, dataFH);
 }
 
 } // namespace storage
