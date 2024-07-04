@@ -105,6 +105,7 @@ enum class CompressionType : uint8_t {
     INTEGER_BITPACKING = 1,
     BOOLEAN_BITPACKING = 2,
     CONSTANT = 3,
+    DELTA = 4,
 };
 
 // Data statistics used for determining how to handle compressed data
@@ -370,6 +371,34 @@ public:
     CompressionType getCompressionType() const override {
         return CompressionType::BOOLEAN_BITPACKING;
     }
+};
+
+// Currently only implementing for UINT64 Size
+class DeltaCompression : public CompressionAlg {
+public:
+    static constexpr uint64_t CHUNK_SIZE = 32;
+
+public:
+    DeltaCompression() = default;
+    DeltaCompression(const DeltaCompression&) = default;
+
+    void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
+        uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
+        const CompressionMetadata& metadata, const common::NullMask* nullMask) const final;
+
+    static inline uint64_t numValues(uint64_t dataSize) { return dataSize * 8; }
+
+    uint64_t compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
+        uint8_t* dstBuffer, uint64_t dstBufferSize,
+        const struct CompressionMetadata& metadata) const final;
+
+    void decompressFromPage(const uint8_t* srcBuffer, uint64_t srcOffset, uint8_t* dstBuffer,
+    uint64_t dstOffset, uint64_t numValues, const CompressionMetadata& metadata) const final;
+
+    CompressionType getCompressionType() const override {
+        return CompressionType::DELTA;
+    }
+
 };
 
 class CompressedFunctor {

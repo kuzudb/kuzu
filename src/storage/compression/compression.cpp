@@ -198,6 +198,9 @@ uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& da
     case CompressionType::BOOLEAN_BITPACKING: {
         return BooleanBitpacking::numValues(pageSize);
     }
+    case CompressionType::DELTA: {
+        return DeltaCompression::numValues(pageSize);
+    }
     default: {
         throw common::StorageException(
             "Unknown compression type with ID " + std::to_string((uint8_t)compression));
@@ -282,6 +285,9 @@ std::string CompressionMetadata::toString(const PhysicalTypeID physicalType) con
     }
     case CompressionType::CONSTANT: {
         return "CONSTANT";
+    }
+    case CompressionType::DELTA: {
+        return "DELTA";
     }
     default: {
         KU_UNREACHABLE;
@@ -690,6 +696,55 @@ void BooleanBitpacking::copyFromPage(const uint8_t* srcBuffer, uint64_t srcOffse
     const CompressionMetadata& /*metadata*/) const {
     NullMask::copyNullMask(reinterpret_cast<const uint64_t*>(srcBuffer), srcOffset,
         reinterpret_cast<uint64_t*>(dstBuffer), dstOffset, numValues);
+}
+
+//DeltaCompression's class functions
+void DeltaCompression::setValuesFromUncompressed(const uint8_t* srcBuffer, offset_t srcOffset,
+    uint8_t* dstBuffer, offset_t dstOffset, offset_t numValues,
+    const CompressionMetadata& /*metadata*/, const NullMask* /*nullMask*/) const {
+    
+    // Peseudo Code & Implementation
+    // // For DeltaCompression, first data is treated differently, otherwise very similar to IntegerBitpacking
+    // if srcOffset == 0:
+    //     Use IntegerBitpacking.setValuesFromUncompressed (or similar) to compress data
+    // else:
+    //     Find difference between current srcOffset and previous srcOffset
+    //     Use IntegerBitpacking.setValuesFromUncompressed (or similar) to compress the difference
+}
+
+uint64_t DeltaCompression::compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
+    uint8_t* dstBuffer, uint64_t dstBufferSize, const struct CompressionMetadata& metadata) const {
+
+    // Peseudo Code & Implementation
+    // // Follow steps similar to IntegerBitpacking, except first deal with the first element to compress
+    // calculate numOfValuesCompress, sizeToCompress, and lastFullChunkEnd
+    // remember compressed value (as variable prevValue)
+    // pack and store value using fastpack
+    // srcBuffer += CHUNK_SIZE
+    // numOfValuesCompress--
+    // sizeToCompress -= CHUNK_SIZE
+    // for (i = 0; i < lastFullChunkEnd; i += CHUNK_SIZE):
+    //     auto valueToPack = current_value - prevValue;
+    //     prevValue = current_value
+    //     pack with fastpack
+
+    // Dummy return to compile
+    return 0;
+}
+
+void DeltaCompression::decompressFromPage(const uint8_t* srcBuffer, uint64_t srcOffset, uint8_t* dstBuffer,
+    uint64_t dstOffset, uint64_t numValues, const CompressionMetadata& metadata) const {
+
+    // Peseudo Code & Implementation
+    // // For DeltaCompression, first data is treaded differently, otherwise similar to IntegerBitpacking
+    // if srcOffset == 0:
+    //     directly decrompress with IntegerBitpacking.decompressFromPage (or similar)
+    // else:
+    //     Get the previously decompressed value using dstBuffer and dstOffset - 1
+    //     Decompress current value and store it in a temporary chunk
+    //     Add the previously decompressed value into the temporary chunk
+    //     Move chunk inplace into the dstBuffer at dstOffset
+
 }
 
 void ReadCompressedValuesFromPageToVector::operator()(const uint8_t* frame, PageCursor& pageCursor,

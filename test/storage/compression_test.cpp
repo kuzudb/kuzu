@@ -266,6 +266,40 @@ TEST(CompressionTests, CopyMultiPage) {
     ASSERT_EQ((int64_t*)srcCursor - src.data(), numValues);
 }
 
+TEST(CompressionTests, DeltaCompression64) {
+    auto length = 128;
+    std::vector<int64_t> src(length, 0);
+    for (int i = 0; i < length; ++i) {
+        src[i] = i;
+    }
+    auto alg = DeltaCompression();
+    test_compression(alg, src);
+}
+
+TEST(CompressionTests, DeltaCompression64Small) {
+    auto lenth = 7;
+    std::vector<int64_t> src(length, 0);
+    for (int i = 0; i < length; ++i) {
+        src[i] = i;
+    }
+    auto alg = DeltaCompression();
+    test_compression(alg, src);
+}
+
+TEST(CompressionTests, DeltaCompressionTestNegative32) {
+    std::vector<int32_t> src(128, -6);
+    src[5] = 20;
+    auto alg = DeltaCompression();
+    test_compression(alg, src);
+}
+
+TEST(CompressionTests, DeltaCompressionTestNegative64) {
+    std::vector<int64_t> src(128, -6);
+    src[5] = 20;
+    auto alg = DeltaCompression();
+    test_compression(alg, src);
+}
+
 template<typename T>
 void integerPackingMultiPage(const std::vector<T>& src) {
     auto alg = IntegerBitpacking<T>();
