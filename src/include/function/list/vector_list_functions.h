@@ -160,5 +160,11 @@ struct ListTransformFunction {
     static function_set getFunctionSet();
 };
 
+struct ListFilterFunction {
+    static constexpr const char* name = "LIST_FILTER";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu

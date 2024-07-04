@@ -2,7 +2,7 @@
 
 --
 
--CASE LambdaFunction
+-CASE ListTransform
 
 -STATEMENT MATCH (a:person) WHERE a.ID < 6 RETURN LIST_TRANSFORM([1,2,3], x->x + a.ID)
 ---- error

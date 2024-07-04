@@ -24,32 +24,23 @@ void ListLambdaEvaluator::init(const ResultSet& resultSet, ClientContext* client
     lambdaParamEvaluator->resultVector->state = std::make_shared<DataChunkState>();
     lambdaRootEvaluator->init(resultSet, clientContext);
     resolveResultVector(resultSet, clientContext->getMemoryManager());
+    params.push_back(children[0]->resultVector);
+    params.push_back(lambdaRootEvaluator->resultVector);
 }
 
 void ListLambdaEvaluator::evaluate() {
     KU_ASSERT(children.size() == 1);
     children[0]->evaluate();
-    auto listInputVector = children[0]->resultVector.get();
-    auto& listInputSelVector = listInputVector->state->getSelVector();
-    // NOTE: the following can be done with a memcpy. But I think soon we will need to change
-    // to handle cases like
-    // MATCH (a:person) RETURN LIST_TRANSFORM([1,2,3], x->x + a.ID)
-    // So I'm leaving it in the naive form.
-    for (auto i = 0u; i < listInputSelVector.getSelSize(); ++i) {
-        auto pos = listInputSelVector[i];
-        resultVector->setValue(pos, listInputVector->getValue<list_entry_t>(pos));
-    }
-    auto listSize = ListVector::getDataVectorSize(listInputVector);
+    auto listSize = ListVector::getDataVectorSize(children[0]->resultVector.get());
     auto lambdaParamVector = lambdaParamEvaluator->resultVector.get();
-    auto& lambdaParamSelVector = lambdaParamVector->state->getSelVectorUnsafe();
-    lambdaParamSelVector.setSelSize(listSize);
+    lambdaParamVector->state->getSelVectorUnsafe().setSelSize(listSize);
     lambdaRootEvaluator->evaluate();
+    execFunc(params, *resultVector, nullptr /* dataPtr */);
 }
 
 void ListLambdaEvaluator::resolveResultVector(const ResultSet&, MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(expression->getDataType().copy(), memoryManager);
     resultVector->state = children[0]->resultVector->state;
-    ListVector::setDataVector(resultVector.get(), lambdaRootEvaluator->resultVector);
 }
 
 } // namespace evaluator
