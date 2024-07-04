@@ -20,7 +20,8 @@ struct ExportCSVBindData : public ExportFuncBindData {
           exportOption{std::move(exportOption)} {}
 
     std::unique_ptr<ExportFuncBindData> copy() const override {
-        auto bindData = std::make_unique<ExportCSVBindData>(columnNames, fileName, exportOption.copy());
+        auto bindData =
+            std::make_unique<ExportCSVBindData>(columnNames, fileName, exportOption.copy());
         bindData->types = LogicalType::copy(types);
         return bindData;
     }

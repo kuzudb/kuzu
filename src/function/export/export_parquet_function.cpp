@@ -53,8 +53,8 @@ struct ExportParquetSharedState : public ExportFuncSharedState {
     ExportParquetSharedState(const ExportFuncBindData& bindData, main::ClientContext& context) {
         auto& exportParquetBindData = bindData.constCast<ExportParquetBindData>();
         writer = std::make_unique<ParquetWriter>(exportParquetBindData.fileName,
-            common::LogicalType::copy(exportParquetBindData.types), exportParquetBindData.columnNames,
-            exportParquetBindData.codec, &context);
+            common::LogicalType::copy(exportParquetBindData.types),
+            exportParquetBindData.columnNames, exportParquetBindData.codec, &context);
     }
 };
 
