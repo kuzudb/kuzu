@@ -12,8 +12,7 @@ namespace storage {
 
 ColumnChunk::ColumnChunk(const LogicalType& dataType, uint64_t capacity, bool enableCompression,
     ResidencyState residencyState)
-    : residencyState{residencyState}, dataType{dataType.copy()},
-      enableCompression{enableCompression} {
+    : dataType{dataType.copy()}, enableCompression{enableCompression} {
     data = ColumnChunkFactory::createColumnChunkData(dataType.copy(), enableCompression, capacity,
         residencyState);
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
@@ -21,15 +20,14 @@ ColumnChunk::ColumnChunk(const LogicalType& dataType, uint64_t capacity, bool en
 
 ColumnChunk::ColumnChunk(const LogicalType& dataType, bool enableCompression,
     ColumnChunkMetadata metadata)
-    : residencyState{ResidencyState::ON_DISK}, dataType{dataType.copy()},
-      enableCompression{enableCompression} {
+    : dataType{dataType.copy()}, enableCompression{enableCompression} {
     data = ColumnChunkFactory::createColumnChunkData(dataType.copy(), enableCompression, metadata,
         true);
 }
 
 ColumnChunk::ColumnChunk(bool enableCompression, std::unique_ptr<ColumnChunkData> data)
-    : residencyState{data->getResidencyState()}, dataType{data->getDataType().copy()},
-      enableCompression{enableCompression}, data{std::move(data)} {}
+    : dataType{data->getDataType().copy()}, enableCompression{enableCompression}, 
+      data{std::move(data)} {}
 
 void ColumnChunk::initializeScanState(ChunkState& state) const {
     data->initializeScanState(state);
@@ -38,7 +36,7 @@ void ColumnChunk::initializeScanState(ChunkState& state) const {
 void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, ValueVector& nodeID,
     ValueVector& output, offset_t offsetInChunk, length_t length) const {
     // Check if there is deletions or insertions. If so, update selVector based on transaction.
-    switch (residencyState) {
+    switch (getResidencyState()) {
     case ResidencyState::IN_MEMORY: {
         data->scan(output, offsetInChunk, length);
     } break;
@@ -75,6 +73,7 @@ template<ResidencyState SCAN_RESIDENCY_STATE>
 void ColumnChunk::scanCommitted(Transaction* transaction, ChunkState& chunkState,
     ColumnChunk& output) const {
     auto numValuesBeforeScan = output.getNumValues();
+    auto residencyState = getResidencyState();
     switch (residencyState) {
     case ResidencyState::ON_DISK: {
         if (SCAN_RESIDENCY_STATE == residencyState) {
@@ -119,7 +118,7 @@ void ColumnChunk::scanCommittedUpdates(Transaction* transaction, ColumnChunkData
 
 void ColumnChunk::lookup(Transaction* transaction, ChunkState& state, offset_t rowInChunk,
     ValueVector& output, sel_t posInOutputVector) const {
-    switch (residencyState) {
+    switch (getResidencyState()) {
     case ResidencyState::IN_MEMORY: {
         data->lookup(rowInChunk, output, posInOutputVector);
     } break;

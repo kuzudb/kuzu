@@ -98,7 +98,7 @@ public:
     bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInChunk);
 
     void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
-        bool enableCompression);
+        bool enableCompression, BMFileHandle& dataFH);
 
     void finalize() const;
 

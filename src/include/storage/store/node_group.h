@@ -118,7 +118,8 @@ public:
         common::column_id_t columnID, const common::ValueVector& propertyVector);
     bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInGroup);
 
-    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState);
+    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
+        BMFileHandle& dataFH);
 
     void flush(BMFileHandle& dataFH);
 

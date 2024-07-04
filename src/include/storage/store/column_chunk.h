@@ -28,7 +28,7 @@ public:
         const common::ValueVector& values);
 
     uint64_t getEstimatedMemoryUsage() const {
-        return residencyState == ResidencyState::ON_DISK ? 0 : data->getEstimatedMemoryUsage();
+        return getResidencyState() == ResidencyState::ON_DISK ? 0 : data->getEstimatedMemoryUsage();
     }
     void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<ColumnChunk> deserialize(common::Deserializer& deSer);
@@ -57,7 +57,6 @@ private:
         common::offset_t startOffsetInOutput) const;
 
 private:
-    ResidencyState residencyState;
     common::LogicalType dataType;
     bool enableCompression;
     std::unique_ptr<ColumnChunkData> data;
