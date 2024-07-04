@@ -119,7 +119,7 @@ public:
     bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInGroup);
 
     virtual void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
-        BMFileHandle& dataFH);
+        BMFileHandle* dataFH);
 
     void flush(BMFileHandle& dataFH);
 

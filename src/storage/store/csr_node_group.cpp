@@ -288,7 +288,7 @@ bool CSRNodeGroup::delete_(const Transaction* transaction, CSRNodeGroupScanSourc
 }
 
 void CSRNodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColumnState, 
-    BMFileHandle& dataFH) {
+    BMFileHandle* dataFH) {
     if (persistentChunkGroup) {
         persistentChunkGroup->addColumn(transaction, addColumnState, enableCompression, dataFH);
     }

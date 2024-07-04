@@ -182,7 +182,7 @@ bool NodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxInGroup)
 }
 
 void NodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
-    BMFileHandle& dataFH) {
+    BMFileHandle* dataFH) {
     const auto lock = chunkedGroups.lock();
     for (auto& chunkedGroup: chunkedGroups.getAllGroups(lock)) {
         chunkedGroup->addColumn(transaction, addColumnState, enableCompression, dataFH);

@@ -211,6 +211,11 @@ row_idx_t RelTable::detachDeleteForCSRRels(Transaction*, RelTableData*, RelTable
 }
 
 void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
+    const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+        LocalStorage::NotExistAction::RETURN_NULL);
+    if (localTable) {
+        localTable->addColumn(transaction, addColumnState);
+    }
     fwdRelTableData->addColumn(transaction, addColumnState);
     bwdRelTableData->addColumn(transaction, addColumnState);
 }

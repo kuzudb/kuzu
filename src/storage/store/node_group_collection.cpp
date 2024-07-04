@@ -103,10 +103,9 @@ row_idx_t NodeGroupCollection::getNumRows() const {
 }
 
 void NodeGroupCollection::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
-    KU_ASSERT(dataFH);
     const auto lock = nodeGroups.lock();
     for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
-        nodeGroup->addColumn(transaction, addColumnState, *dataFH);
+        nodeGroup->addColumn(transaction, addColumnState, dataFH);
     }
 }
 

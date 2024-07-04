@@ -196,6 +196,11 @@ void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColu
     KU_ASSERT(property.getColumnID() == columns.size());
     columns.push_back(ColumnFactory::createColumn(property.getName(),
         property.getDataType().copy(), dataFH, bufferManager, wal, enableCompression));
+    const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+        LocalStorage::NotExistAction::RETURN_NULL);
+    if (localTable) {
+        localTable->addColumn(transaction, addColumnState);
+    }
     nodeGroups->addColumn(transaction, addColumnState);
 }
 

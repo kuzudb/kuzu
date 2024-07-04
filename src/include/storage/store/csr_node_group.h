@@ -115,7 +115,7 @@ public:
         common::row_idx_t rowIdxInGroup);
 
     void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState, 
-        BMFileHandle& dataFH) override;
+        BMFileHandle* dataFH) override;
 
     bool isEmpty() const override { return !persistentChunkGroup && NodeGroup::isEmpty(); }
 
