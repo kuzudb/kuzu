@@ -41,9 +41,9 @@ int main(int argc, char* argv[]) {
     }
     if (!inputDirFlag) {
         std::cerr << "Option '" + inputDirFlag.Name() + "' is required" << '\n';
-		std::cerr << parser;
-		return 1;
-	}
+        std::cerr << parser;
+        return 1;
+    }
 
     uint64_t bpSizeInMB = args::get(bpSizeInMBFlag);
     uint64_t bpSizeInBytes = -1u;
