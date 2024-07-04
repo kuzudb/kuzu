@@ -34,6 +34,9 @@ public:
     yyjson_mut_doc* ptr;
 };
 
+common::LogicalType combineTypeJsonContext(const common::LogicalType& lft,
+    const common::LogicalType& rit); // always succeeds
+
 JsonWrapper jsonify(const common::ValueVector& vec, uint64_t pos);
 // Converts an internal Kuzu Value into json
 common::LogicalType jsonSchema(const JsonWrapper& wrapper);
