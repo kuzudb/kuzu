@@ -103,6 +103,9 @@ void NodeGroup::initializeScanState(Transaction*, TableScanState& state) {
             KU_ASSERT(i < state.columnIDs.size());
             KU_ASSERT(i < nodeGroupScanState.chunkStates.size());
             const auto columnID = state.columnIDs[i];
+            if (columnID == INVALID_COLUMN_ID || columnID == ROW_IDX_COLUMN_ID) {
+                continue;
+            }
             auto& chunk = firstChunkedGroup->getColumnChunk(columnID);
             chunk.initializeScanState(nodeGroupScanState.chunkStates[i]);
             // TODO: Not a good way to initialize column for chunkState here.
