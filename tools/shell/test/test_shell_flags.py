@@ -4,6 +4,11 @@ import pytest
 from conftest import ShellTest
 from test_helper import KUZU_VERSION, deleteIfExists
 
+def check_fails_without_db(flag):
+    test = ShellTest().add_argument(flag)
+    result = test.run()
+    result.check_stderr("Option 'databasePath' is required")
+
 
 def test_database_path(temp_db) -> None:
     # no database path
@@ -27,9 +32,14 @@ def test_database_path(temp_db) -> None:
     ["-h", "--help"],
 )
 def test_help(temp_db, flag) -> None:
+    # database path not needed
+    test = ShellTest().add_argument(flag)
+    result = test.run()
+    result.check_stderr("KuzuDB Shell")
+    # with database path
     test = ShellTest().add_argument(temp_db).add_argument(flag)
     result = test.run()
-    result.check_stderr("help")
+    result.check_stderr("KuzuDB Shell")
 
 
 @pytest.mark.parametrize(
@@ -40,6 +50,8 @@ def test_help(temp_db, flag) -> None:
     ],
 )
 def test_default_bp_size(temp_db, flag) -> None:
+    # fails without db path
+    check_fails_without_db(flag)
     # empty flag argument
     test = ShellTest().add_argument(temp_db).add_argument(flag)
     result = test.run()
@@ -59,6 +71,9 @@ def test_default_bp_size(temp_db, flag) -> None:
 
 
 def test_no_compression(temp_db) -> None:
+    # fails without db path
+    check_fails_without_db("--nocompression")
+    
     test = ShellTest().add_argument(temp_db).add_argument("--nocompression")
     result = test.run()
     result.check_stdout(f"Opened the database at path: {temp_db} in read-write mode.")
@@ -77,6 +92,8 @@ def test_read_only(temp_db, flag) -> None:
     result = test.run()
     result.check_stdout(f"Opened the database at path: {temp_db} in read-write mode.")
 
+    # fails without db path
+    check_fails_without_db(flag)
     # test read only
     test = (
         ShellTest()
@@ -105,6 +122,11 @@ def test_history_path(temp_db, history_path) -> None:
     test = ShellTest().add_argument(temp_db).add_argument("-p").add_argument("///////")
     result = test.run()
     result.check_stderr("Invalid path to directory for history file")
+    
+    # fails without db path
+    test = ShellTest().add_argument("-p").add_argument(history_path)
+    result = test.run()
+    result.check_stderr("Option 'databasePath' is required")
 
     # valid path, file doesn't exist
     test = (
@@ -143,12 +165,27 @@ def test_history_path(temp_db, history_path) -> None:
     ],
 )
 def test_version(temp_db, flag) -> None:
+    # database path not needed
+    test = ShellTest().add_argument(flag)
+    result = test.run()
+    result.check_stdout(KUZU_VERSION)
+    # with database path
     test = ShellTest().add_argument(temp_db).add_argument(flag)
     result = test.run()
     result.check_stdout(KUZU_VERSION)
 
 
 def test_bad_flag(temp_db) -> None:
+    # without database path
+    test = ShellTest().add_argument("-b")
+    result = test.run()
+    result.check_stderr("Flag could not be matched: 'b'")
+
+    test = ShellTest().add_argument("--badflag")
+    result = test.run()
+    result.check_stderr("Flag could not be matched: badflag")
+
+    # with database path
     test = ShellTest().add_argument(temp_db).add_argument("-b")
     result = test.run()
     result.check_stderr("Flag could not be matched: 'b'")
