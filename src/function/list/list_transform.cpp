@@ -21,7 +21,20 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
         LogicalType::LIST(arguments[1]->getDataType().copy()));
 }
 
-static void execFunc(const std::vector<std::shared_ptr<ValueVector>>&, ValueVector&, void*) {}
+static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& input,
+    common::ValueVector& result, void*) {
+    auto& listInputSelVector = input[0]->state->getSelVector();
+    // NOTE: the following can be done with a memcpy. But I think soon we will need to change
+    // to handle cases like
+    // MATCH (a:person) RETURN LIST_TRANSFORM([1,2,3], x->x + a.ID)
+    // So I'm leaving it in the naive form.
+    KU_ASSERT(input.size() == 2);
+    ListVector::setDataVector(&result, input[1]);
+    for (auto i = 0u; i < listInputSelVector.getSelSize(); ++i) {
+        auto pos = listInputSelVector[i];
+        result.setValue(pos, input[0]->getValue<list_entry_t>(pos));
+    }
+}
 
 function_set ListTransformFunction::getFunctionSet() {
     function_set result;

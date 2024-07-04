@@ -1,0 +1,24 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE ListFilter
+-STATEMENT RETURN LIST_FILTER([5,28,92], x-> x + 4 >= 24)
+---- 1
+[28,92]
+-STATEMENT RETURN LIST_FILTER(['Duckdb', 'Alice', 'kuzu', 'long long string'], x -> size(x) > 4)
+---- 1
+[Duckdb,Alice,long long string]
+-STATEMENT MATCH (a:person) RETURN LIST_FILTER(a.workedHours, x->x > 5)
+---- 8
+[10]
+[12,8]
+[]
+[9]
+[]
+[6,7]
+[]
+[10,11,12,6,7]
+-STATEMENT MATCH (a:person) RETURN LIST_FILTER(a.courseScoresPerTerm, x->size(x))
+---- error
+Binder exception: LIST_FILTER requires the result type of lambda expression be BOOL.

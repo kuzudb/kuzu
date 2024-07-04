@@ -13,7 +13,8 @@ namespace binder {
 
 void ExpressionBinder::bindLambdaExpression(const std::string& functionName,
     const Expression& lambdaInput, Expression& lambdaExpr) {
-    if (functionName != function::ListTransformFunction::name) {
+    if (functionName != function::ListTransformFunction::name &&
+        functionName != function::ListFilterFunction::name) {
         throw BinderException(stringFormat("{} does not support lambda input.", functionName));
     }
     KU_ASSERT(lambdaInput.getDataType().getLogicalTypeID() == LogicalTypeID::LIST);
