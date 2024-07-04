@@ -92,6 +92,7 @@ public:
         const common::ValueVector& dataVector) const;
     bool delete_(transaction::Transaction* transaction, common::ValueVector& boundNodeIDVector,
         const common::ValueVector& relIDVector) const;
+    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState);
 
     bool checkIfNodeHasRels(transaction::Transaction* transaction,
         common::offset_t nodeOffset) const;

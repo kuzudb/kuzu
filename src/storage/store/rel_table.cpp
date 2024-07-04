@@ -210,25 +210,9 @@ row_idx_t RelTable::detachDeleteForCSRRels(Transaction*, RelTableData*, RelTable
     // return numRelsDeleted;
 }
 
-// TODO(Guodong): Rework this.
 void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
-    // const auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
-    // relsStats->addMetadataDAHInfo(tableID, property.getDataType());
-    // fwdRelTableData->addColumn(transaction,
-    // RelDataDirectionUtils::relDirectionToString(RelDataDirection::FWD),
-    // fwdRelTableData->getNbrIDColumn()->getMetadataDA(),
-    // *relsStats->getColumnMetadataDAHInfo(transaction, tableID, fwdRelTableData->getNumColumns(),
-    // RelDataDirection::FWD),
-    // property, defaultEvaluator);
-    // bwdRelTableData->addColumn(transaction,
-    // RelDataDirectionUtils::relDirectionToString(RelDataDirection::BWD),
-    // bwdRelTableData->getNbrIDColumn()->getMetadataDA(),
-    // *relsStats->getColumnMetadataDAHInfo(transaction, tableID, bwdRelTableData->getNumColumns(),
-    // RelDataDirection::BWD),
-    // property, defaultEvaluator);
-    // TODO(Guodong): addColumn is not going through localStorage design for now. So it needs to add
-    // tableID into the wal's updated table set separately, as it won't trigger prepareCommit.
-    // wal->addToUpdatedTables(tableID);
+    fwdRelTableData->addColumn(transaction, addColumnState);
+    bwdRelTableData->addColumn(transaction, addColumnState);
 }
 
 NodeGroup* RelTable::getOrCreateNodeGroup(node_group_idx_t nodeGroupIdx,
