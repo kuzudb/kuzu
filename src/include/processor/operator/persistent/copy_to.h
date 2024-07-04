@@ -29,6 +29,24 @@ struct CopyToLocalState {
     std::vector<std::shared_ptr<common::ValueVector>> inputVectors;
 };
 
+struct CopyToPrintInfo final : OPPrintInfo {
+    std::vector<std::string> columnNames;
+    std::string fileName;
+
+    CopyToPrintInfo(std::vector<std::string> columnNames, std::string fileName)
+        : columnNames{std::move(columnNames)}, fileName{std::move(fileName)} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<CopyToPrintInfo>(new CopyToPrintInfo(*this));
+    }
+
+private:
+    CopyToPrintInfo(const CopyToPrintInfo& other)
+        : OPPrintInfo{other}, columnNames{other.columnNames}, fileName{other.fileName} {}
+};
+
 class CopyTo final : public Sink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::COPY_TO;
 

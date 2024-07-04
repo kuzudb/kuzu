@@ -5,6 +5,22 @@
 namespace kuzu {
 namespace processor {
 
+struct DropTablePrintInfo final : OPPrintInfo {
+    std::string tableName;
+
+    explicit DropTablePrintInfo(std::string tableName) : tableName{std::move(tableName)} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<DropTablePrintInfo>(new DropTablePrintInfo(*this));
+    }
+
+private:
+    DropTablePrintInfo(const DropTablePrintInfo& other)
+        : OPPrintInfo{other}, tableName{other.tableName} {}
+};
+
 class DropTable : public DDL {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DROP_TABLE;
 

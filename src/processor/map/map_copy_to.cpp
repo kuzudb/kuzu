@@ -29,7 +29,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(LogicalOperator* logical
     auto sharedState = exportFunc.initShared(*clientContext, *bindData);
     auto info =
         CopyToInfo{exportFunc, std::move(bindData), std::move(vectorsToCopyPos), std::move(isFlat)};
-    auto printInfo = std::make_unique<OPPrintInfo>(logicalCopyTo.getExpressionsForPrinting());
+    auto printInfo =
+        std::make_unique<CopyToPrintInfo>(info.bindData->columnNames, info.bindData->fileName);
     auto copyTo = std::make_unique<CopyTo>(std::make_unique<ResultSetDescriptor>(childSchema),
         std::move(info), std::move(sharedState), std::move(prevOperator), getOperatorID(),
         std::move(printInfo));

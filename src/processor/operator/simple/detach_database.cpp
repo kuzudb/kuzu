@@ -6,6 +6,10 @@
 namespace kuzu {
 namespace processor {
 
+std::string DetatchDatabasePrintInfo::toString() const {
+    return "Database: " + name;
+}
+
 void DetachDatabase::executeInternal(kuzu::processor::ExecutionContext* context) {
     auto dbManager = context->clientContext->getDatabaseManager();
     if (dbManager->getAttachedDatabase(dbName) != nullptr &&

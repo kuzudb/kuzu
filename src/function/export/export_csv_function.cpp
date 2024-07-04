@@ -20,7 +20,8 @@ struct ExportCSVBindData : public ExportFuncBindData {
           exportOption{std::move(exportOption)} {}
 
     std::unique_ptr<ExportFuncBindData> copy() const override {
-        auto bindData = std::make_unique<ExportCSVBindData>(names, fileName, exportOption.copy());
+        auto bindData =
+            std::make_unique<ExportCSVBindData>(columnNames, fileName, exportOption.copy());
         bindData->types = LogicalType::copy(types);
         return bindData;
     }
@@ -116,11 +117,11 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
         auto& exportCSVBindData = bindData.constCast<ExportCSVBindData>();
         BufferedSerializer bufferedSerializer;
         if (exportCSVBindData.exportOption.hasHeader) {
-            for (auto i = 0u; i < exportCSVBindData.names.size(); i++) {
+            for (auto i = 0u; i < exportCSVBindData.columnNames.size(); i++) {
                 if (i != 0) {
                     bufferedSerializer.writeBufferData(exportCSVBindData.exportOption.delimiter);
                 }
-                auto& name = exportCSVBindData.names[i];
+                auto& name = exportCSVBindData.columnNames[i];
                 writeString(&bufferedSerializer, exportCSVBindData,
                     reinterpret_cast<const uint8_t*>(name.c_str()), name.length(),
                     false /* forceQuote */);
