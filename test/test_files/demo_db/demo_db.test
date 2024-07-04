@@ -3,7 +3,6 @@
 --
 
 -CASE DemoDBTest
-
 -LOG CountSubquery
 -STATEMENT MATCH (a:User) RETURN a.name, COUNT { MATCH (a)<-[:Follows]-(b:User) } AS num_follower ORDER BY num_follower;
 ---- 4

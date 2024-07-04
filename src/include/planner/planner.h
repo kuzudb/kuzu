@@ -154,8 +154,7 @@ public:
     void planRegularMatch(const binder::QueryGraphCollection& queryGraphCollection,
         const binder::expression_vector& predicates, LogicalPlan& leftPlan);
     void planSubquery(const std::shared_ptr<binder::Expression>& subquery, LogicalPlan& outerPlan);
-    void planSubqueryIfNecessary(const std::shared_ptr<binder::Expression>& expression,
-        LogicalPlan& plan);
+    void planSubqueryIfNecessary(std::shared_ptr<binder::Expression> expression, LogicalPlan& plan);
 
     static binder::expression_vector getCorrelatedExprs(
         const binder::QueryGraphCollection& collection, const binder::expression_vector& predicates,

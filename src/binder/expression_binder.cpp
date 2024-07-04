@@ -16,7 +16,7 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace binder {
 
-static void validateAggregationExpressionIsNotNested(const Expression& expression);
+static void validateAggregationExpressionIsNotNested(std::shared_ptr<Expression> expression);
 
 std::shared_ptr<Expression> ExpressionBinder::bindExpression(
     const parser::ParsedExpression& parsedExpression) {
@@ -51,9 +51,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
     if (parsedExpression.hasAlias()) {
         expression->setAlias(parsedExpression.getAlias());
     }
-    if (ExpressionType::AGGREGATE_FUNCTION == expression->expressionType) {
-        validateAggregationExpressionIsNotNested(*expression);
-    }
+    validateAggregationExpressionIsNotNested(expression);
     if (ExpressionVisitor::needFold(*expression)) {
         return foldExpression(expression);
     }
@@ -114,13 +112,15 @@ std::shared_ptr<Expression> ExpressionBinder::forceCast(
     return bindScalarFunctionExpression(children, functionName);
 }
 
-void validateAggregationExpressionIsNotNested(const Expression& expression) {
-    if (expression.getNumChildren() == 0) {
-        return;
+void validateAggregationExpressionIsNotNested(std::shared_ptr<Expression> expression) {
+    if (expression->expressionType != ExpressionType::AGGREGATE_FUNCTION || expression->getNumChildren() == 0) {
+        return ;
     }
-    if (ExpressionVisitor::hasAggregate(*expression.getChild(0))) {
+    auto collector = AggregateExprCollector();
+    collector.visit(expression->getChild(0));
+    if (collector.hasAggregate()) {
         throw BinderException(
-            stringFormat("Expression {} contains nested aggregation.", expression.toString()));
+            stringFormat("Expression {} contains nested aggregation.", expression->toString()));
     }
 }
 
