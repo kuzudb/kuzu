@@ -11,9 +11,9 @@ os.chdir(KUZU_ROOT)
 if os.path.exists(f"{KUZU_ROOT}/dataset/databases/tinysnb"):
     shutil.rmtree(f"{KUZU_ROOT}/dataset/databases/tinysnb")
 if sys.platform == "win32":
-    kuzu_shell_path = f"{KUZU_ROOT}/build/release/tools/shell/kuzu_shell"
+    kuzu_shell_path = f"{KUZU_ROOT}/build/relwithdebinfo/tools/shell/kuzu_shell"
 else:
-    kuzu_shell_path = f"{KUZU_ROOT}/build/release/tools/shell/kuzu"
+    kuzu_shell_path = f"{KUZU_ROOT}/build/relwithdebinfo/tools/shell/kuzu"
 subprocess.check_call(
     [
         "python3",
