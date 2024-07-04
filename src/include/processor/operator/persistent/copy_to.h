@@ -30,19 +30,21 @@ struct CopyToLocalState {
 };
 
 struct CopyToPrintInfo final : OPPrintInfo {
-    std::vector<std::string> exportNames;
+    std::vector<std::string> columnNames;
     std::string fileName;
 
-    CopyToPrintInfo(std::vector<std::string> exportNames, std::string fileName)
-        : exportNames{std::move(exportNames)}, fileName{std::move(fileName)} {}
-    CopyToPrintInfo(const CopyToPrintInfo& other)
-        : OPPrintInfo{other}, exportNames{other.exportNames}, fileName{other.fileName} {}
+    CopyToPrintInfo(std::vector<std::string> columnNames, std::string fileName)
+        : columnNames{std::move(columnNames)}, fileName{std::move(fileName)} {}
 
     std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override {
-        return std::make_unique<CopyToPrintInfo>(*this);
+        return std::unique_ptr<CopyToPrintInfo>(new CopyToPrintInfo(*this));
     }
+
+private:
+    CopyToPrintInfo(const CopyToPrintInfo& other)
+        : OPPrintInfo{other}, columnNames{other.columnNames}, fileName{other.fileName} {}
 };
 
 class CopyTo final : public Sink {

@@ -9,14 +9,16 @@ struct DropTablePrintInfo final : OPPrintInfo {
     std::string tableName;
 
     explicit DropTablePrintInfo(std::string tableName) : tableName{std::move(tableName)} {}
-    DropTablePrintInfo(const DropTablePrintInfo& other)
-        : OPPrintInfo{other}, tableName{other.tableName} {}
 
     std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override {
-        return std::make_unique<DropTablePrintInfo>(*this);
+        return std::unique_ptr<DropTablePrintInfo>(new DropTablePrintInfo(*this));
     }
+
+private:
+    DropTablePrintInfo(const DropTablePrintInfo& other)
+        : OPPrintInfo{other}, tableName{other.tableName} {}
 };
 
 class DropTable : public DDL {

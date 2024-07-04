@@ -9,14 +9,16 @@ struct DetatchDatabasePrintInfo final : OPPrintInfo {
     std::string name;
 
     explicit DetatchDatabasePrintInfo(std::string name) : name{std::move(name)} {}
-    DetatchDatabasePrintInfo(const DetatchDatabasePrintInfo& other)
-        : OPPrintInfo{other}, name{other.name} {}
 
     std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override {
-        return std::make_unique<DetatchDatabasePrintInfo>(*this);
+        return std::unique_ptr<DetatchDatabasePrintInfo>(new DetatchDatabasePrintInfo(*this));
     }
+
+private:
+    DetatchDatabasePrintInfo(const DetatchDatabasePrintInfo& other)
+        : OPPrintInfo{other}, name{other.name} {}
 };
 
 class DetachDatabase final : public Simple {

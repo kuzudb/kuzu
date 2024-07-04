@@ -13,17 +13,6 @@ struct ProfileLocalState {
     bool hasExecuted = false;
 };
 
-struct ProfilePrintInfo final : OPPrintInfo {
-    ProfilePrintInfo() {}
-    ProfilePrintInfo(const ProfilePrintInfo& other) : OPPrintInfo{other} {}
-
-    std::string toString() const override { return "Explain"; }
-
-    std::unique_ptr<OPPrintInfo> copy() const override {
-        return std::make_unique<ProfilePrintInfo>(*this);
-    }
-};
-
 class Profile : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::PROFILE;
 

@@ -6,7 +6,7 @@ namespace processor {
 std::string CopyToPrintInfo::toString() const {
     std::string result = "";
     result += "Export: ";
-    for (auto& name : exportNames) {
+    for (auto& name : columnNames) {
         result += name + ", ";
     }
     result += "To: " + fileName;

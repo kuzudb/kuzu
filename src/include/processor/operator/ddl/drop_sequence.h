@@ -9,14 +9,16 @@ struct DropSequencePrintInfo final : OPPrintInfo {
     std::string name;
 
     explicit DropSequencePrintInfo(std::string name) : name{std::move(name)} {}
-    DropSequencePrintInfo(const DropSequencePrintInfo& other)
-        : OPPrintInfo{other}, name{other.name} {}
 
     std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override {
-        return std::make_unique<DropSequencePrintInfo>(*this);
+        return std::unique_ptr<DropSequencePrintInfo>(new DropSequencePrintInfo(*this));
     }
+
+private:
+    DropSequencePrintInfo(const DropSequencePrintInfo& other)
+        : OPPrintInfo{other}, name{other.name} {}
 };
 
 class DropSequence : public DDL {

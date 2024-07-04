@@ -12,14 +12,16 @@ struct CreateTypePrintInfo final : OPPrintInfo {
 
     CreateTypePrintInfo(std::string typeName, std::string type)
         : typeName{std::move(typeName)}, type{std::move(type)} {}
-    CreateTypePrintInfo(const CreateTypePrintInfo& other)
-        : OPPrintInfo{other}, typeName{other.typeName}, type{other.type} {}
 
     std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override {
-        return std::make_unique<CreateTypePrintInfo>(*this);
+        return std::unique_ptr<CreateTypePrintInfo>(new CreateTypePrintInfo(*this));
     }
+
+private:
+    CreateTypePrintInfo(const CreateTypePrintInfo& other)
+        : OPPrintInfo{other}, typeName{other.typeName}, type{other.type} {}
 };
 
 class CreateType : public DDL {

@@ -44,18 +44,6 @@ private:
     std::vector<ft_col_idx_t> colIndicesToScan;
 };
 
-struct CrossProductPrintInfo final : OPPrintInfo {
-
-    CrossProductPrintInfo() {}
-    CrossProductPrintInfo(const CrossProductPrintInfo& other) : OPPrintInfo{other} {}
-
-    std::string toString() const override { return ""; };
-
-    std::unique_ptr<OPPrintInfo> copy() const override {
-        return std::make_unique<CrossProductPrintInfo>(*this);
-    }
-};
-
 class CrossProduct : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CROSS_PRODUCT;
 
