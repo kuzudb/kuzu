@@ -91,9 +91,8 @@ Used database successfully.
 -STATEMENT LOAD FROM other1.person RETURN count(*);
 ---- 1
 4
-# TODO (Ziyi): reenable this statement (currently failing on macos CI)
-# -STATEMENT CALL CLEAR_ATTACHED_DB_CACHE() RETURN *;
-# ---- ok
+-STATEMENT CALL CLEAR_ATTACHED_DB_CACHE() RETURN *;
+---- error
 -STATEMENT LOAD FROM other1.person RETURN count(*);
 ---- 1
 4
