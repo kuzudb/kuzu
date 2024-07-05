@@ -2,6 +2,7 @@
 
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/store/column.h"
+#include "storage/store/table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -99,6 +100,13 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroup(Transac
 
 row_idx_t NodeGroupCollection::getNumRows() const {
     return numRows.load();
+}
+
+void NodeGroupCollection::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
+    const auto lock = nodeGroups.lock();
+    for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
+        nodeGroup->addColumn(transaction, addColumnState, dataFH);
+    }
 }
 
 uint64_t NodeGroupCollection::getEstimatedMemoryUsage() {
