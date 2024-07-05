@@ -20,6 +20,7 @@ public:
     bool insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     bool update(TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
+    bool addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState) override;
 
     void clear() override { nodeGroups.clear(); }
 

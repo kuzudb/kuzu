@@ -123,8 +123,7 @@ public:
     void checkIfNodeHasRels(transaction::Transaction* transaction,
         common::RelDataDirection direction, common::ValueVector* srcNodeIDVector) const;
 
-    void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
-        evaluator::ExpressionEvaluator& defaultEvaluator) override;
+    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState) override;
     void dropColumn(common::column_id_t) override {
         // TODO(Guodong): Rework this.
         // fwdRelTableData->dropColumn(columnID);
