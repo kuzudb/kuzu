@@ -17,6 +17,7 @@ static offset_t clearCacheTableFunc(TableFuncInput& input, TableFuncOutput& outp
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
+    KU_ASSERT(input.bindData != nullptr);
     auto bindData = input.bindData->constPtrCast<ClearCacheBindData>();
     bindData->databaseManager->invalidateCache();
     dataChunk.getValueVector(0)->setValue<std::string>(0,
