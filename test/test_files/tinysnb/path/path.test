@@ -4,6 +4,25 @@
 
 -CASE Path
 
+-LOG UndirectedPath
+-STATEMENT MATCH (a:person)-[e:knows*2..2 (r, n | WHERE r.comments = ['rnme','m8sihsdnf2990nfiwf']| {r.date}, {})]-(b:person) WHERE a.ID = 0 AND b.ID = 0 RETURN rels(e)
+---- 1
+[(0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30}->(0:1),(0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30}->(0:1)]
+-STATEMENT MATCH (a:person)-[e:knows*2..2 (r, n | {r.date}, {})]-(b:person) WHERE a.ID = 0 AND b.ID = 0 RETURN rels(e)
+---- 12
+[(0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30}->(0:1),(0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30}->(0:1)]
+[(0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30}->(0:1),(0:1)-{_LABEL: knows, _ID: 3:3, date: 2021-06-30}->(0:0)]
+[(0:0)-{_LABEL: knows, _ID: 3:1, date: 2021-06-30}->(0:2),(0:0)-{_LABEL: knows, _ID: 3:1, date: 2021-06-30}->(0:2)]
+[(0:0)-{_LABEL: knows, _ID: 3:1, date: 2021-06-30}->(0:2),(0:2)-{_LABEL: knows, _ID: 3:6, date: 2021-06-30}->(0:0)]
+[(0:0)-{_LABEL: knows, _ID: 3:2, date: 2021-06-30}->(0:3),(0:0)-{_LABEL: knows, _ID: 3:2, date: 2021-06-30}->(0:3)]
+[(0:0)-{_LABEL: knows, _ID: 3:2, date: 2021-06-30}->(0:3),(0:3)-{_LABEL: knows, _ID: 3:9, date: 2021-06-30}->(0:0)]
+[(0:1)-{_LABEL: knows, _ID: 3:3, date: 2021-06-30}->(0:0),(0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30}->(0:1)]
+[(0:1)-{_LABEL: knows, _ID: 3:3, date: 2021-06-30}->(0:0),(0:1)-{_LABEL: knows, _ID: 3:3, date: 2021-06-30}->(0:0)]
+[(0:2)-{_LABEL: knows, _ID: 3:6, date: 2021-06-30}->(0:0),(0:0)-{_LABEL: knows, _ID: 3:1, date: 2021-06-30}->(0:2)]
+[(0:2)-{_LABEL: knows, _ID: 3:6, date: 2021-06-30}->(0:0),(0:2)-{_LABEL: knows, _ID: 3:6, date: 2021-06-30}->(0:0)]
+[(0:3)-{_LABEL: knows, _ID: 3:9, date: 2021-06-30}->(0:0),(0:0)-{_LABEL: knows, _ID: 3:2, date: 2021-06-30}->(0:3)]
+[(0:3)-{_LABEL: knows, _ID: 3:9, date: 2021-06-30}->(0:0),(0:3)-{_LABEL: knows, _ID: 3:9, date: 2021-06-30}->(0:0)]
+
 -LOG Path1
 -STATEMENT MATCH p = (a:person)-[e:knows]->(b:person) WHERE a.ID = 0 AND b.fName = 'Bob' RETURN p
 ---- 1

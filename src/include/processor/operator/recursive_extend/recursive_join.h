@@ -35,6 +35,7 @@ struct RecursiveJoinDataInfo {
     DataPos recursiveDstNodeIDPos;
     std::unordered_set<common::table_id_t> recursiveDstNodeTableIDs;
     DataPos recursiveEdgeIDPos;
+    DataPos recursiveEdgeDirectionPos;
     // Path info
     DataPos pathPos;
     std::unordered_map<common::table_id_t, std::string> tableIDToName;
@@ -54,6 +55,7 @@ private:
         recursiveDstNodeIDPos = other.recursiveDstNodeIDPos;
         recursiveDstNodeTableIDs = other.recursiveDstNodeTableIDs;
         recursiveEdgeIDPos = other.recursiveEdgeIDPos;
+        recursiveEdgeDirectionPos = other.recursiveEdgeDirectionPos;
         pathPos = other.pathPos;
         tableIDToName = other.tableIDToName;
     }
@@ -74,7 +76,7 @@ struct RecursiveJoinVectors {
     common::ValueVector* pathRelsLabelDataVector = nullptr;  // STRING
 
     common::ValueVector* recursiveEdgeIDVector = nullptr;
-    common::ValueVector* recursiveSrcNodeIDVector = nullptr;
+    common::ValueVector* recursiveEdgeDirectionVector = nullptr;
     common::ValueVector* recursiveDstNodeIDVector = nullptr;
     common::ValueVector* recursiveNodePredicateExecFlagVector = nullptr;
 };

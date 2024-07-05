@@ -374,7 +374,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     auto nodeCopy = createQueryNode(recursivePatternInfo->nodeName,
         std::vector<table_id_t>{nodeTableIDs.begin(), nodeTableIDs.end()});
     // Bind intermediate rel
-    auto rel = createNonRecursiveQueryRel(recursivePatternInfo->relName, tableIDs, nullptr, nullptr,
+    auto rel = createNonRecursiveQueryRel(recursivePatternInfo->relName, tableIDs, node, nodeCopy,
         directionType);
     addToScope(rel->toString(), rel);
     expression_vector relProjectionList;
