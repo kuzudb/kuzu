@@ -101,6 +101,11 @@ bool LocalRelTable::delete_(transaction::Transaction*, TableDeleteState& state) 
     return true;
 }
 
+bool LocalRelTable::addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState) {
+    localNodeGroup->addColumn(transaction, addColumnState, nullptr /* BMFileHandle */);
+    return true;
+}
+
 void LocalRelTable::initializeScan(TableScanState& state) {
     auto& relScanState = state.cast<RelTableScanState>();
     KU_ASSERT(state.source == TableScanSource::UNCOMMITTED);

@@ -114,6 +114,9 @@ public:
     bool delete_(const transaction::Transaction* transaction, CSRNodeGroupScanSource source,
         common::row_idx_t rowIdxInGroup);
 
+    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState, 
+        BMFileHandle* dataFH) override;
+
     bool isEmpty() const override { return !persistentChunkGroup && NodeGroup::isEmpty(); }
 
     void setPersistentChunkedGroup(std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup) {

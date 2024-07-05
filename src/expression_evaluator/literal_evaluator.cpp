@@ -10,6 +10,7 @@ namespace kuzu {
 namespace evaluator {
 
 void LiteralExpressionEvaluator::evaluate() {
+    resultVector->setState(flatState);
     auto cnt = localState.count;
     for (auto i = 1ul; i < cnt; i++) {
         resultVector->copyFromVectorData(i, resultVector.get(), 0);
@@ -30,8 +31,9 @@ bool LiteralExpressionEvaluator::select(SelectionVector&) {
 void LiteralExpressionEvaluator::resolveResultVector(const processor::ResultSet& /*resultSet*/,
     MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(value.getDataType().copy(), memoryManager);
-    resultVector->setState(DataChunkState::getSingleValueDataChunkState());
+    flatState = DataChunkState::getSingleValueDataChunkState();
     unflatState = std::make_shared<DataChunkState>();
+    resultVector->setState(flatState);
     if (value.isNull()) {
         resultVector->setNull(0 /* pos */, true);
     } else {
