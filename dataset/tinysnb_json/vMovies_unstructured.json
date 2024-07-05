@@ -1,4 +1,3 @@
-[
     {
       "name": "Sóló cón tu párejâ",
       "length": 126,
@@ -7,7 +6,7 @@
       "content": "",
       "audience": "{audience1= 52,audience53= 42}",
       "grade": true
-    },
+    }
     {
       "name": "The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie",
       "length": 2544,
@@ -16,7 +15,7 @@
       "content": null,
       "audience": "{audience1= 33}",
       "grade": 8.989
-    },
+    }
     {
       "name": "Roma",
       "length": 298,
@@ -26,4 +25,3 @@
       "audience": {},
       "grade": 254
     }
-  ]

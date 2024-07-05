@@ -36,7 +36,7 @@ public:
         const std::vector<common::LogicalType>& inputTypes, bool isDistinct,
         catalog::CatalogSet* catalogSet);
 
-    static uint32_t getCastCost(common::LogicalTypeID inputTypeID,
+    static KUZU_API uint32_t getCastCost(common::LogicalTypeID inputTypeID,
         common::LogicalTypeID targetTypeID);
 
 private:
