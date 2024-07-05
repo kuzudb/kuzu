@@ -4,7 +4,12 @@
 #include <unordered_map>
 
 #include "common/api.h"
+#include "function/function.h"
 #include "main/db_config.h"
+
+#define ADD_FUNC(FUNC_STRUCT)                                                                      \
+    kuzu::extension::ExtensionUtils::registerFunctionSet(db, std::string(FUNC_STRUCT::name),       \
+        FUNC_STRUCT::getFunctionSet())
 
 namespace kuzu {
 namespace function {
@@ -33,7 +38,7 @@ struct ExtensionUtils {
     static constexpr const char* EXTENSION_REPO =
         "http://extension.kuzudb.com/v{}/{}/lib{}.kuzu_extension";
 
-    static constexpr const char* OFFICIAL_EXTENSION[] = {"HTTPFS", "POSTGRES", "DUCKDB"};
+    static constexpr const char* OFFICIAL_EXTENSION[] = {"HTTPFS", "POSTGRES", "DUCKDB", "JSON"};
 
     static std::string getExtensionPath(const std::string& extensionDir, const std::string& name);
 
@@ -43,6 +48,9 @@ struct ExtensionUtils {
 
     KUZU_API static void registerTableFunction(main::Database& database,
         std::unique_ptr<function::TableFunction> function);
+
+    KUZU_API static void registerFunctionSet(main::Database& database, std::string name,
+        function::function_set functionSet);
 
     static bool isOfficialExtension(const std::string& extension);
 };
