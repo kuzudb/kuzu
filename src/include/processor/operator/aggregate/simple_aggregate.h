@@ -33,14 +33,16 @@ struct SimpleAggregatePrintInfo final : OPPrintInfo {
 
     explicit SimpleAggregatePrintInfo(binder::expression_vector aggregates)
         : aggregates{std::move(aggregates)} {}
-    SimpleAggregatePrintInfo(const SimpleAggregatePrintInfo& other)
-        : OPPrintInfo{other}, aggregates{other.aggregates} {}
 
     std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override {
-        return std::make_unique<SimpleAggregatePrintInfo>(*this);
+        return std::unique_ptr<SimpleAggregatePrintInfo>(new SimpleAggregatePrintInfo(*this));
     }
+
+private:
+    SimpleAggregatePrintInfo(const SimpleAggregatePrintInfo& other)
+        : OPPrintInfo{other}, aggregates{other.aggregates} {}
 };
 
 class SimpleAggregate : public BaseAggregate {

@@ -25,12 +25,12 @@ struct ExportFuncSharedState {
 };
 
 struct ExportFuncBindData {
-    std::vector<std::string> names;
+    std::vector<std::string> columnNames;
     std::vector<common::LogicalType> types;
     std::string fileName;
 
-    ExportFuncBindData(std::vector<std::string> names, std::string fileName)
-        : names{std::move(names)}, fileName{std::move(fileName)} {}
+    ExportFuncBindData(std::vector<std::string> columnNames, std::string fileName)
+        : columnNames{std::move(columnNames)}, fileName{std::move(fileName)} {}
 
     virtual ~ExportFuncBindData() = default;
 

@@ -9,6 +9,10 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
+std::string CreateSequencePrintInfo::toString() const {
+    return seqName;
+}
+
 void CreateSequence::executeDDLInternal(ExecutionContext* context) {
     auto catalog = context->clientContext->getCatalog();
     switch (info.onConflict) {

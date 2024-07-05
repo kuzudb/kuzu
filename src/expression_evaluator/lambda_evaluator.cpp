@@ -19,23 +19,32 @@ void ListLambdaEvaluator::init(const ResultSet& resultSet, ClientContext* client
     auto collector = LambdaParamEvaluatorCollector();
     collector.visit(lambdaRootEvaluator.get());
     auto evaluators = collector.getEvaluators();
-    lambdaParamEvaluator = evaluators[0]->ptrCast<LambdaParamEvaluator>();
-    lambdaParamEvaluator->resultVector = ListVector::getSharedDataVector(listInputVector);
-    lambdaParamEvaluator->resultVector->state = std::make_shared<DataChunkState>();
+    auto lambdaVarState = std::make_shared<DataChunkState>();
+    for (auto& evaluator : evaluators) {
+        // For list_filter, list_transform:
+        // The resultVector of lambdaEvaluator should be the list dataVector.
+        // For list_reduce:
+        // We should create two vectors for each lambda variable resultVector since we are going to
+        // update the list elements during execution.
+        evaluator->resultVector = evaluators.size() == 1 ?
+                                      ListVector::getSharedDataVector(listInputVector) :
+                                      std::make_shared<ValueVector>(
+                                          ListType::getChildType(listInputVector->dataType).copy(),
+                                          clientContext->getMemoryManager());
+        evaluator->resultVector->state = lambdaVarState;
+        lambdaParamEvaluators.push_back(evaluator->ptrCast<LambdaParamEvaluator>());
+    }
     lambdaRootEvaluator->init(resultSet, clientContext);
     resolveResultVector(resultSet, clientContext->getMemoryManager());
     params.push_back(children[0]->resultVector);
     params.push_back(lambdaRootEvaluator->resultVector);
+    bindData = ListLambdaBindData{lambdaParamEvaluators, lambdaRootEvaluator.get()};
 }
 
 void ListLambdaEvaluator::evaluate() {
     KU_ASSERT(children.size() == 1);
     children[0]->evaluate();
-    auto listSize = ListVector::getDataVectorSize(children[0]->resultVector.get());
-    auto lambdaParamVector = lambdaParamEvaluator->resultVector.get();
-    lambdaParamVector->state->getSelVectorUnsafe().setSelSize(listSize);
-    lambdaRootEvaluator->evaluate();
-    execFunc(params, *resultVector, nullptr /* dataPtr */);
+    execFunc(params, *resultVector, &bindData);
 }
 
 void ListLambdaEvaluator::resolveResultVector(const ResultSet&, MemoryManager* memoryManager) {

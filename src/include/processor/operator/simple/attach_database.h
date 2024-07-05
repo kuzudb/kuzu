@@ -12,14 +12,16 @@ struct AttachDatabasePrintInfo final : OPPrintInfo {
 
     AttachDatabasePrintInfo(std::string dbName, std::string dbPath)
         : dbName{std::move(dbName)}, dbPath{std::move(dbPath)} {}
-    AttachDatabasePrintInfo(const AttachDatabasePrintInfo& other)
-        : OPPrintInfo{other}, dbName{other.dbName}, dbPath{other.dbPath} {}
 
     std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override {
-        return std::make_unique<AttachDatabasePrintInfo>(*this);
+        return std::unique_ptr<AttachDatabasePrintInfo>(new AttachDatabasePrintInfo(*this));
     }
+
+private:
+    AttachDatabasePrintInfo(const AttachDatabasePrintInfo& other)
+        : OPPrintInfo{other}, dbName{other.dbName}, dbPath{other.dbPath} {}
 };
 
 class AttachDatabase final : public Simple {

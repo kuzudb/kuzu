@@ -32,7 +32,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCrossProduct(LogicalOperator* l
     auto table = resultCollector->getResultFactorizedTable();
     auto maxMorselSize = table->hasUnflatCol() ? 1 : DEFAULT_VECTOR_CAPACITY;
     auto localState = std::make_unique<CrossProductLocalState>(table, maxMorselSize);
-    auto printInfo = std::make_unique<OPPrintInfo>(logicalCrossProduct.getExpressionsForPrinting());
+    auto printInfo = std::make_unique<OPPrintInfo>();
     return make_unique<CrossProduct>(std::move(info), std::move(localState),
         std::move(probeSidePrevOperator), std::move(resultCollector), getOperatorID(),
         std::move(printInfo));

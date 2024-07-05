@@ -15,15 +15,17 @@ struct AlterPrintInfo final : OPPrintInfo {
     AlterPrintInfo(common::AlterType alterType, std::string tableName,
         binder::BoundExtraAlterInfo* info)
         : alterType{std::move(alterType)}, tableName{std::move(tableName)}, info{info} {}
-    AlterPrintInfo(const AlterPrintInfo& other)
-        : OPPrintInfo{other}, alterType{other.alterType}, tableName{other.tableName},
-          info{other.info} {}
 
     std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override {
-        return std::make_unique<AlterPrintInfo>(*this);
+        return std::unique_ptr<AlterPrintInfo>(new AlterPrintInfo(*this));
     }
+
+private:
+    AlterPrintInfo(const AlterPrintInfo& other)
+        : OPPrintInfo{other}, alterType{other.alterType}, tableName{other.tableName},
+          info{other.info} {}
 };
 
 class Alter : public DDL {

@@ -65,14 +65,16 @@ struct HashAggregatePrintInfo final : OPPrintInfo {
 
     HashAggregatePrintInfo(binder::expression_vector keys, binder::expression_vector aggregates)
         : keys{std::move(keys)}, aggregates{std::move(aggregates)} {}
-    HashAggregatePrintInfo(const HashAggregatePrintInfo& other)
-        : OPPrintInfo{other}, keys{other.keys}, aggregates{other.aggregates} {}
 
     std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override {
-        return std::make_unique<HashAggregatePrintInfo>(*this);
+        return std::unique_ptr<HashAggregatePrintInfo>(new HashAggregatePrintInfo(*this));
     }
+
+private:
+    HashAggregatePrintInfo(const HashAggregatePrintInfo& other)
+        : OPPrintInfo{other}, keys{other.keys}, aggregates{other.aggregates} {}
 };
 
 class HashAggregate : public BaseAggregate {

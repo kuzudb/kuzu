@@ -164,6 +164,9 @@ private:
     std::unique_ptr<ParsedExpression> transformFunctionInvocation(
         CypherParser::OC_FunctionInvocationContext& ctx);
     std::string transformFunctionName(CypherParser::OC_FunctionNameContext& ctx);
+    std::vector<std::string> transformLambdaVariables(CypherParser::KU_LambdaVarsContext& ctx);
+    std::unique_ptr<ParsedExpression> transformLambdaParameter(
+        CypherParser::KU_LambdaParameterContext& ctx);
     std::unique_ptr<ParsedExpression> transformFunctionParameterExpression(
         CypherParser::KU_FunctionParameterContext& ctx);
     std::unique_ptr<ParsedExpression> transformPathPattern(

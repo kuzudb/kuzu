@@ -1119,8 +1119,8 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidLogicTypeIDs() {
         LogicalTypeID::TIMESTAMP_NS, LogicalTypeID::TIMESTAMP_MS, LogicalTypeID::TIMESTAMP_SEC,
         LogicalTypeID::TIMESTAMP_TZ, LogicalTypeID::INTERVAL, LogicalTypeID::LIST,
         LogicalTypeID::ARRAY, LogicalTypeID::MAP, LogicalTypeID::FLOAT, LogicalTypeID::SERIAL,
-        LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT, LogicalTypeID::UNION,
-        LogicalTypeID::RDF_VARIANT};
+        LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::RECURSIVE_REL,
+        LogicalTypeID::STRUCT, LogicalTypeID::UNION, LogicalTypeID::RDF_VARIANT};
 }
 
 std::vector<LogicalType> LogicalTypeUtils::getAllValidLogicTypes() {
