@@ -1,4 +1,5 @@
 #include "common/exception/binder.h"
+#include "expression_evaluator/lambda_evaluator.h"
 #include "function/list/vector_list_functions.h"
 #include "function/scalar_function.h"
 
@@ -38,14 +39,20 @@ static uint64_t getSelectedListSize(const list_entry_t& srcListEntry,
 }
 
 static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& input, ValueVector& result,
-    void*) {
+    void* bindData) {
+    auto listLambdaBindData = reinterpret_cast<evaluator::ListLambdaBindData*>(bindData);
+    auto inputVector = input[0].get();
+    auto listSize = ListVector::getDataVectorSize(inputVector);
+    auto lambdaParamVector = listLambdaBindData->lambdaParamEvaluators[0]->resultVector.get();
+    lambdaParamVector->state->getSelVectorUnsafe().setSelSize(listSize);
+    listLambdaBindData->rootEvaluator->evaluate();
     KU_ASSERT(input.size() == 2);
     auto& listInputSelVector = input[0]->state->getSelVector();
     auto filterVector = input[1].get();
-    auto srcDataVector = ListVector::getDataVector(input[0].get());
+    auto srcDataVector = ListVector::getDataVector(inputVector);
     auto dstDataVector = ListVector::getDataVector(&result);
     for (auto i = 0u; i < listInputSelVector.getSelSize(); ++i) {
-        auto srcListEntry = input[0]->getValue<list_entry_t>(listInputSelVector[i]);
+        auto srcListEntry = inputVector->getValue<list_entry_t>(listInputSelVector[i]);
         auto dstListEntry =
             ListVector::addList(&result, getSelectedListSize(srcListEntry, *filterVector));
         auto dstListOffset = dstListEntry.offset;

@@ -22,7 +22,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(LogicalOperator* logica
     auto outputExpression = logicalExplain.getOutputExpression();
     if (logicalExplain.getExplainType() == ExplainType::PROFILE) {
         auto outputPosition = getDataPos(*outputExpression, *outSchema);
-        auto printInfo = std::make_unique<OPPrintInfo>(logicalExplain.getExpressionsForPrinting());
+        auto printInfo = std::make_unique<OPPrintInfo>();
         return std::make_unique<Profile>(outputPosition, ProfileInfo{}, ProfileLocalState{},
             getOperatorID(), std::move(lastPhysicalOP), std::move(printInfo));
     } else {

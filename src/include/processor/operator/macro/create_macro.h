@@ -27,14 +27,16 @@ struct CreateMacroPrintInfo final : OPPrintInfo {
     std::string macroName;
 
     explicit CreateMacroPrintInfo(std::string macroName) : macroName{std::move(macroName)} {}
-    CreateMacroPrintInfo(const CreateMacroPrintInfo& other)
-        : OPPrintInfo{other}, macroName{other.macroName} {}
 
     std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override {
-        return std::make_unique<CreateMacroPrintInfo>(*this);
+        return std::unique_ptr<CreateMacroPrintInfo>(new CreateMacroPrintInfo(*this));
     }
+
+private:
+    CreateMacroPrintInfo(const CreateMacroPrintInfo& other)
+        : OPPrintInfo{other}, macroName{other.macroName} {}
 };
 
 class CreateMacro : public PhysicalOperator {

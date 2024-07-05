@@ -30,6 +30,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "CREATE_SEQUENCE";
     case PhysicalOperatorType::CREATE_TABLE:
         return "CREATE_TABLE";
+    case PhysicalOperatorType::CREATE_TYPE:
+        return "CREATE_TYPE";
     case PhysicalOperatorType::CROSS_PRODUCT:
         return "CROSS_PRODUCT";
     case PhysicalOperatorType::DETACH_DATABASE:

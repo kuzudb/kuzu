@@ -126,6 +126,7 @@ template<>
     case LogicalTypeID::REL: {
         return compareRelEntry(vector, vectorPos, entry);
     }
+    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::STRUCT: {
         auto numFields = StructType::getNumFields(vector->dataType);
         auto entryToCompare = entry + NullBuffer::getNumBytesForNullValues(numFields);

@@ -83,12 +83,12 @@ Function* BuiltInFunctionsUtils::matchFunction(const std::string& name,
 
 AggregateFunction* BuiltInFunctionsUtils::matchAggregateFunction(const std::string& name,
     const std::vector<common::LogicalType>& inputTypes, bool isDistinct, CatalogSet* catalogSet) {
-    auto& functionSet = ku_dynamic_cast<CatalogEntry*, FunctionCatalogEntry*>(
-        catalogSet->getEntry(&transaction::DUMMY_WRITE_TRANSACTION, name))
+    auto& functionSet = catalogSet->getEntry(&transaction::DUMMY_WRITE_TRANSACTION, name)
+                            ->ptrCast<FunctionCatalogEntry>()
                             ->getFunctionSet();
     std::vector<AggregateFunction*> candidateFunctions;
     for (auto& function : functionSet) {
-        auto aggregateFunction = ku_dynamic_cast<Function*, AggregateFunction*>(function.get());
+        auto aggregateFunction = function->ptrCast<AggregateFunction>();
         auto cost = getAggregateFunctionCost(inputTypes, isDistinct, aggregateFunction);
         if (cost == UINT32_MAX) {
             continue;
@@ -567,7 +567,7 @@ void validateNonEmptyCandidateFunctions(std::vector<AggregateFunction*>& candida
     if (candidateFunctions.empty()) {
         std::string supportedInputsString;
         for (auto& function : set) {
-            auto aggregateFunction = ku_dynamic_cast<Function*, AggregateFunction*>(function.get());
+            auto aggregateFunction = function->constPtrCast<AggregateFunction>();
             if (aggregateFunction->isDistinct) {
                 supportedInputsString += "DISTINCT ";
             }

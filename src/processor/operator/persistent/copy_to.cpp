@@ -3,6 +3,16 @@
 namespace kuzu {
 namespace processor {
 
+std::string CopyToPrintInfo::toString() const {
+    std::string result = "";
+    result += "Export: ";
+    for (auto& name : columnNames) {
+        result += name + ", ";
+    }
+    result += "To: " + fileName;
+    return result;
+}
+
 void CopyTo::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     localState.exportFuncLocalState =
         info.exportFunc.initLocal(*context->clientContext, *info.bindData, info.isFlatVec);

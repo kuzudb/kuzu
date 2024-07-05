@@ -128,3 +128,10 @@ Bob|Dan|Bob|ABFsUni
 -ENUMERATE
 ---- 1
 1
+
+-LOG CrossProductAfterWCOJ
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person), (a)-[e3:knows]->(c)
+           MATCH (d:person)
+           RETURN COUNT(*)
+---- 1
+192
