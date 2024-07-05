@@ -97,6 +97,7 @@ void Partitioner::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*
     initializePartitioningStates(dataInfo, localState->partitioningBuffers,
         sharedState->numPartitions);
     for (auto& evaluator : dataInfo.columnEvaluators) {
+        evaluator->setResultFlat(false);
         evaluator->init(*resultSet, context->clientContext);
     }
 }

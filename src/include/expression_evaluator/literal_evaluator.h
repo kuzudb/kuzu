@@ -28,7 +28,6 @@ protected:
 
 private:
     common::Value value;
-    std::shared_ptr<common::DataChunkState> unflatState;
 };
 
 } // namespace evaluator

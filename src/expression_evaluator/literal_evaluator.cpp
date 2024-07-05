@@ -14,9 +14,8 @@ void LiteralExpressionEvaluator::evaluate() {
     for (auto i = 1ul; i < cnt; i++) {
         resultVector->copyFromVectorData(i, resultVector.get(), 0);
     }
-    if (cnt > 1) {
-        unflatState->getSelVectorUnsafe().setSelSize(cnt);
-        resultVector->state = unflatState;
+    if (!isResultFlat_) {
+        resultVector->state->getSelVectorUnsafe().setSelSize(cnt);
     }
 }
 
@@ -30,8 +29,11 @@ bool LiteralExpressionEvaluator::select(SelectionVector&) {
 void LiteralExpressionEvaluator::resolveResultVector(const processor::ResultSet& /*resultSet*/,
     MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(value.getDataType().copy(), memoryManager);
-    resultVector->setState(DataChunkState::getSingleValueDataChunkState());
-    unflatState = std::make_shared<DataChunkState>();
+    if (isResultFlat_) {
+        resultVector->setState(DataChunkState::getSingleValueDataChunkState());
+    } else {
+        resultVector->setState(std::make_shared<DataChunkState>());
+    }
     if (value.isNull()) {
         resultVector->setNull(0 /* pos */, true);
     } else {

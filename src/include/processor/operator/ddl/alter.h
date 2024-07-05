@@ -41,6 +41,7 @@ public:
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
         DDL::initLocalStateInternal(resultSet, context);
         if (defaultValueEvaluator) {
+            defaultValueEvaluator->setResultFlat(false);
             defaultValueEvaluator->init(*resultSet, context->clientContext);
         }
     }

@@ -104,6 +104,7 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     for (auto i = 0u; i < numColumns; ++i) {
         if (nodeInfo->defaultColumns[i]) {
             auto& evaluator = nodeInfo->columnEvaluators[i];
+            evaluator->setResultFlat(false);
             evaluator->init(*resultSet, context->clientContext);
         }
     }
