@@ -285,6 +285,13 @@ bool RelTableData::delete_(Transaction* transaction, ValueVector& boundNodeIDVec
     return csrNodeGroup.delete_(transaction, source, rowIdx);
 }
 
+void RelTableData::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
+    auto& property = addColumnState.property;
+    columns.push_back(ColumnFactory::createColumn(property.getName(),
+        property.getDataType().copy(), dataFH, bufferManager, wal, enableCompression));
+    nodeGroups->addColumn(transaction, addColumnState);
+}
+
 std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Transaction* transaction,
     ValueVector& boundNodeIDVector, const ValueVector& relIDVector) const {
     KU_ASSERT(boundNodeIDVector.state->getSelVector().getSelSize() == 1);

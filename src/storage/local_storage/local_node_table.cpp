@@ -72,5 +72,10 @@ bool LocalNodeTable::delete_(Transaction*, TableDeleteState& deleteState) {
     return nodeGroup->delete_(&DUMMY_WRITE_TRANSACTION, rowIdxInGroup);
 }
 
+bool LocalNodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
+    nodeGroups.addColumn(transaction, addColumnState);
+    return true;
+}
+
 } // namespace storage
 } // namespace kuzu

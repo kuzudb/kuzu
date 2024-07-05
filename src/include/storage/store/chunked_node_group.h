@@ -23,6 +23,7 @@ namespace storage {
 
 class Column;
 struct TableScanState;
+struct TableAddColumnState;
 struct NodeGroupScanState;
 
 enum class NodeGroupDataFormat : uint8_t { REGULAR = 0, CSR = 1 };
@@ -95,6 +96,9 @@ public:
         common::column_id_t columnID, const common::ValueVector& propertyVector);
 
     bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInChunk);
+
+    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
+        bool enableCompression, BMFileHandle* dataFH);
 
     void finalize() const;
 

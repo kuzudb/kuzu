@@ -63,6 +63,8 @@ public:
 
     common::column_id_t getNumColumns() const { return types.size(); }
 
+    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState);
+
     uint64_t getEstimatedMemoryUsage();
 
     void checkpoint(const NodeGroupCheckpointState& state);
