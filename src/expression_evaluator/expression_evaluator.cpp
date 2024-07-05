@@ -29,10 +29,7 @@ void ExpressionEvaluator::resolveResultStateFromChildren(
     }
     // All children are flat.
     isResultFlat_ = true;
-    // We need to leave capacity for multiple evaluations
-    resultVector->setState(std::make_shared<DataChunkState>());
-    resultVector->state->initOriginalAndSelectedSize(1);
-    resultVector->state->setToFlat();
+    resultVector->setState(DataChunkState::getSingleValueDataChunkState());
 }
 
 } // namespace evaluator

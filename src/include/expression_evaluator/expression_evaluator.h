@@ -43,7 +43,12 @@ public:
     EvaluatorType getEvaluatorType() const { return type; }
 
     const common::LogicalType& getResultDataType() const { return expression->getDataType(); }
-    void setResultFlat(bool val) { isResultFlat_ = val; }
+    void setResultFlat(bool val) { 
+        isResultFlat_ = val; 
+        for (auto& child: children) {
+            child->setResultFlat(val);
+        }
+    }
     bool isResultFlat() const { return isResultFlat_; }
 
     const evaluator_vector_t& getChildren() const { return children; }
