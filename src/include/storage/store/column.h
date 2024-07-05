@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+
 #include "catalog/catalog.h"
 #include "common/null_mask.h"
 #include "common/types/types.h"

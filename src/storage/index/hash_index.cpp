@@ -41,96 +41,6 @@ HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName, BMFileHandle* fi
     oSlots = diskArrays.getDiskArray<Slot<T>>(NUM_HASH_INDEXES + indexPos);
 }
 
-// For read transactions, local storage is skipped, lookups are performed on the persistent
-// storage. For write transactions, lookups are performed in the local storage first, then in
-// the persistent storage if necessary. In details, there are three cases for the local storage
-// lookup:
-// - the key is found in the local storage, directly return true;
-// - the key has been marked as deleted in the local storage, return false;
-// - the key is neither deleted nor found in the local storage, lookup in the persistent
-// storage.
-template<typename T>
-bool HashIndex<T>::lookupInternal(Transaction* transaction, Key key, offset_t& result) {
-    if (transaction->isReadOnly()) {
-        return lookupInPersistentIndex(transaction->getType(), key, result);
-    } else {
-        KU_ASSERT(transaction->isWriteTransaction());
-        auto localLookupState = localStorage->lookup(key, result);
-        if (localLookupState == HashIndexLocalLookupState::KEY_DELETED) {
-            return false;
-        } else if (localLookupState == HashIndexLocalLookupState::KEY_FOUND) {
-            return true;
-        } else {
-            KU_ASSERT(localLookupState == HashIndexLocalLookupState::KEY_NOT_EXIST);
-            return lookupInPersistentIndex(transaction->getType(), key, result);
-        }
-    }
-}
-
-// For deletions, we don't check if the deleted keys exist or not. Thus, we don't need to check
-// in the persistent storage and directly delete keys in the local storage.
-template<typename T>
-void HashIndex<T>::deleteInternal(Key key) const {
-    localStorage->deleteKey(key);
-}
-
-// For insertions, we first check in the local storage. There are three cases:
-// - the key is found in the local storage, return false;
-// - the key is marked as deleted in the local storage, insert the key to the local storage;
-// - the key doesn't exist in the local storage, check if the key exists in the persistent
-// index, if
-//   so, return false, else insert the key to the local storage.
-template<typename T>
-bool HashIndex<T>::insertInternal(Key key, offset_t value) {
-    offset_t tmpResult;
-    auto localLookupState = localStorage->lookup(key, tmpResult);
-    if (localLookupState == HashIndexLocalLookupState::KEY_FOUND) {
-        return false;
-    } else if (localLookupState == HashIndexLocalLookupState::KEY_NOT_EXIST) {
-        if (lookupInPersistentIndex(TransactionType::WRITE, key, tmpResult)) {
-            return false;
-        }
-    }
-    return localStorage->insert(key, value);
-}
-
-template<typename T>
-size_t HashIndex<T>::append(const IndexBuffer<BufferKeyType>& buffer) {
-    // Check if values already exist in persistent storage
-    if (indexHeaderForWriteTrx.numEntries > 0) {
-        common::offset_t result;
-        for (size_t i = 0; i < buffer.size(); i++) {
-            const auto& [key, value] = buffer[i];
-            if (lookupInPersistentIndex(transaction::TransactionType::WRITE, key, result)) {
-                return i;
-            }
-        }
-    }
-    return localStorage->append(buffer);
-}
-
-template<typename T>
-bool HashIndex<T>::lookupInPersistentIndex(TransactionType trxType, Key key, offset_t& result) {
-    auto& header = trxType == TransactionType::READ_ONLY ? this->indexHeaderForReadTrx :
-                                                           this->indexHeaderForWriteTrx;
-    // There may not be any primary key slots if we try to lookup on an empty index
-    if (header.numEntries == 0) {
-        return false;
-    }
-    auto hashValue = HashIndexUtils::hash(key);
-    auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
-    auto iter =
-        getSlotIterator(HashIndexUtils::getPrimarySlotIdForHash(header, hashValue), trxType);
-    do {
-        auto entryPos = findMatchedEntryInSlot(trxType, iter.slot, key, fingerprint);
-        if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
-            result = iter.slot.entries[entryPos].value;
-            return true;
-        }
-    } while (nextChainedSlot(trxType, iter));
-    return false;
-}
-
 template<typename T>
 void HashIndex<T>::deleteFromPersistentIndex(Key key) {
     auto trxType = TransactionType::WRITE;
@@ -159,19 +69,6 @@ inline common::hash_t HashIndex<ku_string_t>::hashStored(transaction::Transactio
     auto str = overflowFileHandle->readString(TransactionType::WRITE, key);
     function::Hash::operation(str, hash);
     return hash;
-}
-
-template<typename T>
-entry_pos_t HashIndex<T>::findMatchedEntryInSlot(TransactionType trxType, const Slot<T>& slot,
-    Key key, uint8_t fingerprint) const {
-    for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
-        if (slot.header.isEntryValid(entryPos) &&
-            slot.header.fingerprints[entryPos] == fingerprint &&
-            equals(trxType, key, slot.entries[entryPos].key)) {
-            return entryPos;
-        }
-    }
-    return SlotHeader::INVALID_ENTRY_POS;
 }
 
 template<typename T>
@@ -223,16 +120,6 @@ bool HashIndex<T>::rollbackInMemory() {
     oSlots->rollbackInMemoryIfNecessary();
     localStorage->clear();
     return true;
-}
-
-template<>
-inline bool HashIndex<ku_string_t>::equals(transaction::TransactionType trxType,
-    std::string_view keyToLookup, const ku_string_t& keyInEntry) const {
-    if (HashIndexUtils::areStringPrefixAndLenEqual(keyToLookup, keyInEntry)) {
-        auto entryKeyString = overflowFileHandle->readString(trxType, keyInEntry);
-        return memcmp(keyToLookup.data(), entryKeyString.c_str(), entryKeyString.length()) == 0;
-    }
-    return false;
 }
 
 template<typename T>
