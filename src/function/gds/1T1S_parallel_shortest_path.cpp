@@ -170,7 +170,7 @@ public:
             concurrentBFS, maxConcurrentBFS);
         auto maxNodeOffset = sharedState->graph->getNumNodes() - 1;
         auto lowerBound = 1u;
-        auto& inputMask = sharedState->inputNodeOffsetMasks[0];
+        auto& inputMask = sharedState->inputNodeOffsetMasks[sharedState->graph->getNodeTableID()];
         scheduledTaskMap ifeMorselTasks = scheduledTaskMap();
         auto srcOffset = 0LU, numCompletedTasks = 0LU, totalBFSSources = 0LU;
         /*

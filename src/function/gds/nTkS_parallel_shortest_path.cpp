@@ -158,7 +158,7 @@ public:
             concurrentBFS, maxConcurrentBFS);
         auto maxNodeOffset = sharedState->graph->getNumNodes() - 1;
         auto lowerBound = 1u;
-        auto& inputMask = sharedState->inputNodeOffsetMasks[0];
+        auto& inputMask = sharedState->inputNodeOffsetMasks[sharedState->graph->getNodeTableID()];
         scheduledTaskMap ifeMorselTasks = scheduledTaskMap();
         std::vector<ParallelUtilsJob> jobs; // stores the next batch of jobs to submit
         std::vector<int> jobIdxInMap;       // stores the scheduledTaskMap idx <-> job mapping

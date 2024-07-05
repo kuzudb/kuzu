@@ -149,7 +149,7 @@ public:
         auto numNodes = sharedState->graph->getNumNodes();
         auto ifeMorsel = std::make_unique<IFEMorsel>(extraData->upperBound, 1, numNodes - 1,
             common::INVALID_OFFSET);
-        auto& inputMask = sharedState->inputNodeOffsetMasks[0];
+        auto& inputMask = sharedState->inputNodeOffsetMasks[sharedState->graph->getNodeTableID()];
         for (auto offset = 0u; offset < numNodes; offset++) {
             if (!inputMask->isMasked(offset)) {
                 continue;
@@ -160,6 +160,7 @@ public:
                 /*auto duration = std::chrono::system_clock::now().time_since_epoch();
                 auto millis =
                     std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();*/
+                printf("starting bfs level: %d\n", ifeMorsel->currentLevel);
                 auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
                 gdsLocalState->ifeMorsel = ifeMorsel.get();
                 auto job = ParallelUtilsJob{executionContext, std::move(gdsLocalState), sharedState,
