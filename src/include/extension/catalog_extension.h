@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace extension {
 
-class CatalogExtension : public catalog::Catalog {
+class KUZU_API CatalogExtension : public catalog::Catalog {
 public:
     CatalogExtension() : Catalog() {}
 

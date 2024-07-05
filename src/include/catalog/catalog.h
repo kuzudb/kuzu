@@ -124,6 +124,11 @@ public:
         return common::ku_dynamic_cast<Catalog*, TARGET*>(this);
     }
 
+    template<class TARGET>
+    TARGET& refCast() {
+        return common::ku_dynamic_cast<Catalog&, TARGET&>(*this);
+    }
+
 private:
     // The clientContext needs to be used when reading from a remote filesystem which
     // requires some user-specific configs (e.g. s3 username, password).

@@ -84,3 +84,19 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database_destroy(&database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
+
+TEST_F(CApiDatabaseTest, DSAD) {
+    createDBAndConn();
+    printf("%s", conn->query("load extension "
+                             "\"/Users/z473chen/Desktop/code/kuzu/extension/duckdb/build/"
+                             "libduckdb.kuzu_extension\";")
+                     ->toString()
+                     .c_str());
+    printf("%s",
+        conn->query("ATTACH "
+                    "'/Users/z473chen/Desktop/code/kuzu/extension/duckdb/test/duckdb_database/"
+                    "tinysnb.db' as tinysnb (dbtype duckdb, skip_unsupported_table = true);")
+            ->toString()
+            .c_str());
+    printf("%s", conn->query("CALL CLEAR_ATTACHED_DB_CACHE() RETURN *;")->toString().c_str());
+}
