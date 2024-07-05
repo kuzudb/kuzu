@@ -121,15 +121,6 @@ struct TableAddColumnState {
         evaluator::ExpressionEvaluator& defaultEvaluator)
         : property{property}, defaultEvaluator{defaultEvaluator} {}
     virtual ~TableAddColumnState() = default;
-
-    // template<typename T>
-    // const T& constCast() const {
-    //     return common::ku_dynamic_cast<const TableAddColumnState&, const T&>(*this);
-    // }
-    // template<typename T>
-    // T& cast() {
-    //     return common::ku_dynamic_cast<TableAddColumnState&, T&>(*this);
-    // }
 };
 
 class LocalTable;
