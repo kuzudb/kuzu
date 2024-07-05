@@ -14,6 +14,7 @@ class Transaction;
 
 namespace storage {
 
+struct TableAddColumnState;
 class NodeGroup;
 struct NodeGroupScanState {
     // Index of committed but not yet checkpointed chunked group to scan.
@@ -116,6 +117,9 @@ public:
     void update(transaction::Transaction* transaction, common::row_idx_t rowIdxInGroup,
         common::column_id_t columnID, const common::ValueVector& propertyVector);
     bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInGroup);
+
+    virtual void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
+        BMFileHandle* dataFH);
 
     void flush(BMFileHandle& dataFH);
 

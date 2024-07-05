@@ -275,10 +275,11 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) {
             alterEntryRecord.ownedAlterInfo->tableID);
         auto addedPropID = schema->getPropertyID(addInfo->propertyName);
         auto addedProp = schema->getProperty(addedPropID);
+        TableAddColumnState state{*addedProp, *defaultValueEvaluator};
         if (clientContext.getStorageManager()) {
             auto storageManager = clientContext.getStorageManager();
             storageManager->getTable(alterEntryRecord.ownedAlterInfo->tableID)
-                ->addColumn(&DUMMY_WRITE_TRANSACTION, *addedProp, *defaultValueEvaluator);
+                ->addColumn(&DUMMY_WRITE_TRANSACTION, state);
         }
     }
 }

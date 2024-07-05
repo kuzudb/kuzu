@@ -811,25 +811,6 @@ std::unique_ptr<ColumnChunk> Column::checkpointColumnChunk(const ColumnChunk& in
     return std::make_unique<ColumnChunk>(enableCompression, std::move(flushedData));
 }
 
-void Column::populateWithDefaultVal(Transaction* transaction,
-    DiskArray<ColumnChunkMetadata>* metadataDA_, ExpressionEvaluator& defaultEvaluator) {
-    KU_ASSERT(metadataDA_ != nullptr);
-    auto numNodeGroups = metadataDA_->getNumElements(transaction->getType());
-    ChunkState state;
-    for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
-        // initChunkState(transaction, nodeGroupIdx, state);
-        auto chunkMeta = metadataDA_->get(nodeGroupIdx, transaction->getType());
-        auto capacity = StorageConstants::NODE_GROUP_SIZE;
-        while (capacity < chunkMeta.numValues) {
-            capacity *= CHUNK_RESIZE_RATIO;
-        }
-        auto columnChunk = ColumnChunkFactory::createColumnChunkData(dataType.copy(),
-            enableCompression, capacity, ResidencyState::IN_MEMORY);
-        columnChunk->populateWithDefaultVal(defaultEvaluator, chunkMeta.numValues);
-        append(columnChunk.get(), state);
-    }
-}
-
 // ChunkDataCollection Column::getNullChunkCollection(const ChunkDataCollection& chunkCollection) {
 //     ChunkDataCollection nullChunkCollection;
 //     for (const auto& chunk : chunkCollection) {

@@ -113,6 +113,16 @@ struct TableDeleteState {
     }
 };
 
+struct TableAddColumnState {
+    const catalog::Property& property;
+    evaluator::ExpressionEvaluator& defaultEvaluator;
+
+    TableAddColumnState(const catalog::Property& property, 
+        evaluator::ExpressionEvaluator& defaultEvaluator)
+        : property{property}, defaultEvaluator{defaultEvaluator} {}
+    virtual ~TableAddColumnState() = default;
+};
+
 class LocalTable;
 class StorageManager;
 class Table {
@@ -142,8 +152,7 @@ public:
     virtual void update(transaction::Transaction* transaction, TableUpdateState& updateState) = 0;
     virtual bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) = 0;
 
-    virtual void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
-        evaluator::ExpressionEvaluator& defaultEvaluator) = 0;
+    virtual void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState) = 0;
     virtual void dropColumn(common::column_id_t columnID) = 0;
 
     virtual void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) = 0;
