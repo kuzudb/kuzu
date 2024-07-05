@@ -12,8 +12,8 @@ namespace processor {
 std::string CreateTablePrintInfo::toString() const {
     std::string result = "Table Name: ";
     result += tableName;
-    result += ", Table Config: ";
-    result += tableConfig;
+    // result += ", Table Config: ";
+    // result += ;
     return result;
 }
 

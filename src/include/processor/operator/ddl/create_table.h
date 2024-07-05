@@ -30,12 +30,12 @@ private:
 
 struct CreateTablePrintInfo final : OPPrintInfo {
     std::string tableName;
-    std::string tableConfig;
+    // std::string tableConfig;
 
-    CreateTablePrintInfo(std::string tableName, std::string tableConfig)
-        : tableName{std::move(tableName)}, tableConfig{std::move(tableConfig)} {}
+    CreateTablePrintInfo(std::string tableName)
+        : tableName{std::move(tableName)} {}
     CreateTablePrintInfo(const CreateTablePrintInfo& other)
-        : OPPrintInfo{other}, tableName{other.tableName}, tableConfig{other.tableConfig} {}
+        : OPPrintInfo{other}, tableName{other.tableName} {}
     
     std::string toString() const override;
 
