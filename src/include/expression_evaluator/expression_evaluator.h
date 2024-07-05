@@ -43,9 +43,9 @@ public:
     EvaluatorType getEvaluatorType() const { return type; }
 
     const common::LogicalType& getResultDataType() const { return expression->getDataType(); }
-    void setResultFlat(bool val) { 
-        isResultFlat_ = val; 
-        for (auto& child: children) {
+    void setResultFlat(bool val) {
+        isResultFlat_ = val;
+        for (auto& child : children) {
             child->setResultFlat(val);
         }
     }
