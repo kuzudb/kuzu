@@ -22,6 +22,19 @@ RelDetachDeleteState::RelDetachDeleteState() {
     relIDVector->setState(tempSharedState);
 }
 
+void RelTableScanState::resetState() {
+    boundNodeOffset = INVALID_OFFSET;
+    nodeGroupScanState->resetState();
+    localTableScanState->resetState();
+}
+
+void LocalRelTableScanState::resetState() {
+    RelTableScanState::resetState();
+    rowIndices.clear();
+    nextRowToScan = 0;
+    localRelTable = nullptr;
+}
+
 RelTable::RelTable(RelTableCatalogEntry* relTableEntry, StorageManager* storageManager,
     MemoryManager* memoryManager, Deserializer* deSer)
     : Table{relTableEntry, storageManager, memoryManager},

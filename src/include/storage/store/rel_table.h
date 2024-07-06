@@ -49,10 +49,7 @@ struct RelTableScanState : TableScanState {
         }
     }
 
-    void resetState() override {
-        boundNodeOffset = common::INVALID_OFFSET;
-        nodeGroupScanState->resetState();
-    }
+    void resetState() override;
 };
 
 class LocalRelTable;
@@ -75,6 +72,8 @@ struct LocalRelTableScanState final : RelTableScanState {
         // consistent.
         source = TableScanSource::UNCOMMITTED;
     }
+
+    void resetState() override;
 };
 
 struct RelTableInsertState final : TableInsertState {
