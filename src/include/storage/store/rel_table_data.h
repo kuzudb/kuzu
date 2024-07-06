@@ -117,10 +117,14 @@ public:
         return nodeGroups->getOrCreateNodeGroup(nodeGroupIdx, NodeGroupDataFormat::CSR);
     }
 
-    common::row_idx_t getNumRows() const { return nodeGroups->getNumRows(); }
-
-    // void prepareLocalTableToCommit(transaction::Transaction* transaction,
-    // LocalTableData* localTable);
+    common::row_idx_t getNumRows() const {
+        common::row_idx_t numRows = 0;
+        const auto numGroups = nodeGroups->getNumNodeGroups();
+        for (auto nodeGroupIdx = 0u; nodeGroupIdx < numGroups; nodeGroupIdx++) {
+            numRows += nodeGroups->getNodeGroup(nodeGroupIdx)->getNumRows();
+        }
+        return numRows;
+    }
 
     void prepareCommitNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, ChunkedNodeGroup* localRelNG);
