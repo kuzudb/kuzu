@@ -148,7 +148,7 @@ bool NodeGroup::lookup(Transaction* transaction, const TableScanState& state) {
     const auto lock = chunkedGroups.lock();
     for (auto i = 0u; i < state.rowIdxVector->state->getSelVector().getSelSize(); i++) {
         auto& nodeGroupScanState = *state.nodeGroupScanState;
-        const auto pos = state.rowIdxVector->state->getSelVector().getSelectedPositions()[0];
+        const auto pos = state.rowIdxVector->state->getSelVector().getSelectedPositions()[i];
         KU_ASSERT(!state.rowIdxVector->isNull(pos));
         const auto rowIdx = state.rowIdxVector->getValue<row_idx_t>(pos);
         const ChunkedNodeGroup* chunkedGroupToScan = findChunkedGroupFromRowIdx(lock, rowIdx);
@@ -156,7 +156,7 @@ bool NodeGroup::lookup(Transaction* transaction, const TableScanState& state) {
         numTuplesFound += chunkedGroupToScan->lookup(transaction, state, nodeGroupScanState,
             rowIdxInChunkedGroup, i);
     }
-    return numTuplesFound > 0;
+    return numTuplesFound == state.rowIdxVector->state->getSelVector().getSelSize();
 }
 
 void NodeGroup::update(Transaction* transaction, row_idx_t rowIdxInGroup, column_id_t columnID,
@@ -185,7 +185,7 @@ void NodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColu
     BMFileHandle* dataFH) {
     dataTypes.push_back(addColumnState.property.getDataType().copy());
     const auto lock = chunkedGroups.lock();
-    for (auto& chunkedGroup: chunkedGroups.getAllGroups(lock)) {
+    for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
         chunkedGroup->addColumn(transaction, addColumnState, enableCompression, dataFH);
     }
 }

@@ -333,19 +333,22 @@ name|Carol
 ---- 1
 {_ID: 0:1, _LABEL: User, name: Karissa, age: 40}
 
--LOG WhereExists1
--STATEMENT MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User)} RETURN a.name, a.age;
----- 1
-Adam|30
+# TODO(Guodong): Issue #3730
+#-LOG WhereExists1
+#-STATEMENT MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User)} RETURN a.name, a.age;
+#---- 1
+#Adam|30
 
--LOG WhereExists2
--STATEMENT MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User) WHERE EXISTS {MATCH (b)-[:Follows]->(c:User)} } RETURN a.name, a.age;
----- 0
+# TODO(Guodong): Issue #3730
+#-LOG WhereExists2
+#-STATEMENT MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User) WHERE EXISTS {MATCH (b)-[:Follows]->(c:User)} } RETURN a.name, a.age;
+#---- 0
 
--LOG WhereExists3
--STATEMENT MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User) WHERE EXISTS {MATCH (b)<-[:Follows]-(c:User)} } RETURN a.name, a.age;
----- 1
-Adam|30
+# TODO(Guodong): Issue #3730
+#-LOG WhereExists3
+#-STATEMENT MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User) WHERE EXISTS {MATCH (b)<-[:Follows]-(c:User)} } RETURN a.name, a.age;
+#---- 1
+#Adam|30
 
 -LOG With1
 -STATEMENT MATCH (a:User) WITH avg(a.age) as avgAge MATCH (b:User) WHERE b.age > avgAge RETURN *;

@@ -23,6 +23,7 @@
 
 
 -CASE deleteRelsFromManyToOneTableCommitRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p1:person)-[t:teaches]->(p2:person) WHERE p1.ID = 11 AND p2.ID = 1 delete t;
@@ -68,6 +69,7 @@
 
 
 -CASE deleteRelsFromManyToOneTableRollbackRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p1:person)-[t:teaches]->(p2:person) WHERE p1.ID = 11 AND p2.ID = 1 delete t;

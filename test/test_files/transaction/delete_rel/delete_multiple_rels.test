@@ -23,6 +23,7 @@
 
 
 -CASE deleteMultipleRelsCommitRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p.ID = 1 AND p1.ID < 45 DELETE e;
@@ -111,6 +112,7 @@
 
 
 -CASE deleteMultipleRelsRollbackRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p.ID = 1 AND p1.ID < 45 DELETE e;

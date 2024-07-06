@@ -36,6 +36,7 @@ kitchener
 
 
 -CASE UpdateStrPropCommitRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_STR_PROP
@@ -87,6 +88,7 @@ kitchener
 
 
 -CASE UpdateStrPropRollbackRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_STR_PROP

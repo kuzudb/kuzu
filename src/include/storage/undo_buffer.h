@@ -116,7 +116,7 @@ private:
     void rollbackVectorVersionInfo(UndoRecordType recordType, const uint8_t* record);
 
     void commitVectorUpdateInfo(const uint8_t* record, common::transaction_t commitTS) const;
-    void rollbackVectorUpdateInfo(const uint8_t* record);
+    void rollbackVectorUpdateInfo(const uint8_t* record) const;
 
 private:
     main::ClientContext& clientContext;

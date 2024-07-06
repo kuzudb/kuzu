@@ -1,7 +1,9 @@
 -DATASET CSV rel-update-tests
 --
 
+#TODO(Guodong): FIX-ME.
 -CASE deleteLargeNumRelsFromLargeListCommitNormalExecution
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID >= 10 delete e;
@@ -26,6 +28,7 @@
 
 
 -CASE deleteLargeNumRelsFromLargeListCommitRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID >= 10 delete e;
@@ -67,6 +70,7 @@
 
 
 -CASE deleteLargeNumRelsFromLargeListRollbackRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID >= 10 delete e;

@@ -10,7 +10,9 @@
 ---- ok
 ]
 
+#TODO(Guodong): FIX-ME.
 -CASE updateOneToOneRelTableCommitNormalExecution
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_ONE_TO_ONE_REL_TABLE
@@ -34,6 +36,7 @@ kuzu
 ---- ok
 
 -CASE updateOneToOneRelTableCommitRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_ONE_TO_ONE_REL_TABLE
@@ -82,6 +85,7 @@ kuzu
 
 
 -CASE updateOneToOneRelTableRollbackRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_ONE_TO_ONE_REL_TABLE

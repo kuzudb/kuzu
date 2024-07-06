@@ -137,10 +137,11 @@ void VersionInfo::getSelVectorToScan(const transaction_t startTS, const transact
     auto [endVectorIdx, endRowIdxInVector] =
         StorageUtils::getQuotientRemainder(startRow + numRows - 1, DEFAULT_VECTOR_CAPACITY);
     auto vectorIdx = startVectorIdx;
+    selVector.setSelSize(0);
     while (vectorIdx <= endVectorIdx) {
         const auto startRowIdx = vectorIdx == startVectorIdx ? startRowIdxInVector : 0;
         const auto endRowIdx =
-            vectorIdx == endVectorIdx ? endRowIdxInVector : DEFAULT_VECTOR_CAPACITY;
+            vectorIdx == endVectorIdx ? endRowIdxInVector : DEFAULT_VECTOR_CAPACITY - 1;
         const auto numRowsInVector = endRowIdx - startRowIdx + 1;
         if (vectorIdx >= vectorsInfo.size() || !vectorsInfo[vectorIdx]) {
             auto numSelected = selVector.getSelSize();
@@ -150,7 +151,7 @@ void VersionInfo::getSelVectorToScan(const transaction_t startTS, const transact
             }
             selVector.setToFiltered(numSelected);
         } else {
-            auto& vectorVersionInfo = getVersionInfo(startVectorIdx);
+            auto& vectorVersionInfo = getVersionInfo(vectorIdx);
             vectorVersionInfo.getSelVectorForScan(startTS, transactionID, selVector, startRowIdx,
                 numRowsInVector);
         }
