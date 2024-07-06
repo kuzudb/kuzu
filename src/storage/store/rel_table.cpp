@@ -71,11 +71,22 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
     if (relScanState.nodeGroup) {
         relScanState.source = TableScanSource::COMMITTED;
         relScanState.nodeGroup->initializeScanState(transaction, scanState);
-    } else if (relScanState.localRelTable) {
-        relScanState.source = TableScanSource::UNCOMMITTED;
+    } else if (relScanState.localTableScanState) {
+        initializeLocalRelScanState(relScanState);
     } else {
         relScanState.source = TableScanSource::NONE;
     }
+}
+
+void RelTable::initializeLocalRelScanState(RelTableScanState& relScanState) {
+    relScanState.source = TableScanSource::UNCOMMITTED;
+    KU_ASSERT(relScanState.localTableScanState);
+    auto& localScanState = *relScanState.localTableScanState;
+    KU_ASSERT(localScanState.localRelTable);
+    localScanState.boundNodeOffset = relScanState.boundNodeOffset;
+    localScanState.rowIdxVector->setState(relScanState.rowIdxVector->state);
+    localScanState.localRelTable->initializeScan(*relScanState.localTableScanState);
+    localScanState.nextRowToScan = 0;
 }
 
 bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState) {
@@ -84,18 +95,19 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
     case TableScanSource::COMMITTED: {
         const auto scanResult = relScanState.nodeGroup->scan(transaction, scanState);
         if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
-            relScanState.source =
-                relScanState.localRelTable ? TableScanSource::UNCOMMITTED : TableScanSource::NONE;
+            if (relScanState.localTableScanState) {
+                initializeLocalRelScanState(relScanState);
+            } else {
+                relScanState.source = TableScanSource::NONE;
+                return false;
+            }
         }
         return true;
     }
     case TableScanSource::UNCOMMITTED: {
-        KU_ASSERT(relScanState.localRelTable);
-        if (!relScanState.initializedLocalState) {
-            relScanState.localRelTable->cast<LocalRelTable>().initializeScan(scanState);
-            relScanState.initializedLocalState = true;
-        }
-        return relScanState.localRelTable->cast<LocalRelTable>().scan(transaction, scanState);
+        const auto localScanState = relScanState.localTableScanState.get();
+        KU_ASSERT(localScanState && localScanState->localRelTable);
+        return localScanState->localRelTable->scan(transaction, scanState);
     }
     case TableScanSource::NONE: {
         return false;
@@ -238,14 +250,10 @@ void RelTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
     }
     auto types = LocalRelTable::getTypesForLocalRelTable(*this);
     const auto dataChunk = constructDataChunk(types);
-    const auto scanState = std::make_unique<RelTableScanState>(tableID, columnIDsToScan);
-    for (auto& vector : dataChunk->valueVectors) {
-        scanState->outputVectors.push_back(vector.get());
-    }
     auto& localNodeGroup = localRelTable.getLocalNodeGroup();
     // Update relID in local storage.
     for (auto i = 0u; i < localNodeGroup.getNumChunkedGroups(); i++) {
-        auto chunkedGroup = localNodeGroup.getChunkedNodeGroup(i);
+        const auto chunkedGroup = localNodeGroup.getChunkedNodeGroup(i);
         KU_ASSERT(chunkedGroup);
         auto& internalIDData = chunkedGroup->getColumnChunk(LOCAL_REL_ID_COLUMN_ID)
                                    .getData()

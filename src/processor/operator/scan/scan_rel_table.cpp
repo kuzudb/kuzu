@@ -1,5 +1,7 @@
 #include "processor/operator/scan/scan_rel_table.h"
 
+#include "storage/local_storage/local_rel_table.h"
+
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
@@ -16,7 +18,7 @@ void ScanRelTableInfo::initScanState() {
             columns.push_back(table->getColumn(columnID, direction));
         }
     }
-    localScanState = std::make_unique<RelTableScanState>(table->getTableID(), columnIDs, columns,
+    scanState = std::make_unique<RelTableScanState>(table->getTableID(), columnIDs, columns,
         table->getCSROffsetColumn(direction), table->getCSRLengthColumn(direction), direction,
         copyVector(columnPredicates));
 }
@@ -24,10 +26,15 @@ void ScanRelTableInfo::initScanState() {
 void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
     relInfo.initScanState();
-    initVectors(*relInfo.localScanState, *resultSet);
-    relInfo.localScanState->localRelTable =
-        context->clientContext->getTx()->getLocalStorage()->getLocalTable(
-            relInfo.table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL);
+    initVectors(*relInfo.scanState, *resultSet);
+    if (const auto localRelTable =
+            context->clientContext->getTx()->getLocalStorage()->getLocalTable(
+                relInfo.table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
+        auto localTableColumnIDs =
+            LocalRelTable::rewriteLocalColumnIDs(relInfo.direction, relInfo.scanState->columnIDs);
+        relInfo.scanState->localTableScanState = std::make_unique<LocalRelTableScanState>(
+            *relInfo.scanState, localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
+    }
 }
 
 void ScanRelTable::initVectors(TableScanState& state, const ResultSet& resultSet) const {
@@ -38,7 +45,7 @@ void ScanRelTable::initVectors(TableScanState& state, const ResultSet& resultSet
 
 bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
     const auto transaction = context->clientContext->getTx();
-    auto& scanState = *relInfo.localScanState;
+    auto& scanState = *relInfo.scanState;
     while (true) {
         const auto skipScan =
             transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;

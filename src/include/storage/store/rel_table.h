@@ -10,25 +10,23 @@ class ExpressionEvaluator;
 } // namespace evaluator
 namespace storage {
 
-struct RelTableScanState final : TableScanState {
+struct LocalRelTableScanState;
+struct RelTableScanState : TableScanState {
     common::RelDataDirection direction;
     common::ValueVector* boundNodeIDVector;
     common::offset_t boundNodeOffset;
     Column* csrOffsetColumn;
     Column* csrLengthColumn;
 
-    LocalTable* localRelTable;
-    bool initializedLocalState;
+    std::unique_ptr<LocalRelTableScanState> localTableScanState;
 
     // Scan state for un-committed data.
-    // Ideally we shouldn't need columns to scan un-checkpointed but committed data.
     RelTableScanState(common::table_id_t tableID, const std::vector<common::column_id_t>& columnIDs)
         : RelTableScanState(tableID, columnIDs, {}, nullptr, nullptr,
               common::RelDataDirection::FWD /* This is a dummy direction */,
               std::vector<ColumnPredicateSet>{}) {
         nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
     }
-
     RelTableScanState(common::table_id_t tableID, const std::vector<common::column_id_t>& columnIDs,
         const std::vector<Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
         common::RelDataDirection direction)
@@ -41,8 +39,8 @@ struct RelTableScanState final : TableScanState {
         common::RelDataDirection direction, std::vector<ColumnPredicateSet> columnPredicateSets)
         : TableScanState{tableID, columnIDs, columns, std::move(columnPredicateSets)},
           direction{direction}, boundNodeIDVector{nullptr}, boundNodeOffset{common::INVALID_OFFSET},
-          csrOffsetColumn{csrOffsetCol}, csrLengthColumn{csrLengthCol}, localRelTable{nullptr},
-          initializedLocalState{false} {
+          csrOffsetColumn{csrOffsetCol}, csrLengthColumn{csrLengthCol},
+          localTableScanState{nullptr} {
         nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
         if (!this->columnPredicateSets.empty()) {
             // Since we insert a nbr column. We need to pad an empty nbr column predicate set.
@@ -54,6 +52,28 @@ struct RelTableScanState final : TableScanState {
     void resetState() override {
         boundNodeOffset = common::INVALID_OFFSET;
         nodeGroupScanState->resetState();
+    }
+};
+
+class LocalRelTable;
+struct LocalRelTableScanState final : RelTableScanState {
+    LocalRelTable* localRelTable;
+    // TODO(Guodong): Copy of rowIndices here is only to simplify the implementation. We can always
+    // go to the fwdIndex/bwdIndex inside LocalRelTable to find the row indices. We can revisit this
+    // if the copy of rowIndices from fwdIndex/bwdIndex becomes a problem.
+    row_idx_vec_t rowIndices;
+    common::row_idx_t nextRowToScan = 0;
+
+    LocalRelTableScanState(const RelTableScanState& state,
+        const std::vector<common::column_id_t>& columnIDs, LocalRelTable* localRelTable)
+        : RelTableScanState{state.tableID, columnIDs}, localRelTable{localRelTable} {
+        IDVector = state.IDVector;
+        direction = state.direction;
+        boundNodeIDVector = state.boundNodeIDVector;
+        outputVectors = state.outputVectors;
+        // Setting source to UNCOMMITTED is not necessary but just to keep it semantically
+        // consistent.
+        source = TableScanSource::UNCOMMITTED;
     }
 };
 
@@ -123,7 +143,8 @@ public:
     void checkIfNodeHasRels(transaction::Transaction* transaction,
         common::RelDataDirection direction, common::ValueVector* srcNodeIDVector) const;
 
-    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState) override;
+    void addColumn(transaction::Transaction* transaction,
+        TableAddColumnState& addColumnState) override;
     void dropColumn(common::column_id_t) override {
         // TODO(Guodong): Rework this.
         // fwdRelTableData->dropColumn(columnID);
@@ -177,6 +198,9 @@ private:
     static void prepareCommitForNodeGroup(transaction::Transaction* transaction,
         NodeGroup& localNodeGroup, CSRNodeGroup& csrNodeGroup, common::offset_t boundOffsetInGroup,
         const row_idx_vec_t& rowIndices, common::column_id_t skippedColumn);
+
+    static void initializeLocalRelScanState(RelTableScanState& relScanState);
+
     common::row_idx_t detachDeleteForCSRRels(transaction::Transaction* transaction,
         RelTableData* tableData, RelTableData* reverseTableData,
         common::ValueVector* srcNodeIDVector, RelTableScanState* relDataReadState,

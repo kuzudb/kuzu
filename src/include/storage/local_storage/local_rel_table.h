@@ -22,10 +22,11 @@ public:
     bool insert(transaction::Transaction* transaction, TableInsertState& state) override;
     bool update(TableUpdateState& state) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& state) override;
-    bool addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState) override;
+    bool addColumn(transaction::Transaction* transaction,
+        TableAddColumnState& addColumnState) override;
 
     void initializeScan(TableScanState& state);
-    bool scan(transaction::Transaction* transaction, const TableScanState& state) const;
+    bool scan(transaction::Transaction* transaction, TableScanState& state) const;
 
     void clear() override {
         localNodeGroup.reset();
@@ -39,10 +40,12 @@ public:
     const std::map<common::offset_t, row_idx_vec_t>& getBWDIndex() const { return bwdIndex; }
     NodeGroup& getLocalNodeGroup() const { return *localNodeGroup; }
 
-private:
-    static void rewriteLocalColumnIDs(common::RelDataDirection direction,
-        std::vector<common::column_id_t>& columnIDs);
+    static std::vector<common::column_id_t> rewriteLocalColumnIDs(
+        common::RelDataDirection direction, const std::vector<common::column_id_t>& columnIDs);
+    static common::column_id_t rewriteLocalColumnID(common::RelDataDirection direction,
+        common::column_id_t columnID);
 
+private:
     common::row_idx_t findMatchingRow(common::offset_t srcNodeOffset,
         common::offset_t dstNodeOffset, common::offset_t relOffset);
 
