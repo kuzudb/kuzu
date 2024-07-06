@@ -492,9 +492,9 @@ def test_df_get_recursive_join(conn_db_readonly: ConnDB) -> None:
                 "validInterval": datetime.timedelta(days=3750, seconds=46800, microseconds=24),
             },
             {
-                "_dst": {"offset": 0, "table": 0},
+                "_dst": {"offset": 1, "table": 0},
                 "_label": "knows",
-                "_src": {"offset": 1, "table": 0},
+                "_src": {"offset": 0, "table": 0},
                 "comments": ["rnme", "m8sihsdnf2990nfiwf"],
                 "date": datetime.date(2021, 6, 30),
                 "meetTime": datetime.datetime(1986, 10, 21, 21, 8, 31, 521000),

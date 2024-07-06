@@ -105,7 +105,8 @@ static std::shared_ptr<Expression> getIRIProperty(const expression_vector& prope
 
 void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& boundNode,
     const std::shared_ptr<NodeExpression>& nbrNode, const std::shared_ptr<RelExpression>& rel,
-    ExtendDirection direction, const expression_vector& properties, LogicalPlan& plan) {
+    ExtendDirection direction, bool extendFromSource, const expression_vector& properties,
+    LogicalPlan& plan) {
     // Filter bound node label if we know some incoming nodes won't have any outgoing rel. This
     // cannot be done at binding time because the pruning is affected by extend direction.
     auto boundNodeTableIDSet = getBoundNodeTableIDSet(*rel, direction, *clientContext);
@@ -124,8 +125,8 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
         properties_ = ExpressionUtil::removeDuplication(properties_);
     }
     // Append extend
-    auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel, direction, properties_,
-        hasAtMostOneNbr, plan.getLastOperator());
+    auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel, direction, extendFromSource,
+        properties_, hasAtMostOneNbr, plan.getLastOperator());
     appendFlattens(extend->getGroupsPosToFlatten(), plan);
     extend->setChild(0, plan.getLastOperator());
     extend->computeFactorizedSchema();
@@ -161,14 +162,16 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     appendAccumulate(plan);
     // Create recursive plan
     auto recursivePlan = std::make_unique<LogicalPlan>();
-    createRecursivePlan(*recursiveInfo, direction, *recursivePlan);
+    bool extendFromSource = *boundNode == *rel->getSrcNode();
+    createRecursivePlan(*recursiveInfo, direction, extendFromSource, *recursivePlan);
     // Create recursive extend
     if (boundNode->getNumTableIDs() > recursiveInfo->node->getNumTableIDs()) {
         appendNodeLabelFilter(boundNode->getInternalID(), recursiveInfo->node->getTableIDsSet(),
             plan);
     }
     auto extend = std::make_shared<LogicalRecursiveExtend>(boundNode, nbrNode, rel, direction,
-        RecursiveJoinType::TRACK_PATH, plan.getLastOperator(), recursivePlan->getLastOperator());
+        extendFromSource, RecursiveJoinType::TRACK_PATH, plan.getLastOperator(),
+        recursivePlan->getLastOperator());
     appendFlattens(extend->getGroupsPosToFlatten(), plan);
     extend->setChild(0, plan.getLastOperator());
     extend->computeFactorizedSchema();
@@ -189,7 +192,8 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
         auto relProperties = recursiveInfo->relProjectionList;
         relProperties.push_back(recursiveInfo->rel->getInternalIDProperty());
         createPathRelPropertyScanPlan(recursiveInfo->node, recursiveInfo->nodeCopy,
-            recursiveInfo->rel, direction, relProperties, *pathRelPropertyScanPlan);
+            recursiveInfo->rel, direction, extendFromSource, relProperties,
+            *pathRelPropertyScanPlan);
         relScanRoot = pathRelPropertyScanPlan->getLastOperator();
         relScanCardinality = pathRelPropertyScanPlan->getCardinality();
     }
@@ -224,7 +228,7 @@ static expression_vector collectPropertiesToRead(const std::shared_ptr<Expressio
 }
 
 void Planner::createRecursivePlan(const RecursiveInfo& recursiveInfo, ExtendDirection direction,
-    LogicalPlan& plan) {
+    bool extendFromSource, LogicalPlan& plan) {
     auto boundNode = recursiveInfo.node;
     auto nbrNode = recursiveInfo.nodeCopy;
     auto rel = recursiveInfo.rel;
@@ -246,13 +250,13 @@ void Planner::createRecursivePlan(const RecursiveInfo& recursiveInfo, ExtendDire
         // PID, then lookup resource node table to convert PID to IRI.
         relProperties = ExpressionUtil::excludeExpression(relProperties, *iri);
         relProperties.push_back(rel->getRdfPredicateInfo()->predicateID);
-        appendNonRecursiveExtend(boundNode, nbrNode, rel, direction,
+        appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, extendFromSource,
             ExpressionUtil::removeDuplication(relProperties), plan);
         auto rdfInfo = rel->getRdfPredicateInfo();
         appendScanNodeTable(rdfInfo->predicateID, rdfInfo->resourceTableIDs, expression_vector{iri},
             plan);
     } else {
-        appendNonRecursiveExtend(boundNode, nbrNode, rel, direction,
+        appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, extendFromSource,
             ExpressionUtil::removeDuplication(relProperties), plan);
     }
     if (recursiveInfo.relPredicate) {
@@ -267,9 +271,11 @@ void Planner::createPathNodePropertyScanPlan(const std::shared_ptr<NodeExpressio
 
 void Planner::createPathRelPropertyScanPlan(const std::shared_ptr<NodeExpression>& boundNode,
     const std::shared_ptr<NodeExpression>& nbrNode, const std::shared_ptr<RelExpression>& rel,
-    ExtendDirection direction, const expression_vector& properties, LogicalPlan& plan) {
+    ExtendDirection direction, bool extendFromSource, const expression_vector& properties,
+    LogicalPlan& plan) {
     appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), {}, plan);
-    appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, properties, plan);
+    appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, extendFromSource, properties,
+        plan);
     appendProjection(properties, plan);
 }
 

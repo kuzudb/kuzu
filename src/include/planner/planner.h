@@ -243,20 +243,20 @@ public:
     void appendNonRecursiveExtend(const std::shared_ptr<binder::NodeExpression>& boundNode,
         const std::shared_ptr<binder::NodeExpression>& nbrNode,
         const std::shared_ptr<binder::RelExpression>& rel, common::ExtendDirection direction,
-        const binder::expression_vector& properties, LogicalPlan& plan);
+        bool extendFromSource, const binder::expression_vector& properties, LogicalPlan& plan);
     void appendRecursiveExtend(const std::shared_ptr<binder::NodeExpression>& boundNode,
         const std::shared_ptr<binder::NodeExpression>& nbrNode,
         const std::shared_ptr<binder::RelExpression>& rel, common::ExtendDirection direction,
         LogicalPlan& plan);
     void createRecursivePlan(const binder::RecursiveInfo& recursiveInfo,
-        common::ExtendDirection direction, LogicalPlan& plan);
+        common::ExtendDirection direction, bool extendFromSource, LogicalPlan& plan);
     void createPathNodePropertyScanPlan(const std::shared_ptr<binder::NodeExpression>& node,
         const binder::expression_vector& properties, LogicalPlan& plan);
     void createPathRelPropertyScanPlan(const std::shared_ptr<binder::NodeExpression>& boundNode,
         const std::shared_ptr<binder::NodeExpression>& nbrNode,
         const std::shared_ptr<binder::RelExpression>& recursiveRel,
-        common::ExtendDirection direction, const binder::expression_vector& properties,
-        LogicalPlan& plan);
+        common::ExtendDirection direction, bool extendFromSource,
+        const binder::expression_vector& properties, LogicalPlan& plan);
     void appendNodeLabelFilter(std::shared_ptr<binder::Expression> nodeID,
         std::unordered_set<common::table_id_t> tableIDSet, LogicalPlan& plan);
 
