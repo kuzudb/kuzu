@@ -14,7 +14,7 @@ struct ScanRelTableInfo {
     std::vector<common::column_id_t> columnIDs;
     std::vector<storage::ColumnPredicateSet> columnPredicates;
 
-    std::unique_ptr<storage::RelTableScanState> localScanState;
+    std::unique_ptr<storage::RelTableScanState> scanState;
 
     ScanRelTableInfo(storage::RelTable* table, common::RelDataDirection direction,
         DataPos boundNodeIDPos, std::vector<common::column_id_t> columnIDs,
