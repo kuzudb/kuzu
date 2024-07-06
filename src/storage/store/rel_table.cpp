@@ -80,11 +80,13 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
 
 void RelTable::initializeLocalRelScanState(RelTableScanState& relScanState) {
     relScanState.source = TableScanSource::UNCOMMITTED;
-    KU_ASSERT(relScanState.localTableScanState->localRelTable);
-    relScanState.localTableScanState->boundNodeOffset = relScanState.boundNodeOffset;
-    relScanState.localTableScanState->rowIdxVector->setState(relScanState.rowIdxVector->state);
-    relScanState.localTableScanState->localRelTable->initializeScan(
-        *relScanState.localTableScanState);
+    KU_ASSERT(relScanState.localTableScanState);
+    auto& localScanState = *relScanState.localTableScanState;
+    KU_ASSERT(localScanState.localRelTable);
+    localScanState.boundNodeOffset = relScanState.boundNodeOffset;
+    localScanState.rowIdxVector->setState(relScanState.rowIdxVector->state);
+    localScanState.localRelTable->initializeScan(*relScanState.localTableScanState);
+    localScanState.nextRowToScan = 0;
 }
 
 bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState) {
@@ -93,9 +95,6 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
     case TableScanSource::COMMITTED: {
         const auto scanResult = relScanState.nodeGroup->scan(transaction, scanState);
         if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
-            if (relScanState.boundNodeOffset == 2) {
-                auto z = 19;
-            }
             if (relScanState.localTableScanState) {
                 initializeLocalRelScanState(relScanState);
             } else {

@@ -22,7 +22,8 @@ public:
     bool insert(transaction::Transaction* transaction, TableInsertState& state) override;
     bool update(TableUpdateState& state) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& state) override;
-    bool addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState) override;
+    bool addColumn(transaction::Transaction* transaction,
+        TableAddColumnState& addColumnState) override;
 
     void initializeScan(TableScanState& state);
     bool scan(transaction::Transaction* transaction, TableScanState& state) const;
@@ -41,6 +42,8 @@ public:
 
     static std::vector<common::column_id_t> rewriteLocalColumnIDs(
         common::RelDataDirection direction, const std::vector<common::column_id_t>& columnIDs);
+    static common::column_id_t rewriteLocalColumnID(common::RelDataDirection direction,
+        common::column_id_t columnID);
 
 private:
     common::row_idx_t findMatchingRow(common::offset_t srcNodeOffset,

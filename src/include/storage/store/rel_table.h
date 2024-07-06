@@ -20,6 +20,13 @@ struct RelTableScanState : TableScanState {
 
     std::unique_ptr<LocalRelTableScanState> localTableScanState;
 
+    // Scan state for un-committed data.
+    RelTableScanState(common::table_id_t tableID, const std::vector<common::column_id_t>& columnIDs)
+        : RelTableScanState(tableID, columnIDs, {}, nullptr, nullptr,
+              common::RelDataDirection::FWD /* This is a dummy direction */,
+              std::vector<ColumnPredicateSet>{}) {
+        nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
+    }
     RelTableScanState(common::table_id_t tableID, const std::vector<common::column_id_t>& columnIDs,
         const std::vector<Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
         common::RelDataDirection direction)
@@ -45,15 +52,6 @@ struct RelTableScanState : TableScanState {
     void resetState() override {
         boundNodeOffset = common::INVALID_OFFSET;
         nodeGroupScanState->resetState();
-    }
-
-protected:
-    // Scan state for un-committed data.
-    RelTableScanState(common::table_id_t tableID, const std::vector<common::column_id_t>& columnIDs)
-        : RelTableScanState(tableID, columnIDs, {}, nullptr, nullptr,
-              common::RelDataDirection::FWD /* This is a dummy direction */,
-              std::vector<ColumnPredicateSet>{}) {
-        nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
     }
 };
 
@@ -145,7 +143,8 @@ public:
     void checkIfNodeHasRels(transaction::Transaction* transaction,
         common::RelDataDirection direction, common::ValueVector* srcNodeIDVector) const;
 
-    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState) override;
+    void addColumn(transaction::Transaction* transaction,
+        TableAddColumnState& addColumnState) override;
     void dropColumn(common::column_id_t) override {
         // TODO(Guodong): Rework this.
         // fwdRelTableData->dropColumn(columnID);

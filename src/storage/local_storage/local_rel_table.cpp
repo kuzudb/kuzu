@@ -75,7 +75,10 @@ bool LocalRelTable::update(TableUpdateState& state) {
     if (matchedRow == INVALID_ROW_IDX) {
         return false;
     }
-    localNodeGroup->update(&transaction::DUMMY_WRITE_TRANSACTION, matchedRow, updateState.columnID,
+    KU_ASSERT(updateState.columnID != NBR_ID_COLUMN_ID);
+    localNodeGroup->update(&transaction::DUMMY_WRITE_TRANSACTION, matchedRow,
+        rewriteLocalColumnID(RelDataDirection::FWD /* This is a dummy direction */,
+            updateState.columnID),
         updateState.propertyVector);
     return true;
 }
@@ -101,7 +104,8 @@ bool LocalRelTable::delete_(transaction::Transaction*, TableDeleteState& state) 
     return true;
 }
 
-bool LocalRelTable::addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState) {
+bool LocalRelTable::addColumn(transaction::Transaction* transaction,
+    TableAddColumnState& addColumnState) {
     localNodeGroup->addColumn(transaction, addColumnState, nullptr /* BMFileHandle */);
     return true;
 }
@@ -125,15 +129,16 @@ std::vector<column_id_t> LocalRelTable::rewriteLocalColumnIDs(RelDataDirection d
     localColumnIDs.reserve(columnIDs.size());
     for (auto i = 0u; i < columnIDs.size(); i++) {
         const auto columnID = columnIDs[i];
-        if (columnID == NBR_ID_COLUMN_ID) {
-            localColumnIDs.push_back(direction == RelDataDirection::FWD ?
-                                         LOCAL_NBR_NODE_ID_COLUMN_ID :
-                                         LOCAL_BOUND_NODE_ID_COLUMN_ID);
-        } else {
-            localColumnIDs.push_back(columnID + 1);
-        }
+        localColumnIDs.push_back(rewriteLocalColumnID(direction, columnID));
     }
     return localColumnIDs;
+}
+
+column_id_t LocalRelTable::rewriteLocalColumnID(RelDataDirection direction, column_id_t columnID) {
+    return columnID == NBR_ID_COLUMN_ID ? direction == RelDataDirection::FWD ?
+                                          LOCAL_NBR_NODE_ID_COLUMN_ID :
+                                          LOCAL_BOUND_NODE_ID_COLUMN_ID :
+                                          columnID + 1;
 }
 
 bool LocalRelTable::scan(transaction::Transaction* transaction, TableScanState& state) const {
@@ -170,7 +175,7 @@ row_idx_t LocalRelTable::findMatchingRow(offset_t srcNodeOffset, offset_t dstNod
     scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
     std::vector<column_id_t> columnIDs;
     columnIDs.push_back(LOCAL_REL_ID_COLUMN_ID);
-    const auto scanState = std::make_unique<TableScanState>(table.getTableID(), columnIDs);
+    const auto scanState = std::make_unique<RelTableScanState>(table.getTableID(), columnIDs);
     scanState->IDVector = scanChunk.getValueVector(0).get();
     scanState->rowIdxVector->state = scanChunk.state;
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
