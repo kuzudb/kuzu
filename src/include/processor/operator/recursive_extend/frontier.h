@@ -46,16 +46,9 @@ struct RelIDMasker {
     static constexpr uint64_t FLIP_SRC_DST_MASK = 0x8000000000000000;
     static constexpr uint64_t CLEAR_FLIP_SRC_DST_MASK = 0x7FFFFFFFFFFFFFFF;
 
-    static void markFlip(common::internalID_t& relID) {
-        relID.offset |= FLIP_SRC_DST_MASK;
-    }
-    static bool needFlip(common::internalID_t& relID) {
-        return relID.offset & FLIP_SRC_DST_MASK;
-    }
-    static void clearMark(common::internalID_t& relID) {
-        relID.offset &= CLEAR_FLIP_SRC_DST_MASK;
-    }
-
+    static void markFlip(common::internalID_t& relID) { relID.offset |= FLIP_SRC_DST_MASK; }
+    static bool needFlip(common::internalID_t& relID) { return relID.offset & FLIP_SRC_DST_MASK; }
+    static void clearMark(common::internalID_t& relID) { relID.offset &= CLEAR_FLIP_SRC_DST_MASK; }
 };
 
 } // namespace processor

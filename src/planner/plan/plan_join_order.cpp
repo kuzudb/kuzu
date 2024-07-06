@@ -307,7 +307,8 @@ void Planner::appendExtend(std::shared_ptr<NodeExpression> boundNode,
     switch (rel->getRelType()) {
     case QueryRelType::NON_RECURSIVE: {
         auto extendFromSource = *boundNode == *rel->getSrcNode();
-        appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, extendFromSource, properties, plan);
+        appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, extendFromSource, properties,
+            plan);
     } break;
     case QueryRelType::VARIABLE_LENGTH:
     case QueryRelType::SHORTEST:

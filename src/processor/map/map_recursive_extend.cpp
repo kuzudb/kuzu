@@ -52,7 +52,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(LogicalOperator
     dataInfo.recursiveEdgeIDPos =
         getDataPos(*recursiveInfo->rel->getInternalIDProperty(), *recursivePlanSchema);
     if (recursiveInfo->rel->getDirectionType() == RelDirectionType::BOTH) {
-        dataInfo.recursiveEdgeDirectionPos = getDataPos(*recursiveInfo->rel->getDirectionExpr(), *recursivePlanSchema);
+        dataInfo.recursiveEdgeDirectionPos =
+            getDataPos(*recursiveInfo->rel->getDirectionExpr(), *recursivePlanSchema);
     }
     if (extend->getJoinType() == RecursiveJoinType::TRACK_PATH) {
         dataInfo.pathPos = getDataPos(*rel, *outSchema);

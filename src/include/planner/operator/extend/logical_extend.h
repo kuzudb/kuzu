@@ -12,10 +12,11 @@ class LogicalExtend : public BaseLogicalExtend {
 public:
     LogicalExtend(std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
-        common::ExtendDirection direction, bool extendFromSource, binder::expression_vector properties,
-        bool hasAtMostOneNbr, std::shared_ptr<LogicalOperator> child)
-        : BaseLogicalExtend{type_, std::move(boundNode), std::move(nbrNode),
-              std::move(rel), direction, extendFromSource, std::move(child)},
+        common::ExtendDirection direction, bool extendFromSource,
+        binder::expression_vector properties, bool hasAtMostOneNbr,
+        std::shared_ptr<LogicalOperator> child)
+        : BaseLogicalExtend{type_, std::move(boundNode), std::move(nbrNode), std::move(rel),
+              direction, extendFromSource, std::move(child)},
           properties{std::move(properties)}, hasAtMostOneNbr{hasAtMostOneNbr} {}
 
     f_group_pos_set getGroupsPosToFlatten() override;
