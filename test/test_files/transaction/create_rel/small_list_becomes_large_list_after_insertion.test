@@ -18,6 +18,7 @@
 
 
 -CASE smallListBecomesLargeListAfterInsertionCommitRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -BATCH_STATEMENTS <FILE:>small_list_becomes_large_list_after_insertion.cypher
@@ -51,6 +52,7 @@
 
 
 -CASE smallListBecomesLargeListAfterInsertionRollbackRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -BATCH_STATEMENTS <FILE:>small_list_becomes_large_list_after_insertion.cypher

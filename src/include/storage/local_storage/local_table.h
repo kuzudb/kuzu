@@ -23,8 +23,10 @@ public:
     virtual bool insert(transaction::Transaction* transaction, TableInsertState& insertState) = 0;
     virtual bool update(TableUpdateState& updateState) = 0;
     virtual bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) = 0;
-    virtual bool addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState) = 0;
+    virtual bool addColumn(transaction::Transaction* transaction,
+        TableAddColumnState& addColumnState) = 0;
     virtual void clear() = 0;
+    virtual common::TableType getTableType() const = 0;
 
     template<class TARGET>
     const TARGET& constCast() {
@@ -33,6 +35,14 @@ public:
     template<class TARGET>
     TARGET& cast() {
         return common::ku_dynamic_cast<LocalTable&, TARGET&>(*this);
+    }
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<LocalTable*, TARGET*>(this);
+    }
+    template<class TARGET>
+    const TARGET* ptrCast() const {
+        return common::ku_dynamic_cast<LocalTable*, TARGET*>(this);
     }
 
 protected:

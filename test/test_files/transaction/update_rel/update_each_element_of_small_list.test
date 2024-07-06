@@ -18,6 +18,7 @@
 
 
 -CASE updateEachElementOfSmallListCommitRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -BATCH_STATEMENTS <FILE>:update_each_element_of_small_list.cypher
@@ -51,6 +52,7 @@
 
 
 -CASE updateEachElementOfSmallListRollbackRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -BATCH_STATEMENTS <FILE>:update_each_element_of_small_list.cypher

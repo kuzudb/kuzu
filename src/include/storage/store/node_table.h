@@ -117,8 +117,9 @@ public:
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
-    
-    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState) override;
+
+    void addColumn(transaction::Transaction* transaction,
+        TableAddColumnState& addColumnState) override;
     void dropColumn(common::column_id_t) override {
         throw common::NotImplementedException("dropColumn is not implemented yet.");
     }

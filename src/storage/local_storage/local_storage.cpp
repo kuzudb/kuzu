@@ -41,8 +41,16 @@ LocalTable* LocalStorage::getLocalTable(table_id_t tableID, NotExistAction actio
 
 void LocalStorage::prepareCommit() {
     for (auto& [tableID, localTable] : tables) {
-        const auto table = clientContext.getStorageManager()->getTable(tableID);
-        table->prepareCommit(clientContext.getTx(), localTable.get());
+        if (localTable->getTableType() == TableType::NODE) {
+            const auto table = clientContext.getStorageManager()->getTable(tableID);
+            table->prepareCommit(clientContext.getTx(), localTable.get());
+        }
+    }
+    for (auto& [tableID, localTable] : tables) {
+        if (localTable->getTableType() == TableType::REL) {
+            const auto table = clientContext.getStorageManager()->getTable(tableID);
+            table->prepareCommit(clientContext.getTx(), localTable.get());
+        }
     }
 }
 

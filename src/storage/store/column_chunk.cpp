@@ -26,7 +26,7 @@ ColumnChunk::ColumnChunk(const LogicalType& dataType, bool enableCompression,
 }
 
 ColumnChunk::ColumnChunk(bool enableCompression, std::unique_ptr<ColumnChunkData> data)
-    : dataType{data->getDataType().copy()}, enableCompression{enableCompression}, 
+    : dataType{data->getDataType().copy()}, enableCompression{enableCompression},
       data{std::move(data)} {}
 
 void ColumnChunk::initializeScanState(ChunkState& state) const {
@@ -56,13 +56,14 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
                 const auto startOffset = idx == startVectorIdx ? startOffsetInVector : 0;
                 const auto endOffset =
                     idx == endVectorIdx ? endOffsetInVector : DEFAULT_VECTOR_CAPACITY;
-                for (auto i = 0u; i < vectorInfo->numRowsUpdated; i++) {
+                const auto numRowsInVector = endOffset - startOffset;
+                for (auto i = 0u; i < numRowsInVector; i++) {
                     if (vectorInfo->rowsInVector[i] >= startOffset) {
                         vectorInfo->data->lookup(i, output,
                             posInVector + vectorInfo->rowsInVector[i] - startOffset);
                     }
                 }
-                posInVector += endOffset - startOffset;
+                posInVector += numRowsInVector;
             }
             idx++;
         }

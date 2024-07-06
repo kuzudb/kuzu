@@ -32,6 +32,10 @@ struct TableScanState {
     std::vector<ColumnPredicateSet> columnPredicateSets;
     common::ZoneMapCheckResult zoneMapResult = common::ZoneMapCheckResult::ALWAYS_SCAN;
 
+    TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs)
+        : tableID{tableID}, IDVector(nullptr), columnIDs{std::move(columnIDs)} {
+        rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
+    }
     TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
         std::vector<Column*> columns, std::vector<ColumnPredicateSet> columnPredicateSets)
         : tableID{tableID}, IDVector(nullptr), columnIDs{std::move(columnIDs)},
@@ -117,7 +121,7 @@ struct TableAddColumnState {
     const catalog::Property& property;
     evaluator::ExpressionEvaluator& defaultEvaluator;
 
-    TableAddColumnState(const catalog::Property& property, 
+    TableAddColumnState(const catalog::Property& property,
         evaluator::ExpressionEvaluator& defaultEvaluator)
         : property{property}, defaultEvaluator{defaultEvaluator} {}
     virtual ~TableAddColumnState() = default;
@@ -152,7 +156,8 @@ public:
     virtual void update(transaction::Transaction* transaction, TableUpdateState& updateState) = 0;
     virtual bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) = 0;
 
-    virtual void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState) = 0;
+    virtual void addColumn(transaction::Transaction* transaction,
+        TableAddColumnState& addColumnState) = 0;
     virtual void dropColumn(common::column_id_t columnID) = 0;
 
     virtual void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) = 0;

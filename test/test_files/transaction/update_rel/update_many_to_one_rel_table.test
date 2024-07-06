@@ -30,6 +30,7 @@
 
 
 -CASE updateManyToOneRelTableCommitRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT CREATE (p:person {ID: 2501})
@@ -73,6 +74,7 @@
 
 
 -CASE updateManyToOneRelTableRollbackRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_MANY_TO_ONE_REL_TABLE

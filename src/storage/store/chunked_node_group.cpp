@@ -222,10 +222,20 @@ bool ChunkedNodeGroup::lookup(Transaction* transaction, const TableScanState& st
     if (hasValuesToScan) {
         for (auto i = 0u; i < state.columnIDs.size(); i++) {
             const auto columnID = state.columnIDs[i];
+            if (columnID == INVALID_COLUMN_ID) {
+                state.outputVectors[i]->setAllNull();
+                continue;
+            }
+            if (columnID == ROW_IDX_COLUMN_ID) {
+                state.rowIdxVector->setValue<row_idx_t>(
+                    state.rowIdxVector->state->getSelVector()[posInOutput],
+                    rowIdxInChunk + startRowIdx);
+                continue;
+            }
             KU_ASSERT(columnID < chunks.size());
             chunks[columnID]->lookup(transaction, nodeGroupScanState.chunkStates[i], rowIdxInChunk,
                 *state.outputVectors[i],
-                state.outputVectors[i]->state->getSelVector().getSelectedPositions()[posInOutput]);
+                state.outputVectors[i]->state->getSelVector()[posInOutput]);
         }
     }
     return hasValuesToScan;
@@ -247,7 +257,7 @@ void ChunkedNodeGroup::addColumn(Transaction* transaction, TableAddColumnState& 
     bool enableCompression, BMFileHandle* dataFH) {
     auto numRows = getNumRows();
     auto& property = addColumnState.property;
-    chunks.push_back(std::make_unique<ColumnChunk>(property.getDataType().copy(), capacity, 
+    chunks.push_back(std::make_unique<ColumnChunk>(property.getDataType().copy(), capacity,
         enableCompression, ResidencyState::IN_MEMORY));
     auto& chunkData = chunks.back()->getData();
     chunkData.populateWithDefaultVal(addColumnState.defaultEvaluator, numRows);
