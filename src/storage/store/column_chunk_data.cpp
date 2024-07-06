@@ -285,26 +285,6 @@ ColumnChunkMetadata ColumnChunkData::getMetadataToFlush() const {
     return getMetadataFunction(buffer.get(), bufferSize, capacity, numValues, minValue, maxValue);
 }
 
-// template<ResidencyState SCAN_RESIDENCY_STATE>
-// void ColumnChunk::scanCommitted(Transaction* transaction, ChunkState& chunkState,
-//     ColumnChunk& output) const {
-//     auto numValuesBeforeScan = output.getNumValues();
-//     switch (residencyState) {
-//     case ResidencyState::ON_DISK: {
-//         if (SCAN_RESIDENCY_STATE == residencyState) {
-//             chunkState.column->scan(transaction, chunkState, &output.getData());
-//             scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan);
-//         }
-//     } break;
-//     case ResidencyState::IN_MEMORY: {
-//         if (SCAN_RESIDENCY_STATE == residencyState) {
-//             output.getData().append(data.get(), 0, data->getNumValues());
-//             scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan);
-//         }
-//     } break;
-//     }
-// }
-
 void ColumnChunkData::append(ValueVector* vector, const SelectionVector& selVector) {
     KU_ASSERT(vector->dataType.getPhysicalType() == dataType.getPhysicalType());
     copyVectorToBuffer(vector, numValues, selVector);
