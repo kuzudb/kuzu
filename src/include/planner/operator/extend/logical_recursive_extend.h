@@ -8,13 +8,15 @@ namespace kuzu {
 namespace planner {
 
 class LogicalRecursiveExtend : public BaseLogicalExtend {
+    static constexpr LogicalOperatorType type_ = LogicalOperatorType::RECURSIVE_EXTEND;
+
 public:
     LogicalRecursiveExtend(std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
-        common::ExtendDirection direction, RecursiveJoinType joinType,
+        common::ExtendDirection direction, bool extendFromSource, RecursiveJoinType joinType,
         std::shared_ptr<LogicalOperator> child, std::shared_ptr<LogicalOperator> recursiveChild)
-        : BaseLogicalExtend{LogicalOperatorType::RECURSIVE_EXTEND, std::move(boundNode),
-              std::move(nbrNode), std::move(rel), direction, std::move(child)},
+        : BaseLogicalExtend{type_, std::move(boundNode), std::move(nbrNode), std::move(rel),
+              direction, extendFromSource, std::move(child)},
           joinType{joinType}, recursiveChild{std::move(recursiveChild)} {}
 
     f_group_pos_set getGroupsPosToFlatten() override;
@@ -28,7 +30,7 @@ public:
 
     std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalRecursiveExtend>(boundNode, nbrNode, rel, direction,
-            joinType, children[0]->copy(), recursiveChild->copy());
+            extendFromSource_, joinType, children[0]->copy(), recursiveChild->copy());
     }
 
 private:

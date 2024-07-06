@@ -1,0 +1,107 @@
+[
+    {
+      "ID": 8,
+      "fName": "Farooq",
+      "gender": 2,
+      "isStudent": true,
+      "isWorker": false,
+      "age": 25,
+      "eyeSight": 4.5,
+      "birthdate": "1980-10-26",
+      "registerTime": "1972-07-31 13:22:30.678559",
+      "lastJobDuration": "18 minutes 24 milliseconds",
+      "workedHours": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "usedNames": ["Fesdwe"],
+      "courseScoresPerTerm": [
+        [
+          8
+        ]
+      ],
+      "grades": [
+        80,
+        78,
+        34,
+        83
+      ],
+      "height": 1.51,
+      "u": "A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A16"
+    },
+    {
+      "ID": 9,
+      "fName": "Greg",
+      "gender": 2,
+      "isStudent": false,
+      "isWorker": false,
+      "age": 40,
+      "eyeSight": 4.9,
+      "birthdate": "1980-10-26",
+      "registerTime": "1976-12-23 11:21:42Z+06:40",
+      "lastJobDuration": "10 years 5 months 13 hours 24 us",
+      "workedHours": [
+        1
+      ],
+      "usedNames": ["Grad"],
+      "courseScoresPerTerm": [
+        [
+          10
+        ]
+      ],
+      "grades": [
+        43,
+        83,
+        67,
+        43
+      ],
+      "height": 1.6,
+      "u": "A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A17"
+    },
+    {
+      "ID": 10,
+      "fName": "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff",
+      "gender": 2,
+      "isStudent": false,
+      "isWorker": true,
+      "age": 83,
+      "eyeSight": 4.9,
+      "birthdate": "1990-11-27",
+      "registerTime": "2023-02-21 13:25:30",
+      "lastJobDuration": "3 years 2 days 13 hours 2 minutes",
+      "workedHours": [
+        10,
+        11,
+        12,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "usedNames": ["Ad","De","Hi","Kye","Orlan"],
+      "courseScoresPerTerm": [
+        [
+          7
+        ],
+        [
+          10
+        ],
+        [
+          6,
+          7
+        ]
+      ],
+      "grades": [
+        77,
+        64,
+        100,
+        54
+      ],
+      "height": 1.323,
+      "u": "A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A18"
+    }
+  ]

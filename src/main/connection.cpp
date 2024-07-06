@@ -7,7 +7,6 @@
 using namespace kuzu::parser;
 using namespace kuzu::binder;
 using namespace kuzu::common;
-using namespace kuzu::catalog;
 using namespace kuzu::planner;
 using namespace kuzu::processor;
 using namespace kuzu::transaction;

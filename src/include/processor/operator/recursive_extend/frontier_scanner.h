@@ -3,6 +3,7 @@
 #include <stack>
 
 #include "bfs_state.h"
+#include "common/enums/extend_direction.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
@@ -63,9 +64,9 @@ class PathScanner : public BaseFrontierScanner {
 public:
     PathScanner(TargetDstNodes* targetDstNodes, size_t k,
         std::unordered_map<common::table_id_t, std::string> tableIDToName,
-        path_semantic_check_t semanticCheckFunc, bool extendInBwd)
+        path_semantic_check_t semanticCheckFunc, common::ExtendDirection extendDirection)
         : BaseFrontierScanner{targetDstNodes, k}, tableIDToName{std::move(tableIDToName)},
-          semanticCheckFunc{semanticCheckFunc}, extendInBwd{extendInBwd} {
+          semanticCheckFunc{semanticCheckFunc}, extendDirection{extendDirection} {
         nodeIDs.resize(k + 1);
         relIDs.resize(k + 1);
     }
@@ -100,7 +101,7 @@ private:
     // Path semantic
     path_semantic_check_t semanticCheckFunc;
     // Extend direction
-    bool extendInBwd;
+    common::ExtendDirection extendDirection;
 };
 
 /*

@@ -154,7 +154,7 @@ void PathScanner::writePathToVector(RecursiveJoinVectors* vectors, sel_t& vector
         nodeIDDataVectorPos++;
     }
     // Write path rels.
-    if (extendInBwd) {
+    if (extendDirection == ExtendDirection::BWD) {
         for (auto i = 0u; i < k; ++i) {
             auto srcNodeID = nodeIDs[i + 1];
             auto dstNodeID = nodeIDs[i];
@@ -163,11 +163,28 @@ void PathScanner::writePathToVector(RecursiveJoinVectors* vectors, sel_t& vector
                 tableIDToName.at(relID.tableID));
             relIDDataVectorPos++;
         }
-    } else {
+    } else if (extendDirection == ExtendDirection::FWD) {
         for (auto i = 0u; i < k; ++i) {
             auto srcNodeID = nodeIDs[i];
             auto dstNodeID = nodeIDs[i + 1];
             auto relID = relIDs[i];
+            writePathRels(vectors, relIDDataVectorPos, srcNodeID, dstNodeID, relID,
+                tableIDToName.at(relID.tableID));
+            relIDDataVectorPos++;
+        }
+    } else {
+        KU_ASSERT(extendDirection == ExtendDirection::BOTH);
+        internalID_t srcNodeID, dstNodeID;
+        for (auto i = 0u; i < k; ++i) {
+            auto relID = relIDs[i];
+            if (RelIDMasker::needFlip(relID)) {
+                srcNodeID = nodeIDs[i + 1];
+                dstNodeID = nodeIDs[i];
+            } else {
+                srcNodeID = nodeIDs[i];
+                dstNodeID = nodeIDs[i + 1];
+            }
+            RelIDMasker::clearMark(relID);
             writePathRels(vectors, relIDDataVectorPos, srcNodeID, dstNodeID, relID,
                 tableIDToName.at(relID.tableID));
             relIDDataVectorPos++;

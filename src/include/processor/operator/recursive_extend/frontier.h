@@ -40,5 +40,16 @@ public:
     common::node_id_map_t<uint64_t> nodeIDToMultiplicity;
 };
 
+// We assume number of edges per table is smaller than 2^63. So we mask the highest bit of rel
+// offset to indicate if the src and dst node this relationship need to be flipped.
+struct RelIDMasker {
+    static constexpr uint64_t FLIP_SRC_DST_MASK = 0x8000000000000000;
+    static constexpr uint64_t CLEAR_FLIP_SRC_DST_MASK = 0x7FFFFFFFFFFFFFFF;
+
+    static void markFlip(common::internalID_t& relID) { relID.offset |= FLIP_SRC_DST_MASK; }
+    static bool needFlip(common::internalID_t& relID) { return relID.offset & FLIP_SRC_DST_MASK; }
+    static void clearMark(common::internalID_t& relID) { relID.offset &= CLEAR_FLIP_SRC_DST_MASK; }
+};
+
 } // namespace processor
 } // namespace kuzu

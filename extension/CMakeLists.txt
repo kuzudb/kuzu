@@ -10,6 +10,10 @@ if ("duckdb" IN_LIST BUILD_EXTENSIONS)
     endif()
 endif()
 
+if ("json" IN_LIST BUILD_EXTENSIONS)
+    add_subdirectory(json)
+endif()
+
 if ("postgres" IN_LIST BUILD_EXTENSIONS)
     if(NOT __32BIT__)
         # DuckDB does not officially support 32-bit builds, so we disable the

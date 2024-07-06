@@ -25,11 +25,17 @@ jobs:
       - name: Create tarball
         run: |
           tar -czvf libkuzu-linux-x86_64.tar.gz kuzu.h kuzu.hpp libkuzu.so
+          tar -czvf kuzu_cli-linux-x86_64.tar.gz kuzu
 
       - uses: actions/upload-artifact@v4
         with:
           name: libkuzu-linux-x86_64
           path: libkuzu-linux-x86_64.tar.gz
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kuzu_cli-linux-x86_64
+          path: kuzu_cli-linux-x86_64.tar.gz
 
   build-precompiled-bin-aarch64:
     runs-on: kuzu-self-hosted-linux-building-aarch64
