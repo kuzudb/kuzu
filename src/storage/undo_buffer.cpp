@@ -310,6 +310,9 @@ void UndoBuffer::rollbackRecord(const UndoRecordType recordType, const uint8_t* 
     case UndoRecordType::CATALOG_ENTRY: {
         rollbackCatalogEntryRecord(record);
     } break;
+    case UndoRecordType::SEQUENCE_ENTRY: {
+        rollbackSequenceEntry(record);
+    }
     case UndoRecordType::NODE_BATCH_INSERT: {
         rollbackNodeBatchInsertRecord(record);
     } break;
@@ -410,9 +413,14 @@ void UndoBuffer::rollbackVectorVersionInfo(UndoRecordType recordType, const uint
     }
 }
 
-void UndoBuffer::rollbackVectorUpdateInfo(const uint8_t* record) {
+void UndoBuffer::rollbackVectorUpdateInfo(const uint8_t* record) const {
     auto& undoRecord = *reinterpret_cast<VectorUpdateRecord const*>(record);
     KU_ASSERT(undoRecord.updateInfo);
+    if (undoRecord.updateInfo->getVectorInfo(clientContext.getTx(), undoRecord.vectorIdx) !=
+        undoRecord.vectorUpdateInfo) {
+        // The version chain has been updated. No need to rollback.
+        return;
+    }
     if (undoRecord.vectorUpdateInfo->getNext()) {
         // Has newer versions. Simply remove the current one from the version chain.
         const auto newerVersion = undoRecord.vectorUpdateInfo->getNext();

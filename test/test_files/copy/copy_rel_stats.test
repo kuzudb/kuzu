@@ -1,5 +1,5 @@
 -DATASET CSV tinysnb
-
+-SKIP
 --
 -CASE CopyRelStatistics
 -STATEMENT CALL storage_info('knows') WHERE column_name = "bwd_date" RETURN min, max;

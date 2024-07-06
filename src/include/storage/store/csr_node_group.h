@@ -20,7 +20,8 @@ struct csr_list_t {
 enum class CSRNodeGroupScanSource : uint8_t {
     COMMITTED_PERSISTENT = 0,
     COMMITTED_IN_MEMORY = 1,
-    NONE = 2
+    UNCOMMITTED = 2,
+    NONE = 10
 };
 
 // Store rows of a CSR list.
@@ -114,7 +115,7 @@ public:
     bool delete_(const transaction::Transaction* transaction, CSRNodeGroupScanSource source,
         common::row_idx_t rowIdxInGroup);
 
-    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState, 
+    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
         BMFileHandle* dataFH) override;
 
     bool isEmpty() const override { return !persistentChunkGroup && NodeGroup::isEmpty(); }

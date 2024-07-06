@@ -65,6 +65,16 @@ public:
     void rollback() const;
 
     storage::LocalStorage* getLocalStorage() const { return localStorage.get(); }
+    bool hasNewlyInsertedNodes(common::table_id_t tableID) const {
+        return maxCommittedNodeOffsets.contains(tableID);
+    }
+    void setMaxCommittedNodeOffset(common::table_id_t tableID, common::offset_t offset) {
+        maxCommittedNodeOffsets[tableID] = offset;
+    }
+    common::offset_t getMaxNodeOffsetBeforeCommit(common::table_id_t tableID) const {
+        KU_ASSERT(maxCommittedNodeOffsets.contains(tableID));
+        return maxCommittedNodeOffsets.at(tableID);
+    }
 
     void pushCatalogEntry(catalog::CatalogSet& catalogSet,
         catalog::CatalogEntry& catalogEntry) const;
@@ -95,6 +105,8 @@ private:
     int64_t currentTS;
     std::unique_ptr<storage::LocalStorage> localStorage;
     std::unique_ptr<storage::UndoBuffer> undoBuffer;
+
+    std::unordered_map<common::table_id_t, common::offset_t> maxCommittedNodeOffsets;
 };
 
 static auto DUMMY_READ_TRANSACTION = Transaction(TransactionType::READ_ONLY);
