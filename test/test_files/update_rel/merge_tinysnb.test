@@ -10,6 +10,7 @@
 3:2|2021-06-30
 -STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 5 MERGE (a)-[r:knows {date: date('2022-02-02')}]->(b)
 ---- ok
+# TODO(Guodong): FIX-ME. Newly added rel offset is not assigned correctly. Not consider persistent rels.
 -STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 5 MATCH (a)-[r:knows]->(b) RETURN id(r), r.date
 ---- 2
 3:14|2022-02-02

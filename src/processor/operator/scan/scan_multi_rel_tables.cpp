@@ -1,5 +1,7 @@
 #include "processor/operator/scan/scan_multi_rel_tables.h"
 
+#include "storage/local_storage/local_rel_table.h"
+
 using namespace kuzu::common;
 using namespace kuzu::storage;
 using namespace kuzu::transaction;
@@ -20,7 +22,7 @@ bool DirectionInfo::needFlip(RelDataDirection relDataDirection) const {
 bool RelTableCollectionScanner::scan(const SelectionVector& selVector, Transaction* transaction) {
     while (true) {
         const auto& relInfo = relInfos[currentTableIdx];
-        auto& scanState = *relInfo.localScanState;
+        auto& scanState = *relInfo.scanState;
         const auto skipScan =
             transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;
         if (!skipScan && scanState.source != TableScanSource::NONE &&
@@ -39,7 +41,7 @@ bool RelTableCollectionScanner::scan(const SelectionVector& selVector, Transacti
                 return false;
             }
             relInfos[currentTableIdx].table->initializeScanState(transaction,
-                *relInfos[currentTableIdx].localScanState);
+                *relInfos[currentTableIdx].scanState);
             nextTableIdx++;
         }
     }
@@ -50,14 +52,20 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
     for (auto& [_, scanner] : scanners) {
         for (auto& relInfo : scanner.relInfos) {
             relInfo.initScanState();
-            initVectors(*relInfo.localScanState, *resultSet);
+            initVectors(*relInfo.scanState, *resultSet);
             // TODO(Guodong/Xiyang): Temp solution here. Should be moved to `info`.
             boundNodeIDVector = resultSet->getValueVector(relInfo.boundNodeIDPos).get();
-            auto& scanState = relInfo.localScanState->cast<RelTableScanState>();
+            auto& scanState = relInfo.scanState->cast<RelTableScanState>();
             scanState.boundNodeIDVector = resultSet->getValueVector(relInfo.boundNodeIDPos).get();
-            scanState.localRelTable =
-                context->clientContext->getTx()->getLocalStorage()->getLocalTable(
-                    relInfo.table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL);
+            if (const auto localRelTable =
+                    context->clientContext->getTx()->getLocalStorage()->getLocalTable(
+                        relInfo.table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
+                auto localTableColumnIDs = LocalRelTable::rewriteLocalColumnIDs(relInfo.direction,
+                    relInfo.scanState->columnIDs);
+                relInfo.scanState->localTableScanState =
+                    std::make_unique<LocalRelTableScanState>(*relInfo.scanState,
+                        localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
+            }
             if (directionInfo.directionPos.isValid()) {
                 scanner.directionVector =
                     resultSet->getValueVector(directionInfo.directionPos).get();

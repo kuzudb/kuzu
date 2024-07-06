@@ -32,6 +32,10 @@ struct TableScanState {
     std::vector<ColumnPredicateSet> columnPredicateSets;
     common::ZoneMapCheckResult zoneMapResult = common::ZoneMapCheckResult::ALWAYS_SCAN;
 
+    TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs)
+        : tableID{tableID}, IDVector(nullptr), columnIDs{std::move(columnIDs)} {
+        rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
+    }
     TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
         std::vector<Column*> columns, std::vector<ColumnPredicateSet> columnPredicateSets)
         : tableID{tableID}, IDVector(nullptr), columnIDs{std::move(columnIDs)},

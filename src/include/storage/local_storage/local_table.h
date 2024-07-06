@@ -34,6 +34,14 @@ public:
     TARGET& cast() {
         return common::ku_dynamic_cast<LocalTable&, TARGET&>(*this);
     }
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<LocalTable*, TARGET*>(this);
+    }
+    template<class TARGET>
+    const TARGET* ptrCast() const {
+        return common::ku_dynamic_cast<LocalTable*, TARGET*>(this);
+    }
 
 protected:
     explicit LocalTable(Table& table) : table{table} {}

@@ -20,7 +20,8 @@ struct csr_list_t {
 enum class CSRNodeGroupScanSource : uint8_t {
     COMMITTED_PERSISTENT = 0,
     COMMITTED_IN_MEMORY = 1,
-    NONE = 2
+    UNCOMMITTED = 2,
+    NONE = 10
 };
 
 // Store rows of a CSR list.
