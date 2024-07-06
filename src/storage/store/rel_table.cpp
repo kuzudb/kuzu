@@ -241,8 +241,6 @@ NodeGroup* RelTable::getOrCreateNodeGroup(node_group_idx_t nodeGroupIdx,
 
 void RelTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
     auto& localRelTable = localTable->cast<LocalRelTable>();
-    const auto startRelOffset = fwdRelTableData->getNumRows();
-    KU_ASSERT(startRelOffset == bwdRelTableData->getNumRows());
     const auto dataChunkState = std::make_shared<DataChunkState>();
     std::vector<column_id_t> columnIDsToScan;
     for (auto i = 0u; i < localRelTable.getNumColumns(); i++) {
@@ -258,6 +256,7 @@ void RelTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
         auto& internalIDData = chunkedGroup->getColumnChunk(LOCAL_REL_ID_COLUMN_ID)
                                    .getData()
                                    .cast<InternalIDChunkData>();
+        const offset_t startRelOffset = reserveRelOffsets(internalIDData.getNumValues());
         for (auto rowIdx = 0u; rowIdx < internalIDData.getNumValues(); rowIdx++) {
             const auto localRelOffset = internalIDData[rowIdx];
             const auto committedRelOffset =

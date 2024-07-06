@@ -91,7 +91,7 @@ public:
     virtual ~NodeGroup() = default;
 
     virtual bool isEmpty() const { return numRows.load() == 0; }
-    common::row_idx_t getNumRows() const { return numRows.load(); }
+    virtual common::row_idx_t getNumRows() const { return numRows.load(); }
     void moveNextRowToAppend(common::row_idx_t numRowsToAppend) {
         nextRowToAppend += numRowsToAppend;
     }
@@ -118,8 +118,8 @@ public:
         common::column_id_t columnID, const common::ValueVector& propertyVector);
     bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInGroup);
 
-    virtual void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
-        BMFileHandle* dataFH);
+    virtual void addColumn(transaction::Transaction* transaction,
+        TableAddColumnState& addColumnState, BMFileHandle* dataFH);
 
     void flush(BMFileHandle& dataFH);
 

@@ -136,6 +136,11 @@ offset_t NodeTable::validateUniquenessConstraint(Transaction* transaction,
 void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) {
     const auto& nodeInsertState = insertState.cast<NodeTableInsertState>();
     KU_ASSERT(nodeInsertState.propertyVectors[0]->state->getSelVector().getSelSize() == 1);
+    KU_ASSERT(nodeInsertState.nodeIDVector.state->getSelVector().getSelSize() == 1);
+    if (nodeInsertState.nodeIDVector.isNull(
+            nodeInsertState.nodeIDVector.state->getSelVector()[0])) {
+        return;
+    }
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
     localTable->insert(transaction, insertState);
@@ -154,6 +159,9 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
     // insertPK(nodeUpdateState.nodeIDVector, nodeUpdateState.propertyVector);
     // }
     const auto pos = nodeUpdateState.nodeIDVector.state->getSelVector()[0];
+    if (nodeUpdateState.nodeIDVector.isNull(pos)) {
+        return;
+    }
     const auto nodeOffset = nodeUpdateState.nodeIDVector.readNodeOffset(pos);
     if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
@@ -194,8 +202,8 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
 void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
     auto& property = addColumnState.property;
     KU_ASSERT(property.getColumnID() == columns.size());
-    columns.push_back(ColumnFactory::createColumn(property.getName(),
-        property.getDataType().copy(), dataFH, bufferManager, wal, enableCompression));
+    columns.push_back(ColumnFactory::createColumn(property.getName(), property.getDataType().copy(),
+        dataFH, bufferManager, wal, enableCompression));
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::RETURN_NULL);
     if (localTable) {
