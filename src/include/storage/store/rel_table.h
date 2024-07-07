@@ -197,6 +197,13 @@ private:
 
     static void initializeLocalRelScanState(RelTableScanState& relScanState);
 
+    void updateRelOffsets(LocalRelTable& localRelTable);
+    void updateNodeOffsets(LocalRelTable& localRelTable, common::RelDataDirection direction,
+        common::offset_t maxCommittedOffset);
+
+    static common::offset_t getCommittedOffset(common::offset_t uncommittedOffset,
+        common::offset_t maxCommittedOffset);
+
     common::row_idx_t detachDeleteForCSRRels(transaction::Transaction* transaction,
         RelTableData* tableData, RelTableData* reverseTableData,
         common::ValueVector* srcNodeIDVector, RelTableScanState* relDataReadState,
@@ -206,6 +213,7 @@ private:
 
 private:
     // Note: Only toNodeTableID is needed for now. Expose fromNodeTableID if needed.
+    common::table_id_t fromNodeTableID;
     common::table_id_t toNodeTableID;
     std::mutex relOffsetMtx;
     common::offset_t nextRelOffset;

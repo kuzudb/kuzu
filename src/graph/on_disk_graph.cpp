@@ -144,20 +144,21 @@ std::vector<nodeID_t> OnDiskGraph::scanBwd(nodeID_t nodeID, table_id_t relTableI
     return result;
 }
 
-void OnDiskGraph::scan(nodeID_t nodeID, storage::RelTable* relTable,
-    RelTableScanState& relTableScanState, std::vector<nodeID_t>& nbrNodeIDs) {
+void OnDiskGraph::scan(nodeID_t nodeID, RelTable* relTable, RelTableScanState& relTableScanState,
+    std::vector<nodeID_t>& nbrNodeIDs) {
     scanState.srcNodeIDVector->setValue<nodeID_t>(0, nodeID);
-    // relTableScanState.dataScanState->resetState();
-    // relTable->initializeScanState(transaction, relTableScanState);
-    // auto& dstSelVector = scanState.dstNodeIDVector->state->getSelVector();
-    // while (relTableScanState.hasMoreToRead(transaction)) {
-    //     relTable->scan(transaction, relTableScanState);
-    //     KU_ASSERT(dstSelVector.isUnfiltered());
-    //     for (auto i = 0u; i < dstSelVector.getSelSize(); ++i) {
-    //         auto nbrID = scanState.dstNodeIDVector->getValue<nodeID_t>(i);
-    //         nbrNodeIDs.push_back(nbrID);
-    //     }
-    // }
+    relTableScanState.resetState();
+    relTable->initializeScanState(context->getTx(), relTableScanState);
+    while (relTableScanState.source != TableScanSource::NONE &&
+           relTable->scan(context->getTx(), relTableScanState)) {
+        if (relTableScanState.IDVector->state->getSelVector().getSelSize() > 0) {
+            for (auto i = 0u; i < relTableScanState.IDVector->state->getSelVector().getSelSize();
+                 ++i) {
+                auto nbrID = relTableScanState.IDVector->getValue<nodeID_t>(i);
+                nbrNodeIDs.push_back(nbrID);
+            }
+        }
+    }
 }
 
 } // namespace graph

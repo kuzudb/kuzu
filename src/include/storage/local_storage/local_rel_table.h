@@ -25,6 +25,8 @@ public:
     bool addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState) override;
 
+    common::TableType getTableType() const override { return common::TableType::REL; }
+
     void initializeScan(TableScanState& state);
     bool scan(transaction::Transaction* transaction, TableScanState& state) const;
 
@@ -36,7 +38,9 @@ public:
 
     common::column_id_t getNumColumns() const { return localNodeGroup->getDataTypes().size(); }
 
+    std::map<common::offset_t, row_idx_vec_t>& getFWDIndex() { return fwdIndex; }
     const std::map<common::offset_t, row_idx_vec_t>& getFWDIndex() const { return fwdIndex; }
+    std::map<common::offset_t, row_idx_vec_t>& getBWDIndex() { return bwdIndex; }
     const std::map<common::offset_t, row_idx_vec_t>& getBWDIndex() const { return bwdIndex; }
     NodeGroup& getLocalNodeGroup() const { return *localNodeGroup; }
 

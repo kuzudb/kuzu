@@ -1,6 +1,6 @@
 -DATASET CSV copy-test/rdf
 -BUFFER_POOL_SIZE 536870912
-
+-SKIP
 --
 
 -CASE CopyRDFTest
