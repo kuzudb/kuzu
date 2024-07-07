@@ -219,6 +219,7 @@ std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(Transaction* tran
 
 void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
     auto startNodeOffset = nodeGroups->getNumRows();
+    transaction->setMaxCommittedNodeOffset(tableID, startNodeOffset);
     auto& localNodeTable = localTable->cast<LocalNodeTable>();
     std::vector<column_id_t> columnIDs;
     for (auto i = 0u; i < columns.size(); i++) {
