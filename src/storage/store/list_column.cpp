@@ -1,7 +1,9 @@
 #include "storage/store/list_column.h"
 
+#include "common/assert.h"
 #include "storage/storage_structure/disk_array_collection.h"
 #include "storage/store/column.h"
+#include "storage/store/column_chunk_data.h"
 #include "storage/store/list_chunk_data.h"
 #include "storage/store/null_column.h"
 #include <bit>
@@ -57,16 +59,16 @@ ListColumn::ListColumn(std::string name, LogicalType dataType,
         StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "offset_");
     auto sizeColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "size_");
     auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
-    sizeColumn = ColumnFactory::createColumn(sizeColName, LogicalType::UINT32(),
+    sizeColumn = std::make_unique<Column>(sizeColName, LogicalType::UINT32(),
         *metaDAHeaderInfo.childrenInfos[SIZE_COLUMN_CHILD_READ_STATE_IDX], dataFH, metadataDAC,
-        bufferManager, wal, transaction, enableCompression);
+        bufferManager, wal, transaction, enableCompression, false /*requireNullColumn*/);
     dataColumn =
         ColumnFactory::createColumn(dataColName, ListType::getChildType(this->dataType).copy(),
             *metaDAHeaderInfo.childrenInfos[DATA_COLUMN_CHILD_READ_STATE_IDX], dataFH, metadataDAC,
             bufferManager, wal, transaction, enableCompression);
-    offsetColumn = ColumnFactory::createColumn(offsetColName, LogicalType::UINT64(),
+    offsetColumn = std::make_unique<Column>(offsetColName, LogicalType::UINT64(),
         *metaDAHeaderInfo.childrenInfos[OFFSET_COLUMN_CHILD_READ_STATE_IDX], dataFH, metadataDAC,
-        bufferManager, wal, transaction, enableCompression);
+        bufferManager, wal, transaction, enableCompression, false /*requireNullColumn*/);
 }
 
 void ListColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -241,12 +243,16 @@ void ListColumn::scanUnfiltered(Transaction* transaction, const ChunkState& stat
             startListOffsetInStorage, endListOffsetInStorage, dataVector, 0 /* offsetInVector */);
     } else {
         for (auto i = 0u; i < numValuesToScan; i++) {
-            auto startListOffsetInStorage = listOffsetInfoInStorage.getListStartOffset(i);
-            auto appendSize = listOffsetInfoInStorage.getListSize(i);
-            dataColumn->scan(transaction, state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
-                startListOffsetInStorage, startListOffsetInStorage + appendSize, dataVector,
-                offsetInVector);
-            offsetInVector += appendSize;
+            // Nulls are scanned to the resultVector first
+            if (!resultVector->isNull(i)) {
+                auto startListOffsetInStorage = listOffsetInfoInStorage.getListStartOffset(i);
+                auto appendSize = listOffsetInfoInStorage.getListSize(i);
+                dataColumn->scan(transaction,
+                    state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
+                    startListOffsetInStorage, startListOffsetInStorage + appendSize, dataVector,
+                    offsetInVector);
+                offsetInVector += appendSize;
+            }
         }
     }
 }
@@ -264,13 +270,16 @@ void ListColumn::scanFiltered(Transaction* transaction, const ChunkState& state,
     listOffset = 0;
     for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); i++) {
         auto pos = resultVector->state->getSelVector()[i];
-        auto startOffsetInStorageToScan = listOffsetSizeInfo.getListStartOffset(pos);
-        auto appendSize = listOffsetSizeInfo.getListSize(pos);
-        auto dataVector = ListVector::getDataVector(resultVector);
-        dataColumn->scan(transaction, state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
-            startOffsetInStorageToScan, startOffsetInStorageToScan + appendSize, dataVector,
-            listOffset);
-        listOffset += resultVector->getValue<list_entry_t>(pos).size;
+        // Nulls are scanned to the resultVector first
+        if (!resultVector->isNull(pos)) {
+            auto startOffsetInStorageToScan = listOffsetSizeInfo.getListStartOffset(pos);
+            auto appendSize = listOffsetSizeInfo.getListSize(pos);
+            auto dataVector = ListVector::getDataVector(resultVector);
+            dataColumn->scan(transaction, state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
+                startOffsetInStorageToScan, startOffsetInStorageToScan + appendSize, dataVector,
+                listOffset);
+            listOffset += resultVector->getValue<list_entry_t>(pos).size;
+        }
     }
 }
 
@@ -328,8 +337,6 @@ ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
         enableCompression, numOffsetsToRead);
     offsetColumn->scan(transaction, state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX],
         offsetColumnChunk.get(), startOffsetInNodeGroup, endOffsetInNodeGroup);
-    sizeColumn->scan(transaction, state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX],
-        sizeColumnChunk.get(), startOffsetInNodeGroup, endOffsetInNodeGroup);
     sizeColumn->scan(transaction, state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX],
         sizeColumnChunk.get(), startOffsetInNodeGroup, endOffsetInNodeGroup);
     auto numValuesScan = offsetColumnChunk->getNumValues();
