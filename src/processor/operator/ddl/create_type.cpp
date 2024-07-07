@@ -8,9 +8,9 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-std::string CreateTypePrintInfo::toString() const {
-    return typeName + " AS " + type;
-}
+// std::string CreateTypePrintInfo::toString() const {
+//     return typeName + " AS " + type;
+// }
 
 void CreateType::executeDDLInternal(ExecutionContext* context) {
     auto catalog = context->clientContext->getCatalog();

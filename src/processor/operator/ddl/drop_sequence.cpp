@@ -9,9 +9,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-std::string DropSequencePrintInfo::toString() const {
-    return name;
-}
 
 void DropSequence::executeDDLInternal(ExecutionContext* context) {
     context->clientContext->getCatalog()->dropSequence(context->clientContext->getTx(), sequenceID);
