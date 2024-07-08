@@ -22,6 +22,8 @@ struct ExceptionBuffer {
     EncodeException* exceptions;
     size_t capacityBytes;
 
+    void init();
+
     void addException(EncodeException exception);
     void removeException(common::offset_t idx);
     size_t getSizeBytes();
@@ -41,6 +43,11 @@ ExceptionBuffer<T>::ExceptionBuffer(uint8_t* frame, size_t frameSizeBytes)
     uint8_t* exceptionBufferStart = frame + frameSizeBytes - capacityBytes;
     header = reinterpret_cast<Header*>(exceptionBufferStart);
     exceptions = reinterpret_cast<EncodeException*>(exceptionBufferStart + sizeof(Header));
+}
+
+template<std::floating_point T>
+void ExceptionBuffer<T>::init() {
+    header->numExceptions = 0;
 }
 
 template<std::floating_point T>
@@ -93,6 +100,7 @@ uint64_t FloatCompression<T>::compressNextPage(const uint8_t*& srcBuffer,
     }
 
     ExceptionBuffer<T> exceptionBuffer{dstBuffer, dstBufferSize};
+    exceptionBuffer.init();
 
     const size_t numValuesToCompress =
         std::min(numValuesRemaining, numValues(dstBufferSize, metadata));
