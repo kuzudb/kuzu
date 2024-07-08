@@ -67,7 +67,7 @@ void CSRIndexBuild::executeInternal(kuzu::processor::ExecutionContext* context) 
     graph::MorselCSR* lastMorselCSRHandled = nullptr;
     // track how much of the block has been used to write neighbour offsets
     // when blockSize < (currBlockSizeUsed + next value vector size)
-    uint64_t currBlockSizeUsed;
+    uint64_t currBlockSizeUsed = 0u;
     auto txn = context->clientContext->getTx();
     while (children[0]->getNextTuple(context)) {
         for (auto i = 0u; i < boundNodeVector->state->getSelVector().getSelSize(); i++) {
