@@ -12,37 +12,51 @@ template<std::floating_point T>
 struct ExceptionBuffer {
     struct EncodeException {
         T value;
-        common::offset_t posInPage; // TODO maybe make this a smaller type to store more exceptions
+        uint16_t posInPage; // TODO maybe make this a smaller type to store more exceptions
+
+        static constexpr size_t sizeBytes();
     };
 
     ExceptionBuffer(uint8_t* frame, size_t frameSizeBytes);
     struct Header {
         common::offset_t numExceptions;
     }* header;
-    EncodeException* exceptions;
+    uint8_t* exceptions;
     size_t capacityBytes;
 
     void init();
 
     void addException(EncodeException exception);
+    void encodeException(EncodeException exception, common::offset_t idx);
+    EncodeException decodeException(common::offset_t idx);
     void removeException(common::offset_t idx);
     size_t getSizeBytes();
     common::offset_t& exceptionCount();
 
     // at most 1 / MAX_EXCEPTION_FACTOR * totalCompressedValues can be exceptions
     // if this is not the case we avoid compressing altogether
-    static constexpr size_t MAX_EXCEPTION_FACTOR = 8;
+    static constexpr size_t MAX_EXCEPTION_FACTOR = 4;
 
     static size_t getDataSizeForExceptions(size_t dataSize);
     static size_t getMaxExceptionCount(size_t exceptionBufferSize);
 };
 
 template<std::floating_point T>
+constexpr size_t ExceptionBuffer<T>::EncodeException::sizeBytes() {
+    constexpr size_t exceptionSizeBytes = sizeof(value) + sizeof(posInPage);
+
+    // best we can do to ensure that all fields are accounted for due to struct padding
+    static_assert(exceptionSizeBytes + (8 - exceptionSizeBytes % 8) >= sizeof(EncodeException));
+
+    return exceptionSizeBytes;
+}
+
+template<std::floating_point T>
 ExceptionBuffer<T>::ExceptionBuffer(uint8_t* frame, size_t frameSizeBytes)
     : capacityBytes(getDataSizeForExceptions(frameSizeBytes)) {
     uint8_t* exceptionBufferStart = frame + frameSizeBytes - capacityBytes;
     header = reinterpret_cast<Header*>(exceptionBufferStart);
-    exceptions = reinterpret_cast<EncodeException*>(exceptionBufferStart + sizeof(Header));
+    exceptions = exceptionBufferStart + sizeof(Header);
 }
 
 template<std::floating_point T>
@@ -52,23 +66,47 @@ void ExceptionBuffer<T>::init() {
 
 template<std::floating_point T>
 void ExceptionBuffer<T>::addException(EncodeException exception) {
-    KU_ASSERT(exceptionCount() < getMaxExceptionCount(capacityBytes));
-    exceptions[exceptionCount()] = exception;
+    encodeException(exception, exceptionCount());
     ++exceptionCount();
+}
+
+template<std::floating_point T>
+void ExceptionBuffer<T>::encodeException(EncodeException exception, common::offset_t idx) {
+    static constexpr size_t exceptionSizeBytes = exception.sizeBytes();
+
+    const auto byteOffset = idx * exceptionSizeBytes;
+    KU_ASSERT(byteOffset + exceptionSizeBytes <= capacityBytes);
+    std::memcpy(exceptions + byteOffset, &exception.value, sizeof(exception.value));
+    std::memcpy(exceptions + byteOffset + sizeof(exception.value), &exception.posInPage,
+        sizeof(exception.posInPage));
+}
+
+template<std::floating_point T>
+ExceptionBuffer<T>::EncodeException ExceptionBuffer<T>::decodeException(common::offset_t idx) {
+    EncodeException ret;
+
+    static constexpr size_t exceptionSizeBytes = ret.sizeBytes();
+
+    const auto byteOffset = idx * exceptionSizeBytes;
+    KU_ASSERT(byteOffset + exceptionSizeBytes <= capacityBytes);
+    std::memcpy(&ret.value, exceptions + byteOffset, sizeof(ret.value));
+    std::memcpy(&ret.posInPage, exceptions + byteOffset + sizeof(ret.value), sizeof(ret.posInPage));
+
+    return ret;
 }
 
 template<std::floating_point T>
 void ExceptionBuffer<T>::removeException(common::offset_t idx) {
     KU_ASSERT(idx < exceptionCount());
     for (size_t i = idx; i < exceptionCount() - 1; ++i) {
-        exceptions[i] = exceptions[i + 1];
+        encodeException(decodeException(i + 1), i);
     }
     --exceptionCount();
 }
 
 template<std::floating_point T>
 size_t ExceptionBuffer<T>::getSizeBytes() {
-    return sizeof(Header) + exceptionCount() * sizeof(EncodeException);
+    return sizeof(Header) + exceptionCount() * EncodeException::sizeBytes();
 }
 
 template<std::floating_point T>
@@ -83,7 +121,7 @@ size_t ExceptionBuffer<T>::getDataSizeForExceptions(size_t dataSize) {
 
 template<std::floating_point T>
 size_t ExceptionBuffer<T>::getMaxExceptionCount(size_t exceptionBufferSize) {
-    return (exceptionBufferSize - sizeof(Header)) / sizeof(EncodeException);
+    return (exceptionBufferSize - sizeof(Header)) / EncodeException::sizeBytes();
 }
 } // namespace
 
@@ -114,7 +152,9 @@ uint64_t FloatCompression<T>::compressNextPage(const uint8_t*& srcBuffer,
         const double decodedValue = alp::AlpDecode<T>::decode_value(integerEncodedValues[posInPage],
             metadata.alpMetadata.fac, metadata.alpMetadata.exp);
         if (floatValue != decodedValue) {
-            exceptionBuffer.addException({.value = floatValue, .posInPage = posInPage});
+            KU_ASSERT(posInPage == static_cast<uint16_t>(posInPage));
+            exceptionBuffer.addException(
+                {.value = floatValue, .posInPage = static_cast<uint16_t>(posInPage)});
 
             // fill in the encoded value with the offset instead of 0 for better compression ratio
             const auto encodedIntegerInfo = encodedFloatBitpacker.getPackingInfo(metadata);
@@ -132,9 +172,11 @@ uint64_t FloatCompression<T>::compressNextPage(const uint8_t*& srcBuffer,
 
     // Handle zeroing unused parts of the page here
     KU_ASSERT(compressedIntegerSize + exceptionBuffer.capacityBytes <= dstBufferSize);
+    KU_ASSERT(encodedBufferSize >= compressedIntegerSize);
     memset(dstBuffer + compressedIntegerSize, 0, encodedBufferSize - compressedIntegerSize);
 
     const size_t encoded_exception_size = exceptionBuffer.getSizeBytes();
+    KU_ASSERT(exceptionBuffer.capacityBytes >= encoded_exception_size);
     memset(reinterpret_cast<uint8_t*>(exceptionBuffer.header) + encoded_exception_size, 0,
         exceptionBuffer.capacityBytes - encoded_exception_size);
 
@@ -178,7 +220,7 @@ void FloatCompression<T>::decompressFromPage(const uint8_t* srcBuffer, uint64_t 
         // check if the current value is an exception
         bool isException = false;
         for (size_t j = 0; j < exceptionBuffer.exceptionCount(); ++j) {
-            const auto currentException = exceptionBuffer.exceptions[j];
+            const auto currentException = exceptionBuffer.decodeException(j);
             if (currentException.posInPage == srcOffset + i) {
                 dstValue = currentException.value;
                 isException = true;
@@ -223,15 +265,18 @@ void FloatCompression<T>::setValuesFromUncompressed(const uint8_t* srcBuffer,
         if (floatValue != decodedValue) {
             bool posAlreadyException = false;
             for (size_t j = 0; j < exceptionBuffer.exceptionCount(); ++j) {
-                auto& curException = exceptionBuffer.exceptions[j];
-                if (curException.posInPage == posInPage) {
-                    curException.value = floatValue;
+                auto currentException = exceptionBuffer.decodeException(j);
+                if (currentException.posInPage == posInPage) {
+                    currentException.value = floatValue;
+                    exceptionBuffer.encodeException(currentException, j);
                     posAlreadyException = true;
                 }
             }
 
             if (!posAlreadyException) {
-                exceptionBuffer.addException({.value = floatValue, .posInPage = posInPage});
+                KU_ASSERT(posInPage == static_cast<uint16_t>(posInPage));
+                exceptionBuffer.addException(
+                    {.value = floatValue, .posInPage = static_cast<uint16_t>(posInPage)});
             }
 
             const auto encodedIntegerInfo = encodedFloatBitpacker.getPackingInfo(metadata);
@@ -239,8 +284,8 @@ void FloatCompression<T>::setValuesFromUncompressed(const uint8_t* srcBuffer,
         } else {
             // TODO clean this up
             for (size_t j = 0; j < exceptionBuffer.exceptionCount(); ++j) {
-                auto& curException = exceptionBuffer.exceptions[j];
-                if (curException.posInPage == posInPage) {
+                const auto currentException = exceptionBuffer.decodeException(j);
+                if (currentException.posInPage == posInPage) {
                     exceptionBuffer.removeException(j);
                     break;
                 }

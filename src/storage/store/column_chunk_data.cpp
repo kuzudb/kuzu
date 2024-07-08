@@ -199,8 +199,7 @@ public:
         if (alpMetadata.k_combinations > 1) {
             alp::AlpEncode<T>::find_best_exponent_factor_from_combinations(
                 alpMetadata.best_k_combinations, alpMetadata.k_combinations,
-                reinterpret_cast<const T*>(buffer), alpMetadata.vector_size, alpMetadata.fac,
-                alpMetadata.exp);
+                reinterpret_cast<const T*>(buffer), numValues, alpMetadata.fac, alpMetadata.exp);
         } else {
             KU_ASSERT(alpMetadata.best_k_combinations.size() >= 1);
             alpMetadata.exp = alpMetadata.best_k_combinations[0].first;

@@ -193,7 +193,7 @@ struct AlpEncode {
 	find_best_exponent_factor_from_combinations(const std::vector<std::pair<int, int>>& top_combinations,
 	                                            const uint8_t                           top_k,
 	                                            const T*                                input_vector,
-	                                            const uint16_t                          input_vector_size,
+	                                            const size_t                            input_vector_size,
 	                                            uint8_t&                                factor,
 	                                            uint8_t&                                exponent) {
 		uint8_t  found_exponent {0};
