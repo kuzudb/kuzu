@@ -8,7 +8,7 @@ namespace processor {
 struct UseDatabasePrintInfo final : OPPrintInfo {
     std::string dbName;
 
-    UseDatabasePrintInfo(std::string dbName) : dbName(std::move(dbName)) {}
+    explicit UseDatabasePrintInfo(std::string dbName) : dbName(std::move(dbName)) {}
 
     std::string toString() const override;
 

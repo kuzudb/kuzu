@@ -10,7 +10,7 @@ namespace processor {
 struct TableFunctionCallPrintInfo final : OPPrintInfo {
     std::string funcName;
 
-    TableFunctionCallPrintInfo(std::string funcName) : funcName(std::move(funcName)) {}
+    explicit TableFunctionCallPrintInfo(std::string funcName) : funcName(std::move(funcName)) {}
 
     std::string toString() const override;
 
