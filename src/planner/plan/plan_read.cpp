@@ -82,8 +82,9 @@ void Planner::planUnwindClause(const BoundReadingClause& boundReadingClause,
 
 static bool hasExternalDependency(const std::shared_ptr<Expression>& expression,
     const std::unordered_set<std::string>& variableNameSet) {
-    auto collector = ExpressionCollector();
-    for (auto& name : collector.getDependentVariableNames(expression)) {
+    auto collector = DependentVarNameCollector();
+    collector.visit(expression);
+    for (auto& name : collector.getVarNames()) {
         if (!variableNameSet.contains(name)) {
             return true;
         }

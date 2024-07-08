@@ -7,6 +7,7 @@
 #include "binder/expression/rel_expression.h"
 #include "binder/expression/subquery_expression.h"
 #include "common/cast.h"
+#include "common/exception/not_implemented.h"
 #include "function/list/vector_list_functions.h"
 #include "function/sequence/sequence_functions.h"
 #include "function/uuid/vector_uuid_functions.h"
@@ -15,6 +16,91 @@ using namespace kuzu::common;
 
 namespace kuzu {
 namespace binder {
+
+void ExpressionVisitor::visitSwitch(std::shared_ptr<Expression> expr) {
+    switch (expr->expressionType) {
+    case ExpressionType::OR:
+    case ExpressionType::XOR:
+    case ExpressionType::AND:
+    case ExpressionType::NOT:
+    case ExpressionType::EQUALS:
+    case ExpressionType::NOT_EQUALS:
+    case ExpressionType::GREATER_THAN:
+    case ExpressionType::GREATER_THAN_EQUALS:
+    case ExpressionType::LESS_THAN:
+    case ExpressionType::LESS_THAN_EQUALS:
+    case ExpressionType::IS_NULL:
+    case ExpressionType::IS_NOT_NULL:
+    case ExpressionType::FUNCTION: {
+        visitFunctionExpr(expr);
+    } break;
+    case ExpressionType::AGGREGATE_FUNCTION: {
+        visitAggFunctionExpr(expr);
+    } break;
+    case ExpressionType::PROPERTY: {
+        visitPropertyExpr(expr);
+    } break;
+    case ExpressionType::LITERAL: {
+        visitLiteralExpr(expr);
+    } break;
+    case ExpressionType::VARIABLE: {
+        visitVariableExpr(expr);
+    } break;
+    case ExpressionType::PATH: {
+        visitPathExpr(expr);
+    } break;
+    case ExpressionType::PATTERN: {
+        visitNodeRelExpr(expr);
+    } break;
+    case ExpressionType::PARAMETER: {
+        visitParamExpr(expr);
+    } break;
+    case ExpressionType::SUBQUERY: {
+        visitSubqueryExpr(expr);
+    } break;
+    case ExpressionType::CASE_ELSE: {
+        visitCaseExpr(expr);
+    } break;
+    case ExpressionType::GRAPH: {
+        visitGraphExpr(expr);
+    } break;
+    case ExpressionType::LAMBDA: {
+        visitLambdaExpr(expr);
+    } break;
+        // LCOV_EXCL_START
+    default:
+        throw NotImplementedException("ExpressionVisitor::visitSwitch");
+        // LCOV_EXCL_STOP
+    }
+}
+
+void ExpressionVisitor::visit(std::shared_ptr<Expression> expr) {
+    visitChildren(*expr);
+    visitSwitch(expr);
+}
+
+void ExpressionVisitor::visitChildren(const Expression& expr) {
+    switch (expr.expressionType) {
+    case ExpressionType::CASE_ELSE: {
+        visitCaseExprChildren(expr);
+    } break;
+    default: {
+        for (auto& child : expr.getChildren()) {
+            visit(child);
+        }
+    }
+    }
+}
+
+void ExpressionVisitor::visitCaseExprChildren(const Expression& expr) {
+    auto& caseExpr = expr.constCast<CaseExpression>();
+    for (auto i = 0u; i < caseExpr.getNumCaseAlternatives(); ++i) {
+        auto caseAlternative = caseExpr.getCaseAlternative(i);
+        visit(caseAlternative->whenExpression);
+        visit(caseAlternative->thenExpression);
+    }
+    visit(caseExpr.getElseExpression());
+}
 
 expression_vector ExpressionChildrenCollector::collectChildren(const Expression& expression) {
     switch (expression.expressionType) {
@@ -141,47 +227,54 @@ bool ExpressionVisitor::isRandom(const Expression& expression) {
     return false;
 }
 
-bool ExpressionVisitor::satisfyAny(const Expression& expression,
-    const std::function<bool(const Expression&)>& condition) {
-    if (condition(expression)) {
-        return true;
+void DependentVarNameCollector::visitSubqueryExpr(std::shared_ptr<Expression> expr) {
+    auto& subqueryExpr = expr->constCast<SubqueryExpression>();
+    for (auto& node : subqueryExpr.getQueryGraphCollection()->getQueryNodes()) {
+        varNames.insert(node->getUniqueName());
     }
-    for (auto& child : ExpressionChildrenCollector::collectChildren(expression)) {
-        if (satisfyAny(*child, condition)) {
-            return true;
-        }
+    if (subqueryExpr.hasWhereExpression()) {
+        visit(subqueryExpr.getWhereExpression());
     }
-    return false;
 }
 
-std::unordered_set<std::string> ExpressionCollector::getDependentVariableNames(
-    const std::shared_ptr<Expression>& expression) {
-    KU_ASSERT(expressions.empty());
-    collectExpressionsInternal(expression, [&](const Expression& expression) {
-        return expression.expressionType == ExpressionType::PROPERTY ||
-               expression.expressionType == ExpressionType::PATTERN ||
-               expression.expressionType == ExpressionType::VARIABLE;
-    });
-    std::unordered_set<std::string> result;
-    for (auto& expr : expressions) {
-        if (expr->expressionType == ExpressionType::PROPERTY) {
-            auto property = (PropertyExpression*)expr.get();
-            result.insert(property->getVariableName());
-        } else {
-            result.insert(expr->getUniqueName());
-        }
-    }
-    return result;
+void DependentVarNameCollector::visitPropertyExpr(std::shared_ptr<Expression> expr) {
+    varNames.insert(expr->constCast<PropertyExpression>().getVariableName());
 }
 
-void ExpressionCollector::collectExpressionsInternal(const std::shared_ptr<Expression>& expression,
-    const std::function<bool(const Expression&)>& condition) {
-    if (condition(*expression)) {
-        expressions.push_back(expression);
-        return;
+void DependentVarNameCollector::visitNodeRelExpr(std::shared_ptr<Expression> expr) {
+    varNames.insert(expr->getUniqueName());
+    if (expr->getDataType().getLogicalTypeID() == LogicalTypeID::REL) {
+        auto& rel = expr->constCast<RelExpression>();
+        varNames.insert(rel.getSrcNodeName());
+        varNames.insert(rel.getDstNodeName());
     }
-    for (auto& child : ExpressionChildrenCollector::collectChildren(*expression)) {
-        collectExpressionsInternal(child, condition);
+}
+
+void DependentVarNameCollector::visitVariableExpr(std::shared_ptr<Expression> expr) {
+    varNames.insert(expr->getUniqueName());
+}
+
+void PropertyExprCollector::visitSubqueryExpr(std::shared_ptr<Expression> expr) {
+    auto& subqueryExpr = expr->constCast<SubqueryExpression>();
+    for (auto& rel : subqueryExpr.getQueryGraphCollection()->getQueryRels()) {
+        if (rel->isEmpty() || rel->getRelType() != QueryRelType::NON_RECURSIVE) {
+            // If a query rel is empty then it does not have an internal id property.
+            continue;
+        }
+        expressions.push_back(rel->getInternalIDProperty());
+    }
+    if (subqueryExpr.hasWhereExpression()) {
+        visit(subqueryExpr.getWhereExpression());
+    }
+}
+
+void PropertyExprCollector::visitPropertyExpr(std::shared_ptr<Expression> expr) {
+    expressions.push_back(expr);
+}
+
+void PropertyExprCollector::visitNodeRelExpr(std::shared_ptr<Expression> expr) {
+    for (auto& property : expr->constCast<NodeOrRelExpression>().getPropertyExprs()) {
+        expressions.push_back(property);
     }
 }
 

@@ -179,11 +179,11 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
     }
 }
 
-void Planner::planSubqueryIfNecessary(const std::shared_ptr<Expression>& expression,
-    LogicalPlan& plan) {
-    if (ExpressionVisitor::hasSubquery(*expression)) {
-        auto expressionCollector = std::make_unique<ExpressionCollector>();
-        for (auto& expr : expressionCollector->collectTopLevelSubqueryExpressions(expression)) {
+void Planner::planSubqueryIfNecessary(std::shared_ptr<Expression> expression, LogicalPlan& plan) {
+    auto collector = SubqueryExprCollector();
+    collector.visit(expression);
+    if (collector.hasSubquery()) {
+        for (auto& expr : collector.getSubqueryExprs()) {
             if (plan.getSchema()->isExpressionInScope(*expr)) {
                 continue;
             }

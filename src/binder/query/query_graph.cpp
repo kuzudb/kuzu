@@ -216,8 +216,9 @@ void QueryGraph::merge(const QueryGraph& other) {
 }
 
 bool QueryGraph::canProjectExpression(const std::shared_ptr<Expression>& expression) const {
-    auto expressionCollector = std::make_unique<ExpressionCollector>();
-    for (auto& variable : expressionCollector->getDependentVariableNames(expression)) {
+    auto collector = DependentVarNameCollector();
+    collector.visit(expression);
+    for (auto& variable : collector.getVarNames()) {
         if (!containsQueryNode(variable) && !containsQueryRel(variable)) {
             return false;
         }

@@ -414,8 +414,9 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
         auto recursivePatternPredicate =
             expressionBinder.bindExpression(*recursivePatternInfo->whereExpression);
         for (auto& predicate : recursivePatternPredicate->splitOnAND()) {
-            auto expressionCollector = ExpressionCollector();
-            auto dependentVariableNames = expressionCollector.getDependentVariableNames(predicate);
+            auto collector = DependentVarNameCollector();
+            collector.visit(predicate);
+            auto dependentVariableNames = collector.getVarNames();
             auto dependOnNode = dependentVariableNames.contains(node->getUniqueName());
             auto dependOnRel = dependentVariableNames.contains(rel->getUniqueName());
             if (dependOnNode && dependOnRel) {
