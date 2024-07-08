@@ -31,7 +31,7 @@ graph::GraphEntry Binder::bindProjectGraph(const ProjectGraph& projectGraph) {
                 TableTypeUtils::toString(entry->getTableType())));
         }
     }
-    return GraphEntry(std::move(nodeTableIDs), std::move(relTableIDs));
+    return GraphEntry(std::move(nodeTableIDs), std::move(relTableIDs), projectGraph.isInMem());
 }
 
 } // namespace binder

@@ -216,7 +216,7 @@ oC_Query
     : (kU_ProjectGraph SP? )? oC_RegularQuery ;
 
 kU_ProjectGraph
-    : PROJECT SP GRAPH SP oC_SchemaName SP? '(' SP? kU_GraphProjectionTableItems SP? ')' ;
+    : PROJECT SP (IN_MEM SP)? GRAPH SP oC_SchemaName SP? '(' SP? kU_GraphProjectionTableItems SP? ')' ;
 
 kU_GraphProjectionTableItems
     : kU_GraphProjectionTableItem ( SP? ',' SP? kU_GraphProjectionTableItem )* ;

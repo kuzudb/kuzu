@@ -8,6 +8,7 @@
 #include "function/gds/parallel_utils.h"
 #include "function/gds_function.h"
 #include "processor/processor_task.h"
+#include "graph/in_mem_graph.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -82,6 +83,35 @@ public:
         return numDstVisitedLocal;
     }
 
+    static uint64_t visitNbrs(common::offset_t frontierOffset, IFEMorsel* ifeMorsel,
+        graph::Graph* graph) {
+        uint64_t numDstVisitedLocal = 0u;
+        auto inMemGraph = ku_dynamic_cast<graph::Graph*, graph::InMemGraph*>(graph);
+        auto& csr = inMemGraph->getCSRSharedState()->csr;
+        auto csrEntry = csr[frontierOffset >> RIGHT_SHIFT];
+        if (!csrEntry) {
+            return 0;
+        }
+        auto posInCSR = frontierOffset & OFFSET_DIV;
+        for (auto nbrIdx = csrEntry->csr_v[posInCSR]; nbrIdx < csrEntry->csr_v[posInCSR + 1];
+             nbrIdx++) {
+            auto nbrOffset = csrEntry->nbrNodeOffsets[nbrIdx];
+            auto state = ifeMorsel->visitedNodes[nbrOffset].load(std::memory_order_acq_rel);
+            if (state == NOT_VISITED_DST) {
+                auto tryCAS = ifeMorsel->visitedNodes[nbrOffset].compare_exchange_strong(state,
+                    VISITED_DST_NEW, std::memory_order_acq_rel);
+                if (tryCAS) {
+                    numDstVisitedLocal++;
+                    ifeMorsel->pathLength[nbrOffset].store(ifeMorsel->currentLevel + 1,
+                        std::memory_order_relaxed);
+                }
+            } else if (state == NOT_VISITED) {
+                ifeMorsel->visitedNodes[nbrOffset].store(VISITED_NEW, std::memory_order_acq_rel);
+            }
+        }
+        return numDstVisitedLocal;
+    }
+
     /*
      * This will be main function for logic, doing frontier extension and updating state.
      */
@@ -101,13 +131,17 @@ public:
         while (!ifeMorsel->isBFSCompleteNoLock() && frontierMorsel.hasMoreToOutput()) {
             for (auto i = frontierMorsel.startOffset; i < frontierMorsel.endOffset; i++) {
                 auto frontierOffset = ifeMorsel->bfsLevelNodeOffsets[i];
-                graph->initializeStateFwdNbrs(frontierOffset,
-                    shortestPathLocalState->nbrScanState.get());
-                do {
-                    auto& dstNodeIDVector =
-                        graph->getFwdNbrs(shortestPathLocalState->nbrScanState.get());
-                    numDstVisitedLocal += visitNbrs(ifeMorsel, dstNodeIDVector);
-                } while (graph->hasMoreFwdNbrs(shortestPathLocalState->nbrScanState.get()));
+                if (graph->isInMemory) {
+                    numDstVisitedLocal += visitNbrs(frontierOffset, ifeMorsel, graph.get());
+                } else {
+                    graph->initializeStateFwdNbrs(frontierOffset,
+                        shortestPathLocalState->nbrScanState.get());
+                    do {
+                        auto& dstNodeIDVector =
+                            graph->getFwdNbrs(shortestPathLocalState->nbrScanState.get());
+                        numDstVisitedLocal += visitNbrs(ifeMorsel, dstNodeIDVector);
+                    } while (graph->hasMoreFwdNbrs(shortestPathLocalState->nbrScanState.get()));
+                }
             }
             ifeMorsel->mergeResults(numDstVisitedLocal);
             frontierMorsel = ifeMorsel->getMorsel(64LU);

@@ -102,6 +102,8 @@ GROUP : ( 'G' | 'g' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'U' | 'u' ) ( 'P' | 'p' ) ;
 
 HEADERS : ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'A' | 'a' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ( 'S' | 's' ) ;
 
+HINT : ( 'H' | 'h' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'T' | 't' ) ;
+
 IMPORT : ( 'I' | 'i' ) ( 'M' | 'm' ) ( 'P' | 'p' ) ( 'O' | 'o' ) ( 'R' | 'r' ) ( 'T' | 't' ) ;
 
 IF : ( 'I' | 'i' ) ( 'F' | 'f' ) ;
@@ -110,9 +112,13 @@ IN : ( 'I' | 'i' ) ( 'N' | 'n' ) ;
 
 INCREMENT : ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'C' | 'c' ) ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'M' | 'm' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'T' | 't' ) ;
 
+IN_MEM : ( 'I' | 'i' ) ( 'N' | 'n' ) '_' ( 'M' | 'm' ) ( 'E' | 'e' ) ( 'M' | 'm' ) ;
+
 INSTALL : ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'S' | 's' ) ( 'T' | 't' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
 
 IS : ( 'I' | 'i' ) ( 'S' | 's' ) ;
+
+JOIN : ( 'J' | 'j' ) ( 'O' | 'o' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ;
 
 KEY : ( 'K' | 'k' ) ( 'E' | 'e' ) ( 'Y' | 'y' ) ;
 
@@ -129,6 +135,8 @@ MAXVALUE : ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'X' | 'x' ) ( 'V' | 'v' ) ( 'A' | 'a' )
 MERGE : ( 'M' | 'm' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ( 'G' | 'g' ) ( 'E' | 'e' ) ;
 
 MINVALUE : ( 'M' | 'm' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'V' | 'v' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'U' | 'u' ) ( 'E' | 'e' ) ;
+
+MULTI_JOIN : ( 'M' | 'm' ) ( 'U' | 'u' ) ( 'L' | 'l' ) ( 'T' | 't' ) ( 'I' | 'i' ) '_' ( 'J' | 'j' ) ( 'O' | 'o' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ;
 
 NO : ( 'N' | 'n' ) ( 'O' | 'o' ) ;
 
@@ -425,7 +433,7 @@ oC_Query
     : (kU_ProjectGraph SP? )? oC_RegularQuery ;
 
 kU_ProjectGraph
-    : PROJECT SP GRAPH SP oC_SchemaName SP? '(' SP? kU_GraphProjectionTableItems SP? ')' ;
+    : PROJECT SP (IN_MEM SP)? GRAPH SP oC_SchemaName SP? '(' SP? kU_GraphProjectionTableItems SP? ')' ;
 
 kU_GraphProjectionTableItems
     : kU_GraphProjectionTableItem ( SP? ',' SP? kU_GraphProjectionTableItem )* ;
@@ -486,7 +494,16 @@ kU_GraphProjectionColumnItem
     : oC_PropertyKeyName ( SP kU_Default )? ( SP oC_Where )? ;
 
 oC_Match
-    : ( OPTIONAL SP )? MATCH SP? oC_Pattern ( SP oC_Where )? ;
+    : ( OPTIONAL SP )? MATCH SP? oC_Pattern ( SP oC_Where )? ( SP kU_Hint )? ;
+
+kU_Hint
+    : HINT SP kU_JoinNode;
+
+kU_JoinNode
+    :  kU_JoinNode SP JOIN SP kU_JoinNode
+        | kU_JoinNode ( SP MULTI_JOIN SP oC_SchemaName)+
+        | '(' SP? kU_JoinNode SP? ')'
+        | oC_SchemaName ;
 
 oC_Unwind : UNWIND SP? oC_Expression SP AS SP oC_Variable ;
 

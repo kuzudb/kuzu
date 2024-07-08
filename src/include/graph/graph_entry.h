@@ -15,10 +15,12 @@ namespace graph {
 struct GraphEntry {
     common::table_id_vector_t nodeTableIDs;
     common::table_id_vector_t relTableIDs;
+    bool inMemProjection;
 
     GraphEntry(std::vector<common::table_id_t> nodeTableIDs,
-        std::vector<common::table_id_t> relTableIDs)
-        : nodeTableIDs{std::move(nodeTableIDs)}, relTableIDs{std::move(relTableIDs)} {}
+        std::vector<common::table_id_t> relTableIDs, bool inMemProjection)
+        : nodeTableIDs{std::move(nodeTableIDs)}, relTableIDs{std::move(relTableIDs)},
+          inMemProjection{inMemProjection} {}
     EXPLICIT_COPY_DEFAULT_MOVE(GraphEntry);
 
     bool containsRelTableID(common::table_id_t id) const {
@@ -32,7 +34,8 @@ struct GraphEntry {
 
 private:
     GraphEntry(const GraphEntry& other)
-        : nodeTableIDs(other.nodeTableIDs), relTableIDs(other.relTableIDs) {}
+        : nodeTableIDs(other.nodeTableIDs), relTableIDs(other.relTableIDs),
+          inMemProjection(other.inMemProjection) {}
 };
 
 class GraphEntrySet {

@@ -13,6 +13,9 @@ public:
     explicit LogicalGDSCall(binder::BoundGDSCallInfo info)
         : LogicalOperator{operatorType_}, info{std::move(info)} {}
 
+    LogicalGDSCall(binder::BoundGDSCallInfo info, std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{operatorType_, std::move(child)}, info{std::move(info)} {}
+
     void computeFlatSchema() override;
     void computeFactorizedSchema() override;
 
@@ -21,7 +24,11 @@ public:
     std::string getExpressionsForPrinting() const override { return info.func->name; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalGDSCall>(info.copy());
+        if (children.empty()) {
+            return std::make_unique<LogicalGDSCall>(info.copy());
+        } else {
+            return std::make_unique<LogicalGDSCall>(info.copy(), children[0]->copy());
+        }
     }
 
 private:

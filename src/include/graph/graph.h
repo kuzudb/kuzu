@@ -39,6 +39,9 @@ public:
     virtual bool hasMoreFwdNbrs(NbrScanState* nbrScanState) = 0;
 
     virtual common::ValueVector& getFwdNbrs(NbrScanState* nbrScanState) = 0;
+
+public:
+    bool isInMemory;
 };
 
 } // namespace graph

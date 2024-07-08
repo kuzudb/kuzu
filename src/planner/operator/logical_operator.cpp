@@ -30,6 +30,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "CREATE_TABLE";
     case LogicalOperatorType::CROSS_PRODUCT:
         return "CROSS_PRODUCT";
+    case LogicalOperatorType::CSR_INDEX_BUILD:
+        return "CSR_INDEX_BUILD";
     case LogicalOperatorType::DELETE:
         return "DELETE_NODE";
     case LogicalOperatorType::DETACH_DATABASE:

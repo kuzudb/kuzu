@@ -16,7 +16,11 @@ std::unique_ptr<ProjectGraph> Transformer::transformProjectGraph(
         }
         tableNames.push_back(transformSchemaName(*tableItem->oC_SchemaName()));
     }
-    return std::make_unique<ProjectGraph>(std::move(subgraphName), std::move(tableNames));
+    if (ctx.IN_MEM()) {
+        return std::make_unique<ProjectGraph>(std::move(subgraphName), std::move(tableNames), true);
+    } else {
+        return std::make_unique<ProjectGraph>(std::move(subgraphName), std::move(tableNames), false);
+    }
 }
 
 } // namespace parser

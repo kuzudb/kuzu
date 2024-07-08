@@ -45,6 +45,11 @@ public:
         std::unique_ptr<OPPrintInfo> printInfo)
         : Sink{std::move(descriptor), operatorType_, id, std::move(printInfo)},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
+    GDSCall(std::unique_ptr<ResultSetDescriptor> descriptor, GDSCallInfo info,
+        std::shared_ptr<GDSCallSharedState> sharedState, std::unique_ptr<PhysicalOperator> child,
+        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        : Sink{std::move(descriptor), operatorType_, std::move(child), id, std::move(printInfo)},
+          info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
     bool hasSemiMask() const { return !sharedState->inputNodeOffsetMasks.empty(); }
     std::vector<NodeSemiMask*> getSemiMasks() const;
@@ -58,8 +63,13 @@ public:
     void executeInternal(ExecutionContext* executionContext) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<GDSCall>(resultSetDescriptor->copy(), info.copy(), sharedState, id,
-            printInfo->copy());
+        if (children.empty()) {
+            return std::make_unique<GDSCall>(resultSetDescriptor->copy(), info.copy(), sharedState,
+                id, printInfo->copy());
+        } else {
+            return std::make_unique<GDSCall>(resultSetDescriptor->copy(), info.copy(), sharedState,
+                children[0]->clone(), id, printInfo->copy());
+        }
     }
 
 private:

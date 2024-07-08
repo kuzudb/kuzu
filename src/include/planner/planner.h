@@ -314,7 +314,7 @@ public:
     std::shared_ptr<LogicalOperator> getScanFile(const binder::BoundFileScanInfo* info);
     std::shared_ptr<LogicalOperator> getTableFunctionCall(
         const binder::BoundReadingClause& readingClause);
-    std::shared_ptr<LogicalOperator> getGDSCall(const binder::BoundReadingClause& readingClause);
+    void appendGDSCall(const binder::BoundReadingClause& readingClause, LogicalPlan &plan);
 
     std::unique_ptr<LogicalPlan> createUnionPlan(
         std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);

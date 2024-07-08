@@ -136,9 +136,12 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
         joinConditions.push_back(node.getInternalID());
         for (auto& plan : plans) {
             auto probePlan = LogicalPlan();
-            auto gdsCall = getGDSCall(readingClause);
-            gdsCall->computeFactorizedSchema();
-            probePlan.setLastOperator(gdsCall);
+            appendGDSCall(readingClause, probePlan);
+            // This is messing up the sideways information passing (SIP) mask set up.
+            // Hardcoding this value here, to ensure SIP is not set to PROHIBIT.
+            probePlan.setCardinality(plan->getCardinality());
+            // call compute schema separately here, instead of inside appendGDSCall
+            probePlan.getLastOperator()->computeFactorizedSchema();
             if (!predicatesToPush.empty()) {
                 appendFilters(predicatesToPush, probePlan);
             }
@@ -146,7 +149,8 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
         }
     } else {
         for (auto& plan : plans) {
-            planReadOp(getGDSCall(readingClause), predicatesToPush, *plan);
+            appendGDSCall(readingClause, *plan.get());
+            planReadOp(plan->getLastOperator(), predicatesToPush, *plan);
         }
     }
     for (auto& plan : plans) {
