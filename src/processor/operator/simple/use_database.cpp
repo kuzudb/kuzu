@@ -14,5 +14,11 @@ std::string UseDatabase::getOutputMsg() {
     return "Used database successfully.";
 }
 
+std::string UseDatabasePrintInfo::toString() const{
+    std::string result = "Database Name: ";
+    result += dbName;
+    return result;
+}
+
 } // namespace processor
 } // namespace kuzu

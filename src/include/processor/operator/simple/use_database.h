@@ -5,6 +5,21 @@
 namespace kuzu {
 namespace processor {
 
+struct UseDatabasePrintInfo final : OPPrintInfo{
+    std::string dbName;
+
+    UseDatabasePrintInfo(std::string dbName)
+        : dbName(std::move(dbName)) {}
+    UseDatabasePrintInfo(const UseDatabasePrintInfo& other)
+        : OPPrintInfo(other), dbName(other.dbName) {}
+    
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override{
+        return std::make_unique<UseDatabasePrintInfo>(*this);
+    }
+};
+
 class UseDatabase final : public Simple {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::USE_DATABASE;
 
