@@ -17,7 +17,7 @@ struct ExceptionBuffer {
         static constexpr size_t sizeBytes();
     };
 
-    ExceptionBuffer(uint8_t* frame, size_t frameSizeBytes);
+    ExceptionBuffer(uint8_t* frame, size_t frameSizeBytes, const CompressionMetadata& metadata);
     struct Header {
         common::offset_t numExceptions;
     }* header;
@@ -35,9 +35,9 @@ struct ExceptionBuffer {
 
     // at most 1 / MAX_EXCEPTION_FACTOR * totalCompressedValues can be exceptions
     // if this is not the case we avoid compressing altogether
-    static constexpr size_t MAX_EXCEPTION_FACTOR = 4;
+    static constexpr size_t MAX_EXCEPTION_FACTOR = 8;
 
-    static size_t getDataSizeForExceptions(size_t dataSize);
+    static size_t getDataSizeForExceptions(size_t dataSize, const CompressionMetadata& metadata);
     static size_t getMaxExceptionCount(size_t exceptionBufferSize);
 };
 
@@ -52,8 +52,9 @@ constexpr size_t ExceptionBuffer<T>::EncodeException::sizeBytes() {
 }
 
 template<std::floating_point T>
-ExceptionBuffer<T>::ExceptionBuffer(uint8_t* frame, size_t frameSizeBytes)
-    : capacityBytes(getDataSizeForExceptions(frameSizeBytes)) {
+ExceptionBuffer<T>::ExceptionBuffer(uint8_t* frame, size_t frameSizeBytes,
+    const CompressionMetadata& metadata)
+    : capacityBytes(getDataSizeForExceptions(frameSizeBytes, metadata)) {
     uint8_t* exceptionBufferStart = frame + frameSizeBytes - capacityBytes;
     header = reinterpret_cast<Header*>(exceptionBufferStart);
     exceptions = exceptionBufferStart + sizeof(Header);
@@ -115,8 +116,16 @@ common::offset_t& ExceptionBuffer<T>::exceptionCount() {
 }
 
 template<std::floating_point T>
-size_t ExceptionBuffer<T>::getDataSizeForExceptions(size_t dataSize) {
-    return dataSize / MAX_EXCEPTION_FACTOR;
+size_t ExceptionBuffer<T>::getDataSizeForExceptions(size_t dataSize,
+    const CompressionMetadata& metadata) {
+    KU_ASSERT(metadata.children.size() >= 1);
+    const size_t numValuesNoExceptions =
+        metadata.getChild(0).numValues(dataSize, common::LogicalType::INT64());
+
+    // TODO: fix
+    return std::min(sizeof(Header) +
+                        numValuesNoExceptions / MAX_EXCEPTION_FACTOR * EncodeException::sizeBytes(),
+        static_cast<size_t>(31 * 128));
 }
 
 template<std::floating_point T>
@@ -137,8 +146,9 @@ uint64_t FloatCompression<T>::compressNextPage(const uint8_t*& srcBuffer,
             dstBufferSize, metadata);
     }
 
-    ExceptionBuffer<T> exceptionBuffer{dstBuffer, dstBufferSize};
+    ExceptionBuffer<T> exceptionBuffer{dstBuffer, dstBufferSize, metadata};
     exceptionBuffer.init();
+    KU_ASSERT(exceptionBuffer.capacityBytes < dstBufferSize);
 
     const size_t numValuesToCompress =
         std::min(numValuesRemaining, numValues(dstBufferSize, metadata));
@@ -185,14 +195,16 @@ uint64_t FloatCompression<T>::compressNextPage(const uint8_t*& srcBuffer,
 }
 
 template<std::floating_point T>
-uint64_t FloatCompression<T>::getMaxExceptionCountPerPage(size_t pageSize) {
+uint64_t FloatCompression<T>::getMaxExceptionCountPerPage(size_t pageSize,
+    const CompressionMetadata& metadata) {
     return ExceptionBuffer<T>::getMaxExceptionCount(
-        ExceptionBuffer<T>::getDataSizeForExceptions(pageSize));
+        ExceptionBuffer<T>::getDataSizeForExceptions(pageSize, metadata));
 }
 
 template<std::floating_point T>
 uint64_t FloatCompression<T>::numValues(uint64_t dataSize, const CompressionMetadata& metadata) {
-    const size_t exceptionBufferSize = ExceptionBuffer<T>::getDataSizeForExceptions(dataSize);
+    const size_t exceptionBufferSize =
+        ExceptionBuffer<T>::getDataSizeForExceptions(dataSize, metadata);
     const auto ret = decltype(encodedFloatBitpacker)::numValues(dataSize - exceptionBufferSize,
         metadata.getChild(0));
     if (ret == UINT64_MAX) {
@@ -213,7 +225,8 @@ void FloatCompression<T>::decompressFromPage(const uint8_t* srcBuffer, uint64_t 
         metadata.getChild(0));
 
     // TODO fix
-    ExceptionBuffer<T> exceptionBuffer{(uint8_t*)srcBuffer, 4 * 1024};
+    ExceptionBuffer<T> exceptionBuffer{(uint8_t*)srcBuffer, 4 * 1024, metadata};
+    KU_ASSERT(exceptionBuffer.capacityBytes < 4 * 1024);
     for (size_t i = 0; i < numValues; ++i) {
         auto& dstValue = reinterpret_cast<T*>(dstBuffer)[dstOffset + i];
 
@@ -249,7 +262,7 @@ void FloatCompression<T>::setValuesFromUncompressed(const uint8_t* srcBuffer,
     //                            })));
 
     // TODO fix
-    ExceptionBuffer<T> exceptionBuffer{dstBuffer, 4 * 1024};
+    ExceptionBuffer<T> exceptionBuffer{dstBuffer, 4 * 1024, metadata};
 
     std::vector<EncodedType> integerEncodedValues(numValues);
     for (size_t i = 0; i < numValues; ++i) {

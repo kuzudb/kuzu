@@ -249,7 +249,7 @@ public:
 
         const auto numValuesPerPage =
             compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
-        KU_ASSERT(numValuesPerPage < UINT64_MAX);
+        KU_ASSERT(numValuesPerPage < UINT64_MAX && numValuesPerPage > 0);
 
         size_t exceptionsInPrevPage = 0;
         for (offset_t i = 0; i < numValues; i += numValuesPerPage) {
@@ -257,7 +257,7 @@ public:
                 exceptionsPrefixSum[std::min(i + numValuesPerPage - 1, numValues - 1)] -
                 exceptionsInPrevPage;
             if (exceptionsInCurPage > FloatCompression<T>::getMaxExceptionCountPerPage(
-                                          common::BufferPoolConstants::PAGE_4KB_SIZE)) {
+                                          common::BufferPoolConstants::PAGE_4KB_SIZE, compMeta)) {
                 return ColumnChunkMetadata(INVALID_PAGE_IDX,
                     ColumnChunkData::getNumPagesForBytes(bufferSize), numValues,
                     CompressionMetadata(min, max, CompressionType::UNCOMPRESSED));

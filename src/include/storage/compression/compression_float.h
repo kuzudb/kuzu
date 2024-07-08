@@ -22,7 +22,8 @@ public:
 public:
     FloatCompression() = default;
 
-    static uint64_t getMaxExceptionCountPerPage(size_t pageSize);
+    static uint64_t getMaxExceptionCountPerPage(size_t pageSize,
+        const CompressionMetadata& metadata);
 
     void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
         uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,

@@ -202,7 +202,7 @@ struct AlpEncode {
 		uint8_t  worse_threshold_count {0};
 
 		const int32_t sample_increments =
-		    std::max(1, static_cast<int32_t>(std::ceil(input_vector_size / config::SAMPLES_PER_VECTOR)));
+		    std::max(1, static_cast<int32_t>(std::ceil(input_vector_size / config::SAMPLES_PER_ROWGROUP)));
 
 		// We try each K combination in search for the one which minimize the compression size in the vector
 		for (size_t k {0}; k < top_k; k++) {
@@ -229,7 +229,7 @@ struct AlpEncode {
 			// Evaluate factor/exponent performance (we optimize for FOR)
 			const uint64_t delta     = max_encoded_value - min_encoded_value;
 			estimated_bits_per_value = ceil(log2(delta + 1));
-			estimated_compression_size += config::SAMPLES_PER_VECTOR * estimated_bits_per_value;
+			estimated_compression_size += config::SAMPLES_PER_ROWGROUP * estimated_bits_per_value;
 			estimated_compression_size += exception_count * (Constants<T>::EXCEPTION_SIZE + EXCEPTION_POSITION_SIZE);
 
 			if (k == 0) { // First try with first combination
