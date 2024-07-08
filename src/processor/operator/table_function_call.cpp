@@ -5,6 +5,12 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
+std::string TableFunctionCallPrintInfo::toString() const {
+    std::string result = "Function Name: ";
+    result += funcName;
+    return result;
+}
+
 common::row_idx_t TableFunctionCallSharedState::getAndIncreaseRowIdx(uint64_t numRows) {
     std::lock_guard lock{mtx};
     auto curRowIdx = nextRowIdx;

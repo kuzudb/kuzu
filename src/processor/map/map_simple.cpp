@@ -31,7 +31,7 @@ static DataPos getOutputPos(const LogicalSimple* logicalSimple) {
 std::unique_ptr<PhysicalOperator> PlanMapper::mapUseDatabase(
     planner::LogicalOperator* logicalOperator) {
     auto useDatabase = logicalOperator->constPtrCast<LogicalUseDatabase>();
-    auto printInfo = std::make_unique<OPPrintInfo>(useDatabase->getExpressionsForPrinting());
+    auto printInfo = std::make_unique<UseDatabasePrintInfo>(useDatabase->getDBName());
     return std::make_unique<UseDatabase>(useDatabase->getDBName(), getOutputPos(useDatabase),
         getOperatorID(), std::move(printInfo));
 }
