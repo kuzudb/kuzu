@@ -144,7 +144,8 @@ uint64_t FloatCompression<T>::compressNextPage(const uint8_t*& srcBuffer,
 
 template<std::floating_point T>
 uint64_t FloatCompression<T>::getMaxExceptionCountPerPage(size_t pageSize) {
-    return ExceptionBuffer<T>::getMaxExceptionCount(pageSize);
+    return ExceptionBuffer<T>::getMaxExceptionCount(
+        ExceptionBuffer<T>::getDataSizeForExceptions(pageSize));
 }
 
 template<std::floating_point T>
