@@ -28,13 +28,13 @@ public:
         block = mm->allocateBuffer(true /* initializeToZero */, size);
     }
 
-    uint8_t* getData() const { return block->buffer.data(); }
-    uint8_t* getWritableData() const { return block->buffer.last(freeSize).data(); }
+    uint8_t* getData() const { return block->getBuffer().data(); }
+    uint8_t* getWritableData() const { return block->getBuffer().last(freeSize).data(); }
     void resetNumTuplesAndFreeSize() {
-        freeSize = block->buffer.size();
+        freeSize = block->getBuffer().size();
         numTuples = 0;
     }
-    void resetToZero() { memset(block->buffer.data(), 0, block->buffer.size()); }
+    void resetToZero() { memset(block->getBuffer().data(), 0, block->getBuffer().size()); }
 
     static void copyTuples(DataBlock* blockToCopyFrom, ft_tuple_idx_t tupleIdxToCopyFrom,
         DataBlock* blockToCopyInto, ft_tuple_idx_t tupleIdxToCopyTo, uint32_t numTuplesToCopy,

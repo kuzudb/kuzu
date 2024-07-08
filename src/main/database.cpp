@@ -77,11 +77,12 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     auto clientContext = ClientContext(this);
     const auto dbPathStr = std::string(databasePath);
     this->databasePath = vfs->expandPath(&clientContext, dbPathStr);
-    bufferManager =
-        std::make_unique<BufferManager>(this->dbConfig.bufferPoolSize, this->dbConfig.maxDBSize);
-    memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get(), nullptr);
-    queryProcessor = std::make_unique<processor::QueryProcessor>(dbConfig.maxNumThreads);
     initAndLockDBDir();
+    bufferManager = std::make_unique<BufferManager>(this->databasePath,
+        this->dbConfig.spillToDiskTmpFile.value_or(vfs->joinPath(this->databasePath, "copy.tmp")),
+        this->dbConfig.bufferPoolSize, this->dbConfig.maxDBSize, vfs.get(), dbConfig.readOnly);
+    memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get());
+    queryProcessor = std::make_unique<processor::QueryProcessor>(dbConfig.maxNumThreads);
     catalog = std::make_unique<Catalog>(this->databasePath, vfs.get());
     storageManager = std::make_unique<StorageManager>(dbPathStr, dbConfig.readOnly, *catalog,
         *memoryManager, dbConfig.enableCompression, vfs.get(), &clientContext);

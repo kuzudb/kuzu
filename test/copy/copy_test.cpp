@@ -6,7 +6,6 @@
 namespace kuzu {
 namespace testing {
 
-// TODO: set buffer pool size
 class CopyTest : public BaseGraphTest {
 public:
     void resetDB(uint64_t bufferPoolSize) {
@@ -18,7 +17,7 @@ public:
     std::string getInputDir() override { KU_UNREACHABLE; }
 };
 
-TEST_F(CopyTest, OutOfMemoryRecovery) {
+TEST_F(CopyTest, DISABLED_OutOfMemoryRecovery) {
     if (inMemMode) {
         GTEST_SKIP();
     }

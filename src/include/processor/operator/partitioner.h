@@ -46,13 +46,16 @@ struct PartitionerSharedState {
     storage::MemoryManager& mm;
 
     explicit PartitionerSharedState(storage::MemoryManager& mm)
-        : mtx{}, srcNodeTable{nullptr}, dstNodeTable{nullptr}, relTable(nullptr), mm{mm} {}
+        : mtx{}, srcNodeTable{nullptr}, dstNodeTable{nullptr}, relTable(nullptr), mm{mm},
+          maxNodeOffsets{0, 0}, numPartitions{0, 0}, nextPartitionIdx{0} {}
 
+    static constexpr size_t DIRECTIONS = 2;
     // FIXME(Guodong): we should not maintain maxNodeOffsets.
-    std::vector<common::offset_t> maxNodeOffsets;       // max node offset in each direction.
-    std::vector<common::partition_idx_t> numPartitions; // num of partitions in each direction.
+    std::array<common::offset_t, DIRECTIONS> maxNodeOffsets; // max node offset in each direction.
+    std::array<common::partition_idx_t, DIRECTIONS>
+        numPartitions; // num of partitions in each direction.
     std::vector<std::unique_ptr<PartitioningBuffer>> partitioningBuffers;
-    common::partition_idx_t nextPartitionIdx = 0;
+    std::atomic<common::partition_idx_t> nextPartitionIdx;
     // In copy rdf, we need to access num nodes before it is available in statistics.
     std::vector<std::shared_ptr<BatchInsertSharedState>> nodeBatchInsertSharedStates;
 
@@ -64,11 +67,21 @@ struct PartitionerSharedState {
     void resetState();
     void merge(std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates);
 
-    storage::InMemChunkedNodeGroupCollection& getPartitionBuffer(common::idx_t partitioningIdx,
-        common::partition_idx_t partitionIdx) const {
+    // Must only be called once for any given parameters.
+    // The data gets moved out of the shared state since some of it may be spilled to disk and will
+    // need to be freed after its processed.
+    std::unique_ptr<storage::InMemChunkedNodeGroupCollection> getPartitionBuffer(
+        common::idx_t partitioningIdx, common::partition_idx_t partitionIdx) const {
         KU_ASSERT(partitioningIdx < partitioningBuffers.size());
         KU_ASSERT(partitionIdx < partitioningBuffers[partitioningIdx]->partitions.size());
-        return *partitioningBuffers[partitioningIdx]->partitions[partitionIdx];
+
+        KU_ASSERT(partitioningBuffers[partitioningIdx]->partitions[partitionIdx].get());
+        auto partitioningBuffer =
+            std::move(partitioningBuffers[partitioningIdx]->partitions[partitionIdx]);
+        // This may still run out of memory if there isn't enough space for one partitioningBuffer
+        // per thread
+        partitioningBuffer->loadFromDisk(mm);
+        return partitioningBuffer;
     }
 };
 
@@ -162,7 +175,8 @@ public:
 
     static void initializePartitioningStates(const PartitionerDataInfo& dataInfo,
         std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,
-        const std::vector<common::partition_idx_t>& numPartitions);
+        const std::array<common::partition_idx_t, PartitionerSharedState::DIRECTIONS>&
+            numPartitions);
 
 private:
     common::DataChunk constructDataChunk(

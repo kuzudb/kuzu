@@ -25,6 +25,7 @@ void InMemChunkedNodeGroupCollection::append(MemoryManager& memoryManager,
         lastChunkedGroup->append(&transaction::DUMMY_TRANSACTION, vectors, startRowInVectors,
             numRowsToAppendInGroup);
         if (lastChunkedGroup->getNumRows() == ChunkedNodeGroup::CHUNK_CAPACITY) {
+            lastChunkedGroup->setUnused(memoryManager);
             chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(memoryManager, types,
                 false /*enableCompression*/, ChunkedNodeGroup::CHUNK_CAPACITY, 0 /* startRowIdx */,
                 ResidencyState::IN_MEMORY));
