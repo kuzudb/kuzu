@@ -7,22 +7,20 @@
 namespace kuzu {
 namespace processor {
 
-struct TableFunctionCallPrintInfo final : OPPrintInfo{
+struct TableFunctionCallPrintInfo final : OPPrintInfo {
     std::string funcName;
 
-    TableFunctionCallPrintInfo(std::string funcName)
-        : funcName(std::move(funcName)) {}
+    TableFunctionCallPrintInfo(std::string funcName) : funcName(std::move(funcName)) {}
 
     std::string toString() const override;
 
-    std::unique_ptr<OPPrintInfo> copy() const override{
+    std::unique_ptr<OPPrintInfo> copy() const override {
         return std::unique_ptr<TableFunctionCallPrintInfo>(new TableFunctionCallPrintInfo(*this));
     }
 
-    private:
-        TableFunctionCallPrintInfo(const TableFunctionCallPrintInfo& other) 
-            : OPPrintInfo(other), funcName(other.funcName) {}
-    
+private:
+    TableFunctionCallPrintInfo(const TableFunctionCallPrintInfo& other)
+        : OPPrintInfo(other), funcName(other.funcName) {}
 };
 
 struct TableFunctionCallSharedState {

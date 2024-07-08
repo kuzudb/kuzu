@@ -5,7 +5,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-std::string TableFunctionCallPrintInfo::toString() const{
+std::string TableFunctionCallPrintInfo::toString() const {
     std::string result = "Function Name: ";
     result += funcName;
     return result;
