@@ -7,10 +7,10 @@
 #include "binder/expression/rel_expression.h"
 #include "binder/expression/subquery_expression.h"
 #include "common/cast.h"
+#include "common/exception/not_implemented.h"
 #include "function/list/vector_list_functions.h"
 #include "function/sequence/sequence_functions.h"
 #include "function/uuid/vector_uuid_functions.h"
-#include "common/exception/not_implemented.h"
 
 using namespace kuzu::common;
 
@@ -33,40 +33,40 @@ void ExpressionVisitor::visitSwitch(std::shared_ptr<Expression> expr) {
     case ExpressionType::IS_NOT_NULL:
     case ExpressionType::FUNCTION: {
         visitFunctionExpr(expr);
-    } break ;
+    } break;
     case ExpressionType::AGGREGATE_FUNCTION: {
         visitAggFunctionExpr(expr);
-    } break ;
+    } break;
     case ExpressionType::PROPERTY: {
         visitPropertyExpr(expr);
-    } break ;
+    } break;
     case ExpressionType::LITERAL: {
         visitLiteralExpr(expr);
-    } break ;
+    } break;
     case ExpressionType::VARIABLE: {
         visitVariableExpr(expr);
-    } break ;
+    } break;
     case ExpressionType::PATH: {
         visitPathExpr(expr);
-    } break ;
+    } break;
     case ExpressionType::PATTERN: {
         visitNodeRelExpr(expr);
-    } break ;
+    } break;
     case ExpressionType::PARAMETER: {
         visitParamExpr(expr);
-    } break ;
+    } break;
     case ExpressionType::SUBQUERY: {
         visitSubqueryExpr(expr);
-    } break ;
+    } break;
     case ExpressionType::CASE_ELSE: {
         visitCaseExpr(expr);
-    } break ;
+    } break;
     case ExpressionType::GRAPH: {
         visitGraphExpr(expr);
-    } break ;
+    } break;
     case ExpressionType::LAMBDA: {
         visitLambdaExpr(expr);
-    } break ;
+    } break;
         // LCOV_EXCL_START
     default:
         throw NotImplementedException("ExpressionVisitor::visitSwitch");
@@ -128,7 +128,6 @@ expression_vector ExpressionChildrenCollector::collectChildren(const Expression&
     }
     }
 }
-
 
 expression_vector ExpressionChildrenCollector::collectCaseChildren(const Expression& expression) {
     expression_vector result;

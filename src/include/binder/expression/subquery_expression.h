@@ -21,9 +21,7 @@ public:
 
     common::SubqueryType getSubqueryType() const { return subqueryType; }
 
-    const QueryGraphCollection* getQueryGraphCollection() const {
-        return &queryGraphCollection;
-    }
+    const QueryGraphCollection* getQueryGraphCollection() const { return &queryGraphCollection; }
 
     void setWhereExpression(std::shared_ptr<Expression> expression) {
         whereExpression = std::move(expression);
@@ -34,13 +32,9 @@ public:
         return hasWhereExpression() ? whereExpression->splitOnAND() : expression_vector{};
     }
 
-    void setCountStarExpr(std::shared_ptr<Expression> expr) {
-        countStarExpr = std::move(expr);
-    }
+    void setCountStarExpr(std::shared_ptr<Expression> expr) { countStarExpr = std::move(expr); }
     std::shared_ptr<Expression> getCountStarExpr() const { return countStarExpr; }
-    void setProjectionExpr(std::shared_ptr<Expression> expr) {
-        projectionExpr = std::move(expr);
-    }
+    void setProjectionExpr(std::shared_ptr<Expression> expr) { projectionExpr = std::move(expr); }
     std::shared_ptr<Expression> getProjectionExpr() const { return projectionExpr; }
 
     std::string toStringInternal() const final { return rawName; }

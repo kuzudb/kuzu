@@ -113,8 +113,9 @@ std::shared_ptr<Expression> ExpressionBinder::forceCast(
 }
 
 void validateAggregationExpressionIsNotNested(std::shared_ptr<Expression> expression) {
-    if (expression->expressionType != ExpressionType::AGGREGATE_FUNCTION || expression->getNumChildren() == 0) {
-        return ;
+    if (expression->expressionType != ExpressionType::AGGREGATE_FUNCTION ||
+        expression->getNumChildren() == 0) {
+        return;
     }
     auto collector = AggregateExprCollector();
     collector.visit(expression->getChild(0));

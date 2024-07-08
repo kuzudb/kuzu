@@ -103,17 +103,19 @@ static std::shared_ptr<Expression> getIRIProperty(const expression_vector& prope
     return nullptr;
 }
 
-static void validatePropertiesContainRelID(const RelExpression& rel, const expression_vector& properties) {
+static void validatePropertiesContainRelID(const RelExpression& rel,
+    const expression_vector& properties) {
     if (rel.isEmpty()) {
-        return ;
+        return;
     }
     for (auto& property : properties) {
         if (*property == *rel.getInternalIDProperty()) {
-            return ;
+            return;
         }
     }
     // LCOV_EXCL_START
-    throw RuntimeException(stringFormat("Internal ID of relationship {} is not scanned. This should not happen.", rel.toString()));
+    throw RuntimeException(stringFormat(
+        "Internal ID of relationship {} is not scanned. This should not happen.", rel.toString()));
     // LCOV_EXCL_STOP
 }
 

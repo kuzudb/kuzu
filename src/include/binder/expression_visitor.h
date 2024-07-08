@@ -62,9 +62,7 @@ public:
     bool hasAggregate() const { return hasAggregate_; }
 
 protected:
-    void visitAggFunctionExpr(std::shared_ptr<Expression>) override {
-        hasAggregate_ = true;
-    }
+    void visitAggFunctionExpr(std::shared_ptr<Expression>) override { hasAggregate_ = true; }
 
 private:
     bool hasAggregate_;
@@ -77,9 +75,7 @@ public:
     expression_vector getSubqueryExprs() const { return exprs; }
 
 protected:
-    void visitSubqueryExpr(std::shared_ptr<Expression> expr) override {
-        exprs.push_back(expr);
-    }
+    void visitSubqueryExpr(std::shared_ptr<Expression> expr) override { exprs.push_back(expr); }
 
 private:
     expression_vector exprs;
@@ -101,9 +97,7 @@ private:
 
 class PropertyExprCollector final : public ExpressionVisitor {
 public:
-    expression_vector getPropertyExprs() const {
-        return expressions;
-    }
+    expression_vector getPropertyExprs() const { return expressions; }
 
 protected:
     void visitSubqueryExpr(std::shared_ptr<Expression> expr) override;
