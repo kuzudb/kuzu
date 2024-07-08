@@ -42,6 +42,7 @@ private:
     virtual void visitCreateTable(const Statement& /*statement*/) {}
     virtual void visitCreateType(const Statement& /*statement*/) {}
     virtual void visitCreateVectorIndex(const Statement& /*statement*/) {}
+    virtual void visitUpdateVectorIndex(const Statement& /*statement*/) {}
     virtual void visitDropTable(const Statement& /*statement*/) {}
     virtual void visitAlter(const Statement& /*statement*/) {}
     virtual void visitCopyFrom(const Statement& /*statement*/) {}

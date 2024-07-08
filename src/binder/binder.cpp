@@ -39,6 +39,9 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::CREATE_VECTOR_INDEX: {
         boundStatement = bindCreateVectorIndex(statement);
     } break;
+    case StatementType::UPDATE_VECTOR_INDEX: {
+        boundStatement = bindUpdateVectorIndex(statement);
+    } break;
     case StatementType::COPY_FROM: {
         boundStatement = bindCopyFromClause(statement);
     } break;

@@ -74,6 +74,9 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord,
     case WALRecordType::TABLE_STATISTICS_RECORD: {
         replayTableStatisticsRecord(walRecord);
     } break;
+    case WALRecordType::VECTOR_INDEX_HEADER_RECORD: {
+        replayVectorIndexHeaderRecord(walRecord);
+    } break;
     case WALRecordType::COMMIT_RECORD: {
     } break;
     case WALRecordType::CREATE_CATALOG_ENTRY_RECORD: {
@@ -187,6 +190,28 @@ void WALReplayer::replayTableStatisticsRecord(const WALRecord& walRecord) {
             KU_UNREACHABLE;
         }
         }
+    }
+}
+
+void WALReplayer::replayVectorIndexHeaderRecord(const WALRecord& walRecord) {
+    auto vfs = clientContext.getVFSUnsafe();
+    auto storageManager = clientContext.getStorageManager();
+    if (isCheckpoint) {
+        auto checkpointFile = StorageUtils::getVectorIndexHeadersFilePath(vfs,
+            clientContext.getDatabasePath(), common::FileVersionType::WAL_VERSION);
+        if (!vfs->fileOrPathExists(walFilePath, &clientContext)) {
+            // This is a temp hack: multiple transactions can log multiple vector index headers
+            // before checkpoint.
+            return;
+        }
+        auto originalFilePath = StorageUtils::getVectorIndexHeadersFilePath(vfs,
+            clientContext.getDatabasePath(), common::FileVersionType::ORIGINAL);
+        vfs->overwriteFile(checkpointFile, originalFilePath);
+        if (!isRecovering) {
+            storageManager->getVectorIndexHeaders()->checkpointInMemoryIfNecessary();
+        }
+    } else {
+        storageManager->getVectorIndexHeaders()->rollbackInMemoryIfNecessary();
     }
 }
 

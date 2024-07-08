@@ -133,6 +133,14 @@ public:
                 common::StorageConstants::NODES_STATISTICS_FILE_NAME_FOR_WAL);
     }
 
+    static inline std::string getVectorIndexHeadersFilePath(common::VirtualFileSystem* vfs,
+        const std::string& directory, common::FileVersionType dbFileType) {
+        return vfs->joinPath(directory,
+            dbFileType == common::FileVersionType::ORIGINAL ?
+                common::StorageConstants::VECTOR_INDEX_METADATA_FILE_NAME :
+                common::StorageConstants::VECTOR_INDEX_METADATA_FILE_NAME_FOR_WAL);
+    }
+
     static inline std::string getRelsStatisticsFilePath(common::VirtualFileSystem* vfs,
         const std::string& directory, common::FileVersionType dbFileType) {
         return vfs->joinPath(directory,
@@ -166,6 +174,12 @@ public:
         vfs->removeFileIfExists(StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(vfs,
             directory, common::FileVersionType::WAL_VERSION));
         vfs->removeFileIfExists(StorageUtils::getRelsStatisticsFilePath(vfs, directory,
+            common::FileVersionType::WAL_VERSION));
+    }
+
+    static inline void removeVectorIndexHeaderFile(const std::string& directory,
+        common::VirtualFileSystem* vfs) {
+        vfs->removeFileIfExists(StorageUtils::getVectorIndexHeadersFilePath(vfs, directory,
             common::FileVersionType::WAL_VERSION));
     }
 

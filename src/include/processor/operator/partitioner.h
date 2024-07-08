@@ -31,6 +31,9 @@ struct PartitioningBuffer {
 struct BatchInsertSharedState;
 struct PartitioningInfo;
 struct PartitionerDataInfo;
+// TODO: Ideally we should have separate shared state for each direction. This will significantly
+//       simplify the code and make it more readable. Such as maxNodeOffsets etc. Additionally,
+//       we won't need partitioningIdx.
 struct PartitionerSharedState {
     std::mutex mtx;
     storage::NodeTable* srcNodeTable;

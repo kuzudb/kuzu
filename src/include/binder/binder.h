@@ -122,6 +122,9 @@ public:
         const std::vector<parser::PropertyDefinitionDDL>& propertyDefinitions,
         const std::string& tableName);
 
+    /*** bind vector index ***/
+    std::unique_ptr<BoundStatement> bindUpdateVectorIndex(const parser::Statement& statement);
+
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,

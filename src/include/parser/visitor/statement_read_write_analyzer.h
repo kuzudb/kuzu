@@ -18,6 +18,7 @@ private:
     inline void visitDropTable(const Statement& /*statement*/) override { readOnly = false; }
     inline void visitCreateType(const Statement& /*statement*/) override { readOnly = false; }
     inline void visitCreateVectorIndex(const Statement& /*statement*/) override { readOnly = false; }
+    inline void visitUpdateVectorIndex(const Statement& /*statement*/) override { readOnly = false; }
     inline void visitAlter(const Statement& /*statement*/) override { readOnly = false; }
     inline void visitCopyFrom(const Statement& /*statement*/) override { readOnly = false; }
     inline void visitStandaloneCall(const Statement& /*statement*/) override { readOnly = true; }

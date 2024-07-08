@@ -1,11 +1,10 @@
-#include "planner/operator/persistent/logical_create_vector_index.h"
+#include "planner/operator/logical_update_vector_index.h"
 
-using namespace kuzu::common;
 
 namespace kuzu {
 namespace planner {
 
-void LogicalCreateVectorIndex::computeFlatSchema() {
+void LogicalUpdateVectorIndex::computeFlatSchema() {
     copyChildSchema(0);
     auto flatGroup = schema->createGroup();
     for (auto& expr : outExprs) {
@@ -13,7 +12,7 @@ void LogicalCreateVectorIndex::computeFlatSchema() {
     }
 }
 
-void LogicalCreateVectorIndex::computeFactorizedSchema() {
+void LogicalUpdateVectorIndex::computeFactorizedSchema() {
     copyChildSchema(0);
     schema->createGroup();
     for (auto& expr : outExprs) {

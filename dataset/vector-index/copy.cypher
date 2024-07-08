@@ -1,1 +1,1 @@
-COPY embeddings FROM "dataset/vector-index/embeddings.csv" (deLim=',');
+COPY embeddings FROM "/Users/gauravsehgal/work/orangedb/data/gist_10k/embeddings.csv" (deLim=',');

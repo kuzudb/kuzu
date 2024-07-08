@@ -71,7 +71,6 @@ public:
     void appendCreateTable(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendCreateType(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendCreateSequence(const binder::BoundStatement& statement, LogicalPlan& plan);
-    void appendCreateVectorIndex(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendDropTable(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendDropSequence(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendAlter(const binder::BoundStatement& statement, LogicalPlan& plan);
@@ -83,6 +82,10 @@ public:
     void appendAttachDatabase(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendDetachDatabase(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendUseDatabase(const binder::BoundStatement& statement, LogicalPlan& plan);
+
+    // Plan vector index.
+    void appendCreateVectorIndex(const binder::BoundStatement& statement, LogicalPlan& plan);
+    void appendUpdateVectorIndex(const binder::BoundStatement& statement, LogicalPlan& plan);
 
     // Plan copy.
     std::unique_ptr<LogicalPlan> planCopyTo(const binder::BoundStatement& statement);

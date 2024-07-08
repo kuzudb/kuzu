@@ -3,6 +3,7 @@ add_library(kuzu_processor_operator_ddl
         alter.cpp
         create_table.cpp
         create_type.cpp
+        create_vector_index.cpp
         ddl.cpp
         drop_table.cpp
         create_sequence.cpp

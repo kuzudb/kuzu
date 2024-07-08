@@ -28,7 +28,8 @@ oC_Statement
         | kU_ImportDatabase
         | kU_AttachDatabase
         | kU_DetachDatabase
-        | kU_UseDatabase;
+        | kU_UseDatabase
+        | kU_UpdateVectorIndex;
 
 kU_CopyFrom
     : COPY SP oC_SchemaName ( ( SP? kU_ColumnNames SP? ) | SP ) FROM SP kU_ScanSource ( SP? kU_ParsingOptions )? ;
@@ -118,6 +119,9 @@ kU_CreateType
 
 kU_CreateVectorIndex
     : CREATE SP VECTOR SP INDEX SP ON SP oC_SchemaName '.' oC_PropertyKeyName ( SP? kU_ParsingOptions )? ;
+
+kU_UpdateVectorIndex
+    : UPDATE SP VECTOR SP INDEX SP ON SP oC_SchemaName '.' oC_PropertyKeyName ;
 
 kU_SequenceOptions
     : kU_IncrementBy

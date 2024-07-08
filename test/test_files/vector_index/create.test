@@ -6,6 +6,8 @@
 
 -STATEMENT MATCH (n:embeddings) RETURN count(n);
 ---- 1
-5000
--STATEMENT CREATE VECTOR INDEX ON embeddings.embedding (M=16);
+10000
+-STATEMENT CREATE VECTOR INDEX ON embeddings.embedding (samplingProbability=0.2, alpha=1.0);
+---- ok
+-STATEMENT UPDATE VECTOR INDEX ON embeddings.embedding;
 ---- ok

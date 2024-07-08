@@ -13,6 +13,7 @@ struct RelBatchInsertInfo final : public BatchInsertInfo {
     uint64_t partitioningIdx;
     common::column_id_t offsetColumnID;
     std::vector<common::LogicalType> columnTypes;
+    common::table_id_t relTableID = common::INVALID_TABLE_ID;
 
     RelBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
         common::RelDataDirection direction, uint64_t partitioningIdx,

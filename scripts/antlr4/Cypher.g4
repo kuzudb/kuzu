@@ -202,6 +202,8 @@ UNWIND : ( 'U' | 'u' ) ( 'N' | 'n' ) ( 'W' | 'w' ) ( 'I' | 'i' ) ( 'N' | 'n' ) (
 
 USE : ( 'U' | 'u' ) ( 'S' | 's' ) ( 'E' | 'e' ) ;
 
+UPDATE : ( 'U' | 'u' ) ( 'P' | 'p' ) ( 'D' | 'd' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'E' | 'e' ) ;
+
 WHEN : ( 'W' | 'w' ) ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ;
 
 WHERE : ( 'W' | 'w' ) ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ( 'E' | 'e' ) ;
@@ -247,7 +249,8 @@ oC_Statement
         | kU_ImportDatabase
         | kU_AttachDatabase
         | kU_DetachDatabase
-        | kU_UseDatabase;
+        | kU_UseDatabase
+        | kU_UpdateVectorIndex;
 
 kU_CopyFrom
     : COPY SP oC_SchemaName ( ( SP? kU_ColumnNames SP? ) | SP ) FROM SP kU_ScanSource ( SP? kU_ParsingOptions )? ;
@@ -337,6 +340,9 @@ kU_CreateType
 
 kU_CreateVectorIndex
     : CREATE SP VECTOR SP INDEX SP ON SP oC_SchemaName '.' oC_PropertyKeyName ( SP? kU_ParsingOptions )? ;
+
+kU_UpdateVectorIndex
+    : UPDATE SP VECTOR SP INDEX SP ON SP oC_SchemaName '.' oC_PropertyKeyName ;
 
 kU_SequenceOptions
     : kU_IncrementBy

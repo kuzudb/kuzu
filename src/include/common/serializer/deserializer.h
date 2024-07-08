@@ -45,6 +45,18 @@ public:
         }
     }
 
+    template<typename T1, typename T2, typename T3>
+    void deserializeUnorderedMap(std::unordered_map<T1, std::unique_ptr<T2>, T3>& values) {
+        uint64_t mapSize;
+        deserializeValue<uint64_t>(mapSize);
+        values.reserve(mapSize);
+        for (auto i = 0u; i < mapSize; i++) {
+            auto key = T1::deserialize(*this);
+            auto val = T2::deserialize(*this);
+            values.emplace(std::move(key), std::move(val));
+        }
+    }
+
     template<typename T>
     void deserializeVector(std::vector<T>& values) {
         uint64_t vectorSize;

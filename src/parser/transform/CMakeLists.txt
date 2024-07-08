@@ -16,7 +16,8 @@ add_library(kuzu_parser_transform
         transform_port_db.cpp
         transform_attach_database.cpp
         transform_detach_database.cpp
-        transform_use_database.cpp)
+        transform_use_database.cpp
+        transform_update_vector_index.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_parser_transform>

@@ -10,7 +10,9 @@ namespace processor {
 ProcessorTask::ProcessorTask(Sink* sink, ExecutionContext* executionContext)
     : Task{executionContext->clientContext->getCurrentSetting(main::ThreadsSetting::name)
                .getValue<uint64_t>()},
-      sharedStateInitialized{false}, sink{sink}, executionContext{executionContext} {}
+      sharedStateInitialized{false}, sink{sink}, executionContext{executionContext} {
+    // Print the value of maxThreads
+}
 
 void ProcessorTask::run() {
     // We need the lock when cloning because multiple threads can be accessing to clone,
@@ -25,6 +27,7 @@ void ProcessorTask::run() {
     auto currentSink = (Sink*)clonedPipelineRoot.get();
     auto resultSet =
         populateResultSet(currentSink, executionContext->clientContext->getMemoryManager());
+    // Print the type of clonedPipelineRoot
     currentSink->execute(resultSet.get(), executionContext);
 }
 

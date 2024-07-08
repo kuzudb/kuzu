@@ -54,6 +54,10 @@ using sequence_id_t = uint64_t;
 using transaction_t = uint64_t;
 constexpr transaction_t INVALID_TRANSACTION = UINT64_MAX;
 
+// Vector index types
+using vector_id_t = uint64_t;
+constexpr vector_id_t INVALID_VECTOR_ID = UINT64_MAX;
+
 // System representation for a variable-sized overflow value.
 struct overflow_value_t {
     // the size of the overflow buffer can be calculated as:
