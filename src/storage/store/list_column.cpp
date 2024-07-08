@@ -61,8 +61,8 @@ ListColumn::ListColumn(std::string name, LogicalType dataType,
     auto sizeColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "size_");
     auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
     sizeColumn = std::make_unique<Column>(sizeColName, LogicalType::UINT32(),
-        *metaDAHeaderInfo.childrenInfos[SIZE_COLUMN_CHILD_READ_STATE_IDX], dataFH, metadataDAC,
-        mm, wal, transaction, enableCompression, false /*requireNullColumn*/);
+        *metaDAHeaderInfo.childrenInfos[SIZE_COLUMN_CHILD_READ_STATE_IDX], dataFH, metadataDAC, mm,
+        wal, transaction, enableCompression, false /*requireNullColumn*/);
     dataColumn =
         ColumnFactory::createColumn(dataColName, ListType::getChildType(this->dataType).copy(),
             *metaDAHeaderInfo.childrenInfos[DATA_COLUMN_CHILD_READ_STATE_IDX], dataFH, metadataDAC,

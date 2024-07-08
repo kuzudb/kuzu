@@ -696,9 +696,10 @@ void Column::commitLocalChunkInPlace(ChunkState& state, const ChunkCollection& l
     applyLocalChunkToColumn(state, localInsertChunks, insertInfo);
 }
 
-std::unique_ptr<ColumnChunkData> Column::getEmptyChunkForCommit(MemoryManager &mm, uint64_t capacity) {
-    return ColumnChunkFactory::createColumnChunkData(mm, dataType.copy(), enableCompression, capacity,
-        true /*inMemory*/, nullColumn != nullptr /*hasNull*/);
+std::unique_ptr<ColumnChunkData> Column::getEmptyChunkForCommit(MemoryManager& mm,
+    uint64_t capacity) {
+    return ColumnChunkFactory::createColumnChunkData(mm, dataType.copy(), enableCompression,
+        capacity, true /*inMemory*/, nullColumn != nullptr /*hasNull*/);
 }
 
 // TODO: Pass state in to avoid access metadata.
