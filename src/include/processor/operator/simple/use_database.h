@@ -10,14 +10,16 @@ struct UseDatabasePrintInfo final : OPPrintInfo{
 
     UseDatabasePrintInfo(std::string dbName)
         : dbName(std::move(dbName)) {}
-    UseDatabasePrintInfo(const UseDatabasePrintInfo& other)
-        : OPPrintInfo(other), dbName(other.dbName) {}
     
     std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override{
-        return std::make_unique<UseDatabasePrintInfo>(*this);
+        return std::unique_ptr<UseDatabasePrintInfo>(new UseDatabasePrintInfo(*this));
     }
+
+    private:
+        UseDatabasePrintInfo(const UseDatabasePrintInfo& other)
+            : OPPrintInfo(other), dbName(other.dbName) {}
 };
 
 class UseDatabase final : public Simple {

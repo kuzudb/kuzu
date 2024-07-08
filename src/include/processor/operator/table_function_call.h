@@ -12,14 +12,17 @@ struct TableFunctionCallPrintInfo final : OPPrintInfo{
 
     TableFunctionCallPrintInfo(std::string funcName)
         : funcName(std::move(funcName)) {}
-    TableFunctionCallPrintInfo(const TableFunctionCallPrintInfo& other) 
-        : OPPrintInfo(other), funcName(other.funcName) {}
-    
+
     std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override{
-        return std::make_unique<TableFunctionCallPrintInfo>(*this);
+        return std::unique_ptr<TableFunctionCallPrintInfo>(new TableFunctionCallPrintInfo(*this));
     }
+
+    private:
+        TableFunctionCallPrintInfo(const TableFunctionCallPrintInfo& other) 
+            : OPPrintInfo(other), funcName(other.funcName) {}
+    
 };
 
 struct TableFunctionCallSharedState {
