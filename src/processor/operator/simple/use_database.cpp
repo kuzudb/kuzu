@@ -14,8 +14,8 @@ std::string UseDatabase::getOutputMsg() {
     return "Used database successfully.";
 }
 
-std::string UseDatabasePrintInfo::toString() const{
-    std::string result = "Database Name: ";
+std::string UseDatabasePrintInfo::toString() const {
+    std::string result = "Database: ";
     result += dbName;
     return result;
 }
