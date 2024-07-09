@@ -48,8 +48,8 @@ public:
     InMemGraph(main::ClientContext* context, common::table_id_t nodeTableID,
         common::table_id_t relTableID, std::shared_ptr<CSRIndexSharedState> csrSharedState);
 
-    inline std::shared_ptr<CSRIndexSharedState> getCSRSharedState() {
-        return csrSharedState;
+    inline std::vector<MorselCSR*>& getInMemCSR() {
+        return csrSharedState->csr;
     }
 
     common::table_id_t getNodeTableID() override { return nodeTable->getTableID(); }
