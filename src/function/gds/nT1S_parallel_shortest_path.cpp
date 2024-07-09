@@ -86,7 +86,7 @@ public:
         graph::Graph* graph) {
         uint64_t numDstVisitedLocal = 0u;
         auto inMemGraph = ku_dynamic_cast<graph::Graph*, graph::InMemGraph*>(graph);
-        auto& csr = inMemGraph->getCSRSharedState()->csr;
+        auto& csr = inMemGraph->getInMemCSR();
         auto csrEntry = csr[frontierOffset >> RIGHT_SHIFT];
         if (!csrEntry) {
             return 0;
