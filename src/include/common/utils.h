@@ -70,5 +70,10 @@ size_t readValueFromSpan(const std::span<const std::byte>& vec, offset_t byteOff
     return bytesToRead;
 }
 
+template<numeric_utils::IsIntegral T>
+constexpr T ceilDiv(T a, T b) {
+    return (a / b) + (a % b != 0);
+}
+
 } // namespace common
 } // namespace kuzu

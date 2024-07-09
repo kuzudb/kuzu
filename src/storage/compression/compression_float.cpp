@@ -119,13 +119,22 @@ template<std::floating_point T>
 size_t ExceptionBuffer<T>::getDataSizeForExceptions(size_t dataSize,
     const CompressionMetadata& metadata) {
     KU_ASSERT(metadata.children.size() >= 1);
-    const size_t numValuesNoExceptions =
-        metadata.getChild(0).numValues(dataSize, common::LogicalType::INT64());
 
-    // TODO: fix
-    return std::min(sizeof(Header) +
-                        numValuesNoExceptions / MAX_EXCEPTION_FACTOR * EncodeException::sizeBytes(),
-        static_cast<size_t>(31 * 128));
+    const auto integerPackingInfo =
+        IntegerBitpacking<int64_t>::getPackingInfo(metadata.getChild(0));
+
+    const size_t maxExceptionRatio =
+        integerPackingInfo.bitWidth == 0 ? 1 : 1 + std::bit_width(integerPackingInfo.bitWidth);
+    const size_t bitsPerException =
+        common::ceilDiv(EncodeException::sizeBytes() * 8, maxExceptionRatio);
+    const size_t avgBitsPerVal =
+        common::ceilDiv(integerPackingInfo.bitWidth * (maxExceptionRatio - 1), maxExceptionRatio) +
+        bitsPerException;
+
+    // TODO: add tests for maxExceptionRatio = 1, etc
+    auto ret = sizeof(Header) + (dataSize - sizeof(Header)) * bitsPerException / avgBitsPerVal / 8;
+    KU_ASSERT(ret < dataSize);
+    return ret;
 }
 
 template<std::floating_point T>

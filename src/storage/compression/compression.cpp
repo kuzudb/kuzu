@@ -372,7 +372,7 @@ std::string CompressionMetadata::toString(const PhysicalTypeID physicalType) con
         uint8_t bitWidth = TypeUtils::visit(
             physicalType,
             [&]<std::floating_point T>(
-                T) { return IntegerBitpacking<int64_t>::getPackingInfo(*this).bitWidth; },
+                T) { return IntegerBitpacking<int64_t>::getPackingInfo(getChild(0)).bitWidth; },
             [](auto) -> uint8_t { KU_UNREACHABLE; });
         return stringFormat("FLOAT_COMPRESSION[{}]", bitWidth);
     }
