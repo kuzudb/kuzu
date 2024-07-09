@@ -224,25 +224,19 @@ void FloatCompression<T>::decompressFromPage(const uint8_t* srcBuffer, uint64_t 
         reinterpret_cast<uint8_t*>(integerEncodedValues.data()), 0, numValues,
         metadata.getChild(0));
 
-    // TODO fix
+    for (size_t i = 0; i < numValues; ++i) {
+        reinterpret_cast<T*>(dstBuffer)[dstOffset + i] = alp::AlpDecode<T>::decode_value(
+            integerEncodedValues[i], metadata.alpMetadata.fac, metadata.alpMetadata.exp);
+    }
+
     ExceptionBuffer<T> exceptionBuffer{(uint8_t*)srcBuffer, 4 * 1024, metadata};
     KU_ASSERT(exceptionBuffer.capacityBytes < 4 * 1024);
-    for (size_t i = 0; i < numValues; ++i) {
-        auto& dstValue = reinterpret_cast<T*>(dstBuffer)[dstOffset + i];
-
-        // check if the current value is an exception
-        bool isException = false;
-        for (size_t j = 0; j < exceptionBuffer.exceptionCount(); ++j) {
-            const auto currentException = exceptionBuffer.decodeException(j);
-            if (currentException.posInPage == srcOffset + i) {
-                dstValue = currentException.value;
-                isException = true;
-            }
-        }
-
-        if (!isException) {
-            dstValue = alp::AlpDecode<T>::decode_value(integerEncodedValues[i],
-                metadata.alpMetadata.fac, metadata.alpMetadata.exp);
+    for (size_t j = 0; j < exceptionBuffer.exceptionCount(); ++j) {
+        const auto currentException = exceptionBuffer.decodeException(j);
+        if (currentException.posInPage >= srcOffset &&
+            (currentException.posInPage - srcOffset) < numValues) {
+            reinterpret_cast<T*>(dstBuffer)[dstOffset + (currentException.posInPage - srcOffset)] =
+                currentException.value;
         }
     }
 }

@@ -558,5 +558,5 @@ TEST(CompressionTests, FloatCompressionTestMultiPage) {
         floatMetadata.exp = floatMetadata.best_k_combinations[0].first;
         floatMetadata.fac = floatMetadata.best_k_combinations[0].second;
     }
-    compressionTestMultiPage(src, alg, LogicalType::FLOAT(), &floatMetadata);
+    compressionTestMultiPage(src, alg, LogicalType::DOUBLE(), &floatMetadata);
 }
