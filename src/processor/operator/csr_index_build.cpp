@@ -43,11 +43,10 @@ uint64_t CSRIndexBuild::calculateDegree(ExecutionContext *context) {
         if (prevNGIdx != nextNGIdx) {
             boundNodeVector->setValue(0, nodeID);
             relTable->initializeScanState(context->clientContext->getTx(), *fwdReadState.get());
+            prevNGIdx = nextNGIdx;
         }
         relReadState->currentNodeOffset = nodeID.offset;
-        auto startEndIdx = relReadState->getStartAndEndOffset();
-        totalSize += (startEndIdx.second - startEndIdx.first);
-        relReadState->posInCurrentCSR = 0u;
+        totalSize += relReadState->getNumNbrs();
     }
     boundNodeVector->setValue(0, firstNode);
     return totalSize;
