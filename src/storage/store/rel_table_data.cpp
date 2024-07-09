@@ -70,6 +70,11 @@ std::pair<offset_t, offset_t> RelDataReadState::getStartAndEndOffset() {
     return {startOffset, startOffset + numRowsToRead};
 }
 
+uint64_t RelDataReadState::getNumNbrs() const {
+    auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    return csrHeaderChunks.getCSRLength(currentNodeOffset - startNodeOffset);
+}
+
 void RelDataReadState::resetState() {
     TableDataScanState::resetState();
     nodeGroupIdx = INVALID_NODE_GROUP_IDX;
