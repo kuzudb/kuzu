@@ -25,7 +25,7 @@ public:
 
     common::TableType getTableType() const override { return common::TableType::NODE; }
 
-    void clear() override { nodeGroups.clear(); }
+    void clear() override;
 
     common::row_idx_t getNumRows() const { return nodeGroups.getNumRows(); }
     common::node_group_idx_t getNumNodeGroups() { return nodeGroups.getNumNodeGroups(); }
@@ -39,6 +39,7 @@ private:
     void initLocalHashIndex();
 
 private:
+    PageCursor overflowCursor;
     std::unique_ptr<OverflowFile> overflowFile;
     std::unique_ptr<OverflowFileHandle> overflowFileHandle;
     std::unique_ptr<LocalHashIndex> hashIndex;

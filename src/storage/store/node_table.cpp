@@ -260,6 +260,7 @@ void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) 
         }
         nodeGroupToScan++;
     }
+    localTable->clear();
 }
 
 void NodeTable::prepareCommit() {
