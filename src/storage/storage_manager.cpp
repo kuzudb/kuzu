@@ -40,20 +40,19 @@ BMFileHandle* StorageManager::initFileHandle(const std::string& filename, Virtua
 // TODO(Guodong): Rework setting common table ID for rdf rel tables.
 static void setCommonTableIDToRdfRelTable(RelTable* relTable,
     std::vector<RDFGraphCatalogEntry*> rdfEntries) {
-    //     for (auto rdfEntry : rdfEntries) {
-    //         if (rdfEntry->isParent(relTable->getTableID())) {
-    //             std::vector<Column*> columns;
-    //             // TODO(Guodong): This is a hack. We should not use constant 2 and should move
-    //             the
-    //             // setting logic inside RelTableData.
-    //             columns.push_back(relTable->getDirectedTableData(RelDataDirection::FWD)->getColumn(2));
-    //             columns.push_back(relTable->getDirectedTableData(RelDataDirection::BWD)->getColumn(2));
-    //             for (auto& column : columns) {
-    //                 ku_dynamic_cast<Column*, InternalIDColumn*>(column)->setCommonTableID(
-    //                     rdfEntry->getResourceTableID());
-    //             }
-    //         }
-    //     }
+    for (auto rdfEntry : rdfEntries) {
+        if (rdfEntry->isParent(relTable->getTableID())) {
+            std::vector<Column*> columns;
+            // TODO(Guodong): This is a hack. We should not use constant 2 and should move
+            // the setting logic inside RelTableData.
+            columns.push_back(relTable->getDirectedTableData(RelDataDirection::FWD)->getColumn(2));
+            columns.push_back(relTable->getDirectedTableData(RelDataDirection::BWD)->getColumn(2));
+            for (auto& column : columns) {
+                ku_dynamic_cast<Column*, InternalIDColumn*>(column)->setCommonTableID(
+                    rdfEntry->getResourceTableID());
+            }
+        }
+    }
 }
 
 void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
@@ -69,18 +68,16 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
             auto table = Table::loadTable(deSer, catalog, this, &memoryManager, vfs, context);
             tables[table->getTableID()] = std::move(table);
         }
-    } else {
-        KU_ASSERT(catalog.getNodeTableEntries(&DUMMY_READ_TRANSACTION).empty());
     }
 
     // TODO(Guodong): Rework setting common table ID for rdf rel tables.
-    // auto rdfGraphSchemas = catalog.getRdfGraphEntries(&DUMMY_READ_TRANSACTION);
-    // for (auto relTableEntry : catalog.getRelTableEntries(&DUMMY_READ_TRANSACTION)) {
-    // KU_ASSERT(!tables.contains(relTableEntry->getTableID()));
-    // auto relTable = std::make_unique<RelTable>(relTableEntry, this, &memoryManager);
-    // setCommonTableIDToRdfRelTable(relTable.get(), rdfGraphSchemas);
-    // tables[relTableEntry->getTableID()] = std::move(relTable);
-    // }
+    auto rdfGraphSchemas = catalog.getRdfGraphEntries(&DUMMY_READ_TRANSACTION);
+    for (auto relTableEntry : catalog.getRelTableEntries(&DUMMY_READ_TRANSACTION)) {
+        KU_ASSERT(!tables.contains(relTableEntry->getTableID()));
+        auto relTable = std::make_unique<RelTable>(relTableEntry, this, &memoryManager);
+        setCommonTableIDToRdfRelTable(relTable.get(), rdfGraphSchemas);
+        tables[relTableEntry->getTableID()] = std::move(relTable);
+    }
 }
 
 void StorageManager::recover(main::ClientContext& clientContext) {

@@ -25,6 +25,8 @@ public:
 
     void insert(transaction::Transaction* transaction);
 
+    common::ValueVector* getNodeIDVector() const { return nodeIDVector; }
+
     // For MERGE, we might need to skip the insert for duplicate input. But still, we need to write
     // the output vector for later usage.
     void skipInsert();

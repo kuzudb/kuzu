@@ -161,6 +161,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMemRandom(Transaction* transact
     row_idx_t nextRow = 0;
     ChunkedNodeGroup* chunkedGroup = nullptr;
     node_group_idx_t currentChunkIdx = INVALID_NODE_GROUP_IDX;
+    sel_t numSelected = 0;
     while (nextRow < numRows) {
         const auto rowIdx =
             nodeGroupScanState.inMemCSRList.rowIndices[nextRow + nodeGroupScanState.nextRowToScan];
@@ -172,11 +173,12 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMemRandom(Transaction* transact
             chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
         }
         KU_ASSERT(chunkedGroup);
-        chunkedGroup->lookup(transaction, tableState, nodeGroupScanState, rowInChunk, nextRow);
+        numSelected += chunkedGroup->lookup(transaction, tableState, nodeGroupScanState, rowInChunk,
+            numSelected);
         nextRow++;
     }
     nodeGroupScanState.nextRowToScan += numRows;
-    tableState.IDVector->state->getSelVectorUnsafe().setSelSize(numRows);
+    tableState.IDVector->state->getSelVectorUnsafe().setSelSize(numSelected);
     return NodeGroupScanResult{0, numRows};
 }
 

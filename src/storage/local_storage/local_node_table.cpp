@@ -19,8 +19,7 @@ void LocalNodeTable::initLocalHashIndex() {
     auto& nodeTable = ku_dynamic_cast<const Table&, const NodeTable&>(table);
     DBFileIDAndName dbFileIDAndName{DBFileID{DBFileType::NODE_INDEX}, "in-mem-overflow"};
     overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName);
-    PageCursor dummyCursor{0, 0};
-    overflowFileHandle = std::make_unique<OverflowFileHandle>(*overflowFile, dummyCursor);
+    overflowFileHandle = std::make_unique<OverflowFileHandle>(*overflowFile, overflowCursor);
     hashIndex = std::make_unique<LocalHashIndex>(
         nodeTable.getColumn(nodeTable.getPKColumnID()).getDataType().getPhysicalType(),
         overflowFileHandle.get());
@@ -75,6 +74,14 @@ bool LocalNodeTable::delete_(Transaction*, TableDeleteState& deleteState) {
 bool LocalNodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
     nodeGroups.addColumn(transaction, addColumnState);
     return true;
+}
+
+void LocalNodeTable::clear() {
+    auto& nodeTable = ku_dynamic_cast<const Table&, const NodeTable&>(table);
+    hashIndex = std::make_unique<LocalHashIndex>(
+        nodeTable.getColumn(nodeTable.getPKColumnID()).getDataType().getPhysicalType(),
+        overflowFileHandle.get());
+    nodeGroups.clear();
 }
 
 } // namespace storage

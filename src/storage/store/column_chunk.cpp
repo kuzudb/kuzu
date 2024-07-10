@@ -52,19 +52,23 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
         idx_t idx = startVectorIdx;
         sel_t posInVector = 0u;
         while (idx <= endVectorIdx) {
-            if (auto vectorInfo = updateInfo->getVectorInfo(transaction, idx)) {
-                const auto startOffset = idx == startVectorIdx ? startOffsetInVector : 0;
-                const auto endOffset =
-                    idx == endVectorIdx ? endOffsetInVector : DEFAULT_VECTOR_CAPACITY;
-                const auto numRowsInVector = endOffset - startOffset;
+            const auto startOffset = idx == startVectorIdx ? startOffsetInVector : 0;
+            const auto endOffset =
+                idx == endVectorIdx ? endOffsetInVector : DEFAULT_VECTOR_CAPACITY;
+            const auto numRowsInVector = endOffset - startOffset;
+            if (const auto vectorInfo = updateInfo->getVectorInfo(transaction, idx);
+                vectorInfo && vectorInfo->numRowsUpdated > 0) {
                 for (auto i = 0u; i < numRowsInVector; i++) {
-                    if (vectorInfo->rowsInVector[i] >= startOffset) {
-                        vectorInfo->data->lookup(i, output,
-                            posInVector + vectorInfo->rowsInVector[i] - startOffset);
+                    if (auto itr = std::find_if(vectorInfo->rowsInVector.begin(),
+                            vectorInfo->rowsInVector.begin() + vectorInfo->numRowsUpdated,
+                            [i, startOffset](auto row) { return row == i + startOffset; });
+                        itr != vectorInfo->rowsInVector.begin() + vectorInfo->numRowsUpdated) {
+                        vectorInfo->data->lookup(itr - vectorInfo->rowsInVector.begin(), output,
+                            posInVector + i);
                     }
                 }
-                posInVector += numRowsInVector;
             }
+            posInVector += numRowsInVector;
             idx++;
         }
     }

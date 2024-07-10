@@ -2,9 +2,7 @@
 
 --
 
-#TODO(Guodong): FIX-ME.
 -CASE NonNullTest
--SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age;
@@ -19,9 +17,7 @@
 ---- ok
 
 
-#TODO(Guodong): FIX-ME.
 -CASE NullTest
--SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age;

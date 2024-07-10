@@ -1,9 +1,7 @@
 -DATASET CSV rel-update-tests
 --
 
-#TODO(Guodong): FIX-ME.
 -CASE updateEachElementOfLargeListCommitNormalExecution
--SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -BATCH_STATEMENTS <FILE>:update_each_element_of_large_list.cypher
