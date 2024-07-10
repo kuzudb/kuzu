@@ -15,8 +15,6 @@ enum VisitedState : uint8_t {
     VISITED_DST = 1,
     NOT_VISITED = 2,
     VISITED = 3,
-    VISITED_NEW = 4,
-    VISITED_DST_NEW = 5,
 };
 
 struct IFEMorsel {
@@ -24,9 +22,11 @@ public:
     IFEMorsel(uint64_t upperBound_, uint64_t lowerBound_, uint64_t maxNodeOffset_,
         common::offset_t srcOffset)
         : mutex{std::mutex()}, initializedIFEMorsel{false}, currentLevel{0u}, nextScanStartIdx{0u},
-          srcOffset{srcOffset}, numVisitedDstNodes{0u}, numDstNodesToVisit{maxNodeOffset_ + 1},
-          bfsLevelNodeOffsets{std::vector<common::offset_t>()}, maxOffset{maxNodeOffset_},
+          currentFrontierSize{0u}, srcOffset{srcOffset}, numVisitedDstNodes{0u},
+          numDstNodesToVisit{maxNodeOffset_ + 1}, maxOffset{maxNodeOffset_},
           upperBound{upperBound_}, lowerBound{lowerBound_}, nextDstScanStartIdx{0u} {}
+
+    ~IFEMorsel();
 
     void init();
 
@@ -40,7 +40,7 @@ public:
 
     bool isIFEMorselCompleteNoLock() const;
 
-    void mergeResults(uint64_t numDstVisitedLocal);
+    void mergeResults(uint64_t numDstVisitedLocal, uint64_t numNonDstVisitedLocal);
 
     void initializeNextFrontierNoLock();
 
@@ -48,15 +48,25 @@ public:
     std::mutex mutex;
     bool initializedIFEMorsel;
     uint8_t currentLevel;
+    char padding0[64]{0};
     std::atomic<uint64_t> nextScanStartIdx;
+    char padding1[64]{0};
+    std::atomic<uint64_t> currentFrontierSize;
+    char padding2[64]{0};
+    std::atomic<uint64_t> nextFrontierSize;
+    char padding3[64]{0};
     common::offset_t srcOffset;
 
     // Visited state
+    char padding4[64]{0};
     std::atomic<uint64_t> numVisitedDstNodes;
+    char padding5[64]{0};
     uint64_t numDstNodesToVisit;
+    char padding6[64]{0};
     std::vector<uint8_t> visitedNodes;
-    std::vector<uint16_t> pathLength;
-    std::vector<common::offset_t> bfsLevelNodeOffsets;
+    uint8_t *currentFrontier;
+    uint8_t *nextFrontier;
+    std::vector<uint8_t> pathLength;
     // Maximum offset of dst nodes.
     common::offset_t maxOffset;
     uint64_t upperBound;

@@ -62,35 +62,34 @@ public:
         localState->init(context);
     }
 
-    static uint64_t visitNbrs(IFEMorsel* ifeMorsel, ValueVector& dstNodeIDVector) {
-        uint64_t numDstVisitedLocal = 0u;
+    static std::pair<uint64_t, uint64_t> visitNbrs(IFEMorsel* ifeMorsel, ValueVector& dstNodeIDVector) {
+        uint64_t numDstVisitedLocal = 0u, numNonDstVisitedLocal = 0u;
         for (auto j = 0u; j < dstNodeIDVector.state->getSelVector().getSelSize(); j++) {
             auto pos = dstNodeIDVector.state->getSelVector().operator[](j);
             auto dstNodeID = dstNodeIDVector.getValue<common::nodeID_t>(pos);
             auto state = ifeMorsel->visitedNodes[dstNodeID.offset];
             if (state == NOT_VISITED_DST) {
-                if (__sync_bool_compare_and_swap(&ifeMorsel->visitedNodes[dstNodeID.offset], state,
-                        VISITED_DST_NEW)) {
-                    numDstVisitedLocal++;
-                    __atomic_store_n(&ifeMorsel->pathLength[dstNodeID.offset],
-                        ifeMorsel->currentLevel + 1, __ATOMIC_RELAXED);
-                }
+                ifeMorsel->visitedNodes[dstNodeID.offset] = VISITED_DST;
+                numDstVisitedLocal++;
+                ifeMorsel->pathLength[dstNodeID.offset] = ifeMorsel->currentLevel + 1;
+                ifeMorsel->nextFrontier[dstNodeID.offset] = 1u;
             } else if (state == NOT_VISITED) {
-                __atomic_store_n(&ifeMorsel->visitedNodes[dstNodeID.offset], VISITED_NEW,
-                    __ATOMIC_RELEASE);
+                ifeMorsel->visitedNodes[dstNodeID.offset] = VISITED;
+                ifeMorsel->nextFrontier[dstNodeID.offset] = 1u;
+                numNonDstVisitedLocal++;
             }
         }
-        return numDstVisitedLocal;
+        return {numDstVisitedLocal, numNonDstVisitedLocal};
     }
 
-    static uint64_t visitNbrs(common::offset_t frontierOffset, IFEMorsel* ifeMorsel,
+    static std::pair<uint64_t, uint64_t> visitNbrs(common::offset_t frontierOffset, IFEMorsel* ifeMorsel,
         graph::Graph* graph) {
-        uint64_t numDstVisitedLocal = 0u;
+        uint64_t numDstVisitedLocal = 0u, numNonDstVisitedLocal = 0u;
         auto inMemGraph = ku_dynamic_cast<graph::Graph*, graph::InMemGraph*>(graph);
         auto& csr = inMemGraph->getInMemCSR();
         auto csrEntry = csr[frontierOffset >> RIGHT_SHIFT];
         if (!csrEntry) {
-            return 0;
+            return {0, 0};
         }
         auto posInCSR = frontierOffset & OFFSET_DIV;
         for (auto nbrIdx = csrEntry->csr_v[posInCSR]; nbrIdx < csrEntry->csr_v[posInCSR + 1];
@@ -98,18 +97,17 @@ public:
             auto nbrOffset = csrEntry->nbrNodeOffsets[nbrIdx];
             auto state = ifeMorsel->visitedNodes[nbrOffset];
             if (state == NOT_VISITED_DST) {
-                if (__sync_bool_compare_and_swap(&ifeMorsel->visitedNodes[nbrOffset], state,
-                        VISITED_DST_NEW)) {
-                    numDstVisitedLocal++;
-                    __atomic_store_n(&ifeMorsel->pathLength[nbrOffset], ifeMorsel->currentLevel + 1,
-                        __ATOMIC_RELAXED);
-                }
+                ifeMorsel->visitedNodes[nbrOffset] = VISITED_DST;
+                numDstVisitedLocal++;
+                ifeMorsel->pathLength[nbrOffset] = ifeMorsel->currentLevel + 1;
+                ifeMorsel->nextFrontier[nbrOffset] = 1u;
             } else if (state == NOT_VISITED) {
-                __atomic_store_n(&ifeMorsel->visitedNodes[nbrOffset], VISITED_NEW,
-                    __ATOMIC_RELEASE);
+                ifeMorsel->visitedNodes[nbrOffset] = VISITED;
+                ifeMorsel->nextFrontier[nbrOffset] = 1u;
+                numNonDstVisitedLocal++;
             }
         }
-        return numDstVisitedLocal;
+        return {numDstVisitedLocal, numNonDstVisitedLocal};
     }
 
     // BFS Frontier Extension function, return only after bfs extension complete.
@@ -119,24 +117,29 @@ public:
             common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState);
         auto ifeMorsel = shortestPathLocalState->ifeMorsel;
         while (!ifeMorsel->isBFSCompleteNoLock()) {
-            auto numDstVisitedLocal = 0u;
+            uint64_t numDstVisitedLocal = 0u, numNonDstVisitedLocal = 0u;
+            std::pair <uint64_t, uint64_t> retVal;
             /*auto duration = std::chrono::system_clock::now().time_since_epoch();
             auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();*/
-            for (auto pos = 0u; pos < ifeMorsel->bfsLevelNodeOffsets.size(); pos++) {
-                auto frontierOffset = ifeMorsel->bfsLevelNodeOffsets[pos];
+            for (auto offset = 0u; offset < ifeMorsel->visitedNodes.size(); offset++) {
+                if (!ifeMorsel->currentFrontier[offset]) {
+                    continue;
+                }
                 if (graph->isInMemory) {
-                    numDstVisitedLocal += visitNbrs(frontierOffset, ifeMorsel, graph.get());
+                    retVal = visitNbrs(offset, ifeMorsel, graph.get());
+                    numDstVisitedLocal += retVal.first;
+                    numNonDstVisitedLocal += retVal.second;
                 } else {
-                    graph->initializeStateFwdNbrs(frontierOffset,
-                        shortestPathLocalState->nbrScanState.get());
+                    graph->initializeStateFwdNbrs(offset, shortestPathLocalState->nbrScanState.get());
                     do {
-                        auto& dstNodeIDVector =
-                            graph->getFwdNbrs(shortestPathLocalState->nbrScanState.get());
-                        numDstVisitedLocal += visitNbrs(ifeMorsel, dstNodeIDVector);
+                        auto& dstNodeIDVector = graph->getFwdNbrs(shortestPathLocalState->nbrScanState.get());
+                        retVal = visitNbrs(ifeMorsel, dstNodeIDVector);
+                        numDstVisitedLocal += retVal.first;
+                        numNonDstVisitedLocal += retVal.second;
                     } while (graph->hasMoreFwdNbrs(shortestPathLocalState->nbrScanState.get()));
                 }
-                ifeMorsel->mergeResults(numDstVisitedLocal);
             }
+            ifeMorsel->mergeResults(numDstVisitedLocal, numNonDstVisitedLocal);
             /*auto duration1 = std::chrono::system_clock::now().time_since_epoch();
             auto millis1 = std::chrono::duration_cast<std::chrono::milliseconds>(duration1).count();
             printf("bfs source: %lu, level: %d extension done in %lu ms\n", ifeMorsel->srcOffset,
@@ -160,10 +163,8 @@ public:
         srcNodeVector->setValue<nodeID_t>(0, {ifeMorsel->srcOffset, tableID});
         auto pos = 0LU, offset = ifeMorsel->nextDstScanStartIdx.load(std::memory_order_acq_rel);
         while (pos < DEFAULT_VECTOR_CAPACITY && offset <= ifeMorsel->maxOffset) {
-            auto state = ifeMorsel->visitedNodes[offset];
             auto pathLength = ifeMorsel->pathLength[offset];
-            if ((state == VISITED_DST_NEW || state == VISITED_DST) &&
-                pathLength >= ifeMorsel->lowerBound) {
+            if (pathLength >= ifeMorsel->lowerBound) {
                 dstOffsetVector->setValue<nodeID_t>(pos, {offset, tableID});
                 pathLengthVector->setValue<int64_t>(pos, pathLength);
                 pos++;

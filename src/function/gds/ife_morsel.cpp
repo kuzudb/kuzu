@@ -5,6 +5,11 @@
 namespace kuzu {
 namespace function {
 
+IFEMorsel::~IFEMorsel(){
+    delete [] currentFrontier;
+    delete [] nextFrontier;
+}
+
 void IFEMorsel::init() {
     std::unique_lock lck{mutex};
     if (initializedIFEMorsel) {
@@ -12,19 +17,23 @@ void IFEMorsel::init() {
     }
     if (visitedNodes.empty()) {
         visitedNodes = std::vector<uint8_t>(maxOffset + 1, NOT_VISITED_DST);
-        pathLength = std::vector<uint16_t>(maxOffset + 1, 0u);
+        pathLength = std::vector<uint8_t>(maxOffset + 1, 0u);
+        currentFrontier = new uint8_t[maxOffset + 1]{0u};
+        nextFrontier = new uint8_t[maxOffset + 1]{0u};
     } else {
         std::fill(visitedNodes.begin(), visitedNodes.end(), NOT_VISITED_DST);
         std::fill(pathLength.begin(), pathLength.end(), 0u);
+        std::fill(currentFrontier, currentFrontier + maxOffset + 1, 0u);
+        std::fill(nextFrontier, nextFrontier + maxOffset + 1, 0u);
     }
     initializedIFEMorsel = true;
     currentLevel = 0u;
     nextScanStartIdx.store(0u, std::memory_order_relaxed);
     nextDstScanStartIdx.store(0u, std::memory_order_relaxed);
     visitedNodes[srcOffset] = VISITED_DST;
+    currentFrontier[srcOffset] = 1u;
+    currentFrontierSize.fetch_add(1u);
     numVisitedDstNodes.store(1, std::memory_order_relaxed);
-    bfsLevelNodeOffsets.clear();
-    bfsLevelNodeOffsets.push_back(srcOffset);
 }
 
 void IFEMorsel::resetNoLock(common::offset_t srcOffset_) {
@@ -34,10 +43,10 @@ void IFEMorsel::resetNoLock(common::offset_t srcOffset_) {
 
 function::CallFuncMorsel IFEMorsel::getMorsel(uint64_t morselSize) {
     auto morselStartIdx = nextScanStartIdx.fetch_add(morselSize, std::memory_order_acq_rel);
-    if (morselStartIdx >= bfsLevelNodeOffsets.size()) {
+    if (morselStartIdx >= visitedNodes.size()) {
         return function::CallFuncMorsel::createInvalidMorsel();
     }
-    auto morselEndIdx = std::min(morselStartIdx + morselSize, bfsLevelNodeOffsets.size());
+    auto morselEndIdx = std::min(morselStartIdx + morselSize, visitedNodes.size());
     return {morselStartIdx, morselEndIdx};
 }
 
@@ -54,7 +63,7 @@ bool IFEMorsel::isBFSCompleteNoLock() const {
     if (currentLevel == upperBound) {
         return true;
     }
-    if (bfsLevelNodeOffsets.empty()) {
+    if (currentFrontierSize.load(std::memory_order_acq_rel) == 0u) {
         return true;
     }
     if (numVisitedDstNodes.load(std::memory_order_acq_rel) == numDstNodesToVisit) {
@@ -68,27 +77,20 @@ bool IFEMorsel::isIFEMorselCompleteNoLock() const {
            (nextDstScanStartIdx.load(std::memory_order_acq_rel) >= maxOffset);
 }
 
-void IFEMorsel::mergeResults(uint64_t numDstVisitedLocal) {
-    numVisitedDstNodes.fetch_add(numDstVisitedLocal, std::memory_order_acq_rel);
+void IFEMorsel::mergeResults(uint64_t numDstVisitedLocal, uint64_t numNonDstVisitedLocal) {
+    numVisitedDstNodes.fetch_add(numDstVisitedLocal);
+    nextFrontierSize.fetch_add(numDstVisitedLocal + numNonDstVisitedLocal);
 }
 
 void IFEMorsel::initializeNextFrontierNoLock() {
     currentLevel++;
     nextScanStartIdx.store(0LU, std::memory_order_acq_rel);
-    if (isBFSCompleteNoLock()) {
-        return;
-    }
-    bfsLevelNodeOffsets.clear();
-    for (auto offset = 0u; offset < (maxOffset + 1); offset++) {
-        auto nodeState = visitedNodes[offset];
-        if (nodeState == VISITED_DST_NEW) {
-            bfsLevelNodeOffsets.push_back(offset);
-            visitedNodes[offset]= VISITED_DST;
-        } else if (nodeState == VISITED_NEW) {
-            bfsLevelNodeOffsets.push_back(offset);
-            visitedNodes[offset] = VISITED;
-        }
-    }
+    currentFrontierSize.store(nextFrontierSize.load(std::memory_order_acq_rel));
+    nextFrontierSize.store(0u, std::memory_order_acq_rel);
+    auto temp = currentFrontier;
+    currentFrontier = nextFrontier;
+    nextFrontier = temp;
+    std::fill(nextFrontier, nextFrontier + maxOffset + 1, 0u);
 }
 
 } // namespace function

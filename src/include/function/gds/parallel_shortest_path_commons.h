@@ -49,21 +49,16 @@ public:
      * be accessed in a thread safe manner.
      */
     inline uint64_t getWork() override {
-        if (!ifeMorsel) {
-            return UINT64_MAX;
+        if (!ifeMorsel || !ifeMorsel->initializedIFEMorsel) {
+            return 0u;
         }
-        ifeMorsel->mutex.lock();
-        auto nextDstScanStartIdx = ifeMorsel->nextDstScanStartIdx.load(std::memory_order_relaxed);
-        if (nextDstScanStartIdx != 0u) {
-            ifeMorsel->mutex.unlock();
-            return (ifeMorsel->maxOffset - nextDstScanStartIdx);
-        } else {
-            auto remainingFrontierSize =
-                ifeMorsel->bfsLevelNodeOffsets.size() -
-                ifeMorsel->nextScanStartIdx.load(std::memory_order_relaxed);
-            ifeMorsel->mutex.unlock();
-            return remainingFrontierSize;
+        if (ifeMorsel->isBFSCompleteNoLock()) {
+            return ifeMorsel->maxOffset -
+                   ifeMorsel->nextDstScanStartIdx.load(std::memory_order_acquire);
         }
+        auto remainingFrontierSize =
+            ifeMorsel->maxOffset - ifeMorsel->nextScanStartIdx.load(std::memory_order_acquire);
+        return remainingFrontierSize;
     }
 
     std::unique_ptr<GDSLocalState> copy() override {
