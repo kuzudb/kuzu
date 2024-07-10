@@ -1,6 +1,7 @@
 #include "storage/store/column_chunk_data.h"
 
 #include <algorithm>
+#include <cstring>
 
 #include "common/data_chunk/sel_vector.h"
 #include "common/exception/copy.h"
@@ -360,10 +361,11 @@ void ColumnChunkData::initializeScanState(ChunkState& state) const {
 
 void ColumnChunkData::scan(ValueVector& output, offset_t offset, length_t length) const {
     KU_ASSERT(offset + length <= numValues);
-    // TODO(Guodong): Rework properly as scan.
-    for (auto i = 0u; i < length; i++) {
-        lookup(offset + i, output, i);
+    if (nullData) {
+        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(),
+             offset, 0 /*dstOffset*/, length);
     }
+    memcpy(output.getData(), buffer.get() + offset * numBytesPerValue, numBytesPerValue * length);
 }
 
 void ColumnChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
@@ -617,6 +619,18 @@ void BoolChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk
     numValues += numValuesToAppend;
 }
 
+void BoolChunkData::scan(ValueVector& output, offset_t offset, length_t length) const {
+    KU_ASSERT(offset + length <= numValues);
+    if (nullData) {
+        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(),
+             offset, 0 /*dstOffset*/, length);
+    }
+    for (auto i = 0u; i < length; i++) {
+        output.setValue<bool>(i, NullMask::isNull(reinterpret_cast<uint64_t*>(buffer.get()), 
+            offset + i));
+    }
+}
+
 void BoolChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     sel_t posInOutputVector) const {
     KU_ASSERT(offsetInChunk < capacity);
@@ -751,6 +765,21 @@ void InternalIDChunkData::copyInt64VectorToBuffer(ValueVector* vector, offset_t 
         const auto pos = selVector[i];
         memcpy(buffer.get() + (startPosInChunk + i) * numBytesPerValue,
             &vector->getValue<offset_t>(pos), numBytesPerValue);
+    }
+}
+
+void InternalIDChunkData::scan(ValueVector& output, offset_t offset, length_t length) const {
+    KU_ASSERT(offset + length <= numValues);
+    KU_ASSERT(commonTableID != INVALID_TABLE_ID);
+    if (nullData) {
+        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(),
+             offset, 0 /*dstOffset*/, length);
+    }
+    internalID_t relID;
+    relID.tableID = commonTableID;
+    for (auto i = 0u; i < length; i++) {
+        relID.offset = getValue<offset_t>(offset + i);
+        output.setValue<internalID_t>(i, relID);
     }
 }
 

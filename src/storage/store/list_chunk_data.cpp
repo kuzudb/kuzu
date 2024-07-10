@@ -157,6 +157,25 @@ void ListChunkData::appendNullList() {
     nullData->setNull(appendPosition, true);
 }
 
+void ListChunkData::scan(ValueVector& output, offset_t offset, length_t length) const {
+    KU_ASSERT(offset + length <= numValues);
+    if (nullData) {
+        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(),
+             offset, 0 /*dstOffset*/, length);
+    }
+    auto dataOffset = getListStartOffset(offset);
+    auto dataSize = 0ul;
+    for (auto i = 0u; i < length; i++) {
+        auto startOffset = getListStartOffset(offset) - dataOffset;
+        auto listSize = getListSize(offset + i);
+        dataSize += listSize;
+        output.setValue<list_entry_t>(i, list_entry_t{startOffset, listSize});
+    }
+    ListVector::resizeDataVector(&output, dataSize);
+    auto dataVector = ListVector::getDataVector(&output);
+    dataColumnChunk->scan(*dataVector, dataOffset, dataSize);
+}
+
 void ListChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     sel_t posInOutputVector) const {
     KU_ASSERT(offsetInChunk < numValues);
@@ -170,7 +189,7 @@ void ListChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     auto dataVector = ListVector::getDataVector(&output);
     auto currentListDataSize = ListVector::getDataVectorSize(&output);
     ListVector::resizeDataVector(&output, currentListDataSize + listSize);
-    // TODO(Guodong): Should add `scan` interface and use `scan` here.
+    // TODO(Guodong/Sam): Should add & use `scan` interface (with posInVector param).
     for (auto i = 0u; i < listSize; i++) {
         dataColumnChunk->lookup(startOffset + i, *dataVector, currentListDataSize + i);
     }

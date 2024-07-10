@@ -88,6 +88,21 @@ void StringChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
     }
 }
 
+void StringChunkData::scan(ValueVector& output, offset_t offset, length_t length) const {
+    KU_ASSERT(offset + length <= numValues);
+    if (nullData) {
+        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(),
+             offset, 0 /*dstOffset*/, length);
+    }
+    for (auto i = 0u; i < length; i++) {
+        if (nullData->isNull(offset + i)) {
+            continue;
+        }
+        auto str = getValue<std::string_view>(offset + i);
+        output.setValue<std::string_view>(i, str);
+    }
+}
+
 void StringChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     sel_t posInOutputVector) const {
     KU_ASSERT(offsetInChunk < numValues);
