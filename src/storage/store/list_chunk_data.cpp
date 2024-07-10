@@ -160,8 +160,8 @@ void ListChunkData::appendNullList() {
 void ListChunkData::scan(ValueVector& output, offset_t offset, length_t length) const {
     KU_ASSERT(offset + length <= numValues);
     if (nullData) {
-        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(),
-             offset, 0 /*dstOffset*/, length);
+        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(), offset,
+            0 /*dstOffset*/, length);
     }
     auto dataOffset = getListStartOffset(offset);
     auto dataSize = 0ul;

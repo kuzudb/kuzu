@@ -362,8 +362,8 @@ void ColumnChunkData::initializeScanState(ChunkState& state) const {
 void ColumnChunkData::scan(ValueVector& output, offset_t offset, length_t length) const {
     KU_ASSERT(offset + length <= numValues);
     if (nullData) {
-        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(),
-             offset, 0 /*dstOffset*/, length);
+        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(), offset,
+            0 /*dstOffset*/, length);
     }
     memcpy(output.getData(), buffer.get() + offset * numBytesPerValue, numBytesPerValue * length);
 }
@@ -622,12 +622,12 @@ void BoolChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk
 void BoolChunkData::scan(ValueVector& output, offset_t offset, length_t length) const {
     KU_ASSERT(offset + length <= numValues);
     if (nullData) {
-        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(),
-             offset, 0 /*dstOffset*/, length);
+        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(), offset,
+            0 /*dstOffset*/, length);
     }
     for (auto i = 0u; i < length; i++) {
-        output.setValue<bool>(i, NullMask::isNull(reinterpret_cast<uint64_t*>(buffer.get()), 
-            offset + i));
+        output.setValue<bool>(i,
+            NullMask::isNull(reinterpret_cast<uint64_t*>(buffer.get()), offset + i));
     }
 }
 
@@ -772,8 +772,8 @@ void InternalIDChunkData::scan(ValueVector& output, offset_t offset, length_t le
     KU_ASSERT(offset + length <= numValues);
     KU_ASSERT(commonTableID != INVALID_TABLE_ID);
     if (nullData) {
-        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(),
-             offset, 0 /*dstOffset*/, length);
+        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(), offset,
+            0 /*dstOffset*/, length);
     }
     internalID_t relID;
     relID.tableID = commonTableID;

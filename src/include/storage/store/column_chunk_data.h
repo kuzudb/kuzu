@@ -148,7 +148,8 @@ public:
     uint8_t* getData() const { return buffer.get(); }
 
     virtual void initializeScanState(ChunkState& state) const;
-    virtual void scan(common::ValueVector& output, common::offset_t offset, common::length_t length) const;
+    virtual void scan(common::ValueVector& output, common::offset_t offset,
+        common::length_t length) const;
     virtual void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const;
 
@@ -261,7 +262,7 @@ public:
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 
-    void scan(common::ValueVector& output, common::offset_t offset, 
+    void scan(common::ValueVector& output, common::offset_t offset,
         common::length_t length) const override;
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
@@ -351,7 +352,7 @@ public:
     void copyInt64VectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk,
         const common::SelectionVector& selVector) const;
 
-    void scan(common::ValueVector& output, common::offset_t offset, 
+    void scan(common::ValueVector& output, common::offset_t offset,
         common::length_t length) const override;
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;

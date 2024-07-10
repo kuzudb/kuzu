@@ -91,8 +91,8 @@ void StringChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
 void StringChunkData::scan(ValueVector& output, offset_t offset, length_t length) const {
     KU_ASSERT(offset + length <= numValues);
     if (nullData) {
-        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(),
-             offset, 0 /*dstOffset*/, length);
+        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(), offset,
+            0 /*dstOffset*/, length);
     }
     for (auto i = 0u; i < length; i++) {
         if (nullData->isNull(offset + i)) {
