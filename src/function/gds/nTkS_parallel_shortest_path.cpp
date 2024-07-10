@@ -66,18 +66,17 @@ public:
         for (auto j = 0u; j < dstNodeIDVector.state->getSelVector().getSelSize(); j++) {
             auto pos = dstNodeIDVector.state->getSelVector().operator[](j);
             auto dstNodeID = dstNodeIDVector.getValue<common::nodeID_t>(pos);
-            auto state = ifeMorsel->visitedNodes[dstNodeID.offset].load(std::memory_order_acq_rel);
+            auto state = ifeMorsel->visitedNodes[dstNodeID.offset];
             if (state == NOT_VISITED_DST) {
-                auto tryCAS = ifeMorsel->visitedNodes[dstNodeID.offset].compare_exchange_strong(
-                    state, VISITED_DST_NEW, std::memory_order_acq_rel);
-                if (tryCAS) {
+                if (__sync_bool_compare_and_swap(&ifeMorsel->visitedNodes[dstNodeID.offset], state,
+                        VISITED_DST_NEW)) {
                     numDstVisitedLocal++;
-                    ifeMorsel->pathLength[dstNodeID.offset].store(ifeMorsel->currentLevel + 1,
-                        std::memory_order_relaxed);
+                    __atomic_store_n(&ifeMorsel->pathLength[dstNodeID.offset],
+                        ifeMorsel->currentLevel + 1, __ATOMIC_RELAXED);
                 }
             } else if (state == NOT_VISITED) {
-                ifeMorsel->visitedNodes[dstNodeID.offset].store(VISITED_NEW,
-                    std::memory_order_acq_rel);
+                __atomic_store_n(&ifeMorsel->visitedNodes[dstNodeID.offset], VISITED_NEW,
+                    __ATOMIC_RELEASE);
             }
         }
         return numDstVisitedLocal;
@@ -96,17 +95,17 @@ public:
         for (auto nbrIdx = csrEntry->csr_v[posInCSR]; nbrIdx < csrEntry->csr_v[posInCSR + 1];
              nbrIdx++) {
             auto nbrOffset = csrEntry->nbrNodeOffsets[nbrIdx];
-            auto state = ifeMorsel->visitedNodes[nbrOffset].load(std::memory_order_acq_rel);
+            auto state = ifeMorsel->visitedNodes[nbrOffset];
             if (state == NOT_VISITED_DST) {
-                auto tryCAS = ifeMorsel->visitedNodes[nbrOffset].compare_exchange_strong(state,
-                    VISITED_DST_NEW, std::memory_order_acq_rel);
-                if (tryCAS) {
+                if (__sync_bool_compare_and_swap(&ifeMorsel->visitedNodes[nbrOffset], state,
+                        VISITED_DST_NEW)) {
                     numDstVisitedLocal++;
-                    ifeMorsel->pathLength[nbrOffset].store(ifeMorsel->currentLevel + 1,
-                        std::memory_order_relaxed);
+                    __atomic_store_n(&ifeMorsel->pathLength[nbrOffset], ifeMorsel->currentLevel + 1,
+                        __ATOMIC_RELAXED);
                 }
             } else if (state == NOT_VISITED) {
-                ifeMorsel->visitedNodes[nbrOffset].store(VISITED_NEW, std::memory_order_acq_rel);
+                __atomic_store_n(&ifeMorsel->visitedNodes[nbrOffset], VISITED_NEW,
+                    __ATOMIC_RELEASE);
             }
         }
         return numDstVisitedLocal;
@@ -166,8 +165,8 @@ public:
         srcNodeVector->setValue<nodeID_t>(0, common::nodeID_t{ifeMorsel->srcOffset, tableID});
         auto pos = 0;
         for (auto offset = morsel.startOffset; offset < morsel.endOffset; offset++) {
-            auto state = ifeMorsel->visitedNodes[offset].load(std::memory_order_acq_rel);
-            uint64_t pathLength = ifeMorsel->pathLength[offset].load(std::memory_order_acq_rel);
+            auto state = ifeMorsel->visitedNodes[offset];
+            uint64_t pathLength = ifeMorsel->pathLength[offset];
             if ((state == VISITED_DST_NEW || state == VISITED_DST) &&
                 pathLength >= ifeMorsel->lowerBound) {
                 dstOffsetVector->setValue<nodeID_t>(pos, common::nodeID_t{offset, tableID});

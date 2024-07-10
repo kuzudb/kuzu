@@ -5,30 +5,23 @@
 namespace kuzu {
 namespace function {
 
-IFEMorsel::~IFEMorsel() {
-    delete[] visitedNodes;
-    delete[] pathLength;
-}
-
 void IFEMorsel::init() {
     std::unique_lock lck{mutex};
     if (initializedIFEMorsel) {
         return;
     }
-    if (!visitedNodes) {
-        visitedNodes = new std::atomic<uint8_t>[maxOffset + 1] { NOT_VISITED_DST };
-        pathLength = new std::atomic<uint16_t>[maxOffset + 1] { 0u };
+    if (visitedNodes.empty()) {
+        visitedNodes = std::vector<uint8_t>(maxOffset + 1, NOT_VISITED_DST);
+        pathLength = std::vector<uint16_t>(maxOffset + 1, 0u);
     } else {
-        for (auto i = 0u; i < maxOffset + 1; i++) {
-            visitedNodes[i].store(NOT_VISITED_DST, std::memory_order_relaxed);
-            pathLength[i].store(0u, std::memory_order_relaxed);
-        }
+        std::fill(visitedNodes.begin(), visitedNodes.end(), NOT_VISITED_DST);
+        std::fill(pathLength.begin(), pathLength.end(), 0u);
     }
     initializedIFEMorsel = true;
     currentLevel = 0u;
     nextScanStartIdx.store(0u, std::memory_order_relaxed);
     nextDstScanStartIdx.store(0u, std::memory_order_relaxed);
-    visitedNodes[srcOffset].store(VISITED_DST, std::memory_order_relaxed);
+    visitedNodes[srcOffset] = VISITED_DST;
     numVisitedDstNodes.store(1, std::memory_order_relaxed);
     bfsLevelNodeOffsets.clear();
     bfsLevelNodeOffsets.push_back(srcOffset);
@@ -87,13 +80,13 @@ void IFEMorsel::initializeNextFrontierNoLock() {
     }
     bfsLevelNodeOffsets.clear();
     for (auto offset = 0u; offset < (maxOffset + 1); offset++) {
-        auto nodeState = visitedNodes[offset].load(std::memory_order_acq_rel);
+        auto nodeState = visitedNodes[offset];
         if (nodeState == VISITED_DST_NEW) {
             bfsLevelNodeOffsets.push_back(offset);
-            visitedNodes[offset].store(VISITED_DST, std::memory_order_acq_rel);
+            visitedNodes[offset]= VISITED_DST;
         } else if (nodeState == VISITED_NEW) {
             bfsLevelNodeOffsets.push_back(offset);
-            visitedNodes[offset].store(VISITED, std::memory_order_acq_rel);
+            visitedNodes[offset] = VISITED;
         }
     }
 }
