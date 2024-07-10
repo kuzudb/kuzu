@@ -5,6 +5,10 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
+std::string FilterPrintInfo::toString() const {
+    return expression->toString();
+}
+
 void Filter::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     expressionEvaluator->init(*resultSet, context->clientContext);
     KU_ASSERT(dataChunkToSelectPos != INVALID_DATA_CHUNK_POS);

@@ -1,6 +1,5 @@
 #include <utility>
 
-#include "binder/expression/expression_util.h"
 #include "catalog/catalog.h"
 #include "function/built_in_function_utils.h"
 #include "processor/operator/table_function_call.h"
@@ -39,7 +38,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_
     }
     info.outputType = TableScanOutputType::MULTI_DATA_CHUNK;
     auto sharedState = std::make_shared<TableFunctionCallSharedState>();
-    auto printInfo = std::make_unique<OPPrintInfo>(ExpressionUtil::toString(exprs));
+    auto printInfo = std::make_unique<FTableScanFunctionCallPrintInfo>(function->name, exprs);
     if (child == nullptr) {
         return std::make_unique<TableFunctionCall>(std::move(info), sharedState, getOperatorID(),
             std::move(printInfo));

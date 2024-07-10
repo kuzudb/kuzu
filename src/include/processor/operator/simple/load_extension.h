@@ -5,6 +5,23 @@
 namespace kuzu {
 namespace processor {
 
+struct LoadExtensionPrintInfo final : OPPrintInfo {
+    std::string extensionName;
+
+    explicit LoadExtensionPrintInfo(std::string extensionName)
+        : extensionName{std::move(extensionName)} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<LoadExtensionPrintInfo>(new LoadExtensionPrintInfo(*this));
+    }
+
+private:
+    LoadExtensionPrintInfo(const LoadExtensionPrintInfo& other)
+        : OPPrintInfo{other}, extensionName{other.extensionName} {}
+};
+
 class LoadExtension final : public Simple {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::LOAD_EXTENSION;
 

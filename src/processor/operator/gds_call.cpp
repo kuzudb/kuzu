@@ -6,6 +6,10 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace processor {
 
+std::string GDSCallPrintInfo::toString() const {
+    return "Algorithm: " + funcName;
+}
+
 std::vector<NodeSemiMask*> GDSCall::getSemiMasks() const {
     std::vector<NodeSemiMask*> masks;
     for (auto& [_, mask] : sharedState->inputNodeOffsetMasks) {
