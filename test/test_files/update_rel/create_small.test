@@ -185,7 +185,7 @@
 ---- ok
 -STATEMENT MATCH (n1:N1)-[r:Rel1]->(n2:N2) WHERE n1.ID=10 AND n2.ID=12 RETURN r
 ---- 1
-(0:0)-{_LABEL: Rel1, _ID: 2:4611686018427387904}->(1:0)
+(0:0)-{_LABEL: Rel1, _ID: 2:0}->(1:0)
 -STATEMENT MATCH (n1:N1)-[r:Rel1]->(n2:N2) WHERE n1.ID=10 AND n2.ID=12 DELETE r
 ---- ok
 -STATEMENT MATCH (n:N1)-[r:Rel1]->(m:N2) RETURN n.ID, m.ID
@@ -276,5 +276,5 @@
 ---- 4
 (0:0)-{_LABEL: studyAt, _ID: 2:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 (0:1)-{_LABEL: studyAt, _ID: 2:1, year: 2020, places: [anew,jsdnwusklklklwewsd], length: 55, level: 120, code: 6689, temperature: 1, ulength: 90, ulevel: 220, hugedata: -1844674407370955161511}->(1:0)
-(0:3)-{_LABEL: studyAt, _ID: 2:4611686018427387904, year: 2000, places: [], length: 4, level: 4, code: 9223372036854775807, temperature: 32799, ulength: 33767, ulevel: 249, hugedata: 1844674407370955161811111110}->(1:2)
+(0:3)-{_LABEL: studyAt, _ID: 2:3, year: 2000, places: [], length: 4, level: 4, code: 9223372036854775807, temperature: 32799, ulength: 33767, ulevel: 249, hugedata: 1844674407370955161811111110}->(1:2)
 (0:5)-{_LABEL: studyAt, _ID: 2:2, year: 2020, places: [awndsnjwejwen,isuhuwennjnuhuhuwewe], length: 22, level: 2, code: 23, temperature: 20, ulength: 180, ulevel: 12, hugedata: -15}->(1:0)

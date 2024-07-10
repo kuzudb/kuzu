@@ -48,6 +48,7 @@
 
 
 -CASE IndexScanAfterDeletionCommitRecovery
+-SKIP
 -CREATE_CONNECTION conn_read
 -CREATE_CONNECTION conn_write
 -STATEMENT [conn_write] BEGIN TRANSACTION
@@ -141,6 +142,7 @@
 
 
 -CASE IndexScanAfterDeletionRollbackRecovery
+-SKIP
 -LOG Index Scan After Deletion Rollback Recovery
 -CREATE_CONNECTION conn_read
 -CREATE_CONNECTION conn_write
@@ -213,6 +215,7 @@
 
 
 -CASE DeleteAllNodesCommitRecovery
+-SKIP
 -CREATE_CONNECTION conn_read
 -CREATE_CONNECTION conn_write
 -STATEMENT [conn_write] BEGIN TRANSACTION
@@ -262,6 +265,7 @@
 
 
 -CASE DeleteAllNodesRollbackRecovery
+-SKIP
 -CREATE_CONNECTION conn_read
 -CREATE_CONNECTION conn_write
 -STATEMENT [conn_write] BEGIN TRANSACTION

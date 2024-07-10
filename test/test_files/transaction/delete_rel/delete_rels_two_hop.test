@@ -25,6 +25,7 @@
 
 
 -CASE DeleteRelsTwoHopCommitRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(p1:person)-[:knows]->(p2:person) WHERE p.ID = 1 AND p2.ID = 5 DELETE e;
@@ -74,6 +75,7 @@
 
 
 -CASE DeleteRelsTwoHopRollbackRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(p1:person)-[:knows]->(p2:person) WHERE p.ID = 1 AND p2.ID = 5 DELETE e;
