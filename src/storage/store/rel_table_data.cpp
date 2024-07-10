@@ -137,8 +137,8 @@ bool RelTableData::delete_(Transaction* transaction, ValueVector& boundNodeIDVec
 
 void RelTableData::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
     auto& property = addColumnState.property;
-    columns.push_back(ColumnFactory::createColumn(property.getName(),
-        property.getDataType().copy(), dataFH, bufferManager, wal, enableCompression));
+    columns.push_back(ColumnFactory::createColumn(property.getName(), property.getDataType().copy(),
+        dataFH, bufferManager, wal, enableCompression));
     nodeGroups->addColumn(transaction, addColumnState);
 }
 
