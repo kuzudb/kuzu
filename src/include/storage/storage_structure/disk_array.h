@@ -119,7 +119,7 @@ public:
     uint64_t pushBack(std::span<const std::byte> val);
 
     // Note: Currently, this function doesn't support shrinking the size of the array.
-    uint64_t resize(uint64_t newNumElements, std::span<std::byte> defaultVal);
+    uint64_t resize(uint64_t newNumElements, std::span<const std::byte> defaultVal);
 
     virtual inline void checkpointInMemoryIfNecessary() {
         std::unique_lock xlock{this->diskArraySharedMtx};
@@ -303,7 +303,7 @@ public:
     // Note: Currently, this function doesn't support shrinking the size of the array.
     inline uint64_t resize(uint64_t newNumElements) {
         U defaultVal;
-        return diskArray.resize(newNumElements, getSpan(defaultVal));
+        return diskArray.resize(newNumElements, defaultVal.serializeToBytes(internalDataType));
     }
 
     inline uint64_t getNumElements(
@@ -317,7 +317,9 @@ public:
 
     class WriteIterator {
     public:
-        explicit WriteIterator(DiskArrayInternal::WriteIterator&& iter) : iter(std::move(iter)) {}
+        explicit WriteIterator(DiskArrayInternal::WriteIterator&& iter,
+            common::PhysicalTypeID internalDataType)
+            : iter(std::move(iter)), internalDataType(internalDataType) {}
         inline U& operator*() { return *reinterpret_cast<U*>((*iter).data()); }
         DELETE_COPY_DEFAULT_MOVE(WriteIterator);
 
@@ -335,7 +337,7 @@ public:
         inline uint64_t getAPIdx() const { return iter.apCursor.pageIdx; }
 
         inline WriteIterator& pushBack(U val) {
-            iter.pushBack(getSpan(val));
+            iter.pushBack(val.serializeToBytes(internalDataType));
             return *this;
         }
 
@@ -343,9 +345,12 @@ public:
 
     private:
         DiskArrayInternal::WriteIterator iter;
+        common::PhysicalTypeID internalDataType;
     };
 
-    inline WriteIterator iter_mut() { return WriteIterator{diskArray.iter_mut(sizeof(U))}; }
+    inline WriteIterator iter_mut() {
+        return WriteIterator{diskArray.iter_mut(sizeof(U)), internalDataType};
+    }
     inline uint64_t getAPIdx(uint64_t idx) const { return diskArray.getAPIdx(idx); }
     static constexpr uint32_t getAlignedElementSize() { return std::bit_ceil(sizeof(U)); }
 

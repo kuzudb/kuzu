@@ -125,6 +125,7 @@ void DiskArrayInternal::updatePage(uint64_t pageIdx, bool isNewPage,
 }
 
 void DiskArrayInternal::update(uint64_t idx, std::span<const std::byte> val) {
+    KU_ASSERT(val.size_bytes() <= storageInfo.alignedElementSize);
     std::unique_lock xLck{diskArraySharedMtx};
     hasTransactionalUpdates = true;
     KU_ASSERT(checkOutOfBoundAccess(TransactionType::WRITE, idx));
@@ -145,6 +146,7 @@ void DiskArrayInternal::update(uint64_t idx, std::span<const std::byte> val) {
 }
 
 uint64_t DiskArrayInternal::pushBack(std::span<const std::byte> val) {
+    KU_ASSERT(val.size_bytes() <= storageInfo.alignedElementSize);
     std::unique_lock xLck{diskArraySharedMtx};
     auto it = iter_mut(val.size());
     auto originalNumElements = getNumElementsNoLock(TransactionType::WRITE);
@@ -152,7 +154,8 @@ uint64_t DiskArrayInternal::pushBack(std::span<const std::byte> val) {
     return originalNumElements;
 }
 
-uint64_t DiskArrayInternal::resize(uint64_t newNumElements, std::span<std::byte> defaultVal) {
+uint64_t DiskArrayInternal::resize(uint64_t newNumElements, std::span<const std::byte> defaultVal) {
+    KU_ASSERT(defaultVal.size_bytes() <= storageInfo.alignedElementSize);
     std::unique_lock xLck{diskArraySharedMtx};
     auto it = iter_mut(defaultVal.size());
     auto originalNumElements = getNumElementsNoLock(TransactionType::WRITE);

@@ -38,7 +38,7 @@ std::vector<std::byte> ColumnChunkMetadata::serializeToBytes(
     writeOffset += writeValueToVector(ret, writeOffset, numValues);
 
     const auto serializedCompMeta = compMeta.serializeToBytes(internalDataType);
-    memcpy(ret.data() + writeOffset, serializedCompMeta.data(), serializedCompMeta.size());
+    std::memcpy(ret.data() + writeOffset, serializedCompMeta.data(), serializedCompMeta.size());
     return ret;
 }
 
@@ -356,9 +356,9 @@ void ColumnChunkData::initializeFunction() {
     case PhysicalTypeID::UINT32:
     case PhysicalTypeID::UINT16:
     case PhysicalTypeID::UINT8:
-    case PhysicalTypeID::INT128: {
+    case PhysicalTypeID::INT128:
     case PhysicalTypeID::DOUBLE:
-    case PhysicalTypeID::FLOAT:
+    case PhysicalTypeID::FLOAT: {
         const auto compression = getCompression(dataType, enableCompression);
         flushBufferFunction = CompressedFlushBuffer(compression, dataType);
         if (dataType.getPhysicalType() == common::PhysicalTypeID::FLOAT) {
