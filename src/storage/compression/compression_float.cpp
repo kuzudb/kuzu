@@ -37,6 +37,7 @@ struct ExceptionBuffer {
     // if this is not the case we avoid compressing altogether
     static constexpr size_t MAX_EXCEPTION_FACTOR = 8;
 
+    static size_t getMaxExceptionRatio(size_t bitWidth);
     static size_t getDataSizeForExceptions(size_t dataSize, const CompressionMetadata& metadata);
     static size_t getMaxExceptionCount(size_t exceptionBufferSize);
 };
@@ -76,10 +77,11 @@ void ExceptionBuffer<T>::encodeException(EncodeException exception, common::offs
     static constexpr size_t exceptionSizeBytes = exception.sizeBytes();
 
     const auto byteOffset = idx * exceptionSizeBytes;
-    KU_ASSERT(byteOffset + exceptionSizeBytes <= capacityBytes);
+    KU_ASSERT(sizeof(Header) + byteOffset + exceptionSizeBytes <= capacityBytes);
     std::memcpy(exceptions + byteOffset, &exception.value, sizeof(exception.value));
     std::memcpy(exceptions + byteOffset + sizeof(exception.value), &exception.posInPage,
         sizeof(exception.posInPage));
+    // std::memcpy(exceptions + byteOffset, &exception, sizeof(exception));
 }
 
 template<std::floating_point T>
@@ -89,7 +91,7 @@ ExceptionBuffer<T>::EncodeException ExceptionBuffer<T>::decodeException(common::
     static constexpr size_t exceptionSizeBytes = ret.sizeBytes();
 
     const auto byteOffset = idx * exceptionSizeBytes;
-    KU_ASSERT(byteOffset + exceptionSizeBytes <= capacityBytes);
+    KU_ASSERT(sizeof(Header) + byteOffset + exceptionSizeBytes <= capacityBytes);
     std::memcpy(&ret.value, exceptions + byteOffset, sizeof(ret.value));
     std::memcpy(&ret.posInPage, exceptions + byteOffset + sizeof(ret.value), sizeof(ret.posInPage));
 
@@ -112,33 +114,42 @@ size_t ExceptionBuffer<T>::getSizeBytes() {
 
 template<std::floating_point T>
 common::offset_t& ExceptionBuffer<T>::exceptionCount() {
+    KU_ASSERT(header->numExceptions <= 4 * 1024 / EncodeException::sizeBytes());
     return header->numExceptions;
+}
+
+template<std::floating_point T>
+size_t ExceptionBuffer<T>::getMaxExceptionRatio(size_t bitWidth) {
+    // return bitWidth == 0 ? 1 : 1 + std::bit_width(bitWidth);
+    return 1 + bitWidth;
 }
 
 template<std::floating_point T>
 size_t ExceptionBuffer<T>::getDataSizeForExceptions(size_t dataSize,
     const CompressionMetadata& metadata) {
     KU_ASSERT(metadata.children.size() >= 1);
-
     const auto integerPackingInfo =
         IntegerBitpacking<int64_t>::getPackingInfo(metadata.getChild(0));
 
-    const size_t maxExceptionRatio =
-        integerPackingInfo.bitWidth == 0 ? 1 : 1 + std::bit_width(integerPackingInfo.bitWidth);
-    const size_t bitsPerException =
-        common::ceilDiv(EncodeException::sizeBytes() * 8, maxExceptionRatio);
-    const size_t avgBitsPerVal =
-        common::ceilDiv(integerPackingInfo.bitWidth * (maxExceptionRatio - 1), maxExceptionRatio) +
-        bitsPerException;
+    const size_t maxExceptionRatio = getMaxExceptionRatio(integerPackingInfo.bitWidth);
+    static constexpr size_t bitsPerException = EncodeException::sizeBytes() * 8;
+    const size_t avgBitsPerValue =
+        common::ceilDiv(bitsPerException + integerPackingInfo.bitWidth * (maxExceptionRatio - 1),
+            maxExceptionRatio);
+    KU_ASSERT(avgBitsPerValue > 0);
+    const size_t numValuesPerPage = (dataSize - sizeof(Header)) * 8 / avgBitsPerValue;
+
+    const size_t totalExceptions = numValuesPerPage / maxExceptionRatio;
 
     // TODO: add tests for maxExceptionRatio = 1, etc
-    auto ret = sizeof(Header) + (dataSize - sizeof(Header)) * bitsPerException / avgBitsPerVal / 8;
+    auto ret = sizeof(Header) + totalExceptions * EncodeException::sizeBytes();
     KU_ASSERT(ret < dataSize);
     return ret;
 }
 
 template<std::floating_point T>
 size_t ExceptionBuffer<T>::getMaxExceptionCount(size_t exceptionBufferSize) {
+    KU_ASSERT(exceptionBufferSize >= sizeof(Header));
     return (exceptionBufferSize - sizeof(Header)) / EncodeException::sizeBytes();
 }
 } // namespace
@@ -157,7 +168,7 @@ uint64_t FloatCompression<T>::compressNextPage(const uint8_t*& srcBuffer,
 
     ExceptionBuffer<T> exceptionBuffer{dstBuffer, dstBufferSize, metadata};
     exceptionBuffer.init();
-    KU_ASSERT(exceptionBuffer.capacityBytes < dstBufferSize);
+    KU_ASSERT(exceptionBuffer.capacityBytes <= dstBufferSize);
 
     const size_t numValuesToCompress =
         std::min(numValuesRemaining, numValues(dstBufferSize, metadata));
@@ -217,8 +228,9 @@ uint64_t FloatCompression<T>::numValues(uint64_t dataSize, const CompressionMeta
     const auto ret = decltype(encodedFloatBitpacker)::numValues(dataSize - exceptionBufferSize,
         metadata.getChild(0));
     if (ret == UINT64_MAX) {
-        // handle case where there is only one non-exception value
-        return ExceptionBuffer<T>::getMaxExceptionCount(dataSize);
+        // for bitWidth 0 we treat it as bitWidth 1
+        // as exceptions mean that we may not necessarily be able to store infinite values in a page
+        return ExceptionBuffer<T>::getMaxExceptionCount(dataSize) * 4;
     }
     return ret;
 }
@@ -239,14 +251,16 @@ void FloatCompression<T>::decompressFromPage(const uint8_t* srcBuffer, uint64_t 
     }
 
     ExceptionBuffer<T> exceptionBuffer{(uint8_t*)srcBuffer, 4 * 1024, metadata};
-    KU_ASSERT(exceptionBuffer.capacityBytes < 4 * 1024);
+    KU_ASSERT(exceptionBuffer.capacityBytes <= 4 * 1024);
     for (size_t j = 0; j < exceptionBuffer.exceptionCount(); ++j) {
         const auto currentException = exceptionBuffer.decodeException(j);
-        if (currentException.posInPage >= srcOffset &&
-            (currentException.posInPage - srcOffset) < numValues) {
-            reinterpret_cast<T*>(dstBuffer)[dstOffset + (currentException.posInPage - srcOffset)] =
-                currentException.value;
-        }
+        reinterpret_cast<T*>(dstBuffer)[0] = currentException.value;
+        // if (currentException.posInPage >= srcOffset &&
+        //     (currentException.posInPage - srcOffset) < numValues) {
+        //     reinterpret_cast<T*>(dstBuffer)[dstOffset + (currentException.posInPage - srcOffset)]
+        //     =
+        //         currentException.value;
+        // }
     }
 }
 

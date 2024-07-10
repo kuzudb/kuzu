@@ -249,7 +249,8 @@ public:
 
         const auto numValuesPerPage =
             compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
-        KU_ASSERT(numValuesPerPage < UINT64_MAX && numValuesPerPage > 0);
+        KU_ASSERT(numValuesPerPage < UINT64_MAX &&
+                  numValuesPerPage >= BufferPoolConstants::PAGE_4KB_SIZE / sizeof(T));
 
         size_t exceptionsInPrevPage = 0;
         for (offset_t i = 0; i < numValues; i += numValuesPerPage) {
