@@ -1,5 +1,6 @@
 #include "processor/operator/index_lookup.h"
 
+#include "binder/expression/expression_util.h"
 #include "common/assert.h"
 #include "common/exception/message.h"
 #include "common/types/ku_string.h"
@@ -7,7 +8,6 @@
 #include "common/vector/value_vector.h"
 #include "storage/index/hash_index.h"
 #include "transaction/transaction.h"
-#include "binder/expression/expression_util.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

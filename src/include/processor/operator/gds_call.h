@@ -35,8 +35,7 @@ private:
 struct GDSCallPrintInfo final : OPPrintInfo {
     std::string funcName;
 
-    explicit GDSCallPrintInfo(std::string funcName)
-        : funcName{std::move(funcName)} {}
+    explicit GDSCallPrintInfo(std::string funcName) : funcName{std::move(funcName)} {}
 
     std::string toString() const override;
 

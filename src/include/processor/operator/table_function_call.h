@@ -71,13 +71,14 @@ struct FTableScanFunctionCallPrintInfo final : OPPrintInfo {
     std::string funcName;
     binder::expression_vector exprs;
 
-    explicit FTableScanFunctionCallPrintInfo(std::string funcName, binder::expression_vector exprs) 
-    : funcName(std::move(funcName)), exprs(std::move(exprs)) {}
+    explicit FTableScanFunctionCallPrintInfo(std::string funcName, binder::expression_vector exprs)
+        : funcName(std::move(funcName)), exprs(std::move(exprs)) {}
 
     std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override {
-        return std::unique_ptr<FTableScanFunctionCallPrintInfo>(new FTableScanFunctionCallPrintInfo(*this));
+        return std::unique_ptr<FTableScanFunctionCallPrintInfo>(
+            new FTableScanFunctionCallPrintInfo(*this));
     }
 
 private:

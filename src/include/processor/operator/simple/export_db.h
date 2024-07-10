@@ -9,8 +9,7 @@ namespace processor {
 struct ExportDBPrintInfo final : OPPrintInfo {
     std::string filePath;
 
-    explicit ExportDBPrintInfo(std::string filePath)
-        : filePath{std::move(filePath)} {}
+    explicit ExportDBPrintInfo(std::string filePath) : filePath{std::move(filePath)} {}
 
     std::string toString() const override;
 

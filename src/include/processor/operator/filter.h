@@ -10,8 +10,7 @@ namespace processor {
 struct FilterPrintInfo final : OPPrintInfo {
     binder::Expression* expression;
 
-    explicit FilterPrintInfo(binder::Expression* expression)
-        : expression{std::move(expression)} {}
+    explicit FilterPrintInfo(binder::Expression* expression) : expression{std::move(expression)} {}
 
     std::string toString() const override;
 

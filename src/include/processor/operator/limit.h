@@ -8,8 +8,7 @@ namespace processor {
 struct LimitPrintInfo final : OPPrintInfo {
     uint64_t limitNum;
 
-    explicit LimitPrintInfo(uint64_t limitNum)
-        : limitNum{std::move(limitNum)} {}
+    explicit LimitPrintInfo(uint64_t limitNum) : limitNum{std::move(limitNum)} {}
 
     std::string toString() const override;
 
@@ -18,8 +17,7 @@ struct LimitPrintInfo final : OPPrintInfo {
     }
 
 private:
-    LimitPrintInfo(const LimitPrintInfo& other)
-        : OPPrintInfo{other}, limitNum{other.limitNum} {}
+    LimitPrintInfo(const LimitPrintInfo& other) : OPPrintInfo{other}, limitNum{other.limitNum} {}
 };
 
 class Limit : public PhysicalOperator {
