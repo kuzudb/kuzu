@@ -18,8 +18,15 @@ void GDSUtils::parallelizeFrontierCompute(processor::ExecutionContext* execution
         executionContext->clientContext->getCurrentSetting(main::ThreadsSetting::name)
             .getValue<uint64_t>(),
         sharedState);
+    // If task is a GDSTask, then scheduleTaskAndWaitOrError is called from a GDSCall operator,
+    // which is already executed by a worker thread Tm of the task scheduler. So this function
+    // is executed by Tm. Because this function will monitor the task and wait for it to complete,
+    // running GDS algorithms effectively "loses" Tm. This can even lead to the query
+    // processor to halt, e.g., if there is a single worker thread in the system, and more generally
+    // decrease its capacity. Therefore we instruct scheduleTaskAndWaitOrError to start a new
+    // thread by passing true as the last argument.
     executionContext->clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task,
-        executionContext);
+        executionContext, true /* launchNewWorkerThread */);
 }
 
 void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* executionContext,
