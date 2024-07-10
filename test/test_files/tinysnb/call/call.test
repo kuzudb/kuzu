@@ -180,13 +180,13 @@ height
 8
 -STATEMENT CALL storage_info('person') RETURN COUNT(*)
 ---- 1
-66
+56
 -STATEMENT CALL storage_info('knows') RETURN COUNT(*)
 ---- 1
-284
+252
 -STATEMENT CALL storage_info('workAt') RETURN COUNT(*)
 ---- 1
-32
+28
 
 -CASE CallNodeTableWith300ColumnsInfo
 -DEFINE COLS REPEAT 2400 "col${count} INT64,"
