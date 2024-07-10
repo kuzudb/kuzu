@@ -72,7 +72,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
         auto childPhysicalOperator = mapOperator(childCopyTo.get());
         children.push_back(std::move(childPhysicalOperator));
     }
-    auto printInfo = std::make_unique<ExportDBPrintInfo>(filePath);
+    auto printInfo = std::make_unique<ExportDBPrintInfo>(filePath, boundFileInfo->options);
     return std::make_unique<ExportDB>(exportDatabase->getBoundFileInfo()->copy(),
         getOutputPos(exportDatabase), getOperatorID(), std::move(children), std::move(printInfo));
 }

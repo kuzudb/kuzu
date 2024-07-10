@@ -8,8 +8,10 @@ namespace processor {
 
 struct ExportDBPrintInfo final : OPPrintInfo {
     std::string filePath;
+    std::unordered_map<std::string, common::Value> options;
 
-    explicit ExportDBPrintInfo(std::string filePath) : filePath{std::move(filePath)} {}
+    ExportDBPrintInfo(std::string filePath, std::unordered_map<std::string, common::Value> options)
+        : filePath{std::move(filePath)}, options{std::move(options)} {}
 
     std::string toString() const override;
 
@@ -19,7 +21,7 @@ struct ExportDBPrintInfo final : OPPrintInfo {
 
 private:
     ExportDBPrintInfo(const ExportDBPrintInfo& other)
-        : OPPrintInfo{other}, filePath{other.filePath} {}
+        : OPPrintInfo{other}, filePath{other.filePath}, options{other.options} {}
 };
 
 class ExportDB final : public Simple {

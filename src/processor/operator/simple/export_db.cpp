@@ -25,7 +25,19 @@ namespace processor {
 using std::stringstream;
 
 std::string ExportDBPrintInfo::toString() const {
-    return "Export To: " + filePath;
+    std::string result = "Export To: ";
+    result += filePath;
+    if (!options.empty()) {
+        result += ",Options: ";
+        auto it = options.begin();
+        for (auto i = 0u; it != options.end(); ++it, ++i) {
+            result += it->first + "=" + it->second.toString();
+            if (i < options.size() - 1) {
+                result += ", ";
+            }
+        }
+    }
+    return result;
 }
 
 static void writeStringStreamToFile(VirtualFileSystem* vfs, std::string ssString,
