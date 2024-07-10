@@ -24,6 +24,10 @@ namespace processor {
 
 using std::stringstream;
 
+std::string ExportDBPrintInfo::toString() const {
+    return "Export To: " + filePath;
+}
+
 static void writeStringStreamToFile(VirtualFileSystem* vfs, std::string ssString,
     const std::string& path) {
     auto fileInfo = vfs->openFile(path, O_WRONLY | O_CREAT);

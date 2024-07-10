@@ -1,13 +1,23 @@
 #include "processor/operator/table_function_call.h"
 
+#include "binder/expression/expression_util.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
 
 std::string TableFunctionCallPrintInfo::toString() const {
-    std::string result = "Function Name: ";
+    std::string result = "Function: ";
     result += funcName;
+    return result;
+}
+
+std::string FTableScanFunctionCallPrintInfo::toString() const {
+    std::string result = "Function: ";
+    result += funcName;
+    result += ", Expressions: ";
+    result += binder::ExpressionUtil::toString(exprs);
     return result;
 }
 

@@ -1,9 +1,17 @@
 #include "processor/operator/projection.h"
 
+#include "binder/expression/expression_util.h"
+
 using namespace kuzu::evaluator;
 
 namespace kuzu {
 namespace processor {
+
+std::string ProjectionPrintInfo::toString() const {
+    std::string result = "Expressions: ";
+    result += binder::ExpressionUtil::toString(expressions);
+    return result;
+}
 
 void Projection::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto i = 0u; i < expressionEvaluators.size(); ++i) {

@@ -3,6 +3,10 @@
 namespace kuzu {
 namespace processor {
 
+std::string LimitPrintInfo::toString() const {
+    return "Limit: " + std::to_string(limitNum);
+}
+
 bool Limit::getNextTuplesInternal(ExecutionContext* context) {
     // end of execution due to no more input
     if (!children[0]->getNextTuple(context)) {

@@ -7,12 +7,19 @@
 #include "common/vector/value_vector.h"
 #include "storage/index/hash_index.h"
 #include "transaction/transaction.h"
+#include "binder/expression/expression_util.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
+
+std::string IndexLookupPrintInfo::toString() const {
+    std::string result = "Indexes: ";
+    result += binder::ExpressionUtil::toString(expressions);
+    return result;
+}
 
 bool IndexLookup::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {

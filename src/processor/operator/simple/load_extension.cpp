@@ -25,6 +25,10 @@ namespace processor {
 
 using namespace kuzu::extension;
 
+std::string LoadExtensionPrintInfo::toString() const {
+    return "Load " + extensionName;
+}
+
 #ifdef _WIN32
 std::wstring utf8ToUnicode(const char* input) {
     uint32_t result;
