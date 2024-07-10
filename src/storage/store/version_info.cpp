@@ -34,18 +34,17 @@ bool VectorVersionInfo::delete_(const transaction_t transactionID, const row_idx
 
 void VectorVersionInfo::getSelVectorForScan(const transaction_t startTS,
     const transaction_t transactionID, SelectionVector& selVector, const row_idx_t startRow,
-    const row_idx_t numRows) const {
-    const auto numValues = selVector.getSelSize();
+    const row_idx_t numRows, sel_t startOutputPos) const {
     auto numSelected = selVector.getSelSize();
     if (!anyDeleted && !anyInserted) {
         for (auto i = 0u; i < numRows; i++) {
-            selVector.getMultableBuffer()[numSelected++] = numValues + i;
+            selVector.getMultableBuffer()[numSelected++] = startOutputPos + i;
         }
     } else {
         for (auto i = 0u; i < numRows; i++) {
             if (const auto rowIdx = startRow + i; isInserted(startTS, transactionID, rowIdx) &&
                                                   !isDeleted(startTS, transactionID, rowIdx)) {
-                selVector.getMultableBuffer()[numSelected++] = numValues + i;
+                selVector.getMultableBuffer()[numSelected++] = startOutputPos + i;
             }
         }
     }
@@ -138,6 +137,7 @@ void VersionInfo::getSelVectorToScan(const transaction_t startTS, const transact
         StorageUtils::getQuotientRemainder(startRow + numRows - 1, DEFAULT_VECTOR_CAPACITY);
     auto vectorIdx = startVectorIdx;
     selVector.setSelSize(0);
+    sel_t outputPos = 0u;
     while (vectorIdx <= endVectorIdx) {
         const auto startRowIdx = vectorIdx == startVectorIdx ? startRowIdxInVector : 0;
         const auto endRowIdx =
@@ -145,18 +145,19 @@ void VersionInfo::getSelVectorToScan(const transaction_t startTS, const transact
         const auto numRowsInVector = endRowIdx - startRowIdx + 1;
         if (vectorIdx >= vectorsInfo.size() || !vectorsInfo[vectorIdx]) {
             auto numSelected = selVector.getSelSize();
-            const auto numValues = selVector.getSelSize();
             for (auto i = 0u; i < numRowsInVector; i++) {
-                selVector.getMultableBuffer()[numSelected++] = numValues + i;
+                selVector.getMultableBuffer()[numSelected++] = outputPos + i;
             }
             selVector.setToFiltered(numSelected);
         } else {
             auto& vectorVersionInfo = getVersionInfo(vectorIdx);
             vectorVersionInfo.getSelVectorForScan(startTS, transactionID, selVector, startRowIdx,
-                numRowsInVector);
+                numRowsInVector, outputPos);
         }
+        outputPos += numRowsInVector;
         vectorIdx++;
     }
+    KU_ASSERT(outputPos <= DEFAULT_VECTOR_CAPACITY);
 }
 
 void VersionInfo::clearVectorInfo(const idx_t vectorIdx) {

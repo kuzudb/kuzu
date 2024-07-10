@@ -1,9 +1,7 @@
 -DATASET CSV rel-update-tests
 --
 
-#TODO(Guodong): FIX-ME.
 -CASE deleteAllRelsFromLargeListCommitNormalExecution
--SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (:person)-[e:knows]->(:person) DELETE e
