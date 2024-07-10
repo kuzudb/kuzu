@@ -131,6 +131,14 @@ void HashIndex<T>::splitSlots(HashIndexHeader& header, slot_id_t numSlotsToSplit
     // So instead buffer new overflow slots here and append them at the end
     std::vector<Slot<T>> newOverflowSlots;
 
+    auto getNextOvfSlot = [&](slot_id_t nextOvfSlotId) {
+        if (nextOvfSlotId >= oSlots->getNumElements()) {
+            return &newOverflowSlots[nextOvfSlotId - oSlots->getNumElements()];
+        } else {
+            return &*overflowSlotIterator.seek(nextOvfSlotId);
+        }
+    };
+
     for (slot_id_t i = 0; i < numSlotsToSplit; i++) {
         auto* newSlot = &*newSlotIterator.pushBack(Slot<T>());
         entry_pos_t newEntryPos = 0;
@@ -142,6 +150,8 @@ void HashIndex<T>::splitSlots(HashIndexHeader& header, slot_id_t numSlotsToSplit
                     continue; // Skip invalid entries.
                 }
                 if (newEntryPos >= getSlotCapacity<T>()) {
+                    newSlot->header.nextOvfSlotId =
+                        newOverflowSlots.size() + oSlots->getNumElements();
                     newOverflowSlots.emplace_back();
                     newSlot = &newOverflowSlots.back();
                     newEntryPos = 0;
@@ -160,7 +170,7 @@ void HashIndex<T>::splitSlots(HashIndexHeader& header, slot_id_t numSlotsToSplit
                 }
             }
         } while (originalSlot->header.nextOvfSlotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID &&
-                 (originalSlot = &*overflowSlotIterator.seek(originalSlot->header.nextOvfSlotId)));
+                 (originalSlot = getNextOvfSlot(originalSlot->header.nextOvfSlotId)));
         header.incrementNextSplitSlotId();
     }
     for (auto&& slot : newOverflowSlots) {
