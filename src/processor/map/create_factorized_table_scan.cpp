@@ -1,6 +1,5 @@
 #include <utility>
 
-#include "binder/expression/expression_util.h"
 #include "catalog/catalog.h"
 #include "function/built_in_function_utils.h"
 #include "processor/operator/table_function_call.h"
