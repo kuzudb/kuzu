@@ -46,7 +46,6 @@ protected:
     void visitCaseExprChildren(const Expression& expr);
 };
 
-
 // Do not collect subquery expression recursively. Caller should handle recursive subquery instead.
 class SubqueryExprCollector final : public ExpressionVisitor {
 public:

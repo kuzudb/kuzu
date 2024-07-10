@@ -322,6 +322,5 @@ bool ConstantExpressionVisitor::visitChildren(const Expression& expr) {
     return true;
 }
 
-
 } // namespace binder
 } // namespace kuzu
