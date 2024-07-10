@@ -100,17 +100,17 @@ foobar|
 ---- 1
 151044
 
-#-CASE CreateWithLargeStringPK
-#-STATEMENT CREATE NODE TABLE test(id STRING, PRIMARY KEY(id));
-#---- ok
-#-STATEMENT CREATE (t:test {id:"fe38f9dc-f761-4184-8b8b"});
-#---- ok
-#-STATEMENT CREATE (t:test {id:"foobar-ewe-j323-8nd*-ewew"});
-#---- ok
-#-STATEMENT MATCH (t:test) RETURN t.*;
-#---- 2
-#fe38f9dc-f761-4184-8b8b
-#foobar-ewe-j323-8nd*-ewew
+-CASE CreateWithLargeStringPK
+-STATEMENT CREATE NODE TABLE test(id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:"fe38f9dc-f761-4184-8b8b"});
+---- ok
+-STATEMENT CREATE (t:test {id:"foobar-ewe-j323-8nd*-ewew"});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+fe38f9dc-f761-4184-8b8b
+foobar-ewe-j323-8nd*-ewew
 
 -CASE CreateInt8MaxWidth
 -STATEMENT CREATE NODE TABLE test(id SERIAL, value INT8, PRIMARY KEY(id));

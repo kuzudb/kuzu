@@ -1,9 +1,7 @@
 -DATASET CSV rel-update-tests
 --
 
-#TODO(Guodong): FIX-ME.
 -CASE deleteRelsFromLargeListCommitNormalExecution
--SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -BATCH_STATEMENTS <FILE:>delete_rels_from_large_list.cypher
