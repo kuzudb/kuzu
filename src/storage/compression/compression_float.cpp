@@ -81,7 +81,6 @@ void ExceptionBuffer<T>::encodeException(EncodeException exception, common::offs
     std::memcpy(exceptions + byteOffset, &exception.value, sizeof(exception.value));
     std::memcpy(exceptions + byteOffset + sizeof(exception.value), &exception.posInPage,
         sizeof(exception.posInPage));
-    // std::memcpy(exceptions + byteOffset, &exception, sizeof(exception));
 }
 
 template<std::floating_point T>
@@ -120,7 +119,6 @@ common::offset_t& ExceptionBuffer<T>::exceptionCount() {
 
 template<std::floating_point T>
 size_t ExceptionBuffer<T>::getMaxExceptionRatio(size_t bitWidth) {
-    // return bitWidth == 0 ? 1 : 1 + std::bit_width(bitWidth);
     return 1 + bitWidth;
 }
 
@@ -254,13 +252,11 @@ void FloatCompression<T>::decompressFromPage(const uint8_t* srcBuffer, uint64_t 
     KU_ASSERT(exceptionBuffer.capacityBytes <= 4 * 1024);
     for (size_t j = 0; j < exceptionBuffer.exceptionCount(); ++j) {
         const auto currentException = exceptionBuffer.decodeException(j);
-        reinterpret_cast<T*>(dstBuffer)[0] = currentException.value;
-        // if (currentException.posInPage >= srcOffset &&
-        //     (currentException.posInPage - srcOffset) < numValues) {
-        //     reinterpret_cast<T*>(dstBuffer)[dstOffset + (currentException.posInPage - srcOffset)]
-        //     =
-        //         currentException.value;
-        // }
+        if (currentException.posInPage >= srcOffset &&
+            (currentException.posInPage - srcOffset) < numValues) {
+            reinterpret_cast<T*>(dstBuffer)[dstOffset + (currentException.posInPage - srcOffset)] =
+                currentException.value;
+        }
     }
 }
 

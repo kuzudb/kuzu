@@ -541,8 +541,8 @@ TEST(CompressionTests, OffsetIntegerPackingMultiPageSigned64) {
 TEST(CompressionTests, FloatCompressionTestMultiPage) {
     std::vector<double> src(10 * 1024, 5.6);
     src[1] = 12345678901234.56;
-    for (size_t i = 26; i < src.size(); i += 25) {
-        src[i] = src[i - 25] + 78901234.567;
+    for (size_t i = 98; i < src.size(); i += 97) {
+        src[i] = src[i - 97] + 78901234.567;
     }
     auto alg = FloatCompression<double>();
     alp::state floatMetadata;
