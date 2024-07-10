@@ -5,6 +5,12 @@
 namespace kuzu {
 namespace processor {
 
+std::string StandaloneCallPrintInfo::toString() const {
+    std::string result = "Function: ";
+    result += optionName;
+    return result;
+}
+
 bool StandaloneCall::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
     if (standaloneCallInfo->hasExecuted) {
         return false;

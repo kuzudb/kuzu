@@ -7,6 +7,24 @@
 namespace kuzu {
 namespace processor {
 
+struct OrderByPrintInfo final : OPPrintInfo {
+    binder::expression_vector keys;
+    binder::expression_vector payloads;
+
+    OrderByPrintInfo(binder::expression_vector keys, binder::expression_vector payloads)
+        : keys(std::move(keys)), payloads(std::move(payloads)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<OrderByPrintInfo>(new OrderByPrintInfo(*this));
+    }
+
+private:
+    OrderByPrintInfo(const OrderByPrintInfo& other)
+        : OPPrintInfo(other), keys(other.keys), payloads(other.payloads) {}
+};
+
 class OrderBy : public Sink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::ORDER_BY;
 

@@ -1,5 +1,6 @@
 #include "processor/operator/order_by/top_k.h"
 
+#include "binder/expression/expression_util.h"
 #include "function/binary_function_executor.h"
 #include "function/comparison/comparison_functions.h"
 
@@ -7,6 +8,16 @@ using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
+
+std::string TopKPrintInfo::toString() const {
+    std::string result = "Keys: ";
+    result += binder::ExpressionUtil::toString(keys);
+    result += ", Payloads: ";
+    result += binder::ExpressionUtil::toString(payloads);
+    result += ", K Value: ";
+    result += std::to_string(K);
+    return result;
+}
 
 TopKSortState::TopKSortState() : numTuples{0}, memoryManager{nullptr} {
     orderByLocalState = std::make_unique<SortLocalState>();

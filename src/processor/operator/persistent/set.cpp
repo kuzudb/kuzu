@@ -45,5 +45,11 @@ std::unique_ptr<PhysicalOperator> SetRelProperty::clone() {
         id, printInfo->copy());
 }
 
+std::string SetPropertyPrintInfo::toString() const {
+    std::string result = leftSide;
+    result += " = ";
+    result += rightSide;
+    return result;
+}
 } // namespace processor
 } // namespace kuzu

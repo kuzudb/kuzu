@@ -6,6 +6,24 @@
 namespace kuzu {
 namespace processor {
 
+struct SetPropertyPrintInfo final : OPPrintInfo {
+    std::string leftSide;
+    std::string rightSide;
+
+    SetPropertyPrintInfo(std::string leftSide, std::string rightSide)
+        : leftSide(std::move(leftSide)), rightSide(std::move(rightSide)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<SetPropertyPrintInfo>(new SetPropertyPrintInfo(*this));
+    }
+
+private:
+    SetPropertyPrintInfo(const SetPropertyPrintInfo& other)
+        : OPPrintInfo(other), leftSide(other.leftSide), rightSide(other.rightSide) {}
+};
+
 class SetNodeProperty : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SET_PROPERTY;
 

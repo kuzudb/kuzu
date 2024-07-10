@@ -7,6 +7,12 @@ void Skip::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*cont
     dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
 }
 
+std::string skipPrintInfo::toString() const {
+    std::string result = "Number: ";
+    result += std::to_string(number);
+    return result;
+}
+
 bool Skip::getNextTuplesInternal(ExecutionContext* context) {
     auto numTupleSkippedBefore = 0u;
     auto numTuplesAvailable = 1u;

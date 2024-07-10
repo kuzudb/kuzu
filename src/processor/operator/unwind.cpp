@@ -5,6 +5,12 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
+std::string UnwindPrintInfo::toString() const {
+    std::string result = "Unwind expressions as: ";
+    result += expression->toString();
+    return result;
+}
+
 void Unwind::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     expressionEvaluator->init(*resultSet, context->clientContext);
     outValueVector = resultSet->getValueVector(outDataPos);
