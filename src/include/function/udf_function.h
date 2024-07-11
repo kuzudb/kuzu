@@ -2,7 +2,7 @@
 
 #include "common/exception/binder.h"
 #include "common/exception/catalog.h"
-#include "common/types/blob.h"
+#include "common/type_utils.h"
 #include "common/types/ku_string.h"
 #include "function/scalar_function.h"
 
@@ -41,34 +41,13 @@ struct TernaryUDFExecutor {
 struct UDF {
     template<typename T>
     static bool templateValidateType(const common::LogicalTypeID& type) {
-        switch (type) {
-        case common::LogicalTypeID::BOOL:
-            return std::is_same<T, bool>();
-        case common::LogicalTypeID::INT16:
-            return std::is_same<T, int16_t>();
-        case common::LogicalTypeID::INT32:
-            return std::is_same<T, int32_t>();
-        case common::LogicalTypeID::INT64:
-            return std::is_same<T, int64_t>();
-        case common::LogicalTypeID::FLOAT:
-            return std::is_same<T, float>();
-        case common::LogicalTypeID::DOUBLE:
-            return std::is_same<T, double>();
-        case common::LogicalTypeID::DATE:
-            return std::is_same<T, int32_t>();
-        case common::LogicalTypeID::TIMESTAMP_NS:
-        case common::LogicalTypeID::TIMESTAMP_MS:
-        case common::LogicalTypeID::TIMESTAMP_SEC:
-        case common::LogicalTypeID::TIMESTAMP_TZ:
-        case common::LogicalTypeID::TIMESTAMP:
-            return std::is_same<T, int64_t>();
-        case common::LogicalTypeID::STRING:
-            return std::is_same<T, common::ku_string_t>();
-        case common::LogicalTypeID::BLOB:
-            return std::is_same<T, common::blob_t>();
-        default:
-            KU_UNREACHABLE;
-        }
+        auto logicalType = common::LogicalType{type};
+        auto physicalType = logicalType.getPhysicalType();
+        auto physicalTypeMatch = common::TypeUtils::visit(physicalType,
+            []<typename T1>(T1) { return std::is_same<T, T1>::value; });
+        auto logicalTypeMatch = common::TypeUtils::visit(logicalType,
+            []<typename T1>(T1) { return std::is_same<T, T1>::value; });
+        return logicalTypeMatch || physicalTypeMatch;
     }
 
     template<typename T>
@@ -203,12 +182,24 @@ struct UDF {
     static common::LogicalTypeID getParameterType() {
         if (std::is_same<T, bool>()) {
             return common::LogicalTypeID::BOOL;
+        } else if (std::is_same<T, int8_t>()) {
+            return common::LogicalTypeID::INT8;
         } else if (std::is_same<T, int16_t>()) {
             return common::LogicalTypeID::INT16;
         } else if (std::is_same<T, int32_t>()) {
             return common::LogicalTypeID::INT32;
         } else if (std::is_same<T, int64_t>()) {
             return common::LogicalTypeID::INT64;
+        } else if (std::is_same<T, common::int128_t>()) {
+            return common::LogicalTypeID::INT128;
+        } else if (std::is_same<T, uint8_t>()) {
+            return common::LogicalTypeID::UINT8;
+        } else if (std::is_same<T, uint16_t>()) {
+            return common::LogicalTypeID::UINT16;
+        } else if (std::is_same<T, uint32_t>()) {
+            return common::LogicalTypeID::UINT32;
+        } else if (std::is_same<T, uint64_t>()) {
+            return common::LogicalTypeID::UINT64;
         } else if (std::is_same<T, float>()) {
             return common::LogicalTypeID::FLOAT;
         } else if (std::is_same<T, double>()) {
