@@ -52,7 +52,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
         expression->setAlias(parsedExpression.getAlias());
     }
     validateAggregationExpressionIsNotNested(expression);
-    if (ExpressionVisitor::needFold(*expression)) {
+    if (ConstantExpressionVisitor::needFold(*expression)) {
         return foldExpression(expression);
     }
     return expression;

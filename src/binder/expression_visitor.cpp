@@ -6,9 +6,7 @@
 #include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
 #include "binder/expression/subquery_expression.h"
-#include "common/cast.h"
 #include "common/exception/not_implemented.h"
-#include "function/list/vector_list_functions.h"
 #include "function/sequence/sequence_functions.h"
 #include "function/uuid/vector_uuid_functions.h"
 
@@ -16,6 +14,11 @@ using namespace kuzu::common;
 
 namespace kuzu {
 namespace binder {
+
+void ExpressionVisitor::visit(std::shared_ptr<Expression> expr) {
+    visitChildren(*expr);
+    visitSwitch(expr);
+}
 
 void ExpressionVisitor::visitSwitch(std::shared_ptr<Expression> expr) {
     switch (expr->expressionType) {
@@ -72,11 +75,6 @@ void ExpressionVisitor::visitSwitch(std::shared_ptr<Expression> expr) {
         throw NotImplementedException("ExpressionVisitor::visitSwitch");
         // LCOV_EXCL_STOP
     }
-}
-
-void ExpressionVisitor::visit(std::shared_ptr<Expression> expr) {
-    visitChildren(*expr);
-    visitSwitch(expr);
 }
 
 void ExpressionVisitor::visitChildren(const Expression& expr) {
@@ -178,44 +176,11 @@ expression_vector ExpressionChildrenCollector::collectRelChildren(const Expressi
     return result;
 }
 
-// isConstant requires all children to be constant.
-bool ExpressionVisitor::isConstant(const Expression& expression) {
-    if (expression.expressionType == ExpressionType::AGGREGATE_FUNCTION) {
-        return false; // We don't have a framework to fold aggregated constant.
-    }
-    // TODO(Xiyang): this is a bypass to allow nextval to not be folded during binding
-    if (expression.expressionType == ExpressionType::FUNCTION) {
-        auto& funcExpr = expression.constCast<FunctionExpression>();
-        if (funcExpr.getFunctionName() == function::NextValFunction::name) {
-            return false;
-        }
-    }
-    if (expression.getNumChildren() == 0 &&
-        expression.expressionType != ExpressionType::CASE_ELSE) {
-        // If a function does not have children, we should be able to evaluate them as a constant.
-        // But I wanna apply this change separately.
-        if (expression.expressionType == ExpressionType::FUNCTION) {
-            auto& funcExpr = expression.constCast<FunctionExpression>();
-            if (funcExpr.getFunctionName() == function::ListCreationFunction::name) {
-                return true;
-            }
-            return false;
-        }
-        return expression.expressionType == ExpressionType::LITERAL;
-    }
-    for (auto& child : ExpressionChildrenCollector::collectChildren(expression)) {
-        if (!isConstant(*child)) {
-            return false;
-        }
-    }
-    return true;
-}
-
 bool ExpressionVisitor::isRandom(const Expression& expression) {
     if (expression.expressionType != ExpressionType::FUNCTION) {
         return false;
     }
-    auto& funcExpr = ku_dynamic_cast<const Expression&, const FunctionExpression&>(expression);
+    auto& funcExpr = expression.constCast<FunctionExpression>();
     if (funcExpr.getFunctionName() == function::GenRandomUUIDFunction::name) {
         return true;
     }
@@ -276,6 +241,85 @@ void PropertyExprCollector::visitNodeRelExpr(std::shared_ptr<Expression> expr) {
     for (auto& property : expr->constCast<NodeOrRelExpression>().getPropertyExprs()) {
         expressions.push_back(property);
     }
+}
+
+bool ConstantExpressionVisitor::needFold(const Expression& expr) {
+    if (expr.expressionType == common::ExpressionType::LITERAL) {
+        return false; // No need to fold a literal.
+    }
+    return isConstant(expr);
+}
+
+bool ConstantExpressionVisitor::isConstant(const Expression& expr) {
+    switch (expr.expressionType) {
+    case ExpressionType::LITERAL:
+        return true;
+    case ExpressionType::AGGREGATE_FUNCTION:
+    case ExpressionType::PROPERTY:
+    case ExpressionType::VARIABLE:
+    case ExpressionType::PATH:
+    case ExpressionType::PATTERN:
+    case ExpressionType::PARAMETER:
+    case ExpressionType::SUBQUERY:
+    case ExpressionType::GRAPH:
+    case ExpressionType::LAMBDA:
+        return false;
+    case ExpressionType::FUNCTION:
+        return visitFunction(expr);
+    case ExpressionType::CASE_ELSE:
+        return visitCase(expr);
+    case ExpressionType::OR:
+    case ExpressionType::XOR:
+    case ExpressionType::AND:
+    case ExpressionType::NOT:
+    case ExpressionType::EQUALS:
+    case ExpressionType::NOT_EQUALS:
+    case ExpressionType::GREATER_THAN:
+    case ExpressionType::GREATER_THAN_EQUALS:
+    case ExpressionType::LESS_THAN:
+    case ExpressionType::LESS_THAN_EQUALS:
+    case ExpressionType::IS_NULL:
+    case ExpressionType::IS_NOT_NULL:
+        return visitChildren(expr);
+        // LCOV_EXCL_START
+    default:
+        throw NotImplementedException("ConstantExpressionVisitor::isConstant");
+        // LCOV_EXCL_STOP
+    }
+}
+
+bool ConstantExpressionVisitor::visitFunction(const Expression& expr) {
+    auto& funcExpr = expr.constCast<FunctionExpression>();
+    if (funcExpr.getFunctionName() == function::NextValFunction::name) {
+        return false;
+    }
+    if (funcExpr.getFunctionName() == function::GenRandomUUIDFunction::name) {
+        return false;
+    }
+    return visitChildren(expr);
+}
+
+bool ConstantExpressionVisitor::visitCase(const Expression& expr) {
+    auto& caseExpr = expr.constCast<CaseExpression>();
+    for (auto i = 0u; i < caseExpr.getNumCaseAlternatives(); ++i) {
+        auto caseAlternative = caseExpr.getCaseAlternative(i);
+        if (!isConstant(*caseAlternative->whenExpression)) {
+            return false;
+        }
+        if (!isConstant(*caseAlternative->thenExpression)) {
+            return false;
+        }
+    }
+    return isConstant(*caseExpr.getElseExpression());
+}
+
+bool ConstantExpressionVisitor::visitChildren(const Expression& expr) {
+    for (auto& child : expr.getChildren()) {
+        if (!isConstant(*child)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 } // namespace binder

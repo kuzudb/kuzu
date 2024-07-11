@@ -29,7 +29,7 @@ std::unique_ptr<BoundStatement> Binder::bindStandaloneCall(const parser::Stateme
     ExpressionUtil::validateExpressionType(*optionValue, ExpressionType::LITERAL);
     optionValue =
         expressionBinder.implicitCastIfNecessary(optionValue, LogicalType(option->parameterType));
-    if (ExpressionVisitor::needFold(*optionValue)) {
+    if (ConstantExpressionVisitor::needFold(*optionValue)) {
         optionValue = expressionBinder.foldExpression(optionValue);
     }
     return std::make_unique<BoundStandaloneCall>(option, std::move(optionValue));
