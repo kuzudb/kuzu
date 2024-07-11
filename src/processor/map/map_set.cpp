@@ -5,6 +5,7 @@
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
 #include "storage/store/table.h"
+#include "binder/expression/expression_util.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -85,8 +86,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetNodeProperty(LogicalOperator
     for (auto& info : set->getInfos()) {
         executors.push_back(getNodeSetExecutor(info, *inSchema));
     }
-    auto printInfo = std::make_unique<SetPropertyPrintInfo>(set->getExpressionsForPrinting(),
-        set->getChild(0)->toString());
+    auto& info = set->getInfos();
+    std::string result = ExpressionUtil::toString(info[0].setItem);
+    for (auto i = 1u; i < info.size(); ++i) {
+        result += ExpressionUtil::toString(info[i].setItem);
+    }
+    auto printInfo = std::make_unique<SetPropertyPrintInfo>(result);    
     return std::make_unique<SetNodeProperty>(std::move(executors), std::move(prevOperator),
         getOperatorID(), std::move(printInfo));
 }
@@ -141,7 +146,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetRelProperty(LogicalOperator*
     for (auto& info : set->getInfos()) {
         executors.push_back(getRelSetExecutor(info, *inSchema));
     }
-    auto printInfo = std::make_unique<OPPrintInfo>(set->getExpressionsForPrinting());
+    auto& info = set->getInfos();
+    std::string result = ExpressionUtil::toString(info[0].setItem);
+    for (auto i = 1u; i < info.size(); ++i) {
+        result += ExpressionUtil::toString(info[i].setItem);
+    }
+    auto printInfo = std::make_unique<SetPropertyPrintInfo>(result);    
     return std::make_unique<SetRelProperty>(std::move(executors), std::move(prevOperator),
         getOperatorID(), std::move(printInfo));
 }

@@ -1,4 +1,7 @@
 #include "processor/operator/persistent/set.h"
+#include "binder/expression/expression_util.h"
+
+using namespace kuzu::binder;
 
 namespace kuzu {
 namespace processor {
@@ -46,9 +49,8 @@ std::unique_ptr<PhysicalOperator> SetRelProperty::clone() {
 }
 
 std::string SetPropertyPrintInfo::toString() const {
-    std::string result = leftSide;
-    result += " = ";
-    result += rightSide;
+    std::string result = "Operation: ";
+    result += operation;
     return result;
 }
 } // namespace processor

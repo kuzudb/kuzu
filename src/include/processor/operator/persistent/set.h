@@ -2,16 +2,16 @@
 
 #include "processor/operator/physical_operator.h"
 #include "set_executor.h"
+#include "binder/query/updating_clause/bound_set_info.h"
 
 namespace kuzu {
 namespace processor {
 
 struct SetPropertyPrintInfo final : OPPrintInfo {
-    std::string leftSide;
-    std::string rightSide;
+    std::string operation;
 
-    SetPropertyPrintInfo(std::string leftSide, std::string rightSide)
-        : leftSide(std::move(leftSide)), rightSide(std::move(rightSide)) {}
+    explicit SetPropertyPrintInfo(std::string operation)
+        : operation(std::move(operation)) {}
 
     std::string toString() const override;
 
@@ -21,7 +21,7 @@ struct SetPropertyPrintInfo final : OPPrintInfo {
 
 private:
     SetPropertyPrintInfo(const SetPropertyPrintInfo& other)
-        : OPPrintInfo(other), leftSide(other.leftSide), rightSide(other.rightSide) {}
+        : OPPrintInfo(other), operation(other.operation) {}
 };
 
 class SetNodeProperty : public PhysicalOperator {

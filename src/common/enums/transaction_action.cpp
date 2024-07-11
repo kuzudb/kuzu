@@ -1,4 +1,4 @@
-#include "include/transaction/transaction_action.h"
+#include "transaction/transaction_action.h"
 
 #include "common/assert.h"
 
