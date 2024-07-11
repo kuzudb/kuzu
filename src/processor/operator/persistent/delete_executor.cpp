@@ -1,4 +1,8 @@
 #include "processor/operator/persistent/delete_executor.h"
+#include <memory>
+#include "common/assert.h"
+#include "common/vector/value_vector.h"
+#include "storage/store/rel_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -9,7 +13,12 @@ namespace processor {
 void NodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* /*context*/) {
     nodeIDVector = resultSet->getValueVector(info.nodeIDPos).get();
     if (info.deleteType == DeleteNodeType::DETACH_DELETE) {
-        detachDeleteState = std::make_unique<RelDetachDeleteState>();
+        const auto tempSharedState = std::make_shared<DataChunkState>();
+        dstNodeIDVector = std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
+        relIDVector = std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
+        dstNodeIDVector->setState(tempSharedState);
+        relIDVector->setState(tempSharedState);
+        detachDeleteState = std::make_unique<RelTableDeleteState>(*nodeIDVector, *dstNodeIDVector, *relIDVector);
     }
 }
 
@@ -20,11 +29,11 @@ void SingleLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext*
 
 static void deleteFromRelTable(ExecutionContext* context, DeleteNodeType deleteType,
     RelDataDirection direction, RelTable* relTable, ValueVector* nodeIDVector,
-    RelDetachDeleteState* detachDeleteState) {
+    RelTableDeleteState* detachDeleteState) {
     switch (deleteType) {
     case DeleteNodeType::DETACH_DELETE: {
-        relTable->detachDelete(context->clientContext->getTx(), direction, nodeIDVector,
-            detachDeleteState);
+        KU_ASSERT(detachDeleteState);
+        relTable->detachDelete(context->clientContext->getTx(), direction, detachDeleteState);
     } break;
     case DeleteNodeType::DELETE: {
         relTable->checkIfNodeHasRels(context->clientContext->getTx(), direction, nodeIDVector);

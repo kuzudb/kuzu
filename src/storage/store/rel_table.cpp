@@ -14,14 +14,6 @@ using namespace kuzu::evaluator;
 namespace kuzu {
 namespace storage {
 
-RelDetachDeleteState::RelDetachDeleteState() {
-    const auto tempSharedState = std::make_shared<DataChunkState>();
-    dstNodeIDVector = std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
-    relIDVector = std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
-    dstNodeIDVector->setState(tempSharedState);
-    relIDVector->setState(tempSharedState);
-}
-
 RelTable::RelTable(RelTableCatalogEntry* relTableEntry, StorageManager* storageManager,
     MemoryManager* memoryManager, Deserializer* deSer)
     : Table{relTableEntry, storageManager, memoryManager},
@@ -164,25 +156,25 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
     return bwdDeleted;
 }
 
-void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
-    ValueVector* srcNodeIDVector, RelDetachDeleteState* deleteState) {
-    KU_ASSERT(srcNodeIDVector->state->getSelVector().getSelSize() == 1);
+void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction, 
+    RelTableDeleteState* deleteState) {
+    KU_ASSERT(deleteState->srcNodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto tableData =
         direction == RelDataDirection::FWD ? fwdRelTableData.get() : bwdRelTableData.get();
     const auto reverseTableData =
         direction == RelDataDirection::FWD ? bwdRelTableData.get() : fwdRelTableData.get();
     std::vector<column_id_t> columnsToScan = {NBR_ID_COLUMN_ID, REL_ID_COLUMN_ID};
-    const auto relIDVectors = std::vector<ValueVector*>{deleteState->dstNodeIDVector.get(),
-        deleteState->relIDVector.get()};
+    const auto relIDVectors = std::vector<ValueVector*>{&deleteState->dstNodeIDVector,
+        &deleteState->relIDVector};
     const auto relReadState =
         std::make_unique<RelTableScanState>(tableID, columnsToScan, tableData->getColumns(),
             tableData->getCSROffsetColumn(), tableData->getCSRLengthColumn(), direction);
-    relReadState->boundNodeIDVector = srcNodeIDVector;
+    relReadState->boundNodeIDVector = &deleteState->srcNodeIDVector;
     relReadState->outputVectors = relIDVectors;
     relReadState->direction = direction;
     initializeScanState(transaction, *relReadState);
-    detachDeleteForCSRRels(transaction, tableData, reverseTableData, srcNodeIDVector,
-        relReadState.get(), deleteState);
+    detachDeleteForCSRRels(transaction, tableData, reverseTableData, relReadState.get(), 
+        deleteState);
 }
 
 void RelTable::checkIfNodeHasRels(Transaction* transaction, RelDataDirection direction,
@@ -199,28 +191,26 @@ void RelTable::checkIfNodeHasRels(Transaction* transaction, RelDataDirection dir
     }
 }
 
-// TODO(Guodong): Rework this.
-row_idx_t RelTable::detachDeleteForCSRRels(Transaction*, RelTableData*, RelTableData*, ValueVector*,
-    RelTableScanState*, RelDetachDeleteState*) {
-    throw RuntimeException("Detach delete is not supported yet.");
-    // row_idx_t numRelsDeleted = 0;
-    // auto tempState = deleteState->dstNodeIDVector->state.get();
-    // while (relDataReadState->hasMoreToRead(transaction)) {
-    //     scan(transaction, *relDataReadState);
-    //     auto numRelsScanned = tempState->getSelVector().getSelSize();
-    //     tempState->getSelVectorUnsafe().setToFiltered(1);
-    //     for (auto i = 0u; i < numRelsScanned; i++) {
-    //         tempState->getSelVectorUnsafe()[0] = i;
-    //         auto deleted =
-    //             tableData->delete_(transaction, srcNodeIDVector, deleteState->relIDVector.get());
-    //         auto reverseDeleted = reverseTableData->delete_(transaction,
-    //             deleteState->dstNodeIDVector.get(), deleteState->relIDVector.get());
-    //         KU_ASSERT(deleted == reverseDeleted);
-    //         numRelsDeleted += (deleted && reverseDeleted);
-    //     }
-    //     tempState->getSelVectorUnsafe().setToUnfiltered();
-    // }
-    // return numRelsDeleted;
+row_idx_t RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* tableData, 
+    RelTableData* reverseTableData, RelTableScanState* relDataReadState, 
+    RelTableDeleteState* deleteState) {
+    row_idx_t numRelsDeleted = 0;
+    auto tempState = deleteState->dstNodeIDVector.state.get();
+    while (scan(transaction, *relDataReadState)) {
+        auto numRelsScanned = tempState->getSelVector().getSelSize();
+        tempState->getSelVectorUnsafe().setToFiltered(1);
+        for (auto i = 0u; i < numRelsScanned; i++) {
+            tempState->getSelVectorUnsafe()[0] = i;
+            auto deleted = tableData->delete_(transaction, deleteState->srcNodeIDVector, 
+                deleteState->relIDVector);
+            auto reverseDeleted = reverseTableData->delete_(transaction,
+                deleteState->dstNodeIDVector, deleteState->relIDVector);
+            KU_ASSERT(deleted == reverseDeleted);
+            numRelsDeleted += (deleted && reverseDeleted);
+        }
+        tempState->getSelVectorUnsafe().setToUnfiltered();
+    }
+    return numRelsDeleted;
 }
 
 void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
