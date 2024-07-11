@@ -162,10 +162,9 @@ public:
                     } while (graph->hasMoreFwdNbrs(shortestPathLocalState->nbrScanState.get()));
                 }
             }
-            ifeMorsel->mergeResults(numDstVisitedLocal, numNonDstVisitedLocal);
             frontierMorsel = ifeMorsel->getMorsel(morselSize);
-            numDstVisitedLocal = 0u, numNonDstVisitedLocal = 0u;
         }
+        ifeMorsel->mergeResults(numDstVisitedLocal, numNonDstVisitedLocal);
         return 0u;
     }
 
