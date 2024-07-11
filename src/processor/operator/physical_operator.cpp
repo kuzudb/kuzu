@@ -32,6 +32,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "CREATE_TABLE";
     case PhysicalOperatorType::CROSS_PRODUCT:
         return "CROSS_PRODUCT";
+    case PhysicalOperatorType::CSR_INDEX_BUILD:
+        return "CSR_INDEX_BUILD";
     case PhysicalOperatorType::DETACH_DATABASE:
         return "DETACH_DATABASE";
     case PhysicalOperatorType::DELETE_:
