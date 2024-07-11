@@ -374,8 +374,8 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     auto nodeCopy = createQueryNode(recursivePatternInfo->nodeName,
         std::vector<table_id_t>{nodeTableIDs.begin(), nodeTableIDs.end()});
     // Bind intermediate rel
-    auto rel = createNonRecursiveQueryRel(recursivePatternInfo->relName, tableIDs, node, nodeCopy,
-        directionType);
+    auto rel = createNonRecursiveQueryRel(recursivePatternInfo->relName, tableIDs,
+        nullptr /* srcNode */, nullptr /* dstNode */, directionType);
     addToScope(rel->toString(), rel);
     expression_vector relProjectionList;
     if (!recursivePatternInfo->hasProjection) {
@@ -425,14 +425,15 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
             } else if (dependOnNode) {
                 nodePredicate = expressionBinder.combineBooleanExpressions(ExpressionType::AND,
                     nodePredicate, predicate);
-            } else {
+            } else if (dependOnRel) {
                 relPredicate = expressionBinder.combineBooleanExpressions(ExpressionType::AND,
                     relPredicate, predicate);
+            } else {
             }
         }
     }
-    auto nodePredicateExecutionFlag = expressionBinder.createVariableExpression(
-        LogicalType{LogicalTypeID::BOOL}, std::string(InternalKeyword::ANONYMOUS));
+    auto nodePredicateExecutionFlag = expressionBinder.createVariableExpression(LogicalType::BOOL(),
+        std::string(InternalKeyword::ANONYMOUS));
     if (nodePredicate != nullptr) {
         nodePredicate = expressionBinder.combineBooleanExpressions(ExpressionType::OR,
             nodePredicate, nodePredicateExecutionFlag);

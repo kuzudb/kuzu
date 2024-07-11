@@ -3,6 +3,50 @@
 --
 
 -CASE DemoDBTest
+
+-LOG UndirectedRecursivePattern
+-STATEMENT MATCH p = (u:User {name: 'Adam'})-[e*1..3]-(c:User {name: 'Adam'})
+           HINT (u JOIN e) JOIN c
+           RETURN properties(nodes(p),'name'), rels(p)
+---- 7
+[Adam,Karissa,Adam]|[(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1),(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)]
+[Adam,Karissa,Waterloo,Adam]|[(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1),(0:1)-{_LABEL: LivesIn, _ID: 3:1}->(1:0),(0:0)-{_LABEL: LivesIn, _ID: 3:0}->(1:0)]
+[Adam,Karissa,Zhang,Adam]|[(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1),(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2),(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2)]
+[Adam,Waterloo,Adam]|[(0:0)-{_LABEL: LivesIn, _ID: 3:0}->(1:0),(0:0)-{_LABEL: LivesIn, _ID: 3:0}->(1:0)]
+[Adam,Waterloo,Karissa,Adam]|[(0:0)-{_LABEL: LivesIn, _ID: 3:0}->(1:0),(0:1)-{_LABEL: LivesIn, _ID: 3:1}->(1:0),(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)]
+[Adam,Zhang,Adam]|[(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2),(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2)]
+[Adam,Zhang,Karissa,Adam]|[(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2),(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2),(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)]
+-STATEMENT MATCH p = (u:User {name: 'Adam'})-[e*1..3]-(c:User {name: 'Adam'})
+           HINT u JOIN (e JOIN c)
+           RETURN properties(nodes(p),'name'), rels(p)
+---- 7
+[Adam,Karissa,Adam]|[(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1),(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)]
+[Adam,Karissa,Waterloo,Adam]|[(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1),(0:1)-{_LABEL: LivesIn, _ID: 3:1}->(1:0),(0:0)-{_LABEL: LivesIn, _ID: 3:0}->(1:0)]
+[Adam,Karissa,Zhang,Adam]|[(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1),(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2),(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2)]
+[Adam,Waterloo,Adam]|[(0:0)-{_LABEL: LivesIn, _ID: 3:0}->(1:0),(0:0)-{_LABEL: LivesIn, _ID: 3:0}->(1:0)]
+[Adam,Waterloo,Karissa,Adam]|[(0:0)-{_LABEL: LivesIn, _ID: 3:0}->(1:0),(0:1)-{_LABEL: LivesIn, _ID: 3:1}->(1:0),(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)]
+[Adam,Zhang,Adam]|[(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2),(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2)]
+[Adam,Zhang,Karissa,Adam]|[(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2),(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2),(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)]
+-LOG DirectedRecursivePattern
+-STATEMENT MATCH p = (u:User)-[e*]->(c:City {name: "Guelph"})
+           HINT (u JOIN e) JOIN c
+           RETURN properties(nodes(p),'name'), properties(rels(p),'_label');
+---- 5
+[Adam,Karissa,Zhang,Noura,Guelph]|[Follows,Follows,Follows,LivesIn]
+[Adam,Zhang,Noura,Guelph]|[Follows,Follows,LivesIn]
+[Karissa,Zhang,Noura,Guelph]|[Follows,Follows,LivesIn]
+[Noura,Guelph]|[LivesIn]
+[Zhang,Noura,Guelph]|[Follows,LivesIn]
+-STATEMENT MATCH p = (u:User)-[e*]->(c:City {name: "Guelph"})
+           HINT u JOIN (e JOIN c)
+           RETURN properties(nodes(p),'name'), properties(rels(p),'_label');
+---- 5
+[Adam,Karissa,Zhang,Noura,Guelph]|[Follows,Follows,Follows,LivesIn]
+[Adam,Zhang,Noura,Guelph]|[Follows,Follows,LivesIn]
+[Karissa,Zhang,Noura,Guelph]|[Follows,Follows,LivesIn]
+[Noura,Guelph]|[LivesIn]
+[Zhang,Noura,Guelph]|[Follows,LivesIn]
+
 -LOG CountSubquery
 -STATEMENT MATCH (a:User) RETURN a.name, COUNT { MATCH (a)<-[:Follows]-(b:User) } AS num_follower ORDER BY num_follower;
 ---- 4

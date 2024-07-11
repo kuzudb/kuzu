@@ -22,14 +22,14 @@ public:
           currentDstNodeID{common::INVALID_OFFSET, common::INVALID_TABLE_ID} {}
     virtual ~BaseFrontierScanner() = default;
 
-    size_t scan(RecursiveJoinVectors* vectors, common::sel_t& vectorPos,
+    size_t scan(RecursiveJoinVectors& vectors, common::sel_t& vectorPos,
         common::sel_t& nodeIDDataVectorPos, common::sel_t& relIDDataVectorPos);
 
     void resetState(const BaseBFSState& bfsState);
 
 protected:
     virtual void initScanFromDstOffset() = 0;
-    virtual void scanFromDstOffset(RecursiveJoinVectors* vectors, common::sel_t& vectorPos,
+    virtual void scanFromDstOffset(RecursiveJoinVectors& vectors, common::sel_t& vectorPos,
         common::sel_t& nodeIDDataVectorPos, common::sel_t& relIDDataVectorPos) = 0;
 
     inline void writeDstNodeOffsetAndLength(common::ValueVector* dstNodeIDVector,
@@ -55,7 +55,7 @@ protected:
  * that was used to store the data related to the BFS that was computed in the RecursiveJoin
  * operator.
  */
-using path_semantic_check_t =
+using path_semantic_check_func_t =
     std::function<bool(const std::vector<common::nodeID_t>&, const std::vector<common::relID_t>&)>;
 
 class PathScanner : public BaseFrontierScanner {
@@ -64,9 +64,11 @@ class PathScanner : public BaseFrontierScanner {
 public:
     PathScanner(TargetDstNodes* targetDstNodes, size_t k,
         std::unordered_map<common::table_id_t, std::string> tableIDToName,
-        path_semantic_check_t semanticCheckFunc, common::ExtendDirection extendDirection)
+        path_semantic_check_func_t semanticCheckFunc, common::ExtendDirection extendDirection,
+        bool extendFromSource)
         : BaseFrontierScanner{targetDstNodes, k}, tableIDToName{std::move(tableIDToName)},
-          semanticCheckFunc{semanticCheckFunc}, extendDirection{extendDirection} {
+          semanticCheckFunc{semanticCheckFunc}, extendDirection{extendDirection},
+          extendFromSource{extendFromSource} {
         nodeIDs.resize(k + 1);
         relIDs.resize(k + 1);
     }
@@ -82,14 +84,20 @@ private:
         initDfs(std::make_pair(currentDstNodeID, dummyRelID), k);
     }
     // Scan current stacks until exhausted or vector is filled up.
-    void scanFromDstOffset(RecursiveJoinVectors* vectors, common::sel_t& vectorPos,
+    void scanFromDstOffset(RecursiveJoinVectors& vectors, common::sel_t& vectorPos,
         common::sel_t& nodeIDDataVectorPos, common::sel_t& relIDDataVectorPos) final;
 
     // Initialize stacks for given offset.
     void initDfs(const node_rel_id_t& nodeAndRelID, size_t currentDepth);
 
-    void writePathToVector(RecursiveJoinVectors* vectors, common::sel_t& vectorPos,
+    void writePathToVector(RecursiveJoinVectors& vectors, common::sel_t& vectorPos,
         common::sel_t& nodeIDDataVectorPos, common::sel_t& relIDDataVectorPos);
+
+    void writePathNode(common::idx_t idx, RecursiveJoinVectors& vectors, common::sel_t vectorPos);
+    void writePathSrcDstNode(common::idx_t srcNodeIdx, common::idx_t dstNodeIdx,
+        RecursiveJoinVectors& vectors, common::sel_t vectorPos);
+    void writePathRel(common::internalID_t relID, RecursiveJoinVectors& vectors,
+        common::sel_t vectorPos);
 
 private:
     // DFS states
@@ -99,9 +107,10 @@ private:
     std::stack<int64_t> cursorStack;
     std::unordered_map<common::table_id_t, std::string> tableIDToName;
     // Path semantic
-    path_semantic_check_t semanticCheckFunc;
+    path_semantic_check_func_t semanticCheckFunc;
     // Extend direction
     common::ExtendDirection extendDirection;
+    bool extendFromSource;
 };
 
 /*
@@ -115,7 +124,7 @@ public:
 
 private:
     inline void initScanFromDstOffset() final {}
-    void scanFromDstOffset(RecursiveJoinVectors* vectors, common::sel_t& vectorPos,
+    void scanFromDstOffset(RecursiveJoinVectors& vectors, common::sel_t& vectorPos,
         common::sel_t& nodeIDDataVectorPos, common::sel_t& relIDDataVectorPos) final;
 };
 
@@ -136,7 +145,7 @@ struct FrontiersScanner {
     explicit FrontiersScanner(std::vector<std::unique_ptr<BaseFrontierScanner>> scanners)
         : scanners{std::move(scanners)}, cursor{0} {}
 
-    void scan(RecursiveJoinVectors* vectors, common::sel_t& vectorPos,
+    void scan(RecursiveJoinVectors& vectors, common::sel_t& vectorPos,
         common::sel_t& nodeIDDataVectorPos, common::sel_t& relIDDataVectorPos);
 
     inline void resetState(const BaseBFSState& bfsState) {

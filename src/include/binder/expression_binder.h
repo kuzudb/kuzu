@@ -31,6 +31,7 @@ public:
         const parser::ParsedExpression& parsedExpression);
     std::shared_ptr<Expression> bindBooleanExpression(common::ExpressionType expressionType,
         const expression_vector& children);
+
     std::shared_ptr<Expression> combineBooleanExpressions(common::ExpressionType expressionType,
         std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
     // Comparison expressions.
