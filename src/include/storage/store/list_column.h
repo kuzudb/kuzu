@@ -62,6 +62,8 @@ public:
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
 
+    Column* getOffsetColumn() const { return offsetColumn.get(); }
+    Column* getSizeColumn() const { return sizeColumn.get(); }
     Column* getDataColumn() const { return dataColumn.get(); }
 
 protected:

@@ -128,6 +128,7 @@ public:
 
     // Note that the startPageIdx is not known, so it will always be common::INVALID_PAGE_IDX
     virtual ColumnChunkMetadata getMetadataToFlush() const;
+    ColumnChunkMetadata getMetadata() const { return metadata; };
 
     virtual void append(common::ValueVector* vector, const common::SelectionVector& selVector);
     virtual void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
