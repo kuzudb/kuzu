@@ -1,0 +1,25 @@
+-DATASET CSV empty
+
+--
+
+-CASE CreateNodeComplex
+-STATEMENT create node table typesTable (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN, 
+                                           dateColumn DATE, timestampColumn TIMESTAMP, stringColumn STRING, 
+                                           listOfInt INT64[], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY typesTable FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
+---- ok
+-STATEMENT MATCH (t:typesTable) WHERE t.id < 5 RETURN t.*;
+---- 5
+0|73|3.258507|True|1829-10-28|1829-10-28 00:21:21|FrPZkcHFuepVxcAiMwyAsRqDlRtQx|[99,2,98,100]
+1|17|45.692842|False|1631-02-04|1631-02-04 14:43:11|La|[90,59,23]
+2|30|13.397253|True|1769-11-24|1769-11-24 08:47:14|uQJCBEePLuGkoAp|[8,11,16,70]
+3|4|3.174669|True|1870-11-09|1870-11-09 15:47:21|fjyKxMjhXXgCkZmwBACpRrjNHlhrDtkQPl|[49,24,31,4]
+4|99|17.608944|True|1470-12-02|1470-12-02 10:25:58||[78,61,14,60]
+-STATEMENT MATCH (t:typesTable) WHERE t.id >= 49994 RETURN t.*;
+---- 5
+49994|93|12.884419|True|2017-02-11|2017-02-11 05:25:01|RnRxGBoowdNGcQuFxqKhLiNzlMupHRSyoNEJQbE|[35,83,41,88]
+49995|68|0.071990|True|2008-05-30|2008-05-30 21:03:12|BNuONoCuzYufJSdgAoUBLgAkMwjrZSbbSBkfWUbmdURj|[64,2,100,42]
+49996|49|23.803631|False|1339-02-10|1339-02-10 04:30:01|ygytNkcECNupDsbjinIGStPcOOXkVSwGHeox|[74,30,88,2]
+49997|9|77.986652|False|1897-12-27|1897-12-27 10:30:32|rTBYmJGXgIhEymjXZPvcLKEPyoKribhg|[18,13,68]
+49998|9|31.993780|True|1689-01-16|1689-01-16 07:39:27|uOnqoWiJlOqzkRZEcaER|[94,70,35,36,73]
