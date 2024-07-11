@@ -57,11 +57,10 @@ bool InMemGraph::hasMoreFwdNbrs(NbrScanState* nbrScanState) {
     return nbrScanState->fwdReadState->hasMoreToRead(context->getTx());
 }
 
-common::ValueVector& InMemGraph::getFwdNbrs(NbrScanState* nbrScanState) {
+void InMemGraph::getFwdNbrs(NbrScanState* nbrScanState) {
     auto tx = context->getTx();
     auto readState = nbrScanState->fwdReadState.get();
     relTable->scan(tx, *readState);
-    return *nbrScanState->dstNodeIDVector;
 }
 
 } // namespace graph

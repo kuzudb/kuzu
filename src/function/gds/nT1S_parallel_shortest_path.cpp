@@ -132,6 +132,7 @@ public:
         if (!frontierMorsel.hasMoreToOutput()) {
             return 0; // return 0 to indicate to thread it can exit from operator
         }
+        auto& nbrScanState = shortestPathLocalState->nbrScanState;
         uint64_t numDstVisitedLocal = 0u, numNonDstVisitedLocal = 0u;
         std::pair<uint64_t, uint64_t > retVal;
         while (!ifeMorsel->isBFSCompleteNoLock() && frontierMorsel.hasMoreToOutput()) {
@@ -144,13 +145,13 @@ public:
                     numDstVisitedLocal += retVal.first;
                     numNonDstVisitedLocal += retVal.second;
                 } else {
-                    graph->initializeStateFwdNbrs(offset, shortestPathLocalState->nbrScanState.get());
+                    graph->initializeStateFwdNbrs(offset, nbrScanState.get());
                     do {
-                        auto& nbrNodeVector = graph->getFwdNbrs(shortestPathLocalState->nbrScanState.get());
-                        retVal = visitNbrs(ifeMorsel, nbrNodeVector);
+                        graph->getFwdNbrs(nbrScanState.get());
+                        retVal = visitNbrs(ifeMorsel, *nbrScanState->dstNodeIDVector.get());
                         numDstVisitedLocal += retVal.first;
                         numNonDstVisitedLocal += retVal.second;
-                    } while (graph->hasMoreFwdNbrs(shortestPathLocalState->nbrScanState.get()));
+                    } while (graph->hasMoreFwdNbrs(nbrScanState.get()));
                 }
             }
             frontierMorsel = ifeMorsel->getMorsel(morselSize);

@@ -68,11 +68,10 @@ bool OnDiskGraph::hasMoreFwdNbrs(NbrScanState* nbrScanState) {
     return nbrScanState->fwdReadState->hasMoreToRead(context->getTx());
 }
 
-common::ValueVector& OnDiskGraph::getFwdNbrs(NbrScanState* nbrScanState) {
+void OnDiskGraph::getFwdNbrs(NbrScanState* nbrScanState) {
     auto tx = context->getTx();
     auto readState = nbrScanState->fwdReadState.get();
     relTable->scan(tx, *readState);
-    return *nbrScanState->dstNodeIDVector;
 }
 
 } // namespace graph

@@ -117,6 +117,7 @@ public:
             common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState);
         auto ifeMorsel = shortestPathLocalState->ifeMorsel;
         while (!ifeMorsel->isBFSCompleteNoLock()) {
+            auto& nbrScanState = shortestPathLocalState->nbrScanState;
             uint64_t numDstVisitedLocal = 0u, numNonDstVisitedLocal = 0u;
             std::pair <uint64_t, uint64_t> retVal;
             /*auto duration = std::chrono::system_clock::now().time_since_epoch();
@@ -130,10 +131,10 @@ public:
                     numDstVisitedLocal += retVal.first;
                     numNonDstVisitedLocal += retVal.second;
                 } else {
-                    graph->initializeStateFwdNbrs(offset, shortestPathLocalState->nbrScanState.get());
+                    graph->initializeStateFwdNbrs(offset, nbrScanState.get());
                     do {
-                        auto& dstNodeIDVector = graph->getFwdNbrs(shortestPathLocalState->nbrScanState.get());
-                        retVal = visitNbrs(ifeMorsel, dstNodeIDVector);
+                        graph->getFwdNbrs(nbrScanState.get());
+                        retVal = visitNbrs(ifeMorsel, *nbrScanState->dstNodeIDVector.get());
                         numDstVisitedLocal += retVal.first;
                         numNonDstVisitedLocal += retVal.second;
                     } while (graph->hasMoreFwdNbrs(shortestPathLocalState->nbrScanState.get()));
