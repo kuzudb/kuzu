@@ -57,13 +57,27 @@ public:
     }
 
 protected:
+    // Static functions to access Database's non-public properties/interfaces.
+    static storage::BufferManager* getBufferManager(main::Database& database) {
+        return database.bufferManager.get();
+    }
+    static common::VirtualFileSystem* getFileSystem(main::Database& database) {
+        return database.vfs.get();
+    }
+
+    // Static functions to access Connection's non-public properties/interfaces.
+    static main::ClientContext* getClientContext(main::Connection& connection) {
+        return connection.clientContext.get();
+    }
     static void sortAndCheckTestResults(std::vector<std::string>& actualResult,
         std::vector<std::string>& expectedResult) {
         sort(expectedResult.begin(), expectedResult.end());
         ASSERT_EQ(actualResult, expectedResult);
     }
+
     std::string getTestGroupAndName() {
-        auto testInfo = ::testing::UnitTest::GetInstance()->current_test_info();
+        const ::testing::TestInfo* const testInfo =
+            ::testing::UnitTest::GetInstance()->current_test_info();
         return std::string(testInfo->test_case_name()) + "." + std::string(testInfo->name());
     }
 
