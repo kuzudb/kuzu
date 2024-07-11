@@ -111,6 +111,7 @@ public:
         }
         return columns;
     }
+    common::node_group_idx_t getNumNodeGroups() const { return nodeGroups->getNumNodeGroups(); }
     NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
         return nodeGroups->getNodeGroup(nodeGroupIdx);
     }
