@@ -41,11 +41,8 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::COPY_TO: {
         boundStatement = bindCopyToClause(statement);
     } break;
-    case StatementType::DROP_SEQUENCE: {
-        boundStatement = bindDropSequence(statement);
-    } break;
-    case StatementType::DROP_TABLE: {
-        boundStatement = bindDropTable(statement);
+    case StatementType::DROP: {
+        boundStatement = bindDrop(statement);
     } break;
     case StatementType::ALTER: {
         boundStatement = bindAlter(statement);

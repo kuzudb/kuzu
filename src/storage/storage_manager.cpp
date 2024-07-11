@@ -132,7 +132,7 @@ void StorageManager::createRelTable(table_id_t tableID, RelTableCatalogEntry* re
 
 void StorageManager::createRelTableGroup(table_id_t, RelGroupCatalogEntry* tableSchema,
     Catalog* catalog, Transaction* transaction) {
-    for (auto relTableID : tableSchema->getRelTableIDs()) {
+    for (auto relTableID : tableSchema->getRelTableIDsRef()) {
         createRelTable(relTableID,
             ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
                 catalog->getTableCatalogEntry(transaction, relTableID)),

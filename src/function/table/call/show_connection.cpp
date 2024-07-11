@@ -75,7 +75,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     } break;
     case TableType::REL_GROUP: {
         auto relGroupEntry = ku_dynamic_cast<TableCatalogEntry*, RelGroupCatalogEntry*>(tableEntry);
-        auto relTableIDs = relGroupEntry->getRelTableIDs();
+        auto relTableIDs = relGroupEntry->getRelTableIDsRef();
         for (; vectorPos < numRelationsToOutput; vectorPos++) {
             outputRelTableConnection(dataChunk, vectorPos, bindData->context,
                 relTableIDs[morsel.startOffset + vectorPos]);
@@ -112,7 +112,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     common::offset_t maxOffset = 1;
     if (tableEntry->getTableType() == common::TableType::REL_GROUP) {
         auto relGroupEntry = ku_dynamic_cast<TableCatalogEntry*, RelGroupCatalogEntry*>(tableEntry);
-        maxOffset = relGroupEntry->getRelTableIDs().size();
+        maxOffset = relGroupEntry->getRelTableIDsRef().size();
     }
     return std::make_unique<ShowConnectionBindData>(context, tableEntry, std::move(columnTypes),
         std::move(columnNames), maxOffset);

@@ -36,8 +36,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "DETACH_DATABASE";
     case LogicalOperatorType::DISTINCT:
         return "DISTINCT";
-    case LogicalOperatorType::DROP_TABLE:
-        return "DROP_TABLE";
+    case LogicalOperatorType::DROP:
+        return "DROP";
     case LogicalOperatorType::DUMMY_SCAN:
         return "DUMMY_SCAN";
     case LogicalOperatorType::EMPTY_RESULT:

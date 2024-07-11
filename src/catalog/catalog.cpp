@@ -220,12 +220,17 @@ table_id_t Catalog::createTableSchema(Transaction* transaction, const BoundCreat
     return tableID;
 }
 
-void Catalog::dropTableSchema(Transaction* transaction, table_id_t tableID) {
+void Catalog::dropTableSchema(Transaction* transaction, std::string name) {
+    auto tableID = getTableID(transaction, name);
+    dropTableSchema(transaction, tableID);
+}
+
+void Catalog::dropTableSchema(Transaction* transaction, common::table_id_t tableID) {
     auto tableEntry = getTableCatalogEntry(transaction, tableID);
     switch (tableEntry->getType()) {
     case CatalogEntryType::REL_GROUP_ENTRY: {
-        auto relGroupEntry = ku_dynamic_cast<CatalogEntry*, RelGroupCatalogEntry*>(tableEntry);
-        for (auto& relTableID : relGroupEntry->getRelTableIDs()) {
+        auto relGroupEntry = tableEntry->constPtrCast<RelGroupCatalogEntry>();
+        for (auto& relTableID : relGroupEntry->getRelTableIDsRef()) {
             dropTableSchema(transaction, relTableID);
         }
     } break;
@@ -247,8 +252,7 @@ void Catalog::dropTableSchema(Transaction* transaction, table_id_t tableID) {
                                .append(property.getName())
                                .append("_")
                                .append("serial");
-            auto seqID = getSequenceID(transaction, seqName);
-            dropSequence(transaction, seqID);
+            dropSequence(transaction, seqName);
         }
     }
     tables->dropEntry(transaction, tableEntry->getName());
@@ -304,7 +308,12 @@ sequence_id_t Catalog::createSequence(Transaction* transaction,
     return sequenceID;
 }
 
-void Catalog::dropSequence(Transaction* transaction, sequence_id_t sequenceID) {
+void Catalog::dropSequence(Transaction* transaction, std::string name) {
+    auto sequenceID = getSequenceID(transaction, name);
+    dropSequence(transaction, sequenceID);
+}
+
+void Catalog::dropSequence(Transaction* transaction, common::sequence_id_t sequenceID) {
     auto sequenceEntry = getSequenceCatalogEntry(transaction, sequenceID);
     sequences->dropEntry(transaction, sequenceEntry->getName());
 }

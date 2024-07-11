@@ -667,7 +667,7 @@ std::vector<common::table_id_t> Binder::getRelTableIDs(table_id_t tableID) {
     }
     case TableType::REL_GROUP: {
         auto relGroupEntry = ku_dynamic_cast<TableCatalogEntry*, RelGroupCatalogEntry*>(entry);
-        return relGroupEntry->getRelTableIDs();
+        return relGroupEntry->getRelTableIDsRef();
     }
     case TableType::REL: {
         return {tableID};

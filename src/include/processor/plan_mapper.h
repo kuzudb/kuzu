@@ -66,8 +66,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapDeleteRel(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDetachDatabase(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDistinct(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapDropSequence(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapDropTable(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapDrop(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDummyScan(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapEmptyResult(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapExplain(planner::LogicalOperator* logicalOperator);
