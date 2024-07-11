@@ -126,19 +126,21 @@ void PathScanner::writePathNode(idx_t idx, RecursiveJoinVectors& vectors, sel_t 
     auto nodeID = nodeIDs[idx];
     vectors.pathNodesIDDataVector->setValue<nodeID_t>(vectorPos, nodeID);
     auto labelName = tableIDToName.at(nodeID.tableID);
-    StringVector::addString(vectors.pathNodesLabelDataVector, vectorPos,
-        labelName.data(), labelName.length());
+    StringVector::addString(vectors.pathNodesLabelDataVector, vectorPos, labelName.data(),
+        labelName.length());
 }
 
-void PathScanner::writePathSrcDstNode(idx_t srcNodeIdx, idx_t dstNodeIdx, RecursiveJoinVectors& vectors,
-    sel_t vectorPos) {
+void PathScanner::writePathSrcDstNode(idx_t srcNodeIdx, idx_t dstNodeIdx,
+    RecursiveJoinVectors& vectors, sel_t vectorPos) {
     vectors.pathRelsSrcIDDataVector->setValue<nodeID_t>(vectorPos, nodeIDs[srcNodeIdx]);
     vectors.pathRelsDstIDDataVector->setValue<nodeID_t>(vectorPos, nodeIDs[dstNodeIdx]);
 }
 
-void PathScanner::writePathRel(common::internalID_t relID, RecursiveJoinVectors& vectors, sel_t vectorPos) {
+void PathScanner::writePathRel(common::internalID_t relID, RecursiveJoinVectors& vectors,
+    sel_t vectorPos) {
     vectors.pathRelsIDDataVector->setValue<relID_t>(vectorPos, relID);
-    StringVector::addString(vectors.pathRelsLabelDataVector, vectorPos, tableIDToName.at(relID.tableID));
+    StringVector::addString(vectors.pathRelsLabelDataVector, vectorPos,
+        tableIDToName.at(relID.tableID));
 }
 
 void PathScanner::writePathToVector(RecursiveJoinVectors& vectors, sel_t& vectorPos,
@@ -168,14 +170,14 @@ void PathScanner::writePathToVector(RecursiveJoinVectors& vectors, sel_t& vector
                 writePathRel(relIDs[i], vectors, relIDDataVectorPos);
                 relIDDataVectorPos++;
             }
-        } break ;
+        } break;
         case ExtendDirection::BWD: {
             for (auto i = 0u; i < k; ++i) {
                 writePathSrcDstNode(i + 1, i, vectors, relIDDataVectorPos);
                 writePathRel(relIDs[i], vectors, relIDDataVectorPos);
                 relIDDataVectorPos++;
             }
-        } break ;
+        } break;
         case ExtendDirection::BOTH: {
             for (auto i = 0u; i < k; ++i) {
                 auto relID = relIDs[i];
@@ -188,7 +190,7 @@ void PathScanner::writePathToVector(RecursiveJoinVectors& vectors, sel_t& vector
                 writePathRel(relID, vectors, relIDDataVectorPos);
                 relIDDataVectorPos++;
             }
-        } break ;
+        } break;
         default:
             KU_UNREACHABLE;
         }
@@ -204,14 +206,14 @@ void PathScanner::writePathToVector(RecursiveJoinVectors& vectors, sel_t& vector
                 writePathRel(relIDs[k - 1 - i], vectors, relIDDataVectorPos);
                 relIDDataVectorPos++;
             }
-        } break ;
+        } break;
         case ExtendDirection::BWD: {
             for (auto i = 0u; i < k; ++i) {
                 writePathSrcDstNode(i + 1, i, vectors, relIDDataVectorPos);
                 writePathRel(relIDs[k - 1 - i], vectors, relIDDataVectorPos);
                 relIDDataVectorPos++;
             }
-        } break ;
+        } break;
         case ExtendDirection::BOTH: {
             for (auto i = 0u; i < k; ++i) {
                 auto relID = relIDs[k - 1 - i];
@@ -224,7 +226,7 @@ void PathScanner::writePathToVector(RecursiveJoinVectors& vectors, sel_t& vector
                 writePathRel(relID, vectors, relIDDataVectorPos);
                 relIDDataVectorPos++;
             }
-        } break ;
+        } break;
         default:
             KU_UNREACHABLE;
         }

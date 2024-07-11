@@ -429,12 +429,11 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
                 relPredicate = expressionBinder.combineBooleanExpressions(ExpressionType::AND,
                     relPredicate, predicate);
             } else {
-
             }
         }
     }
-    auto nodePredicateExecutionFlag = expressionBinder.createVariableExpression(
-        LogicalType::BOOL(), std::string(InternalKeyword::ANONYMOUS));
+    auto nodePredicateExecutionFlag = expressionBinder.createVariableExpression(LogicalType::BOOL(),
+        std::string(InternalKeyword::ANONYMOUS));
     if (nodePredicate != nullptr) {
         nodePredicate = expressionBinder.combineBooleanExpressions(ExpressionType::OR,
             nodePredicate, nodePredicateExecutionFlag);

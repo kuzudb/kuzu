@@ -64,9 +64,11 @@ class PathScanner : public BaseFrontierScanner {
 public:
     PathScanner(TargetDstNodes* targetDstNodes, size_t k,
         std::unordered_map<common::table_id_t, std::string> tableIDToName,
-        path_semantic_check_func_t semanticCheckFunc, common::ExtendDirection extendDirection, bool extendFromSource)
+        path_semantic_check_func_t semanticCheckFunc, common::ExtendDirection extendDirection,
+        bool extendFromSource)
         : BaseFrontierScanner{targetDstNodes, k}, tableIDToName{std::move(tableIDToName)},
-          semanticCheckFunc{semanticCheckFunc}, extendDirection{extendDirection}, extendFromSource{extendFromSource} {
+          semanticCheckFunc{semanticCheckFunc}, extendDirection{extendDirection},
+          extendFromSource{extendFromSource} {
         nodeIDs.resize(k + 1);
         relIDs.resize(k + 1);
     }
@@ -92,8 +94,11 @@ private:
         common::sel_t& nodeIDDataVectorPos, common::sel_t& relIDDataVectorPos);
 
     void writePathNode(common::idx_t idx, RecursiveJoinVectors& vectors, common::sel_t vectorPos);
-    void writePathSrcDstNode(common::idx_t srcNodeIdx, common::idx_t dstNodeIdx, RecursiveJoinVectors& vectors, common::sel_t vectorPos);
-    void writePathRel(common::internalID_t relID, RecursiveJoinVectors& vectors, common::sel_t vectorPos);
+    void writePathSrcDstNode(common::idx_t srcNodeIdx, common::idx_t dstNodeIdx,
+        RecursiveJoinVectors& vectors, common::sel_t vectorPos);
+    void writePathRel(common::internalID_t relID, RecursiveJoinVectors& vectors,
+        common::sel_t vectorPos);
+
 private:
     // DFS states
     std::vector<common::nodeID_t> nodeIDs;

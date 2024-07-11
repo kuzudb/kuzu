@@ -202,8 +202,7 @@ bool RecursiveJoin::scanOutput() {
     if (vectors->pathVector != nullptr) {
         vectors->pathVector->resetAuxiliaryBuffer();
     }
-    frontiersScanner->scan(*vectors, offsetVectorSize, nodeIDDataVectorSize,
-        relIDDataVectorSize);
+    frontiersScanner->scan(*vectors, offsetVectorSize, nodeIDDataVectorSize, relIDDataVectorSize);
     if (offsetVectorSize == 0) {
         return false;
     }
