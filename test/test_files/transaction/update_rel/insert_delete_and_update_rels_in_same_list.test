@@ -16,9 +16,7 @@
 ---- ok
 ]
 
-#TODO(Guodong): FIX-ME. Incorrect result returned.
 -CASE insertDeleteAndUpdateRelsInSameListCommitNormalExecution
--SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -INSERT_STATEMENT_BLOCK  INSERT_DELETE_AND_UPDATE_RELS_IN_SAME_LIST

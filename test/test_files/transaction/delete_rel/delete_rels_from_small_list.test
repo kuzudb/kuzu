@@ -1,7 +1,6 @@
 -DATASET CSV rel-update-tests
 --
 
-#TODO(Guodong): FIX-ME.
 -CASE deleteRelsFromSmallListCommitNormalExecution
 -STATEMENT BEGIN TRANSACTION
 ---- ok
