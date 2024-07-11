@@ -114,9 +114,11 @@ enum class CompressionType : uint8_t {
 // used only for compressing floats/doubles
 struct ALPMetadata {
     ALPMetadata() = default;
-    explicit ALPMetadata(const alp::state& alpState) : exp(alpState.exp), fac(alpState.fac) {}
+    explicit ALPMetadata(const alp::state& alpState, uint32_t exceptionRatio)
+        : exp(alpState.exp), fac(alpState.fac), exceptionRatio(exceptionRatio) {}
     uint8_t exp;
     uint8_t fac;
+    uint32_t exceptionRatio; // numValues / numExceptions
 };
 
 // Data statistics used for determining how to handle compressed data
@@ -137,8 +139,9 @@ struct CompressionMetadata {
     CompressionMetadata(StorageValue min, StorageValue max, CompressionType compression)
         : min(min), max(max), compression(compression), alpMetadata() {}
     CompressionMetadata(StorageValue min, StorageValue max, CompressionType compression,
-        const alp::state& state, StorageValue minEncoded, StorageValue maxEncoded)
-        : min(min), max(max), compression(compression), alpMetadata(state) {
+        const alp::state& state, StorageValue minEncoded, StorageValue maxEncoded,
+        uint32_t compressionRatio)
+        : min(min), max(max), compression(compression), alpMetadata(state, compressionRatio) {
         children.emplace_back(minEncoded, maxEncoded,
             minEncoded == maxEncoded ? CompressionType::CONSTANT :
                                        CompressionType::INTEGER_BITPACKING);

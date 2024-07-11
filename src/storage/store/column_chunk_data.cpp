@@ -184,7 +184,7 @@ public:
         if (min == max) {
             return ColumnChunkMetadata(INVALID_PAGE_IDX, 0, numValues,
                 CompressionMetadata(min, max, CompressionType::CONSTANT, alpMetadata,
-                    StorageValue{0}, StorageValue{0}));
+                    StorageValue{0}, StorageValue{0}, 1));
         }
 
         std::vector<uint8_t> sampleBuffer(bufferSize); // TODO update size
@@ -209,7 +209,7 @@ public:
         std::span<const T> src{reinterpret_cast<const T*>(buffer), numValues};
 
         std::vector<int64_t> floatEncodedValues(numValues);
-        std::vector<size_t> exceptionsPrefixSum(numValues);
+        std::vector<size_t> exceptionsPrefixSum(numValues); // TODO optimize out
         size_t successfulEncodeCount = 0;
         for (offset_t i = 0; i < numValues; ++i) {
             const T& val = src[i];
@@ -232,33 +232,50 @@ public:
         const auto& [minEncoded, maxEncoded] = std::minmax_element(floatEncodedValues.begin(),
             floatEncodedValues.begin() + successfulEncodeCount);
 
-        auto compMeta = CompressionMetadata(min, max, alg->getCompressionType(), alpMetadata,
-            StorageValue{*minEncoded}, StorageValue{*maxEncoded});
+        // TODO optimize
+        for (size_t exceptionRatio = 16; exceptionRatio >= 1; --exceptionRatio) {
+            auto compMeta = CompressionMetadata(min, max, alg->getCompressionType(), alpMetadata,
+                StorageValue{*minEncoded}, StorageValue{*maxEncoded}, exceptionRatio);
 
-        const auto numValuesPerPage =
-            compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
-        KU_ASSERT(numValuesPerPage < UINT64_MAX &&
-                  numValuesPerPage >= BufferPoolConstants::PAGE_4KB_SIZE / sizeof(T));
-
-        size_t exceptionsInPrevPage = 0;
-        const size_t maxExceptionCount = FloatCompression<T>::getMaxExceptionCountPerPage(
-            common::BufferPoolConstants::PAGE_4KB_SIZE, compMeta);
-        for (offset_t i = 0; i < numValues; i += numValuesPerPage) {
-            const size_t exceptionsInCurPage =
-                exceptionsPrefixSum[std::min(i + numValuesPerPage - 1, numValues - 1)] -
-                exceptionsInPrevPage;
-            if (exceptionsInCurPage > maxExceptionCount) {
-                return ColumnChunkMetadata(INVALID_PAGE_IDX,
-                    ColumnChunkData::getNumPagesForBytes(bufferSize), numValues,
-                    CompressionMetadata(min, max, CompressionType::UNCOMPRESSED));
+            const auto numValuesPerPage =
+                compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+            KU_ASSERT(numValuesPerPage < UINT64_MAX && numValuesPerPage >= 0);
+            if (numValuesPerPage < BufferPoolConstants::PAGE_4KB_SIZE / sizeof(T)) {
+                break;
             }
-            exceptionsInPrevPage =
-                exceptionsPrefixSum[std::min(i + numValuesPerPage - 1, numValues - 1)];
+
+            size_t exceptionsInPrevPage = 0;
+            const size_t maxExceptionCount = FloatCompression<T>::getMaxExceptionCountPerPage(
+                common::BufferPoolConstants::PAGE_4KB_SIZE, compMeta);
+            bool good = true;
+            for (offset_t i = 0; i < numValues; i += numValuesPerPage) {
+                const size_t exceptionsInCurPage =
+                    exceptionsPrefixSum[std::min(i + numValuesPerPage - 1, numValues - 1)] -
+                    exceptionsInPrevPage;
+
+                const auto pageExceptionRatio =
+                    exceptionsInCurPage == 0 ? INT32_MAX : numValuesPerPage / exceptionsInCurPage;
+                if (exceptionsInCurPage > maxExceptionCount ||
+                    pageExceptionRatio < exceptionRatio) {
+                    good = false;
+                    break;
+                }
+
+                exceptionsInPrevPage =
+                    exceptionsPrefixSum[std::min(i + numValuesPerPage - 1, numValues - 1)];
+            }
+
+            if (good) {
+                KU_ASSERT(numValuesPerPage >= BufferPoolConstants::PAGE_4KB_SIZE / sizeof(T));
+                const auto numPages =
+                    capacity / numValuesPerPage + (capacity % numValuesPerPage == 0 ? 0 : 1);
+                return ColumnChunkMetadata(INVALID_PAGE_IDX, numPages, numValues, compMeta);
+            }
         }
 
-        const auto numPages =
-            capacity / numValuesPerPage + (capacity % numValuesPerPage == 0 ? 0 : 1);
-        return ColumnChunkMetadata(INVALID_PAGE_IDX, numPages, numValues, compMeta);
+        return ColumnChunkMetadata(INVALID_PAGE_IDX,
+            ColumnChunkData::getNumPagesForBytes(bufferSize), numValues,
+            CompressionMetadata(min, max, CompressionType::UNCOMPRESSED));
     }
 };
 

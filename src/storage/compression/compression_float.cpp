@@ -40,7 +40,7 @@ struct ExceptionBuffer {
     // if this is not the case we avoid compressing altogether
     static constexpr size_t MAX_EXCEPTION_FACTOR = 8;
 
-    static size_t getMaxExceptionRatio(size_t bitWidth);
+    static size_t getMaxExceptionRatio(size_t columnChunkExceptionRatio);
     static size_t getDataSizeForExceptions(size_t dataSize, const CompressionMetadata& metadata);
     static size_t getMaxExceptionCount(size_t exceptionBufferSize);
 };
@@ -121,26 +121,20 @@ common::offset_t& ExceptionBuffer<T>::exceptionCount() {
 }
 
 template<std::floating_point T>
-size_t ExceptionBuffer<T>::getMaxExceptionRatio(size_t bitWidth) {
-    return 1 + std::max(static_cast<size_t>(1), bitWidth / 4);
-}
-
-template<std::floating_point T>
 size_t ExceptionBuffer<T>::getDataSizeForExceptions(size_t dataSize,
     const CompressionMetadata& metadata) {
     KU_ASSERT(metadata.children.size() >= 1);
     const auto integerPackingInfo =
         IntegerBitpacking<int64_t>::getPackingInfo(metadata.getChild(0));
 
-    const size_t maxExceptionRatio = getMaxExceptionRatio(integerPackingInfo.bitWidth);
     static constexpr size_t bitsPerException = EncodeException::sizeBytes() * 8;
-    const size_t avgBitsPerValue =
-        common::ceilDiv(bitsPerException + integerPackingInfo.bitWidth * (maxExceptionRatio - 1),
-            maxExceptionRatio);
+    const size_t avgBitsPerValue = common::ceilDiv(
+        bitsPerException + integerPackingInfo.bitWidth * (metadata.alpMetadata.exceptionRatio - 1),
+        static_cast<size_t>(metadata.alpMetadata.exceptionRatio));
     KU_ASSERT(avgBitsPerValue > 0);
     const size_t numValuesPerPage = (dataSize - sizeof(Header)) * 8 / avgBitsPerValue;
 
-    const size_t totalExceptions = numValuesPerPage / maxExceptionRatio;
+    const size_t totalExceptions = numValuesPerPage / metadata.alpMetadata.exceptionRatio;
 
     // TODO: add tests for maxExceptionRatio = 1, etc
     auto ret = sizeof(Header) + totalExceptions * EncodeException::sizeBytes();

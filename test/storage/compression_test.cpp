@@ -38,7 +38,7 @@ void test_compression(CompressionAlg& alg, std::vector<T> src, bool force_offset
             std::minmax_element(floatEncodedValues.begin(), floatEncodedValues.end());
         metadata = std::make_unique<CompressionMetadata>(StorageValue(*min), StorageValue(*max),
             alg.getCompressionType(), *alpMetadata, StorageValue(*minEncoded),
-            StorageValue(*maxEncoded));
+            StorageValue(*maxEncoded), 10);
     } else {
         metadata = std::make_unique<CompressionMetadata>(StorageValue(*min), StorageValue(*max),
             alg.getCompressionType());
@@ -353,7 +353,7 @@ void compressionTestMultiPage(const std::vector<T>& src, CompressionAlg& alg,
             std::minmax_element(floatEncodedValues.begin(), floatEncodedValues.end());
         metadata = std::make_unique<CompressionMetadata>(StorageValue(*min), StorageValue(*max),
             alg.getCompressionType(), *alpMetadata, StorageValue(*minEncoded),
-            StorageValue(*maxEncoded));
+            StorageValue(*maxEncoded), 10);
     } else {
         metadata = std::make_unique<CompressionMetadata>(StorageValue(*min), StorageValue(*max),
             alg.getCompressionType());
