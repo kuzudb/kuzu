@@ -230,7 +230,7 @@ expression_vector Binder::bindOrderByExpressions(
 uint64_t Binder::bindSkipLimitExpression(const ParsedExpression& expression) {
     auto boundExpression = expressionBinder.bindExpression(expression);
     auto errorMsg = "The number of rows to skip/limit must be a non-negative integer.";
-    if (!ExpressionVisitor::isConstant(*boundExpression)) {
+    if (boundExpression->expressionType != ExpressionType::LITERAL) {
         throw BinderException(errorMsg);
     }
     auto& literalExpr = boundExpression->constCast<LiteralExpression>();

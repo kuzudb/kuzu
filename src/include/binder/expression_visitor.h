@@ -25,6 +25,8 @@ public:
 
     void visit(std::shared_ptr<Expression> expr);
 
+    static bool isRandom(const Expression& expression);
+
 protected:
     void visitSwitch(std::shared_ptr<Expression> expr);
     virtual void visitFunctionExpr(std::shared_ptr<Expression>) {}
@@ -42,30 +44,6 @@ protected:
 
     void visitChildren(const Expression& expr);
     void visitCaseExprChildren(const Expression& expr);
-
-public:
-    static inline bool needFold(const Expression& expression) {
-        return expression.expressionType == common::ExpressionType::LITERAL ?
-                   false :
-                   isConstant(expression);
-    }
-
-    static bool isConstant(const Expression& expression);
-
-    static bool isRandom(const Expression& expression);
-};
-
-class AggregateExprCollector final : public ExpressionVisitor {
-public:
-    AggregateExprCollector() : hasAggregate_{false} {}
-
-    bool hasAggregate() const { return hasAggregate_; }
-
-protected:
-    void visitAggFunctionExpr(std::shared_ptr<Expression>) override { hasAggregate_ = true; }
-
-private:
-    bool hasAggregate_;
 };
 
 // Do not collect subquery expression recursively. Caller should handle recursive subquery instead.
@@ -79,6 +57,19 @@ protected:
 
 private:
     expression_vector exprs;
+};
+
+class AggregateExprCollector final : public ExpressionVisitor {
+public:
+    AggregateExprCollector() : hasAggregate_{false} {}
+
+    bool hasAggregate() const { return hasAggregate_; }
+
+protected:
+    void visitAggFunctionExpr(std::shared_ptr<Expression>) override { hasAggregate_ = true; }
+
+private:
+    bool hasAggregate_;
 };
 
 class DependentVarNameCollector final : public ExpressionVisitor {
@@ -106,6 +97,17 @@ protected:
 
 private:
     expression_vector expressions;
+};
+
+class ConstantExpressionVisitor {
+public:
+    static bool needFold(const Expression& expr);
+    static bool isConstant(const Expression& expr);
+
+private:
+    static bool visitFunction(const Expression& expr);
+    static bool visitCase(const Expression& expr);
+    static bool visitChildren(const Expression& expr);
 };
 
 } // namespace binder

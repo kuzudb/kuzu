@@ -43,7 +43,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     }
     auto sharedState =
         std::make_shared<GDSCallSharedState>(table, std::move(graph), std::move(masks));
-    auto printInfo = std::make_unique<OPPrintInfo>(call.getExpressionsForPrinting());
+    auto printInfo = std::make_unique<GDSCallPrintInfo>(call.getInfo().func->name);
     auto gdsCall = std::make_unique<GDSCall>(std::make_unique<ResultSetDescriptor>(),
         std::move(info), sharedState, getOperatorID(), std::move(printInfo));
     return createFTableScanAligned(columns, outSchema, table, DEFAULT_VECTOR_CAPACITY,

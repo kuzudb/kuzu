@@ -82,7 +82,7 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getEvaluator(
 
 std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getConstantEvaluator(
     std::shared_ptr<Expression> expression) {
-    KU_ASSERT(ExpressionVisitor::isConstant(*expression));
+    KU_ASSERT(ConstantExpressionVisitor::isConstant(*expression));
     auto expressionType = expression->expressionType;
     if (ExpressionType::LITERAL == expressionType) {
         return getLiteralEvaluator(expression);

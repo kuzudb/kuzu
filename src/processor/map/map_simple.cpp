@@ -72,7 +72,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
         auto childPhysicalOperator = mapOperator(childCopyTo.get());
         children.push_back(std::move(childPhysicalOperator));
     }
-    auto printInfo = std::make_unique<OPPrintInfo>(exportDatabase->getExpressionsForPrinting());
+    auto printInfo = std::make_unique<ExportDBPrintInfo>(filePath, boundFileInfo->options);
     return std::make_unique<ExportDB>(exportDatabase->getBoundFileInfo()->copy(),
         getOutputPos(exportDatabase), getOperatorID(), std::move(children), std::move(printInfo));
 }
@@ -80,7 +80,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
 std::unique_ptr<PhysicalOperator> PlanMapper::mapImportDatabase(
     planner::LogicalOperator* logicalOperator) {
     auto importDatabase = logicalOperator->constPtrCast<LogicalImportDatabase>();
-    auto printInfo = std::make_unique<OPPrintInfo>(importDatabase->getExpressionsForPrinting());
+    auto printInfo = std::make_unique<OPPrintInfo>();
     return std::make_unique<ImportDB>(importDatabase->getQuery(), getOutputPos(importDatabase),
         getOperatorID(), std::move(printInfo));
 }
@@ -89,12 +89,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtension(
     planner::LogicalOperator* logicalOperator) {
     auto logicalExtension = logicalOperator->constPtrCast<LogicalExtension>();
     auto outputPos = getOutputPos(logicalExtension);
-    auto printInfo = std::make_unique<OPPrintInfo>(logicalExtension->getExpressionsForPrinting());
+    std::unique_ptr<OPPrintInfo> printInfo;
     switch (logicalExtension->getAction()) {
     case ExtensionAction::INSTALL:
+        printInfo = std::make_unique<InstallExtensionPrintInfo>(logicalExtension->getPath());
         return std::make_unique<InstallExtension>(logicalExtension->getPath(), outputPos,
             getOperatorID(), std::move(printInfo));
     case ExtensionAction::LOAD:
+        printInfo = std::make_unique<LoadExtensionPrintInfo>(logicalExtension->getPath());
         return std::make_unique<LoadExtension>(logicalExtension->getPath(), outputPos,
             getOperatorID(), std::move(printInfo));
     default:

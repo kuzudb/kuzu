@@ -6,6 +6,24 @@
 namespace kuzu {
 namespace processor {
 
+struct ExportDBPrintInfo final : OPPrintInfo {
+    std::string filePath;
+    std::unordered_map<std::string, common::Value> options;
+
+    ExportDBPrintInfo(std::string filePath, std::unordered_map<std::string, common::Value> options)
+        : filePath{std::move(filePath)}, options{std::move(options)} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<ExportDBPrintInfo>(new ExportDBPrintInfo(*this));
+    }
+
+private:
+    ExportDBPrintInfo(const ExportDBPrintInfo& other)
+        : OPPrintInfo{other}, filePath{other.filePath}, options{other.options} {}
+};
+
 class ExportDB final : public Simple {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::EXPORT_DATABASE;
 

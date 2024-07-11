@@ -30,6 +30,22 @@ struct IndexLookupInfo {
     }
 };
 
+struct IndexLookupPrintInfo final : OPPrintInfo {
+    binder::expression_vector expressions;
+    explicit IndexLookupPrintInfo(binder::expression_vector expressions)
+        : expressions{std::move(expressions)} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<IndexLookupPrintInfo>(new IndexLookupPrintInfo(*this));
+    }
+
+private:
+    IndexLookupPrintInfo(const IndexLookupPrintInfo& other)
+        : OPPrintInfo{other}, expressions{other.expressions} {}
+};
+
 class IndexLookup : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::INDEX_LOOKUP;
 

@@ -58,42 +58,24 @@ public:
 
 protected:
     // Static functions to access Database's non-public properties/interfaces.
-    static inline catalog::Catalog* getCatalog(main::Database& database) {
-        return database.catalog.get();
-    }
-    static inline storage::StorageManager* getStorageManager(main::Database& database) {
-        return database.storageManager.get();
-    }
-    static inline storage::BufferManager* getBufferManager(main::Database& database) {
+    static storage::BufferManager* getBufferManager(main::Database& database) {
         return database.bufferManager.get();
     }
-    static inline storage::MemoryManager* getMemoryManager(main::Database& database) {
-        return database.memoryManager.get();
-    }
-    static inline common::VirtualFileSystem* getFileSystem(main::Database& database) {
+    static common::VirtualFileSystem* getFileSystem(main::Database& database) {
         return database.vfs.get();
-    }
-    static inline uint64_t getBMSize(main::Database& database) {
-        return database.dbConfig.bufferPoolSize;
-    }
-    static inline processor::QueryProcessor* getQueryProcessor(main::Database& database) {
-        return database.queryProcessor.get();
     }
 
     // Static functions to access Connection's non-public properties/interfaces.
-    static inline main::ClientContext* getClientContext(main::Connection& connection) {
+    static main::ClientContext* getClientContext(main::Connection& connection) {
         return connection.clientContext.get();
     }
-    static inline void sortAndCheckTestResults(std::vector<std::string>& actualResult,
+    static void sortAndCheckTestResults(std::vector<std::string>& actualResult,
         std::vector<std::string>& expectedResult) {
         sort(expectedResult.begin(), expectedResult.end());
         ASSERT_EQ(actualResult, expectedResult);
     }
-    static inline bool containsOverflowFile(common::LogicalTypeID typeID) {
-        return typeID == common::LogicalTypeID::STRING || typeID == common::LogicalTypeID::LIST;
-    }
 
-    inline std::string getTestGroupAndName() {
+    std::string getTestGroupAndName() {
         const ::testing::TestInfo* const testInfo =
             ::testing::UnitTest::GetInstance()->current_test_info();
         return std::string(testInfo->test_case_name()) + "." + std::string(testInfo->name());

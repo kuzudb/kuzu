@@ -16,12 +16,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLimit(LogicalOperator* logicalO
     std::unique_ptr<PhysicalOperator> lastOperator = std::move(prevOperator);
     auto printInfo = std::make_unique<skipPrintInfo>(logicalLimit.getLimitNum());
     if (logicalLimit.hasSkipNum()) {
-        lastOperator = std::make_unique<Skip>(logicalLimit.getSkipNum(),
+        lastOperator = make_unique<Skip>(logicalLimit.getSkipNum(),
             std::make_shared<std::atomic_uint64_t>(0), dataChunkToSelectPos, groupsPotToLimit,
             std::move(lastOperator), getOperatorID(), printInfo->copy());
     }
     if (logicalLimit.hasLimitNum()) {
-        lastOperator = std::make_unique<Limit>(logicalLimit.getLimitNum(),
+        lastOperator = make_unique<Limit>(logicalLimit.getLimitNum(),
             std::make_shared<std::atomic_uint64_t>(0), dataChunkToSelectPos, groupsPotToLimit,
             std::move(lastOperator), getOperatorID(), printInfo->copy());
     }

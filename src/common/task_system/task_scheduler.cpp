@@ -23,9 +23,19 @@ TaskScheduler::~TaskScheduler() {
 }
 
 void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task,
-    processor::ExecutionContext* context) {
+    processor::ExecutionContext* context, bool launchNewWorkerThread) {
     for (auto& dependency : task->children) {
         scheduleTaskAndWaitOrError(dependency, context);
+    }
+    std::thread newWorkerThread;
+    if (launchNewWorkerThread) {
+        // Note that newWorkerThread is not executing yet. However, we still call
+        // task->registerThread() function because the call in the next line will guarantee
+        // that the thread starts working on it. registerThread() function only increases the
+        // numThreadsRegistered field of the task, tt does not keep track of the thread ids or
+        // anything specific to the thread.
+        task->registerThread();
+        newWorkerThread = std::thread(runTask, task.get());
     }
     auto scheduledTask = pushTaskIntoQueue(task);
     cv.notify_all();
@@ -58,6 +68,9 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
             task->cv.wait(taskLck);
         }
         taskLck.unlock();
+    }
+    if (launchNewWorkerThread) {
+        newWorkerThread.join();
     }
     if (task->hasException()) {
         removeErroringTask(scheduledTask->ID);
@@ -121,14 +134,17 @@ void TaskScheduler::runWorkerThread() {
         if (stopWorkerThreads) {
             return;
         }
-        try {
-            scheduledTask->task->run();
-            scheduledTask->task->deRegisterThreadAndFinalizeTask();
-        } catch (std::exception& e) {
-            scheduledTask->task->setException(std::current_exception());
-            scheduledTask->task->deRegisterThreadAndFinalizeTask();
-            continue;
-        }
+        TaskScheduler::runTask(scheduledTask->task.get());
+    }
+}
+
+void TaskScheduler::runTask(Task* task) {
+    try {
+        task->run();
+        task->deRegisterThreadAndFinalizeTask();
+    } catch (std::exception& e) {
+        task->setException(std::current_exception());
+        task->deRegisterThreadAndFinalizeTask();
     }
 }
 } // namespace common

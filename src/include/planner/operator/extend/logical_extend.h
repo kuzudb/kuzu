@@ -13,11 +13,10 @@ public:
     LogicalExtend(std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
         common::ExtendDirection direction, bool extendFromSource,
-        binder::expression_vector properties, bool hasAtMostOneNbr,
-        std::shared_ptr<LogicalOperator> child)
+        binder::expression_vector properties, std::shared_ptr<LogicalOperator> child)
         : BaseLogicalExtend{type_, std::move(boundNode), std::move(nbrNode), std::move(rel),
               direction, extendFromSource, std::move(child)},
-          properties{std::move(properties)}, hasAtMostOneNbr{hasAtMostOneNbr} {}
+          properties{std::move(properties)} {}
 
     f_group_pos_set getGroupsPosToFlatten() override;
 
@@ -37,7 +36,6 @@ public:
 private:
     binder::expression_vector properties;
     std::vector<storage::ColumnPredicateSet> propertyPredicates;
-    bool hasAtMostOneNbr;
 };
 
 } // namespace planner
