@@ -153,14 +153,12 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
         ku_dynamic_cast<TableUpdateState&, NodeTableUpdateState&>(updateState);
     KU_ASSERT(nodeUpdateState.nodeIDVector.state->getSelVector().getSelSize() == 1 &&
               nodeUpdateState.propertyVector.state->getSelVector().getSelSize() == 1);
-    // TODO(Guodong): Should rework this into first delete the row, then insert it.
-    // if (nodeUpdateState.columnID == pkColumnID && pkIndex) {
-    // pkIndex->delete_(nodeUpdateState.pkVector);
-    // insertPK(nodeUpdateState.nodeIDVector, nodeUpdateState.propertyVector);
-    // }
     const auto pos = nodeUpdateState.nodeIDVector.state->getSelVector()[0];
     if (nodeUpdateState.nodeIDVector.isNull(pos)) {
         return;
+    }
+    if (nodeUpdateState.columnID == pkColumnID && pkIndex) {
+        insertPK(nodeUpdateState.nodeIDVector, nodeUpdateState.propertyVector);
     }
     const auto nodeOffset = nodeUpdateState.nodeIDVector.readNodeOffset(pos);
     if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {

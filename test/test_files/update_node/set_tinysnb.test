@@ -3,7 +3,6 @@
 --
 
 -CASE UpdatingSerialPrimaryKey
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE (a:A);
