@@ -98,6 +98,7 @@ public:
     common::row_idx_t getNumRowsLeftToAppend() const { return capacity - nextRowToAppend; }
     bool isFull() const { return numRows.load() == capacity; }
     const std::vector<common::LogicalType>& getDataTypes() const { return dataTypes; }
+    NodeGroupDataFormat getFormat() const { return format; }
     common::row_idx_t append(const transaction::Transaction* transaction,
         ChunkedNodeGroup& chunkedGroup, common::row_idx_t numRowsToAppend);
     common::row_idx_t append(const transaction::Transaction* transaction,

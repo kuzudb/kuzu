@@ -120,6 +120,7 @@ public:
 
     bool isEmpty() const override { return !persistentChunkGroup && NodeGroup::isEmpty(); }
 
+    ChunkedNodeGroup* getPersistentChunkedGroup() { return persistentChunkGroup.get(); }
     void setPersistentChunkedGroup(std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup) {
         KU_ASSERT(chunkedNodeGroup->getFormat() == NodeGroupDataFormat::CSR);
         persistentChunkGroup = std::move(chunkedNodeGroup);
