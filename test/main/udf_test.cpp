@@ -29,6 +29,78 @@ TEST_F(ApiTest, UnaryUDFInt64) {
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 
+static int128_t int128Func(int128_t x) {
+    return x;
+}
+
+TEST_F(ApiTest, UnaryUDFInt128) {
+    conn->createScalarFunction("add6", &int128Func);
+    auto actualResult = TestHelper::convertResultToString(
+        *conn->query("MATCH (p:person) return add6(to_int32(p.age))"));
+    auto expectedResult = std::vector<std::string>{"35", "30", "45", "20", "20", "25", "40", "83"};
+    sortAndCheckTestResults(actualResult, expectedResult);
+}
+
+static int32_t int8Func(uint8_t x) {
+    return x - 5;
+}
+
+TEST_F(ApiTest, UnaryUDFInt8) {
+    conn->createScalarFunction("func", &int8Func);
+    auto actualResult = TestHelper::convertResultToString(
+        *conn->query("MATCH (p:person) return func(to_uint8(p.age))"));
+    auto expectedResult = std::vector<std::string>{"30", "25", "40", "15", "15", "20", "35", "78"};
+    sortAndCheckTestResults(actualResult, expectedResult);
+}
+
+static int32_t uint8Func(uint8_t x) {
+    return x + 20;
+}
+
+TEST_F(ApiTest, UnaryUDFUint8) {
+    conn->createScalarFunction("func", &uint8Func);
+    auto actualResult = TestHelper::convertResultToString(
+        *conn->query("MATCH (p:person) return func(to_uint8(p.age))"));
+    auto expectedResult = std::vector<std::string>{"55", "50", "65", "40", "40", "45", "60", "103"};
+    sortAndCheckTestResults(actualResult, expectedResult);
+}
+
+static int32_t uint16Func(uint16_t x) {
+    return x + 33;
+}
+
+TEST_F(ApiTest, UnaryUDFUint16) {
+    conn->createScalarFunction("func", &uint16Func);
+    auto actualResult = TestHelper::convertResultToString(
+        *conn->query("MATCH (p:person) return func(to_uint16(p.age))"));
+    auto expectedResult = std::vector<std::string>{"68", "63", "78", "53", "53", "58", "73", "116"};
+    sortAndCheckTestResults(actualResult, expectedResult);
+}
+
+static int32_t uint32Func(uint32_t x) {
+    return x * 2;
+}
+
+TEST_F(ApiTest, UnaryUDFUint32) {
+    conn->createScalarFunction("func", &uint32Func);
+    auto actualResult = TestHelper::convertResultToString(
+        *conn->query("MATCH (p:person) return func(to_uint32(p.age))"));
+    auto expectedResult = std::vector<std::string>{"70", "60", "90", "40", "40", "50", "80", "166"};
+    sortAndCheckTestResults(actualResult, expectedResult);
+}
+
+static int128_t uint64Func(uint64_t x) {
+    return x - 10;
+}
+
+TEST_F(ApiTest, UnaryUDFUint64) {
+    conn->createScalarFunction("func", &uint64Func);
+    auto actualResult = TestHelper::convertResultToString(
+        *conn->query("MATCH (p:person) return func(to_uint64(p.age))"));
+    auto expectedResult = std::vector<std::string>{"25", "20", "35", "10", "10", "15", "30", "73"};
+    sortAndCheckTestResults(actualResult, expectedResult);
+}
+
 TEST_F(ApiTest, TestDropUDF) {
     conn->createScalarFunction("add5", &add5);
     conn->removeUDFFunction("add5");
