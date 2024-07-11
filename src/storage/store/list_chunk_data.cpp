@@ -163,13 +163,13 @@ void ListChunkData::scan(ValueVector& output, offset_t offset, length_t length, 
     if (nullData) {
         nullData->scan(output, offset, length, posInOutputVector);
     }
+    auto currentListDataSize = ListVector::getDataVectorSize(&output);
     auto dataSize = 0ul;
     for (auto i = 0u; i < length; i++) {
         auto listSize = getListSize(offset + i);
-        output.setValue<list_entry_t>(posInOutputVector + i, list_entry_t{dataSize, listSize});
+        output.setValue<list_entry_t>(posInOutputVector + i, list_entry_t{currentListDataSize + dataSize, listSize});
         dataSize += listSize;
     }
-    auto currentListDataSize = ListVector::getDataVectorSize(&output);
     ListVector::resizeDataVector(&output, currentListDataSize + dataSize);
     auto dataVector = ListVector::getDataVector(&output);
     if (isOffsetsConsecutiveAndSortedAscending(offset, offset + length)) {
@@ -197,10 +197,7 @@ void ListChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     auto dataVector = ListVector::getDataVector(&output);
     auto currentListDataSize = ListVector::getDataVectorSize(&output);
     ListVector::resizeDataVector(&output, currentListDataSize + listSize);
-    // TODO(Guodong/Sam): Should add & use `scan` interface (with posInVector param).
-    for (auto i = 0u; i < listSize; i++) {
-        dataColumnChunk->lookup(startOffset + i, *dataVector, currentListDataSize + i);
-    }
+    dataColumnChunk->scan(*dataVector, startOffset, listSize, currentListDataSize);
     // reset offset
     output.setValue<list_entry_t>(posInOutputVector, list_entry_t{currentListDataSize, listSize});
 }
