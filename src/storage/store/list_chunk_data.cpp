@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "common/data_chunk/sel_vector.h"
+#include "common/types/types.h"
 #include "common/types/value/value.h"
 #include "common/vector/value_vector.h"
 #include "storage/store/column_chunk_data.h"
@@ -157,23 +158,30 @@ void ListChunkData::appendNullList() {
     nullData->setNull(appendPosition, true);
 }
 
-void ListChunkData::scan(ValueVector& output, offset_t offset, length_t length) const {
+void ListChunkData::scan(ValueVector& output, offset_t offset, length_t length, sel_t posInOutputVector) const {
     KU_ASSERT(offset + length <= numValues);
     if (nullData) {
-        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(), offset,
-            0 /*dstOffset*/, length);
+        nullData->scan(output, offset, length, posInOutputVector);
     }
-    auto dataOffset = getListStartOffset(offset);
     auto dataSize = 0ul;
     for (auto i = 0u; i < length; i++) {
-        auto startOffset = getListStartOffset(offset) - dataOffset;
         auto listSize = getListSize(offset + i);
+        output.setValue<list_entry_t>(posInOutputVector + i, list_entry_t{dataSize, listSize});
         dataSize += listSize;
-        output.setValue<list_entry_t>(i, list_entry_t{startOffset, listSize});
     }
-    ListVector::resizeDataVector(&output, dataSize);
+    auto currentListDataSize = ListVector::getDataVectorSize(&output);
+    ListVector::resizeDataVector(&output, currentListDataSize + dataSize);
     auto dataVector = ListVector::getDataVector(&output);
-    dataColumnChunk->scan(*dataVector, dataOffset, dataSize);
+    if (isOffsetsConsecutiveAndSortedAscending(offset, offset + length)) {
+        dataColumnChunk->scan(*dataVector, getListStartOffset(offset), dataSize, currentListDataSize);
+    } else {
+        for (auto i = 0u; i < length; i++) {
+            auto startOffset = getListStartOffset(offset + i);
+            auto listSize = getListSize(offset + i);
+            dataColumnChunk->scan(*dataVector, startOffset, listSize, currentListDataSize);
+            currentListDataSize += listSize;
+        }
+    }
 }
 
 void ListChunkData::lookup(offset_t offsetInChunk, ValueVector& output,

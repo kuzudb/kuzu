@@ -2,6 +2,7 @@
 
 #include "common/data_chunk/sel_vector.h"
 #include "common/serializer/deserializer.h"
+#include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/dictionary_chunk.h"
@@ -88,18 +89,19 @@ void StringChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
     }
 }
 
-void StringChunkData::scan(ValueVector& output, offset_t offset, length_t length) const {
-    KU_ASSERT(offset + length <= numValues);
-    if (nullData) {
-        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(), offset,
-            0 /*dstOffset*/, length);
-    }
-    for (auto i = 0u; i < length; i++) {
-        if (nullData->isNull(offset + i)) {
-            continue;
+void StringChunkData::scan(ValueVector& output, offset_t offset, length_t length, sel_t posInOutputVector) const {
+    KU_ASSERT(offset + length <= numValues && nullData);
+    nullData->scan(output, offset, length, posInOutputVector);
+    if (nullData->mayHaveNull()) {
+        for (auto i = 0u; i < length; i++) {
+            if (!nullData->isNull(offset + i)) {
+                output.setValue<std::string_view>(posInOutputVector + i, getValue<std::string_view>(offset + i));
+            }
         }
-        auto str = getValue<std::string_view>(offset + i);
-        output.setValue<std::string_view>(i, str);
+    } else {
+        for (auto i = 0u; i < length; i++) {
+            output.setValue<std::string_view>(posInOutputVector + i, getValue<std::string_view>(offset + i));
+        }
     }
 }
 

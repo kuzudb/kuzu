@@ -359,13 +359,13 @@ void ColumnChunkData::initializeScanState(ChunkState& state) const {
     }
 }
 
-void ColumnChunkData::scan(ValueVector& output, offset_t offset, length_t length) const {
+void ColumnChunkData::scan(ValueVector& output, offset_t offset, length_t length, sel_t posInOutputVector) const {
     KU_ASSERT(offset + length <= numValues);
     if (nullData) {
-        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(), offset,
-            0 /*dstOffset*/, length);
+        nullData->scan(output, offset, length, posInOutputVector);
     }
-    memcpy(output.getData(), buffer.get() + offset * numBytesPerValue, numBytesPerValue * length);
+    memcpy(output.getData() + posInOutputVector * numBytesPerValue, 
+        buffer.get() + offset * numBytesPerValue, numBytesPerValue * length);
 }
 
 void ColumnChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
@@ -619,14 +619,13 @@ void BoolChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk
     numValues += numValuesToAppend;
 }
 
-void BoolChunkData::scan(ValueVector& output, offset_t offset, length_t length) const {
+void BoolChunkData::scan(ValueVector& output, offset_t offset, length_t length, sel_t posInOutputVector) const {
     KU_ASSERT(offset + length <= numValues);
     if (nullData) {
-        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(), offset,
-            0 /*dstOffset*/, length);
+        nullData->scan(output, offset, length, posInOutputVector);
     }
     for (auto i = 0u; i < length; i++) {
-        output.setValue<bool>(i,
+        output.setValue<bool>(posInOutputVector + i,
             NullMask::isNull(reinterpret_cast<uint64_t*>(buffer.get()), offset + i));
     }
 }
@@ -728,6 +727,10 @@ std::unique_ptr<NullChunkData> NullChunkData::deserialize(Deserializer& deSer) {
     return std::make_unique<NullChunkData>(true, metadata);
 }
 
+void NullChunkData::scan(ValueVector& output, offset_t offset, length_t length, sel_t posInOutputVector) const {
+    output.setNullFromBits(getNullMask().getData(), offset, posInOutputVector, length);
+}
+
 void InternalIDChunkData::append(ValueVector* vector, const SelectionVector& selVector) {
     switch (vector->dataType.getPhysicalType()) {
     case PhysicalTypeID::INTERNAL_ID: {
@@ -768,18 +771,18 @@ void InternalIDChunkData::copyInt64VectorToBuffer(ValueVector* vector, offset_t 
     }
 }
 
-void InternalIDChunkData::scan(ValueVector& output, offset_t offset, length_t length) const {
+void InternalIDChunkData::scan(ValueVector& output, offset_t offset, length_t length, sel_t posInOutputVector) const {
     KU_ASSERT(offset + length <= numValues);
     KU_ASSERT(commonTableID != INVALID_TABLE_ID);
+    // TODO(Sam/Guodong): When we get rid of nullData for InternalID, remove this
     if (nullData) {
-        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(), offset,
-            0 /*dstOffset*/, length);
+        nullData->scan(output, offset, length, posInOutputVector);
     }
     internalID_t relID;
     relID.tableID = commonTableID;
     for (auto i = 0u; i < length; i++) {
         relID.offset = getValue<offset_t>(offset + i);
-        output.setValue<internalID_t>(i, relID);
+        output.setValue<internalID_t>(posInOutputVector + i, relID);
     }
 }
 

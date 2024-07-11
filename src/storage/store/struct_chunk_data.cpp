@@ -90,15 +90,14 @@ void StructChunkData::append(ValueVector* vector, const SelectionVector& selVect
     numValues += selVector.getSelSize();
 }
 
-void StructChunkData::scan(ValueVector& output, offset_t offset, length_t length) const {
+void StructChunkData::scan(ValueVector& output, offset_t offset, length_t length, sel_t posInOutputVector) const {
     KU_ASSERT(offset + length <= numValues);
     if (nullData) {
-        output.setNullFromBits(nullData->getNullData()->getNullMask().getData(), offset,
-            0 /*dstOffset*/, length);
+        nullData->scan(output, offset, length, posInOutputVector);
     }
     const auto numFields = StructType::getNumFields(dataType);
     for (auto i = 0u; i < numFields; i++) {
-        childChunks[i]->scan(*StructVector::getFieldVector(&output, i), offset, length);
+        childChunks[i]->scan(*StructVector::getFieldVector(&output, i), offset, length, posInOutputVector);
     }
 }
 

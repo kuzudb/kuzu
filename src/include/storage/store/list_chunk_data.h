@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/data_chunk/sel_vector.h"
+#include "common/types/types.h"
 #include "storage/store/column_chunk_data.h"
 
 namespace kuzu {
@@ -45,7 +46,7 @@ public:
 
     void initializeScanState(ChunkState& state) const override;
     void scan(common::ValueVector& output, common::offset_t offset,
-        common::length_t length) const override;
+        common::length_t length, common::sel_t posInOutputVector) const override;
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
 

@@ -149,7 +149,7 @@ public:
 
     virtual void initializeScanState(ChunkState& state) const;
     virtual void scan(common::ValueVector& output, common::offset_t offset,
-        common::length_t length) const;
+        common::length_t length, common::sel_t posInOutputVector = 0) const;
     virtual void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const;
 
@@ -263,7 +263,7 @@ public:
         uint32_t numValuesToAppend) override;
 
     void scan(common::ValueVector& output, common::offset_t offset,
-        common::length_t length) const override;
+        common::length_t length, common::sel_t posInOutputVector = 0) const override;
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
 
@@ -311,6 +311,10 @@ public:
         }
     }
 
+    // NullChunkData::scan updates the null mask of output vector
+    void scan(common::ValueVector& output, common::offset_t offset,
+        common::length_t length, common::sel_t posInOutputVector = 0) const override;
+
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 
@@ -353,7 +357,7 @@ public:
         const common::SelectionVector& selVector) const;
 
     void scan(common::ValueVector& output, common::offset_t offset,
-        common::length_t length) const override;
+        common::length_t length, common::sel_t posInOutputVector = 0) const override;
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
 
