@@ -52,12 +52,12 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
         idx_t idx = startVectorIdx;
         sel_t posInVector = 0u;
         while (idx <= endVectorIdx) {
+            const auto startOffset = idx == startVectorIdx ? startOffsetInVector : 0;
+            const auto endOffset =
+                idx == endVectorIdx ? endOffsetInVector : DEFAULT_VECTOR_CAPACITY;
+            const auto numRowsInVector = endOffset - startOffset;
             if (const auto vectorInfo = updateInfo->getVectorInfo(transaction, idx);
-                vectorInfo->numRowsUpdated > 0) {
-                const auto startOffset = idx == startVectorIdx ? startOffsetInVector : 0;
-                const auto endOffset =
-                    idx == endVectorIdx ? endOffsetInVector : DEFAULT_VECTOR_CAPACITY;
-                const auto numRowsInVector = endOffset - startOffset;
+                vectorInfo && vectorInfo->numRowsUpdated > 0) {
                 for (auto i = 0u; i < numRowsInVector; i++) {
                     if (auto itr = std::find_if(vectorInfo->rowsInVector.begin(),
                             vectorInfo->rowsInVector.begin() + vectorInfo->numRowsUpdated,
@@ -67,8 +67,8 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
                             posInVector + i);
                     }
                 }
-                posInVector += numRowsInVector;
             }
+            posInVector += numRowsInVector;
             idx++;
         }
     }

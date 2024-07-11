@@ -34,8 +34,8 @@ struct VectorVersionInfo {
     bool delete_(common::transaction_t transactionID, common::row_idx_t rowIdx);
 
     void getSelVectorForScan(common::transaction_t startTS, common::transaction_t transactionID,
-        common::SelectionVector& selVector, common::row_idx_t startRow,
-        common::row_idx_t numRows) const;
+        common::SelectionVector& selVector, common::row_idx_t startRow, common::row_idx_t numRows,
+        common::sel_t startOutputPos) const;
 
     void serialize(common::Serializer& serializer) const;
 

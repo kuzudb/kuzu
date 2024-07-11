@@ -3,7 +3,6 @@
 
 #TODO(Guodong): FIX-ME.
 -CASE deleteRelsFromSmallListCommitNormalExecution
--SKIP
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -BATCH_STATEMENTS <FILE:>delete_rels_from_small_list.cypher
