@@ -23,14 +23,7 @@ public:
      * operator in case it is NULL.
      * Also check if task has been completed, if yes return 0.
      */
-    inline uint64_t getWork() override {
-        common::lock_t lck{mtx};
-        if (!sink) {
-            return 0u;
-        }
-        if ((numThreadsRegistered > 0) && (numThreadsFinished == numThreadsRegistered)) {
-            return 0u;
-        }
+    inline uint64_t getWorkNoLock() override {
         return sink->getWork() / numThreadsRegistered;
     }
 

@@ -120,25 +120,30 @@ std::shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
     uint64_t maxTaskWork = 0u;
     while (it != taskQueue.end()) {
         auto task = (*it)->task;
-        if (task->tryRegisterIfUnregistered()) {
+        task->mtx.lock();
+        if (task->numThreadsRegistered == 0) {
+            task->numThreadsRegistered++;
+            task->mtx.unlock();
             return *it;
         }
-        if (task->isCompletedSuccessfully()) {
-            // printf("removing task ID: %lu\n", (*it)->ID);
+        if (task->isCompletedNoLock() && !task->hasExceptionNoLock()) {
+            task->mtx.unlock();
             it = taskQueue.erase(it);
             continue;
         }
         // don't remove task if failed, done by thread which submitted the task
         // if task is single threaded (and already has >1 thread executing it), ignore it
-        if (task->hasException() || task->maxNumThreads == 1) {
+        if ((task->exceptionsPtr != nullptr)  || (task->maxNumThreads == 1)) {
+            task->mtx.unlock();
             it++;
             continue;
         }
-        auto taskWork = task->getWork();
+        auto taskWork = task->getWorkNoLock();
         if (taskWork > maxTaskWork) {
             maxTaskWork = taskWork;
             schedTask = *it;
         }
+        task->mtx.unlock();
         it++;
     }
     if (schedTask->task && schedTask->task->registerThread()) {

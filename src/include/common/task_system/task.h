@@ -76,7 +76,7 @@ public:
 
     inline bool hasExceptionNoLock() const { return exceptionsPtr != nullptr; }
 
-    virtual inline uint64_t getWork() = 0;
+    virtual inline uint64_t getWorkNoLock() = 0;
 
 private:
     bool canRegisterNoLock() const {
