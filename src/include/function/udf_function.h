@@ -2,7 +2,6 @@
 
 #include "common/exception/binder.h"
 #include "common/exception/catalog.h"
-#include "common/types/blob.h"
 #include "common/types/ku_string.h"
 #include "function/scalar_function.h"
 
