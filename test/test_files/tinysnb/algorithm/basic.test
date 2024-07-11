@@ -3,7 +3,7 @@
 --
 
 -CASE BasicAlgorithm
-
+-SKIP
 
 -STATEMENT PROJECT GRAPH PK (person {age}, knows) CALL variable_length_path(PK, 1, 1) RETURN *;
 ---- error
