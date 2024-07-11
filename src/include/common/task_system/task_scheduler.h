@@ -47,7 +47,7 @@ public:
     // returns, no task related to the given task will be in the task queue. Further no worker
     // thread will be working on the given task.
     void scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task,
-        processor::ExecutionContext* context);
+        processor::ExecutionContext* context, bool launchNewWorkerThread = false);
 
 private:
     std::shared_ptr<ScheduledTask> pushTaskIntoQueue(const std::shared_ptr<Task>& task);
@@ -57,6 +57,7 @@ private:
     // Functions to launch worker threads and for the worker threads to use to grab task from queue.
     void runWorkerThread();
     std::shared_ptr<ScheduledTask> getTaskAndRegister();
+    static void runTask(Task* task);
 
 private:
     std::deque<std::shared_ptr<ScheduledTask>> taskQueue;
