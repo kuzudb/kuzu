@@ -1,8 +1,8 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression/literal_expression.h"
 #include "binder/expression/path_expression.h"
 #include "binder/expression/property_expression.h"
-#include "binder/expression/literal_expression.h"
 #include "binder/expression_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
@@ -420,8 +420,9 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
             auto dependentVariableNames = collector.getVarNames();
             auto dependOnNode = dependentVariableNames.contains(node->getUniqueName());
             auto dependOnRel = dependentVariableNames.contains(rel->getUniqueName());
-            auto canNotEvaluatePredicateMessage = stringFormat("Cannot evaluate {} in recursive pattern {}.",
-                predicate->toString(), relPattern.getVariableName());
+            auto canNotEvaluatePredicateMessage =
+                stringFormat("Cannot evaluate {} in recursive pattern {}.", predicate->toString(),
+                    relPattern.getVariableName());
             if (dependOnNode && dependOnRel) {
                 throw BinderException(canNotEvaluatePredicateMessage);
             } else if (dependOnNode) {
@@ -444,8 +445,8 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
             }
         }
     }
-    auto nodePredicateExecutionFlag = expressionBinder.createVariableExpression(
-        LogicalType::BOOL(), std::string(InternalKeyword::ANONYMOUS));
+    auto nodePredicateExecutionFlag = expressionBinder.createVariableExpression(LogicalType::BOOL(),
+        std::string(InternalKeyword::ANONYMOUS));
     if (nodePredicate != nullptr) {
         nodePredicate = expressionBinder.combineBooleanExpressions(ExpressionType::OR,
             nodePredicate, nodePredicateExecutionFlag);
