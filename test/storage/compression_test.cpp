@@ -97,6 +97,7 @@ void test_compression(CompressionAlg& alg, std::vector<T> src, bool force_offset
 
 TEST(CompressionTests, FloatCompressionTestSanity) {
     std::vector<double> src(128, 5.6);
+    src[2] = 0;
     auto alg = FloatCompression<double>();
     alp::state floatMetadata;
     std::vector<double> samples(src.size());
@@ -115,8 +116,8 @@ TEST(CompressionTests, FloatCompressionTestSanity) {
 
 TEST(CompressionTests, FloatCompressionTestWithExceptions) {
     std::vector<double> src(256, 5.6);
-    src[1] = 54387589437957.834;
-    for (size_t i = 101; i < src.size(); i += 100) {
+    src[2] = 54387589437957.834;
+    for (size_t i = 102; i < src.size(); i += 100) {
         src[i] = src[i - 100] + 4385498.234;
     }
     auto alg = FloatCompression<double>();
@@ -375,7 +376,9 @@ void compressionTestMultiPage(const std::vector<T>& src, CompressionAlg& alg,
         auto page = i / numValuesPerPage;
         auto indexInPage = i % numValuesPerPage;
         T value;
-        alg.decompressFromPage(dest[page].data(), indexInPage, (uint8_t*)&value, 0, 1 /*numValues*/,
+        alg.decompressFromPage(dest[page].data(), indexInPage, (uint8_t*)&value, 0,
+            1
+            /*numValues*/,
             *metadata);
         EXPECT_EQ(src[i], value);
     }

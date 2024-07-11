@@ -207,22 +207,10 @@ public:
         }
 
         std::span<const T> src{reinterpret_cast<const T*>(buffer), numValues};
-        const auto firstSuccessfulEncode =
-            std::find_if(src.begin(), src.end(), [alpMetadata](T val) {
-                const auto encoded_value =
-                    alp::AlpEncode<T>::encode_value(val, alpMetadata.fac, alpMetadata.exp);
-                const auto decoded_value = alp::AlpDecode<T>::decode_value(encoded_value,
-                    alpMetadata.fac, alpMetadata.exp);
-                return val == decoded_value;
-            });
-        if (firstSuccessfulEncode == src.end()) {
-            return ColumnChunkMetadata(INVALID_PAGE_IDX,
-                ColumnChunkData::getNumPagesForBytes(bufferSize), numValues,
-                CompressionMetadata(min, max, CompressionType::UNCOMPRESSED));
-        }
 
         std::vector<int64_t> floatEncodedValues(numValues);
         std::vector<size_t> exceptionsPrefixSum(numValues);
+        size_t successfulEncodeCount = 0;
         for (offset_t i = 0; i < numValues; ++i) {
             const T& val = src[i];
             const auto encoded_value =
@@ -235,14 +223,14 @@ public:
             }
 
             if (val == decoded_value) {
-                floatEncodedValues[i] = encoded_value;
+                floatEncodedValues[successfulEncodeCount] = encoded_value;
+                ++successfulEncodeCount;
             } else {
-                floatEncodedValues[i] = *firstSuccessfulEncode;
                 ++exceptionsPrefixSum[i];
             }
         }
-        const auto& [minEncoded, maxEncoded] =
-            std::minmax_element(floatEncodedValues.begin(), floatEncodedValues.end());
+        const auto& [minEncoded, maxEncoded] = std::minmax_element(floatEncodedValues.begin(),
+            floatEncodedValues.begin() + successfulEncodeCount);
 
         auto compMeta = CompressionMetadata(min, max, alg->getCompressionType(), alpMetadata,
             StorageValue{*minEncoded}, StorageValue{*maxEncoded});
@@ -253,12 +241,13 @@ public:
                   numValuesPerPage >= BufferPoolConstants::PAGE_4KB_SIZE / sizeof(T));
 
         size_t exceptionsInPrevPage = 0;
+        const size_t maxExceptionCount = FloatCompression<T>::getMaxExceptionCountPerPage(
+            common::BufferPoolConstants::PAGE_4KB_SIZE, compMeta);
         for (offset_t i = 0; i < numValues; i += numValuesPerPage) {
             const size_t exceptionsInCurPage =
                 exceptionsPrefixSum[std::min(i + numValuesPerPage - 1, numValues - 1)] -
                 exceptionsInPrevPage;
-            if (exceptionsInCurPage > FloatCompression<T>::getMaxExceptionCountPerPage(
-                                          common::BufferPoolConstants::PAGE_4KB_SIZE, compMeta)) {
+            if (exceptionsInCurPage > maxExceptionCount) {
                 return ColumnChunkMetadata(INVALID_PAGE_IDX,
                     ColumnChunkData::getNumPagesForBytes(bufferSize), numValues,
                     CompressionMetadata(min, max, CompressionType::UNCOMPRESSED));
