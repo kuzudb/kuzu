@@ -224,7 +224,7 @@ void HashJoinSIPOptimizer::visitIntersect(LogicalOperator* op) {
     for (auto& nodeID : intersect.getKeyNodeIDs()) {
         std::vector<LogicalOperator*> ops;
         for (auto i = 1u; i < intersect.getNumChildren(); ++i) {
-            auto buildRoot = intersect.getChild(1);
+            auto buildRoot = intersect.getChild(i);
             for (auto& op_ : getScanNodeCandidates(*nodeID, buildRoot.get())) {
                 ops.push_back(op_);
             }
