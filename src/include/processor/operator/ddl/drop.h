@@ -1,7 +1,5 @@
 #pragma once
 
-#include "catalog/catalog_entry/catalog_entry_type.h"
-#include "common/enums/conflict_action.h"
 #include "ddl.h"
 #include "parser/ddl/drop_info.h"
 

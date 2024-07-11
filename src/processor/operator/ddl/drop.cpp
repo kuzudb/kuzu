@@ -1,7 +1,6 @@
 #include "processor/operator/ddl/drop.h"
 
 #include "catalog/catalog.h"
-#include "common/exception/runtime.h"
 #include "common/string_format.h"
 
 using namespace kuzu::catalog;

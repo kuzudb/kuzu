@@ -166,12 +166,10 @@ std::unique_ptr<Statement> Transformer::transformCreateType(
 }
 
 DropType transformDropType(CypherParser::KU_DropTypeContext& ctx) {
-    if (ctx.TABLE()) {
+    if (ctx.TABLE() || ctx.RDFGRAPH()) {
         return DropType::TABLE;
     } else if (ctx.SEQUENCE()) {
         return DropType::SEQUENCE;
-    } else if (ctx.RDFGRAPH()) {
-        return DropType::TABLE;
     } else {
         KU_UNREACHABLE;
     }
