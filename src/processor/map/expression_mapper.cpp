@@ -132,8 +132,8 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getCaseEvaluator(
         auto alternative = caseExpression->getCaseAlternative(i);
         auto whenEvaluator = getEvaluator(alternative->whenExpression);
         auto thenEvaluator = getEvaluator(alternative->thenExpression);
-        alternativeEvaluators.push_back(CaseAlternativeEvaluator(
-            std::move(whenEvaluator), std::move(thenEvaluator)));
+        alternativeEvaluators.push_back(
+            CaseAlternativeEvaluator(std::move(whenEvaluator), std::move(thenEvaluator)));
     }
     auto elseEvaluator = getEvaluator(caseExpression->getElseExpression());
     return std::make_unique<CaseExpressionEvaluator>(std::move(expression),

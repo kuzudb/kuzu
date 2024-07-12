@@ -1,7 +1,7 @@
 #include "binder/binder.h"
 #include "binder/expression/case_expression.h"
-#include "binder/expression_binder.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression_binder.h"
 #include "parser/expression/parsed_case_expression.h"
 
 using namespace kuzu::common;
@@ -48,7 +48,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindCaseExpression(
             boundWhen = implicitCastIfNecessary(boundWhen, boundCase->dataType);
             // rewrite "CASE a.age WHEN 1" as "CASE WHEN a.age = 1"
             if (ExpressionUtil::isNullLiteral(*boundWhen)) {
-                boundWhen = bindNullOperatorExpression(ExpressionType::IS_NULL, expression_vector{boundWhen});
+                boundWhen = bindNullOperatorExpression(ExpressionType::IS_NULL,
+                    expression_vector{boundWhen});
             } else {
                 boundWhen = bindComparisonExpression(ExpressionType::EQUALS,
                     expression_vector{boundCase, boundWhen});

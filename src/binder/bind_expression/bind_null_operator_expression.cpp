@@ -17,7 +17,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
     return bindNullOperatorExpression(parsedExpression.getExpressionType(), children);
 }
 
-std::shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(ExpressionType expressionType, const expression_vector& children) {
+std::shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
+    ExpressionType expressionType, const expression_vector& children) {
     expression_vector childrenAfterCast;
     for (auto& child : children) {
         if (child->dataType.getLogicalTypeID() == LogicalTypeID::ANY) {
@@ -32,9 +33,11 @@ std::shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(Express
     function::scalar_func_select_t selectFunc;
     function::VectorNullFunction::bindSelectFunction(expressionType, childrenAfterCast, selectFunc);
     auto bindData = std::make_unique<function::FunctionBindData>(LogicalType::BOOL());
-    auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(functionName, childrenAfterCast);
+    auto uniqueExpressionName =
+        ScalarFunctionExpression::getUniqueName(functionName, childrenAfterCast);
     return make_shared<ScalarFunctionExpression>(functionName, expressionType, std::move(bindData),
-        std::move(childrenAfterCast), std::move(execFunc), std::move(selectFunc), uniqueExpressionName);
+        std::move(childrenAfterCast), std::move(execFunc), std::move(selectFunc),
+        uniqueExpressionName);
 }
 
 } // namespace binder
