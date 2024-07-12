@@ -126,6 +126,73 @@ public:
     }
 };
 
+template<std::floating_point T>
+class CompressedFloatFlushBuffer {
+    std::shared_ptr<FloatCompression<T>> alg;
+    const LogicalType& dataType;
+
+public:
+    CompressedFloatFlushBuffer(std::shared_ptr<FloatCompression<T>> alg,
+        const LogicalType& dataType)
+        : alg{std::move(alg)}, dataType{dataType} {}
+
+    CompressedFloatFlushBuffer(const CompressedFloatFlushBuffer& other) = default;
+
+    ColumnChunkMetadata operator()(const uint8_t* buffer, uint64_t /*bufferSize*/,
+        BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) const {
+        auto valuesRemaining = metadata.numValues;
+        const uint8_t* bufferStart = buffer;
+        const auto compressedBuffer =
+            std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
+        const auto exceptionBuffer =
+            std::make_unique<uint8_t[]>(metadata.compMeta.alpMetadata.exceptionCount *
+                                        typename ExceptionBuffer<T>::EncodeException::sizeBytes());
+        uint8_t* exceptionBufferCursor = exceptionBuffer.get();
+        auto numPages = 0u;
+        const auto numValuesPerPage =
+            metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+        KU_ASSERT(numValuesPerPage * metadata.numPages >= metadata.numValues);
+        while (valuesRemaining > 0) {
+            size_t pageExceptionCount = 0;
+            (void)alg->compressNextPageWithExceptions(bufferStart, valuesRemaining,
+                compressedBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE, exceptionBufferCursor,
+                metadata.compMeta.alpMetadata.exceptionCount *
+                    typename ExceptionBuffer<T>::EncodeException::sizeBytes(),
+                pageExceptionCount, metadata.compMeta);
+            exceptionBufferCursor += pageExceptionCount;
+
+            // Avoid underflows (when data is compressed to nothing, numValuesPerPage may be
+            // UINT64_MAX)
+            if (numValuesPerPage > valuesRemaining) {
+                valuesRemaining = 0;
+            } else {
+                valuesRemaining -= numValuesPerPage;
+            }
+            KU_ASSERT(numPages < metadata.numPages);
+            KU_ASSERT(dataFH->getNumPages() > startPageIdx + numPages);
+            dataFH->getFileInfo()->writeFile(compressedBuffer.get(),
+                BufferPoolConstants::PAGE_4KB_SIZE,
+                (startPageIdx + numPages) * BufferPoolConstants::PAGE_4KB_SIZE);
+            numPages++;
+        }
+
+        const auto preExceptionMetadata = uncompressedGetMetadata(nullptr,
+            metadata.compMeta.alpMetadata.exceptionCount *
+                typename ExceptionBuffer<T>::EncodeException::sizeBytes(),
+            metadata.compMeta.alpMetadata.exceptionCount *
+                typename ExceptionBuffer<T>::EncodeException::sizeBytes(),
+            metadata.compMeta.alpMetadata.exceptionCount, StorageValue{0}, StorageValue{0});
+        CompressedFlushBuffer exceptionFlushBuffer{std::make_shared<IntegerBitpacking<int64_t>>(),
+            LogicalType::INT64()};
+        const auto exceptionMetadata =
+            exceptionFlushBuffer.operator()(reinterpret_cast<const uint8_t*>(exceptionBuffer.get()),
+                dataFH, startPageIdx + numPages, preExceptionMetadata);
+
+        return ColumnChunkMetadata(startPageIdx, numPages + exceptionMetadata.numPages,
+            metadata.numValues, metadata.compMeta);
+    }
+};
+
 class GetBitpackingMetadata {
     std::shared_ptr<CompressionAlg> alg;
     const LogicalType& dataType;

@@ -6,44 +6,6 @@
 
 namespace kuzu {
 namespace storage {
-namespace {
-
-template<std::floating_point T>
-struct ExceptionBuffer {
-    struct EncodeException {
-        T value;
-        uint16_t posInPage; // TODO maybe make this a smaller type to store more exceptions
-
-        static constexpr size_t sizeBytes();
-    };
-
-    ExceptionBuffer(uint8_t* frame, size_t frameSizeBytes, const CompressionMetadata& metadata);
-    struct Header {
-        common::offset_t numExceptions;
-    }* header;
-
-    // this actually points to the last address in the exception buffer
-    // as the exception buffer grows from the end of the page
-    uint8_t* exceptions;
-    size_t capacityBytes;
-
-    void init();
-
-    void addException(EncodeException exception);
-    void encodeException(EncodeException exception, common::offset_t idx);
-    EncodeException decodeException(common::offset_t idx);
-    void removeException(common::offset_t idx);
-    size_t getSizeBytes();
-    common::offset_t& exceptionCount();
-
-    // at most 1 / MAX_EXCEPTION_FACTOR * totalCompressedValues can be exceptions
-    // if this is not the case we avoid compressing altogether
-    static constexpr size_t MAX_EXCEPTION_FACTOR = 8;
-
-    static size_t getMaxExceptionRatio(size_t columnChunkExceptionRatio);
-    static size_t getDataSizeForExceptions(size_t dataSize, const CompressionMetadata& metadata);
-    static size_t getMaxExceptionCount(size_t exceptionBufferSize);
-};
 
 template<std::floating_point T>
 constexpr size_t ExceptionBuffer<T>::EncodeException::sizeBytes() {
@@ -147,7 +109,6 @@ size_t ExceptionBuffer<T>::getMaxExceptionCount(size_t exceptionBufferSize) {
     KU_ASSERT(exceptionBufferSize >= sizeof(Header));
     return (exceptionBufferSize - sizeof(Header)) / EncodeException::sizeBytes();
 }
-} // namespace
 
 template<std::floating_point T>
 uint64_t FloatCompression<T>::compressNextPage(const uint8_t*& srcBuffer,

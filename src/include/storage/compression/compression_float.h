@@ -35,6 +35,11 @@ public:
         uint8_t* dstBuffer, uint64_t dstBufferSize,
         const struct CompressionMetadata& metadata) const final;
 
+    uint64_t compressNextPageWithExceptions(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
+        uint8_t* dstBuffer, uint64_t dstBufferSize, uint8_t* exceptionBuffer,
+        uint64_t exceptionBufferSize, uint64_t& exceptionCount,
+        const struct CompressionMetadata& metadata) const {}
+
     void decompressFromPage(const uint8_t* srcBuffer, uint64_t srcOffset, uint8_t* dstBuffer,
         uint64_t dstOffset, uint64_t numValues,
         const struct CompressionMetadata& metadata) const final;
@@ -47,6 +52,43 @@ public:
 
 private:
     IntegerBitpacking<int64_t> encodedFloatBitpacker;
+};
+
+template<std::floating_point T>
+struct ExceptionBuffer {
+    struct EncodeException {
+        T value;
+        uint16_t posInPage;
+
+        static constexpr size_t sizeBytes();
+    };
+
+    ExceptionBuffer(uint8_t* frame, size_t frameSizeBytes, const CompressionMetadata& metadata);
+    struct Header {
+        common::offset_t numExceptions;
+    }* header;
+
+    // this actually points to the last address in the exception buffer
+    // as the exception buffer grows from the end of the page
+    uint8_t* exceptions;
+    size_t capacityBytes;
+
+    void init();
+
+    void addException(EncodeException exception);
+    void encodeException(EncodeException exception, common::offset_t idx);
+    EncodeException decodeException(common::offset_t idx);
+    void removeException(common::offset_t idx);
+    size_t getSizeBytes();
+    common::offset_t& exceptionCount();
+
+    // at most 1 / MAX_EXCEPTION_FACTOR * totalCompressedValues can be exceptions
+    // if this is not the case we avoid compressing altogether
+    static constexpr size_t MAX_EXCEPTION_FACTOR = 8;
+
+    static size_t getMaxExceptionRatio(size_t columnChunkExceptionRatio);
+    static size_t getDataSizeForExceptions(size_t dataSize, const CompressionMetadata& metadata);
+    static size_t getMaxExceptionCount(size_t exceptionBufferSize);
 };
 
 } // namespace storage
