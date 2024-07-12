@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression/literal_expression.h"
 #include "binder/expression/path_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression_visitor.h"
@@ -374,8 +375,8 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     auto nodeCopy = createQueryNode(recursivePatternInfo->nodeName,
         std::vector<table_id_t>{nodeTableIDs.begin(), nodeTableIDs.end()});
     // Bind intermediate rel
-    auto rel = createNonRecursiveQueryRel(recursivePatternInfo->relName, tableIDs, node, nodeCopy,
-        directionType);
+    auto rel = createNonRecursiveQueryRel(recursivePatternInfo->relName, tableIDs,
+        nullptr /* srcNode */, nullptr /* dstNode */, directionType);
     addToScope(rel->toString(), rel);
     expression_vector relProjectionList;
     if (!recursivePatternInfo->hasProjection) {
@@ -410,29 +411,42 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     }
     // Bind predicates in (r, n | WHERE )
     std::shared_ptr<Expression> nodePredicate;
+    bool emptyRecursivePattern = false;
     if (recursivePatternInfo->whereExpression != nullptr) {
-        auto recursivePatternPredicate =
-            expressionBinder.bindExpression(*recursivePatternInfo->whereExpression);
-        for (auto& predicate : recursivePatternPredicate->splitOnAND()) {
+        auto wherePredicate = bindWhereExpression(*recursivePatternInfo->whereExpression);
+        for (auto& predicate : wherePredicate->splitOnAND()) {
             auto collector = DependentVarNameCollector();
             collector.visit(predicate);
             auto dependentVariableNames = collector.getVarNames();
             auto dependOnNode = dependentVariableNames.contains(node->getUniqueName());
             auto dependOnRel = dependentVariableNames.contains(rel->getUniqueName());
+            auto canNotEvaluatePredicateMessage =
+                stringFormat("Cannot evaluate {} in recursive pattern {}.", predicate->toString(),
+                    relPattern.getVariableName());
             if (dependOnNode && dependOnRel) {
-                throw BinderException(stringFormat("Cannot evaluate {} in recursive pattern {}.",
-                    predicate->toString(), relPattern.getVariableName()));
+                throw BinderException(canNotEvaluatePredicateMessage);
             } else if (dependOnNode) {
                 nodePredicate = expressionBinder.combineBooleanExpressions(ExpressionType::AND,
                     nodePredicate, predicate);
-            } else {
+            } else if (dependOnRel) {
                 relPredicate = expressionBinder.combineBooleanExpressions(ExpressionType::AND,
                     relPredicate, predicate);
+            } else {
+                if (predicate->expressionType != common::ExpressionType::LITERAL ||
+                    predicate->dataType != LogicalType::BOOL()) {
+                    throw BinderException(canNotEvaluatePredicateMessage);
+                }
+                // If predicate is true literal, we ignore.
+                // If predicate is false literal, we mark this recursive relationship as empty
+                // and later in planner we replace it with EmptyResult.
+                if (!predicate->constCast<LiteralExpression>().getValue().getValue<bool>()) {
+                    emptyRecursivePattern = true;
+                }
             }
         }
     }
-    auto nodePredicateExecutionFlag = expressionBinder.createVariableExpression(
-        LogicalType{LogicalTypeID::BOOL}, std::string(InternalKeyword::ANONYMOUS));
+    auto nodePredicateExecutionFlag = expressionBinder.createVariableExpression(LogicalType::BOOL(),
+        std::string(InternalKeyword::ANONYMOUS));
     if (nodePredicate != nullptr) {
         nodePredicate = expressionBinder.combineBooleanExpressions(ExpressionType::OR,
             nodePredicate, nodePredicateExecutionFlag);
@@ -440,6 +454,9 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     // Bind rel
     restoreScope(std::move(prevScope));
     auto parsedName = relPattern.getVariableName();
+    if (emptyRecursivePattern) {
+        relTableIDs.clear();
+    }
     auto queryRel = make_shared<RelExpression>(
         getRecursiveRelLogicalType(node->getDataType(), rel->getDataType()),
         getUniqueExpressionName(parsedName), parsedName, relTableIDs, std::move(srcNode),

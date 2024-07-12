@@ -28,15 +28,19 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
         auto op = mapCopyNodeFrom(logicalOperator);
         auto copy = op->ptrCast<NodeBatchInsert>();
         auto table = copy->getSharedState()->fTable;
+        physical_op_vector_t children;
+        children.push_back(std::move(op));
         return createFTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(), table,
-            DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(op));
+            DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(children));
     }
     case TableType::REL: {
         auto ops = mapCopyRelFrom(logicalOperator);
         auto relBatchInsert = ops[0]->ptrCast<RelBatchInsert>();
         auto fTable = relBatchInsert->getSharedState()->fTable;
+        physical_op_vector_t children;
+        children.push_back(std::move(ops[0]));
         auto scan = createFTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(), fTable,
-            DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(ops[0]));
+            DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(children));
         for (auto i = 1u; i < ops.size(); ++i) {
             scan->addChild(std::move(ops[i]));
         }
@@ -238,8 +242,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRdfFrom(LogicalOperator* lo
     if (scanChild != nullptr) {
         copyRdf->addChild(std::move(scanChild));
     }
+    physical_op_vector_t children;
+    children.push_back(std::move(copyRdf));
     return createFTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(), fTable,
-        DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(copyRdf));
+        DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(children));
 }
 
 } // namespace processor

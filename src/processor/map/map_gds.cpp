@@ -46,8 +46,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     auto printInfo = std::make_unique<GDSCallPrintInfo>(call.getInfo().func->name);
     auto gdsCall = std::make_unique<GDSCall>(std::make_unique<ResultSetDescriptor>(),
         std::move(info), sharedState, getOperatorID(), std::move(printInfo));
+    physical_op_vector_t children;
+    children.push_back(std::move(gdsCall));
     return createFTableScanAligned(columns, outSchema, table, DEFAULT_VECTOR_CAPACITY,
-        std::move(gdsCall));
+        std::move(children));
 }
 
 } // namespace processor

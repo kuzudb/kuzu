@@ -1,5 +1,6 @@
 #include "processor/operator/filter.h"
 
+#include "common/exception/runtime.h"
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -11,7 +12,13 @@ std::string FilterPrintInfo::toString() const {
 
 void Filter::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     expressionEvaluator->init(*resultSet, context->clientContext);
-    KU_ASSERT(dataChunkToSelectPos != INVALID_DATA_CHUNK_POS);
+    // LCOV_EXCL_START
+    if (dataChunkToSelectPos == INVALID_DATA_CHUNK_POS) {
+        throw RuntimeException(stringFormat("Trying to evaluate constant expression {} at runtime. "
+                                            "This should be done at compile time.",
+            expressionEvaluator->getExpression()->toString()));
+    }
+    // LCOV_EXCL_STOP
     dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
 }
 

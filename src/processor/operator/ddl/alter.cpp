@@ -46,7 +46,7 @@ std::string AlterPrintInfo::toString() const {
 }
 
 void Alter::executeDDLInternal(ExecutionContext* context) {
-    context->clientContext->getCatalog()->alterTableSchema(context->clientContext->getTx(), info);
+    context->clientContext->getCatalog()->alterTableEntry(context->clientContext->getTx(), info);
     if (info.alterType == common::AlterType::ADD_PROPERTY) {
         auto& boundAddPropInfo = common::ku_dynamic_cast<const binder::BoundExtraAlterInfo&,
             const binder::BoundExtraAddPropertyInfo&>(*info.extraInfo);

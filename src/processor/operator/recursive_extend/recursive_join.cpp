@@ -27,7 +27,7 @@ void RecursiveJoin::initLocalStateInternal(ResultSet*, ExecutionContext* context
     vectors->dstNodeIDVector = resultSet->getValueVector(dataInfo.dstNodePos).get();
     vectors->pathLengthVector = resultSet->getValueVector(dataInfo.pathLengthPos).get();
     auto semantic = context->clientContext->getClientConfig()->recursivePatternSemantic;
-    path_semantic_check_t semanticCheck = nullptr;
+    path_semantic_check_func_t semanticCheck = nullptr;
     std::vector<std::unique_ptr<BaseFrontierScanner>> scanners;
     auto joinType = info.joinType;
     auto lowerBound = info.lowerBound;
@@ -51,7 +51,7 @@ void RecursiveJoin::initLocalStateInternal(ResultSet*, ExecutionContext* context
                 targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
                 scanners.push_back(std::make_unique<PathScanner>(targetDstNodes.get(), i,
-                    dataInfo.tableIDToName, semanticCheck, info.direction));
+                    dataInfo.tableIDToName, semanticCheck, info.direction, info.extendFromSource));
             }
         } break;
         case planner::RecursiveJoinType::TRACK_NONE: {
@@ -82,7 +82,7 @@ void RecursiveJoin::initLocalStateInternal(ResultSet*, ExecutionContext* context
                 targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
                 scanners.push_back(std::make_unique<PathScanner>(targetDstNodes.get(), i,
-                    dataInfo.tableIDToName, nullptr, info.direction));
+                    dataInfo.tableIDToName, nullptr, info.direction, info.extendFromSource));
             }
         } break;
         case planner::RecursiveJoinType::TRACK_NONE: {
@@ -109,7 +109,7 @@ void RecursiveJoin::initLocalStateInternal(ResultSet*, ExecutionContext* context
                 targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
                 scanners.push_back(std::make_unique<PathScanner>(targetDstNodes.get(), i,
-                    dataInfo.tableIDToName, nullptr, info.direction));
+                    dataInfo.tableIDToName, nullptr, info.direction, info.extendFromSource));
             }
         } break;
         case planner::RecursiveJoinType::TRACK_NONE: {
@@ -202,8 +202,7 @@ bool RecursiveJoin::scanOutput() {
     if (vectors->pathVector != nullptr) {
         vectors->pathVector->resetAuxiliaryBuffer();
     }
-    frontiersScanner->scan(vectors.get(), offsetVectorSize, nodeIDDataVectorSize,
-        relIDDataVectorSize);
+    frontiersScanner->scan(*vectors, offsetVectorSize, nodeIDDataVectorSize, relIDDataVectorSize);
     if (offsetVectorSize == 0) {
         return false;
     }

@@ -108,8 +108,7 @@ public:
     std::unique_ptr<BoundStatement> bindCreateType(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateSequence(const parser::Statement& statement);
 
-    std::unique_ptr<BoundStatement> bindDropTable(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindDropSequence(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindDrop(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindAlter(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindRenameTable(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindAddProperty(const parser::Statement& statement);
@@ -272,7 +271,8 @@ public:
 
     void validateTableType(common::table_id_t tableID, common::TableType expectedTableType);
     void validateTableExist(const std::string& tableName);
-
+    void validateDropTable(const parser::Statement& dropTable);
+    void validateDropSequence(const parser::Statement& dropTable);
     /*** helpers ***/
     std::string getUniqueExpressionName(const std::string& name);
 

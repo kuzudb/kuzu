@@ -21,8 +21,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAccumulate(LogicalOperator* op)
     if (acc.hasMark()) {
         expressions.push_back(acc.getMark());
     }
+    physical_op_vector_t children;
+    children.push_back(std::move(resultCollector));
     return createFTableScanAligned(expressions, outSchema, acc.getOffset(), table, maxMorselSize,
-        std::move(resultCollector));
+        std::move(children));
 }
 
 } // namespace processor

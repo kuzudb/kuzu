@@ -24,7 +24,7 @@ public:
     bool isRecursive() const { return rel->isRecursive(); }
     common::ExtendDirection getDirection() const { return direction; }
 
-    bool extendFromSourceNode() const { return *boundNode == *rel->getSrcNode(); }
+    bool extendFromSourceNode() const { return extendFromSource_; }
 
     virtual f_group_pos_set getGroupsPosToFlatten() = 0;
 

@@ -220,21 +220,26 @@ table_id_t Catalog::createTableSchema(Transaction* transaction, const BoundCreat
     return tableID;
 }
 
-void Catalog::dropTableSchema(Transaction* transaction, table_id_t tableID) {
-    auto tableEntry = getTableCatalogEntry(transaction, tableID);
+void Catalog::dropTableEntry(transaction::Transaction* tx, std::string name) {
+    auto tableID = getTableID(tx, name);
+    dropTableEntry(tx, tableID);
+}
+
+void Catalog::dropTableEntry(transaction::Transaction* tx, common::table_id_t tableID) {
+    auto tableEntry = getTableCatalogEntry(tx, tableID);
     switch (tableEntry->getType()) {
     case CatalogEntryType::REL_GROUP_ENTRY: {
-        auto relGroupEntry = ku_dynamic_cast<CatalogEntry*, RelGroupCatalogEntry*>(tableEntry);
+        auto relGroupEntry = tableEntry->constPtrCast<RelGroupCatalogEntry>();
         for (auto& relTableID : relGroupEntry->getRelTableIDs()) {
-            dropTableSchema(transaction, relTableID);
+            dropTableEntry(tx, relTableID);
         }
     } break;
     case CatalogEntryType::RDF_GRAPH_ENTRY: {
         auto rdfGraphSchema = ku_dynamic_cast<CatalogEntry*, RDFGraphCatalogEntry*>(tableEntry);
-        dropTableSchema(transaction, rdfGraphSchema->getResourceTableID());
-        dropTableSchema(transaction, rdfGraphSchema->getLiteralTableID());
-        dropTableSchema(transaction, rdfGraphSchema->getResourceTripleTableID());
-        dropTableSchema(transaction, rdfGraphSchema->getLiteralTripleTableID());
+        dropTableEntry(tx, rdfGraphSchema->getResourceTableID());
+        dropTableEntry(tx, rdfGraphSchema->getLiteralTableID());
+        dropTableEntry(tx, rdfGraphSchema->getResourceTripleTableID());
+        dropTableEntry(tx, rdfGraphSchema->getLiteralTripleTableID());
     } break;
     default: {
         // DO NOTHING.
@@ -247,21 +252,20 @@ void Catalog::dropTableSchema(Transaction* transaction, table_id_t tableID) {
                                .append(property.getName())
                                .append("_")
                                .append("serial");
-            auto seqID = getSequenceID(transaction, seqName);
-            dropSequence(transaction, seqID);
+            dropSequence(tx, seqName);
         }
     }
-    tables->dropEntry(transaction, tableEntry->getName());
+    tables->dropEntry(tx, tableEntry->getName());
 }
 
-void Catalog::alterTableSchema(Transaction* transaction, const BoundAlterInfo& info) {
-    auto tableEntry = getTableCatalogEntry(transaction, info.tableID);
+void Catalog::alterTableEntry(transaction::Transaction* tx, const binder::BoundAlterInfo& info) {
+    auto tableEntry = getTableCatalogEntry(tx, info.tableID);
     KU_ASSERT(tableEntry);
     if (tableEntry->getType() == CatalogEntryType::RDF_GRAPH_ENTRY &&
         info.alterType != AlterType::COMMENT) {
-        alterRdfChildTableEntries(transaction, tableEntry, info);
+        alterRdfChildTableEntries(tx, tableEntry, info);
     }
-    tables->alterEntry(transaction, info);
+    tables->alterEntry(tx, info);
 }
 
 bool Catalog::containsSequence(Transaction* transaction, const std::string& sequenceName) const {
@@ -304,7 +308,12 @@ sequence_id_t Catalog::createSequence(Transaction* transaction,
     return sequenceID;
 }
 
-void Catalog::dropSequence(Transaction* transaction, sequence_id_t sequenceID) {
+void Catalog::dropSequence(Transaction* transaction, std::string name) {
+    auto sequenceID = getSequenceID(transaction, name);
+    dropSequence(transaction, sequenceID);
+}
+
+void Catalog::dropSequence(Transaction* transaction, common::sequence_id_t sequenceID) {
     auto sequenceEntry = getSequenceCatalogEntry(transaction, sequenceID);
     sequences->dropEntry(transaction, sequenceEntry->getName());
 }

@@ -3,8 +3,7 @@
 #include "binder/ddl/bound_create_sequence.h"
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_create_type.h"
-#include "binder/ddl/bound_drop_sequence.h"
-#include "binder/ddl/bound_drop_table.h"
+#include "binder/ddl/bound_drop.h"
 #include "binder/expression/expression_util.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
@@ -279,11 +278,23 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
     return std::make_unique<BoundCreateSequence>(std::move(boundInfo));
 }
 
-std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement) {
+void Binder::validateDropTable(const Statement& statement) {
     auto& dropTable = statement.constCast<Drop>();
-    auto tableName = dropTable.getName();
-    validateTableExist(tableName);
+    auto tableName = dropTable.getDropInfo().name;
     auto catalog = clientContext->getCatalog();
+    auto validTable = catalog->containsTable(clientContext->getTx(), tableName);
+    if (!validTable) {
+        switch (dropTable.getDropInfo().conflictAction) {
+        case common::ConflictAction::ON_CONFLICT_THROW: {
+            throw BinderException("Table " + tableName + " does not exist.");
+        }
+        case common::ConflictAction::ON_CONFLICT_DO_NOTHING: {
+            return;
+        }
+        default:
+            KU_UNREACHABLE;
+        }
+    }
     auto tableID = catalog->getTableID(clientContext->getTx(), tableName);
     auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
     switch (tableEntry->getTableType()) {
@@ -352,19 +363,39 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
     default:
         break;
     }
-    return make_unique<BoundDropTable>(tableID, tableName);
 }
 
-std::unique_ptr<BoundStatement> Binder::bindDropSequence(const Statement& statement) {
+void Binder::validateDropSequence(const parser::Statement& statement) {
     auto& dropSequence = statement.constCast<Drop>();
-    auto sequenceName = dropSequence.getName();
-    if (!clientContext->getCatalog()->containsSequence(clientContext->getTx(), sequenceName)) {
-        throw BinderException("Sequence " + sequenceName + " does not exist.");
+    if (!clientContext->getCatalog()->containsSequence(clientContext->getTx(),
+            dropSequence.getDropInfo().name)) {
+        switch (dropSequence.getDropInfo().conflictAction) {
+        case common::ConflictAction::ON_CONFLICT_THROW: {
+            throw BinderException(common::stringFormat("Sequence {} does not exist.",
+                dropSequence.getDropInfo().name));
+        }
+        case common::ConflictAction::ON_CONFLICT_DO_NOTHING: {
+            return;
+        }
+        default:
+            KU_UNREACHABLE;
+        }
     }
-    auto catalog = clientContext->getCatalog();
-    auto sequenceID = catalog->getSequenceID(clientContext->getTx(), sequenceName);
-    // TODO: Later check if sequence used/referenced by table
-    return make_unique<BoundDropSequence>(sequenceID, sequenceName);
+}
+
+std::unique_ptr<BoundStatement> Binder::bindDrop(const Statement& statement) {
+    auto& drop = statement.constCast<Drop>();
+    switch (drop.getDropInfo().dropType) {
+    case DropType::TABLE: {
+        validateDropTable(drop);
+    } break;
+    case DropType::SEQUENCE: {
+        validateDropSequence(drop);
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
+    return std::make_unique<BoundDrop>(drop.getDropInfo());
 }
 
 std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {

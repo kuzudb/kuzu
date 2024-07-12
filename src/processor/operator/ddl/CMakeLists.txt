@@ -4,9 +4,8 @@ add_library(kuzu_processor_operator_ddl
         create_table.cpp
         create_type.cpp
         ddl.cpp
-        drop_table.cpp
-        create_sequence.cpp
-        drop_sequence.cpp)
+        drop.cpp
+        create_sequence.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_processor_operator_ddl>
