@@ -40,6 +40,12 @@ std::string ExportDBPrintInfo::toString() const {
     return result;
 }
 
+void ExportDB::initGlobalStateInternal(kuzu::processor::ExecutionContext* context) {
+    auto vfs = context->clientContext->getVFSUnsafe();
+    KU_ASSERT(!vfs->fileOrPathExists(boundFileInfo.filePaths[0], context->clientContext));
+    vfs->createDir(boundFileInfo.filePaths[0]);
+}
+
 static void writeStringStreamToFile(VirtualFileSystem* vfs, std::string ssString,
     const std::string& path) {
     auto fileInfo = vfs->openFile(path, O_WRONLY | O_CREAT);

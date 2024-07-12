@@ -16,8 +16,7 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_vector& exprs,
     std::vector<ft_col_idx_t> colIndices, std::shared_ptr<Expression> offset, Schema* schema,
-    std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
-    std::unique_ptr<PhysicalOperator> child) {
+    std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize, physical_op_vector_t children) {
     std::vector<DataPos> outPosV;
     outPosV.reserve(exprs.size());
     for (auto i = 0u; i < exprs.size(); ++i) {
@@ -39,39 +38,50 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_
     info.outputType = TableScanOutputType::MULTI_DATA_CHUNK;
     auto sharedState = std::make_shared<TableFunctionCallSharedState>();
     auto printInfo = std::make_unique<FTableScanFunctionCallPrintInfo>(function->name, exprs);
-    if (child == nullptr) {
+    if (children.size() == 0) {
         return std::make_unique<TableFunctionCall>(std::move(info), sharedState, getOperatorID(),
             std::move(printInfo));
     }
-    return std::make_unique<TableFunctionCall>(std::move(info), sharedState, std::move(child),
+
+    return std::make_unique<TableFunctionCall>(std::move(info), sharedState, std::move(children),
         getOperatorID(), std::move(printInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_vector& exprs,
     std::vector<ft_col_idx_t> colIndices, Schema* schema, std::shared_ptr<FactorizedTable> table,
-    uint64_t maxMorselSize, std::unique_ptr<PhysicalOperator> child) {
+    uint64_t maxMorselSize, physical_op_vector_t children) {
     return createFTableScan(exprs, colIndices, nullptr /* offset */, schema, std::move(table),
-        maxMorselSize, std::move(child));
+        maxMorselSize, std::move(children));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_vector& exprs,
     std::vector<ft_col_idx_t> colIndices, Schema* schema, std::shared_ptr<FactorizedTable> table,
     uint64_t maxMorselSize) {
+    physical_op_vector_t children;
     return createFTableScan(exprs, colIndices, nullptr /* offset */, schema, std::move(table),
-        maxMorselSize, nullptr /* child */);
+        maxMorselSize, std::move(children));
+}
+
+std::unique_ptr<PhysicalOperator> PlanMapper::createEmptyFTableScan(
+    std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize, physical_op_vector_t children) {
+    return createFTableScan(expression_vector{}, std::vector<ft_col_idx_t>{}, nullptr /* offset */,
+        std::move(table), maxMorselSize, std::move(children));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createEmptyFTableScan(
     std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
     std::unique_ptr<PhysicalOperator> child) {
+    physical_op_vector_t children;
+    children.push_back(std::move(child));
     return createFTableScan(expression_vector{}, std::vector<ft_col_idx_t>{}, nullptr /* offset */,
-        std::move(table), maxMorselSize, std::move(child));
+        std::move(table), maxMorselSize, std::move(children));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createEmptyFTableScan(
     std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize) {
+    physical_op_vector_t children;
     return createFTableScan(expression_vector{}, std::vector<ft_col_idx_t>{}, nullptr /* offset */,
-        std::move(table), maxMorselSize, nullptr /* child */);
+        std::move(table), maxMorselSize, std::move(children));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScanAligned(
@@ -83,8 +93,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScanAligned(
     for (auto i = 0u; i < exprs.size(); ++i) {
         colIndices.push_back(i);
     }
+    physical_op_vector_t children;
+    if (child != nullptr) {
+        children.push_back(std::move(child));
+    }
     return createFTableScan(exprs, std::move(colIndices), std::move(offset), schema, table,
-        maxMorselSize, std::move(child));
+        maxMorselSize, std::move(children));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScanAligned(
