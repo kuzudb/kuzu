@@ -8,22 +8,12 @@ namespace kuzu {
 namespace storage {
 
 template<std::floating_point T>
-constexpr size_t ExceptionBuffer<T>::EncodeException::sizeBytes() {
-    constexpr size_t exceptionSizeBytes = sizeof(value) + sizeof(posInPage);
-
-    // best we can do to ensure that all fields are accounted for due to struct padding
-    static_assert(exceptionSizeBytes + (8 - exceptionSizeBytes % 8) >= sizeof(EncodeException));
-
-    return exceptionSizeBytes;
-}
-
-template<std::floating_point T>
 ExceptionBuffer<T>::ExceptionBuffer(uint8_t* frame, size_t frameSizeBytes,
     const CompressionMetadata& metadata)
     : capacityBytes(getDataSizeForExceptions(frameSizeBytes, metadata)) {
     uint8_t* exceptionBufferStart = frame + frameSizeBytes;
     header = reinterpret_cast<Header*>(exceptionBufferStart - sizeof(Header));
-    exceptions = reinterpret_cast<uint8_t*>(header) - EncodeException::sizeBytes();
+    exceptions = reinterpret_cast<uint8_t*>(header) - EncodeException<T>::sizeBytes();
 }
 
 template<std::floating_point T>
@@ -32,13 +22,13 @@ void ExceptionBuffer<T>::init() {
 }
 
 template<std::floating_point T>
-void ExceptionBuffer<T>::addException(EncodeException exception) {
+void ExceptionBuffer<T>::addException(EncodeException<T> exception) {
     encodeException(exception, exceptionCount());
     ++exceptionCount();
 }
 
 template<std::floating_point T>
-void ExceptionBuffer<T>::encodeException(EncodeException exception, common::offset_t idx) {
+void ExceptionBuffer<T>::encodeException(EncodeException<T> exception, common::offset_t idx) {
     static constexpr size_t exceptionSizeBytes = exception.sizeBytes();
 
     const auto byteOffset = idx * exceptionSizeBytes;
@@ -49,8 +39,8 @@ void ExceptionBuffer<T>::encodeException(EncodeException exception, common::offs
 }
 
 template<std::floating_point T>
-ExceptionBuffer<T>::EncodeException ExceptionBuffer<T>::decodeException(common::offset_t idx) {
-    EncodeException ret;
+EncodeException<T> ExceptionBuffer<T>::decodeException(common::offset_t idx) {
+    EncodeException<T> ret;
 
     static constexpr size_t exceptionSizeBytes = ret.sizeBytes();
 
@@ -73,12 +63,12 @@ void ExceptionBuffer<T>::removeException(common::offset_t idx) {
 
 template<std::floating_point T>
 size_t ExceptionBuffer<T>::getSizeBytes() {
-    return sizeof(Header) + exceptionCount() * EncodeException::sizeBytes();
+    return sizeof(Header) + exceptionCount() * EncodeException<T>::sizeBytes();
 }
 
 template<std::floating_point T>
 common::offset_t& ExceptionBuffer<T>::exceptionCount() {
-    KU_ASSERT(header->numExceptions <= 4 * 1024 / EncodeException::sizeBytes());
+    KU_ASSERT(header->numExceptions <= 4 * 1024 / EncodeException<T>::sizeBytes());
     return header->numExceptions;
 }
 
@@ -89,7 +79,7 @@ size_t ExceptionBuffer<T>::getDataSizeForExceptions(size_t dataSize,
     const auto integerPackingInfo =
         IntegerBitpacking<int64_t>::getPackingInfo(metadata.getChild(0));
 
-    static constexpr size_t bitsPerException = EncodeException::sizeBytes() * 8;
+    static constexpr size_t bitsPerException = EncodeException<T>::sizeBytes() * 8;
     const size_t avgBitsPerValue = common::ceilDiv(
         bitsPerException + integerPackingInfo.bitWidth * (metadata.alpMetadata.exceptionRatio - 1),
         static_cast<size_t>(metadata.alpMetadata.exceptionRatio));
@@ -99,7 +89,7 @@ size_t ExceptionBuffer<T>::getDataSizeForExceptions(size_t dataSize,
     const size_t totalExceptions = numValuesPerPage / metadata.alpMetadata.exceptionRatio;
 
     // TODO: add tests for maxExceptionRatio = 1, etc
-    auto ret = sizeof(Header) + totalExceptions * EncodeException::sizeBytes();
+    auto ret = sizeof(Header) + totalExceptions * EncodeException<T>::sizeBytes();
     KU_ASSERT(ret < dataSize);
     return ret;
 }
@@ -107,7 +97,7 @@ size_t ExceptionBuffer<T>::getDataSizeForExceptions(size_t dataSize,
 template<std::floating_point T>
 size_t ExceptionBuffer<T>::getMaxExceptionCount(size_t exceptionBufferSize) {
     KU_ASSERT(exceptionBufferSize >= sizeof(Header));
-    return (exceptionBufferSize - sizeof(Header)) / EncodeException::sizeBytes();
+    return (exceptionBufferSize - sizeof(Header)) / EncodeException<T>::sizeBytes();
 }
 
 template<std::floating_point T>

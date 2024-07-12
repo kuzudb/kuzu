@@ -432,7 +432,7 @@ public:
     ReadCompressedValuesFromPageToVector(const ReadCompressedValuesFromPageToVector&) = default;
 
     void operator()(const uint8_t* frame, PageCursor& pageCursor, common::ValueVector* resultVector,
-        uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata);
+        uint32_t posInVector, uint64_t numValuesToRead, const CompressionMetadata& metadata);
 };
 
 class ReadCompressedValuesFromPage : public CompressedFunctor {

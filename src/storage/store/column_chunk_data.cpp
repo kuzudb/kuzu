@@ -177,10 +177,8 @@ public:
         }
 
         const auto preExceptionMetadata = uncompressedGetMetadata(nullptr,
-            metadata.compMeta.alpMetadata.exceptionCount *
-                typename ExceptionBuffer<T>::EncodeException::sizeBytes(),
-            metadata.compMeta.alpMetadata.exceptionCount *
-                typename ExceptionBuffer<T>::EncodeException::sizeBytes(),
+            metadata.compMeta.alpMetadata.exceptionCount * EncodeException<T>::sizeBytes(),
+            metadata.compMeta.alpMetadata.exceptionCount * EncodeException<T>::sizeBytes(),
             metadata.compMeta.alpMetadata.exceptionCount, StorageValue{0}, StorageValue{0});
         CompressedFlushBuffer exceptionFlushBuffer{std::make_shared<IntegerBitpacking<int64_t>>(),
             LogicalType::INT64()};

@@ -6,6 +6,7 @@
 #include "common/null_mask.h"
 #include "common/types/types.h"
 #include "storage/compression/compression.h"
+#include "storage/compression/compression_float.h"
 #include "storage/stats/metadata_dah_info.h"
 #include "storage/storage_structure/disk_array.h"
 #include "storage/store/column_chunk_data.h"
@@ -21,7 +22,7 @@ class DiskArrayCollection;
 
 using read_values_to_vector_func_t =
     std::function<void(uint8_t* frame, PageCursor& pageCursor, common::ValueVector* resultVector,
-        uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata)>;
+        uint32_t posInVector, uint64_t numValuesToRead, const CompressionMetadata& metadata)>;
 using write_values_from_vector_func_t = std::function<void(uint8_t* frame, uint16_t posInFrame,
     common::ValueVector* vector, uint32_t posInVector, const CompressionMetadata& metadata)>;
 using write_values_func_t = std::function<void(uint8_t* frame, uint16_t posInFrame,
@@ -254,6 +255,46 @@ private:
     static bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
         return val >= start && val < end;
     }
+
+    PageCursor getExceptionPageCursor(const ChunkState& readState, PageCursor cursor);
+
+    template<typename T>
+    EncodeException<T> getExceptionAt(size_t curExceptionIdx, transaction::Transaction* transaction,
+        PageCursor exceptionPageCursor);
+
+    template<typename T>
+    common::offset_t findFirstExceptionAtOrPastOffset(transaction::Transaction* transaction,
+        common::offset_t offsetInChunk, PageCursor exceptionPageCursor);
+
+    template<typename T, typename OutputType>
+    void readFloatValue(transaction::Transaction* transaction, const ChunkState& readState,
+        common::offset_t offsetInChunk, PageCursor cursor, OutputType result,
+        uint32_t offsetInResult,
+        std::function<void(uint8_t* frame, PageCursor& pageCursor, OutputType result,
+            uint32_t posInResult, uint64_t numValues, const CompressionMetadata& metadata)>
+            readFunc);
+
+    template<typename T, typename OutputType>
+    void patchFloatExceptions(transaction::Transaction* transaction, const ChunkState& readState,
+        common::offset_t startOffsetInChunk, size_t numValuesToScan, PageCursor pageCursor,
+        OutputType result, common::offset_t startOffsetInResult,
+        std::function<bool(common::offset_t, common::offset_t)> filterFunc);
+
+    template<typename OutputType>
+    void readValue(transaction::Transaction* transaction, const ChunkState& readState,
+        common::offset_t nodeOffset, OutputType result, uint32_t offsetInResult,
+        std::function<void(uint8_t* frame, PageCursor& pageCursor, OutputType result,
+            uint32_t posInResult, uint64_t numValues, const CompressionMetadata& metadata)>
+            readFunc);
+
+    template<typename OutputType>
+    void readValues(transaction::Transaction* transaction, const ChunkState& readState,
+        OutputType result, uint32_t startOffsetInResult, uint64_t startNodeOffset,
+        uint64_t endNodeOffset,
+        std::function<void(uint8_t* frame, PageCursor& pageCursor, OutputType result,
+            uint32_t posInResult, uint64_t numValues, const CompressionMetadata& metadata)>
+            readFunc,
+        std::function<bool(common::offset_t, common::offset_t)> filterFunc);
 
 protected:
     std::string name;

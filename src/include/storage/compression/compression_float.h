@@ -50,18 +50,29 @@ public:
 
     CompressionType getCompressionType() const override { return CompressionType::FLOAT; }
 
+    static BitpackInfo<int64_t> getBitpackInfo(const CompressionMetadata& metadata) {}
+
 private:
     IntegerBitpacking<int64_t> encodedFloatBitpacker;
 };
 
 template<std::floating_point T>
-struct ExceptionBuffer {
-    struct EncodeException {
-        T value;
-        uint16_t posInPage;
+struct EncodeException {
+    T value;
+    uint16_t posInPage;
 
-        static constexpr size_t sizeBytes();
-    };
+    static constexpr size_t sizeBytes() {
+        constexpr size_t exceptionSizeBytes = sizeof(value) + sizeof(posInPage);
+
+        // best we can do to ensure that all fields are accounted for due to struct padding
+        static_assert(exceptionSizeBytes + (8 - exceptionSizeBytes % 8) >= sizeof(EncodeException));
+
+        return exceptionSizeBytes;
+    }
+};
+
+template<std::floating_point T>
+struct ExceptionBuffer {
 
     ExceptionBuffer(uint8_t* frame, size_t frameSizeBytes, const CompressionMetadata& metadata);
     struct Header {
@@ -75,9 +86,9 @@ struct ExceptionBuffer {
 
     void init();
 
-    void addException(EncodeException exception);
-    void encodeException(EncodeException exception, common::offset_t idx);
-    EncodeException decodeException(common::offset_t idx);
+    void addException(EncodeException<T> exception);
+    void encodeException(EncodeException<T> exception, common::offset_t idx);
+    EncodeException<T> decodeException(common::offset_t idx);
     void removeException(common::offset_t idx);
     size_t getSizeBytes();
     common::offset_t& exceptionCount();

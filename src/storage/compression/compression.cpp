@@ -804,7 +804,7 @@ void BooleanBitpacking::copyFromPage(const uint8_t* srcBuffer, uint64_t srcOffse
 }
 
 void ReadCompressedValuesFromPageToVector::operator()(const uint8_t* frame, PageCursor& pageCursor,
-    common::ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
+    common::ValueVector* resultVector, uint32_t posInVector, uint64_t numValuesToRead,
     const CompressionMetadata& metadata) {
     switch (metadata.compression) {
     case CompressionType::CONSTANT:
