@@ -127,12 +127,12 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getLambdaParamEvaluator(
 std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getCaseEvaluator(
     std::shared_ptr<Expression> expression) {
     auto caseExpression = reinterpret_cast<CaseExpression*>(expression.get());
-    std::vector<std::unique_ptr<CaseAlternativeEvaluator>> alternativeEvaluators;
+    std::vector<CaseAlternativeEvaluator> alternativeEvaluators;
     for (auto i = 0u; i < caseExpression->getNumCaseAlternatives(); ++i) {
         auto alternative = caseExpression->getCaseAlternative(i);
         auto whenEvaluator = getEvaluator(alternative->whenExpression);
         auto thenEvaluator = getEvaluator(alternative->thenExpression);
-        alternativeEvaluators.push_back(std::make_unique<CaseAlternativeEvaluator>(
+        alternativeEvaluators.push_back(CaseAlternativeEvaluator(
             std::move(whenEvaluator), std::move(thenEvaluator)));
     }
     auto elseEvaluator = getEvaluator(caseExpression->getElseExpression());
