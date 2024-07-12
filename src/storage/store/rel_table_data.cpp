@@ -2,6 +2,7 @@
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/rel_direction.h"
+#include "common/types/internal_id_t.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/stats/rels_store_statistics.h"
 #include "storage/store/table.h"
@@ -16,7 +17,8 @@ namespace storage {
 RelDataReadState::RelDataReadState(const std::vector<column_id_t>& columnIDs)
     : TableDataScanState{columnIDs}, nodeGroupIdx{INVALID_NODE_GROUP_IDX}, numNodes{0},
       currentNodeOffset{0}, posInCurrentCSR{0}, readFromPersistentStorage{false},
-      readFromLocalStorage{false}, localNodeGroup{nullptr} {}
+      readFromLocalStorage{false}, localNodeGroup{nullptr}, randomAccess{false},
+      hasFullCSRHeaders{false} {}
 
 bool RelDataReadState::hasMoreToReadFromLocalStorage() const {
     KU_ASSERT(localNodeGroup);
@@ -56,18 +58,36 @@ bool RelDataReadState::hasMoreToReadInPersistentStorage() const {
         return false;
     }
     auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    return (currentNodeOffset - nodeGroupStartOffset) < numNodes &&
-           posInCurrentCSR < csrHeaderChunks.getCSRLength(currentNodeOffset - nodeGroupStartOffset);
+    offset_t nodeOffsetInGroup = randomAccess ? 0 : currentNodeOffset - nodeGroupStartOffset;
+    return nodeOffsetInGroup < numNodes &&
+           posInCurrentCSR < csrHeaderChunks.getCSRLength(nodeOffsetInGroup);
 }
 
 std::pair<offset_t, offset_t> RelDataReadState::getStartAndEndOffset() {
-    auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    auto currCSRSize = csrHeaderChunks.getCSRLength(currentNodeOffset - startNodeOffset);
-    auto startOffset =
-        csrHeaderChunks.getStartCSROffset(currentNodeOffset - startNodeOffset) + posInCurrentCSR;
-    auto numRowsToRead = std::min(currCSRSize - posInCurrentCSR, DEFAULT_VECTOR_CAPACITY);
-    posInCurrentCSR += numRowsToRead;
-    return {startOffset, startOffset + numRowsToRead};
+    if (randomAccess) {
+        offset_t startOffset;
+        // If the nodeOffset was not zero, we scan both the current node offset and the previous one
+        // See CSRHeaderColumns::lookup
+        // So we want the startOffset of the second node stored in the csrHeaderChunks.
+        if (csrHeaderChunks.offset->getNumValues() > 1) {
+            startOffset = csrHeaderChunks.getStartCSROffset(1) + posInCurrentCSR;
+        } else {
+            // The nodeOffset was zero, so the CSR entry starts at zero
+            startOffset = posInCurrentCSR;
+        }
+        auto numRowsToRead =
+            std::min(csrHeaderChunks.getCSRLength(0) - posInCurrentCSR, DEFAULT_VECTOR_CAPACITY);
+        posInCurrentCSR += numRowsToRead;
+        return {startOffset, startOffset + numRowsToRead};
+    } else {
+        auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+        auto currCSRSize = csrHeaderChunks.getCSRLength(currentNodeOffset - startNodeOffset);
+        auto startOffset = csrHeaderChunks.getStartCSROffset(currentNodeOffset - startNodeOffset) +
+                           posInCurrentCSR;
+        auto numRowsToRead = std::min(currCSRSize - posInCurrentCSR, DEFAULT_VECTOR_CAPACITY);
+        posInCurrentCSR += numRowsToRead;
+        return {startOffset, startOffset + numRowsToRead};
+    }
 }
 
 void RelDataReadState::resetState() {
@@ -189,17 +209,38 @@ void RelTableData::initializeScanState(Transaction* transaction, TableScanState&
     // Reset to read from beginning for the csr of the new node offset.
     relScanState.posInCurrentCSR = 0;
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+
     if (relScanState.nodeGroupIdx != nodeGroupIdx) {
+        // Fields cached even for random scans
+        relScanState.numNodesInGroup = csrHeaderColumns.getNumNodes(transaction, nodeGroupIdx);
+    }
+
+    if (relScanState.nodeGroupIdx != nodeGroupIdx || relScanState.randomAccess ||
+        !relScanState.hasFullCSRHeaders) {
         // Scan csr offsets and populate csr list entries for the new node group.
         relScanState.nodeGroupIdx = nodeGroupIdx;
         auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-        csrHeaderColumns.scan(transaction, nodeGroupIdx, relScanState.csrHeaderChunks);
-        KU_ASSERT(relScanState.csrHeaderChunks.offset->getNumValues() ==
-                  relScanState.csrHeaderChunks.length->getNumValues());
+        if (relScanState.randomAccess) {
+            if (nodeOffset - startNodeOffset < relScanState.numNodesInGroup) {
+                csrHeaderColumns.lookup(transaction, nodeGroupIdx, relScanState.csrHeaderChunks,
+                    nodeOffset - startNodeOffset, relScanState.offsetState,
+                    relScanState.lengthState);
+            }
+            // It's necessary to mark whether or not we've done a full scan of the headers so that a
+            // sequential scan following a randomAccess scan will read the headers again. There is
+            // no differentiation between the inputs and the state cached between scans
+            relScanState.hasFullCSRHeaders = false;
+        } else {
+            csrHeaderColumns.scan(transaction, nodeGroupIdx, relScanState.csrHeaderChunks);
+            KU_ASSERT(relScanState.csrHeaderChunks.offset->getNumValues() ==
+                      relScanState.csrHeaderChunks.length->getNumValues());
+            relScanState.hasFullCSRHeaders = true;
+        }
         relScanState.numNodes = relScanState.csrHeaderChunks.offset->getNumValues();
+
         relScanState.readFromPersistentStorage =
             nodeGroupIdx < columns[REL_ID_COLUMN_ID]->getNumCommittedNodeGroups() &&
-            (nodeOffset - startNodeOffset) < relScanState.numNodes;
+            (nodeOffset - startNodeOffset) < relScanState.numNodesInGroup;
         if (relScanState.readFromPersistentStorage) {
             initializeColumnScanStates(transaction, scanState, nodeGroupIdx);
         }
@@ -207,9 +248,7 @@ void RelTableData::initializeScanState(Transaction* transaction, TableScanState&
             relScanState.localNodeGroup = getLocalNodeGroup(transaction, nodeGroupIdx);
         }
     }
-    if (nodeOffset != relScanState.currentNodeOffset) {
-        relScanState.currentNodeOffset = nodeOffset;
-    }
+    relScanState.currentNodeOffset = nodeOffset;
 }
 
 void RelTableData::initializeColumnScanStates(Transaction* transaction, TableScanState& scanState,
