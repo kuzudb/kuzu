@@ -5,6 +5,10 @@
 -CASE FunctionCase
 
 -LOG CaseNull
+
+-STATEMENT RETURN CASE NULL  WHEN NULL THEN "Null value" ELSE "Not null value" END;
+---- 1
+Null value
 -STATEMENT return case 25 when 25 then null else 25 end;
 ---- 1
 

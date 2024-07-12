@@ -20,12 +20,13 @@ struct CaseAlternativeEvaluator {
     CaseAlternativeEvaluator(std::unique_ptr<ExpressionEvaluator> whenEvaluator,
         std::unique_ptr<ExpressionEvaluator> thenEvaluator)
         : whenEvaluator{std::move(whenEvaluator)}, thenEvaluator{std::move(thenEvaluator)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(CaseAlternativeEvaluator);
 
     void init(const processor::ResultSet& resultSet, main::ClientContext* clientContext);
 
-    std::unique_ptr<CaseAlternativeEvaluator> copy() const {
-        return make_unique<CaseAlternativeEvaluator>(whenEvaluator->clone(),
-            thenEvaluator->clone());
+private:
+    CaseAlternativeEvaluator(const CaseAlternativeEvaluator& other)
+        : whenEvaluator{other.whenEvaluator->clone()}, thenEvaluator{other.thenEvaluator->clone()} {
     }
 };
 
@@ -34,13 +35,13 @@ class CaseExpressionEvaluator : public ExpressionEvaluator {
 
 public:
     CaseExpressionEvaluator(std::shared_ptr<binder::Expression> expression,
-        std::vector<std::unique_ptr<CaseAlternativeEvaluator>> alternativeEvaluators,
+        std::vector<CaseAlternativeEvaluator> alternativeEvaluators,
         std::unique_ptr<ExpressionEvaluator> elseEvaluator)
         : ExpressionEvaluator{type_, std::move(expression)},
           alternativeEvaluators{std::move(alternativeEvaluators)},
           elseEvaluator{std::move(elseEvaluator)} {}
 
-    const std::vector<std::unique_ptr<CaseAlternativeEvaluator>>& getAlternativeEvaluators() const {
+    const std::vector<CaseAlternativeEvaluator>& getAlternativeEvaluators() const {
         return alternativeEvaluators;
     }
     ExpressionEvaluator* getElseEvaluator() const { return elseEvaluator.get(); }
@@ -68,7 +69,7 @@ private:
     void fillEntry(common::sel_t resultPos, common::ValueVector* srcVector);
 
 private:
-    std::vector<std::unique_ptr<CaseAlternativeEvaluator>> alternativeEvaluators;
+    std::vector<CaseAlternativeEvaluator> alternativeEvaluators;
     std::unique_ptr<ExpressionEvaluator> elseEvaluator;
 
     std::bitset<common::DEFAULT_VECTOR_CAPACITY> filledMask;

@@ -18,7 +18,7 @@ void CaseAlternativeEvaluator::init(const ResultSet& resultSet,
 
 void CaseExpressionEvaluator::init(const ResultSet& resultSet, main::ClientContext* clientContext) {
     for (auto& alternativeEvaluator : alternativeEvaluators) {
-        alternativeEvaluator->init(resultSet, clientContext);
+        alternativeEvaluator.init(resultSet, clientContext);
     }
     elseEvaluator->init(resultSet, clientContext);
     ExpressionEvaluator::init(resultSet, clientContext);
@@ -27,14 +27,14 @@ void CaseExpressionEvaluator::init(const ResultSet& resultSet, main::ClientConte
 void CaseExpressionEvaluator::evaluate() {
     filledMask.reset();
     for (auto& alternativeEvaluator : alternativeEvaluators) {
-        auto whenSelVector = alternativeEvaluator->whenSelVector.get();
-        auto hasAtLeastOneValue = alternativeEvaluator->whenEvaluator->select(*whenSelVector);
+        auto whenSelVector = alternativeEvaluator.whenSelVector.get();
+        auto hasAtLeastOneValue = alternativeEvaluator.whenEvaluator->select(*whenSelVector);
         if (!hasAtLeastOneValue) {
             continue;
         }
-        alternativeEvaluator->thenEvaluator->evaluate();
-        auto thenVector = alternativeEvaluator->thenEvaluator->resultVector.get();
-        if (alternativeEvaluator->whenEvaluator->isResultFlat()) {
+        alternativeEvaluator.thenEvaluator->evaluate();
+        auto thenVector = alternativeEvaluator.thenEvaluator->resultVector.get();
+        if (alternativeEvaluator.whenEvaluator->isResultFlat()) {
             fillAll(thenVector);
         } else {
             fillSelected(*whenSelVector, thenVector);
@@ -67,8 +67,8 @@ void CaseExpressionEvaluator::resolveResultVector(const ResultSet& /*resultSet*/
     resultVector = std::make_shared<ValueVector>(expression->dataType.copy(), memoryManager);
     std::vector<ExpressionEvaluator*> inputEvaluators;
     for (auto& alternative : alternativeEvaluators) {
-        inputEvaluators.push_back(alternative->whenEvaluator.get());
-        inputEvaluators.push_back(alternative->thenEvaluator.get());
+        inputEvaluators.push_back(alternative.whenEvaluator.get());
+        inputEvaluators.push_back(alternative.thenEvaluator.get());
     }
     inputEvaluators.push_back(elseEvaluator.get());
     resolveResultStateFromChildren(inputEvaluators);
