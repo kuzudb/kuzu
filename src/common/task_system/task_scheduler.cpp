@@ -1,4 +1,5 @@
 #include "common/task_system/task_scheduler.h"
+#include <sstream>
 
 using namespace kuzu::common;
 
@@ -132,8 +133,8 @@ std::shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
             continue;
         }
         // don't remove task if failed, done by thread which submitted the task
-        // if task is single threaded (and already has >1 thread executing it), ignore it
-        if ((task->exceptionsPtr != nullptr)  || (task->maxNumThreads == 1)) {
+        // if task's max thread equals to number of threads registered, ignore it
+        if (task->exceptionsPtr || (task->maxNumThreads == task->numThreadsRegistered)) {
             task->mtx.unlock();
             it++;
             continue;
