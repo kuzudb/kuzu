@@ -2,7 +2,9 @@
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/rel_direction.h"
+#include "common/exception/message.h"
 #include "storage/local_storage/local_rel_table.h"
+#include "storage/store/node_group.h"
 #include "storage/store/rel_table.h"
 
 using namespace kuzu::catalog;
@@ -190,21 +192,39 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     return {source, matchingRowIdx};
 }
 
-bool RelTableData::checkIfNodeHasRels(Transaction*, offset_t) const {
-    // auto [nodeGroupIdx, offsetInChunk] =
-    // StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset); if (nodeGroupIdx >=
-    // csrHeaderColumns.length->getNumNodeGroups(transaction)) {
-    //     return false;
-    // }
-    // ChunkState readState;
-    // csrHeaderColumns.length->initChunkState(transaction, nodeGroupIdx, readState);
-    // if (offsetInChunk >= readState.metadata.numValues) {
-    //     return false;
-    // }
-    // length_t length;
-    // csrHeaderColumns.length->scan(transaction, readState, offsetInChunk, offsetInChunk + 1,
-    //     reinterpret_cast<uint8_t*>(&length));
-    // return length > 0;
+void RelTableData::checkIfNodeHasRels(Transaction* transaction, ValueVector* srcNodeIDVector) const {
+    KU_ASSERT(srcNodeIDVector->state->isFlat());
+    const auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
+    const auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
+    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset); 
+    if (nodeGroupIdx >= getNumNodeGroups()) {
+        return;
+    }
+    DataChunk scanChunk(1);
+    // RelID output vector.
+    scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
+    std::vector<column_id_t> columnIDs = {REL_ID_COLUMN_ID};
+    std::vector<Column*> columns{getColumn(REL_ID_COLUMN_ID)};
+    const auto scanState = std::make_unique<RelTableScanState>(tableID, columnIDs, columns,
+        csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
+    scanState->boundNodeIDVector = srcNodeIDVector;
+    scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
+    scanState->IDVector = scanState->outputVectors[0];
+    scanState->source = TableScanSource::COMMITTED;
+    scanState->boundNodeOffset = nodeOffset;
+    scanState->nodeGroup = getNodeGroup(nodeGroupIdx);
+    scanState->nodeGroup->initializeScanState(transaction, *scanState);
+    while (true) {
+        const auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
+        if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+            break;
+        }
+        if (scanState->outputVectors[0]->state->getSelVector().getSelSize() > 0) {
+            throw RuntimeException(ExceptionMessage::violateDeleteNodeWithConnectedEdgesConstraint(
+                tableName, std::to_string(nodeOffset),
+                RelDataDirectionUtils::relDirectionToString(direction)));
+        }
+    }
 }
 
 static length_t getGapSizeForNode(const ChunkedCSRHeader& header, offset_t nodeOffset) {

@@ -196,7 +196,7 @@ private:
     static common::offset_t getCommittedOffset(common::offset_t uncommittedOffset,
         common::offset_t maxCommittedOffset);
 
-    common::row_idx_t detachDeleteForCSRRels(transaction::Transaction* transaction,
+    void detachDeleteForCSRRels(transaction::Transaction* transaction,
         RelTableData* tableData, RelTableData* reverseTableData, 
         RelTableScanState* relDataReadState, RelTableDeleteState* deleteState);
 
