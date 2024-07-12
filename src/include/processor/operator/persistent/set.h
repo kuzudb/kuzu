@@ -1,8 +1,8 @@
 #pragma once
 
+#include "binder/query/updating_clause/bound_set_info.h"
 #include "processor/operator/physical_operator.h"
 #include "set_executor.h"
-#include "binder/query/updating_clause/bound_set_info.h"
 
 namespace kuzu {
 namespace processor {
@@ -10,8 +10,7 @@ namespace processor {
 struct SetPropertyPrintInfo final : OPPrintInfo {
     std::string operation;
 
-    explicit SetPropertyPrintInfo(std::string operation)
-        : operation(std::move(operation)) {}
+    explicit SetPropertyPrintInfo(std::string operation) : operation(std::move(operation)) {}
 
     std::string toString() const override;
 

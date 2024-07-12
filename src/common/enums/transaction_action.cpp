@@ -6,7 +6,7 @@ namespace kuzu {
 namespace transaction {
 
 std::string TransactionActionUtils::toString(TransactionAction action) {
-    switch(action) {
+    switch (action) {
     case TransactionAction::BEGIN_READ: {
         return "BEGIN_READ";
     }
@@ -27,8 +27,8 @@ std::string TransactionActionUtils::toString(TransactionAction action) {
     }
     default:
         KU_UNREACHABLE;
-    }        
+    }
 }
 
-} // namespace common
+} // namespace transaction
 } // namespace kuzu

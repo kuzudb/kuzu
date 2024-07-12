@@ -1,4 +1,5 @@
 #include "processor/operator/persistent/set.h"
+
 #include "binder/expression/expression_util.h"
 
 using namespace kuzu::binder;
