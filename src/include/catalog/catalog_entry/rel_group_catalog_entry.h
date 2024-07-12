@@ -19,7 +19,7 @@ public:
     //===--------------------------------------------------------------------===//
     bool isParent(common::table_id_t tableID) override;
     common::TableType getTableType() const override { return common::TableType::REL_GROUP; }
-    const std::vector<common::table_id_t>& getRelTableIDsRef() const { return relTableIDs; }
+    const std::vector<common::table_id_t>& getRelTableIDs() const { return relTableIDs; }
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization

@@ -350,13 +350,8 @@ kU_Cycle : (NO SP)? CYCLE ;
 kU_IfExists
     : IF SP EXISTS ;
 
-kU_DropType
-    : TABLE
-    | RDFGRAPH
-    | SEQUENCE ;
-
 kU_Drop
-    : DROP SP kU_DropType SP (kU_IfExists SP)? oC_SchemaName ;
+    : DROP SP (TABLE | RDFGRAPH | SEQUENCE) SP (kU_IfExists SP)? oC_SchemaName ;
 
 kU_AlterTable
     : ALTER SP TABLE SP oC_SchemaName SP kU_AlterOptions ;

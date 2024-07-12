@@ -76,9 +76,9 @@ public:
 
     common::table_id_t createTableSchema(transaction::Transaction* tx,
         const binder::BoundCreateTableInfo& info);
-    void dropTableSchema(transaction::Transaction* tx, std::string name);
-    void dropTableSchema(transaction::Transaction* tx, common::table_id_t tableID);
-    void alterTableSchema(transaction::Transaction* tx, const binder::BoundAlterInfo& info);
+    void dropTableEntry(transaction::Transaction* tx, std::string name);
+    void dropTableEntry(transaction::Transaction* tx, common::table_id_t tableID);
+    void alterTableEntry(transaction::Transaction* tx, const binder::BoundAlterInfo& info);
 
     // ----------------------------- Sequences ----------------------------
     bool containsSequence(transaction::Transaction* tx, const std::string& sequenceName) const;

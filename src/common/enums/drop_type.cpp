@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace common {
 
-std::string DropTypeUtils::toString(kuzu::common::DropType type) {
+std::string DropTypeUtils::toString(DropType type) {
     switch (type) {
     case DropType::TABLE:
         return "Table";

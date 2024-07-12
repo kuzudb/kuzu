@@ -35,7 +35,7 @@ void Drop::executeDDLInternal(ExecutionContext* context) {
             dropInfo.name);
     } break;
     case common::DropType::TABLE: {
-        context->clientContext->getCatalog()->dropTableSchema(context->clientContext->getTx(),
+        context->clientContext->getCatalog()->dropTableEntry(context->clientContext->getTx(),
             dropInfo.name);
     } break;
     default:

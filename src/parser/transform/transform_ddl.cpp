@@ -165,7 +165,7 @@ std::unique_ptr<Statement> Transformer::transformCreateType(
     return std::make_unique<CreateType>(name, type);
 }
 
-DropType transformDropType(CypherParser::KU_DropTypeContext& ctx) {
+DropType transformDropType(CypherParser::KU_DropContext& ctx) {
     if (ctx.TABLE() || ctx.RDFGRAPH()) {
         return DropType::TABLE;
     } else if (ctx.SEQUENCE()) {
@@ -177,7 +177,7 @@ DropType transformDropType(CypherParser::KU_DropTypeContext& ctx) {
 
 std::unique_ptr<Statement> Transformer::transformDrop(CypherParser::KU_DropContext& ctx) {
     auto name = transformSchemaName(*ctx.oC_SchemaName());
-    auto dropType = transformDropType(*ctx.kU_DropType());
+    auto dropType = transformDropType(ctx);
     auto conflictAction = ctx.kU_IfExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
                                               common::ConflictAction::ON_CONFLICT_THROW;
     return std::make_unique<Drop>(DropInfo{std::move(name), dropType, conflictAction});
