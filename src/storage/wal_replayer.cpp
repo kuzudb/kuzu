@@ -240,7 +240,7 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) {
     case CatalogEntryType::REL_TABLE_ENTRY:
     case CatalogEntryType::REL_GROUP_ENTRY:
     case CatalogEntryType::RDF_GRAPH_ENTRY: {
-        clientContext.getCatalog()->dropTableSchema(&DUMMY_WRITE_TRANSACTION, entryID);
+        clientContext.getCatalog()->dropTableEntry(&DUMMY_WRITE_TRANSACTION, entryID);
         // During recovery, storageManager does not exist.
         if (clientContext.getStorageManager()) {
             clientContext.getStorageManager()->dropTable(entryID, clientContext.getVFSUnsafe());
@@ -261,7 +261,7 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) {
     }
     auto binder = Binder(&clientContext);
     auto& alterEntryRecord = walRecord.constCast<AlterTableEntryRecord>();
-    clientContext.getCatalog()->alterTableSchema(&DUMMY_WRITE_TRANSACTION,
+    clientContext.getCatalog()->alterTableEntry(&DUMMY_WRITE_TRANSACTION,
         *alterEntryRecord.ownedAlterInfo);
     if (alterEntryRecord.ownedAlterInfo->alterType == common::AlterType::ADD_PROPERTY) {
         auto exprBinder = binder.getExpressionBinder();
