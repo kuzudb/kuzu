@@ -107,7 +107,9 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
     std::unique_ptr<FileInfo> fileInfo;
     offset_t offset = 0;
 
-    ExportCSVSharedState(main::ClientContext& context, const ExportFuncBindData& bindData) {
+    ExportCSVSharedState() = default;
+
+    void init(main::ClientContext& context, const ExportFuncBindData& bindData) override {
         fileInfo = context.getVFSUnsafe()->openFile(bindData.fileName, O_WRONLY | O_CREAT | O_TRUNC,
             &context);
         writeHeader(bindData);
@@ -177,14 +179,18 @@ static std::unique_ptr<ExportFuncBindData> bindFunc(ExportFuncBindInput& bindInp
         CSVReaderConfig::construct(std::move(bindInput.parsingOptions)).option.copy());
 }
 
-static std::unique_ptr<ExportFuncLocalState> initLocalState(main::ClientContext& context,
+static std::unique_ptr<ExportFuncLocalState> initLocalStateFunc(main::ClientContext& context,
     const ExportFuncBindData& bindData, std::vector<bool> isFlatVec) {
     return std::make_unique<ExportCSVLocalState>(context, bindData, isFlatVec);
 }
 
-static std::shared_ptr<ExportFuncSharedState> initSharedState(main::ClientContext& context,
+static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc() {
+    return std::make_shared<ExportCSVSharedState>();
+}
+
+static void initSharedStateFunc(ExportFuncSharedState& sharedState, main::ClientContext& context,
     const ExportFuncBindData& bindData) {
-    return std::make_shared<ExportCSVSharedState>(context, bindData);
+    sharedState.init(context, bindData);
 }
 
 static void writeRows(const ExportCSVBindData& exportCSVBindData, ExportCSVLocalState& localState,
@@ -255,8 +261,9 @@ function_set ExportCSVFunction::getFunctionSet() {
     function_set functionSet;
     auto exportFunc = std::make_unique<ExportFunction>(name);
     exportFunc->bind = bindFunc;
-    exportFunc->initLocal = initLocalState;
-    exportFunc->initShared = initSharedState;
+    exportFunc->initLocalState = initLocalStateFunc;
+    exportFunc->createSharedState = createSharedStateFunc;
+    exportFunc->initSharedState = initSharedStateFunc;
     exportFunc->sink = sinkFunc;
     exportFunc->combine = combineFunc;
     exportFunc->finalize = finalizeFunc;

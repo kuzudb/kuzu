@@ -56,15 +56,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
 std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     planner::LogicalOperator* logicalOperator) {
     auto exportDatabase = logicalOperator->constPtrCast<LogicalExportDatabase>();
-    // Ideally we should create directory inside operator but ExportDatabase is executed before
-    // CopyTo which requires the directory to exist. So we create directory in mapper inside.
     auto fs = clientContext->getVFSUnsafe();
     auto boundFileInfo = exportDatabase->getBoundFileInfo();
     KU_ASSERT(boundFileInfo->filePaths.size() == 1);
     auto filePath = boundFileInfo->filePaths[0];
-    if (!fs->fileOrPathExists(filePath, clientContext)) {
-        fs->createDir(filePath);
-    } else {
+    if (fs->fileOrPathExists(filePath, clientContext)) {
         throw RuntimeException(stringFormat("Directory {} already exists.", filePath));
     }
     std::vector<std::unique_ptr<PhysicalOperator>> children;
@@ -73,8 +69,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
         children.push_back(std::move(childPhysicalOperator));
     }
     auto printInfo = std::make_unique<ExportDBPrintInfo>(filePath, boundFileInfo->options);
-    return std::make_unique<ExportDB>(exportDatabase->getBoundFileInfo()->copy(),
-        getOutputPos(exportDatabase), getOperatorID(), std::move(children), std::move(printInfo));
+    auto exportDB = std::make_unique<ExportDB>(exportDatabase->getBoundFileInfo()->copy(),
+        getOutputPos(exportDatabase), getOperatorID(), std::move(printInfo));
+    auto outputExpr = {exportDatabase->getOutputExpression()};
+    auto resultCollector = createResultCollector(AccumulateType::REGULAR, outputExpr,
+        exportDatabase->getSchema(), std::move(exportDB));
+    auto resultFT = resultCollector->getResultFactorizedTable();
+    children.push_back(std::move(resultCollector));
+    return createFTableScan(outputExpr, {0} /* colIdxes */, exportDatabase->getSchema(), resultFT,
+        1 /* maxMorselSize */, std::move(children));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapImportDatabase(

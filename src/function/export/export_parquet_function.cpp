@@ -50,7 +50,9 @@ struct ExportParquetLocalState final : public ExportFuncLocalState {
 struct ExportParquetSharedState : public ExportFuncSharedState {
     std::unique_ptr<ParquetWriter> writer;
 
-    ExportParquetSharedState(const ExportFuncBindData& bindData, main::ClientContext& context) {
+    ExportParquetSharedState() = default;
+
+    void init(main::ClientContext& context, const ExportFuncBindData& bindData) override {
         auto& exportParquetBindData = bindData.constCast<ExportParquetBindData>();
         writer = std::make_unique<ParquetWriter>(exportParquetBindData.fileName,
             common::LogicalType::copy(exportParquetBindData.types),
@@ -62,14 +64,18 @@ static std::unique_ptr<ExportFuncBindData> bindFunc(ExportFuncBindInput& bindInp
     return std::make_unique<ExportParquetBindData>(bindInput.columnNames, bindInput.filePath);
 }
 
-static std::unique_ptr<ExportFuncLocalState> initLocalState(main::ClientContext& context,
+static std::unique_ptr<ExportFuncLocalState> initLocalStateFunc(main::ClientContext& context,
     const ExportFuncBindData& bindData, std::vector<bool> isFlatVec) {
     return std::make_unique<ExportParquetLocalState>(bindData, context, isFlatVec);
 }
 
-static std::shared_ptr<ExportFuncSharedState> initSharedState(main::ClientContext& context,
+static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc() {
+    return std::make_shared<ExportParquetSharedState>();
+}
+
+static void initSharedStateFunc(ExportFuncSharedState& sharedState, main::ClientContext& context,
     const ExportFuncBindData& bindData) {
-    return std::make_shared<ExportParquetSharedState>(bindData, context);
+    sharedState.init(context, bindData);
 }
 
 static std::vector<ValueVector*> extractSharedPtr(
@@ -115,8 +121,9 @@ static void finalizeFunc(ExportFuncSharedState& sharedState) {
 function_set ExportParquetFunction::getFunctionSet() {
     function_set functionSet;
     auto exportFunc = std::make_unique<ExportFunction>(name);
-    exportFunc->initLocal = initLocalState;
-    exportFunc->initShared = initSharedState;
+    exportFunc->initLocalState = initLocalStateFunc;
+    exportFunc->createSharedState = createSharedStateFunc;
+    exportFunc->initSharedState = initSharedStateFunc;
     exportFunc->sink = sinkFunc;
     exportFunc->combine = combineFunc;
     exportFunc->finalize = finalizeFunc;

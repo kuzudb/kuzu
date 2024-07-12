@@ -60,6 +60,8 @@ public:
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
+    void initGlobalStateInternal(ExecutionContext* context) override;
+
     void finalize(ExecutionContext* context) override;
 
     void executeInternal(processor::ExecutionContext* context) override;
