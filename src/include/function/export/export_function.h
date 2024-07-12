@@ -54,24 +54,24 @@ struct ExportFuncBindInput {
     std::unordered_map<std::string, common::Value> parsingOptions;
 };
 
-using bind_t =
+using export_bind_t =
     std::function<std::unique_ptr<ExportFuncBindData>(function::ExportFuncBindInput& bindInput)>;
-using init_local_t = std::function<std::unique_ptr<ExportFuncLocalState>(main::ClientContext&,
-    const ExportFuncBindData&, std::vector<bool>)>;
-using create_shared_t = std::function<std::shared_ptr<ExportFuncSharedState>()>;
-using init_shared_t =
+using export_init_local_t = std::function<std::unique_ptr<ExportFuncLocalState>(
+    main::ClientContext&, const ExportFuncBindData&, std::vector<bool>)>;
+using export_create_shared_t = std::function<std::shared_ptr<ExportFuncSharedState>()>;
+using export_init_shared_t =
     std::function<void(ExportFuncSharedState&, main::ClientContext&, ExportFuncBindData&)>;
-using sink_t = std::function<void(ExportFuncSharedState&, ExportFuncLocalState&,
+using export_sink_t = std::function<void(ExportFuncSharedState&, ExportFuncLocalState&,
     const ExportFuncBindData&, std::vector<std::shared_ptr<common::ValueVector>>)>;
-using combine_t = std::function<void(ExportFuncSharedState&, ExportFuncLocalState&)>;
-using finalize_t = std::function<void(ExportFuncSharedState&)>;
+using export_combine_t = std::function<void(ExportFuncSharedState&, ExportFuncLocalState&)>;
+using export_finalize_t = std::function<void(ExportFuncSharedState&)>;
 
 struct ExportFunction : public Function {
     explicit ExportFunction(std::string name) : Function{std::move(name), {}} {}
 
-    ExportFunction(std::string name, init_local_t initLocal, create_shared_t createShared,
-        init_shared_t initShared, sink_t copyToSink, combine_t copyToCombine,
-        finalize_t copyToFinalize)
+    ExportFunction(std::string name, export_init_local_t initLocal,
+        export_create_shared_t createShared, export_init_shared_t initShared,
+        export_sink_t copyToSink, export_combine_t copyToCombine, export_finalize_t copyToFinalize)
         : Function{std::move(name), {}}, initLocalState{std::move(initLocal)},
           createSharedState{std::move(createShared)}, initSharedState{std::move(initShared)},
           sink{std::move(copyToSink)}, combine{std::move(copyToCombine)},
@@ -82,13 +82,13 @@ struct ExportFunction : public Function {
             initSharedState, sink, combine, finalize);
     }
 
-    bind_t bind;
-    init_local_t initLocalState;
-    create_shared_t createSharedState;
-    init_shared_t initSharedState;
-    sink_t sink;
-    combine_t combine;
-    finalize_t finalize;
+    export_bind_t bind;
+    export_init_local_t initLocalState;
+    export_create_shared_t createSharedState;
+    export_init_shared_t initSharedState;
+    export_sink_t sink;
+    export_combine_t combine;
+    export_finalize_t finalize;
 };
 
 struct ExportCSVFunction : public ExportFunction {
