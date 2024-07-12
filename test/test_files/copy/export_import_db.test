@@ -193,6 +193,12 @@ Zhang|Noura
 -CASE DocExportImportExampleParquet
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db" (format="parquet");
 ---- ok
+-STATEMENT LOAD FROM "${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db/city.parquet" RETURN *
+---- 3
+Guelph|75000
+Kitchener|200000
+Waterloo|150000
+
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db"
 -STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db"
 ---- ok
@@ -202,3 +208,10 @@ Adam|Karissa
 Adam|Zhang
 Karissa|Zhang
 Zhang|Noura
+
+-CASE ExplainExport
+-STATEMENT EXPLAIN EXPORT Database "${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db" (format="parquet");
+---- ok
+-STATEMENT LOAD FROM "${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db/city.parquet" RETURN *
+---- error
+Binder exception: No file found that matches the pattern: ${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db/city.parquet.
