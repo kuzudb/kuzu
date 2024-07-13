@@ -138,28 +138,37 @@ public:
 
     CompressedFloatFlushBuffer(const CompressedFloatFlushBuffer& other) = default;
 
-    ColumnChunkMetadata operator()(const uint8_t* buffer, uint64_t /*bufferSize*/,
-        BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) const {
+    ColumnChunkMetadata operator()(const uint8_t* buffer, uint64_t bufferSize, BMFileHandle* dataFH,
+        page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) const {
+        if (metadata.compMeta.compression == CompressionType::UNCOMPRESSED) {
+            return CompressedFlushBuffer{std::make_shared<Uncompressed>(dataType), dataType}.
+            operator()(buffer, bufferSize, dataFH, startPageIdx, metadata);
+        }
+        KU_ASSERT(metadata.compMeta.compression == CompressionType::FLOAT);
+
         auto valuesRemaining = metadata.numValues;
         const uint8_t* bufferStart = buffer;
         const auto compressedBuffer =
             std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
-        const auto exceptionBuffer =
-            std::make_unique<uint8_t[]>(metadata.compMeta.alpMetadata.exceptionCount *
-                                        typename ExceptionBuffer<T>::EncodeException::sizeBytes());
+        const size_t exceptionBufferSize =
+            ceilDiv((size_t)metadata.compMeta.alpMetadata.exceptionCount,
+                (BufferPoolConstants::PAGE_4KB_SIZE / EncodeException<T>::sizeBytes())) *
+            BufferPoolConstants::PAGE_4KB_SIZE;
+        const auto exceptionBuffer = std::make_unique<uint8_t[]>(exceptionBufferSize);
         uint8_t* exceptionBufferCursor = exceptionBuffer.get();
         auto numPages = 0u;
         const auto numValuesPerPage =
             metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
         KU_ASSERT(numValuesPerPage * metadata.numPages >= metadata.numValues);
+        size_t remainingExceptionBufferSize = exceptionBufferSize;
         while (valuesRemaining > 0) {
             size_t pageExceptionCount = 0;
-            (void)alg->compressNextPageWithExceptions(bufferStart, valuesRemaining,
-                compressedBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE, exceptionBufferCursor,
-                metadata.compMeta.alpMetadata.exceptionCount *
-                    typename ExceptionBuffer<T>::EncodeException::sizeBytes(),
-                pageExceptionCount, metadata.compMeta);
-            exceptionBufferCursor += pageExceptionCount;
+            (void)alg->compressNextPageWithExceptions(bufferStart,
+                metadata.numValues - valuesRemaining, valuesRemaining, compressedBuffer.get(),
+                BufferPoolConstants::PAGE_4KB_SIZE, exceptionBufferCursor,
+                remainingExceptionBufferSize, pageExceptionCount, metadata.compMeta);
+            exceptionBufferCursor += pageExceptionCount * EncodeException<T>::sizeBytes();
+            remainingExceptionBufferSize -= pageExceptionCount * EncodeException<T>::sizeBytes();
 
             // Avoid underflows (when data is compressed to nothing, numValuesPerPage may be
             // UINT64_MAX)
@@ -176,18 +185,38 @@ public:
             numPages++;
         }
 
-        const auto preExceptionMetadata = uncompressedGetMetadata(nullptr,
-            metadata.compMeta.alpMetadata.exceptionCount * EncodeException<T>::sizeBytes(),
-            metadata.compMeta.alpMetadata.exceptionCount * EncodeException<T>::sizeBytes(),
-            metadata.compMeta.alpMetadata.exceptionCount, StorageValue{0}, StorageValue{0});
-        CompressedFlushBuffer exceptionFlushBuffer{std::make_shared<IntegerBitpacking<int64_t>>(),
-            LogicalType::INT64()};
-        const auto exceptionMetadata =
-            exceptionFlushBuffer.operator()(reinterpret_cast<const uint8_t*>(exceptionBuffer.get()),
-                dataFH, startPageIdx + numPages, preExceptionMetadata);
+        // check for underflow
+        KU_ASSERT(remainingExceptionBufferSize <= exceptionBufferSize);
 
-        return ColumnChunkMetadata(startPageIdx, numPages + exceptionMetadata.numPages,
-            metadata.numValues, metadata.compMeta);
+        const auto preExceptionMetadata =
+            uncompressedGetMetadata(nullptr, exceptionBufferSize, exceptionBufferSize,
+                metadata.compMeta.alpMetadata.exceptionCount, StorageValue{0}, StorageValue{1});
+
+        // TODO doesn't work in multi-thread
+        const auto exceptionStartPageIdx = dataFH->addNewPages(preExceptionMetadata.numPages);
+        KU_ASSERT(exceptionStartPageIdx == startPageIdx + metadata.numPages);
+
+        if constexpr (std::is_same_v<T, float>) {
+            const auto encodedType = LogicalType::ALP_EXCEPTION_FLOAT();
+            CompressedFlushBuffer exceptionFlushBuffer{std::make_shared<Uncompressed>(encodedType),
+                encodedType};
+            const auto exceptionMetadata = exceptionFlushBuffer.operator()(
+                reinterpret_cast<const uint8_t*>(exceptionBuffer.get()), exceptionBufferSize,
+                dataFH, exceptionStartPageIdx, preExceptionMetadata);
+
+            return ColumnChunkMetadata(startPageIdx, metadata.numPages + exceptionMetadata.numPages,
+                metadata.numValues, metadata.compMeta);
+        } else {
+            const auto encodedType = LogicalType::ALP_EXCEPTION_DOUBLE();
+            CompressedFlushBuffer exceptionFlushBuffer{std::make_shared<Uncompressed>(encodedType),
+                encodedType};
+            const auto exceptionMetadata = exceptionFlushBuffer.operator()(
+                reinterpret_cast<const uint8_t*>(exceptionBuffer.get()), exceptionBufferSize,
+                dataFH, exceptionStartPageIdx, preExceptionMetadata);
+
+            return ColumnChunkMetadata(startPageIdx, metadata.numPages + exceptionMetadata.numPages,
+                metadata.numValues, metadata.compMeta);
+        }
     }
 };
 
@@ -272,10 +301,22 @@ public:
         }
 
         std::span<const T> src{reinterpret_cast<const T*>(buffer), numValues};
+        const auto firstSuccessfulEncode =
+            std::find_if(src.begin(), src.end(), [&alpMetadata](T val) {
+                const auto encoded_value =
+                    alp::AlpEncode<T>::encode_value(val, alpMetadata.fac, alpMetadata.exp);
+                const auto decoded_value = alp::AlpDecode<T>::decode_value(encoded_value,
+                    alpMetadata.fac, alpMetadata.exp);
+                return decoded_value == val;
+            });
+        if (firstSuccessfulEncode == src.end()) {
+            return ColumnChunkMetadata(INVALID_PAGE_IDX,
+                ColumnChunkData::getNumPagesForBytes(bufferSize), numValues,
+                CompressionMetadata(min, max, CompressionType::UNCOMPRESSED));
+        }
 
         std::vector<int64_t> floatEncodedValues(numValues);
         std::vector<size_t> exceptionsPrefixSum(numValues); // TODO optimize out
-        size_t successfulEncodeCount = 0;
         for (offset_t i = 0; i < numValues; ++i) {
             const T& val = src[i];
             const auto encoded_value =
@@ -288,59 +329,24 @@ public:
             }
 
             if (val == decoded_value) {
-                floatEncodedValues[successfulEncodeCount] = encoded_value;
-                ++successfulEncodeCount;
+                floatEncodedValues[i] = encoded_value;
             } else {
+                floatEncodedValues[i] = *firstSuccessfulEncode;
                 ++exceptionsPrefixSum[i];
             }
         }
-        const auto& [minEncoded, maxEncoded] = std::minmax_element(floatEncodedValues.begin(),
-            floatEncodedValues.begin() + successfulEncodeCount);
+        const auto& [minEncoded, maxEncoded] =
+            std::minmax_element(floatEncodedValues.begin(), floatEncodedValues.end());
 
-        // TODO optimize
-        for (size_t exceptionRatio = 16; exceptionRatio >= 1; --exceptionRatio) {
-            auto compMeta = CompressionMetadata(min, max, alg->getCompressionType(), alpMetadata,
-                StorageValue{*minEncoded}, StorageValue{*maxEncoded}, exceptionRatio);
+        auto compMeta = CompressionMetadata(min, max, alg->getCompressionType(), alpMetadata,
+            StorageValue{*minEncoded}, StorageValue{*maxEncoded}, exceptionsPrefixSum.back());
 
-            const auto numValuesPerPage =
-                compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
-            KU_ASSERT(numValuesPerPage < UINT64_MAX && numValuesPerPage >= 0);
-            if (numValuesPerPage < BufferPoolConstants::PAGE_4KB_SIZE / sizeof(T)) {
-                break;
-            }
-
-            size_t exceptionsInPrevPage = 0;
-            const size_t maxExceptionCount = FloatCompression<T>::getMaxExceptionCountPerPage(
-                common::BufferPoolConstants::PAGE_4KB_SIZE, compMeta);
-            bool good = true;
-            for (offset_t i = 0; i < numValues; i += numValuesPerPage) {
-                const size_t exceptionsInCurPage =
-                    exceptionsPrefixSum[std::min(i + numValuesPerPage - 1, numValues - 1)] -
-                    exceptionsInPrevPage;
-
-                const auto pageExceptionRatio =
-                    exceptionsInCurPage == 0 ? INT32_MAX : numValuesPerPage / exceptionsInCurPage;
-                if (exceptionsInCurPage > maxExceptionCount ||
-                    pageExceptionRatio < exceptionRatio) {
-                    good = false;
-                    break;
-                }
-
-                exceptionsInPrevPage =
-                    exceptionsPrefixSum[std::min(i + numValuesPerPage - 1, numValues - 1)];
-            }
-
-            if (good) {
-                KU_ASSERT(numValuesPerPage >= BufferPoolConstants::PAGE_4KB_SIZE / sizeof(T));
-                const auto numPages =
-                    capacity / numValuesPerPage + (capacity % numValuesPerPage == 0 ? 0 : 1);
-                return ColumnChunkMetadata(INVALID_PAGE_IDX, numPages, numValues, compMeta);
-            }
-        }
-
-        return ColumnChunkMetadata(INVALID_PAGE_IDX,
-            ColumnChunkData::getNumPagesForBytes(bufferSize), numValues,
-            CompressionMetadata(min, max, CompressionType::UNCOMPRESSED));
+        const auto numValuesPerPage =
+            compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+        KU_ASSERT(numValuesPerPage >= 0);
+        const auto numPagesForEncoded =
+            capacity / numValuesPerPage + (capacity % numValuesPerPage == 0 ? 0 : 1);
+        return ColumnChunkMetadata(INVALID_PAGE_IDX, numPagesForEncoded, numValues, compMeta);
     }
 };
 
@@ -427,19 +433,23 @@ void ColumnChunkData::initializeFunction() {
     case PhysicalTypeID::UINT32:
     case PhysicalTypeID::UINT16:
     case PhysicalTypeID::UINT8:
-    case PhysicalTypeID::INT128:
-    case PhysicalTypeID::DOUBLE:
-    case PhysicalTypeID::FLOAT: {
+    case PhysicalTypeID::INT128: {
         const auto compression = getCompression(dataType, enableCompression);
         flushBufferFunction = CompressedFlushBuffer(compression, dataType);
-        if (dataType.getPhysicalType() == common::PhysicalTypeID::FLOAT) {
-            getMetadataFunction = GetFloatCompressionMetadata<float>(compression, dataType);
-        } else if (dataType.getPhysicalType() == common::PhysicalTypeID::DOUBLE) {
-            getMetadataFunction = GetFloatCompressionMetadata<double>(compression, dataType);
-        } else {
-            getMetadataFunction = GetBitpackingMetadata(compression, dataType);
-        }
+        getMetadataFunction = GetBitpackingMetadata(compression, dataType);
     } break;
+    case PhysicalTypeID::DOUBLE: {
+        const auto compression = std::make_shared<FloatCompression<double>>();
+        flushBufferFunction = CompressedFloatFlushBuffer<double>(compression, dataType);
+        getMetadataFunction = GetFloatCompressionMetadata<double>(compression, dataType);
+        break;
+    }
+    case PhysicalTypeID::FLOAT: {
+        const auto compression = std::make_shared<FloatCompression<float>>();
+        flushBufferFunction = CompressedFloatFlushBuffer<float>(compression, dataType);
+        getMetadataFunction = GetFloatCompressionMetadata<float>(compression, dataType);
+        break;
+    }
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST:
     case PhysicalTypeID::STRING:

@@ -234,6 +234,10 @@ uint32_t PhysicalTypeUtils::getFixedTypeSize(PhysicalTypeID physicalType) {
         return sizeof(interval_t);
     case PhysicalTypeID::INTERNAL_ID:
         return sizeof(internalID_t);
+    case kuzu::common::PhysicalTypeID::ALP_EXCEPTION_FLOAT:
+        return 8;
+    case kuzu::common::PhysicalTypeID::ALP_EXCEPTION_DOUBLE:
+        return 12;
     default:
         KU_UNREACHABLE;
     }
@@ -785,6 +789,12 @@ PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID,
     case LogicalTypeID::POINTER: {
         return PhysicalTypeID::POINTER;
     } break;
+    case LogicalTypeID::ALP_EXCEPTION_FLOAT: {
+        return PhysicalTypeID::ALP_EXCEPTION_FLOAT;
+    }
+    case LogicalTypeID::ALP_EXCEPTION_DOUBLE: {
+        return PhysicalTypeID::ALP_EXCEPTION_DOUBLE;
+    }
     default:
         KU_UNREACHABLE;
     }

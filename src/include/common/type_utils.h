@@ -129,6 +129,10 @@ public:
         auto func = overload(funcs...);
         switch (dataType.getLogicalTypeID()) {
         /* NOLINTBEGIN(bugprone-branch-clone)*/
+        case kuzu::common::LogicalTypeID::ALP_EXCEPTION_DOUBLE:
+            KU_UNREACHABLE;
+        case kuzu::common::LogicalTypeID::ALP_EXCEPTION_FLOAT:
+            KU_UNREACHABLE;
         case LogicalTypeID::INT8:
             return func(int8_t());
         case LogicalTypeID::UINT8:

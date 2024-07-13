@@ -35,10 +35,10 @@ public:
         uint8_t* dstBuffer, uint64_t dstBufferSize,
         const struct CompressionMetadata& metadata) const final;
 
-    uint64_t compressNextPageWithExceptions(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
-        uint8_t* dstBuffer, uint64_t dstBufferSize, uint8_t* exceptionBuffer,
-        uint64_t exceptionBufferSize, uint64_t& exceptionCount,
-        const struct CompressionMetadata& metadata) const {}
+    uint64_t compressNextPageWithExceptions(const uint8_t*& srcBuffer, uint64_t srcOffset,
+        uint64_t numValuesRemaining, uint8_t* dstBuffer, uint64_t dstBufferSize,
+        uint8_t* exceptionBuffer, uint64_t exceptionBufferSize, uint64_t& exceptionCount,
+        const struct CompressionMetadata& metadata) const;
 
     void decompressFromPage(const uint8_t* srcBuffer, uint64_t srcOffset, uint8_t* dstBuffer,
         uint64_t dstOffset, uint64_t numValues,
@@ -50,7 +50,7 @@ public:
 
     CompressionType getCompressionType() const override { return CompressionType::FLOAT; }
 
-    static BitpackInfo<int64_t> getBitpackInfo(const CompressionMetadata& metadata) {}
+    static BitpackInfo<int64_t> getBitpackInfo(const CompressionMetadata& metadata);
 
 private:
     IntegerBitpacking<int64_t> encodedFloatBitpacker;
@@ -59,7 +59,7 @@ private:
 template<std::floating_point T>
 struct EncodeException {
     T value;
-    uint16_t posInPage;
+    uint32_t posInPage;
 
     static constexpr size_t sizeBytes() {
         constexpr size_t exceptionSizeBytes = sizeof(value) + sizeof(posInPage);

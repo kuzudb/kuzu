@@ -164,6 +164,9 @@ enum class LogicalTypeID : uint8_t {
     POINTER = 58,
 
     UUID = 59,
+
+    ALP_EXCEPTION_FLOAT = 60,
+    ALP_EXCEPTION_DOUBLE = 61,
 };
 
 enum class PhysicalTypeID : uint8_t {
@@ -183,6 +186,8 @@ enum class PhysicalTypeID : uint8_t {
     FLOAT = 12,
     INTERVAL = 13,
     INTERNAL_ID = 14,
+    ALP_EXCEPTION_FLOAT = 15,
+    ALP_EXCEPTION_DOUBLE = 16,
 
     // Variable size types.
     STRING = 20,
@@ -251,6 +256,12 @@ public:
     static LogicalType INT128() { return LogicalType(LogicalTypeID::INT128); }
     static LogicalType DOUBLE() { return LogicalType(LogicalTypeID::DOUBLE); }
     static LogicalType FLOAT() { return LogicalType(LogicalTypeID::FLOAT); }
+    static LogicalType ALP_EXCEPTION_FLOAT() {
+        return LogicalType(LogicalTypeID::ALP_EXCEPTION_FLOAT);
+    }
+    static LogicalType ALP_EXCEPTION_DOUBLE() {
+        return LogicalType(LogicalTypeID::ALP_EXCEPTION_DOUBLE);
+    }
     static LogicalType DATE() { return LogicalType(LogicalTypeID::DATE); }
     static LogicalType TIMESTAMP_NS() { return LogicalType(LogicalTypeID::TIMESTAMP_NS); }
     static LogicalType TIMESTAMP_MS() { return LogicalType(LogicalTypeID::TIMESTAMP_MS); }

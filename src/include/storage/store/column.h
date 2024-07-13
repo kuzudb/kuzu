@@ -264,7 +264,8 @@ private:
 
     template<typename T>
     common::offset_t findFirstExceptionAtOrPastOffset(transaction::Transaction* transaction,
-        common::offset_t offsetInChunk, PageCursor exceptionPageCursor);
+        common::offset_t offsetInChunk, common::offset_t exceptionCount,
+        PageCursor exceptionPageCursor);
 
     template<typename T, typename OutputType>
     void readFloatValue(transaction::Transaction* transaction, const ChunkState& readState,
@@ -288,7 +289,7 @@ private:
             readFunc);
 
     template<typename OutputType>
-    void readValues(transaction::Transaction* transaction, const ChunkState& readState,
+    uint64_t readValues(transaction::Transaction* transaction, const ChunkState& readState,
         OutputType result, uint32_t startOffsetInResult, uint64_t startNodeOffset,
         uint64_t endNodeOffset,
         std::function<void(uint8_t* frame, PageCursor& pageCursor, OutputType result,
