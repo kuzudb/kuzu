@@ -3,7 +3,6 @@
 #include <fcntl.h>
 
 #include <cmath>
-#include <mutex>
 
 #include "common/file_system/virtual_file_system.h"
 
