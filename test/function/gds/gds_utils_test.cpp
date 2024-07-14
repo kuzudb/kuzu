@@ -27,7 +27,7 @@ public:
 TEST_F(GDSUtilsTest, OneWorkerThreadSystemDoesNotHalt) {
     ASSERT_TRUE(conn->query("PROJECT GRAPH PK (person1, knows11) "
                             "MATCH (a:person1) WHERE a.ID = 1 "
-                            "CALL shortest_paths(PK, a, 1,  true) "
+                            "CALL single_sp_lengths(PK, a, 1,  true) "
                             "RETURN *;")
                     ->isSuccess());
 }

@@ -48,10 +48,12 @@ private:
 class FrontierCompute {
 public:
     virtual ~FrontierCompute() = default;
-    // Does any work that is needed for the neighbor nbrID. Returns true if the neighbor should
-    // be put in the next frontier. So if the implementing class has access to the next frontier
-    // as a field, **do not** call setActive. Helper functions in GDSUtils will do that work.
-    virtual bool edgeCompute(nodeID_t nbrID) = 0;
+    // Does any work that is needed while extending the (curNodeID, nbrID) edge. curNodeID is the
+    // nodeID that is in the current frontier and currently executing. Returns true if the neighbor
+    // should be put in the next frontier. So if the implementing class has access to the next
+    // frontier as a field, **do not** call setActive. Helper functions in GDSUtils will do that
+    // work.
+    virtual bool edgeCompute(nodeID_t curNodeID, nodeID_t nbrID) = 0;
 };
 
 /**

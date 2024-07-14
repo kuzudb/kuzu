@@ -37,7 +37,7 @@ void RecursiveJoin::initLocalStateInternal(ResultSet*, ExecutionContext* context
         switch (info.joinType) {
         case planner::RecursiveJoinType::TRACK_PATH: {
             switch (semantic) {
-            case PathSemantic::TRIAL: {
+            case PathSemantic::TRAIL: {
                 semanticCheck = PathScanner::trailSemanticCheck;
             } break;
             case PathSemantic::ACYCLIC: {
