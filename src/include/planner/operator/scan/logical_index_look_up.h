@@ -26,7 +26,7 @@ public:
     const binder::IndexLookupInfo& getInfo(uint32_t idx) const { return infos[idx]; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalPrimaryKeyLookup>(copyVector(infos), children[0]->copy());
+        return make_unique<LogicalPrimaryKeyLookup>(infos, children[0]->copy());
     }
 
 private:

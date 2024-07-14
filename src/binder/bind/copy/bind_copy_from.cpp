@@ -37,16 +37,15 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     }
     switch (tableEntry->getTableType()) {
     case TableType::NODE: {
-        auto nodeTableEntry =
-            ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableEntry);
+        auto nodeTableEntry = tableEntry->ptrCast<NodeTableCatalogEntry>();
         return bindCopyNodeFrom(statement, nodeTableEntry);
     }
     case TableType::REL: {
-        auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(tableEntry);
+        auto relTableEntry = tableEntry->ptrCast<RelTableCatalogEntry>();
         return bindCopyRelFrom(statement, relTableEntry);
     }
     case TableType::RDF: {
-        auto rdfGraphEntry = ku_dynamic_cast<TableCatalogEntry*, RDFGraphCatalogEntry*>(tableEntry);
+        auto rdfGraphEntry = tableEntry->ptrCast<RDFGraphCatalogEntry>();
         return bindCopyRdfFrom(statement, rdfGraphEntry);
     }
     default: {
@@ -114,7 +113,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
 
 std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement& statement,
     RelTableCatalogEntry* relTableEntry) {
-    auto& copyStatement = ku_dynamic_cast<const Statement&, const CopyFrom&>(statement);
+    auto& copyStatement = statement.constCast<CopyFrom>();
     if (copyStatement.byColumn()) {
         throw BinderException(
             stringFormat("Copy by column is not supported for relationship table."));
@@ -133,8 +132,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     auto dstTableID = relTableEntry->getDstTableID();
     auto srcKey = columns[0];
     auto dstKey = columns[1];
-    auto srcOffset = createVariable(InternalKeyword::SRC_OFFSET, LogicalTypeID::INT64);
-    auto dstOffset = createVariable(InternalKeyword::DST_OFFSET, LogicalTypeID::INT64);
+    auto srcOffset = createVariable(std::string(InternalKeyword::SRC_OFFSET), LogicalType::INT64());
+    auto dstOffset = createVariable(std::string(InternalKeyword::DST_OFFSET), LogicalType::INT64());
     expression_vector columnExprs{srcOffset, dstOffset, offset};
     std::vector<bool> defaultColumns{false, false, false};
     auto& properties = relTableEntry->getPropertiesRef();
@@ -151,9 +150,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     }
     auto srcLookUpInfo = IndexLookupInfo(srcTableID, srcOffset, srcKey);
     auto dstLookUpInfo = IndexLookupInfo(dstTableID, dstOffset, dstKey);
-    auto extraCopyRelInfo = std::make_unique<ExtraBoundCopyRelInfo>();
-    extraCopyRelInfo->infos.push_back(std::move(srcLookUpInfo));
-    extraCopyRelInfo->infos.push_back(std::move(dstLookUpInfo));
+    auto lookupInfos = std::vector<IndexLookupInfo>{srcLookUpInfo, dstLookUpInfo};
+    auto internalIDColumnIndices = std::vector<common::idx_t>{0, 1, 2};
+    auto extraCopyRelInfo = std::make_unique<ExtraBoundCopyRelInfo>(internalIDColumnIndices, lookupInfos);
     auto boundCopyFromInfo = BoundCopyFromInfo(relTableEntry, boundSource->copy(), offset,
         std::move(columnExprs), std::move(defaultColumns), std::move(extraCopyRelInfo));
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));

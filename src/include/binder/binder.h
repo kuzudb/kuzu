@@ -49,6 +49,10 @@ namespace transaction {
 class Transaction;
 } // namespace transaction
 
+namespace common {
+struct RdfReaderConfig;
+}
+
 namespace binder {
 struct PropertyInfo;
 struct BoundBaseScanSource;
@@ -61,6 +65,7 @@ class BoundReturnClause;
 struct BoundFileScanInfo;
 struct ExportedTableData;
 struct BoundJoinHintNode;
+struct BoundCopyFromInfo;
 
 // BinderScope keeps track of expressions in scope and their aliases. We maintain the order of
 // expressions in
@@ -128,6 +133,14 @@ public:
         catalog::RelTableCatalogEntry* relTableEntry);
     std::unique_ptr<BoundStatement> bindCopyRdfFrom(const parser::Statement& statement,
         catalog::RDFGraphCatalogEntry* rdfGraphEntry);
+    BoundCopyFromInfo bindCopyRdfResourceInfo(const common::RdfReaderConfig& config,
+        const function::TableFuncBindData& bindData, const catalog::RDFGraphCatalogEntry& rdfEntry);
+    BoundCopyFromInfo bindCopyRdfLiteralInfo(const common::RdfReaderConfig& config,
+        const function::TableFuncBindData& bindData, const catalog::RDFGraphCatalogEntry& rdfEntry);
+    BoundCopyFromInfo bindCopyRdfResourceTriplesInfo(const common::RdfReaderConfig& config,
+        const function::TableFuncBindData& bindData, const catalog::RDFGraphCatalogEntry& rdfEntry);
+    BoundCopyFromInfo bindCopyRdfLiteralTriplesInfo(const common::RdfReaderConfig& config,
+        const function::TableFuncBindData& bindData, const catalog::RDFGraphCatalogEntry& rdfEntry);
 
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 

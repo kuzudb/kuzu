@@ -93,5 +93,9 @@ protected:
 
 using options_t = std::unordered_map<std::string, std::unique_ptr<parser::ParsedExpression>>;
 
+struct ParsedExpressionUtils {
+    static std::unique_ptr<ParsedExpression> getSerialDefaultExpr(const std::string& sequenceName);
+};
+
 } // namespace parser
 } // namespace kuzu
