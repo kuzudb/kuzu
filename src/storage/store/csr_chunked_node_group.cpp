@@ -71,13 +71,19 @@ bool ChunkedCSRHeader::sanityCheck() const {
 }
 
 void ChunkedCSRHeader::copyFrom(const ChunkedCSRHeader& other) const {
-    const auto numValues = other.offset->getNumValues();
+    KU_ASSERT(offset->getNumValues() == length->getNumValues());
+    KU_ASSERT(other.offset->getNumValues() == other.length->getNumValues());
+    const auto numOtherValues = other.offset->getNumValues();
     memcpy(offset->getData().getData(), other.offset->getData().getData(),
-        numValues * sizeof(offset_t));
+        numOtherValues * sizeof(offset_t));
     memcpy(length->getData().getData(), other.length->getData().getData(),
-        numValues * sizeof(length_t));
-    length->setNumValues(numValues);
-    offset->setNumValues(numValues);
+        numOtherValues * sizeof(length_t));
+    const auto lastOffsetInOtherHeader = other.getEndCSROffset(numOtherValues);
+    const auto numValues = offset->getNumValues();
+    for (auto i = numOtherValues; i < numValues; i++) {
+        offset->getData().setValue<offset_t>(lastOffsetInOtherHeader, i);
+        length->getData().setValue<length_t>(0, i);
+    }
 }
 
 void ChunkedCSRHeader::fillDefaultValues(const offset_t newNumValues) const {
@@ -88,6 +94,18 @@ void ChunkedCSRHeader::fillDefaultValues(const offset_t newNumValues) const {
     }
     KU_ASSERT(
         offset->getNumValues() >= newNumValues && length->getNumValues() == offset->getNumValues());
+}
+
+void ChunkedCSRHeader::populateCSROffsets() {
+    const auto numNodes = length->getNumValues();
+    const auto csrOffsets = reinterpret_cast<offset_t*>(offset->getData().getData());
+    const auto csrLengths = reinterpret_cast<length_t*>(length->getData().getData());
+    csrOffsets[0] = csrLengths[0] + getGapSize(csrLengths[0]);
+    // Calculate starting offset of each node.
+    for (auto i = 1u; i < numNodes; i++) {
+        const auto gap = getGapSize(csrLengths[i]);
+        csrOffsets[i] = csrOffsets[i - 1] + csrLengths[i] + gap;
+    }
 }
 
 std::vector<offset_t> ChunkedCSRHeader::populateStartCSROffsetsAndGaps(bool leaveGaps) {
@@ -112,7 +130,7 @@ std::vector<offset_t> ChunkedCSRHeader::populateStartCSROffsetsAndGaps(bool leav
 }
 
 void ChunkedCSRHeader::populateEndCSROffsets(const std::vector<offset_t>& gaps) {
-    auto csrOffsets = reinterpret_cast<offset_t*>(offset->getData().getData());
+    const auto csrOffsets = reinterpret_cast<offset_t*>(offset->getData().getData());
     KU_ASSERT(offset->getNumValues() == length->getNumValues());
     KU_ASSERT(offset->getNumValues() == gaps.size());
     for (auto i = 0u; i < offset->getNumValues(); i++) {
@@ -121,12 +139,7 @@ void ChunkedCSRHeader::populateEndCSROffsets(const std::vector<offset_t>& gaps) 
 }
 
 length_t ChunkedCSRHeader::getGapSize(length_t length) {
-    // We intentionally leave a gap for empty CSR lists to accommondate for future insertions.
-    // Also, for MANY_ONE and ONE_ONE relationships, we should always keep each CSR list as size 1.
-    return length == 0 ?
-               1 :
-               StorageUtils::divideAndRoundUpTo(length, StorageConstants::PACKED_CSR_DENSITY) -
-                   length;
+    return StorageUtils::divideAndRoundUpTo(length, StorageConstants::PACKED_CSR_DENSITY) - length;
 }
 
 std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flushAsNewChunkedNodeGroup(

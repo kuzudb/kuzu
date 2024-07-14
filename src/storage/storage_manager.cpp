@@ -21,12 +21,12 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
     VirtualFileSystem* vfs, main::ClientContext* context)
     : databasePath{databasePath}, readOnly{readOnly}, memoryManager{memoryManager},
       enableCompression{enableCompression} {
-    loadTables(catalog, vfs, context);
     // TODO: should we disable WAL in readonly mode?
     wal = std::make_unique<WAL>(databasePath, readOnly, *memoryManager.getBufferManager(), vfs,
         context);
     dataFH = initFileHandle(StorageUtils::getDataFName(vfs, databasePath), vfs, context);
     metadataFH = initFileHandle(StorageUtils::getMetadataFName(vfs, databasePath), vfs, context);
+    loadTables(catalog, vfs, context);
 }
 
 BMFileHandle* StorageManager::initFileHandle(const std::string& filename, VirtualFileSystem* vfs,
@@ -61,12 +61,14 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
     if (vfs->fileOrPathExists(metaFilePath)) {
         auto metadataFileInfo =
             vfs->openFile(StorageUtils::getMetadataFName(vfs, databasePath), O_RDONLY, context);
-        Deserializer deSer(std::make_unique<BufferedFileReader>(std::move(metadataFileInfo)));
-        uint64_t numTables;
-        deSer.deserializeValue<uint64_t>(numTables);
-        for (auto i = 0u; i < numTables; i++) {
-            auto table = Table::loadTable(deSer, catalog, this, &memoryManager, vfs, context);
-            tables[table->getTableID()] = std::move(table);
+        if (metadataFileInfo->getFileSize() > 0) {
+            Deserializer deSer(std::make_unique<BufferedFileReader>(std::move(metadataFileInfo)));
+            uint64_t numTables;
+            deSer.deserializeValue<uint64_t>(numTables);
+            for (auto i = 0u; i < numTables; i++) {
+                auto table = Table::loadTable(deSer, catalog, this, &memoryManager, vfs, context);
+                tables[table->getTableID()] = std::move(table);
+            }
         }
     }
 
@@ -227,9 +229,9 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) const {
     const auto writer = std::make_shared<BufferedFileWriter>(std::move(metadataFileInfo));
     Serializer ser(writer);
     ser.write<uint64_t>(tables.size());
-    for (auto tableID : wal->getUpdatedTables()) {
-        KU_ASSERT(tables.contains(tableID));
-        tables.at(tableID)->checkpoint(ser);
+    // TODO(Guodong): We should avoid deleted tables.
+    for (auto& [_, table] : tables) {
+        table->checkpoint(ser);
     }
 }
 

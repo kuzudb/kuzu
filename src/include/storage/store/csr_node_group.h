@@ -192,11 +192,13 @@ public:
 
     bool isEmpty() const override { return !persistentChunkGroup && NodeGroup::isEmpty(); }
 
-    ChunkedNodeGroup* getPersistentChunkedGroup() { return persistentChunkGroup.get(); }
+    ChunkedNodeGroup* getPersistentChunkedGroup() const { return persistentChunkGroup.get(); }
     void setPersistentChunkedGroup(std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup) {
         KU_ASSERT(chunkedNodeGroup->getFormat() == NodeGroupDataFormat::CSR);
         persistentChunkGroup = std::move(chunkedNodeGroup);
     }
+
+    void serialize(common::Serializer& serializer) override;
 
 private:
     void initializePersistentCSRHeader(transaction::Transaction* transaction,

@@ -44,6 +44,9 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer) {
     case WALRecordType::COMMIT_RECORD: {
         walRecord = CommitRecord::deserialize(deserializer);
     } break;
+    case WALRecordType::CHECKPOINT_RECORD: {
+        walRecord = CheckpointRecord::deserialize(deserializer);
+    } break;
     case WALRecordType::UPDATE_SEQUENCE_RECORD: {
         walRecord = UpdateSequenceRecord::deserialize(deserializer);
     } break;
@@ -85,6 +88,14 @@ std::unique_ptr<CommitRecord> CommitRecord::deserialize(Deserializer& deserializ
     auto retVal = std::make_unique<CommitRecord>();
     deserializer.deserializeValue(retVal->transactionID);
     return retVal;
+}
+
+void CheckpointRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+}
+
+std::unique_ptr<CheckpointRecord> CheckpointRecord::deserialize(Deserializer&) {
+    return std::make_unique<CheckpointRecord>();
 }
 
 CreateCatalogEntryRecord::CreateCatalogEntryRecord() = default;

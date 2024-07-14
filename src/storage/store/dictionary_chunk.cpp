@@ -86,6 +86,11 @@ bool DictionaryChunk::sanityCheck() const {
     return offsetChunk->getNumValues() <= offsetChunk->getNumValues();
 }
 
+void DictionaryChunk::resetNumValuesFromMetadata() {
+    stringDataChunk->resetNumValuesFromMetadata();
+    offsetChunk->resetNumValuesFromMetadata();
+}
+
 uint64_t DictionaryChunk::getEstimatedMemoryUsage() const {
     return stringDataChunk->getEstimatedMemoryUsage() + offsetChunk->getEstimatedMemoryUsage();
 }

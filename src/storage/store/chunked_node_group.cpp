@@ -46,10 +46,18 @@ void ChunkedNodeGroup::resetToEmpty() {
     versionInfo.reset();
 }
 
-void ChunkedNodeGroup::setAllNull() const {
+void ChunkedNodeGroup::resetToAllNull() const {
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     for (const auto& chunk : chunks) {
-        chunk->setAllNull();
+        chunk->resetToAllNull();
+    }
+}
+
+void ChunkedNodeGroup::resetNumRowsFromChunks() {
+    KU_ASSERT(!chunks.empty());
+    numRows = getColumnChunk(0).getNumValues();
+    for (auto i = 1u; i < getNumColumns(); i++) {
+        KU_ASSERT(numRows == getColumnChunk(i).getNumValues());
     }
 }
 
@@ -295,7 +303,10 @@ bool ChunkedNodeGroup::hasAnyUpdates(Transaction* transaction, column_id_t colum
 
 row_idx_t ChunkedNodeGroup::getNumDeletions(const Transaction* transaction, row_idx_t startRow,
     length_t numRows) const {
-    return versionInfo->getNumDeletions(transaction, startRow, numRows);
+    if (versionInfo) {
+        return versionInfo->getNumDeletions(transaction, startRow, numRows);
+    }
+    return 0;
 }
 
 void ChunkedNodeGroup::finalize() const {
@@ -318,6 +329,9 @@ void ChunkedNodeGroup::flush(BMFileHandle& dataFH) {
     for (auto i = 0u; i < getNumColumns(); i++) {
         getColumnChunk(i).getData().flush(dataFH);
     }
+    // Reset residencyState and numRows after flushing.
+    residencyState = ResidencyState::ON_DISK;
+    resetNumRowsFromChunks();
 }
 
 uint64_t ChunkedNodeGroup::getEstimatedMemoryUsage() const {

@@ -136,7 +136,9 @@ public:
         const auto numValuesPerPage =
             compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
         const auto numPages =
-            capacity / numValuesPerPage + (capacity % numValuesPerPage == 0 ? 0 : 1);
+            numValuesPerPage == UINT64_MAX ?
+                0 :
+                capacity / numValuesPerPage + (capacity % numValuesPerPage == 0 ? 0 : 1);
         return ColumnChunkMetadata(INVALID_PAGE_IDX, numPages, numValues, compMeta);
     }
 };
@@ -202,6 +204,8 @@ ColumnChunkData::ColumnChunkData(LogicalType dataType, bool enableCompression,
     if (hasNullData) {
         nullData = std::make_unique<NullChunkData>(enableCompression, metadata);
     }
+    initializeBuffer();
+    initializeFunction(enableCompression);
 }
 
 void ColumnChunkData::initializeBuffer() {
@@ -246,6 +250,7 @@ void ColumnChunkData::initializeFunction(bool enableCompression) {
 }
 
 void ColumnChunkData::resetToAllNull() {
+    KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     if (nullData) {
         nullData->resetToAllNull();
     }
@@ -259,13 +264,6 @@ void ColumnChunkData::resetToEmpty() {
     KU_ASSERT(bufferSize == getBufferSize(capacity));
     memset(buffer.get(), 0x00, bufferSize);
     numValues = 0;
-}
-
-void ColumnChunkData::setAllNull() const {
-    KU_ASSERT(residencyState != ResidencyState::ON_DISK);
-    if (nullData) {
-        nullData->setAllNull();
-    }
 }
 
 ColumnChunkMetadata ColumnChunkData::getMetadataToFlush() const {
@@ -462,6 +460,24 @@ void ColumnChunkData::copy(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
         }
     }
     append(srcChunk, srcOffsetInChunk, numValuesToCopy);
+}
+
+void ColumnChunkData::resetNumValuesFromMetadata() {
+    KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+    numValues = metadata.numValues;
+    if (nullData) {
+        nullData->resetNumValuesFromMetadata();
+    }
+}
+
+void ColumnChunkData::setToInMemory() {
+    KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+    KU_ASSERT(capacity == 0 && bufferSize == 0);
+    residencyState = ResidencyState::IN_MEMORY;
+    numValues = 0;
+    if (nullData) {
+        nullData->setToInMemory();
+    }
 }
 
 void ColumnChunkData::resize(uint64_t newCapacity) {

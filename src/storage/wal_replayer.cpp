@@ -92,6 +92,11 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord,
     case WALRecordType::UPDATE_SEQUENCE_RECORD: {
         replayUpdateSequenceRecord(walRecord);
     } break;
+    case WALRecordType::CHECKPOINT_RECORD: {
+        // This record should not be replayed. It is only used to indicate that the previous records
+        // had been replayed and shadow files are created.
+        KU_UNREACHABLE;
+    }
     default:
         KU_UNREACHABLE;
     }

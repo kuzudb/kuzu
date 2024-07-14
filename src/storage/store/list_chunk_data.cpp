@@ -115,6 +115,13 @@ void ListChunkData::resetToEmpty() {
             enableCompression, 0 /* capacity */, ResidencyState::IN_MEMORY);
 }
 
+void ListChunkData::resetNumValuesFromMetadata() {
+    ColumnChunkData::resetNumValuesFromMetadata();
+    sizeColumnChunk->resetNumValuesFromMetadata();
+    offsetColumnChunk->resetNumValuesFromMetadata();
+    dataColumnChunk->resetNumValuesFromMetadata();
+}
+
 void ListChunkData::append(ValueVector* vector, const SelectionVector& selVector) {
     auto numToAppend = selVector.getSelSize();
     auto newCapacity = capacity;

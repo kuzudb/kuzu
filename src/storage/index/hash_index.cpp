@@ -405,7 +405,7 @@ template class HashIndex<ku_string_t>;
 PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
     common::PhysicalTypeID keyDataType, BufferManager& bufferManager, WAL* wal,
     VirtualFileSystem* vfs, main::ClientContext* context)
-    : hasRunPrepareCommit{false}, keyDataTypeID(keyDataType),
+    : keyDataTypeID(keyDataType),
       fileHandle{bufferManager.getBMFileHandle(dbFileIDAndName.fName,
           readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                      FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
@@ -526,7 +526,6 @@ void PrimaryKeyIndex::checkpointInMemory() {
     if (overflowFile) {
         overflowFile->checkpointInMemory();
     }
-    hasRunPrepareCommit = false;
 }
 
 void PrimaryKeyIndex::rollbackInMemory() {
@@ -545,7 +544,6 @@ void PrimaryKeyIndex::rollbackInMemory() {
     if (overflowFile) {
         overflowFile->rollbackInMemory();
     }
-    hasRunPrepareCommit = false;
 }
 
 void PrimaryKeyIndex::writeHeaders() {
@@ -565,7 +563,6 @@ void PrimaryKeyIndex::writeHeaders() {
 }
 
 void PrimaryKeyIndex::prepareCommit() {
-    // if (!hasRunPrepareCommit) {
     bool indexChanged = false;
     for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
         if (hashIndices[i]->prepareCommit()) {
@@ -586,8 +583,6 @@ void PrimaryKeyIndex::prepareCommit() {
     // generally handle bypassing the WAL, but should only be run once per file, not once per
     // disk array
     bufferManager.flushAllDirtyPagesInFrames(*fileHandle);
-    // hasRunPrepareCommit = true;
-    // }
 }
 
 void PrimaryKeyIndex::prepareRollback() {

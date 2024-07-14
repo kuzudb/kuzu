@@ -219,10 +219,10 @@ void RelTableData::checkIfNodeHasRels(Transaction* transaction, ValueVector* src
     }
 }
 
-static length_t getGapSizeForNode(const ChunkedCSRHeader& header, offset_t nodeOffset) {
-    return header.getEndCSROffset(nodeOffset) - header.getStartCSROffset(nodeOffset) -
-           header.getCSRLength(nodeOffset);
-}
+// static length_t getGapSizeForNode(const ChunkedCSRHeader& header, offset_t nodeOffset) {
+// return header.getEndCSROffset(nodeOffset) - header.getStartCSROffset(nodeOffset) -
+// header.getCSRLength(nodeOffset);
+// }
 
 static length_t getRegionCapacity(const ChunkedCSRHeader& header, const PackedCSRRegion& region) {
     auto [startNodeOffset, endNodeOffset] = region.getNodeOffsetBoundaries();

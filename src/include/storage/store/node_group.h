@@ -127,6 +127,8 @@ public:
         std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
 
     virtual void initializeScanState(transaction::Transaction* transaction, TableScanState& state);
+    void initializeScanState(transaction::Transaction* transaction, const common::UniqLock& lock,
+        TableScanState& state);
     virtual NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state);
     bool lookup(transaction::Transaction* transaction, const TableScanState& state);
 
@@ -144,7 +146,7 @@ public:
     bool hasChanges();
     uint64_t getEstimatedMemoryUsage();
 
-    void serialize(common::Serializer& serializer);
+    virtual void serialize(common::Serializer& serializer);
     static std::unique_ptr<NodeGroup> deserialize(common::Deserializer& deSer);
 
     common::node_group_idx_t getNumChunkedGroups() {

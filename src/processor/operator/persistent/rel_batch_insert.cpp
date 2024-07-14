@@ -112,12 +112,13 @@ void RelBatchInsert::populateCSROffsets(ChunkedNodeGroupCollection& partition,
     const offset_t csrChunkCapacity =
         csrHeader.getEndCSROffset(numNodes - 1) + csrHeader.getCSRLength(numNodes - 1);
     localState.chunkedGroup->resizeChunks(csrChunkCapacity);
-    localState.chunkedGroup->setAllNull();
+    localState.chunkedGroup->resetToAllNull();
     for (auto& chunkedGroup : partition.getChunkedGroups()) {
         auto& offsetChunk = chunkedGroup->getColumnChunk(relInfo.boundNodeOffsetColumnID);
         setOffsetFromCSROffsets(offsetChunk.getData(), csrHeader.offset->getData());
     }
     csrHeader.populateEndCSROffsets(gaps);
+    KU_ASSERT(csrHeader.sanityCheck());
 }
 
 void RelBatchInsert::populateCSRLengths(ChunkedCSRHeader& csrHeader, offset_t numNodes,
@@ -128,7 +129,7 @@ void RelBatchInsert::populateCSRLengths(ChunkedCSRHeader& csrHeader, offset_t nu
     std::fill(lengthData, lengthData + numNodes, 0);
     for (auto& chunkedGroup : partition.getChunkedGroups()) {
         auto& offsetChunk = chunkedGroup->getColumnChunk(boundNodeOffsetColumn);
-        for (auto i = 0u; i < numNodes; i++) {
+        for (auto i = 0u; i < offsetChunk.getNumValues(); i++) {
             const auto nodeOffset = offsetChunk.getData().getValue<offset_t>(i);
             KU_ASSERT(nodeOffset < numNodes);
             lengthData[nodeOffset]++;

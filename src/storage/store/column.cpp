@@ -209,15 +209,7 @@ void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunk
         nullColumn->scan(transaction, *state.nullState, columnChunk->getNullData(), startOffset,
             endOffset);
     }
-    if (state.metadata.numValues == 0) {
-        columnChunk->setNumValues(0);
-        return;
-    }
-    const uint64_t numValuesPerPage =
-        state.metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
-    auto cursor = PageUtils::getPageCursorForPos(startOffset, numValuesPerPage);
-    cursor.pageIdx += state.metadata.pageIdx;
-    uint64_t numValuesScanned = 0u;
+
     startOffset = std::min(startOffset, state.metadata.numValues);
     endOffset = std::min(endOffset, state.metadata.numValues);
     KU_ASSERT(endOffset >= startOffset);
@@ -225,6 +217,16 @@ void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunk
     if (numValuesToScan > columnChunk->getCapacity()) {
         columnChunk->resize(std::bit_ceil(numValuesToScan));
     }
+    if (getDataTypeSizeInChunk(dataType) == 0) {
+        columnChunk->setNumValues(numValuesToScan);
+        return;
+    }
+
+    const uint64_t numValuesPerPage =
+        state.metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+    auto cursor = PageUtils::getPageCursorForPos(startOffset, numValuesPerPage);
+    cursor.pageIdx += state.metadata.pageIdx;
+    uint64_t numValuesScanned = 0u;
     KU_ASSERT((numValuesToScan + startOffset) <= state.metadata.numValues);
     while (numValuesScanned < numValuesToScan) {
         auto numValuesToReadInPage =
@@ -458,9 +460,13 @@ bool Column::isMaxOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
 void Column::checkpointColumnChunkInPlace(ChunkState& state,
     const ColumnCheckpointState& checkpointState) {
     for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
+        if (chunkCheckpointState.numRows == 0) {
+            continue;
+        }
         write(checkpointState.persistentData, state, chunkCheckpointState.startRow,
             chunkCheckpointState.chunkData.get(), 0 /*srcOffset*/, chunkCheckpointState.numRows);
     }
+    checkpointState.persistentData.resetNumValuesFromMetadata();
     if (nullColumn) {
         checkpointNullData(checkpointState);
     }
@@ -484,6 +490,7 @@ void Column::checkpointNullData(const ColumnCheckpointState& checkpointState) co
 void Column::checkpointColumnChunkOutOfPlace(ChunkState& state,
     const ColumnCheckpointState& checkpointState) {
     const auto numRows = std::max(checkpointState.maxRowIdxToWrite + 1, state.metadata.numValues);
+    checkpointState.persistentData.setToInMemory();
     checkpointState.persistentData.resize(numRows);
     scan(&DUMMY_CHECKPOINT_TRANSACTION, state, &checkpointState.persistentData);
     for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {

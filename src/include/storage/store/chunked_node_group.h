@@ -61,7 +61,8 @@ public:
     NodeGroupDataFormat getFormat() const { return format; }
 
     void resetToEmpty();
-    void setAllNull() const;
+    void resetToAllNull() const;
+    void resetNumRowsFromChunks();
     void setNumRows(common::offset_t numRows_);
     void resizeChunks(uint64_t newSize) const;
     void resetVersionInfo() {

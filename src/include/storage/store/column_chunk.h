@@ -86,7 +86,7 @@ public:
         common::length_t numRows) const;
     // These functions should only work on in-memory and temporary column chunks.
     void resetToEmpty() const { data->resetToEmpty(); }
-    void setAllNull() const { data->setAllNull(); }
+    void resetToAllNull() const { data->resetToAllNull(); }
     void resize(uint64_t newSize) const { data->resize(newSize); }
     void resetUpdateInfo() {
         if (updateInfo) {

@@ -365,7 +365,6 @@ public:
     void writeHeaders();
 
 private:
-    bool hasRunPrepareCommit;
     common::PhysicalTypeID keyDataTypeID;
     BMFileHandle* fileHandle;
     std::unique_ptr<OverflowFile> overflowFile;

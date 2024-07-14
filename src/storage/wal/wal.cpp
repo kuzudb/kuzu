@@ -60,6 +60,12 @@ void WAL::logCommit(uint64_t transactionID) {
     addNewWALRecordNoLock(walRecord);
 }
 
+void WAL::logCheckpoint() {
+    lock_t lck{mtx};
+    CheckpointRecord walRecord;
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::logCatalogRecord() {
     lock_t lck{mtx};
     CatalogRecord walRecord;

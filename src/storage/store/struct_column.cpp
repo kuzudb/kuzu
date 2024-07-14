@@ -39,12 +39,7 @@ std::unique_ptr<ColumnChunkData> StructColumn::flushChunkData(const ColumnChunkD
 void StructColumn::scan(Transaction* transaction, const ChunkState& state,
     ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
     KU_ASSERT(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
-    nullColumn->scan(transaction, *state.nullState, columnChunk->getNullData(), startOffset,
-        endOffset);
-    const auto numValues = state.metadata.numValues == 0 ?
-                               0 :
-                               std::min(endOffset, state.metadata.numValues) - startOffset;
-    columnChunk->setNumValues(numValues);
+    Column::scan(transaction, state, columnChunk, startOffset, endOffset);
     auto& structColumnChunk = columnChunk->cast<StructChunkData>();
     for (auto i = 0u; i < childColumns.size(); i++) {
         childColumns[i]->scan(transaction, state.childrenStates[i], structColumnChunk.getChild(i),

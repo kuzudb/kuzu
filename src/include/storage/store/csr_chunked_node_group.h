@@ -32,6 +32,7 @@ struct ChunkedCSRHeader {
         length->resetToEmpty();
     }
 
+    void populateCSROffsets();
     std::vector<common::offset_t> populateStartCSROffsetsAndGaps(bool leaveGaps);
     void populateEndCSROffsets(const std::vector<common::offset_t>& gaps);
 

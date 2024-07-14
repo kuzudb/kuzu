@@ -114,6 +114,28 @@ void NodeGroup::initializeScanState(Transaction*, TableScanState& state) {
     }
 }
 
+void NodeGroup::initializeScanState(Transaction*, const UniqLock& lock, TableScanState& state) {
+    auto& nodeGroupScanState = *state.nodeGroupScanState;
+    nodeGroupScanState.chunkedGroupIdx = 0;
+    nodeGroupScanState.nextRowToScan = 0;
+    ChunkedNodeGroup* firstChunkedGroup = chunkedGroups.getFirstGroup(lock);
+    if (firstChunkedGroup != nullptr &&
+        firstChunkedGroup->getResidencyState() == ResidencyState::ON_DISK) {
+        for (auto i = 0u; i < state.columnIDs.size(); i++) {
+            KU_ASSERT(i < state.columnIDs.size());
+            KU_ASSERT(i < nodeGroupScanState.chunkStates.size());
+            const auto columnID = state.columnIDs[i];
+            if (columnID == INVALID_COLUMN_ID || columnID == ROW_IDX_COLUMN_ID) {
+                continue;
+            }
+            auto& chunk = firstChunkedGroup->getColumnChunk(columnID);
+            chunk.initializeScanState(nodeGroupScanState.chunkStates[i]);
+            // TODO: Not a good way to initialize column for chunkState here.
+            nodeGroupScanState.chunkStates[i].column = state.columns[i];
+        }
+    }
+}
+
 NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& state) {
     // TODO(Guodong): We shouldn't grab lock during scan, instead should do it during
     // initializeScan.
@@ -229,9 +251,13 @@ void NodeGroup::checkpoint(NodeGroupCheckpointState& state) {
         const auto columnID = state.columnIDs[i];
         // if has persistent data, scan updates from persistent chunked group;
         KU_ASSERT(firstGroup && firstGroup->getResidencyState() == ResidencyState::ON_DISK);
+        const auto columnHasUpdates = firstGroup->hasAnyUpdates(&DUMMY_CHECKPOINT_TRANSACTION,
+            columnID, 0, firstGroup->getNumRows());
+        if (numInsertedRows == 0 && !columnHasUpdates) {
+            continue;
+        }
         std::vector<ChunkCheckpointState> chunkCheckpointStates;
-        if (firstGroup->hasAnyUpdates(&DUMMY_CHECKPOINT_TRANSACTION, columnID, 0,
-                firstGroup->getNumRows())) {
+        if (columnHasUpdates) {
             const auto updateChunk =
                 scanCommitted<ResidencyState::ON_DISK>(lock, {columnID}, {state.columns[columnID]});
             KU_ASSERT(updateChunk->getNumRows() == numPersistentRows);
@@ -248,7 +274,11 @@ void NodeGroup::checkpoint(NodeGroupCheckpointState& state) {
     }
     firstGroup->resetVersionInfo();
     // Clear all chunked groups except for the first one.
-    chunkedGroups.resize(lock, 1);
+    auto persistentChunkedGroup = chunkedGroups.moveGroup(lock, 0);
+    KU_ASSERT(persistentChunkedGroup->getResidencyState() == ResidencyState::ON_DISK);
+    persistentChunkedGroup->resetNumRowsFromChunks();
+    chunkedGroups.clear(lock);
+    chunkedGroups.appendGroup(lock, std::move(persistentChunkedGroup));
 }
 
 void NodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpointState& state) {
@@ -300,6 +330,7 @@ void NodeGroup::serialize(Serializer& serializer) {
     // Serialize checkpointed chunks.
     serializer.write<node_group_idx_t>(nodeGroupIdx);
     serializer.write<bool>(enableCompression);
+    serializer.write<NodeGroupDataFormat>(format);
     const auto lock = chunkedGroups.lock();
     KU_ASSERT(chunkedGroups.getNumGroups(lock) == 1);
     const auto chunkedGroup = chunkedGroups.getFirstGroup(lock);
@@ -312,14 +343,24 @@ void NodeGroup::serialize(Serializer& serializer) {
 std::unique_ptr<NodeGroup> NodeGroup::deserialize(Deserializer& deSer) {
     node_group_idx_t nodeGroupIdx;
     bool enableCompression;
+    NodeGroupDataFormat format;
     bool hasCheckpointedData;
     deSer.deserializeValue<node_group_idx_t>(nodeGroupIdx);
     deSer.deserializeValue<bool>(enableCompression);
+    deSer.deserializeValue<NodeGroupDataFormat>(format);
     deSer.deserializeValue<bool>(hasCheckpointedData);
     if (!hasCheckpointedData) {
         return nullptr;
     }
-    auto chunkedNodeGroup = ChunkedNodeGroup::deserialize(deSer);
+    std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup;
+    switch (format) {
+    case NodeGroupDataFormat::REGULAR: {
+        chunkedNodeGroup = ChunkedNodeGroup::deserialize(deSer);
+    }
+    case NodeGroupDataFormat::CSR: {
+        chunkedNodeGroup = ChunkedCSRNodeGroup::deserialize(deSer);
+    }
+    }
     return std::make_unique<NodeGroup>(nodeGroupIdx, enableCompression,
         std::move(chunkedNodeGroup));
 }
@@ -352,13 +393,11 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanCommitted(const UniqLock& lock,
     auto numRows = getNumResidentRows<RESIDENCY_STATE>(lock);
     auto mergedInMemGroup = std::make_unique<ChunkedNodeGroup>(dataTypes, enableCompression,
         numRows, 0, ResidencyState::IN_MEMORY);
-    const auto dummyTransaction = std::make_unique<Transaction>(TransactionType::READ_ONLY, 0,
-        Transaction::START_TRANSACTION_ID - 1);
     TableScanState scanState(INVALID_TABLE_ID, columnIDs, columns);
     scanState.nodeGroupScanState = std::make_unique<NodeGroupScanState>(columnIDs.size());
-    initializeScanState(dummyTransaction.get(), scanState);
+    initializeScanState(&DUMMY_CHECKPOINT_TRANSACTION, lock, scanState);
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        chunkedGroup->scanCommitted<RESIDENCY_STATE>(dummyTransaction.get(), scanState,
+        chunkedGroup->scanCommitted<RESIDENCY_STATE>(&DUMMY_CHECKPOINT_TRANSACTION, scanState,
             *scanState.nodeGroupScanState, *mergedInMemGroup);
     }
     for (auto i = 1u; i < mergedInMemGroup->getNumColumns(); i++) {

@@ -46,6 +46,12 @@ void StringChunkData::updateNumValues(size_t newValue) {
     indexColumnChunk->setNumValues(newValue);
 }
 
+void StringChunkData::setToInMemory() {
+    ColumnChunkData::setToInMemory();
+    indexColumnChunk->setToInMemory();
+    dictionaryChunk->setToInMemory();
+}
+
 void StringChunkData::resize(uint64_t newCapacity) {
     ColumnChunkData::resize(newCapacity);
     indexColumnChunk->resize(newCapacity);
@@ -212,6 +218,12 @@ void StringChunkData::appendStringColumnChunk(StringChunkData* other, offset_t s
 void StringChunkData::setValueFromString(std::string_view value, uint64_t pos) {
     auto index = dictionaryChunk->appendString(value);
     indexColumnChunk->setValue<DictionaryChunk::string_index_t>(index, pos);
+}
+
+void StringChunkData::resetNumValuesFromMetadata() {
+    ColumnChunkData::resetNumValuesFromMetadata();
+    indexColumnChunk->resetNumValuesFromMetadata();
+    dictionaryChunk->resetNumValuesFromMetadata();
 }
 
 void StringChunkData::finalize() {

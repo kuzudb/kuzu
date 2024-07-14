@@ -55,6 +55,7 @@ public:
     void logCatalogRecord();
     void logTableStatisticsRecord(common::TableType tableType);
     void logCommit(uint64_t transactionID);
+    void logCheckpoint();
 
     // Removes the contents of WAL file.
     void clearWAL();

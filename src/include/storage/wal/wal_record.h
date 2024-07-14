@@ -61,6 +61,7 @@ enum class WALRecordType : uint8_t {
     PAGE_UPDATE_OR_INSERT_RECORD = 20,
     TABLE_STATISTICS_RECORD = 30,
     UPDATE_SEQUENCE_RECORD = 40,
+    CHECKPOINT_RECORD = 50,
 };
 
 struct WALRecord {
@@ -107,6 +108,13 @@ struct CommitRecord final : public WALRecord {
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<CommitRecord> deserialize(common::Deserializer& deserializer);
+};
+
+struct CheckpointRecord final : public WALRecord {
+    CheckpointRecord() : WALRecord{WALRecordType::CHECKPOINT_RECORD} {}
+
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<CheckpointRecord> deserialize(common::Deserializer& deserializer);
 };
 
 struct CreateCatalogEntryRecord final : public WALRecord {

@@ -293,6 +293,7 @@ void NodeTable::checkpoint(Serializer& ser) {
     }
     NodeGroupCheckpointState state{columnIDs, checkpointColumns, *dataFH, memoryManager};
     nodeGroups->checkpoint(state);
+    pkIndex->prepareCommit();
     pkIndex->checkpointInMemory();
     serialize(ser);
 }

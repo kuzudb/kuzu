@@ -44,6 +44,9 @@ public:
         sizeColumnChunk->setNumValues(numValues_);
         offsetColumnChunk->setNumValues(numValues_);
     }
+    uint64_t getNumValues() const override { return nullData->getNumValues(); }
+
+    void resetNumValuesFromMetadata() override;
 
     void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;
 
@@ -65,6 +68,12 @@ public:
 
     void resizeDataColumnChunk(uint64_t numValues) const { dataColumnChunk->resize(numValues); }
 
+    void setToInMemory() override {
+        ColumnChunkData::setToInMemory();
+        sizeColumnChunk->setToInMemory();
+        offsetColumnChunk->setToInMemory();
+        dataColumnChunk->setToInMemory();
+    }
     void resize(uint64_t newCapacity) override {
         ColumnChunkData::resize(newCapacity);
         sizeColumnChunk->resize(newCapacity);

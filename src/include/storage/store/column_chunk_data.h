@@ -136,7 +136,6 @@ public:
     // Only have side effects on in-memory or temporary chunks.
     virtual void resetToAllNull();
     virtual void resetToEmpty();
-    void setAllNull() const;
 
     // Note that the startPageIdx is not known, so it will always be common::INVALID_PAGE_IDX
     virtual ColumnChunkMetadata getMetadataToFlush() const;
@@ -176,6 +175,7 @@ public:
     virtual void copy(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
 
+    virtual void setToInMemory();
     // numValues must be at least the number of values the ColumnChunk was first initialized
     // with
     virtual void resize(uint64_t newCapacity);
@@ -188,7 +188,9 @@ public:
     }
 
     uint64_t getCapacity() const { return capacity; }
-    uint64_t getNumValues() const { return numValues; }
+    virtual uint64_t getNumValues() const { return numValues; }
+    // TODO(Guodong): Alternatively, we can let `getNumValues` read from metadata when ON_DISK.
+    virtual void resetNumValuesFromMetadata();
     virtual void setNumValues(uint64_t numValues_);
     virtual bool numValuesSanityCheck() const;
 
