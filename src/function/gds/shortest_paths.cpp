@@ -164,8 +164,8 @@ public:
         return true;
     }
 
-    void beginFrontierComputeBetweenTables(
-        table_id_t curFrontierTableID, table_id_t nextFrontierTableID) override {
+    void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
+        table_id_t nextFrontierTableID) override {
         pathLengths->fixCurFrontierNodeTable(curFrontierTableID);
         pathLengths->fixNextFrontierNodeTable(nextFrontierTableID);
         nextOffset.store(0u);
@@ -187,10 +187,10 @@ class SinglePathsFrontiers : public PathLengthsFrontiers {
 public:
     explicit SinglePathsFrontiers(PathLengths* pathLengths, SinglePaths* singlePaths)
         : PathLengthsFrontiers(pathLengths), singlePaths{singlePaths} {}
-    void beginFrontierComputeBetweenTables(
-        table_id_t curFrontierTableID, table_id_t nextFrontierTableID) override {
-        PathLengthsFrontiers::beginFrontierComputeBetweenTables(
-            curFrontierTableID, nextFrontierTableID);
+    void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
+        table_id_t nextFrontierTableID) override {
+        PathLengthsFrontiers::beginFrontierComputeBetweenTables(curFrontierTableID,
+            nextFrontierTableID);
         singlePaths->fixNodeTable(nextFrontierTableID);
     }
     template<class TARGET>
@@ -300,8 +300,8 @@ public:
                     auto dataVector = ListVector::getDataVector(pathNodeIDsVector.get());
                     while (curIntNbrIndex > 0) {
                         curIntNode = sourceState.singlePaths->getParent(curIntNode);
-                        dataVector->setValue(
-                            pathNodeIDsEntry.offset + curIntNbrIndex - 1, curIntNode);
+                        dataVector->setValue(pathNodeIDsEntry.offset + curIntNbrIndex - 1,
+                            curIntNode);
                         curIntNbrIndex--;
                     }
                 }
@@ -386,8 +386,8 @@ public:
         columns.push_back(outputNode.getInternalID());
         columns.push_back(binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::INT64()));
         if (RecJoinOutputType::PATHS == outputType) {
-            columns.push_back(binder->createVariable(
-                PATH_NODE_IDS_COLUMN_NAME, LogicalType::LIST(LogicalType::INTERNAL_ID())));
+            columns.push_back(binder->createVariable(PATH_NODE_IDS_COLUMN_NAME,
+                LogicalType::LIST(LogicalType::INTERNAL_ID())));
         }
         return columns;
     }
@@ -404,8 +404,8 @@ public:
                 std::to_string(upperBound) + ".");
         }
         auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[3]);
-        bindData = std::make_unique<ShortestPathsBindData>(
-            nodeInput, nodeOutput, outputProperty, upperBound);
+        bindData = std::make_unique<ShortestPathsBindData>(nodeInput, nodeOutput, outputProperty,
+            upperBound);
     }
 
     void initLocalState(main::ClientContext* context) override {
@@ -428,8 +428,8 @@ public:
         }
     }
 
-    void runShortestPathsFromSource(
-        processor::ExecutionContext* executionContext, nodeID_t sourceNodeID) {
+    void runShortestPathsFromSource(processor::ExecutionContext* executionContext,
+        nodeID_t sourceNodeID) {
         auto sourceState = ShortestPathsSourceState(sharedState->graph.get(), sourceNodeID,
             outputType, executionContext->clientContext->getMemoryManager());
 
@@ -450,8 +450,8 @@ public:
         GDSUtils::runFrontiersUntilConvergence(executionContext, *frontiers,
             sharedState->graph.get(), *frontierCompute,
             bindData->ptrCast<ShortestPathsBindData>()->upperBound);
-        localState->ptrCast<ShortestPathsLocalState>()->materialize(
-            sharedState->graph.get(), sourceState, *sharedState->fTable);
+        localState->ptrCast<ShortestPathsLocalState>()->materialize(sharedState->graph.get(),
+            sourceState, *sharedState->fTable);
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
@@ -464,16 +464,16 @@ private:
 
 function_set SingleSPLengthsFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(
-        name, std::make_unique<ShortestPathsAlgorithm>(RecJoinOutputType::LENGTHS));
+    auto function = std::make_unique<GDSFunction>(name,
+        std::make_unique<ShortestPathsAlgorithm>(RecJoinOutputType::LENGTHS));
     result.push_back(std::move(function));
     return result;
 }
 
 function_set SingleSPPathsFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(
-        name, std::make_unique<ShortestPathsAlgorithm>(RecJoinOutputType::PATHS));
+    auto function = std::make_unique<GDSFunction>(name,
+        std::make_unique<ShortestPathsAlgorithm>(RecJoinOutputType::PATHS));
     result.push_back(std::move(function));
     return result;
 }
