@@ -54,9 +54,11 @@ struct ExtraBoundCopyRelInfo final : public ExtraBoundCopyFromInfo {
     std::vector<common::idx_t> internalIDColumnIndices;
     std::vector<IndexLookupInfo> infos;
 
-    ExtraBoundCopyRelInfo(std::vector<common::idx_t> internalIDColumnIndices, std::vector<IndexLookupInfo> infos)
+    ExtraBoundCopyRelInfo(std::vector<common::idx_t> internalIDColumnIndices,
+        std::vector<IndexLookupInfo> infos)
         : internalIDColumnIndices{std::move(internalIDColumnIndices)}, infos{std::move(infos)} {}
-    ExtraBoundCopyRelInfo(const ExtraBoundCopyRelInfo& other) : internalIDColumnIndices{other.internalIDColumnIndices}, infos{other.infos} {}
+    ExtraBoundCopyRelInfo(const ExtraBoundCopyRelInfo& other)
+        : internalIDColumnIndices{other.internalIDColumnIndices}, infos{other.infos} {}
 
     std::unique_ptr<ExtraBoundCopyFromInfo> copy() const override {
         return std::make_unique<ExtraBoundCopyRelInfo>(*this);

@@ -60,7 +60,8 @@ std::vector<PropertyInfo> Binder::bindPropertyInfo(
             expressionBinder.bindExpression(*propertyDef.expr), type);
         if (type.getLogicalTypeID() == LogicalTypeID::SERIAL) {
             validateSerialNoDefault(*boundExpr);
-            expr = ParsedExpressionUtils::getSerialDefaultExpr(Catalog::genSerialName(tableName, propertyDef.name));
+            expr = ParsedExpressionUtils::getSerialDefaultExpr(
+                Catalog::genSerialName(tableName, propertyDef.name));
         }
         propertyInfos.emplace_back(propertyDef.name, std::move(type), std::move(expr));
     }
@@ -495,7 +496,8 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
         expressionBinder.bindExpression(*defaultValue), dataType);
     if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
         validateSerialNoDefault(*boundDefault);
-        defaultValue = ParsedExpressionUtils::getSerialDefaultExpr(Catalog::genSerialName(tableName, propertyName));
+        defaultValue = ParsedExpressionUtils::getSerialDefaultExpr(
+            Catalog::genSerialName(tableName, propertyName));
         boundDefault = expressionBinder.implicitCastIfNecessary(
             expressionBinder.bindExpression(*defaultValue), dataType);
     }

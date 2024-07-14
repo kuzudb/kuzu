@@ -29,11 +29,11 @@ static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan
     // Partitioner for FWD direction rel data.
     infos.push_back(LogicalPartitionerInfo(RelKeyIdx::FWD /* keyIdx */,
         relTableEntry.isSingleMultiplicity(RelDataDirection::FWD) ? ColumnDataFormat::REGULAR :
-                                                                     ColumnDataFormat::CSR));
+                                                                    ColumnDataFormat::CSR));
     // Partitioner for BWD direction rel data.
     infos.push_back(LogicalPartitionerInfo(RelKeyIdx::BWD /* keyIdx */,
         relTableEntry.isSingleMultiplicity(RelDataDirection::BWD) ? ColumnDataFormat::REGULAR :
-                                                                     ColumnDataFormat::CSR));
+                                                                    ColumnDataFormat::CSR));
     auto partitioner = std::make_shared<LogicalPartitioner>(std::move(infos), copyFromInfo.copy(),
         plan.getLastOperator());
     partitioner->computeFactorizedSchema();

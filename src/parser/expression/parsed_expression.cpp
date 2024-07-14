@@ -2,6 +2,7 @@
 
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "function/sequence/sequence_functions.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
@@ -9,7 +10,6 @@
 #include "parser/expression/parsed_property_expression.h"
 #include "parser/expression/parsed_subquery_expression.h"
 #include "parser/expression/parsed_variable_expression.h"
-#include "function/sequence/sequence_functions.h"
 
 using namespace kuzu::common;
 
@@ -79,7 +79,8 @@ std::unique_ptr<ParsedExpression> ParsedExpression::deserialize(Deserializer& de
     return parsedExpression;
 }
 
-std::unique_ptr<ParsedExpression> ParsedExpressionUtils::getSerialDefaultExpr(const std::string& sequenceName) {
+std::unique_ptr<ParsedExpression> ParsedExpressionUtils::getSerialDefaultExpr(
+    const std::string& sequenceName) {
     auto literalExpr = std::make_unique<parser::ParsedLiteralExpression>(Value(sequenceName), "");
     return std::make_unique<parser::ParsedFunctionExpression>(function::NextValFunction::name,
         std::move(literalExpr), "");

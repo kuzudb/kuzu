@@ -29,7 +29,8 @@ BoundCopyFromInfo Binder::bindCopyRdfResourceInfo(const RdfReaderConfig& config,
     auto functions = catalog->getFunctions(transaction);
     Function* func;
     if (config.inMemory) {
-        func = BuiltInFunctionsUtils::matchFunction(transaction, RdfResourceInMemScan::name, functions);
+        func = BuiltInFunctionsUtils::matchFunction(transaction, RdfResourceInMemScan::name,
+            functions);
     } else {
         func = BuiltInFunctionsUtils::matchFunction(transaction, RdfResourceScan::name, functions);
     }
@@ -53,7 +54,8 @@ BoundCopyFromInfo Binder::bindCopyRdfLiteralInfo(const RdfReaderConfig& config,
     auto functions = catalog->getFunctions(transaction);
     Function* func;
     if (config.inMemory) {
-        func = BuiltInFunctionsUtils::matchFunction(transaction, RdfLiteralInMemScan::name, functions);
+        func =
+            BuiltInFunctionsUtils::matchFunction(transaction, RdfLiteralInMemScan::name, functions);
     } else {
         func = BuiltInFunctionsUtils::matchFunction(transaction, RdfLiteralScan::name, functions);
     }
@@ -64,7 +66,8 @@ BoundCopyFromInfo Binder::bindCopyRdfLiteralInfo(const RdfReaderConfig& config,
     auto scanInfo = BoundFileScanInfo(*scanFunc, bindData.copy(), columns);
     auto scanSource = std::make_unique<BoundFileScanSource>(std::move(scanInfo));
     auto lTableID = rdfEntry.getLiteralTableID();
-    auto lEntry = catalog->getTableCatalogEntry(transaction, lTableID)->ptrCast<NodeTableCatalogEntry>();
+    auto lEntry =
+        catalog->getTableCatalogEntry(transaction, lTableID)->ptrCast<NodeTableCatalogEntry>();
     auto valID = expressionBinder.bindExpression(*lEntry->getPrimaryKey()->getDefaultExpr());
     auto lCopyColumns = expression_vector{valID, val, lang};
     auto rowOffset = expressionBinder.createVariableExpression(LogicalType::INT64(),
@@ -80,9 +83,11 @@ BoundCopyFromInfo Binder::bindCopyRdfResourceTriplesInfo(const RdfReaderConfig& 
     auto functions = catalog->getFunctions(transaction);
     Function* func;
     if (config.inMemory) {
-        func = BuiltInFunctionsUtils::matchFunction(transaction, RdfResourceTripleInMemScan::name, functions);
+        func = BuiltInFunctionsUtils::matchFunction(transaction, RdfResourceTripleInMemScan::name,
+            functions);
     } else {
-        func = BuiltInFunctionsUtils::matchFunction(transaction, RdfResourceTripleScan::name, functions);
+        func = BuiltInFunctionsUtils::matchFunction(transaction, RdfResourceTripleScan::name,
+            functions);
     }
     auto scanFunc = func->ptrCast<TableFunction>();
     auto s = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::SUBJECT);
@@ -97,7 +102,8 @@ BoundCopyFromInfo Binder::bindCopyRdfResourceTriplesInfo(const RdfReaderConfig& 
     auto sOffset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         InternalKeyword::SRC_OFFSET);
     auto pOffset = expressionBinder.createVariableExpression(LogicalType::INT64(), rdf::PID);
-    auto oOffset = expressionBinder.createVariableExpression(LogicalType::INT64(), InternalKeyword::DST_OFFSET);
+    auto oOffset = expressionBinder.createVariableExpression(LogicalType::INT64(),
+        InternalKeyword::DST_OFFSET);
     auto sLookUp = IndexLookupInfo(rTableID, sOffset, s);
     auto pLookUp = IndexLookupInfo(rTableID, pOffset, p);
     auto oLookUp = IndexLookupInfo(rTableID, oOffset, o);
@@ -119,14 +125,17 @@ BoundCopyFromInfo Binder::bindCopyRdfLiteralTriplesInfo(const RdfReaderConfig& c
     auto functions = catalog->getFunctions(transaction);
     Function* func;
     if (config.inMemory) {
-        func = BuiltInFunctionsUtils::matchFunction(transaction, RdfLiteralTripleInMemScan::name, functions);
+        func = BuiltInFunctionsUtils::matchFunction(transaction, RdfLiteralTripleInMemScan::name,
+            functions);
     } else {
-        func = BuiltInFunctionsUtils::matchFunction(transaction, RdfLiteralTripleScan::name, functions);
+        func = BuiltInFunctionsUtils::matchFunction(transaction, RdfLiteralTripleScan::name,
+            functions);
     }
     auto scanFunc = func->ptrCast<TableFunction>();
     auto s = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::SUBJECT);
     auto p = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::PREDICATE);
-    auto oOffset = expressionBinder.createVariableExpression(LogicalType::INT64(), InternalKeyword::DST_OFFSET);
+    auto oOffset = expressionBinder.createVariableExpression(LogicalType::INT64(),
+        InternalKeyword::DST_OFFSET);
     auto scanColumns = expression_vector{s, p, oOffset};
     auto scanInfo = BoundFileScanInfo(*scanFunc, bindData.copy(), scanColumns);
     auto scanSource = std::make_unique<BoundFileScanSource>(std::move(scanInfo));
@@ -168,7 +177,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const Statement& stateme
     auto bindInput = std::make_unique<ScanTableFuncBindInput>(config->copy());
     // Bind file scan;
     auto rdfConfig = RdfReaderConfig::construct(config->options);
-    auto func = BuiltInFunctionsUtils::matchFunction(transaction, RdfAllTripleScan::name, functions);
+    auto func =
+        BuiltInFunctionsUtils::matchFunction(transaction, RdfAllTripleScan::name, functions);
     auto scanFunc = func->ptrCast<TableFunction>();
     auto bindData = scanFunc->bindFunc(clientContext, bindInput.get());
     auto rCopyInfo = bindCopyRdfResourceInfo(rdfConfig, *bindData, *rdfGraphEntry);

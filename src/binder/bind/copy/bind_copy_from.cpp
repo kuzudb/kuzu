@@ -152,7 +152,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     auto dstLookUpInfo = IndexLookupInfo(dstTableID, dstOffset, dstKey);
     auto lookupInfos = std::vector<IndexLookupInfo>{srcLookUpInfo, dstLookUpInfo};
     auto internalIDColumnIndices = std::vector<common::idx_t>{0, 1, 2};
-    auto extraCopyRelInfo = std::make_unique<ExtraBoundCopyRelInfo>(internalIDColumnIndices, lookupInfos);
+    auto extraCopyRelInfo =
+        std::make_unique<ExtraBoundCopyRelInfo>(internalIDColumnIndices, lookupInfos);
     auto boundCopyFromInfo = BoundCopyFromInfo(relTableEntry, boundSource->copy(), offset,
         std::move(columnExprs), std::move(defaultColumns), std::move(extraCopyRelInfo));
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));

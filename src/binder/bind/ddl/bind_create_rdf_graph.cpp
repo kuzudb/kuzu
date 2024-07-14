@@ -25,8 +25,10 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     // Literal table.
     auto literalTableName = RDFGraphCatalogEntry::getLiteralTableName(rdfGraphName);
     std::vector<PropertyInfo> literalProperties;
-    auto serialDefault = ParsedExpressionUtils::getSerialDefaultExpr(Catalog::genSerialName(literalTableName, std::string(rdf::ID)));
-    literalProperties.emplace_back(std::string(rdf::ID), LogicalType::SERIAL(), std::move(serialDefault));
+    auto serialDefault = ParsedExpressionUtils::getSerialDefaultExpr(
+        Catalog::genSerialName(literalTableName, std::string(rdf::ID)));
+    literalProperties.emplace_back(std::string(rdf::ID), LogicalType::SERIAL(),
+        std::move(serialDefault));
     literalProperties.emplace_back(std::string(rdf::VAL), LogicalType::RDF_VARIANT());
     literalProperties.emplace_back(std::string(rdf::LANG), LogicalType::STRING());
     auto literalExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(0 /* primaryKeyIdx */,
@@ -38,9 +40,8 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     std::vector<PropertyInfo> resourceTripleProperties;
     resourceTripleProperties.emplace_back(InternalKeyword::ID, LogicalType::INTERNAL_ID());
     resourceTripleProperties.emplace_back(std::string(rdf::PID), LogicalType::INTERNAL_ID());
-    auto boundResourceTripleExtraInfo =
-        std::make_unique<BoundExtraCreateRelTableInfo>(
-            INVALID_TABLE_ID, INVALID_TABLE_ID, std::move(resourceTripleProperties));
+    auto boundResourceTripleExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(
+        INVALID_TABLE_ID, INVALID_TABLE_ID, std::move(resourceTripleProperties));
     auto boundResourceTripleCreateInfo = BoundCreateTableInfo(TableType::REL,
         resourceTripleTableName, info->onConflict, std::move(boundResourceTripleExtraInfo));
     // Literal triple table.
@@ -48,9 +49,8 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     std::vector<PropertyInfo> literalTripleProperties;
     literalTripleProperties.emplace_back(InternalKeyword::ID, LogicalType::INTERNAL_ID());
     literalTripleProperties.emplace_back(std::string(rdf::PID), LogicalType::INTERNAL_ID());
-    auto boundLiteralTripleExtraInfo =
-        std::make_unique<BoundExtraCreateRelTableInfo>(
-            INVALID_TABLE_ID, INVALID_TABLE_ID, std::move(literalTripleProperties));
+    auto boundLiteralTripleExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(
+        INVALID_TABLE_ID, INVALID_TABLE_ID, std::move(literalTripleProperties));
     auto boundLiteralTripleCreateInfo = BoundCreateTableInfo(TableType::REL, literalTripleTableName,
         info->onConflict, std::move(boundLiteralTripleExtraInfo));
     // Rdf table.
