@@ -76,6 +76,7 @@ private:
  */
 class PathLengths : public GDSFrontier {
     friend class PathLengthsFrontiers;
+
 public:
     static constexpr uint8_t UNVISITED = 255;
 
@@ -140,6 +141,7 @@ class PathLengthsFrontiers : public Frontiers {
     friend struct SPLengthsFrontierCompute;
     friend struct SPSinglePathsFrontierCompute;
     static constexpr uint64_t FRONTIER_MORSEL_SIZE = 64;
+
 public:
     explicit PathLengthsFrontiers(PathLengths* pathLengths)
         : Frontiers(pathLengths /* curFrontier */, pathLengths /* nextFrontier */,
@@ -162,8 +164,8 @@ public:
         return true;
     }
 
-    void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
-        table_id_t nextFrontierTableID) override {
+    void beginFrontierComputeBetweenTables(
+        table_id_t curFrontierTableID, table_id_t nextFrontierTableID) override {
         pathLengths->fixCurFrontierNodeTable(curFrontierTableID);
         pathLengths->fixNextFrontierNodeTable(nextFrontierTableID);
         nextOffset.store(0u);
@@ -181,15 +183,21 @@ private:
 
 class SinglePathsFrontiers : public PathLengthsFrontiers {
     friend struct SPSinglePathsFrontierCompute;
+
 public:
     explicit SinglePathsFrontiers(PathLengths* pathLengths, SinglePaths* singlePaths)
         : PathLengthsFrontiers(pathLengths), singlePaths{singlePaths} {}
-    void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
-        table_id_t nextFrontierTableID) override {
-        PathLengthsFrontiers::beginFrontierComputeBetweenTables(curFrontierTableID,
-            nextFrontierTableID);
+    void beginFrontierComputeBetweenTables(
+        table_id_t curFrontierTableID, table_id_t nextFrontierTableID) override {
+        PathLengthsFrontiers::beginFrontierComputeBetweenTables(
+            curFrontierTableID, nextFrontierTableID);
         singlePaths->fixNodeTable(nextFrontierTableID);
     }
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<SinglePathsFrontiers*, TARGET*>(this);
+    }
+
 private:
     SinglePaths* singlePaths;
 };
@@ -246,7 +254,8 @@ struct ShortestPathsSourceState {
 
 class ShortestPathsLocalState : public GDSLocalState {
 public:
-    explicit ShortestPathsLocalState(main::ClientContext* context, RecJoinOutputType outputType) : outputType{outputType} {
+    explicit ShortestPathsLocalState(main::ClientContext* context, RecJoinOutputType outputType)
+        : outputType{outputType} {
         auto mm = context->getMemoryManager();
         srcNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
         dstNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
@@ -283,14 +292,16 @@ public:
                 lengthVector->setValue<int64_t>(0, length);
                 if (RecJoinOutputType::PATHS == outputType) {
                     nodeID_t curIntNode = dstNodeID;
-                    uint64_t curIntNbrIndex = length > 1 ? length-1 : 0;
+                    uint64_t curIntNbrIndex = length > 1 ? length - 1 : 0;
                     pathNodeIDsVector->resetAuxiliaryBuffer();
-                    auto pathNodeIDsEntry = ListVector::addList(pathNodeIDsVector.get(), curIntNbrIndex);
+                    auto pathNodeIDsEntry =
+                        ListVector::addList(pathNodeIDsVector.get(), curIntNbrIndex);
                     pathNodeIDsVector->setValue(0, pathNodeIDsEntry);
                     auto dataVector = ListVector::getDataVector(pathNodeIDsVector.get());
                     while (curIntNbrIndex > 0) {
                         curIntNode = sourceState.singlePaths->getParent(curIntNode);
-                        dataVector->setValue(pathNodeIDsEntry.offset + curIntNbrIndex - 1, curIntNode);
+                        dataVector->setValue(
+                            pathNodeIDsEntry.offset + curIntNbrIndex - 1, curIntNode);
                         curIntNbrIndex--;
                     }
                 }
@@ -313,7 +324,7 @@ struct SPLengthsFrontierCompute : public FrontierCompute {
     explicit SPLengthsFrontierCompute(PathLengthsFrontiers* pathLengthsFrontiers)
         : pathLengthsFrontiers{pathLengthsFrontiers} {};
 
-    bool edgeCompute(nodeID_t curNodeID, nodeID_t nbrID) override {
+    bool edgeCompute(nodeID_t, nodeID_t nbrID) override {
         return pathLengthsFrontiers->pathLengths->getMaskValueFromNextFrontierFixedMask(
                    nbrID.offset) == PathLengths::UNVISITED;
     }
@@ -326,7 +337,7 @@ struct SPSinglePathsFrontierCompute : public FrontierCompute {
 
     bool edgeCompute(nodeID_t curNodeID, nodeID_t nbrID) override {
         auto retVal = singlePathsFrontiers->pathLengths->getMaskValueFromNextFrontierFixedMask(
-                   nbrID.offset) == PathLengths::UNVISITED;
+                          nbrID.offset) == PathLengths::UNVISITED;
         if (retVal) {
             // We set the nbrID's last edge to curNodeID;
             singlePathsFrontiers->singlePaths->setLastEdge(nbrID, curNodeID);
@@ -334,7 +345,6 @@ struct SPSinglePathsFrontierCompute : public FrontierCompute {
         return retVal;
     }
 };
-
 
 /**
  * Algorithm for parallel single shortest path computation, i.e., assumes Distinct semantics, so
@@ -394,8 +404,8 @@ public:
                 std::to_string(upperBound) + ".");
         }
         auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[3]);
-        bindData = std::make_unique<ShortestPathsBindData>(nodeInput, nodeOutput, outputProperty,
-            upperBound);
+        bindData = std::make_unique<ShortestPathsBindData>(
+            nodeInput, nodeOutput, outputProperty, upperBound);
     }
 
     void initLocalState(main::ClientContext* context) override {
@@ -418,28 +428,30 @@ public:
         }
     }
 
-    void runShortestPathsFromSource(processor::ExecutionContext* executionContext,
-        nodeID_t sourceNodeID) {
+    void runShortestPathsFromSource(
+        processor::ExecutionContext* executionContext, nodeID_t sourceNodeID) {
         auto sourceState = ShortestPathsSourceState(sharedState->graph.get(), sourceNodeID,
             outputType, executionContext->clientContext->getMemoryManager());
 
         std::unique_ptr<Frontiers> frontiers;
         std::unique_ptr<FrontierCompute> frontierCompute;
         if (outputType == RecJoinOutputType::LENGTHS) {
-            frontiers = std::make_unique<PathLengthsFrontiers>(sourceState.pathLengths.get());
-            frontierCompute = std::make_unique<SPLengthsFrontierCompute>(reinterpret_cast<PathLengthsFrontiers*>(frontiers.get()));
-        }
-        else {
-            frontiers = std::make_unique<SinglePathsFrontiers>(
+            auto pathLengthsFrontier =
+                std::make_unique<PathLengthsFrontiers>(sourceState.pathLengths.get());
+            frontierCompute = std::make_unique<SPLengthsFrontierCompute>(pathLengthsFrontier.get());
+            frontiers = std::move(pathLengthsFrontier);
+        } else {
+            auto singlePathsFrontier = std::make_unique<SinglePathsFrontiers>(
                 sourceState.pathLengths.get(), sourceState.singlePaths.get());
-            frontierCompute = std::make_unique<SPSinglePathsFrontierCompute>(
-                reinterpret_cast<SinglePathsFrontiers*>(frontiers.get()));
+            frontierCompute =
+                std::make_unique<SPSinglePathsFrontierCompute>(singlePathsFrontier.get());
+            frontiers = std::move(singlePathsFrontier);
         }
         GDSUtils::runFrontiersUntilConvergence(executionContext, *frontiers,
             sharedState->graph.get(), *frontierCompute,
             bindData->ptrCast<ShortestPathsBindData>()->upperBound);
-        localState->ptrCast<ShortestPathsLocalState>()->materialize(sharedState->graph.get(),
-            sourceState, *sharedState->fTable);
+        localState->ptrCast<ShortestPathsLocalState>()->materialize(
+            sharedState->graph.get(), sourceState, *sharedState->fTable);
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
@@ -452,16 +464,16 @@ private:
 
 function_set SingleSPLengthsFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(name,
-        std::make_unique<ShortestPathsAlgorithm>(RecJoinOutputType::LENGTHS));
+    auto function = std::make_unique<GDSFunction>(
+        name, std::make_unique<ShortestPathsAlgorithm>(RecJoinOutputType::LENGTHS));
     result.push_back(std::move(function));
     return result;
 }
 
 function_set SingleSPPathsFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(name,
-        std::make_unique<ShortestPathsAlgorithm>(RecJoinOutputType::PATHS));
+    auto function = std::make_unique<GDSFunction>(
+        name, std::make_unique<ShortestPathsAlgorithm>(RecJoinOutputType::PATHS));
     result.push_back(std::move(function));
     return result;
 }

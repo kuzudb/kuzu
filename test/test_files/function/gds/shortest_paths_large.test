@@ -7,7 +7,6 @@
            MATCH (a:person1) WHERE a.ID = 1
            CALL single_sp_lengths(PK, a, 4, true)
            RETURN length, count(*);
--PARALLELISM 8
 ---- 5
 0|1
 1|10
@@ -23,7 +22,6 @@
            MATCH (a:person1) WHERE a.ID = 1
            CALL single_sp_paths(PK, a, 4, true)
            RETURN size(pathNodeIDs), count(*);
--PARALLELISM 8
 ---- 4
 0|11
 1|100
@@ -38,7 +36,6 @@
            MATCH (a:person1) WHERE a.ID = 1
            CALL single_sp_lengths(PK, a, 4, true)
            RETURN length, count(*);
--PARALLELISM 1
 ---- 5
 0|1
 1|10
@@ -52,7 +49,6 @@
            MATCH (a:person1) WHERE a.ID = 1
            CALL single_sp_paths(PK, a, 4, true)
            RETURN size(pathNodeIDs), count(*);
--PARALLELISM 8
 ---- 4
 0|11
 1|100
@@ -66,7 +62,6 @@
            MATCH (a:person1) WHERE a.ID = 1
            CALL single_sp_lengths(PK, a, 4, true)
            RETURN length, count(*);
--PARALLELISM 8
 ---- 5
 0|1
 1|20
@@ -80,7 +75,6 @@
            MATCH (a:person1) WHERE a.ID = 1
            CALL single_sp_paths(PK, a, 4, true)
            RETURN size(pathNodeIDs), count(*);
--PARALLELISM 8
 ---- 4
 0|21
 1|200
@@ -94,7 +88,6 @@
            MATCH (a:person1) WHERE a.ID = 1
            CALL single_sp_lengths(PK, a, 4, true)
            RETURN length, count(*);
--PARALLELISM 8
 ---- 5
 0|1
 1|20
@@ -108,7 +101,6 @@
            MATCH (a:person1) WHERE a.ID = 1
            CALL single_sp_paths(PK, a, 4, true)
            RETURN size(pathNodeIDs), count(*);
--PARALLELISM 8
 ---- 4
 0|21
 1|200
