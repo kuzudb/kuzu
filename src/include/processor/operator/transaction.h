@@ -6,6 +6,23 @@
 namespace kuzu {
 namespace processor {
 
+struct TransactionPrintInfo final : OPPrintInfo {
+    transaction::TransactionAction action;
+
+    explicit TransactionPrintInfo(transaction::TransactionAction action)
+        : action(std::move(action)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<TransactionPrintInfo>(new TransactionPrintInfo(*this));
+    }
+
+private:
+    TransactionPrintInfo(const TransactionPrintInfo& other)
+        : OPPrintInfo(other), action(other.action) {}
+};
+
 class Transaction : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::TRANSACTION;
 

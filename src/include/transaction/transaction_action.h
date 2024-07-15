@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace kuzu {
 namespace transaction {
@@ -14,5 +15,10 @@ enum class TransactionAction : uint8_t {
     ROLLBACK_SKIP_CHECKPOINTING = 21,
 };
 
-}
+class TransactionActionUtils {
+public:
+    static std::string toString(TransactionAction action);
+};
+
+} // namespace transaction
 } // namespace kuzu

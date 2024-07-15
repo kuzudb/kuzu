@@ -9,6 +9,12 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace processor {
 
+std::string TransactionPrintInfo::toString() const {
+    std::string result = "Action: ";
+    result += TransactionActionUtils::toString(action);
+    return result;
+}
+
 bool Transaction::getNextTuplesInternal(ExecutionContext* context) {
     if (hasExecuted) {
         return false;

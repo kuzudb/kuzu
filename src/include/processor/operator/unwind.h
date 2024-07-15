@@ -7,6 +7,26 @@
 namespace kuzu {
 namespace processor {
 
+struct UnwindPrintInfo final : OPPrintInfo {
+    std::shared_ptr<binder::Expression> inExpression;
+    std::shared_ptr<binder::Expression> outExpression;
+
+    UnwindPrintInfo(std::shared_ptr<binder::Expression> inExpression,
+        std::shared_ptr<binder::Expression> outExpression)
+        : inExpression(std::move(inExpression)), outExpression(std::move(outExpression)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<UnwindPrintInfo>(new UnwindPrintInfo(*this));
+    }
+
+private:
+    UnwindPrintInfo(const UnwindPrintInfo& other)
+        : OPPrintInfo(other), inExpression(other.inExpression), outExpression(other.outExpression) {
+    }
+};
+
 class Unwind : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::UNWIND;
 
