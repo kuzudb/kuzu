@@ -33,8 +33,9 @@ struct ExportJSONSharedState : public ExportFuncSharedState {
     std::mutex mtx;
     std::unique_ptr<FileInfo> fileInfo;
     std::vector<std::string> jsonValues;
-    explicit ExportJSONSharedState(main::ClientContext& context, const std::string& file) {
-        fileInfo = context.getVFSUnsafe()->openFile(file, O_WRONLY | O_CREAT | O_TRUNC, &context);
+
+    virtual void init(main::ClientContext& context, const ExportFuncBindData& bindData) {
+        fileInfo = context.getVFSUnsafe()->openFile(bindData.fileName, O_WRONLY | O_CREAT | O_TRUNC, &context);
     }
 };
 
@@ -46,9 +47,13 @@ static std::unique_ptr<ExportFuncBindData> bindFunc(ExportFuncBindInput& bindInp
     return std::make_unique<ExportJSONBindData>(bindInput.columnNames, bindInput.filePath);
 }
 
-static std::shared_ptr<ExportFuncSharedState> initSharedState(main::ClientContext& context,
+static void initSharedState(ExportFuncSharedState& sharedState, main::ClientContext& context,
     const ExportFuncBindData& bindData) {
-    return std::make_unique<ExportJSONSharedState>(context, bindData.fileName);
+    sharedState.init(context, bindData);
+}
+
+static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc() {
+    return std::make_shared<ExportJSONSharedState>();
 }
 
 static std::unique_ptr<ExportFuncLocalState> initLocalState(main::ClientContext&,
@@ -93,8 +98,9 @@ function_set JsonExportFunction::getFunctionSet() {
     function_set functionSet;
     auto exportFunc = std::make_unique<ExportFunction>(name);
     exportFunc->bind = bindFunc;
-    exportFunc->initLocal = initLocalState;
-    exportFunc->initShared = initSharedState;
+    exportFunc->initLocalState = initLocalState;
+    exportFunc->createSharedState = createSharedStateFunc;
+    exportFunc->initSharedState = initSharedState;
     exportFunc->sink = sinkFunc;
     exportFunc->combine = combineFunc;
     exportFunc->finalize = finalizeFunc;
