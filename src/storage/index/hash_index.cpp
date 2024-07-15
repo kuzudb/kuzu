@@ -42,7 +42,7 @@ HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName, BMFileHandle* fi
 }
 
 template<typename T>
-void HashIndex<T>::deleteFromPersistentIndex(Transaction* transaction, Key key) {
+void HashIndex<T>::deleteFromPersistentIndex(const Transaction* transaction, Key key) {
     auto& header = this->indexHeaderForWriteTrx;
     if (header.numEntries == 0) {
         return;
@@ -62,7 +62,7 @@ void HashIndex<T>::deleteFromPersistentIndex(Transaction* transaction, Key key) 
 }
 
 template<>
-inline common::hash_t HashIndex<ku_string_t>::hashStored(transaction::Transaction* transaction,
+inline common::hash_t HashIndex<ku_string_t>::hashStored(const Transaction* transaction,
     const ku_string_t& key) const {
     common::hash_t hash;
     auto str = overflowFileHandle->readString(transaction->getType(), key);
@@ -125,7 +125,7 @@ bool HashIndex<T>::rollbackInMemory() {
 }
 
 template<typename T>
-void HashIndex<T>::splitSlots(Transaction* transaction, HashIndexHeader& header,
+void HashIndex<T>::splitSlots(const Transaction* transaction, HashIndexHeader& header,
     slot_id_t numSlotsToSplit) {
     auto originalSlotIterator = pSlots->iter_mut();
     auto newSlotIterator = pSlots->iter_mut();
@@ -182,8 +182,8 @@ void HashIndex<T>::splitSlots(Transaction* transaction, HashIndexHeader& header,
 }
 
 template<typename T>
-std::vector<std::pair<SlotInfo, Slot<T>>> HashIndex<T>::getChainedSlots(Transaction* transaction,
-    slot_id_t pSlotId) {
+std::vector<std::pair<SlotInfo, Slot<T>>> HashIndex<T>::getChainedSlots(
+    const Transaction* transaction, slot_id_t pSlotId) {
     std::vector<std::pair<SlotInfo, Slot<T>>> slots;
     SlotInfo slotInfo{pSlotId, SlotType::PRIMARY};
     while (slotInfo.slotType == SlotType::PRIMARY ||
@@ -197,7 +197,7 @@ std::vector<std::pair<SlotInfo, Slot<T>>> HashIndex<T>::getChainedSlots(Transact
 }
 
 template<typename T>
-void HashIndex<T>::reserve(transaction::Transaction* transaction, uint64_t newEntries) {
+void HashIndex<T>::reserve(const Transaction* transaction, uint64_t newEntries) {
     slot_id_t numRequiredEntries =
         HashIndexUtils::getNumRequiredEntries(this->indexHeaderForWriteTrx.numEntries + newEntries);
     // Can be no fewer slots that the current level requires
@@ -231,7 +231,7 @@ void HashIndex<T>::reserve(transaction::Transaction* transaction, uint64_t newEn
 }
 
 template<typename T>
-void HashIndex<T>::sortEntries(transaction::Transaction* transaction,
+void HashIndex<T>::sortEntries(const Transaction* transaction,
     const InMemHashIndex<T>& insertLocalStorage,
     typename InMemHashIndex<T>::SlotIterator& slotToMerge,
     std::vector<HashIndexEntryView>& entries) {
@@ -255,7 +255,7 @@ void HashIndex<T>::sortEntries(transaction::Transaction* transaction,
 }
 
 template<typename T>
-void HashIndex<T>::mergeBulkInserts(Transaction* transaction,
+void HashIndex<T>::mergeBulkInserts(const Transaction* transaction,
     const InMemHashIndex<T>& insertLocalStorage) {
     // TODO: Ideally we can split slots at the same time that we insert new ones
     // Compute the new number of primary slots, and iterate over each slot, determining if it
@@ -338,7 +338,7 @@ void HashIndex<T>::mergeBulkInserts(Transaction* transaction,
 }
 
 template<typename T>
-size_t HashIndex<T>::mergeSlot(Transaction* transaction,
+size_t HashIndex<T>::mergeSlot(const Transaction* transaction,
     const std::vector<HashIndexEntryView>& slotToMerge,
     typename DiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
     typename DiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator, slot_id_t diskSlotId) {
@@ -485,8 +485,8 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
         [&](auto) { KU_UNREACHABLE; });
 }
 
-bool PrimaryKeyIndex::lookup(Transaction* trx, common::ValueVector* keyVector, uint64_t vectorPos,
-    common::offset_t& result) {
+bool PrimaryKeyIndex::lookup(const Transaction* trx, common::ValueVector* keyVector,
+    uint64_t vectorPos, common::offset_t& result) {
     bool retVal = false;
     TypeUtils::visit(
         keyDataTypeID,
@@ -498,7 +498,7 @@ bool PrimaryKeyIndex::lookup(Transaction* trx, common::ValueVector* keyVector, u
     return retVal;
 }
 
-bool PrimaryKeyIndex::insert(Transaction* transaction, common::ValueVector* keyVector,
+bool PrimaryKeyIndex::insert(const Transaction* transaction, common::ValueVector* keyVector,
     uint64_t vectorPos, common::offset_t value) {
     bool result = false;
     TypeUtils::visit(

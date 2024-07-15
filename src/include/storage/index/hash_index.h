@@ -85,7 +85,8 @@ public:
     // - the key has been marked as deleted in the local storage, return false;
     // - the key is neither deleted nor found in the local storage, lookup in the persistent
     // storage.
-    bool lookupInternal(transaction::Transaction* transaction, Key key, common::offset_t& result) {
+    bool lookupInternal(const transaction::Transaction* transaction, Key key,
+        common::offset_t& result) {
         if (transaction->isReadOnly()) {
             return lookupInPersistentIndex(transaction, key, result);
         }
@@ -111,7 +112,8 @@ public:
     // - the key doesn't exist in the local storage, check if the key exists in the persistent
     // index, if
     //   so, return false, else insert the key to the local storage.
-    bool insertInternal(transaction::Transaction* transaction, Key key, common::offset_t value) {
+    bool insertInternal(const transaction::Transaction* transaction, Key key,
+        common::offset_t value) {
         common::offset_t tmpResult;
         auto localLookupState = localStorage->lookup(key, tmpResult);
         if (localLookupState == HashIndexLocalLookupState::KEY_FOUND) {
@@ -128,7 +130,8 @@ public:
         typename std::conditional<std::same_as<T, common::ku_string_t>, std::string, T>::type;
     // Appends the buffer to the index. Returns the number of values successfully inserted,
     // or the index of the first value which cannot be inserted.
-    size_t append(transaction::Transaction* transaction, const IndexBuffer<BufferKeyType>& buffer) {
+    size_t append(const transaction::Transaction* transaction,
+        const IndexBuffer<BufferKeyType>& buffer) {
         // Check if values already exist in persistent storage
         if (indexHeaderForWriteTrx.numEntries > 0) {
             common::offset_t result;
@@ -149,11 +152,10 @@ public:
     inline BMFileHandle* getFileHandle() const { return fileHandle; }
 
 private:
-    bool lookupInPersistentIndex(transaction::Transaction* transaction, Key key,
+    bool lookupInPersistentIndex(const transaction::Transaction* transaction, Key key,
         common::offset_t& result) {
-        auto& header = transaction->getType() == transaction::TransactionType::READ_ONLY ?
-                           this->indexHeaderForReadTrx :
-                           this->indexHeaderForWriteTrx;
+        auto& header =
+            transaction->isReadOnly() ? this->indexHeaderForReadTrx : this->indexHeaderForWriteTrx;
         // There may not be any primary key slots if we try to lookup on an empty index
         if (header.numEntries == 0) {
             return false;
@@ -171,10 +173,10 @@ private:
         } while (nextChainedSlot(transaction, iter));
         return false;
     }
-    void deleteFromPersistentIndex(transaction::Transaction* transaction, Key key);
+    void deleteFromPersistentIndex(const transaction::Transaction* transaction, Key key);
 
-    entry_pos_t findMatchedEntryInSlot(transaction::Transaction* transaction, const Slot<T>& slot,
-        Key key, uint8_t fingerprint) const {
+    entry_pos_t findMatchedEntryInSlot(const transaction::Transaction* transaction,
+        const Slot<T>& slot, Key key, uint8_t fingerprint) const {
         for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
             if (slot.header.isEntryValid(entryPos) &&
                 slot.header.fingerprints[entryPos] == fingerprint &&
@@ -185,33 +187,35 @@ private:
         return SlotHeader::INVALID_ENTRY_POS;
     }
 
-    inline void updateSlot(transaction::Transaction* transaction, const SlotInfo& slotInfo,
+    inline void updateSlot(const transaction::Transaction* transaction, const SlotInfo& slotInfo,
         const Slot<T>& slot) {
         slotInfo.slotType == SlotType::PRIMARY ?
             pSlots->update(transaction, slotInfo.slotId, slot) :
             oSlots->update(transaction, slotInfo.slotId, slot);
     }
 
-    inline Slot<T> getSlot(transaction::Transaction* transaction, const SlotInfo& slotInfo) const {
+    inline Slot<T> getSlot(const transaction::Transaction* transaction,
+        const SlotInfo& slotInfo) const {
         return slotInfo.slotType == SlotType::PRIMARY ? pSlots->get(slotInfo.slotId, transaction) :
                                                         oSlots->get(slotInfo.slotId, transaction);
     }
 
-    inline uint32_t appendPSlot(transaction::Transaction* transaction) {
+    inline uint32_t appendPSlot(const transaction::Transaction* transaction) {
         return pSlots->pushBack(transaction, Slot<T>{});
     }
 
-    inline uint64_t appendOverflowSlot(transaction::Transaction* transaction, Slot<T>&& newSlot) {
+    inline uint64_t appendOverflowSlot(const transaction::Transaction* transaction,
+        Slot<T>&& newSlot) {
         return oSlots->pushBack(transaction, newSlot);
     }
 
-    void splitSlots(transaction::Transaction* transaction, HashIndexHeader& header,
+    void splitSlots(const transaction::Transaction* transaction, HashIndexHeader& header,
         slot_id_t numSlotsToSplit);
 
     // Resizes the local storage to support the given number of new entries
     void bulkReserve(uint64_t newEntries) override;
     // Resizes the on-disk index to support the given number of new entries
-    void reserve(transaction::Transaction* transaction, uint64_t newEntries);
+    void reserve(const transaction::Transaction* transaction, uint64_t newEntries);
 
     struct HashIndexEntryView {
         slot_id_t diskSlotId;
@@ -219,24 +223,24 @@ private:
         const SlotEntry<T>* entry;
     };
 
-    void sortEntries(transaction::Transaction* transaction,
+    void sortEntries(const transaction::Transaction* transaction,
         const InMemHashIndex<T>& insertLocalStorage,
         typename InMemHashIndex<T>::SlotIterator& slotToMerge,
         std::vector<HashIndexEntryView>& partitions);
-    void mergeBulkInserts(transaction::Transaction* transaction,
+    void mergeBulkInserts(const transaction::Transaction* transaction,
         const InMemHashIndex<T>& insertLocalStorage);
     // Returns the number of elements merged which matched the given slot id
-    size_t mergeSlot(transaction::Transaction* transaction,
+    size_t mergeSlot(const transaction::Transaction* transaction,
         const std::vector<HashIndexEntryView>& slotToMerge,
         typename DiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
         typename DiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator, slot_id_t slotId);
 
-    inline bool equals(transaction::Transaction* /*transaction*/, Key keyToLookup,
+    inline bool equals(const transaction::Transaction* /*transaction*/, Key keyToLookup,
         const T& keyInEntry) const {
         return keyToLookup == keyInEntry;
     }
 
-    inline common::hash_t hashStored(transaction::Transaction* /*transaction*/,
+    inline common::hash_t hashStored(const transaction::Transaction* /*transaction*/,
         const T& key) const {
         return HashIndexUtils::hash(key);
     }
@@ -246,12 +250,12 @@ private:
         Slot<T> slot;
     };
 
-    SlotIterator getSlotIterator(slot_id_t slotId, transaction::Transaction* transaction) {
+    SlotIterator getSlotIterator(slot_id_t slotId, const transaction::Transaction* transaction) {
         return SlotIterator{SlotInfo{slotId, SlotType::PRIMARY},
             getSlot(transaction, SlotInfo{slotId, SlotType::PRIMARY})};
     }
 
-    bool nextChainedSlot(transaction::Transaction* transaction, SlotIterator& iter) const {
+    bool nextChainedSlot(const transaction::Transaction* transaction, SlotIterator& iter) const {
         KU_ASSERT(iter.slotInfo.slotType == SlotType::PRIMARY ||
                   iter.slotInfo.slotId != iter.slot.header.nextOvfSlotId);
         if (iter.slot.header.nextOvfSlotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
@@ -263,8 +267,8 @@ private:
         return false;
     }
 
-    std::vector<std::pair<SlotInfo, Slot<T>>> getChainedSlots(transaction::Transaction* transaction,
-        slot_id_t pSlotId);
+    std::vector<std::pair<SlotInfo, Slot<T>>> getChainedSlots(
+        const transaction::Transaction* transaction, slot_id_t pSlotId);
 
 private:
     DBFileIDAndName dbFileIDAndName;
@@ -281,11 +285,11 @@ private:
 };
 
 template<>
-common::hash_t HashIndex<common::ku_string_t>::hashStored(transaction::Transaction* transaction,
-    const common::ku_string_t& key) const;
+common::hash_t HashIndex<common::ku_string_t>::hashStored(
+    const transaction::Transaction* transaction, const common::ku_string_t& key) const;
 
 template<>
-inline bool HashIndex<common::ku_string_t>::equals(transaction::Transaction* transaction,
+inline bool HashIndex<common::ku_string_t>::equals(const transaction::Transaction* transaction,
     std::string_view keyToLookup, const common::ku_string_t& keyInEntry) const {
     if (HashIndexUtils::areStringPrefixAndLenEqual(keyToLookup, keyInEntry)) {
         auto entryKeyString = overflowFileHandle->readString(transaction->getType(), keyInEntry);
@@ -313,37 +317,37 @@ public:
             hashIndices[indexPos].get());
     }
 
-    inline bool lookup(transaction::Transaction* trx, common::ku_string_t key,
+    inline bool lookup(const transaction::Transaction* trx, common::ku_string_t key,
         common::offset_t& result) {
         return lookup(trx, key.getAsStringView(), result);
     }
     template<common::IndexHashable T>
-    inline bool lookup(transaction::Transaction* trx, T key, common::offset_t& result) {
+    inline bool lookup(const transaction::Transaction* trx, T key, common::offset_t& result) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
         return getTypedHashIndex(key)->lookupInternal(trx, key, result);
     }
 
-    bool lookup(transaction::Transaction* trx, common::ValueVector* keyVector, uint64_t vectorPos,
-        common::offset_t& result);
+    bool lookup(const transaction::Transaction* trx, common::ValueVector* keyVector,
+        uint64_t vectorPos, common::offset_t& result);
 
-    inline bool insert(transaction::Transaction* transaction, common::ku_string_t key,
+    inline bool insert(const transaction::Transaction* transaction, common::ku_string_t key,
         common::offset_t value) {
         return insert(transaction, key.getAsStringView(), value);
     }
     template<common::IndexHashable T>
-    inline bool insert(transaction::Transaction* transaction, T key, common::offset_t value) {
+    inline bool insert(const transaction::Transaction* transaction, T key, common::offset_t value) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
         return getTypedHashIndex(key)->insertInternal(transaction, key, value);
     }
-    bool insert(transaction::Transaction* transaction, common::ValueVector* keyVector,
+    bool insert(const transaction::Transaction* transaction, common::ValueVector* keyVector,
         uint64_t vectorPos, common::offset_t value);
 
     // Appends the buffer to the index. Returns the number of values successfully inserted.
     // If a key fails to insert, it immediately returns without inserting any more values,
     // and the returned value is also the index of the key which failed to insert.
     template<common::IndexHashable T>
-    size_t appendWithIndexPos(transaction::Transaction* transaction, const IndexBuffer<T>& buffer,
-        uint64_t indexPos) {
+    size_t appendWithIndexPos(const transaction::Transaction* transaction,
+        const IndexBuffer<T>& buffer, uint64_t indexPos) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
         KU_ASSERT(std::all_of(buffer.begin(), buffer.end(), [&](auto& elem) {
             return HashIndexUtils::getHashIndexPosition(elem.first) == indexPos;
