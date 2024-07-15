@@ -228,6 +228,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Algorithm functions
         ALGORITHM_FUNCTION(WeaklyConnectedComponentsFunction),
+        ALGORITHM_FUNCTION(SingleSPDestinationsFunction),
         ALGORITHM_FUNCTION(SingleSPLengthsFunction), ALGORITHM_FUNCTION(SingleSPPathsFunction),
         ALGORITHM_FUNCTION(PageRankFunction),
 

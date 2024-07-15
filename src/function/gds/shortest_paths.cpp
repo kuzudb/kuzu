@@ -10,6 +10,8 @@
 #include "processor/operator/gds_call.h"
 #include "processor/result/factorized_table.h"
 
+// TODO(Semih): Remove
+#include <iostream>
 using namespace kuzu::processor;
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -164,8 +166,8 @@ public:
         return true;
     }
 
-    void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
-        table_id_t nextFrontierTableID) override {
+    void beginFrontierComputeBetweenTables(
+        table_id_t curFrontierTableID, table_id_t nextFrontierTableID) override {
         pathLengths->fixCurFrontierNodeTable(curFrontierTableID);
         pathLengths->fixNextFrontierNodeTable(nextFrontierTableID);
         nextOffset.store(0u);
@@ -187,10 +189,10 @@ class SinglePathsFrontiers : public PathLengthsFrontiers {
 public:
     explicit SinglePathsFrontiers(PathLengths* pathLengths, SinglePaths* singlePaths)
         : PathLengthsFrontiers(pathLengths), singlePaths{singlePaths} {}
-    void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
-        table_id_t nextFrontierTableID) override {
-        PathLengthsFrontiers::beginFrontierComputeBetweenTables(curFrontierTableID,
-            nextFrontierTableID);
+    void beginFrontierComputeBetweenTables(
+        table_id_t curFrontierTableID, table_id_t nextFrontierTableID) override {
+        PathLengthsFrontiers::beginFrontierComputeBetweenTables(
+            curFrontierTableID, nextFrontierTableID);
         singlePaths->fixNodeTable(nextFrontierTableID);
     }
     template<class TARGET>
@@ -263,14 +265,16 @@ public:
         dstNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(srcNodeIDVector.get());
         vectors.push_back(dstNodeIDVector.get());
-        lengthVector = std::make_unique<ValueVector>(LogicalType::INT64(), mm);
-        lengthVector->state = DataChunkState::getSingleValueDataChunkState();
-        vectors.push_back(lengthVector.get());
-        if (RecJoinOutputType::PATHS == outputType) {
-            pathNodeIDsVector =
-                std::make_unique<ValueVector>(LogicalType::LIST(LogicalType::INTERNAL_ID()), mm);
-            pathNodeIDsVector->state = DataChunkState::getSingleValueDataChunkState();
-            vectors.push_back(pathNodeIDsVector.get());
+        if (RecJoinOutputType::LENGTHS == outputType || RecJoinOutputType::PATHS == outputType) {
+            lengthVector = std::make_unique<ValueVector>(LogicalType::INT64(), mm);
+            lengthVector->state = DataChunkState::getSingleValueDataChunkState();
+            vectors.push_back(lengthVector.get());
+            if (RecJoinOutputType::PATHS == outputType) {
+                pathNodeIDsVector = std::make_unique<ValueVector>(
+                    LogicalType::LIST(LogicalType::INTERNAL_ID()), mm);
+                pathNodeIDsVector->state = DataChunkState::getSingleValueDataChunkState();
+                vectors.push_back(pathNodeIDsVector.get());
+            }
         }
     }
 
@@ -289,20 +293,23 @@ public:
                 }
                 auto dstNodeID = nodeID_t{nodeOffset, tableID};
                 dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
-                lengthVector->setValue<int64_t>(0, length);
-                if (RecJoinOutputType::PATHS == outputType) {
-                    nodeID_t curIntNode = dstNodeID;
-                    uint64_t curIntNbrIndex = length > 1 ? length - 1 : 0;
-                    pathNodeIDsVector->resetAuxiliaryBuffer();
-                    auto pathNodeIDsEntry =
-                        ListVector::addList(pathNodeIDsVector.get(), curIntNbrIndex);
-                    pathNodeIDsVector->setValue(0, pathNodeIDsEntry);
-                    auto dataVector = ListVector::getDataVector(pathNodeIDsVector.get());
-                    while (curIntNbrIndex > 0) {
-                        curIntNode = sourceState.singlePaths->getParent(curIntNode);
-                        dataVector->setValue(pathNodeIDsEntry.offset + curIntNbrIndex - 1,
-                            curIntNode);
-                        curIntNbrIndex--;
+                if (RecJoinOutputType::LENGTHS == outputType ||
+                    RecJoinOutputType::PATHS == outputType) {
+                    lengthVector->setValue<int64_t>(0, length);
+                    if (RecJoinOutputType::PATHS == outputType) {
+                        nodeID_t curIntNode = dstNodeID;
+                        uint64_t curIntNbrIndex = length > 1 ? length - 1 : 0;
+                        pathNodeIDsVector->resetAuxiliaryBuffer();
+                        auto pathNodeIDsEntry =
+                            ListVector::addList(pathNodeIDsVector.get(), curIntNbrIndex);
+                        pathNodeIDsVector->setValue(0, pathNodeIDsEntry);
+                        auto dataVector = ListVector::getDataVector(pathNodeIDsVector.get());
+                        while (curIntNbrIndex > 0) {
+                            curIntNode = sourceState.singlePaths->getParent(curIntNode);
+                            dataVector->setValue(
+                                pathNodeIDsEntry.offset + curIntNbrIndex - 1, curIntNode);
+                            curIntNbrIndex--;
+                        }
                     }
                 }
                 table.append(vectors);
@@ -384,10 +391,12 @@ public:
         columns.push_back(inputNode.getInternalID());
         auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
         columns.push_back(outputNode.getInternalID());
-        columns.push_back(binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::INT64()));
-        if (RecJoinOutputType::PATHS == outputType) {
-            columns.push_back(binder->createVariable(PATH_NODE_IDS_COLUMN_NAME,
-                LogicalType::LIST(LogicalType::INTERNAL_ID())));
+        if (RecJoinOutputType::LENGTHS == outputType || RecJoinOutputType::PATHS == outputType) {
+            columns.push_back(binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::INT64()));
+            if (RecJoinOutputType::PATHS == outputType) {
+                columns.push_back(binder->createVariable(
+                    PATH_NODE_IDS_COLUMN_NAME, LogicalType::LIST(LogicalType::INTERNAL_ID())));
+            }
         }
         return columns;
     }
@@ -404,8 +413,8 @@ public:
                 std::to_string(upperBound) + ".");
         }
         auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[3]);
-        bindData = std::make_unique<ShortestPathsBindData>(nodeInput, nodeOutput, outputProperty,
-            upperBound);
+        bindData = std::make_unique<ShortestPathsBindData>(
+            nodeInput, nodeOutput, outputProperty, upperBound);
     }
 
     void initLocalState(main::ClientContext* context) override {
@@ -428,30 +437,55 @@ public:
         }
     }
 
-    void runShortestPathsFromSource(processor::ExecutionContext* executionContext,
-        nodeID_t sourceNodeID) {
+    void runShortestPathsFromSource(
+        processor::ExecutionContext* executionContext, nodeID_t sourceNodeID) {
         auto sourceState = ShortestPathsSourceState(sharedState->graph.get(), sourceNodeID,
             outputType, executionContext->clientContext->getMemoryManager());
 
         std::unique_ptr<Frontiers> frontiers;
         std::unique_ptr<FrontierCompute> frontierCompute;
-        if (outputType == RecJoinOutputType::LENGTHS) {
+        switch (outputType) {
+        case RecJoinOutputType::DESTINATION_NODES:
+        case RecJoinOutputType::LENGTHS: {
             auto pathLengthsFrontier =
                 std::make_unique<PathLengthsFrontiers>(sourceState.pathLengths.get());
             frontierCompute = std::make_unique<SPLengthsFrontierCompute>(pathLengthsFrontier.get());
             frontiers = std::move(pathLengthsFrontier);
-        } else {
+            break;
+        }
+        case RecJoinOutputType::PATHS: {
             auto singlePathsFrontier = std::make_unique<SinglePathsFrontiers>(
                 sourceState.pathLengths.get(), sourceState.singlePaths.get());
             frontierCompute =
                 std::make_unique<SPSinglePathsFrontierCompute>(singlePathsFrontier.get());
             frontiers = std::move(singlePathsFrontier);
+            break;
         }
+        default:
+            throw RuntimeException("Unrecognized RecJoinOutputType in "
+                                   "ShortestPathsAlgorithm::runShortestPathsFromSource(): " +
+                                   std::to_string(static_cast<uint8_t>(outputType)) + ".");
+        }
+
+        //
+        //        if (outputType == RecJoinOutputType::LENGTHS) {
+        //            auto pathLengthsFrontier =
+        //                std::make_unique<PathLengthsFrontiers>(sourceState.pathLengths.get());
+        //            frontierCompute =
+        //            std::make_unique<SPLengthsFrontierCompute>(pathLengthsFrontier.get());
+        //            frontiers = std::move(pathLengthsFrontier);
+        //        } else {
+        //            auto singlePathsFrontier = std::make_unique<SinglePathsFrontiers>(
+        //                sourceState.pathLengths.get(), sourceState.singlePaths.get());
+        //            frontierCompute =
+        //                std::make_unique<SPSinglePathsFrontierCompute>(singlePathsFrontier.get());
+        //            frontiers = std::move(singlePathsFrontier);
+        //        }
         GDSUtils::runFrontiersUntilConvergence(executionContext, *frontiers,
             sharedState->graph.get(), *frontierCompute,
             bindData->ptrCast<ShortestPathsBindData>()->upperBound);
-        localState->ptrCast<ShortestPathsLocalState>()->materialize(sharedState->graph.get(),
-            sourceState, *sharedState->fTable);
+        localState->ptrCast<ShortestPathsLocalState>()->materialize(
+            sharedState->graph.get(), sourceState, *sharedState->fTable);
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
@@ -462,18 +496,26 @@ private:
     RecJoinOutputType outputType;
 };
 
+function_set SingleSPDestinationsFunction::getFunctionSet() {
+    function_set result;
+    auto function = std::make_unique<GDSFunction>(
+        name, std::make_unique<ShortestPathsAlgorithm>(RecJoinOutputType::DESTINATION_NODES));
+    result.push_back(std::move(function));
+    return result;
+}
+
 function_set SingleSPLengthsFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(name,
-        std::make_unique<ShortestPathsAlgorithm>(RecJoinOutputType::LENGTHS));
+    auto function = std::make_unique<GDSFunction>(
+        name, std::make_unique<ShortestPathsAlgorithm>(RecJoinOutputType::LENGTHS));
     result.push_back(std::move(function));
     return result;
 }
 
 function_set SingleSPPathsFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(name,
-        std::make_unique<ShortestPathsAlgorithm>(RecJoinOutputType::PATHS));
+    auto function = std::make_unique<GDSFunction>(
+        name, std::make_unique<ShortestPathsAlgorithm>(RecJoinOutputType::PATHS));
     result.push_back(std::move(function));
     return result;
 }
