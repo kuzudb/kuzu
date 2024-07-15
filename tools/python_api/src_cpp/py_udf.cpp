@@ -153,7 +153,6 @@ static scalar_func_exec_t getUDFExecFunc(const py::function& udf, bool defaultNu
             } else {
                 try {
                     auto pyResult = udf(*pyParams);
-                    auto a = py::reinterpret_borrow<py::dict>(pyResult);
                     auto resultValue =
                         PyConnection::transformPythonValueAs(pyResult, result.dataType);
                     result.copyFromValue(resultPos, resultValue);

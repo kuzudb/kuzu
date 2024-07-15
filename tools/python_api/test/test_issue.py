@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from tools.python_api.test.type_aliases import ConnDB
 
-
 # required by python-lint
 
 
@@ -83,8 +82,6 @@ def test_empty_list2(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_empty_map(conn_db_readwrite: ConnDB) -> None:
-    import time
-    #time.sleep(10)
     conn, db = conn_db_readwrite
     conn.execute(
         """
