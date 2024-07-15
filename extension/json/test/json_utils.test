@@ -28,7 +28,6 @@
 true
 false
 
-
 -CASE JsonMergeTest
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok

@@ -2,6 +2,13 @@
 
 --
 
+-CASE JsonifyUnion
+-STATEMENT MATCH (o:organisation) RETURN to_json(o.info);
+----
+3.120000
+"abcd"
+"2023-12-15"
+
 -CASE BasicAlgorithm
 
 

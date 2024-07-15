@@ -81,7 +81,6 @@ static yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVecto
         case LogicalTypeID::FLOAT:
             result = yyjson_mut_real(wrapper.ptr, vec.getValue<float>(pos));
             break;
-        case LogicalTypeID::BLOB:
         case LogicalTypeID::STRING: {
             auto strVal = vec.getValue<ku_string_t>(pos).getAsString();
             result = yyjson_mut_strcpy(wrapper.ptr, strVal.c_str());

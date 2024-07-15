@@ -185,35 +185,6 @@ extension-release:
 		-DBUILD_KUZU=FALSE \
 	)
 
-# TODO (maxwell) : remove this before PR
-extension-json:
-	$(call run-cmake-release, \
-		-DBUILD_EXTENSIONS="json" \
-		-DBUILD_KUZU=FALSE \
-	)
-	mkdir -p ~/.kuzu/extension/0.3.19/linux_amd64/
-	cp extension/json/build/libjson.kuzu_extension ~/.kuzu/extension/0.3.19/linux_amd64/
-
-extension-json-debug:
-	$(call run-cmake-debug, \
-		-DBUILD_EXTENSIONS="json" \
-		-DBUILD_KUZU=FALSE \
-	)
-	mkdir -p ~/.kuzu/extension/0.3.19/linux_amd64/
-	cp extension/json/build/libjson.kuzu_extension ~/.kuzu/extension/0.3.19/linux_amd64/
-
-extension-json-test-build:
-	$(call run-cmake-release, \
-		-DBUILD_EXTENSIONS="json" \
-		-DBUILD_EXTENSION_TESTS=TRUE \
-		-DENABLE_ADDRESS_SANITIZER=TRUE \
-	)
-
-extension-json-test: extension-json-test-build
-	ctest --test-dir build/release/extension/ --output-on-failure -j ${TEST_JOBS}
-	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
-
-
 shell-test:
 	$(call run-cmake-relwithdebinfo, \
 		-DBUILD_SHELL=TRUE \
