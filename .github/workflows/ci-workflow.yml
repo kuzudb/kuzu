@@ -614,6 +614,8 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
+      CXX: clang++
+      CC: clang
     steps:
       - name: Install Rust
         run: |
