@@ -1,6 +1,7 @@
 #include "graph_test/graph_test.h"
 
 #include "binder/binder.h"
+#include "graph_test/base_graph_test.h"
 #include "parser/parser.h"
 #include "planner/operator/logical_plan_util.h"
 #include "planner/planner.h"
@@ -45,6 +46,24 @@ void DBTest::createNewDB() {
     conn.reset();
     removeDir(databasePath);
     createDBAndConn();
+}
+
+void DBTest::createConns(const std::set<std::string>& connNames) {
+    BaseGraphTest::createConns(connNames);
+    for (const auto& connName : connNames) {
+        statementQueue[connName] = std::vector<TestStatement*>();
+    }
+}
+
+void DBTest::runConnStatements(const std::string& connName) {
+    auto i = 0u;
+    while (!closeThreads) {
+        while (connectionsPaused) {}
+        for (; i < statementQueue[connName].size(); i++) {
+            auto statement = statementQueue[connName][i];
+            TestRunner::runTest(statement, *connMap[connName], databasePath);
+        }
+    }
 }
 
 } // namespace testing

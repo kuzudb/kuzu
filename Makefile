@@ -61,7 +61,7 @@ relwithdebinfo:
 	$(call run-cmake-relwithdebinfo,)
 
 debug:
-	$(call run-cmake-debug,)
+	$(call run-cmake-debug, -DBUILD_TESTS=TRUE)
 
 allconfig:
 	$(call config-cmake-release, \

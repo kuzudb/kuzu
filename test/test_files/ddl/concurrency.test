@@ -1,0 +1,23 @@
+-DATASET CSV tinysnb
+--
+
+-CASE ConcurrentScan
+-CREATE_CONNECTION conn2
+-CREATE_CONNECTION conn3
+-CREATE_CONNECTION conn4
+-STATEMENT CREATE NODE TABLE t(a INT, b INT, PRIMARY KEY(a));
+---- ok
+-CONNECTIONS_WAIT
+-STATEMENT MATCH (:person) return count(*);
+---- 1
+8
+-STATEMENT [conn2] MATCH (:person) return count(*);
+---- 1
+8
+-STATEMENT [conn3] MATCH (:person) return count(*);
+---- 1
+8
+-STATEMENT [conn4] MATCH (:person) return count(*);
+---- 1
+8
+-CONNECTIONS_RUN

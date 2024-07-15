@@ -1,4 +1,8 @@
+#include <string>
+#include <thread>
+#include <vector>
 #include "graph_test/base_graph_test.h"
+#include "test_runner/test_group.h"
 #include "test_runner/test_runner.h"
 #include "transaction/transaction_context.h"
 
@@ -42,10 +46,17 @@ public:
     }
     void createDB(uint64_t checkpointWaitTimeout);
     void createNewDB();
+    void createConns(const std::set<std::string>& connNames) override;
+
+    void runConnStatements(const std::string& name);
 
     inline void runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
         uint64_t checkpointWaitTimeout = common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_IN_MICROS,
         std::set<std::string> connNames = std::set<std::string>()) {
+        closeThreads = false;
+        for (const auto& connName : connNames) {
+            connThreads.emplace_back(&DBTest::runConnStatements, this, connName);
+        }
         for (auto& statement : statements) {
             // special for testing import and export test cases
             if (statement->removeFileFlag) {
@@ -66,13 +77,25 @@ public:
                 createConns(connNames);
                 continue;
             }
+            if (statement->connectionsStatusFlag != ConnectionsStatusFlag::NONE) {
+                connectionsPaused = statement->connectionsStatusFlag == ConnectionsStatusFlag::WAIT;
+                continue;
+            }
             if (conn) {
                 TestRunner::runTest(statement.get(), *conn, databasePath);
             } else {
                 auto connName = *statement->connName;
                 CheckConn(connName);
-                TestRunner::runTest(statement.get(), *connMap[connName], databasePath);
+                if (connectionsPaused) {
+                    statementQueue[connName].push_back(statement.get());
+                } else {
+                    TestRunner::runTest(statement.get(), *connMap[connName], databasePath);
+                }
             }
+        }
+        closeThreads = true;
+        for (auto& thread: connThreads) {
+            thread.join();
         }
     }
 
@@ -81,6 +104,12 @@ public:
             connMap[connName] = std::make_unique<main::Connection>(database.get());
         }
     }
+
+protected:
+    bool closeThreads = false;
+    bool connectionsPaused = false;
+    std::vector<std::thread> connThreads;
+    std::unordered_map<std::string, std::vector<TestStatement*>> statementQueue;
 };
 } // namespace testing
 } // namespace kuzu
