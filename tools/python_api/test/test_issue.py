@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from tools.python_api.test.type_aliases import ConnDB
 
+
 # required by python-lint
 
 
@@ -82,6 +83,8 @@ def test_empty_list2(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_empty_map(conn_db_readwrite: ConnDB) -> None:
+    import time
+    #time.sleep(10)
     conn, db = conn_db_readwrite
     conn.execute(
         """
@@ -99,15 +102,14 @@ def test_empty_map(conn_db_readwrite: ConnDB) -> None:
             RETURN n.id, n.prop1, n.prop2
         """,
         {
-            "prop1": {},
-            "prop2": {"a": []},
+            "prop1": {"key": [], "value": []},
+            "prop2": {"key": ["a"], "value": [[]]},
         },
     )
     assert result.has_next()
     assert result.get_next() == [0, {}, {"a": []}]
     assert not result.has_next()
     result.close()
-
 
 # TODO(Maxwell): check if we should change getCastCost() for the following test
 # def test_issue_3248(conn_db_readwrite: ConnDB) -> None:
