@@ -66,10 +66,7 @@
 -STATEMENT COMMIT;
 ---- ok
 
-
-#TODO(Guodong): FIX-ME. Detach delete is broekn now.
 -CASE detachDeleteNodeWithLageList
--SKIP
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) RETURN COUNT(*);
 ---- 1
 2351

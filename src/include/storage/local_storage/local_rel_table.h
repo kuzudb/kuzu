@@ -25,6 +25,8 @@ public:
     bool addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState) override;
 
+    void checkIfNodeHasRels(common::ValueVector* srcNodeIDVector) const;
+
     common::TableType getTableType() const override { return common::TableType::REL; }
 
     void initializeScan(TableScanState& state);
