@@ -2,8 +2,10 @@
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/rel_direction.h"
+#include "common/exception/message.h"
 #include "common/types/internal_id_t.h"
 #include "storage/local_storage/local_rel_table.h"
+#include "storage/store/node_group.h"
 #include "storage/store/rel_table.h"
 
 using namespace kuzu::catalog;
@@ -13,104 +15,6 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-<<<<<<< HEAD
-RelDataReadState::RelDataReadState(const std::vector<column_id_t>& columnIDs)
-    : TableDataScanState{columnIDs}, nodeGroupIdx{INVALID_NODE_GROUP_IDX}, numNodes{0},
-      currentNodeOffset{0}, posInCurrentCSR{0}, readFromPersistentStorage{false},
-      readFromLocalStorage{false}, localNodeGroup{nullptr}, randomAccess{false},
-      hasFullCSRHeaders{false} {}
-
-bool RelDataReadState::hasMoreToReadFromLocalStorage() const {
-    KU_ASSERT(localNodeGroup);
-    auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    return posInCurrentCSR <
-           localNodeGroup->getNumInsertedRels(currentNodeOffset - startNodeOffset);
-}
-
-bool RelDataReadState::trySwitchToLocalStorage() {
-    auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    if (localNodeGroup &&
-        localNodeGroup->getNumInsertedRels(currentNodeOffset - startNodeOffset) > 0) {
-        readFromLocalStorage = true;
-        posInCurrentCSR = 0;
-        return true;
-    }
-    return false;
-}
-
-bool RelDataReadState::hasMoreToRead(const Transaction* transaction) {
-    if (transaction->isWriteTransaction()) {
-        if (readFromLocalStorage) {
-            // Already read from local storage. Check if there are more in local storage.
-            return hasMoreToReadFromLocalStorage();
-        }
-        if (hasMoreToReadInPersistentStorage()) {
-            return true;
-        }
-        // Try switch to read from local storage.
-        return trySwitchToLocalStorage();
-    }
-    return hasMoreToReadInPersistentStorage();
-}
-
-bool RelDataReadState::hasMoreToReadInPersistentStorage() const {
-    if (nodeGroupIdx == INVALID_NODE_GROUP_IDX) {
-        return false;
-    }
-    auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    offset_t nodeOffsetInGroup = randomAccess ? 0 : currentNodeOffset - nodeGroupStartOffset;
-    return nodeOffsetInGroup < numNodes &&
-           posInCurrentCSR < csrHeaderChunks.getCSRLength(nodeOffsetInGroup);
-}
-
-std::pair<offset_t, offset_t> RelDataReadState::getStartAndEndOffset() {
-    if (randomAccess) {
-        offset_t startOffset;
-        // If the nodeOffset was not zero, we scan both the current node offset and the previous one
-        // See CSRHeaderColumns::lookup
-        // So we want the startOffset of the second node stored in the csrHeaderChunks.
-        if (csrHeaderChunks.offset->getNumValues() > 1) {
-            startOffset = csrHeaderChunks.getStartCSROffset(1) + posInCurrentCSR;
-        } else {
-            // The nodeOffset was zero, so the CSR entry starts at zero
-            startOffset = posInCurrentCSR;
-        }
-        auto numRowsToRead =
-            std::min(csrHeaderChunks.getCSRLength(0) - posInCurrentCSR, DEFAULT_VECTOR_CAPACITY);
-        posInCurrentCSR += numRowsToRead;
-        return {startOffset, startOffset + numRowsToRead};
-    } else {
-        auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-        auto currCSRSize = csrHeaderChunks.getCSRLength(currentNodeOffset - startNodeOffset);
-        auto startOffset = csrHeaderChunks.getStartCSROffset(currentNodeOffset - startNodeOffset) +
-                           posInCurrentCSR;
-        auto numRowsToRead = std::min(currCSRSize - posInCurrentCSR, DEFAULT_VECTOR_CAPACITY);
-        posInCurrentCSR += numRowsToRead;
-        return {startOffset, startOffset + numRowsToRead};
-    }
-}
-
-void RelDataReadState::resetState() {
-    TableDataScanState::resetState();
-    nodeGroupIdx = INVALID_NODE_GROUP_IDX;
-    numNodes = 0;
-    currentNodeOffset = 0;
-    posInCurrentCSR = 0;
-    readFromPersistentStorage = false;
-    readFromLocalStorage = false;
-    localNodeGroup = nullptr;
-}
-
-offset_t CSRHeaderColumns::getNumNodes(Transaction* transaction,
-    node_group_idx_t nodeGroupIdx) const {
-    const auto numCommittedNodeGroups = offset->getNumCommittedNodeGroups();
-    return nodeGroupIdx >= numCommittedNodeGroups ?
-               0 :
-               offset->getMetadata(nodeGroupIdx, transaction).numValues;
-}
-
-=======
->>>>>>> f26f76316 (in mem mvcc)
 PackedCSRInfo::PackedCSRInfo() {
     calibratorTreeHeight =
         StorageConstants::NODE_GROUP_SIZE_LOG2 - StorageConstants::CSR_SEGMENT_SIZE_LOG2;
@@ -199,56 +103,6 @@ void RelTableData::initPropertyColumns(const TableCatalogEntry* tableEntry) {
     columns[REL_ID_COLUMN_ID]->cast<InternalIDColumn>().setCommonTableID(tableID);
 }
 
-<<<<<<< HEAD
-void RelTableData::initializeScanState(Transaction* transaction, TableScanState& scanState) const {
-    auto& relScanState = scanState.dataScanState->cast<RelDataReadState>();
-    relScanState.readFromLocalStorage = false;
-    const auto nodeOffset =
-        scanState.nodeIDVector->readNodeOffset(scanState.nodeIDVector->state->getSelVector()[0]);
-    // Reset to read from beginning for the csr of the new node offset.
-    relScanState.posInCurrentCSR = 0;
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-
-    if (relScanState.nodeGroupIdx != nodeGroupIdx) {
-        // Fields cached even for random scans
-        relScanState.numNodesInGroup = csrHeaderColumns.getNumNodes(transaction, nodeGroupIdx);
-    }
-
-    if (relScanState.nodeGroupIdx != nodeGroupIdx || relScanState.randomAccess ||
-        !relScanState.hasFullCSRHeaders) {
-        // Scan csr offsets and populate csr list entries for the new node group.
-        relScanState.nodeGroupIdx = nodeGroupIdx;
-        auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-        if (relScanState.randomAccess) {
-            if (nodeOffset - startNodeOffset < relScanState.numNodesInGroup) {
-                csrHeaderColumns.lookup(transaction, nodeGroupIdx, relScanState.csrHeaderChunks,
-                    nodeOffset - startNodeOffset, relScanState.offsetState,
-                    relScanState.lengthState);
-            }
-            // It's necessary to mark whether or not we've done a full scan of the headers so that a
-            // sequential scan following a randomAccess scan will read the headers again. There is
-            // no differentiation between the inputs and the state cached between scans
-            relScanState.hasFullCSRHeaders = false;
-        } else {
-            csrHeaderColumns.scan(transaction, nodeGroupIdx, relScanState.csrHeaderChunks);
-            KU_ASSERT(relScanState.csrHeaderChunks.offset->getNumValues() ==
-                      relScanState.csrHeaderChunks.length->getNumValues());
-            relScanState.hasFullCSRHeaders = true;
-        }
-        relScanState.numNodes = relScanState.csrHeaderChunks.offset->getNumValues();
-
-        relScanState.readFromPersistentStorage =
-            nodeGroupIdx < columns[REL_ID_COLUMN_ID]->getNumCommittedNodeGroups() &&
-            (nodeOffset - startNodeOffset) < relScanState.numNodesInGroup;
-        if (relScanState.readFromPersistentStorage) {
-            initializeColumnScanStates(transaction, scanState, nodeGroupIdx);
-        }
-        if (transaction->isWriteTransaction()) {
-            relScanState.localNodeGroup = getLocalNodeGroup(transaction, nodeGroupIdx);
-        }
-    }
-    relScanState.currentNodeOffset = nodeOffset;
-=======
 bool RelTableData::update(Transaction* transaction, ValueVector& boundNodeIDVector,
     const ValueVector& relIDVector, column_id_t columnID, const ValueVector& dataVector) const {
     KU_ASSERT(boundNodeIDVector.state->getSelVector().getSelSize() == 1);
@@ -265,7 +119,6 @@ bool RelTableData::update(Transaction* transaction, ValueVector& boundNodeIDVect
     auto& csrNodeGroup = getNodeGroup(nodeGroupIdx)->cast<CSRNodeGroup>();
     csrNodeGroup.update(transaction, source, rowIdx, columnID, dataVector);
     return true;
->>>>>>> f26f76316 (in mem mvcc)
 }
 
 bool RelTableData::delete_(Transaction* transaction, ValueVector& boundNodeIDVector,
@@ -340,21 +193,40 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     return {source, matchingRowIdx};
 }
 
-bool RelTableData::checkIfNodeHasRels(Transaction*, offset_t) const {
-    // auto [nodeGroupIdx, offsetInChunk] =
-    // StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset); if (nodeGroupIdx >=
-    // csrHeaderColumns.length->getNumNodeGroups(transaction)) {
-    //     return false;
-    // }
-    // ChunkState readState;
-    // csrHeaderColumns.length->initChunkState(transaction, nodeGroupIdx, readState);
-    // if (offsetInChunk >= readState.metadata.numValues) {
-    //     return false;
-    // }
-    // length_t length;
-    // csrHeaderColumns.length->scan(transaction, readState, offsetInChunk, offsetInChunk + 1,
-    //     reinterpret_cast<uint8_t*>(&length));
-    // return length > 0;
+void RelTableData::checkIfNodeHasRels(Transaction* transaction,
+    ValueVector* srcNodeIDVector) const {
+    KU_ASSERT(srcNodeIDVector->state->isFlat());
+    const auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
+    const auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
+    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+    if (nodeGroupIdx >= getNumNodeGroups()) {
+        return;
+    }
+    DataChunk scanChunk(1);
+    // RelID output vector.
+    scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
+    std::vector<column_id_t> columnIDs = {REL_ID_COLUMN_ID};
+    std::vector<Column*> columns{getColumn(REL_ID_COLUMN_ID)};
+    const auto scanState = std::make_unique<RelTableScanState>(tableID, columnIDs, columns,
+        csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
+    scanState->boundNodeIDVector = srcNodeIDVector;
+    scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
+    scanState->IDVector = scanState->outputVectors[0];
+    scanState->source = TableScanSource::COMMITTED;
+    scanState->boundNodeOffset = nodeOffset;
+    scanState->nodeGroup = getNodeGroup(nodeGroupIdx);
+    scanState->nodeGroup->initializeScanState(transaction, *scanState);
+    while (true) {
+        const auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
+        if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+            break;
+        }
+        if (scanState->outputVectors[0]->state->getSelVector().getSelSize() > 0) {
+            throw RuntimeException(ExceptionMessage::violateDeleteNodeWithConnectedEdgesConstraint(
+                tableName, std::to_string(nodeOffset),
+                RelDataDirectionUtils::relDirectionToString(direction)));
+        }
+    }
 }
 
 static length_t getGapSizeForNode(const ChunkedCSRHeader& header, offset_t nodeOffset) {
