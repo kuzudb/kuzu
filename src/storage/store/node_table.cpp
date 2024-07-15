@@ -158,7 +158,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
         return;
     }
     if (nodeUpdateState.columnID == pkColumnID && pkIndex) {
-        insertPK(nodeUpdateState.nodeIDVector, nodeUpdateState.propertyVector);
+        insertPK(transaction, nodeUpdateState.nodeIDVector, nodeUpdateState.propertyVector);
     }
     const auto nodeOffset = nodeUpdateState.nodeIDVector.readNodeOffset(pos);
     if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
@@ -250,7 +250,7 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
                 scanState->IDVector->setValue(pos, nodeID_t{startNodeOffset + i, tableID});
             }
             const auto pkVector = scanState->outputVectors[pkColumnID];
-            insertPK(nodeIDVector, *pkVector);
+            insertPK(transaction, nodeIDVector, *pkVector);
             startNodeOffset += scanState->IDVector->state->getSelVector().getSelSize();
             nodeGroups->append(transaction, scanState->outputVectors);
         }
@@ -259,7 +259,8 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
     localTable->clear();
 }
 
-void NodeTable::insertPK(const ValueVector& nodeIDVector, const ValueVector& pkVector) const {
+void NodeTable::insertPK(Transaction* transaction, const ValueVector& nodeIDVector,
+    const ValueVector& pkVector) const {
     for (auto i = 0u; i < nodeIDVector.state->getSelVector().getSelSize(); i++) {
         const auto nodeIDPos = nodeIDVector.state->getSelVector()[i];
         const auto offset = nodeIDVector.readNodeOffset(nodeIDPos);
@@ -267,7 +268,7 @@ void NodeTable::insertPK(const ValueVector& nodeIDVector, const ValueVector& pkV
         if (pkVector.isNull(pkPos)) {
             throw RuntimeException(ExceptionMessage::nullPKException());
         }
-        if (!pkIndex->insert(const_cast<ValueVector*>(&pkVector), pkPos, offset)) {
+        if (!pkIndex->insert(transaction, const_cast<ValueVector*>(&pkVector), pkPos, offset)) {
             std::string pkStr;
             TypeUtils::visit(
                 pkVector.dataType.getPhysicalType(),

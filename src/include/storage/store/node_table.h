@@ -162,7 +162,7 @@ public:
     }
 
 private:
-    void insertPK(const common::ValueVector& nodeIDVector,
+    void insertPK(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,
         const common::ValueVector& pkVector) const;
 
     void serialize(common::Serializer& serializer) const override;

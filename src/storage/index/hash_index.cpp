@@ -49,23 +49,23 @@ void HashIndex<T>::deleteFromPersistentIndex(Transaction* transaction, Key key) 
     }
     auto hashValue = HashIndexUtils::hash(key);
     auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
-    auto iter = getSlotIterator(HashIndexUtils::getPrimarySlotIdForHash(header, hashValue),
-        transaction->getType());
+    auto iter =
+        getSlotIterator(HashIndexUtils::getPrimarySlotIdForHash(header, hashValue), transaction);
     do {
-        auto entryPos = findMatchedEntryInSlot(transaction->getType(), iter.slot, key, fingerprint);
+        auto entryPos = findMatchedEntryInSlot(transaction, iter.slot, key, fingerprint);
         if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
             iter.slot.header.setEntryInvalid(entryPos);
-            updateSlot(iter.slotInfo, iter.slot);
+            updateSlot(transaction, iter.slotInfo, iter.slot);
             header.numEntries--;
         }
-    } while (nextChainedSlot(transaction->getType(), iter));
+    } while (nextChainedSlot(transaction, iter));
 }
 
 template<>
-inline common::hash_t HashIndex<ku_string_t>::hashStored(transaction::TransactionType /*trxType*/,
+inline common::hash_t HashIndex<ku_string_t>::hashStored(transaction::Transaction* transaction,
     const ku_string_t& key) const {
     common::hash_t hash;
-    auto str = overflowFileHandle->readString(TransactionType::WRITE, key);
+    auto str = overflowFileHandle->readString(transaction->getType(), key);
     function::Hash::operation(str, hash);
     return hash;
 }
@@ -73,14 +73,14 @@ inline common::hash_t HashIndex<ku_string_t>::hashStored(transaction::Transactio
 template<typename T>
 bool HashIndex<T>::checkpoint() {
     if (localStorage->hasUpdates()) {
+        auto transaction = &DUMMY_CHECKPOINT_TRANSACTION;
         auto netInserts = localStorage->getNetInserts();
         if (netInserts > 0) {
-            reserve(netInserts);
+            reserve(transaction, netInserts);
         }
-        auto transaction = &DUMMY_CHECKPOINT_TRANSACTION;
         localStorage->applyLocalChanges(
             [&](Key key) { deleteFromPersistentIndex(transaction, key); },
-            [&](const auto& insertions) { mergeBulkInserts(insertions); });
+            [&](const auto& insertions) { mergeBulkInserts(transaction, insertions); });
         pSlots->checkpoint();
         oSlots->checkpoint();
         return true;
@@ -123,7 +123,8 @@ bool HashIndex<T>::rollbackInMemory() {
 }
 
 template<typename T>
-void HashIndex<T>::splitSlots(HashIndexHeader& header, slot_id_t numSlotsToSplit) {
+void HashIndex<T>::splitSlots(Transaction* transaction, HashIndexHeader& header,
+    slot_id_t numSlotsToSplit) {
     auto originalSlotIterator = pSlots->iter_mut();
     auto newSlotIterator = pSlots->iter_mut();
     auto overflowSlotIterator = oSlots->iter_mut();
@@ -132,7 +133,7 @@ void HashIndex<T>::splitSlots(HashIndexHeader& header, slot_id_t numSlotsToSplit
     std::vector<Slot<T>> newOverflowSlots;
 
     for (slot_id_t i = 0; i < numSlotsToSplit; i++) {
-        auto* newSlot = &*newSlotIterator.pushBack(Slot<T>());
+        auto* newSlot = &*newSlotIterator.pushBack(transaction, Slot<T>());
         entry_pos_t newEntryPos = 0;
         Slot<T>* originalSlot = &*originalSlotIterator.seek(header.nextSplitSlotId);
         do {
@@ -148,7 +149,7 @@ void HashIndex<T>::splitSlots(HashIndexHeader& header, slot_id_t numSlotsToSplit
                 }
                 // Copy entry from old slot to new slot
                 const auto& key = originalSlot->entries[originalEntryPos].key;
-                const hash_t hash = this->hashStored(TransactionType::WRITE, key);
+                const hash_t hash = this->hashStored(transaction, key);
                 const auto newSlotId = hash & header.higherLevelHashMask;
                 if (newSlotId != header.nextSplitSlotId) {
                     KU_ASSERT(newSlotId == newSlotIterator.idx());
@@ -164,17 +165,18 @@ void HashIndex<T>::splitSlots(HashIndexHeader& header, slot_id_t numSlotsToSplit
         header.incrementNextSplitSlotId();
     }
     for (auto&& slot : newOverflowSlots) {
-        overflowSlotIterator.pushBack(std::move(slot));
+        overflowSlotIterator.pushBack(transaction, std::move(slot));
     }
 }
 
 template<typename T>
-std::vector<std::pair<SlotInfo, Slot<T>>> HashIndex<T>::getChainedSlots(slot_id_t pSlotId) {
+std::vector<std::pair<SlotInfo, Slot<T>>> HashIndex<T>::getChainedSlots(Transaction* transaction,
+    slot_id_t pSlotId) {
     std::vector<std::pair<SlotInfo, Slot<T>>> slots;
     SlotInfo slotInfo{pSlotId, SlotType::PRIMARY};
     while (slotInfo.slotType == SlotType::PRIMARY ||
            slotInfo.slotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
-        auto slot = getSlot(TransactionType::WRITE, slotInfo);
+        auto slot = getSlot(transaction, slotInfo);
         slots.emplace_back(slotInfo, slot);
         slotInfo.slotId = slot.header.nextOvfSlotId;
         slotInfo.slotType = SlotType::OVF;
@@ -183,7 +185,7 @@ std::vector<std::pair<SlotInfo, Slot<T>>> HashIndex<T>::getChainedSlots(slot_id_
 }
 
 template<typename T>
-void HashIndex<T>::reserve(uint64_t newEntries) {
+void HashIndex<T>::reserve(transaction::Transaction* transaction, uint64_t newEntries) {
     slot_id_t numRequiredEntries =
         HashIndexUtils::getNumRequiredEntries(this->indexHeaderForWriteTrx.numEntries + newEntries);
     // Can be no fewer slots that the current level requires
@@ -199,7 +201,7 @@ void HashIndex<T>::reserve(uint64_t newEntries) {
     // If there are no entries, we can just re-size the number of primary slots and re-calculate the
     // levels
     if (this->indexHeaderForWriteTrx.numEntries == 0) {
-        pSlots->resize(numRequiredSlots);
+        pSlots->resize(transaction, numRequiredSlots);
 
         auto numSlotsOfCurrentLevel = 1u << this->indexHeaderForWriteTrx.currentLevel;
         while ((numSlotsOfCurrentLevel << 1) <= numRequiredSlots) {
@@ -211,20 +213,21 @@ void HashIndex<T>::reserve(uint64_t newEntries) {
                 numRequiredSlots - numSlotsOfCurrentLevel;
         };
     } else {
-        splitSlots(this->indexHeaderForWriteTrx,
-            numRequiredSlots - pSlots->getNumElements(TransactionType::WRITE));
+        splitSlots(transaction, this->indexHeaderForWriteTrx,
+            numRequiredSlots - pSlots->getNumElements(transaction->getType()));
     }
 }
 
 template<typename T>
-void HashIndex<T>::sortEntries(const InMemHashIndex<T>& insertLocalStorage,
+void HashIndex<T>::sortEntries(transaction::Transaction* transaction,
+    const InMemHashIndex<T>& insertLocalStorage,
     typename InMemHashIndex<T>::SlotIterator& slotToMerge,
     std::vector<HashIndexEntryView>& entries) {
     do {
         auto numEntries = slotToMerge.slot->header.numEntries();
         for (auto entryPos = 0u; entryPos < numEntries; entryPos++) {
             const auto* entry = &slotToMerge.slot->entries[entryPos];
-            const auto hash = hashStored(TransactionType::WRITE, entry->key);
+            const auto hash = hashStored(transaction, entry->key);
             const auto primarySlot =
                 HashIndexUtils::getPrimarySlotIdForHash(indexHeaderForWriteTrx, hash);
             entries.push_back(HashIndexEntryView{primarySlot,
@@ -240,7 +243,8 @@ void HashIndex<T>::sortEntries(const InMemHashIndex<T>& insertLocalStorage,
 }
 
 template<typename T>
-void HashIndex<T>::mergeBulkInserts(const InMemHashIndex<T>& insertLocalStorage) {
+void HashIndex<T>::mergeBulkInserts(Transaction* transaction,
+    const InMemHashIndex<T>& insertLocalStorage) {
     // TODO: Ideally we can split slots at the same time that we insert new ones
     // Compute the new number of primary slots, and iterate over each slot, determining if it
     // needs to be split (and how many times, which is complicated) and insert/rehash each element
@@ -252,7 +256,7 @@ void HashIndex<T>::mergeBulkInserts(const InMemHashIndex<T>& insertLocalStorage)
     // On the other hand, two passes may not be significantly slower than one
     // TODO: one pass would also reduce locking when frames are unpinned,
     // which is useful if this can be parallelized
-    reserve(insertLocalStorage.size());
+    reserve(transaction, insertLocalStorage.size());
     RUNTIME_CHECK(auto originalNumEntries = this->indexHeaderForWriteTrx.numEntries);
 
     // Storing as many slots in-memory as on-disk shouldn't be necessary (for one it makes memory
@@ -289,7 +293,7 @@ void HashIndex<T>::mergeBulkInserts(const InMemHashIndex<T>& insertLocalStorage)
             partitionedEntries[i].clear();
             // Results are sorted in reverse, so we can process the end first and pop_back to remove
             // them from the vector
-            sortEntries(insertLocalStorage, localSlot, partitionedEntries[i]);
+            sortEntries(transaction, insertLocalStorage, localSlot, partitionedEntries[i]);
         }
         // Repeat until there are no un-processed partitions in partitionedEntries
         // This will run at most NUM_SLOTS_PER_PAGE times the number of entries
@@ -303,8 +307,8 @@ void HashIndex<T>::mergeBulkInserts(const InMemHashIndex<T>& insertLocalStorage)
                         diskSlotPage = diskSlotId / NUM_SLOTS_PER_PAGE;
                     }
                     if (diskSlotId / NUM_SLOTS_PER_PAGE == diskSlotPage) {
-                        auto merged = mergeSlot(partitionedEntries[i], diskSlotIterator,
-                            diskOverflowSlotIterator, diskSlotId);
+                        auto merged = mergeSlot(transaction, partitionedEntries[i],
+                            diskSlotIterator, diskOverflowSlotIterator, diskSlotId);
                         KU_ASSERT(merged <= partitionedEntries[i].size());
                         partitionedEntries[i].resize(partitionedEntries[i].size() - merged);
                         if (partitionedEntries[i].empty()) {
@@ -322,7 +326,8 @@ void HashIndex<T>::mergeBulkInserts(const InMemHashIndex<T>& insertLocalStorage)
 }
 
 template<typename T>
-size_t HashIndex<T>::mergeSlot(const std::vector<HashIndexEntryView>& slotToMerge,
+size_t HashIndex<T>::mergeSlot(Transaction* transaction,
+    const std::vector<HashIndexEntryView>& slotToMerge,
     typename DiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
     typename DiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator, slot_id_t diskSlotId) {
     slot_id_t diskEntryPos = 0u;
@@ -346,7 +351,7 @@ size_t HashIndex<T>::mergeSlot(const std::vector<HashIndexEntryView>& slotToMerg
                     // If there are no more disk slots in this chain, we need to add one
                     diskSlot->header.nextOvfSlotId = diskOverflowSlotIterator.size();
                     // This may invalidate diskSlot
-                    diskOverflowSlotIterator.pushBack(Slot<T>());
+                    diskOverflowSlotIterator.pushBack(transaction, Slot<T>());
                     KU_ASSERT(
                         diskSlot->header.nextOvfSlotId == SlotHeader::INVALID_OVERFLOW_SLOT_ID ||
                         diskOverflowSlotIterator.size() > diskSlot->header.nextOvfSlotId);
@@ -367,7 +372,7 @@ size_t HashIndex<T>::mergeSlot(const std::vector<HashIndexEntryView>& slotToMerg
         diskSlot->header.setEntryValid(diskEntryPos, it->fingerprint);
         KU_ASSERT([&]() {
             const auto& key = it->entry->key;
-            const auto hash = hashStored(TransactionType::WRITE, key);
+            const auto hash = hashStored(transaction, key);
             const auto primarySlot =
                 HashIndexUtils::getPrimarySlotIdForHash(indexHeaderForWriteTrx, hash);
             KU_ASSERT(it->fingerprint == HashIndexUtils::getFingerprintForHash(hash));
@@ -482,14 +487,14 @@ bool PrimaryKeyIndex::lookup(Transaction* trx, common::ValueVector* keyVector, u
     return retVal;
 }
 
-bool PrimaryKeyIndex::insert(common::ValueVector* keyVector, uint64_t vectorPos,
-    common::offset_t value) {
+bool PrimaryKeyIndex::insert(Transaction* transaction, common::ValueVector* keyVector,
+    uint64_t vectorPos, common::offset_t value) {
     bool result = false;
     TypeUtils::visit(
         keyDataTypeID,
         [&]<IndexHashable T>(T) {
             T key = keyVector->getValue<T>(vectorPos);
-            result = insert(key, value);
+            result = insert(transaction, key, value);
         },
         [](auto) { KU_UNREACHABLE; });
     return result;
