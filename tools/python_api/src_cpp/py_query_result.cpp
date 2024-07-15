@@ -349,6 +349,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
 }
 
 py::object PyQueryResult::getAsDF() {
+    importCache->numpyma(); // check if we can import
     return QueryResultConverter(queryResult).toDF();
 }
 
