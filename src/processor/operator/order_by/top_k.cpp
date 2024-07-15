@@ -10,7 +10,7 @@ namespace kuzu {
 namespace processor {
 
 std::string TopKPrintInfo::toString() const {
-    std::string result = "Keys: ";
+    std::string result = "Order By: ";
     result += binder::ExpressionUtil::toString(keys);
     result += ", Expressions: ";
     result += binder::ExpressionUtil::toString(payloads);

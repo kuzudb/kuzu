@@ -2,8 +2,6 @@
 
 #include "binder/expression/expression_util.h"
 
-using namespace kuzu::binder;
-
 namespace kuzu {
 namespace processor {
 
