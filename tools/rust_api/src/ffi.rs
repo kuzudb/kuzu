@@ -88,9 +88,41 @@ pub(crate) mod ffi {
         UUID = 59,
     }
 
+    // From types.h
+    // Note: cxx will check if values change, but not if they are added.
+    #[namespace = "kuzu::common"]
+    #[repr(u8)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum PhysicalTypeID {
+        // Fixed size types.
+        ANY = 0,
+        BOOL = 1,
+        INT64 = 2,
+        INT32 = 3,
+        INT16 = 4,
+        INT8 = 5,
+        UINT64 = 6,
+        UINT32 = 7,
+        UINT16 = 8,
+        UINT8 = 9,
+        INT128 = 10,
+        DOUBLE = 11,
+        FLOAT = 12,
+        INTERVAL = 13,
+        INTERNAL_ID = 14,
+
+        // Variable size types.
+        STRING = 20,
+        LIST = 22,
+        ARRAY = 23,
+        STRUCT = 24,
+        POINTER = 25,
+    }
+
     #[namespace = "kuzu::common"]
     unsafe extern "C++" {
         type LogicalTypeID;
+        type PhysicalTypeID;
     }
 
     #[namespace = "kuzu::main"]
@@ -205,6 +237,7 @@ pub(crate) mod ffi {
 
         fn create_logical_type(id: LogicalTypeID) -> UniquePtr<LogicalType>;
         fn create_logical_type_list(child_type: UniquePtr<LogicalType>) -> UniquePtr<LogicalType>;
+        fn create_logical_type_decimal(precision: u32, scale: u32) -> UniquePtr<LogicalType>;
         fn create_logical_type_array(
             child_type: UniquePtr<LogicalType>,
             num_elements: u64,
@@ -231,6 +264,8 @@ pub(crate) mod ffi {
         ) -> UniquePtr<CxxVector<LogicalType>>;
 
         fn create_logical_type_rdf_variant() -> UniquePtr<LogicalType>;
+        fn logical_type_get_decimal_precision(value: &LogicalType) -> u32;
+        fn logical_type_get_decimal_scale(value: &LogicalType) -> u32;
     }
 
     #[namespace = "kuzu_rs"]
@@ -299,6 +334,7 @@ pub(crate) mod ffi {
 
         fn value_get_data_type_id(value: &Value) -> LogicalTypeID;
         fn value_get_data_type(value: &Value) -> &LogicalType;
+        fn value_get_physical_type(value: &Value) -> PhysicalTypeID;
 
         fn value_get_children_size(value: &Value) -> u32;
         fn value_get_child(value: &Value, index: u32) -> &Value;
@@ -340,6 +376,12 @@ pub(crate) mod ffi {
         fn create_value_int128_t(high: i64, low: u64) -> UniquePtr<Value>;
         fn create_value_uuid_t(high: i64, low: u64) -> UniquePtr<Value>;
         fn create_value_internal_id(offset: u64, table: u64) -> UniquePtr<Value>;
+        fn create_value_decimal(
+            high: i64,
+            low: u64,
+            scale: u32,
+            precision: u32,
+        ) -> UniquePtr<Value>;
 
         fn node_value_get_node_id(value: &Value) -> &Value;
         fn node_value_get_label_name(value: &Value) -> String;

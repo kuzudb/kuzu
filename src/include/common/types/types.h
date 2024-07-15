@@ -258,7 +258,7 @@ public:
     static LogicalType TIMESTAMP_TZ() { return LogicalType(LogicalTypeID::TIMESTAMP_TZ); }
     static LogicalType TIMESTAMP() { return LogicalType(LogicalTypeID::TIMESTAMP); }
     static LogicalType INTERVAL() { return LogicalType(LogicalTypeID::INTERVAL); }
-    static LogicalType DECIMAL(uint32_t precision, uint32_t scale);
+    static KUZU_API LogicalType DECIMAL(uint32_t precision, uint32_t scale);
     static LogicalType INTERNAL_ID() { return LogicalType(LogicalTypeID::INTERNAL_ID); }
     static LogicalType SERIAL() { return LogicalType(LogicalTypeID::SERIAL); }
     static LogicalType STRING() { return LogicalType(LogicalTypeID::STRING); }
