@@ -620,7 +620,7 @@ jobs:
       - name: Install dependencies
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          brew install ninja
+          brew install ninja openssl@3 duckdb
       
       - name: Setup environment
         run: |
