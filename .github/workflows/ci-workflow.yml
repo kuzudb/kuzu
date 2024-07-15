@@ -617,10 +617,10 @@ jobs:
       CXX: clang++
       CC: clang
     steps:
-      - name: Install Rust
+      - name: Install dependencies
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          source $HOME/.cargo/env
+          brew install ninja
       
       - name: Setup environment
         run: |
