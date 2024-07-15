@@ -23,8 +23,6 @@
 //! ## Building
 //!
 //! By default, the kuzu C++ library will be compiled from source and statically linked.
-//! If the kuzu C++ library is not being built using multiple threads by default, you can set the
-//! CMAKE_BUILD_PARALLEL_LEVEL environment variable to potentially speed up the build process.
 //!
 //! If you want to instead link against a pre-built version of the library, the following environment
 //! variables can be used to configure the build process:
