@@ -23,13 +23,7 @@ f_group_pos_set LogicalOrderBy::getGroupsPosToFlatten() {
     // cannot read back a flat column into an unflat std::vector.
     auto childSchema = children[0]->getSchema();
     if (childSchema->getNumGroups() > 1) {
-        f_group_pos_set dependentGroupsPos;
-        for (auto& expression : expressionsToOrderBy) {
-            for (auto groupPos : childSchema->getDependentGroupsPos(expression)) {
-                dependentGroupsPos.insert(groupPos);
-            }
-        }
-        return factorization::FlattenAll::getGroupsPosToFlatten(dependentGroupsPos, childSchema);
+        return FlattenAll::getGroupsPosToFlatten(expressionsToOrderBy, *childSchema);
     }
     return f_group_pos_set{};
 }

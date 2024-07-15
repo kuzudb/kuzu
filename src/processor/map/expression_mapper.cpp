@@ -149,7 +149,7 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getFunctionEvaluator(
         auto result =
             std::make_unique<ListLambdaEvaluator>(expression, std::move(childrenEvaluators));
         auto recursiveExprMapper = ExpressionMapper(schema, result.get());
-        auto& lambdaExpr = expression->getChild(1)->constCast<BoundLambdaExpression>();
+        auto& lambdaExpr = expression->getChild(1)->constCast<LambdaExpression>();
         result->setLambdaRootEvaluator(
             recursiveExprMapper.getEvaluator(lambdaExpr.getFunctionExpr()));
         return result;

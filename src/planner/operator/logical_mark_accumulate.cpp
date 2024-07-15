@@ -31,7 +31,7 @@ f_group_pos_set LogicalMarkAccumulate::getGroupsPosToFlatten() const {
     f_group_pos_set dependentGroupsPos = childSchema->getGroupsPosInScope();
     // TODO(Xiyang/Ziyi): we don't need to flatten all. But hash aggregate seems to not allow
     // flat key with unFlat payload.
-    return factorization::FlattenAll::getGroupsPosToFlatten(dependentGroupsPos, childSchema);
+    return FlattenAll::getGroupsPosToFlatten(dependentGroupsPos, *childSchema);
 }
 
 expression_vector LogicalMarkAccumulate::getPayloads() const {

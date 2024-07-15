@@ -28,7 +28,7 @@ f_group_pos_set LogicalHashJoin::getGroupsPosToFlattenOnBuildSide() {
     for (auto& [probeKey, buildKey] : joinConditions) {
         joinNodesGroupPos.insert(buildSchema->getGroupPos(*buildKey));
     }
-    return factorization::FlattenAllButOne::getGroupsPosToFlatten(joinNodesGroupPos, buildSchema);
+    return FlattenAllButOne::getGroupsPosToFlatten(joinNodesGroupPos, *buildSchema);
 }
 
 void LogicalHashJoin::computeFactorizedSchema() {

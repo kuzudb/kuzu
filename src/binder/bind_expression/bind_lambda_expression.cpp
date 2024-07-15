@@ -20,12 +20,10 @@ void ExpressionBinder::bindLambdaExpression(const std::string& functionName,
     }
     KU_ASSERT(lambdaInput.getDataType().getLogicalTypeID() == LogicalTypeID::LIST);
     auto& listChildType = ListType::getChildType(lambdaInput.getDataType());
-    auto& boundLambdaExpr = lambdaExpr.cast<BoundLambdaExpression>();
+    auto& boundLambdaExpr = lambdaExpr.cast<LambdaExpression>();
     auto& parsedLambdaExpr =
         boundLambdaExpr.getParsedLambdaExpr()->constCast<ParsedLambdaExpression>();
     auto prevScope = binder->saveScope();
-    // TODO(Xiyang): we should not clear scope here.
-    binder->scope.clear();
     for (auto& varName : parsedLambdaExpr.getVarNames()) {
         binder->createVariable(varName, listChildType);
     }
@@ -39,7 +37,7 @@ void ExpressionBinder::bindLambdaExpression(const std::string& functionName,
 std::shared_ptr<Expression> ExpressionBinder::bindLambdaExpression(
     const parser::ParsedExpression& parsedExpr) const {
     auto uniqueName = getUniqueName(parsedExpr.getRawName());
-    return std::make_shared<BoundLambdaExpression>(parsedExpr.copy(), uniqueName);
+    return std::make_shared<LambdaExpression>(parsedExpr.copy(), uniqueName);
 }
 
 } // namespace binder

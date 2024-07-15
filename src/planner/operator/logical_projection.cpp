@@ -1,4 +1,5 @@
 #include "planner/operator/logical_projection.h"
+#include "planner/operator/factorization/flatten_resolver.h"
 
 namespace kuzu {
 namespace planner {
@@ -13,7 +14,9 @@ void LogicalProjection::computeFactorizedSchema() {
             groupPos = childSchema->getGroupPos(*expression);
             schema->insertToScopeMayRepeat(expression, groupPos);
         } else { // expression to evaluate
-            auto dependentGroupPos = childSchema->getDependentGroupsPos(expression);
+            auto analyzer = GroupDependencyAnalyzer(false, *childSchema);
+            analyzer.visit(expression);
+            auto dependentGroupPos = analyzer.getDependentGroups();
             SchemaUtils::validateAtMostOneUnFlatGroup(dependentGroupPos, *childSchema);
             if (dependentGroupPos.empty()) { // constant
                 groupPos = schema->createGroup();

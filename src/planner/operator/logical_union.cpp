@@ -15,7 +15,7 @@ f_group_pos_set LogicalUnion::getGroupsPosToFlatten(uint32_t childIdx) {
             groupsPos.insert(childSchema->getGroupPos(*expression));
         }
     }
-    return factorization::FlattenAll::getGroupsPosToFlatten(groupsPos, childSchema);
+    return FlattenAll::getGroupsPosToFlatten(groupsPos, *childSchema);
 }
 
 void LogicalUnion::computeFactorizedSchema() {

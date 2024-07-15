@@ -6,11 +6,11 @@
 namespace kuzu {
 namespace binder {
 
-class BoundLambdaExpression final : public Expression {
+class LambdaExpression final : public Expression {
     static constexpr const common::ExpressionType type_ = common::ExpressionType::LAMBDA;
 
 public:
-    BoundLambdaExpression(std::unique_ptr<parser::ParsedExpression> parsedLambdaExpr,
+    LambdaExpression(std::unique_ptr<parser::ParsedExpression> parsedLambdaExpr,
         std::string uniqueName)
         : Expression{type_, common::LogicalType::ANY(), uniqueName},
           parsedLambdaExpr{std::move(parsedLambdaExpr)} {}
