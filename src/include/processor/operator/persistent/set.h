@@ -1,6 +1,5 @@
 #pragma once
 
-#include "binder/query/updating_clause/bound_set_info.h"
 #include "processor/operator/physical_operator.h"
 #include "set_executor.h"
 
