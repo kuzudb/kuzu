@@ -605,8 +605,6 @@ jobs:
     needs: [clang-format, sanity-checks, rustfmt-check, python-lint-check, generate-binary-demo]
     runs-on: macos-14
     env:
-      CMAKE_BUILD_PARALLEL_LEVEL: 32
-      TEST_JOBS: 16
       GEN: Ninja
       UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
       UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
@@ -626,6 +624,7 @@ jobs:
         run: |
           echo JAVA_HOME=$(/usr/libexec/java_home) >> $GITHUB_ENV
           echo NUM_THREADS=$(sysctl -n hw.logicalcpu) >> $GITHUB_ENV
+          echo CMAKE_BUILD_PARALLEL_LEVEL=$(sysctl -n hw.logicalcpu) >> $GITHUB_ENV
       
       - uses: actions/checkout@v4
 
