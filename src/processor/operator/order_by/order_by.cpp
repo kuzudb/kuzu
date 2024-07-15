@@ -8,9 +8,9 @@ namespace kuzu {
 namespace processor {
 
 std::string OrderByPrintInfo::toString() const {
-    std::string result = "Keys: ";
+    std::string result = "Order By: ";
     result += binder::ExpressionUtil::toString(keys);
-    result += ", Payloads: ";
+    result += ", Expressions: ";
     result += binder::ExpressionUtil::toString(payloads);
     return result;
 }

@@ -6,8 +6,10 @@ namespace kuzu {
 namespace processor {
 
 std::string UnwindPrintInfo::toString() const {
-    std::string result = "Unwind expressions as: ";
-    result += expression->toString();
+    std::string result = "Unwind: ";
+    result += inExpression->toString();
+    result += ", As: ";
+    result += outExpression->toString();
     return result;
 }
 

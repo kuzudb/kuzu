@@ -50,8 +50,8 @@ std::unique_ptr<PhysicalOperator> SetRelProperty::clone() {
 }
 
 std::string SetPropertyPrintInfo::toString() const {
-    std::string result = "Operation: ";
-    result += operation;
+    std::string result = "Properties: ";
+    result += binder::ExpressionUtil::toString(expressions);
     return result;
 }
 } // namespace processor

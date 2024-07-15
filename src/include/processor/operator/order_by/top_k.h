@@ -9,11 +9,13 @@ namespace processor {
 struct TopKPrintInfo final : OPPrintInfo {
     binder::expression_vector keys;
     binder::expression_vector payloads;
-    std::int64_t K;
+    uint64_t skipNum;
+    uint64_t limitNum;
 
     TopKPrintInfo(binder::expression_vector keys, binder::expression_vector payloads,
-        std::int64_t K)
-        : keys(std::move(keys)), payloads(std::move(payloads)), K(std::move(K)) {}
+        uint64_t skipNum, uint64_t limitNum)
+        : keys(std::move(keys)), payloads(std::move(payloads)), skipNum(std::move(skipNum)),
+          limitNum(std::move(limitNum)) {}
 
     std::string toString() const override;
 
@@ -23,7 +25,8 @@ struct TopKPrintInfo final : OPPrintInfo {
 
 private:
     TopKPrintInfo(const TopKPrintInfo& other)
-        : OPPrintInfo(other), keys(other.keys), payloads(other.payloads), K(other.K) {}
+        : OPPrintInfo(other), keys(other.keys), payloads(other.payloads), skipNum(other.skipNum),
+          limitNum(other.limitNum) {}
 };
 
 class TopKSortState {

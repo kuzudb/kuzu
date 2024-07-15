@@ -6,18 +6,18 @@
 namespace kuzu {
 namespace processor {
 
-struct skipPrintInfo final : OPPrintInfo {
-    std::int64_t number;
+struct SkipPrintInfo final : OPPrintInfo {
+    uint64_t number;
 
-    explicit skipPrintInfo(std::int64_t number) : number(std::move(number)) {}
+    explicit SkipPrintInfo(std::int64_t number) : number(std::move(number)) {}
     std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override {
-        return std::unique_ptr<skipPrintInfo>(new skipPrintInfo(*this));
+        return std::unique_ptr<SkipPrintInfo>(new SkipPrintInfo(*this));
     }
 
 private:
-    skipPrintInfo(const skipPrintInfo& other) : OPPrintInfo(other), number(other.number) {}
+    SkipPrintInfo(const SkipPrintInfo& other) : OPPrintInfo(other), number(other.number) {}
 };
 
 class Skip : public PhysicalOperator, public SelVectorOverWriter {

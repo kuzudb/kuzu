@@ -8,9 +8,10 @@ namespace kuzu {
 namespace processor {
 
 struct SetPropertyPrintInfo final : OPPrintInfo {
-    std::string operation;
+    std::vector<binder::expression_pair> expressions;
 
-    explicit SetPropertyPrintInfo(std::string operation) : operation(std::move(operation)) {}
+    explicit SetPropertyPrintInfo(std::vector<binder::expression_pair> expressions)
+        : expressions(std::move(expressions)) {}
 
     std::string toString() const override;
 
@@ -20,7 +21,7 @@ struct SetPropertyPrintInfo final : OPPrintInfo {
 
 private:
     SetPropertyPrintInfo(const SetPropertyPrintInfo& other)
-        : OPPrintInfo(other), operation(other.operation) {}
+        : OPPrintInfo(other), expressions(other.expressions) {}
 };
 
 class SetNodeProperty : public PhysicalOperator {

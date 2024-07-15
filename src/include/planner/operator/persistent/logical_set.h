@@ -23,6 +23,7 @@ public:
 
     common::TableType getTableType() const;
     const std::vector<binder::BoundSetPropertyInfo>& getInfos() const { return infos; }
+    const binder::BoundSetPropertyInfo& getInfo(uint32_t idx) const { return infos[idx]; }
 
     std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalSetProperty>(copyVector(infos), children[0]->copy());

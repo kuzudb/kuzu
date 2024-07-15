@@ -12,10 +12,12 @@ namespace processor {
 std::string TopKPrintInfo::toString() const {
     std::string result = "Keys: ";
     result += binder::ExpressionUtil::toString(keys);
-    result += ", Payloads: ";
+    result += ", Expressions: ";
     result += binder::ExpressionUtil::toString(payloads);
-    result += ", K Value: ";
-    result += std::to_string(K);
+    result += ", Skip Value: ";
+    result += std::to_string(skipNum);
+    result += ", Limit Number: ";
+    result += std::to_string(limitNum);
     return result;
 }
 

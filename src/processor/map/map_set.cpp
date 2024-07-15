@@ -86,12 +86,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetNodeProperty(LogicalOperator
     for (auto& info : set->getInfos()) {
         executors.push_back(getNodeSetExecutor(info, *inSchema));
     }
-    auto& info = set->getInfos();
-    std::string result = ExpressionUtil::toString(info[0].setItem);
-    for (auto i = 1u; i < info.size(); ++i) {
-        result += ExpressionUtil::toString(info[i].setItem);
+    std::vector<binder::expression_pair> expressions;
+    for (auto i = 0u; i < set->getInfos().size(); ++i) {
+        expressions.push_back(set->getInfo(i).setItem);
     }
-    auto printInfo = std::make_unique<SetPropertyPrintInfo>(result);
+    auto printInfo = std::make_unique<SetPropertyPrintInfo>(expressions);
     return std::make_unique<SetNodeProperty>(std::move(executors), std::move(prevOperator),
         getOperatorID(), std::move(printInfo));
 }
@@ -146,12 +145,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetRelProperty(LogicalOperator*
     for (auto& info : set->getInfos()) {
         executors.push_back(getRelSetExecutor(info, *inSchema));
     }
-    auto& info = set->getInfos();
-    std::string result = ExpressionUtil::toString(info[0].setItem);
-    for (auto i = 1u; i < info.size(); ++i) {
-        result += ExpressionUtil::toString(info[i].setItem);
+    std::vector<binder::expression_pair> expressions;
+    for (auto i = 0u; i < set->getInfos().size(); ++i) {
+        expressions.push_back(set->getInfo(i).setItem);
     }
-    auto printInfo = std::make_unique<SetPropertyPrintInfo>(result);
+    auto printInfo = std::make_unique<SetPropertyPrintInfo>(expressions);
     return std::make_unique<SetRelProperty>(std::move(executors), std::move(prevOperator),
         getOperatorID(), std::move(printInfo));
 }

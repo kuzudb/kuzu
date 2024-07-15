@@ -60,7 +60,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logica
     if (logicalOrderBy.isTopK()) {
         auto topKSharedState = std::make_shared<TopKSharedState>();
         auto printInfo = std::make_unique<TopKPrintInfo>(keyExpressions, payloadExpressions,
-            logicalOrderBy.getLimitNum());
+            logicalOrderBy.getSkipNum(), logicalOrderBy.getLimitNum());
         auto topK = make_unique<TopK>(std::make_unique<ResultSetDescriptor>(inSchema),
             std::move(orderByDataInfo), topKSharedState, logicalOrderBy.getSkipNum(),
             logicalOrderBy.getLimitNum(), std::move(prevOperator), getOperatorID(),

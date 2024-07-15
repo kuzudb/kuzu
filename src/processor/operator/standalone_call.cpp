@@ -7,7 +7,7 @@ namespace processor {
 
 std::string StandaloneCallPrintInfo::toString() const {
     std::string result = "Function: ";
-    result += optionName;
+    result += functionName;
     return result;
 }
 

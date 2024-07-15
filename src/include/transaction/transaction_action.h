@@ -15,7 +15,8 @@ enum class TransactionAction : uint8_t {
     ROLLBACK_SKIP_CHECKPOINTING = 21,
 };
 
-struct TransactionActionUtils {
+class TransactionActionUtils {
+public:
     static std::string toString(TransactionAction action);
 };
 
