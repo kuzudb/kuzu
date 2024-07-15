@@ -248,6 +248,7 @@ function_set RdfLiteralScan::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name, scanTableFunc, nullptr,
         RdfLiteralScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
+    func->canParallelFunc = [] { return false; };
     functionSet.push_back(std::move(func));
     return functionSet;
 }
@@ -291,6 +292,7 @@ function_set RdfLiteralInMemScan::getFunctionSet() {
     auto func = std::make_unique<TableFunction>(name, RdfLiteralInMemScanTableFunc, nullptr,
         inMemScanInitSharedState, initLocalState, RdfLiteralInMemScanProgressFunc,
         std::vector<LogicalTypeID>{});
+    func->canParallelFunc = [] { return false; };
     functionSet.push_back(std::move(func));
     return functionSet;
 }

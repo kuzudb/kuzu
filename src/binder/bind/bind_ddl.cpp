@@ -15,7 +15,6 @@
 #include "common/string_format.h"
 #include "common/types/types.h"
 #include "function/cast/functions/cast_from_string_functions.h"
-#include "function/sequence/sequence_functions.h"
 #include "main/client_context.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_sequence.h"
@@ -23,7 +22,6 @@
 #include "parser/ddl/create_table_info.h"
 #include "parser/ddl/create_type.h"
 #include "parser/ddl/drop.h"
-#include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
 
 using namespace kuzu::common;
@@ -50,12 +48,6 @@ static void validateSerialNoDefault(const Expression& expr) {
     }
 }
 
-static std::unique_ptr<parser::ParsedFunctionExpression> createSerialDefaultExpr(std::string name) {
-    auto param = std::make_unique<parser::ParsedLiteralExpression>(Value(name), "");
-    return std::make_unique<parser::ParsedFunctionExpression>(function::NextValFunction::name,
-        std::move(param), "");
-}
-
 std::vector<PropertyInfo> Binder::bindPropertyInfo(
     const std::vector<PropertyDefinitionDDL>& propertyDefinitions, const std::string& tableName) {
     std::vector<PropertyInfo> propertyInfos;
@@ -68,7 +60,8 @@ std::vector<PropertyInfo> Binder::bindPropertyInfo(
             expressionBinder.bindExpression(*propertyDef.expr), type);
         if (type.getLogicalTypeID() == LogicalTypeID::SERIAL) {
             validateSerialNoDefault(*boundExpr);
-            expr = createSerialDefaultExpr(Catalog::genSerialName(tableName, propertyDef.name));
+            expr = ParsedExpressionUtils::getSerialDefaultExpr(
+                Catalog::genSerialName(tableName, propertyDef.name));
         }
         propertyInfos.emplace_back(propertyDef.name, std::move(type), std::move(expr));
     }
@@ -503,7 +496,8 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
         expressionBinder.bindExpression(*defaultValue), dataType);
     if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
         validateSerialNoDefault(*boundDefault);
-        defaultValue = createSerialDefaultExpr(Catalog::genSerialName(tableName, propertyName));
+        defaultValue = ParsedExpressionUtils::getSerialDefaultExpr(
+            Catalog::genSerialName(tableName, propertyName));
         boundDefault = expressionBinder.implicitCastIfNecessary(
             expressionBinder.bindExpression(*defaultValue), dataType);
     }

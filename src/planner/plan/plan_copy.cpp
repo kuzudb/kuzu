@@ -24,17 +24,16 @@ static void appendIndexScan(std::vector<IndexLookupInfo> infos, LogicalPlan& pla
 }
 
 static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan& plan) {
-    std::vector<std::unique_ptr<LogicalPartitionerInfo>> infos;
-    auto relTableEntry =
-        ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(copyFromInfo.tableEntry);
+    std::vector<LogicalPartitionerInfo> infos;
+    auto& relTableEntry = copyFromInfo.tableEntry->constCast<RelTableCatalogEntry>();
     // Partitioner for FWD direction rel data.
-    infos.push_back(std::make_unique<LogicalPartitionerInfo>(RelKeyIdx::FWD /* keyIdx */,
-        relTableEntry->isSingleMultiplicity(RelDataDirection::FWD) ? ColumnDataFormat::REGULAR :
-                                                                     ColumnDataFormat::CSR));
+    infos.push_back(LogicalPartitionerInfo(RelKeyIdx::FWD /* keyIdx */,
+        relTableEntry.isSingleMultiplicity(RelDataDirection::FWD) ? ColumnDataFormat::REGULAR :
+                                                                    ColumnDataFormat::CSR));
     // Partitioner for BWD direction rel data.
-    infos.push_back(std::make_unique<LogicalPartitionerInfo>(RelKeyIdx::BWD /* keyIdx */,
-        relTableEntry->isSingleMultiplicity(RelDataDirection::BWD) ? ColumnDataFormat::REGULAR :
-                                                                     ColumnDataFormat::CSR));
+    infos.push_back(LogicalPartitionerInfo(RelKeyIdx::BWD /* keyIdx */,
+        relTableEntry.isSingleMultiplicity(RelDataDirection::BWD) ? ColumnDataFormat::REGULAR :
+                                                                    ColumnDataFormat::CSR));
     auto partitioner = std::make_shared<LogicalPartitioner>(std::move(infos), copyFromInfo.copy(),
         plan.getLastOperator());
     partitioner->computeFactorizedSchema();
@@ -125,7 +124,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyRelFrom(const BoundCopyFromInfo* i
     }
     auto extraInfo =
         ku_dynamic_cast<ExtraBoundCopyFromInfo*, ExtraBoundCopyRelInfo*>(info->extraInfo.get());
-    appendIndexScan(copyVector(extraInfo->infos), *plan);
+    appendIndexScan(extraInfo->infos, *plan);
     appendPartitioner(*info, *plan);
     appendCopyFrom(*info, results, *plan);
     return plan;
