@@ -35,7 +35,8 @@ struct ExportJSONSharedState : public ExportFuncSharedState {
     std::vector<std::string> jsonValues;
 
     virtual void init(main::ClientContext& context, const ExportFuncBindData& bindData) {
-        fileInfo = context.getVFSUnsafe()->openFile(bindData.fileName, O_WRONLY | O_CREAT | O_TRUNC, &context);
+        fileInfo = context.getVFSUnsafe()->openFile(bindData.fileName, O_WRONLY | O_CREAT | O_TRUNC,
+            &context);
     }
 };
 
