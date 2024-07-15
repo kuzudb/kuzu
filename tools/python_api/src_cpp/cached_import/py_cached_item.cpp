@@ -1,7 +1,7 @@
 #include "cached_import/py_cached_item.h"
 
-#include "common/assert.h"
 #include "cached_import/py_cached_import.h"
+#include "common/assert.h"
 #include "common/exception/runtime.h"
 
 namespace kuzu {
