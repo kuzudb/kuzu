@@ -120,9 +120,7 @@ new one
 ---- 1
 new one
 
-# TODO(Guodong): FIX-ME. detach delete.
 -CASE DeleteDuplicateNodes
--SKIP
 -STATEMENT MATCH (a:person)-[e:meets|knows|marries*0..5]->(b:person) DETACH DELETE a,b;
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) RETURN COUNT(*)

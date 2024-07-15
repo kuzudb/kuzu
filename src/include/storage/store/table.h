@@ -141,6 +141,7 @@ public:
 
     common::TableType getTableType() const { return tableType; }
     common::table_id_t getTableID() const { return tableID; }
+    std::string getTableName() const { return tableName; }
     BMFileHandle* getDataFH() const { return dataFH; }
 
     virtual void initializeScanState(transaction::Transaction* transaction,

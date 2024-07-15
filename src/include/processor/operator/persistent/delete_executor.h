@@ -1,8 +1,10 @@
 #pragma once
 
+#include <memory>
 #include <utility>
 
 #include "common/enums/delete_type.h"
+#include "common/vector/value_vector.h"
 #include "processor/execution_context.h"
 #include "processor/result/result_set.h"
 #include "storage/store/node_table.h"
@@ -41,7 +43,9 @@ protected:
     NodeDeleteInfo info;
 
     common::ValueVector* nodeIDVector;
-    std::unique_ptr<storage::RelDetachDeleteState> detachDeleteState;
+    std::unique_ptr<common::ValueVector> dstNodeIDVector;
+    std::unique_ptr<common::ValueVector> relIDVector;
+    std::unique_ptr<storage::RelTableDeleteState> detachDeleteState;
 };
 
 struct ExtraNodeDeleteInfo {

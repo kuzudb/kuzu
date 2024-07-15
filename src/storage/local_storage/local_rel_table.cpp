@@ -2,10 +2,13 @@
 
 #include <unistd.h>
 
+#include "common/enums/rel_direction.h"
 #include "storage/storage_utils.h"
+#include "common/exception/message.h"
 #include "storage/store/rel_table.h"
 
 using namespace kuzu::common;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
@@ -108,6 +111,22 @@ bool LocalRelTable::addColumn(transaction::Transaction* transaction,
     TableAddColumnState& addColumnState) {
     localNodeGroup->addColumn(transaction, addColumnState, nullptr /* BMFileHandle */);
     return true;
+}
+
+void LocalRelTable::checkIfNodeHasRels(ValueVector* srcNodeIDVector) const {
+    KU_ASSERT(srcNodeIDVector->state->isFlat());
+    const auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
+    const auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
+    if (fwdIndex.contains(nodeOffset) && !fwdIndex.at(nodeOffset).empty()) {
+        throw RuntimeException(ExceptionMessage::violateDeleteNodeWithConnectedEdgesConstraint(
+            table.getTableName(), std::to_string(nodeOffset),
+            RelDataDirectionUtils::relDirectionToString(RelDataDirection::FWD)));
+    }
+    if (bwdIndex.contains(nodeOffset) && !bwdIndex.at(nodeOffset).empty()) {
+        throw RuntimeException(ExceptionMessage::violateDeleteNodeWithConnectedEdgesConstraint(
+            table.getTableName(), std::to_string(nodeOffset),
+            RelDataDirectionUtils::relDirectionToString(RelDataDirection::BWD)));
+    }
 }
 
 void LocalRelTable::initializeScan(TableScanState& state) {
