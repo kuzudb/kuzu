@@ -753,7 +753,7 @@ jobs:
 
   macos-extension-test:
     name: macos extension test
-    needs: [macos-build-test]
+    needs: [macos-build-test-x86_64]
     runs-on: self-hosted-mac-x64
     env:
       NUM_THREADS: 32
