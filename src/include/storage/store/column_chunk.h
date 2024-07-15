@@ -99,6 +99,8 @@ private:
         common::offset_t startOffsetInOutput) const;
 
 private:
+    // TODO(Guodong): This field should be removed. Ideally it shouldn't be cached anywhere in
+    // storage structures, instead should be fed into functions needed from ClientContext dbConfig.
     bool enableCompression;
     std::unique_ptr<ColumnChunkData> data;
     // Update versions.

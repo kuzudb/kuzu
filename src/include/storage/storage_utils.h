@@ -146,10 +146,10 @@ public:
 
     static void overwriteWALVersionFiles(const std::string& directory,
         common::VirtualFileSystem* vfs) {
-        vfs->overwriteFile(getCatalogFilePath(vfs, directory, common::FileVersionType::ORIGINAL),
-            getCatalogFilePath(vfs, directory, common::FileVersionType::WAL_VERSION));
-        vfs->overwriteFile(getMetadataFName(vfs, directory, common::FileVersionType::ORIGINAL),
-            getMetadataFName(vfs, directory, common::FileVersionType::WAL_VERSION));
+        vfs->overwriteFile(getCatalogFilePath(vfs, directory, common::FileVersionType::WAL_VERSION),
+            getCatalogFilePath(vfs, directory, common::FileVersionType::ORIGINAL));
+        vfs->overwriteFile(getMetadataFName(vfs, directory, common::FileVersionType::WAL_VERSION),
+            getMetadataFName(vfs, directory, common::FileVersionType::ORIGINAL));
     }
     static void removeWALVersionFiles(const std::string& directory,
         common::VirtualFileSystem* vfs) {

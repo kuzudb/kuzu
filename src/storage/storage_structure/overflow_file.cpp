@@ -133,7 +133,7 @@ ku_string_t OverflowFileHandle::writeString(std::string_view rawString) {
     return result;
 }
 
-void OverflowFileHandle::prepareCommit() {
+void OverflowFileHandle::checkpoint() {
     for (auto& [pageIndex, page] : pageWriteCache) {
         overflowFile.writePageToDisk(pageIndex, page->data);
     }
@@ -217,7 +217,7 @@ void OverflowFile::checkpoint() {
     // However fileHandle->addNewPages needs to be called beforehand,
     // but after each HashIndex::prepareCommit has written to the in-memory pages
     for (auto& handle : handles) {
-        handle->prepareCommit();
+        handle->checkpoint();
     }
     if (headerChanged) {
         uint8_t page[BufferPoolConstants::PAGE_4KB_SIZE];

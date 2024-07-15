@@ -316,14 +316,17 @@ void CSRNodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addC
 }
 
 void CSRNodeGroup::serialize(Serializer& serializer) {
+    serializer.writeDebuggingInfo("node_group_idx");
     serializer.write<node_group_idx_t>(nodeGroupIdx);
+    serializer.writeDebuggingInfo("enable_compression");
     serializer.write<bool>(enableCompression);
+    serializer.writeDebuggingInfo("format");
     serializer.write<NodeGroupDataFormat>(format);
+    serializer.writeDebuggingInfo("has_checkpointed_data");
+    serializer.write<bool>(persistentChunkGroup != nullptr);
     if (persistentChunkGroup) {
-        serializer.write<bool>(true);
+        serializer.writeDebuggingInfo("checkpointed_data");
         persistentChunkGroup->serialize(serializer);
-    } else {
-        serializer.write<bool>(false);
     }
 }
 

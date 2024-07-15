@@ -187,7 +187,7 @@ void DiskArrayInternal::setNextPIPPageIDxOfPIPNoLock(uint64_t pipIdxOfPreviousPI
 
 page_idx_t DiskArrayInternal::getAPPageIdxNoLock(page_idx_t apIdx, TransactionType trxType) {
     auto [pipIdx, offsetInPIP] = StorageUtils::getQuotientRemainder(apIdx, NUM_PAGE_IDXS_PER_PIP);
-    if ((trxType == TransactionType::READ_ONLY) || !hasPIPUpdatesNoLock(pipIdx)) {
+    if ((trxType != TransactionType::CHECKPOINT) || !hasPIPUpdatesNoLock(pipIdx)) {
         return pips[pipIdx].pipContents.pageIdxs[offsetInPIP];
     } else if (pipIdx == pips.size() - 1 && pipUpdates.updatedLastPIP) {
         return pipUpdates.updatedLastPIP->pipContents.pageIdxs[offsetInPIP];

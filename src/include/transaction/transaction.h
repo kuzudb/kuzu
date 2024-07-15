@@ -22,7 +22,6 @@ class WAL;
 namespace transaction {
 class TransactionManager;
 
-// TODO(Guodong): Should get rid of READ_ONLY and WRITE types. Instead add a new type DUMMY.
 enum class TransactionType : uint8_t { READ_ONLY, WRITE, CHECKPOINT, DUMMY };
 
 class Transaction {
@@ -55,6 +54,7 @@ public:
     }
 
     TransactionType getType() const { return type; }
+    bool isDummy() const { return TransactionType::DUMMY == type; }
     bool isReadOnly() const { return TransactionType::READ_ONLY == type; }
     bool isWriteTransaction() const { return TransactionType::WRITE == type; }
     common::transaction_t getID() const { return ID; }
@@ -104,7 +104,7 @@ private:
 };
 
 static auto DUMMY_TRANSACTION = Transaction(TransactionType::DUMMY);
-static auto DUMMY_CHECKPOINT_TRANSACTION = Transaction(TransactionType::WRITE,
+static auto DUMMY_CHECKPOINT_TRANSACTION = Transaction(TransactionType::CHECKPOINT,
     Transaction::DUMMY_TRANSACTION_ID, Transaction::START_TRANSACTION_ID - 1);
 
 } // namespace transaction

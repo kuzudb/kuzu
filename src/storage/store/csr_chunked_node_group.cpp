@@ -185,22 +185,36 @@ void ChunkedCSRNodeGroup::scanCSRHeader(CSRNodeGroupCheckpointState& csrState) c
 
 void ChunkedCSRNodeGroup::serialize(Serializer& serializer) const {
     KU_ASSERT(csrHeader.offset && csrHeader.length);
+    serializer.writeDebuggingInfo("csr_header_offset");
     csrHeader.offset->serialize(serializer);
+    serializer.writeDebuggingInfo("csr_header_length");
     csrHeader.length->serialize(serializer);
     ChunkedNodeGroup::serialize(serializer);
 }
 
 std::unique_ptr<ChunkedCSRNodeGroup> ChunkedCSRNodeGroup::deserialize(Deserializer& deSer) {
+    std::string key;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "csr_header_offset");
     auto offset = ColumnChunk::deserialize(deSer);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "csr_header_length");
     auto length = ColumnChunk::deserialize(deSer);
+    // TODO(Guodong): Rework to reuse ChunkedNodeGroup::deserialize().
     std::vector<std::unique_ptr<ColumnChunk>> chunks;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "chunks");
     deSer.deserializeVectorOfPtrs<ColumnChunk>(chunks);
     auto chunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(
         ChunkedCSRHeader{std::move(offset), std::move(length)}, std::move(chunks),
         0 /*startRowIdx*/);
     bool hasVersions;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "has_version_info");
     deSer.deserializeValue<bool>(hasVersions);
     if (hasVersions) {
+        deSer.deserializeDebuggingInfo(key);
+        KU_ASSERT(key == "version_info");
         chunkedGroup->versionInfo = VersionInfo::deserialize(deSer);
     }
     return chunkedGroup;

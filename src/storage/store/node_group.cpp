@@ -317,47 +317,64 @@ uint64_t NodeGroup::getEstimatedMemoryUsage() {
 
 row_idx_t NodeGroup::getNumDeletedRows(const UniqLock& lock) {
     row_idx_t rows = 0;
-    const auto dummyTransaction = std::make_unique<Transaction>(TransactionType::READ_ONLY, 0,
-        Transaction::START_TRANSACTION_ID - 1);
     for (const auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        rows += chunkedGroup->getNumDeletedRows(dummyTransaction.get());
+        rows += chunkedGroup->getNumDeletedRows(&DUMMY_CHECKPOINT_TRANSACTION);
     }
     return rows;
 }
 
 void NodeGroup::serialize(Serializer& serializer) {
     // Serialize checkpointed chunks.
+    serializer.writeDebuggingInfo("node_group_idx");
     serializer.write<node_group_idx_t>(nodeGroupIdx);
+    serializer.writeDebuggingInfo("enable_compression");
     serializer.write<bool>(enableCompression);
+    serializer.writeDebuggingInfo("format");
     serializer.write<NodeGroupDataFormat>(format);
     const auto lock = chunkedGroups.lock();
     KU_ASSERT(chunkedGroups.getNumGroups(lock) == 1);
     const auto chunkedGroup = chunkedGroups.getFirstGroup(lock);
+    serializer.writeDebuggingInfo("has_checkpointed_data");
     serializer.write<bool>(chunkedGroup->getResidencyState() == ResidencyState::ON_DISK);
     if (chunkedGroup->getResidencyState() == ResidencyState::ON_DISK) {
+        serializer.writeDebuggingInfo("checkpointed_data");
         chunkedGroup->serialize(serializer);
     }
 }
 
 std::unique_ptr<NodeGroup> NodeGroup::deserialize(Deserializer& deSer) {
+    std::string key;
     node_group_idx_t nodeGroupIdx;
     bool enableCompression;
     NodeGroupDataFormat format;
     bool hasCheckpointedData;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "node_group_idx");
     deSer.deserializeValue<node_group_idx_t>(nodeGroupIdx);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "enable_compression");
     deSer.deserializeValue<bool>(enableCompression);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "format");
     deSer.deserializeValue<NodeGroupDataFormat>(format);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "has_checkpointed_data");
     deSer.deserializeValue<bool>(hasCheckpointedData);
     if (!hasCheckpointedData) {
         return nullptr;
     }
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "checkpointed_data");
     std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup;
     switch (format) {
     case NodeGroupDataFormat::REGULAR: {
         chunkedNodeGroup = ChunkedNodeGroup::deserialize(deSer);
-    }
+    } break;
     case NodeGroupDataFormat::CSR: {
         chunkedNodeGroup = ChunkedCSRNodeGroup::deserialize(deSer);
+    } break;
+    default: {
+        KU_UNREACHABLE;
     }
     }
     return std::make_unique<NodeGroup>(nodeGroupIdx, enableCompression,

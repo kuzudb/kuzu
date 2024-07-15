@@ -44,8 +44,7 @@ public:
         return writeString(std::string_view(rawString));
     }
 
-    // TODO(Guodong): Rename to checkpoint();
-    void prepareCommit();
+    void checkpoint();
     void checkpointInMemory() { pageWriteCache.clear(); }
     void rollbackInMemory(PageCursor nextPosToWriteTo_) {
         pageWriteCache.clear();

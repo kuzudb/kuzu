@@ -45,9 +45,14 @@ NodeTable::NodeTable(StorageManager* storageManager, const NodeTableCatalogEntry
 std::unique_ptr<NodeTable> NodeTable::loadTable(Deserializer& deSer, const Catalog& catalog,
     StorageManager* storageManager, MemoryManager* memoryManager, VirtualFileSystem* vfs,
     main::ClientContext* context) {
+    std::string key;
     table_id_t tableID;
     std::string tableName;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "table_id");
     deSer.deserializeValue<table_id_t>(tableID);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "table_name");
     deSer.deserializeValue<std::string>(tableName);
     auto catalogEntry =
         catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID)->ptrCast<NodeTableCatalogEntry>();

@@ -152,7 +152,8 @@ public:
         // when doing bulk hashindex inserts, there's a high likelihood that every page accessed
         // will be modified, so it may be faster this way.
         ShadowPageAndFrame shadowPageAndFrame;
-        static const transaction::TransactionType TRX_TYPE = transaction::TransactionType::WRITE;
+        static const transaction::TransactionType TRX_TYPE =
+            transaction::TransactionType::CHECKPOINT;
         uint64_t idx;
         DEFAULT_MOVE_CONSTRUCT(WriteIterator);
 
@@ -197,7 +198,7 @@ protected:
 
     uint64_t pushBackNoLock(std::span<std::byte> val);
 
-    inline uint64_t getNumElementsNoLock(transaction::TransactionType trxType) {
+    inline uint64_t getNumElementsNoLock(transaction::TransactionType trxType) const {
         return getDiskArrayHeader(trxType).numElements;
     }
 
@@ -225,12 +226,11 @@ private:
     bool checkOutOfBoundAccess(transaction::TransactionType trxType, uint64_t idx);
     bool hasPIPUpdatesNoLock(uint64_t pipIdx);
 
-    inline const DiskArrayHeader& getDiskArrayHeader(transaction::TransactionType trxType) {
-        if (trxType == transaction::TransactionType::READ_ONLY) {
-            return header;
-        } else {
+    inline const DiskArrayHeader& getDiskArrayHeader(transaction::TransactionType trxType) const {
+        if (trxType == transaction::TransactionType::CHECKPOINT) {
             return headerForWriteTrx;
         }
+        return header;
     }
 
     // Returns the apPageIdx of the AP with idx apIdx and a bool indicating whether the apPageIdx is

@@ -35,7 +35,6 @@ public:
         ShadowFile& shadowFile, common::page_idx_t firstHeaderPage = 0,
         bool bypassShadowing = false);
 
-    // TODO(Guodong): Rename to checkpoint().
     void checkpoint();
 
     void checkpointInMemory() {

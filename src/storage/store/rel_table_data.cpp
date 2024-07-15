@@ -39,11 +39,11 @@ namespace storage {
 //     }
 // }
 
-RelTableData::RelTableData(BMFileHandle* dataFH, MemoryManager* mm, WAL* wal,
-    ShadowFile* shadowFile, const TableCatalogEntry* tableEntry, RelDataDirection direction,
-    bool enableCompression, Deserializer* deSer)
+RelTableData::RelTableData(BMFileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
+    const TableCatalogEntry* tableEntry, RelDataDirection direction, bool enableCompression,
+    Deserializer* deSer)
     : dataFH{dataFH}, tableID{tableEntry->getTableID()}, tableName{tableEntry->getName()}, mm{mm},
-      bufferManager{mm->getBufferManager()}, wal{wal}, shadowFile{shadowFile},
+      bufferManager{mm->getBufferManager()}, shadowFile{shadowFile},
       enableCompression{enableCompression}, direction{direction} {
     multiplicity = tableEntry->constCast<RelTableCatalogEntry>().getMultiplicity(direction);
     initCSRHeaderColumns();

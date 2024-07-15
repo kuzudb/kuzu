@@ -68,7 +68,10 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
             context);
         if (metadataFileInfo->getFileSize() > 0) {
             Deserializer deSer(std::make_unique<BufferedFileReader>(std::move(metadataFileInfo)));
+            std::string key;
             uint64_t numTables;
+            deSer.deserializeDebuggingInfo(key);
+            KU_ASSERT(key == "num_tables");
             deSer.deserializeValue<uint64_t>(numTables);
             for (auto i = 0u; i < numTables; i++) {
                 auto table = Table::loadTable(deSer, catalog, this, &memoryManager, vfs, context);
@@ -80,10 +83,9 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
     // TODO(Guodong): Rework setting common table ID for rdf rel tables.
     auto rdfGraphSchemas = catalog.getRdfGraphEntries(&DUMMY_TRANSACTION);
     for (auto relTableEntry : catalog.getRelTableEntries(&DUMMY_TRANSACTION)) {
-        KU_ASSERT(!tables.contains(relTableEntry->getTableID()));
-        auto relTable = std::make_unique<RelTable>(relTableEntry, this, &memoryManager);
-        setCommonTableIDToRdfRelTable(relTable.get(), rdfGraphSchemas);
-        tables[relTableEntry->getTableID()] = std::move(relTable);
+        KU_ASSERT(tables.contains(relTableEntry->getTableID()));
+        auto& relTable = tables.at(relTableEntry->getTableID()).get()->cast<RelTable>();
+        setCommonTableIDToRdfRelTable(&relTable, rdfGraphSchemas);
     }
 }
 
@@ -239,11 +241,15 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) const {
         O_RDWR | O_CREAT, &clientContext);
     const auto writer = std::make_shared<BufferedFileWriter>(*metadataFileInfo);
     Serializer ser(writer);
+    ser.writeDebuggingInfo("num_tables");
     ser.write<uint64_t>(tables.size());
     // TODO(Guodong): We should avoid deleted tables.
     for (auto& [_, table] : tables) {
         table->checkpoint(ser);
     }
+    writer->flush();
+    writer->getFileInfo().syncFile();
+    shadowFile->flushAll(clientContext);
 }
 
 } // namespace storage

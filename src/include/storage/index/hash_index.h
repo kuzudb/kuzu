@@ -86,10 +86,8 @@ public:
     // - the key is neither deleted nor found in the local storage, lookup in the persistent
     // storage.
     bool lookupInternal(transaction::Transaction* transaction, Key key, common::offset_t& result) {
-        // if (transaction->isReadOnly()) {
-        //     return lookupInPersistentIndex(transaction->getType(), key, result);
-        // } else {
-        KU_ASSERT(transaction->isWriteTransaction());
+        KU_ASSERT(transaction->isWriteTransaction() || transaction->isReadOnly() ||
+                  transaction->isDummy());
         auto localLookupState = localStorage->lookup(key, result);
         if (localLookupState == HashIndexLocalLookupState::KEY_DELETED) {
             return false;
@@ -99,7 +97,6 @@ public:
         }
         KU_ASSERT(localLookupState == HashIndexLocalLookupState::KEY_NOT_EXIST);
         return lookupInPersistentIndex(transaction, key, result);
-        // }
     }
 
     // For deletions, we don't check if the deleted keys exist or not. Thus, we don't need to check
@@ -373,10 +370,10 @@ public:
     void rollbackInMemory();
     void checkpoint();
     void prepareRollback();
-    BMFileHandle* getFileHandle() { return fileHandle; }
-    OverflowFile* getOverflowFile() { return overflowFile.get(); }
+    BMFileHandle* getFileHandle() const { return fileHandle; }
+    OverflowFile* getOverflowFile() const { return overflowFile.get(); }
 
-    common::PhysicalTypeID keyTypeID() { return keyDataTypeID; }
+    common::PhysicalTypeID keyTypeID() const { return keyDataTypeID; }
 
     void writeHeaders();
 

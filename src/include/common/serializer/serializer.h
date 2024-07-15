@@ -21,11 +21,20 @@ public:
     void serializeValue(const T& value) {
         writer->write((uint8_t*)&value, sizeof(T));
     }
+    template<>
+    void serializeValue(const std::string& value);
 
     // Alias for serializeValue
     template<typename T>
     void write(const T& value) {
         serializeValue(value);
+    }
+
+    void writeDebuggingInfo(const std::string& value) {
+#if defined(KUZU_RUNTIME_CHECKS) || !defined(NDEBUG)
+        serializeValue<std::string>(value);
+#endif
+        // DO NOTHING
     }
 
     void write(const uint8_t* value, uint64_t len) { writer->write(value, len); }
@@ -93,9 +102,6 @@ public:
 private:
     std::shared_ptr<Writer> writer;
 };
-
-template<>
-void Serializer::serializeValue(const std::string& value);
 
 } // namespace common
 } // namespace kuzu

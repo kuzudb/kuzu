@@ -255,25 +255,35 @@ row_idx_t VersionInfo::getNumDeletions(const transaction::Transaction* transacti
 }
 
 void VersionInfo::serialize(Serializer& serializer) const {
+    serializer.writeDebuggingInfo("vectors_info_size");
     serializer.write<uint64_t>(vectorsInfo.size());
     for (auto i = 0u; i < vectorsInfo.size(); i++) {
         auto hasDeletion = vectorsInfo[i] && vectorsInfo[i]->anyDeleted;
+        serializer.writeDebuggingInfo("has_deletion");
         serializer.write<bool>(hasDeletion);
-        if (vectorsInfo[i]) {
+        if (hasDeletion) {
+            serializer.writeDebuggingInfo("vector_info");
             vectorsInfo[i]->serialize(serializer);
         }
     }
 }
 
 std::unique_ptr<VersionInfo> VersionInfo::deserialize(Deserializer& deSer) {
+    std::string key;
     uint64_t vectorSize;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "vectors_info_size");
     deSer.deserializeValue<uint64_t>(vectorSize);
     auto versionInfo = std::make_unique<VersionInfo>();
     for (auto i = 0u; i < vectorSize; i++) {
         bool hasDeletion;
+        deSer.deserializeDebuggingInfo(key);
+        KU_ASSERT(key == "has_deletion");
         deSer.deserializeValue<bool>(hasDeletion);
         if (hasDeletion) {
             auto vectorVersionInfo = std::make_unique<VectorVersionInfo>();
+            deSer.deserializeDebuggingInfo(key);
+            KU_ASSERT(key == "vector_info");
             deSer.deserializeArray<transaction_t, DEFAULT_VECTOR_CAPACITY>(
                 vectorVersionInfo->deletedVersions);
             versionInfo->vectorsInfo.push_back(std::move(vectorVersionInfo));

@@ -570,27 +570,44 @@ uint64_t ColumnChunkData::getEstimatedMemoryUsage() const {
 
 void ColumnChunkData::serialize(Serializer& serializer) const {
     KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+    serializer.writeDebuggingInfo("data_type");
     dataType.serialize(serializer);
+    serializer.writeDebuggingInfo("metadata");
     serializer.write<ColumnChunkMetadata>(metadata);
+    serializer.writeDebuggingInfo("enable_compression");
     serializer.write<bool>(enableCompression);
+    serializer.writeDebuggingInfo("has_null");
     serializer.write<bool>(nullData != nullptr);
     if (nullData) {
+        serializer.writeDebuggingInfo("null_data");
         nullData->serialize(serializer);
     }
 }
 
 std::unique_ptr<ColumnChunkData> ColumnChunkData::deserialize(Deserializer& deSer) {
-    const auto dataType = LogicalType::deserialize(deSer);
+    std::string key;
     ColumnChunkMetadata metadata;
-    deSer.deserializeValue<ColumnChunkMetadata>(metadata);
     bool enableCompression = false;
-    deSer.deserializeValue<bool>(enableCompression);
     bool hasNull = false;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "data_type");
+    const auto dataType = LogicalType::deserialize(deSer);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "metadata");
+    deSer.deserializeValue<ColumnChunkMetadata>(metadata);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "enable_compression");
+    deSer.deserializeValue<bool>(enableCompression);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "has_null");
     deSer.deserializeValue<bool>(hasNull);
-    KU_ASSERT(hasNull);
     auto chunkData = ColumnChunkFactory::createColumnChunkData(dataType.copy(), enableCompression,
         metadata, hasNull);
-    chunkData->nullData = NullChunkData::deserialize(deSer);
+    if (hasNull) {
+        deSer.deserializeDebuggingInfo(key);
+        KU_ASSERT(key == "null_data");
+        chunkData->nullData = NullChunkData::deserialize(deSer);
+    }
 
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
@@ -599,6 +616,7 @@ std::unique_ptr<ColumnChunkData> ColumnChunkData::deserialize(Deserializer& deSe
     case PhysicalTypeID::STRING: {
         StringChunkData::deserialize(deSer, *chunkData);
     } break;
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
         ListChunkData::deserialize(deSer, *chunkData);
     } break;
@@ -734,11 +752,15 @@ void NullChunkData::append(ColumnChunkData* other, offset_t startOffsetInOtherCh
 
 void NullChunkData::serialize(Serializer& serializer) const {
     KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+    serializer.writeDebuggingInfo("null_chunk_metadata");
     serializer.write<ColumnChunkMetadata>(metadata);
 }
 
 std::unique_ptr<NullChunkData> NullChunkData::deserialize(Deserializer& deSer) {
+    std::string key;
     ColumnChunkMetadata metadata;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "null_chunk_metadata");
     deSer.deserializeValue<ColumnChunkMetadata>(metadata);
     // TODO: FIX-ME. enableCompression.
     return std::make_unique<NullChunkData>(true, metadata);

@@ -2,6 +2,7 @@
 
 #include "common/data_chunk/sel_vector.h"
 #include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/store/column_chunk_data.h"
@@ -95,18 +96,21 @@ void StringChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
     }
 }
 
-void StringChunkData::scan(ValueVector& output, offset_t offset, length_t length, sel_t posInOutputVector) const {
+void StringChunkData::scan(ValueVector& output, offset_t offset, length_t length,
+    sel_t posInOutputVector) const {
     KU_ASSERT(offset + length <= numValues && nullData);
     nullData->scan(output, offset, length, posInOutputVector);
     if (nullData->mayHaveNull()) {
         for (auto i = 0u; i < length; i++) {
             if (!nullData->isNull(offset + i)) {
-                output.setValue<std::string_view>(posInOutputVector + i, getValue<std::string_view>(offset + i));
+                output.setValue<std::string_view>(posInOutputVector + i,
+                    getValue<std::string_view>(offset + i));
             }
         }
     } else {
         for (auto i = 0u; i < length; i++) {
-            output.setValue<std::string_view>(posInOutputVector + i, getValue<std::string_view>(offset + i));
+            output.setValue<std::string_view>(posInOutputVector + i,
+                getValue<std::string_view>(offset + i));
         }
     }
 }
@@ -260,10 +264,19 @@ uint64_t StringChunkData::getEstimatedMemoryUsage() const {
 
 void StringChunkData::serialize(Serializer& serializer) const {
     ColumnChunkData::serialize(serializer);
+    serializer.writeDebuggingInfo("index_column_chunk");
+    indexColumnChunk->serialize(serializer);
+    serializer.writeDebuggingInfo("dictionary_chunk");
     dictionaryChunk->serialize(serializer);
 }
 
 void StringChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData) {
+    std::string key;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "index_column_chunk");
+    chunkData.cast<StringChunkData>().indexColumnChunk = ColumnChunkData::deserialize(deSer);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "dictionary_chunk");
     chunkData.cast<StringChunkData>().dictionaryChunk = DictionaryChunk::deserialize(deSer);
 }
 

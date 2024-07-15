@@ -18,25 +18,27 @@ RelTable::RelTable(RelTableCatalogEntry* relTableEntry, StorageManager* storageM
     : Table{relTableEntry, storageManager, memoryManager},
       fromNodeTableID{relTableEntry->getSrcTableID()},
       toNodeTableID{relTableEntry->getDstTableID()}, nextRelOffset{0} {
-    if (deSer) {
-        offset_t nextOffset;
-        deSer->deserializeValue<offset_t>(nextOffset);
-        nextRelOffset = nextOffset;
-    }
-    fwdRelTableData = std::make_unique<RelTableData>(dataFH, memoryManager, wal, shadowFile,
+    fwdRelTableData = std::make_unique<RelTableData>(dataFH, memoryManager, shadowFile,
         relTableEntry, RelDataDirection::FWD, enableCompression, deSer);
-    bwdRelTableData = std::make_unique<RelTableData>(dataFH, memoryManager, wal, shadowFile,
+    bwdRelTableData = std::make_unique<RelTableData>(dataFH, memoryManager, shadowFile,
         relTableEntry, RelDataDirection::BWD, enableCompression, deSer);
 }
 
 std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog& catalog,
     StorageManager* storageManager, MemoryManager* memoryManager, VirtualFileSystem*,
     main::ClientContext*) {
+    std::string key;
     table_id_t tableID;
     std::string tableName;
     offset_t nextRelOffset;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "table_id");
     deSer.deserializeValue<table_id_t>(tableID);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "table_name");
     deSer.deserializeValue<std::string>(tableName);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "next_rel_offset");
     deSer.deserializeValue<offset_t>(nextRelOffset);
     auto catalogEntry =
         catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID)->ptrCast<RelTableCatalogEntry>();
@@ -359,10 +361,10 @@ void RelTable::rollback(LocalTable* localTable) {
 
 void RelTable::checkpoint(Serializer& ser) {
     Table::serialize(ser);
+    ser.writeDebuggingInfo("next_rel_offset");
     ser.write<offset_t>(nextRelOffset);
     fwdRelTableData->checkpoint(ser);
     bwdRelTableData->checkpoint(ser);
-    serialize(ser);
 }
 
 } // namespace storage

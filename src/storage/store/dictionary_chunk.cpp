@@ -1,5 +1,7 @@
 #include "storage/store/dictionary_chunk.h"
 
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 #include "storage/enums/residency_state.h"
 #include <bit>
 
@@ -101,13 +103,20 @@ void DictionaryChunk::flush(BMFileHandle& dataFH) {
 }
 
 void DictionaryChunk::serialize(Serializer& serializer) const {
+    serializer.writeDebuggingInfo("offset_chunk");
     offsetChunk->serialize(serializer);
+    serializer.writeDebuggingInfo("string_data_chunk");
     stringDataChunk->serialize(serializer);
 }
 
 std::unique_ptr<DictionaryChunk> DictionaryChunk::deserialize(Deserializer& deSer) {
     auto chunk = std::make_unique<DictionaryChunk>(0, true, ResidencyState::ON_DISK);
+    std::string key;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "offset_chunk");
     chunk->offsetChunk = ColumnChunkData::deserialize(deSer);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "string_data_chunk");
     chunk->stringDataChunk = ColumnChunkData::deserialize(deSer);
     return chunk;
 }

@@ -2,9 +2,7 @@
 
 #include "common/enums/rel_direction.h"
 #include "common/enums/rel_multiplicity.h"
-// #include "storage/store/chunked_node_group.h"
 #include "storage/store/column.h"
-// #include "storage/store/csr_chunked_node_group.h"
 #include "storage/store/node_group_collection.h"
 
 namespace kuzu {
@@ -75,7 +73,7 @@ public:
     //     void setRegion(const PackedCSRRegion& region_) { region = region_; }
     // };
 
-    RelTableData(BMFileHandle* dataFH, MemoryManager* mm, WAL* wal, ShadowFile* shadowFile,
+    RelTableData(BMFileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
         const catalog::TableCatalogEntry* tableEntry, common::RelDataDirection direction,
         bool enableCompression, common::Deserializer* deSer);
 
@@ -174,7 +172,6 @@ private:
     std::string tableName;
     MemoryManager* mm;
     BufferManager* bufferManager;
-    WAL* wal;
     ShadowFile* shadowFile;
     bool enableCompression;
     PackedCSRInfo packedCSRInfo;

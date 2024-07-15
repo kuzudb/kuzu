@@ -66,10 +66,14 @@ void StructChunkData::resetToAllNull() {
 
 void StructChunkData::serialize(Serializer& serializer) const {
     ColumnChunkData::serialize(serializer);
+    serializer.writeDebuggingInfo("struct_children");
     serializer.serializeVectorOfPtrs<ColumnChunkData>(childChunks);
 }
 
 void StructChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData) {
+    std::string key;
+    deSer.deserializeValue(key);
+    KU_ASSERT(key == "struct_children");
     deSer.deserializeVectorOfPtrs(chunkData.cast<StructChunkData>().childChunks);
 }
 

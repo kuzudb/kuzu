@@ -134,8 +134,7 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     clientContext.getStorageManager()->getShadowFile().replayShadowPageRecords(clientContext);
     // Clear the wal, and also shadowing files.
     wal.clearWAL();
-    clientContext.getStorageManager()->getShadowFile().clearAll(
-        *clientContext.getMemoryManager()->getBufferManager());
+    clientContext.getStorageManager()->getShadowFile().clearAll(clientContext);
     StorageUtils::removeWALVersionFiles(clientContext.getDatabasePath(),
         clientContext.getVFSUnsafe());
     // Resume receiving new transactions.

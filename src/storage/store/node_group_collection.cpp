@@ -15,6 +15,9 @@ NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
     : enableCompression{enableCompression}, startRowIdx{startRowIdx}, numRows{0},
       types{LogicalType::copy(types)}, dataFH{dataFH} {
     if (deSer) {
+        std::string key;
+        deSer->deserializeDebuggingInfo(key);
+        KU_ASSERT(key == "node_groups");
         KU_ASSERT(dataFH);
         nodeGroups.loadGroups(*deSer);
     }
@@ -126,6 +129,7 @@ void NodeGroupCollection::checkpoint(NodeGroupCheckpointState& state) {
 }
 
 void NodeGroupCollection::serialize(Serializer& ser) {
+    ser.writeDebuggingInfo("node_groups");
     nodeGroups.serializeGroups(ser);
 }
 

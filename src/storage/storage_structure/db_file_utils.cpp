@@ -68,7 +68,7 @@ page_idx_t DBFileUtils::insertNewPage(BMFileHandle& fileHandle, DBFileID dbFileI
 }
 
 void unpinShadowPage(page_idx_t originalPageIdx, page_idx_t shadowPageIdx,
-    BufferManager& bufferManager, ShadowFile& shadowFile) {
+    BufferManager& bufferManager, const ShadowFile& shadowFile) {
     if (originalPageIdx != INVALID_PAGE_IDX) {
         bufferManager.unpin(shadowFile.getShadowingFH(), shadowPageIdx);
     }
@@ -90,8 +90,8 @@ void DBFileUtils::updatePage(BMFileHandle& fileHandle, DBFileID dbFileID,
         bufferManager, shadowFile);
 }
 
-void DBFileUtils::readWALVersionOfPage(BMFileHandle& fileHandle, page_idx_t originalPageIdx,
-    BufferManager& bufferManager, ShadowFile& shadowFile,
+void DBFileUtils::readWALVersionOfPage(const BMFileHandle& fileHandle, page_idx_t originalPageIdx,
+    BufferManager& bufferManager, const ShadowFile& shadowFile,
     const std::function<void(uint8_t*)>& readOp) {
     KU_ASSERT(shadowFile.hasShadowPage(fileHandle.getFileIndex(), originalPageIdx));
     const page_idx_t shadowPageIdx =

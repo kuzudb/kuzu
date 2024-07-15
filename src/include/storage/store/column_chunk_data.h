@@ -23,6 +23,9 @@ namespace storage {
 
 class Column;
 class NullChunkData;
+// TODO(Guodong): Ideally ColumnChunkMetadata should implement its own ser/deSer functions so it can
+// save a bit of space on disk. But the size is small now, I'm not motivated for the change, just
+// note here still.
 struct ColumnChunkMetadata {
     common::page_idx_t pageIdx;
     common::page_idx_t numPages;

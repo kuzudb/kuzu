@@ -58,8 +58,8 @@ public:
 
     void replayShadowPageRecords(const main::ClientContext& context) const;
 
-    void flushAll(BufferManager& bm) const;
-    void clearAll(BufferManager& bm);
+    void flushAll(main::ClientContext& context) const;
+    void clearAll(main::ClientContext& context);
 
 private:
     static std::unique_ptr<common::FileInfo> getFileInfo(const main::ClientContext& context,

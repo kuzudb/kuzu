@@ -21,7 +21,10 @@ Table::Table(const catalog::TableCatalogEntry* tableEntry, StorageManager* stora
 std::unique_ptr<Table> Table::loadTable(Deserializer& deSer, const catalog::Catalog& catalog,
     StorageManager* storageManager, MemoryManager* memoryManager, VirtualFileSystem* vfs,
     main::ClientContext* context) {
+    std::string key;
     TableType tableType;
+    deSer.deserializeValue(key);
+    KU_ASSERT(key == "table_type");
     deSer.deserializeValue<TableType>(tableType);
     std::unique_ptr<Table> table;
     switch (tableType) {
@@ -40,8 +43,11 @@ std::unique_ptr<Table> Table::loadTable(Deserializer& deSer, const catalog::Cata
 }
 
 void Table::serialize(Serializer& serializer) const {
+    serializer.writeDebuggingInfo("table_type");
     serializer.write<TableType>(tableType);
+    serializer.writeDebuggingInfo("table_id");
     serializer.write<table_id_t>(tableID);
+    serializer.writeDebuggingInfo("table_name");
     serializer.write<std::string>(tableName);
 }
 

@@ -94,13 +94,15 @@ void ShadowFile::replayShadowPageRecords(const ClientContext& context) const {
     }
 }
 
-void ShadowFile::flushAll(BufferManager& bm) const {
+void ShadowFile::flushAll(ClientContext& context) const {
     // Write header page to file.
     ShadowFileHeader header;
     header.numShadowPages = shadowPageRecords.size();
-    shadowingFH->writePage(reinterpret_cast<uint8_t*>(&header), 0);
+    const auto headerBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
+    memcpy(headerBuffer.get(), &header, sizeof(ShadowFileHeader));
+    shadowingFH->writePage(headerBuffer.get(), 0);
     // Flush shadow pages to file.
-    bm.flushAllDirtyPagesInFrames(*shadowingFH);
+    context.getMemoryManager()->getBufferManager()->flushAllDirtyPagesInFrames(*shadowingFH);
     // Append shadow page records to end of file.
     const auto writer = std::make_shared<BufferedFileWriter>(*shadowingFH->getFileInfo());
     writer->setFileOffset(shadowingFH->getNumPages() * BufferPoolConstants::PAGE_4KB_SIZE);
@@ -112,11 +114,13 @@ void ShadowFile::flushAll(BufferManager& bm) const {
     shadowingFH->getFileInfo()->syncFile();
 }
 
-void ShadowFile::clearAll(BufferManager& bm) {
-    bm.removeFilePagesFromFrames(*shadowingFH);
+void ShadowFile::clearAll(ClientContext& context) {
+    context.getMemoryManager()->getBufferManager()->removeFilePagesFromFrames(*shadowingFH);
     shadowingFH->resetToZeroPagesAndPageCapacity();
     shadowPagesMap.clear();
     shadowPageRecords.clear();
+    // Reserve header page.
+    shadowingFH->addNewPage();
 }
 
 std::unique_ptr<FileInfo> ShadowFile::getFileInfo(const ClientContext& context, DBFileID dbFileID) {
