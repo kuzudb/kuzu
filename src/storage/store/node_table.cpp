@@ -34,7 +34,7 @@ NodeTable::NodeTable(StorageManager* storageManager, const NodeTableCatalogEntry
         const auto columnName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT, "");
         columns[property.getColumnID()] = ColumnFactory::createColumn(columnName,
-            property.getDataType().copy(), dataFH, bufferManager, wal, enableCompression);
+            property.getDataType().copy(), dataFH, bufferManager, shadowFile, enableCompression);
     }
     nodeGroups = std::make_unique<NodeGroupCollection>(getNodeTableColumnTypes(*this),
         enableCompression, 0 /*startNodeOffset*/, storageManager->getDataFH(), deSer);
@@ -49,8 +49,8 @@ std::unique_ptr<NodeTable> NodeTable::loadTable(Deserializer& deSer, const Catal
     std::string tableName;
     deSer.deserializeValue<table_id_t>(tableID);
     deSer.deserializeValue<std::string>(tableName);
-    auto catalogEntry = catalog.getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID)
-                            ->ptrCast<NodeTableCatalogEntry>();
+    auto catalogEntry =
+        catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID)->ptrCast<NodeTableCatalogEntry>();
     KU_ASSERT(catalogEntry->getName() == tableName);
     return std::make_unique<NodeTable>(storageManager, catalogEntry, memoryManager, vfs, context,
         &deSer);
@@ -61,8 +61,8 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
     main::ClientContext* context) {
     pkIndex = std::make_unique<PrimaryKeyIndex>(
         StorageUtils::getNodeIndexIDAndFName(vfs, databasePath, tableID), readOnly,
-        nodeTableEntry->getPrimaryKey()->getDataType().getPhysicalType(), *bufferManager, wal, vfs,
-        context);
+        nodeTableEntry->getPrimaryKey()->getDataType().getPhysicalType(), *bufferManager,
+        shadowFile, vfs, context);
 }
 
 void NodeTable::initializeScanState(Transaction* transaction, TableScanState& scanState) {
@@ -200,10 +200,9 @@ void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColu
     auto& property = addColumnState.property;
     KU_ASSERT(property.getColumnID() == columns.size());
     columns.push_back(ColumnFactory::createColumn(property.getName(), property.getDataType().copy(),
-        dataFH, bufferManager, wal, enableCompression));
-    const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
-        LocalStorage::NotExistAction::RETURN_NULL);
-    if (localTable) {
+        dataFH, bufferManager, shadowFile, enableCompression));
+    if (const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+            LocalStorage::NotExistAction::RETURN_NULL)) {
         localTable->addColumn(transaction, addColumnState);
     }
     nodeGroups->addColumn(transaction, addColumnState);
@@ -222,7 +221,7 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
     for (auto i = 0u; i < columns.size(); i++) {
         columnIDs.push_back(i);
     }
-    auto types = getNodeTableColumnTypes(*this);
+    const auto types = getNodeTableColumnTypes(*this);
     const auto dataChunk = constructDataChunk(types);
     ValueVector nodeIDVector(LogicalType::INTERNAL_ID());
     nodeIDVector.setState(dataChunk->state);
@@ -285,6 +284,7 @@ void NodeTable::rollback(LocalTable* localTable) {
 }
 
 void NodeTable::checkpoint(Serializer& ser) {
+    // TODO(Guodong): Should refer to TableCatalogEntry to figure out non-deleted columns.
     std::vector<Column*> checkpointColumns;
     std::vector<column_id_t> columnIDs;
     for (auto i = 0u; i < columns.size(); i++) {
@@ -293,9 +293,9 @@ void NodeTable::checkpoint(Serializer& ser) {
     }
     NodeGroupCheckpointState state{columnIDs, checkpointColumns, *dataFH, memoryManager};
     nodeGroups->checkpoint(state);
-    pkIndex->prepareCommit();
-    pkIndex->checkpointInMemory();
+    pkIndex->checkpoint();
     serialize(ser);
+    nodeGroups->resetVersionAndUpdateInfo();
 }
 
 void NodeTable::serialize(Serializer& serializer) const {

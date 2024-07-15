@@ -32,9 +32,11 @@ class DiskArrayCollection {
 
 public:
     DiskArrayCollection(BMFileHandle& fileHandle, DBFileID dbFileID, BufferManager* bufferManager,
-        WAL* wal, common::page_idx_t firstHeaderPage = 0, bool bypassWAL = false);
+        ShadowFile& shadowFile, common::page_idx_t firstHeaderPage = 0,
+        bool bypassShadowing = false);
 
-    void prepareCommit();
+    // TODO(Guodong): Rename to checkpoint().
+    void checkpoint();
 
     void checkpointInMemory() {
         for (size_t i = 0; i < headersForWriteTrx.size(); i++) {
@@ -57,7 +59,7 @@ public:
         auto& writeHeader = headersForWriteTrx[idx / HeaderPage::NUM_HEADERS_PER_PAGE]
                                 ->headers[idx % HeaderPage::NUM_HEADERS_PER_PAGE];
         return std::make_unique<DiskArray<T>>(fileHandle, dbFileID, readHeader, writeHeader,
-            &bufferManager, &wal, bypassWAL);
+            &bufferManager, &shadowFile, bypassShadowing);
     }
 
     size_t addDiskArray();
@@ -66,8 +68,8 @@ private:
     BMFileHandle& fileHandle;
     DBFileID dbFileID;
     BufferManager& bufferManager;
-    WAL& wal;
-    bool bypassWAL;
+    ShadowFile& shadowFile;
+    bool bypassShadowing;
     common::page_idx_t headerPagesOnDisk;
     std::vector<std::unique_ptr<HeaderPage>> headersForReadTrx;
     std::vector<std::unique_ptr<HeaderPage>> headersForWriteTrx;

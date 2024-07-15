@@ -116,8 +116,7 @@ public:
         const std::string& name) const;
     std::vector<std::string> getMacroNames(transaction::Transaction* tx) const;
 
-    void checkpoint(const std::string& databasePath, storage::WAL* wal,
-        common::VirtualFileSystem* fs);
+    void checkpoint(const std::string& databasePath, common::VirtualFileSystem* fs) const;
 
     template<class TARGET>
     TARGET* ptrCast() {
@@ -130,7 +129,7 @@ private:
     void readFromFile(const std::string& directory, common::VirtualFileSystem* fs,
         common::FileVersionType versionType, main::ClientContext* context = nullptr);
     void saveToFile(const std::string& directory, common::VirtualFileSystem* fs,
-        common::FileVersionType versionType);
+        common::FileVersionType versionType) const;
 
 private:
     // ----------------------------- Functions ----------------------------

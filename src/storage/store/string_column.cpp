@@ -20,14 +20,14 @@ using string_index_t = DictionaryChunk::string_index_t;
 using string_offset_t = DictionaryChunk::string_offset_t;
 
 StringColumn::StringColumn(std::string name, LogicalType dataType, BMFileHandle* dataFH,
-    BufferManager* bufferManager, WAL* wal, bool enableCompression)
-    : Column{std::move(name), std::move(dataType), dataFH, bufferManager, wal, enableCompression,
-          true /* requireNullColumn */},
-      dictionary{this->name, dataFH, bufferManager, wal, enableCompression} {
+    BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression)
+    : Column{std::move(name), std::move(dataType), dataFH, bufferManager, shadowFile,
+          enableCompression, true /* requireNullColumn */},
+      dictionary{this->name, dataFH, bufferManager, shadowFile, enableCompression} {
     auto indexColumnName =
         StorageUtils::getColumnName(this->name, StorageUtils::ColumnType::INDEX, "index");
     indexColumn = std::make_unique<Column>(indexColumnName, LogicalType::UINT32(), dataFH,
-        bufferManager, wal, enableCompression, false /*requireNullColumn*/);
+        bufferManager, shadowFile, enableCompression, false /*requireNullColumn*/);
 }
 
 ChunkState& StringColumn::getChildState(ChunkState& state, ChildStateIndex child) {

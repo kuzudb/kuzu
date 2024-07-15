@@ -8,7 +8,7 @@ namespace storage {
 class StructColumn final : public Column {
 public:
     StructColumn(std::string name, common::LogicalType dataType, BMFileHandle* dataFH,
-        BufferManager* bufferManager, WAL* wal, bool enableCompression);
+        BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression);
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
         BMFileHandle& dataFH);

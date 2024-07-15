@@ -6,7 +6,6 @@
 #include "main/client_context.h"
 #include "main/db_config.h"
 #include "storage/storage_manager.h"
-#include "storage/wal_replayer.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -117,28 +116,30 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     // query.
     stopNewTransactionsAndWaitUntilAllTransactionsLeave();
     // Checkpoint catalog, which serializes a snapshot of the catalog to disk.
-    clientContext.getCatalog()->checkpoint(clientContext.getDatabasePath(), &wal,
+    clientContext.getCatalog()->checkpoint(clientContext.getDatabasePath(),
         clientContext.getVFSUnsafe());
     // Checkpoint node/relTables, which writes the updated/newly-inserted pages and metadata to
     // disk.
     clientContext.getStorageManager()->checkpoint(clientContext);
-    // Log the checkpoint to the WAL and flush WAL. This indicates that all update/newly-inserted
-    // pages and
-    // snapshots of catalog and metadata have been written to disk. The part is not done is replace
+    // Log the checkpoint to the WAL and flush WAL. This indicates that all shadow pages and files(
+    // snapshots of catalog and metadata) have been written to disk. The part is not done is replace
     // them with the original pages or catalog and metadata files.
     // If the system crashes before this point, the WAL can still be used to recover the system to a
     // state where the checkpoint can be redo.
-    // wal.logCheckpoint();
-    wal.flushAllPages();
+    wal.logAndFlushCheckpoint();
     // Replace the original pages and catalog and metadata files with the updated/newly-created
     // ones.
-    const auto walReplayer = std::make_unique<WALReplayer>(clientContext, wal.getShadowingFH(),
-        WALReplayMode::COMMIT_CHECKPOINT);
-    walReplayer->replay();
-    // Resume receiving new transactions.
-    allowReceivingNewTransactions();
+    StorageUtils::overwriteWALVersionFiles(clientContext.getDatabasePath(),
+        clientContext.getVFSUnsafe());
+    clientContext.getStorageManager()->getShadowFile().replayShadowPageRecords(clientContext);
     // Clear the wal, and also shadowing files.
     wal.clearWAL();
+    clientContext.getStorageManager()->getShadowFile().clearAll(
+        *clientContext.getMemoryManager()->getBufferManager());
+    StorageUtils::removeWALVersionFiles(clientContext.getDatabasePath(),
+        clientContext.getVFSUnsafe());
+    // Resume receiving new transactions.
+    allowReceivingNewTransactions();
 }
 
 void TransactionManager::clearActiveWriteTransactionIfWriteTransactionNoLock(

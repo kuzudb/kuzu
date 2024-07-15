@@ -3,7 +3,6 @@
 #include <fcntl.h>
 
 #include "common/assert.h"
-#include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/null_buffer.h"
 #include "common/string_format.h"
@@ -16,36 +15,35 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-std::string StorageUtils::getColumnName(const std::string& propertyName,
-    StorageUtils::ColumnType type, const std::string& prefix) {
+std::string StorageUtils::getColumnName(const std::string& propertyName, ColumnType type,
+    const std::string& prefix) {
     switch (type) {
-    case StorageUtils::ColumnType::DATA: {
+    case ColumnType::DATA: {
         return stringFormat("{}_data", propertyName);
     }
-    case StorageUtils::ColumnType::NULL_MASK: {
+    case ColumnType::NULL_MASK: {
         return stringFormat("{}_null", propertyName);
     }
-    case StorageUtils::ColumnType::INDEX: {
+    case ColumnType::INDEX: {
         return stringFormat("{}_index", propertyName);
     }
-    case StorageUtils::ColumnType::OFFSET: {
+    case ColumnType::OFFSET: {
         return stringFormat("{}_offset", propertyName);
     }
-    case StorageUtils::ColumnType::CSR_OFFSET: {
+    case ColumnType::CSR_OFFSET: {
         return stringFormat("{}_csr_offset", prefix);
     }
-    case StorageUtils::ColumnType::CSR_LENGTH: {
+    case ColumnType::CSR_LENGTH: {
         return stringFormat("{}_csr_length", prefix);
     }
-    case StorageUtils::ColumnType::STRUCT_CHILD: {
+    case ColumnType::STRUCT_CHILD: {
         return stringFormat("{}_{}_child", propertyName, prefix);
     }
     default: {
         if (prefix.empty()) {
             return propertyName;
-        } else {
-            return stringFormat("{}_{}", prefix, propertyName);
         }
+        return stringFormat("{}_{}", prefix, propertyName);
     }
     }
 }
@@ -55,30 +53,6 @@ std::string StorageUtils::getNodeIndexFName(const VirtualFileSystem* vfs,
     auto fName = stringFormat("n-{}", tableID);
     return appendWALFileSuffixIfNecessary(
         vfs->joinPath(directory, fName + StorageConstants::INDEX_FILE_SUFFIX), fileVersionType);
-}
-
-std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(const std::string& directory,
-    DBFileID dbFileID, VirtualFileSystem* vfs) {
-    std::string fName;
-    switch (dbFileID.dbFileType) {
-    case DBFileType::METADATA: {
-        fName = getMetadataFName(vfs, directory);
-    } break;
-    case DBFileType::DATA: {
-        fName = getDataFName(vfs, directory);
-    } break;
-    case DBFileType::NODE_INDEX: {
-        fName = getNodeIndexFName(vfs, directory, dbFileID.nodeIndexID.tableID,
-            FileVersionType::ORIGINAL);
-        if (dbFileID.isOverflow) {
-            fName = getOverflowFileName(fName);
-        }
-    } break;
-    default: {
-        throw RuntimeException("Unsupported dbFileID in StorageUtils::getFileInfoForReadWrite.");
-    }
-    }
-    return vfs->openFile(fName, O_RDWR);
 }
 
 uint32_t StorageUtils::getDataTypeSize(PhysicalTypeID type) {
@@ -126,12 +100,11 @@ uint32_t StorageUtils::getDataTypeSize(const LogicalType& type) {
 
 std::string StorageUtils::appendSuffixOrInsertBeforeWALSuffix(const std::string& fileName,
     const std::string& suffix) {
-    auto pos = fileName.find(StorageConstants::WAL_FILE_SUFFIX);
+    const auto pos = fileName.find(StorageConstants::WAL_FILE_SUFFIX);
     if (pos == std::string::npos) {
         return fileName + suffix;
-    } else {
-        return fileName.substr(0, pos) + suffix + StorageConstants::WAL_FILE_SUFFIX;
     }
+    return fileName.substr(0, pos) + suffix + StorageConstants::WAL_FILE_SUFFIX;
 }
 
 } // namespace storage

@@ -37,11 +37,11 @@ public:
     // are also flushed to disk.
     ~WAL();
 
-    common::page_idx_t logPageUpdateRecord(DBFileID dbFileID,
-        common::page_idx_t pageIdxInOriginalFile);
+    // common::page_idx_t logPageUpdateRecord(DBFileID dbFileID,
+    // common::page_idx_t pageIdxInOriginalFile);
 
-    common::page_idx_t logPageInsertRecord(DBFileID dbFileID,
-        common::page_idx_t pageIdxInOriginalFile);
+    // common::page_idx_t logPageInsertRecord(DBFileID dbFileID,
+    // common::page_idx_t pageIdxInOriginalFile);
 
     void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry);
     void logDropCatalogEntryRecord(uint64_t entryID, catalog::CatalogEntryType type);
@@ -52,10 +52,10 @@ public:
     void logUpdateSequenceRecord(common::sequence_id_t sequenceID,
         catalog::SequenceChangeData data);
 
-    void logCatalogRecord();
-    void logTableStatisticsRecord(common::TableType tableType);
+    // void logCatalogRecord();
+    // void logTableStatisticsRecord(common::TableType tableType);
     void logCommit(uint64_t transactionID);
-    void logCheckpoint();
+    void logAndFlushCheckpoint();
 
     // Removes the contents of WAL file.
     void clearWAL();
@@ -68,12 +68,8 @@ public:
         updatedTables.insert(nodeTableID);
     }
     std::unordered_set<common::table_id_t>& getUpdatedTables() { return updatedTables; }
-    BMFileHandle& getShadowingFH() const { return *shadowingFH; }
 
-    uint64_t getFileSize() const {
-        return bufferedWriter->getFileSize() +
-               shadowingFH->getNumPages() * common::BufferPoolConstants::PAGE_4KB_SIZE;
-    }
+    uint64_t getFileSize() const { return bufferedWriter->getFileSize(); }
 
 private:
     void addNewWALRecordNoLock(WALRecord& walRecord);
@@ -83,8 +79,8 @@ private:
     // committed/rolled back accordingly during the wal replaying.
     // Tables need in memory checkpointing or rolling back.
     std::unordered_set<common::table_id_t> updatedTables;
+    std::unique_ptr<common::FileInfo> fileInfo;
     std::shared_ptr<common::BufferedFileWriter> bufferedWriter;
-    BMFileHandle* shadowingFH;
     std::string directory;
     std::mutex mtx;
     BufferManager& bufferManager;

@@ -222,7 +222,7 @@ void NodeGroup::flush(BMFileHandle& dataFH) {
         auto mergedChunkedGroup = std::make_unique<ChunkedNodeGroup>(dataTypes, enableCompression,
             StorageConstants::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
         for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-            mergedChunkedGroup->append(&DUMMY_WRITE_TRANSACTION, *chunkedGroup, 0,
+            mergedChunkedGroup->append(&DUMMY_TRANSACTION, *chunkedGroup, 0,
                 chunkedGroup->getNumRows());
         }
         mergedChunkedGroup->flush(dataFH);
@@ -272,7 +272,6 @@ void NodeGroup::checkpoint(NodeGroupCheckpointState& state) {
         state.columns[columnID]->checkpointColumnChunk(columnCheckpointState);
         firstGroup->getColumnChunk(columnID).resetUpdateInfo();
     }
-    firstGroup->resetVersionInfo();
     // Clear all chunked groups except for the first one.
     auto persistentChunkedGroup = chunkedGroups.moveGroup(lock, 0);
     KU_ASSERT(persistentChunkedGroup->getResidencyState() == ResidencyState::ON_DISK);
@@ -385,6 +384,13 @@ row_idx_t NodeGroup::getNumResidentRows(const UniqLock& lock) {
         }
     }
     return numRows;
+}
+
+void NodeGroup::resetVersionAndUpdateInfo() {
+    const auto lock = chunkedGroups.lock();
+    for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
+        chunkedGroup->resetVersionAndUpdateInfo();
+    }
 }
 
 template<ResidencyState RESIDENCY_STATE>

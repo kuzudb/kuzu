@@ -53,8 +53,7 @@ bool LocalRelTable::insert(transaction::Transaction*, TableInsertState& state) {
         insertVectors.push_back(insertState.propertyVectors[i]);
     }
     const auto numRowsToAppend = insertState.srcNodeIDVector.state->getSelVector().getSelSize();
-    localNodeGroup->append(&transaction::DUMMY_WRITE_TRANSACTION, insertVectors, 0,
-        numRowsToAppend);
+    localNodeGroup->append(&transaction::DUMMY_TRANSACTION, insertVectors, 0, numRowsToAppend);
     const auto srcNodeOffset = insertState.srcNodeIDVector.readNodeOffset(srcNodePos);
     const auto dstNodeOffset = insertState.dstNodeIDVector.readNodeOffset(dstNodePos);
     fwdIndex[srcNodeOffset].push_back(numRowsInLocalTable);
@@ -79,7 +78,7 @@ bool LocalRelTable::update(TableUpdateState& state) {
         return false;
     }
     KU_ASSERT(updateState.columnID != NBR_ID_COLUMN_ID);
-    localNodeGroup->update(&transaction::DUMMY_WRITE_TRANSACTION, matchedRow,
+    localNodeGroup->update(&transaction::DUMMY_TRANSACTION, matchedRow,
         rewriteLocalColumnID(RelDataDirection::FWD /* This is a dummy direction */,
             updateState.columnID),
         updateState.propertyVector);
@@ -203,7 +202,7 @@ row_idx_t LocalRelTable::findMatchingRow(offset_t srcNodeOffset, offset_t dstNod
     for (auto i = 0u; i < intersectRows.size(); i++) {
         scanState->rowIdxVector->setValue<row_idx_t>(i, intersectRows[i]);
     }
-    localNodeGroup->lookup(&transaction::DUMMY_WRITE_TRANSACTION, *scanState);
+    localNodeGroup->lookup(&transaction::DUMMY_TRANSACTION, *scanState);
     const auto scannedRelIDVector = scanState->outputVectors[0];
     KU_ASSERT(scannedRelIDVector->state->getSelVector().getSelSize() == intersectRows.size());
     row_idx_t matchedRow = INVALID_ROW_IDX;

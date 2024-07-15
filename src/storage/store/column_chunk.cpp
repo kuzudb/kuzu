@@ -41,7 +41,7 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
         data->scan(output, offsetInChunk, length);
     } break;
     case ResidencyState::ON_DISK: {
-        state.column->scan(&DUMMY_READ_TRANSACTION, state, offsetInChunk, length, &nodeID, &output);
+        state.column->scan(&DUMMY_TRANSACTION, state, offsetInChunk, length, &nodeID, &output);
     }
     }
     if (updateInfo) {

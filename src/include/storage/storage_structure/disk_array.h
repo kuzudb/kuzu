@@ -7,6 +7,7 @@
 #include "common/types/types.h"
 #include "db_file_utils.h"
 #include "storage/storage_utils.h"
+#include "storage/wal/shadow_file.h"
 #include "storage/wal/wal.h"
 #include "storage/wal/wal_record.h"
 #include "transaction/transaction.h"
@@ -102,7 +103,8 @@ public:
     // Used when loading from file
     DiskArrayInternal(BMFileHandle& fileHandle, DBFileID dbFileID,
         const DiskArrayHeader& headerForReadTrx, DiskArrayHeader& headerForWriteTrx,
-        BufferManager* bufferManager, WAL* wal, uint64_t elementSize, bool bypassWAL = false);
+        BufferManager* bufferManager, ShadowFile* shadowFile, uint64_t elementSize,
+        bool bypassShadowing = false);
 
     virtual ~DiskArrayInternal() = default;
 
@@ -130,7 +132,7 @@ public:
         checkpointOrRollbackInMemoryIfNecessaryNoLock(false /* is rollback */);
     }
 
-    virtual void prepareCommit();
+    virtual void checkpoint();
 
     // Write WriteIterator for making fast bulk changes to the disk array
     // The pages are cached while the elements are stored on the same page
@@ -148,7 +150,7 @@ public:
         // read and cache the page, then write the page to the WAL if it's ever modified. However
         // when doing bulk hashindex inserts, there's a high likelihood that every page accessed
         // will be modified, so it may be faster this way.
-        WALPageIdxAndFrame walPageIdxAndFrame;
+        ShadowPageAndFrame shadowPageAndFrame;
         static const transaction::TransactionType TRX_TYPE = transaction::TransactionType::WRITE;
         uint64_t idx;
         DEFAULT_MOVE_CONSTRUCT(WriteIterator);
@@ -156,7 +158,7 @@ public:
         // Constructs WriteIterator in an invalid state. Seek must be called before accessing data
         WriteIterator(uint32_t valueSize, DiskArrayInternal& diskArray)
             : diskArray(diskArray), apCursor(), valueSize(valueSize),
-              walPageIdxAndFrame{common::INVALID_PAGE_IDX, common::INVALID_PAGE_IDX, nullptr},
+              shadowPageAndFrame{common::INVALID_PAGE_IDX, common::INVALID_PAGE_IDX, nullptr},
               idx(0) {
             diskArray.hasTransactionalUpdates = true;
         }
@@ -171,8 +173,8 @@ public:
 
         std::span<uint8_t> operator*() const {
             KU_ASSERT(idx < diskArray.headerForWriteTrx.numElements);
-            KU_ASSERT(walPageIdxAndFrame.originalPageIdx != common::INVALID_PAGE_IDX);
-            return std::span(walPageIdxAndFrame.frame + apCursor.elemPosInPage, valueSize);
+            KU_ASSERT(shadowPageAndFrame.originalPage != common::INVALID_PAGE_IDX);
+            return std::span(shadowPageAndFrame.frame + apCursor.elemPosInPage, valueSize);
         }
 
         inline uint64_t size() const { return diskArray.headerForWriteTrx.numElements; }
@@ -243,7 +245,7 @@ protected:
     DiskArrayHeader& headerForWriteTrx;
     bool hasTransactionalUpdates;
     BufferManager* bufferManager;
-    WAL* wal;
+    ShadowFile* shadowFile;
     std::vector<PIPWrapper> pips;
     PIPUpdates pipUpdates;
     std::shared_mutex diskArraySharedMtx;
@@ -266,10 +268,10 @@ public:
     // original file, but does not handle flushing them. BufferManager::flushAllDirtyPagesInFrames
     // should be called on this file handle exactly once during prepare commit.
     DiskArray(BMFileHandle& fileHandle, DBFileID dbFileID, const DiskArrayHeader& headerForReadTrx,
-        DiskArrayHeader& headerForWriteTrx, BufferManager* bufferManager, WAL* wal,
+        DiskArrayHeader& headerForWriteTrx, BufferManager* bufferManager, ShadowFile* shadowFile,
         bool bypassWAL = false)
-        : diskArray(fileHandle, dbFileID, headerForReadTrx, headerForWriteTrx, bufferManager, wal,
-              sizeof(U), bypassWAL) {}
+        : diskArray(fileHandle, dbFileID, headerForReadTrx, headerForWriteTrx, bufferManager,
+              shadowFile, sizeof(U), bypassWAL) {}
 
     // Note: This function is to be used only by the WRITE trx.
     // The return value is the idx of val in array.
@@ -297,7 +299,7 @@ public:
 
     inline void checkpointInMemoryIfNecessary() { diskArray.checkpointInMemoryIfNecessary(); }
     inline void rollbackInMemoryIfNecessary() { diskArray.rollbackInMemoryIfNecessary(); }
-    inline void prepareCommit() { diskArray.prepareCommit(); }
+    inline void checkpoint() { diskArray.checkpoint(); }
 
     class WriteIterator {
     public:

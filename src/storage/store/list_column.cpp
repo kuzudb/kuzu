@@ -51,20 +51,20 @@ bool ListOffsetSizeInfo::isOffsetSortedAscending(uint64_t startPos, uint64_t end
 }
 
 ListColumn::ListColumn(std::string name, LogicalType dataType, BMFileHandle* dataFH,
-    BufferManager* bufferManager, WAL* wal, bool enableCompression)
-    : Column{name, std::move(dataType), dataFH, bufferManager, wal, enableCompression,
+    BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression)
+    : Column{name, std::move(dataType), dataFH, bufferManager, shadowFile, enableCompression,
           true /* requireNullColumn */} {
     auto offsetColName =
         StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "offset_");
     auto sizeColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "");
     auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
     sizeColumn = std::make_unique<Column>(sizeColName, LogicalType::UINT32(), dataFH, bufferManager,
-        wal, enableCompression, false /*requireNullColumn*/);
+        shadowFile, enableCompression, false /*requireNullColumn*/);
     dataColumn =
         ColumnFactory::createColumn(dataColName, ListType::getChildType(this->dataType).copy(),
-            dataFH, bufferManager, wal, enableCompression);
+            dataFH, bufferManager, shadowFile, enableCompression);
     offsetColumn = std::make_unique<Column>(offsetColName, LogicalType::UINT64(), dataFH,
-        bufferManager, wal, enableCompression, false /*requireNullColumn*/);
+        bufferManager, shadowFile, enableCompression, false /*requireNullColumn*/);
 }
 
 std::unique_ptr<ColumnChunkData> ListColumn::flushChunkData(const ColumnChunkData& chunk,

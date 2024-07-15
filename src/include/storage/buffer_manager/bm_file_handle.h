@@ -137,7 +137,7 @@ private:
 // BMFileHandle supports two types of files: versioned and non-versioned. Versioned files
 // contains mapping from pages that have updates to the versioned pages in the wal file.
 // Currently, only MemoryManager and WAL files are non-versioned.
-class BMFileHandle : public FileHandle {
+class BMFileHandle final : public FileHandle {
     friend class BufferManager;
 
 public:
@@ -175,7 +175,7 @@ public:
     // This function assumes that the caller has already acquired the wal page idx lock.
     void setWALPageIdxNoLock(common::page_idx_t originalPageIdx, common::page_idx_t pageIdxInWAL);
 
-    uint32_t getFileIndex() const { return fileIndex; }
+    common::file_idx_t getFileIndex() const { return fileIndex; }
 
 private:
     BMFileHandle(const std::string& path, uint8_t flags, BufferManager* bm, uint32_t fileIndex,
@@ -219,7 +219,7 @@ private:
     // `WALPageIdxGroup` records the WAL page idx for each page in the page group.
     // Accesses to this map is synchronized by `fhSharedMutex`.
     std::unordered_map<common::page_group_idx_t, std::unique_ptr<WALPageIdxGroup>> walPageIdxGroups;
-    uint32_t fileIndex;
+    common::file_idx_t fileIndex;
 };
 } // namespace storage
 } // namespace kuzu

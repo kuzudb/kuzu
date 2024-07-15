@@ -175,7 +175,7 @@ void Partitioner::copyDataToPartitions(partition_idx_t partitioningIdx,
             partitionIdx < localState->getPartitioningBuffer(partitioningIdx)->partitions.size());
         const auto& partition =
             localState->getPartitioningBuffer(partitioningIdx)->partitions[partitionIdx];
-        partition->append(&transaction::DUMMY_WRITE_TRANSACTION, vectorsToAppend, posToCopyFrom, 1);
+        partition->append(&transaction::DUMMY_TRANSACTION, vectorsToAppend, posToCopyFrom, 1);
     }
 }
 

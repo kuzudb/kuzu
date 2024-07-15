@@ -15,7 +15,8 @@ Table::Table(const catalog::TableCatalogEntry* tableEntry, StorageManager* stora
     : tableType{tableEntry->getTableType()}, tableID{tableEntry->getTableID()},
       tableName{tableEntry->getName()}, enableCompression{storageManager->compressionEnabled()},
       dataFH{storageManager->getDataFH()}, memoryManager{memoryManager},
-      bufferManager{memoryManager->getBufferManager()}, wal{&storageManager->getWAL()} {}
+      bufferManager{memoryManager->getBufferManager()}, wal{&storageManager->getWAL()},
+      shadowFile{&storageManager->getShadowFile()} {}
 
 std::unique_ptr<Table> Table::loadTable(Deserializer& deSer, const catalog::Catalog& catalog,
     StorageManager* storageManager, MemoryManager* memoryManager, VirtualFileSystem* vfs,
@@ -44,7 +45,7 @@ void Table::serialize(Serializer& serializer) const {
     serializer.write<std::string>(tableName);
 }
 
-std::unique_ptr<DataChunk> Table::constructDataChunk(std::vector<LogicalType>& types) {
+std::unique_ptr<DataChunk> Table::constructDataChunk(const std::vector<LogicalType>& types) {
     auto dataChunk = std::make_unique<DataChunk>(types.size());
     for (auto i = 0u; i < types.size(); i++) {
         auto valueVector = std::make_unique<ValueVector>(types[i].copy(), memoryManager);

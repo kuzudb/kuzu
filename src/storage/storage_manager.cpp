@@ -24,8 +24,11 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
     // TODO: should we disable WAL in readonly mode?
     wal = std::make_unique<WAL>(databasePath, readOnly, *memoryManager.getBufferManager(), vfs,
         context);
+    shadowFile = std::make_unique<ShadowFile>(databasePath, readOnly,
+        *memoryManager.getBufferManager(), vfs, context);
     dataFH = initFileHandle(StorageUtils::getDataFName(vfs, databasePath), vfs, context);
-    metadataFH = initFileHandle(StorageUtils::getMetadataFName(vfs, databasePath), vfs, context);
+    metadataFH = initFileHandle(
+        StorageUtils::getMetadataFName(vfs, databasePath, FileVersionType::ORIGINAL), vfs, context);
     loadTables(catalog, vfs, context);
 }
 
@@ -57,10 +60,12 @@ static void setCommonTableIDToRdfRelTable(RelTable* relTable,
 
 void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
     main::ClientContext* context) {
-    const auto metaFilePath = StorageUtils::getMetadataFName(vfs, databasePath);
+    const auto metaFilePath =
+        StorageUtils::getMetadataFName(vfs, databasePath, FileVersionType::ORIGINAL);
     if (vfs->fileOrPathExists(metaFilePath)) {
-        auto metadataFileInfo =
-            vfs->openFile(StorageUtils::getMetadataFName(vfs, databasePath), O_RDONLY, context);
+        auto metadataFileInfo = vfs->openFile(
+            StorageUtils::getMetadataFName(vfs, databasePath, FileVersionType::ORIGINAL), O_RDONLY,
+            context);
         if (metadataFileInfo->getFileSize() > 0) {
             Deserializer deSer(std::make_unique<BufferedFileReader>(std::move(metadataFileInfo)));
             uint64_t numTables;
@@ -73,8 +78,8 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
     }
 
     // TODO(Guodong): Rework setting common table ID for rdf rel tables.
-    auto rdfGraphSchemas = catalog.getRdfGraphEntries(&DUMMY_READ_TRANSACTION);
-    for (auto relTableEntry : catalog.getRelTableEntries(&DUMMY_READ_TRANSACTION)) {
+    auto rdfGraphSchemas = catalog.getRdfGraphEntries(&DUMMY_TRANSACTION);
+    for (auto relTableEntry : catalog.getRelTableEntries(&DUMMY_TRANSACTION)) {
         KU_ASSERT(!tables.contains(relTableEntry->getTableID()));
         auto relTable = std::make_unique<RelTable>(relTableEntry, this, &memoryManager);
         setCommonTableIDToRdfRelTable(relTable.get(), rdfGraphSchemas);
@@ -95,8 +100,8 @@ void StorageManager::recover(main::ClientContext& clientContext) {
                                                 std::string(StorageConstants::SHADOWING_SUFFIX)),
             FileHandle::O_PERSISTENT_FILE_NO_CREATE,
             BMFileHandle::FileVersionedType::NON_VERSIONED_FILE, vfs, &clientContext);
-        auto walReplayer = std::make_unique<WALReplayer>(clientContext, *shadowFH,
-            WALReplayMode::RECOVERY_CHECKPOINT);
+        auto walReplayer =
+            std::make_unique<WALReplayer>(clientContext, WALReplayMode::RECOVERY_CHECKPOINT);
         walReplayer->replay();
         // Truncate .wal and .shadow to empty. Remove catalog and stats wal files.
         auto walFileInfo = vfs->openFile(walFilePath, O_RDWR);
@@ -107,7 +112,7 @@ void StorageManager::recover(main::ClientContext& clientContext) {
             shadowFH->getFileInfo()->truncate(0);
         }
         bm->removeFilePagesFromFrames(*shadowFH);
-        StorageUtils::removeCatalogAndStatsWALFiles(clientContext.getDatabasePath(), vfs);
+        StorageUtils::removeWALVersionFiles(clientContext.getDatabasePath(), vfs);
     } catch (std::exception& e) {
         throw Exception(stringFormat("Error during recovery: {}", e.what()));
     }
@@ -197,6 +202,11 @@ WAL& StorageManager::getWAL() {
     return *wal;
 }
 
+ShadowFile& StorageManager::getShadowFile() {
+    KU_ASSERT(shadowFile);
+    return *shadowFile;
+}
+
 void StorageManager::dropTable(table_id_t tableID, VirtualFileSystem* vfs) {
     KU_ASSERT(tables.contains(tableID));
     auto tableType = tables.at(tableID)->getTableType();
@@ -223,10 +233,11 @@ uint64_t StorageManager::getEstimatedMemoryUsage() const {
 }
 
 void StorageManager::checkpoint(main::ClientContext& clientContext) const {
-    auto metadataFileInfo = clientContext.getVFSUnsafe()->openFile(
-        StorageUtils::getMetadataFName(clientContext.getVFSUnsafe(), databasePath),
+    const auto metadataFileInfo = clientContext.getVFSUnsafe()->openFile(
+        StorageUtils::getMetadataFName(clientContext.getVFSUnsafe(), databasePath,
+            FileVersionType::WAL_VERSION),
         O_RDWR | O_CREAT, &clientContext);
-    const auto writer = std::make_shared<BufferedFileWriter>(std::move(metadataFileInfo));
+    const auto writer = std::make_shared<BufferedFileWriter>(*metadataFileInfo);
     Serializer ser(writer);
     ser.write<uint64_t>(tables.size());
     // TODO(Guodong): We should avoid deleted tables.

@@ -50,7 +50,7 @@ class ListColumn final : public Column {
 
 public:
     ListColumn(std::string name, common::LogicalType dataType, BMFileHandle* dataFH,
-        BufferManager* bufferManager, WAL* wal, bool enableCompression);
+        BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression);
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
         BMFileHandle& dataFH);

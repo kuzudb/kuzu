@@ -69,6 +69,8 @@ public:
 
     void checkpoint(NodeGroupCheckpointState& state);
 
+    void resetVersionAndUpdateInfo();
+
     void serialize(common::Serializer& ser);
 
 private:

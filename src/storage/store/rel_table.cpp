@@ -23,10 +23,10 @@ RelTable::RelTable(RelTableCatalogEntry* relTableEntry, StorageManager* storageM
         deSer->deserializeValue<offset_t>(nextOffset);
         nextRelOffset = nextOffset;
     }
-    fwdRelTableData = std::make_unique<RelTableData>(dataFH, memoryManager, wal, relTableEntry,
-        RelDataDirection::FWD, enableCompression, deSer);
-    bwdRelTableData = std::make_unique<RelTableData>(dataFH, memoryManager, wal, relTableEntry,
-        RelDataDirection::BWD, enableCompression, deSer);
+    fwdRelTableData = std::make_unique<RelTableData>(dataFH, memoryManager, wal, shadowFile,
+        relTableEntry, RelDataDirection::FWD, enableCompression, deSer);
+    bwdRelTableData = std::make_unique<RelTableData>(dataFH, memoryManager, wal, shadowFile,
+        relTableEntry, RelDataDirection::BWD, enableCompression, deSer);
 }
 
 std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog& catalog,
@@ -38,8 +38,8 @@ std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog
     deSer.deserializeValue<table_id_t>(tableID);
     deSer.deserializeValue<std::string>(tableName);
     deSer.deserializeValue<offset_t>(nextRelOffset);
-    auto catalogEntry = catalog.getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID)
-                            ->ptrCast<RelTableCatalogEntry>();
+    auto catalogEntry =
+        catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID)->ptrCast<RelTableCatalogEntry>();
     KU_ASSERT(catalogEntry->getName() == tableName);
     auto relTable = std::make_unique<RelTable>(catalogEntry, storageManager, memoryManager, &deSer);
     relTable->nextRelOffset = nextRelOffset;
@@ -358,16 +358,11 @@ void RelTable::rollback(LocalTable* localTable) {
 }
 
 void RelTable::checkpoint(Serializer& ser) {
-    fwdRelTableData->checkpoint();
-    bwdRelTableData->checkpoint();
+    Table::serialize(ser);
+    ser.write<offset_t>(nextRelOffset);
+    fwdRelTableData->checkpoint(ser);
+    bwdRelTableData->checkpoint(ser);
     serialize(ser);
-}
-
-void RelTable::serialize(Serializer& serializer) const {
-    Table::serialize(serializer);
-    serializer.write<offset_t>(nextRelOffset);
-    fwdRelTableData->serialize(serializer);
-    bwdRelTableData->serialize(serializer);
 }
 
 } // namespace storage

@@ -200,8 +200,6 @@ private:
         RelTableData* tableData, RelTableData* reverseTableData, 
         RelTableScanState* relDataReadState, RelTableDeleteState* deleteState);
 
-    void serialize(common::Serializer& serializer) const override;
-
 private:
     // Note: Only toNodeTableID is needed for now. Expose fromNodeTableID if needed.
     common::table_id_t fromNodeTableID;

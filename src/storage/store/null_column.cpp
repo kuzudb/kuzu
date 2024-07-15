@@ -40,8 +40,8 @@ struct NullColumnFunc {
 };
 
 NullColumn::NullColumn(std::string name, BMFileHandle* dataFH, BufferManager* bufferManager,
-    WAL* wal, bool enableCompression)
-    : Column{name, LogicalType::BOOL(), dataFH, bufferManager, wal, enableCompression,
+    ShadowFile* shadowFile, bool enableCompression)
+    : Column{name, LogicalType::BOOL(), dataFH, bufferManager, shadowFile, enableCompression,
           false /*requireNullColumn*/} {
     readToVectorFunc = NullColumnFunc::readValuesFromPageToVector;
     writeFromVectorFunc = NullColumnFunc::writeValueToPageFromVector;

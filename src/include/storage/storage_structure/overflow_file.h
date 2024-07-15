@@ -15,6 +15,7 @@
 #include "storage/index/hash_index_utils.h"
 #include "storage/storage_structure/in_mem_page.h"
 #include "storage/storage_utils.h"
+#include "storage/wal/shadow_file.h"
 #include "storage/wal/wal.h"
 #include "storage/wal/wal_record.h"
 #include "transaction/transaction.h"
@@ -43,6 +44,7 @@ public:
         return writeString(std::string_view(rawString));
     }
 
+    // TODO(Guodong): Rename to checkpoint();
     void prepareCommit();
     void checkpointInMemory() { pageWriteCache.clear(); }
     void rollbackInMemory(PageCursor nextPosToWriteTo_) {
@@ -86,8 +88,9 @@ class OverflowFile {
 
 public:
     // For reading an existing overflow file
-    OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager* bufferManager, WAL* wal,
-        bool readOnly, common::VirtualFileSystem* vfs, main::ClientContext* context);
+    OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager* bufferManager,
+        ShadowFile* shadowFile, bool readOnly, common::VirtualFileSystem* vfs,
+        main::ClientContext* context);
 
     virtual ~OverflowFile() = default;
 
@@ -99,7 +102,7 @@ public:
     OverflowFile(OverflowFile&& other) = delete;
 
     void rollbackInMemory();
-    void prepareCommit();
+    void checkpoint();
     void checkpointInMemory();
 
     OverflowFileHandle* addHandle() {
@@ -140,7 +143,7 @@ protected:
     DBFileID dbFileID;
     BMFileHandle* fileHandle;
     BufferManager* bufferManager;
-    WAL* wal;
+    ShadowFile* shadowFile;
     std::atomic<common::page_idx_t> pageCounter;
     std::atomic<bool> headerChanged;
 };

@@ -13,8 +13,8 @@ public:
     // without the possibility of memory errors from reading/writing off the end of a page.
     static_assert(PageUtils::getNumElementsInAPage(1, false /*requireNullColumn*/) % 8 == 0);
 
-    NullColumn(std::string name, BMFileHandle* dataFH, BufferManager* bufferManager, WAL* wal,
-        bool enableCompression);
+    NullColumn(std::string name, BMFileHandle* dataFH, BufferManager* bufferManager,
+        ShadowFile* shadowFile, bool enableCompression);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,

@@ -9,7 +9,7 @@ namespace storage {
 class DictionaryColumn {
 public:
     DictionaryColumn(const std::string& name, BMFileHandle* dataFH, BufferManager* bufferManager,
-        WAL* wal, bool enableCompression);
+        ShadowFile* shadowFile, bool enableCompression);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         DictionaryChunk& dictChunk) const;

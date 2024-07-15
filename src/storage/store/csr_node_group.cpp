@@ -107,7 +107,7 @@ NodeGroupScanResult CSRNodeGroup::scan(Transaction* transaction, TableScanState&
             return result;
         }
         case CSRNodeGroupScanSource::COMMITTED_IN_MEMORY: {
-            auto result =
+            const auto result =
                 nodeGroupScanState.inMemCSRList.isSequential ?
                     scanCommittedInMemSequential(transaction, relScanState, nodeGroupScanState) :
                     scanCommittedInMemRandom(transaction, relScanState, nodeGroupScanState);
@@ -383,7 +383,6 @@ void CSRNodeGroup::checkpoint(NodeGroupCheckpointState& state) {
         std::move(csrLengthChunkCheckpointStates));
     csrState.csrLengthColumn->checkpointColumnChunk(csrLengthCheckpointState);
     // Clean up versions and in mem chunked groups.
-    persistentChunkGroup->resetVersionInfo();
     persistentChunkGroup->resetNumRowsFromChunks();
     chunkedGroups.clear(lock);
     csrIndex.reset();
@@ -408,7 +407,7 @@ void CSRNodeGroup::checkpointColumn(const UniqLock& lock, column_id_t columnID,
         const auto numRowsInRegion = csrState.newHeader->getEndCSROffset(region.rightNodeOffset);
         auto newChunk = std::make_unique<ColumnChunk>(dataTypes[columnID].copy(), numRowsInRegion,
             false, ResidencyState::IN_MEMORY);
-        auto dummyChunkForNulls = std::make_unique<ColumnChunk>(dataTypes[columnID].copy(),
+        const auto dummyChunkForNulls = std::make_unique<ColumnChunk>(dataTypes[columnID].copy(),
             DEFAULT_VECTOR_CAPACITY, false, ResidencyState::IN_MEMORY);
         dummyChunkForNulls->getData().resetToAllNull();
         // Copy per csr list from old chunk and merge with new insertions into the newChunkData.
@@ -612,7 +611,7 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
         }
     }
 
-    for (auto& chunk : dataChunksToFlush) {
+    for (const auto& chunk : dataChunksToFlush) {
         chunk->getData().flush(csrState.dataFH);
     }
     csrState.newHeader->offset->getData().flush(csrState.dataFH);

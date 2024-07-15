@@ -188,7 +188,8 @@ protected:
 
     virtual void serialize(common::Serializer& serializer) const;
 
-    std::unique_ptr<common::DataChunk> constructDataChunk(std::vector<common::LogicalType>& types);
+    std::unique_ptr<common::DataChunk> constructDataChunk(
+        const std::vector<common::LogicalType>& types);
 
 protected:
     common::TableType tableType;
@@ -199,6 +200,7 @@ protected:
     MemoryManager* memoryManager;
     BufferManager* bufferManager;
     WAL* wal;
+    ShadowFile* shadowFile;
 };
 
 } // namespace storage

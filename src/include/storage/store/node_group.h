@@ -158,6 +158,8 @@ public:
         return chunkedGroups.getGroup(lock, groupIdx);
     }
 
+    void resetVersionAndUpdateInfo();
+
     template<class TARGET>
     TARGET& cast() {
         return common::ku_dynamic_cast<NodeGroup&, TARGET&>(*this);

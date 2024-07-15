@@ -158,7 +158,7 @@ public:
         return nodeGroups->getNodeGroup(nodeGroupIdx)->getNumRows();
     }
     NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
-        return nodeGroups->getNodeGroup(nodeGroupIdx); 
+        return nodeGroups->getNodeGroup(nodeGroupIdx);
     }
 
 private:

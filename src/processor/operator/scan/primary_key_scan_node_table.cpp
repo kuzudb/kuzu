@@ -53,8 +53,8 @@ bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     }
 
     offset_t nodeOffset;
-    bool lookupSucceed = nodeInfo.table->getPKIndex()->lookup(&transaction::DUMMY_WRITE_TRANSACTION,
-        indexVector, pos, nodeOffset);
+    const bool lookupSucceed =
+        nodeInfo.table->getPKIndex()->lookup(transaction, indexVector, pos, nodeOffset);
     if (!lookupSucceed) {
         return false;
     }

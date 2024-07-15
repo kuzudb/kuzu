@@ -11,7 +11,7 @@ public:
     static constexpr size_t CHILD_STATE_COUNT = 3;
 
     StringColumn(std::string name, common::LogicalType dataType, BMFileHandle* dataFH,
-        BufferManager* bufferManager, WAL* wal, bool enableCompression);
+        BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression);
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
         BMFileHandle& dataFH);

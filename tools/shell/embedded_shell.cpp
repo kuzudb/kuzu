@@ -82,11 +82,11 @@ void EmbeddedShell::updateTableNames() {
     nodeTableNames.clear();
     relTableNames.clear();
     for (auto& nodeTableEntry :
-        database->catalog->getNodeTableEntries(&transaction::DUMMY_READ_TRANSACTION)) {
+        database->catalog->getNodeTableEntries(&transaction::DUMMY_TRANSACTION)) {
         nodeTableNames.push_back(nodeTableEntry->getName());
     }
     for (auto& relTableEntry :
-        database->catalog->getRelTableEntries(&transaction::DUMMY_READ_TRANSACTION)) {
+        database->catalog->getRelTableEntries(&transaction::DUMMY_TRANSACTION)) {
         relTableNames.push_back(relTableEntry->getName());
     }
 }

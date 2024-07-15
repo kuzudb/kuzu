@@ -65,9 +65,12 @@ public:
     void resetNumRowsFromChunks();
     void setNumRows(common::offset_t numRows_);
     void resizeChunks(uint64_t newSize) const;
-    void resetVersionInfo() {
+    void resetVersionAndUpdateInfo() {
         if (versionInfo) {
             versionInfo.reset();
+        }
+        for (const auto& chunk : chunks) {
+            chunk->resetUpdateInfo();
         }
     }
 

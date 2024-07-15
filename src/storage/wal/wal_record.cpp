@@ -38,9 +38,9 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer) {
     case WALRecordType::COPY_TABLE_RECORD: {
         walRecord = CopyTableRecord::deserialize(deserializer);
     } break;
-    case WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD: {
-        walRecord = PageUpdateOrInsertRecord::deserialize(deserializer);
-    } break;
+    // case WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD: {
+    // walRecord = PageUpdateOrInsertRecord::deserialize(deserializer);
+    // } break;
     case WALRecordType::COMMIT_RECORD: {
         walRecord = CommitRecord::deserialize(deserializer);
     } break;
@@ -61,23 +61,23 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer) {
     return walRecord;
 }
 
-void PageUpdateOrInsertRecord::serialize(Serializer& serializer) const {
-    WALRecord::serialize(serializer);
-    serializer.write(dbFileID);
-    serializer.write(pageIdxInOriginalFile);
-    serializer.write(pageIdxInWAL);
-    serializer.write(isInsert);
-}
-
-std::unique_ptr<PageUpdateOrInsertRecord> PageUpdateOrInsertRecord::deserialize(
-    Deserializer& deserializer) {
-    auto retVal = std::make_unique<PageUpdateOrInsertRecord>();
-    deserializer.deserializeValue(retVal->dbFileID);
-    deserializer.deserializeValue(retVal->pageIdxInOriginalFile);
-    deserializer.deserializeValue(retVal->pageIdxInWAL);
-    deserializer.deserializeValue(retVal->isInsert);
-    return retVal;
-}
+// void PageUpdateOrInsertRecord::serialize(Serializer& serializer) const {
+//     WALRecord::serialize(serializer);
+//     serializer.write(dbFileID);
+//     serializer.write(pageIdxInOriginalFile);
+//     serializer.write(pageIdxInWAL);
+//     serializer.write(isInsert);
+// }
+//
+// std::unique_ptr<PageUpdateOrInsertRecord> PageUpdateOrInsertRecord::deserialize(
+//     Deserializer& deserializer) {
+//     auto retVal = std::make_unique<PageUpdateOrInsertRecord>();
+//     deserializer.deserializeValue(retVal->dbFileID);
+//     deserializer.deserializeValue(retVal->pageIdxInOriginalFile);
+//     deserializer.deserializeValue(retVal->pageIdxInWAL);
+//     deserializer.deserializeValue(retVal->isInsert);
+//     return retVal;
+// }
 
 void CommitRecord::serialize(Serializer& serializer) const {
     WALRecord::serialize(serializer);
@@ -262,20 +262,6 @@ std::unique_ptr<UpdateSequenceRecord> UpdateSequenceRecord::deserialize(
     deserializer.deserializeValue(retVal->data.usageCount);
     deserializer.deserializeValue(retVal->data.currVal);
     deserializer.deserializeValue(retVal->data.nextVal);
-    return retVal;
-}
-
-DBFileID DBFileID::newDataFileID() {
-    return DBFileID{DBFileType::DATA};
-}
-
-DBFileID DBFileID::newMetadataFileID() {
-    return DBFileID{DBFileType::METADATA};
-}
-
-DBFileID DBFileID::newPKIndexFileID(table_id_t tableID) {
-    DBFileID retVal{DBFileType::NODE_INDEX};
-    retVal.nodeIndexID = NodeIndexID(tableID);
     return retVal;
 }
 

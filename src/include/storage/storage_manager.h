@@ -3,6 +3,7 @@
 #include "catalog/catalog.h"
 #include "storage/index/hash_index.h"
 #include "storage/store/rel_table.h"
+#include "storage/wal/shadow_file.h"
 #include "storage/wal/wal.h"
 
 namespace kuzu {
@@ -36,6 +37,7 @@ public:
     }
 
     WAL& getWAL();
+    ShadowFile& getShadowFile();
     BMFileHandle* getDataFH() const { return dataFH; }
     BMFileHandle* getMetadataFH() const { return metadataFH; }
     std::string getDatabasePath() const { return databasePath; }
@@ -69,6 +71,7 @@ private:
     std::unordered_map<common::table_id_t, std::unique_ptr<Table>> tables;
     MemoryManager& memoryManager;
     std::unique_ptr<WAL> wal;
+    std::unique_ptr<ShadowFile> shadowFile;
     bool enableCompression;
 };
 

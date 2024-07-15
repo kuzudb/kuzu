@@ -66,22 +66,22 @@ void ExtensionUtils::registerTableFunction(main::Database& database,
     function::function_set functionSet;
     functionSet.push_back(std::move(function));
     auto catalog = database.getCatalog();
-    if (catalog->getFunctions(&transaction::DUMMY_READ_TRANSACTION)
-            ->containsEntry(&transaction::DUMMY_READ_TRANSACTION, name)) {
+    if (catalog->getFunctions(&transaction::DUMMY_TRANSACTION)
+            ->containsEntry(&transaction::DUMMY_TRANSACTION, name)) {
         return;
     }
-    catalog->addFunction(&transaction::DUMMY_WRITE_TRANSACTION,
+    catalog->addFunction(&transaction::DUMMY_TRANSACTION,
         catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY, std::move(name), std::move(functionSet));
 }
 
 void ExtensionUtils::registerFunctionSet(main::Database& database, std::string name,
     function::function_set functionSet) {
     auto catalog = database.getCatalog();
-    if (catalog->getFunctions(&transaction::DUMMY_READ_TRANSACTION)
-            ->containsEntry(&transaction::DUMMY_READ_TRANSACTION, name)) {
+    if (catalog->getFunctions(&transaction::DUMMY_TRANSACTION)
+            ->containsEntry(&transaction::DUMMY_TRANSACTION, name)) {
         return;
     }
-    catalog->addFunction(&transaction::DUMMY_WRITE_TRANSACTION,
+    catalog->addFunction(&transaction::DUMMY_TRANSACTION,
         catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY, std::move(name), std::move(functionSet));
 }
 
