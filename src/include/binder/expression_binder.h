@@ -44,6 +44,9 @@ public:
     // Null operator expressions.
     std::shared_ptr<Expression> bindNullOperatorExpression(
         const parser::ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindNullOperatorExpression(common::ExpressionType expressionType,
+        const expression_vector& children);
+
     // Property expressions.
     expression_vector bindPropertyStarExpression(const parser::ParsedExpression& parsedExpression);
     expression_vector bindNodeOrRelPropertyStarExpression(const Expression& child);

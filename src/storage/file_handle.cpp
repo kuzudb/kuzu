@@ -3,7 +3,6 @@
 #include <fcntl.h>
 
 #include <cmath>
-#include <mutex>
 
 #include "common/file_system/virtual_file_system.h"
 
@@ -50,11 +49,12 @@ page_idx_t FileHandle::addNewPage() {
 }
 
 page_idx_t FileHandle::addNewPages(page_idx_t numNewPages) {
-    std::unique_lock xlock(fhSharedMutex);
+    while (!fhSharedMutex.try_lock()) {}
     auto numPagesBeforeChange = numPages;
     for (auto i = 0u; i < numNewPages; i++) {
         addNewPageWithoutLock();
     }
+    fhSharedMutex.unlock();
     return numPagesBeforeChange;
 }
 

@@ -76,7 +76,7 @@ struct KUZU_API TableFunction : public Function {
     table_func_init_shared_t initSharedStateFunc;
     table_func_init_local_t initLocalStateFunc;
     table_func_can_parallel_t canParallelFunc = [] { return true; };
-    table_func_progress_t progressFunc = [](TableFuncSharedState* /*sharedState*/) { return 0.0; };
+    table_func_progress_t progressFunc = [](TableFuncSharedState*) { return 0.0; };
 
     TableFunction()
         : Function{}, tableFunc{nullptr}, bindFunc{nullptr}, initSharedStateFunc{nullptr},
