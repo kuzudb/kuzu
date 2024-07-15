@@ -6,7 +6,6 @@
 #include "storage/store/csr_node_group.h"
 #include "storage/store/node_table.h"
 #include "transaction/transaction.h"
-#include <ranges>
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -460,12 +459,12 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanAllInsertedAndVersions(
     MemoryManager& memoryManager, const UniqLock& lock, const std::vector<column_id_t>& columnIDs,
     const std::vector<Column*>& columns) {
     auto numRows = getNumResidentRows<RESIDENCY_STATE>(lock);
-    const auto columnTypes = columns | std::views::transform([](const auto* column) {
-        return column->getDataType().copy();
-    });
-    auto mergedInMemGroup = std::make_unique<ChunkedNodeGroup>(memoryManager,
-        std::vector<LogicalType>{columnTypes.begin(), columnTypes.end()}, enableCompression,
-        numRows, 0, ResidencyState::IN_MEMORY);
+    std::vector<LogicalType> columnTypes;
+    for (const auto* column : columns) {
+        columnTypes.push_back(column->getDataType().copy());
+    }
+    auto mergedInMemGroup = std::make_unique<ChunkedNodeGroup>(memoryManager, columnTypes,
+        enableCompression, numRows, 0, ResidencyState::IN_MEMORY);
     auto scanState = std::make_unique<TableScanState>(INVALID_TABLE_ID, columnIDs, columns);
     scanState->nodeGroupScanState = std::make_unique<NodeGroupScanState>(columnIDs.size());
     initializeScanState(&DUMMY_CHECKPOINT_TRANSACTION, lock, *scanState);

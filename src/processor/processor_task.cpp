@@ -15,7 +15,7 @@ ProcessorTask::ProcessorTask(Sink* sink, ExecutionContext* executionContext)
 void ProcessorTask::run() {
     // We need the lock when cloning because multiple threads can be accessing to clone,
     // which is not thread safe
-    lock_t lck{mtx};
+    lock_t lck{taskMtx};
     if (!sharedStateInitialized) {
         sink->initGlobalState(executionContext);
         sharedStateInitialized = true;

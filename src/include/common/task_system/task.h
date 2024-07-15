@@ -33,8 +33,8 @@ public:
     //     This function is called from inside deRegisterThreadAndFinalizeTaskIfNecessary() only
     //     once by the last registered worker that is completing this task. So the task lock is
     //     already acquired. So do not attempt to acquire the task lock inside. If needed we can
-    //     make the deregister function release the lock before calling finalize and drop this
-    //     assumption.
+    //     make the deregister function release the lock before calling finalizeIfNecessary and
+    //     drop this assumption.
     virtual void finalizeIfNecessary() {};
 
     void addChildTask(std::unique_ptr<Task> child) {
@@ -43,7 +43,7 @@ public:
     }
 
     inline bool isCompletedSuccessfully() {
-        lock_t lck{mtx};
+        lock_t lck{taskMtx};
         return isCompletedNoLock() && !hasExceptionNoLock();
     }
 
@@ -58,17 +58,17 @@ public:
     void deRegisterThreadAndFinalizeTask();
 
     inline void setException(std::exception_ptr exceptionPtr) {
-        lock_t lck{mtx};
+        lock_t lck{taskMtx};
         setExceptionNoLock(std::move(exceptionPtr));
     }
 
     inline bool hasException() {
-        lock_t lck{mtx};
+        lock_t lck{taskMtx};
         return exceptionsPtr != nullptr;
     }
 
     std::exception_ptr getExceptionPtr() {
-        lock_t lck{mtx};
+        lock_t lck{taskMtx};
         return exceptionsPtr;
     }
 
@@ -91,7 +91,7 @@ public:
         children; // Dependency tasks that needs to be executed first.
 
 protected:
-    std::mutex mtx;
+    std::mutex taskMtx;
     std::condition_variable cv;
     uint64_t maxNumThreads, numThreadsFinished{0}, numThreadsRegistered{0};
     std::exception_ptr exceptionsPtr = nullptr;
