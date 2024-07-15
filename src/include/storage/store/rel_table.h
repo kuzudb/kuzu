@@ -110,14 +110,6 @@ struct RelTableDeleteState final : TableDeleteState {
           relIDVector{relIDVector} {}
 };
 
-// TODO(Guodong): Should move inside RelTableDeleteState.
-struct RelDetachDeleteState {
-    std::unique_ptr<common::ValueVector> dstNodeIDVector;
-    std::unique_ptr<common::ValueVector> relIDVector;
-
-    explicit RelDetachDeleteState();
-};
-
 class RelTable final : public Table {
 public:
     RelTable(catalog::RelTableCatalogEntry* relTableEntry, StorageManager* storageManager,
@@ -139,7 +131,7 @@ public:
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
 
     void detachDelete(transaction::Transaction* transaction, common::RelDataDirection direction,
-        common::ValueVector* srcNodeIDVector, RelDetachDeleteState* deleteState);
+        RelTableDeleteState* deleteState);
     void checkIfNodeHasRels(transaction::Transaction* transaction,
         common::RelDataDirection direction, common::ValueVector* srcNodeIDVector) const;
 
@@ -204,10 +196,9 @@ private:
     static common::offset_t getCommittedOffset(common::offset_t uncommittedOffset,
         common::offset_t maxCommittedOffset);
 
-    common::row_idx_t detachDeleteForCSRRels(transaction::Transaction* transaction,
-        RelTableData* tableData, RelTableData* reverseTableData,
-        common::ValueVector* srcNodeIDVector, RelTableScanState* relDataReadState,
-        RelDetachDeleteState* deleteState);
+    void detachDeleteForCSRRels(transaction::Transaction* transaction,
+        RelTableData* tableData, RelTableData* reverseTableData, 
+        RelTableScanState* relDataReadState, RelTableDeleteState* deleteState);
 
     void serialize(common::Serializer& serializer) const override;
 

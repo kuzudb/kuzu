@@ -94,8 +94,8 @@ public:
         const common::ValueVector& relIDVector) const;
     void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState);
 
-    bool checkIfNodeHasRels(transaction::Transaction* transaction,
-        common::offset_t nodeOffset) const;
+    void checkIfNodeHasRels(transaction::Transaction* transaction,
+        common::ValueVector* srcNodeIDVector) const;
 
     Column* getNbrIDColumn() const { return columns[NBR_ID_COLUMN_ID].get(); }
     Column* getCSROffsetColumn() const { return csrHeaderColumns.offset.get(); }
