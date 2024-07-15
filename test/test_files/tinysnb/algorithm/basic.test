@@ -10,13 +10,13 @@
 Parser exception: Filtering or projecting properties in graph projection is not supported.
 -STATEMENT PROJECT GRAPH PK (person, knows)
            MATCH (a:person) WHERE a.ID = 0
-           CALL shortest_paths(PK, a, 2, true)
+           CALL SINGLE_SP_LENGTHS(PK, a, 2, true)
            RETURN a.fName, _node.name, length;
 ---- error
 Binder exception: Cannot find property name for _node.
 -STATEMENT PROJECT GRAPH PK (person, knows)
            MATCH (a:person) WHERE a.ID = 0
-           CALL shortest_paths(PK, a, 2, true)
+           CALL SINGLE_SP_LENGTHS(PK, a, 2, true)
            RETURN a.fName, _node.fName, length;
 ---- 4
 Alice|Alice|0
@@ -25,7 +25,7 @@ Alice|Carol|1
 Alice|Dan|1
 -STATEMENT PROJECT GRAPH PK (person, organisation, workAt, knows)
            MATCH (a:person) WHERE a.ID = 0
-           CALL shortest_paths(PK, a, 2, true)
+           CALL SINGLE_SP_LENGTHS(PK, a, 2, true)
            RETURN a.fName, _node.fName, _node.name, length;
 ---- 6
 Alice|Alice||0

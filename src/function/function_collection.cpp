@@ -228,7 +228,8 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Algorithm functions
         ALGORITHM_FUNCTION(WeaklyConnectedComponentsFunction),
-        ALGORITHM_FUNCTION(ShortestPathsFunction), ALGORITHM_FUNCTION(PageRankFunction),
+        ALGORITHM_FUNCTION(SingleSPLengthsFunction), ALGORITHM_FUNCTION(SingleSPPathsFunction),
+        ALGORITHM_FUNCTION(PageRankFunction),
 
         // Export functions
         EXPORT_FUNCTION(ExportCSVFunction), EXPORT_FUNCTION(ExportParquetFunction),

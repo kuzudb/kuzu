@@ -13,10 +13,10 @@ void GDSTask::run() {
         while (frontierMorsel.hasNextVertex()) {
             nodeID_t nodeID = frontierMorsel.getNextVertex();
             if (sharedState->frontiers.curFrontier->isActive(nodeID)) {
-                auto nbrs = graph->scanFwd(nodeID, sharedState->relTableIDToScan);
-                for (auto nbr : nbrs) {
-                    if (sharedState->fc.edgeCompute(nbr)) {
-                        sharedState->frontiers.nextFrontier->setActive(nbr);
+                auto nbrIDs = graph->scanFwd(nodeID, sharedState->relTableIDToScan);
+                for (auto nbrID : nbrIDs) {
+                    if (sharedState->fc.edgeCompute(nodeID, nbrID)) {
+                        sharedState->frontiers.nextFrontier->setActive(nbrID);
                         numApproxActiveNodesForNextIter++;
                     }
                 }
