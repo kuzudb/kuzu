@@ -215,8 +215,11 @@ offset_t Column::findFirstExceptionAtOrPastOffset(Transaction* transaction, offs
 PageCursor Column::getExceptionPageCursor(const ChunkState& readState, PageCursor cursor) {
     // TODO fix
     const size_t numExceptionPages =
-        ceilDiv((uint64_t)readState.metadata.compMeta.alpMetadata.exceptionCount * 10,
-            BufferPoolConstants::PAGE_4KB_SIZE);
+        ceilDiv((uint64_t)readState.metadata.compMeta.alpMetadata.exceptionCount,
+            BufferPoolConstants::PAGE_4KB_SIZE /
+                (dataType.getPhysicalType() == common::PhysicalTypeID::FLOAT ?
+                        EncodeException<float>::sizeBytes() :
+                        EncodeException<double>::sizeBytes()));
     const size_t exceptionPageOffset = readState.metadata.numPages - numExceptionPages;
     KU_ASSERT(exceptionPageOffset == (page_idx_t)exceptionPageOffset);
     return {cursor.pageIdx + (page_idx_t)exceptionPageOffset, 0};
@@ -288,17 +291,19 @@ void Column::readValue(Transaction* transaction, const ChunkState& readState, of
 
 template<typename T, typename OutputType>
 void Column::patchFloatExceptions(Transaction* transaction, const ChunkState& readState,
-    offset_t startOffsetInChunk, size_t numValuesToScan, PageCursor pageCursor, OutputType result,
+    offset_t startOffsetInChunk, size_t numValuesToScan, OutputType result,
     offset_t startOffsetInResult,
     std::function<bool(common::offset_t, common::offset_t)> filterFunc) {
     // patch exceptions
-    PageCursor exceptionPageCursor = getExceptionPageCursor(readState, pageCursor);
+    PageCursor exceptionPageCursor =
+        getExceptionPageCursor(readState, getPageCursorForOffsetInGroup(0, readState));
     offset_t curExceptionIdx = findFirstExceptionAtOrPastOffset<T>(transaction, startOffsetInChunk,
         readState.metadata.compMeta.alpMetadata.exceptionCount, exceptionPageCursor);
     for (; curExceptionIdx < readState.metadata.compMeta.alpMetadata.exceptionCount;
          ++curExceptionIdx) {
         const auto curException =
             getExceptionAt<T>(curExceptionIdx, transaction, exceptionPageCursor);
+        KU_ASSERT(curException.posInPage >= curExceptionIdx);
         if (curException.posInPage >= startOffsetInChunk + numValuesToScan) {
             break;
         }
@@ -329,8 +334,7 @@ uint64_t Column::readValues(Transaction* transaction, const ChunkState& readStat
         return 0;
     }
 
-    const auto origPageCursor = getPageCursorForOffsetInGroup(startNodeOffset, readState);
-    auto pageCursor = origPageCursor;
+    auto pageCursor = getPageCursorForOffsetInGroup(startNodeOffset, readState);
     KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, readState.metadata));
 
     uint64_t numValuesScanned = 0;
@@ -353,12 +357,12 @@ uint64_t Column::readValues(Transaction* transaction, const ChunkState& readStat
             // TODO deal with enableCompression
         case common::PhysicalTypeID::FLOAT: {
             patchFloatExceptions<float>(transaction, readState, startNodeOffset, numValuesToScan,
-                origPageCursor, result, startOffsetInResult, filterFunc);
+                result, startOffsetInResult, filterFunc);
             break;
         }
         case common::PhysicalTypeID::DOUBLE: {
             patchFloatExceptions<double>(transaction, readState, startNodeOffset, numValuesToScan,
-                origPageCursor, result, startOffsetInResult, filterFunc);
+                result, startOffsetInResult, filterFunc);
             break;
         }
         default: {

@@ -125,10 +125,8 @@ uint64_t FloatCompression<T>::compressNextPageWithExceptions(const uint8_t*& src
                             sizeof(exception.value),
                 &exception.posInPage, sizeof(exception.posInPage));
 
-            // TODO replace with 1st successful encode
-            // integerEncodedValues[posInPage] = 0;
-            integerEncodedValues[posInPage] = encodedValue;
-
+            // We don't need to replace with 1st successful encode as the integer bitpacking
+            // metadata is already populated
             ++exceptionCount;
         } else {
             integerEncodedValues[posInPage] = encodedValue;

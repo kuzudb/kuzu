@@ -277,8 +277,8 @@ private:
 
     template<typename T, typename OutputType>
     void patchFloatExceptions(transaction::Transaction* transaction, const ChunkState& readState,
-        common::offset_t startOffsetInChunk, size_t numValuesToScan, PageCursor pageCursor,
-        OutputType result, common::offset_t startOffsetInResult,
+        common::offset_t startOffsetInChunk, size_t numValuesToScan, OutputType result,
+        common::offset_t startOffsetInResult,
         std::function<bool(common::offset_t, common::offset_t)> filterFunc);
 
     template<typename OutputType>

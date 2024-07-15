@@ -192,9 +192,9 @@ public:
             uncompressedGetMetadata(nullptr, exceptionBufferSize, exceptionBufferSize,
                 metadata.compMeta.alpMetadata.exceptionCount, StorageValue{0}, StorageValue{1});
 
-        // TODO doesn't work in multi-thread
-        const auto exceptionStartPageIdx = dataFH->addNewPages(preExceptionMetadata.numPages);
-        KU_ASSERT(exceptionStartPageIdx == startPageIdx + metadata.numPages);
+        const auto exceptionStartPageIdx =
+            startPageIdx + metadata.numPages - preExceptionMetadata.numPages;
+        KU_ASSERT(exceptionStartPageIdx + preExceptionMetadata.numPages <= dataFH->getNumPages());
 
         if constexpr (std::is_same_v<T, float>) {
             const auto encodedType = LogicalType::ALP_EXCEPTION_FLOAT();
@@ -204,8 +204,8 @@ public:
                 reinterpret_cast<const uint8_t*>(exceptionBuffer.get()), exceptionBufferSize,
                 dataFH, exceptionStartPageIdx, preExceptionMetadata);
 
-            return ColumnChunkMetadata(startPageIdx, metadata.numPages + exceptionMetadata.numPages,
-                metadata.numValues, metadata.compMeta);
+            return ColumnChunkMetadata(startPageIdx, metadata.numPages, metadata.numValues,
+                metadata.compMeta);
         } else {
             const auto encodedType = LogicalType::ALP_EXCEPTION_DOUBLE();
             CompressedFlushBuffer exceptionFlushBuffer{std::make_shared<Uncompressed>(encodedType),
@@ -214,8 +214,8 @@ public:
                 reinterpret_cast<const uint8_t*>(exceptionBuffer.get()), exceptionBufferSize,
                 dataFH, exceptionStartPageIdx, preExceptionMetadata);
 
-            return ColumnChunkMetadata(startPageIdx, metadata.numPages + exceptionMetadata.numPages,
-                metadata.numValues, metadata.compMeta);
+            return ColumnChunkMetadata(startPageIdx, metadata.numPages, metadata.numValues,
+                metadata.compMeta);
         }
     }
 };
@@ -346,7 +346,10 @@ public:
         KU_ASSERT(numValuesPerPage >= 0);
         const auto numPagesForEncoded =
             capacity / numValuesPerPage + (capacity % numValuesPerPage == 0 ? 0 : 1);
-        return ColumnChunkMetadata(INVALID_PAGE_IDX, numPagesForEncoded, numValues, compMeta);
+        const auto numPagesForExceptions = ceilDiv(exceptionsPrefixSum.back(),
+            (BufferPoolConstants::PAGE_4KB_SIZE / EncodeException<T>::sizeBytes()));
+        return ColumnChunkMetadata(INVALID_PAGE_IDX, numPagesForEncoded + numPagesForExceptions,
+            numValues, compMeta);
     }
 };
 
