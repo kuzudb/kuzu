@@ -14,9 +14,9 @@ std::string TopKPrintInfo::toString() const {
     result += binder::ExpressionUtil::toString(keys);
     result += ", Expressions: ";
     result += binder::ExpressionUtil::toString(payloads);
-    result += ", Skip Value: ";
+    result += ", Skip: ";
     result += std::to_string(skipNum);
-    result += ", Limit Number: ";
+    result += ", Limit: ";
     result += std::to_string(limitNum);
     return result;
 }
