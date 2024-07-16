@@ -2,7 +2,6 @@
 
 #include "common/assert.h"
 #include "cached_import/py_cached_import.h"
-#include "common/exception/not_implemented.h"
 #include "common/exception/runtime.h"
 
 namespace kuzu {
@@ -27,7 +26,7 @@ py::handle NumpyMaCachedItem::operator()() {
     KU_ASSERT((bool)PyGILState_Check());
     auto obj = numpy();
     if (py::cast<std::string>(obj.attr("__version__"))[0] >= '2') {
-        throw common::NotImplementedException(
+        throw common::RuntimeException(
             "Kuzu cannot currently support numpy versions at or above 2.0.0\n"
             "Try 1.26.x");
     }
