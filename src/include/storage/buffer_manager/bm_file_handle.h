@@ -101,9 +101,10 @@ private:
     std::atomic<uint64_t> stateAndVersion;
 };
 
-// BMFileHandle is a file handle that is backed by BufferManager. It holds the state of
-// each page in the file. File Handle is the bridge between a data structure and the Buffer
-// Manager that abstracts the file in which that data structure is stored.
+// TODO(Guodong): Unify this class with FileHandle. We don't need to differentiate between the BM
+// one and non-BM one anymore. BMFileHandle is a file handle that is backed by BufferManager. It
+// holds the state of each page in the file. File Handle is the bridge between a data structure and
+// the Buffer Manager that abstracts the file in which that data structure is stored.
 class BMFileHandle final : public FileHandle {
     friend class BufferManager;
 

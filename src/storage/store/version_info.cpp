@@ -109,6 +109,7 @@ void VectorVersionInfo::serialize(Serializer& serializer) const {
         // Versions should be either INVALID_TRANSACTION or committed timestamps.
         KU_ASSERT(deleted == INVALID_TRANSACTION ||
                   deleted < transaction::Transaction::START_TRANSACTION_ID);
+        KU_UNUSED(deleted);
     }
     serializer.serializeArray<transaction_t, DEFAULT_VECTOR_CAPACITY>(deletedVersions);
 }

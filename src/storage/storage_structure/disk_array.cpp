@@ -96,7 +96,7 @@ void DiskArrayInternal::get(uint64_t idx, Transaction* transaction, std::span<st
             memcpy(val.data(), frame + apCursor.elemPosInPage, val.size());
         });
     } else {
-        DBFileUtils::readWALVersionOfPage(bmFileHandle, apPageIdx, *bufferManager, *shadowFile,
+        DBFileUtils::readShadowVersionOfPage(bmFileHandle, apPageIdx, *bufferManager, *shadowFile,
             [&val, &apCursor](const uint8_t* frame) -> void {
                 memcpy(val.data(), frame + apCursor.elemPosInPage, val.size());
             });
@@ -355,7 +355,7 @@ void DiskArrayInternal::WriteIterator::getPage(common::page_idx_t newPageIdx, bo
     unpin();
     if (newPageIdx <= diskArray.lastPageOnDisk) {
         // Pin new page
-        shadowPageAndFrame = DBFileUtils::createWALVersionIfNecessaryAndPinPage(newPageIdx,
+        shadowPageAndFrame = DBFileUtils::createShadowVersionIfNecessaryAndPinPage(newPageIdx,
             isNewlyAdded, diskArray.fileHandle, diskArray.dbFileID, *diskArray.bufferManager,
             *diskArray.shadowFile);
     } else {

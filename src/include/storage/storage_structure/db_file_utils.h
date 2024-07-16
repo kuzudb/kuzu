@@ -34,15 +34,15 @@ public:
     constexpr static common::page_idx_t NULL_PAGE_IDX = common::INVALID_PAGE_IDX;
 
     // Where possible, updatePage/insertNewPage should be used instead
-    static ShadowPageAndFrame createWALVersionIfNecessaryAndPinPage(common::page_idx_t originalPage,
-        bool insertingNewPage, BMFileHandle& fileHandle, DBFileID dbFileID,
-        BufferManager& bufferManager, ShadowFile& shadowFile);
+    static ShadowPageAndFrame createShadowVersionIfNecessaryAndPinPage(
+        common::page_idx_t originalPage, bool insertingNewPage, BMFileHandle& fileHandle,
+        DBFileID dbFileID, BufferManager& bufferManager, ShadowFile& shadowFile);
 
     static std::pair<BMFileHandle*, common::page_idx_t> getFileHandleAndPhysicalPageIdxToPin(
         BMFileHandle& fileHandle, common::page_idx_t pageIdx, const ShadowFile& shadowFile,
         transaction::TransactionType trxType);
 
-    static void readWALVersionOfPage(const BMFileHandle& fileHandle,
+    static void readShadowVersionOfPage(const BMFileHandle& fileHandle,
         common::page_idx_t originalPageIdx, BufferManager& bufferManager,
         const ShadowFile& shadowFile, const std::function<void(uint8_t*)>& readOp);
 

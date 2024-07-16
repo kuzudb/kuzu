@@ -86,17 +86,11 @@ struct StorageConstants {
     static constexpr char WAL_FILE_SUFFIX[] = ".wal";
     static constexpr char SHADOWING_SUFFIX[] = ".shadow";
     static constexpr char INDEX_FILE_SUFFIX[] = ".hindex";
-    static constexpr char NODES_STATISTICS_AND_DELETED_IDS_FILE_NAME[] =
-        "nodes.statistics_and_deleted.ids";
-    static constexpr char NODES_STATISTICS_FILE_NAME_FOR_WAL[] =
-        "nodes.statistics_and_deleted.ids.wal";
-    static constexpr char RELS_METADATA_FILE_NAME[] = "rels.statistics";
-    static constexpr char RELS_METADATA_FILE_NAME_FOR_WAL[] = "rels.statistics.wal";
     static constexpr char CATALOG_FILE_NAME[] = "catalog.kz";
-    static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.kz.wal";
+    static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.shadow";
     static constexpr char DATA_FILE_NAME[] = "data.kz";
     static constexpr char METADATA_FILE_NAME[] = "metadata.kz";
-    static constexpr char METADATA_FILE_NAME_FOR_WAL[] = "metadata.kz.wal";
+    static constexpr char METADATA_FILE_NAME_FOR_WAL[] = "metadata.shadow";
     static constexpr char LOCK_FILE_NAME[] = ".lock";
 
     // The number of pages that we add at one time when we need to grow a file.

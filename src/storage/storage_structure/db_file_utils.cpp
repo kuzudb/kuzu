@@ -11,7 +11,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-ShadowPageAndFrame DBFileUtils::createWALVersionIfNecessaryAndPinPage(page_idx_t originalPage,
+ShadowPageAndFrame DBFileUtils::createShadowVersionIfNecessaryAndPinPage(page_idx_t originalPage,
     bool insertingNewPage, BMFileHandle& fileHandle, DBFileID dbFileID,
     BufferManager& bufferManager, ShadowFile& shadowFile) {
     const auto hasShadowPage = shadowFile.hasShadowPage(fileHandle.getFileIndex(), originalPage);
@@ -32,7 +32,7 @@ ShadowPageAndFrame DBFileUtils::createWALVersionIfNecessaryAndPinPage(page_idx_t
                     });
             }
         }
-        // The wal page existing already does not mean that it's already dirty
+        // The shadow page existing already does not mean that it's already dirty
         // It may have been flushed to disk to free memory and then read again
         shadowFile.getShadowingFH().setLockedPageDirty(shadowPage);
     } catch (Exception&) {
@@ -77,7 +77,7 @@ void unpinShadowPage(page_idx_t originalPageIdx, page_idx_t shadowPageIdx,
 void DBFileUtils::updatePage(BMFileHandle& fileHandle, DBFileID dbFileID,
     page_idx_t originalPageIdx, bool isInsertingNewPage, BufferManager& bufferManager,
     ShadowFile& shadowFile, const std::function<void(uint8_t*)>& updateOp) {
-    const auto shadowPageIdxAndFrame = createWALVersionIfNecessaryAndPinPage(originalPageIdx,
+    const auto shadowPageIdxAndFrame = createShadowVersionIfNecessaryAndPinPage(originalPageIdx,
         isInsertingNewPage, fileHandle, dbFileID, bufferManager, shadowFile);
     try {
         updateOp(shadowPageIdxAndFrame.frame);
@@ -90,8 +90,8 @@ void DBFileUtils::updatePage(BMFileHandle& fileHandle, DBFileID dbFileID,
         bufferManager, shadowFile);
 }
 
-void DBFileUtils::readWALVersionOfPage(const BMFileHandle& fileHandle, page_idx_t originalPageIdx,
-    BufferManager& bufferManager, const ShadowFile& shadowFile,
+void DBFileUtils::readShadowVersionOfPage(const BMFileHandle& fileHandle,
+    page_idx_t originalPageIdx, BufferManager& bufferManager, const ShadowFile& shadowFile,
     const std::function<void(uint8_t*)>& readOp) {
     KU_ASSERT(shadowFile.hasShadowPage(fileHandle.getFileIndex(), originalPageIdx));
     const page_idx_t shadowPageIdx =
