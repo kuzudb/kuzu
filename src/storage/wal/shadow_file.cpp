@@ -91,6 +91,7 @@ void ShadowFile::replayShadowPageRecords(ClientContext& context) const {
         shadowingFH->readPage(pageBuffer.get(), shadowPageIdx++);
         fileInfoOfDBFile->writeFile(pageBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE,
             record.originalPageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
+        // NOTE: We're not taking lock here, as we assume this is only called with single thread.
         context.getMemoryManager()->getBufferManager()->updateFrameIfPageIsInFrameWithoutLock(
             record.originalFileIdx, pageBuffer.get(), record.originalPageIdx);
     }

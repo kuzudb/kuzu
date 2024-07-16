@@ -31,6 +31,7 @@ public:
         deserializeValue<std::string>(value);
 #endif
         // DO NOTHING
+        KU_UNUSED(value);
     }
 
     template<typename T>

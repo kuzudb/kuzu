@@ -23,7 +23,7 @@ std::unique_ptr<Table> Table::loadTable(Deserializer& deSer, const catalog::Cata
     main::ClientContext* context) {
     std::string key;
     TableType tableType;
-    deSer.deserializeValue(key);
+    deSer.deserializeDebuggingInfo(key);
     KU_ASSERT(key == "table_type");
     deSer.deserializeValue<TableType>(tableType);
     std::unique_ptr<Table> table;

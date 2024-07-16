@@ -72,7 +72,7 @@ void StructChunkData::serialize(Serializer& serializer) const {
 
 void StructChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData) {
     std::string key;
-    deSer.deserializeValue(key);
+    deSer.deserializeDebuggingInfo(key);
     KU_ASSERT(key == "struct_children");
     deSer.deserializeVectorOfPtrs(chunkData.cast<StructChunkData>().childChunks);
 }

@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "common/assert.h"
 #include "common/serializer/writer.h"
 
 namespace kuzu {
@@ -35,6 +36,7 @@ public:
         serializeValue<std::string>(value);
 #endif
         // DO NOTHING
+        KU_UNUSED(value);
     }
 
     void write(const uint8_t* value, uint64_t len) { writer->write(value, len); }
