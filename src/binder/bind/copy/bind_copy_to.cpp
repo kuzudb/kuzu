@@ -1,3 +1,4 @@
+#include "binder/binder.h"
 #include "binder/copy/bound_copy_to.h"
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
