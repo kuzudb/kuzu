@@ -53,7 +53,7 @@ void VectorVersionInfo::getSelVectorForScan(const transaction_t startTS,
 
 bool VectorVersionInfo::isDeleted(const transaction_t startTS, const transaction_t transactionID,
     const row_idx_t rowIdx) const {
-    if (anyDeleted) {
+    if (!anyDeleted) {
         return false;
     }
     const auto deletion = deletedVersions[rowIdx];
@@ -152,7 +152,7 @@ bool VersionInfo::delete_(const transaction::Transaction* transaction, const row
         StorageUtils::getQuotientRemainder(rowIdx, DEFAULT_VECTOR_CAPACITY);
     auto& vectorVersionInfo = getOrCreateVersionInfo(vectorIdx);
     const auto deleted = vectorVersionInfo.delete_(transaction->getID(), rowIdxInVector);
-    if (deleted && transaction->getID() > 0) {
+    if (deleted && transaction->getID() > transaction::Transaction::DUMMY_TRANSACTION_ID) {
         transaction->pushVectorDeleteInfo(*this, vectorIdx, vectorVersionInfo, {rowIdxInVector});
     }
     return deleted;

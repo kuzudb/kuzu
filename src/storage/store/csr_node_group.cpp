@@ -388,6 +388,8 @@ void CSRNodeGroup::checkpoint(NodeGroupCheckpointState& state) {
     // Clean up versions and in mem chunked groups.
     persistentChunkGroup->resetNumRowsFromChunks();
     chunkedGroups.clear(lock);
+    // Set `numRows` back to 0 is to reflect that the in mem part of the node group is empty.
+    numRows = 0;
     csrIndex.reset();
 }
 
