@@ -41,8 +41,7 @@ struct BoundTableScanSource : public BoundBaseScanSource {
     BoundTableScanSourceInfo info;
 
     explicit BoundTableScanSource(common::ScanSourceType type, BoundTableScanSourceInfo info)
-        : BoundBaseScanSource{type}, info{std::move(info)} {
-    }
+        : BoundBaseScanSource{type}, info{std::move(info)} {}
     BoundTableScanSource(const BoundTableScanSource& other)
         : BoundBaseScanSource{other}, info{other.info.copy()} {}
 

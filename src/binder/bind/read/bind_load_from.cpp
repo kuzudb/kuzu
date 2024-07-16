@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "binder/bound_scan_source.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/binder.h"
@@ -7,7 +8,6 @@
 #include "main/database.h"
 #include "main/database_manager.h"
 #include "parser/query/reading_clause/load_from.h"
-#include "binder/bound_scan_source.h"
 #include "parser/scan_source.h"
 
 using namespace kuzu::function;
@@ -26,8 +26,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
     std::vector<LogicalType> columnTypes;
     for (auto& [name, type] : loadFrom.getPropertyDefinitions()) {
         columnNames.push_back(name);
-        columnTypes.push_back(
-            clientContext->getCatalog()->getType(clientContext->getTx(), type));
+        columnTypes.push_back(clientContext->getCatalog()->getType(clientContext->getTx(), type));
     }
     switch (source->type) {
     case ScanSourceType::OBJECT: {
@@ -53,7 +52,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
             throw BinderException(
                 stringFormat("Cannot load from file type {}.", FileTypeUtils::toString(fileType)));
         }
-        auto boundScanSource = bindFileScanSource(*source, loadFrom.getParsingOptions(), columnNames, columnTypes);
+        auto boundScanSource =
+            bindFileScanSource(*source, loadFrom.getParsingOptions(), columnNames, columnTypes);
         auto& scanInfo = boundScanSource->constCast<BoundTableScanSource>().info;
         boundLoadFrom = std::make_unique<BoundLoadFrom>(scanInfo.copy());
     } break;

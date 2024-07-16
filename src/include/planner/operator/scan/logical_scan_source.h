@@ -6,14 +6,14 @@
 namespace kuzu {
 namespace planner {
 
-//TODO(Xiyang): consider merging this operator with LogicalTableFunctionCall
+// TODO(Xiyang): consider merging this operator with LogicalTableFunctionCall
 class LogicalScanSource : public LogicalOperator {
     static constexpr LogicalOperatorType operatorType_ = LogicalOperatorType::SCAN_SOURCE;
 
 public:
-    LogicalScanSource(binder::BoundTableScanSourceInfo info, std::shared_ptr<binder::Expression> offset)
-        : LogicalOperator{operatorType_}, info{std::move(info)},
-          offset{std::move(offset)} {}
+    LogicalScanSource(binder::BoundTableScanSourceInfo info,
+        std::shared_ptr<binder::Expression> offset)
+        : LogicalOperator{operatorType_}, info{std::move(info)}, offset{std::move(offset)} {}
 
     std::string getExpressionsForPrinting() const override { return std::string(); }
 

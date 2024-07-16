@@ -38,7 +38,8 @@ BoundCopyFromInfo Binder::bindCopyRdfResourceInfo(const RdfReaderConfig& config,
     auto iri = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::IRI);
     auto columns = expression_vector{iri};
     auto scanInfo = BoundTableScanSourceInfo(*scanFunc, bindData.copy(), columns);
-    auto scanSource = std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(scanInfo));
+    auto scanSource =
+        std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(scanInfo));
     auto rTableID = rdfEntry.getResourceTableID();
     auto rEntry = catalog->getTableCatalogEntry(transaction, rTableID);
     auto rowOffset = expressionBinder.createVariableExpression(LogicalType::INT64(),
@@ -64,7 +65,8 @@ BoundCopyFromInfo Binder::bindCopyRdfLiteralInfo(const RdfReaderConfig& config,
     auto lang = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::LANG);
     auto columns = expression_vector{val, lang};
     auto scanInfo = BoundTableScanSourceInfo(*scanFunc, bindData.copy(), columns);
-    auto scanSource = std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(scanInfo));
+    auto scanSource =
+        std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(scanInfo));
     auto lTableID = rdfEntry.getLiteralTableID();
     auto lEntry =
         catalog->getTableCatalogEntry(transaction, lTableID)->ptrCast<NodeTableCatalogEntry>();
@@ -95,7 +97,8 @@ BoundCopyFromInfo Binder::bindCopyRdfResourceTriplesInfo(const RdfReaderConfig& 
     auto o = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::OBJECT);
     auto scanColumns = expression_vector{s, p, o};
     auto scanInfo = BoundTableScanSourceInfo(*scanFunc, bindData.copy(), scanColumns);
-    auto scanSource = std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(scanInfo));
+    auto scanSource =
+        std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(scanInfo));
     auto rTableID = rdfEntry.getResourceTableID();
     auto rrrTableID = rdfEntry.getResourceTripleTableID();
     auto rrrEntry = catalog->getTableCatalogEntry(transaction, rrrTableID);
@@ -138,7 +141,8 @@ BoundCopyFromInfo Binder::bindCopyRdfLiteralTriplesInfo(const RdfReaderConfig& c
         InternalKeyword::DST_OFFSET);
     auto scanColumns = expression_vector{s, p, oOffset};
     auto scanInfo = BoundTableScanSourceInfo(*scanFunc, bindData.copy(), scanColumns);
-    auto scanSource = std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(scanInfo));
+    auto scanSource =
+        std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(scanInfo));
     auto rTableID = rdfEntry.getResourceTableID();
     auto rrlTableID = rdfEntry.getLiteralTripleTableID();
     auto rrlEntry = catalog->getTableCatalogEntry(transaction, rrlTableID);

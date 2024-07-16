@@ -6,7 +6,8 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-std::shared_ptr<LogicalOperator> Planner::getScanSource(const binder::BoundTableScanSourceInfo& info) {
+std::shared_ptr<LogicalOperator> Planner::getScanSource(
+    const binder::BoundTableScanSourceInfo& info) {
     return std::make_shared<LogicalScanSource>(info.copy(), nullptr /* offset */);
 }
 

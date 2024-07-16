@@ -4,13 +4,13 @@
 #include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
 #include "common/exception/copy.h"
+#include "common/exception/message.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
 #include "function/table/bind_input.h"
-#include "parser/scan_source.h"
 #include "main/database_manager.h"
-#include "common/exception/message.h"
+#include "parser/scan_source.h"
 
 using namespace kuzu::parser;
 using namespace kuzu::binder;
@@ -100,8 +100,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     auto bindData = func.bindFunc(clientContext, bindInput.get());
     expression_vector inputColumns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
-        inputColumns.push_back(
-            createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
+        inputColumns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
     }
     auto info = BoundTableScanSourceInfo(func, std::move(bindData), inputColumns);
     return std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(info));
@@ -113,9 +112,8 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindQueryScanSource(const BaseScanS
     auto boundStatement = bind(*querySource->statement);
     auto columns = boundStatement->getStatementResult()->getColumns();
     if (columns.size() != columnNames.size()) {
-        throw BinderException(
-            stringFormat("Query returns {} columns but {} columns were expected.",
-                columns.size(), columnNames.size()));
+        throw BinderException(stringFormat("Query returns {} columns but {} columns were expected.",
+            columns.size(), columnNames.size()));
     }
     for (auto i = 0u; i < columns.size(); ++i) {
         ExpressionUtil::validateDataType(*columns[i], columnTypes[i]);
@@ -137,7 +135,8 @@ static TableFunction getObjectScanFunc(const std::string& dbName, const std::str
     return entry->ptrCast<TableCatalogEntry>()->getScanFunction();
 }
 
-std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScanSource& scanSource, const std::vector<std::string>& columnNames,
+std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScanSource& scanSource,
+    const std::vector<std::string>& columnNames,
     const std::vector<common::LogicalType>& columnTypes) {
     auto objectSource = scanSource.constPtrCast<ObjectScanSource>();
     TableFunction func;
@@ -167,20 +166,19 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScan
         bindData = func.bindFunc(clientContext, &bindInput);
     } else {
         // LCOV_EXCL_START
-        throw BinderException(stringFormat("Cannot find object {}.", StringUtils::join(objectSource->objectNames, ",")));
+        throw BinderException(stringFormat("Cannot find object {}.",
+            StringUtils::join(objectSource->objectNames, ",")));
         // LCOV_EXCL_STOP
     }
     expression_vector columns;
     if (columnTypes.empty()) {
         for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
-            columns.push_back(
-                createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
+            columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
         }
     } else {
         if (bindData->columnTypes.size() != columnTypes.size()) {
-            throw BinderException(
-                stringFormat("{} has {} columns but {} columns were expected.",
-                    objectName, bindData->columnTypes.size(), columnTypes.size()));
+            throw BinderException(stringFormat("{} has {} columns but {} columns were expected.",
+                objectName, bindData->columnTypes.size(), columnTypes.size()));
         }
         for (auto i = 0u; i < bindData->columnTypes.size(); ++i) {
             auto column = createVariable(columnNames[i], bindData->columnTypes[i]);

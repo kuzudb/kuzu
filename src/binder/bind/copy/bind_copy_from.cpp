@@ -225,8 +225,10 @@ void bindExpectedRelColumns(RelTableCatalogEntry* relTableEntry,
     KU_ASSERT(columnNames.empty() && columnTypes.empty());
     auto catalog = context->getCatalog();
     auto transaction = context->getTx();
-    auto srcTable = catalog->getTableCatalogEntry(transaction, relTableEntry->getSrcTableID())->ptrCast<NodeTableCatalogEntry>();
-    auto dstTable = catalog->getTableCatalogEntry(transaction, relTableEntry->getDstTableID())->ptrCast<NodeTableCatalogEntry>();
+    auto srcTable = catalog->getTableCatalogEntry(transaction, relTableEntry->getSrcTableID())
+                        ->ptrCast<NodeTableCatalogEntry>();
+    auto dstTable = catalog->getTableCatalogEntry(transaction, relTableEntry->getDstTableID())
+                        ->ptrCast<NodeTableCatalogEntry>();
     columnNames.push_back("from");
     columnNames.push_back("to");
     auto srcPKColumnType = srcTable->getPrimaryKey()->getDataType().copy();
