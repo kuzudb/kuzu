@@ -64,10 +64,13 @@ public:
     static std::pair<uint64_t, uint64_t> visitNbrs(IFEMorsel* ifeMorsel,
         ValueVector& dstNodeIDVector) {
         uint64_t numDstVisitedLocal = 0u, numNonDstVisitedLocal = 0u;
-        for (auto j = 0u; j < dstNodeIDVector.state->getSelVector().getSelSize(); j++) {
-            auto pos = dstNodeIDVector.state->getSelVector().operator[](j);
-            auto dstNodeID = dstNodeIDVector.getValue<common::nodeID_t>(pos);
-            auto state = ifeMorsel->visitedNodes[dstNodeID.offset];
+        auto size = dstNodeIDVector.state->getSelVector().getSelSize();
+        auto nbrNodes = (common::nodeID_t*)dstNodeIDVector.getData();
+        common::nodeID_t dstNodeID;
+        uint8_t state;
+        for (auto j = 0u; j < size; j++) {
+            dstNodeID = nbrNodes[j];
+            state = ifeMorsel->visitedNodes[dstNodeID.offset];
             if (state == NOT_VISITED_DST) {
                 if (__sync_bool_compare_and_swap(&ifeMorsel->visitedNodes[dstNodeID.offset], state,
                         VISITED_DST)) {
@@ -122,10 +125,27 @@ public:
         return {numDstVisitedLocal, numNonDstVisitedLocal};
     }
 
-    /*
-     * This will be main function for logic, doing frontier extension and updating state.
-     */
-    static uint64_t extendFrontierFunc(GDSCallSharedState* sharedState, GDSLocalState* localState) {
+    static void extendNode(graph::Graph* graph, IFEMorsel* ifeMorsel, const common::offset_t offset,
+        uint64_t& numDstVisitedLocal, uint64_t& numNonDstVisitedLocal,
+        graph::NbrScanState* nbrScanState) {
+        std::pair<uint64_t, uint64_t> retVal;
+        if (graph->isInMemory) {
+            retVal = visitNbrs(offset, ifeMorsel, graph);
+            numDstVisitedLocal += retVal.first;
+            numNonDstVisitedLocal += retVal.second;
+        } else {
+            graph->initializeStateFwdNbrs(offset, nbrScanState);
+            do {
+                graph->getFwdNbrs(nbrScanState);
+                retVal = visitNbrs(ifeMorsel, *nbrScanState->dstNodeIDVector.get());
+                numDstVisitedLocal += retVal.first;
+                numNonDstVisitedLocal += retVal.second;
+            } while (graph->hasMoreFwdNbrs(nbrScanState));
+        }
+    }
+
+    static uint64_t extendSparseFrontierFunc(GDSCallSharedState* sharedState,
+        GDSLocalState* localState) {
         auto& graph = sharedState->graph;
         auto shortestPathLocalState =
             common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState);
@@ -133,33 +153,45 @@ public:
         if (!ifeMorsel->initializedIFEMorsel) {
             ifeMorsel->init();
         }
-        auto morselSize = graph->isInMemory ? 512LU : 64LU;
+        auto morselSize = graph->isInMemory ? 512LU : 256LU;
         auto frontierMorsel = ifeMorsel->getMorsel(morselSize);
         if (!frontierMorsel.hasMoreToOutput()) {
             return 0; // return 0 to indicate to thread it can exit from operator
         }
         auto& nbrScanState = shortestPathLocalState->nbrScanState;
         uint64_t numDstVisitedLocal = 0u, numNonDstVisitedLocal = 0u;
-        std::pair<uint64_t, uint64_t> retVal;
+        while (!ifeMorsel->isBFSCompleteNoLock() && frontierMorsel.hasMoreToOutput()) {
+            for (auto idx = frontierMorsel.startOffset; idx < frontierMorsel.endOffset; idx++) {
+                extendNode(graph.get(), ifeMorsel, ifeMorsel->bfsFrontier[idx], numDstVisitedLocal,
+                    numNonDstVisitedLocal, nbrScanState.get());
+            }
+            frontierMorsel = ifeMorsel->getMorsel(morselSize);
+        }
+        ifeMorsel->mergeResults(numDstVisitedLocal, numNonDstVisitedLocal);
+        return 0u;
+    }
+
+    static uint64_t extendDenseFrontierFunc(GDSCallSharedState* sharedState,
+        GDSLocalState* localState) {
+        auto& graph = sharedState->graph;
+        auto shortestPathLocalState =
+            common::ku_dynamic_cast<GDSLocalState*, ParallelShortestPathLocalState*>(localState);
+        auto ifeMorsel = shortestPathLocalState->ifeMorsel;
+        auto morselSize = graph->isInMemory ? 512LU : 256LU;
+        auto frontierMorsel = ifeMorsel->getMorsel(morselSize);
+        if (!frontierMorsel.hasMoreToOutput()) {
+            return 0; // return 0 to indicate to thread it can exit from operator
+        }
+        auto& nbrScanState = shortestPathLocalState->nbrScanState;
+        uint64_t numDstVisitedLocal = 0u, numNonDstVisitedLocal = 0u;
         while (!ifeMorsel->isBFSCompleteNoLock() && frontierMorsel.hasMoreToOutput()) {
             for (auto offset = frontierMorsel.startOffset; offset < frontierMorsel.endOffset;
                  offset++) {
                 if (!ifeMorsel->currentFrontier[offset]) {
                     continue;
                 }
-                if (graph->isInMemory) {
-                    retVal = visitNbrs(offset, ifeMorsel, graph.get());
-                    numDstVisitedLocal += retVal.first;
-                    numNonDstVisitedLocal += retVal.second;
-                } else {
-                    graph->initializeStateFwdNbrs(offset, nbrScanState.get());
-                    do {
-                        graph->getFwdNbrs(nbrScanState.get());
-                        retVal = visitNbrs(ifeMorsel, *nbrScanState->dstNodeIDVector.get());
-                        numDstVisitedLocal += retVal.first;
-                        numNonDstVisitedLocal += retVal.second;
-                    } while (graph->hasMoreFwdNbrs(shortestPathLocalState->nbrScanState.get()));
-                }
+                extendNode(graph.get(), ifeMorsel, offset, numDstVisitedLocal,
+                    numNonDstVisitedLocal, nbrScanState.get());
             }
             frontierMorsel = ifeMorsel->getMorsel(morselSize);
         }
@@ -191,7 +223,7 @@ public:
             }
         }
         if (pos == 0) {
-            return shortestPathOutputFunc(sharedState, localState);
+            return UINT64_MAX;
         }
         dstOffsetVector->state->getSelVectorUnsafe().setSelSize(pos);
         return pos; // return the no. of output values written to the value vectors
@@ -237,7 +269,7 @@ public:
             auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
             gdsLocalState->ifeMorsel = ifeMorsel.get();
             jobs.push_back(ParallelUtilsJob{executionContext, std::move(gdsLocalState), sharedState,
-                extendFrontierFunc, true /* isParallel */});
+                extendSparseFrontierFunc, true /* isParallel */});
             ifeMorselTasks.push_back({std::move(ifeMorsel), nullptr});
         }
         auto scheduledTasks = parallelUtils->submitTasksAndReturn(jobs);
@@ -289,7 +321,7 @@ public:
                     auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
                     gdsLocalState->ifeMorsel = ifeMorselTasks[i].first.get();
                     jobs.push_back(ParallelUtilsJob{executionContext, std::move(gdsLocalState),
-                        sharedState, extendFrontierFunc, true /* isParallel */});
+                        sharedState, extendSparseFrontierFunc, true /* isParallel */});
                     jobIdxInMap.push_back(i);
                     continue;
                 }
@@ -305,8 +337,13 @@ public:
                     ifeMorselTasks[i].first->initializeNextFrontierNoLock();
                     auto gdsLocalState = std::make_unique<ParallelShortestPathLocalState>();
                     gdsLocalState->ifeMorsel = ifeMorselTasks[i].first.get();
-                    jobs.push_back(ParallelUtilsJob{executionContext, std::move(gdsLocalState),
-                        sharedState, extendFrontierFunc, true /* isParallel */});
+                    if (gdsLocalState->ifeMorsel->isSparseFrontier) {
+                        jobs.push_back(ParallelUtilsJob{executionContext, std::move(gdsLocalState),
+                            sharedState, extendSparseFrontierFunc, true /* isParallel */});
+                    } else {
+                        jobs.push_back(ParallelUtilsJob{executionContext, std::move(gdsLocalState),
+                            sharedState, extendDenseFrontierFunc, true /* isParallel */});
+                    }
                     jobIdxInMap.push_back(i);
                 }
             }

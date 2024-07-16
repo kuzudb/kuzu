@@ -23,7 +23,8 @@ public:
         common::offset_t srcOffset)
         : mutex{std::mutex()}, initializedIFEMorsel{false}, currentLevel{0u}, nextScanStartIdx{0u},
           currentFrontierSize{0u}, srcOffset{srcOffset}, numVisitedDstNodes{0u},
-          numDstNodesToVisit{maxNodeOffset_ + 1}, maxOffset{maxNodeOffset_},
+          numDstNodesToVisit{maxNodeOffset_ + 1},
+          bfsFrontier{std::vector<common::offset_t>()}, maxOffset{maxNodeOffset_},
           upperBound{upperBound_}, lowerBound{lowerBound_}, nextDstScanStartIdx{0u} {}
 
     ~IFEMorsel();
@@ -47,11 +48,12 @@ public:
 public:
     std::mutex mutex;
     bool initializedIFEMorsel;
+    bool isSparseFrontier;
     uint8_t currentLevel;
     char padding0[64]{0};
     std::atomic<uint64_t> nextScanStartIdx;
     char padding1[64]{0};
-    std::atomic<uint64_t> currentFrontierSize;
+    uint64_t currentFrontierSize;
     char padding2[64]{0};
     std::atomic<uint64_t> nextFrontierSize;
     char padding3[64]{0};
@@ -64,8 +66,14 @@ public:
     uint64_t numDstNodesToVisit;
     char padding6[64]{0};
     std::vector<uint8_t> visitedNodes;
-    uint8_t *currentFrontier;
-    uint8_t *nextFrontier;
+    // If the frontier is dense, then we use these 2 arrays as frontier and next frontier
+    // Based on if the frontier size > (total nodes / 8)
+    uint8_t* currentFrontier;
+    uint8_t* nextFrontier;
+    // If the frontier is sparse, then use this vector as frontier to extend
+    // Based on if frontier size < (total nodes / 8)
+    std::vector<common::offset_t> bfsFrontier;
+
     std::vector<uint8_t> pathLength;
     // Maximum offset of dst nodes.
     common::offset_t maxOffset;

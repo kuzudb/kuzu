@@ -58,14 +58,16 @@ public:
         }
         /*
          * This is an approximation of the remaining frontier, it can be either:
-         * (1) at least current frontier actual size
-         * (2) if next scan start index is closer to maxOffset, then subtracted from maxOffset
-         * The minimum of these two gets us close to the actual remaining active nodes.
+         * (1) if frontier is sparse, we subtract the next scan idx from current frontier size
+         *     and return the value
+         * (2) if frontier is dense, subtract next scan idx from maxOffset (since in this case the
+         *     frontier is technically the whole currFrontier array)
          */
-        auto approxRemainingFrontier =
-            std::min(ifeMorsel->currentFrontierSize.load(std::memory_order_acquire),
-                ifeMorsel->maxOffset - ifeMorsel->nextScanStartIdx.load(std::memory_order_acquire));
-        return approxRemainingFrontier;
+        if (ifeMorsel->isSparseFrontier) {
+            return ifeMorsel->currentFrontierSize -
+                   ifeMorsel->nextScanStartIdx.load(std::memory_order_acquire);
+        }
+        return ifeMorsel->maxOffset - ifeMorsel->nextScanStartIdx.load(std::memory_order_acquire);
     }
 
     std::unique_ptr<GDSLocalState> copy() override {

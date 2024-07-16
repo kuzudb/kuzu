@@ -1,13 +1,15 @@
 #include "function/gds/ife_morsel.h"
 
+#include <cmath>
+
 #include "function/table/call_functions.h"
 
 namespace kuzu {
 namespace function {
 
-IFEMorsel::~IFEMorsel(){
-    delete [] currentFrontier;
-    delete [] nextFrontier;
+IFEMorsel::~IFEMorsel() {
+    delete[] currentFrontier;
+    delete[] nextFrontier;
 }
 
 void IFEMorsel::init() {
@@ -20,19 +22,22 @@ void IFEMorsel::init() {
         pathLength = std::vector<uint8_t>(maxOffset + 1, 0u);
         currentFrontier = new uint8_t[maxOffset + 1]{0u};
         nextFrontier = new uint8_t[maxOffset + 1]{0u};
+        bfsFrontier.reserve(std::ceil(maxOffset / 8));
     } else {
         std::fill(visitedNodes.begin(), visitedNodes.end(), NOT_VISITED_DST);
         std::fill(pathLength.begin(), pathLength.end(), 0u);
         std::fill(currentFrontier, currentFrontier + maxOffset + 1, 0u);
         std::fill(nextFrontier, nextFrontier + maxOffset + 1, 0u);
+        bfsFrontier.clear();
     }
     initializedIFEMorsel = true;
     currentLevel = 0u;
+    isSparseFrontier = true;
+    bfsFrontier.push_back(srcOffset);
     nextScanStartIdx.store(0u, std::memory_order_relaxed);
     nextDstScanStartIdx.store(0u, std::memory_order_relaxed);
     visitedNodes[srcOffset] = VISITED_DST;
-    currentFrontier[srcOffset] = 1u;
-    currentFrontierSize.fetch_add(1u);
+    currentFrontierSize = 1u;
     numVisitedDstNodes.store(1, std::memory_order_relaxed);
 }
 
@@ -43,11 +48,19 @@ void IFEMorsel::resetNoLock(common::offset_t srcOffset_) {
 
 function::CallFuncMorsel IFEMorsel::getMorsel(uint64_t morselSize) {
     auto morselStartIdx = nextScanStartIdx.fetch_add(morselSize, std::memory_order_acq_rel);
-    if (morselStartIdx >= visitedNodes.size()) {
-        return function::CallFuncMorsel::createInvalidMorsel();
+    if (isSparseFrontier) {
+        if (morselStartIdx >= currentFrontierSize) {
+            return {common::INVALID_OFFSET, common::INVALID_OFFSET};
+        }
+        auto morselEndIdx = std::min(morselStartIdx + morselSize, currentFrontierSize);
+        return {morselStartIdx, morselEndIdx};
+    } else {
+        if (morselStartIdx > maxOffset) {
+            return {common::INVALID_OFFSET, common::INVALID_OFFSET};
+        }
+        auto morselEndIdx = std::min(morselStartIdx + morselSize, maxOffset + 1);
+        return {morselStartIdx, morselEndIdx};
     }
-    auto morselEndIdx = std::min(morselStartIdx + morselSize, visitedNodes.size());
-    return {morselStartIdx, morselEndIdx};
 }
 
 function::CallFuncMorsel IFEMorsel::getDstWriteMorsel(uint64_t morselSize) {
@@ -63,7 +76,7 @@ bool IFEMorsel::isBFSCompleteNoLock() const {
     if (currentLevel == upperBound) {
         return true;
     }
-    if (currentFrontierSize.load(std::memory_order_acq_rel) == 0u) {
+    if (currentFrontierSize == 0u) {
         return true;
     }
     if (numVisitedDstNodes.load(std::memory_order_acq_rel) == numDstNodesToVisit) {
@@ -85,11 +98,24 @@ void IFEMorsel::mergeResults(uint64_t numDstVisitedLocal, uint64_t numNonDstVisi
 void IFEMorsel::initializeNextFrontierNoLock() {
     currentLevel++;
     nextScanStartIdx.store(0LU, std::memory_order_acq_rel);
-    currentFrontierSize.store(nextFrontierSize.load(std::memory_order_acq_rel));
+    currentFrontierSize = nextFrontierSize.load(std::memory_order_acq_rel);
     nextFrontierSize.store(0u, std::memory_order_acq_rel);
-    auto temp = currentFrontier;
-    currentFrontier = nextFrontier;
-    nextFrontier = temp;
+    // if true, next frontier is sparse, push elements in bfsFrontier vector
+    // else, next frontier is dense, switch pointers with current frontier array & next frontier
+    if (currentFrontierSize < std::ceil((maxOffset / 8))) {
+        isSparseFrontier = true;
+        bfsFrontier.clear();
+        for (auto i = 0u; i < (maxOffset + 1); i++) {
+            if (nextFrontier[i]) { [[unlikely]]
+                bfsFrontier.push_back(i);
+            }
+        }
+    } else {
+        isSparseFrontier = false;
+        auto temp = currentFrontier;
+        currentFrontier = nextFrontier;
+        nextFrontier = temp;
+    }
     std::fill(nextFrontier, nextFrontier + maxOffset + 1, 0u);
 }
 

@@ -64,10 +64,13 @@ public:
 
     static std::pair<uint64_t, uint64_t> visitNbrs(IFEMorsel* ifeMorsel, ValueVector& dstNodeIDVector) {
         uint64_t numDstVisitedLocal = 0u, numNonDstVisitedLocal = 0u;
-        for (auto j = 0u; j < dstNodeIDVector.state->getSelVector().getSelSize(); j++) {
-            auto pos = dstNodeIDVector.state->getSelVector().operator[](j);
-            auto dstNodeID = dstNodeIDVector.getValue<common::nodeID_t>(pos);
-            auto state = ifeMorsel->visitedNodes[dstNodeID.offset];
+        auto size = dstNodeIDVector.state->getSelVector().getSelSize();
+        auto nbrNodes = (common::nodeID_t*)dstNodeIDVector.getData();
+        common::nodeID_t dstNodeID;
+        uint8_t state;
+        for (auto j = 0u; j < size; j++) {
+            dstNodeID = nbrNodes[j];
+            state = ifeMorsel->visitedNodes[dstNodeID.offset];
             if (state == NOT_VISITED_DST) {
                 ifeMorsel->visitedNodes[dstNodeID.offset] = VISITED_DST;
                 numDstVisitedLocal++;
@@ -110,6 +113,25 @@ public:
         return {numDstVisitedLocal, numNonDstVisitedLocal};
     }
 
+    static void extendNode(graph::Graph* graph, IFEMorsel* ifeMorsel, const common::offset_t offset,
+        uint64_t& numDstVisitedLocal, uint64_t& numNonDstVisitedLocal,
+        graph::NbrScanState* nbrScanState) {
+        std::pair<uint64_t, uint64_t> retVal;
+        if (graph->isInMemory) {
+            retVal = visitNbrs(offset, ifeMorsel, graph);
+            numDstVisitedLocal += retVal.first;
+            numNonDstVisitedLocal += retVal.second;
+        } else {
+            graph->initializeStateFwdNbrs(offset, nbrScanState);
+            do {
+                graph->getFwdNbrs(nbrScanState);
+                retVal = visitNbrs(ifeMorsel, *nbrScanState->dstNodeIDVector.get());
+                numDstVisitedLocal += retVal.first;
+                numNonDstVisitedLocal += retVal.second;
+            } while (graph->hasMoreFwdNbrs(nbrScanState));
+        }
+    }
+
     // BFS Frontier Extension function, return only after bfs extension complete.
     static void extendFrontierFunc(GDSCallSharedState* sharedState, GDSLocalState* localState) {
         auto& graph = sharedState->graph;
@@ -122,22 +144,15 @@ public:
             std::pair <uint64_t, uint64_t> retVal;
             /*auto duration = std::chrono::system_clock::now().time_since_epoch();
             auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();*/
-            for (auto offset = 0u; offset < ifeMorsel->visitedNodes.size(); offset++) {
-                if (!ifeMorsel->currentFrontier[offset]) {
-                    continue;
+            if (ifeMorsel->isSparseFrontier) {
+                for (auto idx = 0u; idx < ifeMorsel->currentFrontierSize; idx++) {
+                    extendNode(graph.get(), ifeMorsel, ifeMorsel->bfsFrontier[idx],
+                        numDstVisitedLocal, numNonDstVisitedLocal, nbrScanState.get());
                 }
-                if (graph->isInMemory) {
-                    retVal = visitNbrs(offset, ifeMorsel, graph.get());
-                    numDstVisitedLocal += retVal.first;
-                    numNonDstVisitedLocal += retVal.second;
-                } else {
-                    graph->initializeStateFwdNbrs(offset, nbrScanState.get());
-                    do {
-                        graph->getFwdNbrs(nbrScanState.get());
-                        retVal = visitNbrs(ifeMorsel, *nbrScanState->dstNodeIDVector.get());
-                        numDstVisitedLocal += retVal.first;
-                        numNonDstVisitedLocal += retVal.second;
-                    } while (graph->hasMoreFwdNbrs(shortestPathLocalState->nbrScanState.get()));
+            } else {
+                for (auto offset = 0u; offset < ifeMorsel->visitedNodes.size(); offset++) {
+                    extendNode(graph.get(), ifeMorsel, offset, numDstVisitedLocal,
+                        numNonDstVisitedLocal, nbrScanState.get());
                 }
             }
             ifeMorsel->mergeResults(numDstVisitedLocal, numNonDstVisitedLocal);
