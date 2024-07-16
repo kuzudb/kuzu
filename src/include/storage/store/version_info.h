@@ -15,20 +15,32 @@ class Transaction;
 namespace storage {
 
 struct VectorVersionInfo {
+    enum class InsertionStatus : uint8_t { NO_INSERTED, CHECK_VERSION, ALWAYS_INSERTED };
+    // TODO(Guodong): ALWAYS_INSERTED is not added for now, but it may be useful as an optimization
+    // to mark the vector data after checkpoint is all deleted.
+    enum class DeletionStatus : uint8_t { NO_DELETED, CHECK_VERSION };
+
+    // TODO: Keep an additional same insertion/deletion field as an optimization to avoid the need
+    // of `array` if all are inserted/deleted in the same transaction.
+    // Also, avoid allocate `array` when status are NO_INSERTED and NO_DELETED.
+    // We can even consider separating the insertion and deletion into two separate Vectors.
     std::array<common::transaction_t, common::DEFAULT_VECTOR_CAPACITY> insertedVersions;
     std::array<common::transaction_t, common::DEFAULT_VECTOR_CAPACITY> deletedVersions;
-    bool anyInserted;
-    bool anyDeleted;
-    // TODO: Keep an additional same insertion/deletion field.
+    InsertionStatus insertionStatus;
+    DeletionStatus deletionStatus;
 
     VectorVersionInfo()
-        : insertedVersions{}, deletedVersions{}, anyInserted{false}, anyDeleted{false} {
+        : insertedVersions{}, deletedVersions{}, insertionStatus{InsertionStatus::NO_INSERTED},
+          deletionStatus{DeletionStatus::NO_DELETED} {
         insertedVersions.fill(common::INVALID_TRANSACTION);
         deletedVersions.fill(common::INVALID_TRANSACTION);
     }
     DELETE_COPY_DEFAULT_MOVE(VectorVersionInfo);
 
-    bool anyVersions() const { return anyInserted || anyDeleted; }
+    bool anyVersions() const {
+        return insertionStatus == InsertionStatus::CHECK_VERSION ||
+               deletionStatus == DeletionStatus::CHECK_VERSION;
+    }
     common::row_idx_t append(common::transaction_t transactionID, common::row_idx_t startRow,
         common::row_idx_t numRows);
     bool delete_(common::transaction_t transactionID, common::row_idx_t rowIdx);

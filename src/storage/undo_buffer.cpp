@@ -373,6 +373,8 @@ void UndoBuffer::rollbackVectorVersionInfo(UndoRecordType recordType, const uint
         for (const auto row : undoRecord.rowsInVector) {
             undoRecord.vectorVersionInfo->insertedVersions[row] = INVALID_TRANSACTION;
         }
+        // TODO(Guodong): Should handle hash index rollback.
+        // TODO(Guodong): Refactor. Move these into VersionInfo.
         bool hasAnyInsertions = false;
         for (const auto& version : undoRecord.vectorVersionInfo->insertedVersions) {
             if (version != INVALID_TRANSACTION) {
@@ -381,10 +383,12 @@ void UndoBuffer::rollbackVectorVersionInfo(UndoRecordType recordType, const uint
             }
         }
         if (!hasAnyInsertions) {
-            if (!undoRecord.vectorVersionInfo->anyDeleted) {
+            if (undoRecord.vectorVersionInfo->deletionStatus ==
+                VectorVersionInfo::DeletionStatus::NO_DELETED) {
                 undoRecord.versionInfo->clearVectorInfo(undoRecord.vectorIdx);
             } else {
-                undoRecord.vectorVersionInfo->anyInserted = false;
+                undoRecord.vectorVersionInfo->insertionStatus =
+                    VectorVersionInfo::InsertionStatus::NO_INSERTED;
             }
         }
     } break;
@@ -392,6 +396,7 @@ void UndoBuffer::rollbackVectorVersionInfo(UndoRecordType recordType, const uint
         for (const auto row : undoRecord.rowsInVector) {
             undoRecord.vectorVersionInfo->deletedVersions[row] = INVALID_TRANSACTION;
         }
+        // TODO(Guodong): Refactor. Move these into VersionInfo.
         bool hasAnyDeletions = false;
         for (const auto& version : undoRecord.vectorVersionInfo->deletedVersions) {
             if (version != INVALID_TRANSACTION) {
@@ -400,10 +405,12 @@ void UndoBuffer::rollbackVectorVersionInfo(UndoRecordType recordType, const uint
             }
         }
         if (!hasAnyDeletions) {
-            if (!undoRecord.vectorVersionInfo->anyInserted) {
+            if (undoRecord.vectorVersionInfo->insertionStatus ==
+                VectorVersionInfo::InsertionStatus::NO_INSERTED) {
                 undoRecord.versionInfo->clearVectorInfo(undoRecord.vectorIdx);
             } else {
-                undoRecord.vectorVersionInfo->anyDeleted = false;
+                undoRecord.vectorVersionInfo->deletionStatus =
+                    VectorVersionInfo::DeletionStatus::NO_DELETED;
             }
         }
     } break;

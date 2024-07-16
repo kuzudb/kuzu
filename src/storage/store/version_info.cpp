@@ -11,7 +11,7 @@ namespace storage {
 
 row_idx_t VectorVersionInfo::append(const transaction_t transactionID, const row_idx_t startRow,
     const row_idx_t numRows) {
-    anyInserted = true;
+    insertionStatus = InsertionStatus::CHECK_VERSION;
     for (auto i = 0u; i < numRows; i++) {
         KU_ASSERT(insertedVersions[startRow + i] == INVALID_TRANSACTION);
         insertedVersions[startRow + i] = transactionID;
@@ -20,7 +20,7 @@ row_idx_t VectorVersionInfo::append(const transaction_t transactionID, const row
 }
 
 bool VectorVersionInfo::delete_(const transaction_t transactionID, const row_idx_t rowIdx) {
-    anyDeleted = true;
+    deletionStatus = DeletionStatus::CHECK_VERSION;
     if (deletedVersions[rowIdx] == transactionID) {
         return false;
     }
@@ -36,7 +36,8 @@ void VectorVersionInfo::getSelVectorForScan(const transaction_t startTS,
     const transaction_t transactionID, SelectionVector& selVector, const row_idx_t startRow,
     const row_idx_t numRows, sel_t startOutputPos) const {
     auto numSelected = selVector.getSelSize();
-    if (!anyDeleted && !anyInserted) {
+    if (deletionStatus == DeletionStatus::NO_DELETED &&
+        insertionStatus == InsertionStatus::NO_INSERTED) {
         for (auto i = 0u; i < numRows; i++) {
             selVector.getMultableBuffer()[numSelected++] = startOutputPos + i;
         }
@@ -53,31 +54,46 @@ void VectorVersionInfo::getSelVectorForScan(const transaction_t startTS,
 
 bool VectorVersionInfo::isDeleted(const transaction_t startTS, const transaction_t transactionID,
     const row_idx_t rowIdx) const {
-    if (!anyDeleted) {
+    switch (deletionStatus) {
+    case DeletionStatus::NO_DELETED: {
         return false;
     }
-    const auto deletion = deletedVersions[rowIdx];
-    const auto isDeletedWithinSameTransaction = deletion == transactionID;
-    const auto isDeletedByPrevCommittedTransaction = deletion <= startTS;
-    return isDeletedWithinSameTransaction || isDeletedByPrevCommittedTransaction;
+    case DeletionStatus::CHECK_VERSION: {
+        const auto deletion = deletedVersions[rowIdx];
+        const auto isDeletedWithinSameTransaction = deletion == transactionID;
+        const auto isDeletedByPrevCommittedTransaction = deletion <= startTS;
+        return isDeletedWithinSameTransaction || isDeletedByPrevCommittedTransaction;
+    }
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
 }
 
 bool VectorVersionInfo::isInserted(const transaction_t startTS, const transaction_t transactionID,
     const row_idx_t rowIdx) const {
-    if (!anyInserted) {
+    switch (insertionStatus) {
+    case InsertionStatus::ALWAYS_INSERTED: {
+        return true;
+    }
+    case InsertionStatus::NO_INSERTED: {
         return false;
     }
-    const auto insertion = insertedVersions[rowIdx];
-    const auto isInsertedWithinSameTransaction = insertion == transactionID;
-    const auto isInsertedByPrevCommittedTransaction = insertion <= startTS;
-    // TODO(Guodong): Should remove `insertion == INVALID_TRANSACTION`.
-    return insertion == INVALID_TRANSACTION || isInsertedWithinSameTransaction ||
-           isInsertedByPrevCommittedTransaction;
+    case InsertionStatus::CHECK_VERSION: {
+        const auto insertion = insertedVersions[rowIdx];
+        const auto isInsertedWithinSameTransaction = insertion == transactionID;
+        const auto isInsertedByPrevCommittedTransaction = insertion <= startTS;
+        return isInsertedWithinSameTransaction || isInsertedByPrevCommittedTransaction;
+    }
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
 }
 
 row_idx_t VectorVersionInfo::getNumDeletions(transaction_t startTS, transaction_t transactionID,
     row_idx_t startRow, length_t numRows) const {
-    if (!anyDeleted) {
+    if (deletionStatus == DeletionStatus::NO_DELETED) {
         return 0;
     }
     row_idx_t numDeletions = 0u;
@@ -88,7 +104,7 @@ row_idx_t VectorVersionInfo::getNumDeletions(transaction_t startTS, transaction_
 }
 
 void VectorVersionInfo::serialize(Serializer& serializer) const {
-    KU_ASSERT(anyDeleted);
+    KU_ASSERT(deletionStatus == DeletionStatus::CHECK_VERSION);
     for (const auto deleted : deletedVersions) {
         // Versions should be either INVALID_TRANSACTION or committed timestamps.
         KU_ASSERT(deleted == INVALID_TRANSACTION ||
@@ -151,6 +167,12 @@ bool VersionInfo::delete_(const transaction::Transaction* transaction, const row
     auto [vectorIdx, rowIdxInVector] =
         StorageUtils::getQuotientRemainder(rowIdx, DEFAULT_VECTOR_CAPACITY);
     auto& vectorVersionInfo = getOrCreateVersionInfo(vectorIdx);
+    if (vectorVersionInfo.insertionStatus == VectorVersionInfo::InsertionStatus::NO_INSERTED) {
+        // Note: The version info is newly created due to `delete_`. There is no newly inserted rows
+        // in this vector, thus all are rows checkpointed. We set the insertion status to
+        // ALWAYS_INSERTED to avoid checking the version in the future.
+        vectorVersionInfo.insertionStatus = VectorVersionInfo::InsertionStatus::ALWAYS_INSERTED;
+    }
     const auto deleted = vectorVersionInfo.delete_(transaction->getID(), rowIdxInVector);
     if (deleted && transaction->getID() > transaction::Transaction::DUMMY_TRANSACTION_ID) {
         transaction->pushVectorDeleteInfo(*this, vectorIdx, vectorVersionInfo, {rowIdxInVector});
@@ -196,7 +218,8 @@ void VersionInfo::clearVectorInfo(const idx_t vectorIdx) {
 
 bool VersionInfo::hasDeletions() const {
     for (auto& vectorInfo : vectorsInfo) {
-        if (vectorInfo && vectorInfo->anyDeleted) {
+        if (vectorInfo &&
+            vectorInfo->deletionStatus == VectorVersionInfo::DeletionStatus::CHECK_VERSION) {
             return true;
         }
     }
@@ -226,7 +249,8 @@ bool VersionInfo::getNumDeletions(const transaction::Transaction* transaction, r
 
 bool VersionInfo::hasInsertions() const {
     for (auto& vectorInfo : vectorsInfo) {
-        if (vectorInfo && vectorInfo->anyInserted) {
+        if (vectorInfo &&
+            vectorInfo->insertionStatus == VectorVersionInfo::InsertionStatus::CHECK_VERSION) {
             return true;
         }
     }
@@ -258,7 +282,8 @@ void VersionInfo::serialize(Serializer& serializer) const {
     serializer.writeDebuggingInfo("vectors_info_size");
     serializer.write<uint64_t>(vectorsInfo.size());
     for (auto i = 0u; i < vectorsInfo.size(); i++) {
-        auto hasDeletion = vectorsInfo[i] && vectorsInfo[i]->anyDeleted;
+        auto hasDeletion = vectorsInfo[i] && vectorsInfo[i]->deletionStatus ==
+                                                 VectorVersionInfo::DeletionStatus::CHECK_VERSION;
         serializer.writeDebuggingInfo("has_deletion");
         serializer.write<bool>(hasDeletion);
         if (hasDeletion) {

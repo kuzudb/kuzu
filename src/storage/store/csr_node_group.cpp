@@ -101,10 +101,11 @@ NodeGroupScanResult CSRNodeGroup::scan(Transaction* transaction, TableScanState&
         switch (nodeGroupScanState.source) {
         case CSRNodeGroupScanSource::COMMITTED_PERSISTENT: {
             auto result = scanCommittedPersistent(transaction, relScanState, nodeGroupScanState);
-            if (result == NODE_GROUP_SCAN_EMMPTY_RESULT && csrIndex &&
-                nodeGroupScanState.inMemCSRList.rowIndices.size() > 0) {
+            if (result == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+                nodeGroupScanState.source = nodeGroupScanState.inMemCSRList.rowIndices.empty() ?
+                                                CSRNodeGroupScanSource::NONE :
+                                                CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
                 nodeGroupScanState.nextRowToScan = 0;
-                nodeGroupScanState.source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
                 continue;
             }
             return result;
