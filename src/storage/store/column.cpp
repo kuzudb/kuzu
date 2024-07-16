@@ -313,6 +313,7 @@ void Column::patchFloatExceptions(Transaction* transaction, const ChunkState& re
             if constexpr (std::is_same_v<uint8_t*, OutputType>) {
                 reinterpret_cast<T*>(result)[offsetInResult] = curException.value;
             } else {
+                static_assert(std::is_same_v<ValueVector*, std::remove_cvref_t<OutputType>>);
                 reinterpret_cast<T*>(result->getData())[offsetInResult] = curException.value;
             }
         }
@@ -383,7 +384,7 @@ void Column::batchLookup(Transaction* transaction, const offset_t* nodeOffsets, 
             StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
         ChunkState state;
         initChunkState(transaction, nodeGroupIdx, state);
-        auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
+        state.metadata = metadataDA->get(nodeGroupIdx, transaction->getType());
         readValue(transaction, state, nodeOffset, result, i, batchLookupFunc);
     }
 }
@@ -426,8 +427,9 @@ void Column::scan(Transaction* transaction, const ChunkState& state, offset_t st
         nullColumn->scan(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
             resultVector, offsetInVector);
     }
-    readValues(transaction, state, resultVector, 0, startOffsetInGroup, endOffsetInGroup,
-        readToVectorFunc, [](offset_t /*startIdx*/, offset_t /*endIdx*/) { return true; });
+    readValues(transaction, state, resultVector, offsetInVector, startOffsetInGroup,
+        endOffsetInGroup, readToVectorFunc,
+        [](offset_t /*startIdx*/, offset_t /*endIdx*/) { return true; });
 }
 
 void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunkData* columnChunk,
