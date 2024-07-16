@@ -2,6 +2,7 @@
 #define ALP_DECODE_HPP
 
 #include "common.hpp"
+#include "constants.hpp"
 #include <cstdint>
 
 namespace alp {

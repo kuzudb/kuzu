@@ -64,6 +64,9 @@ protected:
     static common::VirtualFileSystem* getFileSystem(main::Database& database) {
         return database.vfs.get();
     }
+    static storage::StorageManager* getStorageManager(main::Database& database) {
+        return database.storageManager.get();
+    }
 
     // Static functions to access Connection's non-public properties/interfaces.
     static main::ClientContext* getClientContext(main::Connection& connection) {
