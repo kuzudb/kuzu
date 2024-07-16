@@ -1,13 +1,13 @@
 #include "planner/operator/factorization/flatten_resolver.h"
 
-#include "function/list/vector_list_functions.h"
-#include "binder/expression/function_expression.h"
 #include "binder/expression/case_expression.h"
+#include "binder/expression/function_expression.h"
+#include "binder/expression/lambda_expression.h"
 #include "binder/expression/node_expression.h"
 #include "binder/expression/rel_expression.h"
 #include "binder/expression/subquery_expression.h"
 #include "common/exception/not_implemented.h"
-#include "binder/expression/lambda_expression.h"
+#include "function/list/vector_list_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -15,7 +15,8 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-f_group_pos_set FlattenAllButOne::getGroupsPosToFlatten(const expression_vector& exprs, const Schema& schema) {
+f_group_pos_set FlattenAllButOne::getGroupsPosToFlatten(const expression_vector& exprs,
+    const Schema& schema) {
     f_group_pos_set result;
     f_group_pos_set dependentGroups;
     for (auto expr : exprs) {
@@ -40,7 +41,8 @@ f_group_pos_set FlattenAllButOne::getGroupsPosToFlatten(const expression_vector&
     return result;
 }
 
-f_group_pos_set FlattenAllButOne::getGroupsPosToFlatten(std::shared_ptr<Expression> expr, const Schema& schema) {
+f_group_pos_set FlattenAllButOne::getGroupsPosToFlatten(std::shared_ptr<Expression> expr,
+    const Schema& schema) {
     auto analyzer = GroupDependencyAnalyzer(false /* collectDependentExpr */, schema);
     analyzer.visit(expr);
     f_group_pos_set result = analyzer.getRequiredFlatGroups();
@@ -57,7 +59,8 @@ f_group_pos_set FlattenAllButOne::getGroupsPosToFlatten(std::shared_ptr<Expressi
     return result;
 }
 
-f_group_pos_set FlattenAllButOne::getGroupsPosToFlatten(const std::unordered_set<f_group_pos>& dependentGroups, const Schema& schema) {
+f_group_pos_set FlattenAllButOne::getGroupsPosToFlatten(
+    const std::unordered_set<f_group_pos>& dependentGroups, const Schema& schema) {
     f_group_pos_set result;
     std::vector<f_group_pos> candidates;
     for (auto groupPos : dependentGroups) {
@@ -71,7 +74,8 @@ f_group_pos_set FlattenAllButOne::getGroupsPosToFlatten(const std::unordered_set
     return result;
 }
 
-f_group_pos_set FlattenAll::getGroupsPosToFlatten(const expression_vector& exprs, const Schema& schema) {
+f_group_pos_set FlattenAll::getGroupsPosToFlatten(const expression_vector& exprs,
+    const Schema& schema) {
     f_group_pos_set result;
     for (auto& expr : exprs) {
         for (auto pos : getGroupsPosToFlatten(expr, schema)) {
@@ -81,13 +85,15 @@ f_group_pos_set FlattenAll::getGroupsPosToFlatten(const expression_vector& exprs
     return result;
 }
 
-f_group_pos_set FlattenAll::getGroupsPosToFlatten(std::shared_ptr<Expression> expr, const Schema& schema) {
+f_group_pos_set FlattenAll::getGroupsPosToFlatten(std::shared_ptr<Expression> expr,
+    const Schema& schema) {
     auto analyzer = GroupDependencyAnalyzer(false /* collectDependentExpr */, schema);
     analyzer.visit(expr);
     return getGroupsPosToFlatten(analyzer.getDependentGroups(), schema);
 }
 
-f_group_pos_set FlattenAll::getGroupsPosToFlatten(const std::unordered_set<f_group_pos>& dependentGroups, const Schema& schema) {
+f_group_pos_set FlattenAll::getGroupsPosToFlatten(
+    const std::unordered_set<f_group_pos>& dependentGroups, const Schema& schema) {
     f_group_pos_set result;
     for (auto groupPos : dependentGroups) {
         if (!schema.getGroup(groupPos)->isFlat()) {
@@ -103,7 +109,7 @@ void GroupDependencyAnalyzer::visit(std::shared_ptr<binder::Expression> expr) {
         if (collectDependentExpr) {
             dependentExprs.insert(expr);
         }
-        return ;
+        return;
     }
     switch (expr->expressionType) {
     case ExpressionType::FUNCTION:
@@ -113,13 +119,13 @@ void GroupDependencyAnalyzer::visit(std::shared_ptr<binder::Expression> expr) {
     } break;
     case ExpressionType::PATTERN: {
         visitNodeOrRel(expr);
-    } break ;
+    } break;
     case ExpressionType::SUBQUERY: {
         visitSubquery(expr);
     } break;
     case ExpressionType::LAMBDA: {
         visit(expr->constCast<LambdaExpression>().getFunctionExpr());
-    } break ;
+    } break;
     case ExpressionType::LITERAL:
     case ExpressionType::AGGREGATE_FUNCTION:
     case ExpressionType::PROPERTY:
@@ -142,7 +148,7 @@ void GroupDependencyAnalyzer::visit(std::shared_ptr<binder::Expression> expr) {
         for (auto& child : expr->getChildren()) {
             visit(child);
         }
-    } break ;
+    } break;
         // LCOV_EXCL_START
     default:
         throw NotImplementedException("GroupDependencyAnalyzer::visit");
@@ -185,7 +191,7 @@ void GroupDependencyAnalyzer::visitNodeOrRel(std::shared_ptr<binder::Expression>
     case LogicalTypeID::NODE: {
         auto& node = expr->constCast<NodeExpression>();
         visit(node.getInternalID());
-    } break ;
+    } break;
     case LogicalTypeID::REL: {
         auto& rel = expr->constCast<RelExpression>();
         visit(rel.getSrcNode()->getInternalID());
@@ -193,7 +199,7 @@ void GroupDependencyAnalyzer::visitNodeOrRel(std::shared_ptr<binder::Expression>
         if (rel.hasDirectionExpr()) {
             visit(rel.getDirectionExpr());
         }
-    } break ;
+    } break;
     default:
         KU_UNREACHABLE;
     }

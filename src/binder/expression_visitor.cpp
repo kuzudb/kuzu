@@ -2,6 +2,7 @@
 
 #include "binder/expression/case_expression.h"
 #include "binder/expression/function_expression.h"
+#include "binder/expression/lambda_expression.h"
 #include "binder/expression/node_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
@@ -9,7 +10,6 @@
 #include "common/exception/not_implemented.h"
 #include "function/sequence/sequence_functions.h"
 #include "function/uuid/vector_uuid_functions.h"
-#include "binder/expression/lambda_expression.h"
 
 using namespace kuzu::common;
 
@@ -86,7 +86,7 @@ void ExpressionVisitor::visitChildren(const Expression& expr) {
     case ExpressionType::LAMBDA: {
         auto& lambda = expr.constCast<LambdaExpression>();
         visit(lambda.getFunctionExpr());
-    } break ;
+    } break;
     default: {
         for (auto& child : expr.getChildren()) {
             visit(child);

@@ -86,13 +86,13 @@ void FactorizationRewriter::visitProjection(planner::LogicalOperator* op) {
     if (hasRandomFunction) {
         // Fall back to tuple-at-a-time evaluation.
         auto groupsPos = op->getChild(0)->getSchema()->getGroupsPosInScope();
-        auto groupsPosToFlatten = FlattenAll::getGroupsPosToFlatten(groupsPos,
-            *op->getChild(0)->getSchema());
+        auto groupsPosToFlatten =
+            FlattenAll::getGroupsPosToFlatten(groupsPos, *op->getChild(0)->getSchema());
         projection.setChild(0, appendFlattens(projection.getChild(0), groupsPosToFlatten));
     } else {
         for (auto& expression : projection.getExpressionsToProject()) {
-            auto groupsPosToFlatten = FlattenAllButOne::getGroupsPosToFlatten(
-                expression, *op->getChild(0)->getSchema());
+            auto groupsPosToFlatten =
+                FlattenAllButOne::getGroupsPosToFlatten(expression, *op->getChild(0)->getSchema());
             projection.setChild(0, appendFlattens(projection.getChild(0), groupsPosToFlatten));
         }
     }

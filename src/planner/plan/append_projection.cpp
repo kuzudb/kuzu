@@ -24,8 +24,8 @@ void Planner::appendProjection(const expression_vector& expressionsToProject, Lo
         appendFlattens(plan.getSchema()->getGroupsPosInScope(), plan);
     } else {
         for (auto& expression : expressionsToProject) {
-            auto groupsPosToFlatten = FlattenAllButOne::getGroupsPosToFlatten(
-                expression, *plan.getSchema());
+            auto groupsPosToFlatten =
+                FlattenAllButOne::getGroupsPosToFlatten(expression, *plan.getSchema());
             appendFlattens(groupsPosToFlatten, plan);
         }
     }

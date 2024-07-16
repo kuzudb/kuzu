@@ -1,8 +1,8 @@
 #include "binder/expression/expression_util.h"
 #include "binder/expression/subquery_expression.h"
 #include "binder/expression_visitor.h"
-#include "planner/planner.h"
 #include "planner/operator/factorization/flatten_resolver.h"
+#include "planner/planner.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -10,7 +10,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-static binder::expression_vector getDependentExprs(std::shared_ptr<Expression> expr, const Schema& schema) {
+static binder::expression_vector getDependentExprs(std::shared_ptr<Expression> expr,
+    const Schema& schema) {
     auto analyzer = GroupDependencyAnalyzer(true /* collectDependentExpr */, schema);
     analyzer.visit(expr);
     return analyzer.getDependentExprs();

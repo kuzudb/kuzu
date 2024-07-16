@@ -1,4 +1,5 @@
 #include "planner/operator/logical_projection.h"
+
 #include "planner/operator/factorization/flatten_resolver.h"
 
 namespace kuzu {
