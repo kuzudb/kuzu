@@ -141,11 +141,9 @@ void OverflowFileHandle::checkpoint() {
 
 void OverflowFileHandle::read(TransactionType trxType, page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& func) const {
-    if (trxType == TransactionType::CHECKPOINT) {
-        auto cachedPage = pageWriteCache.find(pageIdx);
-        if (cachedPage != pageWriteCache.end()) {
-            return func(cachedPage->second->data);
-        }
+    auto cachedPage = pageWriteCache.find(pageIdx);
+    if (cachedPage != pageWriteCache.end()) {
+        return func(cachedPage->second->data);
     }
     overflowFile.readFromDisk(trxType, pageIdx, func);
 }
