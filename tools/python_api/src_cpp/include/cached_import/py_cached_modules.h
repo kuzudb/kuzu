@@ -50,18 +50,9 @@ public:
 
 class NumpyMaCachedItem : public PythonCachedItem {
 public:
-    NumpyMaCachedItem()
-        : PythonCachedItem("numpy.ma"), masked_array("masked_array", this),
-          numpy("numpy", nullptr) {}
+    NumpyMaCachedItem() : PythonCachedItem("numpy.ma"), masked_array("masked_array", this) {}
 
     PythonCachedItem masked_array;
-
-    py::handle operator()() override;
-
-private:
-    PythonCachedItem numpy;
-    // Not used outside of this class, but has to be accessible because numpy.ma doesn't have
-    // the __version__ attribute
 };
 
 class PandasCachedItem : public PythonCachedItem {
