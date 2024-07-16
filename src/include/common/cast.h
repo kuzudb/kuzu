@@ -13,11 +13,6 @@ TO ku_dynamic_cast(FROM old) {
     try {
         TO newVal = dynamic_cast<TO>(old);
         if constexpr (std::is_pointer<FROM>()) {
-            if (newVal == nullptr) {
-                auto a = 0;
-                a += 1;
-                auto b = 0;
-            }
             KU_ASSERT(newVal != nullptr);
         }
         return newVal;
