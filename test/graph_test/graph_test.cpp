@@ -48,9 +48,9 @@ void DBTest::createNewDB() {
     createDBAndConn();
 }
 
-void ConcurrentTest::runStatements() {
+void ConcurrentTestExecutor::runStatements() {
     while (connectionPaused) {}
-    for (auto statement: statementsQueue) {
+    for (auto statement: statements) {
         TestRunner::runTest(statement, connection, databasePath);
     }
 }

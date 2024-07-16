@@ -37,12 +37,14 @@ class EmptyDBTest : public PrivateGraphTest {
     std::string getInputDir() override { KU_UNREACHABLE; }
 };
 
-class ConcurrentTest {
+// ConcurrentTestExecutor is not thread safe
+class ConcurrentTestExecutor {
 public:
-    ConcurrentTest(bool& connectionsPaused, main::Connection& connection, std::string databasePath):
+    ConcurrentTestExecutor(bool& connectionsPaused, main::Connection& connection, std::string databasePath):
       connectionPaused{connectionsPaused}, connection{connection}, databasePath{databasePath} {}
+
     void execute() {
-        connThread = std::thread(&ConcurrentTest::runStatements, this);
+        connThread = std::thread(&ConcurrentTestExecutor::runStatements, this);
     }
     void join() {
         if (connThread.joinable()) {
@@ -50,10 +52,10 @@ public:
         }
     }
     void reset() {
-        statementsQueue.clear();
+        statements.clear();
     }
     void addStatement(TestStatement* statement) {
-        statementsQueue.emplace_back(statement);
+        statements.emplace_back(statement);
     }
 
 private:
@@ -63,7 +65,7 @@ private:
     main::Connection& connection;
     std::string databasePath;
     std::thread connThread;
-    std::vector<TestStatement*> statementsQueue;
+    std::vector<TestStatement*> statements;
 };
 
 // This class starts database in on-disk mode.
@@ -138,7 +140,7 @@ public:
 protected:
     bool isConcurrent = false;
     bool connectionsPaused = false;
-    std::unordered_map<std::string, ConcurrentTest> concurrentTests;
+    std::unordered_map<std::string, ConcurrentTestExecutor> concurrentTests;
 };
 
 } // namespace testing
