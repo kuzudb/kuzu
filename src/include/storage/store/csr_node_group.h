@@ -167,8 +167,13 @@ public:
               NodeGroupDataFormat::CSR} {}
     CSRNodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
         std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup)
-        : NodeGroup{nodeGroupIdx, enableCompression, std::move(chunkedNodeGroup),
-              common::INVALID_OFFSET, NodeGroupDataFormat::CSR} {}
+        : NodeGroup{nodeGroupIdx, enableCompression, common::INVALID_OFFSET,
+              NodeGroupDataFormat::CSR},
+          persistentChunkGroup{std::move(chunkedNodeGroup)} {
+        for (auto i = 0u; i < persistentChunkGroup->getNumColumns(); i++) {
+            dataTypes.push_back(persistentChunkGroup->getColumnChunk(i).getDataType().copy());
+        }
+    }
 
     void initializeScanState(transaction::Transaction* transaction, TableScanState& state) override;
     NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state) override;

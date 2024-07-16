@@ -187,7 +187,7 @@ public:
     // Currently, these functions are specifically used only for WAL files.
     void removeFilePagesFromFrames(BMFileHandle& fileHandle);
     void flushAllDirtyPagesInFrames(BMFileHandle& fileHandle);
-    void updateFrameIfPageIsInFrameWithoutLock(BMFileHandle& fileHandle, uint8_t* newPage,
+    void updateFrameIfPageIsInFrameWithoutLock(common::file_idx_t fileIdx, const uint8_t* newPage,
         common::page_idx_t pageIdx);
     void removePageFromFrameIfNecessary(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
 

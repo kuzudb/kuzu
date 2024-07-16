@@ -369,16 +369,18 @@ std::unique_ptr<NodeGroup> NodeGroup::deserialize(Deserializer& deSer) {
     switch (format) {
     case NodeGroupDataFormat::REGULAR: {
         chunkedNodeGroup = ChunkedNodeGroup::deserialize(deSer);
-    } break;
+        return std::make_unique<NodeGroup>(nodeGroupIdx, enableCompression,
+            std::move(chunkedNodeGroup));
+    }
     case NodeGroupDataFormat::CSR: {
         chunkedNodeGroup = ChunkedCSRNodeGroup::deserialize(deSer);
-    } break;
+        return std::make_unique<CSRNodeGroup>(nodeGroupIdx, enableCompression,
+            std::move(chunkedNodeGroup));
+    }
     default: {
         KU_UNREACHABLE;
     }
     }
-    return std::make_unique<NodeGroup>(nodeGroupIdx, enableCompression,
-        std::move(chunkedNodeGroup));
 }
 
 ChunkedNodeGroup* NodeGroup::findChunkedGroupFromRowIdx(const UniqLock& lock, row_idx_t rowIdx) {

@@ -85,13 +85,13 @@ private:
         common::ValueVector* offsetVector, const ListOffsetSizeInfo& listOffsetInfoInStorage) const;
 
     common::offset_t readOffset(transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t offsetInNodeGroup);
+        common::offset_t offsetInNodeGroup) const;
     common::list_size_t readSize(transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t offsetInNodeGroup);
+        common::offset_t offsetInNodeGroup) const;
 
     ListOffsetSizeInfo getListOffsetSizeInfo(transaction::Transaction* transaction,
         const ChunkState& state, common::offset_t startOffsetInNodeGroup,
-        common::offset_t endOffsetInNodeGroup);
+        common::offset_t endOffsetInNodeGroup) const;
 
 private:
     std::unique_ptr<Column> offsetColumn;

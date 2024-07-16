@@ -1,10 +1,10 @@
 #include "storage/wal/shadow_file.h"
 
 #include "common/file_system/virtual_file_system.h"
+#include "common/serializer/buffered_file.h"
 #include "main/client_context.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/storage_utils.h"
-#include <common/serializer/buffered_file.h>
 #include <sys/fcntl.h>
 
 using namespace kuzu::common;
@@ -78,7 +78,7 @@ page_idx_t ShadowFile::getShadowPage(file_idx_t originalFile, page_idx_t origina
     return shadowPagesMap.at(originalFile).at(originalPage);
 }
 
-void ShadowFile::replayShadowPageRecords(const ClientContext& context) const {
+void ShadowFile::replayShadowPageRecords(ClientContext& context) const {
     std::unordered_map<DBFileID, std::unique_ptr<FileInfo>> fileCache;
     const auto pageBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
     page_idx_t shadowPageIdx = 1; // Skip header page.
@@ -91,6 +91,8 @@ void ShadowFile::replayShadowPageRecords(const ClientContext& context) const {
         shadowingFH->readPage(pageBuffer.get(), shadowPageIdx++);
         fileInfoOfDBFile->writeFile(pageBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE,
             record.originalPageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
+        context.getMemoryManager()->getBufferManager()->updateFrameIfPageIsInFrameWithoutLock(
+            record.originalFileIdx, pageBuffer.get(), record.originalPageIdx);
     }
 }
 

@@ -101,7 +101,10 @@ NodeGroupScanResult CSRNodeGroup::scan(Transaction* transaction, TableScanState&
         switch (nodeGroupScanState.source) {
         case CSRNodeGroupScanSource::COMMITTED_PERSISTENT: {
             auto result = scanCommittedPersistent(transaction, relScanState, nodeGroupScanState);
-            if (result == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+            if (result == NODE_GROUP_SCAN_EMMPTY_RESULT && csrIndex &&
+                nodeGroupScanState.inMemCSRList.rowIndices.size() > 0) {
+                nodeGroupScanState.nextRowToScan = 0;
+                nodeGroupScanState.source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
                 continue;
             }
             return result;
@@ -131,8 +134,6 @@ NodeGroupScanResult CSRNodeGroup::scan(Transaction* transaction, TableScanState&
 NodeGroupScanResult CSRNodeGroup::scanCommittedPersistent(const Transaction* transaction,
     const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const {
     if (nodeGroupScanState.nextRowToScan == nodeGroupScanState.persistentCSRList.length) {
-        nodeGroupScanState.source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
-        nodeGroupScanState.nextRowToScan = 0;
         return NODE_GROUP_SCAN_EMMPTY_RESULT;
     }
     const auto startRow =
@@ -366,7 +367,6 @@ void CSRNodeGroup::checkpoint(NodeGroupCheckpointState& state) {
     const auto numColumns = dataTypes.size();
     for (auto columnID = 0u; columnID < numColumns; columnID++) {
         checkpointColumn(lock, columnID, csrState, mergedRegions);
-        persistentChunkGroup->getColumnChunk(columnID).resetUpdateInfo();
     }
     // Checkpoint csr headers.
     std::vector<ChunkCheckpointState> csrOffsetChunkCheckpointStates;

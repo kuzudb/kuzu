@@ -96,13 +96,17 @@ public:
         common::row_idx_t capacity = common::StorageConstants::NODE_GROUP_SIZE,
         NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR)
         : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
-          numRows{0}, nextRowToAppend{0}, capacity{capacity} {
+          numRows{chunkedNodeGroup->getNumRows()}, nextRowToAppend{numRows}, capacity{capacity} {
         for (auto i = 0u; i < chunkedNodeGroup->getNumColumns(); i++) {
             dataTypes.push_back(chunkedNodeGroup->getColumnChunk(i).getDataType().copy());
         }
         const auto lock = chunkedGroups.lock();
         chunkedGroups.appendGroup(lock, std::move(chunkedNodeGroup));
     }
+    NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
+        common::row_idx_t capacity, NodeGroupDataFormat format)
+        : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
+          numRows{0}, nextRowToAppend{0}, capacity{capacity} {}
     virtual ~NodeGroup() = default;
 
     virtual bool isEmpty() const { return numRows.load() == 0; }

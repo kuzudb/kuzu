@@ -270,7 +270,7 @@ void ListColumn::scanFiltered(Transaction* transaction, const ChunkState& state,
 }
 
 offset_t ListColumn::readOffset(Transaction* transaction, const ChunkState& readState,
-    offset_t offsetInNodeGroup) {
+    offset_t offsetInNodeGroup) const {
     const auto& offsetState = readState.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX];
     auto pageCursor = offsetColumn->getPageCursorForOffsetInGroup(offsetInNodeGroup, offsetState);
     offset_t value;
@@ -282,7 +282,7 @@ offset_t ListColumn::readOffset(Transaction* transaction, const ChunkState& read
 }
 
 list_size_t ListColumn::readSize(Transaction* transaction, const ChunkState& readState,
-    offset_t offsetInNodeGroup) {
+    offset_t offsetInNodeGroup) const {
     const auto& sizeState = readState.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX];
     auto pageCursor = sizeColumn->getPageCursorForOffsetInGroup(offsetInNodeGroup, sizeState);
     offset_t value;
@@ -294,8 +294,8 @@ list_size_t ListColumn::readSize(Transaction* transaction, const ChunkState& rea
 }
 
 ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
-    const ChunkState& state, offset_t startOffsetInNodeGroup, offset_t endOffsetInNodeGroup) {
-    auto numOffsetsToRead = endOffsetInNodeGroup - startOffsetInNodeGroup;
+    const ChunkState& state, offset_t startOffsetInNodeGroup, offset_t endOffsetInNodeGroup) const {
+    const auto numOffsetsToRead = endOffsetInNodeGroup - startOffsetInNodeGroup;
     auto offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::INT64(),
         enableCompression, numOffsetsToRead, ResidencyState::IN_MEMORY);
     auto sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT32(),
@@ -309,11 +309,10 @@ ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
 }
 
 void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
-    auto& persistentListChunk = checkpointState.persistentData.cast<ListChunkData>();
-    auto persistentDataChunk = persistentListChunk.getDataColumnChunk();
+    const auto& persistentListChunk = checkpointState.persistentData.cast<ListChunkData>();
+    const auto persistentDataChunk = persistentListChunk.getDataColumnChunk();
     // First, check if we can checkpoint list data chunk in place.
     const auto persistentListDataSize = persistentDataChunk->getNumValues();
-    idx_t numListsToWrite = 0u;
     row_idx_t newListDataSize = persistentListDataSize;
     std::vector<ChunkCheckpointState> listDataChunkCheckpointStates;
     for (const auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
@@ -324,7 +323,6 @@ void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
         listDataChunkCheckpointStates.push_back(ChunkCheckpointState{
             chunkCheckpointState.chunkData->cast<ListChunkData>().moveDataColumnChunk(),
             newListDataSize, listDataSizeToAppend});
-        numListsToWrite += chunkCheckpointState.numRows;
         newListDataSize += listDataSizeToAppend;
     }
 
@@ -364,7 +362,7 @@ void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
                 chunkCheckpointState.chunkData->getNumValues() == chunkCheckpointState.numRows);
             offsetChunks.push_back(std::make_unique<ColumnChunk>(LogicalType::UINT64(),
                 chunkCheckpointState.numRows, false, ResidencyState::IN_MEMORY));
-            auto& offsetsToWrite = offsetChunks.back();
+            const auto& offsetsToWrite = offsetChunks.back();
             const auto& listChunk = chunkCheckpointState.chunkData->cast<ListChunkData>();
             for (auto i = 0u; i < chunkCheckpointState.numRows; i++) {
                 listEndOffset += listChunk.getListEndOffset(i);

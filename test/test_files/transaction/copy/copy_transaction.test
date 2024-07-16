@@ -54,6 +54,17 @@
 40
 45
 83
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.age
+---- 8
+20
+20
+25
+30
+35
+40
+45
+83
 
 -CASE CopyRelCommitNormalExecution
 -STATEMENT CREATE NODE TABLE person
@@ -114,6 +125,23 @@
 2021-06-30
 -STATEMENT CALL CHECKPOINT() RETURN *;
 ---- ok
+-STATEMENT match (:person)-[e:knows]->(:person) return e.date
+---- 14
+1905-12-12
+1905-12-12
+1950-05-14
+1950-05-14
+1950-05-14
+1950-05-14
+2000-01-01
+2000-01-01
+2021-06-30
+2021-06-30
+2021-06-30
+2021-06-30
+2021-06-30
+2021-06-30
+-RELOADDB
 -STATEMENT match (:person)-[e:knows]->(:person) return e.date
 ---- 14
 1905-12-12

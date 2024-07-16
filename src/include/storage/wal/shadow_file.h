@@ -56,7 +56,7 @@ public:
 
     BMFileHandle& getShadowingFH() const { return *shadowingFH; }
 
-    void replayShadowPageRecords(const main::ClientContext& context) const;
+    void replayShadowPageRecords(main::ClientContext& context) const;
 
     void flushAll(main::ClientContext& context) const;
     void clearAll(main::ClientContext& context);
