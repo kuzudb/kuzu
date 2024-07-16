@@ -204,7 +204,7 @@ def test_networkx_undirected(conn_db_readonly: ConnDB) -> None:
                 assert node[key] == ground_truth_p[key][i]
         assert found
 
-    assert len(edges) == 6
+    assert len(edges) == 9
     # This should be a complete graph, so we check if an edge exists between
     # every pair of nodes and that there are no self-loops
     for i in range(len(nodes)):
