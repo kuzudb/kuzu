@@ -1,1 +1,1 @@
-COPY embeddings FROM "/Users/gauravsehgal/work/orangedb/data/siftsmall/embeddings.csv" (deLim=',');
+COPY embeddings FROM "/localscratch/g3sehgal.36875570.0/sift_10k/embeddings.csv" (deLim=',');
