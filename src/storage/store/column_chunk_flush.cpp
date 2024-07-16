@@ -6,6 +6,7 @@
 
 namespace kuzu::storage {
 using namespace common;
+using namespace transaction;
 
 ColumnChunkMetadata uncompressedFlushBuffer(const uint8_t* buffer, uint64_t bufferSize,
     BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
@@ -139,4 +140,5 @@ ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(const uint8_t* buf
 
 template class CompressedFloatFlushBuffer<float>;
 template class CompressedFloatFlushBuffer<double>;
+
 } // namespace kuzu::storage

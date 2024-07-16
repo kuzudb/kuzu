@@ -10,6 +10,7 @@
 #include "storage/stats/metadata_dah_info.h"
 #include "storage/storage_structure/disk_array.h"
 #include "storage/store/column_chunk_data.h"
+#include "storage/store/column_read.h"
 
 namespace kuzu {
 namespace evaluator {
@@ -174,19 +175,10 @@ protected:
     virtual void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::idx_t vectorIdx, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
-    void scanUnfiltered(transaction::Transaction* transaction, PageCursor& pageCursor,
-        uint64_t numValuesToScan, common::ValueVector* resultVector,
-        const ColumnChunkMetadata& chunkMeta, uint64_t startPosInVector = 0);
-    void scanFiltered(transaction::Transaction* transaction, PageCursor& pageCursor,
-        uint64_t numValuesToScan, const common::SelectionVector& selVector,
-        common::ValueVector* resultVector, const ColumnChunkMetadata& chunkMeta);
     virtual void lookupInternal(transaction::Transaction* transaction, ChunkState& state,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     virtual void lookupValue(transaction::Transaction* transaction, ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector);
-
-    void readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
-        const std::function<void(uint8_t*)>& func);
 
     virtual void writeValue(ChunkState& state, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
@@ -256,47 +248,6 @@ private:
         return val >= start && val < end;
     }
 
-    PageCursor getExceptionPageCursor(const ChunkState& readState, PageCursor cursor);
-
-    template<typename T>
-    EncodeException<T> getExceptionAt(size_t curExceptionIdx, transaction::Transaction* transaction,
-        PageCursor exceptionPageCursor);
-
-    template<typename T>
-    common::offset_t findFirstExceptionAtOrPastOffset(transaction::Transaction* transaction,
-        common::offset_t offsetInChunk, common::offset_t exceptionCount,
-        PageCursor exceptionPageCursor);
-
-    template<typename T, typename OutputType>
-    void readFloatValue(transaction::Transaction* transaction, const ChunkState& readState,
-        common::offset_t offsetInChunk, PageCursor cursor, OutputType result,
-        uint32_t offsetInResult,
-        std::function<void(uint8_t* frame, PageCursor& pageCursor, OutputType result,
-            uint32_t posInResult, uint64_t numValues, const CompressionMetadata& metadata)>
-            readFunc);
-
-    template<typename T, typename OutputType>
-    void patchFloatExceptions(transaction::Transaction* transaction, const ChunkState& readState,
-        common::offset_t startOffsetInChunk, size_t numValuesToScan, OutputType result,
-        common::offset_t startOffsetInResult,
-        std::function<bool(common::offset_t, common::offset_t)> filterFunc);
-
-    template<typename OutputType>
-    void readValue(transaction::Transaction* transaction, const ChunkState& readState,
-        common::offset_t nodeOffset, OutputType result, uint32_t offsetInResult,
-        std::function<void(uint8_t* frame, PageCursor& pageCursor, OutputType result,
-            uint32_t posInResult, uint64_t numValues, const CompressionMetadata& metadata)>
-            readFunc);
-
-    template<typename OutputType>
-    uint64_t readValues(transaction::Transaction* transaction, const ChunkState& readState,
-        OutputType result, uint32_t startOffsetInResult, uint64_t startNodeOffset,
-        uint64_t endNodeOffset,
-        std::function<void(uint8_t* frame, PageCursor& pageCursor, OutputType result,
-            uint32_t posInResult, uint64_t numValues, const CompressionMetadata& metadata)>
-            readFunc,
-        std::function<bool(common::offset_t, common::offset_t)> filterFunc);
-
 protected:
     std::string name;
     DBFileID dbFileID;
@@ -312,6 +263,8 @@ protected:
     read_values_to_page_func_t readToPageFunc;
     batch_lookup_func_t batchLookupFunc;
     bool enableCompression;
+
+    std::unique_ptr<ColumnReader> columnReader;
 };
 
 class InternalIDColumn final : public Column {

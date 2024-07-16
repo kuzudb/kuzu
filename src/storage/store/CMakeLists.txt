@@ -3,6 +3,7 @@ add_library(kuzu_storage_store
         chunked_node_group.cpp
         chunked_node_group_collection.cpp
         column.cpp
+        column_read.cpp
         column_chunk_data.cpp
         column_chunk_metadata.cpp
         column_chunk_flush.cpp

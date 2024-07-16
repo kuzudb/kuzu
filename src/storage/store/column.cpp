@@ -31,11 +31,6 @@ using namespace kuzu::evaluator;
 namespace kuzu {
 namespace storage {
 
-static bool isPageIdxValid(page_idx_t pageIdx, const ColumnChunkMetadata& metadata) {
-    return (metadata.pageIdx <= pageIdx && pageIdx < metadata.pageIdx + metadata.numPages) ||
-           (pageIdx == INVALID_PAGE_IDX && metadata.compMeta.isConstant());
-}
-
 struct ReadInternalIDValuesToVector {
     ReadInternalIDValuesToVector() : compressedReader{LogicalType(LogicalTypeID::INTERNAL_ID)} {}
     void operator()(const uint8_t* frame, PageCursor& pageCursor, ValueVector* resultVector,
@@ -131,7 +126,9 @@ Column::Column(std::string name, LogicalType dataType, const MetadataDAHInfo& me
     BMFileHandle* dataFH, DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
     transaction::Transaction* transaction, bool enableCompression, bool requireNullColumn)
     : name{std::move(name)}, dbFileID{DBFileID::newDataFileID()}, dataType{std::move(dataType)},
-      dataFH{dataFH}, bufferManager{bufferManager}, wal{wal}, enableCompression{enableCompression} {
+      dataFH{dataFH}, bufferManager{bufferManager}, wal{wal}, enableCompression{enableCompression},
+      columnReader(ColumnReaderFactory::createColumnReader(this->dataType.getPhysicalType(),
+          this->dataFH, this->bufferManager, this->wal)) {
     metadataDA = metadataDAC.getDiskArray<ColumnChunkMetadata>(metaDAHeaderInfo.dataDAHIdx,
         dataType.getPhysicalType());
     readToVectorFunc = getReadValuesToVectorFunc(this->dataType);
@@ -168,213 +165,6 @@ Column* Column::getNullColumn() const {
     return nullColumn.get();
 }
 
-template<typename T>
-EncodeException<T> Column::getExceptionAt(size_t curExceptionIdx, Transaction* transaction,
-    PageCursor exceptionPageCursor) {
-    EncodeException<T> ret;
-
-    PageCursor curExceptionCursor = PageUtils::getPageCursorForPos(curExceptionIdx,
-        BufferPoolConstants::PAGE_4KB_SIZE / EncodeException<T>::sizeBytes());
-    curExceptionCursor.pageIdx += exceptionPageCursor.pageIdx;
-
-    readFromPage(transaction, curExceptionCursor.pageIdx,
-        [&ret, &curExceptionCursor](uint8_t* frame) -> void {
-            memcpy(&ret.value,
-                frame + EncodeException<T>::sizeBytes() * curExceptionCursor.elemPosInPage,
-                sizeof(ret.value));
-            memcpy(&ret.posInPage,
-                frame + EncodeException<T>::sizeBytes() * curExceptionCursor.elemPosInPage +
-                    sizeof(ret.value),
-                sizeof(ret.posInPage));
-        });
-
-    return ret;
-}
-
-template<typename T>
-offset_t Column::findFirstExceptionAtOrPastOffset(Transaction* transaction, offset_t offsetInChunk,
-    offset_t exceptionCount, PageCursor exceptionPageCursor) {
-    // binary search for chunkOffset in exceptions
-    offset_t lo = 0;
-    offset_t hi = exceptionCount;
-    while (lo < hi) {
-        const size_t curExceptionIdx = (lo + hi) / 2;
-        EncodeException<T> lastException =
-            getExceptionAt<T>(curExceptionIdx, transaction, exceptionPageCursor);
-
-        if (lastException.posInPage < offsetInChunk) {
-            lo = curExceptionIdx + 1;
-        } else {
-            hi = curExceptionIdx;
-        }
-    }
-
-    return lo;
-}
-
-PageCursor Column::getExceptionPageCursor(const ChunkState& readState, PageCursor cursor) {
-    // TODO fix
-    const size_t numExceptionPages =
-        ceilDiv((uint64_t)readState.metadata.compMeta.alpMetadata.exceptionCount,
-            BufferPoolConstants::PAGE_4KB_SIZE /
-                (dataType.getPhysicalType() == common::PhysicalTypeID::FLOAT ?
-                        EncodeException<float>::sizeBytes() :
-                        EncodeException<double>::sizeBytes()));
-    const size_t exceptionPageOffset = readState.metadata.numPages - numExceptionPages;
-    KU_ASSERT(exceptionPageOffset == (page_idx_t)exceptionPageOffset);
-    return {cursor.pageIdx + (page_idx_t)exceptionPageOffset, 0};
-}
-
-template<typename T, typename OutputType>
-void Column::readFloatValue(Transaction* transaction, const ChunkState& readState,
-    offset_t offsetInChunk, PageCursor cursor, OutputType result, uint32_t offsetInResult,
-    std::function<void(uint8_t* frame, PageCursor& pageCursor, OutputType result,
-        uint32_t posInResult, uint64_t numValues, const CompressionMetadata& metadata)>
-        readFunc) {
-    PageCursor exceptionPageCursor =
-        getExceptionPageCursor(readState, getPageCursorForOffsetInGroup(0, readState));
-
-    const offset_t firstExceptionIdx = findFirstExceptionAtOrPastOffset<T>(transaction,
-        offsetInChunk, readState.metadata.compMeta.alpMetadata.exceptionCount, exceptionPageCursor);
-
-    const auto searchedException =
-        getExceptionAt<T>(firstExceptionIdx, transaction, exceptionPageCursor);
-    if (firstExceptionIdx == readState.metadata.compMeta.alpMetadata.exceptionCount ||
-        searchedException.posInPage != offsetInChunk) {
-        readFromPage(transaction, cursor.pageIdx,
-            [&readFunc, &cursor, result, offsetInResult, &readState](uint8_t* frame) -> void {
-                readFunc(frame, cursor, result, offsetInResult, 1 /* numValuesToRead */,
-                    readState.metadata.compMeta);
-            });
-    } else {
-        if constexpr (std::is_same_v<uint8_t*, OutputType>) {
-            *reinterpret_cast<T*>(result) = searchedException.value;
-        } else {
-            *reinterpret_cast<T*>(result->getData()) = searchedException.value;
-        }
-    }
-}
-
-template<typename OutputType>
-void Column::readValue(Transaction* transaction, const ChunkState& readState, offset_t nodeOffset,
-    OutputType result, uint32_t offsetInResult,
-    std::function<void(uint8_t* frame, PageCursor& pageCursor, OutputType result,
-        uint32_t posInResult, uint64_t numValues, const CompressionMetadata& metadata)>
-        readFunc) {
-    auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
-    auto cursor = getPageCursorForOffsetInGroup(offsetInChunk, readState);
-    KU_ASSERT(isPageIdxValid(cursor.pageIdx, readState.metadata));
-    if (readState.metadata.compMeta.compression == CompressionType::FLOAT) {
-        switch (dataType.getPhysicalType()) {
-            // TODO deal with enableCompression
-        case common::PhysicalTypeID::FLOAT: {
-            readFloatValue<float>(transaction, readState, offsetInChunk, cursor, result,
-                offsetInResult, readFunc);
-            return;
-        }
-        case common::PhysicalTypeID::DOUBLE: {
-            readFloatValue<double>(transaction, readState, offsetInChunk, cursor, result,
-                offsetInResult, readFunc);
-            return;
-        }
-        default: {
-            KU_UNREACHABLE;
-        }
-        }
-    }
-
-    readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
-        readFunc(frame, cursor, result, offsetInResult, 1 /* numValuesToRead */,
-            readState.metadata.compMeta);
-    });
-}
-
-template<typename T, typename OutputType>
-void Column::patchFloatExceptions(Transaction* transaction, const ChunkState& readState,
-    offset_t startOffsetInChunk, size_t numValuesToScan, OutputType result,
-    offset_t startOffsetInResult,
-    std::function<bool(common::offset_t, common::offset_t)> filterFunc) {
-    // patch exceptions
-    PageCursor exceptionPageCursor =
-        getExceptionPageCursor(readState, getPageCursorForOffsetInGroup(0, readState));
-    offset_t curExceptionIdx = findFirstExceptionAtOrPastOffset<T>(transaction, startOffsetInChunk,
-        readState.metadata.compMeta.alpMetadata.exceptionCount, exceptionPageCursor);
-    for (; curExceptionIdx < readState.metadata.compMeta.alpMetadata.exceptionCount;
-         ++curExceptionIdx) {
-        const auto curException =
-            getExceptionAt<T>(curExceptionIdx, transaction, exceptionPageCursor);
-        KU_ASSERT(curException.posInPage >= curExceptionIdx);
-        if (curException.posInPage >= startOffsetInChunk + numValuesToScan) {
-            break;
-        }
-        const offset_t offsetInResult =
-            startOffsetInResult + curException.posInPage - startOffsetInChunk;
-        if (filterFunc(offsetInResult, offsetInResult + 1)) {
-            if constexpr (std::is_same_v<uint8_t*, OutputType>) {
-                reinterpret_cast<T*>(result)[offsetInResult] = curException.value;
-            } else {
-                static_assert(std::is_same_v<ValueVector*, std::remove_cvref_t<OutputType>>);
-                reinterpret_cast<T*>(result->getData())[offsetInResult] = curException.value;
-            }
-        }
-    }
-}
-
-template<typename OutputType>
-uint64_t Column::readValues(Transaction* transaction, const ChunkState& readState,
-    OutputType result, uint32_t startOffsetInResult, uint64_t startNodeOffset,
-    uint64_t endNodeOffset,
-    std::function<void(uint8_t* frame, PageCursor& pageCursor, OutputType result,
-        uint32_t posInResult, uint64_t numValues, const CompressionMetadata& metadata)>
-        readFunc,
-    std::function<bool(common::offset_t, common::offset_t)> filterFunc) {
-    const ColumnChunkMetadata& chunkMeta = readState.metadata;
-    const auto numValuesPerPage = readState.numValuesPerPage;
-    const auto numValuesToScan = endNodeOffset - startNodeOffset;
-    if (numValuesToScan == 0) {
-        return 0;
-    }
-
-    auto pageCursor = getPageCursorForOffsetInGroup(startNodeOffset, readState);
-    KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, readState.metadata));
-
-    uint64_t numValuesScanned = 0;
-    while (numValuesScanned < numValuesToScan) {
-        uint64_t numValuesToScanInPage = std::min(numValuesPerPage - pageCursor.elemPosInPage,
-            numValuesToScan - numValuesScanned);
-        KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, chunkMeta));
-        if (filterFunc(numValuesScanned, numValuesScanned + numValuesToScanInPage)) {
-            readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
-                readFunc(frame, pageCursor, result, numValuesScanned + startOffsetInResult,
-                    numValuesToScanInPage, chunkMeta.compMeta);
-            });
-        }
-        numValuesScanned += numValuesToScanInPage;
-        pageCursor.nextPage();
-    }
-
-    if (readState.metadata.compMeta.compression == CompressionType::FLOAT) {
-        switch (dataType.getPhysicalType()) {
-            // TODO deal with enableCompression
-        case common::PhysicalTypeID::FLOAT: {
-            patchFloatExceptions<float>(transaction, readState, startNodeOffset, numValuesToScan,
-                result, startOffsetInResult, filterFunc);
-            break;
-        }
-        case common::PhysicalTypeID::DOUBLE: {
-            patchFloatExceptions<double>(transaction, readState, startNodeOffset, numValuesToScan,
-                result, startOffsetInResult, filterFunc);
-            break;
-        }
-        default: {
-            KU_UNREACHABLE;
-        }
-        }
-    }
-
-    return numValuesScanned;
-}
-
 // NOTE: This function should only be called on node tables.
 void Column::batchLookup(Transaction* transaction, const offset_t* nodeOffsets, size_t size,
     uint8_t* result) {
@@ -385,7 +175,8 @@ void Column::batchLookup(Transaction* transaction, const offset_t* nodeOffsets, 
         ChunkState state;
         initChunkState(transaction, nodeGroupIdx, state);
         state.metadata = metadataDA->get(nodeGroupIdx, transaction->getType());
-        readValue(transaction, state, nodeOffset, result, i, batchLookupFunc);
+        columnReader->readCompressedValueToPage(transaction, state.metadata, state.numValuesPerPage,
+            nodeOffset, result, i, batchLookupFunc);
     }
 }
 
@@ -427,8 +218,8 @@ void Column::scan(Transaction* transaction, const ChunkState& state, offset_t st
         nullColumn->scan(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
             resultVector, offsetInVector);
     }
-    readValues(transaction, state, resultVector, offsetInVector, startOffsetInGroup,
-        endOffsetInGroup, readToVectorFunc,
+    columnReader->readCompressedValuesToVector(transaction, state.metadata, state.numValuesPerPage,
+        resultVector, offsetInVector, startOffsetInGroup, endOffsetInGroup, readToVectorFunc,
         [](offset_t /*startIdx*/, offset_t /*endIdx*/) { return true; });
 }
 
@@ -453,15 +244,17 @@ void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunk
     }
     KU_ASSERT((numValuesToScan + startOffset) <= state.metadata.numValues);
 
-    const uint64_t numValuesScanned = readValues(transaction, state, columnChunk->getData(), 0,
-        startOffset, endOffset, readToPageFunc, [](offset_t, offset_t) { return true; });
+    const uint64_t numValuesScanned = columnReader->readCompressedValuesToPage(transaction,
+        state.metadata, state.numValuesPerPage, columnChunk->getData(), 0, startOffset, endOffset,
+        readToPageFunc, [](offset_t, offset_t) { return true; });
 
     columnChunk->setNumValues(numValuesScanned);
 }
 
 void Column::scan(Transaction* transaction, const ChunkState& state, offset_t startOffsetInGroup,
     offset_t endOffsetInGroup, uint8_t* result) {
-    readValues(transaction, state, result, 0, startOffsetInGroup, endOffsetInGroup, readToPageFunc,
+    columnReader->readCompressedValuesToPage(transaction, state.metadata, state.numValuesPerPage,
+        result, 0, startOffsetInGroup, endOffsetInGroup, readToPageFunc,
         [](offset_t /*startIdx*/, offset_t /*endIdx*/) { return true; });
 }
 
@@ -469,7 +262,8 @@ void Column::scanInternal(Transaction* transaction, const ChunkState& state, idx
     row_idx_t numValuesToScan, ValueVector* nodeIDVector, ValueVector* resultVector) {
     const auto startOffsetInChunk = vectorIdx * DEFAULT_VECTOR_CAPACITY;
     if (nodeIDVector->state->getSelVector().isUnfiltered()) {
-        readValues(transaction, state, resultVector, 0, startOffsetInChunk,
+        columnReader->readCompressedValuesToVector(transaction, state.metadata,
+            state.numValuesPerPage, resultVector, 0, startOffsetInChunk,
             startOffsetInChunk + numValuesToScan, readToVectorFunc,
             [](offset_t /*startIdx*/, offset_t /*endIdx*/) { return true; });
     } else {
@@ -489,7 +283,8 @@ void Column::scanInternal(Transaction* transaction, const ChunkState& state, idx
             offset_t posInSelVector;
         };
 
-        readValues(transaction, state, resultVector, 0, startOffsetInChunk,
+        columnReader->readCompressedValuesToVector(transaction, state.metadata,
+            state.numValuesPerPage, resultVector, 0, startOffsetInChunk,
             startOffsetInChunk + numValuesToScan, readToVectorFunc,
             Filterer{nodeIDVector->state->getSelVector()});
     }
@@ -519,19 +314,8 @@ void Column::lookupInternal(Transaction* transaction, ChunkState& readState,
 
 void Column::lookupValue(Transaction* transaction, ChunkState& readState, offset_t nodeOffset,
     ValueVector* resultVector, uint32_t posInVector) {
-    readValue(transaction, readState, nodeOffset, resultVector, posInVector, readToVectorFunc);
-}
-
-void Column::readFromPage(Transaction* transaction, page_idx_t pageIdx,
-    const std::function<void(uint8_t*)>& func) {
-    // For constant compression, call read on a nullptr since there is no data on disk and
-    // decompression only requires metadata
-    if (pageIdx == INVALID_PAGE_IDX) {
-        return func(nullptr);
-    }
-    auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
-        *dataFH, pageIdx, *wal, transaction->getType());
-    bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, func);
+    columnReader->readCompressedValueToVector(transaction, readState.metadata,
+        readState.numValuesPerPage, nodeOffset, resultVector, posInVector, readToVectorFunc);
 }
 
 static bool sanityCheckForWrites(const ColumnChunkMetadata& metadata, const LogicalType& dataType) {
