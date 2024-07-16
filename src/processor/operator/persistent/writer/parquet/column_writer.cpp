@@ -4,7 +4,6 @@
 #include "common/string_format.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "lz4.hpp"
-#include "miniz.hpp"
 #include "miniz_wrapper.hpp"
 #include "processor/operator/persistent/writer/parquet/boolean_column_writer.h"
 #include "processor/operator/persistent/writer/parquet/interval_column_writer.h"
