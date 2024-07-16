@@ -110,10 +110,10 @@ def test_map_param(tmp_path: Path) -> None:
     result = conn.execute(
         "MERGE (t:tab {id: 0, mp: $1, mp2: $2, mp3: $3, mp4: $4}) RETURN t.*",
         {
-            "1": {1.0: 5, 2: 3, 2.2: -1},
-            "2": {5: -0.5, 4: 0, 0: 2.2},
-            "3": {"a": 1, "b": "2", "c": "3"},
-            "4": [{}, {"a": "b"}],
+            "1": {"key": [1.0, 2, 2.2], "value": [5, 3, -1]},
+            "2": {"key": [5, 4, 0], "value": [-0.5, 0, 2.2]},
+            "3": {"key": ["a", "b", "c"], "value": [1, "2", "3"]},
+            "4": [{"key": ["a"], "value": ["b"]}],
         },
     )
     assert result.has_next()
@@ -122,7 +122,7 @@ def test_map_param(tmp_path: Path) -> None:
         {1.0: 5, 2.0: 3, 2.2: -1},
         {5: -0.5, 4: -0.0, 0: 2.2},
         {"a": "1", "b": "2", "c": "3"},
-        [{}, {"a": "b"}],
+        [{"a": "b"}],
     ]
     assert not result.has_next()
     result.close()
@@ -155,14 +155,17 @@ def test_null_resolution(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
     conn.execute(
-        "CREATE NODE TABLE tab(id SERIAL, lst1 INT64[], mp1 MAP(STRING, STRING), nest MAP(STRING, MAP(STRING, INT64))[], PRIMARY KEY(id))"
+        "CREATE NODE TABLE tab(id SERIAL, lst1 INT64[], mp1 MAP(STRING, STRING), "
+        "nest MAP(STRING, MAP(STRING, INT64))[], PRIMARY KEY(id))"
     )
     lst1 = [1, 2, 3, None]
-    mp1 = {"a": "x", "b": "y", "c": "z", "o": None}
-    nest = [{"2": {"foo": 1, "bar": 2}}, {1: {}}]
+    mp1 = {"key": ["a", "b", "c", "o"], "value": ["x", "y", "z", None]}
+    nest = [{"key": ["2"], "value": [{"key": ["foo", "bar"], "value": [1, 2]}]},
+            {"key": ["1"], "value": [{"key": [], "value": []}]}]
     result = conn.execute("MERGE (t:tab {lst1: $1, mp1: $2, nest: $3}) RETURN t.*", {"1": lst1, "2": mp1, "3": nest})
     assert result.has_next()
-    assert result.get_next() == [0, lst1, mp1, [{"2": {"foo": 1, "bar": 2}}, {"1": {}}]]
+    assert result.get_next() == [0, lst1, {'a': 'x', 'b': 'y', 'c': 'z', 'o': None},
+                                 [{"2": {"foo": 1, "bar": 2}}, {"1": {}}]]
     assert not result.has_next()
     result.close()
 
@@ -212,9 +215,22 @@ def test_param(conn_db_readwrite: ConnDB) -> None:
 def test_param_error4(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
     with pytest.raises(
-        RuntimeError,
-        match="Runtime exception: Cannot convert Python object to Kuzu value : INT8  is incompatible with TIMESTAMP",
+            RuntimeError,
+            match="Runtime exception: Cannot convert Python object to Kuzu value : INT8  is incompatible with TIMESTAMP",
     ):
         conn.execute(
             "MATCH (a:person {workedHours: $1}) RETURN COUNT(*);", {"1": [1, 2, datetime.datetime(2023, 3, 25)]}
         )
+
+
+def test_dict_conversion(conn_db_readwrite: ConnDB) -> None:
+    conn, db = conn_db_readwrite
+    # Interpret as MAP.
+    result = conn.execute("RETURN $st", {"st": {"key": [1, 2, 3], "value": [3, 7, 98]}})
+    assert result.get_next() == [{1: 3, 2: 7, 3: 98}]
+    # Interpret as STRUCT since the first field name is not "key".
+    result = conn.execute("RETURN $st", {"st": {"key1": [1, 2, 3], "value": [3, 7, 98]}})
+    assert result.get_next() == [{'key1': [1, 2, 3], 'value': [3, 7, 98]}]
+    # Interpret as STRUCT since the number of elements in key and value doesn't match.
+    result = conn.execute("RETURN $st", {"st": {"key": [1, 2], "value": [3, 7, 98, 4]}})
+    assert result.get_next() == [{'key': [1, 2], 'value': [3, 7, 98, 4]}]
