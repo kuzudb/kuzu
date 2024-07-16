@@ -33,8 +33,7 @@ void LogicalMerge::computeFlatSchema() {
 
 f_group_pos_set LogicalMerge::getGroupsPosToFlatten() {
     auto childSchema = children[0]->getSchema();
-    return factorization::FlattenAll::getGroupsPosToFlatten(childSchema->getGroupsPosInScope(),
-        childSchema);
+    return FlattenAll::getGroupsPosToFlatten(childSchema->getGroupsPosInScope(), *childSchema);
 }
 
 std::unique_ptr<LogicalOperator> LogicalMerge::copy() {

@@ -6,8 +6,6 @@
 namespace kuzu {
 namespace planner {
 
-using namespace factorization;
-
 void LogicalAggregate::computeFactorizedSchema() {
     createEmptySchema();
     auto groupPos = schema->createGroup();
@@ -21,29 +19,16 @@ void LogicalAggregate::computeFlatSchema() {
 }
 
 f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForGroupBy() {
-    f_group_pos_set dependentGroupsPos;
-    for (auto& expression : getAllKeys()) {
-        for (auto groupPos : children[0]->getSchema()->getDependentGroupsPos(expression)) {
-            dependentGroupsPos.insert(groupPos);
-        }
-    }
     if (hasDistinctAggregate()) {
-        return FlattenAll::getGroupsPosToFlatten(dependentGroupsPos, children[0]->getSchema());
+        return FlattenAll::getGroupsPosToFlatten(getAllKeys(), *children[0]->getSchema());
     } else {
-        return FlattenAllButOne::getGroupsPosToFlatten(dependentGroupsPos,
-            children[0]->getSchema());
+        return FlattenAllButOne::getGroupsPosToFlatten(getAllKeys(), *children[0]->getSchema());
     }
 }
 
 f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForAggregate() {
     if (hasDistinctAggregate()) {
-        f_group_pos_set dependentGroupsPos;
-        for (auto& expression : aggregates) {
-            for (auto groupPos : children[0]->getSchema()->getDependentGroupsPos(expression)) {
-                dependentGroupsPos.insert(groupPos);
-            }
-        }
-        return FlattenAll::getGroupsPosToFlatten(dependentGroupsPos, children[0]->getSchema());
+        return FlattenAll::getGroupsPosToFlatten(aggregates, *children[0]->getSchema());
     }
     return f_group_pos_set{};
 }

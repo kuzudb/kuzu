@@ -53,8 +53,7 @@ std::string LogicalInsert::getExpressionsForPrinting() const {
 
 f_group_pos_set LogicalInsert::getGroupsPosToFlatten() {
     auto childSchema = children[0]->getSchema();
-    return factorization::FlattenAll::getGroupsPosToFlatten(childSchema->getGroupsPosInScope(),
-        childSchema);
+    return FlattenAll::getGroupsPosToFlatten(childSchema->getGroupsPosInScope(), *childSchema);
 }
 
 } // namespace planner

@@ -23,14 +23,8 @@ void LogicalDistinct::computeFlatSchema() {
 }
 
 f_group_pos_set LogicalDistinct::getGroupsPosToFlatten() {
-    f_group_pos_set dependentGroupsPos;
     auto childSchema = children[0]->getSchema();
-    for (auto& expression : getKeysAndPayloads()) {
-        for (auto groupPos : childSchema->getDependentGroupsPos(expression)) {
-            dependentGroupsPos.insert(groupPos);
-        }
-    }
-    return factorization::FlattenAll::getGroupsPosToFlatten(dependentGroupsPos, childSchema);
+    return FlattenAll::getGroupsPosToFlatten(getKeysAndPayloads(), *childSchema);
 }
 
 std::string LogicalDistinct::getExpressionsForPrinting() const {

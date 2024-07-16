@@ -1,6 +1,7 @@
 #include "binder/expression/expression_util.h"
 #include "binder/expression/subquery_expression.h"
 #include "binder/expression_visitor.h"
+#include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/planner.h"
 
 using namespace kuzu::binder;
@@ -9,11 +10,18 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
+static binder::expression_vector getDependentExprs(std::shared_ptr<Expression> expr,
+    const Schema& schema) {
+    auto analyzer = GroupDependencyAnalyzer(true /* collectDependentExpr */, schema);
+    analyzer.visit(expr);
+    return analyzer.getDependentExprs();
+}
+
 binder::expression_vector Planner::getCorrelatedExprs(const QueryGraphCollection& collection,
     const expression_vector& predicates, Schema* outerSchema) {
     expression_vector result;
     for (auto& predicate : predicates) {
-        for (auto& expression : outerSchema->getSubExpressionsInScope(predicate)) {
+        for (auto& expression : getDependentExprs(predicate, *outerSchema)) {
             result.push_back(expression);
         }
     }
@@ -85,7 +93,7 @@ void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
     // E.g. MATCH (a) WITH COUNT(*) AS s MATCH (b) WHERE b.age > s
     // "b.age > s" should be pulled up after both MATCH clauses are joined.
     for (auto& predicate : predicates) {
-        if (leftPlan.getSchema()->getSubExpressionsInScope(predicate).empty()) {
+        if (getDependentExprs(predicate, *leftPlan.getSchema()).empty()) {
             predicatesToPushDown.push_back(predicate);
         } else {
             predicatesToPullUp.push_back(predicate);
@@ -126,7 +134,7 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
     KU_ASSERT(expression->expressionType == ExpressionType::SUBQUERY);
     auto subquery = static_pointer_cast<SubqueryExpression>(expression);
     auto predicates = subquery->getPredicatesSplitOnAnd();
-    auto correlatedExprs = outerPlan.getSchema()->getSubExpressionsInScope(expression);
+    auto correlatedExprs = getDependentExprs(expression, *outerPlan.getSchema());
     std::unique_ptr<LogicalPlan> innerPlan;
     auto info = QueryGraphPlanningInfo();
     info.predicates = predicates;
