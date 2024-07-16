@@ -61,7 +61,7 @@ void NodeTableData::initializeScanState(Transaction* transaction, TableScanState
     }
     dataScanState.vectorIdx = INVALID_IDX;
     dataScanState.numRowsInNodeGroup =
-        columns[0]->getMetadata(scanState.nodeGroupIdx, TransactionType::READ_ONLY).numValues;
+        columns[0]->getMetadata(scanState.nodeGroupIdx, transaction).numValues;
 }
 
 void NodeTableData::initializeColumnScanStates(Transaction* transaction, TableScanState& scanState,

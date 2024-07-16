@@ -144,7 +144,7 @@ public:
         evaluator::ExpressionEvaluator& defaultEvaluator);
 
     ColumnChunkMetadata getMetadata(common::node_group_idx_t nodeGroupIdx,
-        transaction::TransactionType transaction) const {
+        transaction::Transaction* transaction) const {
         return metadataDA->get(nodeGroupIdx, transaction);
     }
     DiskArray<ColumnChunkMetadata>* getMetadataDA() const { return metadataDA.get(); }

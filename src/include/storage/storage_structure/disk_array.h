@@ -109,17 +109,19 @@ public:
     uint64_t getNumElements(
         transaction::TransactionType trxType = transaction::TransactionType::READ_ONLY);
 
-    void get(uint64_t idx, transaction::TransactionType trxType, std::span<std::byte> val);
+    void get(uint64_t idx, const transaction::Transaction* transaction, std::span<std::byte> val);
 
     // Note: This function is to be used only by the WRITE trx.
-    void update(uint64_t idx, std::span<std::byte> val);
+    void update(const transaction::Transaction* transaction, uint64_t idx,
+        std::span<std::byte> val);
 
     // Note: This function is to be used only by the WRITE trx.
     // The return value is the idx of val in array.
-    uint64_t pushBack(std::span<std::byte> val);
+    uint64_t pushBack(const transaction::Transaction* transaction, std::span<std::byte> val);
 
     // Note: Currently, this function doesn't support shrinking the size of the array.
-    uint64_t resize(uint64_t newNumElements, std::span<std::byte> defaultVal);
+    uint64_t resize(const transaction::Transaction* transaction, uint64_t newNumElements,
+        std::span<std::byte> defaultVal);
 
     virtual inline void checkpointInMemoryIfNecessary() {
         std::unique_lock xlock{this->diskArraySharedMtx};
@@ -163,7 +165,7 @@ public:
 
         WriteIterator& seek(size_t newIdx);
         // Adds a new element to the disk array and seeks to the new element
-        void pushBack(std::span<std::byte> val);
+        void pushBack(const transaction::Transaction* transaction, std::span<std::byte> val);
 
         inline WriteIterator& operator+=(size_t increment) { return seek(idx + increment); }
 
@@ -233,7 +235,7 @@ private:
     // Returns the apPageIdx of the AP with idx apIdx and a bool indicating whether the apPageIdx is
     // a newly inserted page.
     std::pair<common::page_idx_t, bool> getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
-        common::page_idx_t apIdx);
+        const transaction::Transaction* transaction, common::page_idx_t apIdx);
 
 protected:
     PageStorageInfo storageInfo;
@@ -273,21 +275,25 @@ public:
 
     // Note: This function is to be used only by the WRITE trx.
     // The return value is the idx of val in array.
-    inline uint64_t pushBack(U val) { return diskArray.pushBack(getSpan(val)); }
+    inline uint64_t pushBack(const transaction::Transaction* transaction, U val) {
+        return diskArray.pushBack(transaction, getSpan(val));
+    }
 
     // Note: This function is to be used only by the WRITE trx.
-    inline void update(uint64_t idx, U val) { diskArray.update(idx, getSpan(val)); }
+    inline void update(const transaction::Transaction* transaction, uint64_t idx, U val) {
+        diskArray.update(transaction, idx, getSpan(val));
+    }
 
-    inline U get(uint64_t idx, transaction::TransactionType trxType) {
+    inline U get(uint64_t idx, const transaction::Transaction* transaction) {
         U val;
-        diskArray.get(idx, trxType, getSpan(val));
+        diskArray.get(idx, transaction, getSpan(val));
         return val;
     }
 
     // Note: Currently, this function doesn't support shrinking the size of the array.
-    inline uint64_t resize(uint64_t newNumElements) {
+    inline uint64_t resize(const transaction::Transaction* transaction, uint64_t newNumElements) {
         U defaultVal;
-        return diskArray.resize(newNumElements, getSpan(defaultVal));
+        return diskArray.resize(transaction, newNumElements, getSpan(defaultVal));
     }
 
     inline uint64_t getNumElements(
@@ -318,8 +324,8 @@ public:
         inline uint64_t idx() const { return iter.idx; }
         inline uint64_t getAPIdx() const { return iter.apCursor.pageIdx; }
 
-        inline WriteIterator& pushBack(U val) {
-            iter.pushBack(getSpan(val));
+        inline WriteIterator& pushBack(const transaction::Transaction* transaction, U val) {
+            iter.pushBack(transaction, getSpan(val));
             return *this;
         }
 

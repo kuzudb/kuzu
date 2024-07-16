@@ -136,7 +136,7 @@ static void appendColumnChunkStorageInfo(node_group_idx_t nodeGroupIdx,
     const std::string& tableType, const Column* column, DataChunk& outputChunk,
     ClientContext* context) {
     auto vectorPos = outputChunk.state->getSelVector().getSelSize();
-    auto metadata = column->getMetadata(nodeGroupIdx, context->getTx()->getType());
+    auto metadata = column->getMetadata(nodeGroupIdx, context->getTx());
     auto columnType = column->getDataType().toString();
     outputChunk.getValueVector(0)->setValue<uint64_t>(vectorPos, nodeGroupIdx);
     outputChunk.getValueVector(1)->setValue(vectorPos, column->getName());
