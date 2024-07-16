@@ -126,19 +126,12 @@ public:
                 TestRunner::runTest(statement.get(), *conn, databasePath);
             } else {
                 auto connName = *statement->connName;
-                CheckConn(connName);
                 if (isConcurrent) {
                     concurrentTests.at(connName).addStatement(statement.get());
                 } else {
                     TestRunner::runTest(statement.get(), *connMap[connName], databasePath);
                 }
             }
-        }
-    }
-
-    inline void CheckConn(std::string connName) {
-        if (connMap[connName] == nullptr) {
-            connMap[connName] = std::make_unique<main::Connection>(database.get());
         }
     }
 
