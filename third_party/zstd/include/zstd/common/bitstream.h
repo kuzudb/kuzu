@@ -42,7 +42,7 @@
 #define STREAM_ACCUMULATOR_MIN_64  57
 #define STREAM_ACCUMULATOR_MIN    ((U32)(MEM_32bits() ? STREAM_ACCUMULATOR_MIN_32 : STREAM_ACCUMULATOR_MIN_64))
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 
 /*-******************************************
 *  bitStream encoding API (write forward)

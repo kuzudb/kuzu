@@ -11,7 +11,7 @@
 #include "zstd/compress/zstd_compress_internal.h"
 #include "zstd/compress/zstd_double_fast.h"
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 
 void ZSTD_fillDoubleHashTable(ZSTD_matchState_t* ms,
                               void const* end, ZSTD_dictTableLoadMethod_e dtlm)

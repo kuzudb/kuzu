@@ -17,7 +17,7 @@
 
 #include "zstd.h" /* ZSTD_CCtx */
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 /*-*************************************
 *  Target Compressed Block Size
 ***************************************/

@@ -22,7 +22,7 @@
 #include "zstd/common/mem.h"             /* BYTE, U16, U32 */
 #include "zstd/common/zstd_internal.h"   /* ZSTD_seqSymbol */
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 
 /*-*******************************************************
  *  Constants

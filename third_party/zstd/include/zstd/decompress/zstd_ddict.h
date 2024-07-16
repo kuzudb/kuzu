@@ -18,7 +18,7 @@
 #include <stddef.h>   /* size_t */
 #include "zstd.h"     /* ZSTD_DDict, and several public functions */
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 /*-*******************************************************
  *  Interface
  *********************************************************/

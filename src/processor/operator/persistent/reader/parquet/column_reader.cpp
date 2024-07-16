@@ -346,9 +346,9 @@ void ColumnReader::decompressInternal(kuzu_parquet::format::CompressionCodec::ty
         // LCOV_EXCL_STOP
     } break;
     case CompressionCodec::ZSTD: {
-        auto res = duckdb_zstd::ZSTD_decompress(dst, dstSize, src, srcSize);
+        auto res = kuzu_zstd::ZSTD_decompress(dst, dstSize, src, srcSize);
         // LCOV_EXCL_START
-        if (duckdb_zstd::ZSTD_isError(res) || res != (size_t)dstSize) {
+        if (kuzu_zstd::ZSTD_isError(res) || res != (size_t)dstSize) {
             throw common::RuntimeException{"ZSTD decompression failed."};
         }
         // LCOV_EXCL_STOP
