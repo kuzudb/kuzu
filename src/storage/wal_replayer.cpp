@@ -63,12 +63,6 @@ void WALReplayer::replay() {
 
 void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     switch (walRecord.type) {
-    case WALRecordType::CATALOG_RECORD: {
-        replayCatalogRecord(walRecord);
-    } break;
-    case WALRecordType::TABLE_STATISTICS_RECORD: {
-        replayTableStatisticsRecord(walRecord);
-    } break;
     case WALRecordType::COMMIT_RECORD: {
     } break;
     case WALRecordType::CREATE_CATALOG_ENTRY_RECORD: {
@@ -94,103 +88,6 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     default:
         KU_UNREACHABLE;
     }
-}
-
-// void WALReplayer::replayPageUpdateOrInsertRecord(const WALRecord& walRecord,
-//     std::unordered_map<DBFileID, std::unique_ptr<FileInfo>>& fileCache) {
-//     // 1. As the first step we copy over the page on disk, regardless of if we are recovering
-//     // (and checkpointing) or checkpointing while during regular execution.
-//     auto& pageInsertOrUpdateRecord = walRecord.constCast<PageUpdateOrInsertRecord>();
-//     auto dbFileID = pageInsertOrUpdateRecord.dbFileID;
-//     auto entry = fileCache.find(dbFileID);
-//     if (entry == fileCache.end()) {
-//         fileCache.insert(std::make_pair(dbFileID,
-//             StorageUtils::getFileInfoForReadWrite(clientContext.getDatabasePath(), dbFileID,
-//                 clientContext.getVFSUnsafe())));
-//         entry = fileCache.find(dbFileID);
-//     }
-//     auto& fileInfoOfDBFile = entry->second;
-//     if (isCheckpoint) {
-//         shadowFH.readPage(pageBuffer.get(), pageInsertOrUpdateRecord.pageIdxInWAL);
-//         fileInfoOfDBFile->writeFile(pageBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE,
-//             pageInsertOrUpdateRecord.pageIdxInOriginalFile * BufferPoolConstants::PAGE_4KB_SIZE);
-//     }
-//     if (!isRecovering) {
-//         // 2: If we are not recovering, we do any in-memory checkpointing or rolling back work
-//         // to make sure that the system's in-memory structures are consistent with what is on
-//         // disk. For example, we update the BM's image of the pages or InMemDiskArrays used by
-//         // lists or the WALVersion pageIdxs of pages for VersionedFileHandles.
-//         checkpointOrRollbackVersionedFileHandleAndBufferManager(walRecord, dbFileID);
-//     }
-// }
-
-void WALReplayer::replayCatalogRecord(const WALRecord&) {
-    if (isCheckpoint) {
-        auto vfs = clientContext.getVFSUnsafe();
-        auto checkpointFile = StorageUtils::getCatalogFilePath(vfs, clientContext.getDatabasePath(),
-            common::FileVersionType::WAL_VERSION);
-        auto originalFile = StorageUtils::getCatalogFilePath(vfs, clientContext.getDatabasePath(),
-            common::FileVersionType::ORIGINAL);
-        vfs->overwriteFile(checkpointFile, originalFile);
-    }
-}
-
-void WALReplayer::replayTableStatisticsRecord(const WALRecord& walRecord) {
-    // auto& tableStatisticsRecord = walRecord.constCast<TableStatisticsRecord>();
-    // auto vfs = clientContext.getVFSUnsafe();
-    // auto storageManager = clientContext.getStorageManager();
-    // if (isCheckpoint) {
-    //     switch (tableStatisticsRecord.tableType) {
-    //     case TableType::NODE: {
-    //         auto checkpointFile = StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(vfs,
-    //             clientContext.getDatabasePath(), common::FileVersionType::WAL_VERSION);
-    //         if (!vfs->fileOrPathExists(walFilePath, &clientContext)) {
-    //             // This is a temp hack: multiple transactions can log multiple table stats
-    //             records
-    //             // before checkpoint.
-    //             return;
-    //         }
-    //         auto originalFilePath = StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(vfs,
-    //             clientContext.getDatabasePath(), common::FileVersionType::ORIGINAL);
-    //         vfs->overwriteFile(checkpointFile, originalFilePath);
-    //         if (!isRecovering) {
-    //             //
-    //             storageManager->getNodesStatisticsAndDeletedIDs()->checkpointInMemoryIfNecessary();
-    //         }
-    //     } break;
-    //     case TableType::REL: {
-    //         auto checkpointFile = StorageUtils::getRelsStatisticsFilePath(vfs,
-    //             clientContext.getDatabasePath(), common::FileVersionType::WAL_VERSION);
-    //         if (!vfs->fileOrPathExists(checkpointFile, &clientContext)) {
-    //             // This is a temp hack: multiple transactions can log multiple table stats
-    //             records
-    //             // before checkpoint.
-    //             return;
-    //         }
-    //         auto originalFilePath = StorageUtils::getRelsStatisticsFilePath(vfs,
-    //             clientContext.getDatabasePath(), common::FileVersionType::ORIGINAL);
-    //         vfs->overwriteFile(checkpointFile, originalFilePath);
-    //         if (!isRecovering) {
-    //             // storageManager->getRelsStatistics()->checkpointInMemoryIfNecessary();
-    //         }
-    //     } break;
-    //     default: {
-    //         KU_UNREACHABLE;
-    //     }
-    //     }
-    // } else {
-    //     switch (tableStatisticsRecord.tableType) {
-    //     case TableType::NODE: {
-    //         // storageManager->getNodesStatisticsAndDeletedIDs()->rollbackInMemoryIfNecessary();
-    //     } break;
-    //     case TableType::REL: {
-    //         // storageManager->getRelsStatistics()->rollbackInMemoryIfNecessary();
-    //     } break;
-    //     default: {
-    //         KU_UNREACHABLE;
-    //     }
-    //     }
-    // }
 }
 
 void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) {
@@ -303,66 +200,6 @@ void WALReplayer::replayUpdateSequenceRecord(const WALRecord& walRecord) {
     entry->replayVal(dropEntryRecord.data.usageCount, dropEntryRecord.data.currVal,
         dropEntryRecord.data.nextVal);
 }
-
-// void WALReplayer::truncateFileIfInsertion(BMFileHandle* fileHandle,
-// const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord) {
-// if (pageInsertOrUpdateRecord.isInsert) {
-// If we are rolling back and this is a page insertion we truncate the shadowingFH's
-// data structures that hold locks for pageIdxs.
-// Note: We can directly call removePageIdxAndTruncateIfNecessary here because we
-// assume there is a single write transaction in the system at any point in time.
-// Suppose page 5 and page 6 were added to a file during a transaction, which is now
-// rolling back. As we replay the log to rollback, we see page 5's insertion first.
-// However, we can directly truncate the file to 5 (even if later we will see a page
-// 6 insertion), because we assume that if there were further new page additions to
-// the same file, they must also be part of the rolling back transaction. If this
-// assumption fails, instead of truncating, we need to indicate that page 5 is a
-// "free" page again and have some logic to maintain free pages.
-// fileHandle->removePageIdxAndTruncateIfNecessary(
-// pageInsertOrUpdateRecord.pageIdxInOriginalFile);
-// }
-// }
-
-// void WALReplayer::checkpointOrRollbackVersionedFileHandleAndBufferManager(
-//     const WALRecord& walRecord, const DBFileID& dbFileID) {
-//     BMFileHandle* fileHandle = getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(dbFileID);
-//     auto& pageInsertOrUpdateRecord = walRecord.constCast<PageUpdateOrInsertRecord>();
-//     if (fileHandle) {
-//         fileHandle->clearWALPageIdxIfNecessary(pageInsertOrUpdateRecord.pageIdxInOriginalFile);
-//         if (isCheckpoint) {
-//             // Update the page in buffer manager if it is in a frame. Note that we assume
-//             // that the pageBuffer currently contains the contents of the WALVersion, so the
-//             // caller needs to make sure that this assumption holds.
-//             clientContext.getMemoryManager()
-//                 ->getBufferManager()
-//                 ->updateFrameIfPageIsInFrameWithoutLock(*fileHandle, pageBuffer.get(),
-//                     pageInsertOrUpdateRecord.pageIdxInOriginalFile);
-//         } else {
-//             truncateFileIfInsertion(fileHandle, pageInsertOrUpdateRecord);
-//         }
-//     }
-// }
-
-// BMFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(
-//     const DBFileID& dbFileID) {
-//     auto storageManager = clientContext.getStorageManager();
-//     switch (dbFileID.dbFileType) {
-//     case DBFileType::METADATA: {
-//         return storageManager->getMetadataFH();
-//     }
-//     case DBFileType::DATA: {
-//         return storageManager->getDataFH();
-//     }
-//     case DBFileType::NODE_INDEX: {
-//         auto index = storageManager->getPKIndex(dbFileID.nodeIndexID.tableID);
-//         return dbFileID.isOverflow ? index->getOverflowFile()->getBMFileHandle() :
-//                                      index->getFileHandle();
-//     }
-//     default: {
-//         KU_UNREACHABLE;
-//     }
-//     }
-// }
 
 } // namespace storage
 } // namespace kuzu

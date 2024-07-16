@@ -298,12 +298,7 @@ void UndoBuffer::commitVectorUpdateInfo(const uint8_t* record, transaction_t com
     undoRecord.vectorUpdateInfo->version = commitTS;
 }
 
-void UndoBuffer::commitNodeBatchInsertRecord(const uint8_t* record, transaction_t commitTS) const {
-    // auto& nodeBatchInsertRecord = *reinterpret_cast<NodeBatchInsertRecord const*>(record);
-    // auto table = clientContext.getStorageManager()->getTable(nodeBatchInsertRecord.tableID);
-    // KU_ASSERT(table->getTableType() == TableType::NODE);
-    // table->prepareCommit();
-}
+void UndoBuffer::commitNodeBatchInsertRecord(const uint8_t*, transaction_t) const {}
 
 void UndoBuffer::rollbackRecord(const UndoRecordType recordType, const uint8_t* record) {
     switch (recordType) {

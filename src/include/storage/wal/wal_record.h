@@ -3,9 +3,7 @@
 #include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
-#include "common/enums/table_type.h"
 #include "common/types/internal_id_t.h"
-#include "function/hash/hash_functions.h"
 
 namespace kuzu {
 namespace common {
@@ -18,14 +16,11 @@ namespace storage {
 enum class WALRecordType : uint8_t {
     INVALID_RECORD = 0, // This is not used for any record. 0 is reserved to detect cases where we
                         // accidentally read from an empty buffer.
-    CATALOG_RECORD = 1,
     COMMIT_RECORD = 2,
     COPY_TABLE_RECORD = 3,
     CREATE_CATALOG_ENTRY_RECORD = 4,
     DROP_CATALOG_ENTRY_RECORD = 10,
     ALTER_TABLE_ENTRY_RECORD = 11,
-    PAGE_UPDATE_OR_INSERT_RECORD = 20,
-    TABLE_STATISTICS_RECORD = 30,
     UPDATE_SEQUENCE_RECORD = 40,
     CHECKPOINT_RECORD = 50,
 };
@@ -45,25 +40,6 @@ struct WALRecord {
         return common::ku_dynamic_cast<const WALRecord&, const TARGET&>(*this);
     }
 };
-
-// struct PageUpdateOrInsertRecord final : public WALRecord {
-//     DBFileID dbFileID;
-//     // PageIdx in the file of updated storage structure, identified by the dbFileID field
-//     uint64_t pageIdxInOriginalFile;
-//     uint64_t pageIdxInWAL;
-//     bool isInsert;
-//
-//     PageUpdateOrInsertRecord() = default;
-//     PageUpdateOrInsertRecord(DBFileID dbFileID, uint64_t pageIdxInOriginalFile,
-//         uint64_t pageIdxInWAL, bool isInsert)
-//         : WALRecord{WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD}, dbFileID{dbFileID},
-//           pageIdxInOriginalFile{pageIdxInOriginalFile}, pageIdxInWAL{pageIdxInWAL},
-//           isInsert{isInsert} {}
-//
-//     void serialize(common::Serializer& serializer) const override;
-//     static std::unique_ptr<PageUpdateOrInsertRecord> deserialize(
-//         common::Deserializer& deserializer);
-// };
 
 struct CommitRecord final : public WALRecord {
     uint64_t transactionID;
@@ -104,24 +80,6 @@ struct CopyTableRecord final : public WALRecord {
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<CopyTableRecord> deserialize(common::Deserializer& deserializer);
-};
-
-struct CatalogRecord final : public WALRecord {
-    CatalogRecord() : WALRecord{WALRecordType::CATALOG_RECORD} {}
-
-    void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<CatalogRecord> deserialize(common::Deserializer& deserializer);
-};
-
-struct TableStatisticsRecord final : public WALRecord {
-    common::TableType tableType;
-
-    TableStatisticsRecord() = default;
-    explicit TableStatisticsRecord(common::TableType tableType)
-        : WALRecord{WALRecordType::TABLE_STATISTICS_RECORD}, tableType{tableType} {}
-
-    void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<TableStatisticsRecord> deserialize(common::Deserializer& deserializer);
 };
 
 struct DropCatalogEntryRecord final : public WALRecord {

@@ -48,7 +48,7 @@ ShadowFile::ShadowFile(const std::string& directory, bool readOnly, BufferManage
         vfs->joinPath(directory, std::string(StorageConstants::SHADOWING_SUFFIX)),
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-        BMFileHandle::FileVersionedType::NON_VERSIONED_FILE, vfs, context);
+        vfs, context);
     // Reserve the first page for the header.
     shadowingFH->addNewPage();
 }

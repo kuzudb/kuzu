@@ -410,11 +410,10 @@ template class HashIndex<ku_string_t>;
 PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
     common::PhysicalTypeID keyDataType, BufferManager& bufferManager, ShadowFile* shadowFile,
     VirtualFileSystem* vfs, main::ClientContext* context)
-    : keyDataTypeID(keyDataType),
-      fileHandle{bufferManager.getBMFileHandle(dbFileIDAndName.fName,
-          readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                     FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-          BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs, context)},
+    : keyDataTypeID(keyDataType), fileHandle{bufferManager.getBMFileHandle(dbFileIDAndName.fName,
+                                      readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                                                 FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+                                      vfs, context)},
       bufferManager{bufferManager}, dbFileIDAndName{dbFileIDAndName}, shadowFile{*shadowFile} {
     bool newIndex = fileHandle->getNumPages() == 0;
 

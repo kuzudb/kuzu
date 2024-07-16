@@ -28,25 +28,7 @@ WAL::WAL(const std::string& directory, bool readOnly, BufferManager& bufferManag
 
 WAL::~WAL() {}
 
-// page_idx_t WAL::logPageUpdateRecord(DBFileID dbFileID, page_idx_t pageIdxInOriginalFile) {
-//     lock_t lck{mtx};
-//     auto pageIdxInWAL = shadowingFH->addNewPage();
-//     PageUpdateOrInsertRecord walRecord(dbFileID, pageIdxInOriginalFile, pageIdxInWAL,
-//         false /*isInsert*/);
-//     addNewWALRecordNoLock(walRecord);
-//     return pageIdxInWAL;
-// }
-
-// page_idx_t WAL::logPageInsertRecord(DBFileID dbFileID, page_idx_t pageIdxInOriginalFile) {
-//     lock_t lck{mtx};
-//     auto pageIdxInWAL = shadowingFH->addNewPage();
-//     PageUpdateOrInsertRecord walRecord(dbFileID, pageIdxInOriginalFile, pageIdxInWAL,
-//         true /*isInsert*/);
-//     addNewWALRecordNoLock(walRecord);
-//     return pageIdxInWAL;
-// }
-
-void WAL::logCommit(uint64_t transactionID) {
+void WAL::logAndFlushCommit(uint64_t transactionID) {
     lock_t lck{mtx};
     // Flush all pages before committing to make sure that commits only show up in the file when
     // their data is also written.
@@ -61,18 +43,6 @@ void WAL::logAndFlushCheckpoint() {
     addNewWALRecordNoLock(walRecord);
     flushAllPages();
 }
-
-// void WAL::logCatalogRecord() {
-// lock_t lck{mtx};
-// CatalogRecord walRecord;
-// addNewWALRecordNoLock(walRecord);
-// }
-
-// void WAL::logTableStatisticsRecord(TableType tableType) {
-// lock_t lck{mtx};
-// TableStatisticsRecord walRecord(tableType);
-// addNewWALRecordNoLock(walRecord);
-// }
 
 void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry) {
     lock_t lck{mtx};
@@ -115,7 +85,7 @@ void WAL::flushAllPages() {
     bufferedWriter->getFileInfo().syncFile();
 }
 
-void WAL::addNewWALRecordNoLock(WALRecord& walRecord) {
+void WAL::addNewWALRecordNoLock(const WALRecord& walRecord) {
     KU_ASSERT(walRecord.type != WALRecordType::INVALID_RECORD);
     Serializer serializer(bufferedWriter);
     walRecord.serialize(serializer);

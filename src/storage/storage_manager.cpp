@@ -37,7 +37,7 @@ BMFileHandle* StorageManager::initFileHandle(const std::string& filename, Virtua
     return memoryManager.getBufferManager()->getBMFileHandle(filename,
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-        BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs, context);
+        vfs, context);
 }
 
 // TODO(Guodong): Rework setting common table ID for rdf rel tables.
@@ -100,8 +100,7 @@ void StorageManager::recover(main::ClientContext& clientContext) {
         auto* bm = clientContext.getMemoryManager()->getBufferManager();
         auto shadowFH = bm->getBMFileHandle(vfs->joinPath(clientContext.getDatabasePath(),
                                                 std::string(StorageConstants::SHADOWING_SUFFIX)),
-            FileHandle::O_PERSISTENT_FILE_NO_CREATE,
-            BMFileHandle::FileVersionedType::NON_VERSIONED_FILE, vfs, &clientContext);
+            FileHandle::O_PERSISTENT_FILE_NO_CREATE, vfs, &clientContext);
         auto walReplayer =
             std::make_unique<WALReplayer>(clientContext, WALReplayMode::RECOVERY_CHECKPOINT);
         walReplayer->replay();

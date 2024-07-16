@@ -2,9 +2,9 @@
 
 #include <unordered_set>
 
+#include "common/serializer/buffered_file.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/wal/wal_record.h"
-#include <common/serializer/buffered_file.h>
 
 namespace kuzu {
 namespace binder {
@@ -32,16 +32,7 @@ public:
     WAL(const std::string& directory, bool readOnly, BufferManager& bufferManager,
         common::VirtualFileSystem* vfs, main::ClientContext* context);
 
-    // Destructing WAL flushes any unwritten header page but not the other pages. The caller
-    // which possibly has access to the buffer manager needs to ensure any unwritten pages
-    // are also flushed to disk.
     ~WAL();
-
-    // common::page_idx_t logPageUpdateRecord(DBFileID dbFileID,
-    // common::page_idx_t pageIdxInOriginalFile);
-
-    // common::page_idx_t logPageInsertRecord(DBFileID dbFileID,
-    // common::page_idx_t pageIdxInOriginalFile);
 
     void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry);
     void logDropCatalogEntryRecord(uint64_t entryID, catalog::CatalogEntryType type);
@@ -52,17 +43,13 @@ public:
     void logUpdateSequenceRecord(common::sequence_id_t sequenceID,
         catalog::SequenceChangeData data);
 
-    // void logCatalogRecord();
-    // void logTableStatisticsRecord(common::TableType tableType);
-    void logCommit(uint64_t transactionID);
+    void logAndFlushCommit(uint64_t transactionID);
     void logAndFlushCheckpoint();
 
     // Removes the contents of WAL file.
     void clearWAL();
 
     void flushAllPages();
-
-    bool isEmptyWAL() const;
 
     void addToUpdatedTables(const common::table_id_t nodeTableID) {
         updatedTables.insert(nodeTableID);
@@ -72,12 +59,12 @@ public:
     uint64_t getFileSize() const { return bufferedWriter->getFileSize(); }
 
 private:
-    void addNewWALRecordNoLock(WALRecord& walRecord);
+    void addNewWALRecordNoLock(const WALRecord& walRecord);
 
 private:
-    // Node/Rel tables that might have changes to their in-memory data structures that need to be
-    // committed/rolled back accordingly during the wal replaying.
-    // Tables need in memory checkpointing or rolling back.
+    // Keep track of tables that has updates since last checkpoint. Ideally this is used to
+    // determine whether the table needs to be checkpointed or not. NOT fully done yet, will rework
+    // this later when working on logging and recovery.
     std::unordered_set<common::table_id_t> updatedTables;
     std::unique_ptr<common::FileInfo> fileInfo;
     std::shared_ptr<common::BufferedFileWriter> bufferedWriter;

@@ -13,7 +13,7 @@ namespace transaction {
 void Transaction::commit(storage::WAL* wal) const {
     localStorage->commit();
     undoBuffer->commit(commitTS);
-    wal->logCommit(ID);
+    wal->logAndFlushCommit(ID);
     wal->flushAllPages();
 }
 

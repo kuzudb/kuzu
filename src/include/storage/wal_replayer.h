@@ -22,22 +22,11 @@ public:
 
 private:
     void replayWALRecord(WALRecord& walRecord);
-    // void replayPageUpdateOrInsertRecord(const WALRecord& walRecord,
-    // std::unordered_map<DBFileID, std::unique_ptr<common::FileInfo>>& fileCache);
-    void replayCatalogRecord(const WALRecord& walRecord);
-    void replayTableStatisticsRecord(const WALRecord& walRecord);
     void replayCreateCatalogEntryRecord(const WALRecord& walRecord);
     void replayDropCatalogEntryRecord(const WALRecord& walRecord);
     void replayAlterTableEntryRecord(const WALRecord& walRecord);
     void replayCopyTableRecord(const WALRecord& walRecord) const;
     void replayUpdateSequenceRecord(const WALRecord& walRecord);
-
-    // void checkpointOrRollbackVersionedFileHandleAndBufferManager(const WALRecord& walRecord,
-    // const DBFileID& dbFileID);
-    // void truncateFileIfInsertion(BMFileHandle* fileHandle,
-    // const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord);
-    // BMFileHandle* getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(const DBFileID&
-    // dbFileID);
 
 private:
     std::string walFilePath;

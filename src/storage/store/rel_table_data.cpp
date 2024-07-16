@@ -14,31 +14,6 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-// PackedCSRRegion::PackedCSRRegion(idx_t regionIdx, idx_t level)
-//     : regionIdx{regionIdx}, level{level} {
-//     const auto startSegmentIdx = regionIdx << level;
-//     leftBoundary = startSegmentIdx << StorageConstants::CSR_LEAF_REGION_SIZE_LOG2;
-//     rightBoundary = leftBoundary + (StorageConstants::CSR_LEAF_REGION_SIZE << level) - 1;
-// }
-//
-// bool PackedCSRRegion::isWithin(const PackedCSRRegion& other) const {
-//     if (other.level <= level) {
-//         return false;
-//     }
-//     auto [left, right] = getSegmentBoundaries();
-//     auto [otherLeft, otherRight] = other.getSegmentBoundaries();
-//     return left >= otherLeft && right <= otherRight;
-// }
-//
-// void PackedCSRRegion::setSizeChange(const std::vector<int64_t>& sizeChangesPerSegment) {
-//     sizeChange = 0;
-//     const auto startSegmentIdx = regionIdx << level;
-//     const auto endSegmentIdx = startSegmentIdx + (1 << level) - 1;
-//     for (auto segmentIdx = startSegmentIdx; segmentIdx <= endSegmentIdx; segmentIdx++) {
-//         sizeChange += sizeChangesPerSegment[segmentIdx];
-//     }
-// }
-
 RelTableData::RelTableData(BMFileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
     const TableCatalogEntry* tableEntry, RelDataDirection direction, bool enableCompression,
     Deserializer* deSer)
@@ -218,106 +193,6 @@ void RelTableData::checkIfNodeHasRels(Transaction* transaction, ValueVector* src
         }
     }
 }
-
-// static length_t getGapSizeForNode(const ChunkedCSRHeader& header, offset_t nodeOffset) {
-// return header.getEndCSROffset(nodeOffset) - header.getStartCSROffset(nodeOffset) -
-// header.getCSRLength(nodeOffset);
-// }
-
-// static length_t getRegionCapacity(const ChunkedCSRHeader& header, const PackedCSRRegion& region)
-// { auto [startNodeOffset, endNodeOffset] = region.getNodeOffsetBoundaries(); return
-// header.getEndCSROffset(endNodeOffset) - header.getStartCSROffset(startNodeOffset);
-// }
-
-// length_t RelTableData::getNewRegionSize(const ChunkedCSRHeader& header,
-//     const std::vector<int64_t>& sizeChangesPerSegment, PackedCSRRegion& region) {
-//     auto [startNodeOffsetInNG, endNodeOffsetInNG] = region.getNodeOffsetBoundaries();
-//     endNodeOffsetInNG = std::min(endNodeOffsetInNG, header.offset->getNumValues() - 1);
-//     int64_t oldSize = 0;
-//     for (auto offsetInNG = startNodeOffsetInNG; offsetInNG <= endNodeOffsetInNG; offsetInNG++) {
-//         oldSize += header.getCSRLength(offsetInNG);
-//     }
-//     region.setSizeChange(sizeChangesPerSegment);
-//     return oldSize + region.sizeChange;
-// }
-
-// static PackedCSRRegion upgradeLevel(const PackedCSRRegion& region) {
-// auto regionIdx = region.regionIdx >> 1;
-// return PackedCSRRegion{regionIdx, region.level + 1};
-// }
-
-// static uint64_t findPosOfRelIDFromArray(const ColumnChunkData* relIDInRegion, offset_t startPos,
-// offset_t endPos, offset_t relOffset) {
-// KU_ASSERT(endPos <= relIDInRegion->getNumValues());
-// for (auto i = startPos; i < endPos; i++) {
-// if (relIDInRegion->getValue<offset_t>(i) == relOffset) {
-// return i;
-// }
-// }
-// return UINT64_MAX;
-// }
-
-// offset_t RelTableData::findCSROffsetInRegion(const PersistentState& persistentState,
-//     offset_t nodeOffset, offset_t relOffset) {
-//     auto startPos =
-//         persistentState.header.getStartCSROffset(nodeOffset) - persistentState.leftCSROffset;
-//     auto endPos = startPos + persistentState.header.getCSRLength(nodeOffset);
-//     auto posInCSRList =
-//         findPosOfRelIDFromArray(persistentState.relIDChunk.get(), startPos, endPos, relOffset);
-//     KU_ASSERT(posInCSRList != UINT64_MAX);
-//     return posInCSRList + persistentState.leftCSROffset;
-// }
-//
-// bool RelTableData::isWithinDensityBound(const ChunkedCSRHeader& header,
-//     const std::vector<int64_t>& sizeChangesPerSegment, PackedCSRRegion& region) const {
-//     auto sizeInRegion = getNewRegionSize(header, sizeChangesPerSegment, region);
-//     auto capacityInRegion = getRegionCapacity(header, region);
-//     auto ratio = static_cast<double>(sizeInRegion) / static_cast<double>(capacityInRegion);
-//     return ratio <= getHighDensity(region.level);
-// }
-//
-// double RelTableData::getHighDensity(uint64_t level) const {
-//     KU_ASSERT(level <= packedCSRInfo.calibratorTreeHeight);
-//     if (level == 0) {
-//         return StorageConstants::LEAF_HIGH_CSR_DENSITY;
-//     }
-//     return StorageConstants::PACKED_CSR_DENSITY +
-//            (packedCSRInfo.highDensityStep *
-//                static_cast<double>(packedCSRInfo.calibratorTreeHeight - level));
-// }
-
-// std::vector<PackedCSRRegion> RelTableData::findRegions(const ChunkedCSRHeader& headerChunks,
-//     LocalState& localState) const {
-//     std::vector<PackedCSRRegion> regions;
-//     auto segmentIdx = 0u;
-//     constexpr auto numSegments =
-//         StorageConstants::NODE_GROUP_SIZE / StorageConstants::CSR_LEAF_REGION_SIZE;
-//     while (segmentIdx < numSegments) {
-//         if (!localState.hasChangesPerSegment[segmentIdx]) {
-//             // Skip the segment if no updates/deletions/insertions happen inside it.
-//             segmentIdx++;
-//             continue;
-//         }
-//         // Traverse from the leaf level (level 0) to higher levels to find a region that can
-//         satisfy
-//         // the density threshold.
-//         PackedCSRRegion region{segmentIdx, 0 /* level */};
-//         while (!isWithinDensityBound(headerChunks, localState.sizeChangesPerSegment, region)) {
-//             region = upgradeLevel(region);
-//             if (region.level >= packedCSRInfo.calibratorTreeHeight) {
-//                 // Already hit the top level. Skip any other segments and directly return here.
-//                 return {region};
-//             }
-//         }
-//         // Skip segments in the found region.
-//         segmentIdx = (region.regionIdx << region.level) + (1u << region.level);
-//         // Loop through found regions and eliminate the ones that are under the realm of the
-//         // currently found region.
-//         std::erase_if(regions, [&](const PackedCSRRegion& r) { return r.isWithin(region); });
-//         regions.push_back(region);
-//     }
-//     return regions;
-// }
 
 void RelTableData::checkpoint(Serializer& ser) const {
     std::vector<Column*> checkpointColumns;

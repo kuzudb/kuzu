@@ -4,6 +4,7 @@
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "common/exception/runtime.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -29,17 +30,9 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer) {
     case WALRecordType::ALTER_TABLE_ENTRY_RECORD: {
         walRecord = AlterTableEntryRecord::deserialize(deserializer);
     } break;
-    case WALRecordType::CATALOG_RECORD: {
-        walRecord = CatalogRecord::deserialize(deserializer);
-    } break;
-    case WALRecordType::TABLE_STATISTICS_RECORD: {
-        walRecord = TableStatisticsRecord::deserialize(deserializer);
-    } break;
     case WALRecordType::COPY_TABLE_RECORD: {
         walRecord = CopyTableRecord::deserialize(deserializer);
     } break;
-    // case WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD: {
-    // walRecord = PageUpdateOrInsertRecord::deserialize(deserializer);
     // } break;
     case WALRecordType::COMMIT_RECORD: {
         walRecord = CommitRecord::deserialize(deserializer);
@@ -60,24 +53,6 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer) {
     walRecord->type = type;
     return walRecord;
 }
-
-// void PageUpdateOrInsertRecord::serialize(Serializer& serializer) const {
-//     WALRecord::serialize(serializer);
-//     serializer.write(dbFileID);
-//     serializer.write(pageIdxInOriginalFile);
-//     serializer.write(pageIdxInWAL);
-//     serializer.write(isInsert);
-// }
-//
-// std::unique_ptr<PageUpdateOrInsertRecord> PageUpdateOrInsertRecord::deserialize(
-//     Deserializer& deserializer) {
-//     auto retVal = std::make_unique<PageUpdateOrInsertRecord>();
-//     deserializer.deserializeValue(retVal->dbFileID);
-//     deserializer.deserializeValue(retVal->pageIdxInOriginalFile);
-//     deserializer.deserializeValue(retVal->pageIdxInWAL);
-//     deserializer.deserializeValue(retVal->isInsert);
-//     return retVal;
-// }
 
 void CommitRecord::serialize(Serializer& serializer) const {
     WALRecord::serialize(serializer);
@@ -124,26 +99,6 @@ void CopyTableRecord::serialize(Serializer& serializer) const {
 std::unique_ptr<CopyTableRecord> CopyTableRecord::deserialize(Deserializer& deserializer) {
     auto retVal = std::make_unique<CopyTableRecord>();
     deserializer.deserializeValue(retVal->tableID);
-    return retVal;
-}
-
-void CatalogRecord::serialize(Serializer& serializer) const {
-    WALRecord::serialize(serializer);
-}
-
-std::unique_ptr<CatalogRecord> CatalogRecord::deserialize(Deserializer&) {
-    return std::make_unique<CatalogRecord>();
-}
-
-void TableStatisticsRecord::serialize(Serializer& serializer) const {
-    WALRecord::serialize(serializer);
-    serializer.write(tableType);
-}
-
-std::unique_ptr<TableStatisticsRecord> TableStatisticsRecord::deserialize(
-    Deserializer& deserializer) {
-    auto retVal = std::make_unique<TableStatisticsRecord>();
-    deserializer.deserializeValue(retVal->tableType);
     return retVal;
 }
 

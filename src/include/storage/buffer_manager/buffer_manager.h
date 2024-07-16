@@ -193,10 +193,10 @@ public:
 
     // For files that are managed by BM, their FileHandles should be created through this function.
     BMFileHandle* getBMFileHandle(const std::string& filePath, uint8_t flags,
-        BMFileHandle::FileVersionedType fileVersionedType, common::VirtualFileSystem* vfs,
-        main::ClientContext* context, common::PageSizeClass pageSizeClass = common::PAGE_4KB) {
+        common::VirtualFileSystem* vfs, main::ClientContext* context,
+        common::PageSizeClass pageSizeClass = common::PAGE_4KB) {
         fileHandles.emplace_back(std::unique_ptr<BMFileHandle>(new BMFileHandle(filePath, flags,
-            this, fileHandles.size(), pageSizeClass, fileVersionedType, vfs, context)));
+            this, fileHandles.size(), pageSizeClass, vfs, context)));
         return fileHandles.back().get();
     }
 

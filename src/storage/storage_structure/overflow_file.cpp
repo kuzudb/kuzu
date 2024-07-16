@@ -165,7 +165,7 @@ OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager
     fileHandle = bufferManager->getBMFileHandle(overflowFileIDAndName.fName,
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-        BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs, context);
+        vfs, context);
     if (fileHandle->getNumPages() > HEADER_PAGE_IDX) {
         readFromDisk(TransactionType::READ_ONLY, HEADER_PAGE_IDX,
             [&](auto* frame) { memcpy(&header, frame, sizeof(header)); });
