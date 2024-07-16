@@ -3,6 +3,7 @@
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
 #include "parser/update_vector_index.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;

@@ -4,6 +4,7 @@
 #include "planner/operator/ddl/logical_create_vector_index.h"
 #include "planner/operator/logical_update_vector_index.h"
 #include "planner/planner.h"
+#include "main/client_context.h"
 
 using namespace kuzu::binder;
 
@@ -32,7 +33,7 @@ void Planner::appendUpdateVectorIndex(const binder::BoundStatement& statement, L
     common::table_id_map_t<SingleLabelPropertyInfo> internalIdInfo;
     internalIdInfo.insert(
         {tableEntry->getTableID(), SingleLabelPropertyInfo(false, INVALID_PROPERTY_ID)});
-    auto offset = std::make_shared<PropertyExpression>(*LogicalType::INTERNAL_ID(),
+    auto offset = std::make_shared<PropertyExpression>(LogicalType::INTERNAL_ID(),
         InternalKeyword::ID, InternalKeyword::ID, InternalKeyword::ID, std::move(internalIdInfo));
     cardinalityEstimator.addNodeIDDom(*offset, {tableEntry->getTableID()}, clientContext->getTx());
 
@@ -40,7 +41,7 @@ void Planner::appendUpdateVectorIndex(const binder::BoundStatement& statement, L
     std::unordered_map<table_id_t, SingleLabelPropertyInfo> embeddingInfo;
     embeddingInfo.insert({tableEntry->getTableID(),
         SingleLabelPropertyInfo(false, embeddingProperty->getPropertyID())});
-    auto embedding = std::make_shared<PropertyExpression>(*embeddingProperty->getDataType(),
+    auto embedding = std::make_shared<PropertyExpression>(embeddingProperty->getDataType().copy(),
         embeddingProperty->getName(), embeddingProperty->getName(), embeddingProperty->getName(),
         std::move(embeddingInfo));
 

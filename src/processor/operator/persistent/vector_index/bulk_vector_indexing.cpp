@@ -54,10 +54,12 @@ void BulkVectorIndexing::executeInternal(ExecutionContext* context) {
         sharedState->builder->batchInsert(vectors, vectorIds.data(), numVectors,
             localState->visited.get(), localState->dc.get());
     }
+    // Need some kind of barrier here to ensure all threads have finished and then
+    // populate the partition buffer
 }
 
 void BulkVectorIndexing::finalize(ExecutionContext* /*context*/) {
-    // TODO: Make it parallelized
+    // TODO: Benchmark and make it parallelized (might be important)
     KU_ASSERT_MSG(sharedState->partitionerSharedState->partitioningBuffers.size() == 1,
         "Only one partitioning buffer in fwd direction is supported");
 //    printf("checking recall... single threaded might take time...\n");

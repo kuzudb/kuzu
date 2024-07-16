@@ -231,6 +231,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
         // Algorithm functions
         ALGORITHM_FUNCTION(WeaklyConnectedComponentsFunction),
         ALGORITHM_FUNCTION(ShortestPathsFunction), ALGORITHM_FUNCTION(PageRankFunction),
+        ALGORITHM_FUNCTION(VectorSearchFunction),
 
         // Export functions
         EXPORT_FUNCTION(ExportCSVFunction), EXPORT_FUNCTION(ExportParquetFunction),

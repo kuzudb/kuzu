@@ -33,6 +33,10 @@ public:
         property_id_t embeddingPropertyId) {
         return vectorIndexHeaders->getHeaderWriteVersion(nodeTableId, embeddingPropertyId);
     }
+    inline VectorIndexHeader* getVectorIndexHeaderReadOnlyVersion(table_id_t nodeTableId,
+        property_id_t embeddingPropertyId) {
+        return vectorIndexHeaders->getHeaderReadOnlyVersion(nodeTableId, embeddingPropertyId);
+    }
 
     void prepareCommit(transaction::Transaction* transaction, common::VirtualFileSystem* vfs);
     void prepareRollback();

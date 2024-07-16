@@ -9,14 +9,17 @@
 #include "function/gds_function.h"
 #include "graph/graph_entry.h"
 #include "parser/expression/parsed_function_expression.h"
+#include "parser/expression/parsed_property_expression.h"
 #include "parser/expression/parsed_variable_expression.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
+#include "storage/index/vector_index_header.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
 using namespace kuzu::parser;
 using namespace kuzu::function;
 using namespace kuzu::catalog;
+using namespace kuzu::graph;
 
 namespace kuzu {
 namespace binder {
@@ -69,20 +72,54 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
             throw BinderException(
                 stringFormat("{} function requires at least one input", functionName));
         }
-        if (functionExpr->getChild(0)->getExpressionType() != ExpressionType::VARIABLE) {
-            throw BinderException(
-                stringFormat("First argument of {} function must be a variable", functionName));
+        GraphEntry graphEntry = GraphEntry(std::vector<table_id_t>(), std::vector<table_id_t>());
+        std::optional<property_id_t> embeddingPropertyId = std::nullopt;
+        if (functionExpr->getChild(0)->getExpressionType() == ExpressionType::PROPERTY) {
+            auto propertyExp = functionExpr->getChild(0)
+                ->constPtrCast<ParsedPropertyExpression>();
+            if (propertyExp->getChild(0)->getExpressionType() != ExpressionType::VARIABLE) {
+                throw BinderException(
+                    stringFormat("First argument of {} function must be a variable", functionName));
+            }
+            auto varName = propertyExp->getChild(0)
+                               ->constPtrCast<ParsedVariableExpression>()
+                               ->getVariableName();
+            auto tableId = clientContext->getCatalog()->getTableID(clientContext->getTx(), varName);
+//            auto nodeExpr = expressionBinder.bindVariableExpression(varName);
+//            auto node = nodeExpr->constPtrCast<NodeExpression>();
+//            auto nodeTableIds = node->getTableIDs();
+//            if (nodeTableIds.size() != 1) {
+//                throw BinderException(
+//                    stringFormat("First argument of {} function must be a variable that refers to a table", functionName));
+//            }
+//            auto tableId = nodeTableIds[0];
+            auto nodeTableEntry = clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(), tableId);
+            embeddingPropertyId = nodeTableEntry->getPropertyID(propertyExp->getPropertyName());
+            auto relTableName = storage::VectorIndexHeader::getIndexRelTableName(tableId, embeddingPropertyId.value());
+            auto relTableId = clientContext->getCatalog()->getTableID(clientContext->getTx(), relTableName);
+            graphEntry = GraphEntry(std::vector<table_id_t>{tableId}, std::vector<table_id_t>{relTableId});
+        } else {
+            if (functionExpr->getChild(0)->getExpressionType() != ExpressionType::VARIABLE) {
+                throw BinderException(
+                    stringFormat("First argument of {} function must be a variable", functionName));
+            }
+            auto varName = functionExpr->getChild(0)
+                               ->constPtrCast<ParsedVariableExpression>()
+                               ->getVariableName();
+            if (!graphEntrySet.hasGraph(varName)) {
+                throw BinderException(stringFormat("Cannot find graph {}.", varName));
+            }
+            graphEntry = graphEntrySet.getEntry(varName);
         }
-        auto varName =
-            functionExpr->getChild(0)->constPtrCast<ParsedVariableExpression>()->getVariableName();
-        if (!graphEntrySet.hasGraph(varName)) {
-            throw BinderException(stringFormat("Cannot find graph {}.", varName));
-        }
-        auto graphEntry = graphEntrySet.getEntry(varName);
         expression_vector children;
         std::vector<LogicalType> childrenTypes;
         children.push_back(nullptr); // placeholder for graph variable.
         childrenTypes.push_back(LogicalType::ANY());
+        if (embeddingPropertyId.has_value()) {
+            // Add LiteralExpression for embedding property ID.
+            children.push_back(std::make_shared<LiteralExpression>(Value((int64_t)embeddingPropertyId.value()), "_embedding_property_id"));
+            childrenTypes.push_back(LogicalType::INT64());
+        }
         for (auto i = 1u; i < functionExpr->getNumChildren(); i++) {
             auto child = expressionBinder.bindExpression(*functionExpr->getChild(i));
             children.push_back(child);

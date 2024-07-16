@@ -96,7 +96,7 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(
     std::vector<common::LogicalType> resultColumnTypes;
     resultColumnNames.push_back("column");
     auto reader = make_unique<FvecReader>(scanInput->config.filePaths[0]);
-    resultColumnTypes.push_back(*LogicalType::ARRAY(LogicalType::FLOAT(), reader->getDimension()));
+    resultColumnTypes.push_back(LogicalType::ARRAY(LogicalType::FLOAT(), reader->getDimension()));
     return std::make_unique<function::ScanBindData>(std::move(resultColumnTypes),
         std::move(resultColumnNames), scanInput->config.copy(), scanInput->context);
 }

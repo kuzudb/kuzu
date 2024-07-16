@@ -13,6 +13,10 @@ struct DistanceComputer {
 
     virtual void computeDistance(vector_id_t src, vector_id_t dest, double* result) = 0;
 
+    virtual void computeDistance(const float* dest, double* result) = 0;
+
+    virtual void batchComputeDistances(const float* dest, int size, double* results) = 0;
+
     virtual void batchComputeDistances(vector_id_t* ids, double* results, int size) = 0;
 
     virtual void setQuery(const float* query) = 0;
@@ -35,6 +39,16 @@ struct L2DistanceComputer : public DistanceComputer {
         const float* x = data + (src * dim);
         const float* y = data + (dest * dim);
         simsimd_l2sq_f32(x, y, dim, result);
+    }
+
+    inline void computeDistance(const float* dest, double* result) override {
+        simsimd_l2sq_f32(query, dest, dim, result);
+    }
+
+    inline void batchComputeDistances(const float* dest, int size, double* results) override {
+        for (int i = 0; i < size; i++) {
+            computeDistance(dest + (i * dim), &results[i]);
+        }
     }
 
     inline void batchComputeDistances(vector_id_t* ids, double* results, int size) override {

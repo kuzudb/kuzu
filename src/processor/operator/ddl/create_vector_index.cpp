@@ -17,7 +17,7 @@ void CreateVectorIndex::executeDDLInternal(ExecutionContext* context) {
     auto storageManager = context->clientContext->getStorageManager();
 
     std::vector<binder::PropertyInfo> propertyInfos;
-    propertyInfos.emplace_back(InternalKeyword::ID, *LogicalType::INTERNAL_ID());
+    propertyInfos.emplace_back(InternalKeyword::ID, LogicalType::INTERNAL_ID());
     binder::BoundCreateTableInfo createTableInfo(common::TableType::REL,
         VectorIndexHeader::getIndexRelTableName(tableId, propertyId),
         ConflictAction::ON_CONFLICT_THROW,

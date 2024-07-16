@@ -72,6 +72,8 @@ public:
         return stringFormat("{}_{}_vector_index", nodeTableId, embeddingPropertyId);
     }
 
+    inline uint64_t getNumVectors() const { return numVectors; }
+
     void serialize(Serializer& serializer) const;
 
     static std::unique_ptr<VectorIndexHeader> deserialize(Deserializer& deserializer);
@@ -136,7 +138,7 @@ struct VectorIndexHeaderCollection {
     std::unordered_map<VectorIndexKey, std::unique_ptr<VectorIndexHeader>, VectorIndexKeyHasher>
         vectorIndexPerTable;
 
-    const VectorIndexHeader* getVectorIndexHeader(table_id_t tableID,
+    VectorIndexHeader* getVectorIndexHeader(table_id_t tableID,
         property_id_t propertyId) const {
         auto key = VectorIndexKey(tableID, propertyId);
         KU_ASSERT(vectorIndexPerTable.contains(key));
@@ -189,6 +191,12 @@ public:
         return readWriteVersion
             ->vectorIndexPerTable[VectorIndexKey(nodeTableId, embeddingPropertyId)]
             .get();
+    }
+
+    VectorIndexHeader* getHeaderReadOnlyVersion(table_id_t nodeTableId,
+        property_id_t embeddingPropertyId) {
+        std::unique_lock lck{mtx};
+        return readOnlyVersion->getVectorIndexHeader(nodeTableId, embeddingPropertyId);
     }
 
     void saveToFile(const std::string& directory, common::FileVersionType dbFileType,

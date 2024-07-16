@@ -46,10 +46,10 @@ public:
 
     inline ChunkedNodeGroupCollection createNodeGroupCollection() {
         std::vector<common::LogicalType> types;
-        types.emplace_back(*LogicalType::INTERNAL_ID());
-        types.emplace_back(*LogicalType::INTERNAL_ID());
-        types.emplace_back(*LogicalType::INTERNAL_ID());
-        return ChunkedNodeGroupCollection(types);
+        types.emplace_back(LogicalType::INTERNAL_ID());
+        types.emplace_back(LogicalType::INTERNAL_ID());
+        types.emplace_back(LogicalType::INTERNAL_ID());
+        return ChunkedNodeGroupCollection(LogicalType::copy(types));
     }
 
     ~VectorIndexGraph() {

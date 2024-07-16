@@ -29,7 +29,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateVectorIndex(
         clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(),
             logical.getTableID()));
     auto property = tableEntry->getProperty(logical.getPropertyID());
-    auto dim = ArrayType::getNumElements(*property->getDataType());
+    auto dim = ArrayType::getNumElements(property->getDataType());
 
     return std::make_unique<CreateVectorIndex>(logical.getTableName(), logical.getPropertyName(),
         logical.getTableID(), logical.getPropertyID(), dim, logical.getVectorIndexConfig(),
@@ -81,9 +81,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapUpdateVectorIndex(
     auto batchInsertSharedState =
         std::make_shared<BatchInsertSharedState>(relTable, fTable, &storageManager->getWAL());
     std::vector<common::LogicalType> columnTypes;
-    columnTypes.push_back(*LogicalType::INTERNAL_ID()); // NBR
+    columnTypes.push_back(LogicalType::INTERNAL_ID()); // NBR
     for (auto& property : relTableEntry->getPropertiesRef()) {
-        columnTypes.push_back(*property.getDataType()->copy());
+        columnTypes.push_back(property.getDataType().copy());
     }
     auto relBatchInsertInfo = std::make_unique<RelBatchInsertInfo>(relTableEntry,
         clientContext->getStorageManager()->compressionEnabled(), RelDataDirection::FWD, 0, 0,
