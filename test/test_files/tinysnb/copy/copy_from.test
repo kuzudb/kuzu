@@ -14,7 +14,7 @@ Binder exception: Query returns 2 columns but 1 columns were expected.
 Binder exception: a.ID has data type INT64 but STRING was expected.
 -STATEMENT COPY A FROM x;
 ---- error
-Binder exception: Scan from external object x is not supported.
+Binder exception: Variable x is not in scope.
 -STATEMENT COPY A FROM  (MATCH (a:person) RETURN a.fName);
 ---- ok
 -STATEMENT MATCH (a:A) RETURN a.*;

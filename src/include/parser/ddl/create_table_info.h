@@ -31,6 +31,7 @@ struct PropertyDefinition {
     DELETE_COPY_DEFAULT_MOVE(PropertyDefinition);
 };
 
+// TODO: merge me
 struct PropertyDefinitionDDL : public PropertyDefinition {
     std::unique_ptr<ParsedExpression> expr;
 
