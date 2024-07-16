@@ -4,6 +4,8 @@ add_library(kuzu_storage_store
         chunked_node_group_collection.cpp
         column.cpp
         column_chunk_data.cpp
+        column_chunk_metadata.cpp
+        column_chunk_flush.cpp
         dictionary_chunk.cpp
         dictionary_column.cpp
         list_chunk_data.cpp

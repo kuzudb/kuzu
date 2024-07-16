@@ -9,6 +9,7 @@
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/compression/compression.h"
+#include "storage/store/column_chunk_metadata.h"
 
 namespace kuzu {
 namespace evaluator {
@@ -18,26 +19,6 @@ namespace storage {
 
 class NullChunkData;
 class BMFileHandle;
-
-struct ColumnChunkMetadata {
-    common::page_idx_t pageIdx;
-    common::page_idx_t numPages;
-    uint64_t numValues;
-    CompressionMetadata compMeta;
-
-    static size_t serializedSizeBytes(common::PhysicalTypeID internalDataType);
-    std::vector<std::byte> serializeToBytes(common::PhysicalTypeID internalDataType) const;
-    void deserializeFromBytes(std::span<const std::byte> serializedMetadata,
-        common::PhysicalTypeID internalDataType);
-
-    // TODO(Guodong): Delete copy constructor.
-    ColumnChunkMetadata()
-        : pageIdx{common::INVALID_PAGE_IDX}, numPages{0}, numValues{0},
-          compMeta(StorageValue(), StorageValue(), CompressionType::CONSTANT) {}
-    ColumnChunkMetadata(common::page_idx_t pageIdx, common::page_idx_t numPages,
-        uint64_t numNodesInChunk, const CompressionMetadata& compMeta)
-        : pageIdx(pageIdx), numPages(numPages), numValues(numNodesInChunk), compMeta(compMeta) {}
-};
 
 // Base data segment covers all fixed-sized data types.
 class ColumnChunkData {
