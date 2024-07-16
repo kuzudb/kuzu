@@ -541,16 +541,13 @@ describe("DECIMAL", function () {
     );
     const result = await queryResult.getAll();
     assert.equal(result.length, 9);
-    assert.deepEqual(result, [
-      { PROD: 5.7 },
-      { PROD: 8.3 },
-      { PROD: 2.9 },
-      { PROD: 11.4 },
-      { PROD: 16.6 },
-      { PROD: 5.8 },
-      { PROD: 17.1 },
-      { PROD: 24.9 },
-      { PROD: 8.7 },
-    ])
+    const resultSorted = result.map(x => x.PROD).sort((a, b) => a - b);
+    assert.deepEqual(resultSorted,
+      [
+        2.9, 5.7, 5.8,
+        8.3, 8.7, 11.4,
+        16.6, 17.1, 24.9
+      ]
+    );
   });
 });
