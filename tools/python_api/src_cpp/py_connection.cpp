@@ -426,8 +426,7 @@ static LogicalType pyLogicalType(const py::handle& val) {
         }
         auto structFields = std::vector<StructField>{};
         for (auto child : dict) {
-            KU_ASSERT(py::isinstance<py::str>(child.first));
-            auto keyName = child.first.cast<std::string>();
+            auto keyName = py::cast<std::string>(py::str(child.first));
             auto keyType = pyLogicalType(child.second);
             structFields.emplace_back(std::move(keyName), std::move(keyType));
         }
