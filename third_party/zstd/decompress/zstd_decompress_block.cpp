@@ -25,7 +25,7 @@
 #include "zstd/decompress/zstd_decompress_internal.h"   /* ZSTD_DCtx */
 #include "zstd/decompress/zstd_ddict.h"  /* ZSTD_DDictDictContent */
 #include "zstd/decompress/zstd_decompress_block.h"
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 /*_*******************************************************
 *  Macros
 **********************************************************/

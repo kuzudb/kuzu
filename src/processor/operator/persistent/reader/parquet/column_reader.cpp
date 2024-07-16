@@ -7,6 +7,7 @@
 #include "common/exception/not_implemented.h"
 #include "common/exception/runtime.h"
 #include "common/types/date_t.h"
+#include "lz4.hpp"
 #include "miniz_wrapper.hpp"
 #include "processor/operator/persistent/reader/parquet/boolean_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/callback_column_reader.h"
@@ -340,20 +341,29 @@ void ColumnReader::decompressInternal(kuzu_parquet::format::CompressionCodec::ty
             reinterpret_cast<char*>(dst));
         // LCOV_EXCL_START
         if (!res) {
-            throw common::RuntimeException{"Snappy decompression failure"};
+            throw common::RuntimeException{"Snappy decompression failed."};
         }
         // LCOV_EXCL_STOP
     } break;
     case CompressionCodec::ZSTD: {
-        auto res = duckdb_zstd::ZSTD_decompress(dst, dstSize, src, srcSize);
+        auto res = kuzu_zstd::ZSTD_decompress(dst, dstSize, src, srcSize);
         // LCOV_EXCL_START
-        if (duckdb_zstd::ZSTD_isError(res) || res != (size_t)dstSize) {
-            throw common::RuntimeException{"ZSTD Decompression failure"};
+        if (kuzu_zstd::ZSTD_isError(res) || res != (size_t)dstSize) {
+            throw common::RuntimeException{"ZSTD decompression failed."};
         }
         // LCOV_EXCL_STOP
     } break;
     case CompressionCodec::BROTLI: {
         brotliDecompress(dst, dstSize, src, srcSize);
+    } break;
+    case CompressionCodec::LZ4_RAW: {
+        auto res = kuzu_lz4::LZ4_decompress_safe(reinterpret_cast<const char*>(src),
+            reinterpret_cast<char*>(dst), srcSize, dstSize);
+        // LCOV_EXCL_START
+        if (res != (int64_t)dstSize) {
+            throw common::RuntimeException{"LZ4 decompression failed."};
+        }
+        // LCOV_EXCL_STOP
     } break;
     default: {
         // LCOV_EXCL_START

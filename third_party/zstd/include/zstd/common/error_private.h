@@ -19,7 +19,7 @@
 #include <stddef.h>        /* size_t */
 #include "zstd/common/zstd_errors.h"  /* enum list */
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 /* ****************************************
 *  Compiler-specific
 ******************************************/

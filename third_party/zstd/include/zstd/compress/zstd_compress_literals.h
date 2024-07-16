@@ -13,7 +13,7 @@
 
 #include "zstd/compress/zstd_compress_internal.h" /* ZSTD_hufCTables_t, ZSTD_minGain() */
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 
 size_t ZSTD_noCompressLiterals (void* dst, size_t dstCapacity, const void* src, size_t srcSize);
 

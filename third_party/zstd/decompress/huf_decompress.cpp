@@ -23,7 +23,7 @@
 #include "zstd/common/huf_static.h"
 #include "zstd/common/error_private.h"
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 /* **************************************************************
 *  Macros
 ****************************************************************/

@@ -18,7 +18,7 @@
 /* *** Dependency *** */
 #include "zstd/common/bitstream.h"
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 
 /* *****************************************
 *  Static allocation

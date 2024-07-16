@@ -20,7 +20,7 @@
 #include "zstd/common/zstd_internal.h"  /* blockProperties_t, and some public functions */
 #include "zstd/decompress/zstd_decompress_internal.h"  /* ZSTD_seqSymbol */
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 
 /* ===   Prototypes   === */
 

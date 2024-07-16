@@ -46,6 +46,7 @@ fn link_libraries() {
         println!("cargo:rustc-link-lib=static=mbedtls");
         println!("cargo:rustc-link-lib=static=brotlidec");
         println!("cargo:rustc-link-lib=static=brotlicommon");
+        println!("cargo:rustc-link-lib=static=lz4");
     }
 }
 
@@ -93,6 +94,7 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
         "zstd",
         "miniz",
         "mbedtls",
+        "lz4",
     ] {
         let lib_path = build_dir
             .join("build")

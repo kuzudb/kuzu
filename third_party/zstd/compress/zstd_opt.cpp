@@ -38,7 +38,7 @@
 #  define WEIGHT(stat,opt) (opt ? ZSTD_fracWeight(stat) : ZSTD_bitWeight(stat))
 #endif
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 
 MEM_STATIC U32 ZSTD_bitWeight(U32 stat)
 {

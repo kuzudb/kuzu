@@ -69,7 +69,7 @@
 // #if defined(ZSTD_LEGACY_SUPPORT) && (ZSTD_LEGACY_SUPPORT>=1)
 // #  include "../legacy/zstd_legacy.h"
 // #endif
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 const U32 ZSTDConstants::LL_base[MaxLL+1] = {
                 0,    1,    2,     3,     4,     5,     6,      7,
                 8,    9,   10,    11,    12,    13,    14,     15,

@@ -18,7 +18,7 @@
 10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|True|83|4.900000|1990-11-27|2023-02-21 13:25:30|3 years 2 days 13:02:00|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]|1.323000
 
 -LOG CopyOrganisationToParquet
--STATEMENT COPY (MATCH (o:organisation) RETURN o.ID, o.state) TO "${DATABASE_PATH}/organisation.parquet"
+-STATEMENT COPY (MATCH (o:organisation) RETURN o.ID, o.state) TO "${DATABASE_PATH}/organisation.parquet" (compression='UNCOMPRESSED')
 ---- ok
 -STATEMENT LOAD FROM "${DATABASE_PATH}/organisation.parquet" RETURN *;
 ---- 3
@@ -27,7 +27,7 @@
 6|{revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}
 
 -LOG CopyMoviesToParquet
--STATEMENT COPY (MATCH (m:movies) RETURN m.*) TO "${DATABASE_PATH}/movies.parquet"
+-STATEMENT COPY (MATCH (m:movies) RETURN m.*) TO "${DATABASE_PATH}/movies.parquet" (compression='snappy')
 ---- ok
 -STATEMENT LOAD FROM "${DATABASE_PATH}/movies.parquet" RETURN *;
 ---- 3
@@ -36,7 +36,7 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|2544| the movie is very v
 Roma|298|the movie is very interesting and funny|{rating: 1223.000000, stars: 100, views: 10003, release: 2011-02-11 16:44:22, release_ns: 2011-02-11 16:44:22.123456, release_ms: 2011-02-11 16:44:22.123, release_sec: 2011-02-11 16:44:22, release_tz: 2011-02-11 16:44:22.123456, film: 2013-02-22, u8: 1, u16: 15, u32: 200, u64: 4, hugedata: -15.000000}|pure ascii characters|{}|{tag: 1, credit: , grade1: 254.000000, grade2: 0}
 
 -LOG CopyStudyAtToParquet
--STATEMENT COPY (match (:person)-[s:studyAt]->(:organisation) return s.*) to "${DATABASE_PATH}/studyAt.parquet"
+-STATEMENT COPY (match (:person)-[s:studyAt]->(:organisation) return s.*) to "${DATABASE_PATH}/studyAt.parquet" (compression='zstd')
 ---- ok
 -STATEMENT LOAD FROM "${DATABASE_PATH}/studyAt.parquet" RETURN *;
 ---- 3
@@ -45,14 +45,14 @@ Roma|298|the movie is very interesting and funny|{rating: 1223.000000, stars: 10
 2020|[awndsnjwejwen,isuhuwennjnuhuhuwewe]|22|2|23|20|180|12|-15.000000
 
 -LOG CopyEmptyListToParquet
--STATEMENT COPY (RETURN null,[], [1,null,3], [[1],null,[3,4,5]], [[], ["a"]]) TO "${DATABASE_PATH}/emptyList.parquet"
+-STATEMENT COPY (RETURN null,[], [1,null,3], [[1],null,[3,4,5]], [[], ["a"]]) TO "${DATABASE_PATH}/emptyList.parquet" (compression='gzip')
 ---- ok
 -STATEMENT LOAD FROM "${DATABASE_PATH}/emptyList.parquet" RETURN *;
 ---- 1
 |[]|[1,,3]|[[1],,[3,4,5]]|[[],[a]]
 
 -LOG CopyToParquetFlatUnflat
--STATEMENT COPY (MATCH (p:person)-[:knows]->(p1:person) return p.ID, p1.ID) TO "${DATABASE_PATH}/flatUnflat.parquet"
+-STATEMENT COPY (MATCH (p:person)-[:knows]->(p1:person) return p.ID, p1.ID) TO "${DATABASE_PATH}/flatUnflat.parquet" (compression='lz4_raw')
 ---- ok
 -STATEMENT LOAD FROM "${DATABASE_PATH}/flatUnflat.parquet" RETURN *;
 ---- 14
@@ -70,3 +70,18 @@ Roma|298|the movie is very interesting and funny|{rating: 1223.000000, stars: 10
 5|3
 7|8
 7|9
+
+-LOG CopyToParquetInvalidOptionValue
+-STATEMENT COPY (MATCH (p:person) RETURN p.*) TO "${DATABASE_PATH}/invalid.parquet" (compression='lz4_raw1')
+---- error
+Runtime exception: Unrecognized parquet compression option: lz4_raw1.
+
+-LOG CopyToParquetInvalidOption
+-STATEMENT COPY (MATCH (p:person) RETURN p.*) TO "${DATABASE_PATH}/invalid.parquet" (compression1='lz4_raw')
+---- error
+Runtime exception: Unrecognized parquet option: COMPRESSION1.
+
+-LOG CopyToParquetInvalidOption
+-STATEMENT COPY (MATCH (p:person) RETURN p.*) TO "${DATABASE_PATH}/invalid.parquet" (compression=true)
+---- error
+Runtime exception: Parquet compression option expects a string value, got: BOOL.

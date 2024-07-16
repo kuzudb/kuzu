@@ -31,7 +31,7 @@
 #  define ZSTDLIB_API ZSTDLIB_VISIBILITY
 #endif
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 
 /*******************************************************************************
   Introduction
