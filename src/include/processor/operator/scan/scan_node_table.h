@@ -14,7 +14,7 @@ public:
           currentUnCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX}, numCommittedNodeGroups{0},
           numUnCommittedNodeGroups{0}, semiMask{std::move(semiMask)} {};
 
-    void initialize(transaction::Transaction* transaction, storage::NodeTable* table);
+    void initialize(const transaction::Transaction* transaction, storage::NodeTable* table);
 
     void nextMorsel(storage::NodeTableScanState& scanState);
 
@@ -63,7 +63,7 @@ public:
         KU_ASSERT(this->nodeInfos.size() == this->sharedStates.size());
     }
 
-    std::vector<NodeSemiMask*> getSemiMasks();
+    std::vector<NodeSemiMask*> getSemiMasks() const;
 
     bool isSource() const override { return true; }
 

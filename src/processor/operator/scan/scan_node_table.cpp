@@ -8,7 +8,8 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void ScanNodeTableSharedState::initialize(transaction::Transaction* transaction, NodeTable* table) {
+void ScanNodeTableSharedState::initialize(const transaction::Transaction* transaction,
+    NodeTable* table) {
     this->table = table;
     this->currentCommittedGroupIdx = 0;
     this->currentUnCommittedGroupIdx = 0;
@@ -52,7 +53,7 @@ void ScanNodeTableInfo::initScanState(NodeSemiMask* semiMask) {
     localScanState->semiMask = semiMask;
 }
 
-std::vector<NodeSemiMask*> ScanNodeTable::getSemiMasks() {
+std::vector<NodeSemiMask*> ScanNodeTable::getSemiMasks() const {
     std::vector<NodeSemiMask*> result;
     for (auto& sharedState : sharedStates) {
         result.push_back(sharedState->getSemiMask());
