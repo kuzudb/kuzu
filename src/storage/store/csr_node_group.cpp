@@ -565,7 +565,7 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
         const auto valueVector = std::make_shared<ValueVector>(dataTypes[i].copy(), state.mm);
         scanChunk.insert(i, valueVector);
     }
-    auto scanState = std::make_unique<TableScanState>(INVALID_TABLE_ID, columnIDs);
+    auto scanState = std::make_unique<TableScanState>(columnIDs);
     scanState->rowIdxVector->setState(scanChunkState);
     scanState->nodeGroupScanState = std::make_unique<NodeGroupScanState>(numColumns);
 

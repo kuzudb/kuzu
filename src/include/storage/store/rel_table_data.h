@@ -13,66 +13,8 @@ struct CSRHeaderColumns {
     std::unique_ptr<Column> length;
 };
 
-// struct PackedCSRRegion {
-//     common::idx_t regionIdx = common::INVALID_IDX;
-//     common::idx_t level = common::INVALID_IDX;
-//     int64_t sizeChange = 0;
-//     // Left most and right most node offset of the region.
-//     common::offset_t leftBoundary = common::INVALID_OFFSET;
-//     common::offset_t rightBoundary = common::INVALID_OFFSET;
-//
-//     PackedCSRRegion() {}
-//     PackedCSRRegion(common::idx_t regionIdx, common::idx_t level);
-//
-//     std::pair<common::offset_t, common::offset_t> getNodeOffsetBoundaries() const {
-//         return std::make_pair(leftBoundary, rightBoundary);
-//     }
-//     std::pair<common::idx_t, common::idx_t> getSegmentBoundaries() const {
-//         auto left = regionIdx << level;
-//         return std::make_pair(left, left + (1 << level) - 1);
-//     }
-//     bool isOutOfBoundary(common::offset_t nodeOffset) const {
-//         return nodeOffset < leftBoundary || nodeOffset > rightBoundary;
-//     }
-//
-//     // Check if the other region's segments are all within the range of this region.
-//     bool isWithin(const PackedCSRRegion& other) const;
-//
-//     void setSizeChange(const std::vector<int64_t>& sizeChangesPerSegment);
-// };
-
-class RelsStoreStats;
 class RelTableData {
 public:
-    // struct PersistentState {
-    //     ChunkedCSRHeader header;
-    //     std::unique_ptr<ColumnChunkData> relIDChunk;
-    //     common::offset_t leftCSROffset = common::INVALID_OFFSET;
-    //     common::offset_t rightCSROffset = common::INVALID_OFFSET;
-    //
-    //     explicit PersistentState(common::offset_t numNodes)
-    //         : header{false /*enableCompression*/, numNodes, ResidencyState::IN_MEMORY} {}
-    // };
-
-    // struct LocalState {
-    //     ChunkedNodeGroup* localNG;
-    //     ChunkedCSRHeader header;
-    //     PackedCSRRegion region;
-    //     std::vector<int64_t> sizeChangesPerSegment;
-    //     std::vector<bool> hasChangesPerSegment;
-    //     // Total num of rels in the node group after applying changes.
-    //     common::offset_t regionSize = 0;
-    //     // Total capacity of the node group after resizing if necessary.
-    //     common::offset_t regionCapacity = 0;
-    //     common::offset_t leftCSROffset = common::INVALID_OFFSET;
-    //     common::offset_t rightCSROffset = common::INVALID_OFFSET;
-    //     bool needSliding = false;
-    //
-    //     explicit LocalState(ChunkedNodeGroup* localNG);
-    //
-    //     void setRegion(const PackedCSRRegion& region_) { region = region_; }
-    // };
-
     RelTableData(BMFileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
         const catalog::TableCatalogEntry* tableEntry, common::RelDataDirection direction,
         bool enableCompression, common::Deserializer* deSer);
@@ -127,14 +69,6 @@ private:
         transaction::Transaction* transaction, common::ValueVector& boundNodeIDVector,
         const common::ValueVector& relIDVector) const;
 
-    // std::vector<PackedCSRRegion> findRegions(const ChunkedCSRHeader& headerChunks,
-    //     LocalState& localState) const;
-    // static common::length_t getNewRegionSize(const ChunkedCSRHeader& header,
-    //     const std::vector<int64_t>& sizeChangesPerSegment, PackedCSRRegion& region);
-    // bool isWithinDensityBound(const ChunkedCSRHeader& headerChunks,
-    //     const std::vector<int64_t>& sizeChangesPerSegment, PackedCSRRegion& region) const;
-    // double getHighDensity(uint64_t level) const;
-
     void serialize(common::Serializer& serializer) const;
 
     template<typename T1, typename T2>
@@ -147,15 +81,6 @@ private:
         static_assert(std::is_arithmetic_v<T1> && std::is_arithmetic_v<T2>);
         return std::ceil(static_cast<double>(v1) * static_cast<double>(v2));
     }
-
-    // static void fillSequence(std::span<common::offset_t> offsets, common::offset_t startOffset) {
-    //     for (auto i = 0u; i < offsets.size(); i++) {
-    //         offsets[i] = i + startOffset;
-    //     }
-    // }
-
-    // static common::offset_t findCSROffsetInRegion(const PersistentState& persistentState,
-    // common::offset_t nodeOffset, common::offset_t relOffset);
 
     std::vector<common::LogicalType> getColumnTypes() const {
         std::vector<common::LogicalType> types;

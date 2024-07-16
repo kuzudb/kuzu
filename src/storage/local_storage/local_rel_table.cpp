@@ -3,8 +3,8 @@
 #include <unistd.h>
 
 #include "common/enums/rel_direction.h"
-#include "storage/storage_utils.h"
 #include "common/exception/message.h"
+#include "storage/storage_utils.h"
 #include "storage/store/rel_table.h"
 
 using namespace kuzu::common;
@@ -193,7 +193,7 @@ row_idx_t LocalRelTable::findMatchingRow(offset_t srcNodeOffset, offset_t dstNod
     scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
     std::vector<column_id_t> columnIDs;
     columnIDs.push_back(LOCAL_REL_ID_COLUMN_ID);
-    const auto scanState = std::make_unique<RelTableScanState>(table.getTableID(), columnIDs);
+    const auto scanState = std::make_unique<RelTableScanState>(columnIDs);
     scanState->IDVector = scanChunk.getValueVector(0).get();
     scanState->rowIdxVector->state = scanChunk.state;
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());

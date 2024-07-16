@@ -157,7 +157,7 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
     return bwdDeleted;
 }
 
-void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction, 
+void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
     RelTableDeleteState* deleteState) {
     KU_ASSERT(deleteState->srcNodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto tableData =
@@ -166,23 +166,23 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
         direction == RelDataDirection::FWD ? bwdRelTableData.get() : fwdRelTableData.get();
     std::vector<column_id_t> columnsToScan = {NBR_ID_COLUMN_ID, REL_ID_COLUMN_ID};
     const auto relReadState =
-        std::make_unique<RelTableScanState>(tableID, columnsToScan, tableData->getColumns(),
+        std::make_unique<RelTableScanState>(columnsToScan, tableData->getColumns(),
             tableData->getCSROffsetColumn(), tableData->getCSRLengthColumn(), direction);
     relReadState->boundNodeIDVector = &deleteState->srcNodeIDVector;
-    relReadState->outputVectors = std::vector<ValueVector*>{&deleteState->dstNodeIDVector,
-        &deleteState->relIDVector};
+    relReadState->outputVectors =
+        std::vector<ValueVector*>{&deleteState->dstNodeIDVector, &deleteState->relIDVector};
     relReadState->IDVector = relReadState->outputVectors[1];
     relReadState->rowIdxVector->state = relReadState->IDVector->state;
-    if (const auto localRelTable = transaction->getLocalStorage()->getLocalTable(tableID, 
-        LocalStorage::NotExistAction::RETURN_NULL)) {
-        auto localTableColumnIDs = 
+    if (const auto localRelTable = transaction->getLocalStorage()->getLocalTable(tableID,
+            LocalStorage::NotExistAction::RETURN_NULL)) {
+        auto localTableColumnIDs =
             LocalRelTable::rewriteLocalColumnIDs(direction, relReadState->columnIDs);
-        relReadState->localTableScanState = std::make_unique<LocalRelTableScanState>(
-            *relReadState, localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
+        relReadState->localTableScanState = std::make_unique<LocalRelTableScanState>(*relReadState,
+            localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
         relReadState->localTableScanState->rowIdxVector->state = relReadState->IDVector->state;
     }
     initializeScanState(transaction, *relReadState);
-    detachDeleteForCSRRels(transaction, tableData, reverseTableData, relReadState.get(), 
+    detachDeleteForCSRRels(transaction, tableData, reverseTableData, relReadState.get(),
         deleteState);
 }
 
@@ -198,8 +198,8 @@ void RelTable::checkIfNodeHasRels(Transaction* transaction, RelDataDirection dir
         bwdRelTableData->checkIfNodeHasRels(transaction, srcNodeIDVector);
 }
 
-void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* tableData, 
-    RelTableData* reverseTableData, RelTableScanState* relDataReadState, 
+void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* tableData,
+    RelTableData* reverseTableData, RelTableScanState* relDataReadState,
     RelTableDeleteState* deleteState) {
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::RETURN_NULL);
@@ -216,11 +216,13 @@ void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* ta
                 localTable->delete_(transaction, *deleteState);
                 continue;
             }
-            auto deleted = tableData->delete_(transaction, deleteState->srcNodeIDVector, 
+            const auto deleted = tableData->delete_(transaction, deleteState->srcNodeIDVector,
                 deleteState->relIDVector);
-            auto reverseDeleted = reverseTableData->delete_(transaction,
+            const auto reverseDeleted = reverseTableData->delete_(transaction,
                 deleteState->dstNodeIDVector, deleteState->relIDVector);
             KU_ASSERT(deleted == reverseDeleted);
+            KU_UNUSED(deleted);
+            KU_UNUSED(reverseDeleted);
         }
         tempState->getSelVectorUnsafe().setToUnfiltered();
     }

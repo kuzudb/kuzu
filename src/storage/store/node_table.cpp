@@ -232,7 +232,7 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
     nodeIDVector.setState(dataChunk->state);
     node_group_idx_t nodeGroupToScan = 0u;
     const auto numNodeGroupsToScan = localNodeTable.getNumNodeGroups();
-    const auto scanState = std::make_unique<NodeTableScanState>(tableID, columnIDs);
+    const auto scanState = std::make_unique<NodeTableScanState>(columnIDs);
     scanState->IDVector = &nodeIDVector;
     for (auto& vector : dataChunk->valueVectors) {
         scanState->outputVectors.push_back(vector.get());

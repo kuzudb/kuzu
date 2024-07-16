@@ -48,8 +48,8 @@ void ScanNodeTableInfo::initScanState(NodeSemiMask* semiMask) {
             columns.push_back(&table->getColumn(columnID));
         }
     }
-    localScanState = std::make_unique<NodeTableScanState>(table->getTableID(), columnIDs, columns,
-        copyVector(columnPredicates));
+    localScanState =
+        std::make_unique<NodeTableScanState>(columnIDs, columns, copyVector(columnPredicates));
     localScanState->semiMask = semiMask;
 }
 

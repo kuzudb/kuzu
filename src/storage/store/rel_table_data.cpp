@@ -126,7 +126,7 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
     std::vector<column_id_t> columnIDs = {REL_ID_COLUMN_ID, ROW_IDX_COLUMN_ID};
     std::vector<Column*> columns{getColumn(REL_ID_COLUMN_ID), nullptr};
-    const auto scanState = std::make_unique<RelTableScanState>(tableID, columnIDs, columns,
+    const auto scanState = std::make_unique<RelTableScanState>(columnIDs, columns,
         csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
     scanState->boundNodeIDVector = &boundNodeIDVector;
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
@@ -159,11 +159,12 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     return {source, matchingRowIdx};
 }
 
-void RelTableData::checkIfNodeHasRels(Transaction* transaction, ValueVector* srcNodeIDVector) const {
+void RelTableData::checkIfNodeHasRels(Transaction* transaction,
+    ValueVector* srcNodeIDVector) const {
     KU_ASSERT(srcNodeIDVector->state->isFlat());
     const auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
     const auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset); 
+    const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     if (nodeGroupIdx >= getNumNodeGroups()) {
         return;
     }
@@ -172,7 +173,7 @@ void RelTableData::checkIfNodeHasRels(Transaction* transaction, ValueVector* src
     scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
     std::vector<column_id_t> columnIDs = {REL_ID_COLUMN_ID};
     std::vector<Column*> columns{getColumn(REL_ID_COLUMN_ID)};
-    const auto scanState = std::make_unique<RelTableScanState>(tableID, columnIDs, columns,
+    const auto scanState = std::make_unique<RelTableScanState>(columnIDs, columns,
         csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
     scanState->boundNodeIDVector = srcNodeIDVector;
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
