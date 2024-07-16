@@ -42,7 +42,7 @@ public:
         const ColumnChunkMetadata& metadata, uint64_t numValuesPerPage, uint8_t* result,
         uint32_t startOffsetInResult, uint64_t startNodeOffset, uint64_t endNodeOffset,
         read_values_from_page_func_t<uint8_t*> readFunc, filter_func_t filterFunc) override {
-        return readCompressedValuesFromDisk(transaction, metadata, numValuesPerPage, result,
+        return readCompressedValues(transaction, metadata, numValuesPerPage, result,
             startOffsetInResult, startNodeOffset, endNodeOffset, readFunc, filterFunc);
     }
 
@@ -51,7 +51,7 @@ public:
         uint32_t startOffsetInResult, uint64_t startNodeOffset, uint64_t endNodeOffset,
         read_values_from_page_func_t<common::ValueVector*> readFunc,
         filter_func_t filterFunc) override {
-        return readCompressedValuesFromDisk(transaction, metadata, numValuesPerPage, result,
+        return readCompressedValues(transaction, metadata, numValuesPerPage, result,
             startOffsetInResult, startNodeOffset, endNodeOffset, readFunc, filterFunc);
     }
 
@@ -68,9 +68,9 @@ public:
     }
 
     template<typename OutputType>
-    uint64_t readCompressedValuesFromDisk(Transaction* transaction,
-        const ColumnChunkMetadata& metadata, uint64_t numValuesPerPage, OutputType result,
-        uint32_t startOffsetInResult, uint64_t startNodeOffset, uint64_t endNodeOffset,
+    uint64_t readCompressedValues(Transaction* transaction, const ColumnChunkMetadata& metadata,
+        uint64_t numValuesPerPage, OutputType result, uint32_t startOffsetInResult,
+        uint64_t startNodeOffset, uint64_t endNodeOffset,
         read_values_from_page_func_t<OutputType> readFunc, filter_func_t filterFunc) {
         const ColumnChunkMetadata& chunkMeta = metadata;
         const auto numValuesToScan = endNodeOffset - startNodeOffset;
@@ -241,21 +241,29 @@ private:
         const offset_t firstExceptionIdx = findFirstExceptionAtOrPastOffset(transaction,
             offsetInChunk, metadata.compMeta.alpMetadata.exceptionCount, exceptionPageCursor);
 
-        const auto searchedException =
-            getExceptionAt(firstExceptionIdx, transaction, exceptionPageCursor);
-        if (metadata.compMeta.compression != CompressionType::FLOAT ||
-            firstExceptionIdx == metadata.compMeta.alpMetadata.exceptionCount ||
-            searchedException.posInPage != offsetInChunk) {
-            defaultReader->readCompressedValue(transaction, metadata, cursor, offsetInChunk, result,
-                offsetInResult, readFunc);
-        } else {
+        do {
+            if (firstExceptionIdx == metadata.compMeta.alpMetadata.exceptionCount) {
+                break;
+            }
+
+            const auto searchedException =
+                getExceptionAt(firstExceptionIdx, transaction, exceptionPageCursor);
+            if (metadata.compMeta.compression != CompressionType::FLOAT ||
+                searchedException.posInPage != offsetInChunk) {
+                break;
+            }
+
             KU_ASSERT(metadata.compMeta.compression == CompressionType::FLOAT);
             if constexpr (std::is_same_v<uint8_t*, OutputType>) {
                 *reinterpret_cast<T*>(result) = searchedException.value;
             } else {
                 *reinterpret_cast<T*>(result->getData()) = searchedException.value;
             }
-        }
+            return;
+        } while (false);
+
+        defaultReader->readCompressedValue(transaction, metadata, cursor, offsetInChunk, result,
+            offsetInResult, readFunc);
     }
 
     template<typename OutputType>
@@ -269,8 +277,8 @@ private:
 
         const uint64_t numValuesToScan = endNodeOffset - startNodeOffset;
         const uint64_t numValuesScanned =
-            defaultReader->readCompressedValuesFromDisk(transaction, metadata, numValuesPerPage,
-                result, startOffsetInResult, startNodeOffset, endNodeOffset, readFunc, filterFunc);
+            defaultReader->readCompressedValues(transaction, metadata, numValuesPerPage, result,
+                startOffsetInResult, startNodeOffset, endNodeOffset, readFunc, filterFunc);
 
         if (metadata.compMeta.compression == CompressionType::FLOAT && numValuesScanned > 0) {
             patchFloatExceptions(transaction, metadata, numValuesPerPage, startNodeOffset,
