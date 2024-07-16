@@ -270,10 +270,13 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     case LogicalTypeID::RDF_VARIANT: {
         return ConvertRdfVariantToNapiObject(value, env);
     }
+    case LogicalTypeID::DECIMAL: {
+        auto valString = value.toString();
+        return Napi::String::New(env, valString).ToNumber();
+    }
     default:
         throw Exception("Unsupported type: " + dataType.toString());
     }
-    return Napi::Value();
 }
 
 std::unordered_map<std::string, std::unique_ptr<Value>> Util::TransformParametersForExec(

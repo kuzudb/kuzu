@@ -533,3 +533,24 @@ describe("RDF_VARIANT", function () {
     assert.deepEqual(result[15]["a.val"], new Uint8Array([0xb2]));
   });
 });
+
+describe("DECIMAL", function () {
+  it("should convert DECIMAL type", async function () {
+    const queryResult = await conn.query(
+      "UNWIND[1, 2, 3] AS A UNWIND[5.7, 8.3, 2.9] AS B RETURN CAST(CAST(A AS DECIMAL) * CAST(B AS DECIMAL) AS DECIMAL(18, 1)) AS PROD"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 9);
+    assert.deepEqual(result, [
+      { PROD: 5.7 },
+      { PROD: 8.3 },
+      { PROD: 2.9 },
+      { PROD: 11.4 },
+      { PROD: 16.6 },
+      { PROD: 5.8 },
+      { PROD: 17.1 },
+      { PROD: 24.9 },
+      { PROD: 8.7 },
+    ])
+  });
+});
