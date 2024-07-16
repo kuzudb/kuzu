@@ -134,10 +134,6 @@ Roma|298|the movie is very interesting and funny|{rating: 1223.000000, stars: 10
 ---- 1
 100|kuzu is # a |graph database
 
--STATEMENT COPY (RETURN 100) TO "${DATABASE_PATH}/copy_to_with_option.parquet" (delim = '|', QUOTE='#', Escape = '!')
----- error
-Binder exception: Only copy to csv can have options.
-
 -STATEMENT COPY (load from "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv"(header=true) where id = 2 return id, fname, Gender, workedHours) to "${DATABASE_PATH}/copy_to_with_filter.csv"
 ---- ok
 -STATEMENT LOAD FROM "${DATABASE_PATH}/copy_to_with_filter.csv" RETURN *;

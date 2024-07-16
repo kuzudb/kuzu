@@ -30,9 +30,6 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
         auto columnName = column->hasAlias() ? column->getAlias() : column->toString();
         columnNames.push_back(columnName);
     }
-    if (fileType != FileType::CSV && copyToStatement.getParsingOptionsRef().size() != 0) {
-        throw BinderException{"Only copy to csv can have options."};
-    }
     function::ExportFuncBindInput bindInput{std::move(columnNames), std::move(boundFilePath),
         bindParsingOptions(copyToStatement.getParsingOptionsRef())};
     auto bindData = exportFunc->bind(bindInput);
