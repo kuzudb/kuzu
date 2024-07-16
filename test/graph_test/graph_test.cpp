@@ -48,21 +48,10 @@ void DBTest::createNewDB() {
     createDBAndConn();
 }
 
-void DBTest::createConns(const std::set<std::string>& connNames) {
-    BaseGraphTest::createConns(connNames);
-    for (const auto& connName : connNames) {
-        statementQueue[connName] = std::vector<TestStatement*>();
-    }
-}
-
-void DBTest::runConnStatements(const std::string& connName) {
-    auto i = 0u;
-    while (!closeThreads) {
-        while (connectionsPaused) {}
-        for (; i < statementQueue[connName].size(); i++) {
-            auto statement = statementQueue[connName][i];
-            TestRunner::runTest(statement, *connMap[connName], databasePath);
-        }
+void ConcurrentTest::runStatements() {
+    while (connectionPaused) {}
+    for (auto statement: statementsQueue) {
+        TestRunner::runTest(statement, connection, databasePath);
     }
 }
 

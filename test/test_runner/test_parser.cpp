@@ -224,12 +224,12 @@ TestStatement* TestParser::extractStatement(TestStatement* statement,
         testGroup->testCasesConnNames[testCaseName].insert(currentToken.params[1]);
         break;
     }
-    case TokenType::CONNECTIONS_WAIT: {
-        statement->connectionsStatusFlag = ConnectionsStatusFlag::WAIT;
+    case TokenType::BEGIN_CONCURRENT_EXECUTION: {
+        statement->connectionsStatusFlag = ConcurrentStatusFlag::BEGIN;
         return statement;
     }
-    case TokenType::CONNECTIONS_RUN: {
-        statement->connectionsStatusFlag = ConnectionsStatusFlag::RUN;
+    case TokenType::END_CONCURRENT_EXECUTION: {
+        statement->connectionsStatusFlag = ConcurrentStatusFlag::END;
         return statement;
     }
     case TokenType::RELOADDB: {

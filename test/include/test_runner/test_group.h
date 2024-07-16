@@ -12,10 +12,10 @@
 namespace kuzu {
 namespace testing {
 
-enum class ConnectionsStatusFlag {
+enum class ConcurrentStatusFlag {
     NONE,
-    WAIT,
-    RUN,
+    BEGIN,
+    END,
 };
 
 enum class ResultType {
@@ -49,7 +49,7 @@ struct TestStatement {
     std::optional<std::string> connName;
     bool reloadDBFlag = false;
     bool importDBFlag = false;
-    ConnectionsStatusFlag connectionsStatusFlag = ConnectionsStatusFlag::NONE;
+    ConcurrentStatusFlag connectionsStatusFlag = ConcurrentStatusFlag::NONE;
     // for export and import db
     std::string importFilePath;
     bool removeFileFlag = false;

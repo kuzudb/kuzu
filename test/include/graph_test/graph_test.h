@@ -1,3 +1,4 @@
+#include <memory>
 #include <string>
 #include <thread>
 #include <vector>
@@ -36,6 +37,35 @@ class EmptyDBTest : public PrivateGraphTest {
     std::string getInputDir() override { KU_UNREACHABLE; }
 };
 
+class ConcurrentTest {
+public:
+    ConcurrentTest(bool& connectionsPaused, main::Connection& connection, std::string databasePath):
+      connectionPaused{connectionsPaused}, connection{connection}, databasePath{databasePath} {}
+    void execute() {
+        connThread = std::thread(&ConcurrentTest::runStatements, this);
+    }
+    void join() {
+        if (connThread.joinable()) {
+            connThread.join();
+        }
+    }
+    void reset() {
+        statementsQueue.clear();
+    }
+    void addStatement(TestStatement* statement) {
+        statementsQueue.emplace_back(statement);
+    }
+
+private:
+    void runStatements();
+
+    bool& connectionPaused;
+    main::Connection& connection;
+    std::string databasePath;
+    std::thread connThread;
+    std::vector<TestStatement*> statementsQueue;
+};
+
 // This class starts database in on-disk mode.
 class DBTest : public PrivateGraphTest {
 public:
@@ -46,16 +76,12 @@ public:
     }
     void createDB(uint64_t checkpointWaitTimeout);
     void createNewDB();
-    void createConns(const std::set<std::string>& connNames) override;
-
-    void runConnStatements(const std::string& name);
 
     inline void runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
         uint64_t checkpointWaitTimeout = common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_IN_MICROS,
         std::set<std::string> connNames = std::set<std::string>()) {
-        closeThreads = false;
         for (const auto& connName : connNames) {
-            connThreads.emplace_back(&DBTest::runConnStatements, this, connName);
+            concurrentTests.try_emplace(connName, connectionsPaused, *connMap[connName], databasePath);
         }
         for (auto& statement : statements) {
             // special for testing import and export test cases
@@ -77,8 +103,23 @@ public:
                 createConns(connNames);
                 continue;
             }
-            if (statement->connectionsStatusFlag != ConnectionsStatusFlag::NONE) {
-                connectionsPaused = statement->connectionsStatusFlag == ConnectionsStatusFlag::WAIT;
+            if (statement->connectionsStatusFlag == ConcurrentStatusFlag::BEGIN) {
+                for (auto& concurrentTest : concurrentTests) {
+                    concurrentTest.second.reset();
+                }
+                isConcurrent = true;
+                connectionsPaused = true;
+                continue;
+            }
+            if (statement->connectionsStatusFlag == ConcurrentStatusFlag::END) {
+                for (auto& concurrentTest : concurrentTests) {
+                    concurrentTest.second.execute();
+                }
+                isConcurrent = false;
+                connectionsPaused = false;
+                for (auto& concurrentTest : concurrentTests) {
+                    concurrentTest.second.join();
+                }
                 continue;
             }
             if (conn) {
@@ -86,16 +127,12 @@ public:
             } else {
                 auto connName = *statement->connName;
                 CheckConn(connName);
-                if (connectionsPaused) {
-                    statementQueue[connName].push_back(statement.get());
+                if (isConcurrent) {
+                    concurrentTests.at(connName).addStatement(statement.get());
                 } else {
                     TestRunner::runTest(statement.get(), *connMap[connName], databasePath);
                 }
             }
-        }
-        closeThreads = true;
-        for (auto& thread: connThreads) {
-            thread.join();
         }
     }
 
@@ -106,10 +143,10 @@ public:
     }
 
 protected:
-    bool closeThreads = false;
+    bool isConcurrent = false;
     bool connectionsPaused = false;
-    std::vector<std::thread> connThreads;
-    std::unordered_map<std::string, std::vector<TestStatement*>> statementQueue;
+    std::unordered_map<std::string, ConcurrentTest> concurrentTests;
 };
+
 } // namespace testing
 } // namespace kuzu
