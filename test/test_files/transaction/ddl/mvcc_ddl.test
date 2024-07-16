@@ -268,7 +268,7 @@ Catalog exception: t does not exist in catalog.
 ---- 2
 0|a|INT32|True
 1|b|INT32|False
--STATEMENT COMMIT_SKIP_CHECKPOINT;
+-STATEMENT COMMIT;
 ---- ok
 -STATEMENT [conn2] COMMIT;
 ---- ok
