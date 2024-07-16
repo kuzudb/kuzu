@@ -322,7 +322,19 @@ void Column::scanFiltered(Transaction* transaction, PageCursor& pageCursor,
     }
 }
 
-void Column::lookupValue(Transaction* transaction, ChunkState& state, offset_t nodeOffset,
+void Column::lookupValue(Transaction* transaction, const ChunkState& state, offset_t nodeOffset,
+    ValueVector* resultVector, uint32_t posInVector) {
+    if (nullColumn) {
+        nullColumn->lookupValue(transaction, *state.nullState, nodeOffset, resultVector,
+            posInVector);
+    }
+    if (resultVector->isNull(posInVector)) {
+        return;
+    }
+    lookupInternal(transaction, state, nodeOffset, resultVector, posInVector);
+}
+
+void Column::lookupInternal(Transaction* transaction, const ChunkState& state, offset_t nodeOffset,
     ValueVector* resultVector, uint32_t posInVector) {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     auto cursor = getPageCursorForOffsetInGroup(offsetInChunk, state);
@@ -463,9 +475,7 @@ bool Column::isMaxOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
 void Column::checkpointColumnChunkInPlace(ChunkState& state,
     const ColumnCheckpointState& checkpointState) {
     for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
-        if (chunkCheckpointState.numRows == 0) {
-            continue;
-        }
+        KU_ASSERT(chunkCheckpointState.numRows > 0);
         write(checkpointState.persistentData, state, chunkCheckpointState.startRow,
             chunkCheckpointState.chunkData.get(), 0 /*srcOffset*/, chunkCheckpointState.numRows);
     }

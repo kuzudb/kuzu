@@ -34,6 +34,10 @@ protected:
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
+    void lookupInternal(transaction::Transaction* transaction, const ChunkState& state,
+        common::offset_t nodeOffset, common::ValueVector* resultVector,
+        uint32_t posInVector) override;
+
 private:
     std::vector<std::unique_ptr<Column>> childColumns;
 };

@@ -42,6 +42,10 @@ protected:
         common::offset_t startOffsetInChunk, const common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
 
+    void lookupInternal(transaction::Transaction* transaction, const ChunkState& state,
+        common::offset_t nodeOffset, common::ValueVector* resultVector,
+        uint32_t posInVector) override;
+
 private:
     bool canCheckpointInPlace(const ChunkState& state,
         const ColumnCheckpointState& checkpointState) override;

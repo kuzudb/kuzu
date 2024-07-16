@@ -69,6 +69,15 @@ void StructColumn::scanInternal(Transaction* transaction, const ChunkState& stat
     }
 }
 
+void StructColumn::lookupInternal(Transaction* transaction, const ChunkState& state,
+    offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) {
+    for (auto i = 0u; i < childColumns.size(); i++) {
+        const auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
+        childColumns[i]->lookupValue(transaction, state.childrenStates[i], nodeOffset, fieldVector,
+            posInVector);
+    }
+}
+
 void StructColumn::write(ColumnChunkData& persistentChunk, ChunkState& state,
     offset_t offsetInChunk, ColumnChunkData* data, offset_t dataOffset, length_t numValues) {
     KU_ASSERT(data->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);

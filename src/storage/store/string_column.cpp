@@ -79,6 +79,19 @@ void StringColumn::scan(Transaction* transaction, const ChunkState& state,
     dictionary.scan(transaction, state, stringColumnChunk.getDictionaryChunk());
 }
 
+void StringColumn::lookupInternal(Transaction* transaction, const ChunkState& state,
+    offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) {
+    auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
+    string_index_t index;
+    indexColumn->scan(transaction, getChildState(state, ChildStateIndex::INDEX), offsetInChunk,
+        offsetInChunk + 1, reinterpret_cast<uint8_t*>(&index));
+    std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan(1);
+    offsetsToScan.emplace_back(index, posInVector);
+    dictionary.scan(transaction, getChildState(state, ChildStateIndex::OFFSET),
+        getChildState(state, ChildStateIndex::DATA), offsetsToScan, resultVector,
+        getChildState(state, ChildStateIndex::INDEX).metadata);
+}
+
 void StringColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t dstOffset,
     ColumnChunkData* data, offset_t srcOffset, length_t numValues) {
     auto& stringPersistentChunk = persistentChunk.cast<StringChunkData>();

@@ -46,7 +46,6 @@ struct ChunkState {
     Column* column;
     ColumnChunkMetadata metadata;
     uint64_t numValuesPerPage = UINT64_MAX;
-    common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
     std::unique_ptr<ChunkState> nullState;
     // Used for struct/list/string columns.
     std::vector<ChunkState> childrenStates;
@@ -72,7 +71,6 @@ struct ChunkState {
 
     void resetState() {
         numValuesPerPage = UINT64_MAX;
-        nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
         if (nullState) {
             nullState->resetState();
         }
