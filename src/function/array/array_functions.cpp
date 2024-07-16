@@ -99,10 +99,18 @@ static void validateChildType(const LogicalType& type, const std::string& functi
 
 static LogicalType validateArrayFunctionParameters(const LogicalType& leftType,
     const LogicalType& rightType, const std::string& functionName) {
-    auto leftChildType = getChildType(leftType);
-    auto rightChildType = getChildType(rightType);
-    validateChildType(leftChildType, functionName);
-    validateChildType(rightChildType, functionName);
+    if (leftType.getLogicalTypeID() == LogicalTypeID::ANY &&
+        rightType.getLogicalTypeID() == LogicalTypeID::ANY) {
+        return leftType.copy();
+    }
+    if (leftType.getLogicalTypeID() != LogicalTypeID::ANY) {
+        auto leftChildType = getChildType(leftType);
+        validateChildType(leftChildType, functionName);
+    }
+    if (rightType.getLogicalTypeID() != LogicalTypeID::ANY) {
+        auto rightChildType = getChildType(rightType);
+        validateChildType(rightChildType, functionName);
+    }
     if (leftType.getLogicalTypeID() == common::LogicalTypeID::ARRAY) {
         return leftType.copy();
     } else if (rightType.getLogicalTypeID() == common::LogicalTypeID::ARRAY) {
@@ -141,6 +149,11 @@ std::unique_ptr<FunctionBindData> arrayTemplateBindFunc(std::string functionName
     const binder::expression_vector& arguments, Function* function) {
     const auto& leftType = arguments[0]->dataType;
     const auto& rightType = arguments[1]->dataType;
+    if (leftType.getLogicalTypeID() == LogicalTypeID::ANY &&
+        rightType.getLogicalTypeID() == LogicalTypeID::ANY) {
+        throw BinderException{
+            "Left and right type are both ANY, which is not currently supported."};
+    }
     auto paramType = validateArrayFunctionParameters(leftType, rightType, functionName);
     function->ptrCast<ScalarFunction>()->execFunc =
         std::move(getScalarExecFunc<OPERATION>(paramType.copy()));

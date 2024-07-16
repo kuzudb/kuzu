@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
+import pytest
 
 from type_aliases import ConnDB
 
@@ -119,3 +120,24 @@ def test_error(conn_db_readonly: ConnDB) -> None:
     prepared_statement = conn_db_readonly[0].prepare("SELECT * FROM person")
     assert not prepared_statement.is_success()
     assert prepared_statement.get_error_message().startswith("Parser exception: extraneous input 'SELECT'")
+
+
+def test_array_binding(conn_db_readwrite: ConnDB) -> None:
+    conn, _ = conn_db_readwrite
+    conn.execute("CREATE NODE TABLE node(id STRING, embedding DOUBLE[3], PRIMARY KEY(id))")
+    conn.execute("CREATE (d:node {id: 'test', embedding: $emb})", {"emb": [3, 5, 2]})
+    result = conn.execute(
+        """
+        MATCH (d:node)
+        RETURN d.id, array_cosine_similarity(d.embedding, $emb)
+        """, {"emb": [4.3, 5.2, 6.7]}
+    )
+    assert result.get_next() == ['test', pytest.approx(0.8922316795174099)]
+    with pytest.raises(RuntimeError) as err:
+        conn.execute(
+            """
+            MATCH (d:node)
+            RETURN d.id, array_cosine_similarity($emb1, $emb)
+            """, {"emb": [4.3, 5.2, 6.7], "emb1": [2.2, 3.3, 5.5]}
+        )
+    assert str(err.value) == "Binder exception: Left and right type are both ANY, which is not currently supported."
