@@ -5,25 +5,24 @@
 -CASE JsonifyUnion
 -STATEMENT MATCH (o:organisation) RETURN to_json(o.info);
 ---- 3
-3.120000
+3.119999885559082
 "abcd"
 "2023-12-15"
 
 -CASE BasicAlgorithm
-
 
 -STATEMENT PROJECT GRAPH PK (person {age}, knows) CALL variable_length_path(PK, 1, 1) RETURN *;
 ---- error
 Parser exception: Filtering or projecting properties in graph projection is not supported.
 -STATEMENT PROJECT GRAPH PK (person, knows)
            MATCH (a:person) WHERE a.ID = 0
-           CALL shortest_paths(PK, a, 2, true)
+           CALL single_sp_lengths(PK, a, 2, true)
            RETURN a.fName, _node.name, length;
 ---- error
 Binder exception: Cannot find property name for _node.
 -STATEMENT PROJECT GRAPH PK (person, knows)
            MATCH (a:person) WHERE a.ID = 0
-           CALL shortest_paths(PK, a, 2, true)
+           CALL single_sp_lengths(PK, a, 2, true)
            RETURN a.fName, _node.fName, length;
 ---- 4
 Alice|Alice|0
@@ -32,7 +31,7 @@ Alice|Carol|1
 Alice|Dan|1
 -STATEMENT PROJECT GRAPH PK (person, organisation, workAt, knows)
            MATCH (a:person) WHERE a.ID = 0
-           CALL shortest_paths(PK, a, 2, true)
+           CALL single_sp_lengths(PK, a, 2, true)
            RETURN a.fName, _node.fName, _node.name, length;
 ---- 6
 Alice|Alice||0
