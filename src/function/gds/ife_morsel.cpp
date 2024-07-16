@@ -1,4 +1,5 @@
 #include "function/gds/ife_morsel.h"
+#include <immintrin.h>
 
 #include <cmath>
 
@@ -105,9 +106,23 @@ void IFEMorsel::initializeNextFrontierNoLock() {
     if (currentFrontierSize < std::ceil((maxOffset / 8))) {
         isSparseFrontier = true;
         bfsFrontier.clear();
-        for (auto i = 0u; i < (maxOffset + 1); i++) {
-            if (nextFrontier[i]) { [[unlikely]]
-                bfsFrontier.push_back(i);
+        auto simdWidth = 32u, i = 0u, pos = 0u;
+        __m256i ones = _mm256_set1_epi8(1);
+        for (; i + simdWidth < maxOffset + 1; i += simdWidth) {
+            __m256i vec = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&nextFrontier[i]));
+            __m256i cmp = _mm256_cmpeq_epi8(vec, ones);
+            int mask = _mm256_movemask_epi8(cmp);
+            while (mask != 0) {
+                int index = __builtin_ctz(mask);
+                bfsFrontier[pos++] = (i + index);
+                mask &= ~(1 << index);
+            }
+        }
+
+        // Process any remaining elements
+        for (; i < maxOffset + 1; ++i) {
+            if (nextFrontier[i]) {
+                bfsFrontier[pos++] = i;
             }
         }
     } else {
