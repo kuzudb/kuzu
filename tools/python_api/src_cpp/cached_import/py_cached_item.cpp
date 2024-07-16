@@ -1,13 +1,12 @@
 #include "cached_import/py_cached_item.h"
 
 #include "cached_import/py_cached_import.h"
-#include "common/assert.h"
 #include "common/exception/runtime.h"
 
 namespace kuzu {
 
 py::handle PythonCachedItem::operator()() {
-    KU_ASSERT((bool)PyGILState_Check());
+    assert((bool)PyGILState_Check());
     // load if unloaded, return cached object if already loaded
     if (loaded) {
         return object;
@@ -23,7 +22,6 @@ py::handle PythonCachedItem::operator()() {
 
 py::handle NumpyMaCachedItem::operator()() {
     // TODO: implement compatibility with numpy 2.0.0
-    KU_ASSERT((bool)PyGILState_Check());
     auto obj = numpy();
     if (py::cast<std::string>(obj.attr("__version__"))[0] >= '2') {
         throw common::RuntimeException(
