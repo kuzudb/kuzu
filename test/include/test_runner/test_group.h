@@ -12,6 +12,12 @@
 namespace kuzu {
 namespace testing {
 
+enum class ConcurrentStatusFlag {
+    NONE,
+    BEGIN,
+    END,
+};
+
 enum class ResultType {
     OK,
     HASH,
@@ -43,6 +49,7 @@ struct TestStatement {
     std::optional<std::string> connName;
     bool reloadDBFlag = false;
     bool importDBFlag = false;
+    ConcurrentStatusFlag connectionsStatusFlag = ConcurrentStatusFlag::NONE;
     // for export and import db
     std::string importFilePath;
     bool removeFileFlag = false;
