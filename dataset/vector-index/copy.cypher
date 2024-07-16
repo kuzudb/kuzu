@@ -1,1 +1,1 @@
-COPY embeddings FROM "/localscratch/g3sehgal.36875570.0/sift_10k/embeddings.csv" (deLim=',');
+COPY embeddings FROM "/localscratch/g3sehgal.36878946.0/gist_50k/embeddings.csv" (deLim=',');
