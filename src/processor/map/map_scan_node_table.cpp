@@ -73,7 +73,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
         auto exprMapper = ExpressionMapper(outSchema);
         auto evaluator = exprMapper.getEvaluator(primaryKeyScanInfo.key);
         auto sharedState = std::make_shared<PrimaryKeyScanSharedState>(tableInfos.size());
-        auto printInfo = std::make_unique<PrimaryKeyScanPrintInfo>(scan.getProperties(), primaryKeyScanInfo.key->toString());
+        auto printInfo = std::make_unique<PrimaryKeyScanPrintInfo>(scan.getProperties(),
+            primaryKeyScanInfo.key->toString());
         return std::make_unique<PrimaryKeyScanNodeTable>(std::move(scanInfo), std::move(tableInfos),
             std::move(evaluator), std::move(sharedState), getOperatorID(), std::move(printInfo));
     }

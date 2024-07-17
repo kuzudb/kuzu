@@ -117,8 +117,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
     if (relBuild != nullptr) {
         children.push_back(std::move(relBuild));
     }
-    auto printInfo =
-        std::make_unique<OPPrintInfo>();
+    auto printInfo = std::make_unique<OPPrintInfo>();
     auto pathPropertyProbe = std::make_unique<PathPropertyProbe>(std::move(pathProbeInfo),
         pathProbeSharedState, std::move(children), getOperatorID(), std::move(printInfo));
     if (logicalProbe.getSIPInfo().direction == planner::SIPDirection::PROBE_TO_BUILD) {

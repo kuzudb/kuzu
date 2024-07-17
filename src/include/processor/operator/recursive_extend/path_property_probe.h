@@ -6,7 +6,6 @@
 namespace kuzu {
 namespace processor {
 
-
 struct PathPropertyProbeSharedState {
     std::shared_ptr<HashJoinSharedState> nodeHashTableState;
     std::shared_ptr<HashJoinSharedState> relHashTableState;
