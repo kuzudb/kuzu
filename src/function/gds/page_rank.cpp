@@ -34,7 +34,7 @@ struct PageRankBindData final : public GDSBindData {
     }
 };
 
-class PageRankLocalState : public GDSLocalState {
+class PageRankLocalState {
 public:
     explicit PageRankLocalState(main::ClientContext* context) {
         auto mm = context->getMemoryManager();
@@ -107,7 +107,6 @@ public:
 
     void exec(processor::ExecutionContext*) override {
         auto extraData = bindData->ptrCast<PageRankBindData>();
-        auto pageRankLocalState = localState->ptrCast<PageRankLocalState>();
         auto graph = sharedState->graph.get();
         // Initialize state.
         common::node_id_map_t<double> ranks;
@@ -145,12 +144,15 @@ public:
             }
         }
         // Materialize result.
-        pageRankLocalState->materialize(graph, ranks, *sharedState->fTable);
+        localState->materialize(graph, ranks, *sharedState->fTable);
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<PageRank>(*this);
     }
+private:
+    // TODO(Semih): Rename to PROutputs
+    std::unique_ptr<PageRankLocalState> localState;
 };
 
 function_set PageRankFunction::getFunctionSet() {

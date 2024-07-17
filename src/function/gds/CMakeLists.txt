@@ -3,7 +3,9 @@ add_library(kuzu_function_algorithm
         gds.cpp
         gds_task.cpp
         page_rank.cpp
-        shortest_paths.cpp
+        rec_joins.cpp
+        all_shortest_paths.cpp
+        single_shortest_paths.cpp
         gds_utils.cpp
         weakly_connected_components.cpp)
 

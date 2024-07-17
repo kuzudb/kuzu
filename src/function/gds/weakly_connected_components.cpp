@@ -17,7 +17,7 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-class WeaklyConnectedComponentLocalState : public GDSLocalState {
+class WeaklyConnectedComponentLocalState {
 public:
     explicit WeaklyConnectedComponentLocalState(main::ClientContext* context) {
         auto mm = context->getMemoryManager();
@@ -89,7 +89,6 @@ public:
     }
 
     void exec(processor::ExecutionContext*) override {
-        auto wccLocalState = localState->ptrCast<WeaklyConnectedComponentLocalState>();
         auto graph = sharedState->graph.get();
         visitedMap.clear();
         auto groupID = 0;
@@ -102,7 +101,7 @@ public:
                 findConnectedComponent(nodeID, groupID++);
             }
         }
-        wccLocalState->materialize(graph, visitedMap, *sharedState->fTable);
+        localState->materialize(graph, visitedMap, *sharedState->fTable);
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
@@ -124,6 +123,8 @@ private:
 
 private:
     common::node_id_map_t<int64_t> visitedMap;
+    // TODO(Semih): Rename to WCCOutputs.
+    std::unique_ptr<WeaklyConnectedComponentLocalState> localState;
 };
 
 function_set WeaklyConnectedComponentsFunction::getFunctionSet() {

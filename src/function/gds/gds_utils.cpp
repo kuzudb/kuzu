@@ -31,6 +31,9 @@ void GDSUtils::parallelizeFrontierCompute(processor::ExecutionContext* execution
 
 void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* executionContext,
     Frontiers& frontiers, graph::Graph* graph, FrontierCompute& fc, uint64_t maxIters) {
+    // We put the memory fence before to ensure that updates to any frontier that may be
+    // requiring memory barrier becomes visible to all threads in the first iteration.
+    std::atomic_thread_fence(std::memory_order_seq_cst);
     while (frontiers.hasActiveNodesForNextIter() && frontiers.getNextIter() < maxIters) {
         frontiers.beginNewIteration();
         for (auto& relTableIDInfo : graph->getRelTableIDInfos()) {

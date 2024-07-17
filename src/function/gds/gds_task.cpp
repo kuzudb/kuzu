@@ -2,6 +2,8 @@
 
 #include "graph/graph.h"
 
+// TODO(Semih): Remove
+#include <iostream>
 namespace kuzu {
 namespace function {
 
@@ -14,6 +16,7 @@ void GDSTask::run() {
             nodeID_t nodeID = frontierMorsel.getNextVertex();
             if (sharedState->frontiers.curFrontier->isActive(nodeID)) {
                 auto nbrIDs = graph->scanFwd(nodeID, sharedState->relTableIDToScan);
+//                std::cout << "Scanning nbrs of nodeID: " << nodeID.offset << " numNbrs: " << nbrIDs.size() << std::endl;
                 for (auto nbrID : nbrIDs) {
                     if (sharedState->fc.edgeCompute(nodeID, nbrID)) {
                         sharedState->frontiers.nextFrontier->setActive(nbrID);
