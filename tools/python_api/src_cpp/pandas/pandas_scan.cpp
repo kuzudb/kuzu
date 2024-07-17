@@ -82,13 +82,8 @@ void pandasBackendScanSwitch(PandasColumnBindData* bindData, uint64_t count, uin
 }
 
 offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
-    auto pandasScanData =
-        ku_dynamic_cast<TableFuncBindData*, PandasScanFunctionData*>(input.bindData);
-    auto pandasLocalState =
-        ku_dynamic_cast<TableFuncLocalState*, PandasScanLocalState*>(input.localState);
-    auto pandasSharedState =
-        ku_dynamic_cast<TableFuncSharedState*, PandasScanSharedState*>(input.sharedState);
-
+    auto pandasScanData = input.bindData->constPtrCast<PandasScanFunctionData>();
+    auto pandasLocalState = input.localState->ptrCast<PandasScanLocalState>();
     if (pandasLocalState->start >= pandasLocalState->end) {
         if (!sharedStateNext(input.bindData, pandasLocalState, input.sharedState)) {
             return 0;
@@ -116,8 +111,7 @@ PandasScanFunctionData::copyColumnBindData() const {
 }
 
 static double progressFunc(TableFuncSharedState* sharedState) {
-    auto pandasSharedState =
-        ku_dynamic_cast<TableFuncSharedState*, PandasScanSharedState*>(sharedState);
+    auto pandasSharedState = sharedState->ptrCast<PandasScanSharedState>();
     if (pandasSharedState->numRows == 0) {
         return 0.0;
     }
