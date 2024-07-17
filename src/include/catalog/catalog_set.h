@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "catalog_entry/catalog_entry.h"
 #include "common/case_insensitive_map.h"
 
