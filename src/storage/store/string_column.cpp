@@ -188,6 +188,13 @@ void StringColumn::scanFiltered(Transaction* transaction, const ChunkState& stat
         getChildState(state, ChildStateIndex::INDEX).metadata);
 }
 
+void StringColumn::initializeScanState(ChunkState& state) {
+    Column::initializeScanState(state);
+    indexColumn->initializeScanState(
+        state.getChildState(static_cast<idx_t>(StringColumn::ChildStateIndex::INDEX)));
+    dictionary.initializeScanState(state);
+}
+
 bool StringColumn::canCheckpointInPlace(const ChunkState& state,
     const ColumnCheckpointState& checkpointState) {
     row_idx_t strLenToAdd = 0u;
@@ -220,10 +227,11 @@ bool StringColumn::canIndexCommitInPlace(const ChunkState& state, uint64_t numSt
     }
     const auto totalStringsAfterUpdate =
         getChildState(state, ChildStateIndex::OFFSET).metadata.numValues + numStrings;
+    CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
     // Check if the index column can store the largest new index in-place
     if (!indexState.metadata.compMeta.canUpdateInPlace(
             reinterpret_cast<const uint8_t*>(&totalStringsAfterUpdate), 0 /*pos*/, 1 /*numValues*/,
-            PhysicalTypeID::UINT32)) {
+            PhysicalTypeID::UINT32, localUpdateState)) {
         return false;
     }
     return true;

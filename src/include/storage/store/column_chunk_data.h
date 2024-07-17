@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <variant>
 
 #include "common/constants.h"
 #include "common/data_chunk/sel_vector.h"
@@ -9,6 +10,8 @@
 #include "common/types/types.h"
 #include "storage/compression/compression.h"
 #include "storage/enums/residency_state.h"
+#include "storage/store/column_chunk_metadata.h"
+#include "storage/store/column_read_writer.h"
 
 namespace kuzu {
 namespace evaluator {
@@ -23,23 +26,6 @@ namespace storage {
 
 class Column;
 class NullChunkData;
-// TODO(Guodong): Ideally ColumnChunkMetadata should implement its own ser/deSer functions so it can
-// save a bit of space on disk. But the size is small now, I'm not motivated for the change, just
-// note here still.
-struct ColumnChunkMetadata {
-    common::page_idx_t pageIdx;
-    common::page_idx_t numPages;
-    uint64_t numValues;
-    CompressionMetadata compMeta;
-
-    // TODO(Guodong): Delete copy constructor.
-    ColumnChunkMetadata()
-        : pageIdx{common::INVALID_PAGE_IDX}, numPages{0}, numValues{0},
-          compMeta(StorageValue(), StorageValue(), CompressionType::CONSTANT) {}
-    ColumnChunkMetadata(common::page_idx_t pageIdx, common::page_idx_t numPages,
-        uint64_t numNodesInChunk, const CompressionMetadata& compMeta)
-        : pageIdx(pageIdx), numPages(numPages), numValues(numNodesInChunk), compMeta(compMeta) {}
-};
 
 // TODO(bmwinger): Hide access to variables.
 struct ChunkState {
@@ -47,8 +33,14 @@ struct ChunkState {
     ColumnChunkMetadata metadata;
     uint64_t numValuesPerPage = UINT64_MAX;
     std::unique_ptr<ChunkState> nullState;
+
     // Used for struct/list/string columns.
     std::vector<ChunkState> childrenStates;
+
+    // Used for floating point columns
+    std::variant<std::unique_ptr<InMemoryExceptionChunk<double>>,
+        std::unique_ptr<InMemoryExceptionChunk<float>>>
+        alpExceptionChunk;
 
     explicit ChunkState(bool hasNull = true) : column{nullptr} {
         if (hasNull) {
@@ -77,6 +69,20 @@ struct ChunkState {
         for (auto& childState : childrenStates) {
             childState.resetState();
         }
+    }
+
+    template<std::floating_point T>
+    InMemoryExceptionChunk<T>* getExceptionChunk() {
+        using GetType = std::unique_ptr<InMemoryExceptionChunk<T>>;
+        KU_ASSERT(std::holds_alternative<GetType>(alpExceptionChunk));
+        return std::get<GetType>(alpExceptionChunk).get();
+    }
+
+    template<std::floating_point T>
+    const InMemoryExceptionChunk<T>* getExceptionChunkConst() const {
+        using GetType = std::unique_ptr<InMemoryExceptionChunk<T>>;
+        KU_ASSERT(std::holds_alternative<GetType>(alpExceptionChunk));
+        return std::get<GetType>(alpExceptionChunk).get();
     }
 };
 
@@ -298,7 +304,8 @@ public:
         : BoolChunkData{enableCompression, metadata, false /*hasNullData*/},
           mayHaveNullValue{false} {}
 
-    // Maybe this should be combined with BoolChunkData if the only difference is these functions?
+    // Maybe this should be combined with BoolChunkData if the only difference is these
+    // functions?
     bool isNull(common::offset_t pos) const { return getValue<bool>(pos); }
     void setNull(common::offset_t pos, bool isNull);
 

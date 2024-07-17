@@ -54,8 +54,8 @@ void NullColumn::scan(Transaction* transaction, const ChunkState& state,
     Column::scan(transaction, state, columnChunk, startOffset, endOffset);
 }
 
-void NullColumn::write(ColumnChunkData& persistentChunk, const ChunkState& state,
-    offset_t offsetInChunk, ColumnChunkData* data, offset_t dataOffset, length_t numValues) {
+void NullColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t offsetInChunk,
+    ColumnChunkData* data, offset_t dataOffset, length_t numValues) {
     if (numValues == 0) {
         return;
     }

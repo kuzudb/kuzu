@@ -201,6 +201,7 @@ enum class LogicalTypeID : uint8_t {
     POINTER = 58,
 
     UUID = 59,
+
 };
 
 enum class PhysicalTypeID : uint8_t {
@@ -220,6 +221,8 @@ enum class PhysicalTypeID : uint8_t {
     FLOAT = 12,
     INTERVAL = 13,
     INTERNAL_ID = 14,
+    ALP_EXCEPTION_FLOAT = 15,
+    ALP_EXCEPTION_DOUBLE = 16,
 
     // Variable size types.
     STRING = 20,

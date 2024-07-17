@@ -6,6 +6,10 @@ add_library(kuzu_storage_store
         column_chunk_data.cpp
         csr_chunked_node_group.cpp
         csr_node_group.cpp
+        column_read_writer.cpp
+        column_chunk_data.cpp
+        column_chunk_metadata.cpp
+        column_chunk_flush.cpp
         dictionary_chunk.cpp
         dictionary_column.cpp
         in_mem_chunked_node_group_collection.cpp

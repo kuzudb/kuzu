@@ -15,6 +15,7 @@
 #include "function/built_in_function_utils.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "main/client_context.h"
+#include "storage/compression/float_compression.h"
 
 using kuzu::function::BuiltInFunctionsUtils;
 
@@ -231,6 +232,10 @@ std::string PhysicalTypeUtils::toString(PhysicalTypeID physicalType) {
         return "ARRAY";
     case PhysicalTypeID::POINTER:
         return "POINTER";
+    case kuzu::common::PhysicalTypeID::ALP_EXCEPTION_FLOAT:
+        return "ALP_EXCEPTION_FLOAT";
+    case kuzu::common::PhysicalTypeID::ALP_EXCEPTION_DOUBLE:
+        return "ALP_EXCEPTION_DOUBLE";
     default:
         KU_UNREACHABLE;
     }
@@ -267,6 +272,10 @@ uint32_t PhysicalTypeUtils::getFixedTypeSize(PhysicalTypeID physicalType) {
         return sizeof(interval_t);
     case PhysicalTypeID::INTERNAL_ID:
         return sizeof(internalID_t);
+    case kuzu::common::PhysicalTypeID::ALP_EXCEPTION_FLOAT:
+        return storage::EncodeException<float>::sizeBytes();
+    case kuzu::common::PhysicalTypeID::ALP_EXCEPTION_DOUBLE:
+        return storage::EncodeException<double>::sizeBytes();
     default:
         KU_UNREACHABLE;
     }

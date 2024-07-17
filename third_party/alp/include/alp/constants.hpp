@@ -3,7 +3,6 @@
 
 #include "alp/config.hpp"
 #include <cstdint>
-#include <vector>
 
 namespace alp {
 

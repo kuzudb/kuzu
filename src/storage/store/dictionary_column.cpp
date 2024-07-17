@@ -184,12 +184,20 @@ bool DictionaryColumn::canOffsetCommitInPlace(const ChunkState& offsetState,
     if (offsetState.metadata.compMeta.canAlwaysUpdateInPlace()) {
         return true;
     }
+    CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
     if (!offsetState.metadata.compMeta.canUpdateInPlace(
             (const uint8_t*)&totalStringOffsetsAfterUpdate, 0 /*offset*/, 1 /*numValues*/,
-            offsetColumn->getDataType().getPhysicalType())) {
+            offsetColumn->getDataType().getPhysicalType(), localUpdateState)) {
         return false;
     }
     return true;
+}
+
+void DictionaryColumn::initializeScanState(ChunkState& state) {
+    dataColumn->initializeScanState(
+        state.getChildState(static_cast<idx_t>(StringColumn::ChildStateIndex::DATA)));
+    offsetColumn->initializeScanState(
+        state.getChildState(static_cast<idx_t>(StringColumn::ChildStateIndex::OFFSET)));
 }
 
 } // namespace storage
