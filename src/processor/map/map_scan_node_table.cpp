@@ -66,7 +66,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
             getOperatorID(), std::move(printInfo));
     }
     case LogicalScanNodeTableType::PRIMARY_KEY_SCAN: {
-
         auto& primaryKeyScanInfo = scan.getExtraInfo()->constCast<PrimaryKeyScanInfo>();
         auto exprMapper = ExpressionMapper(outSchema);
         auto evaluator = exprMapper.getEvaluator(primaryKeyScanInfo.key);
