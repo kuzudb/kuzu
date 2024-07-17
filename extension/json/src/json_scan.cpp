@@ -31,7 +31,7 @@ struct JsonScanConfig {
                 auto tmp = StringUtils::getUpper(i.second.strVal);
                 if (tmp == "ARRAY") {
                     format = JsonScanFormat::ARRAY;
-                } else if (tmp == "UNSTRUCUTRED") {
+                } else if (tmp == "UNSTRUCTURED") {
                     format = JsonScanFormat::UNSTRUCTURED;
                 } else {
                     throw RuntimeException(
