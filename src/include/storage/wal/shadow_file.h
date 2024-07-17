@@ -65,6 +65,8 @@ private:
     static std::unique_ptr<common::FileInfo> getFileInfo(const main::ClientContext& context,
         DBFileID dbFileID);
 
+    void deserializeShadowPageRecords();
+
 private:
     BMFileHandle* shadowingFH;
     // The map caches shadow page idxes for pages in original files.

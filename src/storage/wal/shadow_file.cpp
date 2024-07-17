@@ -49,8 +49,10 @@ ShadowFile::ShadowFile(const std::string& directory, bool readOnly, BufferManage
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
         vfs, context);
-    // Reserve the first page for the header.
-    shadowingFH->addNewPage();
+    if (shadowingFH->getNumPages() == 0) {
+        // Reserve the first page for the header.
+        shadowingFH->addNewPage();
+    }
 }
 
 void ShadowFile::clearShadowPage(file_idx_t originalFile, page_idx_t originalPage) {

@@ -229,8 +229,11 @@ void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* ta
 }
 
 void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
-    const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
-        LocalStorage::NotExistAction::RETURN_NULL);
+    LocalTable* localTable = nullptr;
+    if (transaction->getLocalStorage()) {
+        localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+            LocalStorage::NotExistAction::RETURN_NULL);
+    }
     if (localTable) {
         localTable->addColumn(transaction, addColumnState);
     }
