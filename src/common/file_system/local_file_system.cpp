@@ -121,8 +121,6 @@ std::vector<std::string> LocalFileSystem::glob(main::ClientContext* context,
                     pathsToGlob.push_back(common::stringFormat("{}/{}", searchPath, path));
                 }
             }
-            // Relative path to the current directory.
-            pathsToGlob.push_back(path);
         }
     }
     std::vector<std::string> result;
