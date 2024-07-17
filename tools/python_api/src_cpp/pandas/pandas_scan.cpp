@@ -36,17 +36,16 @@ std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*con
 
 bool sharedStateNext(const TableFuncBindData* /*bindData*/, PandasScanLocalState* localState,
     TableFuncSharedState* sharedState) {
-    auto pandasSharedState =
-        ku_dynamic_cast<TableFuncSharedState*, PandasScanSharedState*>(sharedState);
+    auto pandasSharedState = sharedState->ptrCast<PandasScanSharedState>();
     std::lock_guard<std::mutex> lck{pandasSharedState->lock};
-    if (pandasSharedState->position >= pandasSharedState->numRows) {
+    if (pandasSharedState->numRowsRead >= pandasSharedState->numRows) {
         return false;
     }
-    localState->start = pandasSharedState->position;
-    pandasSharedState->position +=
-        std::min(pandasSharedState->numRows - pandasSharedState->position,
+    localState->start = pandasSharedState->numRowsRead;
+    pandasSharedState->numRowsRead +=
+        std::min(pandasSharedState->numRows - pandasSharedState->numRowsRead,
             CopyConstants::PANDAS_PARTITION_COUNT);
-    localState->end = pandasSharedState->position;
+    localState->end = pandasSharedState->numRowsRead;
     return true;
 }
 
@@ -103,7 +102,6 @@ offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     }
     output.dataChunk.state->getSelVectorUnsafe().setSelSize(numValuesToOutput);
     pandasLocalState->start += numValuesToOutput;
-    pandasSharedState->numReadRows += numValuesToOutput;
     return numValuesToOutput;
 }
 
@@ -123,7 +121,7 @@ static double progressFunc(TableFuncSharedState* sharedState) {
     if (pandasSharedState->numRows == 0) {
         return 0.0;
     }
-    return static_cast<double>(pandasSharedState->numReadRows) / pandasSharedState->numRows;
+    return static_cast<double>(pandasSharedState->numRowsRead) / pandasSharedState->numRows;
 }
 
 static TableFunction getFunction() {

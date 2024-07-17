@@ -24,7 +24,10 @@ struct FTableScanSharedState final : public function::BaseScanSharedState {
     common::offset_t nextTupleIdx;
 
     FTableScanSharedState(std::shared_ptr<FactorizedTable> table, uint64_t morselSize)
-        : BaseScanSharedState{}, table{std::move(table)}, morselSize{morselSize}, nextTupleIdx{0} {}
+        : BaseScanSharedState{table->getNumTuples()}, table{std::move(table)},
+          morselSize{morselSize}, nextTupleIdx{0} {
+        KU_ASSERT(this->table->getNumTuples() == this->table->getTotalNumFlatTuples());
+    }
 
     FTableScanMorsel getMorsel() {
         std::unique_lock lck{lock};
@@ -32,11 +35,6 @@ struct FTableScanSharedState final : public function::BaseScanSharedState {
         auto morsel = FTableScanMorsel(nextTupleIdx, numTuplesToScan);
         nextTupleIdx += numTuplesToScan;
         return morsel;
-    }
-
-    uint64_t getNumRows() const override {
-        KU_ASSERT(table->getNumTuples() == table->getTotalNumFlatTuples());
-        return table->getNumTuples();
     }
 };
 
