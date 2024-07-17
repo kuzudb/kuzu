@@ -257,6 +257,8 @@ public:
         /* NOLINTEND(bugprone-branch-clone)*/
         case PhysicalTypeID::ANY:
         case PhysicalTypeID::POINTER:
+        case PhysicalTypeID::ALP_EXCEPTION_DOUBLE:
+        case PhysicalTypeID::ALP_EXCEPTION_FLOAT:
             // Unsupported type
             KU_UNREACHABLE;
             // Needed for return type deduction to work

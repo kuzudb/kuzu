@@ -30,6 +30,8 @@ public:
     Column* getDataColumn() const { return dataColumn.get(); }
     Column* getOffsetColumn() const { return offsetColumn.get(); }
 
+    void initializeScanState(ChunkState& state);
+
 private:
     void scanOffsets(transaction::Transaction* transaction, const ChunkState& state,
         DictionaryChunk::string_offset_t* offsets, uint64_t index, uint64_t numValues,

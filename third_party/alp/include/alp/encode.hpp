@@ -7,10 +7,10 @@
 #include "alp/sampler.hpp"
 #include "alp/state.hpp"
 #include "common.hpp"
+#include <cassert>
 #include <cfloat>
 #include <cmath>
 #include <cstdint>
-#include <list>
 #include <map>
 #include <utility>
 #include <vector>
@@ -93,7 +93,7 @@ struct AlpEncode {
 		uint64_t                           smp_offset {0};
 
 		// For each vector in the rg sample
-		size_t best_estimated_compression_size {
+		uint64_t best_estimated_compression_size {
 		    (samples_size * (Constants<T>::EXCEPTION_SIZE + EXCEPTION_POSITION_SIZE)) +
 		    (samples_size * (Constants<T>::EXCEPTION_SIZE))};
 		for (size_t smp_n = 0; smp_n < n_vectors_to_sample; smp_n++) {

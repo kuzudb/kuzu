@@ -73,8 +73,7 @@ void CSRNodeGroup::initializePersistentCSRHeader(Transaction* transaction,
         }
         auto& chunk = persistentChunkGroup->getColumnChunk(relScanState.columnIDs[i]);
         chunk.initializeScanState(nodeGroupScanState.chunkStates[i]);
-        // TODO: Not a good way to initialize column for chunkState here.
-        nodeGroupScanState.chunkStates[i].column = relScanState.columns[i];
+        relScanState.columns[i]->initializeScanState(nodeGroupScanState.chunkStates[i]);
     }
 }
 
@@ -429,8 +428,8 @@ ChunkCheckpointState CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock
         numOldRowsInRegion, false, ResidencyState::IN_MEMORY);
     ChunkState chunkState;
     const auto& persistentChunk = persistentChunkGroup->getColumnChunk(columnID);
-    chunkState.column = csrState.columns[columnID];
     persistentChunk.initializeScanState(chunkState);
+    csrState.columns[columnID]->initializeScanState(chunkState);
     persistentChunk.scanCommitted<ResidencyState::ON_DISK>(&DUMMY_CHECKPOINT_TRANSACTION,
         chunkState, *oldChunkWithUpdates, leftCSROffset, numOldRowsInRegion);
     KU_ASSERT(leftCSROffset == csrState.newHeader->getStartCSROffset(region.leftNodeOffset));
