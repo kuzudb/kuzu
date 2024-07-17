@@ -14,7 +14,7 @@ public:
     virtual ~PythonCachedItem() = default;
 
     bool isLoaded() const { return loaded; }
-    virtual py::handle operator()();
+    py::handle operator()();
 
 protected:
     std::string name;
