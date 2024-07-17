@@ -13,7 +13,6 @@
 (0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
 -CASE DropRelTablePropertyCommitRecovery
--SKIP
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE studyAt DROP places
@@ -26,7 +25,6 @@
 (0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
 -CASE DropRelTablePropertyRollbackCommit
--SKIP
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE studyAt DROP places
@@ -38,7 +36,6 @@
 (0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
 -CASE DropRelTablePropertyRollbackRecovery
--SKIP
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE studyAt DROP places
@@ -66,6 +63,7 @@
 ---- 1
 9
 
+# TODO(Guodong): Enable this after tuple recovery
 -CASE AddNodeTablePropertyCommitRecovery
 -SKIP
 -STATEMENT BEGIN TRANSACTION;
@@ -96,7 +94,6 @@
 0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 
 -CASE AddNodeTablePropertyRollbackRecovery
--SKIP
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE person Add test INT64 DEFAULT 1
@@ -123,7 +120,7 @@
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN sum(s.test);
 ---- 1
 4
-
+# TODO(Guodong): Enable this after tuple recovery
 -CASE AddRelTablePropertyCommitRecovery
 -SKIP
 -STATEMENT BEGIN TRANSACTION;
@@ -154,7 +151,6 @@
 (0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
 -CASE AddRelTablePropertyRollbackRecovery
--SKIP
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE studyAt Add test INT64 DEFAULT 1
@@ -178,7 +174,6 @@
 (0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, location: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
 -CASE RenameRelTablePropertyCommitRecovery
--SKIP
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE studyAt RENAME places TO location;
@@ -202,7 +197,6 @@
 (0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
 -CASE RenameRelTablePropertyRollbackRecovery
--SKIP
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE studyAt RENAME places TO location;
@@ -226,7 +220,6 @@
 Study at information
 
 -CASE CommentRelTableCommitRecovery
--SKIP
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT COMMENT ON TABLE studyAt IS 'Study at information';
@@ -250,7 +243,6 @@ Study at information
 
 
 -CASE CommentRelTableRollbackRecovery
--SKIP
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT COMMENT ON TABLE studyAt IS 'Study at information';
@@ -297,7 +289,6 @@ Can not execute a write query inside a read-only transaction.
 1
 
 -CASE SequenceTestCommitRecovery
--SKIP
 -STATEMENT CREATE SEQUENCE before;
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
@@ -343,7 +334,6 @@ Catalog exception: currval: sequence "before" is not yet defined. To define the 
 Catalog exception: after does not exist in catalog.
 
 -CASE SequenceTestRollbackRecovery
--SKIP
 -STATEMENT CREATE SEQUENCE before;
 ---- ok
 -STATEMENT BEGIN TRANSACTION;

@@ -171,6 +171,7 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) {
         auto boundDefault = exprBinder->bindExpression(*addInfo->defaultValue);
         auto exprMapper = ExpressionMapper();
         auto defaultValueEvaluator = exprMapper.getEvaluator(boundDefault);
+        defaultValueEvaluator->init(ResultSet(0) /* dummy ResultSet */, &clientContext);
         auto schema = clientContext.getCatalog()->getTableCatalogEntry(&DUMMY_TRANSACTION,
             alterEntryRecord.ownedAlterInfo->tableID);
         auto addedPropID = schema->getPropertyID(addInfo->propertyName);
@@ -193,12 +194,12 @@ void WALReplayer::replayUpdateSequenceRecord(const WALRecord& walRecord) {
     if (!(isCheckpoint && isRecovering)) {
         return;
     }
-    auto& dropEntryRecord = walRecord.constCast<UpdateSequenceRecord>();
-    auto sequenceID = dropEntryRecord.sequenceID;
+    auto& sequenceEntryRecord = walRecord.constCast<UpdateSequenceRecord>();
+    auto sequenceID = sequenceEntryRecord.sequenceID;
     auto entry =
         clientContext.getCatalog()->getSequenceCatalogEntry(&DUMMY_TRANSACTION, sequenceID);
-    entry->replayVal(dropEntryRecord.data.usageCount, dropEntryRecord.data.currVal,
-        dropEntryRecord.data.nextVal);
+    entry->replayVal(sequenceEntryRecord.data.usageCount, sequenceEntryRecord.data.currVal,
+        sequenceEntryRecord.data.nextVal);
 }
 
 } // namespace storage
