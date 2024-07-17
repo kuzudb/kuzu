@@ -631,20 +631,22 @@ static JsonWrapper fileToJsonUnstructuredFormatted(char* buffer, uint64_t fileSi
     return JsonWrapper(yyjson_mut_doc_imut_copy(result.ptr, nullptr));
 }
 
-JsonWrapper fileToJson(main::ClientContext* context, const std::string& path, std::string format) {
+JsonWrapper fileToJson(main::ClientContext* context, const std::string& path, JsonScanFormat format) {
 
     auto file = context->getVFSUnsafe()->openFile(path, O_RDONLY, context);
     auto fileSize = file->getFileSize();
     std::unique_ptr<char[]> buffer(new char[fileSize + 4]());
     file->readFile(buffer.get(), fileSize);
 
-    if (format == "array") {
+    switch (format) {
+    case JsonScanFormat::ARRAY:
         return fileToJsonArrayFormatted(buffer.get(), fileSize);
-    } else if (format == "unstructured") {
+        break;
+    case JsonScanFormat::UNSTRUCTURED:
         return fileToJsonUnstructuredFormatted(buffer.get(), fileSize);
-    } else {
-        throw RuntimeException(
-            "Invalid JSON file format: Must either be 'unstructured' or 'array'");
+        break;
+    default:
+        KU_UNREACHABLE;
     }
 }
 

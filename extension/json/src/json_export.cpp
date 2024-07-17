@@ -73,9 +73,9 @@ static void sinkFunc(ExportFuncSharedState&, ExportFuncLocalState& localState,
 static void combineFunc(ExportFuncSharedState& sharedState, ExportFuncLocalState& localState) {
     auto& jsonSharedState = sharedState.cast<ExportJSONSharedState>();
     auto& jsonLocalState = localState.cast<ExportJSONLocalState>();
-    std::scoped_lock scope{jsonSharedState.mtx};
-    for (auto& i : jsonLocalState.jsonValues) {
-        jsonSharedState.jsonValues.push_back(std::move(i));
+    std::lock_guard<std::mutex> lck{jsonSharedState.mtx};
+    for (auto& jsonValue : jsonLocalState.jsonValues) {
+        jsonSharedState.jsonValues.push_back(std::move(jsonValue));
     }
 }
 
@@ -93,6 +93,7 @@ static void finalizeFunc(ExportFuncSharedState& sharedState) {
     }
     serializer.writeBufferData("]\n");
     jsonSharedState.fileInfo->writeFile(serializer.getBlobData(), serializer.getSize(), 0);
+    // parameter 0 for 0 offset
 }
 
 function_set JsonExportFunction::getFunctionSet() {

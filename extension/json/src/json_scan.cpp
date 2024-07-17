@@ -1,6 +1,7 @@
 #include "json_scan.h"
 
 #include "common/exception/binder.h"
+#include "common/exception/runtime.h"
 #include "common/string_utils.h"
 #include "function/built_in_function_utils.h"
 #include "function/table/scan_functions.h"
@@ -12,27 +13,38 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace json_extension {
 
-struct JsonScanConfig {
-    std::string format;
-    int64_t depth;
-    int64_t breadth;
+constexpr JsonScanFormat DEFAULT_JSON_FORMAT = JsonScanFormat::ARRAY;
+constexpr int64_t DEFAULT_JSON_DEPTH = -1;
+constexpr int64_t DEFAULT_JSON_BREADTH = -1;
 
-    explicit JsonScanConfig(const std::unordered_map<std::string, Value>& options)
-        : format("array"), depth(-1), breadth(-1) {
+struct JsonScanConfig {
+    JsonScanFormat format = DEFAULT_JSON_FORMAT;
+    int64_t depth = DEFAULT_JSON_DEPTH;
+    int64_t breadth = DEFAULT_JSON_BREADTH;
+
+    explicit JsonScanConfig(const std::unordered_map<std::string, Value>& options) {
         for (const auto& i : options) {
             if (i.first == "FORMAT") {
                 if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::STRING) {
-                    throw BinderException("Format parameter must be a string!");
+                    throw BinderException("Format parameter must be a string.");
                 }
-                format = i.second.strVal;
+                auto tmp = StringUtils::getUpper(i.second.strVal);
+                if (tmp == "ARRAY") {
+                    format = JsonScanFormat::ARRAY;
+                } else if (tmp == "UNSTRUCUTRED") {
+                    format = JsonScanFormat::UNSTRUCTURED;
+                } else {
+                    throw RuntimeException(
+                        "Invalid JSON file format: Must either be 'unstructured' or 'array'");
+                }
             } else if (i.first == "MAXIMUM_DEPTH") {
                 if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64) {
-                    throw BinderException("Maximum depth parameter must be an int64!");
+                    throw BinderException("Maximum depth parameter must be an int64.");
                 }
                 depth = i.second.val.int64Val;
             } else if (i.first == "SAMPLE_SIZE") {
                 if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64) {
-                    throw BinderException("Sample size parameter must be an int64!");
+                    throw BinderException("Sample size parameter must be an int64.");
                 }
                 breadth = i.second.val.int64Val;
             } else {
