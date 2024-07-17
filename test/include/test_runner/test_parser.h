@@ -66,7 +66,7 @@ const std::unordered_map<std::string, TokenType> tokenMap = {{"-DATASET", TokenT
     {"-SET", TokenType::SET}, {"-IMPORT_DATABASE", TokenType::IMPORT_DATABASE},
     {"-REMOVE_FILE", TokenType::REMOVE_FILE}, {"-CHECK_PRECISION", TokenType::CHECK_PRECISION},
     {"-CHECK_COLUMN_NAMES", TokenType::CHECK_COLUMN_NAMES},
-    {"-BEGIN_CONCURRENT_EXECUTION", TokenType::BEGIN_CONCURRENT_EXECUTION}, 
+    {"-BEGIN_CONCURRENT_EXECUTION", TokenType::BEGIN_CONCURRENT_EXECUTION},
     {"-END_CONCURRENT_EXECUTION", TokenType::END_CONCURRENT_EXECUTION}};
 
 class LogicToken {

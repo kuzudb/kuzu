@@ -50,7 +50,7 @@ void DBTest::createNewDB() {
 
 void ConcurrentTestExecutor::runStatements() {
     while (connectionPaused) {}
-    for (auto statement: statements) {
+    for (auto statement : statements) {
         TestRunner::runTest(statement, connection, databasePath);
     }
 }

@@ -2,9 +2,9 @@
 
 #include "catalog/catalog_entry/catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
+#include "common/exception/runtime.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
-#include "common/exception/runtime.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
