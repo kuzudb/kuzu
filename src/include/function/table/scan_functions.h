@@ -14,19 +14,26 @@ namespace function {
 
 struct BaseScanSharedState : public TableFuncSharedState {
     std::mutex lock;
-    uint64_t numRows;
 
-    explicit BaseScanSharedState(uint64_t numRows) : numRows{numRows} {}
+    virtual uint64_t getNumRows() const = 0;
 };
 
-struct ScanSharedState : public BaseScanSharedState {
+struct BaseScanSharedStateWithNumRows : public BaseScanSharedState {
+    uint64_t numRows;
+
+    explicit BaseScanSharedStateWithNumRows(uint64_t numRows) : numRows{numRows} {}
+
+    uint64_t getNumRows() const override { return numRows; }
+};
+
+struct ScanSharedState : public BaseScanSharedStateWithNumRows {
     const common::ReaderConfig readerConfig;
     uint64_t fileIdx;
     uint64_t blockIdx;
 
     ScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows)
-        : BaseScanSharedState{numRows}, readerConfig{std::move(readerConfig)}, fileIdx{0},
-          blockIdx{0} {}
+        : BaseScanSharedStateWithNumRows{numRows}, readerConfig{std::move(readerConfig)},
+          fileIdx{0}, blockIdx{0} {}
 
     std::pair<uint64_t, uint64_t> getNext();
 };

@@ -1,12 +1,9 @@
 #include "binder/binder.h"
 #include "binder/bound_scan_source.h"
 #include "binder/query/reading_clause/bound_load_from.h"
-#include "catalog/catalog_entry/table_catalog_entry.h"
+#include "catalog/catalog.h"
 #include "common/exception/binder.h"
-#include "common/exception/message.h"
-#include "common/string_utils.h"
 #include "main/database.h"
-#include "main/database_manager.h"
 #include "parser/query/reading_clause/load_from.h"
 #include "parser/scan_source.h"
 

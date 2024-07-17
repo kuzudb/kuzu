@@ -16,9 +16,9 @@ struct PandasScanLocalState final : public function::TableFuncLocalState {
     uint64_t end;
 };
 
-struct PandasScanSharedState final : public function::BaseScanSharedState {
+struct PandasScanSharedState final : public function::BaseScanSharedStateWithNumRows {
     explicit PandasScanSharedState(uint64_t numRows)
-        : BaseScanSharedState{numRows}, numRowsRead{0} {}
+        : BaseScanSharedStateWithNumRows{numRows}, numRowsRead{0} {}
 
     uint64_t numRowsRead;
 };
