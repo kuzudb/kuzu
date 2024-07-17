@@ -34,9 +34,9 @@ public:
     void alterEntry(transaction::Transaction* transaction, const binder::BoundAlterInfo& alterInfo);
     CatalogEntrySet getEntries(transaction::Transaction* transaction);
 
-    uint64_t assignNextOID() { 
+    uint64_t assignNextOID() {
         std::lock_guard lck{mtx};
-        return nextOID++; 
+        return nextOID++;
     }
 
     //===--------------------------------------------------------------------===//
@@ -48,7 +48,8 @@ public:
 private:
     bool containsEntryNoLock(transaction::Transaction* transaction, const std::string& name) const;
     CatalogEntry* getEntryNoLock(transaction::Transaction* transaction, const std::string& name);
-    void createEntryNoLock(transaction::Transaction* transaction, std::unique_ptr<CatalogEntry> entry);
+    void createEntryNoLock(transaction::Transaction* transaction,
+        std::unique_ptr<CatalogEntry> entry);
     void dropEntryNoLock(transaction::Transaction* transaction, const std::string& name);
 
     void validateExist(transaction::Transaction* transaction, const std::string& name) const;

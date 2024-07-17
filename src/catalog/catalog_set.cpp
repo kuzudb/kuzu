@@ -1,4 +1,5 @@
 #include "catalog/catalog_set.h"
+
 #include <mutex>
 
 #include "binder/ddl/bound_alter_info.h"
