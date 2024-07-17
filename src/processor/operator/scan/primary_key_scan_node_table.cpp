@@ -38,8 +38,7 @@ void PrimaryKeyScanNodeTable::initLocalStateInternal(ResultSet* resultSet,
                 columns.push_back(&nodeInfo.table->getColumn(columnID));
             }
         }
-        nodeInfo.localScanState = std::make_unique<NodeTableScanState>(nodeInfo.table->getTableID(),
-            nodeInfo.columnIDs, columns);
+        nodeInfo.localScanState = std::make_unique<NodeTableScanState>(nodeInfo.columnIDs, columns);
         initVectors(*nodeInfo.localScanState, *resultSet);
     }
     indexEvaluator->init(*resultSet, context->clientContext);
@@ -64,8 +63,8 @@ bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     }
 
     offset_t nodeOffset;
-    bool lookupSucceed = nodeInfo.table->getPKIndex()->lookup(&transaction::DUMMY_WRITE_TRANSACTION,
-        indexVector, pos, nodeOffset);
+    const bool lookupSucceed =
+        nodeInfo.table->getPKIndex()->lookup(transaction, indexVector, pos, nodeOffset);
     if (!lookupSucceed) {
         return false;
     }

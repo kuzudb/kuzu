@@ -71,13 +71,19 @@ bool ChunkedCSRHeader::sanityCheck() const {
 }
 
 void ChunkedCSRHeader::copyFrom(const ChunkedCSRHeader& other) const {
-    const auto numValues = other.offset->getNumValues();
+    KU_ASSERT(offset->getNumValues() == length->getNumValues());
+    KU_ASSERT(other.offset->getNumValues() == other.length->getNumValues());
+    const auto numOtherValues = other.offset->getNumValues();
     memcpy(offset->getData().getData(), other.offset->getData().getData(),
-        numValues * sizeof(offset_t));
+        numOtherValues * sizeof(offset_t));
     memcpy(length->getData().getData(), other.length->getData().getData(),
-        numValues * sizeof(length_t));
-    length->setNumValues(numValues);
-    offset->setNumValues(numValues);
+        numOtherValues * sizeof(length_t));
+    const auto lastOffsetInOtherHeader = other.getEndCSROffset(numOtherValues);
+    const auto numValues = offset->getNumValues();
+    for (auto i = numOtherValues; i < numValues; i++) {
+        offset->getData().setValue<offset_t>(lastOffsetInOtherHeader, i);
+        length->getData().setValue<length_t>(0, i);
+    }
 }
 
 void ChunkedCSRHeader::fillDefaultValues(const offset_t newNumValues) const {
@@ -88,6 +94,52 @@ void ChunkedCSRHeader::fillDefaultValues(const offset_t newNumValues) const {
     }
     KU_ASSERT(
         offset->getNumValues() >= newNumValues && length->getNumValues() == offset->getNumValues());
+}
+
+void ChunkedCSRHeader::populateCSROffsets() {
+    const auto numNodes = length->getNumValues();
+    const auto csrOffsets = reinterpret_cast<offset_t*>(offset->getData().getData());
+    const auto csrLengths = reinterpret_cast<length_t*>(length->getData().getData());
+    csrOffsets[0] = csrLengths[0] + getGapSize(csrLengths[0]);
+    // Calculate starting offset of each node.
+    for (auto i = 1u; i < numNodes; i++) {
+        const auto gap = getGapSize(csrLengths[i]);
+        csrOffsets[i] = csrOffsets[i - 1] + csrLengths[i] + gap;
+    }
+}
+
+std::vector<offset_t> ChunkedCSRHeader::populateStartCSROffsetsAndGaps(bool leaveGaps) {
+    KU_ASSERT(length->getNumValues() == offset->getNumValues());
+    std::vector<offset_t> gaps;
+    const auto numNodes = length->getNumValues();
+    gaps.resize(numNodes, 0);
+    const auto csrOffsets = reinterpret_cast<offset_t*>(offset->getData().getData());
+    const auto csrLengths = reinterpret_cast<length_t*>(length->getData().getData());
+    // Calculate gaps for each node.
+    if (leaveGaps) {
+        for (auto i = 0u; i < numNodes; i++) {
+            gaps[i] = getGapSize(csrLengths[i]);
+        }
+    }
+    csrOffsets[0] = 0;
+    // Calculate starting offset of each node.
+    for (auto i = 1u; i < numNodes; i++) {
+        csrOffsets[i] = csrOffsets[i - 1] + csrLengths[i - 1] + gaps[i - 1];
+    }
+    return gaps;
+}
+
+void ChunkedCSRHeader::populateEndCSROffsets(const std::vector<offset_t>& gaps) {
+    const auto csrOffsets = reinterpret_cast<offset_t*>(offset->getData().getData());
+    KU_ASSERT(offset->getNumValues() == length->getNumValues());
+    KU_ASSERT(offset->getNumValues() == gaps.size());
+    for (auto i = 0u; i < offset->getNumValues(); i++) {
+        csrOffsets[i] += gaps[i];
+    }
+}
+
+length_t ChunkedCSRHeader::getGapSize(length_t length) {
+    return StorageUtils::divideAndRoundUpTo(length, StorageConstants::PACKED_CSR_DENSITY) - length;
 }
 
 std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flushAsNewChunkedNodeGroup(
@@ -114,24 +166,55 @@ void ChunkedCSRNodeGroup::flush(BMFileHandle& dataFH) {
     }
 }
 
+void ChunkedCSRNodeGroup::scanCSRHeader(CSRNodeGroupCheckpointState& csrState) const {
+    if (!csrState.oldHeader) {
+        csrState.oldHeader = std::make_unique<ChunkedCSRHeader>(false /*enableCompression*/,
+            StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
+    }
+    ChunkState headerChunkState;
+    KU_ASSERT(csrHeader.offset->getResidencyState() == ResidencyState::ON_DISK);
+    KU_ASSERT(csrHeader.length->getResidencyState() == ResidencyState::ON_DISK);
+    csrHeader.offset->initializeScanState(headerChunkState);
+    KU_ASSERT(csrState.csrOffsetColumn && csrState.csrLengthColumn);
+    csrState.csrOffsetColumn->scan(&transaction::DUMMY_CHECKPOINT_TRANSACTION, headerChunkState,
+        &csrState.oldHeader->offset->getData());
+    csrHeader.length->initializeScanState(headerChunkState);
+    csrState.csrLengthColumn->scan(&transaction::DUMMY_CHECKPOINT_TRANSACTION, headerChunkState,
+        &csrState.oldHeader->length->getData());
+}
+
 void ChunkedCSRNodeGroup::serialize(Serializer& serializer) const {
     KU_ASSERT(csrHeader.offset && csrHeader.length);
+    serializer.writeDebuggingInfo("csr_header_offset");
     csrHeader.offset->serialize(serializer);
+    serializer.writeDebuggingInfo("csr_header_length");
     csrHeader.length->serialize(serializer);
     ChunkedNodeGroup::serialize(serializer);
 }
 
 std::unique_ptr<ChunkedCSRNodeGroup> ChunkedCSRNodeGroup::deserialize(Deserializer& deSer) {
+    std::string key;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "csr_header_offset");
     auto offset = ColumnChunk::deserialize(deSer);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "csr_header_length");
     auto length = ColumnChunk::deserialize(deSer);
+    // TODO(Guodong): Rework to reuse ChunkedNodeGroup::deserialize().
     std::vector<std::unique_ptr<ColumnChunk>> chunks;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "chunks");
     deSer.deserializeVectorOfPtrs<ColumnChunk>(chunks);
     auto chunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(
         ChunkedCSRHeader{std::move(offset), std::move(length)}, std::move(chunks),
         0 /*startRowIdx*/);
     bool hasVersions;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "has_version_info");
     deSer.deserializeValue<bool>(hasVersions);
     if (hasVersions) {
+        deSer.deserializeDebuggingInfo(key);
+        KU_ASSERT(key == "version_info");
         chunkedGroup->versionInfo = VersionInfo::deserialize(deSer);
     }
     return chunkedGroup;

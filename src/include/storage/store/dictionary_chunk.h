@@ -16,6 +16,10 @@ public:
     // and can't be modified easily. Moving would invalidate that pointer
     DictionaryChunk(DictionaryChunk&& other) = delete;
 
+    void setToInMemory() const {
+        stringDataChunk->setToInMemory();
+        offsetChunk->setToInMemory();
+    }
     void resetToEmpty();
 
     uint64_t getStringLength(string_index_t index) const;
@@ -30,6 +34,8 @@ public:
     void setStringDataChunk(std::unique_ptr<ColumnChunkData> chunk) {
         stringDataChunk = std::move(chunk);
     }
+
+    void resetNumValuesFromMetadata();
 
     bool sanityCheck() const;
 

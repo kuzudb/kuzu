@@ -106,7 +106,7 @@ static void resetOutputIfNecessary(StorageInfoLocalState* localState, DataChunk&
 }
 
 static void appendStorageInfoForChunkData(StorageInfoLocalState* localState,
-    DataChunk& outputChunk, StorageInfoOutputData& outputData, ColumnChunkData& chunkData, 
+    DataChunk& outputChunk, StorageInfoOutputData& outputData, ColumnChunkData& chunkData,
     bool ignoreNull = false) {
     resetOutputIfNecessary(localState, outputChunk);
     auto vectorPos = outputChunk.state->getSelVector().getSelSize();
@@ -128,7 +128,7 @@ static void appendStorageInfoForChunkData(StorageInfoLocalState* localState,
     outputChunk.getValueVector(1)->setValue<uint64_t>(vectorPos, outputData.nodeGroupIdx);
     outputChunk.getValueVector(2)->setValue<uint64_t>(vectorPos, outputData.chunkIdx);
     outputChunk.getValueVector(3)->setValue(vectorPos, ResidencyStateUtils::toString(residency));
-    outputChunk.getValueVector(4)->setValue(vectorPos, 
+    outputChunk.getValueVector(4)->setValue(vectorPos,
         outputData.columns[outputData.columnIdx++]->getName());
     outputChunk.getValueVector(5)->setValue(vectorPos, columnType.toString());
     outputChunk.getValueVector(6)->setValue<uint64_t>(vectorPos, metadata.pageIdx);
@@ -166,7 +166,7 @@ static void appendStorageInfoForChunkData(StorageInfoLocalState* localState,
         ignoreNull = true;
     }
     if (!ignoreNull && chunkData.hasNullData()) {
-        appendStorageInfoForChunkData(localState, outputChunk, outputData, 
+        appendStorageInfoForChunkData(localState, outputChunk, outputData,
             *chunkData.getNullData());
     }
     switch (columnType.getPhysicalType()) {
@@ -174,26 +174,26 @@ static void appendStorageInfoForChunkData(StorageInfoLocalState* localState,
         auto& structChunk = chunkData.cast<StructChunkData>();
         auto numChildren = structChunk.getNumChildren();
         for (auto i = 0u; i < numChildren; i++) {
-            appendStorageInfoForChunkData(localState, outputChunk, outputData, 
+            appendStorageInfoForChunkData(localState, outputChunk, outputData,
                 *structChunk.getChild(i));
         }
     } break;
     case PhysicalTypeID::STRING: {
         auto& stringChunk = chunkData.cast<StringChunkData>();
         auto& dictionaryChunk = stringChunk.getDictionaryChunk();
-        appendStorageInfoForChunkData(localState, outputChunk, outputData, 
+        appendStorageInfoForChunkData(localState, outputChunk, outputData,
             *dictionaryChunk.getStringDataChunk());
-        appendStorageInfoForChunkData(localState, outputChunk, outputData, 
+        appendStorageInfoForChunkData(localState, outputChunk, outputData,
             *dictionaryChunk.getOffsetChunk());
     } break;
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
         auto& listChunk = chunkData.cast<ListChunkData>();
-        appendStorageInfoForChunkData(localState, outputChunk, outputData, 
+        appendStorageInfoForChunkData(localState, outputChunk, outputData,
             *listChunk.getOffsetColumnChunk());
-        appendStorageInfoForChunkData(localState, outputChunk, outputData, 
+        appendStorageInfoForChunkData(localState, outputChunk, outputData,
             *listChunk.getSizeColumnChunk());
-        appendStorageInfoForChunkData(localState, outputChunk, outputData, 
+        appendStorageInfoForChunkData(localState, outputChunk, outputData,
             *listChunk.getDataColumnChunk());
     } break;
     default: {
@@ -208,16 +208,16 @@ static void appendStorageInfoForChunkedGroup(StorageInfoLocalState* localState,
     outputData.columnIdx = 0;
     for (auto i = 0u; i < numColumns; i++) {
         resetOutputIfNecessary(localState, outputChunk);
-        appendStorageInfoForChunkData(localState, outputChunk, outputData, 
+        appendStorageInfoForChunkData(localState, outputChunk, outputData,
             chunkedGroup->getColumnChunk(i).getData());
     }
     if (chunkedGroup->getFormat() == NodeGroupDataFormat::CSR) {
         auto& chunkedCSRGroup = chunkedGroup->cast<ChunkedCSRNodeGroup>();
         resetOutputIfNecessary(localState, outputChunk);
-        appendStorageInfoForChunkData(localState, outputChunk, outputData, 
+        appendStorageInfoForChunkData(localState, outputChunk, outputData,
             chunkedCSRGroup.getCSRHeader().length->getData(), true);
         resetOutputIfNecessary(localState, outputChunk);
-        appendStorageInfoForChunkData(localState, outputChunk, outputData, 
+        appendStorageInfoForChunkData(localState, outputChunk, outputData,
             chunkedCSRGroup.getCSRHeader().length->getData(), true);
     }
 }
@@ -228,7 +228,7 @@ static void appendStorageInfoForNodeGroup(StorageInfoLocalState* localState,
     auto numChunks = nodeGroup->getNumChunkedGroups();
     for (auto chunkIdx = 0ul; chunkIdx < numChunks; chunkIdx++) {
         outputData.chunkIdx = chunkIdx;
-        appendStorageInfoForChunkedGroup(localState, outputChunk, outputData, 
+        appendStorageInfoForChunkedGroup(localState, outputChunk, outputData,
             nodeGroup->getChunkedNodeGroup(chunkIdx));
     }
     if (nodeGroup->getFormat() == NodeGroupDataFormat::CSR) {
@@ -236,7 +236,7 @@ static void appendStorageInfoForNodeGroup(StorageInfoLocalState* localState,
         auto persistentChunk = csrNodeGroup.getPersistentChunkedGroup();
         if (persistentChunk) {
             outputData.chunkIdx = INVALID_NODE_GROUP_IDX;
-            appendStorageInfoForChunkedGroup(localState, outputChunk, outputData, 
+            appendStorageInfoForChunkedGroup(localState, outputChunk, outputData,
                 csrNodeGroup.getPersistentChunkedGroup());
         }
     }
@@ -283,7 +283,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
             numNodeGroups = nodeTable.getNumNodeGroups();
             for (auto i = 0ul; i < numNodeGroups; i++) {
                 outputData.nodeGroupIdx = i;
-                appendStorageInfoForNodeGroup(localState, dataChunk, outputData, 
+                appendStorageInfoForNodeGroup(localState, dataChunk, outputData,
                     nodeTable.getNodeGroup(i));
             }
         } break;
@@ -305,14 +305,14 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
             numNodeGroups = fwdRelTableData->getNumNodeGroups();
             for (auto i = 0ul; i < numNodeGroups; i++) {
                 outputData.nodeGroupIdx = i;
-                appendStorageInfoForNodeGroup(localState, dataChunk, outputData, 
+                appendStorageInfoForNodeGroup(localState, dataChunk, outputData,
                     fwdRelTableData->getNodeGroup(i));
             }
             outputData.columns = std::move(bwdColumns);
             numNodeGroups = bwdRelTableData->getNumNodeGroups();
             for (auto i = 0ul; i < numNodeGroups; i++) {
                 outputData.nodeGroupIdx = i;
-                appendStorageInfoForNodeGroup(localState, dataChunk, outputData, 
+                appendStorageInfoForNodeGroup(localState, dataChunk, outputData,
                     bwdRelTableData->getNodeGroup(i));
             }
         } break;
@@ -328,8 +328,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     TableFuncBindInput* input) {
-    std::vector<std::string> columnNames = {"table_type", "node_group_id", "node_chunk_id", 
-       "residency", "column_name", "data_type", "start_page_idx", "num_pages", "num_values", 
+    std::vector<std::string> columnNames = {"table_type", "node_group_id", "node_chunk_id",
+       "residency", "column_name", "data_type", "start_page_idx", "num_pages", "num_values",
        "min", "max", "compression"};
     std::vector<LogicalType> columnTypes;
     columnTypes.emplace_back(LogicalType::STRING());

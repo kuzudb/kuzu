@@ -21,24 +21,24 @@ struct RelTableScanState : TableScanState {
     std::unique_ptr<LocalRelTableScanState> localTableScanState;
 
     // Scan state for un-committed data.
-    RelTableScanState(common::table_id_t tableID, const std::vector<common::column_id_t>& columnIDs)
-        : RelTableScanState(tableID, columnIDs, {}, nullptr, nullptr,
+    explicit RelTableScanState(const std::vector<common::column_id_t>& columnIDs)
+        : RelTableScanState(columnIDs, {}, nullptr, nullptr,
               common::RelDataDirection::FWD /* This is a dummy direction */,
               std::vector<ColumnPredicateSet>{}) {
         nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
     }
-    RelTableScanState(common::table_id_t tableID, const std::vector<common::column_id_t>& columnIDs,
+    RelTableScanState(const std::vector<common::column_id_t>& columnIDs,
         const std::vector<Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
         common::RelDataDirection direction)
-        : RelTableScanState(tableID, columnIDs, columns, csrOffsetCol, csrLengthCol, direction,
+        : RelTableScanState(columnIDs, columns, csrOffsetCol, csrLengthCol, direction,
               std::vector<ColumnPredicateSet>{}) {
         nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
     }
-    RelTableScanState(common::table_id_t tableID, const std::vector<common::column_id_t>& columnIDs,
+    RelTableScanState(const std::vector<common::column_id_t>& columnIDs,
         const std::vector<Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
         common::RelDataDirection direction, std::vector<ColumnPredicateSet> columnPredicateSets)
-        : TableScanState{tableID, columnIDs, columns, std::move(columnPredicateSets)},
-          direction{direction}, boundNodeIDVector{nullptr}, boundNodeOffset{common::INVALID_OFFSET},
+        : TableScanState{columnIDs, columns, std::move(columnPredicateSets)}, direction{direction},
+          boundNodeIDVector{nullptr}, boundNodeOffset{common::INVALID_OFFSET},
           csrOffsetColumn{csrOffsetCol}, csrLengthColumn{csrLengthCol},
           localTableScanState{nullptr} {
         nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
@@ -66,7 +66,7 @@ struct LocalRelTableScanState final : RelTableScanState {
 
     LocalRelTableScanState(const RelTableScanState& state,
         const std::vector<common::column_id_t>& columnIDs, LocalRelTable* localRelTable)
-        : RelTableScanState{state.tableID, columnIDs}, localRelTable{localRelTable} {
+        : RelTableScanState{columnIDs}, localRelTable{localRelTable} {
         IDVector = state.IDVector;
         direction = state.direction;
         boundNodeIDVector = state.boundNodeIDVector;
@@ -162,8 +162,8 @@ public:
     NodeGroup* getOrCreateNodeGroup(common::node_group_idx_t nodeGroupIdx,
         common::RelDataDirection direction) const;
 
-    void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
-    void prepareRollback(LocalTable* localTable) override;
+    void commit(transaction::Transaction* transaction, LocalTable* localTable) override;
+    void rollback(LocalTable* localTable) override;
     void checkpoint(common::Serializer& ser) override;
 
     uint64_t getEstimatedMemoryUsage() const override { return 0; }
@@ -196,11 +196,9 @@ private:
     static common::offset_t getCommittedOffset(common::offset_t uncommittedOffset,
         common::offset_t maxCommittedOffset);
 
-    void detachDeleteForCSRRels(transaction::Transaction* transaction,
-        RelTableData* tableData, RelTableData* reverseTableData, 
-        RelTableScanState* relDataReadState, RelTableDeleteState* deleteState);
-
-    void serialize(common::Serializer& serializer) const override;
+    void detachDeleteForCSRRels(transaction::Transaction* transaction, RelTableData* tableData,
+        RelTableData* reverseTableData, RelTableScanState* relDataReadState,
+        RelTableDeleteState* deleteState);
 
 private:
     // Note: Only toNodeTableID is needed for now. Expose fromNodeTableID if needed.

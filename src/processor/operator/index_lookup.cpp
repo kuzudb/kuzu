@@ -27,7 +27,7 @@ bool IndexLookup::getNextTuplesInternal(ExecutionContext* context) {
     }
     for (auto& info : infos) {
         KU_ASSERT(info);
-        lookup(&transaction::DUMMY_WRITE_TRANSACTION, *info);
+        lookup(&transaction::DUMMY_TRANSACTION, *info);
     }
     return true;
 }

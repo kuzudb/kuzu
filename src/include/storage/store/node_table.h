@@ -28,22 +28,20 @@ struct NodeTableScanState final : TableScanState {
 
     // Scan state for un-committed data.
     // Ideally we shouldn't need columns to scan un-checkpointed but committed data.
-    NodeTableScanState(const common::table_id_t tableID, std::vector<common::column_id_t> columnIDs)
-        : TableScanState{tableID, std::move(columnIDs), {}}, semiMask{nullptr} {
+    explicit NodeTableScanState(std::vector<common::column_id_t> columnIDs)
+        : TableScanState{std::move(columnIDs), {}}, semiMask{nullptr} {
         nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
     }
 
-    NodeTableScanState(const common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
-        std::vector<Column*> columns)
-        : TableScanState{tableID, std::move(columnIDs), std::move(columns),
+    NodeTableScanState(std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns)
+        : TableScanState{std::move(columnIDs), std::move(columns),
               std::vector<ColumnPredicateSet>{}},
           semiMask{nullptr} {
         nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
     }
-    NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
-        std::vector<Column*> columns, std::vector<ColumnPredicateSet> columnPredicateSets)
-        : TableScanState{tableID, std::move(columnIDs), std::move(columns),
-              std::move(columnPredicateSets)},
+    NodeTableScanState(std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns,
+        std::vector<ColumnPredicateSet> columnPredicateSets)
+        : TableScanState{std::move(columnIDs), std::move(columns), std::move(columnPredicateSets)},
           semiMask{nullptr} {
         nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
     }
@@ -127,7 +125,7 @@ public:
     common::column_id_t getPKColumnID() const { return pkColumnID; }
     PrimaryKeyIndex* getPKIndex() const { return pkIndex.get(); }
     common::column_id_t getNumColumns() const { return columns.size(); }
-    Column* getColumnPtr(common::column_id_t columnID) {
+    Column* getColumnPtr(common::column_id_t columnID) const {
         KU_ASSERT(columnID < columns.size());
         return columns[columnID].get();
     }
@@ -143,11 +141,9 @@ public:
     std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(
         transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup) const;
 
-    void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
-    void prepareCommit() override;
-    void prepareRollback(LocalTable* localTable) override;
+    void commit(transaction::Transaction* transaction, LocalTable* localTable) override;
+    void rollback(LocalTable* localTable) override;
     void checkpoint(common::Serializer& ser) override;
-    void rollbackInMemory() override;
 
     uint64_t getEstimatedMemoryUsage() const override;
 
@@ -160,14 +156,12 @@ public:
         return nodeGroups->getNodeGroup(nodeGroupIdx)->getNumRows();
     }
     NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
-        return nodeGroups->getNodeGroup(nodeGroupIdx); 
+        return nodeGroups->getNodeGroup(nodeGroupIdx);
     }
 
 private:
     void insertPK(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,
         const common::ValueVector& pkVector) const;
-
-    void checkpointInMemory() override;
 
     void serialize(common::Serializer& serializer) const override;
 

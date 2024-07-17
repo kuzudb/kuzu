@@ -62,6 +62,9 @@ public:
 
     void flush(BMFileHandle& dataFH) override;
 
+    uint64_t getNumValues() const override { return nullData->getNumValues(); }
+    void resetNumValuesFromMetadata() override;
+    void setToInMemory() override;
     void resize(uint64_t newCapacity) override;
     uint64_t getEstimatedMemoryUsage() const override;
 

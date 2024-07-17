@@ -36,7 +36,7 @@ class DiskArrayCollection;
 class OnDiskHashIndex {
 public:
     virtual ~OnDiskHashIndex() = default;
-    virtual bool prepareCommit() = 0;
+    virtual bool checkpoint() = 0;
     virtual void prepareRollback() = 0;
     virtual bool checkpointInMemory() = 0;
     virtual bool rollbackInMemory() = 0;
@@ -69,8 +69,8 @@ class HashIndex final : public OnDiskHashIndex {
 public:
     HashIndex(const DBFileIDAndName& dbFileIDAndName, BMFileHandle* fileHandle,
         OverflowFileHandle* overflowFileHandle, DiskArrayCollection& diskArrays, uint64_t indexPos,
-        BufferManager& bufferManager, WAL* wal, const HashIndexHeader& indexHeaderForReadTrx,
-        HashIndexHeader& indexHeaderForWriteTrx);
+        BufferManager& bufferManager, ShadowFile* shadowFile,
+        const HashIndexHeader& indexHeaderForReadTrx, HashIndexHeader& indexHeaderForWriteTrx);
 
     ~HashIndex() override;
 
@@ -87,19 +87,17 @@ public:
     // storage.
     bool lookupInternal(const transaction::Transaction* transaction, Key key,
         common::offset_t& result) {
-        if (transaction->isReadOnly()) {
-            return lookupInPersistentIndex(transaction, key, result);
-        }
-        KU_ASSERT(transaction->isWriteTransaction());
+        KU_ASSERT(transaction->isWriteTransaction() || transaction->isReadOnly() ||
+                  transaction->isDummy());
         auto localLookupState = localStorage->lookup(key, result);
         if (localLookupState == HashIndexLocalLookupState::KEY_DELETED) {
             return false;
-        } else if (localLookupState == HashIndexLocalLookupState::KEY_FOUND) {
-            return true;
-        } else {
-            KU_ASSERT(localLookupState == HashIndexLocalLookupState::KEY_NOT_EXIST);
-            return lookupInPersistentIndex(transaction, key, result);
         }
+        if (localLookupState == HashIndexLocalLookupState::KEY_FOUND) {
+            return true;
+        }
+        KU_ASSERT(localLookupState == HashIndexLocalLookupState::KEY_NOT_EXIST);
+        return lookupInPersistentIndex(transaction, key, result);
     }
 
     // For deletions, we don't check if the deleted keys exist or not. Thus, we don't need to check
@@ -118,7 +116,8 @@ public:
         auto localLookupState = localStorage->lookup(key, tmpResult);
         if (localLookupState == HashIndexLocalLookupState::KEY_FOUND) {
             return false;
-        } else if (localLookupState == HashIndexLocalLookupState::KEY_NOT_EXIST) {
+        }
+        if (localLookupState == HashIndexLocalLookupState::KEY_NOT_EXIST) {
             if (lookupInPersistentIndex(transaction, key, tmpResult)) {
                 return false;
             }
@@ -145,7 +144,7 @@ public:
         return localStorage->append(buffer);
     }
 
-    bool prepareCommit() override;
+    bool checkpoint() override;
     void prepareRollback() override;
     bool checkpointInMemory() override;
     bool rollbackInMemory() override;
@@ -154,8 +153,9 @@ public:
 private:
     bool lookupInPersistentIndex(const transaction::Transaction* transaction, Key key,
         common::offset_t& result) {
-        auto& header =
-            transaction->isReadOnly() ? this->indexHeaderForReadTrx : this->indexHeaderForWriteTrx;
+        auto& header = transaction->getType() == transaction::TransactionType::CHECKPOINT ?
+                           this->indexHeaderForWriteTrx :
+                           this->indexHeaderForReadTrx;
         // There may not be any primary key slots if we try to lookup on an empty index
         if (header.numEntries == 0) {
             return false;
@@ -273,7 +273,7 @@ private:
 private:
     DBFileIDAndName dbFileIDAndName;
     BufferManager& bm;
-    WAL* wal;
+    ShadowFile* shadowFile;
     uint64_t headerPageIdx;
     BMFileHandle* fileHandle;
     std::unique_ptr<DiskArray<Slot<T>>> pSlots;
@@ -301,7 +301,7 @@ inline bool HashIndex<common::ku_string_t>::equals(const transaction::Transactio
 class PrimaryKeyIndex {
 public:
     PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
-        common::PhysicalTypeID keyDataType, BufferManager& bufferManager, WAL* wal,
+        common::PhysicalTypeID keyDataType, BufferManager& bufferManager, ShadowFile* shadowFile,
         common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     ~PrimaryKeyIndex();
@@ -373,17 +373,16 @@ public:
 
     void checkpointInMemory();
     void rollbackInMemory();
-    void prepareCommit();
+    void checkpoint();
     void prepareRollback();
-    BMFileHandle* getFileHandle() { return fileHandle; }
-    OverflowFile* getOverflowFile() { return overflowFile.get(); }
+    BMFileHandle* getFileHandle() const { return fileHandle; }
+    OverflowFile* getOverflowFile() const { return overflowFile.get(); }
 
-    common::PhysicalTypeID keyTypeID() { return keyDataTypeID; }
+    common::PhysicalTypeID keyTypeID() const { return keyDataTypeID; }
 
     void writeHeaders();
 
 private:
-    bool hasRunPrepareCommit;
     common::PhysicalTypeID keyDataTypeID;
     BMFileHandle* fileHandle;
     std::unique_ptr<OverflowFile> overflowFile;
@@ -392,7 +391,7 @@ private:
     std::vector<HashIndexHeader> hashIndexHeadersForWriteTrx;
     BufferManager& bufferManager;
     DBFileIDAndName dbFileIDAndName;
-    WAL& wal;
+    ShadowFile& shadowFile;
     // Stores both primary and overflow slots
     std::unique_ptr<DiskArrayCollection> hashIndexDiskArrays;
 };

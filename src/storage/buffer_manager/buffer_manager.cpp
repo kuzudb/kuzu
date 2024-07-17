@@ -380,10 +380,11 @@ void BufferManager::flushAllDirtyPagesInFrames(BMFileHandle& fileHandle) {
     }
 }
 
-void BufferManager::updateFrameIfPageIsInFrameWithoutLock(BMFileHandle& fileHandle,
-    uint8_t* newPage, page_idx_t pageIdx) {
-    auto pageState = fileHandle.getPageState(pageIdx);
-    if (pageState) {
+void BufferManager::updateFrameIfPageIsInFrameWithoutLock(file_idx_t fileIdx,
+    const uint8_t* newPage, page_idx_t pageIdx) {
+    KU_ASSERT(fileIdx < fileHandles.size());
+    auto& fileHandle = *fileHandles[fileIdx];
+    if (fileHandle.getPageState(pageIdx)) {
         memcpy(getFrame(fileHandle, pageIdx), newPage, BufferPoolConstants::PAGE_4KB_SIZE);
     }
 }

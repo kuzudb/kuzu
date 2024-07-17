@@ -2,7 +2,6 @@
 
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/store/column.h"
-#include "storage/store/table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -16,6 +15,9 @@ NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
     : enableCompression{enableCompression}, startRowIdx{startRowIdx}, numRows{0},
       types{LogicalType::copy(types)}, dataFH{dataFH} {
     if (deSer) {
+        std::string key;
+        deSer->deserializeDebuggingInfo(key);
+        KU_ASSERT(key == "node_groups");
         KU_ASSERT(dataFH);
         nodeGroups.loadGroups(*deSer);
     }
@@ -118,7 +120,7 @@ uint64_t NodeGroupCollection::getEstimatedMemoryUsage() {
     return estimatedMemUsage;
 }
 
-void NodeGroupCollection::checkpoint(const NodeGroupCheckpointState& state) {
+void NodeGroupCollection::checkpoint(NodeGroupCheckpointState& state) {
     KU_ASSERT(dataFH);
     const auto lock = nodeGroups.lock();
     for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
@@ -127,7 +129,15 @@ void NodeGroupCollection::checkpoint(const NodeGroupCheckpointState& state) {
 }
 
 void NodeGroupCollection::serialize(Serializer& ser) {
+    ser.writeDebuggingInfo("node_groups");
     nodeGroups.serializeGroups(ser);
+}
+
+void NodeGroupCollection::resetVersionAndUpdateInfo() {
+    const auto lock = nodeGroups.lock();
+    for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
+        nodeGroup->resetVersionAndUpdateInfo();
+    }
 }
 
 } // namespace storage

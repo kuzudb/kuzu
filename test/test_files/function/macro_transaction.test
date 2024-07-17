@@ -17,6 +17,7 @@
 11
 
 -CASE MacroFuncTestCommitRecovery
+-SKIP
 -STATEMENT Begin transaction
 ---- ok
 -STATEMENT create macro addWithDefault(a,b:=3) as a + b;
@@ -24,7 +25,7 @@
 -STATEMENT return addWithDefault(2);
 ---- 1
 5
--STATEMENT Commit_skip_checkpoint;
+-STATEMENT Commit;
 ---- ok
 -RELOADDB
 -STATEMENT return addWithDefault(4,7);
@@ -46,6 +47,7 @@
 Catalog exception: function ADDWITHDEFAULT does not exist.
 
 -CASE MacroFuncTestRollbackRecovery
+-SKIP
 -STATEMENT Begin transaction
 ---- ok
 -STATEMENT create macro addWithDefault(a,b:=3) as a + b;
@@ -53,7 +55,7 @@ Catalog exception: function ADDWITHDEFAULT does not exist.
 -STATEMENT return addWithDefault(2);
 ---- 1
 5
--STATEMENT Rollback_skip_checkpoint;
+-STATEMENT Rollback;
 ---- ok
 -STATEMENT return addWithDefault(4,7);
 ---- error

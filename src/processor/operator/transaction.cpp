@@ -32,14 +32,8 @@ bool Transaction::getNextTuplesInternal(ExecutionContext* context) {
     case TransactionAction::COMMIT: {
         transactionContext->commit();
     } break;
-    case TransactionAction::COMMIT_SKIP_CHECKPOINTING: {
-        transactionContext->commitSkipCheckPointing();
-    } break;
     case TransactionAction::ROLLBACK: {
         transactionContext->rollback();
-    } break;
-    case TransactionAction::ROLLBACK_SKIP_CHECKPOINTING: {
-        transactionContext->rollbackSkipCheckPointing();
     } break;
     default: {
         KU_UNREACHABLE;
@@ -59,14 +53,12 @@ void Transaction::validateActiveTransaction(const TransactionContext& context) c
                 "connections.");
         }
     } break;
-    case TransactionAction::COMMIT:
-    case TransactionAction::COMMIT_SKIP_CHECKPOINTING: {
+    case TransactionAction::COMMIT: {
         if (!context.hasActiveTransaction()) {
             throw TransactionManagerException("No active transaction for COMMIT.");
         }
     } break;
-    case TransactionAction::ROLLBACK:
-    case TransactionAction::ROLLBACK_SKIP_CHECKPOINTING: {
+    case TransactionAction::ROLLBACK: {
         if (!context.hasActiveTransaction()) {
             throw TransactionManagerException("No active transaction for ROLLBACK.");
         }

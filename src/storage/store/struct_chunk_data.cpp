@@ -50,12 +50,30 @@ uint64_t StructChunkData::getEstimatedMemoryUsage() const {
     return estimatedMemoryUsage;
 }
 
+void StructChunkData::resetNumValuesFromMetadata() {
+    ColumnChunkData::resetNumValuesFromMetadata();
+    for (const auto& childChunk : childChunks) {
+        childChunk->resetNumValuesFromMetadata();
+    }
+}
+
+void StructChunkData::resetToAllNull() {
+    ColumnChunkData::resetToAllNull();
+    for (const auto& childChunk : childChunks) {
+        childChunk->resetToAllNull();
+    }
+}
+
 void StructChunkData::serialize(Serializer& serializer) const {
     ColumnChunkData::serialize(serializer);
+    serializer.writeDebuggingInfo("struct_children");
     serializer.serializeVectorOfPtrs<ColumnChunkData>(childChunks);
 }
 
 void StructChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData) {
+    std::string key;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "struct_children");
     deSer.deserializeVectorOfPtrs(chunkData.cast<StructChunkData>().childChunks);
 }
 
@@ -117,6 +135,13 @@ void StructChunkData::initializeScanState(ChunkState& state) const {
     state.childrenStates.resize(childChunks.size());
     for (auto i = 0u; i < childChunks.size(); i++) {
         childChunks[i]->initializeScanState(state.childrenStates[i]);
+    }
+}
+
+void StructChunkData::setToInMemory() {
+    ColumnChunkData::setToInMemory();
+    for (const auto& child : childChunks) {
+        child->setToInMemory();
     }
 }
 

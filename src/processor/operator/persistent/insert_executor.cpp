@@ -8,7 +8,8 @@ namespace processor {
 
 NodeInsertExecutor::NodeInsertExecutor(const NodeInsertExecutor& other)
     : table{other.table}, nodeIDVectorPos{other.nodeIDVectorPos},
-      columnVectorsPos{other.columnVectorsPos}, conflictAction{other.conflictAction} {
+      columnVectorsPos{other.columnVectorsPos}, conflictAction{other.conflictAction},
+      nodeIDVector{nullptr} {
     for (auto& evaluator : other.columnDataEvaluators) {
         columnDataEvaluators.push_back(evaluator->clone());
     }
@@ -57,7 +58,7 @@ void NodeInsertExecutor::insert(Transaction* tx) {
     writeResult();
 }
 
-void NodeInsertExecutor::skipInsert() {
+void NodeInsertExecutor::skipInsert() const {
     for (auto& evaluator : columnDataEvaluators) {
         evaluator->evaluate();
     }
@@ -65,7 +66,7 @@ void NodeInsertExecutor::skipInsert() {
     writeResult();
 }
 
-bool NodeInsertExecutor::checkConflict(Transaction* transaction) {
+bool NodeInsertExecutor::checkConflict(Transaction* transaction) const {
     if (conflictAction == ConflictAction::ON_CONFLICT_DO_NOTHING) {
         auto off = table->validateUniquenessConstraint(transaction, columnDataVectors);
         if (off != INVALID_OFFSET) {

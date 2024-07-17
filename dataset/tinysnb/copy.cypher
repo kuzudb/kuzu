@@ -8,3 +8,4 @@ COPY studyAt FROM "dataset/tinysnb/eStudyAt.csv" (HeaDER=true);
 COPY workAt FROM "dataset/tinysnb/eWorkAt.csv";
 COPY meets FROM "dataset/tinysnb/eMeets.csv"(escape='\\');
 COPY marries FROM "dataset/tinysnb/eMarries.csv";
+CALL CHECKPOINT() RETURN *;

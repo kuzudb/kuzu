@@ -19,10 +19,17 @@ public:
         KU_ASSERT(childIdx < childChunks.size());
         return childChunks[childIdx].get();
     }
+    std::unique_ptr<ColumnChunkData> moveChild(common::idx_t childIdx) {
+        KU_ASSERT(childIdx < childChunks.size());
+        return std::move(childChunks[childIdx]);
+    }
 
     void finalize() override;
 
     uint64_t getEstimatedMemoryUsage() const override;
+
+    uint64_t getNumValues() const override { return nullData->getNumValues(); }
+    void resetNumValuesFromMetadata() override;
 
     void serialize(common::Serializer& serializer) const override;
     static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
@@ -59,9 +66,11 @@ protected:
     void copy(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
+    void setToInMemory() override;
     void resize(uint64_t newCapacity) override;
 
     void resetToEmpty() override;
+    void resetToAllNull() override;
 
     bool numValuesSanityCheck() const override;
 

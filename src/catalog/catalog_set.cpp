@@ -143,8 +143,8 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
     }
     tableEntry->setAlterInfo(alterInfo);
     emplace(std::move(newEntry));
-    if (transaction->getStartTS() > 0) {
-        KU_ASSERT(transaction->getID() != 0);
+    if (transaction->getStartTS() != Transaction::DUMMY_START_TIMESTAMP) {
+        KU_ASSERT(transaction->getID() != Transaction::DUMMY_TRANSACTION_ID);
         transaction->pushCatalogEntry(*this, *entry);
     }
 }

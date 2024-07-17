@@ -64,17 +64,13 @@ private:
         RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
         const PartitionerSharedState& partitionerSharedState);
 
-    static void convertToCSRNodeGroup(storage::ChunkedNodeGroupCollection& partition,
+    static void populateCSROffsets(storage::ChunkedNodeGroupCollection& partition,
         common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo,
         const RelBatchInsertLocalState& localState, common::offset_t numNodes, bool leaveGaps);
 
-    static common::length_t getGapSize(common::length_t length);
-    static std::vector<common::offset_t> populateStartCSROffsetsAndLengths(
-        storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
-        storage::ChunkedNodeGroupCollection& partition, common::column_id_t boundNodeOffsetColumn,
-        bool leaveGaps);
-    static void populateEndCSROffsets(storage::ChunkedCSRHeader& csrHeader,
-        std::vector<common::offset_t>& gaps);
+    static void populateCSRLengths(storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
+        storage::ChunkedNodeGroupCollection& partition, common::column_id_t boundNodeOffsetColumn);
+
     static void setOffsetToWithinNodeGroup(storage::ColumnChunkData& chunk,
         common::offset_t startOffset);
     static void setOffsetFromCSROffsets(storage::ColumnChunkData& nodeOffsetChunk,

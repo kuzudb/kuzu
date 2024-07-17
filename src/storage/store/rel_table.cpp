@@ -18,28 +18,30 @@ RelTable::RelTable(RelTableCatalogEntry* relTableEntry, StorageManager* storageM
     : Table{relTableEntry, storageManager, memoryManager},
       fromNodeTableID{relTableEntry->getSrcTableID()},
       toNodeTableID{relTableEntry->getDstTableID()}, nextRelOffset{0} {
-    if (deSer) {
-        offset_t nextOffset;
-        deSer->deserializeValue<offset_t>(nextOffset);
-        nextRelOffset = nextOffset;
-    }
-    fwdRelTableData = std::make_unique<RelTableData>(dataFH, bufferManager, wal, relTableEntry,
-        RelDataDirection::FWD, enableCompression, deSer);
-    bwdRelTableData = std::make_unique<RelTableData>(dataFH, bufferManager, wal, relTableEntry,
-        RelDataDirection::BWD, enableCompression, deSer);
+    fwdRelTableData = std::make_unique<RelTableData>(dataFH, memoryManager, shadowFile,
+        relTableEntry, RelDataDirection::FWD, enableCompression, deSer);
+    bwdRelTableData = std::make_unique<RelTableData>(dataFH, memoryManager, shadowFile,
+        relTableEntry, RelDataDirection::BWD, enableCompression, deSer);
 }
 
 std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog& catalog,
     StorageManager* storageManager, MemoryManager* memoryManager, VirtualFileSystem*,
     main::ClientContext*) {
+    std::string key;
     table_id_t tableID;
     std::string tableName;
     offset_t nextRelOffset;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "table_id");
     deSer.deserializeValue<table_id_t>(tableID);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "table_name");
     deSer.deserializeValue<std::string>(tableName);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "next_rel_offset");
     deSer.deserializeValue<offset_t>(nextRelOffset);
-    auto catalogEntry = catalog.getTableCatalogEntry(&DUMMY_READ_TRANSACTION, tableID)
-                            ->ptrCast<RelTableCatalogEntry>();
+    auto catalogEntry =
+        catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID)->ptrCast<RelTableCatalogEntry>();
     KU_ASSERT(catalogEntry->getName() == tableName);
     auto relTable = std::make_unique<RelTable>(catalogEntry, storageManager, memoryManager, &deSer);
     relTable->nextRelOffset = nextRelOffset;
@@ -155,7 +157,7 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
     return bwdDeleted;
 }
 
-void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction, 
+void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
     RelTableDeleteState* deleteState) {
     KU_ASSERT(deleteState->srcNodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto tableData =
@@ -164,23 +166,23 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
         direction == RelDataDirection::FWD ? bwdRelTableData.get() : fwdRelTableData.get();
     std::vector<column_id_t> columnsToScan = {NBR_ID_COLUMN_ID, REL_ID_COLUMN_ID};
     const auto relReadState =
-        std::make_unique<RelTableScanState>(tableID, columnsToScan, tableData->getColumns(),
+        std::make_unique<RelTableScanState>(columnsToScan, tableData->getColumns(),
             tableData->getCSROffsetColumn(), tableData->getCSRLengthColumn(), direction);
     relReadState->boundNodeIDVector = &deleteState->srcNodeIDVector;
-    relReadState->outputVectors = std::vector<ValueVector*>{&deleteState->dstNodeIDVector,
-        &deleteState->relIDVector};
+    relReadState->outputVectors =
+        std::vector<ValueVector*>{&deleteState->dstNodeIDVector, &deleteState->relIDVector};
     relReadState->IDVector = relReadState->outputVectors[1];
     relReadState->rowIdxVector->state = relReadState->IDVector->state;
-    if (const auto localRelTable = transaction->getLocalStorage()->getLocalTable(tableID, 
-        LocalStorage::NotExistAction::RETURN_NULL)) {
-        auto localTableColumnIDs = 
+    if (const auto localRelTable = transaction->getLocalStorage()->getLocalTable(tableID,
+            LocalStorage::NotExistAction::RETURN_NULL)) {
+        auto localTableColumnIDs =
             LocalRelTable::rewriteLocalColumnIDs(direction, relReadState->columnIDs);
-        relReadState->localTableScanState = std::make_unique<LocalRelTableScanState>(
-            *relReadState, localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
+        relReadState->localTableScanState = std::make_unique<LocalRelTableScanState>(*relReadState,
+            localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
         relReadState->localTableScanState->rowIdxVector->state = relReadState->IDVector->state;
     }
     initializeScanState(transaction, *relReadState);
-    detachDeleteForCSRRels(transaction, tableData, reverseTableData, relReadState.get(), 
+    detachDeleteForCSRRels(transaction, tableData, reverseTableData, relReadState.get(),
         deleteState);
 }
 
@@ -196,8 +198,8 @@ void RelTable::checkIfNodeHasRels(Transaction* transaction, RelDataDirection dir
         bwdRelTableData->checkIfNodeHasRels(transaction, srcNodeIDVector);
 }
 
-void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* tableData, 
-    RelTableData* reverseTableData, RelTableScanState* relDataReadState, 
+void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* tableData,
+    RelTableData* reverseTableData, RelTableScanState* relDataReadState,
     RelTableDeleteState* deleteState) {
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::RETURN_NULL);
@@ -214,11 +216,13 @@ void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* ta
                 localTable->delete_(transaction, *deleteState);
                 continue;
             }
-            auto deleted = tableData->delete_(transaction, deleteState->srcNodeIDVector, 
+            const auto deleted = tableData->delete_(transaction, deleteState->srcNodeIDVector,
                 deleteState->relIDVector);
-            auto reverseDeleted = reverseTableData->delete_(transaction,
+            const auto reverseDeleted = reverseTableData->delete_(transaction,
                 deleteState->dstNodeIDVector, deleteState->relIDVector);
             KU_ASSERT(deleted == reverseDeleted);
+            KU_UNUSED(deleted);
+            KU_UNUSED(reverseDeleted);
         }
         tempState->getSelVectorUnsafe().setToUnfiltered();
     }
@@ -241,7 +245,7 @@ NodeGroup* RelTable::getOrCreateNodeGroup(node_group_idx_t nodeGroupIdx,
                bwdRelTableData->getOrCreateNodeGroup(nodeGroupIdx);
 }
 
-void RelTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
+void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
     auto& localRelTable = localTable->cast<LocalRelTable>();
     const auto dataChunkState = std::make_shared<DataChunkState>();
     std::vector<column_id_t> columnIDsToScan;
@@ -353,19 +357,16 @@ void RelTable::prepareCommitForNodeGroup(Transaction* transaction, NodeGroup& lo
     }
 }
 
-void RelTable::prepareRollback(LocalTable* localTable) {
+void RelTable::rollback(LocalTable* localTable) {
     localTable->clear();
 }
 
-void RelTable::checkpoint(Serializer&) {
-    checkpointInMemory();
-}
-
-void RelTable::serialize(Serializer& serializer) const {
-    Table::serialize(serializer);
-    serializer.write<offset_t>(nextRelOffset);
-    fwdRelTableData->serialize(serializer);
-    bwdRelTableData->serialize(serializer);
+void RelTable::checkpoint(Serializer& ser) {
+    Table::serialize(ser);
+    ser.writeDebuggingInfo("next_rel_offset");
+    ser.write<offset_t>(nextRelOffset);
+    fwdRelTableData->checkpoint(ser);
+    bwdRelTableData->checkpoint(ser);
 }
 
 } // namespace storage

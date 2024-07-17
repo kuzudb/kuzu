@@ -22,7 +22,7 @@ class WAL;
 namespace transaction {
 class TransactionManager;
 
-enum class TransactionType : uint8_t { READ_ONLY, WRITE };
+enum class TransactionType : uint8_t { READ_ONLY, WRITE, CHECKPOINT, DUMMY };
 
 class Transaction {
     friend class TransactionManager;
@@ -54,6 +54,7 @@ public:
     }
 
     TransactionType getType() const { return type; }
+    bool isDummy() const { return TransactionType::DUMMY == type; }
     bool isReadOnly() const { return TransactionType::READ_ONLY == type; }
     bool isWriteTransaction() const { return TransactionType::WRITE == type; }
     common::transaction_t getID() const { return ID; }
@@ -90,13 +91,6 @@ public:
     void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::idx_t vectorIdx,
         storage::VectorUpdateInfo& vectorUpdateInfo) const;
 
-    static std::unique_ptr<Transaction> getDummyWriteTrx() {
-        return std::make_unique<Transaction>(TransactionType::WRITE);
-    }
-    static std::unique_ptr<Transaction> getDummyReadOnlyTrx() {
-        return std::make_unique<Transaction>(TransactionType::READ_ONLY);
-    }
-
 private:
     TransactionType type;
     common::transaction_t ID;
@@ -109,8 +103,9 @@ private:
     std::unordered_map<common::table_id_t, common::offset_t> maxCommittedNodeOffsets;
 };
 
-static auto DUMMY_READ_TRANSACTION = Transaction(TransactionType::READ_ONLY);
-static auto DUMMY_WRITE_TRANSACTION = Transaction(TransactionType::WRITE);
+static auto DUMMY_TRANSACTION = Transaction(TransactionType::DUMMY);
+static auto DUMMY_CHECKPOINT_TRANSACTION = Transaction(TransactionType::CHECKPOINT,
+    Transaction::DUMMY_TRANSACTION_ID, Transaction::START_TRANSACTION_ID - 1);
 
 } // namespace transaction
 } // namespace kuzu

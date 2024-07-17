@@ -26,8 +26,8 @@ static std::unique_ptr<RelTableScanState> getRelScanState(RelDataDirection direc
     auto columnIDs = std::vector<column_id_t>{};
     auto columns = std::vector<Column*>{};
     // TODO(Guodong): FIX-ME.
-    auto scanState = std::make_unique<RelTableScanState>(INVALID_TABLE_ID, columnIDs, columns,
-        nullptr, nullptr, direction);
+    auto scanState =
+        std::make_unique<RelTableScanState>(columnIDs, columns, nullptr, nullptr, direction);
     scanState->boundNodeIDVector = srcVector;
     scanState->outputVectors.push_back(dstVector);
     return scanState;

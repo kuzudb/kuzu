@@ -25,8 +25,8 @@ public:
     LocalTable* getLocalTable(common::table_id_t tableID,
         NotExistAction action = NotExistAction::RETURN_NULL);
 
-    void prepareCommit();
-    void prepareRollback();
+    void commit();
+    void rollback();
 
 private:
     main::ClientContext& clientContext;
