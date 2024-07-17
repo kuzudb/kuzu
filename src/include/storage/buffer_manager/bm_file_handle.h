@@ -31,7 +31,7 @@ public:
     static constexpr uint64_t EVICTED = 3;
 
     PageState() {
-        stateAndVersion.store(EVICTED << NUM_BITS_TO_SHIFT_FOR_STATE, std::memory_order_release);
+        stateAndVersion.store(EVICTED << NUM_BITS_TO_SHIFT_FOR_STATE);
     }
 
     inline uint64_t getState() { return getState(stateAndVersion.load()); }
@@ -63,8 +63,7 @@ public:
     inline void unlock() {
         // TODO(Keenan / Guodong): Track down this rare bug and re-enable the assert. Ref #2289.
         // KU_ASSERT(getState(stateAndVersion.load()) == LOCKED);
-        stateAndVersion.store(updateStateAndIncrementVersion(stateAndVersion.load(), UNLOCKED),
-            std::memory_order_release);
+        stateAndVersion.store(updateStateAndIncrementVersion(stateAndVersion.load(), UNLOCKED));
     }
     // Change page state from Mark to Unlocked.
     inline bool tryClearMark(uint64_t oldStateAndVersion) {
@@ -92,7 +91,7 @@ public:
     uint64_t getStateAndVersion() const { return stateAndVersion.load(); }
 
     inline void resetToEvicted() {
-        stateAndVersion.store(EVICTED << NUM_BITS_TO_SHIFT_FOR_STATE, std::memory_order_release);
+        stateAndVersion.store(EVICTED << NUM_BITS_TO_SHIFT_FOR_STATE);
     }
 
 private:
