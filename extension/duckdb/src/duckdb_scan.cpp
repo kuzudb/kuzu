@@ -32,7 +32,8 @@ std::unique_ptr<TableFuncBindData> DuckDBScanBindData::copy() const {
 
 DuckDBScanSharedState::DuckDBScanSharedState(
     std::unique_ptr<duckdb::MaterializedQueryResult> queryResult)
-    : BaseScanSharedState{queryResult->RowCount()}, queryResult{std::move(queryResult)} {}
+    : BaseScanSharedStateWithNumRows{queryResult->RowCount()}, queryResult{std::move(queryResult)} {
+}
 
 struct DuckDBScanFunction {
     static constexpr char DUCKDB_SCAN_FUNC_NAME[] = "duckdb_scan";
