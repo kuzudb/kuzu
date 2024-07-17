@@ -41,7 +41,18 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapMerge(planner::LogicalOperator*
     for (auto& info : logicalMerge.getOnMatchSetRelInfos()) {
         onMatchRelSetExecutors.push_back(getRelSetExecutor(info, *inSchema));
     }
-    auto printInfo = std::make_unique<OPPrintInfo>(logicalMerge.getExpressionsForPrinting());
+    binder::expression_vector expressions;
+    for (auto& info : logicalMerge.getInsertNodeInfos()) {
+        for (auto& expr : info.columnExprs) {
+            expressions.push_back(expr);
+        }
+    }
+    for (auto& info : logicalMerge.getInsertRelInfos()) {
+        for (auto& expr : info.columnExprs) {
+            expressions.push_back(expr);
+        }
+    }
+    auto printInfo = std::make_unique<MergePrintInfo>(expressions);
     return std::make_unique<Merge>(existenceMarkPos, distinctMarkPos,
         std::move(nodeInsertExecutors), std::move(relInsertExecutors),
         std::move(onCreateNodeSetExecutors), std::move(onCreateRelSetExecutors),

@@ -70,6 +70,7 @@ std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapInsert(LogicalOperator* logicalOperator) {
     auto& logicalInsert = logicalOperator->constCast<LogicalInsert>();
+    auto& logicalInsertInfo = logicalOperator->constCast<LogicalInsertInfo>();
     auto inSchema = logicalInsert.getChild(0)->getSchema();
     auto outSchema = logicalInsert.getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
@@ -87,7 +88,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapInsert(LogicalOperator* logical
             KU_UNREACHABLE;
         }
     }
-    auto printInfo = std::make_unique<OPPrintInfo>(logicalInsert.getExpressionsForPrinting());
+    binder::expression_vector expressions;
+    for (auto& info : logicalInsert.getInfosRef()) {
+        for (auto& expr : info.columnExprs) {
+            expressions.push_back(expr);
+        }
+    }
+    auto printInfo =
+        std::make_unique<InsertPrintInfo>(expressions, logicalInsertInfo.conflictAction);
     return std::make_unique<Insert>(std::move(nodeExecutors), std::move(relExecutors),
         std::move(prevOperator), getOperatorID(), std::move(printInfo));
 }

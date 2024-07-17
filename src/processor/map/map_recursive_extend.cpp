@@ -73,7 +73,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(LogicalOperator
     info.direction = extend->getDirection();
     info.extendFromSource = extend->extendFromSourceNode();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    auto printInfo = std::make_unique<OPPrintInfo>(extend->getExpressionsForPrinting());
+    auto printInfo = std::make_unique<OPPrintInfo>();
     return std::make_unique<RecursiveJoin>(std::move(info), sharedState, std::move(prevOperator),
         getOperatorID(), std::move(recursiveRoot), std::move(printInfo));
 }

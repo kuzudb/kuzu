@@ -7,6 +7,21 @@
 namespace kuzu {
 namespace processor {
 
+struct MergePrintInfo final : OPPrintInfo {
+    binder::expression_vector pattern;
+
+    explicit MergePrintInfo(binder::expression_vector pattern) : pattern(std::move(pattern)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<MergePrintInfo>(new MergePrintInfo(*this));
+    }
+
+private:
+    MergePrintInfo(const MergePrintInfo& other) : OPPrintInfo(other), pattern(other.pattern) {}
+};
+
 class Merge : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::MERGE;
 

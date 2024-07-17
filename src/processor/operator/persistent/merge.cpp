@@ -1,7 +1,15 @@
 #include "processor/operator/persistent/merge.h"
 
+#include "binder/expression/expression_util.h"
+
 namespace kuzu {
 namespace processor {
+
+std::string MergePrintInfo::toString() const {
+    std::string result = "Pattern: ";
+    result += binder::ExpressionUtil::toString(pattern);
+    return result;
+}
 
 void Merge::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* context) {
     existenceVector = resultSet->getValueVector(existenceMark).get();
