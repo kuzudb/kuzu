@@ -16,10 +16,10 @@ void LogicalAccumulate::computeFactorizedSchema() {
         KU_ASSERT(schema->getNumGroups() == 1);
         schema->insertToGroupAndScope(offset, 0);
     }
-    if (mark != nullptr) {
+    if (info.mark != nullptr) {
         auto groupPos = schema->createGroup();
         schema->setGroupAsSingleState(groupPos);
-        schema->insertToGroupAndScope(mark, groupPos);
+        schema->insertToGroupAndScope(info.mark, groupPos);
     }
 }
 
@@ -28,8 +28,8 @@ void LogicalAccumulate::computeFlatSchema() {
     if (offset != nullptr) {
         schema->insertToGroupAndScope(offset, 0);
     }
-    if (mark != nullptr) {
-        schema->insertToGroupAndScope(mark, 0);
+    if (info.mark != nullptr) {
+        schema->insertToGroupAndScope(info.mark, 0);
     }
 }
 

@@ -70,9 +70,9 @@ void Planner::planMergeClause(const BoundUpdatingClause* updatingClause, Logical
         distinctMark = mergeClause->getDistinctMark();
         corrExprs = getCorrelatedExprs(*mergeClause->getQueryGraphCollection(), predicates,
             plan.getSchema());
-        if (corrExprs.size() == 0) {
-            throw RuntimeException{"Empty key in merge clause is not supported yet."};
-        }
+//        if (corrExprs.size() == 0) {
+//            throw RuntimeException{"Empty key in merge clause is not supported yet."};
+//        }
         appendMarkAccumulate(corrExprs, distinctMark, plan);
     }
     auto existenceMark = mergeClause->getExistenceMark();

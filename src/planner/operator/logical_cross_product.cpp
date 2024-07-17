@@ -10,6 +10,11 @@ void LogicalCrossProduct::computeFactorizedSchema() {
     auto buildSchema = children[1]->getSchema();
     schema = probeSchema->copy();
     SinkOperatorUtil::mergeSchema(*buildSchema, buildSchema->getExpressionsInScope(), *schema);
+    if (info.mark != nullptr) {
+        auto groupPos = schema->createGroup();
+        schema->setGroupAsSingleState(groupPos);
+        schema->insertToGroupAndScope(info.mark, groupPos);
+    }
 }
 
 void LogicalCrossProduct::computeFlatSchema() {
@@ -19,6 +24,9 @@ void LogicalCrossProduct::computeFlatSchema() {
     KU_ASSERT(schema->getNumGroups() == 1);
     for (auto& expression : buildSchema->getExpressionsInScope()) {
         schema->insertToGroupAndScope(expression, 0);
+    }
+    if (info.mark != nullptr) {
+        schema->insertToGroupAndScope(info.mark, 0);
     }
 }
 

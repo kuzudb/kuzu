@@ -1,7 +1,6 @@
 #pragma once
 
-#include "common/enums/accumulate_type.h"
-#include "planner/operator/logical_operator.h"
+#include "logical_accumulate.h"
 
 namespace kuzu {
 namespace planner {
@@ -10,25 +9,27 @@ class LogicalCrossProduct : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::CROSS_PRODUCT;
 
 public:
-    LogicalCrossProduct(common::AccumulateType accumulateType,
+    LogicalCrossProduct(LogicalAccumulateInfo info,
         std::shared_ptr<LogicalOperator> probeChild, std::shared_ptr<LogicalOperator> buildChild)
         : LogicalOperator{type_, std::move(probeChild), std::move(buildChild)},
-          accumulateType{accumulateType} {}
+          info{std::move(info)} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    inline std::string getExpressionsForPrinting() const override { return std::string(); }
+    std::string getExpressionsForPrinting() const override { return std::string(); }
 
-    inline common::AccumulateType getAccumulateType() const { return accumulateType; }
+    common::AccumulateType getAccumulateType() const { return info.accumulateType; }
+    bool hasMark() const { return info.mark != nullptr; }
+    std::shared_ptr<binder::Expression> getMark() const { return info.mark; }
 
-    inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCrossProduct>(accumulateType, children[0]->copy(),
+    std::unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalCrossProduct>(info, children[0]->copy(),
             children[1]->copy());
     }
 
 private:
-    common::AccumulateType accumulateType;
+    LogicalAccumulateInfo info;
 };
 
 } // namespace planner

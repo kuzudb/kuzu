@@ -19,8 +19,9 @@ namespace kuzu {
 namespace optimizer {
 
 static std::shared_ptr<LogicalOperator> appendAccumulate(std::shared_ptr<LogicalOperator> child) {
-    auto accumulate = std::make_shared<LogicalAccumulate>(AccumulateType::REGULAR,
-        expression_vector{}, nullptr /* offset */, nullptr /* mark */, std::move(child));
+    auto info = LogicalAccumulateInfo(AccumulateType::REGULAR, nullptr /* mark */);
+    auto accumulate = std::make_shared<LogicalAccumulate>(info,
+        expression_vector{}, nullptr /* offset */, std::move(child));
     accumulate->computeFlatSchema();
     return accumulate;
 }

@@ -24,8 +24,8 @@ void Planner::appendAccumulate(const expression_vector& flatExprs, LogicalPlan& 
 
 void Planner::appendAccumulate(AccumulateType accumulateType, const expression_vector& flatExprs,
     std::shared_ptr<Expression> offset, std::shared_ptr<Expression> mark, LogicalPlan& plan) {
-    auto op = make_shared<LogicalAccumulate>(accumulateType, flatExprs, offset, mark,
-        plan.getLastOperator());
+    auto info = LogicalAccumulateInfo(accumulateType, mark);
+    auto op = std::make_shared<LogicalAccumulate>(info, flatExprs, offset, plan.getLastOperator());
     appendFlattens(op->getGroupPositionsToFlatten(), plan);
     op->setChild(0, plan.getLastOperator());
     op->computeFactorizedSchema();

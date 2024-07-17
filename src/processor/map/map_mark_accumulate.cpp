@@ -10,6 +10,8 @@ namespace processor {
 std::unique_ptr<PhysicalOperator> PlanMapper::mapMarkAccumulate(LogicalOperator* op) {
     auto acc = op->constPtrCast<LogicalMarkAccumulate>();
     auto keys = acc->getKeys();
+    // TODO(ziyi): map this case to a result collector
+    KU_ASSERT(!keys.empty());
     auto payloads = acc->getPayloads();
     auto outSchema = acc->getSchema();
     auto child = acc->getChild(0).get();

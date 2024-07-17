@@ -9,7 +9,7 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCrossProduct(LogicalOperator* logicalOperator) {
-    auto& logicalCrossProduct = logicalOperator->constCast<LogicalCrossProduct>();
+    auto& logicalCrossProduct = logicalOperator->cast<LogicalCrossProduct>();
     auto outSchema = logicalCrossProduct.getSchema();
     auto buildChild = logicalCrossProduct.getChild(1);
     // map build side
@@ -18,6 +18,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCrossProduct(LogicalOperator* l
     auto expressions = buildSchema->getExpressionsInScope();
     auto resultCollector = createResultCollector(logicalCrossProduct.getAccumulateType(),
         expressions, buildSchema, std::move(buildSidePrevOperator));
+    if (logicalCrossProduct.hasMark()) {
+        expressions.push_back(logicalCrossProduct.getMark());
+    }
     // map probe side
     auto probeSidePrevOperator = mapOperator(logicalCrossProduct.getChild(0).get());
     std::vector<DataPos> outVecPos;
