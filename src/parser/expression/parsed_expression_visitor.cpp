@@ -1,7 +1,8 @@
 #include "parser/expression/parsed_expression_visitor.h"
+
 #include "common/exception/not_implemented.h"
-#include "parser/expression/parsed_lambda_expression.h"
 #include "parser/expression/parsed_case_expression.h"
+#include "parser/expression/parsed_lambda_expression.h"
 
 using namespace kuzu::common;
 
@@ -102,5 +103,5 @@ void ParsedExpressionVisitor::visitCaseExprChildren(const ParsedExpression& expr
     }
 }
 
-}
-}
+} // namespace parser
+} // namespace kuzu

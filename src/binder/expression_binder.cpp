@@ -2,6 +2,7 @@
 
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression/parameter_expression.h"
 #include "binder/expression_visitor.h"
 #include "common/exception/binder.h"
 #include "common/exception/not_implemented.h"
@@ -11,7 +12,6 @@
 #include "main/client_context.h"
 #include "parser/expression/parsed_expression_visitor.h"
 #include "parser/expression/parsed_parameter_expression.h"
-#include "binder/expression/parameter_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;

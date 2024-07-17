@@ -31,20 +31,14 @@ public:
 
 class ParsedParamExprCollector : public ParsedExpressionVisitor {
 public:
-    std::vector<const ParsedExpression*> getParamExprs() const {
-        return paramExprs;
-    }
-    bool hasParamExprs() const {
-        return !paramExprs.empty();
-    }
+    std::vector<const ParsedExpression*> getParamExprs() const { return paramExprs; }
+    bool hasParamExprs() const { return !paramExprs.empty(); }
 
-    void visitParamExpr(const ParsedExpression* expr) override {
-        paramExprs.push_back(expr);
-    }
+    void visitParamExpr(const ParsedExpression* expr) override { paramExprs.push_back(expr); }
 
 private:
     std::vector<const ParsedExpression*> paramExprs;
 };
 
-}
-}
+} // namespace parser
+} // namespace kuzu

@@ -9,7 +9,6 @@
 #include "function/struct/vector_struct_functions.h"
 #include "parser/expression/parsed_property_expression.h"
 
-
 using namespace kuzu::common;
 using namespace kuzu::parser;
 using namespace kuzu::catalog;
@@ -73,7 +72,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     auto propertyName = propertyExpression.getPropertyName();
     auto child = bindExpression(*parsedExpression.getChild(0));
     ExpressionUtil::validateDataType(*child,
-        std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT, LogicalTypeID::ANY});
+        std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT,
+            LogicalTypeID::ANY});
     if (isNodeOrRelPattern(*child)) {
         if (Binder::reservedInPropertyLookup(propertyName)) {
             // Note we don't expose direct access to internal properties in case user tries to
