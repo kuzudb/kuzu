@@ -1,9 +1,9 @@
-#include "planner/operator/scan/logical_scan_file.h"
+#include "planner/operator/scan/logical_scan_source.h"
 
 namespace kuzu {
 namespace planner {
 
-void LogicalScanFile::computeFactorizedSchema() {
+void LogicalScanSource::computeFactorizedSchema() {
     createEmptySchema();
     auto groupPos = schema->createGroup();
     schema->insertToGroupAndScope(info.columns, groupPos);
@@ -12,7 +12,7 @@ void LogicalScanFile::computeFactorizedSchema() {
     }
 }
 
-void LogicalScanFile::computeFlatSchema() {
+void LogicalScanSource::computeFlatSchema() {
     createEmptySchema();
     schema->createGroup();
     schema->insertToGroupAndScope(info.columns, 0);

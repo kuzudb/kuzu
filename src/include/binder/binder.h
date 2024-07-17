@@ -62,7 +62,6 @@ struct BoundSetPropertyInfo;
 struct BoundDeleteInfo;
 class BoundWithClause;
 class BoundReturnClause;
-struct BoundFileScanInfo;
 struct ExportedTableData;
 struct BoundJoinHintNode;
 struct BoundCopyFromInfo;
@@ -154,6 +153,16 @@ public:
     /*** bind scan source ***/
     std::unique_ptr<BoundBaseScanSource> bindScanSource(parser::BaseScanSource* scanSource,
         const parser::options_t& options, const std::vector<std::string>& columnNames,
+        const std::vector<common::LogicalType>& columnTypes);
+    std::unique_ptr<BoundBaseScanSource> bindFileScanSource(
+        const parser::BaseScanSource& scanSource, const parser::options_t& options,
+        const std::vector<std::string>& columnNames,
+        const std::vector<common::LogicalType>& columnTypes);
+    std::unique_ptr<BoundBaseScanSource> bindQueryScanSource(
+        const parser::BaseScanSource& scanSource, const std::vector<std::string>& columnNames,
+        const std::vector<common::LogicalType>& columnTypes);
+    std::unique_ptr<BoundBaseScanSource> bindObjectScanSource(
+        const parser::BaseScanSource& scanSource, const std::vector<std::string>& columnNames,
         const std::vector<common::LogicalType>& columnTypes);
 
     std::unordered_map<std::string, common::Value> bindParsingOptions(
