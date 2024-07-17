@@ -80,7 +80,6 @@ public:
  */
 class Frontiers {
     friend class GDSTask;
-
 public:
     explicit Frontiers(GDSFrontier* curFrontier, GDSFrontier* nextFrontier,
         uint64_t initialActiveNodes)
@@ -101,6 +100,7 @@ public:
         numApproxActiveNodesForNextIter.store(0u);
         beginNewIterationInternalNoLock();
     }
+    virtual void initSPFromSource(nodeID_t source) = 0;
     // When performing computations on multi-label graphs, it may be beneficial to fix a single
     // node table of nodes in the current frontier and a single node table of nodes for the next
     // frontier. That is because algorithms will generally perform extensions using a single

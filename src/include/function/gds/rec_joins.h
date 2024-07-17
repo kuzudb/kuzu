@@ -1,0 +1,240 @@
+#pragma once
+
+#include "function/gds/gds.h"
+// TODO(Semih): Check if we can get rid of these
+#include "function/gds/gds_frontier.h"
+#include "processor/operator/mask.h"
+
+namespace kuzu {
+namespace common {
+class ValueVector;
+} // namespace common
+
+namespace graph {
+class Graph;
+} // namespace graph
+
+namespace function {
+class Frontiers;
+class FrontierCompute;
+
+struct RJBindData final : public function::GDSBindData {
+    std::shared_ptr<binder::Expression> nodeInput;
+    uint8_t upperBound;
+
+    RJBindData(std::shared_ptr<binder::Expression> nodeInput,
+        std::shared_ptr<binder::Expression> nodeOutput, bool outputAsNode, uint8_t upperBound)
+        : GDSBindData{std::move(nodeOutput), outputAsNode}, nodeInput{std::move(nodeInput)},
+          upperBound{upperBound} {
+        KU_ASSERT(upperBound < 255);
+    }
+    RJBindData(const RJBindData& other)
+        : GDSBindData{other}, nodeInput{other.nodeInput}, upperBound{other.upperBound} {}
+
+    bool hasNodeInput() const override { return true; }
+    std::shared_ptr<binder::Expression> getNodeInput() const override { return nodeInput; }
+
+    std::unique_ptr<GDSBindData> copy() const override {
+        return std::make_unique<RJBindData>(*this);
+    }
+};
+
+enum class RJOutputType : uint8_t {
+    DESTINATION_NODES = 0,
+    LENGTHS = 1,
+    // PATHS returns only the intermediate nodeIDs in a path, not the source or dst nodeIDs.
+    PATHS = 2,
+};
+
+struct RJOutputs {
+public:
+    virtual ~RJOutputs() = default;
+
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<RJOutputs*, TARGET*>(this);
+    }
+};
+
+// TODO(Semih): Turn this into a scanner if we can find a way to pipeline the outputs to the
+// next operators in the plan.
+class RJOutputWriter {
+public:
+    explicit RJOutputWriter(main::ClientContext* context, RJOutputType outputType);
+    virtual ~RJOutputWriter() = default;
+
+    virtual void materialize(graph::Graph* graph, RJOutputs* rjOutputs,
+        processor::FactorizedTable& fTable) const = 0;
+
+protected:
+    RJOutputType rjOutputType;
+    std::unique_ptr<common::ValueVector> srcNodeIDVector;
+    std::unique_ptr<common::ValueVector> dstNodeIDVector;
+    std::unique_ptr<common::ValueVector> lengthVector;
+    std::unique_ptr<common::ValueVector> pathNodeIDsVector;
+    std::vector<common::ValueVector*> vectors;
+};
+
+// Wrapper around the data that needs to be stored during the computation of a shortest paths
+// computation from one source.
+// TODO (Semih): Rename to RJInfo
+struct SPInfo final {
+    std::unique_ptr<RJOutputs> outputs;
+    std::unique_ptr<function::Frontiers> frontiers;
+    std::unique_ptr<function::FrontierCompute> frontierCompute;
+
+    explicit SPInfo(std::unique_ptr<RJOutputs> outputs,
+        std::unique_ptr<function::Frontiers> frontiers, std::unique_ptr<function::FrontierCompute> frontierCompute);
+//        : outputs{std::move(outputs)}, frontiers{std::move(frontiers)},
+//          frontierCompute{std::move(frontierCompute)} {}
+};
+
+class RJAlgorithm : public function::GDSAlgorithm {
+    static constexpr char LENGTH_COLUMN_NAME[] = "length";
+    static constexpr char PATH_NODE_IDS_COLUMN_NAME[] = "pathNodeIDs";
+
+public:
+    explicit RJAlgorithm(RJOutputType outputType) : outputType{outputType} {};
+    RJAlgorithm(const RJAlgorithm& other)
+        : GDSAlgorithm{other}, outputType{other.outputType} {}
+    // TODO(Reviewer): Do I have to do this? We should make sure we're being safe here.
+    virtual ~RJAlgorithm() = default;
+    /*
+     * Inputs include the following:
+     *
+     * graph::ANY
+     * srcNode::NODE
+     * upperBound::INT64
+     * outputProperty::BOOL
+     */
+    std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
+        return {common::LogicalTypeID::ANY, common::LogicalTypeID::NODE, common::LogicalTypeID::INT64, common::LogicalTypeID::BOOL};
+    }
+
+    /*
+     * Outputs should include at least the following (but possibly other fields, e.g., lengths or
+     * paths): srcNode._id::INTERNAL_ID _node._id::INTERNAL_ID (destination)
+     */
+    binder::expression_vector getResultColumns(binder::Binder* binder) const override;
+
+    void bind(const binder::expression_vector& params, binder::Binder* binder, graph::GraphEntry& graphEntry) override;
+
+    void exec(processor::ExecutionContext* executionContext) override;
+    virtual std::unique_ptr<SPInfo> getFrontiersAndFrontiersCompute(processor::ExecutionContext* executionContext,
+        common::nodeID_t sourceNodeID) = 0;
+
+protected:
+    RJOutputType outputType;
+    std::unique_ptr<RJOutputWriter> outputWriter;
+};
+
+/**
+ * A GDSFrontier implementation that keeps the lengths of the shortest paths from the source node to
+ * destination nodes. This is a light-weight implementation that can keep lengths up to and
+ * including 254. The length stored for the source node is 0. Length 255 is reserved for marking
+ * nodes that are not visited. This class is intended to represent both the current and next
+ * frontiers. At iteration i of the shortest path algorithm (iterations start from 0), nodes
+ * with mask values i are in the current frontier. Nodes with any other values are not in the
+ * frontier. Similarly at iteration i setting a node u active sets its mask value to i+1.
+ * Therefore this class needs to be informed about the current iteration of the algorithm to
+ * provide correct implementations of isActive and setActive functions.
+ */
+class PathLengths : public GDSFrontier {
+    friend class PathLengthsFrontiers;
+
+public:
+    static constexpr uint8_t UNVISITED = 255;
+
+    explicit PathLengths(
+        std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes);
+
+    uint8_t getMaskValueFromCurFrontierFixedMask(common::offset_t nodeOffset) {
+        KU_ASSERT(curFrontierFixedMask != nullptr);
+        return curFrontierFixedMask->getMaskValue(nodeOffset);
+    }
+
+    uint8_t getMaskValueFromNextFrontierFixedMask(common::offset_t nodeOffset) {
+        KU_ASSERT(nextFrontierFixedMask != nullptr);
+        return nextFrontierFixedMask->getMaskValue(nodeOffset);
+    }
+
+    inline bool isActive(nodeID_t nodeID) override {
+        KU_ASSERT(curFrontierFixedMask != nullptr);
+        return curFrontierFixedMask->getMaskValue(nodeID.offset) == curIter;
+    }
+
+    inline void setActive(nodeID_t nodeID) override {
+        KU_ASSERT(nextFrontierFixedMask != nullptr);
+        if (nextFrontierFixedMask->isMasked(nodeID.offset, UNVISITED)) {
+            // Note that if curIter = 255, this will set the mask value to 0. Therefore when
+            // the next (and first) iteration of the algorithm starts, the node will be "active".
+            nextFrontierFixedMask->setMask(nodeID.offset, curIter + 1);
+        }
+    }
+
+    void incrementCurIter() { curIter++; }
+
+    void fixCurFrontierNodeTable(common::table_id_t tableID) {
+        KU_ASSERT(masks.contains(tableID));
+        curFrontierFixedTableID = tableID;
+        curFrontierFixedMask = masks.at(tableID).get();
+    }
+
+    void fixNextFrontierNodeTable(common::table_id_t tableID) {
+        KU_ASSERT(masks.contains(tableID));
+        nextFrontierFixedMask = masks.at(tableID).get();
+    }
+
+    uint64_t getNumNodesInCurFrontierFixedNodeTable() {
+        KU_ASSERT(curFrontierFixedMask != nullptr);
+        return curFrontierFixedMask->getSize();
+    }
+
+private:
+    uint8_t curIter = 255;
+    common::table_id_map_t<std::unique_ptr<processor::MaskData>> masks;
+    common::table_id_t curFrontierFixedTableID;
+    processor::MaskData* curFrontierFixedMask;
+    processor::MaskData* nextFrontierFixedMask;
+};
+
+class PathLengthsFrontiers : public Frontiers {
+    friend struct SingleSPLengthsFrontierCompute;
+    friend struct SingleSPPathsFrontierCompute;
+    static constexpr uint64_t FRONTIER_MORSEL_SIZE = 64;
+
+public:
+    explicit PathLengthsFrontiers(PathLengths* pathLengths)
+        : Frontiers(pathLengths /* curFrontier */, pathLengths /* nextFrontier */,
+              1 /* initial num active nodes */),
+          pathLengths{pathLengths} {}
+
+    bool getNextFrontierMorsel(RangeFrontierMorsel& frontierMorsel) override;
+
+    void initSPFromSource(nodeID_t source) override {
+        // Because PathLengths is a single data structure that represents both the current and next
+        // frontier, and because setting active is an operation done on the next frontier, we first
+        // fix the next frontier table before setting the source node as active.
+        pathLengths->fixNextFrontierNodeTable(source.tableID);
+        pathLengths->setActive(source);
+    }
+
+    void beginFrontierComputeBetweenTables(
+        table_id_t curFrontierTableID, table_id_t nextFrontierTableID) override {
+        pathLengths->fixCurFrontierNodeTable(curFrontierTableID);
+        pathLengths->fixNextFrontierNodeTable(nextFrontierTableID);
+        nextOffset.store(0u);
+    }
+
+    void beginNewIterationInternalNoLock() override {
+        nextOffset.store(0u);
+        pathLengths->incrementCurIter();
+    }
+
+private:
+    PathLengths* pathLengths;
+    std::atomic<offset_t> nextOffset;
+};
+
+}
+}

@@ -1,0 +1,294 @@
+#include "common/exception/runtime.h"
+#include "function/gds/gds_frontier.h"
+#include "function/gds/gds_function_collection.h"
+#include "function/gds/rec_joins.h"
+#include "function/gds_function.h"
+#include "processor/operator/gds_call.h"
+#include "processor/result/factorized_table.h"
+
+// TODO(Semih): Remove
+#include <iostream>
+using namespace kuzu::processor;
+using namespace kuzu::common;
+using namespace kuzu::binder;
+using namespace kuzu::storage;
+using namespace kuzu::graph;
+
+namespace kuzu {
+namespace function {
+
+
+class PathMultiplicities {
+public:
+    explicit PathMultiplicities(std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
+        MemoryManager* mm)  {
+        for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
+            auto memoryBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<uint64_t>));
+            auto multiplicitiesPtr = reinterpret_cast<std::atomic<uint64_t>*>(memoryBuffer->buffer.data());
+            for (uint64_t i = 0; i < numNodes; ++i) {
+                // TODO(Semih/Anurag): Is this the right way to init an array of atomic<uint64>'s to 0.
+                multiplicitiesPtr[i].store(0);
+            }
+            multiplicities.insert({tableID, move(memoryBuffer)});
+        }
+        // Here!
+    }
+
+    void incrementMultiplicity(nodeID_t nodeID, uint64_t multiplicity) {
+        KU_ASSERT(currentFixedMultiplicities != nullptr);
+        currentFixedMultiplicities[nodeID.offset].fetch_add(multiplicity, );
+    }
+
+    uint64_t getMultiplicity(nodeID_t nodeID) {
+        KU_ASSERT(currentFixedMultiplicities != nullptr);
+        // TODO(Semih/Anurag): We have the guarantee that this value should not be updated. So not sure
+        // if we need to call load or if we can call something else.
+        return currentFixedMultiplicities[nodeID.offset].load();
+    }
+
+    void fixNodeTable(common::table_id_t tableID) {
+        KU_ASSERT(multiplicities.contains(tableID));
+        currentFixedMultiplicities =
+            reinterpret_cast<std::atomic<uint64_t>*>(multiplicities.at(tableID).get()->buffer.data());
+    }
+private:
+    common::table_id_map_t<std::unique_ptr<MemoryBuffer>> multiplicities;
+    std::atomic<uint64_t>* currentFixedMultiplicities;
+};
+/**
+ * A data structure to keep track of a single (shortest) path from one source node to
+ * multiple destination (and intermediate) nodes as "backward BFS graph" form. The data structure is
+ * "dense" in the sense that it keeps space for one "backwards edge" for each possible node that can
+ * be in the destination. Supports multi-label nodes.
+ */
+class SinglePaths {
+public:
+    explicit SinglePaths(
+        std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
+        MemoryManager* mm) {
+        for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
+            lastEdges.insert({tableID, mm->allocateBuffer(false, numNodes * sizeof(nodeID_t))});
+        }
+    }
+
+    void setLastEdge(nodeID_t nodeID, nodeID_t lastEdge) {
+        KU_ASSERT(currentFixedLastEdges != nullptr);
+        currentFixedLastEdges[nodeID.offset] = lastEdge;
+    }
+
+    nodeID_t getParent(nodeID_t nodeID) {
+        return reinterpret_cast<nodeID_t*>(
+            lastEdges.at(nodeID.tableID).get()->buffer.data())[nodeID.offset];
+    }
+
+    void fixNodeTable(common::table_id_t tableID) {
+        KU_ASSERT(lastEdges.contains(tableID));
+        currentFixedLastEdges =
+            reinterpret_cast<nodeID_t*>(lastEdges.at(tableID).get()->buffer.data());
+    }
+
+private:
+    common::table_id_map_t<std::unique_ptr<MemoryBuffer>> lastEdges;
+    nodeID_t* currentFixedLastEdges;
+};
+
+class SingleSPPathsFrontiers : public PathLengthsFrontiers {
+    friend struct SingleSPPathsFrontierCompute;
+
+public:
+    explicit SingleSPPathsFrontiers(PathLengths* pathLengths, SinglePaths* singlePaths)
+        : PathLengthsFrontiers(pathLengths), singlePaths{singlePaths} {}
+    void beginFrontierComputeBetweenTables(
+        table_id_t curFrontierTableID, table_id_t nextFrontierTableID) override {
+        PathLengthsFrontiers::beginFrontierComputeBetweenTables(
+            curFrontierTableID, nextFrontierTableID);
+        singlePaths->fixNodeTable(nextFrontierTableID);
+    }
+
+private:
+    SinglePaths* singlePaths;
+};
+
+struct SingleSPOutputs : public RJOutputs {
+    nodeID_t sourceNodeID;
+    std::unique_ptr<PathLengths> pathLengths;
+    std::unique_ptr<SinglePaths> singlePaths;
+    explicit SingleSPOutputs(graph::Graph* graph, nodeID_t sourceNodeID, RJOutputType outputType, MemoryManager* mm = nullptr)
+        : sourceNodeID{sourceNodeID} {
+        std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes;
+        for (common::table_id_t tableID : graph->getNodeTableIDs()) {
+            auto numNodes = graph->getNumNodes(tableID);
+            nodeTableIDAndNumNodes.push_back({tableID, numNodes});
+        }
+        pathLengths = std::make_unique<PathLengths>(nodeTableIDAndNumNodes);
+        if (RJOutputType::PATHS == outputType) {
+            singlePaths = std::make_unique<SinglePaths>(nodeTableIDAndNumNodes, mm);
+            // Unlike pathLengths we do not fix the nodeTable of singlePath with
+            // sourceNodeID.tableID because when extending a RelTable R(srcNodeLabel, dstNodeLabel),
+            // singlePaths should be fixed to dstNodeLabel. This should be done during frontier
+            // extensions.
+        }
+    }
+};
+
+class SingleSPOutputWriter : public RJOutputWriter {
+public:
+    explicit SingleSPOutputWriter(main::ClientContext* context, RJOutputType outputType)
+        : RJOutputWriter(context, outputType) {}
+    void materialize(graph::Graph* graph, RJOutputs* rjOutputs,
+        processor::FactorizedTable& fTable) const override {
+        auto spOutputs = rjOutputs->ptrCast<SingleSPOutputs>();
+        srcNodeIDVector->setValue<nodeID_t>(0, spOutputs->sourceNodeID);
+        for (auto tableID : graph->getNodeTableIDs()) {
+            spOutputs->pathLengths->fixCurFrontierNodeTable(tableID);
+            for (offset_t nodeOffset = 0;
+                 nodeOffset < spOutputs->pathLengths->getNumNodesInCurFrontierFixedNodeTable();
+                 ++nodeOffset) {
+                auto length =
+                    spOutputs->pathLengths->getMaskValueFromCurFrontierFixedMask(nodeOffset);
+                if (length == PathLengths::UNVISITED) {
+                    continue;
+                }
+                auto dstNodeID = nodeID_t{nodeOffset, tableID};
+                dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
+                if (RJOutputType::LENGTHS == rjOutputType || RJOutputType::PATHS == rjOutputType) {
+                    lengthVector->setValue<int64_t>(0, length);
+                    if (RJOutputType::PATHS == rjOutputType) {
+                        nodeID_t curIntNode = dstNodeID;
+                        uint64_t curIntNbrIndex = length > 1 ? length - 1 : 0;
+                        pathNodeIDsVector->resetAuxiliaryBuffer();
+                        auto pathNodeIDsEntry =
+                            ListVector::addList(pathNodeIDsVector.get(), curIntNbrIndex);
+                        pathNodeIDsVector->setValue(0, pathNodeIDsEntry);
+                        auto dataVector = ListVector::getDataVector(pathNodeIDsVector.get());
+                        while (curIntNbrIndex > 0) {
+                            curIntNode = spOutputs->singlePaths->getParent(curIntNode);
+                            dataVector->setValue(
+                                pathNodeIDsEntry.offset + curIntNbrIndex - 1, curIntNode);
+                            curIntNbrIndex--;
+                        }
+                    }
+                }
+                fTable.append(vectors);
+            }
+        }
+    }
+};
+
+struct SingleSPLengthsFrontierCompute : public FrontierCompute {
+    PathLengthsFrontiers* pathLengthsFrontiers;
+    explicit SingleSPLengthsFrontierCompute(PathLengthsFrontiers* pathLengthsFrontiers)
+        : pathLengthsFrontiers{pathLengthsFrontiers} {};
+
+    bool edgeCompute(nodeID_t, nodeID_t nbrID) override {
+        return pathLengthsFrontiers->pathLengths->getMaskValueFromNextFrontierFixedMask(
+                   nbrID.offset) == PathLengths::UNVISITED;
+    }
+};
+
+struct SingleSPPathsFrontierCompute : public FrontierCompute {
+    SingleSPPathsFrontiers* singleSPPathsFrontiers;
+    explicit SingleSPPathsFrontierCompute(SingleSPPathsFrontiers* singlePathsFrontiers)
+        : singleSPPathsFrontiers{singlePathsFrontiers} {};
+
+    bool edgeCompute(nodeID_t curNodeID, nodeID_t nbrID) override {
+        auto retVal = singleSPPathsFrontiers->pathLengths->getMaskValueFromNextFrontierFixedMask(
+                          nbrID.offset) == PathLengths::UNVISITED;
+        if (retVal) {
+            // We set the nbrID's last edge to curNodeID;
+            singleSPPathsFrontiers->singlePaths->setLastEdge(nbrID, curNodeID);
+        }
+        return retVal;
+    }
+};
+
+/**
+ * Algorithm for parallel single shortest path computation, i.e., assumes Distinct semantics, so
+ * one arbitrary shortest path is returned for each destination. If paths are not returned,
+ * multiplicities of each destination is ignored (e.g., if there are 3 paths to a destination d,
+ * d is returned only one).
+ */
+class AllSPAlgorithm final : public RJAlgorithm {
+
+public:
+    explicit AllSPAlgorithm(RJOutputType outputType) : RJAlgorithm(outputType) {};
+    AllSPAlgorithm(const AllSPAlgorithm& other) : RJAlgorithm(other) {}
+
+    std::unique_ptr<GDSAlgorithm> copy() const override {
+        return std::make_unique<AllSPAlgorithm>(*this);
+    }
+
+protected:
+    void initLocalState(main::ClientContext* context) override {
+        outputWriter = std::make_unique<SingleSPOutputWriter>(context, outputType);
+    }
+
+    std::unique_ptr<SPInfo> getFrontiersAndFrontiersCompute(processor::ExecutionContext* executionContext,
+        nodeID_t sourceNodeID) override {
+        auto sourceState = std::make_unique<SingleSPOutputs>(sharedState->graph.get(), sourceNodeID,
+            outputType, executionContext->clientContext->getMemoryManager());
+        switch (outputType) {
+        case RJOutputType::DESTINATION_NODES:
+        case RJOutputType::LENGTHS: {
+            auto pathLengthsFrontiers =
+                std::make_unique<PathLengthsFrontiers>(sourceState->pathLengths.get());
+            auto frontierCompute = std::make_unique<SingleSPLengthsFrontierCompute>(pathLengthsFrontiers.get());
+            return std::make_unique<SPInfo>(move(sourceState), move(pathLengthsFrontiers), move(frontierCompute));
+        }
+        case RJOutputType::PATHS: {
+            auto singlePathsFrontiers = std::make_unique<SingleSPPathsFrontiers>(
+                sourceState->pathLengths.get(), sourceState->singlePaths.get());
+            auto frontierCompute =
+                std::make_unique<SingleSPPathsFrontierCompute>(singlePathsFrontiers.get());
+            return std::make_unique<SPInfo>(move(sourceState), move(singlePathsFrontiers), move(frontierCompute));
+        }
+        default:
+            throw RuntimeException("Unrecognized RJOutputType in "
+                                   "RJAlgorithm::getFrontiersAndFrontiersCompute(): " +
+                                   std::to_string(static_cast<uint8_t>(outputType)) + ".");
+        }
+    }
+};
+
+///**
+// * Algorithm for parallel all shortest paths computation, i.e., all paths to each destination are
+// * computed.
+// */
+//class AllSPAlgorithm : public RJAlgorithm {
+//
+//};
+//
+///**
+// * Algorithm for computing variable length joins in recursive relationship patterns with Kleene-star,
+// * e.g., the r variable in a MATCH (a:Person)-[r:Knows*1..5]->(b:Person) pattern.
+// */
+//class VarLenJoinsAlgorithm : public RJAlgorithm {
+//
+//};
+
+function_set AllSPDestinationsFunction::getFunctionSet() {
+    function_set result;
+    auto function = std::make_unique<GDSFunction>(
+        name, std::make_unique<AllSPAlgorithm>(RJOutputType::DESTINATION_NODES));
+    result.push_back(std::move(function));
+    return result;
+}
+
+function_set AllSPLengthsFunction::getFunctionSet() {
+    function_set result;
+    auto function = std::make_unique<GDSFunction>(
+        name, std::make_unique<AllSPAlgorithm>(RJOutputType::LENGTHS));
+    result.push_back(std::move(function));
+    return result;
+}
+
+function_set AllSPPathsFunction::getFunctionSet() {
+    function_set result;
+    auto function = std::make_unique<GDSFunction>(
+        name, std::make_unique<AllSPAlgorithm>(RJOutputType::PATHS));
+    result.push_back(std::move(function));
+    return result;
+}
+
+} // namespace function
+} // namespace kuzu

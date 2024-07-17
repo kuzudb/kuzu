@@ -47,16 +47,6 @@ struct GDSBindData {
     }
 };
 
-class GDSLocalState {
-public:
-    virtual ~GDSLocalState() = default;
-
-    template<class TARGET>
-    TARGET* ptrCast() {
-        return common::ku_dynamic_cast<GDSLocalState*, TARGET*>(this);
-    }
-};
-
 // Base class for every graph data science algorithm.
 class GDSAlgorithm {
 protected:
@@ -83,7 +73,7 @@ public:
     virtual void exec(processor::ExecutionContext* executionContext) = 0;
 
     // TODO: We should get rid of this copy interface (e.g. using stateless design) or at least make
-    // sure the fields that cannot be copied, such as graph or factorized table and localState, are
+    // sure the fields that cannot be copied, such as graph or factorized table and outputWriter, are
     // wrapped in a different class.
     virtual std::unique_ptr<GDSAlgorithm> copy() const = 0;
 
@@ -95,7 +85,6 @@ protected:
 protected:
     std::unique_ptr<GDSBindData> bindData;
     processor::GDSCallSharedState* sharedState;
-    std::unique_ptr<GDSLocalState> localState;
 };
 
 } // namespace function

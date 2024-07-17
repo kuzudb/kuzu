@@ -2,6 +2,8 @@
 
 #include "graph/graph.h"
 
+// TODO(Semih): Remove
+#include <iostream>
 namespace kuzu {
 namespace function {
 
