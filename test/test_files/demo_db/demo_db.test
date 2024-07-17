@@ -412,9 +412,9 @@ Zhang|50
 Adam|30
 
 -LOG CopyTO
--STATEMENT COPY (MATCH (u:User) RETURN u.*) TO '${DATABASE_PATH}/user1.csv' (header=true);
+-STATEMENT COPY (MATCH (u:User) RETURN u.*) TO '${DATABASE_PATH}/user.csv' (header=true);
 ---- ok
--STATEMENT LOAD FROM '${DATABASE_PATH}/user1.csv' RETURN *;
+-STATEMENT LOAD FROM '${DATABASE_PATH}/user.csv' RETURN *;
 ---- 5
 u.name|u.age
 Adam|30
