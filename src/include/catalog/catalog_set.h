@@ -26,7 +26,7 @@ public:
     //===--------------------------------------------------------------------===//
     // getters & setters
     //===--------------------------------------------------------------------===//
-    bool containsEntry(transaction::Transaction* transaction, const std::string& name) const;
+    bool containsEntry(transaction::Transaction* transaction, const std::string& name);
     CatalogEntry* getEntry(transaction::Transaction* transaction, const std::string& name);
     KUZU_API void createEntry(transaction::Transaction* transaction,
         std::unique_ptr<CatalogEntry> entry);
@@ -34,7 +34,10 @@ public:
     void alterEntry(transaction::Transaction* transaction, const binder::BoundAlterInfo& alterInfo);
     CatalogEntrySet getEntries(transaction::Transaction* transaction);
 
-    uint64_t assignNextOID() { return nextOID++; }
+    uint64_t assignNextOID() { 
+        std::lock_guard lck{mtx};
+        return nextOID++; 
+    }
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization
@@ -43,6 +46,11 @@ public:
     static std::unique_ptr<CatalogSet> deserialize(common::Deserializer& deserializer);
 
 private:
+    bool containsEntryNoLock(transaction::Transaction* transaction, const std::string& name) const;
+    CatalogEntry* getEntryNoLock(transaction::Transaction* transaction, const std::string& name);
+    void createEntryNoLock(transaction::Transaction* transaction, std::unique_ptr<CatalogEntry> entry);
+    void dropEntryNoLock(transaction::Transaction* transaction, const std::string& name);
+
     void validateExist(transaction::Transaction* transaction, const std::string& name) const;
     void validateNotExist(transaction::Transaction* transaction, const std::string& name) const;
 
@@ -54,9 +62,9 @@ private:
     CatalogEntry* traverseVersionChainsForTransaction(transaction::Transaction* transaction,
         CatalogEntry* currentEntry) const;
     CatalogEntry* getCommittedEntry(CatalogEntry* entry) const;
-    bool checkWWConflict(transaction::Transaction* transaction, CatalogEntry* entry) const;
 
 private:
+    std::mutex mtx;
     uint64_t nextOID = 0;
     common::case_insensitive_map_t<std::unique_ptr<CatalogEntry>> entries;
 };
