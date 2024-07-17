@@ -8,83 +8,6 @@ namespace kuzu {
 namespace storage {
 
 template<std::floating_point T>
-ExceptionBuffer<T>::ExceptionBuffer(uint8_t* frame, size_t frameSizeBytes,
-    const CompressionMetadata& metadata)
-    : capacityBytes(getDataSizeForExceptions(frameSizeBytes, metadata)) {
-    uint8_t* exceptionBufferStart = frame + frameSizeBytes;
-    header = reinterpret_cast<Header*>(exceptionBufferStart - sizeof(Header));
-    exceptions = reinterpret_cast<uint8_t*>(header) - EncodeException<T>::sizeBytes();
-}
-
-template<std::floating_point T>
-void ExceptionBuffer<T>::init() {
-    header->numExceptions = 0;
-}
-
-template<std::floating_point T>
-void ExceptionBuffer<T>::addException(EncodeException<T> exception) {
-    encodeException(exception, exceptionCount());
-    ++exceptionCount();
-}
-
-template<std::floating_point T>
-void ExceptionBuffer<T>::encodeException(EncodeException<T> exception, common::offset_t idx) {
-    static constexpr size_t exceptionSizeBytes = exception.sizeBytes();
-
-    const auto byteOffset = idx * exceptionSizeBytes;
-    KU_ASSERT(sizeof(Header) + byteOffset + exceptionSizeBytes <= capacityBytes);
-    std::memcpy(exceptions - byteOffset, &exception.value, sizeof(exception.value));
-    std::memcpy(exceptions - byteOffset + sizeof(exception.value), &exception.posInPage,
-        sizeof(exception.posInPage));
-}
-
-template<std::floating_point T>
-EncodeException<T> ExceptionBuffer<T>::decodeException(common::offset_t idx) {
-    EncodeException<T> ret;
-
-    static constexpr size_t exceptionSizeBytes = ret.sizeBytes();
-
-    const auto byteOffset = idx * exceptionSizeBytes;
-    KU_ASSERT(sizeof(Header) + byteOffset + exceptionSizeBytes <= capacityBytes);
-    std::memcpy(&ret.value, exceptions - byteOffset, sizeof(ret.value));
-    std::memcpy(&ret.posInPage, exceptions - byteOffset + sizeof(ret.value), sizeof(ret.posInPage));
-
-    return ret;
-}
-
-template<std::floating_point T>
-void ExceptionBuffer<T>::removeException(common::offset_t idx) {
-    KU_ASSERT(idx < exceptionCount());
-    for (size_t i = idx; i < exceptionCount() - 1; ++i) {
-        encodeException(decodeException(i + 1), i);
-    }
-    --exceptionCount();
-}
-
-template<std::floating_point T>
-size_t ExceptionBuffer<T>::getSizeBytes() {
-    return sizeof(Header) + exceptionCount() * EncodeException<T>::sizeBytes();
-}
-
-template<std::floating_point T>
-common::offset_t& ExceptionBuffer<T>::exceptionCount() {
-    KU_ASSERT(header->numExceptions <= 4 * 1024 / EncodeException<T>::sizeBytes());
-    return header->numExceptions;
-}
-
-template<std::floating_point T>
-size_t ExceptionBuffer<T>::getDataSizeForExceptions(size_t dataSize,
-    const CompressionMetadata& metadata) {
-    return 0;
-}
-
-template<std::floating_point T>
-size_t ExceptionBuffer<T>::getMaxExceptionCount(size_t exceptionBufferSize) {
-    KU_ASSERT(exceptionBufferSize >= sizeof(Header));
-    return (exceptionBufferSize - sizeof(Header)) / EncodeException<T>::sizeBytes();
-}
-
-template<std::floating_point T>
 uint64_t FloatCompression<T>::compressNextPage(const uint8_t*& srcBuffer,
     uint64_t numValuesRemaining, uint8_t* dstBuffer, uint64_t dstBufferSize,
     const struct CompressionMetadata& metadata) const {
@@ -148,13 +71,6 @@ uint64_t FloatCompression<T>::compressNextPageWithExceptions(const uint8_t*& src
 }
 
 template<std::floating_point T>
-uint64_t FloatCompression<T>::getMaxExceptionCountPerPage(size_t pageSize,
-    const CompressionMetadata& metadata) {
-    return ExceptionBuffer<T>::getMaxExceptionCount(
-        ExceptionBuffer<T>::getDataSizeForExceptions(pageSize, metadata));
-}
-
-template<std::floating_point T>
 uint64_t FloatCompression<T>::numValues(uint64_t dataSize, const CompressionMetadata& metadata) {
     return decltype(encodedFloatBitpacker)::numValues(dataSize, metadata.getChild(0));
 }
@@ -190,12 +106,9 @@ void FloatCompression<T>::setValuesFromUncompressed(const uint8_t* srcBuffer,
     //                            })));
 
     // TODO fix
-    ExceptionBuffer<T> exceptionBuffer{dstBuffer, 4 * 1024, metadata};
 
     std::vector<EncodedType> integerEncodedValues(numValues);
-    size_t successfulEncodeIdx = 0;
     for (size_t i = 0; i < numValues; ++i) {
-        const size_t posInPage = i + dstOffset;
         const size_t posInSrc = i + srcOffset;
 
         const auto floatValue = reinterpret_cast<const T*>(srcBuffer)[posInSrc];
@@ -203,28 +116,8 @@ void FloatCompression<T>::setValuesFromUncompressed(const uint8_t* srcBuffer,
             metadata.alpMetadata.fac, metadata.alpMetadata.exp);
         const double decodedValue = alp::AlpDecode<T>::decode_value(encodedValue,
             metadata.alpMetadata.fac, metadata.alpMetadata.exp);
-        if (floatValue != decodedValue) {
-            for (size_t j = 0; j < exceptionBuffer.exceptionCount(); ++j) {
-                auto currentException = exceptionBuffer.decodeException(j);
-                if (currentException.posInPage == posInPage) {
-                    currentException.value = floatValue;
-                    exceptionBuffer.removeException(j);
-                    exceptionBuffer.addException(currentException);
-                    break;
-                }
-            }
-        } else {
-            // TODO clean this up
-            for (size_t j = 0; j < exceptionBuffer.exceptionCount(); ++j) {
-                const auto currentException = exceptionBuffer.decodeException(j);
-                if (currentException.posInPage == posInPage) {
-                    exceptionBuffer.removeException(j);
-                    break;
-                }
-            }
-
-            integerEncodedValues[successfulEncodeIdx] = encodedValue;
-            ++successfulEncodeIdx;
+        if (floatValue == decodedValue) {
+            integerEncodedValues[i] = encodedValue;
         }
     }
 
