@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include "common/types/types.h"
 #include "processor/operator/mask.h"
 #include "storage/index/hash_index.h"

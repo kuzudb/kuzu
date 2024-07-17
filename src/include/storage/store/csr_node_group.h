@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 
 #include "storage/storage_utils.h"
@@ -159,7 +160,7 @@ public:
         // Return true if other is within the realm of this region.
         bool isWithin(const CSRRegion& other) const;
     };
-    static constexpr PackedCSRInfo DEFAULT_PACKED_CSR_INFO;
+    static constexpr PackedCSRInfo DEFAULT_PACKED_CSR_INFO{};
 
     CSRNodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
         std::vector<common::LogicalType> dataTypes)
