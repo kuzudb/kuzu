@@ -359,12 +359,13 @@ void ColumnChunkData::initializeScanState(ChunkState& state) const {
     }
 }
 
-void ColumnChunkData::scan(ValueVector& output, offset_t offset, length_t length, sel_t posInOutputVector) const {
+void ColumnChunkData::scan(ValueVector& output, offset_t offset, length_t length,
+    sel_t posInOutputVector) const {
     KU_ASSERT(offset + length <= numValues);
     if (nullData) {
         nullData->scan(output, offset, length, posInOutputVector);
     }
-    memcpy(output.getData() + posInOutputVector * numBytesPerValue, 
+    memcpy(output.getData() + posInOutputVector * numBytesPerValue,
         buffer.get() + offset * numBytesPerValue, numBytesPerValue * length);
 }
 
@@ -654,7 +655,8 @@ void BoolChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk
     numValues += numValuesToAppend;
 }
 
-void BoolChunkData::scan(ValueVector& output, offset_t offset, length_t length, sel_t posInOutputVector) const {
+void BoolChunkData::scan(ValueVector& output, offset_t offset, length_t length,
+    sel_t posInOutputVector) const {
     KU_ASSERT(offset + length <= numValues);
     if (nullData) {
         nullData->scan(output, offset, length, posInOutputVector);
@@ -766,7 +768,8 @@ std::unique_ptr<NullChunkData> NullChunkData::deserialize(Deserializer& deSer) {
     return std::make_unique<NullChunkData>(true, metadata);
 }
 
-void NullChunkData::scan(ValueVector& output, offset_t offset, length_t length, sel_t posInOutputVector) const {
+void NullChunkData::scan(ValueVector& output, offset_t offset, length_t length,
+    sel_t posInOutputVector) const {
     output.setNullFromBits(getNullMask().getData(), offset, posInOutputVector, length);
 }
 
@@ -810,7 +813,8 @@ void InternalIDChunkData::copyInt64VectorToBuffer(ValueVector* vector, offset_t 
     }
 }
 
-void InternalIDChunkData::scan(ValueVector& output, offset_t offset, length_t length, sel_t posInOutputVector) const {
+void InternalIDChunkData::scan(ValueVector& output, offset_t offset, length_t length,
+    sel_t posInOutputVector) const {
     KU_ASSERT(offset + length <= numValues);
     KU_ASSERT(commonTableID != INVALID_TABLE_ID);
     // TODO(Sam/Guodong): When we get rid of nullData for InternalID, remove this

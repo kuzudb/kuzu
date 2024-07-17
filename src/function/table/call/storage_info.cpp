@@ -96,7 +96,6 @@ struct StorageInfoOutputData {
     std::vector<Column*> columns;
 };
 
-
 static void resetOutputIfNecessary(StorageInfoLocalState* localState, DataChunk& outputChunk) {
     if (outputChunk.state->getSelVector().getSelSize() == DEFAULT_VECTOR_CAPACITY) {
         localState->dataChunkCollection->append(outputChunk);
@@ -105,9 +104,8 @@ static void resetOutputIfNecessary(StorageInfoLocalState* localState, DataChunk&
     }
 }
 
-static void appendStorageInfoForChunkData(StorageInfoLocalState* localState,
-    DataChunk& outputChunk, StorageInfoOutputData& outputData, ColumnChunkData& chunkData,
-    bool ignoreNull = false) {
+static void appendStorageInfoForChunkData(StorageInfoLocalState* localState, DataChunk& outputChunk,
+    StorageInfoOutputData& outputData, ColumnChunkData& chunkData, bool ignoreNull = false) {
     resetOutputIfNecessary(localState, outputChunk);
     auto vectorPos = outputChunk.state->getSelVector().getSelSize();
     auto residency = chunkData.getResidencyState();
@@ -146,15 +144,17 @@ static void appendStorageInfoForChunkData(StorageInfoLocalState* localState,
         physicalType, [&](ku_string_t) { customToString(uint32_t()); },
         [&](list_entry_t) { customToString(uint64_t()); },
         [&](internalID_t) { customToString(uint64_t()); },
-        [&]<typename T>(T) requires(std::integral<T> || std::floating_point<T>) {
+        [&]<typename T>(T)
+            requires(std::integral<T> || std::floating_point<T>)
+        {
             auto min = metadata.compMeta.min.get<T>();
             auto max = metadata.compMeta.max.get<T>();
             outputChunk.getValueVector(9)->setValue(vectorPos,
                 TypeUtils::entryToString(columnType, (uint8_t*)&min,
-            outputChunk.getValueVector(9).get()));
+                    outputChunk.getValueVector(9).get()));
             outputChunk.getValueVector(10)->setValue(vectorPos,
                 TypeUtils::entryToString(columnType, (uint8_t*)&max,
-            outputChunk.getValueVector(10).get()));
+                    outputChunk.getValueVector(10).get()));
         },
         // Types which don't support statistics.
         // types not supported by TypeUtils::visit can
@@ -222,9 +222,8 @@ static void appendStorageInfoForChunkedGroup(StorageInfoLocalState* localState,
     }
 }
 
-static void appendStorageInfoForNodeGroup(StorageInfoLocalState* localState,
-    DataChunk& outputChunk, StorageInfoOutputData& outputData,
-    NodeGroup* nodeGroup) {
+static void appendStorageInfoForNodeGroup(StorageInfoLocalState* localState, DataChunk& outputChunk,
+    StorageInfoOutputData& outputData, NodeGroup* nodeGroup) {
     auto numChunks = nodeGroup->getNumChunkedGroups();
     for (auto chunkIdx = 0ul; chunkIdx < numChunks; chunkIdx++) {
         outputData.chunkIdx = chunkIdx;
@@ -329,8 +328,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     TableFuncBindInput* input) {
     std::vector<std::string> columnNames = {"table_type", "node_group_id", "node_chunk_id",
-       "residency", "column_name", "data_type", "start_page_idx", "num_pages", "num_values",
-       "min", "max", "compression"};
+        "residency", "column_name", "data_type", "start_page_idx", "num_pages", "num_values", "min",
+        "max", "compression"};
     std::vector<LogicalType> columnTypes;
     columnTypes.emplace_back(LogicalType::STRING());
     columnTypes.emplace_back(LogicalType::INT64());
@@ -359,9 +358,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
 
 function_set StorageInfoFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
-        std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState,
-            initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+    functionSet.push_back(std::make_unique<TableFunction>(name, tableFunc, bindFunc,
+        initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
     return functionSet;
 }
 
