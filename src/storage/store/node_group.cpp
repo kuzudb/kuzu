@@ -165,9 +165,9 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
     return NodeGroupScanResult{startRow, numRowsToScan};
 }
 
-bool NodeGroup::lookup(Transaction* transaction, const TableScanState& state) {
+bool NodeGroup::lookup(const common::UniqLock& lock, Transaction* transaction,
+    const TableScanState& state) {
     idx_t numTuplesFound = 0;
-    const auto lock = chunkedGroups.lock();
     for (auto i = 0u; i < state.rowIdxVector->state->getSelVector().getSelSize(); i++) {
         auto& nodeGroupScanState = *state.nodeGroupScanState;
         const auto pos = state.rowIdxVector->state->getSelVector().getSelectedPositions()[i];
@@ -179,6 +179,11 @@ bool NodeGroup::lookup(Transaction* transaction, const TableScanState& state) {
             rowIdxInChunkedGroup, i);
     }
     return numTuplesFound == state.rowIdxVector->state->getSelVector().getSelSize();
+}
+
+bool NodeGroup::lookup(Transaction* transaction, const TableScanState& state) {
+    const auto lock = chunkedGroups.lock();
+    return lookup(lock, transaction, state);
 }
 
 void NodeGroup::update(Transaction* transaction, row_idx_t rowIdxInGroup, column_id_t columnID,
