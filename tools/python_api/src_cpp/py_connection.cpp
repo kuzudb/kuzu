@@ -628,7 +628,8 @@ Value PyConnection::transformPythonValueAs(const py::handle& val, const LogicalT
     }
 }
 
-Value PyConnection::transformPythonValueFromParameterAs(const py::handle& val, const LogicalType& type) {
+Value PyConnection::transformPythonValueFromParameterAs(const py::handle& val,
+    const LogicalType& type) {
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::LIST: {
         py::list lst = py::reinterpret_borrow<py::list>(val);
@@ -642,9 +643,10 @@ Value PyConnection::transformPythonValueFromParameterAs(const py::handle& val, c
     case LogicalTypeID::MAP: {
         auto dict = py::reinterpret_borrow<py::dict>(val);
         std::vector<std::unique_ptr<Value>> children;
-        auto keys = transformPythonValueFromParameter(py::reinterpret_borrow<py::list>(dict.begin()->second));
-        auto vals =
-            transformPythonValueFromParameter(py::reinterpret_borrow<py::list>((++dict.begin())->second));
+        auto keys = transformPythonValueFromParameter(
+            py::reinterpret_borrow<py::list>(dict.begin()->second));
+        auto vals = transformPythonValueFromParameter(
+            py::reinterpret_borrow<py::list>((++dict.begin())->second));
         auto numKeys = NestedVal::getChildrenSize(&keys);
         // LCOV_EXCL_START
         if (NestedVal::getChildrenSize(&keys) != NestedVal::getChildrenSize(&vals)) {
