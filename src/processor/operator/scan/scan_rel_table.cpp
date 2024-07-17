@@ -18,7 +18,7 @@ void ScanRelTableInfo::initScanState() {
             columns.push_back(table->getColumn(columnID, direction));
         }
     }
-    scanState = std::make_unique<RelTableScanState>(table->getTableID(), columnIDs, columns,
+    scanState = std::make_unique<RelTableScanState>(columnIDs, columns,
         table->getCSROffsetColumn(direction), table->getCSRLengthColumn(direction), direction,
         copyVector(columnPredicates));
 }

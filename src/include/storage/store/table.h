@@ -14,7 +14,6 @@ namespace storage {
 enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = 3 };
 
 struct TableScanState {
-    common::table_id_t tableID;
     std::unique_ptr<common::ValueVector> rowIdxVector;
     // Node/Rel ID vector. We assume all output vectors are within the same DataChunk as this one.
     common::ValueVector* IDVector;
@@ -32,20 +31,19 @@ struct TableScanState {
     std::vector<ColumnPredicateSet> columnPredicateSets;
     common::ZoneMapCheckResult zoneMapResult = common::ZoneMapCheckResult::ALWAYS_SCAN;
 
-    TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs)
-        : tableID{tableID}, IDVector(nullptr), columnIDs{std::move(columnIDs)} {
+    explicit TableScanState(std::vector<common::column_id_t> columnIDs)
+        : IDVector(nullptr), columnIDs{std::move(columnIDs)} {
         rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
     }
-    TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
-        std::vector<Column*> columns, std::vector<ColumnPredicateSet> columnPredicateSets)
-        : tableID{tableID}, IDVector(nullptr), columnIDs{std::move(columnIDs)},
-          columns{std::move(columns)}, columnPredicateSets{std::move(columnPredicateSets)} {
+    TableScanState(std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns,
+        std::vector<ColumnPredicateSet> columnPredicateSets)
+        : IDVector(nullptr), columnIDs{std::move(columnIDs)}, columns{std::move(columns)},
+          columnPredicateSets{std::move(columnPredicateSets)} {
         rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
     }
-    explicit TableScanState(const common::table_id_t tableID,
-        std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns)
-        : tableID{tableID}, IDVector(nullptr), columnIDs{std::move(columnIDs)},
-          columns{std::move(columns)} {
+    explicit TableScanState(std::vector<common::column_id_t> columnIDs,
+        std::vector<Column*> columns)
+        : IDVector(nullptr), columnIDs{std::move(columnIDs)}, columns{std::move(columns)} {
         rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
     }
     virtual ~TableScanState() = default;
@@ -117,14 +115,14 @@ struct TableDeleteState {
     }
 };
 
-struct TableAddColumnState {
+struct TableAddColumnState final {
     const catalog::Property& property;
     evaluator::ExpressionEvaluator& defaultEvaluator;
 
     TableAddColumnState(const catalog::Property& property,
         evaluator::ExpressionEvaluator& defaultEvaluator)
         : property{property}, defaultEvaluator{defaultEvaluator} {}
-    virtual ~TableAddColumnState() = default;
+    ~TableAddColumnState() = default;
 };
 
 class LocalTable;
@@ -161,16 +159,9 @@ public:
         TableAddColumnState& addColumnState) = 0;
     virtual void dropColumn(common::column_id_t columnID) = 0;
 
-    virtual void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) = 0;
-    // For metadata-only updates
-    virtual void prepareCommit() {
-        // DO NOTHING
-    }
-    virtual void prepareRollback(LocalTable* localTable) = 0;
+    virtual void commit(transaction::Transaction* transaction, LocalTable* localTable) = 0;
+    virtual void rollback(LocalTable* localTable) = 0;
     virtual void checkpoint(common::Serializer& ser) = 0;
-    virtual void rollbackInMemory() {
-        // DO NOTHING
-    }
 
     virtual uint64_t getEstimatedMemoryUsage() const = 0;
 
@@ -191,13 +182,11 @@ public:
 
 protected:
     virtual bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) = 0;
-    virtual void checkpointInMemory() {
-        // DO NOTHING
-    }
 
     virtual void serialize(common::Serializer& serializer) const;
 
-    std::unique_ptr<common::DataChunk> constructDataChunk(std::vector<common::LogicalType>& types);
+    std::unique_ptr<common::DataChunk> constructDataChunk(
+        const std::vector<common::LogicalType>& types);
 
 protected:
     common::TableType tableType;
@@ -207,7 +196,7 @@ protected:
     BMFileHandle* dataFH;
     MemoryManager* memoryManager;
     BufferManager* bufferManager;
-    WAL* wal;
+    ShadowFile* shadowFile;
 };
 
 } // namespace storage

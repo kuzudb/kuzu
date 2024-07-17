@@ -4,6 +4,7 @@
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "common/exception/runtime.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -29,20 +30,15 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer) {
     case WALRecordType::ALTER_TABLE_ENTRY_RECORD: {
         walRecord = AlterTableEntryRecord::deserialize(deserializer);
     } break;
-    case WALRecordType::CATALOG_RECORD: {
-        walRecord = CatalogRecord::deserialize(deserializer);
-    } break;
-    case WALRecordType::TABLE_STATISTICS_RECORD: {
-        walRecord = TableStatisticsRecord::deserialize(deserializer);
-    } break;
     case WALRecordType::COPY_TABLE_RECORD: {
         walRecord = CopyTableRecord::deserialize(deserializer);
     } break;
-    case WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD: {
-        walRecord = PageUpdateOrInsertRecord::deserialize(deserializer);
-    } break;
+    // } break;
     case WALRecordType::COMMIT_RECORD: {
         walRecord = CommitRecord::deserialize(deserializer);
+    } break;
+    case WALRecordType::CHECKPOINT_RECORD: {
+        walRecord = CheckpointRecord::deserialize(deserializer);
     } break;
     case WALRecordType::UPDATE_SEQUENCE_RECORD: {
         walRecord = UpdateSequenceRecord::deserialize(deserializer);
@@ -58,24 +54,6 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer) {
     return walRecord;
 }
 
-void PageUpdateOrInsertRecord::serialize(Serializer& serializer) const {
-    WALRecord::serialize(serializer);
-    serializer.write(dbFileID);
-    serializer.write(pageIdxInOriginalFile);
-    serializer.write(pageIdxInWAL);
-    serializer.write(isInsert);
-}
-
-std::unique_ptr<PageUpdateOrInsertRecord> PageUpdateOrInsertRecord::deserialize(
-    Deserializer& deserializer) {
-    auto retVal = std::make_unique<PageUpdateOrInsertRecord>();
-    deserializer.deserializeValue(retVal->dbFileID);
-    deserializer.deserializeValue(retVal->pageIdxInOriginalFile);
-    deserializer.deserializeValue(retVal->pageIdxInWAL);
-    deserializer.deserializeValue(retVal->isInsert);
-    return retVal;
-}
-
 void CommitRecord::serialize(Serializer& serializer) const {
     WALRecord::serialize(serializer);
     serializer.write(transactionID);
@@ -85,6 +63,14 @@ std::unique_ptr<CommitRecord> CommitRecord::deserialize(Deserializer& deserializ
     auto retVal = std::make_unique<CommitRecord>();
     deserializer.deserializeValue(retVal->transactionID);
     return retVal;
+}
+
+void CheckpointRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+}
+
+std::unique_ptr<CheckpointRecord> CheckpointRecord::deserialize(Deserializer&) {
+    return std::make_unique<CheckpointRecord>();
 }
 
 CreateCatalogEntryRecord::CreateCatalogEntryRecord() = default;
@@ -113,26 +99,6 @@ void CopyTableRecord::serialize(Serializer& serializer) const {
 std::unique_ptr<CopyTableRecord> CopyTableRecord::deserialize(Deserializer& deserializer) {
     auto retVal = std::make_unique<CopyTableRecord>();
     deserializer.deserializeValue(retVal->tableID);
-    return retVal;
-}
-
-void CatalogRecord::serialize(Serializer& serializer) const {
-    WALRecord::serialize(serializer);
-}
-
-std::unique_ptr<CatalogRecord> CatalogRecord::deserialize(Deserializer&) {
-    return std::make_unique<CatalogRecord>();
-}
-
-void TableStatisticsRecord::serialize(Serializer& serializer) const {
-    WALRecord::serialize(serializer);
-    serializer.write(tableType);
-}
-
-std::unique_ptr<TableStatisticsRecord> TableStatisticsRecord::deserialize(
-    Deserializer& deserializer) {
-    auto retVal = std::make_unique<TableStatisticsRecord>();
-    deserializer.deserializeValue(retVal->tableType);
     return retVal;
 }
 
@@ -251,20 +217,6 @@ std::unique_ptr<UpdateSequenceRecord> UpdateSequenceRecord::deserialize(
     deserializer.deserializeValue(retVal->data.usageCount);
     deserializer.deserializeValue(retVal->data.currVal);
     deserializer.deserializeValue(retVal->data.nextVal);
-    return retVal;
-}
-
-DBFileID DBFileID::newDataFileID() {
-    return DBFileID{DBFileType::DATA};
-}
-
-DBFileID DBFileID::newMetadataFileID() {
-    return DBFileID{DBFileType::METADATA};
-}
-
-DBFileID DBFileID::newPKIndexFileID(table_id_t tableID) {
-    DBFileID retVal{DBFileType::NODE_INDEX};
-    retVal.nodeIndexID = NodeIndexID(tableID);
     return retVal;
 }
 

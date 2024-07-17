@@ -16,14 +16,8 @@ std::string TransactionActionUtils::toString(TransactionAction action) {
     case TransactionAction::COMMIT: {
         return "COMMIT";
     }
-    case TransactionAction::COMMIT_SKIP_CHECKPOINTING: {
-        return "COMMIT_SKIP_CHECKPOINTING";
-    }
     case TransactionAction::ROLLBACK: {
         return "ROLLBACK";
-    }
-    case TransactionAction::ROLLBACK_SKIP_CHECKPOINTING: {
-        return "ROLLBACK_SKIP_CHECKPOINTING";
     }
     default:
         KU_UNREACHABLE;

@@ -6,7 +6,7 @@ using namespace kuzu::common;
 using namespace kuzu::storage;
 
 TEST(LocalHashIndexTests, LocalInserts) {
-    DBFileIDAndName dbFileIDAndName{DBFileID{DBFileType::NODE_INDEX}, "in-mem-overflow"};
+    DBFileIDAndName dbFileIDAndName{DBFileID{}, "in-mem-overflow"};
     auto overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName);
     PageCursor dummyCursor{0, 0};
     auto overflowFileHandle = std::make_unique<OverflowFileHandle>(*overflowFile, dummyCursor);
@@ -43,7 +43,7 @@ std::string gen_random(const int len) {
 }
 
 TEST(LocalHashIndexTests, LocalStringInserts) {
-    DBFileIDAndName dbFileIDAndName{DBFileID{DBFileType::NODE_INDEX}, "in-mem-overflow"};
+    DBFileIDAndName dbFileIDAndName{DBFileID{}, "in-mem-overflow"};
     auto overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName);
     PageCursor dummyCursor{INVALID_PAGE_IDX, 0};
     auto overflowFileHandle = std::make_unique<OverflowFileHandle>(*overflowFile, dummyCursor);

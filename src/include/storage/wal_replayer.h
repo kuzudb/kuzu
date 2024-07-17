@@ -16,33 +16,20 @@ enum class WALReplayMode : uint8_t { COMMIT_CHECKPOINT, ROLLBACK, RECOVERY_CHECK
 
 class WALReplayer {
 public:
-    WALReplayer(main::ClientContext& clientContext, BMFileHandle& shadowFH,
-        WALReplayMode replayMode);
+    WALReplayer(main::ClientContext& clientContext, WALReplayMode replayMode);
 
     void replay();
 
 private:
-    void replayWALRecord(WALRecord& walRecord,
-        std::unordered_map<DBFileID, std::unique_ptr<common::FileInfo>>& fileCache);
-    void replayPageUpdateOrInsertRecord(const WALRecord& walRecord,
-        std::unordered_map<DBFileID, std::unique_ptr<common::FileInfo>>& fileCache);
-    void replayCatalogRecord(const WALRecord& walRecord);
-    void replayTableStatisticsRecord(const WALRecord& walRecord);
+    void replayWALRecord(WALRecord& walRecord);
     void replayCreateCatalogEntryRecord(const WALRecord& walRecord);
     void replayDropCatalogEntryRecord(const WALRecord& walRecord);
     void replayAlterTableEntryRecord(const WALRecord& walRecord);
     void replayCopyTableRecord(const WALRecord& walRecord) const;
     void replayUpdateSequenceRecord(const WALRecord& walRecord);
 
-    void checkpointOrRollbackVersionedFileHandleAndBufferManager(const WALRecord& walRecord,
-        const DBFileID& dbFileID);
-    void truncateFileIfInsertion(BMFileHandle* fileHandle,
-        const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord);
-    BMFileHandle* getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(const DBFileID& dbFileID);
-
 private:
     std::string walFilePath;
-    BMFileHandle& shadowFH;
     bool isRecovering;
     bool isCheckpoint; // if true does redo operations; if false does undo operations
     std::unique_ptr<uint8_t[]> pageBuffer;

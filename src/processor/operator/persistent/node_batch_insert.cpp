@@ -119,7 +119,7 @@ void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction) con
     const auto numTuplesToAppend = nodeLocalState->columnState->getSelVector().getSelSize();
     while (numAppendedTuples < numTuplesToAppend) {
         const auto numAppendedTuplesInNodeGroup =
-            nodeLocalState->chunkedGroup->append(&transaction::DUMMY_WRITE_TRANSACTION,
+            nodeLocalState->chunkedGroup->append(&transaction::DUMMY_TRANSACTION,
                 nodeLocalState->columnVectors, 0, numTuplesToAppend - numAppendedTuples);
         numAppendedTuples += numAppendedTuplesInNodeGroup;
         if (nodeLocalState->chunkedGroup->isFullOrOnDisk()) {
@@ -141,7 +141,7 @@ void NodeBatchInsert::clearToIndex(std::unique_ptr<ChunkedNodeGroup>& nodeGroup,
     const auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
     nodeGroup = std::make_unique<ChunkedNodeGroup>(nodeInfo->columnTypes, info->compressionEnabled,
         StorageConstants::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
-    nodeGroup->append(&transaction::DUMMY_WRITE_TRANSACTION, *oldNodeGroup, startIndexInGroup,
+    nodeGroup->append(&transaction::DUMMY_TRANSACTION, *oldNodeGroup, startIndexInGroup,
         oldNodeGroup->getNumRows() - startIndexInGroup);
 }
 
@@ -173,13 +173,13 @@ void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transa
         return;
     }
     auto numNodesAppended =
-        nodeSharedState->sharedNodeGroup->append(&transaction::DUMMY_WRITE_TRANSACTION,
-            *localNodeGroup, 0 /* offsetInNodeGroup */, localNodeGroup->getNumRows());
+        nodeSharedState->sharedNodeGroup->append(&transaction::DUMMY_TRANSACTION, *localNodeGroup,
+            0 /* offsetInNodeGroup */, localNodeGroup->getNumRows());
     while (nodeSharedState->sharedNodeGroup->isFullOrOnDisk()) {
         writeAndResetNodeGroup(transaction, nodeSharedState->sharedNodeGroup, indexBuilder);
         if (numNodesAppended < localNodeGroup->getNumRows()) {
             numNodesAppended += nodeSharedState->sharedNodeGroup->append(
-                &transaction::DUMMY_WRITE_TRANSACTION, *localNodeGroup, numNodesAppended,
+                &transaction::DUMMY_TRANSACTION, *localNodeGroup, numNodesAppended,
                 localNodeGroup->getNumRows() - numNodesAppended);
         }
     }

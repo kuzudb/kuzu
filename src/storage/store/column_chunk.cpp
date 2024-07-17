@@ -12,7 +12,7 @@ namespace storage {
 
 ColumnChunk::ColumnChunk(const LogicalType& dataType, uint64_t capacity, bool enableCompression,
     ResidencyState residencyState)
-    : dataType{dataType.copy()}, enableCompression{enableCompression} {
+    : enableCompression{enableCompression} {
     data = ColumnChunkFactory::createColumnChunkData(dataType.copy(), enableCompression, capacity,
         residencyState);
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
@@ -20,19 +20,19 @@ ColumnChunk::ColumnChunk(const LogicalType& dataType, uint64_t capacity, bool en
 
 ColumnChunk::ColumnChunk(const LogicalType& dataType, bool enableCompression,
     ColumnChunkMetadata metadata)
-    : dataType{dataType.copy()}, enableCompression{enableCompression} {
+    : enableCompression{enableCompression} {
     data = ColumnChunkFactory::createColumnChunkData(dataType.copy(), enableCompression, metadata,
         true);
 }
 
 ColumnChunk::ColumnChunk(bool enableCompression, std::unique_ptr<ColumnChunkData> data)
-    : dataType{data->getDataType().copy()}, enableCompression{enableCompression},
-      data{std::move(data)} {}
+    : enableCompression{enableCompression}, data{std::move(data)} {}
 
 void ColumnChunk::initializeScanState(ChunkState& state) const {
     data->initializeScanState(state);
 }
 
+// TODO(Guodong): Should remove `nodeID` here. We should only need to pass in a selVector.
 void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, ValueVector& nodeID,
     ValueVector& output, offset_t offsetInChunk, length_t length) const {
     // Check if there is deletions or insertions. If so, update selVector based on transaction.
@@ -41,7 +41,7 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
         data->scan(output, offsetInChunk, length);
     } break;
     case ResidencyState::ON_DISK: {
-        state.column->scan(&DUMMY_READ_TRANSACTION, state, offsetInChunk, length, &nodeID, &output);
+        state.column->scan(&DUMMY_TRANSACTION, state, offsetInChunk, length, &nodeID, &output);
     }
     }
     if (updateInfo) {
@@ -76,19 +76,21 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
 
 template<ResidencyState SCAN_RESIDENCY_STATE>
 void ColumnChunk::scanCommitted(Transaction* transaction, ChunkState& chunkState,
-    ColumnChunk& output) const {
-    auto numValuesBeforeScan = output.getNumValues();
-    auto residencyState = getResidencyState();
-    switch (residencyState) {
+    ColumnChunk& output, row_idx_t startRow, row_idx_t numRows) const {
+    if (numRows == INVALID_ROW_IDX) {
+        numRows = getNumValues();
+    }
+    const auto numValuesBeforeScan = output.getNumValues();
+    switch (const auto residencyState = getResidencyState()) {
     case ResidencyState::ON_DISK: {
         if (SCAN_RESIDENCY_STATE == residencyState) {
-            chunkState.column->scan(transaction, chunkState, &output.getData());
+            chunkState.column->scan(transaction, chunkState, &output.getData(), startRow, numRows);
             scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan);
         }
     } break;
     case ResidencyState::IN_MEMORY: {
         if (SCAN_RESIDENCY_STATE == residencyState) {
-            output.getData().append(data.get(), 0, data->getNumValues());
+            output.getData().append(data.get(), startRow, numRows);
             scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan);
         }
     } break;
@@ -99,9 +101,14 @@ void ColumnChunk::scanCommitted(Transaction* transaction, ChunkState& chunkState
 }
 
 template void ColumnChunk::scanCommitted<ResidencyState::ON_DISK>(Transaction* transaction,
-    ChunkState& chunkState, ColumnChunk& output) const;
+    ChunkState& chunkState, ColumnChunk& output, row_idx_t startRow, row_idx_t numRows) const;
 template void ColumnChunk::scanCommitted<ResidencyState::IN_MEMORY>(Transaction* transaction,
-    ChunkState& chunkState, ColumnChunk& output) const;
+    ChunkState& chunkState, ColumnChunk& output, row_idx_t startRow, row_idx_t numRows) const;
+
+bool ColumnChunk::hasUpdates(const Transaction* transaction, row_idx_t startRow,
+    length_t numRows) const {
+    return updateInfo && updateInfo->hasUpdates(transaction, startRow, numRows);
+}
 
 void ColumnChunk::scanCommittedUpdates(Transaction* transaction, ColumnChunkData& output,
     offset_t startOffsetInOutput) const {
@@ -162,15 +169,49 @@ void ColumnChunk::update(Transaction* transaction, offset_t offsetInChunk,
 }
 
 void ColumnChunk::serialize(Serializer& serializer) const {
+    serializer.writeDebuggingInfo("enable_compression");
     serializer.write<bool>(enableCompression);
     data->serialize(serializer);
 }
 
 std::unique_ptr<ColumnChunk> ColumnChunk::deserialize(Deserializer& deSer) {
+    std::string key;
     bool enableCompression;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "enable_compression");
     deSer.deserializeValue<bool>(enableCompression);
     auto data = ColumnChunkData::deserialize(deSer);
     return std::make_unique<ColumnChunk>(enableCompression, std::move(data));
+}
+
+row_idx_t ColumnChunk::getNumUpdatedRows(const Transaction* transaction) const {
+    return updateInfo ? updateInfo->getNumUpdatedRows(transaction) : 0;
+}
+
+std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ColumnChunk::scanUpdates(
+    Transaction* transaction) const {
+    auto numUpdatedRows = getNumUpdatedRows(transaction);
+    // TODO(Guodong): Actually for row idx in a column chunk, UINT32 should be enough.
+    auto updatedRows = std::make_unique<ColumnChunk>(LogicalType::UINT64(), numUpdatedRows, false,
+        ResidencyState::IN_MEMORY);
+    auto updatedData = std::make_unique<ColumnChunk>(getDataType(), numUpdatedRows, false,
+        ResidencyState::IN_MEMORY);
+    const auto numUpdateVectors = updateInfo->getNumVectors();
+    row_idx_t numAppendedRows = 0;
+    for (auto vectorIdx = 0u; vectorIdx < numUpdateVectors; vectorIdx++) {
+        const auto vectorInfo = updateInfo->getVectorInfo(transaction, vectorIdx);
+        if (!vectorInfo) {
+            continue;
+        }
+        const row_idx_t startRowIdx = vectorIdx * DEFAULT_VECTOR_CAPACITY;
+        for (auto rowIdx = 0u; rowIdx < vectorInfo->numRowsUpdated; rowIdx++) {
+            updatedRows->getData().setValue<row_idx_t>(
+                vectorInfo->rowsInVector[rowIdx] + startRowIdx, numAppendedRows++);
+        }
+        updatedData->getData().append(vectorInfo->data.get(), 0, vectorInfo->numRowsUpdated);
+        KU_ASSERT(updatedData->getData().getNumValues() == updatedRows->getData().getNumValues());
+    }
+    return {std::move(updatedRows), std::move(updatedData)};
 }
 
 } // namespace storage

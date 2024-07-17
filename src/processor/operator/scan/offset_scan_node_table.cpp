@@ -6,7 +6,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void OffsetScanNodeTable::init(common::nodeID_t nodeID) {
+void OffsetScanNodeTable::init(nodeID_t nodeID) {
     IDVector->setValue<nodeID_t>(0, nodeID);
     executed = false;
 }
@@ -14,8 +14,7 @@ void OffsetScanNodeTable::init(common::nodeID_t nodeID) {
 void OffsetScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
     for (auto& [_, nodeInfo] : tableIDToNodeInfo) {
-        nodeInfo.localScanState =
-            std::make_unique<NodeTableScanState>(nodeInfo.table->getTableID(), nodeInfo.columnIDs);
+        nodeInfo.initScanState(nullptr);
         initVectors(*nodeInfo.localScanState, *resultSet);
     }
 }

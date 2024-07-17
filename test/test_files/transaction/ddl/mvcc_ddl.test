@@ -36,7 +36,7 @@ Cannot start a new write transaction in the system. Only one write transaction a
 -CREATE_CONNECTION conn2
 -STATEMENT [conn2] BEGIN TRANSACTION;
 ---- ok
--STATEMENT [conn2] COMMIT_SKIP_CHECKPOINT;
+-STATEMENT [conn2] COMMIT;
 ---- ok
 
 
@@ -268,7 +268,7 @@ Catalog exception: t does not exist in catalog.
 ---- 2
 0|a|INT32|True
 1|b|INT32|False
--STATEMENT COMMIT_SKIP_CHECKPOINT;
+-STATEMENT COMMIT;
 ---- ok
 -STATEMENT [conn2] COMMIT;
 ---- ok

@@ -53,8 +53,14 @@ public:
     }
     void clearVectorInfo(common::idx_t vectorIdx) { vectorsInfo[vectorIdx] = nullptr; }
 
+    common::idx_t getNumVectors() const { return vectorsInfo.size(); }
     VectorUpdateInfo* getVectorInfo(const transaction::Transaction* transaction,
         common::idx_t idx) const;
+
+    common::row_idx_t getNumUpdatedRows(const transaction::Transaction* transaction) const;
+
+    bool hasUpdates(const transaction::Transaction* transaction, common::row_idx_t startRow,
+        common::length_t numRows) const;
 
 private:
     VectorUpdateInfo& getOrCreateVectorInfo(const transaction::Transaction* transaction,

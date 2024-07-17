@@ -6,7 +6,6 @@
 #include "main/client_context.h"
 #include "main/db_config.h"
 #include "storage/storage_manager.h"
-#include "storage/wal_replayer.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -34,8 +33,7 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
     return transaction;
 }
 
-// TODO(Guodong): Remove second param `bool skipCheckPointing`.
-void TransactionManager::commit(main::ClientContext& clientContext, bool) {
+void TransactionManager::commit(main::ClientContext& clientContext) {
     lock_t lck{mtxForSerializingPublicFunctionCalls};
     clientContext.cleanUP();
     const auto transaction = clientContext.getTx();
@@ -46,7 +44,6 @@ void TransactionManager::commit(main::ClientContext& clientContext, bool) {
     lastTimestamp++;
     transaction->commitTS = lastTimestamp;
     transaction->commit(&wal);
-    clientContext.getStorageManager()->prepareCommit(transaction, clientContext.getVFSUnsafe());
     wal.flushAllPages();
     clearActiveWriteTransactionIfWriteTransactionNoLock(transaction);
     if (clientContext.getDBConfig()->autoCheckpoint && canAutoCheckpoint(clientContext)) {
@@ -57,26 +54,15 @@ void TransactionManager::commit(main::ClientContext& clientContext, bool) {
 // Note: We take in additional `transaction` here is due to that `transactionContext` might be
 // destructed when a transaction throws exception, while we need to rollback the active transaction
 // still.
-void TransactionManager::rollback(main::ClientContext& clientContext, Transaction* transaction,
-    bool skipCheckPointing) {
+void TransactionManager::rollback(main::ClientContext& clientContext, Transaction* transaction) {
     lock_t lck{mtxForSerializingPublicFunctionCalls};
     clientContext.cleanUP();
     if (transaction->isReadOnly()) {
         activeReadOnlyTransactionIDs.erase(transaction->getID());
         return;
     }
-    clientContext.getStorageManager()->prepareRollback();
     transaction->rollback();
     clearActiveWriteTransactionIfWriteTransactionNoLock(transaction);
-    wal.flushAllPages();
-    if (!skipCheckPointing) {
-        const auto walReplayer = std::make_unique<WALReplayer>(clientContext, wal.getShadowingFH(),
-            WALReplayMode::ROLLBACK);
-        walReplayer->replay();
-        // We next perform an in-memory rolling back of node/relTables.
-        clientContext.getStorageManager()->rollbackInMemory();
-        wal.clearWAL();
-    }
 }
 
 void TransactionManager::checkpoint(main::ClientContext& clientContext) {
@@ -129,24 +115,30 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     // query stop working on the tasks of the query and these tasks are removed from the
     // query.
     stopNewTransactionsAndWaitUntilAllTransactionsLeave();
-    clientContext.getCatalog()->checkpoint(clientContext.getDatabasePath(), &wal,
+    // Checkpoint catalog, which serializes a snapshot of the catalog to disk.
+    clientContext.getCatalog()->checkpoint(clientContext.getDatabasePath(),
         clientContext.getVFSUnsafe());
-    // We next perform an in-memory checkpointing of node/relTables.
+    // Checkpoint node/relTables, which writes the updated/newly-inserted pages and metadata to
+    // disk.
     clientContext.getStorageManager()->checkpoint(clientContext);
-    wal.flushAllPages();
-    // Replay the WAL to commit page updates/inserts, and table statistics.
-    const auto walReplayer = std::make_unique<WALReplayer>(clientContext, wal.getShadowingFH(),
-        WALReplayMode::COMMIT_CHECKPOINT);
-    walReplayer->replay();
-    // TODO(Guodong): This is a temp hack to test rewriting existing pages in data file.
-    // Should move this away.
-    // The hack is to get around that flushBuffer will always directly write to the file.
-    clientContext.getMemoryManager()->getBufferManager()->removeFilePagesFromFrames(
-        *clientContext.getStorageManager()->getDataFH());
+    // Log the checkpoint to the WAL and flush WAL. This indicates that all shadow pages and files(
+    // snapshots of catalog and metadata) have been written to disk. The part is not done is replace
+    // them with the original pages or catalog and metadata files.
+    // If the system crashes before this point, the WAL can still be used to recover the system to a
+    // state where the checkpoint can be redo.
+    wal.logAndFlushCheckpoint();
+    // Replace the original pages and catalog and metadata files with the updated/newly-created
+    // ones.
+    StorageUtils::overwriteWALVersionFiles(clientContext.getDatabasePath(),
+        clientContext.getVFSUnsafe());
+    clientContext.getStorageManager()->getShadowFile().replayShadowPageRecords(clientContext);
+    // Clear the wal, and also shadowing files.
+    wal.clearWAL();
+    clientContext.getStorageManager()->getShadowFile().clearAll(clientContext);
+    StorageUtils::removeWALVersionFiles(clientContext.getDatabasePath(),
+        clientContext.getVFSUnsafe());
     // Resume receiving new transactions.
     allowReceivingNewTransactions();
-    // Clear the wal.
-    wal.clearWAL();
 }
 
 void TransactionManager::clearActiveWriteTransactionIfWriteTransactionNoLock(
