@@ -22,7 +22,95 @@
 8
 -END_CONCURRENT_EXECUTION
 
--CASE ConcurrentMultiWriteCreate
+-CASE ConcurrentSingleWriteAlter
+-CREATE_CONNECTION conn2
+-BEGIN_CONCURRENT_EXECUTION
+-STATEMENT ALTER TABLE person ADD propA INT64;
+---- ok
+-STATEMENT [conn2] MATCH (:person) return count(*);
+---- ok
+-END_CONCURRENT_EXECUTION
+-STATEMENT CALL table_info('person') return *;
+---- 17
+0|ID|INT64|True
+1|fName|STRING|False
+2|gender|INT64|False
+3|isStudent|BOOL|False
+4|isWorker|BOOL|False
+5|age|INT64|False
+6|eyeSight|DOUBLE|False
+7|birthdate|DATE|False
+8|registerTime|TIMESTAMP|False
+9|lastJobDuration|INTERVAL|False
+10|workedHours|INT64[]|False
+11|usedNames|STRING[]|False
+12|courseScoresPerTerm|INT64[][]|False
+13|grades|INT64[4]|False
+14|height|FLOAT|False
+15|u|UUID|False
+16|propA|INT64|False
+
+-CASE ConcurrentSingleWriteCreate
+-CREATE_CONNECTION conn2
+-BEGIN_CONCURRENT_EXECUTION
+-STATEMENT CREATE (:person {ID: 11, fName: 'Ivan'});
+---- ok
+-STATEMENT [conn2] MATCH (:person) return count(*);
+---- ok
+-END_CONCURRENT_EXECUTION
+-STATEMENT MATCH (p:person) return p.ID, p.fName;
+---- 9
+0|Alice
+2|Bob
+3|Carol
+5|Dan
+7|Elizabeth
+8|Farooq
+9|Greg
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+11|Ivan
+
+-CASE ConcurrentSingleWriteUpdate
+-CREATE_CONNECTION conn2
+-BEGIN_CONCURRENT_EXECUTION
+-STATEMENT MATCH (p:person) WHERE p.ID=0 SET p.fName='Apple';
+---- ok
+-STATEMENT [conn2] MATCH (:person) return count(*);
+---- ok
+-END_CONCURRENT_EXECUTION
+-STATEMENT MATCH (p:person) return p.ID, p.fName;
+---- 8
+0|Apple
+2|Bob
+3|Carol
+5|Dan
+7|Elizabeth
+8|Farooq
+9|Greg
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-CASE ConcurrentSingleWriteDelete
+-STATEMENT CREATE (:person {ID: 11, fName: 'Ivan'});
+---- ok
+-CREATE_CONNECTION conn2
+-BEGIN_CONCURRENT_EXECUTION
+-STATEMENT MATCH (p:person) WHERE p.ID=11 DELETE p;
+---- ok
+-STATEMENT [conn2] MATCH (:person) return count(*);
+---- ok
+-END_CONCURRENT_EXECUTION
+-STATEMENT MATCH (p:person) return p.ID, p.fName;
+---- 8
+0|Alice
+2|Bob
+3|Carol
+5|Dan
+7|Elizabeth
+8|Farooq
+9|Greg
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-CASE ConcurrentMultiWriteCreateTable
 -SKIP
 -STATEMENT CALL ENABLE_MULTI_WRITES=true;
 ---- ok
@@ -39,8 +127,6 @@
 -STATEMENT [conn4] CREATE NODE TABLE d(id INT, PRIMARY KEY(id));
 ---- ok
 -END_CONCURRENT_EXECUTION
--STATEMENT CALL show_tables() return *;
----- 16
 
 -CASE ConcurrentMultiWriteAlter
 -SKIP
