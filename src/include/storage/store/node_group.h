@@ -134,6 +134,9 @@ public:
     void initializeScanState(transaction::Transaction* transaction, const common::UniqLock& lock,
         TableScanState& state);
     virtual NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state);
+
+    bool lookup(const common::UniqLock& lock, transaction::Transaction* transaction,
+        const TableScanState& state);
     bool lookup(transaction::Transaction* transaction, const TableScanState& state);
 
     void update(transaction::Transaction* transaction, common::row_idx_t rowIdxInGroup,
