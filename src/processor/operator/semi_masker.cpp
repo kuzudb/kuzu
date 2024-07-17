@@ -34,6 +34,9 @@ bool SingleTableSemiMasker::getNextTuplesInternal(ExecutionContext* context) {
     for (auto i = 0u; i < selVector.getSelSize(); i++) {
         auto pos = selVector[i];
         auto nodeID = keyVector->getValue<nodeID_t>(pos);
+        if (nodeID.offset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) [[unlikely]] {
+            continue;
+        }
         for (auto& [mask, maskerIdx] : info->getSingleTableMasks()) {
             mask->incrementMaskValue(nodeID.offset, maskerIdx);
         }
