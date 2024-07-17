@@ -7,7 +7,14 @@ namespace processor {
 
 std::string MergePrintInfo::toString() const {
     std::string result = "Pattern: ";
-    result += binder::ExpressionUtil::toString(pattern);
+    result += binder::ExpressionUtil::toString(pattern) ; 
+    if (!onMatch.empty()){
+        result += ", ON MATCH SET " + binder::ExpressionUtil::toString(onMatch);
+    }
+    if (!onCreate.empty()) {
+        result += ", ON CREATE SET " + binder::ExpressionUtil::toString(onCreate);
+
+    }
     return result;
 }
 

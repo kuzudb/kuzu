@@ -7,11 +7,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-std::string PathPropertyProbePrintInfo::toString() const {
-    std::string result = "Path Expressions: ";
-    result += expressions;
-    return result;
-}
 
 void PathPropertyProbe::initLocalStateInternal(ResultSet* /*resultSet_*/,
     ExecutionContext* /*context*/) {

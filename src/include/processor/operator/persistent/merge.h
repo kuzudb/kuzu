@@ -9,8 +9,12 @@ namespace processor {
 
 struct MergePrintInfo final : OPPrintInfo {
     binder::expression_vector pattern;
+    std::vector<binder::expression_pair> onCreate;
+    std::vector<binder::expression_pair> onMatch;
 
-    explicit MergePrintInfo(binder::expression_vector pattern) : pattern(std::move(pattern)) {}
+
+
+    MergePrintInfo(binder::expression_vector pattern, std::vector<binder::expression_pair> onCreate,  std::vector<binder::expression_pair> onMatch) : pattern(std::move(pattern)), onCreate(std::move(onCreate)), onMatch(std::move(onMatch)) {}
 
     std::string toString() const override;
 
@@ -19,7 +23,7 @@ struct MergePrintInfo final : OPPrintInfo {
     }
 
 private:
-    MergePrintInfo(const MergePrintInfo& other) : OPPrintInfo(other), pattern(other.pattern) {}
+    MergePrintInfo(const MergePrintInfo& other) : OPPrintInfo(other), pattern(other.pattern), onCreate(other.onCreate), onMatch(other.onMatch) {}
 };
 
 class Merge : public PhysicalOperator {
