@@ -1,4 +1,5 @@
-
+#include "common/exception/runtime.h"
+#include "common/string_utils.h"
 #include "function/export/export_function.h"
 #include "main/client_context.h"
 #include "parquet/parquet_types.h"
@@ -11,15 +12,56 @@ namespace function {
 using namespace common;
 using namespace processor;
 
-struct ExportParquetBindData final : public ExportFuncBindData {
+struct ParquetOptions {
     kuzu_parquet::format::CompressionCodec::type codec =
         kuzu_parquet::format::CompressionCodec::SNAPPY;
 
-    ExportParquetBindData(std::vector<std::string> names, std::string fileName)
-        : ExportFuncBindData{std::move(names), std::move(fileName)} {}
+    explicit ParquetOptions(std::unordered_map<std::string, common::Value> parsingOptions) {
+        for (auto& [name, value] : parsingOptions) {
+            if (name == "COMPRESSION") {
+                setCompression(value);
+            } else {
+                throw common::RuntimeException{
+                    common::stringFormat("Unrecognized parquet option: {}.", name)};
+            }
+        }
+    }
+
+    void setCompression(common::Value& value) {
+        if (value.getDataType().getLogicalTypeID() != LogicalTypeID::STRING) {
+            throw common::RuntimeException{
+                common::stringFormat("Parquet compression option expects a string value, got: {}.",
+                    value.getDataType().toString())};
+        }
+        auto strVal = common::StringUtils::getUpper(value.getValue<std::string>());
+        if (strVal == "UNCOMPRESSED") {
+            codec = kuzu_parquet::format::CompressionCodec::UNCOMPRESSED;
+        } else if (strVal == "SNAPPY") {
+            codec = kuzu_parquet::format::CompressionCodec::SNAPPY;
+        } else if (strVal == "ZSTD") {
+            codec = kuzu_parquet::format::CompressionCodec::ZSTD;
+        } else if (strVal == "GZIP") {
+            codec = kuzu_parquet::format::CompressionCodec::GZIP;
+        } else if (strVal == "LZ4_RAW") {
+            codec = kuzu_parquet::format::CompressionCodec::LZ4_RAW;
+        } else {
+            throw common::RuntimeException{common::stringFormat(
+                "Unrecognized parquet compression option: {}.", value.toString())};
+        }
+    }
+};
+
+struct ExportParquetBindData final : public ExportFuncBindData {
+    ParquetOptions parquetOptions;
+
+    ExportParquetBindData(std::vector<std::string> names, std::string fileName,
+        ParquetOptions parquetOptions)
+        : ExportFuncBindData{std::move(names), std::move(fileName)},
+          parquetOptions{std::move(parquetOptions)} {}
 
     std::unique_ptr<ExportFuncBindData> copy() const override {
-        auto bindData = std::make_unique<ExportParquetBindData>(columnNames, fileName);
+        auto bindData =
+            std::make_unique<ExportParquetBindData>(columnNames, fileName, parquetOptions);
         bindData->types = LogicalType::copy(types);
         return bindData;
     }
@@ -56,12 +98,15 @@ struct ExportParquetSharedState : public ExportFuncSharedState {
         auto& exportParquetBindData = bindData.constCast<ExportParquetBindData>();
         writer = std::make_unique<ParquetWriter>(exportParquetBindData.fileName,
             common::LogicalType::copy(exportParquetBindData.types),
-            exportParquetBindData.columnNames, exportParquetBindData.codec, &context);
+            exportParquetBindData.columnNames, exportParquetBindData.parquetOptions.codec,
+            &context);
     }
 };
 
 static std::unique_ptr<ExportFuncBindData> bindFunc(ExportFuncBindInput& bindInput) {
-    return std::make_unique<ExportParquetBindData>(bindInput.columnNames, bindInput.filePath);
+    ParquetOptions parquetOptions{bindInput.parsingOptions};
+    return std::make_unique<ExportParquetBindData>(bindInput.columnNames, bindInput.filePath,
+        std::move(parquetOptions));
 }
 
 static std::unique_ptr<ExportFuncLocalState> initLocalStateFunc(main::ClientContext& context,

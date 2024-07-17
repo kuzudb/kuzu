@@ -19,6 +19,10 @@ struct BaseScanSource {
     DELETE_COPY_AND_MOVE(BaseScanSource);
 
     template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<BaseScanSource*, TARGET*>(this);
+    }
+    template<class TARGET>
     const TARGET* constPtrCast() const {
         return common::ku_dynamic_cast<const BaseScanSource*, const TARGET*>(this);
     }

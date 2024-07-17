@@ -86,7 +86,7 @@ offset_t CSRHeaderColumns::getNumNodes(Transaction* transaction,
     const auto numCommittedNodeGroups = offset->getNumCommittedNodeGroups();
     return nodeGroupIdx >= numCommittedNodeGroups ?
                0 :
-               offset->getMetadata(nodeGroupIdx, transaction->getType()).numValues;
+               offset->getMetadata(nodeGroupIdx, transaction).numValues;
 }
 
 PackedCSRInfo::PackedCSRInfo() {
@@ -369,7 +369,7 @@ offset_t RelTableData::findCSROffsetInRegion(const PersistentState& persistentSt
 
 bool RelTableData::isNewNodeGroup(Transaction* transaction, node_group_idx_t nodeGroupIdx) const {
     if (nodeGroupIdx >= csrHeaderColumns.offset->getNumNodeGroups(transaction) ||
-        getNbrIDColumn()->getMetadata(nodeGroupIdx, transaction->getType()).numValues == 0) {
+        getNbrIDColumn()->getMetadata(nodeGroupIdx, transaction).numValues == 0) {
         return true;
     }
     return false;
@@ -960,7 +960,7 @@ void RelTableData::commitCSRHeaderChunk(Transaction* transaction, bool isNewNode
             // TODO: We're assuming dstOffsets are consecutive here. This is a bad interface.
             column->write(state, dstOffsets[0], chunk, localState.region.leftBoundary,
                 dstOffsets.size());
-            column->getMetadataDA()->update(nodeGroupIdx, state.metadata);
+            column->getMetadataDA()->update(transaction, nodeGroupIdx, state.metadata);
             return;
         }
     }

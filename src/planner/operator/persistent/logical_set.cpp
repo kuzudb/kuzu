@@ -35,10 +35,12 @@ f_group_pos_set LogicalSetProperty::getGroupsPosToFlatten(uint32_t idx) const {
     default:
         KU_UNREACHABLE;
     }
-    for (auto& groupPos : childSchema->getDependentGroupsPos(info.setItem.second)) {
+    auto analyzer = GroupDependencyAnalyzer(false, *childSchema);
+    analyzer.visit(info.setItem.second);
+    for (auto& groupPos : analyzer.getDependentGroups()) {
         result.insert(groupPos);
     }
-    return factorization::FlattenAll::getGroupsPosToFlatten(result, childSchema);
+    return FlattenAll::getGroupsPosToFlatten(result, *childSchema);
 }
 
 std::string LogicalSetProperty::getExpressionsForPrinting() const {

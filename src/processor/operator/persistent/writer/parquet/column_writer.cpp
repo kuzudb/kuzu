@@ -3,6 +3,8 @@
 #include "common/exception/runtime.h"
 #include "common/string_format.h"
 #include "function/cast/functions/numeric_limits.h"
+#include "lz4.hpp"
+#include "miniz_wrapper.hpp"
 #include "processor/operator/persistent/writer/parquet/boolean_column_writer.h"
 #include "processor/operator/persistent/writer/parquet/interval_column_writer.h"
 #include "processor/operator/persistent/writer/parquet/list_column_writer.h"
@@ -11,6 +13,7 @@
 #include "processor/operator/persistent/writer/parquet/string_column_writer.h"
 #include "processor/operator/persistent/writer/parquet/struct_column_writer.h"
 #include "snappy/snappy.h"
+#include "zstd.h"
 
 namespace kuzu {
 namespace processor {
@@ -327,6 +330,32 @@ void ColumnWriter::compressPage(common::BufferedSerializer& bufferedSerializer,
             &compressedSize);
         compressedData = compressedBuf.get();
         KU_ASSERT(compressedSize <= kuzu_snappy::MaxCompressedLength(bufferedSerializer.getSize()));
+    } break;
+    case CompressionCodec::ZSTD: {
+        compressedSize = kuzu_zstd::ZSTD_compressBound(bufferedSerializer.getSize());
+        compressedBuf = std::unique_ptr<uint8_t[]>(new uint8_t[compressedSize]);
+        compressedSize = kuzu_zstd::ZSTD_compress((void*)compressedBuf.get(), compressedSize,
+            reinterpret_cast<const char*>(bufferedSerializer.getBlobData()),
+            bufferedSerializer.getSize(), ZSTD_CLEVEL_DEFAULT);
+        compressedData = compressedBuf.get();
+    } break;
+    case CompressionCodec::GZIP: {
+        MiniZStream stream;
+        compressedSize = stream.MaxCompressedLength(bufferedSerializer.getSize());
+        compressedBuf = std::unique_ptr<uint8_t[]>(new uint8_t[compressedSize]);
+        stream.Compress(reinterpret_cast<const char*>(bufferedSerializer.getBlobData()),
+            bufferedSerializer.getSize(), reinterpret_cast<char*>(compressedBuf.get()),
+            &compressedSize);
+        compressedData = compressedBuf.get();
+    } break;
+    case CompressionCodec::LZ4_RAW: {
+        compressedSize = kuzu_lz4::LZ4_compressBound(bufferedSerializer.getSize());
+        compressedBuf = std::unique_ptr<uint8_t[]>(new uint8_t[compressedSize]);
+        compressedSize = kuzu_lz4::LZ4_compress_default(
+            reinterpret_cast<const char*>(bufferedSerializer.getBlobData()),
+            reinterpret_cast<char*>(compressedBuf.get()), bufferedSerializer.getSize(),
+            compressedSize);
+        compressedData = compressedBuf.get();
     } break;
     default:
         KU_UNREACHABLE;

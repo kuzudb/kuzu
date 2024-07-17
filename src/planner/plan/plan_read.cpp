@@ -179,7 +179,7 @@ void Planner::planLoadFrom(const BoundReadingClause& readingClause,
     splitPredicates(loadFrom.getInfo()->columns, loadFrom.getConjunctivePredicates(),
         predicatesToPull, predicatesToPush);
     for (auto& plan : plans) {
-        auto op = getScanFile(loadFrom.getInfo());
+        auto op = getScanSource(*loadFrom.getInfo());
         planReadOp(std::move(op), predicatesToPush, *plan);
         if (!predicatesToPull.empty()) {
             appendFilters(predicatesToPull, *plan);

@@ -2,6 +2,7 @@
 
 #include "binder/expression/case_expression.h"
 #include "binder/expression/function_expression.h"
+#include "binder/expression/lambda_expression.h"
 #include "binder/expression/node_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
@@ -81,6 +82,10 @@ void ExpressionVisitor::visitChildren(const Expression& expr) {
     switch (expr.expressionType) {
     case ExpressionType::CASE_ELSE: {
         visitCaseExprChildren(expr);
+    } break;
+    case ExpressionType::LAMBDA: {
+        auto& lambda = expr.constCast<LambdaExpression>();
+        visit(lambda.getFunctionExpr());
     } break;
     default: {
         for (auto& child : expr.getChildren()) {

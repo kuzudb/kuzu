@@ -20,4 +20,15 @@ py::handle PythonCachedItem::operator()() {
     return object;
 }
 
+py::handle NumpyMaCachedItem::operator()() {
+    // TODO: implement compatibility with numpy 2.0.0
+    auto obj = numpy();
+    if (py::cast<std::string>(obj.attr("__version__"))[0] >= '2') {
+        throw common::RuntimeException(
+            "Kuzu cannot currently support numpy versions at or above 2.0.0\n"
+            "Try 1.26.x");
+    }
+    return PythonCachedItem::operator()();
+}
+
 } // namespace kuzu

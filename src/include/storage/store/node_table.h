@@ -128,13 +128,13 @@ public:
     common::node_group_idx_t getNumNodeGroups(transaction::Transaction* transaction) const {
         return tableData->getNumNodeGroups(transaction);
     }
-    common::offset_t getNumTuplesInNodeGroup(const transaction::Transaction* transaction,
+    common::offset_t getNumTuplesInNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx) const {
         return tableData->getNumTuplesInNodeGroup(transaction, nodeGroupIdx);
     }
 
 private:
-    void insertPK(const common::ValueVector& nodeIDVector,
+    void insertPK(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,
         const common::ValueVector& pkVector) const;
     bool scanCommitted(transaction::Transaction* transaction, NodeTableScanState& scanState);
     bool scanUnCommitted(NodeTableScanState& scanState);

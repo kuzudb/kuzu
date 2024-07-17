@@ -144,7 +144,7 @@ void StructColumn::prepareCommitForExistingChunk(Transaction* transaction, Chunk
         getNullChunkCollection(localUpdateChunk), updateInfo, deleteInfo);
     if (state.metadata.numValues != state.nullState->metadata.numValues) {
         state.metadata.numValues = state.nullState->metadata.numValues;
-        metadataDA->update(state.nodeGroupIdx, state.metadata);
+        metadataDA->update(transaction, state.nodeGroupIdx, state.metadata);
     }
     // Update each child column separately
     for (auto i = 0u; i < childColumns.size(); i++) {
@@ -163,7 +163,7 @@ void StructColumn::prepareCommitForExistingChunk(Transaction* transaction, Chunk
         chunk->getNullChunk(), srcOffset);
     if (state.metadata.numValues != state.nullState->metadata.numValues) {
         state.metadata.numValues = state.nullState->metadata.numValues;
-        metadataDA->update(state.nodeGroupIdx, state.metadata);
+        metadataDA->update(transaction, state.nodeGroupIdx, state.metadata);
     }
     // Update each child column separately
     for (auto i = 0u; i < childColumns.size(); i++) {

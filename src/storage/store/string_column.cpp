@@ -309,7 +309,7 @@ void StringColumn::prepareCommitForExistingChunk(Transaction* transaction, Chunk
     // Explicitly applying the commit for the child column could overwrite the column with the
     // incorrect values. For example, the indices are set by the main column and not the child.
     // Thus, we call prepareCommitForExistingChunk() on the main column only
-    indexColumn->metadataDA->update(indexState.nodeGroupIdx, indexState.metadata);
+    indexColumn->metadataDA->update(transaction, indexState.nodeGroupIdx, indexState.metadata);
 }
 
 void StringColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkState& state,
@@ -318,7 +318,7 @@ void StringColumn::prepareCommitForExistingChunk(Transaction* transaction, Chunk
     Column::prepareCommitForExistingChunk(transaction, state, dstOffsets, chunk, srcOffset);
 
     const auto& indexState = getChildState(state, ChildStateIndex::INDEX);
-    indexColumn->metadataDA->update(indexState.nodeGroupIdx, indexState.metadata);
+    indexColumn->metadataDA->update(transaction, indexState.nodeGroupIdx, indexState.metadata);
 }
 
 void StringColumn::updateStateMetadataNumValues(ChunkState& state, size_t numValues) {

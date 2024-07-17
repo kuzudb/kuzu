@@ -127,7 +127,7 @@
 #  endif
 #endif
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 static void* XXH_malloc(size_t s) { return malloc(s); }
 static void  XXH_free  (void* p)  { free(p); }
 static void* XXH_memcpy(void* dest, const void* src, size_t size) { return memcpy(dest,src,size); }

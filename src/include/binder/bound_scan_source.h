@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/bound_statement.h"
-#include "binder/copy/bound_file_scan_info.h"
+#include "binder/copy/bound_table_scan_info.h"
 #include "common/enums/scan_source_type.h"
 
 namespace kuzu {
@@ -16,6 +16,11 @@ struct BoundBaseScanSource {
     virtual expression_vector getColumns() = 0;
 
     virtual std::unique_ptr<BoundBaseScanSource> copy() const = 0;
+
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const BoundBaseScanSource&, const TARGET&>(*this);
+    }
 
 protected:
     BoundBaseScanSource(const BoundBaseScanSource& other) : type{other.type} {}
@@ -32,19 +37,18 @@ struct BoundEmptyScanSource : public BoundBaseScanSource {
     }
 };
 
-struct BoundFileScanSource : public BoundBaseScanSource {
-    BoundFileScanInfo fileScanInfo;
+struct BoundTableScanSource : public BoundBaseScanSource {
+    BoundTableScanSourceInfo info;
 
-    explicit BoundFileScanSource(BoundFileScanInfo fileScanInfo)
-        : BoundBaseScanSource{common::ScanSourceType::FILE}, fileScanInfo{std::move(fileScanInfo)} {
-    }
-    BoundFileScanSource(const BoundFileScanSource& other)
-        : BoundBaseScanSource{other}, fileScanInfo{other.fileScanInfo.copy()} {}
+    explicit BoundTableScanSource(common::ScanSourceType type, BoundTableScanSourceInfo info)
+        : BoundBaseScanSource{type}, info{std::move(info)} {}
+    BoundTableScanSource(const BoundTableScanSource& other)
+        : BoundBaseScanSource{other}, info{other.info.copy()} {}
 
-    expression_vector getColumns() override { return fileScanInfo.columns; }
+    expression_vector getColumns() override { return info.columns; }
 
     std::unique_ptr<BoundBaseScanSource> copy() const override {
-        return std::make_unique<BoundFileScanSource>(*this);
+        return std::make_unique<BoundTableScanSource>(*this);
     }
 };
 

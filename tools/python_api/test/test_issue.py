@@ -99,15 +99,14 @@ def test_empty_map(conn_db_readwrite: ConnDB) -> None:
             RETURN n.id, n.prop1, n.prop2
         """,
         {
-            "prop1": {},
-            "prop2": {"a": []},
+            "prop1": {"key": [], "value": []},
+            "prop2": {"key": ["a"], "value": [[]]},
         },
     )
     assert result.has_next()
     assert result.get_next() == [0, {}, {"a": []}]
     assert not result.has_next()
     result.close()
-
 
 # TODO(Maxwell): check if we should change getCastCost() for the following test
 # def test_issue_3248(conn_db_readwrite: ConnDB) -> None:

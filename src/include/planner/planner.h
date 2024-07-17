@@ -11,7 +11,7 @@
 
 namespace kuzu {
 namespace binder {
-struct BoundFileScanInfo;
+struct BoundTableScanSourceInfo;
 struct BoundCopyFromInfo;
 struct BoundInsertInfo;
 struct BoundSetPropertyInfo;
@@ -301,15 +301,15 @@ public:
     void appendFilter(const std::shared_ptr<binder::Expression>& predicate, LogicalPlan& plan);
 
     // Append scan file.
-    void appendScanFile(const binder::BoundFileScanInfo* info, LogicalPlan& plan);
+    void appendScanSource(const binder::BoundTableScanSourceInfo& info, LogicalPlan& plan);
     // Append scan file. Additionally, scan row offset.
-    void appendScanFile(const binder::BoundFileScanInfo* info,
+    void appendScanSource(const binder::BoundTableScanSourceInfo& info,
         std::shared_ptr<binder::Expression> offset, LogicalPlan& plan);
 
     void appendDistinct(const binder::expression_vector& keys, LogicalPlan& plan);
 
     // Get operators
-    std::shared_ptr<LogicalOperator> getScanFile(const binder::BoundFileScanInfo* info);
+    std::shared_ptr<LogicalOperator> getScanSource(const binder::BoundTableScanSourceInfo& info);
     std::shared_ptr<LogicalOperator> getTableFunctionCall(
         const binder::BoundReadingClause& readingClause);
     std::shared_ptr<LogicalOperator> getGDSCall(const binder::BoundReadingClause& readingClause);

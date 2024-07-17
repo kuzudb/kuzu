@@ -14,9 +14,9 @@ public:
     virtual ~PythonCachedItem() = default;
 
     bool isLoaded() const { return loaded; }
-    py::handle operator()();
+    virtual py::handle operator()();
 
-private:
+protected:
     std::string name;
     PythonCachedItem* parent;
     bool loaded;

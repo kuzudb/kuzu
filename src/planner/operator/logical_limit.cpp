@@ -18,8 +18,8 @@ std::string LogicalLimit::getExpressionsForPrinting() const {
 
 f_group_pos_set LogicalLimit::getGroupsPosToFlatten() {
     auto childSchema = children[0]->getSchema();
-    return factorization::FlattenAllButOne::getGroupsPosToFlatten(
-        childSchema->getGroupsPosInScope(), childSchema);
+    return FlattenAllButOne::getGroupsPosToFlatten(childSchema->getGroupsPosInScope(),
+        *childSchema);
 }
 
 f_group_pos LogicalLimit::getGroupPosToSelect() const {

@@ -13,7 +13,7 @@
 
 #include "zstd/compress/zstd_compress_internal.h"
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 
 U32 ZSTD_insertAndFindFirstIndex(ZSTD_matchState_t* ms, const BYTE* ip);
 

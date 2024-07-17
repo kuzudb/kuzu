@@ -46,6 +46,7 @@ fn link_libraries() {
         println!("cargo:rustc-link-lib=static=mbedtls");
         println!("cargo:rustc-link-lib=static=brotlidec");
         println!("cargo:rustc-link-lib=static=brotlicommon");
+        println!("cargo:rustc-link-lib=static=lz4");
     }
 }
 
@@ -73,6 +74,9 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
         build.define("CMAKE_MSVC_RUNTIME_LIBRARY", "MultiThreadedDLL");
         build.define("CMAKE_POLICY_DEFAULT_CMP0091", "NEW");
     }
+    if let Ok(jobs) = std::env::var("NUM_JOBS") {
+        std::env::set_var("CMAKE_BUILD_PARALLEL_LEVEL", jobs);
+    }
     let build_dir = build.build();
 
     let kuzu_lib_path = build_dir.join("build").join("src");
@@ -90,6 +94,7 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
         "zstd",
         "miniz",
         "mbedtls",
+        "lz4",
     ] {
         let lib_path = build_dir
             .join("build")

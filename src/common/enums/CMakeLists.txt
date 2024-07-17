@@ -8,7 +8,7 @@ add_library(kuzu_common_enums
         transaction_action.cpp
         drop_type.cpp
         conflict_action.cpp)
-
+        
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_common_enums>
         PARENT_SCOPE)

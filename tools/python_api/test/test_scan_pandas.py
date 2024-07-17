@@ -377,3 +377,23 @@ def test_scan_long_utf8_string(tmp_path: Path) -> None:
     df = pd.DataFrame(data)
     result = conn.execute("LOAD FROM df WHERE name = '非常长的中文' RETURN count(*);")
     assert result.get_next() == [1]
+
+def test_copy_from_pandas_object(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    df = pd.DataFrame({"name": ["Adam", "Karissa", "Zhang", "Noura"], "age": [30, 40, 50, 25]})
+    conn.execute("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY (name));")
+    conn.execute("COPY Person FROM df;")
+    result = conn.execute("match (p:Person) return p.*")
+    assert result.get_next() == ["Adam", 30]
+    assert result.get_next() == ["Karissa", 40]
+    assert result.get_next() == ["Zhang", 50]
+    assert result.get_next() == ["Noura", 25]
+    assert result.has_next() is False
+    df = pd.DataFrame({"f": ["Adam", "Karissa"], "t": ["Zhang", "Zhang"]})
+    conn.execute("CREATE REL TABLE Knows(FROM Person TO Person);")
+    conn.execute("COPY Knows FROM df")
+    result = conn.execute("match (p:Person)-[]->(:Person {name: 'Zhang'}) return p.*")
+    assert result.get_next() == ["Adam", 30]
+    assert result.get_next() == ["Karissa", 40]
+    assert result.has_next() is False

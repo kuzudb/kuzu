@@ -82,10 +82,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     auto boundSource = bindScanSource(copyStatement.getSource(),
         copyStatement.getParsingOptionsRef(), expectedColumnNames, expectedColumnTypes);
     if (boundSource->type == ScanSourceType::FILE) {
-        auto fileSource =
-            ku_dynamic_cast<BoundBaseScanSource*, BoundFileScanSource*>(boundSource.get());
-        auto bindData = ku_dynamic_cast<TableFuncBindData*, ScanBindData*>(
-            fileSource->fileScanInfo.bindData.get());
+        auto& source = boundSource->constCast<BoundTableScanSource>();
+        auto bindData = source.info.bindData->constPtrCast<ScanBindData>();
         if (copyStatement.byColumn() && bindData->config.fileType != FileType::NPY) {
             throw BinderException(stringFormat("Copy by column with {} file type is not supported.",
                 FileTypeUtils::toString(bindData->config.fileType)));
@@ -226,10 +224,11 @@ void bindExpectedRelColumns(RelTableCatalogEntry* relTableEntry,
     std::vector<LogicalType>& columnTypes, main::ClientContext* context) {
     KU_ASSERT(columnNames.empty() && columnTypes.empty());
     auto catalog = context->getCatalog();
-    auto srcEntry = catalog->getTableCatalogEntry(context->getTx(), relTableEntry->getSrcTableID());
-    auto srcTable = ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(srcEntry);
-    auto dstEntry = catalog->getTableCatalogEntry(context->getTx(), relTableEntry->getDstTableID());
-    auto dstTable = ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(dstEntry);
+    auto transaction = context->getTx();
+    auto srcTable = catalog->getTableCatalogEntry(transaction, relTableEntry->getSrcTableID())
+                        ->ptrCast<NodeTableCatalogEntry>();
+    auto dstTable = catalog->getTableCatalogEntry(transaction, relTableEntry->getDstTableID())
+                        ->ptrCast<NodeTableCatalogEntry>();
     columnNames.push_back("from");
     columnNames.push_back("to");
     auto srcPKColumnType = srcTable->getPrimaryKey()->getDataType().copy();

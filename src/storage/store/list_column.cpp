@@ -415,7 +415,7 @@ void ListColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkSt
             chunk->getNullChunk(), startSrcOffset);
         if (state.metadata.numValues != state.nullState->metadata.numValues) {
             state.metadata.numValues = state.nullState->metadata.numValues;
-            metadataDA->update(state.nodeGroupIdx, state.metadata);
+            metadataDA->update(transaction, state.nodeGroupIdx, state.metadata);
         }
     }
 }
