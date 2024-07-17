@@ -64,9 +64,9 @@ Runtime exception: Failed to execute query: Mismatch Type Error: Invalid type in
 ---- 6
 movies|ATTACHED|tinysnb(SQLITE)|
 organisation|ATTACHED|tinysnb(SQLITE)|
-person_copy|NODE|local(kuzu)|
 person|ATTACHED|flextype(SQLITE)|
 person|ATTACHED|tinysnb(SQLITE)|
+person_copy|NODE|local(kuzu)|
 tableOfTypes|ATTACHED|tinysnb(SQLITE)|
 -STATEMENT DETACH tinysnb;
 ---- 1
