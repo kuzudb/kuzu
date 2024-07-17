@@ -2,6 +2,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+
 #include "graph_test/base_graph_test.h"
 #include "test_runner/test_group.h"
 #include "test_runner/test_runner.h"
@@ -40,23 +41,18 @@ class EmptyDBTest : public PrivateGraphTest {
 // ConcurrentTestExecutor is not thread safe
 class ConcurrentTestExecutor {
 public:
-    ConcurrentTestExecutor(bool& connectionsPaused, main::Connection& connection, std::string databasePath):
-      connectionPaused{connectionsPaused}, connection{connection}, databasePath{databasePath} {}
+    ConcurrentTestExecutor(bool& connectionsPaused, main::Connection& connection,
+        std::string databasePath)
+        : connectionPaused{connectionsPaused}, connection{connection}, databasePath{databasePath} {}
 
-    void execute() {
-        connThread = std::thread(&ConcurrentTestExecutor::runStatements, this);
-    }
+    void execute() { connThread = std::thread(&ConcurrentTestExecutor::runStatements, this); }
     void join() {
         if (connThread.joinable()) {
             connThread.join();
         }
     }
-    void reset() {
-        statements.clear();
-    }
-    void addStatement(TestStatement* statement) {
-        statements.emplace_back(statement);
-    }
+    void reset() { statements.clear(); }
+    void addStatement(TestStatement* statement) { statements.emplace_back(statement); }
 
 private:
     void runStatements();
@@ -83,7 +79,8 @@ public:
         uint64_t checkpointWaitTimeout = common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_IN_MICROS,
         std::set<std::string> connNames = std::set<std::string>()) {
         for (const auto& connName : connNames) {
-            concurrentTests.try_emplace(connName, connectionsPaused, *connMap[connName], databasePath);
+            concurrentTests.try_emplace(connName, connectionsPaused, *connMap[connName],
+                databasePath);
         }
         for (auto& statement : statements) {
             // special for testing import and export test cases

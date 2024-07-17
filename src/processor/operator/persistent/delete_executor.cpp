@@ -1,5 +1,7 @@
 #include "processor/operator/persistent/delete_executor.h"
+
 #include <memory>
+
 #include "common/assert.h"
 #include "common/vector/value_vector.h"
 #include "storage/store/rel_table.h"
@@ -18,7 +20,8 @@ void NodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* /*context*
         relIDVector = std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
         dstNodeIDVector->setState(tempSharedState);
         relIDVector->setState(tempSharedState);
-        detachDeleteState = std::make_unique<RelTableDeleteState>(*nodeIDVector, *dstNodeIDVector, *relIDVector);
+        detachDeleteState =
+            std::make_unique<RelTableDeleteState>(*nodeIDVector, *dstNodeIDVector, *relIDVector);
     }
 }
 
