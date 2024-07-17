@@ -19,7 +19,10 @@ public:
     explicit JsonWrapper(yyjson_doc* ptr) : ptr{ptr} {}
     ~JsonWrapper();
     JsonWrapper(JsonWrapper& other) = delete;
-    JsonWrapper(JsonWrapper&& other) = default;
+    JsonWrapper(JsonWrapper&& other) {
+        ptr = other.ptr;
+        other.ptr = nullptr;
+    }
 
     yyjson_doc* ptr;
 };
@@ -30,7 +33,10 @@ public:
     explicit JsonMutWrapper(yyjson_mut_doc* ptr) : ptr{ptr} {}
     ~JsonMutWrapper();
     JsonMutWrapper(JsonMutWrapper& other) = delete;
-    JsonMutWrapper(JsonMutWrapper&& other) = default;
+    JsonMutWrapper(JsonMutWrapper&& other) {
+        ptr = other.ptr;
+        other.ptr = nullptr;
+    }
 
     yyjson_mut_doc* ptr;
 };
