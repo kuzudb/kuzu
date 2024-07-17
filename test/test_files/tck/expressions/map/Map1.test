@@ -116,31 +116,31 @@ Pontus
            RETURN nonMap.num;
 ## Outcome: an Error should be raised at compile time: InvalidArgumentType
 ---- error
-Binder exception: nonMap has data type INT64 but (NODE,REL,STRUCT) was expected.
+Binder exception: nonMap has data type INT64 but (NODE,REL,STRUCT,ANY) was expected.
 
 -STATEMENT WITH 42.45 AS nonMap
            RETURN nonMap.num;
 ## Outcome: an Error should be raised at compile time: InvalidArgumentType
 ---- error
-Binder exception: nonMap has data type DOUBLE but (NODE,REL,STRUCT) was expected.
+Binder exception: nonMap has data type DOUBLE but (NODE,REL,STRUCT,ANY) was expected.
 
 -STATEMENT WITH True AS nonMap
            RETURN nonMap.num;
 ## Outcome: an Error should be raised at compile time: InvalidArgumentType
 ---- error
-Binder exception: nonMap has data type BOOL but (NODE,REL,STRUCT) was expected.
+Binder exception: nonMap has data type BOOL but (NODE,REL,STRUCT,ANY) was expected.
 
 -STATEMENT WITH False AS nonMap
            RETURN nonMap.num;
 ## Outcome: an Error should be raised at compile time: InvalidArgumentType
 ---- error
-Binder exception: nonMap has data type BOOL but (NODE,REL,STRUCT) was expected.
+Binder exception: nonMap has data type BOOL but (NODE,REL,STRUCT,ANY) was expected.
 
 -STATEMENT WITH 'string' AS nonMap
            RETURN nonMap.num;
 ## Outcome: an Error should be raised at compile time: InvalidArgumentType
 ---- error
-Binder exception: nonMap has data type STRING but (NODE,REL,STRUCT) was expected.
+Binder exception: nonMap has data type STRING but (NODE,REL,STRUCT,ANY) was expected.
 
 -STATEMENT WITH [123, True] AS nonMap
            RETURN nonMap.num;

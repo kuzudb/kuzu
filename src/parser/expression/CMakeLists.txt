@@ -2,6 +2,7 @@ add_library(kuzu_parser_expression
         OBJECT
         parsed_case_expression.cpp
         parsed_expression.cpp
+        parsed_expression_visitor.cpp
         parsed_function_expression.cpp
         parsed_property_expression.cpp
         parsed_variable_expression.cpp)

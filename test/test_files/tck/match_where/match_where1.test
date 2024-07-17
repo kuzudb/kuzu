@@ -251,7 +251,7 @@
            WHERE r.name = 'apa'
            RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL but (NODE,REL,STRUCT) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE,REL,STRUCT,ANY) was expected.
 
 # Fail on aggregation in WHERE
 -CASE Scenario15

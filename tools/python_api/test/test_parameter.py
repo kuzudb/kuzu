@@ -11,7 +11,61 @@ if TYPE_CHECKING:
     from pathlib import Path
 import kuzu
 
+def test_struct_param_access(conn_db_readwrite: ConnDB) -> None:
+    conn, _ = conn_db_readwrite
+    batch = \
+        [{'id': '1',
+          'name': 'Christopher',
+          'age': '61',
+          'net_worth': '21561030.8',
+          'email': 'wilcox@hotmail.com',
+          'address': '588 Campbell Well Suite 335, Lawrencemouth, VI 07241',
+          'phone': '358-202-1821x630',
+          'comments': 'Stage modern card send point future serve. Hot month might pass dinner chance.\nPerformance become own spring from analysis commercial. Draw effort structure many drug first.'},
+         {'id': '2',
+          'name': 'Amanda',
+          'age': '42',
+          'net_worth': '31344480.2',
+          'email': 'cook@hotmail.com',
+          'address': '6293 Bright Centers, Chenton, MO 36829',
+          'phone': '001-972-387-3913x966',
+          'comments': 'None agent some if skill. Often onto dog wish. Listen live hair garden contain worry time. Economic or institution statement energy take sit.'
+          }]
+    conn.execute(
+        """
+        UNWIND $batch AS p
+        RETURN p.name,
+            p.age,
+            p.net_worth,
+            p.email,
+            p.address,
+            p.phone,
+            p.comments
+        """,
+        parameters={"batch": batch}
+    )
 
+def test_array_binding(conn_db_readwrite: ConnDB) -> None:
+    conn, _ = conn_db_readwrite
+    conn.execute("CREATE NODE TABLE node(id STRING, embedding DOUBLE[3], PRIMARY KEY(id))")
+    conn.execute("CREATE (d:node {id: 'test', embedding: $emb})", {"emb": [3, 5, 2]})
+    result = conn.execute(
+        """
+        MATCH (d:node)
+        RETURN d.id, array_cosine_similarity(d.embedding, $emb)
+        """, {"emb": [4.3, 5.2, 6.7]}
+    )
+    assert result.get_next() == ['test', pytest.approx(0.8922316795174099)]
+    # TODO(maxwell): fixme. The following case should be executed successfully.
+    # with pytest.raises(RuntimeError) as err:
+    #     conn.execute(
+    #         """
+    #         MATCH (d:node)
+    #         RETURN d.id, array_cosine_similarity($emb1, $emb)
+    #         """, {"emb": [4.3, 5.2, 6.7], "emb1": [2.2, 3.3, 5.5]}
+    #     )
+    # assert str(err.value) == "Binder exception: Left and right type are both ANY, which is not currently supported."
+    
 def test_bool_param(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
     result = conn.execute(
