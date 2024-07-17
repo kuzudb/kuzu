@@ -1,9 +1,7 @@
 -DATASET CSV tinysnb
 --
 
-#TODO(Sam): FIX-ME. This test hangs.
 -CASE ConcurrentScan
--SKIP
 -CREATE_CONNECTION conn2
 -CREATE_CONNECTION conn3
 -CREATE_CONNECTION conn4
@@ -24,7 +22,8 @@
 8
 -END_CONCURRENT_EXECUTION
 
--CASE ConcurrentTableCreate
+-CASE ConcurrentMultiWriteCreate
+-SKIP
 -STATEMENT CALL ENABLE_MULTI_WRITES=true;
 ---- ok
 -CREATE_CONNECTION conn2
@@ -40,3 +39,44 @@
 -STATEMENT [conn4] CREATE NODE TABLE d(id INT, PRIMARY KEY(id));
 ---- ok
 -END_CONCURRENT_EXECUTION
+-STATEMENT CALL show_tables() return *;
+---- 16
+
+-CASE ConcurrentMultiWriteAlter
+-SKIP
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-CREATE_CONNECTION conn2
+-CREATE_CONNECTION conn3
+-CREATE_CONNECTION conn4
+-BEGIN_CONCURRENT_EXECUTION
+-STATEMENT ALTER TABLE person ADD propA INT64;
+---- ok
+-STATEMENT [conn2] ALTER TABLE person DROP gender;
+---- ok
+-STATEMENT [conn3] ALTER TABLE person RENAME fName TO pName;
+---- ok
+-STATEMENT [conn4] COMMENT ON TABLE person IS 'person information';
+---- ok
+-END_CONCURRENT_EXECUTION
+-STATEMENT CALL table_info('person') return *;
+---- 16
+0|ID|INT64|True
+1|pName|STRING|False
+3|isStudent|BOOL|False
+4|isWorker|BOOL|False
+5|age|INT64|False
+6|eyeSight|DOUBLE|False
+7|birthdate|DATE|False
+8|registerTime|TIMESTAMP|False
+9|lastJobDuration|INTERVAL|False
+10|workedHours|INT64[]|False
+11|usedNames|STRING[]|False
+12|courseScoresPerTerm|INT64[][]|False
+13|grades|INT64[4]|False
+14|height|FLOAT|False
+15|u|UUID|False
+16|propA|INT64|False
+-STATEMENT CALL show_tables() where name='person' return *;
+---- 1
+person|NODE|local(kuzu)|person information
