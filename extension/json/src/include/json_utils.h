@@ -41,10 +41,7 @@ public:
     yyjson_mut_doc* ptr;
 };
 
-enum JsonScanFormat : uint8_t {
-    ARRAY = 0,
-    UNSTRUCTURED = 1
-};
+enum JsonScanFormat : uint8_t { ARRAY = 0, UNSTRUCTURED = 1 };
 
 JsonWrapper jsonify(const common::ValueVector& vec, uint64_t pos);
 // Converts an internal Kuzu Value into json
@@ -63,7 +60,8 @@ std::string jsonToString(const JsonWrapper& wrapper);
 std::string jsonToString(const yyjson_val* val);
 JsonWrapper stringToJson(const std::string& str);
 JsonWrapper stringToJsonNoError(const std::string& str);
-JsonWrapper fileToJson(main::ClientContext* context, const std::string& path, JsonScanFormat format);
+JsonWrapper fileToJson(main::ClientContext* context, const std::string& path,
+    JsonScanFormat format);
 // format can be 'unstructured' or 'array'
 
 JsonWrapper mergeJson(const JsonWrapper& A, const JsonWrapper& B);

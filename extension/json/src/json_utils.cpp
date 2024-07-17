@@ -631,7 +631,8 @@ static JsonWrapper fileToJsonUnstructuredFormatted(char* buffer, uint64_t fileSi
     return JsonWrapper(yyjson_mut_doc_imut_copy(result.ptr, nullptr));
 }
 
-JsonWrapper fileToJson(main::ClientContext* context, const std::string& path, JsonScanFormat format) {
+JsonWrapper fileToJson(main::ClientContext* context, const std::string& path,
+    JsonScanFormat format) {
 
     auto file = context->getVFSUnsafe()->openFile(path, O_RDONLY, context);
     auto fileSize = file->getFileSize();
