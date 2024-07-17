@@ -102,8 +102,8 @@ void CompressChunkTest::testCompressChunk(std::vector<T> bufferToCompress, check
     auto chunkMetadata =
         compressBuffer(bufferToCompress, alg, preScanMetadata.get(), dataFH, dataType);
 
-    auto columnReader = ColumnReaderFactory::createColumnReader(dataType.getPhysicalType(), dataFH,
-        bm, &storageManager->getWAL());
+    auto columnReader = ColumnReaderFactory::createColumnReader(dataType.getPhysicalType(),
+        DBFileID::newDataFileID(), dataFH, bm, &storageManager->getWAL());
     transaction::Transaction transaction{transaction::TransactionType::READ_ONLY};
 
     checkFunc(columnReader.get(), &transaction, chunkMetadata,

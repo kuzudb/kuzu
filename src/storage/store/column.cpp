@@ -117,7 +117,7 @@ Column::Column(std::string name, LogicalType dataType, BMFileHandle* dataFH,
       dataFH{dataFH}, bufferManager{bufferManager}, shadowFile{shadowFile},
       enableCompression{enableCompression},
       columnReader(ColumnReaderFactory::createColumnReader(this->dataType.getPhysicalType(),
-          this->dataFH, this->bufferManager, this->shadowFile)) {
+          dbFileID, this->dataFH, this->bufferManager, this->shadowFile)) {
     readToVectorFunc = getReadValuesToVectorFunc(this->dataType);
     readToPageFunc = ReadCompressedValuesFromPage(this->dataType);
     batchLookupFunc = ReadCompressedValuesFromPage(this->dataType);
@@ -348,18 +348,8 @@ void Column::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t
 
 void Column::writeValues(ColumnChunkData&, ChunkState& state, offset_t dstOffset,
     const uint8_t* data, const NullMask* nullChunkData, offset_t srcOffset, offset_t numValues) {
-    auto numValuesWritten = 0u;
-    auto cursor = getPageCursorForOffsetInGroup(dstOffset, state);
-    while (numValuesWritten < numValues) {
-        auto numValuesToWriteInPage =
-            std::min(numValues - numValuesWritten, state.numValuesPerPage - cursor.elemPosInPage);
-        updatePageWithCursor(cursor, [&](auto frame, auto offsetInPage) {
-            writeFunc(frame, offsetInPage, data, srcOffset + numValuesWritten,
-                numValuesToWriteInPage, state.metadata.compMeta, nullChunkData);
-        });
-        numValuesWritten += numValuesToWriteInPage;
-        cursor.nextPage();
-    }
+    columnReader->writeValuesToPageFromBuffer(state.metadata, state.numValuesPerPage, dstOffset,
+        data, nullChunkData, srcOffset, numValues, writeFunc);
 }
 
 // Apend to the end of the chunk.

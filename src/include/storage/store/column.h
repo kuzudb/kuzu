@@ -17,18 +17,8 @@ namespace storage {
 
 struct CompressionMetadata;
 
-using read_values_to_vector_func_t =
-    std::function<void(uint8_t* frame, PageCursor& pageCursor, common::ValueVector* resultVector,
-        uint32_t posInVector, uint64_t numValuesToRead, const CompressionMetadata& metadata)>;
-using write_values_from_vector_func_t = std::function<void(uint8_t* frame, uint16_t posInFrame,
-    common::ValueVector* vector, uint32_t posInVector, const CompressionMetadata& metadata)>;
-using write_values_func_t = std::function<void(uint8_t* frame, uint16_t posInFrame,
-    const uint8_t* data, common::offset_t dataOffset, common::offset_t numValues,
-    const CompressionMetadata& metadata, const common::NullMask*)>;
-
-using read_values_to_page_func_t =
-    std::function<void(uint8_t* frame, PageCursor& pageCursor, uint8_t* result,
-        uint32_t posInResult, uint64_t numValues, const CompressionMetadata& metadata)>;
+using read_values_to_vector_func_t = read_values_from_page_func_t<common::ValueVector*>;
+using read_values_to_page_func_t = read_values_from_page_func_t<uint8_t*>;
 // This is a special usage for the `batchLookup` interface.
 using batch_lookup_func_t = read_values_to_page_func_t;
 

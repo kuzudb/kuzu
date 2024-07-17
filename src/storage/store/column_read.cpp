@@ -18,8 +18,9 @@ bool isPageIdxValid(page_idx_t pageIdx, const ColumnChunkMetadata& metadata) {
 
 class DefaultColumnReader : public ColumnReader {
 public:
-    DefaultColumnReader(BMFileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile)
-        : ColumnReader(dataFH, bufferManager, shadowFile) {}
+    DefaultColumnReader(DBFileID dbFileID, BMFileHandle* dataFH, BufferManager* bufferManager,
+        ShadowFile* shadowFile)
+        : ColumnReader(dbFileID, dataFH, bufferManager, shadowFile) {}
 
     void readCompressedValueToPage(transaction::Transaction* transaction,
         const ColumnChunkMetadata& metadata, uint64_t numValuesPerPage, common::offset_t nodeOffset,
@@ -54,6 +55,37 @@ public:
         filter_func_t filterFunc) override {
         return readCompressedValues(transaction, metadata, numValuesPerPage, result,
             startOffsetInResult, startNodeOffset, endNodeOffset, readFunc, filterFunc);
+    }
+
+    void writeValueToPageFromVector(const ColumnChunkMetadata& chunkMetadata,
+        uint64_t numValuesPerPage, common::offset_t offsetInChunk,
+        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom,
+        write_values_from_vector_func_t writeFromVectorFunc) override {
+        updatePageWithCursor(
+            getPageCursorForOffsetInGroup(offsetInChunk, chunkMetadata.pageIdx, numValuesPerPage),
+            [&](auto frame, auto posInPage) {
+                writeFromVectorFunc(frame, posInPage, vectorToWriteFrom, posInVectorToWriteFrom,
+                    chunkMetadata.compMeta);
+            });
+    }
+
+    void writeValuesToPageFromBuffer(const ColumnChunkMetadata& chunkMetadata,
+        uint64_t numValuesPerPage, common::offset_t dstOffset, const uint8_t* data,
+        const common::NullMask* nullChunkData, common::offset_t srcOffset,
+        common::offset_t numValues, write_values_func_t writeFunc) override {
+        auto numValuesWritten = 0u;
+        auto cursor =
+            getPageCursorForOffsetInGroup(dstOffset, chunkMetadata.pageIdx, numValuesPerPage);
+        while (numValuesWritten < numValues) {
+            auto numValuesToWriteInPage =
+                std::min(numValues - numValuesWritten, numValuesPerPage - cursor.elemPosInPage);
+            updatePageWithCursor(cursor, [&](auto frame, auto offsetInPage) {
+                writeFunc(frame, offsetInPage, data, srcOffset + numValuesWritten,
+                    numValuesToWriteInPage, chunkMetadata.compMeta, nullChunkData);
+            });
+            numValuesWritten += numValuesToWriteInPage;
+            cursor.nextPage();
+        }
     }
 
     template<typename OutputType>
@@ -105,9 +137,11 @@ public:
 template<std::floating_point T>
 class FloatColumnReader : public ColumnReader {
 public:
-    FloatColumnReader(BMFileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile)
-        : ColumnReader(dataFH, bufferManager, shadowFile),
-          defaultReader(std::make_unique<DefaultColumnReader>(dataFH, bufferManager, shadowFile)) {}
+    FloatColumnReader(DBFileID dbFileID, BMFileHandle* dataFH, BufferManager* bufferManager,
+        ShadowFile* shadowFile)
+        : ColumnReader(dbFileID, dataFH, bufferManager, shadowFile),
+          defaultReader(
+              std::make_unique<DefaultColumnReader>(dbFileID, dataFH, bufferManager, shadowFile)) {}
 
     void readCompressedValueToPage(transaction::Transaction* transaction,
         const ColumnChunkMetadata& metadata, uint64_t numValuesPerPage, common::offset_t nodeOffset,
@@ -142,6 +176,22 @@ public:
         filter_func_t filterFunc) override {
         return readCompressedValues(transaction, metadata, numValuesPerPage, result,
             startOffsetInResult, startNodeOffset, endNodeOffset, readFunc, filterFunc);
+    }
+
+    void writeValueToPageFromVector(const ColumnChunkMetadata& chunkMetadata,
+        uint64_t numValuesPerPage, common::offset_t offsetInChunk,
+        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom,
+        write_values_from_vector_func_t writeFromVectorFunc) override {
+        defaultReader->writeValueToPageFromVector(chunkMetadata, numValuesPerPage, offsetInChunk,
+            vectorToWriteFrom, posInVectorToWriteFrom, writeFromVectorFunc);
+    }
+
+    void writeValuesToPageFromBuffer(const ColumnChunkMetadata& chunkMetadata,
+        uint64_t numValuesPerPage, common::offset_t dstOffset, const uint8_t* data,
+        const common::NullMask* nullChunkData, common::offset_t srcOffset,
+        common::offset_t numValues, write_values_func_t writeFunc) override {
+        defaultReader->writeValuesToPageFromBuffer(chunkMetadata, numValuesPerPage, dstOffset, data,
+            nullChunkData, srcOffset, numValues, writeFunc);
     }
 
 private:
@@ -295,21 +345,23 @@ private:
 } // namespace
 
 std::unique_ptr<ColumnReader> ColumnReaderFactory::createColumnReader(
-    common::PhysicalTypeID dataType, BMFileHandle* dataFH, BufferManager* bufferManager,
-    ShadowFile* shadowFile) {
+    common::PhysicalTypeID dataType, DBFileID dbFileID, BMFileHandle* dataFH,
+    BufferManager* bufferManager, ShadowFile* shadowFile) {
     switch (dataType) {
     case common::PhysicalTypeID::FLOAT:
-        return std::make_unique<FloatColumnReader<float>>(dataFH, bufferManager, shadowFile);
+        return std::make_unique<FloatColumnReader<float>>(dbFileID, dataFH, bufferManager,
+            shadowFile);
     case common::PhysicalTypeID::DOUBLE:
-        return std::make_unique<FloatColumnReader<double>>(dataFH, bufferManager, shadowFile);
+        return std::make_unique<FloatColumnReader<double>>(dbFileID, dataFH, bufferManager,
+            shadowFile);
     default:
-        return std::make_unique<DefaultColumnReader>(dataFH, bufferManager, shadowFile);
+        return std::make_unique<DefaultColumnReader>(dbFileID, dataFH, bufferManager, shadowFile);
     }
 }
 
-ColumnReader::ColumnReader(BMFileHandle* dataFH, BufferManager* bufferManager,
+ColumnReader::ColumnReader(DBFileID dbFileID, BMFileHandle* dataFH, BufferManager* bufferManager,
     ShadowFile* shadowFile)
-    : dataFH(dataFH), bufferManager(bufferManager), shadowFile(shadowFile) {}
+    : dbFileID(dbFileID), dataFH(dataFH), bufferManager(bufferManager), shadowFile(shadowFile) {}
 
 void ColumnReader::readFromPage(Transaction* transaction, page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& func) {
@@ -321,6 +373,21 @@ void ColumnReader::readFromPage(Transaction* transaction, page_idx_t pageIdx,
     auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
         *dataFH, pageIdx, *shadowFile, transaction->getType());
     bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, func);
+}
+
+void ColumnReader::updatePageWithCursor(PageCursor cursor,
+    const std::function<void(uint8_t*, common::offset_t)>& writeOp) {
+    bool insertingNewPage = false;
+    if (cursor.pageIdx == INVALID_PAGE_IDX) {
+        return writeOp(nullptr, cursor.elemPosInPage);
+    }
+    if (cursor.pageIdx >= dataFH->getNumPages()) {
+        KU_ASSERT(cursor.pageIdx == dataFH->getNumPages());
+        DBFileUtils::insertNewPage(*dataFH, dbFileID, *bufferManager, *shadowFile);
+        insertingNewPage = true;
+    }
+    DBFileUtils::updatePage(*dataFH, dbFileID, cursor.pageIdx, insertingNewPage, *bufferManager,
+        *shadowFile, [&](auto frame) { writeOp(frame, cursor.elemPosInPage); });
 }
 
 PageCursor ColumnReader::getPageCursorForOffsetInGroup(offset_t offsetInChunk,
