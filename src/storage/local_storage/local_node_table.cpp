@@ -17,7 +17,7 @@ LocalNodeTable::LocalNodeTable(Table& table)
 
 void LocalNodeTable::initLocalHashIndex() {
     auto& nodeTable = ku_dynamic_cast<const Table&, const NodeTable&>(table);
-    DBFileIDAndName dbFileIDAndName{DBFileID{DBFileType::NODE_INDEX}, "in-mem-overflow"};
+    DBFileIDAndName dbFileIDAndName{DBFileID{}, "in-mem-overflow"};
     overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName);
     overflowFileHandle = std::make_unique<OverflowFileHandle>(*overflowFile, overflowCursor);
     hashIndex = std::make_unique<LocalHashIndex>(
@@ -37,7 +37,7 @@ bool LocalNodeTable::insert(Transaction*, TableInsertState& insertState) {
     const auto nodeIDPos =
         nodeInsertState.nodeIDVector.state->getSelVector().getSelectedPositions()[0];
     nodeInsertState.nodeIDVector.setValue(nodeIDPos, internalID_t{nodeOffset, table.getTableID()});
-    nodeGroups.append(&DUMMY_WRITE_TRANSACTION, insertState.propertyVectors);
+    nodeGroups.append(&DUMMY_TRANSACTION, insertState.propertyVectors);
     return true;
 }
 
@@ -54,7 +54,7 @@ bool LocalNodeTable::update(TableUpdateState& updateState) {
     const auto [nodeGroupIdx, rowIdxInGroup] = StorageUtils::getQuotientRemainder(
         offset - StorageConstants::MAX_NUM_ROWS_IN_TABLE, StorageConstants::NODE_GROUP_SIZE);
     const auto nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
-    nodeGroup->update(&DUMMY_WRITE_TRANSACTION, rowIdxInGroup, nodeUpdateState.columnID,
+    nodeGroup->update(&DUMMY_TRANSACTION, rowIdxInGroup, nodeUpdateState.columnID,
         nodeUpdateState.propertyVector);
     return true;
 }
@@ -68,7 +68,7 @@ bool LocalNodeTable::delete_(Transaction*, TableDeleteState& deleteState) {
     const auto [nodeGroupIdx, rowIdxInGroup] = StorageUtils::getQuotientRemainder(
         offset - StorageConstants::MAX_NUM_ROWS_IN_TABLE, StorageConstants::NODE_GROUP_SIZE);
     const auto nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
-    return nodeGroup->delete_(&DUMMY_WRITE_TRANSACTION, rowIdxInGroup);
+    return nodeGroup->delete_(&DUMMY_TRANSACTION, rowIdxInGroup);
 }
 
 bool LocalNodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {

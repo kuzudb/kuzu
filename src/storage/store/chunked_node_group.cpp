@@ -46,10 +46,18 @@ void ChunkedNodeGroup::resetToEmpty() {
     versionInfo.reset();
 }
 
-void ChunkedNodeGroup::setAllNull() const {
+void ChunkedNodeGroup::resetToAllNull() const {
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     for (const auto& chunk : chunks) {
-        chunk->setAllNull();
+        chunk->resetToAllNull();
+    }
+}
+
+void ChunkedNodeGroup::resetNumRowsFromChunks() {
+    KU_ASSERT(!chunks.empty());
+    numRows = getColumnChunk(0).getNumValues();
+    for (auto i = 1u; i < getNumColumns(); i++) {
+        KU_ASSERT(numRows == getColumnChunk(i).getNumValues());
     }
 }
 
@@ -208,6 +216,20 @@ template void ChunkedNodeGroup::scanCommitted<ResidencyState::IN_MEMORY>(Transac
     TableScanState& scanState, NodeGroupScanState& nodeGroupScanState,
     ChunkedNodeGroup& output) const;
 
+row_idx_t ChunkedNodeGroup::getNumDeletedRows(const Transaction* transaction) const {
+    return versionInfo ? versionInfo->getNumDeletions(transaction) : 0;
+}
+
+row_idx_t ChunkedNodeGroup::getNumUpdatedRows(const Transaction* transaction,
+    column_id_t columnID) {
+    return getColumnChunk(columnID).getNumUpdatedRows(transaction);
+}
+
+std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ChunkedNodeGroup::scanUpdates(
+    Transaction* transaction, column_id_t columnID) {
+    return getColumnChunk(columnID).scanUpdates(transaction);
+}
+
 bool ChunkedNodeGroup::lookup(Transaction* transaction, const TableScanState& state,
     NodeGroupScanState& nodeGroupScanState, offset_t rowIdxInChunk, sel_t posInOutput) const {
     KU_ASSERT(rowIdxInChunk + 1 <= numRows);
@@ -253,7 +275,7 @@ bool ChunkedNodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxI
     return versionInfo->delete_(transaction, rowIdxInChunk);
 }
 
-void ChunkedNodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
+void ChunkedNodeGroup::addColumn(Transaction*, TableAddColumnState& addColumnState,
     bool enableCompression, BMFileHandle* dataFH) {
     auto numRows = getNumRows();
     auto& property = addColumnState.property;
@@ -265,6 +287,26 @@ void ChunkedNodeGroup::addColumn(Transaction* transaction, TableAddColumnState& 
         KU_ASSERT(dataFH);
         chunkData.flush(*dataFH);
     }
+}
+
+bool ChunkedNodeGroup::isDeleted(const Transaction* transaction, row_idx_t rowInChunk) const {
+    if (!versionInfo) {
+        return false;
+    }
+    return versionInfo->isDeleted(transaction, rowInChunk);
+}
+
+bool ChunkedNodeGroup::hasAnyUpdates(Transaction* transaction, column_id_t columnID,
+    row_idx_t startRow, length_t numRows) const {
+    return getColumnChunk(columnID).hasUpdates(transaction, startRow, numRows);
+}
+
+row_idx_t ChunkedNodeGroup::getNumDeletions(const Transaction* transaction, row_idx_t startRow,
+    length_t numRows) const {
+    if (versionInfo) {
+        return versionInfo->getNumDeletions(transaction, startRow, numRows);
+    }
+    return 0;
 }
 
 void ChunkedNodeGroup::finalize() const {
@@ -287,6 +329,9 @@ void ChunkedNodeGroup::flush(BMFileHandle& dataFH) {
     for (auto i = 0u; i < getNumColumns(); i++) {
         getColumnChunk(i).getData().flush(dataFH);
     }
+    // Reset residencyState and numRows after flushing.
+    residencyState = ResidencyState::ON_DISK;
+    resetNumRowsFromChunks();
 }
 
 uint64_t ChunkedNodeGroup::getEstimatedMemoryUsage() const {
@@ -311,20 +356,30 @@ bool ChunkedNodeGroup::hasUpdates() const {
 
 void ChunkedNodeGroup::serialize(Serializer& serializer) const {
     KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+    serializer.writeDebuggingInfo("chunks");
     serializer.serializeVectorOfPtrs(chunks);
+    serializer.writeDebuggingInfo("has_version_info");
     serializer.write<bool>(versionInfo != nullptr);
     if (versionInfo) {
+        serializer.writeDebuggingInfo("version_info");
         versionInfo->serialize(serializer);
     }
 }
 
 std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::deserialize(Deserializer& deSer) {
+    std::string key;
     std::vector<std::unique_ptr<ColumnChunk>> chunks;
+    bool hasVersions;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "chunks");
     deSer.deserializeVectorOfPtrs<ColumnChunk>(chunks);
     auto chunkedGroup = std::make_unique<ChunkedNodeGroup>(std::move(chunks), 0 /*startRowIdx*/);
-    bool hasVersions;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "has_version_info");
     deSer.deserializeValue<bool>(hasVersions);
     if (hasVersions) {
+        deSer.deserializeDebuggingInfo(key);
+        KU_ASSERT(key == "version_info");
         chunkedGroup->versionInfo = VersionInfo::deserialize(deSer);
     }
     return chunkedGroup;

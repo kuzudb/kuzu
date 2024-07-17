@@ -416,9 +416,7 @@ kU_Transaction
     : BEGIN SP TRANSACTION
         | BEGIN SP TRANSACTION SP READ SP ONLY
         | COMMIT
-        | COMMIT_SKIP_CHECKPOINT
-        | ROLLBACK
-        | ROLLBACK_SKIP_CHECKPOINT;
+        | ROLLBACK;
 
 kU_Extension
     : kU_LoadExtension

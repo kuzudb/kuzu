@@ -22,8 +22,11 @@ public:
     ColumnChunkData* getOffsetColumnChunk() const { return offsetColumnChunk.get(); }
 
     ColumnChunkData* getDataColumnChunk() const { return dataColumnChunk.get(); }
+    std::unique_ptr<ColumnChunkData> moveDataColumnChunk() { return std::move(dataColumnChunk); }
 
     ColumnChunkData* getSizeColumnChunk() const { return sizeColumnChunk.get(); }
+    std::unique_ptr<ColumnChunkData> moveSizeColumnChunk() { return std::move(sizeColumnChunk); }
+
     void setOffsetColumnChunk(std::unique_ptr<ColumnChunkData> offsetColumnChunk_) {
         offsetColumnChunk = std::move(offsetColumnChunk_);
     }
@@ -41,6 +44,9 @@ public:
         sizeColumnChunk->setNumValues(numValues_);
         offsetColumnChunk->setNumValues(numValues_);
     }
+    uint64_t getNumValues() const override { return nullData->getNumValues(); }
+
+    void resetNumValuesFromMetadata() override;
 
     void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;
 
@@ -62,6 +68,12 @@ public:
 
     void resizeDataColumnChunk(uint64_t numValues) const { dataColumnChunk->resize(numValues); }
 
+    void setToInMemory() override {
+        ColumnChunkData::setToInMemory();
+        sizeColumnChunk->setToInMemory();
+        offsetColumnChunk->setToInMemory();
+        dataColumnChunk->setToInMemory();
+    }
     void resize(uint64_t newCapacity) override {
         ColumnChunkData::resize(newCapacity);
         sizeColumnChunk->resize(newCapacity);

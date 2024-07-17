@@ -67,7 +67,9 @@ public:
 
     uint64_t getEstimatedMemoryUsage();
 
-    void checkpoint(const NodeGroupCheckpointState& state);
+    void checkpoint(NodeGroupCheckpointState& state);
+
+    void resetVersionAndUpdateInfo();
 
     void serialize(common::Serializer& ser);
 

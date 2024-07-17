@@ -3,6 +3,7 @@
 #include "catalog/catalog.h"
 #include "storage/index/hash_index.h"
 #include "storage/store/rel_table.h"
+#include "storage/wal/shadow_file.h"
 #include "storage/wal/wal.h"
 
 namespace kuzu {
@@ -26,10 +27,7 @@ public:
         main::ClientContext* context);
     void dropTable(common::table_id_t tableID, common::VirtualFileSystem* vfs);
 
-    void prepareCommit(transaction::Transaction* transaction, common::VirtualFileSystem* vfs);
-    void prepareRollback();
     void checkpoint(main::ClientContext& clientContext) const;
-    void rollbackInMemory();
 
     PrimaryKeyIndex* getPKIndex(common::table_id_t tableID);
 
@@ -39,6 +37,7 @@ public:
     }
 
     WAL& getWAL();
+    ShadowFile& getShadowFile();
     BMFileHandle* getDataFH() const { return dataFH; }
     BMFileHandle* getMetadataFH() const { return metadataFH; }
     std::string getDatabasePath() const { return databasePath; }
@@ -49,7 +48,7 @@ public:
 
 private:
     BMFileHandle* initFileHandle(const std::string& filename, common::VirtualFileSystem* vfs,
-        main::ClientContext* context);
+        main::ClientContext* context) const;
 
     void loadTables(const catalog::Catalog& catalog, common::VirtualFileSystem* vfs,
         main::ClientContext* context);
@@ -72,6 +71,7 @@ private:
     std::unordered_map<common::table_id_t, std::unique_ptr<Table>> tables;
     MemoryManager& memoryManager;
     std::unique_ptr<WAL> wal;
+    std::unique_ptr<ShadowFile> shadowFile;
     bool enableCompression;
 };
 

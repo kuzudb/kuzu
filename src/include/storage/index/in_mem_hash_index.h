@@ -96,7 +96,7 @@ public:
         return buffer.size();
     }
 
-    inline bool append(Key key, common::offset_t value) {
+    bool append(Key key, common::offset_t value) {
         reserve(indexHeader.numEntries + 1);
         return appendInternal(key, value, HashIndexUtils::hash(key));
     }
@@ -227,7 +227,7 @@ private:
     // Reclaims empty overflow slots to be re-used, starting from the given slot iterator
     void reclaimOverflowSlots(SlotIterator iter);
 
-    inline bool equals(Key keyToLookup, const T& keyInEntry) const {
+    bool equals(Key keyToLookup, const T& keyInEntry) const {
         if constexpr (std::same_as<T, common::ku_string_t>) {
             // Checks if prefix and len matches first.
             if (!HashIndexUtils::areStringPrefixAndLenEqual(keyToLookup, keyInEntry)) {

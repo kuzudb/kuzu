@@ -23,6 +23,9 @@ namespace storage {
 
 class Column;
 class NullChunkData;
+// TODO(Guodong): Ideally ColumnChunkMetadata should implement its own ser/deSer functions so it can
+// save a bit of space on disk. But the size is small now, I'm not motivated for the change, just
+// note here still.
 struct ColumnChunkMetadata {
     common::page_idx_t pageIdx;
     common::page_idx_t numPages;
@@ -38,13 +41,11 @@ struct ColumnChunkMetadata {
         : pageIdx(pageIdx), numPages(numPages), numValues(numNodesInChunk), compMeta(compMeta) {}
 };
 
-// TODO(bmwinger): Hide access to variables and store a modified flag
-// so that we can tell if the value has changed and the metadataDA needs to be updated
+// TODO(bmwinger): Hide access to variables.
 struct ChunkState {
     Column* column;
     ColumnChunkMetadata metadata;
     uint64_t numValuesPerPage = UINT64_MAX;
-    common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
     std::unique_ptr<ChunkState> nullState;
     // Used for struct/list/string columns.
     std::vector<ChunkState> childrenStates;
@@ -70,7 +71,6 @@ struct ChunkState {
 
     void resetState() {
         numValuesPerPage = UINT64_MAX;
-        nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
         if (nullState) {
             nullState->resetState();
         }
@@ -115,20 +115,31 @@ public:
     NullChunkData* getNullData() { return nullData.get(); }
     const NullChunkData& getNullData() const { return *nullData; }
     std::optional<common::NullMask> getNullMask() const;
+    std::unique_ptr<NullChunkData> moveNullData() { return std::move(nullData); }
 
     common::LogicalType& getDataType() { return dataType; }
     const common::LogicalType& getDataType() const { return dataType; }
     ResidencyState getResidencyState() const { return residencyState; }
     bool isCompressionEnabled() const { return enableCompression; }
+    ColumnChunkMetadata& getMetadata() {
+        KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+        return metadata;
+    }
+    const ColumnChunkMetadata& getMetadata() const {
+        KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+        return metadata;
+    }
+    void setMetadata(const ColumnChunkMetadata& metadata_) {
+        KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+        metadata = metadata_;
+    }
 
     // Only have side effects on in-memory or temporary chunks.
     virtual void resetToAllNull();
     virtual void resetToEmpty();
-    void setAllNull() const;
 
     // Note that the startPageIdx is not known, so it will always be common::INVALID_PAGE_IDX
     virtual ColumnChunkMetadata getMetadataToFlush() const;
-    ColumnChunkMetadata getMetadata() const { return metadata; };
 
     virtual void append(common::ValueVector* vector, const common::SelectionVector& selVector);
     virtual void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
@@ -165,6 +176,7 @@ public:
     virtual void copy(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
 
+    virtual void setToInMemory();
     // numValues must be at least the number of values the ColumnChunk was first initialized
     // with
     virtual void resize(uint64_t newCapacity);
@@ -177,7 +189,9 @@ public:
     }
 
     uint64_t getCapacity() const { return capacity; }
-    uint64_t getNumValues() const { return numValues; }
+    virtual uint64_t getNumValues() const { return numValues; }
+    // TODO(Guodong): Alternatively, we can let `getNumValues` read from metadata when ON_DISK.
+    virtual void resetNumValuesFromMetadata();
     virtual void setNumValues(uint64_t numValues_);
     virtual bool numValuesSanityCheck() const;
 
@@ -383,7 +397,8 @@ private:
 
 struct ColumnChunkFactory {
     static std::unique_ptr<ColumnChunkData> createColumnChunkData(common::LogicalType dataType,
-        bool enableCompression, uint64_t capacity, ResidencyState type, bool hasNullData = true);
+        bool enableCompression, uint64_t capacity, ResidencyState residencyState,
+        bool hasNullData = true);
     static std::unique_ptr<ColumnChunkData> createColumnChunkData(common::LogicalType dataType,
         bool enableCompression, ColumnChunkMetadata& metadata, bool hasNullData);
 

@@ -29,12 +29,12 @@ public:
 
     // For MERGE, we might need to skip the insert for duplicate input. But still, we need to write
     // the output vector for later usage.
-    void skipInsert();
+    void skipInsert() const;
 
 private:
     NodeInsertExecutor(const NodeInsertExecutor& other);
 
-    bool checkConflict(transaction::Transaction* transaction);
+    bool checkConflict(transaction::Transaction* transaction) const;
 
     void writeResult() const;
 

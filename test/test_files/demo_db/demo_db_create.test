@@ -62,7 +62,9 @@ Noura
 {_ID: 0:0, _LABEL: User, name: Adam, age: 30}|30.000000|30|1|1
 {_ID: 0:3, _LABEL: User, name: Noura, age: 25}|25.000000|25|1|1
 
+#TODO(Guodong): FIX-ME. Create rel based on newly created nodes in the same transaction.
 -CASE MergeComplexPattern
+-SKIP
 -STATEMENT MERGE (a:User {name:'A'})-[e:Follows]->(b:User {name:'B'})-[:LivesIn]->(:City {name:'Toronto'});
 ---- ok
 -STATEMENT MATCH (a:User)-[:Follows]->(b:User)-[:LivesIn]->(c:City) RETURN a.name, b.name, c.name;

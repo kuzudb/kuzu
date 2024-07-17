@@ -49,6 +49,21 @@ struct NodeGroupCheckpointState {
     std::vector<common::column_id_t> columnIDs;
     std::vector<Column*> columns;
     BMFileHandle& dataFH;
+    MemoryManager* mm;
+
+    NodeGroupCheckpointState(std::vector<common::column_id_t> columnIDs,
+        std::vector<Column*> columns, BMFileHandle& dataFH, MemoryManager* mm)
+        : columnIDs{std::move(columnIDs)}, columns{std::move(columns)}, dataFH{dataFH}, mm{mm} {}
+    virtual ~NodeGroupCheckpointState() = default;
+
+    template<typename T>
+    const T& cast() const {
+        return common::ku_dynamic_cast<const NodeGroupCheckpointState&, const T&>(*this);
+    }
+    template<typename T>
+    T& cast() {
+        return common::ku_dynamic_cast<NodeGroupCheckpointState&, T&>(*this);
+    }
 };
 
 struct NodeGroupScanResult {
@@ -65,7 +80,7 @@ struct NodeGroupScanResult {
     }
 };
 
-static NodeGroupScanResult NODE_GROUP_SCAN_EMMPTY_RESULT = NodeGroupScanResult{};
+static auto NODE_GROUP_SCAN_EMMPTY_RESULT = NodeGroupScanResult{};
 
 struct TableScanState;
 class NodeGroup {
@@ -81,13 +96,17 @@ public:
         common::row_idx_t capacity = common::StorageConstants::NODE_GROUP_SIZE,
         NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR)
         : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
-          numRows{0}, nextRowToAppend{0}, capacity{capacity} {
+          numRows{chunkedNodeGroup->getNumRows()}, nextRowToAppend{numRows}, capacity{capacity} {
         for (auto i = 0u; i < chunkedNodeGroup->getNumColumns(); i++) {
             dataTypes.push_back(chunkedNodeGroup->getColumnChunk(i).getDataType().copy());
         }
         const auto lock = chunkedGroups.lock();
         chunkedGroups.appendGroup(lock, std::move(chunkedNodeGroup));
     }
+    NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
+        common::row_idx_t capacity, NodeGroupDataFormat format)
+        : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
+          numRows{0}, nextRowToAppend{0}, capacity{capacity} {}
     virtual ~NodeGroup() = default;
 
     virtual bool isEmpty() const { return numRows.load() == 0; }
@@ -112,6 +131,8 @@ public:
         std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
 
     virtual void initializeScanState(transaction::Transaction* transaction, TableScanState& state);
+    void initializeScanState(transaction::Transaction* transaction, const common::UniqLock& lock,
+        TableScanState& state);
     virtual NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state);
     bool lookup(transaction::Transaction* transaction, const TableScanState& state);
 
@@ -124,12 +145,12 @@ public:
 
     void flush(BMFileHandle& dataFH);
 
-    void checkpoint(const NodeGroupCheckpointState& state);
+    virtual void checkpoint(NodeGroupCheckpointState& state);
 
     bool hasChanges();
     uint64_t getEstimatedMemoryUsage();
 
-    void serialize(common::Serializer& serializer);
+    virtual void serialize(common::Serializer& serializer);
     static std::unique_ptr<NodeGroup> deserialize(common::Deserializer& deSer);
 
     common::node_group_idx_t getNumChunkedGroups() {
@@ -140,6 +161,8 @@ public:
         const auto lock = chunkedGroups.lock();
         return chunkedGroups.getGroup(lock, groupIdx);
     }
+
+    void resetVersionAndUpdateInfo();
 
     template<class TARGET>
     TARGET& cast() {
@@ -154,8 +177,14 @@ private:
     ChunkedNodeGroup* findChunkedGroupFromRowIdx(const common::UniqLock& lock,
         common::row_idx_t rowIdx);
 
+    common::row_idx_t getNumDeletedRows(const common::UniqLock& lock);
+
+    virtual void checkpointInMemOnly(const common::UniqLock& lock, NodeGroupCheckpointState& state);
+
     template<ResidencyState SCAN_RESIDENCY_STATE>
-    std::unique_ptr<ChunkedNodeGroup> scanCommitted(
+    common::row_idx_t getNumResidentRows(const common::UniqLock& lock);
+    template<ResidencyState SCAN_RESIDENCY_STATE>
+    std::unique_ptr<ChunkedNodeGroup> scanCommitted(const common::UniqLock& lock,
         const std::vector<common::column_id_t>& columnIDs, const std::vector<Column*>& columns);
 
     static void populateNodeID(common::ValueVector& nodeIDVector, common::table_id_t tableID,

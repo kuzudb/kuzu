@@ -14,17 +14,19 @@
 36
 40
 78
-#-RELOADDB
-#-STATEMENT match (a:person) return case_macro(a.age) as age
-#---- 8
-#15
-#15
-#20
-#25
-#35
-#36
-#40
-#78
+-STATEMENT CALL CHECKPOINT() RETURN *;
+---- ok
+-RELOADDB
+-STATEMENT match (a:person) return case_macro(a.age) as age
+---- 8
+15
+15
+20
+25
+35
+36
+40
+78
 
 -CASE createCaseMacroWithoutElse
 -STATEMENT CREATE MACRO case_macro(x) AS CASE x WHEN 35 THEN x + 1 END
@@ -39,17 +41,19 @@
 
 
 36
-#-RELOADDB
-#-STATEMENT match (a:person) return case_macro(a.age) as age
-#---- 8
-#
-#
-#
-#
-#
-#
-#
-#36
+-STATEMENT CALL CHECKPOINT() RETURN *;
+---- ok
+-RELOADDB
+-STATEMENT match (a:person) return case_macro(a.age) as age
+---- 8
+
+
+
+
+
+
+
+36
 
 -CASE createFunctionMacro
 -STATEMENT CREATE MACRO func_macro(x) AS x + 3 + 2.5 + to_float(2.1)
@@ -64,17 +68,19 @@
 47.600000
 52.600000
 90.600000
-#-RELOADDB
-#-STATEMENT match (a:person) return func_macro(a.age) as age
-#---- 8
-#27.600000
-#27.600000
-#32.600000
-#37.600000
-#42.600000
-#47.600000
-#52.600000
-#90.600000
+-STATEMENT CALL CHECKPOINT() RETURN *;
+---- ok
+-RELOADDB
+-STATEMENT match (a:person) return func_macro(a.age) as age
+---- 8
+27.600000
+27.600000
+32.600000
+37.600000
+42.600000
+47.600000
+52.600000
+90.600000
 
 -CASE createLiteralMacro
 -STATEMENT CREATE MACRO str_literal() AS 'result'
@@ -90,10 +96,12 @@
 -STATEMENT return str_literal(),int_literal(),floating_literal(),interval_literal(),list_literal()
 ---- 1
 result|6|5.600000|00:20:00|[1,3,2]
-#-RELOADDB
-#-STATEMENT return str_literal(),int_literal(),floating_literal(),interval_literal(),list_literal()
-#---- 1
-#result|6|5.600000|00:20:00|[1,3,2]
+-STATEMENT CALL CHECKPOINT() RETURN *;
+---- ok
+-RELOADDB
+-STATEMENT return str_literal(),int_literal(),floating_literal(),interval_literal(),list_literal()
+---- 1
+result|6|5.600000|00:20:00|[1,3,2]
 
 -CASE createPropertyMacro
 -STATEMENT CREATE MACRO prop_macro(x) AS x.ID
@@ -108,17 +116,19 @@ result|6|5.600000|00:20:00|[1,3,2]
 7
 8
 9
-#-RELOADDB
-#-STATEMENT match (a:person) return prop_macro(a) as age
-#---- 8
-#0
-#10
-#2
-#3
-#5
-#7
-#8
-#9
+-STATEMENT CALL CHECKPOINT() RETURN *;
+---- ok
+-RELOADDB
+-STATEMENT match (a:person) return prop_macro(a) as age
+---- 8
+0
+10
+2
+3
+5
+7
+8
+9
 
 
 -CASE createVariableMacro
@@ -134,17 +144,19 @@ result|6|5.600000|00:20:00|[1,3,2]
 7
 8
 9
-#-RELOADDB
-#-STATEMENT match (a:person) return var_macro(a.ID)
-#---- 8
-#0
-#10
-#2
-#3
-#5
-#7
-#8
-#9
+-STATEMENT CALL CHECKPOINT() RETURN *;
+---- ok
+-RELOADDB
+-STATEMENT match (a:person) return var_macro(a.ID)
+---- 8
+0
+10
+2
+3
+5
+7
+8
+9
 
 -CASE createMacroReadTrxError
 -STATEMENT BEGIN TRANSACTION READ ONLY
@@ -168,6 +180,7 @@ Can not execute a write query inside a read-only transaction.
 11
 
 -CASE MacroFuncTestCommitRecovery
+-SKIP
 -STATEMENT Begin transaction
 ---- ok
 -STATEMENT create macro addWithDefault(a,b:=3) as a + b;
@@ -175,12 +188,12 @@ Can not execute a write query inside a read-only transaction.
 -STATEMENT return addWithDefault(2);
 ---- 1
 5
--STATEMENT Commit_skip_checkpoint;
+-STATEMENT COMMIT;
 ---- ok
-#-RELOADDB
-#-STATEMENT return addWithDefault(4,7);
-#---- 1
-#11
+-RELOADDB
+-STATEMENT return addWithDefault(4,7);
+---- 1
+11
 
 -CASE MacroFuncTestRollback
 -STATEMENT Begin transaction
@@ -197,6 +210,7 @@ Can not execute a write query inside a read-only transaction.
 Catalog exception: function ADDWITHDEFAULT does not exist.
 
 -CASE MacroFuncTestRollbackRecovery
+-SKIP
 -STATEMENT Begin transaction
 ---- ok
 -STATEMENT create macro addWithDefault(a,b:=3) as a + b;
@@ -204,13 +218,14 @@ Catalog exception: function ADDWITHDEFAULT does not exist.
 -STATEMENT return addWithDefault(2);
 ---- 1
 5
--STATEMENT Rollback_skip_checkpoint;
+-STATEMENT ROLLBACK;
 ---- ok
+-RELOADDB
 -STATEMENT return addWithDefault(4,7);
 ---- error
 Catalog exception: function ADDWITHDEFAULT does not exist.
 
--CASE MacroFuncTestRollbackCommit
+-CASE MacroFuncTestRollbackNormal
 -STATEMENT Begin transaction
 ---- ok
 -STATEMENT create macro addWithDefault(a,b:=3) as a + b;

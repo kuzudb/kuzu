@@ -86,16 +86,11 @@ struct StorageConstants {
     static constexpr char WAL_FILE_SUFFIX[] = ".wal";
     static constexpr char SHADOWING_SUFFIX[] = ".shadow";
     static constexpr char INDEX_FILE_SUFFIX[] = ".hindex";
-    static constexpr char NODES_STATISTICS_AND_DELETED_IDS_FILE_NAME[] =
-        "nodes.statistics_and_deleted.ids";
-    static constexpr char NODES_STATISTICS_FILE_NAME_FOR_WAL[] =
-        "nodes.statistics_and_deleted.ids.wal";
-    static constexpr char RELS_METADATA_FILE_NAME[] = "rels.statistics";
-    static constexpr char RELS_METADATA_FILE_NAME_FOR_WAL[] = "rels.statistics.wal";
     static constexpr char CATALOG_FILE_NAME[] = "catalog.kz";
-    static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.kz.wal";
+    static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.shadow";
     static constexpr char DATA_FILE_NAME[] = "data.kz";
     static constexpr char METADATA_FILE_NAME[] = "metadata.kz";
+    static constexpr char METADATA_FILE_NAME_FOR_WAL[] = "metadata.shadow";
     static constexpr char LOCK_FILE_NAME[] = ".lock";
 
     // The number of pages that we add at one time when we need to grow a file.
@@ -112,9 +107,10 @@ struct StorageConstants {
     static constexpr double PACKED_CSR_DENSITY = 0.8;
     static constexpr double LEAF_LOW_CSR_DENSITY = 0.1;
     static constexpr double LEAF_HIGH_CSR_DENSITY = 1.0;
-    // The number of CSR lists in a segment.
-    static constexpr uint64_t CSR_SEGMENT_SIZE_LOG2 = 10;
-    static constexpr uint64_t CSR_SEGMENT_SIZE = static_cast<uint64_t>(1) << CSR_SEGMENT_SIZE_LOG2;
+    // The number of CSR lists in a leaf region.
+    static constexpr uint64_t CSR_LEAF_REGION_SIZE_LOG2 = 10;
+    static constexpr uint64_t CSR_LEAF_REGION_SIZE = static_cast<uint64_t>(1)
+                                                     << CSR_LEAF_REGION_SIZE_LOG2;
 
     static constexpr uint64_t MAX_NUM_ROWS_IN_TABLE = static_cast<uint64_t>(1) << 62;
 };

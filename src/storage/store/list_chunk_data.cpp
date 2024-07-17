@@ -3,6 +3,8 @@
 #include <cmath>
 
 #include "common/data_chunk/sel_vector.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 #include "common/types/types.h"
 #include "common/types/value/value.h"
 #include "common/vector/value_vector.h"
@@ -17,6 +19,7 @@ ListChunkData::ListChunkData(LogicalType dataType, uint64_t capacity, bool enabl
     ResidencyState residencyState)
     : ColumnChunkData{std::move(dataType), capacity, enableCompression, residencyState,
           true /*hasNullData*/} {
+    // TODO(Guodong): offset/size should contain no nulls.
     offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT64(),
         enableCompression, capacity, ResidencyState::IN_MEMORY, false /*hasNull*/);
     sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT32(),
@@ -114,6 +117,13 @@ void ListChunkData::resetToEmpty() {
             enableCompression, 0 /* capacity */, ResidencyState::IN_MEMORY);
 }
 
+void ListChunkData::resetNumValuesFromMetadata() {
+    ColumnChunkData::resetNumValuesFromMetadata();
+    sizeColumnChunk->resetNumValuesFromMetadata();
+    offsetColumnChunk->resetNumValuesFromMetadata();
+    dataColumnChunk->resetNumValuesFromMetadata();
+}
+
 void ListChunkData::append(ValueVector* vector, const SelectionVector& selVector) {
     auto numToAppend = selVector.getSelSize();
     auto newCapacity = capacity;
@@ -158,7 +168,8 @@ void ListChunkData::appendNullList() {
     nullData->setNull(appendPosition, true);
 }
 
-void ListChunkData::scan(ValueVector& output, offset_t offset, length_t length, sel_t posInOutputVector) const {
+void ListChunkData::scan(ValueVector& output, offset_t offset, length_t length,
+    sel_t posInOutputVector) const {
     KU_ASSERT(offset + length <= numValues);
     if (nullData) {
         nullData->scan(output, offset, length, posInOutputVector);
@@ -167,13 +178,15 @@ void ListChunkData::scan(ValueVector& output, offset_t offset, length_t length, 
     auto dataSize = 0ul;
     for (auto i = 0u; i < length; i++) {
         auto listSize = getListSize(offset + i);
-        output.setValue<list_entry_t>(posInOutputVector + i, list_entry_t{currentListDataSize + dataSize, listSize});
+        output.setValue<list_entry_t>(posInOutputVector + i,
+            list_entry_t{currentListDataSize + dataSize, listSize});
         dataSize += listSize;
     }
     ListVector::resizeDataVector(&output, currentListDataSize + dataSize);
     auto dataVector = ListVector::getDataVector(&output);
     if (isOffsetsConsecutiveAndSortedAscending(offset, offset + length)) {
-        dataColumnChunk->scan(*dataVector, getListStartOffset(offset), dataSize, currentListDataSize);
+        dataColumnChunk->scan(*dataVector, getListStartOffset(offset), dataSize,
+            currentListDataSize);
     } else {
         for (auto i = 0u; i < length; i++) {
             auto startOffset = getListStartOffset(offset + i);
@@ -399,14 +412,24 @@ uint64_t ListChunkData::getEstimatedMemoryUsage() const {
 
 void ListChunkData::serialize(Serializer& serializer) const {
     ColumnChunkData::serialize(serializer);
+    serializer.writeDebuggingInfo("size_column_chunk");
     sizeColumnChunk->serialize(serializer);
+    serializer.writeDebuggingInfo("data_column_chunk");
     dataColumnChunk->serialize(serializer);
+    serializer.writeDebuggingInfo("offset_column_chunk");
     offsetColumnChunk->serialize(serializer);
 }
 
 void ListChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData) {
+    std::string key;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "size_column_chunk");
     chunkData.cast<ListChunkData>().sizeColumnChunk = ColumnChunkData::deserialize(deSer);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "data_column_chunk");
     chunkData.cast<ListChunkData>().dataColumnChunk = ColumnChunkData::deserialize(deSer);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "offset_column_chunk");
     chunkData.cast<ListChunkData>().offsetColumnChunk = ColumnChunkData::deserialize(deSer);
 }
 

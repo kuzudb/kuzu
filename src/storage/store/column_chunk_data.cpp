@@ -136,7 +136,9 @@ public:
         const auto numValuesPerPage =
             compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
         const auto numPages =
-            capacity / numValuesPerPage + (capacity % numValuesPerPage == 0 ? 0 : 1);
+            numValuesPerPage == UINT64_MAX ?
+                0 :
+                capacity / numValuesPerPage + (capacity % numValuesPerPage == 0 ? 0 : 1);
         return ColumnChunkMetadata(INVALID_PAGE_IDX, numPages, numValues, compMeta);
     }
 };
@@ -202,6 +204,8 @@ ColumnChunkData::ColumnChunkData(LogicalType dataType, bool enableCompression,
     if (hasNullData) {
         nullData = std::make_unique<NullChunkData>(enableCompression, metadata);
     }
+    initializeBuffer();
+    initializeFunction(enableCompression);
 }
 
 void ColumnChunkData::initializeBuffer() {
@@ -246,6 +250,7 @@ void ColumnChunkData::initializeFunction(bool enableCompression) {
 }
 
 void ColumnChunkData::resetToAllNull() {
+    KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     if (nullData) {
         nullData->resetToAllNull();
     }
@@ -259,13 +264,6 @@ void ColumnChunkData::resetToEmpty() {
     KU_ASSERT(bufferSize == getBufferSize(capacity));
     memset(buffer.get(), 0x00, bufferSize);
     numValues = 0;
-}
-
-void ColumnChunkData::setAllNull() const {
-    KU_ASSERT(residencyState != ResidencyState::ON_DISK);
-    if (nullData) {
-        nullData->setAllNull();
-    }
 }
 
 ColumnChunkMetadata ColumnChunkData::getMetadataToFlush() const {
@@ -319,8 +317,10 @@ void ColumnChunkData::flush(BMFileHandle& dataFH) {
 // Note: This function is not setting child/null chunk data recursively.
 void ColumnChunkData::setToOnDisk(const ColumnChunkMetadata& metadata) {
     residencyState = ResidencyState::ON_DISK;
-    buffer.reset();
     capacity = 0;
+    bufferSize = 0;
+    // Note: We don't need to set the buffer to nullptr, as it allows ColumnChunkDaat to be resized.
+    buffer = std::make_unique<uint8_t[]>(bufferSize);
     this->metadata = metadata;
     this->numValues = metadata.numValues;
 }
@@ -462,8 +462,25 @@ void ColumnChunkData::copy(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     append(srcChunk, srcOffsetInChunk, numValuesToCopy);
 }
 
+void ColumnChunkData::resetNumValuesFromMetadata() {
+    KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+    numValues = metadata.numValues;
+    if (nullData) {
+        nullData->resetNumValuesFromMetadata();
+    }
+}
+
+void ColumnChunkData::setToInMemory() {
+    KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+    KU_ASSERT(capacity == 0 && bufferSize == 0);
+    residencyState = ResidencyState::IN_MEMORY;
+    numValues = 0;
+    if (nullData) {
+        nullData->setToInMemory();
+    }
+}
+
 void ColumnChunkData::resize(uint64_t newCapacity) {
-    KU_ASSERT(residencyState == ResidencyState::IN_MEMORY);
     if (newCapacity > capacity) {
         capacity = newCapacity;
     }
@@ -553,27 +570,44 @@ uint64_t ColumnChunkData::getEstimatedMemoryUsage() const {
 
 void ColumnChunkData::serialize(Serializer& serializer) const {
     KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+    serializer.writeDebuggingInfo("data_type");
     dataType.serialize(serializer);
+    serializer.writeDebuggingInfo("metadata");
     serializer.write<ColumnChunkMetadata>(metadata);
+    serializer.writeDebuggingInfo("enable_compression");
     serializer.write<bool>(enableCompression);
+    serializer.writeDebuggingInfo("has_null");
     serializer.write<bool>(nullData != nullptr);
     if (nullData) {
+        serializer.writeDebuggingInfo("null_data");
         nullData->serialize(serializer);
     }
 }
 
 std::unique_ptr<ColumnChunkData> ColumnChunkData::deserialize(Deserializer& deSer) {
-    const auto dataType = LogicalType::deserialize(deSer);
+    std::string key;
     ColumnChunkMetadata metadata;
-    deSer.deserializeValue<ColumnChunkMetadata>(metadata);
     bool enableCompression = false;
-    deSer.deserializeValue<bool>(enableCompression);
     bool hasNull = false;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "data_type");
+    const auto dataType = LogicalType::deserialize(deSer);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "metadata");
+    deSer.deserializeValue<ColumnChunkMetadata>(metadata);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "enable_compression");
+    deSer.deserializeValue<bool>(enableCompression);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "has_null");
     deSer.deserializeValue<bool>(hasNull);
-    KU_ASSERT(hasNull);
     auto chunkData = ColumnChunkFactory::createColumnChunkData(dataType.copy(), enableCompression,
         metadata, hasNull);
-    chunkData->nullData = NullChunkData::deserialize(deSer);
+    if (hasNull) {
+        deSer.deserializeDebuggingInfo(key);
+        KU_ASSERT(key == "null_data");
+        chunkData->nullData = NullChunkData::deserialize(deSer);
+    }
 
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
@@ -582,6 +616,7 @@ std::unique_ptr<ColumnChunkData> ColumnChunkData::deserialize(Deserializer& deSe
     case PhysicalTypeID::STRING: {
         StringChunkData::deserialize(deSer, *chunkData);
     } break;
+    case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
         ListChunkData::deserialize(deSer, *chunkData);
     } break;
@@ -717,11 +752,15 @@ void NullChunkData::append(ColumnChunkData* other, offset_t startOffsetInOtherCh
 
 void NullChunkData::serialize(Serializer& serializer) const {
     KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+    serializer.writeDebuggingInfo("null_chunk_metadata");
     serializer.write<ColumnChunkMetadata>(metadata);
 }
 
 std::unique_ptr<NullChunkData> NullChunkData::deserialize(Deserializer& deSer) {
+    std::string key;
     ColumnChunkMetadata metadata;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "null_chunk_metadata");
     deSer.deserializeValue<ColumnChunkMetadata>(metadata);
     // TODO: FIX-ME. enableCompression.
     return std::make_unique<NullChunkData>(true, metadata);

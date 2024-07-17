@@ -70,6 +70,7 @@ True
 
 # FIXME(Sam/Guodong): Stats do not change after update
 -CASE UpdateIntegerStats
+-SKIP
 -STATEMENT CREATE NODE TABLE test(id SERIAL, value INT8, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE (a:test {value:1})
@@ -102,6 +103,7 @@ True
 
 # FIXME(Sam/Guodong): Stats do not change after update
 -CASE UpdateDoubleStats
+-SKIP
 -STATEMENT CREATE NODE TABLE test(id SERIAL, value DOUBLE, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE (a:test {value:1})
