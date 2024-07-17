@@ -275,6 +275,9 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) const {
         value->childrenSize = children.size();
         value->children = std::move(children);
     } break;
+    case PhysicalTypeID::INTERNAL_ID: {
+        value->val.internalIDVal = getValue<internalID_t>(pos);
+    } break;
     case PhysicalTypeID::STRUCT: {
         auto& fieldVectors = StructVector::getFieldVectors(this);
         std::vector<std::unique_ptr<Value>> children;

@@ -28,7 +28,6 @@
 true
 false
 
-
 -CASE JsonMergeTest
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok
@@ -106,14 +105,14 @@ False
 [a,1]
 [ffffffffffff,json_array_length]
 
--CASE JsonStructureTest
+-CASE JsonStructureTest1
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok
 -STATEMENT UNWIND ['{"a": 1, "b": [1, 2, 3], "c": {"a": "2"}}', '[-1, 0, 1, 2, -10]', '[{"1": [1, 2, 3]}, {"2": [1, 2, 3]}, {"1": ["-1"]}]'] AS ARR RETURN JSON_STRUCTURE(ARR);
 ---- 3
-STRUCT(a UINT64, b UINT64[], c STRUCT(a STRING))
-INT128[]
-STRUCT(1 UINT64[], 2 UINT64[])[]
+STRUCT(a UINT8, b UINT8[], c STRUCT(a STRING))
+INT16[]
+STRUCT(1 STRING[], 2 UINT8[])[]
 
 -CASE JsonValidTest
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
@@ -136,3 +135,12 @@ True
 [{"a":[1],"b":2,"c":1},1,5,9]
 [1,2,3]
 "ab"
+
+-CASE JsonStructureTest2
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb_json/vMovies.json"(maximum_depth=1, sample_size=3) return json_structure(json);
+---- 3
+STRUCT(name STRING, length UINT8, note STRING, description STRUCT(rating DOUBLE, stars UINT8, views UINT8, release STRING, release_ns STRING, release_ms STRING, release_sec STRING, release_tz STRING, film STRING, u8 UINT8, u16 UINT8, u32 UINT8, u64 UINT8), content STRING, audience STRING, grade BOOL)
+STRUCT(name STRING, length UINT16, note STRING, description STRUCT(rating UINT8, stars UINT8, views UINT16, release STRING, release_ns STRING, release_ms STRING, release_sec STRING, release_tz STRING, film STRING, u8 UINT8, u16 UINT8, u32 UINT8, u64 UINT8), content INT8, audience STRING, grade DOUBLE)
+STRUCT(name STRING, length UINT16, note STRING, description STRUCT(rating UINT16, stars UINT8, views UINT16, release STRING, release_ns STRING, release_ms STRING, release_sec STRING, release_tz STRING, film STRING, u8 UINT8, u16 UINT8, u32 UINT8, u64 UINT8), content STRING, audience STRUCT(), grade UINT8)

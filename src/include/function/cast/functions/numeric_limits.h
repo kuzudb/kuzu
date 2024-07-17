@@ -14,6 +14,10 @@ struct NumericLimits {
     static constexpr T minimum() { return std::numeric_limits<T>::lowest(); }
     static constexpr T maximum() { return std::numeric_limits<T>::max(); }
     static constexpr bool isSigned() { return std::is_signed<T>::value; }
+    template<typename V>
+    static bool isInBounds(V val) {
+        return minimum() <= val && val <= maximum();
+    }
     static constexpr uint64_t digits();
 };
 
