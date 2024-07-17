@@ -132,9 +132,7 @@ Binder exception: iri is a reserved property name.
 ---- 1
 0
 
-#TODO(Guodong): FIX-ME. Update primary key is not supported.
 -CASE 2376
--SKIP
 -STATEMENT CREATE NODE TABLE thing(name STRING, PRIMARY KEY (name));
 ---- ok
 -STATEMENT MATCH (n) DELETE n
