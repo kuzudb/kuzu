@@ -6,8 +6,9 @@ add_library(kuzu_common_enums
         rel_multiplicity.cpp
         table_type.cpp
         transaction_action.cpp
-        drop_type.cpp)
-
+        drop_type.cpp
+        conflict_action.cpp)
+        
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_common_enums>
         PARENT_SCOPE)

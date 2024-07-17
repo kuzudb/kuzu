@@ -87,7 +87,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapInsert(LogicalOperator* logical
             KU_UNREACHABLE;
         }
     }
-    auto printInfo = std::make_unique<OPPrintInfo>(logicalInsert.getExpressionsForPrinting());
+    binder::expression_vector expressions;
+    for (auto& info : logicalInsert.getInfosRef()) {
+        for (auto& expr : info.columnExprs) {
+            expressions.push_back(expr);
+        }
+    }
+    auto printInfo = std::make_unique<InsertPrintInfo>(expressions,
+        logicalInsert.getInfosRef()[0].conflictAction);
     return std::make_unique<Insert>(std::move(nodeExecutors), std::move(relExecutors),
         std::move(prevOperator), getOperatorID(), std::move(printInfo));
 }

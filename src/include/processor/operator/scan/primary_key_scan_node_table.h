@@ -6,6 +6,25 @@
 namespace kuzu {
 namespace processor {
 
+struct PrimaryKeyScanPrintInfo final : OPPrintInfo {
+    binder::expression_vector expressions;
+    std::string key;
+
+    PrimaryKeyScanPrintInfo(binder::expression_vector expressions, std::string key)
+        : expressions(std::move(expressions)), key(std::move(key)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<PrimaryKeyScanPrintInfo>(new PrimaryKeyScanPrintInfo(*this));
+        ;
+    }
+
+private:
+    PrimaryKeyScanPrintInfo(const PrimaryKeyScanPrintInfo& other)
+        : OPPrintInfo(other), expressions(other.expressions) {}
+};
+
 struct PrimaryKeyScanSharedState {
     std::mutex mtx;
 
