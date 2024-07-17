@@ -23,16 +23,8 @@ public:
     void deserializeValue(T& value) {
         reader->read(reinterpret_cast<uint8_t*>(&value), sizeof(T));
     }
-    template<>
-    void deserializeValue(std::string& value);
 
-    void deserializeDebuggingInfo(std::string& value) {
-#if defined(KUZU_RUNTIME_CHECKS) || !defined(NDEBUG)
-        deserializeValue<std::string>(value);
-#endif
-        // DO NOTHING
-        KU_UNUSED(value);
-    }
+    void deserializeDebuggingInfo(std::string& value);
 
     template<typename T>
     void deserializeOptionalValue(std::unique_ptr<T>& value) {
@@ -106,6 +98,9 @@ public:
 private:
     std::unique_ptr<Reader> reader;
 };
+
+template<>
+void Deserializer::deserializeValue(std::string& value);
 
 } // namespace common
 } // namespace kuzu
