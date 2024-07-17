@@ -9,6 +9,7 @@
 #include "common/types/types.h"
 #include "storage/compression/compression.h"
 #include "storage/enums/residency_state.h"
+#include "storage/store/column_chunk_metadata.h"
 
 namespace kuzu {
 namespace evaluator {
@@ -23,23 +24,6 @@ namespace storage {
 
 class Column;
 class NullChunkData;
-// TODO(Guodong): Ideally ColumnChunkMetadata should implement its own ser/deSer functions so it can
-// save a bit of space on disk. But the size is small now, I'm not motivated for the change, just
-// note here still.
-struct ColumnChunkMetadata {
-    common::page_idx_t pageIdx;
-    common::page_idx_t numPages;
-    uint64_t numValues;
-    CompressionMetadata compMeta;
-
-    // TODO(Guodong): Delete copy constructor.
-    ColumnChunkMetadata()
-        : pageIdx{common::INVALID_PAGE_IDX}, numPages{0}, numValues{0},
-          compMeta(StorageValue(), StorageValue(), CompressionType::CONSTANT) {}
-    ColumnChunkMetadata(common::page_idx_t pageIdx, common::page_idx_t numPages,
-        uint64_t numNodesInChunk, const CompressionMetadata& compMeta)
-        : pageIdx(pageIdx), numPages(numPages), numValues(numNodesInChunk), compMeta(compMeta) {}
-};
 
 // TODO(bmwinger): Hide access to variables.
 struct ChunkState {
@@ -298,7 +282,8 @@ public:
         : BoolChunkData{enableCompression, metadata, false /*hasNullData*/},
           mayHaveNullValue{false} {}
 
-    // Maybe this should be combined with BoolChunkData if the only difference is these functions?
+    // Maybe this should be combined with BoolChunkData if the only difference is these
+    // functions?
     bool isNull(common::offset_t pos) const { return getValue<bool>(pos); }
     void setNull(common::offset_t pos, bool isNull);
 

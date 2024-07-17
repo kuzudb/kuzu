@@ -114,15 +114,15 @@ public:
 
     // Note: This function is to be used only by the WRITE trx.
     void update(const transaction::Transaction* transaction, uint64_t idx,
-        std::span<std::byte> val);
+        std::span<const std::byte> val);
 
     // Note: This function is to be used only by the WRITE trx.
     // The return value is the idx of val in array.
-    uint64_t pushBack(const transaction::Transaction* transaction, std::span<std::byte> val);
+    uint64_t pushBack(const transaction::Transaction* transaction, std::span<const std::byte> val);
 
     // Note: Currently, this function doesn't support shrinking the size of the array.
     uint64_t resize(const transaction::Transaction* transaction, uint64_t newNumElements,
-        std::span<std::byte> defaultVal);
+        std::span<const std::byte> defaultVal);
 
     virtual inline void checkpointInMemoryIfNecessary() {
         std::unique_lock xlock{this->diskArraySharedMtx};
@@ -167,7 +167,7 @@ public:
 
         WriteIterator& seek(size_t newIdx);
         // Adds a new element to the disk array and seeks to the new element
-        void pushBack(const transaction::Transaction* transaction, std::span<std::byte> val);
+        void pushBack(const transaction::Transaction* transaction, std::span<const std::byte> val);
 
         inline WriteIterator& operator+=(size_t increment) { return seek(idx + increment); }
 
@@ -260,41 +260,54 @@ inline std::span<std::byte> getSpan(U& val) {
     return std::span(reinterpret_cast<std::byte*>(&val), sizeof(U));
 }
 
-template<typename U>
-class DiskArray {
-    static_assert(sizeof(U) <= common::BufferPoolConstants::PAGE_4KB_SIZE);
+template<typename T>
+concept Serializable = requires(T obj, std::span<const std::byte> serializedBytes,
+    common::PhysicalTypeID internalDataType) {
+    { T::serializedSizeBytes(internalDataType) } -> std::same_as<size_t>;
+    { obj.serializeToBytes(internalDataType) } -> std::convertible_to<decltype(serializedBytes)>;
+    { obj.deserializeFromBytes(serializedBytes, internalDataType) };
+};
 
+template<Serializable U>
+class DiskArray {
 public:
     // If bypassWAL is set, the buffer manager is used to pages new to this transaction to the
     // original file, but does not handle flushing them. BufferManager::flushAllDirtyPagesInFrames
     // should be called on this file handle exactly once during prepare commit.
     DiskArray(BMFileHandle& fileHandle, DBFileID dbFileID, const DiskArrayHeader& headerForReadTrx,
         DiskArrayHeader& headerForWriteTrx, BufferManager* bufferManager, ShadowFile* shadowFile,
-        bool bypassWAL = false)
+        common::PhysicalTypeID internalDataType, bool bypassWAL = false)
         : diskArray(fileHandle, dbFileID, headerForReadTrx, headerForWriteTrx, bufferManager,
-              shadowFile, sizeof(U), bypassWAL) {}
-
-    // Note: This function is to be used only by the WRITE trx.
-    // The return value is the idx of val in array.
-    inline uint64_t pushBack(const transaction::Transaction* transaction, U val) {
-        return diskArray.pushBack(transaction, getSpan(val));
+              shadowFile, U::serializedSizeBytes(internalDataType), bypassWAL),
+          internalDataType(internalDataType) {
+        KU_ASSERT(
+            U::serializedSizeBytes(internalDataType) <= common::BufferPoolConstants::PAGE_4KB_SIZE);
     }
 
     // Note: This function is to be used only by the WRITE trx.
-    inline void update(const transaction::Transaction* transaction, uint64_t idx, U val) {
-        diskArray.update(transaction, idx, getSpan(val));
+    // The return value is the idx of val in array.
+    inline uint64_t pushBack(const transaction::Transaction* transaction, const U& val) {
+        return diskArray.pushBack(transaction, val.serializeToBytes(internalDataType));
+    }
+
+    // Note: This function is to be used only by the WRITE trx.
+    inline void update(const transaction::Transaction* transaction, uint64_t idx, const U& val) {
+        diskArray.update(transaction, idx, val.serializeToBytes(internalDataType));
     }
 
     inline U get(uint64_t idx, const transaction::Transaction* transaction) {
         U val;
-        diskArray.get(idx, transaction, getSpan(val));
+        std::vector<std::byte> serializedBytes(val.serializedSizeBytes(internalDataType));
+        diskArray.get(idx, transaction, serializedBytes);
+        val.deserializeFromBytes(serializedBytes, internalDataType);
         return val;
     }
 
     // Note: Currently, this function doesn't support shrinking the size of the array.
     inline uint64_t resize(const transaction::Transaction* transaction, uint64_t newNumElements) {
         U defaultVal;
-        return diskArray.resize(transaction, newNumElements, getSpan(defaultVal));
+        return diskArray.resize(transaction, newNumElements,
+            defaultVal.serializeToBytes(internalDataType));
     }
 
     inline uint64_t getNumElements(
@@ -308,7 +321,9 @@ public:
 
     class WriteIterator {
     public:
-        explicit WriteIterator(DiskArrayInternal::WriteIterator&& iter) : iter(std::move(iter)) {}
+        explicit WriteIterator(DiskArrayInternal::WriteIterator&& iter,
+            common::PhysicalTypeID internalDataType)
+            : iter(std::move(iter)), internalDataType(internalDataType) {}
         inline U& operator*() { return *reinterpret_cast<U*>((*iter).data()); }
         DELETE_COPY_DEFAULT_MOVE(WriteIterator);
 
@@ -326,7 +341,7 @@ public:
         inline uint64_t getAPIdx() const { return iter.apCursor.pageIdx; }
 
         inline WriteIterator& pushBack(const transaction::Transaction* transaction, U val) {
-            iter.pushBack(transaction, getSpan(val));
+            iter.pushBack(transaction, val.serializeToBytes(internalDataType));
             return *this;
         }
 
@@ -334,14 +349,18 @@ public:
 
     private:
         DiskArrayInternal::WriteIterator iter;
+        common::PhysicalTypeID internalDataType;
     };
 
-    inline WriteIterator iter_mut() { return WriteIterator{diskArray.iter_mut(sizeof(U))}; }
+    inline WriteIterator iter_mut() {
+        return WriteIterator{diskArray.iter_mut(sizeof(U)), internalDataType};
+    }
     inline uint64_t getAPIdx(uint64_t idx) const { return diskArray.getAPIdx(idx); }
     static constexpr uint32_t getAlignedElementSize() { return std::bit_ceil(sizeof(U)); }
 
 private:
     DiskArrayInternal diskArray;
+    common::PhysicalTypeID internalDataType;
 };
 
 class BlockVectorInternal {

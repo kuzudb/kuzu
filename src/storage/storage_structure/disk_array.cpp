@@ -128,7 +128,8 @@ void DiskArrayInternal::updatePage(uint64_t pageIdx, bool isNewPage,
 }
 
 void DiskArrayInternal::update(const Transaction* transaction, uint64_t idx,
-    std::span<std::byte> val) {
+    std::span<const std::byte> val) {
+    KU_ASSERT(val.size_bytes() <= storageInfo.alignedElementSize);
     std::unique_lock xLck{diskArraySharedMtx};
     hasTransactionalUpdates = true;
     KU_ASSERT(checkOutOfBoundAccess(transaction->getType(), idx));
@@ -148,7 +149,9 @@ void DiskArrayInternal::update(const Transaction* transaction, uint64_t idx,
     });
 }
 
-uint64_t DiskArrayInternal::pushBack(const Transaction* transaction, std::span<std::byte> val) {
+uint64_t DiskArrayInternal::pushBack(const Transaction* transaction,
+    std::span<const std::byte> val) {
+    KU_ASSERT(val.size_bytes() <= storageInfo.alignedElementSize);
     std::unique_lock xLck{diskArraySharedMtx};
     auto it = iter_mut(val.size());
     auto originalNumElements = getNumElementsNoLock(transaction->getType());
@@ -157,7 +160,8 @@ uint64_t DiskArrayInternal::pushBack(const Transaction* transaction, std::span<s
 }
 
 uint64_t DiskArrayInternal::resize(const Transaction* transaction, uint64_t newNumElements,
-    std::span<std::byte> defaultVal) {
+    std::span<const std::byte> defaultVal) {
+    KU_ASSERT(defaultVal.size_bytes() <= storageInfo.alignedElementSize);
     std::unique_lock xLck{diskArraySharedMtx};
     auto it = iter_mut(defaultVal.size());
     auto originalNumElements = getNumElementsNoLock(transaction->getType());
@@ -326,7 +330,7 @@ DiskArrayInternal::WriteIterator& DiskArrayInternal::WriteIterator::seek(size_t 
 }
 
 void DiskArrayInternal::WriteIterator::pushBack(const Transaction* transaction,
-    std::span<std::byte> val) {
+    std::span<const std::byte> val) {
     idx = diskArray.headerForWriteTrx.numElements;
     auto oldPageIdx = apCursor.pageIdx;
     apCursor = getAPIdxAndOffsetInAP(diskArray.storageInfo, idx);

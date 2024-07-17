@@ -1,15 +1,19 @@
 #include <algorithm>
 #include <numeric>
 
+#include "alp/encode.hpp"
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
 #include "storage/compression/compression.h"
+#include "storage/compression/compression_float.h"
+#include <ranges>
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
 template<typename T>
-void test_compression(CompressionAlg& alg, std::vector<T> src, bool force_offset_zero = true) {
+void test_compression(CompressionAlg& alg, std::vector<T> src, bool force_offset_zero = true,
+    alp::state* alpMetadata = nullptr) {
     if (force_offset_zero) {
         // Force offset of 0 for bitpacking
         src[0] = 0;
@@ -17,18 +21,37 @@ void test_compression(CompressionAlg& alg, std::vector<T> src, bool force_offset
     auto pageSize = 4096;
     std::vector<uint8_t> dest(pageSize);
 
+    // unique_ptr to get around how CompressionMetadata has no default constructor
+    std::unique_ptr<CompressionMetadata> metadata;
     const auto& [min, max] = std::minmax_element(src.begin(), src.end());
-    auto metadata =
-        CompressionMetadata(StorageValue(*min), StorageValue(*max), alg.getCompressionType());
+    if constexpr (std::is_floating_point_v<T>) {
+        ASSERT_TRUE(alpMetadata != nullptr);
+        const auto floatEncodedValues =
+            std::views::all(src) | std::views::transform([alpMetadata](T val) {
+                const auto encoded_value =
+                    alp::AlpEncode<T>::encode_value(val, alpMetadata->fac, alpMetadata->exp);
+                const auto decoded_value = alp::AlpDecode<T>::decode_value(encoded_value,
+                    alpMetadata->fac, alpMetadata->exp);
+                return val == decoded_value ? encoded_value : 0;
+            });
+        const auto& [minEncoded, maxEncoded] =
+            std::minmax_element(floatEncodedValues.begin(), floatEncodedValues.end());
+        metadata = std::make_unique<CompressionMetadata>(StorageValue(*min), StorageValue(*max),
+            alg.getCompressionType(), *alpMetadata, StorageValue(*minEncoded),
+            StorageValue(*maxEncoded), 10);
+    } else {
+        metadata = std::make_unique<CompressionMetadata>(StorageValue(*min), StorageValue(*max),
+            alg.getCompressionType());
+    }
     // For simplicity, we'll ignore the possibility of it requiring multiple pages
     // That's tested separately
 
     auto numValuesRemaining = src.size();
     const uint8_t* srcCursor = (uint8_t*)src.data();
-    alg.compressNextPage(srcCursor, numValuesRemaining, dest.data(), pageSize, metadata);
+    alg.compressNextPage(srcCursor, numValuesRemaining, dest.data(), pageSize, *metadata.get());
     std::vector<T> decompressed(src.size());
     alg.decompressFromPage(dest.data(), 0 /*srcOffset*/, (uint8_t*)decompressed.data(),
-        0 /*dstOffset*/, src.size(), metadata);
+        0 /*dstOffset*/, src.size(), *metadata.get());
     EXPECT_EQ(src, decompressed);
     // works with all bit widths (but not all offsets)
     T value = 0;
@@ -38,16 +61,16 @@ void test_compression(CompressionAlg& alg, std::vector<T> src, bool force_offset
     }
 
     alg.setValuesFromUncompressed((uint8_t*)&value, 0 /*srcOffset*/, (uint8_t*)dest.data(),
-        1 /*dstOffset*/, 1 /*numValues*/, metadata, nullptr /*nullMask*/);
+        1 /*dstOffset*/, 1 /*numValues*/, *metadata.get(), nullptr /*nullMask*/);
     alg.decompressFromPage(dest.data(), 0 /*srcOffset*/, (uint8_t*)decompressed.data(),
-        0 /*dstOffset*/, src.size(), metadata);
+        0 /*dstOffset*/, src.size(), *metadata.get());
     src[1] = value;
     EXPECT_EQ(decompressed, src);
     EXPECT_EQ(decompressed[1], value);
 
     for (auto i = 0u; i < src.size(); i++) {
         alg.decompressFromPage(dest.data(), i, (uint8_t*)decompressed.data(), i, 1 /*numValues*/,
-            metadata);
+            *metadata.get());
         EXPECT_EQ(decompressed[i], src[i]);
     }
     EXPECT_EQ(decompressed, src);
@@ -56,7 +79,7 @@ void test_compression(CompressionAlg& alg, std::vector<T> src, bool force_offset
     decompressed.clear();
     decompressed.resize(src.size() / 2);
     alg.decompressFromPage(dest.data(), src.size() / 3 /*srcOffset*/, (uint8_t*)decompressed.data(),
-        0 /*dstOffset*/, src.size() / 2 /*numValues*/, metadata);
+        0 /*dstOffset*/, src.size() / 2 /*numValues*/, *metadata.get());
     auto expected = std::vector(src);
     expected.erase(expected.begin(), expected.begin() + src.size() / 3);
     expected.resize(src.size() / 2);
@@ -65,11 +88,53 @@ void test_compression(CompressionAlg& alg, std::vector<T> src, bool force_offset
     decompressed.clear();
     decompressed.resize(src.size() / 2);
     alg.decompressFromPage(dest.data(), src.size() / 7 /*srcOffset*/, (uint8_t*)decompressed.data(),
-        0 /*dstOffset*/, src.size() / 2 /*numValues*/, metadata);
+        0 /*dstOffset*/, src.size() / 2 /*numValues*/, *metadata.get());
     expected = std::vector(src);
     expected.erase(expected.begin(), expected.begin() + src.size() / 7);
     expected.resize(src.size() / 2);
     EXPECT_EQ(decompressed, expected);
+}
+
+TEST(CompressionTests, FloatCompressionTestSanity) {
+    std::vector<double> src(128, 5.6);
+    src[2] = 0;
+    auto alg = FloatCompression<double>();
+    alp::state floatMetadata;
+    std::vector<double> samples(src.size());
+    alp::AlpEncode<double>::init(src.data(), 0, src.size(), samples.data(), floatMetadata);
+    if (floatMetadata.k_combinations >
+        1) { // Only if more than 1 found top combinations we sample and search
+        alp::AlpEncode<double>::find_best_exponent_factor_from_combinations(
+            floatMetadata.best_k_combinations, floatMetadata.k_combinations, src.data(),
+            floatMetadata.vector_size, floatMetadata.fac, floatMetadata.exp);
+    } else {
+        floatMetadata.exp = floatMetadata.best_k_combinations[0].first;
+        floatMetadata.fac = floatMetadata.best_k_combinations[0].second;
+    }
+    test_compression(alg, src, true, &floatMetadata);
+}
+
+TEST(CompressionTests, FloatCompressionTestWithExceptions) {
+    std::vector<double> src(256, 5.6);
+    src[2] = 54387589437957.834;
+    for (size_t i = 102; i < src.size(); i += 100) {
+        src[i] = src[i - 100] + 4385498.234;
+    }
+    auto alg = FloatCompression<double>();
+    alp::state floatMetadata;
+    std::vector<double> samples(src.size());
+    alp::AlpEncode<double>::init(src.data(), 0, src.size(), samples.data(), floatMetadata);
+    ASSERT_TRUE(floatMetadata.best_k_combinations.size() >= 1);
+    if (floatMetadata.best_k_combinations.size() >
+        1) { // Only if more than 1 found top combinations we sample and search
+        alp::AlpEncode<double>::find_best_exponent_factor_from_combinations(
+            floatMetadata.best_k_combinations, floatMetadata.k_combinations, src.data(),
+            floatMetadata.vector_size, floatMetadata.fac, floatMetadata.exp);
+    } else {
+        floatMetadata.exp = floatMetadata.best_k_combinations[0].first;
+        floatMetadata.fac = floatMetadata.best_k_combinations[0].second;
+    }
+    test_compression(alg, src, true, &floatMetadata);
 }
 
 TEST(CompressionTests, BooleanBitpackingTest) {
@@ -267,13 +332,34 @@ TEST(CompressionTests, CopyMultiPage) {
 }
 
 template<typename T>
-void integerPackingMultiPage(const std::vector<T>& src) {
-    auto alg = IntegerBitpacking<T>();
+void compressionTestMultiPage(const std::vector<T>& src, CompressionAlg& alg,
+    const LogicalType& dataType, alp::state* alpMetadata = nullptr) {
     auto pageSize = 4096;
+
+    // unique_ptr to get around how CompressionMetadata has no default constructor
+    std::unique_ptr<CompressionMetadata> metadata;
     const auto& [min, max] = std::minmax_element(src.begin(), src.end());
-    auto metadata =
-        CompressionMetadata(StorageValue(*min), StorageValue(*max), alg.getCompressionType());
-    auto numValuesPerPage = metadata.numValues(pageSize, LogicalType(LogicalTypeID::INT64));
+    if constexpr (std::is_floating_point_v<T>) {
+        ASSERT_TRUE(alpMetadata != nullptr);
+        const auto floatEncodedValues =
+            std::views::all(src) | std::views::transform([alpMetadata](T val) {
+                const auto encoded_value =
+                    alp::AlpEncode<T>::encode_value(val, alpMetadata->fac, alpMetadata->exp);
+                const auto decoded_value = alp::AlpDecode<T>::decode_value(encoded_value,
+                    alpMetadata->fac, alpMetadata->exp);
+                return val == decoded_value ? encoded_value : 0;
+            });
+        const auto& [minEncoded, maxEncoded] =
+            std::minmax_element(floatEncodedValues.begin(), floatEncodedValues.end());
+        metadata = std::make_unique<CompressionMetadata>(StorageValue(*min), StorageValue(*max),
+            alg.getCompressionType(), *alpMetadata, StorageValue(*minEncoded),
+            StorageValue(*maxEncoded), 10);
+    } else {
+        metadata = std::make_unique<CompressionMetadata>(StorageValue(*min), StorageValue(*max),
+            alg.getCompressionType());
+    }
+
+    auto numValuesPerPage = metadata->numValues(pageSize, dataType);
     int64_t numValuesRemaining = src.size();
     const uint8_t* srcCursor = (uint8_t*)src.data();
     auto pages = src.size() / numValuesPerPage + 1;
@@ -282,7 +368,7 @@ void integerPackingMultiPage(const std::vector<T>& src) {
     while (numValuesRemaining > 0) {
         ASSERT_LT(pageNum, pages);
         alg.compressNextPage(srcCursor, numValuesRemaining, dest[pageNum++].data(), pageSize,
-            metadata);
+            *metadata);
         numValuesRemaining -= numValuesPerPage;
     }
     ASSERT_EQ(srcCursor, (uint8_t*)(src.data() + src.size()));
@@ -290,18 +376,25 @@ void integerPackingMultiPage(const std::vector<T>& src) {
         auto page = i / numValuesPerPage;
         auto indexInPage = i % numValuesPerPage;
         T value;
-        alg.decompressFromPage(dest[page].data(), indexInPage, (uint8_t*)&value, 0, 1 /*numValues*/,
-            metadata);
-        EXPECT_EQ(src[i] - value, 0);
+        alg.decompressFromPage(dest[page].data(), indexInPage, (uint8_t*)&value, 0,
+            1
+            /*numValues*/,
+            *metadata);
         EXPECT_EQ(src[i], value);
     }
     std::vector<T> decompressed(src.size());
     for (auto i = 0u; i < src.size(); i += numValuesPerPage) {
         auto page = i / numValuesPerPage;
         alg.decompressFromPage(dest[page].data(), 0, (uint8_t*)decompressed.data(), i,
-            std::min(numValuesPerPage, (uint64_t)src.size() - i), metadata);
+            std::min(numValuesPerPage, (uint64_t)src.size() - i), *metadata);
     }
     ASSERT_EQ(decompressed, src);
+}
+
+template<typename T>
+void integerPackingMultiPage(const std::vector<T>& src) {
+    auto alg = IntegerBitpacking<T>();
+    compressionTestMultiPage(src, alg, LogicalType::INT64());
 }
 
 TEST(CompressionTests, IntegerPackingMultiPage64) {
@@ -446,4 +539,27 @@ TEST(CompressionTests, OffsetIntegerPackingMultiPageSigned64) {
     }
 
     integerPackingMultiPage(src);
+}
+
+TEST(CompressionTests, FloatCompressionTestMultiPage) {
+    std::vector<double> src(10 * 1024, 5.6);
+    src[1] = 12345678901234.56;
+    for (size_t i = 98; i < src.size(); i += 97) {
+        src[i] = src[i - 97] + 78901234.567;
+    }
+    auto alg = FloatCompression<double>();
+    alp::state floatMetadata;
+    std::vector<double> samples(src.size());
+    alp::AlpEncode<double>::init(src.data(), 0, src.size(), samples.data(), floatMetadata);
+    ASSERT_TRUE(floatMetadata.best_k_combinations.size() >= 1);
+    if (floatMetadata.best_k_combinations.size() >
+        1) { // Only if more than 1 found top combinations we sample and search
+        alp::AlpEncode<double>::find_best_exponent_factor_from_combinations(
+            floatMetadata.best_k_combinations, floatMetadata.k_combinations, src.data(),
+            floatMetadata.vector_size, floatMetadata.fac, floatMetadata.exp);
+    } else {
+        floatMetadata.exp = floatMetadata.best_k_combinations[0].first;
+        floatMetadata.fac = floatMetadata.best_k_combinations[0].second;
+    }
+    compressionTestMultiPage(src, alg, LogicalType::DOUBLE(), &floatMetadata);
 }

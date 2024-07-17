@@ -8,7 +8,9 @@
 #include "common/assert.h"
 #include "common/constants.h"
 #include "common/types/internal_id_t.h"
+#include "common/types/types.h"
 #include <bit>
+#include <span>
 
 namespace kuzu {
 namespace storage {
@@ -79,6 +81,20 @@ static constexpr uint8_t getSlotCapacity() {
 
 template<typename T>
 struct Slot {
+    static constexpr size_t serializedSizeBytes(common::PhysicalTypeID /*internalDataType*/) {
+        return sizeof(Slot);
+    }
+    decltype(auto) serializeToBytes(common::PhysicalTypeID internalDataType) const {
+        std::vector<std::byte> ret(serializedSizeBytes(internalDataType));
+        memcpy(ret.data(), this, serializedSizeBytes(internalDataType));
+        return ret;
+    }
+    void deserializeFromBytes(std::span<const std::byte> serializedSlot,
+        common::PhysicalTypeID internalDataType) {
+        static_assert(std::is_trivially_copyable_v<std::remove_cvref_t<decltype(*this)>>);
+        memcpy(this, serializedSlot.data(), serializedSizeBytes(internalDataType));
+    }
+
     Slot() : header{}, entries{} {}
     SlotHeader header;
     std::array<SlotEntry<T>, getSlotCapacity<T>()> entries;

@@ -270,25 +270,21 @@ void ListColumn::scanFiltered(Transaction* transaction, const ChunkState& state,
 
 offset_t ListColumn::readOffset(Transaction* transaction, const ChunkState& readState,
     offset_t offsetInNodeGroup) const {
+    offset_t ret;
     const auto& offsetState = readState.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX];
-    auto pageCursor = offsetColumn->getPageCursorForOffsetInGroup(offsetInNodeGroup, offsetState);
-    offset_t value;
-    offsetColumn->readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
-        offsetColumn->readToPageFunc(frame, pageCursor, (uint8_t*)&value, 0 /* posInVector */,
-            1 /* numValuesToRead */, offsetState.metadata.compMeta);
-    });
-    return value;
+    columnReader->readCompressedValueToPage(transaction, offsetState.metadata,
+        offsetState.numValuesPerPage, offsetInNodeGroup, reinterpret_cast<uint8_t*>(&ret), 0,
+        offsetColumn->readToPageFunc);
+    return ret;
 }
 
 list_size_t ListColumn::readSize(Transaction* transaction, const ChunkState& readState,
     offset_t offsetInNodeGroup) const {
     const auto& sizeState = readState.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX];
-    auto pageCursor = sizeColumn->getPageCursorForOffsetInGroup(offsetInNodeGroup, sizeState);
     offset_t value;
-    sizeColumn->readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
-        sizeColumn->readToPageFunc(frame, pageCursor, (uint8_t*)&value, 0 /* posInVector */,
-            1 /* numValuesToRead */, sizeState.metadata.compMeta);
-    });
+    columnReader->readCompressedValueToPage(transaction, sizeState.metadata,
+        sizeState.numValuesPerPage, offsetInNodeGroup, reinterpret_cast<uint8_t*>(&value), 0,
+        offsetColumn->readToPageFunc);
     return value;
 }
 

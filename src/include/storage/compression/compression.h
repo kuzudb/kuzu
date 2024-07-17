@@ -2,9 +2,11 @@
 
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <optional>
 #include <type_traits>
 
+#include "alp/state.hpp"
 #include "common/assert.h"
 #include "common/null_mask.h"
 #include "common/numeric_utils.h"
@@ -57,9 +59,10 @@ union StorageValue {
         floatVal = value;
     }
 
+    // TODO: add unit tests for this
     bool operator==(const StorageValue& other) const {
-        // All types are the same size, so we can compare any of them to check equality
-        return this->signedInt == other.signedInt;
+        // We zero-initialize any padding bits, so we can compare values to check equality
+        return this->signedInt128 == other.signedInt128;
     }
 
     template<StorageValueType T>
@@ -105,6 +108,17 @@ enum class CompressionType : uint8_t {
     INTEGER_BITPACKING = 1,
     BOOLEAN_BITPACKING = 2,
     CONSTANT = 3,
+    FLOAT = 4,
+};
+
+// used only for compressing floats/doubles
+struct ALPMetadata {
+    ALPMetadata() = default;
+    explicit ALPMetadata(const alp::state& alpState, uint32_t exceptionCount)
+        : exp(alpState.exp), fac(alpState.fac), exceptionCount(exceptionCount) {}
+    uint8_t exp;
+    uint8_t fac;
+    uint32_t exceptionCount;
 };
 
 // Data statistics used for determining how to handle compressed data
@@ -114,12 +128,39 @@ struct CompressionMetadata {
     // but no value will be larger than the maximum or smaller than the minimum
     StorageValue min;
     StorageValue max;
+
     CompressionType compression;
-    uint8_t _padding[7]{};
+
+    // only used for floats/doubles
+    ALPMetadata alpMetadata;
+
+    std::vector<CompressionMetadata> children;
 
     CompressionMetadata(StorageValue min, StorageValue max, CompressionType compression)
-        : min(min), max(max), compression(compression) {}
+        : min(min), max(max), compression(compression), alpMetadata() {}
+    CompressionMetadata(StorageValue min, StorageValue max, CompressionType compression,
+        const alp::state& state, StorageValue minEncoded, StorageValue maxEncoded,
+        uint32_t exceptionCount)
+        : min(min), max(max), compression(compression), alpMetadata(state, exceptionCount) {
+        children.emplace_back(minEncoded, maxEncoded,
+            minEncoded == maxEncoded ? CompressionType::CONSTANT :
+                                       CompressionType::INTEGER_BITPACKING);
+    }
+
+    static constexpr size_t getChildCount(common::PhysicalTypeID internalDataType) {
+        return (internalDataType == common::PhysicalTypeID::DOUBLE ||
+                   internalDataType == common::PhysicalTypeID::FLOAT) ?
+                   1 :
+                   0;
+    }
     inline bool isConstant() const { return compression == CompressionType::CONSTANT; }
+    CompressionMetadata& getChild(common::offset_t idx);
+    const CompressionMetadata& getChild(common::offset_t idx) const;
+
+    static size_t serializedSizeBytes(common::PhysicalTypeID internalDataType);
+    std::vector<std::byte> serializeToBytes(common::PhysicalTypeID internalDataType) const;
+    void deserializeFromBytes(std::span<const std::byte> serializedMetadata,
+        common::PhysicalTypeID internalDataType);
 
     // Returns the number of values which will be stored in the given data size
     // This must be consistent with the compression implementation for the given size
@@ -133,9 +174,6 @@ struct CompressionMetadata {
 
     std::string toString(const common::PhysicalTypeID physicalType) const;
 };
-// Padding should be kept to a minimum, but must be stored explicitly for consistent binary output
-// when writing the padding to disk.
-static_assert(sizeof(CompressionMetadata) == sizeof(StorageValue) * 2 + 8);
 
 class CompressionAlg {
 public:
@@ -208,7 +246,7 @@ public:
     // Nothing to do; constant compressed data is only updated if the update is to the same value
     void setValuesFromUncompressed(const uint8_t*, common::offset_t, uint8_t*, common::offset_t,
         common::offset_t, const CompressionMetadata&,
-        const common::NullMask* /*nullMask*/) const override {};
+        const common::NullMask* /*nullMask*/) const override{};
 
     CompressionType getCompressionType() const override { return CompressionType::CONSTANT; }
 
@@ -315,7 +353,7 @@ public:
         uint64_t dstOffset, uint64_t numValues,
         const struct CompressionMetadata& metadata) const final;
 
-    static bool canUpdateInPlace(std::span<T> value, const CompressionMetadata& metadata,
+    static bool canUpdateInPlace(std::span<const T> value, const CompressionMetadata& metadata,
         const std::optional<common::NullMask>& nullMask = std::nullopt,
         uint64_t nullMaskOffset = 0);
 
@@ -393,7 +431,7 @@ public:
     ReadCompressedValuesFromPageToVector(const ReadCompressedValuesFromPageToVector&) = default;
 
     void operator()(const uint8_t* frame, PageCursor& pageCursor, common::ValueVector* resultVector,
-        uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata);
+        uint32_t posInVector, uint64_t numValuesToRead, const CompressionMetadata& metadata);
 };
 
 class ReadCompressedValuesFromPage : public CompressedFunctor {

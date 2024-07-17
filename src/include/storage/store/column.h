@@ -4,8 +4,10 @@
 #include "common/null_mask.h"
 #include "common/types/types.h"
 #include "storage/compression/compression.h"
+#include "storage/compression/compression_float.h"
 #include "storage/db_file_id.h"
 #include "storage/store/column_chunk_data.h"
+#include "storage/store/column_read.h"
 
 namespace kuzu {
 namespace evaluator {
@@ -17,7 +19,7 @@ struct CompressionMetadata;
 
 using read_values_to_vector_func_t =
     std::function<void(uint8_t* frame, PageCursor& pageCursor, common::ValueVector* resultVector,
-        uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata)>;
+        uint32_t posInVector, uint64_t numValuesToRead, const CompressionMetadata& metadata)>;
 using write_values_from_vector_func_t = std::function<void(uint8_t* frame, uint16_t posInFrame,
     common::ValueVector* vector, uint32_t posInVector, const CompressionMetadata& metadata)>;
 using write_values_func_t = std::function<void(uint8_t* frame, uint16_t posInFrame,
@@ -43,8 +45,8 @@ class Column {
     friend class RelTableData;
 
 public:
-    // TODO(Guodong): Remove transaction from interface of Column. There is no need to be aware of
-    // transaction when reading/writing from/to disk pages.
+    // TODO(Guodong): Remove transaction from interface of Column. There is no need to be aware
+    // of transaction when reading/writing from/to disk pages.
     Column(std::string name, common::LogicalType dataType, BMFileHandle* dataFH,
         BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression,
         bool requireNullColumn = true);
@@ -105,18 +107,9 @@ protected:
     virtual void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
-    void scanUnfiltered(transaction::Transaction* transaction, PageCursor& pageCursor,
-        uint64_t numValuesToScan, common::ValueVector* resultVector,
-        const ColumnChunkMetadata& chunkMeta, uint64_t startPosInVector = 0) const;
-    void scanFiltered(transaction::Transaction* transaction, PageCursor& pageCursor,
-        uint64_t numValuesToScan, const common::SelectionVector& selVector,
-        common::ValueVector* resultVector, const ColumnChunkMetadata& chunkMeta) const;
 
     virtual void lookupInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector);
-
-    void readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
-        const std::function<void(uint8_t*)>& func) const;
 
     virtual void writeValues(ColumnChunkData& persistentChunk, ChunkState& state,
         common::offset_t dstOffset, const uint8_t* data, const common::NullMask* nullChunkData,
@@ -164,6 +157,8 @@ protected:
     read_values_to_page_func_t readToPageFunc;
     batch_lookup_func_t batchLookupFunc;
     bool enableCompression;
+
+    std::unique_ptr<ColumnReader> columnReader;
 };
 
 class InternalIDColumn final : public Column {
