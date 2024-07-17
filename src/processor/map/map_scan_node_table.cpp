@@ -63,12 +63,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
             tableInfosMap.insert({info.table->getTableID(), info.copy()});
         }
         auto printInfo = std::make_unique<OPPrintInfo>();
-
         return std::make_unique<OffsetScanNodeTable>(std::move(scanInfo), std::move(tableInfosMap),
             getOperatorID(), std::move(printInfo));
     }
     case LogicalScanNodeTableType::PRIMARY_KEY_SCAN: {
-
         auto& primaryKeyScanInfo = scan.getExtraInfo()->constCast<PrimaryKeyScanInfo>();
         auto exprMapper = ExpressionMapper(outSchema);
         auto evaluator = exprMapper.getEvaluator(primaryKeyScanInfo.key);

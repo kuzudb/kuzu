@@ -9,10 +9,11 @@ namespace kuzu {
 namespace processor {
 
 std::string PrimaryKeyScanPrintInfo::toString() const {
-    std::string result = "Expressions: ";
-    result += binder::ExpressionUtil::toString(expressions);
-    result += ", Key: ";
+    std::string result = "Key: ";
     result += key;
+    result += ", Expressions: ";
+    result += binder::ExpressionUtil::toString(expressions);
+
     return result;
 }
 
