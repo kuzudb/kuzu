@@ -30,9 +30,7 @@ public:
     static constexpr uint64_t MARKED = 2;
     static constexpr uint64_t EVICTED = 3;
 
-    PageState() {
-        stateAndVersion.store(EVICTED << NUM_BITS_TO_SHIFT_FOR_STATE);
-    }
+    PageState() { stateAndVersion.store(EVICTED << NUM_BITS_TO_SHIFT_FOR_STATE); }
 
     inline uint64_t getState() { return getState(stateAndVersion.load()); }
     inline static uint64_t getState(uint64_t stateAndVersion) {
@@ -90,9 +88,7 @@ public:
     inline bool isDirty() const { return stateAndVersion & DIRTY_MASK; }
     uint64_t getStateAndVersion() const { return stateAndVersion.load(); }
 
-    inline void resetToEvicted() {
-        stateAndVersion.store(EVICTED << NUM_BITS_TO_SHIFT_FOR_STATE);
-    }
+    inline void resetToEvicted() { stateAndVersion.store(EVICTED << NUM_BITS_TO_SHIFT_FOR_STATE); }
 
 private:
     // Highest 1 bit is dirty bit, and the rest are page state and version bits.
