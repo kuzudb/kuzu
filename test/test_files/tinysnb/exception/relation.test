@@ -6,7 +6,7 @@
 
 -STATEMENT MATCH (a:person)-[e:knows*1..3]->(b:person) RETURN e.age
 ---- error
-Binder exception: e has data type RECURSIVE_REL but (NODE,REL,STRUCT) was expected.
+Binder exception: e has data type RECURSIVE_REL but (NODE,REL,STRUCT,ANY) was expected.
 
 
 -STATEMENT MATCH (a:person)-[e:knows*1..3]->(b:person) WHERE ID(e) = 0 RETURN COUNT(*)

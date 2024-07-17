@@ -9,9 +9,13 @@
 #include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/cast/vector_cast_functions.h"
 #include "main/client_context.h"
+#include "parser/expression/parsed_expression_visitor.h"
+#include "parser/expression/parsed_parameter_expression.h"
+#include "binder/expression/parameter_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
+using namespace kuzu::parser;
 
 namespace kuzu {
 namespace binder {
@@ -20,6 +24,23 @@ static void validateAggregationExpressionIsNotNested(std::shared_ptr<Expression>
 
 std::shared_ptr<Expression> ExpressionBinder::bindExpression(
     const parser::ParsedExpression& parsedExpression) {
+    auto collector = ParsedParamExprCollector();
+    collector.visit(&parsedExpression);
+    if (collector.hasParamExprs()) {
+        bool allParamExist = true;
+        for (auto& parsedExpr : collector.getParamExprs()) {
+            auto name = parsedExpr->constCast<ParsedParameterExpression>().getParameterName();
+            if (!parameterMap.contains(name)) {
+                auto value = std::make_shared<Value>(Value::createNullValue());
+                parameterMap.insert({name, value});
+                allParamExist = false;
+            }
+        }
+        if (!allParamExist) {
+            return std::make_shared<ParameterExpression>(binder->getUniqueExpressionName(""),
+                Value::createNullValue());
+        }
+    }
     std::shared_ptr<Expression> expression;
     auto expressionType = parsedExpression.getExpressionType();
     if (ExpressionTypeUtil::isBoolean(expressionType)) {

@@ -67,7 +67,7 @@ Binder exception: Variable b is not in scope.
 -LOG BindPropertyLookUpOnExpression
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) RETURN (a.age + 2).age
 ---- error
-Binder exception: +(a.age,2) has data type INT64 but (NODE,REL,STRUCT) was expected.
+Binder exception: +(a.age,2) has data type INT64 but (NODE,REL,STRUCT,ANY) was expected.
 
 -LOG BindPropertyNotExist
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) RETURN a.foo

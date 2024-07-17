@@ -45,22 +45,22 @@ public:
     DELETE_COPY_DEFAULT_MOVE(ParsedExpression);
     virtual ~ParsedExpression() = default;
 
-    inline common::ExpressionType getExpressionType() const { return type; }
+    common::ExpressionType getExpressionType() const { return type; }
 
-    inline void setAlias(std::string name) { alias = std::move(name); }
+    void setAlias(std::string name) { alias = std::move(name); }
 
-    inline bool hasAlias() const { return !alias.empty(); }
+    bool hasAlias() const { return !alias.empty(); }
 
-    inline std::string getAlias() const { return alias; }
+    std::string getAlias() const { return alias; }
 
-    inline std::string getRawName() const { return rawName; }
+    std::string getRawName() const { return rawName; }
 
-    inline uint32_t getNumChildren() const { return children.size(); }
-    inline ParsedExpression* getChild(uint32_t idx) const { return children[idx].get(); }
+    uint32_t getNumChildren() const { return children.size(); }
+    ParsedExpression* getChild(uint32_t idx) const { return children[idx].get(); }
 
-    inline std::string toString() const { return rawName; }
+    std::string toString() const { return rawName; }
 
-    virtual inline std::unique_ptr<ParsedExpression> copy() const {
+    virtual std::unique_ptr<ParsedExpression> copy() const {
         return std::make_unique<ParsedExpression>(type, alias, rawName, copyVector(children));
     }
 
@@ -82,7 +82,7 @@ public:
     }
 
 private:
-    virtual inline void serializeInternal(common::Serializer&) const {}
+    virtual void serializeInternal(common::Serializer&) const {}
 
 protected:
     common::ExpressionType type;
