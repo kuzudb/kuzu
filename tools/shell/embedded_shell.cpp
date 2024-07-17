@@ -202,6 +202,8 @@ void highlight(char* buffer, char* resultBuf, uint32_t renderWidth, uint32_t cur
                     regex_search(token,
                         std::regex("^" + keyword + "\\(", std::regex_constants::icase)) ||
                     regex_search(token,
+                        std::regex("^" + keyword + "\\]", std::regex_constants::icase)) ||
+                    regex_search(token,
                         std::regex("\\(" + keyword + "$", std::regex_constants::icase))) {
                     token = regex_replace(token,
                         std::regex(std::string("(").append(keyword).append(")"),
