@@ -129,7 +129,7 @@ struct RdfScanBindData final : public function::ScanBindData {
     }
 };
 
-struct RdfInMemScanSharedState : public function::BaseFileScanSharedState {
+struct RdfInMemScanSharedState : public function::BaseScanSharedStateWithNumRows {
     std::shared_ptr<RdfStore> store;
     uint64_t rtCursor = 0;
     uint64_t ltCursor = 0;
@@ -138,7 +138,7 @@ struct RdfInMemScanSharedState : public function::BaseFileScanSharedState {
     static constexpr uint64_t batchSize = 500;
 
     explicit RdfInMemScanSharedState(std::shared_ptr<RdfStore> store)
-        : function::BaseFileScanSharedState{0}, store{std::move(store)} {}
+        : function::BaseScanSharedStateWithNumRows{0 /* numRows */}, store{std::move(store)} {}
 
     std::pair<uint64_t, uint64_t> getResourceTripleRange() {
         auto& store_ = common::ku_dynamic_cast<RdfStore&, TripleStore&>(*store);

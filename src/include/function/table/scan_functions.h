@@ -18,30 +18,31 @@ struct BaseScanSharedState : public TableFuncSharedState {
     virtual uint64_t getNumRows() const = 0;
 };
 
-struct BaseFileScanSharedState : public BaseScanSharedState {
-    uint64_t fileIdx;
-    uint64_t blockIdx;
+struct BaseScanSharedStateWithNumRows : public BaseScanSharedState {
     uint64_t numRows;
 
-    explicit BaseFileScanSharedState(uint64_t numRows)
-        : BaseScanSharedState{}, fileIdx{0}, blockIdx{0}, numRows{numRows} {}
+    explicit BaseScanSharedStateWithNumRows(uint64_t numRows) : numRows{numRows} {}
 
     uint64_t getNumRows() const override { return numRows; }
 };
 
-struct ScanSharedState : public BaseFileScanSharedState {
+struct ScanSharedState : public BaseScanSharedStateWithNumRows {
     const common::ReaderConfig readerConfig;
+    uint64_t fileIdx;
+    uint64_t blockIdx;
 
     ScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows)
-        : BaseFileScanSharedState{numRows}, readerConfig{std::move(readerConfig)} {}
+        : BaseScanSharedStateWithNumRows{numRows}, readerConfig{std::move(readerConfig)},
+          fileIdx{0}, blockIdx{0} {}
 
     std::pair<uint64_t, uint64_t> getNext();
 };
 
 struct ScanFileSharedState : public ScanSharedState {
     main::ClientContext* context;
-    uint64_t totalSize;
-
+    uint64_t totalSize; // TODO(Mattias): I think we should unify the design on how we calculate the
+                        // progress bar for scanning. Can we simply rely on a numRowsScaned stored
+                        // in the TableFuncSharedState to determine the progress.
     ScanFileSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
         main::ClientContext* context)
         : ScanSharedState{std::move(readerConfig), numRows}, context{context}, totalSize{0} {}

@@ -3,7 +3,7 @@
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "function/table/bind_data.h"
-#include "function/table_functions.h"
+#include "function/table/scan_functions.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -30,10 +30,10 @@ struct DuckDBScanBindData : public function::TableFuncBindData {
     init_duckdb_conn_t initDuckDBConn;
 };
 
-struct DuckDBScanSharedState : public function::TableFuncSharedState {
-    explicit DuckDBScanSharedState(std::unique_ptr<duckdb::QueryResult> queryResult);
+struct DuckDBScanSharedState : public function::BaseScanSharedStateWithNumRows {
+    explicit DuckDBScanSharedState(std::unique_ptr<duckdb::MaterializedQueryResult> queryResult);
 
-    std::unique_ptr<duckdb::QueryResult> queryResult;
+    std::unique_ptr<duckdb::MaterializedQueryResult> queryResult;
 };
 
 void getDuckDBVectorConversionFunc(common::PhysicalTypeID physicalTypeID,

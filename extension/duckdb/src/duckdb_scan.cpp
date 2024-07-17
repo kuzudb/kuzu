@@ -30,8 +30,10 @@ std::unique_ptr<TableFuncBindData> DuckDBScanBindData::copy() const {
         initDuckDBConn);
 }
 
-DuckDBScanSharedState::DuckDBScanSharedState(std::unique_ptr<duckdb::QueryResult> queryResult)
-    : TableFuncSharedState(), queryResult{std::move(queryResult)} {}
+DuckDBScanSharedState::DuckDBScanSharedState(
+    std::unique_ptr<duckdb::MaterializedQueryResult> queryResult)
+    : BaseScanSharedStateWithNumRows{queryResult->RowCount()}, queryResult{std::move(queryResult)} {
+}
 
 struct DuckDBScanFunction {
     static constexpr char DUCKDB_SCAN_FUNC_NAME[] = "duckdb_scan";
@@ -55,7 +57,7 @@ std::unique_ptr<function::TableFuncSharedState> DuckDBScanFunction::initSharedSt
     function::TableFunctionInitInput& input) {
     auto scanBindData = reinterpret_cast<DuckDBScanBindData*>(input.bindData);
     auto [db, conn] = scanBindData->initDuckDBConn();
-    auto result = conn.SendQuery(scanBindData->query);
+    auto result = conn.Query(scanBindData->query);
     if (result->HasError()) {
         throw common::RuntimeException(
             common::stringFormat("Failed to execute query: {} in duckdb.", result->GetError()));
@@ -219,8 +221,8 @@ static void convertDuckDBResultToVector(duckdb::DataChunk& duckDBResult, DataChu
 
 common::offset_t DuckDBScanFunction::tableFunc(function::TableFuncInput& input,
     function::TableFuncOutput& output) {
-    auto duckdbScanSharedState = reinterpret_cast<DuckDBScanSharedState*>(input.sharedState);
-    auto duckdbScanBindData = reinterpret_cast<DuckDBScanBindData*>(input.bindData);
+    auto duckdbScanSharedState = input.sharedState->ptrCast<DuckDBScanSharedState>();
+    auto duckdbScanBindData = input.bindData->constPtrCast<DuckDBScanBindData>();
     std::unique_ptr<duckdb::DataChunk> result;
     try {
         result = duckdbScanSharedState->queryResult->Fetch();

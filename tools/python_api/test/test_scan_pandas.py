@@ -378,6 +378,7 @@ def test_scan_long_utf8_string(tmp_path: Path) -> None:
     result = conn.execute("LOAD FROM df WHERE name = '非常长的中文' RETURN count(*);")
     assert result.get_next() == [1]
 
+
 def test_copy_from_pandas_object(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
