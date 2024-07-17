@@ -10,5 +10,13 @@ void Serializer::serializeValue(const std::string& value) {
     writer->write((uint8_t*)value.data(), valueLength);
 }
 
+void Serializer::writeDebuggingInfo(const std::string& value) {
+#if defined(KUZU_RUNTIME_CHECKS) || !defined(NDEBUG)
+    serializeValue<std::string>(value);
+#endif
+    // DO NOTHING
+    KU_UNUSED(value);
+}
+
 } // namespace common
 } // namespace kuzu
