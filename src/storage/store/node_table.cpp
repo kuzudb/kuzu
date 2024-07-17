@@ -1,13 +1,17 @@
 #include "storage/store/node_table.h"
 
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "common/cast.h"
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
+#include "common/types/internal_id_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "expression_evaluator/expression_evaluator.h"
 #include "storage/local_storage/local_node_table.h"
+#include "storage/local_storage/local_table.h"
 #include "storage/storage_manager.h"
+#include "storage/store/rel_table.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
@@ -132,7 +136,8 @@ offset_t NodeTable::validateUniquenessConstraint(Transaction* transaction,
     KU_ASSERT(pkVector->state->getSelVector().getSelSize() == 1);
     const auto pkVectorPos = pkVector->state->getSelVector()[0];
     offset_t offset;
-    if (pkIndex->lookup(transaction, propertyVectors[pkColumnID], pkVectorPos, offset)) {
+    if (pkIndex->lookup(transaction, propertyVectors[pkColumnID], pkVectorPos, offset,
+            [&](common::offset_t offset) { return isVisible(transaction, offset); })) {
         return offset;
     }
     return INVALID_OFFSET;
@@ -170,7 +175,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL);
         KU_ASSERT(localTable);
-        localTable->update(updateState);
+        localTable->update(transaction, updateState);
     } else {
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
         const auto rowIdxInGroup =
@@ -273,7 +278,8 @@ void NodeTable::insertPK(Transaction* transaction, const ValueVector& nodeIDVect
         if (pkVector.isNull(pkPos)) {
             throw RuntimeException(ExceptionMessage::nullPKException());
         }
-        if (!pkIndex->insert(transaction, const_cast<ValueVector*>(&pkVector), pkPos, offset)) {
+        if (!pkIndex->insert(transaction, const_cast<ValueVector*>(&pkVector), pkPos, offset,
+                [&](common::offset_t offset) { return isVisible(transaction, offset); })) {
             std::string pkStr;
             TypeUtils::visit(
                 pkVector.dataType.getPhysicalType(),
@@ -311,6 +317,22 @@ void NodeTable::serialize(Serializer& serializer) const {
 
 uint64_t NodeTable::getEstimatedMemoryUsage() const {
     return nodeGroups->getEstimatedMemoryUsage();
+}
+
+bool NodeTable::isVisible(const transaction::Transaction* transaction, offset_t offset) const {
+    auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
+    auto* nodeGroup = getNodeGroup(nodeGroupIdx);
+    if (nodeGroup->isDeleted(transaction, offsetInGroup)) {
+        return false;
+    }
+    return nodeGroup->isInserted(transaction, offsetInGroup);
+}
+
+bool NodeTable::lookupPK(transaction::Transaction* transaction, common::ValueVector* keyVector,
+    uint64_t vectorPos, common::offset_t& result) const {
+    // TODO(guodong): check the transaction local hash index as well.
+    return pkIndex->lookup(transaction, keyVector, vectorPos, result,
+        [&](offset_t offset) { return isVisible(transaction, offset); });
 }
 
 } // namespace storage

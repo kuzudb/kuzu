@@ -18,7 +18,7 @@ public:
     DELETE_COPY_AND_MOVE(LocalNodeTable);
 
     bool insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
-    bool update(TableUpdateState& updateState) override;
+    bool update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
     bool addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState) override;
@@ -37,6 +37,7 @@ public:
 
 private:
     void initLocalHashIndex();
+    bool isVisible(const transaction::Transaction* transaction, common::offset_t offset);
 
 private:
     PageCursor overflowCursor;

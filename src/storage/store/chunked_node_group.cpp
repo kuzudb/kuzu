@@ -296,6 +296,13 @@ bool ChunkedNodeGroup::isDeleted(const Transaction* transaction, row_idx_t rowIn
     return versionInfo->isDeleted(transaction, rowInChunk);
 }
 
+bool ChunkedNodeGroup::isInserted(const Transaction* transaction, row_idx_t rowInChunk) const {
+    if (!versionInfo) {
+        return rowInChunk < getNumRows();
+    }
+    return versionInfo->isInserted(transaction, rowInChunk);
+}
+
 bool ChunkedNodeGroup::hasAnyUpdates(Transaction* transaction, column_id_t columnID,
     row_idx_t startRow, length_t numRows) const {
     return getColumnChunk(columnID).hasUpdates(transaction, startRow, numRows);

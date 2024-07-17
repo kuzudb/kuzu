@@ -444,5 +444,18 @@ template std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanCommitted<ResidencySta
     const UniqLock& lock, const std::vector<column_id_t>& columnIDs,
     const std::vector<Column*>& columns);
 
+bool NodeGroup::isDeleted(const transaction::Transaction* transaction,
+    common::offset_t offsetInGroup) {
+    auto lock = chunkedGroups.lock();
+    auto* chunkedGroup = findChunkedGroupFromRowIdx(lock, offsetInGroup);
+    return chunkedGroup->isDeleted(transaction, offsetInGroup - chunkedGroup->getStartRowIdx());
+}
+bool NodeGroup::isInserted(const transaction::Transaction* transaction,
+    common::offset_t offsetInGroup) {
+    auto lock = chunkedGroups.lock();
+    auto* chunkedGroup = findChunkedGroupFromRowIdx(lock, offsetInGroup);
+    return chunkedGroup->isInserted(transaction, offsetInGroup - chunkedGroup->getStartRowIdx());
+}
+
 } // namespace storage
 } // namespace kuzu

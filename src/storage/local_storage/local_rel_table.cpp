@@ -61,7 +61,7 @@ bool LocalRelTable::insert(transaction::Transaction*, TableInsertState& state) {
     return true;
 }
 
-bool LocalRelTable::update(TableUpdateState& state) {
+bool LocalRelTable::update(transaction::Transaction* transaction, TableUpdateState& state) {
     const auto& updateState = state.cast<RelTableUpdateState>();
     const auto srcNodePos = updateState.srcNodeIDVector.state->getSelVector()[0];
     const auto dstNodePos = updateState.dstNodeIDVector.state->getSelVector()[0];
@@ -78,7 +78,7 @@ bool LocalRelTable::update(TableUpdateState& state) {
         return false;
     }
     KU_ASSERT(updateState.columnID != NBR_ID_COLUMN_ID);
-    localNodeGroup->update(&transaction::DUMMY_TRANSACTION, matchedRow,
+    localNodeGroup->update(transaction, matchedRow,
         rewriteLocalColumnID(RelDataDirection::FWD /* This is a dummy direction */,
             updateState.columnID),
         updateState.propertyVector);

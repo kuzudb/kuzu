@@ -262,8 +262,21 @@ bool VersionInfo::isDeleted(const transaction::Transaction* transaction,
     row_idx_t rowInChunk) const {
     auto [vectorIdx, rowInVector] =
         StorageUtils::getQuotientRemainder(rowInChunk, DEFAULT_VECTOR_CAPACITY);
+    KU_ASSERT(vectorIdx < vectorsInfo.size());
     if (vectorsInfo[vectorIdx]) {
         return vectorsInfo[vectorIdx]->isDeleted(transaction->getStartTS(), transaction->getID(),
+            rowInVector);
+    }
+    return false;
+}
+
+bool VersionInfo::isInserted(const transaction::Transaction* transaction,
+    row_idx_t rowInChunk) const {
+    auto [vectorIdx, rowInVector] =
+        StorageUtils::getQuotientRemainder(rowInChunk, DEFAULT_VECTOR_CAPACITY);
+    KU_ASSERT(vectorIdx < vectorsInfo.size());
+    if (vectorsInfo[vectorIdx]) {
+        return vectorsInfo[vectorIdx]->isInserted(transaction->getStartTS(), transaction->getID(),
             rowInVector);
     }
     return false;
