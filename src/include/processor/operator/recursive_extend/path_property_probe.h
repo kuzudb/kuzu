@@ -6,6 +6,23 @@
 namespace kuzu {
 namespace processor {
 
+struct PathPropertyProbePrintInfo final : OPPrintInfo {
+    std::string expressions;
+
+    explicit PathPropertyProbePrintInfo(std::string expressions)
+        : expressions(std::move(expressions)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<PathPropertyProbePrintInfo>(new PathPropertyProbePrintInfo(*this));
+    }
+
+private:
+    PathPropertyProbePrintInfo(const PathPropertyProbePrintInfo& other)
+        : OPPrintInfo(other), expressions(other.expressions) {}
+};
+
 struct PathPropertyProbeSharedState {
     std::shared_ptr<HashJoinSharedState> nodeHashTableState;
     std::shared_ptr<HashJoinSharedState> relHashTableState;

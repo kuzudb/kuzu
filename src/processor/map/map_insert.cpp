@@ -70,6 +70,7 @@ std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapInsert(LogicalOperator* logicalOperator) {
     auto& logicalInsert = logicalOperator->constCast<LogicalInsert>();
+    auto& logicalInsertInfo = logicalOperator->constCast<LogicalInsertInfo>();
     auto inSchema = logicalInsert.getChild(0)->getSchema();
     auto outSchema = logicalInsert.getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
