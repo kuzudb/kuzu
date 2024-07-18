@@ -69,10 +69,10 @@ void WAL::logAlterTableEntryRecord(BoundAlterInfo* alterInfo) {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logTableInsertion(table_id_t tableID, row_idx_t numRows,
+void WAL::logTableInsertion(table_id_t tableID, TableType tableType, row_idx_t numRows,
     const std::vector<ValueVector*>& vectors) {
     lock_t lck{mtx};
-    TableInsertionRecord walRecord(tableID, numRows, vectors);
+    TableInsertionRecord walRecord(tableID, tableType, numRows, vectors);
     addNewWALRecordNoLock(walRecord);
 }
 
@@ -86,6 +86,21 @@ void WAL::logNodeUpdate(table_id_t tableID, column_id_t columnID, offset_t nodeO
     ValueVector* propertyVector) {
     lock_t lck{mtx};
     NodeUpdateRecord walRecord(tableID, columnID, nodeOffset, propertyVector);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logRelDelete(table_id_t tableID, ValueVector* srcNodeVector, ValueVector* dstNodeVector,
+    ValueVector* relIDVector) {
+    lock_t lck{mtx};
+    RelDeletionRecord walRecord(tableID, srcNodeVector, dstNodeVector, relIDVector);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logRelUpdate(table_id_t tableID, column_id_t columnID, ValueVector* srcNodeVector,
+    ValueVector* dstNodeVector, ValueVector* relIDVector, ValueVector* propertyVector) {
+    lock_t lck{mtx};
+    RelUpdateRecord walRecord(tableID, columnID, srcNodeVector, dstNodeVector, relIDVector,
+        propertyVector);
     addNewWALRecordNoLock(walRecord);
 }
 
