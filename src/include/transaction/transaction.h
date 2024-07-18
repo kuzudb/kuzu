@@ -22,7 +22,7 @@ class WAL;
 namespace transaction {
 class TransactionManager;
 
-enum class TransactionType : uint8_t { READ_ONLY, WRITE, CHECKPOINT, DUMMY };
+enum class TransactionType : uint8_t { READ_ONLY, WRITE, CHECKPOINT, DUMMY, RECOVERY };
 
 class Transaction {
     friend class TransactionManager;
@@ -34,33 +34,30 @@ public:
         static_cast<common::transaction_t>(1) << 63;
 
     Transaction(main::ClientContext& clientContext, TransactionType transactionType,
-        common::transaction_t transactionID, common::transaction_t startTS)
-        : type{transactionType}, ID{transactionID}, startTS{startTS},
-          commitTS{common::INVALID_TRANSACTION} {
-        localStorage = std::make_unique<storage::LocalStorage>(clientContext);
-        undoBuffer = std::make_unique<storage::UndoBuffer>(clientContext, this);
-        currentTS = common::Timestamp::getCurrentTimestamp().value;
-    }
+        common::transaction_t transactionID, common::transaction_t startTS);
 
     explicit Transaction(TransactionType transactionType) noexcept
         : type{transactionType}, ID{DUMMY_TRANSACTION_ID}, startTS{DUMMY_START_TIMESTAMP},
-          commitTS{common::INVALID_TRANSACTION} {
+          commitTS{common::INVALID_TRANSACTION}, clientContext{nullptr} {
         currentTS = common::Timestamp::getCurrentTimestamp().value;
     }
     explicit Transaction(TransactionType transactionType, common::transaction_t ID,
         common::transaction_t startTS) noexcept
-        : type{transactionType}, ID{ID}, startTS{startTS}, commitTS{common::INVALID_TRANSACTION} {
+        : type{transactionType}, ID{ID}, startTS{startTS}, commitTS{common::INVALID_TRANSACTION},
+          clientContext{nullptr} {
         currentTS = common::Timestamp::getCurrentTimestamp().value;
     }
 
     TransactionType getType() const { return type; }
-    bool isDummy() const { return TransactionType::DUMMY == type; }
     bool isReadOnly() const { return TransactionType::READ_ONLY == type; }
     bool isWriteTransaction() const { return TransactionType::WRITE == type; }
+    bool isDummy() const { return TransactionType::DUMMY == type; }
+    bool isRecovery() const { return TransactionType::RECOVERY == type; }
     common::transaction_t getID() const { return ID; }
     common::transaction_t getStartTS() const { return startTS; }
     common::transaction_t getCommitTS() const { return commitTS; }
     int64_t getCurrentTS() const { return currentTS; }
+    main::ClientContext* getClientContext() const { return clientContext; }
 
     void commit(storage::WAL* wal) const;
     void rollback() const;
@@ -97,6 +94,7 @@ private:
     common::transaction_t startTS;
     common::transaction_t commitTS;
     int64_t currentTS;
+    main::ClientContext* clientContext;
     std::unique_ptr<storage::LocalStorage> localStorage;
     std::unique_ptr<storage::UndoBuffer> undoBuffer;
 

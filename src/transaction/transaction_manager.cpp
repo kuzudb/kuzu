@@ -44,9 +44,12 @@ void TransactionManager::commit(main::ClientContext& clientContext) {
     lastTimestamp++;
     transaction->commitTS = lastTimestamp;
     transaction->commit(&wal);
-    wal.flushAllPages();
+    if (!transaction->isRecovery()) {
+        wal.flushAllPages();
+    }
     clearActiveWriteTransactionIfWriteTransactionNoLock(transaction);
-    if (clientContext.getDBConfig()->autoCheckpoint && canAutoCheckpoint(clientContext)) {
+    if (clientContext.getDBConfig()->autoCheckpoint && !transaction->isRecovery() &&
+        canAutoCheckpoint(clientContext)) {
         checkpointNoLock(clientContext);
     }
 }

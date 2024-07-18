@@ -13,6 +13,7 @@ struct BoundAlterInfo;
 namespace common {
 class BufferedFileWriter;
 class VirtualFileSystem;
+class ValueVector;
 } // namespace common
 
 namespace catalog {
@@ -40,10 +41,15 @@ public:
     void logUpdateSequenceRecord(common::sequence_id_t sequenceID,
         catalog::SequenceChangeData data);
 
-    void logTableInsertion(common::table_id_t tableID,
+    void logTableInsertion(common::table_id_t tableID, common::row_idx_t numRows,
         const std::vector<common::ValueVector*>& vectors);
+    void logNodeDeletion(common::table_id_t tableID, common::offset_t nodeOffset,
+        common::ValueVector* pkVector);
+    void logNodeUpdate(common::table_id_t tableID, common::column_id_t columnID,
+        common::offset_t nodeOffset, common::ValueVector* propertyVector);
     void logCopyTableRecord(common::table_id_t tableID);
 
+    void logBeginTransaction();
     void logAndFlushCommit(uint64_t transactionID);
     void logAndFlushCheckpoint();
 
