@@ -173,7 +173,7 @@ bool LocalRelTable::scan(transaction::Transaction* transaction, TableScanState& 
         localScanState.rowIdxVector->setValue<row_idx_t>(i,
             localScanState.rowIndices[localScanState.nextRowToScan + i]);
     }
-    localScanState.rowIdxVector->state->getSelVectorUnsafe().setSelSize(numToScan);
+    localScanState.rowIdxVector->state->getSelVectorUnsafe().setToUnfiltered(numToScan);
     localNodeGroup->lookup(transaction, localScanState);
     localScanState.nextRowToScan += numToScan;
     return true;
