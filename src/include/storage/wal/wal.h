@@ -41,12 +41,17 @@ public:
     void logUpdateSequenceRecord(common::sequence_id_t sequenceID,
         catalog::SequenceChangeData data);
 
-    void logTableInsertion(common::table_id_t tableID, common::row_idx_t numRows,
-        const std::vector<common::ValueVector*>& vectors);
+    void logTableInsertion(common::table_id_t tableID, common::TableType tableType,
+        common::row_idx_t numRows, const std::vector<common::ValueVector*>& vectors);
     void logNodeDeletion(common::table_id_t tableID, common::offset_t nodeOffset,
         common::ValueVector* pkVector);
     void logNodeUpdate(common::table_id_t tableID, common::column_id_t columnID,
         common::offset_t nodeOffset, common::ValueVector* propertyVector);
+    void logRelDelete(common::table_id_t tableID, common::ValueVector* srcNodeVector,
+        common::ValueVector* dstNodeVector, common::ValueVector* relIDVector);
+    void logRelUpdate(common::table_id_t tableID, common::column_id_t columnID,
+        common::ValueVector* srcNodeVector, common::ValueVector* dstNodeVector,
+        common::ValueVector* relIDVector, common::ValueVector* propertyVector);
     void logCopyTableRecord(common::table_id_t tableID);
 
     void logBeginTransaction();

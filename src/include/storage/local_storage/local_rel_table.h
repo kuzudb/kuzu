@@ -37,6 +37,11 @@ public:
         fwdIndex.clear();
         bwdIndex.clear();
     }
+    bool isEmpty() const {
+        KU_ASSERT(
+            (fwdIndex.empty() && bwdIndex.empty()) || (!fwdIndex.empty() && !bwdIndex.empty()));
+        return fwdIndex.empty();
+    }
 
     common::column_id_t getNumColumns() const { return localNodeGroup->getDataTypes().size(); }
 

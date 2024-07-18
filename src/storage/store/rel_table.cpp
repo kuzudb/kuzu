@@ -5,6 +5,8 @@
 #include "storage/local_storage/local_table.h"
 #include "storage/storage_manager.h"
 #include "storage/store/rel_table_data.h"
+#include <main/client_context.h>
+#include <storage/store/node_table.h>
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -137,6 +139,14 @@ void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
         bwdRelTableData->update(transaction, relUpdateState.dstNodeIDVector,
             relUpdateState.relIDVector, relUpdateState.columnID, relUpdateState.propertyVector);
     }
+    if (!transaction->isRecovery()) {
+        KU_ASSERT(transaction->isWriteTransaction());
+        KU_ASSERT(transaction->getClientContext());
+        auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
+        wal.logRelUpdate(tableID, relUpdateState.columnID, &relUpdateState.srcNodeIDVector,
+            &relUpdateState.dstNodeIDVector, &relUpdateState.relIDVector,
+            &relUpdateState.propertyVector);
+    }
 }
 
 bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
@@ -157,6 +167,13 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
     }
     const auto bwdDeleted = bwdRelTableData->delete_(transaction, relDeleteState.dstNodeIDVector,
         relDeleteState.relIDVector);
+    if (!transaction->isRecovery()) {
+        KU_ASSERT(transaction->isWriteTransaction());
+        KU_ASSERT(transaction->getClientContext());
+        auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
+        wal.logRelDelete(tableID, &relDeleteState.srcNodeIDVector, &relDeleteState.dstNodeIDVector,
+            &relDeleteState.relIDVector);
+    }
     return bwdDeleted;
 }
 
@@ -253,13 +270,10 @@ NodeGroup* RelTable::getOrCreateNodeGroup(node_group_idx_t nodeGroupIdx,
 
 void RelTable::commit(Transaction* transaction, WAL* wal, LocalTable* localTable) {
     auto& localRelTable = localTable->cast<LocalRelTable>();
-    const auto dataChunkState = std::make_shared<DataChunkState>();
-    std::vector<column_id_t> columnIDsToScan;
-    for (auto i = 0u; i < localRelTable.getNumColumns(); i++) {
-        columnIDsToScan.push_back(i);
+    if (localRelTable.isEmpty()) {
+        localTable->clear();
+        return;
     }
-    auto types = LocalRelTable::getTypesForLocalRelTable(*this);
-    const auto dataChunk = constructDataChunk(types);
     // Update relID in local storage.
     updateRelOffsets(localRelTable);
     // Update src and dst node IDs in local storage.
@@ -273,6 +287,26 @@ void RelTable::commit(Transaction* transaction, WAL* wal, LocalTable* localTable
     }
     // For both forward and backward directions, re-org local storage into compact CSR node groups.
     auto& localNodeGroup = localRelTable.getLocalNodeGroup();
+    // Scan from local node group and write to WAL.
+    std::vector<column_id_t> columnIDsToScan;
+    for (auto i = 0u; i < localRelTable.getNumColumns(); i++) {
+        columnIDsToScan.push_back(i);
+    }
+    // Note: the use of `NodeTableScanState` is a bit misleading here. It is used to scan local rel
+    // tuples as local rel tuples are organized in the same way as node tuples.
+    NodeTableScanState scanState{columnIDsToScan};
+    const auto dataChunkState = std::make_shared<DataChunkState>();
+    const auto types = LocalRelTable::getTypesForLocalRelTable(*this);
+    const auto dataChunk = constructDataChunk(types);
+    for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
+        scanState.outputVectors.push_back(dataChunk->getValueVector(i).get());
+    }
+    scanState.IDVector = scanState.outputVectors[LOCAL_REL_ID_COLUMN_ID];
+    localNodeGroup.initializeScanState(transaction, scanState);
+    while (localNodeGroup.scan(transaction, scanState) != NODE_GROUP_SCAN_EMMPTY_RESULT) {
+        wal->logTableInsertion(tableID, TableType::REL,
+            scanState.IDVector->state->getSelVector().getSelSize(), scanState.outputVectors);
+    }
     auto& fwdIndex = localRelTable.getFWDIndex();
     for (auto& [boundNodeOffset, rowIndices] : fwdIndex) {
         auto [nodeGroupIdx, boundOffsetInGroup] =
