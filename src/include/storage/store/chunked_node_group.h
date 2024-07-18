@@ -8,6 +8,7 @@
 
 namespace kuzu {
 namespace storage {
+class MemoryManager;
 
 class Column;
 
@@ -15,9 +16,10 @@ class ChunkedNodeGroup {
 public:
     explicit ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunkData>> chunks)
         : chunks{std::move(chunks)} {}
-    ChunkedNodeGroup(const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
-        uint64_t capacity);
-    ChunkedNodeGroup(const std::vector<std::unique_ptr<Column>>& columns, bool enableCompression);
+    ChunkedNodeGroup(MemoryManager& mm, const std::vector<common::LogicalType>& columnTypes,
+        bool enableCompression, uint64_t capacity);
+    ChunkedNodeGroup(MemoryManager& mm, const std::vector<std::unique_ptr<Column>>& columns,
+        bool enableCompression);
     DELETE_COPY_DEFAULT_MOVE(ChunkedNodeGroup);
     virtual ~ChunkedNodeGroup() = default;
 
@@ -70,7 +72,7 @@ struct ChunkedCSRHeader {
     std::unique_ptr<ColumnChunkData> length;
 
     ChunkedCSRHeader() {}
-    explicit ChunkedCSRHeader(bool enableCompression,
+    explicit ChunkedCSRHeader(MemoryManager& mm, bool enableCompression,
         uint64_t capacity = common::DEFAULT_VECTOR_CAPACITY);
     DELETE_COPY_DEFAULT_MOVE(ChunkedCSRHeader);
 
@@ -102,7 +104,7 @@ struct ChunkedCSRHeader {
 
 class ChunkedCSRNodeGroup : public ChunkedNodeGroup {
 public:
-    ChunkedCSRNodeGroup(const std::vector<common::LogicalType>& columnTypes,
+    ChunkedCSRNodeGroup(MemoryManager& mm, const std::vector<common::LogicalType>& columnTypes,
         bool enableCompression);
     DELETE_COPY_DEFAULT_MOVE(ChunkedCSRNodeGroup);
 
@@ -120,12 +122,13 @@ private:
 };
 
 struct NodeGroupFactory {
-    static std::unique_ptr<ChunkedNodeGroup> createNodeGroup(common::ColumnDataFormat dataFormat,
-        const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
-        uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE) {
+    static std::unique_ptr<ChunkedNodeGroup> createNodeGroup(MemoryManager& mm,
+        common::ColumnDataFormat dataFormat, const std::vector<common::LogicalType>& columnTypes,
+        bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE) {
         return dataFormat == common::ColumnDataFormat::REGULAR ?
-                   std::make_unique<ChunkedNodeGroup>(columnTypes, enableCompression, capacity) :
-                   std::make_unique<ChunkedCSRNodeGroup>(columnTypes, enableCompression);
+                   std::make_unique<ChunkedNodeGroup>(mm, columnTypes, enableCompression,
+                       capacity) :
+                   std::make_unique<ChunkedCSRNodeGroup>(mm, columnTypes, enableCompression);
     }
 };
 

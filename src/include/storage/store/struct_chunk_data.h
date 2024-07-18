@@ -7,11 +7,12 @@
 
 namespace kuzu {
 namespace storage {
+class MemoryManager;
 
 class StructChunkData final : public ColumnChunkData {
 public:
-    StructChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
-        bool inMemory);
+    StructChunkData(MemoryManager& mm, common::LogicalType dataType, uint64_t capacity,
+        bool enableCompression, bool inMemory);
 
     ColumnChunkData* getChild(common::idx_t childIdx) {
         KU_ASSERT(childIdx < childChunks.size());

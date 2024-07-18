@@ -18,12 +18,12 @@ void RelBatchInsert::initGlobalStateInternal(ExecutionContext* /*context*/) {
     sharedState->logBatchInsertWALRecord();
 }
 
-void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/,
-    ExecutionContext* /*context*/) {
+void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* context) {
     localState = std::make_unique<RelBatchInsertLocalState>();
     auto relInfo = ku_dynamic_cast<BatchInsertInfo*, RelBatchInsertInfo*>(info.get());
-    localState->nodeGroup = NodeGroupFactory::createNodeGroup(ColumnDataFormat::CSR,
-        relInfo->columnTypes, relInfo->compressionEnabled);
+    localState->nodeGroup =
+        NodeGroupFactory::createNodeGroup(*context->clientContext->getMemoryManager(),
+            ColumnDataFormat::CSR, relInfo->columnTypes, relInfo->compressionEnabled);
 }
 
 void RelBatchInsert::executeInternal(ExecutionContext* context) {
@@ -83,7 +83,7 @@ void RelBatchInsert::mergeNodeGroup(transaction::Transaction* transaction,
     auto relTable = ku_dynamic_cast<Table*, RelTable*>(sharedState.table);
     auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(localState.nodeGroupIdx);
     auto localNG = std::make_unique<LocalRelNG>(nodeGroupStartOffset,
-        common::LogicalType::copy(relInfo.columnTypes));
+        common::LogicalType::copy(relInfo.columnTypes), sharedState.mm);
     auto& partition =
         partitionerSharedState.getPartitionBuffer(relInfo.partitioningIdx, localState.nodeGroupIdx);
     auto& insertChunks = localNG->getInsertChunks();

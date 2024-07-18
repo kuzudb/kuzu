@@ -1,5 +1,6 @@
 #include "storage/store/dictionary_chunk.h"
 
+#include "storage/buffer_manager/memory_manager.h"
 #include <bit>
 
 using namespace kuzu::common;
@@ -16,13 +17,13 @@ namespace storage {
 // is always extra space for updates.
 static const double OFFSET_CHUNK_CAPACITY_FACTOR = 0.75;
 
-DictionaryChunk::DictionaryChunk(uint64_t capacity, bool enableCompression)
+DictionaryChunk::DictionaryChunk(MemoryManager& mm, uint64_t capacity, bool enableCompression)
     : enableCompression{enableCompression},
       indexTable(0, StringOps(this) /*hash*/, StringOps(this) /*equals*/) {
     // Bitpacking might save 1 bit per value with regular ascii compared to UTF-8
-    stringDataChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT8(),
+    stringDataChunk = ColumnChunkFactory::createColumnChunkData(mm, LogicalType::UINT8(),
         false /*enableCompression*/, capacity, false /*hasNull*/);
-    offsetChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT64(),
+    offsetChunk = ColumnChunkFactory::createColumnChunkData(mm, LogicalType::UINT64(),
         enableCompression, capacity * OFFSET_CHUNK_CAPACITY_FACTOR, false /*hasNull*/);
 }
 

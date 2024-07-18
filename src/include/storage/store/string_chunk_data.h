@@ -7,11 +7,12 @@
 
 namespace kuzu {
 namespace storage {
+class MemoryManager;
 
 class StringChunkData final : public ColumnChunkData {
 public:
-    StringChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
-        bool inMemory);
+    StringChunkData(MemoryManager& mm, common::LogicalType dataType, uint64_t capacity,
+        bool enableCompression, bool inMemory);
 
     void resetToEmpty() override;
     void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;

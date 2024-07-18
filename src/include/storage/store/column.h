@@ -15,6 +15,7 @@ namespace evaluator {
 class ExpressionEvaluator;
 } // namespace evaluator
 namespace storage {
+class MemoryManager;
 
 struct CompressionMetadata;
 class DiskArrayCollection;
@@ -73,8 +74,8 @@ public:
     };
 
     Column(std::string name, common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
-        BMFileHandle* dataFH, DiskArrayCollection& metadataDAC, BufferManager* bufferManager,
-        WAL* wal, transaction::Transaction* transaction, bool enableCompression,
+        BMFileHandle* dataFH, DiskArrayCollection& metadataDAC, MemoryManager* mm, WAL* wal,
+        transaction::Transaction* transaction, bool enableCompression,
         bool requireNullColumn = true);
     virtual ~Column();
 
@@ -165,7 +166,8 @@ public:
     common::offset_t appendValues(ChunkState& state, const uint8_t* data,
         const common::NullMask* nullChunkData, common::offset_t numValues);
 
-    virtual std::unique_ptr<ColumnChunkData> getEmptyChunkForCommit(uint64_t capacity);
+    virtual std::unique_ptr<ColumnChunkData> getEmptyChunkForCommit(MemoryManager& mm,
+        uint64_t capacity);
     static void applyLocalChunkToColumnChunk(const ChunkCollection& localChunks,
         ColumnChunkData* columnChunk, const offset_to_row_idx_t& info);
 
@@ -260,7 +262,7 @@ protected:
     DBFileID dbFileID;
     common::LogicalType dataType;
     BMFileHandle* dataFH;
-    BufferManager* bufferManager;
+    MemoryManager* mm;
     WAL* wal;
     std::unique_ptr<DiskArray<ColumnChunkMetadata>> metadataDA;
     std::unique_ptr<NullColumn> nullColumn;
@@ -275,8 +277,8 @@ protected:
 class InternalIDColumn final : public Column {
 public:
     InternalIDColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo,
-        BMFileHandle* dataFH, DiskArrayCollection& metadataDAC, BufferManager* bufferManager,
-        WAL* wal, transaction::Transaction* transaction, bool enableCompression);
+        BMFileHandle* dataFH, DiskArrayCollection& metadataDAC, MemoryManager* mm, WAL* wal,
+        transaction::Transaction* transaction, bool enableCompression);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::idx_t vectorIdx, common::row_idx_t numValuesToScan,
@@ -312,7 +314,7 @@ private:
 struct ColumnFactory {
     static std::unique_ptr<Column> createColumn(std::string name, common::LogicalType dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-        DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
+        DiskArrayCollection& metadataDAC, MemoryManager* mm, WAL* wal,
         transaction::Transaction* transaction, bool enableCompression);
 };
 

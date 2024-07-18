@@ -1,19 +1,21 @@
 #include "processor/operator/scan/scan_rel_table.h"
 
+#include "storage/buffer_manager/memory_manager.h"
+
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
 
-void ScanRelTableInfo::initScanState() {
+void ScanRelTableInfo::initScanState(MemoryManager& mm) {
     localScanState =
-        std::make_unique<RelTableScanState>(columnIDs, direction, copyVector(columnPredicates));
+        std::make_unique<RelTableScanState>(mm, columnIDs, direction, copyVector(columnPredicates));
 }
 
 void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
-    relInfo.initScanState();
+    relInfo.initScanState(*context->clientContext->getMemoryManager());
     initVectors(*relInfo.localScanState, *resultSet);
 }
 

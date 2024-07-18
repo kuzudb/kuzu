@@ -51,7 +51,7 @@ class ListColumn final : public Column {
 public:
     ListColumn(std::string name, common::LogicalType dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-        DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
+        DiskArrayCollection& metadataDAC, MemoryManager* mm, WAL* wal,
         transaction::Transaction* transaction, bool enableCompression);
 
     void initChunkState(transaction::Transaction* transaction,

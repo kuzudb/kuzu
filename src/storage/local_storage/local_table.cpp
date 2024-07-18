@@ -9,13 +9,13 @@ namespace kuzu {
 namespace storage {
 
 LocalNodeGroup::LocalNodeGroup(offset_t nodeGroupStartOffset,
-    const std::vector<LogicalType>& dataTypes)
-    : nodeGroupStartOffset{nodeGroupStartOffset}, insertChunks{LogicalType::copy(dataTypes)} {
+    const std::vector<LogicalType>& dataTypes, MemoryManager* mm)
+    : nodeGroupStartOffset{nodeGroupStartOffset}, insertChunks{LogicalType::copy(dataTypes), mm} {
     updateChunks.reserve(dataTypes.size());
     for (auto i = 0u; i < dataTypes.size(); i++) {
         std::vector<LogicalType> chunkCollectionTypes;
         chunkCollectionTypes.push_back(dataTypes[i].copy());
-        LocalChunkedGroupCollection localDataChunkCollection(std::move(chunkCollectionTypes));
+        LocalChunkedGroupCollection localDataChunkCollection(std::move(chunkCollectionTypes), mm);
         updateChunks.push_back(std::move(localDataChunkCollection));
     }
 }
@@ -110,7 +110,7 @@ ChunkedNodeGroup* LocalChunkedGroupCollection::getLastChunkedGroupAndAddNewGroup
     if (chunkedGroups.getNumChunkedGroups() == 0 ||
         chunkedGroups.getChunkedGroup(chunkedGroups.getNumChunkedGroups() - 1)->getNumRows() ==
             ChunkedNodeGroupCollection::CHUNK_CAPACITY) {
-        chunkedGroups.merge(std::make_unique<ChunkedNodeGroup>(dataTypes,
+        chunkedGroups.merge(std::make_unique<ChunkedNodeGroup>(*mm, dataTypes,
             false /*enableCompression*/, ChunkedNodeGroupCollection::CHUNK_CAPACITY));
     }
     return chunkedGroups.getChunkedGroupUnsafe(chunkedGroups.getNumChunkedGroups() - 1);

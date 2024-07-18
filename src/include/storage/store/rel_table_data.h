@@ -7,6 +7,7 @@
 
 namespace kuzu {
 namespace storage {
+class MemoryManager;
 
 class LocalRelNG;
 // TODO: Rename to RelDataScanState.
@@ -16,14 +17,15 @@ struct RelDataReadState final : TableDataScanState {
     common::offset_t currentNodeOffset;
     common::offset_t posInCurrentCSR;
     // Temp auxiliary data structure to scan the offset of each CSR node in the offset column chunk.
-    ChunkedCSRHeader csrHeaderChunks = ChunkedCSRHeader(false /*enableCompression*/);
+    ChunkedCSRHeader csrHeaderChunks;
 
     bool readFromPersistentStorage;
     // Following fields are used for local storage.
     bool readFromLocalStorage;
     LocalRelNG* localNodeGroup;
 
-    explicit RelDataReadState(const std::vector<common::column_id_t>& columnIDs);
+    explicit RelDataReadState(MemoryManager& memoryManager,
+        const std::vector<common::column_id_t>& columnIDs);
     DELETE_COPY_DEFAULT_MOVE(RelDataReadState);
 
     bool hasMoreToRead(const transaction::Transaction* transaction);
@@ -104,8 +106,8 @@ public:
         common::offset_t leftCSROffset = common::INVALID_OFFSET;
         common::offset_t rightCSROffset = common::INVALID_OFFSET;
 
-        explicit PersistentState(common::offset_t numNodes) {
-            header = ChunkedCSRHeader(false /*enableCompression*/, numNodes);
+        explicit PersistentState(MemoryManager& mm, common::offset_t numNodes) {
+            header = ChunkedCSRHeader(mm, false /*enableCompression*/, numNodes);
         }
     };
 
@@ -128,9 +130,9 @@ public:
         void setRegion(const PackedCSRRegion& region_) { region = region_; }
     };
 
-    RelTableData(BMFileHandle* dataFH, DiskArrayCollection* metadataDAC,
-        BufferManager* bufferManager, WAL* wal, catalog::TableCatalogEntry* tableEntry,
-        RelsStoreStats* relsStoreStats, common::RelDataDirection direction, bool enableCompression);
+    RelTableData(BMFileHandle* dataFH, DiskArrayCollection* metadataDAC, MemoryManager* mm,
+        WAL* wal, catalog::TableCatalogEntry* tableEntry, RelsStoreStats* relsStoreStats,
+        common::RelDataDirection direction, bool enableCompression);
 
     void initializeScanState(transaction::Transaction* transaction,
         TableScanState& scanState) const override;

@@ -1,6 +1,7 @@
 #include "storage/store/string_chunk_data.h"
 
 #include "common/data_chunk/sel_vector.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/dictionary_chunk.h"
 
 using namespace kuzu::common;
@@ -8,15 +9,15 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-StringChunkData::StringChunkData(LogicalType dataType, uint64_t capacity, bool enableCompression,
-    bool inMemory)
-    : ColumnChunkData{std::move(dataType), capacity, enableCompression},
+StringChunkData::StringChunkData(MemoryManager& mm, LogicalType dataType, uint64_t capacity,
+    bool enableCompression, bool inMemory)
+    : ColumnChunkData{mm, std::move(dataType), capacity, enableCompression},
       dictionaryChunk{
-          std::make_unique<DictionaryChunk>(inMemory ? 0 : capacity, enableCompression)},
+          std::make_unique<DictionaryChunk>(mm, inMemory ? 0 : capacity, enableCompression)},
       needFinalize{false} {
 
     // create index chunk
-    indexColumnChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT32(),
+    indexColumnChunk = ColumnChunkFactory::createColumnChunkData(mm, LogicalType::UINT32(),
         enableCompression, capacity, inMemory, false /*hasNull*/);
 }
 
@@ -182,7 +183,8 @@ void StringChunkData::finalize() {
     // We already de-duplicate as we go, but when out of place updates occur new values will be
     // appended to the end and the original values may be able to be pruned before flushing them to
     // disk
-    auto newDictionaryChunk = std::make_unique<DictionaryChunk>(numValues, enableCompression);
+    auto newDictionaryChunk =
+        std::make_unique<DictionaryChunk>(*buffer->mm, numValues, enableCompression);
     // Each index is replaced by a new one for the de-duplicated data in the new dictionary.
     for (auto i = 0u; i < numValues; i++) {
         if (nullChunk->isNull(i)) {

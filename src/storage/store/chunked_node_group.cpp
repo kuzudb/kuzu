@@ -3,6 +3,7 @@
 #include "common/assert.h"
 #include "common/constants.h"
 #include "common/types/internal_id_t.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/column.h"
 
 using namespace kuzu::common;
@@ -49,22 +50,22 @@ void ChunkedCSRHeader::fillDefaultValues(offset_t newNumValues) const {
         offset->getNumValues() >= newNumValues && length->getNumValues() == offset->getNumValues());
 }
 
-ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<common::LogicalType>& columnTypes,
-    bool enableCompression, uint64_t capacity)
+ChunkedNodeGroup::ChunkedNodeGroup(MemoryManager& mm,
+    const std::vector<common::LogicalType>& columnTypes, bool enableCompression, uint64_t capacity)
     : nodeGroupIdx{UINT64_MAX}, numRows{0} {
     chunks.reserve(columnTypes.size());
     for (auto& type : columnTypes) {
-        chunks.push_back(
-            ColumnChunkFactory::createColumnChunkData(type.copy(), enableCompression, capacity));
+        chunks.push_back(ColumnChunkFactory::createColumnChunkData(mm, type.copy(),
+            enableCompression, capacity));
     }
 }
 
-ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<std::unique_ptr<Column>>& columns,
-    bool enableCompression)
+ChunkedNodeGroup::ChunkedNodeGroup(MemoryManager& mm,
+    const std::vector<std::unique_ptr<Column>>& columns, bool enableCompression)
     : nodeGroupIdx{UINT64_MAX}, numRows{0} {
     chunks.reserve(columns.size());
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
-        chunks.push_back(ColumnChunkFactory::createColumnChunkData(
+        chunks.push_back(ColumnChunkFactory::createColumnChunkData(mm,
             columns[columnID]->getDataType().copy(), enableCompression));
     }
 }
@@ -154,10 +155,10 @@ void ChunkedNodeGroup::finalize(uint64_t nodeGroupIdx_) {
     }
 }
 
-ChunkedCSRHeader::ChunkedCSRHeader(bool enableCompression, uint64_t capacity) {
-    offset = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT64(), enableCompression,
+ChunkedCSRHeader::ChunkedCSRHeader(MemoryManager& mm, bool enableCompression, uint64_t capacity) {
+    offset = ColumnChunkFactory::createColumnChunkData(mm, LogicalType::UINT64(), enableCompression,
         capacity);
-    length = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT64(), enableCompression,
+    length = ColumnChunkFactory::createColumnChunkData(mm, LogicalType::UINT64(), enableCompression,
         capacity);
 }
 
@@ -181,12 +182,12 @@ length_t ChunkedCSRHeader::getCSRLength(offset_t nodeOffset) const {
     return nodeOffset >= length->getNumValues() ? 0 : length->getValue<length_t>(nodeOffset);
 }
 
-ChunkedCSRNodeGroup::ChunkedCSRNodeGroup(const std::vector<LogicalType>& columnTypes,
-    bool enableCompression)
+ChunkedCSRNodeGroup::ChunkedCSRNodeGroup(MemoryManager& mm,
+    const std::vector<LogicalType>& columnTypes, bool enableCompression)
     // By default, initialize all column chunks except for the csrOffsetChunk to empty, as they
     // should be resized after csr offset calculation (e.g., during RelBatchInsert).
-    : ChunkedNodeGroup{columnTypes, enableCompression, 0 /* capacity */} {
-    csrHeader = ChunkedCSRHeader(enableCompression);
+    : ChunkedNodeGroup{mm, columnTypes, enableCompression, 0 /* capacity */} {
+    csrHeader = ChunkedCSRHeader(mm, enableCompression);
 }
 
 } // namespace storage

@@ -7,6 +7,7 @@
 namespace kuzu {
 namespace storage {
 class TablesStatistics;
+class MemoryManager;
 
 class LocalNodeNG;
 struct NodeDataScanState final : TableDataScanState {
@@ -32,7 +33,7 @@ class LocalTableData;
 class NodeTableData final : public TableData {
 public:
     NodeTableData(BMFileHandle* dataFH, DiskArrayCollection* metadataDAC,
-        catalog::TableCatalogEntry* tableEntry, BufferManager* bufferManager, WAL* wal,
+        catalog::TableCatalogEntry* tableEntry, MemoryManager* mm, WAL* wal,
         const std::vector<catalog::Property>& properties, TablesStatistics* tablesStatistics,
         bool enableCompression);
 

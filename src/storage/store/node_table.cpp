@@ -25,7 +25,7 @@ NodeTable::NodeTable(StorageManager* storageManager, NodeTableCatalogEntry* node
           &storageManager->getWAL()},
       pkColumnID{nodeTableEntry->getColumnID(nodeTableEntry->getPrimaryKeyPID())} {
     tableData = std::make_unique<NodeTableData>(storageManager->getDataFH(),
-        storageManager->getMetadataDAC(), nodeTableEntry, bufferManager, wal,
+        storageManager->getMetadataDAC(), nodeTableEntry, memoryManager, wal,
         nodeTableEntry->getPropertiesRef(), storageManager->getNodesStatisticsAndDeletedIDs(),
         storageManager->compressionEnabled());
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
@@ -37,8 +37,8 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
     main::ClientContext* context) {
     pkIndex = std::make_unique<PrimaryKeyIndex>(
         StorageUtils::getNodeIndexIDAndFName(vfs, databasePath, tableID), readOnly,
-        nodeTableEntry->getPrimaryKey()->getDataType().getPhysicalType(), *bufferManager, wal, vfs,
-        context);
+        nodeTableEntry->getPrimaryKey()->getDataType().getPhysicalType(),
+        *memoryManager->getBufferManager(), wal, vfs, context);
 }
 
 void NodeTable::initializeScanState(Transaction* transaction, TableScanState& scanState) const {

@@ -9,6 +9,7 @@
 
 namespace kuzu {
 namespace storage {
+class MemoryManager;
 
 using offset_to_row_idx_t = std::map<common::offset_t, common::row_idx_t>;
 using offset_to_row_idx_vec_t = std::map<common::offset_t, std::vector<common::row_idx_t>>;
@@ -21,9 +22,10 @@ using ChunkCollection = std::vector<ColumnChunkData*>;
 
 class LocalChunkedGroupCollection {
 public:
-    explicit LocalChunkedGroupCollection(std::vector<common::LogicalType> dataTypes)
+    explicit LocalChunkedGroupCollection(std::vector<common::LogicalType> dataTypes,
+        MemoryManager* mm)
         : dataTypes{std::move(dataTypes)},
-          chunkedGroups{common::LogicalType::copy(this->dataTypes)}, numRows{0} {}
+          chunkedGroups{common::LogicalType::copy(this->dataTypes)}, numRows{0}, mm{mm} {}
     DELETE_COPY_DEFAULT_MOVE(LocalChunkedGroupCollection);
 
     static std::pair<uint32_t, uint64_t> getChunkIdxAndOffsetInChunk(common::row_idx_t rowIdx) {
@@ -105,6 +107,7 @@ private:
 
     // Only used for rel tables. Should be moved out later.
     offset_to_row_idx_vec_t srcNodeOffsetToRelOffsets;
+    MemoryManager* mm;
 };
 
 class LocalDeletionInfo {
@@ -151,7 +154,7 @@ private:
 class LocalNodeGroup {
 public:
     LocalNodeGroup(common::offset_t nodeGroupStartOffset,
-        const std::vector<common::LogicalType>& dataTypes);
+        const std::vector<common::LogicalType>& dataTypes, MemoryManager* mm);
     DELETE_COPY_DEFAULT_MOVE(LocalNodeGroup);
     virtual ~LocalNodeGroup() = default;
 
@@ -186,8 +189,9 @@ class LocalTableData {
     friend class NodeTableData;
 
 public:
-    explicit LocalTableData(common::table_id_t tableID, std::vector<common::LogicalType> dataTypes)
-        : tableID{tableID}, dataTypes{std::move(dataTypes)} {}
+    explicit LocalTableData(common::table_id_t tableID, std::vector<common::LogicalType> dataTypes,
+        MemoryManager* mm)
+        : tableID{tableID}, dataTypes{std::move(dataTypes)}, mm{mm} {}
     virtual ~LocalTableData() = default;
 
     void clear() { nodeGroups.clear(); }
@@ -214,6 +218,7 @@ protected:
     std::vector<common::LogicalType> dataTypes;
 
     std::map<common::node_group_idx_t, std::unique_ptr<LocalNodeGroup>> nodeGroups;
+    MemoryManager* mm;
 };
 
 struct TableInsertState;

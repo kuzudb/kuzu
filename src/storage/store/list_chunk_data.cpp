@@ -4,21 +4,23 @@
 
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/value/value.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
-ListChunkData::ListChunkData(LogicalType dataType, uint64_t capacity, bool enableCompression,
-    bool inMemory)
-    : ColumnChunkData{std::move(dataType), capacity, enableCompression, true /* hasNullChunk */} {
-    offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(common::LogicalType::UINT64(),
+ListChunkData::ListChunkData(MemoryManager& mm, LogicalType dataType, uint64_t capacity,
+    bool enableCompression, bool inMemory)
+    : ColumnChunkData{mm, std::move(dataType), capacity, enableCompression,
+          true /* hasNullChunk */} {
+    offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(mm, common::LogicalType::UINT64(),
         enableCompression, capacity, false /*inMemory*/, false /*hasNull*/);
-    sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(common::LogicalType::UINT32(),
+    sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(mm, common::LogicalType::UINT32(),
         enableCompression, capacity, false /*inMemory*/, false /*hasNull*/);
     dataColumnChunk =
-        ColumnChunkFactory::createColumnChunkData(ListType::getChildType(this->dataType).copy(),
+        ColumnChunkFactory::createColumnChunkData(mm, ListType::getChildType(this->dataType).copy(),
             enableCompression, 0 /* capacity */, inMemory);
     checkOffsetSortedAsc = false;
     KU_ASSERT(this->dataType.getPhysicalType() == PhysicalTypeID::LIST ||
@@ -93,8 +95,9 @@ void ListChunkData::resetToEmpty() {
     ColumnChunkData::resetToEmpty();
     sizeColumnChunk->resetToEmpty();
     offsetColumnChunk->resetToEmpty();
-    dataColumnChunk = ColumnChunkFactory::createColumnChunkData(
-        ListType::getChildType(this->dataType).copy(), enableCompression, 0 /* capacity */);
+    // TODO: This was creating an entirely new chunk. Not sure why
+    // see b3a1728708720e203c9
+    dataColumnChunk->resetToEmpty();
 }
 
 void ListChunkData::append(ValueVector* vector, const SelectionVector& selVector) {
@@ -282,8 +285,8 @@ void ListChunkData::resetOffset() {
 
 void ListChunkData::finalize() {
     // rewrite the column chunk for better scanning performance
-    auto newColumnChunk =
-        ColumnChunkFactory::createColumnChunkData(dataType.copy(), enableCompression, capacity);
+    auto newColumnChunk = ColumnChunkFactory::createColumnChunkData(*buffer->mm, dataType.copy(),
+        enableCompression, capacity);
     uint64_t totalListLen = dataColumnChunk->getNumValues();
     uint64_t resizeThreshold = dataColumnChunk->getCapacity() / 2;
     // if the list is not very long, we do not need to rewrite

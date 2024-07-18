@@ -20,10 +20,12 @@ LocalTable* LocalStorage::getLocalTable(table_id_t tableID, NotExistAction actio
             const auto table = clientContext.getStorageManager()->getTable(tableID);
             switch (table->getTableType()) {
             case TableType::NODE: {
-                tables[tableID] = std::make_unique<LocalNodeTable>(*table);
+                tables[tableID] =
+                    std::make_unique<LocalNodeTable>(*table, clientContext.getMemoryManager());
             } break;
             case TableType::REL: {
-                tables[tableID] = std::make_unique<LocalRelTable>(*table);
+                tables[tableID] =
+                    std::make_unique<LocalRelTable>(*table, clientContext.getMemoryManager());
             } break;
             default:
                 KU_UNREACHABLE;

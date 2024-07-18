@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "common/null_mask.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
 #include "storage/store/column.h"
 #include "storage/store/null_column.h"
@@ -21,16 +22,16 @@ using string_offset_t = DictionaryChunk::string_offset_t;
 
 StringColumn::StringColumn(std::string name, LogicalType dataType,
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, DiskArrayCollection& metadataDAC,
-    BufferManager* bufferManager, WAL* wal, Transaction* transaction, bool enableCompression)
-    : Column{name, std::move(dataType), metaDAHeaderInfo, dataFH, metadataDAC, bufferManager, wal,
-          transaction, enableCompression, true /* requireNullColumn */},
-      dictionary{name, metaDAHeaderInfo, dataFH, metadataDAC, bufferManager, wal, transaction,
+    MemoryManager* mm, WAL* wal, Transaction* transaction, bool enableCompression)
+    : Column{name, std::move(dataType), metaDAHeaderInfo, dataFH, metadataDAC, mm, wal, transaction,
+          enableCompression, true /* requireNullColumn */},
+      dictionary{name, metaDAHeaderInfo, dataFH, metadataDAC, mm, wal, transaction,
           enableCompression} {
 
     auto indexColumnName =
         StorageUtils::getColumnName(name, StorageUtils::ColumnType::INDEX, "index");
     indexColumn = std::make_unique<Column>(indexColumnName, LogicalType::UINT32(),
-        *metaDAHeaderInfo.childrenInfos[2], dataFH, metadataDAC, bufferManager, wal, transaction,
+        *metaDAHeaderInfo.childrenInfos[2], dataFH, metadataDAC, mm, wal, transaction,
         enableCompression, false /*requireNullColumn*/);
 }
 

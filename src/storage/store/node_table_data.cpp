@@ -2,6 +2,7 @@
 
 #include "common/cast.h"
 #include "common/types/types.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/stats/nodes_store_statistics.h"
@@ -29,10 +30,10 @@ bool NodeDataScanState::nextVector() {
 }
 
 NodeTableData::NodeTableData(BMFileHandle* dataFH, DiskArrayCollection* metadataDAC,
-    TableCatalogEntry* tableEntry, BufferManager* bufferManager, WAL* wal,
+    TableCatalogEntry* tableEntry, MemoryManager* mm, WAL* wal,
     const std::vector<Property>& properties, TablesStatistics* tablesStatistics,
     bool enableCompression)
-    : TableData{dataFH, metadataDAC, tableEntry, bufferManager, wal, enableCompression} {
+    : TableData{dataFH, metadataDAC, tableEntry, mm, wal, enableCompression} {
     const auto maxColumnID =
         std::max_element(properties.begin(), properties.end(), [](auto& a, auto& b) {
             return a.getColumnID() < b.getColumnID();
@@ -44,9 +45,9 @@ NodeTableData::NodeTableData(BMFileHandle* dataFH, DiskArrayCollection* metadata
                                          ->getMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION, tableID, i);
         const auto columnName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT, "");
-        columns[property.getColumnID()] = ColumnFactory::createColumn(columnName,
-            property.getDataType().copy(), *metadataDAHInfo, dataFH, *metadataDAC, bufferManager,
-            wal, &DUMMY_WRITE_TRANSACTION, enableCompression);
+        columns[property.getColumnID()] =
+            ColumnFactory::createColumn(columnName, property.getDataType().copy(), *metadataDAHInfo,
+                dataFH, *metadataDAC, mm, wal, &DUMMY_WRITE_TRANSACTION, enableCompression);
     }
 }
 

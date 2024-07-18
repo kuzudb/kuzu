@@ -7,7 +7,8 @@
 namespace kuzu {
 namespace storage {
 class NodeTable;
-}
+class MemoryManager;
+} // namespace storage
 namespace processor {
 
 using partitioner_func_t =
@@ -35,6 +36,10 @@ struct PartitionerSharedState {
     std::mutex mtx;
     storage::NodeTable* srcNodeTable;
     storage::NodeTable* dstNodeTable;
+    storage::MemoryManager& mm;
+
+    explicit PartitionerSharedState(storage::MemoryManager& mm)
+        : mtx{}, srcNodeTable{nullptr}, dstNodeTable{nullptr}, mm{mm} {}
 
     // FIXME(Guodong): we should not maintain maxNodeOffsets.
     std::vector<common::offset_t> maxNodeOffsets;       // max node offset in each direction.

@@ -3,6 +3,7 @@
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 
@@ -11,13 +12,13 @@ namespace storage {
 
 // TODO: need to handle this case, when the whole struct entry is null, should set all fields to
 // null too.
-StructChunkData::StructChunkData(LogicalType dataType, uint64_t capacity, bool enableCompression,
-    bool inMemory)
-    : ColumnChunkData{std::move(dataType), capacity} {
+StructChunkData::StructChunkData(MemoryManager& mm, LogicalType dataType, uint64_t capacity,
+    bool enableCompression, bool inMemory)
+    : ColumnChunkData{mm, std::move(dataType), capacity} {
     auto fieldTypes = StructType::getFieldTypes(this->dataType);
     childChunks.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
-        childChunks[i] = ColumnChunkFactory::createColumnChunkData(fieldTypes[i]->copy(),
+        childChunks[i] = ColumnChunkFactory::createColumnChunkData(mm, fieldTypes[i]->copy(),
             enableCompression, capacity, inMemory);
     }
 }

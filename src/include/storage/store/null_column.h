@@ -1,5 +1,6 @@
 #pragma once
 
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/column.h"
 
 namespace kuzu {
@@ -14,7 +15,7 @@ public:
     static_assert(PageUtils::getNumElementsInAPage(1, false /*requireNullColumn*/) % 8 == 0);
 
     NullColumn(std::string name, common::page_idx_t metaDAHIdx, BMFileHandle* dataFH,
-        DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
+        DiskArrayCollection& metadataDAC, MemoryManager* mm, WAL* wal,
         transaction::Transaction* transaction, bool enableCompression);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
@@ -46,8 +47,9 @@ public:
         const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) override;
 
 private:
-    std::unique_ptr<ColumnChunkData> getEmptyChunkForCommit(uint64_t capacity) override {
-        return ColumnChunkFactory::createNullChunkData(enableCompression, capacity);
+    std::unique_ptr<ColumnChunkData> getEmptyChunkForCommit(MemoryManager& mm,
+        uint64_t capacity) override {
+        return ColumnChunkFactory::createNullChunkData(mm, enableCompression, capacity);
     }
 };
 

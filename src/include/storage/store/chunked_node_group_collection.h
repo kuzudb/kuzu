@@ -4,6 +4,7 @@
 
 namespace kuzu {
 namespace storage {
+class MemoryManager;
 
 class ChunkedNodeGroupCollection {
 public:
@@ -31,7 +32,7 @@ public:
     }
 
     void append(const std::vector<common::ValueVector*>& vectors,
-        const common::SelectionVector& selVector);
+        const common::SelectionVector& selVector, MemoryManager& mm);
 
     void merge(std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
     void merge(ChunkedNodeGroupCollection& other);

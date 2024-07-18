@@ -1,6 +1,7 @@
 #include "graph/on_disk_graph.h"
 
 #include "main/client_context.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_manager.h"
 
 using namespace kuzu::catalog;
@@ -11,11 +12,11 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace graph {
 
-static std::unique_ptr<RelTableScanState> getRelScanState(RelDataDirection direction,
-    ValueVector* srcVector, ValueVector* dstVector) {
+static std::unique_ptr<RelTableScanState> getRelScanState(MemoryManager& mm,
+    RelDataDirection direction, ValueVector* srcVector, ValueVector* dstVector) {
     // Empty columnIDs since we do not scan any rel property.
     auto columnIDs = std::vector<column_id_t>{};
-    auto scanState = std::make_unique<RelTableScanState>(columnIDs, direction);
+    auto scanState = std::make_unique<RelTableScanState>(mm, columnIDs, direction);
     scanState->nodeIDVector = srcVector;
     scanState->outputVectors.push_back(dstVector);
     return scanState;
@@ -29,9 +30,9 @@ OnDiskGraphScanState::OnDiskGraphScanState(MemoryManager* mm) {
     dstNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
     dstNodeIDVector->state = dstNodeIDVectorState;
     fwdScanState =
-        getRelScanState(RelDataDirection::FWD, srcNodeIDVector.get(), dstNodeIDVector.get());
+        getRelScanState(*mm, RelDataDirection::FWD, srcNodeIDVector.get(), dstNodeIDVector.get());
     bwdScanState =
-        getRelScanState(RelDataDirection::BWD, srcNodeIDVector.get(), dstNodeIDVector.get());
+        getRelScanState(*mm, RelDataDirection::BWD, srcNodeIDVector.get(), dstNodeIDVector.get());
 }
 
 OnDiskGraph::OnDiskGraph(ClientContext* context, const GraphEntry& entry)

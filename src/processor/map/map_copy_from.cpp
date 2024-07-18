@@ -64,8 +64,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     auto nodeTable = storageManager->getTable(nodeTableEntry->getTableID());
     auto fTable =
         FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
-    auto sharedState =
-        std::make_shared<NodeBatchInsertSharedState>(nodeTable, fTable, &storageManager->getWAL());
+    auto sharedState = std::make_shared<NodeBatchInsertSharedState>(nodeTable, fTable,
+        &storageManager->getWAL(), clientContext->getMemoryManager());
     if (prevOperator->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL) {
         auto call = prevOperator->ptrCast<TableFunctionCall>();
         sharedState->readerSharedState = call->getSharedState();
@@ -118,7 +118,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* lo
     }
     auto dataInfo = PartitionerDataInfo(LogicalType::copy(columnTypes), std::move(columnEvaluators),
         copyFromInfo.defaultColumns);
-    auto sharedState = std::make_shared<PartitionerSharedState>();
+    auto sharedState = std::make_shared<PartitionerSharedState>(*clientContext->getMemoryManager());
     auto printInfo = std::make_unique<OPPrintInfo>(logicalPartitioner.getExpressionsForPrinting());
     return std::make_unique<Partitioner>(std::make_unique<ResultSetDescriptor>(outFSchema),
         std::move(infos), std::move(dataInfo), std::move(sharedState), std::move(prevOperator),
@@ -169,8 +169,8 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
     }
     auto fTable =
         FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
-    auto batchInsertSharedState =
-        std::make_shared<BatchInsertSharedState>(relTable, fTable, &storageManager->getWAL());
+    auto batchInsertSharedState = std::make_shared<BatchInsertSharedState>(relTable, fTable,
+        &storageManager->getWAL(), clientContext->getMemoryManager());
     auto copyRelFWD = createCopyRel(partitionerSharedState, batchInsertSharedState, copyFrom,
         RelDataDirection::FWD, LogicalType::copy(columnTypes));
     auto copyRelBWD = createCopyRel(partitionerSharedState, batchInsertSharedState, copyFrom,

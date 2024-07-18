@@ -1,5 +1,6 @@
 #pragma once
 
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/column.h"
 
@@ -82,7 +83,7 @@ public:
 
 protected:
     TableData(BMFileHandle* dataFH, DiskArrayCollection* metadataDAC,
-        catalog::TableCatalogEntry* tableEntry, BufferManager* bufferManager, WAL* wal,
+        catalog::TableCatalogEntry* tableEntry, MemoryManager* memoryManager, WAL* wal,
         bool enableCompression);
 
 protected:
@@ -90,7 +91,7 @@ protected:
     DiskArrayCollection* metadataDAC;
     common::table_id_t tableID;
     std::string tableName;
-    BufferManager* bufferManager;
+    MemoryManager* memoryManager;
     WAL* wal;
     bool enableCompression;
     std::vector<std::unique_ptr<Column>> columns;

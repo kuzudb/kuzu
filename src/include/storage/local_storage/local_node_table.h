@@ -8,12 +8,13 @@ namespace storage {
 
 class ChunkedNodeGroup;
 struct TableScanState;
+class MemoryManager;
 
 class LocalNodeNG final : public LocalNodeGroup {
 public:
     LocalNodeNG(common::table_id_t tableID, common::offset_t nodeGroupStartOffset,
-        const std::vector<common::LogicalType>& dataTypes)
-        : LocalNodeGroup{nodeGroupStartOffset, dataTypes}, tableID{tableID} {}
+        const std::vector<common::LogicalType>& dataTypes, MemoryManager* mm)
+        : LocalNodeGroup{nodeGroupStartOffset, dataTypes, mm}, tableID{tableID} {}
     DELETE_COPY_DEFAULT_MOVE(LocalNodeNG);
 
     void initializeScanState(TableScanState& scanState) const;
@@ -41,8 +42,8 @@ private:
 class LocalNodeTableData final : public LocalTableData {
 public:
     explicit LocalNodeTableData(common::table_id_t tableID,
-        std::vector<common::LogicalType> dataTypes)
-        : LocalTableData{tableID, std::move(dataTypes)} {}
+        std::vector<common::LogicalType> dataTypes, MemoryManager* mm)
+        : LocalTableData{tableID, std::move(dataTypes), mm} {}
 
 private:
     LocalNodeGroup* getOrCreateLocalNodeGroup(common::ValueVector* nodeIDVector) override;
@@ -51,7 +52,7 @@ private:
 struct TableReadState;
 class LocalNodeTable final : public LocalTable {
 public:
-    explicit LocalNodeTable(Table& table);
+    explicit LocalNodeTable(Table& table, MemoryManager* mm);
 
     bool insert(TableInsertState& state) override;
     bool update(TableUpdateState& state) override;

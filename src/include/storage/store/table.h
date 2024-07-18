@@ -66,8 +66,7 @@ public:
         MemoryManager* memoryManager, WAL* wal)
         : tableType{tableEntry->getTableType()}, tableID{tableEntry->getTableID()},
           tableName{tableEntry->getName()}, tablesStatistics{tablesStatistics},
-          memoryManager{memoryManager}, bufferManager{memoryManager->getBufferManager()}, wal{wal} {
-    }
+          memoryManager{memoryManager}, wal{wal} {}
     virtual ~Table() = default;
 
     common::TableType getTableType() const { return tableType; }
@@ -117,7 +116,6 @@ protected:
     std::string tableName;
     TablesStatistics* tablesStatistics;
     MemoryManager* memoryManager;
-    BufferManager* bufferManager;
     WAL* wal;
 };
 

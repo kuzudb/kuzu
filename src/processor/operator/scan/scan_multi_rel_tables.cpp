@@ -49,7 +49,7 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
     ScanTable::initLocalStateInternal(resultSet, context);
     for (auto& [_, scanner] : scanners) {
         for (auto& relInfo : scanner.relInfos) {
-            relInfo.initScanState();
+            relInfo.initScanState(*context->clientContext->getMemoryManager());
             initVectors(*relInfo.localScanState, *resultSet);
             if (directionInfo.directionPos.isValid()) {
                 scanner.directionVector =

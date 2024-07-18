@@ -1,6 +1,7 @@
 #include "storage/store/list_column.h"
 
 #include "common/assert.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_structure/disk_array_collection.h"
 #include "storage/store/column.h"
 #include "storage/store/column_chunk_data.h"
@@ -52,23 +53,23 @@ bool ListOffsetSizeInfo::isOffsetSortedAscending(uint64_t startPos, uint64_t end
 
 ListColumn::ListColumn(std::string name, LogicalType dataType,
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, DiskArrayCollection& metadataDAC,
-    BufferManager* bufferManager, WAL* wal, Transaction* transaction, bool enableCompression)
-    : Column{name, std::move(dataType), metaDAHeaderInfo, dataFH, metadataDAC, bufferManager, wal,
-          transaction, enableCompression, true /* requireNullColumn */} {
+    MemoryManager* mm, WAL* wal, Transaction* transaction, bool enableCompression)
+    : Column{name, std::move(dataType), metaDAHeaderInfo, dataFH, metadataDAC, mm, wal, transaction,
+          enableCompression, true /* requireNullColumn */} {
     auto offsetColName =
         StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "offset_");
     auto sizeColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "size_");
     auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
     sizeColumn = std::make_unique<Column>(sizeColName, LogicalType::UINT32(),
-        *metaDAHeaderInfo.childrenInfos[SIZE_COLUMN_CHILD_READ_STATE_IDX], dataFH, metadataDAC,
-        bufferManager, wal, transaction, enableCompression, false /*requireNullColumn*/);
+        *metaDAHeaderInfo.childrenInfos[SIZE_COLUMN_CHILD_READ_STATE_IDX], dataFH, metadataDAC, mm,
+        wal, transaction, enableCompression, false /*requireNullColumn*/);
     dataColumn =
         ColumnFactory::createColumn(dataColName, ListType::getChildType(this->dataType).copy(),
             *metaDAHeaderInfo.childrenInfos[DATA_COLUMN_CHILD_READ_STATE_IDX], dataFH, metadataDAC,
-            bufferManager, wal, transaction, enableCompression);
+            mm, wal, transaction, enableCompression);
     offsetColumn = std::make_unique<Column>(offsetColName, LogicalType::UINT64(),
         *metaDAHeaderInfo.childrenInfos[OFFSET_COLUMN_CHILD_READ_STATE_IDX], dataFH, metadataDAC,
-        bufferManager, wal, transaction, enableCompression, false /*requireNullColumn*/);
+        mm, wal, transaction, enableCompression, false /*requireNullColumn*/);
 }
 
 void ListColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -160,9 +161,9 @@ void ListColumn::scan(Transaction* transaction, const ChunkState& state,
         listColumnChunk.resetOffset();
     } else {
         listColumnChunk.resizeDataColumnChunk(std::bit_ceil(resizeNumValues));
-        auto tmpDataColumnChunk =
-            ColumnChunkFactory::createColumnChunkData(ListType::getChildType(this->dataType).copy(),
-                enableCompression, std::bit_ceil(resizeNumValues));
+        auto tmpDataColumnChunk = ColumnChunkFactory::createColumnChunkData(*mm,
+            ListType::getChildType(this->dataType).copy(), enableCompression,
+            std::bit_ceil(resizeNumValues));
         auto* dataListColumnChunk = listColumnChunk.getDataColumnChunk();
         for (auto i = 0u; i < columnChunk->getNumValues(); i++) {
             offset_t startListOffset = listColumnChunk.getListStartOffset(i);
@@ -331,9 +332,9 @@ list_size_t ListColumn::readSize(Transaction* transaction, const ChunkState& rea
 ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
     const ChunkState& state, offset_t startOffsetInNodeGroup, offset_t endOffsetInNodeGroup) {
     auto numOffsetsToRead = endOffsetInNodeGroup - startOffsetInNodeGroup;
-    auto offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::INT64(),
+    auto offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(*mm, LogicalType::INT64(),
         enableCompression, numOffsetsToRead);
-    auto sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT32(),
+    auto sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(*mm, LogicalType::UINT32(),
         enableCompression, numOffsetsToRead);
     offsetColumn->scan(transaction, state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX],
         offsetColumnChunk.get(), startOffsetInNodeGroup, endOffsetInNodeGroup);
@@ -348,7 +349,7 @@ void ListColumn::prepareCommitForExistingChunk(Transaction* transaction, ChunkSt
     const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
     const offset_set_t&) {
     // TODO: Should handle deletions.
-    auto columnChunk = getEmptyChunkForCommit(updateInfo.size() + insertInfo.size());
+    auto columnChunk = getEmptyChunkForCommit(*mm, updateInfo.size() + insertInfo.size());
     std::vector<offset_t> dstOffsets;
     for (auto& [offsetInDstChunk, rowIdx] : updateInfo) {
         auto [chunkIdx, offsetInLocalChunk] =
@@ -444,9 +445,9 @@ void ListColumn::updateStateMetadataNumValues(ChunkState& state, size_t numValue
 void ListColumn::commitOffsetColumnChunkOutOfPlace(Transaction* transaction,
     ChunkState& offsetState, const std::vector<offset_t>& dstOffsets, ColumnChunkData* chunk,
     offset_t startSrcOffset) {
-    auto offsetColumnChunk =
-        ColumnChunkFactory::createColumnChunkData(offsetColumn->dataType.copy(), enableCompression,
-            1.5 * std::bit_ceil(offsetState.metadata.numValues + dstOffsets.size()));
+    auto offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(*mm,
+        offsetColumn->dataType.copy(), enableCompression,
+        1.5 * std::bit_ceil(offsetState.metadata.numValues + dstOffsets.size()));
     offsetColumn->scan(transaction, offsetState, offsetColumnChunk.get());
 
     auto numListsToAppend = std::min(chunk->getNumValues(), (uint64_t)dstOffsets.size());

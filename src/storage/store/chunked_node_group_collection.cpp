@@ -1,15 +1,17 @@
 #include "storage/store/chunked_node_group_collection.h"
 
+#include "storage/buffer_manager/memory_manager.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
 void ChunkedNodeGroupCollection::append(const std::vector<ValueVector*>& vectors,
-    const SelectionVector& selVector) {
+    const SelectionVector& selVector, MemoryManager& mm) {
     if (chunkedGroups.empty()) {
-        chunkedGroups.push_back(
-            std::make_unique<ChunkedNodeGroup>(types, false /*enableCompression*/, CHUNK_CAPACITY));
+        chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(mm, types,
+            false /*enableCompression*/, CHUNK_CAPACITY));
     }
     auto numRowsToAppend = selVector.getSelSize();
     row_idx_t numRowsAppended = 0;
@@ -25,7 +27,7 @@ void ChunkedNodeGroupCollection::append(const std::vector<ValueVector*>& vectors
         tmpSelVector.setToFiltered(numRowsToAppendInGroup);
         lastChunkedGroup->append(vectors, tmpSelVector, numRowsToAppendInGroup);
         if (lastChunkedGroup->getNumRows() == CHUNK_CAPACITY) {
-            chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(types,
+            chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(mm, types,
                 false /*enableCompression*/, CHUNK_CAPACITY));
         }
         numRowsAppended += numRowsToAppendInGroup;

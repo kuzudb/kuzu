@@ -1,6 +1,7 @@
 #include "storage/local_storage/local_node_table.h"
 
 #include "common/cast.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/node_table.h"
 
@@ -126,19 +127,19 @@ LocalNodeGroup* LocalNodeTableData::getOrCreateLocalNodeGroup(ValueVector* nodeI
     if (!nodeGroups.contains(nodeGroupIdx)) {
         auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         nodeGroups[nodeGroupIdx] =
-            std::make_unique<LocalNodeNG>(tableID, nodeGroupStartOffset, dataTypes);
+            std::make_unique<LocalNodeNG>(tableID, nodeGroupStartOffset, dataTypes, mm);
     }
     return nodeGroups.at(nodeGroupIdx).get();
 }
 
-LocalNodeTable::LocalNodeTable(Table& table) : LocalTable{table} {
+LocalNodeTable::LocalNodeTable(Table& table, MemoryManager* mm) : LocalTable{table} {
     const auto& nodeTable = ku_dynamic_cast<Table&, NodeTable&>(table);
     std::vector<LogicalType> types;
     for (auto i = 0u; i < nodeTable.getNumColumns(); i++) {
         types.push_back(nodeTable.getColumn(i)->getDataType().copy());
     }
     localTableDataCollection.push_back(
-        std::make_unique<LocalNodeTableData>(nodeTable.getTableID(), std::move(types)));
+        std::make_unique<LocalNodeTableData>(nodeTable.getTableID(), std::move(types), mm));
 }
 
 bool LocalNodeTable::insert(TableInsertState& state) {

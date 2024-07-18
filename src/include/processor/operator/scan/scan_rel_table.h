@@ -5,6 +5,9 @@
 #include "storage/store/rel_table.h"
 
 namespace kuzu {
+namespace storage {
+class MemoryManager;
+}
 namespace processor {
 
 struct ScanRelTableInfo {
@@ -22,7 +25,7 @@ struct ScanRelTableInfo {
           columnPredicates{std::move(columnPredicates)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ScanRelTableInfo);
 
-    void initScanState();
+    void initScanState(storage::MemoryManager& mm);
 
 private:
     ScanRelTableInfo(const ScanRelTableInfo& other)

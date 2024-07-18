@@ -7,6 +7,7 @@
 
 namespace kuzu {
 namespace storage {
+class MemoryManager;
 
 static constexpr common::column_id_t LOCAL_NBR_ID_COLUMN_ID = 0;
 static constexpr common::column_id_t LOCAL_REL_ID_COLUMN_ID = 1;
@@ -15,7 +16,8 @@ class LocalRelNG final : public LocalNodeGroup {
     friend class RelTableData;
 
 public:
-    LocalRelNG(common::offset_t nodeGroupStartOffset, std::vector<common::LogicalType> dataTypes);
+    LocalRelNG(common::offset_t nodeGroupStartOffset, std::vector<common::LogicalType> dataTypes,
+        MemoryManager* mm);
     DELETE_COPY_DEFAULT_MOVE(LocalRelNG);
 
     common::row_idx_t scanCSR(common::offset_t srcOffset, common::offset_t posToReadForOffset,
@@ -52,8 +54,8 @@ class LocalRelTableData final : public LocalTableData {
 
 public:
     explicit LocalRelTableData(common::table_id_t tableID,
-        std::vector<common::LogicalType> dataTypes)
-        : LocalTableData{tableID, std::move(dataTypes)} {}
+        std::vector<common::LogicalType> dataTypes, MemoryManager* mm)
+        : LocalTableData{tableID, std::move(dataTypes), mm} {}
 
 private:
     LocalNodeGroup* getOrCreateLocalNodeGroup(common::ValueVector* nodeIDVector) override;
@@ -61,7 +63,7 @@ private:
 
 class LocalRelTable final : public LocalTable {
 public:
-    explicit LocalRelTable(Table& table);
+    explicit LocalRelTable(Table& table, MemoryManager* mm);
 
     bool insert(TableInsertState& insertState) override;
     bool update(TableUpdateState& updateState) override;

@@ -5,12 +5,13 @@
 
 namespace kuzu {
 namespace storage {
+class MemoryManager;
 
 class ListChunkData final : public ColumnChunkData {
 
 public:
-    ListChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
-        bool inMemory);
+    ListChunkData(MemoryManager& mm, common::LogicalType dataType, uint64_t capacity,
+        bool enableCompression, bool inMemory);
 
     ColumnChunkData* getOffsetColumnChunk() const { return offsetColumnChunk.get(); }
 

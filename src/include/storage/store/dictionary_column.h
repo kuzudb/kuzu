@@ -9,8 +9,8 @@ namespace storage {
 class DictionaryColumn {
 public:
     DictionaryColumn(const std::string& name, const MetadataDAHInfo& metaDAHeaderInfo,
-        BMFileHandle* dataFH, DiskArrayCollection& metadataFH, BufferManager* bufferManager,
-        WAL* wal, transaction::Transaction* transaction, bool enableCompression);
+        BMFileHandle* dataFH, DiskArrayCollection& metadataFH, MemoryManager* mm, WAL* wal,
+        transaction::Transaction* transaction, bool enableCompression);
 
     void initChunkState(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, Column::ChunkState& columnReadState);

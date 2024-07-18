@@ -169,7 +169,7 @@ private:
  */
 
 class BufferManager {
-    friend class MemoryAllocator;
+    friend class MemoryManager;
 
 public:
     enum class PageReadPolicy : uint8_t { READ_PAGE = 0, DONT_READ_PAGE = 1 };

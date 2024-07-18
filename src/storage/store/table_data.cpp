@@ -2,6 +2,7 @@
 
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "expression_evaluator/expression_evaluator.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_structure/disk_array.h"
 
 using namespace kuzu::common;
@@ -12,10 +13,10 @@ namespace kuzu {
 namespace storage {
 
 TableData::TableData(BMFileHandle* dataFH, DiskArrayCollection* metadataDAC,
-    catalog::TableCatalogEntry* tableEntry, BufferManager* bufferManager, WAL* wal,
+    catalog::TableCatalogEntry* tableEntry, MemoryManager* memoryManager, WAL* wal,
     bool enableCompression)
     : dataFH{dataFH}, metadataDAC{metadataDAC}, tableID{tableEntry->getTableID()},
-      tableName{tableEntry->getName()}, bufferManager{bufferManager}, wal{wal},
+      tableName{tableEntry->getName()}, memoryManager{memoryManager}, wal{wal},
       enableCompression{enableCompression} {}
 
 void TableData::addColumn(Transaction* transaction, const std::string& colNamePrefix,
@@ -24,7 +25,7 @@ void TableData::addColumn(Transaction* transaction, const std::string& colNamePr
     auto colName = StorageUtils::getColumnName(property.getName(),
         StorageUtils::ColumnType::DEFAULT, colNamePrefix);
     auto column = ColumnFactory::createColumn(colName, property.getDataType().copy(),
-        metadataDAHInfo, dataFH, *metadataDAC, bufferManager, wal, transaction, enableCompression);
+        metadataDAHInfo, dataFH, *metadataDAC, memoryManager, wal, transaction, enableCompression);
     column->populateWithDefaultVal(transaction, metadataDA, defaultEvaluator);
     columns.push_back(std::move(column));
 }

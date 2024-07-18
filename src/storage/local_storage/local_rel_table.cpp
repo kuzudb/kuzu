@@ -1,5 +1,6 @@
 #include "storage/local_storage/local_rel_table.h"
 
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/rel_table.h"
 
@@ -8,8 +9,9 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-LocalRelNG::LocalRelNG(offset_t nodeGroupStartOffset, std::vector<LogicalType> dataTypes)
-    : LocalNodeGroup{nodeGroupStartOffset, std::move(dataTypes)} {}
+LocalRelNG::LocalRelNG(offset_t nodeGroupStartOffset, std::vector<LogicalType> dataTypes,
+    MemoryManager* mm)
+    : LocalNodeGroup{nodeGroupStartOffset, std::move(dataTypes), mm} {}
 
 row_idx_t LocalRelNG::scanCSR(offset_t srcOffsetInChunk, offset_t posToReadForOffset,
     const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
@@ -201,12 +203,12 @@ LocalNodeGroup* LocalRelTableData::getOrCreateLocalNodeGroup(ValueVector* nodeID
     if (!nodeGroups.contains(nodeGroupIdx)) {
         auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         nodeGroups[nodeGroupIdx] = std::make_unique<LocalRelNG>(nodeGroupStartOffset,
-            common::LogicalType::copy(dataTypes));
+            common::LogicalType::copy(dataTypes), mm);
     }
     return nodeGroups.at(nodeGroupIdx).get();
 }
 
-LocalRelTable::LocalRelTable(Table& table) : LocalTable{table} {
+LocalRelTable::LocalRelTable(Table& table, MemoryManager* mm) : LocalTable{table} {
     auto& relTable = ku_dynamic_cast<Table&, RelTable&>(table);
     std::vector<LogicalType> types;
     types.reserve(relTable.getNumColumns());
@@ -216,9 +218,9 @@ LocalRelTable::LocalRelTable(Table& table) : LocalTable{table} {
     // FWD and BWD local rel table data.
     auto tableID = relTable.getTableID();
     localTableDataCollection.push_back(
-        std::make_unique<LocalRelTableData>(tableID, LogicalType::copy(types)));
+        std::make_unique<LocalRelTableData>(tableID, LogicalType::copy(types), mm));
     localTableDataCollection.push_back(
-        std::make_unique<LocalRelTableData>(tableID, std::move(types)));
+        std::make_unique<LocalRelTableData>(tableID, std::move(types), mm));
 }
 
 bool LocalRelTable::insert(TableInsertState& state) {

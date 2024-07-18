@@ -4,6 +4,9 @@
 #include "storage/store/table.h"
 
 namespace kuzu {
+namespace storage {
+class MemoryManager;
+}
 namespace processor {
 
 struct BatchInsertInfo {
@@ -25,16 +28,17 @@ struct BatchInsertSharedState {
     storage::Table* table;
     std::shared_ptr<FactorizedTable> fTable;
     storage::WAL* wal;
+    storage::MemoryManager* mm;
 
     BatchInsertSharedState(storage::Table* table, std::shared_ptr<FactorizedTable> fTable,
-        storage::WAL* wal)
-        : numRows{0}, table{table}, fTable{std::move(fTable)}, wal{wal} {};
+        storage::WAL* wal, storage::MemoryManager* mm)
+        : numRows{0}, table{table}, fTable{std::move(fTable)}, wal{wal}, mm{mm} {};
     BatchInsertSharedState(const BatchInsertSharedState& other) = delete;
 
     virtual ~BatchInsertSharedState() = default;
 
     std::unique_ptr<BatchInsertSharedState> copy() const {
-        auto result = std::make_unique<BatchInsertSharedState>(table, fTable, wal);
+        auto result = std::make_unique<BatchInsertSharedState>(table, fTable, wal, mm);
         result->numRows.store(numRows.load());
         return result;
     }

@@ -9,14 +9,15 @@ namespace evaluator {
 class ExpressionEvaluator;
 } // namespace evaluator
 namespace storage {
+class MemoryManager;
 
 struct RelTableScanState final : TableScanState {
     common::RelDataDirection direction;
 
-    RelTableScanState(const std::vector<common::column_id_t>& columnIDs,
+    RelTableScanState(MemoryManager& mm, const std::vector<common::column_id_t>& columnIDs,
         common::RelDataDirection direction)
-        : RelTableScanState(columnIDs, direction, std::vector<ColumnPredicateSet>{}) {}
-    RelTableScanState(const std::vector<common::column_id_t>& columnIDs,
+        : RelTableScanState(mm, columnIDs, direction, std::vector<ColumnPredicateSet>{}) {}
+    RelTableScanState(MemoryManager& mm, const std::vector<common::column_id_t>& columnIDs,
         common::RelDataDirection direction, std::vector<ColumnPredicateSet> columnPredicateSets)
         : TableScanState{columnIDs, std::move(columnPredicateSets)}, direction{direction} {
         // TODO(Guodong): Move the NBR_ID_COLUMN_ID to binder phase.
@@ -27,7 +28,7 @@ struct RelTableScanState final : TableScanState {
             this->columnPredicateSets.insert(this->columnPredicateSets.begin(),
                 ColumnPredicateSet());
         }
-        dataScanState = std::make_unique<RelDataReadState>(dataScanColumnIDs);
+        dataScanState = std::make_unique<RelDataReadState>(mm, dataScanColumnIDs);
     }
 
     bool hasMoreToRead(const transaction::Transaction* transaction) const {

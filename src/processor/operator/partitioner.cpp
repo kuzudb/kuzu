@@ -168,7 +168,7 @@ void Partitioner::copyDataToPartitions(partition_idx_t partitioningIdx, DataChun
         auto& partition =
             localState->getPartitioningBuffer(partitioningIdx)->partitions[partitionIdx];
         selVector[0] = posToCopyFrom;
-        partition.append(vectorsToAppend, selVector);
+        partition.append(vectorsToAppend, selVector, sharedState->mm);
     }
 }
 

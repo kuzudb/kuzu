@@ -27,9 +27,9 @@ RelTable::RelTable(BMFileHandle* dataFH, DiskArrayCollection* metadataDAC,
     RelTableCatalogEntry* relTableEntry, WAL* wal, bool enableCompression)
     : Table{relTableEntry, relsStoreStats, memoryManager, wal},
       toNodeTableID{relTableEntry->getDstTableID()} {
-    fwdRelTableData = std::make_unique<RelTableData>(dataFH, metadataDAC, bufferManager, wal,
+    fwdRelTableData = std::make_unique<RelTableData>(dataFH, metadataDAC, memoryManager, wal,
         relTableEntry, relsStoreStats, RelDataDirection::FWD, enableCompression);
-    bwdRelTableData = std::make_unique<RelTableData>(dataFH, metadataDAC, bufferManager, wal,
+    bwdRelTableData = std::make_unique<RelTableData>(dataFH, metadataDAC, memoryManager, wal,
         relTableEntry, relsStoreStats, RelDataDirection::BWD, enableCompression);
 }
 
@@ -85,7 +85,8 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     std::vector<column_id_t> relIDColumns = {REL_ID_COLUMN_ID};
     const auto relIDVectors = std::vector<ValueVector*>{deleteState->dstNodeIDVector.get(),
         deleteState->relIDVector.get()};
-    auto relReadState = std::make_unique<RelTableScanState>(relIDColumns, direction);
+    auto relReadState =
+        std::make_unique<RelTableScanState>(*memoryManager, relIDColumns, direction);
     relReadState->nodeIDVector = srcNodeIDVector;
     relReadState->outputVectors = relIDVectors;
     relReadState->direction = direction;

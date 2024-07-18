@@ -12,6 +12,9 @@
 #include "storage/store/node_table.h"
 
 namespace kuzu {
+namespace storage {
+class MemoryManager;
+}
 namespace transaction {
 class Transaction;
 };
@@ -58,8 +61,8 @@ struct NodeBatchInsertSharedState final : public BatchInsertSharedState {
     std::unique_ptr<storage::ChunkedNodeGroup> sharedNodeGroup;
 
     NodeBatchInsertSharedState(storage::Table* table, std::shared_ptr<FactorizedTable> fTable,
-        storage::WAL* wal)
-        : BatchInsertSharedState{table, fTable, wal}, readerSharedState{nullptr},
+        storage::WAL* wal, storage::MemoryManager* mm)
+        : BatchInsertSharedState{table, fTable, wal, mm}, readerSharedState{nullptr},
           distinctSharedState{nullptr}, currentNodeGroupIdx{0}, sharedNodeGroup{nullptr} {
         pkIndex =
             common::ku_dynamic_cast<storage::Table*, storage::NodeTable*>(table)->getPKIndex();
@@ -119,22 +122,22 @@ public:
     void writeAndResetNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx,
         std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
-        std::optional<IndexBuilder>& indexBuilder);
+        std::optional<IndexBuilder>& indexBuilder, storage::MemoryManager* mm);
 
 private:
     // Returns the number of nodes written from the group
     uint64_t writeToExistingNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, std::optional<IndexBuilder>& indexBuilder,
         common::column_id_t pkColumnID, storage::NodeTable* table,
-        storage::ChunkedNodeGroup* nodeGroup);
+        storage::ChunkedNodeGroup* nodeGroup, storage::MemoryManager* mm);
 
     void appendIncompleteNodeGroup(transaction::Transaction* transaction,
         std::unique_ptr<storage::ChunkedNodeGroup> localNodeGroup,
-        std::optional<IndexBuilder>& indexBuilder);
+        std::optional<IndexBuilder>& indexBuilder, storage::MemoryManager* mm);
     void clearToIndex(std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
         common::offset_t startIndexInGroup);
 
-    void copyToNodeGroup(transaction::Transaction* transaction);
+    void copyToNodeGroup(transaction::Transaction* transaction, storage::MemoryManager* mm);
     void populateDefaultColumns();
 };
 

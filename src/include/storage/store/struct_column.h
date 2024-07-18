@@ -9,7 +9,7 @@ class StructColumn final : public Column {
 public:
     StructColumn(std::string name, common::LogicalType dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-        DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
+        DiskArrayCollection& metadataDAC, MemoryManager* memoryManager, WAL* wal,
         transaction::Transaction* transaction, bool enableCompression);
 
     void initChunkState(transaction::Transaction* transaction,
