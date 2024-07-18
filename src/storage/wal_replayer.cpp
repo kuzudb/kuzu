@@ -13,6 +13,7 @@
 #include "processor/expression_mapper.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
+#include "storage/store/node_table.h"
 #include "storage/wal/wal_record.h"
 #include "transaction/transaction.h"
 
@@ -37,12 +38,12 @@ WALReplayer::WALReplayer(main::ClientContext& clientContext, WALReplayMode repla
     pageBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
 }
 
-void WALReplayer::replay() {
+void WALReplayer::replay() const {
     if (!clientContext.getVFSUnsafe()->fileOrPathExists(walFilePath, &clientContext)) {
         return;
     }
     auto fileInfo = clientContext.getVFSUnsafe()->openFile(walFilePath, O_RDONLY);
-    auto walFileSize = fileInfo->getFileSize();
+    const auto walFileSize = fileInfo->getFileSize();
     // Check if the wal file is empty or corrupted. so nothing to read.
     if (walFileSize == 0) {
         return;
@@ -52,7 +53,7 @@ void WALReplayer::replay() {
     try {
         Deserializer deserializer(std::make_unique<BufferedFileReader>(std::move(fileInfo)));
         while (!deserializer.finished()) {
-            auto walRecord = WALRecord::deserialize(deserializer);
+            auto walRecord = WALRecord::deserialize(deserializer, clientContext);
             replayWALRecord(*walRecord);
         }
     } catch (const Exception& e) {
@@ -61,12 +62,15 @@ void WALReplayer::replay() {
     }
 }
 
-void WALReplayer::replayWALRecord(WALRecord& walRecord) {
+void WALReplayer::replayWALRecord(const WALRecord& walRecord) const {
     switch (walRecord.type) {
     case WALRecordType::COMMIT_RECORD: {
     } break;
     case WALRecordType::CREATE_CATALOG_ENTRY_RECORD: {
         replayCreateCatalogEntryRecord(walRecord);
+    } break;
+    case WALRecordType::TABLE_INSERTION_RECORD: {
+        replayTableInsertionRecord(walRecord);
     } break;
     case WALRecordType::COPY_TABLE_RECORD: {
         replayCopyTableRecord(walRecord);
@@ -90,7 +94,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     }
 }
 
-void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) {
+void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) const {
     if (!(isCheckpoint && isRecovering)) {
         // Nothing to do.
         return;
@@ -129,12 +133,12 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) {
 }
 
 // Replay catalog should only work under RECOVERY mode.
-void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) {
+void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const {
     if (!(isCheckpoint && isRecovering)) {
         return;
     }
     auto& dropEntryRecord = walRecord.constCast<DropCatalogEntryRecord>();
-    auto entryID = dropEntryRecord.entryID;
+    const auto entryID = dropEntryRecord.entryID;
     switch (dropEntryRecord.entryType) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
     case CatalogEntryType::REL_TABLE_ENTRY:
@@ -155,7 +159,7 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) {
     }
 }
 
-void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) {
+void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const {
     if (!(isCheckpoint && isRecovering)) {
         return;
     }
@@ -164,24 +168,46 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) {
     clientContext.getCatalog()->alterTableEntry(&DUMMY_TRANSACTION,
         *alterEntryRecord.ownedAlterInfo);
     if (alterEntryRecord.ownedAlterInfo->alterType == common::AlterType::ADD_PROPERTY) {
-        auto exprBinder = binder.getExpressionBinder();
-        auto addInfo =
+        const auto exprBinder = binder.getExpressionBinder();
+        const auto addInfo =
             alterEntryRecord.ownedAlterInfo->extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
         // We don't implicit cast here since it must already be done the first time
-        auto boundDefault = exprBinder->bindExpression(*addInfo->defaultValue);
+        const auto boundDefault = exprBinder->bindExpression(*addInfo->defaultValue);
         auto exprMapper = ExpressionMapper();
-        auto defaultValueEvaluator = exprMapper.getEvaluator(boundDefault);
-        auto schema = clientContext.getCatalog()->getTableCatalogEntry(&DUMMY_TRANSACTION,
+        const auto defaultValueEvaluator = exprMapper.getEvaluator(boundDefault);
+        const auto schema = clientContext.getCatalog()->getTableCatalogEntry(&DUMMY_TRANSACTION,
             alterEntryRecord.ownedAlterInfo->tableID);
-        auto addedPropID = schema->getPropertyID(addInfo->propertyName);
-        auto addedProp = schema->getProperty(addedPropID);
+        const auto addedPropID = schema->getPropertyID(addInfo->propertyName);
+        const auto addedProp = schema->getProperty(addedPropID);
         TableAddColumnState state{*addedProp, *defaultValueEvaluator};
         if (clientContext.getStorageManager()) {
-            auto storageManager = clientContext.getStorageManager();
+            const auto storageManager = clientContext.getStorageManager();
             storageManager->getTable(alterEntryRecord.ownedAlterInfo->tableID)
                 ->addColumn(&DUMMY_TRANSACTION, state);
         }
     }
+}
+
+void WALReplayer::replayTableInsertionRecord(const WALRecord& walRecord) const {
+    const auto insertionRecord = walRecord.constCast<TableInsertionRecord>();
+    const auto tableID = insertionRecord.tableID;
+    // TODO: for now, just test on node table.
+    auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<NodeTable>();
+    const auto chunkState = std::make_shared<DataChunkState>();
+    chunkState->getSelVectorUnsafe().setSelSize(insertionRecord.numRows);
+    for (auto i = 0u; i < insertionRecord.ownedVectors.size(); i++) {
+        insertionRecord.ownedVectors[i]->setState(chunkState);
+    }
+    std::vector<ValueVector*> propertyVectors(insertionRecord.ownedVectors.size());
+    for (auto i = 0u; i < insertionRecord.ownedVectors.size(); i++) {
+        propertyVectors[i] = insertionRecord.ownedVectors[i].get();
+    }
+    KU_ASSERT(table.getPKColumnID() < insertionRecord.ownedVectors.size());
+    auto& pkVector = *insertionRecord.ownedVectors[table.getPKColumnID()];
+    const auto nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID());
+    const auto insertState =
+        std::make_unique<NodeTableInsertState>(*nodeIDVector, pkVector, propertyVectors);
+    table.insert(&DUMMY_TRANSACTION, *insertState);
 }
 
 void WALReplayer::replayCopyTableRecord(const WALRecord&) const {
@@ -189,13 +215,13 @@ void WALReplayer::replayCopyTableRecord(const WALRecord&) const {
     // TODO(Guodong): Should handle metaDA and reclaim free pages when rollback.
 }
 
-void WALReplayer::replayUpdateSequenceRecord(const WALRecord& walRecord) {
+void WALReplayer::replayUpdateSequenceRecord(const WALRecord& walRecord) const {
     if (!(isCheckpoint && isRecovering)) {
         return;
     }
     auto& dropEntryRecord = walRecord.constCast<UpdateSequenceRecord>();
-    auto sequenceID = dropEntryRecord.sequenceID;
-    auto entry =
+    const auto sequenceID = dropEntryRecord.sequenceID;
+    const auto entry =
         clientContext.getCatalog()->getSequenceCatalogEntry(&DUMMY_TRANSACTION, sequenceID);
     entry->replayVal(dropEntryRecord.data.usageCount, dropEntryRecord.data.currVal,
         dropEntryRecord.data.nextVal);

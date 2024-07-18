@@ -21,7 +21,8 @@ enum class WALRecordType : uint8_t {
     CREATE_CATALOG_ENTRY_RECORD = 4,
     DROP_CATALOG_ENTRY_RECORD = 10,
     ALTER_TABLE_ENTRY_RECORD = 11,
-    UPDATE_SEQUENCE_RECORD = 40,
+    UPDATE_SEQUENCE_RECORD = 12,
+    TABLE_INSERTION_RECORD = 30,
     CHECKPOINT_RECORD = 50,
 };
 
@@ -33,7 +34,8 @@ struct WALRecord {
     virtual ~WALRecord() = default;
 
     virtual void serialize(common::Serializer& serializer) const;
-    static std::unique_ptr<WALRecord> deserialize(common::Deserializer& deserializer);
+    static std::unique_ptr<WALRecord> deserialize(common::Deserializer& deserializer,
+        main::ClientContext& clientContext);
 
     template<class TARGET>
     const TARGET& constCast() const {
@@ -106,6 +108,7 @@ struct AlterTableEntryRecord final : public WALRecord {
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<AlterTableEntryRecord> deserialize(common::Deserializer& deserializer);
 };
+
 struct UpdateSequenceRecord final : public WALRecord {
     common::sequence_id_t sequenceID;
     catalog::SequenceChangeData data;
@@ -117,6 +120,23 @@ struct UpdateSequenceRecord final : public WALRecord {
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<UpdateSequenceRecord> deserialize(common::Deserializer& deserializer);
+};
+
+struct TableInsertionRecord final : WALRecord {
+    common::table_id_t tableID;
+    common::row_idx_t numRows;
+    std::vector<common::ValueVector*> vectors;
+    std::vector<std::unique_ptr<common::ValueVector>> ownedVectors;
+
+    TableInsertionRecord() = default;
+    TableInsertionRecord(common::table_id_t tableID, common::row_idx_t numRows,
+        std::vector<std::unique_ptr<common::ValueVector>> vectors)
+        : WALRecord{WALRecordType::TABLE_INSERTION_RECORD}, tableID{tableID}, numRows{numRows},
+          ownedVectors{std::move(vectors)} {}
+
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<TableInsertionRecord> deserialize(common::Deserializer& deserializer,
+        main::ClientContext& clientContext);
 };
 
 } // namespace storage

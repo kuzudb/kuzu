@@ -11,7 +11,7 @@ namespace kuzu {
 namespace transaction {
 
 void Transaction::commit(storage::WAL* wal) const {
-    localStorage->commit();
+    localStorage->commit(wal);
     undoBuffer->commit(commitTS);
     wal->logAndFlushCommit(ID);
     wal->flushAllPages();

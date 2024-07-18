@@ -227,7 +227,7 @@ std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(Transaction* tran
     return nodeGroups->appendToLastNodeGroup(transaction, chunkedGroup);
 }
 
-void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
+void NodeTable::commit(Transaction* transaction, WAL* wal, LocalTable* localTable) {
     auto startNodeOffset = nodeGroups->getNumRows();
     transaction->setMaxCommittedNodeOffset(tableID, startNodeOffset);
     auto& localNodeTable = localTable->cast<LocalNodeTable>();
@@ -267,6 +267,8 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
             insertPK(transaction, nodeIDVector, *pkVector);
             startNodeOffset += scanState->IDVector->state->getSelVector().getSelSize();
             nodeGroups->append(transaction, scanState->outputVectors);
+            // Log local insertions to WAL.
+            wal->logTableInsertion(tableID, scanState->outputVectors);
         }
         nodeGroupToScan++;
     }
