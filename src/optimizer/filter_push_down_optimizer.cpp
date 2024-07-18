@@ -267,7 +267,14 @@ void PredicateSet::addPredicate(std::shared_ptr<Expression> predicate) {
 }
 
 static bool isNodePrimaryKey(const Expression& expression, const Expression& nodeID) {
-    if (expression.expressionType != ExpressionType::PROPERTY) {
+    if (expression.expressionType == ExpressionType::FUNCTION) {
+        auto& func = expression.constCast<FunctionExpression>();
+        if (func.getFunctionName() == "CAST") {
+            return isNodePrimaryKey(*func.getChild(0), nodeID);
+        } else {
+            return false;
+        }
+    } else if (expression.expressionType != ExpressionType::PROPERTY) {
         // not property
         return false;
     }
