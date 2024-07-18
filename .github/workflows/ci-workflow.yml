@@ -403,14 +403,12 @@ jobs:
 
   clang-format:
     name: clang format
-    runs-on: ubuntu-22.04
-    container:
-      image: ubuntu:24.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Install clang-format
         run: |
-          apt-get update
-          apt-get install -y lsb-release wget software-properties-common gnupg python3 git clang-format
+          sudo apt-get update
+          sudo apt-get install -y clang-format-18
           
       - uses: actions/checkout@v4
         with:
