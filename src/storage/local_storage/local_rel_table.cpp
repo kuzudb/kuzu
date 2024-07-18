@@ -31,6 +31,8 @@ LocalRelTable::LocalRelTable(Table& table) : LocalTable{table} {
 bool LocalRelTable::insert(Transaction* transaction, TableInsertState& state) {
     KU_ASSERT(transaction->isDummy());
     const auto& insertState = state.cast<RelTableInsertState>();
+    KU_ASSERT(insertState.srcNodeIDVector.state->getSelVector().getSelSize() == 1 &&
+              insertState.dstNodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto srcNodePos = insertState.srcNodeIDVector.state->getSelVector()[0];
     const auto dstNodePos = insertState.dstNodeIDVector.state->getSelVector()[0];
     if (insertState.srcNodeIDVector.isNull(srcNodePos) ||
@@ -39,8 +41,6 @@ bool LocalRelTable::insert(Transaction* transaction, TableInsertState& state) {
     }
     const auto numRowsInLocalTable = localNodeGroup->getNumRows();
     const auto relOffset = StorageConstants::MAX_NUM_ROWS_IN_TABLE + numRowsInLocalTable;
-    KU_ASSERT(insertState.srcNodeIDVector.state->getSelVector().getSelSize() == 1 &&
-              insertState.dstNodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto relIDVector = insertState.propertyVectors[0];
     KU_ASSERT(relIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     const auto relIDPos = relIDVector->state->getSelVector()[0];

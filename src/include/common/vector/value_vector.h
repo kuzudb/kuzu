@@ -92,9 +92,9 @@ public:
     // For an unflat vector, its selection vector is also updated to the resultSelVector.
     static bool discardNull(ValueVector& vector);
 
-    // void serialize(Serializer& ser) const;
-    // static std::unique_ptr<ValueVector> deSerialize(Deserializer& deSer,
-    // storage::MemoryManager* mm);
+    void serialize(Serializer& ser) const;
+    static std::unique_ptr<ValueVector> deSerialize(Deserializer& deSer,
+        storage::MemoryManager* mm);
 
 private:
     uint32_t getDataTypeSize(const LogicalType& type);

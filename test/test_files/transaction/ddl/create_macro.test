@@ -180,7 +180,6 @@ Can not execute a write query inside a read-only transaction.
 11
 
 -CASE MacroFuncTestCommitRecovery
--SKIP
 -STATEMENT Begin transaction
 ---- ok
 -STATEMENT create macro addWithDefault(a,b:=3) as a + b;
@@ -210,7 +209,6 @@ Can not execute a write query inside a read-only transaction.
 Catalog exception: function ADDWITHDEFAULT does not exist.
 
 -CASE MacroFuncTestRollbackRecovery
--SKIP
 -STATEMENT Begin transaction
 ---- ok
 -STATEMENT create macro addWithDefault(a,b:=3) as a + b;

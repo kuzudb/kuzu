@@ -1,0 +1,70 @@
+-DATASET CSV empty
+--
+
+-CASE CreateNodeRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT64, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
+---- ok
+-STATEMENT CALL CHECKPOINT() RETURN *;
+---- ok
+-STATEMENT CREATE (a:test {id:0, isTrue:True, birthday:Date('2019-01-01')})
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.id, a.isTrue, a.birthday
+---- 1
+0|True|2019-01-01
+# skipped checkpoint here
+-RELOADDB
+-STATEMENT MATCH (a:test) RETURN a.id, a.isTrue, a.birthday
+---- 1
+0|True|2019-01-01
+
+-CASE DeleteNodeRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT64, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
+---- ok
+-STATEMENT CALL CHECKPOINT() RETURN *;
+---- ok
+-STATEMENT CREATE (a:test {id:0, isTrue:True, birthday:Date('2019-01-01')})
+---- ok
+-STATEMENT CREATE (a:test {id:1, isTrue:False, birthday:Date('2020-01-01')})
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.id, a.isTrue, a.birthday
+---- 2
+0|True|2019-01-01
+1|False|2020-01-01
+-STATEMENT MATCH (a:test {id:1}) DELETE a
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.id, a.isTrue, a.birthday
+---- 1
+0|True|2019-01-01
+# skipped checkpoint here
+-RELOADDB
+-STATEMENT MATCH (a:test) RETURN a.id, a.isTrue, a.birthday
+---- 1
+0|True|2019-01-01
+
+-CASE UpdateNodeRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT64, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
+---- ok
+-STATEMENT CALL CHECKPOINT() RETURN *;
+---- ok
+-STATEMENT CREATE (a:test {id:0, isTrue:True, birthday:Date('2019-01-01')})
+---- ok
+-STATEMENT CREATE (a:test {id:1, isTrue:False, birthday:Date('2020-01-01')})
+---- ok
+-STATEMENT MATCH (a:test {id:1}) SET a.isTrue = True
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.id, a.isTrue, a.birthday
+---- 2
+0|True|2019-01-01
+1|True|2020-01-01
+# skipped checkpoint here
+-RELOADDB
+-STATEMENT MATCH (a:test) RETURN a.id, a.isTrue, a.birthday
+---- 2
+0|True|2019-01-01
+1|True|2020-01-01

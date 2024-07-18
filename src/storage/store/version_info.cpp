@@ -154,7 +154,7 @@ row_idx_t VersionInfo::append(const transaction::Transaction* transaction, const
             vectorIdx == endVectorIdx ? endRowIdxInVector : DEFAULT_VECTOR_CAPACITY;
         const auto numRowsInVector = endRowIdx - startRowIdx;
         numAppended += vectorVersionInfo.append(transaction->getID(), startRowIdx, numRowsInVector);
-        if (transaction->getID() > 0) {
+        if (transaction->getID() > transaction::Transaction::DUMMY_TRANSACTION_ID) {
             transaction->pushVectorInsertInfo(*this, vectorIdx, vectorVersionInfo, startRowIdx,
                 numRowsInVector);
         }
