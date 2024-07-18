@@ -249,9 +249,12 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
             dstIdVal ? ConvertNodeIdToNapiObject(dstIdVal->getValue<nodeID_t>(), env) : env.Null();
         auto label =
             labelVal ? Napi::String::New(env, labelVal->getValue<std::string>()) : env.Null();
+        auto idVal = RelVal::getIDVal(&value);
+        auto id = idVal ? ConvertToNapiObject(*idVal, env) : env.Null();
         napiObj.Set("_src", srcId);
         napiObj.Set("_dst", dstId);
         napiObj.Set("_label", label);
+        napiObj.Set("_id", id);
         return napiObj;
     }
     case LogicalTypeID::INTERNAL_ID: {
