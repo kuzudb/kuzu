@@ -18,14 +18,16 @@ class WALReplayer {
 public:
     WALReplayer(main::ClientContext& clientContext, WALReplayMode replayMode);
 
-    void replay() const;
+    void replay();
 
 private:
-    void replayWALRecord(const WALRecord& walRecord) const;
+    void replayWALRecord(const WALRecord& walRecord);
     void replayCreateCatalogEntryRecord(const WALRecord& walRecord) const;
     void replayDropCatalogEntryRecord(const WALRecord& walRecord) const;
     void replayAlterTableEntryRecord(const WALRecord& walRecord) const;
     void replayTableInsertionRecord(const WALRecord& walRecord) const;
+    void replayNodeDeletionRecord(const WALRecord& walRecord) const;
+    void replayNodeUpdateRecord(const WALRecord& walRecord) const;
     void replayCopyTableRecord(const WALRecord& walRecord) const;
     void replayUpdateSequenceRecord(const WALRecord& walRecord) const;
 

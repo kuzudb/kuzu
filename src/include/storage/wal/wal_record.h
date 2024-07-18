@@ -4,6 +4,7 @@
 #include "catalog/catalog_entry/catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/types/internal_id_t.h"
+#include "common/vector/value_vector.h"
 
 namespace kuzu {
 namespace common {
@@ -16,6 +17,7 @@ namespace storage {
 enum class WALRecordType : uint8_t {
     INVALID_RECORD = 0, // This is not used for any record. 0 is reserved to detect cases where we
                         // accidentally read from an empty buffer.
+    BEGIN_TRANSACTION_RECORD = 1,
     COMMIT_RECORD = 2,
     COPY_TABLE_RECORD = 3,
     CREATE_CATALOG_ENTRY_RECORD = 4,
@@ -23,6 +25,8 @@ enum class WALRecordType : uint8_t {
     ALTER_TABLE_ENTRY_RECORD = 11,
     UPDATE_SEQUENCE_RECORD = 12,
     TABLE_INSERTION_RECORD = 30,
+    NODE_DELETION_RECORD = 31,
+    NODE_UDPATE_RECORD = 32,
     CHECKPOINT_RECORD = 50,
 };
 
@@ -32,6 +36,7 @@ struct WALRecord {
     WALRecord() = default;
     explicit WALRecord(WALRecordType type) : type{type} {}
     virtual ~WALRecord() = default;
+    DELETE_COPY_DEFAULT_MOVE(WALRecord);
 
     virtual void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<WALRecord> deserialize(common::Deserializer& deserializer,
@@ -43,10 +48,18 @@ struct WALRecord {
     }
 };
 
+struct BeginTransactionRecord final : WALRecord {
+    BeginTransactionRecord() : WALRecord{WALRecordType::BEGIN_TRANSACTION_RECORD} {}
+
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<BeginTransactionRecord> deserialize(common::Deserializer& deserializer);
+};
+
 struct CommitRecord final : public WALRecord {
     uint64_t transactionID;
 
-    CommitRecord() = default;
+    CommitRecord()
+        : WALRecord{WALRecordType::COMMIT_RECORD}, transactionID{common::INVALID_TRANSACTION} {}
     explicit CommitRecord(uint64_t transactionID)
         : WALRecord{WALRecordType::COMMIT_RECORD}, transactionID{transactionID} {}
 
@@ -65,8 +78,10 @@ struct CreateCatalogEntryRecord final : public WALRecord {
     catalog::CatalogEntry* catalogEntry;
     std::unique_ptr<catalog::CatalogEntry> ownedCatalogEntry;
 
-    CreateCatalogEntryRecord();
-    explicit CreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry);
+    CreateCatalogEntryRecord()
+        : WALRecord{WALRecordType::CREATE_CATALOG_ENTRY_RECORD}, catalogEntry{nullptr} {}
+    explicit CreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry)
+        : WALRecord{WALRecordType::CREATE_CATALOG_ENTRY_RECORD}, catalogEntry{catalogEntry} {}
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<CreateCatalogEntryRecord> deserialize(
@@ -76,7 +91,8 @@ struct CreateCatalogEntryRecord final : public WALRecord {
 struct CopyTableRecord final : public WALRecord {
     common::table_id_t tableID;
 
-    CopyTableRecord() = default;
+    CopyTableRecord()
+        : WALRecord{WALRecordType::COPY_TABLE_RECORD}, tableID{common::INVALID_TABLE_ID} {}
     explicit CopyTableRecord(common::table_id_t tableID)
         : WALRecord{WALRecordType::COPY_TABLE_RECORD}, tableID{tableID} {}
 
@@ -88,7 +104,9 @@ struct DropCatalogEntryRecord final : public WALRecord {
     common::table_id_t entryID;
     catalog::CatalogEntryType entryType;
 
-    DropCatalogEntryRecord() = default;
+    DropCatalogEntryRecord()
+        : WALRecord{WALRecordType::DROP_CATALOG_ENTRY_RECORD}, entryID{common::INVALID_TABLE_ID},
+          entryType{} {}
     DropCatalogEntryRecord(common::table_id_t entryID, catalog::CatalogEntryType entryType)
         : WALRecord{WALRecordType::DROP_CATALOG_ENTRY_RECORD}, entryID{entryID},
           entryType{entryType} {}
@@ -101,7 +119,8 @@ struct AlterTableEntryRecord final : public WALRecord {
     binder::BoundAlterInfo* alterInfo;
     std::unique_ptr<binder::BoundAlterInfo> ownedAlterInfo;
 
-    AlterTableEntryRecord() = default;
+    AlterTableEntryRecord()
+        : WALRecord{WALRecordType::ALTER_TABLE_ENTRY_RECORD}, alterInfo{nullptr} {}
     explicit AlterTableEntryRecord(binder::BoundAlterInfo* alterInfo)
         : WALRecord{WALRecordType::ALTER_TABLE_ENTRY_RECORD}, alterInfo{alterInfo} {}
 
@@ -113,7 +132,8 @@ struct UpdateSequenceRecord final : public WALRecord {
     common::sequence_id_t sequenceID;
     catalog::SequenceChangeData data;
 
-    UpdateSequenceRecord() = default;
+    UpdateSequenceRecord()
+        : WALRecord{WALRecordType::UPDATE_SEQUENCE_RECORD}, sequenceID{0}, data{} {}
     UpdateSequenceRecord(common::sequence_id_t sequenceID, catalog::SequenceChangeData data)
         : WALRecord{WALRecordType::UPDATE_SEQUENCE_RECORD}, sequenceID{sequenceID},
           data{std::move(data)} {}
@@ -128,14 +148,76 @@ struct TableInsertionRecord final : WALRecord {
     std::vector<common::ValueVector*> vectors;
     std::vector<std::unique_ptr<common::ValueVector>> ownedVectors;
 
-    TableInsertionRecord() = default;
+    TableInsertionRecord()
+        : WALRecord{WALRecordType::TABLE_INSERTION_RECORD}, tableID{common::INVALID_TABLE_ID},
+          numRows{0} {}
+    TableInsertionRecord(common::table_id_t tableID, common::row_idx_t numRows,
+        const std::vector<common::ValueVector*>& vectors)
+        : WALRecord{WALRecordType::TABLE_INSERTION_RECORD}, tableID{tableID}, numRows{numRows},
+          vectors{vectors} {}
     TableInsertionRecord(common::table_id_t tableID, common::row_idx_t numRows,
         std::vector<std::unique_ptr<common::ValueVector>> vectors)
         : WALRecord{WALRecordType::TABLE_INSERTION_RECORD}, tableID{tableID}, numRows{numRows},
           ownedVectors{std::move(vectors)} {}
 
+    TableInsertionRecord(const TableInsertionRecord& other) {
+        type = other.type;
+        tableID = other.tableID;
+        numRows = other.numRows;
+        vectors = other.vectors;
+    }
+
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<TableInsertionRecord> deserialize(common::Deserializer& deserializer,
+        main::ClientContext& clientContext);
+};
+
+struct NodeDeletionRecord final : WALRecord {
+    common::table_id_t tableID;
+    common::offset_t nodeOffset;
+    common::ValueVector* pkVector;
+    std::unique_ptr<common::ValueVector> ownedPKVector;
+
+    NodeDeletionRecord()
+        : WALRecord{WALRecordType::NODE_DELETION_RECORD}, tableID{common::INVALID_TABLE_ID},
+          nodeOffset{common::INVALID_OFFSET}, pkVector{nullptr} {}
+    NodeDeletionRecord(common::table_id_t tableID, common::offset_t nodeOffset,
+        common::ValueVector* pkVector)
+        : WALRecord{WALRecordType::NODE_DELETION_RECORD}, tableID{tableID}, nodeOffset{nodeOffset},
+          pkVector{pkVector} {}
+    NodeDeletionRecord(common::table_id_t tableID, common::offset_t nodeOffset,
+        std::unique_ptr<common::ValueVector> pkVector)
+        : WALRecord{WALRecordType::NODE_DELETION_RECORD}, tableID{tableID}, nodeOffset{nodeOffset},
+          pkVector{nullptr}, ownedPKVector{std::move(pkVector)} {}
+
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<NodeDeletionRecord> deserialize(common::Deserializer& deserializer,
+        main::ClientContext& clientContext);
+};
+
+struct NodeUpdateRecord final : WALRecord {
+    common::table_id_t tableID;
+    common::column_id_t columnID;
+    common::offset_t nodeOffset;
+    common::ValueVector* propertyVector;
+    std::unique_ptr<common::ValueVector> ownedPropertyVector;
+
+    NodeUpdateRecord()
+        : WALRecord{WALRecordType::NODE_UDPATE_RECORD}, tableID{common::INVALID_TABLE_ID},
+          columnID{common::INVALID_COLUMN_ID}, nodeOffset{common::INVALID_OFFSET},
+          propertyVector{nullptr} {}
+    NodeUpdateRecord(common::table_id_t tableID, common::column_id_t columnID,
+        common::offset_t nodeOffset, common::ValueVector* propertyVector)
+        : WALRecord{WALRecordType::NODE_UDPATE_RECORD}, tableID{tableID}, columnID{columnID},
+          nodeOffset{nodeOffset}, propertyVector{propertyVector} {}
+    NodeUpdateRecord(common::table_id_t tableID, common::column_id_t columnID,
+        common::offset_t nodeOffset, std::unique_ptr<common::ValueVector> propertyVector)
+        : WALRecord{WALRecordType::NODE_UDPATE_RECORD}, tableID{tableID}, columnID{columnID},
+          nodeOffset{nodeOffset}, propertyVector{nullptr},
+          ownedPropertyVector{std::move(propertyVector)} {}
+
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<NodeUpdateRecord> deserialize(common::Deserializer& deserializer,
         main::ClientContext& clientContext);
 };
 

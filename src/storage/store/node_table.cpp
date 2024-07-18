@@ -184,6 +184,13 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
             ->update(transaction, rowIdxInGroup, nodeUpdateState.columnID,
                 nodeUpdateState.propertyVector);
     }
+    if (!transaction->isRecovery()) {
+        KU_ASSERT(transaction->isWriteTransaction());
+        KU_ASSERT(transaction->getClientContext());
+        auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
+        wal.logNodeUpdate(tableID, nodeUpdateState.columnID, nodeOffset,
+            &nodeUpdateState.propertyVector);
+    }
 }
 
 bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
@@ -203,7 +210,14 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     }
     const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     const auto rowIdxInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    return nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
+    const auto result = nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
+    if (!transaction->isRecovery()) {
+        KU_ASSERT(transaction->isWriteTransaction());
+        KU_ASSERT(transaction->getClientContext());
+        auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
+        wal.logNodeDeletion(tableID, nodeOffset, &nodeDeleteState.pkVector);
+    }
+    return result;
 }
 
 void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
@@ -268,7 +282,8 @@ void NodeTable::commit(Transaction* transaction, WAL* wal, LocalTable* localTabl
             startNodeOffset += scanState->IDVector->state->getSelVector().getSelSize();
             nodeGroups->append(transaction, scanState->outputVectors);
             // Log local insertions to WAL.
-            wal->logTableInsertion(tableID, scanState->outputVectors);
+            wal->logTableInsertion(tableID, scanState->IDVector->state->getSelVector().getSelSize(),
+                scanState->outputVectors);
         }
         nodeGroupToScan++;
     }

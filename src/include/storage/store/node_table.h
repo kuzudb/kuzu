@@ -115,6 +115,7 @@ public:
         const std::vector<common::ValueVector*>& propertyVectors) const;
 
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
+    void replayInsert(TableInsertState& insertState);
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
 

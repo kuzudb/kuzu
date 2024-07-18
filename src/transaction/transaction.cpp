@@ -1,5 +1,6 @@
 #include "transaction/transaction.h"
 
+#include "main/client_context.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/store/version_info.h"
 #include "storage/undo_buffer.h"
@@ -10,11 +11,30 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace transaction {
 
+Transaction::Transaction(main::ClientContext& clientContext, TransactionType transactionType,
+    common::transaction_t transactionID, common::transaction_t startTS)
+    : type{transactionType}, ID{transactionID}, startTS{startTS},
+      commitTS{common::INVALID_TRANSACTION} {
+    this->clientContext = &clientContext;
+    localStorage = std::make_unique<storage::LocalStorage>(clientContext);
+    undoBuffer = std::make_unique<storage::UndoBuffer>(clientContext, this);
+    currentTS = common::Timestamp::getCurrentTimestamp().value;
+}
+
 void Transaction::commit(storage::WAL* wal) const {
+    if (!isRecovery()) {
+        KU_ASSERT(wal);
+        wal->logBeginTransaction();
+    }
     localStorage->commit(wal);
     undoBuffer->commit(commitTS);
-    wal->logAndFlushCommit(ID);
-    wal->flushAllPages();
+    // During recovery, we don't have a WAL.
+    if (!isRecovery()) {
+        KU_ASSERT(wal);
+        undoBuffer->writeWAL(wal);
+        wal->logAndFlushCommit(ID);
+        // wal->flushAllPages();
+    }
 }
 
 void Transaction::rollback() const {
