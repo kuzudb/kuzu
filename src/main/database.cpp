@@ -139,7 +139,9 @@ void Database::initAndLockDBDir() {
         }
         vfs->createDir(databasePath);
     }
-    openLockFile();
+    if (!dbConfig.readOnly) {
+        openLockFile();
+    }
 }
 
 uint64_t Database::getNextQueryID() {
