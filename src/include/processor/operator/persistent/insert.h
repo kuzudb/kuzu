@@ -6,6 +6,24 @@
 namespace kuzu {
 namespace processor {
 
+struct InsertPrintInfo final : OPPrintInfo {
+    binder::expression_vector expressions;
+    common::ConflictAction action;
+
+    InsertPrintInfo(binder::expression_vector expressions, common::ConflictAction action)
+        : expressions(std::move(expressions)), action(std::move(action)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<InsertPrintInfo>(new InsertPrintInfo(*this));
+    }
+
+private:
+    InsertPrintInfo(const InsertPrintInfo& other)
+        : OPPrintInfo(other), expressions(other.expressions), action(other.action) {}
+};
+
 class Insert : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::INSERT;
 

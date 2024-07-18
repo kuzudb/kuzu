@@ -2,14 +2,12 @@
 #include "planner/operator/ddl/logical_create_sequence.h"
 #include "planner/operator/ddl/logical_create_table.h"
 #include "planner/operator/ddl/logical_create_type.h"
-#include "planner/operator/ddl/logical_drop_sequence.h"
-#include "planner/operator/ddl/logical_drop_table.h"
+#include "planner/operator/ddl/logical_drop.h"
 #include "processor/operator/ddl/alter.h"
 #include "processor/operator/ddl/create_sequence.h"
 #include "processor/operator/ddl/create_table.h"
 #include "processor/operator/ddl/create_type.h"
-#include "processor/operator/ddl/drop_sequence.h"
-#include "processor/operator/ddl/drop_table.h"
+#include "processor/operator/ddl/drop.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::binder;
@@ -47,18 +45,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateSequence(LogicalOperator*
         getOperatorID(), std::move(printInfo));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapDropTable(LogicalOperator* logicalOperator) {
-    auto& dropTable = logicalOperator->constCast<LogicalDropTable>();
-    auto printInfo = std::make_unique<DropTablePrintInfo>(dropTable.getTableName());
-    return std::make_unique<DropTable>(dropTable.getTableName(), dropTable.getTableID(),
-        getOutputPos(dropTable), getOperatorID(), std::move(printInfo));
-}
-
-std::unique_ptr<PhysicalOperator> PlanMapper::mapDropSequence(LogicalOperator* logicalOperator) {
-    auto& dropSequence = logicalOperator->constCast<LogicalDropSequence>();
-    auto printInfo = std::make_unique<DropSequencePrintInfo>(dropSequence.getTableName());
-    return std::make_unique<DropSequence>(dropSequence.getTableName(), dropSequence.getSequenceID(),
-        getOutputPos(dropSequence), getOperatorID(), std::move(printInfo));
+std::unique_ptr<PhysicalOperator> PlanMapper::mapDrop(LogicalOperator* logicalOperator) {
+    auto& drop = logicalOperator->constCast<LogicalDrop>();
+    auto& dropInfo = drop.getDropInfo();
+    auto printInfo = std::make_unique<DropPrintInfo>(drop.getDropInfo().name);
+    return std::make_unique<Drop>(dropInfo, getOutputPos(drop), getOperatorID(),
+        std::move(printInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapAlter(LogicalOperator* logicalOperator) {

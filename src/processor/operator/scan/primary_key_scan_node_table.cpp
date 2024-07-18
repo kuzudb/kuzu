@@ -1,10 +1,21 @@
 #include "processor/operator/scan/primary_key_scan_node_table.h"
 
+#include "binder/expression/expression_util.h"
+
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
+
+std::string PrimaryKeyScanPrintInfo::toString() const {
+    std::string result = "Key: ";
+    result += key;
+    result += ", Expressions: ";
+    result += binder::ExpressionUtil::toString(expressions);
+
+    return result;
+}
 
 common::idx_t PrimaryKeyScanSharedState::getTableIdx() {
     std::unique_lock lck{mtx};

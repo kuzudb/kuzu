@@ -7,6 +7,27 @@
 namespace kuzu {
 namespace processor {
 
+struct MergePrintInfo final : OPPrintInfo {
+    binder::expression_vector pattern;
+    std::vector<binder::expression_pair> onCreate;
+    std::vector<binder::expression_pair> onMatch;
+
+    MergePrintInfo(binder::expression_vector pattern, std::vector<binder::expression_pair> onCreate,
+        std::vector<binder::expression_pair> onMatch)
+        : pattern(std::move(pattern)), onCreate(std::move(onCreate)), onMatch(std::move(onMatch)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<MergePrintInfo>(new MergePrintInfo(*this));
+    }
+
+private:
+    MergePrintInfo(const MergePrintInfo& other)
+        : OPPrintInfo(other), pattern(other.pattern), onCreate(other.onCreate),
+          onMatch(other.onMatch) {}
+};
+
 class Merge : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::MERGE;
 

@@ -66,8 +66,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapDeleteRel(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDetachDatabase(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDistinct(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapDropSequence(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapDropTable(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapDrop(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDummyScan(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapEmptyResult(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapExplain(planner::LogicalOperator* logicalOperator);
@@ -95,7 +94,7 @@ private:
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapProjection(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapRecursiveExtend(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapScanFile(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapScanSource(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapScanNodeTable(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSemiMasker(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetProperty(planner::LogicalOperator* logicalOperator);
@@ -123,18 +122,20 @@ private:
     std::unique_ptr<PhysicalOperator> createFTableScan(const binder::expression_vector& exprs,
         std::vector<ft_col_idx_t> colIndices, std::shared_ptr<binder::Expression> offset,
         planner::Schema* schema, std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
-        std::unique_ptr<PhysicalOperator> child);
+        physical_op_vector_t children);
     // Scan fTable without row offset.
     std::unique_ptr<PhysicalOperator> createFTableScan(const binder::expression_vector& exprs,
         std::vector<ft_col_idx_t> colIndices, planner::Schema* schema,
         std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
-        std::unique_ptr<PhysicalOperator> child);
+        physical_op_vector_t children);
     // Scan fTable without row offset.
     // Scan is the leaf operator of physical plan.
     std::unique_ptr<PhysicalOperator> createFTableScan(const binder::expression_vector& exprs,
         std::vector<ft_col_idx_t> colIndices, planner::Schema* schema,
         std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize);
     // Do not scan anything from table. Serves as a control logic of pull model.
+    std::unique_ptr<PhysicalOperator> createEmptyFTableScan(std::shared_ptr<FactorizedTable> table,
+        uint64_t maxMorselSize, physical_op_vector_t children);
     std::unique_ptr<PhysicalOperator> createEmptyFTableScan(std::shared_ptr<FactorizedTable> table,
         uint64_t maxMorselSize, std::unique_ptr<PhysicalOperator> child);
     // Do not scan anything from table. Serves as a control logic of pull model.
@@ -146,13 +147,13 @@ private:
     std::unique_ptr<PhysicalOperator> createFTableScanAligned(
         const binder::expression_vector& exprs, planner::Schema* schema,
         std::shared_ptr<binder::Expression> offset, std::shared_ptr<FactorizedTable> table,
-        uint64_t maxMorselSize, std::unique_ptr<PhysicalOperator> child);
+        uint64_t maxMorselSize, physical_op_vector_t children);
     // Assume scans all columns of table in the same order as given expressions.
     // Scan fTable without row offset.
     std::unique_ptr<PhysicalOperator> createFTableScanAligned(
         const binder::expression_vector& exprs, planner::Schema* schema,
         std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
-        std::unique_ptr<PhysicalOperator> child);
+        physical_op_vector_t children);
     // Assume scans all columns of table in the same order as given expressions.
     // Scan fTable without row offset.
     // Scan is the leaf operator of physical plan.

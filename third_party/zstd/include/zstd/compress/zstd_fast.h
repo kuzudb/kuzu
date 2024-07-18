@@ -14,7 +14,7 @@
 #include "zstd/common/mem.h"      /* U32 */
 #include "zstd/compress/zstd_compress_internal.h"
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 
 void ZSTD_fillHashTable(ZSTD_matchState_t* ms,
                         void const* end, ZSTD_dictTableLoadMethod_e dtlm);

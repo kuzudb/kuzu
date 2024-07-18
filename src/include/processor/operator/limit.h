@@ -5,6 +5,21 @@
 namespace kuzu {
 namespace processor {
 
+struct LimitPrintInfo final : OPPrintInfo {
+    uint64_t limitNum;
+
+    explicit LimitPrintInfo(uint64_t limitNum) : limitNum{std::move(limitNum)} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<LimitPrintInfo>(new LimitPrintInfo(*this));
+    }
+
+private:
+    LimitPrintInfo(const LimitPrintInfo& other) : OPPrintInfo{other}, limitNum{other.limitNum} {}
+};
+
 class Limit : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::LIMIT;
 

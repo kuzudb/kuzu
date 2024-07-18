@@ -33,7 +33,7 @@
 #  define HUF_PUBLIC_API
 #endif
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 
 /* ========================== */
 /* ***  simple functions  *** */

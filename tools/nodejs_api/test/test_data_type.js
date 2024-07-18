@@ -452,6 +452,9 @@ describe("REL", function () {
     assert.equal(rel.grading[1], 4.4);
     assert.equal(rel._label, "workAt");
     assert.approximately(rel.rating, 7.6, EPSILON);
+    assert.exists(rel._id);
+    assert.exists(rel._id.offset);
+    assert.exists(rel._id.table);
   });
 });
 
@@ -464,31 +467,23 @@ describe("RECURSIVE_REL", function () {
     assert.equal(result.length, 1);
     assert.exists(result[0]["e"]);
     const e = result[0]["e"];
-    assert.deepEqual(e, {
-      _nodes: [],
-      _rels: [
-        {
-          year: 2021,
-          places: ["wwAewsdndweusd", "wek"],
-          length: 5,
-          level: 5,
-          code: 9223372036854776000,
-          temperature: 32800,
-          ulength: 33768,
-          ulevel: 250,
-          hugedata: BigInt("1844674407370955161811111111"),
-          _label: "studyAt",
-          _src: {
-            offset: 0,
-            table: 0,
-          },
-          _dst: {
-            offset: 0,
-            table: 1,
-          },
-        },
-      ],
-    });
+    assert.deepEqual(e._nodes, []);
+    assert.equal(e._rels.length, 1);
+    assert.equal(e._rels[0].year, 2021);
+    assert.deepEqual(e._rels[0].places, ["wwAewsdndweusd", "wek"]);
+    assert.equal(e._rels[0].length, 5);
+    assert.equal(e._rels[0].level, 5);
+    assert.equal(e._rels[0].code, 9223372036854776000);
+    assert.equal(e._rels[0].temperature, 32800);
+    assert.equal(e._rels[0].ulength, 33768);
+    assert.equal(e._rels[0].ulevel, 250);
+    assert.equal(e._rels[0].hugedata, BigInt("1844674407370955161811111111"));
+    assert.equal(e._rels[0]._label, "studyAt");
+    assert.deepEqual(e._rels[0]._src, { offset: 0, table: 0 });
+    assert.deepEqual(e._rels[0]._dst, { offset: 0, table: 1 });
+    assert.exists(e._rels[0]._id);
+    assert.exists(e._rels[0]._id.offset);
+    assert.exists(e._rels[0]._id.table);
   });
 });
 
@@ -531,5 +526,23 @@ describe("RDF_VARIANT", function () {
     assert.deepEqual(result[13]["a.val"], new Date("2024-01-01 11:25:30Z"));
     assert.deepEqual(result[14]["a.val"], 172800000);
     assert.deepEqual(result[15]["a.val"], new Uint8Array([0xb2]));
+  });
+});
+
+describe("DECIMAL", function () {
+  it("should convert DECIMAL type", async function () {
+    const queryResult = await conn.query(
+      "UNWIND[1, 2, 3] AS A UNWIND[5.7, 8.3, 2.9] AS B RETURN CAST(CAST(A AS DECIMAL) * CAST(B AS DECIMAL) AS DECIMAL(18, 1)) AS PROD"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 9);
+    const resultSorted = result.map(x => x.PROD).sort((a, b) => a - b);
+    assert.deepEqual(resultSorted,
+      [
+        2.9, 5.7, 5.8,
+        8.3, 8.7, 11.4,
+        16.6, 17.1, 24.9
+      ]
+    );
   });
 });

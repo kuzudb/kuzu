@@ -10,8 +10,7 @@ namespace planner {
 
 f_group_pos_set LogicalUnwind::getGroupsPosToFlatten() {
     auto childSchema = children[0]->getSchema();
-    auto dependentGroupsPos = childSchema->getDependentGroupsPos(inExpr);
-    return factorization::FlattenAll::getGroupsPosToFlatten(dependentGroupsPos, childSchema);
+    return FlattenAll::getGroupsPosToFlatten(inExpr, *childSchema);
 }
 
 void LogicalUnwind::computeFactorizedSchema() {

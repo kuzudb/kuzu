@@ -11,7 +11,7 @@
 
 namespace kuzu {
 namespace binder {
-struct BoundFileScanInfo;
+struct BoundTableScanSourceInfo;
 struct BoundCopyFromInfo;
 struct BoundInsertInfo;
 struct BoundSetPropertyInfo;
@@ -71,8 +71,7 @@ public:
     void appendCreateTable(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendCreateType(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendCreateSequence(const binder::BoundStatement& statement, LogicalPlan& plan);
-    void appendDropTable(const binder::BoundStatement& statement, LogicalPlan& plan);
-    void appendDropSequence(const binder::BoundStatement& statement, LogicalPlan& plan);
+    void appendDrop(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendAlter(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendStandaloneCall(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendExplain(const binder::BoundStatement& statement, LogicalPlan& plan);
@@ -154,8 +153,7 @@ public:
     void planRegularMatch(const binder::QueryGraphCollection& queryGraphCollection,
         const binder::expression_vector& predicates, LogicalPlan& leftPlan);
     void planSubquery(const std::shared_ptr<binder::Expression>& subquery, LogicalPlan& outerPlan);
-    void planSubqueryIfNecessary(const std::shared_ptr<binder::Expression>& expression,
-        LogicalPlan& plan);
+    void planSubqueryIfNecessary(std::shared_ptr<binder::Expression> expression, LogicalPlan& plan);
 
     static binder::expression_vector getCorrelatedExprs(
         const binder::QueryGraphCollection& collection, const binder::expression_vector& predicates,
@@ -303,15 +301,15 @@ public:
     void appendFilter(const std::shared_ptr<binder::Expression>& predicate, LogicalPlan& plan);
 
     // Append scan file.
-    void appendScanFile(const binder::BoundFileScanInfo* info, LogicalPlan& plan);
+    void appendScanSource(const binder::BoundTableScanSourceInfo& info, LogicalPlan& plan);
     // Append scan file. Additionally, scan row offset.
-    void appendScanFile(const binder::BoundFileScanInfo* info,
+    void appendScanSource(const binder::BoundTableScanSourceInfo& info,
         std::shared_ptr<binder::Expression> offset, LogicalPlan& plan);
 
     void appendDistinct(const binder::expression_vector& keys, LogicalPlan& plan);
 
     // Get operators
-    std::shared_ptr<LogicalOperator> getScanFile(const binder::BoundFileScanInfo* info);
+    std::shared_ptr<LogicalOperator> getScanSource(const binder::BoundTableScanSourceInfo& info);
     std::shared_ptr<LogicalOperator> getTableFunctionCall(
         const binder::BoundReadingClause& readingClause);
     std::shared_ptr<LogicalOperator> getGDSCall(const binder::BoundReadingClause& readingClause);

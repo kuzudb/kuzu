@@ -22,27 +22,6 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace planner {
 
-static bool extendHasAtMostOneNbrGuarantee(RelExpression& rel, NodeExpression& boundNode,
-    ExtendDirection direction, const main::ClientContext& clientContext) {
-    if (rel.isEmpty()) {
-        return false;
-    }
-    if (boundNode.isMultiLabeled()) {
-        return false;
-    }
-    if (rel.isMultiLabeled()) {
-        return false;
-    }
-    if (direction == ExtendDirection::BOTH) {
-        return false;
-    }
-    auto relDirection = ExtendDirectionUtil::getRelDataDirection(direction);
-    auto catalog = clientContext.getCatalog();
-    auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
-        catalog->getTableCatalogEntry(clientContext.getTx(), rel.getSingleTableID()));
-    return relTableEntry->isSingleMultiplicity(relDirection);
-}
-
 static std::unordered_set<table_id_t> getBoundNodeTableIDSet(const RelExpression& rel,
     ExtendDirection extendDirection, const main::ClientContext& clientContext) {
     std::unordered_set<table_id_t> result;
@@ -103,19 +82,33 @@ static std::shared_ptr<Expression> getIRIProperty(const expression_vector& prope
     return nullptr;
 }
 
+static void validatePropertiesContainRelID(const RelExpression& rel,
+    const expression_vector& properties) {
+    if (rel.isEmpty()) {
+        return;
+    }
+    for (auto& property : properties) {
+        if (*property == *rel.getInternalIDProperty()) {
+            return;
+        }
+    }
+    // LCOV_EXCL_START
+    throw RuntimeException(stringFormat(
+        "Internal ID of relationship {} is not scanned. This should not happen.", rel.toString()));
+    // LCOV_EXCL_STOP
+}
+
 void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& boundNode,
     const std::shared_ptr<NodeExpression>& nbrNode, const std::shared_ptr<RelExpression>& rel,
     ExtendDirection direction, bool extendFromSource, const expression_vector& properties,
     LogicalPlan& plan) {
+    validatePropertiesContainRelID(*rel, properties);
     // Filter bound node label if we know some incoming nodes won't have any outgoing rel. This
     // cannot be done at binding time because the pruning is affected by extend direction.
     auto boundNodeTableIDSet = getBoundNodeTableIDSet(*rel, direction, *clientContext);
     if (boundNode->getNumTableIDs() > boundNodeTableIDSet.size()) {
         appendNodeLabelFilter(boundNode->getInternalID(), boundNodeTableIDSet, plan);
     }
-    // Check for each bound node, can we extend to more than 1 nbr node.
-    auto hasAtMostOneNbr =
-        extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, *clientContext);
     auto properties_ = properties;
     auto iri = getIRIProperty(properties);
     if (iri != nullptr) {
@@ -126,7 +119,7 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
     }
     // Append extend
     auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel, direction, extendFromSource,
-        properties_, hasAtMostOneNbr, plan.getLastOperator());
+        properties_, plan.getLastOperator());
     appendFlattens(extend->getGroupsPosToFlatten(), plan);
     extend->setChild(0, plan.getLastOperator());
     extend->computeFactorizedSchema();
@@ -212,19 +205,17 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
         cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
     plan.setCost(CostModel::computeRecursiveExtendCost(rel->getUpperBound(), extensionRate, plan));
     // Update cardinality
-    auto hasAtMostOneNbr =
-        extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, *clientContext);
-    if (!hasAtMostOneNbr) {
-        auto group = plan.getSchema()->getGroup(nbrNode->getInternalID());
-        group->setMultiplier(extensionRate);
-    }
+    auto group = plan.getSchema()->getGroup(nbrNode->getInternalID());
+    group->setMultiplier(extensionRate);
 }
 
 static expression_vector collectPropertiesToRead(const std::shared_ptr<Expression>& expression) {
     if (expression == nullptr) {
         return expression_vector{};
     }
-    return ExpressionCollector().collectPropertyExpressions(expression);
+    auto collector = PropertyExprCollector();
+    collector.visit(expression);
+    return collector.getPropertyExprs();
 }
 
 void Planner::createRecursivePlan(const RecursiveInfo& recursiveInfo, ExtendDirection direction,

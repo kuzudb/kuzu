@@ -1,7 +1,6 @@
 #include "binder/binder.h"
 #include "binder/copy/bound_copy_to.h"
 #include "catalog/catalog.h"
-#include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
 #include "main/client_context.h"
 #include "parser/copy.h"
@@ -29,9 +28,6 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     for (auto& column : columns) {
         auto columnName = column->hasAlias() ? column->getAlias() : column->toString();
         columnNames.push_back(columnName);
-    }
-    if (fileType != FileType::CSV && copyToStatement.getParsingOptionsRef().size() != 0) {
-        throw BinderException{"Only copy to csv can have options."};
     }
     function::ExportFuncBindInput bindInput{std::move(columnNames), std::move(boundFilePath),
         bindParsingOptions(copyToStatement.getParsingOptionsRef())};

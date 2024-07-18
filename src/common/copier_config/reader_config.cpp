@@ -55,6 +55,9 @@ std::string FileTypeUtils::toString(FileType fileType) {
     case FileType::NTRIPLES: {
         return "NTRIPLES";
     }
+    case FileType::JSON: {
+        return "JSON";
+    }
     default: {
         KU_UNREACHABLE;
     }

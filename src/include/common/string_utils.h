@@ -9,11 +9,11 @@
 namespace kuzu {
 namespace common {
 
-class StringUtils {
+class KUZU_API StringUtils {
 public:
-    KUZU_API static std::vector<std::string> splitComma(const std::string& input);
-    KUZU_API static std::vector<std::string> split(const std::string& input,
-        const std::string& delimiter, bool ignoreEmptyStringParts = true);
+    static std::vector<std::string> splitComma(const std::string& input);
+    static std::vector<std::string> split(const std::string& input, const std::string& delimiter,
+        bool ignoreEmptyStringParts = true);
     static std::vector<std::string> splitBySpace(const std::string& input);
 
     static void toUpper(std::string& input) {
@@ -59,9 +59,9 @@ public:
 
     static std::string removeEscapedCharacters(const std::string& input);
 
-    KUZU_API static uint64_t caseInsensitiveHash(const std::string& str);
+    static uint64_t caseInsensitiveHash(const std::string& str);
 
-    KUZU_API static bool caseInsensitiveEquals(const std::string& left, const std::string& right);
+    static bool caseInsensitiveEquals(const std::string& left, const std::string& right);
 
     // join multiple strings into one string. Components are concatenated by the given separator
     static std::string join(const std::vector<std::string>& input, const std::string& separator);

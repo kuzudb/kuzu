@@ -14,7 +14,7 @@ PathSemantic PathSemanticUtils::fromString(const std::string& str) {
         return PathSemantic::WALK;
     }
     if (normalizedStr == "TRAIL") {
-        return PathSemantic::TRIAL;
+        return PathSemantic::TRAIL;
     }
     if (normalizedStr == "ACYCLIC") {
         return PathSemantic::ACYCLIC;
@@ -27,7 +27,7 @@ std::string PathSemanticUtils::toString(PathSemantic semantic) {
     switch (semantic) {
     case PathSemantic::WALK:
         return "WALK";
-    case PathSemantic::TRIAL:
+    case PathSemantic::TRAIL:
         return "TRAIL";
     case PathSemantic::ACYCLIC:
         return "ACYCLIC";

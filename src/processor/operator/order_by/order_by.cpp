@@ -1,9 +1,19 @@
 #include "processor/operator/order_by/order_by.h"
 
+#include "binder/expression/expression_util.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
+
+std::string OrderByPrintInfo::toString() const {
+    std::string result = "Order By: ";
+    result += binder::ExpressionUtil::toString(keys);
+    result += ", Expressions: ";
+    result += binder::ExpressionUtil::toString(payloads);
+    return result;
+}
 
 void OrderBy::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     localState = std::make_unique<SortLocalState>();

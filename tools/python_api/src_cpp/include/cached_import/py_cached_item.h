@@ -16,7 +16,7 @@ public:
     bool isLoaded() const { return loaded; }
     py::handle operator()();
 
-private:
+protected:
     std::string name;
     PythonCachedItem* parent;
     bool loaded;

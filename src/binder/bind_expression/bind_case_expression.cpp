@@ -1,7 +1,7 @@
 #include "binder/binder.h"
 #include "binder/expression/case_expression.h"
+#include "binder/expression/expression_util.h"
 #include "binder/expression_binder.h"
-#include "common/cast.h"
 #include "parser/expression/parsed_case_expression.h"
 
 using namespace kuzu::common;
@@ -12,9 +12,8 @@ namespace binder {
 
 std::shared_ptr<Expression> ExpressionBinder::bindCaseExpression(
     const ParsedExpression& parsedExpression) {
-    auto& parsedCaseExpression =
-        ku_dynamic_cast<const ParsedExpression&, const ParsedCaseExpression&>(parsedExpression);
-    auto resultType = LogicalType();
+    auto& parsedCaseExpression = parsedExpression.constCast<ParsedCaseExpression>();
+    auto resultType = LogicalType::ANY();
     // Resolve result type by checking each then expression type.
     for (auto i = 0u; i < parsedCaseExpression.getNumCaseAlternative(); ++i) {
         auto alternative = parsedCaseExpression.getCaseAlternative(i);
@@ -48,8 +47,13 @@ std::shared_ptr<Expression> ExpressionBinder::bindCaseExpression(
             auto boundWhen = bindExpression(*caseAlternative->whenExpression);
             boundWhen = implicitCastIfNecessary(boundWhen, boundCase->dataType);
             // rewrite "CASE a.age WHEN 1" as "CASE WHEN a.age = 1"
-            boundWhen = bindComparisonExpression(ExpressionType::EQUALS,
-                std::vector<std::shared_ptr<Expression>>{boundCase, boundWhen});
+            if (ExpressionUtil::isNullLiteral(*boundWhen)) {
+                boundWhen = bindNullOperatorExpression(ExpressionType::IS_NULL,
+                    expression_vector{boundWhen});
+            } else {
+                boundWhen = bindComparisonExpression(ExpressionType::EQUALS,
+                    expression_vector{boundCase, boundWhen});
+            }
             auto boundThen = bindExpression(*caseAlternative->thenExpression);
             boundThen = implicitCastIfNecessary(boundThen, resultType);
             boundCaseExpression->addCaseAlternative(boundWhen, boundThen);

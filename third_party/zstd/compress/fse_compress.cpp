@@ -55,7 +55,7 @@
 #define FSE_FUNCTION_NAME(X,Y) FSE_CAT(X,Y)
 #define FSE_TYPE_NAME(X,Y) FSE_CAT(X,Y)
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 
 /* Function templates */
 

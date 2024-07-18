@@ -17,7 +17,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindParameterExpression(
     } else {
         auto value = std::make_shared<Value>(Value::createNullValue());
         parameterMap.insert({parameterName, value});
-        return make_shared<ParameterExpression>(parameterName, *value);
+        return std::make_shared<ParameterExpression>(parameterName, *value);
     }
 }
 

@@ -38,7 +38,7 @@
                                        This constant is required by ZSTD_compressBlock_btlazy2() and ZSTD_reduceTable_internal() */
 
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 /*-*************************************
 *  Context memory management
 ***************************************/

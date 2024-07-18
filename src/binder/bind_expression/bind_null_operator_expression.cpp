@@ -12,23 +12,32 @@ std::shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
     const ParsedExpression& parsedExpression) {
     expression_vector children;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-        auto boundChild = bindExpression(*parsedExpression.getChild(i));
-        if (boundChild->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
-            // e.g. NULL IS NULL. We assign a default type to the expression.
-            boundChild = implicitCastIfNecessary(std::move(boundChild), LogicalType::BOOL());
-        }
-        children.push_back(std::move(boundChild));
+        children.push_back(bindExpression(*parsedExpression.getChild(i)));
     }
-    auto expressionType = parsedExpression.getExpressionType();
+    return bindNullOperatorExpression(parsedExpression.getExpressionType(), children);
+}
+
+std::shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
+    ExpressionType expressionType, const expression_vector& children) {
+    expression_vector childrenAfterCast;
+    for (auto& child : children) {
+        if (child->dataType.getLogicalTypeID() == LogicalTypeID::ANY) {
+            childrenAfterCast.push_back(implicitCastIfNecessary(child, LogicalType::BOOL()));
+        } else {
+            childrenAfterCast.push_back(child);
+        }
+    }
     auto functionName = ExpressionTypeUtil::toString(expressionType);
     function::scalar_func_exec_t execFunc;
-    function::VectorNullFunction::bindExecFunction(expressionType, children, execFunc);
+    function::VectorNullFunction::bindExecFunction(expressionType, childrenAfterCast, execFunc);
     function::scalar_func_select_t selectFunc;
-    function::VectorNullFunction::bindSelectFunction(expressionType, children, selectFunc);
+    function::VectorNullFunction::bindSelectFunction(expressionType, childrenAfterCast, selectFunc);
     auto bindData = std::make_unique<function::FunctionBindData>(LogicalType::BOOL());
-    auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(functionName, children);
+    auto uniqueExpressionName =
+        ScalarFunctionExpression::getUniqueName(functionName, childrenAfterCast);
     return make_shared<ScalarFunctionExpression>(functionName, expressionType, std::move(bindData),
-        std::move(children), std::move(execFunc), std::move(selectFunc), uniqueExpressionName);
+        std::move(childrenAfterCast), std::move(execFunc), std::move(selectFunc),
+        uniqueExpressionName);
 }
 
 } // namespace binder

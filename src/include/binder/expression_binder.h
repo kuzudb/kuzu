@@ -31,6 +31,7 @@ public:
         const parser::ParsedExpression& parsedExpression);
     std::shared_ptr<Expression> bindBooleanExpression(common::ExpressionType expressionType,
         const expression_vector& children);
+
     std::shared_ptr<Expression> combineBooleanExpressions(common::ExpressionType expressionType,
         std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
     // Comparison expressions.
@@ -43,6 +44,9 @@ public:
     // Null operator expressions.
     std::shared_ptr<Expression> bindNullOperatorExpression(
         const parser::ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindNullOperatorExpression(common::ExpressionType expressionType,
+        const expression_vector& children);
+
     // Property expressions.
     expression_vector bindPropertyStarExpression(const parser::ParsedExpression& parsedExpression);
     expression_vector bindNodeOrRelPropertyStarExpression(const Expression& child);

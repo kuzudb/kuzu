@@ -57,9 +57,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logica
     auto orderByDataInfo = std::make_unique<OrderByDataInfo>(keysPos, payloadsPos,
         LogicalType::copy(keyTypes), LogicalType::copy(payloadTypes),
         logicalOrderBy.getIsAscOrders(), std::move(payloadSchema), std::move(keyInPayloadPos));
-    auto printInfo = std::make_unique<OPPrintInfo>(logicalOrderBy.getExpressionsForPrinting());
     if (logicalOrderBy.isTopK()) {
         auto topKSharedState = std::make_shared<TopKSharedState>();
+        auto printInfo = std::make_unique<TopKPrintInfo>(keyExpressions, payloadExpressions,
+            logicalOrderBy.getSkipNum(), logicalOrderBy.getLimitNum());
         auto topK = make_unique<TopK>(std::make_unique<ResultSetDescriptor>(inSchema),
             std::move(orderByDataInfo), topKSharedState, logicalOrderBy.getSkipNum(),
             logicalOrderBy.getLimitNum(), std::move(prevOperator), getOperatorID(),
@@ -68,6 +69,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logica
             printInfo->copy());
     } else {
         auto orderBySharedState = std::make_shared<SortSharedState>();
+        auto printInfo = std::make_unique<OrderByPrintInfo>(keyExpressions, payloadExpressions);
         auto orderBy = make_unique<OrderBy>(std::make_unique<ResultSetDescriptor>(inSchema),
             std::move(orderByDataInfo), orderBySharedState, std::move(prevOperator),
             getOperatorID(), printInfo->copy());

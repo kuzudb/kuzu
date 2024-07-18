@@ -88,6 +88,7 @@ struct RecursiveJoinInfo {
     common::QueryRelType queryRelType;
     planner::RecursiveJoinType joinType;
     common::ExtendDirection direction;
+    bool extendFromSource;
 
     RecursiveJoinInfo() = default;
     EXPLICIT_COPY_DEFAULT_MOVE(RecursiveJoinInfo);
@@ -100,6 +101,7 @@ private:
         queryRelType = other.queryRelType;
         joinType = other.joinType;
         direction = other.direction;
+        extendFromSource = other.extendFromSource;
     }
 };
 

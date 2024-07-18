@@ -7,6 +7,23 @@
 namespace kuzu {
 namespace processor {
 
+struct StandaloneCallPrintInfo final : OPPrintInfo {
+    std::string functionName;
+
+    explicit StandaloneCallPrintInfo(std::string functionName)
+        : functionName(std::move(functionName)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<StandaloneCallPrintInfo>(new StandaloneCallPrintInfo(*this));
+    }
+
+private:
+    StandaloneCallPrintInfo(const StandaloneCallPrintInfo& other)
+        : OPPrintInfo(other), functionName(other.functionName) {}
+};
+
 struct StandaloneCallInfo {
     main::Option* option;
     common::Value optionValue;

@@ -24,6 +24,28 @@ namespace processor {
 
 using std::stringstream;
 
+std::string ExportDBPrintInfo::toString() const {
+    std::string result = "Export To: ";
+    result += filePath;
+    if (!options.empty()) {
+        result += ",Options: ";
+        auto it = options.begin();
+        for (auto i = 0u; it != options.end(); ++it, ++i) {
+            result += it->first + "=" + it->second.toString();
+            if (i < options.size() - 1) {
+                result += ", ";
+            }
+        }
+    }
+    return result;
+}
+
+void ExportDB::initGlobalStateInternal(kuzu::processor::ExecutionContext* context) {
+    auto vfs = context->clientContext->getVFSUnsafe();
+    KU_ASSERT(!vfs->fileOrPathExists(boundFileInfo.filePaths[0], context->clientContext));
+    vfs->createDir(boundFileInfo.filePaths[0]);
+}
+
 static void writeStringStreamToFile(VirtualFileSystem* vfs, std::string ssString,
     const std::string& path) {
     auto fileInfo = vfs->openFile(path, O_WRONLY | O_CREAT);

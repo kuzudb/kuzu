@@ -83,14 +83,15 @@ bool DiskArrayInternal::checkOutOfBoundAccess(TransactionType trxType, uint64_t 
     return true;
 }
 
-void DiskArrayInternal::get(uint64_t idx, TransactionType trxType, std::span<std::byte> val) {
+void DiskArrayInternal::get(uint64_t idx, const Transaction* transaction,
+    std::span<std::byte> val) {
     std::shared_lock sLck{diskArraySharedMtx};
-    KU_ASSERT(checkOutOfBoundAccess(trxType, idx));
+    KU_ASSERT(checkOutOfBoundAccess(transaction->getType(), idx));
     auto apCursor = getAPIdxAndOffsetInAP(storageInfo, idx);
-    page_idx_t apPageIdx = getAPPageIdxNoLock(apCursor.pageIdx, trxType);
+    page_idx_t apPageIdx = getAPPageIdxNoLock(apCursor.pageIdx, transaction->getType());
     auto& bmFileHandle = fileHandle;
-    if (trxType == TransactionType::READ_ONLY || !hasTransactionalUpdates ||
-        apPageIdx > lastPageOnDisk || !bmFileHandle.hasWALPageVersionNoWALPageIdxLock(apPageIdx)) {
+    if (transaction->isReadOnly() || !hasTransactionalUpdates || apPageIdx > lastPageOnDisk ||
+        !bmFileHandle.hasWALPageVersionNoWALPageIdxLock(apPageIdx)) {
         bufferManager->optimisticRead(bmFileHandle, apPageIdx, [&](const uint8_t* frame) -> void {
             memcpy(val.data(), frame + apCursor.elemPosInPage, val.size());
         });
@@ -124,10 +125,11 @@ void DiskArrayInternal::updatePage(uint64_t pageIdx, bool isNewPage,
     }
 }
 
-void DiskArrayInternal::update(uint64_t idx, std::span<std::byte> val) {
+void DiskArrayInternal::update(const Transaction* transaction, uint64_t idx,
+    std::span<std::byte> val) {
     std::unique_lock xLck{diskArraySharedMtx};
     hasTransactionalUpdates = true;
-    KU_ASSERT(checkOutOfBoundAccess(TransactionType::WRITE, idx));
+    KU_ASSERT(checkOutOfBoundAccess(transaction->getType(), idx));
     auto apCursor = getAPIdxAndOffsetInAP(storageInfo, idx);
     // TODO: We are currently supporting only DiskArrays that can grow in size and not
     // those that can shrink in size. That is why we can use
@@ -138,26 +140,27 @@ void DiskArrayInternal::update(uint64_t idx, std::span<std::byte> val) {
     // pipPageIdxsOfInsertedPIPs. If within a single transaction we could grow or shrink, then
     // getAPPageIdxNoLock logic needs to change to give the same guarantee (e.g., an apIdx = 0, may
     // no longer to be guaranteed to be in pips[0].)
-    page_idx_t apPageIdx = getAPPageIdxNoLock(apCursor.pageIdx, TransactionType::WRITE);
+    page_idx_t apPageIdx = getAPPageIdxNoLock(apCursor.pageIdx, transaction->getType());
     updatePage(apPageIdx, false /*isNewPage=*/, [&apCursor, &val](uint8_t* frame) -> void {
         memcpy(frame + apCursor.elemPosInPage, val.data(), val.size());
     });
 }
 
-uint64_t DiskArrayInternal::pushBack(std::span<std::byte> val) {
+uint64_t DiskArrayInternal::pushBack(const Transaction* transaction, std::span<std::byte> val) {
     std::unique_lock xLck{diskArraySharedMtx};
     auto it = iter_mut(val.size());
-    auto originalNumElements = getNumElementsNoLock(TransactionType::WRITE);
-    it.pushBack(val);
+    auto originalNumElements = getNumElementsNoLock(transaction->getType());
+    it.pushBack(transaction, val);
     return originalNumElements;
 }
 
-uint64_t DiskArrayInternal::resize(uint64_t newNumElements, std::span<std::byte> defaultVal) {
+uint64_t DiskArrayInternal::resize(const Transaction* transaction, uint64_t newNumElements,
+    std::span<std::byte> defaultVal) {
     std::unique_lock xLck{diskArraySharedMtx};
     auto it = iter_mut(defaultVal.size());
-    auto originalNumElements = getNumElementsNoLock(TransactionType::WRITE);
+    auto originalNumElements = getNumElementsNoLock(transaction->getType());
     while (it.size() < newNumElements) {
-        it.pushBack(defaultVal);
+        it.pushBack(transaction, defaultVal);
     }
     return originalNumElements;
 }
@@ -262,13 +265,14 @@ bool DiskArrayInternal::hasPIPUpdatesNoLock(uint64_t pipIdx) {
 }
 
 std::pair<page_idx_t, bool>
-DiskArrayInternal::getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(page_idx_t apIdx) {
+DiskArrayInternal::getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
+    const Transaction* transaction, page_idx_t apIdx) {
     if (apIdx == getNumAPs(headerForWriteTrx) - 1 && lastAPPageIdx != INVALID_PAGE_IDX) {
         return std::make_pair(lastAPPageIdx, false /*not a new page*/);
     } else if (apIdx < getNumAPs(headerForWriteTrx)) {
         // If the apIdx of the array page is < numAPs, we do not have to
         // add a new array page, so directly return the pageIdx of the apIdx.
-        return std::make_pair(getAPPageIdxNoLock(apIdx, TransactionType::WRITE),
+        return std::make_pair(getAPPageIdxNoLock(apIdx, transaction->getType()),
             false /* is not inserting a new ap page */);
     } else {
         // apIdx even if it's being inserted should never be > updatedDiskArrayHeader->numAPs.
@@ -319,13 +323,15 @@ DiskArrayInternal::WriteIterator& DiskArrayInternal::WriteIterator::seek(size_t 
     return *this;
 }
 
-void DiskArrayInternal::WriteIterator::pushBack(std::span<std::byte> val) {
+void DiskArrayInternal::WriteIterator::pushBack(const Transaction* transaction,
+    std::span<std::byte> val) {
     idx = diskArray.headerForWriteTrx.numElements;
     auto oldPageIdx = apCursor.pageIdx;
     apCursor = getAPIdxAndOffsetInAP(diskArray.storageInfo, idx);
     // If this would add a new page, pin new page and update PIP
     auto [apPageIdx, isNewlyAdded] =
-        diskArray.getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(apCursor.pageIdx);
+        diskArray.getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(transaction,
+            apCursor.pageIdx);
     diskArray.lastAPPageIdx = apPageIdx;
     // Used to calculate the number of APs, so it must be updated after the PIPs are.
     diskArray.headerForWriteTrx.numElements++;

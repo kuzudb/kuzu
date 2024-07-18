@@ -20,7 +20,3 @@ Binder exception: Cannot bind LIST_CONCAT with parameter type INT64[] and STRING
 -STATEMENT MATCH (a:person) RETURN [a.age, a.fName]
 ---- error
 Binder exception: Expression a.fName has data type STRING but expected INT64. Implicit cast is not supported.
-
--STATEMENT MATCH (a:person) RETURN list_sort($1)
----- error
-Binder exception: Cannot resolve recursive data type for expression $1

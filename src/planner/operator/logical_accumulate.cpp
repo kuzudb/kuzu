@@ -36,11 +36,7 @@ void LogicalAccumulate::computeFlatSchema() {
 f_group_pos_set LogicalAccumulate::getGroupPositionsToFlatten() const {
     f_group_pos_set result;
     auto childSchema = children[0]->getSchema();
-    for (auto& expression : flatExprs) {
-        auto groupPos = childSchema->getGroupPos(*expression);
-        result.insert(groupPos);
-    }
-    return factorization::FlattenAll::getGroupsPosToFlatten(result, childSchema);
+    return FlattenAll::getGroupsPosToFlatten(flatExprs, *childSchema);
 }
 
 } // namespace planner

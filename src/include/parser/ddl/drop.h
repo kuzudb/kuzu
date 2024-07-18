@@ -1,21 +1,21 @@
 #pragma once
 
-#include <string>
-
+#include "drop_info.h"
 #include "parser/statement.h"
 
 namespace kuzu {
 namespace parser {
 
 class Drop : public Statement {
-public:
-    explicit Drop(common::StatementType type, std::string name)
-        : Statement{type}, name{std::move(name)} {}
+    static constexpr common::StatementType type_ = common::StatementType::DROP;
 
-    inline std::string getName() const { return name; }
+public:
+    explicit Drop(DropInfo dropInfo) : Statement{type_}, dropInfo{std::move(dropInfo)} {}
+
+    const DropInfo& getDropInfo() const { return dropInfo; }
 
 private:
-    std::string name;
+    DropInfo dropInfo;
 };
 
 } // namespace parser

@@ -4,6 +4,7 @@
 #include "parser/ddl/create_table.h"
 #include "parser/ddl/create_type.h"
 #include "parser/ddl/drop.h"
+#include "parser/ddl/drop_info.h"
 #include "parser/expression/parsed_literal_expression.h"
 #include "parser/transformer.h"
 
@@ -164,12 +165,22 @@ std::unique_ptr<Statement> Transformer::transformCreateType(
     return std::make_unique<CreateType>(name, type);
 }
 
+DropType transformDropType(CypherParser::KU_DropContext& ctx) {
+    if (ctx.TABLE() || ctx.RDFGRAPH()) {
+        return DropType::TABLE;
+    } else if (ctx.SEQUENCE()) {
+        return DropType::SEQUENCE;
+    } else {
+        KU_UNREACHABLE;
+    }
+}
+
 std::unique_ptr<Statement> Transformer::transformDrop(CypherParser::KU_DropContext& ctx) {
     auto name = transformSchemaName(*ctx.oC_SchemaName());
-    if (ctx.SEQUENCE()) {
-        return std::make_unique<Drop>(common::StatementType::DROP_SEQUENCE, name);
-    }
-    return std::make_unique<Drop>(common::StatementType::DROP_TABLE, name);
+    auto dropType = transformDropType(ctx);
+    auto conflictAction = ctx.kU_IfExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
+                                              common::ConflictAction::ON_CONFLICT_THROW;
+    return std::make_unique<Drop>(DropInfo{std::move(name), dropType, conflictAction});
 }
 
 std::unique_ptr<Statement> Transformer::transformRenameTable(

@@ -13,7 +13,7 @@
  ***************************************/
 #include "zstd/compress/zstd_compress_literals.h"
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 size_t ZSTD_noCompressLiterals (void* dst, size_t dstCapacity, const void* src, size_t srcSize)
 {
     BYTE* const ostart = (BYTE* const)dst;

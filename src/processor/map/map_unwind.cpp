@@ -21,7 +21,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapUnwind(LogicalOperator* logical
     if (unwind.hasIDExpr()) {
         idPos = getDataPos(*unwind.getIDExpr(), *outSchema);
     }
-    auto printInfo = std::make_unique<OPPrintInfo>(unwind.getExpressionsForPrinting());
+    auto printInfo = std::make_unique<UnwindPrintInfo>(unwind.getInExpr(), unwind.getOutExpr());
     return std::make_unique<Unwind>(dataPos, idPos, std::move(evaluator), std::move(prevOperator),
         getOperatorID(), std::move(printInfo));
 }

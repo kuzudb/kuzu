@@ -85,7 +85,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetNodeProperty(LogicalOperator
     for (auto& info : set->getInfos()) {
         executors.push_back(getNodeSetExecutor(info, *inSchema));
     }
-    auto printInfo = std::make_unique<OPPrintInfo>(set->getExpressionsForPrinting());
+    std::vector<binder::expression_pair> expressions;
+    for (auto& info : set->getInfos()) {
+        expressions.push_back(info.setItem);
+    }
+    auto printInfo = std::make_unique<SetPropertyPrintInfo>(expressions);
     return std::make_unique<SetNodeProperty>(std::move(executors), std::move(prevOperator),
         getOperatorID(), std::move(printInfo));
 }
@@ -140,7 +144,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetRelProperty(LogicalOperator*
     for (auto& info : set->getInfos()) {
         executors.push_back(getRelSetExecutor(info, *inSchema));
     }
-    auto printInfo = std::make_unique<OPPrintInfo>(set->getExpressionsForPrinting());
+    std::vector<binder::expression_pair> expressions;
+    for (auto& info : set->getInfos()) {
+        expressions.push_back(info.setItem);
+    }
+    auto printInfo = std::make_unique<SetPropertyPrintInfo>(expressions);
     return std::make_unique<SetRelProperty>(std::move(executors), std::move(prevOperator),
         getOperatorID(), std::move(printInfo));
 }

@@ -1,5 +1,6 @@
 #include "processor/operator/index_lookup.h"
 
+#include "binder/expression/expression_util.h"
 #include "common/assert.h"
 #include "common/exception/message.h"
 #include "common/types/ku_string.h"
@@ -13,6 +14,12 @@ using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
+
+std::string IndexLookupPrintInfo::toString() const {
+    std::string result = "Indexes: ";
+    result += binder::ExpressionUtil::toString(expressions);
+    return result;
+}
 
 bool IndexLookup::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {

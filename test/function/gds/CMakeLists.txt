@@ -1,0 +1,1 @@
+add_kuzu_test(gds_utils_test gds_utils_test.cpp)

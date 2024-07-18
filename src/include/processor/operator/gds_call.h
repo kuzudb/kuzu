@@ -32,6 +32,22 @@ private:
     GDSCallInfo(const GDSCallInfo& other) : gds{other.gds->copy()} {}
 };
 
+struct GDSCallPrintInfo final : OPPrintInfo {
+    std::string funcName;
+
+    explicit GDSCallPrintInfo(std::string funcName) : funcName{std::move(funcName)} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<GDSCallPrintInfo>(new GDSCallPrintInfo(*this));
+    }
+
+private:
+    GDSCallPrintInfo(const GDSCallPrintInfo& other)
+        : OPPrintInfo{other}, funcName{other.funcName} {}
+};
+
 class GDSCall : public Sink {
     static constexpr PhysicalOperatorType operatorType_ = PhysicalOperatorType::GDS_CALL;
 

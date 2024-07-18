@@ -40,7 +40,7 @@ f_group_pos_set LogicalDelete::getGroupsPosToFlatten() const {
     default:
         KU_UNREACHABLE;
     }
-    return factorization::FlattenAll::getGroupsPosToFlatten(dependentGroupPos, childSchema);
+    return FlattenAll::getGroupsPosToFlatten(dependentGroupPos, *childSchema);
 }
 
 } // namespace planner

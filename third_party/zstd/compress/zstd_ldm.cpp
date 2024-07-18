@@ -19,7 +19,7 @@
 #define LDM_HASH_RLOG 7
 #define LDM_HASH_CHAR_OFFSET 10
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 
 void ZSTD_ldm_adjustParameters(ldmParams_t* params,
                                ZSTD_compressionParameters const* cParams)

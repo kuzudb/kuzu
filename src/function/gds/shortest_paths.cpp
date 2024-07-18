@@ -19,6 +19,50 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
+enum class RecJoinOutputType : uint8_t {
+    DESTINATION_NODES = 0,
+    LENGTHS = 1,
+    // PATHS returns only the intermediate nodeIDs in a path, not the source or dst nodeIDs.
+    PATHS = 2,
+};
+
+/**
+ * A data structure to keep track of a single (shortest) path from one source node to
+ * multiple destination (and intermediate) nodes as "backward BFS graph" form. The data structure is
+ * "dense" in the sense that it keeps space for one "backwards edge" for each possible node that can
+ * be in the destination. Supports multi-label nodes.
+ */
+class SinglePaths {
+public:
+    explicit SinglePaths(
+        std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
+        MemoryManager* mm) {
+        for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
+            lastEdges.insert({tableID, mm->allocateBuffer(false, numNodes * sizeof(nodeID_t))});
+        }
+    }
+
+    void setLastEdge(nodeID_t nodeID, nodeID_t lastEdge) {
+        KU_ASSERT(currentFixedLastEdges != nullptr);
+        currentFixedLastEdges[nodeID.offset] = lastEdge;
+    }
+
+    nodeID_t getParent(nodeID_t nodeID) {
+        return reinterpret_cast<nodeID_t*>(
+            lastEdges.at(nodeID.tableID).get()->buffer.data())[nodeID.offset];
+    }
+
+    void fixNodeTable(common::table_id_t tableID) {
+        KU_ASSERT(lastEdges.contains(tableID));
+        currentFixedLastEdges =
+            reinterpret_cast<nodeID_t*>(lastEdges.at(tableID).get()->buffer.data());
+    }
+
+private:
+    common::table_id_map_t<std::unique_ptr<MemoryBuffer>> lastEdges;
+    nodeID_t* currentFixedLastEdges;
+};
+
 /**
  * A GDSFrontier implementation that keeps the lengths of the shortest paths from the source node to
  * destination nodes. This is a light-weight implementation that can keep lengths up to and
@@ -94,7 +138,8 @@ private:
 };
 
 class PathLengthsFrontiers : public Frontiers {
-    friend struct ShortestPathsFrontierCompute;
+    friend struct SPLengthsFrontierCompute;
+    friend struct SPSinglePathsFrontierCompute;
     static constexpr uint64_t FRONTIER_MORSEL_SIZE = 64;
 
 public:
@@ -136,6 +181,27 @@ private:
     std::atomic<offset_t> nextOffset;
 };
 
+class SinglePathsFrontiers : public PathLengthsFrontiers {
+    friend struct SPSinglePathsFrontierCompute;
+
+public:
+    explicit SinglePathsFrontiers(PathLengths* pathLengths, SinglePaths* singlePaths)
+        : PathLengthsFrontiers(pathLengths), singlePaths{singlePaths} {}
+    void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
+        table_id_t nextFrontierTableID) override {
+        PathLengthsFrontiers::beginFrontierComputeBetweenTables(curFrontierTableID,
+            nextFrontierTableID);
+        singlePaths->fixNodeTable(nextFrontierTableID);
+    }
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<SinglePathsFrontiers*, TARGET*>(this);
+    }
+
+private:
+    SinglePaths* singlePaths;
+};
+
 struct ShortestPathsBindData final : public GDSBindData {
     std::shared_ptr<Expression> nodeInput;
     uint8_t upperBound;
@@ -160,8 +226,9 @@ struct ShortestPathsBindData final : public GDSBindData {
 struct ShortestPathsSourceState {
     nodeID_t sourceNodeID;
     std::unique_ptr<PathLengths> pathLengths;
-
-    explicit ShortestPathsSourceState(graph::Graph* graph, nodeID_t sourceNodeID)
+    std::unique_ptr<SinglePaths> singlePaths;
+    explicit ShortestPathsSourceState(graph::Graph* graph, nodeID_t sourceNodeID,
+        RecJoinOutputType outputType, MemoryManager* mm = nullptr)
         : sourceNodeID{sourceNodeID} {
         std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes;
         for (common::table_id_t tableID : graph->getNodeTableIDs()) {
@@ -175,22 +242,36 @@ struct ShortestPathsSourceState {
         // fix the current frontier table before setting the source node as active.
         pathLengths->fixNextFrontierNodeTable(sourceNodeID.tableID);
         pathLengths->setActive(sourceNodeID);
+        if (RecJoinOutputType::PATHS == outputType) {
+            singlePaths = std::make_unique<SinglePaths>(nodeTableIDAndNumNodes, mm);
+            // Unlike pathLengths we do not fix the nodeTable of singlePath with
+            // sourceNodeID.tableID because when extending a RelTable R(srcNodeLabel, dstNodeLabel),
+            // singlePaths should be fixed to dstNodeLabel. This should be done during frontier
+            // extensions.
+        }
     }
 };
 
 class ShortestPathsLocalState : public GDSLocalState {
 public:
-    explicit ShortestPathsLocalState(main::ClientContext* context) {
+    explicit ShortestPathsLocalState(main::ClientContext* context, RecJoinOutputType outputType)
+        : outputType{outputType} {
         auto mm = context->getMemoryManager();
         srcNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
         dstNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
-        lengthVector = std::make_unique<ValueVector>(LogicalType::INT64(), mm);
         srcNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
         dstNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
-        lengthVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(srcNodeIDVector.get());
         vectors.push_back(dstNodeIDVector.get());
+        lengthVector = std::make_unique<ValueVector>(LogicalType::INT64(), mm);
+        lengthVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(lengthVector.get());
+        if (RecJoinOutputType::PATHS == outputType) {
+            pathNodeIDsVector =
+                std::make_unique<ValueVector>(LogicalType::LIST(LogicalType::INTERNAL_ID()), mm);
+            pathNodeIDsVector->state = DataChunkState::getSingleValueDataChunkState();
+            vectors.push_back(pathNodeIDsVector.get());
+        }
     }
 
     void materialize(graph::Graph* graph, const ShortestPathsSourceState& sourceState,
@@ -209,26 +290,59 @@ public:
                 auto dstNodeID = nodeID_t{nodeOffset, tableID};
                 dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
                 lengthVector->setValue<int64_t>(0, length);
+                if (RecJoinOutputType::PATHS == outputType) {
+                    nodeID_t curIntNode = dstNodeID;
+                    uint64_t curIntNbrIndex = length > 1 ? length - 1 : 0;
+                    pathNodeIDsVector->resetAuxiliaryBuffer();
+                    auto pathNodeIDsEntry =
+                        ListVector::addList(pathNodeIDsVector.get(), curIntNbrIndex);
+                    pathNodeIDsVector->setValue(0, pathNodeIDsEntry);
+                    auto dataVector = ListVector::getDataVector(pathNodeIDsVector.get());
+                    while (curIntNbrIndex > 0) {
+                        curIntNode = sourceState.singlePaths->getParent(curIntNode);
+                        dataVector->setValue(pathNodeIDsEntry.offset + curIntNbrIndex - 1,
+                            curIntNode);
+                        curIntNbrIndex--;
+                    }
+                }
                 table.append(vectors);
             }
         }
     }
 
 private:
+    RecJoinOutputType outputType;
     std::unique_ptr<ValueVector> srcNodeIDVector;
     std::unique_ptr<ValueVector> dstNodeIDVector;
     std::unique_ptr<ValueVector> lengthVector;
+    std::unique_ptr<ValueVector> pathNodeIDsVector;
     std::vector<ValueVector*> vectors;
 };
 
-struct ShortestPathsFrontierCompute : public FrontierCompute {
+struct SPLengthsFrontierCompute : public FrontierCompute {
     PathLengthsFrontiers* pathLengthsFrontiers;
-    explicit ShortestPathsFrontierCompute(PathLengthsFrontiers* pathLengthsFrontiers)
+    explicit SPLengthsFrontierCompute(PathLengthsFrontiers* pathLengthsFrontiers)
         : pathLengthsFrontiers{pathLengthsFrontiers} {};
 
-    bool edgeCompute(nodeID_t nbrID) override {
+    bool edgeCompute(nodeID_t, nodeID_t nbrID) override {
         return pathLengthsFrontiers->pathLengths->getMaskValueFromNextFrontierFixedMask(
                    nbrID.offset) == PathLengths::UNVISITED;
+    }
+};
+
+struct SPSinglePathsFrontierCompute : public FrontierCompute {
+    SinglePathsFrontiers* singlePathsFrontiers;
+    explicit SPSinglePathsFrontierCompute(SinglePathsFrontiers* singlePathsFrontiers)
+        : singlePathsFrontiers{singlePathsFrontiers} {};
+
+    bool edgeCompute(nodeID_t curNodeID, nodeID_t nbrID) override {
+        auto retVal = singlePathsFrontiers->pathLengths->getMaskValueFromNextFrontierFixedMask(
+                          nbrID.offset) == PathLengths::UNVISITED;
+        if (retVal) {
+            // We set the nbrID's last edge to curNodeID;
+            singlePathsFrontiers->singlePaths->setLastEdge(nbrID, curNodeID);
+        }
+        return retVal;
     }
 };
 
@@ -238,10 +352,12 @@ struct ShortestPathsFrontierCompute : public FrontierCompute {
  */
 class ShortestPathsAlgorithm final : public GDSAlgorithm {
     static constexpr char LENGTH_COLUMN_NAME[] = "length";
+    static constexpr char PATH_NODE_IDS_COLUMN_NAME[] = "pathNodeIDs";
 
 public:
-    ShortestPathsAlgorithm() = default;
-    ShortestPathsAlgorithm(const ShortestPathsAlgorithm& other) : GDSAlgorithm{other} {}
+    explicit ShortestPathsAlgorithm(RecJoinOutputType outputType) : outputType{outputType} {};
+    ShortestPathsAlgorithm(const ShortestPathsAlgorithm& other)
+        : GDSAlgorithm{other}, outputType{other.outputType} {}
 
     /*
      * Inputs are
@@ -269,6 +385,10 @@ public:
         auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
         columns.push_back(outputNode.getInternalID());
         columns.push_back(binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::INT64()));
+        if (RecJoinOutputType::PATHS == outputType) {
+            columns.push_back(binder->createVariable(PATH_NODE_IDS_COLUMN_NAME,
+                LogicalType::LIST(LogicalType::INTERNAL_ID())));
+        }
         return columns;
     }
 
@@ -289,7 +409,7 @@ public:
     }
 
     void initLocalState(main::ClientContext* context) override {
-        localState = std::make_unique<ShortestPathsLocalState>(context);
+        localState = std::make_unique<ShortestPathsLocalState>(context, outputType);
     }
 
     void exec(processor::ExecutionContext* executionContext) override {
@@ -310,12 +430,25 @@ public:
 
     void runShortestPathsFromSource(processor::ExecutionContext* executionContext,
         nodeID_t sourceNodeID) {
-        auto sourceState = ShortestPathsSourceState(sharedState->graph.get(), sourceNodeID);
-        auto pathLengthFrontiers =
-            std::make_shared<PathLengthsFrontiers>(sourceState.pathLengths.get());
-        ShortestPathsFrontierCompute spFrontierCompute(pathLengthFrontiers.get());
-        GDSUtils::runFrontiersUntilConvergence(executionContext, *pathLengthFrontiers,
-            sharedState->graph.get(), spFrontierCompute,
+        auto sourceState = ShortestPathsSourceState(sharedState->graph.get(), sourceNodeID,
+            outputType, executionContext->clientContext->getMemoryManager());
+
+        std::unique_ptr<Frontiers> frontiers;
+        std::unique_ptr<FrontierCompute> frontierCompute;
+        if (outputType == RecJoinOutputType::LENGTHS) {
+            auto pathLengthsFrontier =
+                std::make_unique<PathLengthsFrontiers>(sourceState.pathLengths.get());
+            frontierCompute = std::make_unique<SPLengthsFrontierCompute>(pathLengthsFrontier.get());
+            frontiers = std::move(pathLengthsFrontier);
+        } else {
+            auto singlePathsFrontier = std::make_unique<SinglePathsFrontiers>(
+                sourceState.pathLengths.get(), sourceState.singlePaths.get());
+            frontierCompute =
+                std::make_unique<SPSinglePathsFrontierCompute>(singlePathsFrontier.get());
+            frontiers = std::move(singlePathsFrontier);
+        }
+        GDSUtils::runFrontiersUntilConvergence(executionContext, *frontiers,
+            sharedState->graph.get(), *frontierCompute,
             bindData->ptrCast<ShortestPathsBindData>()->upperBound);
         localState->ptrCast<ShortestPathsLocalState>()->materialize(sharedState->graph.get(),
             sourceState, *sharedState->fTable);
@@ -324,11 +457,23 @@ public:
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<ShortestPathsAlgorithm>(*this);
     }
+
+private:
+    RecJoinOutputType outputType;
 };
 
-function_set ShortestPathsFunction::getFunctionSet() {
+function_set SingleSPLengthsFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(name, std::make_unique<ShortestPathsAlgorithm>());
+    auto function = std::make_unique<GDSFunction>(name,
+        std::make_unique<ShortestPathsAlgorithm>(RecJoinOutputType::LENGTHS));
+    result.push_back(std::move(function));
+    return result;
+}
+
+function_set SingleSPPathsFunction::getFunctionSet() {
+    function_set result;
+    auto function = std::make_unique<GDSFunction>(name,
+        std::make_unique<ShortestPathsAlgorithm>(RecJoinOutputType::PATHS));
     result.push_back(std::move(function));
     return result;
 }

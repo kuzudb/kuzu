@@ -114,25 +114,25 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
     TestStatement* statement, size_t resultIdx, Connection& conn, uint32_t planIdx) {
     auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), planIdx);
     TestQueryResult& testAnswer = statement->result[resultIdx];
-    std::string expectedError;
+    std::string actualError;
     switch (testAnswer.type) {
     case ResultType::OK: {
         return result->isSuccess();
     }
     case ResultType::ERROR_MSG: {
-        expectedError = StringUtils::rtrim(result->getErrorMessage());
-        if (testAnswer.expectedResult[0] == expectedError) {
+        actualError = StringUtils::rtrim(result->getErrorMessage());
+        if (testAnswer.expectedResult[0] == actualError) {
             return true;
         }
-        spdlog::info("EXPECTED ERROR: {}", expectedError);
+        spdlog::info("INCORRECT ERROR: {}", actualError);
         break;
     }
     case ResultType::ERROR_REGEX: {
-        expectedError = StringUtils::rtrim(result->getErrorMessage());
-        if (std::regex_match(expectedError, std::regex(testAnswer.expectedResult[0]))) {
+        actualError = StringUtils::rtrim(result->getErrorMessage());
+        if (std::regex_match(actualError, std::regex(testAnswer.expectedResult[0]))) {
             return true;
         }
-        spdlog::info("EXPECTED ERROR: {}", expectedError);
+        spdlog::info("INCORRECT ERROR: {}", actualError);
         break;
     }
     default: {

@@ -10,36 +10,32 @@ namespace kuzu {
 namespace binder {
 
 class SubqueryExpression : public Expression {
+    static constexpr common::ExpressionType expressionType_ = common::ExpressionType::SUBQUERY;
+
 public:
     SubqueryExpression(common::SubqueryType subqueryType, common::LogicalType dataType,
         QueryGraphCollection queryGraphCollection, std::string uniqueName, std::string rawName)
-        : Expression{common::ExpressionType::SUBQUERY, std::move(dataType), std::move(uniqueName)},
+        : Expression{expressionType_, std::move(dataType), std::move(uniqueName)},
           subqueryType{subqueryType}, queryGraphCollection{std::move(queryGraphCollection)},
           rawName{std::move(rawName)} {}
 
-    inline common::SubqueryType getSubqueryType() const { return subqueryType; }
+    common::SubqueryType getSubqueryType() const { return subqueryType; }
 
-    inline const QueryGraphCollection* getQueryGraphCollection() const {
-        return &queryGraphCollection;
-    }
+    const QueryGraphCollection* getQueryGraphCollection() const { return &queryGraphCollection; }
 
-    inline void setWhereExpression(std::shared_ptr<Expression> expression) {
+    void setWhereExpression(std::shared_ptr<Expression> expression) {
         whereExpression = std::move(expression);
     }
-    inline bool hasWhereExpression() const { return whereExpression != nullptr; }
-    inline std::shared_ptr<Expression> getWhereExpression() const { return whereExpression; }
-    inline expression_vector getPredicatesSplitOnAnd() const {
+    bool hasWhereExpression() const { return whereExpression != nullptr; }
+    std::shared_ptr<Expression> getWhereExpression() const { return whereExpression; }
+    expression_vector getPredicatesSplitOnAnd() const {
         return hasWhereExpression() ? whereExpression->splitOnAND() : expression_vector{};
     }
 
-    inline void setCountStarExpr(std::shared_ptr<Expression> expr) {
-        countStarExpr = std::move(expr);
-    }
-    inline std::shared_ptr<Expression> getCountStarExpr() const { return countStarExpr; }
-    inline void setProjectionExpr(std::shared_ptr<Expression> expr) {
-        projectionExpr = std::move(expr);
-    }
-    inline std::shared_ptr<Expression> getProjectionExpr() const { return projectionExpr; }
+    void setCountStarExpr(std::shared_ptr<Expression> expr) { countStarExpr = std::move(expr); }
+    std::shared_ptr<Expression> getCountStarExpr() const { return countStarExpr; }
+    void setProjectionExpr(std::shared_ptr<Expression> expr) { projectionExpr = std::move(expr); }
+    std::shared_ptr<Expression> getProjectionExpr() const { return projectionExpr; }
 
     std::string toStringInternal() const final { return rawName; }
 

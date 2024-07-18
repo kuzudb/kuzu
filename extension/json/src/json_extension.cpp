@@ -2,6 +2,7 @@
 
 #include "catalog/catalog.h"
 #include "common/types/types.h"
+#include "json_export.h"
 #include "json_functions.h"
 #include "json_scan.h"
 #include "main/client_context.h"
@@ -21,6 +22,7 @@ void JsonExtension::load(main::ClientContext* context) {
     ADD_FUNC(JsonStructureFunction);
     ADD_FUNC(JsonValidFunction);
     ADD_FUNC(MinifyJsonFunction);
+    ADD_FUNC(JsonExportFunction);
     extension::ExtensionUtils::registerTableFunction(db, JsonScan::getFunction());
     if (!db.getCatalog()->containsType(&transaction::DUMMY_READ_TRANSACTION, "json")) {
         db.getCatalog()->createType(&transaction::DUMMY_WRITE_TRANSACTION, "json",

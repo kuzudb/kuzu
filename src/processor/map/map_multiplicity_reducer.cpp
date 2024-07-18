@@ -9,7 +9,7 @@ namespace processor {
 std::unique_ptr<PhysicalOperator> PlanMapper::mapMultiplicityReducer(
     LogicalOperator* logicalOperator) {
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    auto printInfo = std::make_unique<OPPrintInfo>(logicalOperator->getExpressionsForPrinting());
+    auto printInfo = std::make_unique<OPPrintInfo>();
     return std::make_unique<MultiplicityReducer>(std::move(prevOperator), getOperatorID(),
         std::move(printInfo));
 }

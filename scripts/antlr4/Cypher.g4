@@ -347,8 +347,11 @@ kU_StartWith : START SP ( WITH SP )? MINUS? oC_IntegerLiteral ;
 
 kU_Cycle : (NO SP)? CYCLE ;
 
+kU_IfExists
+    : IF SP EXISTS ;
+
 kU_Drop
-    : DROP SP (TABLE | RDFGRAPH | SEQUENCE) SP oC_SchemaName ;
+    : DROP SP (TABLE | RDFGRAPH | SEQUENCE) SP (kU_IfExists SP)? oC_SchemaName ;
 
 kU_AlterTable
     : ALTER SP TABLE SP oC_SchemaName SP kU_AlterOptions ;

@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include "common/api.h"
 #include "common/serializer/writer.h"
 
 namespace kuzu {
@@ -16,7 +17,7 @@ struct BinaryData {
     uint64_t size;
 };
 
-class BufferedSerializer : public Writer {
+class KUZU_API BufferedSerializer : public Writer {
 public:
     // Serializes to a buffer allocated by the serializer, will expand when
     // writing past the initial threshold.

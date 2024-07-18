@@ -42,7 +42,7 @@
 #define HUF_STATIC_ASSERT(c) DEBUG_STATIC_ASSERT(c)   /* use only *after* variable declarations */
 
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 /* **************************************************************
 *  Utils
 ****************************************************************/

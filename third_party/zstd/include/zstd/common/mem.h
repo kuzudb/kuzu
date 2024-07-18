@@ -84,7 +84,7 @@ MEM_STATIC void MEM_check(void) { MEM_STATIC_ASSERT((sizeof(size_t)==4) || (size
   typedef   signed long long  S64;
 #endif
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 
 /*-**************************************************************
 *  Memory I/O

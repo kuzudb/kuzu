@@ -233,9 +233,11 @@ void OverflowFile::checkpointInMemory() {
 }
 
 void OverflowFile::rollbackInMemory() {
-    readFromDisk(TransactionType::READ_ONLY, HEADER_PAGE_IDX,
-        [&](auto* frame) { memcpy(&header, frame, sizeof(header)); });
-    numPagesOnDisk = pageCounter = header.pages;
+    if (fileHandle->getNumPages() > HEADER_PAGE_IDX) {
+        readFromDisk(TransactionType::READ_ONLY, HEADER_PAGE_IDX,
+            [&](auto* frame) { memcpy(&header, frame, sizeof(header)); });
+    }
+    pageCounter = header.pages = numPagesOnDisk;
     for (auto i = 0u; i < handles.size(); i++) {
         auto& handle = handles[i];
         handle->rollbackInMemory(header.cursors[i]);

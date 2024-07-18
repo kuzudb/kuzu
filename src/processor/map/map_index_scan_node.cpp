@@ -24,7 +24,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIndexLookup(LogicalOperator* lo
         indexLookupInfos.push_back(
             std::make_unique<IndexLookupInfo>(storageIndex, keyPos, offsetPos));
     }
-    auto printInfo = std::make_unique<OPPrintInfo>(logicalIndexScan.getExpressionsForPrinting());
+    binder::expression_vector expressions;
+    for (auto i = 0u; i < logicalIndexScan.getNumInfos(); ++i) {
+        expressions.push_back(logicalIndexScan.getInfo(i).offset);
+    }
+    auto printInfo = std::make_unique<IndexLookupPrintInfo>(expressions);
     return std::make_unique<IndexLookup>(std::move(indexLookupInfos), std::move(prevOperator),
         getOperatorID(), std::move(printInfo));
 }

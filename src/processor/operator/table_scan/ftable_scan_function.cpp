@@ -26,17 +26,17 @@ struct FTableScanSharedState final : public function::BaseScanSharedState {
     FTableScanSharedState(std::shared_ptr<FactorizedTable> table, uint64_t morselSize)
         : BaseScanSharedState{}, table{std::move(table)}, morselSize{morselSize}, nextTupleIdx{0} {}
 
+    uint64_t getNumRows() const override {
+        KU_ASSERT(table->getNumTuples() == table->getTotalNumFlatTuples());
+        return table->getNumTuples();
+    }
+
     FTableScanMorsel getMorsel() {
         std::unique_lock lck{lock};
         auto numTuplesToScan = std::min(morselSize, table->getNumTuples() - nextTupleIdx);
         auto morsel = FTableScanMorsel(nextTupleIdx, numTuplesToScan);
         nextTupleIdx += numTuplesToScan;
         return morsel;
-    }
-
-    uint64_t getNumRows() const override {
-        KU_ASSERT(table->getNumTuples() == table->getTotalNumFlatTuples());
-        return table->getNumTuples();
     }
 };
 

@@ -38,10 +38,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "DETACH_DATABASE";
     case PhysicalOperatorType::DELETE_:
         return "DELETE";
-    case PhysicalOperatorType::DROP_TABLE:
-        return "DROP_TABLE";
-    case PhysicalOperatorType::DROP_SEQUENCE:
-        return "DROP_SEQUENCE";
+    case PhysicalOperatorType::DROP:
+        return "DROP";
     case PhysicalOperatorType::EMPTY_RESULT:
         return "EMPTY_RESULT";
     case PhysicalOperatorType::EXPORT_DATABASE:

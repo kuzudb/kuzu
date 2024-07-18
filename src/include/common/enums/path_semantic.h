@@ -8,7 +8,7 @@ namespace common {
 
 enum class PathSemantic : uint8_t {
     WALK = 0,
-    TRIAL = 1,
+    TRAIL = 1,
     ACYCLIC = 2,
 };
 

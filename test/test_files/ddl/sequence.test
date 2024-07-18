@@ -16,9 +16,11 @@ Binder exception: test already exists in catalog.
 ---- 1
 1
 -STATEMENT DROP TABLE test;
----- ok
+---- 1
+Table test has been dropped.
 -STATEMENT DROP SEQUENCE test;
----- ok
+---- 1
+Sequence test has been dropped.
 
 -CASE CreateOptions
 -STATEMENT CREATE SEQUENCE a;
@@ -241,3 +243,8 @@ Binder exception: Cannot set a non-constant default value when adding columns on
 -STATEMENT MATCH (t:tbb) RETURN t.*;
 ---- 1
 2
+
+-CASE DropInvalidSequence
+-STATEMENT DROP SEQUENCE if exists univers;
+---- 1
+Sequence univers does not exist.

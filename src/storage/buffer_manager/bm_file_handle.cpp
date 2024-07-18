@@ -43,7 +43,7 @@ void BMFileHandle::addNewPageGroupWithoutLock() {
 
 page_group_idx_t BMFileHandle::addWALPageIdxGroupIfNecessary(page_idx_t originalPageIdx) {
     KU_ASSERT(fileVersionedType == FileVersionedType::VERSIONED_FILE);
-    std::unique_lock xLck{fhSharedMutex};
+    while (!fhSharedMutex.try_lock()) {}
     KU_ASSERT(originalPageIdx < numPages);
     // Although getPageCursorForPos is written to get offsets of elements
     // in pages, it simply can be used to find the group/chunk and offset/pos in group/chunk for
@@ -53,6 +53,7 @@ page_group_idx_t BMFileHandle::addWALPageIdxGroupIfNecessary(page_idx_t original
     if (!walPageIdxGroups.contains(pageGroupIdx)) {
         walPageIdxGroups.insert(std::make_pair(pageGroupIdx, std::make_unique<WALPageIdxGroup>()));
     }
+    fhSharedMutex.unlock();
     return pageGroupIdx;
 }
 

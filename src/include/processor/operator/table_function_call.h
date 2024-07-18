@@ -51,6 +51,41 @@ private:
     }
 };
 
+struct TableFunctionCallPrintInfo final : OPPrintInfo {
+    std::string funcName;
+
+    explicit TableFunctionCallPrintInfo(std::string funcName) : funcName(std::move(funcName)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<TableFunctionCallPrintInfo>(new TableFunctionCallPrintInfo(*this));
+    }
+
+private:
+    TableFunctionCallPrintInfo(const TableFunctionCallPrintInfo& other)
+        : OPPrintInfo(other), funcName(other.funcName) {}
+};
+
+struct FTableScanFunctionCallPrintInfo final : OPPrintInfo {
+    std::string funcName;
+    binder::expression_vector exprs;
+
+    explicit FTableScanFunctionCallPrintInfo(std::string funcName, binder::expression_vector exprs)
+        : funcName(std::move(funcName)), exprs(std::move(exprs)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<FTableScanFunctionCallPrintInfo>(
+            new FTableScanFunctionCallPrintInfo(*this));
+    }
+
+private:
+    FTableScanFunctionCallPrintInfo(const FTableScanFunctionCallPrintInfo& other)
+        : OPPrintInfo(other), funcName(other.funcName), exprs(other.exprs) {}
+};
+
 class TableFunctionCall : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::TABLE_FUNCTION_CALL;
 
@@ -60,11 +95,12 @@ public:
         std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, id, std::move(printInfo)}, info{std::move(info)},
           sharedState{std::move(sharedState)} {}
+    // When exporting a kuzu database, we may have multiple copy to statements as children of the
+    // FactorizedTableScan function.
     TableFunctionCall(TableFunctionCallInfo info,
-        std::shared_ptr<TableFunctionCallSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
+        std::shared_ptr<TableFunctionCallSharedState> sharedState, physical_op_vector_t children,
+        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, std::move(children), id, std::move(printInfo)},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
     TableFunctionCallSharedState* getSharedState() { return sharedState.get(); }

@@ -6,6 +6,29 @@
 namespace kuzu {
 namespace processor {
 
+struct TopKPrintInfo final : OPPrintInfo {
+    binder::expression_vector keys;
+    binder::expression_vector payloads;
+    uint64_t skipNum;
+    uint64_t limitNum;
+
+    TopKPrintInfo(binder::expression_vector keys, binder::expression_vector payloads,
+        uint64_t skipNum, uint64_t limitNum)
+        : keys(std::move(keys)), payloads(std::move(payloads)), skipNum(std::move(skipNum)),
+          limitNum(std::move(limitNum)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<TopKPrintInfo>(new TopKPrintInfo(*this));
+    }
+
+private:
+    TopKPrintInfo(const TopKPrintInfo& other)
+        : OPPrintInfo(other), keys(other.keys), payloads(other.payloads), skipNum(other.skipNum),
+          limitNum(other.limitNum) {}
+};
+
 class TopKSortState {
 public:
     TopKSortState();
