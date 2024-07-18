@@ -452,6 +452,9 @@ describe("REL", function () {
     assert.equal(rel.grading[1], 4.4);
     assert.equal(rel._label, "workAt");
     assert.approximately(rel.rating, 7.6, EPSILON);
+    assert.exists(rel._id);
+    assert.exists(rel._id.offset);
+    assert.exists(rel._id.table);
   });
 });
 
@@ -464,31 +467,23 @@ describe("RECURSIVE_REL", function () {
     assert.equal(result.length, 1);
     assert.exists(result[0]["e"]);
     const e = result[0]["e"];
-    assert.deepEqual(e, {
-      _nodes: [],
-      _rels: [
-        {
-          year: 2021,
-          places: ["wwAewsdndweusd", "wek"],
-          length: 5,
-          level: 5,
-          code: 9223372036854776000,
-          temperature: 32800,
-          ulength: 33768,
-          ulevel: 250,
-          hugedata: BigInt("1844674407370955161811111111"),
-          _label: "studyAt",
-          _src: {
-            offset: 0,
-            table: 0,
-          },
-          _dst: {
-            offset: 0,
-            table: 1,
-          },
-        },
-      ],
-    });
+    assert.deepEqual(e._nodes, []);
+    assert.equal(e._rels.length, 1);
+    assert.equal(e._rels[0].year, 2021);
+    assert.deepEqual(e._rels[0].places, ["wwAewsdndweusd", "wek"]);
+    assert.equal(e._rels[0].length, 5);
+    assert.equal(e._rels[0].level, 5);
+    assert.equal(e._rels[0].code, 9223372036854776000);
+    assert.equal(e._rels[0].temperature, 32800);
+    assert.equal(e._rels[0].ulength, 33768);
+    assert.equal(e._rels[0].ulevel, 250);
+    assert.equal(e._rels[0].hugedata, BigInt("1844674407370955161811111111"));
+    assert.equal(e._rels[0]._label, "studyAt");
+    assert.deepEqual(e._rels[0]._src, { offset: 0, table: 0 });
+    assert.deepEqual(e._rels[0]._dst, { offset: 0, table: 1 });
+    assert.exists(e._rels[0]._id);
+    assert.exists(e._rels[0]._id.offset);
+    assert.exists(e._rels[0]._id.table);
   });
 });
 
