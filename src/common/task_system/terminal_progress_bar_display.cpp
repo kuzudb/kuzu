@@ -40,8 +40,7 @@ void TerminalProgressBarDisplay::printProgressBar() {
         std::cout << "Pipelines Finished: " << numPipelinesFinished << "/" << numPipelines << "\n";
         printing = true;
     }
-    std::cout << "Current Pipeline Progress: " << uint32_t(pipelineProgress * 100.0) << "%"
-              << "\n";
+    std::cout << "Current Pipeline Progress: " << uint32_t(pipelineProgress * 100.0) << "%" << "\n";
     setDefaultFont();
     std::cout.flush();
 }

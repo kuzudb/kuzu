@@ -403,15 +403,13 @@ jobs:
 
   clang-format:
     name: clang format
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Install clang-format
         run: |
-          sudo apt-get install -y lsb-release wget software-properties-common gnupg
-          wget https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          yes | sudo ./llvm.sh 18 all
-
+          sudo apt-get update
+          sudo apt-get install -y clang-format-18
+          
       - uses: actions/checkout@v4
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
