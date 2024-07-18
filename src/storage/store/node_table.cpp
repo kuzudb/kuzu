@@ -282,8 +282,8 @@ void NodeTable::commit(Transaction* transaction, WAL* wal, LocalTable* localTabl
             startNodeOffset += scanState->IDVector->state->getSelVector().getSelSize();
             nodeGroups->append(transaction, scanState->outputVectors);
             // Log local insertions to WAL.
-            wal->logTableInsertion(tableID, scanState->IDVector->state->getSelVector().getSelSize(),
-                scanState->outputVectors);
+            wal->logTableInsertion(tableID, TableType::NODE,
+                scanState->IDVector->state->getSelVector().getSelSize(), scanState->outputVectors);
         }
         nodeGroupToScan++;
     }
