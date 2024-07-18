@@ -6,19 +6,23 @@ namespace planner {
 void LogicalTableFunctionCall::computeFlatSchema() {
     createEmptySchema();
     schema->createGroup();
-    for (auto& expr : outputExpressions) {
+    for (auto& expr : columns) {
         schema->insertToGroupAndScope(expr, 0);
     }
-    schema->insertToGroupAndScope(rowIDExpression, 0);
+    if (offset != nullptr) {
+        schema->insertToGroupAndScope(offset, 0);
+    }
 }
 
 void LogicalTableFunctionCall::computeFactorizedSchema() {
     createEmptySchema();
     auto groupPos = schema->createGroup();
-    for (auto& expr : outputExpressions) {
+    for (auto& expr : columns) {
         schema->insertToGroupAndScope(expr, groupPos);
     }
-    schema->insertToGroupAndScope(rowIDExpression, groupPos);
+    if (offset != nullptr) {
+        schema->insertToGroupAndScope(offset, groupPos);
+    }
 }
 
 } // namespace planner

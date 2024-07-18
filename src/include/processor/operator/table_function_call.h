@@ -3,6 +3,7 @@
 #include "function/table/bind_data.h"
 #include "function/table_functions.h"
 #include "processor/operator/physical_operator.h"
+#include "expression_evaluator/expression_evaluator.h"
 
 namespace kuzu {
 namespace processor {
@@ -123,6 +124,7 @@ public:
 
 private:
     TableFunctionCallInfo info;
+    evaluator::evaluator_vector_t evaluators;
     std::shared_ptr<TableFunctionCallSharedState> sharedState;
     TableFunctionCallLocalState localState;
 };

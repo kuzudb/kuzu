@@ -10,6 +10,7 @@ namespace binder {
 struct BoundBaseScanSource {
     common::ScanSourceType type;
 
+
     explicit BoundBaseScanSource(common::ScanSourceType type) : type{type} {}
     virtual ~BoundBaseScanSource() = default;
 

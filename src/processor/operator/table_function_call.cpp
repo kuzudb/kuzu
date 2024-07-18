@@ -60,6 +60,9 @@ void TableFunctionCall::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
         sharedState->funcState.get(), context->clientContext->getMemoryManager());
     localState.funcInput = function::TableFuncInput{info.bindData.get(), localState.funcState.get(),
         sharedState->funcState.get()};
+    for (auto& evaluator : evaluators) {
+
+    }
 }
 
 void TableFunctionCall::initGlobalStateInternal(ExecutionContext*) {

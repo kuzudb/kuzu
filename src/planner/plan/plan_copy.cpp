@@ -75,7 +75,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyNodeFrom(const BoundCopyFromInfo* 
     case ScanSourceType::FILE:
     case ScanSourceType::OBJECT: {
         auto& scanSource = info->source->constCast<BoundTableScanSource>();
-        appendScanSource(scanSource.info, *plan);
+        appendTableFunctionCall(scanSource.info, *plan);
     } break;
     case ScanSourceType::QUERY: {
         auto& querySource = info->source->constCast<BoundQueryScanSource>();
@@ -95,7 +95,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyResourceFrom(const BoundCopyFromIn
     auto plan = std::make_unique<LogicalPlan>();
     KU_ASSERT(info->source->type == ScanSourceType::FILE);
     auto& scanSource = info->source->constCast<BoundTableScanSource>();
-    appendScanSource(scanSource.info, *plan);
+    appendTableFunctionCall(scanSource.info, *plan);
     appendDistinct(scanSource.info.columns, *plan);
     appendCopyFrom(*info, results, *plan);
     return plan;
@@ -108,7 +108,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyRelFrom(const BoundCopyFromInfo* i
     case ScanSourceType::FILE:
     case ScanSourceType::OBJECT: {
         auto& fileSource = info->source->constCast<BoundTableScanSource>();
-        appendScanSource(fileSource.info, info->offset, *plan);
+        appendTableFunctionCall(fileSource.info, info->offset, *plan);
     } break;
     case ScanSourceType::QUERY: {
         auto& querySource = info->source->constCast<BoundQueryScanSource>();
@@ -138,7 +138,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyRdfFrom(const BoundCopyFromInfo* i
     if (info->source->type == ScanSourceType::FILE) {
         auto readerPlan = LogicalPlan();
         auto& scanSource = info->source->constCast<BoundTableScanSource>();
-        appendScanSource(scanSource.info, readerPlan);
+        appendTableFunctionCall(scanSource.info, readerPlan);
         children.push_back(readerPlan.getLastOperator());
     }
     auto resultPlan = std::make_unique<LogicalPlan>();

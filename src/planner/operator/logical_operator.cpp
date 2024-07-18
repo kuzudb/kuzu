@@ -88,8 +88,6 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "PROJECTION";
     case LogicalOperatorType::RECURSIVE_EXTEND:
         return "RECURSIVE_EXTEND";
-    case LogicalOperatorType::SCAN_SOURCE:
-        return "SCAN_SOURCE";
     case LogicalOperatorType::SCAN_NODE_TABLE:
         return "SCAN_NODE_TABLE";
     case LogicalOperatorType::SEMI_MASKER:

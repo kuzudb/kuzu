@@ -98,11 +98,18 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     auto bindInput = std::make_unique<ScanTableFuncBindInput>(config->copy(), columnNames,
         LogicalType::copy(columnTypes), clientContext);
     auto bindData = func.bindFunc(clientContext, bindInput.get());
-    expression_vector inputColumns;
+    expression_vector columns;
+    expression_vector castedColumns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
-        inputColumns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
+        auto column = createVariable(bindData->columnNames[i], bindData->columnTypes[i]);
+        if (column->getDataType() != columnTypes[i]) {
+            auto castedColumn = expressionBinder.implicitCastIfNecessary(column, columnTypes[i]);
+            castedColumns.push_back(castedColumn);
+        } else {
+            castedColumns.push_back(column);
+        }
     }
-    auto info = BoundTableScanSourceInfo(func, std::move(bindData), inputColumns);
+    auto info = BoundTableScanSourceInfo(func, std::move(bindData), columns, castedColumns);
     return std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(info));
 }
 
@@ -186,7 +193,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScan
             columns.push_back(std::move(column));
         }
     }
-    auto info = BoundTableScanSourceInfo(func, std::move(bindData), columns);
+    auto info = BoundTableScanSourceInfo(func, std::move(bindData), columns, columns);
     return std::make_unique<BoundTableScanSource>(ScanSourceType::OBJECT, std::move(info));
 }
 

@@ -73,7 +73,7 @@ static std::shared_ptr<Expression> matchColumnExpression(const expression_vector
 
 std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statement,
     NodeTableCatalogEntry* nodeTableEntry) {
-    auto& copyStatement = ku_dynamic_cast<const Statement&, const CopyFrom&>(statement);
+    auto& copyStatement = statement.constCast<CopyFrom>();
     // Bind expected columns based on catalog information.
     std::vector<std::string> expectedColumnNames;
     std::vector<LogicalType> expectedColumnTypes;

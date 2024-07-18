@@ -27,7 +27,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     auto functionExpr = expr->constPtrCast<ParsedFunctionExpression>();
     auto functionName = functionExpr->getFunctionName();
     std::unique_ptr<BoundReadingClause> boundReadingClause;
-    expression_vector outExprs;
+    expression_vector columns;
     auto catalogSet = clientContext->getCatalog()->getFunctions(clientContext->getTx());
     auto entry = BuiltInFunctionsUtils::getFunctionCatalogEntry(clientContext->getTx(),
         functionName, catalogSet);
@@ -56,12 +56,12 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         bindInput.inputs = std::move(inputValues);
         auto bindData = tableFunc->bindFunc(clientContext, &bindInput);
         for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
-            outExprs.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
+            columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
         }
         auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
             std::string(InternalKeyword::ROW_OFFSET));
         boundReadingClause = std::make_unique<BoundTableFunctionCall>(*tableFunc,
-            std::move(bindData), std::move(offset), std::move(outExprs));
+            std::move(bindData), std::move(offset), std::move(columns));
     } break;
     case CatalogEntryType::GDS_FUNCTION_ENTRY: {
         // The first argument of a GDS function must be a graph variable.
@@ -91,8 +91,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         auto func = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, entry);
         auto gdsFunc = *func->constPtrCast<GDSFunction>();
         gdsFunc.gds->bind(children, this, graphEntry);
-        outExprs = gdsFunc.gds->getResultColumns(this);
-        auto info = BoundGDSCallInfo(gdsFunc.copy(), graphEntry.copy(), std::move(outExprs));
+        columns = gdsFunc.gds->getResultColumns(this);
+        auto info = BoundGDSCallInfo(gdsFunc.copy(), graphEntry.copy(), std::move(columns));
         boundReadingClause = std::make_unique<BoundGDSCall>(std::move(info));
     } break;
     default:
