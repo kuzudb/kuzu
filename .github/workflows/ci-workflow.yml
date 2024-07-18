@@ -405,16 +405,13 @@ jobs:
     name: clang format
     runs-on: ubuntu-22.04
     container:
-      image: ubuntu:22.04
+      image: ubuntu:24.04
     steps:
       - name: Install clang-format
         run: |
           apt-get update
-          apt-get install -y lsb-release wget software-properties-common gnupg python3 git
-          wget https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          yes | ./llvm.sh 18 all
-
+          apt-get install -y lsb-release wget software-properties-common gnupg python3 git clang-format
+          
       - uses: actions/checkout@v4
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
