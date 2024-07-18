@@ -36,15 +36,15 @@ void TableFunctionCall::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
     case TableScanOutputType::EMPTY:
         break; // Do nothing.
     case TableScanOutputType::SINGLE_DATA_CHUNK: {
-        KU_ASSERT(!info.outPosV.empty());
-        auto state = resultSet->getDataChunk(info.outPosV[0].dataChunkPos)->state;
-        localState.funcOutput.dataChunk = DataChunk(info.outPosV.size(), state);
-        for (auto i = 0u; i < info.outPosV.size(); ++i) {
-            localState.funcOutput.dataChunk.insert(i, resultSet->getValueVector(info.outPosV[i]));
+        KU_ASSERT(!info.columnPos.empty());
+        auto state = resultSet->getDataChunk(info.columnPos[0].dataChunkPos)->state;
+        localState.funcOutput.dataChunk = DataChunk(info.columnPos.size(), state);
+        for (auto i = 0u; i < info.columnPos.size(); ++i) {
+            localState.funcOutput.dataChunk.insert(i, resultSet->getValueVector(info.columnPos[i]));
         }
     } break;
     case TableScanOutputType::MULTI_DATA_CHUNK: {
-        for (auto& pos : info.outPosV) {
+        for (auto& pos : info.columnPos) {
             localState.funcOutput.vectors.push_back(resultSet->getValueVector(pos).get());
         }
     } break;
@@ -60,8 +60,10 @@ void TableFunctionCall::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
         sharedState->funcState.get(), context->clientContext->getMemoryManager());
     localState.funcInput = function::TableFuncInput{info.bindData.get(), localState.funcState.get(),
         sharedState->funcState.get()};
-    for (auto& evaluator : evaluators) {
-
+    for (auto i = 0u; i < info.castColumnEvaluator.size(); ++i) {
+        auto& evaluator = *info.castColumnEvaluator[i];
+        evaluator.init(*resultSet, context->clientContext);
+        resultSet->setValueVctor(info.castedColumnPos[i], evaluator.resultVector);
     }
 }
 
@@ -83,6 +85,9 @@ bool TableFunctionCall::getNextTuplesInternal(ExecutionContext*) {
         for (auto i = 0u; i < numTuplesScanned; i++) {
             localState.rowOffsetVector->setValue(i, rowIdx + i);
         }
+    }
+    for (auto& evaluator : info.castColumnEvaluator) {
+        evaluator->evaluate();
     }
     return numTuplesScanned != 0;
 }

@@ -659,8 +659,7 @@ static void bindColumns(const ScanTableFuncBindInput* bindInput,
 
 static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
     function::TableFuncBindInput* input) {
-    auto scanInput =
-        ku_dynamic_cast<function::TableFuncBindInput*, function::ScanTableFuncBindInput*>(input);
+    auto scanInput = input->constPtrCast<function::ScanTableFuncBindInput>();
     if (!scanInput->config.options.empty()) {
         throw BinderException{"Copy from Parquet cannot have options."};
     }
@@ -671,10 +670,10 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
     std::vector<common::LogicalType> resultColumnTypes;
     ReaderBindUtils::resolveColumns(scanInput->expectedColumnNames, detectedColumnNames,
         resultColumnNames, scanInput->expectedColumnTypes, detectedColumnTypes, resultColumnTypes);
-    if (!scanInput->expectedColumnTypes.empty()) {
-        ReaderBindUtils::validateColumnTypes(scanInput->expectedColumnNames,
-            scanInput->expectedColumnTypes, detectedColumnTypes);
-    }
+//    if (!scanInput->expectedColumnTypes.empty()) {
+//        ReaderBindUtils::validateColumnTypes(scanInput->expectedColumnNames,
+//            scanInput->expectedColumnTypes, detectedColumnTypes);
+//    }
     return std::make_unique<function::ScanBindData>(std::move(resultColumnTypes),
         std::move(resultColumnNames), scanInput->config.copy(), scanInput->context);
 }

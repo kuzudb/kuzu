@@ -10,11 +10,12 @@ namespace binder {
 struct BoundBaseScanSource {
     common::ScanSourceType type;
 
-
     explicit BoundBaseScanSource(common::ScanSourceType type) : type{type} {}
     virtual ~BoundBaseScanSource() = default;
 
     virtual expression_vector getColumns() = 0;
+    virtual bool hasCastedColumns() = 0;
+    virtual expression_vector getCastedColumns() = 0;
 
     virtual std::unique_ptr<BoundBaseScanSource> copy() const = 0;
 
@@ -32,6 +33,8 @@ struct BoundEmptyScanSource : public BoundBaseScanSource {
     BoundEmptyScanSource(const BoundEmptyScanSource& other) : BoundBaseScanSource{other} {}
 
     expression_vector getColumns() override { return expression_vector{}; }
+    bool hasCastedColumns() override { return false; }
+    expression_vector getCastedColumns() override { return expression_vector{}; }
 
     std::unique_ptr<BoundBaseScanSource> copy() const override {
         return std::make_unique<BoundEmptyScanSource>(*this);
@@ -47,6 +50,8 @@ struct BoundTableScanSource : public BoundBaseScanSource {
         : BoundBaseScanSource{other}, info{other.info.copy()} {}
 
     expression_vector getColumns() override { return info.columns; }
+    bool hasCastedColumns() override { return info.castedColumns.empty(); }
+    expression_vector getCastedColumns() override { return info.castedColumns; }
 
     std::unique_ptr<BoundBaseScanSource> copy() const override {
         return std::make_unique<BoundTableScanSource>(*this);
@@ -65,6 +70,12 @@ struct BoundQueryScanSource : public BoundBaseScanSource {
 
     expression_vector getColumns() override {
         return statement->getStatementResult()->getColumns();
+    }
+    bool hasCastedColumns() override {
+        return false;
+    }
+    expression_vector getCastedColumns() override {
+        return expression_vector{};
     }
 
     std::unique_ptr<BoundBaseScanSource> copy() const override {

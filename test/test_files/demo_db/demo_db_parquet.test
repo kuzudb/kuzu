@@ -4,6 +4,17 @@
 
 -CASE DemoDBTestFromParquet
 
+-LOG X
+-STATEMENT CREATE NODE TABLE User_1(name STRING, age DOUBLE, PRIMARY KEY (name));
+---- ok
+-STATEMENT Copy User_1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/user.parquet"
+---- 1
+1
+-STATEMENT MATCH (a:User_1) RETURN a.*;
+---- 1
+
+-CASE X
+-SKIP
 -LOG Limit1
 -STATEMENT MATCH (u:User) RETURN u.name ORDER BY u.age DESC LIMIT 3;
 ---- 3

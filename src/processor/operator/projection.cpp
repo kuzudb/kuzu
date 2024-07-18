@@ -15,11 +15,12 @@ std::string ProjectionPrintInfo::toString() const {
 
 void Projection::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto i = 0u; i < expressionEvaluators.size(); ++i) {
-        auto& expressionEvaluator = *expressionEvaluators[i];
-        expressionEvaluator.init(*resultSet, context->clientContext);
-        auto [outDataChunkPos, outValueVectorPos] = expressionsOutputPos[i];
-        auto dataChunk = resultSet->dataChunks[outDataChunkPos];
-        dataChunk->valueVectors[outValueVectorPos] = expressionEvaluator.resultVector;
+        auto& evaluator = *expressionEvaluators[i];
+        evaluator.init(*resultSet, context->clientContext);
+        resultSet->setValueVctor(expressionsOutputPos[i], evaluator.resultVector);
+//        auto [outDataChunkPos, outValueVectorPos] = expressionsOutputPos[i];
+//        auto dataChunk = resultSet->dataChunks[outDataChunkPos];
+//        dataChunk->valueVectors[outValueVectorPos] = expressionEvaluator.resultVector;
     }
 }
 

@@ -11,10 +11,10 @@ namespace processor {
 
 class ResultSet {
 public:
-    explicit ResultSet(uint32_t numDataChunks) : multiplicity{1}, dataChunks(numDataChunks) {}
+    explicit ResultSet(common::idx_t numDataChunks) : multiplicity{1}, dataChunks(numDataChunks) {}
     ResultSet(ResultSetDescriptor* resultSetDescriptor, storage::MemoryManager* memoryManager);
 
-    void insert(uint32_t pos, std::shared_ptr<common::DataChunk> dataChunk) {
+    void insert(common::idx_t pos, std::shared_ptr<common::DataChunk> dataChunk) {
         KU_ASSERT(dataChunks.size() > pos);
         dataChunks[pos] = std::move(dataChunk);
     }
@@ -22,8 +22,11 @@ public:
     std::shared_ptr<common::DataChunk> getDataChunk(data_chunk_pos_t dataChunkPos) {
         return dataChunks[dataChunkPos];
     }
-    std::shared_ptr<common::ValueVector> getValueVector(const DataPos& dataPos) const {
-        return dataChunks[dataPos.dataChunkPos]->valueVectors[dataPos.valueVectorPos];
+    std::shared_ptr<common::ValueVector> getValueVector(const DataPos& pos) const {
+        return dataChunks[pos.dataChunkPos]->valueVectors[pos.valueVectorPos];
+    }
+    void setValueVctor(const DataPos& pos, std::shared_ptr<common::ValueVector> vector) {
+        dataChunks[pos.dataChunkPos]->valueVectors[pos.dataChunkPos] = vector;
     }
 
     // Our projection does NOT explicitly remove dataChunk from resultSet. Therefore, caller should

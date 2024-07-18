@@ -17,10 +17,10 @@ namespace processor {
 std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_vector& exprs,
     std::vector<ft_col_idx_t> colIndices, std::shared_ptr<Expression> offset, Schema* schema,
     std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize, physical_op_vector_t children) {
-    std::vector<DataPos> outPosV;
-    outPosV.reserve(exprs.size());
+    std::vector<DataPos> columnPos;
+    columnPos.reserve(exprs.size());
     for (auto i = 0u; i < exprs.size(); ++i) {
-        outPosV.emplace_back(schema->getExpressionPos(*exprs[i]));
+        columnPos.emplace_back(schema->getExpressionPos(*exprs[i]));
     }
     auto bindData =
         std::make_unique<FTableScanBindData>(table, std::move(colIndices), maxMorselSize);
@@ -29,7 +29,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_
     auto info = TableFunctionCallInfo();
     info.function = *ku_dynamic_cast<Function*, TableFunction*>(function);
     info.bindData = std::move(bindData);
-    info.outPosV = std::move(outPosV);
+    info.columnPos = std::move(columnPos);
     if (offset != nullptr) {
         info.rowOffsetPos = getDataPos(*offset, *schema);
     } else {

@@ -37,7 +37,7 @@ BoundCopyFromInfo Binder::bindCopyRdfResourceInfo(const RdfReaderConfig& config,
     auto scanFunc = func->ptrCast<TableFunction>();
     auto iri = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::IRI);
     auto columns = expression_vector{iri};
-    auto scanInfo = BoundTableScanSourceInfo(*scanFunc, bindData.copy(), columns);
+    auto scanInfo = BoundTableScanSourceInfo(*scanFunc, bindData.copy(), columns, columns);
     auto scanSource =
         std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(scanInfo));
     auto rTableID = rdfEntry.getResourceTableID();
@@ -64,7 +64,7 @@ BoundCopyFromInfo Binder::bindCopyRdfLiteralInfo(const RdfReaderConfig& config,
     auto val = expressionBinder.createVariableExpression(LogicalType::RDF_VARIANT(), rdf::VAL);
     auto lang = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::LANG);
     auto columns = expression_vector{val, lang};
-    auto scanInfo = BoundTableScanSourceInfo(*scanFunc, bindData.copy(), columns);
+    auto scanInfo = BoundTableScanSourceInfo(*scanFunc, bindData.copy(), columns, columns);
     auto scanSource =
         std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(scanInfo));
     auto lTableID = rdfEntry.getLiteralTableID();
@@ -96,7 +96,7 @@ BoundCopyFromInfo Binder::bindCopyRdfResourceTriplesInfo(const RdfReaderConfig& 
     auto p = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::PREDICATE);
     auto o = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::OBJECT);
     auto scanColumns = expression_vector{s, p, o};
-    auto scanInfo = BoundTableScanSourceInfo(*scanFunc, bindData.copy(), scanColumns);
+    auto scanInfo = BoundTableScanSourceInfo(*scanFunc, bindData.copy(), scanColumns, scanColumns);
     auto scanSource =
         std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(scanInfo));
     auto rTableID = rdfEntry.getResourceTableID();
@@ -140,7 +140,7 @@ BoundCopyFromInfo Binder::bindCopyRdfLiteralTriplesInfo(const RdfReaderConfig& c
     auto oOffset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         InternalKeyword::DST_OFFSET);
     auto scanColumns = expression_vector{s, p, oOffset};
-    auto scanInfo = BoundTableScanSourceInfo(*scanFunc, bindData.copy(), scanColumns);
+    auto scanInfo = BoundTableScanSourceInfo(*scanFunc, bindData.copy(), scanColumns, scanColumns);
     auto scanSource =
         std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(scanInfo));
     auto rTableID = rdfEntry.getResourceTableID();
@@ -193,7 +193,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const Statement& stateme
         std::move(lCopyInfo), std::move(rrrCopyInfo), std::move(rrlCopyInfo));
     std::unique_ptr<BoundBaseScanSource> source;
     if (rdfConfig.inMemory) {
-        auto scanInfo = BoundTableScanSourceInfo(*scanFunc, bindData->copy(), expression_vector{});
+        expression_vector columns;
+        auto scanInfo = BoundTableScanSourceInfo(*scanFunc, bindData->copy(), columns, columns);
         source = std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(scanInfo));
     } else {
         source = std::make_unique<BoundEmptyScanSource>();

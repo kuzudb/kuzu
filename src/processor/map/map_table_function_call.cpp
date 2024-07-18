@@ -11,22 +11,33 @@ namespace processor {
 std::unique_ptr<PhysicalOperator> PlanMapper::mapTableFunctionCall(
     LogicalOperator* logicalOperator) {
     auto& call = logicalOperator->constCast<LogicalTableFunctionCall>();
-    std::vector<DataPos> outPosV;
+    auto columns = call.getColumns();
+    auto castedColumns = call.getColumns();
+    std::vector<DataPos> columnPos;
     auto outSchema = call.getSchema();
-    for (auto& expr : call.getColumns()) {
-        outPosV.emplace_back(getDataPos(*expr, *outSchema));
+    for (auto& column : columns) {
+        columnPos.emplace_back(getDataPos(*column, *outSchema));
     }
     auto info = TableFunctionCallInfo();
     info.function = call.getTableFunc();
     info.bindData = call.getBindData()->copy();
-    info.outPosV = outPosV;
+    info.columnPos = columnPos;
     if (call.getOffset() != nullptr) {
         info.rowOffsetPos = getDataPos(*call.getOffset(), *outSchema);
     } else {
         info.rowOffsetPos = DataPos::getInvalidPos();
     }
     info.outputType =
-        outPosV.empty() ? TableScanOutputType::EMPTY : TableScanOutputType::SINGLE_DATA_CHUNK;
+        columnPos.empty() ? TableScanOutputType::EMPTY : TableScanOutputType::SINGLE_DATA_CHUNK;
+    if (!castedColumns.empty()) {
+        auto expressionMapper = ExpressionMapper(outSchema);
+        for (auto i = 0u; i < columns.size(); ++i) {
+            if (*columns[i] != *castedColumns[i]) {
+                info.castedColumnPos.push_back(getDataPos(*castedColumns[i], *outSchema));
+                info.castColumnEvaluator.push_back(expressionMapper.getEvaluator(castedColumns[i]));
+            }
+        }
+    }
     auto sharedState = std::make_shared<TableFunctionCallSharedState>();
     auto printInfo = std::make_unique<TableFunctionCallPrintInfo>(call.getTableFunc().name);
     return std::make_unique<TableFunctionCall>(std::move(info), sharedState, getOperatorID(),

@@ -35,9 +35,12 @@ enum class TableScanOutputType : uint8_t {
 struct TableFunctionCallInfo {
     function::TableFunction function;
     std::unique_ptr<function::TableFuncBindData> bindData;
-    std::vector<DataPos> outPosV;
+    std::vector<DataPos> columnPos;
     DataPos rowOffsetPos;
     TableScanOutputType outputType;
+
+    std::vector<DataPos> castedColumnPos;
+    evaluator::evaluator_vector_t castColumnEvaluator;
 
     TableFunctionCallInfo() = default;
     EXPLICIT_COPY_DEFAULT_MOVE(TableFunctionCallInfo);
@@ -46,9 +49,11 @@ private:
     TableFunctionCallInfo(const TableFunctionCallInfo& other) {
         function = other.function;
         bindData = other.bindData->copy();
-        outPosV = other.outPosV;
+        columnPos = other.columnPos;
         rowOffsetPos = other.rowOffsetPos;
         outputType = other.outputType;
+        castedColumnPos = other.castedColumnPos;
+        castColumnEvaluator = cloneVector(other.castColumnEvaluator);
     }
 };
 
@@ -124,7 +129,6 @@ public:
 
 private:
     TableFunctionCallInfo info;
-    evaluator::evaluator_vector_t evaluators;
     std::shared_ptr<TableFunctionCallSharedState> sharedState;
     TableFunctionCallLocalState localState;
 };

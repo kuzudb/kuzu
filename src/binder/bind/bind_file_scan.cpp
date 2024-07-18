@@ -102,6 +102,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     expression_vector castedColumns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
         auto column = createVariable(bindData->columnNames[i], bindData->columnTypes[i]);
+        columns.push_back(column);
         if (column->getDataType() != columnTypes[i]) {
             auto castedColumn = expressionBinder.implicitCastIfNecessary(column, columnTypes[i]);
             castedColumns.push_back(castedColumn);

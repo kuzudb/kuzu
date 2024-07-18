@@ -61,11 +61,21 @@ static void bindExpectedRelColumns(RelTableCatalogEntry* relTableEntry,
     const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
     std::vector<LogicalType>& columnTypes, main::ClientContext* context);
 
-static std::shared_ptr<Expression> matchColumnExpression(const expression_vector& columnExpressions,
+static std::shared_ptr<Expression> matchColumnExpression(BoundBaseScanSource& source,
     const std::string& columnName) {
-    for (auto& expression : columnExpressions) {
-        if (columnName == expression->toString()) {
-            return expression;
+    auto columns = source.getColumns();
+    if (source.hasCastedColumns()) {
+        auto castedColumns = source.getCastedColumns();
+        for (auto i = 0u ; i < columns.size(); ++i) {
+            if (columnName == columns[i]->toString()) {
+                return castedColumns[i];
+            }
+        }
+    } else {
+        for (auto i = 0u ; i < columns.size(); ++i) {
+            if (columnName == columns[i]->toString()) {
+                return columns[i];
+            }
         }
     }
     return nullptr;
@@ -92,7 +102,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     expression_vector columnExprs;
     std::vector<bool> defaultColumns;
     for (auto& property : nodeTableEntry->getPropertiesRef()) {
-        auto expr = matchColumnExpression(boundSource->getColumns(), property.getName());
+        auto expr = matchColumnExpression(*boundSource, property.getName());
         auto isDefault = !expr;
         defaultColumns.emplace_back(isDefault);
         if (isDefault) {
@@ -137,7 +147,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     auto& properties = relTableEntry->getPropertiesRef();
     for (auto i = 1u; i < properties.size(); ++i) { // skip internal ID
         auto& property = properties[i];
-        auto expr = matchColumnExpression(columns, property.getName());
+        auto expr = matchColumnExpression(*boundSource, property.getName());
         auto isDefault = !expr;
         defaultColumns.emplace_back(isDefault);
         if (isDefault) {
