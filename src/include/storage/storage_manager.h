@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "catalog/catalog.h"
 #include "storage/index/hash_index.h"
 #include "storage/store/rel_table.h"
@@ -27,11 +29,12 @@ public:
         main::ClientContext* context);
     void dropTable(common::table_id_t tableID, common::VirtualFileSystem* vfs);
 
-    void checkpoint(main::ClientContext& clientContext) const;
+    void checkpoint(main::ClientContext& clientContext);
 
     PrimaryKeyIndex* getPKIndex(common::table_id_t tableID);
 
-    Table* getTable(common::table_id_t tableID) const {
+    Table* getTable(common::table_id_t tableID) {
+        std::lock_guard lck{mtx};
         KU_ASSERT(tables.contains(tableID));
         return tables.at(tableID).get();
     }
@@ -44,7 +47,7 @@ public:
     bool isReadOnly() const { return readOnly; }
     bool compressionEnabled() const { return enableCompression; }
 
-    uint64_t getEstimatedMemoryUsage() const;
+    uint64_t getEstimatedMemoryUsage();
 
 private:
     BMFileHandle* initFileHandle(const std::string& filename, common::VirtualFileSystem* vfs,
@@ -62,7 +65,6 @@ private:
         catalog::Catalog* catalog, main::ClientContext* context);
 
 private:
-    // TODO(Guodong): Create/Drop tables should be thread safe and protected by a mutex.
     std::mutex mtx;
     std::string databasePath;
     bool readOnly;

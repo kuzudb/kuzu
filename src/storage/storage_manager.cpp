@@ -169,6 +169,7 @@ void StorageManager::createRdfGraph(table_id_t, RDFGraphCatalogEntry* tableSchem
 
 void StorageManager::createTable(table_id_t tableID, Catalog* catalog,
     main::ClientContext* context) {
+    std::lock_guard lck{mtx};
     auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);
     switch (tableEntry->getTableType()) {
     case TableType::NODE: {
@@ -192,6 +193,7 @@ void StorageManager::createTable(table_id_t tableID, Catalog* catalog,
 }
 
 PrimaryKeyIndex* StorageManager::getPKIndex(table_id_t tableID) {
+    std::lock_guard lck{mtx};
     KU_ASSERT(tables.contains(tableID));
     KU_ASSERT(tables.at(tableID)->getTableType() == TableType::NODE);
     auto table = ku_dynamic_cast<Table*, NodeTable*>(tables.at(tableID).get());
@@ -209,6 +211,7 @@ ShadowFile& StorageManager::getShadowFile() {
 }
 
 void StorageManager::dropTable(table_id_t tableID, VirtualFileSystem* vfs) {
+    std::lock_guard lck{mtx};
     KU_ASSERT(tables.contains(tableID));
     auto tableType = tables.at(tableID)->getTableType();
     switch (tableType) {
@@ -225,7 +228,8 @@ void StorageManager::dropTable(table_id_t tableID, VirtualFileSystem* vfs) {
     tables.erase(tableID);
 }
 
-uint64_t StorageManager::getEstimatedMemoryUsage() const {
+uint64_t StorageManager::getEstimatedMemoryUsage() {
+    std::lock_guard lck{mtx};
     uint64_t totalMemoryUsage = 0;
     for (const auto& [tableID, table] : tables) {
         totalMemoryUsage += table->getEstimatedMemoryUsage();
@@ -233,7 +237,8 @@ uint64_t StorageManager::getEstimatedMemoryUsage() const {
     return totalMemoryUsage;
 }
 
-void StorageManager::checkpoint(main::ClientContext& clientContext) const {
+void StorageManager::checkpoint(main::ClientContext& clientContext) {
+    std::lock_guard lck{mtx};
     const auto metadataFileInfo = clientContext.getVFSUnsafe()->openFile(
         StorageUtils::getMetadataFName(clientContext.getVFSUnsafe(), databasePath,
             FileVersionType::WAL_VERSION),

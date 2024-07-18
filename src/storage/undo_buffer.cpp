@@ -336,9 +336,9 @@ void UndoBuffer::rollbackCatalogEntryRecord(const uint8_t* record) {
     } else {
         // This is the begin of the version chain.
         auto olderEntry = entryToRollback->movePrev();
-        catalogSet->erase(catalogEntry->getName());
+        catalogSet->eraseNoLock(catalogEntry->getName());
         if (olderEntry) {
-            catalogSet->emplace(std::move(olderEntry));
+            catalogSet->emplaceNoLock(std::move(olderEntry));
         }
     }
 }
