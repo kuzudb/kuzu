@@ -54,6 +54,18 @@ public:
     // frontier as a field, **do not** call setActive. Helper functions in GDSUtils will do that
     // work.
     virtual bool edgeCompute(nodeID_t curNodeID, nodeID_t nbrID) = 0;
+
+    // toNodeTableID is the tableID of the nbr nodes that will be used in extensions. This
+    // information can be useful to ensure the right data structures are initialized in the
+    // output data structures that the frontier compute will write.
+    // Note: This code will be called once for each relevant node table in an iteration by the
+    // "master" thread before frontier compute is passed to worker threads.
+    virtual void initFrontierExtensions(table_id_t toNodeTableID) {};
+
+    // This function will be called by each worker thread on its copy of the FrontierCompute.
+    virtual void init() {}
+
+    virtual std::unique_ptr<FrontierCompute> clone() = 0;
 };
 
 /**
@@ -101,21 +113,6 @@ public:
         beginNewIterationInternalNoLock();
     }
     virtual void initSPFromSource(nodeID_t source) = 0;
-    // When performing computations on multi-label graphs, it may be beneficial to fix a single
-    // node table of nodes in the current frontier and a single node table of nodes for the next
-    // frontier. That is because algorithms will generally perform extensions using a single
-    // relationship table at a time, and each relationship table R is between a single source node
-    // table S and a single destination node table T. Therefore, generally during execution the
-    // algorithm will need to check only the active S nodes in current frontier and update the
-    // active statuses of only the T nodes in the next frontier. The information that the algorithm
-    // is beginning and S-to-T extensions can be given to the frontiers to possibly avoid them
-    // doing lookups of S and T-related data structures, e.g., masks, internally.
-    // Note that ideally a similar function, say called "fixNodeTable", could be in GDSFrontier,
-    // since Frontiers has two GDSFrontier instances in it. However, some implementations of
-    // Frontiers can use a single GDSFrontier to mimic two frontiers (e.g., identifying nodes
-    // in current or next frontier by specific mask values. For such implementations we would have
-    // to call fixNodeTable(S) and fixNodeTable(T) on the same object, which could overwrite
-    // each other. That is why this function is put in the Frontiers class.
     virtual void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
         table_id_t nextFrontierTableID) = 0;
     idx_t getNextIter() {

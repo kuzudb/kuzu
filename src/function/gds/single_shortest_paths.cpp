@@ -17,11 +17,25 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
+class FixedNodeTableSinglePaths {
+public:
+    FixedNodeTableSinglePaths(nodeID_t* currentFixedLastEdges) : currentFixedLastEdges{currentFixedLastEdges} {}
+
+    void setLastEdge(nodeID_t nodeID, nodeID_t lastEdge) {
+        KU_ASSERT(currentFixedLastEdges != nullptr);
+        currentFixedLastEdges[nodeID.offset] = lastEdge;
+    }
+
+private:
+    nodeID_t* currentFixedLastEdges;
+};
 /**
  * A data structure to keep track of a single (shortest) path from one source node to
  * multiple destination (and intermediate) nodes as "backward BFS graph" form. The data structure is
  * "dense" in the sense that it keeps space for one "backwards edge" for each possible node that can
  * be in the destination. Supports multi-label nodes.
+ *
+ * TODO(Semih): Make this class thread-safe the style of ConcurrentPathMultiplicities.
  */
 class SinglePaths {
 public:
@@ -29,13 +43,16 @@ public:
         std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
         MemoryManager* mm) {
         for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
+            // TODO(Semih): Change this to use atomics. We can't have an atomic if a struct, so
+            // we need to store 2 atomics, one for the tableID and one for the offset.
+            // auto memoryBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<uint64_t>));
             lastEdges.insert({tableID, mm->allocateBuffer(false, numNodes * sizeof(nodeID_t))});
         }
     }
 
-    void setLastEdge(nodeID_t nodeID, nodeID_t lastEdge) {
-        KU_ASSERT(currentFixedLastEdges != nullptr);
-        currentFixedLastEdges[nodeID.offset] = lastEdge;
+    std::unique_ptr<FixedNodeTableSinglePaths> getCurrFixedNodeTableSinglePaths() {
+        return std::make_unique<FixedNodeTableSinglePaths>(
+            reinterpret_cast<nodeID_t*>(lastEdges.at(currentTableID.load()).get()->buffer.data()));
     }
 
     nodeID_t getParent(nodeID_t nodeID) {
@@ -45,30 +62,17 @@ public:
 
     void fixNodeTable(common::table_id_t tableID) {
         KU_ASSERT(lastEdges.contains(tableID));
-        currentFixedLastEdges =
-            reinterpret_cast<nodeID_t*>(lastEdges.at(tableID).get()->buffer.data());
+        currentTableID.store(tableID);
+    // TODO(Semih): Remove
+        //        currentFixedLastEdges =
+//            reinterpret_cast<nodeID_t*>(lastEdges.at(tableID).get()->buffer.data());
     }
 
 private:
     common::table_id_map_t<std::unique_ptr<MemoryBuffer>> lastEdges;
+    std::atomic<common::table_id_t> currentTableID;
+    // TODO(Semih): Remove
     nodeID_t* currentFixedLastEdges;
-};
-
-class SingleSPPathsFrontiers : public PathLengthsFrontiers {
-    friend struct SingleSPPathsFrontierCompute;
-
-public:
-    explicit SingleSPPathsFrontiers(PathLengths* pathLengths, SinglePaths* singlePaths)
-        : PathLengthsFrontiers(pathLengths), singlePaths{singlePaths} {}
-    void beginFrontierComputeBetweenTables(
-        table_id_t curFrontierTableID, table_id_t nextFrontierTableID) override {
-        PathLengthsFrontiers::beginFrontierComputeBetweenTables(
-            curFrontierTableID, nextFrontierTableID);
-        singlePaths->fixNodeTable(nextFrontierTableID);
-    }
-
-private:
-    SinglePaths* singlePaths;
 };
 
 struct SingleSPOutputs : public RJOutputs {
@@ -76,7 +80,7 @@ struct SingleSPOutputs : public RJOutputs {
     std::unique_ptr<PathLengths> pathLengths;
     std::unique_ptr<SinglePaths> singlePaths;
     explicit SingleSPOutputs(graph::Graph* graph, nodeID_t sourceNodeID, RJOutputType outputType, MemoryManager* mm = nullptr)
-        : sourceNodeID{sourceNodeID} {
+        : sourceNodeID{sourceNodeID}, outputType{outputType} {
         std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes;
         for (common::table_id_t tableID : graph->getNodeTableIDs()) {
             auto numNodes = graph->getNumNodes(tableID);
@@ -91,6 +95,15 @@ struct SingleSPOutputs : public RJOutputs {
             // extensions.
         }
     }
+
+    void beginFrontierComputeBetweenTables(table_id_t,
+        table_id_t nextFrontierTableID) override {
+        if (RJOutputType::PATHS == outputType) {
+            singlePaths->fixNodeTable(nextFrontierTableID);
+        }
+    };
+private:
+    RJOutputType outputType;
 };
 
 class SingleSPOutputWriter : public RJOutputWriter {
@@ -146,21 +159,38 @@ struct SingleSPLengthsFrontierCompute : public FrontierCompute {
         return pathLengthsFrontiers->pathLengths->getMaskValueFromNextFrontierFixedMask(
                    nbrID.offset) == PathLengths::UNVISITED;
     }
+
+    // TODO(Semih): Also implement the init() function.
+    std::unique_ptr<FrontierCompute> clone() override {
+        return std::make_unique<SingleSPLengthsFrontierCompute>(this->pathLengthsFrontiers);
+    }
 };
 
-struct SingleSPPathsFrontierCompute : public FrontierCompute {
-    SingleSPPathsFrontiers* singleSPPathsFrontiers;
-    explicit SingleSPPathsFrontierCompute(SingleSPPathsFrontiers* singlePathsFrontiers)
-        : singleSPPathsFrontiers{singlePathsFrontiers} {};
+struct SingleSPPathsFrontierCompute : public SingleSPLengthsFrontierCompute {
+    SinglePaths* singlePaths;
+    std::unique_ptr<FixedNodeTableSinglePaths> fixedNodeTableSinglePaths;
+    explicit SingleSPPathsFrontierCompute(PathLengthsFrontiers* pathLengthsFrontiers,
+    SinglePaths* singlePaths) :
+      SingleSPLengthsFrontierCompute(pathLengthsFrontiers), singlePaths{singlePaths} {};
 
     bool edgeCompute(nodeID_t curNodeID, nodeID_t nbrID) override {
-        auto retVal = singleSPPathsFrontiers->pathLengths->getMaskValueFromNextFrontierFixedMask(
+        auto retVal = pathLengthsFrontiers->pathLengths->getMaskValueFromNextFrontierFixedMask(
                           nbrID.offset) == PathLengths::UNVISITED;
         if (retVal) {
             // We set the nbrID's last edge to curNodeID;
-            singleSPPathsFrontiers->singlePaths->setLastEdge(nbrID, curNodeID);
+            fixedNodeTableSinglePaths->setLastEdge(nbrID, curNodeID);
         }
         return retVal;
+    }
+
+    // This function will be called by each worker thread on its copy of the FrontierCompute.
+    void init() {
+        fixedNodeTableSinglePaths = singlePaths->getCurrFixedNodeTableSinglePaths();
+    }
+
+    // TODO(Semih): Also implement the init() function
+    std::unique_ptr<FrontierCompute> clone() override {
+        return std::make_unique<SingleSPPathsFrontierCompute>(this->pathLengthsFrontiers, this->singlePaths);
     }
 };
 
@@ -185,24 +215,24 @@ protected:
         outputWriter = std::make_unique<SingleSPOutputWriter>(context, outputType);
     }
 
-    std::unique_ptr<SPInfo> getFrontiersAndFrontiersCompute(processor::ExecutionContext* executionContext,
+    std::unique_ptr<RJCompState> getFrontiersAndFrontiersCompute(processor::ExecutionContext* executionContext,
         nodeID_t sourceNodeID) override {
-        auto sourceState = std::make_unique<SingleSPOutputs>(sharedState->graph.get(), sourceNodeID,
+        auto spOutputs = std::make_unique<SingleSPOutputs>(sharedState->graph.get(), sourceNodeID,
             outputType, executionContext->clientContext->getMemoryManager());
+        auto pathLengthsFrontiers =
+            std::make_unique<PathLengthsFrontiers>(spOutputs->pathLengths.get());
         switch (outputType) {
         case RJOutputType::DESTINATION_NODES:
         case RJOutputType::LENGTHS: {
-            auto pathLengthsFrontiers =
-                std::make_unique<PathLengthsFrontiers>(sourceState->pathLengths.get());
             auto frontierCompute = std::make_unique<SingleSPLengthsFrontierCompute>(pathLengthsFrontiers.get());
-            return std::make_unique<SPInfo>(move(sourceState), move(pathLengthsFrontiers), move(frontierCompute));
+            return std::make_unique<RJCompState>(move(spOutputs), move(pathLengthsFrontiers), move(frontierCompute));
         }
         case RJOutputType::PATHS: {
-            auto singlePathsFrontiers = std::make_unique<SingleSPPathsFrontiers>(
-                sourceState->pathLengths.get(), sourceState->singlePaths.get());
+//            auto singlePathsFrontiers = std::make_unique<SingleSPPathsFrontiers>(
+//                spOutputs->pathLengths.get(), spOutputs->singlePaths.get());
             auto frontierCompute =
-                std::make_unique<SingleSPPathsFrontierCompute>(singlePathsFrontiers.get());
-            return std::make_unique<SPInfo>(move(sourceState), move(singlePathsFrontiers), move(frontierCompute));
+                std::make_unique<SingleSPPathsFrontierCompute>(pathLengthsFrontiers.get(), spOutputs->singlePaths.get());
+            return std::make_unique<RJCompState>(move(spOutputs), move(pathLengthsFrontiers), move(frontierCompute));
         }
         default:
             throw RuntimeException("Unrecognized RJOutputType in "

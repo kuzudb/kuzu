@@ -50,6 +50,9 @@ struct RJOutputs {
 public:
     virtual ~RJOutputs() = default;
 
+    virtual void initSPFromSource(nodeID_t source) {}
+    virtual void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
+        table_id_t nextFrontierTableID) = 0;
     template<class TARGET>
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<RJOutputs*, TARGET*>(this);
@@ -75,18 +78,35 @@ protected:
     std::vector<common::ValueVector*> vectors;
 };
 
-// Wrapper around the data that needs to be stored during the computation of a shortest paths
-// computation from one source.
-// TODO (Semih): Rename to RJInfo
-struct SPInfo final {
+// Wrapper around the data that needs to be stored during the computation of a recursive joins
+// computation from one source. Also contains several initialization functions.
+struct RJCompState {
     std::unique_ptr<RJOutputs> outputs;
     std::unique_ptr<function::Frontiers> frontiers;
     std::unique_ptr<function::FrontierCompute> frontierCompute;
 
-    explicit SPInfo(std::unique_ptr<RJOutputs> outputs,
+    explicit RJCompState(std::unique_ptr<RJOutputs> outputs,
         std::unique_ptr<function::Frontiers> frontiers, std::unique_ptr<function::FrontierCompute> frontierCompute);
-//        : outputs{std::move(outputs)}, frontiers{std::move(frontiers)},
-//          frontierCompute{std::move(frontierCompute)} {}
+
+    void initRJFromSource(nodeID_t sourceNodeID) {
+        frontiers->initSPFromSource(sourceNodeID);
+        outputs->initSPFromSource(sourceNodeID);
+    }
+    // When performing computations on multi-label graphs, it may be beneficial to fix a single
+    // node table of nodes in the current frontier and a single node table of nodes for the next
+    // frontier. That is because algorithms will generally perform extensions using a single
+    // relationship table at a time, and each relationship table R is between a single source node
+    // table S and a single destination node table T. Therefore, generally during execution the
+    // algorithm will need to check only the active S nodes in current frontier and update the
+    // active statuses of only the T nodes in the next frontier. The information that the algorithm
+    // is beginning and S-to-T extensions can be given to the computation to possibly avoid them
+    // doing lookups of S and T-related data structures, e.g., masks, internally.
+    void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
+        table_id_t nextFrontierTableID) {
+        frontiers->beginFrontierComputeBetweenTables(curFrontierTableID, nextFrontierTableID);
+        outputs->beginFrontierComputeBetweenTables(curFrontierTableID, nextFrontierTableID);
+        frontierCompute->initFrontierExtensions(nextFrontierTableID);
+    }
 };
 
 class RJAlgorithm : public function::GDSAlgorithm {
@@ -120,7 +140,7 @@ public:
     void bind(const binder::expression_vector& params, binder::Binder* binder, graph::GraphEntry& graphEntry) override;
 
     void exec(processor::ExecutionContext* executionContext) override;
-    virtual std::unique_ptr<SPInfo> getFrontiersAndFrontiersCompute(processor::ExecutionContext* executionContext,
+    virtual std::unique_ptr<RJCompState> getFrontiersAndFrontiersCompute(processor::ExecutionContext* executionContext,
         common::nodeID_t sourceNodeID) = 0;
 
 protected:
@@ -199,6 +219,8 @@ private:
 };
 
 class PathLengthsFrontiers : public Frontiers {
+    friend struct AllSPLengthsFrontierCompute;
+    friend struct AllSPPathsFrontierCompute;
     friend struct SingleSPLengthsFrontierCompute;
     friend struct SingleSPPathsFrontierCompute;
     static constexpr uint64_t FRONTIER_MORSEL_SIZE = 64;
@@ -211,6 +233,7 @@ public:
 
     bool getNextFrontierMorsel(RangeFrontierMorsel& frontierMorsel) override;
 
+    // TODO(Semih): Rename initSP to initRJFromSource
     void initSPFromSource(nodeID_t source) override {
         // Because PathLengths is a single data structure that represents both the current and next
         // frontier, and because setting active is an operation done on the next frontier, we first
