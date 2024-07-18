@@ -38,7 +38,8 @@ struct ExtensionUtils {
     static constexpr const char* EXTENSION_REPO =
         "http://extension.kuzudb.com/v{}/{}/lib{}.kuzu_extension";
 
-    static constexpr const char* OFFICIAL_EXTENSION[] = {"HTTPFS", "POSTGRES", "DUCKDB", "JSON"};
+    static constexpr const char* OFFICIAL_EXTENSION[] = {"HTTPFS", "POSTGRES", "DUCKDB", "JSON",
+        "SQLITE"};
 
     static std::string getExtensionPath(const std::string& extensionDir, const std::string& name);
 
