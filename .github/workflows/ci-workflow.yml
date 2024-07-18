@@ -409,7 +409,8 @@ jobs:
     steps:
       - name: Install clang-format
         run: |
-          apt-get install -y lsb-release wget software-properties-common gnupg python3
+          apt-get update
+          apt-get install -y lsb-release wget software-properties-common gnupg python3 git
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
           yes | ./llvm.sh 18 all
