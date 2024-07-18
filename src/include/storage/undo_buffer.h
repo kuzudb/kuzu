@@ -61,6 +61,7 @@ class UpdateInfo;
 class VersionInfo;
 struct VectorUpdateInfo;
 struct VectorVersionInfo;
+class WAL;
 // This class is not thread safe, as it is supposed to be accessed by a single thread.
 class UndoBuffer {
     friend class UndoBufferIterator;
@@ -89,6 +90,7 @@ public:
         VectorUpdateInfo* vectorUpdateInfo);
 
     void commit(common::transaction_t commitTS) const;
+    void writeWAL(WAL* wal);
     void rollback();
 
 private:
@@ -100,6 +102,7 @@ private:
 
     void commitRecord(UndoRecordType recordType, const uint8_t* record,
         common::transaction_t commitTS) const;
+    void writeRecordToWAL(UndoRecordType recordType, const uint8_t* record, WAL* wal);
     void rollbackRecord(UndoRecordType recordType, const uint8_t* record);
 
     void commitCatalogEntryRecord(const uint8_t* record, common::transaction_t commitTS) const;

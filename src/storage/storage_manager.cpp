@@ -98,9 +98,6 @@ void StorageManager::recover(main::ClientContext& clientContext) {
     }
     try {
         auto* bm = clientContext.getMemoryManager()->getBufferManager();
-        auto shadowFH = bm->getBMFileHandle(vfs->joinPath(clientContext.getDatabasePath(),
-                                                std::string(StorageConstants::SHADOWING_SUFFIX)),
-            FileHandle::O_PERSISTENT_FILE_NO_CREATE, vfs, &clientContext);
         auto walReplayer =
             std::make_unique<WALReplayer>(clientContext, WALReplayMode::RECOVERY_CHECKPOINT);
         walReplayer->replay();
@@ -109,6 +106,9 @@ void StorageManager::recover(main::ClientContext& clientContext) {
         if (walFileInfo->getFileSize() > 0) {
             walFileInfo->truncate(0);
         }
+        auto shadowFH = bm->getBMFileHandle(vfs->joinPath(clientContext.getDatabasePath(),
+                                                std::string(StorageConstants::SHADOWING_SUFFIX)),
+            FileHandle::O_PERSISTENT_FILE_NO_CREATE, vfs, &clientContext);
         if (shadowFH->getFileInfo()->getFileSize() > 0) {
             shadowFH->getFileInfo()->truncate(0);
         }

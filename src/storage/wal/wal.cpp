@@ -8,6 +8,7 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/serializer.h"
+#include "common/vector/value_vector.h"
 #include "storage/storage_utils.h"
 
 using namespace kuzu::catalog;
@@ -28,13 +29,19 @@ WAL::WAL(const std::string& directory, bool readOnly, BufferManager& bufferManag
 
 WAL::~WAL() {}
 
+void WAL::logBeginTransaction() {
+    lock_t lck{mtx};
+    BeginTransactionRecord walRecord;
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::logAndFlushCommit(uint64_t transactionID) {
     lock_t lck{mtx};
     // Flush all pages before committing to make sure that commits only show up in the file when
     // their data is also written.
-    flushAllPages();
     CommitRecord walRecord(transactionID);
     addNewWALRecordNoLock(walRecord);
+    flushAllPages();
 }
 
 void WAL::logAndFlushCheckpoint() {
@@ -62,9 +69,23 @@ void WAL::logAlterTableEntryRecord(BoundAlterInfo* alterInfo) {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logTableInsertion(table_id_t tableID, const std::vector<ValueVector*>& vectors) {
+void WAL::logTableInsertion(table_id_t tableID, row_idx_t numRows,
+    const std::vector<ValueVector*>& vectors) {
     lock_t lck{mtx};
-    TableInsertionRecord walRecord(tableID, vectors);
+    TableInsertionRecord walRecord(tableID, numRows, vectors);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logNodeDeletion(table_id_t tableID, offset_t nodeOffset, ValueVector* pkVector) {
+    lock_t lck{mtx};
+    NodeDeletionRecord walRecord(tableID, nodeOffset, pkVector);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logNodeUpdate(table_id_t tableID, column_id_t columnID, offset_t nodeOffset,
+    ValueVector* propertyVector) {
+    lock_t lck{mtx};
+    NodeUpdateRecord walRecord(tableID, columnID, nodeOffset, propertyVector);
     addNewWALRecordNoLock(walRecord);
 }
 

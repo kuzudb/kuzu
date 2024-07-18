@@ -1,7 +1,5 @@
 #include "storage/wal_replayer.h"
 
-#include <unordered_map>
-
 #include "binder/binder.h"
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
@@ -15,7 +13,7 @@
 #include "storage/storage_utils.h"
 #include "storage/store/node_table.h"
 #include "storage/wal/wal_record.h"
-#include "transaction/transaction.h"
+#include "transaction/transaction_manager.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
@@ -38,7 +36,7 @@ WALReplayer::WALReplayer(main::ClientContext& clientContext, WALReplayMode repla
     pageBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
 }
 
-void WALReplayer::replay() const {
+void WALReplayer::replay() {
     if (!clientContext.getVFSUnsafe()->fileOrPathExists(walFilePath, &clientContext)) {
         return;
     }
@@ -54,7 +52,9 @@ void WALReplayer::replay() const {
         Deserializer deserializer(std::make_unique<BufferedFileReader>(std::move(fileInfo)));
         while (!deserializer.finished()) {
             auto walRecord = WALRecord::deserialize(deserializer, clientContext);
+            clientContext.getTransactionContext()->beginRecoveryTransaction();
             replayWALRecord(*walRecord);
+            clientContext.getTransactionContext()->commit();
         }
     } catch (const Exception& e) {
         throw RuntimeException(
@@ -62,15 +62,25 @@ void WALReplayer::replay() const {
     }
 }
 
-void WALReplayer::replayWALRecord(const WALRecord& walRecord) const {
+void WALReplayer::replayWALRecord(const WALRecord& walRecord) {
     switch (walRecord.type) {
+    case WALRecordType::BEGIN_TRANSACTION_RECORD: {
+        // clientContext.getTransactionContext()->beginRecoveryTransaction();
+    } break;
     case WALRecordType::COMMIT_RECORD: {
+        // clientContext.getTransactionContext()->commit();
     } break;
     case WALRecordType::CREATE_CATALOG_ENTRY_RECORD: {
         replayCreateCatalogEntryRecord(walRecord);
     } break;
     case WALRecordType::TABLE_INSERTION_RECORD: {
         replayTableInsertionRecord(walRecord);
+    } break;
+    case WALRecordType::NODE_DELETION_RECORD: {
+        replayNodeDeletionRecord(walRecord);
+    } break;
+    case WALRecordType::NODE_UDPATE_RECORD: {
+        replayNodeUpdateRecord(walRecord);
     } break;
     case WALRecordType::COPY_TABLE_RECORD: {
         replayCopyTableRecord(walRecord);
@@ -189,7 +199,7 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const 
 }
 
 void WALReplayer::replayTableInsertionRecord(const WALRecord& walRecord) const {
-    const auto insertionRecord = walRecord.constCast<TableInsertionRecord>();
+    const auto& insertionRecord = walRecord.constCast<TableInsertionRecord>();
     const auto tableID = insertionRecord.tableID;
     // TODO: for now, just test on node table.
     auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<NodeTable>();
@@ -205,9 +215,44 @@ void WALReplayer::replayTableInsertionRecord(const WALRecord& walRecord) const {
     KU_ASSERT(table.getPKColumnID() < insertionRecord.ownedVectors.size());
     auto& pkVector = *insertionRecord.ownedVectors[table.getPKColumnID()];
     const auto nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID());
+    nodeIDVector->setState(chunkState);
     const auto insertState =
         std::make_unique<NodeTableInsertState>(*nodeIDVector, pkVector, propertyVectors);
-    table.insert(&DUMMY_TRANSACTION, *insertState);
+    KU_ASSERT(clientContext.getTx() && clientContext.getTx()->isRecovery());
+    table.insert(clientContext.getTx(), *insertState);
+}
+
+void WALReplayer::replayNodeDeletionRecord(const WALRecord& walRecord) const {
+    const auto& deletionRecord = walRecord.constCast<NodeDeletionRecord>();
+    const auto tableID = deletionRecord.tableID;
+    auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<NodeTable>();
+    const auto chunkState = std::make_shared<DataChunkState>();
+    chunkState->getSelVectorUnsafe().setSelSize(1);
+    const auto nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID());
+    nodeIDVector->setState(chunkState);
+    nodeIDVector->setValue<internalID_t>(0,
+        internalID_t{deletionRecord.nodeOffset, deletionRecord.tableID});
+    const auto deleteState =
+        std::make_unique<NodeTableDeleteState>(*nodeIDVector, *deletionRecord.ownedPKVector);
+    KU_ASSERT(clientContext.getTx() && clientContext.getTx()->isRecovery());
+    table.delete_(clientContext.getTx(), *deleteState);
+}
+
+void WALReplayer::replayNodeUpdateRecord(const WALRecord& walRecord) const {
+    const auto& updateRecord = walRecord.constCast<NodeUpdateRecord>();
+    const auto tableID = updateRecord.tableID;
+    auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<NodeTable>();
+    const auto chunkState = std::make_shared<DataChunkState>();
+    chunkState->getSelVectorUnsafe().setSelSize(1);
+    const auto nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID());
+    nodeIDVector->setState(chunkState);
+    nodeIDVector->setValue<internalID_t>(0,
+        internalID_t{updateRecord.nodeOffset, updateRecord.tableID});
+    updateRecord.ownedPropertyVector->setState(chunkState);
+    const auto updateState = std::make_unique<NodeTableUpdateState>(updateRecord.columnID,
+        *nodeIDVector, *updateRecord.ownedPropertyVector);
+    KU_ASSERT(clientContext.getTx() && clientContext.getTx()->isRecovery());
+    table.update(clientContext.getTx(), *updateState);
 }
 
 void WALReplayer::replayCopyTableRecord(const WALRecord&) const {

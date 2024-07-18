@@ -176,6 +176,13 @@ void UndoBuffer::commit(transaction_t commitTS) const {
     });
 }
 
+void UndoBuffer::writeWAL(WAL* wal) {
+    UndoBufferIterator iterator{*this};
+    iterator.iterate([&](UndoRecordType entryType, uint8_t const* entry) {
+        writeRecordToWAL(entryType, entry, wal);
+    });
+}
+
 void UndoBuffer::rollback() {
     UndoBufferIterator iterator{*this};
     iterator.reverseIterate(
@@ -205,6 +212,8 @@ void UndoBuffer::commitRecord(UndoRecordType recordType, const uint8_t* record,
         KU_UNREACHABLE;
     }
 }
+
+void UndoBuffer::writeRecordToWAL(UndoRecordType recordType, const uint8_t* record, WAL* wal) {}
 
 void UndoBuffer::commitCatalogEntryRecord(const uint8_t* record,
     const transaction_t commitTS) const {

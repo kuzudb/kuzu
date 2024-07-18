@@ -40,6 +40,12 @@ void TransactionContext::beginAutoTransaction(bool readOnlyStatement) {
         readOnlyStatement ? TransactionType::READ_ONLY : TransactionType::WRITE);
 }
 
+void TransactionContext::beginRecoveryTransaction() {
+    std::unique_lock<std::mutex> lck{mtx};
+    mode = TransactionMode::MANUAL;
+    beginTransactionInternal(TransactionType::RECOVERY);
+}
+
 void TransactionContext::validateManualTransaction(bool readOnlyStatement) const {
     KU_ASSERT(hasActiveTransaction());
     if (activeTransaction->isReadOnly() && !readOnlyStatement) {
