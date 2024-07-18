@@ -1,5 +1,8 @@
 #include "common/serializer/serializer.h"
 
+#include "common/assert.h"
+#include "common/serializer/buffered_file.h"
+
 namespace kuzu {
 namespace common {
 

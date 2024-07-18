@@ -24,6 +24,8 @@ public:
         reader->read(reinterpret_cast<uint8_t*>(&value), sizeof(T));
     }
 
+    void read(uint8_t* data, uint64_t size) { reader->read(data, size); }
+
     void deserializeDebuggingInfo(std::string& value);
 
     template<typename T>

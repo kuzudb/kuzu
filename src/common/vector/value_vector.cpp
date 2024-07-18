@@ -3,6 +3,8 @@
 #include "common/constants.h"
 #include "common/exception/runtime.h"
 #include "common/null_buffer.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 #include "common/types/blob.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/value.h"
@@ -349,6 +351,40 @@ void ValueVector::initializeValueBuffer() {
         StructVector::initializeEntries(this);
     }
 }
+
+// void ValueVector::serialize(Serializer& ser) const {
+//     // dataType, num_values, data, nullMask, aux
+//     ser.writeDebuggingInfo("data_type");
+//     dataType.serialize(ser);
+//     ser.writeDebuggingInfo("num_values");
+//     ser.write<sel_t>(state->getSelVector().getSelSize());
+//     ser.writeDebuggingInfo("buffer");
+//     ser.write(valueBuffer.get(), numBytesPerValue * state->getSelVector().getSelSize());
+//     ser.writeDebuggingInfo("null_mask");
+//     nullMask.serialize(ser);
+//     // TODO(Guodong): aux, nested types.
+// }
+//
+// std::unique_ptr<ValueVector> ValueVector::deSerialize(Deserializer& deSer,
+//     storage::MemoryManager* mm) {
+//     std::string key;
+//     deSer.deserializeDebuggingInfo(key);
+//     KU_ASSERT(key == "data_type");
+//     auto dataType = LogicalType::deserialize(deSer);
+//     auto result = std::make_unique<ValueVector>(std::move(dataType), mm);
+//     deSer.deserializeDebuggingInfo(key);
+//     KU_ASSERT(key == "num_values");
+//     sel_t numValues;
+//     deSer.deserializeValue<sel_t>(numValues);
+//     auto numBytesToRead = numValues * result->numBytesPerValue;
+//     deSer.deserializeDebuggingInfo(key);
+//     KU_ASSERT(key == "buffer");
+//     deSer.read(result->valueBuffer.get(), numBytesToRead);
+//     deSer.deserializeDebuggingInfo(key);
+//     KU_ASSERT(key == "null_mask");
+//     result->nullMask = NullMask::deserialize(deSer);
+//     return result;
+// }
 
 template KUZU_API void ValueVector::setValue<nodeID_t>(uint32_t pos, nodeID_t val);
 template KUZU_API void ValueVector::setValue<bool>(uint32_t pos, bool val);
