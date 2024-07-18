@@ -17,10 +17,17 @@ std::unique_ptr<ResultCollector> PlanMapper::createResultCollector(AccumulateTyp
         payloadsPos.push_back(getDataPos(*expr, *schema));
     }
     auto tableSchema = FactorizedTableUtils::createFTableSchema(expressions, *schema);
-    if (accumulateType == AccumulateType::OPTIONAL_) {
+    switch (accumulateType) {
+    case AccumulateType::EXISTENCE:
+    case AccumulateType::OPTIONAL_: {
         auto columnSchema = ColumnSchema(false /* isUnFlat */, INVALID_DATA_CHUNK_POS,
             LogicalTypeUtils::getRowLayoutSize(LogicalType::BOOL()));
         tableSchema.appendColumn(std::move(columnSchema));
+    } break;
+    case AccumulateType::REGULAR:
+        break;
+    default:
+        KU_UNREACHABLE;
     }
     auto table =
         std::make_shared<FactorizedTable>(clientContext->getMemoryManager(), tableSchema.copy());

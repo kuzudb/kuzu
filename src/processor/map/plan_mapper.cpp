@@ -17,6 +17,7 @@ static void setPhysicalPlanIfProfile(const LogicalPlan* logicalPlan, PhysicalPla
 
 std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(const LogicalPlan* logicalPlan,
     const binder::expression_vector& expressionsToCollect) {
+    auto str = logicalPlan->toString();
     auto lastOperator = mapOperator(logicalPlan->getLastOperator().get());
     lastOperator = createResultCollector(AccumulateType::REGULAR, expressionsToCollect,
         logicalPlan->getSchema(), std::move(lastOperator));

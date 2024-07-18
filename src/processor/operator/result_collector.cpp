@@ -28,12 +28,25 @@ void ResultCollector::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         payloadVectors.push_back(vec);
         payloadAndMarkVectors.push_back(vec);
     }
-    if (info.accumulateType == AccumulateType::OPTIONAL_) {
+    switch (info.accumulateType) {
+    case AccumulateType::OPTIONAL_: {
         markVector = std::make_unique<ValueVector>(LogicalType::BOOL(),
             context->clientContext->getMemoryManager());
         markVector->state = DataChunkState::getSingleValueDataChunkState();
         markVector->setValue<bool>(0, true);
         payloadAndMarkVectors.push_back(markVector.get());
+    } break;
+    case AccumulateType::EXISTENCE: {
+        markVector = std::make_unique<ValueVector>(LogicalType::BOOL(),
+            context->clientContext->getMemoryManager());
+        markVector->state = DataChunkState::getSingleValueDataChunkState();
+        markVector->setValue<bool>(0, false);
+        payloadAndMarkVectors.push_back(markVector.get());
+    } break;
+    case AccumulateType::REGULAR:
+        break;
+    default:
+        KU_UNREACHABLE;
     }
     localTable = std::make_unique<FactorizedTable>(context->clientContext->getMemoryManager(),
         info.tableSchema.copy());
@@ -73,9 +86,22 @@ void ResultCollector::finalize(ExecutionContext* /*context*/) {
             markVector->setValue<bool>(0, false);
             table->append(payloadAndMarkVectors);
         }
-    }
+    } break;
+    case AccumulateType::EXISTENCE: {
+        auto table = sharedState->getTable();
+        if (!table->isEmpty()) {
+            markVector->setValue<bool>(0, true);
+            table->updateFlatCell(table->getTuple(0), table->getTableSchema()->getNumColumns() - 1,
+                markVector.get(), 0);
+        }
+    } break;
     default:
         break;
+    }
+    if (info.accumulateType == AccumulateType::EXISTENCE) {
+        auto tuple1 = *(bool*)(getResultFactorizedTable()->getTuple(0) + 8);
+        auto tuple2 = *(bool*)(getResultFactorizedTable()->getTuple(1) + 8);
+        auto a = 5;
     }
 }
 

@@ -10,13 +10,22 @@ namespace processor {
 std::unique_ptr<PhysicalOperator> PlanMapper::mapMarkAccumulate(LogicalOperator* op) {
     auto acc = op->constPtrCast<LogicalMarkAccumulate>();
     auto keys = acc->getKeys();
-    // TODO(ziyi): map this case to a result collector
-    KU_ASSERT(!keys.empty());
+    auto child = acc->getChild(0).get();
+    auto prevOperator = mapOperator(child);
     auto payloads = acc->getPayloads();
     auto outSchema = acc->getSchema();
-    auto child = acc->getChild(0).get();
     auto inSchema = child->getSchema();
-    auto prevOperator = mapOperator(child);
+    // TODO(ziyi): map this case to a result collector
+    if (keys.empty()) {
+        auto expressionsToScan = std::move(payloads);
+        auto resultCollector = createResultCollector(AccumulateType::EXISTENCE,
+            copyVector(expressionsToScan), inSchema, std::move(prevOperator));
+        expressionsToScan.push_back(acc->getMark());
+        auto ft = resultCollector->getResultFactorizedTable();
+        physical_op_vector_t children;
+        children.push_back(std::move(resultCollector));
+        return createFTableScanAligned(expressionsToScan, outSchema, ft, 2048, std::move(children));
+    }
     return createMarkDistinctHashAggregate(keys, payloads, acc->getMark(), inSchema, outSchema,
         std::move(prevOperator));
 }

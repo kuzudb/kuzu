@@ -91,6 +91,7 @@ private:
     std::vector<common::ValueVector*> payloadAndMarkVectors;
 
     std::unique_ptr<common::ValueVector> markVector;
+    // std::unique_ptr<common::ValueVector> existenceVector;
     std::unique_ptr<FactorizedTable> localTable;
 };
 

@@ -9,6 +9,7 @@ namespace common {
 enum class AccumulateType : uint8_t {
     REGULAR = 0,
     OPTIONAL_ = 1,
+    EXISTENCE = 2,
 };
 
 struct AccumulateTypeUtil {
