@@ -404,6 +404,8 @@ jobs:
   clang-format:
     name: clang format
     runs-on: ubuntu-22.04
+    container:
+      image: ubuntu:22.04
     steps:
       - name: Install clang-format
         run: |
