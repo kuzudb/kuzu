@@ -3,6 +3,7 @@
 #include "common/task_system/task_scheduler.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_task.h"
+#include "function/gds/rec_joins.h"
 #include "graph/graph.h"
 #include "main/settings.h"
 
@@ -30,12 +31,42 @@ void GDSUtils::parallelizeFrontierCompute(processor::ExecutionContext* execution
 }
 
 void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* executionContext,
+    RJCompState& rjCompState, graph::Graph* graph, uint64_t maxIters) {
+
+    //    // We put the memory fence before to ensure that updates to any frontier that may be
+    //    // requiring memory barrier becomes visible to all threads in the first iteration.
+    //    std::atomic_thread_fence(std::memory_order_seq_cst);
+    auto frontiers = rjCompState.frontiers.get();
+    auto fc = rjCompState.frontierCompute.get();
+    while (frontiers->hasActiveNodesForNextIter() && frontiers->getNextIter() < maxIters) {
+        frontiers->beginNewIteration();
+        for (auto& relTableIDInfo : graph->getRelTableIDInfos()) {
+            rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID,
+                                relTableIDInfo.toNodeTableID);
+//            frontiers->beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID,
+//                relTableIDInfo.toNodeTableID);
+//            fc->initFrontierExtensions(relTableIDInfo.toNodeTableID);
+            auto sharedState = std::make_shared<FrontierTaskSharedState>(*frontiers, graph, *fc,
+                relTableIDInfo.relTableID);
+            GDSUtils::parallelizeFrontierCompute(executionContext, sharedState);
+        }
+        // We put the memory fence here to make sure that updates to pathLengths in this
+        // iteration is visible in the next round to all threads.
+        std::atomic_thread_fence(std::memory_order_seq_cst);
+    }
+}
+
+void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* executionContext,
     Frontiers& frontiers, graph::Graph* graph, FrontierCompute& fc, uint64_t maxIters) {
+//    // We put the memory fence before to ensure that updates to any frontier that may be
+//    // requiring memory barrier becomes visible to all threads in the first iteration.
+//    std::atomic_thread_fence(std::memory_order_seq_cst);
     while (frontiers.hasActiveNodesForNextIter() && frontiers.getNextIter() < maxIters) {
         frontiers.beginNewIteration();
         for (auto& relTableIDInfo : graph->getRelTableIDInfos()) {
             frontiers.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID,
                 relTableIDInfo.toNodeTableID);
+            fc.initFrontierExtensions(relTableIDInfo.toNodeTableID);
             auto sharedState = std::make_shared<FrontierTaskSharedState>(frontiers, graph, fc,
                 relTableIDInfo.relTableID);
             GDSUtils::parallelizeFrontierCompute(executionContext, sharedState);
