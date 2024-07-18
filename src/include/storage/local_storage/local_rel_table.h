@@ -58,7 +58,7 @@ private:
 private:
     // We don't duplicate local rel tuples. Tuples are stored same as node tuples.
     // Chunks stored in local rel table are organized as follows:
-    // [srcNodeID, dstNodeID, property1, property2, ...]
+    // [srcNodeID, dstNodeID, relID, property1, property2, ...]
     // All local rel tuples are stored in a single node group, and they are indexed by src/dst
     // NodeID.
     std::map<common::offset_t, row_idx_vec_t> fwdIndex;

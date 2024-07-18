@@ -113,6 +113,7 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
 }
 
 void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
+    KU_ASSERT(transaction->getLocalStorage());
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
     localTable->insert(transaction, insertState);
@@ -248,7 +249,7 @@ NodeGroup* RelTable::getOrCreateNodeGroup(node_group_idx_t nodeGroupIdx,
                bwdRelTableData->getOrCreateNodeGroup(nodeGroupIdx);
 }
 
-void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
+void RelTable::commit(Transaction* transaction, WAL* wal, LocalTable* localTable) {
     auto& localRelTable = localTable->cast<LocalRelTable>();
     const auto dataChunkState = std::make_shared<DataChunkState>();
     std::vector<column_id_t> columnIDsToScan;
