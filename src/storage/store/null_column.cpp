@@ -67,8 +67,8 @@ void NullColumn::scan(Transaction* transaction, const ChunkState& state,
     Column::scan(transaction, state, columnChunk, startOffset, endOffset);
 }
 
-void NullColumn::lookup(Transaction* transaction, ChunkState& readState, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
+void NullColumn::lookup(Transaction* transaction, ChunkState& readState,
+    const ValueVector* nodeIDVector, ValueVector* resultVector) {
     lookupInternal(transaction, readState, nodeIDVector, resultVector);
 }
 

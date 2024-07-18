@@ -69,7 +69,7 @@ void StructColumn::scanInternal(Transaction* transaction, const ChunkState& stat
 }
 
 void StructColumn::lookupInternal(Transaction* transaction, ChunkState& readState,
-    ValueVector* nodeIDVector, ValueVector* resultVector) {
+    const ValueVector* nodeIDVector, ValueVector* resultVector) {
     for (auto i = 0u; i < childColumns.size(); i++) {
         auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
         childColumns[i]->lookup(transaction, readState.childrenStates[i], nodeIDVector,

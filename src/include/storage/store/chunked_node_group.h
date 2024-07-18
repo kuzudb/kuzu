@@ -66,7 +66,12 @@ private:
 };
 
 struct ChunkedCSRHeader {
+    // Stores the end offset of each CSR entry
+    // The start offset is either the previous end offset, or 0.
     std::unique_ptr<ColumnChunkData> offset;
+    // The number of CSR entries which are in use.
+    // This does not correspond to the difference between subsequent end offsets
+    // since there may be gaps
     std::unique_ptr<ColumnChunkData> length;
 
     ChunkedCSRHeader() {}

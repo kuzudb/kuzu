@@ -344,8 +344,8 @@ void Column::scanFiltered(Transaction* transaction, PageCursor& pageCursor,
     }
 }
 
-void Column::lookup(Transaction* transaction, ChunkState& readState, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
+void Column::lookup(Transaction* transaction, ChunkState& readState,
+    const ValueVector* nodeIDVector, ValueVector* resultVector) {
     if (nullColumn) {
         KU_ASSERT(readState.nullState);
         nullColumn->lookup(transaction, *readState.nullState, nodeIDVector, resultVector);
@@ -354,7 +354,7 @@ void Column::lookup(Transaction* transaction, ChunkState& readState, ValueVector
 }
 
 void Column::lookupInternal(Transaction* transaction, ChunkState& readState,
-    ValueVector* nodeIDVector, ValueVector* resultVector) {
+    const ValueVector* nodeIDVector, ValueVector* resultVector) {
     auto& selVector = nodeIDVector->state->getSelVector();
     for (auto i = 0ul; i < selVector.getSelSize(); i++) {
         auto pos = selVector[i];

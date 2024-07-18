@@ -28,7 +28,7 @@ public:
         common::offset_t endOffset = common::INVALID_OFFSET) override;
 
     void lookup(transaction::Transaction* transaction, ChunkState& readState,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
+        const common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
     void append(ColumnChunkData* columnChunk, ChunkState& state) override;
 

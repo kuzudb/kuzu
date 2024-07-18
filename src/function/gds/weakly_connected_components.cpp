@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "common/types/internal_id_t.h"
 #include "common/types/internal_id_util.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds_function.h"
@@ -93,13 +94,15 @@ public:
         auto graph = sharedState->graph.get();
         visitedMap.clear();
         auto groupID = 0;
-        for (auto tableID : graph->getNodeTableIDs()) {
+        auto nodeTableIDs = graph->getNodeTableIDs();
+        auto scanState = graph->prepareMultiTableScanFwd(nodeTableIDs);
+        for (auto tableID : nodeTableIDs) {
             for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
                 auto nodeID = nodeID_t{offset, tableID};
                 if (visitedMap.contains(nodeID)) {
                     continue;
                 }
-                findConnectedComponent(nodeID, groupID++);
+                findConnectedComponent(nodeID, groupID++, *scanState);
             }
         }
         wccLocalState->materialize(graph, visitedMap, *sharedState->fTable);
@@ -110,15 +113,16 @@ public:
     }
 
 private:
-    void findConnectedComponent(common::nodeID_t nodeID, int64_t groupID) {
+    void findConnectedComponent(common::nodeID_t nodeID, int64_t groupID,
+        GraphScanState& scanState) {
         KU_ASSERT(!visitedMap.contains(nodeID));
         visitedMap.insert({nodeID, groupID});
-        auto nbrs = sharedState->graph->scanFwd(nodeID);
+        auto nbrs = sharedState->graph->scanFwd(nodeID, scanState);
         for (auto nbr : nbrs) {
             if (visitedMap.contains(nbr)) {
                 continue;
             }
-            findConnectedComponent(nbr, groupID);
+            findConnectedComponent(nbr, groupID, scanState);
         }
     }
 

@@ -49,7 +49,7 @@ protected:
         common::idx_t vectorIdx, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
     void lookupInternal(transaction::Transaction* transaction, ChunkState& state,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
+        const common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
 private:
     static ChunkCollection getStructChildChunkCollection(const ChunkCollection& chunkCollection,

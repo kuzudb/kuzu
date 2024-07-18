@@ -1,7 +1,10 @@
 #pragma once
 
+#include "common/types/internal_id_t.h"
+#include "common/vector/value_vector.h"
 #include "graph.h"
 #include "graph_entry.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 
@@ -9,15 +12,28 @@ namespace kuzu {
 namespace graph {
 
 struct OnDiskGraphScanState {
+    std::unique_ptr<storage::RelTableScanState> fwdScanState;
+    std::unique_ptr<storage::RelTableScanState> bwdScanState;
+
+    explicit OnDiskGraphScanState(common::ValueVector* srcNodeIDVector,
+        common::ValueVector* dstNodeIDVector);
+};
+
+class OnDiskGraphScanStates : public GraphScanState {
+    friend class OnDiskGraph;
+
+public:
+    ~OnDiskGraphScanStates() override = default;
+
+private:
     std::shared_ptr<common::DataChunkState> srcNodeIDVectorState;
     std::shared_ptr<common::DataChunkState> dstNodeIDVectorState;
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
 
-    std::unique_ptr<storage::RelTableScanState> fwdScanState;
-    std::unique_ptr<storage::RelTableScanState> bwdScanState;
-
-    explicit OnDiskGraphScanState(storage::MemoryManager* mm);
+    explicit OnDiskGraphScanStates(std::span<common::table_id_t> tableIDs,
+        storage::MemoryManager* mm);
+    std::vector<std::pair<common::table_id_t, OnDiskGraphScanState>> scanStates;
 };
 
 class OnDiskGraph final : public Graph {
@@ -36,17 +52,23 @@ public:
 
     std::vector<RelTableIDInfo> getRelTableIDInfos() override;
 
-    std::vector<common::nodeID_t> scanFwd(common::nodeID_t nodeID) override;
-    std::vector<common::nodeID_t> scanFwd(common::nodeID_t nodeID,
-        common::table_id_t relTableID) override;
+    std::unique_ptr<GraphScanState> prepareScan(common::table_id_t relTableID) override;
+    std::unique_ptr<GraphScanState> prepareMultiTableScanFwd(
+        std::span<common::table_id_t> nodeTableIDs) override;
+    std::unique_ptr<GraphScanState> prepareMultiTableScanBwd(
+        std::span<common::table_id_t> nodeTableIDs) override;
 
-    std::vector<common::nodeID_t> scanBwd(common::nodeID_t nodeID) override;
-    std::vector<common::nodeID_t> scanBwd(common::nodeID_t nodeID,
-        common::table_id_t relTableID) override;
+    std::vector<common::nodeID_t> scanFwd(common::nodeID_t nodeID, GraphScanState& state) override;
+    std::vector<common::nodeID_t> scanFwdRandom(common::nodeID_t nodeID,
+        GraphScanState& state) override;
+    std::vector<common::nodeID_t> scanBwd(common::nodeID_t nodeID, GraphScanState& state) override;
+    std::vector<common::nodeID_t> scanBwdRandom(common::nodeID_t nodeID,
+        GraphScanState& state) override;
 
 private:
     void scan(common::nodeID_t nodeID, storage::RelTable* relTable,
-        storage::RelTableScanState& relTableScanState, std::vector<common::nodeID_t>& nbrNodeIDs);
+        OnDiskGraphScanStates& scanState, storage::RelTableScanState& relTableScanState,
+        std::vector<common::nodeID_t>& nbrNodeIDs);
 
 private:
     main::ClientContext* context;
@@ -54,7 +76,6 @@ private:
     common::table_id_map_t<storage::NodeTable*> nodeIDToNodeTable;
     common::table_id_map_t<common::table_id_map_t<storage::RelTable*>> nodeTableIDToFwdRelTables;
     common::table_id_map_t<common::table_id_map_t<storage::RelTable*>> nodeTableIDToBwdRelTables;
-    OnDiskGraphScanState scanState;
 };
 
 } // namespace graph
