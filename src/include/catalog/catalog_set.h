@@ -54,17 +54,17 @@ private:
         std::unique_ptr<CatalogEntry> entry);
     void dropEntryNoLock(transaction::Transaction* transaction, const std::string& name);
 
-    void validateExist(transaction::Transaction* transaction, const std::string& name) const;
-    void validateNotExist(transaction::Transaction* transaction, const std::string& name) const;
+    void validateExistNoLock(transaction::Transaction* transaction, const std::string& name) const;
+    void validateNotExistNoLock(transaction::Transaction* transaction, const std::string& name) const;
 
-    void emplace(std::unique_ptr<CatalogEntry> entry);
-    void erase(const std::string& name);
+    void emplaceNoLock(std::unique_ptr<CatalogEntry> entry);
+    void eraseNoLock(const std::string& name);
 
-    std::unique_ptr<CatalogEntry> createDummyEntry(std::string name) const;
+    std::unique_ptr<CatalogEntry> createDummyEntryNoLock(std::string name) const;
 
-    CatalogEntry* traverseVersionChainsForTransaction(transaction::Transaction* transaction,
+    CatalogEntry* traverseVersionChainsForTransactionNoLock(transaction::Transaction* transaction,
         CatalogEntry* currentEntry) const;
-    CatalogEntry* getCommittedEntry(CatalogEntry* entry) const;
+    CatalogEntry* getCommittedEntryNoLock(CatalogEntry* entry) const;
 
 private:
     std::mutex mtx;

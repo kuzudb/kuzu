@@ -31,7 +31,7 @@ bool CatalogSet::containsEntryNoLock(Transaction* transaction, const std::string
         return false;
     }
     // Check versions.
-    auto entry = traverseVersionChainsForTransaction(transaction, entries.at(name).get());
+    auto entry = traverseVersionChainsForTransactionNoLock(transaction, entries.at(name).get());
     return !entry->isDeleted();
 }
 
@@ -42,9 +42,9 @@ CatalogEntry* CatalogSet::getEntry(Transaction* transaction, const std::string& 
 
 CatalogEntry* CatalogSet::getEntryNoLock(Transaction* transaction, const std::string& name) {
     // LCOV_EXCL_START
-    validateExist(transaction, name);
+    validateExistNoLock(transaction, name);
     // LCOV_EXCL_STOP
-    auto entry = traverseVersionChainsForTransaction(transaction, entries.at(name).get());
+    auto entry = traverseVersionChainsForTransactionNoLock(transaction, entries.at(name).get());
     KU_ASSERT(entry != nullptr && !entry->isDeleted());
     return entry;
 }
@@ -56,7 +56,7 @@ void CatalogSet::createEntry(Transaction* transaction, std::unique_ptr<CatalogEn
 
 void CatalogSet::createEntryNoLock(Transaction* transaction, std::unique_ptr<CatalogEntry> entry) {
     // LCOV_EXCL_START
-    validateNotExist(transaction, entry->getName());
+    validateNotExistNoLock(transaction, entry->getName());
     // LCOV_EXCL_STOP
     entry->setTimestamp(transaction->getID());
     if (entries.contains(entry->getName())) {
@@ -70,10 +70,10 @@ void CatalogSet::createEntryNoLock(Transaction* transaction, std::unique_ptr<Cat
                 stringFormat("Catalog entry with name {} already exists.", entry->getName()));
         }
     }
-    auto dummyEntry = createDummyEntry(entry->getName());
+    auto dummyEntry = createDummyEntryNoLock(entry->getName());
     entries.emplace(entry->getName(), std::move(dummyEntry));
     auto entryPtr = entry.get();
-    emplace(std::move(entry));
+    emplaceNoLock(std::move(entry));
     KU_ASSERT(transaction);
     if (transaction->getStartTS() > 0) {
         KU_ASSERT(transaction->getID() != 0);
@@ -81,7 +81,7 @@ void CatalogSet::createEntryNoLock(Transaction* transaction, std::unique_ptr<Cat
     }
 }
 
-void CatalogSet::emplace(std::unique_ptr<CatalogEntry> entry) {
+void CatalogSet::emplaceNoLock(std::unique_ptr<CatalogEntry> entry) {
     if (entries.contains(entry->getName())) {
         entry->setPrev(std::move(entries.at(entry->getName())));
         entries.erase(entry->getName());
@@ -89,15 +89,15 @@ void CatalogSet::emplace(std::unique_ptr<CatalogEntry> entry) {
     entries.emplace(entry->getName(), std::move(entry));
 }
 
-void CatalogSet::erase(const std::string& name) {
+void CatalogSet::eraseNoLock(const std::string& name) {
     entries.erase(name);
 }
 
-std::unique_ptr<CatalogEntry> CatalogSet::createDummyEntry(std::string name) const {
+std::unique_ptr<CatalogEntry> CatalogSet::createDummyEntryNoLock(std::string name) const {
     return std::make_unique<DummyCatalogEntry>(std::move(name));
 }
 
-CatalogEntry* CatalogSet::traverseVersionChainsForTransaction(Transaction* transaction,
+CatalogEntry* CatalogSet::traverseVersionChainsForTransactionNoLock(Transaction* transaction,
     CatalogEntry* currentEntry) const {
     while (currentEntry) {
         if (currentEntry->getTimestamp() == transaction->getID()) {
@@ -113,7 +113,7 @@ CatalogEntry* CatalogSet::traverseVersionChainsForTransaction(Transaction* trans
     return currentEntry;
 }
 
-CatalogEntry* CatalogSet::getCommittedEntry(CatalogEntry* entry) const {
+CatalogEntry* CatalogSet::getCommittedEntryNoLock(CatalogEntry* entry) const {
     while (entry) {
         if (entry->getTimestamp() < Transaction::START_TRANSACTION_ID) {
             break;
@@ -130,13 +130,13 @@ void CatalogSet::dropEntry(Transaction* transaction, const std::string& name) {
 
 void CatalogSet::dropEntryNoLock(Transaction* transaction, const std::string& name) {
     // LCOV_EXCL_START
-    validateExist(transaction, name);
+    validateExistNoLock(transaction, name);
     // LCOV_EXCL_STOP
     // TODO: Should handle rel group and rdf graph.
-    auto tombstone = createDummyEntry(name);
+    auto tombstone = createDummyEntryNoLock(name);
     tombstone->setTimestamp(transaction->getID());
     auto tombstonePtr = tombstone.get();
-    emplace(std::move(tombstone));
+    emplaceNoLock(std::move(tombstone));
     if (transaction->getStartTS() > 0) {
         KU_ASSERT(transaction->getID() != 0);
         transaction->pushCatalogEntry(*this, *tombstonePtr->getPrev());
@@ -146,7 +146,7 @@ void CatalogSet::dropEntryNoLock(Transaction* transaction, const std::string& na
 void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterInfo& alterInfo) {
     std::lock_guard lck{mtx};
     // LCOV_EXCL_START
-    validateExist(transaction, alterInfo.tableName);
+    validateExistNoLock(transaction, alterInfo.tableName);
     // LCOV_EXCL_STOP
     auto entry = getEntryNoLock(transaction, alterInfo.tableName);
     KU_ASSERT(entry->getType() == CatalogEntryType::NODE_TABLE_ENTRY ||
@@ -163,7 +163,7 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
         return;
     }
     tableEntry->setAlterInfo(alterInfo);
-    emplace(std::move(newEntry));
+    emplaceNoLock(std::move(newEntry));
     if (transaction->getStartTS() != Transaction::DUMMY_START_TIMESTAMP) {
         KU_ASSERT(transaction->getID() != Transaction::DUMMY_TRANSACTION_ID);
         transaction->pushCatalogEntry(*this, *entry);
@@ -174,7 +174,7 @@ CatalogEntrySet CatalogSet::getEntries(Transaction* transaction) {
     CatalogEntrySet result;
     std::lock_guard lck{mtx};
     for (auto& [name, entry] : entries) {
-        auto currentEntry = traverseVersionChainsForTransaction(transaction, entry.get());
+        auto currentEntry = traverseVersionChainsForTransactionNoLock(transaction, entry.get());
         if (currentEntry->isDeleted()) {
             continue;
         }
@@ -195,7 +195,7 @@ void CatalogSet::serialize(common::Serializer serializer) const {
         case CatalogEntryType::GDS_FUNCTION_ENTRY:
             continue;
         default: {
-            auto committedEntry = getCommittedEntry(entry.get());
+            auto committedEntry = getCommittedEntryNoLock(entry.get());
             if (committedEntry && !committedEntry->isDeleted()) {
                 entriesToSerialize.push_back(committedEntry);
             }
@@ -218,7 +218,7 @@ std::unique_ptr<CatalogSet> CatalogSet::deserialize(common::Deserializer& deseri
     for (uint64_t i = 0; i < numEntries; i++) {
         auto entry = CatalogEntry::deserialize(deserializer);
         if (entry != nullptr) {
-            catalogSet->emplace(std::move(entry));
+            catalogSet->emplaceNoLock(std::move(entry));
         }
     }
     return catalogSet;
@@ -226,13 +226,13 @@ std::unique_ptr<CatalogSet> CatalogSet::deserialize(common::Deserializer& deseri
 
 // Ideally we should not trigger the following check. Instead, we should throw more informative
 // error message at catalog level.
-void CatalogSet::validateExist(Transaction* transaction, const std::string& name) const {
+void CatalogSet::validateExistNoLock(Transaction* transaction, const std::string& name) const {
     if (!containsEntryNoLock(transaction, name)) {
         throw CatalogException(stringFormat("{} does not exist in catalog.", name));
     }
 }
 
-void CatalogSet::validateNotExist(Transaction* transaction, const std::string& name) const {
+void CatalogSet::validateNotExistNoLock(Transaction* transaction, const std::string& name) const {
     if (containsEntryNoLock(transaction, name)) {
         throw CatalogException(stringFormat("{} already exists in catalog.", name));
     }
