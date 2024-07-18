@@ -2,8 +2,6 @@
 -SKIP
 --
 
-#TODO: This test can hang randomly on MacOS with clang.
-
 -CASE ConcurrentSingleWriteCreate
 -CREATE_CONNECTION conn2
 -BEGIN_CONCURRENT_EXECUTION
