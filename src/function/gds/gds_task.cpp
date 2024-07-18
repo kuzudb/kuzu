@@ -12,13 +12,15 @@ void GDSTask::run() {
     auto numApproxActiveNodesForNextIter = 0u;
     std::unique_ptr<graph::Graph> graph = sharedState->graph->copy();
     auto state = graph->prepareScan(sharedState->relTableIDToScan);
+    auto localFc = sharedState->fc.clone();
+    localFc->init();
     while (sharedState->frontiers.getNextFrontierMorsel(frontierMorsel)) {
         while (frontierMorsel.hasNextVertex()) {
             nodeID_t nodeID = frontierMorsel.getNextVertex();
             if (sharedState->frontiers.curFrontier->isActive(nodeID)) {
                 auto nbrIDs = graph->scanFwd(nodeID, *state);
                 for (auto nbrID : nbrIDs) {
-                    if (sharedState->fc.edgeCompute(nodeID, nbrID)) {
+                    if (localFc->edgeCompute(nodeID, nbrID)) {
                         sharedState->frontiers.nextFrontier->setActive(nbrID);
                         numApproxActiveNodesForNextIter++;
                     }
@@ -26,6 +28,9 @@ void GDSTask::run() {
             }
         }
     }
+    // TODO(Semih): I think the memory barrier should be put here to all working threads.
+    // But before that I would test if just using the strongest atomics would be enough.
+    // Test the performance on LJ.
     sharedState->frontiers.incrementApproxActiveNodesForNextIter(numApproxActiveNodesForNextIter);
 }
 } // namespace function

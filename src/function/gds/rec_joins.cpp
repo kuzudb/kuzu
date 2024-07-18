@@ -37,7 +37,7 @@ RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputType output
 }
 
 // TODO(Semih): Remove
-SPInfo::SPInfo(std::unique_ptr<RJOutputs> outputs,
+RJCompState::RJCompState(std::unique_ptr<RJOutputs> outputs,
     std::unique_ptr<function::Frontiers> frontiers, std::unique_ptr<function::FrontierCompute> frontierCompute)
     : outputs{std::move(outputs)}, frontiers{std::move(frontiers)},
       frontierCompute{std::move(frontierCompute)} {}
@@ -85,16 +85,19 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
                 continue;
             }
             auto sourceNodeID = nodeID_t{offset, tableID};
-            std::unique_ptr<SPInfo> spInfo = getFrontiersAndFrontiersCompute(executionContext, sourceNodeID);
+            std::unique_ptr<RJCompState> spInfo = getFrontiersAndFrontiersCompute(executionContext, sourceNodeID);
             spInfo->frontiers->initSPFromSource(sourceNodeID);
             // Note that spInfo contains an SingleSPOutputs outputs field but it is not explicitly
             // passed to GDSUtils::runFrontiersUntilConvergence below. That is because
             // whatever the frontierCompute function is needed should already be passed
             // to it as a field, so GDSUtils::runFrontiersUntilConvergence does not need
             // to pass outputs field to frontierCompute.
-            GDSUtils::runFrontiersUntilConvergence(executionContext, *spInfo->frontiers,
-                sharedState->graph.get(), *spInfo->frontierCompute,
-                bindData->ptrCast<RJBindData>()->upperBound);
+            GDSUtils::runFrontiersUntilConvergence(executionContext, *spInfo,
+                sharedState->graph.get(),  bindData->ptrCast<RJBindData>()->upperBound);
+
+//            GDSUtils::runFrontiersUntilConvergence(executionContext, *spInfo->frontiers,
+//                sharedState->graph.get(), *spInfo->frontierCompute,
+//                bindData->ptrCast<RJBindData>()->upperBound);
             outputWriter->materialize(sharedState->graph.get(), spInfo->outputs.get(), *sharedState->fTable);
         }
     }
