@@ -5,6 +5,8 @@
 #include "common/exception/runtime.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "common/vector/value_vector.h"
+#include <main/client_context.h>
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -16,7 +18,8 @@ void WALRecord::serialize(Serializer& serializer) const {
     serializer.write(type);
 }
 
-std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer) {
+std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer,
+    main::ClientContext& clientContext) {
     WALRecordType type;
     deserializer.deserializeValue(type);
     std::unique_ptr<WALRecord> walRecord;
@@ -30,10 +33,12 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer) {
     case WALRecordType::ALTER_TABLE_ENTRY_RECORD: {
         walRecord = AlterTableEntryRecord::deserialize(deserializer);
     } break;
+    case WALRecordType::TABLE_INSERTION_RECORD: {
+        walRecord = TableInsertionRecord::deserialize(deserializer, clientContext);
+    } break;
     case WALRecordType::COPY_TABLE_RECORD: {
         walRecord = CopyTableRecord::deserialize(deserializer);
     } break;
-    // } break;
     case WALRecordType::COMMIT_RECORD: {
         walRecord = CommitRecord::deserialize(deserializer);
     } break;
@@ -218,6 +223,42 @@ std::unique_ptr<UpdateSequenceRecord> UpdateSequenceRecord::deserialize(
     deserializer.deserializeValue(retVal->data.currVal);
     deserializer.deserializeValue(retVal->data.nextVal);
     return retVal;
+}
+
+void TableInsertionRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.writeDebuggingInfo("table_id");
+    serializer.write<table_id_t>(tableID);
+    serializer.writeDebuggingInfo("num_rows");
+    serializer.write<row_idx_t>(numRows);
+    serializer.writeDebuggingInfo("num_vectors");
+    serializer.write<idx_t>(vectors.size());
+    for (auto& vector : vectors) {
+        vector->serialize(serializer);
+    }
+}
+
+std::unique_ptr<TableInsertionRecord> TableInsertionRecord::deserialize(Deserializer& deserializer,
+    main::ClientContext& clientContext) {
+    std::string key;
+    table_id_t tableID;
+    row_idx_t numRows;
+    idx_t numVectors;
+    std::vector<std::unique_ptr<ValueVector>> valueVectors;
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "table_id");
+    deserializer.deserializeValue(tableID);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "num_rows");
+    deserializer.deserializeValue(numRows);
+    KU_ASSERT(key == "num_vectors");
+    deserializer.deserializeValue(numVectors);
+    valueVectors.reserve(numVectors);
+    for (auto i = 0u; i < numVectors; i++) {
+        valueVectors.push_back(
+            ValueVector::deSerialize(deserializer, clientContext.getMemoryManager()));
+    }
+    return std::make_unique<TableInsertionRecord>(tableID, numRows, std::move(valueVectors));
 }
 
 } // namespace storage

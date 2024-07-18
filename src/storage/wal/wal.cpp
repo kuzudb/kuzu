@@ -62,6 +62,12 @@ void WAL::logAlterTableEntryRecord(BoundAlterInfo* alterInfo) {
     addNewWALRecordNoLock(walRecord);
 }
 
+void WAL::logTableInsertion(table_id_t tableID, const std::vector<ValueVector*>& vectors) {
+    lock_t lck{mtx};
+    TableInsertionRecord walRecord(tableID, vectors);
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::logCopyTableRecord(table_id_t tableID) {
     lock_t lck{mtx};
     CopyTableRecord walRecord(tableID);

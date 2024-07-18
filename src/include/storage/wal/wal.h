@@ -37,11 +37,12 @@ public:
     void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry);
     void logDropCatalogEntryRecord(uint64_t entryID, catalog::CatalogEntryType type);
     void logAlterTableEntryRecord(binder::BoundAlterInfo* alterInfo);
-
-    void logCopyTableRecord(common::table_id_t tableID);
-
     void logUpdateSequenceRecord(common::sequence_id_t sequenceID,
         catalog::SequenceChangeData data);
+
+    void logTableInsertion(common::table_id_t tableID,
+        const std::vector<common::ValueVector*>& vectors);
+    void logCopyTableRecord(common::table_id_t tableID);
 
     void logAndFlushCommit(uint64_t transactionID);
     void logAndFlushCheckpoint();
