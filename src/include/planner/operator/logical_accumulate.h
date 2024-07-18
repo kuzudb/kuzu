@@ -21,11 +21,9 @@ class LogicalAccumulate final : public LogicalOperator {
 
 public:
     LogicalAccumulate(LogicalAccumulateInfo info, binder::expression_vector flatExprs,
-        std::shared_ptr<binder::Expression> offset,
-        std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{type_, std::move(child)},
-          info{std::move(info)}, flatExprs{std::move(flatExprs)},
-          offset{std::move(offset)} {}
+        std::shared_ptr<binder::Expression> offset, std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{type_, std::move(child)}, info{std::move(info)},
+          flatExprs{std::move(flatExprs)}, offset{std::move(offset)} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
@@ -43,8 +41,7 @@ public:
     std::shared_ptr<binder::Expression> getMark() const { return info.mark; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalAccumulate>(info, flatExprs, offset,
-            children[0]->copy());
+        return make_unique<LogicalAccumulate>(info, flatExprs, offset, children[0]->copy());
     }
 
 private:

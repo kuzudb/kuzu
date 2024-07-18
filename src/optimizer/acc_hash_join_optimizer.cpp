@@ -20,8 +20,8 @@ namespace optimizer {
 
 static std::shared_ptr<LogicalOperator> appendAccumulate(std::shared_ptr<LogicalOperator> child) {
     auto info = LogicalAccumulateInfo(AccumulateType::REGULAR, nullptr /* mark */);
-    auto accumulate = std::make_shared<LogicalAccumulate>(info,
-        expression_vector{}, nullptr /* offset */, std::move(child));
+    auto accumulate = std::make_shared<LogicalAccumulate>(info, expression_vector{},
+        nullptr /* offset */, std::move(child));
     accumulate->computeFlatSchema();
     return accumulate;
 }

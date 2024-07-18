@@ -6,17 +6,18 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-void Planner::appendCrossProduct(const LogicalPlan& probePlan,
-    const LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
-    appendCrossProduct(AccumulateType::REGULAR, nullptr /* mark */, probePlan, buildPlan, resultPlan);
+void Planner::appendCrossProduct(const LogicalPlan& probePlan, const LogicalPlan& buildPlan,
+    LogicalPlan& resultPlan) {
+    appendCrossProduct(AccumulateType::REGULAR, nullptr /* mark */, probePlan, buildPlan,
+        resultPlan);
 }
 
 void Planner::appendCrossProduct(common::AccumulateType accumulateType,
     std::shared_ptr<binder::Expression> mark, const LogicalPlan& probePlan,
     const LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
     auto info = LogicalAccumulateInfo(accumulateType, mark);
-    auto crossProduct = make_shared<LogicalCrossProduct>(info,
-        probePlan.getLastOperator(), buildPlan.getLastOperator());
+    auto crossProduct = make_shared<LogicalCrossProduct>(info, probePlan.getLastOperator(),
+        buildPlan.getLastOperator());
     crossProduct->computeFactorizedSchema();
     // update cost
     resultPlan.setCost(probePlan.getCardinality() + buildPlan.getCardinality());
