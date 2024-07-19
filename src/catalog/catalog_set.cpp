@@ -132,7 +132,6 @@ void CatalogSet::dropEntryNoLock(Transaction* transaction, const std::string& na
     // LCOV_EXCL_START
     validateExistNoLock(transaction, name);
     // LCOV_EXCL_STOP
-    // TODO: Should handle rel group and rdf graph.
     auto tombstone = createDummyEntryNoLock(name);
     tombstone->setTimestamp(transaction->getID());
     auto tombstonePtr = tombstone.get();
