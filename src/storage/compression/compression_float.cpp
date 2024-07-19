@@ -189,9 +189,12 @@ void FloatCompression<T>::setValuesFromUncompressed(const uint8_t* srcBuffer,
     //                                       canUpdateInPlace(std::span(&value, 1), metadata);
     //                            })));
 
+<<<<<<< Updated upstream
     // TODO fix
     ExceptionBuffer<T> exceptionBuffer{dstBuffer, 4 * 1024, metadata};
 
+=======
+>>>>>>> Stashed changes
     std::vector<EncodedType> integerEncodedValues(numValues);
     size_t successfulEncodeIdx = 0;
     for (size_t i = 0; i < numValues; ++i) {

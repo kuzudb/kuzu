@@ -1,9 +1,11 @@
 #include "storage/store/column_read.h"
 
+#include "alp/encode.hpp"
 #include "common/utils.h"
 #include "storage/compression/compression_float.h"
 #include "storage/storage_structure/db_file_utils.h"
 #include "storage/storage_utils.h"
+#include "transaction/transaction.h"
 
 namespace kuzu::storage {
 
@@ -143,6 +145,61 @@ public:
             startOffsetInResult, startNodeOffset, endNodeOffset, readFunc, filterFunc);
     }
 
+<<<<<<< Updated upstream
+=======
+    void writeValueToPageFromVector(const ColumnChunkMetadata& metadata, uint64_t numValuesPerPage,
+        common::offset_t offsetInChunk, common::ValueVector* vectorToWriteFrom,
+        uint32_t posInVectorToWriteFrom,
+        write_values_from_vector_func_t writeFromVectorFunc) override {
+
+        const T newValue = vectorToWriteFrom->getValue<T>(posInVectorToWriteFrom);
+        const int64_t encodedValue = alp::AlpEncode<T>::encode_value(newValue,
+            metadata.compMeta.alpMetadata.fac, metadata.compMeta.alpMetadata.exp);
+        const T decodedValue = alp::AlpDecode<T>::decode_value(encodedValue,
+            metadata.compMeta.alpMetadata.fac, metadata.compMeta.alpMetadata.exp);
+        bool isNewValueException = (newValue != decodedValue);
+
+        PageCursor exceptionPageCursor = getExceptionPageCursor(metadata,
+            getPageCursorForOffsetInGroup(0, metadata.pageIdx, numValuesPerPage));
+        transaction::Transaction transaction{TransactionType::READ_ONLY};
+        offset_t curExceptionIdx = findFirstExceptionAtOrPastOffset(&transaction, offsetInChunk,
+            metadata.compMeta.alpMetadata.exceptionCount, exceptionPageCursor);
+        const auto curException =
+            getExceptionAt(curExceptionIdx, &transaction, exceptionPageCursor);
+        bool isOldValueException = (curException.posInPage == offsetInChunk);
+
+        if (isNewValueException && isOldValueException) {
+            PageCursor curExceptionCursor = PageUtils::getPageCursorForPos(curExceptionIdx,
+                BufferPoolConstants::PAGE_4KB_SIZE / EncodeException<T>::sizeBytes());
+            curExceptionCursor.pageIdx += exceptionPageCursor.pageIdx;
+
+            updatePageWithCursor(curExceptionCursor,
+                [&curException](uint8_t* frame, auto posInPage) {
+                    const size_t exceptionOffset = posInPage * EncodeException<T>::sizeBytes();
+                    std::memcpy(frame + exceptionOffset, &curException.value,
+                        sizeof(curException.value));
+                });
+        } else if (!isNewValueException && !isOldValueException) {
+            defaultReader->writeValueToPageFromVector(metadata, numValuesPerPage, offsetInChunk,
+                vectorToWriteFrom, posInVectorToWriteFrom, writeFromVectorFunc);
+        } else if (isNewValueException && !isOldValueException) {
+
+        } else {
+            KU_ASSERT(!isNewValueException && isOldValueException);
+            defaultReader->writeValueToPageFromVector(metadata, numValuesPerPage, offsetInChunk,
+                vectorToWriteFrom, posInVectorToWriteFrom, writeFromVectorFunc);
+        }
+    }
+
+    void writeValuesToPageFromBuffer(const ColumnChunkMetadata& chunkMetadata,
+        uint64_t numValuesPerPage, common::offset_t dstOffset, const uint8_t* data,
+        const common::NullMask* nullChunkData, common::offset_t srcOffset,
+        common::offset_t numValues, write_values_func_t writeFunc) override {
+        defaultReader->writeValuesToPageFromBuffer(chunkMetadata, numValuesPerPage, dstOffset, data,
+            nullChunkData, srcOffset, numValues, writeFunc);
+    }
+
+>>>>>>> Stashed changes
 private:
     EncodeException<T> getExceptionAt(size_t curExceptionIdx, Transaction* transaction,
         PageCursor exceptionPageCursor) {
