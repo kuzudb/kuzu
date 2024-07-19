@@ -103,7 +103,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
             clientContext->getStorageManager()->getTable(relTableID)->ptrCast<RelTable>();
         tableNames.push_back(relTable->getTableName());
     }
-    auto printInfo = std::make_unique<ScanRelTablePrintInfo>(tableNames, extend->getProperties(), boundNode, rel, nbrNode, extendDirection);
+    auto printInfo = std::make_unique<ScanRelTablePrintInfo>(tableNames, extend->getProperties(),
+        boundNode, rel, nbrNode, extendDirection);
     if (scanSingleRelTable(*rel, *boundNode, extendDirection)) {
         auto relTableID = rel->getSingleTableID();
         auto entry =

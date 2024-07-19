@@ -1,10 +1,10 @@
 #pragma once
 
+#include "binder/expression/rel_expression.h"
+#include "common/enums/extend_direction.h"
 #include "processor/operator/scan/scan_table.h"
 #include "storage/predicate/column_predicate.h"
 #include "storage/store/rel_table.h"
-#include "binder/expression/rel_expression.h"
-#include "common/enums/extend_direction.h"
 
 namespace kuzu {
 namespace processor {
@@ -41,10 +41,12 @@ struct ScanRelTablePrintInfo final : OPPrintInfo {
     common::ExtendDirection direction;
 
     ScanRelTablePrintInfo(std::vector<std::string> tableNames, binder::expression_vector properties,
-    std::shared_ptr<binder::NodeExpression> boundNode, std::shared_ptr<binder::RelExpression> rel,
-    std::shared_ptr<binder::NodeExpression> nbrNode, common::ExtendDirection direction)
-        : tableNames{std::move(tableNames)}, properties{std::move(properties)}, boundNode{std::move(boundNode)},
-        rel{std::move(rel)}, nbrNode{std::move(nbrNode)}, direction{std::move(direction)} {}
+        std::shared_ptr<binder::NodeExpression> boundNode,
+        std::shared_ptr<binder::RelExpression> rel, std::shared_ptr<binder::NodeExpression> nbrNode,
+        common::ExtendDirection direction)
+        : tableNames{std::move(tableNames)}, properties{std::move(properties)},
+          boundNode{std::move(boundNode)}, rel{std::move(rel)}, nbrNode{std::move(nbrNode)},
+          direction{std::move(direction)} {}
 
     std::string toString() const override;
 
@@ -54,8 +56,9 @@ struct ScanRelTablePrintInfo final : OPPrintInfo {
 
 private:
     ScanRelTablePrintInfo(const ScanRelTablePrintInfo& other)
-        : OPPrintInfo{other}, tableNames{other.tableNames}, properties{other.properties}, boundNode{other.boundNode},
-        rel{other.rel}, nbrNode{other.nbrNode}, direction{other.direction} {}
+        : OPPrintInfo{other}, tableNames{other.tableNames}, properties{other.properties},
+          boundNode{other.boundNode}, rel{other.rel}, nbrNode{other.nbrNode},
+          direction{other.direction} {}
 };
 
 class ScanRelTable : public ScanTable {

@@ -6,12 +6,12 @@ namespace processor {
 std::string DeleteNodePrintInfo::toString() const {
     std::string result = "Type: ";
     switch (deleteType) {
-        case common::DeleteNodeType::DELETE:
-            result += "Delete Nodes";
-            break;
-        case common::DeleteNodeType::DETACH_DELETE:
-            result += "Detach Delete Nodes";
-            break;
+    case common::DeleteNodeType::DELETE:
+        result += "Delete Nodes";
+        break;
+    case common::DeleteNodeType::DETACH_DELETE:
+        result += "Detach Delete Nodes";
+        break;
     }
     result += ", From: ";
     for (const auto& expression : expressions) {

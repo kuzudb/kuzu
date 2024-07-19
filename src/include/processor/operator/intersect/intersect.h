@@ -15,8 +15,7 @@ struct IntersectDataInfo {
 struct IntersectPrintInfo final : OPPrintInfo {
     std::shared_ptr<binder::Expression> key;
 
-    explicit IntersectPrintInfo(std::shared_ptr<binder::Expression> key)
-        : key{std::move(key)} {}
+    explicit IntersectPrintInfo(std::shared_ptr<binder::Expression> key) : key{std::move(key)} {}
 
     std::string toString() const override;
     std::unique_ptr<OPPrintInfo> copy() const override {
@@ -24,8 +23,7 @@ struct IntersectPrintInfo final : OPPrintInfo {
     }
 
 private:
-    IntersectPrintInfo(const IntersectPrintInfo& other)
-        : OPPrintInfo{other}, key{other.key} {}
+    IntersectPrintInfo(const IntersectPrintInfo& other) : OPPrintInfo{other}, key{other.key} {}
 };
 
 class Intersect : public PhysicalOperator {

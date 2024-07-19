@@ -48,8 +48,7 @@ public:
 struct HashJoinProbePrintInfo final : OPPrintInfo {
     binder::expression_vector keys;
 
-    explicit HashJoinProbePrintInfo(binder::expression_vector keys)
-        : keys{std::move(keys)} {}
+    explicit HashJoinProbePrintInfo(binder::expression_vector keys) : keys{std::move(keys)} {}
 
     std::string toString() const override;
 
