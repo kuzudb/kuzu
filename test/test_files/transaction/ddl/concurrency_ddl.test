@@ -54,7 +54,6 @@
 16|propA|INT64|False
 
 -CASE ConcurrentMultiWriteCreateTable
--SKIP
 -STATEMENT CALL ENABLE_MULTI_WRITES=true;
 ---- ok
 -CREATE_CONNECTION conn2
@@ -71,6 +70,7 @@
 ---- ok
 -END_CONCURRENT_EXECUTION
 
+#TODO(Sam/Guodong): FIX-ME.
 -CASE ConcurrentMultiWriteAlter
 -SKIP
 -STATEMENT CALL ENABLE_MULTI_WRITES=true;
