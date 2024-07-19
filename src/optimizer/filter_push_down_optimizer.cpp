@@ -1,5 +1,6 @@
 #include "optimizer/filter_push_down_optimizer.h"
 
+#include "binder/expression/function_expression.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/property_expression.h"
 #include "main/client_context.h"
@@ -139,6 +140,26 @@ static ColumnPredicateSet getPropertyPredicateSet(const Expression& property,
     return propertyPredicateSet;
 }
 
+static bool isConstantExpression(const std::shared_ptr<Expression> expression) {
+    switch (expression->expressionType) {
+    case ExpressionType::LITERAL:
+    case ExpressionType::PARAMETER: {
+        return true;
+    }
+    //TODO(Xiyang): fold parameter expression in binder.
+    case ExpressionType::FUNCTION: {
+        auto& func = expression->constCast<FunctionExpression>();
+        if (func.getFunctionName() == "CAST") {
+            return isConstantExpression(func.getChild(0));
+        } else {
+            return false;
+        }
+    }
+    default:
+        return false;
+    }
+}
+
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodeTableReplace(
     const std::shared_ptr<LogicalOperator>& op) {
     auto& scan = op->cast<LogicalScanNodeTable>();
@@ -165,7 +186,7 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodeTableRepl
     }
     if (primaryKeyEqualityComparison != nullptr) { // Try rewrite index scan
         auto rhs = primaryKeyEqualityComparison->getChild(1);
-        if (rhs->expressionType == ExpressionType::LITERAL) {
+        if (isConstantExpression(rhs)) {
             auto extraInfo = std::make_unique<PrimaryKeyScanInfo>(rhs);
             scan.setScanType(LogicalScanNodeTableType::PRIMARY_KEY_SCAN);
             scan.setExtraInfo(std::move(extraInfo));
