@@ -46,7 +46,6 @@ struct NodeBatchInsertInfo final : BatchInsertInfo {
 
 struct NodeBatchInsertSharedState final : BatchInsertSharedState {
     // Primary key info
-    storage::PrimaryKeyIndex* pkIndex;
     common::column_id_t pkColumnID;
     common::LogicalType pkType;
     std::optional<IndexBuilder> globalIndexBuilder = std::nullopt;
@@ -62,10 +61,7 @@ struct NodeBatchInsertSharedState final : BatchInsertSharedState {
         common::LogicalType pkType, std::shared_ptr<FactorizedTable> fTable, storage::WAL* wal)
         : BatchInsertSharedState{table, std::move(fTable), wal}, pkColumnID{pkColumnID},
           pkType{std::move(pkType)}, readerSharedState{nullptr}, distinctSharedState{nullptr},
-          sharedNodeGroup{nullptr} {
-        pkIndex =
-            common::ku_dynamic_cast<storage::Table*, storage::NodeTable*>(table)->getPKIndex();
-    }
+          sharedNodeGroup{nullptr} {}
 
     void initPKIndex(ExecutionContext* context);
 };

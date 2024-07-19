@@ -124,6 +124,17 @@ public:
         throw common::NotImplementedException("dropColumn is not implemented yet.");
     }
 
+    bool isVisible(const transaction::Transaction* transaction, common::offset_t offset) const;
+
+    bool lookupPK(transaction::Transaction* transaction, common::ValueVector* keyVector,
+        uint64_t vectorPos, common::offset_t& result) const;
+    template<common::IndexHashable T>
+    size_t appendPKWithIndexPos(const transaction::Transaction* transaction,
+        const IndexBuffer<T>& buffer, uint64_t indexPos) {
+        return pkIndex->appendWithIndexPos(transaction, buffer, indexPos,
+            [&](common::offset_t offset) { return isVisible(transaction, offset); });
+    }
+
     common::column_id_t getPKColumnID() const { return pkColumnID; }
     PrimaryKeyIndex* getPKIndex() const { return pkIndex.get(); }
     common::column_id_t getNumColumns() const { return columns.size(); }

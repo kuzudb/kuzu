@@ -5,6 +5,10 @@
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
+bool isVisible(offset_t) {
+    return true;
+}
+
 TEST(LocalHashIndexTests, LocalInserts) {
     DBFileIDAndName dbFileIDAndName{DBFileID{}, "in-mem-overflow"};
     auto overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName);
@@ -14,17 +18,17 @@ TEST(LocalHashIndexTests, LocalInserts) {
         std::make_unique<LocalHashIndex>(PhysicalTypeID::INT64, overflowFileHandle.get());
 
     for (int64_t i = 0u; i < 100; i++) {
-        ASSERT_TRUE(hashIndex->insert(i, i * 2));
+        ASSERT_TRUE(hashIndex->insert(i, i * 2, isVisible));
     }
     for (int64_t i = 0u; i < 100; i++) {
-        ASSERT_FALSE(hashIndex->insert(i, i));
+        ASSERT_FALSE(hashIndex->insert(i, i, isVisible));
     }
 
     for (int64_t i = 0u; i < 100; i++) {
         hashIndex->delete_(i);
     }
     for (int64_t i = 0u; i < 100; i++) {
-        ASSERT_TRUE(hashIndex->insert(i, i));
+        ASSERT_TRUE(hashIndex->insert(i, i, isVisible));
     }
 }
 
@@ -53,9 +57,9 @@ TEST(LocalHashIndexTests, LocalStringInserts) {
     std::vector<std::string> keys;
     for (int64_t i = 0u; i < 100; i++) {
         keys.push_back(gen_random(14));
-        ASSERT_TRUE(hashIndex->insert(keys.back(), i * 2));
+        ASSERT_TRUE(hashIndex->insert(keys.back(), i * 2, isVisible));
     }
     for (int64_t i = 0u; i < 100; i++) {
-        ASSERT_FALSE(hashIndex->insert(keys[i], i * 2));
+        ASSERT_FALSE(hashIndex->insert(keys[i], i * 2, isVisible));
     }
 }

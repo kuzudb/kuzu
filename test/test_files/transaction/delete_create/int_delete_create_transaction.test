@@ -1,9 +1,7 @@
 -DATASET CSV node-insertion-deletion-tests/int64-pk
 --
 
-#TODO(Guodong): FIX-ME. Delete and then insert the same key is not handled in hash index.
 -CASE MixedInsertDeleteCommitNormalExecution
--SKIP
 -PARALLELISM 1
 -CREATE_CONNECTION conn_read
 -CREATE_CONNECTION conn_write

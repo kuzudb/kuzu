@@ -1,7 +1,10 @@
 #include "storage/local_storage/local_node_table.h"
 
 #include "common/cast.h"
+#include "common/types/internal_id_t.h"
+#include "storage/index/hash_index.h"
 #include "storage/store/node_table.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -25,12 +28,22 @@ void LocalNodeTable::initLocalHashIndex() {
         overflowFileHandle.get());
 }
 
-bool LocalNodeTable::insert(Transaction*, TableInsertState& insertState) {
+bool LocalNodeTable::isVisible(const transaction::Transaction* transaction, offset_t offset) {
+    auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
+    auto* nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
+    if (nodeGroup->isDeleted(transaction, offsetInGroup)) {
+        return false;
+    }
+    return nodeGroup->isInserted(transaction, offsetInGroup);
+}
+
+bool LocalNodeTable::insert(Transaction* transaction, TableInsertState& insertState) {
     auto& nodeInsertState = insertState.constCast<NodeTableInsertState>();
     const auto numRowsInLocalTable = nodeGroups.getNumRows();
     const auto nodeOffset = StorageConstants::MAX_NUM_ROWS_IN_TABLE + numRowsInLocalTable;
     KU_ASSERT(nodeInsertState.pkVector.state->getSelVector().getSelSize() == 1);
-    if (!hashIndex->insert(nodeInsertState.pkVector, nodeOffset)) {
+    if (!hashIndex->insert(nodeInsertState.pkVector, nodeOffset,
+            [&](offset_t offset) { return isVisible(transaction, offset); })) {
         throw RuntimeException(
             stringFormat("Found duplicate primary key in local table {}", table.getTableID()));
     }
@@ -41,7 +54,7 @@ bool LocalNodeTable::insert(Transaction*, TableInsertState& insertState) {
     return true;
 }
 
-bool LocalNodeTable::update(TableUpdateState& updateState) {
+bool LocalNodeTable::update(Transaction* transaction, TableUpdateState& updateState) {
     const auto& nodeUpdateState = updateState.cast<NodeTableUpdateState>();
     KU_ASSERT(nodeUpdateState.nodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto pos = nodeUpdateState.nodeIDVector.state->getSelVector()[0];
@@ -49,12 +62,13 @@ bool LocalNodeTable::update(TableUpdateState& updateState) {
     if (nodeUpdateState.columnID == table.cast<NodeTable>().getPKColumnID()) {
         KU_ASSERT(nodeUpdateState.pkVector);
         hashIndex->delete_(*nodeUpdateState.pkVector);
-        hashIndex->insert(*nodeUpdateState.pkVector, offset);
+        hashIndex->insert(*nodeUpdateState.pkVector, offset,
+            [&](offset_t offset) { return isVisible(transaction, offset); });
     }
     const auto [nodeGroupIdx, rowIdxInGroup] = StorageUtils::getQuotientRemainder(
         offset - StorageConstants::MAX_NUM_ROWS_IN_TABLE, StorageConstants::NODE_GROUP_SIZE);
     const auto nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
-    nodeGroup->update(&DUMMY_TRANSACTION, rowIdxInGroup, nodeUpdateState.columnID,
+    nodeGroup->update(transaction, rowIdxInGroup, nodeUpdateState.columnID,
         nodeUpdateState.propertyVector);
     return true;
 }
