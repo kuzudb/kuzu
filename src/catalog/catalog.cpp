@@ -380,6 +380,14 @@ CatalogEntry* Catalog::getFunctionEntry(Transaction* transaction, const std::str
     return catalogSet->getEntry(transaction, name);
 }
 
+std::vector<FunctionCatalogEntry*> Catalog::getFunctionEntries(Transaction* transaction) const {
+    std::vector<FunctionCatalogEntry*> result;
+    for (auto& [_, entry] : functions->getEntries(transaction)) {
+        result.push_back(entry->ptrCast<FunctionCatalogEntry>());
+    }
+    return result;
+}
+
 bool Catalog::containsMacro(Transaction* transaction, const std::string& macroName) const {
     return functions->containsEntry(transaction, macroName);
 }

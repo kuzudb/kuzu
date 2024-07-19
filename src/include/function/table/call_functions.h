@@ -99,6 +99,12 @@ struct ShowAttachedDatabasesFunction final : public CallFunction {
     static function_set getFunctionSet();
 };
 
+struct ShowFunctionsFunction : public CallFunction {
+    static constexpr const char* name = "SHOW_FUNCTIONS";
+
+    static function_set getFunctionSet();
+};
+
 struct CheckpointFunction final : public CallFunction {
     static constexpr const char* name = "CHECKPOINT";
 
