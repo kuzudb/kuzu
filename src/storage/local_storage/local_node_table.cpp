@@ -28,7 +28,7 @@ void LocalNodeTable::initLocalHashIndex() {
         overflowFileHandle.get());
 }
 
-bool LocalNodeTable::isVisible(const transaction::Transaction* transaction, offset_t offset) {
+bool LocalNodeTable::isVisible(const Transaction* transaction, offset_t offset) {
     auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
     auto* nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
     if (nodeGroup->isDeleted(transaction, offsetInGroup)) {
@@ -68,7 +68,7 @@ bool LocalNodeTable::update(Transaction* transaction, TableUpdateState& updateSt
     const auto [nodeGroupIdx, rowIdxInGroup] = StorageUtils::getQuotientRemainder(
         offset - StorageConstants::MAX_NUM_ROWS_IN_TABLE, StorageConstants::NODE_GROUP_SIZE);
     const auto nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
-    nodeGroup->update(transaction, rowIdxInGroup, nodeUpdateState.columnID,
+    nodeGroup->update(&DUMMY_TRANSACTION, rowIdxInGroup, nodeUpdateState.columnID,
         nodeUpdateState.propertyVector);
     return true;
 }
