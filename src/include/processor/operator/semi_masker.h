@@ -41,6 +41,23 @@ private:
     std::unordered_map<common::table_id_t, std::vector<mask_with_idx>> masksPerTable;
 };
 
+struct SemiMaskerPrintInfo final : OPPrintInfo {
+    std::vector<std::string> operatorNames;
+
+    explicit SemiMaskerPrintInfo(std::vector<std::string> operatorNames)
+        : operatorNames{std::move(operatorNames)} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<SemiMaskerPrintInfo>(new SemiMaskerPrintInfo(*this));
+    }
+
+private:
+    SemiMaskerPrintInfo(const SemiMaskerPrintInfo& other)
+        : OPPrintInfo{other}, operatorNames{other.operatorNames} {}
+};
+
 class BaseSemiMasker : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SEMI_MASKER;
 

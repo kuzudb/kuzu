@@ -16,8 +16,10 @@ std::string TableFunctionCallPrintInfo::toString() const {
 std::string FTableScanFunctionCallPrintInfo::toString() const {
     std::string result = "Function: ";
     result += funcName;
-    result += ", Expressions: ";
-    result += binder::ExpressionUtil::toString(exprs);
+    if (!exprs.empty()) {
+        result += ", Expressions: ";
+        result += binder::ExpressionUtil::toString(exprs);
+    }
     return result;
 }
 

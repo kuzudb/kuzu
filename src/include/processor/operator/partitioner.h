@@ -100,6 +100,23 @@ private:
           defaultColumns{other.defaultColumns} {}
 };
 
+struct PartitionerPrintInfo final : OPPrintInfo {
+    binder::expression_vector expressions;
+
+    explicit PartitionerPrintInfo(binder::expression_vector expressions)
+        : expressions{std::move(expressions)} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<PartitionerPrintInfo>(new PartitionerPrintInfo(*this));
+    }
+
+private:
+    PartitionerPrintInfo(const PartitionerPrintInfo& other)
+        : OPPrintInfo{other}, expressions{other.expressions} {}
+};
+
 class Partitioner : public Sink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::PARTITIONER;
 

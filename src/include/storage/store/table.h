@@ -72,6 +72,7 @@ public:
 
     common::TableType getTableType() const { return tableType; }
     common::table_id_t getTableID() const { return tableID; }
+    std::string getTableName() const { return tableName; }
     common::row_idx_t getNumTuples(transaction::Transaction* transaction) const {
         return tablesStatistics->getNumTuplesForTable(transaction, tableID);
     }
