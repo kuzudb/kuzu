@@ -88,7 +88,8 @@ void UndoBufferIterator::reverseIterate(F&& callback) {
     }
 }
 
-UndoBuffer::UndoBuffer(ClientContext& clientContext) : clientContext{clientContext} {}
+UndoBuffer::UndoBuffer(ClientContext& clientContext, transaction::Transaction* transaction)
+    : transaction{transaction}, clientContext{clientContext} {}
 
 void UndoBuffer::createCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry) {
     auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(CatalogEntryRecord));
@@ -423,7 +424,7 @@ void UndoBuffer::rollbackVectorVersionInfo(UndoRecordType recordType, const uint
 void UndoBuffer::rollbackVectorUpdateInfo(const uint8_t* record) const {
     auto& undoRecord = *reinterpret_cast<VectorUpdateRecord const*>(record);
     KU_ASSERT(undoRecord.updateInfo);
-    if (undoRecord.updateInfo->getVectorInfo(clientContext.getTx(), undoRecord.vectorIdx) !=
+    if (undoRecord.updateInfo->getVectorInfo(transaction, undoRecord.vectorIdx) !=
         undoRecord.vectorUpdateInfo) {
         // The version chain has been updated. No need to rollback.
         return;
