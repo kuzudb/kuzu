@@ -98,8 +98,7 @@ void StorageManager::recover(main::ClientContext& clientContext) {
     }
     try {
         auto* bm = clientContext.getMemoryManager()->getBufferManager();
-        auto walReplayer =
-            std::make_unique<WALReplayer>(clientContext, WALReplayMode::RECOVERY_CHECKPOINT);
+        auto walReplayer = std::make_unique<WALReplayer>(clientContext);
         walReplayer->replay();
         // Truncate .wal and .shadow to empty. Remove catalog and stats wal files.
         auto walFileInfo = vfs->openFile(walFilePath, O_RDWR);
@@ -112,7 +111,6 @@ void StorageManager::recover(main::ClientContext& clientContext) {
         if (shadowFH->getFileInfo()->getFileSize() > 0) {
             shadowFH->getFileInfo()->truncate(0);
         }
-        bm->removeFilePagesFromFrames(*shadowFH);
         StorageUtils::removeWALVersionFiles(clientContext.getDatabasePath(), vfs);
     } catch (std::exception& e) {
         throw Exception(stringFormat("Error during recovery: {}", e.what()));
