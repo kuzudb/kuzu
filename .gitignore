@@ -8,6 +8,7 @@ bazel-*
 .bazelrc
 **/test/test_files/test_list
 mm-256KB
+history.txt
 
 test_temp/
 build/
