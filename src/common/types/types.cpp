@@ -943,7 +943,7 @@ std::string LogicalTypeUtils::toString(const std::vector<LogicalType>& dataTypes
 
 std::string LogicalTypeUtils::toString(const std::vector<LogicalTypeID>& dataTypeIDs) {
     if (dataTypeIDs.empty()) {
-        return {""};
+        return {"()"};
     }
     std::string result = "(" + LogicalTypeUtils::toString(dataTypeIDs[0]);
     for (auto i = 1u; i < dataTypeIDs.size(); ++i) {

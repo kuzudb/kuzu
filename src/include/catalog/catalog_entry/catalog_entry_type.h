@@ -34,5 +34,9 @@ struct CatalogEntryTypeUtils {
     static std::string toString(CatalogEntryType type);
 };
 
+struct FunctionEntryTypeUtils {
+    static std::string toString(CatalogEntryType type);
+};
+
 } // namespace catalog
 } // namespace kuzu

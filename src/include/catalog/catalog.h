@@ -1,5 +1,6 @@
 #pragma once
 
+#include "catalog/catalog_entry/function_catalog_entry.h"
 #include "catalog/catalog_set.h"
 #include "common/cast.h"
 #include "function/function.h"
@@ -110,6 +111,7 @@ public:
         function::function_set functionSet);
     CatalogSet* getFunctions(transaction::Transaction* tx) const;
     CatalogEntry* getFunctionEntry(transaction::Transaction* tx, const std::string& name);
+    std::vector<FunctionCatalogEntry*> getFunctionEntries(transaction::Transaction* tx) const;
 
     bool containsMacro(transaction::Transaction* tx, const std::string& macroName) const;
     void addScalarMacroFunction(transaction::Transaction* tx, std::string name,

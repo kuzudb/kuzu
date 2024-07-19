@@ -8,7 +8,8 @@ add_library(kuzu_table_call
         show_tables.cpp
         storage_info.cpp
         table_info.cpp
-        show_sequences.cpp)
+        show_sequences.cpp
+        show_functions.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_table_call>
