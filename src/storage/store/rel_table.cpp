@@ -204,6 +204,12 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     initializeScanState(transaction, *relReadState);
     detachDeleteForCSRRels(transaction, tableData, reverseTableData, relReadState.get(),
         deleteState);
+    if (!transaction->isRecovery()) {
+        KU_ASSERT(transaction->isWriteTransaction());
+        KU_ASSERT(transaction->getClientContext());
+        auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
+        wal.logRelDetachDelete(tableID, direction, &deleteState->srcNodeIDVector);
+    }
 }
 
 void RelTable::checkIfNodeHasRels(Transaction* transaction, RelDataDirection direction,

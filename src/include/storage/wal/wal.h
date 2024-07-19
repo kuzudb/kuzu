@@ -2,6 +2,7 @@
 
 #include <unordered_set>
 
+#include "common/enums/rel_direction.h"
 #include "common/serializer/buffered_file.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/wal/wal_record.h"
@@ -49,6 +50,8 @@ public:
         common::offset_t nodeOffset, common::ValueVector* propertyVector);
     void logRelDelete(common::table_id_t tableID, common::ValueVector* srcNodeVector,
         common::ValueVector* dstNodeVector, common::ValueVector* relIDVector);
+    void logRelDetachDelete(common::table_id_t tableID, common::RelDataDirection direction,
+        common::ValueVector* srcNodeVector);
     void logRelUpdate(common::table_id_t tableID, common::column_id_t columnID,
         common::ValueVector* srcNodeVector, common::ValueVector* dstNodeVector,
         common::ValueVector* relIDVector, common::ValueVector* propertyVector);

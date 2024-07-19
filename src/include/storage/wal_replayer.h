@@ -23,6 +23,7 @@ private:
     void replayNodeDeletionRecord(const WALRecord& walRecord) const;
     void replayNodeUpdateRecord(const WALRecord& walRecord) const;
     void replayRelDeletionRecord(const WALRecord& walRecord) const;
+    void replayRelDetachDeletionRecord(const WALRecord& walRecord) const;
     void replayRelUpdateRecord(const WALRecord& walRecord) const;
     void replayCopyTableRecord(const WALRecord& walRecord) const;
     void replayUpdateSequenceRecord(const WALRecord& walRecord) const;
