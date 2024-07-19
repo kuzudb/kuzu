@@ -13,11 +13,10 @@ class BoundTableFunctionCall : public BoundReadingClause {
 
 public:
     BoundTableFunctionCall(function::TableFunction tableFunc,
-        std::unique_ptr<function::TableFuncBindData> bindData,
-        std::shared_ptr<Expression> offset, expression_vector columns)
+        std::unique_ptr<function::TableFuncBindData> bindData, std::shared_ptr<Expression> offset,
+        expression_vector columns)
         : BoundReadingClause{clauseType_}, tableFunc{std::move(tableFunc)},
-          bindData{std::move(bindData)}, offset{std::move(offset)},
-          columns{std::move(columns)} {}
+          bindData{std::move(bindData)}, offset{std::move(offset)}, columns{std::move(columns)} {}
 
     function::TableFunction getTableFunc() const { return tableFunc; }
     const function::TableFuncBindData* getBindData() const { return bindData.get(); }

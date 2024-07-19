@@ -300,10 +300,9 @@ public:
     void appendFilters(const binder::expression_vector& predicates, LogicalPlan& plan);
     void appendFilter(const std::shared_ptr<binder::Expression>& predicate, LogicalPlan& plan);
 
-
     void appendTableFunctionCall(const binder::BoundTableScanSourceInfo& info, LogicalPlan& plan);
     void appendTableFunctionCall(const binder::BoundTableScanSourceInfo& info,
-            std::shared_ptr<binder::Expression> offset, LogicalPlan& plan);
+        std::shared_ptr<binder::Expression> offset, LogicalPlan& plan);
 
     void appendDistinct(const binder::expression_vector& keys, LogicalPlan& plan);
 

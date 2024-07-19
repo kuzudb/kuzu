@@ -12,8 +12,8 @@ class LogicalTableFunctionCall : public LogicalOperator {
 
 public:
     LogicalTableFunctionCall(function::TableFunction tableFunc,
-        std::unique_ptr<function::TableFuncBindData> bindData,
-        binder::expression_vector columns, std::shared_ptr<binder::Expression> offset)
+        std::unique_ptr<function::TableFuncBindData> bindData, binder::expression_vector columns,
+        std::shared_ptr<binder::Expression> offset)
         : LogicalOperator{operatorType_}, tableFunc{tableFunc}, bindData{std::move(bindData)},
           columns{std::move(columns)}, offset{std::move(offset)} {}
 
@@ -30,8 +30,8 @@ public:
     std::string getExpressionsForPrinting() const override { return tableFunc.name; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalTableFunctionCall>(tableFunc, bindData->copy(),
-            columns, offset);
+        return std::make_unique<LogicalTableFunctionCall>(tableFunc, bindData->copy(), columns,
+            offset);
     }
 
 private:
