@@ -38,7 +38,7 @@ class NodeTableCatalogEntry;
 class RelTableCatalogEntry;
 class RelGroupCatalogEntry;
 class RDFGraphCatalogEntry;
-
+class FunctionCatalogEntry;
 class SequenceCatalogEntry;
 
 class KUZU_API Catalog {

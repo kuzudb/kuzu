@@ -383,7 +383,7 @@ CatalogEntry* Catalog::getFunctionEntry(Transaction* transaction, const std::str
 std::vector<FunctionCatalogEntry*> Catalog::getFunctionEntries(Transaction* transaction) const {
     std::vector<FunctionCatalogEntry*> result;
     for (auto& [_, entry] : functions->getEntries(transaction)) {
-        result.push_back(ku_dynamic_cast<CatalogEntry*, FunctionCatalogEntry*>(entry));
+        result.push_back(entry->ptrCast<FunctionCatalogEntry>());
     }
     return result;
 }
