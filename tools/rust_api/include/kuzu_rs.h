@@ -1,10 +1,13 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 
 #include "rust/cxx.h"
 #ifdef KUZU_BUNDLED
 #include "common/type_utils.h"
+#include "common/types/int128_t.h"
+#include "common/types/types.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"
 #include "common/types/value/recursive_rel.h"
@@ -70,6 +73,12 @@ inline std::unique_ptr<kuzu::common::LogicalType> create_logical_type_rdf_varian
     return std::make_unique<kuzu::common::LogicalType>(kuzu::common::LogicalType::RDF_VARIANT());
 }
 
+inline std::unique_ptr<kuzu::common::LogicalType> create_logical_type_decimal(uint32_t precision,
+    uint32_t scale) {
+    return std::make_unique<kuzu::common::LogicalType>(
+        kuzu::common::LogicalType::DECIMAL(precision, scale));
+}
+
 std::unique_ptr<kuzu::common::LogicalType> logical_type_get_list_child_type(
     const kuzu::common::LogicalType& logicalType);
 std::unique_ptr<kuzu::common::LogicalType> logical_type_get_array_child_type(
@@ -79,6 +88,13 @@ uint64_t logical_type_get_array_num_elements(const kuzu::common::LogicalType& lo
 rust::Vec<rust::String> logical_type_get_struct_field_names(const kuzu::common::LogicalType& value);
 std::unique_ptr<std::vector<kuzu::common::LogicalType>> logical_type_get_struct_field_types(
     const kuzu::common::LogicalType& value);
+
+inline uint32_t logical_type_get_decimal_precision(const kuzu::common::LogicalType& logicalType) {
+    return kuzu::common::DecimalType::getPrecision(logicalType);
+}
+inline uint32_t logical_type_get_decimal_scale(const kuzu::common::LogicalType& logicalType) {
+    return kuzu::common::DecimalType::getScale(logicalType);
+}
 
 /* Database */
 std::unique_ptr<kuzu::main::Database> new_database(std::string_view databasePath,
@@ -158,6 +174,9 @@ uint32_t value_get_children_size(const kuzu::common::Value& value);
 const kuzu::common::Value& value_get_child(const kuzu::common::Value& value, uint32_t index);
 kuzu::common::LogicalTypeID value_get_data_type_id(const kuzu::common::Value& value);
 const kuzu::common::LogicalType& value_get_data_type(const kuzu::common::Value& value);
+inline kuzu::common::PhysicalTypeID value_get_physical_type(const kuzu::common::Value& value) {
+    return value.getDataType().getPhysicalType();
+}
 rust::String value_to_string(const kuzu::common::Value& val);
 
 std::unique_ptr<kuzu::common::Value> create_value_string(kuzu::common::LogicalTypeID typ,
@@ -185,6 +204,21 @@ inline std::unique_ptr<kuzu::common::Value> create_value_uuid_t(int64_t high, ui
 template<typename T>
 std::unique_ptr<kuzu::common::Value> create_value(const T value) {
     return std::make_unique<kuzu::common::Value>(value);
+}
+inline std::unique_ptr<kuzu::common::Value> create_value_decimal(int64_t high, uint64_t low,
+    uint32_t scale, uint32_t precision) {
+    auto value =
+        std::make_unique<kuzu::common::Value>(kuzu::common::LogicalType::DECIMAL(precision, scale),
+            std::vector<std::unique_ptr<kuzu::common::Value>>{});
+    auto i128 = kuzu::common::int128_t(low, high);
+    kuzu::common::TypeUtils::visit(
+        value->getDataType().getPhysicalType(),
+        [&](kuzu::common::int128_t) { value->val.int128Val = i128; },
+        [&](int64_t) { value->val.int64Val = static_cast<int64_t>(i128); },
+        [&](int32_t) { value->val.int32Val = static_cast<int32_t>(i128); },
+        [&](int16_t) { value->val.int16Val = static_cast<int16_t>(i128); },
+        [](auto) { KU_UNREACHABLE; });
+    return value;
 }
 
 struct ValueListBuilder {

@@ -77,11 +77,19 @@ pub enum LogicalType {
         key_type: Box<LogicalType>,
         value_type: Box<LogicalType>,
     },
+    /// Correponds to [Value::Union](crate::value::Value::Union)
     Union {
         types: Vec<(String, LogicalType)>,
     },
+    /// Correponds to [Value::UUID](crate::value::Value::UUID)
     UUID,
+    /// Correponds to [Value::RDFVariant](crate::value::Value::RDFVariant)
     RDFVariant,
+    /// Correponds to [Value::Decimal](crate::value::Value::Decimal)
+    Decimal {
+        precision: u32,
+        scale: u32,
+    },
 }
 
 impl From<&ffi::Value> for LogicalType {
@@ -183,6 +191,11 @@ impl From<&ffi::LogicalType> for LogicalType {
             }
             LogicalTypeID::UUID => LogicalType::UUID,
             LogicalTypeID::RDF_VARIANT => LogicalType::RDFVariant,
+            LogicalTypeID::DECIMAL => {
+                let precision = ffi::logical_type_get_decimal_precision(logical_type);
+                let scale = ffi::logical_type_get_decimal_scale(logical_type);
+                LogicalType::Decimal { precision, scale }
+            }
             // Should be unreachable, as cxx will check that the LogicalTypeID enum matches the one
             // on the C++ side.
             x => panic!("Unsupported type {:?}", x),
@@ -251,6 +264,9 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
                 value_type,
             } => ffi::create_logical_type_map(key_type.as_ref().into(), value_type.as_ref().into()),
             LogicalType::RDFVariant => ffi::create_logical_type_rdf_variant(),
+            LogicalType::Decimal { precision, scale } => {
+                ffi::create_logical_type_decimal(*precision, *scale)
+            }
         }
     }
 }
@@ -293,6 +309,7 @@ impl LogicalType {
             LogicalType::Union { .. } => LogicalTypeID::UNION,
             LogicalType::UUID => LogicalTypeID::UUID,
             LogicalType::RDFVariant => LogicalTypeID::RDF_VARIANT,
+            LogicalType::Decimal { .. } => LogicalTypeID::DECIMAL,
         }
     }
 }
