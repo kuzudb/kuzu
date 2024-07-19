@@ -876,7 +876,7 @@ std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST:
     case PhysicalTypeID::STRUCT: {
-        val->children.reserve(val->childrenSize);
+        val->children.resize(val->childrenSize);
         for (auto i = 0u; i < val->childrenSize; i++) {
             val->children.push_back(deserialize(deserializer));
         }

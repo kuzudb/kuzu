@@ -139,8 +139,19 @@ void BaseCSVReader::addValue(Driver& driver, uint64_t rowNum, column_id_t column
     }
 }
 
+struct SkipRowDriver {
+    uint64_t skipNum;
+
+    explicit SkipRowDriver(uint64_t skipNum) : skipNum{skipNum} {}
+    bool done(uint64_t rowNum) { return rowNum >= skipNum; }
+    bool addRow(uint64_t, column_id_t) { return true; }
+    void addValue(uint64_t, column_id_t, std::string_view) {}
+};
+
 void BaseCSVReader::handleFirstBlock() {
     readBOM();
+    SkipRowDriver driver{option.skipNum};
+    parseCSV(driver);
     if (option.hasHeader) {
         readHeader();
     }

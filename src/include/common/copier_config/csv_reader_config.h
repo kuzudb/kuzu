@@ -13,25 +13,27 @@ struct CSVOption {
     char delimiter;
     char quoteChar;
     bool hasHeader;
+    uint64_t skipNum;
 
     CSVOption()
         : escapeChar{CopyConstants::DEFAULT_CSV_ESCAPE_CHAR},
           delimiter{CopyConstants::DEFAULT_CSV_DELIMITER},
           quoteChar{CopyConstants::DEFAULT_CSV_QUOTE_CHAR},
-          hasHeader{CopyConstants::DEFAULT_CSV_HAS_HEADER} {}
+          hasHeader{CopyConstants::DEFAULT_CSV_HAS_HEADER},
+          skipNum{CopyConstants::DEFAULT_CSV_HAS_HEADER} {}
     EXPLICIT_COPY_DEFAULT_MOVE(CSVOption);
 
     // TODO: COPY FROM and COPY TO should support transform special options, like '\'.
     std::string toCypher() const {
         std::string header = hasHeader ? "true" : "false";
-        return stringFormat("(escape ='\\{}', delim ='{}', quote='\\{}', header={})", escapeChar,
-            delimiter, quoteChar, header);
+        return stringFormat("(escape ='\\{}', delim ='{}', quote='\\{}', header={}, skipNum={})",
+            escapeChar, delimiter, quoteChar, header, skipNum);
     }
 
 private:
     CSVOption(const CSVOption& other)
         : escapeChar{other.escapeChar}, delimiter{other.delimiter}, quoteChar{other.quoteChar},
-          hasHeader{other.hasHeader} {}
+          hasHeader{other.hasHeader}, skipNum{other.skipNum} {}
 };
 
 struct CSVReaderConfig {
