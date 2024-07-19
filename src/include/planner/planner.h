@@ -300,16 +300,15 @@ public:
     void appendFilters(const binder::expression_vector& predicates, LogicalPlan& plan);
     void appendFilter(const std::shared_ptr<binder::Expression>& predicate, LogicalPlan& plan);
 
-    // Append scan file.
-    void appendScanSource(const binder::BoundTableScanSourceInfo& info, LogicalPlan& plan);
-    // Append scan file. Additionally, scan row offset.
-    void appendScanSource(const binder::BoundTableScanSourceInfo& info,
+    void appendTableFunctionCall(const binder::BoundTableScanSourceInfo& info, LogicalPlan& plan);
+    void appendTableFunctionCall(const binder::BoundTableScanSourceInfo& info,
         std::shared_ptr<binder::Expression> offset, LogicalPlan& plan);
 
     void appendDistinct(const binder::expression_vector& keys, LogicalPlan& plan);
 
     // Get operators
-    std::shared_ptr<LogicalOperator> getScanSource(const binder::BoundTableScanSourceInfo& info);
+    std::shared_ptr<LogicalOperator> getTableFunctionCall(
+        const binder::BoundTableScanSourceInfo& info);
     std::shared_ptr<LogicalOperator> getTableFunctionCall(
         const binder::BoundReadingClause& readingClause);
     std::shared_ptr<LogicalOperator> getGDSCall(const binder::BoundReadingClause& readingClause);

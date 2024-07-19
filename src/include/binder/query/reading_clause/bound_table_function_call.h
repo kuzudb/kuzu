@@ -13,22 +13,21 @@ class BoundTableFunctionCall : public BoundReadingClause {
 
 public:
     BoundTableFunctionCall(function::TableFunction tableFunc,
-        std::unique_ptr<function::TableFuncBindData> bindData,
-        std::shared_ptr<Expression> rowIdxExpr, expression_vector outExprs)
+        std::unique_ptr<function::TableFuncBindData> bindData, std::shared_ptr<Expression> offset,
+        expression_vector columns)
         : BoundReadingClause{clauseType_}, tableFunc{std::move(tableFunc)},
-          bindData{std::move(bindData)}, rowIdxExpr{std::move(rowIdxExpr)},
-          outExprs{std::move(outExprs)} {}
+          bindData{std::move(bindData)}, offset{std::move(offset)}, columns{std::move(columns)} {}
 
     function::TableFunction getTableFunc() const { return tableFunc; }
     const function::TableFuncBindData* getBindData() const { return bindData.get(); }
-    std::shared_ptr<Expression> getRowIdxExpr() const { return rowIdxExpr; }
-    expression_vector getOutExprs() const { return outExprs; }
+    std::shared_ptr<Expression> getOffset() const { return offset; }
+    expression_vector getColumns() const { return columns; }
 
 private:
     function::TableFunction tableFunc;
     std::unique_ptr<function::TableFuncBindData> bindData;
-    std::shared_ptr<Expression> rowIdxExpr;
-    expression_vector outExprs;
+    std::shared_ptr<Expression> offset;
+    expression_vector columns;
 };
 
 } // namespace binder

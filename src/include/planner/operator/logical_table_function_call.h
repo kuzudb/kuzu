@@ -12,12 +12,10 @@ class LogicalTableFunctionCall : public LogicalOperator {
 
 public:
     LogicalTableFunctionCall(function::TableFunction tableFunc,
-        std::unique_ptr<function::TableFuncBindData> bindData,
-        binder::expression_vector outputExpressions,
-        std::shared_ptr<binder::Expression> rowIDExpression)
+        std::unique_ptr<function::TableFuncBindData> bindData, binder::expression_vector columns,
+        std::shared_ptr<binder::Expression> offset)
         : LogicalOperator{operatorType_}, tableFunc{tableFunc}, bindData{std::move(bindData)},
-          outputExpressions{std::move(outputExpressions)},
-          rowIDExpression{std::move(rowIDExpression)} {}
+          columns{std::move(columns)}, offset{std::move(offset)} {}
 
     function::TableFunction getTableFunc() const { return tableFunc; }
     function::TableFuncBindData* getBindData() const { return bindData.get(); }
@@ -25,22 +23,22 @@ public:
     void computeFlatSchema() override;
     void computeFactorizedSchema() override;
 
-    binder::expression_vector getOutputExpressions() const { return outputExpressions; }
+    binder::expression_vector getColumns() const { return columns; }
 
-    binder::Expression* getRowIDExpression() const { return rowIDExpression.get(); }
+    std::shared_ptr<binder::Expression> getOffset() const { return offset; }
 
     std::string getExpressionsForPrinting() const override { return tableFunc.name; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalTableFunctionCall>(tableFunc, bindData->copy(),
-            outputExpressions, rowIDExpression);
+        return std::make_unique<LogicalTableFunctionCall>(tableFunc, bindData->copy(), columns,
+            offset);
     }
 
 private:
     function::TableFunction tableFunc;
     std::unique_ptr<function::TableFuncBindData> bindData;
-    binder::expression_vector outputExpressions;
-    std::shared_ptr<binder::Expression> rowIDExpression;
+    binder::expression_vector columns;
+    std::shared_ptr<binder::Expression> offset;
 };
 
 } // namespace planner
