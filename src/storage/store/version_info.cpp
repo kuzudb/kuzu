@@ -154,12 +154,9 @@ row_idx_t VersionInfo::append(const transaction::Transaction* transaction, const
             vectorIdx == endVectorIdx ? endRowIdxInVector : DEFAULT_VECTOR_CAPACITY;
         const auto numRowsInVector = endRowIdx - startRowIdx;
         numAppended += vectorVersionInfo.append(transaction->getID(), startRowIdx, numRowsInVector);
-        if (transaction->getID() > transaction::Transaction::DUMMY_TRANSACTION_ID) {
-            // TODO(Guodong): Should just keep start row and num rows here.
-            std::vector<row_idx_t> rows;
-            rows.resize(numRowsInVector);
-            std::iota(rows.begin(), rows.end(), startRowIdx);
-            transaction->pushVectorInsertInfo(*this, vectorIdx, vectorVersionInfo, rows);
+        if (transaction->shouldAppendToUndoBuffer()) {
+            transaction->pushVectorInsertInfo(*this, vectorIdx, vectorVersionInfo, startRowIdx,
+                numRowsInVector);
         }
     }
     return numAppended;
@@ -176,8 +173,8 @@ bool VersionInfo::delete_(const transaction::Transaction* transaction, const row
         vectorVersionInfo.insertionStatus = VectorVersionInfo::InsertionStatus::ALWAYS_INSERTED;
     }
     const auto deleted = vectorVersionInfo.delete_(transaction->getID(), rowIdxInVector);
-    if (deleted && transaction->getID() > transaction::Transaction::DUMMY_TRANSACTION_ID) {
-        transaction->pushVectorDeleteInfo(*this, vectorIdx, vectorVersionInfo, {rowIdxInVector});
+    if (deleted && transaction->shouldAppendToUndoBuffer()) {
+        transaction->pushVectorDeleteInfo(*this, vectorIdx, vectorVersionInfo, rowIdxInVector);
     }
     return deleted;
 }

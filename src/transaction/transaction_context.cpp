@@ -15,8 +15,8 @@ TransactionContext::TransactionContext(main::ClientContext& clientContext)
 
 TransactionContext::~TransactionContext() {
     if (activeTransaction) {
-        clientContext.getDatabase()->transactionManager->rollback(clientContext,
-            activeTransaction.get());
+        // clientContext.getDatabase()->transactionManager->rollback(clientContext,
+        // activeTransaction.get());
     }
 }
 

@@ -85,8 +85,6 @@ public:
     common::offset_t append(const transaction::Transaction* transaction,
         const std::vector<ColumnChunk*>& other, common::offset_t offsetInOtherNodeGroup,
         common::offset_t numRowsToAppend);
-    void write(const std::vector<std::unique_ptr<ColumnChunk>>& data,
-        common::column_id_t offsetColumnID);
     void write(const ChunkedNodeGroup& data, common::column_id_t offsetColumnID);
 
     void scan(const transaction::Transaction* transaction, const TableScanState& scanState,
@@ -133,7 +131,7 @@ public:
     }
 
     virtual std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
-        BMFileHandle& dataFH) const;
+        transaction::Transaction* transaction, BMFileHandle& dataFH) const;
     virtual void flush(BMFileHandle& dataFH);
 
     uint64_t getEstimatedMemoryUsage() const;

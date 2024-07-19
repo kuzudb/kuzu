@@ -59,6 +59,10 @@ public:
     int64_t getCurrentTS() const { return currentTS; }
     main::ClientContext* getClientContext() const { return clientContext; }
 
+    bool shouldAppendToUndoBuffer() const {
+        return getID() > DUMMY_TRANSACTION_ID && !isReadOnly();
+    }
+
     void commit(storage::WAL* wal) const;
     void rollback() const;
 
@@ -78,13 +82,11 @@ public:
         catalog::CatalogEntry& catalogEntry) const;
     void pushSequenceChange(catalog::SequenceCatalogEntry* sequenceEntry,
         const catalog::SequenceData& data, int64_t prevVal) const;
-    void pushNodeBatchInsert(common::table_id_t tableID) const;
     void pushVectorInsertInfo(storage::VersionInfo& versionInfo, common::idx_t vectorIdx,
-        storage::VectorVersionInfo& vectorVersionInfo,
-        const std::vector<common::row_idx_t>& rowsInVector) const;
+        storage::VectorVersionInfo& vectorVersionInfo, common::row_idx_t startRowInVector,
+        common::row_idx_t numRows) const;
     void pushVectorDeleteInfo(storage::VersionInfo& versionInfo, common::idx_t vectorIdx,
-        storage::VectorVersionInfo& vectorVersionInfo,
-        const std::vector<common::row_idx_t>& rowsInVector) const;
+        storage::VectorVersionInfo& vectorVersionInfo, common::row_idx_t rowInVector) const;
     void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::idx_t vectorIdx,
         storage::VectorUpdateInfo& vectorUpdateInfo) const;
 

@@ -68,7 +68,7 @@ public:
     void scanCSRHeader(CSRNodeGroupCheckpointState& csrState) const;
 
     std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
-        BMFileHandle& dataFH) const override;
+        transaction::Transaction* transaction, BMFileHandle& dataFH) const override;
 
     void flush(BMFileHandle& dataFH) override;
 

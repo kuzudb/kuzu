@@ -230,6 +230,7 @@ void WALReplayer::replayNodeTableInsertRecord(const WALRecord& walRecord) const 
     for (auto i = 0u; i < insertionRecord.ownedVectors.size(); i++) {
         propertyVectors[i] = insertionRecord.ownedVectors[i].get();
     }
+    // TODO(Guodong): Handle flatten here.
     KU_ASSERT(table.getPKColumnID() < insertionRecord.ownedVectors.size());
     auto& pkVector = *insertionRecord.ownedVectors[table.getPKColumnID()];
     const auto nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID());

@@ -98,6 +98,7 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
         (void)outputVector;
         KU_ASSERT(outputVector->state == scanState.IDVector->state);
     }
+    scanState.IDVector->state->getSelVectorUnsafe().setToUnfiltered();
     const auto scanResult = scanState.nodeGroup->scan(transaction, scanState);
     if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
         return false;

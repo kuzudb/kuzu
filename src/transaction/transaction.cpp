@@ -38,10 +38,6 @@ void Transaction::rollback() const {
     undoBuffer->rollback();
 }
 
-void Transaction::pushNodeBatchInsert(common::table_id_t tableID) const {
-    undoBuffer->createNodeBatchInsert(tableID);
-}
-
 void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry) const {
     undoBuffer->createCatalogEntry(catalogSet, catalogEntry);
     if (isRecovery()) {
@@ -120,14 +116,15 @@ void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, const 
 
 void Transaction::pushVectorInsertInfo(storage::VersionInfo& versionInfo,
     const common::idx_t vectorIdx, storage::VectorVersionInfo& vectorVersionInfo,
-    const std::vector<common::row_idx_t>& rowsInVector) const {
-    undoBuffer->createVectorInsertInfo(&versionInfo, vectorIdx, &vectorVersionInfo, rowsInVector);
+    common::row_idx_t startRowInVector, common::row_idx_t numRows) const {
+    undoBuffer->createVectorInsertInfo(&versionInfo, vectorIdx, &vectorVersionInfo,
+        startRowInVector, numRows);
 }
 
 void Transaction::pushVectorDeleteInfo(storage::VersionInfo& versionInfo,
     const common::idx_t vectorIdx, storage::VectorVersionInfo& vectorVersionInfo,
-    const std::vector<common::row_idx_t>& rowsInVector) const {
-    undoBuffer->createVectorDeleteInfo(&versionInfo, vectorIdx, &vectorVersionInfo, rowsInVector);
+    common::row_idx_t rowInVector) const {
+    undoBuffer->createVectorDeleteInfo(&versionInfo, vectorIdx, &vectorVersionInfo, rowInVector);
 }
 
 void Transaction::pushVectorUpdateInfo(storage::UpdateInfo& updateInfo,
