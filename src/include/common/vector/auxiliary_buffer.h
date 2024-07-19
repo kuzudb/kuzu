@@ -17,8 +17,6 @@ class ValueVector;
 class AuxiliaryBuffer {
 public:
     virtual ~AuxiliaryBuffer() = default;
-
-    //virtual void serialize(Serializer& ser) const = 0;
 };
 
 class StringAuxiliaryBuffer : public AuxiliaryBuffer {
@@ -30,8 +28,6 @@ public:
     InMemOverflowBuffer* getOverflowBuffer() const { return inMemOverflowBuffer.get(); }
     uint8_t* allocateOverflow(uint64_t size) { return inMemOverflowBuffer->allocateSpace(size); }
     void resetOverflowBuffer() const { inMemOverflowBuffer->resetBuffer(); }
-
-   // void serialize(Serializer& /*ser*/) const override { return; }
 
 private:
     std::unique_ptr<InMemOverflowBuffer> inMemOverflowBuffer;
@@ -47,8 +43,6 @@ public:
     const std::vector<std::shared_ptr<ValueVector>>& getFieldVectors() const {
         return childrenVectors;
     }
-
-    //void serialize(Serializer& ser) const override;
 
 private:
     std::vector<std::shared_ptr<ValueVector>> childrenVectors;
@@ -85,8 +79,6 @@ public:
     void resetSize() { size = 0; }
 
     void resize(uint64_t numValues);
-
-    //void serialize(Serializer& ser) const;
 
 private:
     void resizeDataVector(ValueVector* dataVector);
