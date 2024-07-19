@@ -86,10 +86,10 @@ public:
     // - the key is neither deleted nor found in the local storage, lookup in the persistent
     // storage.
     bool lookupInternal(const transaction::Transaction* transaction, Key key,
-        common::offset_t& result) {
+        common::offset_t& result, visible_func isVisible) {
         KU_ASSERT(transaction->isWriteTransaction() || transaction->isReadOnly() ||
                   transaction->isDummy());
-        auto localLookupState = localStorage->lookup(key, result);
+        auto localLookupState = localStorage->lookup(key, result, isVisible);
         if (localLookupState == HashIndexLocalLookupState::KEY_DELETED) {
             return false;
         }
@@ -97,7 +97,7 @@ public:
             return true;
         }
         KU_ASSERT(localLookupState == HashIndexLocalLookupState::KEY_NOT_EXIST);
-        return lookupInPersistentIndex(transaction, key, result);
+        return lookupInPersistentIndex(transaction, key, result, isVisible);
     }
 
     // For deletions, we don't check if the deleted keys exist or not. Thus, we don't need to check
@@ -111,18 +111,18 @@ public:
     // index, if
     //   so, return false, else insert the key to the local storage.
     bool insertInternal(const transaction::Transaction* transaction, Key key,
-        common::offset_t value) {
+        common::offset_t value, visible_func isVisible) {
         common::offset_t tmpResult;
-        auto localLookupState = localStorage->lookup(key, tmpResult);
+        auto localLookupState = localStorage->lookup(key, tmpResult, isVisible);
         if (localLookupState == HashIndexLocalLookupState::KEY_FOUND) {
             return false;
         }
-        if (localLookupState == HashIndexLocalLookupState::KEY_NOT_EXIST) {
-            if (lookupInPersistentIndex(transaction, key, tmpResult)) {
+        if (localLookupState != HashIndexLocalLookupState::KEY_DELETED) {
+            if (lookupInPersistentIndex(transaction, key, tmpResult, isVisible)) {
                 return false;
             }
         }
-        return localStorage->insert(key, value);
+        return localStorage->insert(key, value, isVisible);
     }
 
     using BufferKeyType =
@@ -130,18 +130,18 @@ public:
     // Appends the buffer to the index. Returns the number of values successfully inserted,
     // or the index of the first value which cannot be inserted.
     size_t append(const transaction::Transaction* transaction,
-        const IndexBuffer<BufferKeyType>& buffer) {
+        const IndexBuffer<BufferKeyType>& buffer, visible_func isVisible) {
         // Check if values already exist in persistent storage
         if (indexHeaderForWriteTrx.numEntries > 0) {
             common::offset_t result;
             for (size_t i = 0; i < buffer.size(); i++) {
                 const auto& [key, value] = buffer[i];
-                if (lookupInPersistentIndex(transaction, key, result)) {
+                if (lookupInPersistentIndex(transaction, key, result, isVisible)) {
                     return i;
                 }
             }
         }
-        return localStorage->append(buffer);
+        return localStorage->append(buffer, isVisible);
     }
 
     bool checkpoint() override;
@@ -152,7 +152,7 @@ public:
 
 private:
     bool lookupInPersistentIndex(const transaction::Transaction* transaction, Key key,
-        common::offset_t& result) {
+        common::offset_t& result, visible_func isVisible) {
         auto& header = transaction->getType() == transaction::TransactionType::CHECKPOINT ?
                            this->indexHeaderForWriteTrx :
                            this->indexHeaderForReadTrx;
@@ -168,7 +168,9 @@ private:
             auto entryPos = findMatchedEntryInSlot(transaction, iter.slot, key, fingerprint);
             if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
                 result = iter.slot.entries[entryPos].value;
-                return true;
+                if (isVisible(result)) {
+                    return true;
+                }
             }
         } while (nextChainedSlot(transaction, iter));
         return false;
@@ -318,41 +320,44 @@ public:
     }
 
     inline bool lookup(const transaction::Transaction* trx, common::ku_string_t key,
-        common::offset_t& result) {
-        return lookup(trx, key.getAsStringView(), result);
+        common::offset_t& result, visible_func isVisible) {
+        return lookup(trx, key.getAsStringView(), result, isVisible);
     }
     template<common::IndexHashable T>
-    inline bool lookup(const transaction::Transaction* trx, T key, common::offset_t& result) {
+    inline bool lookup(const transaction::Transaction* trx, T key, common::offset_t& result,
+        visible_func isVisible) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
-        return getTypedHashIndex(key)->lookupInternal(trx, key, result);
+        return getTypedHashIndex(key)->lookupInternal(trx, key, result, isVisible);
     }
 
     bool lookup(const transaction::Transaction* trx, common::ValueVector* keyVector,
-        uint64_t vectorPos, common::offset_t& result);
+        uint64_t vectorPos, common::offset_t& result, visible_func isVisible);
 
     inline bool insert(const transaction::Transaction* transaction, common::ku_string_t key,
-        common::offset_t value) {
-        return insert(transaction, key.getAsStringView(), value);
+        common::offset_t value, visible_func isVisible) {
+        return insert(transaction, key.getAsStringView(), value, isVisible);
     }
     template<common::IndexHashable T>
-    inline bool insert(const transaction::Transaction* transaction, T key, common::offset_t value) {
+    inline bool insert(const transaction::Transaction* transaction, T key, common::offset_t value,
+        visible_func isVisible) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
-        return getTypedHashIndex(key)->insertInternal(transaction, key, value);
+        return getTypedHashIndex(key)->insertInternal(transaction, key, value, isVisible);
     }
     bool insert(const transaction::Transaction* transaction, common::ValueVector* keyVector,
-        uint64_t vectorPos, common::offset_t value);
+        uint64_t vectorPos, common::offset_t value, visible_func isVisible);
 
     // Appends the buffer to the index. Returns the number of values successfully inserted.
     // If a key fails to insert, it immediately returns without inserting any more values,
     // and the returned value is also the index of the key which failed to insert.
     template<common::IndexHashable T>
     size_t appendWithIndexPos(const transaction::Transaction* transaction,
-        const IndexBuffer<T>& buffer, uint64_t indexPos) {
+        const IndexBuffer<T>& buffer, uint64_t indexPos, visible_func isVisible) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
         KU_ASSERT(std::all_of(buffer.begin(), buffer.end(), [&](auto& elem) {
             return HashIndexUtils::getHashIndexPosition(elem.first) == indexPos;
         }));
-        return getTypedHashIndexByPos<HashIndexType<T>>(indexPos)->append(transaction, buffer);
+        return getTypedHashIndexByPos<HashIndexType<T>>(indexPos)->append(transaction, buffer,
+            isVisible);
     }
 
     void bulkReserve(uint64_t numValuesToAppend) {

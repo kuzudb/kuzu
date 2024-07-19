@@ -4,25 +4,25 @@
 
 namespace kuzu {
 namespace storage {
-class PrimaryKeyIndex;
+class NodeTable;
 } // namespace storage
 namespace processor {
 
 struct BatchInsertSharedState;
 struct IndexLookupInfo {
-    storage::PrimaryKeyIndex* index;
+    storage::NodeTable* nodeTable;
     // In copy rdf, we need to perform lookup before primary key is persist on disk. So we need to
     // use index builder.
     std::shared_ptr<BatchInsertSharedState> batchInsertSharedState;
     DataPos keyVectorPos;
     DataPos resultVectorPos;
 
-    IndexLookupInfo(storage::PrimaryKeyIndex* index, const DataPos& keyVectorPos,
+    IndexLookupInfo(storage::NodeTable* nodeTable, const DataPos& keyVectorPos,
         const DataPos& resultVectorPos)
-        : index{index}, batchInsertSharedState{nullptr}, keyVectorPos{keyVectorPos},
+        : nodeTable{nodeTable}, batchInsertSharedState{nullptr}, keyVectorPos{keyVectorPos},
           resultVectorPos{resultVectorPos} {}
     IndexLookupInfo(const IndexLookupInfo& other)
-        : index{other.index}, batchInsertSharedState{other.batchInsertSharedState},
+        : nodeTable{other.nodeTable}, batchInsertSharedState{other.batchInsertSharedState},
           keyVectorPos{other.keyVectorPos}, resultVectorPos{other.resultVectorPos} {}
 
     inline std::unique_ptr<IndexLookupInfo> copy() {

@@ -118,6 +118,8 @@ public:
         bool enableCompression, BMFileHandle* dataFH);
 
     bool isDeleted(const transaction::Transaction* transaction, common::row_idx_t rowInChunk) const;
+    bool isInserted(const transaction::Transaction* transaction,
+        common::row_idx_t rowInChunk) const;
     bool hasAnyUpdates(transaction::Transaction* transaction, common::column_id_t columnID,
         common::row_idx_t startRow, common::length_t numRows) const;
     common::row_idx_t getNumDeletions(const transaction::Transaction* transaction,

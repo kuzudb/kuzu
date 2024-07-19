@@ -20,7 +20,7 @@ public:
     explicit LocalRelTable(Table& table);
 
     bool insert(transaction::Transaction* transaction, TableInsertState& state) override;
-    bool update(TableUpdateState& state) override;
+    bool update(transaction::Transaction* transaction, TableUpdateState& state) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& state) override;
     bool addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState) override;

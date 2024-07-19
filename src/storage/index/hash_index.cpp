@@ -484,26 +484,26 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
 }
 
 bool PrimaryKeyIndex::lookup(const Transaction* trx, common::ValueVector* keyVector,
-    uint64_t vectorPos, common::offset_t& result) {
+    uint64_t vectorPos, common::offset_t& result, visible_func isVisible) {
     bool retVal = false;
     TypeUtils::visit(
         keyDataTypeID,
         [&]<IndexHashable T>(T) {
             T key = keyVector->getValue<T>(vectorPos);
-            retVal = lookup(trx, key, result);
+            retVal = lookup(trx, key, result, isVisible);
         },
         [](auto) { KU_UNREACHABLE; });
     return retVal;
 }
 
 bool PrimaryKeyIndex::insert(const Transaction* transaction, common::ValueVector* keyVector,
-    uint64_t vectorPos, common::offset_t value) {
+    uint64_t vectorPos, common::offset_t value, visible_func isVisible) {
     bool result = false;
     TypeUtils::visit(
         keyDataTypeID,
         [&]<IndexHashable T>(T) {
             T key = keyVector->getValue<T>(vectorPos);
-            result = insert(transaction, key, value);
+            result = insert(transaction, key, value, isVisible);
         },
         [](auto) { KU_UNREACHABLE; });
     return result;

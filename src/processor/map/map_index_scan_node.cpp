@@ -17,12 +17,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIndexLookup(LogicalOperator* lo
     std::vector<std::unique_ptr<IndexLookupInfo>> indexLookupInfos;
     for (auto i = 0u; i < logicalIndexScan.getNumInfos(); ++i) {
         auto& info = logicalIndexScan.getInfo(i);
-        auto storageIndex =
-            storageManager->getTable(info.nodeTableID)->ptrCast<storage::NodeTable>()->getPKIndex();
+        auto nodeTable = storageManager->getTable(info.nodeTableID)->ptrCast<storage::NodeTable>();
         auto offsetPos = DataPos(outSchema->getExpressionPos(*info.offset));
         auto keyPos = DataPos(outSchema->getExpressionPos(*info.key));
-        indexLookupInfos.push_back(
-            std::make_unique<IndexLookupInfo>(storageIndex, keyPos, offsetPos));
+        indexLookupInfos.push_back(std::make_unique<IndexLookupInfo>(nodeTable, keyPos, offsetPos));
     }
     binder::expression_vector expressions;
     for (auto i = 0u; i < logicalIndexScan.getNumInfos(); ++i) {
