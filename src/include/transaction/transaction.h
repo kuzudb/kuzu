@@ -83,11 +83,11 @@ public:
         const catalog::SequenceData& data, int64_t prevVal) const;
     void pushNodeBatchInsert(common::table_id_t tableID) const;
     void pushVectorInsertInfo(storage::VersionInfo& versionInfo, common::idx_t vectorIdx,
-        storage::VectorVersionInfo& vectorVersionInfo,
-        const std::vector<common::row_idx_t>& rowsInVector) const;
+        storage::VectorVersionInfo& vectorVersionInfo, common::row_idx_t startRowInVector,
+        common::row_idx_t numRows) const;
     void pushVectorDeleteInfo(storage::VersionInfo& versionInfo, common::idx_t vectorIdx,
-        storage::VectorVersionInfo& vectorVersionInfo,
-        const std::vector<common::row_idx_t>& rowsInVector) const;
+        storage::VectorVersionInfo& vectorVersionInfo, common::row_idx_t startRowInVector,
+        common::row_idx_t numRows) const;
     void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::idx_t vectorIdx,
         storage::VectorUpdateInfo& vectorUpdateInfo) const;
 

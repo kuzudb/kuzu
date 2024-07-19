@@ -154,11 +154,9 @@ row_idx_t VersionInfo::append(const transaction::Transaction* transaction, const
             vectorIdx == endVectorIdx ? endRowIdxInVector : DEFAULT_VECTOR_CAPACITY;
         const auto numRowsInVector = endRowIdx - startRowIdx;
         numAppended += vectorVersionInfo.append(transaction->getID(), startRowIdx, numRowsInVector);
-        std::vector<row_idx_t> rows;
-        rows.resize(numRowsInVector);
-        std::iota(rows.begin(), rows.end(), startRowIdx);
         if (transaction->getID() > 0) {
-            transaction->pushVectorInsertInfo(*this, vectorIdx, vectorVersionInfo, rows);
+            transaction->pushVectorInsertInfo(*this, vectorIdx, vectorVersionInfo, startRowIdx,
+                numRowsInVector);
         }
     }
     return numAppended;
@@ -176,7 +174,7 @@ bool VersionInfo::delete_(const transaction::Transaction* transaction, const row
     }
     const auto deleted = vectorVersionInfo.delete_(transaction->getID(), rowIdxInVector);
     if (deleted && transaction->getID() > transaction::Transaction::DUMMY_TRANSACTION_ID) {
-        transaction->pushVectorDeleteInfo(*this, vectorIdx, vectorVersionInfo, {rowIdxInVector});
+        transaction->pushVectorDeleteInfo(*this, vectorIdx, vectorVersionInfo, rowIdxInVector, 1);
     }
     return deleted;
 }
