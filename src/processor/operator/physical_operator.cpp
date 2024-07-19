@@ -88,10 +88,6 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "PROFILE";
     case PhysicalOperatorType::RECURSIVE_JOIN:
         return "RECURSIVE_JOIN";
-    case PhysicalOperatorType::RENAME_PROPERTY:
-        return "RENAME_PROPERTY";
-    case PhysicalOperatorType::RENAME_TABLE:
-        return "RENAME_TABLE";
     case PhysicalOperatorType::RESULT_COLLECTOR:
         return "RESULT_COLLECTOR";
     case PhysicalOperatorType::SCAN_NODE_TABLE:
