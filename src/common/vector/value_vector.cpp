@@ -374,7 +374,7 @@ void ValueVector::serialize(Serializer& ser) const {
 }
 
 std::unique_ptr<ValueVector> ValueVector::deSerialize(Deserializer& deSer,
-    storage::MemoryManager* mm, std::shared_ptr<common::DataChunkState> dataChunkState) {
+    storage::MemoryManager* mm, std::shared_ptr<DataChunkState> dataChunkState) {
     std::string key;
     deSer.deserializeDebuggingInfo(key);
     KU_ASSERT(key == "data_type");

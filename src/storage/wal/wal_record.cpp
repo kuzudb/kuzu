@@ -284,11 +284,11 @@ std::unique_ptr<TableInsertionRecord> TableInsertionRecord::deserialize(Deserial
     deserializer.deserializeDebuggingInfo(key);
     KU_ASSERT(key == "num_vectors");
     deserializer.deserializeValue(numVectors);
-    auto resultChunk = std::make_shared<DataChunkState>();
+    auto resultChunkState = std::make_shared<DataChunkState>();
     valueVectors.reserve(numVectors);
     for (auto i = 0u; i < numVectors; i++) {
-        valueVectors.push_back(
-            ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunk));
+        valueVectors.push_back(ValueVector::deSerialize(deserializer,
+            clientContext.getMemoryManager(), resultChunkState));
     }
     return std::make_unique<TableInsertionRecord>(tableID, tableType, numRows,
         std::move(valueVectors));
@@ -318,9 +318,9 @@ std::unique_ptr<NodeDeletionRecord> NodeDeletionRecord::deserialize(Deserializer
     deserializer.deserializeValue<offset_t>(nodeOffset);
     deserializer.deserializeDebuggingInfo(key);
     KU_ASSERT(key == "pk_vector");
-    auto resultChunk = std::make_shared<DataChunkState>();
+    auto resultChunkState = std::make_shared<DataChunkState>();
     auto ownedVector =
-        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunk);
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
     return std::make_unique<NodeDeletionRecord>(tableID, nodeOffset, std::move(ownedVector));
 }
 
@@ -354,9 +354,9 @@ std::unique_ptr<NodeUpdateRecord> NodeUpdateRecord::deserialize(Deserializer& de
     deserializer.deserializeValue<offset_t>(nodeOffset);
     deserializer.deserializeDebuggingInfo(key);
     KU_ASSERT(key == "property_vector");
-    auto resultChunk = std::make_shared<DataChunkState>();
+    auto resultChunkState = std::make_shared<DataChunkState>();
     auto ownedVector =
-        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunk);
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
     return std::make_unique<NodeUpdateRecord>(tableID, columnID, nodeOffset,
         std::move(ownedVector));
 }
@@ -382,18 +382,18 @@ std::unique_ptr<RelDeletionRecord> RelDeletionRecord::deserialize(Deserializer& 
     KU_ASSERT(key == "table_id");
     deserializer.deserializeValue<table_id_t>(tableID);
     deserializer.deserializeDebuggingInfo(key);
-    auto resultChunk = std::make_shared<DataChunkState>();
+    auto resultChunkState = std::make_shared<DataChunkState>();
     KU_ASSERT(key == "src_node_vector");
     auto srcNodeIDVector =
-        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunk);
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
     deserializer.deserializeDebuggingInfo(key);
     KU_ASSERT(key == "dst_node_vector");
     auto dstNodeIDVector =
-        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunk);
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
     deserializer.deserializeDebuggingInfo(key);
     KU_ASSERT(key == "rel_id_vector");
     auto relIDVector =
-        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunk);
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
     return std::make_unique<RelDeletionRecord>(tableID, std::move(srcNodeIDVector),
         std::move(dstNodeIDVector), std::move(relIDVector));
 }
@@ -422,9 +422,9 @@ std::unique_ptr<RelDetachDeleteRecord> RelDetachDeleteRecord::deserialize(
     deserializer.deserializeValue<RelDataDirection>(direction);
     deserializer.deserializeDebuggingInfo(key);
     KU_ASSERT(key == "src_node_vector");
-    auto resultChunk = std::make_shared<DataChunkState>();
+    auto resultChunkState = std::make_shared<DataChunkState>();
     auto srcNodeIDVector =
-        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunk);
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
     return std::make_unique<RelDetachDeleteRecord>(tableID, direction, std::move(srcNodeIDVector));
 }
 
@@ -457,22 +457,22 @@ std::unique_ptr<RelUpdateRecord> RelUpdateRecord::deserialize(Deserializer& dese
     KU_ASSERT(key == "column_id");
     deserializer.deserializeValue<column_id_t>(columnID);
     deserializer.deserializeDebuggingInfo(key);
-    auto resultChunk = std::make_shared<DataChunkState>();
+    auto resultChunkState = std::make_shared<DataChunkState>();
     KU_ASSERT(key == "src_node_vector");
     auto srcNodeIDVector =
-        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunk);
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
     deserializer.deserializeDebuggingInfo(key);
     KU_ASSERT(key == "dst_node_vector");
     auto dstNodeIDVector =
-        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunk);
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
     deserializer.deserializeDebuggingInfo(key);
     KU_ASSERT(key == "rel_id_vector");
     auto relIDVector =
-        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunk);
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
     deserializer.deserializeDebuggingInfo(key);
     KU_ASSERT(key == "property_vector");
     auto propertyVector =
-        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunk);
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
     return std::make_unique<RelUpdateRecord>(tableID, columnID, std::move(srcNodeIDVector),
         std::move(dstNodeIDVector), std::move(relIDVector), std::move(propertyVector));
 }

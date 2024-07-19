@@ -221,10 +221,11 @@ void WALReplayer::replayNodeTableInsertRecord(const WALRecord& walRecord) const 
     const auto& insertionRecord = walRecord.constCast<TableInsertionRecord>();
     const auto tableID = insertionRecord.tableID;
     auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<NodeTable>();
-    const auto chunkState = std::make_shared<DataChunkState>();
-    chunkState->getSelVectorUnsafe().setSelSize(insertionRecord.numRows);
+    KU_ASSERT(!insertionRecord.ownedVectors.empty());
+    const auto anchorState = insertionRecord.ownedVectors[0]->state;
+    const auto numNodes = anchorState->getSelVector().getSelSize();
     for (auto i = 0u; i < insertionRecord.ownedVectors.size(); i++) {
-        insertionRecord.ownedVectors[i]->setState(chunkState);
+        insertionRecord.ownedVectors[i]->setState(anchorState);
     }
     std::vector<ValueVector*> propertyVectors(insertionRecord.ownedVectors.size());
     for (auto i = 0u; i < insertionRecord.ownedVectors.size(); i++) {
@@ -233,21 +234,27 @@ void WALReplayer::replayNodeTableInsertRecord(const WALRecord& walRecord) const 
     KU_ASSERT(table.getPKColumnID() < insertionRecord.ownedVectors.size());
     auto& pkVector = *insertionRecord.ownedVectors[table.getPKColumnID()];
     const auto nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID());
-    nodeIDVector->setState(chunkState);
-    const auto insertState =
-        std::make_unique<NodeTableInsertState>(*nodeIDVector, pkVector, propertyVectors);
-    KU_ASSERT(clientContext.getTx() && clientContext.getTx()->isRecovery());
-    table.insert(clientContext.getTx(), *insertState);
+    nodeIDVector->setState(anchorState);
+    anchorState->getSelVectorUnsafe().setToFiltered(1);
+    for (auto i = 0u; i < numNodes; i++) {
+        anchorState->getSelVectorUnsafe()[0] = i;
+        const auto insertState =
+            std::make_unique<NodeTableInsertState>(*nodeIDVector, pkVector, propertyVectors);
+        KU_ASSERT(clientContext.getTx() && clientContext.getTx()->isRecovery());
+        table.insert(clientContext.getTx(), *insertState);
+    }
 }
 
 void WALReplayer::replayRelTableInsertRecord(const WALRecord& walRecord) const {
     const auto& insertionRecord = walRecord.constCast<TableInsertionRecord>();
     const auto tableID = insertionRecord.tableID;
     auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<RelTable>();
-    const auto chunkState = std::make_shared<DataChunkState>();
-    chunkState->getSelVectorUnsafe().setSelSize(insertionRecord.numRows);
+    KU_ASSERT(!insertionRecord.ownedVectors.empty());
+    const auto anchorState = insertionRecord.ownedVectors[0]->state;
+    const auto numRels = anchorState->getSelVector().getSelSize();
+    anchorState->getSelVectorUnsafe().setToFiltered(1);
     for (auto i = 0u; i < insertionRecord.ownedVectors.size(); i++) {
-        insertionRecord.ownedVectors[i]->setState(chunkState);
+        insertionRecord.ownedVectors[i]->setState(anchorState);
     }
     std::vector<ValueVector*> propertyVectors;
     for (auto i = 0u; i < insertionRecord.ownedVectors.size(); i++) {
@@ -257,21 +264,24 @@ void WALReplayer::replayRelTableInsertRecord(const WALRecord& walRecord) const {
         }
         propertyVectors.push_back(insertionRecord.ownedVectors[i].get());
     }
-    const auto insertState = std::make_unique<RelTableInsertState>(
-        *insertionRecord.ownedVectors[LOCAL_BOUND_NODE_ID_COLUMN_ID],
-        *insertionRecord.ownedVectors[LOCAL_NBR_NODE_ID_COLUMN_ID], propertyVectors);
-    KU_ASSERT(clientContext.getTx() && clientContext.getTx()->isRecovery());
-    table.insert(clientContext.getTx(), *insertState);
+    for (auto i = 0u; i < numRels; i++) {
+        anchorState->getSelVectorUnsafe()[0] = i;
+        const auto insertState = std::make_unique<RelTableInsertState>(
+            *insertionRecord.ownedVectors[LOCAL_BOUND_NODE_ID_COLUMN_ID],
+            *insertionRecord.ownedVectors[LOCAL_NBR_NODE_ID_COLUMN_ID], propertyVectors);
+        KU_ASSERT(clientContext.getTx() && clientContext.getTx()->isRecovery());
+        table.insert(clientContext.getTx(), *insertState);
+    }
 }
 
 void WALReplayer::replayNodeDeletionRecord(const WALRecord& walRecord) const {
     const auto& deletionRecord = walRecord.constCast<NodeDeletionRecord>();
     const auto tableID = deletionRecord.tableID;
     auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<NodeTable>();
-    const auto chunkState = std::make_shared<DataChunkState>();
-    chunkState->getSelVectorUnsafe().setSelSize(1);
+    const auto anchorState = deletionRecord.ownedPKVector->state;
+    KU_ASSERT(anchorState->getSelVector().getSelSize() == 1);
     const auto nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID());
-    nodeIDVector->setState(chunkState);
+    nodeIDVector->setState(anchorState);
     nodeIDVector->setValue<internalID_t>(0,
         internalID_t{deletionRecord.nodeOffset, deletionRecord.tableID});
     const auto deleteState =
@@ -284,13 +294,12 @@ void WALReplayer::replayNodeUpdateRecord(const WALRecord& walRecord) const {
     const auto& updateRecord = walRecord.constCast<NodeUpdateRecord>();
     const auto tableID = updateRecord.tableID;
     auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<NodeTable>();
-    const auto chunkState = std::make_shared<DataChunkState>();
-    chunkState->getSelVectorUnsafe().setSelSize(1);
+    const auto anchorState = updateRecord.ownedPropertyVector->state;
+    KU_ASSERT(anchorState->getSelVector().getSelSize() == 1);
     const auto nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID());
-    nodeIDVector->setState(chunkState);
+    nodeIDVector->setState(anchorState);
     nodeIDVector->setValue<internalID_t>(0,
         internalID_t{updateRecord.nodeOffset, updateRecord.tableID});
-    updateRecord.ownedPropertyVector->setState(chunkState);
     const auto updateState = std::make_unique<NodeTableUpdateState>(updateRecord.columnID,
         *nodeIDVector, *updateRecord.ownedPropertyVector);
     KU_ASSERT(clientContext.getTx() && clientContext.getTx()->isRecovery());
@@ -301,11 +310,8 @@ void WALReplayer::replayRelDeletionRecord(const WALRecord& walRecord) const {
     const auto& deletionRecord = walRecord.constCast<RelDeletionRecord>();
     const auto tableID = deletionRecord.tableID;
     auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<RelTable>();
-    const auto chunkState = std::make_shared<DataChunkState>();
-    chunkState->getSelVectorUnsafe().setSelSize(1);
-    deletionRecord.ownedSrcNodeIDVector->setState(chunkState);
-    deletionRecord.ownedDstNodeIDVector->setState(chunkState);
-    deletionRecord.ownedRelIDVector->setState(chunkState);
+    const auto anchorState = deletionRecord.ownedRelIDVector->state;
+    KU_ASSERT(anchorState->getSelVector().getSelSize() == 1);
     const auto deleteState =
         std::make_unique<RelTableDeleteState>(*deletionRecord.ownedSrcNodeIDVector,
             *deletionRecord.ownedDstNodeIDVector, *deletionRecord.ownedRelIDVector);
@@ -318,16 +324,15 @@ void WALReplayer::replayRelDetachDeletionRecord(const WALRecord& walRecord) cons
     const auto tableID = deletionRecord.tableID;
     auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<RelTable>();
     KU_ASSERT(clientContext.getTx() && clientContext.getTx()->isRecovery());
-    const auto tempBoundNodeState = std::make_shared<DataChunkState>();
-    tempBoundNodeState->getSelVectorUnsafe().setSelSize(1);
-    deletionRecord.ownedSrcNodeIDVector->setState(tempBoundNodeState);
-    const auto tempRelSharedState = std::make_shared<DataChunkState>();
-    auto dstNodeIDVector = std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
-    auto relIDVector = std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
-    dstNodeIDVector->setState(tempRelSharedState);
-    relIDVector->setState(tempRelSharedState);
-    auto deleteState = std::make_unique<RelTableDeleteState>(*deletionRecord.ownedSrcNodeIDVector,
-        *dstNodeIDVector, *relIDVector);
+    const auto anchorState = deletionRecord.ownedSrcNodeIDVector->state;
+    KU_ASSERT(anchorState->getSelVector().getSelSize() == 1);
+    const auto dstNodeIDVector =
+        std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
+    const auto relIDVector = std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
+    dstNodeIDVector->setState(anchorState);
+    relIDVector->setState(anchorState);
+    const auto deleteState = std::make_unique<RelTableDeleteState>(
+        *deletionRecord.ownedSrcNodeIDVector, *dstNodeIDVector, *relIDVector);
     table.detachDelete(clientContext.getTx(), deletionRecord.direction, deleteState.get());
 }
 
@@ -335,12 +340,11 @@ void WALReplayer::replayRelUpdateRecord(const WALRecord& walRecord) const {
     const auto& updateRecord = walRecord.constCast<RelUpdateRecord>();
     const auto tableID = updateRecord.tableID;
     auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<RelTable>();
-    const auto chunkState = std::make_shared<DataChunkState>();
-    chunkState->getSelVectorUnsafe().setSelSize(1);
-    updateRecord.ownedSrcNodeIDVector->setState(chunkState);
-    updateRecord.ownedDstNodeIDVector->setState(chunkState);
-    updateRecord.ownedRelIDVector->setState(chunkState);
-    updateRecord.ownedPropertyVector->setState(chunkState);
+    const auto anchorState = updateRecord.ownedRelIDVector->state;
+    KU_ASSERT(anchorState == updateRecord.ownedSrcNodeIDVector->state &&
+              anchorState == updateRecord.ownedSrcNodeIDVector->state &&
+              anchorState == updateRecord.ownedPropertyVector->state);
+    KU_ASSERT(anchorState->getSelVector().getSelSize() == 1);
     const auto updateState = std::make_unique<RelTableUpdateState>(updateRecord.columnID,
         *updateRecord.ownedSrcNodeIDVector, *updateRecord.ownedDstNodeIDVector,
         *updateRecord.ownedRelIDVector, *updateRecord.ownedPropertyVector);
@@ -350,12 +354,11 @@ void WALReplayer::replayRelUpdateRecord(const WALRecord& walRecord) const {
 
 void WALReplayer::replayCopyTableRecord(const WALRecord&) const {
     // DO NOTHING.
-    // TODO(Guodong): FIX-ME.
 }
 
 void WALReplayer::replayUpdateSequenceRecord(const WALRecord& walRecord) const {
     auto& sequenceEntryRecord = walRecord.constCast<UpdateSequenceRecord>();
-    auto sequenceID = sequenceEntryRecord.sequenceID;
+    const auto sequenceID = sequenceEntryRecord.sequenceID;
     const auto entry =
         clientContext.getCatalog()->getSequenceCatalogEntry(clientContext.getTx(), sequenceID);
     entry->replayVal(sequenceEntryRecord.data.usageCount, sequenceEntryRecord.data.currVal,
