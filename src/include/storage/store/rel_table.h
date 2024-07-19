@@ -119,7 +119,7 @@ public:
         const catalog::Catalog& catalog, StorageManager* storageManager,
         MemoryManager* memoryManager, common::VirtualFileSystem* vfs, main::ClientContext* context);
 
-    common::table_id_t getFromNodeTableID() const { return toNodeTableID; }
+    common::table_id_t getFromNodeTableID() const { return fromNodeTableID; }
     common::table_id_t getToNodeTableID() const { return toNodeTableID; }
 
     void initializeScanState(transaction::Transaction* transaction,
