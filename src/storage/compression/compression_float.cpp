@@ -105,8 +105,6 @@ void FloatCompression<T>::setValuesFromUncompressed(const uint8_t* srcBuffer,
     //                                       canUpdateInPlace(std::span(&value, 1), metadata);
     //                            })));
 
-    // TODO fix
-
     std::vector<EncodedType> integerEncodedValues(numValues);
     for (size_t i = 0; i < numValues; ++i) {
         const size_t posInSrc = i + srcOffset;

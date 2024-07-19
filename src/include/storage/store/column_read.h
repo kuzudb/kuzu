@@ -65,12 +65,12 @@ public:
         read_values_from_page_func_t<common::ValueVector*> readFunc,
         std::function<bool(common::offset_t, common::offset_t)> filterFunc) = 0;
 
-    virtual void writeValueToPageFromVector(const ColumnChunkMetadata& chunkMetadata,
+    virtual void writeValueToPageFromVector(const ColumnChunkMetadata& metadata,
         uint64_t numValuesPerPage, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom,
         write_values_from_vector_func_t writeFromVectorFunc) = 0;
 
-    virtual void writeValuesToPageFromBuffer(const ColumnChunkMetadata& chunkMetadata,
+    virtual void writeValuesToPageFromBuffer(const ColumnChunkMetadata& metadata,
         uint64_t numValuesPerPage, common::offset_t dstOffset, const uint8_t* data,
         const common::NullMask* nullChunkData, common::offset_t srcOffset,
         common::offset_t numValues, write_values_func_t writeFunc) = 0;
