@@ -211,6 +211,9 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
             structFields[i]->copyFromValue(pos, *NestedVal::getChildVal(&value, i));
         }
     } break;
+    case PhysicalTypeID::INTERNAL_ID: {
+        memcpy(dstValue, &value.val.internalIDVal, numBytesPerValue);
+    } break;
     default: {
         KU_UNREACHABLE;
     }
@@ -290,6 +293,9 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) const {
         value->childrenSize = children.size();
         value->children = std::move(children);
     } break;
+    case PhysicalTypeID::INTERNAL_ID: {
+        value->val.internalIDVal = getValue<internalID_t>(pos);
+    } break;
     default: {
         KU_UNREACHABLE;
     }
@@ -357,32 +363,38 @@ void ValueVector::serialize(Serializer& ser) const {
     ser.writeDebuggingInfo("data_type");
     dataType.serialize(ser);
     ser.writeDebuggingInfo("num_values");
-    ser.write<sel_t>(state->getSelVector().getSelSize());
-    ser.writeDebuggingInfo("buffer");
-    ser.write(valueBuffer.get(), numBytesPerValue * state->getSelVector().getSelSize());
+    auto selSize = state->getSelVector().getSelSize();
+    ser.write<sel_t>(selSize);
     ser.writeDebuggingInfo("null_mask");
     nullMask.serialize(ser);
-    // TODO(Guodong): aux, nested types.
+    ser.writeDebuggingInfo("values");
+    for (auto i = 0u; i < selSize; i++) {
+        getAsValue(state->getSelVector()[i])->serialize(ser);
+    }
 }
 
 std::unique_ptr<ValueVector> ValueVector::deSerialize(Deserializer& deSer,
-    storage::MemoryManager* mm) {
+    storage::MemoryManager* mm, std::shared_ptr<common::DataChunkState> dataChunkState) {
     std::string key;
     deSer.deserializeDebuggingInfo(key);
     KU_ASSERT(key == "data_type");
     auto dataType = LogicalType::deserialize(deSer);
     auto result = std::make_unique<ValueVector>(std::move(dataType), mm);
+    result->state = dataChunkState;
     deSer.deserializeDebuggingInfo(key);
     KU_ASSERT(key == "num_values");
     sel_t numValues;
     deSer.deserializeValue<sel_t>(numValues);
-    auto numBytesToRead = numValues * result->numBytesPerValue;
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "buffer");
-    deSer.read(result->valueBuffer.get(), numBytesToRead);
+    result->state->getSelVectorUnsafe().setSelSize(numValues);
     deSer.deserializeDebuggingInfo(key);
     KU_ASSERT(key == "null_mask");
     result->nullMask = NullMask::deserialize(deSer);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "values");
+    for (auto i = 0u; i < numValues; i++) {
+        auto val = Value::deserialize(deSer);
+        result->copyFromValue(result->state->getSelVector()[i], *val);
+    }
     return result;
 }
 
