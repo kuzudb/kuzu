@@ -4,7 +4,6 @@
 
 #include "common/enums/rel_direction.h"
 #include "common/exception/message.h"
-#include "storage/storage_utils.h"
 #include "storage/store/rel_table.h"
 
 using namespace kuzu::common;
@@ -29,7 +28,8 @@ LocalRelTable::LocalRelTable(Table& table) : LocalTable{table} {
         getTypesForLocalRelTable(table.cast<RelTable>()), INVALID_ROW_IDX);
 }
 
-bool LocalRelTable::insert(Transaction*, TableInsertState& state) {
+bool LocalRelTable::insert(Transaction* transaction, TableInsertState& state) {
+    KU_ASSERT(transaction->isDummy());
     const auto& insertState = state.cast<RelTableInsertState>();
     const auto srcNodePos = insertState.srcNodeIDVector.state->getSelVector()[0];
     const auto dstNodePos = insertState.dstNodeIDVector.state->getSelVector()[0];
@@ -53,7 +53,7 @@ bool LocalRelTable::insert(Transaction*, TableInsertState& state) {
         insertVectors.push_back(insertState.propertyVectors[i]);
     }
     const auto numRowsToAppend = insertState.srcNodeIDVector.state->getSelVector().getSelSize();
-    localNodeGroup->append(&DUMMY_TRANSACTION, insertVectors, 0, numRowsToAppend);
+    localNodeGroup->append(transaction, insertVectors, 0, numRowsToAppend);
     const auto srcNodeOffset = insertState.srcNodeIDVector.readNodeOffset(srcNodePos);
     const auto dstNodeOffset = insertState.dstNodeIDVector.readNodeOffset(dstNodePos);
     fwdIndex[srcNodeOffset].push_back(numRowsInLocalTable);
@@ -61,7 +61,8 @@ bool LocalRelTable::insert(Transaction*, TableInsertState& state) {
     return true;
 }
 
-bool LocalRelTable::update(Transaction*, TableUpdateState& state) {
+bool LocalRelTable::update(Transaction* transaction, TableUpdateState& state) {
+    KU_ASSERT(transaction->isDummy());
     const auto& updateState = state.cast<RelTableUpdateState>();
     const auto srcNodePos = updateState.srcNodeIDVector.state->getSelVector()[0];
     const auto dstNodePos = updateState.dstNodeIDVector.state->getSelVector()[0];
@@ -78,14 +79,14 @@ bool LocalRelTable::update(Transaction*, TableUpdateState& state) {
         return false;
     }
     KU_ASSERT(updateState.columnID != NBR_ID_COLUMN_ID);
-    localNodeGroup->update(&DUMMY_TRANSACTION, matchedRow,
+    localNodeGroup->update(transaction, matchedRow,
         rewriteLocalColumnID(RelDataDirection::FWD /* This is a dummy direction */,
             updateState.columnID),
         updateState.propertyVector);
     return true;
 }
 
-bool LocalRelTable::delete_(transaction::Transaction*, TableDeleteState& state) {
+bool LocalRelTable::delete_(Transaction*, TableDeleteState& state) {
     const auto& deleteState = state.cast<RelTableDeleteState>();
     const auto srcNodePos = deleteState.srcNodeIDVector.state->getSelVector()[0];
     const auto dstNodePos = deleteState.dstNodeIDVector.state->getSelVector()[0];
@@ -106,8 +107,7 @@ bool LocalRelTable::delete_(transaction::Transaction*, TableDeleteState& state) 
     return true;
 }
 
-bool LocalRelTable::addColumn(transaction::Transaction* transaction,
-    TableAddColumnState& addColumnState) {
+bool LocalRelTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
     localNodeGroup->addColumn(transaction, addColumnState, nullptr /* BMFileHandle */);
     return true;
 }
@@ -159,7 +159,7 @@ column_id_t LocalRelTable::rewriteLocalColumnID(RelDataDirection direction, colu
                                           columnID + 1;
 }
 
-bool LocalRelTable::scan(transaction::Transaction* transaction, TableScanState& state) const {
+bool LocalRelTable::scan(Transaction* transaction, TableScanState& state) const {
     const auto& relScanState = state.cast<RelTableScanState>();
     KU_ASSERT(relScanState.localTableScanState);
     auto& localScanState = *relScanState.localTableScanState;
@@ -202,7 +202,7 @@ row_idx_t LocalRelTable::findMatchingRow(offset_t srcNodeOffset, offset_t dstNod
     for (auto i = 0u; i < intersectRows.size(); i++) {
         scanState->rowIdxVector->setValue<row_idx_t>(i, intersectRows[i]);
     }
-    localNodeGroup->lookup(&transaction::DUMMY_TRANSACTION, *scanState);
+    localNodeGroup->lookup(&DUMMY_TRANSACTION, *scanState);
     const auto scannedRelIDVector = scanState->outputVectors[0];
     KU_ASSERT(scannedRelIDVector->state->getSelVector().getSelSize() == intersectRows.size());
     row_idx_t matchedRow = INVALID_ROW_IDX;

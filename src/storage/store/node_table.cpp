@@ -130,14 +130,14 @@ bool NodeTable::lookup(Transaction* transaction, const TableScanState& scanState
     return scanState.nodeGroup->lookup(transaction, scanState);
 }
 
-offset_t NodeTable::validateUniquenessConstraint(Transaction* transaction,
+offset_t NodeTable::validateUniquenessConstraint(const Transaction* transaction,
     const std::vector<ValueVector*>& propertyVectors) const {
     const auto pkVector = propertyVectors[pkColumnID];
     KU_ASSERT(pkVector->state->getSelVector().getSelSize() == 1);
     const auto pkVectorPos = pkVector->state->getSelVector()[0];
     offset_t offset;
     if (pkIndex->lookup(transaction, propertyVectors[pkColumnID], pkVectorPos, offset,
-            [&](common::offset_t offset) { return isVisible(transaction, offset); })) {
+            [&](offset_t offset_) { return isVisible(transaction, offset_); })) {
         return offset;
     }
     return INVALID_OFFSET;
@@ -153,7 +153,7 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
     }
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
-    localTable->insert(transaction, insertState);
+    localTable->insert(&DUMMY_TRANSACTION, insertState);
 }
 
 void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) {
@@ -175,7 +175,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL);
         KU_ASSERT(localTable);
-        localTable->update(transaction, updateState);
+        localTable->update(&DUMMY_TRANSACTION, updateState);
     } else {
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
         const auto rowIdxInGroup =
@@ -199,7 +199,7 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL);
         KU_ASSERT(localTable);
-        return localTable->delete_(transaction, deleteState);
+        return localTable->delete_(&DUMMY_TRANSACTION, deleteState);
     }
     const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     const auto rowIdxInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);

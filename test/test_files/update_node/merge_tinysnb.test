@@ -60,7 +60,7 @@ Runtime exception: Found duplicated primary key value 1, which violates the uniq
 ---- 1
 11
 
-# TODO(Guodong): FIX-ME.
+# TODO(Xiyang/Ziyi): FIX-ME.
 -CASE MergeDuplicatedKey
 -SKIP
 -STATEMENT CREATE NODE TABLE user (ID int64, primary key(ID))
