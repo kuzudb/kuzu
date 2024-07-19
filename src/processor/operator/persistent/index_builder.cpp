@@ -8,8 +8,11 @@
 #include "common/exception/message.h"
 #include "common/type_utils.h"
 #include "common/types/ku_string.h"
+#include "processor/operator/transaction.h"
 #include "storage/index/hash_index_utils.h"
+#include "storage/store/node_table.h"
 #include "storage/store/string_chunk_data.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace processor {
@@ -17,10 +20,16 @@ namespace processor {
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
-IndexBuilderGlobalQueues::IndexBuilderGlobalQueues(PrimaryKeyIndex* pkIndex) : pkIndex(pkIndex) {
+IndexBuilderGlobalQueues::IndexBuilderGlobalQueues(transaction::Transaction* transaction,
+    NodeTable* nodeTable)
+    : nodeTable(nodeTable), transaction{transaction} {
     TypeUtils::visit(
         pkTypeID(), [&](ku_string_t) { queues.emplace<Queue<std::string>>(); },
         [&]<HashablePrimitive T>(T) { queues.emplace<Queue<T>>(); }, [](auto) { KU_UNREACHABLE; });
+}
+
+common::PhysicalTypeID IndexBuilderGlobalQueues::pkTypeID() const {
+    return nodeTable->getPKIndex()->keyTypeID();
 }
 
 void IndexBuilderGlobalQueues::consume() {
@@ -41,7 +50,7 @@ void IndexBuilderGlobalQueues::maybeConsumeIndex(size_t index) {
             IndexBuffer<T> buffer;
             while (queues.array[index].pop(buffer)) {
                 auto numValuesInserted =
-                    pkIndex->appendWithIndexPos(&transaction::DUMMY_TRANSACTION, buffer, index);
+                    nodeTable->appendPKWithIndexPos(transaction, buffer, index);
                 if (numValuesInserted < buffer.size()) {
                     if constexpr (std::same_as<T, std::string>) {
                         throw CopyException(ExceptionMessage::duplicatePKException(

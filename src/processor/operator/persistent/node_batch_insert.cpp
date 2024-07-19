@@ -23,7 +23,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void NodeBatchInsertSharedState::initPKIndex(ExecutionContext*) {
+void NodeBatchInsertSharedState::initPKIndex(ExecutionContext* context) {
     uint64_t numRows;
     if (readerSharedState != nullptr) {
         KU_ASSERT(distinctSharedState == nullptr);
@@ -34,8 +34,10 @@ void NodeBatchInsertSharedState::initPKIndex(ExecutionContext*) {
         KU_ASSERT(distinctSharedState);
         numRows = distinctSharedState->getFactorizedTable()->getNumTuples();
     }
-    pkIndex->bulkReserve(numRows);
-    globalIndexBuilder = IndexBuilder(std::make_shared<IndexBuilderSharedState>(pkIndex));
+    auto* nodeTable = ku_dynamic_cast<Table*, NodeTable*>(table);
+    nodeTable->getPKIndex()->bulkReserve(numRows);
+    globalIndexBuilder = IndexBuilder(
+        std::make_shared<IndexBuilderSharedState>(context->clientContext->getTx(), nodeTable));
 }
 
 void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {

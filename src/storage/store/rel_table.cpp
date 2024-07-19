@@ -1,7 +1,9 @@
 #include "storage/store/rel_table.h"
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "common/cast.h"
 #include "storage/local_storage/local_rel_table.h"
+#include "storage/local_storage/local_table.h"
 #include "storage/storage_manager.h"
 #include "storage/store/rel_table_data.h"
 
@@ -128,7 +130,7 @@ void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL);
         KU_ASSERT(loadTable);
-        localTable->update(updateState);
+        localTable->update(transaction, updateState);
     } else {
         fwdRelTableData->update(transaction, relUpdateState.srcNodeIDVector,
             relUpdateState.relIDVector, relUpdateState.columnID, relUpdateState.propertyVector);

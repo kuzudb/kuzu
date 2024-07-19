@@ -15,6 +15,8 @@
 namespace kuzu {
 namespace storage {
 
+using visible_func = std::function<bool(common::offset_t)>;
+
 constexpr size_t BUFFER_SIZE = 1024;
 template<typename T>
 using IndexBuffer = common::StaticVector<std::pair<T, common::offset_t>, BUFFER_SIZE>;
@@ -79,7 +81,7 @@ public:
     using Key = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string_view, T>;
     // Appends the buffer to the index. Returns the number of values successfully inserted.
     // I.e. if a key fails to insert, its index will be the return value
-    size_t append(const IndexBuffer<BufferKeyType>& buffer) {
+    size_t append(const IndexBuffer<BufferKeyType>& buffer, visible_func isVisible) {
         reserve(indexHeader.numEntries + buffer.size());
         // Do both searches after splitting. Returning early if the key already exists isn't a
         // particular concern and doing both after splitting allows the slotID to be reused
@@ -89,18 +91,18 @@ public:
         }
         for (size_t i = 0; i < buffer.size(); i++) {
             auto& [key, value] = buffer[i];
-            if (!appendInternal(key, value, hashes[i])) {
+            if (!appendInternal(key, value, hashes[i], isVisible)) {
                 return i;
             }
         }
         return buffer.size();
     }
 
-    bool append(Key key, common::offset_t value) {
+    bool append(Key key, common::offset_t value, visible_func isVisible) {
         reserve(indexHeader.numEntries + 1);
-        return appendInternal(key, value, HashIndexUtils::hash(key));
+        return appendInternal(key, value, HashIndexUtils::hash(key), isVisible);
     }
-    bool lookup(Key key, common::offset_t& result) {
+    bool lookup(Key key, common::offset_t& result, visible_func isVisible) {
         // This needs to be fast if the builder is empty since this function is always tried
         // when looking up in the persistent hash index
         if (this->indexHeader.numEntries == 0) {
@@ -110,7 +112,7 @@ public:
         auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
         auto slotId = HashIndexUtils::getPrimarySlotIdForHash(this->indexHeader, hashValue);
         SlotIterator iter(slotId, this);
-        auto entryPos = findEntry(iter, key, fingerprint);
+        auto entryPos = findEntry(iter, key, fingerprint, isVisible);
         if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
             result = iter.slot->entries[entryPos].value;
             return true;
@@ -191,13 +193,14 @@ public:
 
 private:
     // Assumes that space has already been allocated for the entry
-    bool appendInternal(Key key, common::offset_t value, common::hash_t hash) {
+    bool appendInternal(Key key, common::offset_t value, common::hash_t hash,
+        visible_func isVisible) {
         auto fingerprint = HashIndexUtils::getFingerprintForHash(hash);
         auto slotID = HashIndexUtils::getPrimarySlotIdForHash(this->indexHeader, hash);
         SlotIterator iter(slotID, this);
         // The builder never keeps holes and doesn't support deletions
         // Check the valid entries, then insert at the end if we don't find one which matches
-        auto entryPos = findEntry(iter, key, fingerprint);
+        auto entryPos = findEntry(iter, key, fingerprint, isVisible);
         auto numEntries = iter.slot->header.numEntries();
         if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
             // The key already exists
@@ -277,13 +280,15 @@ private:
 
     // Finds the entry matching the given key. The iterator will be advanced and will either point
     // to the slot containing the matching entry, or the last slot available
-    entry_pos_t findEntry(SlotIterator& iter, Key key, uint8_t fingerprint) {
+    entry_pos_t findEntry(SlotIterator& iter, Key key, uint8_t fingerprint,
+        visible_func isVisible) {
         do {
             auto numEntries = iter.slot->header.numEntries();
             KU_ASSERT(numEntries == std::countr_one(iter.slot->header.validityMask));
             for (auto entryPos = 0u; entryPos < numEntries; entryPos++) {
                 if (iter.slot->header.fingerprints[entryPos] == fingerprint &&
-                    equals(key, iter.slot->entries[entryPos].key)) [[unlikely]] {
+                    equals(key, iter.slot->entries[entryPos].key) &&
+                    isVisible(iter.slot->entries[entryPos].value)) [[unlikely]] {
                     // Value already exists
                     return entryPos;
                 }
