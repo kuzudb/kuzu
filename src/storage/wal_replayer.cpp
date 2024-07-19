@@ -88,6 +88,9 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) {
     case WALRecordType::REL_DELETION_RECORD: {
         replayRelDeletionRecord(walRecord);
     } break;
+    case WALRecordType::REL_DETACH_DELETE_RECORD: {
+        replayRelDetachDeletionRecord(walRecord);
+    } break;
     case WALRecordType::REL_UPDATE_RECORD: {
         replayRelUpdateRecord(walRecord);
     } break;
@@ -308,6 +311,24 @@ void WALReplayer::replayRelDeletionRecord(const WALRecord& walRecord) const {
             *deletionRecord.ownedDstNodeIDVector, *deletionRecord.ownedRelIDVector);
     KU_ASSERT(clientContext.getTx() && clientContext.getTx()->isRecovery());
     table.delete_(clientContext.getTx(), *deleteState);
+}
+
+void WALReplayer::replayRelDetachDeletionRecord(const WALRecord& walRecord) const {
+    const auto& deletionRecord = walRecord.constCast<RelDetachDeleteRecord>();
+    const auto tableID = deletionRecord.tableID;
+    auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<RelTable>();
+    KU_ASSERT(clientContext.getTx() && clientContext.getTx()->isRecovery());
+    const auto tempBoundNodeState = std::make_shared<DataChunkState>();
+    tempBoundNodeState->getSelVectorUnsafe().setSelSize(1);
+    deletionRecord.ownedSrcNodeIDVector->setState(tempBoundNodeState);
+    const auto tempRelSharedState = std::make_shared<DataChunkState>();
+    auto dstNodeIDVector = std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
+    auto relIDVector = std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
+    dstNodeIDVector->setState(tempRelSharedState);
+    relIDVector->setState(tempRelSharedState);
+    auto deleteState = std::make_unique<RelTableDeleteState>(*deletionRecord.ownedSrcNodeIDVector,
+        *dstNodeIDVector, *relIDVector);
+    table.detachDelete(clientContext.getTx(), deletionRecord.direction, deleteState.get());
 }
 
 void WALReplayer::replayRelUpdateRecord(const WALRecord& walRecord) const {

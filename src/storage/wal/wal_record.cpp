@@ -54,6 +54,9 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer,
     case WALRecordType::REL_DELETION_RECORD: {
         walRecord = RelDeletionRecord::deserialize(deserializer, clientContext);
     } break;
+    case WALRecordType::REL_DETACH_DELETE_RECORD: {
+        walRecord = RelDetachDeleteRecord::deserialize(deserializer, clientContext);
+    } break;
     case WALRecordType::REL_UPDATE_RECORD: {
         walRecord = RelUpdateRecord::deserialize(deserializer, clientContext);
     } break;
@@ -393,6 +396,34 @@ std::unique_ptr<RelDeletionRecord> RelDeletionRecord::deserialize(Deserializer& 
         ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunk);
     return std::make_unique<RelDeletionRecord>(tableID, std::move(srcNodeIDVector),
         std::move(dstNodeIDVector), std::move(relIDVector));
+}
+
+void RelDetachDeleteRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.writeDebuggingInfo("table_id");
+    serializer.write<table_id_t>(tableID);
+    serializer.writeDebuggingInfo("direction");
+    serializer.write<RelDataDirection>(direction);
+    serializer.writeDebuggingInfo("src_node_vector");
+    srcNodeIDVector->serialize(serializer);
+}
+
+std::unique_ptr<RelDetachDeleteRecord> RelDetachDeleteRecord::deserialize(
+    Deserializer& deserializer, main::ClientContext& clientContext) {
+    std::string key;
+    table_id_t tableID;
+    RelDataDirection direction;
+
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "table_id");
+    deserializer.deserializeValue<table_id_t>(tableID);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "direction");
+    deserializer.deserializeValue<RelDataDirection>(direction);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "src_node_vector");
+    auto srcNodeIDVector = ValueVector::deSerialize(deserializer, clientContext.getMemoryManager());
+    return std::make_unique<RelDetachDeleteRecord>(tableID, direction, std::move(srcNodeIDVector));
 }
 
 void RelUpdateRecord::serialize(Serializer& serializer) const {
