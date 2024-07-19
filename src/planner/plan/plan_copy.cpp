@@ -49,7 +49,7 @@ static void appendCopyFrom(const BoundCopyFromInfo& info, expression_vector outE
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& statement) {
-    auto& copyFrom = ku_dynamic_cast<const BoundStatement&, const BoundCopyFrom&>(statement);
+    auto& copyFrom = statement.constCast<BoundCopyFrom>();
     auto outExprs = statement.getStatementResult()->getColumns();
     auto copyFromInfo = copyFrom.getInfo();
     auto tableType = copyFromInfo->tableEntry->getTableType();

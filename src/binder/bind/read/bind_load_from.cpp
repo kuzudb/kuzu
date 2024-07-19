@@ -5,6 +5,7 @@
 #include "common/exception/binder.h"
 #include "main/database.h"
 #include "parser/query/reading_clause/load_from.h"
+#include "binder/expression/expression_util.h"
 #include "parser/scan_source.h"
 
 using namespace kuzu::function;
@@ -56,6 +57,12 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
     } break;
     default:
         throw BinderException(stringFormat("LOAD FROM subquery is not supported."));
+    }
+    if (!columnTypes.empty()) {
+        auto info = boundLoadFrom->getInfo();
+        for (auto i = 0u; i < columnTypes.size(); ++i) {
+            ExpressionUtil::validateDataType(*info->columns[i], columnTypes[i]);
+        }
     }
     if (loadFrom.hasWherePredicate()) {
         auto wherePredicate = bindWhereExpression(*loadFrom.getWherePredicate());

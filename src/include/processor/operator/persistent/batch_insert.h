@@ -16,7 +16,12 @@ struct BatchInsertInfo {
 
     BatchInsertInfo(const BatchInsertInfo& other) = delete;
 
-    inline virtual std::unique_ptr<BatchInsertInfo> copy() const = 0;
+    virtual std::unique_ptr<BatchInsertInfo> copy() const = 0;
+
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<BatchInsertInfo*, TARGET*>(this);
+    }
 };
 
 struct BatchInsertSharedState {
@@ -52,6 +57,11 @@ struct BatchInsertLocalState {
     std::unique_ptr<storage::ChunkedNodeGroup> nodeGroup;
 
     virtual ~BatchInsertLocalState() = default;
+
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<BatchInsertLocalState*, TARGET*>(this);
+    }
 };
 
 class BatchInsert : public Sink {

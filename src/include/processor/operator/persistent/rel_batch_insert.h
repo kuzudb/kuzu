@@ -25,7 +25,7 @@ struct RelBatchInsertInfo final : public BatchInsertInfo {
           partitioningIdx{other.partitioningIdx}, offsetColumnID{other.offsetColumnID},
           columnTypes{common::LogicalType::copy(other.columnTypes)} {}
 
-    inline std::unique_ptr<BatchInsertInfo> copy() const override {
+    std::unique_ptr<BatchInsertInfo> copy() const override {
         return std::make_unique<RelBatchInsertInfo>(*this);
     }
 };

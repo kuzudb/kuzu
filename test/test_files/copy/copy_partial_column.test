@@ -45,13 +45,13 @@ Binder exception: Number of columns mismatch. Expected 7 but got 9.
 Binder exception: Table knows3 does not contain column dummy.
 
 -LOG PartialColumnsDefault
--STATEMENT CREATE REL TABLE knows4 (FROM person TO person, date DATE, meetTime TIMESTAMP, 
+-STATEMENT CREATE REL TABLE knows4 (FROM person TO person, date DATE, meetTime TIMESTAMP,
     validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[],
-    transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), 
+    transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING),
     someMap MAP(STRING, STRING),
-    nullDateColumn DATE DEFAULT date('2022-06-06'), nullBooleanColumn BOOLEAN DEFAULT true, 
-    nullStringColumn STRING DEFAULT 'default', nullDoubleColumn DOUBLE DEFAULT 1.0, 
-    nullInt64Column INT64 DEFAULT 10, nullListOfInt INT64[] DEFAULT [1, 2, 3], 
+    nullDateColumn DATE DEFAULT date('2022-06-06'), nullBooleanColumn BOOLEAN DEFAULT true,
+    nullStringColumn STRING DEFAULT 'default', nullDoubleColumn DOUBLE DEFAULT 1.0,
+    nullInt64Column INT64 DEFAULT 10, nullListOfInt INT64[] DEFAULT [1, 2, 3],
     nullTimestampColumn TIMESTAMP DEFAULT timestamp("1970-01-01 00:00:00.004666-10"),
     MANY_MANY);
 ---- ok
@@ -66,9 +66,9 @@ Binder exception: Table knows3 does not contain column dummy.
 -LOG PartialColumnsSequenceSerial
 -STATEMENT CREATE SEQUENCE seq;
 ---- ok
--STATEMENT CREATE REL TABLE knows5 (FROM person TO person, date DATE, meetTime TIMESTAMP, 
+-STATEMENT CREATE REL TABLE knows5 (FROM person TO person, date DATE, meetTime TIMESTAMP,
     validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[],
-    transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), 
+    transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING),
     someMap MAP(STRING, STRING), seqColumn INT64 DEFAULT nextval('seq'), serColumn SERIAL,
     MANY_MANY);
 ---- ok
@@ -185,7 +185,7 @@ Binder exception: Detect duplicate column name booleanColumn during COPY.
 -STATEMENT COPY tableOfTypes10 (id, int64Column, doubleColumn, booleanColumn, dateColumn, timestampColumn, stringColumn,
     listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
 ---- ok
--STATEMENT MATCH (row:tableOfTypes10) WHERE row.id >= 20 AND row.id <= 24 RETURN 
+-STATEMENT MATCH (row:tableOfTypes10) WHERE row.id >= 20 AND row.id <= 24 RETURN
     row.id, row.int64Column, row.doubleColumn, row.booleanColumn, row.dateColumn, row.timestampColumn, row.stringColumn, row.listOfInt;
 ---- 5
 20|0|57.579280|True|1731-09-26|1731-09-26 03:30:08|OdM|[93,,86,37]
@@ -244,15 +244,15 @@ listOfString, listOfListOfInt64, structColumn) FROM
 listOfString, listOfListOfInt64, structColumn) FROM
 "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k*.parquet";
 ---- error
-Binder exception: Column `dateColumn` type mismatch. Expected DATE but got INT64.
+Binder exception: Expression int64Column has data type DATE but expected INT64. Implicit cast is not supported.
 
 -LOG PartialColumnsDefault
--STATEMENT CREATE NODE TABLE tableOfTypes14 (nullDateColumn DATE DEFAULT date('2022-06-06'), booleanColumn BOOLEAN, 
-                                            stringColumn STRING, int64Column INT64, nullBooleanColumn BOOLEAN DEFAULT true, 
-                                            nullStringColumn STRING DEFAULT 'default', timestampColumn TIMESTAMP, 
+-STATEMENT CREATE NODE TABLE tableOfTypes14 (nullDateColumn DATE DEFAULT date('2022-06-06'), booleanColumn BOOLEAN,
+                                            stringColumn STRING, int64Column INT64, nullBooleanColumn BOOLEAN DEFAULT true,
+                                            nullStringColumn STRING DEFAULT 'default', timestampColumn TIMESTAMP,
                                             nullDoubleColumn DOUBLE DEFAULT 1.0, nullInt64Column INT64 DEFAULT 10,
-                                            dateColumn DATE, nullListOfInt INT64[] DEFAULT [1, 2, 3], 
-                                            doubleColumn DOUBLE, listOfInt INT64[], id INT64, 
+                                            dateColumn DATE, nullListOfInt INT64[] DEFAULT [1, 2, 3],
+                                            doubleColumn DOUBLE, listOfInt INT64[], id INT64,
                                             nullTimestampColumn TIMESTAMP DEFAULT timestamp("1970-01-01 00:00:00.004666-10"),
                                             PRIMARY KEY (id));
 ---- ok
