@@ -48,8 +48,6 @@ enum class PhysicalOperatorType : uint8_t {
     PROJECTION,
     PROFILE,
     RECURSIVE_JOIN,
-    RENAME_PROPERTY,
-    RENAME_TABLE,
     RESULT_COLLECTOR,
     SCAN_NODE_TABLE,
     SCAN_REL_TABLE,
