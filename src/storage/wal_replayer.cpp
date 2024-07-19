@@ -121,8 +121,12 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) con
     case CatalogEntryType::REL_GROUP_ENTRY:
     case CatalogEntryType::RDF_GRAPH_ENTRY: {
         auto& tableEntry = createEntryRecord.ownedCatalogEntry->constCast<TableCatalogEntry>();
+        KU_ASSERT(clientContext.getCatalog());
         clientContext.getCatalog()->createTableSchema(clientContext.getTx(),
             tableEntry.getBoundCreateTableInfo(clientContext.getTx()));
+        KU_ASSERT(clientContext.getStorageManager());
+        clientContext.getStorageManager()->createTable(tableEntry.getTableID(),
+            clientContext.getCatalog(), &clientContext);
     } break;
     case CatalogEntryType::SCALAR_MACRO_ENTRY: {
         auto& macroEntry =
@@ -147,7 +151,6 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) con
     }
 }
 
-// Replay catalog should only work under RECOVERY mode.
 void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const {
     auto& dropEntryRecord = walRecord.constCast<DropCatalogEntryRecord>();
     const auto entryID = dropEntryRecord.entryID;
@@ -156,11 +159,10 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const
     case CatalogEntryType::REL_TABLE_ENTRY:
     case CatalogEntryType::REL_GROUP_ENTRY:
     case CatalogEntryType::RDF_GRAPH_ENTRY: {
+        KU_ASSERT(clientContext.getCatalog());
         clientContext.getCatalog()->dropTableEntry(clientContext.getTx(), entryID);
-        // During recovery, storageManager does not exist.
-        if (clientContext.getStorageManager()) {
-            clientContext.getStorageManager()->dropTable(entryID, clientContext.getVFSUnsafe());
-        }
+        KU_ASSERT(clientContext.getStorageManager());
+        clientContext.getStorageManager()->dropTable(entryID, clientContext.getVFSUnsafe());
     } break;
     case CatalogEntryType::SEQUENCE_ENTRY: {
         clientContext.getCatalog()->dropSequence(clientContext.getTx(), entryID);
@@ -190,11 +192,10 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const 
         const auto addedPropID = schema->getPropertyID(addInfo->propertyName);
         const auto addedProp = schema->getProperty(addedPropID);
         TableAddColumnState state{*addedProp, *defaultValueEvaluator};
-        if (clientContext.getStorageManager()) {
-            const auto storageManager = clientContext.getStorageManager();
-            storageManager->getTable(alterEntryRecord.ownedAlterInfo->tableID)
-                ->addColumn(clientContext.getTx(), state);
-        }
+        KU_ASSERT(clientContext.getStorageManager());
+        const auto storageManager = clientContext.getStorageManager();
+        storageManager->getTable(alterEntryRecord.ownedAlterInfo->tableID)
+            ->addColumn(clientContext.getTx(), state);
     }
 }
 
