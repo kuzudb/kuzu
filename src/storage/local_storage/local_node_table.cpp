@@ -29,7 +29,7 @@ bool LocalNodeTable::insert(Transaction*, TableInsertState& insertState) {
     auto& nodeInsertState = insertState.constCast<NodeTableInsertState>();
     const auto numRowsInLocalTable = nodeGroups.getNumRows();
     const auto nodeOffset = StorageConstants::MAX_NUM_ROWS_IN_TABLE + numRowsInLocalTable;
-    //KU_ASSERT(nodeInsertState.pkVector.state->getSelVector().getSelSize() == 1);
+    KU_ASSERT(nodeInsertState.pkVector.state->getSelVector().getSelSize() == 1);
     if (!hashIndex->insert(nodeInsertState.pkVector, nodeOffset)) {
         throw RuntimeException(
             stringFormat("Found duplicate primary key in local table {}", table.getTableID()));

@@ -36,7 +36,10 @@ kitchener
 
 
 -CASE UpdateStrPropCommitRecovery
--SKIP
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_STR_PROP
@@ -88,7 +91,10 @@ kitchener
 
 
 -CASE UpdateStrPropRollbackRecovery
--SKIP
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_STR_PROP
