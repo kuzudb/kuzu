@@ -25,6 +25,10 @@ void LocalNodeTable::initLocalHashIndex() {
         overflowFileHandle.get());
 }
 
+offset_t LocalNodeTable::validateUniquenessConstraint(const ValueVector& pkVector) const {
+    return hashIndex->lookup(pkVector);
+}
+
 bool LocalNodeTable::insert(Transaction*, TableInsertState& insertState) {
     auto& nodeInsertState = insertState.constCast<NodeTableInsertState>();
     const auto numRowsInLocalTable = nodeGroups.getNumRows();

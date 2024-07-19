@@ -102,6 +102,30 @@ public:
                 T) { localIndex = std::make_unique<HashIndexLocalStorage<T>>(nullptr); },
             [&](auto) { KU_UNREACHABLE; });
     }
+    common::offset_t lookup(const common::ValueVector& keyVector) {
+        KU_ASSERT(keyVector.state->getSelVector().getSelSize() == 1);
+        common::offset_t result = common::INVALID_OFFSET;
+        common::TypeUtils::visit(
+            keyDataTypeID,
+            [&]<common::IndexHashable T>(T) {
+                const auto pos = keyVector.state->getSelVector().getSelectedPositions()[0];
+                result = lookup(keyVector.getValue<T>(pos));
+            },
+            [](auto) { KU_UNREACHABLE; });
+        return result;
+    }
+
+    common::offset_t lookup(const common::ku_string_t key) {
+        return lookup(key.getAsStringView());
+    }
+    template<common::IndexHashable T>
+    common::offset_t lookup(T key) {
+        common::offset_t result = common::INVALID_OFFSET;
+        common::ku_dynamic_cast<BaseHashIndexLocalStorage*,
+            HashIndexLocalStorage<HashIndexType<T>>*>(localIndex.get())
+            ->lookup(key, result);
+        return result;
+    }
 
     bool insert(const common::ValueVector& keyVector, common::offset_t startNodeOffset) {
         common::length_t numInserted = 0;

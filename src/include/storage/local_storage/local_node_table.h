@@ -23,6 +23,8 @@ public:
     bool addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState) override;
 
+    common::offset_t validateUniquenessConstraint(const common::ValueVector& pkVector) const;
+
     common::TableType getTableType() const override { return common::TableType::NODE; }
 
     void clear() override;
