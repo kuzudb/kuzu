@@ -140,17 +140,17 @@ static ColumnPredicateSet getPropertyPredicateSet(const Expression& property,
     return propertyPredicateSet;
 }
 
-// TODO need determine whether the expression is a constant based on its output type
-static bool isLiteralExpression(const std::shared_ptr<Expression> expression) {
+static bool isConstantExpression(const std::shared_ptr<Expression> expression) {
     switch (expression->expressionType) {
     case ExpressionType::LITERAL:
     case ExpressionType::PARAMETER: {
         return true;
     }
+    //TODO(Xiyang): fold parameter expression in binder.
     case ExpressionType::FUNCTION: {
         auto& func = expression->constCast<FunctionExpression>();
         if (func.getFunctionName() == "CAST") {
-            return isLiteralExpression(func.getChild(0));
+            return isConstantExpression(func.getChild(0));
         } else {
             return false;
         }
@@ -186,7 +186,7 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodeTableRepl
     }
     if (primaryKeyEqualityComparison != nullptr) { // Try rewrite index scan
         auto rhs = primaryKeyEqualityComparison->getChild(1);
-        if (isLiteralExpression(rhs)) {
+        if (isConstantExpression(rhs)) {
             auto extraInfo = std::make_unique<PrimaryKeyScanInfo>(rhs);
             scan.setScanType(LogicalScanNodeTableType::PRIMARY_KEY_SCAN);
             scan.setExtraInfo(std::move(extraInfo));
