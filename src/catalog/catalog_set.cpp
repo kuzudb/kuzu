@@ -55,7 +55,7 @@ void CatalogSet::createEntry(Transaction* transaction, std::unique_ptr<CatalogEn
     auto entryPtr = entry.get();
     emplace(std::move(entry));
     KU_ASSERT(transaction);
-    if (transaction->getStartTS() > 0) {
+    if (transaction->getStartTS() > Transaction::DUMMY_START_TIMESTAMP) {
         KU_ASSERT(transaction->getID() != 0);
         transaction->pushCatalogEntry(*this, *entryPtr->getPrev());
     }
