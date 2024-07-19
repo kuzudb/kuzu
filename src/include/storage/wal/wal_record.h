@@ -3,6 +3,7 @@
 #include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
+#include "common/enums/rel_direction.h"
 #include "common/enums/table_type.h"
 #include "common/types/internal_id_t.h"
 #include "common/vector/value_vector.h"
@@ -29,7 +30,8 @@ enum class WALRecordType : uint8_t {
     NODE_DELETION_RECORD = 31,
     NODE_UDPATE_RECORD = 32,
     REL_DELETION_RECORD = 33,
-    REL_UPDATE_RECORD = 34,
+    REL_DETACH_DELETE_RECORD = 34,
+    REL_UPDATE_RECORD = 35,
     CHECKPOINT_RECORD = 50,
 };
 
@@ -256,6 +258,30 @@ struct RelDeletionRecord final : WALRecord {
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<RelDeletionRecord> deserialize(common::Deserializer& deserializer,
+        main::ClientContext& clientContext);
+};
+
+struct RelDetachDeleteRecord final : WALRecord {
+    common::table_id_t tableID;
+    common::RelDataDirection direction;
+    common::ValueVector* srcNodeIDVector;
+    std::unique_ptr<common::ValueVector> ownedSrcNodeIDVector;
+
+    RelDetachDeleteRecord()
+        : WALRecord{WALRecordType::REL_DETACH_DELETE_RECORD}, tableID{common::INVALID_TABLE_ID},
+          direction{common::RelDataDirection::FWD}, srcNodeIDVector{nullptr} {}
+    RelDetachDeleteRecord(common::table_id_t tableID, common::RelDataDirection direction,
+        common::ValueVector* srcNodeIDVector)
+        : WALRecord{WALRecordType::REL_DETACH_DELETE_RECORD}, tableID{tableID},
+          direction{direction}, srcNodeIDVector{srcNodeIDVector} {}
+    RelDetachDeleteRecord(common::table_id_t tableID, common::RelDataDirection direction,
+        std::unique_ptr<common::ValueVector> srcNodeIDVector)
+        : WALRecord{WALRecordType::REL_DETACH_DELETE_RECORD}, tableID{tableID},
+          direction{direction}, srcNodeIDVector{nullptr},
+          ownedSrcNodeIDVector{std::move(srcNodeIDVector)} {}
+
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<RelDetachDeleteRecord> deserialize(common::Deserializer& deserializer,
         main::ClientContext& clientContext);
 };
 
