@@ -6,7 +6,9 @@
 #include "common/assert.h"
 #include "common/exception/catalog.h"
 #include "common/string_format.h"
+#include "main/client_context.h"
 #include "transaction/transaction.h"
+#include <storage/storage_manager.h>
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -112,7 +114,6 @@ void CatalogSet::dropEntry(Transaction* transaction, const std::string& name) {
     // LCOV_EXCL_START
     validateExist(transaction, name);
     // LCOV_EXCL_STOP
-    // TODO: Should handle rel group and rdf graph.
     auto tombstone = createDummyEntry(name);
     tombstone->setTimestamp(transaction->getID());
     auto tombstonePtr = tombstone.get();

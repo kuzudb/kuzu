@@ -26,12 +26,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-// COMMIT_CHECKPOINT:   isCheckpoint = true,  isRecovering = false
-// ROLLBACK:            isCheckpoint = false, isRecovering = false
-// RECOVERY_CHECKPOINT: isCheckpoint = true,  isRecovering = true
-WALReplayer::WALReplayer(main::ClientContext& clientContext, WALReplayMode replayMode)
-    : isRecovering{replayMode == WALReplayMode::RECOVERY_CHECKPOINT},
-      isCheckpoint{replayMode != WALReplayMode::ROLLBACK}, clientContext{clientContext} {
+WALReplayer::WALReplayer(main::ClientContext& clientContext) : clientContext{clientContext} {
     walFilePath = clientContext.getVFSUnsafe()->joinPath(clientContext.getDatabasePath(),
         StorageConstants::WAL_FILE_SUFFIX);
     pageBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
@@ -47,29 +42,36 @@ void WALReplayer::replay() {
     if (walFileSize == 0) {
         return;
     }
-    // TODO(Guodong): Handle the case that wal file is corrupted and there is no COMMIT record for
-    // the last transaction.
     try {
         Deserializer deserializer(std::make_unique<BufferedFileReader>(std::move(fileInfo)));
         while (!deserializer.finished()) {
             auto walRecord = WALRecord::deserialize(deserializer, clientContext);
-            clientContext.getTransactionContext()->beginRecoveryTransaction();
             replayWALRecord(*walRecord);
-            clientContext.getTransactionContext()->commit();
+        }
+        if (clientContext.getTransactionContext()->hasActiveTransaction()) {
+            // Handle the case that either the last transaction is not committed or the wal file is
+            // corrupted and there is no COMMIT record for the last transaction. We should rollback
+            // under this case.
+            clientContext.getTransactionContext()->rollback();
         }
     } catch (const Exception& e) {
+        if (clientContext.getTransactionContext()->hasActiveTransaction()) {
+            // Handle the case that some transaction went during replaying. We should rollback
+            // under this case.
+            clientContext.getTransactionContext()->rollback();
+        }
         throw RuntimeException(
-            stringFormat("Failed to read wal record from WAL file. Error: {}", e.what()));
+            stringFormat("Failed to replay wal record from WAL file. Error: {}", e.what()));
     }
 }
 
 void WALReplayer::replayWALRecord(const WALRecord& walRecord) {
     switch (walRecord.type) {
     case WALRecordType::BEGIN_TRANSACTION_RECORD: {
-        // clientContext.getTransactionContext()->beginRecoveryTransaction();
+        clientContext.getTransactionContext()->beginRecoveryTransaction();
     } break;
     case WALRecordType::COMMIT_RECORD: {
-        // clientContext.getTransactionContext()->commit();
+        clientContext.getTransactionContext()->commit();
     } break;
     case WALRecordType::CREATE_CATALOG_ENTRY_RECORD: {
         replayCreateCatalogEntryRecord(walRecord);
@@ -112,10 +114,6 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) {
 }
 
 void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) const {
-    if (!(isCheckpoint && isRecovering)) {
-        // Nothing to do.
-        return;
-    }
     auto& createEntryRecord = walRecord.constCast<CreateCatalogEntryRecord>();
     switch (createEntryRecord.ownedCatalogEntry->getType()) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
@@ -123,24 +121,24 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) con
     case CatalogEntryType::REL_GROUP_ENTRY:
     case CatalogEntryType::RDF_GRAPH_ENTRY: {
         auto& tableEntry = createEntryRecord.ownedCatalogEntry->constCast<TableCatalogEntry>();
-        clientContext.getCatalog()->createTableSchema(&DUMMY_TRANSACTION,
-            tableEntry.getBoundCreateTableInfo(&DUMMY_TRANSACTION));
+        clientContext.getCatalog()->createTableSchema(clientContext.getTx(),
+            tableEntry.getBoundCreateTableInfo(clientContext.getTx()));
     } break;
     case CatalogEntryType::SCALAR_MACRO_ENTRY: {
         auto& macroEntry =
             createEntryRecord.ownedCatalogEntry->constCast<ScalarMacroCatalogEntry>();
-        clientContext.getCatalog()->addScalarMacroFunction(&DUMMY_TRANSACTION, macroEntry.getName(),
-            macroEntry.getMacroFunction()->copy());
+        clientContext.getCatalog()->addScalarMacroFunction(clientContext.getTx(),
+            macroEntry.getName(), macroEntry.getMacroFunction()->copy());
     } break;
     case CatalogEntryType::SEQUENCE_ENTRY: {
         auto& sequenceEntry =
             createEntryRecord.ownedCatalogEntry->constCast<SequenceCatalogEntry>();
-        clientContext.getCatalog()->createSequence(&DUMMY_TRANSACTION,
+        clientContext.getCatalog()->createSequence(clientContext.getTx(),
             sequenceEntry.getBoundCreateSequenceInfo());
     } break;
     case CatalogEntryType::TYPE_ENTRY: {
         auto& typeEntry = createEntryRecord.ownedCatalogEntry->constCast<TypeCatalogEntry>();
-        clientContext.getCatalog()->createType(&DUMMY_TRANSACTION, typeEntry.getName(),
+        clientContext.getCatalog()->createType(clientContext.getTx(), typeEntry.getName(),
             typeEntry.getLogicalType().copy());
     } break;
     default: {
@@ -151,9 +149,6 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) con
 
 // Replay catalog should only work under RECOVERY mode.
 void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const {
-    if (!(isCheckpoint && isRecovering)) {
-        return;
-    }
     auto& dropEntryRecord = walRecord.constCast<DropCatalogEntryRecord>();
     const auto entryID = dropEntryRecord.entryID;
     switch (dropEntryRecord.entryType) {
@@ -161,14 +156,14 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const
     case CatalogEntryType::REL_TABLE_ENTRY:
     case CatalogEntryType::REL_GROUP_ENTRY:
     case CatalogEntryType::RDF_GRAPH_ENTRY: {
-        clientContext.getCatalog()->dropTableEntry(&DUMMY_TRANSACTION, entryID);
+        clientContext.getCatalog()->dropTableEntry(clientContext.getTx(), entryID);
         // During recovery, storageManager does not exist.
         if (clientContext.getStorageManager()) {
             clientContext.getStorageManager()->dropTable(entryID, clientContext.getVFSUnsafe());
         }
     } break;
     case CatalogEntryType::SEQUENCE_ENTRY: {
-        clientContext.getCatalog()->dropSequence(&DUMMY_TRANSACTION, entryID);
+        clientContext.getCatalog()->dropSequence(clientContext.getTx(), entryID);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -177,14 +172,11 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const
 }
 
 void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const {
-    if (!(isCheckpoint && isRecovering)) {
-        return;
-    }
     auto binder = Binder(&clientContext);
     auto& alterEntryRecord = walRecord.constCast<AlterTableEntryRecord>();
-    clientContext.getCatalog()->alterTableEntry(&DUMMY_TRANSACTION,
+    clientContext.getCatalog()->alterTableEntry(clientContext.getTx(),
         *alterEntryRecord.ownedAlterInfo);
-    if (alterEntryRecord.ownedAlterInfo->alterType == common::AlterType::ADD_PROPERTY) {
+    if (alterEntryRecord.ownedAlterInfo->alterType == AlterType::ADD_PROPERTY) {
         const auto exprBinder = binder.getExpressionBinder();
         const auto addInfo =
             alterEntryRecord.ownedAlterInfo->extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
@@ -192,7 +184,7 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const 
         const auto boundDefault = exprBinder->bindExpression(*addInfo->defaultValue);
         auto exprMapper = ExpressionMapper();
         const auto defaultValueEvaluator = exprMapper.getEvaluator(boundDefault);
-        const auto schema = clientContext.getCatalog()->getTableCatalogEntry(&DUMMY_TRANSACTION,
+        const auto schema = clientContext.getCatalog()->getTableCatalogEntry(clientContext.getTx(),
             alterEntryRecord.ownedAlterInfo->tableID);
         const auto addedPropID = schema->getPropertyID(addInfo->propertyName);
         const auto addedProp = schema->getProperty(addedPropID);
@@ -200,7 +192,7 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const 
         if (clientContext.getStorageManager()) {
             const auto storageManager = clientContext.getStorageManager();
             storageManager->getTable(alterEntryRecord.ownedAlterInfo->tableID)
-                ->addColumn(&DUMMY_TRANSACTION, state);
+                ->addColumn(clientContext.getTx(), state);
         }
     }
 }
@@ -339,13 +331,10 @@ void WALReplayer::replayCopyTableRecord(const WALRecord&) const {
 }
 
 void WALReplayer::replayUpdateSequenceRecord(const WALRecord& walRecord) const {
-    if (!(isCheckpoint && isRecovering)) {
-        return;
-    }
     auto& dropEntryRecord = walRecord.constCast<UpdateSequenceRecord>();
     const auto sequenceID = dropEntryRecord.sequenceID;
     const auto entry =
-        clientContext.getCatalog()->getSequenceCatalogEntry(&DUMMY_TRANSACTION, sequenceID);
+        clientContext.getCatalog()->getSequenceCatalogEntry(clientContext.getTx(), sequenceID);
     entry->replayVal(dropEntryRecord.data.usageCount, dropEntryRecord.data.currVal,
         dropEntryRecord.data.nextVal);
 }

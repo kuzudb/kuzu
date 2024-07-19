@@ -103,6 +103,7 @@ public:
     DatabaseManager* getDatabaseManager() const;
     storage::StorageManager* getStorageManager() const;
     storage::MemoryManager* getMemoryManager();
+    storage::WAL* getWAL() const;
     catalog::Catalog* getCatalog() const;
     transaction::TransactionManager* getTransactionManagerUnsafe() const;
     common::VirtualFileSystem* getVFSUnsafe() const;

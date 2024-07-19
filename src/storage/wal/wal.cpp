@@ -63,7 +63,7 @@ void WAL::logDropCatalogEntryRecord(table_id_t tableID, CatalogEntryType type) {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logAlterTableEntryRecord(BoundAlterInfo* alterInfo) {
+void WAL::logAlterTableEntryRecord(const BoundAlterInfo* alterInfo) {
     lock_t lck{mtx};
     AlterTableEntryRecord walRecord(alterInfo);
     addNewWALRecordNoLock(walRecord);
