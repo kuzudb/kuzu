@@ -319,7 +319,7 @@ uint64_t NodeTable::getEstimatedMemoryUsage() const {
     return nodeGroups->getEstimatedMemoryUsage();
 }
 
-bool NodeTable::isVisible(const transaction::Transaction* transaction, offset_t offset) const {
+bool NodeTable::isVisible(const Transaction* transaction, offset_t offset) const {
     auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
     auto* nodeGroup = getNodeGroup(nodeGroupIdx);
     if (nodeGroup->isDeleted(transaction, offsetInGroup)) {
@@ -328,8 +328,8 @@ bool NodeTable::isVisible(const transaction::Transaction* transaction, offset_t 
     return nodeGroup->isInserted(transaction, offsetInGroup);
 }
 
-bool NodeTable::lookupPK(transaction::Transaction* transaction, common::ValueVector* keyVector,
-    uint64_t vectorPos, common::offset_t& result) const {
+bool NodeTable::lookupPK(Transaction* transaction, ValueVector* keyVector, uint64_t vectorPos,
+    offset_t& result) const {
     // TODO(guodong): check the transaction local hash index as well.
     return pkIndex->lookup(transaction, keyVector, vectorPos, result,
         [&](offset_t offset) { return isVisible(transaction, offset); });
