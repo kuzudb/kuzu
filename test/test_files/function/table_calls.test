@@ -1,0 +1,8 @@
+-DATASET CSV empty
+
+--
+
+-CASE ShowFunctions
+-STATEMENT CALL show_functions() RETURN *;
+---- 1093
+<FILE>:show_functions.csv
