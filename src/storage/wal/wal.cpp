@@ -114,6 +114,7 @@ void WAL::logCopyTableRecord(table_id_t tableID) {
 void WAL::logUpdateSequenceRecord(sequence_id_t sequenceID, SequenceChangeData data) {
     lock_t lck{mtx};
     UpdateSequenceRecord walRecord(sequenceID, std::move(data));
+    addNewWALRecordNoLock(walRecord);
 }
 
 void WAL::clearWAL() {
