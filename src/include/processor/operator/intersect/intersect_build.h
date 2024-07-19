@@ -1,8 +1,7 @@
 #pragma once
 
-#include "processor/operator/hash_join/hash_join_build.h"
-
 #include "binder/expression/expression_util.h"
+#include "processor/operator/hash_join/hash_join_build.h"
 
 namespace kuzu {
 namespace processor {
