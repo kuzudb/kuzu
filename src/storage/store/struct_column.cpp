@@ -69,7 +69,7 @@ void StructColumn::scanInternal(Transaction* transaction, const ChunkState& stat
 }
 
 void StructColumn::lookupInternal(Transaction* transaction, ChunkState& readState,
-    ValueVector* nodeIDVector, ValueVector* resultVector) {
+    const ValueVector* nodeIDVector, ValueVector* resultVector) {
     for (auto i = 0u; i < childColumns.size(); i++) {
         auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
         childColumns[i]->lookup(transaction, readState.childrenStates[i], nodeIDVector,
@@ -144,7 +144,7 @@ void StructColumn::prepareCommitForExistingChunk(Transaction* transaction, Chunk
         getNullChunkCollection(localUpdateChunk), updateInfo, deleteInfo);
     if (state.metadata.numValues != state.nullState->metadata.numValues) {
         state.metadata.numValues = state.nullState->metadata.numValues;
-        metadataDA->update(state.nodeGroupIdx, state.metadata);
+        metadataDA->update(transaction, state.nodeGroupIdx, state.metadata);
     }
     // Update each child column separately
     for (auto i = 0u; i < childColumns.size(); i++) {
@@ -163,7 +163,7 @@ void StructColumn::prepareCommitForExistingChunk(Transaction* transaction, Chunk
         chunk->getNullChunk(), srcOffset);
     if (state.metadata.numValues != state.nullState->metadata.numValues) {
         state.metadata.numValues = state.nullState->metadata.numValues;
-        metadataDA->update(state.nodeGroupIdx, state.metadata);
+        metadataDA->update(transaction, state.nodeGroupIdx, state.metadata);
     }
     // Update each child column separately
     for (auto i = 0u; i < childColumns.size(); i++) {

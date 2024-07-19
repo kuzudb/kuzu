@@ -104,6 +104,10 @@ struct BoundExtraCreateRelTableInfo final : public BoundExtraCreateTableInfo {
     common::table_id_t srcTableID;
     common::table_id_t dstTableID;
 
+    BoundExtraCreateRelTableInfo(common::table_id_t srcTableID, common::table_id_t dstTableID,
+        std::vector<PropertyInfo> propertyInfos)
+        : BoundExtraCreateRelTableInfo{common::RelMultiplicity::MANY, common::RelMultiplicity::MANY,
+              srcTableID, dstTableID, std::move(propertyInfos)} {}
     BoundExtraCreateRelTableInfo(common::RelMultiplicity srcMultiplicity,
         common::RelMultiplicity dstMultiplicity, common::table_id_t srcTableID,
         common::table_id_t dstTableID, std::vector<PropertyInfo> propertyInfos)

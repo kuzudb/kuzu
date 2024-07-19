@@ -24,15 +24,13 @@ expression_vector PropertyCollector::getProperties() {
 }
 
 void PropertyCollector::visitMatch(const BoundReadingClause& readingClause) {
-    auto& matchClause = (BoundMatchClause&)readingClause;
+    auto& matchClause = readingClause.constCast<BoundMatchClause>();
     for (auto& rel : matchClause.getQueryGraphCollection()->getQueryRels()) {
-        if (rel->isEmpty()) {
+        if (rel->isEmpty() || rel->getRelType() != QueryRelType::NON_RECURSIVE) {
             // If a query rel is empty then it does not have an internal id property.
             continue;
         }
-        if (rel->getRelType() == QueryRelType::NON_RECURSIVE) {
-            properties.insert(rel->getInternalIDProperty());
-        }
+        properties.insert(rel->getInternalIDProperty());
     }
     if (matchClause.hasPredicate()) {
         collectPropertyExpressions(matchClause.getPredicate());
@@ -40,13 +38,12 @@ void PropertyCollector::visitMatch(const BoundReadingClause& readingClause) {
 }
 
 void PropertyCollector::visitUnwind(const BoundReadingClause& readingClause) {
-    auto& unwindClause = (BoundUnwindClause&)readingClause;
+    auto& unwindClause = readingClause.constCast<BoundUnwindClause>();
     collectPropertyExpressions(unwindClause.getInExpr());
 }
 
 void PropertyCollector::visitLoadFrom(const BoundReadingClause& readingClause) {
-    auto& loadFromClause =
-        ku_dynamic_cast<const BoundReadingClause&, const BoundLoadFrom&>(readingClause);
+    auto& loadFromClause = readingClause.constCast<BoundLoadFrom>();
     if (loadFromClause.hasPredicate()) {
         collectPropertyExpressions(loadFromClause.getPredicate());
     }
@@ -131,9 +128,10 @@ void PropertyCollector::visitProjectionBodyPredicate(const std::shared_ptr<Expre
 }
 
 void PropertyCollector::collectPropertyExpressions(const std::shared_ptr<Expression>& expression) {
-    auto expressionCollector = std::make_unique<binder::ExpressionCollector>();
-    for (auto& property : expressionCollector->collectPropertyExpressions(expression)) {
-        properties.insert(property);
+    auto collector = PropertyExprCollector();
+    collector.visit(expression);
+    for (auto& expr : collector.getPropertyExprs()) {
+        properties.insert(expr);
     }
 }
 

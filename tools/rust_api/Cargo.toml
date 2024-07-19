@@ -28,6 +28,7 @@ cxx = "1.0"
 time = "0.3"
 arrow = {version="43", optional=true, default-features=false, features=["ffi"]}
 uuid = "1.6"
+rust_decimal = {version="1.35", default-features=false}
 
 [build-dependencies]
 cxx-build = "1.0"
@@ -38,6 +39,7 @@ cmake = "0.1"
 tempfile = "3"
 anyhow = "1"
 time = {version="0.3", features=["macros"]}
+rust_decimal_macros = "1.35"
 
 [features]
 default = []

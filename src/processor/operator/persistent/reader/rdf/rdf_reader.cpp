@@ -161,7 +161,7 @@ SerdStatus RdfResourceReader::handle(void* handle, SerdStatementFlags, const Ser
     const SerdNode* subject, const SerdNode* predicate, const SerdNode* object, const SerdNode*,
     const SerdNode*) {
     auto reader = reinterpret_cast<RdfReader*>(handle);
-    auto& store = ku_dynamic_cast<RdfStore&, ResourceStore&>(*reader->store_);
+    auto& store = reader->store_->cast<ResourceStore>();
     auto subjectStr = reader->getAsString(subject);
     auto predicateStr = reader->getAsString(predicate);
     if (object->type == SERD_LITERAL) {
@@ -198,7 +198,7 @@ SerdStatus RdfLiteralReader::handle(void* handle, SerdStatementFlags, const Serd
     const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
     const SerdNode* object_datatype, const SerdNode* object_lang) {
     auto reader = reinterpret_cast<RdfReader*>(handle);
-    auto& store = ku_dynamic_cast<RdfStore&, LiteralStore&>(*reader->store_);
+    auto& store = reader->store_->cast<LiteralStore>();
     if (object->type != SERD_LITERAL) {
         return SERD_SUCCESS;
     }
@@ -228,7 +228,7 @@ SerdStatus RdfLiteralReader::handle(void* handle, SerdStatementFlags, const Serd
 uint64_t RdfLiteralReader::readToVector(common::DataChunk* dataChunk) {
     auto lVector = dataChunk->getValueVector(0).get();
     auto langVector = dataChunk->getValueVector(1).get();
-    auto& store = ku_dynamic_cast<RdfStore&, LiteralStore&>(*store_);
+    auto& store = store_->cast<LiteralStore>();
     auto numTuplesToScan = std::min(store.size() - cursor, DEFAULT_VECTOR_CAPACITY);
     for (auto i = 0u; i < numTuplesToScan; ++i) {
         auto& literal = store.literals[cursor + i];
@@ -237,6 +237,7 @@ uint64_t RdfLiteralReader::readToVector(common::DataChunk* dataChunk) {
         RdfUtils::addRdfLiteral(lVector, i, literal, type);
         StringVector::addString(langVector, i, lang);
     }
+    numLiteralTriplesScanned += numTuplesToScan;
     return numTuplesToScan;
 }
 
@@ -244,7 +245,7 @@ SerdStatus RdfResourceTripleReader::handle(void* handle, SerdStatementFlags, con
     const SerdNode* subject, const SerdNode* predicate, const SerdNode* object, const SerdNode*,
     const SerdNode*) {
     auto reader = reinterpret_cast<RdfReader*>(handle);
-    auto& store = ku_dynamic_cast<RdfStore&, ResourceTripleStore&>(*reader->store_);
+    auto& store = reader->store_->cast<ResourceTripleStore>();
     if (object->type == SERD_LITERAL) {
         return SERD_SUCCESS;
     }
@@ -264,7 +265,7 @@ uint64_t RdfResourceTripleReader::readToVector(DataChunk* dataChunk) {
     auto sVector = dataChunk->getValueVector(0).get();
     auto pVector = dataChunk->getValueVector(1).get();
     auto oVector = dataChunk->getValueVector(2).get();
-    auto& store = ku_dynamic_cast<RdfStore&, ResourceTripleStore&>(*store_);
+    auto& store = store_->cast<ResourceTripleStore>();
     auto numTuplesToScan = std::min(store.size() - cursor, DEFAULT_VECTOR_CAPACITY);
     for (auto i = 0u; i < numTuplesToScan; ++i) {
         StringVector::addString(sVector, i, store.subjects[cursor + i]);
@@ -278,7 +279,7 @@ SerdStatus RdfLiteralTripleReader::handle(void* handle, SerdStatementFlags, cons
     const SerdNode* subject, const SerdNode* predicate, const SerdNode* object, const SerdNode*,
     const SerdNode*) {
     auto reader = reinterpret_cast<RdfReader*>(handle);
-    auto& store = ku_dynamic_cast<RdfStore&, LiteralTripleStore&>(*reader->store_);
+    auto& store = reader->store_->cast<LiteralTripleStore>();
     if (object->type != SERD_LITERAL) {
         return SERD_SUCCESS;
     }
@@ -296,7 +297,7 @@ uint64_t RdfLiteralTripleReader::readToVector(DataChunk* dataChunk) {
     auto sVector = dataChunk->getValueVector(0).get();
     auto pVector = dataChunk->getValueVector(1).get();
     auto oVector = dataChunk->getValueVector(2).get();
-    auto& store = ku_dynamic_cast<RdfStore&, LiteralTripleStore&>(*store_);
+    auto& store = store_->cast<LiteralTripleStore>();
     auto numTuplesToScan = std::min(store.size() - cursor, DEFAULT_VECTOR_CAPACITY);
     for (auto i = 0u; i < numTuplesToScan; ++i) {
         StringVector::addString(sVector, i, store.subjects[cursor + i]);
@@ -311,7 +312,7 @@ SerdStatus RdfTripleReader::handle(void* handle, SerdStatementFlags, const SerdN
     const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
     const SerdNode* object_datatype, const SerdNode* object_lang) {
     auto reader = reinterpret_cast<RdfReader*>(handle);
-    auto& store = ku_dynamic_cast<RdfStore&, TripleStore&>(*reader->store_);
+    auto& store = reader->store_->cast<TripleStore>();
     auto subjectStr = reader->getAsString(subject);
     auto predicateStr = reader->getAsString(predicate);
     auto objectStr = reader->getAsString(object);

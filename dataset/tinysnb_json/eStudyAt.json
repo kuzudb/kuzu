@@ -2,7 +2,7 @@
     {
       "from": 0,
       "to": 1,
-      "YEAR": 2021,
+      "year": 2021,
       "Places": ["wwAewsdndweusd","wek"],
       "length": 5,
       "level": 5,
@@ -15,7 +15,7 @@
     {
       "from": 2,
       "to": 1,
-      "YEAR": 2020,
+      "year": 2020,
       "Places": ["anew","jsdnwusklklklwewsd"],
       "length": 55,
       "level": 120,
@@ -28,7 +28,7 @@
     {
       "from": 8,
       "to": 1,
-      "YEAR": 2020,
+      "year": 2020,
       "Places": ["awndsnjwejwen","isuhuwennjnuhuhuwewe"],
       "length": 22,
       "level": 2,

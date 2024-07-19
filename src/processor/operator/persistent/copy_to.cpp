@@ -15,11 +15,15 @@ std::string CopyToPrintInfo::toString() const {
 
 void CopyTo::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     localState.exportFuncLocalState =
-        info.exportFunc.initLocal(*context->clientContext, *info.bindData, info.isFlatVec);
+        info.exportFunc.initLocalState(*context->clientContext, *info.bindData, info.isFlatVec);
     localState.inputVectors.reserve(info.inputVectorPoses.size());
     for (auto& inputVectorPos : info.inputVectorPoses) {
         localState.inputVectors.push_back(resultSet->getValueVector(inputVectorPos));
     }
+}
+
+void CopyTo::initGlobalStateInternal(kuzu::processor::ExecutionContext* context) {
+    sharedState->init(*context->clientContext, *info.bindData);
 }
 
 void CopyTo::finalize(ExecutionContext* /*context*/) {

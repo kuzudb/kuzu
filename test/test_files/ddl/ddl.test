@@ -47,10 +47,10 @@ Table university has been created.
 Table nearTo has been created.
 -STATEMENT DROP TABLE nearTo;
 ---- 1
-Table: nearTo has been dropped.
+Table nearTo has been dropped.
 -STATEMENT DROP TABLE university
 ---- 1
-Table: university has been dropped.
+Table university has been dropped.
 -STATEMENT ALTER TABLE person DROP fName
 ---- 1
 Table person altered.
@@ -477,3 +477,6 @@ Table interests already exists.
 -STATEMENT CREATE NODE TABLE IF NOT EXISTS UW1 (ID INT64, PRIMARY KEY(ID))
 ---- 1
 Table UW1 has been created.
+-STATEMENT DROP TABLE IF EXISTS UW5
+---- 1
+Table UW5 does not exist.

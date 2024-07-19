@@ -243,13 +243,14 @@ include_directories(third_party/utf8proc/include)
 include_directories(third_party/zstd/include)
 include_directories(third_party/httplib)
 include_directories(third_party/pcg)
+include_directories(third_party/lz4)
 
 add_subdirectory(third_party)
 
 if(${BUILD_KUZU})
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
-add_definitions(-DKUZU_EXTENSION_VERSION="0.3.19")
+add_definitions(-DKUZU_EXTENSION_VERSION="0.3.23")
 
 include_directories(src/include)
 

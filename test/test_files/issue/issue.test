@@ -2,6 +2,26 @@
 
 --
 
+-CASE 3691
+-STATEMENT CREATE NODE TABLE V (id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE E(FROM V TO V);
+---- ok
+-STATEMENT CREATE (:V {id: 1})-[:E]->(:V {id: 2})-[:E]->(:V {id: 3})-[:E]->(:V {id: 4});
+---- ok
+-STATEMENT MATCH p = (v)-[e* (r,n | WHERE true)]->(v2) RETURN properties(nodes(p), 'id');
+---- 6
+[1,2,3,4]
+[1,2,3]
+[1,2]
+[2,3,4]
+[2,3]
+[3,4]
+-STATEMENT MATCH p = (v)-[e* (r,n | WHERE false)]->(v2) RETURN properties(nodes(p), 'id');
+---- 0
+-STATEMENT MATCH p = (v)-[e* (r,n | WHERE NULL + 1)]->(v2) RETURN properties(nodes(p), 'id');
+---- 0
+
 -CASE 3653
 -STATEMENT CREATE NODE TABLE V (id INT64, PRIMARY KEY(id));
 ---- ok

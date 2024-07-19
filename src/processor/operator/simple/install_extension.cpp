@@ -13,6 +13,10 @@ namespace processor {
 using namespace kuzu::common;
 using namespace kuzu::extension;
 
+std::string InstallExtensionPrintInfo::toString() const {
+    return "Install " + extensionName;
+}
+
 void InstallExtension::executeInternal(kuzu::processor::ExecutionContext* context) {
     installExtension(context->clientContext);
 }

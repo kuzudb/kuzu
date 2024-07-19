@@ -11,8 +11,14 @@ struct WeaklyConnectedComponentsFunction {
     static function_set getFunctionSet();
 };
 
-struct ShortestPathsFunction {
-    static constexpr const char* name = "SHORTEST_PATHS";
+struct SingleSPLengthsFunction {
+    static constexpr const char* name = "SINGLE_SP_LENGTHS";
+
+    static function_set getFunctionSet();
+};
+
+struct SingleSPPathsFunction {
+    static constexpr const char* name = "SINGLE_SP_PATHS";
 
     static function_set getFunctionSet();
 };

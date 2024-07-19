@@ -70,11 +70,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::DISTINCT: {
         physicalOperator = mapDistinct(logicalOperator);
     } break;
-    case LogicalOperatorType::DROP_SEQUENCE: {
-        physicalOperator = mapDropSequence(logicalOperator);
-    } break;
-    case LogicalOperatorType::DROP_TABLE: {
-        physicalOperator = mapDropTable(logicalOperator);
+    case LogicalOperatorType::DROP: {
+        physicalOperator = mapDrop(logicalOperator);
     } break;
     case LogicalOperatorType::DUMMY_SCAN: {
         physicalOperator = mapDummyScan(logicalOperator);
@@ -150,9 +147,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     } break;
     case LogicalOperatorType::RECURSIVE_EXTEND: {
         physicalOperator = mapRecursiveExtend(logicalOperator);
-    } break;
-    case LogicalOperatorType::SCAN_FILE: {
-        physicalOperator = mapScanFile(logicalOperator);
     } break;
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         physicalOperator = mapScanNodeTable(logicalOperator);

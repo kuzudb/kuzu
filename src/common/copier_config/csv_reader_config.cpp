@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "common/exception/binder.h"
+#include "common/exception/runtime.h"
 
 namespace kuzu {
 namespace common {
@@ -24,6 +25,8 @@ static void bindBoolParsingOption(CSVReaderConfig& config, const std::string& op
         config.option.hasHeader = optionValue;
     } else if (optionName == "PARALLEL") {
         config.parallel = optionValue;
+    } else {
+        KU_UNREACHABLE;
     }
 }
 
@@ -36,6 +39,20 @@ static void bindStringParsingOption(CSVReaderConfig& config, const std::string& 
         config.option.delimiter = parsingOptionValue;
     } else if (optionName == "QUOTE") {
         config.option.quoteChar = parsingOptionValue;
+    } else {
+        KU_UNREACHABLE;
+    }
+}
+
+static void bindIntParsingOption(CSVReaderConfig& config, const std::string& optionName,
+    const int64_t& optionValue) {
+    if (optionName == "SKIP") {
+        if (optionValue < 0) {
+            throw RuntimeException{"Skip number must be a non-negative integer"};
+        }
+        config.option.skipNum = optionValue;
+    } else {
+        KU_UNREACHABLE;
     }
 }
 
@@ -52,6 +69,10 @@ static bool validateStringParsingOptionName(const std::string& parsingOptionName
     return hasOption(CopyConstants::STRING_CSV_PARSING_OPTIONS, parsingOptionName);
 }
 
+static bool validateIntParsingOptionName(const std::string& parsingOptionName) {
+    return hasOption(CopyConstants::INT_CSV_PARSING_OPTIONS, parsingOptionName);
+}
+
 CSVReaderConfig CSVReaderConfig::construct(
     const std::unordered_map<std::string, common::Value>& options) {
     auto config = CSVReaderConfig();
@@ -59,6 +80,7 @@ CSVReaderConfig CSVReaderConfig::construct(
         auto name = op.first;
         auto isValidStringParsingOption = validateStringParsingOptionName(name);
         auto isValidBoolParsingOption = validateBoolParsingOptionName(name);
+        auto isValidIntParsingOption = validateIntParsingOptionName(name);
         if (isValidBoolParsingOption) {
             if (op.second.getDataType() != LogicalType::BOOL()) {
                 throw BinderException(
@@ -71,9 +93,19 @@ CSVReaderConfig CSVReaderConfig::construct(
                     stringFormat("The type of csv parsing option {} must be a string.", name));
             }
             bindStringParsingOption(config, name, op.second.getValue<std::string>());
+        } else if (isValidIntParsingOption) {
+            if (op.second.getDataType() != LogicalType::INT64()) {
+                throw BinderException(
+                    stringFormat("The type of csv parsing option {} must be a INT64.", name));
+            }
+            bindIntParsingOption(config, name, op.second.getValue<int64_t>());
         } else {
             throw BinderException(stringFormat("Unrecognized csv parsing option: {}.", name));
         }
+    }
+    if (config.option.skipNum > 0) {
+        // If the user sets the number of rows to skip, we can not read in parallel mode.
+        config.parallel = false;
     }
     return config;
 }

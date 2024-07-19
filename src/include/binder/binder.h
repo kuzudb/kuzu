@@ -49,6 +49,10 @@ namespace transaction {
 class Transaction;
 } // namespace transaction
 
+namespace common {
+struct RdfReaderConfig;
+}
+
 namespace binder {
 struct PropertyInfo;
 struct BoundBaseScanSource;
@@ -58,9 +62,9 @@ struct BoundSetPropertyInfo;
 struct BoundDeleteInfo;
 class BoundWithClause;
 class BoundReturnClause;
-struct BoundFileScanInfo;
 struct ExportedTableData;
 struct BoundJoinHintNode;
+struct BoundCopyFromInfo;
 
 // BinderScope keeps track of expressions in scope and their aliases. We maintain the order of
 // expressions in
@@ -108,8 +112,7 @@ public:
     std::unique_ptr<BoundStatement> bindCreateType(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateSequence(const parser::Statement& statement);
 
-    std::unique_ptr<BoundStatement> bindDropTable(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindDropSequence(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindDrop(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindAlter(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindRenameTable(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindAddProperty(const parser::Statement& statement);
@@ -129,6 +132,14 @@ public:
         catalog::RelTableCatalogEntry* relTableEntry);
     std::unique_ptr<BoundStatement> bindCopyRdfFrom(const parser::Statement& statement,
         catalog::RDFGraphCatalogEntry* rdfGraphEntry);
+    BoundCopyFromInfo bindCopyRdfResourceInfo(const common::RdfReaderConfig& config,
+        const function::TableFuncBindData& bindData, const catalog::RDFGraphCatalogEntry& rdfEntry);
+    BoundCopyFromInfo bindCopyRdfLiteralInfo(const common::RdfReaderConfig& config,
+        const function::TableFuncBindData& bindData, const catalog::RDFGraphCatalogEntry& rdfEntry);
+    BoundCopyFromInfo bindCopyRdfResourceTriplesInfo(const common::RdfReaderConfig& config,
+        const function::TableFuncBindData& bindData, const catalog::RDFGraphCatalogEntry& rdfEntry);
+    BoundCopyFromInfo bindCopyRdfLiteralTriplesInfo(const common::RdfReaderConfig& config,
+        const function::TableFuncBindData& bindData, const catalog::RDFGraphCatalogEntry& rdfEntry);
 
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 
@@ -142,6 +153,16 @@ public:
     /*** bind scan source ***/
     std::unique_ptr<BoundBaseScanSource> bindScanSource(parser::BaseScanSource* scanSource,
         const parser::options_t& options, const std::vector<std::string>& columnNames,
+        const std::vector<common::LogicalType>& columnTypes);
+    std::unique_ptr<BoundBaseScanSource> bindFileScanSource(
+        const parser::BaseScanSource& scanSource, const parser::options_t& options,
+        const std::vector<std::string>& columnNames,
+        const std::vector<common::LogicalType>& columnTypes);
+    std::unique_ptr<BoundBaseScanSource> bindQueryScanSource(
+        const parser::BaseScanSource& scanSource, const std::vector<std::string>& columnNames,
+        const std::vector<common::LogicalType>& columnTypes);
+    std::unique_ptr<BoundBaseScanSource> bindObjectScanSource(
+        const parser::BaseScanSource& scanSource, const std::vector<std::string>& columnNames,
         const std::vector<common::LogicalType>& columnTypes);
 
     std::unordered_map<std::string, common::Value> bindParsingOptions(
@@ -272,7 +293,8 @@ public:
 
     void validateTableType(common::table_id_t tableID, common::TableType expectedTableType);
     void validateTableExist(const std::string& tableName);
-
+    void validateDropTable(const parser::Statement& dropTable);
+    void validateDropSequence(const parser::Statement& dropTable);
     /*** helpers ***/
     std::string getUniqueExpressionName(const std::string& name);
 

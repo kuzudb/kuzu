@@ -67,8 +67,8 @@ void NullColumn::scan(Transaction* transaction, const ChunkState& state,
     Column::scan(transaction, state, columnChunk, startOffset, endOffset);
 }
 
-void NullColumn::lookup(Transaction* transaction, ChunkState& readState, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
+void NullColumn::lookup(Transaction* transaction, ChunkState& readState,
+    const ValueVector* nodeIDVector, ValueVector* resultVector) {
     lookupInternal(transaction, readState, nodeIDVector, resultVector);
 }
 
@@ -76,8 +76,8 @@ void NullColumn::append(ColumnChunkData* columnChunk, ChunkState& state) {
     auto preScanMetadata = columnChunk->getMetadataToFlush();
     auto startPageIdx = dataFH->addNewPages(preScanMetadata.numPages);
     state.metadata = columnChunk->flushBuffer(dataFH, startPageIdx, preScanMetadata);
-    metadataDA->resize(state.nodeGroupIdx + 1);
-    metadataDA->update(state.nodeGroupIdx, state.metadata);
+    metadataDA->resize(&DUMMY_WRITE_TRANSACTION, state.nodeGroupIdx + 1);
+    metadataDA->update(&DUMMY_WRITE_TRANSACTION, state.nodeGroupIdx, state.metadata);
 }
 
 bool NullColumn::isNull(Transaction* transaction, const ChunkState& state, offset_t offsetInChunk) {

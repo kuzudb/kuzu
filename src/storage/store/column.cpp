@@ -153,7 +153,7 @@ size_t Column::getNumValuesFromDisk(DiskArray<ColumnChunkMetadata>* metadataDA,
     if (state.nodeGroupIdx >= metadataDA->getNumElements(transaction->getType())) {
         return 0;
     } else {
-        auto chunkMetadata = metadataDA->get(state.nodeGroupIdx, transaction->getType());
+        auto chunkMetadata = metadataDA->get(state.nodeGroupIdx, transaction);
         auto numValues = chunkMetadata.numValues == 0 ?
                              0 :
                              std::min(endOffset, chunkMetadata.numValues) - startOffset;
@@ -175,7 +175,7 @@ void Column::batchLookup(Transaction* transaction, const offset_t* nodeOffsets, 
         ChunkState state;
         initChunkState(transaction, nodeGroupIdx, state);
         auto cursor = getPageCursorForOffsetInGroup(offsetInChunk, state);
-        auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
+        auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction);
         (void)isPageIdxValid;
         KU_ASSERT(isPageIdxValid(cursor.pageIdx, chunkMeta));
         readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
@@ -198,7 +198,7 @@ void Column::initChunkState(Transaction* transaction, node_group_idx_t nodeGroup
         // contention due to lock acquiring in DiskArray.
         readState.nodeGroupIdx = nodeGroupIdx;
         if (nodeGroupIdx < metadataDA->getNumElements(transaction->getType())) {
-            readState.metadata = metadataDA->get(nodeGroupIdx, transaction->getType());
+            readState.metadata = metadataDA->get(nodeGroupIdx, transaction);
             readState.numValuesPerPage =
                 readState.metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
         }
@@ -344,8 +344,8 @@ void Column::scanFiltered(Transaction* transaction, PageCursor& pageCursor,
     }
 }
 
-void Column::lookup(Transaction* transaction, ChunkState& readState, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
+void Column::lookup(Transaction* transaction, ChunkState& readState,
+    const ValueVector* nodeIDVector, ValueVector* resultVector) {
     if (nullColumn) {
         KU_ASSERT(readState.nullState);
         nullColumn->lookup(transaction, *readState.nullState, nodeIDVector, resultVector);
@@ -354,7 +354,7 @@ void Column::lookup(Transaction* transaction, ChunkState& readState, ValueVector
 }
 
 void Column::lookupInternal(Transaction* transaction, ChunkState& readState,
-    ValueVector* nodeIDVector, ValueVector* resultVector) {
+    const ValueVector* nodeIDVector, ValueVector* resultVector) {
     auto& selVector = nodeIDVector->state->getSelVector();
     for (auto i = 0ul; i < selVector.getSelSize(); i++) {
         auto pos = selVector[i];
@@ -412,8 +412,8 @@ void Column::append(ColumnChunkData* columnChunk, ChunkState& state) {
     state.metadata = columnChunk->flushBuffer(dataFH, startPageIdx, preScanMetadata);
     (void)sanityCheckForWrites;
     KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
-    metadataDA->resize(state.nodeGroupIdx + 1);
-    metadataDA->update(state.nodeGroupIdx, state.metadata);
+    metadataDA->resize(&DUMMY_WRITE_TRANSACTION, state.nodeGroupIdx + 1);
+    metadataDA->update(&DUMMY_WRITE_TRANSACTION, state.nodeGroupIdx, state.metadata);
     if (nullColumn) {
         // Null column chunk.
         KU_ASSERT(state.nullState);
@@ -504,7 +504,7 @@ offset_t Column::appendValues(ChunkState& state, const uint8_t* data, const Null
     updateStatistics(state.metadata, startOffset + numValues - 1, minWritten, maxWritten);
     // TODO(bmwinger): it shouldn't be necessary to do this here; it should be handled in
     // prepareCommit
-    metadataDA->update(state.nodeGroupIdx, state.metadata);
+    metadataDA->update(&DUMMY_WRITE_TRANSACTION, state.nodeGroupIdx, state.metadata);
     return startOffset;
 }
 
@@ -578,7 +578,7 @@ void Column::prepareCommitForExistingChunk(Transaction* transaction, ChunkState&
             deleteInfo);
         KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
         // TODO(bmwinger): avoid updating metadata if it has not changed
-        metadataDA->update(state.nodeGroupIdx, state.metadata);
+        metadataDA->update(transaction, state.nodeGroupIdx, state.metadata);
         if (nullColumn) {
             KU_ASSERT(state.nullState);
             auto nullInsertChunks = getNullChunkCollection(localInsertChunks);
@@ -606,7 +606,7 @@ void Column::prepareCommitForExistingChunkInPlace(Transaction* transaction, Chun
     const std::vector<offset_t>& dstOffsets, ColumnChunkData* chunk, offset_t startSrcOffset) {
     commitColumnChunkInPlace(state, dstOffsets, chunk, startSrcOffset);
     KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
-    metadataDA->update(state.nodeGroupIdx, state.metadata);
+    metadataDA->update(transaction, state.nodeGroupIdx, state.metadata);
     if (nullColumn) {
         nullColumn->prepareCommitForExistingChunk(transaction, *state.nullState, dstOffsets,
             chunk->getNullChunk(), startSrcOffset);
@@ -696,7 +696,8 @@ void Column::commitLocalChunkInPlace(ChunkState& state, const ChunkCollection& l
 }
 
 std::unique_ptr<ColumnChunkData> Column::getEmptyChunkForCommit(uint64_t capacity) {
-    return ColumnChunkFactory::createColumnChunkData(dataType.copy(), enableCompression, capacity);
+    return ColumnChunkFactory::createColumnChunkData(dataType.copy(), enableCompression, capacity,
+        true /*inMemory*/, nullColumn != nullptr /*hasNull*/);
 }
 
 // TODO: Pass state in to avoid access metadata.
@@ -712,7 +713,7 @@ void Column::commitLocalChunkOutOfPlace(Transaction* transaction, ChunkState& st
         applyLocalChunkToColumnChunk(localInsertChunks, columnChunk.get(), insertInfo);
     } else {
         auto maxNodeOffset = std::max(getMaxOffset(insertInfo), getMaxOffset(updateInfo));
-        auto chunkMeta = getMetadata(state.nodeGroupIdx, transaction->getType());
+        auto chunkMeta = getMetadata(state.nodeGroupIdx, transaction);
         maxNodeOffset = std::max(maxNodeOffset, chunkMeta.numValues);
         columnChunk = getEmptyChunkForCommit(maxNodeOffset + 1);
         // First, scan the whole column chunk from persistent storage.
@@ -810,7 +811,7 @@ void Column::populateWithDefaultVal(Transaction* transaction,
     ChunkState state;
     for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
         initChunkState(transaction, nodeGroupIdx, state);
-        auto chunkMeta = metadataDA_->get(nodeGroupIdx, transaction->getType());
+        auto chunkMeta = metadataDA_->get(nodeGroupIdx, transaction);
         auto capacity = StorageConstants::NODE_GROUP_SIZE;
         while (capacity < chunkMeta.numValues) {
             capacity *= CHUNK_RESIZE_RATIO;

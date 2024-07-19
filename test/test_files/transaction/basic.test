@@ -20,3 +20,14 @@ PERSON|NODE|local(kuzu)|
 Connection already has an active transaction. Cannot start a transaction within another one. For concurrent multiple transactions, please open other connections.
 -STATEMENT CALL show_tables() return *;
 ---- 0
+
+-CASE RollbackWhenCloseDB
+-STATEMENT CREATE NODE TABLE person(id string, primary key(id));
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE (p:person {id: 'Alice'});
+---- ok
+-STATEMENT MATCH (p:person) return p.id;
+---- 1
+Alice

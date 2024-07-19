@@ -19,7 +19,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapProjection(LogicalOperator* log
         expressionEvaluators.push_back(exprMapper.getEvaluator(expression));
         expressionsOutputPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
-    auto printInfo = std::make_unique<OPPrintInfo>(logicalProjection.getExpressionsForPrinting());
+    auto printInfo =
+        std::make_unique<ProjectionPrintInfo>(logicalProjection.getExpressionsToProject());
     return make_unique<Projection>(std::move(expressionEvaluators), std::move(expressionsOutputPos),
         logicalProjection.getDiscardedGroupsPos(), std::move(prevOperator), getOperatorID(),
         std::move(printInfo));

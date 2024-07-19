@@ -7,18 +7,18 @@
 namespace kuzu {
 namespace binder {
 
-struct BoundFileScanInfo {
+struct BoundTableScanSourceInfo {
     function::TableFunction func;
     std::unique_ptr<function::TableFuncBindData> bindData;
     binder::expression_vector columns;
 
-    BoundFileScanInfo(function::TableFunction func,
+    BoundTableScanSourceInfo(function::TableFunction func,
         std::unique_ptr<function::TableFuncBindData> bindData, binder::expression_vector columns)
         : func{func}, bindData{std::move(bindData)}, columns{std::move(columns)} {}
-    EXPLICIT_COPY_DEFAULT_MOVE(BoundFileScanInfo);
+    EXPLICIT_COPY_DEFAULT_MOVE(BoundTableScanSourceInfo);
 
 private:
-    BoundFileScanInfo(const BoundFileScanInfo& other)
+    BoundTableScanSourceInfo(const BoundTableScanSourceInfo& other)
         : func{other.func}, bindData{other.bindData->copy()}, columns{other.columns} {}
 };
 

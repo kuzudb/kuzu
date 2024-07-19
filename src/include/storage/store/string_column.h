@@ -63,7 +63,7 @@ protected:
         common::ValueVector* resultVector);
 
     void lookupInternal(transaction::Transaction* transaction, ChunkState& state,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
+        const common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
 
 private:
     bool canCommitInPlace(const ChunkState& state, const ChunkCollection& localInsertChunk,

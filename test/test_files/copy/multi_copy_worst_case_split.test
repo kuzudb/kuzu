@@ -1,0 +1,74 @@
+-DATASET CSV multi-copy-worst-case-split
+
+--
+# Tests that we can create overflow slots when splitting slots
+# This dataset was created so that all of the keys in the first copy hash into index 0 slot 0 initially
+# (requiring one overflow slot since only 15 keys fit in a slot),
+# then re-hash into slot 16 when that slot is split.
+# 200 additional keys (which all hash into index 0) are added so that the split occurs.
+# This will probably only work with the current hash function, a slot size of 15 for int64,
+# and a load factor of 0.8 and should be re-written if any of these change
+-CASE CopyWorstCaseSplit
+-STATEMENT MATCH (t:Test) RETURN count(t);
+---- 1
+210
+-STATEMENT MATCH (t:Test) WHERE t.ID = 7896 RETURN t.ID;
+---- 1
+7896
+-STATEMENT MATCH (t:Test) WHERE t.ID = 14999 RETURN t.ID;
+---- 1
+14999
+-STATEMENT MATCH (t:Test) WHERE t.ID = 18846 RETURN t.ID;
+---- 1
+18846
+-STATEMENT MATCH (t:Test) WHERE t.ID = 22259 RETURN t.ID;
+---- 1
+22259
+-STATEMENT MATCH (t:Test) WHERE t.ID = 22430 RETURN t.ID;
+---- 1
+22430
+-STATEMENT MATCH (t:Test) WHERE t.ID = 36861 RETURN t.ID;
+---- 1
+36861
+-STATEMENT MATCH (t:Test) WHERE t.ID = 39850 RETURN t.ID;
+---- 1
+39850
+-STATEMENT MATCH (t:Test) WHERE t.ID = 40724 RETURN t.ID;
+---- 1
+40724
+-STATEMENT MATCH (t:Test) WHERE t.ID = 41896 RETURN t.ID;
+---- 1
+41896
+-STATEMENT MATCH (t:Test) WHERE t.ID = 45833 RETURN t.ID;
+---- 1
+45833
+-STATEMENT MATCH (t:Test) WHERE t.ID = 55049 RETURN t.ID;
+---- 1
+55049
+-STATEMENT MATCH (t:Test) WHERE t.ID = 78382 RETURN t.ID;
+---- 1
+78382
+-STATEMENT MATCH (t:Test) WHERE t.ID = 95840 RETURN t.ID;
+---- 1
+95840
+-STATEMENT MATCH (t:Test) WHERE t.ID = 107045 RETURN t.ID;
+---- 1
+107045
+-STATEMENT MATCH (t:Test) WHERE t.ID = 121367 RETURN t.ID;
+---- 1
+121367
+-STATEMENT MATCH (t:Test) WHERE t.ID = 126623 RETURN t.ID;
+---- 1
+126623
+-STATEMENT MATCH (t:Test) WHERE t.ID = 130022 RETURN t.ID;
+---- 1
+130022
+-STATEMENT MATCH (t:Test) WHERE t.ID = 133250 RETURN t.ID;
+---- 1
+133250
+-STATEMENT MATCH (t:Test) WHERE t.ID = 134947 RETURN t.ID;
+---- 1
+134947
+-STATEMENT MATCH (t:Test) WHERE t.ID = 134971 RETURN t.ID;
+---- 1
+134971

@@ -82,8 +82,9 @@ void Planner::planUnwindClause(const BoundReadingClause& boundReadingClause,
 
 static bool hasExternalDependency(const std::shared_ptr<Expression>& expression,
     const std::unordered_set<std::string>& variableNameSet) {
-    auto collector = ExpressionCollector();
-    for (auto& name : collector.getDependentVariableNames(expression)) {
+    auto collector = DependentVarNameCollector();
+    collector.visit(expression);
+    for (auto& name : collector.getVarNames()) {
         if (!variableNameSet.contains(name)) {
             return true;
         }
@@ -112,7 +113,7 @@ void Planner::planTableFunctionCall(const BoundReadingClause& readingClause,
     auto& call = readingClause.constCast<BoundTableFunctionCall>();
     expression_vector predicatesToPull;
     expression_vector predicatesToPush;
-    splitPredicates(call.getOutExprs(), call.getConjunctivePredicates(), predicatesToPull,
+    splitPredicates(call.getColumns(), call.getConjunctivePredicates(), predicatesToPull,
         predicatesToPush);
     for (auto& plan : plans) {
         planReadOp(getTableFunctionCall(readingClause), predicatesToPush, *plan);
@@ -178,7 +179,7 @@ void Planner::planLoadFrom(const BoundReadingClause& readingClause,
     splitPredicates(loadFrom.getInfo()->columns, loadFrom.getConjunctivePredicates(),
         predicatesToPull, predicatesToPush);
     for (auto& plan : plans) {
-        auto op = getScanFile(loadFrom.getInfo());
+        auto op = getTableFunctionCall(*loadFrom.getInfo());
         planReadOp(std::move(op), predicatesToPush, *plan);
         if (!predicatesToPull.empty()) {
             appendFilters(predicatesToPull, *plan);

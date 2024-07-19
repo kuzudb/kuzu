@@ -10,14 +10,12 @@
 #include "binder/ddl/bound_create_sequence.h"
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_create_type.h"
-#include "binder/ddl/bound_drop_sequence.h"
-#include "binder/ddl/bound_drop_table.h"
+#include "binder/ddl/bound_drop.h"
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_sequence.h"
 #include "planner/operator/ddl/logical_create_table.h"
 #include "planner/operator/ddl/logical_create_type.h"
-#include "planner/operator/ddl/logical_drop_sequence.h"
-#include "planner/operator/ddl/logical_drop_table.h"
+#include "planner/operator/ddl/logical_drop.h"
 #include "planner/operator/logical_create_macro.h"
 #include "planner/operator/logical_explain.h"
 #include "planner/operator/logical_standalone_call.h"
@@ -57,17 +55,10 @@ void Planner::appendCreateSequence(const BoundStatement& statement, LogicalPlan&
     plan.setLastOperator(std::move(op));
 }
 
-void Planner::appendDropTable(const BoundStatement& statement, LogicalPlan& plan) {
-    auto& dropTable = statement.constCast<BoundDropTable>();
-    auto op = make_shared<LogicalDropTable>(dropTable.getTableID(), dropTable.getTableName(),
+void Planner::appendDrop(const BoundStatement& statement, LogicalPlan& plan) {
+    auto& dropTable = statement.constCast<BoundDrop>();
+    auto op = make_shared<LogicalDrop>(dropTable.getDropInfo(),
         statement.getStatementResult()->getSingleColumnExpr());
-    plan.setLastOperator(std::move(op));
-}
-
-void Planner::appendDropSequence(const BoundStatement& statement, LogicalPlan& plan) {
-    auto& dropSequence = statement.constCast<BoundDropSequence>();
-    auto op = make_shared<LogicalDropSequence>(dropSequence.getSequenceID(),
-        dropSequence.getSequenceName(), statement.getStatementResult()->getSingleColumnExpr());
     plan.setLastOperator(std::move(op));
 }
 

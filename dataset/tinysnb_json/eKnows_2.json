@@ -7,7 +7,7 @@
       "validInterval": "30 hours 40 days",
       "comments": ["fnioh8323aeweae34d","osd89e2ejshuih12"],
       "summary": {"locations":["london","toronto"], "transfer": {"day": "2012-11-21", "amount": [223, 5230]}},
-      "notes": 10,
+      "notes": 10
     },
     {
       "FROM": 3,
@@ -17,7 +17,7 @@
       "validInterval": "28 minutes 30 milliseconds",
       "comments": ["fwh983-sdjisdfji","ioh89y32r2huir"],
       "summary": {"locations":["paris","beijing"], "transfer": {"day": "2011-03-11", "amount": [2323, 50]}},
-      "notes": 1,
+      "notes": 1
     },
     {
       "FROM": 3,
@@ -27,7 +27,7 @@
       "validInterval": "300 milliseconds",
       "comments": ["psh989823oaaioe","nuiuah1nosndfisf"],
       "summary": {"locations":[], "transfer": {"day": "1980-11-21", "amount": [20, 5]}},
-      "notes": 2,
+      "notes": 2
     },
     {
       "FROM": 5,
@@ -37,7 +37,7 @@
       "validInterval": "480us",
       "comments": ["fwewe"],
       "summary": {"locations":["shanghai","nanjing"], "transfer": {"day": "1998-11-12", "amount": [22, 53240]}},
-      "notes": 15,
+      "notes": 15
     },
     {
       "FROM": 5,
@@ -47,7 +47,7 @@
       "validInterval": "23 minutes",
       "comments": ["fewh9182912e3","h9y8y89soidfsf","nuhudf78w78efw","hioshe0f9023sdsd"],
       "summary": {"locations":["paris"], "transfer": {"day": "2000-01-01", "amount": [20, 5000]}},
-      "notes": "happy new year",
+      "notes": "happy new year"
     },
     {
       "FROM": 5,
@@ -57,7 +57,7 @@
       "validInterval": "48 hours 52 milliseconds",
       "comments": ["23h9sdslnfowhu2932","shuhf98922323sf"],
       "summary": {"locations":["paris"], "transfer": {"day": "2000-01-01", "amount": [20, 5000]}},
-      "notes": 4,
+      "notes": 4
     },
     {
       "FROM": 7,
@@ -67,7 +67,7 @@
       "validInterval": "47 minutes 58 seconds",
       "comments": ["ahu2333333333333","12weeeeeeeeeeeeeeeeee"],
       "summary": {"locations":["toronto","thisisalongcityname"], "transfer": {"day": "1930-11-22", "amount": [18, 323]}},
-      "notes": 8,
+      "notes": 8
     },
     {
       "FROM": 7,
@@ -78,5 +78,6 @@
       "comments": ["peweeeeeeeeeeeeeeeee","kowje9w0eweeeeeeeee"],
       "summary": {"locations":["waterloo"], "transfer": {"day": "2000-01-01", "amount": [1000, 5000]}},
       "notes": 10,
+      "someMap": null
     }
   ]

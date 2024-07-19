@@ -21,62 +21,93 @@ private:
 
 class ExpressionVisitor {
 public:
-    static inline bool hasAggregate(const Expression& expression) {
-        return satisfyAny(expression, [&](const Expression& expression) {
-            return expression.expressionType == common::ExpressionType::AGGREGATE_FUNCTION;
-        });
-    }
+    virtual ~ExpressionVisitor() = default;
 
-    static inline bool hasSubquery(const Expression& expression) {
-        return satisfyAny(expression, [&](const Expression& expression) {
-            return expression.expressionType == common::ExpressionType::SUBQUERY;
-        });
-    }
-
-    static inline bool needFold(const Expression& expression) {
-        return expression.expressionType == common::ExpressionType::LITERAL ?
-                   false :
-                   isConstant(expression);
-    }
-
-    static bool isConstant(const Expression& expression);
+    void visit(std::shared_ptr<Expression> expr);
 
     static bool isRandom(const Expression& expression);
 
-private:
-    static bool satisfyAny(const Expression& expression,
-        const std::function<bool(const Expression&)>& condition);
+protected:
+    void visitSwitch(std::shared_ptr<Expression> expr);
+    virtual void visitFunctionExpr(std::shared_ptr<Expression>) {}
+    virtual void visitAggFunctionExpr(std::shared_ptr<Expression>) {}
+    virtual void visitPropertyExpr(std::shared_ptr<Expression>) {}
+    virtual void visitLiteralExpr(std::shared_ptr<Expression>) {}
+    virtual void visitVariableExpr(std::shared_ptr<Expression>) {}
+    virtual void visitPathExpr(std::shared_ptr<Expression>) {}
+    virtual void visitNodeRelExpr(std::shared_ptr<Expression>) {}
+    virtual void visitParamExpr(std::shared_ptr<Expression>) {}
+    virtual void visitSubqueryExpr(std::shared_ptr<Expression>) {}
+    virtual void visitCaseExpr(std::shared_ptr<Expression>) {}
+    virtual void visitGraphExpr(std::shared_ptr<Expression>) {}
+    virtual void visitLambdaExpr(std::shared_ptr<Expression>) {}
+
+    void visitChildren(const Expression& expr);
+    void visitCaseExprChildren(const Expression& expr);
 };
 
-class ExpressionCollector {
+// Do not collect subquery expression recursively. Caller should handle recursive subquery instead.
+class SubqueryExprCollector final : public ExpressionVisitor {
 public:
-    inline expression_vector collectPropertyExpressions(
-        const std::shared_ptr<Expression>& expression) {
-        KU_ASSERT(expressions.empty());
-        collectExpressionsInternal(expression, [&](const Expression& expression) {
-            return expression.expressionType == common::ExpressionType::PROPERTY;
-        });
-        return expressions;
-    }
+    bool hasSubquery() const { return !exprs.empty(); }
+    expression_vector getSubqueryExprs() const { return exprs; }
 
-    inline expression_vector collectTopLevelSubqueryExpressions(
-        const std::shared_ptr<Expression>& expression) {
-        KU_ASSERT(expressions.empty());
-        collectExpressionsInternal(expression, [&](const Expression& expression) {
-            return expression.expressionType == common::ExpressionType::SUBQUERY;
-        });
-        return expressions;
-    }
-
-    std::unordered_set<std::string> getDependentVariableNames(
-        const std::shared_ptr<Expression>& expression);
+protected:
+    void visitSubqueryExpr(std::shared_ptr<Expression> expr) override { exprs.push_back(expr); }
 
 private:
-    void collectExpressionsInternal(const std::shared_ptr<Expression>& expression,
-        const std::function<bool(const Expression&)>& condition);
+    expression_vector exprs;
+};
+
+class AggregateExprCollector final : public ExpressionVisitor {
+public:
+    AggregateExprCollector() : hasAggregate_{false} {}
+
+    bool hasAggregate() const { return hasAggregate_; }
+
+protected:
+    void visitAggFunctionExpr(std::shared_ptr<Expression>) override { hasAggregate_ = true; }
+
+private:
+    bool hasAggregate_;
+};
+
+class DependentVarNameCollector final : public ExpressionVisitor {
+public:
+    std::unordered_set<std::string> getVarNames() const { return varNames; }
+
+protected:
+    void visitSubqueryExpr(std::shared_ptr<Expression> expr) override;
+    void visitPropertyExpr(std::shared_ptr<Expression> expr) override;
+    void visitNodeRelExpr(std::shared_ptr<Expression> expr) override;
+    void visitVariableExpr(std::shared_ptr<Expression> expr) override;
+
+private:
+    std::unordered_set<std::string> varNames;
+};
+
+class PropertyExprCollector final : public ExpressionVisitor {
+public:
+    expression_vector getPropertyExprs() const { return expressions; }
+
+protected:
+    void visitSubqueryExpr(std::shared_ptr<Expression> expr) override;
+    void visitPropertyExpr(std::shared_ptr<Expression> expr) override;
+    void visitNodeRelExpr(std::shared_ptr<Expression> expr) override;
 
 private:
     expression_vector expressions;
+};
+
+class ConstantExpressionVisitor {
+public:
+    static bool needFold(const Expression& expr);
+    static bool isConstant(const Expression& expr);
+
+private:
+    static bool visitFunction(const Expression& expr);
+    static bool visitCase(const Expression& expr);
+    static bool visitChildren(const Expression& expr);
 };
 
 } // namespace binder

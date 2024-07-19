@@ -16,14 +16,13 @@ struct PyArrowTableScanLocalState final : public function::TableFuncLocalState {
     explicit PyArrowTableScanLocalState(ArrowArrayWrapper* arrowArray) : arrowArray{arrowArray} {}
 };
 
-struct PyArrowTableScanSharedState final : public function::BaseFileScanSharedState {
+struct PyArrowTableScanSharedState final : public function::BaseScanSharedStateWithNumRows {
     std::vector<std::shared_ptr<ArrowArrayWrapper>> chunks;
     uint64_t currentChunk;
-    std::mutex lock;
 
     PyArrowTableScanSharedState(uint64_t numRows,
         std::vector<std::shared_ptr<ArrowArrayWrapper>> chunks)
-        : BaseFileScanSharedState{numRows}, chunks{std::move(chunks)}, currentChunk{0} {}
+        : BaseScanSharedStateWithNumRows{numRows}, chunks{std::move(chunks)}, currentChunk{0} {}
 
     ArrowArrayWrapper* getNextChunk();
 };

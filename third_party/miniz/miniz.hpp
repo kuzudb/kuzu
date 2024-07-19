@@ -1285,4 +1285,4 @@ void *mz_zip_extract_archive_file_to_heap_v2(const char *pZip_filename, const ch
 
 #endif /* MINIZ_NO_ARCHIVE_APIS */
 
-} // namespace duckdb_miniz
+} // namespace miniz

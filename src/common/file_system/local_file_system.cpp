@@ -109,16 +109,19 @@ std::vector<std::string> LocalFileSystem::glob(main::ClientContext* context,
         pathsToGlob.push_back(homeDirectory + path.substr(1));
     } else {
         // Relative path to the file search path.
-        auto fileSearchPath =
-            context->getCurrentSetting(main::FileSearchPathSetting::name).getValue<std::string>();
-        if (fileSearchPath != "") {
-            auto searchPaths = common::StringUtils::split(fileSearchPath, ",");
-            for (auto& searchPath : searchPaths) {
-                pathsToGlob.push_back(common::stringFormat("{}/{}", searchPath, path));
+        auto globbedPaths = glob::glob(path);
+        if (!globbedPaths.empty()) {
+            pathsToGlob.push_back(path);
+        } else {
+            auto fileSearchPath = context->getCurrentSetting(main::FileSearchPathSetting::name)
+                                      .getValue<std::string>();
+            if (fileSearchPath != "") {
+                auto searchPaths = common::StringUtils::split(fileSearchPath, ",");
+                for (auto& searchPath : searchPaths) {
+                    pathsToGlob.push_back(common::stringFormat("{}/{}", searchPath, path));
+                }
             }
         }
-        // Relative path to the current directory.
-        pathsToGlob.push_back(path);
     }
     std::vector<std::string> result;
     for (auto& pathToGlob : pathsToGlob) {

@@ -2,7 +2,9 @@
 
 #include "common/enums/rel_direction.h"
 #include "common/enums/rel_multiplicity.h"
+#include "common/vector/value_vector.h"
 #include "storage/store/chunked_node_group.h"
+#include "storage/store/column.h"
 #include "storage/store/table_data.h"
 
 namespace kuzu {
@@ -13,15 +15,21 @@ class LocalRelNG;
 struct RelDataReadState final : TableDataScanState {
     common::node_group_idx_t nodeGroupIdx;
     common::offset_t numNodes;
+    common::offset_t numNodesInGroup;
     common::offset_t currentNodeOffset;
     common::offset_t posInCurrentCSR;
     // Temp auxiliary data structure to scan the offset of each CSR node in the offset column chunk.
     ChunkedCSRHeader csrHeaderChunks = ChunkedCSRHeader(false /*enableCompression*/);
+    Column::ChunkState offsetState, lengthState;
 
     bool readFromPersistentStorage;
     // Following fields are used for local storage.
     bool readFromLocalStorage;
     LocalRelNG* localNodeGroup;
+    // Set by the caller
+    bool randomAccess;
+    // Cached by initializeScanState
+    bool hasFullCSRHeaders;
 
     explicit RelDataReadState(const std::vector<common::column_id_t>& columnIDs);
     DELETE_COPY_DEFAULT_MOVE(RelDataReadState);
@@ -48,6 +56,19 @@ struct CSRHeaderColumns {
         length->initChunkState(transaction, nodeGroupIdx, lengthState);
         offset->scan(transaction, offsetState, chunks.offset.get());
         length->scan(transaction, lengthState, chunks.length.get());
+    }
+    void lookup(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+        const ChunkedCSRHeader& chunks, common::offset_t nodeOffsetInGroup,
+        Column::ChunkState& offsetState, Column::ChunkState& lengthState) const {
+        // If the nodeID is not 0, then we must also scan the previous offset
+        // to determine where the CSR entry starts
+        offset->initChunkState(transaction, nodeGroupIdx, offsetState);
+        length->initChunkState(transaction, nodeGroupIdx, lengthState);
+        auto startNodeID = nodeOffsetInGroup > 0 ? nodeOffsetInGroup - 1 : nodeOffsetInGroup;
+        offset->scan(transaction, offsetState, chunks.offset.get(), startNodeID,
+            nodeOffsetInGroup + 1);
+        length->scan(transaction, lengthState, chunks.length.get(), nodeOffsetInGroup,
+            nodeOffsetInGroup + 1);
     }
     void append(const ChunkedCSRHeader& headerChunks, Column::ChunkState& offsetState,
         Column::ChunkState& lengthState) const {

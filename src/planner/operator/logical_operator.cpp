@@ -36,8 +36,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "DETACH_DATABASE";
     case LogicalOperatorType::DISTINCT:
         return "DISTINCT";
-    case LogicalOperatorType::DROP_TABLE:
-        return "DROP_TABLE";
+    case LogicalOperatorType::DROP:
+        return "DROP";
     case LogicalOperatorType::DUMMY_SCAN:
         return "DUMMY_SCAN";
     case LogicalOperatorType::EMPTY_RESULT:
@@ -88,8 +88,6 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "PROJECTION";
     case LogicalOperatorType::RECURSIVE_EXTEND:
         return "RECURSIVE_EXTEND";
-    case LogicalOperatorType::SCAN_FILE:
-        return "SCAN_FILE";
     case LogicalOperatorType::SCAN_NODE_TABLE:
         return "SCAN_NODE_TABLE";
     case LogicalOperatorType::SEMI_MASKER:

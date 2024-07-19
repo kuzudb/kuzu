@@ -202,3 +202,10 @@ Adam|Karissa
 Adam|Zhang
 Karissa|Zhang
 Zhang|Noura
+
+-CASE ExplainExport
+-STATEMENT EXPLAIN EXPORT Database "${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db" (format="parquet");
+---- ok
+-STATEMENT LOAD FROM "${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db/city.parquet" RETURN *
+---- error
+Binder exception: No file found that matches the pattern: ${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db/city.parquet.

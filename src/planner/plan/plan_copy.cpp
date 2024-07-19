@@ -24,17 +24,16 @@ static void appendIndexScan(std::vector<IndexLookupInfo> infos, LogicalPlan& pla
 }
 
 static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan& plan) {
-    std::vector<std::unique_ptr<LogicalPartitionerInfo>> infos;
-    auto relTableEntry =
-        ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(copyFromInfo.tableEntry);
+    std::vector<LogicalPartitionerInfo> infos;
+    auto& relTableEntry = copyFromInfo.tableEntry->constCast<RelTableCatalogEntry>();
     // Partitioner for FWD direction rel data.
-    infos.push_back(std::make_unique<LogicalPartitionerInfo>(RelKeyIdx::FWD /* keyIdx */,
-        relTableEntry->isSingleMultiplicity(RelDataDirection::FWD) ? ColumnDataFormat::REGULAR :
-                                                                     ColumnDataFormat::CSR));
+    infos.push_back(LogicalPartitionerInfo(RelKeyIdx::FWD /* keyIdx */,
+        relTableEntry.isSingleMultiplicity(RelDataDirection::FWD) ? ColumnDataFormat::REGULAR :
+                                                                    ColumnDataFormat::CSR));
     // Partitioner for BWD direction rel data.
-    infos.push_back(std::make_unique<LogicalPartitionerInfo>(RelKeyIdx::BWD /* keyIdx */,
-        relTableEntry->isSingleMultiplicity(RelDataDirection::BWD) ? ColumnDataFormat::REGULAR :
-                                                                     ColumnDataFormat::CSR));
+    infos.push_back(LogicalPartitionerInfo(RelKeyIdx::BWD /* keyIdx */,
+        relTableEntry.isSingleMultiplicity(RelDataDirection::BWD) ? ColumnDataFormat::REGULAR :
+                                                                    ColumnDataFormat::CSR));
     auto partitioner = std::make_shared<LogicalPartitioner>(std::move(infos), copyFromInfo.copy(),
         plan.getLastOperator());
     partitioner->computeFactorizedSchema();
@@ -73,15 +72,14 @@ std::unique_ptr<LogicalPlan> Planner::planCopyNodeFrom(const BoundCopyFromInfo* 
     binder::expression_vector results) {
     auto plan = std::make_unique<LogicalPlan>();
     switch (info->source->type) {
-    case ScanSourceType::FILE: {
-        auto fileSource =
-            ku_dynamic_cast<BoundBaseScanSource*, BoundFileScanSource*>(info->source.get());
-        appendScanFile(&fileSource->fileScanInfo, *plan);
+    case ScanSourceType::FILE:
+    case ScanSourceType::OBJECT: {
+        auto& scanSource = info->source->constCast<BoundTableScanSource>();
+        appendTableFunctionCall(scanSource.info, *plan);
     } break;
     case ScanSourceType::QUERY: {
-        auto querySource =
-            ku_dynamic_cast<BoundBaseScanSource*, BoundQueryScanSource*>(info->source.get());
-        plan = getBestPlan(planQuery(*querySource->statement));
+        auto& querySource = info->source->constCast<BoundQueryScanSource>();
+        plan = getBestPlan(planQuery(*querySource.statement));
         appendAccumulate(AccumulateType::REGULAR, plan->getSchema()->getExpressionsInScope(),
             info->offset, nullptr /* mark */, *plan);
     } break;
@@ -96,10 +94,9 @@ std::unique_ptr<LogicalPlan> Planner::planCopyResourceFrom(const BoundCopyFromIn
     binder::expression_vector results) {
     auto plan = std::make_unique<LogicalPlan>();
     KU_ASSERT(info->source->type == ScanSourceType::FILE);
-    auto fileSource =
-        ku_dynamic_cast<BoundBaseScanSource*, BoundFileScanSource*>(info->source.get());
-    appendScanFile(&fileSource->fileScanInfo, *plan);
-    appendDistinct(fileSource->fileScanInfo.columns, *plan);
+    auto& scanSource = info->source->constCast<BoundTableScanSource>();
+    appendTableFunctionCall(scanSource.info, *plan);
+    appendDistinct(scanSource.info.columns, *plan);
     appendCopyFrom(*info, results, *plan);
     return plan;
 }
@@ -108,24 +105,22 @@ std::unique_ptr<LogicalPlan> Planner::planCopyRelFrom(const BoundCopyFromInfo* i
     binder::expression_vector results) {
     auto plan = std::make_unique<LogicalPlan>();
     switch (info->source->type) {
-    case ScanSourceType::FILE: {
-        auto fileSource =
-            ku_dynamic_cast<BoundBaseScanSource*, BoundFileScanSource*>(info->source.get());
-        appendScanFile(&fileSource->fileScanInfo, info->offset, *plan);
+    case ScanSourceType::FILE:
+    case ScanSourceType::OBJECT: {
+        auto& fileSource = info->source->constCast<BoundTableScanSource>();
+        appendTableFunctionCall(fileSource.info, info->offset, *plan);
     } break;
     case ScanSourceType::QUERY: {
-        auto querySource =
-            ku_dynamic_cast<BoundBaseScanSource*, BoundQueryScanSource*>(info->source.get());
-        plan = getBestPlan(planQuery(*querySource->statement));
+        auto& querySource = info->source->constCast<BoundQueryScanSource>();
+        plan = getBestPlan(planQuery(*querySource.statement));
         appendAccumulate(AccumulateType::REGULAR, plan->getSchema()->getExpressionsInScope(),
             info->offset, nullptr /* mark */, *plan);
     } break;
     default:
         KU_UNREACHABLE;
     }
-    auto extraInfo =
-        ku_dynamic_cast<ExtraBoundCopyFromInfo*, ExtraBoundCopyRelInfo*>(info->extraInfo.get());
-    appendIndexScan(copyVector(extraInfo->infos), *plan);
+    auto& extraInfo = info->extraInfo->constCast<ExtraBoundCopyRelInfo>();
+    appendIndexScan(extraInfo.infos, *plan);
     appendPartitioner(*info, *plan);
     appendCopyFrom(*info, results, *plan);
     return plan;
@@ -133,19 +128,17 @@ std::unique_ptr<LogicalPlan> Planner::planCopyRelFrom(const BoundCopyFromInfo* i
 
 std::unique_ptr<LogicalPlan> Planner::planCopyRdfFrom(const BoundCopyFromInfo* info,
     binder::expression_vector results) {
-    auto extraRdfInfo =
-        ku_dynamic_cast<ExtraBoundCopyFromInfo*, ExtraBoundCopyRdfInfo*>(info->extraInfo.get());
-    auto rPlan = planCopyResourceFrom(&extraRdfInfo->rInfo, results);
-    auto lPlan = planCopyNodeFrom(&extraRdfInfo->lInfo, results);
-    auto rrrPlan = planCopyRelFrom(&extraRdfInfo->rrrInfo, results);
-    auto rrlPlan = planCopyRelFrom(&extraRdfInfo->rrlInfo, results);
+    auto& extraRdfInfo = info->extraInfo->constCast<ExtraBoundCopyRdfInfo>();
+    auto rPlan = planCopyResourceFrom(&extraRdfInfo.rInfo, results);
+    auto lPlan = planCopyNodeFrom(&extraRdfInfo.lInfo, results);
+    auto rrrPlan = planCopyRelFrom(&extraRdfInfo.rrrInfo, results);
+    auto rrlPlan = planCopyRelFrom(&extraRdfInfo.rrlInfo, results);
     auto children = logical_op_vector_t{rrlPlan->getLastOperator(), rrrPlan->getLastOperator(),
         lPlan->getLastOperator(), rPlan->getLastOperator()};
     if (info->source->type == ScanSourceType::FILE) {
         auto readerPlan = LogicalPlan();
-        auto fileSource =
-            ku_dynamic_cast<BoundBaseScanSource*, BoundFileScanSource*>(info->source.get());
-        appendScanFile(&fileSource->fileScanInfo, readerPlan);
+        auto& scanSource = info->source->constCast<BoundTableScanSource>();
+        appendTableFunctionCall(scanSource.info, readerPlan);
         children.push_back(readerPlan.getLastOperator());
     }
     auto resultPlan = std::make_unique<LogicalPlan>();

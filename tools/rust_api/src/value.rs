@@ -1,4 +1,5 @@
 use crate::ffi::ffi;
+use crate::ffi::ffi::PhysicalTypeID;
 use crate::logical_type::LogicalType;
 use crate::rdf_variant::RDFVariant;
 use std::cmp::Ordering;
@@ -269,6 +270,7 @@ pub enum Value {
     },
     UUID(uuid::Uuid),
     RDFVariant(RDFVariant),
+    Decimal(rust_decimal::Decimal),
 }
 
 fn display_list<T: std::fmt::Display>(f: &mut fmt::Formatter<'_>, list: &Vec<T>) -> fmt::Result {
@@ -344,6 +346,7 @@ impl std::fmt::Display for Value {
             Value::Union { types: _, value } => write!(f, "{value}"),
             Value::UUID(x) => write!(f, "{x}"),
             Value::RDFVariant(x) => write!(f, "{x}"),
+            Value::Decimal(value) => write!(f, "{value}"),
         }
     }
 }
@@ -402,6 +405,10 @@ impl From<&Value> for LogicalType {
             },
             Value::UUID(_) => LogicalType::UUID,
             Value::RDFVariant(_) => LogicalType::RDFVariant,
+            Value::Decimal(value) => LogicalType::Decimal {
+                scale: value.scale(),
+                precision: value.mantissa().checked_ilog10().unwrap_or(0) + 1,
+            },
         }
     }
 }
@@ -726,6 +733,25 @@ impl TryFrom<&ffi::Value> for Value {
                 };
                 Ok(Value::RDFVariant(value))
             }
+            LogicalTypeID::DECIMAL => {
+                let logical_type: LogicalType = ffi::value_get_data_type(value).into();
+                if let LogicalType::Decimal { scale, precision } = logical_type {
+                    let decimal_value: i128 = match ffi::value_get_physical_type(value) {
+                        PhysicalTypeID::INT128 => get_i128(value),
+                        PhysicalTypeID::INT64 => value.get_value_i64() as i128,
+                        PhysicalTypeID::INT32 => value.get_value_i32() as i128,
+                        PhysicalTypeID::INT16 => value.get_value_i16() as i128,
+                        PhysicalTypeID::INT8 => value.get_value_i8() as i128,
+                        _ => unreachable!(),
+                    };
+                    Ok(Value::Decimal(rust_decimal::Decimal::from_i128_with_scale(
+                        decimal_value,
+                        scale,
+                    )))
+                } else {
+                    unreachable!()
+                }
+            }
             // TODO(bmwinger): Better error message for types which are unsupported
             x => panic!("Unsupported type {:?}", x),
         }
@@ -938,6 +964,14 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
 
                 Ok(ffi::get_list_value(typ, builder))
             }
+            Value::Decimal(decimal_value) => {
+                let (high, low) = get_high_low(decimal_value.mantissa());
+                if let LogicalType::Decimal { scale, precision } = (&self).into() {
+                    Ok(ffi::create_value_decimal(high, low, scale, precision))
+                } else {
+                    unreachable!()
+                }
+            }
         }
     }
 }
@@ -1028,6 +1062,7 @@ mod tests {
         Value,
     };
     use anyhow::Result;
+    use rust_decimal_macros::dec;
     use std::collections::HashSet;
     use std::convert::TryInto;
     use std::iter::FromIterator;
@@ -1147,6 +1182,7 @@ mod tests {
         convert_map_type: LogicalType::Map { key_type: Box::new(LogicalType::Interval), value_type: Box::new(LogicalType::Rel) },
         convert_union_type: LogicalType::Union { types: vec![("Num".to_string(), LogicalType::Int8), ("duration".to_string(), LogicalType::Interval), ("string".to_string(), LogicalType::String)] },
         convert_rdf_type: LogicalType::RDFVariant,
+        convert_decimal_type: LogicalType::Decimal { scale: 3, precision: 9 },
     }
 
     value_tests! {
@@ -1190,6 +1226,10 @@ mod tests {
             value: Box::new(Value::Int8(-127))
         },
         convert_rdf_int: Value::RDFVariant(RDFVariant::Int64(1)),
+        convert_decimal16: Value::Decimal(dec!(12.34)),
+        convert_decimal32: Value::Decimal(dec!(12.3456789)),
+        convert_decimal64: Value::Decimal(dec!(12.34567890)),
+        convert_decimal128: Value::Decimal(dec!(12.34567890)),
     }
 
     display_tests! {
@@ -1226,6 +1266,10 @@ mod tests {
         display_uuid2: Value::UUID(uuid!("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")),
         display_uuid3: Value::UUID(uuid!("a1a2a3a4b1b2c1c2d1d2d3d4d5d6d7d8")),
         display_rdf_int: Value::RDFVariant(RDFVariant::Int64(1)),
+        display_decimal16: Value::Decimal(dec!(12.34)),
+        display_decimal32: Value::Decimal(dec!(12.3456789)),
+        display_decimal64: Value::Decimal(dec!(12.34567890)),
+        display_decimal128: Value::Decimal(dec!(12.34567890)),
     }
 
     database_tests! {
@@ -1269,6 +1313,10 @@ mod tests {
         db_bool: Value::Bool(true), "BOOLEAN",
         db_uuid: Value::UUID(uuid!("00000000-0000-0000-0000-ffff00000000")), "UUID",
         db_uuid2: Value::UUID(uuid!("8f914bce-df4e-4244-9cd4-ea96bf0c58d4")), "UUID",
+        db_decimal16: Value::Decimal(dec!(12.34)), "DECIMAL(4, 2)",
+        db_decimal32: Value::Decimal(dec!(12.3456789)), "DECIMAL(9, 7)",
+        db_decimal64: Value::Decimal(dec!(12.34567890)), "DECIMAL(18, 8)",
+        db_decimal128: Value::Decimal(dec!(12.34567890)), "DECIMAL(38, 8)",
     }
 
     #[test]

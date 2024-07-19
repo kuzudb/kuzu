@@ -9,20 +9,18 @@
 
 namespace kuzu {
 
-struct PandasScanLocalState : public function::TableFuncLocalState {
+struct PandasScanLocalState final : public function::TableFuncLocalState {
     PandasScanLocalState(uint64_t start, uint64_t end) : start{start}, end{end} {}
 
     uint64_t start;
     uint64_t end;
 };
 
-struct PandasScanSharedState : public function::BaseFileScanSharedState {
+struct PandasScanSharedState final : public function::BaseScanSharedStateWithNumRows {
     explicit PandasScanSharedState(uint64_t numRows)
-        : BaseFileScanSharedState{numRows}, position{0}, numReadRows{0} {}
+        : BaseScanSharedStateWithNumRows{numRows}, numRowsRead{0} {}
 
-    std::mutex lock;
-    uint64_t position;
-    uint64_t numReadRows;
+    uint64_t numRowsRead;
 };
 
 struct PandasScanFunction {

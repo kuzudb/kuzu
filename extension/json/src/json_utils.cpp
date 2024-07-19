@@ -1,11 +1,17 @@
 #include "json_utils.h"
 
+#include <fcntl.h>
+
 #include <cstdlib>
 
 #include "common/exception/binder.h"
 #include "common/exception/not_implemented.h"
 #include "common/exception/runtime.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/types/value/value.h"
+#include "function/cast/functions/cast_decimal.h"
+#include "function/cast/functions/cast_from_string_functions.h"
+#include "function/cast/functions/numeric_limits.h"
 
 using namespace kuzu::common;
 
@@ -34,6 +40,8 @@ static yyjson_mut_val* jsonifyAsString(JsonMutWrapper& wrapper, const common::Va
 
 static yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVector& vec,
     uint64_t pos) {
+    // creates a mutable value linked to wrapper.ptr, but the responsibility to integrate it into
+    // wrapper is placed upon the caller
     yyjson_mut_val* result = nullptr;
     if (vec.isNull(pos)) {
         result = yyjson_mut_null(wrapper.ptr);
@@ -73,7 +81,6 @@ static yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVecto
         case LogicalTypeID::FLOAT:
             result = yyjson_mut_real(wrapper.ptr, vec.getValue<float>(pos));
             break;
-        case LogicalTypeID::BLOB:
         case LogicalTypeID::STRING: {
             auto strVal = vec.getValue<ku_string_t>(pos).getAsString();
             result = yyjson_mut_strcpy(wrapper.ptr, strVal.c_str());
@@ -117,15 +124,9 @@ static yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVecto
                 UnionVector::getValVector(&vec, tagVector->getValue<union_field_idx_t>(pos));
             result = jsonify(wrapper, *fieldVector, pos);
         } break;
-        case LogicalTypeID::INTERNAL_ID:
-        case LogicalTypeID::UUID:
-        case LogicalTypeID::DATE: {
+        default: {
             return jsonifyAsString(wrapper, vec, pos);
         } break;
-        case LogicalTypeID::ANY:
-        default:
-            throw NotImplementedException(
-                stringFormat("Type {} to json conversion not supported", vec.dataType.toString()));
         }
     }
     return result;
@@ -136,6 +137,49 @@ JsonWrapper jsonify(const common::ValueVector& vec, uint64_t pos) {
     yyjson_mut_val* root = jsonify(result, vec, pos);
     yyjson_mut_doc_set_root(result.ptr, root);
     return JsonWrapper(yyjson_mut_doc_imut_copy(result.ptr, nullptr));
+}
+
+std::vector<JsonWrapper> jsonifyQueryResult(
+    const std::vector<std::shared_ptr<common::ValueVector>>& columns,
+    const std::vector<std::string>& names) {
+    auto numRows = 0u;
+    for (auto i = 0u; i < columns.size(); i++) {
+        if (!columns[i]->state->isFlat()) {
+            numRows = columns[i]->state->getSelVector().getSelSize();
+            break;
+        }
+    }
+    std::vector<JsonWrapper> result;
+    std::vector<yyjson_val*> firstResultValues;
+    // save pointer to first result values so that flat tuples can just copy over
+    for (auto i = 0u; i < numRows; i++) {
+        JsonMutWrapper curResult;
+        auto root = yyjson_mut_obj(curResult.ptr);
+        yyjson_mut_doc_set_root(curResult.ptr, root);
+        for (auto j = 0u; j < columns.size(); j++) {
+            auto key = yyjson_mut_strncpy(curResult.ptr, names[j].c_str(), names[j].size());
+            if (columns[j]->state->isFlat() && i > 0) {
+                // copy from first result
+                auto val = yyjson_val_mut_copy(curResult.ptr, firstResultValues[j]);
+                yyjson_mut_obj_add(root, key, val);
+            } else {
+                // create new yyjson value
+                auto val = jsonify(curResult, *columns[j],
+                    columns[j]->state->getSelVector().getSelectedPositions()[i]);
+                yyjson_mut_obj_add(root, key, val);
+            }
+        }
+        result.push_back(JsonWrapper(yyjson_mut_doc_imut_copy(curResult.ptr, nullptr)));
+        if (i == 0) {
+            yyjson_val *key, *val;
+            auto iter = yyjson_obj_iter_with(yyjson_doc_get_root(result[i].ptr));
+            while ((key = yyjson_obj_iter_next(&iter))) {
+                val = yyjson_obj_iter_get_val(key);
+                firstResultValues.push_back(val);
+            }
+        }
+    }
+    return result;
 }
 
 static common::LogicalType combineTypeJsonContext(const common::LogicalType& lft,
@@ -164,6 +208,12 @@ static common::LogicalType combineTypeJsonContext(const common::LogicalType& lft
         }
         return LogicalType::STRUCT(std::move(resultingFields));
     }
+    if (lft.getLogicalTypeID() == rit.getLogicalTypeID() &&
+        lft.getLogicalTypeID() == LogicalTypeID::LIST) {
+        const auto& lftChild = ListType::getChildType(lft);
+        const auto& ritChild = ListType::getChildType(rit);
+        return LogicalType::LIST(combineTypeJsonContext(lftChild, ritChild));
+    }
     common::LogicalType result;
     if (!LogicalTypeUtils::tryGetMaxLogicalType(lft, rit, result)) {
         return LogicalType::STRING();
@@ -171,14 +221,25 @@ static common::LogicalType combineTypeJsonContext(const common::LogicalType& lft
     return result;
 }
 
-common::LogicalType jsonSchema(yyjson_val* val) {
+common::LogicalType jsonSchema(yyjson_val* val, int64_t depth, int64_t breadth) {
+    if (depth == 0) {
+        return LogicalType::STRING();
+    }
+    depth = depth == -1 ? depth : depth - 1;
     switch (yyjson_get_type(val)) {
     case YYJSON_TYPE_ARR: {
-        common::LogicalType childType(LogicalTypeID::ANY);
+        common::LogicalType childType(LogicalTypeID::ANY); // todo: make a null dt and replace this
         yyjson_val* ele;
         auto iter = yyjson_arr_iter_with(val);
+        auto sampled = 0u;
         while ((ele = yyjson_arr_iter_next(&iter))) {
-            childType = combineTypeJsonContext(childType, jsonSchema(ele));
+            childType = combineTypeJsonContext(childType, jsonSchema(ele, depth, -1));
+            if (breadth != -1 && ++sampled >= breadth) {
+                break;
+            }
+        }
+        if (childType.getLogicalTypeID() == LogicalTypeID::ANY) {
+            childType = LogicalType::INT8();
         }
         return LogicalType::LIST(std::move(childType));
     } break;
@@ -186,22 +247,46 @@ common::LogicalType jsonSchema(yyjson_val* val) {
         std::vector<StructField> fields;
         yyjson_val *key, *ele;
         auto iter = yyjson_obj_iter_with(val);
+        auto sampled = 0u;
         while ((key = yyjson_obj_iter_next(&iter))) {
             ele = yyjson_obj_iter_get_val(key);
-            fields.emplace_back(std::string(yyjson_get_str(key)), jsonSchema(ele));
+            fields.emplace_back(std::string(yyjson_get_str(key)), jsonSchema(ele, depth, -1));
+            if (breadth != -1 && ++sampled >= breadth) {
+                break;
+            }
         }
         return LogicalType::STRUCT(std::move(fields));
     } break;
     case YYJSON_TYPE_NULL:
-        return LogicalType::ANY();
+        return LogicalType::INT8(); // todo: make a null dt and replace this
     case YYJSON_TYPE_BOOL:
         return LogicalType::BOOL();
     case YYJSON_TYPE_NUM:
         switch (yyjson_get_subtype(val)) {
-        case YYJSON_SUBTYPE_UINT:
-            return LogicalType::UINT64();
-        case YYJSON_SUBTYPE_SINT:
-            return LogicalType::INT64();
+        case YYJSON_SUBTYPE_UINT: {
+            auto value = yyjson_get_uint(val);
+            if (function::NumericLimits<uint8_t>::isInBounds(value)) {
+                return LogicalType::UINT8();
+            } else if (function::NumericLimits<uint16_t>::isInBounds(value)) {
+                return LogicalType::UINT16();
+            } else if (function::NumericLimits<uint32_t>::isInBounds(value)) {
+                return LogicalType::UINT32();
+            } else {
+                return LogicalType::UINT64();
+            }
+        }
+        case YYJSON_SUBTYPE_SINT: {
+            auto value = yyjson_get_sint(val);
+            if (function::NumericLimits<int8_t>::isInBounds(value)) {
+                return LogicalType::INT8();
+            } else if (function::NumericLimits<int16_t>::isInBounds(value)) {
+                return LogicalType::INT16();
+            } else if (function::NumericLimits<int32_t>::isInBounds(value)) {
+                return LogicalType::INT32();
+            } else {
+                return LogicalType::INT64();
+            }
+        }
         case YYJSON_SUBTYPE_REAL:
             return LogicalType::DOUBLE();
         default:
@@ -214,16 +299,23 @@ common::LogicalType jsonSchema(yyjson_val* val) {
     }
 }
 
-common::LogicalType jsonSchema(const JsonWrapper& wrapper) {
-    return jsonSchema(yyjson_doc_get_root(wrapper.ptr));
+common::LogicalType jsonSchema(const JsonWrapper& wrapper, int64_t depth, int64_t breadth) {
+    return jsonSchema(yyjson_doc_get_root(wrapper.ptr), depth, breadth);
 }
 
-// Precondition: vec.dataType is not STRING
 static void readFromJsonArr(yyjson_val* val, common::ValueVector& vec, uint64_t pos) {
     const auto& outputType = vec.dataType;
     vec.setNull(pos, false);
     switch (outputType.getLogicalTypeID()) {
+    case LogicalTypeID::ARRAY:
     case LogicalTypeID::LIST: {
+        if (outputType.getLogicalTypeID() == LogicalTypeID::ARRAY) {
+            if (yyjson_arr_size(val) != ArrayType::getNumElements(outputType)) {
+                throw RuntimeException(
+                    stringFormat("Expected type {} but list type has {} elements",
+                        outputType.toString(), yyjson_arr_size(val)));
+            }
+        }
         auto lst = ListVector::addList(&vec, yyjson_arr_size(val));
         vec.setValue(pos, lst);
         auto childVec = ListVector::getDataVector(&vec);
@@ -240,12 +332,31 @@ static void readFromJsonArr(yyjson_val* val, common::ValueVector& vec, uint64_t 
         auto str = jsonToString(val);
         StringVector::addString(&vec, pos, str);
     } break;
+    case LogicalTypeID::UNION: {
+        // find column that is of type array or list
+        bool foundType = false;
+        for (auto i = 0u; i < UnionType::getNumFields(outputType); i++) {
+            auto& childType = UnionType::getFieldType(outputType, i);
+            if (childType.getLogicalTypeID() == LogicalTypeID::LIST ||
+                childType.getLogicalTypeID() == LogicalTypeID::ARRAY) {
+                UnionVector::getTagVector(&vec)->setValue<union_field_idx_t>(pos, i);
+                readFromJsonArr(val, *UnionVector::getValVector(&vec, i), pos);
+                foundType = true;
+                break;
+            }
+        }
+        // no type was found
+        if (!foundType) {
+            throw NotImplementedException(
+                stringFormat("Cannot read from JSON Array to {}", outputType.toString()));
+        }
+    } break;
     default:
-        KU_UNREACHABLE;
+        throw NotImplementedException(
+            stringFormat("Cannot read from JSON Array to {}", outputType.toString()));
     }
 }
 
-// Precondition: vec.dataType is not STRING
 static void readFromJsonObj(yyjson_val* val, common::ValueVector& vec, uint64_t pos) {
     const auto& outputType = vec.dataType;
     vec.setNull(pos, false);
@@ -263,40 +374,173 @@ static void readFromJsonObj(yyjson_val* val, common::ValueVector& vec, uint64_t 
             }
         }
     } break;
+    case LogicalTypeID::MAP: {
+        auto numFields = yyjson_obj_size(val);
+        auto keyBuffer = MapVector::getKeyVector(&vec);
+        auto valBuffer = MapVector::getValueVector(&vec);
+        auto listEntry = ListVector::addList(&vec, numFields);
+        vec.setValue<list_entry_t>(pos, listEntry);
+        yyjson_val *key, *value;
+        auto it = yyjson_obj_iter_with(val);
+        for (auto i = 0u; i < numFields; i++) {
+            key = yyjson_obj_iter_next(&it);
+            value = yyjson_obj_iter_get_val(key);
+            StringVector::addString(keyBuffer, listEntry.offset + i,
+                std::string(yyjson_get_str(key)));
+            readFromJsonObj(value, *valBuffer, listEntry.offset + i);
+        }
+    } break;
     case LogicalTypeID::STRING: {
         auto str = jsonToString(val);
         StringVector::addString(&vec, pos, str);
     } break;
+    case LogicalTypeID::UNION: {
+        // find column that is of type array or list
+        bool foundType = false;
+        for (auto i = 0u; i < UnionType::getNumFields(outputType); i++) {
+            auto& childType = UnionType::getFieldType(outputType, i);
+            if (childType.getLogicalTypeID() == LogicalTypeID::STRUCT ||
+                childType.getLogicalTypeID() == LogicalTypeID::MAP) {
+                UnionVector::getTagVector(&vec)->setValue<union_field_idx_t>(pos, i);
+                readFromJsonObj(val, *UnionVector::getValVector(&vec, i), pos);
+                foundType = true;
+                break;
+            }
+        }
+        // no type was found
+        if (!foundType) {
+            throw NotImplementedException(
+                stringFormat("Cannot read from JSON Object to {}", outputType.toString()));
+        }
+    } break;
     default:
-        KU_UNREACHABLE;
+        throw NotImplementedException(
+            stringFormat("Cannot read from JSON Object to {}", outputType.toString()));
     }
 }
 
-// Precondition: vec.dataType is not STRING
+static void readFromJsonBool(bool val, common::ValueVector& vec, uint64_t pos) {
+    const auto& outputType = vec.dataType;
+    vec.setNull(pos, false);
+    switch (outputType.getLogicalTypeID()) {
+    case LogicalTypeID::BOOL:
+        vec.setValue<bool>(pos, val);
+        break;
+    case LogicalTypeID::STRING:
+        StringVector::addString(&vec, pos, val ? "True" : "False");
+        break;
+    case LogicalTypeID::UNION: {
+        // find column that is of type array or list
+        bool foundType = false;
+        for (auto i = 0u; i < UnionType::getNumFields(outputType); i++) {
+            auto& childType = UnionType::getFieldType(outputType, i);
+            if (childType.getLogicalTypeID() == LogicalTypeID::BOOL) {
+                UnionVector::getTagVector(&vec)->setValue<union_field_idx_t>(pos, i);
+                UnionVector::getValVector(&vec, i)->setValue<bool>(pos, val);
+                foundType = true;
+                break;
+            }
+        }
+        // no type was found
+        if (!foundType) {
+            throw NotImplementedException(
+                stringFormat("Cannot read from JSON Bool to {}", outputType.toString()));
+        }
+    } break;
+    default:
+        throw NotImplementedException(
+            stringFormat("Cannot read from JSON Bool to {}", outputType.toString()));
+    }
+}
+
 template<typename NUM_TYPE>
 static void readFromJsonNum(NUM_TYPE val, common::ValueVector& vec, uint64_t pos) {
     const auto& outputType = vec.dataType;
     vec.setNull(pos, false);
     switch (outputType.getLogicalTypeID()) {
-    case LogicalTypeID::INT128:
-        vec.setValue<int128_t>(pos, int128_t(val));
+    case LogicalTypeID::INT8:
+        vec.setValue<int8_t>(pos, (int8_t)val);
+        break;
+    case LogicalTypeID::INT16:
+        vec.setValue<int16_t>(pos, (int16_t)val);
+        break;
+    case LogicalTypeID::INT32:
+        vec.setValue<int32_t>(pos, (int32_t)val);
         break;
     case LogicalTypeID::INT64:
         vec.setValue<int64_t>(pos, (int64_t)val);
         break;
+    case LogicalTypeID::INT128:
+        vec.setValue<int128_t>(pos, int128_t(val));
+        break;
+    case LogicalTypeID::UINT8:
+        vec.setValue<uint8_t>(pos, (uint8_t)val);
+        break;
+    case LogicalTypeID::UINT16:
+        vec.setValue<uint16_t>(pos, (uint16_t)val);
+        break;
+    case LogicalTypeID::UINT32:
+        vec.setValue<uint32_t>(pos, (uint32_t)val);
+        break;
     case LogicalTypeID::UINT64:
         vec.setValue<uint64_t>(pos, (uint64_t)val);
         break;
+    case LogicalTypeID::FLOAT:
+        vec.setValue<float>(pos, (float)val);
+        break;
     case LogicalTypeID::DOUBLE:
         vec.setValue<double>(pos, (double)val);
+        break;
+    case LogicalTypeID::DECIMAL:
+        switch (outputType.getPhysicalType()) {
+        case PhysicalTypeID::INT16:
+            function::CastToDecimal::operation(val, vec.getValue<int16_t>(pos), vec, vec);
+            break;
+        case PhysicalTypeID::INT32:
+            function::CastToDecimal::operation(val, vec.getValue<int32_t>(pos), vec, vec);
+            break;
+        case PhysicalTypeID::INT64:
+            function::CastToDecimal::operation(val, vec.getValue<int64_t>(pos), vec, vec);
+            break;
+        case PhysicalTypeID::INT128:
+            function::CastToDecimal::operation(val, vec.getValue<int128_t>(pos), vec, vec);
+            break;
+        default:
+            KU_UNREACHABLE;
+        }
         break;
     case LogicalTypeID::STRING: {
         auto str = std::to_string(val);
         StringVector::addString(&vec, pos, str);
     } break;
+    case LogicalTypeID::UNION: {
+        // find column that is of type array or list
+        bool foundType = false;
+        for (auto i = 0u; i < UnionType::getNumFields(outputType); i++) {
+            auto& childType = UnionType::getFieldType(outputType, i);
+            if (LogicalTypeUtils::isNumerical(childType)) {
+                UnionVector::getTagVector(&vec)->setValue<union_field_idx_t>(pos, i);
+                readFromJsonNum(val, *UnionVector::getValVector(&vec, i), pos);
+                foundType = true;
+                break;
+            }
+        }
+        // no type was found
+        if (!foundType) {
+            throw NotImplementedException(
+                stringFormat("Cannot read from JSON Number to {}", outputType.toString()));
+        }
+    } break;
     default:
-        KU_UNREACHABLE;
+        throw NotImplementedException(
+            stringFormat("Cannot read from JSON Number to {}", outputType.toString()));
     }
+}
+
+static void readFromJsonStr(std::string val, common::ValueVector& vec, uint64_t pos) {
+    vec.setNull(pos, false);
+    CSVOption opt;
+    function::CastString::copyStringToVector(&vec, pos, val, &opt);
 }
 
 void readJsonToValueVector(yyjson_val* val, common::ValueVector& vec, uint64_t pos) {
@@ -309,13 +553,9 @@ void readJsonToValueVector(yyjson_val* val, common::ValueVector& vec, uint64_t p
         break;
     case YYJSON_TYPE_NULL:
         vec.setNull(pos, true);
-        // Technically unnecessary given this function's one use case, but
-        // removing this line may cause this function to behave unexpectedly for possible future use
-        // cases
         break;
     case YYJSON_TYPE_BOOL:
-        vec.setNull(pos, false);
-        vec.setValue<bool>(pos, yyjson_get_bool(val));
+        readFromJsonBool(yyjson_get_bool(val), vec, pos);
         break;
     case YYJSON_TYPE_NUM:
         switch (yyjson_get_subtype(val)) {
@@ -333,8 +573,7 @@ void readJsonToValueVector(yyjson_val* val, common::ValueVector& vec, uint64_t p
         }
         break;
     case YYJSON_TYPE_STR:
-        vec.setNull(pos, false);
-        StringVector::addString(&vec, pos, yyjson_get_str(val));
+        readFromJsonStr(yyjson_get_str(val), vec, pos);
         break;
     default:
         KU_UNREACHABLE;
@@ -367,14 +606,49 @@ JsonWrapper stringToJsonNoError(const std::string& str) {
     return JsonWrapper(yyjson_read(str.c_str(), str.size(), 0));
 }
 
-JsonWrapper fileToJson(const std::string& str) {
-    yyjson_read_err err;
-    auto result = yyjson_read_file(str.c_str(), 0, nullptr, &err);
-    if (err.msg != nullptr) {
-        throw BinderException(
-            stringFormat("Failed to read json file:\n{}\n", std::string(err.msg)));
+static JsonWrapper fileToJsonArrayFormatted(char* buffer, uint64_t fileSize) {
+    auto json = yyjson_read(buffer, fileSize, 0);
+    if (json == nullptr) {
+        throw RuntimeException("Invalid json input");
     }
-    return JsonWrapper(result);
+    return JsonWrapper(json);
+}
+
+static JsonWrapper fileToJsonUnstructuredFormatted(char* buffer, uint64_t fileSize) {
+    JsonMutWrapper result;
+    auto root = yyjson_mut_arr(result.ptr);
+    yyjson_mut_doc_set_root(result.ptr, root);
+    auto filePos = 0u;
+    while (true) {
+        auto curDoc = yyjson_read(buffer + filePos, fileSize - filePos, YYJSON_READ_STOP_WHEN_DONE);
+        if (curDoc == nullptr) {
+            break;
+        }
+        filePos += yyjson_doc_get_read_size(curDoc);
+        yyjson_mut_arr_append(root, yyjson_val_mut_copy(result.ptr, yyjson_doc_get_root(curDoc)));
+        yyjson_doc_free(curDoc);
+    }
+    return JsonWrapper(yyjson_mut_doc_imut_copy(result.ptr, nullptr));
+}
+
+JsonWrapper fileToJson(main::ClientContext* context, const std::string& path,
+    JsonScanFormat format) {
+
+    auto file = context->getVFSUnsafe()->openFile(path, O_RDONLY, context);
+    auto fileSize = file->getFileSize();
+    std::unique_ptr<char[]> buffer(new char[fileSize + 4]());
+    file->readFile(buffer.get(), fileSize);
+
+    switch (format) {
+    case JsonScanFormat::ARRAY:
+        return fileToJsonArrayFormatted(buffer.get(), fileSize);
+        break;
+    case JsonScanFormat::UNSTRUCTURED:
+        return fileToJsonUnstructuredFormatted(buffer.get(), fileSize);
+        break;
+    default:
+        KU_UNREACHABLE;
+    }
 }
 
 JsonWrapper mergeJson(const JsonWrapper& A, const JsonWrapper& B) {

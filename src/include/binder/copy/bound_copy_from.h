@@ -11,6 +11,11 @@ namespace binder {
 struct ExtraBoundCopyFromInfo {
     virtual ~ExtraBoundCopyFromInfo() = default;
     virtual std::unique_ptr<ExtraBoundCopyFromInfo> copy() const = 0;
+
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const ExtraBoundCopyFromInfo&, const TARGET&>(*this);
+    }
 };
 
 struct BoundCopyFromInfo {
@@ -44,12 +49,18 @@ private:
 };
 
 struct ExtraBoundCopyRelInfo final : public ExtraBoundCopyFromInfo {
+    // We process internal ID column as offset (INT64) column until partitioner. In partitioner,
+    // we need to manually change offset(INT64) type to internal ID type.
+    std::vector<common::idx_t> internalIDColumnIndices;
     std::vector<IndexLookupInfo> infos;
 
-    ExtraBoundCopyRelInfo() = default;
-    ExtraBoundCopyRelInfo(const ExtraBoundCopyRelInfo& other) : infos{copyVector(other.infos)} {}
+    ExtraBoundCopyRelInfo(std::vector<common::idx_t> internalIDColumnIndices,
+        std::vector<IndexLookupInfo> infos)
+        : internalIDColumnIndices{std::move(internalIDColumnIndices)}, infos{std::move(infos)} {}
+    ExtraBoundCopyRelInfo(const ExtraBoundCopyRelInfo& other)
+        : internalIDColumnIndices{other.internalIDColumnIndices}, infos{other.infos} {}
 
-    inline std::unique_ptr<ExtraBoundCopyFromInfo> copy() const override {
+    std::unique_ptr<ExtraBoundCopyFromInfo> copy() const override {
         return std::make_unique<ExtraBoundCopyRelInfo>(*this);
     }
 };
@@ -68,19 +79,20 @@ struct ExtraBoundCopyRdfInfo final : public ExtraBoundCopyFromInfo {
         : rInfo{other.rInfo.copy()}, lInfo{other.lInfo.copy()}, rrrInfo{other.rrrInfo.copy()},
           rrlInfo{other.rrlInfo.copy()} {}
 
-    inline std::unique_ptr<ExtraBoundCopyFromInfo> copy() const override {
+    std::unique_ptr<ExtraBoundCopyFromInfo> copy() const override {
         return std::make_unique<ExtraBoundCopyRdfInfo>(*this);
     }
 };
 
 class BoundCopyFrom : public BoundStatement {
+    static constexpr common::StatementType statementType_ = common::StatementType::COPY_FROM;
+
 public:
     explicit BoundCopyFrom(BoundCopyFromInfo info)
-        : BoundStatement{common::StatementType::COPY_FROM,
-              BoundStatementResult::createSingleStringColumnResult()},
+        : BoundStatement{statementType_, BoundStatementResult::createSingleStringColumnResult()},
           info{std::move(info)} {}
 
-    inline const BoundCopyFromInfo* getInfo() const { return &info; }
+    const BoundCopyFromInfo* getInfo() const { return &info; }
 
 private:
     BoundCopyFromInfo info;

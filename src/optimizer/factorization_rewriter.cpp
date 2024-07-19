@@ -1,7 +1,6 @@
 #include "optimizer/factorization_rewriter.h"
 
 #include "binder/expression_visitor.h"
-#include "common/cast.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/factorization/flatten_resolver.h"
@@ -45,41 +44,41 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
 }
 
 void FactorizationRewriter::visitExtend(planner::LogicalOperator* op) {
-    auto extend = (LogicalExtend*)op;
-    auto groupsPosToFlatten = extend->getGroupsPosToFlatten();
-    extend->setChild(0, appendFlattens(extend->getChild(0), groupsPosToFlatten));
+    auto& extend = op->cast<LogicalExtend>();
+    auto groupsPosToFlatten = extend.getGroupsPosToFlatten();
+    extend.setChild(0, appendFlattens(extend.getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitRecursiveExtend(planner::LogicalOperator* op) {
-    auto extend = (LogicalRecursiveExtend*)op;
-    auto groupsPosToFlatten = extend->getGroupsPosToFlatten();
-    extend->setChild(0, appendFlattens(extend->getChild(0), groupsPosToFlatten));
+    auto& extend = op->cast<LogicalRecursiveExtend>();
+    auto groupsPosToFlatten = extend.getGroupsPosToFlatten();
+    extend.setChild(0, appendFlattens(extend.getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitHashJoin(planner::LogicalOperator* op) {
-    auto hashJoin = (LogicalHashJoin*)op;
-    auto groupsPosToFlattenOnProbeSide = hashJoin->getGroupsPosToFlattenOnProbeSide();
-    hashJoin->setChild(0, appendFlattens(hashJoin->getChild(0), groupsPosToFlattenOnProbeSide));
-    auto groupsPosToFlattenOnBuildSide = hashJoin->getGroupsPosToFlattenOnBuildSide();
-    hashJoin->setChild(1, appendFlattens(hashJoin->getChild(1), groupsPosToFlattenOnBuildSide));
+    auto& hashJoin = op->cast<LogicalHashJoin>();
+    auto groupsPosToFlattenOnProbeSide = hashJoin.getGroupsPosToFlattenOnProbeSide();
+    hashJoin.setChild(0, appendFlattens(hashJoin.getChild(0), groupsPosToFlattenOnProbeSide));
+    auto groupsPosToFlattenOnBuildSide = hashJoin.getGroupsPosToFlattenOnBuildSide();
+    hashJoin.setChild(1, appendFlattens(hashJoin.getChild(1), groupsPosToFlattenOnBuildSide));
 }
 
 void FactorizationRewriter::visitIntersect(planner::LogicalOperator* op) {
-    auto intersect = (LogicalIntersect*)op;
-    auto groupsPosToFlattenOnProbeSide = intersect->getGroupsPosToFlattenOnProbeSide();
-    intersect->setChild(0, appendFlattens(intersect->getChild(0), groupsPosToFlattenOnProbeSide));
-    for (auto i = 0u; i < intersect->getNumBuilds(); ++i) {
-        auto groupPosToFlatten = intersect->getGroupsPosToFlattenOnBuildSide(i);
+    auto& intersect = op->cast<LogicalIntersect>();
+    auto groupsPosToFlattenOnProbeSide = intersect.getGroupsPosToFlattenOnProbeSide();
+    intersect.setChild(0, appendFlattens(intersect.getChild(0), groupsPosToFlattenOnProbeSide));
+    for (auto i = 0u; i < intersect.getNumBuilds(); ++i) {
+        auto groupPosToFlatten = intersect.getGroupsPosToFlattenOnBuildSide(i);
         auto childIdx = i + 1; // skip probe
-        intersect->setChild(childIdx,
-            appendFlattens(intersect->getChild(childIdx), groupPosToFlatten));
+        intersect.setChild(childIdx,
+            appendFlattens(intersect.getChild(childIdx), groupPosToFlatten));
     }
 }
 
 void FactorizationRewriter::visitProjection(planner::LogicalOperator* op) {
-    auto projection = (LogicalProjection*)op;
+    auto& projection = op->cast<LogicalProjection>();
     bool hasRandomFunction = false;
-    for (auto& expr : projection->getExpressionsToProject()) {
+    for (auto& expr : projection.getExpressionsToProject()) {
         if (ExpressionVisitor::isRandom(*expr)) {
             hasRandomFunction = true;
         }
@@ -87,108 +86,106 @@ void FactorizationRewriter::visitProjection(planner::LogicalOperator* op) {
     if (hasRandomFunction) {
         // Fall back to tuple-at-a-time evaluation.
         auto groupsPos = op->getChild(0)->getSchema()->getGroupsPosInScope();
-        auto groupsPosToFlatten = factorization::FlattenAll::getGroupsPosToFlatten(groupsPos,
-            op->getChild(0)->getSchema());
-        projection->setChild(0, appendFlattens(projection->getChild(0), groupsPosToFlatten));
+        auto groupsPosToFlatten =
+            FlattenAll::getGroupsPosToFlatten(groupsPos, *op->getChild(0)->getSchema());
+        projection.setChild(0, appendFlattens(projection.getChild(0), groupsPosToFlatten));
     } else {
-        for (auto& expression : projection->getExpressionsToProject()) {
-            auto dependentGroupsPos =
-                op->getChild(0)->getSchema()->getDependentGroupsPos(expression);
-            auto groupsPosToFlatten = factorization::FlattenAllButOne::getGroupsPosToFlatten(
-                dependentGroupsPos, op->getChild(0)->getSchema());
-            projection->setChild(0, appendFlattens(projection->getChild(0), groupsPosToFlatten));
+        for (auto& expression : projection.getExpressionsToProject()) {
+            auto groupsPosToFlatten =
+                FlattenAllButOne::getGroupsPosToFlatten(expression, *op->getChild(0)->getSchema());
+            projection.setChild(0, appendFlattens(projection.getChild(0), groupsPosToFlatten));
         }
     }
 }
 
 void FactorizationRewriter::visitAccumulate(planner::LogicalOperator* op) {
-    auto accumulate = (LogicalAccumulate*)op;
-    auto groupsPosToFlatten = accumulate->getGroupPositionsToFlatten();
-    accumulate->setChild(0, appendFlattens(accumulate->getChild(0), groupsPosToFlatten));
+    auto& accumulate = op->cast<LogicalAccumulate>();
+    auto groupsPosToFlatten = accumulate.getGroupPositionsToFlatten();
+    accumulate.setChild(0, appendFlattens(accumulate.getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitMarkAccumulate(planner::LogicalOperator* op) {
-    auto markAccumulate = ku_dynamic_cast<LogicalOperator*, LogicalMarkAccumulate*>(op);
-    auto groupsPos = markAccumulate->getGroupsPosToFlatten();
-    markAccumulate->setChild(0, appendFlattens(markAccumulate->getChild(0), groupsPos));
+    auto& markAccumulate = op->cast<LogicalMarkAccumulate>();
+    auto groupsPos = markAccumulate.getGroupsPosToFlatten();
+    markAccumulate.setChild(0, appendFlattens(markAccumulate.getChild(0), groupsPos));
 }
 
 void FactorizationRewriter::visitAggregate(planner::LogicalOperator* op) {
-    auto aggregate = (LogicalAggregate*)op;
-    auto groupsPosToFlattenForGroupBy = aggregate->getGroupsPosToFlattenForGroupBy();
-    aggregate->setChild(0, appendFlattens(aggregate->getChild(0), groupsPosToFlattenForGroupBy));
-    auto groupsPosToFlattenForAggregate = aggregate->getGroupsPosToFlattenForAggregate();
-    aggregate->setChild(0, appendFlattens(aggregate->getChild(0), groupsPosToFlattenForAggregate));
+    auto& aggregate = op->cast<LogicalAggregate>();
+    auto groupsPosToFlattenForGroupBy = aggregate.getGroupsPosToFlattenForGroupBy();
+    aggregate.setChild(0, appendFlattens(aggregate.getChild(0), groupsPosToFlattenForGroupBy));
+    auto groupsPosToFlattenForAggregate = aggregate.getGroupsPosToFlattenForAggregate();
+    aggregate.setChild(0, appendFlattens(aggregate.getChild(0), groupsPosToFlattenForAggregate));
 }
 
 void FactorizationRewriter::visitOrderBy(planner::LogicalOperator* op) {
-    auto orderBy = (LogicalOrderBy*)op;
-    auto groupsPosToFlatten = orderBy->getGroupsPosToFlatten();
-    orderBy->setChild(0, appendFlattens(orderBy->getChild(0), groupsPosToFlatten));
+    auto& orderBy = op->cast<LogicalOrderBy>();
+    auto groupsPosToFlatten = orderBy.getGroupsPosToFlatten();
+    orderBy.setChild(0, appendFlattens(orderBy.getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitLimit(planner::LogicalOperator* op) {
-    auto limit = (LogicalLimit*)op;
-    auto groupsPosToFlatten = limit->getGroupsPosToFlatten();
-    limit->setChild(0, appendFlattens(limit->getChild(0), groupsPosToFlatten));
+    auto& limit = op->cast<LogicalLimit>();
+    auto groupsPosToFlatten = limit.getGroupsPosToFlatten();
+    limit.setChild(0, appendFlattens(limit.getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitDistinct(planner::LogicalOperator* op) {
-    auto distinct = (LogicalDistinct*)op;
-    auto groupsPosToFlatten = distinct->getGroupsPosToFlatten();
-    distinct->setChild(0, appendFlattens(distinct->getChild(0), groupsPosToFlatten));
+    auto& distinct = op->cast<LogicalDistinct>();
+    auto groupsPosToFlatten = distinct.getGroupsPosToFlatten();
+    distinct.setChild(0, appendFlattens(distinct.getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitUnwind(planner::LogicalOperator* op) {
-    auto unwind = (LogicalUnwind*)op;
-    auto groupsPosToFlatten = unwind->getGroupsPosToFlatten();
-    unwind->setChild(0, appendFlattens(unwind->getChild(0), groupsPosToFlatten));
+    auto& unwind = op->cast<LogicalUnwind>();
+    auto groupsPosToFlatten = unwind.getGroupsPosToFlatten();
+    unwind.setChild(0, appendFlattens(unwind.getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitUnion(planner::LogicalOperator* op) {
-    auto union_ = (LogicalUnion*)op;
-    for (auto i = 0u; i < union_->getNumChildren(); ++i) {
-        auto groupsPosToFlatten = union_->getGroupsPosToFlatten(i);
-        union_->setChild(i, appendFlattens(union_->getChild(i), groupsPosToFlatten));
+    auto& union_ = op->cast<LogicalUnion>();
+    for (auto i = 0u; i < union_.getNumChildren(); ++i) {
+        auto groupsPosToFlatten = union_.getGroupsPosToFlatten(i);
+        union_.setChild(i, appendFlattens(union_.getChild(i), groupsPosToFlatten));
     }
 }
 
 void FactorizationRewriter::visitFilter(planner::LogicalOperator* op) {
-    auto filter = (LogicalFilter*)op;
-    auto groupsPosToFlatten = filter->getGroupsPosToFlatten();
-    filter->setChild(0, appendFlattens(filter->getChild(0), groupsPosToFlatten));
+    auto& filter = op->cast<LogicalFilter>();
+    auto groupsPosToFlatten = filter.getGroupsPosToFlatten();
+    filter.setChild(0, appendFlattens(filter.getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitSetProperty(planner::LogicalOperator* op) {
-    auto set = op->ptrCast<LogicalSetProperty>();
-    for (auto i = 0u; i < set->getInfos().size(); ++i) {
-        auto groupsPos = set->getGroupsPosToFlatten(i);
-        set->setChild(0, appendFlattens(set->getChild(0), groupsPos));
+    auto& set = op->cast<LogicalSetProperty>();
+    for (auto i = 0u; i < set.getInfos().size(); ++i) {
+        auto groupsPos = set.getGroupsPosToFlatten(i);
+        set.setChild(0, appendFlattens(set.getChild(0), groupsPos));
     }
 }
 
 void FactorizationRewriter::visitDelete(planner::LogicalOperator* op) {
-    auto deleteNode = op->ptrCast<LogicalDelete>();
-    auto groupsPosToFlatten = deleteNode->getGroupsPosToFlatten();
-    deleteNode->setChild(0, appendFlattens(deleteNode->getChild(0), groupsPosToFlatten));
+    auto& delete_ = op->cast<LogicalDelete>();
+    auto groupsPosToFlatten = delete_.getGroupsPosToFlatten();
+    delete_.setChild(0, appendFlattens(delete_.getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitInsert(planner::LogicalOperator* op) {
-    auto insertNode = (LogicalInsert*)op;
-    auto groupsPosToFlatten = insertNode->getGroupsPosToFlatten();
-    insertNode->setChild(0, appendFlattens(insertNode->getChild(0), groupsPosToFlatten));
+    auto& insert = op->cast<LogicalInsert>();
+    auto groupsPosToFlatten = insert.getGroupsPosToFlatten();
+    insert.setChild(0, appendFlattens(insert.getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitMerge(planner::LogicalOperator* op) {
-    auto merge = (LogicalMerge*)op;
-    auto groupsPosToFlatten = merge->getGroupsPosToFlatten();
-    merge->setChild(0, appendFlattens(merge->getChild(0), groupsPosToFlatten));
+    auto& merge = op->cast<LogicalMerge>();
+    auto groupsPosToFlatten = merge.getGroupsPosToFlatten();
+    merge.setChild(0, appendFlattens(merge.getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitCopyTo(planner::LogicalOperator* op) {
-    auto copyTo = (LogicalCopyTo*)op;
-    auto groupsPosToFlatten = copyTo->getGroupsPosToFlatten();
-    copyTo->setChild(0, appendFlattens(copyTo->getChild(0), groupsPosToFlatten));
+    auto& copyTo = op->cast<LogicalCopyTo>();
+    auto groupsPosToFlatten = copyTo.getGroupsPosToFlatten();
+    copyTo.setChild(0, appendFlattens(copyTo.getChild(0), groupsPosToFlatten));
 }
 
 std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattens(

@@ -62,25 +62,25 @@ struct int128_t {
 };
 
 // arithmetic operators
-int128_t operator+(const int128_t& lhs, const int128_t& rhs);
-int128_t operator-(const int128_t& lhs, const int128_t& rhs);
-int128_t operator*(const int128_t& lhs, const int128_t& rhs);
-int128_t operator/(const int128_t& lhs, const int128_t& rhs);
-int128_t operator%(const int128_t& lhs, const int128_t& rhs);
-int128_t operator^(const int128_t& lhs, const int128_t& rhs);
-int128_t operator&(const int128_t& lhs, const int128_t& rhs);
-int128_t operator~(const int128_t& val);
-int128_t operator|(const int128_t& lhs, const int128_t& rhs);
-int128_t operator<<(const int128_t& lhs, int amount);
-int128_t operator>>(const int128_t& lhs, int amount);
+KUZU_API int128_t operator+(const int128_t& lhs, const int128_t& rhs);
+KUZU_API int128_t operator-(const int128_t& lhs, const int128_t& rhs);
+KUZU_API int128_t operator*(const int128_t& lhs, const int128_t& rhs);
+KUZU_API int128_t operator/(const int128_t& lhs, const int128_t& rhs);
+KUZU_API int128_t operator%(const int128_t& lhs, const int128_t& rhs);
+KUZU_API int128_t operator^(const int128_t& lhs, const int128_t& rhs);
+KUZU_API int128_t operator&(const int128_t& lhs, const int128_t& rhs);
+KUZU_API int128_t operator~(const int128_t& val);
+KUZU_API int128_t operator|(const int128_t& lhs, const int128_t& rhs);
+KUZU_API int128_t operator<<(const int128_t& lhs, int amount);
+KUZU_API int128_t operator>>(const int128_t& lhs, int amount);
 
 // comparison operators
-bool operator==(const int128_t& lhs, const int128_t& rhs);
-bool operator!=(const int128_t& lhs, const int128_t& rhs);
-bool operator>(const int128_t& lhs, const int128_t& rhs);
-bool operator>=(const int128_t& lhs, const int128_t& rhs);
-bool operator<(const int128_t& lhs, const int128_t& rhs);
-bool operator<=(const int128_t& lhs, const int128_t& rhs);
+KUZU_API bool operator==(const int128_t& lhs, const int128_t& rhs);
+KUZU_API bool operator!=(const int128_t& lhs, const int128_t& rhs);
+KUZU_API bool operator>(const int128_t& lhs, const int128_t& rhs);
+KUZU_API bool operator>=(const int128_t& lhs, const int128_t& rhs);
+KUZU_API bool operator<(const int128_t& lhs, const int128_t& rhs);
+KUZU_API bool operator<=(const int128_t& lhs, const int128_t& rhs);
 
 class Int128_t {
 public:

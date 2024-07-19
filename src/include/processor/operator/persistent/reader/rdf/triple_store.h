@@ -15,6 +15,11 @@ struct RdfStore {
     virtual bool isEmpty() const = 0;
     virtual uint64_t size() const = 0;
     virtual void clear() = 0;
+
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<RdfStore&, TARGET&>(*this);
+    }
 };
 
 struct ResourceStore final : public RdfStore {

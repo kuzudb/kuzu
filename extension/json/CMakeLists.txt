@@ -1,5 +1,6 @@
 add_library(kuzu_json_extension
     SHARED
+    src/json_export.cpp
     src/json_extension.cpp
     src/json_functions.cpp
     src/json_scan.cpp

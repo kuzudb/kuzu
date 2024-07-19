@@ -3,8 +3,7 @@
 #include "binder/ddl/bound_create_sequence.h"
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_create_type.h"
-#include "binder/ddl/bound_drop_sequence.h"
-#include "binder/ddl/bound_drop_table.h"
+#include "binder/ddl/bound_drop.h"
 #include "binder/expression/expression_util.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
@@ -16,7 +15,6 @@
 #include "common/string_format.h"
 #include "common/types/types.h"
 #include "function/cast/functions/cast_from_string_functions.h"
-#include "function/sequence/sequence_functions.h"
 #include "main/client_context.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_sequence.h"
@@ -24,7 +22,6 @@
 #include "parser/ddl/create_table_info.h"
 #include "parser/ddl/create_type.h"
 #include "parser/ddl/drop.h"
-#include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
 
 using namespace kuzu::common;
@@ -51,12 +48,6 @@ static void validateSerialNoDefault(const Expression& expr) {
     }
 }
 
-static std::unique_ptr<parser::ParsedFunctionExpression> createSerialDefaultExpr(std::string name) {
-    auto param = std::make_unique<parser::ParsedLiteralExpression>(Value(name), "");
-    return std::make_unique<parser::ParsedFunctionExpression>(function::NextValFunction::name,
-        std::move(param), "");
-}
-
 std::vector<PropertyInfo> Binder::bindPropertyInfo(
     const std::vector<PropertyDefinitionDDL>& propertyDefinitions, const std::string& tableName) {
     std::vector<PropertyInfo> propertyInfos;
@@ -69,7 +60,8 @@ std::vector<PropertyInfo> Binder::bindPropertyInfo(
             expressionBinder.bindExpression(*propertyDef.expr), type);
         if (type.getLogicalTypeID() == LogicalTypeID::SERIAL) {
             validateSerialNoDefault(*boundExpr);
-            expr = createSerialDefaultExpr(Catalog::genSerialName(tableName, propertyDef.name));
+            expr = ParsedExpressionUtils::getSerialDefaultExpr(
+                Catalog::genSerialName(tableName, propertyDef.name));
         }
         propertyInfos.emplace_back(propertyDef.name, std::move(type), std::move(expr));
     }
@@ -279,11 +271,23 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
     return std::make_unique<BoundCreateSequence>(std::move(boundInfo));
 }
 
-std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement) {
+void Binder::validateDropTable(const Statement& statement) {
     auto& dropTable = statement.constCast<Drop>();
-    auto tableName = dropTable.getName();
-    validateTableExist(tableName);
+    auto tableName = dropTable.getDropInfo().name;
     auto catalog = clientContext->getCatalog();
+    auto validTable = catalog->containsTable(clientContext->getTx(), tableName);
+    if (!validTable) {
+        switch (dropTable.getDropInfo().conflictAction) {
+        case common::ConflictAction::ON_CONFLICT_THROW: {
+            throw BinderException("Table " + tableName + " does not exist.");
+        }
+        case common::ConflictAction::ON_CONFLICT_DO_NOTHING: {
+            return;
+        }
+        default:
+            KU_UNREACHABLE;
+        }
+    }
     auto tableID = catalog->getTableID(clientContext->getTx(), tableName);
     auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
     switch (tableEntry->getTableType()) {
@@ -352,19 +356,39 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
     default:
         break;
     }
-    return make_unique<BoundDropTable>(tableID, tableName);
 }
 
-std::unique_ptr<BoundStatement> Binder::bindDropSequence(const Statement& statement) {
+void Binder::validateDropSequence(const parser::Statement& statement) {
     auto& dropSequence = statement.constCast<Drop>();
-    auto sequenceName = dropSequence.getName();
-    if (!clientContext->getCatalog()->containsSequence(clientContext->getTx(), sequenceName)) {
-        throw BinderException("Sequence " + sequenceName + " does not exist.");
+    if (!clientContext->getCatalog()->containsSequence(clientContext->getTx(),
+            dropSequence.getDropInfo().name)) {
+        switch (dropSequence.getDropInfo().conflictAction) {
+        case common::ConflictAction::ON_CONFLICT_THROW: {
+            throw BinderException(common::stringFormat("Sequence {} does not exist.",
+                dropSequence.getDropInfo().name));
+        }
+        case common::ConflictAction::ON_CONFLICT_DO_NOTHING: {
+            return;
+        }
+        default:
+            KU_UNREACHABLE;
+        }
     }
-    auto catalog = clientContext->getCatalog();
-    auto sequenceID = catalog->getSequenceID(clientContext->getTx(), sequenceName);
-    // TODO: Later check if sequence used/referenced by table
-    return make_unique<BoundDropSequence>(sequenceID, sequenceName);
+}
+
+std::unique_ptr<BoundStatement> Binder::bindDrop(const Statement& statement) {
+    auto& drop = statement.constCast<Drop>();
+    switch (drop.getDropInfo().dropType) {
+    case DropType::TABLE: {
+        validateDropTable(drop);
+    } break;
+    case DropType::SEQUENCE: {
+        validateDropSequence(drop);
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
+    return std::make_unique<BoundDrop>(drop.getDropInfo());
 }
 
 std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
@@ -472,7 +496,8 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
         expressionBinder.bindExpression(*defaultValue), dataType);
     if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
         validateSerialNoDefault(*boundDefault);
-        defaultValue = createSerialDefaultExpr(Catalog::genSerialName(tableName, propertyName));
+        defaultValue = ParsedExpressionUtils::getSerialDefaultExpr(
+            Catalog::genSerialName(tableName, propertyName));
         boundDefault = expressionBinder.implicitCastIfNecessary(
             expressionBinder.bindExpression(*defaultValue), dataType);
     }

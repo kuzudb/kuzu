@@ -8,7 +8,7 @@
 #ifndef XXH_STATIC_H_3543687687345
 #define XXH_STATIC_H_3543687687345
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 
 /* These definitions are only meant to allow allocation of XXH state
    statically, on stack, or in a struct for example.

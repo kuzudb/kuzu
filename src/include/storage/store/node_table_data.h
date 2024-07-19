@@ -58,10 +58,10 @@ public:
     common::node_group_idx_t getNumNodeGroups(const transaction::Transaction* transaction) const {
         return columns[0]->getNumNodeGroups(transaction);
     }
-    common::offset_t getNumTuplesInNodeGroup(const transaction::Transaction* transaction,
+    common::offset_t getNumTuplesInNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx) const {
         KU_ASSERT(nodeGroupIdx < getNumCommittedNodeGroups());
-        return columns[0]->getMetadata(nodeGroupIdx, transaction->getType()).numValues;
+        return columns[0]->getMetadata(nodeGroupIdx, transaction).numValues;
     }
 
     void lookup(transaction::Transaction* transaction, TableDataScanState& state,

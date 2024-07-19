@@ -74,11 +74,8 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const BoundStatement& statemen
     case StatementType::COPY_TO: {
         plan = planCopyTo(statement);
     } break;
-    case StatementType::DROP_TABLE: {
-        appendDropTable(statement, *plan);
-    } break;
-    case StatementType::DROP_SEQUENCE: {
-        appendDropSequence(statement, *plan);
+    case StatementType::DROP: {
+        appendDrop(statement, *plan);
     } break;
     case StatementType::ALTER: {
         appendAlter(statement, *plan);

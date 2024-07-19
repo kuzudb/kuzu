@@ -2,6 +2,7 @@
 
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression/parameter_expression.h"
 #include "binder/expression_visitor.h"
 #include "common/exception/binder.h"
 #include "common/exception/not_implemented.h"
@@ -9,17 +10,37 @@
 #include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/cast/vector_cast_functions.h"
 #include "main/client_context.h"
+#include "parser/expression/parsed_expression_visitor.h"
+#include "parser/expression/parsed_parameter_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
+using namespace kuzu::parser;
 
 namespace kuzu {
 namespace binder {
 
-static void validateAggregationExpressionIsNotNested(const Expression& expression);
+static void validateAggregationExpressionIsNotNested(std::shared_ptr<Expression> expression);
 
 std::shared_ptr<Expression> ExpressionBinder::bindExpression(
     const parser::ParsedExpression& parsedExpression) {
+    auto collector = ParsedParamExprCollector();
+    collector.visit(&parsedExpression);
+    if (collector.hasParamExprs()) {
+        bool allParamExist = true;
+        for (auto& parsedExpr : collector.getParamExprs()) {
+            auto name = parsedExpr->constCast<ParsedParameterExpression>().getParameterName();
+            if (!parameterMap.contains(name)) {
+                auto value = std::make_shared<Value>(Value::createNullValue());
+                parameterMap.insert({name, value});
+                allParamExist = false;
+            }
+        }
+        if (!allParamExist) {
+            return std::make_shared<ParameterExpression>(binder->getUniqueExpressionName(""),
+                Value::createNullValue());
+        }
+    }
     std::shared_ptr<Expression> expression;
     auto expressionType = parsedExpression.getExpressionType();
     if (ExpressionTypeUtil::isBoolean(expressionType)) {
@@ -51,10 +72,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
     if (parsedExpression.hasAlias()) {
         expression->setAlias(parsedExpression.getAlias());
     }
-    if (ExpressionType::AGGREGATE_FUNCTION == expression->expressionType) {
-        validateAggregationExpressionIsNotNested(*expression);
-    }
-    if (ExpressionVisitor::needFold(*expression)) {
+    validateAggregationExpressionIsNotNested(expression);
+    if (ConstantExpressionVisitor::needFold(*expression)) {
         return foldExpression(expression);
     }
     return expression;
@@ -114,13 +133,16 @@ std::shared_ptr<Expression> ExpressionBinder::forceCast(
     return bindScalarFunctionExpression(children, functionName);
 }
 
-void validateAggregationExpressionIsNotNested(const Expression& expression) {
-    if (expression.getNumChildren() == 0) {
+void validateAggregationExpressionIsNotNested(std::shared_ptr<Expression> expression) {
+    if (expression->expressionType != ExpressionType::AGGREGATE_FUNCTION ||
+        expression->getNumChildren() == 0) {
         return;
     }
-    if (ExpressionVisitor::hasAggregate(*expression.getChild(0))) {
+    auto collector = AggregateExprCollector();
+    collector.visit(expression->getChild(0));
+    if (collector.hasAggregate()) {
         throw BinderException(
-            stringFormat("Expression {} contains nested aggregation.", expression.toString()));
+            stringFormat("Expression {} contains nested aggregation.", expression->toString()));
     }
 }
 

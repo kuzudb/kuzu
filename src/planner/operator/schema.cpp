@@ -75,20 +75,6 @@ expression_vector Schema::getExpressionsInScope(f_group_pos pos) const {
     return result;
 }
 
-expression_vector Schema::getSubExpressionsInScope(const std::shared_ptr<Expression>& expression) {
-    expression_vector results;
-    if (isExpressionInScope(*expression)) {
-        results.push_back(expression);
-        return results;
-    }
-    for (auto& child : ExpressionChildrenCollector::collectChildren(*expression)) {
-        for (auto& subExpression : getSubExpressionsInScope(child)) {
-            results.push_back(subExpression);
-        }
-    }
-    return results;
-}
-
 bool Schema::evaluable(const Expression& expression) const {
     auto inScope = isExpressionInScope(expression);
     if (expression.expressionType == ExpressionType::LITERAL || inScope) {
@@ -105,15 +91,6 @@ bool Schema::evaluable(const Expression& expression) const {
         }
         return true;
     }
-}
-
-std::unordered_set<f_group_pos> Schema::getDependentGroupsPos(
-    const std::shared_ptr<Expression>& expression) {
-    std::unordered_set<f_group_pos> result;
-    for (auto& subExpression : getSubExpressionsInScope(expression)) {
-        result.insert(getGroupPos(subExpression->getUniqueName()));
-    }
-    return result;
 }
 
 std::unordered_set<f_group_pos> Schema::getGroupsPosInScope() const {

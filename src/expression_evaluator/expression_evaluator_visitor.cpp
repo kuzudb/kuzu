@@ -43,8 +43,8 @@ void LambdaParamEvaluatorCollector::visit(ExpressionEvaluator* evaluator) {
         auto& caseEvaluator = evaluator->constCast<CaseExpressionEvaluator>();
         children.push_back(caseEvaluator.getElseEvaluator());
         for (auto& alternativeEvaluator : caseEvaluator.getAlternativeEvaluators()) {
-            children.push_back(alternativeEvaluator->whenEvaluator.get());
-            children.push_back(alternativeEvaluator->thenEvaluator.get());
+            children.push_back(alternativeEvaluator.whenEvaluator.get());
+            children.push_back(alternativeEvaluator.thenEvaluator.get());
         }
     } break;
     default: {

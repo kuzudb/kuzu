@@ -72,7 +72,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     auto propertyName = propertyExpression.getPropertyName();
     auto child = bindExpression(*parsedExpression.getChild(0));
     ExpressionUtil::validateDataType(*child,
-        std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT});
+        std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT,
+            LogicalTypeID::ANY});
     if (isNodeOrRelPattern(*child)) {
         if (Binder::reservedInPropertyLookup(propertyName)) {
             // Note we don't expose direct access to internal properties in case user tries to
@@ -84,6 +85,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
         return bindNodeOrRelPropertyExpression(*child, propertyName);
     } else if (isStructPattern(*child)) {
         return bindStructPropertyExpression(child, propertyName);
+    } else if (child->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
+        return createVariableExpression(LogicalType::ANY(), binder->getUniqueExpressionName(""));
     } else {
         throw BinderException(stringFormat("Cannot bind property for expression {} with type {}.",
             child->toString(), ExpressionTypeUtil::toString(child->expressionType)));

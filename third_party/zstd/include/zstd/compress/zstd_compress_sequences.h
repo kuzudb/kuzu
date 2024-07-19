@@ -14,7 +14,7 @@
 #include "zstd/common/fse.h" /* FSE_repeat, FSE_CTable */
 #include "zstd/common/zstd_internal.h" /* symbolEncodingType_e, ZSTD_strategy */
 
-namespace duckdb_zstd {
+namespace kuzu_zstd {
 
 typedef enum {
     ZSTD_defaultDisallowed = 0,

@@ -595,8 +595,9 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::planCrossProduct(
 
 static bool isExpressionNewlyMatched(const std::vector<SubqueryGraph>& prevs,
     const SubqueryGraph& newSubgraph, const std::shared_ptr<Expression>& expression) {
-    auto expressionCollector = std::make_unique<ExpressionCollector>();
-    auto variables = expressionCollector->getDependentVariableNames(expression);
+    auto collector = DependentVarNameCollector();
+    collector.visit(expression);
+    auto variables = collector.getVarNames();
     for (auto& prev : prevs) {
         if (prev.containAllVariables(variables)) {
             return false; // matched in prev subgraph

@@ -28,7 +28,7 @@
       "validInterval": "10 days",
       "comments": ["ioji232","jifhe8w99u43434"],
       "summary": {"locations":["shanghai"], "transfer": {"day": "1990-09-10", "amount": [10]}},
-      "notes": "nice weather",
+      "notes": "nice weather"
     },
     {
       "FROM": 2,
@@ -38,7 +38,7 @@
       "validInterval": "10 years 5 months 13 hours 24 us",
       "comments": ["2huh9y89fsfw23","23nsihufhw723"],
       "summary": {"locations":["paris"], "transfer": {"day": "2000-01-01", "amount": [20, 5000]}},
-      "notes": 4,
+      "notes": 4
     },
     {
       "FROM": 2,
@@ -48,7 +48,7 @@
       "validInterval": "23 minutes",
       "comments": ["fwehu9h9832wewew","23u9h989sdfsss"],
       "summary": {"locations":["paris"], "transfer": {"day": "2011-05-01", "amount": [2000, 5340]}},
-      "notes": "cool stuff found",
+      "notes": "cool stuff found"
     },
     {
       "FROM": 2,
@@ -58,6 +58,6 @@
       "validInterval": "20 years 30 days 48 hours",
       "comments": ["fwh9y81232uisuiehuf","ewnuihxy8dyf232"],
       "summary": {"locations":["vancouver"], "transfer": {"day": "2020-01-01", "amount": [120, 50]}},
-      "notes": "matthew perry",
+      "notes": "matthew perry"
     }
   ]
