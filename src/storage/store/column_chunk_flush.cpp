@@ -67,8 +67,8 @@ ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(const uint8_t* buf
         return CompressedFlushBuffer{std::make_shared<Uncompressed>(dataType), dataType}.operator()(
             buffer, bufferSize, dataFH, startPageIdx, metadata);
     } else if (metadata.compMeta.compression == CompressionType::CONSTANT) {
-        return CompressedFlushBuffer{std::make_shared<ConstantCompression>(dataType), dataType}.
-        operator()(buffer, bufferSize, dataFH, startPageIdx, metadata);
+        return CompressedFlushBuffer{std::make_shared<ConstantCompression>(dataType), dataType}
+            .operator()(buffer, bufferSize, dataFH, startPageIdx, metadata);
     }
     KU_ASSERT(metadata.compMeta.compression == CompressionType::FLOAT);
 
