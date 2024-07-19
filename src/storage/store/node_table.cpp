@@ -145,8 +145,8 @@ offset_t NodeTable::validateUniquenessConstraint(const Transaction* transaction,
 
 void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) {
     const auto& nodeInsertState = insertState.cast<NodeTableInsertState>();
-    //KU_ASSERT(nodeInsertState.propertyVectors[0]->state->getSelVector().getSelSize() == 1);
-    //KU_ASSERT(nodeInsertState.nodeIDVector.state->getSelVector().getSelSize() == 1);
+    KU_ASSERT(nodeInsertState.propertyVectors[0]->state->getSelVector().getSelSize() == 1);
+    KU_ASSERT(nodeInsertState.nodeIDVector.state->getSelVector().getSelSize() == 1);
     if (nodeInsertState.nodeIDVector.isNull(
             nodeInsertState.nodeIDVector.state->getSelVector()[0])) {
         return;

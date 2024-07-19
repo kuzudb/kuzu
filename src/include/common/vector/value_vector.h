@@ -94,7 +94,7 @@ public:
 
     void serialize(Serializer& ser) const;
     static std::unique_ptr<ValueVector> deSerialize(Deserializer& deSer, storage::MemoryManager* mm,
-        std::shared_ptr<common::DataChunkState> dataChunkState);
+        std::shared_ptr<DataChunkState> dataChunkState);
 
 private:
     uint32_t getDataTypeSize(const LogicalType& type);

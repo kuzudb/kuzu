@@ -18,7 +18,10 @@
 
 
 -CASE updateEachElementOfSmallListCommitRecovery
--SKIP
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -BATCH_STATEMENTS <FILE>:update_each_element_of_small_list.cypher
@@ -52,7 +55,10 @@
 
 
 -CASE updateEachElementOfSmallListRollbackRecovery
--SKIP
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -BATCH_STATEMENTS <FILE>:update_each_element_of_small_list.cypher

@@ -30,7 +30,10 @@
 
 
 -CASE updateManyToOneRelTableCommitRecovery
--SKIP
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT CREATE (p:person {ID: 2501})
@@ -74,7 +77,10 @@
 
 
 -CASE updateManyToOneRelTableRollbackRecovery
--SKIP
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_MANY_TO_ONE_REL_TABLE

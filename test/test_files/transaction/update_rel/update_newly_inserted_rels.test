@@ -34,7 +34,10 @@
 
 
 -CASE updateNewlyInsertedRelsCommitRecovery
--SKIP
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_NEWLY_INSERTED_RELS
@@ -67,7 +70,10 @@
 
 
 -CASE updateNewlyInsertedRelsRollbackRecovery
--SKIP
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_NEWLY_INSERTED_RELS
