@@ -96,6 +96,13 @@ void WAL::logRelDelete(table_id_t tableID, ValueVector* srcNodeVector, ValueVect
     addNewWALRecordNoLock(walRecord);
 }
 
+void WAL::logRelDetachDelete(table_id_t tableID, RelDataDirection direction,
+    ValueVector* srcNodeVector) {
+    lock_t lck{mtx};
+    RelDetachDeleteRecord walRecord(tableID, direction, srcNodeVector);
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::logRelUpdate(table_id_t tableID, column_id_t columnID, ValueVector* srcNodeVector,
     ValueVector* dstNodeVector, ValueVector* relIDVector, ValueVector* propertyVector) {
     lock_t lck{mtx};
