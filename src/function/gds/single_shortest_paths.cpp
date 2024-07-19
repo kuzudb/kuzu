@@ -17,62 +17,50 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-class FixedNodeTableSinglePaths {
-public:
-    FixedNodeTableSinglePaths(nodeID_t* currentFixedLastEdges) : currentFixedLastEdges{currentFixedLastEdges} {}
-
-    void setLastEdge(nodeID_t nodeID, nodeID_t lastEdge) {
-        KU_ASSERT(currentFixedLastEdges != nullptr);
-        currentFixedLastEdges[nodeID.offset] = lastEdge;
-    }
-
-private:
-    nodeID_t* currentFixedLastEdges;
-};
-/**
- * A data structure to keep track of a single (shortest) path from one source node to
- * multiple destination (and intermediate) nodes as "backward BFS graph" form. The data structure is
- * "dense" in the sense that it keeps space for one "backwards edge" for each possible node that can
- * be in the destination. Supports multi-label nodes.
- *
- * TODO(Semih): Make this class thread-safe the style of ConcurrentPathMultiplicities.
- */
 class SinglePaths {
 public:
     explicit SinglePaths(
         std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
         MemoryManager* mm) {
         for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
-            // TODO(Semih): Change this to use atomics. We can't have an atomic if a struct, so
-            // we need to store 2 atomics, one for the tableID and one for the offset.
-            // auto memoryBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<uint64_t>));
-            lastEdges.insert({tableID, mm->allocateBuffer(false, numNodes * sizeof(nodeID_t))});
+            // Warning: Here we depend on the fact that both table_id_t and offset_t are of type uint64_t.
+            lastEdges.insert({tableID, mm->allocateBuffer(false, numNodes * 2 * (sizeof(std::atomic<offset_t>)))});
         }
     }
 
-    std::unique_ptr<FixedNodeTableSinglePaths> getCurrFixedNodeTableSinglePaths() {
-        return std::make_unique<FixedNodeTableSinglePaths>(
-            reinterpret_cast<nodeID_t*>(lastEdges.at(currentTableID.load()).get()->buffer.data()));
+    nodeID_t getParent(nodeID_t nodeID) {
+        offset_t nodeIDPos = nodeID.offset << 1;
+        offset_t tableIDPos = nodeIDPos + 1;
+        auto lastEdgesPtr = reinterpret_cast<std::atomic<offset_t>*>(
+            lastEdges.at(nodeID.tableID).get()->buffer.data());
+        return nodeID_t{lastEdgesPtr[nodeIDPos].load(), lastEdgesPtr[tableIDPos].load()};
     }
 
-    nodeID_t getParent(nodeID_t nodeID) {
-        return reinterpret_cast<nodeID_t*>(
-            lastEdges.at(nodeID.tableID).get()->buffer.data())[nodeID.offset];
+    void setLastEdge(nodeID_t nodeID, nodeID_t lastEdge) {
+        KU_ASSERT(currentFixedLastEdges != nullptr);
+        // Note: We are changing 2 atomics non-atomically without any locking. This should be fine
+        // because we assume that all extensions that are being done in a particular iteration
+        // happen from the same relationship table, so if there are multiple writes to update
+        // the lastEdge for nodeID, say lastEdge1 and lastEdge2, they will have the same tableID.
+        // Further they can write different offsets but that's fine because we are keeping track
+        // of only 1 singlePath so regardless of which one writes first is fine.
+        // Warning: However, this logic has to change when we write both a relID and the offset of
+        // the parent. That is because then we need to ensure that both relID and nodeOffset is
+        // written atomically.
+        offset_t nodeIDPos = nodeID.offset << 1;
+        offset_t tableIDPos = nodeIDPos + 1;
+        currentFixedLastEdges.load()[nodeIDPos].store(lastEdge.offset);
+        currentFixedLastEdges.load()[tableIDPos].store(lastEdge.tableID);
     }
 
     void fixNodeTable(common::table_id_t tableID) {
         KU_ASSERT(lastEdges.contains(tableID));
-        currentTableID.store(tableID);
-    // TODO(Semih): Remove
-        //        currentFixedLastEdges =
-//            reinterpret_cast<nodeID_t*>(lastEdges.at(tableID).get()->buffer.data());
+        currentFixedLastEdges.store(reinterpret_cast<std::atomic<offset_t>*>(lastEdges.at(tableID).get()->buffer.data()));
     }
 
 private:
     common::table_id_map_t<std::unique_ptr<MemoryBuffer>> lastEdges;
-    std::atomic<common::table_id_t> currentTableID;
-    // TODO(Semih): Remove
-    nodeID_t* currentFixedLastEdges;
+    std::atomic<std::atomic<offset_t>*> currentFixedLastEdges;
 };
 
 struct SingleSPOutputs : public RJOutputs {
@@ -86,7 +74,7 @@ struct SingleSPOutputs : public RJOutputs {
             auto numNodes = graph->getNumNodes(tableID);
             nodeTableIDAndNumNodes.push_back({tableID, numNodes});
         }
-        pathLengths = std::make_unique<PathLengths>(nodeTableIDAndNumNodes);
+        pathLengths = std::make_unique<PathLengths>(nodeTableIDAndNumNodes, mm);
         if (RJOutputType::PATHS == outputType) {
             singlePaths = std::make_unique<SinglePaths>(nodeTableIDAndNumNodes, mm);
             // Unlike pathLengths we do not fix the nodeTable of singlePath with
@@ -116,8 +104,8 @@ public:
         srcNodeIDVector->setValue<nodeID_t>(0, spOutputs->sourceNodeID);
         for (auto tableID : graph->getNodeTableIDs()) {
             spOutputs->pathLengths->fixCurFrontierNodeTable(tableID);
-            for (offset_t nodeOffset = 0;
-                 nodeOffset < spOutputs->pathLengths->getNumNodesInCurFrontierFixedNodeTable();
+            for (offset_t nodeOffset = 0; nodeOffset < 5;
+//                 nodeOffset < spOutputs->pathLengths->getNumNodesInCurFrontierFixedNodeTable();
                  ++nodeOffset) {
                 auto length =
                     spOutputs->pathLengths->getMaskValueFromCurFrontierFixedMask(nodeOffset);
@@ -168,7 +156,6 @@ struct SingleSPLengthsFrontierCompute : public FrontierCompute {
 
 struct SingleSPPathsFrontierCompute : public SingleSPLengthsFrontierCompute {
     SinglePaths* singlePaths;
-    std::unique_ptr<FixedNodeTableSinglePaths> fixedNodeTableSinglePaths;
     explicit SingleSPPathsFrontierCompute(PathLengthsFrontiers* pathLengthsFrontiers,
     SinglePaths* singlePaths) :
       SingleSPLengthsFrontierCompute(pathLengthsFrontiers), singlePaths{singlePaths} {};
@@ -178,14 +165,9 @@ struct SingleSPPathsFrontierCompute : public SingleSPLengthsFrontierCompute {
                           nbrID.offset) == PathLengths::UNVISITED;
         if (retVal) {
             // We set the nbrID's last edge to curNodeID;
-            fixedNodeTableSinglePaths->setLastEdge(nbrID, curNodeID);
+            singlePaths->setLastEdge(nbrID, curNodeID);
         }
         return retVal;
-    }
-
-    // This function will be called by each worker thread on its copy of the FrontierCompute.
-    void init() {
-        fixedNodeTableSinglePaths = singlePaths->getCurrFixedNodeTableSinglePaths();
     }
 
     // TODO(Semih): Also implement the init() function

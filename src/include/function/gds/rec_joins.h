@@ -14,6 +14,10 @@ namespace graph {
 class Graph;
 } // namespace graph
 
+namespace storage {
+class MemoryBuffer;
+class MemoryManager;
+}
 namespace function {
 class Frontiers;
 class FrontierCompute;
@@ -166,56 +170,55 @@ public:
     static constexpr uint8_t UNVISITED = 255;
 
     explicit PathLengths(
-        std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes);
+        std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes, storage::MemoryManager* mm);
 
     uint8_t getMaskValueFromCurFrontierFixedMask(common::offset_t nodeOffset) {
         KU_ASSERT(curFrontierFixedMask != nullptr);
-        return curFrontierFixedMask->getMaskValue(nodeOffset);
+        //        return curFrontierFixedMask.load()->getMaskValue(nodeOffset);
+        return curFrontierFixedMask[nodeOffset].load();
     }
 
     uint8_t getMaskValueFromNextFrontierFixedMask(common::offset_t nodeOffset) {
         KU_ASSERT(nextFrontierFixedMask != nullptr);
-        return nextFrontierFixedMask->getMaskValue(nodeOffset);
+        //        return nextFrontierFixedMask.load()->getMaskValue(nodeOffset);
+        return nextFrontierFixedMask[nodeOffset].load();
     }
 
     inline bool isActive(nodeID_t nodeID) override {
         KU_ASSERT(curFrontierFixedMask != nullptr);
-        return curFrontierFixedMask->getMaskValue(nodeID.offset) == curIter;
+        //        return curFrontierFixedMask.load()->getMaskValue(nodeID.offset) == curIter;
+        return curFrontierFixedMask[nodeID.offset].load() == curIter;
     }
 
     inline void setActive(nodeID_t nodeID) override {
         KU_ASSERT(nextFrontierFixedMask != nullptr);
-        if (nextFrontierFixedMask->isMasked(nodeID.offset, UNVISITED)) {
+        if (nextFrontierFixedMask.load()[nodeID.offset].load() == UNVISITED) {
             // Note that if curIter = 255, this will set the mask value to 0. Therefore when
             // the next (and first) iteration of the algorithm starts, the node will be "active".
-            nextFrontierFixedMask->setMask(nodeID.offset, curIter + 1);
+            nextFrontierFixedMask.load()[nodeID.offset].store(curIter + 1);
         }
     }
 
-    void incrementCurIter() { curIter++; }
+    void incrementCurIter() { curIter.fetch_add(1); }
 
-    void fixCurFrontierNodeTable(common::table_id_t tableID) {
-        KU_ASSERT(masks.contains(tableID));
-        curFrontierFixedTableID = tableID;
-        curFrontierFixedMask = masks.at(tableID).get();
-    }
+    void fixCurFrontierNodeTable(common::table_id_t tableID);
 
-    void fixNextFrontierNodeTable(common::table_id_t tableID) {
-        KU_ASSERT(masks.contains(tableID));
-        nextFrontierFixedMask = masks.at(tableID).get();
-    }
+    void fixNextFrontierNodeTable(common::table_id_t tableID);
 
     uint64_t getNumNodesInCurFrontierFixedNodeTable() {
-        KU_ASSERT(curFrontierFixedMask != nullptr);
-        return curFrontierFixedMask->getSize();
+        KU_ASSERT(curFrontierFixedMask.load() != nullptr);
+        return nodeTableIDAndNumNodesMap[curTableID.load()];
     }
 
 private:
-    uint8_t curIter = 255;
-    common::table_id_map_t<std::unique_ptr<processor::MaskData>> masks;
-    common::table_id_t curFrontierFixedTableID;
-    processor::MaskData* curFrontierFixedMask;
-    processor::MaskData* nextFrontierFixedMask;
+    std::atomic<uint8_t> curIter = 255;
+    std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodesMap;
+    std::atomic<table_id_t> curTableID;
+    std::atomic<table_id_t> nextTableID;
+    common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> masks;
+    //    common::table_id_map_t<std::unique_ptr<processor::MaskData>> masks;
+    std::atomic<std::atomic<uint8_t>*> curFrontierFixedMask;
+    std::atomic<std::atomic<uint8_t>*> nextFrontierFixedMask;
 };
 
 class PathLengthsFrontiers : public Frontiers {

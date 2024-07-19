@@ -5,6 +5,7 @@
 #include "function/gds/rec_joins.h"
 #include "main/client_context.h"
 #include "processor/operator/gds_call.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_utils.h"
 
@@ -104,11 +105,32 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
 }
 
 PathLengths::PathLengths(
-    std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes) {
+    std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes, storage::MemoryManager* mm) {
     for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
-        masks.insert({tableID, std::make_unique<processor::MaskData>(numNodes, UNVISITED)});
+        nodeTableIDAndNumNodesMap[tableID] = numNodes;
+        auto memBuffer = mm->allocateBuffer(false, numNodes * (sizeof(std::atomic<uint8_t>)));
+        std::atomic<uint8_t>* memBufferPtr =
+            reinterpret_cast<std::atomic<uint8_t>*>(memBuffer.get()->buffer.data());
+        for (uint64_t i = 0; i < numNodes; ++i) {
+            memBufferPtr[i].store(UNVISITED);
+        }
+        masks.insert({tableID, move(memBuffer)});
     }
 }
+
+
+void PathLengths::fixCurFrontierNodeTable(common::table_id_t tableID) {
+    KU_ASSERT(masks.contains(tableID));
+    curTableID.store(tableID);
+    curFrontierFixedMask.store(reinterpret_cast<std::atomic<uint8_t>*>(masks.at(tableID).get()->buffer.data()));
+}
+
+void PathLengths::fixNextFrontierNodeTable(common::table_id_t tableID) {
+    KU_ASSERT(masks.contains(tableID));
+    nextTableID.store(tableID);
+    nextFrontierFixedMask.store(reinterpret_cast<std::atomic<uint8_t>*>(masks.at(tableID).get()->buffer.data()));
+}
+
 
 bool PathLengthsFrontiers::getNextFrontierMorsel(RangeFrontierMorsel& frontierMorsel) {
     if (nextOffset.load() >= pathLengths->getNumNodesInCurFrontierFixedNodeTable()) {
@@ -122,7 +144,7 @@ bool PathLengthsFrontiers::getNextFrontierMorsel(RangeFrontierMorsel& frontierMo
     auto endOffset = beginOffset + FRONTIER_MORSEL_SIZE > numNodes ?
                          numNodes :
                          beginOffset + FRONTIER_MORSEL_SIZE;
-    frontierMorsel.initMorsel(pathLengths->curFrontierFixedTableID, beginOffset, endOffset);
+    frontierMorsel.initMorsel(pathLengths->curTableID.load(), beginOffset, endOffset);
     return true;
 }
 
