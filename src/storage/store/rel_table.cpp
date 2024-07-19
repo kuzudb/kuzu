@@ -85,6 +85,7 @@ void RelTable::initializeLocalRelScanState(RelTableScanState& relScanState) {
 
 bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState) {
     auto& relScanState = scanState.cast<RelTableScanState>();
+    relScanState.IDVector->state->getSelVectorUnsafe().setToUnfiltered();
     switch (relScanState.source) {
     case TableScanSource::COMMITTED: {
         const auto scanResult = relScanState.nodeGroup->scan(transaction, scanState);
