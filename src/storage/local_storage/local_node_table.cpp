@@ -38,6 +38,7 @@ bool LocalNodeTable::isVisible(const Transaction* transaction, offset_t offset) 
 }
 
 bool LocalNodeTable::insert(Transaction* transaction, TableInsertState& insertState) {
+    KU_ASSERT(transaction->isDummy());
     auto& nodeInsertState = insertState.constCast<NodeTableInsertState>();
     const auto numRowsInLocalTable = nodeGroups.getNumRows();
     const auto nodeOffset = StorageConstants::MAX_NUM_ROWS_IN_TABLE + numRowsInLocalTable;
@@ -50,11 +51,12 @@ bool LocalNodeTable::insert(Transaction* transaction, TableInsertState& insertSt
     const auto nodeIDPos =
         nodeInsertState.nodeIDVector.state->getSelVector().getSelectedPositions()[0];
     nodeInsertState.nodeIDVector.setValue(nodeIDPos, internalID_t{nodeOffset, table.getTableID()});
-    nodeGroups.append(&DUMMY_TRANSACTION, insertState.propertyVectors);
+    nodeGroups.append(transaction, insertState.propertyVectors);
     return true;
 }
 
 bool LocalNodeTable::update(Transaction* transaction, TableUpdateState& updateState) {
+    KU_ASSERT(transaction->isDummy());
     const auto& nodeUpdateState = updateState.cast<NodeTableUpdateState>();
     KU_ASSERT(nodeUpdateState.nodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto pos = nodeUpdateState.nodeIDVector.state->getSelVector()[0];
@@ -63,17 +65,18 @@ bool LocalNodeTable::update(Transaction* transaction, TableUpdateState& updateSt
         KU_ASSERT(nodeUpdateState.pkVector);
         hashIndex->delete_(*nodeUpdateState.pkVector);
         hashIndex->insert(*nodeUpdateState.pkVector, offset,
-            [&](offset_t offset) { return isVisible(transaction, offset); });
+            [&](offset_t offset_) { return isVisible(transaction, offset_); });
     }
     const auto [nodeGroupIdx, rowIdxInGroup] = StorageUtils::getQuotientRemainder(
         offset - StorageConstants::MAX_NUM_ROWS_IN_TABLE, StorageConstants::NODE_GROUP_SIZE);
     const auto nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
-    nodeGroup->update(&DUMMY_TRANSACTION, rowIdxInGroup, nodeUpdateState.columnID,
+    nodeGroup->update(transaction, rowIdxInGroup, nodeUpdateState.columnID,
         nodeUpdateState.propertyVector);
     return true;
 }
 
-bool LocalNodeTable::delete_(Transaction*, TableDeleteState& deleteState) {
+bool LocalNodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
+    KU_ASSERT(transaction->isDummy());
     const auto& nodeDeleteState = deleteState.cast<NodeTableDeleteState>();
     KU_ASSERT(nodeDeleteState.nodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto pos = nodeDeleteState.nodeIDVector.state->getSelVector()[0];
@@ -82,7 +85,7 @@ bool LocalNodeTable::delete_(Transaction*, TableDeleteState& deleteState) {
     const auto [nodeGroupIdx, rowIdxInGroup] = StorageUtils::getQuotientRemainder(
         offset - StorageConstants::MAX_NUM_ROWS_IN_TABLE, StorageConstants::NODE_GROUP_SIZE);
     const auto nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
-    return nodeGroup->delete_(&DUMMY_TRANSACTION, rowIdxInGroup);
+    return nodeGroup->delete_(transaction, rowIdxInGroup);
 }
 
 bool LocalNodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {

@@ -1,7 +1,6 @@
 #include "storage/store/rel_table.h"
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
-#include "common/cast.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/storage_manager.h"
@@ -118,7 +117,7 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
 void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
-    localTable->insert(transaction, insertState);
+    localTable->insert(&DUMMY_TRANSACTION, insertState);
 }
 
 void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
@@ -130,7 +129,7 @@ void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL);
         KU_ASSERT(loadTable);
-        localTable->update(transaction, updateState);
+        localTable->update(&DUMMY_TRANSACTION, updateState);
     } else {
         fwdRelTableData->update(transaction, relUpdateState.srcNodeIDVector,
             relUpdateState.relIDVector, relUpdateState.columnID, relUpdateState.propertyVector);
@@ -148,7 +147,7 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL);
         KU_ASSERT(loadTable);
-        return localTable->delete_(transaction, deleteState);
+        return localTable->delete_(&DUMMY_TRANSACTION, deleteState);
     }
     const auto fwdDeleted = fwdRelTableData->delete_(transaction, relDeleteState.srcNodeIDVector,
         relDeleteState.relIDVector);
@@ -216,7 +215,7 @@ void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* ta
             const auto relOffset = deleteState->relIDVector.readNodeOffset(relIDPos);
             if (relOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
                 KU_ASSERT(localTable);
-                localTable->delete_(transaction, *deleteState);
+                localTable->delete_(&DUMMY_TRANSACTION, *deleteState);
                 continue;
             }
             const auto deleted = tableData->delete_(transaction, deleteState->srcNodeIDVector,
