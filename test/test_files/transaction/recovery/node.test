@@ -6,8 +6,6 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE test(id INT64, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
 ---- ok
--STATEMENT CALL CHECKPOINT() RETURN *;
----- ok
 -STATEMENT CREATE (a:test {id:0, isTrue:True, birthday:Date('2019-01-01')})
 ---- ok
 -STATEMENT MATCH (a:test) RETURN a.id, a.isTrue, a.birthday
@@ -23,8 +21,6 @@
 -STATEMENT CALL auto_checkpoint=false;
 ---- ok
 -STATEMENT CREATE NODE TABLE test(id INT64, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
----- ok
--STATEMENT CALL CHECKPOINT() RETURN *;
 ---- ok
 -STATEMENT CREATE (a:test {id:0, isTrue:True, birthday:Date('2019-01-01')})
 ---- ok
@@ -49,8 +45,6 @@
 -STATEMENT CALL auto_checkpoint=false;
 ---- ok
 -STATEMENT CREATE NODE TABLE test(id INT64, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
----- ok
--STATEMENT CALL CHECKPOINT() RETURN *;
 ---- ok
 -STATEMENT CREATE (a:test {id:0, isTrue:True, birthday:Date('2019-01-01')})
 ---- ok
