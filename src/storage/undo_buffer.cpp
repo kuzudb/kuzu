@@ -39,7 +39,8 @@ struct VectorVersionRecord {
     VersionInfo* versionInfo;
     idx_t vectorIdx;
     VectorVersionInfo* vectorVersionInfo;
-    std::vector<row_idx_t> rowsInVector;
+    row_idx_t startRow;
+    row_idx_t numRows;
 };
 
 struct VectorUpdateRecord {
@@ -121,26 +122,26 @@ void UndoBuffer::createNodeBatchInsert(table_id_t tableID) {
 }
 
 void UndoBuffer::createVectorInsertInfo(VersionInfo* versionInfo, const idx_t vectorIdx,
-    VectorVersionInfo* vectorVersionInfo, const std::vector<row_idx_t>& rowsInVector) {
+    VectorVersionInfo* vectorVersionInfo, row_idx_t startRowInVector, row_idx_t numRows) {
     createVectorVersionInfo(UndoRecordType::INSERT_INFO, versionInfo, vectorIdx, vectorVersionInfo,
-        rowsInVector);
+        startRowInVector, numRows);
 }
 
 void UndoBuffer::createVectorDeleteInfo(VersionInfo* versionInfo, const idx_t vectorIdx,
-    VectorVersionInfo* vectorVersionInfo, const std::vector<row_idx_t>& rowsInVector) {
+    VectorVersionInfo* vectorVersionInfo, row_idx_t startRowInVector, row_idx_t numRows) {
     createVectorVersionInfo(UndoRecordType::DELETE_INFO, versionInfo, vectorIdx, vectorVersionInfo,
-        rowsInVector);
+        startRowInVector, numRows);
 }
 
 void UndoBuffer::createVectorVersionInfo(const UndoRecordType recordType, VersionInfo* versionInfo,
-    const idx_t vectorIdx, VectorVersionInfo* vectorVersionInfo,
-    const std::vector<row_idx_t>& rowsInVector) {
+    const idx_t vectorIdx, VectorVersionInfo* vectorVersionInfo, row_idx_t startRowInVector,
+    row_idx_t numRows) {
     auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(VectorVersionRecord));
     const UndoRecordHeader recordHeader{recordType, sizeof(VectorVersionRecord)};
     *reinterpret_cast<UndoRecordHeader*>(buffer) = recordHeader;
     buffer += sizeof(UndoRecordHeader);
     const VectorVersionRecord vectorVersionRecord{versionInfo, vectorIdx, vectorVersionInfo,
-        rowsInVector};
+        startRowInVector, numRows};
     *reinterpret_cast<VectorVersionRecord*>(buffer) = vectorVersionRecord;
 }
 
@@ -278,12 +279,14 @@ void UndoBuffer::commitVectorVersionInfo(UndoRecordType recordType, const uint8_
     const auto& undoRecord = *reinterpret_cast<VectorVersionRecord const*>(record);
     switch (recordType) {
     case UndoRecordType::INSERT_INFO: {
-        for (const auto rowIdx : undoRecord.rowsInVector) {
+        for (auto rowIdx = undoRecord.startRow; rowIdx < undoRecord.startRow + undoRecord.numRows;
+             rowIdx++) {
             undoRecord.vectorVersionInfo->insertedVersions[rowIdx] = commitTS;
         }
     } break;
     case UndoRecordType::DELETE_INFO: {
-        for (const auto rowIdx : undoRecord.rowsInVector) {
+        for (auto rowIdx = undoRecord.startRow; rowIdx < undoRecord.startRow + undoRecord.numRows;
+             rowIdx++) {
             undoRecord.vectorVersionInfo->deletedVersions[rowIdx] = commitTS;
         }
     } break;
@@ -365,7 +368,8 @@ void UndoBuffer::rollbackVectorVersionInfo(UndoRecordType recordType, const uint
     auto& undoRecord = *reinterpret_cast<VectorVersionRecord const*>(record);
     switch (recordType) {
     case UndoRecordType::INSERT_INFO: {
-        for (const auto row : undoRecord.rowsInVector) {
+        for (auto row = undoRecord.startRow; row < undoRecord.startRow + undoRecord.numRows;
+             row++) {
             undoRecord.vectorVersionInfo->insertedVersions[row] = INVALID_TRANSACTION;
         }
         // TODO(Guodong): Should handle hash index rollback.
@@ -388,7 +392,8 @@ void UndoBuffer::rollbackVectorVersionInfo(UndoRecordType recordType, const uint
         }
     } break;
     case UndoRecordType::DELETE_INFO: {
-        for (const auto row : undoRecord.rowsInVector) {
+        for (auto row = undoRecord.startRow; row < undoRecord.startRow + undoRecord.numRows;
+             row++) {
             undoRecord.vectorVersionInfo->deletedVersions[row] = INVALID_TRANSACTION;
         }
         // TODO(Guodong): Refactor. Move these into VersionInfo.

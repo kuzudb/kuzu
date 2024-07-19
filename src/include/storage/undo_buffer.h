@@ -82,9 +82,11 @@ public:
         const catalog::SequenceData& data, int64_t prevVal);
     void createNodeBatchInsert(common::table_id_t tableID);
     void createVectorInsertInfo(VersionInfo* versionInfo, common::idx_t vectorIdx,
-        VectorVersionInfo* vectorVersionInfo, const std::vector<common::row_idx_t>& rowsInVector);
+        VectorVersionInfo* vectorVersionInfo, common::row_idx_t startRowInVector,
+        common::row_idx_t numRows);
     void createVectorDeleteInfo(VersionInfo* versionInfo, common::idx_t vectorIdx,
-        VectorVersionInfo* vectorVersionInfo, const std::vector<common::row_idx_t>& rowsInVector);
+        VectorVersionInfo* vectorVersionInfo, common::row_idx_t startRowInVector,
+        common::row_idx_t numRows);
     void createVectorUpdateInfo(UpdateInfo* updateInfo, common::idx_t vectorIdx,
         VectorUpdateInfo* vectorUpdateInfo);
 
@@ -96,7 +98,7 @@ private:
 
     void createVectorVersionInfo(UndoRecordType recordType, VersionInfo* versionInfo,
         common::idx_t vectorIdx, VectorVersionInfo* vectorVersionInfo,
-        const std::vector<common::row_idx_t>& rowsInVector);
+        common::row_idx_t startRowInVector, common::row_idx_t numRows);
 
     void commitRecord(UndoRecordType recordType, const uint8_t* record,
         common::transaction_t commitTS) const;
