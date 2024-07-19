@@ -11,7 +11,8 @@ namespace processor {
 
 std::string CreateTablePrintInfo::toString() const {
     std::string result = "";
-    auto* tableInfo = common::ku_dynamic_cast<binder::BoundExtraCreateCatalogEntryInfo*, binder::BoundExtraCreateTableInfo*>(info);
+    auto* tableInfo = common::ku_dynamic_cast<binder::BoundExtraCreateCatalogEntryInfo*,
+        binder::BoundExtraCreateTableInfo*>(info);
     switch (tableType) {
     case TableType::NODE: {
         result += "Create Node Table: ";
@@ -27,7 +28,8 @@ std::string CreateTablePrintInfo::toString() const {
         result += "Create Relationship Table: ";
         result += tableName;
         result += ",Multiplicity: ";
-        auto* relInfo = common::ku_dynamic_cast<binder::BoundExtraCreateTableInfo*, binder::BoundExtraCreateRelTableInfo*>(tableInfo);
+        auto* relInfo = common::ku_dynamic_cast<binder::BoundExtraCreateTableInfo*,
+            binder::BoundExtraCreateRelTableInfo*>(tableInfo);
         if (relInfo->srcMultiplicity == RelMultiplicity::ONE) {
             result += "ONE";
         } else {
@@ -49,13 +51,15 @@ std::string CreateTablePrintInfo::toString() const {
     case TableType::REL_GROUP: {
         result += "Create Relationship Group Table: ";
         result += tableName;
-        auto* relGroupInfo = common::ku_dynamic_cast<binder::BoundExtraCreateCatalogEntryInfo*, binder::BoundExtraCreateRelTableGroupInfo*>(info);
+        auto* relGroupInfo = common::ku_dynamic_cast<binder::BoundExtraCreateCatalogEntryInfo*,
+            binder::BoundExtraCreateRelTableGroupInfo*>(info);
         result += ",Tables: ";
         for (auto& createInfo : relGroupInfo->infos) {
             result += createInfo.tableName;
             result += ", ";
         }
-        auto* groupTableInfo = common::ku_dynamic_cast<binder::BoundExtraCreateCatalogEntryInfo*, binder::BoundExtraCreateTableInfo*>(relGroupInfo->infos[0].extraInfo.get());
+        auto* groupTableInfo = common::ku_dynamic_cast<binder::BoundExtraCreateCatalogEntryInfo*,
+            binder::BoundExtraCreateTableInfo*>(relGroupInfo->infos[0].extraInfo.get());
         result += "Properties: ";
         for (auto& prop : groupTableInfo->propertyInfos) {
             result += prop.name;

@@ -55,7 +55,8 @@ struct ScanNodeTablePrintInfo final : OPPrintInfo {
     std::vector<std::string> tableNames;
     binder::expression_vector properties;
 
-    ScanNodeTablePrintInfo(std::vector<std::string> tableNames, binder::expression_vector properties)
+    ScanNodeTablePrintInfo(std::vector<std::string> tableNames,
+        binder::expression_vector properties)
         : tableNames{std::move(tableNames)}, properties{std::move(properties)} {}
 
     std::string toString() const override;
