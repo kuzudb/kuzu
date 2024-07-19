@@ -1,5 +1,7 @@
 #include "processor/operator/scan/scan_rel_table.h"
 
+#include "binder/expression/expression_util.h"
+
 #include "storage/local_storage/local_rel_table.h"
 
 using namespace kuzu::common;
@@ -7,6 +9,66 @@ using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
+
+static std::string relToString(const binder::RelExpression& rel) {
+    auto result = rel.toString();
+    switch (rel.getRelType()) {
+    case QueryRelType::SHORTEST: {
+        result += "SHORTEST";
+    } break;
+    case QueryRelType::ALL_SHORTEST: {
+        result += "ALL SHORTEST";
+    } break;
+    default:
+        break;
+    }
+    if (QueryRelTypeUtils::isRecursive(rel.getRelType())) {
+        result += std::to_string(rel.getLowerBound());
+        result += "..";
+        result += std::to_string(rel.getUpperBound());
+    }
+    return result;
+}
+
+std::string ScanRelTablePrintInfo::toString() const {
+    std::string result = "Tables: ";
+    for (auto& tableName : tableNames) {
+        result += tableName;
+        if (tableName != tableNames.back()) {
+            result += ", ";
+        }
+    }
+    result += ",Direction: (";
+    result += boundNode->toString();
+    result += ")";
+    switch (direction) {
+    case ExtendDirection::FWD: {
+        result += "-[";
+        result += relToString(*rel);
+        result += "]->";
+    } break;
+    case ExtendDirection::BWD: {
+        result += "<-[";
+        result += relToString(*rel);
+        result += "]-";
+    } break;
+    case ExtendDirection::BOTH: {
+        result += "<-[";
+        result += relToString(*rel);
+        result += "]->";
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
+    result += "(";
+    result += nbrNode->toString();
+    result += ")";
+    if (!properties.empty()) {
+        result += ",Properties: ";
+        result += binder::ExpressionUtil::toString(properties);
+    }
+    return result;
+}
 
 void ScanRelTableInfo::initScanState() {
     std::vector<Column*> columns;
