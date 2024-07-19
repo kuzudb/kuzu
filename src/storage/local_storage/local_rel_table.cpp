@@ -4,7 +4,11 @@
 
 #include "common/enums/rel_direction.h"
 #include "common/exception/message.h"
+#include "common/keyword/rdf_keyword.h"
+#include "common/string_utils.h"
+#include "common/types/types.h"
 #include "storage/storage_utils.h"
+#include "storage/store/column.h"
 #include "storage/store/rel_table.h"
 
 using namespace kuzu::common;
@@ -27,6 +31,17 @@ std::vector<LogicalType> LocalRelTable::getTypesForLocalRelTable(const RelTable&
 LocalRelTable::LocalRelTable(Table& table) : LocalTable{table} {
     localNodeGroup = std::make_unique<NodeGroup>(0, false,
         getTypesForLocalRelTable(table.cast<RelTable>()), INVALID_ROW_IDX);
+    auto& relTable = table.cast<RelTable>();
+    nodeOffsetColumns[LOCAL_BOUND_NODE_ID_COLUMN_ID] = relTable.getFromNodeTableID();
+    nodeOffsetColumns[LOCAL_NBR_NODE_ID_COLUMN_ID] = relTable.getToNodeTableID();
+    auto numColumns = relTable.getNumColumns();
+    // skip NBR_ID and REL_ID, this assumes all INTERNAL_ID are node references
+    for (auto i = 2u; i < numColumns; i++) {
+        auto column = relTable.getColumn(i, RelDataDirection::FWD);
+        if (column->getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID) {
+            nodeOffsetColumns[i + 1] = column->cast<InternalIDColumn>().getCommonTableID();
+        }
+    }
 }
 
 bool LocalRelTable::insert(transaction::Transaction*, TableInsertState& state) {

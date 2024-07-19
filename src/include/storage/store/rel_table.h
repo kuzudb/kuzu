@@ -119,6 +119,7 @@ public:
         const catalog::Catalog& catalog, StorageManager* storageManager,
         MemoryManager* memoryManager, common::VirtualFileSystem* vfs, main::ClientContext* context);
 
+    common::table_id_t getFromNodeTableID() const { return toNodeTableID; }
     common::table_id_t getToNodeTableID() const { return toNodeTableID; }
 
     void initializeScanState(transaction::Transaction* transaction,
@@ -190,18 +191,13 @@ private:
     static void initializeLocalRelScanState(RelTableScanState& relScanState);
 
     void updateRelOffsets(LocalRelTable& localRelTable);
-    void updateNodeOffsets(LocalRelTable& localRelTable, common::RelDataDirection direction,
-        common::offset_t maxCommittedOffset);
-
-    static common::offset_t getCommittedOffset(common::offset_t uncommittedOffset,
-        common::offset_t maxCommittedOffset);
+    void updateNodeOffsets(transaction::Transaction* transaction, LocalRelTable& localRelTable);
 
     void detachDeleteForCSRRels(transaction::Transaction* transaction, RelTableData* tableData,
         RelTableData* reverseTableData, RelTableScanState* relDataReadState,
         RelTableDeleteState* deleteState);
 
 private:
-    // Note: Only toNodeTableID is needed for now. Expose fromNodeTableID if needed.
     common::table_id_t fromNodeTableID;
     common::table_id_t toNodeTableID;
     std::mutex relOffsetMtx;

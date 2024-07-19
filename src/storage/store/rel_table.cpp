@@ -1,6 +1,9 @@
 #include "storage/store/rel_table.h"
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "common/assert.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/storage_manager.h"
 #include "storage/store/rel_table_data.h"
@@ -127,7 +130,7 @@ void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
         relOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL);
-        KU_ASSERT(loadTable);
+        KU_ASSERT(localTable);
         localTable->update(updateState);
     } else {
         fwdRelTableData->update(transaction, relUpdateState.srcNodeIDVector,
@@ -145,7 +148,7 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
         relOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL);
-        KU_ASSERT(loadTable);
+        KU_ASSERT(localTable);
         return localTable->delete_(transaction, deleteState);
     }
     const auto fwdDeleted = fwdRelTableData->delete_(transaction, relDeleteState.srcNodeIDVector,
@@ -258,14 +261,7 @@ void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
     // Update relID in local storage.
     updateRelOffsets(localRelTable);
     // Update src and dst node IDs in local storage.
-    if (transaction->hasNewlyInsertedNodes(fromNodeTableID)) {
-        updateNodeOffsets(localRelTable, RelDataDirection::FWD,
-            transaction->getMaxNodeOffsetBeforeCommit(fromNodeTableID));
-    }
-    if (transaction->hasNewlyInsertedNodes(toNodeTableID)) {
-        updateNodeOffsets(localRelTable, RelDataDirection::BWD,
-            transaction->getMaxNodeOffsetBeforeCommit(toNodeTableID));
-    }
+    updateNodeOffsets(transaction, localRelTable);
     // For both forward and backward directions, re-org local storage into compact CSR node groups.
     auto& localNodeGroup = localRelTable.getLocalNodeGroup();
     auto& fwdIndex = localRelTable.getFWDIndex();
@@ -287,6 +283,10 @@ void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
     localRelTable.clear();
 }
 
+static offset_t getCommittedOffset(offset_t uncommittedOffset, offset_t maxCommittedOffset) {
+    return uncommittedOffset - StorageConstants::MAX_NUM_ROWS_IN_TABLE + maxCommittedOffset;
+}
+
 void RelTable::updateRelOffsets(LocalRelTable& localRelTable) {
     auto& localNodeGroup = localRelTable.getLocalNodeGroup();
     for (auto i = 0u; i < localNodeGroup.getNumChunkedGroups(); i++) {
@@ -305,26 +305,11 @@ void RelTable::updateRelOffsets(LocalRelTable& localRelTable) {
     }
 }
 
-void RelTable::updateNodeOffsets(LocalRelTable& localRelTable, RelDataDirection direction,
+static void updateIndexNodeOffsets(LocalRelTable& localRelTable, column_id_t columnID,
     offset_t maxCommittedOffset) {
-    const auto columnID = direction == RelDataDirection::FWD ? LOCAL_BOUND_NODE_ID_COLUMN_ID :
-                                                               LOCAL_NBR_NODE_ID_COLUMN_ID;
-    auto& localNodeGroup = localRelTable.getLocalNodeGroup();
-    for (auto i = 0u; i < localNodeGroup.getNumChunkedGroups(); i++) {
-        const auto chunkedGroup = localNodeGroup.getChunkedNodeGroup(i);
-        KU_ASSERT(chunkedGroup);
-        auto& nodeIDData =
-            chunkedGroup->getColumnChunk(columnID).getData().cast<InternalIDChunkData>();
-        for (auto rowIdx = 0u; rowIdx < nodeIDData.getNumValues(); rowIdx++) {
-            const auto localOffset = nodeIDData[rowIdx];
-            if (localOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
-                const auto committedOffset = getCommittedOffset(localOffset, maxCommittedOffset);
-                nodeIDData[rowIdx] = committedOffset;
-            }
-        }
-    }
-    auto& index = direction == RelDataDirection::FWD ? localRelTable.getFWDIndex() :
-                                                       localRelTable.getBWDIndex();
+    KU_ASSERT(columnID == LOCAL_BOUND_NODE_ID_COLUMN_ID || columnID == LOCAL_NBR_NODE_ID_COLUMN_ID);
+    auto& index = columnID == LOCAL_BOUND_NODE_ID_COLUMN_ID ? localRelTable.getFWDIndex() :
+                                                              localRelTable.getBWDIndex();
     for (auto& [offset, rowIndices] : index) {
         if (offset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
             const auto committedOffset = getCommittedOffset(offset, maxCommittedOffset);
@@ -335,8 +320,33 @@ void RelTable::updateNodeOffsets(LocalRelTable& localRelTable, RelDataDirection 
     }
 }
 
-offset_t RelTable::getCommittedOffset(offset_t uncommittedOffset, offset_t maxCommittedOffset) {
-    return uncommittedOffset - StorageConstants::MAX_NUM_ROWS_IN_TABLE + maxCommittedOffset;
+void RelTable::updateNodeOffsets(Transaction* transaction, LocalRelTable& localRelTable) {
+    std::unordered_map<column_id_t, offset_t> columnsToUpdate;
+    for (auto& [columnID, tableID] : localRelTable.getNodeOffsetColumns()) {
+        if (transaction->hasNewlyInsertedNodes(tableID)) {
+            auto maxCommittedOffset = transaction->getMaxNodeOffsetBeforeCommit(tableID);
+            columnsToUpdate[columnID] = maxCommittedOffset;
+            if (columnID == LOCAL_BOUND_NODE_ID_COLUMN_ID || columnID == LOCAL_NBR_NODE_ID_COLUMN_ID) {
+                updateIndexNodeOffsets(localRelTable, columnID, maxCommittedOffset);
+            }
+        }
+    }
+    auto& localNodeGroup = localRelTable.getLocalNodeGroup();
+    for (auto i = 0u; i < localNodeGroup.getNumChunkedGroups(); i++) {
+        const auto chunkedGroup = localNodeGroup.getChunkedNodeGroup(i);
+        KU_ASSERT(chunkedGroup);
+        for (auto& [columnID, maxCommittedOffset] : columnsToUpdate) {
+            auto& nodeIDData =
+                chunkedGroup->getColumnChunk(columnID).getData().cast<InternalIDChunkData>();
+            for (auto rowIdx = 0u; rowIdx < nodeIDData.getNumValues(); rowIdx++) {
+                const auto localOffset = nodeIDData[rowIdx];
+                if (localOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
+                    const auto committedOffset = getCommittedOffset(localOffset, maxCommittedOffset);
+                    nodeIDData[rowIdx] = committedOffset;
+                }
+            }
+        }
+    }
 }
 
 void RelTable::prepareCommitForNodeGroup(Transaction* transaction, NodeGroup& localNodeGroup,

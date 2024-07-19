@@ -2,9 +2,7 @@
 
 --
 
-#TODO(Guodong): FIX-ME. See comment in doc.test
 -CASE RdfUpdate
--SKIP
 -STATEMENT MATCH (a)-[e]->(b) WHERE NOT a.iri ENDS WITH "brian"  DELETE e;
 ---- ok
 -STATEMENT MATCH (a)-[e]->(b) RETURN a.iri, e.iri, b.iri, b.val
