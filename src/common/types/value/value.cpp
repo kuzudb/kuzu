@@ -1,4 +1,4 @@
- #include "common/types/value/value.h"
+#include "common/types/value/value.h"
 
 #include <utility>
 
@@ -878,7 +878,7 @@ std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
     case PhysicalTypeID::STRUCT: {
         val->children.reserve(val->childrenSize);
         for (auto i = 0u; i < val->childrenSize; i++) {
-            val->children.push_back(deserialize(deserializer));
+            val->children[i] = deserialize(deserializer);
         }
     } break;
     case PhysicalTypeID::ANY: {
