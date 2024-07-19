@@ -111,7 +111,7 @@ public:
     bool lookup(transaction::Transaction* transaction, const TableScanState& scanState) const;
 
     // Return the max node offset during insertions.
-    common::offset_t validateUniquenessConstraint(transaction::Transaction* transaction,
+    common::offset_t validateUniquenessConstraint(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& propertyVectors) const;
 
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
