@@ -178,13 +178,6 @@ void UndoBuffer::commit(transaction_t commitTS) const {
     });
 }
 
-void UndoBuffer::writeWAL(WAL* wal) {
-    UndoBufferIterator iterator{*this};
-    iterator.iterate([&](UndoRecordType entryType, uint8_t const* entry) {
-        writeRecordToWAL(entryType, entry, wal);
-    });
-}
-
 void UndoBuffer::rollback() {
     UndoBufferIterator iterator{*this};
     iterator.reverseIterate(
@@ -215,73 +208,12 @@ void UndoBuffer::commitRecord(UndoRecordType recordType, const uint8_t* record,
     }
 }
 
-void UndoBuffer::writeRecordToWAL(UndoRecordType recordType, const uint8_t* record, WAL* wal) {}
-
 void UndoBuffer::commitCatalogEntryRecord(const uint8_t* record,
     const transaction_t commitTS) const {
     const auto& [_, catalogEntry] = *reinterpret_cast<CatalogEntryRecord const*>(record);
     const auto newCatalogEntry = catalogEntry->getNext();
     KU_ASSERT(newCatalogEntry);
     newCatalogEntry->setTimestamp(commitTS);
-    auto& wal = clientContext.getStorageManager()->getWAL();
-    switch (newCatalogEntry->getType()) {
-    case CatalogEntryType::NODE_TABLE_ENTRY:
-    case CatalogEntryType::REL_TABLE_ENTRY:
-    case CatalogEntryType::REL_GROUP_ENTRY:
-    case CatalogEntryType::RDF_GRAPH_ENTRY: {
-        if (catalogEntry->getType() == CatalogEntryType::DUMMY_ENTRY) {
-            KU_ASSERT(catalogEntry->isDeleted());
-            wal.logCreateCatalogEntryRecord(newCatalogEntry);
-        } else {
-            // Must be alter
-            KU_ASSERT(catalogEntry->getType() == newCatalogEntry->getType());
-            const auto tableEntry = catalogEntry->constPtrCast<TableCatalogEntry>();
-            wal.logAlterTableEntryRecord(tableEntry->getAlterInfo());
-        }
-    } break;
-    case CatalogEntryType::SCALAR_MACRO_ENTRY:
-    case CatalogEntryType::SEQUENCE_ENTRY:
-    case CatalogEntryType::TYPE_ENTRY: {
-        KU_ASSERT(
-            catalogEntry->getType() == CatalogEntryType::DUMMY_ENTRY && catalogEntry->isDeleted());
-        wal.logCreateCatalogEntryRecord(newCatalogEntry);
-    } break;
-    case CatalogEntryType::DUMMY_ENTRY: {
-        KU_ASSERT(newCatalogEntry->isDeleted());
-        switch (catalogEntry->getType()) {
-        // Eventually we probably want to merge these
-        case CatalogEntryType::NODE_TABLE_ENTRY:
-        case CatalogEntryType::REL_TABLE_ENTRY:
-        case CatalogEntryType::REL_GROUP_ENTRY:
-        case CatalogEntryType::RDF_GRAPH_ENTRY: {
-            const auto tableCatalogEntry = catalogEntry->constPtrCast<TableCatalogEntry>();
-            wal.logDropCatalogEntryRecord(tableCatalogEntry->getTableID(), catalogEntry->getType());
-        } break;
-        case CatalogEntryType::SEQUENCE_ENTRY: {
-            auto sequenceCatalogEntry = catalogEntry->constPtrCast<SequenceCatalogEntry>();
-            wal.logDropCatalogEntryRecord(sequenceCatalogEntry->getSequenceID(),
-                catalogEntry->getType());
-        } break;
-        case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {
-            // DO NOTHING. We don't persistent function entries.
-        } break;
-        // TODO: Add support for dropping macros and types.
-        case CatalogEntryType::SCALAR_MACRO_ENTRY:
-        case CatalogEntryType::TYPE_ENTRY:
-        default: {
-            throw RuntimeException(stringFormat("Not supported catalog entry type {} yet.",
-                CatalogEntryTypeUtils::toString(catalogEntry->getType())));
-        }
-        }
-    } break;
-    case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {
-        // DO NOTHING. We don't persistent function entries.
-    } break;
-    default: {
-        throw RuntimeException(stringFormat("Not supported catalog entry type {} yet.",
-            CatalogEntryTypeUtils::toString(catalogEntry->getType())));
-    }
-    }
 }
 
 void UndoBuffer::commitVectorVersionInfo(UndoRecordType recordType, const uint8_t* record,

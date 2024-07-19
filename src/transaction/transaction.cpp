@@ -1,5 +1,7 @@
 #include "transaction/transaction.h"
 
+#include "catalog/catalog_entry/table_catalog_entry.h"
+#include "common/exception/runtime.h"
 #include "main/client_context.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/store/version_info.h"
@@ -22,18 +24,12 @@ Transaction::Transaction(main::ClientContext& clientContext, TransactionType tra
 }
 
 void Transaction::commit(storage::WAL* wal) const {
-    if (!isRecovery()) {
-        KU_ASSERT(wal);
-        wal->logBeginTransaction();
-    }
     localStorage->commit(wal);
     undoBuffer->commit(commitTS);
     // During recovery, we don't have a WAL.
-    if (!isRecovery()) {
+    if (isWriteTransaction()) {
         KU_ASSERT(wal);
-        undoBuffer->writeWAL(wal);
         wal->logAndFlushCommit(ID);
-        // wal->flushAllPages();
     }
 }
 
@@ -48,11 +44,78 @@ void Transaction::pushNodeBatchInsert(common::table_id_t tableID) const {
 
 void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry) const {
     undoBuffer->createCatalogEntry(catalogSet, catalogEntry);
+    if (isRecovery()) {
+        return;
+    }
+    auto wal = clientContext->getWAL();
+    KU_ASSERT(wal);
+    const auto newCatalogEntry = catalogEntry.getNext();
+    switch (newCatalogEntry->getType()) {
+    case CatalogEntryType::NODE_TABLE_ENTRY:
+    case CatalogEntryType::REL_TABLE_ENTRY:
+    case CatalogEntryType::REL_GROUP_ENTRY:
+    case CatalogEntryType::RDF_GRAPH_ENTRY: {
+        if (catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY) {
+            KU_ASSERT(catalogEntry.isDeleted());
+            wal->logCreateCatalogEntryRecord(newCatalogEntry);
+        } else {
+            // Must be alter.
+            KU_ASSERT(catalogEntry.getType() == newCatalogEntry->getType());
+            const auto& tableEntry = catalogEntry.constCast<TableCatalogEntry>();
+            wal->logAlterTableEntryRecord(tableEntry.getAlterInfo());
+        }
+    } break;
+    case CatalogEntryType::SCALAR_MACRO_ENTRY:
+    case CatalogEntryType::SEQUENCE_ENTRY:
+    case CatalogEntryType::TYPE_ENTRY: {
+        KU_ASSERT(
+            catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY && catalogEntry.isDeleted());
+        wal->logCreateCatalogEntryRecord(newCatalogEntry);
+    } break;
+    case CatalogEntryType::DUMMY_ENTRY: {
+        KU_ASSERT(newCatalogEntry->isDeleted());
+        switch (catalogEntry.getType()) {
+        // Eventually we probably want to merge these
+        case CatalogEntryType::NODE_TABLE_ENTRY:
+        case CatalogEntryType::REL_TABLE_ENTRY:
+        case CatalogEntryType::REL_GROUP_ENTRY:
+        case CatalogEntryType::RDF_GRAPH_ENTRY: {
+            const auto tableCatalogEntry = catalogEntry.constPtrCast<TableCatalogEntry>();
+            wal->logDropCatalogEntryRecord(tableCatalogEntry->getTableID(), catalogEntry.getType());
+        } break;
+        case CatalogEntryType::SEQUENCE_ENTRY: {
+            auto sequenceCatalogEntry = catalogEntry.constPtrCast<SequenceCatalogEntry>();
+            wal->logDropCatalogEntryRecord(sequenceCatalogEntry->getSequenceID(),
+                catalogEntry.getType());
+        } break;
+        case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {
+            // DO NOTHING. We don't persistent function entries.
+        } break;
+        case CatalogEntryType::SCALAR_MACRO_ENTRY:
+        case CatalogEntryType::TYPE_ENTRY:
+        default: {
+            throw common::RuntimeException(
+                common::stringFormat("Not supported catalog entry type {} yet.",
+                    CatalogEntryTypeUtils::toString(catalogEntry.getType())));
+        }
+        }
+    } break;
+    case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {
+        // DO NOTHING. We don't persistent function entries.
+    } break;
+    default: {
+        throw common::RuntimeException(
+            common::stringFormat("Not supported catalog entry type {} yet.",
+                CatalogEntryTypeUtils::toString(catalogEntry.getType())));
+    }
+    }
 }
 
 void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, const SequenceData& data,
     int64_t prevVal) const {
     undoBuffer->createSequenceChange(*sequenceEntry, data, prevVal);
+    clientContext->getWAL()->logUpdateSequenceRecord(sequenceEntry->getSequenceID(),
+        {data.usageCount, data.currVal, data.nextVal});
 }
 
 void Transaction::pushVectorInsertInfo(storage::VersionInfo& versionInfo,

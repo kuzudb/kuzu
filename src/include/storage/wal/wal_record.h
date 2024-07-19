@@ -119,12 +119,12 @@ struct DropCatalogEntryRecord final : public WALRecord {
 };
 
 struct AlterTableEntryRecord final : public WALRecord {
-    binder::BoundAlterInfo* alterInfo;
+    const binder::BoundAlterInfo* alterInfo;
     std::unique_ptr<binder::BoundAlterInfo> ownedAlterInfo;
 
     AlterTableEntryRecord()
         : WALRecord{WALRecordType::ALTER_TABLE_ENTRY_RECORD}, alterInfo{nullptr} {}
-    explicit AlterTableEntryRecord(binder::BoundAlterInfo* alterInfo)
+    explicit AlterTableEntryRecord(const binder::BoundAlterInfo* alterInfo)
         : WALRecord{WALRecordType::ALTER_TABLE_ENTRY_RECORD}, alterInfo{alterInfo} {}
 
     void serialize(common::Serializer& serializer) const override;

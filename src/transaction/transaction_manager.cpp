@@ -25,6 +25,8 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
                 "Cannot start a new write transaction in the system. "
                 "Only one write transaction at a time is allowed in the system.");
         }
+        KU_ASSERT(clientContext.getStorageManager());
+        clientContext.getStorageManager()->getWAL().logBeginTransaction();
     }
     auto transaction =
         std::make_unique<Transaction>(clientContext, type, ++lastTransactionID, lastTimestamp);

@@ -189,6 +189,11 @@ storage::MemoryManager* ClientContext::getMemoryManager() {
     return localDatabase->memoryManager.get();
 }
 
+storage::WAL* ClientContext::getWAL() const {
+    KU_ASSERT(localDatabase && localDatabase->storageManager);
+    return &localDatabase->storageManager->getWAL();
+}
+
 Catalog* ClientContext::getCatalog() const {
     if (remoteDatabase == nullptr) {
         return localDatabase->catalog.get();
