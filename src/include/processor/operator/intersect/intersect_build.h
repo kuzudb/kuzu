@@ -2,6 +2,8 @@
 
 #include "processor/operator/hash_join/hash_join_build.h"
 
+#include "binder/expression/expression_util.h"
+
 namespace kuzu {
 namespace processor {
 
