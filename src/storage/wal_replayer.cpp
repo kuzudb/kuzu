@@ -184,6 +184,7 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const 
         const auto boundDefault = exprBinder->bindExpression(*addInfo->defaultValue);
         auto exprMapper = ExpressionMapper();
         const auto defaultValueEvaluator = exprMapper.getEvaluator(boundDefault);
+        defaultValueEvaluator->init(ResultSet(0) /* dummy ResultSet */, &clientContext);
         const auto schema = clientContext.getCatalog()->getTableCatalogEntry(clientContext.getTx(),
             alterEntryRecord.ownedAlterInfo->tableID);
         const auto addedPropID = schema->getPropertyID(addInfo->propertyName);
@@ -331,12 +332,12 @@ void WALReplayer::replayCopyTableRecord(const WALRecord&) const {
 }
 
 void WALReplayer::replayUpdateSequenceRecord(const WALRecord& walRecord) const {
-    auto& dropEntryRecord = walRecord.constCast<UpdateSequenceRecord>();
-    const auto sequenceID = dropEntryRecord.sequenceID;
+    auto& sequenceEntryRecord = walRecord.constCast<UpdateSequenceRecord>();
+    auto sequenceID = sequenceEntryRecord.sequenceID;
     const auto entry =
         clientContext.getCatalog()->getSequenceCatalogEntry(clientContext.getTx(), sequenceID);
-    entry->replayVal(dropEntryRecord.data.usageCount, dropEntryRecord.data.currVal,
-        dropEntryRecord.data.nextVal);
+    entry->replayVal(sequenceEntryRecord.data.usageCount, sequenceEntryRecord.data.currVal,
+        sequenceEntryRecord.data.nextVal);
 }
 
 } // namespace storage
