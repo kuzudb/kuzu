@@ -38,7 +38,7 @@ public:
         : type{transactionType}, ID{transactionID}, startTS{startTS},
           commitTS{common::INVALID_TRANSACTION} {
         localStorage = std::make_unique<storage::LocalStorage>(clientContext);
-        undoBuffer = std::make_unique<storage::UndoBuffer>(clientContext);
+        undoBuffer = std::make_unique<storage::UndoBuffer>(clientContext, this);
         currentTS = common::Timestamp::getCurrentTimestamp().value;
     }
 

@@ -29,7 +29,7 @@ LocalRelTable::LocalRelTable(Table& table) : LocalTable{table} {
         getTypesForLocalRelTable(table.cast<RelTable>()), INVALID_ROW_IDX);
 }
 
-bool LocalRelTable::insert(transaction::Transaction*, TableInsertState& state) {
+bool LocalRelTable::insert(Transaction*, TableInsertState& state) {
     const auto& insertState = state.cast<RelTableInsertState>();
     const auto srcNodePos = insertState.srcNodeIDVector.state->getSelVector()[0];
     const auto dstNodePos = insertState.dstNodeIDVector.state->getSelVector()[0];
@@ -53,7 +53,7 @@ bool LocalRelTable::insert(transaction::Transaction*, TableInsertState& state) {
         insertVectors.push_back(insertState.propertyVectors[i]);
     }
     const auto numRowsToAppend = insertState.srcNodeIDVector.state->getSelVector().getSelSize();
-    localNodeGroup->append(&transaction::DUMMY_TRANSACTION, insertVectors, 0, numRowsToAppend);
+    localNodeGroup->append(&DUMMY_TRANSACTION, insertVectors, 0, numRowsToAppend);
     const auto srcNodeOffset = insertState.srcNodeIDVector.readNodeOffset(srcNodePos);
     const auto dstNodeOffset = insertState.dstNodeIDVector.readNodeOffset(dstNodePos);
     fwdIndex[srcNodeOffset].push_back(numRowsInLocalTable);
@@ -61,7 +61,7 @@ bool LocalRelTable::insert(transaction::Transaction*, TableInsertState& state) {
     return true;
 }
 
-bool LocalRelTable::update(transaction::Transaction* transaction, TableUpdateState& state) {
+bool LocalRelTable::update(Transaction*, TableUpdateState& state) {
     const auto& updateState = state.cast<RelTableUpdateState>();
     const auto srcNodePos = updateState.srcNodeIDVector.state->getSelVector()[0];
     const auto dstNodePos = updateState.dstNodeIDVector.state->getSelVector()[0];
@@ -78,7 +78,7 @@ bool LocalRelTable::update(transaction::Transaction* transaction, TableUpdateSta
         return false;
     }
     KU_ASSERT(updateState.columnID != NBR_ID_COLUMN_ID);
-    localNodeGroup->update(transaction, matchedRow,
+    localNodeGroup->update(&DUMMY_TRANSACTION, matchedRow,
         rewriteLocalColumnID(RelDataDirection::FWD /* This is a dummy direction */,
             updateState.columnID),
         updateState.propertyVector);
