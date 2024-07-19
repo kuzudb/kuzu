@@ -197,15 +197,25 @@ void OpProfileTree::printOpProfileBoxes(uint32_t rowIdx, std::ostringstream& oss
                         if (hasOpProfileBox(rowIdx + 1, j + 1) && !hasOpProfileBox(rowIdx, j + 1)) {
                             oss << "┬" << genHorizLine(opProfileBoxWidth - 1 - leftHorizLineSize);
                         } else {
-                            oss << "┐"
-                                << std::string(opProfileBoxWidth - 1 - leftHorizLineSize, ' ');
+                            if (hasOpProfileBox(rowIdx + 1, j - 1) && !hasOpProfileBox(rowIdx, j) &&
+                                !hasOpProfileBox(rowIdx, j + 1)) {
+                                oss << "┬" << genHorizLine(opProfileBoxWidth / 2);
+                            } else {
+                                oss << "┐"
+                                    << std::string(opProfileBoxWidth - 1 - leftHorizLineSize, ' ');
+                            }
                         }
                     } else if (i > halfWayPoint) {
                         printSpaceIfNecessary(j, oss);
                         oss << std::string(leftHorizLineSize, ' ') << "│"
                             << std::string(opProfileBoxWidth - 1 - leftHorizLineSize, ' ');
                     }
-                } else if (hasOpProfileBox(rowIdx + 1, j + 1) && !hasOpProfileBox(rowIdx, j + 1) &&
+                } else if (((hasOpProfileBox(rowIdx + 1, j + 1) &&
+                                !hasOpProfileBox(rowIdx, j + 1)) ||
+                               (hasOpProfileBox(rowIdx + 1, j - 1) &&
+                                   !hasOpProfileBox(rowIdx, j - 1)) ||
+                               (hasOpProfileBox(rowIdx + 1, j - 2) &&
+                                   !hasOpProfileBox(rowIdx, j - 2))) &&
                            i == halfWayPoint) {
                     oss << genHorizLine(opProfileBoxWidth + 1);
                     offset = offset == 0 ? 1 : 0;
