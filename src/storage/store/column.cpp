@@ -7,7 +7,6 @@
 #include "common/null_mask.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
-#include "common/utils.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/compression/compression.h"
 #include "storage/compression/compression_float.h"
@@ -56,12 +55,12 @@ struct WriteInternalIDValuesToPage {
         compressedWriter(frame, posInFrame, data, dataOffset, numValues, metadata, nullMask);
     }
     void operator()(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
-        uint32_t offsetInVector, const CompressionMetadata& metadata) {
+        uint32_t offsetInVector, offset_t numValues, const CompressionMetadata& metadata) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
         compressedWriter(frame, posInFrame,
             reinterpret_cast<const uint8_t*>(
                 &vector->getValue<internalID_t>(offsetInVector).offset),
-            0 /*dataOffset*/, 1 /*numValues*/, metadata);
+            0 /*dataOffset*/, numValues, metadata);
     }
 
 private:

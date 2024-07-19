@@ -7,6 +7,8 @@
 #include "storage/store/column_chunk_flush.h"
 #include "storage/store/column_chunk_metadata.h"
 #include "storage/store/column_read.h"
+#include "transaction/transaction.h"
+#include "transaction/transaction_manager.h"
 #include <ranges>
 
 using namespace kuzu::common;
@@ -16,7 +18,7 @@ namespace kuzu {
 namespace testing {
 
 using check_func_t = std::function<void(ColumnReader*, transaction::Transaction*,
-    const ColumnChunkMetadata&, uint64_t, const LogicalType&)>;
+    ColumnChunkMetadata&, uint64_t, const LogicalType&)>;
 
 class CompressChunkTest : public DBTest {
 public:
@@ -65,9 +67,11 @@ std::unique_ptr<CompressionMetadata> getFloatMetadata(std::vector<T> bufferToCom
         });
     const auto& [minEncoded, maxEncoded] =
         std::minmax_element(floatEncodedValues.begin(), floatEncodedValues.end());
+    const auto physicalType =
+        std::is_same_v<T, double> ? PhysicalTypeID::DOUBLE : PhysicalTypeID::FLOAT;
     return std::make_unique<CompressionMetadata>(StorageValue(*min), StorageValue(*max),
         alg->getCompressionType(), alpMetadata, StorageValue(*minEncoded),
-        StorageValue(*maxEncoded), 10);
+        StorageValue(*maxEncoded), physicalType);
 }
 
 template<std::floating_point T>
@@ -104,17 +108,21 @@ void CompressChunkTest::testCompressChunk(std::vector<T> bufferToCompress, check
 
     auto columnReader = ColumnReaderFactory::createColumnReader(dataType.getPhysicalType(),
         DBFileID::newDataFileID(), dataFH, bm, &storageManager->getWAL());
-    transaction::Transaction transaction{transaction::TransactionType::READ_ONLY};
 
-    checkFunc(columnReader.get(), &transaction, chunkMetadata,
+    auto* clientContext = getClientContext(*conn);
+    clientContext->getTransactionContext()->beginWriteTransaction();
+
+    checkFunc(columnReader.get(), clientContext->getTx(), chunkMetadata,
         chunkMetadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType), dataType);
+
+    // TODO: check that exception buffer is sorted by posInChunk
 }
 
 template<std::floating_point T>
 void CompressChunkTest::testCheckWholeOutput(std::vector<T> bufferToCompress) {
     testCompressChunk<T>(bufferToCompress,
         [&bufferToCompress](ColumnReader* reader, transaction::Transaction* transaction,
-            const ColumnChunkMetadata& chunkMeta, uint64_t numValuesPerPage,
+            ColumnChunkMetadata& chunkMeta, uint64_t numValuesPerPage,
             const LogicalType& dataType) {
             std::vector<T> out(bufferToCompress.size());
             reader->readCompressedValuesToPage(transaction, chunkMeta, numValuesPerPage,
@@ -130,9 +138,8 @@ TEST_F(CompressChunkTest, TestDoubleSimpleSingleRead) {
     bufferToCompress[5] = 0;
 
     auto checkFunc = [&bufferToCompress](ColumnReader* reader,
-                         transaction::Transaction* transaction,
-                         const ColumnChunkMetadata& chunkMeta, uint64_t numValuesPerPage,
-                         const LogicalType& dataType) {
+                         transaction::Transaction* transaction, ColumnChunkMetadata& chunkMeta,
+                         uint64_t numValuesPerPage, const LogicalType& dataType) {
         std::vector<double> val(2, 1.0);
         reader->readCompressedValueToPage(transaction, chunkMeta, numValuesPerPage, 1,
             (uint8_t*)val.data(), 0, ReadCompressedValuesFromPage(dataType));
@@ -173,7 +180,7 @@ TEST_F(CompressChunkTest, TestFloatFilter) {
     }
 
     testCompressChunk(src, [&src](ColumnReader* reader, transaction::Transaction* transaction,
-                               const ColumnChunkMetadata& chunkMeta, uint64_t numValuesPerPage,
+                               ColumnChunkMetadata& chunkMeta, uint64_t numValuesPerPage,
                                const LogicalType& dataType) {
         common::ValueVector out{LogicalType::FLOAT()};
 
@@ -241,7 +248,7 @@ TEST_F(CompressChunkTest, TestDoubleReadPartialAtOffsets) {
     }
 
     testCompressChunk(src, [&src](ColumnReader* reader, transaction::Transaction* transaction,
-                               const ColumnChunkMetadata& chunkMeta, uint64_t numValuesPerPage,
+                               ColumnChunkMetadata& chunkMeta, uint64_t numValuesPerPage,
                                const LogicalType& dataType) {
         std::vector<double> out(src.size());
 
@@ -267,7 +274,7 @@ TEST_F(CompressChunkTest, TestDoubleReadPartialMultiPage) {
     }
 
     testCompressChunk(src, [&src](ColumnReader* reader, transaction::Transaction* transaction,
-                               const ColumnChunkMetadata& chunkMeta, uint64_t numValuesPerPage,
+                               ColumnChunkMetadata& chunkMeta, uint64_t numValuesPerPage,
                                const LogicalType& dataType) {
         std::vector<double> out(src.size());
 
@@ -291,7 +298,7 @@ TEST_F(CompressChunkTest, TestDoubleReadPartialAtOffsetsIntoValueVector) {
     }
 
     testCompressChunk(src, [&src](ColumnReader* reader, transaction::Transaction* transaction,
-                               const ColumnChunkMetadata& chunkMeta, uint64_t numValuesPerPage,
+                               ColumnChunkMetadata& chunkMeta, uint64_t numValuesPerPage,
                                const LogicalType& dataType) {
         common::ValueVector out{LogicalType::DOUBLE()};
 
@@ -307,6 +314,121 @@ TEST_F(CompressChunkTest, TestDoubleReadPartialAtOffsetsIntoValueVector) {
         for (size_t i = 0; i < numValuesToRead; ++i) {
             EXPECT_EQ(src[offsetInSrc + i], out.getValue<double>(offsetInResult + i));
         }
+    });
+}
+
+TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptions) {
+    std::vector<double> src(10 * 1024, 5.6);
+    src[1] = 123456789012.56;
+    for (size_t i = 11; i < src.size(); i += 10) {
+        src[i] = src[i - 10] + 7890123.567;
+    }
+
+    testCompressChunk(src, [&src, this](ColumnReader* reader, transaction::Transaction* transaction,
+                               ColumnChunkMetadata& chunkMeta, uint64_t numValuesPerPage,
+                               const LogicalType& dataType) {
+        std::vector<double> out(src.size());
+        reader->readCompressedValuesToPage(transaction, chunkMeta, numValuesPerPage,
+            (uint8_t*)out.data(), 0, 0, out.size(), ReadCompressedValuesFromPage(dataType),
+            [](offset_t, offset_t) { return true; });
+        EXPECT_THAT(out, ::testing::ContainerEq(src));
+
+        static constexpr size_t cpyOffset = 0;
+        static constexpr size_t numValuesToSet = 10;
+        for (size_t i = 0; i < numValuesToSet; ++i) {
+            src[cpyOffset + i] = 5.7;
+        }
+
+        KU_ASSERT(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
+            numValuesToSet, dataType.getPhysicalType()));
+        reader->writeValuesToPageFromBuffer(chunkMeta, numValuesPerPage, cpyOffset,
+            (uint8_t*)src.data(), nullptr, cpyOffset, numValuesToSet,
+            WriteCompressedValuesToPage(dataType));
+
+        auto* clientContext = getClientContext(*conn);
+        clientContext->getTransactionManagerUnsafe()->commit(*clientContext);
+
+        reader->readCompressedValuesToPage(transaction, chunkMeta, numValuesPerPage,
+            (uint8_t*)out.data(), 0, 0, out.size(), ReadCompressedValuesFromPage(dataType),
+            [](offset_t, offset_t) { return true; });
+        EXPECT_THAT(out, ::testing::ContainerEq(src));
+    });
+}
+
+TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptionsMultiPage) {
+    std::vector<double> src(10 * 1024, 5.6);
+    src[1] = 123456789012.56;
+    for (size_t i = 11; i < src.size(); i += 10) {
+        src[i] = src[i - 10] + 7890123.567;
+    }
+
+    testCompressChunk(src, [&src, this](ColumnReader* reader, transaction::Transaction* transaction,
+                               ColumnChunkMetadata& chunkMeta, uint64_t numValuesPerPage,
+                               const LogicalType& dataType) {
+        std::vector<double> out(src.size());
+        reader->readCompressedValuesToPage(transaction, chunkMeta, numValuesPerPage,
+            (uint8_t*)out.data(), 0, 0, out.size(), ReadCompressedValuesFromPage(dataType),
+            [](offset_t, offset_t) { return true; });
+        EXPECT_THAT(out, ::testing::ContainerEq(src));
+
+        static constexpr size_t numValuesToSet = 1000;
+        const size_t cpyOffset = src.size() - numValuesToSet;
+        for (size_t i = 0; i < numValuesToSet; ++i) {
+            src[cpyOffset + i] = 5.7;
+        }
+
+        KU_ASSERT(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
+            numValuesToSet, dataType.getPhysicalType()));
+        reader->writeValuesToPageFromBuffer(chunkMeta, numValuesPerPage, cpyOffset,
+            (uint8_t*)src.data(), nullptr, cpyOffset, numValuesToSet,
+            WriteCompressedValuesToPage(dataType));
+
+        auto* clientContext = getClientContext(*conn);
+        clientContext->getTransactionManagerUnsafe()->commit(*clientContext);
+
+        reader->readCompressedValuesToPage(transaction, chunkMeta, numValuesPerPage,
+            (uint8_t*)out.data(), 0, 0, out.size(), ReadCompressedValuesFromPage(dataType),
+            [](offset_t, offset_t) { return true; });
+        EXPECT_THAT(out, ::testing::ContainerEq(src));
+    });
+}
+
+TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPage) {
+    std::vector<double> src(11 * 1024, 5.6);
+    src[1] = 123456789012.56;
+    for (size_t i = 11; i < src.size(); i += 10) {
+        src[i] = src[i - 10] + 7890123.567;
+    }
+
+    testCompressChunk(src, [&src, this](ColumnReader* reader, transaction::Transaction* transaction,
+                               ColumnChunkMetadata& chunkMeta, uint64_t numValuesPerPage,
+                               const LogicalType& dataType) {
+        std::vector<double> out(src.size());
+        reader->readCompressedValuesToPage(transaction, chunkMeta, numValuesPerPage,
+            (uint8_t*)out.data(), 0, 0, out.size(), ReadCompressedValuesFromPage(dataType),
+            [](offset_t, offset_t) { return true; });
+        EXPECT_THAT(out, ::testing::ContainerEq(src));
+
+        static constexpr size_t numValuesToSet = 1000;
+        const size_t cpyOffset = 2100;
+        src[cpyOffset] = 10101010100101;
+        for (size_t i = 2; i < numValuesToSet; i += 2) {
+            src[cpyOffset + i] = src[cpyOffset + i - 2] + 1;
+        }
+
+        KU_ASSERT(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
+            numValuesToSet, dataType.getPhysicalType()));
+        reader->writeValuesToPageFromBuffer(chunkMeta, numValuesPerPage, cpyOffset,
+            (uint8_t*)src.data(), nullptr, cpyOffset, numValuesToSet,
+            WriteCompressedValuesToPage(dataType));
+
+        auto* clientContext = getClientContext(*conn);
+        clientContext->getTransactionManagerUnsafe()->commit(*clientContext);
+
+        reader->readCompressedValuesToPage(transaction, chunkMeta, numValuesPerPage,
+            (uint8_t*)out.data(), 0, 0, out.size(), ReadCompressedValuesFromPage(dataType),
+            [](offset_t, offset_t) { return true; });
+        EXPECT_THAT(out, ::testing::ContainerEq(src));
     });
 }
 

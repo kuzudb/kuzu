@@ -17,8 +17,6 @@ namespace storage {
 
 struct CompressionMetadata;
 
-using read_values_to_vector_func_t = read_values_from_page_func_t<common::ValueVector*>;
-using read_values_to_page_func_t = read_values_from_page_func_t<uint8_t*>;
 // This is a special usage for the `batchLookup` interface.
 using batch_lookup_func_t = read_values_to_page_func_t;
 

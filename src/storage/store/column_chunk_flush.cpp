@@ -1,5 +1,7 @@
 #include "storage/store/column_chunk_flush.h"
 
+#include <limits>
+
 #include "common/utils.h"
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/store/column_chunk_data.h"
@@ -65,8 +67,8 @@ ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(const uint8_t* buf
         return CompressedFlushBuffer{std::make_shared<Uncompressed>(dataType), dataType}.operator()(
             buffer, bufferSize, dataFH, startPageIdx, metadata);
     } else if (metadata.compMeta.compression == CompressionType::CONSTANT) {
-        return CompressedFlushBuffer{std::make_shared<ConstantCompression>(dataType), dataType}
-            .operator()(buffer, bufferSize, dataFH, startPageIdx, metadata);
+        return CompressedFlushBuffer{std::make_shared<ConstantCompression>(dataType), dataType}.
+        operator()(buffer, bufferSize, dataFH, startPageIdx, metadata);
     }
     KU_ASSERT(metadata.compMeta.compression == CompressionType::FLOAT);
 
@@ -74,7 +76,7 @@ ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(const uint8_t* buf
     const uint8_t* bufferStart = buffer;
     const auto compressedBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
     const size_t exceptionBufferSize =
-        ceilDiv((size_t)metadata.compMeta.alpMetadata.exceptionCount,
+        ceilDiv((size_t)metadata.compMeta.alpMetadata.exceptionCapacity,
             (BufferPoolConstants::PAGE_4KB_SIZE / EncodeException<T>::sizeBytes())) *
         BufferPoolConstants::PAGE_4KB_SIZE;
     const auto exceptionBuffer = std::make_unique<uint8_t[]>(exceptionBufferSize);
@@ -84,6 +86,7 @@ ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(const uint8_t* buf
         metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
     KU_ASSERT(numValuesPerPage * metadata.numPages >= metadata.numValues);
     size_t remainingExceptionBufferSize = exceptionBufferSize;
+    size_t totalExceptionCount = 0;
     while (valuesRemaining > 0) {
         size_t pageExceptionCount = 0;
         (void)alg->compressNextPageWithExceptions(bufferStart, metadata.numValues - valuesRemaining,
@@ -92,6 +95,7 @@ ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(const uint8_t* buf
             metadata.compMeta);
         exceptionBufferCursor += pageExceptionCount * EncodeException<T>::sizeBytes();
         remainingExceptionBufferSize -= pageExceptionCount * EncodeException<T>::sizeBytes();
+        totalExceptionCount += pageExceptionCount;
 
         // Avoid underflows (when data is compressed to nothing, numValuesPerPage may be
         // UINT64_MAX)
@@ -107,12 +111,22 @@ ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(const uint8_t* buf
         numPages++;
     }
 
+    KU_ASSERT(exceptionBufferCursor <= exceptionBuffer.get() + exceptionBufferSize);
+
+    // set unused exception buffer entries to posInChunk = INVALID_POS
+    for (size_t i = totalExceptionCount; i < metadata.compMeta.alpMetadata.exceptionCapacity; ++i) {
+        EncodeException<T> invalidEntry{.value = 0, .posInPage = EncodeException<T>::INVALID_POS};
+        std::memcpy(exceptionBuffer.get() + i * EncodeException<T>::sizeBytes() +
+                        sizeof(invalidEntry.value),
+            &invalidEntry.posInPage, sizeof(invalidEntry.posInPage));
+    }
+
     // check for underflow
     KU_ASSERT(remainingExceptionBufferSize <= exceptionBufferSize);
 
     const auto preExceptionMetadata =
         uncompressedGetMetadata(nullptr, exceptionBufferSize, exceptionBufferSize,
-            metadata.compMeta.alpMetadata.exceptionCount, StorageValue{0}, StorageValue{1});
+            metadata.compMeta.alpMetadata.exceptionCapacity, StorageValue{0}, StorageValue{1});
 
     const auto exceptionStartPageIdx =
         startPageIdx + metadata.numPages - preExceptionMetadata.numPages;

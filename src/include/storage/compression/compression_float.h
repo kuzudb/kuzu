@@ -1,7 +1,10 @@
 #pragma once
 
+#include <limits>
+
 #include "storage/compression/compression.h"
 #include <concepts>
+
 namespace kuzu {
 namespace common {
 class ValueVector;
@@ -17,6 +20,7 @@ struct PageCursor;
 template<std::floating_point T>
 class FloatCompression final : public CompressionAlg {
 public:
+    // TODO change to int32_t for floats
     using EncodedType = int64_t;
 
 public:
@@ -58,6 +62,8 @@ template<std::floating_point T>
 struct EncodeException {
     T value;
     uint32_t posInPage;
+
+    static constexpr auto INVALID_POS = std::numeric_limits<decltype(posInPage)>::max();
 
     static constexpr size_t sizeBytes() {
         constexpr size_t exceptionSizeBytes = sizeof(value) + sizeof(posInPage);

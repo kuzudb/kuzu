@@ -112,11 +112,7 @@ void FloatCompression<T>::setValuesFromUncompressed(const uint8_t* srcBuffer,
         const auto floatValue = reinterpret_cast<const T*>(srcBuffer)[posInSrc];
         const EncodedType encodedValue = alp::AlpEncode<T>::encode_value(floatValue,
             metadata.alpMetadata.fac, metadata.alpMetadata.exp);
-        const double decodedValue = alp::AlpDecode<T>::decode_value(encodedValue,
-            metadata.alpMetadata.fac, metadata.alpMetadata.exp);
-        if (floatValue == decodedValue) {
-            integerEncodedValues[i] = encodedValue;
-        }
+        integerEncodedValues[i] = encodedValue;
     }
 
     encodedFloatBitpacker.setValuesFromUncompressed(
@@ -133,8 +129,32 @@ template<std::floating_point T>
 bool FloatCompression<T>::canUpdateInPlace(std::span<const T> value,
     const CompressionMetadata& metadata, const std::optional<common::NullMask>& nullMask,
     uint64_t nullMaskOffset) {
-    // TODO implement in-place updates
-    return false;
+    size_t exceptionCount = 0;
+    std::vector<int64_t> encodedValues(value.size());
+    const auto bitpackingInfo =
+        decltype(encodedFloatBitpacker)::getPackingInfo(metadata.getChild(0));
+    for (size_t i = 0; i < value.size(); ++i) {
+        if (nullMask && nullMask->isNull(nullMaskOffset + i)) {
+            continue;
+        }
+
+        const auto floatValue = value[i];
+        const EncodedType encodedValue = alp::AlpEncode<T>::encode_value(floatValue,
+            metadata.alpMetadata.fac, metadata.alpMetadata.exp);
+        const double decodedValue = alp::AlpDecode<T>::decode_value(encodedValue,
+            metadata.alpMetadata.fac, metadata.alpMetadata.exp);
+        if (floatValue != decodedValue) {
+            ++exceptionCount;
+            encodedValues[i] = bitpackingInfo.offset;
+        } else {
+            encodedValues[i] = encodedValue;
+        }
+    }
+    const bool exceptionsOK = metadata.alpMetadata.exceptionCount + exceptionCount <=
+                              metadata.alpMetadata.exceptionCapacity;
+
+    return exceptionsOK && decltype(encodedFloatBitpacker)::canUpdateInPlace(encodedValues,
+                               metadata.getChild(0), nullMask, nullMaskOffset);
 }
 
 template class FloatCompression<double>;

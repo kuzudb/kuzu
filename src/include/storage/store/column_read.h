@@ -21,12 +21,16 @@ template<typename OutputType>
 using read_values_from_page_func_t = std::function<void(uint8_t*, PageCursor&, OutputType, uint32_t,
     uint64_t, const CompressionMetadata&)>;
 
-using write_values_from_vector_func_t = std::function<void(uint8_t* frame, uint16_t posInFrame,
-    common::ValueVector* vector, uint32_t posInVector, const CompressionMetadata& metadata)>;
+using read_values_to_vector_func_t = read_values_from_page_func_t<common::ValueVector*>;
+using read_values_to_page_func_t = read_values_from_page_func_t<uint8_t*>;
 
-using write_values_func_t = std::function<void(uint8_t* frame, uint16_t posInFrame,
-    const uint8_t* data, common::offset_t dataOffset, common::offset_t numValues,
-    const CompressionMetadata& metadata, const common::NullMask*)>;
+template<typename InputType, typename... AdditionalArgs>
+using write_values_to_page_func_t = std::function<void(uint8_t*, uint16_t, InputType, uint32_t,
+    common::offset_t, const CompressionMetadata&, AdditionalArgs...)>;
+
+using write_values_from_vector_func_t = write_values_to_page_func_t<common::ValueVector*>;
+
+using write_values_func_t = write_values_to_page_func_t<const uint8_t*, const common::NullMask*>;
 
 using filter_func_t = std::function<bool(common::offset_t, common::offset_t)>;
 
@@ -65,12 +69,12 @@ public:
         read_values_from_page_func_t<common::ValueVector*> readFunc,
         std::function<bool(common::offset_t, common::offset_t)> filterFunc) = 0;
 
-    virtual void writeValueToPageFromVector(const ColumnChunkMetadata& metadata,
+    virtual void writeValueToPageFromVector(ColumnChunkMetadata& metadata,
         uint64_t numValuesPerPage, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom,
         write_values_from_vector_func_t writeFromVectorFunc) = 0;
 
-    virtual void writeValuesToPageFromBuffer(const ColumnChunkMetadata& metadata,
+    virtual void writeValuesToPageFromBuffer(ColumnChunkMetadata& metadata,
         uint64_t numValuesPerPage, common::offset_t dstOffset, const uint8_t* data,
         const common::NullMask* nullChunkData, common::offset_t srcOffset,
         common::offset_t numValues, write_values_func_t writeFunc) = 0;

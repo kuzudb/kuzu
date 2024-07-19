@@ -87,11 +87,14 @@ template<std::floating_point T>
 ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(const uint8_t* buffer,
     uint64_t bufferSize, uint64_t capacity, uint64_t numValues, StorageValue min,
     StorageValue max) {
+    const PhysicalTypeID physicalType =
+        std::same_as<T, double> ? PhysicalTypeID::DOUBLE : PhysicalTypeID::FLOAT;
+
     alp::state alpMetadata;
     if (min == max) {
         return ColumnChunkMetadata(INVALID_PAGE_IDX, 0, numValues,
             CompressionMetadata(min, max, CompressionType::CONSTANT, alpMetadata, StorageValue{0},
-                StorageValue{0}, 1));
+                StorageValue{0}, physicalType));
     }
 
     std::vector<uint8_t> sampleBuffer(bufferSize); // TODO update size
@@ -150,14 +153,18 @@ ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(const uint8_t* bu
     const auto& [minEncoded, maxEncoded] =
         std::minmax_element(floatEncodedValues.begin(), floatEncodedValues.end());
 
+    alpMetadata.exceptions_count = exceptionsPrefixSum.back();
     auto compMeta = CompressionMetadata(min, max, alg->getCompressionType(), alpMetadata,
-        StorageValue{*minEncoded}, StorageValue{*maxEncoded}, exceptionsPrefixSum.back());
+        StorageValue{*minEncoded}, StorageValue{*maxEncoded}, physicalType);
 
     const auto numValuesPerPage = compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
     KU_ASSERT(numValuesPerPage >= 0);
     const auto numPagesForEncoded =
         capacity / numValuesPerPage + (capacity % numValuesPerPage == 0 ? 0 : 1);
-    const auto numPagesForExceptions = ceilDiv(exceptionsPrefixSum.back(),
+    // TODO: consolidate
+    const auto exceptionCapacity =
+        std::bit_ceil(exceptionsPrefixSum.back() * sizeof(T)) / sizeof(T);
+    const auto numPagesForExceptions = ceilDiv(exceptionCapacity,
         (BufferPoolConstants::PAGE_4KB_SIZE / EncodeException<T>::sizeBytes()));
     return ColumnChunkMetadata(INVALID_PAGE_IDX, numPagesForEncoded + numPagesForExceptions,
         numValues, compMeta);

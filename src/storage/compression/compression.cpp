@@ -990,6 +990,17 @@ void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame
             }
         });
     }
+    case CompressionType::FLOAT: {
+        return TypeUtils::visit(physicalType, [&]<typename T>(T) {
+            if constexpr (std::is_floating_point_v<T>) {
+                FloatCompression<T>().setValuesFromUncompressed(data, dataOffset, frame, posInFrame,
+                    numValues, metadata, nullMask);
+            } else {
+                throw NotImplementedException("FLOAT_COMPRESSION is not implemented for type " +
+                                              PhysicalTypeUtils::toString(physicalType));
+            }
+        });
+    }
     case CompressionType::BOOLEAN_BITPACKING:
         return booleanBitpacking.copyFromPage(data, dataOffset, frame, posInFrame, numValues,
             metadata);
@@ -1000,10 +1011,11 @@ void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame
 }
 
 void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame,
-    common::ValueVector* vector, uint32_t posInVector, const CompressionMetadata& metadata) {
+    common::ValueVector* vector, uint32_t posInVector, offset_t numValues,
+    const CompressionMetadata& metadata) {
     if (metadata.compression == CompressionType::BOOLEAN_BITPACKING) {
         booleanBitpacking.setValuesFromUncompressed(vector->getData(), posInVector, frame,
-            posInFrame, 1, metadata, &vector->getNullMask());
+            posInFrame, numValues, metadata, &vector->getNullMask());
     } else {
         (*this)(frame, posInFrame, vector->getData(), posInVector, 1, metadata,
             &vector->getNullMask());

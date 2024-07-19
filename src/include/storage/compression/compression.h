@@ -114,11 +114,17 @@ enum class CompressionType : uint8_t {
 // used only for compressing floats/doubles
 struct ALPMetadata {
     ALPMetadata() = default;
-    explicit ALPMetadata(const alp::state& alpState, uint32_t exceptionCount)
-        : exp(alpState.exp), fac(alpState.fac), exceptionCount(exceptionCount) {}
+    explicit ALPMetadata(const alp::state& alpState, common::PhysicalTypeID physicalType)
+        : exp(alpState.exp), fac(alpState.fac), exceptionCount(alpState.exceptions_count) {
+        const size_t physicalTypeSize =
+            (physicalType == common::PhysicalTypeID::DOUBLE ? sizeof(double) : sizeof(float));
+        exceptionCapacity =
+            std::bit_ceil(alpState.exceptions_count * physicalTypeSize) / physicalTypeSize;
+    }
     uint8_t exp;
     uint8_t fac;
     uint32_t exceptionCount;
+    uint32_t exceptionCapacity;
 };
 
 // Data statistics used for determining how to handle compressed data
@@ -140,8 +146,8 @@ struct CompressionMetadata {
         : min(min), max(max), compression(compression), alpMetadata() {}
     CompressionMetadata(StorageValue min, StorageValue max, CompressionType compression,
         const alp::state& state, StorageValue minEncoded, StorageValue maxEncoded,
-        uint32_t exceptionCount)
-        : min(min), max(max), compression(compression), alpMetadata(state, exceptionCount) {
+        common::PhysicalTypeID physicalType)
+        : min(min), max(max), compression(compression), alpMetadata(state, physicalType) {
         children.emplace_back(minEncoded, maxEncoded,
             minEncoded == maxEncoded ? CompressionType::CONSTANT :
                                        CompressionType::INTEGER_BITPACKING);
@@ -246,7 +252,7 @@ public:
     // Nothing to do; constant compressed data is only updated if the update is to the same value
     void setValuesFromUncompressed(const uint8_t*, common::offset_t, uint8_t*, common::offset_t,
         common::offset_t, const CompressionMetadata&,
-        const common::NullMask* /*nullMask*/) const override {};
+        const common::NullMask* /*nullMask*/) const override{};
 
     CompressionType getCompressionType() const override { return CompressionType::CONSTANT; }
 
@@ -455,7 +461,7 @@ public:
         const CompressionMetadata& metadata, const common::NullMask* nullMask = nullptr);
 
     void operator()(uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector,
-        uint32_t posInVector, const CompressionMetadata& metadata);
+        uint32_t posInVector, common::offset_t numValues, const CompressionMetadata& metadata);
 };
 
 } // namespace storage
