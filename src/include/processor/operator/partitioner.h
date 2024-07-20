@@ -1,9 +1,9 @@
 #pragma once
 
+#include "common/enums/column_evaluate_type.h"
 #include "expression_evaluator/expression_evaluator.h"
 #include "processor/operator/sink.h"
 #include "storage/store/chunked_node_group_collection.h"
-#include "common/enums/column_evaluate_type.h"
 
 namespace kuzu {
 namespace storage {

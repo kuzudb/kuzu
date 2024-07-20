@@ -129,7 +129,7 @@ void Partitioner::executeInternal(ExecutionContext* context) {
             case ColumnEvaluateType::DEFAULT: {
                 evaluator->getLocalStateUnsafe().count = numTuples;
                 evaluator->evaluate();
-            } break ;
+            } break;
             default: {
                 evaluator->evaluate();
             }

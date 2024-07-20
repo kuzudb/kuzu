@@ -61,18 +61,21 @@ static void bindExpectedRelColumns(RelTableCatalogEntry* relTableEntry,
     const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
     std::vector<LogicalType>& columnTypes, main::ClientContext* context);
 
-static std::pair<ColumnEvaluateType,std::shared_ptr<Expression>> matchColumnExpression(const expression_vector& columns,
-    const Property& property, ExpressionBinder& expressionBinder) {
+static std::pair<ColumnEvaluateType, std::shared_ptr<Expression>> matchColumnExpression(
+    const expression_vector& columns, const Property& property,
+    ExpressionBinder& expressionBinder) {
     for (auto& column : columns) {
         if (property.getName() == column->toString()) {
             if (column->dataType == property.getDataType()) {
                 return {ColumnEvaluateType::REFERENCE, column};
             } else {
-                return {ColumnEvaluateType::CAST, expressionBinder.implicitCastIfNecessary(column, property.getDataType())};
+                return {ColumnEvaluateType::CAST,
+                    expressionBinder.implicitCastIfNecessary(column, property.getDataType())};
             }
         }
     }
-    return {ColumnEvaluateType::DEFAULT, expressionBinder.bindExpression(*property.getDefaultExpr())};
+    return {ColumnEvaluateType::DEFAULT,
+        expressionBinder.bindExpression(*property.getDefaultExpr())};
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statement,
@@ -96,15 +99,15 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     expression_vector columns;
     std::vector<ColumnEvaluateType> evaluateTypes;
     for (auto& property : nodeTableEntry->getPropertiesRef()) {
-        auto [evaluateType, column] = matchColumnExpression(boundSource->getColumns(), property, expressionBinder);
+        auto [evaluateType, column] =
+            matchColumnExpression(boundSource->getColumns(), property, expressionBinder);
         columns.push_back(column);
         evaluateTypes.push_back(evaluateType);
     }
     auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         std::string(InternalKeyword::ANONYMOUS));
-    auto boundCopyFromInfo =
-        BoundCopyFromInfo(nodeTableEntry, std::move(boundSource), std::move(offset),
-            std::move(columns), std::move(evaluateTypes), nullptr /* extraInfo */);
+    auto boundCopyFromInfo = BoundCopyFromInfo(nodeTableEntry, std::move(boundSource),
+        std::move(offset), std::move(columns), std::move(evaluateTypes), nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
@@ -132,11 +135,13 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     auto srcOffset = createVariable(std::string(InternalKeyword::SRC_OFFSET), LogicalType::INT64());
     auto dstOffset = createVariable(std::string(InternalKeyword::DST_OFFSET), LogicalType::INT64());
     expression_vector columnExprs{srcOffset, dstOffset, offset};
-    std::vector<ColumnEvaluateType> evaluateTypes{ColumnEvaluateType::REFERENCE, ColumnEvaluateType::REFERENCE, ColumnEvaluateType::REFERENCE};
+    std::vector<ColumnEvaluateType> evaluateTypes{ColumnEvaluateType::REFERENCE,
+        ColumnEvaluateType::REFERENCE, ColumnEvaluateType::REFERENCE};
     auto& properties = relTableEntry->getPropertiesRef();
     for (auto i = 1u; i < properties.size(); ++i) { // skip internal ID
         auto& property = properties[i];
-        auto [evaluateType, column] = matchColumnExpression(boundSource->getColumns(), property, expressionBinder);
+        auto [evaluateType, column] =
+            matchColumnExpression(boundSource->getColumns(), property, expressionBinder);
         columnExprs.push_back(column);
         evaluateTypes.push_back(evaluateType);
     }

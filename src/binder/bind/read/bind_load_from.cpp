@@ -1,11 +1,11 @@
 #include "binder/binder.h"
 #include "binder/bound_scan_source.h"
+#include "binder/expression/expression_util.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
 #include "main/database.h"
 #include "parser/query/reading_clause/load_from.h"
-#include "binder/expression/expression_util.h"
 #include "parser/scan_source.h"
 
 using namespace kuzu::function;

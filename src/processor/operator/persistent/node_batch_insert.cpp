@@ -123,10 +123,10 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
                 auto& defaultEvaluator = nodeInfo->columnEvaluators[i];
                 defaultEvaluator->getLocalStateUnsafe().count = numTuples;
                 defaultEvaluator->evaluate();
-            } break ;
+            } break;
             case ColumnEvaluateType::CAST: {
                 nodeInfo->columnEvaluators[i]->evaluate();
-            } break ;
+            } break;
             default:
                 break;
             }

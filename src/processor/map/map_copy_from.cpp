@@ -85,9 +85,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
         columnTypes.push_back(expr->getDataType().copy());
         columnEvaluators.push_back(exprMapper.getEvaluator(expr));
     }
-    auto info = std::make_unique<NodeBatchInsertInfo>(nodeTableEntry,
-        storageManager->compressionEnabled(), std::move(columnTypes), std::move(columnEvaluators),
-        copyFromInfo->columnEvaluateTypes);
+    auto info =
+        std::make_unique<NodeBatchInsertInfo>(nodeTableEntry, storageManager->compressionEnabled(),
+            std::move(columnTypes), std::move(columnEvaluators), copyFromInfo->columnEvaluateTypes);
     auto printInfo = std::make_unique<OPPrintInfo>(copyFrom.getExpressionsForPrinting());
     return std::make_unique<NodeBatchInsert>(std::move(info), sharedState,
         std::make_unique<ResultSetDescriptor>(copyFrom.getSchema()), std::move(prevOperator),

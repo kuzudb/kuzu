@@ -146,7 +146,7 @@ static bool isConstantExpression(const std::shared_ptr<Expression> expression) {
     case ExpressionType::PARAMETER: {
         return true;
     }
-    //TODO(Xiyang): fold parameter expression in binder.
+    // TODO(Xiyang): fold parameter expression in binder.
     case ExpressionType::FUNCTION: {
         auto& func = expression->constCast<FunctionExpression>();
         if (func.getFunctionName() == "CAST") {

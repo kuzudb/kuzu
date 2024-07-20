@@ -668,7 +668,8 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
     std::vector<common::LogicalType> detectedColumnTypes;
     bindColumns(scanInput, detectedColumnNames, detectedColumnTypes);
     if (!scanInput->expectedColumnNames.empty()) {
-        ReaderBindUtils::validateNumColumns(scanInput->expectedColumnNames.size(), detectedColumnNames.size());
+        ReaderBindUtils::validateNumColumns(scanInput->expectedColumnNames.size(),
+            detectedColumnNames.size());
         detectedColumnNames = scanInput->expectedColumnNames;
     }
     return std::make_unique<function::ScanBindData>(std::move(detectedColumnTypes),

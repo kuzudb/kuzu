@@ -17,11 +17,10 @@ public:
           outExprs{std::move(outExprs)} {}
     LogicalCopyFrom(binder::BoundCopyFromInfo info, binder::expression_vector outExprs,
         logical_op_vector_t children)
-        : LogicalOperator{type_, std::move(children)}, info{std::move(info)}, outExprs{std::move(outExprs)} {}
+        : LogicalOperator{type_, std::move(children)}, info{std::move(info)},
+          outExprs{std::move(outExprs)} {}
 
-    std::string getExpressionsForPrinting() const override {
-        return info.tableEntry->getName();
-    }
+    std::string getExpressionsForPrinting() const override { return info.tableEntry->getName(); }
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;

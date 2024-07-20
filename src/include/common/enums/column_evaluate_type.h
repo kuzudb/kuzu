@@ -12,4 +12,4 @@ enum class ColumnEvaluateType : uint8_t {
 };
 
 }
-}
+} // namespace kuzu

@@ -1,8 +1,8 @@
 #pragma once
 
+#include "common/enums/column_evaluate_type.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
-#include "common/enums/column_evaluate_type.h"
 #include "expression_evaluator/expression_evaluator.h"
 #include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/operator/persistent/batch_insert.h"
@@ -28,8 +28,7 @@ struct NodeBatchInsertInfo final : public BatchInsertInfo {
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
         std::vector<common::ColumnEvaluateType> evaluateTypes)
         : BatchInsertInfo{tableEntry, compressionEnabled}, columnTypes{std::move(columnTypes)},
-          columnEvaluators{std::move(columnEvaluators)}, evaluateTypes{std::move(evaluateTypes)} {
-    }
+          columnEvaluators{std::move(columnEvaluators)}, evaluateTypes{std::move(evaluateTypes)} {}
 
     NodeBatchInsertInfo(const NodeBatchInsertInfo& other)
         : BatchInsertInfo{other.tableEntry, other.compressionEnabled},
@@ -70,7 +69,6 @@ struct NodeBatchInsertSharedState final : public BatchInsertSharedState {
         std::unique_lock lck{mtx};
         return getNextNodeGroupIdxWithoutLock();
     }
-
 
     inline common::offset_t getNextNodeGroupIdxWithoutLock() { return currentNodeGroupIdx++; }
 };
