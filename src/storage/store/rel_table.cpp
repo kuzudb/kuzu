@@ -121,6 +121,20 @@ void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
     localTable->insert(&DUMMY_TRANSACTION, insertState);
+    if (transaction->shouldLogWAL()) {
+        KU_ASSERT(transaction->isWriteTransaction());
+        KU_ASSERT(transaction->getClientContext());
+        auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
+        auto& relInsertState = insertState.cast<RelTableInsertState>();
+        std::vector<ValueVector*> vectorsToLog;
+        vectorsToLog.push_back(&relInsertState.srcNodeIDVector);
+        vectorsToLog.push_back(&relInsertState.dstNodeIDVector);
+        vectorsToLog.insert(vectorsToLog.end(), relInsertState.propertyVectors.begin(),
+            relInsertState.propertyVectors.end());
+        KU_ASSERT(relInsertState.srcNodeIDVector.state->getSelVector().getSelSize() == 1);
+        wal.logTableInsertion(tableID, TableType::REL,
+            relInsertState.srcNodeIDVector.state->getSelVector().getSelSize(), vectorsToLog);
+    }
 }
 
 void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
@@ -139,7 +153,7 @@ void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
         bwdRelTableData->update(transaction, relUpdateState.dstNodeIDVector,
             relUpdateState.relIDVector, relUpdateState.columnID, relUpdateState.propertyVector);
     }
-    if (!transaction->isRecovery()) {
+    if (transaction->shouldLogWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
@@ -167,7 +181,7 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
     }
     const auto bwdDeleted = bwdRelTableData->delete_(transaction, relDeleteState.dstNodeIDVector,
         relDeleteState.relIDVector);
-    if (!transaction->isRecovery()) {
+    if (transaction->shouldLogWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
@@ -297,21 +311,6 @@ void RelTable::commit(Transaction* transaction, WAL* wal, LocalTable* localTable
     std::vector<column_id_t> columnIDsToScan;
     for (auto i = 0u; i < localRelTable.getNumColumns(); i++) {
         columnIDsToScan.push_back(i);
-    }
-    // Note: the use of `NodeTableScanState` is a bit misleading here. It is used to scan local rel
-    // tuples as local rel tuples are organized in the same way as node tuples.
-    NodeTableScanState scanState{columnIDsToScan};
-    const auto dataChunkState = std::make_shared<DataChunkState>();
-    const auto types = LocalRelTable::getTypesForLocalRelTable(*this);
-    const auto dataChunk = constructDataChunk(types);
-    for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
-        scanState.outputVectors.push_back(dataChunk->getValueVector(i).get());
-    }
-    scanState.IDVector = scanState.outputVectors[LOCAL_REL_ID_COLUMN_ID];
-    localNodeGroup.initializeScanState(transaction, scanState);
-    while (localNodeGroup.scan(transaction, scanState) != NODE_GROUP_SCAN_EMMPTY_RESULT) {
-        wal->logTableInsertion(tableID, TableType::REL,
-            scanState.IDVector->state->getSelVector().getSelSize(), scanState.outputVectors);
     }
     auto& fwdIndex = localRelTable.getFWDIndex();
     for (auto& [boundNodeOffset, rowIndices] : fwdIndex) {

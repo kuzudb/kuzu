@@ -717,5 +717,10 @@ bool CSRNodeGroup::isWithinDensityBound(const ChunkedCSRHeader& header,
     return ratio <= getHighDensity(region.level);
 }
 
+void CSRNodeGroup::resetVersionAndUpdateInfo() {
+    NodeGroup::resetVersionAndUpdateInfo();
+    persistentChunkGroup->resetVersionAndUpdateInfo();
+}
+
 } // namespace storage
 } // namespace kuzu

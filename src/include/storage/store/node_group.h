@@ -165,7 +165,7 @@ public:
         return chunkedGroups.getGroup(lock, groupIdx);
     }
 
-    void resetVersionAndUpdateInfo();
+    virtual void resetVersionAndUpdateInfo();
 
     template<class TARGET>
     TARGET& cast() {

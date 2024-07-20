@@ -154,6 +154,14 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
     localTable->insert(&DUMMY_TRANSACTION, insertState);
+    if (transaction->shouldLogWAL()) {
+        KU_ASSERT(transaction->isWriteTransaction());
+        KU_ASSERT(transaction->getClientContext());
+        auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
+        wal.logTableInsertion(tableID, TableType::NODE,
+            nodeInsertState.nodeIDVector.state->getSelVector().getSelSize(),
+            insertState.propertyVectors);
+    }
 }
 
 void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) {
@@ -184,7 +192,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
             ->update(transaction, rowIdxInGroup, nodeUpdateState.columnID,
                 nodeUpdateState.propertyVector);
     }
-    if (!transaction->isRecovery()) {
+    if (transaction->shouldLogWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
@@ -211,7 +219,7 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     const auto rowIdxInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     const auto result = nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
-    if (!transaction->isRecovery()) {
+    if (transaction->shouldLogWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
@@ -281,9 +289,6 @@ void NodeTable::commit(Transaction* transaction, WAL* wal, LocalTable* localTabl
             insertPK(transaction, nodeIDVector, *pkVector);
             startNodeOffset += scanState->IDVector->state->getSelVector().getSelSize();
             nodeGroups->append(transaction, scanState->outputVectors);
-            // Log local insertions to WAL.
-            wal->logTableInsertion(tableID, TableType::NODE,
-                scanState->IDVector->state->getSelVector().getSelSize(), scanState->outputVectors);
         }
         nodeGroupToScan++;
     }
