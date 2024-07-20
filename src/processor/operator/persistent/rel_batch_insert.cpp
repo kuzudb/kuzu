@@ -81,9 +81,8 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
     }
     localState.chunkedGroup->finalize();
     if (isNewNodeGroup) {
-        auto flushedChunkedGroup =
-            localState.chunkedGroup->flushAsNewChunkedNodeGroup(*sharedState.table->getDataFH());
-        // TODO(Guodong): Should set transaction info for the flushedChunkedGroup.
+        auto flushedChunkedGroup = localState.chunkedGroup->flushAsNewChunkedNodeGroup(transaction,
+            *sharedState.table->getDataFH());
         nodeGroup.setPersistentChunkedGroup(std::move(flushedChunkedGroup));
     } else {
         nodeGroup.appendChunkedCSRGroup(transaction,

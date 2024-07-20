@@ -79,7 +79,7 @@ public:
         DELETE_INFO = 8,
     };
 
-    explicit UndoBuffer(main::ClientContext& clientContext, transaction::Transaction* transaction);
+    explicit UndoBuffer(transaction::Transaction* transaction);
 
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
     void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
@@ -125,14 +125,7 @@ private:
     void rollbackVectorUpdateInfo(const uint8_t* record) const;
 
 private:
-    // Note: We're directly holding a pointer to the transaction that this undo buffer belongs to.
-    // The reason is during destruction of ClientContext, which triggers destruction of
-    // TransactionContext, and then rollback the active transaction. The rollback leads to iteration
-    // over undo buffer to rollback all the changes, which need access to transaction. But since
-    // TransactionContext is being destructed, we can no longer have access to the active transction
-    // through ClientContext.
     transaction::Transaction* transaction;
-    main::ClientContext& clientContext;
     std::vector<UndoMemoryBuffer> memoryBuffers;
 };
 

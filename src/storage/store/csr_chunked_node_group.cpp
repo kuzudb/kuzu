@@ -96,7 +96,7 @@ void ChunkedCSRHeader::fillDefaultValues(const offset_t newNumValues) const {
         offset->getNumValues() >= newNumValues && length->getNumValues() == offset->getNumValues());
 }
 
-void ChunkedCSRHeader::populateCSROffsets() {
+void ChunkedCSRHeader::populateCSROffsets() const {
     const auto numNodes = length->getNumValues();
     const auto csrOffsets = reinterpret_cast<offset_t*>(offset->getData().getData());
     const auto csrLengths = reinterpret_cast<length_t*>(length->getData().getData());
@@ -108,7 +108,7 @@ void ChunkedCSRHeader::populateCSROffsets() {
     }
 }
 
-std::vector<offset_t> ChunkedCSRHeader::populateStartCSROffsetsAndGaps(bool leaveGaps) {
+std::vector<offset_t> ChunkedCSRHeader::populateStartCSROffsetsAndGaps(bool leaveGaps) const {
     KU_ASSERT(length->getNumValues() == offset->getNumValues());
     std::vector<offset_t> gaps;
     const auto numNodes = length->getNumValues();
@@ -129,7 +129,7 @@ std::vector<offset_t> ChunkedCSRHeader::populateStartCSROffsetsAndGaps(bool leav
     return gaps;
 }
 
-void ChunkedCSRHeader::populateEndCSROffsets(const std::vector<offset_t>& gaps) {
+void ChunkedCSRHeader::populateEndCSROffsets(const std::vector<offset_t>& gaps) const {
     const auto csrOffsets = reinterpret_cast<offset_t*>(offset->getData().getData());
     KU_ASSERT(offset->getNumValues() == length->getNumValues());
     KU_ASSERT(offset->getNumValues() == gaps.size());
@@ -143,7 +143,7 @@ length_t ChunkedCSRHeader::getGapSize(length_t length) {
 }
 
 std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flushAsNewChunkedNodeGroup(
-    BMFileHandle& dataFH) const {
+    transaction::Transaction* transaction, BMFileHandle& dataFH) const {
     auto csrOffset = std::make_unique<ColumnChunk>(csrHeader.offset->isCompressionEnabled(),
         Column::flushChunkData(csrHeader.offset->getData(), dataFH));
     auto csrLength = std::make_unique<ColumnChunk>(csrHeader.length->isCompressionEnabled(),
@@ -154,8 +154,12 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flushAsNewChunkedNodeGrou
             Column::flushChunkData(getColumnChunk(i).getData(), dataFH));
     }
     ChunkedCSRHeader csrHeader{std::move(csrOffset), std::move(csrLength)};
-    return std::make_unique<ChunkedCSRNodeGroup>(std::move(csrHeader), std::move(flushedChunks),
-        0 /*startRowIdx*/);
+    auto flushedChunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(std::move(csrHeader),
+        std::move(flushedChunks), 0 /*startRowIdx*/);
+    flushedChunkedGroup->versionInfo = std::make_unique<VersionInfo>();
+    KU_ASSERT(numRows == flushedChunkedGroup->getNumRows());
+    flushedChunkedGroup->versionInfo->append(transaction, 0, numRows);
+    return flushedChunkedGroup;
 }
 
 void ChunkedCSRNodeGroup::flush(BMFileHandle& dataFH) {
