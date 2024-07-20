@@ -44,13 +44,12 @@ Dan||Bob|
 Dan||Carol|
 Elizabeth||Farooq|
 Elizabeth||Greg|
-#TODO(Guodong): FIX-ME. See comment in doc.test
-#-STATEMENT MATCH (a:person:R_r)-[e:R_rt]->(b:person:R_r) RETURN a.fName, a.iri, e.iri, b.fName, b.iri;
-#---- 1
-#|a|b||c
-#-STATEMENT MATCH (a:R_r)-[e:R]->(b:R_r) DELETE e RETURN a.iri, e.iri, b.iri;
-#---- 1
-#a|b|c
-#-STATEMENT MATCH (a:R_r)-[e:R]->(b:R_r) RETURN COUNT(*)
-#---- 1
-#0
+-STATEMENT MATCH (a:person:R_r)-[e:R_rt]->(b:person:R_r) RETURN a.fName, a.iri, e.iri, b.fName, b.iri;
+---- 1
+|a|b||c
+-STATEMENT MATCH (a:R_r)-[e:R]->(b:R_r) DELETE e RETURN a.iri, e.iri, b.iri;
+---- 1
+a|b|c
+-STATEMENT MATCH (a:R_r)-[e:R]->(b:R_r) RETURN COUNT(*)
+---- 1
+0

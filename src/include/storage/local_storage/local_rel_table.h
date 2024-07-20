@@ -44,6 +44,10 @@ public:
     }
 
     common::column_id_t getNumColumns() const { return localNodeGroup->getDataTypes().size(); }
+    const std::unordered_map<common::column_id_t, common::table_id_t>&
+    getNodeOffsetColumns() const {
+        return nodeOffsetColumns;
+    }
 
     std::map<common::offset_t, row_idx_vec_t>& getFWDIndex() { return fwdIndex; }
     const std::map<common::offset_t, row_idx_vec_t>& getFWDIndex() const { return fwdIndex; }
@@ -69,6 +73,7 @@ private:
     std::map<common::offset_t, row_idx_vec_t> fwdIndex;
     std::map<common::offset_t, row_idx_vec_t> bwdIndex;
     std::unique_ptr<NodeGroup> localNodeGroup;
+    std::unordered_map<common::column_id_t, common::table_id_t> nodeOffsetColumns;
 };
 
 } // namespace storage

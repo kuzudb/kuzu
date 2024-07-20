@@ -4,7 +4,6 @@
 #include "common/types/internal_id_t.h"
 #include "storage/index/hash_index.h"
 #include "storage/store/node_table.h"
-#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -35,6 +34,13 @@ bool LocalNodeTable::isVisible(const Transaction* transaction, offset_t offset) 
         return false;
     }
     return nodeGroup->isInserted(transaction, offsetInGroup);
+}
+
+offset_t LocalNodeTable::validateUniquenessConstraint(const Transaction* transaction,
+    const ValueVector& pkVector) {
+    KU_ASSERT(pkVector.state->getSelVector().getSelSize() == 1);
+    return hashIndex->lookup(pkVector,
+        [&](offset_t offset_) { return isVisible(transaction, offset_); });
 }
 
 bool LocalNodeTable::insert(Transaction* transaction, TableInsertState& insertState) {

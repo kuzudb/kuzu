@@ -140,6 +140,11 @@ offset_t NodeTable::validateUniquenessConstraint(const Transaction* transaction,
             [&](offset_t offset_) { return isVisible(transaction, offset_); })) {
         return offset;
     }
+    if (const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+            LocalStorage::NotExistAction::RETURN_NULL)) {
+        return localTable->cast<LocalNodeTable>().validateUniquenessConstraint(transaction,
+            *pkVector);
+    }
     return INVALID_OFFSET;
 }
 

@@ -192,6 +192,7 @@ public:
         populateCommonTableID(resultVector);
     }
 
+    common::table_id_t getCommonTableID() const { return commonTableID; }
     // TODO(Guodong): This function should be removed through rewritting INTERNAL_ID as STRUCT.
     void setCommonTableID(common::table_id_t tableID) { commonTableID = tableID; }
 
