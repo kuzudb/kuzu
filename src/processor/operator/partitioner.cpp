@@ -22,15 +22,6 @@ void PartitionerFunctions::partitionRelData(ValueVector* key, ValueVector* parti
     }
 }
 
-std::vector<PartitioningInfo> PartitioningInfo::copy(const std::vector<PartitioningInfo>& other) {
-    std::vector<PartitioningInfo> result;
-    result.reserve(other.size());
-    for (auto& otherInfo : other) {
-        result.push_back(otherInfo.copy());
-    }
-    return result;
-}
-
 static partition_idx_t getNumPartitions(offset_t maxOffset) {
     return (maxOffset + StorageConstants::NODE_GROUP_SIZE) / StorageConstants::NODE_GROUP_SIZE;
 }
@@ -101,13 +92,6 @@ void Partitioner::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*
     }
 }
 
-void Partitioner::evaluateData(const common::sel_t& numTuples) {
-    for (auto& evaluator : dataInfo.columnEvaluators) {
-        evaluator->getLocalStateUnsafe().count = numTuples;
-        evaluator->evaluate();
-    }
-}
-
 DataChunk Partitioner::constructDataChunk(const std::shared_ptr<DataChunkState>& state) {
     auto numColumns = dataInfo.columnEvaluators.size();
     DataChunk dataChunk(numColumns, state);
@@ -139,7 +123,18 @@ void Partitioner::executeInternal(ExecutionContext* context) {
         // We get the numTuples from the state of the src column, which is always idx 0
         auto numTuples =
             dataInfo.columnEvaluators[0]->resultVector->state->getSelVector().getSelSize();
-        evaluateData(numTuples);
+        for (auto i = 0u; i < dataInfo.evaluateTypes.size(); ++i) {
+            auto evaluator = dataInfo.columnEvaluators[i].get();
+            switch (dataInfo.evaluateTypes[i]) {
+            case ColumnEvaluateType::DEFAULT: {
+                evaluator->getLocalStateUnsafe().count = numTuples;
+                evaluator->evaluate();
+            } break;
+            default: {
+                evaluator->evaluate();
+            }
+            }
+        }
         for (auto partitioningIdx = 0u; partitioningIdx < infos.size(); partitioningIdx++) {
             auto& info = infos[partitioningIdx];
             auto keyVector = dataInfo.columnEvaluators[info.keyIdx]->resultVector;
@@ -173,7 +168,7 @@ void Partitioner::copyDataToPartitions(partition_idx_t partitioningIdx, DataChun
 }
 
 std::unique_ptr<PhysicalOperator> Partitioner::clone() {
-    return std::make_unique<Partitioner>(resultSetDescriptor->copy(), PartitioningInfo::copy(infos),
+    return std::make_unique<Partitioner>(resultSetDescriptor->copy(), copyVector(infos),
         dataInfo.copy(), sharedState, children[0]->clone(), id, printInfo->copy());
 }
 

@@ -85,9 +85,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
         columnTypes.push_back(expr->getDataType().copy());
         columnEvaluators.push_back(exprMapper.getEvaluator(expr));
     }
-    auto info = std::make_unique<NodeBatchInsertInfo>(nodeTableEntry,
-        storageManager->compressionEnabled(), std::move(columnTypes), std::move(columnEvaluators),
-        std::move(copyFromInfo->defaultColumns));
+    auto info =
+        std::make_unique<NodeBatchInsertInfo>(nodeTableEntry, storageManager->compressionEnabled(),
+            std::move(columnTypes), std::move(columnEvaluators), copyFromInfo->columnEvaluateTypes);
     auto printInfo = std::make_unique<OPPrintInfo>(copyFrom.getExpressionsForPrinting());
     return std::make_unique<NodeBatchInsert>(std::move(info), sharedState,
         std::make_unique<ResultSetDescriptor>(copyFrom.getSchema()), std::move(prevOperator),
@@ -107,7 +107,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* lo
             PartitionerFunctions::partitionRelData);
     }
     std::vector<LogicalType> columnTypes;
-    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
+    evaluator::evaluator_vector_t columnEvaluators;
     auto exprMapper = ExpressionMapper(outFSchema);
     for (auto& expr : copyFromInfo.columnExprs) {
         columnTypes.push_back(expr->getDataType().copy());
@@ -117,7 +117,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* lo
         columnTypes[idx] = LogicalType::INTERNAL_ID();
     }
     auto dataInfo = PartitionerDataInfo(LogicalType::copy(columnTypes), std::move(columnEvaluators),
-        copyFromInfo.defaultColumns);
+        copyFromInfo.columnEvaluateTypes);
     auto sharedState = std::make_shared<PartitionerSharedState>();
     auto printInfo = std::make_unique<OPPrintInfo>(logicalPartitioner.getExpressionsForPrinting());
     return std::make_unique<Partitioner>(std::make_unique<ResultSetDescriptor>(outFSchema),

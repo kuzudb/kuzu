@@ -29,7 +29,7 @@ Binder exception: Number of columns mismatch. Expected 1 but got 10.
 -STATEMENT LOAD WITH HEADERS (id INT64, int64Column INT64, doubleColumn INT64, booleanColumn INT64, dateColumn INT64, stringColumn INT64, listOfInt64 INT64, listOfString INT64, listOfListOfInt64 INT64, structColumn INT64)
             FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k_0.parquet" RETURN * ORDER BY id LIMIT 1;
 ---- error
-Binder exception: Column `doubleColumn` type mismatch. Expected INT64 but got DOUBLE.
+Binder exception: doubleColumn has data type DOUBLE but INT64 was expected.
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k_0.parquet" RETURN * ORDER BY id LIMIT 5;
 ---- 5
 0|73|3.258507|True|1994-01-12|FrPZkcHFuepVxcAiMwyAsRqDlRtQx|[65,25]|[4deQc5]|[[163,237],[28,60,77,31,137],[286,186,249,206]]|{id: 764, name: CwFRaCoEp}
@@ -61,13 +61,13 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0|1994-01-12
 -STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/rdf/taxonomy.ttl" RETURN COUNT(*)
 ---- error
 Binder exception: Cannot load from file type TURTLE.
--STATEMENT LOAD WITH HEADERS (a INT64, b INT64) FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/user.parquet" RETURN *;
+-STATEMENT LOAD WITH HEADERS (a INT64, b INT64[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/user.parquet" RETURN *;
 ---- error
-Binder exception: Column `a` type mismatch. Expected INT64 but got STRING.
+Binder exception: a has data type STRING but INT64 was expected.
 -STATEMENT LOAD WITH HEADERS (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN, dateColumn INT32, stringColumn STRING, listOfInt64 INT64[], listOfString STRING[], listOfListOfInt64 INT64[][], structColumn STRUCT(ID int64, name STRING))
        FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k_0.parquet" RETURN *;
 ---- error
-Binder exception: Column `dateColumn` type mismatch. Expected INT32 but got DATE.
+Binder exception: dateColumn has data type DATE but INT32 was expected.
 
 -CASE LoadFromCSVTest
 -STATEMENT LOAD WITH HEADERS (a INT64) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eStudyAt.csv" (HEADER=True) RETURN `from`, `to`, YEAR, Places;
@@ -148,3 +148,4 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv
 ---- 2
 1|Some sample text.
 2|Some more sample "text".
+

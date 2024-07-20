@@ -14,6 +14,7 @@
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/node_table.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -94,52 +95,42 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     nodeLocalState->columnVectors.resize(numColumns);
 
     for (auto i = 0u; i < numColumns; ++i) {
-        if (!nodeInfo->defaultColumns[i]) {
-            auto& evaluator = nodeInfo->columnEvaluators[i];
-            evaluator->init(*resultSet, context->clientContext);
-            evaluator->evaluate();
-            nodeLocalState->columnVectors[i] = evaluator->resultVector.get();
-        }
+        auto& evaluator = nodeInfo->columnEvaluators[i];
+        evaluator->init(*resultSet, context->clientContext);
+        nodeLocalState->columnVectors[i] = evaluator->resultVector.get();
     }
-    for (auto i = 0u; i < numColumns; ++i) {
-        if (nodeInfo->defaultColumns[i]) {
-            auto& evaluator = nodeInfo->columnEvaluators[i];
-            evaluator->init(*resultSet, context->clientContext);
-        }
-    }
-
     nodeLocalState->nodeGroup = NodeGroupFactory::createNodeGroup(ColumnDataFormat::REGULAR,
         nodeInfo->columnTypes, info->compressionEnabled);
     KU_ASSERT(resultSet->dataChunks[0]);
     nodeLocalState->columnState = resultSet->dataChunks[0]->state;
 }
 
-void NodeBatchInsert::populateDefaultColumns() {
-    auto nodeLocalState =
-        ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
-    auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
-    auto numTuples = nodeLocalState->columnState->getSelVector().getSelSize();
-    for (auto i = 0u; i < nodeInfo->defaultColumns.size(); ++i) {
-        if (nodeInfo->defaultColumns[i]) {
-            auto& defaultEvaluator = nodeInfo->columnEvaluators[i];
-            defaultEvaluator->getLocalStateUnsafe().count = numTuples;
-            defaultEvaluator->evaluate();
-            nodeLocalState->columnVectors[i] = defaultEvaluator->resultVector.get();
-        }
-    }
-}
-
 void NodeBatchInsert::executeInternal(ExecutionContext* context) {
     std::optional<ProducerToken> token;
-    auto nodeLocalState =
-        ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
+    auto nodeLocalState = localState->ptrCast<NodeBatchInsertLocalState>();
+    auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
     if (nodeLocalState->localIndexBuilder) {
         token = nodeLocalState->localIndexBuilder->getProducerToken();
     }
 
     while (children[0]->getNextTuple(context)) {
         auto originalSelVector = nodeLocalState->columnState->getSelVectorShared();
-        populateDefaultColumns();
+        // Evaluate expressions if needed.
+        auto numTuples = nodeLocalState->columnState->getSelVector().getSelSize();
+        for (auto i = 0u; i < nodeInfo->evaluateTypes.size(); ++i) {
+            switch (nodeInfo->evaluateTypes[i]) {
+            case ColumnEvaluateType::DEFAULT: {
+                auto& defaultEvaluator = nodeInfo->columnEvaluators[i];
+                defaultEvaluator->getLocalStateUnsafe().count = numTuples;
+                defaultEvaluator->evaluate();
+            } break;
+            case ColumnEvaluateType::CAST: {
+                nodeInfo->columnEvaluators[i]->evaluate();
+            } break;
+            default:
+                break;
+            }
+        }
         copyToNodeGroup(context->clientContext->getTx());
         nodeLocalState->columnState->setSelVector(originalSelVector);
     }

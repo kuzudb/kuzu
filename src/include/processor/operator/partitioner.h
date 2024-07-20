@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/enums/column_evaluate_type.h"
 #include "expression_evaluator/expression_evaluator.h"
 #include "processor/operator/sink.h"
 #include "storage/store/chunked_node_group_collection.h"
@@ -74,8 +75,6 @@ struct PartitioningInfo {
         : keyIdx{keyIdx}, partitionerFunc{std::move(partitionerFunc)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(PartitioningInfo);
 
-    static std::vector<PartitioningInfo> copy(const std::vector<PartitioningInfo>& other);
-
 private:
     PartitioningInfo(const PartitioningInfo& other)
         : keyIdx{other.keyIdx}, partitionerFunc{other.partitionerFunc} {}
@@ -83,21 +82,21 @@ private:
 
 struct PartitionerDataInfo {
     std::vector<common::LogicalType> columnTypes;
-    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
-    std::vector<bool> defaultColumns;
+    evaluator::evaluator_vector_t columnEvaluators;
+    std::vector<common::ColumnEvaluateType> evaluateTypes;
 
     PartitionerDataInfo(std::vector<common::LogicalType> columnTypes,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
-        std::vector<bool> defaultColumns)
+        std::vector<common::ColumnEvaluateType> evaluateTypes)
         : columnTypes{std::move(columnTypes)}, columnEvaluators{std::move(columnEvaluators)},
-          defaultColumns{std::move(defaultColumns)} {}
+          evaluateTypes{std::move(evaluateTypes)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(PartitionerDataInfo);
 
 private:
     PartitionerDataInfo(const PartitionerDataInfo& other)
         : columnTypes{common::LogicalType::copy(other.columnTypes)},
           columnEvaluators{cloneVector(other.columnEvaluators)},
-          defaultColumns{other.defaultColumns} {}
+          evaluateTypes{other.evaluateTypes} {}
 };
 
 class Partitioner : public Sink {
@@ -107,7 +106,7 @@ public:
     Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::vector<PartitioningInfo> infos, PartitionerDataInfo dataInfo,
         std::shared_ptr<PartitionerSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<PhysicalOperator> child, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo);
 
     void initGlobalStateInternal(ExecutionContext* context) final;
@@ -123,7 +122,6 @@ public:
         std::vector<common::partition_idx_t> numPartitions);
 
 private:
-    void evaluateData(const common::sel_t& numTuples);
     common::DataChunk constructDataChunk(const std::shared_ptr<common::DataChunkState>& state);
     // TODO: For now, RelBatchInsert will guarantee all data are inside one data chunk. Should be
     //  generalized to resultSet later if needed.

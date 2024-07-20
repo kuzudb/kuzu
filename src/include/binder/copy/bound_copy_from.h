@@ -3,6 +3,7 @@
 #include "binder/bound_scan_source.h"
 #include "binder/expression/expression.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
+#include "common/enums/column_evaluate_type.h"
 #include "index_look_up_info.h"
 
 namespace kuzu {
@@ -26,22 +27,22 @@ struct BoundCopyFromInfo {
     // Row offset of input data to generate internal ID.
     std::shared_ptr<Expression> offset;
     expression_vector columnExprs;
-    std::vector<bool> defaultColumns;
+    std::vector<common::ColumnEvaluateType> columnEvaluateTypes;
     std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo;
 
     BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry,
         std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
-        expression_vector columnExprs, std::vector<bool> defaultColumns,
+        expression_vector columnExprs, std::vector<common::ColumnEvaluateType> columnEvaluateTypes,
         std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
         : tableEntry{tableEntry}, source{std::move(source)}, offset{offset},
-          columnExprs{std::move(columnExprs)}, defaultColumns{std::move(defaultColumns)},
+          columnExprs{std::move(columnExprs)}, columnEvaluateTypes{std::move(columnEvaluateTypes)},
           extraInfo{std::move(extraInfo)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundCopyFromInfo);
 
 private:
     BoundCopyFromInfo(const BoundCopyFromInfo& other)
         : tableEntry{other.tableEntry}, source{other.source->copy()}, offset{other.offset},
-          columnExprs{other.columnExprs}, defaultColumns{other.defaultColumns} {
+          columnExprs{other.columnExprs}, columnEvaluateTypes{other.columnEvaluateTypes} {
         if (other.extraInfo) {
             extraInfo = other.extraInfo->copy();
         }

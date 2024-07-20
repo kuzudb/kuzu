@@ -667,16 +667,13 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
     std::vector<std::string> detectedColumnNames;
     std::vector<common::LogicalType> detectedColumnTypes;
     bindColumns(scanInput, detectedColumnNames, detectedColumnTypes);
-    std::vector<std::string> resultColumnNames;
-    std::vector<common::LogicalType> resultColumnTypes;
-    ReaderBindUtils::resolveColumns(scanInput->expectedColumnNames, detectedColumnNames,
-        resultColumnNames, scanInput->expectedColumnTypes, detectedColumnTypes, resultColumnTypes);
-    if (!scanInput->expectedColumnTypes.empty()) {
-        ReaderBindUtils::validateColumnTypes(scanInput->expectedColumnNames,
-            scanInput->expectedColumnTypes, detectedColumnTypes);
+    if (!scanInput->expectedColumnNames.empty()) {
+        ReaderBindUtils::validateNumColumns(scanInput->expectedColumnNames.size(),
+            detectedColumnNames.size());
+        detectedColumnNames = scanInput->expectedColumnNames;
     }
-    return std::make_unique<function::ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), scanInput->config.copy(), scanInput->context);
+    return std::make_unique<function::ScanBindData>(std::move(detectedColumnTypes),
+        std::move(detectedColumnNames), scanInput->config.copy(), scanInput->context);
 }
 
 static std::unique_ptr<function::TableFuncSharedState> initSharedState(

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/cast.h"
+#include "common/enums/column_evaluate_type.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "expression_evaluator/expression_evaluator.h"
@@ -20,22 +20,21 @@ struct ExecutionContext;
 
 struct NodeBatchInsertInfo final : public BatchInsertInfo {
     std::vector<common::LogicalType> columnTypes;
-    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
-    std::vector<bool> defaultColumns;
+    evaluator::evaluator_vector_t columnEvaluators;
+    std::vector<common::ColumnEvaluateType> evaluateTypes;
 
     NodeBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
         std::vector<common::LogicalType> columnTypes,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
-        std::vector<bool> defaultColumns)
+        std::vector<common::ColumnEvaluateType> evaluateTypes)
         : BatchInsertInfo{tableEntry, compressionEnabled}, columnTypes{std::move(columnTypes)},
-          columnEvaluators{std::move(columnEvaluators)}, defaultColumns{std::move(defaultColumns)} {
-    }
+          columnEvaluators{std::move(columnEvaluators)}, evaluateTypes{std::move(evaluateTypes)} {}
 
     NodeBatchInsertInfo(const NodeBatchInsertInfo& other)
         : BatchInsertInfo{other.tableEntry, other.compressionEnabled},
           columnTypes{common::LogicalType::copy(other.columnTypes)},
           columnEvaluators{cloneVector(other.columnEvaluators)},
-          defaultColumns{other.defaultColumns} {}
+          evaluateTypes{other.evaluateTypes} {}
 
     inline std::unique_ptr<BatchInsertInfo> copy() const override {
         return std::make_unique<NodeBatchInsertInfo>(*this);
@@ -61,8 +60,7 @@ struct NodeBatchInsertSharedState final : public BatchInsertSharedState {
         storage::WAL* wal)
         : BatchInsertSharedState{table, fTable, wal}, readerSharedState{nullptr},
           distinctSharedState{nullptr}, currentNodeGroupIdx{0}, sharedNodeGroup{nullptr} {
-        pkIndex =
-            common::ku_dynamic_cast<storage::Table*, storage::NodeTable*>(table)->getPKIndex();
+        pkIndex = table->ptrCast<storage::NodeTable>()->getPKIndex();
     }
 
     void initPKIndex(ExecutionContext* context);
@@ -71,8 +69,6 @@ struct NodeBatchInsertSharedState final : public BatchInsertSharedState {
         std::unique_lock lck{mtx};
         return getNextNodeGroupIdxWithoutLock();
     }
-
-    inline uint64_t getCurNodeGroupIdx() const { return currentNodeGroupIdx; }
 
     inline common::offset_t getNextNodeGroupIdxWithoutLock() { return currentNodeGroupIdx++; }
 };
@@ -135,7 +131,6 @@ private:
         common::offset_t startIndexInGroup);
 
     void copyToNodeGroup(transaction::Transaction* transaction);
-    void populateDefaultColumns();
 };
 
 } // namespace processor
