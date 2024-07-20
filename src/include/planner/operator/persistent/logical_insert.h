@@ -30,9 +30,11 @@ private:
 };
 
 class LogicalInsert final : public LogicalOperator {
+    static constexpr LogicalOperatorType type_ = LogicalOperatorType::INSERT;
+
 public:
     LogicalInsert(std::vector<LogicalInsertInfo> infos, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::INSERT, std::move(child)}, infos{std::move(infos)} {}
+        : LogicalOperator{type_, std::move(child)}, infos{std::move(infos)} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
@@ -41,9 +43,9 @@ public:
 
     f_group_pos_set getGroupsPosToFlatten();
 
-    inline const std::vector<LogicalInsertInfo>& getInfosRef() const { return infos; }
+    const std::vector<LogicalInsertInfo>& getInfos() const { return infos; }
 
-    inline std::unique_ptr<LogicalOperator> copy() override {
+    std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalInsert>(copyVector(infos), children[0]->copy());
     }
 

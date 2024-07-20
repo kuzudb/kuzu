@@ -102,10 +102,9 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
 
 std::unique_ptr<PhysicalOperator> Merge::clone() {
     return std::make_unique<Merge>(existenceMark, distinctMark, copyVector(nodeInsertExecutors),
-        copyVector(relInsertExecutors), NodeSetExecutor::copy(onCreateNodeSetExecutors),
-        RelSetExecutor::copy(onCreateRelSetExecutors),
-        NodeSetExecutor::copy(onMatchNodeSetExecutors),
-        RelSetExecutor::copy(onMatchRelSetExecutors), children[0]->clone(), id, printInfo->copy());
+        copyVector(relInsertExecutors), copyVector(onCreateNodeSetExecutors),
+        copyVector(onCreateRelSetExecutors), copyVector(onMatchNodeSetExecutors),
+        copyVector(onMatchRelSetExecutors), children[0]->clone(), id, printInfo->copy());
 }
 
 } // namespace processor

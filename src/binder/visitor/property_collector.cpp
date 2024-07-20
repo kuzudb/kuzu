@@ -59,10 +59,10 @@ void PropertyCollector::visitTableFunctionCall(const BoundReadingClause& reading
 void PropertyCollector::visitSet(const BoundUpdatingClause& updatingClause) {
     auto& boundSetClause = updatingClause.constCast<BoundSetClause>();
     for (auto& info : boundSetClause.getInfos()) {
-        if (info.pkExpr != nullptr) {
-            properties.insert(info.pkExpr);
+        if (info.updatePk) {
+            collectPropertyExpressions(info.column);
         }
-        collectPropertyExpressions(info.setItem.second);
+        collectPropertyExpressions(info.columnData);
     }
 }
 
@@ -107,10 +107,10 @@ void PropertyCollector::visitMerge(const BoundUpdatingClause& updatingClause) {
         }
     }
     for (auto& info : boundMergeClause.getOnMatchSetInfosRef()) {
-        collectPropertyExpressions(info.setItem.second);
+        collectPropertyExpressions(info.columnData);
     }
     for (auto& info : boundMergeClause.getOnCreateSetInfosRef()) {
-        collectPropertyExpressions(info.setItem.second);
+        collectPropertyExpressions(info.columnData);
     }
 }
 
