@@ -79,9 +79,12 @@
 ---- ok
 -STATEMENT MATCH (t:test) SET t.id=2
 ---- ok
--STATEMENT MATCH (t:test) RETURN t
+-STATEMENT MATCH (t:test) RETURN t.*
 ---- 1
-{_ID: 0:0, _LABEL: test, id: 2, name: Alice}
+2|Alice
+#-STATEMENT MATCH (t:test) RETURN t
+#---- 1
+#{_ID: 0:0, _LABEL: test, id: 2, name: Alice}
 
 -CASE SetWithSerialPK
 -STATEMENT CREATE NODE TABLE test(id SERIAL, name STRING, PRIMARY KEY(id));

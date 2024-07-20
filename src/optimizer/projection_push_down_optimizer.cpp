@@ -161,7 +161,7 @@ void ProjectionPushDownOptimizer::visitUnwind(planner::LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitInsert(planner::LogicalOperator* op) {
     auto insert = (LogicalInsert*)op;
-    for (auto& info : insert->getInfosRef()) {
+    for (auto& info : insert->getInfos()) {
         visitInsertInfo(info);
     }
 }
@@ -239,8 +239,11 @@ void ProjectionPushDownOptimizer::visitSetInfo(const binder::BoundSetPropertyInf
     case TableType::NODE: {
         auto& node = info.pattern->constCast<NodeExpression>();
         collectExpressionsInUse(node.getInternalID());
-        if (info.pkExpr != nullptr) {
-            collectExpressionsInUse(info.pkExpr);
+        if (info.pkInfo != nullptr) {
+            collectExpressionsInUse(info.column);
+            for (auto& expr : info.pkInfo->columnDataExprs) {
+                collectExpressionsInUse(expr);
+            }
         }
     } break;
     case TableType::REL: {
@@ -252,7 +255,7 @@ void ProjectionPushDownOptimizer::visitSetInfo(const binder::BoundSetPropertyInf
     default:
         KU_UNREACHABLE;
     }
-    collectExpressionsInUse(info.setItem.second);
+    collectExpressionsInUse(info.columnData);
 }
 
 void ProjectionPushDownOptimizer::visitInsertInfo(const planner::LogicalInsertInfo& info) {

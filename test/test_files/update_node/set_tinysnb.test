@@ -7,8 +7,9 @@
 ---- ok
 -STATEMENT CREATE (a:A);
 ---- ok
--STATEMENT MATCH (a:A) WHERE a.ID = 0 SET a.ID = 1;
----- ok
+-STATEMENT MATCH (a:A) WHERE a.ID = 0 SET a.ID = 1 RETURN a.ID;
+---- 1
+1
 -STATEMENT MATCH (a:A) RETURN a.ID;
 ---- 1
 1
@@ -282,27 +283,28 @@ ${test_long_string}
 
 
 -CASE SETMultiLabelWithPruning
--STATEMENT MATCH (a:person)-[:knows]->(b) WHERE a.ID=0 SET b.name = "a", b.fName = "XX" RETURN b.name, b.fName;
----- 3
-|XX
-|XX
-|XX
--STATEMENT MATCH (b) RETURN b.name, b.fName
----- 14
-ABFsUni|
-CsWork|
-DEsWork|
-Roma|
-Sóló cón tu párejâ|
-The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|
-|Alice
-|Elizabeth
-|Farooq
-|Greg
-|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
-|XX
-|XX
-|XX
+# We have chosen to disabled set multiple labeled primary key
+#-STATEMENT MATCH (a:person)-[:knows]->(b) WHERE a.ID=0 SET b.name = "a", b.fName = "XX" RETURN b.name, b.fName;
+#---- 3
+#|XX
+#|XX
+#|XX
+#-STATEMENT MATCH (b) RETURN b.name, b.fName
+#---- 14
+#ABFsUni|
+#CsWork|
+#DEsWork|
+#Roma|
+#Sóló cón tu párejâ|
+#The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|
+#|Alice
+#|Elizabeth
+#|Farooq
+#|Greg
+#|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+#|XX
+#|XX
+#|XX
 -STATEMENT MATCH (a:person)-[e:knows|:studyAt]->(b:person) WHERE a.ID=0 SET e.year = 2023, e.date = date("2023-11-11") RETURN e.year, e.date;
 ---- 3
 |2023-11-11

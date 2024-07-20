@@ -179,9 +179,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
     if (nodeUpdateState.nodeIDVector.isNull(pos)) {
         return;
     }
-    if (nodeUpdateState.columnID == pkColumnID && pkIndex) {
-        insertPK(transaction, nodeUpdateState.nodeIDVector, nodeUpdateState.propertyVector);
-    }
+    KU_ASSERT(nodeUpdateState.columnID != pkColumnID);
     const auto nodeOffset = nodeUpdateState.nodeIDVector.readNodeOffset(pos);
     if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
