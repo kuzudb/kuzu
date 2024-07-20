@@ -38,6 +38,9 @@ public:
     }
     const NodeGroupCollection& getNodeGroups() const { return nodeGroups; }
 
+    bool lookupPK(const transaction::Transaction* transaction, const common::ValueVector* keyVector,
+        common::offset_t& result);
+
 private:
     void initLocalHashIndex();
     bool isVisible(const transaction::Transaction* transaction, common::offset_t offset);

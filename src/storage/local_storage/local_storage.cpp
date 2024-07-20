@@ -39,17 +39,17 @@ LocalTable* LocalStorage::getLocalTable(table_id_t tableID, NotExistAction actio
     return tables.at(tableID).get();
 }
 
-void LocalStorage::commit(WAL* wal) {
+void LocalStorage::commit() {
     for (auto& [tableID, localTable] : tables) {
         if (localTable->getTableType() == TableType::NODE) {
             const auto table = clientContext.getStorageManager()->getTable(tableID);
-            table->commit(clientContext.getTx(), wal, localTable.get());
+            table->commit(clientContext.getTx(), localTable.get());
         }
     }
     for (auto& [tableID, localTable] : tables) {
         if (localTable->getTableType() == TableType::REL) {
             const auto table = clientContext.getStorageManager()->getTable(tableID);
-            table->commit(clientContext.getTx(), wal, localTable.get());
+            table->commit(clientContext.getTx(), localTable.get());
         }
     }
 }

@@ -127,7 +127,7 @@ public:
 
     bool isVisible(const transaction::Transaction* transaction, common::offset_t offset) const;
 
-    bool lookupPK(transaction::Transaction* transaction, common::ValueVector* keyVector,
+    bool lookupPK(const transaction::Transaction* transaction, common::ValueVector* keyVector,
         uint64_t vectorPos, common::offset_t& result) const;
     template<common::IndexHashable T>
     size_t appendPKWithIndexPos(const transaction::Transaction* transaction,
@@ -155,7 +155,7 @@ public:
     std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(
         transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup) const;
 
-    void commit(transaction::Transaction* transaction, WAL* wal, LocalTable* localTable) override;
+    void commit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void rollback(LocalTable* localTable) override;
     void checkpoint(common::Serializer& ser) override;
 
@@ -174,8 +174,8 @@ public:
     }
 
 private:
-    void insertPK(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,
-        const common::ValueVector& pkVector) const;
+    void insertPK(const transaction::Transaction* transaction,
+        const common::ValueVector& nodeIDVector, const common::ValueVector& pkVector) const;
 
     void serialize(common::Serializer& serializer) const override;
 

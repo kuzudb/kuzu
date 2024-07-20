@@ -440,3 +440,14 @@ a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
 -STATEMENT MATCH (t:test) WHERE t.age IS NOT NULL RETURN COUNT(*);
 ---- 1
 0
+
+-CASE CreateDuplicatedNodesWithinSameTransaction
+-STATEMENT CREATE NODE TABLE test(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (t:test {id:1});
+---- ok
+-STATEMENT CREATE (t:test {id:1});
+---- error
+Runtime exception: Found duplicated primary key value 1, which violates the uniqueness constraint of the primary key column.

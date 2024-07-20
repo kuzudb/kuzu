@@ -89,6 +89,12 @@ public:
 
     common::row_idx_t getNumDeletions(const transaction::Transaction* transaction) const;
 
+    VectorVersionInfo* getVectorVersionInfo(common::idx_t vectorIdx) const {
+        KU_ASSERT(vectorIdx < vectorsInfo.size());
+        KU_ASSERT(vectorsInfo[vectorIdx]);
+        return vectorsInfo[vectorIdx].get();
+    }
+
     void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<VersionInfo> deserialize(common::Deserializer& deSer);
 

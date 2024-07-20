@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/cast.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "expression_evaluator/expression_evaluator.h"
@@ -64,7 +63,7 @@ struct NodeBatchInsertSharedState final : BatchInsertSharedState {
           pkType{std::move(pkType)}, readerSharedState{nullptr}, distinctSharedState{nullptr},
           sharedNodeGroup{nullptr} {}
 
-    void initPKIndex(ExecutionContext* context);
+    void initPKIndex(const ExecutionContext* context);
 };
 
 struct NodeBatchInsertLocalState final : BatchInsertLocalState {

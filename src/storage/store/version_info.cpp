@@ -155,8 +155,7 @@ row_idx_t VersionInfo::append(const transaction::Transaction* transaction, const
         const auto numRowsInVector = endRowIdx - startRowIdx;
         numAppended += vectorVersionInfo.append(transaction->getID(), startRowIdx, numRowsInVector);
         if (transaction->shouldAppendToUndoBuffer()) {
-            transaction->pushVectorInsertInfo(*this, vectorIdx, vectorVersionInfo, startRowIdx,
-                numRowsInVector);
+            transaction->pushVectorInsertInfo(*this, vectorIdx, startRowIdx, numRowsInVector);
         }
     }
     return numAppended;
@@ -174,7 +173,7 @@ bool VersionInfo::delete_(const transaction::Transaction* transaction, const row
     }
     const auto deleted = vectorVersionInfo.delete_(transaction->getID(), rowIdxInVector);
     if (deleted && transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushVectorDeleteInfo(*this, vectorIdx, vectorVersionInfo, rowIdxInVector, 1);
+        transaction->pushVectorDeleteInfo(*this, vectorIdx, rowIdxInVector, 1);
     }
     return deleted;
 }

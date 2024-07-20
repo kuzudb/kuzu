@@ -73,7 +73,6 @@ public:
     enum class UndoRecordType : uint16_t {
         CATALOG_ENTRY = 0,
         SEQUENCE_ENTRY = 1,
-        NODE_BATCH_INSERT = 5,
         UPDATE_INFO = 6,
         INSERT_INFO = 7,
         DELETE_INFO = 8,
@@ -84,13 +83,10 @@ public:
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
     void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
         const catalog::SequenceData& data, int64_t prevVal);
-    void createNodeBatchInsert(common::table_id_t tableID);
     void createVectorInsertInfo(VersionInfo* versionInfo, common::idx_t vectorIdx,
-        VectorVersionInfo* vectorVersionInfo, common::row_idx_t startRowInVector,
-        common::row_idx_t numRows);
+        common::row_idx_t startRowInVector, common::row_idx_t numRows);
     void createVectorDeleteInfo(VersionInfo* versionInfo, common::idx_t vectorIdx,
-        VectorVersionInfo* vectorVersionInfo, common::row_idx_t startRowInVector,
-        common::row_idx_t numRows);
+        common::row_idx_t startRowInVector, common::row_idx_t numRows);
     void createVectorUpdateInfo(UpdateInfo* updateInfo, common::idx_t vectorIdx,
         VectorUpdateInfo* vectorUpdateInfo);
 
@@ -101,8 +97,7 @@ private:
     uint8_t* createUndoRecord(uint64_t size);
 
     void createVectorVersionInfo(UndoRecordType recordType, VersionInfo* versionInfo,
-        common::idx_t vectorIdx, VectorVersionInfo* vectorVersionInfo,
-        common::row_idx_t startRowInVector, common::row_idx_t numRows);
+        common::idx_t vectorIdx, common::row_idx_t startRowInVector, common::row_idx_t numRows);
 
     void commitRecord(UndoRecordType recordType, const uint8_t* record,
         common::transaction_t commitTS) const;
@@ -113,9 +108,6 @@ private:
 
     void commitSequenceEntry(uint8_t const* entry, common::transaction_t commitTS) const;
     void rollbackSequenceEntry(uint8_t const* entry);
-
-    void commitNodeBatchInsertRecord(const uint8_t* record, common::transaction_t commitTS) const;
-    void rollbackNodeBatchInsertRecord(const uint8_t* record);
 
     void commitVectorVersionInfo(UndoRecordType recordType, const uint8_t* record,
         common::transaction_t commitTS) const;

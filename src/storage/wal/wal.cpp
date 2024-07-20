@@ -25,6 +25,10 @@ WAL::WAL(const std::string& directory, bool readOnly, BufferManager& bufferManag
         vfs->openFile(vfs->joinPath(directory, std::string(StorageConstants::WAL_FILE_SUFFIX)),
             readOnly ? O_RDONLY : O_CREAT | O_RDWR, context);
     bufferedWriter = std::make_shared<BufferedFileWriter>(*fileInfo);
+    // WAL should always be APPEND only. We don't want to overwrite the file as it may still contain
+    // records not replayed. This can happen if checkpoint is not triggered before the Database is
+    // closed last time.
+    bufferedWriter->setFileOffset(fileInfo->getFileSize());
 }
 
 WAL::~WAL() {}

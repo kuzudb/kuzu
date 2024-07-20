@@ -159,8 +159,7 @@ public:
         TableAddColumnState& addColumnState) = 0;
     virtual void dropColumn(common::column_id_t columnID) = 0;
 
-    virtual void commit(transaction::Transaction* transaction, WAL* wal,
-        LocalTable* localTable) = 0;
+    virtual void commit(transaction::Transaction* transaction, LocalTable* localTable) = 0;
     virtual void rollback(LocalTable* localTable) = 0;
     virtual void checkpoint(common::Serializer& ser) = 0;
 
