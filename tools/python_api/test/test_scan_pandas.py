@@ -383,18 +383,29 @@ def test_copy_from_pandas_object(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
     df = pd.DataFrame({"name": ["Adam", "Karissa", "Zhang", "Noura"], "age": [30, 40, 50, 25]})
-    conn.execute("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY (name));")
+    conn.execute("CREATE NODE TABLE Person(name STRING, age STRING, PRIMARY KEY (name));")
     conn.execute("COPY Person FROM df;")
     result = conn.execute("match (p:Person) return p.*")
-    assert result.get_next() == ["Adam", 30]
-    assert result.get_next() == ["Karissa", 40]
-    assert result.get_next() == ["Zhang", 50]
-    assert result.get_next() == ["Noura", 25]
+    assert result.get_next() == ["Adam", '30']
+    assert result.get_next() == ["Karissa", '40']
+    assert result.get_next() == ["Zhang", '50']
+    assert result.get_next() == ["Noura", '25']
     assert result.has_next() is False
     df = pd.DataFrame({"f": ["Adam", "Karissa"], "t": ["Zhang", "Zhang"]})
     conn.execute("CREATE REL TABLE Knows(FROM Person TO Person);")
     conn.execute("COPY Knows FROM df")
     result = conn.execute("match (p:Person)-[]->(:Person {name: 'Zhang'}) return p.*")
-    assert result.get_next() == ["Adam", 30]
-    assert result.get_next() == ["Karissa", 40]
+    assert result.get_next() == ["Adam", '30']
+    assert result.get_next() == ["Karissa", '40']
+    assert result.has_next() is False
+
+def test_copy_from_pandas_date(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    df = pd.DataFrame({"id": [1, 2], "date": [pd.Timestamp('2024-01-03'), pd.Timestamp('2023-10-10')]})
+    conn.execute("CREATE NODE TABLE Person(id INT16, d TIMESTAMP, PRIMARY KEY (id));")
+    conn.execute("COPY Person FROM df;")
+    result = conn.execute("match (p:Person) return p.*")
+    assert result.get_next() == [1, datetime.datetime(2024,1,3)]
+    assert result.get_next() == [2, datetime.datetime(2023,10,10)]
     assert result.has_next() is False
