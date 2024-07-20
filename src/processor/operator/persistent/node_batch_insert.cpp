@@ -23,7 +23,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void NodeBatchInsertSharedState::initPKIndex(ExecutionContext* context) {
+void NodeBatchInsertSharedState::initPKIndex(const ExecutionContext* context) {
     uint64_t numRows;
     if (readerSharedState != nullptr) {
         KU_ASSERT(distinctSharedState == nullptr);
@@ -200,7 +200,6 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
     if (nodeSharedState->globalIndexBuilder) {
         nodeSharedState->globalIndexBuilder->finalize(context);
     }
-    context->clientContext->getTx()->pushNodeBatchInsert(sharedState->table->getTableID());
     auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
         sharedState->getNumRows(), info->tableEntry->getName());
     FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,

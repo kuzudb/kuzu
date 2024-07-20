@@ -26,7 +26,7 @@
 ---- ok
 -BATCH_STATEMENTS <FILE>:update_each_element_of_small_list.cypher
 ---- ok
--STATEMENT COMMIT_SKIP_CHECKPOINT
+-STATEMENT COMMIT
 ---- ok
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
@@ -63,7 +63,7 @@
 ---- ok
 -BATCH_STATEMENTS <FILE>:update_each_element_of_small_list.cypher
 ---- ok
--STATEMENT ROLLBACK_SKIP_CHECKPOINT
+-STATEMENT ROLLBACK
 ---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION

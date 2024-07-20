@@ -24,9 +24,8 @@ Transaction::Transaction(main::ClientContext& clientContext, TransactionType tra
 }
 
 void Transaction::commit(storage::WAL* wal) const {
-    localStorage->commit(wal);
+    localStorage->commit();
     undoBuffer->commit(commitTS);
-    // During recovery, we don't have a WAL.
     if (isWriteTransaction()) {
         KU_ASSERT(wal);
         wal->logAndFlushCommit(ID);
@@ -36,10 +35,6 @@ void Transaction::commit(storage::WAL* wal) const {
 void Transaction::rollback() const {
     localStorage->rollback();
     undoBuffer->rollback();
-}
-
-void Transaction::pushNodeBatchInsert(common::table_id_t tableID) const {
-    undoBuffer->createNodeBatchInsert(tableID);
 }
 
 void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry) const {
@@ -119,17 +114,15 @@ void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, const 
 }
 
 void Transaction::pushVectorInsertInfo(storage::VersionInfo& versionInfo,
-    const common::idx_t vectorIdx, storage::VectorVersionInfo& vectorVersionInfo,
-    common::row_idx_t startRowInVector, common::row_idx_t numRows) const {
-    undoBuffer->createVectorInsertInfo(&versionInfo, vectorIdx, &vectorVersionInfo,
-        startRowInVector, numRows);
+    const common::idx_t vectorIdx, common::row_idx_t startRowInVector,
+    common::row_idx_t numRows) const {
+    undoBuffer->createVectorInsertInfo(&versionInfo, vectorIdx, startRowInVector, numRows);
 }
 
 void Transaction::pushVectorDeleteInfo(storage::VersionInfo& versionInfo,
-    const common::idx_t vectorIdx, storage::VectorVersionInfo& vectorVersionInfo,
-    common::row_idx_t startRowInVector, common::row_idx_t numRows) const {
-    undoBuffer->createVectorDeleteInfo(&versionInfo, vectorIdx, &vectorVersionInfo,
-        startRowInVector, numRows);
+    const common::idx_t vectorIdx, common::row_idx_t startRowInVector,
+    common::row_idx_t numRows) const {
+    undoBuffer->createVectorDeleteInfo(&versionInfo, vectorIdx, startRowInVector, numRows);
 }
 
 void Transaction::pushVectorUpdateInfo(storage::UpdateInfo& updateInfo,

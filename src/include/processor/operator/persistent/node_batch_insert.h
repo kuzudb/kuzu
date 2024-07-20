@@ -63,7 +63,7 @@ struct NodeBatchInsertSharedState final : BatchInsertSharedState {
           pkType{std::move(pkType)}, readerSharedState{nullptr}, distinctSharedState{nullptr},
           sharedNodeGroup{nullptr} {}
 
-    void initPKIndex(ExecutionContext* context);
+    void initPKIndex(const ExecutionContext* context);
 };
 
 struct NodeBatchInsertLocalState final : BatchInsertLocalState {
