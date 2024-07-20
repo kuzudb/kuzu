@@ -167,20 +167,21 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
     const auto& relDeleteState = deleteState.cast<RelTableDeleteState>();
     KU_ASSERT(relDeleteState.relIDVector.state->getSelVector().getSelSize() == 1);
     const auto relIDPos = relDeleteState.relIDVector.state->getSelVector()[0];
+    bool isDeleted;
     if (const auto relOffset = relDeleteState.relIDVector.readNodeOffset(relIDPos);
         relOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL);
         KU_ASSERT(localTable);
-        return localTable->delete_(&DUMMY_TRANSACTION, deleteState);
+        isDeleted = localTable->delete_(&DUMMY_TRANSACTION, deleteState);
+    } else {
+        isDeleted = fwdRelTableData->delete_(transaction, relDeleteState.srcNodeIDVector,
+            relDeleteState.relIDVector);
+        if (isDeleted) {
+            isDeleted = bwdRelTableData->delete_(transaction, relDeleteState.dstNodeIDVector,
+                relDeleteState.relIDVector);
+        }
     }
-    const auto fwdDeleted = fwdRelTableData->delete_(transaction, relDeleteState.srcNodeIDVector,
-        relDeleteState.relIDVector);
-    if (!fwdDeleted) {
-        return false;
-    }
-    const auto bwdDeleted = bwdRelTableData->delete_(transaction, relDeleteState.dstNodeIDVector,
-        relDeleteState.relIDVector);
     if (transaction->shouldLogWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
@@ -188,7 +189,7 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
         wal.logRelDelete(tableID, &relDeleteState.srcNodeIDVector, &relDeleteState.dstNodeIDVector,
             &relDeleteState.relIDVector);
     }
-    return bwdDeleted;
+    return isDeleted;
 }
 
 void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
@@ -288,7 +289,7 @@ NodeGroup* RelTable::getOrCreateNodeGroup(node_group_idx_t nodeGroupIdx,
                bwdRelTableData->getOrCreateNodeGroup(nodeGroupIdx);
 }
 
-void RelTable::commit(Transaction* transaction, WAL* wal, LocalTable* localTable) {
+void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
     auto& localRelTable = localTable->cast<LocalRelTable>();
     if (localRelTable.isEmpty()) {
         localTable->clear();

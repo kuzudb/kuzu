@@ -214,23 +214,26 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     if (nodeDeleteState.nodeIDVector.isNull(pos)) {
         return false;
     }
+    bool isDeleted;
     const auto nodeOffset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
     if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL);
         KU_ASSERT(localTable);
-        return localTable->delete_(&DUMMY_TRANSACTION, deleteState);
+        isDeleted = localTable->delete_(&DUMMY_TRANSACTION, deleteState);
+    } else {
+        const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+        const auto rowIdxInGroup =
+            nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+        isDeleted = nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
     }
-    const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-    const auto rowIdxInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    const auto result = nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
     if (transaction->shouldLogWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
         wal.logNodeDeletion(tableID, nodeOffset, &nodeDeleteState.pkVector);
     }
-    return result;
+    return isDeleted;
 }
 
 void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
@@ -254,7 +257,7 @@ std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(Transaction* tran
     return nodeGroups->appendToLastNodeGroup(transaction, chunkedGroup);
 }
 
-void NodeTable::commit(Transaction* transaction, WAL* wal, LocalTable* localTable) {
+void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
     auto startNodeOffset = nodeGroups->getNumRows();
     transaction->setMaxCommittedNodeOffset(tableID, startNodeOffset);
     auto& localNodeTable = localTable->cast<LocalNodeTable>();
@@ -300,7 +303,7 @@ void NodeTable::commit(Transaction* transaction, WAL* wal, LocalTable* localTabl
     localTable->clear();
 }
 
-void NodeTable::insertPK(Transaction* transaction, const ValueVector& nodeIDVector,
+void NodeTable::insertPK(const Transaction* transaction, const ValueVector& nodeIDVector,
     const ValueVector& pkVector) const {
     for (auto i = 0u; i < nodeIDVector.state->getSelVector().getSelSize(); i++) {
         const auto nodeIDPos = nodeIDVector.state->getSelVector()[i];
@@ -310,7 +313,7 @@ void NodeTable::insertPK(Transaction* transaction, const ValueVector& nodeIDVect
             throw RuntimeException(ExceptionMessage::nullPKException());
         }
         if (!pkIndex->insert(transaction, const_cast<ValueVector*>(&pkVector), pkPos, offset,
-                [&](common::offset_t offset) { return isVisible(transaction, offset); })) {
+                [&](offset_t offset_) { return isVisible(transaction, offset_); })) {
             std::string pkStr;
             TypeUtils::visit(
                 pkVector.dataType.getPhysicalType(),
@@ -359,9 +362,16 @@ bool NodeTable::isVisible(const Transaction* transaction, offset_t offset) const
     return nodeGroup->isInserted(transaction, offsetInGroup);
 }
 
-bool NodeTable::lookupPK(Transaction* transaction, ValueVector* keyVector, uint64_t vectorPos,
+bool NodeTable::lookupPK(const Transaction* transaction, ValueVector* keyVector, uint64_t vectorPos,
     offset_t& result) const {
-    // TODO(guodong): check the transaction local hash index as well.
+    if (transaction->getLocalStorage()) {
+        const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+            LocalStorage::NotExistAction::RETURN_NULL);
+        if (localTable &&
+            localTable->cast<LocalNodeTable>().lookupPK(transaction, keyVector, result)) {
+            return true;
+        }
+    }
     return pkIndex->lookup(transaction, keyVector, vectorPos, result,
         [&](offset_t offset) { return isVisible(transaction, offset); });
 }

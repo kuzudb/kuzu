@@ -97,21 +97,10 @@ void StorageManager::recover(main::ClientContext& clientContext) {
         return;
     }
     try {
-        auto* bm = clientContext.getMemoryManager()->getBufferManager();
+        // TODO(Guodong): We should first check if there is CHECKPOINT record at the end.
+        // If so, we can skip replaying the WAL, instead directly replacing shadow files/pages.
         auto walReplayer = std::make_unique<WALReplayer>(clientContext);
         walReplayer->replay();
-        // Truncate .wal and .shadow to empty. Remove catalog and stats wal files.
-        auto walFileInfo = vfs->openFile(walFilePath, O_RDWR);
-        if (walFileInfo->getFileSize() > 0) {
-            walFileInfo->truncate(0);
-        }
-        auto shadowFH = bm->getBMFileHandle(vfs->joinPath(clientContext.getDatabasePath(),
-                                                std::string(StorageConstants::SHADOWING_SUFFIX)),
-            FileHandle::O_PERSISTENT_FILE_NO_CREATE, vfs, &clientContext);
-        if (shadowFH->getFileInfo()->getFileSize() > 0) {
-            shadowFH->getFileInfo()->truncate(0);
-        }
-        StorageUtils::removeWALVersionFiles(clientContext.getDatabasePath(), vfs);
     } catch (std::exception& e) {
         throw Exception(stringFormat("Error during recovery: {}", e.what()));
     }

@@ -4,6 +4,7 @@
 #include "common/types/internal_id_t.h"
 #include "storage/index/hash_index.h"
 #include "storage/store/node_table.h"
+#include <common/exception/message.h>
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -51,8 +52,9 @@ bool LocalNodeTable::insert(Transaction* transaction, TableInsertState& insertSt
     KU_ASSERT(nodeInsertState.pkVector.state->getSelVector().getSelSize() == 1);
     if (!hashIndex->insert(nodeInsertState.pkVector, nodeOffset,
             [&](offset_t offset) { return isVisible(transaction, offset); })) {
-        throw RuntimeException(
-            stringFormat("Found duplicate primary key in local table {}", table.getTableID()));
+        const auto val =
+            nodeInsertState.pkVector.getAsValue(nodeInsertState.pkVector.state->getSelVector()[0]);
+        throw RuntimeException(ExceptionMessage::duplicatePKException(val->toString()));
     }
     const auto nodeIDPos =
         nodeInsertState.nodeIDVector.state->getSelVector().getSelectedPositions()[0];
@@ -105,6 +107,13 @@ void LocalNodeTable::clear() {
         nodeTable.getColumn(nodeTable.getPKColumnID()).getDataType().getPhysicalType(),
         overflowFileHandle.get());
     nodeGroups.clear();
+}
+
+bool LocalNodeTable::lookupPK(const Transaction* transaction, const ValueVector* keyVector,
+    offset_t& result) {
+    result = hashIndex->lookup(*keyVector,
+        [&](offset_t offset) { return isVisible(transaction, offset); });
+    return result != INVALID_OFFSET;
 }
 
 } // namespace storage

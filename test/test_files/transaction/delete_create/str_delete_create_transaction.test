@@ -48,7 +48,10 @@
 
 
 -CASE IndexScanAfterDeletionCommitRecovery
--SKIP
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -CREATE_CONNECTION conn_read
 -CREATE_CONNECTION conn_write
 -STATEMENT [conn_write] BEGIN TRANSACTION
@@ -77,7 +80,7 @@
 -STATEMENT [conn_read] Match (a:person) WHERE a.ID='1000000000001' RETURN COUNT(*);
 ---- 1
 1
--STATEMENT [conn_write] COMMIT_SKIP_CHECKPOINT
+-STATEMENT [conn_write] COMMIT
 ---- ok 
 -RELOADDB
 -STATEMENT [conn_write] BEGIN TRANSACTION
@@ -142,7 +145,10 @@
 
 
 -CASE IndexScanAfterDeletionRollbackRecovery
--SKIP
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -LOG Index Scan After Deletion Rollback Recovery
 -CREATE_CONNECTION conn_read
 -CREATE_CONNECTION conn_write
@@ -172,7 +178,7 @@
 -STATEMENT [conn_read] Match (a:person) WHERE a.ID='1000000000001' RETURN COUNT(*);
 ---- 1
 1
--STATEMENT [conn_write] ROLLBACK_SKIP_CHECKPOINT
+-STATEMENT [conn_write] ROLLBACK
 ---- ok 
 -RELOADDB
 -STATEMENT [conn_write] BEGIN TRANSACTION
@@ -215,7 +221,10 @@
 
 
 -CASE DeleteAllNodesCommitRecovery
--SKIP
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -CREATE_CONNECTION conn_read
 -CREATE_CONNECTION conn_write
 -STATEMENT [conn_write] BEGIN TRANSACTION
@@ -228,7 +237,7 @@
 -STATEMENT [conn_read] Match (a:person) RETURN COUNT(*);
 ---- 1
 10000
--STATEMENT [conn_write] COMMIT_SKIP_CHECKPOINT
+-STATEMENT [conn_write] COMMIT
 ---- ok 
 -RELOADDB
 -STATEMENT [conn_write] BEGIN TRANSACTION
@@ -265,7 +274,10 @@
 
 
 -CASE DeleteAllNodesRollbackRecovery
--SKIP
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -CREATE_CONNECTION conn_read
 -CREATE_CONNECTION conn_write
 -STATEMENT [conn_write] BEGIN TRANSACTION
@@ -278,7 +290,7 @@
 -STATEMENT [conn_read] Match (a:person) RETURN COUNT(*);
 ---- 1
 10000
--STATEMENT [conn_write] ROLLBACK_SKIP_CHECKPOINT
+-STATEMENT [conn_write] ROLLBACK
 ---- ok 
 -RELOADDB
 -STATEMENT [conn_write] BEGIN TRANSACTION
