@@ -77,6 +77,7 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
     populateCSROffsets(partitioningBuffer, startNodeOffset, relInfo, localState, numNodes,
         leaveGaps);
     for (auto& chunkedGroup : partitioningBuffer.getChunkedGroups()) {
+        sharedState.incrementNumRows(chunkedGroup->getNumRows());
         localState.chunkedGroup->write(*chunkedGroup, relInfo.boundNodeOffsetColumnID);
     }
     localState.chunkedGroup->finalize();
@@ -88,7 +89,6 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
         nodeGroup.appendChunkedCSRGroup(transaction,
             localState.chunkedGroup->cast<ChunkedCSRNodeGroup>());
     }
-    sharedState.incrementNumRows(localState.chunkedGroup->getNumRows());
     localState.chunkedGroup->resetToEmpty();
 }
 
