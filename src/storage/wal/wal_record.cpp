@@ -422,7 +422,9 @@ std::unique_ptr<RelDetachDeleteRecord> RelDetachDeleteRecord::deserialize(
     deserializer.deserializeValue<RelDataDirection>(direction);
     deserializer.deserializeDebuggingInfo(key);
     KU_ASSERT(key == "src_node_vector");
-    auto srcNodeIDVector = ValueVector::deSerialize(deserializer, clientContext.getMemoryManager());
+    auto resultChunk = std::make_shared<DataChunkState>();
+    auto srcNodeIDVector =
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunk);
     return std::make_unique<RelDetachDeleteRecord>(tableID, direction, std::move(srcNodeIDVector));
 }
 
