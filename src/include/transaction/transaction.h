@@ -62,6 +62,7 @@ public:
     bool shouldAppendToUndoBuffer() const {
         return getID() > DUMMY_TRANSACTION_ID && !isReadOnly();
     }
+    bool shouldLogWAL() const { return !isRecovery(); }
 
     void commit(storage::WAL* wal) const;
     void rollback() const;
