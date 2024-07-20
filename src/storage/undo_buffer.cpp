@@ -88,8 +88,7 @@ void UndoBufferIterator::reverseIterate(F&& callback) {
     }
 }
 
-UndoBuffer::UndoBuffer(ClientContext& clientContext, transaction::Transaction* transaction)
-    : transaction{transaction}, clientContext{clientContext} {}
+UndoBuffer::UndoBuffer(transaction::Transaction* transaction) : transaction{transaction} {}
 
 void UndoBuffer::createCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry) {
     auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(CatalogEntryRecord));
@@ -288,12 +287,7 @@ void UndoBuffer::rollbackCatalogEntryRecord(const uint8_t* record) {
     }
 }
 
-void UndoBuffer::commitSequenceEntry(const uint8_t* entry, transaction_t /* commitTS */) const {
-    const auto& sequenceRecord = *reinterpret_cast<SequenceEntryRecord const*>(entry);
-    const auto sequenceEntry = sequenceRecord.sequenceEntry;
-    auto& wal = clientContext.getStorageManager()->getWAL();
-    wal.logUpdateSequenceRecord(sequenceEntry->getSequenceID(), sequenceRecord.sequenceChangeData);
-}
+void UndoBuffer::commitSequenceEntry(const uint8_t*, transaction_t) const {}
 
 void UndoBuffer::rollbackSequenceEntry(const uint8_t* entry) {
     const auto& sequenceRecord = *reinterpret_cast<SequenceEntryRecord const*>(entry);

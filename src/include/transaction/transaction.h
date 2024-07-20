@@ -59,6 +59,10 @@ public:
     int64_t getCurrentTS() const { return currentTS; }
     main::ClientContext* getClientContext() const { return clientContext; }
 
+    bool shouldAppendToUndoBuffer() const {
+        return getID() > DUMMY_TRANSACTION_ID && !isReadOnly();
+    }
+
     void commit(storage::WAL* wal) const;
     void rollback() const;
 

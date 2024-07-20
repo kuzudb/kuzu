@@ -32,9 +32,9 @@ struct ChunkedCSRHeader {
         length->resetToEmpty();
     }
 
-    void populateCSROffsets();
-    std::vector<common::offset_t> populateStartCSROffsetsAndGaps(bool leaveGaps);
-    void populateEndCSROffsets(const std::vector<common::offset_t>& gaps);
+    void populateCSROffsets() const;
+    std::vector<common::offset_t> populateStartCSROffsetsAndGaps(bool leaveGaps) const;
+    void populateEndCSROffsets(const std::vector<common::offset_t>& gaps) const;
 
 private:
     static common::length_t getGapSize(common::length_t length);
@@ -68,7 +68,7 @@ public:
     void scanCSRHeader(CSRNodeGroupCheckpointState& csrState) const;
 
     std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
-        BMFileHandle& dataFH) const override;
+        transaction::Transaction* transaction, BMFileHandle& dataFH) const override;
 
     void flush(BMFileHandle& dataFH) override;
 
