@@ -75,8 +75,7 @@ void CatalogSet::createEntryNoLock(Transaction* transaction, std::unique_ptr<Cat
     auto entryPtr = entry.get();
     emplaceNoLock(std::move(entry));
     KU_ASSERT(transaction);
-    if (transaction->getStartTS() > Transaction::DUMMY_START_TIMESTAMP) {
-        KU_ASSERT(transaction->getID() != 0);
+    if (transaction->shouldAppendToUndoBuffer()) {
         transaction->pushCatalogEntry(*this, *entryPtr->getPrev());
     }
 }
@@ -136,8 +135,7 @@ void CatalogSet::dropEntryNoLock(Transaction* transaction, const std::string& na
     tombstone->setTimestamp(transaction->getID());
     auto tombstonePtr = tombstone.get();
     emplaceNoLock(std::move(tombstone));
-    if (transaction->getStartTS() > 0) {
-        KU_ASSERT(transaction->getID() != 0);
+    if (transaction->shouldAppendToUndoBuffer()) {
         transaction->pushCatalogEntry(*this, *tombstonePtr->getPrev());
     }
 }
@@ -163,8 +161,7 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
     }
     tableEntry->setAlterInfo(alterInfo);
     emplaceNoLock(std::move(newEntry));
-    if (transaction->getStartTS() != Transaction::DUMMY_START_TIMESTAMP) {
-        KU_ASSERT(transaction->getID() != Transaction::DUMMY_TRANSACTION_ID);
+    if (transaction->shouldAppendToUndoBuffer()) {
         transaction->pushCatalogEntry(*this, *entry);
     }
 }

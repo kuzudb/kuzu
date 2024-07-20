@@ -19,7 +19,7 @@ Transaction::Transaction(main::ClientContext& clientContext, TransactionType tra
       commitTS{common::INVALID_TRANSACTION} {
     this->clientContext = &clientContext;
     localStorage = std::make_unique<storage::LocalStorage>(clientContext);
-    undoBuffer = std::make_unique<storage::UndoBuffer>(clientContext, this);
+    undoBuffer = std::make_unique<storage::UndoBuffer>(this);
     currentTS = common::Timestamp::getCurrentTimestamp().value;
 }
 

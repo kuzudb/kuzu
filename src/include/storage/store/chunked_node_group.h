@@ -85,8 +85,6 @@ public:
     common::offset_t append(const transaction::Transaction* transaction,
         const std::vector<ColumnChunk*>& other, common::offset_t offsetInOtherNodeGroup,
         common::offset_t numRowsToAppend);
-    void write(const std::vector<std::unique_ptr<ColumnChunk>>& data,
-        common::column_id_t offsetColumnID);
     void write(const ChunkedNodeGroup& data, common::column_id_t offsetColumnID);
 
     void scan(const transaction::Transaction* transaction, const TableScanState& scanState,
@@ -114,13 +112,13 @@ public:
 
     bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInChunk);
 
-    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
+    void addColumn(transaction::Transaction* transaction, const TableAddColumnState& addColumnState,
         bool enableCompression, BMFileHandle* dataFH);
 
     bool isDeleted(const transaction::Transaction* transaction, common::row_idx_t rowInChunk) const;
     bool isInserted(const transaction::Transaction* transaction,
         common::row_idx_t rowInChunk) const;
-    bool hasAnyUpdates(transaction::Transaction* transaction, common::column_id_t columnID,
+    bool hasAnyUpdates(const transaction::Transaction* transaction, common::column_id_t columnID,
         common::row_idx_t startRow, common::length_t numRows) const;
     common::row_idx_t getNumDeletions(const transaction::Transaction* transaction,
         common::row_idx_t startRow, common::length_t numRows) const;
@@ -135,7 +133,7 @@ public:
     }
 
     virtual std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
-        BMFileHandle& dataFH) const;
+        transaction::Transaction* transaction, BMFileHandle& dataFH) const;
     virtual void flush(BMFileHandle& dataFH);
 
     uint64_t getEstimatedMemoryUsage() const;
