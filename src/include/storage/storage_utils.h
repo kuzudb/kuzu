@@ -7,8 +7,7 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/null_mask.h"
 #include "common/types/types.h"
-#include "storage/wal/shadow_file.h"
-#include "storage/wal/wal_record.h"
+#include "storage/db_file_id.h"
 
 namespace kuzu {
 namespace storage {

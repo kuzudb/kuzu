@@ -1,7 +1,10 @@
 #include "storage/store/csr_chunked_node_group.h"
 
 #include "common/serializer/deserializer.h"
+#include "storage/storage_utils.h"
 #include "storage/store/column.h"
+#include "storage/store/csr_node_group.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 

@@ -15,6 +15,7 @@
 #include "catalog/catalog_entry/type_catalog_entry.h"
 #include "common/cast.h"
 #include "common/exception/catalog.h"
+#include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/deserializer.h"

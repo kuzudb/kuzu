@@ -13,19 +13,6 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace storage {
 
-DBFileID DBFileID::newDataFileID() {
-    DBFileID retVal;
-    retVal.dbFileType = DBFileType::DATA;
-    return retVal;
-}
-
-DBFileID DBFileID::newPKIndexFileID(table_id_t tableID) {
-    DBFileID retVal;
-    retVal.dbFileType = DBFileType::NODE_INDEX;
-    retVal.tableID = tableID;
-    return retVal;
-}
-
 void ShadowPageRecord::serialize(Serializer& serializer) const {
     serializer.write<DBFileID>(dbFileID);
     serializer.write<file_idx_t>(originalFileIdx);

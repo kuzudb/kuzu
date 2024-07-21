@@ -11,6 +11,7 @@
 #include "storage/store/list_chunk_data.h"
 #include "storage/store/list_column.h"
 #include "storage/store/node_table.h"
+#include "storage/store/rel_table.h"
 #include "storage/store/string_chunk_data.h"
 #include "storage/store/string_column.h"
 #include "storage/store/struct_chunk_data.h"

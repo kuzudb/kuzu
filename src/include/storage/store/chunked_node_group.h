@@ -2,7 +2,6 @@
 
 #include <atomic>
 
-#include "common/constants.h"
 #include "common/enums/rel_multiplicity.h"
 #include "common/types/internal_id_t.h"
 #include "storage/enums/residency_state.h"

@@ -1,7 +1,5 @@
 #include "main/storage_driver.h"
 
-#include <thread>
-
 #include "main/client_context.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"

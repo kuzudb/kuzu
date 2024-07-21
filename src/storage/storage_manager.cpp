@@ -7,6 +7,7 @@
 #include "main/client_context.h"
 #include "main/database.h"
 #include "storage/store/node_table.h"
+#include "storage/store/rel_table.h"
 #include "storage/wal_replayer.h"
 
 using namespace kuzu::catalog;

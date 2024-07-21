@@ -2,8 +2,9 @@
 
 #include "catalog/catalog_entry/catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
-#include "main/client_context.h"
-#include "storage/storage_manager.h"
+#include "catalog/catalog_set.h"
+#include "storage/store/update_info.h"
+#include "storage/store/version_info.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

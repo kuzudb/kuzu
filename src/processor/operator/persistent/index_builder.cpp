@@ -8,11 +8,9 @@
 #include "common/exception/message.h"
 #include "common/type_utils.h"
 #include "common/types/ku_string.h"
-#include "processor/operator/transaction.h"
 #include "storage/index/hash_index_utils.h"
 #include "storage/store/node_table.h"
 #include "storage/store/string_chunk_data.h"
-#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace processor {
@@ -28,7 +26,7 @@ IndexBuilderGlobalQueues::IndexBuilderGlobalQueues(transaction::Transaction* tra
         [&]<HashablePrimitive T>(T) { queues.emplace<Queue<T>>(); }, [](auto) { KU_UNREACHABLE; });
 }
 
-common::PhysicalTypeID IndexBuilderGlobalQueues::pkTypeID() const {
+PhysicalTypeID IndexBuilderGlobalQueues::pkTypeID() const {
     return nodeTable->getPKIndex()->keyTypeID();
 }
 

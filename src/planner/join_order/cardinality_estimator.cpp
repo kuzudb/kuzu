@@ -5,6 +5,7 @@
 #include "planner/join_order/join_order_util.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 #include "storage/storage_manager.h"
+#include "storage/store/table.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

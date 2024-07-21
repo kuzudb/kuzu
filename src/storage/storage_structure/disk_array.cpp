@@ -1,6 +1,7 @@
 #include "storage/storage_structure/disk_array.h"
 
 #include "common/constants.h"
+#include "common/exception/runtime.h"
 #include "common/string_format.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/bm_file_handle.h"
@@ -8,6 +9,7 @@
 #include "storage/file_handle.h"
 #include "storage/storage_structure/db_file_utils.h"
 #include "storage/storage_utils.h"
+#include "storage/wal/shadow_file.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;

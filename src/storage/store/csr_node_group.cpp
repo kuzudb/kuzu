@@ -1,6 +1,8 @@
 #include "storage/store/csr_node_group.h"
 
+#include "storage/storage_utils.h"
 #include "storage/store/rel_table.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

@@ -1,6 +1,8 @@
 #include "storage/store/column_chunk.h"
 
+#include "common/serializer/deserializer.h"
 #include "common/vector/value_vector.h"
+#include "storage/storage_utils.h"
 #include "storage/store/column.h"
 #include "transaction/transaction.h"
 

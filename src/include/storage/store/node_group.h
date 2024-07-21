@@ -1,9 +1,6 @@
 #pragma once
 
-#include <map>
-
 #include "storage/enums/residency_state.h"
-#include "storage/storage_utils.h"
 #include "storage/store/chunked_node_group_collection.h"
 #include "storage/store/version_info.h"
 
@@ -45,6 +42,7 @@ struct NodeGroupScanState {
     }
 };
 
+class MemoryManager;
 struct NodeGroupCheckpointState {
     std::vector<common::column_id_t> columnIDs;
     std::vector<Column*> columns;

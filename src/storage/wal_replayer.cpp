@@ -13,6 +13,7 @@
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/node_table.h"
+#include "storage/store/rel_table.h"
 #include "storage/wal/wal_record.h"
 
 using namespace kuzu::binder;

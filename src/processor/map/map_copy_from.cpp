@@ -1,4 +1,5 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "processor/operator/aggregate/hash_aggregate_scan.h"
@@ -11,6 +12,7 @@
 #include "processor/plan_mapper.h"
 #include "processor/result/factorized_table_util.h"
 #include "storage/storage_manager.h"
+#include "storage/store/rel_table.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;

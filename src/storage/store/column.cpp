@@ -5,20 +5,18 @@
 
 #include "common/assert.h"
 #include "common/null_mask.h"
-#include "common/type_utils.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
-#include "expression_evaluator/expression_evaluator.h"
+#include "storage/buffer_manager/buffer_manager.h"
 #include "storage/compression/compression.h"
-#include "storage/storage_structure/disk_array.h"
-#include "storage/storage_structure/disk_array_collection.h"
+#include "storage/storage_structure/db_file_utils.h"
 #include "storage/storage_utils.h"
+#include "storage/store/column_chunk.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/list_column.h"
 #include "storage/store/null_column.h"
 #include "storage/store/string_column.h"
 #include "storage/store/struct_column.h"
-#include "storage/wal/shadow_file.h"
 #include "transaction/transaction.h"
 #include <bit>
 

@@ -5,7 +5,7 @@
 #include <unordered_set>
 
 #include "storage/wal/wal.h"
-#include "transaction.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace main {

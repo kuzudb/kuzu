@@ -3,8 +3,10 @@
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/rel_direction.h"
 #include "common/exception/message.h"
+#include "common/exception/runtime.h"
 #include "common/types/internal_id_t.h"
-#include "storage/local_storage/local_rel_table.h"
+#include "storage/buffer_manager/memory_manager.h"
+#include "storage/storage_utils.h"
 #include "storage/store/node_group.h"
 #include "storage/store/rel_table.h"
 
@@ -24,8 +26,8 @@ RelTableData::RelTableData(BMFileHandle* dataFH, MemoryManager* mm, ShadowFile* 
     multiplicity = tableEntry->constCast<RelTableCatalogEntry>().getMultiplicity(direction);
     initCSRHeaderColumns();
     initPropertyColumns(tableEntry);
-    nodeGroups = std::make_unique<NodeGroupCollection>(getColumnTypes(), enableCompression, 0,
-        dataFH, deSer);
+    nodeGroups =
+        std::make_unique<NodeGroupCollection>(getColumnTypes(), enableCompression, dataFH, deSer);
 }
 
 void RelTableData::initCSRHeaderColumns() {
