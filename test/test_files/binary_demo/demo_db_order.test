@@ -1,4 +1,5 @@
 -DATASET KUZU binary-demo
+-SKIP_32BIT
 
 --
 
