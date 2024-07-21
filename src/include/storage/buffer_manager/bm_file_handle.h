@@ -125,7 +125,7 @@ private:
     // File handles are registered with the buffer manager and must not be moved or copied
     DELETE_COPY_AND_MOVE(BMFileHandle);
     inline PageState* getPageState(common::page_idx_t pageIdx) {
-        KU_ASSERT(pageIdx < numPages);
+        KU_ASSERT(verifyPageIdx(pageIdx));
         return &pageStates[pageIdx];
     }
     inline common::frame_idx_t getFrameIdx(common::page_idx_t pageIdx) {
@@ -140,6 +140,11 @@ private:
     void addNewPageGroupWithoutLock();
     inline common::page_group_idx_t getNumPageGroups() const {
         return ceil(static_cast<double>(numPages) / common::StorageConstants::PAGE_GROUP_SIZE);
+    }
+
+    bool verifyPageIdx(common::page_idx_t pageIdx) {
+        std::unique_lock xLck{fhSharedMutex};
+        return pageIdx < numPages;
     }
 
 private:
