@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "column_chunk_data.h"
 #include "common/constants.h"
 #include "common/types/types.h"

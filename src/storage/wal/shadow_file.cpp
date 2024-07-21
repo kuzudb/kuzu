@@ -1,11 +1,12 @@
 #include "storage/wal/shadow_file.h"
 
+#include <fcntl.h>
+
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "main/client_context.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/storage_utils.h"
-#include <sys/fcntl.h>
 
 using namespace kuzu::common;
 using namespace kuzu::main;
