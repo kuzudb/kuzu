@@ -181,9 +181,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScan
                 objectName, bindData->columnTypes.size(), columnTypes.size()));
         }
         for (auto i = 0u; i < bindData->columnTypes.size(); ++i) {
-            auto column = createVariable(columnNames[i], bindData->columnTypes[i]);
-            ExpressionUtil::validateDataType(*column, columnTypes[i]);
-            columns.push_back(std::move(column));
+            columns.push_back(createVariable(columnNames[i], bindData->columnTypes[i]));
         }
     }
     auto info = BoundTableScanSourceInfo(func, std::move(bindData), columns);
