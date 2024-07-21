@@ -25,9 +25,23 @@ struct MaskData {
         std::fill(data, data + size, defaultVal);
     }
 
-    inline void setMask(uint64_t pos, uint8_t maskValue) const { data[pos] = maskValue; }
-    inline bool isMasked(uint64_t pos, uint8_t trueMaskVal) const {
-        return data[pos] == trueMaskVal;
+#if KUZU_TSAN
+#if defined(__has_feature) && __has_feature(thread_sanitizer)
+    __attribute__((no_sanitize("thread")))
+#endif
+#endif
+    void
+    setMask(uint64_t pos, uint8_t maskValue) const {
+        data[pos] = maskValue;
+    }
+#if KUZU_TSAN
+#if defined(__has_feature) && __has_feature(thread_sanitizer)
+    __attribute__((no_sanitize("thread")))
+#endif
+#endif
+    bool
+    isMasked(uint64_t pos, uint8_t maskValue) const {
+        return data[pos] == maskValue;
     }
     inline uint8_t getMaskValue(uint64_t pos) const { return data[pos]; }
     inline uint64_t getSize() const { return size; }
