@@ -166,15 +166,6 @@ struct TableInsertionRecord final : WALRecord {
         : WALRecord{WALRecordType::TABLE_INSERTION_RECORD}, tableID{tableID}, tableType{tableType},
           numRows{numRows}, ownedVectors{std::move(vectors)} {}
 
-    // TODO(Guodong): Should remove this copy constructor.
-    TableInsertionRecord(const TableInsertionRecord& other) {
-        type = other.type;
-        tableID = other.tableID;
-        tableType = other.tableType;
-        numRows = other.numRows;
-        vectors = other.vectors;
-    }
-
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<TableInsertionRecord> deserialize(common::Deserializer& deserializer,
         main::ClientContext& clientContext);
