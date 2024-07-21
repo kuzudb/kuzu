@@ -1,5 +1,4 @@
 #include "binder/expression/rel_expression.h"
-#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/cast.h"
 #include "planner/operator/persistent/logical_insert.h"
 #include "processor/operator/persistent/insert.h"

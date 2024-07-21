@@ -1,5 +1,7 @@
 #include "storage/store/struct_column.h"
 
+#include "common/vector/value_vector.h"
+#include "storage/store/column_chunk.h"
 #include "storage/store/null_column.h"
 #include "storage/store/struct_chunk_data.h"
 

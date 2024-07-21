@@ -3,8 +3,6 @@
 #include <algorithm>
 #include <array>
 
-#include "storage/storage_utils.h"
-#include "storage/store/chunked_node_group_collection.h"
 #include "storage/store/csr_chunked_node_group.h"
 #include "storage/store/node_group.h"
 

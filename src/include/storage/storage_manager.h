@@ -4,7 +4,6 @@
 
 #include "catalog/catalog.h"
 #include "storage/index/hash_index.h"
-#include "storage/store/rel_table.h"
 #include "storage/wal/shadow_file.h"
 #include "storage/wal/wal.h"
 

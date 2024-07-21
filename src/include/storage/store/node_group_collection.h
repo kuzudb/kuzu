@@ -1,7 +1,5 @@
 #pragma once
 
-#include <mutex>
-
 #include "csr_node_group.h"
 #include "storage/store/group_collection.h"
 #include "storage/store/node_group.h"
@@ -12,7 +10,7 @@ namespace storage {
 class NodeGroupCollection {
 public:
     explicit NodeGroupCollection(const std::vector<common::LogicalType>& types,
-        bool enableCompression, common::row_idx_t startRowIdx = 0, BMFileHandle* dataFH = nullptr,
+        bool enableCompression, BMFileHandle* dataFH = nullptr,
         common::Deserializer* deSer = nullptr);
 
     void append(const transaction::Transaction* transaction,
@@ -75,7 +73,6 @@ public:
 
 private:
     bool enableCompression;
-    common::row_idx_t startRowIdx;
     std::atomic<common::row_idx_t> numRows;
     std::vector<common::LogicalType> types;
     GroupCollection<NodeGroup> nodeGroups;

@@ -17,7 +17,7 @@ namespace planner {
 class CardinalityEstimator {
 public:
     CardinalityEstimator() = default;
-    CardinalityEstimator(main::ClientContext* context) : context{context} {}
+    explicit CardinalityEstimator(main::ClientContext* context) : context{context} {}
     DELETE_COPY_DEFAULT_MOVE(CardinalityEstimator);
 
     // TODO(Xiyang): revisit this init at some point. Maybe we should init while enumerating.

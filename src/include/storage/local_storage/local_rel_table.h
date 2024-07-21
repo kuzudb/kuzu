@@ -3,6 +3,7 @@
 #include "common/enums/rel_direction.h"
 #include "common/vector/value_vector.h"
 #include "storage/local_storage/local_table.h"
+#include "storage/store/csr_node_group.h"
 
 namespace kuzu {
 namespace storage {
@@ -12,6 +13,7 @@ static constexpr common::column_id_t LOCAL_NBR_NODE_ID_COLUMN_ID = 1;
 static constexpr common::column_id_t LOCAL_REL_ID_COLUMN_ID = 2;
 
 class RelTable;
+struct TableScanState;
 struct RelTableUpdateState;
 class LocalRelTable final : public LocalTable {
 public:

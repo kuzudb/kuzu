@@ -1,5 +1,6 @@
 #pragma once
 
+#include "storage/storage_utils.h"
 #include "storage/store/column.h"
 
 namespace kuzu {

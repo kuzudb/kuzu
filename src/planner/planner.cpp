@@ -2,7 +2,6 @@
 
 #include "binder/bound_explain.h"
 #include "main/client_context.h"
-#include "storage/storage_manager.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;

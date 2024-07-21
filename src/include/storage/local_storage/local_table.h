@@ -4,19 +4,24 @@
 
 #include "common/enums/table_type.h"
 #include "common/types/internal_id_t.h"
-#include "storage/store/node_group_collection.h"
+#include "common/types/types.h"
+#include "storage/store/table.h"
 
 namespace kuzu {
+namespace transaction {
+class Transaction;
+} // namespace transaction
+
 namespace storage {
 
 using offset_to_row_idx_t = std::map<common::offset_t, common::row_idx_t>;
 using offset_to_row_idx_vec_t = std::map<common::offset_t, std::vector<common::row_idx_t>>;
 using offset_set_t = std::unordered_set<common::offset_t>;
 
+struct TableAddColumnState;
 struct TableInsertState;
 struct TableUpdateState;
 struct TableDeleteState;
-class Table;
 class LocalTable {
 public:
     virtual ~LocalTable() = default;

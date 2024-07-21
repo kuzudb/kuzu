@@ -1,15 +1,13 @@
 #pragma once
 
 #include <cstdint>
+#include <shared_mutex>
 
 #include "common/constants.h"
 #include "common/copy_constructors.h"
 #include "common/types/types.h"
-#include "db_file_utils.h"
+#include "storage/storage_structure/db_file_utils.h"
 #include "storage/storage_utils.h"
-#include "storage/wal/shadow_file.h"
-#include "storage/wal/wal.h"
-#include "storage/wal/wal_record.h"
 #include "transaction/transaction.h"
 #include <bit>
 #include <span>
@@ -17,6 +15,7 @@
 namespace kuzu {
 namespace storage {
 
+class FileHandle;
 class BMFileHandle;
 class BufferManager;
 

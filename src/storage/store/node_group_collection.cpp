@@ -1,7 +1,7 @@
 #include "storage/store/node_group_collection.h"
 
+#include "common/vector/value_vector.h"
 #include "storage/buffer_manager/bm_file_handle.h"
-#include "storage/store/column.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -10,10 +10,9 @@ namespace kuzu {
 namespace storage {
 
 NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
-    const bool enableCompression, const row_idx_t startRowIdx, BMFileHandle* dataFH,
-    Deserializer* deSer)
-    : enableCompression{enableCompression}, startRowIdx{startRowIdx}, numRows{0},
-      types{LogicalType::copy(types)}, dataFH{dataFH} {
+    const bool enableCompression, BMFileHandle* dataFH, Deserializer* deSer)
+    : enableCompression{enableCompression}, numRows{0}, types{LogicalType::copy(types)},
+      dataFH{dataFH} {
     if (deSer) {
         std::string key;
         deSer->deserializeDebuggingInfo(key);

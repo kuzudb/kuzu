@@ -1,7 +1,6 @@
 #include "storage/buffer_manager/bm_file_handle.h"
 
 #include "storage/buffer_manager/buffer_manager.h"
-#include "storage/storage_utils.h"
 
 using namespace kuzu::common;
 

@@ -20,7 +20,6 @@
 #include "storage/compression/sign_extend.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
-#include <bit>
 #include <ranges>
 
 using namespace kuzu::common;

@@ -7,11 +7,10 @@
 #include "common/types/internal_id_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
-#include "expression_evaluator/expression_evaluator.h"
+#include "main/client_context.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/storage_manager.h"
-#include "storage/store/rel_table.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
@@ -41,7 +40,7 @@ NodeTable::NodeTable(StorageManager* storageManager, const NodeTableCatalogEntry
             property.getDataType().copy(), dataFH, bufferManager, shadowFile, enableCompression);
     }
     nodeGroups = std::make_unique<NodeGroupCollection>(getNodeTableColumnTypes(*this),
-        enableCompression, 0 /*startNodeOffset*/, storageManager->getDataFH(), deSer);
+        enableCompression, storageManager->getDataFH(), deSer);
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
         storageManager->isReadOnly(), vfs, context);
 }

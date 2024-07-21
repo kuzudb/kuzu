@@ -3,9 +3,13 @@
 #include "common/enums/rel_direction.h"
 #include "processor/operator/partitioner.h"
 #include "processor/operator/persistent/batch_insert.h"
-#include "storage/store/csr_chunked_node_group.h"
 
 namespace kuzu {
+namespace storage {
+class CSRNodeGroup;
+struct ChunkedCSRHeader;
+} // namespace storage
+
 namespace processor {
 
 struct RelBatchInsertInfo final : BatchInsertInfo {

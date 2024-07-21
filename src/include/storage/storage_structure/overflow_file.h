@@ -17,7 +17,6 @@
 #include "storage/storage_utils.h"
 #include "storage/wal/shadow_file.h"
 #include "storage/wal/wal.h"
-#include "storage/wal/wal_record.h"
 #include "transaction/transaction.h"
 
 namespace kuzu {

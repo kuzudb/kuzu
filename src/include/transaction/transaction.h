@@ -38,13 +38,13 @@ public:
 
     explicit Transaction(TransactionType transactionType) noexcept
         : type{transactionType}, ID{DUMMY_TRANSACTION_ID}, startTS{DUMMY_START_TIMESTAMP},
-          commitTS{common::INVALID_TRANSACTION}, clientContext{nullptr} {
+          commitTS{common::INVALID_TRANSACTION}, clientContext{nullptr}, undoBuffer{nullptr} {
         currentTS = common::Timestamp::getCurrentTimestamp().value;
     }
     explicit Transaction(TransactionType transactionType, common::transaction_t ID,
         common::transaction_t startTS) noexcept
         : type{transactionType}, ID{ID}, startTS{startTS}, commitTS{common::INVALID_TRANSACTION},
-          clientContext{nullptr} {
+          clientContext{nullptr}, undoBuffer{nullptr} {
         currentTS = common::Timestamp::getCurrentTimestamp().value;
     }
 

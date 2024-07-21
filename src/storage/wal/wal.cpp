@@ -9,7 +9,6 @@
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/serializer.h"
 #include "common/vector/value_vector.h"
-#include "storage/storage_utils.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

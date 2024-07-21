@@ -5,10 +5,10 @@
 #include "graph/graph_entry.h"
 #include "graph/on_disk_graph.h"
 #include "graph_test/base_graph_test.h"
-#include "gtest/gtest.h"
+// #include "gtest/gtest.h"
 #include "main/client_context.h"
 #include "main_test_helper/private_main_test_helper.h"
-#include "transaction/transaction.h"
+// #include "transaction/transaction.h"
 
 using kuzu::common::nodeID_t;
 

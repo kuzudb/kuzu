@@ -7,7 +7,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "common/assert.h"
 #include "common/serializer/writer.h"
 
 namespace kuzu {

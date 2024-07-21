@@ -4,6 +4,7 @@
 #include "common/enums/zone_map_check_result.h"
 #include "storage/predicate/column_predicate.h"
 #include "storage/store/column.h"
+#include "storage/store/node_group.h"
 
 namespace kuzu {
 namespace evaluator {

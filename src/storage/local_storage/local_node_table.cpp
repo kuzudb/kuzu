@@ -14,7 +14,7 @@ namespace storage {
 
 LocalNodeTable::LocalNodeTable(Table& table)
     : LocalTable{table}, nodeGroups{NodeTable::getNodeTableColumnTypes(table.cast<NodeTable>()),
-                             false /*enableCompression*/, StorageConstants::MAX_NUM_ROWS_IN_TABLE} {
+                             false /*enableCompression*/} {
     initLocalHashIndex();
 }
 

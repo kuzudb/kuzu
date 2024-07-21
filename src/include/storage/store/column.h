@@ -4,9 +4,8 @@
 #include "common/null_mask.h"
 #include "common/types/types.h"
 #include "storage/compression/compression.h"
-#include "storage/storage_structure/disk_array.h"
+#include "storage/db_file_id.h"
 #include "storage/store/column_chunk_data.h"
-#include "storage/wal/shadow_file.h"
 
 namespace kuzu {
 namespace evaluator {
@@ -34,6 +33,9 @@ using batch_lookup_func_t = read_values_to_page_func_t;
 class NullColumn;
 class StructColumn;
 class RelTableData;
+struct ColumnCheckpointState;
+class ShadowFile;
+class BufferManager;
 class Column {
     friend class StringColumn;
     friend class StructColumn;
