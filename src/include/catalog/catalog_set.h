@@ -55,7 +55,8 @@ private:
     void dropEntryNoLock(transaction::Transaction* transaction, const std::string& name);
 
     void validateExistNoLock(transaction::Transaction* transaction, const std::string& name) const;
-    void validateNotExistNoLock(transaction::Transaction* transaction, const std::string& name) const;
+    void validateNotExistNoLock(transaction::Transaction* transaction,
+        const std::string& name) const;
 
     void emplaceNoLock(std::unique_ptr<CatalogEntry> entry);
     void eraseNoLock(const std::string& name);
