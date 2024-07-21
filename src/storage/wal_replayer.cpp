@@ -14,7 +14,6 @@
 #include "storage/storage_utils.h"
 #include "storage/store/node_table.h"
 #include "storage/wal/wal_record.h"
-#include "transaction/transaction_manager.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
@@ -51,8 +50,9 @@ void WALReplayer::replay() {
         if (clientContext.getTransactionContext()->hasActiveTransaction()) {
             // Handle the case that either the last transaction is not committed or the wal file is
             // corrupted and there is no COMMIT record for the last transaction. We should rollback
-            // under this case.
+            // under this case, and clear the WAL file.
             clientContext.getTransactionContext()->rollback();
+            clientContext.getStorageManager()->getWAL().clearWAL();
         }
     } catch (const Exception& e) {
         if (clientContext.getTransactionContext()->hasActiveTransaction()) {

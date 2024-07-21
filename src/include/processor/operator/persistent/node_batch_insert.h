@@ -20,8 +20,6 @@ namespace processor {
 struct ExecutionContext;
 
 struct NodeBatchInsertInfo final : BatchInsertInfo {
-    std::vector<DataPos> columnPositions;
-    bool containSerial = false;
     std::vector<common::LogicalType> columnTypes;
     evaluator::evaluator_vector_t columnEvaluators;
     std::vector<common::ColumnEvaluateType> evaluateTypes;
