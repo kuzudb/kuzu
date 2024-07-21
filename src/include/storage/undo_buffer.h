@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "common/constants.h"
 #include "common/types/types.h"
 
@@ -117,6 +119,7 @@ private:
     void rollbackVectorUpdateInfo(const uint8_t* record) const;
 
 private:
+    std::mutex mtx;
     transaction::Transaction* transaction;
     std::vector<UndoMemoryBuffer> memoryBuffers;
 };

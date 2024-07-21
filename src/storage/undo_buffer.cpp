@@ -145,6 +145,7 @@ void UndoBuffer::createVectorUpdateInfo(UpdateInfo* updateInfo, const idx_t vect
 }
 
 uint8_t* UndoBuffer::createUndoRecord(const uint64_t size) {
+    std::unique_lock xLck{mtx};
     if (memoryBuffers.empty() || !memoryBuffers.back().canFit(size)) {
         auto capacity = UndoMemoryBuffer::UNDO_MEMORY_BUFFER_SIZE;
         while (size > capacity) {
