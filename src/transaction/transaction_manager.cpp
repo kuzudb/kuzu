@@ -19,19 +19,32 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
     // ensures calls to other public functions is not restricted.
     lock_t newTransactionLck{mtxForStartingNewTransactions};
     lock_t publicFunctionLck{mtxForSerializingPublicFunctionCalls};
-    if (type == TransactionType::WRITE) {
+    std::unique_ptr<Transaction> transaction;
+    switch (type) {
+    case TransactionType::READ_ONLY: {
+        transaction =
+            std::make_unique<Transaction>(clientContext, type, ++lastTransactionID, lastTimestamp);
+        activeReadOnlyTransactions.insert(transaction->getID());
+    } break;
+    case TransactionType::RECOVERY:
+    case TransactionType::WRITE: {
         if (!clientContext.getDBConfig()->enableMultiWrites && hasActiveWriteTransactionNoLock()) {
             throw TransactionManagerException(
                 "Cannot start a new write transaction in the system. "
                 "Only one write transaction at a time is allowed in the system.");
         }
+        transaction =
+            std::make_unique<Transaction>(clientContext, type, ++lastTransactionID, lastTimestamp);
+        activeWriteTransactions.insert(transaction->getID());
         KU_ASSERT(clientContext.getStorageManager());
-        clientContext.getStorageManager()->getWAL().logBeginTransaction();
+        if (transaction->isWriteTransaction()) {
+            clientContext.getStorageManager()->getWAL().logBeginTransaction();
+        }
+    } break;
+    default: {
+        throw TransactionManagerException("Invalid transaction type to begin transaction.");
     }
-    auto transaction =
-        std::make_unique<Transaction>(clientContext, type, ++lastTransactionID, lastTimestamp);
-    type == TransactionType::WRITE ? activeWriteTransactionID.insert(transaction->getID()) :
-                                     activeReadOnlyTransactionIDs.insert(transaction->getID());
+    }
     return transaction;
 }
 
@@ -39,34 +52,50 @@ void TransactionManager::commit(main::ClientContext& clientContext) {
     lock_t lck{mtxForSerializingPublicFunctionCalls};
     clientContext.cleanUP();
     const auto transaction = clientContext.getTx();
-    if (transaction->isReadOnly()) {
-        activeReadOnlyTransactionIDs.erase(transaction->getID());
-        return;
+    switch (transaction->getType()) {
+    case TransactionType::READ_ONLY: {
+        activeReadOnlyTransactions.erase(transaction->getID());
+    } break;
+    case TransactionType::RECOVERY:
+    case TransactionType::WRITE: {
+        lastTimestamp++;
+        transaction->commitTS = lastTimestamp;
+        transaction->commit(&wal);
+        if (transaction->isWriteTransaction()) {
+            // For recovery, we skip logging to WAL.
+            wal.flushAllPages();
+        }
+        activeWriteTransactions.erase(transaction->getID());
+        if (transaction->shouldForceCheckpoint() || canAutoCheckpoint(clientContext)) {
+            checkpointNoLock(clientContext);
+        }
+    } break;
+    default: {
+        throw TransactionManagerException("Invalid transaction type to commit.");
     }
-    lastTimestamp++;
-    transaction->commitTS = lastTimestamp;
-    transaction->commit(&wal);
-    if (!transaction->isRecovery()) {
-        wal.flushAllPages();
-    }
-    clearActiveWriteTransactionIfWriteTransactionNoLock(transaction);
-    if (transaction->shouldForceCheckpoint() || canAutoCheckpoint(clientContext)) {
-        checkpointNoLock(clientContext);
     }
 }
 
 // Note: We take in additional `transaction` here is due to that `transactionContext` might be
 // destructed when a transaction throws exception, while we need to rollback the active transaction
 // still.
-void TransactionManager::rollback(main::ClientContext& clientContext, Transaction* transaction) {
+void TransactionManager::rollback(main::ClientContext& clientContext,
+    const Transaction* transaction) {
     lock_t lck{mtxForSerializingPublicFunctionCalls};
     clientContext.cleanUP();
-    if (transaction->isReadOnly()) {
-        activeReadOnlyTransactionIDs.erase(transaction->getID());
-        return;
+    switch (transaction->getType()) {
+    case TransactionType::READ_ONLY: {
+        activeReadOnlyTransactions.erase(transaction->getID());
+    } break;
+    case TransactionType::RECOVERY:
+    case TransactionType::WRITE: {
+        transaction->rollback();
+        activeWriteTransactions.erase(transaction->getID());
+    } break;
+    default: {
+        throw TransactionManagerException("Invalid transaction type to rollback.");
     }
-    transaction->rollback();
-    clearActiveWriteTransactionIfWriteTransactionNoLock(transaction);
+    }
 }
 
 void TransactionManager::checkpoint(main::ClientContext& clientContext) {
@@ -105,6 +134,7 @@ bool TransactionManager::canAutoCheckpoint(const main::ClientContext& clientCont
         return false;
     }
     if (clientContext.getTx()->isRecovery()) {
+        // Recovery transactions are not allowed to trigger auto checkpoint.
         return false;
     }
     const auto expectedSize =
@@ -113,7 +143,7 @@ bool TransactionManager::canAutoCheckpoint(const main::ClientContext& clientCont
 }
 
 bool TransactionManager::canCheckpointNoLock() const {
-    return activeWriteTransactionID.empty() && activeReadOnlyTransactionIDs.empty();
+    return activeWriteTransactions.empty() && activeReadOnlyTransactions.empty();
 }
 
 void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
@@ -149,18 +179,6 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
         clientContext.getVFSUnsafe());
     // Resume receiving new transactions.
     allowReceivingNewTransactions();
-}
-
-void TransactionManager::clearActiveWriteTransactionIfWriteTransactionNoLock(
-    const Transaction* transaction) {
-    if (transaction->isWriteTransaction()) {
-        for (auto& id : activeWriteTransactionID) {
-            if (id == transaction->getID()) {
-                activeWriteTransactionID.erase(id);
-                return;
-            }
-        }
-    }
 }
 
 } // namespace transaction

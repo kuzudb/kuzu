@@ -30,23 +30,8 @@ public:
         TransactionType type);
 
     void commit(main::ClientContext& clientContext);
-    void rollback(main::ClientContext& clientContext, Transaction* transaction);
+    void rollback(main::ClientContext& clientContext, const Transaction* transaction);
     void checkpoint(main::ClientContext& clientContext);
-
-    // Warning: Below public functions are for tests only
-    std::unordered_set<uint64_t>& getActiveReadOnlyTransactionIDs() {
-        std::unique_lock lck{mtxForSerializingPublicFunctionCalls};
-        return activeReadOnlyTransactionIDs;
-    }
-    common::transaction_t getActiveWriteTransactionID() {
-        std::unique_lock lck{mtxForSerializingPublicFunctionCalls};
-        KU_ASSERT(activeWriteTransactionID.size() == 1);
-        return *activeWriteTransactionID.begin();
-    }
-    bool hasActiveWriteTransactionID() {
-        std::unique_lock lck{mtxForSerializingPublicFunctionCalls};
-        return !activeWriteTransactionID.empty();
-    }
 
 private:
     bool canAutoCheckpoint(const main::ClientContext& clientContext) const;
@@ -58,8 +43,7 @@ private:
     void stopNewTransactionsAndWaitUntilAllTransactionsLeave();
     void allowReceivingNewTransactions();
 
-    bool hasActiveWriteTransactionNoLock() const { return !activeWriteTransactionID.empty(); }
-    void clearActiveWriteTransactionIfWriteTransactionNoLock(const Transaction* transaction);
+    bool hasActiveWriteTransactionNoLock() const { return !activeWriteTransactions.empty(); }
 
     // Note: Used by DBTest::createDB only.
     void setCheckPointWaitTimeoutForTransactionsToLeaveInMicros(uint64_t waitTimeInMicros) {
@@ -68,8 +52,8 @@ private:
 
 private:
     storage::WAL& wal;
-    std::unordered_set<common::transaction_t> activeWriteTransactionID;
-    std::unordered_set<uint64_t> activeReadOnlyTransactionIDs;
+    std::unordered_set<common::transaction_t> activeWriteTransactions;
+    std::unordered_set<common::transaction_t> activeReadOnlyTransactions;
     common::transaction_t lastTransactionID;
     common::transaction_t lastTimestamp;
     // This mutex is used to ensure thread safety and letting only one public function to be called
