@@ -80,9 +80,9 @@ public:
     void deserializeVectorOfPtrs(std::vector<std::unique_ptr<T>>& values) {
         uint64_t vectorSize;
         deserializeValue(vectorSize);
-        values.reserve(vectorSize);
+        values.resize(vectorSize);
         for (auto i = 0u; i < vectorSize; i++) {
-            values.push_back(T::deserialize(*this));
+            values[i] = T::deserialize(*this);
         }
     }
 
