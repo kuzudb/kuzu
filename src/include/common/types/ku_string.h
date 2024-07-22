@@ -70,7 +70,7 @@ struct KUZU_API ku_string_t {
         }
     }
 
-    bool isOutOfBounds(int64_t val) { return val < 0 || val >= len; }
+    bool isOutOfBounds(int64_t idx) const { return idx < 0 || idx >= len; }
 
     std::string getAsShortString() const;
     std::string getAsString() const;
