@@ -107,7 +107,7 @@ void CompressChunkTest::testCompressChunk(std::vector<T> bufferToCompress, check
         compressBuffer(bufferToCompress, alg, preScanMetadata.get(), dataFH, dataType);
 
     auto columnReader = ColumnReaderFactory::createColumnReader(dataType.getPhysicalType(),
-        DBFileID::newDataFileID(), dataFH, bm, &storageManager->getWAL());
+        DBFileID::newDataFileID(), dataFH, bm, &storageManager->getShadowFile());
 
     auto* clientContext = getClientContext(*conn);
     clientContext->getTransactionContext()->beginWriteTransaction();
@@ -339,7 +339,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptions) {
             src[cpyOffset + i] = 5.7;
         }
 
-        CompressionMetadata::InPlaceUpdateLocalState localUpdateState;
+        CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
         KU_ASSERT(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
             numValuesToSet, dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(chunkMeta, numValuesPerPage, cpyOffset,
@@ -348,6 +348,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptions) {
 
         auto* clientContext = getClientContext(*conn);
         clientContext->getTransactionManagerUnsafe()->commit(*clientContext);
+        clientContext->getTransactionManagerUnsafe()->checkpoint(*clientContext);
 
         reader->readCompressedValuesToPage(transaction, chunkMeta, numValuesPerPage,
             (uint8_t*)out.data(), 0, 0, out.size(), ReadCompressedValuesFromPage(dataType),
@@ -379,7 +380,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptions) {
             src[cpyOffset + i] = src[cpyOffset + i - 2] + 1;
         }
 
-        CompressionMetadata::InPlaceUpdateLocalState localUpdateState;
+        CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
         KU_ASSERT(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
             numValuesToSet, dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(chunkMeta, numValuesPerPage, cpyOffset,
@@ -388,6 +389,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptions) {
 
         auto* clientContext = getClientContext(*conn);
         clientContext->getTransactionManagerUnsafe()->commit(*clientContext);
+        clientContext->getTransactionManagerUnsafe()->checkpoint(*clientContext);
 
         reader->readCompressedValuesToPage(transaction, chunkMeta, numValuesPerPage,
             (uint8_t*)out.data(), 0, 0, out.size(), ReadCompressedValuesFromPage(dataType),
@@ -418,7 +420,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptionsMultiPage) {
             src[cpyOffset + i] = 5.7;
         }
 
-        CompressionMetadata::InPlaceUpdateLocalState localUpdateState;
+        CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
         KU_ASSERT(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
             numValuesToSet, dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(chunkMeta, numValuesPerPage, cpyOffset,
@@ -427,6 +429,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptionsMultiPage) {
 
         auto* clientContext = getClientContext(*conn);
         clientContext->getTransactionManagerUnsafe()->commit(*clientContext);
+        clientContext->getTransactionManagerUnsafe()->checkpoint(*clientContext);
 
         reader->readCompressedValuesToPage(transaction, chunkMeta, numValuesPerPage,
             (uint8_t*)out.data(), 0, 0, out.size(), ReadCompressedValuesFromPage(dataType),
@@ -458,7 +461,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPage) {
             src[cpyOffset + i] = src[cpyOffset + i - 2] + 1;
         }
 
-        CompressionMetadata::InPlaceUpdateLocalState localUpdateState;
+        CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
         KU_ASSERT(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
             numValuesToSet, dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(chunkMeta, numValuesPerPage, cpyOffset,
@@ -467,6 +470,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPage) {
 
         auto* clientContext = getClientContext(*conn);
         clientContext->getTransactionManagerUnsafe()->commit(*clientContext);
+        clientContext->getTransactionManagerUnsafe()->checkpoint(*clientContext);
 
         reader->readCompressedValuesToPage(transaction, chunkMeta, numValuesPerPage,
             (uint8_t*)out.data(), 0, 0, out.size(), ReadCompressedValuesFromPage(dataType),
@@ -481,7 +485,7 @@ TEST_F(CompressChunkTest, TestInPlaceUpdateConstant) {
         [](ColumnReader*, transaction::Transaction*, ColumnChunkMetadata& chunkMeta, uint64_t,
             const LogicalType& dataType) {
             double newVal = -1;
-            CompressionMetadata::InPlaceUpdateLocalState localUpdateState;
+            CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
             EXPECT_FALSE(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)&newVal, 0, 1,
                 dataType.getPhysicalType(), localUpdateState));
         });
@@ -505,7 +509,7 @@ TEST_F(CompressChunkTest, TestFloatBeforeInPlaceUpdateManyExceptionsNoCompress) 
             src[i] = i + 0.01;
         }
 
-        CompressionMetadata::InPlaceUpdateLocalState localUpdateState;
+        CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
         KU_ASSERT(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
             numValuesToSet, dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(chunkMeta, numValuesPerPage, cpyOffset,
@@ -514,6 +518,7 @@ TEST_F(CompressChunkTest, TestFloatBeforeInPlaceUpdateManyExceptionsNoCompress) 
 
         auto* clientContext = getClientContext(*conn);
         clientContext->getTransactionManagerUnsafe()->commit(*clientContext);
+        clientContext->getTransactionManagerUnsafe()->checkpoint(*clientContext);
 
         reader->readCompressedValuesToPage(transaction, chunkMeta, numValuesPerPage,
             (uint8_t*)out.data(), 0, 0, out.size(), ReadCompressedValuesFromPage(dataType),

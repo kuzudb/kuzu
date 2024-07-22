@@ -572,7 +572,7 @@ void ColumnReader::readFromPage(Transaction* transaction, page_idx_t pageIdx,
 }
 
 void ColumnReader::updatePageWithCursor(PageCursor cursor,
-    const std::function<void(uint8_t*, common::offset_t)>& writeOp) {
+    const std::function<void(uint8_t*, common::offset_t)>& writeOp) const {
     bool insertingNewPage = false;
     if (cursor.pageIdx == INVALID_PAGE_IDX) {
         return writeOp(nullptr, cursor.elemPosInPage);

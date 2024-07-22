@@ -87,7 +87,7 @@ protected:
         const std::function<void(uint8_t*)>& func);
 
     void updatePageWithCursor(PageCursor cursor,
-        const std::function<void(uint8_t*, common::offset_t)>& writeOp);
+        const std::function<void(uint8_t*, common::offset_t)>& writeOp) const;
 
     PageCursor getPageCursorForOffsetInGroup(common::offset_t offsetInChunk,
         common::page_idx_t groupPageIdx, uint64_t numValuesPerPage) const;
