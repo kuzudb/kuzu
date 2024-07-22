@@ -15,7 +15,8 @@ namespace function {
 static LogicalType interpretLogicalType(binder::Expression* expr) {
     if (expr->expressionType == ExpressionType::LITERAL &&
         expr->dataType.getLogicalTypeID() == LogicalTypeID::LIST) {
-        auto numChildren = expr->constPtrCast<binder::LiteralExpression>()->getValue().getChildrenSize();
+        auto numChildren =
+            expr->constPtrCast<binder::LiteralExpression>()->getValue().getChildrenSize();
         return LogicalType::ARRAY(ListType::getChildType(expr->dataType).copy(), numChildren);
     }
     return expr->dataType.copy();
