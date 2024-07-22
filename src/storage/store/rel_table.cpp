@@ -121,7 +121,7 @@ void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
     localTable->insert(&DUMMY_TRANSACTION, insertState);
-    if (transaction->shouldLogWAL()) {
+    if (transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
@@ -153,7 +153,7 @@ void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
         bwdRelTableData->update(transaction, relUpdateState.dstNodeIDVector,
             relUpdateState.relIDVector, relUpdateState.columnID, relUpdateState.propertyVector);
     }
-    if (transaction->shouldLogWAL()) {
+    if (transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
@@ -182,7 +182,7 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
                 relDeleteState.relIDVector);
         }
     }
-    if (transaction->shouldLogWAL()) {
+    if (transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();

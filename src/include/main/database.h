@@ -65,7 +65,7 @@ struct KUZU_API SystemConfig {
      */
     explicit SystemConfig(uint64_t bufferPoolSize = -1u, uint64_t maxNumThreads = 0,
         bool enableCompression = true, bool readOnly = false, uint64_t maxDBSize = -1u,
-        bool autoCheckpoint = true, uint64_t checkpointThreshold = 0);
+        bool autoCheckpoint = true, uint64_t checkpointThreshold = 16777216 /* 16MB */);
 
     uint64_t bufferPoolSize;
     uint64_t maxNumThreads;
@@ -84,8 +84,8 @@ class Database {
     friend class ClientContext;
     friend class Connection;
     friend class StorageDriver;
-    friend class kuzu::testing::BaseGraphTest;
-    friend class kuzu::testing::PrivateGraphTest;
+    friend class testing::BaseGraphTest;
+    friend class testing::PrivateGraphTest;
     friend class transaction::TransactionContext;
     friend struct extension::ExtensionUtils;
 

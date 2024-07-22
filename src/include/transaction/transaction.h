@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/enums/statement_type.h"
 #include "common/types/timestamp_t.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/undo_buffer.h"
@@ -38,13 +39,14 @@ public:
 
     explicit Transaction(TransactionType transactionType) noexcept
         : type{transactionType}, ID{DUMMY_TRANSACTION_ID}, startTS{DUMMY_START_TIMESTAMP},
-          commitTS{common::INVALID_TRANSACTION}, clientContext{nullptr}, undoBuffer{nullptr} {
+          commitTS{common::INVALID_TRANSACTION}, clientContext{nullptr}, undoBuffer{nullptr},
+          forceCheckpoint{false} {
         currentTS = common::Timestamp::getCurrentTimestamp().value;
     }
     explicit Transaction(TransactionType transactionType, common::transaction_t ID,
         common::transaction_t startTS) noexcept
         : type{transactionType}, ID{ID}, startTS{startTS}, commitTS{common::INVALID_TRANSACTION},
-          clientContext{nullptr}, undoBuffer{nullptr} {
+          clientContext{nullptr}, undoBuffer{nullptr}, forceCheckpoint{false} {
         currentTS = common::Timestamp::getCurrentTimestamp().value;
     }
 
@@ -59,10 +61,20 @@ public:
     int64_t getCurrentTS() const { return currentTS; }
     main::ClientContext* getClientContext() const { return clientContext; }
 
+    void checkForceCheckpoint(common::StatementType statementType) {
+        // Note: We always force checkpoint for COPY_FROM statement.
+        if (statementType == common::StatementType::COPY_FROM) {
+            forceCheckpoint = true;
+        }
+    }
     bool shouldAppendToUndoBuffer() const {
         return getID() > DUMMY_TRANSACTION_ID && !isReadOnly();
     }
-    bool shouldLogWAL() const { return !isRecovery(); }
+    bool shouldLogToWAL() const {
+        // When we are in recovery mode, we don't log to WAL.
+        return !isRecovery();
+    }
+    bool shouldForceCheckpoint() const { return forceCheckpoint; }
 
     void commit(storage::WAL* wal) const;
     void rollback() const;
@@ -99,6 +111,7 @@ private:
     main::ClientContext* clientContext;
     std::unique_ptr<storage::LocalStorage> localStorage;
     std::unique_ptr<storage::UndoBuffer> undoBuffer;
+    bool forceCheckpoint;
 
     std::unordered_map<common::table_id_t, common::offset_t> maxCommittedNodeOffsets;
 };

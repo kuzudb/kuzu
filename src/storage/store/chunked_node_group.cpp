@@ -54,8 +54,10 @@ void ChunkedNodeGroup::resetToAllNull() const {
 }
 
 void ChunkedNodeGroup::resetNumRowsFromChunks() {
+    KU_ASSERT(residencyState == ResidencyState::ON_DISK);
     KU_ASSERT(!chunks.empty());
     numRows = getColumnChunk(0).getNumValues();
+    capacity = numRows;
     for (auto i = 1u; i < getNumColumns(); i++) {
         KU_ASSERT(numRows == getColumnChunk(i).getNumValues());
     }

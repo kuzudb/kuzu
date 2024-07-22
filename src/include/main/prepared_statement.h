@@ -44,6 +44,8 @@ public:
         return parameterMap;
     }
 
+    common::StatementType getStatementType();
+
     KUZU_API ~PreparedStatement();
 
 private:

@@ -16,7 +16,7 @@ namespace transaction {
 Transaction::Transaction(main::ClientContext& clientContext, TransactionType transactionType,
     common::transaction_t transactionID, common::transaction_t startTS)
     : type{transactionType}, ID{transactionID}, startTS{startTS},
-      commitTS{common::INVALID_TRANSACTION} {
+      commitTS{common::INVALID_TRANSACTION}, forceCheckpoint{false} {
     this->clientContext = &clientContext;
     localStorage = std::make_unique<storage::LocalStorage>(clientContext);
     undoBuffer = std::make_unique<storage::UndoBuffer>(this);

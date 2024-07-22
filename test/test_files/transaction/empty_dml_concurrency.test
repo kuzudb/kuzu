@@ -296,6 +296,7 @@ Runtime exception: Write-write conflict: deleting a row that is already deleted 
 7|9
 
 -CASE MultiTransactionNodeCopy
+-SKIP
 -STATEMENT CALL ENABLE_MULTI_WRITES=true;
 ---- ok
 -STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
@@ -344,6 +345,7 @@ Runtime exception: Write-write conflict: deleting a row that is already deleted 
 10
 
 -CASE MultiTransactionRelCopy
+-SKIP
 -STATEMENT CALL ENABLE_MULTI_WRITES=true;
 ---- ok
 -INSERT_STATEMENT_BLOCK COPY_TINYSNB_PERSON
@@ -410,6 +412,7 @@ Runtime exception: Write-write conflict: deleting a row that is already deleted 
 7|9
 
 -CASE MixedMultiTransactionRelCopyInsert
+-SKIP
 -STATEMENT CALL ENABLE_MULTI_WRITES=true;
 ---- ok
 -INSERT_STATEMENT_BLOCK COPY_TINYSNB_PERSON

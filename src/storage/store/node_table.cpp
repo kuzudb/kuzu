@@ -158,7 +158,7 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
     localTable->insert(&DUMMY_TRANSACTION, insertState);
-    if (transaction->shouldLogWAL()) {
+    if (transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
@@ -196,7 +196,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
             ->update(transaction, rowIdxInGroup, nodeUpdateState.columnID,
                 nodeUpdateState.propertyVector);
     }
-    if (transaction->shouldLogWAL()) {
+    if (transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
@@ -226,7 +226,7 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
             nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         isDeleted = nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
     }
-    if (transaction->shouldLogWAL()) {
+    if (transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();

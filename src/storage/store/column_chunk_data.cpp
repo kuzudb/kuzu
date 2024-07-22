@@ -14,7 +14,6 @@
 #include "expression_evaluator/expression_evaluator.h"
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/compression/compression.h"
-#include "storage/store/column.h"
 #include "storage/store/list_chunk_data.h"
 #include "storage/store/string_chunk_data.h"
 #include "storage/store/struct_chunk_data.h"

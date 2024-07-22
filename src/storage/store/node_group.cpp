@@ -167,7 +167,7 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
     return NodeGroupScanResult{startRow, numRowsToScan};
 }
 
-bool NodeGroup::lookup(const common::UniqLock& lock, Transaction* transaction,
+bool NodeGroup::lookup(const UniqLock& lock, Transaction* transaction,
     const TableScanState& state) {
     idx_t numTuplesFound = 0;
     for (auto i = 0u; i < state.rowIdxVector->state->getSelVector().getSelSize(); i++) {
@@ -265,6 +265,7 @@ void NodeGroup::checkpoint(NodeGroupCheckpointState& state) {
         }
         std::vector<ChunkCheckpointState> chunkCheckpointStates;
         if (columnHasUpdates) {
+            // TODO(Guodong): Optimize this to scan only vectors with updates.
             const auto updateChunk =
                 scanCommitted<ResidencyState::ON_DISK>(lock, {columnID}, {state.columns[columnID]});
             KU_ASSERT(updateChunk->getNumRows() == numPersistentRows);
@@ -276,7 +277,7 @@ void NodeGroup::checkpoint(NodeGroupCheckpointState& state) {
                 numPersistentRows, numInsertedRows});
         ColumnCheckpointState columnCheckpointState(firstGroup->getColumnChunk(columnID).getData(),
             std::move(chunkCheckpointStates));
-        state.columns[columnID]->checkpointColumnChunk(columnCheckpointState);
+        state.columns[i]->checkpointColumnChunk(columnCheckpointState);
         firstGroup->getColumnChunk(columnID).resetUpdateInfo();
     }
     // Clear all chunked groups except for the first one.

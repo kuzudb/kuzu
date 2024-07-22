@@ -50,8 +50,7 @@ void TransactionManager::commit(main::ClientContext& clientContext) {
         wal.flushAllPages();
     }
     clearActiveWriteTransactionIfWriteTransactionNoLock(transaction);
-    if (clientContext.getDBConfig()->autoCheckpoint && !transaction->isRecovery() &&
-        canAutoCheckpoint(clientContext)) {
+    if (transaction->shouldForceCheckpoint() || canAutoCheckpoint(clientContext)) {
         checkpointNoLock(clientContext);
     }
 }
@@ -102,6 +101,12 @@ void TransactionManager::allowReceivingNewTransactions() {
 }
 
 bool TransactionManager::canAutoCheckpoint(const main::ClientContext& clientContext) const {
+    if (!clientContext.getDBConfig()->autoCheckpoint) {
+        return false;
+    }
+    if (clientContext.getTx()->isRecovery()) {
+        return false;
+    }
     const auto expectedSize =
         clientContext.getStorageManager()->getEstimatedMemoryUsage() + wal.getFileSize();
     return expectedSize > clientContext.getDBConfig()->checkpointThreshold;

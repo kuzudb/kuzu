@@ -493,13 +493,11 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
             resultFT =
                 localDatabase->queryProcessor->execute(physicalPlan.get(), executionContext.get());
         } else {
+            getTx()->checkForceCheckpoint(preparedStatement->getStatementType());
+            resultFT =
+                localDatabase->queryProcessor->execute(physicalPlan.get(), executionContext.get());
             if (this->transactionContext->isAutoTransaction()) {
-                resultFT = localDatabase->queryProcessor->execute(physicalPlan.get(),
-                    executionContext.get());
                 this->transactionContext->commit();
-            } else {
-                resultFT = localDatabase->queryProcessor->execute(physicalPlan.get(),
-                    executionContext.get());
             }
         }
     } catch (std::exception& e) {
