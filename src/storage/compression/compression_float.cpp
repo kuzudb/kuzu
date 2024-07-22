@@ -127,9 +127,10 @@ BitpackInfo<int64_t> FloatCompression<T>::getBitpackInfo(const CompressionMetada
 
 template<std::floating_point T>
 bool FloatCompression<T>::canUpdateInPlace(std::span<const T> value,
-    const CompressionMetadata& metadata, const std::optional<common::NullMask>& nullMask,
-    uint64_t nullMaskOffset) {
-    size_t exceptionCount = 0;
+    const CompressionMetadata& metadata,
+    CompressionMetadata::InPlaceUpdateLocalState& localUpdateState,
+    const std::optional<common::NullMask>& nullMask, uint64_t nullMaskOffset) {
+    size_t newExceptionCount = 0;
     std::vector<int64_t> encodedValues(value.size());
     const auto bitpackingInfo =
         decltype(encodedFloatBitpacker)::getPackingInfo(metadata.getChild(0));
@@ -144,14 +145,16 @@ bool FloatCompression<T>::canUpdateInPlace(std::span<const T> value,
         const double decodedValue = alp::AlpDecode<T>::decode_value(encodedValue,
             metadata.alpMetadata.fac, metadata.alpMetadata.exp);
         if (floatValue != decodedValue) {
-            ++exceptionCount;
+            ++newExceptionCount;
             encodedValues[i] = bitpackingInfo.offset;
         } else {
             encodedValues[i] = encodedValue;
         }
     }
-    const bool exceptionsOK = metadata.alpMetadata.exceptionCount + exceptionCount <=
-                              metadata.alpMetadata.exceptionCapacity;
+    localUpdateState.floatState.newExceptionCount += newExceptionCount;
+    const bool exceptionsOK =
+        metadata.alpMetadata.exceptionCount + localUpdateState.floatState.newExceptionCount <=
+        metadata.alpMetadata.exceptionCapacity;
 
     return exceptionsOK && decltype(encodedFloatBitpacker)::canUpdateInPlace(encodedValues,
                                metadata.getChild(0), nullMask, nullMaskOffset);

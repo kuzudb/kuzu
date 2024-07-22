@@ -493,7 +493,6 @@ private:
 
             if (newValue != decodedValue) {
                 exceptionsToAdd.emplace(newValue, writeOffset);
-                startExceptionIdxToSort = std::min(startExceptionIdxToSort, writeOffset);
             } else {
                 defaultReader->writeValuesToPage(metadata, numValuesPerPage, writeOffset, data,
                     readOffset, 1, writeFunc, nullMask);
@@ -529,9 +528,9 @@ private:
 
         metadata.compMeta.alpMetadata.exceptionCount =
             startExceptionIdxToSort + newExceptions.size();
+        KU_ASSERT(metadata.compMeta.alpMetadata.exceptionCount <=
+                  metadata.compMeta.alpMetadata.exceptionCapacity);
         exceptionChunk.getExceptionCount() = metadata.compMeta.alpMetadata.exceptionCount;
-        KU_ASSERT(
-            exceptionChunk.getExceptionCount() <= metadata.compMeta.alpMetadata.exceptionCapacity);
     }
 
     std::unique_ptr<DefaultColumnReader> defaultReader;

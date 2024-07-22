@@ -339,8 +339,9 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptions) {
             src[cpyOffset + i] = 5.7;
         }
 
+        CompressionMetadata::InPlaceUpdateLocalState localUpdateState;
         KU_ASSERT(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
-            numValuesToSet, dataType.getPhysicalType()));
+            numValuesToSet, dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(chunkMeta, numValuesPerPage, cpyOffset,
             (uint8_t*)src.data(), nullptr, cpyOffset, numValuesToSet,
             WriteCompressedValuesToPage(dataType));
@@ -378,8 +379,9 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptions) {
             src[cpyOffset + i] = src[cpyOffset + i - 2] + 1;
         }
 
+        CompressionMetadata::InPlaceUpdateLocalState localUpdateState;
         KU_ASSERT(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
-            numValuesToSet, dataType.getPhysicalType()));
+            numValuesToSet, dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(chunkMeta, numValuesPerPage, cpyOffset,
             (uint8_t*)src.data(), nullptr, cpyOffset, numValuesToSet,
             WriteCompressedValuesToPage(dataType));
@@ -416,8 +418,9 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptionsMultiPage) {
             src[cpyOffset + i] = 5.7;
         }
 
+        CompressionMetadata::InPlaceUpdateLocalState localUpdateState;
         KU_ASSERT(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
-            numValuesToSet, dataType.getPhysicalType()));
+            numValuesToSet, dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(chunkMeta, numValuesPerPage, cpyOffset,
             (uint8_t*)src.data(), nullptr, cpyOffset, numValuesToSet,
             WriteCompressedValuesToPage(dataType));
@@ -455,8 +458,9 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPage) {
             src[cpyOffset + i] = src[cpyOffset + i - 2] + 1;
         }
 
+        CompressionMetadata::InPlaceUpdateLocalState localUpdateState;
         KU_ASSERT(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
-            numValuesToSet, dataType.getPhysicalType()));
+            numValuesToSet, dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(chunkMeta, numValuesPerPage, cpyOffset,
             (uint8_t*)src.data(), nullptr, cpyOffset, numValuesToSet,
             WriteCompressedValuesToPage(dataType));
@@ -477,8 +481,9 @@ TEST_F(CompressChunkTest, TestInPlaceUpdateConstant) {
         [](ColumnReader*, transaction::Transaction*, ColumnChunkMetadata& chunkMeta, uint64_t,
             const LogicalType& dataType) {
             double newVal = -1;
+            CompressionMetadata::InPlaceUpdateLocalState localUpdateState;
             EXPECT_FALSE(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)&newVal, 0, 1,
-                dataType.getPhysicalType()));
+                dataType.getPhysicalType(), localUpdateState));
         });
 }
 
@@ -500,8 +505,9 @@ TEST_F(CompressChunkTest, TestFloatBeforeInPlaceUpdateManyExceptionsNoCompress) 
             src[i] = i + 0.01;
         }
 
+        CompressionMetadata::InPlaceUpdateLocalState localUpdateState;
         KU_ASSERT(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
-            numValuesToSet, dataType.getPhysicalType()));
+            numValuesToSet, dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(chunkMeta, numValuesPerPage, cpyOffset,
             (uint8_t*)src.data(), nullptr, cpyOffset, numValuesToSet,
             WriteCompressedValuesToPage(dataType));

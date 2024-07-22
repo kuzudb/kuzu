@@ -162,7 +162,8 @@ bool CompressionMetadata::canAlwaysUpdateInPlace() const {
 }
 
 bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos, uint64_t numValues,
-    PhysicalTypeID physicalType, const std::optional<NullMask>& nullMask) const {
+    PhysicalTypeID physicalType, InPlaceUpdateLocalState& localUpdateState,
+    const std::optional<NullMask>& nullMask) const {
     if (canAlwaysUpdateInPlace()) {
         return true;
     }
@@ -205,7 +206,8 @@ bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos, ui
             physicalType,
             [&]<std::floating_point T>(T) {
                 auto values = std::span<const T>(reinterpret_cast<const T*>(data) + pos, numValues);
-                return FloatCompression<T>::canUpdateInPlace(values, *this, std::move(nullMask));
+                return FloatCompression<T>::canUpdateInPlace(values, *this, localUpdateState,
+                    std::move(nullMask));
             },
             [&](auto) {
                 throw common::StorageException(

@@ -221,10 +221,11 @@ bool StringColumn::canIndexCommitInPlace(const ChunkState& state, uint64_t numSt
     }
     const auto totalStringsAfterUpdate =
         getChildState(state, ChildStateIndex::OFFSET).metadata.numValues + numStrings;
+    CompressionMetadata::InPlaceUpdateLocalState localUpdateState;
     // Check if the index column can store the largest new index in-place
     if (!indexState.metadata.compMeta.canUpdateInPlace(
             reinterpret_cast<const uint8_t*>(&totalStringsAfterUpdate), 0 /*pos*/, 1 /*numValues*/,
-            PhysicalTypeID::UINT32)) {
+            PhysicalTypeID::UINT32, localUpdateState)) {
         return false;
     }
     return true;

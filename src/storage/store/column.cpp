@@ -375,21 +375,6 @@ PageCursor Column::getPageCursorForOffsetInGroup(offset_t offsetInChunk, const C
     return pageCursor;
 }
 
-void Column::updatePageWithCursor(PageCursor cursor,
-    const std::function<void(uint8_t*, offset_t)>& writeOp) const {
-    bool insertingNewPage = false;
-    if (cursor.pageIdx == INVALID_PAGE_IDX) {
-        return writeOp(nullptr, cursor.elemPosInPage);
-    }
-    if (cursor.pageIdx >= dataFH->getNumPages()) {
-        KU_ASSERT(cursor.pageIdx == dataFH->getNumPages());
-        DBFileUtils::insertNewPage(*dataFH, dbFileID, *bufferManager, *shadowFile);
-        insertingNewPage = true;
-    }
-    DBFileUtils::updatePage(*dataFH, dbFileID, cursor.pageIdx, insertingNewPage, *bufferManager,
-        *shadowFile, [&](auto frame) { writeOp(frame, cursor.elemPosInPage); });
-}
-
 bool Column::isMaxOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
     offset_t maxOffset) const {
     if (metadata.compMeta.compression != CompressionType::CONSTANT &&
@@ -456,9 +441,11 @@ bool Column::canCheckpointInPlace(const ChunkState& state,
     for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
         auto& chunkData = chunkCheckpointState.chunkData;
         KU_ASSERT(chunkData->getNumValues() == chunkCheckpointState.numRows);
+        CompressionMetadata::InPlaceUpdateLocalState localUpdateState;
         if (chunkData->getNumValues() != 0 &&
             !state.metadata.compMeta.canUpdateInPlace(chunkData->getData(), 0,
-                chunkData->getNumValues(), dataType.getPhysicalType(), chunkData->getNullMask())) {
+                chunkData->getNumValues(), dataType.getPhysicalType(), localUpdateState,
+                chunkData->getNullMask())) {
             return false;
         }
     }

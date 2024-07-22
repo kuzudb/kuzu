@@ -129,6 +129,12 @@ struct ALPMetadata {
 
 // Data statistics used for determining how to handle compressed data
 struct CompressionMetadata {
+    struct InPlaceUpdateLocalState {
+        struct FloatState {
+            size_t newExceptionCount;
+        } floatState;
+    };
+
     // Minimum and maximum are upper and lower bounds for the data.
     // Updates and deletions may cause them to no longer be the exact minimums and maximums,
     // but no value will be larger than the maximum or smaller than the minimum
@@ -174,7 +180,7 @@ struct CompressionMetadata {
     // Returns true if and only if the provided value within the vector can be updated
     // in this chunk in-place.
     bool canUpdateInPlace(const uint8_t* data, uint32_t pos, uint64_t numValues,
-        common::PhysicalTypeID physicalType,
+        common::PhysicalTypeID physicalType, InPlaceUpdateLocalState& localUpdateState,
         const std::optional<common::NullMask>& nullMask = std::nullopt) const;
     bool canAlwaysUpdateInPlace() const;
 

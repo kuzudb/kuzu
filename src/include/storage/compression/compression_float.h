@@ -47,6 +47,7 @@ public:
         const struct CompressionMetadata& metadata) const final;
 
     static bool canUpdateInPlace(std::span<const T> value, const CompressionMetadata& metadata,
+        CompressionMetadata::InPlaceUpdateLocalState& localUpdateState,
         const std::optional<common::NullMask>& nullMask = std::nullopt,
         uint64_t nullMaskOffset = 0);
 
