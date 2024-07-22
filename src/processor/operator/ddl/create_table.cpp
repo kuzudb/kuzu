@@ -55,7 +55,8 @@ std::string CreateTablePrintInfo::toString() const {
             result += createInfo.tableName;
             result += ", ";
         }
-        auto* groupTableInfo = relGroupInfo->infos[0].extraInfo->ptrCast<binder::BoundExtraCreateTableInfo>();
+        auto* groupTableInfo =
+            relGroupInfo->infos[0].extraInfo->ptrCast<binder::BoundExtraCreateTableInfo>();
         result += "Properties: ";
         for (auto& prop : groupTableInfo->propertyInfos) {
             result += prop.name;

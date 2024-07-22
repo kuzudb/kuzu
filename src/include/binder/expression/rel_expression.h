@@ -111,7 +111,7 @@ public:
     std::string expressionToString() const {
         std::string result = toString();
         switch (relType) {
-        case common::QueryRelType::SHORTEST : {
+        case common::QueryRelType::SHORTEST: {
             result += "SHORTEST";
         } break;
         case common::QueryRelType::ALL_SHORTEST: {
