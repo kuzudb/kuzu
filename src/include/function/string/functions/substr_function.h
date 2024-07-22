@@ -11,7 +11,6 @@ namespace function {
 
 struct SubStr {
 public:
-
     static inline void operation(common::ku_string_t& src, int64_t start, int64_t len,
         common::ku_string_t& result, common::ValueVector& resultValueVector) {
         std::string srcStr = src.getAsString();
